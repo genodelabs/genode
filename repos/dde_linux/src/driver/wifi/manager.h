@@ -161,11 +161,6 @@ struct Accesspoint : Interface
 	Pass     pass    { };
 	unsigned quality { 0 };
 
-	/*
-	 * Internal configuration fields
-	 */
-	bool auto_connect  { false };
-
 	static Accesspoint from_xml(Xml_node const &node)
 	{
 		Accesspoint ap { };
@@ -173,9 +168,8 @@ struct Accesspoint : Interface
 		ap.ssid  = node.attribute_value("ssid",  Accesspoint::Ssid());
 		ap.bssid = node.attribute_value("bssid", Accesspoint::Bssid());
 
-		ap.pass          = node.attribute_value("passphrase", Accesspoint::Pass(""));
-		ap.prot          = node.attribute_value("protection", Accesspoint::Prot("NONE"));
-		ap.auto_connect  = node.attribute_value("auto_connect", true);
+		ap.pass = node.attribute_value("passphrase", Accesspoint::Pass(""));
+		ap.prot = node.attribute_value("protection", Accesspoint::Prot("NONE"));
 
 		return ap;
 	}
@@ -216,8 +210,7 @@ struct Accesspoint : Interface
 		                   "BSSID: '",        bssid, "'", " "
 		                   "protection: ",    prot, " "
 		                   "id: ",            id, " "
-		                   "quality: ",       quality, " "
-		                   "auto_connect: ",  auto_connect);
+		                   "quality: ",       quality);
 	}
 
 	bool wpa()    const { return prot != "NONE"; }
@@ -228,17 +221,15 @@ struct Accesspoint : Interface
 	{
 		bool const update = ((Accesspoint::valid(other.bssid) && other.bssid != bssid)
 		                 || pass          != other.pass
-		                 || prot          != other.prot
-		                 || auto_connect  != other.auto_connect);
+		                 || prot          != other.prot);
 		if (!update)
 			return false;
 
 		if (Accesspoint::valid(other.bssid))
 			bssid = other.bssid;
 
-		pass          = other.pass;
-		prot          = other.prot;
-		auto_connect  = other.auto_connect;
+		pass = other.pass;
+		prot = other.prot;
 		return true;
 	}
 };
@@ -488,11 +479,8 @@ struct Add_network_cmd : Action
 			_state = State::FILL_NETWORK_PSK;
 			break;
 		case State::FILL_NETWORK_PSK:
-			if (_accesspoint.auto_connect) {
-				ctrl_cmd(_msg, Cmd("ENABLE_NETWORK ", _accesspoint.id));
-				_state = State::ENABLE_NETWORK;
-			} else
-				_state = State::COMPLETE;
+			ctrl_cmd(_msg, Cmd("ENABLE_NETWORK ", _accesspoint.id));
+			_state = State::ENABLE_NETWORK;
 			break;
 		case State::ENABLE_NETWORK:
 			_state = State::COMPLETE;
@@ -643,12 +631,12 @@ struct Remove_network_cmd : Action
 /*
  * Action for updating a network
  *
- * For now only the PSK is updated and depending on the
- * auto_connect configuration the network will also be
- * enabled to allow for auto-join after the alteration.
+ * For now only the PSK is updated.
  */
 struct Update_network_cmd : Action
 {
+	enum class Op : unsigned {
+		UPDATE_ALL, DISABLE_ONLY };
 	enum class State : unsigned {
 		INIT, UPDATE_NETWORK_PSK,
 		DISABLE_NETWORK, ENABLE_NETWORK, COMPLETE
@@ -656,13 +644,17 @@ struct Update_network_cmd : Action
 	Ctrl_msg_buffer &_msg;
 	Accesspoint      _accesspoint;
 	State            _state;
+	Op               _op;
 
-	Update_network_cmd(Ctrl_msg_buffer &msg, Accesspoint const &ap)
+	Update_network_cmd(Ctrl_msg_buffer   &msg,
+	                   Accesspoint const &ap,
+	                   Op                 op = Op::UPDATE_ALL)
 	:
 		Action       { Command::UPDATE },
 		_msg         { msg },
 		_accesspoint { ap },
-		_state       { State::INIT }
+		_state       { State::INIT },
+		_op          { op }
 	{ }
 
 	void print(Output &out) const override
@@ -685,12 +677,11 @@ struct Update_network_cmd : Action
 			_state = State::DISABLE_NETWORK;
 			break;
 		case State::DISABLE_NETWORK:
-			if (_accesspoint.auto_connect) {
+			if (_op != Op::DISABLE_ONLY) {
 				ctrl_cmd(_msg, Cmd("ENABLE_NETWORK ", _accesspoint.id));
 				_state = State::ENABLE_NETWORK;
-			} else {
+			} else
 				_state = State::COMPLETE;
-			}
 			break;
 		case State::ENABLE_NETWORK:
 			_state  = State::COMPLETE;
@@ -1867,12 +1858,12 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 
 	Join_state _join { };
 
-	bool _single_autoconnect() const
+	bool _single_network() const
 	{
 		unsigned count = 0;
 		_network_list.for_each([&] (Network const &network) {
 			network.with_accesspoint([&] (Accesspoint const &ap) {
-				count += ap.auto_connect; }); });
+				++count; }); });
 		return count == 1;
 	}
 
@@ -1929,7 +1920,7 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 				 * as we do not have the available accesspoints at hand to compare
 				 * that.
 				 */
-				if ((_join.state == Join_state::State::CONNECTING) && _single_autoconnect()) {
+				if ((_join.state == Join_state::State::CONNECTING) && _single_network()) {
 
 					/*
 					 * Ignore the event for a while as it may happen that hidden
@@ -1997,10 +1988,11 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 						 * again. At this point intervention by the management
 						 * component is needed.
 						 */
-						ap.auto_connect = false;
 
 						_queue_action(*new (_actions_alloc)
-							Update_network_cmd(_msg, ap), _config.verbose);
+							Update_network_cmd(_msg, ap,
+							                   Update_network_cmd::Op::DISABLE_ONLY),
+							_config.verbose);
 					});
 				});
 			} else
@@ -2102,7 +2094,7 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 							Remove_network_cmd(_msg, added_ap.id), _config.verbose);
 					} else
 
-					if (handled && _single_autoconnect())
+					if (handled && _single_network())
 						/*
 						 * To accomodate a management component that only deals
 						 * with one network, e.g. the sculpt_manager, generate a

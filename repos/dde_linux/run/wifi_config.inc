@@ -31,15 +31,15 @@ proc wifi_verbose { } {
 # You may script your tests with this function in the dynamic_rom config below.
 # The syntax for the networks parameter is
 #
-#   { ssid protection passphrase auto_connect explicit_scan }
+#   { ssid protection passphrase explicit_scan }
 #
 # Example dynamic_rom config:
 #
-#   {<inline description="auto-connect both networks">
-#   } [wifi_config 5 no [list "net1 WPA2 net1_psk yes no" "net2 WPA2 net2_psk yes no"]] {
+#   {<inline description="connect to two networks">
+#   } [wifi_config 5 no [list "net1 WPA2 net1_psk no" "net2 WPA2 net2_psk no"]] {
 #   </inline>
-#   <inline description="aquto-connect both, but net2 explicitly">
-#   } [wifi_config 5 no [list "net1 WPA2 net1_psk yes no" "net2 WPA2 net2_psk yes yes"]] {
+#   <inline description="connect to two netowrks, but net2 is hidden">
+#   } [wifi_config 5 no [list "net1 WPA2 net1_psk no" "net2 WPA2 net2_psk yes"]] {
 #   </inline>}
 #
 
@@ -62,7 +62,6 @@ proc wifi_config { scan_interval update_quality_interval rfkill networks } {
 		append config " ssid=\"[lindex $n 0]\""
 		append config " protection=\"[lindex $n 1]\""
 		append config " passphrase=\"[lindex $n 2]\""
-		append config " auto_connect=\"[lindex $n 3]\""
 		append config "/>\n"
 	}
 	append config "</wifi_config>\n"

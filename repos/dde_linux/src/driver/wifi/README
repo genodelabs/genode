@@ -117,9 +117,10 @@ node features the following attributes.
 * :verbose: allows for logging of diagnostic messages generated
   by the managing portion of the driver. The default is 'false'.
 
-Besides those attributes the '<wifi_config>' node can host one or
-more '<network>' nodes. Such a node describes the parameters of
-a network and has the following attributes.
+Besides those attributes the '<wifi_config>' node can host '<network>'
+nodes. Such a node describes the parameters of a network and its
+existence implies the intent to join the network. It has the following
+attributes.
 
 * :ssid: sets the name of the network.
 
@@ -140,16 +141,11 @@ a network and has the following attributes.
 * :passphrase: sets the PSK that is required should the
   network be protected.
 
-* :auto_connect: allows for joining a network automatically. The
-  default value is 'true'. When more than one network is configured
-  with enabled 'auto_connect' the driver will try to select the best
-  one it gets a response from.
-
-  Note:  If configured auto-connect networks overlap in locality, the
-         driver might switch dynamically between the networks.
-
 Of all attributes solely the 'ssid' attribute is mandatory and all
 others are optional. They should be used when needed only.
+
+Note:  If configured networks overlap in locality, the driver might
+       switch dynamically between these networks.
 
 To scan for a hidden network a '<explicit_scan>' node must by added.
 It contains the following mandatory attribute.
@@ -165,7 +161,6 @@ while the second one is hidden but should show up in the scan results.
 
 !<wifi_config scan_interval="10" update_quality_interval="30">
 !  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"
-!           auto_connect="true"/>
 !  <explicit_scan ssid="Skynet"/>
 !</wifi_config>
 

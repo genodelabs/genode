@@ -179,15 +179,15 @@ append config {
 				</inline>
 				<sleep milliseconds="15000"/>
 				<inline description="connect">
-} [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes no "]] {
+} [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] no"]] {
 				</inline>
 				<sleep milliseconds="60000"/>
 				<inline description="rfkill block">
-} [wifi_config 5 10 yes [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes no "]] {
+} [wifi_config 5 10 yes [list "[wifi_ssid] [wifi_wpa] [wifi_psk] no"]] {
 				</inline>
 				<sleep milliseconds="30000"/>
 				<inline description="rfkill unblock">
-} [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] yes no "]] {
+} [wifi_config 5 10 no [list "[wifi_ssid] [wifi_wpa] [wifi_psk] no"]] {
 				</inline>
 				<sleep milliseconds="30000"/>
 			</rom>
