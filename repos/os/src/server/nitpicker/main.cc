@@ -997,7 +997,7 @@ void Nitpicker::Main::_handle_config()
 	configure_reporter(config, _clicked_reporter);
 	configure_reporter(config, _displays_reporter);
 
-	_apply_capture_config();
+	capture_client_appeared_or_disappeared();
 
 	/* update domain registry and session policies */
 	for (Gui_session *s = _session_list.first(); s; s = s->next())
