@@ -55,12 +55,14 @@ proc wifi_config { scan_interval update_quality_interval rfkill networks } {
 	append config " rfkill=\"$rfkill\""
 	append config ">\n"
 	foreach n $networks {
+		if {[lindex $n 4] == "yes"} {
+			append config " <explicit_scan ssid=\"[lindex $n 0]\"/>\n"
+		}
 		append config "  <network"
 		append config " ssid=\"[lindex $n 0]\""
 		append config " protection=\"[lindex $n 1]\""
 		append config " passphrase=\"[lindex $n 2]\""
 		append config " auto_connect=\"[lindex $n 3]\""
-		append config " explicit_scan=\"[lindex $n 4]\""
 		append config "/>\n"
 	}
 	append config "</wifi_config>\n"

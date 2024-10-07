@@ -148,25 +148,28 @@ a network and has the following attributes.
   Note:  If configured auto-connect networks overlap in locality, the
          driver might switch dynamically between the networks.
 
-* :explicit_scan: must be set to explicitly scan for hidden networks.
-  The default is 'false' and it should only be set for networks
-  that are hidden indeed.
-
 Of all attributes solely the 'ssid' attribute is mandatory and all
 others are optional. They should be used when needed only.
 
+To scan for a hidden network a '<explicit_scan>' node must by added.
+It contains the following mandatory attribute.
+
+* :ssid: set the name of the hidden network to scan for
+
+  Note: the SSID is copied verbatim and at the moment, there is no way
+        to express or escape non alphanumeric characters.
+
 The following exemplary snippet showcases a config for two networks where
 the first one should be automatically considered for joining and uses 'WPA2'
-while the second one is hidden but should show up in the scan results and
-uses 'WPA'.
+while the second one is hidden but should show up in the scan results.
 
 !<wifi_config scan_interval="10" update_quality_interval="30">
 !  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"
 !           auto_connect="true"/>
-!  <network ssid="Skynet" protection="WPA" passphrase="12345678"
-!           explicit_scan="true"/>
+!  <explicit_scan ssid="Skynet"/>
 !</wifi_config>
 
+To join the hidden network a corresponding '<network>' is needed.
 
 The wifi driver uses two distinct reports, 'state' and 'accesspoints',
 to communicate its state of connectivity and information about the wireless

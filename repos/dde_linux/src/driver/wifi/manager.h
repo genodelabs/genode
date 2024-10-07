@@ -165,7 +165,6 @@ struct Accesspoint : Interface
 	 * Internal configuration fields
 	 */
 	bool auto_connect  { false };
-	bool explicit_scan { false };
 
 	static Accesspoint from_xml(Xml_node const &node)
 	{
@@ -177,7 +176,6 @@ struct Accesspoint : Interface
 		ap.pass          = node.attribute_value("passphrase", Accesspoint::Pass(""));
 		ap.prot          = node.attribute_value("protection", Accesspoint::Prot("NONE"));
 		ap.auto_connect  = node.attribute_value("auto_connect", true);
-		ap.explicit_scan = node.attribute_value("explicit_scan", false);
 
 		return ap;
 	}
@@ -219,8 +217,7 @@ struct Accesspoint : Interface
 		                   "protection: ",    prot, " "
 		                   "id: ",            id, " "
 		                   "quality: ",       quality, " "
-		                   "auto_connect: ",  auto_connect, " "
-		                   "explicit_scan: ", explicit_scan);
+		                   "auto_connect: ",  auto_connect);
 	}
 
 	bool wpa()    const { return prot != "NONE"; }
@@ -232,7 +229,6 @@ struct Accesspoint : Interface
 		bool const update = ((Accesspoint::valid(other.bssid) && other.bssid != bssid)
 		                 || pass          != other.pass
 		                 || prot          != other.prot
-		                 || explicit_scan != other.explicit_scan
 		                 || auto_connect  != other.auto_connect);
 		if (!update)
 			return false;
@@ -243,7 +239,6 @@ struct Accesspoint : Interface
 		pass          = other.pass;
 		prot          = other.prot;
 		auto_connect  = other.auto_connect;
-		explicit_scan = other.explicit_scan;
 		return true;
 	}
 };
@@ -273,6 +268,37 @@ struct Network : List_model<Network>::Element
 
 	bool matches(Xml_node const &node) {
 		return _accesspoint.ssid == node.attribute_value("ssid", Accesspoint::Ssid()); }
+};
+
+
+struct Explicit_scan : List_model<Explicit_scan>::Element
+{
+
+	Accesspoint::Ssid _ssid { };
+
+	Explicit_scan(Accesspoint::Ssid const &ssid) : _ssid { ssid } { }
+
+	virtual ~Explicit_scan() { }
+
+	void with_ssid(auto const &fn) {
+		if (Accesspoint::valid(_ssid))
+			fn(_ssid);
+	}
+
+	void with_ssid(auto const &fn) const {
+		if (Accesspoint::valid(_ssid))
+			fn(_ssid);
+	}
+
+	/**************************
+	 ** List_model interface **
+	 **************************/
+
+	static bool type_matches(Xml_node const &node) {
+		return node.has_type("explicit_scan"); }
+
+	bool matches(Xml_node const &node) {
+		return _ssid == node.attribute_value("ssid", Accesspoint::Ssid()); }
 };
 
 
@@ -393,7 +419,7 @@ struct Add_network_cmd : Action
 	enum class State : unsigned {
 		INIT, ADD_NETWORK, FILL_NETWORK_SSID, FILL_NETWORK_BSSID,
 		FILL_NETWORK_KEY_MGMT, SET_NETWORK_PMF, FILL_NETWORK_PSK,
-		SET_SCAN_SSID, ENABLE_NETWORK, COMPLETE
+		ENABLE_NETWORK, COMPLETE
 	};
 
 	Ctrl_msg_buffer &_msg;
@@ -462,12 +488,6 @@ struct Add_network_cmd : Action
 			_state = State::FILL_NETWORK_PSK;
 			break;
 		case State::FILL_NETWORK_PSK:
-			ctrl_cmd(_msg, Cmd("SET_NETWORK ", _accesspoint.id,
-			                       " scan_ssid ",
-			                       _accesspoint.explicit_scan ? "1" : "0"));
-			_state = State::SET_SCAN_SSID;
-			break;
-		case State::SET_SCAN_SSID:
 			if (_accesspoint.auto_connect) {
 				ctrl_cmd(_msg, Cmd("ENABLE_NETWORK ", _accesspoint.id));
 				_state = State::ENABLE_NETWORK;
@@ -508,7 +528,6 @@ struct Add_network_cmd : Action
 		case State::FILL_NETWORK_KEY_MGMT: [[fallthrough]];
 		case State::SET_NETWORK_PMF:       [[fallthrough]];
 		case State::FILL_NETWORK_PSK:      [[fallthrough]];
-		case State::SET_SCAN_SSID:         [[fallthrough]];
 		case State::ENABLE_NETWORK:
 			if (!cmd_successful(msg)) {
 				error("ADD_NETWORK(", (unsigned)_state, ") failed: ", msg);
@@ -538,7 +557,6 @@ struct Add_network_cmd : Action
 		case State::FILL_NETWORK_KEY_MGMT: break;
 		case State::SET_NETWORK_PMF:       break;
 		case State::FILL_NETWORK_PSK:      break;
-		case State::SET_SCAN_SSID:         break;
 		case State::ENABLE_NETWORK:        break;
 		case State::COMPLETE:              break;
 		}
@@ -633,8 +651,7 @@ struct Update_network_cmd : Action
 {
 	enum class State : unsigned {
 		INIT, UPDATE_NETWORK_PSK,
-		DISABLE_NETWORK, SET_SCAN_SSID,
-		ENABLE_NETWORK, COMPLETE
+		DISABLE_NETWORK, ENABLE_NETWORK, COMPLETE
 	};
 	Ctrl_msg_buffer &_msg;
 	Accesspoint      _accesspoint;
@@ -665,12 +682,6 @@ struct Update_network_cmd : Action
 			break;
 		case State::UPDATE_NETWORK_PSK:
 			ctrl_cmd(_msg, Cmd("DISABLE_NETWORK ", _accesspoint.id));
-			_state = State::SET_SCAN_SSID;
-			break;
-		case State::SET_SCAN_SSID:
-			ctrl_cmd(_msg, Cmd("SET_NETWORK ", _accesspoint.id,
-			                       " scan_ssid ",
-			                       _accesspoint.explicit_scan ? "1" : "0"));
 			_state = State::DISABLE_NETWORK;
 			break;
 		case State::DISABLE_NETWORK:
@@ -698,7 +709,6 @@ struct Update_network_cmd : Action
 		case State::INIT: break;
 		case State::UPDATE_NETWORK_PSK: [[fallthrough]];
 		case State::ENABLE_NETWORK:     [[fallthrough]];
-		case State::SET_SCAN_SSID:      [[fallthrough]];
 		case State::DISABLE_NETWORK:
 			if (!cmd_successful(msg)) {
 				error("UPDATE_NETWORK(", (unsigned)_state, ") failed: ", msg);
@@ -729,6 +739,10 @@ struct Scan_cmd : Action
 	Ctrl_msg_buffer &_msg;
 	State            _state;
 
+	/* enough to store 64 hidden networks */
+	char ssid_buffer[4060] { };
+	size_t buffer_pos { 0 };
+
 	Scan_cmd(Ctrl_msg_buffer &msg)
 	:
 		Action      { Command::SCAN },
@@ -741,11 +755,32 @@ struct Scan_cmd : Action
 		Genode::print(out, "Scan_cmd[", (unsigned)_state, "]");
 	}
 
+	void append_ssid(Accesspoint::Ssid const &ssid)
+	{
+		enum { SSID_ARG_LEN = 6 + 64, /* " ssid " + "a5a5a5a5..." */ };
+		/* silently ignore SSID */
+		if (buffer_pos + SSID_ARG_LEN >= sizeof(ssid_buffer))
+			return;
+
+		char ssid_hex[64+1] { };
+		char const *ssid_ptr = ssid.string();
+
+		for (size_t i = 0; i < ssid.length() - 1; i++) {
+			Util::byte2hex((ssid_hex + i * 2), ssid_ptr[i]);
+		}
+
+		Genode::String<SSID_ARG_LEN + 1> tmp(" ssid ", (char const*)ssid_hex);
+		size_t const tmp_len = tmp.length() - 1;
+
+		Genode::memcpy((ssid_buffer + buffer_pos), tmp.string(), tmp_len);
+		buffer_pos += tmp_len;
+	}
+
 	void execute() override
 	{
 		switch (_state) {
 		case State::INIT:
-			ctrl_cmd(_msg, Cmd("SCAN"));
+			ctrl_cmd(_msg, Cmd("SCAN ", (char const*)ssid_buffer));
 			_state = State::SCAN;
 			break;
 		case State::SCAN:
@@ -1252,6 +1287,11 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 	Heap                _network_allocator;
 	List_model<Network> _network_list { };
 
+	/* Explicit_scan handling */
+
+	Heap                      _explicit_scan_allocator;
+	List_model<Explicit_scan> _explicit_scan_list { };
+
 	/*
 	 * Action queue handling
 	 */
@@ -1535,6 +1575,31 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 				});
 			});
 
+		_explicit_scan_list.update_from_xml(config_node,
+
+			[&] (Genode::Xml_node const &node) -> Explicit_scan & {
+				Accesspoint::Ssid const ssid =
+					node.attribute_value("ssid", Accesspoint::Ssid());
+
+				/*
+				 * Always created the Explicit_scan object but ignore
+				 * invalid ones during SCAN operation to satisfy the
+				 * List_model requirements.
+				 */
+				return *new (_explicit_scan_allocator) Explicit_scan(ssid);
+			},
+			[&] (Explicit_scan &explicit_scan) {
+				Genode::destroy(_explicit_scan_allocator,
+				                &explicit_scan);
+			},
+			[&] (Explicit_scan &explicit_scan, Genode::Xml_node const &node) {
+				/*
+				 * Intentionally left empty as we never have to update the
+				 * object as it only contains the SSID that also serves as
+				 * identifier.
+				 */
+			});
+
 		_dispatch_action_if_needed();
 	}
 
@@ -1623,7 +1688,13 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 			return;
 		}
 
-		_queue_action(*new (_actions_alloc) Scan_cmd(_msg), _config.verbose);
+		Scan_cmd &scan_cmd = *new (_actions_alloc) Scan_cmd(_msg);
+		_explicit_scan_list.for_each([&] (Explicit_scan const &explicit_scan) {
+			explicit_scan.with_ssid([&] (Accesspoint::Ssid const &ssid) {
+				scan_cmd.append_ssid(ssid);
+			});
+		});
+		_queue_action(scan_cmd, _config.verbose);
 
 		_dispatch_action_if_needed();
 	}
@@ -2071,6 +2142,7 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 	Manager(Env &env)
 	:
 		_network_allocator(env.ram(), env.rm()),
+		_explicit_scan_allocator(env.ram(), env.rm()),
 		_actions_alloc(env.ram(), env.rm()),
 		_cmd_handler(env.ep(),    *this, &Wifi::Manager::_handle_cmds),
 		_events_handler(env.ep(), *this, &Wifi::Manager::_handle_events),
