@@ -25,7 +25,7 @@ install_config {
 			<policy label_prefix="textedit2" root="/" writeable="yes" />
 		</config>
 	</start>
-	<start name="textedit" caps="300">
+	<start name="textedit" caps="350">
 		<resource name="RAM" quantum="70M"/>
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
@@ -49,7 +49,7 @@ install_config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="textedit2" caps="300">
+	<start name="textedit2" caps="350">
 		<binary name="textedit" />
 		<resource name="RAM" quantum="70M"/>
 		<config>
