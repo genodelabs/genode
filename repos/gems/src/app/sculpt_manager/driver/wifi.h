@@ -97,7 +97,7 @@ struct Sculpt::Wifi_driver : private Noncopyable
 		                  && !board_info.options.suspending;
 
 		_wifi.conditional(use_wifi, registry, "wifi", Priority::DEFAULT,
-		                  Ram_quota { 16*1024*1024 }, Cap_quota { 250 });
+		                  Ram_quota { 16*1024*1024 }, Cap_quota { 260 });
 	}
 };
 
