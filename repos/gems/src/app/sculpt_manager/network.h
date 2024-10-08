@@ -176,14 +176,6 @@ struct Sculpt::Network : Noncopyable
 
 			xml.attribute("verbose", false);
 			xml.attribute("log_level", "error");
-
-			xml.node("network", [&]() {
-				/* generate attributes to ease subsequent manual tweaking */
-				xml.attribute("ssid", "");
-				xml.attribute("protection", "NONE");
-				xml.attribute("passphrase", "");
-				xml.attribute("auto_connect", false);
-			});
 		});
 
 		_runtime_config_generator.generate_runtime_config();
