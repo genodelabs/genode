@@ -1,0 +1,20 @@
+--- a/src/virtualbox6/src/VBox/VMM/VMMR3/CPUMR3CpuId.cpp
++++ b/src/virtualbox6/src/VBox/VMM/VMMR3/CPUMR3CpuId.cpp
+@@ -4358,7 +4358,7 @@
+      * the default is to only do this for VMs with nested paging and AMD-V or
+      * unrestricted guest mode.
+      */
+-    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "RDRAND", &pConfig->enmRdRand, fNestedPagingAndFullGuestExec);
++    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "RDRAND", &pConfig->enmRdRand, fEnforceHWusage);
+     AssertLogRelRCReturn(rc, rc);
+ 
+     /** @cfgm{/CPUM/IsaExts/RDSEED, isaextcfg, depends}
+@@ -4366,7 +4366,7 @@
+      * the default is to only do this for VMs with nested paging and AMD-V or
+      * unrestricted guest mode.
+      */
+-    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "RDSEED", &pConfig->enmRdSeed, fNestedPagingAndFullGuestExec);
++    rc = cpumR3CpuIdReadIsaExtCfg(pVM, pIsaExts, "RDSEED", &pConfig->enmRdSeed, fEnforceHWusage);
+     AssertLogRelRCReturn(rc, rc);
+ 
+     /** @cfgm{/CPUM/IsaExts/CLFLUSHOPT, isaextcfg, depends}

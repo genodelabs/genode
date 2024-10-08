@@ -15,3 +15,4 @@ sup_ioctl_query_func_size.patch
 disk_geometry.patch
 stack_size.patch
 avx.patch
+rdrand.patch
