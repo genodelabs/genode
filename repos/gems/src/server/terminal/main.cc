@@ -100,11 +100,18 @@ struct Terminal::Main : Character_consumer
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
+	Gui::Area _initial_mode { };
+
 	Gui::Rect _gui_window_rect()
 	{
 		return _gui.window().convert<Gui::Rect>(
 			[&] (Gui::Rect rect) { return rect; },
-			[&] (Gui::Undefined) { return Gui::Rect { { }, { 1, 1 } }; });
+			[&] (Gui::Undefined) {
+				Gui::Area const area =
+					_initial_mode.valid() ? _initial_mode
+					                      : Gui::Area { 1, 1 };
+				return Gui::Rect { { }, area };
+			});
 	}
 
 	void _handle_mode_change()
@@ -224,13 +231,13 @@ struct Terminal::Main : Character_consumer
 		_gui.input.sigh(_input_handler);
 		_gui.info_sigh(_mode_change_handler);
 
-		_win_rect = _gui_window_rect();
-
 		/* apply initial size from config, if provided */
 		_config.xml().with_optional_sub_node("initial", [&] (Xml_node const &initial) {
-			_win_rect.area = { initial.attribute_value("width",  _win_rect.w()),
-			                   initial.attribute_value("height", _win_rect.h()) };
+			_initial_mode = { initial.attribute_value("width",  _win_rect.w()),
+			                  initial.attribute_value("height", _win_rect.h()) };
 		});
+
+		_win_rect = _gui_window_rect();
 
 		_handle_config();
 
