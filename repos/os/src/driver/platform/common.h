@@ -68,6 +68,9 @@ class Driver::Common : Device_reporter,
 		Io_mmu_devices & io_mmu_devices() {
 			return _io_mmu_devices; }
 
+		Xml_node platform_info() {
+			return _platform_info.xml(); }
+
 		void announce_service();
 		void handle_config(Xml_node config);
 		void acquire_io_mmu_devices();
