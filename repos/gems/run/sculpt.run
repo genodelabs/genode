@@ -15,6 +15,7 @@ proc assert_platform_supported { } {
 	if {[have_board pc]}          return
 	if {[have_board imx8q_evk]}   return
 	if {[have_board mnt_reform2]} return
+	if {[have_board mnt_pocket]}  return
 	if {[have_board linux]}       return
 	if {[have_board pinephone]}   return
 
@@ -192,6 +193,21 @@ proc driver_routes { } {
 		<service name="ROM" label="usb.dtb">           <parent label="imx8m_usb_host-mnt_reform2.dtb"/> </service>
 		<service name="ROM" label="wifi.lib.so">       <parent label="imx8mq_wifi.lib.so"/> </service>
 		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mq_wifi_firmware.tar"/> </service>
+		<service name="I2c"> <child name="drivers"/> </service>
+	}
+
+	set result(mnt_pocket) {
+		<service name="ROM" label="fb">                <parent label="imx8mq_fb"/> </service>
+		<service name="ROM" label="fb.dtb">            <parent label="imx8mq_fb-mnt_pocket.dtb"/> </service>
+		<service name="ROM" label="mmc">               <parent label="imx8mq_sd_card"/> </service>
+		<service name="ROM" label="mmc.dtb">           <parent label="imx8mq_sd_card-mnt_pocket.dtb"/> </service>
+		<service name="ROM" label="nic">               <parent label="stmmac_nic"/> </service>
+		<service name="ROM" label="nic.dtb">           <parent label="stmmac_nic-mnt_pocket.dtb"/> </service>
+		<service name="ROM" label="usb">               <parent label="imx8m_usb_host"/> </service>
+		<service name="ROM" label="usb.dtb">           <parent label="imx8m_usb_host-mnt_pocket.dtb"/> </service>
+		<service name="ROM" label="wifi.dtb">          <parent label="wifi-mnt_pocket.dtb"/> </service>
+		<service name="ROM" label="wifi.lib.so">       <parent label="imx8mp_qcacld2_wifi.lib.so"/> </service>
+		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mp_qcacld2_wifi_firmware.tar"/> </service>
 		<service name="I2c"> <child name="drivers"/> </service>
 	}
 

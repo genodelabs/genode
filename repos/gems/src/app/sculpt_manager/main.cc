@@ -88,6 +88,7 @@ struct Sculpt::Main : Input_event_handler,
 		Build_info::from_xml(Attached_rom_dataspace(_env, "build_info").xml());
 
 	bool const _mnt_reform = (_build_info.board == "mnt_reform2");
+	bool const _mnt_pocket = (_build_info.board == "mnt_pocket");
 
 	Registry<Child_state> _child_states { };
 
@@ -279,13 +280,13 @@ struct Sculpt::Main : Input_event_handler,
 	 **********************/
 
 	Board_info::Soc _soc {
-		.fb    = _mnt_reform,
+		.fb    = _mnt_reform || _mnt_pocket,
 		.touch = false,
-		.wifi  = false, /* initialized via PCI */
-		.usb   = _mnt_reform,
-		.mmc   = _mnt_reform,
+		.wifi  = _mnt_pocket, /* initialized via PCI on Reform */
+		.usb   = _mnt_reform || _mnt_pocket,
+		.mmc   = _mnt_reform || _mnt_pocket,
 		.modem = false,
-		.nic   = _mnt_reform,
+		.nic   = _mnt_reform || _mnt_pocket,
 	};
 
 	Drivers _drivers { _env, _child_states, *this, *this };
@@ -293,10 +294,10 @@ struct Sculpt::Main : Input_event_handler,
 	Drivers::Resumed _resumed = _drivers.resumed();
 
 	Board_info::Options _driver_options {
-		.display = _mnt_reform,
+		.display = _mnt_reform || _mnt_pocket,
 		.usb_net = false,
 		.nic     = false,
-		.wifi    = false,
+		.wifi    = _mnt_pocket,
 		.suppress {},
 		.suspending = false,
 	};
