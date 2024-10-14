@@ -1,0 +1,15 @@
+Disable IRQ coalescing as it seems to not work properly in our
+port because at some point triggering interrupts stops altogether.
+In this case the netperf tests produce around 0.1(!) MBit/s of
+throughput.
+--- src/linux/drivers/net/ethernet/realtek/r8169_main.c
++++ src/linux/drivers/net/ethernet/realtek/r8169_main.c
+@@ -5374,7 +5374,7 @@
+ 	dev->hw_features |= NETIF_F_RXALL;
+ 	dev->hw_features |= NETIF_F_RXFCS;
+ 
+-	netdev_sw_irq_coalesce_default_on(dev);
++	// netdev_sw_irq_coalesce_default_on(dev);
+ 
+ 	/* configure chip for default features */
+ 	rtl8169_set_features(dev, dev->features);
