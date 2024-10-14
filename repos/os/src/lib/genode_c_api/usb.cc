@@ -1521,18 +1521,13 @@ Session_component * ::Root::_create_session(const char * args,
 {
 	Session_component * sc = nullptr;
 	try {
-		Session_label  const label  { session_label_from_args(args) };
-		Session_policy const policy { label, _config.xml()          };
+		Session_label const label { session_label_from_args(args) };
 
 		sc = new (md_alloc())
 			Session_component(_env, *this, _sessions, _devices, _config,
 			                  _sigh_cap, _alloc_fn, _free_fn, _release_fn,
 			                  label, session_resources_from_args(args),
 			                  session_diag_from_args(args));
-	} catch (Session_policy::No_policy_defined) {
-		error("Invalid session request, no matching policy for ",
-		      "'", label_from_args(args).string(), "'");
-		throw Service_denied();
 	} catch (...) {
 		if (sc) { Genode::destroy(md_alloc(), sc); }
 		throw;
