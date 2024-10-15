@@ -12,6 +12,7 @@
  */
 
 #include <lx_emul.h>
+#include <lx_emul/nic.h>
 
 #include <net/rtnetlink.h>
 #include <linux/mutex.h>
@@ -55,4 +56,14 @@ void __rtnl_unlock(void)
 void rtnl_unlock(void)
 {
 	netdev_run_todo();
+}
+
+
+/*
+ * Called whenever the link state changes
+ */
+void rtmsg_ifinfo(int type, struct net_device * dev, unsigned int change, gfp_t flags,
+                  u32 portid, const struct nlmsghdr *nlh)
+{
+	lx_emul_nic_handle_io();
 }

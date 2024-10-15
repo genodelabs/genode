@@ -7,6 +7,7 @@ SRC_CC  += main.cc
 SRC_C   += dummies.c
 SRC_C   += lx_emul.c
 SRC_C   += lx_emul/common_dummies.c
+SRC_C   += lx_emul/nic.c
 SRC_C   += lx_user.c
 SRC_C   += rtnetlink.c
 

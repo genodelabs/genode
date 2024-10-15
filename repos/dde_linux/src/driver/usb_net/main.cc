@@ -23,14 +23,12 @@
 #include <lx_kit/env.h>
 #include <lx_user/io.h>
 #include <lx_emul/init.h>
+#include <lx_emul/nic.h>
 
 /* C-interface */
 #include <usb_net.h>
 
 using namespace Genode;
-
-extern bool use_mac_address;
-extern unsigned char mac_address[6];
 
 struct Main
 {
@@ -90,12 +88,10 @@ struct Main
 		usb_config = config_rom.xml().attribute_value("configuration", 0ul);
 
 		/* retrieve possible MAC */
-		use_mac_address = config_rom.xml().has_attribute("mac");
-		if (use_mac_address) {
+		if (config_rom.xml().has_attribute("mac")) {
 			auto const mac = config_rom.xml().attribute_value("mac", Nic::Mac_address{});
-			mac.copy(mac_address);
-			use_mac_address = true;
 			log("Trying to use configured mac: ", mac);
+			lx_emul_nic_set_mac_address(mac.addr, sizeof(mac.addr));
 		}
 	}
 };

@@ -16,7 +16,7 @@
 #include <lx_kit/init.h>
 #include <lx_kit/env.h>
 #include <lx_emul/init.h>
-#include <lx_emul/task.h>
+#include <lx_user/io.h>
 #include <genode_c_api/uplink.h>
 #include <genode_c_api/mac_address_reporter.h>
 
@@ -25,8 +25,6 @@ namespace Pc {
 	struct Main;
 }
 
-
-extern task_struct *user_task_struct_ptr;
 
 struct Pc::Main
 {
@@ -52,11 +50,8 @@ struct Pc::Main
 
 	void _handle_signal()
 	{
-		if (user_task_struct_ptr)
-			lx_emul_task_unblock(user_task_struct_ptr);
-
+		lx_user_handle_io();
 		Lx_kit::env().scheduler.execute();
-
 		genode_uplink_notify_peers();
 	}
 
