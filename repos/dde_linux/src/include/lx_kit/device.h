@@ -142,6 +142,16 @@ class Lx_kit::Device : List<Device>::Element
 		void _for_each_clock(FN const & fn) {
 			for (Clock * c = _clocks.first(); c; c = c->next()) fn(*c); }
 
+	protected:
+
+		Device(Platform::Connection &plat,
+		       Name                 name)
+		:
+		  _platform(plat), _name(name), _type("")
+		{ }
+
+		virtual ~Device() { }
+
 	public:
 
 		const char * compatible();
@@ -171,7 +181,8 @@ class Lx_kit::Device : List<Device>::Element
 		bool   irq_unmask(unsigned irq);
 		void   irq_mask(unsigned irq);
 		void   irq_ack(unsigned irq);
-		int    pending_irq();
+
+		virtual int pending_irq();
 
 		bool   read_config(unsigned reg, unsigned len, unsigned *val);
 		bool   write_config(unsigned reg, unsigned len, unsigned  val);
@@ -210,6 +221,8 @@ class Lx_kit::Device_list : List<Device>
 		Device_list(Entrypoint           & ep,
 		            Heap                 & heap,
 		            Platform::Connection & platform);
+
+		void insert(Device const *device) { List<Device>::insert(device); }
 };
 
 #endif /* _LX_KIT__DEVICE_H_ */

@@ -24,19 +24,25 @@ namespace {
 
 	using namespace Genode;
 
-	class Global_irq_controller : Noncopyable
+	class Global_irq_controller : Lx_kit::Device, Noncopyable
 	{
 		private:
 
 			Lx_kit::Env &_env;
 
-			unsigned _pending_irq = 0;
+			int _pending_irq { -1 };
 
 		public:
 
 			struct Number { unsigned value; };
 
-			Global_irq_controller(Lx_kit::Env &env) : _env(env) { }
+			Global_irq_controller(Lx_kit::Env &env)
+			:
+				Lx_kit::Device(env.platform, "pin_irq"),
+				_env(env)
+			{
+				_env.devices.insert(this);
+			}
 
 			void trigger_irq(Number number)
 			{
@@ -44,6 +50,14 @@ namespace {
 
 				_env.scheduler.unblock_irq_handler();
 				_env.scheduler.schedule();
+			}
+
+			int pending_irq() override
+			{
+				int irq      = _pending_irq;
+				_pending_irq = -1;
+
+				return irq;
 			}
 	};
 
