@@ -250,10 +250,7 @@ extern "C" int sigaltstack(stack_t const * const ss, stack_t * const old_ss)
 			warning("leaking secondary stack memory");
 
 		} else {
-			if (ss->ss_sp)
-				warning(__func__, " using self chosen stack is not"
-				                  " supported - stack ptr is ignored !!!");
-
+			/* ss->ss_sp is ignored, ever use alloc_secondary stack */
 			void * stack = myself->alloc_secondary_stack("sigaltstack",
 			                                             ss->ss_size);
 
