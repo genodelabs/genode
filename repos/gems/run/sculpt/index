@@ -14,18 +14,18 @@
   </index>
 
   <index name="Tools">
-    <pkg path="system_shell"    info="command-line interface to the system"/>
-    <pkg path="system_clock-pc" info="real-time-clock service" arch="x86_64"/>
-    <pkg path="qt5_textedit"    info="Qt5-based text editor"/>
-    <pkg path="report_dump"     info="save periodic snapshots of the report fs"/>
-    <pkg path="recall_fs"       info="component-specific file-system view"/>
-    <pkg path="file_vault"      info="encrypted file store"/>
-    <pkg path="black_hole"      info="pseudo service provider"/>
-    <pkg path="usb_webcam"      info="USB webcam"/>
-    <pkg path="bsd_audio"       info="audio driver" arch="x86_64"/>
-    <pkg path="mixer"           info="audio mixer"/>
-    <pkg path="terminal"        info="graphical terminal"/>
-    <pkg path="gdb_x86"         info="GNU debugger" arch="x86_64"/>
+    <pkg path="system_shell"      info="command-line interface to the system"/>
+    <pkg path="system_clock-pc"   info="real-time-clock service" arch="x86_64"/>
+    <pkg path="qt5_textedit"      info="Qt5-based text editor"/>
+    <pkg path="report_dump"       info="save periodic snapshots of the report fs"/>
+    <pkg path="recall_fs"         info="component-specific file-system view"/>
+    <pkg path="file_vault"        info="encrypted file store"/>
+    <pkg path="black_hole"        info="pseudo service provider"/>
+    <pkg path="usb_webcam"        info="USB webcam"/>
+    <pkg path="bsd_audio"         info="audio driver" arch="x86_64"/>
+    <pkg path="record_play_mixer" info="audio mixer"/>
+    <pkg path="terminal"          info="graphical terminal"/>
+    <pkg path="gdb_x86"           info="GNU debugger" arch="x86_64"/>
   </index>
 
   <index name="Demos">
