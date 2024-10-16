@@ -232,7 +232,7 @@ class Net::Domain : public List<Domain>::Element,
 			dhcp_server_fn(*_dhcp_server_ptr);
 		}
 
-		void with_dhcp_server(auto const &fn) { with_dhcp_server(fn, []{}); }
+		void with_optional_dhcp_server(auto const &fn) { with_dhcp_server(fn, []{}); }
 
 		/*********
 		 ** log **

@@ -1734,7 +1734,7 @@ void Interface::_continue_handle_eth(Packet_descriptor const &pkt)
 void Interface::_destroy_dhcp_allocation(Dhcp_allocation &allocation,
                                          Domain          &local_domain)
 {
-	local_domain.with_dhcp_server([&] (Dhcp_server &srv) {
+	local_domain.with_optional_dhcp_server([&] (Dhcp_server &srv) {
 		srv.free_ip(allocation.ip()); });
 	destroy(_alloc, &allocation);
 }
@@ -2035,6 +2035,18 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
                                          Domain &new_domain)
 {
 	bool dhcp_clients_outdated { false };
+
+	auto dismiss_all_fn = [&] () {
+		dhcp_clients_outdated = true;
+		while (Dhcp_allocation *allocation = _dhcp_allocations.first()) {
+			if (_config_ptr->verbose())
+				log("[", new_domain, "] dismiss DHCP allocation: ",
+					*allocation, " (other/no DHCP server)");
+			_dhcp_allocations.remove(*allocation);
+			_destroy_dhcp_allocation(*allocation, old_domain);
+		}
+	};
+
 	old_domain.with_dhcp_server([&] (Dhcp_server &old_dhcp_srv) {
 	new_domain.with_dhcp_server([&] (Dhcp_server &new_dhcp_srv) {
 		if (old_dhcp_srv.config_equal_to_that_of(new_dhcp_srv)) {
@@ -2054,18 +2066,16 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 			});
 		} else {
 			/* dismiss all DHCP allocations */
-			dhcp_clients_outdated = true;
-			while (Dhcp_allocation *allocation = _dhcp_allocations.first()) {
-				if (_config_ptr->verbose())
-					log("[", new_domain, "] dismiss DHCP allocation: ",
-						*allocation, " (other/no DHCP server)");
-				_dhcp_allocations.remove(*allocation);
-				_destroy_dhcp_allocation(*allocation, old_domain);
-			}
+			dismiss_all_fn();
 		}
-		if (dhcp_clients_outdated)
-			_reset_and_refetch_domain_ready_state();
-	});});
+	},
+	/* no DHCP server on new domain */
+	[&] () { dismiss_all_fn(); }); },
+	/* no DHCP server on old domain */
+	[&] () { dismiss_all_fn(); });
+
+	if (dhcp_clients_outdated)
+		_reset_and_refetch_domain_ready_state();
 }
 
 
