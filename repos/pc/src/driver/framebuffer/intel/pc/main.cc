@@ -105,21 +105,12 @@ struct Framebuffer::Driver
 			    !connector.screen.constructed())
 				return;
 
-			connector.screen->with_texture([&] (Texture<Pixel> const &texture) {
+			Surface<Pixel> surface((Pixel*)connector.base, connector.size_phys);
 
-				auto const affected = connector.capture->capture_at({ 0, 0});
+			auto box = connector.screen->apply_to_surface(surface);
 
-				affected.for_each_rect([&] (Capture::Rect const rect) {
-
-					Surface<Pixel> surface((Pixel*)connector.base,
-					                       connector.size_phys);
-
-					surface.clip(rect);
-					Blit_painter::paint(surface, texture, Capture::Point(0, 0));
-
-					dirty = true;
-				});
-			});
+			if (box.valid())
+				dirty = true;
 
 			if (!dirty && may_stop)
 				connector.capture->capture_stopped();

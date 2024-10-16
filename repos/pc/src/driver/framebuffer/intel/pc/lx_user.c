@@ -878,22 +878,22 @@ static int update_content(void *)
 			if (connector->status != connector_status_connected)
 				continue;
 
-			if (valid_id) {
+			if (valid_id)
 				unchanged[connector->index] ++;
-
-				if (unchanged[connector->index] > ATTEMPTS_BEFORE_STOP)
-					continue;
-			}
 			else
 				printk("%s: connector id invalid %d\n", __func__, connector->index);
-
-			block_task = false;
 
 			if (valid_id)
 				may_sleep = unchanged[connector->index] >= ATTEMPTS_BEFORE_STOP;
 
-			if (!lx_emul_i915_blit(connector->index, may_sleep))
+			if (!lx_emul_i915_blit(connector->index, may_sleep)) {
+				if (!may_sleep)
+					block_task = false;
+
 				continue;
+			}
+
+			block_task = false;
 
 			if (valid_id)
 				unchanged[connector->index] = 0;
