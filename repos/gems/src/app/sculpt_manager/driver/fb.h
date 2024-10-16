@@ -30,8 +30,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		auto gen_capture_route = [&] (Xml_generator &xml)
 		{
 			gen_service_node<Capture::Session>(xml, [&] {
-				xml.node("parent", [&] {
-					xml.attribute("label", "global"); }); });
+				xml.node("parent", [] { }); });
 		};
 
 		auto start_node = [&] (auto const &driver, auto const &binary, auto const &fn)

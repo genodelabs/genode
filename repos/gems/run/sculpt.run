@@ -713,8 +713,8 @@ install_config {
 			} [log_route] [driver_routes] {
 			<service name="Event" label="leitzentrale"> <child name="leitzentrale"/> </service>
 			<service name="Event"> <child name="event_filter"/> </service>
-			<service name="Capture" label="global">       <child name="nitpicker"/>    </service>
 			<service name="Capture" label="leitzentrale"> <child name="leitzentrale"/> </service>
+			<service name="Capture">                      <child name="nitpicker"/>    </service>
 			<service name="Pin_state">   <child name="drivers"/> </service>
 			<service name="Pin_control"> <child name="drivers"/> </service>
 			<service name="Terminal"> <child name="terminal_monitor"/> </service>
