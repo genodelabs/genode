@@ -107,6 +107,9 @@ struct Test::Capture_session : Rpc_object<Capture::Session>
 		catch (Out_of_caps) { return Buffer_result::OUT_OF_CAPS; }
 
 		_size = attr.px;
+
+		log("screen dimension: ", _size);
+
 		_draw();
 		return Buffer_result::OK;
 	}
@@ -161,6 +164,11 @@ void Test::Capture_session::_draw_frame(Pixel *p, Pixel c, Area area)
 	/* left and right */
 	for (unsigned i = 0; i < h; ++i)
 		p[i*w] = p[i*w + w - 1] = c;
+
+	/* 15px marker for (0,0) */
+	for (unsigned i = 0; i < 15; i++)
+		for (unsigned j = 0; j < 15; j++)
+			p[i*w + j] =  c;
 }
 
 
