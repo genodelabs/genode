@@ -1518,22 +1518,26 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 
 				Accesspoint const ap = Accesspoint::from_xml(node);
 
-				bool const ssid_invalid = !Accesspoint::valid(ap.ssid);
-				if (ssid_invalid)
-					warning("accesspoint has invalid ssid: '", ap.ssid, "'");
-
-				bool const pass_invalid = ap.wpa() && !Accesspoint::valid(ap.pass);
-				if (pass_invalid)
-					warning("accesspoint '", ap.ssid, "' has invalid psk");
-
 				/*
 				 * Only make the supplicant acquainted with the network
-				 * when it is usable but created the Network object nonetheless
-				 * to satisfy the List_model requirements.
+				 * when it is usable, it always needs a valid SSID and
+				 * in case it is protected also a valid PSK, but create
+				 * the Network object nonetheless to satisfy the List_model
+				 * requirements.
 				 */
-				if (!ssid_invalid || !pass_invalid)
-					_queue_action(*new (_actions_alloc)
-						Add_network_cmd(_msg, ap), _config.verbose);
+
+				bool const ssid_valid = Accesspoint::valid(ap.ssid);
+				if (!ssid_valid)
+					warning("accesspoint has invalid ssid: '", ap.ssid, "'");
+
+				bool const pass_valid = ap.wpa() ? Accesspoint::valid(ap.pass)
+				                                 : true;
+				if (!pass_valid)
+					warning("accesspoint '", ap.ssid, "' has invalid psk");
+
+				if (ssid_valid && pass_valid)
+						_queue_action(*new (_actions_alloc)
+							Add_network_cmd(_msg, ap), _config.verbose);
 
 				return *new (_network_allocator) Network(ap);
 			},
