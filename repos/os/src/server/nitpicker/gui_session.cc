@@ -383,7 +383,7 @@ Gui_session::Buffer_result Gui_session::buffer(Framebuffer::Mode mode)
 
 	/* buffer re-allocation may consume new dataspace capability if buffer is new */
 	if (_cap_quota_guard().avail().value < 1)
-		throw Buffer_result::OUT_OF_CAPS;
+		return Buffer_result::OUT_OF_CAPS;
 
 	_framebuffer_session_component.notify_mode_change(mode);
 	return Buffer_result::OK;
