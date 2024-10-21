@@ -33,6 +33,10 @@ static struct task_struct    * lx_update_task = NULL;
 static struct drm_client_dev * dev_client     = NULL;
 
 
+enum { CONNECTOR_ID_MIRROR = 15 };
+static bool mirrored [16] = { };
+
+
 static int user_register_fb(struct drm_client_dev   const * const dev,
                             struct fb_info                * const info,
                             struct drm_mode_fb_cmd2 const * const dumb_fb,
@@ -86,32 +90,32 @@ static inline bool fb_smaller_mode(struct fb_info          const * const info,
 
 
 /*
- * Heuristic to calculate max resolution across all mirrored connectors
+ * Heuristic to calculate mixed resolution across all mirrored connectors
  */
-static void preferred_mirror(struct drm_device const * const dev,
-                             struct drm_display_mode * const prefer,
+static void mirror_heuristic(struct drm_device const * const dev,
+                             struct drm_display_mode * const virtual,
+                             struct drm_display_mode * const compound,
                              struct drm_display_mode * const min_mode)
 {
 	struct drm_connector          *connector        = NULL;
 	struct drm_display_mode       *mode             = NULL;
-	unsigned                       connector_usable = 0;
-	struct drm_display_mode        max_enforcement  = { };
 	struct drm_connector_list_iter conn_iter;
 
 	/* read Genode's config per connector */
 	drm_connector_list_iter_begin(dev, &conn_iter);
 	drm_client_for_each_connector_iter(connector, &conn_iter) {
 		struct drm_display_mode smallest  = { .hdisplay = ~0, .vdisplay = ~0 };
+		struct drm_display_mode usable    = { };
 		struct genode_mode      conf_mode = { };
 		unsigned                mode_id   = 0;
 
 		/* check for connector configuration on Genode side */
 		lx_emul_i915_connector_config(connector->name, &conf_mode);
 
-		if (!conf_mode.enabled)
+		if (!conf_mode.enabled || !conf_mode.mirror)
 			continue;
 
-		/* look for smallest possible mode or if a specific mode is forced */
+		/* look for smallest possible mode or if a specific mode is specified */
 		list_for_each_entry(mode, &connector->modes, head) {
 			mode_id ++;
 
@@ -123,20 +127,21 @@ static void preferred_mirror(struct drm_device const * const dev,
 				smallest.vdisplay = mode->vdisplay;
 			}
 
-			if (!conf_mode.id)
-				continue;
+			/* maximal resolution enforcement */
+			if (conf_mode.max_width && conf_mode.max_height) {
+				if (conf_smaller_max_mode(&conf_mode, mode))
+					continue;
+			}
 
-			if (!mode || conf_mode.id != mode_id)
-				continue;
+			if (!usable.hdisplay && !usable.vdisplay)
+				usable = *mode;
 
-			conf_mode.width  = mode->hdisplay;
-			conf_mode.height = mode->vdisplay;
-
-			break;
+			if (conf_mode.id == mode_id) {
+				conf_mode.width  = mode->hdisplay;
+				conf_mode.height = mode->vdisplay;
+				break;
+			}
 		}
-
-		if (mode_id)
-			connector_usable ++;
 
 		/*
 		 * If at least on mode is available, store smallest mode if it
@@ -145,8 +150,7 @@ static void preferred_mirror(struct drm_device const * const dev,
 		if (mode_id && mode_larger(&smallest, min_mode))
 			*min_mode = smallest;
 
-		if (conf_mode.mirror      &&
-		    conf_mode.force_width && conf_mode.force_height) {
+		if (conf_mode.force_width && conf_mode.force_height) {
 
 			/*
 			 * Even so the force_* mode is selected, a configured mode for
@@ -159,24 +163,23 @@ static void preferred_mirror(struct drm_device const * const dev,
 			}
 
 			/* enforce the force mode */
-			conf_mode.width  = conf_mode.force_width;
-			conf_mode.height = conf_mode.force_height;
+			virtual->hdisplay = conf_mode.force_width;
+			virtual->vdisplay = conf_mode.force_height;
 		}
 
-		/* maximal resolution enforcement */
-		if (conf_mode.max_width && conf_mode.max_height) {
-			max_enforcement.hdisplay = conf_mode.max_width;
-			max_enforcement.vdisplay = conf_mode.max_height;
-			if (conf_smaller_max_mode(&conf_mode, prefer))
-				continue;
-		}
-
-		if (!conf_mode.width || !conf_mode.height || !conf_mode.mirror)
-			continue;
-
-		if (conf_larger_mode(&conf_mode, prefer)) {
-			prefer->hdisplay = conf_mode.width;
-			prefer->vdisplay = conf_mode.height;
+		/* compound calculation */
+		if (conf_mode.width && conf_mode.height) {
+			if (conf_mode.width  > compound->hdisplay)
+				compound->hdisplay = conf_mode.width;
+			if (conf_mode.height > compound->vdisplay)
+				compound->vdisplay = conf_mode.height;
+		} else {
+			if (usable.hdisplay && usable.vdisplay) {
+				if (usable.hdisplay > compound->hdisplay)
+					compound->hdisplay = usable.hdisplay;
+				if (usable.vdisplay > compound->vdisplay)
+					compound->vdisplay = usable.vdisplay;
+			}
 		}
 	}
 	drm_connector_list_iter_end(&conn_iter);
@@ -185,44 +188,9 @@ static void preferred_mirror(struct drm_device const * const dev,
 	if (!min_mode->hdisplay || !min_mode->vdisplay)
 		return;
 
-	/* we got a preferred resolution */
-	if (prefer->hdisplay && prefer->vdisplay)
-		return;
-
-	/* if too large or nothing configured by Genode's config */
-	drm_connector_list_iter_begin(dev, &conn_iter);
-	drm_client_for_each_connector_iter(connector, &conn_iter) {
-
-		struct genode_mode conf_mode = { };
-		/* check for connector configuration on Genode side */
-		lx_emul_i915_connector_config(connector->name, &conf_mode);
-
-		list_for_each_entry(mode, &connector->modes, head) {
-			if (!mode)
-				continue;
-
-			if (mode_larger(min_mode, mode))
-				continue;
-
-			if (max_enforcement.hdisplay && max_enforcement.vdisplay) {
-				if (mode_larger(mode, &max_enforcement))
-					continue;
-			}
-
-			if (conf_mode.enabled && !conf_mode.mirror)
-				continue;
-
-			if (mode_larger(mode, prefer)) {
-				prefer->hdisplay = mode->hdisplay;
-				prefer->vdisplay = mode->vdisplay;
-			}
-		}
-	}
-	drm_connector_list_iter_end(&conn_iter);
-
-	/* handle the "never should happen case" gracefully */
-	if (!prefer->hdisplay || !prefer->vdisplay)
-		*prefer = *min_mode;
+	/* if no mirrored connectors are enabled, compound is the minimal mode */
+	if (!compound->hdisplay || !compound->vdisplay)
+		*compound = *min_mode;
 }
 
 
@@ -492,6 +460,7 @@ static void close_unused_captures(struct drm_client_dev * const dev)
 	/* report disconnected connectors to close capture connections */
 	struct drm_connector_list_iter  conn_iter;
 	struct drm_connector           *connector = NULL;
+	bool                            mirror_in_use = false;
 
 	drm_connector_list_iter_begin(dev->dev, &conn_iter);
 	drm_client_for_each_connector_iter(connector, &conn_iter) {
@@ -520,6 +489,10 @@ static void close_unused_captures(struct drm_client_dev * const dev)
 		if (unused) {
 			struct fb_info fb_info = {};
 
+			if (connector->index < sizeof(mirrored) / sizeof(*mirrored))
+				mirrored[connector->index] = false;
+
+			fb_info.par                = connector->name;
 			fb_info.var.bits_per_pixel = 32;
 			fb_info.node               = connector->index;
 
@@ -527,6 +500,24 @@ static void close_unused_captures(struct drm_client_dev * const dev)
 		}
 	}
 	drm_connector_list_iter_end(&conn_iter);
+
+	for (unsigned i = 0; i < sizeof(mirrored) / sizeof(mirrored[0]); i++) {
+		if (!mirrored[i])
+			continue;
+
+		mirror_in_use = true;
+		break;
+	}
+
+	if (!mirror_in_use) {
+		struct fb_info fb_info = {};
+
+		fb_info.par                = "mirror_capture";
+		fb_info.var.bits_per_pixel = 32;
+		fb_info.node               = CONNECTOR_ID_MIRROR;
+
+		kernel_register_fb(&fb_info, 0, 0);
+	}
 }
 
 
@@ -534,14 +525,15 @@ static bool reconfigure(struct drm_client_dev * const dev)
 {
 	static struct drm_mode_create_dumb *gem_mirror = NULL;
 
-	struct drm_display_mode    mode_preferred = {};
-	struct drm_display_mode    mode_minimum   = {};
-	struct drm_display_mode    framebuffer    = {};
-	struct drm_mode_modeinfo   user_mode      = {};
-	struct drm_display_mode  * mode           = NULL;
-	struct drm_mode_set      * mode_set       = NULL;
-	struct fb_info             info           = {};
-	bool                       retry          = false;
+	struct drm_display_mode    mirror_force    = {};
+	struct drm_display_mode    mirror_compound = {};
+	struct drm_display_mode    mirror_minimum  = {};
+	struct drm_display_mode    mirror_fb       = {};
+	struct drm_mode_modeinfo   user_mode       = {};
+	struct drm_display_mode  * mode            = NULL;
+	struct drm_mode_set      * mode_set        = NULL;
+	struct fb_info             info            = {};
+	bool                       retry           = false;
 	struct {
 		struct fb_info info;
 		unsigned       width_mm;
@@ -557,34 +549,35 @@ static bool reconfigure(struct drm_client_dev * const dev)
 	if (!dev || !dev->dev || !gem_mirror || !mirror_fb_cmd)
 		return false;
 
-	preferred_mirror(dev->dev, &mode_preferred, &mode_minimum);
+	mirror_heuristic(dev->dev, &mirror_force, &mirror_compound,
+	                 &mirror_minimum);
 
-	if (!mode_minimum.hdisplay || !mode_minimum.vdisplay) {
+	if (!mirror_minimum.hdisplay || !mirror_minimum.vdisplay) {
 		/* no valid modes on any connector on early boot */
 		if (!mirror_fb_cmd->fb_id)
 			return false;
 
 		/* valid connectors but all are disabled by config */
-		mode_minimum.hdisplay = mirror_fb_cmd->width;
-		mode_minimum.vdisplay = mirror_fb_cmd->height;
-		mode_preferred        = mode_minimum;
+		mirror_minimum.hdisplay = mirror_fb_cmd->width;
+		mirror_minimum.vdisplay = mirror_fb_cmd->height;
+		mirror_compound         = mirror_minimum;
 	}
 
-	if (mode_larger(&mode_preferred, &mode_minimum))
-		framebuffer = mode_preferred;
+	if (mode_larger(&mirror_compound, &mirror_minimum))
+		mirror_fb = mirror_compound;
 	else
-		framebuffer = mode_minimum;
+		mirror_fb = mirror_minimum;
 
 	{
 		int const err = check_resize_fb(dev,
 		                                gem_mirror,
 		                                mirror_fb_cmd,
-		                                framebuffer.hdisplay,
-		                                framebuffer.vdisplay);
+		                                mirror_fb.hdisplay,
+		                                mirror_fb.vdisplay);
 
 		if (err) {
-			printk("setting up framebuffer of %ux%u failed - error=%d\n",
-			       framebuffer.hdisplay, framebuffer.vdisplay, err);
+			printk("setting up mirrored framebuffer of %ux%u failed - error=%d\n",
+			       mirror_fb.hdisplay, mirror_fb.vdisplay, err);
 
 			return true;
 		}
@@ -595,10 +588,10 @@ static bool reconfigure(struct drm_client_dev * const dev)
 		return retry;
 
 	/* prepare fb info for kernel_register_fb() evaluated by Genode side */
-	info.var.xres         = framebuffer.hdisplay;
-	info.var.yres         = framebuffer.vdisplay;
-	info.var.xres_virtual = mode_preferred.hdisplay;
-	info.var.yres_virtual = mode_preferred.vdisplay;
+	info.var.xres         = mirror_fb.hdisplay;
+	info.var.yres         = mirror_fb.vdisplay;
+	info.var.xres_virtual = mirror_force.hdisplay ? : mirror_compound.hdisplay;
+	info.var.yres_virtual = mirror_force.vdisplay ? : mirror_compound.vdisplay;
 
 	drm_client_for_each_modeset(mode_set, dev) {
 		struct drm_display_mode * mode_match = NULL;
@@ -624,8 +617,8 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			if (!mode)
 				continue;
 
-			/* allocated framebuffer smaller than mode can't be used */
-			if (fb_smaller_mode(&info, mode))
+			/* allocated mirrored framebufer smaller than mode can't be used */
+			if (conf_mode.mirror && fb_smaller_mode(&info, mode))
 				continue;
 
 			/* use mode id if configured and matches exactly */
@@ -634,13 +627,13 @@ static bool reconfigure(struct drm_client_dev * const dev)
 					continue;
 
 				mode_match = mode;
+
 				break;
 			}
 
 			/* if invalid, mode is configured in second loop below */
-			if (conf_mode.width == 0 || conf_mode.height == 0) {
+			if (conf_mode.width == 0 || conf_mode.height == 0)
 				break;
-			}
 
 			/* no exact match by mode id -> try matching by size */
 			if ((mode->hdisplay != conf_mode.width) ||
@@ -658,6 +651,10 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			    (conf_mode.hz == drm_mode_vrefresh(mode)))
 				mode_match = mode;
 		}
+
+		/* track whether connector is used mirrored or discrete */
+		if (connector->index < sizeof(mirrored) / sizeof(*mirrored))
+			mirrored[connector->index] = conf_mode.enabled && conf_mode.mirror;
 
 		/* apply new mode */
 		mode_id = 0;
@@ -690,7 +687,7 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			if (!mode_match) {
 
 				/* fb smaller than mode is denied by drm_mode_setcrtc */
-				if (fb_smaller_mode(&fb_info, mode))
+				if (conf_mode.enabled && fb_smaller_mode(&fb_info, mode))
 					continue;
 
 				/* use first smaller mode */
@@ -723,7 +720,7 @@ static bool reconfigure(struct drm_client_dev * const dev)
 				                      mode, fb, connector);
 			}
 
-			/* convert kernel internal mode to user mode expectecd via ioctl */
+			/* convert kernel internal mode to user mode expected via ioctl */
 			drm_mode_convert_to_umode(&user_mode, mode);
 
 			/* assign fb & connector to crtc with specified mode */
@@ -742,12 +739,13 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			if (!retry)
 				retry = !!err;
 
-			if (!err && conf_mode.mirror && !mirror.report) {
+			if (!err && conf_mode.enabled && conf_mode.mirror && !mirror.report) {
 				/* use fb_info of first mirrored screen */
 				mirror.report    = true;
 				mirror.width_mm  = mode->width_mm;
 				mirror.height_mm = mode->height_mm;
 				mirror.info      = fb_info;
+				mirror.info.node = CONNECTOR_ID_MIRROR;
 			}
 
 			/* diagnostics */
@@ -759,7 +757,7 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			       conf_mode.mirror ? " mirror  " : " discrete",
 			       mode->hdisplay, mode->vdisplay, drm_mode_vrefresh(mode),
 			       drm_mode_vrefresh(mode) < 100 ? " ": "",
-			       framebuffer.hdisplay, framebuffer.vdisplay,
+			       fb_info.var.xres, fb_info.var.yres,
 			       (err || no_match) ? "" : "\n");
 
 			if (no_match)
@@ -769,7 +767,7 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			if (err)
 				printk(" - failed, error=%d\n", err);
 
-			if (!err && !conf_mode.mirror)
+			if (!err && !conf_mode.mirror && conf_mode.enabled)
 				user_register_fb(dev, &fb_info, &fb_cmd,
 				                 mode->width_mm, mode->height_mm);
 
@@ -841,6 +839,7 @@ static void mark_framebuffer_dirty(struct drm_framebuffer * const fb)
 enum { CAPTURE_RATE_MS = 10, ATTEMPTS_BEFORE_STOP = 7 };
 static unsigned unchanged[16] = { };
 
+
 void lx_emul_i915_wakeup(unsigned const connector_id)
 {
 	bool const valid_id  = connector_id < sizeof(unchanged) / sizeof(*unchanged);
@@ -864,6 +863,7 @@ static int update_content(void *)
 		struct drm_connector           *connector  = NULL;
 		struct drm_device const        *dev        = dev_client->dev;
 		bool                            block_task = true;
+		bool                            mirror_run = false;
 
 		drm_connector_list_iter_begin(dev, &conn_iter);
 		drm_client_for_each_connector_iter(connector, &conn_iter) {
@@ -873,20 +873,29 @@ static int update_content(void *)
 
 			int        err       = -1;
 			bool       may_sleep = false;
-			bool const valid_id  = connector->index < sizeof(unchanged) / sizeof(*unchanged);
+			unsigned   index     = connector->index;
 
 			if (connector->status != connector_status_connected)
 				continue;
 
-			if (valid_id)
-				unchanged[connector->index] ++;
-			else
-				printk("%s: connector id invalid %d\n", __func__, connector->index);
+			if (connector->index >= sizeof(unchanged) / sizeof(*unchanged)) {
+				printk("%s: connector id invalid %d\n", __func__, index);
+				index = CONNECTOR_ID_MIRROR; /* should never happen case */
+			}
 
-			if (valid_id)
-				may_sleep = unchanged[connector->index] >= ATTEMPTS_BEFORE_STOP;
+			if (mirrored[index] && mirror_run)
+				continue;
 
-			if (!lx_emul_i915_blit(connector->index, may_sleep)) {
+			if (mirrored[index]) {
+				mirror_run = true;
+				index = CONNECTOR_ID_MIRROR;
+			}
+
+			unchanged[index] ++;
+
+			may_sleep = unchanged[index] >= ATTEMPTS_BEFORE_STOP;
+
+			if (!lx_emul_i915_blit(index, may_sleep)) {
 				if (!may_sleep)
 					block_task = false;
 
@@ -895,8 +904,7 @@ static int update_content(void *)
 
 			block_task = false;
 
-			if (valid_id)
-				unchanged[connector->index] = 0;
+			unchanged[index] = 0;
 
 			if (!connector->state || !connector->state->crtc)
 				continue;
@@ -1112,8 +1120,8 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 	}
 
 	/*
-	 * (Re-)assign framebuffer to modeset (lost due to modeset_probe) and
-	 * commit the change.
+	 * (Re-)assign mirrored framebuffer to modeset (lost due to modeset_probe)
+	 * and commit the change.
 	 */
 	if (fb_mirror) {
 		struct   drm_framebuffer *       free_fbs[MAX_FBS] = { };

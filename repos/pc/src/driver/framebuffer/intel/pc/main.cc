@@ -345,6 +345,7 @@ void Framebuffer::Driver::generate_report()
 			lx_emul_i915_report_discrete(&xml);
 
 			xml.node("merge", [&] () {
+				xml.attribute("name", merge_label);
 				node.with_optional_sub_node("merge", [&](auto const &merge) {
 					with_force(merge, [&](unsigned width, unsigned height) {
 						xml.attribute("width",  width);
@@ -371,7 +372,15 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 	mode.brightness = 70; /* percent */
 	mode.mirror     = true;
 
-	if (!config.valid() || disable_all)
+	if (!config.valid())
+		return;
+
+	with_max_enforcement([&](unsigned const width, unsigned const height) {
+		mode.max_width  = width;
+		mode.max_height = height;
+	});
+
+	if (disable_all)
 		return;
 
 	auto for_each_node = [&](auto const &node, bool const mirror){
@@ -417,11 +426,6 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 
 		mirror_node = true;
 	});
-
-	with_max_enforcement([&](unsigned const width, unsigned const height) {
-		mode.max_width  = width;
-		mode.max_height = height;
-	});
 }
 
 
@@ -459,16 +463,12 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 			return;
 
 		new (drv.heap) Connector (env, drv.ids, id);
-
-		lx_emul_i915_wakeup(unsigned(id.value));
 	});
 
 	drv.ids.apply<Connector>(id, [&](Connector &conn) {
 
 		Capture::Area area     (xres, yres);
 		Capture::Area area_phys(phys_width, phys_height);
-
-		auto const prev_size = conn.size;
 
 		auto label = !conn_name
 		           ? Capture::Connection::Label(conn.id_element)
@@ -479,22 +479,28 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 		bool const same = drv.update(conn, Genode::addr_t(base), area,
 		                             area_phys, { mm_width, mm_height}, label);
 
-		if (same)
+		if (same) {
+			lx_emul_i915_wakeup(unsigned(id.value));
 			return;
+		}
 
 		/* clear artefacts */
 		if (base && (area != area_phys))
 			Genode::memset(base, 0, area_phys.count() * 4);
 
-		if (conn.size.valid())
-			log("setup - framebuffer ",
-			    " - connector id=", conn.id_element.id().value,
-			    ", virtual=", xres, "x", yres,
-			    ", physical=", phys_width, "x", phys_height);
-		else
-			log("free  - framebuffer ",
-			    " - connector id=", conn.id_element.id().value,
-			    ", ", prev_size);
+		String<12> space { };
+		for (auto i = label.length(); i < space.capacity() - 1; i++) {
+			space = String<12>(" ", space);
+		}
+
+		if (conn.size.valid()) {
+			log(space, label, ": capture ", xres, "x", yres, " with "
+			    " framebuffer ", phys_width, "x", phys_height);
+
+			lx_emul_i915_wakeup(unsigned(id.value));
+		} else
+			log(space, label, ": capture closed ");
+
 	}, [](){ /* unknown id */ });
 }
 
