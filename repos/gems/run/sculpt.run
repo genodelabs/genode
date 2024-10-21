@@ -459,7 +459,7 @@ install_config {
 	</start>
 
 	<start name="nitpicker" caps="1000" priority="-1">
-		<resource name="RAM" quantum="12M"/>
+		<resource name="RAM" quantum="18M"/>
 		<resource name="CPU" quantum="10"/>
 		<affinity xpos="1" width="1"/> <!-- decouple nitpicker from boot CPU -->
 		<provides>
