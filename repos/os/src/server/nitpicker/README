@@ -242,7 +242,7 @@ The 'keystate' attribute enables the reporting of the currently pressed keys.
 The 'clicked' attribute enables the reporting of the last clicked-on unfocused
 client. This report is useful for a focus-managing component to implement a
 focus-on-click policy.
-The 'displays' attribute enables the reporting of the panorama of displays
+The 'panorama' attribute enables the reporting of the panorama of displays
 described below.
 
 

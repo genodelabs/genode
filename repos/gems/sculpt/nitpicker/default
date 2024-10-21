@@ -1,6 +1,6 @@
 <config focus="rom">
 	<capture/> <event/>
-	<report hover="yes" focus="yes" clicked="yes" keystate="no"/>
+	<report hover="yes" focus="yes" clicked="yes" keystate="no" panorama="yes"/>
 	<background color="#000000"/>
 
 	<domain name="overlay"        layer="0" label="no" hover="always" focus="transient" content="client"/>

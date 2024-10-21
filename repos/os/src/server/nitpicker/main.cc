@@ -354,7 +354,7 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				session.process_damage(); });
 		}
 
-		void report_displays(Xml_generator &xml, Rect const domain_panorama) const
+		void report_panorama(Xml_generator &xml, Rect const domain_panorama) const
 		{
 			gen_attr(xml, domain_panorama);
 			_sessions.for_each([&] (Capture_session const &capture) {
@@ -574,7 +574,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		capture_buffer_size_changed();
 	}
 
-	void _report_displays();
+	void _report_panorama();
 
 	/*
 	 * User-input policy
@@ -619,7 +619,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	Reporter _focus_reporter    = { _env, "focus" };
 	Reporter _keystate_reporter = { _env, "keystate" };
 	Reporter _clicked_reporter  = { _env, "clicked" };
-	Reporter _displays_reporter = { _env, "displays" };
+	Reporter _panorama_reporter = { _env, "panorama" };
 
 	Attached_rom_dataspace _config_rom { _env, "config" };
 
@@ -635,7 +635,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	 */
 	void gen_capture_info(Xml_generator &xml, Rect const domain_panorama) const override
 	{
-		_capture_root.report_displays(xml, domain_panorama);
+		_capture_root.report_panorama(xml, domain_panorama);
 	}
 
 	Capture_root _capture_root { _env, *this, _sliced_heap, _view_stack, *this };
@@ -715,7 +715,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 				s->notify_mode_change();
 		}
 
-		_report_displays();
+		_report_panorama();
 		_update_input_connection();
 	}
 
@@ -870,7 +870,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 		_update_motion_and_focus_activity_reports();
 
-		_report_displays();
+		_report_panorama();
 	}
 };
 
@@ -1019,7 +1019,7 @@ void Nitpicker::Main::_handle_config()
 	configure_reporter(config, _focus_reporter);
 	configure_reporter(config, _keystate_reporter);
 	configure_reporter(config, _clicked_reporter);
-	configure_reporter(config, _displays_reporter);
+	configure_reporter(config, _panorama_reporter);
 
 	capture_client_appeared_or_disappeared();
 
@@ -1085,16 +1085,16 @@ void Nitpicker::Main::_handle_config()
 }
 
 
-void Nitpicker::Main::_report_displays()
+void Nitpicker::Main::_report_panorama()
 {
-	if (!_displays_reporter.enabled())
+	if (!_panorama_reporter.enabled())
 		return;
 
-	Reporter::Xml_generator xml(_displays_reporter, [&] () {
+	Reporter::Xml_generator xml(_panorama_reporter, [&] () {
 		if (_fb_screen.constructed())
-			xml.node("display", [&] { gen_attr(xml, _fb_screen->_rect); });
+			xml.node("panorama", [&] { gen_attr(xml, _fb_screen->_rect); });
 
-		_capture_root.report_displays(xml, _view_stack.bounding_box());
+		_capture_root.report_panorama(xml, _view_stack.bounding_box());
 	});
 }
 

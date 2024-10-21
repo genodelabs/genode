@@ -470,6 +470,8 @@ install_config {
 				<child name="config_fs_rom" label="nitpicker"/> </service>
 			<service name="ROM" label="focus">
 				<child name="nit_focus"/> </service>
+			<service name="Report" label="panorama">
+				<child name="fs_report"/> </service>
 			<service name="Report" label="keystate">
 				<child name="report_logger"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
