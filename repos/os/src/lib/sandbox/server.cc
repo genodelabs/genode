@@ -316,10 +316,11 @@ void Sandbox::Server::_handle_upgrade_session_request(Xml_node request,
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 
+		if (session.phase == Session_state::UPGRADE_REQUESTED)
+			return;
+
 		Ram_quota const ram_quota { request.attribute_value("ram_quota", 0UL) };
 		Cap_quota const cap_quota { request.attribute_value("cap_quota", 0UL) };
-
-		session.phase = Session_state::UPGRADE_REQUESTED;
 
 		try {
 			Ram_transfer::Remote_account env_ram_account(_env.pd(), _env.pd_session_cap());
@@ -338,6 +339,7 @@ void Sandbox::Server::_handle_upgrade_session_request(Xml_node request,
 			return;
 		}
 
+		session.phase = Session_state::UPGRADE_REQUESTED;
 		session.increase_donated_quota(ram_quota, cap_quota);
 		session.service().initiate_request(session);
 		session.service().wakeup();
