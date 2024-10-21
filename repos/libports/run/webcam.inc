@@ -199,7 +199,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="webcam" priority="-1" caps="800">
+	<start name="webcam" priority="-1" caps="900">
 		<binary name="init"/>
 		<resource name="RAM" quantum="64M"/>
 		<route>

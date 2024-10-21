@@ -1,4 +1,4 @@
-<runtime binary="init" caps="800" ram="64M" config="usb_webcam.config">
+<runtime binary="init" caps="900" ram="64M" config="usb_webcam.config">
 	<provides> <capture /> </provides>
 	<requires> <timer /> <usb /> </requires>
 	<content>
