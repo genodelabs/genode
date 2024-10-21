@@ -369,7 +369,7 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 	/* default settings, possibly overridden by explicit configuration below */
 	mode.enabled    = !disable_all;
 	mode.brightness = 70; /* percent */
-	mode.mirror     = false;
+	mode.mirror     = true;
 
 	if (!config.valid() || disable_all)
 		return;
