@@ -494,6 +494,8 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 			dirty_rect.flush([&] (Rect const &rect) {
 				_main._view_stack.draw(_screen, rect); });
 
+			bool const any_pixels_refreshed = !_dirty_rect.empty();
+
 			/* flush pixels to the framebuffer, reset dirty_rect */
 			_dirty_rect.flush([&] (Rect const &rect) {
 				_fb.refresh(rect); });
@@ -502,7 +504,8 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 			for (Gui_session *s = _main._session_list.first(); s; s = s->next())
 				s->submit_sync();
 
-			_previous_sync = _main._now();
+			if (any_pixels_refreshed)
+				_previous_sync = _main._now();
 		}
 
 		Framebuffer_screen(Env &env, Main &main) : _env(env), _main(main)
