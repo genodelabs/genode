@@ -348,6 +348,12 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				session.mark_as_damaged(rect); });
 		}
 
+		void process_damage()
+		{
+			_sessions.for_each([&] (Capture_session &session) {
+				session.process_damage(); });
+		}
+
 		void report_displays(Xml_generator &xml, Rect const domain_panorama) const
 		{
 			gen_attr(xml, domain_panorama);
@@ -524,7 +530,10 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		void mark_as_dirty(Rect rect)
 		{
 			_dirty_rect.mark_as_dirty(rect);
+		}
 
+		void process_damage()
+		{
 			if (_main._now().ms - _previous_sync.ms > 40)
 				_handle_sync();
 		}
@@ -641,6 +650,16 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		}
 	}
 
+	Signal_handler<Main> _damage_handler { _env.ep(), *this, &Main::_handle_damage };
+
+	void _handle_damage()
+	{
+		if (_fb_screen.constructed())
+			_fb_screen->process_damage();
+
+		_capture_root.process_damage();
+	}
+
 	/**
 	 * View_stack::Damage interface
 	 */
@@ -650,6 +669,8 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 			_fb_screen->mark_as_dirty(rect);
 
 		_capture_root.mark_as_damaged(rect);
+
+		_damage_handler.local_submit();
 	}
 
 	void _update_input_connection()

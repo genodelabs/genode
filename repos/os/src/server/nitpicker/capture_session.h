@@ -165,8 +165,9 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		void mark_as_damaged(Rect rect)
 		{
 			_dirty_rect.mark_as_dirty(rect);
-			_wakeup_if_needed();
 		}
+
+		void process_damage() { _wakeup_if_needed(); }
 
 		void screen_size_changed()
 		{
