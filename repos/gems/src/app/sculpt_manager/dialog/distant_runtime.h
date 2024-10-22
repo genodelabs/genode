@@ -105,7 +105,7 @@ class Dialog::Distant_runtime : Noncopyable
 				return false;
 
 			if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-				_ram.value = min(2*_ram.value, 32*1024*1024u);
+				_ram.value = min(2*_ram.value, 64*1024*1024u);
 				result = true;
 			}
 
