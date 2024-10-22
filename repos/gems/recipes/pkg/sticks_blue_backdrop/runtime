@@ -1,4 +1,4 @@
-<runtime ram="76M" caps="300" binary="backdrop" config="backdrop.config">
+<runtime ram="176M" caps="300" binary="backdrop" config="backdrop.config">
 
 	<requires> <gui/> </requires>
 
