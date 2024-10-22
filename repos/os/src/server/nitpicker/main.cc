@@ -292,6 +292,9 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 						},
 						[&] { session.apply_policy(Policy::blocked()); }); });
 			}
+
+			_sessions.for_each([&] (Capture_session &session) {
+				session.screen_size_changed(); });
 		}
 
 		/**

@@ -203,7 +203,12 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		Area screen_size() const override
 		{
-			return Rect::intersect(_view_stack.bounding_box(), bounding_box()).area;
+			Rect const panorama = _view_stack.bounding_box();
+			Rect const policy { _anchor_point(),
+			                    { .w = _policy.w.or_default(panorama.w()),
+			                      .h = _policy.h.or_default(panorama.h()) } };
+
+			return Rect::intersect(panorama, policy).area;
 		}
 
 		void screen_size_sigh(Signal_context_capability sigh) override
