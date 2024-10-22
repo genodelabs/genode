@@ -160,7 +160,7 @@
 				</route>
 			</start>
 
-			<start name="decorator" caps="480" priority="-1">
+			<start name="decorator" caps="580" priority="-1">
 				<binary name="themed_decorator"/>
 				<resource name="RAM" quantum="20M"/>
 				<resource name="CPU" quantum="20"/>
