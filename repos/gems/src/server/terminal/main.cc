@@ -116,7 +116,17 @@ struct Terminal::Main : Character_consumer
 
 	void _handle_mode_change()
 	{
+		Rect const orig_win_rect = _win_rect;
+
 		_win_rect = _gui_window_rect();
+
+		/* shrink view before shrinking the buffer to prevent tiling artifacts */
+		Rect const intersection = Rect::intersect(orig_win_rect, _win_rect);
+		if (intersection != orig_win_rect) {
+			_gui.enqueue<Gui::Session::Command::Geometry>(_view, intersection);
+			_gui.execute();
+		}
+
 		_handle_config();
 	}
 
