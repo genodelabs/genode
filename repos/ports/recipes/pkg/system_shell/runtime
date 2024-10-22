@@ -1,4 +1,4 @@
-<runtime ram="76M" caps="1000" binary="init" config="system_shell.config">
+<runtime ram="108M" caps="1000" binary="init" config="system_shell.config">
 
 	<requires>
 		<gui/>
