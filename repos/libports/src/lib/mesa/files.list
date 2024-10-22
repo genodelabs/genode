@@ -2010,6 +2010,7 @@ mesa-24.0.8/src/util/format/u_format_s3tc.c
 mesa-24.0.8/src/util/format/u_format_s3tc.h
 mesa-24.0.8/src/util/format/u_format_table.py
 mesa-24.0.8/src/util/format/u_format_tests.h
+mesa-24.0.8/src/util/format/u_format_unpack_neon.c
 mesa-24.0.8/src/util/format/u_format_yuv.c
 mesa-24.0.8/src/util/format/u_format_yuv.h
 mesa-24.0.8/src/util/format/u_format_zs.c

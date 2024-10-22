@@ -691,6 +691,7 @@ SRC_C += c11/impl/threads_posix.c \
          util/format/u_format_other.c \
          util/format/u_format_rgtc.c \
          util/format/u_format_s3tc.c \
+         util/format/u_format_unpack_neon.c \
          util/format/u_format_yuv.c \
          util/format/u_format_zs.c \
          util/half_float.c \
