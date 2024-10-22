@@ -98,6 +98,8 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		Policy _policy = Policy::blocked();
 
+		bool _policy_changed = false;
+
 		Buffer_attr _buffer_attr { };
 
 		Constructible<Attached_ram_dataspace> _buffer { };
@@ -164,7 +166,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		void mark_as_damaged(Rect rect)
 		{
-			_dirty_rect.mark_as_dirty(rect);
+			_dirty_rect.mark_as_dirty(Rect::intersect(rect, bounding_box()));
 		}
 
 		void process_damage() { _wakeup_if_needed(); }
@@ -175,7 +177,11 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 				Signal_transmitter(_screen_size_sigh).submit();
 		}
 
-		void apply_policy(Policy const &policy) { _policy = policy; }
+		void apply_policy(Policy const &policy)
+		{
+			_policy = policy;
+			_policy_changed = true;
+		}
 
 		void gen_capture_attr(Xml_generator &xml) const
 		{
@@ -252,8 +258,16 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			if (!_buffer.constructed())
 				return Affected_rects { };
 
+			Point const anchor = _anchor_point() + pos;
+
 			Canvas<Pixel_rgb888> canvas { _buffer->local_addr<Pixel_rgb888>(),
-			                              _anchor_point() + pos, _buffer_attr.px };
+			                              anchor, _buffer_attr.px };
+
+			if (_policy_changed) {
+				canvas.draw_box({ anchor, canvas.size() }, Color::rgb(0, 0, 0));
+				_dirty_rect.mark_as_dirty({ anchor, canvas.size() });
+				_policy_changed = false;
+			}
 
 			canvas.clip(Rect::intersect(bounding_box(), _view_stack.bounding_box()));
 
@@ -266,7 +280,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 				_view_stack.draw(canvas, rect);
 
 				if (i < Affected_rects::NUM_RECTS) {
-					Rect const translated(rect.p1() - _anchor_point() - pos, rect.area);
+					Rect const translated(rect.p1() - anchor, rect.area);
 					Rect const clipped = Rect::intersect(translated, buffer_rect);
 					affected.rects[i++] = clipped;
 				}
