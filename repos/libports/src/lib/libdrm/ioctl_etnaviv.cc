@@ -266,11 +266,15 @@ namespace Etnaviv {
 	using namespace Genode;
 	using namespace Gpu;
 
+	struct Vram;
 	struct Call;
 } /* namespace Etnaviv */
 
 
-struct Gpu::Vram
+struct Gpu::Vram { };
+
+/* use separate namespace for Vram implementation */
+struct Etnaviv::Vram : Gpu::Vram
 {
 	struct Allocation_failed : Genode::Exception { };
 
@@ -346,7 +350,7 @@ class Etnaviv::Call
 			Gpu::Vram const &_vram;
 
 			Buffer(Genode::Id_space<Buffer>       &space,
-			       Gpu::Vram                const &vram)
+			       Vram                     const &vram)
 			:
 				_elem { *this, space,
 				        Genode::Id_space<Buffer>::Id { .value = vram.id().value } },
@@ -440,7 +444,7 @@ class Etnaviv::Call
 				 * required by the Gpu session to pass on the driver specific
 				 * command buffer.
 				 */
-				Gpu::Vram *_exec_buffer;
+				Vram *_exec_buffer;
 
 
 			public:
@@ -457,8 +461,8 @@ class Etnaviv::Call
 					_fd { _open_gpu() },
 					_id { _stat_gpu(_fd) },
 					_elem { *this, space },
-					_exec_buffer { new (alloc) Gpu::Vram(_gpu, _exec_buffer_size,
-					                                           _vram_space) }
+					_exec_buffer { new (alloc) Vram(_gpu, _exec_buffer_size,
+					                                _vram_space) }
 				{ }
 
 				~Gpu_context()
@@ -486,13 +490,13 @@ class Etnaviv::Call
 				Gpu::Vram_capability export_vram(Gpu::Vram_id id)
 				{
 					Gpu::Vram_capability cap { };
-					_try_apply(id, [&] (Gpu::Vram const &b) {
+					_try_apply(id, [&] (Vram const &b) {
 						cap = _gpu.export_vram(b.id());
 					});
 					return cap;
 				}
 
-				Buffer *import_vram(Gpu::Vram_capability cap, Gpu::Vram const &v)
+				Buffer *import_vram(Gpu::Vram_capability cap, Vram const &v)
 				{
 					Buffer *b = nullptr;
 
@@ -675,7 +679,7 @@ class Etnaviv::Call
 				[&] () {
 					_main_ctx->gpu().upgrade_ram(donate);
 				});
-			} catch (Gpu::Vram::Allocation_failed) {
+			} catch (Vram::Allocation_failed) {
 				return;
 			}
 
