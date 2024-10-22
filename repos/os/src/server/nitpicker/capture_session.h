@@ -183,11 +183,11 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			_policy_changed = true;
 		}
 
-		void gen_capture_attr(Xml_generator &xml) const
+		void gen_capture_attr(Xml_generator &xml, Rect const domain_panorama) const
 		{
 			xml.attribute("name", label());
 
-			gen_attr(xml, bounding_box());
+			gen_attr(xml, Rect::intersect(domain_panorama, bounding_box()));
 
 			unsigned const w_mm = _policy.w_mm.or_default(_buffer_attr.mm.w),
 			               h_mm = _policy.h_mm.or_default(_buffer_attr.mm.h);

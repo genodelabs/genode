@@ -361,7 +361,7 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 		{
 			gen_attr(xml, domain_panorama);
 			_sessions.for_each([&] (Capture_session const &capture) {
-				xml.node("capture", [&] { capture.gen_capture_attr(xml); }); });
+				xml.node("capture", [&] { capture.gen_capture_attr(xml, domain_panorama); }); });
 		}
 };
 
