@@ -12,7 +12,7 @@ launcher: audio mixer system_clock acpi_support recall_fs touchpad
 
 # selection of accepted depot-package providers
 depot: genodelabs cnuke alex-ab mstein nfeske cproc chelmuth jschlatow
-depot: ssumpf skalk
+depot: ssumpf skalk atopia
 
 # preconfigured example scenarios
 presets: empty nano3d window_manager falkon_web_browser goa_testbed
