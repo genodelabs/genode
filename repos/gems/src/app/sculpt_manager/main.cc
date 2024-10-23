@@ -40,6 +40,7 @@
 #include <model/presets.h>
 #include <model/screensaver.h>
 #include <model/system_state.h>
+#include <model/fb_config.h>
 #include <view/download_status_widget.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
@@ -1561,18 +1562,6 @@ struct Sculpt::Main : Input_event_handler,
 	                                                        _cached_runtime_config,
 	                                                        _file_browser_state, *this };
 
-	Managed_config<Main> _fb_config {
-		_env, "config", "fb", *this, &Main::_handle_fb_config };
-
-	void _handle_fb_config(Xml_node const &node)
-	{
-		_fb_config.generate([&] (Xml_generator &xml) {
-			xml.attribute("system", "yes");
-			copy_attributes(xml, node);
-			node.for_each_sub_node([&] (Xml_node const &sub_node) {
-				copy_node(xml, sub_node, { 5 }); }); });
-	}
-
 	void _update_window_layout(Xml_node const &, Xml_node const &);
 
 	void _update_window_layout()
@@ -1616,6 +1605,96 @@ struct Sculpt::Main : Input_event_handler,
 	Signal_handler<Main> _wheel_handler { _env.ep(), *this, &Main::_update_window_layout };
 
 
+	/**********************************
+	 ** Display driver configuration **
+	 **********************************/
+
+	Fb_connectors _fb_connectors { };
+
+	Rom_handler<Main> _manual_fb_handler { _env, "config -> fb", *this, &Main::_handle_manual_fb };
+
+	Expanding_reporter _managed_fb_reporter { _env, "config", "fb_config"};
+
+	Fb_config _fb_config { };
+
+	void _generate_fb_config()
+	{
+		_managed_fb_reporter.generate([&] (Xml_generator &xml) {
+			_fb_config.generate_managed_fb(xml); });
+	}
+
+	void _handle_manual_fb(Xml_node const &node)
+	{
+		log("_handle_manual_fb: ", node);
+
+		_fb_config = { };
+		_fb_config.import_manual_config(node);
+		_fb_config.apply_connectors(_fb_connectors);
+
+		_generate_fb_config();
+	}
+
+	/**
+	 * Fb_driver::Action interface
+	 */
+	void fb_connectors_changed() override
+	{
+		_drivers.with_fb_connectors([&] (Xml_node const &node) {
+			if (_fb_connectors.update(_heap, node).progress) {
+				_fb_config.apply_connectors(_fb_connectors);
+				_generate_fb_config();
+			}
+		});
+		_graph_view.refresh();
+	}
+
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void select_fb_mode(Fb_connectors::Name                const &conn,
+	                    Fb_connectors::Connector::Mode::Id const &mode) override
+	{
+		_fb_config.select_fb_mode(conn, mode, _fb_connectors);
+		_generate_fb_config();
+	}
+
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void disable_fb_connector(Fb_connectors::Name const &conn) override
+	{
+		_fb_config.disable_connector(conn);
+		_generate_fb_config();
+	}
+
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void toggle_fb_merge_discrete(Fb_connectors::Name const &conn) override
+	{
+		_fb_config.toggle_merge_discrete(conn);
+		_generate_fb_config();
+	}
+
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void swap_fb_connector(Fb_connectors::Name const &conn) override
+	{
+		_fb_config.swap_connector(conn);
+		_generate_fb_config();
+	}
+
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void fb_brightness(Fb_connectors::Name const &conn, unsigned percent) override
+	{
+		_fb_config.brightness(conn, percent);
+		_generate_fb_config();
+	}
+
+
 	/*******************
 	 ** Runtime graph **
 	 *******************/
@@ -1623,8 +1702,8 @@ struct Sculpt::Main : Input_event_handler,
 	Popup _popup { };
 
 	Graph _graph { _runtime_state, _cached_runtime_config, _storage._storage_devices,
-	               _storage._selected_target, _storage._ram_fs_state,
-	               _popup.state, _deploy._children };
+	               _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
+	               _fb_config, _popup.state, _deploy._children };
 
 	struct Graph_dialog : Dialog::Top_level_dialog
 	{
@@ -1655,7 +1734,6 @@ struct Sculpt::Main : Input_event_handler,
 		_gui.input.sigh(_input_handler);
 		_gui.info_sigh(_gui_mode_handler);
 		_handle_gui_mode();
-		_fb_config.trigger_update();
 
 		/*
 		 * Generate initial configurations

@@ -25,6 +25,7 @@
 #include <types.h>
 #include <view/storage_widget.h>
 #include <view/ram_fs_widget.h>
+#include <view/fb_widget.h>
 #include <model/capacity.h>
 #include <model/popup.h>
 #include <model/runtime_config.h>
@@ -42,6 +43,8 @@ struct Sculpt::Graph : Widget<Depgraph>
 	Storage_devices        const &_storage_devices;
 	Storage_target         const &_selected_target;
 	Ram_fs_state           const &_ram_fs_state;
+	Fb_connectors          const &_fb_connectors;
+	Fb_config              const &_fb_config;
 	Popup::State           const &_popup_state;
 	Depot_deploy::Children const &_deploy_children;
 
@@ -49,6 +52,9 @@ struct Sculpt::Graph : Widget<Depgraph>
 
 	Hosted<Depgraph, Frame, Vbox, Ram_fs_widget>
 		_ram_fs_widget { Id { "ram_fs" } };
+
+	Hosted<Depgraph, Frame, Vbox, Fb_widget>
+		_fb_widget { Id { "fb" } };
 
 	Hosted<Depgraph, Frame, Vbox, Frame, Hbox, Deferred_action_button>
 		_remove  { Id { "Remove"  } },
@@ -81,18 +87,22 @@ struct Sculpt::Graph : Widget<Depgraph>
 	      Storage_devices        const &storage_devices,
 	      Storage_target         const &selected_target,
 	      Ram_fs_state           const &ram_fs_state,
+	      Fb_connectors          const &fb_connectors,
+	      Fb_config              const &fb_config,
 	      Popup::State           const &popup_state,
 	      Depot_deploy::Children const &deploy_children)
 	:
 		_runtime_state(runtime_state), _runtime_config(runtime_config),
 		_storage_devices(storage_devices), _selected_target(selected_target),
-		_ram_fs_state(ram_fs_state), _popup_state(popup_state),
+		_ram_fs_state(ram_fs_state), _fb_connectors(fb_connectors),
+		_fb_config(fb_config), _popup_state(popup_state),
 		_deploy_children(deploy_children)
 	{ }
 
 	void view(Scope<Depgraph> &) const;
 
-	struct Action : virtual Storage_device_widget::Action
+	struct Action : virtual Storage_device_widget::Action,
+	                virtual Fb_widget::Action
 	{
 		virtual void remove_deployed_component(Start_name const &) = 0;
 		virtual void restart_deployed_component(Start_name const &) = 0;

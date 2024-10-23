@@ -811,8 +811,8 @@ struct Sculpt::Main : Input_event_handler,
 	Conditional_widget<Graph>
 		_graph { Id { "graph" },
 		         _runtime_state, _cached_runtime_config, _storage._storage_devices,
-		         _storage._selected_target, _storage._ram_fs_state,
-		         _popup.state, _deploy._children };
+		         _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
+		         _fb_config, _popup.state, _deploy._children };
 
 	Conditional_widget<Network_widget>
 		_network_widget { Conditional_widget<Network_widget>::Attr { .centered = true },
@@ -1992,6 +1992,30 @@ struct Sculpt::Main : Input_event_handler,
 		_current_call.cancel();
 		_generate_modem_config();
 	}
+
+
+	/**********************************
+	 ** Display driver configuration **
+	 **********************************/
+
+	Fb_connectors _fb_connectors { };
+
+	Fb_config _fb_config { };
+
+	/**
+	 * Fb_driver::Action interface
+	 */
+	void fb_connectors_changed() override { }
+
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void select_fb_mode          (Fb_connectors::Name const &,
+	                              Fb_connectors::Connector::Mode::Id const &) override { }
+	void disable_fb_connector    (Fb_connectors::Name const &)           override { }
+	void toggle_fb_merge_discrete(Fb_connectors::Name const &)           override { }
+	void swap_fb_connector       (Fb_connectors::Name const &)           override { }
+	void fb_brightness           (Fb_connectors::Name const &, unsigned) override { }
 
 
 	/*******************

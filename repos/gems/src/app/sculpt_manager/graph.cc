@@ -100,6 +100,9 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	if (name == "ram_fs")
 		s.widget(_ram_fs_widget, _selected_target, _ram_fs_state);
 
+	if (name == "intel_fb")
+		s.widget(_fb_widget, _fb_connectors, _fb_config);
+
 	String<100> const
 		ram (Capacity{info.assigned_ram - info.avail_ram}, " / ",
 		     Capacity{info.assigned_ram}),
@@ -257,6 +260,7 @@ void Graph::click(Clicked_at const &at, Action &action)
 	});
 
 	_ram_fs_widget      .propagate(at, _selected_target, action);
+	_fb_widget          .propagate(at, _fb_connectors,   action);
 	_ahci_devices_widget.propagate(at, action);
 	_nvme_devices_widget.propagate(at, action);
 	_mmc_devices_widget .propagate(at, action);

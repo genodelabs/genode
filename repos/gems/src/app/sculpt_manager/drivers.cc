@@ -100,7 +100,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 
 		Ps2_driver   _ps2_driver   { };
 		Touch_driver _touch_driver { };
-		Fb_driver    _fb_driver    { };
+		Fb_driver    _fb_driver    { _env, _action };
 		Usb_driver   _usb_driver   { _env, *this, *this };
 		Ahci_driver  _ahci_driver  { _env, *this };
 		Nvme_driver  _nvme_driver  { _env, *this };
@@ -168,7 +168,8 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		}
 
 		void with(With_board_info::Callback    const &fn) const { fn(_board_info); }
-		void with(With_platform_info::Callback const &fn) const { fn(_platform.xml()); }
+		void with_platform_info(With_xml::Callback const &fn) const { fn(_platform.xml()); }
+		void with_fb_connectors(With_xml::Callback const &fn) const { _fb_driver.with_connectors(fn); }
 
 		bool suspend_supported() const
 		{
@@ -202,9 +203,10 @@ Sculpt::Drivers::Drivers(Env &env, Children &children, Info const &info, Action 
 	_instance(_construct_instance(env, children, info, action))
 { }
 
-void Drivers::_with(With_storage_devices::Callback const &fn) const { _instance.with(fn); }
-void Drivers::_with(With_board_info::Callback      const &fn) const { _instance.with(fn); }
-void Drivers::_with(With_platform_info::Callback   const &fn) const { _instance.with(fn); }
+void Drivers::_with(With_storage_devices::Callback   const &fn) const { _instance.with(fn); }
+void Drivers::_with(With_board_info::Callback        const &fn) const { _instance.with(fn); }
+void Drivers::_with_platform_info(With_xml::Callback const &fn) const { _instance.with_platform_info(fn); }
+void Drivers::_with_fb_connectors(With_xml::Callback const &fn) const { _instance.with_fb_connectors(fn); }
 
 void Drivers::update_usb    ()                        { _instance.update_usb(); }
 void Drivers::update_soc    (Board_info::Soc     soc) { _instance.update_soc(soc); }

@@ -14,16 +14,43 @@
 #ifndef _DRIVER__FB_H_
 #define _DRIVER__FB_H_
 
+#include <i2c_session/i2c_session.h>
+
 namespace Sculpt { struct Fb_driver; }
 
 
 struct Sculpt::Fb_driver : private Noncopyable
 {
+	using Fb_name = String<16>;
+
+	struct Action : Interface
+	{
+		virtual void fb_connectors_changed() = 0;
+	};
+
+	Env    &_env;
+	Action &_action;
+
 	Constructible<Child_state> _intel_gpu { },
 	                           _intel_fb  { },
 	                           _vesa_fb   { },
 	                           _boot_fb   { },
 	                           _soc_fb    { };
+
+	Constructible<Rom_handler<Fb_driver>> _connectors { };
+
+	void _handle_connectors(Xml_node const &) { _action.fb_connectors_changed(); }
+
+	Fb_name _fb_name() const
+	{
+		return _intel_fb.constructed() ? "intel_fb"
+		     : _vesa_fb .constructed() ? "vesa_fb"
+		     : _boot_fb .constructed() ? "boot_fb"
+		     : _soc_fb  .constructed() ? "fb"
+		     : "";
+	}
+
+	Fb_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
 	void gen_start_nodes(Xml_generator &xml) const
 	{
@@ -123,6 +150,8 @@ struct Sculpt::Fb_driver : private Noncopyable
 		bool const use_vesa      = !use_intel_fb  && !suspending &&
 		                            board_info.detected.vga && !use_boot_fb;
 
+		Fb_name const orig_fb_name = _fb_name();
+
 		_intel_gpu.conditional(use_intel_gpu,
 		                       registry, "intel_gpu", Priority::MULTIMEDIA,
 		                       Ram_quota { 32*1024*1024 }, Cap_quota { 1400 });
@@ -148,6 +177,12 @@ struct Sculpt::Fb_driver : private Noncopyable
 			Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
 				_boot_fb.construct(registry, "boot_fb", Priority::MULTIMEDIA,
 				                   mode.ram_quota(), Cap_quota { 100 }); });
+
+		if (orig_fb_name != _fb_name()) {
+			Session_label label { "report -> runtime/", _fb_name(), "/connectors" };
+			_connectors.conditional((label.length() > 1), _env, label,
+			                        *this, &Fb_driver::_handle_connectors);
+		}
 	}
 
 	static bool suspend_supported(Board_info const &board_info)
@@ -155,6 +190,12 @@ struct Sculpt::Fb_driver : private Noncopyable
 		/* offer suspend/resume only when using intel graphics */
 		return board_info.detected.intel_gfx
 		   && !board_info.options.suppress.intel_gpu;
+	}
+
+	void with_connectors(auto const &fn) const
+	{
+		if (_connectors.constructed())
+			_connectors->with_xml(fn);
 	}
 };
 

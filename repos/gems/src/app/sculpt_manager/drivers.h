@@ -18,6 +18,7 @@
 #include <xml.h>
 #include <model/child_state.h>
 #include <model/board_info.h>
+#include <driver/fb.h>
 
 namespace Sculpt { struct Drivers; }
 
@@ -26,7 +27,7 @@ class Sculpt::Drivers : Noncopyable
 {
 	public:
 
-		struct Action : Interface
+		struct Action : virtual Fb_driver::Action
 		{
 			virtual void handle_device_plug_unplug() = 0;
 		};
@@ -53,11 +54,12 @@ class Sculpt::Drivers : Noncopyable
 
 		using With_storage_devices = With<Storage_devices const &>;
 		using With_board_info      = With<Board_info const &>;
-		using With_platform_info   = With<Xml_node   const &>;
+		using With_xml             = With<Xml_node   const &>;
 
 		void _with(With_storage_devices::Callback const &) const;
 		void _with(With_board_info::Callback      const &) const;
-		void _with(With_platform_info::Callback   const &) const;
+		void _with_platform_info(With_xml::Callback   const &) const;
+		void _with_fb_connectors(With_xml::Callback const &) const;
 
 	public:
 
@@ -71,7 +73,8 @@ class Sculpt::Drivers : Noncopyable
 
 		void with_storage_devices(auto const &fn) const { _with(With_storage_devices::Fn { fn }); }
 		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn      { fn }); }
-		void with_platform_info  (auto const &fn) const { _with(With_platform_info::Fn   { fn }); }
+		void with_platform_info  (auto const &fn) const { _with_platform_info(With_xml::Fn { fn }); }
+		void with_fb_connectors  (auto const &fn) const { _with_fb_connectors(With_xml::Fn { fn }); }
 
 		/* true if hardware is suspend/resume capable */
 		bool suspend_supported() const;
