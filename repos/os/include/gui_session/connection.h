@@ -275,20 +275,26 @@ class Gui::Connection : private Genode::Connection<Session>
 		 * to the window size as defined by the layouter.
 		 *
 		 * The returned rectangle may be undefined when a client of the window
-		 * manager has not defined a top-level view yet.
+		 * manager has not defined a top-level view yet. Once a window is got
+		 * closed, the returned rectangle is zero-sized.
 		 */
 		Window_result window()
 		{
 			Rect result { };
+			bool closed = false;
 			_with_info_xml([&] (Xml_node const &info) {
 				Rect bb { };  /* bounding box of all captured rects */
 				unsigned count = 0;
 				info.for_each_sub_node("capture", [&] (Xml_node const &capture) {
+					closed |= (capture.attribute_value("closed", false));
 					bb = Rect::compound(bb, Rect::from_xml(capture));
 					count++;
 				});
 				result = (count == 1) ? bb : Rect::from_xml(info);
 			});
+			if (closed)
+				return Rect { };
+
 			return result.valid() ? Window_result { result }
 			                      : Window_result { Undefined { } };
 		}

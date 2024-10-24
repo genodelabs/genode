@@ -618,6 +618,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		bool           _resizeable = false;
 		Area           _requested_size { };
 		bool           _resize_requested = false;
+		bool           _close_requested = false;
 		bool           _has_alpha = false;
 		Pointer::State _pointer_state;
 		Point    const _initial_pointer_pos { -1, -1 };
@@ -796,6 +797,11 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		void produce_xml(Xml_generator &xml) override
 		{
 			_action.gen_screen_area_info(xml);
+
+			if (_close_requested) {
+				xml.node("capture", [&] { xml.attribute("closed", "yes"); });
+				return;
+			}
 
 			auto virtual_capture_area = [&]
 			{
@@ -1036,6 +1042,9 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		{
 			_requested_size   = size;
 			_resize_requested = true;
+
+			if (_requested_size.count() == 0)
+				_close_requested = true;
 
 			/* notify client */
 			if (_info_rom.constructed())
