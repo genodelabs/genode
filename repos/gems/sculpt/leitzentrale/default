@@ -77,8 +77,8 @@
 				<resource name="RAM" quantum="33M"/>
 				<resource name="CPU" quantum="20"/>
 				<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-				<config/>
 				<route>
+					<service name="ROM" label="config"> <child name="report_rom"/> </service>
 					<service name="Gui"> <child name="fader"/> </service>
 					<any-service> <parent/> </any-service>
 				</route>
@@ -120,6 +120,7 @@
 					<policy label="manager -> window_list"       report="wm -> window_list"/>
 					<policy label="manager -> decorator_margins" report="decorator -> decorator_margins"/>
 					<policy label="nitpicker -> focus"           report="manager -> focus"/>
+					<policy label="gui_fb -> config"             report="manager -> gui_fb_config"/>
 
 					<policy label="runtime -> leitzentrale -> diag_dialog"
 					        report="manager -> diag_dialog"/>
