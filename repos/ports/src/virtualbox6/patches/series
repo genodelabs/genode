@@ -16,3 +16,4 @@ disk_geometry.patch
 stack_size.patch
 avx.patch
 rdrand.patch
+mousebuttons.patch

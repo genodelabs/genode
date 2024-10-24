@@ -1,0 +1,189 @@
+--- a/src/virtualbox6/src/VBox/Devices/VMMDev/VMMDev.cpp
++++ b/src/virtualbox6/src/VBox/Devices/VMMDev/VMMDev.cpp
+@@ -150,6 +150,90 @@
+ #define VMMDEV_HEARTBEAT_DEFAULT_INTERVAL                       (2U*RT_NS_1SEC_64)
+ 
+ 
++/*
++ * Mouse-button event tracking
++ *
++ * If mouse press and release events are reported in quick succession (e.g.,
++ * with Genode <button-scroll> detection enabled), the guest may miss events if
++ * fButtons is not collected quick enough.
++ */
++
++bool VMMDEV::MouseButtons::Button::pending() const
++{
++	return _pending != Pending::NONE;
++}
++
++bool VMMDEV::MouseButtons::Button::record(bool const press)
++{
++	/*
++	 * We begin recording only if the state changes, but keep recording
++	 * afterwards until nothing is pending anymore.
++	 */
++	if (_pending == Pending::NONE && _pressed == press)
++		return false;
++
++	switch (_pending) {
++	case Pending::NONE:          _pending =  press ? Pending::PRESS   : Pending::RELEASE;       break;
++	case Pending::PRESS:         _pending =  press ? Pending::PRESS   : Pending::PRESS_RELEASE; break;
++	case Pending::PRESS_RELEASE: _pending =  press ? Pending::PRESS   : Pending::PRESS_RELEASE; break;
++	case Pending::RELEASE:       _pending = !press ? Pending::RELEASE : Pending::RELEASE_PRESS; break;
++	case Pending::RELEASE_PRESS: _pending = !press ? Pending::RELEASE : Pending::RELEASE_PRESS; break;
++	}
++
++	return true;
++}
++
++bool VMMDEV::MouseButtons::Button::next()
++{
++	switch (_pending) {
++	case Pending::NONE: break;
++
++	case Pending::PRESS:         _pending = Pending::NONE;    _pressed = true;  break;
++	case Pending::PRESS_RELEASE: _pending = Pending::RELEASE; _pressed = true;  break;
++	case Pending::RELEASE:       _pending = Pending::NONE;    _pressed = false; break;
++	case Pending::RELEASE_PRESS: _pending = Pending::PRESS;   _pressed = false; break;
++	}
++
++	return _pressed;
++}
++
++bool VMMDEV::MouseButtons::pending() const
++{
++	return l.pending() || r.pending() || m.pending() || x1.pending() || x2.pending();
++}
++
++void VMMDEV::MouseButtons::clear()
++{
++	l = r = m = x1 = x2 = { Pending::NONE, 0 };
++}
++
++bool VMMDEV::MouseButtons::record(unsigned fButtons)
++{
++	bool pending = false;
++
++	pending |=  l.record(!!(fButtons & VMMDEV_MOUSE_BUTTON_LEFT));
++	pending |=  r.record(!!(fButtons & VMMDEV_MOUSE_BUTTON_RIGHT));
++	pending |=  m.record(!!(fButtons & VMMDEV_MOUSE_BUTTON_MIDDLE));
++	pending |= x1.record(!!(fButtons & VMMDEV_MOUSE_BUTTON_X1));
++	pending |= x2.record(!!(fButtons & VMMDEV_MOUSE_BUTTON_X2));
++
++	return pending;
++}
++
++unsigned VMMDEV::MouseButtons::next()
++{
++	unsigned next = 0;
++
++	next |=  l.next() ? VMMDEV_MOUSE_BUTTON_LEFT   : 0;
++	next |=  r.next() ? VMMDEV_MOUSE_BUTTON_RIGHT  : 0;
++	next |=  m.next() ? VMMDEV_MOUSE_BUTTON_MIDDLE : 0;
++	next |= x1.next() ? VMMDEV_MOUSE_BUTTON_X1     : 0;
++	next |= x2.next() ? VMMDEV_MOUSE_BUTTON_X2     : 0;
++
++	return next;
++}
++
++
+ #ifndef VBOX_DEVICE_STRUCT_TESTCASE
+ #ifdef IN_RING3
+ 
+@@ -1079,7 +1163,7 @@
+  * @param   pThis           The VMMDev shared instance data.
+  * @param   pReqHdr         The header of the request to handle.
+  */
+-static int vmmdevReqHandler_GetMouseStatusEx(PVMMDEV pThis, VMMDevRequestHeader *pReqHdr)
++static int vmmdevReqHandler_GetMouseStatusEx(PPDMDEVINS pDevIns, PVMMDEV pThis, PVMMDEVCC pThisCC, VMMDevRequestHeader *pReqHdr)
+ {
+     VMMDevReqMouseStatusEx *pReq = (VMMDevReqMouseStatusEx *)pReqHdr;
+     AssertMsgReturn(pReq->Core.header.size == sizeof(*pReq), ("%u\n", pReq->Core.header.size), VERR_INVALID_PARAMETER);
+@@ -1099,7 +1183,14 @@
+     pReq->Core.pointerYPos   = pThis->yMouseAbs;
+     pReq->dz                 = pThis->dzMouse;
+     pReq->dw                 = pThis->dwMouse;
+-    pReq->fButtons           = pThis->fMouseButtons;
++
++    /* accumulated relative wheel motion consumed */
++    pThis->dzMouse = 0; pThis->dwMouse = 0;
++
++    pReq->fButtons = pThis->mouseButtons.next();
++    if (pThis->mouseButtons.pending())
++        vmmdevNotifyGuestWorker(pDevIns, pThis, pThisCC, VMMDEV_EVENT_MOUSE_POSITION_CHANGED);
++
+     LogRel2(("VMMDev: vmmdevReqHandler_GetMouseStatusEx: mouseFeatures=%#x, xAbs=%d, yAbs=%d, zAbs=%d, wMouseRel=%d, fButtons=0x%x\n",
+              pReq->Core.mouseFeatures, pReq->Core.pointerXPos, pReq->Core.pointerYPos, pReq->dz, pReq->dw, pReq->fButtons));
+     return VINF_SUCCESS;
+@@ -2753,7 +2844,7 @@
+             break;
+ 
+         case VMMDevReq_GetMouseStatusEx:
+-            pReqHdr->rc = vmmdevReqHandler_GetMouseStatusEx(pThis, pReqHdr);
++            pReqHdr->rc = vmmdevReqHandler_GetMouseStatusEx(pDevIns, pThis, pThisCC, pReqHdr);
+             break;
+ 
+         case VMMDevReq_SetMouseStatus:
+@@ -3588,16 +3679,17 @@
+         || pThis->yMouseAbs != yAbs
+         || dz
+         || dw
+-        || pThis->fMouseButtons != fButtons)
++        || pThis->mouseButtons.record(fButtons))
+     {
+         Log2(("vmmdevIPort_SetAbsoluteMouse : settings absolute position to x = %d, y = %d, z = %d, w = %d, fButtons = 0x%x\n",
+               xAbs, yAbs, dz, dw, fButtons));
+ 
+         pThis->xMouseAbs = xAbs;
+         pThis->yMouseAbs = yAbs;
+-        pThis->dzMouse = dz;
+-        pThis->dwMouse = dw;
+-        pThis->fMouseButtons = fButtons;
++
++        /* accumulate relative wheel motion */
++        pThis->dzMouse += dz;
++        pThis->dwMouse += dw;
+ 
+         VMMDevNotifyGuest(pDevIns, pThis, pThisCC, VMMDEV_EVENT_MOUSE_POSITION_CHANGED);
+     }
+@@ -4114,7 +4206,7 @@
+      * into saved state, but rather initialize to zeroes on load. */
+     pThis->dzMouse = 0;
+     pThis->dwMouse = 0;
+-    pThis->fMouseButtons = 0;
++    pThis->mouseButtons.clear();
+ 
+     pHlp->pfnSSMGetBool(pSSM, &pThis->fNewGuestFilterMaskValid);
+     pHlp->pfnSSMGetU32(pSSM, &pThis->fNewGuestFilterMask);
+--- a/src/virtualbox6/src/VBox/Devices/VMMDev/VMMDevState.h
++++ b/src/virtualbox6/src/VBox/Devices/VMMDev/VMMDevState.h
+@@ -134,7 +134,27 @@
+     int32_t             yMouseAbs;
+     int32_t             dzMouse;
+     int32_t             dwMouse;
+-    uint32_t            fMouseButtons;
++
++    struct MouseButtons
++    {
++        enum class Pending { NONE, PRESS, PRESS_RELEASE, RELEASE, RELEASE_PRESS };
++
++        struct Button
++        {
++            Pending _pending;
++            bool    _pressed;
++
++            bool pending() const;
++            bool record(bool state);
++            bool next();
++        } l, r, m, x1, x2;
++
++        bool pending() const;
++        void clear();
++        bool record(unsigned fButtons);
++        unsigned next();
++    } mouseButtons;
++
+     /** @} */
+     /** Does the guest currently want the host pointer to be shown? */
+     uint32_t            fHostCursorRequested;

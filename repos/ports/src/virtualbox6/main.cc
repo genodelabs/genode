@@ -411,7 +411,7 @@ void Main::_sync_capslock()
 void Main::_handle_input()
 {
 	auto handle_one_event = [&] (Input::Event const &ev) {
-		/* don't confuse guests and drop CapsLock events in ROM mode  */
+		/* don't confuse guests and drop CapsLock events in ROM mode */
 		if (_capslock.mode == Capslock::Mode::ROM) {
 			if (ev.key_press(Input::KEY_CAPSLOCK)
 			 || ev.key_release(Input::KEY_CAPSLOCK))
