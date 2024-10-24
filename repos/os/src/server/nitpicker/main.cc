@@ -649,7 +649,9 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	{
 		if (_hover_reporter.enabled()) {
 			Reporter::Xml_generator xml(_hover_reporter, [&] () {
-				_user_state.report_hovered_view_owner(xml, false); });
+				_user_state.report_hovered_view_owner(xml, false);
+				_user_state.report_pointer_position(xml);
+			});
 		}
 	}
 
@@ -938,7 +940,9 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 	bool const hover_changed = (_reported_hover_count != _hover_count);
 	if (hover_changed || (_reported_motion_activity != motion_activity)) {
 		Reporter::Xml_generator xml(_hover_reporter, [&] {
-			_user_state.report_hovered_view_owner(xml, motion_activity); });
+			_user_state.report_hovered_view_owner(xml, motion_activity);
+			_user_state.report_pointer_position(xml);
+		});
 	}
 
 	bool const focus_changed = (_reported_focus_count != _focus_count);
