@@ -398,7 +398,7 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 		mode.width      = node.attribute_value("width"  , 0U);
 		mode.height     = node.attribute_value("height" , 0U);
 		mode.hz         = node.attribute_value("hz"     , 0U);
-		mode.id         = node.attribute_value("mode_id", 0U);
+		mode.id         = node.attribute_value("mode"   , 0U);
 		mode.brightness = node.attribute_value("brightness",
 		                                       unsigned(MAX_BRIGHTNESS + 1));
 	};
@@ -546,17 +546,17 @@ void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *mode)
 
 	xml.node("mode", [&] ()
 	{
-		xml.attribute("width",     mode->width);
-		xml.attribute("height",    mode->height);
-		xml.attribute("hz",        mode->hz);
-		xml.attribute("mode_id",   mode->id);
-		xml.attribute("mode_name", mode->name);
+		xml.attribute("width",  mode->width);
+		xml.attribute("height", mode->height);
+		xml.attribute("hz",     mode->hz);
+		xml.attribute("id",     mode->id);
+		xml.attribute("name",   mode->name);
 		if (mode->width_mm)
 			xml.attribute("width_mm",  mode->width_mm);
 		if (mode->height_mm)
 			xml.attribute("height_mm", mode->height_mm);
 		if (!mode->enabled)
-			xml.attribute("unavailable", true);
+			xml.attribute("usable", false);
 		if (mode->preferred)
 			xml.attribute("preferred", true);
 		if (mode->inuse)

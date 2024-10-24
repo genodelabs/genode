@@ -31,14 +31,14 @@ The exported report has the following format:
 
 ! <connectors>
 !   <connector name="eDP-1" connected="true" brightness="50" width_mm="290" height_mm="170">
-!     <mode width="1920" height="1080" hz="60" mode_id="1" preferred="true" used="true" width_mm="288" height_mm="165"/>
+!     <mode width="1920" height="1080" hz="60" id="1" preferred="true" used="true" width_mm="288" height_mm="165"/>
 !     ...
 !   </connector>
 !   <connector name="DP-1" connected="true" width_mm="280" height_mm="160">
-!     <mode width="1920" height="1200" hz="60" mode_id="1" preferred="true" width_mm="280" height_mm="160"/>
-!     <mode width="1920" height="1080" hz="60" mode_id="2" used="true" width_mm="278" height_mm="158"/>
-!     <mode width="1280" height="1024" hz="60" mode_id="3"/>
-!     <mode width="1024" height="768"  hz="60" mode_id="4"/>
+!     <mode width="1920" height="1200" hz="60" id="1" preferred="true" width_mm="280" height_mm="160"/>
+!     <mode width="1920" height="1080" hz="60" id="2" used="true" width_mm="278" height_mm="158"/>
+!     <mode width="1280" height="1024" hz="60" id="3"/>
+!     <mode width="1024" height="768"  hz="60" id="4"/>
 !     ...
 !   </connector>
 !   <connector name="HDMI-A-1" connected="false"/>
@@ -54,12 +54,13 @@ whether it should be enabled or not. This looks like the following:
 
 ! <config>
 !   <connector name="eDP-1" enabled="true" width="1920" height="1080" hz="60" brightness="75"/>
-!   <connector name="DP-1"  enabled="true" mode_id="2"/>
+!   <connector name="DP-1"  enabled="true" mode="2"/>
 ! </config>
 
-The resolution can be configured exactly by the reported mode_id or by
-the width/height/hz attributes. In the latter case the driver will take the
-first matching mode out of multiple matching modes potentially.
+The resolution can be configured exactly by setting the 'mode' attribute
+to one of the 'id' values of the reported modes or by setting the
+width/height/hz attributes. In the latter case the driver will take the first
+matching mode out of multiple matching modes potentially.
 
 The brightness value is in percent and takes effect only if supported by
 the hardware.
@@ -70,7 +71,7 @@ The maximal physical resolution across all connectors can be restricted by:
 ! </config>
 
 Note: All larger modes still will be reported, but are marked as unusable
-      by an additional attribute 'unavailable' set to true.
+      by an additional attribute 'usable' set to false.
 
 The amount of memory used by the driver for the accounting of its available
 buffer space is set by:
