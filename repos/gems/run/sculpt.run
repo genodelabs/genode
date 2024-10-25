@@ -483,7 +483,7 @@ install_config {
 		</provides>
 		<route>
 			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="nitpicker"/> </service>
+				<child name="config_fs_rom" label="managed/nitpicker"/> </service>
 			<service name="ROM" label="focus">
 				<child name="nit_focus"/> </service>
 			<service name="Report" label="panorama">
@@ -848,7 +848,7 @@ set fd [open [managed_config_path depot_query] w]
 puts $fd "<query/>"
 close $fd
 
-foreach config { fonts wifi runtime event_filter system } {
+foreach config { fonts wifi runtime event_filter system nitpicker } {
 	set ingredient [single_ingredient $config "default"]
 	if {$ingredient != ""} {
 		set from [ingredient_path $config $ingredient]

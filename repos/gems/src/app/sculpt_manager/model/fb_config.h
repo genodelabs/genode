@@ -326,7 +326,7 @@ struct Sculpt::Fb_config
 
 	struct Merge_info { Entry::Name name; Area px; };
 
-	void _with_merge_info(auto const &fn) const
+	void with_merge_info(auto const &fn) const
 	{
 		Merge_info info { };
 
@@ -354,7 +354,7 @@ struct Sculpt::Fb_config
 
 	void _gen_merge_node(Xml_generator &xml) const
 	{
-		_with_merge_info([&] (Merge_info const &info) {
+		with_merge_info([&] (Merge_info const &info) {
 			xml.node("merge", [&] {
 				xml.attribute("width",  info.px.w);
 				xml.attribute("height", info.px.h);
@@ -386,6 +386,15 @@ struct Sculpt::Fb_config
 		for (Entry const &entry : _entries)
 			if (entry.defined && entry.present)
 				connectors.with_connector(entry.name, fn);
+	}
+
+	void for_each_discrete_entry(auto const &fn) const
+	{
+		for (unsigned i = _num_merged; i < MAX_ENTRIES; i++) {
+			Entry const &entry = _entries[i];
+			if (entry.defined && entry.present)
+				fn(entry);
+		}
 	}
 
 	unsigned num_present_merged() const

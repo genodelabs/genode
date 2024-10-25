@@ -41,6 +41,7 @@
 #include <model/screensaver.h>
 #include <model/system_state.h>
 #include <model/fb_config.h>
+#include <model/panorama_config.h>
 #include <view/download_status_widget.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
@@ -1609,6 +1610,32 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Display driver configuration **
 	 **********************************/
 
+	Managed_config<Main> _nitpicker_config {
+		_env, "config", "nitpicker", *this, &Main::_handle_nitpicker_config };
+
+	void _handle_nitpicker_config(Xml_node const &node)
+	{
+		_nitpicker_config.generate([&] (Xml_generator &xml) {
+			copy_attributes(xml, node);
+			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+				if (sub_node.has_type("capture") && sub_node.num_sub_nodes() == 0) {
+					xml.node("capture", [&] {
+
+						/* generate panorama of fb-driver sessions */
+						Panorama_config(_fb_config).gen_policy_entries(xml);
+
+						/* default policy for capture applications like screenshot */
+						xml.node("default-policy", [&] { });
+					});
+				} else {
+					copy_node(xml, sub_node, { 5 });
+				}
+			});
+		});
+	}
+
+	Panorama_config _panorama_config { };
+
 	Fb_connectors _fb_connectors { };
 
 	Rom_handler<Main> _manual_fb_handler { _env, "config -> fb", *this, &Main::_handle_manual_fb };
@@ -1621,12 +1648,16 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_managed_fb_reporter.generate([&] (Xml_generator &xml) {
 			_fb_config.generate_managed_fb(xml); });
+
+		/* update nitpicker config if the new fb config affects the panorama */
+		Panorama_config const orig = _panorama_config;
+		_panorama_config = Panorama_config(_fb_config);
+		if (orig != Panorama_config(_fb_config))
+			_nitpicker_config.trigger_update();
 	}
 
 	void _handle_manual_fb(Xml_node const &node)
 	{
-		log("_handle_manual_fb: ", node);
-
 		_fb_config = { };
 		_fb_config.import_manual_config(node);
 		_fb_config.apply_connectors(_fb_connectors);
@@ -1734,6 +1765,7 @@ struct Sculpt::Main : Input_event_handler,
 		_gui.input.sigh(_input_handler);
 		_gui.info_sigh(_gui_mode_handler);
 		_handle_gui_mode();
+		_nitpicker_config.trigger_update();
 
 		/*
 		 * Generate initial configurations
