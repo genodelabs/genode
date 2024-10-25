@@ -742,8 +742,8 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			if (!err && conf_mode.enabled && conf_mode.mirror && !mirror.report) {
 				/* use fb_info of first mirrored screen */
 				mirror.report    = true;
-				mirror.width_mm  = mode->width_mm;
-				mirror.height_mm = mode->height_mm;
+				mirror.width_mm  = 0;
+				mirror.height_mm = 0;
 				mirror.info      = fb_info;
 				mirror.info.node = CONNECTOR_ID_MIRROR;
 			}
@@ -767,9 +767,12 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			if (err)
 				printk(" - failed, error=%d\n", err);
 
-			if (!err && !conf_mode.mirror && conf_mode.enabled)
-				user_register_fb(dev, &fb_info, &fb_cmd,
-				                 mode->width_mm, mode->height_mm);
+			if (!err && !conf_mode.mirror && conf_mode.enabled) {
+				unsigned width_mm  = mode->width_mm  ? : connector->display_info.width_mm;
+				unsigned height_mm = mode->height_mm ? : connector->display_info.height_mm;
+
+				user_register_fb(dev, &fb_info, &fb_cmd, width_mm, height_mm);
+			}
 
 			break;
 		}
