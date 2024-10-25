@@ -104,6 +104,8 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	 */
 	Framebuffer::Mode _next_mode;
 
+	bool _mode_sigh_pending = false;
+
 	/*
 	 * Number of bytes used for backing the current virtual framebuffer at
 	 * the GUI server.
@@ -168,6 +170,8 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 		if (_mode_sigh.valid())
 			Signal_transmitter(_mode_sigh).submit();
+		else
+			_mode_sigh_pending = true;
 	}
 
 	Gui::Area size() const
@@ -206,6 +210,12 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	void mode_sigh(Signal_context_capability sigh) override
 	{
 		_mode_sigh = sigh;
+
+		/* notify mode change that happened just before 'mode_sigh' */
+		if (_mode_sigh.valid() && _mode_sigh_pending) {
+			Signal_transmitter(_mode_sigh).submit();
+			_mode_sigh_pending = false;
+		}
 	}
 
 	void refresh(Rect rect) override
