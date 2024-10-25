@@ -1,5 +1,3 @@
 <config width="1024" height="768" max_width="3840" max_height="2160">
 	<report connectors="yes"/>
-	<!-- <connector name="eDP-1" width="1920" height="1080" enabled="true" brightness="75"/> -->
-	<!-- <connector name="HDMI-A-1" width="1024" height="768" hz="75" enabled="true"/> -->
 </config>
