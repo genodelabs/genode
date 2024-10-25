@@ -39,7 +39,7 @@ class Genodefb :
 		 * The mode currently used by the VM. Can be smaller than the
 		 * framebuffer mode.
 		 */
-		Gui::Area _virtual_fb_mode;
+		Gui::Area _virtual_fb_area;
 
 		void *_attach()
 		{
@@ -62,10 +62,10 @@ class Genodefb :
 		{
 			if (!_fb_base) return;
 
-			size_t const max_h = Genode::min(_gui_win.area.h, _virtual_fb_mode.h);
+			size_t const max_h = Genode::min(_gui_win.area.h, _virtual_fb_area.h);
 			size_t const num_pixels = _gui_win.area.w * max_h;
 			memset(_fb_base, 0, num_pixels * sizeof(Genode::Pixel_rgb888));
-			_gui.framebuffer.refresh({ _gui_win.at, _virtual_fb_mode });
+			_gui.framebuffer.refresh({ _gui_win.at, _virtual_fb_area });
 		}
 
 		void _adjust_buffer()
@@ -89,7 +89,7 @@ class Genodefb :
 		:
 			_env(env),
 			_gui(gui),
-			_virtual_fb_mode(_initial_setup()),
+			_virtual_fb_area(_initial_setup()),
 			_display(display)
 		{
 			int rc = RTCritSectInit(&_fb_lock);
@@ -140,12 +140,12 @@ class Genodefb :
 			bool const ok = (w <= (ULONG)_gui_win.area.w) &&
 			                (h <= (ULONG)_gui_win.area.h);
 
-			bool const changed = (w != (ULONG)_virtual_fb_mode.w) ||
-			                     (h != (ULONG)_virtual_fb_mode.h);
+			bool const changed = (w != (ULONG)_virtual_fb_area.w) ||
+			                     (h != (ULONG)_virtual_fb_area.h);
 
 			if (ok && changed) {
 				Genode::log("fb resize : [", screen, "] ",
-				            _virtual_fb_mode, " -> ",
+				            _virtual_fb_area, " -> ",
 				            w, "x", h,
 				            " (host: ", _gui_win.area, ")");
 
@@ -155,12 +155,12 @@ class Genodefb :
 					_clear_screen();
 				}
 
-				_virtual_fb_mode = { w, h };
+				_virtual_fb_area = { w, h };
 
 				result = S_OK;
 			} else if (changed) {
 				Genode::log("fb resize : [", screen, "] ",
-				            _virtual_fb_mode, " -> ",
+				            _virtual_fb_area, " -> ",
 				            w, "x", h, " ignored"
 				            " (host: ", _gui_win.area, ")");
 			}

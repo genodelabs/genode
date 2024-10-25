@@ -440,9 +440,7 @@ void Main::_handle_fb_mode()
 
 			Gui::Rect const gui_win = gui.window().convert<Gui::Rect>(
 				[&] (Gui::Rect rect) { return rect; },
-				[&] (Gui::Undefined) { return gui.panorama().convert<Gui::Rect>(
-					[&] (Gui::Rect rect) { return rect; },
-					[&] (Gui::Undefined) { return Gui::Rect { { }, { 800, 600 } }; }); });
+				[&] (Gui::Undefined) { return Gui::Rect { { }, { 1024, 768 } }; });
 
 			fb->update_mode(gui_win);
 
