@@ -739,10 +739,36 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	 */
 	Pointer sanitized_pointer_position(Pointer const orig_pos, Point pos) override
 	{
-		if (_capture_root.visible(pos) || _visible_at_fb_screen(pos))
+		auto visible = [&] (Pointer p)
+		{
+			return _capture_root.visible(p) || _visible_at_fb_screen(p);
+		};
+
+		auto for_each_value = [] (int const from, int const to, auto const &fn)
+		{
+			int const step = (from < to) ? 1 : -1;
+			for (int i = from; i != to; i += step)
+				fn(i);
+		};
+
+		if (visible(pos))
 			return pos;
 
-		if (_capture_root.visible(orig_pos) || _visible_at_fb_screen(orig_pos))
+		/* move pointer along screen edge */
+		if (orig_pos.ok()) {
+			Point best = orig_pos.convert<Point>(
+				[&] (Point p) { return p; },
+				[&] (Nowhere) { return Point { }; });
+
+			auto try_better = [&] (Point p) { if (visible(p)) best = p; };
+
+			for_each_value(best.x, pos.x, [&] (int x) { try_better({ x, best.y }); });
+			for_each_value(best.y, pos.y, [&] (int y) { try_better({ best.x, y }); });
+
+			return best;
+		}
+
+		if (visible(orig_pos))
 			return orig_pos;
 
 		Pointer const captured_pos = _capture_root.any_visible_pointer_position();
