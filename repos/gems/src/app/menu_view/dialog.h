@@ -228,10 +228,22 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	void update(Xml_node const &node)
 	{
+		Point const orig_position         = _position;
+		Area  const orig_configured_size  = _configured_size;
+		bool  const orig_opaque           = _opaque;
+		Color const orig_background_color = _background_color;
+
 		_position         = Point::from_xml(node);
 		_configured_size  = Area ::from_xml(node);
 		_opaque           = node.attribute_value("opaque", false);
 		_background_color = node.attribute_value("background", Color(127, 127, 127, 255));
+
+		bool const any_change = (orig_position         != _position
+		                      || orig_configured_size  != _configured_size
+		                      || orig_opaque           != _opaque
+		                      || orig_background_color != _background_color);
+		if (any_change)
+			_dialog_handler.local_submit();
 	}
 };
 
