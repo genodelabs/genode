@@ -60,6 +60,7 @@ struct Framebuffer::Driver
 	bool                    new_config_rom      { false };
 	bool                    disable_all         { false };
 	bool                    disable_report_once { false };
+	bool                    merge_label_changed { false };
 
 	Capture::Connection::Label merge_label { "mirror" };
 
@@ -120,15 +121,19 @@ struct Framebuffer::Driver
 		return dirty;
 	}
 
-	bool update(Connector &conn, addr_t const base,
-	            Capture::Area &size, Capture::Area &size_phys,
-	            Capture::Area const mm,
-	            auto const &label)
+	bool update(Connector           &conn,
+	            addr_t        const  base,
+	            Capture::Area const &size,
+	            Capture::Area const &size_phys,
+	            Capture::Area const &mm,
+	            auto          const &label,
+	            bool          const  force_change)
 	{
 		bool same = (base      == conn.base) &&
 		            (size      == conn.size) &&
 		            (size_phys == conn.size_phys) &&
-		            (mm        == conn.size_mm);
+		            (mm        == conn.size_mm) &&
+		            !force_change;
 
 		if (same)
 			return same;
@@ -275,8 +280,12 @@ void Framebuffer::Driver::config_update()
 		return;
 
 	config.xml().with_optional_sub_node("merge", [&](auto const &node) {
+		auto const merge_label_before = merge_label;
+
 		if (node.has_attribute("name"))
 			merge_label = node.attribute_value("name", String<160>(merge_label));
+
+		merge_label_changed = merge_label_before != merge_label;
 	});
 
 	if (config.xml().attribute_value("system", false)) {
@@ -467,17 +476,22 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 
 	drv.ids.apply<Connector>(id, [&](Connector &conn) {
 
-		Capture::Area area     (xres, yres);
-		Capture::Area area_phys(phys_width, phys_height);
+		Capture::Area const area     (xres, yres);
+		Capture::Area const area_phys(phys_width, phys_height);
 
-		auto label = !conn_name
-		           ? Capture::Connection::Label(conn.id_element)
-		           : Capture::Connection::Label(conn_name) == "mirror_capture"
-		             ? drv.merge_label
-		             : Capture::Connection::Label(conn_name);
+		bool const merge = Capture::Connection::Label(conn_name) == "mirror_capture";
+
+		auto const label = !conn_name
+		                 ? Capture::Connection::Label(conn.id_element)
+		                 : merge ? drv.merge_label
+		                         : Capture::Connection::Label(conn_name);
 
 		bool const same = drv.update(conn, Genode::addr_t(base), area,
-		                             area_phys, { mm_width, mm_height}, label);
+		                             area_phys, { mm_width, mm_height}, label,
+		                             merge && drv.merge_label_changed);
+
+		if (merge)
+			drv.merge_label_changed = false;
 
 		if (same) {
 			lx_emul_i915_wakeup(unsigned(id.value));
