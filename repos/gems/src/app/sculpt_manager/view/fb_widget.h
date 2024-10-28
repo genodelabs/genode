@@ -117,23 +117,27 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 
 			s.sub_scope<Float>([&] (Scope<Vbox, Float> &s) {
 				s.sub_scope<Hbox>(id, [&] (Scope<Vbox, Float, Hbox> &s) {
-					s.sub_scope<Button>(Id { "equal" }, [&] (Scope<Vbox, Float, Hbox, Button> &s) {
-						if (count <= num_merged)
-							s.attribute("selected", "yes");
-						if (count == num_merged || count == num_merged + 1) {
+					s.sub_scope<Float>(Id { "equal" }, [&] (Scope<Vbox, Float, Hbox, Float> &s) {
+						s.sub_scope<Button>([&] (Scope<Vbox, Float, Hbox, Float, Button> &s) {
+							s.attribute("style", "vconn");
+							if (count <= num_merged)
+								s.attribute("selected", "yes");
+							if (count == num_merged || count == num_merged + 1) {
+								if (s.hovered() && !s.dragged())
+									s.attribute("hovered", "yes");
+							}
+							s.sub_node("hbox", [&] { });
+						});
+					});
+					s.sub_scope<Float>(Id { "swap" }, [&] (Scope<Vbox, Float, Hbox, Float> &s) {
+						s.sub_scope<Button>([&] (Scope<Vbox, Float, Hbox, Float, Button> &s) {
+							s.attribute("style", "vswap");
 							if (s.hovered() && !s.dragged())
 								s.attribute("hovered", "yes");
-						} else {
-							s.attribute("style", "unimportant");
-						}
-						s.sub_scope<Label>("=");
-					});
-					s.sub_scope<Button>(Id { "swap" }, [&] (Scope<Vbox, Float, Hbox, Button> &s) {
-						s.sub_scope<Label>("Swap");
-						if (s.hovered() && !s.dragged())
-							s.attribute("hovered", "yes");
-						if (s.hovered() && s.dragged())
-							s.attribute("selected", "yes");
+							if (s.hovered() && s.dragged())
+								s.attribute("selected", "yes");
+							s.sub_node("hbox", [&] { });
+						});
 					});
 				});
 			});
@@ -178,7 +182,7 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 		/* operation buttons */
 		{
 			Id const conn = at.matching_id<Vbox, Float, Hbox>();
-			Id const op   = at.matching_id<Vbox, Float, Hbox, Button>();
+			Id const op   = at.matching_id<Vbox, Float, Hbox, Float>();
 
 			if (op.value == "equal") action.toggle_fb_merge_discrete(conn.value);
 			if (op.value == "swap")  action.swap_fb_connector(conn.value);
