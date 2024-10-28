@@ -650,6 +650,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	bool _leitzentrale_visible = false;
 
+	Fb_connectors::Name _hovered_display { };
+
 	Color const _background_color { 62, 62, 67, 255 };
 
 	Affinity::Space _affinity_space { 1, 1 };
@@ -812,7 +814,7 @@ struct Sculpt::Main : Input_event_handler,
 		_graph { Id { "graph" },
 		         _runtime_state, _cached_runtime_config, _storage._storage_devices,
 		         _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
-		         _fb_config, _popup.state, _deploy._children };
+		         _fb_config, _hovered_display, _popup.state, _deploy._children };
 
 	Conditional_widget<Network_widget>
 		_network_widget { Conditional_widget<Network_widget>::Attr { .centered = true },

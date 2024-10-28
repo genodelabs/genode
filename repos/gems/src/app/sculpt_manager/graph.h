@@ -45,6 +45,7 @@ struct Sculpt::Graph : Widget<Depgraph>
 	Ram_fs_state           const &_ram_fs_state;
 	Fb_connectors          const &_fb_connectors;
 	Fb_config              const &_fb_config;
+	Fb_connectors::Name    const &_hovered_display;
 	Popup::State           const &_popup_state;
 	Depot_deploy::Children const &_deploy_children;
 
@@ -89,14 +90,15 @@ struct Sculpt::Graph : Widget<Depgraph>
 	      Ram_fs_state           const &ram_fs_state,
 	      Fb_connectors          const &fb_connectors,
 	      Fb_config              const &fb_config,
+	      Fb_connectors::Name    const &hovered_display,
 	      Popup::State           const &popup_state,
 	      Depot_deploy::Children const &deploy_children)
 	:
 		_runtime_state(runtime_state), _runtime_config(runtime_config),
 		_storage_devices(storage_devices), _selected_target(selected_target),
 		_ram_fs_state(ram_fs_state), _fb_connectors(fb_connectors),
-		_fb_config(fb_config), _popup_state(popup_state),
-		_deploy_children(deploy_children)
+		_fb_config(fb_config), _hovered_display(hovered_display),
+		_popup_state(popup_state), _deploy_children(deploy_children)
 	{ }
 
 	void view(Scope<Depgraph> &) const;

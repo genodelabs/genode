@@ -101,7 +101,7 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 		s.widget(_ram_fs_widget, _selected_target, _ram_fs_state);
 
 	if (name == "intel_fb")
-		s.widget(_fb_widget, _fb_connectors, _fb_config);
+		s.widget(_fb_widget, _fb_connectors, _fb_config, _hovered_display);
 
 	String<100> const
 		ram (Capacity{info.assigned_ram - info.avail_ram}, " / ",

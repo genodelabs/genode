@@ -70,7 +70,8 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 
 	using Hosted_brightness = Hosted<Bar>;
 
-	void view(Scope<Vbox> &s, Fb_connectors const &connectors, Fb_config const &config) const
+	void view(Scope<Vbox> &s, Fb_connectors const &connectors, Fb_config const &config,
+	          Fb_connectors::Name const &hovered_display) const
 	{
 		auto view_connector = [&] (Connector const &conn)
 		{
@@ -102,7 +103,8 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 						s.widget(Mode_radio { Id { mode.id }, mode.id },
 						         selected_mode, text);
 					});
-					s.widget(Mode_radio { Id { "off" }, "off" }, selected_mode, "off");
+					if (conn.name != hovered_display)
+						s.widget(Mode_radio { Id { "off" }, "off" }, selected_mode, "off");
 				});
 		};
 

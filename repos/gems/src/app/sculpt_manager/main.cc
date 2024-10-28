@@ -763,6 +763,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	Constructible<Gui::Point> _pointer_pos { };
 
+	Fb_connectors::Name _hovered_display { };
+
 	void _handle_nitpicker_hover(Xml_node const &hover)
 	{
 		if (hover.has_attribute("xpos"))
@@ -1769,7 +1771,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Graph _graph { _runtime_state, _cached_runtime_config, _storage._storage_devices,
 	               _storage._selected_target, _storage._ram_fs_state, _fb_connectors,
-	               _fb_config, _popup.state, _deploy._children };
+	               _fb_config, _hovered_display, _popup.state, _deploy._children };
 
 	struct Graph_dialog : Dialog::Top_level_dialog
 	{
@@ -2097,7 +2099,8 @@ void Sculpt::Main::_handle_gui_mode()
 	_panorama = _gui.panorama();
 
 	/* place leitzentrale at pointed display */
-	Rect const orig_screen_rect { _screen_pos, _screen_size };
+	Rect                const orig_screen_rect { _screen_pos, _screen_size };
+	Fb_connectors::Name const orig_hovered_display = _hovered_display;
 	{
 		Rect rect { };
 
@@ -2111,8 +2114,11 @@ void Sculpt::Main::_handle_gui_mode()
 
 			info.for_each_sub_node("capture", [&] (Xml_node const &capture) {
 				Rect const display = Rect::from_xml(capture);
-				if (display.contains(at))
+				if (display.contains(at)) {
 					rect = display;
+					Session_label label { capture.attribute_value("name", String<64>()) };
+					_hovered_display = label.last_element();
+				}
 			});
 		});
 
@@ -2120,7 +2126,8 @@ void Sculpt::Main::_handle_gui_mode()
 		_screen_size = rect.area;
 	}
 
-	bool const screen_changed = (orig_screen_rect != Rect { _screen_pos, _screen_size });
+	bool const screen_changed = (orig_screen_rect != Rect { _screen_pos, _screen_size })
+	                         || (orig_hovered_display != _hovered_display);
 
 	if (screen_changed) {
 		_gui_fb_config.generate([&] (Xml_generator &xml) {
