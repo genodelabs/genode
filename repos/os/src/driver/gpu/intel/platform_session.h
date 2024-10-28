@@ -17,6 +17,7 @@
 #include <region_map/client.h>
 #include <rm_session/connection.h>
 #include <platform_session/platform_session.h>
+#include <os/dynamic_rom_session.h>
 #include <types.h>
 
 struct Irq_ack_handler
@@ -171,7 +172,8 @@ class Platform::Device_component : public Rpc_object<Device_interface,
 };
 
 
-class Platform::Session_component : public Rpc_object<Session>
+class Platform::Session_component : public Rpc_object<Session>,
+                                    private Dynamic_rom_session::Xml_producer
 {
 	private:
 
@@ -181,6 +183,8 @@ class Platform::Session_component : public Rpc_object<Session>
 		Gpu_reset_handler  & _reset_handler;
 		Heap                 _heap { _env.ram(), _env.rm() };
 		Device_component     _device_component;
+		Dynamic_rom_session  _rom_session { _env.ep(), _env.ram(),
+		                                    _env.rm(), *this    };
 		bool                 _acquired { false };
 
 		/*
@@ -213,6 +217,7 @@ class Platform::Session_component : public Rpc_object<Session>
 		                  Dataspace_capability gmadr_ds_cap,
 		                  Range                gmadr_range)
 		:
+		  Dynamic_rom_session::Xml_producer("devices"),
 		  _env(env),
 		  _platform(platform),
 		  _hw_ready(hw_ready),
@@ -282,10 +287,105 @@ class Platform::Session_component : public Rpc_object<Session>
 			return ret;
 		}
 
-		Rom_session_capability devices_rom() override {
-			return _platform.devices_rom(); }
+		Rom_session_capability devices_rom() override
+		{
+			_rom_session.update();
+
+			return _rom_session.cap();
+		}
 
 		bool handle_irq() { return _device_component.handle_irq(); }
+
+		/*******************************************
+		 ** Dynamic_rom_session::Xml_producer API **
+		 *******************************************/
+
+		void produce_xml(Xml_generator &xml) override
+		{
+			Rom_session_client rsc(_platform.devices_rom());
+			Attached_dataspace rom(_env.rm(), rsc.dataspace());
+
+			if (!rom.size())
+				return;
+
+			Xml_node const rom_xml(rom.local_addr<char>());
+
+			copy_attributes(xml, rom_xml);
+
+			rom_xml.for_each_sub_node("device", [&](auto const &dev) {
+
+				bool intel_dev   = false;
+				bool graphic_dev = false;
+
+				dev.with_optional_sub_node("pci-config", [&] (Xml_node const &node) {
+					  intel_dev = node.attribute_value("vendor_id", 0u) == 0x8086;
+					graphic_dev = node.attribute_value("class",     0u) == 0x30000;
+				});
+
+				if (!intel_dev)
+					return;
+
+				if (!graphic_dev) {
+					copy_node(xml, dev);
+					return;
+				}
+
+				xml.node("device", [&]() {
+					copy_attributes(xml, dev);
+
+					dev.for_each_sub_node([&] (Xml_node const &node) {
+						if (!node.has_type("io_mem")) {
+							copy_node(xml, node);
+							return;
+						}
+
+						auto const pci_bar = node.attribute_value("pci_bar", ~0U);
+
+						xml.node("io_mem", [&]() {
+							node.for_each_attribute([&](auto const &attr){
+								String<16> value { };
+								attr.value(value);
+
+								if (pci_bar == 2 && attr.has_type("size")) {
+									Range r = { };
+									_device_component.io_mem(1, r);
+
+									value = String<16>(Hex(r.size));
+								}
+
+								xml.attribute(attr.name().string(),
+								              value.string());
+							});
+						});
+					});
+				});
+			});
+		}
+
+		void copy_attributes(Xml_generator &xml, Xml_node const &from)
+		{
+			using Value = String<64>;
+			from.for_each_attribute([&] (Xml_attribute const &attr) {
+				Value value { };
+				attr.value(value);
+				xml.attribute(attr.name().string(), value);
+			});
+		}
+
+		struct Xml_max_depth { unsigned value; };
+
+		void copy_node(Xml_generator &xml, Xml_node const &from,
+		               Xml_max_depth max_depth = { 5 })
+		{
+			if (!max_depth.value)
+				return;
+
+			xml.node(from.type().string(), [&] {
+				copy_attributes(xml, from);
+				from.for_each_sub_node([&] (Xml_node const &sub_node) {
+					copy_node(xml, sub_node, { max_depth.value - 1 }); });
+			});
+		}
 };
 
 
