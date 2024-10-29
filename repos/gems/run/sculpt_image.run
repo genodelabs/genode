@@ -6,6 +6,7 @@ proc board_supported { } {
 	if {[have_board pinephone]}   { return true }
 	if {[have_board pc]}          { return true }
 	if {[have_board mnt_reform2]} { return true }
+	if {[have_board mnt_pocket]}  { return true }
 	return false
 }
 
@@ -42,6 +43,12 @@ if {[have_board pc]} {
 if {[have_board mnt_reform2]} {
 	assert_include image/uboot
 	assert_include image/imx8mq_mmc
+	assert_run_arg "--image-uboot-gzip-best"
+}
+
+if {[have_board mnt_pocket]} {
+	assert_include image/uboot
+	assert_include image/mnt_pocket_sdcard
 	assert_run_arg "--image-uboot-gzip-best"
 }
 
