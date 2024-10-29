@@ -41,6 +41,7 @@ void lx_emul_i915_hotplug_connector(void);
 
 void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char connected,
+                                   char modes,
                                    unsigned brightness,
                                    unsigned width_mm, unsigned height_mm);
 void lx_emul_i915_iterate_modes(void *lx_data, void * genode_data);

@@ -528,6 +528,7 @@ void lx_emul_i915_hotplug_connector()
 
 void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char const connected,
+                                   char const modes_available,
                                    unsigned brightness, unsigned width_mm,
                                    unsigned height_mm)
 {
@@ -535,7 +536,7 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
 
 	xml.node("connector", [&] ()
 	{
-		xml.attribute("connected", !!connected);
+		xml.attribute("connected", connected && modes_available);
 		xml.attribute("name", name);
 		if (width_mm)
 			xml.attribute("width_mm" , width_mm);

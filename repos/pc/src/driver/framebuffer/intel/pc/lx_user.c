@@ -984,6 +984,8 @@ static void _report_connectors(void * genode_data, bool const discrete)
 
 	struct drm_device const *dev       = dev_client->dev;
 	struct drm_connector    *connector = NULL;
+	struct drm_display_mode *mode      = NULL;
+	bool                     has_modes = false;
 
 	drm_connector_list_iter_begin(dev, &conn_iter);
 	drm_client_for_each_connector_iter(connector, &conn_iter) {
@@ -1003,9 +1005,18 @@ static void _report_connectors(void * genode_data, bool const discrete)
 		if ((discrete && mirror) || (!discrete && !mirror))
 			continue;
 
+		list_for_each_entry(mode, &connector->modes, head) {
+
+			if (!mode)
+				continue;
+
+			has_modes = true;
+		}
+
 		lx_emul_i915_report_connector(connector, genode_data,
 		                              connector->name,
 		                              connector->status != connector_status_disconnected,
+		                              has_modes,
 		                              get_brightness(connector, INVALID_BRIGHTNESS),
 		                              connector->display_info.width_mm,
 		                              connector->display_info.height_mm);
