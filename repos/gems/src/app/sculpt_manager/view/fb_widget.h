@@ -117,12 +117,21 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 
 			s.sub_scope<Float>([&] (Scope<Vbox, Float> &s) {
 				s.sub_scope<Hbox>(id, [&] (Scope<Vbox, Float, Hbox> &s) {
-					s.sub_scope<Float>(Id { "equal" }, [&] (Scope<Vbox, Float, Hbox, Float> &s) {
+
+					/*
+					 * Restrict merge/unmerge toggle to last merged and first
+					 * discrete connector.
+					 */
+					bool const toggle_allowed = (count == num_merged || count == num_merged + 1);
+					Id const equal_id { toggle_allowed ? "equal" : "_equal" };
+
+					s.sub_scope<Float>(equal_id,
+						[&] (Scope<Vbox, Float, Hbox, Float> &s) {
 						s.sub_scope<Button>([&] (Scope<Vbox, Float, Hbox, Float, Button> &s) {
 							s.attribute("style", "vconn");
 							if (count <= num_merged)
 								s.attribute("selected", "yes");
-							if (count == num_merged || count == num_merged + 1) {
+							if (toggle_allowed) {
 								if (s.hovered() && !s.dragged())
 									s.attribute("hovered", "yes");
 							}
