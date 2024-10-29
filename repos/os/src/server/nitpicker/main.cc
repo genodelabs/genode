@@ -734,16 +734,23 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 			s->submit_sync();
 	}
 
+	Pointer _any_visible_pointer_position()
+	{
+		Pointer const captured_pos = _capture_root.any_visible_pointer_position();
+
+		return captured_pos.ok() ? captured_pos : _anywhere_at_fb_screen();
+	}
+
+	bool _visible(Pointer const p) const
+	{
+		return _capture_root.visible(p) || _visible_at_fb_screen(p);
+	}
+
 	/**
 	 * User_state::Action interface
 	 */
 	Pointer sanitized_pointer_position(Pointer const orig_pos, Point pos) override
 	{
-		auto visible = [&] (Pointer p)
-		{
-			return _capture_root.visible(p) || _visible_at_fb_screen(p);
-		};
-
 		auto for_each_value = [] (int const from, int const to, auto const &fn)
 		{
 			int const step = (from < to) ? 1 : -1;
@@ -751,7 +758,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 				fn(i);
 		};
 
-		if (visible(pos))
+		if (_visible(pos))
 			return pos;
 
 		/* move pointer along screen edge */
@@ -760,7 +767,11 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 				[&] (Point p) { return p; },
 				[&] (Nowhere) { return Point { }; });
 
-			auto try_better = [&] (Point p) { if (visible(p)) best = p; };
+			/* panorama change may have made area around the pointer invisible */
+			if (!_visible(best))
+				return _any_visible_pointer_position();
+
+			auto try_better = [&] (Point p) { if (_visible(p)) best = p; };
 
 			for_each_value(best.x, pos.x, [&] (int x) { try_better({ x, best.y }); });
 			for_each_value(best.y, pos.y, [&] (int y) { try_better({ best.x, y }); });
@@ -768,12 +779,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 			return best;
 		}
 
-		if (visible(orig_pos))
-			return orig_pos;
-
-		Pointer const captured_pos = _capture_root.any_visible_pointer_position();
-
-		return captured_pos.ok() ? captured_pos : _anywhere_at_fb_screen();
+		return _any_visible_pointer_position();
 	}
 
 	/**
