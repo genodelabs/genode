@@ -218,6 +218,14 @@ struct Sculpt::Fb_config
 			});
 		});
 
+		/* detect unplugging */
+		for (Entry &entry : _entries) {
+			bool connected = false;
+			connectors.with_connector(entry.name, [&] (auto &) { connected = true; });
+			if (!connected)
+				entry.present = false;
+		}
+
 		connectors._merged.for_each([&] (Fb_connectors::Connector const &conn) {
 			if (!_known(conn.name))
 				_add_unknown_merged(Entry::from_connector(conn)); });
@@ -328,28 +336,22 @@ struct Sculpt::Fb_config
 
 	void with_merge_info(auto const &fn) const
 	{
-		Merge_info info { };
-
 		/* merged screen size and name corresponds to first enabled connector */
 		for (unsigned i = 0; i < _num_merged; i++) {
-			info = { .name = _entries[i].name,
-			         .px   = _entries[i].mode_attr.px };
-			if (info.px.valid() && _entries[i].present)
-				break;
-		}
-
-		/* if all merged connectors are switched of, use name of first one */
-		if (!info.px.valid()) {
-			for (unsigned i = 0; i < _num_merged; i++) {
-				info = { .name = _entries[i].name,
-				         .px   = _entries[i].mode_attr.px };
-				if (_entries[i].present)
-					break;
+			if (_entries[i].present && _entries[i].mode_attr.px.valid()) {
+				fn({ .name = _entries[i].name,
+				     .px   = _entries[i].mode_attr.px });
+				return;
 			}
 		}
 
-		if (info.name.length() > 1)
-			fn(info);
+		/* if all merged connectors are switched off, use name of first present one */
+		for (unsigned i = 0; i < _num_merged; i++) {
+			if (_entries[i].present) {
+				fn({ .name = _entries[i].name, .px = { }});
+				return;
+			}
+		}
 	};
 
 	void _gen_merge_node(Xml_generator &xml) const

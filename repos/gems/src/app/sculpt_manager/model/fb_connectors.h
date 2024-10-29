@@ -207,7 +207,8 @@ struct Sculpt::Fb_connectors : private Noncopyable
 		static bool type_matches(Xml_node const &node)
 		{
 			return node.has_type("connector")
-			    && node.attribute_value("connected", false);
+			    && node.attribute_value("connected", false)
+			    && node.has_sub_node("mode");
 		}
 	};
 
