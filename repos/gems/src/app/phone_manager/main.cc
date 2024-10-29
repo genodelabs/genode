@@ -376,10 +376,11 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	bool ap_list_hovered() const override
 	{
-		return _main_view.if_hovered([&] (Hovered_at const &at) {
-			return _network_widget.if_hovered(at, [&] (Hovered_at const &at) {
-				return _network_widget.hosted.if_hovered(at, [&] (Hovered_at const &at) {
-					return _network_widget.hosted.ap_list_hovered(at); }); }); });
+		/*
+		 * For now always report false so that scan-results
+		 * will always be presented.
+		 */
+		return false;
 	}
 
 	/**
