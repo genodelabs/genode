@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 24.04
+                      Sculpt Operating System 24.10
                       =============================
 
 
@@ -61,7 +61,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at the
-[https://genode.org/documentation/sculpt-24.04.pdf - Genode website].
+[https://genode.org/documentation/sculpt-24.10.pdf - Genode website].
 
 
 Hardware requirements and preparations
@@ -557,7 +557,7 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 24.04 features a command-line
+Alternatively to the "Files" tab, Sculpt 24.10 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface.
@@ -678,24 +678,6 @@ remapping buttons and keys ('<remap>'), supplementing symbolic character
 information ('<chargen>'), pointer acceleration ('<accelerate>'), and
 emulating a scroll wheel by moving the pointer while pressing the middle
 mouse button ('<button-scroll>').
-
-
-Display settings
-----------------
-
-If you are running the Intel graphics driver, you can inspect the connected
-displays and their supported resolutions by taking a look at the report at
-_/report/runtime/intel_fb/connectors_. This report is updated
-whenever a display is connected or disconnected. You can use this
-information to enable or disable a display in the driver's configuration,
-which you can find at _/config/fb_.
-
-For a quick test, change the attributes 'height="768"' to 'force_height="768"'
-and 'width="1024"' to 'force_width="1024"'. When saving the file, the screen
-real-estate will forcibly be limited to the specified size. This is helpful
-during presentations where the projector has a lower resolution than the
-laptop's internal display. By specifying the beamer's resolution, both the
-laptop and the beamer show the same content.
 
 
 Exploring the drivers and Leitzentrale subsystems
@@ -1477,7 +1459,7 @@ _/config/presets/_.
 
 To keep your custom preset available after reboot, follow the pattern
 described in Section [Making customizations permanent] by copying the file to
-_/config/24.04/presets/_ at your Sculpt partition.
+_/config/24.10/presets/_ at your Sculpt partition.
 
 
 Installation on disk
@@ -1553,6 +1535,102 @@ local _depot/_ to your boot directory using a live USB system.
 Once an image is installed, the dialog tells you "reboot to activate".
 One way to do that is by changing the system state in _/config/system_ to
 "reset".
+
+
+Window management
+=================
+
+The best starting point for realizing a Sculpt-OS-based desktop scenario
+is the window-manager preset. Applications connected to the window manager
+(wm) appear with window decorations that can be used to arrange, maximize,
+or close the window. The window size of a resizeable application can be
+changed by dragging the window border.
+
+Some applications like games may grab the pointer when clicking into their
+window. One can regain the control over the pointer at any time by pressing
+the 'Super' key. Other useful key combinations are 'Super-Tab' to switch the
+keyboard focus between windows, and 'Super-Return' to toggle the maximized
+state of the currently focused window.
+
+One can switch between virtual desktops using the key combinations 'Super+1',
+'Super+2', 'Super+3', etc. New windows always appear at the first virtual
+desktop. To move a window to a different one, use the system shell to edit
+_/rw/recall/window_layouter/recall/rules_. Look out for the '<assign>' rule
+for the window, and change the target attribute to another screen, e.g.,
+"screen_2". By editing the rules file, one can do further window manipulations:
+
+* Changing the order to <assign> rules to change the window-stacking order.
+* Move or resize a window by changing the corresponding xpos, ypos, width, and
+  height attributes.
+* Maximize/un-maximize a window by setting the maximized attribute
+  to "yes" or "no".
+
+As the rules file is a regular file, one can create a backup of the current
+window layout by copying the file, and switch between different layouts by
+overwriting the rules file by a different version. The window layout is
+preserved across reboots because the rules file is a regular file stored on
+the used file system, except when using the RAM file system.
+
+
+Multi-monitor support
+=====================
+
+Sculpt OS supports the use of multiple monitors on PCs with Intel graphics.
+By default, all connected monitors display the same mirrored image.
+This default can be tweaked using the configuration dialog hosted in the
+_intel fb_ node of the component graph.
+
+[image sculpt_24_10_intel_fb]
+
+The dialog displays a list of present monitors labeled after their respective
+connectors. A mode can be selected for each connector when clicking on the
+connector entry. In-between the entries there are two buttons. The link
+button (showing two vertical lines) is a toggle that defines whether the two
+adjacent entries are mirrored or operated as discrete monitors. It is enabled
+by default so that all monitors participate in the mirroring. By deselecting
+the last enabled link button, the entry below the button becomes a discrete
+(non-mirrored) monitor.
+
+The swap button allows for changing the order of the monitors, which has two
+effects. First, the resolution of the very first monitor defines the size for
+mirrored image. Hence, by changing the order of mirrored monitors, one can
+pick the preferred image size. Second, the order of discrete monitors
+defines the layout of a panorama, which spans the mirrored image on the left
+followed by each discrete monitor towards the right.
+
+When using discrete monitors, Sculpt OS places the Leitzentrale GUI on the monitor
+that currently hosts the mouse pointer. When moving the pointer from one
+monitor to another, the GUI moves with it. Should the monitors have different
+resolutions, Sculpt OS automatically adjusts the system-global font configuration
+according to the monitor used. Should this effect on all users of the
+system-global font configuration (like terminal windows hosted on yet another
+monitor) be undesired, one can define a static font configuration by placing
+a snapshot of _/config/managed/fonts_ to _/config/fonts_.
+
+If a monitor supports brightness control, the brightness can by adjusted in
+the mode selection of the monitor. The mode selection also offers the option
+to switch off the monitor, except for the monitor currently hosting the
+Leitzentrale GUI. As a note of caution, there is currently no safety mechanism
+against locking oneself out of the user interface by selecting a mode not
+properly handled by a single connected monitor.
+
+The framebuffer-driver configuration as driven by the interactive dialog
+can be found at _/config/managed/fb_. It is meant to be taken as starting
+point for a manually managed configuration at _/config/fb_. Therefore, several
+multi-monitor profiles (like office, home, train) can be realized by merely
+replacing this file.
+The panorama is defined at the _/config/managed/nitpicker_ configuration,
+specifically the '<capture>' node. The '<capture>' node assigns the
+viewports on the panorama as captured by the framebuffer driver. Sculpt OS
+manages the panorama only if the '<capture>' node of _/config/nitpicker_
+is empty. By filling the '<capture>' node with custom policies, arbitrary
+panorama layouts can be realized using the attributes 'xpos', 'ypos', 'width',
+and 'height'.
+
+For diagnostic purposes, the _/report/runtime/intel_fb/connectors_ report
+contains the connector state as currently observed by the framebuffer driver.
+Furthermore, _/report/nitpicker/panorama_ contains the information about
+the panorama and the components participating in capturing the panorama.
 
 
 Audio
@@ -1689,11 +1767,11 @@ download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-24.04 sculpt-24.04
+  ! git checkout -b sculpt-24.10 sculpt-24.10
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2024-04-26
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2024-10-30
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
@@ -1701,8 +1779,8 @@ download at [https://genode.org].
 # Download all ingredients for the Sculpt boot image
 
   ! ./tool/depot/download \
-  !    genodelabs/pkg/x86_64/sculpt/2024-04-26 \
-  !    genodelabs/pkg/x86_64/sculpt_drivers-pc/2024-04-26
+  !    genodelabs/pkg/x86_64/sculpt/2024-10-30 \
+  !    genodelabs/pkg/x86_64/sculpt_drivers-pc/2024-10-30
 
 # Create a build directory
 
