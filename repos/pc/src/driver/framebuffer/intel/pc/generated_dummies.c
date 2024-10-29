@@ -712,20 +712,6 @@ struct intel_context * i915_gem_engines_iter_next(struct i915_gem_engines_iter *
 }
 
 
-extern int i915_gem_evict_for_node(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,struct drm_mm_node * target,unsigned int flags);
-int i915_gem_evict_for_node(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,struct drm_mm_node * target,unsigned int flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int i915_gem_evict_something(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,u64 min_size,u64 alignment,unsigned long color,u64 start,u64 end,unsigned flags);
-int i915_gem_evict_something(struct i915_address_space * vm,struct i915_gem_ww_ctx * ww,u64 min_size,u64 alignment,unsigned long color,u64 start,u64 end,unsigned flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern int i915_gem_execbuffer2_ioctl(struct drm_device * dev,void * data,struct drm_file * file);
 int i915_gem_execbuffer2_ioctl(struct drm_device * dev,void * data,struct drm_file * file)
 {
@@ -1222,13 +1208,6 @@ void intel_gt_mcr_multicast_write_fw(struct intel_gt * gt,i915_mcr_reg_t reg,u32
 
 extern void intel_gt_mcr_unlock(struct intel_gt * gt,unsigned long flags);
 void intel_gt_mcr_unlock(struct intel_gt * gt,unsigned long flags)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern long intel_gt_retire_requests_timeout(struct intel_gt * gt,long timeout,long * remaining_timeout);
-long intel_gt_retire_requests_timeout(struct intel_gt * gt,long timeout,long * remaining_timeout)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2081,14 +2060,6 @@ void unregister_irq_proc(unsigned int irq,struct irq_desc * desc)
 
 extern void update_group_capacity(struct sched_domain * sd,int cpu);
 void update_group_capacity(struct sched_domain * sd,int cpu)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/vmalloc.h>
-
-void * vmap(struct page ** pages,unsigned int count,unsigned long flags,pgprot_t prot)
 {
 	lx_emul_trace_and_stop(__func__);
 }

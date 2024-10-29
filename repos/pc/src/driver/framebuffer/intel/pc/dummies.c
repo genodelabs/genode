@@ -720,3 +720,51 @@ int intel_pxp_key_check(struct intel_pxp *pxp, struct drm_i915_gem_object *obj,
 	lx_emul_trace(__func__);
 	return -ENODEV;
 }
+
+
+int intel_gt_wait_for_idle(struct intel_gt *gt, long timeout)
+{
+	printk("%s - timeout=%ld\n", __func__, timeout);
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+long intel_gt_retire_requests_timeout(struct intel_gt * gt, long timeout, long * remaining_timeout)
+{
+	printk("%s - timeout=%ld\n", __func__, timeout);
+
+	if (remaining_timeout)
+		*remaining_timeout = 0;
+
+	return 0;
+}
+
+
+void * vmap(struct page ** pages, unsigned int count, unsigned long flags, pgprot_t prot)
+{
+	bool          contiguous = true;
+	void *        vmap_addr  = 0;
+	unsigned long prev_addr  = 0;
+
+	for (unsigned i = 0; i < count; i++) {
+		void * virt_addr = page_address(pages[i]);
+
+		if (!i)
+			vmap_addr = virt_addr;
+
+		if (i && contiguous)
+			contiguous = (void *)(prev_addr + 4096) == virt_addr;
+
+		prev_addr = (unsigned long)virt_addr;
+
+		if (!contiguous)
+			break;
+	}
+
+	if (!contiguous)
+		printk("%s -- failed, pages are non contiguous count=%u\n",
+		       __func__, count);
+
+	return contiguous ? vmap_addr : 0;
+}

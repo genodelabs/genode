@@ -10,6 +10,7 @@ DIR(linux) := src/linux
 # Patches
 #
 PATCH_FILES := i915_irq.patch \
+               i915_ggtt.patch \
                iwlwifi_break_busy_loop.patch \
                iwlwifi_enable_irq_before_pnvm.patch \
                iwlwifi_limit_rx_bufs.patch \

@@ -1,0 +1,28 @@
+intel_fb: avoid pagefault, since gt not setup by our port
+
+--- src/linux/drivers/gpu/drm/i915/i915_gem_evict.c
++++ src/linux/drivers/gpu/drm/i915/i915_gem_evict.c
+@@ -187,8 +187,9 @@
+ 	if (i915_is_ggtt(vm)) {
+ 		struct i915_ggtt *ggtt = i915_vm_to_ggtt(vm);
+ 
+-		list_for_each_entry(gt, &ggtt->gt_list, ggtt_link)
+-			intel_gt_retire_requests(gt);
++		if (gt)
++			list_for_each_entry(gt, &ggtt->gt_list, ggtt_link)
++				intel_gt_retire_requests(gt);
+ 	} else {
+ 		intel_gt_retire_requests(vm->gt);
+ 	}
+@@ -353,8 +354,9 @@
+ 		struct i915_ggtt *ggtt = i915_vm_to_ggtt(vm);
+ 		struct intel_gt *gt;
+ 
+-		list_for_each_entry(gt, &ggtt->gt_list, ggtt_link)
+-			intel_gt_retire_requests(gt);
++		if (gt)
++			list_for_each_entry(gt, &ggtt->gt_list, ggtt_link)
++				intel_gt_retire_requests(gt);
+ 	} else {
+ 		intel_gt_retire_requests(vm->gt);
+ 	}

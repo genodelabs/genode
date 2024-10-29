@@ -191,6 +191,7 @@ drivers/gpu/drm/i915/i915_active.c
 drivers/gpu/drm/i915/i915_config.c
 drivers/gpu/drm/i915/i915_driver.c
 drivers/gpu/drm/i915/i915_drm_client.c
+drivers/gpu/drm/i915/i915_gem_evict.c
 drivers/gpu/drm/i915/i915_gem_gtt.c
 drivers/gpu/drm/i915/i915_gem_ww.c
 drivers/gpu/drm/i915/i915_getparam.c
