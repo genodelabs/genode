@@ -4,6 +4,33 @@
                                ===========
 
 
+Sculpt OS release 24.10 | 2024-10-30
+####################################
+
+| Thanks to a largely revamped GUI stack, the Genode-based
+| Sculpt OS 24.10 has gained profound support for multi-monitor setups.
+
+Among the many usability-related topics on our road map, multi-monitor
+support is certainly the most anticipated feature. It motivated a holistic
+modernization of Genode's GUI stack over several months, encompassing drivers,
+the GUI multiplexer, inter-component interfaces, up to widget toolkits. Sculpt
+OS 24.10 combines these new foundations with a convenient
+[https:/documentation/articles/sculpt-24-10#Multi-monitor_support - user interface]
+for controlling monitor modes, making brightness adjustments, and setting up
+mirrored and panoramic monitor configurations.
+
+Besides this main theme, version 24.10 benefits from the advancements of the
+Genode OS Framework over the past six months: compatibility with Qt6,
+drivers ported from the Linux kernel version 6.6.47, and comprehensive
+[https:/documentation/release-notes/24.08#Goa_SDK - debugging support]
+for the Goa SDK.
+
+Sculpt OS 24.10 is available as ready-to-use system image for PC hardware,
+the PinePhone, and the MNT Reform laptop at the
+[https:/download/sculpt - Sculpt download page] accompanied
+with updated [https:/documentation/articles/sculpt-24-10 - documentation].
+
+
 Genode OS Framework release 24.08 | 2024-08-29
 ##############################################
 
