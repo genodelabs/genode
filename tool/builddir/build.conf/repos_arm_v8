@@ -1,3 +1,4 @@
+
 #
 # Board support for i.MX SoC family
 #
@@ -12,3 +13,4 @@
 # Board support for Allwinner SoC family
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/allwinner
+
