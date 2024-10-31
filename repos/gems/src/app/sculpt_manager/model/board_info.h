@@ -49,7 +49,7 @@ struct Sculpt::Board_info
 
 	static bool _matches_ahci(Node const &pci)
 	{
-		return _matches_class(pci, Pci_class::AHCI) && _matches_vendor(pci, Pci_vendor::INTEL);
+		return _matches_class(pci, Pci_class::AHCI);
 	}
 
 	/**
