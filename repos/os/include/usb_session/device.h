@@ -671,6 +671,8 @@ inline Usb::Interface::Interface(Device &device, Index idx, size_t buffer_size)
 	device._for_each_iface([&] (Xml_node node) {
 		if (node.attribute_value<uint16_t>("number", INVALID) != idx.number)
 			return;
+		if (node.attribute_value<uint16_t>("alt_setting", INVALID) != idx.alt_setting)
+			return;
 		node.for_each_sub_node("endpoint", [&] (Xml_node node) {
 			Endpoint ep { node.attribute_value<uint8_t>("address", 0),
 			              node.attribute_value<uint8_t>("attributes", 0) };

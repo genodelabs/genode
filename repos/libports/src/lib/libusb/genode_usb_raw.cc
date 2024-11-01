@@ -58,7 +58,7 @@ struct Usb_device
 
 		Usb_device &_device;
 
-		Interface(Usb_device &device, uint8_t idx);
+		Interface(Usb_device &device, uint8_t idx, uint8_t alt = 0);
 
 		void handle_events();
 	};
@@ -108,9 +108,10 @@ struct Usb_device
 };
 
 
-Usb_device::Interface::Interface(Usb_device &device, uint8_t idx)
+Usb_device::Interface::Interface(Usb_device &device, uint8_t idx, uint8_t alt)
 :
-	Usb::Interface(device._device, Usb::Interface::Index{idx, 0}, (1UL << 20)),
+	Usb::Interface(device._device, Usb::Interface::Index{idx, alt},
+	               (1UL << 20)),
 	Registry<Usb_device::Interface>::Element(device._interfaces, *this),
 	_device(device)
 {
@@ -461,11 +462,21 @@ static int genode_set_interface_altsetting(struct libusb_device_handle* dev_hand
 	    altsetting < 0 || altsetting > 0xff)
 		return LIBUSB_ERROR_INVALID_PARAM;
 
+	/* remove already claimed interface with old setting */
+	device()._interfaces.for_each([&] (Usb_device::Interface &iface) {
+		if (iface.index().number == interface_number)
+			destroy(device()._alloc, &iface); });
+
 	Usb_device::Urb urb(nullptr, 0, device()._device, P::Request::SET_INTERFACE,
 	                    Rt::value(P::Recipient::IFACE, P::Type::STANDARD,
 	                              P::Direction::OUT),
 	                    (uint8_t)altsetting, (uint8_t)interface_number, 0);
 	device()._wait_for_urb(urb);
+
+	/* claim interface */
+	new (device()._alloc)
+		Usb_device::Interface(device(), (uint8_t) interface_number,
+		                      (uint8_t) altsetting);
 	return LIBUSB_SUCCESS;
 }
 
