@@ -257,6 +257,8 @@ void User_state::_handle_input_event(Input::Event ev)
 		View_owner *receiver = _input_receiver;
 
 		if (_key_cnt == 0 && _hovered) {
+			if (ev.absolute_motion())
+				receiver = nullptr;
 			/*
 			 * Unless the domain of the pointed session is configured to
 			 * always receive hover events, we deliver motion events only
