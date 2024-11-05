@@ -263,6 +263,9 @@ struct Sculpt::Deploy
 
 	void restart()
 	{
+		cached_depot_rom_state  .trigger_restart();
+		uncached_depot_rom_state.trigger_restart();
+
 		/* ignore stale query results */
 		_depot_query.trigger_depot_query();
 
