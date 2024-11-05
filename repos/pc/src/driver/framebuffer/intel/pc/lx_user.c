@@ -385,6 +385,41 @@ static int kernel_register_fb(struct fb_info const * const fb_info,
 }
 
 
+static void destroy_fb_and_capture(struct drm_client_dev       * const dev,
+                                   struct drm_connector  const * const connector,
+                                   struct drm_framebuffer      * const fb)
+{
+	struct drm_mode_create_dumb * dumb_create = NULL;
+	struct drm_mode_fb_cmd2     * fb_cmd      = NULL;
+	struct gem_dumb             * gem_dumb    = NULL;
+	struct fb_info                info        = {};
+
+	if (!fb)
+		return;
+
+	if (!dumb_meta(dev, fb, &dumb_create, &fb_cmd))
+		return;
+
+	if (!dumb_gem(dev, fb, &gem_dumb))
+		return;
+
+	info.var.bits_per_pixel = 32;
+	info.node               = connector->index;
+	info.par                = connector->name;
+
+	kernel_register_fb(&info, 0, 0);
+
+	if (gem_dumb->vma) {
+		intel_unpin_fb_vma(gem_dumb->vma, gem_dumb->flags);
+
+		gem_dumb->vma   = NULL;
+		gem_dumb->flags = 0;
+	}
+
+	destroy_fb(dev, dumb_create, fb_cmd);
+}
+
+
 struct drm_mode_fb_cmd2  fb_of_screen(struct drm_client_dev         * const dev,
                                       struct genode_mode      const * const conf_mode,
                                       struct fb_info                * const fb_info,
@@ -413,15 +448,9 @@ struct drm_mode_fb_cmd2  fb_of_screen(struct drm_client_dev         * const dev,
 
 	/* notify genode side about switch from connector specific fb to mirror fb */
 	if (fb && conf_mode->mirror && fb != fb_mirror) {
-		struct fb_info info = {};
 
-		info.var.bits_per_pixel = 32;
-		info.node               = connector->index;
-		info.par                = connector->name;
+		destroy_fb_and_capture(dev, connector, fb);
 
-		kernel_register_fb(&info, mode->width_mm, mode->height_mm);
-
-		destroy_fb(dev, gem_dumb, fb_cmd);
 	}
 
 	if (fb_mirror)
@@ -771,7 +800,18 @@ static bool reconfigure(struct drm_client_dev * const dev)
 				unsigned width_mm  = mode->width_mm  ? : connector->display_info.width_mm;
 				unsigned height_mm = mode->height_mm ? : connector->display_info.height_mm;
 
-				user_register_fb(dev, &fb_info, &fb_cmd, width_mm, height_mm);
+				int err = user_register_fb(dev, &fb_info, &fb_cmd, width_mm, height_mm);
+
+				if (err == -ENOSPC) {
+
+					struct drm_framebuffer *fb = drm_framebuffer_lookup(dev->dev,
+					                                                    dev->file,
+					                                                    fb_cmd.fb_id);
+					if (fb)
+						drm_framebuffer_put(fb);
+
+					destroy_fb_and_capture(dev, connector, fb);
+				}
 			}
 
 			break;
@@ -1352,6 +1392,18 @@ static int user_register_fb(struct drm_client_dev   const * const dev,
 
 		gem_dumb->vma = NULL;
 		return result;
+	}
+
+	if (!i915_vma_is_map_and_fenceable(gem_dumb->vma)) {
+		printk("%s: framebuffer not mappable in aperture -> destroying framebuffer\n",
+		       (info && info->par) ? (char *)info->par : "unknown");
+
+		intel_unpin_fb_vma(gem_dumb->vma, gem_dumb->flags);
+
+		gem_dumb->vma   = NULL;
+		gem_dumb->flags = 0;
+
+		return -ENOSPC;
 	}
 
 	vaddr = i915_vma_pin_iomap(gem_dumb->vma);
