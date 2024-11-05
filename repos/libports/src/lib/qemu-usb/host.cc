@@ -274,6 +274,13 @@ class Device : public List_model<Device>::Element
 
 		struct Urb : Usb::Device::Urb
 		{
+			/**
+			 * Unconditionally set control transfer timeout to 1 sec,
+			 * otherwise it can block a device forever, as we do not
+			 * cancel control transfers yet in this backend.
+			 */
+			enum { CONTROL_XFER_TIMEOUT = 1000 };
+
 			using Request_type =
 				Usb::Device::Packet_descriptor::Request_type::access_t;
 
@@ -289,7 +296,8 @@ class Device : public List_model<Device>::Element
 			:
 				Usb::Device::Urb(device._device, request,
 				                 (Request_type)request_type,
-				                 value, index, size),
+				                 value, index, size,
+				                 CONTROL_XFER_TIMEOUT),
 				_packet(packet) { }
 		};
 
