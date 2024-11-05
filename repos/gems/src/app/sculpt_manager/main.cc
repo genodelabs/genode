@@ -1798,6 +1798,14 @@ struct Sculpt::Main : Input_event_handler,
 
 	Main(Env &env) : _env(env)
 	{
+		/*
+		 * Read static platform information
+		 */
+		_drivers.with_platform_info([&] (Xml_node const &platform) {
+			platform.with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
+				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
+				                                  node.attribute_value("height", 1U)); }); });
+
 		_drivers.update_soc(_soc);
 		_gui.input.sigh(_input_handler);
 		_gui.info_sigh(_gui_mode_handler);
@@ -1811,14 +1819,6 @@ struct Sculpt::Main : Input_event_handler,
 		_update_event_filter_config();
 
 		_handle_storage_devices();
-
-		/*
-		 * Read static platform information
-		 */
-		_drivers.with_platform_info([&] (Xml_node const &platform) {
-			platform.with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
-				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
-				                                  node.attribute_value("height", 1U)); }); });
 
 		/*
 		 * Generate initial config/managed/deploy configuration
