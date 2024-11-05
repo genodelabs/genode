@@ -37,6 +37,7 @@ struct Sculpt::Ram_fs_state : Child_state, File_system
 		Child_state(registry, { .name      = name,
 		                        .priority  = Priority::LEITZENTRALE,
 		                        .cpu_quota = 0,
+		                        .location  = { },
 		                        .initial   = { Ram_quota{1024*1024}, Cap_quota{300} },
 		                        .max       = { Ram_quota{2*1024*1024*1024UL}, { } } }),
 		File_system(File_system::UNKNOWN)

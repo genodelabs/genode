@@ -51,6 +51,7 @@ struct Sculpt::Touch_driver : private Noncopyable
 		                    .name      = "touch",
 		                    .priority  = Priority::MULTIMEDIA,
 		                    .cpu_quota = 10,
+		                    .location  = { },
 		                    .initial   = { Ram_quota { 10*1024*1024 },
 		                                   Cap_quota { 250 } },
 		                    .max       = { } } );

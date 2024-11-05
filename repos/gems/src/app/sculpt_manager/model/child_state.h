@@ -36,6 +36,8 @@ struct Sculpt::Child_state : Noncopyable
 			Priority   priority;
 			unsigned   cpu_quota;
 
+			Affinity::Location location;
+
 			struct Initial { Ram_quota ram; Cap_quota caps; } initial;
 			struct Max     { Ram_quota ram; Cap_quota caps; } max;
 
@@ -64,6 +66,11 @@ struct Sculpt::Child_state : Noncopyable
 
 		Version _version { 0 };
 
+		static bool _location_valid(Attr const attr)
+		{
+			return attr.location.width() != 0 && attr.location.height() != 0;
+		}
+
 	public:
 
 		Child_state(Registry<Child_state> &registry, Attr const attr)
@@ -75,6 +82,7 @@ struct Sculpt::Child_state : Noncopyable
 			Child_state(registry, { .name      = name,
 			                        .priority  = priority,
 			                        .cpu_quota = 0,
+			                        .location  = { },
 			                        .initial   = { initial_ram, initial_caps },
 			                        .max       = { } })
 		{ }
@@ -108,6 +116,14 @@ struct Sculpt::Child_state : Noncopyable
 			if (_attr.cpu_quota)
 				gen_named_node(xml, "resource", "CPU", [&] {
 					xml.attribute("quantum", _attr.cpu_quota); });
+
+			if (_location_valid(_attr))
+				xml.node("affinity", [&] {
+					xml.attribute("xpos",   _attr.location.xpos());
+					xml.attribute("ypos",   _attr.location.ypos());
+					xml.attribute("width",  _attr.location.width());
+					xml.attribute("height", _attr.location.height());
+				});
 		}
 
 		/**

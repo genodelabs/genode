@@ -65,6 +65,7 @@ struct Sculpt::Deploy
 		_child_states, { .name      = "depot_rom",
 		                 .priority  = Priority::STORAGE,
 		                 .cpu_quota = 0,
+		                 .location  = { },
 		                 .initial   = { Ram_quota{24*1024*1024}, Cap_quota{200} },
 		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
 
@@ -72,6 +73,7 @@ struct Sculpt::Deploy
 		_child_states, { .name      = "dynamic_depot_rom",
 		                 .priority  = Priority::STORAGE,
 		                 .cpu_quota = 0,
+		                 .location  = { },
 		                 .initial   = { Ram_quota{8*1024*1024}, Cap_quota{200} },
 		                 .max       = { Ram_quota{2*1024*1024*1024UL}, { } } } };
 
