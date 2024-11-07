@@ -239,6 +239,9 @@ static struct drm_framebuffer * lookup_framebuffer(struct drm_crtc *crtc,
 	struct drm_plane_state  *plane;
 	struct drm_crtc_state   *crtc_state;
 
+	if (!crtc || !crtc->dev || !ctx)
+		return NULL;
+
 	state = drm_atomic_state_alloc(crtc->dev);
 	if (!state)
 		return NULL;
@@ -507,7 +510,8 @@ static void close_unused_captures(struct drm_client_dev * const dev)
 				                           DRM_MODESET_ACQUIRE_INTERRUPTIBLE,
 				                           err);
 
-				fb = lookup_framebuffer(connector->state->crtc, &ctx);
+				if (connector->state && connector->state->crtc)
+					fb = lookup_framebuffer(connector->state->crtc, &ctx);
 
 				DRM_MODESET_LOCK_ALL_END(dev->dev, ctx, err);
 
@@ -578,13 +582,17 @@ static bool reconfigure(struct drm_client_dev * const dev)
 	if (!dev || !dev->dev || !gem_mirror || !mirror_fb_cmd)
 		return false;
 
+	mutex_lock(&dev->modeset_mutex);
+
 	mirror_heuristic(dev->dev, &mirror_force, &mirror_compound,
 	                 &mirror_minimum);
 
 	if (!mirror_minimum.hdisplay || !mirror_minimum.vdisplay) {
 		/* no valid modes on any connector on early boot */
-		if (!mirror_fb_cmd->fb_id)
+		if (!mirror_fb_cmd->fb_id) {
+			mutex_unlock(&dev->modeset_mutex);
 			return false;
+		}
 
 		/* valid connectors but all are disabled by config */
 		mirror_minimum.hdisplay = mirror_fb_cmd->width;
@@ -608,13 +616,17 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			printk("setting up mirrored framebuffer of %ux%u failed - error=%d\n",
 			       mirror_fb.hdisplay, mirror_fb.vdisplay, err);
 
+			mutex_unlock(&dev->modeset_mutex);
 			return true;
 		}
 	}
 
 	/* without fb handle created by check_resize_fb we can't proceed */
-	if (!mirror_fb_cmd->fb_id)
+	if (!mirror_fb_cmd->fb_id) {
+		printk("%s:%u no mirror fb id\n", __func__, __LINE__);
+		mutex_unlock(&dev->modeset_mutex);
 		return retry;
+	}
 
 	/* prepare fb info for kernel_register_fb() evaluated by Genode side */
 	info.var.xres         = mirror_fb.hdisplay;
@@ -817,6 +829,7 @@ static bool reconfigure(struct drm_client_dev * const dev)
 			break;
 		}
 	}
+	mutex_unlock(&dev->modeset_mutex);
 
 	if (mirror.report) {
 		mirror.info.par = "mirror_capture";
@@ -949,14 +962,12 @@ static int update_content(void *)
 
 			unchanged[index] = 0;
 
-			if (!connector->state || !connector->state->crtc)
-				continue;
-
 			DRM_MODESET_LOCK_ALL_BEGIN(dev, ctx,
 			                           DRM_MODESET_ACQUIRE_INTERRUPTIBLE,
 			                           err);
 
-			fb = lookup_framebuffer(connector->state->crtc, &ctx);
+			if (connector->state && connector->state->crtc)
+				fb = lookup_framebuffer(connector->state->crtc, &ctx);
 
 			DRM_MODESET_LOCK_ALL_END(dev, ctx, err);
 
@@ -1021,28 +1032,26 @@ static bool mirrored_fb(struct drm_client_dev * client,
 static void _report_connectors(void * genode_data, bool const discrete)
 {
 	struct drm_connector_list_iter conn_iter;
-
-	struct drm_device const *dev       = dev_client->dev;
 	struct drm_connector    *connector = NULL;
 	struct drm_display_mode *mode      = NULL;
-	bool                     has_modes = false;
+	struct drm_mode_set     *modeset   = NULL;
 
-	drm_connector_list_iter_begin(dev, &conn_iter);
-	drm_client_for_each_connector_iter(connector, &conn_iter) {
+	mutex_lock(&dev_client->modeset_mutex);
+	drm_client_for_each_modeset(modeset, dev_client) {
 
-		bool mirror = connector->state && connector->state->crtc &&
-		              mirrored_fb(dev_client, connector->state->crtc);
+		struct genode_mode conf_mode = {};
+		bool               has_modes = false;
 
-		if (!mirror && (!connector->state || !connector->state->crtc)) {
-			struct genode_mode conf_mode = { };
+		if (!modeset->connectors || !*modeset->connectors)
+			continue;
 
-			/* check for connector configuration on Genode side */
-			lx_emul_i915_connector_config(connector->name, &conf_mode);
+		/* set connector */
+		connector = *modeset->connectors;
 
-			mirror = conf_mode.mirror;
-		}
+		/* read configuration for connector */
+		lx_emul_i915_connector_config(connector->name, &conf_mode);
 
-		if ((discrete && mirror) || (!discrete && !mirror))
+		if ((discrete && conf_mode.mirror) || (!discrete && !conf_mode.mirror))
 			continue;
 
 		list_for_each_entry(mode, &connector->modes, head) {
@@ -1055,8 +1064,32 @@ static void _report_connectors(void * genode_data, bool const discrete)
 
 		lx_emul_i915_report_connector(connector, genode_data,
 		                              connector->name,
-		                              connector->status == connector_status_connected,
+		                              connector->status != connector_status_disconnected,
 		                              has_modes,
+		                              get_brightness(connector, INVALID_BRIGHTNESS),
+		                              connector->display_info.width_mm,
+		                              connector->display_info.height_mm);
+	}
+	mutex_unlock(&dev_client->modeset_mutex);
+
+	/* report disconnected connectors */
+	drm_connector_list_iter_begin(dev_client->dev, &conn_iter);
+	drm_client_for_each_connector_iter(connector, &conn_iter) {
+
+		/* read configuration for connector */
+		struct genode_mode conf_mode = {};
+		lx_emul_i915_connector_config(connector->name, &conf_mode);
+
+		if ((discrete && conf_mode.mirror) || (!discrete && !conf_mode.mirror))
+			continue;
+
+		if (connector->status != connector_status_disconnected)
+			continue;
+
+		lx_emul_i915_report_connector(connector, genode_data,
+		                              connector->name,
+		                              connector->status != connector_status_disconnected,
+		                              false, /* has modes */
 		                              get_brightness(connector, INVALID_BRIGHTNESS),
 		                              connector->display_info.width_mm,
 		                              connector->display_info.height_mm);
@@ -1174,19 +1207,19 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 	}
 
 	/*
-	 * (Re-)assign mirrored framebuffer to modeset (lost due to modeset_probe)
+	 * (Re-)assign framebuffers to modeset (lost due to modeset_probe)
 	 * and commit the change.
 	 */
-	if (fb_mirror) {
+	{
 		struct   drm_framebuffer *       free_fbs[MAX_FBS] = { };
 		struct   drm_modeset_acquire_ctx ctx;
 
-		bool     mode_too_large = false;
 		unsigned fb_count       = 0;
 
 		DRM_MODESET_LOCK_ALL_BEGIN(client->dev, ctx,
 		                           DRM_MODESET_ACQUIRE_INTERRUPTIBLE,
 		                           result);
+
 		mutex_lock(&client->modeset_mutex);
 		drm_client_for_each_modeset(modeset, client) {
 			struct drm_connector   *connector  = NULL;
@@ -1197,11 +1230,6 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 
 			if (modeset->crtc)
 				fb = lookup_framebuffer(modeset->crtc, &ctx);
-
-			if (!mode_too_large && fb && modeset->mode &&
-			    (modeset->mode->hdisplay > fb->width ||
-			     modeset->mode->vdisplay > fb->height))
-				mode_too_large = true;
 
 			if (!modeset->num_connectors || !modeset->connectors || !*modeset->connectors) {
 
@@ -1228,6 +1256,25 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 			connector = *modeset->connectors;
 
 			modeset->fb = fb ? fb : fb_mirror;
+
+			/* try to avoid -ENOSPC by using next smaller resolution */
+			if (fb_mirror && !fb &&
+			    (modeset->mode->hdisplay > fb_mirror->width ||
+			     modeset->mode->vdisplay > fb_mirror->height))
+			{
+				struct drm_display_mode  * mode            = NULL;
+				list_for_each_entry(mode, &connector->modes, head) {
+
+					if (mode->hdisplay > fb_mirror->width ||
+					    mode->vdisplay > fb_mirror->height)
+						continue;
+
+					kfree(modeset->mode);
+					modeset->mode = drm_mode_duplicate(client->dev, mode);
+
+					break;
+				}
+			}
 		}
 		mutex_unlock(&client->modeset_mutex);
 		DRM_MODESET_LOCK_ALL_END(client->dev, ctx, result);
@@ -1250,7 +1297,7 @@ static int fb_client_hotplug(struct drm_client_dev *client)
 		/* triggers disablement of encoders attached to disconnected ports */
 		result = drm_client_modeset_commit(client);
 
-		if (result && !(mode_too_large && result == -ENOSPC)) {
+		if (result) {
 			printk("%s: error on modeset commit %d%s\n", __func__, result,
 			       (result == -ENOSPC) ? " - ENOSPC" : " - unknown error");
 		}
