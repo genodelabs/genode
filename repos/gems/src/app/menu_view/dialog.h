@@ -265,11 +265,12 @@ void Menu_view::Dialog::_handle_dialog()
 	_action.hover_changed();
 
 	if (!_gui_sync_enabled) {
+		_previous_sync = _action.now();
 		_gui.framebuffer.sync_sigh(_gui_sync_handler);
 		_gui_sync_enabled = true;
 	}
 
-	_handle_gui_sync();
+	_redraw();
 }
 
 
