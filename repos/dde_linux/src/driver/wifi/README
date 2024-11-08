@@ -122,7 +122,9 @@ nodes. Such a node describes the parameters of a network and its
 existence implies the intent to join the network. It has the following
 attributes.
 
-* :ssid: sets the name of the network.
+* :ssid: sets the name of the network. It also serves as look-up key
+  for a network and adding multiple nodes with the same SSID are
+  treated as the same node whose attributes are changing.
 
   Note: the SSID is copied verbatim and at the moment, there is no way
         to express or escape non alphanumeric characters.
@@ -155,12 +157,16 @@ It contains the following mandatory attribute.
   Note: the SSID is copied verbatim and at the moment, there is no way
         to express or escape non alphanumeric characters.
 
+The number of hidden networks that can be scanned for is restricted to
+a practical amount, around 48 networks, and all networks after hitting
+the limit are silently omitted.
+
 The following exemplary snippet showcases a config for two networks where
 the first one should be automatically considered for joining and uses 'WPA2'
 while the second one is hidden but should show up in the scan results.
 
 !<wifi_config scan_interval="10" update_quality_interval="30">
-!  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"
+!  <network ssid="Zero" protection="WPA2" passphrase="allyourbase"/>
 !  <explicit_scan ssid="Skynet"/>
 !</wifi_config>
 
@@ -172,9 +178,9 @@ access points in the vicinity to other components.
 This exemplary 'accesspoints' report shows its general structure.
 
 !<accesspoints>
-!  <accesspoint ssid="skynet" bssid="00:01:02:03:04:05" quality="40"/>
-!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" quality="70" protection="WPA2"/>
-!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:07" quality="10" protection="WPA2"/>
+!  <accesspoint ssid="skynet" bssid="00:01:02:03:04:05" freq="5180" quality="40"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:06" freq="2418" quality="70" protection="WPA2"/>
+!  <accesspoint ssid="foobar" bssid="01:02:03:04:05:07" freq="2437" quality="10" protection="WPA2"/>
 !</accesspoints>
 
 The '<accesspoints>' node can contain a fluctuating number of '<accesspoint>'
@@ -217,7 +223,7 @@ following additional attributes beside the ones already discussed.
   radio activity was temporarily disabled.
 
 * :not_found: is an optional attribute and is only set when a single
-  auto-connect network was configured but could not be found.
+  network was configured but could not be found.
 
 By subscribing to both reports and providing the required 'wifi_config'
 ROM module, a component is able control the wireless driver.
@@ -228,6 +234,67 @@ label "devices" if requested in the config as depicted.
 ! <config> <report mac_address="true"/> </config>
 
 ! <devices> <nic mac_address="02:00:00:00:00:01"/> </devices>
+
+
+Best practices
+~~~~~~~~~~~~~~
+
+The following section describes common use-cases, like being managed
+or configured explicitly by a user provided configuration, and how to
+interact with the driver in each of these cases. The way Sculpt handles
+the driver can serve as an example.
+
+Externally managed (Sculpt mode)
+--------------------------------
+
+When the driver is managed by an external component via its configuration
+based on its 'state' and 'accesspoints' reports the configuration should
+contain at most one '<network>' node. This node contains the network the
+management component has chosen to join after evaluating the 'accesspoints'
+report. This makes it easier for the management component to process the
+'state' reports as all reports are immediate and logically belong to one
+network and there is no unexpected switch between different networks.
+The 'state' report contains at least the mandatory 'state' attribute that
+denotes the state of connectivity, the 'ssid' and 'bssid' as well as the
+'freq' attribute. The existence of any other attributes is not certain and
+depends on the state of connectivity. The signal quality may not always
+be available and the external component should account for that.
+
+For every hidden network a '<explicit_scan>' node must be added for the
+access points to appear in the 'accesspoints' report. Such a node should
+not be added for non-hidden networks as it influences the scanning attempt
+and could lead to longer join times. As it also proactively asks for the
+network it could allow for fingerprinting a device according to its list
+of hidden networks.
+
+Roaming within one network is performed according to the 'bgscan' settings
+automatically. This implicitly also refreshes the 'accesspoints' report
+that then may be considered by the management component to switch to a
+different network by replacing the '<network>' node in the configuration.
+It is up to the management component to make an educated decision. For
+roaming to work properly the management component should not specify
+the 'bssid' attribute in the '<network>' node.
+
+Removing the '<network>' node will lead to a disconnect from the network.
+
+Manually managed
+----------------
+
+When the driver is manually or rather explicitly managed by a user provided
+configuration it generally exhibits the same behavior. However, as a common
+pattern, user generated configurations tend to contain multiple networks and
+it is expected that the driver joins a known network if it encounters one.
+Normally these networks do not overlap in locality, i.e. there is one at home,
+another one at work, and still a different one at a friend's dwelling place.
+Providing multiple nodes covers this use case in a fair fashion as a network
+is made known to the driver by adding the corresponding '<network>' node to
+the configuration.
+
+Since the driver does not know in advance which network it will end up joining
+providing immediate feedback is not possible and switching to a different
+network may occur naturally. This behavior renders the configuration of
+multiple network nodes impractical for management components and should be
+avoided.
 
 
 Debugging
