@@ -125,6 +125,7 @@ endif
 DEPOT_BIN_ARCHIVE_DIR   := $(DEPOT_BIN_DIR)/$(SPEC)/$(VERSIONED_ARCHIVE)
 DEPOT_DBG_ARCHIVE_DIR   := $(DEPOT_DBG_DIR)/$(SPEC)/$(VERSIONED_ARCHIVE)
 DEPOT_ARCHIVE_BUILD_DIR := $(addsuffix .build,$(DEPOT_BIN_ARCHIVE_DIR))
+DEPOT_BIN_HASH_FILE     := $(addsuffix .hash,$(DEPOT_BIN_ARCHIVE_DIR))
 
 
 #
@@ -230,7 +231,13 @@ $(DEPOT_DBG_ARCHIVE_DIR): $(DEPOT_ARCHIVE_BUILD_DIR)/debug
 	$(VERBOSE)find $< -name *.debug -exec cp {} $@/ \;
 	@$(ECHO) "$(DARK_COL)created$(DEFAULT_COL) $(USER)/dbg/$(SPEC)/$(VERSIONED_ARCHIVE)"
 
-$(TARGET): $(DEPOT_BIN_ARCHIVE_DIR)
+INGREDIENTS        := $(addprefix src/,$(ARCHIVE)) $(addprefix api/,$(USED_APIS))
+INGREDIENTS_HASHES := $(foreach I,$(INGREDIENTS),$(call file_content,$(DEPOT_DIR)/$(USER)/$I.hash))
+
+$(DEPOT_BIN_HASH_FILE): $(DEPOT_BIN_ARCHIVE_DIR)
+	$(VERBOSE)echo "$(INGREDIENTS_HASHES)" > $@
+
+$(TARGET): $(DEPOT_BIN_HASH_FILE)
 
 ifneq ($(DBG),)
 $(TARGET): $(DEPOT_DBG_ARCHIVE_DIR)
