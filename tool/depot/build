@@ -159,9 +159,39 @@ execute_generated_build_mk_file: $(BUILD_MK_FILE)
 	$(VERBOSE)$(MAKE) $(if $(VERBOSE),--quiet) -f $(BUILD_MK_FILE) \
 	                  -C $(DEPOT_DIR) VERBOSE=$(VERBOSE)
 
+#
+# Utilities to check consistency of bin archives with their src and used APIS
+#
+_eq = $(and $(findstring x$(1),x$(2)), $(findstring x$(2),x$(1)))
+_libapi = $(if $(wildcard $(DEPOT_DIR)/$1/api),$(call file_content,$(DEPOT_DIR)/$1/api),)
+_apis_of_src = $(call _libapi,$1) $(call file_content,$(DEPOT_DIR)/$1/used_apis)
+_api_archives_of_src = $(addprefix $(call archive_user,$1)/api/,$(call _apis_of_src,$1))
+_api_hashes = $(foreach A,$(call _api_archives_of_src,$1),$(call file_content,$(DEPOT_DIR)/$A.hash))
+_src_hash   = $(call file_content,$(DEPOT_DIR)/$1.hash)
+_src_and_api_hashes = $(call _src_hash,$1) $(call _api_hashes,$1)
+_src_of_bin = $(call archive_user,$1)/src/$(call bin_archive_recipe,$1)/$(call bin_archive_version,$1)
+_bin_ingredient_hashes = $(call _src_and_api_hashes,$(call _src_of_bin,$1))
+_bin_hashes = $(call file_content,$(DEPOT_DIR)/$1.hash)
+_bin_exists = $(wildcard $(DEPOT_DIR)/$1)
+_bin_inconsistent = $(if $(call _bin_exists,$1),\
+                      $(if $(call _eq,$(call _bin_ingredient_hashes,$1),$(call _bin_hashes,$1)),,$1))
+
 ifneq ($(REBUILD),)
 execute_generated_build_mk_file: wipe_existing_archives
+else
+INCONSISTENT_BIN_ARCHIVES = $(strip $(foreach I,${ARCHIVES(bin)},$(call _bin_inconsistent,$I)))
+ifneq ($(INCONSISTENT_BIN_ARCHIVES),)
+execute_generated_build_mk_file: report_bin_src_inconsistencies
 endif
+endif # REBUILD
+
+report_bin_src_inconsistencies:
+	@( \
+		echo -e "\nError: the following bin archives do not match their src and apis:\n"; \
+		for i in $(INCONSISTENT_BIN_ARCHIVES); do echo -e "       $$i"; done; \
+		echo -e "\nYou may consider removing those binary archives from the depot.\n" \
+	)
+	@false
 
 $(MAKECMDGOALS): execute_generated_build_mk_file
 	@true
