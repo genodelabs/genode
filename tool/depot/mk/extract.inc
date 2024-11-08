@@ -131,7 +131,7 @@ _rename_to_final_archive: _check_hash
 	             hint=" $(BRIGHT_COL)(new version)$(DEFAULT_COL)"; \
 	          test $$hash = $(ORIG_RECIPE_HASH_VALUE) || \
 	             $(VERSION_UPDATED_CMD); \
-	          rm -f $(DEPOT_ARCHIVE_DIR).hash; \
+	          mv $(DEPOT_ARCHIVE_DIR).hash $(DEPOT_SUB_DIR)/$$final_name.hash; \
 	          $(ECHO) "$(DARK_COL)created$(DEFAULT_COL)" \
 	                  "$(USER)/$(notdir $(DEPOT_SUB_DIR))/$$final_name$$hint"; \
 	          true;
