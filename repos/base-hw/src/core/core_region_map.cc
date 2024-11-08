@@ -82,4 +82,11 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 }
 
 
-void Core_region_map::detach(addr_t) { }
+void Core_region_map::detach(addr_t core_local_addr)
+{
+	size_t size = platform_specific().region_alloc_size_at((void *)core_local_addr);
+
+	unmap_local(core_local_addr, size >> get_page_size_log2());
+
+	platform().region_alloc().free((void *)core_local_addr);
+}

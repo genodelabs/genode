@@ -119,6 +119,18 @@ class Core::Platform : public Platform_generic
 		static addr_t                      core_page_table();
 		static Hw::Page_table::Allocator & core_page_table_allocator();
 
+		/**
+		 * Determine size of a core local mapping required for a
+		 * Core_region_map::detach().
+		 */
+		size_t region_alloc_size_at(void * addr)
+		{
+			using Size_at_error = Allocator_avl::Size_at_error;
+
+			return (_core_mem_alloc.virt_alloc())()->size_at(addr).convert<size_t>(
+				[ ] (size_t s)      { return s;  },
+				[ ] (Size_at_error) { return 0U; });
+		}
 
 		/********************************
 		 ** Platform_generic interface **
