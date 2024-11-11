@@ -233,7 +233,10 @@ proc _depot_auto_update { archives } {
 
 	puts "update depot: $cmd"
 
-	exec {*}$cmd >@ stdout 2>@ stderr
+	if {[catch {exec {*}$cmd >@ stdout 2>@ stderr}]} {
+		puts stderr "\nError: tool/depot/create during depot-auto-update failed\n"
+		exit 1
+	}
 }
 
 
