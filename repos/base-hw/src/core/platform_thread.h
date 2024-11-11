@@ -55,13 +55,24 @@ class Core::Platform_thread : Noncopyable
 
 		using Label = String<32>;
 
+		struct Utcb
+		{
+			Ram_dataspace_capability _ds { }; /* UTCB ds of non-core threads */
+
+			addr_t const _core_addr; /* UTCB address within core/kernel */
+
+			Ram_dataspace_capability _allocate_utcb(bool core_thread);
+			addr_t _core_local_address(addr_t utcb_addr, bool core_thread);
+
+			Utcb(addr_t pd_addr, bool core_thread);
+			~Utcb();
+		};
+
 		Label              const _label;
 		Platform_pd             &_pd;
 		Weak_ptr<Address_space>  _address_space  { };
 		Pager_object *           _pager;
-		Native_utcb *            _utcb_core_addr { }; /* UTCB addr in core */
-		Native_utcb *            _utcb_pd_addr;       /* UTCB addr in pd   */
-		Ram_dataspace_capability _utcb           { }; /* UTCB dataspace    */
+		Utcb                     _utcb;
 		unsigned                 _priority       {0};
 		unsigned                 _quota          {0};
 
@@ -241,7 +252,7 @@ class Core::Platform_thread : Noncopyable
 
 		Platform_pd &pd() const { return _pd; }
 
-		Ram_dataspace_capability utcb() const { return _utcb; }
+		Ram_dataspace_capability utcb() const { return _utcb._ds; }
 };
 
 #endif /* _CORE__PLATFORM_THREAD_H_ */
