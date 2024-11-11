@@ -2515,8 +2515,7 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 	                                          &Main::handle_irq             };
 	Signal_handler<Main>    _config_sigh    { _env.ep(), *this,
 	                                          &Main::_handle_config_update  };
-	Platform::Resources     _dev            { _env, _rm, _irq_dispatcher,
-	                                          _config_aperture_size() };
+	Platform::Resources     _dev            { _env, _rm, _irq_dispatcher };
 	Signal_handler<Main>    _system_sigh    { _env.ep(), *this,
 	                                          &Main::_system_update };
 	String<16>              _system_state   { "" };
@@ -2571,16 +2570,6 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 				Genode::error("Unknown error occurred - no GPU service");
 			}
 		});
-	}
-
-	Number_of_bytes _config_aperture_size() const
-	{
-		auto aperture_size = Number_of_bytes(64ull << 20);
-
-		if (_config_rom.valid())
-			aperture_size = _config_rom.xml().attribute_value("max_framebuffer_memory", aperture_size);
-
-		return aperture_size;
 	}
 
 	void _handle_config_update()

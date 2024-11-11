@@ -466,51 +466,48 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 			});
 		}
 
-		Number_of_bytes _sanitized_aperture_size(Number_of_bytes memory) const
+		Number_of_bytes _sanitized_aperture_size() const
 		{
 			/*
-			 * Ranges of global GTT (ggtt) are handed in page granularity (4k)
-			 * to the platform client (intel display driver).
-			 * 512 page table entries a 4k fit into one page, which adds up to
-			 * 2M virtual address space.
+			 * Always try to reserve 32 MiB for the multiplexer itself but
+			 * we also make sure that 32 MiB are available for the display
+			 * driver (or at least all of the available aperture). We
+			 * prioritize a working display over having the GPU service
+			 * available because investigating the later is futil without
+			 * the former.
 			 */
-			auto constexpr shift_2mb = 21ull;
-			auto constexpr MIN_MEMORY_FOR_MULTIPLEXER = 4ull << shift_2mb;
+			auto constexpr GPU_SERVICE_APERTURE = (32ull << 20);
+			auto constexpr DISPLAY_MIN_APERTURE = (32ull << 20);
 
-			/* align requests to 2M and enforce 2M as minimum */
-			memory = memory & _align_mask(shift_2mb);
-			if (memory < (1ull << shift_2mb))
-				memory = 1ull << shift_2mb;
+			if (_gmadr->size() <= DISPLAY_MIN_APERTURE)
+				return _gmadr->size();
 
-			if (_gmadr->size() >= MIN_MEMORY_FOR_MULTIPLEXER) {
-				if (memory > _gmadr->size() - MIN_MEMORY_FOR_MULTIPLEXER)
-					memory = _gmadr->size() - MIN_MEMORY_FOR_MULTIPLEXER;
-			} else {
-				/* paranoia case, should never trigger */
-				memory = _gmadr->size() / 2;
-				error("aperture smaller than ", MIN_MEMORY_FOR_MULTIPLEXER,
-				      " will not work properly");
-			}
+			/* guard against non 2^x aperture size */
+			if ((_gmadr->size() - GPU_SERVICE_APERTURE) < DISPLAY_MIN_APERTURE)
+				return DISPLAY_MIN_APERTURE;
 
-			log("Maximum aperture size ", Number_of_bytes(_gmadr->size()));
-			log(" - available framebuffer memory for display driver: ", memory);
-
-			return memory;
+			return _gmadr->size() - GPU_SERVICE_APERTURE;
 		}
 
 	public:
 
-		Resources(Env &env, Rm_connection &rm, Signal_context_capability irq,
-		          Number_of_bytes const &aperture)
+		Resources(Env &env, Rm_connection &rm, Signal_context_capability irq)
 		:
 			_env(env),
 			_irq_cap(irq),
-			_aperture_reserved(_sanitized_aperture_size(aperture)),
+			_aperture_reserved(_sanitized_aperture_size()),
 			_rm_gttmm(rm.create(_mmio->size())),
 			_rm_gmadr(rm.create(aperture_reserved())),
 			_range_gttmm(1ul << 30, _mmio->size()),
 			_range_gmadr(1ul << 29, aperture_reserved())
 		{
+			log("Aperture max: ", Number_of_bytes(_gmadr->size()),
+			    " display: ", Number_of_bytes(_aperture_reserved));
+
+			/* reserved space is used to calculate vGPU available */
+			if (_gmadr->size() == _aperture_reserved)
+				warning("GPU service not usable due to insufficient aperture space");
+
 			_irq->sigh(_irq_cap);
 
 			/* GTT starts at half of the mmio memory */
