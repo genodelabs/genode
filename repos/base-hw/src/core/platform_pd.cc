@@ -60,6 +60,13 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 				_tt.insert_translation(virt, phys, size, flags, _tt_alloc);
 				return true;
 			} catch(Hw::Out_of_tables &) {
+
+				/* core/kernel's page-tables should never get flushed */
+				if (_tt_phys == Platform::core_page_table()) {
+					error("core's page-table allocator is empty!");
+					return false;
+				}
+
 				flush(platform().vm_start(), platform().vm_size());
 			}
 		}
