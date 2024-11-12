@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <target.h>
+#include <display_list.h>
 
 namespace Window_layouter { class Target_list; }
 
@@ -167,7 +168,7 @@ class Window_layouter::Target_list
 
 					/* found target area, iterate though all assigned windows */
 					assign.for_each_member([&] (Assign::Member const &member) {
-						member.window.generate(xml); });
+						member.window.generate(xml, target.geometry()); });
 				});
 			});
 
@@ -180,32 +181,37 @@ class Window_layouter::Target_list
 
 		/*
 		 * The 'rules' XML node is expected to contain at least one <screen>
-		 * node. Subseqent <screen> nodes are ignored. The <screen> node may
-		 * contain any number of <column> nodes. Each <column> node may contain
-		 * any number of <row> nodes, which, in turn, can contain <column>
-		 * nodes.
+		 * node. A <screen> node may contain any number of <column> nodes. Each
+		 * <column> node may contain any number of <row> nodes, which, in turn,
+		 * can contain <column> nodes.
 		 */
-		void update_from_xml(Xml_node rules, Area screen_size)
+		void update_from_xml(Xml_node rules, Display_list &display_list)
 		{
 			_targets.for_each([&] (Registered<Target> &target) {
 				destroy(_alloc, &target); });
 
 			_rules.construct(_alloc, rules);
 
-			/* targets are only visible on first screen */
-			Target::Visible visible = Target::Visible::YES;
-
+			display_list.reset_occupied_flags();
 			rules.for_each_sub_node("screen", [&] (Xml_node const &screen) {
 
-				Rect const avail(Point(0, 0), screen_size);
+				using Attr = Display::Attr;
+				Name const display = screen.attribute_value("display", Name());
 
-				if (screen.attribute_value("name", Target::Name()).valid())
-					new (_alloc)
-						Registered<Target>(_targets, screen, avail, visible);
+				display_list.with_display_attr(display, [&] (Attr &display) {
 
-				_process_rec(screen, avail, true, visible);
+					/* show only one screen per display */
+					Target::Visible const visible { !display.occupied };
+					Rect            const avail = display.rect;
 
-				visible = Target::Visible::NO;
+					if (screen.attribute_value("name", Target::Name()).valid())
+						new (_alloc)
+							Registered<Target>(_targets, screen, avail, visible);
+
+					display_list.mark_as_occupied(display.rect);
+
+					_process_rec(screen, avail, true, visible);
+				});
 			});
 		}
 

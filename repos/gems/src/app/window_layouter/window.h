@@ -14,9 +14,6 @@
 #ifndef _WINDOW_H_
 #define _WINDOW_H_
 
-/* Genode includes */
-#include <util/list_model.h>
-
 /* local includes */
 #include <types.h>
 #include <focus_history.h>
@@ -106,9 +103,9 @@ class Window_layouter::Window : public List_model<Window>::Element
 		Area _dragged_size;
 
 		/**
-		 * Target geometry the window is assigned to, used while maximized
+		 * Target area the window can occupy, used while maximized
 		 */
-		Rect _target_geometry { };
+		Area _target_area { };
 
 		/**
 		 * Desired size to be requested to the client
@@ -116,7 +113,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		Area _requested_size() const
 		{
 			return (_maximized || !_floating)
-			       ? _decorator_margins.inner_geometry(_target_geometry).area
+			       ? _decorator_margins.inner_geometry({ { }, _target_area }).area
 			       : _dragged_size;
 		}
 
@@ -371,7 +368,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 			});
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Xml_generator &xml, Rect const target_rect) const
 		{
 			/* omit window from the layout if hidden */
 			if (_hidden)
@@ -392,11 +389,11 @@ class Window_layouter::Window : public List_model<Window>::Element
 				}
 
 				Rect const rect = _use_target_area()
-				                ? _decorator_margins.inner_geometry(_target_geometry)
+				                ? _decorator_margins.inner_geometry({ { }, _target_area })
 				                : effective_inner_geometry();
 
-				xml.attribute("xpos", rect.x1());
-				xml.attribute("ypos", rect.y1());
+				xml.attribute("xpos", rect.x1() + target_rect.x1());
+				xml.attribute("ypos", rect.y1() + target_rect.y1());
 
 				/*
 				 * Constrain size of non-floating windows
@@ -481,7 +478,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		void close() { _dragged_size = Area(0, 0); }
 
-		void target_geometry(Rect rect) { _target_geometry = rect; }
+		void target_area(Area area) { _target_area = area; };
 
 		bool maximized() const { return _maximized; }
 

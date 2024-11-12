@@ -26,7 +26,7 @@ class Window_layouter::Target : Noncopyable
 
 		using Name = String<64>;
 
-		enum class Visible { YES, NO };
+		struct Visible { bool value; };
 
 	private:
 
@@ -42,7 +42,7 @@ class Window_layouter::Target : Noncopyable
 			_name (target.attribute_value("name", Name())),
 			_layer(target.attribute_value("layer", 9999U)),
 			_geometry(geometry),
-			_visible(visible == Visible::YES)
+			_visible(visible.value)
 		{ }
 
 		/* needed to use class as 'Registered<Target>' */

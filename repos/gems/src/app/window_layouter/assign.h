@@ -15,7 +15,6 @@
 #define _ASSIGN_H_
 
 /* Genode includes */
-#include <util/list_model.h>
 #include <base/registry.h>
 #include <os/buffered_xml.h>
 
@@ -108,13 +107,17 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		/**
 		 * Calculate window geometry
 		 */
-		Rect window_geometry(unsigned win_id, Area client_size, Rect target_geometry,
+		Rect window_geometry(unsigned win_id, Area client_size, Area target_size,
 		                     Decorator_margins const &decorator_margins) const
 		{
 			if (!_pos_defined)
-				return target_geometry;
+				return { .at = { }, .area = target_size };
 
-			Point const any_pos(150*win_id % 800, 30 + (100*win_id % 500));
+			/* try to place new window such that it fits the target area */
+			unsigned const max_x = max(1, int(target_size.w) - int(client_size.w)),
+			               max_y = max(1, int(target_size.h) - int(client_size.h));
+
+			Point const any_pos(150*win_id % max_x, 30 + (100*win_id % max_y));
 
 			Point const pos(_xpos_any ? any_pos.x : _pos.x,
 			                _ypos_any ? any_pos.y : _pos.y);
@@ -122,7 +125,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			Rect const inner(pos, _size_defined ? _size : client_size);
 			Rect const outer = decorator_margins.outer_geometry(inner);
 
-			return Rect(outer.p1() + target_geometry.p1(), outer.area);
+			return Rect(outer.p1(), outer.area);
 		}
 
 		bool maximized() const { return _maximized; }

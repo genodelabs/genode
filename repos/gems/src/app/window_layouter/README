@@ -101,6 +101,55 @@ or unmaximizing a window, the 'maximized' attribute of its '<assign>' rule is
 toggled.
 
 
+Multi-monitor support
+---------------------
+
+The layouter rules can host any number of display declarations as follows.
+
+! <display name="primary"/>
+
+Optional attributes 'xpos', 'ypos', 'width', and 'height' can be specified to
+assign a specific rectangle of the panorama to the display. Otherwise, the
+window layouter applies the following policy. The captured rectangles present
+in the panorama are assigned to displays in left to right order. This gives the
+opportunity to assign the notion of a "primary" or "secondary" display to
+different parts of the panorama by the mere order of '<display>' nodes. If
+more displays are declared than present, all unassigned displays will refer to
+the left-most captured rectangle of the panorama.
+
+To get more precise control over the assignment of captured areas to displays,
+a display node can host any number of '<capture>' sub nodes that are matched
+against the captured areas present within the panorama. The panorama areas are
+named after the labels of capture clients (i.e., display drivers) present at
+the nitpicker GUI server. The matching can be expressed via the attributes
+'label', 'label_prefix', and 'label_suffix'. The first match applies.
+E.g., the following configuration may be useful for a laptop that is sometimes
+connected to an HDMI display at work or a Display-Port display at home.
+
+! <display name="primary">
+!   <capture label_suffix="HDMI-1"/>
+!   <capture label_suffix="DP-2"/>
+!   <capture label_suffix="eDP-1"/>
+! </display>
+! <display name="secondary">
+!   <capture label_suffix="eDP-1"/>
+! </display>
+
+When neither the HDMI-1 display nor the DP-2 display is present, the laptop's
+internal eDP display is used as both primary and secondary display. Once an
+external display is connected, the external display acts as primary display
+while the laptop's internal display takes the role of the secondary display.
+
+Once declared, the display names can be specified as 'display' attribute to
+'<screen>' nodes, thereby assigning virtual desktops to displays. Screens
+referring to the same portion of the panorama are organized as a stack
+where only the top-most screen is visible at a time. As each display has
+its own distinct stack of screens, one screen cannot be visible at multiple
+displays. To mirror the same content on multiple displays, it is best to
+leverage the '<merge>' feature of the display driver. Should a '<screen>' lack
+a valid display attribute, it spans the entire panorama.
+
+
 Keyboard shortcuts
 ------------------
 

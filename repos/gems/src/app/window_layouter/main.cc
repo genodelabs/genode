@@ -57,7 +57,7 @@ struct Window_layouter::Main : Operations,
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Area _screen_size { };
+	Display_list _display_list { _heap };
 
 	unsigned _to_front_cnt = 1;
 
@@ -94,9 +94,10 @@ struct Window_layouter::Main : Operations,
 	{
 		_window_list.dissolve_windows_from_assignments();
 
-		_layout_rules.with_rules([&] (Xml_node rules) {
+		_layout_rules.with_rules([&] (Xml_node const &rules) {
+			_display_list.update_from_xml(_panorama, rules);
 			_assign_list.update_from_xml(rules);
-			_target_list.update_from_xml(rules, _screen_size);
+			_target_list.update_from_xml(rules, _display_list);
 		});
 
 		_assign_list.assign_windows(_window_list);
@@ -111,11 +112,11 @@ struct Window_layouter::Main : Operations,
 				assign.for_each_member([&] (Assign::Member &member) {
 
 					member.window.floating(assign.floating());
-					member.window.target_geometry(target.geometry());
+					member.window.target_area(target.geometry().area);
 
 					Rect const rect = assign.window_geometry(member.window.id().value,
 					                                         member.window.client_size(),
-					                                         target.geometry(),
+					                                         target.geometry().area,
 					                                         _decorator_margins);
 					member.window.outer_geometry(rect);
 					member.window.maximized(assign.maximized());
@@ -154,13 +155,13 @@ struct Window_layouter::Main : Operations,
 	{
 		_config.update();
 
-		if (_config.xml().has_sub_node("report")) {
-			Xml_node const report = _config.xml().sub_node("report");
-			_rules_reporter.conditional(report.attribute_value("rules", false),
-			                            _env, "rules", "rules");
-		}
+		Xml_node const config = _config.xml();
 
-		_layout_rules.update_config(_config.xml());
+		config.with_optional_sub_node("report", [&] (Xml_node const &report) {
+			_rules_reporter.conditional(report.attribute_value("rules", false),
+			                            _env, "rules", "rules"); });
+
+		_layout_rules.update_config(config);
 	}
 
 	User_state _user_state { *this, _focus_history };
@@ -328,12 +329,12 @@ struct Window_layouter::Main : Operations,
 
 	Gui::Connection _gui { _env };
 
+	Panorama _panorama { _heap };
+
 	void _handle_mode_change()
 	{
-		/* determine maximized window geometry */
-		_screen_size = _gui.panorama().convert<Gui::Area>(
-			[&] (Gui::Rect rect) { return rect.area; },
-			[&] (Gui::Undefined) { return Gui::Area { 1, 1 }; });
+		_gui.with_info([&] (Xml_node const &node) {
+			_panorama.update_from_xml(node); });
 
 		_update_window_layout();
 	}
@@ -512,6 +513,15 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 		return;
 
 	_rules_reporter->generate([&] (Xml_generator &xml) {
+
+		_layout_rules.with_rules([&] (Xml_node const &rules) {
+			bool display_declared = false;
+			rules.for_each_sub_node("display", [&] (Xml_node const &display) {
+				display_declared = true;
+				copy_node(xml, display); });
+			if (display_declared)
+				xml.append("\n");
+		});
 
 		_target_list.gen_screens(xml, screen);
 

@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <os/surface.h>
+#include <util/list_model.h>
 
 namespace Window_layouter {
 
@@ -46,6 +47,37 @@ namespace Window_layouter {
 	};
 
 	class Window;
+
+	using Name = String<64>;
+
+	Name const name;
+
+	static Name name_from_xml(Xml_node const &node)
+	{
+		return node.attribute_value("name", Name());
+	}
+
+	static inline void copy_attributes(Xml_generator &xml, Xml_node const &from)
+	{
+		using Value = String<64>;
+		from.for_each_attribute([&] (Xml_attribute const &attr) {
+			Value value { };
+			attr.value(value);
+			xml.attribute(attr.name().string(), value);
+		});
+	}
+
+	struct Xml_max_depth { unsigned value; };
+
+	static inline void copy_node(Xml_generator &xml, Xml_node const &from,
+	                             Xml_max_depth max_depth = { 5 })
+	{
+		if (max_depth.value)
+			xml.node(from.type().string(), [&] {
+				copy_attributes(xml, from);
+				from.for_each_sub_node([&] (Xml_node const &sub_node) {
+					copy_node(xml, sub_node, { max_depth.value - 1 }); }); });
+	}
 }
 
 #endif /* _TYPES_H_ */
