@@ -398,7 +398,7 @@ install_config $config
 build_boot_image [build_artifacts]
 
 if { [get_cmd_switch --autopilot] } {
-	run_genode_until {\[init -\> init_dynamic -\> intel_fb\]   HDMI-A-3:  enable.*} 30
+	run_genode_until {\[init -\> init_dynamic -\> intel_fb\].*connector connected="true" name="HDMI-A-3"} 30
 	run_genode_until {\</connectors\>} 20 [output_spawn_id]
 	run_genode_until {green} 30 [output_spawn_id]
 } else {

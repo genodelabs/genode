@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2022 Genode Labs GmbH
+ * Copyright (C) 2022-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -33,15 +33,28 @@ struct genode_mode {
 	char name[32];
 };
 
+enum Action {
+	ACTION_IDLE         = 0,
+	ACTION_DETECT_MODES = 1,
+	ACTION_CONFIGURE    = 2,
+	ACTION_REPORT       = 3,
+	ACTION_NEW_CONFIG   = 4,
+	ACTION_READ_CONFIG  = 5,
+	ACTION_HOTPLUG      = 6,
+	ACTION_EXIT         = 7,
+	ACTION_FAILED       = 9,
+};
+
 int  lx_emul_i915_blit(unsigned const connector_id, char const may_sleep);
 void lx_emul_i915_wakeup(unsigned connector_id);
 void lx_emul_i915_report_discrete(void * genode_xml);
 void lx_emul_i915_report_non_discrete(void * genode_xml);
 void lx_emul_i915_hotplug_connector(void);
+int  lx_emul_i915_action_to_process(int);
 
 void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char connected,
-                                   char modes,
+                                   char valid_fb,
                                    unsigned brightness,
                                    unsigned width_mm, unsigned height_mm);
 void lx_emul_i915_iterate_modes(void *lx_data, void * genode_data);

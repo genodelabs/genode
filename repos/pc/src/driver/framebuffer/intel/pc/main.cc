@@ -49,6 +49,8 @@ struct Framebuffer::Driver
 	Attached_rom_system     system   { };
 	Expanding_reporter      reporter { env, "connectors", "connectors" };
 
+	Signal_handler<Driver>  process_handler   { env.ep(), *this,
+	                                            &Driver::process_action };
 	Signal_handler<Driver>  config_handler    { env.ep(), *this,
 	                                            &Driver::config_update };
 	Signal_handler<Driver>  scheduler_handler { env.ep(), *this,
@@ -56,13 +58,86 @@ struct Framebuffer::Driver
 	Signal_handler<Driver>  system_handler    { env.ep(), *this,
 	                                            &Driver::system_update };
 
-	bool                    update_in_progress  { false };
-	bool                    new_config_rom      { false };
 	bool                    disable_all         { false };
-	bool                    disable_report_once { false };
 	bool                    merge_label_changed { false };
+	bool                    verbose             { false };
 
 	Capture::Connection::Label merge_label { "mirror" };
+
+	char const * action_name(enum Action const action)
+	{
+		switch (action) {
+		case ACTION_IDLE         : return "IDLE";
+		case ACTION_DETECT_MODES : return "DETECT_MODES";
+		case ACTION_CONFIGURE    : return "CONFIGURE";
+		case ACTION_REPORT       : return "REPORT";
+		case ACTION_NEW_CONFIG   : return "NEW_CONFIG";
+		case ACTION_READ_CONFIG  : return "READ_CONFIG";
+		case ACTION_HOTPLUG      : return "HOTPLUG";
+		case ACTION_EXIT         : return "EXIT";
+		case ACTION_FAILED       : return "FAILED";
+		}
+		return "UNKNOWN";
+	}
+
+	enum Action active      { };
+	enum Action pending[31] { };
+
+	void add_action(enum Action const add, bool may_squash = false)
+	{
+		Action * prev { };
+
+		for (auto &entry : pending) {
+			if (entry != ACTION_IDLE) {
+				prev = &entry;
+				continue;
+			}
+
+			/* skip in case the last entry contains the very same to be added */
+			if (may_squash && prev && add == *prev) {
+				if (verbose)
+					error("action already queued - '", action_name(add), "'");
+				return;
+			}
+
+			entry = add;
+
+			if (verbose)
+				error("action added to queue - '", action_name(add), "'");
+
+			return;
+		}
+
+		error("action ", action_name(add), " NOT QUEUED - trouble ahead");
+	}
+
+	auto next_action()
+	{
+		Action   next { ACTION_IDLE };
+		Action * prev { };
+
+		for (auto &entry : pending) {
+			if (next == ACTION_IDLE)
+				next = entry;
+
+			if (prev)
+				*prev = entry;
+
+			prev = &entry;
+		}
+
+		if (prev)
+			*prev = ACTION_IDLE;
+
+		if (verbose)
+			error("action now executing  - '", action_name(next), "'");
+
+		active = next;
+
+		return active;
+	}
+
+	bool action_in_execution() const { return active != ACTION_IDLE; }
 
 	struct Connector {
 		using Space = Id_space<Connector>;
@@ -116,7 +191,7 @@ struct Framebuffer::Driver
 			if (!dirty && may_stop)
 				connector.capture->capture_stopped();
 
-		}, [&](){ /* unknown connector id */ });
+		}, [&] () { /* unknown connector id -> no dirty content */ });
 
 		return dirty;
 	}
@@ -143,21 +218,26 @@ struct Framebuffer::Driver
 		conn.size_phys = size_phys;
 		conn.size_mm   = mm;
 
-		if (conn.size.valid()) {
-			Capture::Connection::Screen::Attr attr = { .px = conn.size, .mm = conn.size_mm };
-			conn.capture.construct(env, label);
-			conn.screen .construct(*conn.capture, env.rm(), attr);
+		conn.screen .destruct();
+		conn.capture.destruct();
 
-			conn.capture->wakeup_sigh(conn.capture_wakeup);
-		} else {
-			conn.screen .destruct();
-			conn.capture.destruct();
-		}
+		if (!conn.size.valid())
+			return same;
+
+		Capture::Connection::Screen::Attr attr = { .px = conn.size,
+		                                           .mm = conn.size_mm };
+
+		conn.capture.construct(env, label);
+		conn.screen .construct(*conn.capture, env.rm(), attr);
+
+		conn.capture->wakeup_sigh(conn.capture_wakeup);
 
 		return same;
 	}
 
+	void process_action();
 	void config_update();
+	void config_read();
 	void system_update();
 	void generate_report();
 	void lookup_config(char const *, struct genode_mode &mode);
@@ -193,6 +273,8 @@ struct Framebuffer::Driver
 		});
 
 		config.sigh(config_handler);
+
+		config_read();
 	}
 
 	void start()
@@ -272,18 +354,43 @@ struct Framebuffer::Driver
 enum { MAX_BRIGHTNESS = 100u };
 
 
+void Framebuffer::Driver::process_action()
+{
+	if (action_in_execution())
+		return;
+
+	if (!lx_user_task) {
+		error("no lx user task");
+		return;
+	}
+
+	lx_emul_task_unblock(lx_user_task);
+	Lx_kit::env().scheduler.execute();
+}
+
+
 void Framebuffer::Driver::config_update()
+{
+	add_action(Action::ACTION_NEW_CONFIG, true);
+
+	if (action_in_execution())
+		return;
+
+	Genode::Signal_transmitter(process_handler).submit();
+}
+
+
+void Framebuffer::Driver::config_read()
 {
 	config.update();
 
-	if (!config.valid() || !lx_user_task)
+	if (!config.valid())
 		return;
 
 	config.xml().with_optional_sub_node("merge", [&](auto const &node) {
 		auto const merge_label_before = merge_label;
 
-		if (node.has_attribute("name"))
-			merge_label = node.attribute_value("name", String<160>(merge_label));
+		merge_label = node.attribute_value("name", String<160>("mirror"));
 
 		merge_label_changed = merge_label_before != merge_label;
 	});
@@ -293,14 +400,6 @@ void Framebuffer::Driver::config_update()
 		system->sigh(system_handler);
 	} else
 		system.destruct();
-
-	if (update_in_progress)
-		new_config_rom = true;
-	else
-		update_in_progress = true;
-
-	lx_emul_task_unblock(lx_user_task);
-	Lx_kit::env().scheduler.execute();
 }
 
 
@@ -329,12 +428,8 @@ static Framebuffer::Driver & driver(Genode::Env & env)
 
 void Framebuffer::Driver::generate_report()
 {
-	if (!config.valid())
-		return;
-
-	if (apply_config_on_hotplug() && !disable_report_once) {
-		disable_report_once = true;
-		Genode::Signal_transmitter(config_handler).submit();
+	if (!config.valid()) {
+		error("no valid config - report is dropped");
 		return;
 	}
 
@@ -366,8 +461,6 @@ void Framebuffer::Driver::generate_report()
 			});
 		});
 	});
-
-	disable_report_once = false;
 }
 
 
@@ -508,12 +601,15 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 		}
 
 		if (conn.size.valid()) {
-			log(space, label, ": capture ", xres, "x", yres, " with "
-			    " framebuffer ", phys_width, "x", phys_height);
+			if (drv.verbose)
+				log(space, label, ": capture ", xres, "x", yres, " with "
+				    " framebuffer ", phys_width, "x", phys_height);
 
 			lx_emul_i915_wakeup(unsigned(id.value));
 		} else
-			log(space, label, ": capture closed ");
+			if (drv.verbose)
+				log(space, label, ": capture closed ",
+				    merge ? "(was mirror capture)" : "");
 
 	}, [](){ /* unknown id */ });
 }
@@ -521,14 +617,70 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 
 void lx_emul_i915_hotplug_connector()
 {
-	Genode::Env &env = Lx_kit::env().env;
-	driver(env).generate_report();
+	auto & drv = driver(Lx_kit::env().env);
+
+	drv.add_action(Action::ACTION_HOTPLUG, true);
+
+	Genode::Signal_transmitter(drv.process_handler).submit();
+}
+
+
+int lx_emul_i915_action_to_process(int const action_failed)
+{
+	auto & env = Lx_kit::env().env;
+
+	while (true) {
+
+		auto const action = driver(env).next_action();
+
+		switch (action) {
+		case Action::ACTION_HOTPLUG:
+			if (driver(env).apply_config_on_hotplug()) {
+				driver(env).add_action(Action::ACTION_DETECT_MODES);
+				driver(env).add_action(Action::ACTION_CONFIGURE);
+				driver(env).add_action(Action::ACTION_REPORT);
+			} else {
+				driver(env).add_action(Action::ACTION_DETECT_MODES);
+				driver(env).add_action(Action::ACTION_REPORT);
+			}
+			break;
+		case Action::ACTION_NEW_CONFIG:
+			driver(env).add_action(Action::ACTION_READ_CONFIG);
+			driver(env).add_action(Action::ACTION_CONFIGURE);
+			driver(env).add_action(Action::ACTION_REPORT);
+			if (driver(env).disable_all)
+				driver(env).add_action(Action::ACTION_EXIT);
+
+			break;
+		case Action::ACTION_READ_CONFIG:
+			driver(env).config_read();
+			break;
+		case Action::ACTION_REPORT:
+			if (action_failed) {
+				if (driver(env).verbose)
+					Genode::warning("previous action failed");
+
+				/* retry */
+				driver(env).add_action(Action::ACTION_HOTPLUG, true);
+			} else
+				driver(env).generate_report();
+			break;
+		case Action::ACTION_EXIT:
+			/* good bye world */
+			driver(env).disable_all = false;
+			Lx_kit::env().env.parent().exit(0);
+			break;
+		default:
+			/* other actions are handled by Linux code */
+			return action;
+		}
+	}
 }
 
 
 void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char const connected,
-                                   char const modes_available,
+                                   char const /* fb_available */,
                                    unsigned brightness, unsigned width_mm,
                                    unsigned height_mm)
 {
@@ -536,7 +688,7 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
 
 	xml.node("connector", [&] ()
 	{
-		xml.attribute("connected", connected && modes_available);
+		xml.attribute("connected", !!connected);
 		xml.attribute("name", name);
 		if (width_mm)
 			xml.attribute("width_mm" , width_mm);
@@ -597,28 +749,6 @@ void lx_emul_i915_connector_config(char * name, struct genode_mode * mode)
 
 	Genode::Env &env = Lx_kit::env().env;
 	driver(env).lookup_config(name, *mode);
-}
-
-
-int lx_emul_i915_config_done_and_block(void)
-{
-	auto &state = driver(Lx_kit::env().env);
-
-	bool const new_config = state.new_config_rom;
-
-	state.update_in_progress = false;
-	state.new_config_rom     = false;
-
-	if (state.disable_all) {
-		state.disable_all = false;
-		Lx_kit::env().env.parent().exit(0);
-	}
-
-	if (!new_config)
-		driver(Lx_kit::env().env).generate_report();
-
-	/* true if linux task should block, otherwise continue due to new config */
-	return !new_config;
 }
 
 
