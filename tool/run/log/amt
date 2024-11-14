@@ -44,11 +44,11 @@ proc run_log { wait_for_re timeout_value } {
 		return false
 	}
 
-	set amt_tool [get_cmd_arg --amt-tool "wsman"]
+	set amt_tool [get_cmd_arg --amt-tool "default"]
 
 	# Check that SOL is correctly configured if wsman is available
-	if {![log_amt_skip_test]} {
-		if {[have_installed wsman] && $amt_tool=="wsman" } {
+	if {![log_amt_skip_test] && ( $amt_tool == "wsman" || $amt_tool == "default" )} {
+		if {[have_installed wsman]} {
 			puts "Test for working AMT SOL redirection service ..."
 			set redir_state [exec wsman get http://intel.com/wbem/wscim/1/amt-schema/1/AMT_RedirectionService -h [log_amt_host] -P 16992 -u admin -p [log_amt_password]]
 			set redir_state [regexp -inline {ListenerEnabled.*ListenerEnabled} $redir_state]
@@ -62,21 +62,6 @@ proc run_log { wait_for_re timeout_value } {
 		} else {
 			puts " Warning: could not check AMT SOL redirection service because of missing wsman tool, --amt-tool==$amt_tool"
 		}
-	} else {
-		puts "Skipping test for working AMT SOL redirection service"
-	}
-
-	#
-	# password via environment variable for amtterm will not show up in logs
-	#
-	set ::env(AMT_PASSWORD) [log_amt_password]
-
-	#
-	# grab output
-	#
-	set amt_cmd "amtterm -u admin -v [log_amt_host]"
-	if {[get_cmd_switch --log-amt-filter]} {
-		set amt_cmd "$amt_cmd | [log_amt_filter]"
 	}
 
 	if {$wait_for_re == "forever"} {
@@ -86,7 +71,30 @@ proc run_log { wait_for_re timeout_value } {
 	}
 	set exit_result 1
 
-	lassign [retry 30 "/bin/sh -c \"$amt_cmd\"" ".*session authentication" 0.5] retry_output output_spawn_id
+	#
+	# prepare command
+	#
+	if {[have_installed meshcmd] && ( $amt_tool == "meshcmd" )} {
+		set amt_cmd "meshcmd amtterm --host [log_amt_host] --password [log_amt_password]"
+		set amt_log ".*Connected"
+	} else {
+		#
+		# password via environment variable for amtterm will not show up in logs
+		#
+		set ::env(AMT_PASSWORD) [log_amt_password]
+
+		set amt_cmd "amtterm -u admin -v [log_amt_host]"
+		set amt_log ".*session authentication"
+	}
+
+	if {[get_cmd_switch --log-amt-filter]} {
+		set amt_cmd "$amt_cmd | [log_amt_filter]"
+	}
+
+	#
+	# grab output
+	#
+	lassign [retry 30 "/bin/sh -c \"$amt_cmd\"" "$amt_log" 2] retry_output output_spawn_id
 
 	if {$retry_output == ""} {
 		puts stderr "Aborting, AMT SOL not accessible"

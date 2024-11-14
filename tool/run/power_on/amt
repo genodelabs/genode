@@ -103,6 +103,20 @@ proc amt_reset_wsman { } {
 
 
 ##
+# Reset via meshcmd
+# Executes a power on or power cycle depending on the current power state
+#
+proc amt_reset_meshcmd { } {
+	set power_state [exec meshcmd amtpower --reset --host [power_on_amt_host] --password [power_on_amt_password]]
+	if { $power_state == "Current power state: Soft off" } {
+		exec meshcmd amtpower --powercycle --host [power_on_amt_host] --password [power_on_amt_password]
+	} else {
+		exec meshcmd amtpower --poweron --host [power_on_amt_host] --password [power_on_amt_password]
+	}
+}
+
+
+##
 # Reset the test machine using Intel's AMT
 #
 proc run_power_on { } {
@@ -111,7 +125,7 @@ proc run_power_on { } {
 	}
 
 	#
-	# amttool and wsman are supported for reset
+	# amttool, wsman and meshcmd are supported for reset
 	#
 	set amt_tool [get_cmd_arg --amt-tool "default"]
 
@@ -121,14 +135,14 @@ proc run_power_on { } {
 	if {[have_installed wsman] &&
 	    ( $amt_tool == "wsman" || $amt_tool == "default") } {
 		amt_reset_wsman
+	} elseif {[have_installed meshcmd] && ( $amt_tool == "meshcmd" )} {
+		amt_reset_meshcmd
+	} elseif {[have_installed amttool] &&
+	          ( $amt_tool == "amttool" || $amt_tool == "default") } {
+		amt_reset_soap_eoi
 	} else {
-		if {[have_installed amttool] &&
-		    ($amt_tool == "amttool" || $amt_tool == "default") } {
-			amt_reset_soap_eoi
-		} else {
-			puts stderr "specified tool \"$amt_tool\" for using Intel AMT is unknown or is not installed"
-			exit -1
-		}
+		puts stderr "specified tool \"$amt_tool\" for using Intel AMT is unknown or is not installed"
+		exit -1
 	}
 
 	puts "wait [power_on_amt_timeout] seconds for power on"

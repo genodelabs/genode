@@ -23,6 +23,10 @@ proc is_amt_available { {host "" } {password "" } } {
 		return true
 	}
 
+	if {[have_installed meshcmd]} {
+		return true
+	}
+
 	puts "No support for Intel's AMT detected."
 	return false
 }
