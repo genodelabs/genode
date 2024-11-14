@@ -322,9 +322,13 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 			kobj.destruct();
 		}
 
-		void _ipc_alloc_recv_caps(unsigned rcv_cap_count);
+		enum Ipc_alloc_result { OK, EXHAUSTED };
+
+		[[nodiscard]] Ipc_alloc_result _ipc_alloc_recv_caps(unsigned rcv_cap_count);
+
 		void _ipc_free_recv_caps();
-		void _ipc_init(Genode::Native_utcb &utcb, Thread &callee);
+
+		[[nodiscard]] Ipc_alloc_result _ipc_init(Genode::Native_utcb &utcb, Thread &callee);
 
 	public:
 

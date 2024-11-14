@@ -33,45 +33,42 @@ extern "C" void _core_start(void);
 using namespace Kernel;
 
 
-void Thread::_ipc_alloc_recv_caps(unsigned cap_count)
+Thread::Ipc_alloc_result Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 {
 	using Allocator = Genode::Allocator;
+	using Result    = Ipc_alloc_result;
 
 	Allocator &slab = pd().platform_pd().capability_slab();
 	for (unsigned i = 0; i < cap_count; i++) {
 		if (_obj_id_ref_ptr[i] != nullptr)
 			continue;
 
-		slab.try_alloc(sizeof(Object_identity_reference)).with_result(
+		Result const result =
+			slab.try_alloc(sizeof(Object_identity_reference)).convert<Result>(
 
 			[&] (void *ptr) {
-				_obj_id_ref_ptr[i] = ptr; },
+				_obj_id_ref_ptr[i] = ptr;
+				return Result::OK; },
 
 			[&] (Allocator::Alloc_error e) {
 
-				switch (e) {
-				case Allocator::Alloc_error::DENIED:
-
-					/*
-					 * Slab is exhausted, reflect condition to the client.
-					 */
-					throw Genode::Out_of_ram();
-
-				case Allocator::Alloc_error::OUT_OF_CAPS:
-				case Allocator::Alloc_error::OUT_OF_RAM:
-
-					/*
-					 * These conditions cannot happen because the slab
-					 * does not try to grow automatically. It is
-					 * explicitely expanded by the client as response to
-					 * the 'Out_of_ram' condition above.
-					 */
+				/*
+				 * Conditions other than DENIED cannot happen because the slab
+				 * does not try to grow automatically. It is explicitely
+				 * expanded by the client as response to the EXHAUSTED return
+				 * value.
+				 */
+				if (e != Allocator::Alloc_error::DENIED)
 					Genode::raw("unexpected recv_caps allocation failure");
-				}
+
+				return Result::EXHAUSTED;
 			}
 		);
+		if (result == Result::EXHAUSTED)
+			return result;
 	}
 	_ipc_rcv_caps = cap_count;
+	return Result::OK;
 }
 
 
@@ -87,11 +84,20 @@ void Thread::_ipc_free_recv_caps()
 }
 
 
-void Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &starter)
+Thread::Ipc_alloc_result Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &starter)
 {
 	_utcb = &utcb;
-	_ipc_alloc_recv_caps((unsigned)(starter._utcb->cap_cnt()));
-	ipc_copy_msg(starter);
+
+	switch (_ipc_alloc_recv_caps((unsigned)(starter._utcb->cap_cnt()))) {
+
+	case Ipc_alloc_result::OK:
+		ipc_copy_msg(starter);
+		break;
+
+	case Ipc_alloc_result::EXHAUSTED:
+		return Ipc_alloc_result::EXHAUSTED;
+	}
+	return Ipc_alloc_result::OK;
 }
 
 
@@ -330,7 +336,13 @@ void Thread::_call_start_thread()
 
 	/* join protection domain */
 	thread._pd = (Pd *) user_arg_3();
-	thread._ipc_init(*(Native_utcb *)user_arg_4(), *this);
+	switch (thread._ipc_init(*(Native_utcb *)user_arg_4(), *this)) {
+	case Ipc_alloc_result::OK:
+		break;
+	case Ipc_alloc_result::EXHAUSTED:
+		user_arg_0(-2);
+		return;
+	}
 
 	/*
 	 * Sanity check core threads!
@@ -482,7 +494,14 @@ void Thread::_call_delete_pd()
 void Thread::_call_await_request_msg()
 {
 	if (_ipc_node.ready_to_wait()) {
-		_ipc_alloc_recv_caps((unsigned)user_arg_1());
+
+		switch (_ipc_alloc_recv_caps((unsigned)user_arg_1())) {
+		case Ipc_alloc_result::OK:
+			break;
+		case Ipc_alloc_result::EXHAUSTED:
+			user_arg_0(-2);
+			return;
+		}
 		_ipc_node.wait();
 		if (_ipc_node.waiting()) {
 			_become_inactive(AWAITS_IPC);
@@ -545,8 +564,14 @@ void Thread::_call_send_request_msg()
 	if (!_ipc_node.ready_to_send()) {
 		Genode::raw("IPC send request: bad state");
 	} else {
-		_ipc_alloc_recv_caps((unsigned)user_arg_2());
-		_ipc_capid    = oir ? oir->capid() : cap_id_invalid();
+		switch (_ipc_alloc_recv_caps((unsigned)user_arg_2())) {
+		case Ipc_alloc_result::OK:
+			break;
+		case Ipc_alloc_result::EXHAUSTED:
+			user_arg_0(-2);
+			return;
+		}
+		_ipc_capid = oir ? oir->capid() : cap_id_invalid();
 		_ipc_node.send(dst->_ipc_node, help);
 	}
 
@@ -822,8 +847,6 @@ void Thread::_call_single_step() {
 
 void Thread::_call()
 {
-	try {
-
 	/* switch over unrestricted kernel calls */
 	unsigned const call_id = (unsigned)user_arg_0();
 	switch (call_id) {
@@ -907,7 +930,6 @@ void Thread::_call()
 		_die();
 		return;
 	}
-	} catch (Genode::Allocator::Out_of_memory &e) { user_arg_0(-2); }
 }
 
 
