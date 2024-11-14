@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2020-2021 Genode Labs GmbH
+ * Copyright (C) 2020-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -20,6 +20,8 @@
 
 struct Input_adapter
 {
+	using Point = Gui::Point;
+
 	struct Mouse
 	{
 		ComPtr<IMouse> _imouse;
@@ -31,8 +33,6 @@ struct Input_adapter
 		}
 
 		bool _key_status[Input::KEY_MAX + 1];
-
-		using Point = Genode::Surface_base::Point;
 
 		Point _abs_pos { 0, 0 };
 
@@ -47,7 +47,7 @@ struct Input_adapter
 			    || keycode == Input::BTN_EXTRA;
 		}
 
-		void handle_input_event(Input::Event const &);
+		void handle_input_event(Input::Event const &, Point);
 
 		void absolute(bool absolute) { _absolute = absolute; }
 
@@ -70,7 +70,7 @@ struct Input_adapter
 	Input_adapter(ComPtr<IConsole> &iconsole)
 	: _mouse(iconsole), _keyboard(iconsole) { }
 
-	void handle_input_event(Input::Event const &);
+	void handle_input_event(Input::Event const &, Point origin = { 0, 0});
 
 	void mouse_absolute(bool absolute) { _mouse.absolute(absolute); }
 };
@@ -101,7 +101,7 @@ void Input_adapter::Keyboard::handle_input_event(Input::Event const &ev)
 }
 
 
-void Input_adapter::Mouse::handle_input_event(Input::Event const &ev)
+void Input_adapter::Mouse::handle_input_event(Input::Event const &ev, Point origin)
 {
 	/* obtain bit mask of currently pressed mouse buttons */
 	auto curr_mouse_button_bits = [&] () {
@@ -124,7 +124,7 @@ void Input_adapter::Mouse::handle_input_event(Input::Event const &ev)
 			_key_status[key] = false; });
 
 	ev.handle_absolute_motion([&] (int ax, int ay) {
-		_abs_pos = Point(ax, ay); });
+		_abs_pos = origin + Point(ax, ay); });
 
 	int wheel_x = 0, wheel_y = 0;
 	ev.handle_wheel([&] (int x, int y) { wheel_x = -x; wheel_y = -y; });
@@ -147,11 +147,11 @@ void Input_adapter::Mouse::handle_input_event(Input::Event const &ev)
 }
 
 
-void Input_adapter::handle_input_event(Input::Event const &ev)
+void Input_adapter::handle_input_event(Input::Event const &ev, Point origin)
 {
 	/* present the event to potential consumers */
 	_keyboard.handle_input_event(ev);
-	_mouse.handle_input_event(ev);
+	_mouse.handle_input_event(ev, origin);
 }
 
 #endif /* _INPUT_ADAPTER_H_ */

@@ -1,11 +1,12 @@
 /*
  * \brief  Virtualbox framebuffer implementation for Genode
  * \author Alexander Boettcher
+ * \author Christian Helmuth
  * \date   2013-10-16
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -24,6 +25,9 @@
 #include <Global.h>
 #include <VirtualBoxBase.h>
 #include <DisplayWrap.h>
+
+/* Genode port specific includes */
+#include <attempt.h>
 
 class Genodefb :
 	VBOX_SCRIPTABLE_IMPL(IFramebuffer)
@@ -58,6 +62,8 @@ class Genodefb :
 		ComPtr<IDisplay>             _display;
 		ComPtr<IDisplaySourceBitmap> _display_bitmap;
 
+		unsigned const _id;
+
 		void _clear_screen()
 		{
 			if (!_fb_base) return;
@@ -85,15 +91,15 @@ class Genodefb :
 
 		NS_DECL_ISUPPORTS
 
-		Genodefb(Genode::Env &env, Gui::Connection &gui, ComPtr<IDisplay> const &display)
+		Genodefb(Genode::Env &env, Gui::Connection &gui, ComPtr<IDisplay> const &display, unsigned id)
 		:
 			_env(env),
 			_gui(gui),
 			_virtual_fb_area(_initial_setup()),
-			_display(display)
+			_display(display), _id(id)
 		{
-			int rc = RTCritSectInit(&_fb_lock);
-			Assert(rc == VINF_SUCCESS); (void)rc;
+			attempt([&] () { return RTCritSectInit(&_fb_lock); },
+			        "unable to initialize critsect");
 		}
 
 		virtual ~Genodefb() { }
@@ -127,7 +133,7 @@ class Genodefb :
 			return Global::vboxStatusCodeToCOM(RTCritSectLeave(&_fb_lock));
 		}
 
-		STDMETHODIMP NotifyChange(PRUint32 screen, PRUint32, PRUint32,
+		STDMETHODIMP NotifyChange(PRUint32 screen, PRUint32 ox, PRUint32 oy,
 		                          PRUint32 w, PRUint32 h) override
 		{
 			HRESULT result = E_FAIL;
@@ -147,7 +153,7 @@ class Genodefb :
 				Genode::log("fb resize : [", screen, "] ",
 				            _virtual_fb_area, " -> ",
 				            w, "x", h,
-				            " (host: ", _gui_win.area, ")");
+				            " (host: ", _gui_win.area, ") origin: ", ox, ",", oy);
 
 				if ((w < (ULONG)_gui_win.area.w) ||
 				    (h < (ULONG)_gui_win.area.h)) {
@@ -162,7 +168,7 @@ class Genodefb :
 				Genode::log("fb resize : [", screen, "] ",
 				            _virtual_fb_area, " -> ",
 				            w, "x", h, " ignored"
-				            " (host: ", _gui_win.area, ")");
+				            " (host: ", _gui_win.area, ") origin: ", ox, ",", oy);
 			}
 
 			Unlock();
@@ -217,7 +223,7 @@ class Genodefb :
 
 			Gui::Area const area_fb = Gui::Area(_gui_win.area.w,
 			                                    _gui_win.area.h);
-			Gui::Area const area_vm = Gui::Area(ulWidth, ulHeight);
+			Gui::Area const area_vm = Gui::Area(ulBytesPerLine/(ulBitsPerPixel/8), ulHeight);
 
 			using namespace Genode;
 
@@ -227,13 +233,12 @@ class Genodefb :
 			Texture<Pixel_src> texture((Pixel_src *)pAddress, nullptr, area_vm);
 			Surface<Pixel_dst> surface((Pixel_dst *)_fb_base, area_fb);
 
-			surface.clip(Surface_base::Rect(Surface_base::Point(o_x, o_y),
-                                            Surface_base::Area(width, height)));
+			surface.clip(Gui::Rect(Gui::Point(o_x, o_y), Gui::Area(width, height)));
 
 			Texture_painter::paint(surface,
 			                       texture,
 			                       Genode::Color(0, 0, 0),
-			                       Surface_base::Point(0, 0),
+			                       Gui::Point(0, 0),
 			                       Texture_painter::SOLID,
 			                       false);
 

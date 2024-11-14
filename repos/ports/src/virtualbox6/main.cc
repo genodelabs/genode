@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2013-2021 Genode Labs GmbH
+ * Copyright (C) 2013-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -82,6 +82,16 @@ struct Main : Event_handler
 	Env &_env;
 
 	Attached_rom_dataspace _config { _env, "config" };
+
+	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
+
+	void _handle_config()
+	{
+		_config.update();
+		Libc::with_libc([&] { _update_monitors(); });
+	}
+
+	void _update_monitors();
 
 	struct Vbox_file_path
 	{
@@ -277,7 +287,63 @@ struct Main : Event_handler
 
 	Signal_handler<Main> _exit_handler { _env.ep(), *this, &Main::_handle_exit };
 
-	Registry<Registered<Gui::Connection>> _gui_connections { };
+	struct Monitor : Registry<Monitor>::Element
+	{
+		using Label = String<32>;
+
+		struct Fb
+		{
+			unsigned         const id;
+			ComPtr<IDisplay> const display;
+			ComPtr<Genodefb> const fb;
+
+			Bstr guid { };
+
+			Fb(Env &, Gui::Connection &, ComPtr<IDisplay> const &, unsigned id);
+			~Fb();
+
+			int w() const { return fb->w(); }
+			int h() const { return fb->h(); }
+
+			void update_mode(Gui::Rect gui_win) { fb->update_mode(gui_win); }
+		};
+
+		Env &env;
+
+		Signal_context_capability const input_sigh;
+		Signal_context_capability const mode_sigh;
+		ComPtr<IDisplay>          const display;
+		unsigned                  const id;
+
+		Label label { };
+
+		Constructible<Gui::Connection> gui;
+		Constructible<Fb>              fb;
+
+		Gui::Rect rect { };
+
+		Monitor(Registry<Monitor> &, Env &,
+		        Signal_context_capability input_sigh,
+		        Signal_context_capability mode_sigh,
+		        ComPtr<IDisplay>, unsigned id, Label const &);
+		~Monitor();
+
+		void update(Label const &label);
+	};
+
+	Registry<Monitor> _monitors { };
+
+	Mutex _monitor_change_mutex;
+
+	struct Monitor_change_event
+	{
+		unsigned  id;
+		int origin_x, origin_y;
+	} _monitor_change_event;
+
+	Signal_handler<Main> _monitor_handler { _env.ep(), *this, &Main::_handle_monitor };
+
+	void _handle_monitor();
 
 	Signal_handler<Main> _input_handler { _env.ep(), *this, &Main::_handle_input };
 
@@ -288,30 +354,6 @@ struct Main : Event_handler
 	void _handle_fb_mode();
 
 	Input_adapter _input_adapter { _iconsole };
-
-	bool const _genode_gui_attached = ( _attach_genode_gui(), true );
-
-	void _attach_genode_gui()
-	{
-		Monitor_count const num_monitors = _machine.monitor_count();
-
-		for (unsigned i = 0; i < num_monitors.value; i++) {
-
-			String<3> label { i };
-
-			Gui::Connection &gui = *new Registered<Gui::Connection>(_gui_connections, _env, label.string());
-
-			gui.input.sigh(_input_handler);
-			gui.info_sigh(_fb_mode_handler);
-
-			Genodefb *fb = new Genodefb(_env, gui, _idisplay);
-
-			Bstr fb_id { };
-
-			attempt([&] () { return _idisplay->AttachFramebuffer(i, fb, fb_id.asOutParam()); },
-			        "unable to attach framebuffer to virtual monitor ", i);
-		}
-	}
 
 	bool const _machine_powered_up = ( _power_up_machine(), true );
 
@@ -352,9 +394,7 @@ struct Main : Event_handler
 	{
 		_capslock.destruct_rom();
 
-		_gui_connections.for_each([&] (Gui::Connection &gui) {
-			delete &gui;
-		});
+		_monitors.for_each([&] (Monitor &m) { delete &m; });
 
 		/* signal exit to main entrypoint */
 		_exit_handler.local_submit();
@@ -382,12 +422,18 @@ struct Main : Event_handler
 		event_types.push_back(VBoxEventType_OnKeyboardLedsChanged);
 		event_types.push_back(VBoxEventType_OnStateChanged);
 		event_types.push_back(VBoxEventType_OnAdditionsStateChanged);
+		event_types.push_back(VBoxEventType_OnGuestMonitorChanged);
+		if (0) /* activate for all events on debugging */
+			event_types.push_back(VBoxEventType_Any);
 
 		ievent_source->RegisterListener(listener, ComSafeArrayAsInParam(event_types), true);
 	}
 
 	Main(Genode::Env &env) : _env(env)
 	{
+		_config.sigh(_config_handler);
+		_handle_config();
+
 		/*
 		 * Explicitly, adapt to current framebuffer/window size after
 		 * initialization finished. This ensures the use of the correct
@@ -396,6 +442,111 @@ struct Main : Event_handler
 		_handle_fb_mode();
 	}
 };
+
+
+Main::Monitor::Fb::Fb(Env &env, Gui::Connection &gui,
+                      ComPtr<IDisplay> const &display, unsigned id)
+:
+	id(id), display(display), fb(new Genodefb(env, gui, display, id))
+{
+	display->AttachFramebuffer(id, fb, guid.asOutParam());
+}
+
+
+Main::Monitor::Fb::~Fb()
+{
+	display->DetachFramebuffer(id, guid.raw());
+}
+
+
+void Main::Monitor::update(Label const &new_label)
+{
+	if (new_label == label) return;
+
+	label = new_label;
+
+	fb.destruct();
+
+	gui.construct(env, label);
+	gui->input.sigh(input_sigh);
+	gui->info_sigh(mode_sigh);
+
+	fb.construct(env, *gui, display, id);
+
+	int                  origin_x, origin_y;
+	unsigned             w, h, bpp;
+	GuestMonitorStatus_T monitor_status;
+	display->GetScreenResolution(id, &w, &h, &bpp, &origin_x, &origin_y, &monitor_status);
+
+	rect = Gui::Rect({ origin_x, origin_y }, { w, h });
+
+	display->SetVideoModeHint(id, true, false, 0, 0, rect.area.w, rect.area.h, 32, true);
+}
+
+
+Main::Monitor::Monitor(Registry<Monitor> &registry, Env &env,
+                       Signal_context_capability input_sigh,
+                       Signal_context_capability mode_sigh,
+                       ComPtr<IDisplay> display, unsigned id, Label const &label)
+:
+	Registry<Monitor>::Element(registry, *this), env(env),
+	input_sigh(input_sigh), mode_sigh(mode_sigh), display(display), id(id)
+{
+	update(label);
+}
+
+
+Main::Monitor::~Monitor()
+{
+	display->SetVideoModeHint(id, false, false, 0, 0, 0, 0, 0, true);
+}
+
+
+/* must be called in Libc::with_libc() context */
+void Main::_update_monitors()
+{
+	if (!_config.xml().has_sub_node("monitor"))
+		warning("no <monitor label=\"...\"/> config node found - running headless");
+
+	unsigned const max_id = _machine.monitor_count().value - 1;
+
+	unsigned id = 0;
+
+	/* handle new and updated monitors */
+	_config.xml().for_each_sub_node("monitor", [&] (Xml_node const &xml) {
+
+		Monitor::Label label = xml.attribute_value("label", Monitor::Label(""));
+
+		if (id > max_id) {
+			warning("ignoring ", xml, " for monitor id=", id, " max=", max_id,
+			        " (monitorCount in vbox file!)");
+			return;
+		}
+
+		bool updated = false;
+
+		/* update */
+		_monitors.for_each([&] (Monitor &m) {
+			if (m.id != id) return;
+
+			m.update(label);
+			updated = true;
+		});
+
+		/* create new monitor */
+		if (!updated)
+			new Monitor(_monitors, _env, _input_handler, _fb_mode_handler,
+			            _idisplay, id, label);
+
+		++id;
+	});
+
+	/* disable excess monitors */
+	_monitors.for_each([&] (Monitor &m) {
+		if (m.id >= id) delete &m; });
+
+	_fb_mode_handler.local_submit();
+}
 
 
 /* must be called in Libc::with_libc() context */
@@ -408,9 +559,29 @@ void Main::_sync_capslock()
 }
 
 
+void Main::_handle_monitor()
+{
+	Monitor_change_event ev;
+	{
+		Mutex::Guard guard(_monitor_change_mutex);
+		ev = _monitor_change_event;
+		_monitor_change_event.id = ~0u;
+	}
+
+	if (ev.id == ~0u)
+		return;
+
+	_monitors.for_each([&] (Monitor &m) {
+		if (m.id != ev.id) return;
+
+		m.rect = { { ev.origin_x, ev.origin_y }, m.rect.area };
+	});
+}
+
+
 void Main::_handle_input()
 {
-	auto handle_one_event = [&] (Input::Event const &ev) {
+	auto handle_one_event = [&] (Input::Event const &ev, Gui::Point origin) {
 		/* don't confuse guests and drop CapsLock events in ROM mode */
 		if (_capslock.mode == Capslock::Mode::ROM) {
 			if (ev.key_press(Input::KEY_CAPSLOCK)
@@ -418,43 +589,44 @@ void Main::_handle_input()
 				return;
 		}
 
-		_input_adapter.handle_input_event(ev);
+		_input_adapter.handle_input_event(ev, origin);
 	};
 
 	Libc::with_libc([&] {
-		_gui_connections.for_each([&] (Gui::Connection &gui) {
-			gui.input.for_each_event([&] (Input::Event const &ev) {
-				handle_one_event(ev); }); }); });
+		_monitors.for_each([&] (Monitor &m) {
+			m.gui->input.for_each_event([&] (Input::Event const &ev) {
+				handle_one_event(ev, m.rect.at); }); }); });
 }
 
 
 void Main::_handle_fb_mode()
 {
 	Libc::with_libc([&] {
-		_gui_connections.for_each([&] (Gui::Connection &gui) {
-			IFramebuffer *pFramebuffer = NULL;
-			HRESULT rc = _idisplay->QueryFramebuffer(0, &pFramebuffer);
-			Assert(SUCCEEDED(rc) && pFramebuffer); (void)rc;
+		_monitors.for_each([&] (Monitor &m) {
 
-			Genodefb *fb = dynamic_cast<Genodefb *>(pFramebuffer);
-
-			Gui::Rect const gui_win = gui.window().convert<Gui::Rect>(
+			Gui::Rect const gui_win = m.gui->window().convert<Gui::Rect>(
 				[&] (Gui::Rect rect) { return rect; },
 				[&] (Gui::Undefined) { return Gui::Rect { { }, { 1024, 768 } }; });
 
-			fb->update_mode(gui_win);
+			m.rect = Gui::Rect(m.rect.at, gui_win.area);
 
-			if ((fb->w() <= 1) && (fb->h() <= 1)) {
+			m.fb->update_mode(gui_win);
+
+			if ((m.fb->w() <= 1) && (m.fb->h() <= 1)) {
 				/* interpret a size of 0x0 as indication to quit VirtualBox */
 				if (_iconsole->PowerButton() != S_OK)
 					Genode::error("ACPI shutdown failed");
 				return;
 			}
 
-			_idisplay->SetVideoModeHint(0 /*=display*/,
+			/*
+			 * XXX May changeOrigin and originX/originY be used to hint guest
+			 * about panorama config?
+			 */
+			_idisplay->SetVideoModeHint(m.id /*=display*/,
 			                            true /*=enabled*/, false /*=changeOrigin*/,
 			                            0 /*=originX*/, 0 /*=originY*/,
-			                            fb->w(), fb->h(),
+			                            m.fb->w(), m.fb->h(),
 			                            32, true);
 		});
 	});
@@ -540,7 +712,37 @@ void Main::handle_vbox_event(VBoxEventType_T ev_type, IEvent &ev)
 			_sync_capslock();
 		} break;
 
-	default: /* ignore other events */ break;
+	case VBoxEventType_OnGuestMonitorChanged:
+		{
+			ComPtr<IGuestMonitorChangedEvent> mon_ev = &ev;
+			GuestMonitorChangedEventType_T change_type;
+			unsigned screen_id, origin_x, origin_y, width, height;
+			mon_ev->COMGETTER(ChangeType)(&change_type);
+			mon_ev->COMGETTER(ScreenId)(&screen_id);
+			mon_ev->COMGETTER(OriginX)(&origin_x);
+			mon_ev->COMGETTER(OriginY)(&origin_y);
+			mon_ev->COMGETTER(Width)(&width);
+			mon_ev->COMGETTER(Height)(&height);
+
+			unsigned bpp;
+			GuestMonitorStatus_T gms;
+			int ox, oy;
+			_idisplay->GetScreenResolution(screen_id, &width, &height, &bpp, &ox, &oy, &gms);
+
+			/*
+			 * Prevent deadlock in VMMDev's critsect by defering calls to upper
+			 * layers to a signal handler.
+			 */
+			Mutex::Guard guard(_monitor_change_mutex);
+			_monitor_change_event = { .id = screen_id,
+			                          .origin_x = int(origin_x),
+			                          .origin_y = int(origin_y) };
+			_monitor_handler.local_submit();
+		} break;
+
+	default:
+		Genode::log("unexpected vbox event type ", int(ev_type), " will be ignored");
+		break;
 	}
 }
 
