@@ -129,7 +129,12 @@ static void release_device(struct usb_per_dev_data * data)
 			usb_driver_release_interface(&usb_drv, iface);
 		}
 	}
+
+	if (usb_lock_device_for_reset(data->dev, NULL))
+		return;
+
 	usb_reset_device(data->dev);
+	usb_unlock_device(data->dev);
 }
 
 
