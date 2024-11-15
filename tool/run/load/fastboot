@@ -34,8 +34,27 @@ proc run_load { } {
 	set device [load_fastboot_device]
 	set uimg [file join [run_dir] boot uImage]
 
-	# sleep a bit, board might need some time to come up
-	sleep 8
+	# show boot log up to the life sign of U-boot's fastboot driver
+	puts stderr "Waiting for U-boot's fastboot driver message"
+	spawn /bin/sh -c "[log_serial_cmd]"
+	set timeout 60
+	set boot_loader_failed false
+	expect {
+		-re {.*musb-hdrc.*\n} { }
+		eof {
+			puts stderr "Aborting, boot log received EOF"
+			set boot_loader_failed true
+		}
+		timeout {
+			puts stderr "Loading of boot loader timed out"
+			set boot_loader_failed true
+		}
+	}
+	close
+	if {$boot_loader_failed} {
+		return false }
+
+	puts stderr "U-boot fastboot driver is up"
 
 	set fastboot_cmd [list fastboot]
 	if {$device != ""} {
