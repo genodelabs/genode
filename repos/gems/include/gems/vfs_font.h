@@ -68,10 +68,10 @@ class Genode::Vfs_font : public Text_painter::Font
 				void with_glyph(Text_painter::Area const bb, auto const &fn) const
 				{
 					/* consider glyph bounds exceeding the font's bounding box */
-					uint8_t const clipped_h = uint8_t(_width ? (bb.count() / _width) : 0u);
+					unsigned const clipped_h = _width ? unsigned(bb.count() / _width) : 0u;
 
 					fn(Glyph { .width   = _width,
-					           .height  = min(_height, clipped_h),
+					           .height  = min(unsigned(_height), clipped_h),
 					           .vpos    = _vpos,
 					           .advance = _advance(),
 					           .values  = _values });
