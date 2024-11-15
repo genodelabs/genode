@@ -158,10 +158,8 @@ class Kernel::Signal_context
 		 *
 		 * \param r        receiver that the context shall be assigned to
 		 * \param imprint  userland identification of the context
-		 *
-		 * \throw  Assign_to_receiver_failed
 		 */
-		Signal_context(Signal_receiver & r, addr_t const imprint);
+		Signal_context(Signal_receiver &, addr_t const imprint);
 
 		/**
 		 * Submit the signal
