@@ -95,11 +95,14 @@ struct Sculpt::Board_info
 	{
 		bool fb, touch, wifi, usb, mmc, modem, nic;
 
+		bool fb_on_dedicated_cpu;
+
 		bool operator != (Soc const &other) const
 		{
 			return (fb   != other.fb)   || (touch != other.touch)
 			    || (wifi != other.wifi) || (usb   != other.usb)
-			    || (mmc  != other.mmc)  || (modem != other.modem);
+			    || (mmc  != other.mmc)  || (modem != other.modem)
+			    || (fb_on_dedicated_cpu != other.fb_on_dedicated_cpu);
 		}
 	} soc;
 

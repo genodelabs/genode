@@ -210,6 +210,8 @@ struct Sculpt::Main : Input_event_handler,
 		.mmc   = false,
 		.modem = false, /* depends on presence of battery */
 		.nic   = false,
+
+		.fb_on_dedicated_cpu = false
 	};
 
 	Drivers _drivers { _env, _child_states, *this, *this };
