@@ -302,7 +302,7 @@ struct Sculpt::Main : Input_event_handler,
 		.modem = false,
 		.nic   = _mnt_reform || _mnt_pocket,
 
-		.fb_on_dedicated_cpu = false
+		.fb_on_dedicated_cpu = _mnt_pocket
 	};
 
 	Drivers _drivers { _env, _child_states, *this, *this };

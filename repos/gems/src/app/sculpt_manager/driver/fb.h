@@ -164,12 +164,16 @@ struct Sculpt::Fb_driver : private Noncopyable
 		                     registry, "vesa_fb", Priority::MULTIMEDIA,
 		                     Ram_quota { 8*1024*1024 }, Cap_quota { 110 });
 
+		Affinity::Location const fb_affinity =
+			board_info.soc.fb_on_dedicated_cpu ? Affinity::Location { 1, 0, 1, 1 }
+			                                   : Affinity::Location { };
+
 		_soc_fb.conditional(board_info.soc.fb && board_info.options.display,
 		                    registry, Child_state::Attr {
 		                        .name      = "fb",
 		                        .priority  = Priority::MULTIMEDIA,
 		                        .cpu_quota = 20,
-		                        .location  = { },
+		                        .location  = fb_affinity,
 		                        .initial   = { Ram_quota { 16*1024*1024 },
 		                                       Cap_quota { 250 } },
 		                        .max       = { } } );
