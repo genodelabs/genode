@@ -1621,8 +1621,9 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _decorator_margins {
 		_env, "decorator_margins", *this, &Main::_handle_window_layout_or_decorator_margins };
 
-	Expanding_reporter _wm_focus      { _env, "focus",         "wm_focus" };
-	Expanding_reporter _window_layout { _env, "window_layout", "window_layout" };
+	Expanding_reporter _wm_focus       { _env, "focus",          "wm_focus" };
+	Expanding_reporter _window_layout  { _env, "window_layout",  "window_layout" };
+	Expanding_reporter _resize_request { _env, "resize_request", "resize_request" };
 
 	template <size_t N>
 	void _with_window(Xml_node window_list, String<N> const &match, auto const &fn)
@@ -1906,10 +1907,20 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 	Point const inspect_p2(avail.x2() - margins.right - 1,
 	                       avail.y2() - margins.bottom - 1);
 
-	_window_layout.generate([&] (Xml_generator &xml) {
+	auto generate_within_screen_boundary = [&] (auto const &fn)
+	{
+		_resize_request.generate([&] (Xml_generator &resize_xml) {
+			_window_layout.generate([&] (Xml_generator &xml) {
+				xml.node("boundary", [&] {
+					xml.attribute("width",  _screen_size.w);
+					xml.attribute("height", _screen_size.h);
+					fn(xml, resize_xml); }); }); });
+	};
+
+	generate_within_screen_boundary([&] (Xml_generator &xml, Xml_generator &resize_xml) {
 
 		auto gen_window = [&] (Xml_node const &win, Rect rect) {
-			if (rect.valid()) {
+			if (rect.valid())
 				xml.node("window", [&] {
 					xml.attribute("id",     win.attribute_value("id", 0UL));
 					xml.attribute("xpos",   rect.x1());
@@ -1918,7 +1929,15 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 					xml.attribute("height", rect.h());
 					xml.attribute("title",  win.attribute_value("label", Label()));
 				});
-			}
+		};
+
+		auto gen_resize = [&] (Xml_node const &win, Area area) {
+			if (area.valid())
+				resize_xml.node("window", [&] {
+					resize_xml.attribute("id",     win.attribute_value("id", 0UL));
+					resize_xml.attribute("width",  area.w);
+					resize_xml.attribute("height", area.h);
+				});
 		};
 
 		/* window size limited to space unobstructed by the menu and log */
@@ -1935,7 +1954,10 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			gen_window(win, panel); });
 
 		_with_window(window_list, Label("log"), [&] (Xml_node const &win) {
-			gen_window(win, Rect::compound(log_p1, log_p2)); });
+			Rect const rect = Rect::compound(log_p1, log_p2);
+			gen_window(win, rect);
+			gen_resize(win, rect.area);
+		});
 
 		int system_right_xpos = 0;
 		if (system_available()) {
@@ -2058,8 +2080,12 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		}
 
 		_with_window(window_list, inspect_label, [&] (Xml_node const &win) {
-			if (_selected_tab == Panel_dialog::Tab::INSPECT)
-				gen_window(win, Rect::compound(inspect_p1, inspect_p2)); });
+			if (_selected_tab == Panel_dialog::Tab::INSPECT) {
+				Rect const rect = Rect::compound(inspect_p1, inspect_p2);
+				gen_window(win, rect);
+				gen_resize(win, rect.area);
+			}
+		});
 
 		/*
 		 * Position runtime view centered within the inspect area, but allow

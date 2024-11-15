@@ -90,11 +90,24 @@ class Window_layouter::Assign_list : Noncopyable
 			return result;
 		}
 
-		template <typename FN>
-		void for_each(FN const &fn) { _assignments.for_each(fn); }
+		void for_each(auto const &fn)       { _assignments.for_each(fn); }
+		void for_each(auto const &fn) const { _assignments.for_each(fn); }
 
-		template <typename FN>
-		void for_each(FN const &fn) const { _assignments.for_each(fn); }
+		void for_each_visible(auto const &target_name, auto const &fn) const
+		{
+			for_each([&] (Assign const &assign) {
+				if (assign.visible() && target_name == assign.target_name())
+					fn(assign); });
+		}
+
+		bool target_empty(auto const &target_name) const
+		{
+			bool result = true;
+			for_each_visible(target_name, [&] (Assign const &assign) {
+				assign.for_each_member([&] (Assign::Member const &) {
+					result = false; }); });
+			return result;
+		}
 };
 
 #endif /* _ASSIGN_LIST_H_ */

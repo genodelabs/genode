@@ -19,6 +19,7 @@
 #include <os/texture.h>
 #include <os/pixel_alpha8.h>
 #include <os/pixel_rgb888.h>
+#include <decorator/types.h>
 
 namespace Decorator {
 
@@ -29,10 +30,6 @@ namespace Decorator {
 
 	using Pixel_surface = Genode::Surface<Pixel_rgb888>;
 	using Alpha_surface = Genode::Surface<Pixel_alpha8>;
-
-	using Area  = Genode::Surface_base::Area;
-	using Point = Genode::Surface_base::Point;
-	using Rect  = Genode::Surface_base::Rect;
 }
 
 

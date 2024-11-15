@@ -64,6 +64,11 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 
 		Window_registry::Id win_id;
 
+		Rect  geometry { };
+		Point offset   { };
+
+		Rect content_geometry() const { return { geometry.p1() + offset, geometry.area }; }
+
 		Content_view_ref(Window_registry::Id win_id, Gui::View_ids &ids, View_id id)
 		: id(*this, ids, id), win_id(win_id) { }
 	};
@@ -152,33 +157,31 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 
 	void _execute_command(Command const &cmd)
 	{
+		/*
+		 * If the content view changes position, propagate the new position to
+		 * the GUI service to properly transform absolute input coordinates.
+		 */
+		auto with_content_view_ref = [&] (View_id id, auto const &fn)
+		{
+			_content_view_ids.apply<Content_view_ref>(id,
+				[&] (Content_view_ref &ref) {
+					Rect const orig = ref.content_geometry();
+					fn(ref);
+					if (orig != ref.content_geometry())
+						_content_callback.content_geometry(ref.win_id,
+						                                   ref.content_geometry()); },
+				[&] { });
+		};
+
 		switch (cmd.opcode) {
 
 		case Command::GEOMETRY:
 
-			/*
-			 * If the content view changes position, propagate the new position
-			 * to the GUI service to properly transform absolute input
-			 * coordinates.
-			 */
-			_content_view_ids.apply<Content_view_ref const>(cmd.geometry.view,
-				[&] (Content_view_ref const &view_ref) {
-					_content_callback.content_geometry(view_ref.win_id, cmd.geometry.rect); },
-				[&] { });
+			with_content_view_ref(cmd.geometry.view, [&] (Content_view_ref &view_ref) {
+				view_ref.geometry = cmd.geometry.rect; });
 
 			/* forward command */
 			_real_gui.enqueue(cmd);
-			return;
-
-		case Command::OFFSET:
-
-			/*
-			 * If non-content views change their offset (if the lookup
-			 * fails), propagate the event
-			 */
-			_content_view_ids.apply<Content_view_ref const>(cmd.geometry.view,
-				[&] (Content_view_ref const &) { },
-				[&] { _real_gui.enqueue(cmd); });
 			return;
 
 		case Command::FRONT:
@@ -192,7 +195,14 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 					_real_gui.execute();
 					_content_callback.update_content_child_views(view_ref.win_id); },
 				[&] { });
+			return;
 
+		case Command::OFFSET:
+
+			with_content_view_ref(cmd.offset.view, [&] (Content_view_ref &view_ref) {
+				view_ref.offset = cmd.offset.offset; });
+
+			_real_gui.enqueue(cmd);
 			return;
 
 		case Command::TITLE:

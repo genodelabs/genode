@@ -38,6 +38,8 @@ class Decorator::Window : public Window_base
 		 */
 		bool _gui_views_up_to_date = false;
 
+		Rect _clip { }; /* most recently used clipping rectangle */
+
 		struct Gui_view : Genode::Noncopyable
 		{
 			Gui::Connection &_gui;
@@ -74,11 +76,18 @@ class Decorator::Window : public Window_base
 
 			void stack_back_most()  { _gui.enqueue<Command::Back>(id()); }
 
-			void place(Rect rect)
+			void place_as_decor(Clip const &clip, Rect rect)
 			{
-				_gui.enqueue<Command::Geometry>(id(), rect);
-				Point offset = Point(0, 0) - rect.at;
-				_gui.enqueue<Command::Offset>(id(), offset);
+				Rect const intersection = Rect::intersect(clip, rect);
+				_gui.enqueue<Command::Geometry>(id(), intersection);
+				_gui.enqueue<Command::Offset>(id(), Point() - intersection.at);
+			}
+
+			void place_as_content(Clip const &clip, Rect rect)
+			{
+				Rect const intersection = Rect::intersect(clip, rect);
+				_gui.enqueue<Command::Geometry>(id(), intersection);
+				_gui.enqueue<Command::Offset>(id(), rect.at - intersection.at);
 			}
 		};
 
@@ -87,7 +96,7 @@ class Decorator::Window : public Window_base
 		         _left_view   { _gui },
 		         _top_view    { _gui };
 
-		Gui_view _content_view { _gui, (unsigned)id() };
+		Gui_view _content_view { _gui, unsigned(id().value) };
 
 		static Border _init_border() {
 			return Border(_border_size + _title_height,
@@ -419,10 +428,10 @@ class Decorator::Window : public Window_base
 
 	public:
 
-		Window(unsigned id, Gui::Connection &gui,
+		Window(Windows &windows, Windows::Id id, Gui::Connection &gui,
 		       Animator &animator, Config const &config)
 		:
-			Window_base(id),
+			Window_base(windows, id),
 			_gui(gui),
 			_animator(animator), _config(config)
 		{ }
@@ -465,18 +474,18 @@ class Decorator::Window : public Window_base
 			                      geometry().p2() + Point(_border.right, _border.bottom));
 		}
 
-		void update_gui_views() override
+		void update_gui_views(Clip const &clip) override
 		{
-			if (!_gui_views_up_to_date) {
+			if (!_gui_views_up_to_date || (clip != _clip)) {
 
 				/* update view positions */
 				auto const border = outer_geometry().cut(geometry());
 
-				_content_view.place(geometry());
-				_top_view    .place(border.top);
-				_left_view   .place(border.left);
-				_right_view  .place(border.right);
-				_bottom_view .place(border.bottom);
+				_content_view.place_as_content(clip, geometry());
+				_top_view    .place_as_decor  (clip, border.top);
+				_left_view   .place_as_decor  (clip, border.left);
+				_right_view  .place_as_decor  (clip, border.right);
+				_bottom_view .place_as_decor  (clip, border.bottom);
 
 				_gui_views_up_to_date = true;
 			}
@@ -487,7 +496,7 @@ class Decorator::Window : public Window_base
 			_base_color = _config.base_color(_title);
 		}
 
-		void draw(Canvas_base &canvas, Rect clip, Draw_behind_fn const &) const override;
+		void draw(Canvas_base &canvas, Ref const &, Rect clip, Draw_behind_fn const &) const override;
 
 		bool update(Xml_node) override;
 

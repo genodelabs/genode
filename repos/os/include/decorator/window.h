@@ -20,6 +20,8 @@
 #include <util/list_model.h>
 #include <util/reconstructible.h>
 #include <gui_session/client.h>
+#include <base/registry.h>
+#include <base/id_space.h>
 
 /* decorator includes */
 #include <decorator/types.h>
@@ -30,14 +32,48 @@ namespace Decorator {
 	class Canvas_base;
 	class Window_base;
 
-	using Abandoned_windows = Genode::List<Genode::List_element<Window_base> >;
+	using Windows           = Id_space<Window_base>;
+	using Abandoned_windows = Registry<Window_base>;
 	using Reversed_windows  = Genode::List<Genode::List_element<Window_base> >;
 }
 
 
-class Decorator::Window_base : private Genode::List_model<Window_base>::Element
+class Decorator::Window_base : private Windows::Element
 {
 	public:
+
+		using Windows::Element::id;
+
+		struct Ref;
+
+		using Refs = List_model<Ref>;
+
+		/**
+		 * Reference to a window
+		 *
+		 * The 'Ref' type decouples the lifetime of window objects from
+		 * the lifetimes of their surrounding boundaries. If a window
+		 * moves from one boundary to another, the old 'Ref' vanishes and
+		 * a new 'Ref' is created but the window object stays intact.
+		 */
+		struct Ref : Refs::Element
+		{
+			Window_base &window;
+
+			Registry<Ref>::Element _registered;
+
+			inline  Ref(Window_base &);
+
+			/**
+			 * List_model::Element
+			 */
+			inline bool matches(Xml_node const &) const;
+
+			/**
+			 * List_model::Element
+			 */
+			static bool type_matches(Xml_node const &) { return true; }
+		};
 
 		struct Border
 		{
@@ -59,7 +95,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 				 maximizer    = false,
 				 unmaximizer  = false;
 
-			unsigned window_id = 0;
+			Windows::Id window_id { };
 
 			bool operator != (Hover const &other) const
 			{
@@ -84,7 +120,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		 */
 		struct Draw_behind_fn : Interface
 		{
-			virtual void draw_behind(Canvas_base &, Window_base const &, Rect) const = 0;
+			virtual void draw_behind(Canvas_base &, Ref const &, Rect) const = 0;
 		};
 
 	private:
@@ -93,15 +129,12 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		friend class Genode::List_model<Window_base>;
 		friend class Genode::List<Window_base>;
 
+		Registry<Ref> _refs { };
+
 		/*
 		 * Geometry of content
 		 */
 		Rect _geometry { };
-
-		/*
-		 * Unique window ID
-		 */
-		unsigned const _id;
 
 		bool _stacked = false;
 
@@ -110,30 +143,42 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		 */
 		Genode::Constructible<Gui::View_id> _neighbor { };
 
-		Genode::List_element<Window_base> _abandoned { this };
+		Constructible<Abandoned_windows::Element> _abandoned { };
 
 		Genode::List_element<Window_base> _reversed { this };
 
 	public:
 
-		Window_base(unsigned id) : _id(id) { }
+		Window_base(Windows &windows, Windows::Id id)
+		:
+			Windows::Element(*this, windows, id)
+		{ }
 
 		virtual ~Window_base() { }
 
-		void abandon(Abandoned_windows &abandoned_windows)
+		bool referenced() const
 		{
-			abandoned_windows.insert(&_abandoned);
+			bool result = false;
+			_refs.for_each([&] (Ref const &) { result = true; });
+			return result;
 		}
+
+		void consider_as_abandoned(Abandoned_windows &registry)
+		{
+			_abandoned.construct(registry, *this);
+		}
+
+		/**
+		 * Revert 'consider_as_abandoned' after window was temporarily not referenced
+		 */
+		void dont_abandon() { _abandoned.destruct(); }
 
 		void prepend_to_reverse_list(Reversed_windows &window_list)
 		{
 			window_list.insert(&_reversed);
 		}
 
-		using List_model<Window_base>::Element::next;
-
-		unsigned id()       const { return _id; }
-		Rect     geometry() const { return _geometry; }
+		Rect geometry() const { return _geometry; }
 
 		void stacking_neighbor(Gui::View_id neighbor)
 		{
@@ -169,11 +214,8 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 
 		/**
 		 * Draw window elements
-		 *
-		 * \param canvas  graphics back end
-		 * \param clip    clipping area to apply
 		 */
-		virtual void draw(Canvas_base &canvas, Rect clip, Draw_behind_fn const &) const = 0;
+		virtual void draw(Canvas_base &, Ref const &, Rect clip, Draw_behind_fn const &) const = 0;
 
 		/**
 		 * Update internal window representation from XML model
@@ -187,7 +229,9 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		 */
 		virtual bool update(Xml_node window_node) = 0;
 
-		virtual void update_gui_views() { }
+		struct Clip : Rect { };
+
+		virtual void update_gui_views(Clip const &) { }
 
 		/**
 		 * Report information about element at specified position
@@ -207,7 +251,7 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		 */
 		bool matches(Xml_node const &node) const
 		{
-			return _id == node.attribute_value("id", ~0UL);
+			return id() == Windows::Id { node.attribute_value("id", ~0UL) };
 		}
 
 		/**
@@ -215,5 +259,17 @@ class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 		 */
 		static bool type_matches(Xml_node const &) { return true; }
 };
+
+
+Decorator::Window_base::Ref::Ref(Window_base &window)
+:
+	window(window), _registered(window._refs, *this)
+{ }
+
+
+bool Decorator::Window_base::Ref::matches(Xml_node const &node) const
+{
+	return window.id() == Windows::Id { node.attribute_value("id", ~0UL) };
+}
 
 #endif /* _INCLUDE__DECORATOR__WINDOW_H_ */

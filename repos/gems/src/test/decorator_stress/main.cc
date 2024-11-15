@@ -45,30 +45,34 @@ struct Param
 };
 
 
-void report_window_layout(Param param, Genode::Reporter &reporter)
+void report_window_layout(Param param, Genode::Expanding_reporter &reporter)
 {
 
 	float w = 1024;
 	float h = 768;
 
-	Genode::Reporter::Xml_generator xml(reporter, [&] ()
-	{
-		for (unsigned i = 1; i <= 10; i++) {
+	reporter.generate([&] (Genode::Xml_generator &xml) {
 
-			xml.node("window", [&] ()
-			{
-				xml.attribute("id", i);
-				xml.attribute("xpos",   (long)(w * (0.25 + sin(param.angle[0])/5)));
-				xml.attribute("ypos",   (long)(h * (0.25 + sin(param.angle[1])/5)));
-				xml.attribute("width",  (long)(w * (0.25 + sin(param.angle[2])/5)));
-				xml.attribute("height", (long)(h * (0.25 + sin(param.angle[3])/5)));
+		xml.node("boundary", [&] {
+			xml.attribute("width",  unsigned(w));
+			xml.attribute("height", unsigned(h));
 
-				if (i == 2)
-					xml.attribute("focused", "yes");
-			});
+			for (unsigned i = 1; i <= 10; i++) {
 
-			param = param + Param(2.2, 3.3, 4.4, 5.5);
-		}
+				xml.node("window", [&] {
+					xml.attribute("id", i);
+					xml.attribute("xpos",   (long)(w * (0.25 + sin(param.angle[0])/5)));
+					xml.attribute("ypos",   (long)(h * (0.25 + sin(param.angle[1])/5)));
+					xml.attribute("width",  (long)(w * (0.25 + sin(param.angle[2])/5)));
+					xml.attribute("height", (long)(h * (0.25 + sin(param.angle[3])/5)));
+
+					if (i == 2)
+						xml.attribute("focused", "yes");
+				});
+
+				param = param + Param(2.2, 3.3, 4.4, 5.5);
+			}
+		});
 	});
 }
 
@@ -79,7 +83,8 @@ struct Main
 
 	Param _param { 0, 1, 2, 3 };
 
-	Genode::Reporter _window_layout_reporter { _env, "window_layout", "window_layout", 10*4096 };
+	Genode::Expanding_reporter _window_layout_reporter {
+		_env, "window_layout", "window_layout" };
 
 	Timer::Connection _timer { _env };
 
@@ -95,7 +100,6 @@ struct Main
 
 	Main(Genode::Env &env) : _env(env)
 	{
-		_window_layout_reporter.enabled(true);
 		_timer.sigh(_timer_handler);
 		_timer.trigger_periodic(10*1000);
 	}

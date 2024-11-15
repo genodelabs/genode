@@ -15,9 +15,8 @@
 #include "window.h"
 
 
-void Decorator::Window::draw(Decorator::Canvas_base &canvas,
-                             Decorator::Rect clip,
-                             Draw_behind_fn const &draw_behind_fn) const
+void Decorator::Window::draw(Decorator::Canvas_base &canvas, Ref const &win_ref,
+                             Decorator::Rect clip, Draw_behind_fn const &draw_behind_fn) const
 {
 	Clip_guard clip_guard(canvas, clip);
 
@@ -28,7 +27,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	Point p2 = rect.p2();
 
 	if (_has_alpha)
-		draw_behind_fn.draw_behind(canvas, *this, canvas.clip());
+		draw_behind_fn.draw_behind(canvas, win_ref, canvas.clip());
 
 	_draw_corner(canvas, Rect(p1, corner), _border_size, true, true,
 	             _window_elem_attr(Element::TOP_LEFT));

@@ -77,79 +77,93 @@ install_config {
 				<sleep milliseconds="500" />
 				<inline description="open window 1">
 					<window_layout>
-						<window id="1" title="Genode Toolchain"
-						        xpos="100" ypos="50" width="200" height="200"
-						        focused="yes" />
+						<boundary width="1024" height="768">
+							<window id="1" title="Genode Toolchain"
+							        xpos="100" ypos="50" width="200" height="200"
+							        focused="yes" />
+						</boundary>
 					</window_layout>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="open window 2 behind window 1">
 					<window_layout>
-						<window id="1" title="Genode Toolchain"
-						        xpos="100" ypos="50" width="200" height="200"
-						        focused="yes" />
-						<window id="2" title="Arora (2)"
-						        xpos="170" ypos="150" width="300" height="200" />
+						<boundary width="1024" height="768">
+							<window id="1" title="Genode Toolchain"
+							        xpos="100" ypos="50" width="200" height="200"
+							        focused="yes" />
+							<window id="2" title="Arora (2)"
+							        xpos="170" ypos="150" width="300" height="200" />
+						</boundary>
 					</window_layout>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="open window 3 in front">
 					<window_layout>
-						<window id="3" title="Launchpad"
-						        xpos="210" ypos="250" width="400" height="200" />
-						<window id="1" title="Genode Toolchain"
-						        xpos="100" ypos="50" width="200" height="200"
-						        focused="yes" />
-						<window id="2" title="Arora (2)"
-						        xpos="170" ypos="150" width="300" height="200" />
+						<boundary width="1024" height="768">
+							<window id="3" title="Launchpad"
+							        xpos="210" ypos="250" width="400" height="200" />
+							<window id="1" title="Genode Toolchain"
+							        xpos="100" ypos="50" width="200" height="200"
+							        focused="yes" />
+							<window id="2" title="Arora (2)"
+							        xpos="170" ypos="150" width="300" height="200" />
+						</boundary>
 					</window_layout>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="bring window 1 to front">
 					<window_layout>
-						<window id="1" title="Genode Toolchain"
-						        xpos="100" ypos="50" width="200" height="200"
-						        focused="yes" />
-						<window id="3" title="Launchpad"
-						        xpos="210" ypos="250" width="400" height="200" />
-						<window id="2" title="Arora (2)"
-						        xpos="170" ypos="150" width="300" height="200" />
+						<boundary width="1024" height="768">
+							<window id="1" title="Genode Toolchain"
+							        xpos="100" ypos="50" width="200" height="200"
+							        focused="yes" />
+							<window id="3" title="Launchpad"
+							        xpos="210" ypos="250" width="400" height="200" />
+							<window id="2" title="Arora (2)"
+							        xpos="170" ypos="150" width="300" height="200" />
+						</boundary>
 					</window_layout>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="change title of window 1">
 					<window_layout>
-						<window id="1" title="Genode Toolchain (running)"
-						        xpos="100" ypos="50" width="200" height="200"
-						        focused="yes" />
-						<window id="3" title="Launchpad"
-						        xpos="210" ypos="250" width="400" height="200" />
-						<window id="2" title="Arora (2)"
-						        xpos="170" ypos="150" width="300" height="200" />
+						<boundary width="1024" height="768">
+							<window id="1" title="Genode Toolchain (running)"
+							        xpos="100" ypos="50" width="200" height="200"
+							        focused="yes" />
+							<window id="3" title="Launchpad"
+							        xpos="210" ypos="250" width="400" height="200" />
+							<window id="2" title="Arora (2)"
+							        xpos="170" ypos="150" width="300" height="200" />
+						</boundary>
 					</window_layout>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="change focus to window 3">
 					<window_layout>
-						<window id="1" title="Genode Toolchain (running)"
-						        xpos="100" ypos="50" width="200" height="200" />
-						<window id="3" title="Launchpad"
-						        xpos="210" ypos="250" width="400" height="200"
-						        focused="yes" />
-						<window id="2" title="Arora (2)"
-						        xpos="170" ypos="150" width="300" height="200" />
+						<boundary width="1024" height="768">
+							<window id="1" title="Genode Toolchain (running)"
+							        xpos="100" ypos="50" width="200" height="200" />
+							<window id="3" title="Launchpad"
+							        xpos="210" ypos="250" width="400" height="200"
+							        focused="yes" />
+							<window id="2" title="Arora (2)"
+							        xpos="170" ypos="150" width="300" height="200" />
+						</boundary>
 					</window_layout>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="move window 3">
 					<window_layout>
-						<window id="1" title="Genode Toolchain"
-						        xpos="100" ypos="50" width="200" height="200" />
-						<window id="3" title="Launchpad"
-						        xpos="310" ypos="300" width="500" height="300"
-						        focused="yes" />
-						<window id="2" title="Arora (2)"
-						        xpos="170" ypos="150" width="300" height="200" />
+						<boundary width="1024" height="768">
+							<window id="1" title="Genode Toolchain"
+							        xpos="100" ypos="50" width="200" height="200" />
+							<window id="3" title="Launchpad"
+							        xpos="310" ypos="300" width="500" height="300"
+							        focused="yes" />
+							<window id="2" title="Arora (2)"
+							        xpos="170" ypos="150" width="300" height="200" />
+						</boundary>
 					</window_layout>
 				</inline>
 				<sleep milliseconds="1000" />
@@ -160,7 +174,7 @@ install_config {
 	</start>
 
 	<start name="decorator">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="ROM" label="pointer">
 				<child name="report_rom" />

@@ -114,7 +114,7 @@
 				</provides>
 				<config verbose="no">
 					<policy label="decorator -> window_layout"   report="manager -> window_layout"/>
-					<policy label="wm -> resize_request"         report="manager -> window_layout"/>
+					<policy label="wm -> resize_request"         report="manager -> resize_request"/>
 					<policy label="wm -> focus"                  report="manager -> wm_focus"/>
 					<policy label="decorator -> pointer"         report="wm -> pointer"/>
 					<policy label="manager -> window_list"       report="wm -> window_list"/>

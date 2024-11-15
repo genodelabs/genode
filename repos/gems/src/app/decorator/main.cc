@@ -40,6 +40,8 @@ struct Decorator::Main : Window_factory_base
 {
 	Env &_env;
 
+	Heap _heap { _env.ram(), _env.rm() };
+
 	Timer::Connection _timer { _env };
 
 	/*
@@ -120,7 +122,9 @@ struct Decorator::Main : Window_factory_base
 		_back_to_front(dirty);
 	}
 
-	Window_stack _window_stack = { *this };
+	Window_stack _window_stack { *this, _heap };
+
+	Windows _windows { };
 
 	/**
 	 * Handler for responding to window-layout changes
@@ -172,8 +176,6 @@ struct Decorator::Main : Window_factory_base
 		}
 	}
 
-	Heap _heap { _env.ram(), _env.rm() };
-
 	Attached_rom_dataspace _config { _env, "config" };
 
 	void _handle_config();
@@ -222,19 +224,34 @@ struct Decorator::Main : Window_factory_base
 	/**
 	 * Window_factory_base interface
 	 */
-	Window_base *create(Xml_node window_node) override
+	Window_base::Ref &create_ref(Xml_node const &window_node) override
 	{
-		return new (_heap)
-			Window(window_node.attribute_value("id", 0U),
-			       _gui, _animator, _decorator_config);
+		Windows::Id const id { window_node.attribute_value("id", 0U) };
+
+		Window_base *window_ptr = nullptr;
+		_windows.apply<Window_base>(id,
+			[&] (Window_base &window) { window_ptr = &window; },
+			[&] /* missing */ {
+				window_ptr = new (_heap)
+					Window(_windows, id, _gui, _animator, _decorator_config); });
+
+		return *new (_heap) Window_base::Ref(*window_ptr);
 	}
 
 	/**
 	 * Window_factory_base interface
 	 */
-	void destroy(Window_base *window) override
+	void destroy_ref(Window_base::Ref &ref) override
 	{
-		Genode::destroy(_heap, static_cast<Window *>(window));
+		destroy(_heap, &ref);
+	}
+
+	/**
+	 * Window_factory_base interface
+	 */
+	void destroy_window(Window_base &window) override
+	{
+		destroy(_heap, &window);
 	}
 };
 
@@ -280,11 +297,11 @@ static void update_hover_report(Genode::Xml_node pointer_node,
 
 		Genode::Reporter::Xml_generator xml(hover_reporter, [&] ()
 		{
-			if (hover.window_id > 0) {
+			if (hover.window_id.value > 0) {
 
 				xml.node("window", [&] () {
 
-					xml.attribute("id", hover.window_id);
+					xml.attribute("id", hover.window_id.value);
 
 					if (hover.left_sizer)   xml.node("left_sizer");
 					if (hover.right_sizer)  xml.node("right_sizer");

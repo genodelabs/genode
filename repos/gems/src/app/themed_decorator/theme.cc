@@ -161,7 +161,9 @@ element_geometry(Genode::Ram_allocator &ram, Genode::Region_map &rm,
                  Genode::Allocator &alloc, char const *sub_node_type,
                  Texture_id texture_id)
 {
-	using namespace Decorator;
+	using Rect  = Decorator::Rect;
+	using Point = Decorator::Point;
+	using Area  = Decorator::Area;
 
 	static Genode::Xml_node const node = metadata(alloc);
 

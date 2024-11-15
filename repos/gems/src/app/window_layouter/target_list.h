@@ -146,29 +146,28 @@ class Window_layouter::Target_list
 				if (target.layer() >= min_layer && target.layer() <= layer)
 					layer = target.layer(); });
 
-			/* visit all windows on the layer */
-			assignments.for_each([&] (Assign const &assign) {
+			/* search target by name */
+			_targets.for_each([&] (Target const &target) {
 
-				if (!assign.visible())
+				if (target.layer() != layer)
 					return;
 
-				Target::Name const target_name = assign.target_name();
+				if (!target.visible())
+					return;
 
-				/* search target by name */
-				_targets.for_each([&] (Target const &target) {
+				if (assignments.target_empty(target.name()))
+					return;
 
-					if (target.name() != target_name)
-						return;
+				Rect const boundary = target.geometry();
+				xml.node("boundary", [&] {
+					xml.attribute("name", target.name());
+					generate(xml, boundary);
 
-					if (target.layer() != layer)
-						return;
-
-					if (!target.visible())
-						return;
-
-					/* found target area, iterate though all assigned windows */
-					assign.for_each_member([&] (Assign::Member const &member) {
-						member.window.generate(xml, target.geometry()); });
+					/* visit all windows on the layer */
+					assignments.for_each_visible(target.name(), [&] (Assign const &assign) {
+						assign.for_each_member([&] (Assign::Member const &member) {
+							member.window.generate(xml, boundary); });
+					});
 				});
 			});
 

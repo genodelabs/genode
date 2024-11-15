@@ -24,8 +24,13 @@ namespace Decorator {
 
 struct Decorator::Window_factory_base : Interface
 {
-	virtual Window_base *create  (Xml_node) = 0;
-	virtual void         destroy (Window_base *) = 0;
+	using Win_ref = Window_base::Ref;
+
+	virtual Win_ref &create_ref(Xml_node const &) = 0;
+
+	virtual void destroy_ref(Win_ref &) = 0;
+
+	virtual void destroy_window(Window_base &) = 0;
 };
 
 #endif /* _INCLUDE__DECORATOR__WINDOW_FACTORY_H_ */

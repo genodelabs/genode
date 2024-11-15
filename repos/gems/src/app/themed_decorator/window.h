@@ -52,6 +52,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 		 */
 		bool _gui_views_up_to_date = false;
 
+		Rect _clip { }; /* most recently used clipping rectangle */
+
 		unsigned _topped_cnt = 0;
 
 		Window_title _title { };
@@ -162,10 +164,11 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 			void stack_back_most()  { _gui.enqueue<Command::Back>(id()); }
 
-			void place(Rect rect, Point offset)
+			void place(Clip const &clip, Rect rect, Point offset)
 			{
-				_gui.enqueue<Command::Geometry>(id(), rect);
-				_gui.enqueue<Command::Offset>(id(), offset);
+				Rect const intersection = Rect::intersect(clip, rect);
+				_gui.enqueue<Command::Geometry>(id(), intersection);
+				_gui.enqueue<Command::Offset>(id(), offset + rect.at - intersection.at);
 			}
 		};
 
@@ -263,7 +266,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 		            _left_view   { _gui, _gui_left_right },
 		            _top_view    { _gui, _gui_top_bottom };
 
-		Content_view _content_view { _gui, (unsigned)id() };
+		Content_view _content_view { _gui, unsigned(id().value) };
 
 		void _repaint_decorations(Gui_buffer &buffer, Area area)
 		{
@@ -352,10 +355,11 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 	public:
 
-		Window(Genode::Env &env, unsigned id, Gui::Connection &gui,
-		       Animator &animator, Theme const &theme, Config const &config)
+		Window(Genode::Env &env, Windows &windows, Windows::Id id,
+		       Gui::Connection &gui, Animator &animator, Theme const &theme,
+		       Config const &config)
 		:
-			Window_base(id),
+			Window_base(windows, id),
 			Animator::Item(animator),
 			_env(env), _theme(theme), _animator(animator),
 			_gui(gui), _config(config)
@@ -433,11 +437,10 @@ class Decorator::Window : public Window_base, public Animator::Item
 			return _outer_from_inner_geometry(geometry());
 		}
 
-		void update_gui_views() override
+		void update_gui_views(Clip const &clip) override
 		{
-			bool const gui_view_rect_up_to_date =
-				_gui_view_rect.p1() == geometry().p1() &&
-				_gui_view_rect.p2() == geometry().p2();
+			bool const gui_view_rect_up_to_date = (_gui_view_rect == geometry())
+			                                   && (_clip          == clip);
 
 			if (!_gui_views_up_to_date || !gui_view_rect_up_to_date) {
 
@@ -448,20 +451,21 @@ class Decorator::Window : public Window_base, public Animator::Item
 				/* update view positions */
 				Rect::Cut_remainder const r = outer.cut(inner);
 
-				_content_view.place(inner,  Point(0, 0));
-				_top_view    .place(r.top,    Point(0, 0));
-				_left_view   .place(r.left,   Point(0, -r.top.h()));
-				_right_view  .place(r.right,  Point(-r.right.w(), -r.top.h()));
-				_bottom_view .place(r.bottom, Point(0, -theme_size.h + r.bottom.h()));
+				_content_view.place(clip, inner,    Point(0, 0));
+				_top_view    .place(clip, r.top,    Point(0, 0));
+				_left_view   .place(clip, r.left,   Point(0, -r.top.h()));
+				_right_view  .place(clip, r.right,  Point(-r.right.w(), -r.top.h()));
+				_bottom_view .place(clip, r.bottom, Point(0, -theme_size.h + r.bottom.h()));
 
 				_gui.execute();
 
 				_gui_view_rect        = inner;
 				_gui_views_up_to_date = true;
+				_clip                 = clip;
 			}
 		}
 
-		void draw(Canvas_base &, Rect, Draw_behind_fn const &) const override { }
+		void draw(Canvas_base &, Ref const &, Rect, Draw_behind_fn const &) const override { }
 
 		void adapt_to_changed_config()
 		{

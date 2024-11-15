@@ -27,16 +27,12 @@
 
 namespace Decorator {
 
-	using Point      = Genode::Surface_base::Point;
-	using Area       = Genode::Surface_base::Area;
-	using Rect       = Genode::Surface_base::Rect;
-	using Dirty_rect = Genode::Dirty_rect<Rect, 3>;
+	using namespace Genode;
 
-	using Genode::size_t;
-	using Genode::Color;
-	using Genode::Xml_node;
-	using Genode::List_model;
-	using Genode::Interface;
+	using Point      = Surface_base::Point;
+	using Area       = Surface_base::Area;
+	using Rect       = Surface_base::Rect;
+	using Dirty_rect = Genode::Dirty_rect<Rect, 3>;
 }
 
 #endif /* _INCLUDE__DECORATOR__TYPES_H_ */

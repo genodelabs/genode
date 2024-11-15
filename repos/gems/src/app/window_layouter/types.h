@@ -78,6 +78,14 @@ namespace Window_layouter {
 				from.for_each_sub_node([&] (Xml_node const &sub_node) {
 					copy_node(xml, sub_node, { max_depth.value - 1 }); }); });
 	}
+
+	static void generate(Xml_generator &xml, Rect const &rect)
+	{
+		xml.attribute("xpos",   rect.x1());
+		xml.attribute("ypos",   rect.y1());
+		xml.attribute("width",  rect.w());
+		xml.attribute("height", rect.h());
+	}
 }
 
 #endif /* _TYPES_H_ */
