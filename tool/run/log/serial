@@ -8,7 +8,7 @@
 source [genode_dir]/tool/run/log.inc
 
 
-set default_serial_cmd "picocom -b 115200 /dev/ttyUSB0"
+set default_serial_cmd "picocom --quiet -b 115200 /dev/ttyUSB0"
 
 
 proc log_serial_cmd { } {
