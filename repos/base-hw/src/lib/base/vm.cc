@@ -90,8 +90,7 @@ Capability<Vm_session::Native_vcpu> Hw_vcpu::_create_vcpu(Vm_connection     &vm,
 {
 	Thread &tep { *reinterpret_cast<Thread *>(&handler.rpc_ep()) };
 
-	return vm.with_upgrade([&] {
-		return vm.call<Vm_session::Rpc_create_vcpu>(tep.cap()); });
+	return vm.create_vcpu(tep.cap());
 }
 
 

@@ -48,7 +48,7 @@ struct Monitor::Monitored_vm_session : Monitored_rpc_object<Vm_session, Monitore
 		_real.call<Rpc_attach_pic>(vm_addr);
 	}
 
-	Capability<Native_vcpu> create_vcpu(Thread_capability thread_cap)
+	Capability<Native_vcpu> create_vcpu(Thread_capability thread_cap) override
 	{
 		Capability<Native_vcpu> result { };
 

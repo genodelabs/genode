@@ -117,7 +117,7 @@ class Core::Vm_session_component
 		 ** Vm session interface **
 		 **************************/
 
-		Capability<Native_vcpu> create_vcpu(Thread_capability);
+		Capability<Native_vcpu> create_vcpu(Thread_capability) override;
 		void attach_pic(addr_t) override { /* unused on seL4 */ }
 
 		void attach(Dataspace_capability, addr_t, Attach_attr) override;

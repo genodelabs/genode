@@ -136,7 +136,7 @@ class Core::Vm_session_component
 		void attach_pic(addr_t) override;
 		void detach(addr_t, size_t) override;
 
-		Capability<Native_vcpu> create_vcpu(Thread_capability);
+		Capability<Native_vcpu> create_vcpu(Thread_capability) override;
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */

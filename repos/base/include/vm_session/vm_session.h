@@ -69,6 +69,7 @@ struct Genode::Vm_session : Session
 	 */
 	virtual void attach_pic(addr_t vm_addr) = 0;
 
+
 	/*****************************************
 	 ** Access to kernel-specific interface **
 	 *****************************************/
@@ -77,6 +78,12 @@ struct Genode::Vm_session : Session
 	 * Common base class of kernel-specific CPU interfaces
 	 */
 	struct Native_vcpu;
+
+	/**
+	 * Create a virtual CPU.
+	 */
+	virtual Capability<Vm_session::Native_vcpu> create_vcpu(Thread_capability) = 0;
+
 
 	/*********************
 	 ** RPC declaration **

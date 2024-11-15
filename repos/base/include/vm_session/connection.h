@@ -133,6 +133,11 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 
 	void attach_pic(addr_t vm_addr) override {
 		call<Rpc_attach_pic>(vm_addr); }
+
+	Capability<Vm_session::Native_vcpu> create_vcpu(Thread_capability tcap) override {
+		return with_upgrade([&] {
+			return call<Rpc_create_vcpu>(tcap); });
+	}
 };
 
 #endif /* _INCLUDE__VM_SESSION__CONNECTION_H_ */
