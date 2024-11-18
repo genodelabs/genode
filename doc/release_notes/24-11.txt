@@ -1,0 +1,579 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 24.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+During the discussion of this year's road-map roughly one year ago, the
+usability concerns of Sculpt OS stood out.
+Besides suspend/resume, which we addressed
+[https://genode.org/documentation/release-notes/24.05#Suspend_resume_infrastructure - earlier this year],
+multi-monitor support ranked highest on the list of desires. We are more than
+happy to wrap up the year with the realization of this feature.
+Section [Multi-monitor support] presents the many facets and outcomes of this
+intensive line of work.
+
+Over the course of 2024, our Goa SDK has received tremendous advances, which
+make the development, porting, debugging, and publishing of software for
+Genode - and Sculpt OS in particular - a breeze.
+So far however, the learning curve for getting started remained rather steep
+because the underlying concepts largely deviate from the beaten tracks known
+from traditional operating systems. Even though there is plenty of
+documentation, it is rather scattered and overwhelming.
+All the more happy we are to announce that the current release is accompanied
+by a new book "Genode Applications" that can be downloaded for free and
+provides a smooth gateway for application developers into the world of Genode
+(Section [New "Genode Applications" book]).
+
+Regarding hardware-related technical topics, the release focuses on the
+ARM-based i.MX SoC family, taking our ambition to run Sculpt OS on the MNT
+Pocket Reform laptop as guiding theme. Section [Device drivers and platforms]
+covers our driver and platform-related work in detail.
+
+
+New "Genode Applications" book
+##############################
+
+Complementary to our _Genode Foundations_ and _Genode Platforms_ books, we have
+been working on a new book that concentrates on application development.
+_Genode Applications_ centers on the Goa SDK that we introduced with
+[https://genode.org/documentation/release-notes/19.11#New_tooling_for_bridging_existing_build_systems_with_Genode - Genode 19.11]
+and which has seen significant improvements over the past year
+([https://genode.org/documentation/release-notes/23.08#Goa_tool_gets_usability_improvements_and_depot-index_publishing_support - 23.08],
+[https://genode.org/documentation/release-notes/24.02#Sculpt_OS_as_remote_test_target_for_the_Goa_SDK - 24.02],
+[https://genode.org/documentation/release-notes/24.08#Goa_SDK - 24.08]).
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-applications-title.png">
+:   </a>
+:  </div>
+: </p>
+
+The book intends to provide a beginner-friendly starting point for application
+development and porting for Genode and Sculpt OS in particular. It starts off
+with a getting-started tutorial for the Goa tool, and further recapitulates
+Genode's architecture and a subset of its libraries, components, and
+conventions such as the C runtime, VFS, NIC router, and package management.
+With these essentials in place, the book is topped off with instructions for
+application debugging and a collection of advanced tutorials.
+
+Aligned with the release of Sculpt 24.10, we updated the Goa tool with the
+corresponding depot archive versions. Furthermore, the Sculpt-integrated and
+updated _Goa testbed_ preset is now prepared for remote debugging.
+
+: <div class="visualClear"><!-- --></div>
+
+:First revision of the Genode Applications document:
+
+  [https://genode.org/documentation/genode-applications-24-11.pdf]
+
+
+Multi-monitor support
+#####################
+
+Among the users of the Genode-based Sculpt OS, the flexible use of multiple
+monitors was certainly the most longed-after desire raised during our public
+road-map discussion roughly one year ago. We quickly identified that a
+profound solution cannot focus on piecemeal extensions of individual
+components but must embrace an architectural step forward. The step turned
+out being quite a leap.
+In fact, besides reconsidering the roles of display and input drivers in
+[https://genode.org/documentation/release-notes/20.08#The_GUI_stack__restacked - version 20.08],
+the GUI stack has remained largely unchanged since
+[https://genode.org/documentation/release-notes/14.08#New_GUI_architecture - version 14.08].
+So we took our multi-monitor ambitions as welcome opportunity to incorporate
+our experiences of the past ten years into a new design for the next ten
+years.
+
+
+Tickless GUI server and display drivers
+=======================================
+
+Up to now, the nitpicker GUI server as well as the display drivers used to
+operate in a strictly periodic fashion. At a rate of 10 milliseconds, the GUI
+server would route input events to the designated GUI clients and flush
+graphical changes of the GUI clients to the display driver.
+This simple mode of execution has benefits such as the natural ability of
+batching input events and the robustness of the GUI server against overload
+situations. However, in Sculpt OS, we observed that the fixed rate induces
+little but constant load into an otherwise idle system, rendering
+energy-saving regimes of modern CPUs less effective than they could be.
+This problem would become amplified in the presence of multiple output channels
+operating at independent frame rates. Moreover, with panel self-refresh
+support of recent Intel graphics devices, the notion of a fixed continuous
+frame rate has become antiquated.
+
+Hence, it was time to move to a tickless GUI-server design where the GUI
+server acts as a mere broker between events triggered by applications (e.g.,
+pushing pixels) and drivers (e.g., occurrence of input, scanout to a display).
+Depending on the behavior of its clients (GUI applications and drivers alike),
+the GUI server notifies the affected parties about events of interest but
+does not assert an active role.
+
+For example, if a display driver does not observe any changed pixels for 50
+ms, it goes to sleep. Once an application updates pixels affecting a display,
+the GUI server wakes up the respective display driver, which then polls the
+pixels at a driver-defined frame rate until observing when the pixels remain
+static for 50 ms. Vice versa, the point in time when a display driver requests
+updated pixels is reflected as a sync event to GUI applications visible on
+that display, enabling such applications to synchronize their output to the
+frame rate of the driver. The GUI server thereby asserts the role of steering
+the sleep cycles of drivers and applications. Unless anything happens on
+screen, neither the GUI server nor the display driver are active. When two
+applications are visible on distinct monitors, the change of one application
+does not induce any activity regarding the unrelated display. This allows for
+scaling up the number of monitors without increasing the idle CPU load.
+
+This change implies that the former practice of using sync signals as a
+time source for application-side animation timing is no longer viable.
+Sync signals occur only when a driver is active after all. GUI applications
+may best use sync signals for redraw scheduling but need to use a real time
+source as basis for calculating the progress of animations.
+
+
+Paving the ground for tearing-free motion
+=========================================
+
+Tearing artifacts during animations are rightfully frowned upon. It goes
+without saying that we strive to attain tearing-free motion in Genode. Two
+preconditions must be met. First, the GUI server must be able to get hold
+of a _consistent_ picture at any time. Second, the flushing of the picture
+to the display hardware must be timed with _vsync_ of the physical display.
+
+Up to now, the GUI stack was unable to meet the first precondition by design.
+If the picture is composed of multiple clients, the visual representation of
+each client must be present in a consistent state.
+The textures used as input of the compositing of the final picture are buffers
+shared between server and client. Even though clients traditionally employ
+double-buffering to hide intermediate drawing states, the final back-to-front
+copy into the shared buffer violated the consistency of the buffer during
+the client-side copy operation - when looking at the buffer from the server
+side. To overcome this deficiency, we have now equipped the GUI server with
+atomic blitting and panning operations, which support atomic updates in two
+fashions.
+
+_Atomic back-to-front blitting_ allows GUI clients that partially update their
+user interface - like regular application dialogs - to implement double
+buffering by placing both the back buffer and front buffer within the GUI
+session's shared buffer and configuring a view that shows only the front
+buffer. The new blit operation ('Framebuffer::Session::blit') allows the client
+to atomically flush pixels from the back buffer to the front buffer.
+
+_Atomic buffer flipping_ allows GUI clients that always update all pixels -
+like a media player or a game - to leverage panning
+('Framebuffer::Session::panning') to atomically redirect the displayed pixels to
+a different portion of the GUI session's shared buffer without any copy
+operation needed. The buffer contains two frames, the displayed one and the
+next one. Once the next frame is complete, the client changes the panning
+position to the portion containing the next frame.
+
+Almost all GUI clients of the Genode OS framework have been updated to use
+these new facilities.
+
+The vsync timing as the second precondition for tearing-free motion lies in
+the hands of the display driver, which can in principle capture pixel updates
+from the GUI server driven by vsync interrupts. In the presence of multiple
+monitors with different vsync rates, a GUI client may deliberately select
+a synchronization source ('Framebuffer::Session::sync_source'). That said,
+even though the interfaces are in place, vsync timing is not yet provided by
+the current display drivers.
+
+
+Mirrored and panoramic monitor setups
+=====================================
+
+A display driver interacts with the nitpicker GUI server as a capture client.
+One can think of a display driver as a screen-capturing application.
+Up until now, the nitpicker GUI server handed out the same picture to each
+capture client. So each client obtained a mirror of the same picture. By
+subjecting each client to a policy defining a window within a larger panorama,
+a driver creating one capture session per monitor becomes able to display the
+larger panorama spanning the connected displays. The assignment of capture
+clients to different parts of the panorama follows Genode's established
+label-based policy-selection approach as explained in the
+[https://github.com/genodelabs/genode/blob/master/repos/os/src/server/nitpicker/README - documentation]
+of the nitpicker GUI server.
+
+Special care has been taken to ensure that the pointer is always visible. It
+cannot be moved to any area that is not captured. Should the only capture
+client displaying the pointer disappear, the pointer is warped to the center
+of (any) remaining capture client.
+
+A mirrored monitor setup can in principle be attained by placing multiple
+capture clients at the same part of nitpicker's panorama. However, there is
+a better way: Our Intel display-driver component supports both discrete and
+merged output channels. The driver's configuration subsumes all connectors
+listed within a '<merge>' node as a single encompassing capture session at the
+GUI server. The mirroring of the picture is done by the hardware. Each
+connector declared outside the '<merge>' node is handled as a discrete capture
+session labeled after the corresponding connector. The driver's
+[https://github.com/genodelabs/genode/blob/master/repos/pc/src/driver/framebuffer/intel/pc/README - documentation]
+describes the configuration in detail.
+
+
+Sculpt OS integration
+=====================
+
+All the changes described above are featured in the recently released
+Sculpt OS version 24.10, which gives the user the ability to attain mirrored
+or panoramic monitor setups or a combination thereof by the means of manual
+configuration or by using interactive controls.
+
+[image sculpt_24_10_intel_fb]
+
+You can find the multi-monitor use of Sculpt OS covered by the
+[https://genode.org/documentation/articles/sculpt-24-10#Multi-monitor_support - documentation].
+
+
+Revised inter-component interfaces
+==================================
+
+Strict resource partitioning between GUI clients
+------------------------------------------------
+
+Even though Genode gives server components the opportunity to strictly operate
+on client-provided resources only, the two prominent GUI servers - nitpicker
+and the window manager (wm) - did not leverage these mechanisms to full
+extent. In particular the wm eschewed strict resource accounting by paying out
+of its own pocket. This deficiency has been rectified by the current release,
+thereby making the GUI stack much more robust against potential resource
+denial-of-service issues. Both the nitpicker GUI server and the window manager
+now account all allocations to the resource budgets of the respective clients.
+This change has the effect that GUI clients must now be equipped with the
+actual cap and RAM quotas needed.
+
+Note that not all central parts of the GUI stack operate on client-provided
+resources. In particular, a window decorator is a mere client of the window
+manager despite playing a role transcending multiple applications. As the
+costs needed for the decorations depend on the number of applications present
+on screen, the resources of the decorator must be dimensioned with a sensible
+upper bound. Fortunately, however, as the decorator is a plain client of the
+window manager, it can be restarted, replaced, and upgraded without affecting
+any application.
+
+
+Structured mode information for applications
+--------------------------------------------
+
+Up to now, GUI clients were able to request mode information via a plain
+RPC call that returned the dimensions and color depth of the display.
+Multi-monitor setups call for more flexibility, which prompted us to
+replace the mode information by XML-structured information delivered as
+an 'info' dataspace. This is in line with how meta information is handled
+in other modern session interfaces like the platform or USB sessions.
+The new representation gives us room to annotate information that could
+previously not be exposed to GUI clients, in particular:
+
+* The total panorama dimensions.
+* Captured areas within the panorama, which can be used by multi-monitor
+  aware GUI clients as intelligence for placing GUI views.
+* DPI information carried by 'width_mm' and 'height_mm' attributes.
+  This information is defined by the display driver and passed to the GUI
+  server as 'Capture::Connection::buffer' argument.
+* The closed state of a window interactively closed by the user.
+
+Note that the window manager (wm) virtualizes the information of the nitpicker
+GUI server. Instead of exposing nitpicker's panorama to its clients, the wm
+reports the logical screen hosting the client's window as panorama and the
+window size as a single captured rectangle within the panorama.
+
+
+Mouse grabbing
+--------------
+
+Since the inception of the nitpicker GUI server, its clients observed absolute
+pointer positions only. The GUI server unconditionally translated relative
+mouse-motion events to absolute motion events.
+To accommodate applications like games or a VM emulating a relative pointer
+device, we have now extended the GUI server(s) with the ability to selectively
+expose relative motion events while locking the absolute pointer position.
+This is usually called pointer grabbing. It goes without saying that the user
+must always retain a way to forcefully reassert control over the pointer
+without the cooperation of the application.
+
+The solution is the enhancement of the 'Input::Session' interface by a new RPC
+function that allows a client to request exclusive input. The nitpicker GUI
+server grants this request if the application owns the focus. In scenarios
+using the window manager (wm), the focus is always defined by the wm, which
+happens to intercept all input sessions of GUI applications. Hence, the wm is
+in the natural position of arbitrating the grabbing/ungrabbing of the pointer.
+For each GUI client, the wm records whether the client is interested in
+exclusive input but does not forward this request to nitpicker. Only if a GUI
+client receives the focus and has requested exclusive input, the wm enables
+exclusive input for this client at nitpicker when observing a mouse click on
+the application window. Whenever the user presses the global wm key (super),
+the wm forcefully releases the exclusive input at nitpicker until the user
+clicks into the client window the next time.
+
+Furthermore, an application may enable exclusive input transiently during a
+key sequence, e.g., when dragging the mouse while holding the mouse button.
+Transient exclusive input is revoked as soon as the last button/key is
+released. It thereby would in principle allow for GUI controls like knobs to
+lock the pointer position while the user adjusts the value by moving the mouse
+while the mouse button is held. So the pointer retains its original position
+at the knob.
+
+While operating in exclusive input mode, there is no useful notion of an
+absolute pointer position at the nitpicker GUI server. Hence, nitpicker hides
+GUI domains that use the pointer position as coordinate origin. Thereby, the
+mouse cursor automatically disappears while the pointer is grabbed.
+
+
+Current state and ongoing work
+==============================
+
+All the advances described above are in full effect in the recently released
+version 24.10 of [https://genode.org/download/sculpt - Sculpt OS]. All
+components hosted in Genode's main and world repositories have been updated
+accordingly, including Genode-specific components like the widget toolkit
+used by the administrative user interface of Sculpt OS, window decorators,
+over Qt5 and Qt6, to SDL and SDL2.
+
+[image multiple_monitors]
+
+Current work is underway to implement multi-monitor window management and to
+make multiple monitors seamlessly available to guest OSes hosted in VirtualBox.
+Furthermore, the Intel display driver is currently getting equipped with the
+ability to use vsync interrupts for driving the interaction with the GUI
+server, taking the final step to attain tearing-free motion.
+
+
+Device drivers and platforms
+############################
+
+Linux device-driver environment (DDE)
+=====================================
+
+With our
+[https://genode.org/documentation/release-notes/24.08#Linux_device-driver_environment__DDE_ - recent]
+update of the DDE Linux kernel to version 6.6 for PC platforms and as a
+prerequisite to support the MNT Pocket Reform, we have adapted all drivers for
+the i.MX5/6/7/8 platforms to Linux kernel version 6.6.47. The list of drivers
+includes Wifi, NIC, display, GPU, USB and SD-card.
+
+
+MNT Pocket Reform
+~~~~~~~~~~~~~~~~~
+
+The [https://shop.mntre.com/products/mnt-pocket-reform - MNT Pocket Reform] is
+a Mini Laptop by MNT aiming to be modular, upgradable, and repairable while
+being assembled completely using open-source hardware. Being modular implies
+that a range of CPU modules is available for the MNT Pocket. Some of these
+chips, like the Rockchip based modules, are not officially supported by
+Genode, yet. But there is a choice of an i.MX8MP based module available which
+fits nicely into Genode's i.MX infrastructure.
+
+Genode already supports the MNT Reform 2 i.MX8MQ based
+[https://genodians.org/skalk/2020-06-29-mnt-reform - laptop]. So an update from
+MQ to MP doesn't sound like a big issue because only one letter changed,
+right? It turns out that there are more changes to the platform than mere
+adjustments of I/O resources and interrupt numbers. Additionally, the MNT
+Reform team offers quite a large patch set for each supported Linux kernel
+version. Luckily there is
+[https://source.mnt.re/reform/reform-debian-packages/-/tree/main/linux/patches6.6?ref_type=heads - one]
+for our just updated Linux 6.6 kernel. With this patch set, we were able to
+produce a Linux source tree (imx_linux) that we now take as basis for driver
+development on Genode. Note that these Linux kernel sources are shared by all
+supported i.MX platforms. Of course, additional patch series were necessary to
+include device-tree sources from other vendor kernels, for instance from
+Compulab.
+
+With the development environment in place and after putting lots of effort in,
+we ultimately achieved initial Genode support for the MNT Pocket Reform with
+Genode 24.11.
+
+On the device-driver side of things, we did not have to port lots of new
+drivers but were able to extend drivers already available for the i.MX8MQ
+platform. In particular these drivers are for the wired network card, USB host
+controller, display, and SD card.
+
+For the wireless network device that is found on the i.MX8MP SoM in the MNT
+Pocket Reform, we needed to port a new driver. It has a Qualcomm QCA9377
+chipset and is attached via SDIO. Unfortunately the available _ath10k_ driver
+in the vanilla kernel does not work properly with such a device and therefore
+is also not used in the regular Linux kernel for the MNT Pocket Reform. A
+slightly adapted external QCACLD2 reference driver is used instead. So we
+followed suit by incorporating this particular driver in our _imx_linux_
+source tree as well.
+
+[image sculpt_mnt_pocket]
+  Sculpt OS running on the MNT Pocket Reform
+
+Being the initial enablement, there are still some limitations.
+For example, the display of the MNT Pocket is physically
+[https://mntre.com/documentation/pocket-reform-handbook.pdf - rotated] by 90
+degrees. So, we had to find a way to accommodate for that. Unfortunately,
+there seems to be no hardware support other than using the GPU to perform
+a fast rotation. With GPU support still missing on this system, we had to
+resort to perform the rotation in software on the CPU, which is obviously
+far from optimal.
+Those early inefficiencies notwithstanding, Sculpt OS has become able to run
+on the MNT Pocket Reform. We will provide a preview image that exercises the
+available features soon.
+
+
+Platform driver for i.MX 8M Plus
+================================
+
+While enabling support for the MNT Pocket Reform (Section [MNT Pocket Reform]),
+it was necessary to adjust the i.MX8MP specific platform driver, which was
+originally introduced in the previous
+[https://genode.org/documentation/release-notes/24.08#Improvements_for_NXP_s_i.MX_family - release 24.08]
+to drive the Compulab i.MX 8M Plus IOT Gateway.
+
+Some of the I/O pin configurations necessary to set up the SoC properly are
+statically compiled into this driver because they do not change at runtime.
+However, the pin configuration is specific to the actual board. Therefore, the
+i.MX8MP platform driver now needs to distinguish between different boards (IOT
+Gateway and MNT Pocket) by evaluating the 'platform_info' ROM provided by
+core.
+
+Moreover, while working on different drivers, we detected a few missing clocks
+that were added to the platform driver. It turned out that some clocks that we
+initially turned off to save energy, have to be enabled to ensure the
+liveliness of the ARM Trusted Firmware (ATF) and thereby the platform. Also,
+we had to adapt the communication in between ATF and our platform driver to
+control power-domains. The first version of the i.MX8MP platform driver shared
+the ATF power-domains protocol with the i.MX8MQ version. However, the
+power-domain enumerations of the different firmwares varies also and we
+adapted that.
+
+Finally, the watchdog hardware is now served by the platform driver in a
+recurrent way. Originally our driver used the watchdog only to implement reset
+functionality. But in case of the MNT Pocket Reform, the watchdog hardware is
+already armed by the bootloader. Therefore, it needs to get served in time, to
+prevent the system from rebooting. As a consequence, the platform driver is
+mandatory on this platform if it needs to run longer than a minute.
+
+
+Wifi management rework
+======================
+
+Our management interface in the wifi driver served us well over the years
+and concealed the underlying complexity of the wireless stack. At the same
+time it gained some complexity itself to satisfy a variety of use-cases.
+Thus, we took the past release cycle as opportunity to rework the management
+layer to reduce its complexity by streamlining the interaction between
+various parts, like the manager layer itself, 'wpa_supplicant' as well as
+the device driver in order to provide a sound foundation for future
+adaptions.
+Included is also an update of the 'wpa_supplicant' to version 2.11.
+
+The following segments detail the changes made to the configuration options as
+they were altered quite a bit to no longer mix different tasks (e.g. joining a
+network and scanning for hidden networks) while removing obsolete options.
+
+At the top-level '<wifi_config>' node, the following alterations were made:
+
+* The 'log_level' attribute was added and configures the supplicant's
+  verbosity. Valid values correspond to levels used by the supplicant
+  and are as follows: 'excessive', 'msgdump', 'debug', 'info', 'warning',
+  and 'error'. The default value is 'error' and configures the least
+  amount of verbosity. This option was introduced to ease the investigation
+  of connectivity issues.
+
+* The 'bgscan' attribute may be used to configure the way the
+  supplicant performs background-scanning to steer or rather optimize
+  roaming decision within the same network. The default value is set
+  to 'simple:30:-70:600'. The attribute is forwarded unmodified to the WPA
+  supplicant and thus provides the syntax supported by the supplicant
+  implementation. It can be disabled by specifying an empty value, e.g.
+  'bgscan=""'.
+
+* The 'connected_scan_interval' attribute was removed as this functionality
+  is now covered by background scanning.
+
+* The 'verbose_state' attribute was removed altogether and similar
+  functionality is now covered by the 'verbose' attribute.
+
+The network management received the following changes:
+
+* Every configured network, denoted by a '<network>' node, is now implicitly
+  considered an option for joining. The 'auto_connect' attribute was
+  removed and a '<network>' node must be renamed or removed to deactivate
+  automatic connection establishment.
+
+* The intent to scan for a hidden network is now managed by the newly
+  introduced '<explicit_scan>' node that like the '<network>' node has
+  an 'ssid' attribute. If the specified SSID is valid, it is incorporated
+  into the scan request to actively probe for this network. As the node
+  requests explicit scanning only, a corresponding '<network>' node is
+  required to actually connect to the hidden network.
+  The 'explicit_scan' attribute of the '<network>' node has been removed.
+
+The following exemplary configuration shows how to configure the driver
+for attempting to join two different networks where one of them is hidden.
+The initial scan interval is set 10 seconds and the signal quality will be
+updated every 30 seconds while connected to a network.
+
+!<wifi_config scan_interval="10" update_quality_interval="30">
+!  <explicit_scan ssid="Skynet"/>
+!  <network ssid="Zero"   protection="WPA2" passphrase="allyourbase"/>
+!  <network ssid="Skynet" protection="WPA3" passphrase="illbeback"/>
+!</wifi_config>
+
+For more information please consult the driver's
+[https://github.com/genodelabs/genode/blob/master/repos/dde_linux/src/driver/wifi/README - documentation]
+that now features a best-practices section explaining how the driver should be
+operated at best, and highlights the difference between a managed (as used in
+Sculpt OS) and a user-generated configuration.
+
+
+Audio driver updated to OpenBSD 7.6
+===================================
+
+With this release, we updated our OpenBSD-based audio driver to a more recent
+revision that correlates to version 7.6. It supports newer devices, e.g. Alder
+Lake-N, and includes a fix for using message-signaled interrupts (MSI) with
+HDA devices as found in AMD-based systems.
+
+
+AVX and hardware-based AES in virtual machines
+==============================================
+
+The current release adds support for requesting and transferring the AVX FPU
+state via Genode's VM-session interface. With this prerequisite fulfilled, we
+enabled the announcement of the AVX feature to guest VMs in our port of
+VirtualBox6.
+
+Additionally, we enabled the announcement of AES and RDRAND CPU features to
+guest VMs to further improve the utilization of the hardware.
+
+
+Build system and tools
+######################
+
+Extended depot-tool safeguards
+------------------------------
+
+When using the run tool's '--depot-auto-update' feature while switching
+between different git topic branches with committed recipe hashes, a binary
+archive present in the depot may accidentally not match its ingredients
+because the depot/build tool's 'REBUILD=' mode - as used by the depot
+auto-update mechanism - merely looks at the archive versions. This situation
+is arguably rare. But when it occurs, its reach and effects are hard to
+predict. To rule out this corner case early, the depot/build tool has now been
+extended by recording the hashes of the ingredients of binary archives. When
+skipping a rebuild because the desired version presumably already exists as a
+binary archive, the recorded hashes are compared to the current state of the
+ingredients (src and api archives). Thereby inconsistencies are promptly
+reported to the user.
+
+Users of the depot tool will notice .hash files appearing alongside src and
+api archives. Those files contain the hash value of the content of the
+respective archive. Each binary archive built is now also accompanied by a
+.hash file, which contains a list of hash values of the ingredients that went
+into the binary archive. Thanks to these .hash files, the consistency between
+binaries and their ingredients can be checked quickly.
+
+_As a note of caution, when switching to the Genode 24.11 with existing depot,_
+_one will possibly need to remove existing depot archives (as listed by the_
+_diagnostic messages) because the existing archives are not accompanied by
+_.hash files yet._
