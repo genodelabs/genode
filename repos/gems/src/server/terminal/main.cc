@@ -267,7 +267,8 @@ void Terminal::Main::_handle_config()
 
 	_font.destruct();
 
-	_root_dir.apply_config(config.sub_node("vfs"));
+	config.with_optional_sub_node("vfs", [&] (Xml_node const &vfs_config) {
+		_root_dir.apply_config(vfs_config); });
 
 	Cached_font::Limit const cache_limit {
 		config.attribute_value("cache", Number_of_bytes(256*1024)) };
