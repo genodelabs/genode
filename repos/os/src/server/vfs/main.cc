@@ -782,7 +782,8 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 		void _config_update()
 		{
 			_config_rom.update();
-			_vfs_env.root_dir().apply_config(vfs_config());
+			_config_rom.xml().with_optional_sub_node("vfs", [&] (Xml_node const &config) {
+				_vfs_env.root_dir().apply_config(config); });
 
 			/*
 			 * The VFS configuration change may result in watch notifications
