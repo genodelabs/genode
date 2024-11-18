@@ -165,7 +165,8 @@ Cpu::Context & Cpu::handle_exception_and_schedule()
 addr_t Cpu::stack_start()
 {
 	return Abi::stack_align(Hw::Mm::cpu_local_memory().base +
-	                        (1024*1024*_id) + (64*1024));
+	                        (Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE*_id)
+	                        + Hw::Mm::KERNEL_STACK_SIZE);
 }
 
 
