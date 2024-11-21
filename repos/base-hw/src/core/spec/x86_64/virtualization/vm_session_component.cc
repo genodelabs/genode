@@ -84,22 +84,6 @@ void * Vm_session_component::_alloc_table()
 }
 
 
-using Vmid_allocator = Genode::Bit_allocator<256>;
-
-static Vmid_allocator &alloc()
-{
-	static Vmid_allocator * allocator = nullptr;
-	if (!allocator) {
-		allocator = unmanaged_singleton<Vmid_allocator>();
-
-		/* reserve VM ID 0 for the hypervisor */
-		addr_t id = allocator->alloc();
-		assert (id == 0);
-	}
-	return *allocator;
-}
-
-
 Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
 {
 	/*
@@ -139,7 +123,8 @@ Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
 }
 
 
-Vm_session_component::Vm_session_component(Rpc_entrypoint &ds_ep,
+Vm_session_component::Vm_session_component(Vmid_allocator & vmid_alloc,
+                                           Rpc_entrypoint &ds_ep,
                                            Resources resources,
                                            Label const &,
                                            Diag,
@@ -157,7 +142,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ds_ep,
 	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
 	_table_array(*(new (cma()) Board::Vm_page_table_array([] (void * virt) {
 	                           return (addr_t)cma().phys_addr(virt);}))),
-	_id({(unsigned)alloc().alloc(), cma().phys_addr(&_table)})
+	_vmid_alloc(vmid_alloc),
+	_id({(unsigned)_vmid_alloc.alloc(), cma().phys_addr(&_table)})
 {
 	/* configure managed VM area */
 	_map.add_range(0UL, ~0UL);
@@ -191,5 +177,5 @@ Vm_session_component::~Vm_session_component()
 	/* free guest-to-host page tables */
 	destroy(platform().core_mem_alloc(), &_table);
 	destroy(platform().core_mem_alloc(), &_table_array);
-	alloc().free(_id.id);
+	_vmid_alloc.free(_id.id);
 }

@@ -58,7 +58,7 @@ Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
 }
 
 
-Vm_session_component::Vm_session_component(Rpc_entrypoint  &ep,
+Vm_session_component::Vm_session_component(Vmid_allocator &vmids, Rpc_entrypoint &ep,
                                            Resources resources,
                                            Label const &,
                                            Diag,
@@ -74,6 +74,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  &ep,
 	_region_map(region_map),
 	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
 	_table_array(dummy_array()),
+	_vmid_alloc(vmids),
 	_id({id_alloc++, nullptr})
 {
 	if (_id.id) {
