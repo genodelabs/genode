@@ -4,6 +4,51 @@
                                ===========
 
 
+Genode OS Framework release 24.11 | 2024-11-22
+##############################################
+
+| With mirrored and panoramic multi-monitor setups, pointer grabbing,
+| atomic blitting and panning, and panel-self-refresh support, Genode's GUI
+| stack gets ready for the next decade. Hardware-wise, version 24.11 brings
+| a massive driver update for the i.MX SoC family. As a special highlight, the
+| release is accompanied by the first edition of the free book "Genode
+| Applications" as a gateway for application developers into Genode.
+
+Closing up the Year of Sculpt OS usability as the theme of our road map
+for 2024, we are excited to unveil the results of two intense lines of
+usability-concerned work with the release of Genode 24.11.
+
+For the usability of the Genode-based Sculpt OS as day-to-day operating
+system, the support of multi-monitor setups has been an unmet desire
+for a long time. Genode 24.11 does not only deliver a solution as a
+singular feature but improves the entire GUI stack in a holistic way,
+addressing panel self-refresh, mechanisms needed to overcome tearing
+artifacts, rigid resource partitioning between GUI applications, up to
+pointer-grabbing support.
+
+The second line of work addresses the usability of application development for
+Genode and Sculpt OS in particular. Over the course of the year, our Goa SDK
+has seen a succession of improvements that make the development, porting,
+debugging, and publishing of software a breeze. Still, given Genode's
+novelties, the learning curve to get started has remained challenging. Our new
+book "Genode Applications" is intended as a gateway into the world of Genode
+for those of us who enjoy dwelling in architectural beauty but foremost want
+to get things done. It features introductory material, explains fundamental
+concepts and components, and invites the reader on to a ride through a series
+of beginner-friendly as well as advanced tutorials. The book can be downloaded
+for free at [https://genode.org].
+
+Regarding hardware support, our work during the release cycle was hugely
+motivated by the prospect of bringing Genode to the MNT Pocket Reform laptop,
+which is based on the NXP i.MX8MP SoC. Along this way, we upgraded all
+Linux-based i.MX drivers to kernel version 6.6 while consolidating a variety
+of vendor kernels, equipped our platform driver with watchdog support, and
+added board support for this platform to Sculpt OS.
+
+You can find these among more topics covered in the detailed
+[https:/documentation/release-notes/24.11 - release documentation of version 24.11...]
+
+
 Sculpt OS release 24.10 | 2024-10-30
 ####################################
 
