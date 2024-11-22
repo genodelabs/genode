@@ -568,12 +568,12 @@ reported to the user.
 
 Users of the depot tool will notice .hash files appearing alongside src and
 api archives. Those files contain the hash value of the content of the
-respective archive. Each binary archive built is now also accompanied by a
-.hash file, which contains a list of hash values of the ingredients that went
+respective archive. Each binary archive built is now also accompanied by
+a .hash file, which contains a list of hash values of the ingredients that went
 into the binary archive. Thanks to these .hash files, the consistency between
 binaries and their ingredients can be checked quickly.
 
 _As a note of caution, when switching to the Genode 24.11 with existing depot,_
 _one will possibly need to remove existing depot archives (as listed by the_
-_diagnostic messages) because the existing archives are not accompanied by
+_diagnostic messages) because the existing archives are not accompanied by_
 _.hash files yet._
