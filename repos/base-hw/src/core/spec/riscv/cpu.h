@@ -56,6 +56,11 @@ class Core::Cpu : public Hw::Riscv_cpu
 		struct alignas(8) Context : Genode::Cpu_state
 		{
 			Context(bool);
+
+			void print(Output &output) const;
+
+			void for_each_return_address(Const_byte_range_ptr const &,
+			                             auto const &) { }
 		};
 
 		class Mmu_context

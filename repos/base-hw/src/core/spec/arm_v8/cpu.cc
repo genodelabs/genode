@@ -22,6 +22,22 @@
 using namespace Core;
 
 
+void Cpu::Context::print(Output &output) const
+{
+	using namespace Genode;
+	using Genode::print;
+
+	print(output, "\n");
+	for (unsigned i = 0; i < 31; i++)
+		print(output, "  x", i, "    = ", Hex(r[i]), "\n");
+	print(output, "  ip     = ", Hex(ip),      "\n");
+	print(output, "  sp     = ", Hex(sp),      "\n");
+	print(output, "  esr    = ", Hex(esr_el1), "\n");
+	print(output, "  pstate = ", Hex(pstate),  "\n");
+	print(output, "  mdscr  = ", Hex(mdscr_el1));
+}
+
+
 Cpu::Context::Context(bool privileged)
 {
 	Spsr::El::set(pstate, privileged ? 1 : 0);

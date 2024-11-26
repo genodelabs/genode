@@ -25,6 +25,47 @@ using Mmu_context = Core::Cpu::Mmu_context;
 using namespace Core;
 
 
+void Cpu::Context::print(Output &output) const
+{
+	using namespace Genode;
+	using Genode::print;
+
+	print(output, "\n");
+	print(output, "  ip     = ", Hex(ip),  "\n");
+	print(output, "  ra     = ", Hex(ra),  "\n");
+	print(output, "  sp     = ", Hex(sp),  "\n");
+	print(output, "  gp     = ", Hex(gp),  "\n");
+	print(output, "  tp     = ", Hex(tp),  "\n");
+	print(output, "  t0     = ", Hex(t0),  "\n");
+	print(output, "  t1     = ", Hex(t1),  "\n");
+	print(output, "  t2     = ", Hex(t2),  "\n");
+	print(output, "  s0     = ", Hex(s0),  "\n");
+	print(output, "  s1     = ", Hex(s1),  "\n");
+	print(output, "  a0     = ", Hex(a0),  "\n");
+	print(output, "  a1     = ", Hex(a1),  "\n");
+	print(output, "  a2     = ", Hex(a2),  "\n");
+	print(output, "  a3     = ", Hex(a3),  "\n");
+	print(output, "  a4     = ", Hex(a4),  "\n");
+	print(output, "  a5     = ", Hex(a5),  "\n");
+	print(output, "  a6     = ", Hex(a6),  "\n");
+	print(output, "  a7     = ", Hex(a7),  "\n");
+	print(output, "  s2     = ", Hex(s2),  "\n");
+	print(output, "  s3     = ", Hex(s3),  "\n");
+	print(output, "  s4     = ", Hex(s4),  "\n");
+	print(output, "  s5     = ", Hex(s5),  "\n");
+	print(output, "  s6     = ", Hex(s6),  "\n");
+	print(output, "  s7     = ", Hex(s7),  "\n");
+	print(output, "  s8     = ", Hex(s8),  "\n");
+	print(output, "  s9     = ", Hex(s9),  "\n");
+	print(output, "  s10    = ", Hex(s10), "\n");
+	print(output, "  s11    = ", Hex(s11), "\n");
+	print(output, "  t3     = ", Hex(t3),  "\n");
+	print(output, "  t4     = ", Hex(t4),  "\n");
+	print(output, "  t5     = ", Hex(t5),  "\n");
+	print(output, "  t6     = ", Hex(t6));
+}
+
+
 Cpu::Context::Context(bool)
 {
 	/*

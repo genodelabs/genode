@@ -49,6 +49,18 @@ struct Core::Arm_cpu : public Hw::Arm_cpu
 	struct alignas(8) Context : Cpu_state, Fpu_context
 	{
 		Context(bool privileged);
+
+		void print(Output &output) const;
+
+		void for_each_return_address(Const_byte_range_ptr const &stack,
+		                             auto const &fn)
+		{
+			void **fp = (void**)r11;
+			while (stack.contains(fp-1) && stack.contains(fp) && fp[0]) {
+				fn(fp);
+				fp = (void **) fp[-1];
+			}
+		}
 	};
 
 	/**

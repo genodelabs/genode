@@ -37,6 +37,27 @@ struct Pseudo_descriptor
 } __attribute__((packed));
 
 
+void Cpu::Context::print(Output &output) const
+{
+	using namespace Genode;
+	using Genode::print;
+
+	print(output, "\n");
+	print(output, "  ip     = ", Hex(ip),     "\n");
+	print(output, "  sp     = ", Hex(sp),     "\n");
+	print(output, "  cs     = ", Hex(cs),     "\n");
+	print(output, "  ss     = ", Hex(ss),     "\n");
+	print(output, "  eflags = ", Hex(eflags), "\n");
+	print(output, "  rax    = ", Hex(rax),    "\n");
+	print(output, "  rbx    = ", Hex(rbx),    "\n");
+	print(output, "  rcx    = ", Hex(rcx),    "\n");
+	print(output, "  rdx    = ", Hex(rdx),    "\n");
+	print(output, "  rdi    = ", Hex(rdi),    "\n");
+	print(output, "  rsi    = ", Hex(rsi),    "\n");
+	print(output, "  rbp    = ", Hex(rbp));
+}
+
+
 Cpu::Context::Context(bool core)
 {
 	eflags = EFLAGS_IF_SET;

@@ -100,6 +100,18 @@ class Core::Cpu : public Hw::X86_64_cpu
 			};
 
 			Context(bool privileged);
+
+			void print(Output &output) const;
+
+			void for_each_return_address(Const_byte_range_ptr const &stack,
+			                             auto const &fn)
+			{
+				void **fp = (void**)rbp;
+				while (stack.contains(fp) && stack.contains(fp + 1) && fp[1]) {
+					fn(fp + 1);
+					fp = (void **) fp[0];
+				}
+			}
 		} __attribute__((packed));
 
 

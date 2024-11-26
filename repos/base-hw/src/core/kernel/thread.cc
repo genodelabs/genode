@@ -935,19 +935,31 @@ void Thread::_call()
 
 void Thread::_mmu_exception()
 {
+	using namespace Genode;
+	using Genode::log;
+
 	_become_inactive(AWAITS_RESTART);
 	_exception_state = MMU_FAULT;
 	Cpu::mmu_fault(*regs, _fault);
 	_fault.ip = regs->ip;
 
 	if (_fault.type == Thread_fault::UNKNOWN) {
-		Genode::raw(*this, " raised unhandled MMU fault ", _fault);
+		Genode::warning(*this, " raised unhandled MMU fault ", _fault);
 		return;
 	}
 
-	if (_type != USER)
-		Genode::raw(*this, " raised a fault, which should never happen ",
-		            _fault);
+	if (_type != USER) {
+		error(*this, " raised a fault, which should never happen ",
+		              _fault);
+		log("Register dump: ", *regs);
+		log("Backtrace:");
+
+		Const_byte_range_ptr const stack {
+			(char const*)Hw::Mm::core_stack_area().base,
+			 Hw::Mm::core_stack_area().size };
+		regs->for_each_return_address(stack, [&] (void **p) {
+			log(*p); });
+	}
 
 	if (_pager && _pager->can_submit(1)) {
 		_pager->submit(1);

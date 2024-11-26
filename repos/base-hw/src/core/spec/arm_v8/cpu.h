@@ -79,6 +79,18 @@ struct Core::Cpu : Hw::Arm_64_cpu
 		Fpu_state fpu_state { };
 
 		Context(bool privileged);
+
+		void print(Output &output) const;
+
+		void for_each_return_address(Const_byte_range_ptr const &stack,
+		                             auto const &fn)
+		{
+			void **fp = (void**)r[29];
+			while (stack.contains(fp) && stack.contains(fp + 1) && fp[1]) {
+				fn(fp + 1);
+				fp = (void **) fp[0];
+			}
+		}
 	};
 
 	class Mmu_context

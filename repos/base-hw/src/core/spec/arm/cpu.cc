@@ -22,6 +22,32 @@
 using namespace Core;
 
 
+void Arm_cpu::Context::print(Output &output) const
+{
+	using namespace Genode;
+	using Genode::print;
+
+	print(output, "\n");
+	print(output, "  r0   = ", Hex(r0),  "\n");
+	print(output, "  r1   = ", Hex(r1),  "\n");
+	print(output, "  r2   = ", Hex(r2),  "\n");
+	print(output, "  r3   = ", Hex(r3),  "\n");
+	print(output, "  r4   = ", Hex(r4),  "\n");
+	print(output, "  r5   = ", Hex(r5),  "\n");
+	print(output, "  r6   = ", Hex(r6),  "\n");
+	print(output, "  r7   = ", Hex(r7),  "\n");
+	print(output, "  r8   = ", Hex(r8),  "\n");
+	print(output, "  r9   = ", Hex(r9),  "\n");
+	print(output, "  r10  = ", Hex(r10), "\n");
+	print(output, "  r11  = ", Hex(r11), "\n");
+	print(output, "  r12  = ", Hex(r12), "\n");
+	print(output, "  ip   = ", Hex(ip),  "\n");
+	print(output, "  sp   = ", Hex(sp),  "\n");
+	print(output, "  lr   = ", Hex(lr),  "\n");
+	print(output, "  cpsr = ", Hex(cpsr));
+}
+
+
 Arm_cpu::Context::Context(bool privileged)
 {
 	using Psr = Arm_cpu::Psr;
