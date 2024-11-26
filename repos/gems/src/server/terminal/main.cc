@@ -364,6 +364,9 @@ void Terminal::Main::_handle_config()
 
 void Terminal::Main::_handle_input()
 {
+	if (!_text_screen_surface.constructed())
+		return;
+
 	_gui.input.for_each_event([&] (Input::Event const &event) {
 
 		event.handle_absolute_motion([&] (int x, int y) {
@@ -485,7 +488,7 @@ void Terminal::Main::_handle_input()
 
 void Terminal::Main::_report_clipboard_selection()
 {
-	if (!_clipboard_reporter.constructed())
+	if (!_text_screen_surface.constructed() || !_clipboard_reporter.constructed())
 		return;
 
 	_clipboard_reporter->generate([&] (Xml_generator &xml) {
