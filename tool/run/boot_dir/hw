@@ -103,6 +103,7 @@ proc run_boot_dir {binaries} {
 	if {[file exists debug/core-hw-[board].a]} {
 		build_core debug/core-hw-[board].a         {} [run_dir].core      [core_link_address]
 		build_core [run_dir]/genode/$bootstrap_obj {} [run_dir].bootstrap [bootstrap_link_address]
+		exec [cross_dev_prefix]objcopy --only-keep-debug [run_dir].core [run_dir].core.debug
 	}
 
 	# determine modules to be incorporated into the core image
