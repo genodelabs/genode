@@ -950,12 +950,19 @@ extern "C" {
 		__attribute__((alias("pthread_mutexattr_settype")));
 
 
-	int pthread_mutex_init(pthread_mutex_t *mutex,
-	                       pthread_mutexattr_t const *attr)
+	int mutex_init(pthread_mutex_t *mutex,
+	               pthread_mutexattr_t const *attr)
 	{
-		if (!mutex)
-			return EINVAL;
+		static Mutex mutex_init_mutex { };
 
+		Mutex::Guard guard(mutex_init_mutex);
+
+		/*
+		 * '*mutex' could have been initialized by a different
+		 * thread which got the init mutex earlier.
+		 */
+		if (*mutex != PTHREAD_MUTEX_INITIALIZER)
+			return 0;
 
 		Libc::Allocator alloc { };
 
@@ -966,13 +973,22 @@ extern "C" {
 		case PTHREAD_MUTEX_ADAPTIVE_NP: *mutex = new (alloc) Pthread_mutex_normal; break;
 		case PTHREAD_MUTEX_ERRORCHECK:  *mutex = new (alloc) Pthread_mutex_errorcheck; break;
 		case PTHREAD_MUTEX_RECURSIVE:   *mutex = new (alloc) Pthread_mutex_recursive; break;
-
-		default:
-			*mutex = nullptr;
-			return EINVAL;
+		default:                        return EINVAL;
 		}
 
 		return 0;
+	}
+
+	int pthread_mutex_init(pthread_mutex_t *mutex,
+	                       pthread_mutexattr_t const *attr)
+	{
+		if (!mutex)
+			return EINVAL;
+
+		/* mark as uninitialized for 'mutex_init()' */
+		*mutex = PTHREAD_MUTEX_INITIALIZER;
+
+		return mutex_init(mutex, attr);
 	}
 
 	typeof(pthread_mutex_init) _pthread_mutex_init
@@ -1001,7 +1017,7 @@ extern "C" {
 			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-			pthread_mutex_init(mutex, nullptr);
+			mutex_init(mutex, nullptr);
 
 		return (*mutex)->lock();
 	}
@@ -1016,7 +1032,7 @@ extern "C" {
 			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-			pthread_mutex_init(mutex, nullptr);
+			mutex_init(mutex, nullptr);
 
 		return (*mutex)->trylock();
 	}
@@ -1032,7 +1048,7 @@ extern "C" {
 			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-			pthread_mutex_init(mutex, nullptr);
+			mutex_init(mutex, nullptr);
 
 		/* abstime must be non-null according to the spec */
 		return (*mutex)->timedlock(*abstimeout);
