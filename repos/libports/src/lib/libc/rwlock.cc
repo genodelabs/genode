@@ -104,20 +104,30 @@ extern "C" {
 	{
 		static Mutex rwlock_init_mutex { };
 
-		if (!rwlock)
-			return EINVAL;
+		Mutex::Guard g(rwlock_init_mutex);
 
-		try {
-			Mutex::Guard g(rwlock_init_mutex);
-			Libc::Allocator alloc { };
-			*rwlock = new (alloc) struct pthread_rwlock();
+		/*
+		 * '*rwlock' could have been initialized by a different
+		 * thread which got the init mutex earlier.
+		 */
+		if (*rwlock != PTHREAD_RWLOCK_INITIALIZER)
 			return 0;
-		} catch (...) { return ENOMEM; }
+
+		Libc::Allocator alloc { };
+		*rwlock = new (alloc) struct pthread_rwlock();
+
+		return 0;
 	}
 
 
 	int pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr)
 	{
+		if (!rwlock)
+			return EINVAL;
+
+		/* mark as uninitialized for 'rwlock_init()' */
+		*rwlock = PTHREAD_RWLOCK_INITIALIZER;
+
 		return rwlock_init(rwlock, attr);
 	}
 
@@ -142,8 +152,7 @@ extern "C" {
 			return EINVAL;
 
 		if (*rwlock == PTHREAD_RWLOCK_INITIALIZER)
-			if (rwlock_init(rwlock, NULL))
-				return ENOMEM;
+			rwlock_init(rwlock, NULL);
 
 		(*rwlock)->rdlock();
 		return 0;
@@ -159,8 +168,7 @@ extern "C" {
 			return EINVAL;
 
 		if (*rwlock == PTHREAD_RWLOCK_INITIALIZER)
-			if (rwlock_init(rwlock, NULL))
-				return ENOMEM;
+			rwlock_init(rwlock, NULL);
 
 		(*rwlock)->wrlock();
 		return 0;
