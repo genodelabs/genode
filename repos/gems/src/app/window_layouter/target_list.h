@@ -138,7 +138,8 @@ class Window_layouter::Target_list
 		 * \return  layer that was processed by the method
 		 */
 		unsigned _gen_top_most_layer(Xml_generator &xml, unsigned min_layer,
-		                             Assign_list const &assignments) const
+		                             Assign_list const &assignments,
+		                             Drag const &drag) const
 		{
 			/* search targets for next matching layer */
 			unsigned layer = MAX_LAYER;
@@ -146,6 +147,9 @@ class Window_layouter::Target_list
 				if (target.layer() >= min_layer && target.layer() <= layer)
 					layer = target.layer(); });
 
+			Rect const drag_origin_boundary = drag.dragging()
+			                                ? target_boundary(assignments, drag.window_id)
+			                                : Rect { };
 			/* search target by name */
 			_targets.for_each([&] (Target const &target) {
 
@@ -155,7 +159,7 @@ class Window_layouter::Target_list
 				if (!target.visible())
 					return;
 
-				if (assignments.target_empty(target.name()))
+				if (assignments.target_empty(target.name()) && !drag.moving_at_target(target.name()))
 					return;
 
 				Rect const boundary = target.geometry();
@@ -163,11 +167,18 @@ class Window_layouter::Target_list
 					xml.attribute("name", target.name());
 					generate(xml, boundary);
 
-					/* visit all windows on the layer */
+					/* in-flux window node for the currently dragged window */
+					if (drag.moving_at_target(target.name()))
+						assignments.for_each([&] (Assign const &assign) {
+							assign.for_each_member([&] (Assign::Member const &member) {
+								if (drag.moving_window(member.window.id()))
+									member.window.generate(xml, drag_origin_boundary); }); });
+
+					/* visit all windows on the layer, except for the dragged one */
 					assignments.for_each_visible(target.name(), [&] (Assign const &assign) {
 						assign.for_each_member([&] (Assign::Member const &member) {
-							member.window.generate(xml, boundary); });
-					});
+							if (!drag.moving_window(member.window.id()))
+								member.window.generate(xml, boundary); }); });
 				});
 			});
 
@@ -214,7 +225,8 @@ class Window_layouter::Target_list
 			});
 		}
 
-		void gen_layout(Xml_generator &xml, Assign_list const &assignments) const
+		void gen_layout(Xml_generator &xml, Assign_list const &assignments,
+		                Drag const &drag) const
 		{
 			unsigned min_layer = 0;
 
@@ -222,7 +234,7 @@ class Window_layouter::Target_list
 			for (;;) {
 
 				unsigned const layer =
-					_gen_top_most_layer(xml, min_layer, assignments);
+					_gen_top_most_layer(xml, min_layer, assignments, drag);
 
 				if (layer == MAX_LAYER)
 					break;
@@ -273,8 +285,51 @@ class Window_layouter::Target_list
 			});
 		}
 
-		template <typename FN>
-		void for_each(FN const &fn) const { _targets.for_each(fn); }
+		void for_each(auto const &fn) const { _targets.for_each(fn); }
+
+		void with_target(Name const &name, auto const &fn) const
+		{
+			Target const *ptr = nullptr;
+			for_each([&] (Target const &target) {
+				if (target.name() == name)
+					ptr = &target; });
+			if (ptr)
+				fn(*ptr);
+		}
+
+		void with_target_at(Point const at, auto const &fn) const
+		{
+			Target const *ptr = nullptr;
+			for_each([&] (Target const &target) {
+				if (target.visible() && target.geometry().contains(at))
+					ptr = &target; });
+			if (ptr)
+				fn(*ptr);
+		}
+
+		void with_target(Assign_list const &assignments, Window_id id, auto const &fn) const
+		{
+			Target const *ptr = nullptr;
+			_targets.for_each([&] (Target const &target) {
+				assignments.for_each_visible(target.name(), [&] (Assign const &assign) {
+					assign.for_each_member([&] (Assign::Member const &member) {
+						if (member.window.id() == id)
+							ptr = &target; }); }); });
+			if (ptr)
+				fn(*ptr);
+		}
+
+		/**
+		 * Return the boundary of the target that displays the given window
+		 */
+		Rect target_boundary(Assign_list const &assignments, Window_id id) const
+		{
+			Rect result { };
+			with_target(assignments, id, [&] (Target const &target) {
+				result = target.geometry(); });
+			return result;
+		}
+
 };
 
 #endif /* _TARGET_LIST_H_ */

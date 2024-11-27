@@ -44,6 +44,8 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 		using Label = String<80>;
 
+		Target::Name target_name { };
+
 	private:
 
 		Registry<Member> _members { };
@@ -51,8 +53,6 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		Label const _label;
 		Label const _label_prefix;
 		Label const _label_suffix;
-
-		Target::Name _target_name { };
 
 		bool _pos_defined  = false;
 		bool _xpos_any     = false;
@@ -75,7 +75,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 		void update(Xml_node assign)
 		{
-			_target_name  = assign.attribute_value("target", Target::Name());
+			target_name   = assign.attribute_value("target", Target::Name());
 			_pos_defined  = assign.has_attribute("xpos")  && assign.has_attribute("ypos");
 			_size_defined = assign.has_attribute("width") && assign.has_attribute("height");
 			_maximized    = assign.attribute_value("maximized", false);
@@ -160,8 +160,6 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 				fn(_members);
 		}
 
-		Target::Name target_name() const { return _target_name; }
-
 		/**
 		 * Used to generate <assign> nodes of windows captured via wildcard
 		 */
@@ -200,7 +198,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			if (_label_prefix.valid()) xml.attribute("label_prefix", _label_prefix);
 			if (_label_suffix.valid()) xml.attribute("label_suffix", _label_suffix);
 
-			xml.attribute("target", _target_name);
+			xml.attribute("target", target_name);
 		}
 
 		void gen_geometry_attr(Xml_generator &xml) const

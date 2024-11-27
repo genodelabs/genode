@@ -48,9 +48,7 @@ struct Window_layouter::Main : Operations,
 
 	Timer::Connection _drop_timer { _env };
 
-	enum class Drag_state { IDLE, DRAGGING, SETTLING };
-
-	Drag_state _drag_state { Drag_state::IDLE };
+	Drag _drag { };
 
 	Signal_handler<Main> _drop_timer_handler {
 		_env.ep(), *this, &Main::_handle_drop_timer };
@@ -106,7 +104,7 @@ struct Window_layouter::Main : Operations,
 		_assign_list.for_each([&] (Assign &assign) {
 			_target_list.for_each([&] (Target const &target) {
 
-				if (target.name() != assign.target_name())
+				if (target.name() != assign.target_name)
 					return;
 
 				assign.for_each_member([&] (Assign::Member &member) {
@@ -222,10 +220,12 @@ struct Window_layouter::Main : Operations,
 
 	void drag(Window_id id, Window::Element element, Point clicked, Point curr) override
 	{
-		if (_drag_state == Drag_state::SETTLING)
+		if (_drag.state == Drag::State::SETTLING)
 			return;
 
-		_drag_state = Drag_state::DRAGGING;
+		_target_list.with_target_at(curr, [&] (Target const &pointed_target) {
+			bool const moving = (element.type == Window::Element::TITLE);
+			_drag = { Drag::State::DRAGGING, moving, id, curr, pointed_target.name() }; });
 
 		to_front(id);
 
@@ -252,7 +252,7 @@ struct Window_layouter::Main : Operations,
 
 	void _handle_drop_timer()
 	{
-		_drag_state = Drag_state::IDLE;
+		_drag = { };
 
 		_gen_rules();
 
@@ -260,7 +260,7 @@ struct Window_layouter::Main : Operations,
 			window.finalize_drag_operation(); });
 	}
 
-	void finalize_drag(Window_id, Window::Element, Point, Point) override
+	void finalize_drag(Window_id id, Window::Element element, Point, Point curr) override
 	{
 		/*
 		 * Update window layout because highlighting may have changed after the
@@ -271,8 +271,35 @@ struct Window_layouter::Main : Operations,
 		 */
 		_handle_hover();
 
-		_drag_state = Drag_state::SETTLING;
+		_drag = { };
+		_target_list.with_target_at(curr, [&] (Target const &pointed_target) {
+			bool const moving = (element.type == Window::Element::TITLE);
+			_drag = { Drag::State::SETTLING, moving, id, curr, pointed_target.name() }; });
 
+		/*
+		 * Update the target of the assign rule of the dragged window
+		 */
+		auto with_target_change = [&] (auto const fn)
+		{
+			_target_list.with_target(_assign_list, id, [&] (Target const &from) {
+				_target_list.with_target(_drag.target, [&] (Target const &to) {
+					if (&from != &to)
+						fn(from, to); }); });
+		};
+		if (_drag.moving) {
+			with_target_change([&] (Target const &from, Target const &to) {
+				_assign_list.for_each([&] (Assign &assign) {
+					Window *window_ptr = nullptr;
+					assign.for_each_member([&] (Assign::Member &member) {
+						if (member.window.id() == id)
+							window_ptr = &member.window; });
+					if (window_ptr) {
+						assign.target_name = to.name();
+						window_ptr->warp(from.geometry().at - to.geometry().at);
+					}
+				});
+			});
+		}
 		_drop_timer.trigger_once(250*1000);
 	}
 
@@ -417,7 +444,7 @@ void Window_layouter::Main::_gen_window_layout()
 	});
 
 	_window_layout_reporter.generate([&] (Xml_generator &xml) {
-		_target_list.gen_layout(xml, _assign_list); });
+		_target_list.gen_layout(xml, _assign_list, _drag); });
 }
 
 
@@ -470,7 +497,7 @@ void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, FN const 
 
 		xml.node("assign", [&] () {
 			xml.attribute("label",  member.window.label());
-			xml.attribute("target", assign.target_name());
+			xml.attribute("target", assign.target_name);
 			gen_window_geometry(xml, assign, member.window);
 		});
 	};
@@ -608,7 +635,7 @@ void Window_layouter::Main::_handle_hover()
 	try {
 		Xml_node const hover_window_xml = _hover.xml().sub_node("window");
 
-		_user_state.hover(hover_window_xml.attribute_value("id", 0U),
+		_user_state.hover({ hover_window_xml.attribute_value("id", 0U) },
 		                  _element_from_hover_model(hover_window_xml));
 	}
 

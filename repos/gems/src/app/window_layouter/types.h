@@ -28,10 +28,7 @@ namespace Window_layouter {
 
 	struct Window_id
 	{
-		unsigned value = 0;
-
-		Window_id() { }
-		Window_id(unsigned value) : value(value) { }
+		unsigned value;
 
 		bool valid() const { return value != 0; }
 
@@ -86,6 +83,29 @@ namespace Window_layouter {
 		xml.attribute("width",  rect.w());
 		xml.attribute("height", rect.h());
 	}
+
+	struct Drag
+	{
+		enum class State { IDLE, DRAGGING, SETTLING };
+
+		State     state;
+		bool      moving;     /* distiguish moving from resizing */
+		Window_id window_id;
+		Point     curr_pos;
+		Name      target;
+
+		bool dragging() const { return state == State::DRAGGING; }
+
+		bool moving_at_target(Name const &name) const
+		{
+			return dragging() && name == target && moving;
+		}
+
+		bool moving_window(Window_id id) const
+		{
+			return dragging() && id == window_id && moving;
+		}
+	};
 }
 
 #endif /* _TYPES_H_ */

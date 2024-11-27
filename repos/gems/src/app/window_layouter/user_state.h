@@ -284,9 +284,8 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 	/* detect end of drag operation */
 	if (e.release() && _key_cnt == 0) {
 
-		_drag_state = false;
-
-		if (_dragged_window_id.valid()) {
+		if (_drag_state && _dragged_window_id.valid()) {
+			_drag_state = false;
 
 			/*
 			 * Issue resize to 0x0 when releasing the the window closer

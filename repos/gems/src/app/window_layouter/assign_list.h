@@ -96,7 +96,7 @@ class Window_layouter::Assign_list : Noncopyable
 		void for_each_visible(auto const &target_name, auto const &fn) const
 		{
 			for_each([&] (Assign const &assign) {
-				if (assign.visible() && target_name == assign.target_name())
+				if (assign.visible() && target_name == assign.target_name)
 					fn(assign); });
 		}
 

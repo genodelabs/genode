@@ -54,11 +54,12 @@ class Window_layouter::Window_list
 
 				[&] (Xml_node const &node) -> Window &
 				{
-					unsigned const id           = node.attribute_value("id", 0U);
-					Area     const initial_size = Area::from_xml(node);
+					Window_id const id { node.attribute_value("id", 0U) };
+
+					Area const initial_size = Area::from_xml(node);
 
 					Window::Label const label =
-						node.attribute_value("label",Window::Label());
+						node.attribute_value("label", Window::Label());
 
 					return *new (_alloc)
 						Window(id, label, initial_size,

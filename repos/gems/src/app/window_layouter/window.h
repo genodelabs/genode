@@ -227,12 +227,18 @@ class Window_layouter::Window : public List_model<Window>::Element
 			int x1 = _orig_geometry.x1(), y1 = _orig_geometry.y1(),
 			    x2 = _orig_geometry.x2(), y2 = _orig_geometry.y2();
 
-			if (_drag_left_border)   x1 = min(x1 + offset.x, x2);
-			if (_drag_right_border)  x2 = max(x2 + offset.x, x1);
-			if (_drag_top_border)    y1 = min(y1 + offset.y, y2);
-			if (_drag_bottom_border) y2 = max(y2 + offset.y, y1);
+			/* restrict resizing to the window's target area */
+			Rect const outer { { }, _target_area };
+			Rect const inner = _decorator_margins.inner_geometry(outer);
 
-			_drag_geometry = Rect::compound(Point(x1, y1), Point(x2, y2));
+			auto clamped = [] (int v, int lowest, int highest) { return min(max(v, lowest), highest); };
+
+			if (_drag_left_border)   x1 = clamped(min(x1 + offset.x, x2), inner.x1(), outer.x2());
+			if (_drag_right_border)  x2 = clamped(max(x2 + offset.x, x1), outer.x1(), inner.x2());
+			if (_drag_top_border)    y1 = clamped(min(y1 + offset.y, y2), inner.y1(), outer.y2());
+			if (_drag_bottom_border) y2 = clamped(max(y2 + offset.y, y1), outer.y1(), inner.y2());
+
+			_drag_geometry = Rect::compound(Point { x1, y1 }, Point { x2, y2 });
 
 			_dragged_size = _drag_geometry.area;
 		}
@@ -480,6 +486,13 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		void target_area(Area area) { _target_area = area; };
 
+		void warp(Point const rel)
+		{
+			_geometry.at      = _geometry.at      + rel;
+			_orig_geometry.at = _orig_geometry.at + rel;
+			_drag_geometry.at = _drag_geometry.at + rel;
+		}
+
 		bool maximized() const { return _maximized; }
 
 		void maximized(bool maximized) { _maximized = maximized; }
@@ -505,7 +518,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		 */
 		bool matches(Xml_node const &node) const
 		{
-			return node.attribute_value("id", 0U) == _id;
+			return node.attribute_value("id", 0U) == _id.value;
 		}
 
 		/**
