@@ -192,6 +192,10 @@ struct Sculpt::Fb_config
 
 		/* import discrete nodes */
 		add_connectors(config);
+
+		/* handle case that manual config contains solely discrete items */
+		if (count && !_num_merged)
+			_num_merged = 1;
 	}
 
 	void apply_connectors(Fb_connectors const &connectors)
