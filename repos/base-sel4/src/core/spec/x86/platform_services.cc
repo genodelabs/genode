@@ -23,7 +23,8 @@
 void Core::platform_add_local_services(Rpc_entrypoint    &ep,
                                        Sliced_heap       &heap,
                                        Registry<Service> &services,
-                                       Core::Trace::Source_registry &trace_sources)
+                                       Core::Trace::Source_registry &trace_sources,
+                                       Ram_allocator &)
 {
 	static Vm_root vm_root(ep, heap, core_env().ram_allocator(),
 	                       core_env().local_rm(), trace_sources);

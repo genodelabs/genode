@@ -28,7 +28,8 @@ using namespace Core;
 void Core::platform_add_local_services(Rpc_entrypoint     &,
                                        Sliced_heap        &md,
                                        Registry<Service>  &reg,
-                                       Core::Trace::Source_registry &)
+                                       Core::Trace::Source_registry &,
+                                       Ram_allocator &)
 {
 	if (!lx_iopl(3)) {
 		static Io_port_root io_port_root(*core_env().pd_session(),

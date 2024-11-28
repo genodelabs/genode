@@ -32,7 +32,8 @@ extern int monitor_mode_exception_vector;
 void Core::platform_add_local_services(Rpc_entrypoint    &ep,
                                        Sliced_heap       &sliced_heap,
                                        Registry<Service> &local_services,
-                                       Core::Trace::Source_registry &trace_sources)
+                                       Core::Trace::Source_registry &trace_sources,
+                                       Ram_allocator &)
 {
 	static addr_t const phys_base =
 		Platform::core_phys_addr((addr_t)&monitor_mode_exception_vector);

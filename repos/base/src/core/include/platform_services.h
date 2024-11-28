@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__PLATFORM_SERVICES_H_
 
 /* core includes */
+#include "base/ram_allocator.h"
 #include <core_service.h>
 #include <trace/source_registry.h>
 
@@ -38,7 +39,8 @@ namespace Core {
 	void platform_add_local_services(Rpc_entrypoint         &ep,
 	                                 Sliced_heap            &md,
 	                                 Registry<Service>      &reg,
-	                                 Trace::Source_registry &trace);
+	                                 Trace::Source_registry &trace,
+	                                 Ram_allocator          &core_ram_alloc);
 }
 
 #endif /* _CORE__INCLUDE__PLATFORM_SERVICES_H_ */

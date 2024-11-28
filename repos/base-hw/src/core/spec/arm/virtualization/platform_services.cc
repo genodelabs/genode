@@ -35,7 +35,8 @@ extern addr_t hypervisor_exception_vector;
 void Core::platform_add_local_services(Rpc_entrypoint    &ep,
                                        Sliced_heap       &sh,
                                        Registry<Service> &services,
-                                       Core::Trace::Source_registry &trace_sources)
+                                       Core::Trace::Source_registry &trace_sources,
+                                       Ram_allocator &)
 {
 	map_local(Platform::core_phys_addr((addr_t)&hypervisor_exception_vector),
 	          Hw::Mm::hypervisor_exception_vector().base,
