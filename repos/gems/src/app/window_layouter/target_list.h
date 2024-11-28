@@ -147,7 +147,7 @@ class Window_layouter::Target_list
 				if (target.layer() >= min_layer && target.layer() <= layer)
 					layer = target.layer(); });
 
-			Rect const drag_origin_boundary = drag.dragging()
+			Rect const drag_origin_boundary = drag.dragging() && drag.moving
 			                                ? target_boundary(assignments, drag.window_id)
 			                                : Rect { };
 			/* search target by name */
@@ -159,7 +159,7 @@ class Window_layouter::Target_list
 				if (!target.visible())
 					return;
 
-				if (assignments.target_empty(target.name()) && !drag.moving_at_target(target.name()))
+				if (assignments.target_empty(target.name()) && !drag.moving_at_target_rect(target.geometry()))
 					return;
 
 				Rect const boundary = target.geometry();
@@ -168,7 +168,7 @@ class Window_layouter::Target_list
 					generate(xml, boundary);
 
 					/* in-flux window node for the currently dragged window */
-					if (drag.moving_at_target(target.name()))
+					if (drag.moving_at_target_rect(target.geometry()))
 						assignments.for_each([&] (Assign const &assign) {
 							assign.for_each_member([&] (Assign::Member const &member) {
 								if (drag.moving_window(member.window.id()))

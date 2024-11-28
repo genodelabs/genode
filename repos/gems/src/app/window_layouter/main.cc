@@ -213,8 +213,36 @@ struct Window_layouter::Main : Operations,
 		_gen_resize_request();
 	}
 
-	void screen(Target::Name const & name) override
+	void _with_target_change(Window_id id, Target::Name to_name, auto const &fn) const
 	{
+		_target_list.with_target(_assign_list, id, [&] (Target const &from) {
+			_target_list.with_target(to_name, [&] (Target const &to) {
+				if (&from != &to)
+					fn(from, to); }); });
+	}
+
+	void _retarget_window(Window_id id, Target const &from, Target const &to)
+	{
+		_assign_list.for_each([&] (Assign &assign) {
+			Window *window_ptr = nullptr;
+			assign.for_each_member([&] (Assign::Member &member) {
+				if (member.window.id() == id)
+					window_ptr = &member.window; });
+			if (window_ptr) {
+				assign.target_name = to.name();
+				window_ptr->warp(from.geometry().at - to.geometry().at);
+			}
+		});
+	}
+
+	void screen(Target::Name const &name) override
+	{
+		/* change of screen under the dragged window */
+		if (_drag.dragging())
+			_with_target_change(_drag.window_id, name, [&] (Target const &from, Target const &to) {
+				if (from.geometry() == to.geometry())
+					_retarget_window(_drag.window_id, from, to); });
+
 		_gen_rules_with_frontmost_screen(name);
 	}
 
@@ -223,9 +251,9 @@ struct Window_layouter::Main : Operations,
 		if (_drag.state == Drag::State::SETTLING)
 			return;
 
-		_target_list.with_target_at(curr, [&] (Target const &pointed_target) {
-			bool const moving = (element.type == Window::Element::TITLE);
-			_drag = { Drag::State::DRAGGING, moving, id, curr, pointed_target.name() }; });
+		bool const moving = _moving(id, element);
+		_target_list.with_target_at(curr, [&] (Target const &pointed) {
+			_drag = { Drag::State::DRAGGING, moving, id, curr, pointed.geometry() }; });
 
 		to_front(id);
 
@@ -260,6 +288,18 @@ struct Window_layouter::Main : Operations,
 			window.finalize_drag_operation(); });
 	}
 
+	bool _moving(Window_id id, Window::Element element)
+	{
+		if (element.type == Window::Element::TITLE)
+			return true;
+
+		/* a non-resizeable window can be moved by dragging its border */
+		bool resizeable = false;
+		_window_list.with_window(id, [&] (Window const &window) {
+			resizeable = window.resizeable(); });
+		return !resizeable && element.resize_handle();
+	}
+
 	void finalize_drag(Window_id id, Window::Element element, Point, Point curr) override
 	{
 		/*
@@ -272,34 +312,19 @@ struct Window_layouter::Main : Operations,
 		_handle_hover();
 
 		_drag = { };
-		_target_list.with_target_at(curr, [&] (Target const &pointed_target) {
-			bool const moving = (element.type == Window::Element::TITLE);
-			_drag = { Drag::State::SETTLING, moving, id, curr, pointed_target.name() }; });
 
 		/*
 		 * Update the target of the assign rule of the dragged window
 		 */
-		auto with_target_change = [&] (auto const fn)
-		{
-			_target_list.with_target(_assign_list, id, [&] (Target const &from) {
-				_target_list.with_target(_drag.target, [&] (Target const &to) {
-					if (&from != &to)
-						fn(from, to); }); });
-		};
-		if (_drag.moving) {
-			with_target_change([&] (Target const &from, Target const &to) {
-				_assign_list.for_each([&] (Assign &assign) {
-					Window *window_ptr = nullptr;
-					assign.for_each_member([&] (Assign::Member &member) {
-						if (member.window.id() == id)
-							window_ptr = &member.window; });
-					if (window_ptr) {
-						assign.target_name = to.name();
-						window_ptr->warp(from.geometry().at - to.geometry().at);
-					}
-				});
+		bool const moving = _moving(id, element);
+		if (moving) {
+			_target_list.with_target_at(curr, [&] (Target const &pointed) {
+				_drag = { Drag::State::SETTLING, moving, id, curr, pointed.geometry() };
+				_with_target_change(id, pointed.name(), [&] (Target const &from, Target const &to) {
+					_retarget_window(id, from, to); });
 			});
 		}
+
 		_drop_timer.trigger_once(250*1000);
 	}
 

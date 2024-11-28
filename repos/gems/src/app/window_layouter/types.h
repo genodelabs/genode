@@ -92,13 +92,13 @@ namespace Window_layouter {
 		bool      moving;     /* distiguish moving from resizing */
 		Window_id window_id;
 		Point     curr_pos;
-		Name      target;
+		Rect      target_rect;
 
 		bool dragging() const { return state == State::DRAGGING; }
 
-		bool moving_at_target(Name const &name) const
+		bool moving_at_target_rect(Rect const &rect) const
 		{
-			return dragging() && name == target && moving;
+			return dragging() && rect == target_rect && moving;
 		}
 
 		bool moving_window(Window_id id) const

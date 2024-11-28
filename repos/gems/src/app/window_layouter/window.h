@@ -333,6 +333,8 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		void resizeable(bool resizeable) { _resizeable = resizeable; }
 
+		bool resizeable() const { return _resizeable; }
+
 		bool label_matches(Label const &label) const { return label == _label; }
 
 		/**

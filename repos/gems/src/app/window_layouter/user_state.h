@@ -82,22 +82,9 @@ class Window_layouter::User_state
 		Focus_history &_focus_history;
 
 		/*
-		 * Return true if key is potentially part of a key sequence
+		 * Return true if event is potentially part of a key sequence
 		 */
-		static bool _key(Input::Keycode key) { return key != Input::BTN_LEFT; }
-
-		bool _key(Input::Event const &ev) const
-		{
-			bool relevant = false;
-
-			ev.handle_press([&] (Input::Keycode key, Codepoint) {
-				relevant |= _key(key); });
-
-			ev.handle_release([&] (Input::Keycode key) {
-				relevant |= _key(key); });
-
-			return relevant;
-		}
+		bool _key(Input::Event const &ev) const { return ev.press() || ev.release(); }
 
 		inline void _handle_event(Input::Event const &, Xml_node);
 
