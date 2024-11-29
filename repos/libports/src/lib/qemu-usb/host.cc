@@ -13,6 +13,7 @@
 #include <usb_session/device.h>
 #include <util/list_model.h>
 #include <util/xml_node.h>
+#include <os/backtrace.h>
 
 #include <extern_c_begin.h>
 #include <qemu_emul.h>
@@ -244,6 +245,8 @@ class Interface : public List_model<::Interface>::Element
 		template <typename FN>
 		void for_each_endpoint(FN const &fn) {
 			_endpoints.for_each([&] (Endpoint &endp) { fn(endp); }); }
+
+		void io();
 };
 
 
@@ -384,6 +387,8 @@ class Device : public List_model<Device>::Element
 			_ifaces.for_each([&] (::Interface &iface) {
 				if (iface.active()) fn(iface); });
 		}
+
+		void io() { Signal_transmitter(_sigh_cap).submit(); }
 };
 
 
@@ -529,7 +534,7 @@ void Isoc_cache::_new_urb()
 		sent = true;
 	}
 
-	if (sent) _iface.update_urbs();
+	if (sent) _iface.io();
 }
 
 
@@ -632,6 +637,12 @@ Usb::Interface &::Interface::_session()
 	}
 	return *_iface;
 };
+
+
+void ::Interface::io()
+{
+	Signal_transmitter(_device.sigh_cap()).submit();
+}
 
 
 #define USB_HOST_DEVICE(obj) \
@@ -742,15 +753,26 @@ void complete_packet(USBPacket * const p, Usb::Tagged_packet::Return_value v)
 			usb_host_update_devices();
 			usb_host_update_ep(udev);
 		}
+		if (p->state != USB_PACKET_ASYNC) {
+			error("Unexpected packet state for control xfer ", (int)p->state);
+			break;
+		}
 		usb_generic_async_ctrl_complete(udev, p);
 		return;
 	case USB_ENDPOINT_XFER_BULK:
 	case USB_ENDPOINT_XFER_INT:
+		if (p->state != USB_PACKET_ASYNC) {
+			error("Unexpected packet state for irq/bulk xfer ", (int)p->state);
+			break;
+		}
 		usb_packet_complete(udev, p);
-		break;
+		return;
 	default:
-		error("cannot produce data for unknown packet");
+		error("cannot complete unknown packet type");
 	}
+
+	/* unexpected outcome */
+	backtrace();
 }
 
 
@@ -871,7 +893,7 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 					new (_usb_session()->_alloc)
 						::Urb(_usb_session()->_urb_registry,
 						      iface, endp, type, usb_packet_size(p), p);
-					iface.update_urbs();
+					iface.io();
 					return;
 				case USB_ENDPOINT_XFER_ISOC:
 					p->status = USB_RET_SUCCESS;
@@ -910,13 +932,12 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 
 	_usb_session()->_space.apply<Device>({ handle },
 	                                     [&] (Device & device) {
+		p->status = USB_RET_ASYNC;
 		new (_usb_session()->_alloc)
 			Device::Urb(device, request & 0xff, (request >> 8) & 0xff,
 			            value, index, length, p);
-		device.update_urbs();
+		device.io();
 	});
-
-	p->status = USB_RET_ASYNC;
 }
 
 
