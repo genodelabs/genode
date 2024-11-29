@@ -58,7 +58,29 @@ class Window_layouter::Window : public List_model<Window>::Element
 				return "";
 			}
 
-			Element(Type type) : type(type) { }
+			static Element from_xml(Xml_node const &hover)
+			{
+				bool const left   = hover.has_sub_node("left_sizer"),
+				           right  = hover.has_sub_node("right_sizer"),
+				           top    = hover.has_sub_node("top_sizer"),
+				           bottom = hover.has_sub_node("bottom_sizer");
+
+				if (top && left)     return { TOP_LEFT     };
+				if (bottom && left)  return { BOTTOM_LEFT  };
+				if (left)            return { LEFT         };
+				if (top && right)    return { TOP_RIGHT    };
+				if (bottom && right) return { BOTTOM_RIGHT };
+				if (right)           return { RIGHT        };
+				if (top)             return { TOP          };
+				if (bottom)          return { BOTTOM       };
+
+				if (hover.has_sub_node("title"))     return { TITLE     };
+				if (hover.has_sub_node("closer"))    return { CLOSER    };
+				if (hover.has_sub_node("maximizer")) return { MAXIMIZER };
+				if (hover.has_sub_node("minimizer")) return { MINIMIZER };
+
+				return { UNDEFINED };
+			}
 
 			bool operator != (Element const &other) const { return other.type != type; }
 			bool operator == (Element const &other) const { return other.type == type; }
@@ -71,15 +93,28 @@ class Window_layouter::Window : public List_model<Window>::Element
 				    || type == BOTTOM_LEFT || type == BOTTOM_RIGHT
 				    || type == MAXIMIZER;
 			}
+
+			bool _any_of(Type t1, Type t2, Type t3) const
+			{
+				return type == t1 || type == t2 || type == t3;
+			}
+
+			bool left()   const { return _any_of(LEFT,   TOP_LEFT,    BOTTOM_LEFT);  }
+			bool right()  const { return _any_of(RIGHT,  TOP_RIGHT,   BOTTOM_RIGHT); }
+			bool top()    const { return _any_of(TOP,    TOP_LEFT,    TOP_RIGHT);    }
+			bool bottom() const { return _any_of(BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT); }
+
+			bool maximizer() const { return type == MAXIMIZER; }
+			bool closer()    const { return type == CLOSER;    }
 		};
+
+		Window_id const id;
+
+		Label const label;
 
 	private:
 
-		Window_id const _id;
-
 		Title _title { };
-
-		Label const _label;
 
 		Decorator_margins const &_decorator_margins;
 
@@ -172,10 +207,13 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		Focus_history::Entry _focus_history_entry;
 
-		bool _drag_left_border   = false;
-		bool _drag_right_border  = false;
-		bool _drag_top_border    = false;
-		bool _drag_bottom_border = false;
+		struct Dragged_border
+		{
+			bool left, right, top, bottom;
+
+			bool any() const { return left || right || top || bottom; };
+
+		} _dragged_border { };
 
 		/**
 		 * Called when the user starts dragging a window element
@@ -185,22 +223,10 @@ class Window_layouter::Window : public List_model<Window>::Element
 			_dragged_element = element;
 
 			if (_resizeable) {
-
-				_drag_left_border   = (element.type == Window::Element::LEFT)
-				                   || (element.type == Window::Element::TOP_LEFT)
-				                   || (element.type == Window::Element::BOTTOM_LEFT);
-
-				_drag_right_border  = (element.type == Window::Element::RIGHT)
-				                   || (element.type == Window::Element::TOP_RIGHT)
-				                   || (element.type == Window::Element::BOTTOM_RIGHT);
-
-				_drag_top_border    = (element.type == Window::Element::TOP)
-				                   || (element.type == Window::Element::TOP_LEFT)
-				                   || (element.type == Window::Element::TOP_RIGHT);
-
-				_drag_bottom_border = (element.type == Window::Element::BOTTOM)
-				                   || (element.type == Window::Element::BOTTOM_LEFT)
-				                   || (element.type == Window::Element::BOTTOM_RIGHT);
+				_dragged_border.left   = element.left();
+				_dragged_border.right  = element.right();
+				_dragged_border.top    = element.top();
+				_dragged_border.bottom = element.bottom();
 			}
 
 			_orig_geometry = _geometry;
@@ -217,7 +243,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		void _apply_drag_operation(Point offset)
 		{
 			/* move window */
-			if (!_drag_border()) {
+			if (!_dragged_border.any()) {
 				_drag_geometry = Rect(_orig_geometry.p1() + offset,
 				                      _orig_geometry.area);
 				return;
@@ -233,23 +259,14 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			auto clamped = [] (int v, int lowest, int highest) { return min(max(v, lowest), highest); };
 
-			if (_drag_left_border)   x1 = clamped(min(x1 + offset.x, x2), inner.x1(), outer.x2());
-			if (_drag_right_border)  x2 = clamped(max(x2 + offset.x, x1), outer.x1(), inner.x2());
-			if (_drag_top_border)    y1 = clamped(min(y1 + offset.y, y2), inner.y1(), outer.y2());
-			if (_drag_bottom_border) y2 = clamped(max(y2 + offset.y, y1), outer.y1(), inner.y2());
+			if (_dragged_border.left)   x1 = clamped(min(x1 + offset.x, x2), inner.x1(), outer.x2());
+			if (_dragged_border.right)  x2 = clamped(max(x2 + offset.x, x1), outer.x1(), inner.x2());
+			if (_dragged_border.top)    y1 = clamped(min(y1 + offset.y, y2), inner.y1(), outer.y2());
+			if (_dragged_border.bottom) y2 = clamped(max(y2 + offset.y, y1), outer.y1(), inner.y2());
 
 			_drag_geometry = Rect::compound(Point { x1, y1 }, Point { x2, y2 });
 
 			_dragged_size = _drag_geometry.area;
-		}
-
-		/**
-		 * Return true if user drags a window border
-		 */
-		bool _drag_border() const
-		{
-			return  _drag_left_border || _drag_right_border
-			     || _drag_top_border  || _drag_bottom_border;
 		}
 
 		Constructible<Assign::Member> _assign_member { };
@@ -260,20 +277,14 @@ class Window_layouter::Window : public List_model<Window>::Element
 		       Focus_history &focus_history,
 		       Decorator_margins const &decorator_margins)
 		:
-			_id(id), _label(label),
+			id(id), label(label),
 			_decorator_margins(decorator_margins),
 			_client_size(initial_size),
 			_dragged_size(initial_size),
-			_focus_history_entry(focus_history, _id)
+			_focus_history_entry(focus_history, id)
 		{ }
 
-		bool has_id(Window_id id) const { return id == _id; }
-
-		Window_id id() const { return _id; }
-
 		void title(Title const &title) { _title = title; }
-
-		Label label() const { return _label; }
 
 		bool dragged() const { return _dragged; }
 
@@ -286,14 +297,14 @@ class Window_layouter::Window : public List_model<Window>::Element
 			    x2 = _orig_geometry.x2(), y2 = _orig_geometry.y2();
 
 			/* move window */
-			if (!_drag_border())
+			if (!_dragged_border.any())
 				return _drag_geometry;
 
 			/* resize window */
-			if (_drag_left_border)   x1 = x2 - _client_size.w + 1;
-			if (_drag_right_border)  x2 = x1 + _client_size.w - 1;
-			if (_drag_top_border)    y1 = y2 - _client_size.h + 1;
-			if (_drag_bottom_border) y2 = y1 + _client_size.h - 1;
+			if (_dragged_border.left)   x1 = x2 - _client_size.w + 1;
+			if (_dragged_border.right)  x2 = x1 + _client_size.w - 1;
+			if (_dragged_border.top)    y1 = y2 - _client_size.h + 1;
+			if (_dragged_border.bottom) y2 = y1 + _client_size.h - 1;
 
 			return Rect::compound(Point(x1, y1), Point(x2, y2));
 		}
@@ -335,8 +346,6 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		bool resizeable() const { return _resizeable; }
 
-		bool label_matches(Label const &label) const { return label == _label; }
-
 		/**
 		 * Define window size
 		 *
@@ -370,7 +379,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 				return;
 
 			xml.node("window", [&] () {
-				xml.attribute("id",     _id.value);
+				xml.attribute("id",     id.value);
 				xml.attribute("width",  size.w);
 				xml.attribute("height", size.h);
 			});
@@ -384,14 +393,14 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			xml.node("window", [&]() {
 
-				xml.attribute("id", _id.value);
+				xml.attribute("id", id.value);
 
 				/* present concatenation of label and title in the window's title bar */
 				{
 					bool const has_title = strlen(_title.string()) > 0;
 
 					String<Label::capacity()> const
-						title(_label, (has_title ? " " : ""), _title);
+						title(label, (has_title ? " " : ""), _title);
 
 					xml.attribute("title",  title);
 				}
@@ -471,13 +480,10 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		void finalize_drag_operation()
 		{
-			_drag_left_border   = false;
-			_drag_right_border  = false;
-			_drag_top_border    = false;
-			_drag_bottom_border = false;
-			_geometry           = effective_inner_geometry();
-			_dragged_size       = _geometry.area;
-			_dragged            = false;
+			_dragged_border = { };
+			_geometry       = effective_inner_geometry();
+			_dragged_size   = _geometry.area;
+			_dragged        = false;
 		}
 
 		void to_front_cnt(unsigned to_front_cnt) { _to_front_cnt = to_front_cnt; }
@@ -520,7 +526,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		 */
 		bool matches(Xml_node const &node) const
 		{
-			return node.attribute_value("id", 0U) == _id.value;
+			return node.attribute_value("id", 0U) == id.value;
 		}
 
 		/**

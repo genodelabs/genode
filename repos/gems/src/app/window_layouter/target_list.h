@@ -144,8 +144,8 @@ class Window_layouter::Target_list
 			/* search targets for next matching layer */
 			unsigned layer = MAX_LAYER;
 			_targets.for_each([&] (Target const &target) {
-				if (target.layer() >= min_layer && target.layer() <= layer)
-					layer = target.layer(); });
+				if (target.layer >= min_layer && target.layer <= layer)
+					layer = target.layer; });
 
 			Rect const drag_origin_boundary = drag.dragging() && drag.moving
 			                                ? target_boundary(assignments, drag.window_id)
@@ -153,31 +153,31 @@ class Window_layouter::Target_list
 			/* search target by name */
 			_targets.for_each([&] (Target const &target) {
 
-				if (target.layer() != layer)
+				if (target.layer != layer)
 					return;
 
-				if (!target.visible())
+				if (!target.visible)
 					return;
 
-				if (assignments.target_empty(target.name()) && !drag.moving_at_target_rect(target.geometry()))
+				if (assignments.target_empty(target.name) && !drag.moving_at_target_rect(target.rect))
 					return;
 
-				Rect const boundary = target.geometry();
+				Rect const boundary = target.rect;
 				xml.node("boundary", [&] {
-					xml.attribute("name", target.name());
+					xml.attribute("name", target.name);
 					generate(xml, boundary);
 
 					/* in-flux window node for the currently dragged window */
-					if (drag.moving_at_target_rect(target.geometry()))
+					if (drag.moving_at_target_rect(target.rect))
 						assignments.for_each([&] (Assign const &assign) {
 							assign.for_each_member([&] (Assign::Member const &member) {
-								if (drag.moving_window(member.window.id()))
+								if (drag.moving_window(member.window.id))
 									member.window.generate(xml, drag_origin_boundary); }); });
 
 					/* visit all windows on the layer, except for the dragged one */
-					assignments.for_each_visible(target.name(), [&] (Assign const &assign) {
+					assignments.for_each_visible(target.name, [&] (Assign const &assign) {
 						assign.for_each_member([&] (Assign::Member const &member) {
-							if (!drag.moving_window(member.window.id()))
+							if (!drag.moving_window(member.window.id))
 								member.window.generate(xml, boundary); }); });
 				});
 			});
@@ -291,7 +291,7 @@ class Window_layouter::Target_list
 		{
 			Target const *ptr = nullptr;
 			for_each([&] (Target const &target) {
-				if (target.name() == name)
+				if (target.name == name)
 					ptr = &target; });
 			if (ptr)
 				fn(*ptr);
@@ -301,7 +301,7 @@ class Window_layouter::Target_list
 		{
 			Target const *ptr = nullptr;
 			for_each([&] (Target const &target) {
-				if (target.visible() && target.geometry().contains(at))
+				if (target.visible && target.rect.contains(at))
 					ptr = &target; });
 			if (ptr)
 				fn(*ptr);
@@ -311,9 +311,9 @@ class Window_layouter::Target_list
 		{
 			Target const *ptr = nullptr;
 			_targets.for_each([&] (Target const &target) {
-				assignments.for_each_visible(target.name(), [&] (Assign const &assign) {
+				assignments.for_each_visible(target.name, [&] (Assign const &assign) {
 					assign.for_each_member([&] (Assign::Member const &member) {
-						if (member.window.id() == id)
+						if (member.window.id == id)
 							ptr = &target; }); }); });
 			if (ptr)
 				fn(*ptr);
@@ -326,10 +326,9 @@ class Window_layouter::Target_list
 		{
 			Rect result { };
 			with_target(assignments, id, [&] (Target const &target) {
-				result = target.geometry(); });
+				result = target.rect; });
 			return result;
 		}
-
 };
 
 #endif /* _TARGET_LIST_H_ */

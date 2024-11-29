@@ -24,13 +24,13 @@ struct Window_layouter::Decorator_margins
 {
 	unsigned top, bottom, left, right;
 
-	Decorator_margins(Xml_node node)
-	:
-		top   (node.attribute_value("top",    0U)),
-		bottom(node.attribute_value("bottom", 0U)),
-		left  (node.attribute_value("left",   0U)),
-		right (node.attribute_value("right",  0U))
-	{ }
+	static Decorator_margins from_xml(Xml_node const &node)
+	{
+		return { .top    = node.attribute_value("top",    0U),
+		         .bottom = node.attribute_value("bottom", 0U),
+		         .left   = node.attribute_value("left",   0U),
+		         .right  = node.attribute_value("right",  0U) };
+	}
 
 	/**
 	 * Convert outer geometry to inner geometry

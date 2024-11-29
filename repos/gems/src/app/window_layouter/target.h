@@ -20,38 +20,27 @@
 namespace Window_layouter { class Target; }
 
 
-class Window_layouter::Target : Noncopyable
+struct Window_layouter::Target : Noncopyable
 {
-	public:
+	using Name = String<64>;
 
-		using Name = String<64>;
+	struct Visible { bool value; };
 
-		struct Visible { bool value; };
+	Name     const name;
+	unsigned const layer;
+	Rect     const rect;
+	bool     const visible;
 
-	private:
+	Target(Xml_node target, Rect rect, Visible visible)
+	:
+		name (target.attribute_value("name", Name())),
+		layer(target.attribute_value("layer", 9999U)),
+		rect (rect),
+		visible(visible.value)
+	{ }
 
-		Name     const _name;
-		unsigned const _layer;
-		Rect     const _geometry;
-		bool     const _visible;
-
-	public:
-
-		Target(Xml_node target, Rect geometry, Visible visible)
-		:
-			_name (target.attribute_value("name", Name())),
-			_layer(target.attribute_value("layer", 9999U)),
-			_geometry(geometry),
-			_visible(visible.value)
-		{ }
-
-		/* needed to use class as 'Registered<Target>' */
-		virtual ~Target() { }
-
-		Name     name()     const { return _name; }
-		unsigned layer()    const { return _layer; }
-		Rect     geometry() const { return _geometry; }
-		bool     visible()  const { return _visible; }
+	/* needed to use class as 'Registered<Target>' */
+	virtual ~Target() { }
 };
 
 #endif /* _TARGET_H_ */

@@ -15,7 +15,7 @@
 #define _KEY_SEQUENCE_TRACKER_H_
 
 /* local includes */
-#include "action.h"
+#include <command.h>
 
 namespace Window_layouter { class Key_sequence_tracker; }
 
@@ -28,20 +28,18 @@ class Window_layouter::Key_sequence_tracker
 		{
 			struct Entry
 			{
-				enum Type { PRESS, RELEASE };
+				bool press;
 
-				Type type = PRESS;
-
-				Input::Keycode keycode = Input::KEY_UNKNOWN;
-
-				Entry() { }
-
-				Entry(Type type, Input::Keycode keycode)
-				: type(type), keycode(keycode) { }
+				Input::Keycode key;
 
 				bool operator == (Entry const &other) const
 				{
-					return other.type == type && other.keycode == keycode;
+					return other.press == press && other.key == key;
+				}
+
+				void print(Output &out) const
+				{
+					Genode::print(out, press ? "press " : "release ", Input::key_name(key));
 				}
 			};
 
@@ -50,7 +48,7 @@ class Window_layouter::Key_sequence_tracker
 			 * sequence.
 			 */
 			enum { MAX_ENTRIES = 64 };
-			Entry entries[MAX_ENTRIES];
+			Entry entries[MAX_ENTRIES] { };
 
 			unsigned pos = 0;
 
@@ -91,82 +89,69 @@ class Window_layouter::Key_sequence_tracker
 			}
 
 			void reset() { pos = 0; }
+
+			void print(Output &out) const
+			{
+				Genode::print(out, "[", pos, "]: ");
+				for (unsigned i = 0; i < pos; i++)
+					Genode::print(out, " ", entries[i]);
+			}
 		};
 
 		Stack _stack { };
 
-		Xml_node _matching_sub_node(Xml_node curr, Stack::Entry entry)
+		void _with_matching_sub_node(Xml_node const &curr, Stack::Entry entry,
+		                             auto const &fn, auto const &no_match_fn) const
 		{
-			char const *node_type = entry.type == Stack::Entry::PRESS
-			                      ? "press" : "release";
+			auto const node_type = entry.press ? "press" : "release";
 
 			using Key_name = String<32>;
-			Key_name const key(Input::key_name(entry.keycode));
+			Key_name const key(Input::key_name(entry.key));
 
-			Xml_node result("<none/>");
-
+			bool done = false; /* process the first match only */
 			curr.for_each_sub_node(node_type, [&] (Xml_node const &node) {
+				if (!done && node.attribute_value("key", Key_name()) == key) {
+					fn(node);
+					done = true; } });
 
-				if (node.attribute_value("key", Key_name()) != key)
-					return;
-
-				/* set 'result' only once, so we return the first match */
-				if (result.has_type("none"))
-					result = node;
-			});
-
-			return result;
+			if (!done)
+				no_match_fn();
 		}
 
+		void _with_match_rec(unsigned const pos, Xml_node const &node, auto const &fn) const
+		{
+			if (pos == _stack.pos) {
+				fn(node);
+				return;
+			}
+
+			/* recursion is bounded by Stack::MAX_ENTRIES */
+			_with_matching_sub_node(node, _stack.entries[pos],
+				[&] (Xml_node const &sub_node) {
+					if (pos < _stack.pos)
+						_with_match_rec(pos + 1, sub_node, fn); },
+				[&] { });
+		};
+
 		/**
-		 * Lookup XML node that matches the state of the key sequence
+		 * Call 'fn' with XML node that matches the state of the key sequence
 		 *
 		 * Traverse the nested '<press>' and '<release>' nodes of the
 		 * configuration according to the history of events of the current
 		 * sequence.
-		 *
-		 * \return XML node of the type '<press>' or '<release>'.
-		 *         If the configuration does not contain a matching node, the
-		 *         method returns a dummy node '<none>'.
 		 */
-		Xml_node _xml_by_path(Xml_node config)
+		void _with_xml_by_path(Xml_node const &config, auto const &fn) const
 		{
-			Xml_node curr = config;
-
-			/*
-			 * Each iteration corresponds to a nesting level
-			 */
-			for (unsigned i = 0; i < _stack.pos; i++) {
-
-				Stack::Entry const entry = _stack.entries[i];
-
-				Xml_node const match = _matching_sub_node(curr, entry);
-
-				if (match.has_type("none"))
-					return match;
-
-				curr = match;
-			}
-
-			return curr;
+			_with_match_rec(0, config, fn);
 		}
 
 		/**
-		 * Execute action denoted in the specific XML node
+		 * Execute command denoted in the specific XML node
 		 */
-		template <typename FUNC>
-		void _execute_action(Xml_node node, FUNC const &func)
+		void _execute_command(Xml_node node, auto const &fn)
 		{
-			if (!node.has_attribute("action"))
-				return;
-
-			using Action = String<32>;
-			Action action = node.attribute_value("action", Action());
-
-			using Name = Window_layouter::Target::Name;
-			Name const target = node.attribute_value("target", Name());
-
-			func(Window_layouter::Action(action, target));
+			if (node.has_attribute("action"))
+				fn(Command::from_xml(node));
 		}
 
 	public:
@@ -179,13 +164,12 @@ class Window_layouter::Key_sequence_tracker
 		/**
 		 * Apply event to key sequence
 		 *
-		 * \param func  functor to be called if the event leads to a node in
-		 *              the key-sequence configuration and the node is
-		 *              equipped with an 'action' attribute. The functor is
-		 *              called with an 'Action' as argument.
+		 * \param fn  functor to be called if the event leads to a node in
+		 *            the key-sequence configuration and the node is
+		 *            equipped with an 'action' attribute. The functor is
+		 *            called with an 'Action' as argument.
 		 */
-		template <typename FUNC>
-		void apply(Input::Event const &ev, Xml_node config, FUNC const &func)
+		void apply(Input::Event const &ev, Xml_node const &config, auto const &fn)
 		{
 			/*
 			 * If the sequence contains a press-release combination for
@@ -194,44 +178,44 @@ class Window_layouter::Key_sequence_tracker
 			 * once.
 			 */
 			ev.handle_press([&] (Input::Keycode key, Codepoint) {
-				_stack.flush(Stack::Entry(Stack::Entry::PRESS,   key));
-				_stack.flush(Stack::Entry(Stack::Entry::RELEASE, key));
+				_stack.flush(Stack::Entry { .press = true,  .key = key });
+				_stack.flush(Stack::Entry { .press = false, .key = key });
 			});
 
-			Xml_node curr_node = _xml_by_path(config);
+			_with_xml_by_path(config, [&] (Xml_node const &curr_node) {
 
-			ev.handle_press([&] (Input::Keycode key, Codepoint) {
+				ev.handle_press([&] (Input::Keycode key, Codepoint) {
 
-				Stack::Entry const entry(Stack::Entry::PRESS, key);
+					Stack::Entry const press { .press = true, .key = key };
 
-				_execute_action(_matching_sub_node(curr_node, entry), func);
-				_stack.push(entry);
-			});
+					_with_matching_sub_node(curr_node, press,
+						[&] (Xml_node const &node) { _execute_command(node, fn); },
+						[&] { });
 
-			ev.handle_release([&] (Input::Keycode key) {
+					_stack.push(press);
+				});
 
-				Stack::Entry const entry(Stack::Entry::RELEASE, key);
+				ev.handle_release([&] (Input::Keycode key) {
 
-				Xml_node const next_node = _matching_sub_node(curr_node, entry);
+					Stack::Entry const release { .press = false, .key = key };
 
-				/*
-				 * If there exists a specific path for the release event,
-				 * follow the path. Otherwise, we remove the released key from
-				 * the sequence.
-				 */
-				if (!next_node.has_type("none")) {
-
-					_execute_action(next_node, func);
-					_stack.push(entry);
-
-				} else {
-
-					Stack::Entry entry(Stack::Entry::PRESS, key);
-					_stack.flush(entry);
-				}
+					/*
+					 * If there exists a specific path for the release event,
+					 * follow the path. Otherwise, we remove the released key
+					 * from the sequence.
+					 */
+					_with_matching_sub_node(curr_node, release,
+						[&] (Xml_node const &next_node) {
+							_execute_command(next_node, fn);
+							_stack.push(release);
+						},
+						[&] /* no match */ {
+							Stack::Entry const press { .press = true, .key = key };
+							_stack.flush(press);
+						});
+				});
 			});
 		}
 };
-
 
 #endif /* _KEY_SEQUENCE_TRACKER_H_ */

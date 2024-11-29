@@ -15,8 +15,7 @@
 #define _USER_STATE_H_
 
 /* local includes */
-#include "operations.h"
-#include "key_sequence_tracker.h"
+#include <key_sequence_tracker.h>
 
 namespace Window_layouter { class User_state; }
 
@@ -25,15 +24,22 @@ class Window_layouter::User_state
 {
 	public:
 
+		struct Action : Interface
+		{
+			virtual void close(Window_id) = 0;
+			virtual void toggle_fullscreen(Window_id) = 0;
+			virtual void focus(Window_id) = 0;
+			virtual void release_grab() = 0;
+			virtual void to_front(Window_id) = 0;
+			virtual void drag(Window_id, Window::Element, Point clicked, Point curr) = 0;
+			virtual void finalize_drag(Window_id, Window::Element, Point clicked, Point final) = 0;
+			virtual void screen(Target::Name const &) = 0;
+		};
+
 		struct Hover_state
 		{
 			Window_id       window_id;
-			Window::Element element { Window::Element::UNDEFINED };
-
-			Hover_state(Window_id id, Window::Element element)
-			:
-				window_id(id), element(element)
-			{ }
+			Window::Element element;
 
 			bool operator != (Hover_state const &other) const
 			{
@@ -44,16 +50,18 @@ class Window_layouter::User_state
 
 	private:
 
+		Action &_action;
+
 		Window_id _hovered_window_id { };
 		Window_id _focused_window_id { };
 		Window_id _dragged_window_id { };
 
-		unsigned  _key_cnt = 0;
+		unsigned _key_cnt = 0;
 
 		Key_sequence_tracker _key_sequence_tracker { };
 
-		Window::Element _hovered_element = Window::Element::UNDEFINED;
-		Window::Element _dragged_element = Window::Element::UNDEFINED;
+		Window::Element _hovered_element { };
+		Window::Element _dragged_element { };
 
 		/*
 		 * True while drag operation in progress
@@ -76,8 +84,6 @@ class Window_layouter::User_state
 		 * Current pointer position
 		 */
 		Point _pointer_curr { };
-
-		Operations &_operations;
 
 		Focus_history &_focus_history;
 
@@ -107,16 +113,16 @@ class Window_layouter::User_state
 			/*
 			 * Toggle maximized (fullscreen) state
 			 */
-			if (_hovered_element == Window::Element::MAXIMIZER) {
+			if (_hovered_element.maximizer()) {
 
 				_dragged_window_id = _hovered_window_id;
 				_focused_window_id = _hovered_window_id;
 				_focus_history.focus(_focused_window_id);
 
-				_operations.toggle_fullscreen(_hovered_window_id);
+				_action.toggle_fullscreen(_hovered_window_id);
 
-				_hovered_element   = Window::Element::UNDEFINED;
-				_hovered_window_id = Window_id();
+				_hovered_element   = { };
+				_hovered_window_id = { };
 				return;
 			}
 
@@ -128,19 +134,19 @@ class Window_layouter::User_state
 				_focused_window_id = _hovered_window_id;
 				_focus_history.focus(_focused_window_id);
 
-				_operations.to_front(_hovered_window_id);
-				_operations.focus(_hovered_window_id);
+				_action.to_front(_hovered_window_id);
+				_action.focus(_hovered_window_id);
 			}
 
-			_operations.drag(_dragged_window_id, _dragged_element,
-			                 _pointer_clicked, _pointer_curr);
+			_action.drag(_dragged_window_id, _dragged_element,
+			             _pointer_clicked, _pointer_curr);
 		}
 
 	public:
 
-		User_state(Operations &operations, Focus_history &focus_history)
+		User_state(Action &action, Focus_history &focus_history)
 		:
-			_operations(operations), _focus_history(focus_history)
+			_action(action), _focus_history(focus_history)
 		{ }
 
 		void handle_input(Input::Event const events[], unsigned num_events,
@@ -155,8 +161,8 @@ class Window_layouter::User_state
 			 * Issue drag operation when in dragged state
 			 */
 			if (_drag_state && _drag_init_done && (_pointer_curr != pointer_last))
-				_operations.drag(_dragged_window_id, _dragged_element,
-				                 _pointer_clicked, _pointer_curr);
+				_action.drag(_dragged_window_id, _dragged_element,
+				             _pointer_clicked, _pointer_curr);
 		}
 
 		void hover(Window_id window_id, Window::Element element)
@@ -186,15 +192,13 @@ class Window_layouter::User_state
 
 			/*
 			 * Let focus follows the pointer
-			 *
-			 * XXX obtain policy from config
 			 */
 			if (!_drag_state && _hovered_window_id.valid()
 			 && _hovered_window_id != last_hovered_window_id) {
 
 				_focused_window_id = _hovered_window_id;
 				_focus_history.focus(_focused_window_id);
-				_operations.focus(_focused_window_id);
+				_action.focus(_focused_window_id);
 			}
 		}
 
@@ -204,8 +208,8 @@ class Window_layouter::User_state
 			if (_drag_state)
 				return;
 
-			_hovered_element   = Window::Element::UNDEFINED;
-			_hovered_window_id = Window_id();
+			_hovered_element   = { };
+			_hovered_window_id = { };
 		}
 
 		Window_id focused_window_id() const { return _focused_window_id; }
@@ -225,8 +229,8 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 	if (e.absolute_motion() || e.focus_enter()) {
 
 		if (_drag_state && _drag_init_done)
-			_operations.drag(_dragged_window_id, _dragged_element,
-			                 _pointer_clicked, _pointer_curr);
+			_action.drag(_dragged_window_id, _dragged_element,
+			             _pointer_clicked, _pointer_curr);
 	}
 
 	/* track number of pressed buttons/keys */
@@ -277,12 +281,12 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 			/*
 			 * Issue resize to 0x0 when releasing the the window closer
 			 */
-			if (_dragged_element == Window::Element::CLOSER)
+			if (_dragged_element.closer())
 				if (_dragged_element == _hovered_element)
-					_operations.close(_dragged_window_id);
+					_action.close(_dragged_window_id);
 
-			_operations.finalize_drag(_dragged_window_id, _dragged_element,
-			                          _pointer_clicked, _pointer_curr);
+			_action.finalize_drag(_dragged_window_id, _dragged_element,
+			                      _pointer_clicked, _pointer_curr);
 		}
 	}
 
@@ -292,38 +296,38 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 		if (e.press() && _key_cnt == 1)
 			_key_sequence_tracker.reset();
 
-		_key_sequence_tracker.apply(e, config, [&] (Action action) {
+		_key_sequence_tracker.apply(e, config, [&] (Command const &command) {
 
-			switch (action.type()) {
+			switch (command.type) {
 
-			case Action::TOGGLE_FULLSCREEN:
-				_operations.toggle_fullscreen(_focused_window_id);
+			case Command::TOGGLE_FULLSCREEN:
+				_action.toggle_fullscreen(_focused_window_id);
 				return;
 
-			case Action::RAISE_WINDOW:
-				_operations.to_front(_focused_window_id);
+			case Command::RAISE_WINDOW:
+				_action.to_front(_focused_window_id);
 				return;
 
-			case Action::NEXT_WINDOW:
+			case Command::NEXT_WINDOW:
 				_focused_window_id = _focus_history.next(_focused_window_id);
-				_operations.focus(_focused_window_id);
+				_action.focus(_focused_window_id);
 				return;
 
-			case Action::PREV_WINDOW:
+			case Command::PREV_WINDOW:
 				_focused_window_id = _focus_history.prev(_focused_window_id);
-				_operations.focus(_focused_window_id);
+				_action.focus(_focused_window_id);
 				return;
 
-			case Action::SCREEN:
-				_operations.screen(action.target_name());
+			case Command::SCREEN:
+				_action.screen(command.target);
 				return;
 
-			case Action::RELEASE_GRAB:
-				_operations.release_grab();
+			case Command::RELEASE_GRAB:
+				_action.release_grab();
 				return;
 
 			default:
-				warning("action ", (int)action.type(), " unhanded");
+				warning("command ", (int)command.type, " unhanded");
 			}
 		});
 	}

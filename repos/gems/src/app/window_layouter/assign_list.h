@@ -55,21 +55,19 @@ class Window_layouter::Assign_list : Noncopyable
 					auto fn = [&] (Registry<Assign::Member> &registry) {
 						window.assignment(registry); };
 
-					assign.with_matching_members_registry(window.label(), fn);
+					assign.with_matching_members_registry(window.label, fn);
 				});
 			});
 		}
 
-		template <typename FN>
-		void for_each_wildcard_member(FN const &fn) const
+		void for_each_wildcard_member(auto const &fn) const
 		{
 			_assignments.for_each([&] (Assign const &assign) {
 				assign.for_each_wildcard_member([&] (Assign::Member const &member) {
 					fn(assign, member); }); });
 		}
 
-		template <typename FN>
-		void for_each_wildcard_assigned_window(FN const &fn)
+		void for_each_wildcard_assigned_window(auto const &fn)
 		{
 			_assignments.for_each([&] (Assign &assign) {
 				assign.for_each_wildcard_member([&] (Assign::Member &member) {

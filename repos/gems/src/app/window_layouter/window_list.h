@@ -25,7 +25,7 @@ class Window_layouter::Window_list
 {
 	public:
 
-		struct Change_handler : Interface
+		struct Action : Interface
 		{
 			virtual void window_list_changed() = 0;
 		};
@@ -34,7 +34,7 @@ class Window_layouter::Window_list
 
 		Env                     &_env;
 		Allocator               &_alloc;
-		Change_handler          &_change_handler;
+		Action                  &_action;
 		Focus_history           &_focus_history;
 		Decorator_margins const &_decorator_margins;
 
@@ -79,20 +79,20 @@ class Window_layouter::Window_list
 			);
 
 			/* notify main program */
-			_change_handler.window_list_changed();
+			_action.window_list_changed();
 		}
 
 	public:
 
 		Window_list(Env                     &env,
 		            Allocator               &alloc,
-		            Change_handler          &change_handler,
+		            Action                  &action,
 		            Focus_history           &focus_history,
 		            Decorator_margins const &decorator_margins)
 		:
 			_env(env),
 			_alloc(alloc),
-			_change_handler(change_handler),
+			_action(action),
 			_focus_history(focus_history),
 			_decorator_margins(decorator_margins)
 		{
@@ -107,27 +107,22 @@ class Window_layouter::Window_list
 				win.dissolve_from_assignment(); });
 		}
 
-		template <typename FN>
-		void with_window(Window_id id, FN const &fn)
+		void with_window(Window_id id, auto const &fn)
 		{
 			_list.for_each([&] (Window &win) {
-				if (win.has_id(id))
+				if (win.id == id)
 					fn(win); });
 		}
 
-		template <typename FN>
-		void with_window(Window_id id, FN const &fn) const
+		void with_window(Window_id id, auto const &fn) const
 		{
 			_list.for_each([&] (Window const &win) {
-				if (win.has_id(id))
+				if (win.id == id)
 					fn(win); });
 		}
 
-		template <typename FN>
-		void for_each_window(FN const &fn) { _list.for_each(fn); }
-
-		template <typename FN>
-		void for_each_window(FN const &fn) const { _list.for_each(fn); }
+		void for_each_window(auto const &fn)       { _list.for_each(fn); }
+		void for_each_window(auto const &fn) const { _list.for_each(fn); }
 };
 
 #endif /* _WINDOW_LIST_H_ */

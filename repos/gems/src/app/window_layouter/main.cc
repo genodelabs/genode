@@ -30,14 +30,13 @@
 #include <assign_list.h>
 #include <target_list.h>
 #include <user_state.h>
-#include <operations.h>
 
 namespace Window_layouter { struct Main; }
 
 
-struct Window_layouter::Main : Operations,
-                               Layout_rules::Change_handler,
-                               Window_list::Change_handler
+struct Window_layouter::Main : User_state::Action,
+                               Layout_rules::Action,
+                               Window_list::Action
 {
 	Env &_env;
 
@@ -63,7 +62,7 @@ struct Window_layouter::Main : Operations,
 
 	Layout_rules _layout_rules { _env, _heap, *this };
 
-	Decorator_margins _decorator_margins { Xml_node("<floating/>") };
+	Decorator_margins _decorator_margins { };
 
 	Window_list _window_list {
 		_env, _heap, *this, _focus_history, _decorator_margins };
@@ -104,17 +103,17 @@ struct Window_layouter::Main : Operations,
 		_assign_list.for_each([&] (Assign &assign) {
 			_target_list.for_each([&] (Target const &target) {
 
-				if (target.name() != assign.target_name)
+				if (target.name != assign.target_name)
 					return;
 
 				assign.for_each_member([&] (Assign::Member &member) {
 
 					member.window.floating(assign.floating());
-					member.window.target_area(target.geometry().area);
+					member.window.target_area(target.rect.area);
 
-					Rect const rect = assign.window_geometry(member.window.id().value,
+					Rect const rect = assign.window_geometry(member.window.id.value,
 					                                         member.window.client_size(),
-					                                         target.geometry().area,
+					                                         target.rect.area,
 					                                         _decorator_margins);
 					member.window.outer_geometry(rect);
 					member.window.maximized(assign.maximized());
@@ -135,7 +134,7 @@ struct Window_layouter::Main : Operations,
 	}
 
 	/**
-	 * Layout_rules::Change_handler interface
+	 * Layout_rules::Action interface
 	 */
 	void layout_rules_changed() override
 	{
@@ -145,7 +144,7 @@ struct Window_layouter::Main : Operations,
 	}
 
 	/**
-	 * Window_list::Change_handler interface
+	 * Window_list::Action interface
 	 */
 	void window_list_changed() override { _update_window_layout(); }
 
@@ -165,9 +164,9 @@ struct Window_layouter::Main : Operations,
 	User_state _user_state { *this, _focus_history };
 
 
-	/**************************
-	 ** Operations interface **
-	 **************************/
+	/**********************************
+	 ** User_state::Action interface **
+	 **********************************/
 
 	void close(Window_id id) override
 	{
@@ -226,11 +225,11 @@ struct Window_layouter::Main : Operations,
 		_assign_list.for_each([&] (Assign &assign) {
 			Window *window_ptr = nullptr;
 			assign.for_each_member([&] (Assign::Member &member) {
-				if (member.window.id() == id)
+				if (member.window.id == id)
 					window_ptr = &member.window; });
 			if (window_ptr) {
-				assign.target_name = to.name();
-				window_ptr->warp(from.geometry().at - to.geometry().at);
+				assign.target_name = to.name;
+				window_ptr->warp(from.rect.at - to.rect.at);
 			}
 		});
 	}
@@ -240,7 +239,7 @@ struct Window_layouter::Main : Operations,
 		/* change of screen under the dragged window */
 		if (_drag.dragging())
 			_with_target_change(_drag.window_id, name, [&] (Target const &from, Target const &to) {
-				if (from.geometry() == to.geometry())
+				if (from.rect == to.rect)
 					_retarget_window(_drag.window_id, from, to); });
 
 		_gen_rules_with_frontmost_screen(name);
@@ -253,7 +252,7 @@ struct Window_layouter::Main : Operations,
 
 		bool const moving = _moving(id, element);
 		_target_list.with_target_at(curr, [&] (Target const &pointed) {
-			_drag = { Drag::State::DRAGGING, moving, id, curr, pointed.geometry() }; });
+			_drag = { Drag::State::DRAGGING, moving, id, curr, pointed.rect }; });
 
 		to_front(id);
 
@@ -319,8 +318,8 @@ struct Window_layouter::Main : Operations,
 		bool const moving = _moving(id, element);
 		if (moving) {
 			_target_list.with_target_at(curr, [&] (Target const &pointed) {
-				_drag = { Drag::State::SETTLING, moving, id, curr, pointed.geometry() };
-				_with_target_change(id, pointed.name(), [&] (Target const &from, Target const &to) {
+				_drag = { Drag::State::SETTLING, moving, id, curr, pointed.rect };
+				_with_target_change(id, pointed.name, [&] (Target const &from, Target const &to) {
 					_retarget_window(id, from, to); });
 			});
 		}
@@ -359,8 +358,8 @@ struct Window_layouter::Main : Operations,
 		_decorator_margins_rom.update();
 
 		Xml_node const margins = _decorator_margins_rom.xml();
-		if (margins.has_sub_node("floating"))
-			_decorator_margins = Decorator_margins(margins.sub_node("floating"));
+		margins.with_optional_sub_node("floating", [&] (Xml_node const floating) {
+			_decorator_margins = Decorator_margins::from_xml(floating); });
 
 		/* respond to change by adapting the maximized window geometry */
 		_handle_mode_change();
@@ -424,8 +423,7 @@ struct Window_layouter::Main : Operations,
 		_gen_rules_with_frontmost_screen(Target::Name());
 	}
 
-	template <typename FN>
-	void _gen_rules_assignments(Xml_generator &, FN const &);
+	void _gen_rules_assignments(Xml_generator &, auto const &);
 
 	/**
 	 * Constructor
@@ -461,11 +459,11 @@ void Window_layouter::Main::_gen_window_layout()
 	/* update hover and focus state of each window */
 	_window_list.for_each_window([&] (Window &window) {
 
-		window.focused(window.has_id(_user_state.focused_window_id()));
+		window.focused(window.id == _user_state.focused_window_id());
 
-		bool const hovered = window.has_id(_user_state.hover_state().window_id);
+		bool const hovered = (window.id == _user_state.hover_state().window_id);
 		window.hovered(hovered ? _user_state.hover_state().element
-		                       : Window::Element::UNDEFINED);
+		                       : Window::Element { });
 	});
 
 	_window_layout_reporter.generate([&] (Xml_generator &xml) {
@@ -502,8 +500,7 @@ void Window_layouter::Main::_gen_focus()
 }
 
 
-template <typename FN>
-void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, FN const &filter)
+void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, auto const &filter_fn)
 {
 	auto gen_window_geometry = [] (Xml_generator &xml,
 	                               Assign const &assign, Window const &window) {
@@ -517,11 +514,11 @@ void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, FN const 
 	/* turn wildcard assignments into exact assignments */
 	auto fn = [&] (Assign const &assign, Assign::Member const &member) {
 
-		if (!filter(member.window))
+		if (!filter_fn(member.window))
 			return;
 
 		xml.node("assign", [&] () {
-			xml.attribute("label",  member.window.label());
+			xml.attribute("label",  member.window.label);
 			xml.attribute("target", assign.target_name);
 			gen_window_geometry(xml, assign, member.window);
 		});
@@ -546,7 +543,7 @@ void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, FN const 
 
 		assign.for_each_member([&] (Assign::Member const &member) {
 
-			if (geometry_generated || !filter(member.window))
+			if (geometry_generated || !filter_fn(member.window))
 				return;
 
 			xml.node("assign", [&] () {
@@ -618,69 +615,20 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 }
 
 
-/**
- * Determine window element that corresponds to hover model
- */
-static Window_layouter::Window::Element
-_element_from_hover_model(Genode::Xml_node hover_window_xml)
-{
-	using Type = Window_layouter::Window::Element::Type;
-
-	bool const left_sizer   = hover_window_xml.has_sub_node("left_sizer"),
-	           right_sizer  = hover_window_xml.has_sub_node("right_sizer"),
-	           top_sizer    = hover_window_xml.has_sub_node("top_sizer"),
-	           bottom_sizer = hover_window_xml.has_sub_node("bottom_sizer");
-
-	if (left_sizer && top_sizer)    return Type::TOP_LEFT;
-	if (left_sizer && bottom_sizer) return Type::BOTTOM_LEFT;
-	if (left_sizer)                 return Type::LEFT;
-
-	if (right_sizer && top_sizer)    return Type::TOP_RIGHT;
-	if (right_sizer && bottom_sizer) return Type::BOTTOM_RIGHT;
-	if (right_sizer)                 return Type::RIGHT;
-
-	if (top_sizer)    return Type::TOP;
-	if (bottom_sizer) return Type::BOTTOM;
-
-	if (hover_window_xml.has_sub_node("title"))     return Type::TITLE;
-	if (hover_window_xml.has_sub_node("closer"))    return Type::CLOSER;
-	if (hover_window_xml.has_sub_node("maximizer")) return Type::MAXIMIZER;
-	if (hover_window_xml.has_sub_node("minimizer")) return Type::MINIMIZER;
-
-	return Type::UNDEFINED;
-}
-
-
 void Window_layouter::Main::_handle_hover()
 {
 	_hover.update();
 
 	User_state::Hover_state const orig_hover_state = _user_state.hover_state();
 
-	try {
-		Xml_node const hover_window_xml = _hover.xml().sub_node("window");
-
-		_user_state.hover({ hover_window_xml.attribute_value("id", 0U) },
-		                  _element_from_hover_model(hover_window_xml));
-	}
-
-	/*
-	 * An exception may occur during the 'Xml_node' construction if the hover
-	 * model lacks a window. Under this condition, we invalidate the hover
-	 * state.
-	 */
-	catch (...) {
-
-		_user_state.reset_hover();
-
-		/*
-		 * Don't generate a focus-model update here. In a situation where the
-		 * pointer has moved over a native GUI view (outside the realm of
-		 * the window manager), the hover model as generated by the decorator
-		 * naturally becomes empty. If we posted a focus update, this would
-		 * steal the focus away from the native GUI view.
-		 */
-	}
+	_hover.xml().with_sub_node("window",
+		[&] (Xml_node const &hover) {
+			_user_state.hover({ hover.attribute_value("id", 0U) },
+			                  Window::Element::from_xml(hover));
+		},
+		[&] /* the hover model lacks a window */ {
+			_user_state.reset_hover();
+		});
 
 	/*
 	 * Propagate changed hovering to the decorator
@@ -698,7 +646,7 @@ void Window_layouter::Main::_handle_focus_request()
 {
 	_focus_request.update();
 
-	int const id = (int)_focus_request.xml().attribute_value("id", 0L);
+	int const id = _focus_request.xml().attribute_value("id", 0);
 
 	/* don't apply the same focus request twice */
 	if (id == _handled_focus_request_id)
@@ -718,9 +666,9 @@ void Window_layouter::Main::_handle_focus_request()
 
 	_window_list.for_each_window([&] (Window &window) {
 
-		if (label_matches(prefix, window.label())) {
+		if (label_matches(prefix, window.label)) {
 			window.to_front_cnt(next_to_front_cnt);
-			_user_state.focused_window_id(window.id());
+			_user_state.focused_window_id(window.id);
 			stacking_order_changed = true;
 		}
 	});

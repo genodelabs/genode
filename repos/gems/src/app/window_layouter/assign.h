@@ -42,17 +42,63 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			: Registry<Member>::Element(registry, *this), window(window) { }
 		};
 
-		using Label = String<80>;
-
 		Target::Name target_name { };
 
 	private:
 
 		Registry<Member> _members { };
 
+		struct Label
+		{
+			using Value = String<80>;
+
+			Value exact, prefix, suffix;
+
+			static Label from_xml(Xml_node const &node)
+			{
+				return { .exact  = node.attribute_value("label",        Value()),
+				         .prefix = node.attribute_value("label_prefix", Value()),
+				         .suffix = node.attribute_value("label_suffix", Value()) };
+			}
+
+			bool operator == (Label const &other) const
+			{
+				return exact  == other.exact
+				    && prefix == other.prefix
+				    && suffix == other.suffix;
+			}
+
+			bool matches(Value const &label) const
+			{
+				if (exact.valid() && label == exact)
+					return true;
+
+				if (exact.valid())
+					return false;
+
+				bool const prefix_matches =
+					prefix.valid() &&
+					!strcmp(label.string(), prefix.string(), prefix.length() - 1);
+
+				bool suffix_matches = false;
+				if (label.length() >= suffix.length()) {
+					size_t const offset = label.length() - suffix.length();
+					suffix_matches = !strcmp(label.string() + offset, suffix.string());
+				}
+
+				return (!prefix.valid() || prefix_matches)
+				    && (!suffix.valid() || suffix_matches);
+			}
+
+			void gen_attr(Xml_generator &xml) const
+			{
+				if (exact .valid()) xml.attribute("label",        exact);
+				if (prefix.valid()) xml.attribute("label_prefix", prefix);
+				if (suffix.valid()) xml.attribute("label_suffix", suffix);
+			}
+		};
+
 		Label const _label;
-		Label const _label_prefix;
-		Label const _label_suffix;
 
 		bool _pos_defined  = false;
 		bool _xpos_any     = false;
@@ -66,12 +112,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 	public:
 
-		Assign(Xml_node assign)
-		:
-			_label       (assign.attribute_value("label",        Label())),
-			_label_prefix(assign.attribute_value("label_prefix", Label())),
-			_label_suffix(assign.attribute_value("label_suffix", Label()))
-		{ }
+		Assign(Xml_node assign) : _label(Label::from_xml(assign)) { }
 
 		void update(Xml_node assign)
 		{
@@ -89,19 +130,12 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node node) const
-		{
-			return node.attribute_value("label",        Label()) == _label
-			    && node.attribute_value("label_prefix", Label()) == _label_prefix
-			    && node.attribute_value("label_suffix", Label()) == _label_suffix;
-		}
+		bool matches(Xml_node node) const { return Label::from_xml(node) == _label; }
 
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node)
-		{
-			return node.has_type("assign");
+		static bool type_matches(Xml_node const &node) { return node.has_type("assign");
 		}
 
 		/**
@@ -136,38 +170,19 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		 *
 		 * This method is used for associating assignments to windows.
 		 */
-		template <typename FN>
-		void with_matching_members_registry(Label const &label, FN const &fn)
+		void with_matching_members_registry(Label::Value const &label, auto const &fn)
 		{
-			bool const label_matches = (_label.valid() && label == _label);
-
-			bool const prefix_matches =
-				_label_prefix.valid() &&
-				!strcmp(label.string(),
-				        _label_prefix.string(), _label_prefix.length() - 1);
-
-			bool suffix_matches = false;
-			if (label.length() >= _label_suffix.length()) {
-				unsigned const offset = (unsigned)(label.length() - _label_suffix.length());
-				suffix_matches = !strcmp(_label.string() + offset, _label_suffix.string());
-			}
-
-			bool const wildcard_matches = !_label.valid()
-			                           && (!_label_prefix.valid() || prefix_matches)
-			                           && (!_label_suffix.valid() || suffix_matches);
-
-			if (label_matches || wildcard_matches)
+			if (_label.matches(label))
 				fn(_members);
 		}
 
 		/**
 		 * Used to generate <assign> nodes of windows captured via wildcard
 		 */
-		template <typename FN>
-		void for_each_wildcard_member(FN const &fn) const
+		void for_each_wildcard_member(auto const &fn) const
 		{
 			/* skip non-wildcards */
-			if (_label.valid())
+			if (_label.exact.valid())
 				return;
 
 			_members.for_each([&] (Assign::Member const &member) { fn(member); });
@@ -176,10 +191,9 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		/**
 		 * Used to bring wildcard-matching windows to front
 		 */
-		template <typename FN>
-		void for_each_wildcard_member(FN const &fn)
+		void for_each_wildcard_member(auto const &fn)
 		{
-			if (_label.valid())
+			if (_label.exact.valid())
 				return;
 
 			_members.for_each([&] (Assign::Member &member) { fn(member); });
@@ -187,17 +201,14 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 		bool floating() const { return _pos_defined; }
 
-		bool wildcard() const { return !_label.valid(); }
+		bool wildcard() const { return !_label.exact.valid(); }
 
 		/**
 		 * Generate <assign> node
 		 */
 		void gen_assign_attr(Xml_generator &xml) const
 		{
-			if (_label.valid())        xml.attribute("label",        _label);
-			if (_label_prefix.valid()) xml.attribute("label_prefix", _label_prefix);
-			if (_label_suffix.valid()) xml.attribute("label_suffix", _label_suffix);
-
+			_label.gen_attr(xml);
 			xml.attribute("target", target_name);
 		}
 
@@ -247,11 +258,8 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 				xml.attribute("visible", "no");
 		}
 
-		template <typename FN>
-		void for_each_member(FN const &fn) { _members.for_each(fn); }
-
-		template <typename FN>
-		void for_each_member(FN const &fn) const { _members.for_each(fn); }
+		void for_each_member(auto const &fn)       { _members.for_each(fn); }
+		void for_each_member(auto const &fn) const { _members.for_each(fn); }
 };
 
 #endif /* _ASSIGN_H_ */
