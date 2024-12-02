@@ -140,8 +140,9 @@ struct Transform::Main
 
 			auto press_release = [&] () -> Keys::Type
 			{
-				if (key_type == "PRESS")   return Keys::Type::PRESS;
-				if (key_type == "RELEASE") return Keys::Type::RELEASE;
+				if (key_type == "PRESS")         return Keys::Type::PRESS;
+				if (key_type == "RELEASE")       return Keys::Type::RELEASE;
+				if (key_type == "PRESS_RELEASE") return Keys::Type::PRESS_RELEASE;
 				warning("unsupported 'as' attribute value \"", key_type, "\"");
 				return Keys::Type::PRESS_RELEASE;
 			};
