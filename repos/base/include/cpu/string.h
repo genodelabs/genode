@@ -25,7 +25,10 @@ namespace Genode {
 	 * \param size  number of bytes to copy
 	 *
 	 * \return      number of bytes not copied
+	 *
+	 * The compiler attribute prevents array-bounds warnings with gcc 12.3.
 	 */
+	__attribute((optimize("no-tree-loop-distribute-patterns")))
 	inline size_t memcpy_cpu(void * dst, const void * src, size_t size)
 	{
 		using word_t = unsigned long;
