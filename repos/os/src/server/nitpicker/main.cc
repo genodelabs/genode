@@ -319,7 +319,10 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				[&] (Point const p) {
 					_sessions.for_each([&] (Capture_session const &session) {
 						if (!result && session.bounding_box().contains(p))
-							result = true; }); },
+							result = true; });
+					if (!result)
+						result = _fallback_bounding_box.contains(p);
+				},
 				[&] (Nowhere) { });
 			return result;
 		}
