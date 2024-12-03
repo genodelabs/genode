@@ -107,12 +107,7 @@ struct Decorator::Main : Window_factory_base
 		Ticks const now  = _now();
 		bool  const idle = now.cs - _previous_sync.cs > 3;
 
-		if (!_gui_sync_enabled) {
-			_gui.framebuffer.sync_sigh(_gui_sync_handler);
-			_gui_sync_enabled = true;
-		}
-
-		if (idle) {
+		if (!_gui_sync_enabled || idle) {
 			_previous_sync = now;
 			_gui_sync_handler.local_submit();
 		}
@@ -308,11 +303,18 @@ void Decorator::Main::_handle_gui_sync()
 	}
 
 	/*
-	 * Disable sync handling when becoming idle
+	 * Enable/disable periodic sync depending on animation state
 	 */
-	if (!_animator.active()) {
-		_gui.framebuffer.sync_sigh(Signal_context_capability());
-		_gui_sync_enabled = false;
+	if (_gui_sync_enabled) {
+		if (!_animator.active()) {
+			_gui.framebuffer.sync_sigh(Signal_context_capability());
+			_gui_sync_enabled = false;
+		}
+	} else {
+		if (_animator.active()) {
+			_gui.framebuffer.sync_sigh(_gui_sync_handler);
+			_gui_sync_enabled = true;
+		}
 	}
 
 	_previous_sync = now;
