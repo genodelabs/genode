@@ -125,6 +125,13 @@ struct Window_layouter::Main : User_state::Action,
 		_assign_list.for_each_wildcard_assigned_window([&] (Window &window) {
 			_to_front(window); });
 
+		/* update focus if focused window became invisible */
+		if (!visible(_user_state.focused_window_id())) {
+			auto window_visible = [&] (Window_id id) { return visible(id); };
+			_user_state.focused_window_id(_focus_history.next({}, window_visible));
+			_gen_focus();
+		}
+
 		_gen_window_layout();
 
 		if (_assign_list.matching_wildcards())
@@ -162,6 +169,26 @@ struct Window_layouter::Main : User_state::Action,
 	}
 
 	User_state _user_state { *this, _focus_history };
+
+	bool _visible(Window_id const id, auto const &target_cond_fn)
+	{
+		bool result = false;
+		_target_list.for_each([&] (Target const &target) {
+			if (target_cond_fn(target))
+				_assign_list.for_each_visible(target.name, [&] (Assign const &assign) {
+					assign.for_each_member([&] (Assign::Member const &member) {
+						if (member.window.id == id)
+							result = true; }); }); });
+		return result;
+	}
+
+	/**
+	 * User_state::Action interface
+	 */
+	bool visible(Window_id const id) override
+	{
+		return _visible(id, [&] (Target const &target) { return target.visible; });
+	}
 
 
 	/**********************************
@@ -241,6 +268,21 @@ struct Window_layouter::Main : User_state::Action,
 			_with_target_change(_drag.window_id, name, [&] (Target const &from, Target const &to) {
 				if (from.rect == to.rect)
 					_retarget_window(_drag.window_id, from, to); });
+
+		/* repeated activation of screen moves focus to the screen */
+		bool already_visible = false;
+		_target_list.with_target(name, [&] (Target const &target) {
+			already_visible = target.visible; });
+
+		auto visible_on_screen = [&] (Window_id id)
+		{
+			return _visible(id, [&] (Target const &target) { return target.name == name; });
+		};
+
+		if (already_visible && !_drag.dragging()) {
+			_user_state.focused_window_id(_focus_history.next({}, visible_on_screen));
+			_gen_focus();
+		}
 
 		_gen_rules_with_frontmost_screen(name);
 	}

@@ -26,6 +26,7 @@ class Window_layouter::User_state
 
 		struct Action : Interface
 		{
+			virtual bool visible(Window_id) = 0;
 			virtual void close(Window_id) = 0;
 			virtual void toggle_fullscreen(Window_id) = 0;
 			virtual void focus(Window_id) = 0;
@@ -296,6 +297,8 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 		if (e.press() && _key_cnt == 1)
 			_key_sequence_tracker.reset();
 
+		auto visible = [&] (Window_id id) { return _action.visible(id); };
+
 		_key_sequence_tracker.apply(e, config, [&] (Command const &command) {
 
 			switch (command.type) {
@@ -309,12 +312,12 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 				return;
 
 			case Command::NEXT_WINDOW:
-				_focused_window_id = _focus_history.next(_focused_window_id);
+				_focused_window_id = _focus_history.next(_focused_window_id, visible);
 				_action.focus(_focused_window_id);
 				return;
 
 			case Command::PREV_WINDOW:
-				_focused_window_id = _focus_history.prev(_focused_window_id);
+				_focused_window_id = _focus_history.prev(_focused_window_id, visible);
 				_action.focus(_focused_window_id);
 				return;
 
