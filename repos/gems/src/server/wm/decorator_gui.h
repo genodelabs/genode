@@ -131,6 +131,12 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 		_input_session.sigh(_input_handler);
 	}
 
+	~Decorator_gui_session()
+	{
+		while (_content_view_ids.apply_any<Content_view_ref>([&] (Content_view_ref &view_ref) {
+			destroy(_content_view_ref_alloc, &view_ref); }));
+	}
+
 	void upgrade_local_or_remote(Resources const &resources)
 	{
 		_upgrade_local_or_remote(resources, *this, _real_gui);
