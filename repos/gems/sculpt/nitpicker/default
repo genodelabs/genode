@@ -15,7 +15,7 @@
 	<domain name="follow_touch"   layer="6" origin="pointer" label="no" hover="always" content="client" focus="transient" width="720" height="960"/>
 	<domain name="background"     layer="7" content="client" label="no" hover="always" focus="transient" />
 
-	<policy label_suffix="-> decorator"              domain="decorator"/>
+	<policy label="runtime -> wm -> wm -> decorator" domain="decorator"/>
 	<policy label_prefix="runtime -> wm"             domain="desktop"/>
 	<policy label_prefix="runtime -> themed_wm"      domain="desktop"/>
 	<policy label_prefix="runtime -> touch_keyboard" domain="touch_keyboard"/>
