@@ -27,6 +27,7 @@ struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_c
 	 * Constructor
 	 *
 	 * \param channel          channel identifier (e.g., "front left")
+	 * \param label            optional session label
 	 * \param alloc_signal     install 'alloc_signal', the client may then use
 	 *                         'wait_for_alloc' when the stream is full
 	 * \param progress_signal  install progress signal, the client may then
@@ -35,10 +36,11 @@ struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_c
 	 */
 	Connection(Genode::Env &env,
 	           char const  *channel,
+	           Label const &label = Label(),
 	           bool         alloc_signal = true,
 	           bool         progress_signal = false)
 	:
-		Genode::Connection<Session>(env, Label(),
+		Genode::Connection<Session>(env, label,
 		                            Ram_quota { 2*4096 + 2048 + sizeof(Stream) },
 		                            Args("channel=\"", channel, "\"")),
 		Session_client(env.rm(), cap(), alloc_signal, progress_signal)

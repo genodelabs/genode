@@ -26,13 +26,16 @@ struct Audio_in::Connection : Genode::Connection<Session>, Audio_in::Session_cli
 	/**
 	 * Constructor
 	 *
+	 * \param channel          channel identifier (e.g., "left")
+	 * \param label            optional session label
 	 * \param progress_signal  install progress signal, the client may then
 	 *                         call 'wait_for_progress', which is sent when the
 	 *                         server processed one or more packets
 	 */
-	Connection(Genode::Env &env, char const *channel, bool progress_signal = false)
+	Connection(Genode::Env &env, char const *channel,
+	           Label const &label = Label(), bool progress_signal = false)
 	:
-		Genode::Connection<Session>(env, Label(),
+		Genode::Connection<Session>(env, label,
 		                            Ram_quota { 10*1024 + sizeof(Stream) },
 		                            Args("channel=\"", channel, "\"")),
 		Session_client(env.rm(), cap(), progress_signal)
