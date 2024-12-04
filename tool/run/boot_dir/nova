@@ -35,6 +35,8 @@ proc kernel_output { } { return "serial" }
 
 proc boot_output { } { return "serial" }
 
+proc grub_menuentry { } { return "'Genode on NOVA'" }
+
 proc run_boot_string { } {
 	return "\nHypervisor NOVA "
 }
@@ -122,7 +124,7 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [create_header_grub2_config]
 
-		puts $fh "menuentry 'Genode on NOVA' {"
+		puts $fh "menuentry [grub_menuentry] {"
 		puts $fh " insmod multiboot2"
 		puts $fh " insmod gzio"
 		puts $fh " multiboot2 /boot/bender $options_bender"

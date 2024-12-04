@@ -12,6 +12,8 @@ proc kernel_files          { } { return sel4 }
 
 proc boot_output { } { return "serial" }
 
+proc grub_menuentry { } { return "'Genode on seL4'" }
+
 proc run_boot_string   { } { return "\nBooting all finished, dropped to user space" }
 proc core_link_address { } { return "0x02000000" }
 
@@ -77,7 +79,7 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [create_header_grub2_config]
 
-		puts $fh "menuentry 'Genode on seL4' {"
+		puts $fh "menuentry [grub_menuentry] {"
 		puts $fh " insmod multiboot2"
 		puts $fh " multiboot2 /boot/bender $options_bender"
 		puts $fh " module2 /boot/sel4 sel4 disable_iommu"

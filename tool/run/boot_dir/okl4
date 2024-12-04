@@ -6,6 +6,8 @@ proc kernel_files { } { return okl4 }
 
 proc boot_output { } { return "serial" }
 
+proc grub_menuentry { } { return "'Genode on OKL4'" }
+
 ##
 # Get the base-okl4 repository
 #
@@ -177,7 +179,7 @@ proc run_boot_dir {binaries} {
 		# The core binary is part of the 'binaries' list but it must
 		# appear right after 'sigma0' as boot module. Hence the special case.
 		#
-		puts $fh "menuentry 'Genode on OKL4' {"
+		puts $fh "menuentry [grub_menuentry] {"
 		puts $fh " insmod multiboot"
 		puts $fh " multiboot /boot/bender [boot_output]"
 		puts $fh " module /boot/image.elf"

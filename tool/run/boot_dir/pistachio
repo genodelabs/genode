@@ -9,6 +9,9 @@ proc core_link_address { } { return "0x02000000" }
 
 proc boot_output { } { return "serial" }
 
+proc grub_menuentry { } { return "'Genode on L4ka::Pistachio'" }
+
+
 ##
 # Populdate boot directory with binaries on pistachio
 #
@@ -64,7 +67,7 @@ proc run_boot_dir {binaries} {
 		# The core binary is part of the 'binaries' list but it must
 		# appear right after 'sigma0' as boot module. Hence the special case.
 		#
-		puts $fh "menuentry 'Genode on L4ka::Pistachio' {"
+		puts $fh "menuentry [grub_menuentry] {"
 		puts $fh " insmod multiboot"
 		puts $fh " multiboot /boot/bender [boot_output]"
 		puts $fh " module /boot/kickstart"

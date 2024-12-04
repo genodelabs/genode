@@ -36,6 +36,8 @@ proc run_boot_string { } { return "\nkernel initialized" }
 
 proc boot_output { } { return "serial" }
 
+proc grub_menuentry { } { return "'Genode on base-hw'" }
+
 
 proc bootstrap_link_address { } {
 
@@ -157,7 +159,7 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [create_header_grub2_config]
 
-		puts $fh "menuentry 'Genode on base-hw' {"
+		puts $fh "menuentry [grub_menuentry] {"
 		puts $fh " insmod multiboot2"
 		puts $fh " multiboot2 /boot/bender $options_bender"
 		puts $fh " module2 /boot/image-hw.elf.gz image-hw.elf"

@@ -26,6 +26,8 @@ proc fiasco_serial_esc_arg { } { return "-serial_esc " }
 
 proc boot_output { } { return "serial" }
 
+proc grub_menuentry { } { return "'Genode on Fiasco.OC'" }
+
 
 ##
 # Reset the target system via the Fiasco.OC kernel debugger
@@ -117,7 +119,7 @@ proc run_boot_dir_x86 {binaries} {
 		# The core binary is part of the 'binaries' list but it must
 		# appear right after 'sigma0' as boot module. Hence the special case.
 		#
-		puts $fh "menuentry 'Genode on Fiasco.OC' {"
+		puts $fh "menuentry [grub_menuentry] {"
 		puts $fh " insmod multiboot"
 		puts $fh " multiboot /boot/bender $options_bender"
 		puts $fh " module /boot/bootstrap"

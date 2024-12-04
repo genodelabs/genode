@@ -2,6 +2,7 @@ proc binary_name_ld_lib_so { } { return "ld-linux.lib.so" }
 proc binary_name_core      { } { return "core-linux"      }
 proc binary_name_timer     { } { return "linux_timer"     }
 
+proc grub_menuentry { } { return "'Genode on Linux'" }
 
 ##
 # Populate boot directory with binaries on Linux
@@ -56,7 +57,7 @@ proc run_boot_dir {binaries} {
 
 		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
 		puts $fh "set timeout=0"
-		puts $fh "menuentry 'Genode on Linux' {"
+		puts $fh "menuentry [grub_menuentry] {"
 		puts $fh " insmod linux"
 		puts $fh " linux /vmlinuz console=ttyS0,115200 amd_iommu=off intel_iommu=off"
 		puts $fh " initrd /initrd"
