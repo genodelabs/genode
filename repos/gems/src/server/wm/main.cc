@@ -79,10 +79,14 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 	{
 		_gui_root.revoke_exclusive_input();
 		_focus_rom.update();
+		bool defined = false;
 		_focus_rom.xml().with_optional_sub_node("window", [&] (Xml_node const &window) {
 			_with_win_id_from_xml(window, [&] (Window_registry::Id id) {
 				_gui_root.with_gui_session(id, [&] (Capability<Gui::Session> cap) {
-					_focus_gui_session.focus(cap); }); }); });
+					_focus_gui_session.focus(cap);
+					defined = true; }); }); });
+		if (!defined)
+			_focus_gui_session.focus({ });
 	}
 
 	Signal_handler<Main> _focus_handler {
