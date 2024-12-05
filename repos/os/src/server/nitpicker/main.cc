@@ -717,11 +717,11 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 			/* redraw */
 			_view_stack.update_all_views();
-
-			/* notify clients about the change screen mode */
-			for (Gui_session *s = _session_list.first(); s; s = s->next())
-				s->notify_mode_change();
 		}
+
+		/* notify GUI clients about the mode-info change */
+		for (Gui_session *s = _session_list.first(); s; s = s->next())
+			s->notify_mode_change();
 
 		_report_panorama();
 		_update_input_connection();
