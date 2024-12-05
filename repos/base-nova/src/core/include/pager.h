@@ -91,7 +91,6 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 				DEAD             = 0x2U,
 				SINGLESTEP       = 0x4U,
 				SIGNAL_SM        = 0x8U,
-				DISSOLVED        = 0x10U,
 				SUBMIT_SIGNAL    = 0x20U,
 				BLOCKED_PAUSE_SM = 0x40U,
 				MIGRATE          = 0x80U
@@ -114,9 +113,6 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 
 			inline void mark_signal_sm() { _status |= SIGNAL_SM; }
 			inline bool has_signal_sm() { return _status & SIGNAL_SM; }
-
-			inline void mark_dissolved() { _status |= DISSOLVED; }
-			inline bool dissolved()      { return _status & DISSOLVED; }
 
 			inline bool to_submit() { return _status & SUBMIT_SIGNAL; }
 			inline void submit_signal() { _status |= SUBMIT_SIGNAL; }

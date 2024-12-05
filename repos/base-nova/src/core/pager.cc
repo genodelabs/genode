@@ -523,8 +523,6 @@ uint8_t Pager_object::_unsynchronized_client_recall(bool get_state_and_block)
 
 void Pager_object::cleanup_call()
 {
-	_state.mark_dissolved();
-
 	/* revoke ec and sc cap of client before the sm cap */
 	if (_state.sel_client_ec != Native_thread::INVALID_INDEX)
 		revoke(Obj_crd(_state.sel_client_ec, 2));
@@ -750,10 +748,6 @@ void Pager_object::migrate(Affinity::Location location)
 
 Pager_object::~Pager_object()
 {
-	/* sanity check that object got dissolved already - otherwise bug */
-	if (!_state.dissolved())
-		nova_die();
-
 	/* revoke portal used for the cleanup call and sm cap for blocking state */
 	revoke(Obj_crd(_selectors, 2));
 	cap_map().remove(_selectors, 2, false);
