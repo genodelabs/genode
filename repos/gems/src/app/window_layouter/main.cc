@@ -48,6 +48,7 @@ struct Window_layouter::Main : User_state::Action,
 	Timer::Connection _drop_timer { _env };
 
 	Drag _drag { };
+	Pick _pick { };
 
 	Signal_handler<Main> _drop_timer_handler {
 		_env.ep(), *this, &Main::_handle_drop_timer };
@@ -247,7 +248,7 @@ struct Window_layouter::Main : User_state::Action,
 					fn(from, to); }); });
 	}
 
-	void _retarget_window(Window_id id, Target const &from, Target const &to)
+	void _with_retargeted_window(Window_id id, Target const &to, auto const &fn)
 	{
 		_assign_list.for_each([&] (Assign &assign) {
 			Window *window_ptr = nullptr;
@@ -256,18 +257,44 @@ struct Window_layouter::Main : User_state::Action,
 					window_ptr = &member.window; });
 			if (window_ptr) {
 				assign.target_name = to.name;
-				window_ptr->warp(from.rect.at - to.rect.at);
+				fn(*window_ptr);
 			}
 		});
 	}
 
+	void _retarget_window(Window_id id, Target const &to)
+	{
+		_with_retargeted_window(id, to, [&] (Window &) { });
+	}
+
+	void _retarget_and_warp_window(Window_id id, Target const &from, Target const &to)
+	{
+		_with_retargeted_window(id, to, [&] (Window &window) {
+			window.warp(from.rect.at - to.rect.at); });
+	}
+
 	void screen(Target::Name const &name) override
 	{
+		auto with_visible_geometry = [&] (Rect orig, Area target_area, auto const &fn)
+		{
+			Area const overlap = Rect::intersect(orig, { { }, target_area }).area;
+			bool const visible = (overlap.w > 50) && (overlap.h > 50);
+
+			fn(visible ? orig : Rect { { }, orig.area });
+		};
+
+		/* change screen under picked window */
+		if (_pick.picked)
+			_with_target_change(_pick.window_id, name, [&] (Target const &, Target const &to) {
+				_with_retargeted_window(_pick.window_id, to, [&] (Window &window) {
+					with_visible_geometry(_pick.orig_geometry, to.rect.area, [&] (Rect rect) {
+						window.outer_geometry(rect); }); }); });
+
 		/* change of screen under the dragged window */
 		if (_drag.dragging())
 			_with_target_change(_drag.window_id, name, [&] (Target const &from, Target const &to) {
 				if (from.rect == to.rect)
-					_retarget_window(_drag.window_id, from, to); });
+					_retarget_window(_drag.window_id, to); });
 
 		/* repeated activation of screen moves focus to the screen */
 		bool already_visible = false;
@@ -286,6 +313,18 @@ struct Window_layouter::Main : User_state::Action,
 
 		_gen_rules_with_frontmost_screen(name);
 	}
+
+	void pick_up(Window_id id) override
+	{
+		_window_list.with_window(id, [&] (Window const &window) {
+			_pick = { .picked        = true,
+			          .window_id     = id,
+			          .orig_geometry = window.outer_geometry() };
+			to_front(id);
+		});
+	}
+
+	void place_down() override { _pick = { }; }
 
 	void drag(Window_id id, Window::Element element, Point clicked, Point curr) override
 	{
@@ -362,7 +401,7 @@ struct Window_layouter::Main : User_state::Action,
 			_target_list.with_target_at(curr, [&] (Target const &pointed) {
 				_drag = { Drag::State::SETTLING, moving, id, curr, pointed.rect };
 				_with_target_change(id, pointed.name, [&] (Target const &from, Target const &to) {
-					_retarget_window(id, from, to); });
+					_retarget_and_warp_window(id, from, to); });
 			});
 		}
 

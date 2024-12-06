@@ -34,6 +34,8 @@ class Window_layouter::User_state
 			virtual void to_front(Window_id) = 0;
 			virtual void drag(Window_id, Window::Element, Point clicked, Point curr) = 0;
 			virtual void finalize_drag(Window_id, Window::Element, Point clicked, Point final) = 0;
+			virtual void pick_up(Window_id) = 0;
+			virtual void place_down() = 0;
 			virtual void screen(Target::Name const &) = 0;
 		};
 
@@ -75,6 +77,8 @@ class Window_layouter::User_state
 		 * operation is initiated as soon as the hover state becomes known.
 		 */
 		bool _drag_init_done = false;
+
+		bool _picked_up = false;
 
 		/*
 		 * Pointer position at the beginning of a drag operation
@@ -168,7 +172,7 @@ class Window_layouter::User_state
 
 		void hover(Window_id window_id, Window::Element element)
 		{
-			Window_id const last_hovered_window_id = _hovered_window_id;
+			Window_id const orig_hovered_window_id = _hovered_window_id;
 
 			_hovered_window_id = window_id;
 			_hovered_element   = element;
@@ -192,10 +196,11 @@ class Window_layouter::User_state
 				_initiate_drag(_hovered_window_id, _hovered_element);
 
 			/*
-			 * Let focus follows the pointer
+			 * Let focus follows the pointer, except while dragging or when
+			 * the focused window is currently picked up.
 			 */
-			if (!_drag_state && _hovered_window_id.valid()
-			 && _hovered_window_id != last_hovered_window_id) {
+			if (!_drag_state && !_picked_up && _hovered_window_id.valid()
+			 && _hovered_window_id != orig_hovered_window_id) {
 
 				_focused_window_id = _hovered_window_id;
 				_focus_history.focus(_focused_window_id);
@@ -327,6 +332,20 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 
 			case Command::RELEASE_GRAB:
 				_action.release_grab();
+				return;
+
+			case Command::PICK_UP:
+				if (_focused_window_id.value) {
+					_picked_up = true;
+					_action.pick_up(_focused_window_id);
+				}
+				return;
+
+			case Command::PLACE_DOWN:
+				if (_picked_up) {
+					_action.place_down();
+					_picked_up = false;
+				}
 				return;
 
 			default:

@@ -106,6 +106,13 @@ namespace Window_layouter {
 			return dragging() && id == window_id && moving;
 		}
 	};
+
+	struct Pick
+	{
+		bool      picked;
+		Window_id window_id;
+		Rect      orig_geometry;
+	};
 }
 
 #endif /* _TYPES_H_ */
