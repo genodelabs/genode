@@ -1,5 +1,12 @@
 TARGET = qt6_base.cmake_target
 
+ifeq ($(CONTRIB_DIR),)
+QT6_BASE_DIR       = $(call select_from_repositories,src/lib/qt6_base)
+else
+QT6_BASE_PORT_DIR := $(call select_from_ports,qt6_base)
+QT6_BASE_DIR       = $(QT6_BASE_PORT_DIR)/src/lib/qt6_base
+endif
+
 LIBS = qt6_cmake ldso_so_support libc libm stdcxx qt6_component egl mesa base qoost
 
 INSTALL_LIBS = lib/libQt6Concurrent.lib.so \
@@ -68,7 +75,7 @@ build: cmake_prepared.tag
 		-DFEATURE_vulkan=OFF \
 		-DFEATURE_reduce_relocations=OFF \
 		-DFEATURE_pkg_config=OFF \
-		$(QT_DIR)/qtbase \
+		$(QT6_BASE_DIR) \
 		$(QT6_OUTPUT_FILTER)
 
 	@#

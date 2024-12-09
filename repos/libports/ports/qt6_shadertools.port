@@ -1,0 +1,8 @@
+LICENSE := LGPL
+VERSION := 6.6.2
+
+DOWNLOADS := qt6_shadertools.archive
+
+URL(qt6_shadertools) := https://download.qt.io/archive/qt/6.6/6.6.2/submodules/qtshadertools-everywhere-src-6.6.2.tar.xz
+SHA(qt6_shadertools) := 628bead7ff4e7f42cb910f47d2adefbdea0d8c71a0234baef8ca709bf467b92f
+DIR(qt6_shadertools) := src/lib/qt6_shadertools

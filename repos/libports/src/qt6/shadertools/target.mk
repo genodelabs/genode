@@ -1,5 +1,12 @@
 TARGET = qt6_shadertools.cmake_target
 
+ifeq ($(CONTRIB_DIR),)
+QT6_SHADERTOOLS_DIR       = $(call select_from_repositories,src/lib/qt6_shadertools)
+else
+QT6_SHADERTOOLS_PORT_DIR := $(call select_from_ports,qt6_shadertools)
+QT6_SHADERTOOLS_DIR       = $(QT6_SHADERTOOLS_PORT_DIR)/src/lib/qt6_shadertools
+endif
+
 QT6_PORT_LIBS = libQt6Core libQt6Gui
 
 LIBS = qt6_cmake ldso_so_support libc libm egl mesa qt6_component stdcxx
@@ -29,7 +36,7 @@ build: cmake_prepared.tag qt6_so_files
 		-DCMAKE_MODULE_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_SHLIB)" \
 		-DQT_QMAKE_TARGET_MKSPEC=$(QT_PLATFORM) \
 		-DCMAKE_INSTALL_PREFIX=/qt \
-		$(QT_DIR)/qtshadertools \
+		$(QT6_SHADERTOOLS_DIR) \
 		$(QT6_OUTPUT_FILTER)
 
 	@#

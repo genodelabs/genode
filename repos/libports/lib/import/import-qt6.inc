@@ -13,13 +13,11 @@ $(error Error: unsupported platform)
 endif
 
 ifeq ($(CONTRIB_DIR),)
-QT_DIR          = $(call select_from_repositories,src/lib/qt6)
-QT_API_DIR      = $(call select_from_repositories,mkspecs)/..
+QT_API_DIR      = $(abspath $(call select_from_repositories,lib/import/import-qt6.inc)/../../..)
 abi_symbol_path = $(wildcard $(call select_from_repositories,lib/symbols/$1))
 else
-QT_PORT_DIR     := $(call select_from_ports,qt6)
-QT_DIR           = $(QT_PORT_DIR)/src/lib/qt6
-QT_API_DIR       = $(QT_DIR)/genode/api
+QT_API_PORT_DIR  := $(call select_from_ports,qt6_api)
+QT_API_DIR        = $(QT_API_PORT_DIR)/src/lib/qt6_api
 abi_symbol_path  = $(wildcard $(addprefix $(QT_API_DIR)/lib/symbols/,$1))
 endif
 

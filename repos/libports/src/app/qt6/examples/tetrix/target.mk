@@ -1,4 +1,11 @@
-QMAKE_PROJECT_FILE = $(QT_DIR)/qtbase/tests/manual/examples/widgets/widgets/tetrix/tetrix.pro
+ifeq ($(CONTRIB_DIR),)
+QT6_BASE_DIR       = $(call select_from_repositories,src/lib/qt6_base)
+else
+QT6_BASE_PORT_DIR := $(call select_from_ports,qt6_base)
+QT6_BASE_DIR       = $(QT6_BASE_PORT_DIR)/src/lib/qt6_base
+endif
+
+QMAKE_PROJECT_FILE = $(QT6_BASE_DIR)/tests/manual/examples/widgets/widgets/tetrix/tetrix.pro
 
 QMAKE_TARGET_BINARIES = tetrix
 

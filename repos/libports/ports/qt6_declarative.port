@@ -1,0 +1,8 @@
+LICENSE := LGPL
+VERSION := 6.6.2
+
+DOWNLOADS := qt6_declarative.git
+
+URL(qt6_declarative) := https://github.com/cproc/qt6_declarative.git
+REV(qt6_declarative) := issue5402
+DIR(qt6_declarative) := src/lib/qt6_declarative

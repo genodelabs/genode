@@ -1,6 +1,6 @@
 content: qt6_samegame.tar
 
-PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt6)
+PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt6_declarative)
 
 SAMEGAME3_RESOURCES := samegame.qml \
                        Dialog.qml \
@@ -20,10 +20,10 @@ samegame/pics:
 	mkdir -p $@
 
 $(addprefix samegame/, $(SAMEGAME3_RESOURCES)): samegame
-	cp $(PORT_DIR)/src/lib/qt6/qtdeclarative/examples/quick/tutorials/samegame/samegame3/$(notdir $@) $@
+	cp $(PORT_DIR)/src/lib/qt6_declarative/examples/quick/tutorials/samegame/samegame3/$(notdir $@) $@
 
 $(addprefix samegame/pics/, $(SAMEGAME_RESOURCES)): samegame/pics
-	cp $(PORT_DIR)/src/lib/qt6/qtdeclarative/examples/quick/tutorials/samegame/samegame3/pics/$(notdir $@) $@
+	cp $(PORT_DIR)/src/lib/qt6_declarative/examples/quick/tutorials/samegame/samegame3/pics/$(notdir $@) $@
 
 
 qt6_samegame.tar: $(addprefix samegame/, $(SAMEGAME3_RESOURCES)) \

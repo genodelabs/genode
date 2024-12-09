@@ -1,0 +1,8 @@
+LICENSE := LGPL
+VERSION := 6.6.2
+
+DOWNLOADS := qt6_tools.archive
+
+URL(qt6_tools) := https://download.qt.io/archive/qt/6.6/6.6.2/submodules/qttools-everywhere-src-6.6.2.tar.xz
+SHA(qt6_tools) := e6d49e9f52111287f77878ecb8b708cce682f10b03ba2476d9247603bc6c4746
+DIR(qt6_tools) := src/lib/qt6_tools

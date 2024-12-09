@@ -1,5 +1,12 @@
 TARGET = qt6_declarative.cmake_target
 
+ifeq ($(CONTRIB_DIR),)
+QT6_DECLARATIVE_DIR       = $(call select_from_repositories,src/lib/qt6_declarative)
+else
+QT6_DECLARATIVE_PORT_DIR := $(call select_from_ports,qt6_declarative)
+QT6_DECLARATIVE_DIR       = $(QT6_DECLARATIVE_PORT_DIR)/src/lib/qt6_declarative
+endif
+
 QT6_PORT_LIBS = libQt6Core libQt6Gui libQt6OpenGL libQt6Network libQt6Sql libQt6Test libQt6Widgets
 
 LIBS = qt6_cmake ldso_so_support libc libm mesa egl qt6_component stdcxx
@@ -92,7 +99,7 @@ build: cmake_prepared.tag qt6_so_files
 		-DCMAKE_MODULE_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_SHLIB)" \
 		-DQT_QMAKE_TARGET_MKSPEC=$(QT_PLATFORM) \
 		-DCMAKE_INSTALL_PREFIX=/qt \
-		$(QT_DIR)/qtdeclarative \
+		$(QT6_DECLARATIVE_DIR) \
 		$(QT6_OUTPUT_FILTER)
 
 	@#

@@ -5,9 +5,9 @@ content: $(MIRROR_FROM_REP_DIR) LICENSE
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
-PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt6)
+PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt6_tools)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt6/qttools/examples/designer/calculatorform
+MIRROR_FROM_PORT_DIR := src/lib/qt6_tools/examples/designer/calculatorform
 
 content: $(MIRROR_FROM_PORT_DIR)
 
@@ -16,5 +16,5 @@ $(MIRROR_FROM_PORT_DIR):
 	cp -r $(PORT_DIR)/$@ $(dir $@)
 
 LICENSE:
-	cp $(PORT_DIR)/src/lib/qt6/LICENSE.GPL3 $@
+	cp $(PORT_DIR)/src/lib/qt6_tools/LICENSES/GPL-3.0-only.txt $@
 
