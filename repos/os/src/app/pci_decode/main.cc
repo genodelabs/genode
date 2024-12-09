@@ -130,6 +130,12 @@ static uint64_t fixup_bar_base_address(Config const &cfg,
 			if (bdf == Bdf { 0, 0x15, 0 } && bar == 0) base_address = 0x80626000;
 			if (bdf == Bdf { 0, 0x15, 2 } && bar == 0) base_address = 0x80627000;
 		}
+
+		/* Framework 13 Meteorlake */
+		if (subsystem_vendor_id == 0xf111 && (device_id == 0x7e50 || device_id == 0x7e51)) {
+			if (bdf == Bdf { 0, 0x19, 0 } && bar == 0) base_address = 0x60192fc000;
+			if (bdf == Bdf { 0, 0x19, 1 } && bar == 0) base_address = 0x60192fd000;
+		}
 	}
 
 	if (addr != base_address)
