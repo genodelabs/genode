@@ -1,0 +1,90 @@
+build { lib/vfs_xoroshiro lib/vfs_jitterentropy }
+
+create_boot_directory
+
+import_from_depot \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/coreutils \
+	[depot_user]/src/init \
+	[depot_user]/src/fs_rom \
+	[depot_user]/src/libc \
+	[depot_user]/src/vfs \
+	[depot_user]/src/posix
+
+install_config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100" ram="1M"/>
+
+		<start name="timer">
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="vfs" ram="4M">
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<ram/>
+					<tar name="coreutils.tar" />
+				</vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="vfs_rom" ram="10M">
+			<binary name="fs_rom"/>
+			<provides> <service name="ROM"/> </provides>
+			<config/>
+			<route>
+				<service name="File_system"> <child name="vfs"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="/bin/dd" caps="500" ram="16M">
+			<config>
+				<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+				      rtc="/dev/null"/>
+				<vfs>
+					<dir name="dev">
+						<log/>
+						<null/>
+						<jitterentropy name="entropy"/>
+						<xoroshiro name="random" seed_path="/dev/entropy"/>
+					</dir>
+				</vfs>
+				<arg value="dd"/>
+				<arg value="if=/dev/random"/>
+				<arg value="of=/dev/null"/>
+				<arg value="bs=1M"/>
+				<arg value="count=128"/>
+			</config>
+			<route>
+				<service name="File_system"> <child name="vfs"/> </service>
+				<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+				<service name="ROM" label_last="/bin/dd"> <child name="vfs_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic "
+
+run_genode_until "child .* exited with exit value 0.*\n" 20

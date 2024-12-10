@@ -1,0 +1,20 @@
+The VFS xoroshiro plugin provides a PRNG based on the Xoroshiro12+
+algorithm. It is seeded initially and reseeded regularly after a fixed
+amount of bytes, around 1 MiB, were produced by reading a seed file.
+
+The plugin supports the following configuration options:
+
+* :name: sets the file-name under which the plugins exposes itself
+         to the VFS, the default is 'xoroshiro'.
+
+* :seed_path: specifies the file in the VFS that is read to reseed
+              the PRNG.
+
+The following examplary config snippets illustrates its usage:
+
+! <vfs>
+!   <dir name="dev">
+!     <jitterentropy name="entropy"/>
+!     <xoroshiro     name="random" seed_path="/dev/entropy"/>
+!   </dir>
+! </vfs>
