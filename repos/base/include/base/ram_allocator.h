@@ -19,6 +19,7 @@
 #include <base/quota_guard.h>
 #include <base/cache.h>
 #include <dataspace/dataspace.h>
+#include <util/noncopyable.h>
 
 namespace Genode {
 
@@ -32,7 +33,7 @@ namespace Genode {
 }
 
 
-struct Genode::Ram_allocator : Interface
+struct Genode::Ram_allocator : Interface, Noncopyable
 {
 	enum class Alloc_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
 

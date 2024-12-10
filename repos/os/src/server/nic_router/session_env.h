@@ -104,6 +104,18 @@ class Genode::Session_env : public Ram_allocator,
 			_cap_guard    { cap_quota }
 		{ }
 
+                /*
+                 * The Ram_allocator interface is Noncopyable, but this
+                 * implementation is safe to copy.
+                 */
+                Session_env(Session_env const &session)
+		:
+			_env          { session._env },
+			_shared_quota { session._shared_quota },
+			_ram_guard    { session._ram_guard },
+			_cap_guard    { session._cap_guard }
+		{ }
+
 		Entrypoint &ep() { return _env.ep(); }
 
 
