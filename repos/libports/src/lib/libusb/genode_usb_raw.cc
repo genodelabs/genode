@@ -17,6 +17,7 @@
 #include <base/allocator_avl.h>
 #include <base/signal.h>
 #include <base/tslab.h>
+#include <base/sleep.h>
 #include <usb_session/device.h>
 
 #include <fcntl.h>
@@ -168,6 +169,11 @@ void Usb_device::Interface::handle_events()
 		/* complete USB request */
 		[this] (Urb &urb, Usb::Tagged_packet::Return_value v)
 		{
+			if (v == Usb::Tagged_packet::NO_DEVICE) {
+				error("USB device has vanished, will freeze!");
+				sleep_forever();
+			}
+
 			if (v != Usb::Tagged_packet::OK)
 				error("transfer failed, return value ", (int)v);
 
@@ -218,6 +224,11 @@ void Usb_device::handle_events()
 		/* complete USB request */
 		[this] (Urb &urb, Usb::Tagged_packet::Return_value v)
 		{
+			if (v == Usb::Tagged_packet::NO_DEVICE) {
+				error("USB device has vanished, will freeze!");
+				sleep_forever();
+			}
+
 			if (v != Usb::Tagged_packet::OK)
 				error("control transfer failed, return value ", (int)v);
 
