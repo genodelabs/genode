@@ -1,0 +1,24 @@
+<config arch="" info="webcam example">
+
+	<common_routes>
+		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+		<service name="ROM" label_last="init">      <parent/> </service>
+		<service name="CPU">     <parent/> </service>
+		<service name="PD">      <parent/> </service>
+		<service name="LOG">     <parent/> </service>
+		<service name="Timer">   <parent/> </service>
+		<service name="Capture"> <parent/> </service>
+		<service name="Gui">     <parent/> </service>
+	</common_routes>
+
+	<start name="webcam" ram="64M" pkg="usb_webcam">
+		<route>
+			<service name="Usb">   <child name="usb"/>   </service>
+			<any-service> <parent /> </any-service>
+		</route>
+		<provides> <service name="Capture"/> <service name="Report"/> </provides>
+	</start>
+
+	<start name="test-capture"/>
+</config>
+

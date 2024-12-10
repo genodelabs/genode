@@ -1,0 +1,10 @@
+<launcher name="test-vfs_capture" pkg="test-vfs_capture">
+	<config period_ms="20" width="640" height="480">
+		<vfs><dir name="dev"><capture/></dir></vfs>
+		<view xpos="100" ypos="100"/> <!--view xpos="800" ypos="600"/-->
+	</config>
+	<route>
+		<service name="Capture"> <child name="webcam"/> </service>
+		<any-service> <parent/> </any-service>
+	</route>
+</launcher>

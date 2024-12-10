@@ -1,0 +1,6 @@
+drivers:  pc
+ram_fs:   depot
+import:   pkg/sculpt_drivers-pc pkg/test-capture pkg/test-vfs_capture
+deploy:   webcam
+usb:      webcam
+launcher: test-capture test-vfs_capture

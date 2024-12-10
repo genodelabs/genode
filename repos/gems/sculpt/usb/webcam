@@ -1,0 +1,25 @@
+<config bios_handoff="no">
+
+	<!-- available devices are listed at /report/runtime/usb/devices -->
+
+	<policy label="webcam -> webcam -> usb_webcam -> ">
+		<device vendor_id="0x5986" product_id="0x366"/>  <!-- Lenovo x250  -->
+		<device vendor_id="0x5986" product_id="0x706"/>  <!-- Lenovo x260  -->
+		<device vendor_id="0x0bda" product_id="0x58db"/> <!-- Lenovo T470  -->
+		<device vendor_id="0x04f2" product_id="0xb564"/> <!-- Fujitsu S938 -->
+
+		<!-- Logitec C920 -->
+		<!-- <device vendor_id="0x046d" product_id="0x8e5"/> -->
+
+		<!-- Logitec C270 -->
+		<!-- <device vendor_id="0x046d" product_id="0x825"/> -->
+
+		<!-- Quickcam -->
+		<!-- <device vendor_id="0x046d" product_id="0x9c1"/> -->
+
+		<!-- Creative HD VF0770 -->
+		<!-- <device vendor_id="0x041e" product_id="0x4095"/> -->
+	</policy>
+
+</config>
+
