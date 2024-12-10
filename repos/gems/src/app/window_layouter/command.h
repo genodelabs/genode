@@ -22,7 +22,8 @@ namespace Window_layouter { class Command; }
 struct Window_layouter::Command
 {
 	enum Type { NONE, NEXT_WINDOW, PREV_WINDOW, RAISE_WINDOW, TOGGLE_FULLSCREEN,
-	            NEXT_TAB, PREV_TAB, SCREEN, RELEASE_GRAB, PICK_UP, PLACE_DOWN };
+	            NEXT_TAB, PREV_TAB, SCREEN, RELEASE_GRAB, PICK_UP, PLACE_DOWN,
+	            DRAG, DROP };
 
 	Type         type;
 	Target::Name target;
@@ -39,6 +40,8 @@ struct Window_layouter::Command
 			if (string == "release_grab")      return RELEASE_GRAB;
 			if (string == "pick_up")           return PICK_UP;
 			if (string == "place_down")        return PLACE_DOWN;
+			if (string == "drag")              return DRAG;
+			if (string == "drop")              return DROP;
 
 			warning("cannot convert \"", string, "\" to action type");
 			return NONE;

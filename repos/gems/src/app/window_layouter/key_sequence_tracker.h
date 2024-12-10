@@ -110,7 +110,7 @@ class Window_layouter::Key_sequence_tracker
 
 			bool done = false; /* process the first match only */
 			curr.for_each_sub_node(node_type, [&] (Xml_node const &node) {
-				if (!done && node.attribute_value("key", Key_name()) == key) {
+				if (node.attribute_value("key", Key_name()) == key) {
 					fn(node);
 					done = true; } });
 
@@ -118,9 +118,10 @@ class Window_layouter::Key_sequence_tracker
 				no_match_fn();
 		}
 
-		void _with_match_rec(unsigned const pos, Xml_node const &node, auto const &fn) const
+		void _with_match_rec(unsigned const pos, unsigned const max_pos,
+		                     Xml_node const &node, auto const &fn) const
 		{
-			if (pos == _stack.pos) {
+			if (pos == max_pos) {
 				fn(node);
 				return;
 			}
@@ -129,7 +130,7 @@ class Window_layouter::Key_sequence_tracker
 			_with_matching_sub_node(node, _stack.entries[pos],
 				[&] (Xml_node const &sub_node) {
 					if (pos < _stack.pos)
-						_with_match_rec(pos + 1, sub_node, fn); },
+						_with_match_rec(pos + 1, max_pos, sub_node, fn); },
 				[&] { });
 		};
 
@@ -142,7 +143,15 @@ class Window_layouter::Key_sequence_tracker
 		 */
 		void _with_xml_by_path(Xml_node const &config, auto const &fn) const
 		{
-			_with_match_rec(0, config, fn);
+			_with_match_rec(0, _stack.pos, config, fn);
+		}
+
+		void _with_xml_at_press(Xml_node const &config, Input::Keycode key, auto const &fn) const
+		{
+			for (unsigned i = 0; i < _stack.pos; i++)
+				if (_stack.entries[i].press && _stack.entries[i].key == key) {
+					_with_match_rec(0, i + 1, config, fn);
+					return; }
 		}
 
 		/**
@@ -182,38 +191,58 @@ class Window_layouter::Key_sequence_tracker
 				_stack.flush(Stack::Entry { .press = false, .key = key });
 			});
 
+			Constructible<Stack::Entry> new_entry { };
+
 			_with_xml_by_path(config, [&] (Xml_node const &curr_node) {
 
 				ev.handle_press([&] (Input::Keycode key, Codepoint) {
-
 					Stack::Entry const press { .press = true, .key = key };
-
 					_with_matching_sub_node(curr_node, press,
-						[&] (Xml_node const &node) { _execute_command(node, fn); },
+						[&] (Xml_node const &node) {
+							_execute_command(node, fn); },
 						[&] { });
 
-					_stack.push(press);
+					new_entry.construct(press);
 				});
 
 				ev.handle_release([&] (Input::Keycode key) {
 
-					Stack::Entry const release { .press = false, .key = key };
-
 					/*
 					 * If there exists a specific path for the release event,
-					 * follow the path. Otherwise, we remove the released key
-					 * from the sequence.
+					 * follow the path and record the release event. Otherwise,
+					 * 'new_entry' will remain unconstructed so that the
+					 * corresponding press event gets flushed from the stack.
 					 */
+					Stack::Entry const release { .press = false, .key = key };
 					_with_matching_sub_node(curr_node, release,
 						[&] (Xml_node const &next_node) {
 							_execute_command(next_node, fn);
-							_stack.push(release);
+							if (next_node.num_sub_nodes())
+								new_entry.construct(release);
 						},
-						[&] /* no match */ {
-							Stack::Entry const press { .press = true, .key = key };
-							_stack.flush(press);
-						});
+						[&] /* no match */ { });
 				});
+			});
+
+			if (new_entry.constructed()) {
+				_stack.push(*new_entry);
+				return;
+			}
+
+			/*
+			 * If no matching <release> node exists for the current combination
+			 * of keys, fall back to a <release> node declared immediately
+			 * inside the corresponding <press> node.
+			 */
+			ev.handle_release([&] (Input::Keycode key) {
+				_with_xml_at_press(config, key, [&] (Xml_node const &press_node) {
+					_with_matching_sub_node(press_node, { .press = false, .key = key },
+						[&] (Xml_node const &next_node) {
+							_execute_command(next_node, fn); },
+						[&] { }); });
+
+				_stack.flush(Stack::Entry { .press = true,  .key = key });
+				_stack.flush(Stack::Entry { .press = false, .key = key });
 			});
 		}
 };

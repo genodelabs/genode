@@ -31,6 +31,9 @@ proc qt6_layouter_config { } {
 				<screen name="screen"/>
 				<assign label_prefix="" target="screen" xpos="any" ypos="any"/>
 			</rules>
+			<press key="BTN_LEFT" action="drag">
+				<release key="BTN_LEFT" action="drop"/>
+			</press>
 		</config>}
 }
 

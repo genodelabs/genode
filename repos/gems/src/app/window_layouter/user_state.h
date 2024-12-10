@@ -243,59 +243,6 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 	if (e.press())   _key_cnt++;
 	if (e.release()) _key_cnt--;
 
-	/* handle pointer click */
-	if (e.key_press(Input::BTN_LEFT) && _key_cnt == 1) {
-
-		/*
-		 * Initiate drag operation if possible
-		 */
-		_drag_state      = true;
-		_pointer_clicked = _pointer_curr;
-
-		if (_hovered_window_id.valid()) {
-
-			/*
-			 * Initiate drag operation
-			 *
-			 * If the hovered window is known at the time of the press event,
-			 * we can initiate the drag operation immediately. Otherwise,
-			 * the initiation is deferred to the next update of the hover
-			 * model.
-			 */
-
-			_initiate_drag(_hovered_window_id, _hovered_element);
-
-		} else {
-
-			/*
-			 * If the hovering state is undefined at the time of the click,
-			 * we defer the drag handling until the next update of the hover
-			 * state. This intermediate state is captured by '_drag_init_done'.
-			 */
-			_drag_init_done    = false;
-			_dragged_window_id = Window_id();
-			_dragged_element   = Window::Element(Window::Element::UNDEFINED);
-		}
-	}
-
-	/* detect end of drag operation */
-	if (e.release() && _key_cnt == 0) {
-
-		if (_drag_state && _dragged_window_id.valid()) {
-			_drag_state = false;
-
-			/*
-			 * Issue resize to 0x0 when releasing the the window closer
-			 */
-			if (_dragged_element.closer())
-				if (_dragged_element == _hovered_element)
-					_action.close(_dragged_window_id);
-
-			_action.finalize_drag(_dragged_window_id, _dragged_element,
-			                      _pointer_clicked, _pointer_curr);
-		}
-	}
-
 	/* handle key sequences */
 	if (_key(e)) {
 
@@ -345,6 +292,54 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 				if (_picked_up) {
 					_action.place_down();
 					_picked_up = false;
+				}
+				return;
+
+			case Command::DRAG:
+
+				_drag_state      = true;
+				_pointer_clicked = _pointer_curr;
+
+				if (_hovered_window_id.valid()) {
+
+					/*
+					 * Initiate drag operation
+					 *
+					 * If the hovered window is known at the time of the press event,
+					 * we can initiate the drag operation immediately. Otherwise,
+					 * the initiation is deferred to the next update of the hover
+					 * model.
+					 */
+
+					_initiate_drag(_hovered_window_id, _hovered_element);
+
+				} else {
+
+					/*
+					 * If the hovering state is undefined at the time of the click,
+					 * we defer the drag handling until the next update of the hover
+					 * state. This intermediate state is captured by '_drag_init_done'.
+					 */
+					_drag_init_done    = false;
+					_dragged_window_id = Window_id();
+					_dragged_element   = Window::Element(Window::Element::UNDEFINED);
+				}
+				return;
+
+			case Command::DROP:
+
+				if (_drag_state && _dragged_window_id.valid()) {
+					_drag_state = false;
+
+					/*
+					 * Issue resize to 0x0 when releasing the the window closer
+					 */
+					if (_dragged_element.closer())
+						if (_dragged_element == _hovered_element)
+							_action.close(_dragged_window_id);
+
+					_action.finalize_drag(_dragged_window_id, _dragged_element,
+					                      _pointer_clicked, _pointer_curr);
 				}
 				return;
 
