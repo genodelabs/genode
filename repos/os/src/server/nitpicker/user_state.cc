@@ -234,8 +234,17 @@ void User_state::_handle_input_event(Input::Event ev)
 			global_receiver = _global_keys.global_receiver(keycode);
 
 		if (global_receiver) {
+			bool const orig_global_key_sequence = _global_key_sequence;
 			_global_key_sequence = true;
 			_input_receiver      = global_receiver;
+
+			/* deliver current pointer position at start of key sequence */
+			if (orig_global_key_sequence != _global_key_sequence)
+				_pointer.with_result(
+					[&] (Point at) {
+						Absolute_motion motion { at.x, at.y };
+						_input_receiver->submit_input_event(motion); },
+					[&] (Nowhere) { });
 		}
 
 		/*
@@ -310,8 +319,9 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		update_hover();
 
-		if (_drag && _input_receiver && (_input_receiver != _hovered))
-			_input_receiver->submit_input_event(Hover_leave());
+		if (_drag || _global_key_sequence)
+			if (_input_receiver && (_input_receiver != _hovered))
+				_input_receiver->submit_input_event(Hover_leave());
 
 		_drag = false;
 
