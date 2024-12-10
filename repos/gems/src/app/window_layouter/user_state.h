@@ -37,6 +37,8 @@ class Window_layouter::User_state
 			virtual void pick_up(Window_id) = 0;
 			virtual void place_down() = 0;
 			virtual void screen(Target::Name const &) = 0;
+			virtual void free_arrange_hover_changed() = 0;
+			virtual Window::Element free_arrange_element_at(Window_id, Point) = 0;
 		};
 
 		struct Hover_state
@@ -63,8 +65,9 @@ class Window_layouter::User_state
 
 		Key_sequence_tracker _key_sequence_tracker { };
 
-		Window::Element _hovered_element { };
-		Window::Element _dragged_element { };
+		Window::Element _strict_hovered_element { };  /* hovered window control */
+		Window::Element _free_hovered_element   { };  /* hovered window area */
+		Window::Element _dragged_element        { };
 
 		/*
 		 * True while drag operation in progress
@@ -79,6 +82,17 @@ class Window_layouter::User_state
 		bool _drag_init_done = false;
 
 		bool _picked_up = false;
+
+		/*
+		 * If true, the window element is determined by the sole relation of
+		 * the pointer position to the window area, ignoring window controls.
+		 */
+		bool _free_arrange = false;
+
+		Window::Element _hovered_element() const
+		{
+			return _free_arrange ? _free_hovered_element : _strict_hovered_element;
+		}
 
 		/*
 		 * Pointer position at the beginning of a drag operation
@@ -118,7 +132,7 @@ class Window_layouter::User_state
 			/*
 			 * Toggle maximized (fullscreen) state
 			 */
-			if (_hovered_element.maximizer()) {
+			if (_strict_hovered_element.maximizer()) {
 
 				_dragged_window_id = _hovered_window_id;
 				_focused_window_id = _hovered_window_id;
@@ -126,8 +140,8 @@ class Window_layouter::User_state
 
 				_action.toggle_fullscreen(_hovered_window_id);
 
-				_hovered_element   = { };
-				_hovered_window_id = { };
+				_strict_hovered_element = { };
+				_hovered_window_id      = { };
 				return;
 			}
 
@@ -145,6 +159,14 @@ class Window_layouter::User_state
 
 			_action.drag(_dragged_window_id, _dragged_element,
 			             _pointer_clicked, _pointer_curr);
+		}
+
+		void _update_free_hovered_element()
+		{
+			_free_hovered_element = { };
+			if (_hovered_window_id.valid())
+				_free_hovered_element = _action.free_arrange_element_at(_hovered_window_id,
+				                                                        _pointer_curr);
 		}
 
 	public:
@@ -174,8 +196,10 @@ class Window_layouter::User_state
 		{
 			Window_id const orig_hovered_window_id = _hovered_window_id;
 
-			_hovered_window_id = window_id;
-			_hovered_element   = element;
+			_hovered_window_id      = window_id;
+			_strict_hovered_element = element;
+
+			_update_free_hovered_element();
 
 			/*
 			 * Check if we have just received an update while already being in
@@ -193,7 +217,7 @@ class Window_layouter::User_state
 			 * operation for the now-known window.
 			 */
 			if (_drag_state && !_drag_init_done && _hovered_window_id.valid())
-				_initiate_drag(_hovered_window_id, _hovered_element);
+				_initiate_drag(_hovered_window_id, _strict_hovered_element);
 
 			/*
 			 * Let focus follows the pointer, except while dragging or when
@@ -214,21 +238,28 @@ class Window_layouter::User_state
 			if (_drag_state)
 				return;
 
-			_hovered_element   = { };
-			_hovered_window_id = { };
+			_strict_hovered_element = { };
+			_hovered_window_id      = { };
 		}
 
 		Window_id focused_window_id() const { return _focused_window_id; }
 
 		void focused_window_id(Window_id id) { _focused_window_id = id; }
 
-		Hover_state hover_state() const { return { _hovered_window_id, _hovered_element }; }
+		Hover_state hover_state() const
+		{
+			return { .window_id = _hovered_window_id,
+			         .element   = _hovered_element() };
+		}
 };
 
 
 void Window_layouter::User_state::_handle_event(Input::Event const &e,
                                                 Xml_node config)
 {
+	Point const orig_pointer_curr = _pointer_curr;
+	bool  const orig_free_arrange = _free_arrange;
+
 	e.handle_absolute_motion([&] (int x, int y) {
 		_pointer_curr = Point(x, y); });
 
@@ -295,7 +326,19 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 				}
 				return;
 
+			case Command::FREE_ARRANGE:
+				_free_arrange = true;
+				return;
+
+			case Command::STRICT_ARRANGE:
+				_free_arrange = false;
+				return;
+
 			case Command::DRAG:
+
+				/* ignore clicks outside of a window in free-arrange mode */
+				if (_free_arrange && !_hovered_window_id.valid())
+					return;
 
 				_drag_state      = true;
 				_pointer_clicked = _pointer_curr;
@@ -311,7 +354,7 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 					 * model.
 					 */
 
-					_initiate_drag(_hovered_window_id, _hovered_element);
+					_initiate_drag(_hovered_window_id, _hovered_element());
 
 				} else {
 
@@ -329,24 +372,31 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 			case Command::DROP:
 
 				if (_drag_state && _dragged_window_id.valid()) {
-					_drag_state = false;
 
 					/*
 					 * Issue resize to 0x0 when releasing the the window closer
 					 */
 					if (_dragged_element.closer())
-						if (_dragged_element == _hovered_element)
+						if (_dragged_element == _hovered_element())
 							_action.close(_dragged_window_id);
 
 					_action.finalize_drag(_dragged_window_id, _dragged_element,
 					                      _pointer_clicked, _pointer_curr);
 				}
+				_drag_state = false;
 				return;
 
-			default:
-				warning("command ", (int)command.type, " unhanded");
+			case Command::NONE:
+				return;
 			}
 		});
+	}
+
+	if (_free_arrange && (!orig_free_arrange || orig_pointer_curr != _pointer_curr)) {
+		Window::Element const orig_free_hovered_element = _free_hovered_element;
+		_update_free_hovered_element();
+		if (orig_free_hovered_element != _free_hovered_element)
+			_action.free_arrange_hover_changed();
 	}
 
 	/* update focus history after key/button action is completed */

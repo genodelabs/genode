@@ -358,6 +358,55 @@ struct Window_layouter::Main : User_state::Action,
 		_gen_resize_request();
 	}
 
+	Window::Element free_arrange_element_at(Window_id id, Point const abs_at) override
+	{
+		using Element = Window::Element;
+		Element result { };
+
+		/* window geometry is relative to target */
+		Point at { };
+		_target_list.with_target(_assign_list, id, [&] (Target const &target) {
+			at = abs_at - target.rect.at; });
+
+		_window_list.with_window(id, [&] (Window &window) {
+			Rect const rect = window.outer_geometry();
+			if (!rect.contains(at))
+				return;
+
+			int const x_percent = (100*(at.x - rect.x1()))/rect.w(),
+			          y_percent = (100*(at.y - rect.y1()))/rect.h();
+
+			auto with_rel = [&] (int rel, auto const &lo_fn, auto const &mid_fn, auto const &hi_fn)
+			{
+				if (rel > 75) hi_fn(); else if (rel > 25) mid_fn(); else lo_fn();
+			};
+
+			with_rel(x_percent,
+				[&] {
+					with_rel(y_percent,
+						[&] { result = { Element::TOP_LEFT    }; },
+						[&] { result = { Element::LEFT        }; },
+						[&] { result = { Element::BOTTOM_LEFT }; }); },
+				[&] {
+					with_rel(y_percent,
+						[&] { result = { Element::TOP    }; },
+						[&] { result = { Element::TITLE  }; },
+						[&] { result = { Element::BOTTOM }; }); },
+				[&] {
+					with_rel(y_percent,
+						[&] { result = { Element::TOP_RIGHT    }; },
+						[&] { result = { Element::RIGHT        }; },
+						[&] { result = { Element::BOTTOM_RIGHT }; }); }
+			);
+		});
+		return result;
+	}
+
+	void free_arrange_hover_changed() override
+	{
+		_update_window_layout();
+	}
+
 	void _handle_drop_timer()
 	{
 		_drag = { };
