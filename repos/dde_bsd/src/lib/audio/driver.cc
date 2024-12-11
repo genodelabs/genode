@@ -41,6 +41,8 @@ static dev_t const mdev = 0xc0; /* /dev/audioctl */
 
 static bool adev_usuable = false;
 
+/* prioritize mic of headset if plugged in over internal mic */
+static bool mic_priority_external = true;
 
 static bool drv_loaded()
 {
@@ -389,6 +391,11 @@ static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node con
 {
 	using namespace Genode;
 
+	typedef String<9> Mic_mode;
+
+	Mic_mode mode = config.attribute_value("mic_priority", Mic_mode("external"));
+	mic_priority_external = (mode == "internal") ? false : true;
+
 	config.for_each_sub_node("mixer", [&] (Xml_node node) {
 
 		typedef String<32> Field;
@@ -615,7 +622,8 @@ extern "C" void notify_record()
 
 extern "C" void notify_hp_sense(int const sense)
 {
-	set_mixer_value(mixer, "record.adc-0:1_source", sense ? "mic2" : "mic");
+	set_mixer_value(mixer, "record.adc-0:1_source",
+	                sense && mic_priority_external ? "mic2" : "mic");
 
 	report_mixer_state(mixer, nullptr);
 }
@@ -630,6 +638,8 @@ void Audio::update_config(Genode::Env &env, Genode::Xml_node config)
 	if (mixer.info == nullptr) { return; }
 
 	configure_mixer(env, mixer, config);
+
+	notify_hp_sense(headphone_plugged() ? 1 : 0);
 }
 
 

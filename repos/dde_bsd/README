@@ -74,6 +74,16 @@ Information about the available mixers and settings in general
 may be obtained by setting the 'verbose' to 'yes' in the config
 node.
 
+When multiple microphones are present (e.g., internal microphone in a notebook
+and a headset with a microphone), the preferred microphone can be configured
+using the 'mic_priority' attribute in the '<config>' node. Valid values are
+"internal" and "external" (default).
+
+! <config mic_priority="internal"/>
+
+The example above tells the driver to prioritize the internal microphone over a
+headset.
+
 
 Examples
 ========
