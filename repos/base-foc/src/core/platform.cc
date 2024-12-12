@@ -18,6 +18,7 @@
 #include <dataspace/capability.h>
 #include <trace/source_registry.h>
 #include <util/misc_math.h>
+#include <util/mmio.h>
 #include <util/xml_generator.h>
 
 /* base-internal includes */
@@ -342,6 +343,76 @@ void Core::Platform::_setup_irq_alloc()
 }
 
 
+struct Acpi_rsdp : public Genode::Mmio<32>
+{
+	using Mmio<32>::Mmio;
+
+	struct Signature : Register< 0, 64> { };
+	struct Revision  : Register<15,  8> { };
+	struct Rsdt      : Register<16, 32> { };
+	struct Length    : Register<20, 32> { };
+	struct Xsdt      : Register<24, 64> { };
+
+	bool valid() const
+	{
+		const char sign[] = "RSD PTR ";
+		return read<Signature>() == *(Genode::uint64_t *)sign;
+	}
+
+} __attribute__((packed));
+
+
+static void add_acpi_rsdp(auto &region_alloc, auto &xml)
+{
+	using namespace Foc;
+	using Foc::L4::Kip::Mem_desc;
+
+	l4_kernel_info_t const &kip = sigma0_map_kip();
+	Mem_desc const * const desc = Mem_desc::first(&kip);
+
+	if (!desc)
+		return;
+
+	for (unsigned i = 0; i < Mem_desc::count(&kip); ++i) {
+		if (desc[i].type()     != Mem_desc::Mem_type::Info ||
+		    desc[i].sub_type() != Mem_desc::Info_sub_type::Info_acpi_rsdp)
+			continue;
+
+		auto offset = desc[i].start() & 0xffful;
+		auto pages = align_addr(offset + desc[i].size(), 12) >> 12;
+
+		region_alloc.alloc_aligned(pages * 4096, 12).with_result([&] (void *core_local_ptr) {
+
+			if (!map_local_io(desc[i].start(), (addr_t)core_local_ptr, pages))
+				return;
+
+			Byte_range_ptr const ptr((char *)(addr_t(core_local_ptr) + offset),
+			                         pages * 4096 - offset);
+			auto const rsdp = Acpi_rsdp(ptr);
+
+			if (!rsdp.valid())
+				return;
+
+			xml.node("acpi", [&] {
+				xml.attribute("revision", rsdp.read<Acpi_rsdp::Revision>());
+				if (rsdp.read<Acpi_rsdp::Rsdt>())
+					xml.attribute("rsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Rsdt>())));
+				if (rsdp.read<Acpi_rsdp::Xsdt>())
+					xml.attribute("xsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Xsdt>())));
+			});
+
+			unmap_local(addr_t(core_local_ptr), pages);
+			region_alloc.free(core_local_ptr);
+
+			pages = 0;
+		}, [&] (Range_allocator::Alloc_error) { });
+
+		if (!pages)
+			return;
+	}
+}
+
+
 void Core::Platform::_setup_basics()
 {
 	using namespace Foc;
@@ -412,6 +483,10 @@ void Core::Platform::_setup_basics()
 
 	/* image is accessible by core */
 	add_region(Region(img_start, img_end), _core_address_ranges());
+
+	/* requested as I/O memory by the VESA driver and ACPI (rsdp search) */
+	_io_mem_alloc.add_range   (0, 0x2000);
+	ram_alloc()  .remove_range(0, 0x2000);
 }
 
 
@@ -517,7 +592,10 @@ Core::Platform::Platform()
 
 				xml.node("affinity-space", [&] {
 					xml.attribute("width", affinity_space().width());
-					xml.attribute("height", affinity_space().height()); });
+					xml.attribute("height", affinity_space().height());
+				});
+
+				add_acpi_rsdp(region_alloc(), xml);
 			});
 		}
 	);
