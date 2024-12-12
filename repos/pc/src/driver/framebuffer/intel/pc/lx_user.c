@@ -939,7 +939,7 @@ void lx_emul_i915_iterate_modes(void * lx_data, void * genode_data)
 				.height_mm = mode->height_mm,
 				.preferred = mode->type & (DRM_MODE_TYPE_PREFERRED |
 				                           DRM_MODE_TYPE_DEFAULT),
-				.inuse     = !quirk_inuse && state->mode_id == mode_id,
+				.inuse     = !quirk_inuse && state->mode_id == mode_id && state->enabled,
 				.mirror    = state->mirrored,
 				.hz        = drm_mode_vrefresh(mode),
 				.id        = mode_id,
