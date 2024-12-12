@@ -704,9 +704,13 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 
 			device.for_each_io_mem([&] (unsigned idx, Range range, Device::Pci_bar, bool)
 			{
-				if (idx == 0)
-					new (alloc) Intel::Io_mmu(_env, io_mmu_devices, device.name(),
-					                          range, _table_allocator, irq_number);
+				try {
+					if (idx == 0)
+						new (alloc) Intel::Io_mmu(_env, io_mmu_devices, device.name(),
+						                          range, _table_allocator, irq_number);
+				} catch (...) {
+					error("Intel::Io_mmu failed to initialize - ", device.name());
+				}
 			});
 		}
 };
