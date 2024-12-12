@@ -38,7 +38,7 @@ using namespace Core;
 
 Cap_index_allocator &Genode::cap_idx_alloc()
 {
-	static Cap_index_allocator_tpl<Core_cap_index,10*1024> alloc;
+	static Cap_index_allocator_tpl<Core_cap_index, 128 * 1024> alloc;
 	return alloc;
 }
 
