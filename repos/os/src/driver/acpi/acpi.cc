@@ -617,7 +617,7 @@ class Table_wrapper
 			return sum;
 		}
 
-		bool valid() { return !checksum((uint8_t *)_table, _table->size); }
+		bool valid() { return _table && !checksum((uint8_t *)_table, _table->size); }
 
 		bool is_ivrs() const { return _cmp("IVRS");}
 
@@ -720,8 +720,13 @@ class Table_wrapper
 		              Registry<Info> &registry, Allocator &heap)
 		: _base(base), _table(0)
 		{
-			/* make table header accessible */
-			_table = reinterpret_cast<Generic *>(memory.map_region(base, 8));
+			try {
+				/* make table header accessible */
+				_table = reinterpret_cast<Generic *>(memory.map_region(base, 8));
+			} catch (Service_denied &) {
+				error(__func__, " failed with exception");
+				return;
+			}
 
 			/* table size is known now - make it completely accessible (in place) */
 			memory.map_region(base, _table->size);
@@ -982,7 +987,7 @@ class Element : private List<Element>::Element
 
 				if (_name_len + parent_len > sizeof(_name)) {
 					Genode::error("name is not large enough");
-					throw -1;
+					return;
 				}
 
 				memcpy(_name, parent->_name, parent_len);
@@ -1440,7 +1445,7 @@ class Acpi_table
 				    !Table_wrapper::checksum(area + addr, 20))
 					return area + addr;
 
-			throw -2;
+			return 0;
 		}
 
 		/**
@@ -1454,8 +1459,7 @@ class Acpi_table
 			try {
 				_mmio.construct(_env, BIOS_BASE, BIOS_SIZE);
 				return _search_rsdp(_mmio->local_addr<uint8_t>(), BIOS_SIZE);
-			}
-			catch (...) { }
+			} catch (...) { }
 
 			/* search EBDA (BIOS addr + 0x40e) */
 			try {
@@ -1586,51 +1590,58 @@ class Acpi_table
 			if (!rsdt && !xsdt) {
 				uint8_t * ptr_rsdp = _rsdp();
 
-				struct rsdp {
-					char     signature[8];
-					uint8_t  checksum;
-					char     oemid[6];
-					uint8_t  revision;
-					/* table pointer at 16 byte offset in RSDP structure (5.2.5.3) */
-					uint32_t rsdt;
-					/* With ACPI 2.0 */
-					uint32_t len;
-					uint64_t xsdt;
-					uint8_t  checksum_extended;
-					uint8_t  reserved[3];
-				} __attribute__((packed));
-				struct rsdp * rsdp = reinterpret_cast<struct rsdp *>(ptr_rsdp);
+				if (ptr_rsdp) {
+					struct rsdp {
+						char     signature[8];
+						uint8_t  checksum;
+						char     oemid[6];
+						uint8_t  revision;
+						/* table pointer at 16 byte offset in RSDP structure (5.2.5.3) */
+						uint32_t rsdt;
+						/* With ACPI 2.0 */
+						uint32_t len;
+						uint64_t xsdt;
+						uint8_t  checksum_extended;
+						uint8_t  reserved[3];
+					} __attribute__((packed));
+					struct rsdp * rsdp = reinterpret_cast<struct rsdp *>(ptr_rsdp);
 
-				if (!rsdp) {
-					Genode::error("No valid ACPI RSDP structure found");
-					return;
+					if (rsdp) {
+						rsdt = rsdp->rsdt;
+						xsdt = rsdp->xsdt;
+						acpi_revision = rsdp->revision;
+					} else {
+						Genode::error("No valid ACPI RSDP structure found");
+					}
 				}
 
-				rsdt = rsdp->rsdt;
-				xsdt = rsdp->xsdt;
-				acpi_revision = rsdp->revision;
 				/* drop rsdp io_mem mapping since rsdt/xsdt may overlap */
 				_mmio.destruct();
 			}
 
-			if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
-				/* running 64bit and xsdt is valid */
-				Table_wrapper table(_memory, xsdt, _table_registry, _heap);
-				if (!table.valid()) throw -1;
+			if (rsdt || xsdt) {
+				if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
+					/* running 64bit and xsdt is valid */
+					Table_wrapper table(_memory, xsdt, _table_registry, _heap);
+					if (table.valid()) {
+						uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
+						_parse_tables(entries, table.entry_count(entries));
 
-				uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
-				_parse_tables(entries, table.entry_count(entries));
+						log("XSDT ", *table.table());
+					} else
+						error("XSDT parsing error");
 
-				Genode::log("XSDT ", *table.table());
-			} else {
-				/* running (32bit) or (64bit and xsdt isn't valid) */
-				Table_wrapper table(_memory, rsdt, _table_registry, _heap);
-				if (!table.valid()) throw -1;
+				} else {
+					/* running (32bit) or (64bit and xsdt isn't valid) */
+					Table_wrapper table(_memory, rsdt, _table_registry, _heap);
+					if (table.valid()) {
+						uint32_t * entries = reinterpret_cast<uint32_t *>(table.table() + 1);
+						_parse_tables(entries, table.entry_count(entries));
 
-				uint32_t * entries = reinterpret_cast<uint32_t *>(table.table() + 1);
-				_parse_tables(entries, table.entry_count(entries));
-
-				Genode::log("RSDT ", *table.table());
+						log("RSDT ", *table.table());
+					} else
+						error("RSDT parsing error");
+				}
 			}
 
 			/* free up memory of elements not of any use */
@@ -1813,6 +1824,10 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 		 * Intel opregion lookup & parsing must be finished before acpi
 		 * report is sent, therefore the invocation is placed exactly here.
 		 */
-		Pci_config_space::intel_opregion(env);
+		try {
+			Pci_config_space::intel_opregion(env);
+		} catch (...) {
+			error("Intel opregion handling failed");
+		}
 	});
 }
