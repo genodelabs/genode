@@ -39,6 +39,9 @@ namespace Core {
 	 * argument.
 	 */
 	void init_core_signal_transmitter(Rpc_entrypoint &ep);
+
+
+	Rpc_entrypoint &core_signal_ep(Rpc_entrypoint &core_ep);
 }
 
 #endif /* _CORE__INCLUDE__SIGNAL_TRANSMITTER_H_ */

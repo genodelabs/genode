@@ -20,9 +20,9 @@
 #include <base/internal/capability_space_tpl.h>
 
 /* local includes */
-#include "platform.h"
-#include "core_env.h"
-#include "resource_path.h"
+#include <platform.h>
+#include <core_region_map.h>
+#include <resource_path.h>
 
 /* Linux includes */
 #include <core_linux_syscalls.h>

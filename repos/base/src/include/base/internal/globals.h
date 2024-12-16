@@ -58,6 +58,8 @@ namespace Genode {
 	void prepare_init_main_thread();
 	void bootstrap_component(Platform &);
 	void binary_ready_hook_for_platform();
+
+	extern bool inhibit_tracing;
 }
 
 void genode_exit(int);

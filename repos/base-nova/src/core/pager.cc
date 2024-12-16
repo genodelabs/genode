@@ -25,7 +25,6 @@
 #include <platform_thread.h>
 #include <imprint_badge.h>
 #include <cpu_thread_component.h>
-#include <core_env.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>

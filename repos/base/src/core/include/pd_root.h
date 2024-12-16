@@ -14,10 +14,11 @@
 #ifndef _CORE__INCLUDE__PD_ROOT_H_
 #define _CORE__INCLUDE__PD_ROOT_H_
 
-/* Genode */
+/* Genode includes */
 #include <root/component.h>
+#include <pd_session/connection.h>
 
-/* Core */
+/* core includes */
 #include <pd_session_component.h>
 
 namespace Core { class Pd_root; }

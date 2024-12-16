@@ -18,6 +18,7 @@
 #include <base/rpc_server.h>
 #include <rm_session/rm_session.h>
 #include <base/session_object.h>
+#include <base/heap.h>
 
 /* core includes */
 #include <region_map_component.h>

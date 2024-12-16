@@ -117,8 +117,7 @@ Pd_session::Ref_account_result Pd_session_component::ref_account(Capability<Pd_a
 		if (!pd || !pd->_ram_account.constructed())
 			return;
 
-		_cap_account.construct(_cap_quota_guard(), _label, *pd->_cap_account);
-		_ram_account.construct(_ram_quota_guard(), _label, *pd->_ram_account);
+		ref_accounts(*pd->_ram_account, *pd->_cap_account);
 
 		result = Ref_account_result::OK;
 	});

@@ -151,7 +151,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_constrained_md_ram_alloc(*this, _ram_quota_guard(), _cap_quota_guard()),
 			_constrained_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
 			_sliced_heap(_constrained_md_ram_alloc, local_rm),
-			_ram_ds_factory(ep, phys_alloc, phys_range, local_rm,
+			_ram_ds_factory(ep, phys_alloc, phys_range,
 			                _constrained_core_ram_alloc),
 			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_rpc_cap_factory(_sliced_heap),
@@ -169,6 +169,22 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		}
 
 		~Pd_session_component();
+
+		void ref_accounts(Account<Ram_quota> &ram_ref, Account<Cap_quota> &cap_ref)
+		{
+			_ram_account.construct(_ram_quota_guard(), _label, ram_ref);
+			_cap_account.construct(_cap_quota_guard(), _label, cap_ref);
+		}
+
+		void with_ram_account(auto const &fn)
+		{
+			if (_ram_account.constructed()) fn(*_ram_account);
+		}
+
+		void with_cap_account(auto const &fn)
+		{
+			if (_cap_account.constructed()) fn(*_cap_account);
+		}
 
 		/**
 		 * Initialize cap and RAM accounts without providing a reference account

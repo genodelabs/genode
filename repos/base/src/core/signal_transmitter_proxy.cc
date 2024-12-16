@@ -17,9 +17,9 @@
 #include <base/trace/events.h>
 
 /* core includes */
-#include <core_env.h>
 #include <signal_source_component.h>
 #include <signal_transmitter.h>
+#include <signal_delivery_proxy.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -46,9 +46,10 @@ void Signal_transmitter::submit(unsigned cnt)
 }
 
 
-Rpc_entrypoint &Core_env::signal_ep()
+Rpc_entrypoint &Core::core_signal_ep(Rpc_entrypoint &)
 {
-	static Rpc_entrypoint ep(nullptr, ENTRYPOINT_STACK_SIZE,
+	size_t const STACK_SIZE = 20 * 1024;
+	static Rpc_entrypoint ep(nullptr, STACK_SIZE,
 	                         "signal_entrypoint", Affinity::Location());
 	return ep;
 }

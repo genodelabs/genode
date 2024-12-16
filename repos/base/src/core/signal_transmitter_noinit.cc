@@ -15,7 +15,6 @@
  */
 
 /* core includes */
-#include <core_env.h>
 #include <signal_transmitter.h>
 
 using namespace Core;
@@ -24,4 +23,4 @@ using namespace Core;
 void Core::init_core_signal_transmitter(Rpc_entrypoint &) { }
 
 
-Rpc_entrypoint &Core_env::signal_ep() { return _entrypoint; }
+Rpc_entrypoint &Core::core_signal_ep(Rpc_entrypoint &core_ep) { return core_ep; }

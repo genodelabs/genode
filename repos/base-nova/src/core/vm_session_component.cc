@@ -19,7 +19,6 @@
 #include <util/flex_iterator.h>
 
 /* core includes */
-#include <core_env.h>
 #include <cpu_thread_component.h>
 #include <dataspace_component.h>
 #include <vm_session_component.h>
