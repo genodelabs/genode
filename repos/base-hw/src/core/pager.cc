@@ -23,6 +23,9 @@
 using namespace Core;
 
 
+void Core::init_page_fault_handling(Rpc_entrypoint &) { }
+
+
 /***************
  ** Ipc_pager **
  ***************/

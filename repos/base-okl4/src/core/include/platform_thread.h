@@ -42,14 +42,14 @@ class Core::Platform_thread
 
 		int _thread_id = THREAD_INVALID;    /* plain thread number */
 
-		Okl4::L4_ThreadId_t _l4_thread_id;  /* L4 thread ID */
+		Okl4::L4_ThreadId_t _l4_thread_id = Okl4::L4_nilthread;
 
 		char          _name[32];            /* thread name that will be
 		                                       registered at the kernel
 		                                       debugger */
 		Platform_pd  &_pd;
-		unsigned      _priority;            /* thread priority */
-		Pager_object *_pager;
+		unsigned      _priority = 0;        /* thread priority */
+		Pager_object *_pager = nullptr;
 
 		bool _bound_to_pd = false;
 
@@ -61,16 +61,24 @@ class Core::Platform_thread
 		/**
 		 * Constructor
 		 */
-		Platform_thread(Platform_pd &pd, size_t, const char *name,
-		                unsigned priority,
-		                Affinity::Location,
-		                addr_t utcb);
+		Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
+		                Region_map &, size_t, const char *name,
+		                unsigned prio, Affinity::Location, addr_t)
+		:
+			_pd(pd), _priority(prio)
+		{
+			copy_cstring(_name, name, sizeof(_name));
+			_bound_to_pd = pd.bind_thread(*this);
+		}
 
 		/**
 		 * Constructor used for core-internal threads
 		 */
-		Platform_thread(Platform_pd &pd, char const *name)
-		: Platform_thread(pd, 0, name, 0, Affinity::Location(), 0) { }
+		Platform_thread(Platform_pd &pd, char const *name) : _pd(pd)
+		{
+			copy_cstring(_name, name, sizeof(_name));
+			_bound_to_pd = pd.bind_thread(*this);
+		}
 
 		/**
 		 * Destructor

@@ -18,7 +18,6 @@
 /* core includes */
 #include <platform.h>
 #include <platform_thread.h>
-#include <core_env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>

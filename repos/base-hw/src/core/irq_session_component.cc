@@ -18,7 +18,7 @@
 /* core includes */
 #include <kernel/irq.h>
 #include <irq_root.h>
-#include <core_env.h>
+#include <platform.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space.h>

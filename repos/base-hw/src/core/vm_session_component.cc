@@ -19,7 +19,6 @@
 #include <vm_session_component.h>
 #include <platform.h>
 #include <cpu_thread_component.h>
-#include <core_env.h>
 
 using namespace Core;
 

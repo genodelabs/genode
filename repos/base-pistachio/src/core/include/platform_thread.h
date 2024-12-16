@@ -86,7 +86,8 @@ class Core::Platform_thread : Interface
 		/**
 		 * Constructor
 		 */
-		Platform_thread(Platform_pd &pd, size_t, char const *name, unsigned priority,
+		Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
+		                Region_map &, size_t, char const *name, unsigned priority,
 		                Affinity::Location location, addr_t)
 		:
 			_name(name), _pd(pd), _priority(priority), _location(location)

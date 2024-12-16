@@ -38,6 +38,11 @@ using namespace Core;
 using namespace Nova;
 
 
+static Rpc_entrypoint *_core_ep_ptr;
+
+void Core::init_page_fault_handling(Rpc_entrypoint &ep) { _core_ep_ptr = &ep; }
+
+
 /**
  * Pager threads - one thread per CPU
  */
@@ -397,9 +402,8 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 		Nova::Crd const cap(item.crd);
 
 		/* valid item which got translated ? */
-		if (!cap.is_null() && !item.is_del()) {
-			Rpc_entrypoint &e = core_env().entrypoint();
-			e.apply(cap.base(),
+		if (!cap.is_null() && !item.is_del() && _core_ep_ptr) {
+			_core_ep_ptr->apply(cap.base(),
 				[&] (Cpu_thread_component *source) {
 					if (!source)
 						return;

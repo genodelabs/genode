@@ -153,3 +153,6 @@ Pager_capability Pager_entrypoint::manage(Pager_object &obj)
 		},
 		[&] (Cpu_session::Create_thread_error) { return Pager_capability(); });
 }
+
+
+void Core::init_page_fault_handling(Rpc_entrypoint &) { }

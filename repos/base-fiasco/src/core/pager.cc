@@ -103,3 +103,6 @@ Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
 	return Capability_space::import(native_thread().l4id, Rpc_obj_key(badge));
 }
+
+
+void Core::init_page_fault_handling(Rpc_entrypoint &) { }

@@ -23,4 +23,5 @@ using namespace Core;
 
 void Core::init_core_signal_transmitter(Rpc_entrypoint &) { }
 
+
 Rpc_entrypoint &Core_env::signal_ep() { return _entrypoint; }

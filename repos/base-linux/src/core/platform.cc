@@ -160,25 +160,48 @@ void Core::Platform::wait_for_exit()
 }
 
 
+void Core::init_page_fault_handling(Rpc_entrypoint &) { }
+
+
 /*********************************
  ** Support for Region_map_mmap **
  *********************************/
+
+static Rpc_entrypoint *_core_ep_ptr;
+
+
+void Core_region_map::init(Rpc_entrypoint &ep) { _core_ep_ptr = &ep; }
+
+
+static auto with_linux_dataspace(Capability<Dataspace> ds,
+                                 auto const &fn, auto const &missing_fn) -> decltype(missing_fn())
+{
+	if (!_core_ep_ptr)
+		error("missing call of Core_region_map::init");
+
+	Capability<Linux_dataspace> lx_ds = static_cap_cast<Linux_dataspace>(ds);
+
+	if (_core_ep_ptr)
+		return _core_ep_ptr->apply(lx_ds, [&] (Linux_dataspace *ds_ptr) {
+			return ds_ptr ? fn(*ds_ptr) : missing_fn(); });
+
+	return missing_fn();
+}
+
 
 size_t Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 {
 	if (!ds_cap.valid())
 		return Local_capability<Dataspace>::deref(ds_cap)->size();
 
-	/* use local function call if called from the entrypoint */
-	return core_env().entrypoint().apply(ds_cap, [] (Dataspace *ds) {
-		return ds ? ds->size() : 0; });
+	return with_linux_dataspace(ds_cap,
+		[&] (Linux_dataspace &ds) -> size_t { return ds.size(); },
+		[&] () /* missing */      -> size_t { return 0; });
 }
 
 
 int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 {
-	Capability<Linux_dataspace> lx_ds_cap = static_cap_cast<Linux_dataspace>(ds_cap);
-
 	/*
 	 * Return a duplicate of the dataspace file descriptor, which will be freed
 	 * immediately after mmap'ing the file (see 'Region_map_mmap').
@@ -188,13 +211,19 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 	 * socket descriptor during the RPC handling). When later destroying the
 	 * dataspace, the descriptor would unexpectedly be closed again.
 	 */
-	return core_env().entrypoint().apply(lx_ds_cap, [] (Linux_dataspace *ds) {
-		return ds ? lx_dup(Capability_space::ipc_cap_data(ds->fd()).dst.socket.value) : -1; });
+
+	return with_linux_dataspace(ds_cap,
+		[&] (Linux_dataspace &ds)
+		{
+			return lx_dup(Capability_space::ipc_cap_data(ds.fd()).dst.socket.value);
+		},
+		[&] /* missing */ { return -1; });
 }
 
 
 bool Region_map_mmap::_dataspace_writeable(Dataspace_capability ds_cap)
 {
-	return core_env().entrypoint().apply(ds_cap, [] (Dataspace *ds) {
-		return ds ? ds->writeable() : false; });
+	return with_linux_dataspace(ds_cap,
+		[&] (Linux_dataspace &ds) { return ds.writeable(); },
+		[&] /* missing */         { return false; });
 }

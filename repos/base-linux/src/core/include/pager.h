@@ -29,6 +29,8 @@ namespace Core {
 	struct Pager_entrypoint;
 
 	using Pager_capability = Capability<Pager_object>;
+
+	extern void init_page_fault_handling(Rpc_entrypoint &);
 }
 
 

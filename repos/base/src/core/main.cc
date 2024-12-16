@@ -39,6 +39,7 @@
 #include <irq_root.h>
 #include <trace/root.h>
 #include <platform_services.h>
+#include <pager.h>
 
 using namespace Core;
 
@@ -228,6 +229,7 @@ namespace Genode {
 void Genode::bootstrap_component(Genode::Platform &)
 {
 	init_exception_handling(*core_env().pd_session(), core_env().local_rm());
+	init_page_fault_handling(core_env().entrypoint());
 
 	/* disable tracing within core because it is not fully implemented */
 	inhibit_tracing = true;

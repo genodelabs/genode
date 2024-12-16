@@ -343,7 +343,8 @@ void Platform_thread::thread_type(Cpu_session::Native_cpu::Thread_type thread_ty
 }
 
 
-Platform_thread::Platform_thread(Platform_pd &pd, size_t, const char *name,
+Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
+                                 Region_map &, size_t, const char *name,
                                  unsigned prio, Affinity::Location affinity, addr_t)
 :
 	_pd(pd), _pager(0), _id_base(cap_map().insert(2)),

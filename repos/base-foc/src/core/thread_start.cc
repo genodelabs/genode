@@ -22,7 +22,6 @@
 
 /* core includes */
 #include <platform.h>
-#include <core_env.h>
 
 /* Fiasco.OC includes */
 #include <foc/syscall.h>

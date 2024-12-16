@@ -27,7 +27,7 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<start name="test-pthread" caps="200">
+		<start name="test-pthread" caps="600">
 			<resource name="RAM" quantum="64M"/>
 			<config>
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>

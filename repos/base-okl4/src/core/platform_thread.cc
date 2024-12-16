@@ -139,17 +139,6 @@ unsigned long Platform_thread::pager_object_badge() const
 }
 
 
-Platform_thread::Platform_thread(Platform_pd &pd, size_t, const char *name,
-                                 unsigned prio, Affinity::Location, addr_t)
-:
-	_l4_thread_id(L4_nilthread), _pd(pd), _priority(prio), _pager(0)
-{
-	copy_cstring(_name, name, sizeof(_name));
-
-	_bound_to_pd = pd.bind_thread(*this);
-}
-
-
 Platform_thread::~Platform_thread()
 {
 	/*

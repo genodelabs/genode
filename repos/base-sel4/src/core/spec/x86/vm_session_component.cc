@@ -16,7 +16,6 @@
 #include <cpu/vcpu_state.h>
 
 /* core includes */
-#include <core_env.h>
 #include <vm_session_component.h>
 #include <pd_session_component.h>
 #include <cpu_thread_component.h>

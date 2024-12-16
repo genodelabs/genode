@@ -16,9 +16,11 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
+#include <base/registry.h>
 #include <vm_session/vm_session.h>
 
 /* core includes */
+#include <region_map_component.h>
 #include <trace/source_registry.h>
 #include <sel4_native_vcpu/sel4_native_vcpu.h>
 

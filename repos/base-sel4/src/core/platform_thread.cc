@@ -209,7 +209,8 @@ bool Platform_thread::install_mapping(Mapping const &mapping)
 }
 
 
-Platform_thread::Platform_thread(Platform_pd &pd, size_t, const char *name,
+Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
+                                 Region_map &, size_t, const char *name,
                                  unsigned priority, Affinity::Location location,
                                  addr_t utcb)
 :

@@ -19,6 +19,7 @@
 #include <base/ram_allocator.h>
 #include <base/thread.h>
 #include <base/trace/types.h>
+#include <base/rpc_server.h>
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
@@ -26,6 +27,7 @@
 /* core includes */
 #include <address_space.h>
 #include <object.h>
+#include <dataspace_component.h>
 
 /* kernel includes */
 #include <kernel/core_interface.h>
@@ -55,17 +57,59 @@ class Core::Platform_thread : Noncopyable
 
 		using Label = String<32>;
 
-		struct Utcb
+		struct Utcb : Noncopyable
 		{
+			struct {
+				Ram_allocator *_ram_ptr     = nullptr;
+				Region_map    *_core_rm_ptr = nullptr;
+			};
+
 			Ram_dataspace_capability _ds { }; /* UTCB ds of non-core threads */
 
-			addr_t const _core_addr; /* UTCB address within core/kernel */
+			addr_t const core_addr; /* UTCB address within core/kernel */
+			addr_t const phys_addr;
 
-			Ram_dataspace_capability _allocate_utcb(bool core_thread);
-			addr_t _core_local_address(addr_t utcb_addr, bool core_thread);
+			/*
+			 * \throw Out_of_ram
+			 * \throw Out_of_caps
+			 */
+			Ram_dataspace_capability _allocate(Ram_allocator &ram)
+			{
+				return ram.alloc(sizeof(Native_utcb), CACHED);
+			}
 
-			Utcb(addr_t pd_addr, bool core_thread);
-			~Utcb();
+			addr_t _attach(Region_map &);
+
+			static addr_t _ds_phys(Rpc_entrypoint &ep, Dataspace_capability ds)
+			{
+				return ep.apply(ds, [&] (Dataspace_component *dsc) {
+					return dsc ? dsc->phys_addr() : 0; });
+			}
+
+			/**
+			 * Constructor used for core-local threads
+			 */
+			Utcb(addr_t core_addr);
+
+			/**
+			 * Constructor used for threads outside of core
+			 */
+			Utcb(Rpc_entrypoint &ep, Ram_allocator &ram, Region_map &core_rm)
+			:
+				_core_rm_ptr(&core_rm),
+				_ds(_allocate(ram)),
+				core_addr(_attach(core_rm)),
+				phys_addr(_ds_phys(ep, _ds))
+			{ }
+
+			~Utcb()
+			{
+				if (_core_rm_ptr)
+					_core_rm_ptr->detach(core_addr);
+
+				if (_ram_ptr && _ds.valid())
+					_ram_ptr->free(_ds);
+			}
 		};
 
 		Label              const _label;
@@ -126,7 +170,8 @@ class Core::Platform_thread : Noncopyable
 		 * \param virt_prio  unscaled processor-scheduling priority
 		 * \param utcb       core local pointer to userland stack
 		 */
-		Platform_thread(Platform_pd &, size_t const quota, Label const &label,
+		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &,
+		                Region_map &, size_t const quota, Label const &label,
 		                unsigned const virt_prio, Affinity::Location,
 		                addr_t const utcb);
 

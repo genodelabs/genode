@@ -43,6 +43,7 @@ class Core::Cpu_session_component : public  Session_object<Cpu_session>,
 		Rpc_entrypoint            &_session_ep;
 		Rpc_entrypoint            &_thread_ep;
 		Pager_entrypoint          &_pager_ep;
+		Region_map                &_local_rm;
 		Constrained_ram_allocator  _ram_alloc;
 		Sliced_heap                _md_alloc;               /* guarded meta-data allocator */
 		Cpu_thread_allocator       _thread_alloc;           /* meta-data allocator */

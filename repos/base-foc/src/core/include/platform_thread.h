@@ -75,8 +75,8 @@ class Core::Platform_thread : Interface
 		/**
 		 * Constructor for non-core threads
 		 */
-		Platform_thread(Platform_pd &, size_t, const char *name, unsigned priority,
-		                Affinity::Location, addr_t);
+		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Region_map &,
+		                size_t, const char *name, unsigned priority, Affinity::Location, addr_t);
 
 		/**
 		 * Constructor for core main-thread

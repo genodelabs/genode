@@ -25,7 +25,9 @@ namespace Core { class Core_region_map; }
 
 struct Core::Core_region_map : Region_map_mmap
 {
-	Core_region_map(Rpc_entrypoint &) : Region_map_mmap(false) { }
+	static void init(Rpc_entrypoint &);
+
+	Core_region_map(Rpc_entrypoint &ep) : Region_map_mmap(false) { init(ep); }
 };
 
 #endif /* _CORE__INCLUDE__CORE_REGION_MAP_H_ */

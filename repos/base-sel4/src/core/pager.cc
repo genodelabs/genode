@@ -31,6 +31,9 @@ using namespace Core;
 void Mapping::prepare_map_operation() const { }
 
 
+void Core::init_page_fault_handling(Rpc_entrypoint &) { }
+
+
 /***************
  ** IPC pager **
  ***************/

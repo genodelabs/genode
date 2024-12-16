@@ -20,7 +20,6 @@
 
 /* core includes */
 #include <platform.h>
-#include <core_env.h>
 
 using namespace Genode;
 

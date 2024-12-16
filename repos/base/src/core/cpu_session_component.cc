@@ -62,9 +62,9 @@ Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
 				try {
 					Cpu_thread_component &thread = *new (&_thread_alloc)
 						Cpu_thread_component(
-							cap(), *this, _thread_ep, _pager_ep, *pd, platform_pd,
-							pd_threads, _trace_control_area, _trace_sources,
-							weight, _weight_to_quota(weight.value),
+							cap(), *this, _thread_ep, _local_rm, _pager_ep,
+							*pd, _ram_alloc, platform_pd, pd_threads, _trace_control_area,
+							_trace_sources, weight, _weight_to_quota(weight.value),
 							_thread_affinity(affinity), _label, name,
 							_priority, utcb);
 
@@ -261,6 +261,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
 :
 	Session_object(session_ep, resources, label, diag),
 	_session_ep(session_ep), _thread_ep(thread_ep), _pager_ep(pager_ep),
+	_local_rm(local_rm),
 	_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
 	_md_alloc(_ram_alloc, local_rm),
 	_thread_alloc(_md_alloc), _priority(0),
