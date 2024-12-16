@@ -56,15 +56,18 @@ static inline bool can_use_super_page(addr_t base, size_t size)
 }
 
 
-addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
+Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(addr_t const phys_base,
+                                                                                size_t const size_in)
 {
 	using namespace Pistachio;
+
+	auto size = size_in;
 
 	auto alloc_virt_range = [&]
 	{
 		/* special case for the null page */
-		if (is_conventional_memory(base))
-			return base;
+		if (is_conventional_memory(phys_base))
+			return phys_base;
 
 		/* align large I/O dataspaces to super page size, otherwise to size */
 		size_t const align = (size >= get_super_page_size())
@@ -81,16 +84,16 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 	addr_t const local_base = (addr_t)alloc_virt_range();
 
 	if (!local_base)
-		return 0;
+		return Map_local_result ();
 
 	for (unsigned offset = 0; size; ) {
 
 		size_t page_size = get_page_size();
-		if (can_use_super_page(base + offset, size))
+		if (can_use_super_page(phys_base + offset, size))
 			page_size = get_super_page_size();
 
 		L4_Sigma0_GetPage_RcvWindow(get_sigma0(),
-		                            L4_Fpage(base       + offset, page_size),
+		                            L4_Fpage(phys_base  + offset, page_size),
 		                            L4_Fpage(local_base + offset, page_size));
 
 		if (_cacheable == WRITE_COMBINED) {
@@ -104,5 +107,5 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 		size   -= page_size;
 	}
 
-	return local_base;
+	return { .core_local_addr = local_base, .success = true };
 }

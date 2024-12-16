@@ -98,9 +98,11 @@ struct Core::Untyped_memory
 	/**
 	 * Create page frames from untyped memory
 	 */
-	static inline void convert_to_page_frames(addr_t phys_addr,
+	static inline bool convert_to_page_frames(addr_t phys_addr,
 	                                          size_t num_pages)
 	{
+		auto const phys_addr_base = phys_addr;
+
 		for (size_t i = 0; i < num_pages; i++, phys_addr += get_page_size()) {
 
 			seL4_Untyped const service     = untyped_sel(phys_addr).value();
@@ -121,14 +123,21 @@ struct Core::Untyped_memory
 			                                     node_offset,
 			                                     num_objects);
 
-			if (ret != seL4_NoError) {
-				error(__FUNCTION__, ": seL4_Untyped_RetypeAtOffset "
-				      "returned ", ret, " - physical_range=",
-				      Hex_range(node_offset << get_page_size_log2(),
-				                (num_pages - i) * get_page_size()));
-				return;
-			}
+			if (ret == seL4_NoError)
+				continue;
+
+			error(__FUNCTION__, ": seL4_Untyped_RetypeAtOffset "
+			      "returned ", ret, " - physical_range=",
+			      Hex_range(node_offset << get_page_size_log2(),
+			                (num_pages - i) * get_page_size()));
+
+			/* revert already converted memory */
+			convert_to_untyped_frames(phys_addr_base, get_page_size() * i);
+
+			return false;
 		}
+
+		return true;
 	}
 
 

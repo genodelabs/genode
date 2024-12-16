@@ -67,6 +67,12 @@ class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 				cacheable(c), req_base(req_base) { }
 		};
 
+		struct Map_local_result
+		{
+			addr_t core_local_addr { 0 };
+			bool   success         { };
+		};
+
 		struct Io_dataspace_component : Dataspace_component
 		{
 			addr_t req_base;
@@ -105,7 +111,8 @@ class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 		 *
 		 * Both parameters - base and size - must be page-aligned.
 		 */
-		addr_t _map_local(addr_t base, size_t size);
+		Map_local_result _map_local(addr_t base, size_t size);
+
 
 		/**
 		 * Unmap Core-local mapping of region

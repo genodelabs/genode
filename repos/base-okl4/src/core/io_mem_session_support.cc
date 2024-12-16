@@ -22,4 +22,7 @@ using namespace Core;
 void Io_mem_session_component::_unmap_local(addr_t, size_t, addr_t) { }
 
 
-addr_t Io_mem_session_component::_map_local(addr_t, size_t) { return 0; }
+Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(addr_t, size_t)
+{
+	return { .core_local_addr = 0, .success = true };
+}
