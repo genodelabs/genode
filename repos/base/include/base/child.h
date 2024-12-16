@@ -118,18 +118,18 @@ struct Genode::Child_policy
 	}
 
 	/**
-	 * Reference PD session
+	 * Reference PD-sesson account
 	 *
-	 * The PD session returned by this method is used for session cap-quota
+	 * The PD account returned by this method is used for session cap-quota
 	 * and RAM-quota transfers.
 	 */
-	virtual Pd_session           &ref_pd() = 0;
-	virtual Pd_session_capability ref_pd_cap() const = 0;
+	virtual Pd_account            &ref_account() = 0;
+	virtual Capability<Pd_account> ref_account_cap() const = 0;
 
 	/**
 	 * RAM allocator used as backing store for '_session_md_alloc'
 	 */
-	virtual Ram_allocator &session_md_ram() { return ref_pd(); }
+	virtual Ram_allocator &session_md_ram() = 0;
 
 	/**
 	 * Respond to the release of resources by the child
@@ -459,10 +459,10 @@ class Genode::Child : protected Rpc_object<Parent>,
 						Cap_quota const cap_quota { CONNECTION::CAP_QUOTA };
 
 						if (cap(ram_quota).valid())
-							_child._policy.ref_pd().transfer_quota(cap(ram_quota), ram_quota);
+							_child._policy.ref_account().transfer_quota(cap(ram_quota), ram_quota);
 
 						if (cap(cap_quota).valid())
-							_child._policy.ref_pd().transfer_quota(cap(cap_quota), cap_quota);
+							_child._policy.ref_account().transfer_quota(cap(cap_quota), cap_quota);
 
 						_first_request = false;
 					}
@@ -489,13 +489,12 @@ class Genode::Child : protected Rpc_object<Parent>,
 					_child._try_construct_env_dependent_members();
 				}
 
-				using Transfer_ram_quota_result = Pd_session::Transfer_ram_quota_result;
-				using Transfer_cap_quota_result = Pd_session::Transfer_ram_quota_result;
+				using Transfer_result = Pd_session::Transfer_result;
 
 				/**
 				 * Service (Ram_transfer::Account) interface
 				 */
-				Ram_transfer_result transfer(Pd_session_capability to, Ram_quota amount) override
+				Transfer_result transfer(Capability<Pd_account> to, Ram_quota amount) override
 				{
 					Ram_transfer::Account &from = _service;
 					return from.transfer(to, amount);
@@ -504,7 +503,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				/**
 				 * Service (Ram_transfer::Account) interface
 				 */
-				Pd_session_capability cap(Ram_quota) const override
+				Capability<Pd_account> cap(Ram_quota) const override
 				{
 					Ram_transfer::Account &to = _service;
 					return to.cap(Ram_quota());
@@ -513,7 +512,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				/**
 				 * Service (Cap_transfer::Account) interface
 				 */
-				Cap_transfer_result transfer(Pd_session_capability to, Cap_quota amount) override
+				Transfer_result transfer(Capability<Pd_account> to, Cap_quota amount) override
 				{
 					Cap_transfer::Account &from = _service;
 					return from.transfer(to, amount);
@@ -522,7 +521,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				/**
 				 * Service (Cap_transfer::Account) interface
 				 */
-				Pd_session_capability cap(Cap_quota) const override
+				Capability<Pd_account> cap(Cap_quota) const override
 				{
 					Cap_transfer::Account &to = _service;
 					return to.cap(Cap_quota());

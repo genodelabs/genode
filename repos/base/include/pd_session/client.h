@@ -64,11 +64,10 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	Capability<Region_map> linker_area() override {
 		return call<Rpc_linker_area>(); }
 
-	Ref_account_result ref_account(Capability<Pd_session> pd) override {
+	Ref_account_result ref_account(Capability<Pd_account> pd) override {
 		return call<Rpc_ref_account>(pd); }
 
-	Transfer_cap_quota_result transfer_quota(Capability<Pd_session> pd,
-	                                         Cap_quota amount) override
+	Transfer_result transfer_quota(Capability<Pd_account> pd, Cap_quota amount) override
 	{
 		return call<Rpc_transfer_cap_quota>(pd, amount);
 	}
@@ -88,10 +87,9 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 		return ds.valid() ? Dataspace_client(ds).size() : 0;
 	}
 
-	Transfer_ram_quota_result transfer_quota(Pd_session_capability pd_session,
-	                                         Ram_quota amount) override
+	Transfer_result transfer_quota(Capability<Pd_account> pd, Ram_quota amount) override
 	{
-		return call<Rpc_transfer_ram_quota>(pd_session, amount);
+		return call<Rpc_transfer_ram_quota>(pd, amount);
 	}
 
 	Ram_quota ram_quota() const override { return call<Rpc_ram_quota>(); }

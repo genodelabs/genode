@@ -195,8 +195,8 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 				session.closed_callback = this;
 
 				try {
-					Ram_transfer::Remote_account ref_ram_account { _policy.ref_pd(), _policy.ref_pd_cap() };
-					Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(), _policy.ref_pd_cap() };
+					Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
+					Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
 
 					Ram_transfer::Remote_account ram_account { pd(), pd_session_cap() };
 					Cap_transfer::Remote_account cap_account { pd(), pd_session_cap() };
@@ -342,8 +342,8 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 			Arg_string::find_arg(args.string(), "cap_quota").ulong_value(0) };
 
 		try {
-			Ram_transfer::Remote_account ref_ram_account { _policy.ref_pd(), _policy.ref_pd_cap() };
-			Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(), _policy.ref_pd_cap()  };
+			Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
+			Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
 
 			Ram_transfer::Remote_account ram_account { pd(), pd_session_cap() };
 			Cap_transfer::Remote_account cap_account { pd(), pd_session_cap() };
@@ -397,11 +397,11 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 
 void Child::_revert_quota_and_destroy(Session_state &session)
 {
-	Ram_transfer::Remote_account   ref_ram_account(_policy.ref_pd(), _policy.ref_pd_cap());
+	Ram_transfer::Remote_account   ref_ram_account(_policy.ref_account(), _policy.ref_account_cap());
 	Ram_transfer::Account     &service_ram_account = session.service();
 	Ram_transfer::Remote_account child_ram_account(pd(), pd_session_cap());
 
-	Cap_transfer::Remote_account   ref_cap_account(_policy.ref_pd(), _policy.ref_pd_cap());
+	Cap_transfer::Remote_account   ref_cap_account(_policy.ref_account(), _policy.ref_account_cap());
 	Cap_transfer::Account     &service_cap_account = session.service();
 	Cap_transfer::Remote_account child_cap_account(pd(), pd_session_cap());
 
@@ -544,10 +544,10 @@ void Child::session_response(Server::Id id, Session_response response)
 				 * withdraw the session quota from the server ('this') to
 				 * the reference account, and destroy the session object.
 				 */
-				Ram_transfer::Remote_account ref_ram_account(_policy.ref_pd(), _policy.ref_pd_cap());
+				Ram_transfer::Remote_account ref_ram_account(_policy.ref_account(), _policy.ref_account_cap());
 				Ram_transfer::Account   &service_ram_account = session.service();
 
-				Cap_transfer::Remote_account ref_cap_account(_policy.ref_pd(), _policy.ref_pd_cap());
+				Cap_transfer::Remote_account ref_cap_account(_policy.ref_account(), _policy.ref_account_cap());
 				Cap_transfer::Account   &service_cap_account = session.service();
 
 				try {

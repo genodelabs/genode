@@ -135,8 +135,10 @@ class Launchpad_child : public  Genode::Child_policy,
 
 		Binary_name binary_name() const override { return _elf_name; }
 
-		Genode::Pd_session           &ref_pd()           override { return _env.pd(); }
-		Genode::Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+		Genode::Ram_allocator &session_md_ram() override { return _env.pd(); }
+
+		Genode::Pd_account                    &ref_account()           override { return _env.pd(); }
+		Genode::Capability<Genode::Pd_account> ref_account_cap() const override { return _env.pd_session_cap(); }
 
 		void init(Genode::Pd_session &session,
 		          Genode::Pd_session_capability cap) override

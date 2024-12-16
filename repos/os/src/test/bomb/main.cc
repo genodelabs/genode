@@ -80,8 +80,10 @@ class Bomb_child : public Child_policy
 			_env.pd().transfer_quota(pd_cap, _ram_quota);
 		}
 
-		Pd_session           &ref_pd()           override { return _env.pd(); }
-		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+		Ram_allocator &session_md_ram() override { return _env.ram(); }
+
+		Pd_account            &ref_account()           override { return _env.pd(); }
+		Capability<Pd_account> ref_account_cap() const override { return _env.pd_session_cap(); }
 
 		Service &_matching_service(Service::Name const &service_name,
 		                           Session_label const &label)

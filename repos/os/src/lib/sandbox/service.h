@@ -118,7 +118,7 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		Ram_transfer_result transfer(Pd_session_capability to, Ram_quota amount) override
+		Ram_transfer_result transfer(Capability<Pd_account> to, Ram_quota amount) override
 		{
 			return to.valid() ? _pd_accessor.pd().transfer_quota(to, amount)
 			                  : Ram_transfer_result::OK;
@@ -127,7 +127,7 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		Pd_session_capability cap(Ram_quota) const override
+		Capability<Pd_account> cap(Ram_quota) const override
 		{
 			return _pd_accessor.pd_cap();
 		}
@@ -135,7 +135,7 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		/**
 		 * Cap_transfer::Account interface
 		 */
-		Cap_transfer_result transfer(Pd_session_capability to, Cap_quota amount) override
+		Cap_transfer_result transfer(Capability<Pd_account> to, Cap_quota amount) override
 		{
 			return to.valid() ? _pd_accessor.pd().transfer_quota(to, amount)
 			                  : Cap_transfer_result::OK;
@@ -144,7 +144,7 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		/**
 		 * Cap_transfer::Account interface
 		 */
-		Pd_session_capability cap(Cap_quota) const override
+		Capability<Pd_account> cap(Cap_quota) const override
 		{
 			return _pd_accessor.pd_cap();
 		}

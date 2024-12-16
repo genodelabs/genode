@@ -23,6 +23,7 @@
 #include <base/ram_allocator.h>
 
 namespace Genode {
+	struct Pd_account;
 	struct Pd_session;
 	struct Pd_session_client;
 	struct Parent;
@@ -30,13 +31,28 @@ namespace Genode {
 }
 
 
-struct Genode::Pd_session : Session, Ram_allocator
+struct Genode::Pd_account : Interface, Noncopyable
 {
 	/**
 	 * \noapi
 	 */
 	static const char *service_name() { return "PD"; }
 
+	enum class Transfer_result { OK, EXCEEDED, INVALID };
+
+	virtual Transfer_result transfer_quota(Capability<Pd_account>, Cap_quota) = 0;
+	virtual Transfer_result transfer_quota(Capability<Pd_account>, Ram_quota) = 0;
+
+	GENODE_RPC(Rpc_transfer_cap_quota, Transfer_result, transfer_quota,
+	           Capability<Pd_account>, Cap_quota);
+	GENODE_RPC(Rpc_transfer_ram_quota, Transfer_result, transfer_quota,
+	           Capability<Pd_account>, Ram_quota);
+	GENODE_RPC_INTERFACE(Rpc_transfer_ram_quota, Rpc_transfer_cap_quota);
+};
+
+
+struct Genode::Pd_session : Session, Pd_account, Ram_allocator
+{
 	/*
 	 * A PD session consumes a dataspace capability for the session-object
 	 * allocation, a capability for the 'Native_pd' RPC interface, its
@@ -200,21 +216,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	/**
 	 * Define reference account for the PD session
 	 */
-	virtual Ref_account_result ref_account(Capability<Pd_session>) = 0;
-
-	enum class Transfer_cap_quota_result { OK, OUT_OF_CAPS, INVALID_SESSION, NO_REF_ACCOUNT };
-
-	/**
-	 * Transfer capability quota to another PD session
-	 *
-	 * \param to      receiver of quota donation
-	 * \param amount  amount of quota to donate
-	 *
-	 * Quota can only be transfered if the specified PD session is either the
-	 * reference account for this session or vice versa.
-	 */
-	virtual Transfer_cap_quota_result transfer_quota(Capability<Pd_session> to,
-	                                                 Cap_quota amount) = 0;
+	virtual Ref_account_result ref_account(Capability<Pd_account>) = 0;
 
 	/**
 	 * Return current capability-quota limit
@@ -243,20 +245,6 @@ struct Genode::Pd_session : Session, Ram_allocator
 	 * Note that the 'Pd_session' inherits the 'Ram_allocator' interface,
 	 * which comprises the actual allocation and deallocation operations.
 	 */
-
-	enum class Transfer_ram_quota_result { OK, OUT_OF_RAM, INVALID_SESSION, NO_REF_ACCOUNT };
-
-	/**
-	 * Transfer quota to another RAM session
-	 *
-	 * \param to      receiver of quota donation
-	 * \param amount  amount of quota to donate
-	 *
-	 * Quota can only be transfered if the specified PD session is either the
-	 * reference account for this session or vice versa.
-	 */
-	virtual Transfer_ram_quota_result transfer_quota(Capability<Pd_session> to,
-	                                                 Ram_quota amount) = 0;
 
 	/**
 	 * Return current quota limit
@@ -364,15 +352,11 @@ struct Genode::Pd_session : Session, Ram_allocator
 	GENODE_RPC(Rpc_address_space, Capability<Region_map>, address_space);
 	GENODE_RPC(Rpc_stack_area,    Capability<Region_map>, stack_area);
 	GENODE_RPC(Rpc_linker_area,   Capability<Region_map>, linker_area);
-	GENODE_RPC(Rpc_ref_account, Ref_account_result, ref_account, Capability<Pd_session>);
-	GENODE_RPC(Rpc_transfer_cap_quota, Transfer_cap_quota_result, transfer_quota,
-	           Capability<Pd_session>, Cap_quota);
+	GENODE_RPC(Rpc_ref_account, Ref_account_result, ref_account, Capability<Pd_account>);
 	GENODE_RPC(Rpc_cap_quota, Cap_quota, cap_quota);
 	GENODE_RPC(Rpc_used_caps, Cap_quota, used_caps);
 	GENODE_RPC(Rpc_try_alloc, Alloc_result, try_alloc, size_t, Cache);
 	GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
-	GENODE_RPC(Rpc_transfer_ram_quota, Transfer_ram_quota_result, transfer_quota,
-	           Capability<Pd_session>, Ram_quota);
 	GENODE_RPC(Rpc_ram_quota, Ram_quota, ram_quota);
 	GENODE_RPC(Rpc_used_ram, Ram_quota, used_ram);
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
@@ -382,16 +366,16 @@ struct Genode::Pd_session : Session, Ram_allocator
 	GENODE_RPC(Rpc_attach_dma, Attach_dma_result, attach_dma,
 	           Dataspace_capability, addr_t);
 
-	GENODE_RPC_INTERFACE(Rpc_assign_parent, Rpc_assign_pci, Rpc_map,
-	                     Rpc_signal_source, Rpc_free_signal_source,
-	                     Rpc_alloc_context, Rpc_free_context, Rpc_submit,
-	                     Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
-	                     Rpc_stack_area, Rpc_linker_area, Rpc_ref_account,
-	                     Rpc_transfer_cap_quota, Rpc_cap_quota, Rpc_used_caps,
-	                     Rpc_try_alloc, Rpc_free,
-	                     Rpc_transfer_ram_quota, Rpc_ram_quota, Rpc_used_ram,
-	                     Rpc_native_pd, Rpc_system_control_cap,
-	                     Rpc_dma_addr, Rpc_attach_dma);
+	GENODE_RPC_INTERFACE_INHERIT(Pd_account,
+		Rpc_assign_parent, Rpc_assign_pci, Rpc_map,
+		Rpc_signal_source, Rpc_free_signal_source,
+		Rpc_alloc_context, Rpc_free_context, Rpc_submit,
+		Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
+		Rpc_stack_area, Rpc_linker_area, Rpc_ref_account,
+		Rpc_cap_quota, Rpc_used_caps, Rpc_try_alloc, Rpc_free,
+		Rpc_ram_quota, Rpc_used_ram,
+		Rpc_native_pd, Rpc_system_control_cap,
+		Rpc_dma_addr, Rpc_attach_dma);
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

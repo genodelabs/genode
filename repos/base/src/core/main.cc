@@ -182,8 +182,10 @@ class Core_child : public Child_policy
 			_core_cpu.transfer_quota(cap, Cpu_session::quota_lim_upscale(100, 100));
 		}
 
-		Pd_session           &ref_pd()           override { return _core_pd; }
-		Pd_session_capability ref_pd_cap() const override { return _core_pd_cap; }
+		Ram_allocator &session_md_ram() override { return _core_pd; }
+
+		Pd_account            &ref_account()           override { return _core_pd; }
+		Capability<Pd_account> ref_account_cap() const override { return _core_pd_cap; }
 
 		size_t session_alloc_batch_size() const override { return 128; }
 

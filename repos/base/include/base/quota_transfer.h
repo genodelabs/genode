@@ -21,8 +21,8 @@ namespace Genode {
 
 	template <typename SESSION, typename UNIT, typename RESULT> class Quota_transfer;
 
-	using Ram_transfer = Quota_transfer<Pd_session, Ram_quota, Pd_session::Transfer_ram_quota_result>;
-	using Cap_transfer = Quota_transfer<Pd_session, Cap_quota, Pd_session::Transfer_cap_quota_result>;
+	using Ram_transfer = Quota_transfer<Pd_account, Ram_quota, Pd_account::Transfer_result>;
+	using Cap_transfer = Quota_transfer<Pd_account, Cap_quota, Pd_account::Transfer_result>;
 }
 
 
@@ -107,9 +107,6 @@ class Genode::Quota_transfer
 		Account   &_from;
 		Account   &_to;
 
-		static bool _exceeded(Ram_quota, RESULT r) { return (r == RESULT::OUT_OF_RAM);  }
-		static bool _exceeded(Cap_quota, RESULT r) { return (r == RESULT::OUT_OF_CAPS); }
-
 	public:
 
 		class Quota_exceeded : Exception { };
@@ -129,7 +126,7 @@ class Genode::Quota_transfer
 			if (!_from.cap(UNIT()).valid() || !_to.cap(UNIT()).valid())
 				return;
 
-			if (_exceeded(UNIT{}, _from.transfer(_to.cap(UNIT()), amount)))
+			if (_from.transfer(_to.cap(UNIT()), amount) == RESULT::EXCEEDED)
 				throw Quota_exceeded();
 		}
 

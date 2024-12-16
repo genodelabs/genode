@@ -464,8 +464,10 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	Binary_name binary_name() const override { return _binary_name; }
 
-	Pd_session           &ref_pd()           override { return _env.pd(); }
-	Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+	Ram_allocator &session_md_ram() override { return _env.ram(); }
+
+	Pd_account            &ref_account()           override { return _env.pd(); }
+	Capability<Pd_account> ref_account_cap() const override { return _env.pd_session_cap(); }
 
 	void init(Pd_session &session, Pd_session_capability cap) override
 	{

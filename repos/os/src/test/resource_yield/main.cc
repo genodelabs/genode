@@ -304,7 +304,7 @@ class Test::Parent
 			} _config_producer { };
 
 			Dynamic_rom_session _config_session { _env.ep().rpc_ep(),
-			                                      ref_pd(), _env.rm(),
+			                                      _env.pd(), _env.rm(),
 			                                      _config_producer };
 
 			using Config_service = Genode::Local_service<Dynamic_rom_session>;
@@ -323,14 +323,16 @@ class Test::Parent
 
 			Binary_name binary_name() const override { return _binary_name; }
 
-			Pd_session           &ref_pd()           override { return _env.pd(); }
-			Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+			Ram_allocator &session_md_ram() override { return _env.pd(); }
+
+			Pd_account            &ref_account()           override { return _env.pd(); }
+			Capability<Pd_account> ref_account_cap() const override { return _env.pd_session_cap(); }
 
 			void init(Pd_session &pd, Pd_session_capability pd_cap) override
 			{
-				pd.ref_account(ref_pd_cap());
-				ref_pd().transfer_quota(pd_cap, _cap_quota);
-				ref_pd().transfer_quota(pd_cap, _ram_quota);
+				pd.ref_account(ref_account_cap());
+				ref_account().transfer_quota(pd_cap, _cap_quota);
+				ref_account().transfer_quota(pd_cap, _ram_quota);
 			}
 
 			Route resolve_session_request(Service::Name const &service_name,

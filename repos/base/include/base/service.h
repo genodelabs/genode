@@ -476,7 +476,7 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		Ram_transfer_result transfer(Pd_session_capability to, Ram_quota amount) override
+		Ram_transfer_result transfer(Capability<Pd_account> to, Ram_quota amount) override
 		{
 			return to.valid() ? _pd.transfer_quota(to, amount)
 			                  : Ram_transfer_result::OK;
@@ -485,12 +485,12 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		Pd_session_capability cap(Ram_quota) const override { return _pd.rpc_cap(); }
+		Capability<Pd_account> cap(Ram_quota) const override { return _pd.rpc_cap(); }
 
 		/**
 		 * Cap_transfer::Account interface
 		 */
-		Cap_transfer_result transfer(Pd_session_capability to, Cap_quota amount) override
+		Cap_transfer_result transfer(Capability<Pd_account> to, Cap_quota amount) override
 		{
 			return to.valid() ? _pd.transfer_quota(to, amount)
 			                  : Cap_transfer_result::OK;
@@ -499,7 +499,7 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Cap_transfer::Account interface
 		 */
-		Pd_session_capability cap(Cap_quota) const override { return _pd.rpc_cap(); }
+		Capability<Pd_account> cap(Cap_quota) const override { return _pd.rpc_cap(); }
 };
 
 #endif /* _INCLUDE__BASE__SERVICE_H_ */

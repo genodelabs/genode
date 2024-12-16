@@ -14,6 +14,7 @@
 /* core includes */
 #include <pd_session_component.h>
 #include <cpu_session_component.h>
+#include <core_account.h>
 
 using namespace Core;
 
@@ -100,7 +101,7 @@ size_t Pd_session_component::dataspace_size(Ram_dataspace_capability ds_cap) con
 }
 
 
-Pd_session::Ref_account_result Pd_session_component::ref_account(Capability<Pd_session> pd_cap)
+Pd_session::Ref_account_result Pd_session_component::ref_account(Capability<Pd_account> pd_cap)
 {
 	/* the reference account can be defined only once */
 	if (_cap_account.constructed())
@@ -125,63 +126,60 @@ Pd_session::Ref_account_result Pd_session_component::ref_account(Capability<Pd_s
 }
 
 
-Pd_session::Transfer_cap_quota_result
-Pd_session_component::transfer_quota(Capability<Pd_session> pd_cap, Cap_quota amount)
+Pd_account::Transfer_result
+Pd_session_component::_with_pd_or_core_account(Capability<Pd_account> cap,
+                                               auto const &pd_fn, auto const &core_fn)
 {
+	Transfer_result result = _ep.apply(cap, [&] (Pd_session_component *ptr) {
+		return (ptr && ptr->_cap_account.constructed()) ? pd_fn(*ptr)
+		                                                : Transfer_result::INVALID; });
+	if (result != Transfer_result::INVALID)
+		return result;
+
+	return _ep.apply(cap, [&] (Core_account *ptr) {
+		return ptr ? core_fn(*ptr) : Transfer_result::INVALID; });
+};
+
+
+Pd_session::Transfer_result
+Pd_session_component::transfer_quota(Capability<Pd_account> cap, Cap_quota amount)
+{
+	if (this->cap() == cap)
+		return Transfer_result::OK;
+
 	if (!_cap_account.constructed())
-		return Transfer_cap_quota_result::NO_REF_ACCOUNT;
+		return Transfer_result::INVALID;
 
-	if (this->cap() == pd_cap)
-		return Transfer_cap_quota_result::OK;
+	auto with_cap_account = [&] (auto const &fn)
+	{
+		return _with_pd_or_core_account(cap,
+			[&] (Pd_session_component &pd) { return fn(*pd._cap_account); },
+			[&] (Core_account &core)       { return fn(core.cap_account); });
+	};
 
-	Transfer_cap_quota_result result = Transfer_cap_quota_result::INVALID_SESSION;
-
-	_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
-
-		if (!pd || !pd->_cap_account.constructed())
-			return;
-
-		try {
-			_cap_account->transfer_quota(*pd->_cap_account, amount);
-			diag("transferred ", amount, " caps "
-			     "to '", pd->_cap_account->label(), "' (", _cap_account, ")");
-			result = Transfer_cap_quota_result::OK;
-		}
-		catch (Account<Cap_quota>::Unrelated_account) { }
-		catch (Account<Cap_quota>::Limit_exceeded) {
-			result = Transfer_cap_quota_result::OUT_OF_CAPS;
-		}
-	});
-	return result;
+	return with_cap_account([&] (Account<Cap_quota> &to) {
+		return _cap_account->transfer_quota(to, amount); });
 }
 
 
-Pd_session::Transfer_ram_quota_result
-Pd_session_component::transfer_quota(Capability<Pd_session> pd_cap, Ram_quota amount)
+Pd_session::Transfer_result
+Pd_session_component::transfer_quota(Capability<Pd_account> cap, Ram_quota amount)
 {
+	if (this->cap() == cap)
+		return Transfer_result::OK;
+
 	if (!_ram_account.constructed())
-		return Transfer_ram_quota_result::NO_REF_ACCOUNT;
+		return Transfer_result::INVALID;
 
-	if (this->cap() == pd_cap)
-		return Transfer_ram_quota_result::OK;
+	auto with_ram_account = [&] (auto const &fn)
+	{
+		return _with_pd_or_core_account(cap,
+			[&] (Pd_session_component &pd) { return fn(*pd._ram_account); },
+			[&] (Core_account &core)       { return fn(core.ram_account); });
+	};
 
-	Transfer_ram_quota_result result = Transfer_ram_quota_result::INVALID_SESSION;
-
-	_ep.apply(pd_cap, [&] (Pd_session_component *pd) {
-
-		if (!pd || !pd->_ram_account.constructed())
-			return;
-
-		try {
-			_ram_account->transfer_quota(*pd->_ram_account, amount);
-			result = Transfer_ram_quota_result::OK;
-		}
-		catch (Account<Ram_quota>::Unrelated_account) { }
-		catch (Account<Ram_quota>::Limit_exceeded) {
-			result = Transfer_ram_quota_result::OUT_OF_RAM;
-		 }
-	});
-	return result;
+	return with_ram_account([&] (Account<Ram_quota> &to) {
+		return _ram_account->transfer_quota(to, amount); });
 }
 
 

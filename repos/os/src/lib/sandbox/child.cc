@@ -247,7 +247,7 @@ void Sandbox::Child::_apply_resource_upgrade(QUOTA &assigned, QUOTA const config
 
 		assigned.value += transfer.value;
 
-		ref_pd().transfer_quota(_child.pd_session_cap(), transfer);
+		ref_account().transfer_quota(_child.pd_session_cap(), transfer);
 
 		/* wake up child that blocks on a resource request */
 		if (_requested_resources.constructed()) {
@@ -304,7 +304,7 @@ void Sandbox::Child::_apply_resource_downgrade(QUOTA &assigned, QUOTA const conf
 		QUOTA const transfer { min(avail - preserved.value, decrement.value) };
 
 		try {
-			_child.pd().transfer_quota(ref_pd_cap(), transfer);
+			_child.pd().transfer_quota(ref_account_cap(), transfer);
 			assigned.value -= transfer.value;
 			break;
 		} catch (...) { }

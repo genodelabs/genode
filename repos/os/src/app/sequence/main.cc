@@ -135,12 +135,14 @@ struct Sequence::Child : Genode::Child_policy
 		return route(service);
 	}
 
+	Ram_allocator &session_md_ram() override { return _env.pd(); }
+
 	/**
 	 * Only a single child is managed at a time so
 	 * no additional PD management is required.
 	 */
-	Pd_session           &ref_pd()           override { return _env.pd(); }
-	Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
+	Pd_account            &ref_account()           override { return _env.pd(); }
+	Capability<Pd_account> ref_account_cap() const override { return _env.pd_session_cap(); }
 
 	/**
 	 * Always queue a reload signal and store the exit value. The
@@ -175,9 +177,9 @@ struct Sequence::Child : Genode::Child_policy
 		if (ram.value) {
 			Ram_quota avail = _env.pd().avail_ram();
 			if (avail.value > ram.value) {
-				ref_pd().transfer_quota(pd_cap, ram);
+				ref_account().transfer_quota(pd_cap, ram);
 			} else {
-				ref_pd().transfer_quota(pd_cap, Ram_quota{avail.value >> 1});
+				ref_account().transfer_quota(pd_cap, Ram_quota{avail.value >> 1});
 				_env.parent().resource_request(args);
 			}
 		}
@@ -185,9 +187,9 @@ struct Sequence::Child : Genode::Child_policy
 		if (caps.value) {
 			Cap_quota avail = _env.pd().avail_caps();
 			if (avail.value > caps.value) {
-				ref_pd().transfer_quota(pd_cap, caps);
+				ref_account().transfer_quota(pd_cap, caps);
 			} else {
-				ref_pd().transfer_quota(pd_cap, Cap_quota{avail.value >> 1});
+				ref_account().transfer_quota(pd_cap, Cap_quota{avail.value >> 1});
 				_env.parent().resource_request(args);
 			}
 		}
@@ -201,9 +203,9 @@ struct Sequence::Child : Genode::Child_policy
 	 */
 	void init(Pd_session &pd, Pd_session_capability pd_cap) override
 	{
-		pd.ref_account(ref_pd_cap());
-		ref_pd().transfer_quota(pd_cap, Cap_quota{_env.pd().avail_caps().value >> 1});
-		ref_pd().transfer_quota(pd_cap, Ram_quota{_env.pd().avail_ram().value >> 1});
+		pd.ref_account(ref_account_cap());
+		ref_account().transfer_quota(pd_cap, Cap_quota{_env.pd().avail_caps().value >> 1});
+		ref_account().transfer_quota(pd_cap, Ram_quota{_env.pd().avail_ram().value >> 1});
 	}
 
 	Id_space<Parent::Server> &server_id_space() override { return _server_ids; }

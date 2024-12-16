@@ -120,6 +120,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			diag("released ", _name(type), " cap (", _cap_account, ")");
 		}
 
+		Transfer_result _with_pd_or_core_account(Capability<Pd_account>,
+		                                         auto const &, auto const &);
 	public:
 
 		using Phys_range = Ram_dataspace_factory::Phys_range;
@@ -308,10 +310,10 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		 ** Capability and RAM trading and accounting **
 		 ***********************************************/
 
-		Ref_account_result ref_account(Capability<Pd_session>) override;
+		Ref_account_result ref_account(Capability<Pd_account>) override;
 
-		Transfer_cap_quota_result transfer_quota(Capability<Pd_session>, Cap_quota) override;
-		Transfer_ram_quota_result transfer_quota(Capability<Pd_session>, Ram_quota) override;
+		Transfer_result transfer_quota(Capability<Pd_account>, Cap_quota) override;
+		Transfer_result transfer_quota(Capability<Pd_account>, Ram_quota) override;
 
 		Cap_quota cap_quota() const override
 		{

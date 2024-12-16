@@ -16,6 +16,7 @@
 
 #include <base/registry.h>
 #include <base/quota_guard.h>
+#include <pd_session/pd_session.h>
 
 /* core includes */
 #include <types.h>
@@ -132,33 +133,33 @@ class Core::Account
 				_ref_account->_adopt(orphan); });
 		}
 
+		using Transfer_result = Pd_account::Transfer_result;
+
 		/**
 		 * Transfer quota to/from other account
-		 *
-		 * \throw Unrelated_account
-		 * \throw Limit_exceeded
 		 */
-		void transfer_quota(Account &other, UNIT amount)
+		[[nodiscard]] Transfer_result transfer_quota(Account &other, UNIT amount)
 		{
 			{
 				Mutex::Guard guard(_mutex);
 
 				/* transfers are permitted only from/to the reference account */
 				if (_ref_account != &other && other._ref_account != this)
-					throw Unrelated_account();
+					return Transfer_result::INVALID;
 
 				/* make sure to stay within the initial limit */
 				if (amount.value > _transferrable_quota().value)
-					throw Limit_exceeded();
+					return Transfer_result::EXCEEDED;
 
 				/* downgrade from this account */
 				if (!_quota_guard.try_downgrade(amount))
-					throw Limit_exceeded();
+					return Transfer_result::EXCEEDED;
 			}
 
 			/* credit to 'other' */
 			Mutex::Guard guard(other._mutex);
 			other._quota_guard.upgrade(amount);
+			return Transfer_result::OK;
 		}
 
 		UNIT limit() const

@@ -83,26 +83,26 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 		}
 	}
 
-	Transfer_ram_quota_result transfer_quota(Pd_session_capability pd_session, Ram_quota amount) override
+	Transfer_result transfer_quota(Capability<Pd_account> to, Ram_quota amount) override
 	{
 		/*
 		 * Should the transfer fail because we don't have enough quota, request
 		 * the needed amount from the parent.
 		 */
 		for (;;) {
-			auto const result = Pd_session_client::transfer_quota(pd_session, amount);
-			if (result != Transfer_ram_quota_result::OUT_OF_RAM)
+			auto const result = Pd_session_client::transfer_quota(to, amount);
+			if (result != Transfer_result::EXCEEDED)
 				return result;
 
 			_request_ram_from_parent(amount.value);
 		}
 	}
 
-	Transfer_cap_quota_result transfer_quota(Pd_session_capability pd_session, Cap_quota amount) override
+	Transfer_result transfer_quota(Capability<Pd_account> to, Cap_quota amount) override
 	{
 		for (;;) {
-			auto const result = Pd_session_client::transfer_quota(pd_session, amount);
-			if (result != Transfer_cap_quota_result::OUT_OF_CAPS)
+			auto const result = Pd_session_client::transfer_quota(to, amount);
+			if (result != Transfer_result::EXCEEDED)
 				return result;
 
 			_request_caps_from_parent(amount.value);

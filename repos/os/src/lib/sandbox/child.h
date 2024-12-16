@@ -715,15 +715,15 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		Child_policy::Name name() const override { return _unique_name; }
 
-		Pd_session &ref_pd() override
+		Pd_account &ref_account() override
 		{
-			Pd_session *_ref_pd_ptr = nullptr;
+			Pd_account *_ref_account_ptr = nullptr;
 			_with_pd_intrinsics([&] (Pd_intrinsics::Intrinsics &intrinsics) {
-				_ref_pd_ptr = &intrinsics.ref_pd; });
-			return *_ref_pd_ptr;
+				_ref_account_ptr = &intrinsics.ref_pd; });
+			return *_ref_account_ptr;
 		}
 
-		Pd_session_capability ref_pd_cap() const override { return _ref_pd_cap; }
+		Capability<Pd_account> ref_account_cap() const override { return _ref_pd_cap; }
 
 		Ram_allocator &session_md_ram() override { return _env.ram(); }
 
