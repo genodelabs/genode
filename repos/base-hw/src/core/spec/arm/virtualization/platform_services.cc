@@ -16,12 +16,11 @@
 
 /* core includes */
 #include <platform.h>
+#include <platform_pd.h>
 #include <platform_services.h>
-#include <core_env.h>
 #include <core_service.h>
 #include <map_local.h>
 #include <vm_root.h>
-#include <platform.h>
 
 using namespace Core;
 
@@ -32,11 +31,13 @@ extern addr_t hypervisor_exception_vector;
 /*
  * Add ARM virtualization specific vm service
  */
-void Core::platform_add_local_services(Rpc_entrypoint    &ep,
-                                       Sliced_heap       &sh,
-                                       Registry<Service> &services,
-                                       Core::Trace::Source_registry &trace_sources,
-                                       Ram_allocator &)
+void Core::platform_add_local_services(Rpc_entrypoint         &ep,
+                                       Sliced_heap            &sh,
+                                       Registry<Service>      &services,
+                                       Trace::Source_registry &trace_sources,
+                                       Ram_allocator          &core_ram,
+                                       Region_map             &core_rm,
+                                       Range_allocator        &)
 {
 	map_local(Platform::core_phys_addr((addr_t)&hypervisor_exception_vector),
 	          Hw::Mm::hypervisor_exception_vector().base,
@@ -51,8 +52,7 @@ void Core::platform_add_local_services(Rpc_entrypoint    &ep,
 			          Hw::Mm::hypervisor_stack().size / get_page_size(),
 			          Hw::PAGE_FLAGS_KERN_DATA);
 
-			static Vm_root vm_root(ep, sh, core_env().ram_allocator(),
-			                       core_env().local_rm(), trace_sources);
+			static Vm_root vm_root(ep, sh, core_ram, core_rm, trace_sources);
 			static Core_service<Vm_session_component> vm_service(services, vm_root);
 		},
 		[&] (Range_allocator::Alloc_error) {

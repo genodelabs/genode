@@ -14,9 +14,9 @@
 
 /* Genode includes */
 #include <base/service.h>
+#include <base/heap.h>
 
 /* core includes */
-#include <core_env.h>
 #include <platform.h>
 #include <platform_services.h>
 #include <io_port_root.h>
@@ -25,18 +25,17 @@
 using namespace Core;
 
 
-void Core::platform_add_local_services(Rpc_entrypoint     &,
-                                       Sliced_heap        &md,
-                                       Registry<Service>  &reg,
-                                       Core::Trace::Source_registry &,
-                                       Ram_allocator &)
+void Core::platform_add_local_services(Rpc_entrypoint         &,
+                                       Sliced_heap            &md,
+                                       Registry<Service>      &services,
+                                       Trace::Source_registry &,
+                                       Ram_allocator          &,
+                                       Region_map             &,
+                                       Range_allocator        &io_port_ranges)
 {
 	if (!lx_iopl(3)) {
-		static Io_port_root io_port_root(*core_env().pd_session(),
-		                                 platform().io_port_alloc(), md);
+		static Io_port_root io_port_root(io_port_ranges, md);
 
-		static Core_service<Io_port_session_component>
-
-		io_port_ls(reg, io_port_root);
+		static Core_service<Io_port_session_component> io_port_ls(services, io_port_root);
 	}
 }

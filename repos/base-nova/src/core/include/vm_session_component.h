@@ -24,6 +24,7 @@
 
 /* core includes */
 #include <types.h>
+#include <pd_session_component.h>
 
 namespace Core { class Vm_session_component; }
 

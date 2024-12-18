@@ -276,8 +276,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 	static Log_root    log_root    (ep, sliced_heap);
 	static Io_mem_root io_mem_root (ep, ep, platform().io_mem_alloc(),
 	                                platform().ram_alloc(), sliced_heap);
-	static Irq_root    irq_root    (*core_env().pd_session(),
-	                                platform().irq_alloc(), sliced_heap);
+	static Irq_root    irq_root    (platform().irq_alloc(), sliced_heap);
 	static Trace_root  trace_root  (core_ram_alloc, local_rm, ep, sliced_heap,
 	                                Core::Trace::sources(), trace_policies);
 
@@ -291,7 +290,8 @@ void Genode::bootstrap_component(Genode::Platform &)
 	static Core_service<Trace_session_component>  trace_service  (services, trace_root);
 
 	/* make platform-specific services known to service pool */
-	platform_add_local_services(ep, sliced_heap, services, Core::Trace::sources(), core_ram_alloc);
+	platform_add_local_services(ep, sliced_heap, services, Core::Trace::sources(),
+	                            core_ram_alloc, local_rm, platform().io_port_alloc());
 
 	size_t const avail_ram_quota = core_pd.avail_ram().value;
 	size_t const avail_cap_quota = core_pd.avail_caps().value;

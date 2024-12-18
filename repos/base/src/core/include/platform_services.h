@@ -14,8 +14,10 @@
 #ifndef _CORE__INCLUDE__PLATFORM_SERVICES_H_
 #define _CORE__INCLUDE__PLATFORM_SERVICES_H_
 
+/* Genode includes */
+#include <base/ram_allocator.h>
+
 /* core includes */
-#include "base/ram_allocator.h"
 #include <core_service.h>
 #include <trace/source_registry.h>
 
@@ -28,8 +30,7 @@ namespace Genode {
 namespace Core {
 
 	/**
-	 * Register platform-specific services at entrypoint, and service
-	 * registry
+	 * Register platform-specific services at entrypoint, and service registry
 	 *
 	 * \param ep    entrypoint used for session components of platform-services
 	 * \param md    metadata allocator for session components
@@ -40,7 +41,9 @@ namespace Core {
 	                                 Sliced_heap            &md,
 	                                 Registry<Service>      &reg,
 	                                 Trace::Source_registry &trace,
-	                                 Ram_allocator          &core_ram_alloc);
+	                                 Ram_allocator          &core_ram,
+	                                 Region_map             &core_rm,
+	                                 Range_allocator        &io_port_ranges);
 }
 
 #endif /* _CORE__INCLUDE__PLATFORM_SERVICES_H_ */

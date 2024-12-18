@@ -50,15 +50,13 @@ class Core::Irq_root : public Root_component<Irq_session_component>
 		/**
 		 * Constructor
 		 *
-		 * \param pd_session   capability allocator
 		 * \param irq_alloc    IRQ range that can be assigned to clients
 		 * \param md_alloc     meta-data allocator to be used by root component
 		 */
-		Irq_root(Pd_session &pd_session,
-		         Range_allocator &irq_alloc, Allocator &md_alloc)
+		Irq_root(Range_allocator &irq_alloc, Allocator &md_alloc)
 		:
 			Root_component<Irq_session_component>(&_session_ep, &md_alloc),
-			_session_ep(&pd_session, STACK_SIZE, "irq", Affinity::Location()),
+			_session_ep(nullptr, STACK_SIZE, "irq", Affinity::Location()),
 			_irq_alloc(irq_alloc)
 		{ }
 };
