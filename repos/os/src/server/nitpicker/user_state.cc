@@ -256,16 +256,20 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		View_owner *receiver = _input_receiver;
 
-		if (_key_cnt == 0 && _hovered) {
+		if (_key_cnt == 0) {
+
+			auto abs_motion_receiver = [&] () -> View_owner *
+			{
+				if (!_hovered)
+					return nullptr;
+
+				bool const permitted = _hovered->hover_always()
+				                    || _hovered->has_same_domain(_focused);
+				return permitted ? _hovered : nullptr;
+			};
+
 			if (ev.absolute_motion())
-				receiver = nullptr;
-			/*
-			 * Unless the domain of the pointed session is configured to
-			 * always receive hover events, we deliver motion events only
-			 * to the focused domain.
-			 */
-			if (_hovered->hover_always() || _hovered->has_same_domain(_focused))
-				receiver = _hovered;
+				receiver = abs_motion_receiver();
 		}
 
 		/*
