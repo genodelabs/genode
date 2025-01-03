@@ -1,3 +1,3 @@
 TARGET  = test-dialog
 SRC_CC  = main.cc
-LIBS   += base dialog
+LIBS   += base dialog sandbox
