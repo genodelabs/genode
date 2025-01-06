@@ -205,6 +205,19 @@ class Genode::Xml_node
 {
 	private:
 
+		Xml_node(Xml_node const &other)
+		:
+			_addr(other._addr), _max_len(other._max_len), _tags(other._tags)
+		{ }
+
+		Xml_node &operator = (Xml_node const &other)
+		{
+			_addr    = other._addr;
+			_max_len = other._max_len;
+			_tags    = other._tags;
+			return *this;
+		}
+
 		using Token = Xml_attribute::Token;
 
 		/**
