@@ -72,6 +72,8 @@ static inline T * Genode::construct_at(void *at, ARGS &&... args)
 		}
 	};
 
+	static_assert(sizeof(Placeable) == sizeof(T));
+
 	/*
 	 * If the args input to this function contains rvalues, the compiler would
 	 * use the according rvalue references as lvalues at the following call if
