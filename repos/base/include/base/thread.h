@@ -151,6 +151,12 @@ class Genode::Thread
 		 */
 		static Trace::Logger *_logger();
 
+		static void _with_logger(auto const &fn)
+		{
+			Trace::Logger * const ptr = _logger();
+			if (ptr) fn(*ptr);
+		}
+
 		/**
 		 * Hook for platform-specific constructor supplements
 		 *
@@ -398,21 +404,16 @@ class Genode::Thread
 		void join();
 
 		/**
-		 * Log null-terminated string as trace event
-		 */
-		static void trace(char const *cstring)
-		{
-			_logger()->log(cstring, strlen(cstring));
-		}
-
-		/**
 		 * Log null-terminated string as trace event using log_output policy
 		 *
 		 * \return true if trace is really put to buffer
 		 */
 		static bool trace_captured(char const *cstring)
 		{
-			return _logger()->log_captured(cstring, strlen(cstring));
+			bool result = false;
+			_with_logger([&] (Trace::Logger &l) {
+				result = l.log_captured(cstring, strlen(cstring)); });
+			return result;
 		}
 
 		/**
@@ -420,13 +421,21 @@ class Genode::Thread
 		 */
 		static void trace(char const *data, size_t len)
 		{
-			_logger()->log(data, len);
+			_with_logger([&] (Trace::Logger &l) { l.log(data, len); });
 		}
+
+		/**
+		 * Log null-terminated string as trace event
+		 */
+		static void trace(char const *cstring) { trace(cstring, strlen(cstring)); }
 
 		/**
 		 * Log trace event as defined in base/trace/events.h
 		 */
-		static void trace(auto const *event) { _logger()->log(event); }
+		static void trace(auto const *event)
+		{
+			_with_logger([&] (Trace::Logger &l) { l.log(event); });
+		}
 
 		/**
 		 * Thread affinity
