@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <root/component.h>
-#include <base/heap.h>
 
 /* core includes */
 #include <vm_session_component.h>

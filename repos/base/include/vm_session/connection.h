@@ -99,7 +99,7 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 	              long priority = Cpu_session::DEFAULT_PRIORITY,
 	              unsigned long affinity = 0)
 	:
-		Connection<Vm_session>(env, label, Ram_quota { 16*1024 }, Affinity(),
+		Connection<Vm_session>(env, label, Ram_quota { 5*1024*1024 }, Affinity(),
 		                       Args("priority=", Hex(priority), ", "
 		                            "affinity=", Hex(affinity))),
 		Rpc_client<Vm_session>(cap())
