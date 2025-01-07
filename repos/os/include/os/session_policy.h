@@ -17,6 +17,7 @@
 #include <base/session_label.h>
 #include <base/log.h>
 #include <session/session.h>
+#include <util/reconstructible.h>
 #include <util/arg_string.h>
 #include <util/xml_node.h>
 
@@ -57,7 +58,7 @@ struct Genode::Xml_node_label_score
 	Xml_node_label_score() { }
 
 	template <size_t N>
-	Xml_node_label_score(Xml_node node, String<N> const &label)
+	Xml_node_label_score(Xml_node const &node, String<N> const &label)
 	:
 		label_present (node.has_attribute("label")),
 		prefix_present(node.has_attribute("label_prefix")),
@@ -178,28 +179,31 @@ void Genode::with_matching_policy(String<N> const &label,
 	/*
 	 * Find policy node that matches best
 	 */
-	Xml_node             best_match("<none/>");
-	Xml_node_label_score best_score;
+	Constructible<Xml_node> best_match { };
+	Xml_node_label_score    best_score;
 
 	policies.for_each_sub_node("policy", [&] (Xml_node const &policy) {
 
 		Xml_node_label_score const score(policy, label);
 
-		if (score.stronger(best_score)) {
-			best_match = policy;
-			best_score = score;
-		}
+		if (score.stronger(best_score))
+			policy.with_raw_node([&] (char const *ptr, size_t len) {
+				best_match.construct(ptr, len);
+				best_score = score; });
 	});
 
 	/* fall back to default policy if no match exists */
-	if (best_match.has_type("none"))
+	if (!best_match.constructed())
 		policies.with_optional_sub_node("default-policy", [&] (Xml_node const &policy) {
-			best_match = policy; });
+			policy.with_raw_node([&] (char const *ptr, size_t len) {
+				best_match.construct(ptr, len); }); });
 
-	if (best_match.has_type("none"))
+	if (best_match.constructed()) {
+		Xml_node const &node = *best_match;
+		match_fn(node);
+	} else {
 		no_match_fn();
-	else
-		match_fn(best_match);
+	}
 }
 
 
@@ -221,20 +225,24 @@ class Genode::Session_policy : public Xml_node
 		 * Query session policy from session label
 		 */
 		template <size_t N>
-		static Xml_node _query_policy(String<N> const &label, Xml_node config)
+		static Const_byte_range_ptr _query_policy(String<N> const &label, Xml_node const &config)
 		{
-			Xml_node result("<none/>");
+			char const *start_ptr = "<none/>";
+			size_t      num_bytes = 7;
 
 			with_matching_policy(label, config,
 
 				[&] (Xml_node const &policy) {
-					result = policy; },
+					policy.with_raw_node([&] (char const *ptr, size_t len) {
+						start_ptr = ptr;
+						num_bytes = len; });
+				},
 
 				[&] () {
 					warning("no policy defined for label '", label, "'");
 					throw No_policy_defined(); });
 
-			return result;
+			return { start_ptr, num_bytes };
 		}
 
 	public:
@@ -257,7 +265,7 @@ class Genode::Session_policy : public Xml_node
 		 * with the longest label is selected.
 		 */
 		template <size_t N>
-		Session_policy(String<N> const &label, Xml_node config)
+		Session_policy(String<N> const &label, Xml_node const &config)
 		:
 			Xml_node(_query_policy(label, config))
 		{ }
