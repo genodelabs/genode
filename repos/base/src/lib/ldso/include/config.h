@@ -24,35 +24,17 @@ class Linker::Config : Noncopyable
 {
 	private:
 
-		/*
-		 * Helper to transparently handle the case where no "config" ROM is
-		 * available.
-		 */
-		struct Xml_config : Xml_node
-		{
-			Constructible<Attached_rom_dataspace> _rom { };
+		Attached_rom_dataspace const _config;
 
-			Xml_config(Env &env) : Xml_node("<empty/>")
-			{
-				try {
-					_rom.construct(env, "config");
-					static_cast<Xml_node &>(*this) = _rom->xml();
-				}
-				catch (...) { }
-			}
-		};
-
-		Xml_config const _config;
-
-		Bind const _bind = _config.attribute_value("ld_bind_now", false)
+		Bind const _bind = _config.xml().attribute_value("ld_bind_now", false)
 		                 ? BIND_NOW : BIND_LAZY;
 
-		bool const _verbose     = _config.attribute_value("ld_verbose",     false);
-		bool const _check_ctors = _config.attribute_value("ld_check_ctors", true);
+		bool const _verbose     = _config.xml().attribute_value("ld_verbose",     false);
+		bool const _check_ctors = _config.xml().attribute_value("ld_check_ctors", true);
 
 	public:
 
-		Config(Env &env) : _config(env) { }
+		Config(Env &env) : _config(env, "config") { }
 
 		Bind bind()        const { return _bind; }
 		bool verbose()     const { return _verbose; }
@@ -67,7 +49,7 @@ class Linker::Config : Noncopyable
 		 */
 		void for_each_library(auto const &fn) const
 		{
-			_config.with_optional_sub_node("ld", [&] (Xml_node ld) {
+			_config.xml().with_optional_sub_node("ld", [&] (Xml_node ld) {
 
 				ld.for_each_sub_node("library", [&] (Xml_node lib) {
 
