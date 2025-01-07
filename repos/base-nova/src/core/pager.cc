@@ -990,13 +990,6 @@ const char * Pager_object::client_pd() const
 
 Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 {
-	/* sanity check for pager threads */
-	if (kernel_hip().cpu_max() > PAGER_CPUS) {
-		error("kernel supports more CPUs (", kernel_hip().cpu_max(), ") "
-		      "than Genode (", (unsigned)PAGER_CPUS, ")");
-		nova_die();
-	}
-
 	/* detect enabled CPUs and create per CPU a pager thread */
 	platform_specific().for_each_location([&](Affinity::Location &location) {
 		unsigned const pager_index = platform_specific().pager_index(location);
@@ -1004,6 +997,12 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 
 		if (!kernel_hip().is_cpu_enabled(kernel_cpu_id))
 			return;
+
+		/* sanity check for pager threads */
+		if (pager_index >= PAGER_CPUS) {
+			error("too many CPUs for pager");
+			return;
+		}
 
 		pager_threads[pager_index].construct(location);
 	});

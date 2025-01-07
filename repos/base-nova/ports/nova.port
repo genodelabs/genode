@@ -4,7 +4,7 @@ DOWNLOADS := nova.git
 
 # r10 branch
 URL(nova) := https://github.com/alex-ab/NOVA.git
-REV(nova) := fc9ad04ecec3911302451fcbf6cd87063be66ad0
+REV(nova) := 62420ca0cc6e648946bab553045e9334a408b982
 DIR(nova) := src/kernel/nova
 
 PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))
