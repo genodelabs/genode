@@ -576,7 +576,7 @@ class Genode::Xml_node
 				start(skip_non_tag_characters(Token(addr, max_len))),
 				end(_search_end_tag(start, num_sub_nodes))
 			{ }
-		} _tags;
+		} _tags { _addr, _max_len };
 
 		/**
 		 * Return true if specified buffer contains a valid XML node
@@ -628,13 +628,18 @@ class Genode::Xml_node
 		 *
 		 * \throw Invalid_syntax
 		 */
-		Xml_node(char const *addr, size_t max_len = ~0UL)
+		Xml_node(Const_byte_range_ptr const &bytes)
 		:
-			_addr(addr), _max_len(max_len), _tags(addr, max_len)
+			_addr(bytes.start), _max_len(bytes.num_bytes)
 		{
 			if (!_valid(_tags))
 				throw Invalid_syntax();
 		}
+
+		Xml_node(char const *addr, size_t max_len = ~0UL)
+		:
+			Xml_node(Const_byte_range_ptr { addr, max_len })
+		{ }
 
 		/**
 		 * Return size of node including start and end tags in bytes
