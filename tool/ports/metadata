@@ -13,15 +13,15 @@ endif
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
 
 usage:
-	@$(ECHO)
-	@$(ECHO) "Tool for retrieving version information of port sources"
-	@$(ECHO)
-	@$(ECHO) "usage:"
-	@$(ECHO)
-	@$(ECHO) "  $(notdir $(MAKEFILE_LIST)) <ports>"
-	@$(ECHO)
-	@$(ECHO) "  <ports>   whitespace-separated list of ports"
-	@$(ECHO)
+	@echo
+	@echo "Tool for retrieving version information of port sources"
+	@echo
+	@echo "usage:"
+	@echo
+	@echo "  $(notdir $(MAKEFILE_LIST)) <ports>"
+	@echo
+	@echo "  <ports>   whitespace-separated list of ports"
+	@echo
 
 TARGETS = $(sort $(MAKECMDGOALS))
 
