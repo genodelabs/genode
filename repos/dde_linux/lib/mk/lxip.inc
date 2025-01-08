@@ -3,7 +3,7 @@ LIBS           := jitterentropy virt_lx_emul virt_linux_generated
 SHARED_LIB     := yes
 
 TARGET_LIB_DIR := $(LXIP_DIR)
-INC_DIR        += $(LXIP_DIR)/shadow $(LXIP_DIR)/include $(LXIP_DIR)
+INC_DIR        += $(LXIP_DIR)/shadow $(LXIP_DIR)
 
 SRC_CC += lx_emul/random.cc
 
