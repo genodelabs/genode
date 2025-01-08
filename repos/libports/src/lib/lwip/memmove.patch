@@ -1,0 +1,12 @@
+diff --git a/src/core/def.c b/src/core/def.c
+index 9da36fee..58edce6f 100644
+--- a/src/core/def.c
++++ b/src/core/def.c
+@@ -235,6 +235,6 @@ lwip_itoa(char *result, size_t bufsize, int number)
+     return;
+   }
+   /* move from temporary buffer to output buffer (sign is not moved) */
+-  memmove(res, tmp, (size_t)((result + bufsize) - tmp));
++  MEMMOVE(res, tmp, (size_t)((result + bufsize) - tmp));
+ }
+ #endif
