@@ -1,7 +1,7 @@
 MIRROR_FROM_REP_DIR := \
-	$(shell cd $(REP_DIR); find src/lib/lwip -type f) \
-	lib/import/import-lwip.mk \
-	lib/mk/lwip.mk \
+	$(shell cd $(REP_DIR); find src/lib/legacy_lwip -type f) \
+	lib/import/import-legacy_lwip.mk \
+	lib/mk/legacy_lwip.mk \
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/lwip)
 

@@ -1,4 +1,4 @@
-MIRROR_FROM_REP_DIR := src/lib/vfs/lwip lib/mk/vfs_lwip.mk
+MIRROR_FROM_REP_DIR := src/lib/vfs/legacy_lwip lib/mk/vfs_legacy_lwip.mk
 
 content: $(MIRROR_FROM_REP_DIR) LICENSE
 

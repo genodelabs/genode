@@ -26,7 +26,7 @@ INC_DIR += $(LWIP_PORT_DIR)/include/lwip \
            $(LWIPDIR)/include/ipv4 \
            $(LWIPDIR)/include/api \
            $(LWIPDIR)/include/netif \
-           $(REP_DIR)/src/lib/lwip/include
+           $(REP_DIR)/src/lib/legacy_lwip/include
 
 vpath %.c  $(sort $(dir \
 	$(COREFILES) $(CORE4FILES) $(CORE6FILES) $(NETIFFILES)))
