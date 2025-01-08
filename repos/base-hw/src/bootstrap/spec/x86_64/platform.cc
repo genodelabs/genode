@@ -22,6 +22,7 @@
 #include <hw/memory_consts.h>
 #include <hw/spec/x86_64/acpi.h>
 #include <hw/spec/x86_64/apic.h>
+#include <hw/spec/x86_64/x86_64.h>
 
 using namespace Genode;
 
@@ -63,6 +64,30 @@ static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
 
 	Hw::Acpi_rsdp invalid { };
 	return invalid;
+}
+
+
+static uint32_t calibrate_tsc_frequency(addr_t fadt_addr)
+{
+	uint32_t const default_freq = 2'400'000;
+
+	if (!fadt_addr) {
+		warning("FADT not found, returning fixed TSC frequency of ", default_freq, "kHz");
+		return default_freq;
+	}
+
+	uint32_t const sleep_ms = 10;
+
+	Hw::Acpi_fadt fadt(reinterpret_cast<Hw::Acpi_generic *>(fadt_addr));
+
+	uint32_t const freq = fadt.calibrate_freq_khz(sleep_ms, []() { return Hw::Tsc::rdtsc(); });
+
+	if (!freq) {
+		warning("Unable to calibrate TSC, returning fixed TSC frequency of ", default_freq, "kHz");
+		return default_freq;
+	}
+
+	return freq;
 }
 
 
@@ -249,6 +274,8 @@ Bootstrap::Platform::Board::Board()
 		                                  : " - invalid RSDP");
 		cpus = !cpus ? 1 : max_cpus;
 	}
+
+	info.tsc_freq_khz = calibrate_tsc_frequency(info.acpi_fadt);
 
 	/* copy 16 bit boot code for AP CPUs and for ACPI resume */
 	addr_t ap_code_size = (addr_t)&_start - (addr_t)&_ap;

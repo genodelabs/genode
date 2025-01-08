@@ -22,8 +22,8 @@
 namespace Hw {
 	struct Cpu_memory_map;
 	struct Virtualization_support;
-	class Vendor;
-	class Lapic;
+	class  Vendor;
+	struct Tsc;
 }
 
 
@@ -107,172 +107,22 @@ public:
 };
 
 
-class Hw::Lapic
+struct Hw::Tsc
 {
-      private:
-	static bool _has_tsc_dl()
+	static Genode::uint64_t rdtsc()
+	{
+		Genode::uint32_t low, high;
+		asm volatile("rdtsc" : "=a"(low), "=d"(high));
+		return (Genode::uint64_t)(high) << 32 | low;
+	}
+
+	static bool invariant_tsc()
 	{
 		using Cpu = Hw::X86_64_cpu;
 
-		Cpu::Cpuid_1_ecx::access_t ecx = Cpu::Cpuid_1_ecx::read();
-		return (bool)Cpu::Cpuid_1_ecx::Tsc_deadline::get(ecx);
+		Cpu::Cpuid_80000007_eax::access_t eax = Cpu::Cpuid_80000007_eax::read();
+		return Cpu::Cpuid_80000007_eax::Invariant_tsc::get(eax);
 	}
-
-	/*
-	 * Adapted from Christian Prochaska's and Alexander Boettcher's
-	 * implementation for Nova.
-	 *
-	 * For details, see Vol. 3B of the Intel SDM (September 2023):
-	 * 20.7.3 Determining the Processor Base Frequency
-	 */
-	static unsigned _read_tsc_freq()
-	{
-		using Cpu = Hw::X86_64_cpu;
-
-		if (Vendor::get_vendor_id() != Vendor::INTEL)
-			return 0;
-
-		unsigned const model  = Vendor::get_model();
-		unsigned const family = Vendor::get_family();
-
-		enum
-		{
-			Cpu_id_clock     = 0x15,
-			Cpu_id_base_freq = 0x16
-		};
-
-		Cpu::Cpuid_0_eax::access_t eax_0 = Cpu::Cpuid_0_eax::read();
-
-		/*
-		 * If CPUID leaf 15 is available, return the frequency reported there.
-		 */
-		if (eax_0 >= Cpu_id_clock) {
-			Cpu::Cpuid_15_eax::access_t eax_15 = Cpu::Cpuid_15_eax::read();
-			Cpu::Cpuid_15_ebx::access_t ebx_15 = Cpu::Cpuid_15_ebx::read();
-			Cpu::Cpuid_15_ecx::access_t ecx_15 = Cpu::Cpuid_15_ecx::read();
-
-			if (eax_15 && ebx_15) {
-				if (ecx_15)
-					return static_cast<unsigned>(
-						((Genode::uint64_t)(ecx_15) * ebx_15) / eax_15 / 1000
-						);
-
-				if (family == 6) {
-					if (model == 0x5c) /* Goldmont */
-						return static_cast<unsigned>((19200ull * ebx_15) / eax_15);
-					if (model == 0x55) /* Xeon */
-						return static_cast<unsigned>((25000ull * ebx_15) / eax_15);
-				}
-
-				if (family >= 6)
-					return static_cast<unsigned>((24000ull * ebx_15) / eax_15);
-			}
-		}
-
-
-		/*
-		 * Specific methods for family 6 models
-		 */
-		if (family == 6) {
-			unsigned freq_tsc = 0U;
-
-			if (model == 0x2a ||
-			    model == 0x2d || /* Sandy Bridge */
-			    model >= 0x3a) /* Ivy Bridge and later */
-			{
-				Cpu::Platform_info::access_t platform_info = Cpu::Platform_info::read();
-				Genode::uint64_t ratio = Cpu::Platform_info::Ratio::get(platform_info);
-				freq_tsc =  static_cast<unsigned>(ratio * 100000);
-			} else if (model == 0x1a ||
-				   model == 0x1e ||
-				   model == 0x1f ||
-				   model == 0x2e || /* Nehalem */
-				   model == 0x25 ||
-				   model == 0x2c ||
-				   model == 0x2f)   /* Xeon Westmere */
-				{
-					Cpu::Platform_info::access_t platform_info = Cpu::Platform_info::read();
-					Genode::uint64_t ratio = Cpu::Platform_info::Ratio::get(platform_info);
-					freq_tsc = static_cast<unsigned>(ratio * 133330);
-				} else if (model == 0x17 || model == 0xf) { /* Core 2 */
-					Cpu::Fsb_freq::access_t fsb_freq = Cpu::Fsb_freq::read();
-					Genode::uint64_t freq_bus = Cpu::Fsb_freq::Speed::get(fsb_freq);
-
-					switch (freq_bus) {
-						case 0b101: freq_bus = 100000; break;
-						case 0b001: freq_bus = 133330; break;
-						case 0b011: freq_bus = 166670; break;
-						case 0b010: freq_bus = 200000; break;
-						case 0b000: freq_bus = 266670; break;
-						case 0b100: freq_bus = 333330; break;
-						case 0b110: freq_bus = 400000; break;
-						default:    freq_bus = 0;      break;
-					}
-
-					Cpu::Platform_id::access_t platform_id = Cpu::Platform_id::read();
-					Genode::uint64_t ratio = Cpu::Platform_id::Bus_ratio::get(platform_id);
-
-					freq_tsc = static_cast<unsigned>(freq_bus * ratio);
-			}
-
-			if (!freq_tsc)
-				Genode::warning("TSC: family 6 Intel platform info reports bus frequency of 0");
-			else
-				return freq_tsc;
-		}
-
-
-		/*
-		 * Finally, using Processor Frequency Information for a rough estimate
-		 */
-		if (eax_0 >= Cpu_id_base_freq) {
-			Cpu::Cpuid_16_eax::access_t base_mhz = Cpu::Cpuid_16_eax::read();
-
-			if (base_mhz) {
-				Genode::warning("TSC: using processor base frequency: ", base_mhz, " MHz");
-				return base_mhz * 1000;
-			} else {
-				Genode::warning("TSC: CPUID reported processor base frequency of 0");
-			}
-		}
-
-		return 0;
-	}
-
-	static unsigned _measure_tsc_freq()
-	{
-		const unsigned Tsc_fixed_value = 2400;
-
-		Genode::warning("TSC: calibration not yet implemented, using fixed value of ", Tsc_fixed_value, " MHz");
-		/* TODO: implement TSC calibration on AMD */
-		return Tsc_fixed_value * 1000;
-	}
-
-	public:
-		static Genode::uint64_t rdtsc()
-		{
-			Genode::uint32_t low, high;
-			asm volatile("rdtsc" : "=a"(low), "=d"(high));
-			return (Genode::uint64_t)(high) << 32 | low;
-		}
-
-		static bool invariant_tsc()
-		{
-			using Cpu = Hw::X86_64_cpu;
-
-			Cpu::Cpuid_80000007_eax::access_t eax =
-		    Cpu::Cpuid_80000007_eax::read();
-			return Cpu::Cpuid_80000007_eax::Invariant_tsc::get(eax);
-		}
-
-		static unsigned tsc_freq()
-		{
-			unsigned freq = _read_tsc_freq();
-			if (freq)
-				return freq;
-			else
-				return _measure_tsc_freq();
-		}
 };
 
 struct Hw::Virtualization_support

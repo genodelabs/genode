@@ -40,10 +40,11 @@ struct Hw::Pc_board::Serial : Genode::X86_uart
 
 struct Hw::Pc_board::Boot_info
 {
-	Acpi_rsdp      acpi_rsdp        { };
-	Framebuffer    framebuffer      { };
-	Genode::addr_t efi_system_table { 0 };
-	Genode::addr_t acpi_fadt        { 0 };
+	Acpi_rsdp        acpi_rsdp        { };
+	Framebuffer      framebuffer      { };
+	Genode::addr_t   efi_system_table { 0 };
+	Genode::addr_t   acpi_fadt        { 0 };
+	Genode::uint32_t tsc_freq_khz     { 0 };
 
 	Boot_info() {}
 	Boot_info(Acpi_rsdp    const &acpi_rsdp,

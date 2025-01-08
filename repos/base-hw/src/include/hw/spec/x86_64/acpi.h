@@ -94,6 +94,8 @@ struct Hw::Acpi_fadt : Genode::Mmio<276>
 	struct Smi_cmd     : Register<0x30, 32> { };
 	struct Acpi_enable : Register<0x34, 8> { };
 
+	struct Pm_tmr_len : Register< 91, 8> { };
+
 	struct Pm1a_cnt_blk : Register < 64, 32> {
 		struct Slp_typ : Bitfield < 10, 3> { };
 		struct Slp_ena : Bitfield < 13, 1> { };
@@ -122,6 +124,13 @@ struct Hw::Acpi_fadt : Genode::Mmio<276>
 		struct Width        : Bitfield < 8, 8> { };
 	};
 	struct Pm1b_cnt_blk_ext_addr : Register < 184 + 4, 64> { };
+
+	struct X_pm_tmr_blk : Register < 208, 32> {
+		struct Addressspace : Bitfield < 0, 8> { };
+		struct Width        : Bitfield < 8, 8> { };
+	};
+
+	struct X_pm_tmr_blk_addr : Register < 208 + 4, 64> { };
 
 	struct Gpe0_blk_ext : Register < 220, 32> {
 		struct Addressspace : Bitfield < 0, 8> { };
@@ -230,6 +239,45 @@ struct Hw::Acpi_fadt : Genode::Mmio<276>
 		                         Pm1b_cnt_blk_ext::Addressspace,
 		                         Pm1b_cnt_blk_ext_addr>();
 		return pm1_a | pm1_b;
+	}
+
+	/* see ACPI spec version 6.5 4.8.3.3. Power Management Timer (PM_TMR) */
+	uint32_t read_pm_tmr()
+	{
+		if (read<Pm_tmr_len>() != 4)
+			return 0;
+
+		addr_t const tmr_addr = read<X_pm_tmr_blk_addr>();
+
+		if (!tmr_addr)
+			return 0;
+
+		uint8_t const tmr_addr_type =
+			read<Hw::Acpi_fadt::X_pm_tmr_blk::Addressspace>();
+
+		/* I/O port address, most likely */
+		if (tmr_addr_type == 1) return inl((uint16_t)tmr_addr);
+
+		/* System Memory space address */
+		if (tmr_addr_type == 0) return *(uint32_t *)tmr_addr;
+
+		return 0;
+	}
+
+	uint32_t calibrate_freq_khz(uint32_t sleep_ms, auto get_value_fn)
+	{
+		unsigned const acpi_timer_freq = 3'579'545;
+
+		uint32_t const initial = read_pm_tmr();
+
+		if (!initial) return 0;
+
+		uint64_t const t1 = get_value_fn();
+		while ((read_pm_tmr() - initial) < (acpi_timer_freq * sleep_ms / 1000))
+			asm volatile ("pause":::"memory");
+		uint64_t const t2 = get_value_fn();
+
+		return (uint32_t)((t2 - t1) / sleep_ms);
 	}
 
 	void write_cnt_blk(unsigned value_a, unsigned value_b)

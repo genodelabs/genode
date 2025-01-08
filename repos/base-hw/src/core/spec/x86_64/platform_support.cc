@@ -59,8 +59,8 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 			xml.attribute("vmx", Hw::Virtualization_support::has_vmx());
 		});
 		xml.node("tsc", [&] {
-			xml.attribute("invariant", Hw::Lapic::invariant_tsc());
-			xml.attribute("freq_khz", Hw::Lapic::tsc_freq());
+			xml.attribute("invariant", Hw::Tsc::invariant_tsc());
+			xml.attribute("freq_khz", _boot_info().plat_info.tsc_freq_khz);
 		});
 	});
 }

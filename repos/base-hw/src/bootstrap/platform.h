@@ -27,6 +27,7 @@ namespace Bootstrap {
 
 	using Genode::addr_t;
 	using Genode::size_t;
+	using Genode::uint32_t;
 	using Boot_info = Hw::Boot_info<::Board::Boot_info>;
 	using Hw::Mmio_space;
 	using Hw::Mapping;

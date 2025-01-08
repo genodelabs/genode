@@ -267,7 +267,7 @@ void Vmcb::write_vcpu_state(Vcpu_state &state)
 	/* Guest activity state (actv) not used by SVM */
 	state.actv_state.set_charged();
 
-	state.tsc.charge(Hw::Lapic::rdtsc());
+	state.tsc.charge(Hw::Tsc::rdtsc());
 	state.tsc_offset.charge(v.read<Vmcb_buf::Tsc_offset>());
 
 	state.efer.charge(v.read<Vmcb_buf::Efer>());

@@ -21,6 +21,7 @@ namespace Hw {
 
 	using Genode::addr_t;
 	using Genode::size_t;
+	using Genode::uint32_t;
 	using Genode::get_page_size;
 	using Genode::get_page_size_log2;
 

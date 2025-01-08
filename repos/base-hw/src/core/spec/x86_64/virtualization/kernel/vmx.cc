@@ -599,7 +599,7 @@ void Vmcs::write_vcpu_state(Genode::Vcpu_state &state)
 	state.actv_state.charge(
 	    static_cast<uint32_t>(read(E_GUEST_ACTIVITY_STATE)));
 
-	state.tsc.charge(Hw::Lapic::rdtsc());
+	state.tsc.charge(Hw::Tsc::rdtsc());
 	state.tsc_offset.charge(read(E_TSC_OFFSET));
 
 	state.efer.charge(read(E_GUEST_IA32_EFER));

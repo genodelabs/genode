@@ -253,7 +253,7 @@ void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
 	state.r14.charge(regs->r14);
 	state.r15.charge(regs->r15);
 
-	state.tsc.charge(Hw::Lapic::rdtsc());
+	state.tsc.charge(Hw::Tsc::rdtsc());
 
 	tsc_aux_guest = Cpu::Ia32_tsc_aux::read();
 	state.tsc_aux.charge(tsc_aux_guest);
