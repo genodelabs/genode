@@ -18,6 +18,7 @@
 #include <platform.h>
 #include <multiboot.h>
 #include <multiboot2.h>
+#include <port_io.h>
 
 #include <hw/memory_consts.h>
 #include <hw/spec/x86_64/acpi.h>
@@ -88,6 +89,55 @@ static uint32_t calibrate_tsc_frequency(addr_t fadt_addr)
 	}
 
 	return freq;
+}
+
+
+static Hw::Local_apic::Calibration calibrate_lapic_frequency(addr_t fadt_addr)
+{
+	uint32_t const default_freq = TIMER_MIN_TICKS_PER_MS;
+
+	if (!fadt_addr) {
+		warning("FADT not found, setting minimum Local APIC frequency of ", default_freq, "kHz");
+		return { default_freq, 1 };
+	}
+
+	uint32_t const sleep_ms = 10;
+
+	Hw::Acpi_fadt fadt(reinterpret_cast<Hw::Acpi_generic *>(fadt_addr));
+
+	Hw::Local_apic lapic(Hw::Cpu_memory_map::lapic_phys_base());
+
+	auto const result =
+		lapic.calibrate_divider([&] {
+			return fadt.calibrate_freq_khz(sleep_ms, [&] {
+				return lapic.read<Hw::Local_apic::Tmr_current>(); }, true); });
+
+	if (!result.freq_khz) {
+		warning("FADT not found, setting minimum Local APIC frequency of ", default_freq, "kHz");
+		return { default_freq, 1 };
+	}
+
+	return result;
+}
+
+
+static void disable_pit()
+{
+	using Hw::outb;
+
+	enum {
+		/* PIT constants */
+		PIT_CH0_DATA   = 0x40,
+		PIT_MODE       = 0x43,
+	};
+
+	/**
+	 * Disable PIT timer channel. This is necessary since BIOS sets up
+	 * channel 0 to fire periodically.
+	 */
+	outb(PIT_MODE, 0x30);
+	outb(PIT_CH0_DATA, 0);
+	outb(PIT_CH0_DATA, 0);
 }
 
 
@@ -275,7 +325,12 @@ Bootstrap::Platform::Board::Board()
 		cpus = !cpus ? 1 : max_cpus;
 	}
 
-	info.tsc_freq_khz = calibrate_tsc_frequency(info.acpi_fadt);
+	auto r = calibrate_lapic_frequency(info.acpi_fadt);
+	info.lapic_freq_khz = r.freq_khz;
+	info.lapic_div      = r.div;
+	info.tsc_freq_khz   = calibrate_tsc_frequency(info.acpi_fadt);
+
+	disable_pit();
 
 	/* copy 16 bit boot code for AP CPUs and for ACPI resume */
 	addr_t ap_code_size = (addr_t)&_start - (addr_t)&_ap;

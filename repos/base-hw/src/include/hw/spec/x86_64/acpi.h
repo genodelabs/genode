@@ -264,7 +264,7 @@ struct Hw::Acpi_fadt : Genode::Mmio<276>
 		return 0;
 	}
 
-	uint32_t calibrate_freq_khz(uint32_t sleep_ms, auto get_value_fn)
+	uint32_t calibrate_freq_khz(uint32_t sleep_ms, auto get_value_fn, bool reverse = false)
 	{
 		unsigned const acpi_timer_freq = 3'579'545;
 
@@ -277,7 +277,7 @@ struct Hw::Acpi_fadt : Genode::Mmio<276>
 			asm volatile ("pause":::"memory");
 		uint64_t const t2 = get_value_fn();
 
-		return (uint32_t)((t2 - t1) / sleep_ms);
+		return (uint32_t)((reverse ? (t1 - t2) : (t2 - t1)) / sleep_ms);
 	}
 
 	void write_cnt_blk(unsigned value_a, unsigned value_b)

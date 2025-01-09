@@ -11,13 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SPEC__X86_64__PORT_IO_H_
-#define _CORE__SPEC__X86_64__PORT_IO_H_
+#ifndef _INCLUDE__SPEC__X86_64__PORT_IO_H_
+#define _INCLUDE__SPEC__X86_64__PORT_IO_H_
 
-/* core includes */
-#include <types.h>
+#include <base/fixed_stdint.h>
 
-namespace Core {
+namespace Hw {
+
+	using Genode::uint8_t;
+	using Genode::uint16_t;
 
 	/**
 	 * Read byte from I/O port
@@ -38,4 +40,4 @@ namespace Core {
 	}
 }
 
-#endif /* _CORE__SPEC__X86_64__PORT_IO_H_ */
+#endif /* _INCLUDE__SPEC__X86_64__PORT_IO_H_ */

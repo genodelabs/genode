@@ -15,9 +15,6 @@
 
 #include <hw/spec/x86_64/x86_64.h>
 
-/* Genode includes */
-#include <drivers/timer/util.h>
-
 /* core includes */
 #include <kernel/timer.h>
 #include <platform.h>
@@ -25,37 +22,9 @@
 using namespace Core;
 using namespace Kernel;
 
-
-uint32_t Board::Timer::pit_calc_timer_freq(void)
-{
-	uint32_t t_start, t_end;
-
-	/* set channel gate high and disable speaker */
-	outb(PIT_CH2_GATE, (uint8_t)((inb(0x61) & ~0x02) | 0x01));
-
-	/* set timer counter (mode 0, binary count) */
-	outb(PIT_MODE, 0xb0);
-	outb(PIT_CH2_DATA, PIT_SLEEP_TICS & 0xff);
-	outb(PIT_CH2_DATA, PIT_SLEEP_TICS >> 8);
-
-	write<Tmr_initial>(~0U);
-
-	t_start = read<Tmr_current>();
-	while ((inb(PIT_CH2_GATE) & 0x20) == 0)
-	{
-		asm volatile("pause" : : : "memory");
-	}
-	t_end = read<Tmr_current>();
-
-	write<Tmr_initial>(0);
-
-	return (t_start - t_end) / PIT_SLEEP_MS;
-}
-
-
 Board::Timer::Timer(unsigned)
 :
-	Mmio({(char *)Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()), Mmio::SIZE})
+	Local_apic(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
 	init();
 }
@@ -75,28 +44,10 @@ void Board::Timer::init()
 		return;
 	}
 
-	/* calibrate LAPIC frequency to fullfill our requirements */
-	for (Divide_configuration::access_t div = Divide_configuration::Divide_value::MAX;
-	     div && ticks_per_ms < TIMER_MIN_TICKS_PER_MS; div--)
-	{
-		if (!div){
-			raw("Failed to calibrate timer frequency");
-			throw Calibration_failed();
-		}
-		write<Divide_configuration::Divide_value>((uint8_t)div);
-
-		/* Calculate timer frequency */
-		ticks_per_ms = pit_calc_timer_freq();
-		divider      = div;
-	}
-
-	/**
-	 * Disable PIT timer channel. This is necessary since BIOS sets up
-	 * channel 0 to fire periodically.
-	 */
-	outb(Board::Timer::PIT_MODE, 0x30);
-	outb(Board::Timer::PIT_CH0_DATA, 0);
-	outb(Board::Timer::PIT_CH0_DATA, 0);
+	Platform::apply_with_boot_info([&](auto const &boot_info) {
+			ticks_per_ms = boot_info.plat_info.lapic_freq_khz;
+			divider = boot_info.plat_info.lapic_div;
+		});
 }
 
 

@@ -21,7 +21,7 @@
 
 /* base-hw core includes */
 #include <spec/x86_64/pic.h>
-#include <spec/x86_64/pit.h>
+#include <spec/x86_64/timer.h>
 #include <spec/x86_64/cpu.h>
 
 namespace Board {

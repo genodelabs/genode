@@ -47,6 +47,8 @@ Local_interrupt_controller(Global_interrupt_controller &global_irq_ctrl)
 
 void Local_interrupt_controller::init()
 {
+	using Hw::outb;
+
 	/* Start initialization sequence in cascade mode */
 	outb(PIC_CMD_MASTER, 0x11);
 	outb(PIC_CMD_SLAVE, 0x11);
