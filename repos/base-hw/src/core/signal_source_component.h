@@ -19,7 +19,7 @@
 
 /* core includes */
 #include <object.h>
-#include <kernel/signal_receiver.h>
+#include <kernel/signal.h>
 #include <assertion.h>
 
 namespace Core {

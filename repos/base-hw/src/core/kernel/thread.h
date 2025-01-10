@@ -20,7 +20,7 @@
 /* base-hw core includes */
 #include <kernel/cpu_context.h>
 #include <kernel/inter_processor_work.h>
-#include <kernel/signal_receiver.h>
+#include <kernel/signal.h>
 #include <kernel/ipc_node.h>
 #include <object.h>
 #include <kernel/interface.h>

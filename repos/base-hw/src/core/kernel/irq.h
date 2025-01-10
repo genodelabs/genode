@@ -20,7 +20,7 @@
 #include <util/avl_tree.h>
 
 /* core includes */
-#include <kernel/signal_receiver.h>
+#include <kernel/signal.h>
 
 namespace Board {
 
@@ -161,9 +161,7 @@ class Kernel::User_irq : public Kernel::Irq
 		 */
 		void occurred() override
 		{
-			if (_context.can_submit(1)) {
-				_context.submit(1);
-			}
+			_context.submit(1);
 			disable();
 		}
 

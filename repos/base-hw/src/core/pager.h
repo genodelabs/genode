@@ -22,7 +22,7 @@
 #include <pager/capability.h>
 
 /* core includes */
-#include <kernel/signal_receiver.h>
+#include <kernel/signal.h>
 #include <hw/mapping.h>
 #include <mapping.h>
 #include <object.h>

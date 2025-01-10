@@ -18,7 +18,7 @@
 /* core includes */
 #include <kernel/cpu_context.h>
 #include <kernel/pd.h>
-#include <kernel/signal_receiver.h>
+#include <kernel/signal.h>
 
 #include <board.h>
 

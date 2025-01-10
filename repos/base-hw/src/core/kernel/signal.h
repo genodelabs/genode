@@ -1,18 +1,19 @@
 /*
  * \brief   Kernel backend for asynchronous inter-process communication
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-11-30
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__KERNEL__SIGNAL_RECEIVER_H_
-#define _CORE__KERNEL__SIGNAL_RECEIVER_H_
+#ifndef _CORE__KERNEL__SIGNAL_H_
+#define _CORE__KERNEL__SIGNAL_H_
 
 /* Genode includes */
 #include <base/signal.h>
@@ -165,11 +166,7 @@ class Kernel::Signal_context
 		 * Submit the signal
 		 *
 		 * \param n  number of submits
-		 *
-		 * \retval  0 succeeded
-		 * \retval -1 failed
 		 */
-		bool can_submit(unsigned const n) const;
 		void submit(unsigned const n);
 
 		/**
@@ -180,12 +177,8 @@ class Kernel::Signal_context
 		/**
 		 * Destruct context or prepare to do it as soon as delivery is done
 		 *
-		 * \param killer  object that shall receive progress reports
-		 *
-		 * \retval  0 succeeded
-		 * \retval -1 failed
+		 * \param k  object that shall receive progress reports
 		 */
-		bool can_kill() const;
 		void kill(Signal_context_killer &k);
 
 		/**
@@ -270,8 +263,7 @@ class Kernel::Signal_receiver
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		bool can_add_handler(Signal_handler const &h) const;
-		void add_handler(Signal_handler &h);
+		bool add_handler(Signal_handler &h);
 
 		/**
 		 * Syscall to create a signal receiver

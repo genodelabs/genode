@@ -382,13 +382,10 @@ namespace Kernel {
 	 * Halt processing of a signal context synchronously
 	 *
 	 * \param context  capability ID of the targeted signal context
-	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
 	 */
-	inline int kill_signal_context(capid_t const context)
+	inline void kill_signal_context(capid_t const context)
 	{
-		return (int)call(call_id_kill_signal_context(), context);
+		call(call_id_kill_signal_context(), context);
 	}
 
 	/**
