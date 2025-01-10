@@ -173,7 +173,15 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		size_t                             _ipc_rcv_caps             { 0 };
 		Genode::Native_utcb               *_utcb                     { nullptr };
 		Pd                                *_pd                       { nullptr };
-		Signal_context                    *_pager                    { nullptr };
+
+		struct Fault_context
+		{
+			Thread         &pager;
+			Signal_context &sc;
+		};
+
+		Genode::Constructible<Fault_context> _fault_context {};
+
 		Thread_fault                       _fault                    { };
 		State                              _state;
 		Signal_handler                     _signal_handler           { *this };
@@ -220,6 +228,11 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 * Suspend unrecoverably from execution
 		 */
 		void _die();
+
+		/**
+		 * In case of fault, signal to pager, and help or block
+		 */
+		void _signal_to_pager();
 
 		/**
 		 * Handle an exception thrown by the memory management unit
@@ -296,6 +309,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		void _call_set_cpu_state();
 		void _call_exception_state();
 		void _call_single_step();
+		void _call_ack_pager_signal();
 
 		template <typename T>
 		void _call_new(auto &&... args)

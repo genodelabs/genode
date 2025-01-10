@@ -385,6 +385,7 @@ void Thread::_call_restart_thread()
 		_die();
 		return;
 	}
+
 	user_arg_0(thread._restart());
 }
 
@@ -392,7 +393,10 @@ void Thread::_call_restart_thread()
 bool Thread::_restart()
 {
 	assert(_state == ACTIVE || _state == AWAITS_RESTART);
-	if (_state != AWAITS_RESTART) { return false; }
+
+	if (_state == ACTIVE && _exception_state == NO_EXCEPTION)
+		return false;
+
 	_exception_state = NO_EXCEPTION;
 	_become_active();
 	return true;
@@ -572,7 +576,9 @@ void Thread::_call_pager()
 {
 	/* override event route */
 	Thread &thread = *(Thread *)user_arg_1();
-	thread._pager = pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_2());
+	Thread &pager  = *(Thread *)user_arg_2();
+	Signal_context &sc = *pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_3());
+	thread._fault_context.construct(pager, sc);
 }
 
 
@@ -824,6 +830,25 @@ void Thread::_call_single_step() {
 }
 
 
+void Thread::_call_ack_pager_signal()
+{
+	Signal_context * const c = pd().cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
+	if (!c)
+		Genode::raw(*this, ": cannot ack unknown signal context");
+	else
+		c->ack();
+
+	Thread &thread = *(Thread*)user_arg_2();
+	thread.helping_finished();
+
+	bool resolved = user_arg_3() ||
+	                thread._exception_state == NO_EXCEPTION;
+	if (resolved) thread._restart();
+	else          thread._become_inactive(AWAITS_RESTART);
+}
+
+
+
 void Thread::_call()
 {
 	/* switch over unrestricted kernel calls */
@@ -906,6 +931,7 @@ void Thread::_call()
 	case call_id_set_cpu_state():          _call_set_cpu_state(); return;
 	case call_id_exception_state():        _call_exception_state(); return;
 	case call_id_single_step():            _call_single_step(); return;
+	case call_id_ack_pager_signal():       _call_ack_pager_signal(); return;
 	default:
 		Genode::raw(*this, ": unknown kernel call");
 		_die();
@@ -914,18 +940,37 @@ void Thread::_call()
 }
 
 
+void Thread::_signal_to_pager()
+{
+	if (!_fault_context.constructed()) {
+		Genode::warning(*this, " could not send signal to pager");
+		_die();
+		return;
+	}
+
+	/* first signal to pager to wake it up */
+	_fault_context->sc.submit(1);
+
+	/* only help pager thread if runnable and scheduler allows it */
+	bool const help = Cpu_context::_helping_possible(_fault_context->pager)
+	                  && (_fault_context->pager._state == ACTIVE);
+	if (help) Cpu_context::_help(_fault_context->pager);
+	else _become_inactive(AWAITS_RESTART);
+}
+
+
 void Thread::_mmu_exception()
 {
 	using namespace Genode;
 	using Genode::log;
 
-	_become_inactive(AWAITS_RESTART);
 	_exception_state = MMU_FAULT;
 	Cpu::mmu_fault(*regs, _fault);
 	_fault.ip = regs->ip;
 
 	if (_fault.type == Thread_fault::UNKNOWN) {
 		Genode::warning(*this, " raised unhandled MMU fault ", _fault);
+		_die();
 		return;
 	}
 
@@ -940,17 +985,16 @@ void Thread::_mmu_exception()
 			 Hw::Mm::core_stack_area().size };
 		regs->for_each_return_address(stack, [&] (void **p) {
 			log(*p); });
+		_die();
+		return;
 	}
 
-	if (_pager && _pager->can_submit(1)) {
-		_pager->submit(1);
-	}
+	_signal_to_pager();
 }
 
 
 void Thread::_exception()
 {
-	_become_inactive(AWAITS_RESTART);
 	_exception_state = EXCEPTION;
 
 	if (_type != USER) {
@@ -958,12 +1002,7 @@ void Thread::_exception()
 		_die();
 	}
 
-	if (_pager && _pager->can_submit(1)) {
-		_pager->submit(1);
-	} else {
-		Genode::raw(*this, " could not send signal to pager on exception");
-		_die();
-	}
+	_signal_to_pager();
 }
 
 

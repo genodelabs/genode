@@ -19,6 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/capability_space.h>
+#include <base/internal/native_thread.h>
 
 using namespace Core;
 
@@ -71,13 +72,15 @@ void Pager_object::wake_up()
 }
 
 
-void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> & receiver)
+void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> &receiver,
+                                Platform_thread &pager_thread)
 {
 	using Object = Kernel_object<Kernel::Signal_context>;
 	using Entry  = Object_pool<Pager_object>::Entry;
 
 	create(*receiver, (unsigned long)this);
 	Entry::cap(Object::_cap);
+	_pager_thread = &pager_thread;
 }
 
 
@@ -110,24 +113,23 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 
 void Pager_entrypoint::Thread::entry()
 {
-	Untyped_capability cap;
-
 	while (1) {
 
-		if (cap.valid()) Kernel::ack_signal(Capability_space::capid(cap));
-
 		/* receive fault */
-		if (Kernel::await_signal(Capability_space::capid(_kobj.cap()))) continue;
+		if (Kernel::await_signal(Capability_space::capid(_kobj.cap())))
+			continue;
 
 		Pager_object *po = *(Pager_object**)Thread::myself()->utcb()->data();
-		cap = po->cap();
+		if (!po)
+			continue;
 
-		if (!po) continue;
+		Untyped_capability cap = po->cap();
 
 		/* fetch fault data */
 		Platform_thread * const pt = (Platform_thread *)po->badge();
 		if (!pt) {
 			warning("failed to get platform thread of faulter");
+			Kernel::ack_signal(Capability_space::capid(cap));
 			continue;
 		}
 
@@ -138,19 +140,25 @@ void Pager_entrypoint::Thread::entry()
 				        "pd='",     pt->pd().label(), "', "
 				        "thread='", pt->label(),       "', "
 				        "ip=",      Hex(pt->state().cpu.ip));
+			pt->fault_resolved(cap, false);
 			continue;
 		}
 
 		_fault = pt->fault_info();
 
 		/* try to resolve fault directly via local region managers */
-		if (po->pager(*this) == Pager_object::Pager_result::STOP)
+		if (po->pager(*this) == Pager_object::Pager_result::STOP) {
+			pt->fault_resolved(cap, false);
 			continue;
+		}
 
 		/* apply mapping that was determined by the local region managers */
 		{
 			Locked_ptr<Address_space> locked_ptr(pt->address_space());
-			if (!locked_ptr.valid()) continue;
+			if (!locked_ptr.valid()) {
+				pt->fault_resolved(cap, false);
+				continue;
+			}
 
 			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
 
@@ -173,8 +181,7 @@ void Pager_entrypoint::Thread::entry()
 			                       1UL << _mapping.size_log2, flags);
 		}
 
-		/* let pager object go back to no-fault state */
-		po->wake_up();
+		pt->fault_resolved(cap, true);
 	}
 }
 
@@ -206,7 +213,8 @@ Pager_capability Pager_entrypoint::manage(Pager_object &o)
 	if (cpu >= _cpus) {
 		error("Invalid location of pager object ", cpu);
 	} else {
-		o.start_paging(_threads[cpu]._kobj);
+		o.start_paging(_threads[cpu]._kobj,
+		               *_threads[cpu].native_thread().platform_thread);
 		_threads[cpu].insert(&o);
 	}
 

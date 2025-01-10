@@ -187,12 +187,14 @@ void Platform_thread::start(void * const ip, void * const sp)
 }
 
 
-void Platform_thread::pager(Pager_object &pager)
+void Platform_thread::pager(Pager_object &po)
 {
 	using namespace Kernel;
 
-	thread_pager(*_kobj, Capability_space::capid(pager.cap()));
-	_pager = &pager;
+	po.with_pager([&] (Platform_thread &pt) {
+		thread_pager(*_kobj, *pt._kobj,
+		             Capability_space::capid(po.cap())); });
+	_pager = &po;
 }
 
 
@@ -237,4 +239,10 @@ void Platform_thread::state(Thread_state thread_state)
 void Platform_thread::restart()
 {
 	Kernel::restart_thread(Capability_space::capid(_kobj.cap()));
+}
+
+
+void Platform_thread::fault_resolved(Untyped_capability cap, bool resolved)
+{
+	Kernel::ack_pager_signal(Capability_space::capid(cap), *_kobj, resolved);
 }

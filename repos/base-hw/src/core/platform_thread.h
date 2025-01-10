@@ -216,6 +216,8 @@ class Core::Platform_thread : Noncopyable
 
 		void restart();
 
+		void fault_resolved(Untyped_capability, bool);
+
 		/**
 		 * Pause this thread
 		 */

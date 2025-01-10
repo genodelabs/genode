@@ -66,6 +66,7 @@ namespace Kernel {
 	constexpr Call_arg call_id_set_cpu_state()          { return 125; }
 	constexpr Call_arg call_id_exception_state()        { return 126; }
 	constexpr Call_arg call_id_single_step()            { return 127; }
+	constexpr Call_arg call_id_ack_pager_signal()       { return 128; }
 
 	/**
 	 * Invalidate TLB entries for the `pd` in region `addr`, `sz`
@@ -147,13 +148,16 @@ namespace Kernel {
 	/**
 	 * Set or unset the handler of an event that can be triggered by a thread
 	 *
-	 * \param thread             pointer to thread kernel object
+	 * \param thread             reference to thread kernel object
+	 * \param pager              reference to pager kernel object
 	 * \param signal_context_id  capability id of the page-fault handler
 	 */
-	inline void thread_pager(Thread & thread,
+	inline void thread_pager(Thread &thread,
+	                         Thread &pager,
 	                         capid_t const signal_context_id)
 	{
-		call(call_id_thread_pager(), (Call_arg)&thread, signal_context_id);
+		call(call_id_thread_pager(), (Call_arg)&thread, (Call_arg)&pager,
+		     signal_context_id);
 	}
 
 
@@ -201,6 +205,18 @@ namespace Kernel {
 	inline void single_step(Thread & thread, bool & on)
 	{
 		call(call_id_single_step(), (Call_arg)&thread, (Call_arg)&on);
+	}
+
+	/**
+	 * Acknowledge a signal transmitted to a pager
+	 *
+	 * \param context   signal context to acknowledge
+	 * \param thread    reference to faulting thread kernel object
+	 * \param resolved  whether fault got resolved
+	 */
+	inline void ack_pager_signal(capid_t const context, Thread &thread, bool resolved)
+	{
+		call(call_id_ack_pager_signal(), context, (Call_arg)&thread, resolved);
 	}
 }
 

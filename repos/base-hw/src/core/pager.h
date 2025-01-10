@@ -31,6 +31,7 @@
 namespace Core {
 
 	class Platform;
+	class Platform_thread;
 
 	/**
 	 * Interface used by generic region_map code
@@ -111,12 +112,19 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		Affinity::Location     _location;
 		Cpu_session_capability _cpu_session_cap;
 		Thread_capability      _thread_cap;
+		Platform_thread       *_pager_thread { nullptr };
 
 		/**
 		 * User-level signal handler registered for this pager object via
 		 * 'Cpu_session::exception_handler()'.
 		 */
 		Signal_context_capability _exception_sigh { };
+
+		/*
+		 * Noncopyable
+		 */
+		Pager_object(const Pager_object&) = delete;
+		Pager_object& operator=(const Pager_object&) = delete;
 
 	public:
 
@@ -167,7 +175,8 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		 *
 		 * \param receiver  signal receiver that receives the page faults
 		 */
-		void start_paging(Kernel_object<Kernel::Signal_receiver> & receiver);
+		void start_paging(Kernel_object<Kernel::Signal_receiver> &receiver,
+		                  Platform_thread &pager_thread);
 
 		/**
 		 * Called when a page-fault finally could not be resolved
@@ -175,6 +184,11 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		void unresolved_page_fault_occurred();
 
 		void print(Output &out) const;
+
+		void with_pager(auto const &fn)
+		{
+			if (_pager_thread) fn(*_pager_thread);
+		}
 
 
 		/******************
