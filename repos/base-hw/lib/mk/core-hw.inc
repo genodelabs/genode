@@ -62,6 +62,7 @@ SRC_CC += capability.cc
 SRC_CC += stack_area_addr.cc
 SRC_CC += heartbeat.cc
 
+BOARD  ?= unknown
 CC_OPT_platform += -DBOARD_NAME="\"$(BOARD)\""
 
 # provide Genode version information

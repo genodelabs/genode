@@ -200,6 +200,7 @@ generalize_target_names: $(CONTENT)
 	# supplement BOARD definition that normally comes form the build dir
 	sed -i "s/\?= unknown/:= $(BOARD)/" src/core/hw/target.mk
 	sed -i "s/\?= unknown/:= $(BOARD)/" src/bootstrap/hw/target.mk
+	sed -i "s/\?= unknown/:= $(BOARD)/" lib/mk/core-hw.inc
 	# discharge targets when building for mismatching architecture
 	sed -i "1aREQUIRES := $(ARCH)"      src/core/hw/target.mk
 	sed -i "1aREQUIRES     := $(ARCH)"  src/bootstrap/hw/target.mk
