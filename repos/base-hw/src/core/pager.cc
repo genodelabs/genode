@@ -75,11 +75,7 @@ void Pager_object::wake_up()
 void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> &receiver,
                                 Platform_thread &pager_thread)
 {
-	using Object = Kernel_object<Kernel::Signal_context>;
-	using Entry  = Object_pool<Pager_object>::Entry;
-
 	create(*receiver, (unsigned long)this);
-	Entry::cap(Object::_cap);
 	_pager_thread = &pager_thread;
 }
 
@@ -101,7 +97,6 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
                            Affinity::Location location, Session_label const &,
                            Cpu_session::Name const &)
 :
-	Object_pool<Pager_object>::Entry(Kernel_object<Kernel::Signal_context>::_cap),
 	_badge(badge), _location(location),
 	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap)
 { }
@@ -198,12 +193,6 @@ Pager_entrypoint::Thread::Thread(Affinity::Location cpu)
 void Pager_entrypoint::dissolve(Pager_object &o)
 {
 	Kernel::kill_signal_context(Capability_space::capid(o.cap()));
-
-	unsigned const cpu = o.location().xpos();
-	if (cpu >= _cpus)
-		error("Invalid location of pager object ", cpu);
-	else
-		_threads[cpu].remove(&o);
 }
 
 
@@ -215,7 +204,6 @@ Pager_capability Pager_entrypoint::manage(Pager_object &o)
 	} else {
 		o.start_paging(_threads[cpu]._kobj,
 		               *_threads[cpu].native_thread().platform_thread);
-		_threads[cpu].insert(&o);
 	}
 
 	return reinterpret_cap_cast<Pager_object>(o.cap());

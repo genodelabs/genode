@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <base/session_label.h>
 #include <base/thread.h>
-#include <base/object_pool.h>
 #include <base/signal.h>
 #include <pager/capability.h>
 
@@ -100,11 +99,9 @@ class Core::Ipc_pager
 };
 
 
-class Core::Pager_object : private Object_pool<Pager_object>::Entry,
-                           private Kernel_object<Kernel::Signal_context>
+class Core::Pager_object : private Kernel_object<Kernel::Signal_context>
 {
 	friend class Pager_entrypoint;
-	friend class Object_pool<Pager_object>;
 
 	private:
 
@@ -137,6 +134,8 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		             Thread_capability thread_cap, addr_t const badge,
 		             Affinity::Location, Session_label const&,
 		             Cpu_session::Name const&);
+
+		virtual ~Pager_object() {}
 
 		/**
 		 * User identification of pager object
@@ -215,7 +214,8 @@ class Core::Pager_object : private Object_pool<Pager_object>::Entry,
 		Cpu_session_capability cpu_session_cap() const { return _cpu_session_cap; }
 		Thread_capability      thread_cap()      const { return _thread_cap; }
 
-		using Object_pool<Pager_object>::Entry::cap;
+		Untyped_capability cap() {
+			return Kernel_object<Kernel::Signal_context>::_cap; }
 };
 
 
@@ -225,8 +225,7 @@ class Core::Pager_entrypoint
 
 		friend class Platform;
 
-		class Thread : public  Object_pool<Pager_object>,
-		               public  Genode::Thread,
+		class Thread : public  Genode::Thread,
 		               private Ipc_pager
 		{
 			private:
