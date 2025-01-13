@@ -22,7 +22,6 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/unmanaged_singleton.h>
 #include <signal_source/client.h>
 
 using namespace Genode;
@@ -89,7 +88,8 @@ class Signal_handler_thread : Thread, Blockade
  */
 static Constructible<Signal_handler_thread> & signal_handler_thread()
 {
-	return *unmanaged_singleton<Constructible<Signal_handler_thread> >();
+	static Constructible<Signal_handler_thread> signal_handler_thread { };
+	return signal_handler_thread;
 }
 
 

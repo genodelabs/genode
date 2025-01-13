@@ -17,15 +17,13 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
 
 Id_space<Parent::Client> &Genode::env_session_id_space()
 {
-	Id_space<Parent::Client> &id_space =
-		*unmanaged_singleton<Id_space<Parent::Client> >();
+	static Id_space<Parent::Client> id_space { };
 
 	/* pre-allocate env session IDs */
 	static Parent::Client dummy;

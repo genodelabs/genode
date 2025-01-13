@@ -17,7 +17,6 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/unmanaged_singleton.h>
 
 /* core includes */
 #include <core_log.h>
@@ -36,7 +35,8 @@ Genode::Log &Genode::Log::log()
 		Log                            log    { buffer   };
 	};
 
-	return unmanaged_singleton<Buffer>()->log;
+	static Buffer buffer { };
+	return buffer.log;
 }
 
 

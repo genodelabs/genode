@@ -13,11 +13,9 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
@@ -48,14 +46,7 @@ namespace {
 }
 
 
-static Constructible<Heartbeat_handler> *_heartbeat_handler_ptr = nullptr;
-
-
 void Genode::init_heartbeat_monitoring(Env &env)
 {
-	if (_heartbeat_handler_ptr)
-		return;
-
-	_heartbeat_handler_ptr = unmanaged_singleton<Constructible<Heartbeat_handler>>();
-	_heartbeat_handler_ptr->construct(env);
+	static Heartbeat_handler heartbeat_handler { env };
 }

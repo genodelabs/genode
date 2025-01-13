@@ -21,7 +21,6 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
@@ -58,8 +57,8 @@ void Genode::init_cxx_heap(Ram_allocator &ram, Region_map &rm)
 	 */
 	static char initial_block[1024*sizeof(long)];
 
-	cxx_heap_ptr = unmanaged_singleton<Heap>(&ram, &rm, Heap::UNLIMITED,
-	                                         initial_block, sizeof(initial_block));
+	static Heap heap { &ram, &rm, Heap::UNLIMITED, initial_block, sizeof(initial_block) };
+	cxx_heap_ptr = &heap;
 }
 
 

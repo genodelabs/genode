@@ -119,7 +119,7 @@ class Genode::Heap : public Allocator
 
 	public:
 
-		enum { UNLIMITED = ~0 };
+		static constexpr size_t UNLIMITED = ~0;
 
 		Heap(Ram_allocator *ram_allocator,
 		     Region_map    *region_map,

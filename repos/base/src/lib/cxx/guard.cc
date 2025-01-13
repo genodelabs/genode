@@ -18,7 +18,6 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/unmanaged_singleton.h>
 
 
 using Blockers = Genode::Registry<Genode::Registered_no_delete<Genode::Semaphore> >;
@@ -29,7 +28,8 @@ static Blockers *blockers_ptr;
 
 void Genode::init_cxx_guard()
 {
-	blockers_ptr = unmanaged_singleton<Blockers>();
+	static Blockers blockers { };
+	blockers_ptr = &blockers;
 }
 
 

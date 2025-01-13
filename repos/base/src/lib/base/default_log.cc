@@ -20,7 +20,6 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/unmanaged_singleton.h>
 
 using namespace Genode;
 
@@ -100,7 +99,8 @@ void Genode::init_log(Parent &parent)
 	if (log_ptr)
 		return;
 
-	back_end_ptr = unmanaged_singleton<Back_end>(parent);
+	static Back_end back_end { parent };
+	back_end_ptr = &back_end;
 
 	struct Write_fn {
 		void operator () (char const *s) {
@@ -111,12 +111,10 @@ void Genode::init_log(Parent &parent)
 
 	using Buffered_log_output = Buffered_output<Log_session::MAX_STRING_LEN, Write_fn>;
 
-	static Buffered_log_output *buffered_log_output =
-		unmanaged_singleton<Buffered_log_output>(Write_fn());
+	static Buffered_log_output buffered_log_output { Write_fn() };
+	static Log log { buffered_log_output };
+	static Trace_output trace { };
 
-	log_ptr = unmanaged_singleton<Log>(*buffered_log_output);
-
-	/* enable trace back end */
-	trace_ptr = unmanaged_singleton<Trace_output>();
+	log_ptr   = &log;
+	trace_ptr = &trace;
 }
-

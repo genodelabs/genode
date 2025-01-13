@@ -31,7 +31,6 @@
 /* base internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
-#include <base/internal/unmanaged_singleton.h>
 
 /* base includes */
 #include <trace/source_registry.h>
@@ -60,8 +59,9 @@ Hw::Page_table::Allocator & Platform::core_page_table_allocator()
 	using Allocator  = Hw::Page_table::Allocator;
 	using Array      = Allocator::Array<Hw::Page_table::CORE_TRANS_TABLE_COUNT>;
 	addr_t virt_addr = Hw::Mm::core_page_tables().base + sizeof(Hw::Page_table);
-	return *unmanaged_singleton<Array::Allocator>(_boot_info().table_allocator,
-	                                              virt_addr);
+
+	static Array::Allocator alloc { _boot_info().table_allocator, virt_addr };
+	return alloc;
 }
 
 
@@ -69,6 +69,7 @@ addr_t Platform::core_main_thread_phys_utcb()
 {
 	return core_phys_addr(_boot_info().core_main_thread_utcb);
 }
+
 
 void Platform::_init_io_mem_alloc()
 {
@@ -81,8 +82,9 @@ void Platform::_init_io_mem_alloc()
 
 Hw::Memory_region_array const & Platform::_core_virt_regions()
 {
-	return *unmanaged_singleton<Hw::Memory_region_array>(
-	Hw::Memory_region(stack_area_virtual_base(), stack_area_virtual_size()));
+	static Hw::Memory_region_array array {
+		Hw::Memory_region(stack_area_virtual_base(), stack_area_virtual_size()) };
+	return array;
 }
 
 

@@ -22,7 +22,6 @@
 #include <base/sleep.h>
 
 /* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
 #include <base/internal/globals.h>
 
 /* local includes */
@@ -58,7 +57,8 @@ Linker::Region_map::Constructible_region_map &Linker::Region_map::r()
 	 * the singleton object as the destructor would try to access
 	 * the capabilities also in the forked process.
 	 */
-	return *unmanaged_singleton<Constructible_region_map>();
+	static Constructible_region_map rm { };
+	return rm;
 }
 
 
@@ -637,7 +637,8 @@ extern "C" void init_rtld()
 
 static Genode::Constructible<Heap> &heap()
 {
-	return *unmanaged_singleton<Constructible<Heap>>();
+	static Constructible<Heap> heap;
+	return heap;
 }
 
 
@@ -684,7 +685,7 @@ void Genode::init_ldso_phdr(Env &env)
 		Linker_area_region_map() { }
 	};
 
-	Linker_area_region_map &ld_rm = *unmanaged_singleton<Linker_area_region_map>();
+	static Linker_area_region_map ld_rm { };
 
 	/*
 	 * Use a statically allocated initial block to make the first dynamic
@@ -781,7 +782,8 @@ void Component::construct(Genode::Env &env)
 
 	/* load binary and all dependencies */
 	try {
-		binary_ptr = unmanaged_singleton<Binary>(env, *heap(), config, binary_name());
+		static Binary binary { env, *heap(), config, binary_name() };
+		binary_ptr = &binary;
 	} catch(Linker::Not_found &symbol) {
 		error("LD: symbol not found: '", symbol, "'");
 		throw;

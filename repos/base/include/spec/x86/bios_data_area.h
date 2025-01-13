@@ -17,15 +17,11 @@
 /* Genode includes */
 #include <util/mmio.h>
 
-/* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 namespace Genode { class Bios_data_area; }
+
 
 class Genode::Bios_data_area : Mmio<0x12>
 {
-	friend Unmanaged_singleton_constructor;
-
 	private:
 
 		struct Serial_base_com1 : Register<0x0, 16> { };
@@ -52,8 +48,11 @@ class Genode::Bios_data_area : Mmio<0x12>
 		/**
 		 * Return BDA singleton
 		 */
-		static Bios_data_area * singleton() {
-			return unmanaged_singleton<Bios_data_area>(); }
+		static Bios_data_area * singleton()
+		{
+			static Bios_data_area bda { };
+			return &bda;
+		}
 };
 
 #endif /* _INCLUDE__SPEC__X86__BIOS_DATA_AREA_H_ */

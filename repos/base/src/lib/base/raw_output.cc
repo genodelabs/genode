@@ -16,7 +16,6 @@
 #include <base/buffered_output.h>
 
 /* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
 #include <base/internal/raw_write_string.h>
 
 
@@ -24,10 +23,7 @@ Genode::Output &Genode::Raw::_output()
 {
 	struct Write_fn { void operator () (char const *s) { raw_write_string(s); } };
 
-	using Buffered_raw_output = Buffered_output<256, Write_fn>;
+	static Buffered_output<256, Write_fn> buffered_raw_output { Write_fn() };
 
-	static Buffered_raw_output *buffered_raw_output =
-		unmanaged_singleton<Buffered_raw_output>(Write_fn());
-
-	return *buffered_raw_output;
+	return buffered_raw_output;
 }
