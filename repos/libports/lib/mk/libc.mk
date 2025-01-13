@@ -40,10 +40,6 @@ CC_OPT_dummies += -I$(LIBC_DIR)/sys
 INC_DIR += $(REP_DIR)/src/lib/libc
 INC_DIR += $(REP_DIR)/src/lib/libc/include
 
-# needed for base/internal/unmanaged_singleton.h
-INC_DIR += $(BASE_DIR)/src/include
-INC_DIR += $(BASE_DIR)/sys
-
 #
 # Files from string library that are not included in libc-raw_string because
 # they depend on the locale library.

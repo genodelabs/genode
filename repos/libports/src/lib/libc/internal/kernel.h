@@ -412,6 +412,9 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 
 		~Kernel() { error(__PRETTY_FUNCTION__, " should not be executed!"); }
 
+		/* use placement new instead of 'construct_at' because 'Kernel' is final */
+		void *operator new (size_t, void *ptr) { return ptr; }
+
 		Libc::Env & libc_env() { return _libc_env; }
 
 		/**

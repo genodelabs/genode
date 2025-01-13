@@ -26,9 +26,6 @@ extern "C" {
 #include <stdlib.h>
 }
 
-/* Genode-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 /* libc-internal includes */
 #include <internal/init.h>
 #include <internal/clone_session.h>
@@ -285,34 +282,24 @@ int posix_memalign(void **memptr, size_t alignment, size_t size)
 }
 
 
-static Genode::Constructible<Malloc> &constructible_malloc()
-{
-	return *unmanaged_singleton<Genode::Constructible<Malloc> >();
-}
+/* space for singleton object w/o destructor */
+static long _malloc_obj[(sizeof(Malloc) + sizeof(long))/sizeof(long)];
 
 
 void Libc::init_malloc(Genode::Allocator &heap)
 {
-
-	Constructible<Malloc> &_malloc = constructible_malloc();
-
-	_malloc.construct(heap);
-
-	mallocator = _malloc.operator->();
+	mallocator = construct_at<Malloc>(_malloc_obj, heap);
 }
 
 
 void Libc::init_malloc_cloned(Clone_connection &clone_connection)
 {
-	clone_connection.object_content(constructible_malloc());
-
-	mallocator = constructible_malloc().operator->();
+	clone_connection.object_content(_malloc_obj);
+	mallocator = (Malloc *)_malloc_obj;
 }
 
 
 void Libc::reinit_malloc(Genode::Allocator &heap)
 {
-	Malloc &malloc = *constructible_malloc();
-
-	construct_at<Malloc>(&malloc, heap);
+	construct_at<Libc::Malloc>(_malloc_obj, heap);
 }

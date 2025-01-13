@@ -15,9 +15,6 @@
 /* Genode includes */
 #include <base/component.h>
 
-/* base-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 /* libc-internal includes */
 #include <internal/plugin_registry.h>
 #include <internal/kernel.h>
@@ -35,8 +32,8 @@ void Component::construct(Genode::Env &env)
 	static char *null_env = nullptr;
 	if (!environ) environ = &null_env;
 
-	Genode::Allocator &heap =
-		*unmanaged_singleton<Genode::Heap>(env.ram(), env.rm());
+	/* call of '__cxa_atexit' is ignored prior 'init_atexit' */
+	static Genode::Heap heap { env.ram(), env.rm() };
 
 	/* pass Genode::Env to libc subsystems that depend on it */
 	Libc::init_fd_alloc(heap);
@@ -44,7 +41,9 @@ void Component::construct(Genode::Env &env)
 	Libc::init_dl(env);
 	Libc::sysctl_init(env);
 
-	Libc::Kernel &kernel = *unmanaged_singleton<Libc::Kernel>(env, heap);
+	/* prevent call of '__cxa_atexit' for the 'Kernel' object */
+	static long _kernel_obj[(sizeof(Libc::Kernel) + sizeof(long))/sizeof(long)];
+	Libc::Kernel &kernel = *new (_kernel_obj) Libc::Kernel(env, heap);
 
 	Libc::libc_config_init(kernel.libc_env().libc_config());
 

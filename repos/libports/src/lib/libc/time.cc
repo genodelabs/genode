@@ -16,9 +16,6 @@
 #include <base/log.h>
 #include <vfs/vfs_handle.h>
 
-/* Genode-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 /* libc includes */
 #include <sys/time.h>
 #include <sys/types.h>
