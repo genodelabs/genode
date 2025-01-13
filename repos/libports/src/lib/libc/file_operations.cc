@@ -68,10 +68,11 @@ Libc::Mmap_registry *Libc::mmap_registry()
 static Cwd          *_cwd_ptr;
 static unsigned int  _mmap_align_log2 { PAGE_SHIFT };
 
-void Libc::init_file_operations(Cwd &cwd,
+void Libc::init_file_operations(Cwd &cwd, File_descriptor_allocator &fd_alloc,
                                 Config_accessor const &config_accessor)
 {
-	_cwd_ptr = &cwd;
+	_fd_alloc_ptr = &fd_alloc;
+	_cwd_ptr      = &cwd;
 
 	config_accessor.config().with_optional_sub_node("libc", [&] (Xml_node libc) {
 		libc.with_optional_sub_node("mmap", [&] (Xml_node mmap) {

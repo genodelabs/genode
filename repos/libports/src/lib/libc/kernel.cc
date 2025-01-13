@@ -282,7 +282,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		/* prevent use of IDs of stdin, stdout, and stderr for other files */
 		for (unsigned fd = 0; fd <= 2; fd++)
-			file_descriptor_allocator()->preserve(fd);
+			_fd_alloc.preserve(fd);
 	}
 
 	/**
@@ -308,7 +308,7 @@ void Libc::Kernel::_init_file_descriptors()
 	 * Watch stdout's 'info' pseudo file to detect terminal-resize events
 	 */
 	File_descriptor const * const stdout_fd =
-		file_descriptor_allocator()->find_by_libc_fd(STDOUT_FILENO);
+		_fd_alloc.find_by_libc_fd(STDOUT_FILENO);
 
 	with_ioctl_path(stdout_fd, "info", [&] (Directory &root_dir, char const *path) {
 		_terminal_resize_handler.construct(root_dir, path, *this,
@@ -318,7 +318,7 @@ void Libc::Kernel::_init_file_descriptors()
 	 * Watch stdin's 'interrupts' pseudo file to detect control-c events
 	 */
 	File_descriptor const * const stdin_fd =
-		file_descriptor_allocator()->find_by_libc_fd(STDIN_FILENO);
+		_fd_alloc.find_by_libc_fd(STDIN_FILENO);
 
 	with_ioctl_path(stdin_fd, "interrupts", [&] (Directory &root_dir, char const *path) {
 		_user_interrupt_handler.construct(root_dir, path,
@@ -466,10 +466,13 @@ void Libc::execute_in_application_context(Application_code &app_code)
 }
 
 
+static Libc::File_descriptor_allocator *_atexit_fd_alloc_ptr;
+
+
 static void close_file_descriptors_on_exit()
 {
 	for (;;) {
-		int const fd = Libc::file_descriptor_allocator()->any_open_fd();
+		int const fd = _atexit_fd_alloc_ptr->any_open_fd();
 		if (fd == -1)
 			break;
 		close(fd);
@@ -483,6 +486,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 {
 	init_atexit(_atexit);
 
+	_atexit_fd_alloc_ptr = &_fd_alloc;
 	atexit(close_file_descriptors_on_exit);
 
 	init_semaphore_support(_timer_accessor);
@@ -499,22 +503,23 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 		init_malloc(*_malloc_heap);
 	}
 
-	init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid, *this, _signal,
-	          _binary_name);
-	init_execve(_env, _heap, _user_stack, *this, _binary_name,
-	            *file_descriptor_allocator());
+	init_fork(_env, _fd_alloc, _libc_env, _heap, *_malloc_heap, _pid, *this,
+	          _signal, _binary_name);
+	init_execve(_env, _heap, _user_stack, *this, _binary_name, _fd_alloc);
 	init_plugin(*this);
 	init_sleep(*this);
 	init_vfs_plugin(*this, _env.rm());
-	init_file_operations(*this, _libc_env);
+	init_file_operations(*this, _fd_alloc, _libc_env);
+	init_pread_pwrite(_fd_alloc);
 	init_time(*this, *this);
 	init_alarm(_timer_accessor, _signal);
-	init_poll(_signal, *this);
+	init_poll(_signal, *this, _fd_alloc);
 	init_select(*this);
-	init_socket_fs(*this, *this);
+	init_socket_fs(*this, *this, _fd_alloc);
+	init_socket_operations(_fd_alloc);
 	init_passwd(_passwd_config());
 	init_signal(_signal);
-	init_kqueue(_heap, *this);
+	init_kqueue(_heap, *this, _fd_alloc);
 
 	_init_file_descriptors();
 

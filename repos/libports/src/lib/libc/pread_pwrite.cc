@@ -20,8 +20,9 @@
 #include <unistd.h>
 
 /* libc-internal includes */
-#include <internal/fd_alloc.h>
+#include <internal/init.h>
 #include <internal/types.h>
+#include <internal/fd_alloc.h>
 
 
 struct Read
@@ -42,13 +43,27 @@ struct Write
 };
 
 
+static Libc::File_descriptor_allocator *_fd_alloc_ptr;
+
+
+void Libc::init_pread_pwrite(Libc::File_descriptor_allocator &fd_alloc)
+{
+	_fd_alloc_ptr = &fd_alloc;
+}
+
+
 using namespace Libc;
 
 
 template <typename Rw_func, typename Buf_type>
 static ssize_t pread_pwrite_impl(Rw_func rw_func, int fd, Buf_type buf, ::size_t count, ::off_t offset)
 {
-	File_descriptor *fdesc = file_descriptor_allocator()->find_by_libc_fd(fd);
+	if (!_fd_alloc_ptr) {
+		error("missing call of init_pread_pwrite");
+		return -1;
+	}
+
+	File_descriptor *fdesc = _fd_alloc_ptr->find_by_libc_fd(fd);
 	if (fdesc == 0)
 		return -1;
 

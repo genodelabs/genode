@@ -17,9 +17,6 @@
 #include <base/env.h>
 #include <base/log.h>
 
-/* Genode-internal includes */
-#include <base/internal/unmanaged_singleton.h>
-
 /* libc includes */
 #include <fcntl.h>
 #include <unistd.h>
@@ -35,16 +32,6 @@ static Allocator *_alloc_ptr;
 
 
 void Libc::init_fd_alloc(Allocator &alloc) { _alloc_ptr = &alloc; }
-
-
-File_descriptor_allocator *Libc::file_descriptor_allocator()
-{
-	if (_alloc_ptr)
-		return unmanaged_singleton<File_descriptor_allocator>(*_alloc_ptr);
-
-	error("missing call of 'init_fd_alloc'");
-	return nullptr;
-}
 
 
 File_descriptor_allocator::File_descriptor_allocator(Allocator &alloc)

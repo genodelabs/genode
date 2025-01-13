@@ -31,10 +31,12 @@ using namespace Libc;
 static Monitor      *_monitor_ptr;
 static Libc::Signal *_signal_ptr;
 
-void Libc::init_poll(Signal &signal, Monitor &monitor)
+void Libc::init_poll(Signal &signal, Monitor &monitor,
+                     File_descriptor_allocator &fd_alloc)
 {
-	_signal_ptr  = &signal;
-	_monitor_ptr = &monitor;
+	_signal_ptr   = &signal;
+	_monitor_ptr  = &monitor;
+	_fd_alloc_ptr = &fd_alloc;
 }
 
 

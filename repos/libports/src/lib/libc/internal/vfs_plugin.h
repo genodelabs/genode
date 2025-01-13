@@ -81,6 +81,7 @@ class Libc::Vfs_plugin final : public Plugin
 			  reference_handle(reference_handle) { }
 		};
 
+		File_descriptor_allocator        &_fd_alloc;
 		Genode::Allocator                &_alloc;
 		Vfs::File_system                 &_root_fs;
 		Constructible<Genode::Directory>  _root_dir { };
@@ -181,6 +182,7 @@ class Libc::Vfs_plugin final : public Plugin
 	public:
 
 		Vfs_plugin(Libc::Env                        &env,
+		           Libc::File_descriptor_allocator  &fd_alloc,
 		           Vfs::Env                         &vfs_env,
 		           Genode::Allocator                &alloc,
 		           Vfs::Read_ready_response_handler &handler,
@@ -188,6 +190,7 @@ class Libc::Vfs_plugin final : public Plugin
 		           Current_real_time               &current_real_time,
 		           Xml_node                         config)
 		:
+			_fd_alloc(fd_alloc),
 			_alloc(alloc),
 			_root_fs(env.vfs_env().root_dir()),
 			_response_handler(handler),

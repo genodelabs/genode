@@ -304,8 +304,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open_from_kernel(const char *path, int 
 
 		/* the directory was successfully opened */
 
-		File_descriptor *fd =
-			file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
+		File_descriptor *fd = _fd_alloc.alloc(this, vfs_context(handle), libc_fd);
 
 		if (!fd) {
 			handle->close();
@@ -383,8 +382,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open_from_kernel(const char *path, int 
 
 	/* the file was successfully opened */
 
-	File_descriptor *fd =
-		file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
+	File_descriptor *fd = _fd_alloc.alloc(this, vfs_context(handle), libc_fd);
 
 	if (!fd) {
 		handle->close();
@@ -436,7 +434,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags)
 
 				/* the directory was successfully opened */
 
-				fd = file_descriptor_allocator()->alloc(this, vfs_context(handle), Libc::ANY_FD);
+				fd = _fd_alloc.alloc(this, vfs_context(handle), Libc::ANY_FD);
 
 				if (!fd) {
 					handle->close();
@@ -515,7 +513,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags)
 
 			/* the file was successfully opened */
 
-			fd = file_descriptor_allocator()->alloc(this, vfs_context(handle), Libc::ANY_FD);
+			fd = _fd_alloc.alloc(this, vfs_context(handle), Libc::ANY_FD);
 
 			if (!fd) {
 				handle->close();
@@ -605,7 +603,7 @@ int Libc::Vfs_plugin::close_from_kernel(File_descriptor *fd)
 	}
 
 	handle->close();
-	file_descriptor_allocator()->free(fd);
+	_fd_alloc.free(fd);
 
 	return 0;
 }
@@ -623,7 +621,7 @@ int Libc::Vfs_plugin::close(File_descriptor *fd)
 				return Fn::INCOMPLETE;
 
 		handle->close();
-		file_descriptor_allocator()->free(fd);
+		_fd_alloc.free(fd);
 
 		return Fn::COMPLETE;
 	});
@@ -681,8 +679,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
 		handle->seek(vfs_handle(fd)->seek());
 		handle->handler(&_response_handler);
 
-		File_descriptor * const new_fd =
-			file_descriptor_allocator()->alloc(this, vfs_context(handle));
+		File_descriptor * const new_fd = _fd_alloc.alloc(this, vfs_context(handle));
 
 		if (!new_fd) {
 			handle->close();
@@ -2059,8 +2056,7 @@ int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 			/*
 			 * Allocate free file descriptor locally.
 			 */
-			File_descriptor *new_fd =
-				file_descriptor_allocator()->alloc(this, 0);
+			File_descriptor *new_fd = _fd_alloc.alloc(this, 0);
 			if (!new_fd) return Errno(EMFILE);
 
 			/*

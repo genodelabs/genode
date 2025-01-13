@@ -56,10 +56,12 @@ static Libc::Suspend *_suspend_ptr;
 static Libc::Monitor *_monitor_ptr;
 
 
-void Libc::init_socket_fs(Suspend &suspend, Monitor &monitor)
+void Libc::init_socket_fs(Suspend &suspend, Monitor &monitor,
+                          File_descriptor_allocator &fd_alloc)
 {
-	_suspend_ptr = &suspend;
-	_monitor_ptr = &monitor;
+	_suspend_ptr  = &suspend;
+	_monitor_ptr  = &monitor;
+	_fd_alloc_ptr = &fd_alloc;
 }
 
 

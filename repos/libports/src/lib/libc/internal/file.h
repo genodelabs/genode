@@ -25,6 +25,20 @@
 
 enum { INVALID_FD = -1 };
 
+
+static Libc::File_descriptor_allocator *_fd_alloc_ptr;
+
+
+static Libc::File_descriptor_allocator *file_descriptor_allocator()
+{
+	if (!_fd_alloc_ptr) {
+		Genode::error("missing initialization of _fd_alloc_ptr");
+		for (;;);
+	}
+	return _fd_alloc_ptr;
+}
+
+
 /**
  * Find plugin responsible for the specified libc file descriptor
  *
@@ -32,8 +46,7 @@ enum { INVALID_FD = -1 };
  */
 static inline Libc::File_descriptor *libc_fd_to_fd(int libc_fd, const char *func_name)
 {
-	Libc::File_descriptor *fd =
-		Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+	Libc::File_descriptor *fd = file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	if (!fd)
 		Genode::error("no plugin found for ", func_name, "(", libc_fd, ")");
 	return fd;

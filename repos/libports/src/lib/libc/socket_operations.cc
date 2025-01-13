@@ -28,6 +28,13 @@ extern "C" {
 #include <internal/file.h>
 #include <internal/socket_fs_plugin.h>
 #include <internal/errno.h>
+#include <internal/init.h>
+
+
+void Libc::init_socket_operations(Libc::File_descriptor_allocator &fd_alloc)
+{
+	_fd_alloc_ptr = &fd_alloc;
+}
 
 
 using namespace Libc;

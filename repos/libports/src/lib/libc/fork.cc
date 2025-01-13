@@ -60,18 +60,19 @@ namespace { using Fn = Monitor::Function_result; }
 
 static pid_t fork_result;
 
-static Env                      *_env_ptr;
-static Allocator                *_alloc_ptr;
-static Monitor                  *_monitor_ptr;
-static Libc::Signal             *_signal_ptr;
-static Heap                     *_malloc_heap_ptr;
-static void                     *_user_stack_base_ptr;
-static size_t                    _user_stack_size;
-static int                       _pid;
-static int                       _pid_cnt;
-static Config_accessor    const *_config_accessor_ptr;
-static Binary_name        const *_binary_name_ptr;
-static Forked_children          *_forked_children_ptr;
+static Env                       *_env_ptr;
+static File_descriptor_allocator *_fd_alloc_ptr;
+static Allocator                 *_alloc_ptr;
+static Monitor                   *_monitor_ptr;
+static Libc::Signal              *_signal_ptr;
+static Heap                      *_malloc_heap_ptr;
+static void                      *_user_stack_base_ptr;
+static size_t                     _user_stack_size;
+static int                        _pid;
+static int                        _pid_cnt;
+static Config_accessor     const *_config_accessor_ptr;
+static Binary_name         const *_binary_name_ptr;
+static Forked_children           *_forked_children_ptr;
 
 
 static Libc::Monitor & monitor()
@@ -91,9 +92,11 @@ struct Libc::Child_config
 
 	pid_t const _pid;
 
-	void _generate(Xml_generator &xml, Xml_node config);
+	void _generate(Xml_generator &xml, Xml_node const &config,
+	               File_descriptor_allocator &);
 
-	Child_config(Env &env, Config_accessor const &config_accessor, pid_t pid)
+	Child_config(Env &env, Config_accessor const &config_accessor,
+	             File_descriptor_allocator &fd_alloc, pid_t pid)
 	:
 		_env(env), _pid(pid)
 	{
@@ -108,7 +111,7 @@ struct Libc::Child_config
 
 				Xml_generator
 					xml(_ds->local_addr<char>(), buffer_size, "config", [&] () {
-						_generate(xml, config); });
+						_generate(xml, config, fd_alloc); });
 			},
 
 			[&] () { buffer_size += 4096; }
@@ -123,7 +126,8 @@ struct Libc::Child_config
 };
 
 
-void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
+void Libc::Child_config::_generate(Xml_generator &xml, Xml_node const &config,
+                                   File_descriptor_allocator &fd_alloc)
 {
 	using Addr = String<30>;
 
@@ -155,7 +159,7 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
 				xml.attribute("cwd", Path(Cstring(buf)));
 		}
 
-		file_descriptor_allocator()->generate_info(xml);
+		fd_alloc.generate_info(xml);
 
 		auto gen_range_attr = [&] (auto at, auto size)
 		{
@@ -547,19 +551,20 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	Child _child;
 
-	Forked_child(Env                   &env,
-	             Entrypoint            &fork_ep,
-	             Allocator             &alloc,
-	             Binary_name     const &binary_name,
-	             Signal                &signal,
-	             pid_t                  pid,
-	             Config_accessor const &config_accessor,
-	             Parent_services       &parent_services,
-	             Local_rom_services    &local_rom_services)
+	Forked_child(Env                       &env,
+	             File_descriptor_allocator &fd_alloc,
+	             Entrypoint                &fork_ep,
+	             Allocator                 &alloc,
+	             Binary_name         const &binary_name,
+	             Signal                    &signal,
+	             pid_t                      pid,
+	             Config_accessor     const &config_accessor,
+	             Parent_services           &parent_services,
+	             Local_rom_services        &local_rom_services)
 	:
 		_env(env), _binary_name(binary_name),
 		_signal(signal), _pid(pid),
-		_child_config(env, config_accessor, pid),
+		_child_config(env, config_accessor, fd_alloc, pid),
 		_parent_services(parent_services),
 		_local_rom_services(local_rom_services),
 		_local_clone_service(env, fork_ep, *this),
@@ -594,8 +599,8 @@ static Forked_child * fork_kernel_routine()
 	static Local_rom_services local_rom_services(env, fork_ep, alloc);
 
 	Registered<Forked_child> *child = new (alloc)
-		Registered<Forked_child>(*_forked_children_ptr, env, fork_ep, alloc,
-		                         *_binary_name_ptr,
+		Registered<Forked_child>(*_forked_children_ptr, env, *_fd_alloc_ptr,
+		                         fork_ep, alloc, *_binary_name_ptr,
 		                         signal, child_pid, *_config_accessor_ptr,
 		                         parent_services, local_rom_services);
 
@@ -727,7 +732,10 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 		return Fn::INCOMPLETE;
 	});
 
-	file_descriptor_allocator()->update_append_libc_fds();
+	if (_fd_alloc_ptr)
+		_fd_alloc_ptr->update_append_libc_fds();
+	else
+		error("__sys_wait4: missing call of 'init_fork'");
 
 	/*
 	 * The libc expects status information in bits 0..6 and the exit value
@@ -744,12 +752,14 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 extern "C" pid_t wait4(pid_t, int *, int, rusage *) __attribute__((weak, alias("__sys_wait4")));
 
 
-void Libc::init_fork(Env &env, Config_accessor const &config_accessor,
+void Libc::init_fork(Env &env, File_descriptor_allocator &fd_alloc,
+                     Config_accessor const &config_accessor,
                      Allocator &alloc, Heap &malloc_heap, pid_t pid,
                      Monitor &monitor, Signal &signal,
                      Binary_name const &binary_name)
 {
 	_env_ptr                      = &env;
+	_fd_alloc_ptr                 = &fd_alloc;
 	_alloc_ptr                    = &alloc;
 	_monitor_ptr                  = &monitor;
 	_signal_ptr                   = &signal;

@@ -462,10 +462,12 @@ struct Libc::Kqueue
 };
 
 
-void Libc::init_kqueue(Genode::Allocator &alloc, Monitor &monitor)
+void Libc::init_kqueue(Genode::Allocator &alloc, Monitor &monitor,
+                       File_descriptor_allocator &fd_alloc)
 {
 	_kqueue_plugin_ptr = new (alloc) Kqueue_plugin(alloc);
 	_monitor_ptr       = &monitor;
+	_fd_alloc_ptr      = &fd_alloc;
 }
 
 

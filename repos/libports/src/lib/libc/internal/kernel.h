@@ -136,6 +136,8 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		 */
 		Binary_name _binary_name { "binary" };
 
+		File_descriptor_allocator _fd_alloc { _heap };
+
 		/**
 		 * Allocator for application-owned data
 		 *
@@ -173,7 +175,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 
 		bool const _update_mtime = _libc_env.libc_config().attribute_value("update_mtime", true);
 
-		Vfs_plugin _vfs { _libc_env, _libc_env.vfs_env(), _heap, *this,
+		Vfs_plugin _vfs { _libc_env, _fd_alloc, _libc_env.vfs_env(), _heap, *this,
 		                  _update_mtime ? Vfs_plugin::Update_mtime::YES
 		                                : Vfs_plugin::Update_mtime::NO,
 		                  *this /* current_real_time */,
