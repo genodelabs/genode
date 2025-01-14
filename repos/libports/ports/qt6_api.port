@@ -4,5 +4,5 @@ VERSION := 6.6.2
 DOWNLOADS := qt6_api.git
 
 URL(qt6_api) := https://github.com/cproc/qt6_api.git
-REV(qt6_api) := issue5402
+REV(qt6_api) := issue5419
 DIR(qt6_api) := src/lib/qt6_api

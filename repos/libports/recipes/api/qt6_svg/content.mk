@@ -1,6 +1,7 @@
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt6_api)
 
-MIRROR_LIB_SYMBOLS := libQt6Svg
+MIRROR_LIB_SYMBOLS := libQt6Svg \
+                      libQt6SvgWidgets
 
 content: $(MIRROR_LIB_SYMBOLS)
 
