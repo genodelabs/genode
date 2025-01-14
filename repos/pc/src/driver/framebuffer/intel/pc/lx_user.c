@@ -455,28 +455,24 @@ static struct drm_display_mode * best_mode(struct genode_mode      const * const
 }
 
 
-static void reconfigure(struct drm_client_dev * const dev)
+struct meta_data_mirror {
+	struct fb_info          info;
+	struct drm_display_mode mode;
+	unsigned                width_mm;
+	unsigned                height_mm;
+	bool                    report;
+};
+
+
+static void handle_mirror(struct drm_client_dev   * const dev,
+                          struct meta_data_mirror * const mirror)
 {
-	static struct drm_mode_create_dumb * gem_mirror    = NULL;
-	static struct drm_mode_fb_cmd2     * mirror_fb_cmd = NULL;
+	struct drm_display_mode mirror_force    = {};
+	struct drm_display_mode mirror_compound = {};
+	struct drm_display_mode mirror_minimum  = {};
 
-	struct drm_connector_list_iter  conn_iter;
-	struct drm_connector          * connector  = NULL;
-
-	struct drm_display_mode    mirror_force    = {};
-	struct drm_display_mode    mirror_compound = {};
-	struct drm_display_mode    mirror_minimum  = {};
-	struct drm_display_mode    mirror_fb       = {};
-
-	struct {
-		struct fb_info info;
-		unsigned       width_mm;
-		unsigned       height_mm;
-		bool           report;
-	} mirror = { { }, 0, 0, false };
-
-	gem_mirror    = &states[CONNECTOR_ID_MIRROR].fb_dumb;
-	mirror_fb_cmd = &states[CONNECTOR_ID_MIRROR].fb_cmd;
+	struct drm_mode_create_dumb * gem_mirror    = &states[CONNECTOR_ID_MIRROR].fb_dumb;
+	struct drm_mode_fb_cmd2     * mirror_fb_cmd = &states[CONNECTOR_ID_MIRROR].fb_cmd;
 
 	if (!dev || !dev->dev || !gem_mirror || !mirror_fb_cmd)
 		return;
@@ -496,9 +492,9 @@ static void reconfigure(struct drm_client_dev * const dev)
 	}
 
 	if (mode_larger(&mirror_compound, &mirror_minimum))
-		mirror_fb = mirror_compound;
+		mirror->mode = mirror_compound;
 	else
-		mirror_fb = mirror_minimum;
+		mirror->mode = mirror_minimum;
 
 	{
 		struct state * state_mirror = &states[CONNECTOR_ID_MIRROR];
@@ -508,12 +504,12 @@ static void reconfigure(struct drm_client_dev * const dev)
 		                                 gem_mirror,
 		                                 mirror_fb_cmd,
 		                                &resized,
-		                                 mirror_fb.hdisplay,
-		                                 mirror_fb.vdisplay);
+		                                 mirror->mode.hdisplay,
+		                                 mirror->mode.vdisplay);
 
 		if (err) {
 			printk("setting up mirrored framebuffer of %ux%u failed - error=%d\n",
-			       mirror_fb.hdisplay, mirror_fb.vdisplay, err);
+			       mirror->mode.hdisplay, mirror->mode.vdisplay, err);
 
 			return;
 		}
@@ -522,7 +518,7 @@ static void reconfigure(struct drm_client_dev * const dev)
 			printk("mirror: compound %ux%u force=%ux%u fb=%ux%u\n",
 			       mirror_compound.hdisplay, mirror_compound.vdisplay,
 			       mirror_force.hdisplay,    mirror_force.vdisplay,
-			       mirror_fb.hdisplay,       mirror_fb.vdisplay);
+			       mirror->mode.hdisplay,       mirror->mode.vdisplay);
 		}
 
 		/* if mirrored fb changed, drop reference and get new framebuffer */
@@ -534,19 +530,28 @@ static void reconfigure(struct drm_client_dev * const dev)
 			                                           mirror_fb_cmd->fb_id);
 		}
 
-		mirror.info.var.xres         = mirror_fb.hdisplay;
-		mirror.info.var.yres         = mirror_fb.vdisplay;
-		mirror.info.var.xres_virtual = mirror_force.hdisplay ? : mirror_compound.hdisplay;
-		mirror.info.var.yres_virtual = mirror_force.vdisplay ? : mirror_compound.vdisplay;
-		mirror.info.node             = CONNECTOR_ID_MIRROR;
-		mirror.info.par              = "mirror_capture";
+		mirror->info.var.xres         = mirror->mode.hdisplay;
+		mirror->info.var.yres         = mirror->mode.vdisplay;
+		mirror->info.var.xres_virtual = mirror_force.hdisplay ? : mirror_compound.hdisplay;
+		mirror->info.var.yres_virtual = mirror_force.vdisplay ? : mirror_compound.vdisplay;
+		mirror->info.node             = CONNECTOR_ID_MIRROR;
+		mirror->info.par              = "mirror_capture";
 	}
+}
 
-	/* without fb handle created by check_resize_fb we can't proceed */
-	if (!mirror_fb_cmd->fb_id) {
-		printk("%s:%u no mirror fb id\n", __func__, __LINE__);
+
+static void reconfigure(struct drm_client_dev * const dev)
+{
+	struct drm_connector_list_iter  conn_iter;
+	struct drm_connector          * connector  = NULL;
+
+	struct meta_data_mirror mirror = {};
+
+	if (!dev || !dev->dev)
 		return;
-	}
+
+	/* handle mirror/merge connectors */
+	handle_mirror(dev, &mirror);
 
 	drm_connector_list_iter_begin(dev_client->dev, &conn_iter);
 	drm_client_for_each_connector_iter(connector, &conn_iter) {
@@ -577,7 +582,7 @@ static void reconfigure(struct drm_client_dev * const dev)
 		}
 
 		/* lookup next mode */
-		mode = best_mode(&conf_mode, connector, &mirror_fb, &no_match, &mode_id);
+		mode = best_mode(&conf_mode, connector, &mirror.mode, &no_match, &mode_id);
 
 		/* reduce flickering if in same state */
 		same_state = conf_mode.mirror  == state->mirrored &&
@@ -639,6 +644,7 @@ static void reconfigure(struct drm_client_dev * const dev)
 		}
 
 		if (conf_mode.mirror) {
+			struct drm_mode_fb_cmd2 * mirror_fb_cmd = &states[CONNECTOR_ID_MIRROR].fb_cmd;
 			/* get new fb reference for mirrored fb */
 			state->fbs = drm_framebuffer_lookup(dev->dev, dev->file,
 			                                    mirror_fb_cmd->fb_id);
