@@ -114,7 +114,7 @@
 			</config>
 		</start>
 
-		<start name="fifo-pipe-test">
+		<start name="fifo-pipe-test" caps="150">
 			<binary name="test-libc_fifo_pipe"/>
 			<resource name="RAM" quantum="8M"/>
 			<config iterations="15">
