@@ -32,4 +32,8 @@ vpath %.cc $(REP_DIR)/src/lib
 vpath %.c  $(LXIP_DIR)/spec/$(SPEC_ARCH)
 vpath %    $(LXIP_DIR)
 
+C_API = $(dir $(call select_from_repositories,src/lib/genode_c_api))
+
+vpath genode_c_api/nic_client.cc $(C_API)
+
 # vi: set ft=make :
