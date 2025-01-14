@@ -1,0 +1,17 @@
+<runtime ram="32M" caps="1000" binary="test-callable">
+
+	<fail after_seconds="20"/>
+	<succeed>
+		[init] result of action.compute: 34
+		[init] accessing XML node, state=reset
+		[init] --- finished callable test ---
+	</succeed>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-callable"/>
+	</content>
+
+	<config/>
+
+</runtime>
