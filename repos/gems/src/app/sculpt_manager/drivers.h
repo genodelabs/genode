@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <xml.h>
+#include <util/callable.h>
 #include <model/child_state.h>
 #include <model/board_info.h>
 #include <driver/fb.h>
@@ -52,14 +53,14 @@ class Sculpt::Drivers : Noncopyable
 
 		static Instance &_construct_instance(auto &&...);
 
-		using With_storage_devices = With<Storage_devices const &>;
-		using With_board_info      = With<Board_info const &>;
-		using With_xml             = With<Xml_node   const &>;
+		using With_storage_devices = Callable<void, Storage_devices const &>;
+		using With_board_info      = Callable<void, Board_info const &>;
+		using With_xml             = Callable<void, Xml_node   const &>;
 
-		void _with(With_storage_devices::Callback const &) const;
-		void _with(With_board_info::Callback      const &) const;
-		void _with_platform_info(With_xml::Callback   const &) const;
-		void _with_fb_connectors(With_xml::Callback const &) const;
+		void _with(With_storage_devices::Ft   const &) const;
+		void _with(With_board_info::Ft        const &) const;
+		void _with_platform_info(With_xml::Ft const &) const;
+		void _with_fb_connectors(With_xml::Ft const &) const;
 
 	public:
 
@@ -71,8 +72,8 @@ class Sculpt::Drivers : Noncopyable
 
 		void gen_start_nodes(Xml_generator &) const;
 
-		void with_storage_devices(auto const &fn) const { _with(With_storage_devices::Fn { fn }); }
-		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn      { fn }); }
+		void with_storage_devices(auto const &fn) const { _with(With_storage_devices::Fn   { fn }); }
+		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn        { fn }); }
 		void with_platform_info  (auto const &fn) const { _with_platform_info(With_xml::Fn { fn }); }
 		void with_fb_connectors  (auto const &fn) const { _with_fb_connectors(With_xml::Fn { fn }); }
 

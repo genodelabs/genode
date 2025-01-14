@@ -155,7 +155,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 			_nic_driver  .gen_start_node (xml);
 		}
 
-		void with(With_storage_devices::Callback const &fn) const
+		void with(With_storage_devices::Ft const &fn) const
 		{
 			_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
 				_ahci_driver.with_ports([&] (Xml_node const &ahci_ports) {
@@ -167,9 +167,9 @@ class Sculpt::Drivers::Instance : Noncopyable,
 							      .mmc  = mmc_devices }); }); }); }); });
 		}
 
-		void with(With_board_info::Callback    const &fn) const { fn(_board_info); }
-		void with_platform_info(With_xml::Callback const &fn) const { fn(_platform.xml()); }
-		void with_fb_connectors(With_xml::Callback const &fn) const { _fb_driver.with_connectors(fn); }
+		void with(With_board_info::Ft        const &fn) const { fn(_board_info); }
+		void with_platform_info(With_xml::Ft const &fn) const { fn(_platform.xml()); }
+		void with_fb_connectors(With_xml::Ft const &fn) const { _fb_driver.with_connectors(fn); }
 
 		bool suspend_supported() const
 		{
@@ -203,10 +203,10 @@ Sculpt::Drivers::Drivers(Env &env, Children &children, Info const &info, Action 
 	_instance(_construct_instance(env, children, info, action))
 { }
 
-void Drivers::_with(With_storage_devices::Callback   const &fn) const { _instance.with(fn); }
-void Drivers::_with(With_board_info::Callback        const &fn) const { _instance.with(fn); }
-void Drivers::_with_platform_info(With_xml::Callback const &fn) const { _instance.with_platform_info(fn); }
-void Drivers::_with_fb_connectors(With_xml::Callback const &fn) const { _instance.with_fb_connectors(fn); }
+void Drivers::_with(With_storage_devices::Ft   const &fn) const { _instance.with(fn); }
+void Drivers::_with(With_board_info::Ft        const &fn) const { _instance.with(fn); }
+void Drivers::_with_platform_info(With_xml::Ft const &fn) const { _instance.with_platform_info(fn); }
+void Drivers::_with_fb_connectors(With_xml::Ft const &fn) const { _instance.with_fb_connectors(fn); }
 
 void Drivers::update_usb    ()                        { _instance.update_usb(); }
 void Drivers::update_soc    (Board_info::Soc     soc) { _instance.update_soc(soc); }
