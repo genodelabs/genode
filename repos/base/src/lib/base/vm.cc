@@ -24,11 +24,10 @@ static Vm_session::Native_vcpu dummy;
 
 struct Genode::Vcpu_state { };
 
-void Vm_connection::Vcpu::_with_state(Call_with_state &) {};
+void Vm_connection::Vcpu::_with_state(With_state::Ft const &) { };
 
 Vm_connection::Vcpu::Vcpu(Vm_connection &, Allocator &,
                           Vcpu_handler_base &, Exit_config const &)
 :
 	_native_vcpu(dummy)
-{
-}
+{ }

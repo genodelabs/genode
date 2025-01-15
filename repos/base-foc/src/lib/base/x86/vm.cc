@@ -42,7 +42,6 @@ namespace Foc {
 using namespace Genode;
 
 using Exit_config = Vm_connection::Exit_config;
-using Call_with_state = Vm_connection::Call_with_state;
 
 
 enum Virt { VMX, SVM, UNKNOWN };
@@ -1341,7 +1340,7 @@ struct Foc_vcpu : Thread, Noncopyable
 			_wake_up.up();
 		}
 
-		void with_state(Call_with_state &cw)
+		void with_state(auto const &fn)
 		{
 			if (!_dispatching) {
 				if (Thread::myself() != _ep_handler) {
@@ -1374,7 +1373,7 @@ struct Foc_vcpu : Thread, Noncopyable
 				_state_ready.down();
 			}
 
-			if (cw.call_with_state(_vcpu_state)
+			if (fn(_vcpu_state)
 			    || _extra_dispatch_up)
 				resume();
 
@@ -1416,7 +1415,10 @@ static enum Virt virt_type(Env &env)
  ** vCPU API **
  **************/
 
-void Vm_connection::Vcpu::_with_state(Call_with_state &cw) { static_cast<Foc_native_vcpu_rpc &>(_native_vcpu).vcpu.with_state(cw); }
+void Vm_connection::Vcpu::_with_state(With_state::Ft const &fn)
+{
+	static_cast<Foc_native_vcpu_rpc &>(_native_vcpu).vcpu.with_state(fn);
+}
 
 
 Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,

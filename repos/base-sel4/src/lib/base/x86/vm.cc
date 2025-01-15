@@ -38,7 +38,6 @@
 using namespace Genode;
 
 using Exit_config = Vm_connection::Exit_config;
-using Call_with_state = Vm_connection::Call_with_state;
 
 struct Sel4_vcpu;
 
@@ -810,7 +809,7 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 			_wake_up.up();
 		}
 
-		void with_state(Call_with_state &cw)
+		void with_state(auto const &fn)
 		{
 			if (!_dispatching) {
 				if (Thread::myself() != _ep_handler) {
@@ -839,7 +838,7 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 				_state_ready.down();
 			}
 
-			if (cw.call_with_state(_state)
+			if (fn(_state)
 			    || _extra_dispatch_up)
 				resume();
 
@@ -859,11 +858,15 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 		Sel4_native_rpc * rpc()   { return &*_rpc; }
 };
 
+
 /**************
  ** vCPU API **
  **************/
 
-void Vm_connection::Vcpu::_with_state(Call_with_state &cw) { static_cast<Sel4_native_rpc &>(_native_vcpu).vcpu.with_state(cw); }
+void Vm_connection::Vcpu::_with_state(With_state::Ft const &fn)
+{
+	static_cast<Sel4_native_rpc &>(_native_vcpu).vcpu.with_state(fn);
+}
 
 
 Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,

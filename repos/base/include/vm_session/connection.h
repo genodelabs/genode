@@ -19,6 +19,7 @@
 #ifndef _INCLUDE__VM_SESSION__CONNECTION_H_
 #define _INCLUDE__VM_SESSION__CONNECTION_H_
 
+#include <util/callable.h>
 #include <base/connection.h>
 #include <base/rpc_client.h>
 #include <vm_session/vm_session.h>
@@ -49,11 +50,7 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 		/* for example OMIT_FPU_ON_IRQ */
 	};
 
-
-	struct Call_with_state : Genode::Interface
-	{
-		virtual bool call_with_state(Vcpu_state &) = 0;
-	};
+	using With_state = Callable<bool, Vcpu_state &>;
 
 	/**
 	 * Virtual CPU
@@ -63,28 +60,13 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 	 */
 	struct Vcpu : Genode::Noncopyable
 	{
-		void _with_state(Call_with_state &);
+		void _with_state(With_state::Ft const &);
+
+		void with_state(auto const &fn) { _with_state(With_state::Fn { fn }); }
 
 		Native_vcpu &_native_vcpu;
 
 		Vcpu(Vm_connection &, Allocator &, Vcpu_handler_base &, Exit_config const &);
-
-		template <typename FN>
-		void with_state(FN const &fn)
-		{
-			struct Untyped_fn : Call_with_state
-			{
-				FN const &_fn;
-				Untyped_fn(FN const &fn) : _fn(fn) {}
-
-				bool call_with_state(Vcpu_state &state) override
-				{
-					return _fn(state);
-				}
-			} untyped_fn(fn);
-
-			_with_state(untyped_fn);
-		}
 	};
 
 	friend class Vcpu;

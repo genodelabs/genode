@@ -35,7 +35,6 @@
 using namespace Genode;
 
 using Exit_config = Vm_connection::Exit_config;
-using Call_with_state = Vm_connection::Call_with_state;
 
 
 /******************************
@@ -163,7 +162,7 @@ struct Nova_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 			call<Rpc_startup>();
 		}
 
-		void with_state(Call_with_state &cw);
+		void with_state(auto const &fn);
 };
 
 
@@ -601,7 +600,7 @@ void Nova_vcpu::_handle_exit(Nova::Utcb &utcb)
 }
 
 
-void Nova_vcpu::with_state(Call_with_state &cw)
+void Nova_vcpu::with_state(auto const &fn)
 {
 	Thread *myself   = Thread::myself();
 	bool remote      = (_dispatching != myself);
@@ -626,7 +625,7 @@ void Nova_vcpu::with_state(Call_with_state &cw)
 		_read_nova_state(utcb);
 	}
 
-	_resume = cw.call_with_state(_vcpu_state);
+	_resume = fn(_vcpu_state);
 
 	if (remote) {
 		_write_nova_state(utcb);
@@ -762,7 +761,10 @@ Nova_vcpu::Nova_vcpu(Env &env, Vm_connection &vm, Allocator &alloc,
  ** vCPU API **
  **************/
 
-void Vm_connection::Vcpu::_with_state(Call_with_state &cw) { static_cast<Nova_vcpu &>(_native_vcpu).with_state(cw); }
+void Vm_connection::Vcpu::_with_state(With_state::Ft const &fn)
+{
+	static_cast<Nova_vcpu &>(_native_vcpu).with_state(fn);
+}
 
 
 Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,

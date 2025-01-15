@@ -29,7 +29,6 @@
 using namespace Genode;
 
 using Exit_config = Vm_connection::Exit_config;
-using Call_with_state = Vm_connection::Call_with_state;
 
 
 /****************************
@@ -58,7 +57,7 @@ struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 
 		Hw_vcpu(Env &, Vm_connection &, Vcpu_handler_base &);
 
-		void with_state(Call_with_state &);
+		void with_state(auto const &fn);
 
 };
 
@@ -84,7 +83,7 @@ void Hw_vcpu::_run()
 }
 
 
-void Hw_vcpu::with_state(Call_with_state &cw)
+void Hw_vcpu::with_state(auto const &fn)
 {
 	if (Thread::myself() != _ep_handler) {
 		error("vCPU state requested outside of vcpu_handler EP");
@@ -92,7 +91,7 @@ void Hw_vcpu::with_state(Call_with_state &cw)
 	}
 	Kernel::pause_vm(Capability_space::capid(_kernel_vcpu));
 
-	if(cw.call_with_state(_local_state()))
+	if (fn(_local_state()))
 		_run();
 }
 
@@ -110,7 +109,10 @@ Capability<Vm_session::Native_vcpu> Hw_vcpu::_create_vcpu(Vm_connection     &vm,
  ** vCPU API **
  **************/
 
-void Vm_connection::Vcpu::_with_state(Call_with_state &cw) { static_cast<Hw_vcpu &>(_native_vcpu).with_state(cw); }
+void Vm_connection::Vcpu::_with_state(With_state::Ft const &fn)
+{
+	static_cast<Hw_vcpu &>(_native_vcpu).with_state(fn);
+}
 
 
 Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,
