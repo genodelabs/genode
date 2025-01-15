@@ -189,10 +189,10 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	/**
 	 * Default_route_accessor interface
 	 */
-	Xml_node default_route() override
+	void _with_default_route(Child::With_xml::Ft const &fn) override
 	{
-		return _default_route.constructed() ? _default_route->xml()
-		                                    : Xml_node("<empty/>");
+		if (_default_route.constructed())
+			fn(_default_route->xml());
 	}
 
 	/**

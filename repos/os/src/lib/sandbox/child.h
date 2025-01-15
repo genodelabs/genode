@@ -50,8 +50,22 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 */
 		struct Id { unsigned value; };
 
-		struct Default_route_accessor : Interface { virtual Xml_node default_route() = 0; };
-		struct Default_caps_accessor  : Interface { virtual Cap_quota default_caps() = 0; };
+		using With_xml = Callable<void, Xml_node const &>;
+
+		struct Default_route_accessor : Interface
+		{
+			virtual void _with_default_route(With_xml::Ft const &) = 0;
+
+			void with_default_route(auto const &fn)
+			{
+				_with_default_route(With_xml::Fn { fn });
+			}
+		};
+
+		struct Default_caps_accessor : Interface
+		{
+			virtual Cap_quota default_caps() = 0;
+		};
 
 		template <typename QUOTA>
 		struct Resource_limit_accessor : Interface
@@ -140,8 +154,10 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			start.with_sub_node("route",
 				[&] (Xml_node const &route) {
 					_route_model.construct(_alloc, route); },
-				[&] () {
-					_route_model.construct(_alloc, _default_route_accessor.default_route()); });
+				[&] {
+					_default_route_accessor.with_default_route([&] (Xml_node const &node) {
+						_route_model.construct(_alloc, node); });
+				});
 		}
 
 		/*
