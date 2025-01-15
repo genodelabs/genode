@@ -152,64 +152,66 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 		return remapped_irq;
 	};
 
-	_irq_registry.for_each([&] (Irq & irq)
-	{
-		if (irq.idx != idx)
-			return;
+	try {
+		_irq_registry.for_each([&] (Irq & irq)
+		{
+			if (irq.idx != idx)
+				return;
 
-		if (!irq.shared && !irq.irq.constructed()) {
-			addr_t   pci_cfg_addr = 0;
-			Pci::Bdf bdf { 0, 0, 0 };
-			if (irq.type != Irq_session::TYPE_LEGACY) {
-				if (_pci_config.constructed()) {
-					pci_cfg_addr = _pci_config->addr;
-					bdf          = _pci_config->bdf;
+			if (!irq.shared && !irq.irq.constructed()) {
+				addr_t   pci_cfg_addr = 0;
+				Pci::Bdf bdf { 0, 0, 0 };
+				if (irq.type != Irq_session::TYPE_LEGACY) {
+					if (_pci_config.constructed()) {
+						pci_cfg_addr = _pci_config->addr;
+						bdf          = _pci_config->bdf;
+					} else
+						error("MSI(-x) detected for device without pci-config!");
+
+					irq.irq.construct(_env, irq.number, pci_cfg_addr, irq.type);
 				} else
-					error("MSI(-x) detected for device without pci-config!");
+					irq.irq.construct(_env, irq.number, irq.mode, irq.polarity);
 
-				irq.irq.construct(_env, irq.number, pci_cfg_addr, irq.type);
-			} else
-				irq.irq.construct(_env, irq.number, irq.mode, irq.polarity);
+				/**
+				 * Core/Kernel is and remains in control of the IRQ controller. When
+				 * IRQ remapping is enabled, however, we need to modify the upper 32bit
+				 * of the corresponding redirection table entry. This is save for
+				 * base-hw as it never touches the upper 32bit after the initial setup.
+				 */
+				Irq_session::Info info = irq.irq->info();
+				if (pci_cfg_addr && info.type == Irq_session::Info::MSI)
+					pci_msi_enable(_env, *this, pci_cfg_addr,
+					               remapped_irq("", bdf, irq, info, Irq_config::Invalid()).session_info,
+					               irq.type);
+				else
+					_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+						if (!controller.handles_irq(irq.number)) return;
 
-			/**
-			 * Core/Kernel is and remains in control of the IRQ controller. When
-			 * IRQ remapping is enabled, however, we need to modify the upper 32bit
-			 * of the corresponding redirection table entry. This is save for
-			 * base-hw as it never touches the upper 32bit after the initial setup.
-			 */
-			Irq_session::Info info = irq.irq->info();
-			if (pci_cfg_addr && info.type == Irq_session::Info::MSI)
-				pci_msi_enable(_env, *this, pci_cfg_addr,
-				               remapped_irq("", bdf, irq, info, Irq_config::Invalid()).session_info,
-				               irq.type);
-			else
-				_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
-					if (!controller.handles_irq(irq.number)) return;
+						remapped_irq(controller.iommu(), controller.bdf(), irq, info,
+						             controller.irq_config(irq.number));
+						controller.remap_irq(irq.number, irq.remapped_nbr);
+					});
+			}
 
-					remapped_irq(controller.iommu(), controller.bdf(), irq, info,
-					             controller.irq_config(irq.number));
-					controller.remap_irq(irq.number, irq.remapped_nbr);
+			if (irq.shared && !irq.sirq.constructed())
+				_device_model.with_shared_irq(irq.number,
+				                              [&] (Shared_interrupt & sirq) {
+					irq.sirq.construct(_env.ep().rpc_ep(), sirq,
+					                   irq.mode, irq.polarity);
+
+					_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+						if (!controller.handles_irq(irq.number)) return;
+
+						remapped_irq(controller.iommu(), controller.bdf(), irq,
+						             { Irq_session::Info::INVALID, 0, 0 },
+						             controller.irq_config(irq.number));
+						controller.remap_irq(irq.number, irq.remapped_nbr);
+					});
 				});
-		}
 
-		if (irq.shared && !irq.sirq.constructed())
-			_device_model.with_shared_irq(irq.number,
-			                              [&] (Shared_interrupt & sirq) {
-				irq.sirq.construct(_env.ep().rpc_ep(), sirq,
-				                   irq.mode, irq.polarity);
-
-				_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
-					if (!controller.handles_irq(irq.number)) return;
-
-					remapped_irq(controller.iommu(), controller.bdf(), irq,
-					             { Irq_session::Info::INVALID, 0, 0 },
-					             controller.irq_config(irq.number));
-					controller.remap_irq(irq.number, irq.remapped_nbr);
-				});
-			});
-
-		cap = irq.shared ? irq.sirq->cap() : irq.irq->cap();
-	});
+			cap = irq.shared ? irq.sirq->cap() : irq.irq->cap();
+		});
+	} catch (Service_denied) { error("irq could not be setup ", _device); }
 
 	return cap;
 }
