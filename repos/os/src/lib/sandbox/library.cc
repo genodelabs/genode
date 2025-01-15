@@ -259,13 +259,14 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	{
 		Env &_env;
 
-		void with_intrinsics(Capability<Pd_session>, Pd_session &pd, Fn const &fn) override
+		void with_intrinsics(Capability<Pd_session>, Pd_session &pd,
+		                     With_intrinsics::Ft const &fn) override
 		{
 			Region_map_client region_map(pd.address_space());
 
 			Intrinsics intrinsics { _env.pd(),  _env.pd_session_cap(),
 			                        _env.cpu(), _env.cpu_session_cap(), region_map };
-			fn.call(intrinsics);
+			fn(intrinsics);
 		}
 
 		void start_initial_thread(Capability<Cpu_thread> cap, addr_t ip) override
@@ -520,7 +521,7 @@ void Genode::Sandbox::Library::apply_config(Xml_node const &config)
  ** Sandbox::Local_service_base **
  *********************************/
 
-void Genode::Sandbox::Local_service_base::_for_each_requested_session(Request_fn &fn)
+void Genode::Sandbox::Local_service_base::_for_each_requested_session(With_request::Ft const &fn)
 {
 	_server_id_space.for_each<Session_state>([&] (Session_state &session) {
 
@@ -528,7 +529,7 @@ void Genode::Sandbox::Local_service_base::_for_each_requested_session(Request_fn
 
 			Request request(session);
 
-			fn.with_requested_session(request);
+			fn(request);
 
 			bool wakeup_client = false;
 
@@ -551,7 +552,7 @@ void Genode::Sandbox::Local_service_base::_for_each_requested_session(Request_fn
 }
 
 
-void Genode::Sandbox::Local_service_base::_for_each_upgraded_session(Upgrade_fn &fn)
+void Genode::Sandbox::Local_service_base::_for_each_upgraded_session(With_upgrade::Ft const &fn)
 {
 	_server_id_space.for_each<Session_state>([&] (Session_state &session) {
 
@@ -566,7 +567,7 @@ void Genode::Sandbox::Local_service_base::_for_each_upgraded_session(Upgrade_fn 
 		Session::Resources const amount { session.ram_upgrade,
 		                                  session.cap_upgrade };
 
-		switch (fn.with_upgraded_session(*session.local_ptr, amount)) {
+		switch (fn(*session.local_ptr, amount)) {
 
 			case Upgrade_response::CONFIRMED:
 				session.phase = Session_state::CAP_HANDED_OUT;
@@ -583,7 +584,7 @@ void Genode::Sandbox::Local_service_base::_for_each_upgraded_session(Upgrade_fn 
 }
 
 
-void Genode::Sandbox::Local_service_base::_for_each_session_to_close(Close_fn &close_fn)
+void Genode::Sandbox::Local_service_base::_for_each_session_to_close(With_close::Ft const &fn)
 {
 	/*
 	 * Collection of closed sessions to be destructed via callback
@@ -605,7 +606,7 @@ void Genode::Sandbox::Local_service_base::_for_each_session_to_close(Close_fn &c
 		if (session.local_ptr == nullptr)
 			return;
 
-		switch (close_fn.close_session(*session.local_ptr)) {
+		switch (fn(*session.local_ptr)) {
 
 		case Close_response::CLOSED:
 

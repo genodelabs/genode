@@ -74,27 +74,14 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		enum class Sample_state_result { CHANGED, UNCHANGED };
 
-		/*
-		 * Helper for passing lambda functions as 'Pd_intrinsics::Fn'
-		 */
-
 		using Pd_intrinsics = Genode::Sandbox::Pd_intrinsics;
 
-		template <typename PD_SESSION, typename FN>
+		template <typename PD_SESSION>
 		static void with_pd_intrinsics(Pd_intrinsics &pd_intrinsics,
 		                               Capability<Pd_session> cap, PD_SESSION &pd,
-		                               FN const &fn)
+		                               auto const &fn)
 		{
-			struct Impl : Pd_intrinsics::Fn
-			{
-				using Intrinsics = Pd_intrinsics::Intrinsics;
-
-				FN const &_fn;
-				Impl(FN const &fn) : _fn(fn) { }
-				void call(Intrinsics &intrinsics) const override { _fn(intrinsics); }
-			};
-
-			pd_intrinsics.with_intrinsics(cap, pd, Impl { fn });
+			pd_intrinsics.with_intrinsics(cap, pd, Pd_intrinsics::With_intrinsics::Fn { fn });
 		}
 
 	private:
@@ -306,8 +293,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		Pd_intrinsics &_pd_intrinsics;
 
-		template <typename FN>
-		void _with_pd_intrinsics(FN const &fn)
+		void _with_pd_intrinsics(auto const &fn)
 		{
 			with_pd_intrinsics(_pd_intrinsics, _child.pd_session_cap(), _child.pd(), fn);
 		}

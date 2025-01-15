@@ -86,7 +86,8 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 
 	} _monitored_ref_cpu { _env.ep(), _env.cpu_session_cap(), Session::Label { } };
 
-	void with_intrinsics(Capability<Pd_session> pd_cap, Pd_session &pd, Fn const &fn) override
+	void with_intrinsics(Capability<Pd_session> pd_cap, Pd_session &pd,
+	                     With_intrinsics::Ft const &fn) override
 	{
 		/*
 		 * Depending on the presence of the PD session in our local entrypoint,
@@ -111,7 +112,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 				                        .ref_cpu       = _monitored_ref_cpu,
 				                        .ref_cpu_cap   = _monitored_ref_cpu.cap(),
 				                        .address_space = inferior_pd._address_space };
-				fn.call(intrinsics);
+				fn(intrinsics);
 			},
 			[&] /* PD session not intercepted */ {
 
@@ -122,7 +123,7 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 				                        .ref_cpu       = _env.cpu(),
 				                        .ref_cpu_cap   = _env.cpu_session_cap(),
 				                        .address_space = region_map };
-				fn.call(intrinsics);
+				fn(intrinsics);
 			}
 		);
 	}

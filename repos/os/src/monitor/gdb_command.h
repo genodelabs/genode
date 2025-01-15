@@ -14,6 +14,7 @@
 #ifndef _GDB_COMMAND_H_
 #define _GDB_COMMAND_H_
 
+#include <util/callable.h>
 #include <base/registry.h>
 #include <monitor/string.h>
 #include <types.h>
@@ -47,23 +48,13 @@ struct Monitor::Gdb::Command : private Commands::Element, Interface
 		with_skipped_prefix(bytes, name, match_remainder_fn);
 	}
 
-	struct With_args_fn : Interface
-	{
-		virtual void call(Const_byte_range_ptr const &args) const = 0;
-	};
+	using With_args = Callable<void, Const_byte_range_ptr const &>;
 
-	virtual void _with_args(Const_byte_range_ptr const &, With_args_fn const &) const = 0;
+	virtual void _with_args(Const_byte_range_ptr const &, With_args::Ft const &) const = 0;
 
 	void with_args(Const_byte_range_ptr const &command_bytes, auto const &fn) const
 	{
-		using Fn = typeof(fn);
-		struct Impl : With_args_fn
-		{
-			Fn const &_fn;
-			Impl(Fn const &fn) : _fn(fn) { }
-			void call(Const_byte_range_ptr const &args) const override { _fn(args); }
-		};
-		_with_args(command_bytes, Impl(fn));
+		_with_args(command_bytes, With_args::Fn { fn });
 	}
 
 	virtual void execute(State &, Const_byte_range_ptr const &args, Output &) const = 0;
@@ -190,11 +181,11 @@ struct Monitor::Gdb::Command_with_separator : Command
 	}
 
 	void _with_args(Const_byte_range_ptr const &bytes,
-	                With_args_fn         const &fn) const override
+	                With_args::Ft        const &fn) const override
 	{
 		_match_name(bytes, [&] (Const_byte_range_ptr const &bytes) {
 			_match_separator(bytes, [&] (Const_byte_range_ptr const &args) {
-				fn.call(args); }); });
+				fn(args); }); });
 	}
 };
 
@@ -204,10 +195,10 @@ struct Monitor::Gdb::Command_without_separator : Command
 	using Command::Command;
 
 	void _with_args(Const_byte_range_ptr const &bytes,
-	                With_args_fn         const &fn) const override
+	                With_args::Ft        const &fn) const override
 	{
 		_match_name(bytes, [&] (Const_byte_range_ptr const &args) {
-			fn.call(args); });
+			fn(args); });
 	}
 };
 

@@ -15,6 +15,7 @@
 #define _INCLUDE__SANDBOX__SANDBOX_H_
 
 #include <util/xml_node.h>
+#include <util/callable.h>
 #include <util/noncopyable.h>
 #include <base/registry.h>
 #include <base/service.h>
@@ -60,12 +61,13 @@ class Genode::Sandbox : Noncopyable
 				Region_map             &address_space;
 			};
 
-			struct Fn : Interface { virtual void call(Intrinsics &) const = 0; };
+			using With_intrinsics = Callable<void, Intrinsics &>;
 
 			/**
-			 * Call 'Fn' with the 'Intrinsics' that apply for the specified PD
+			 * Call 'fn' with the 'Intrinsics' that apply for the specified PD
 			 */
-			virtual void with_intrinsics(Capability<Pd_session>, Pd_session &, Fn const &) = 0;
+			virtual void with_intrinsics(Capability<Pd_session>, Pd_session &,
+			                             With_intrinsics::Ft const &fn) = 0;
 
 			/**
 			 * Start the initial thread of new PD at the given instruction pointer
@@ -207,26 +209,13 @@ class Genode::Sandbox::Local_service_base : public Service
 
 		using Resources = Session::Resources;
 
-		struct Request_fn : Interface
-		{
-			virtual void with_requested_session(Request &) = 0;
-		};
+		using With_request = Callable<void, Request &>;
+		using With_upgrade = Callable<Upgrade_response, Session &, Resources const &>;
+		using With_close   = Callable<Close_response, Session &>;
 
-		void _for_each_requested_session(Request_fn &);
-
-		struct Upgrade_fn : Interface
-		{
-			virtual Upgrade_response with_upgraded_session(Session &, Resources) = 0;
-		};
-
-		void _for_each_upgraded_session(Upgrade_fn &);
-
-		struct Close_fn : Interface
-		{
-			virtual Close_response close_session(Session &) = 0;
-		};
-
-		void _for_each_session_to_close(Close_fn &);
+		void _for_each_requested_session(With_request::Ft const &);
+		void _for_each_upgraded_session (With_upgrade::Ft const &);
+		void _for_each_session_to_close (With_close::Ft   const &);
 
 		Id_space<Parent::Server> _server_id_space { };
 
@@ -253,21 +242,9 @@ struct Genode::Sandbox::Local_service : private Local_service_base
 	 * ('resources', 'label', 'diag') and allows the caller to respond
 	 * to the session request ('deliver_session', 'deny').
 	 */
-	template <typename FN>
-	void for_each_requested_session(FN const &fn)
+	void for_each_requested_session(auto const &fn)
 	{
-		struct Untyped_fn : Local_service_base::Request_fn
-		{
-			FN const &_fn;
-			Untyped_fn(FN const &fn) : _fn(fn) { }
-
-			void with_requested_session(Request &request) override
-			{
-				_fn(request);
-			}
-		} untyped_fn(fn);
-
-		_for_each_requested_session(untyped_fn);
+		_for_each_requested_session(With_request::Fn { fn });
 	}
 
 	/**
@@ -279,22 +256,11 @@ struct Genode::Sandbox::Local_service : private Local_service_base
 	 *
 	 * The functor must return an 'Upgrade_response'.
 	 */
-	template <typename FN>
-	void for_each_upgraded_session(FN const &fn)
+	void for_each_upgraded_session(auto const &fn)
 	{
-		struct Untyped_fn : Local_service_base::Upgrade_fn
-		{
-			FN const &_fn;
-			Untyped_fn(FN const &fn) : _fn(fn) { }
-
-			Upgrade_response with_upgraded_session(Session &session,
-			                                       Resources resources) override
-			{
-				return _fn(static_cast<ST &>(session), resources);
-			}
-		} untyped_fn(fn);
-
-		_for_each_upgraded_session(untyped_fn);
+		_for_each_upgraded_session(With_upgrade::Fn {
+			[&] (Session &session, Resources const &resources) {
+				return fn(static_cast<ST &>(session), resources); } });
 	}
 
 	/**
@@ -303,21 +269,11 @@ struct Genode::Sandbox::Local_service : private Local_service_base
 	 * The functor is called with a reference to the session object (type
 	 * 'ST') as argument and must return a 'Close_response'.
 	 */
-	template <typename FN>
-	void for_each_session_to_close(FN const &fn)
+	void for_each_session_to_close(auto const &fn)
 	{
-		struct Untyped_fn : Local_service_base::Close_fn
-		{
-			FN const &_fn;
-			Untyped_fn(FN const &fn) : _fn(fn) { }
-
-			Close_response close_session(Session &session) override
-			{
-				return _fn(static_cast<ST &>(session));
-			}
-		} untyped_fn(fn);
-
-		_for_each_session_to_close(untyped_fn);
+		_for_each_session_to_close(With_close::Fn {
+			[&] (Session &session) {
+				return fn(static_cast<ST &>(session)); } });
 	}
 };
 
