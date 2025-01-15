@@ -1120,9 +1120,13 @@ if {[have_board linux]} {
 	# The Linux version of core does not export a platform_info ROM module.
 	#
 	install_boot_module "platform_info" {<platform/>}
+}
 
+
+if {[have_spec linux] || [have_spec fiasco] || [have_spec foc]} {
 	#
-	# Managed dataspaces as used by cached_fs_rom are not supported on Linux.
+	# Managed dataspaces as used by cached_fs_rom are not supported fully
+	# on all kernels.
 	#
 	copy_file [run_dir]/genode/fs_rom [run_dir]/genode/cached_fs_rom
 }
