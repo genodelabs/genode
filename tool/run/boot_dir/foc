@@ -1,3 +1,5 @@
+source [genode_dir]/tool/run/bender.inc
+
 proc binary_name_ld_lib_so { } { return "ld-foc.lib.so"      }
 proc binary_name_core_a    { } { return "core-foc-[board].a" }
 proc binary_name_timer     { } { return "foc_timer"          }
@@ -94,7 +96,7 @@ proc run_boot_dir_x86 {binaries} {
 
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 
-	set options_bender "[boot_output]"
+	set options_bender "[boot_output] [bender_intel_hwp_mode_option]"
 
 	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 

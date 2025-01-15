@@ -1,3 +1,5 @@
+source [genode_dir]/tool/run/bender.inc
+
 proc binary_name_ld_lib_so { } { return "ld-sel4.lib.so" }
 proc binary_name_core_a    { } { return "core-sel4.a" }
 proc binary_name_timer     { } {
@@ -57,7 +59,7 @@ proc run_boot_dir {binaries} {
 
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 
-	set options_bender "[boot_output] phys_max=256M"
+	set options_bender "[boot_output] [bender_intel_hwp_mode_option] phys_max=256M"
 
 	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 
