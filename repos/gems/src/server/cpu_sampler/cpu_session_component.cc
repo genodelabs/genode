@@ -30,22 +30,30 @@ Cpu_sampler::Cpu_session_component::create_thread(Pd_session_capability  pd,
 {
 	Cpu_thread_component *cpu_thread = new (_md_alloc)
 		Cpu_thread_component(*this, _env,
-	                         _md_alloc,
-	                          pd,
-	                          name,
-	                          affinity,
-	                          weight,
-	                          utcb,
-	                          name.string(),
-	                          _next_thread_id);
+		                     _md_alloc,
+		                     pd,
+		                     name,
+		                     affinity,
+		                     weight,
+		                     utcb,
+		                     name.string(),
+		                     _next_thread_id);
 
-	_thread_list.insert(new (_md_alloc) Thread_element(cpu_thread));
+	return cpu_thread->result().convert<Create_thread_result>(
+		[&] (Thread_capability) {
+			_thread_list.insert(new (_md_alloc) Thread_element(cpu_thread));
 
-	_thread_list_change_handler.thread_list_changed();
+			_thread_list_change_handler.thread_list_changed();
 
-	_next_thread_id++;
+			_next_thread_id++;
 
-	return cpu_thread->cap();
+			return cpu_thread->cap();
+		},
+		[&] (Create_thread_error e) {
+			destroy(_md_alloc, cpu_thread);
+			return e;
+		}
+	);
 }
 
 

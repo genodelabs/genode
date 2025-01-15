@@ -39,7 +39,8 @@ class Cpu_sampler::Cpu_thread_component : public Rpc_object<Cpu_thread>
 
 		Allocator             &_md_alloc;
 
-		Cpu_thread_client      _parent_cpu_thread;
+		Cpu_session::Create_thread_result _parent_cpu_thread;
+		Constructible<Cpu_thread_client>  _parent_cpu_client;
 
 		bool                   _started = false;
 
@@ -68,7 +69,9 @@ class Cpu_sampler::Cpu_thread_component : public Rpc_object<Cpu_thread>
 		Cpu_session_component const *cpu_session_component() const
 		{ return &_cpu_session_component; }
 
-		Thread_capability parent_thread() { return _parent_cpu_thread.rpc_cap(); }
+		Cpu_session::Create_thread_result result() { return _parent_cpu_thread; }
+
+		Thread_capability parent_thread() { return _parent_cpu_client->rpc_cap(); }
 		Session_label &label() { return _label; }
 
 		void take_sample();

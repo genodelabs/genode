@@ -36,15 +36,14 @@ Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
 	_cpu_session_component(cpu_session_component), _env(env), _md_alloc(md_alloc),
 	_parent_cpu_thread(
 		_cpu_session_component.parent_cpu_session()
-		                      .create_thread(pd, name, affinity, weight, utcb)
-		                      .convert<Thread_capability>(
-		                        [&] (Thread_capability cap) { return cap; },
-		                        [&] (auto) {
-		                          error("failed to create CPU thread");
-		                          return Thread_capability(); })),
+		                      .create_thread(pd, name, affinity, weight, utcb)),
 	_label(_cpu_session_component.session_label().string(), " -> ", thread_name),
 	_log_session_label("samples -> ", _label, ".", thread_id)
 {
+	_parent_cpu_thread.with_result(
+		[&] (Thread_capability cap) { _parent_cpu_client.construct(cap); },
+		[&] (Cpu_session::Create_thread_error) { });
+
 	_cpu_session_component.thread_ep().manage(this);
 }
 
@@ -72,13 +71,13 @@ void Cpu_sampler::Cpu_thread_component::take_sample()
 	unsigned loop_cnt = 0;
 	for (; loop_cnt < MAX_LOOP_CNT; loop_cnt++) {
 
-		_parent_cpu_thread.pause();
+		_parent_cpu_client->pause();
 
-		Thread_state const thread_state = _parent_cpu_thread.state();
+		Thread_state const thread_state = _parent_cpu_client->state();
 		if (thread_state.state == Thread_state::State::VALID)
 			_sample_buf[_sample_buf_index++] = thread_state.cpu.ip;
 
-		_parent_cpu_thread.resume();
+		_parent_cpu_client->resume();
 
 		if (_sample_buf_index == SAMPLE_BUF_SIZE)
 			flush();
@@ -122,75 +121,75 @@ void Cpu_sampler::Cpu_thread_component::flush()
 Dataspace_capability
 Cpu_sampler::Cpu_thread_component::utcb()
 {
-	return _parent_cpu_thread.utcb();
+	return _parent_cpu_client->utcb();
 }
 
 
 void Cpu_sampler::Cpu_thread_component::start(addr_t ip, addr_t sp)
 {
-	_parent_cpu_thread.start(ip, sp);
+	_parent_cpu_client->start(ip, sp);
 	_started = true;
 }
 
 
 void Cpu_sampler::Cpu_thread_component::pause()
 {
-	_parent_cpu_thread.pause();
+	_parent_cpu_client->pause();
 }
 
 
 void Cpu_sampler::Cpu_thread_component::resume()
 {
-	_parent_cpu_thread.resume();
+	_parent_cpu_client->resume();
 }
 
 
 void Cpu_sampler::Cpu_thread_component::single_step(bool enable)
 {
-	_parent_cpu_thread.single_step(enable);
+	_parent_cpu_client->single_step(enable);
 }
 
 
 Thread_state Cpu_sampler::Cpu_thread_component::state()
 {
-	return _parent_cpu_thread.state();
+	return _parent_cpu_client->state();
 }
 
 
 void Cpu_sampler::Cpu_thread_component::state(Thread_state const &state)
 {
-	_parent_cpu_thread.state(state);
+	_parent_cpu_client->state(state);
 }
 
 
 void
 Cpu_sampler::Cpu_thread_component::exception_sigh(Signal_context_capability sigh_cap)
 {
-	_parent_cpu_thread.exception_sigh(sigh_cap);
+	_parent_cpu_client->exception_sigh(sigh_cap);
 }
 
 
 void Cpu_sampler::Cpu_thread_component::affinity(Affinity::Location location)
 {
-	_parent_cpu_thread.affinity(location);
+	_parent_cpu_client->affinity(location);
 }
 
 
 unsigned Cpu_sampler::Cpu_thread_component::trace_control_index()
 {
-	return _parent_cpu_thread.trace_control_index();
+	return _parent_cpu_client->trace_control_index();
 }
 
 
 Dataspace_capability
 Cpu_sampler::Cpu_thread_component::trace_buffer()
 {
-	return _parent_cpu_thread.trace_buffer();
+	return _parent_cpu_client->trace_buffer();
 }
 
 
 Dataspace_capability
 Cpu_sampler::Cpu_thread_component::trace_policy()
 {
-	return _parent_cpu_thread.trace_policy();
+	return _parent_cpu_client->trace_policy();
 }
