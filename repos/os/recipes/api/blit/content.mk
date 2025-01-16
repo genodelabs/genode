@@ -1,4 +1,6 @@
 MIRROR_FROM_REP_DIR := include/blit \
+                       include/spec/x86_64/blit \
+                       include/spec/arm_64/blit \
                        src/lib/blit \
                        lib/mk/blit.mk \
                        lib/mk/spec/arm_64/blit.mk \

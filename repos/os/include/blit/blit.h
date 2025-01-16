@@ -1,34 +1,62 @@
 /*
- * \brief  Interface of 2D-copy library
+ * \brief  Blit API
  * \author Norman Feske
- * \date   2007-10-10
+ * \date   2025-01-16
  */
 
 /*
- * Copyright (C) 2007-2017 Genode Labs GmbH
+ * Copyright (C) 2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__BLIT__BLIT_H_
-#define _INCLUDE__BLIT__BLIT_H_
+#ifndef _INCLUDE__BLIT_H_
+#define _INCLUDE__BLIT_H_
 
-/**
- * Blit memory from source buffer to destination buffer
- *
- * \param src    address of source buffer
- * \param src_w  line length of source buffer in bytes
- * \param dst    address of destination buffer
- * \param dst_w  line length of destination buffer in bytes
- * \param w      number of bytes per line to copy
- * \param h      number of lines to copy
- *
- * This function works at a granularity of 16bit.
- * If the source and destination overlap, the result
- * of the copy operation is not defined.
- */
-extern "C" void blit(void const *src, unsigned src_w,
-                     void *dst, unsigned dst_w, int w, int h);
+#include <blit/types.h>
+#include <blit/internal/slow.h>
 
-#endif /* _INCLUDE__BLIT__BLIT_H_ */
+namespace Blit {
+
+	/**
+	 * Back-to-front copy
+	 *
+	 * Copy a rectangular part of a texture to a surface while optionally
+	 * applying rotation and flipping. The width and height of the texture
+	 * must be divisible by 8. Surface and texture must perfectly line up.
+	 * E.g., when rotating by 90 degrees, the texture width must equal the
+	 * surface height and vice versa. The clipping area of the surface is
+	 * ignored.
+	 *
+	 * The combination of rotate and flip arguments works as follows:
+	 *
+	 *                  normal         flipped
+	 *
+	 * rotated 0      0  1  2  3       3  2  1  0
+	 *                4  5  6  7       7  6  5  4
+	 *                8  9 10 11      11 10  9  8
+	 *
+	 * rotated 90       8  4  0          0  4  8
+	 *                  9  5  1          1  5  9
+	 *                 10  6  2          2  6 10
+	 *                 11  7  3          3  7 11
+	 *
+	 * rotated 180   11 10  9  8       8  9 10 11
+	 *                7  6  5  4       4  5  6  7
+	 *                3  2  1  0       0  1  2  3
+	 *
+	 * rotated 270      3  7 11         11  7  3
+	 *                  2  6 10         10  6  2
+	 *                  1  5  9          9  5  1
+	 *                  0  4  8          8  4  0
+	 */
+	static inline void back2front(Surface<Pixel_rgb888>       &surface,
+	                              Texture<Pixel_rgb888> const &texture,
+	                              Rect rect, Rotate rotate, Flip flip)
+	{
+		_b2f<Slow>(surface, texture, rect, rotate, flip);
+	}
+}
+
+#endif /* _INCLUDE__BLIT_H_ */
