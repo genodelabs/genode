@@ -168,7 +168,8 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 					} else
 						error("MSI(-x) detected for device without pci-config!");
 
-					irq.irq.construct(_env, irq.number, pci_cfg_addr, irq.type);
+					irq.irq.construct(_env, irq.number, pci_cfg_addr, irq.type,
+					                  Pci::Bdf::rid(_pci_config->bdf));
 				} else
 					irq.irq.construct(_env, irq.number, irq.mode, irq.polarity);
 
