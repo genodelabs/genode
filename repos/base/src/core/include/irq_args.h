@@ -33,11 +33,14 @@ class Core::Irq_args
 
 		long const _irq_number;
 
+		long const _bdf;
+
 	public:
 
 		Irq_args(const char * args)
 		:
-			_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1))
+			_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
+			_bdf(Arg_string::find_arg(args, "bdf").long_value(-1))
 		{
 			long irq_trg  = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
 			long irq_pol  = Arg_string::find_arg(args, "irq_polarity").long_value(-1);
@@ -99,6 +102,10 @@ class Core::Irq_args
 		Irq_session::Trigger  trigger()    const { return _irq_trigger; }
 		Irq_session::Polarity polarity()   const { return _irq_polarity; }
 		Irq_session::Type     type()       const { return _irq_type; }
+
+		unsigned pci_bus()  const { return 0xffu & (_bdf >> 8); }
+		unsigned pci_dev()  const { return 0x1fu & (_bdf >> 3); }
+		unsigned pci_func() const { return 0x07u & _bdf; }
 };
 
 #endif /* _CORE__INCLUDE__IRQ_ARGS_H_ */

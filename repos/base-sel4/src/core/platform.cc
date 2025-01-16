@@ -380,6 +380,7 @@ void Core::Platform::_init_rom_modules()
 				xml.node("kernel", [&] {
 					xml.attribute("name", "sel4");
 					xml.attribute("acpi", true);
+					xml.attribute("msi" , true);
 				});
 				xml.node("hardware", [&] {
 					xml.node("features", [&] {

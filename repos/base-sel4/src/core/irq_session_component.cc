@@ -22,12 +22,11 @@
 using namespace Core;
 
 
-bool Irq_object::associate(Irq_session::Trigger const irq_trigger,
-                           Irq_session::Polarity const irq_polarity)
+bool Irq_object::associate(Irq_args const &args)
 {
 	/* allocate notification object within core's CNode */
-	Platform &platform = platform_specific();
-	Range_allocator &phys_alloc = platform.ram_alloc();
+	auto &platform   = platform_specific();
+	auto &phys_alloc = platform.ram_alloc();
 
 	{
 		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
@@ -38,7 +37,7 @@ bool Irq_object::associate(Irq_session::Trigger const irq_trigger,
 	}
 
 	/* setup IRQ platform specific */
-	long res = _associate(irq_trigger, irq_polarity);
+	long res = _associate(args);
 	if (res != seL4_NoError)
 		return false;
 
@@ -100,22 +99,20 @@ Irq_object::Irq_object(unsigned irq)
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number((unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1)),
+	_irq_number(unsigned(Irq_args(args).type() == TYPE_LEGACY ?
+	            Irq_args(args).irq_number() :
+	            Irq_args(args).irq_number() + Irq_object::MSI_OFFSET)),
 	_irq_alloc(irq_alloc),
 	_irq_object(_irq_number)
 {
 	Irq_args const irq_args(args);
-	bool msi { irq_args.type() != Irq_session::TYPE_LEGACY };
-	if (msi)
-		throw Service_denied();
 
 	if (irq_alloc.alloc_addr(1, _irq_number).failed()) {
 		error("unavailable IRQ ", _irq_number, " requested");
 		throw Service_denied();
 	}
 
-
-	if (!_irq_object.associate(irq_args.trigger(), irq_args.polarity())) {
+	if (!_irq_object.associate(irq_args)) {
 		error("could not associate with IRQ ", irq_args.irq_number());
 		throw Service_denied();
 	}
@@ -144,6 +141,13 @@ void Irq_session_component::sigh(Signal_context_capability cap)
 
 Irq_session::Info Irq_session_component::info()
 {
-	/* no MSI support */
-	return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
+	if (!_irq_object.msi())
+		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
+
+	// see include/plat/pc99/plat/machine.h
+	enum { PIC_IRQ_LINES = 16, IRQ_INT_OFFSET = 0x20 };
+
+	return { .type    = Info::Type::MSI,
+	         .address = 0xfee00000ul,
+	         .value   = IRQ_INT_OFFSET + PIC_IRQ_LINES + _irq_number };
 }

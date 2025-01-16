@@ -11,8 +11,7 @@
 using namespace Core;
 
 
-long Irq_object::_associate(Irq_session::Trigger const &,
-                            Irq_session::Polarity const &)
+long Irq_object::_associate(Irq_args const &)
 {
 	seL4_CNode const root  = seL4_CapInitThreadCNode;
 	seL4_Word  const index = _kernel_irq_sel.value();
