@@ -4,5 +4,5 @@ VERSION := 6.6.2
 DOWNLOADS := qt6_base.git
 
 URL(qt6_base) := https://github.com/cproc/qt6_base.git
-REV(qt6_base) := issue5402
+REV(qt6_base) := issue5424
 DIR(qt6_base) := src/lib/qt6_base
