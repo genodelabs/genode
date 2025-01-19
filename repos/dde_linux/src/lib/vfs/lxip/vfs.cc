@@ -1514,13 +1514,18 @@ bool ic_link_state = true;
  ** Filesystem implementation **
  *******************************/
 
-class Vfs::Lxip_file_system : public Vfs::File_system,
-                              public Vfs::Directory
+class Vfs::Lxip_file_system : public  Vfs::File_system,
+                              public  Vfs::Directory,
+                              private Vfs::Remote_io
 {
 	private:
 
 		Genode::Entrypoint       &_ep;
 		Genode::Allocator        &_alloc;
+		Vfs::Env::User           &_vfs_user;
+		Remote_io::Peer           _peer;
+
+		struct genode_socket_wakeup _wakeup_remote { };
 
 		Lxip::Protocol_dir_impl _tcp_dir {
 			_alloc, *this, "tcp", Lxip::Protocol_dir::TYPE_STREAM };
@@ -1581,13 +1586,39 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return handle->read(dst, out_count);
 		}
 
+		/*
+		 * trigger 'wakeup_remote_peer' when VFS goes idle
+		 */
+		void schedule_wakeup()
+		{
+			_vfs_user.wakeup_vfs_user();
+			_peer.schedule_wakeup();
+		}
+
+		void wakeup_remote_peer() override
+		{
+			genode_socket_wakeup_remote();
+		}
+
+		static void _schedule_wakeup(void *data)
+		{
+			Lxip_file_system *fs = static_cast<Lxip_file_system *>(data);
+			fs->schedule_wakeup();
+		}
+
 	public:
 
 		Lxip_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Directory(""),
-			_ep(env.env().ep()), _alloc(env.alloc())
+			_ep(env.env().ep()), _alloc(env.alloc()), _vfs_user(env.user()),
+			_peer(env.deferred_wakeups(), *this)
 		{
+			_wakeup_remote.data     = this;
+			_wakeup_remote.callback = _schedule_wakeup;
+
+			genode_socket_register_wakeup(&_wakeup_remote);
+
 			apply_config(config);
 		}
 
