@@ -17,6 +17,7 @@
 
 #include <genode_c_api/nic_client.h>
 
+#include "net_driver.h"
 
 static struct genode_nic_client *dev_nic_client(struct net_device *dev)
 {
@@ -81,7 +82,7 @@ static int driver_net_xmit(struct sk_buff *skb, struct net_device *dev)
 	stats->tx_packets++;
 	stats->tx_bytes += skb->len;
 
-	genode_nic_client_notify_peers();
+	lx_nic_client_schedule_peer();
 
 	return NETDEV_TX_OK;
 }
@@ -154,7 +155,7 @@ static int rx_task_function(void *arg)
 		                        &ctx)) {
 			progress = true; }
 
-		if (progress) genode_nic_client_notify_peers();
+		if (progress) lx_nic_client_schedule_peer();
 	}
 
 	return 0;

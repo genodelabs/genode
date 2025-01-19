@@ -35,6 +35,9 @@ struct Main
 	Io_signal_handler<Main> nic_client_handler { env.ep(), *this,
 		&Main::handle_nic_client };
 
+	Io_signal_handler<Main> link_state_handler { env.ep(), *this,
+		&Main::handle_link_state };
+
 	Main(Env &env, genode_socket_io_progress *io_progress)
 	: env(env), io_progress(io_progress)
 	{ }
@@ -63,11 +66,17 @@ struct Main
 			io_progress->callback(io_progress->data);
 	}
 
+	void handle_link_state()
+	{
+		Genode::error("handle_link_state: not implemented");
+	}
+
 	void init()
 	{
 		genode_nic_client_init(genode_env_ptr(env),
 		                       genode_allocator_ptr(Lx_kit::env().heap),
-		                       genode_signal_handler_ptr(nic_client_handler));
+		                       genode_signal_handler_ptr(nic_client_handler),
+		                       genode_signal_handler_ptr(link_state_handler));
 	}
 
 	Main(const Main&) = delete;

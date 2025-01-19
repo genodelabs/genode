@@ -20,6 +20,7 @@ extern "C" {
 #endif
 	struct task_struct;
 	struct task_struct *lx_nic_client_rx_task(void);
+	void                lx_nic_client_schedule_peer(void);
 #ifdef __cplusplus
 }
 #endif
