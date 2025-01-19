@@ -29,6 +29,7 @@ extern "C" {
  */
 void genode_nic_client_init(struct genode_env *,
                             struct genode_allocator *,
+                            struct genode_signal_handler *,
                             struct genode_signal_handler *);
 
 /**
@@ -54,9 +55,15 @@ void   genode_nic_client_destroy(struct genode_nic_client *);
  *************/
 
 /**
- * Retreive MAC address from server
+ * Retrieve MAC address from server
  */
 struct genode_mac_address genode_nic_client_mac_address(struct genode_nic_client *);
+
+
+/**
+ * Retrieve link state
+ */
+bool genode_nic_client_link_state(struct genode_nic_client *);
 
 
 /**********************************************
