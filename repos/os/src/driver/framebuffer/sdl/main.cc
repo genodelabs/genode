@@ -40,9 +40,12 @@ namespace Fb_sdl {
 
 	using Area           = Capture::Area;
 	using Rect           = Capture::Rect;
+	using Point          = Capture::Point;
 	using Pixel          = Capture::Pixel;
 	using Affected_rects = Capture::Session::Affected_rects;
 	using Event_batch    = Event::Session_client::Batch;
+	using Rotate         = Blit::Rotate;
+	using Flip           = Blit::Flip;
 
 	static constexpr int USER_EVENT_CAPTURE_WAKEUP = 99;
 }
@@ -65,14 +68,18 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		double   fps;  /* frames per second */
 		unsigned idle; /* disable capturing after 'idle' frames of no progress */
+		Rotate   rotate;
+		Flip     flip;
 
 		static Attr from_xml(Xml_node const &node)
 		{
 			return {
 				.initial_size = { .w = node.attribute_value("width",  1024u),
 				                  .h = node.attribute_value("height",  768u) },
-				.fps  = node.attribute_value("fps", 60.0),
-				.idle = node.attribute_value("idle", 3U)
+				.fps    = node.attribute_value("fps", 60.0),
+				.idle   = node.attribute_value("idle", 3U),
+				.rotate = Capture::Connection::rotate_from_xml(node),
+				.flip   = { .enabled = node.attribute_value("flip", false) },
 			};
 		}
 
@@ -154,6 +161,10 @@ struct Fb_sdl::Sdl : Noncopyable
 	struct Screen
 	{
 		Area const size;
+
+		Area padded_size() const { return { .w = align_addr(size.w, 3),
+		                                    .h = align_addr(size.h, 3) }; }
+
 		SDL_Renderer &renderer;
 
 		SDL_Surface &_surface = _init_surface();
@@ -169,7 +180,7 @@ struct Fb_sdl::Sdl : Noncopyable
 			unsigned const alpha_mask = 0xFF000000;
 
 			SDL_Surface * const surface_ptr =
-				SDL_CreateRGBSurface(flags, size.w, size.h, bpp,
+				SDL_CreateRGBSurface(flags, padded_size().w, padded_size().h, bpp,
 				                     red_mask, green_mask, blue_mask, alpha_mask);
 			if (!surface_ptr) {
 				error("SDL_CreateRGBSurface failed (", Cstring(SDL_GetError()), ")");
@@ -183,7 +194,8 @@ struct Fb_sdl::Sdl : Noncopyable
 		{
 			SDL_Texture * const texture_ptr =
 				SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888,
-				                  SDL_TEXTUREACCESS_STREAMING, size.w, size.h);
+				                  SDL_TEXTUREACCESS_STREAMING,
+				                  padded_size().w, padded_size().h);
 			if (!texture_ptr) {
 				error("SDL_CreateTexture failed (", Cstring(SDL_GetError()), ")");
 				throw Createtexture_failed();
@@ -202,7 +214,7 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		void with_surface(auto const &fn)
 		{
-			Surface<Pixel> surface { (Pixel *)_surface.pixels, size };
+			Surface<Pixel> surface { (Pixel *)_surface.pixels, padded_size() };
 			fn(surface);
 		}
 
@@ -273,10 +285,10 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		using Attr = Capture::Connection::Screen::Attr;
 		_captured_screen.construct(_capture, _rm, Attr {
-			.px     = size,
+			.px     = Blit::transformed(size, _attr.rotate),
 			.mm     = { },
-			.rotate = { },
-			.flip   = { }});
+			.rotate = _attr.rotate,
+			.flip   = _attr.flip });
 
 		_update_screen_from_capture();
 		_schedule_next_frame();
@@ -393,7 +405,25 @@ void Fb_sdl::Sdl::_handle_event(Event_batch &batch, SDL_Event const &event)
 		if (ox == _mx && oy == _my)
 			return;
 
-		batch.submit(Absolute_motion{_mx, _my});
+		auto transformed = [&] (Point p, Area area, Rotate rotate, Flip flip)
+		{
+			int const w = area.w, h = area.h;
+
+			if (flip.enabled)
+				p = { w - p.x - 1, p.y };
+
+			switch (rotate) {
+			case Rotate::R0:                                               break;
+			case Rotate::R90:  p = { .x = p.y,         .y = w - p.x - 1 }; break;
+			case Rotate::R180: p = { .x = w - p.x - 1, .y = h - p.y - 1 }; break;
+			case Rotate::R270: p = { .x = h - p.y - 1, .y =     p.x     }; break;
+			}
+			return p;
+		};
+
+		Point const p = transformed({ _mx, _my }, _screen->size, _attr.rotate, _attr.flip);
+
+		batch.submit(Absolute_motion{p.x, p.y});
 		return;
 	}
 
