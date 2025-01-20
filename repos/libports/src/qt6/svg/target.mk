@@ -12,9 +12,11 @@ QT6_PORT_LIBS = libQt6Core libQt6Gui libQt6Widgets
 LIBS = qt6_cmake ldso_so_support libc libm egl mesa qt6_component stdcxx
 
 INSTALL_LIBS = lib/libQt6Svg.lib.so \
-               lib/libQt6SvgWidgets.lib.so
+               lib/libQt6SvgWidgets.lib.so \
+               plugins/imageformats/libqsvg.lib.so
 
-BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS))
+BUILD_ARTIFACTS = $(notdir $(INSTALL_LIBS)) \
+                  qt6_libqsvg.tar
 
 build: cmake_prepared.tag qt6_so_files
 
@@ -73,6 +75,12 @@ build: cmake_prepared.tag qt6_so_files
 		ln -sf $(CURDIR)/install/qt/$${LIB}.stripped $(PWD)/debug/$$(basename $${LIB}); \
 		ln -sf $(CURDIR)/install/qt/$${LIB}.debug $(PWD)/debug/; \
 	done
+
+	@#
+	@# create tar archives
+	@#
+
+	$(VERBOSE)tar chf $(PWD)/bin/qt6_libqsvg.tar $(TAR_OPT) --transform='s/\.stripped//' -C install qt/plugins/imageformats/libqsvg.lib.so.stripped
 
 .PHONY: build
 
