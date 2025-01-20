@@ -3,11 +3,11 @@
  * \author Stefan Kalkowski
  * \date   2010-12-06
  *
- * This is a Fiasco.OC-specific addition to the process enviroment.
+ * This is a Fiasco.OC-specific addition to the process environment.
  */
 
 /*
- * Copyright (C) 2010-2017 Genode Labs GmbH
+ * Copyright (C) 2010-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -59,7 +59,7 @@ static volatile int _cap_index_spinlock = SPINLOCK_UNLOCKED;
 bool Cap_index::higher(Cap_index *n) { return n->_id > _id; }
 
 
-Cap_index* Cap_index::find_by_id(uint16_t id)
+Cap_index* Cap_index::find_by_id(id_t id)
 {
 	if (_id == id) return this;
 
@@ -116,8 +116,8 @@ Cap_index* Capability_map::insert(Cap_index::id_t id)
 {
 	Spin_lock::Guard guard(_lock);
 
-	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
-	       "Double insertion in cap_map()!");
+	if (_tree.first() && _tree.first()->find_by_id(id))
+		return { };
 
 	Cap_index * const i = cap_idx_alloc().alloc_range(1);
 	if (i) {
@@ -184,9 +184,16 @@ Cap_index* Capability_map::insert_map(Cap_index::id_t id, addr_t kcap)
 	_tree.insert(i);
 
 	/* map the given cap to our registry entry */
-	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
-				l4_obj_fpage(kcap, 0, L4_FPAGE_RWX),
-				i->kcap() | L4_ITEM_MAP | L4_MAP_ITEM_GRANT);
+	auto const msg = l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
+	                             l4_obj_fpage(kcap, 0, L4_FPAGE_RWX),
+	                             i->kcap() | L4_ITEM_MAP | L4_MAP_ITEM_GRANT);
+
+	if (l4_error(msg)) {
+		_tree.remove(i);
+		cap_idx_alloc().free(i, 1);
+		return 0;
+	}
+
 	return i;
 }
 

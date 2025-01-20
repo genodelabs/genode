@@ -30,17 +30,15 @@ class Core::Cap_id_allocator
 {
 	public:
 
-		using id_t = uint16_t;
-
-		enum { ID_MASK = 0xffff };
+		using id_t = unsigned;
 
 	private:
 
 		enum {
-			CAP_ID_RANGE   = ~0UL,
-			CAP_ID_MASK    = ~3UL,
-			CAP_ID_NUM_MAX = CAP_ID_MASK >> 2,
-			CAP_ID_OFFSET  = 1 << 2
+			CAP_ID_OFFSET  = 1 << 2,
+			CAP_ID_MASK    = CAP_ID_OFFSET - 1,
+			CAP_ID_RANGE   = 1u << 28,
+			ID_MASK        = CAP_ID_RANGE - 1,
 		};
 
 		Synced_range_allocator<Allocator_avl> _id_alloc;

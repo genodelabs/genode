@@ -209,7 +209,7 @@ Foc_thread_state Platform_thread::state()
 		s = _pager_obj->state.state;
 
 	s.kcap = _gate.remote;
-	s.id   = (uint16_t)_gate.local.local_name();
+	s.id   = Cap_index::id_t(_gate.local.local_name());
 	s.utcb = _utcb;
 
 	return s;

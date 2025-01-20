@@ -30,12 +30,13 @@ class Genode::Native_capability::Data : public Avl_node<Data>
 {
 	public:
 
-		using id_t = uint16_t;
+		using id_t = unsigned;
+
+		constexpr static id_t INVALID_ID = ~0u;
 
 	private:
 
-		constexpr static uint16_t INVALID_ID = ~0;
-		constexpr static uint16_t UNUSED     =  0;
+		constexpr static id_t UNUSED     =  0;
 
 		uint8_t _ref_cnt; /* reference counter    */
 		id_t    _id;      /* global capability id */
@@ -46,8 +47,8 @@ class Genode::Native_capability::Data : public Avl_node<Data>
 
 		bool     valid() const   { return _id != INVALID_ID; }
 		bool     used()  const   { return _id != UNUSED;     }
-		uint16_t id()    const   { return _id;               }
-		void     id(uint16_t id) { _id = id;                 }
+		id_t     id()    const   { return _id;               }
+		void     id(id_t id)     { _id = id;                 }
 		uint8_t  inc();
 		uint8_t  dec();
 		addr_t   kcap() const;

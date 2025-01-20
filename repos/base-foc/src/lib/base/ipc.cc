@@ -55,9 +55,6 @@ static inline bool ipc_error(l4_msgtag_t tag, bool print)
 }
 
 
-static constexpr Cap_index::id_t INVALID_BADGE = 0xffff;
-
-
 /**
  * Representation of a capability during UTCB marshalling/unmarshalling
  */
@@ -116,7 +113,7 @@ static int extract_msg_from_utcb(l4_msgtag_t     tag,
 
 		Cap_index::id_t const badge = (Cap_index::id_t)(*msg_words++);
 
-		if (badge == INVALID_BADGE)
+		if (badge == Cap_index::INVALID_ID)
 			continue;
 
 		/* received a delegated capability */
@@ -227,7 +224,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 	for (unsigned i = 0; i < num_caps; i++) {
 
 		/* store badge as normal message word */
-		*msg_words++ = caps[i].valid ? caps[i].badge : INVALID_BADGE;
+		*msg_words++ = caps[i].valid ? caps[i].badge : Cap_index::INVALID_ID;
 
 		/* setup flexpage for valid capability to delegate */
 		if (caps[i].valid) {
