@@ -4,7 +4,6 @@ FILTER_OUT := lempar.c lighttpd-angel.c lemon.c \
               mod_accesslog.c \
               mod_alias.c \
               mod_authn_dbi.c \
-              mod_authn_file.c \
               mod_authn_gssapi.c \
               mod_authn_ldap.c \
               mod_authn_mysql.c \
@@ -58,13 +57,13 @@ CC_OPT += -DHAVE_SOCKLEN_T -DHAVE_SYSLOG_H -DHAVE_STDINT_H -DUSE_POLL
 CC_OPT += -DHAVE_SYS_WAIT_H -DHAVE_SYS_UN_H -DHAVE_MMAP -DHAVE_SYS_MMAN_H -DHAVE_SELECT
 CC_OPT += -DHAVE_WRITEV -DUSE_WRITEV
 CC_OPT += -DHAVE_TIMEGM -DHAVE_UNISTD_H -DHAVE_SYS_TIME_H
+CC_OPT += -DHAVE_LIBSSL -DHAVE_OPENSSL_SSL_H
 CC_OPT += -DSBIN_DIR="\"/sbin\""
 CC_OPT += -DPACKAGE_NAME="\"lighttpd\""
 CC_OPT += -DLIGHTTPD_VERSION_ID='($(LIGHTTPD_MAIN) << 16 | $(LIGHTTPD_MAJOR) << 8 | $(LIGHTTPD_MINOR))'
 CC_OPT += -DPACKAGE_VERSION="\"$(LIGHTTPD_MAIN).$(LIGHTTPD_MAJOR).$(LIGHTTPD_MINOR)\""
 CC_OPT += -DLIBRARY_DIR="\"/lib\""
 CC_OPT += -DLIGHTTPD_STATIC
-CC_OPT += -DHAVE_LIBSSL -DUSE_OPENSSL -DUSE_OPENSSL_CRYPTO
 
 CC_OPT += -DMOD_WEBDAV_BUILD_MINIMAL
 
