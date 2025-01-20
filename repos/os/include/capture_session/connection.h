@@ -31,7 +31,18 @@ class Capture::Connection : private Genode::Connection<Session>
 
 	public:
 
-		using Label = Genode::Session_label;
+		using Label  = Genode::Session_label;
+		using Rotate = Blit::Rotate;
+		using Flip   = Blit::Flip;
+
+		static Rotate rotate_from_xml(Xml_node const &node)
+		{
+			unsigned const v = node.attribute_value("rotate", 0u);
+			return (v ==  90) ? Rotate::R90  :
+			       (v == 180) ? Rotate::R180 :
+			       (v == 270) ? Rotate::R270 :
+			                    Rotate::R0;
+		}
 
 		/**
 		 * Constructor
@@ -98,8 +109,13 @@ class Capture::Connection::Screen
 
 		struct Attr
 		{
-			Area px;  /* buffer area in pixels */
-			Area mm;  /* physical size in millimeters */
+			Area   px;  /* buffer area in pixels */
+			Area   mm;  /* physical size in millimeters */
+			Rotate rotate;
+			Flip   flip;
+
+			Area padded_px() const { return { .w = align_addr(px.w, 3),
+			                                  .h = align_addr(px.h, 3) }; }
 		};
 
 		Attr const attr;
@@ -113,7 +129,8 @@ class Capture::Connection::Screen
 
 		Attached_dataspace _ds;
 
-		Texture<Pixel> const _texture { _ds.local_addr<Pixel>(), nullptr, attr.px };
+		Texture<Pixel> const _texture { _ds.local_addr<Pixel>(), nullptr,
+		                                attr.padded_px() };
 
 	public:
 
@@ -126,26 +143,31 @@ class Capture::Connection::Screen
 
 		Rect apply_to_surface(Surface<Pixel> &surface)
 		{
-			Rect bounding_box { };
+			/* record information about pixels affected by 'back2front' */
+			struct Flusher : Surface_base::Flusher
+			{
+				Rect bounding_box { };
+				void flush_pixels(Rect rect) override
+				{
+					bounding_box = bounding_box.area.count()
+					             ? Rect::compound(bounding_box, rect)
+					             : rect;
+				};
+			} flusher { };
+
+			surface.flusher(&flusher);
 
 			using Affected_rects = Session::Affected_rects;
 
 			Affected_rects const affected = _connection.capture_at(Capture::Point(0, 0));
 
 			with_texture([&] (Texture<Pixel> const &texture) {
-
 				affected.for_each_rect([&] (Capture::Rect const rect) {
-
-					surface.clip(rect);
-
-					Blit_painter::paint(surface, texture, Capture::Point(0, 0));
-
-					bounding_box = bounding_box.area.count()
-					             ? Rect::compound(bounding_box, rect)
-					             : rect;
+					Blit::back2front(surface, texture, rect, attr.rotate, attr.flip);
 				});
 			});
-			return bounding_box;
+			surface.flusher(nullptr);
+			return flusher.bounding_box;
 		}
 };
 

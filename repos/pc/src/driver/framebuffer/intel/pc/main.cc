@@ -224,8 +224,10 @@ struct Framebuffer::Driver
 		if (!conn.size.valid())
 			return same;
 
-		Capture::Connection::Screen::Attr attr = { .px = conn.size,
-		                                           .mm = conn.size_mm };
+		Capture::Connection::Screen::Attr attr = { .px     = conn.size,
+		                                           .mm     = conn.size_mm,
+		                                           .rotate = { },
+		                                           .flip   = { } };
 
 		conn.capture.construct(env, label);
 		conn.screen .construct(*conn.capture, env.rm(), attr);
