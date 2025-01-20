@@ -81,6 +81,9 @@ struct Capture::Session : Genode::Session
 	{
 		Area px;  /* buffer area in pixels */
 		Area mm;  /* physical size in millimeters */
+
+		Area padded_px() const { return { .w = align_addr(px.w, 3),
+		                                  .h = align_addr(px.h, 3) }; }
 	};
 
 	/**

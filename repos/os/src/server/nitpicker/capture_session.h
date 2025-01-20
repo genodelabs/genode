@@ -234,7 +234,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			}
 
 			try {
-				_buffer.construct(_ram, _env.rm(), buffer_bytes(attr.px));
+				_buffer.construct(_ram, _env.rm(), buffer_bytes(attr.padded_px()));
 				_buffer_attr = attr;
 			}
 			catch (Out_of_ram)  { result = Buffer_result::OUT_OF_RAM; }
@@ -243,7 +243,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			_handler.capture_buffer_size_changed();
 
 			/* report complete buffer as dirty on next call of 'capture_at' */
-			mark_as_damaged({ _anchor_point(), attr.px });
+			mark_as_damaged({ _anchor_point(), attr.padded_px() });
 
 			return result;
 		}
@@ -266,7 +266,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			Point const anchor = _anchor_point() + pos;
 
 			Canvas<Pixel_rgb888> canvas { _buffer->local_addr<Pixel_rgb888>(),
-			                              anchor, _buffer_attr.px };
+			                              anchor, _buffer_attr.padded_px() };
 
 			if (_policy_changed) {
 				canvas.draw_box({ anchor, canvas.size() }, Color::rgb(0, 0, 0));
