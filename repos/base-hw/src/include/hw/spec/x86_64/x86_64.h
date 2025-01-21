@@ -109,10 +109,22 @@ public:
 
 struct Hw::Tsc
 {
+	/*
+	 * Provide serialized access to the Timestamp Counter
+	 *
+	 * See #5430 for more information.
+	 */
 	static Genode::uint64_t rdtsc()
 	{
 		Genode::uint32_t low, high;
-		asm volatile("rdtsc" : "=a"(low), "=d"(high));
+		asm volatile(
+			"lfence;"
+			"rdtsc;"
+			"lfence;"
+			: "=a"(low), "=d"(high)
+			:
+			: "memory"
+		);
 		return (Genode::uint64_t)(high) << 32 | low;
 	}
 

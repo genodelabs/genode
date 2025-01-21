@@ -118,6 +118,12 @@ struct Hw::X86_64_cpu
 	/* AMD host save physical address */
 	X86_64_MSR_REGISTER(Amd_vm_hsavepa, 0xC0010117);
 
+
+	/* Non-architectural MSR used to make lfence serializing */
+	X86_64_MSR_REGISTER(Amd_lfence, 0xC0011029,
+		struct Enable_dispatch_serializing : Bitfield<1, 1> { }; /* Enable lfence dispatch serializing */
+	)
+
 	X86_64_MSR_REGISTER(Platform_id, 0x17,
 		struct Bus_ratio : Bitfield<8, 5> { }; /* Bus ratio on Core 2, see SDM 19.7.3 */
 	);
