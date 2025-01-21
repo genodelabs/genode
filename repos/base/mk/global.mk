@@ -99,6 +99,11 @@ LD_OPT_NOSTDLIB := -nostdlib -Wl,-nostdlib
 endif
 
 #
+# Prevent the definition of __STDC_HOSTED__ by default
+#
+CC_OPT_FREESTANDING ?= -ffreestanding
+
+#
 # Add coverage options
 #
 # The directory for the coverage data (generated at runtime) is derived from
@@ -166,7 +171,8 @@ CC_ADA_WARN        ?= -gnatwa $(CC_ADA_WARN_STRICT)
 #
 # Aggregate compiler options that are common for C and C++
 #
-CC_OPT += $(CC_OPT_NOSTDINC) -g $(CC_MARCH) $(CC_OLEVEL) $(CC_OPT_DEP) $(CC_WARN)
+CC_OPT += $(CC_OPT_NOSTDINC) $(CC_OPT_FREESTANDING) -g \
+          $(CC_MARCH) $(CC_OLEVEL) $(CC_OPT_DEP) $(CC_WARN)
 
 #
 # Incorporate source-file-specific compiler options

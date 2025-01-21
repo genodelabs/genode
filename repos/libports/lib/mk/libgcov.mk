@@ -35,6 +35,8 @@ LIBGCOV_INTERFACE = _gcov_dump \
 
 LIBGCOV_DRIVER = _gcov
 
+CC_OPT_FREESTANDING =
+
 CC_OPT += -fbuilding-libgcc -DIN_GCC -DIN_LIBGCC2
 
 CC_OPT += $(addprefix -DL,$(LIBGCOV_MERGE))

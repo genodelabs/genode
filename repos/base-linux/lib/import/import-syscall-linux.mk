@@ -25,3 +25,7 @@ HOST_INC_DIR += /usr/include/aarch64-linux-gnu
 #
 CC_OPT += -D_GNU_SOURCE
 
+#
+# Enable definition of __STDC_HOSTED__
+#
+CC_OPT_FREESTANDING =

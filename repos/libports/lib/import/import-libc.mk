@@ -52,6 +52,11 @@ endif
 REP_INC_DIR += include/libc-genode
 
 #
+# Enable definition of __STDC_HOSTED__
+#
+CC_OPT_FREESTANDING =
+
+#
 # Prevent gcc headers from defining __size_t. This definition is done in
 # machine/_types.h.
 #
