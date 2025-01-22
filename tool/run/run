@@ -25,14 +25,37 @@ proc strip_whitespace {string} {
 
 
 ##
+# Check if the specified requirement is satisfied
+#
+# This is a reimplementation of TCLs ::control::assert, but tailored for the
+# run tool.
+#
+proc assert { expression { msg "" } } {
+
+	set code [catch {uplevel 1 [list expr $expression]} res]
+	if {$code} {
+		return -code $code $res
+	}
+	if {![string is boolean -strict $res]} {
+		return -code error "invalid boolean expression: $expression"
+	}
+
+	if {$res} {return}
+
+	puts stderr "Test requires '$expression'"
+	if {$msg != ""} {
+		puts stderr $msg
+	}
+
+	exit 1
+}
+
+
+##
 # Check if the specified spec requirement is satisfied
 #
 proc assert_spec {spec} {
-	global specs
-	if {[lsearch $specs $spec] == -1} {
-		puts stderr "Test requires '$spec'"
-		exit 1
-	}
+	assert {[have_spec $spec]}
 }
 
 
