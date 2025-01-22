@@ -630,6 +630,7 @@ void Child::deliver_session_cap(Server::Id id, Session_capability cap)
 		if (!session.client_exists()) {
 			session.phase = Session_state::CLOSE_REQUESTED;
 			session.service().initiate_request(session);
+			session.service().wakeup();
 			return;
 		}
 
