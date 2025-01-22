@@ -31,7 +31,7 @@ proc assert_spec {spec} {
 	global specs
 	if {[lsearch $specs $spec] == -1} {
 		puts stderr "Test requires '$spec'"
-		exit 0
+		exit 1
 	}
 }
 

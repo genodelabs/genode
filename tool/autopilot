@@ -267,6 +267,19 @@ proc build_failed_because_of_missing_run_script { arch board kernel run_script }
 }
 
 
+proc build_failed_because_of_unsatisfied_requirement { arch board kernel run_script } {
+
+	# we cannot inspect any logfile when --stdout was used
+	if {[have_cmd_arg --stdout]} { return 0 }
+
+	# grep log output for the respective error message
+	if {[catch {
+		exec grep {^\(\[....-..-.. ..:..:..] \)*Test requires} [log_file $arch $board $kernel $run_script]
+	}]} { return 0 }
+	return 1
+}
+
+
 #
 # Collect command-line arguments
 #
@@ -484,6 +497,8 @@ foreach arch $architectures {
 
 				if {[build_failed_because_of_missing_run_script $arch $board $kernel $run_script]} {
 					puts stderr "-> UNAVAILABLE"
+				} elseif {[build_failed_because_of_unsatisfied_requirement $arch $board $kernel $run_script]} {
+					puts stderr "-> ABORT ($elapsed)"
 				} else {
 					puts stderr "-> ERROR ($elapsed)"
 					set exit_value -1
