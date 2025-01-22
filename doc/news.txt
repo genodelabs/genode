@@ -4,6 +4,19 @@
                                ===========
 
 
+Road Map for 2025 | 2025-01-22
+##############################
+
+| We dedicate the year 2025 to Genode's rigidity, clarity, and performance.
+
+At the turn of each year, the Genode community and core developers reflect
+on the past year's achievements and make up their minds about the year ahead.
+The updated road map for 2025 condenses the recent brain-storming on our
+public mailing list and presents a rough feature schedule for the releases
+planned for 2025. Get a glimpse at Genode's foreseeable future by visiting our
+updated [https:/about/road-map - official road-map...].
+
+
 Genode OS Framework release 24.11 | 2024-11-22
 ##############################################
 
