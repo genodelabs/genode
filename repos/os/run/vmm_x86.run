@@ -4,25 +4,15 @@
 # \author Benjamin Lamowski
 # \date   2018-08-26
 
-assert_spec x86
+assert {[have_spec x86]}
 
-if { [get_cmd_switch --autopilot] } {
-	# nightly x86 32bit test machine has no vmx support
-	if {[have_spec x86_32] && ![have_include "power_on/qemu"]} {
-		puts "\n Run script is not supported on this platform. \n";
-		exit 0
-	}
+if { [have_cmd_arg --autopilot] } {
+	assert {!([have_spec x86_32] && ![have_include power_on/qemu])} \
+		"Nightly x86 32-bit test machine has no vmx support."
 
-	if {[have_include "power_on/qemu"] && [have_spec sel4]} {
-		puts "\n Run script is not supported on this platform. \n";
-		exit 0
-	}
+	assert {!([have_include power_on/qemu] && [have_spec sel4])}
 
-	if {[have_spec nova] || [have_spec foc] || [have_spec sel4]} {
-	} else {
-		puts "\n Run script is not supported on this platform. \n";
-		exit 0
-	}
+	assert {[have_spec nova] || [have_spec foc] || [have_spec sel4]}
 }
 
 # ia32_tsc_aux with rdtscp

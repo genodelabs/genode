@@ -1,7 +1,4 @@
-if { ![have_board pbxa9] } {
-	puts "Platform is unsupported."
-	exit 0
-}
+assert {[have_board pbxa9]}
 
 create_boot_directory
 

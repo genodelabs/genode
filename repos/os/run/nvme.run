@@ -1,4 +1,4 @@
-assert_spec x86
+assert {[have_spec x86]}
 
 # perform write tests when requested
 if {[info exists env(GENODE_TEST_WRITE)]} {
@@ -14,10 +14,9 @@ set is_32bit_x86_hw [expr !$is_qemu && [have_spec 32bit]]
 #
 # Only run tests on supported platforms
 #
-if {[expr [have_spec linux] || $is_32bit_x86_hw || [expr $is_qemu && $is_old]]} {
-	puts "This run script is not supported on this platform."
-	exit 0
-}
+assert {![have_spec linux]}
+assert {!$is_32bit_x86_hw}
+assert {!($is_qemu && $is_old)}
 
 #
 # Qemu and on certain platforms only use the small set of tests

@@ -38,17 +38,11 @@ set on_linux_with_dst_ip ""
 catch {set on_linux_with_dst_ip $::env(ON_LINUX_WITH_DST_IP)}
 set on_linux [expr ![string equal $on_linux_with_dst_ip ""]]
 
-if {[expr [have_spec linux] && !$on_linux]} {
+assert {!([have_spec linux] && !$on_linux)} \
+	"You must set 'on_linux_with_dst_ip' in the run script if you want to run on Linux."
 
-	puts "You must set 'on_linux_with_dst_ip' in the run script if you want to run on Linux."
-	exit 0
-}
-
-if {[expr ![have_spec linux] && $on_linux]} {
-
-	puts "You must run on Linux if 'on_linux_with_dst_ip' in the run script is set."
-	exit 0
-}
+assert {!(![have_spec linux] && $on_linux)} \
+	"You must run on Linux if 'on_linux_with_dst_ip' in the run script is set."
 
 set on_hardware [expr ![have_include power_on/qemu]]
 set second_ping_via_udp [expr $on_hardware && !$on_linux]

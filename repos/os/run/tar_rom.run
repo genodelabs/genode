@@ -16,7 +16,7 @@
 # file system ('execve' takes a file name as argument). Data extracted via
 # 'tar_rom' is not represented as file. Hence, it cannot be executed.
 #
-if {[have_spec linux]} { puts "Run script does not support Linux"; exit 0 }
+assert {![have_spec linux]}
 
 build { core init timer lib/ld test/timer server/tar_rom }
 

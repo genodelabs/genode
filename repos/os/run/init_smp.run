@@ -10,14 +10,12 @@ set demand      [expr 1*1024*1024]
 set cpus        4
 set init_ram    256
 
-if { [get_cmd_switch --autopilot] } {
+if { [have_cmd_arg --autopilot] } {
 
-	if {[have_include "power_on/qemu"]} {
-		puts "\nRun script does not support Qemu.\n"
-		exit 0
-	}
+	assert {![have_include power_on/qemu]} \
+		"Autopilot mode is not supported on this platform."
 
-	assert_spec nova
+	assert {[have_spec nova]}
 
 	# set specifically for our nightly test hardware */
 	if {[have_spec x86_64]} {
@@ -104,7 +102,7 @@ build_boot_image [build_artifacts]
 
 append qemu_args " -m [expr 128 + $init_ram*$cpus]M -nographic -smp $cpus"
 
-if { [get_cmd_switch --autopilot] } {
+if { [have_cmd_arg --autopilot] } {
 
 	run_genode_until {bomb started} 20
 

@@ -1,10 +1,9 @@
 #
 # Check for platform support
 #
-if {[get_cmd_switch --autopilot] &&
-	[expr [have_board virt_qemu_riscv] || [have_board rpi]]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_board virt_qemu_riscv] && ![have_board rpi]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 proc buffer_size_kib {} {
@@ -13,8 +12,7 @@ proc buffer_size_kib {} {
 	if {[have_board imx53_qsb]}       { return [expr      1024] }
 	if {[have_board imx53_qsb_tz]}    { return [expr      1024] }
 	if {[have_board rpi]}             { return [expr  4 * 1024] }
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0;
+	assert {false} "Run script is not supported on this platform."
 }
 
 proc sd_card {} {
@@ -23,8 +21,7 @@ proc sd_card {} {
 	if {[have_board imx53_qsb]}       { return imx53_sd_card }
 	if {[have_board imx53_qsb_tz]}    { return imx53_sd_card }
 	if {[have_board rpi]}             { return rpi_sd_card   }
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0;
+	assert {false} "Run script is not supported on this platform."
 }
 
 create_boot_directory

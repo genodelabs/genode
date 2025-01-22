@@ -1,14 +1,9 @@
-if {[get_cmd_switch --autopilot]} {
-	if {[have_include "power_on/qemu"]} {
-		puts "\nRun script does not support Qemu.\n"
-		exit 0
-	}
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_include power_on/qemu]} \
+		"Autopilot mode is not supported on this platform."
 }
 
-if {[have_board linux]} {
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0
-}
+assert {![have_board linux]}
 
 build { core init timer lib/ld test/cpu_bench }
 

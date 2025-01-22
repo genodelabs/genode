@@ -1,4 +1,4 @@
-assert_spec x86
+assert {[have_spec x86]}
 
 create_boot_directory
 build {

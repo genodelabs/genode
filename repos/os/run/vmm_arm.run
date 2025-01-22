@@ -4,14 +4,12 @@
 # \date   2015-06-25
 #
 
-assert_spec hw
+assert {[have_spec hw]}
 
-if { ![have_board imx7d_sabre] && ![have_board imx8q_evk] &&
-     ![have_board virt_qemu_arm_v7a] &&
-     ![have_board virt_qemu_arm_v8a]} {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
+assert {[have_board imx7d_sabre]        ||
+        [have_board imx8q_evk]          ||
+        [have_board virt_qemu_arm_v7a]  ||
+        [have_board virt_qemu_arm_v8a]}
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \

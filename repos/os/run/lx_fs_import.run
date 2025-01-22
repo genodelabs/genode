@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 lappend depot_archives [depot_user]/src/[base_src]
 lappend depot_archives [depot_user]/src/init
@@ -7,7 +7,7 @@ lappend depot_archives [depot_user]/src/vfs_import
 
 set build_components { }
 
-if { [get_cmd_switch --autopilot] } {
+if { [have_cmd_arg --autopilot] } {
 	lappend depot_archives [depot_user]/src/lx_fs
 } else {
 	lappend build_components server/lx_fs

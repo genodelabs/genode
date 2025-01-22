@@ -3,15 +3,10 @@ build {
 	server/cpu_balancer app/cpu_burner app/top server/dynamic_rom
 }
 
-if {![have_include "power_on/qemu"]} {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
-# foc in principle supports migration, but due to bug #4357 foc is not tested
-if {![have_spec nova] && ![have_spec sel4]} {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
+assert {[have_include power_on/qemu]}
+assert {[have_spec nova] || [have_spec sel4]} \
+	"foc in principle supports migration, but due to bug #4357 foc is not tested"
+
 
 set cpu_width  4
 set cpu_height 1

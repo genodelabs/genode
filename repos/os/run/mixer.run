@@ -1,7 +1,4 @@
-if {[have_include "power_on/qemu"]} {
-	puts "\nTest running on Qemu is not supported.\n"
-	exit 0
-}
+assert {![have_include power_on/qemu]}
 
 build {
 	core init timer lib/ld

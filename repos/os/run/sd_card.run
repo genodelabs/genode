@@ -1,7 +1,4 @@
-if {![have_board pbxa9]} {
-	puts "Test requires board pbxa9"
-	exit
-}
+assert {[have_board pbxa9]}
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \

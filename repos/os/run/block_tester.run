@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 #
 # Check used commands

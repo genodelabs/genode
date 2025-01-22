@@ -1,9 +1,7 @@
-assert_spec x86_64
+assert {[have_spec x86_64]}
 
-if {![have_board pc] || [expr ![have_spec nova] && ![have_spec hw]] } {
-	puts "Run script is only supported on hw/pc and nova/pc"
-	exit 0
-}
+assert {[have_board pc]}
+assert {[have_spec nova] || [have_spec hw]}
 
 build { core init timer lib/ld driver/acpi server/report_rom app/smbios_decoder }
 

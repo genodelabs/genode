@@ -5,10 +5,7 @@ proc platform_supported { } {
 	return 0
 }
 
-if {![platform_supported]} {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
+assert {[platform_supported]}
 
 build {
 	core lib/ld init timer monitor lib/sandbox

@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 build { core init timer lib/ld server/dynamic_rom app/rom_to_file server/lx_fs }
 

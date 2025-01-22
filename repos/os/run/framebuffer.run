@@ -1,3 +1,6 @@
+assert {[have_recipe pkg/[drivers_interactive_pkg]]} \
+	"Recipe for 'pkg/[drivers_interactive_pkg]' not available."
+
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \

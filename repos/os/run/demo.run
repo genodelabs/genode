@@ -1,10 +1,9 @@
-if {[have_board imx6q_sabrelite] ||
-    [have_board imx7d_sabre] ||
-    [have_board zynq_usrp_e31x] ||
-    ([get_cmd_switch --autopilot] && [have_board linux]) ||
-    ([get_cmd_switch --autopilot] && [have_include "power_on/qemu"])} {
-	puts "Run script does not support this platform."
-	exit 0
+assert {[have_recipe pkg/[drivers_interactive_pkg]]} \
+	"Recipe for 'pkg/[drivers_interactive_pkg]' not available."
+
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_board linux] && ![have_include power_on/qemu]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 create_boot_directory
@@ -206,7 +205,7 @@ close $launchpad_config_fd
 
 build_boot_image [list {*}[build_artifacts] launchpad.config]
 
-if {[get_cmd_switch --autopilot]} {
+if {[have_cmd_arg --autopilot]} {
 	run_genode_until {\[init -> scout\] png is.*\n} 40
 
 	grep_output {(requests resources: )|(Error)}
