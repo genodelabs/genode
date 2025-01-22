@@ -50,3 +50,55 @@ index 07893c6..abd2ea4 100644
  typedef	__int32_t	__time_t;
  typedef	__uint32_t	__uintfptr_t;
  typedef	__uint32_t	__uintptr_t;
+--- src/lib/libc/sys/arm64/include/_types.h
++++ src/lib/libc/sys/arm64/include/_types.h
+@@ -49,7 +49,7 @@
+ typedef	int			__int32_t;
+ typedef	unsigned int		__uint32_t;
+ typedef	long			__int64_t;
+-typedef	unsigned long		__uint64_t;
++typedef	unsigned long long	__uint64_t;
+ 
+ /*
+  * Standard type definitions.
+@@ -71,11 +71,11 @@
+ typedef	__int16_t	__int_least16_t;
+ typedef	__int32_t	__int_least32_t;
+ typedef	__int64_t	__int_least64_t;
+-typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
++typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
+ typedef	__int64_t	__register_t;
+ typedef	__int64_t	__segsz_t;		/* segment size (in pages) */
+-typedef	__uint64_t	__size_t;		/* sizeof() */
+-typedef	__int64_t	__ssize_t;		/* byte count or error */
++typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
++typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
+ typedef	__int64_t	__time_t;		/* time()... */
+ typedef	__uint64_t	__uintfptr_t;
+ typedef	__uint64_t	__uintmax_t;
+--- src/lib/libc/sys/riscv/include/_types.h
++++ src/lib/libc/sys/riscv/include/_types.h
+@@ -49,7 +49,7 @@
+ typedef	int			__int32_t;
+ typedef	unsigned int		__uint32_t;
+ typedef	long			__int64_t;
+-typedef	unsigned long		__uint64_t;
++typedef	unsigned long long	__uint64_t;
+ 
+ /*
+  * Standard type definitions.
+@@ -71,11 +71,11 @@
+ typedef	__int16_t	__int_least16_t;
+ typedef	__int32_t	__int_least32_t;
+ typedef	__int64_t	__int_least64_t;
+-typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
++typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
+ typedef	__int64_t	__register_t;
+ typedef	__int64_t	__segsz_t;		/* segment size (in pages) */
+-typedef	__uint64_t	__size_t;		/* sizeof() */
+-typedef	__int64_t	__ssize_t;		/* byte count or error */
++typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
++typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
+ typedef	__int64_t	__time_t;		/* time()... */
+ typedef	__uint64_t	__uintfptr_t;
+ typedef	__uint64_t	__uintmax_t;
