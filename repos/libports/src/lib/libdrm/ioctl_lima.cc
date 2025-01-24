@@ -166,7 +166,7 @@ void Lima::serialize(drm_lima_gem_submit *submit, char *content)
 		};
 		for_each_object((drm_lima_gem_submit_bo*)submit->bos,
 		                submit->nr_bos, copy_bos);
-		submit->bos = reinterpret_cast<__u64>(new_start);
+		submit->bos = __u64(new_start);
 	}
 
 	/* next is the frame */
@@ -176,7 +176,7 @@ void Lima::serialize(drm_lima_gem_submit *submit, char *content)
 		char * const dst = content + offset;
 		Genode::memcpy(dst, reinterpret_cast<void const*>(submit->frame), submit->frame_size);
 		offset += submit->frame_size;
-		submit->frame = reinterpret_cast<__u64>(new_start);
+		submit->frame = __u64(new_start);
 	}
 
 	/* copy submit object last but into the front */
@@ -730,7 +730,7 @@ class Lima::Call
 			(void)_apply_handle(arg.handle, [&] (Vram &b) {
 				if (!b.mmap(_env))
 					return;
-				arg.offset = reinterpret_cast<::uint64_t>(b.mmap_addr());
+				arg.offset = __u64(b.mmap_addr());
 
 				Gpu::Virtual_address const va = b.va;
 				if (va.value == (Gpu::addr_t)-1)

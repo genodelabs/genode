@@ -163,7 +163,7 @@ void Etnaviv::serialize(drm_etnaviv_gem_submit *submit, char *content)
 		};
 		for_each_object((drm_etnaviv_gem_submit_bo*)submit->bos,
 		                submit->nr_bos, copy_bos);
-		submit->bos = reinterpret_cast<__u64>(new_start);
+		submit->bos = __u64(new_start);
 	}
 
 	/* next are the relocs */
@@ -177,7 +177,7 @@ void Etnaviv::serialize(drm_etnaviv_gem_submit *submit, char *content)
 		};
 		for_each_object((drm_etnaviv_gem_submit_reloc*)submit->relocs,
 		                submit->nr_relocs, copy_relocs);
-		submit->relocs = reinterpret_cast<__u64>(new_start);
+		submit->relocs = __u64(new_start);
 	}
 
 	/* next are the pmrs */
@@ -190,7 +190,7 @@ void Etnaviv::serialize(drm_etnaviv_gem_submit *submit, char *content)
 		};
 		for_each_object((drm_etnaviv_gem_submit_pmr*)submit->pmrs,
 		                submit->nr_pmrs, copy_pmrs);
-		submit->pmrs = reinterpret_cast<__u64>(new_start);
+		submit->pmrs = __u64(new_start);
 	}
 
 	/* next is the cmd stream */
@@ -200,7 +200,7 @@ void Etnaviv::serialize(drm_etnaviv_gem_submit *submit, char *content)
 		char * const dst = content + offset;
 		Genode::memcpy(dst, reinterpret_cast<void const*>(submit->stream), submit->stream_size);
 		offset += submit->stream_size;
-		submit->stream = reinterpret_cast<__u64>(new_start);
+		submit->stream = __u64(new_start);
 	}
 
 	/* copy submit object last but into the front */
