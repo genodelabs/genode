@@ -10,7 +10,7 @@ LIBS += syscall-hw
 # add C++ sources
 SRC_CC += kernel/cpu_mp.cc
 SRC_CC += spec/arm/generic_timer.cc
-SRC_CC += spec/arm/kernel/lock.cc
+SRC_CC += spec/arm/kernel/mutex.cc
 SRC_CC += spec/arm/kernel/thread_caches.cc
 SRC_CC += spec/arm/platform_support.cc
 SRC_CC += spec/arm_v8/cpu.cc

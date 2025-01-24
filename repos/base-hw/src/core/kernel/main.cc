@@ -15,7 +15,7 @@
 /* core includes */
 #include <map_local.h>
 #include <kernel/cpu.h>
-#include <kernel/lock.h>
+#include <kernel/mutex.h>
 #include <kernel/main.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
@@ -39,7 +39,7 @@ class Kernel::Main
 
 		static Main *_instance;
 
-		Lock                                    _data_lock           { };
+		Mutex                                   _mutex               { };
 		Cpu_pool                                _cpu_pool            { };
 		Irq::Pool                               _user_irq_pool       { };
 		Board::Address_space_id_allocator       _addr_space_id_alloc { };
@@ -65,12 +65,14 @@ void Kernel::Main::_handle_kernel_entry()
 {
 	Cpu::Context * context;
 
-	{
-		Lock::Guard guard(_data_lock);
-
-		context =
-			&_cpu_pool.cpu(Cpu::executing_id()).handle_exception_and_schedule();
-	}
+	_mutex.execute_exclusive(
+		[&] () {
+			Cpu &cpu = _cpu_pool.cpu(Cpu::executing_id());
+			context = &cpu.handle_exception_and_schedule();
+			},
+		[&] () {
+			Genode::error("Cpu ", Cpu::executing_id(), " re-entered lock.",
+			              "Kernel exception?!"); });
 
 	context->proceed();
 }
@@ -86,7 +88,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 {
 	using Boot_info = Hw::Boot_info<Board::Boot_info>;
 
-	static Lock              init_lock;
+	static Mutex             init_mutex;
 	static volatile unsigned nr_of_initialized_cpus { 0 };
 	static volatile bool     kernel_initialized     { false };
 
@@ -99,35 +101,34 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 	 * Let the first CPU create a Main object and initialize the static
 	 * reference to it.
 	 */
-	{
-		Lock::Guard guard(init_lock);
-
-		static Main instance;
-		Main::_instance = &instance;
-
-	}
+	init_mutex.execute_exclusive(
+		[&] () {
+			static Main instance;
+			Main::_instance = &instance; },
+		[&] () {
+			Genode::error("recursive call of ", __func__); });
 
 	/* the CPU resumed if the kernel is already initialized */
 	if (kernel_initialized) {
 
-		{
-			Lock::Guard guard(Main::_instance->_data_lock);
+		Main::_instance->_mutex.execute_exclusive(
+			[&] () {
+				if (nr_of_initialized_cpus == nr_of_cpus) {
+					nr_of_initialized_cpus = 0;
 
-			if (nr_of_initialized_cpus == nr_of_cpus) {
-				nr_of_initialized_cpus = 0;
+					Main::_instance->_serial.init();
+					Main::_instance->_global_irq_ctrl.init();
+				}
 
-				Main::_instance->_serial.init();
-				Main::_instance->_global_irq_ctrl.init();
-			}
+				nr_of_initialized_cpus = nr_of_initialized_cpus + 1;
 
-			nr_of_initialized_cpus = nr_of_initialized_cpus + 1;
+				Main::_instance->_cpu_pool.cpu(Cpu::executing_id()).reinit_cpu();
 
-			Main::_instance->_cpu_pool.cpu(Cpu::executing_id()).reinit_cpu();
-
-			if (nr_of_initialized_cpus == nr_of_cpus) {
-				Genode::raw("kernel resumed");
-			}
-		}
+				if (nr_of_initialized_cpus == nr_of_cpus)
+					Genode::raw("kernel resumed");
+			},
+			[&] () {
+				Genode::error("recursive call of ", __func__); });
 
 		while (nr_of_initialized_cpus < nr_of_cpus) { }
 
@@ -136,20 +137,21 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 		return;
 	}
 
-	{
-		/**
-		 * Let each CPU initialize its corresponding CPU object in the
-		 * CPU pool.
-		 */
-		Lock::Guard guard(Main::_instance->_data_lock);
-		Main::_instance->_cpu_pool.initialize_executing_cpu(
-			Main::_instance->_addr_space_id_alloc,
-			Main::_instance->_user_irq_pool,
-			Main::_instance->_core_platform_pd.kernel_pd(),
-			Main::_instance->_global_irq_ctrl);
+	Main::_instance->_mutex.execute_exclusive(
+		[&] () {
+			/**
+			 * Let each CPU initialize its corresponding CPU object in the
+			 * CPU pool.
+			 */
+			Main::_instance->_cpu_pool.initialize_executing_cpu(
+				Main::_instance->_addr_space_id_alloc,
+				Main::_instance->_user_irq_pool,
+				Main::_instance->_core_platform_pd.kernel_pd(),
+				Main::_instance->_global_irq_ctrl);
 
-		nr_of_initialized_cpus = nr_of_initialized_cpus + 1;
-	};
+			nr_of_initialized_cpus = nr_of_initialized_cpus + 1; },
+		[&] () {
+			Genode::error("recursive call of ", __func__); });
 
 	/**
 	 * Let all CPUs block until each CPU object in the CPU pool has been
@@ -161,29 +163,30 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 	 * Let the primary CPU initialize the core main thread and finish
 	 * initialization of the boot info.
 	 */
-	{
-		Lock::Guard guard(Main::_instance->_data_lock);
+	Main::_instance->_mutex.execute_exclusive(
+		[&] () {
+			if (Cpu::executing_id() == Main::_instance->_cpu_pool.primary_cpu().id()) {
+				Main::_instance->_cpu_pool.for_each_cpu([&] (Kernel::Cpu &cpu) {
+					boot_info.kernel_irqs.add(cpu.timer().interrupt_id());
+				});
+				boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
 
-		if (Cpu::executing_id() == Main::_instance->_cpu_pool.primary_cpu().id()) {
-			Main::_instance->_cpu_pool.for_each_cpu([&] (Kernel::Cpu &cpu) {
-				boot_info.kernel_irqs.add(cpu.timer().interrupt_id());
-			});
-			boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
+				Main::_instance->_core_main_thread.construct(
+					Main::_instance->_addr_space_id_alloc,
+					Main::_instance->_user_irq_pool,
+					Main::_instance->_cpu_pool,
+					Main::_instance->_core_platform_pd.kernel_pd());
 
-			Main::_instance->_core_main_thread.construct(
-				Main::_instance->_addr_space_id_alloc,
-				Main::_instance->_user_irq_pool,
-				Main::_instance->_cpu_pool,
-				Main::_instance->_core_platform_pd.kernel_pd());
+				boot_info.core_main_thread_utcb =
+					(addr_t)Main::_instance->_core_main_thread->utcb();
 
-			boot_info.core_main_thread_utcb =
-				(addr_t)Main::_instance->_core_main_thread->utcb();
-
-			Genode::log("");
-			Genode::log("kernel initialized");
-			kernel_initialized = true;
-		}
-	}
+				Genode::log("");
+				Genode::log("kernel initialized");
+				kernel_initialized = true;
+			}
+		},
+		[&] () {
+			Genode::error("recursive call of ", __func__); });
 
 	/**
 	 * Let secondary CPUs block until the primary CPU has initialized the

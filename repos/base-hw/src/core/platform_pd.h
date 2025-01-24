@@ -74,7 +74,7 @@ class Hw::Address_space : public Core::Address_space
 		using Table = Hw::Page_table;
 		using Array = Table::Allocator::Array<DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Mutex             _mutex { };          /* table lock      */
+		Genode::Mutex     _mutex { };          /* table lock      */
 		Table            &_tt;                 /* table virt addr */
 		addr_t            _tt_phys;            /* table phys addr */
 		Array            *_tt_array = nullptr;

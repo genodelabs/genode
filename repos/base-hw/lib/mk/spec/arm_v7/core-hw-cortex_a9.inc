@@ -9,7 +9,7 @@ SRC_CC += spec/arm/cortex_a9_board.cc
 SRC_CC += spec/arm/cortex_a9_cpu.cc
 SRC_CC += spec/arm/cortex_a9_global_timer.cc
 SRC_CC += spec/arm/gicv2.cc
-SRC_CC += spec/arm/kernel/lock.cc
+SRC_CC += spec/arm/kernel/mutex.cc
 SRC_CC += kernel/vm_thread_off.cc
 SRC_CC += kernel/cpu_mp.cc
 

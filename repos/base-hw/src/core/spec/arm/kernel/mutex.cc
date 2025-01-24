@@ -1,11 +1,11 @@
 /*
- * \brief  Kernel lock for multi-processor systems
+ * \brief  Kernel mutex
  * \author Stefan Kalkowski
  * \date   2018-11-20
  */
 
 /*
- * Copyright (C) 2019 Genode Labs GmbH
+ * Copyright (C) 2019-2024 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,24 +17,21 @@
 
 /* base-hw core includes */
 #include <kernel/cpu.h>
-#include <kernel/lock.h>
+#include <kernel/mutex.h>
 
 
-void Kernel::Lock::lock()
+bool Kernel::Mutex::_lock()
 {
-	/* check for the lock holder being the same cpu */
-	if (_current_cpu == Cpu::executing_id()) {
-		/* at least print an error message */
-		Genode::raw("Cpu ", _current_cpu,
-		            " error: re-entered lock. Kernel exception?!");
-	}
+	if (_current_cpu == Cpu::executing_id())
+		return false;
 
-	Cpu::wait_for_xchg(&_locked, LOCKED, UNLOCKED);
+	Cpu::wait_for_xchg((volatile int*)&_locked, LOCKED, UNLOCKED);
 	_current_cpu = Cpu::executing_id();
+	return true;
 }
 
 
-void Kernel::Lock::unlock()
+void Kernel::Mutex::_unlock()
 {
 	_current_cpu = INVALID;
 
