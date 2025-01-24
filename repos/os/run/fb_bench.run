@@ -71,7 +71,7 @@ install_config {
 	</start>
 
 	<start name="gui_fb">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 		<config/>
 		<route>
