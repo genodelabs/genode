@@ -23,6 +23,8 @@
 
 namespace Nitpicker {
 
+	using uint64_t = Genode::uint64_t;
+
 	using namespace Gui;
 
 	using Pixel = Pixel_rgb888;
