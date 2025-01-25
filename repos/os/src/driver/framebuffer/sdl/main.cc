@@ -23,6 +23,9 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wtype-limits"
+#pragma GCC diagnostic ignored "-Wnarrowing"        /* arm_neon.h */
+#pragma GCC diagnostic ignored "-Wunused-parameter" /* arm_neon.h */
+#pragma GCC diagnostic ignored "-Wfloat-conversion" /* arm_neon.h */
 #include <SDL2/SDL.h>
 #pragma GCC diagnostic pop
 
