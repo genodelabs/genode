@@ -35,7 +35,7 @@ template <typename ST, Genode::Surface_base::Pixel_format FORMAT,
           int G_MASK, int G_SHIFT,
           int B_MASK, int B_SHIFT,
           int A_MASK, int A_SHIFT>
-class Genode::Pixel_rgba
+class alignas(alignof(ST)) Genode::Pixel_rgba
 {
 	private:
 
