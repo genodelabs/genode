@@ -36,6 +36,31 @@ namespace Blit { struct Sse4; };
 
 struct Blit::Sse4
 {
+	/**
+	 * Padded hex output utility
+	 */
+	template <typename T>
+	struct Phex : Hex { explicit Phex(T v) : Hex(v, OMIT_PREFIX, PAD) { } };
+
+	/**
+	 * Vector output utility
+	 */
+	template <typename T>
+	union Vec_as
+	{
+		__m128i v;
+		static constexpr unsigned N = 128/(8*sizeof(T));
+		T u[N];
+
+		Vec_as(__m128i v) : v(v) { }
+
+		void print(Output &out) const
+		{
+			for (unsigned i = 0; i < N; i++)
+				Genode::print(out, Phex(u[i]), i < (N-1) ? "." : "");
+		}
+	};
+
 	union Tile_4x4 { __m128i pi[4]; __m128  ps[4]; };
 
 	struct Src_ptr4
@@ -132,6 +157,7 @@ struct Blit::Sse4
 
 	struct B2f;
 	struct B2f_flip;
+	struct Blend;
 };
 
 
@@ -260,4 +286,93 @@ void Blit::Sse4::B2f_flip::r270(uint32_t       *dst, unsigned dst_w,
 	_rotate(src_ptr4, dst_ptr4, steps, w, h);
 }
 
-#endif /* _INCLUDE__BLIT__INTERNAL__SSE4_H_ */
+
+struct Blit::Sse4::Blend
+{
+	static inline void xrgb_a(uint32_t *, unsigned, uint32_t const *, uint8_t const *);
+
+	__attribute__((optimize("-O3")))
+	static inline uint32_t _blend(uint32_t xrgb, unsigned alpha)
+	{
+		return (alpha * ((xrgb & 0xff00)    >> 8) & 0xff00)
+		   | (((alpha *  (xrgb & 0xff00ff)) >> 8) & 0xff00ff);
+	}
+
+	__attribute__((optimize("-O3")))
+	static inline uint32_t _mix(uint32_t bg, uint32_t fg, unsigned alpha)
+	{
+		return (__builtin_expect(alpha == 0, false))
+		       ? bg : _blend(bg, 256 - alpha) + _blend(fg, alpha + 1);
+	}
+
+	struct Mix_masks
+	{
+		/* masks for distributing alpha values to 16-bit r, g, b lanes */
+		__m128i const a01 = _mm_set_epi32(0x03020302, 0x03020302, 0x01000100, 0x01000100);
+		__m128i const a23 = _mm_set_epi32(0x07060706, 0x07060706, 0x05040504, 0x05040504);
+	};
+
+	__attribute__((optimize("-O3")))
+	static inline void _mix_4(uint32_t *, uint32_t const *, uint8_t const *, Mix_masks const);
+};
+
+
+__attribute__((optimize("-O3")))
+void Blit::Sse4::Blend::_mix_4(uint32_t *bg, uint32_t const *fg, uint8_t const *alpha, Mix_masks const masks)
+{
+	uint32_t const a_u8_x4 = *(uint32_t const *)alpha;
+
+	if (__builtin_expect(a_u8_x4 == 0, false))
+		return;
+
+	auto upper_half = [&] (__m128i const v) { return _mm_shuffle_epi32(v, 2 + (3<<2)); };
+
+	__m128i const
+		/* load four foreground pixel, background pixel, and alpha values */
+		fg_u8_4x4 = _mm_loadu_si128((__m128i const *)fg),
+		bg_u8_4x4 = _mm_loadu_si128((__m128i const *)bg),
+
+		/* extract first and second pair of pixel values */
+		fg01_u16_4x2 = _mm_cvtepu8_epi16(fg_u8_4x4),
+		fg23_u16_4x2 = _mm_cvtepu8_epi16(upper_half(fg_u8_4x4)),
+		bg01_u16_4x2 = _mm_cvtepu8_epi16(bg_u8_4x4),
+		bg23_u16_4x2 = _mm_cvtepu8_epi16(upper_half(bg_u8_4x4)),
+
+		/* prepare 4 destination and source alpha values */
+		a_u16_x4  = _mm_cvtepu8_epi16(_mm_set1_epi32(a_u8_x4)),
+		da_u16_x4 = _mm_sub_epi16(_mm_set1_epi16(256), a_u16_x4),
+		sa_u16_x4 = _mm_add_epi16(a_u16_x4, _mm_set1_epi16(1)),
+
+		/* mix first pixel pair */
+		da01_u16_4x2 = _mm_shuffle_epi8(da_u16_x4, masks.a01),
+		sa01_u16_4x2 = _mm_shuffle_epi8(sa_u16_x4, masks.a01),
+		mixed01 = _mm_add_epi16(_mm_mullo_epi16(fg01_u16_4x2, sa01_u16_4x2),
+		                        _mm_mullo_epi16(bg01_u16_4x2, da01_u16_4x2)),
+
+		/* mix second pixel pair */
+		da23_u16_4x2 = _mm_shuffle_epi8(da_u16_x4, masks.a23),
+		sa23_u16_4x2 = _mm_shuffle_epi8(sa_u16_x4, masks.a23),
+		mixed23 = _mm_add_epi16(_mm_mullo_epi16(fg23_u16_4x2, sa23_u16_4x2),
+		                        _mm_mullo_epi16(bg23_u16_4x2, da23_u16_4x2)),
+
+		result_4x4 = _mm_packus_epi16(_mm_srli_epi16(mixed01, 8),
+		                              _mm_srli_epi16(mixed23, 8));
+
+	_mm_storeu_si128((__m128i *)bg, result_4x4);
+}
+
+
+__attribute__((optimize("-O3")))
+void Blit::Sse4::Blend::xrgb_a(uint32_t *dst, unsigned n,
+                               uint32_t const *pixel, uint8_t const *alpha)
+{
+	Mix_masks const mix_masks { };
+
+	for (; n > 3; n -= 4, dst += 4, pixel += 4, alpha += 4)
+		_mix_4(dst, pixel, alpha, mix_masks);
+
+	for (; n--; dst++, pixel++, alpha++)
+		*dst = _mix(*dst, *pixel, *alpha);
+}
+
+#endif /* _INCLUDE__BLIT__INTERNAL__SSE3_H_ */

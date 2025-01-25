@@ -57,6 +57,15 @@ namespace Blit {
 	{
 		_b2f<Slow>(surface, texture, rect, rotate, flip);
 	}
+
+	/**
+	 * Blend a sequence of pixels to 'dst' according to discrete alpha values
+	 */
+	static inline void blend_xrgb_a(uint32_t *dst, unsigned n,
+	                                uint32_t const *pixel, uint8_t const *alpha)
+	{
+		Slow::Blend::xrgb_a(dst, n, pixel, alpha);
+	}
 }
 
 #endif /* _INCLUDE__BLIT_H_ */

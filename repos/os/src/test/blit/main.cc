@@ -197,7 +197,7 @@ namespace Blit {
 }
 
 
-static void test_b2f_dispatch()
+static inline void test_b2f_dispatch()
 {
 	Texture<Pixel_rgb888> texture_landscape { nullptr, nullptr, { 640, 480 } };
 	Texture<Pixel_rgb888> texture_portrait  { nullptr, nullptr, { 480, 640 } };
@@ -274,15 +274,110 @@ static void test_b2f_dispatch()
 }
 
 
+template <typename SIMD>
+static inline void test_simd_blend_mix()
+{
+	struct Rgb : Genode::Hex
+	{
+		explicit Rgb(uint32_t v) : Hex(v, OMIT_PREFIX, PAD) { }
+	};
+
+	struct Mix_test
+	{
+		uint32_t bg, fg; uint8_t a; uint32_t expected;
+
+		void print(Output &out) const
+		{
+			Genode::print(out, "bg=", Rgb(bg), " fg=", Rgb(fg), " a=", a);
+		}
+	};
+
+	Mix_test mix_test[] {
+		{ .bg = 0x000000, .fg = 0x000000, .a = 0,   .expected = 0x000000 },
+		{ .bg = 0x000000, .fg = 0xffffff, .a = 0,   .expected = 0x000000 },
+		{ .bg = 0xffffff, .fg = 0x000000, .a = 0,   .expected = 0xffffff },
+		{ .bg = 0xffffff, .fg = 0xffffff, .a = 0,   .expected = 0xffffff },
+
+		{ .bg = 0x000000, .fg = 0x000000, .a = 255, .expected = 0x000000 },
+		{ .bg = 0x000000, .fg = 0xffffff, .a = 255, .expected = 0xffffff },
+		{ .bg = 0xffffff, .fg = 0x000000, .a = 255, .expected = 0x000000 },
+		{ .bg = 0xffffff, .fg = 0xffffff, .a = 255, .expected = 0xffffff },
+	};
+
+	for (Mix_test const &test : mix_test) {
+		uint32_t slow = Slow::Blend::_mix(test.bg, test.fg, test.a);
+		uint32_t simd = SIMD::Blend::_mix(test.bg, test.fg, test.a);
+		if (slow == test.expected && slow == simd) {
+			log("mix ", test, " -> slow=", Rgb(slow), " simd=", Rgb(simd));
+		} else {
+			error("mix ", test, " -> slow=", Rgb(slow), " simd=", Rgb(simd),
+			      " expected=", Rgb(test.expected));
+			throw 1;
+		}
+	}
+
+	struct Xrgb_8x
+	{
+		uint32_t values[8];
+
+		void print(Output &out) const
+		{
+			for (unsigned i = 0; i < 8; i++)
+				Genode::print(out, (i == 0) ? "" : ".", Rgb(values[i]));
+		}
+
+		bool operator != (Xrgb_8x const &other) const
+		{
+			for (unsigned i = 0; i < 8; i++)
+				if (values[i] != other.values[i])
+					return true;
+			return false;
+		}
+	};
+
+	uint32_t const ca = 0xaaaaaa, cb = 0xbbbbbb, cc = 0xcccccc, cd = 0xdddddd,
+	               white = 0xffffff;
+
+	Xrgb_8x black_bg { };
+	Xrgb_8x white_bg { { white, white, white, white, white, white, white, white } };
+
+	Xrgb_8x fg       { { 0x001020, 0x405060, 0x8090a0, 0xc0d0e0, ca, cb, cc, cd } };
+	uint8_t alpha[8]   { 63,       127,      191,      255     , 64, 64, 64, 64 };
+
+	auto test_mix_8 = [&] (auto msg, Xrgb_8x &bg, Xrgb_8x const &fg,
+	                       uint8_t const *alpha, Xrgb_8x const &expected)
+	{
+		log("fg        : ", fg);
+		log("bg        : ", bg);
+		SIMD::Blend::xrgb_a(bg.values, 8, fg.values, alpha);
+		log(msg, " : ", bg);
+		if (expected != bg) {
+			error("expected ", expected);
+			throw 1;
+		}
+	};
+
+	test_mix_8("blackened", black_bg, fg, alpha, { {
+		0x00000408, 0x00202830, 0x00606c78, 0x00c0d0e0,
+		0x002b2b2b, 0x002f2f2f, 0x00333333, 0x00383838 } });
+
+	test_mix_8("whitened ", white_bg, fg, alpha, { {
+		0x00c0c4c8, 0x00a0a8b0, 0x00a0acb8, 0x00c0d0e0,
+		0x00eaeaea, 0x00eeeeee, 0x00f3f3f3, 0x00f7f7f7 } });
+}
+
+
 void Component::construct(Genode::Env &)
 {
 #ifdef _INCLUDE__BLIT__INTERNAL__NEON_H_
 	log("-- ARM Neon --");
 	test_simd_b2f<Neon>();
+	test_simd_blend_mix<Neon>();
 #endif
 #ifdef _INCLUDE__BLIT__INTERNAL__SSE4_H_
 	log("-- SSE4 --");
 	test_simd_b2f<Sse4>();
+	test_simd_blend_mix<Sse4>();
 #endif
 
 	test_b2f_dispatch();

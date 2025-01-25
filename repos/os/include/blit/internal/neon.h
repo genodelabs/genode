@@ -31,6 +31,16 @@ namespace Blit { struct Neon; }
 
 struct Blit::Neon
 {
+	/**
+	 * Helper for printing the raw lower 64 bits of a vector via Genode::Output
+	 */
+	template <typename T> union Printable
+	{
+		Genode::uint64_t u64; T vec;
+		Printable(T vec) : vec(vec) { }
+		void print(Output &out) const { Genode::print(out, Hex(u64)); }
+	};
+
 	static inline uint32x4_t _reversed(uint32x4_t const v)
 	{
 		return vrev64q_u32(vcombine_u32(vget_high_u32(v), vget_low_u32(v)));
@@ -163,6 +173,7 @@ struct Blit::Neon
 
 	struct B2f;
 	struct B2f_flip;
+	struct Blend;
 };
 
 
@@ -289,6 +300,85 @@ void Blit::Neon::B2f_flip::r270(uint32_t       *dst, unsigned const dst_w,
 	Dst_ptr4 dst_ptr4 (dst + 8*int(dst_w)*(w*8 - 1),          steps.dst_y);
 
 	_rotate(src_ptr4, dst_ptr4, steps, w, h);
+}
+
+
+struct Blit::Neon::Blend
+{
+	static inline void xrgb_a(uint32_t *, unsigned, uint32_t const *, uint8_t const *);
+
+	__attribute__((optimize("-O3")))
+	static inline uint32_t _mix(uint32_t bg, uint32_t fg, uint8_t alpha)
+	{
+		if (__builtin_expect(alpha == 0, false))
+			return bg;
+
+		/*
+		 * Compute r, g, b in the lower 3 16-bit lanes.
+		 * The upper 5 lanes are unused.
+		 */
+		uint16x8_t const
+			a   = vmovl_u8(vdup_n_u8(alpha)),
+			s   = vmovl_u8(vcreate_u8(fg)),
+			d   = vmovl_u8(vcreate_u8(bg)),
+			ar  = vaddq_u16(vdupq_n_u16(1),   a),  /* for rounding up */
+			nar = vsubq_u16(vdupq_n_u16(256), a),  /* 1.0 - alpha */
+			res = vaddq_u16(vmulq_u16(s, ar), vmulq_u16(d, nar));
+
+		return uint32_t(::uint64_t(vshrn_n_u16(res, 8)));
+	}
+
+	__attribute__((optimize("-O3")))
+	static inline void _mix_8(uint32_t *bg, uint32_t const *fg, uint8_t const *alpha)
+	{
+		/* fetch 8 alpha values */
+		uint16x8_t const a = vmovl_u8(*(uint8x8_t *)alpha);
+
+		/* skip block if entirely transparent */
+		if (__builtin_expect(vmaxvq_u16(a) == 0, false))
+			return;
+
+		/* load 8 source and destination pixels */
+		uint8x8x4_t const s = vld4_u8((uint8_t const *)fg);
+		uint8x8x4_t       d = vld4_u8((uint8_t const *)bg);
+
+		/* extend r, g, b components from uint8_t to uint16_t */
+		uint16x8x4_t const
+			s_rgb { vmovl_u8(s.val[0]), vmovl_u8(s.val[1]), vmovl_u8(s.val[2]) },
+			d_rgb { vmovl_u8(d.val[0]), vmovl_u8(d.val[1]), vmovl_u8(d.val[2]) };
+
+		/* load 8 alpha values, prepare as factors for source and destination */
+		uint16x8_t const
+			sa = vaddq_u16(vdupq_n_u16(1),   a),
+			da = vsubq_u16(vdupq_n_u16(256), a);  /* 1.0 - alpha */
+
+		/* mix components, keeping only their upper 8 bits */
+		for (unsigned i = 0; i < 3; i++)
+			d.val[i] = vshrn_n_u16(vaddq_u16(vmulq_u16(d_rgb.val[i], da),
+			                                 vmulq_u16(s_rgb.val[i], sa)), 8);
+		/* write 8 pixels */
+		vst4_u8((uint8_t *)bg, d);
+	}
+};
+
+
+__attribute__((optimize("-O3")))
+void Blit::Neon::Blend::xrgb_a(uint32_t *dst, unsigned n,
+                               uint32_t const *pixel, uint8_t const *alpha)
+{
+	int const prefetch_distance = 16;  /* cache line / 32-bit pixel size */
+	for (; n > prefetch_distance; n -= 8, dst += 8, pixel += 8, alpha += 8) {
+		__builtin_prefetch(dst   + prefetch_distance);
+		__builtin_prefetch(pixel + prefetch_distance);
+		__builtin_prefetch(alpha + prefetch_distance);
+		_mix_8(dst, pixel, alpha);
+	}
+
+	for (; n > 7; n -= 8, dst += 8, pixel += 8, alpha += 8)
+		_mix_8(dst, pixel, alpha);
+
+	for (; n--; dst++, pixel++, alpha++)
+		*dst = _mix(*dst, *pixel, *alpha);
 }
 
 #endif /* _INCLUDE__BLIT__INTERNAL__NEON_H_ */

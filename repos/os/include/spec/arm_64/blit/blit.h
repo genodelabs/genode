@@ -16,10 +16,12 @@
 
 #include <blit/types.h>
 #include <blit/internal/neon.h>
+#include <blit/internal/slow.h>
 
 namespace Blit {
 
-	static inline void back2front(auto &&... args) { _b2f<Neon>(args...); }
+	static inline void back2front  (auto &&... args) { _b2f<Neon>(args...); }
+	static inline void blend_xrgb_a(auto &&... args) { Neon::Blend::xrgb_a(args...); }
 }
 
 #endif /* _INCLUDE__SPEC__ARM_64__BLIT_H_ */

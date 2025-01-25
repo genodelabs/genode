@@ -16,10 +16,12 @@
 
 #include <blit/types.h>
 #include <blit/internal/sse4.h>
+#include <blit/internal/slow.h>
 
 namespace Blit {
 
-	static inline void back2front(auto &&... args) { _b2f<Sse4>(args...); }
+	static inline void back2front  (auto &&... args) { _b2f<Sse4>(args...); }
+	static inline void blend_xrgb_a(auto &&... args) { Sse4::Blend::xrgb_a(args...); }
 }
 
 #endif /* _INCLUDE__SPEC__X86_64__BLIT_H_ */
