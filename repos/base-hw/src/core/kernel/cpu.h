@@ -155,6 +155,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 		Board::Pic & pic()   { return _pic; }
 		Timer      & timer() { return _timer; }
 
+		addr_t stack_base();
 		addr_t stack_start();
 
 		/**
@@ -181,6 +182,8 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 			_arch_init();
 			_state = RUN;
 		}
+
+		[[noreturn]] void panic(Genode::Cpu_state &state);
 };
 
 

@@ -159,11 +159,16 @@ Cpu::Context & Cpu::schedule_next_context(Context &last)
 }
 
 
+addr_t Cpu::stack_base()
+{
+	return Hw::Mm::cpu_local_memory().base +
+	       Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE*_id;
+}
+
+
 addr_t Cpu::stack_start()
 {
-	return Abi::stack_align(Hw::Mm::cpu_local_memory().base +
-	                        (Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE*_id)
-	                        + Hw::Mm::KERNEL_STACK_SIZE);
+	return Abi::stack_align(stack_base() + Hw::Mm::KERNEL_STACK_SIZE);
 }
 
 

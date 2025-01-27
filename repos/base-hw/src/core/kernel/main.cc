@@ -72,9 +72,7 @@ void Kernel::Main::_handle_kernel_entry(Genode::Cpu_state *state)
 			if (state) recent.exception(*state);
 			context = &cpu.schedule_next_context(recent);
 		},
-		[&] () {
-			Genode::error("Cpu ", Cpu::executing_id(), " re-entered lock. ",
-			              "Kernel exception?!"); });
+		[&] () { _cpu_pool.cpu(Cpu::executing_id()).panic(*state); });
 
 	context->proceed();
 }
