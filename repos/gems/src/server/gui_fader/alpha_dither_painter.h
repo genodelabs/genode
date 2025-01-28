@@ -24,6 +24,28 @@ struct Alpha_dither_painter
 	using Pixel_alpha8 = Genode::Pixel_alpha8;
 	using Rect         = Genode::Surface_base::Rect;
 	using Point        = Genode::Surface_base::Point;
+	using uint8_t      = Genode::uint8_t;
+
+	struct Alpha_tile_16x16
+	{
+		uint8_t v[256];
+
+		static Alpha_tile_16x16 from_fade_value(int fade)
+		{
+			using namespace Genode;
+
+			fade *= 256;  /* scale fade value to range of alpha values */
+
+			Alpha_tile_16x16 t;
+			for (unsigned y = 0; y < 16; y++) {
+				for (unsigned x = 0; x < 16; x++) {
+					int const v = Dither_matrix::value(x, y) << 13;
+					t.v[y*16 + x] = (uint8_t)min(255, max(0, (fade - v) >> 16));
+				}
+			}
+			return t;
+		}
+	};
 
 	/*
 	 * \param fade  fade value in 16.16 fixpoint format
@@ -39,23 +61,15 @@ struct Alpha_dither_painter
 
 		int y = clipped.y1();
 
-		/* scale fade value to range of alpha values */
-		fade *= 256;
+		Alpha_tile_16x16 const tile = Alpha_tile_16x16::from_fade_value(fade);
 
-		for (int w, h = clipped.h() ; h--; dst_line += surface.size().w) {
+		for (int w, h = clipped.h() ; h--; dst_line += surface.size().w, y++) {
 
 			int x = clipped.x1();
+			unsigned const y_offset = y << 4;
 
-			for (dst = dst_line, w = clipped.w(); w--; dst++, x++) {
-
-				using namespace Genode;
-
-				int const v = Dither_matrix::value(x, y) << 13;
-
-				dst->pixel = (uint8_t)min(255, max(0, (fade - v) >> 16));
-			}
-
-			y++;
+			for (dst = dst_line, w = clipped.w(); w--; dst++, x++)
+				dst->pixel = tile.v[(y_offset + x) & 0xff];
 		}
 	}
 
