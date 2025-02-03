@@ -132,12 +132,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_context
 		 ** Vm_session **
 		 ****************/
 
-		void run()
-		{
-			_sync_from_vmm();
-			if (_scheduled != ACTIVE) Cpu_context::_activate();
-			_scheduled = ACTIVE;
-		}
+		void run();
 
 		void pause()
 		{

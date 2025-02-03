@@ -35,14 +35,12 @@ namespace Board {
 
 	enum Platform_exitcodes : uint64_t {
 		EXIT_NPF     = 0xfc,
-		EXIT_INIT    = 0xfd,
 		EXIT_STARTUP = 0xfe,
 		EXIT_PAUSED  = 0xff,
 	};
 
 	enum Custom_trapnos : uint64_t {
 		TRAP_VMEXIT = 256,
-		TRAP_VMSKIP = 257,
 	};
 };
 
@@ -55,6 +53,12 @@ namespace Kernel {
 
 struct Board::Vcpu_context
 {
+	enum class Init_state {
+		CREATED,
+		INITIALIZING,
+		STARTED
+	};
+
 	Vcpu_context(unsigned id, Vcpu_data &vcpu_data);
 	void initialize(Kernel::Cpu &cpu, addr_t table_phys_addr);
 	void read_vcpu_state(Vcpu_state &state);
@@ -66,7 +70,10 @@ struct Board::Vcpu_context
 
 	uint64_t tsc_aux_host = 0U;
 	uint64_t tsc_aux_guest = 0U;
-	uint64_t exit_reason = EXIT_INIT;
+	uint64_t exit_reason = EXIT_PAUSED;
+
+	Init_state init_state { Init_state::CREATED };
+
 
 	static Virt_interface &detect_virtualization(Vcpu_data &vcpu_data,
 	                                             unsigned   id)

@@ -212,6 +212,14 @@ void Vm::proceed()
 }
 
 
+void Vm::run()
+{
+	_sync_from_vmm();
+	if (_scheduled != ACTIVE) Cpu_context::_activate();
+	_scheduled = ACTIVE;
+}
+
+
 void Vm::_sync_to_vmm()
 {}
 
