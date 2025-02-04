@@ -22,6 +22,8 @@ namespace Vmm {
 
 	struct Address_range;
 	class  Address_space;
+
+	using uint64_t = Genode::uint64_t;
 }
 
 
