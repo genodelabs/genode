@@ -109,30 +109,37 @@ enum { CORE_PAGER_UTCB_ADDR = 0xbff02000 };
 /**
  * IDC handler for the page-fault portal
  */
-static void page_fault_handler()
+__attribute__((regparm(1)))
+static void exception_handler(addr_t const pt_id)
 {
 	Utcb *utcb = (Utcb *)CORE_PAGER_UTCB_ADDR;
 
-	addr_t  const pf_addr = utcb->pf_addr();
-	addr_t  const pf_ip   = utcb->ip;
-	addr_t  const pf_sp   = utcb->sp;
-	uint8_t const pf_type = utcb->pf_type();
+	addr_t  const ip      = utcb->ip;
+	addr_t  const sp      = utcb->sp;
 
-	error("\nPAGE-FAULT IN CORE addr=", Hex(pf_addr), " ip=", Hex(pf_ip),
-	      " (", (pf_type & Ipc_pager::ERR_W) ? "write" : "read", ")");
+	if (pt_id == PT_SEL_PAGE_FAULT) {
+		addr_t  const pf_addr = utcb->pf_addr();
+		uint8_t const pf_type = utcb->pf_type();
 
-	log("\nstack pointer ", Hex(pf_sp), ", qualifiers ", Hex(pf_type), " ",
-	    pf_type & Ipc_pager::ERR_I ? "I" : "i",
-	    pf_type & Ipc_pager::ERR_R ? "R" : "r",
-	    pf_type & Ipc_pager::ERR_U ? "U" : "u",
-	    pf_type & Ipc_pager::ERR_W ? "W" : "w",
-	    pf_type & Ipc_pager::ERR_P ? "P" : "p");
+		error("\nPAGE-FAULT IN CORE addr=", Hex(pf_addr), " ip=", Hex(ip),
+		      " (", (pf_type & Ipc_pager::ERR_W) ? "write" : "read", ")");
 
-	if ((stack_area_virtual_base() <= pf_sp) &&
-		(pf_sp < stack_area_virtual_base() +
+		log("\nstack pointer ", Hex(sp), ", qualifiers ", Hex(pf_type), " ",
+		    pf_type & Ipc_pager::ERR_I ? "I" : "i",
+		    pf_type & Ipc_pager::ERR_R ? "R" : "r",
+		    pf_type & Ipc_pager::ERR_U ? "U" : "u",
+		    pf_type & Ipc_pager::ERR_W ? "W" : "w",
+		    pf_type & Ipc_pager::ERR_P ? "P" : "p");
+	} else {
+		error("\nEXCEPTION IN CORE ip=", Hex(ip), " sp=", Hex(sp),
+		      " exception=", Hex(pt_id));
+	}
+
+	if ((stack_area_virtual_base() <= sp) &&
+		(sp < stack_area_virtual_base() +
 		         stack_area_virtual_size()))
 	{
-		addr_t utcb_addr_f  = pf_sp / stack_virtual_size();
+		addr_t utcb_addr_f  = sp / stack_virtual_size();
 		utcb_addr_f        *= stack_virtual_size();
 		utcb_addr_f        += stack_virtual_size();
 		utcb_addr_f        -= 4096;
@@ -184,10 +191,10 @@ static void page_fault_handler()
 	};
 
 	int count = 1;
-	log("  #", count++, " ", Hex(pf_sp, Hex::PREFIX, Hex::PAD), " ",
-	                         Hex(pf_ip, Hex::PREFIX, Hex::PAD));
+	log("  #", count++, " ", Hex(sp, Hex::PREFIX, Hex::PAD), " ",
+	                         Hex(ip, Hex::PREFIX, Hex::PAD));
 
-	Core_img dump(pf_sp);
+	Core_img dump(sp);
 	while (dump.ip_valid()) {
 		log("  #", count++, " ", Hex((addr_t)dump.ip(), Hex::PREFIX, Hex::PAD),
 		                    " ", Hex(*dump.ip(),        Hex::PREFIX, Hex::PAD));
@@ -224,7 +231,7 @@ static void startup_handler()
 
 static addr_t init_core_page_fault_handler(addr_t const core_pd_sel)
 {
-	/* create fault handler EC for core main thread */
+	/* create fault handler EC used by all core threads */
 	enum {
 		GLOBAL     = false,
 		EXC_BASE   = 0
@@ -232,22 +239,33 @@ static addr_t init_core_page_fault_handler(addr_t const core_pd_sel)
 
 	addr_t ec_sel = cap_map().insert(1);
 
-	uint8_t ret = create_ec(ec_sel, core_pd_sel, boot_cpu(),
-	                        CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
-	                        EXC_BASE, GLOBAL);
-	if (ret)
+	auto ret = create_ec(ec_sel, core_pd_sel, boot_cpu(),
+	                     CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
+	                     EXC_BASE, GLOBAL);
+	if (ret != Nova::NOVA_OK)
 		log(__func__, ": create_ec returned ", ret);
 
-	/* set up page-fault portal */
-	create_pt(PT_SEL_PAGE_FAULT, core_pd_sel, ec_sel,
-	          Mtd(Mtd::QUAL | Mtd::ESP | Mtd::EIP),
-	          (addr_t)page_fault_handler);
-	revoke(Obj_crd(PT_SEL_PAGE_FAULT, 0, Obj_crd::RIGHT_PT_CTRL));
+	for (unsigned i = 0; i < NUM_INITIAL_PT; i++) {
+		if (i == PT_SEL_PAGE_FAULT || i == PT_SEL_STARTUP || i == SM_SEL_EC)
+			continue;
+
+		ret = create_pt(i, core_pd_sel, ec_sel,
+		                Mtd(Mtd::QUAL | Mtd::ESP | Mtd::EIP),
+		                (addr_t)exception_handler);
+		if (ret != Nova::NOVA_OK)
+			warning(__func__, " exception handler ", i,
+			        " could not be setup, error=", ret);
+
+		revoke(Obj_crd(i, 0, Obj_crd::RIGHT_PT_CTRL));
+	}
 
 	/* startup portal for global core threads */
-	create_pt(PT_SEL_STARTUP, core_pd_sel, ec_sel,
-	          Mtd(Mtd::EIP | Mtd::ESP),
-	          (addr_t)startup_handler);
+	ret = create_pt(PT_SEL_STARTUP, core_pd_sel, ec_sel,
+	                Mtd(Mtd::EIP | Mtd::ESP),
+	                (addr_t)startup_handler);
+	if (ret != Nova::NOVA_OK)
+		warning(__func__, " startup handler ", unsigned(PT_SEL_STARTUP),
+		        " could not be setup, error=", ret);
 	revoke(Obj_crd(PT_SEL_STARTUP, 0, Obj_crd::RIGHT_PT_CTRL));
 
 	return ec_sel;

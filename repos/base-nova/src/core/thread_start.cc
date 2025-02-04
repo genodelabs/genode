@@ -105,12 +105,17 @@ Thread::Start_result Thread::start()
 	utcb.crd_rcv = Obj_crd();
 	utcb.crd_xlt = Obj_crd();
 
-	if (map_local(platform_specific().core_pd_sel(),
-	              *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
-	              Obj_crd(PT_SEL_PAGE_FAULT, 0),
-	              Obj_crd(native_thread().exc_pt_sel + PT_SEL_PAGE_FAULT, 0))) {
-		error("Thread::start: failed to create page-fault portal");
-		return Start_result::DENIED;
+	for (unsigned i = 0; i < NUM_INITIAL_PT; i++) {
+		if (i == SM_SEL_EC)
+			continue;
+
+		if (map_local(platform_specific().core_pd_sel(),
+		              *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
+		              Obj_crd(i, 0),
+		              Obj_crd(native_thread().exc_pt_sel + i, 0))) {
+			error("Thread::start: failed to create page-fault portal");
+			return Start_result::DENIED;
+		}
 	}
 
 	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
