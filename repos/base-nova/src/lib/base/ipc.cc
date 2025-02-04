@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2009-2017 Genode Labs GmbH
+ * Copyright (C) 2009-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/ipc.h>
 #include <base/thread.h>
-#include <base/log.h>
 
 /* base-internal includes */
 #include <base/internal/ipc.h>
@@ -46,7 +45,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 			/* if this happens, the call is bogus and invalid */
 			if ((log2_max >= sizeof(rcv_caps) * 8))
-				throw Ipc_error();
+				return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
 			if ((1UL << log2_max) < rcv_caps)
 				log2_max ++;
@@ -59,10 +58,8 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	Nova::Utcb &utcb = *(Nova::Utcb *)myself->utcb();
 
 	/* the protocol value is unused as the badge is delivered by the kernel */
-	if (!copy_msgbuf_to_utcb(utcb, snd_msg, 0)) {
-		error("could not setup IPC");
-		throw Ipc_error();
-	}
+	if (!copy_msgbuf_to_utcb(utcb, snd_msg, 0))
+		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
 	/*
 	 * Determine manually defined selector for receiving the call result.
@@ -74,7 +71,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	/* if we can't setup receive window, die in order to recognize the issue */
 	if (!rcv_window.prepare_rcv_window(utcb, manual_rcv_sel))
 		/* printf doesn't work here since for IPC also rcv_prepare* is used */
-		nova_die();
+		return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
 	/* establish the mapping via a portal traversal */
 	uint8_t res = Nova::call(dst.local_name());
