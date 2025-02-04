@@ -116,7 +116,8 @@ bool Receive_window::rcv_invalid() const
 }
 
 
-bool Receive_window::rcv_cleanup(bool keep, unsigned short const new_max)
+Receive_window::Receive_cleanup_result Receive_window::rcv_cleanup(bool     const keep,
+                                                                   uint16_t const new_max)
 {
 	/* mark used mapped capabilities as used to prevent freeing */
 	bool reinit = false;
@@ -127,7 +128,7 @@ bool Receive_window::rcv_cleanup(bool keep, unsigned short const new_max)
 		/* should never happen */
 		if (_rcv_pt_sel[i].sel < _rcv_pt_base ||
 			(_rcv_pt_sel[i].sel >= _rcv_pt_base + MAX_CAP_ARGS))
-				nova_die();
+				return Receive_cleanup_result::OUT_OF_BOUNDS;
 
 		_rcv_pt_cap_free [_rcv_pt_sel[i].sel - _rcv_pt_base] = USED_CAP;
 
@@ -154,7 +155,7 @@ bool Receive_window::rcv_cleanup(bool keep, unsigned short const new_max)
 				cap_map().remove(_rcv_pt_base + i, 0, false);
 		}
 
-		return false;
+		return Receive_cleanup_result::SELECTORS_KEPT;
 	}
 
 	/* decrease ref count if valid selector */
@@ -164,7 +165,7 @@ bool Receive_window::rcv_cleanup(bool keep, unsigned short const new_max)
 		cap_map().remove(_rcv_pt_base + i, 0, _rcv_pt_cap_free[i] != FREE_SEL);
 	}
 
-	return true;
+	return Receive_cleanup_result::REINIT_REQUIRED;
 }
 
 
@@ -186,8 +187,22 @@ bool Receive_window::prepare_rcv_window(Nova::Utcb &utcb, addr_t rcv_window)
 	}
 
 	/* allocate receive window if necessary, otherwise use old one */
-	if (rcv_invalid() || rcv_cleanup(true, 1U << _rcv_wnd_log2))
-	{
+	bool reinit_required = rcv_invalid();
+
+	if (!reinit_required) {
+		auto const rcv_result = rcv_cleanup(true, 1U << _rcv_wnd_log2);
+
+		if (rcv_result == Receive_cleanup_result::OUT_OF_BOUNDS) {
+			_rcv_pt_base = INVALID_INDEX;
+			/* no mappings can be received */
+			utcb.crd_rcv = Nova::Obj_crd();
+			return false;
+		}
+
+		reinit_required = rcv_result == Receive_cleanup_result::REINIT_REQUIRED;
+	}
+
+	if (reinit_required) {
 		_rcv_pt_base = cap_map().insert(_rcv_wnd_log2);
 
 		if (_rcv_pt_base == INVALID_INDEX) {

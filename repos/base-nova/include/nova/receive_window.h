@@ -135,6 +135,12 @@ struct Genode::Receive_window
 
 		unsigned num_received_caps() const { return _rcv_pt_sel_max; }
 
+		enum Receive_cleanup_result {
+			SELECTORS_KEPT  = 0,
+			REINIT_REQUIRED = 1,
+			OUT_OF_BOUNDS   = 2
+		};
+
 		/**
 		 * Return true if receive window must be re-initialized
 		 *
@@ -152,10 +158,12 @@ struct Genode::Receive_window
 		 *                        because object is freed
 		 *                        afterwards.
 		 *
-		 * \result 'true'  -  receive window must be re-initialized
-		 *         'false' -  portal selectors has been kept
+		 * \result Receive_cleanup_result:
+		 *         REINIT_REQUIRED  - receive window must be re-initialized
+		 *         SELECTORS_KEPT   - portal selectors has been kept
+		 *         OUT_OF_BOUNDS    - invalid internal state which would lead to out of bounds access
 		 */
-		bool rcv_cleanup(bool keep, unsigned short const new_max = MAX_CAP_ARGS);
+		Receive_cleanup_result rcv_cleanup(bool keep, uint16_t new_max = MAX_CAP_ARGS);
 
 		/**
 		 * Initialize receive window for portal capability
