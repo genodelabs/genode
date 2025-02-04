@@ -146,10 +146,6 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 	/* lookup fault address and decide what to do */
 	unsigned error = (obj.pager(ipc_pager) == Pager_object::Pager_result::STOP);
 
-	/* don't open receive window for pager threads */
-	if (utcb.crd_rcv.value())
-		nova_die();
-
 	if (!error && ipc_pager.syscall_result() != Nova::NOVA_OK) {
 		/* something went wrong - by default don't answer the page fault */
 		error = 4;
@@ -195,13 +191,10 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 }
 
 
-void Pager_object::exception(uint8_t exit_id)
+void Pager_object::exception(uint8_t const exit_id)
 {
 	Thread &myself = *Thread::myself();
 	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
-
-	if (exit_id > PT_SEL_PARENT)
-		nova_die();
 
 	addr_t const fault_ip = utcb.ip;
 	addr_t const fault_sp = utcb.sp;
@@ -380,10 +373,6 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 {
 	Thread &myself = *Thread::myself();
 	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
-
-	/* receive window must be closed - otherwise implementation bug */
-	if (utcb.crd_rcv.value())
-		nova_die();
 
 	/* if protocol is violated ignore request */
 	if (utcb.msg_words() != 1) {
