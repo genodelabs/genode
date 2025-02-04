@@ -33,6 +33,8 @@ class Virtio_fb::Driver
 {
 	private:
 
+		using uint64_t = Genode::uint64_t;
+
 		/*
 		 * Noncopyable
 		 */
