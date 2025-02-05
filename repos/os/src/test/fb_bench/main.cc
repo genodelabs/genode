@@ -26,6 +26,8 @@ struct Test
 {
 	enum { DURATION_MS = 2000 };
 
+	using uint64_t = Genode::uint64_t;
+
 	Env                     &env;
 	int                      id;
 	Timer::Connection        timer   { env };
