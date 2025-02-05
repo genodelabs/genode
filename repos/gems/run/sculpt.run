@@ -347,8 +347,8 @@ install_config {
 				<ram/>
 				<import> <tar name="initial_config.tar"/> </import>
 			</vfs>
-			<policy label="config_fs_rom -> " root="/" />
-			<policy label="rw"                root="/" writeable="yes" />
+			<policy label_prefix="config_fs_rom ->" root="/"/>
+			<policy label_prefix="rw ->"            root="/" writeable="yes"/>
 		</config>
 	</start>
 
@@ -386,10 +386,10 @@ install_config {
 					</dir>
 				</import>
 			</vfs>
-			<policy label="fs_report -> "     root="/" writeable="yes"/>
-			<policy label="log_terminal -> "  root="/" writeable="yes"/>
-			<policy label="report_fs_rom -> " root="/"/>
-			<policy label="ro"                root="/"/>
+			<policy label_prefix="fs_report ->"     root="/" writeable="yes"/>
+			<policy label_prefix="log_terminal ->"  root="/" writeable="yes"/>
+			<policy label_prefix="report_fs_rom ->" root="/"/>
+			<policy label_prefix="ro ->"            root="/"/>
 		</config>
 	</start>
 
@@ -637,12 +637,10 @@ install_config {
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
-			<service name="File_system" label="config">
-				<child name="config_fs" label="rw"/> </service>
-			<service name="File_system" label="report">
-				<child name="report_fs" label="ro"/> </service>
-			<service name="File_system" label="report">
-				<child name="report_fs" label="ro"/> </service>
+			<service name="File_system" label_prefix="config ->">
+				<child name="config_fs" identity="rw"/> </service>
+			<service name="File_system" label_prefix="report ->">
+				<child name="report_fs" identity="ro"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -670,10 +668,10 @@ install_config {
 				<child name="report_rom"/> </service>
 			<service name="ROM" label="clicked">
 				<child name="report_rom"/> </service>
-			<service name="File_system" label="config">
-				<child name="config_fs" label="rw"/> </service>
-			<service name="File_system" label="report">
-				<child name="report_fs" label="ro"/> </service>
+			<service name="File_system" label_prefix="config ->">
+				<child name="config_fs" identity="rw"/> </service>
+			<service name="File_system" label_prefix="report ->">
+				<child name="report_fs" identity="ro"/> </service>
 			<service name="Platform" label_prefix="acpica">
 				<child name="drivers" label="acpica"/> </service>
 			<service name="Platform"> <child name="drivers"/> </service>
@@ -700,8 +698,8 @@ install_config {
 				<child name="leitzentrale"/> </service>
 			<service name="ROM" label_prefix="leitzentrale ->">
 				<child name="leitzentrale"/> </service>
-			<service name="File_system" label="leitzentrale -> fonts">
-				<child name="leitzentrale" label="fonts"/> </service>
+			<service name="File_system" label_prefix="leitzentrale -> fonts ->">
+				<child name="leitzentrale" identity="fonts"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
 			} [log_route] [driver_routes] {

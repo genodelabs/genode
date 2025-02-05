@@ -276,7 +276,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 				<dir name="pipe"> <pipe/> </dir>}
 
 	append_if [expr $use_ram_fs] config_of_app {
-				<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
+				<dir name="ram">  <fs label="from_ram_fs -> /"/> </dir>}
 
 	append config_of_app "
 				<rom name=\"${vbox_file}\"/>"
@@ -295,7 +295,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 			<service name="Gui"> <child name="wm"/> </service>}
 
 	append_if [expr $use_ram_fs] config_of_app {
-			<service name="File_system" label="from_ram_fs"> <child name="ram_fs"/> </service>}
+			<service name="File_system" label_prefix="from_ram_fs ->"> <child name="ram_fs"/> </service>}
 
 	append_if [expr $use_rumpfs] config_of_app {
 				<service name="File_system"> <child name="rump_fs"/> </service>}

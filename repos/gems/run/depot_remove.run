@@ -56,7 +56,7 @@ install_config {
 	<start name="lx_fs" ld="no" ram="100M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<policy label="depot_remove -> " root="/depot" writeable="yes"/>
+			<policy label_prefix="depot_remove ->" root="/depot" writeable="yes"/>
 		</config>
 	</start>
 

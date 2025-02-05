@@ -335,10 +335,10 @@ proc prepare_to_run_genode { } {
 					<dir name="depot"> <tar name="depot.tar"/> </dir>
 					<dir name="gcov_data"> <ram/> </dir>
 				</vfs>
-				<policy label="depot_query -> depot"             root="/depot" />
-				<policy label="fs_rom -> "                       root="/depot" />
-				<policy label="dynamic -> gcov -> gcov -> depot" root="/depot" />
-				<policy label_suffix=" -> gcov_data"             root="/gcov_data" writeable="yes" />
+				<policy label_prefix="depot_query -> depot"             root="/depot" />
+				<policy label_prefix="fs_rom ->"                        root="/depot" />
+				<policy label_prefix="dynamic -> gcov -> gcov -> depot" root="/depot" />
+				<policy label_suffix=" -> gcov_data -> /"               root="/gcov_data" writeable="yes" />
 			</config>
 		</start>
 
@@ -348,7 +348,7 @@ proc prepare_to_run_genode { } {
 
 		<start name="depot_query" priority="-1" ram="2M">
 			<config query="rom">
-				<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
+				<vfs> <dir name="depot"> <fs label="depot -> /"/> </dir> </vfs>
 			</config>
 			<route>
 				<service name="ROM" label="query"> <child name="report_rom"/> </service>
@@ -375,16 +375,16 @@ proc prepare_to_run_genode { } {
 
 					} [single_test_module_routes] {
 
-					<service name="ROM" label_last="ld.lib.so">           <parent/> </service>
-					<service name="ROM" label_last="init">                <parent/> </service>
-					<service name="CPU">                                  <parent/> </service>
-					<service name="PD">                                   <parent/> </service>
-					<service name="LOG">                                  <parent/> </service>
-					<service name="Timer">                                <parent/> </service>
-					<service name="RM">                                   <parent/> </service>
-					<service name="TRACE">                                <parent/> </service>
-					<service name="File_system" label="gcov -> depot">    <parent/> </service>
-					<service name="File_system" label_suffix="gcov_data"> <parent/> </service>
+					<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+					<service name="ROM" label_last="init">      <parent/> </service>
+					<service name="CPU">                        <parent/> </service>
+					<service name="PD">                         <parent/> </service>
+					<service name="LOG">                        <parent/> </service>
+					<service name="Timer">                      <parent/> </service>
+					<service name="RM">                         <parent/> </service>
+					<service name="TRACE">                      <parent/> </service>
+					<service name="File_system" label="gcov -> depot -> /">    <parent/> </service>
+					<service name="File_system" label_suffix="gcov_data -> /"> <parent/> </service>
 				</common_routes>
 
 				<previous-results time_sec="} [expr ($previous_time_ms + 999) / 1000] {"

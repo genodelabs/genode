@@ -68,8 +68,8 @@ install_config {
 					</dir>
 				</dir>
 			</vfs>
-			<policy label="depot_query -> depot" root="/" />
-			<policy label="fs_rom -> "           root="/" />
+			<policy label_prefix="depot_query -> depot ->" root="/" />
+			<policy label_prefix="fs_rom ->"               root="/" />
 		</config>
 	</start>
 
@@ -79,7 +79,7 @@ install_config {
 
 	<start name="depot_query" ram="2M">
 		<config query="rom">
-			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
+			<vfs> <dir name="depot"> <fs label="depot -> /"/> </dir> </vfs>
 		</config>
 		<route>
 			<service name="ROM" label="query"> <child name="report_rom"/> </service>

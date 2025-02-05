@@ -27,8 +27,8 @@
 			<route>
 				<service name="ROM" label="layout">
 					<parent label="touch_keyboard_layout.config"/> </service>
-				<service name="File_system" label="fonts">
-					<parent label="fonts"/> </service>
+				<service name="File_system" label_prefix="fonts ->">
+					<parent identity="fonts"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>

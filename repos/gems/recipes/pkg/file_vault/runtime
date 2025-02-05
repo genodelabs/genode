@@ -86,17 +86,17 @@
 				<service name="File_system"/>
 			</provides>
 			<config>
-				<vfs> <dir name="tresor"> <fs label="tresor"/> </dir> </vfs>
+				<vfs> <dir name="tresor"> <fs label="tresor -> /"/> </dir> </vfs>
 			</config>
 			<route>
 				<service name="ROM" label="ui_config"> <child name="report_rom"/> </service>
 				<service name="Report" label="ui_report"> <child name="report_rom"/> </service>
-				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <parent label="trust_anchor"/> </service>
-				<service name="File_system" label="tresor_init -> "> <parent label="data"/> </service>
-				<service name="File_system" label="tresor"> <parent label="data"/> </service>
-				<service name="File_system" label="image_fs_query -> "> <parent label="data"/> </service>
-				<service name="File_system" label="tresor_vfs -> tresor_fs"> <parent label="data"/> </service>
-				<service name="File_system" label="truncate_file -> tresor"> <parent label="data"/> </service>
+				<service name="File_system" label_prefix="tresor_trust_anchor_vfs -> storage_dir"> <parent identity="trust_anchor"/> </service>
+				<service name="File_system" label_prefix="tresor_init -> ">                        <parent identity="data"/> </service>
+				<service name="File_system" label_prefix="tresor ->">                              <parent identity="data"/> </service>
+				<service name="File_system" label_prefix="image_fs_query -> ">                     <parent identity="data"/> </service>
+				<service name="File_system" label_prefix="tresor_vfs -> tresor_fs">                <parent identity="data"/> </service>
+				<service name="File_system" label_prefix="truncate_file -> tresor">                <parent identity="data"/> </service>
 				<service name="Timer"> <parent/> </service>
 				<service name="PD"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>
@@ -111,7 +111,7 @@
 			<route>
 				<service name="ROM" label="ui_report"> <child name="report_rom"/> </service>
 				<service name="Report" label="ui_config"> <child name="report_rom"/> </service>
-				<service name="File_system" label_last="fonts"> <parent label="fonts"/> </service>
+				<service name="File_system" label_last="fonts -> /"> <parent identity="fonts"/> </service>
 				<service name="Gui"> <parent/> </service>
 				<service name="Timer"> <parent/> </service>
 				<service name="PD"> <parent/> </service>

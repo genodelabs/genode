@@ -44,7 +44,7 @@ namespace File_vault {
 	void gen_child_route(Xml_generator &xml, char const *child, char const *service, char const *label = "")
 	{
 		gen_route(xml, service, label, [&] { gen_named_node(xml, "child", child, [] { }); });
-	};
+	}
 
 	void gen_parent_route(Xml_generator &xml, char const *service, char const *src_label = "", char const *dst_label = "")
 	{
@@ -77,10 +77,11 @@ namespace File_vault {
 		gen_parent_route(xml, "LOG");
 	}
 
-	void gen_vfs_policy(Xml_generator &xml, char const *label, char const *root, bool writeable)
+	void gen_vfs_policy(Xml_generator &xml, char const *label_prefix,
+	                    char const *root, bool writeable)
 	{
 		xml.node("policy", [&] {
-			xml.attribute("label", label);
+			xml.attribute("label_prefix ", label_prefix);
 			xml.attribute("root", root);
 			xml.attribute("writeable", writeable ? "yes" : "no");
 		});
@@ -186,13 +187,13 @@ namespace File_vault {
 				xml.node("vfs", [&] {
 					xml.node("fs", [&] {
 						xml.attribute("buffer_size", "1M");
-						xml.attribute("label", "tresor_fs");
+						xml.attribute("label", "tresor_fs -> /");
 					});
 					gen_named_node(xml, "tresor_crypto_aes_cbc", "crypto", [] { });
 					gen_named_node(xml, "dir", "trust_anchor", [&] {
 						xml.node("fs", [&] {
 							xml.attribute("buffer_size", "1M");
-							xml.attribute("label", "trust_anchor");
+							xml.attribute("label", "trust_anchor -> /");
 						});
 					});
 					gen_named_node(xml, "dir", "dev", [&] {
@@ -214,8 +215,8 @@ namespace File_vault {
 				gen_vfs_policy(xml, "sync_to_tresor_vfs_init -> ", "/dev", true);
 			});
 			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor");
-				gen_parent_route(xml, "File_system", "tresor_fs");
+				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
+				gen_parent_route(xml, "File_system", "tresor_fs -> /");
 				gen_common_routes(xml);
 			});
 		});
@@ -231,7 +232,7 @@ namespace File_vault {
 					gen_named_node(xml, "dir", "storage_dir", [&] {
 						xml.node("fs", [&] {
 							xml.attribute("buffer_size", "1M");
-							xml.attribute("label", "storage_dir");
+							xml.attribute("label", "storage_dir -> /");
 						});
 					});
 					gen_named_node(xml, "dir", "dev", [&] {
@@ -251,7 +252,7 @@ namespace File_vault {
 				gen_vfs_policy(xml, "tresor_vfs -> trust_anchor", "/dev/tresor_trust_anchor", true);
 			});
 			xml.node("route", [&] {
-				gen_parent_route(xml, "File_system", "storage_dir");
+				gen_parent_route(xml, "File_system", "storage_dir -> /");
 				gen_common_routes(xml);
 			});
 		});
@@ -291,7 +292,7 @@ namespace File_vault {
 				xml.attribute("path", path);
 				xml.node("vfs", [&] {
 					gen_named_node(xml, "dir", "tresor", [&] {
-						xml.node("fs", [&] { xml.attribute("label", "tresor"); }); }); });
+						xml.node("fs", [&] { xml.attribute("label", "tresor -> /"); }); }); });
 			});
 			xml.node("route", [&] {
 				gen_parent_route(xml, "File_system");
@@ -358,10 +359,10 @@ namespace File_vault {
 				xml.attribute("trust_anchor_dir", "/trust_anchor");
 				xml.node("vfs", [&] {
 					gen_named_node(xml, "dir", "trust_anchor", [&] {
-						xml.node("fs", [&] { xml.attribute("label", "trust_anchor"); }); }); });
+						xml.node("fs", [&] { xml.attribute("label", "trust_anchor -> /"); }); }); });
 			});
 			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor");
+				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
 				gen_common_routes(xml);
 			});
 		});
@@ -382,12 +383,12 @@ namespace File_vault {
 					xml.node("fs", [&] { xml.attribute("buffer_size", "1M"); });
 					gen_named_node(xml, "tresor_crypto_aes_cbc", "crypto", [] { });
 					gen_named_node(xml, "dir", "trust_anchor", [&] {
-						xml.node("fs", [&] { xml.attribute("label", "trust_anchor"); }); });
+						xml.node("fs", [&] { xml.attribute("label", "trust_anchor -> /"); }); });
 				});
 				sb_config.generate_xml(xml);
 			});
 			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor");
+				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
 				gen_parent_route(xml, "File_system");
 				gen_common_routes(xml);
 			});

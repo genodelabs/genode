@@ -47,7 +47,7 @@ install_config {
 
 	<start name="lx_fs" ld="no" caps="100" ram="4M">
 		<provides> <service name="File_system"/> </provides>
-		<config> <policy label="test-internet_checksum -> " root="/} $lx_fs_root {" writeable="yes"/> </config>
+		<config> <policy label_prefix="test-internet_checksum -> " root="/} $lx_fs_root {" writeable="yes"/> </config>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 

@@ -49,8 +49,8 @@ install_config {
 					</inline>
 				</import>
 			</vfs>
-			<policy label="fs_report -> "     root="/" writeable="yes"/>
-			<policy label="report_fs_rom -> " root="/"/>
+			<policy label_prefix="fs_report ->"     root="/" writeable="yes"/>
+			<policy label_prefix="report_fs_rom ->" root="/"/>
 		</config>
 	</start>
 

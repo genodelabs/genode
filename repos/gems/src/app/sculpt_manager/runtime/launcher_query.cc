@@ -49,6 +49,6 @@ void Sculpt::gen_launcher_query_start_content(Xml_generator &xml)
 
 		gen_service_node<::File_system::Session>(xml, [&] {
 			xml.node("parent", [&] {
-				xml.attribute("label", "config"); }); });
+				xml.attribute("identity", "config"); }); });
 	});
 }

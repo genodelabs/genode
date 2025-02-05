@@ -39,8 +39,8 @@
 						<fifo name="downstream"/>
 					</pipe>
 				</vfs>
-				<policy label="fifo-pipe-test -> in" root="/.upstream/in" writeable="yes"/>
-				<policy label="fifo-pipe-test -> out" root="/.downstream/out" writeable="no"/>
+				<policy label_prefix="fifo-pipe-test -> in ->"  root="/.upstream/in"    writeable="yes"/>
+				<policy label_prefix="fifo-pipe-test -> out ->" root="/.downstream/out" writeable="no"/>
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
@@ -70,8 +70,8 @@
 								<config type="echo">
 									<vfs>
 										<dir name="dev">
-											<fs label="downstream"/>
-											<fs label="upstream"/>
+											<fs label="downstream -> /"/>
+											<fs label="upstream -> /"/>
 											<log/>
 										</dir>
 									</vfs>
@@ -85,7 +85,7 @@
 						</config>
 					</inline>
 				</vfs>
-				<policy label="fs_rom -> " root="/" writeable="no"/>
+				<policy label_prefix="fs_rom ->" root="/" writeable="no"/>
 			</config>
 		</start>
 
@@ -118,10 +118,10 @@
 					</dir>
 					<dir name="dev">
 						<dir name="send-pipe">
-							<fs label="in"/>
+							<fs label="in -> /"/>
 						</dir>
 						<dir name="receive-pipe">
-							<fs label="out"/>
+							<fs label="out -> /"/>
 						</dir>
 						<log/>
 					</dir>

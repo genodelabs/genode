@@ -39,8 +39,8 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 						xml.attribute("buffer_size", buffer_size); }); });
 			};
 
-			gen_fs("rw",     "target", "1M");
-			gen_fs("config", "config", "128K");
+			gen_fs("rw",     "target -> /", "1M");
+			gen_fs("config", "config -> /", "128K");
 		});
 
 		operations.gen_fs_tool_config(xml);
@@ -49,7 +49,7 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 	xml.node("route", [&] {
 
 		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label", "target");
+			xml.attribute("label_prefix", "target ->");
 			gen_named_node(xml, "child", "default_fs_rw"); });
 
 		gen_parent_rom_route(xml, "fs_tool");
@@ -61,7 +61,7 @@ void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version versi
 		gen_parent_route<Rom_session> (xml);
 
 		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label", "config");
-			xml.node("parent", [&] { xml.attribute("label", "config"); }); });
+			xml.attribute("label_prefix", "config ->");
+			xml.node("parent", [&] { xml.attribute("identity", "config"); }); });
 	});
 }

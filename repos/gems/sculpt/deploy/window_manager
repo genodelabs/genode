@@ -14,10 +14,10 @@
 	<start name="system_shell" priority="-2" pkg="system_shell">
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
-			<service name="File_system" label="config"> <parent label="config"/> </service>
-			<service name="File_system" label="report"> <parent label="report"/> </service>
-			<service name="File_system" label="target"> <child name="default_fs_rw"/> </service>
-			<service name="File_system" label="fonts">  <child name="fonts_fs"/> </service>
+			<service name="File_system" label_prefix="config ->"> <parent identity="config"/> </service>
+			<service name="File_system" label_prefix="report ->"> <parent identity="report"/> </service>
+			<service name="File_system" label_prefix="target ->"> <child name="default_fs_rw"/> </service>
+			<service name="File_system" label_prefix="fonts ->">  <child name="fonts_fs"/> </service>
 			<service name="ROM" label="vimrc"> <parent label="config -> vimrc"/> </service>
 			<service name="ROM" label="clipboard"> <child name="wm"/> </service>
 			<service name="Report" label="clipboard"> <child name="wm"/> </service>
@@ -33,7 +33,7 @@
 			<service name="ROM" label="hover">             <child name="wm"/> </service>
 			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
 			<service name="Report">                        <child name="wm"/> </service>
-			<service name="File_system" label="recall">
+			<service name="File_system" label_prefix="recall ->">
 				<child name="recall_fs"/>
 			</service>
 		</route>

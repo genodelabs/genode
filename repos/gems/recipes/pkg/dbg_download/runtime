@@ -60,7 +60,7 @@
 			</config>
 			<route>
 				<service name="File_system">
-					<parent label="used"/>
+					<parent identity="used"/>
 				</service>
 				<any-service> <parent/> </any-service>
 			</route>
@@ -74,7 +74,7 @@
 			</config>
 			<route>
 				<service name="File_system">
-					<parent label="used"/>
+					<parent identity="used"/>
 				</service>
 				<any-service> <parent/> </any-service>
 			</route>
@@ -101,10 +101,10 @@
 				<service name="ROM" label_suffix="installation">
 					<child name="report_rom" label="depot_download -> installation"/>
 				</service>
-				<service name="File_system" label="depot">
+				<service name="File_system" label_prefix="depot ->">
 					<child name="depot_rw"/>
 				</service>
-				<service name="File_system" label="public">
+				<service name="File_system" label_prefix="public ->">
 					<child name="public_rw"/>
 				</service>
 				<service name="Report">
@@ -118,13 +118,13 @@
 			<config>
 				<vfs>
 					<dir name="config">
-						<fs label="config"/>
+						<fs label="config -> /"/>
 					</dir>
 				</vfs>
 			</config>
 			<route>
-				<service name="File_system" label="config">
-					<parent label="system_config"/>
+				<service name="File_system" label_prefix="config ->">
+					<parent identity="system_config"/>
 				</service>
 				<service name="Report">
 					<child name="report_rom"/>

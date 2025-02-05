@@ -19,7 +19,7 @@
 			<service name="ROM" label="hover">             <child name="wm"/> </service>
 			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
 			<service name="Report">                        <child name="wm"/> </service>
-			<service name="File_system" label="recall">
+			<service name="File_system" label_prefix="recall ->">
 				<child name="recall_fs"/>
 			</service>
 		</route>
@@ -62,7 +62,7 @@
 
 	<start name="fs_rom" priority="-2" pkg="jschlatow/pkg/fs_rom/2024-10-07">
 		<route>
-			<service name="File_system"> <parent label="report"/> </service>
+			<service name="File_system"> <parent identity="report"/> </service>
 		</route>
 	</start>
 

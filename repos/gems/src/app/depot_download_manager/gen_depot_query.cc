@@ -30,7 +30,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 			xml.node("dir", [&] () {
 				xml.attribute("name", "depot");
 				xml.node("fs", [&] () {
-					xml.attribute("label", "depot"); });
+					xml.attribute("label", "depot -> /"); });
 			});
 		});
 
@@ -119,7 +119,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 		xml.node("service", [&] () {
 			xml.attribute("name", File_system::Session::service_name());
 			xml.node("parent", [&] () {
-				xml.attribute("label", "depot"); });
+				xml.attribute("identity", "depot"); });
 		});
 		gen_parent_unscoped_rom_route(xml, "depot_query");
 		gen_parent_unscoped_rom_route(xml, "ld.lib.so");

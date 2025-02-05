@@ -316,9 +316,9 @@ void Sandboxed_runtime::Menu_view_state::gen_start_node(Xml_generator &xml, View
 
 			xml.node("service", [&] () {
 				xml.attribute("name", "File_system");
-				xml.attribute("label", "fonts");
+				xml.attribute("label_prefix", "fonts ->");
 				xml.node("parent", [&] () {
-					xml.attribute("label", "fonts"); });
+					xml.attribute("identity", "fonts"); });
 			});
 
 			auto parent_route = [&] (auto const &service)

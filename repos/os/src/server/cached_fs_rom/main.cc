@@ -290,7 +290,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 	Heap heap { env.pd(), env.rm() };
 
 	Allocator_avl           fs_tx_block_alloc { &heap };
-	File_system::Connection fs { env, fs_tx_block_alloc, "", "/", false, 4*1024*1024 };
+	File_system::Connection fs { env, fs_tx_block_alloc, "/", false, 4*1024*1024 };
 
 	Session_requests_rom session_requests { env, *this };
 

@@ -200,7 +200,7 @@ void Distant_runtime::gen_start_nodes(Xml_generator &xml) const
 				xml.node("dir", [&] {
 					xml.attribute("name", "fonts");
 					xml.node("fs", [&] {
-						xml.attribute("label", "fonts");
+						xml.attribute("label", "fonts -> /");
 					});
 				});
 			});
@@ -234,9 +234,9 @@ void Distant_runtime::gen_start_nodes(Xml_generator &xml) const
 			});
 
 			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label", "fonts");
+				xml.attribute("label_prefix", "fonts ->");
 				xml.node("parent", [&] {
-					xml.attribute("label", "leitzentrale -> fonts"); }); });
+					xml.attribute("identity", "leitzentrale -> fonts"); }); });
 		});
 	});
 }

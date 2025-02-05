@@ -24,14 +24,14 @@ void Sculpt::gen_update_start_content(Xml_generator &xml)
 	xml.node("route", [&] {
 
 		using Label = String<32>;
-		auto gen_fs = [&] (Label const &label, Label const &server) {
+		auto gen_fs = [&] (Label const &label_prefix, Label const &server) {
 			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label", label);
+				xml.attribute("label_prefix", label_prefix);
 				gen_named_node(xml, "child", server); }); };
 
 		/* connect file-system sessions to chroot instances */
-		gen_fs("depot",  "depot_rw");
-		gen_fs("public", "public_rw");
+		gen_fs("depot ->",  "depot_rw");
+		gen_fs("public ->", "public_rw");
 
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");

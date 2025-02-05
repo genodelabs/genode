@@ -35,7 +35,8 @@
 			<service name="ROM" label="rules">             <child name="wm"/> </service>
 			<service name="Report">                        <child name="wm"/> </service>
 			<service name="Gui">                           <child name="wm"/> </service>
-			<service name="File_system" label="recall">    <child name="recall_fs"/> </service>
+			<service name="File_system" label_prefix="recall ->">
+				<child name="recall_fs"/> </service>
 		</route>
 	</start>
 

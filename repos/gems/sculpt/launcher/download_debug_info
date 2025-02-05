@@ -1,10 +1,10 @@
 <launcher pkg="dbg_download" priority="-2">
 	<route>
-		<service name="File_system" label="system_config">
-			<parent label="config"/>
+		<service name="File_system" label_prefix="system_config ->">
+			<parent identity="config"/>
 		</service>
-		<service name="File_system" label="used">
-			<child name="default_fs_rw"/>
+		<service name="File_system" label_prefix="used ->">
+			<child identity="default_fs_rw"/>
 		</service>
 		<service name="ROM" label="build_info">
 			<parent label="build_info"/>

@@ -67,7 +67,7 @@ append config {
 
 				<start name="tresor_init_trust_anchor" ram="4M">
 					<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
-						<vfs> <dir name="trust_anchor"> <fs label="ta"/> </dir> </vfs>
+						<vfs> <dir name="trust_anchor"> <fs label="ta -> /"/> </dir> </vfs>
 					</config>
 					<route>
 						<service name="PD">  <parent/> </service>
@@ -88,7 +88,7 @@ append config {
 							<fs buffer_size="1M"/>
 							<tresor_crypto_aes_cbc name="crypto"/>
 							<dir name="trust_anchor">
-								<fs label="ta"/>
+								<fs label="ta -> /"/>
 							</dir>
 						</vfs>
 
@@ -112,7 +112,7 @@ append config {
 						<vfs>
 							<fs buffer_size="1M"/>
 							<tresor_crypto_aes_cbc name="crypto"/>
-							<dir name="trust_anchor"> <fs label="ta"/> </dir>
+							<dir name="trust_anchor"> <fs label="ta -> /"/> </dir>
 						</vfs>
 					</config>
 					<route>
@@ -125,7 +125,7 @@ append config {
 
 			</config>
 			<route>
-				<service name="File_system" label_last="ta"> <child name="vfs"/> </service>
+				<service name="File_system" label_suffix="ta -> /"> <child name="vfs"/> </service>
 				<service name="File_system"> <child name="lx_fs"/> </service>
 				<service name="PD">  <parent/> </service>
 				<service name="ROM"> <parent/> </service>

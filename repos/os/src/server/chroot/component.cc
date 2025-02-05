@@ -64,7 +64,7 @@ struct Chroot::Main
 	 * File-system session for creating new chroot directories
 	 */
 	File_system::Connection fs {
-		env, fs_tx_block_alloc, "", "/", true, 1 };
+		env, fs_tx_block_alloc, "/", true, 1 };
 
 	Attached_rom_dataspace session_requests { env, "session_requests" };
 
@@ -118,7 +118,7 @@ struct Chroot::Main
 			/* Use a chroot path from policy and label sub-directories */
 			Prefix const prefix = policy.attribute_value("path_prefix", Prefix());
 			root_path.import(prefix.string());
-			root_path.append(path_from_label<Path>(label.string()).string());
+			root_path.append(path_from_label<Path>(label.prefix().string()).string());
 		} else if (policy.has_attribute("path")) {
 			/* Use a chroot path from policy */
 			root_path.import(policy.attribute_value("path", Prefix()).string());
@@ -127,14 +127,23 @@ struct Chroot::Main
 			root_path = path_from_label<Path>(label.string());
 		}
 
-		/* extract and append the session argument */
+		/* append client-provided path */
 		{
-			char tmp[PATH_MAX_LEN];
-			Arg_string::find_arg(args.string(), "root").string(tmp, sizeof(tmp), "/");
-			root_path.append_element(tmp);
+			Session_label const client_root_path = label.last_element();
+			bool root_path_valid = true;
+			if (client_root_path.string()[0] != '/') {
+				warning(label, ": last label element should start with /");
+				root_path_valid = false;
+			}
+			if (client_root_path.string()[min(1ul, client_root_path.length()) - 1] != '/') {
+				warning(label, ": last label element should end with /");
+				root_path_valid = false;
+			}
+			if (!root_path_valid)
+				throw Service_denied();
+			root_path.append(client_root_path.string());
+			root_path.remove_trailing('/');
 		}
-
-		root_path.remove_trailing('/');
 
 		char const *new_root = root_path.base();
 
@@ -179,7 +188,11 @@ struct Chroot::Main
 			Arg_string::set_arg(new_args, ARGS_MAX_LEN, "writeable", writeable);
 		}
 
-		Arg_string::set_arg_string(new_args, ARGS_MAX_LEN, "root", new_root);
+		/* replace last label element by new root path */
+		Session_label const rewritten_label =
+			prefixed_label(label.prefix(), Session_label(root_path.string(), "/"));
+
+		Arg_string::set_arg_string(new_args, ARGS_MAX_LEN, "label", rewritten_label.string());
 
 		return env.session("File_system", id, new_args, affinity);
 	}

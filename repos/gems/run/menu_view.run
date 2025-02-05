@@ -306,7 +306,7 @@ install_config {
 			<vfs>
 				<tar name="menu_view_styles.tar" />
 				<dir name="dev"> <log/> </dir>
-				<dir name="fonts"> <fs label="fonts"/> </dir>
+				<dir name="fonts"> <fs label="fonts -> /"/> </dir>
 			</vfs>
 			<dialog name="dialog"       xpos="200" ypos="150"/>
 			<dialog name="fixed_dialog" xpos="400" ypos="50" width="400"/>
@@ -314,7 +314,7 @@ install_config {
 		<route>
 			<service name="ROM"    label="dialog"> <child name="dynamic_rom" /> </service>
 			<service name="Report" label="hover">  <child name="report_rom"/> </service>
-			<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
+			<service name="File_system" label="fonts -> /"> <child name="fonts_fs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

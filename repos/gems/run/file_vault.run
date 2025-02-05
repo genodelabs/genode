@@ -191,20 +191,21 @@ append config {
 			<config jitterentropy_available="} [jent_avail_attr] {">
 				<vfs>
 					<dir name="tresor">
-						<fs label="tresor"/>
+						<fs label="tresor -> /"/>
 					</dir>
 				</vfs>
 			</config>
 			<route>
 				<service name="ROM" label="ui_config"> <child name="dynamic_rom" label="file_vault_ui_config"/> </service>
 				<service name="Report" label="ui_report"> <child name="report_rom"/> </service>
-				<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <child name="trust_anchor_fs" label="file_vault -> trust_anchor"/> </service>
-				<service name="File_system" label="tresor_init -> "> <child name="data_fs" label="file_vault -> data"/> </service>
-				<service name="File_system" label="tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
-				<service name="File_system" label="fs_query -> "> <child name="data_fs" label="file_vault -> data"/> </service>
-				<service name="File_system" label="image_fs_query -> "> <child name="data_fs" label="file_vault -> data"/> </service>
-				<service name="File_system" label="tresor_vfs -> tresor_fs"> <child name="data_fs" label="file_vault -> data"/> </service>
-				<service name="File_system" label="truncate_file -> tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
+				<service name="File_system" label_prefix="tresor_trust_anchor_vfs -> storage_dir">
+					<child name="trust_anchor_fs" identity="file_vault -> trust_anchor"/> </service>
+				<service name="File_system" label_prefix="tresor_init ->">          <child name="data_fs" identity="file_vault -> data"/> </service>
+				<service name="File_system" label_prefix="tresor ->">               <child name="data_fs" identity="file_vault -> data"/> </service>
+				<service name="File_system" label_prefix="fs_query ->">             <child name="data_fs" identity="file_vault -> data"/> </service>
+				<service name="File_system" label_prefix="image_fs_query ->">       <child name="data_fs" identity="file_vault -> data"/> </service>
+				<service name="File_system" label_prefix="tresor_vfs -> tresor_fs"> <child name="data_fs" identity="file_vault -> data"/> </service>
+				<service name="File_system" label_prefix="truncate_file -> tresor"> <child name="data_fs" identity="file_vault -> data"/> </service>
 				<service name="Timer"> <child name="timer"/> </service>
 				<service name="PD"> <parent/> </service>
 				<service name="ROM"> <parent/> </service>

@@ -58,10 +58,10 @@ void Sculpt::gen_prepare_vfs_start(Xml_generator &xml)
 			});
 
 			gen_named_node(xml, "dir", "rw", [&] {
-				xml.node("fs", [&] { xml.attribute("label", "target"); }); });
+				xml.node("fs", [&] { xml.attribute("label", "target -> /"); }); });
 
 			gen_named_node(xml, "dir", "config", [&] {
-				xml.node("fs", [&] { xml.attribute("label", "config"); }); });
+				xml.node("fs", [&] { xml.attribute("label", "config -> /"); }); });
 
 			gen_named_node(xml, "rom", "VERSION");
 		});
@@ -184,7 +184,7 @@ void Sculpt::gen_prepare_start_content(Xml_generator &xml, Prepare_version versi
 	xml.node("route", [&] {
 
 		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label", "vfs -> target");
+			xml.attribute("label_prefix", "vfs -> target ->");
 			gen_named_node(xml, "child", "default_fs_rw"); });
 
 		gen_parent_rom_route(xml, "ld.lib.so");
@@ -203,7 +203,7 @@ void Sculpt::gen_prepare_start_content(Xml_generator &xml, Prepare_version versi
 		gen_parent_route<Timer::Session> (xml);
 
 		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label", "vfs -> config");
-			xml.node("parent", [&] { xml.attribute("label", "config"); }); });
+			xml.attribute("label_prefix", "vfs -> config ->");
+			xml.node("parent", [&] { xml.attribute("identity", "config"); }); });
 	});
 }

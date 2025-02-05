@@ -207,8 +207,8 @@ set config_of_app {
 				<tar name="coreutils.tar"/>
 				<tar name="bash.tar"/>
 
-				<dir name="from"> <fs label="share_from"/> </dir>
-				<dir name="to">   <fs label="share_to"/> </dir>
+				<dir name="from"> <fs label="share_from -> /"/> </dir>
+				<dir name="to">   <fs label="share_to -> /"/> </dir>
 
 				<dir name="tmp"> <ram/> </dir>
 				<dir name="dev">
@@ -222,10 +222,10 @@ set config_of_app {
 			<default-policy root="/" writeable="yes"/>
 		</config>
 		<route>
-			<service name="File_system" label="share_from">
+			<service name="File_system" label_prefix="share_from ->">
 				<child name="ram_fs_from"/>
 			</service>
-			<service name="File_system" label="share_to">
+			<service name="File_system" label_prefix="share_to ->">
 				<child name="ram_fs_to"/>
 			</service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -342,11 +342,11 @@ append config_of_app {
 				<rom name="} $vbox_file {"/>}
 
 append_if [expr $use_ram_fs] config_of_app {
-				<dir name="ram">  <fs label="from_ram_fs"/> </dir>}
+				<dir name="ram">  <fs label="from_ram_fs -> /"/> </dir>}
 
 append config_of_app {
-				<dir name="from"> <fs label="share_ram_fs_from"/> </dir>
-				<dir name="to">   <fs label="share_ram_fs_to"/> </dir>
+				<dir name="from"> <fs label="share_ram_fs_from -> /"/> </dir>
+				<dir name="to">   <fs label="share_ram_fs_to -> /"/> </dir>
 				<fs/>
 			</vfs>
 		</config>
@@ -354,15 +354,15 @@ append config_of_app {
 			<service name="Report"> <child name="report_rom"/> </service>}
 
 append_if [expr $use_ram_fs] config_of_app {
-			<service name="File_system" label="from_ram_fs">
+			<service name="File_system" label_prefix="from_ram_fs ->">
 				<child name="ram_fs"/>
 			</service>}
 
 append config_of_app {
-			<service name="File_system" label="share_ram_fs_from">
+			<service name="File_system" label_prefix="share_ram_fs_from ->">
 				<child name="ram_fs_from"/>
 			</service>
-			<service name="File_system" label="share_ram_fs_to">
+			<service name="File_system" label_prefix="share_ram_fs_to ->">
 				<child name="ram_fs_to"/>
 			</service>
 			<service name="File_system"> <child name="rump_fs"/> </service>

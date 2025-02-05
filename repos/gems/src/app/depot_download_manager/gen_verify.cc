@@ -34,13 +34,13 @@ void Depot_download_manager::gen_verify_start_content(Xml_generator &xml,
 				xml.attribute("name", "public");
 				xml.node("fs", [&] () {
 					xml.attribute("buffer_size", 144u << 10);
-					xml.attribute("label", "public"); });
+					xml.attribute("label", "public -> /"); });
 			});
 			xml.node("dir", [&] () {
 				xml.attribute("name", "depot");
 				xml.node("fs", [&] () {
 					xml.attribute("buffer_size", 144u << 10);
-					xml.attribute("label", "depot"); });
+					xml.attribute("label", "depot -> /"); });
 			});
 			xml.node("dir", [&] () {
 				xml.attribute("name", "dev");
@@ -66,15 +66,15 @@ void Depot_download_manager::gen_verify_start_content(Xml_generator &xml,
 	xml.node("route", [&] () {
 		xml.node("service", [&] () {
 			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label", "public");
+			xml.attribute("label_prefix", "public ->");
 			xml.node("parent", [&] () {
-				xml.attribute("label", "public"); });
+				xml.attribute("identity", "public"); });
 		});
 		xml.node("service", [&] () {
 			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label", "depot");
+			xml.attribute("label_prefix", "depot ->");
 			xml.node("parent", [&] () {
-				xml.attribute("label", "depot"); });
+				xml.attribute("identity", "depot"); });
 		});
 		gen_parent_unscoped_rom_route(xml, "verify");
 		gen_parent_unscoped_rom_route(xml, "ld.lib.so");

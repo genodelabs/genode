@@ -33,7 +33,7 @@
 			<provides> <service name="Report"/> </provides>
 			<config> <vfs> <fs/> </vfs> </config>
 			<route>
-				<service name="File_system"> <parent label="recall"/> </service>
+				<service name="File_system"> <parent identity="recall"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>
@@ -42,7 +42,7 @@
 			<provides> <service name="ROM"/> </provides>
 			<config/>
 			<route>
-				<service name="File_system"> <parent label="recall"/> </service>
+				<service name="File_system"> <parent identity="recall"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>

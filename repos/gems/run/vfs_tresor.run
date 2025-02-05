@@ -108,7 +108,7 @@ append config {
 				<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
 					<vfs>
 						<dir name="trust_anchor">
-							<fs label="tresor_trust_anchor"/>
+							<fs label="tresor_trust_anchor -> /"/>
 						</dir>
 					</vfs>
 				</config>
@@ -122,10 +122,10 @@ append config {
 					<trust-anchor path="/trust_anchor"/>
 
 					<vfs>
-						<fs label="tresor_block_io" buffer_size="1M"/>
+						<fs label="tresor_block_io -> /" buffer_size="1M"/>
 						<tresor_crypto_aes_cbc name="crypto"/>
 						<dir name="trust_anchor">
-							<fs label="tresor_trust_anchor"/>
+							<fs label="tresor_trust_anchor -> /"/>
 						</dir>
 					</vfs>
 
@@ -162,9 +162,9 @@ append config {
 						<provides><service name="File_system"/></provides>
 						<config>
 							<vfs>
-								<fs buffer_size="1M" label="tresor_block_io"/>
+								<fs buffer_size="1M" label="tresor_block_io -> /"/>
 								<tresor_crypto_aes_cbc name="tresor_crypto"/>
-								<dir name="ta"> <fs buffer_size="1M" label="tresor_trust_anchor"/> </dir>
+								<dir name="ta"> <fs buffer_size="1M" label="tresor_trust_anchor -> /"/> </dir>
 								<dir name="dev">
 									<tresor name="tresor" debug="no" verbose="yes"
 										 block="/} [tresor_image_name] {"
@@ -235,8 +235,8 @@ append config {
 							<env key="PATH" value="/bin"/>
 						</config>
 						<route>
-							<service name="File_system" label="shell"> <child name="vfs"/> </service>
-							<service name="File_system" label="tresor"> <child name="vfs_tresor"/> </service>
+							<service name="File_system" label="shell"> <child name="vfs" label="/"/> </service>
+							<service name="File_system" label="tresor"> <child name="vfs_tresor" label="/"/> </service>
 							<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
 							<service name="ROM" label_last="/bin/bash"> <child name="vfs_rom"/> </service>
 							<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
@@ -250,8 +250,8 @@ append config {
 		</config>
 		<route>
 			<service name="Terminal"> <child name="log_terminal"/> </service>
-			<service name="File_system" label_suffix="tresor_block_io"> <child name="lx_fs"/> </service>
-			<service name="File_system" label_suffix="tresor_trust_anchor"> <child name="vfs_tresor_trust_anchor"/> </service>
+			<service name="File_system" label_suffix="tresor_block_io -> /"> <child name="lx_fs"/> </service>
+			<service name="File_system" label_suffix="tresor_trust_anchor -> /"> <child name="vfs_tresor_trust_anchor"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>

@@ -34,9 +34,6 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		using Label_string = Genode::String<64>;
 		Label_string _label;
 
-		using Root_string = Genode::String<::File_system::MAX_NAME_LEN>;
-		Root_string _root;
-
 		::File_system::Connection _fs;
 
 		bool _write_would_block = false;
@@ -568,13 +565,17 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Fs_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			_env(env),
-			_label(config.attribute_value("label", Label_string())),
-			_root( config.attribute_value("root",  Root_string())),
+			_label(config.attribute_value("label", Label_string("/"))),
 			_fs(_env.env(), _fs_packet_alloc,
-			    _label.string(), _root.string(),
+			    _label,
 			    config.attribute_value("writeable", true),
 			    buffer_size(config))
 		{
+			if (config.has_attribute("root")) {
+				Genode::warning("vfs: <fs> node uses deprecated 'root' attribute.");
+				Genode::warning("     Append the root dir to the label instead.");
+			}
+
 			_fs.sigh(_signal_handler);
 		}
 

@@ -49,8 +49,8 @@
 				<default-policy root="/" writeable="yes"/>
 			</config>
 			<route>
-				<service name="File_system" label="target"> <parent label="target"/> </service>
-				<service name="File_system" label="report"> <parent label="report"/> </service>
+				<service name="File_system" label="target"> <parent label="target -> /"/> </service>
+				<service name="File_system" label="report"> <parent label="report -> /"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>

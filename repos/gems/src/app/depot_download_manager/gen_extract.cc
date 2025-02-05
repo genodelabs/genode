@@ -37,7 +37,7 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 				xml.attribute("name", "public");
 				xml.node("fs", [&] () {
 					xml.attribute("buffer_size", 144u << 10);
-					 xml.attribute("label", "public"); });
+					 xml.attribute("label", "public -> /"); });
 			});
 			xml.node("dir", [&] () {
 				xml.attribute("name", "depot");
@@ -45,7 +45,7 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 					xml.attribute("name", user);
 					xml.node("fs", [&] () {
 						xml.attribute("buffer_size", 144u << 10);
-						xml.attribute("label", user_path); });
+						xml.attribute("label", Path(user_path, " -> /")); });
 				});
 			});
 			xml.node("dir", [&] () {
@@ -75,13 +75,13 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 	xml.node("route", [&] () {
 		xml.node("service", [&] () {
 			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label", "public");
+			xml.attribute("label_prefix", "public ->");
 			xml.node("parent", [&] () {
-				xml.attribute("label", "public"); });
+				xml.attribute("identity", "public"); });
 		});
 		xml.node("service", [&] () {
 			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label", user_path);
+			xml.attribute("label_prefix", Path(user_path, " ->"));
 			xml.node("child", [&] () {
 				xml.attribute("name", user_path); });
 		});

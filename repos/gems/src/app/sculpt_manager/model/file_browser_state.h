@@ -105,11 +105,11 @@ struct Sculpt::File_browser_state : Noncopyable
 
 					if (browsed_fs == "config") {
 						xml.node("parent", [&] {
-							xml.attribute("label", "config"); });
+							xml.attribute("identity", "config"); });
 					}
 					else if (browsed_fs == "report") {
 						xml.node("parent", [&] {
-							xml.attribute("label", "report"); });
+							xml.attribute("identity", "report"); });
 					}
 					else {
 						xml.node("child", [&] {
@@ -181,19 +181,19 @@ struct Sculpt::File_browser_state : Noncopyable
 						xml.attribute("label", "leitzentrale -> editor"); }); });
 
 				gen_service_node<::File_system::Session>(xml, [&] {
-					xml.attribute("label", "fonts");
+					xml.attribute("label_prefix", "fonts ->");
 					xml.node("parent", [&] {
-						xml.attribute("label", "leitzentrale -> fonts"); }); });
+						xml.attribute("identity", "leitzentrale -> fonts"); }); });
 
 				gen_service_node<::File_system::Session>(xml, [&] {
 
 					if (browsed_fs == "config") {
 						xml.node("parent", [&] {
-							xml.attribute("label", "config"); });
+							xml.attribute("identity", "config"); });
 					}
 					else if (browsed_fs == "report") {
 						xml.node("parent", [&] {
-							xml.attribute("label", "report"); });
+							xml.attribute("identity", "report"); });
 					}
 					else {
 						xml.node("child", [&] {

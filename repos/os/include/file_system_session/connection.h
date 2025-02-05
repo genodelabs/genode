@@ -58,22 +58,19 @@ struct File_system::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \param tx_buffer_alloc  allocator used for managing the
 	 *                         transmission buffer
-	 * \param label            session label
-	 * \param root             root directory of session
+	 * \param label            session label and client-preferred root directory
 	 * \param writeable        session is writeable
 	 * \param tx_buf_size      size of transmission buffer in bytes
 	 */
 	Connection(Genode::Env             &env,
 	           Genode::Range_allocator &tx_block_alloc,
-	           Label             const &label = Label(),
-	           char              const *root        = "/",
+	           Label             const &label       = Label("/"),
 	           bool                     writeable   = true,
 	           size_t                   tx_buf_size = DEFAULT_TX_BUF_SIZE)
 	:
 		Genode::Connection<Session>(env, label,
 		                            Ram_quota { 8*1024*sizeof(long) + tx_buf_size },
-		                            Args("root=\"",      root, "\", "
-		                                 "writeable=",   writeable, ", "
+		                            Args("writeable=",   writeable, ", "
 		                                 "tx_buf_size=", tx_buf_size)),
 		Session_client(cap(), tx_block_alloc, env.rm())
 	{ }

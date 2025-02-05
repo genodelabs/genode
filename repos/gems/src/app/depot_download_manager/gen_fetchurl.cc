@@ -41,7 +41,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 				xml.attribute("name", "download");
 				xml.node("fs", [&] {
 					xml.attribute("buffer_size", 144u << 10);
-					xml.attribute("label", "download"); });
+					xml.attribute("label", "download -> /"); });
 			});
 			xml.node("dir", [&] {
 				xml.attribute("name", "dev");
@@ -64,7 +64,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 				xml.node("pipe", [&] { });
 			});
 			xml.node("fs", [&] {
-				xml.attribute("label", "tcpip"); });
+				xml.attribute("label", "tcpip -> /"); });
 		});
 
 		import.for_each_download([&] (Archive::Path const &path) {
@@ -93,15 +93,15 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 	xml.node("route", [&] {
 		xml.node("service", [&] {
 			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label", "download");
+			xml.attribute("label_prefix", "download ->");
 			xml.node("parent", [&] {
-				xml.attribute("label", "public_rw"); });
+				xml.attribute("identity", "public_rw"); });
 		});
 		xml.node("service", [&] {
 			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label", "tcpip");
+			xml.attribute("label_prefix", "tcpip ->");
 			xml.node("parent", [&] {
-				xml.attribute("label", "tcpip"); });
+				xml.attribute("identity", "tcpip"); });
 		});
 		gen_parent_unscoped_rom_route(xml, "fetchurl");
 		gen_parent_unscoped_rom_route(xml, "ld.lib.so");

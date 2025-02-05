@@ -36,7 +36,7 @@ void Depot_download_manager::gen_chroot_start_content(Xml_generator &xml,
 		xml.node("service", [&] () {
 			xml.attribute("name", File_system::Session::service_name());
 			xml.node("parent", [&] () {
-				xml.attribute("label", "depot_rw"); });
+				xml.attribute("identity", "depot_rw"); });
 		});
 		gen_parent_unscoped_rom_route(xml, "chroot");
 		gen_parent_unscoped_rom_route(xml, "ld.lib.so");

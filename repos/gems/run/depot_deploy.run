@@ -95,8 +95,8 @@ install_config {
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs> <tar name="depot.tar"/> </vfs>
-			<policy label="depot_query -> depot" root="/" />
-			<policy label="fs_rom -> "           root="/" />
+			<policy label_prefix="depot_query -> depot ->" root="/" />
+			<policy label_prefix="fs_rom ->"               root="/" />
 		</config>
 	</start>
 
@@ -110,7 +110,7 @@ install_config {
 
 	<start name="depot_query" ram="2M">
 		<config query="rom">
-			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
+			<vfs> <dir name="depot"> <fs label="depot -> /"/> </dir> </vfs>
 		</config>
 		<route>
 			<service name="ROM" label="query"> <child name="report_rom"/> </service>
@@ -172,17 +172,17 @@ install_config {
 					<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
 					<service name="ROM" label="rules">             <child name="wm"/> </service>
 					<service name="Report">                        <child name="wm"/> </service>
-					<service name="Gui">                     <child name="wm"/> </service>
-					<service name="File_system" label="recall">    <child name="recall_fs"/> </service>
+					<service name="Gui">                           <child name="wm"/> </service>
+					<service name="File_system" label_prefix="recall ->"> <child name="recall_fs"/> </service>
 				</route>
 			</start>
 
 			<start name="themed_decorator" pkg="} [depot_user]/pkg/[current_pkg themed_decorator] {">
 				<route>
-					<service name="ROM"    label="window_layout">     <child name="wm"/> </service>
-					<service name="ROM"    label="pointer">           <child name="wm"/> </service>
-					<service name="Report">                           <child name="wm"/> </service>
-					<service name="Gui">                        <child name="wm"/> </service>
+					<service name="ROM"    label="window_layout"> <child name="wm"/> </service>
+					<service name="ROM"    label="pointer">       <child name="wm"/> </service>
+					<service name="Report">                       <child name="wm"/> </service>
+					<service name="Gui">                          <child name="wm"/> </service>
 				</route>
 			</start>
 
@@ -216,7 +216,7 @@ install_config {
 			<start name="system_shell" pkg="} [depot_user]/pkg/[current_pkg system_shell] {">
 				<route>
 					<service name="Gui"> <child name="wm"/> </service>
-					<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
+					<service name="File_system" label_prefix="fonts ->"> <child name="fonts_fs"/> </service>
 					<service name="File_system"> <parent/> </service>
 					<service name="Report" label="clipboard"> <parent label="clipboard"/> </service>
 					<service name="ROM"    label="clipboard"> <parent label="clipboard"/> </service>

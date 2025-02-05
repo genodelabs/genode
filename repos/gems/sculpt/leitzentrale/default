@@ -190,7 +190,7 @@
 					<service name="ROM"    label="pointer">           <child name="report_rom"/> </service>
 					<service name="Report" label="decorator_margins"> <child name="report_rom"/> </service>
 					<service name="Report" label="hover">             <child name="report_rom"/> </service>
-					<service name="Gui">                        <child name="wm"/>         </service>
+					<service name="Gui">                              <child name="wm"/>         </service>
 					<any-service> <parent/> </any-service>
 				</route>
 			</start>
@@ -200,7 +200,7 @@
 				<provides> <service name="Report"/> </provides>
 				<config> <vfs> <fs/> </vfs> </config>
 				<route>
-					<service name="File_system"> <parent label="config"/> </service>
+					<service name="File_system"> <parent identity="config"/> </service>
 					<any-service> <parent/> </any-service>
 				</route>
 			</start>
@@ -287,11 +287,11 @@
 					<libc stdin="/report/log" stdout="/dev/terminal"/>
 					<vfs>
 						<dir name="dev"> <terminal/> </dir>
-						<dir name="report"> <fs label="report"/> </dir>
+						<dir name="report"> <fs label="report -> /"/> </dir>
 					</vfs>
 				</config>
 				<route>
-					<service name="File_system"> <parent label="report"/> </service>
+					<service name="File_system"> <parent identity="report"/> </service>
 					<any-service> <child name="log_terminal"/> <parent/> </any-service>
 				</route>
 			</start>

@@ -146,10 +146,17 @@ struct Sculpt::Route : List_model<Route>::Element
 
 			if (required_label.valid()) {
 
-				if (selected_service->match_label == Service::Match_label::LAST)
+				switch (selected_service->match_label) {
+				case Service::Match_label::LAST:
 					xml.attribute("label_last", required_label);
-				else
+					break;
+				case Service::Match_label::FS:
+					xml.attribute("label_prefix", Label(required_label, " ->"));
+					break;
+				case Service::Match_label::EXACT:
 					xml.attribute("label", required_label);
+					break;
+				}
 			}
 
 			selected_service->gen_xml(xml);

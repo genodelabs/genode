@@ -10,8 +10,8 @@ multiple archives one at a time:
 !  <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"
 !        update_mtime="no"/>
 !  <vfs>
-!          <dir name="download"> <fs label="download"/> </dir>
-!          <dir name="content"> <fs label="content" writeable="yes"/> </dir>
+!          <dir name="download"> <fs label="download -> /"/> </dir>
+!          <dir name="content">  <fs label="content -> /" writeable="yes"/> </dir>
 !          <dir name="dev"> <log/> <null/> </dir>
 !  </vfs>
 !  <extract archive="/download/foo.zip" to="/content/foo123/" strip="1"/>

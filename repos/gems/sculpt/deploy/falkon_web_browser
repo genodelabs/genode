@@ -21,7 +21,7 @@
 			<service name="ROM" label="hover">             <child name="wm"/> </service>
 			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
 			<service name="Report">                        <child name="wm"/> </service>
-			<service name="File_system" label="recall">    <child name="recall_fs"/> </service>
+			<service name="File_system" label_prefix="recall ->"> <child name="recall_fs"/> </service>
 		</route>
 	</start>
 
@@ -68,8 +68,8 @@
 			<service name="Play">    <child name="mixer"/>        </service>
 			<service name="Record">  <child name="mixer"/>        </service>
 			<service name="Capture"> <child name="black_hole"/>   </service>
-			<service name="File_system" label="config">     <child name="ram_fs"/> </service>
-			<service name="File_system" label="downloads">  <child name="ram_fs"/> </service>
+			<service name="File_system" label_prefix="config ->">     <child name="ram_fs"/> </service>
+			<service name="File_system" label_prefix="downloads ->">  <child name="ram_fs"/> </service>
 			<service name="Gui">                            <child name="wm"/> </service>
 			<service name="Report" label="falkon -> shape"> <child name="wm"/> </service>
 			<service name="Report" label="clipboard">       <child name="wm"/> </service>

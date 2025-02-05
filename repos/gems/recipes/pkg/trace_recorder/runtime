@@ -19,7 +19,7 @@
 
 	<!-- example, must be refined and enabled -->
 	<config period_ms="5000" enable="no">
-		<vfs> <fs label="target"/> </vfs>
+		<vfs> <fs label="target -> /"/> </vfs>
 
 		<default-policy policy="ctf0">
 			<ctf/>

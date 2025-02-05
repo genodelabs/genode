@@ -165,7 +165,7 @@ append_if [have_board linux] config {
 			<service name="File_system"/>
 		</provides>
 		<config>
-			<policy label="file_vault -> data" root="/file_vault_gui_dir/data" writeable="yes"/>
+			<policy label_prefix="file_vault -> data" root="/file_vault_gui_dir/data" writeable="yes"/>
 		</config>
 		<route>
 			<service name="Timer"> <child name="timer"/> </service>
@@ -182,7 +182,7 @@ append_if [have_board linux] config {
 			<service name="File_system"/>
 		</provides>
 		<config>
-			<policy label="file_vault -> trust_anchor" root="/file_vault_gui_dir/trust_anchor" writeable="yes"/>
+			<policy label_prefix="file_vault -> trust_anchor" root="/file_vault_gui_dir/trust_anchor" writeable="yes"/>
 		</config>
 		<route>
 			<service name="Timer"> <child name="timer"/> </service>
@@ -200,7 +200,7 @@ append_if [expr ![have_board linux]] config {
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <dir name="data"> <ram/> </dir> </vfs>
-			<policy label="file_vault -> data" root="/data" writeable="yes"/>
+			<policy label_prefix="file_vault -> data" root="/data" writeable="yes"/>
 		</config>
 		<route>
 			<service name="PD"> <parent/> </service>
@@ -215,7 +215,7 @@ append_if [expr ![have_board linux]] config {
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <dir name="trust_anchor"> <ram/> </dir> </vfs>
-			<policy label="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
+			<policy label_prefix="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
 		</config>
 		<route>
 			<service name="PD"> <parent/> </service>
@@ -243,17 +243,18 @@ append config {
 
 	<start name="file_vault" caps="1200" ram="100M">
 		<config jitterentropy_available="} [jent_avail_attr] {">
-			<vfs> <dir name="tresor"> <fs label="tresor"/> </dir> </vfs>
+			<vfs> <dir name="tresor"> <fs label="tresor -> /"/> </dir> </vfs>
 		</config>
 		<route>
 			<service name="ROM" label="ui_config"> <child name="report_rom"/> </service>
 			<service name="Report" label="ui_report"> <child name="report_rom"/> </service>
-			<service name="File_system" label="tresor_trust_anchor_vfs -> storage_dir"> <child name="trust_anchor_fs" label="file_vault -> trust_anchor"/> </service>
-			<service name="File_system" label="tresor_init -> "> <child name="data_fs" label="file_vault -> data"/> </service>
-			<service name="File_system" label="tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
-			<service name="File_system" label="image_fs_query -> "> <child name="data_fs" label="file_vault -> data"/> </service>
-			<service name="File_system" label="tresor_vfs -> tresor_fs"> <child name="data_fs" label="file_vault -> data"/> </service>
-			<service name="File_system" label="truncate_file -> tresor"> <child name="data_fs" label="file_vault -> data"/> </service>
+			<service name="File_system" label_prefix="tresor_trust_anchor_vfs -> storage_dir">
+				<child name="trust_anchor_fs" identity="file_vault -> trust_anchor"/> </service>
+			<service name="File_system" label_prefix="tresor_init ->">          <child name="data_fs" identity="file_vault -> data"/> </service>
+			<service name="File_system" label_prefix="tresor ->">               <child name="data_fs" identity="file_vault -> data"/> </service>
+			<service name="File_system" label_prefix="image_fs_query ->">       <child name="data_fs" identity="file_vault -> data"/> </service>
+			<service name="File_system" label_prefix="tresor_vfs -> tresor_fs"> <child name="data_fs" identity="file_vault -> data"/> </service>
+			<service name="File_system" label_prefix="truncate_file -> tresor"> <child name="data_fs" identity="file_vault -> data"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="PD"> <parent/> </service>
 			<service name="ROM"> <parent/> </service>
@@ -265,7 +266,7 @@ append config {
 
 	<start name="file_vault_gui" caps="400" ram="8M">
 		<route>
-			<service name="File_system" label_last="fonts"> <child name="fonts_fs"/> </service>
+			<service name="File_system"> <child name="fonts_fs"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>
 			<service name="ROM" label="ui_report"> <child name="report_rom"/> </service>
 			<service name="Report" label="ui_config"> <child name="report_rom"/> </service>

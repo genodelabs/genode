@@ -923,13 +923,20 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 
 			/* apply client's root offset. */
 			{
-				char tmp[MAX_PATH_LEN] { };
-				Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
-				if (Genode::strcmp("/", tmp, sizeof(tmp))) {
-					session_root.append("/");
-					session_root.append(tmp);
-					session_root.remove_trailing('/');
+				Session_label const client_root_path = label.last_element();
+				bool root_path_valid = true;
+				if (client_root_path.string()[0] != '/') {
+					warning(label, ": last label element should start with /");
+					root_path_valid = false;
 				}
+				if (client_root_path.string()[min(1ul, client_root_path.length()) - 1] != '/') {
+					warning(label, ": last label element should end with /");
+					root_path_valid = false;
+				}
+				if (!root_path_valid)
+					throw Service_denied();
+				session_root.append(client_root_path.string());
+				session_root.remove_trailing('/');
 			}
 
 			/* check if the session root exists */

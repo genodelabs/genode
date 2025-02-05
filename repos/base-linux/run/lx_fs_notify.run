@@ -47,10 +47,10 @@ install_config {
 	<start name="lx_fs" caps="200" ram="4M" ld="no">
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<policy label_prefix="fs_rom_config" root="/lx_fs_notify"           writeable="no"/>
-			<policy label_prefix="fs_rom_test"   root="/lx_fs_notify/test"      writeable="no"/>
-			<policy label_suffix="templates"     root="/lx_fs_notify/templates" writeable="yes"/>
-			<policy label_suffix="test"          root="/lx_fs_notify/test"      writeable="yes"/>
+			<policy label_prefix="fs_rom_config"  root="/lx_fs_notify"           writeable="no"/>
+			<policy label_prefix="fs_rom_test"    root="/lx_fs_notify/test"      writeable="no"/>
+			<policy label_suffix="templates -> /" root="/lx_fs_notify/templates" writeable="yes"/>
+			<policy label_suffix="test -> /"      root="/lx_fs_notify/test"      writeable="yes"/>
 		</config>
 	</start>
 
@@ -117,8 +117,8 @@ set init_run_fwrite_test {
 					<log/>
 					<null/>
 				</dir>
-				<dir name="templates"> <fs label="templates"/> </dir>
-				<dir name="test">      <fs label="test"/> </dir>
+				<dir name="templates"> <fs label="templates -> /"/> </dir>
+				<dir name="test">      <fs label="test -> /"/> </dir>
 			</vfs>
 			<arg value="test-file_writer"/>
 			<arg value="--fwrite"/>
@@ -153,8 +153,8 @@ set init_run_write_test {
 					<log/>
 					<null/>
 				</dir>
-				<dir name="templates"> <fs label="templates"/> </dir>
-				<dir name="test">      <fs label="test"/> </dir>
+				<dir name="templates"> <fs label="templates -> /"/> </dir>
+				<dir name="test">      <fs label="test -> /"/> </dir>
 			</vfs>
 			<arg value="test-file_writer"/>
 			<arg value="--write"/>

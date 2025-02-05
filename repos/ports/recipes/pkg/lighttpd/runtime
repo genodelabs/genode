@@ -36,7 +36,7 @@ dir-listing.activate = "enable"
 					</inline>
 				</dir>
 			</dir>
-			<dir name="webroot"> <fs label="webroot"/> </dir>
+			<dir name="webroot"> <fs label="webroot -> /"/> </dir>
 			<dir name="tmp"> <ram/> </dir>
 		</vfs>
 		<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"

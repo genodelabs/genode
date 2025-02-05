@@ -30,13 +30,13 @@ struct Sculpt::Service
 		RM, IO_MEM, IO_PORT, IRQ, REPORT, ROM, TERMINAL, TRACE, USB, RTC, I2C,
 		PLATFORM, PIN_STATE, PIN_CONTROL, VM, PD, UPLINK, PLAY, RECORD, UNDEFINED };
 
-	enum class Match_label { EXACT, LAST };
+	enum class Match_label { EXACT, LAST, FS };
 
 	Start_name  server { }; /* invalid for parent service */
 	Type        type;
 	Label       label;
 	Info        info;
-	Match_label match_label { Match_label::EXACT };
+	Match_label match_label;
 
 	/**
 	 * Return name attribute value of <service name="..."> node
@@ -81,13 +81,18 @@ struct Sculpt::Service
 	 * Constructor for child service
 	 */
 	Service(Start_name const &server, Type type, Label const &label)
-	: server(server), type(type), label(label), info(Subst("_", " ", server)) { }
+	:
+		server(server), type(type), label(label), info(Subst("_", " ", server)),
+		match_label(type == Type::FILE_SYSTEM ? Match_label::FS : Match_label::EXACT)
+	{ }
 
 	/**
 	 * Constructor for default_fs_rw
 	 */
 	Service(Start_name const &server, Type type, Label const &label, Info const &info)
-	: server(server), type(type), label(label), info(info) { }
+	:
+		server(server), type(type), label(label), info(info), match_label(Match_label::FS)
+	{ }
 
 	/**
 	 * Constructor for parent service
@@ -109,6 +114,9 @@ struct Sculpt::Service
 
 			if (label.valid() && match_label == Match_label::EXACT)
 				xml.attribute("label", label);
+
+			if (label.valid() && match_label == Match_label::FS)
+				xml.attribute("identity", label);
 		});
 	}
 };

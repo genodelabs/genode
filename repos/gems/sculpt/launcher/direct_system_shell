@@ -1,10 +1,10 @@
 <launcher pkg="system_shell">
 	<route>
 		<service name="Gui">                        <parent label="focus"/>           </service>
-		<service name="File_system" label="fonts">  <child name="fonts_fs"/>          </service>
-		<service name="File_system" label="target"> <child name="default_fs_rw"/>     </service>
-		<service name="File_system" label="config"> <parent label="config"/>          </service>
-		<service name="File_system" label="report"> <parent label="report"/>          </service>
+		<service name="File_system" label_prefix="fonts ->">  <child name="fonts_fs"/>      </service>
+		<service name="File_system" label_prefix="target ->"> <child name="default_fs_rw"/> </service>
+		<service name="File_system" label_prefix="config ->"> <parent identity="config"/> </service>
+		<service name="File_system" label_prefix="report ->"> <parent identity="report"/> </service>
 		<service name="Report" label="clipboard">   <parent label="clipboard"/>       </service>
 		<service name="ROM"    label="clipboard">   <parent label="clipboard"/>       </service>
 		<service name="ROM"    label="vimrc">       <parent label="config -> vimrc"/> </service>

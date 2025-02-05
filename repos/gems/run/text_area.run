@@ -105,12 +105,12 @@ install_config {
 	<start name="text_area.1" caps="250" ram="8M">
 		<binary name="text_area"/>
 		<config path="/data/drivers.config" max_lines="20" min_width="500" min_height="300" watch="yes">
-			<vfs> <dir name="data"> <fs label="data"/> </dir> </vfs>
+			<vfs> <dir name="data"> <fs label="data -> /"/> </dir> </vfs>
 		</config>
 		<route>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
-			<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
-			<service name="File_system" label="data">  <child name="data_fs"/> </service>
+			<service name="File_system" label_prefix="fonts ->"> <child name="fonts_fs"/> </service>
+			<service name="File_system" label_prefix="data ->">  <child name="data_fs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -121,13 +121,13 @@ install_config {
 		        max_lines="10" min_width="600">
 			<report saved="yes"/>
 			<save version="1"/>
-			<vfs> <dir name="data"> <fs label="data"/> </dir> </vfs>
+			<vfs> <dir name="data"> <fs label="data -> /"/> </dir> </vfs>
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="ROM" label="clipboard"> <child name="report_rom"/> </service>
-			<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
-			<service name="File_system" label="data">  <child name="data_fs"/> </service>
+			<service name="File_system" label_prefix="fonts ->"> <child name="fonts_fs"/> </service>
+			<service name="File_system" label_prefix="data ->">  <child name="data_fs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

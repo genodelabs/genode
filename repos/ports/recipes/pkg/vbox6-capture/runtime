@@ -29,10 +29,10 @@
 				<oss name="dsp" min_ofrag_size="8192" min_ifrag_size="8192"/>
 			</dir>
 			<dir name="pipe"> <pipe/> </dir>
-			<dir name="shared"> <fs label="shared" writeable="yes"/> </dir>
+			<dir name="shared"> <fs label="shared -> /" writeable="yes"/> </dir>
 			<rom name="VBoxSharedClipboard.so"/>
 			<rom name="VBoxSharedFolders.so"/>
-			<fs label="vm" writeable="yes"/>
+			<fs label="vm -> /" writeable="yes"/>
 		</vfs>
 		<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe">
 			<pthread placement="single-cpu"/>

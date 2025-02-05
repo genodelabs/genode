@@ -80,7 +80,7 @@ static void gen_vfs_start(Xml_generator &xml,
 				gen_named_node(xml, "dir", label, [&] {
 					xml.node("fs", [&] {
 						xml.attribute("buffer_size", 272u << 10);
-						xml.attribute("label", label); }); }); };
+						xml.attribute("label", prefixed_label(label, String<8>("/"))); }); }); };
 
 			fs_dir("config");
 			fs_dir("report");
@@ -111,13 +111,13 @@ static void gen_vfs_start(Xml_generator &xml,
 	xml.node("route", [&] {
 
 		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label", "config");
-			xml.node("parent", [&] { xml.attribute("label", "config"); });
+			xml.attribute("label_prefix", "config ->");
+			xml.node("parent", [&] { xml.attribute("identity", "config"); });
 		});
 
 		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label", "report");
-			xml.node("parent", [&] { xml.attribute("label", "report"); });
+			xml.attribute("label_prefix", "report ->");
+			xml.node("parent", [&] { xml.attribute("identity", "report"); });
 		});
 
 		gen_service_node<Terminal::Session>(xml, [&] {
@@ -242,18 +242,13 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 		xml.node("route", [&] {
 
 			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label", "config");
-				xml.node("parent", [&] { xml.attribute("label", "config"); });
+				xml.attribute("label_prefix", "config ->");
+				xml.node("parent", [&] { xml.attribute("identity", "config"); });
 			});
 
 			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label", "report");
-				xml.node("parent", [&] { xml.attribute("label", "report"); });
-			});
-
-			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label", "report");
-				xml.node("parent", [&] { xml.attribute("label", "report"); });
+				xml.attribute("label_prefix", "report ->");
+				xml.node("parent", [&] { xml.attribute("identity", "report"); });
 			});
 
 			gen_parent_rom_route(xml, "ld.lib.so");
@@ -283,16 +278,13 @@ void Sculpt::gen_inspect_view(Xml_generator         &xml,
 
 			for_each_inspected_storage_target(devices, [&] (Storage_target const &target) {
 				gen_service_node<::File_system::Session>(xml, [&] {
-					xml.attribute("label_last", target.label());
-					gen_named_node(xml, "child", target.fs());
-				});
-			});
+					xml.attribute("label_prefix", Session_label("vfs -> ", target.label(), " ->"));
+					gen_named_node(xml, "child", target.fs()); }); });
 
 			if (ram_fs_state.inspected)
 				gen_service_node<::File_system::Session>(xml, [&] {
-					xml.attribute("label_last", "ram");
-					gen_named_node(xml, "child", "ram_fs");
-				});
+					xml.attribute("label_prefix", "vfs -> ram ->");
+					gen_named_node(xml, "child", "ram_fs"); });
 
 			gen_service_node<Gui::Session>(xml, [&] {
 				xml.node("parent", [&] {

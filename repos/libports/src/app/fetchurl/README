@@ -46,7 +46,7 @@ Use the socket plugin of an other vfs (store file in a directory):
 !   <inline name="random">01234567890123456789</inline>
 !  </dir>
 !  <fs name="tcpip"/>
-!  <dir name="download"> <fs label="download"/> </dir>
+!  <dir name="download"> <fs label="download -> /"/> </dir>
 ! </vfs>
 ! <fetch url="http://genode.org/about/LICENSE"
 !        path="/download/LICENSE" retry="3"/>

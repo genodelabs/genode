@@ -43,7 +43,7 @@ an example File Vault configuration with default values:
 ! <config jitterentropy_available="yes">
 !   <vfs>
 !     <dir name="tresor">
-!       <fs label="tresor"/>
+!       <fs label="tresor -> /"/>
 !     </dir>
 !   </vfs>
 ! </config>

@@ -52,7 +52,7 @@ struct Gcov_env
 	 * VFS.
 	 */
 
-	File_system::Connection fs { env, fs_alloc, "gcov_data" };
+	File_system::Connection fs { env, fs_alloc, "gcov_data -> /" };
 	seek_off_t              seek_offset { 0 };
 
 	Io_signal_handler<Gcov_env> _fs_signal_handler {

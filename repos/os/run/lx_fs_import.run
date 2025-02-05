@@ -45,7 +45,7 @@ install_config {
 			<service name="File_system"/>
 		</provides>
 		<config>
-			<policy label="import_showcase -> " root="/" writeable="yes"/>
+			<policy label_prefix="import_showcase ->" root="/" writeable="yes"/>
 		</config>
 		<route>
 			<any-service> <parent/> <any-child/> </any-service>
