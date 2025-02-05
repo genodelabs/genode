@@ -66,7 +66,7 @@ void Thread::_thread_start()
 			      "died because of an uncaught exception");
 		} catch (...) {
 			/* die in a noisy way */
-			nova_die();
+			*(unsigned *)0 = 0xdead;
 		}
 
 		throw;

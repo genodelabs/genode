@@ -17,12 +17,6 @@
 #include <base/log.h>
 #include <base/thread.h>
 
-__attribute__((always_inline))
-inline void nova_die()
-{
-	asm volatile ("ud2a");
-}
-
 
 inline void request_event_portal(Genode::addr_t const cap,
                                  Genode::addr_t const sel, Genode::addr_t event)
