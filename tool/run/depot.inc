@@ -11,7 +11,7 @@
 #                      default value [genode_dir]/depot is used
 #
 proc depot_dir { } {
-	return [get_cmd_arg_first --depot-dir "[genode_dir]/depot"]
+	return [cmd_arg_first --depot-dir "[genode_dir]/depot"]
 }
 
 
@@ -224,11 +224,11 @@ proc _depot_auto_update { archives } {
 	append cmd "DEPOT_DIR=[depot_dir] "
 	append cmd "UPDATE_VERSIONS=1 FORCE=1 REBUILD= "
 
-	if {[get_cmd_switch --ccache]} {
+	if {[have_cmd_arg --ccache]} {
 		append cmd "CCACHE=1 " }
 
 	set make_j_arg ""
-	regexp {.*(-j\d*)} [get_cmd_arg_first --make ""] dummy make_j_arg
+	regexp {.*(-j\d*)} [cmd_arg_first --make ""] dummy make_j_arg
 	append cmd "$make_j_arg "
 
 	puts "update depot: $cmd"
@@ -252,7 +252,7 @@ proc _collect_from_depot { archives } {
 	incr _collect_from_depot_nesting_level
 
 	# fill depot with up-to-date content if --depot-auto-update is enabled
-	if {[get_cmd_switch --depot-auto-update]} {
+	if {[have_cmd_arg --depot-auto-update]} {
 		if {$_collect_from_depot_nesting_level == 1} {
 			_depot_auto_update $archives } }
 
@@ -313,7 +313,7 @@ proc _collect_from_depot { archives } {
 # Parse depot user from run tool arguments with a fallback to "genodelabs"
 #
 #
-proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+proc depot_user {} { return [cmd_arg --depot-user genodelabs] }
 
 
 ##

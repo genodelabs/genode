@@ -9,17 +9,17 @@ source [genode_dir]/tool/run/amt.inc
 
 
 proc power_on_amt_host { } {
-	return [get_cmd_arg_first --power-on-amt-host ""]
+	return [cmd_arg_first --power-on-amt-host ""]
 }
 
 
 proc power_on_amt_password { } {
-	return [get_cmd_arg_first --power-on-amt-password ""]
+	return [cmd_arg_first --power-on-amt-password ""]
 }
 
 
 proc power_on_amt_timeout { } {
-	return [get_cmd_arg_first --power-on-amt-timeout 5]
+	return [cmd_arg_first --power-on-amt-timeout 5]
 }
 
 
@@ -127,7 +127,7 @@ proc run_power_on { } {
 	#
 	# amttool, wsman and meshcmd are supported for reset
 	#
-	set amt_tool [get_cmd_arg --amt-tool "default"]
+	set amt_tool [cmd_arg --amt-tool "default"]
 
 	#
 	# reset the box

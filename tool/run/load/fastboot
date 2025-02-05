@@ -7,7 +7,7 @@
 
 source [genode_dir]/tool/run/load.inc
 
-proc load_fastboot_device { } { return [get_cmd_arg --load-fastboot-device ""] }
+proc load_fastboot_device { } { return [cmd_arg --load-fastboot-device ""] }
 
 
 proc check_fastboot_supported { } {

@@ -9,22 +9,22 @@
 
 
 proc power_off_allnet_host { } {
-	return [get_cmd_arg_first --power-off-allnet-host 1]
+	return [cmd_arg_first --power-off-allnet-host 1]
 }
 
 
 proc power_off_allnet_user { } {
-	return [get_cmd_arg_first --power-off-allnet-user 1]
+	return [cmd_arg_first --power-off-allnet-user 1]
 }
 
 
 proc power_off_allnet_password { } {
-	return [get_cmd_arg_first --power-off-allnet-password 1]
+	return [cmd_arg_first --power-off-allnet-password 1]
 }
 
 
 proc power_off_allnet_port { } {
-	return [get_cmd_arg_first --power-off-allnet-port 1]
+	return [cmd_arg_first --power-off-allnet-port 1]
 }
 
 

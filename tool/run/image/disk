@@ -9,8 +9,8 @@ source [genode_dir]/tool/run/grub2.inc
 source [genode_dir]/tool/run/shim.inc
 
 
-proc image_disk_size { } { return [get_cmd_arg --image-disk_size 0] }
-proc image_disk_shim { } { return [get_cmd_arg --image-disk_shim ""] }
+proc image_disk_size { } { return [cmd_arg --image-disk_size 0] }
+proc image_disk_shim { } { return [cmd_arg --image-disk_shim ""] }
 
 
 proc prepare_grub2_files { } {

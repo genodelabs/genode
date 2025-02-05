@@ -23,16 +23,16 @@ proc run_load { } {
 }
 
 
-proc load_tftp_base_dir { } { return [get_cmd_arg --load-tftp-base-dir ""] }
+proc load_tftp_base_dir { } { return [cmd_arg --load-tftp-base-dir ""] }
 
 
-proc load_tftp_offset_dir { } { return [get_cmd_arg --load-tftp-offset-dir ""] }
+proc load_tftp_offset_dir { } { return [cmd_arg --load-tftp-offset-dir ""] }
 
 
-proc load_tftp_use_absolute { } { return [get_cmd_switch --load-tftp-absolute] }
+proc load_tftp_use_absolute { } { return [have_cmd_arg --load-tftp-absolute] }
 
 
-proc load_tftp_copy_files { } { return [get_cmd_switch --load-tftp-copy-files] }
+proc load_tftp_copy_files { } { return [have_cmd_arg --load-tftp-copy-files] }
 
 
 ##

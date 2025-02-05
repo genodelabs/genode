@@ -9,22 +9,22 @@
 
 
 proc power_on_allnet_host { } {
-	return [get_cmd_arg_first --power-on-allnet-host 1]
+	return [cmd_arg_first --power-on-allnet-host 1]
 }
 
 
 proc power_on_allnet_user { } {
-	return [get_cmd_arg_first --power-on-allnet-user 1]
+	return [cmd_arg_first --power-on-allnet-user 1]
 }
 
 
 proc power_on_allnet_password { } {
-	return [get_cmd_arg_first --power-on-allnet-password 1]
+	return [cmd_arg_first --power-on-allnet-password 1]
 }
 
 
 proc power_on_allnet_port { } {
-	return [get_cmd_arg_first --power-on-allnet-port 1]
+	return [cmd_arg_first --power-on-allnet-port 1]
 }
 
 

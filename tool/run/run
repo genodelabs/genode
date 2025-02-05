@@ -48,7 +48,7 @@ proc build {targets} {
 
 	if {[llength $targets] == 0} return
 
-	if {[get_cmd_switch --skip-build]} return
+	if {[have_cmd_arg --skip-build]} return
 
 	regsub -all {\s\s+} $targets " " targets
 	puts "building targets: $targets"
@@ -565,9 +565,16 @@ proc compare_output_to { good } {
 ##
 # Return true if command-line switch was specified
 #
-proc get_cmd_switch { arg_name } {
+proc have_cmd_arg { arg_name } {
 	global argv
 	return [expr [lsearch $argv $arg_name] >= 0]
+}
+
+
+# Return true if command-line switch was specified
+#
+proc get_cmd_switch { arg_name } {
+	return [have_cmd_arg $arg_name]
 }
 
 
@@ -577,7 +584,7 @@ proc get_cmd_switch { arg_name } {
 # If a argument name is specified multiple times, a
 # list of argument values is returned.
 #
-proc get_cmd_arg { arg_name default_value } {
+proc cmd_arg { arg_name default_value } {
 	global argv
 
 	# find argument name in argv list
@@ -607,10 +614,21 @@ proc get_cmd_arg { arg_name default_value } {
 ##
 # Return command-line argument value
 #
+# If a argument name is specified multiple times, a
+# list of argument values is returned.
+#
+proc get_cmd_arg { arg_name default_value } {
+	return [cmd_arg $arg_name $default_value]
+}
+
+
+##
+# Return command-line argument value
+#
 # If a argument name is specified multiple times, return only the
 # first match.
 #
-proc get_cmd_arg_first { arg_name default_value } {
+proc cmd_arg_first { arg_name default_value } {
 	global argv
 
 	set arg_idx [lsearch $argv $arg_name]
@@ -625,12 +643,12 @@ proc get_cmd_arg_first { arg_name default_value } {
 # Read command-line arguments
 #
 
-set run_name         [get_cmd_arg --name       "noname"]
-set genode_dir       [get_cmd_arg --genode-dir       ""]
-set cross_dev_prefix [get_cmd_arg --cross-dev-prefix ""]
-set specs            [get_cmd_arg --specs            ""]
-set board_var        [get_cmd_arg --board            ""]
-set repositories     [get_cmd_arg --repositories     ""]
+set run_name         [cmd_arg --name       "noname"]
+set genode_dir       [cmd_arg --genode-dir       ""]
+set cross_dev_prefix [cmd_arg --cross-dev-prefix ""]
+set specs            [cmd_arg --specs            ""]
+set board_var        [cmd_arg --board            ""]
+set repositories     [cmd_arg --repositories     ""]
 
 
 # accessor functions for command-line arguments
@@ -844,7 +862,7 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 proc remove_genode_dir { } {
 	global env
 
-	if {![get_cmd_switch --preserve-genode-dir]} {
+	if {![have_cmd_arg --preserve-genode-dir]} {
 		exec rm -rf [run_dir]/genode
 	}
 }
@@ -1214,7 +1232,7 @@ set include_list { }
 #
 # Out of convenience run modules may be included by using a relative path.
 #
-foreach include_name [get_cmd_arg --include ""] {
+foreach include_name [cmd_arg --include ""] {
 	# first check if the include name is absolute
 	if {[string first "/" $include_name] == 0} {
 		puts "including $include_name"

@@ -8,8 +8,8 @@ source [genode_dir]/tool/run/shim.inc
 # \param --image-disk_shim   nickname of certificate to use to sign GRUB2
 #
 
-proc image_uefi_size { } { return [get_cmd_arg --image-uefi_size 0] }
-proc image_uefi_shim { } { return [get_cmd_arg --image-uefi_shim ""] }
+proc image_uefi_size { } { return [cmd_arg --image-uefi_size 0] }
+proc image_uefi_shim { } { return [cmd_arg --image-uefi_shim ""] }
 
 
 ##

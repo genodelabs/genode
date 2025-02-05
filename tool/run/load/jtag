@@ -8,10 +8,10 @@
 source [genode_dir]/tool/run/load.inc
 
 
-proc load_jtag_debugger { } { return [get_cmd_arg --load-jtag-debugger 1] }
+proc load_jtag_debugger { } { return [cmd_arg --load-jtag-debugger 1] }
 
 
-proc load_jtag_board { } { return [get_cmd_arg --load-jtag-board 1] }
+proc load_jtag_board { } { return [cmd_arg --load-jtag-board 1] }
 
 
 proc run_load { } {

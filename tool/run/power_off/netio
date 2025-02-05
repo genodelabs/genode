@@ -12,22 +12,22 @@ source [genode_dir]/tool/run/power_netio.inc
 
 
 proc power_off_netio_host { } {
-	return [get_cmd_arg_first --power-off-netio-host 1]
+	return [cmd_arg_first --power-off-netio-host 1]
 }
 
 
 proc power_off_netio_user { } {
-	return [get_cmd_arg_first --power-off-netio-user 1]
+	return [cmd_arg_first --power-off-netio-user 1]
 }
 
 
 proc power_off_netio_password { } {
-	return [get_cmd_arg_first --power-off-netio-password 1]
+	return [cmd_arg_first --power-off-netio-password 1]
 }
 
 
 proc power_off_netio_port { } {
-	return [get_cmd_arg_first --power-off-netio-port 1]
+	return [cmd_arg_first --power-off-netio-port 1]
 }
 
 

@@ -21,16 +21,16 @@ proc run_load { } {
 }
 
 
-proc load_ipxe_base_dir { } { return [get_cmd_arg --load-ipxe-base-dir ""] }
+proc load_ipxe_base_dir { } { return [cmd_arg --load-ipxe-base-dir ""] }
 
 
-proc load_ipxe_boot_dir { } { return [get_cmd_arg --load-ipxe-boot-dir ""] }
+proc load_ipxe_boot_dir { } { return [cmd_arg --load-ipxe-boot-dir ""] }
 
 
-proc load_ipxe_lighttpd { } { return [get_cmd_switch --load-ipxe-lighttpd] }
+proc load_ipxe_lighttpd { } { return [have_cmd_arg --load-ipxe-lighttpd] }
 
 
-proc load_ipxe_lighttpd_port { } { return [get_cmd_arg --load-ipxe-lighttpd-port 8080] }
+proc load_ipxe_lighttpd_port { } { return [cmd_arg --load-ipxe-lighttpd-port 8080] }
 
 
 proc image_extension { } {

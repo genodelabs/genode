@@ -12,7 +12,7 @@
 #
 proc bender_intel_hwp_mode_option { } {
 
-	set opt [get_cmd_arg_first --bender-intel-hwp-mode "performance"]
+	set opt [cmd_arg_first --bender-intel-hwp-mode "performance"]
 	if {$opt == "off"} {
 		return "intel_hwp_off"
 	} elseif {$opt == "performance"} {

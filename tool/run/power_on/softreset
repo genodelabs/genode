@@ -7,20 +7,20 @@
 
 
 proc power_on_softreset_host { } {
-	return [get_cmd_arg_first --power-on-softreset-host ""]
+	return [cmd_arg_first --power-on-softreset-host ""]
 }
 
 
 proc power_on_softreset_port { } {
-	return [get_cmd_arg_first --power-on-softreset-port ""]
+	return [cmd_arg_first --power-on-softreset-port ""]
 }
 
 proc power_on_softreset_on { } {
-	return [get_cmd_arg_first --power-on-softreset-on ""]
+	return [cmd_arg_first --power-on-softreset-on ""]
 }
 
 proc power_on_softreset_off { } {
-	return [get_cmd_arg_first --power-on-softreset-off ""]
+	return [cmd_arg_first --power-on-softreset-off ""]
 }
 
 proc run_power_on { } {

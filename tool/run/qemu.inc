@@ -1,5 +1,5 @@
 set qemu_spawn_id    ""
-set qemu_args        [get_cmd_arg --qemu-args ""]
+set qemu_args        [cmd_arg --qemu-args ""]
 
 
 #

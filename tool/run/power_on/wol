@@ -10,12 +10,12 @@ source [genode_dir]/tool/run/amt.inc
 
 
 proc power_on_wol_mac { } {
-	return [get_cmd_arg_first --power-on-wol-mac ""]
+	return [cmd_arg_first --power-on-wol-mac ""]
 }
 
 
 proc power_on_wol_dev { } {
-	return [get_cmd_arg_first --power-on-wol-dev "eth0"]
+	return [cmd_arg_first --power-on-wol-dev "eth0"]
 }
 
 

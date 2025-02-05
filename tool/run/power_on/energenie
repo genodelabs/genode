@@ -8,17 +8,17 @@
 
 
 proc power_on_energenie_host { } {
-	return [get_cmd_arg_first --power-on-energenie-host 1]
+	return [cmd_arg_first --power-on-energenie-host 1]
 }
 
 
 proc power_on_energenie_password { } {
-	return [get_cmd_arg_first --power-on-energenie-password 1]
+	return [cmd_arg_first --power-on-energenie-password 1]
 }
 
 
 proc power_on_energenie_port { } {
-	return [get_cmd_arg_first --power-on-energenie-port 1]
+	return [cmd_arg_first --power-on-energenie-port 1]
 }
 
 
