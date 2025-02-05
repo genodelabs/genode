@@ -27,7 +27,6 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
-#include <nova/util.h>
 
 
 extern int main_thread_running_semaphore();
@@ -58,8 +57,7 @@ static inline void thread_stop_myself(Genode::Thread *myself)
 	else
 		sem = main_thread_running_semaphore();
 
-	if (sm_ctrl(sem, SEMAPHORE_DOWNZERO))
-		nova_die();
+	sm_ctrl(sem, SEMAPHORE_DOWNZERO);
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */
