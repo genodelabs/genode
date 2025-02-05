@@ -50,6 +50,7 @@ dir-listing.activate = "enable"
 		<rom label="libm.lib.so"/>
 		<rom label="libssl.lib.so"/>
 		<rom label="lighttpd"/>
+		<rom label="pcre.lib.so"/>
 		<rom label="posix.lib.so"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="vfs_jitterentropy.lib.so"/>

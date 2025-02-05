@@ -73,6 +73,7 @@ lappend depot_archives [depot_user]/src/openssl
 lappend depot_archives [depot_user]/src/lighttpd
 lappend depot_archives [depot_user]/src/nic_router
 lappend depot_archives [depot_user]/src/openssl
+lappend depot_archives [depot_user]/src/pcre
 lappend depot_archives [depot_user]/src/posix
 lappend depot_archives [depot_user]/src/report_rom
 lappend depot_archives [depot_user]/src/[rtc_binary_name]
