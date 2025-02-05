@@ -9,7 +9,7 @@
 ##
 # Return true if command-line switch was specified
 #
-proc get_cmd_switch { arg_name } {
+proc have_cmd_arg { arg_name } {
 	global argv
 	return [expr [lsearch $argv $arg_name] >= 0]
 }
@@ -21,7 +21,7 @@ proc get_cmd_switch { arg_name } {
 # If a argument name is specified multiple times, a
 # list of argument values is returned.
 #
-proc get_cmd_arg { arg_name default_value } {
+proc cmd_arg { arg_name default_value } {
 	global argv
 
 	# find argument name in argv list
@@ -367,7 +367,7 @@ proc select {path} {
 collect_labels_and_references
 
 
-foreach arg [get_cmd_arg --select {}] {
+foreach arg [cmd_arg --select {}] {
 
 	# distinguish DTS path argument (starting with /) from label argument
 	if {[string match "/*" $arg]} {
@@ -405,22 +405,22 @@ foreach path [array names selected] {
 }
 
 
-if {[get_cmd_switch --labels]} {
+if {[have_cmd_arg --labels]} {
 	foreach n [lsort [array names labels]] {
 		puts "$n\t$labels($n)" } }
 
 
-if {[get_cmd_switch --nodes]} {
+if {[have_cmd_arg --nodes]} {
 	foreach n [lsort [array names selected]] {
 		puts "$n" } }
 
 
-if {[get_cmd_switch --references]} {
+if {[have_cmd_arg --references]} {
 	foreach n [lsort [array names references]] {
 		puts "$n\t$references($n)" } }
 
 
-if {[get_cmd_switch --dot-graph]} {
+if {[have_cmd_arg --dot-graph]} {
 	puts "digraph {"
 	puts {  rankdir=LR; nodesep=0.01;}
 	puts {  node[shape=polygon, height=0, color=gray, fontsize=12, margin="0.1,0.01"];}
