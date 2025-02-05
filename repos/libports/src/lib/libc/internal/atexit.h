@@ -111,8 +111,8 @@ struct Libc::Atexit : Noncopyable
 				if (!handler_ptr)
 					return false;
 
-				handler_ptr->execute();
 				_handlers.remove(handler_ptr);
+				handler_ptr->execute();
 				destroy(_alloc, handler_ptr);
 				return true;
 			};
