@@ -40,10 +40,6 @@ static inline void spinlock_lock(volatile T *lock_variable)
 
 	unsigned help_counter = 0;
 
-	/* sanity check that ec_sel fits into the lock_variable */
-	if (tid >= (1 << (sizeof(*lock_variable) * 8 - RESERVED_BITS)))
-		nova_die();
-
 	if (myself) {
 		Nova::Utcb * utcb  = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 		help_counter       = utcb->tls & COUNTER_MASK;
