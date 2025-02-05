@@ -117,9 +117,6 @@ struct Genode::Receive_window
 		 */
 		void rcv_wnd(unsigned short const caps_log2)
 		{
-			if (caps_log2 > MAX_CAP_ARGS_LOG2)
-				nova_die();
-
 			_rcv_wnd_log2 = caps_log2;
 		}
 
@@ -203,8 +200,6 @@ struct Genode::Receive_window
 			_rcv_pt_sel_cnt = 0;
 
 			unsigned short const max = 1U << utcb.crd_rcv.order();
-			if (max > MAX_CAP_ARGS)
-				nova_die();
 
 			for (unsigned short i = 0; i < MAX_CAP_ARGS; i++) 
 				_rcv_pt_cap_free [i] = (i >= max) ? FREE_INVALID : FREE_SEL;
@@ -217,12 +212,9 @@ struct Genode::Receive_window
 				Nova::Crd cap(item->crd);
 
 				/* track which items we got mapped */
-				if (!cap.is_null() && item->is_del()) {
-					/* should never happen */
-					if (cap.base() < _rcv_pt_base ||
-					    (cap.base() >= _rcv_pt_base + max))
-						nova_die();
-					_rcv_pt_cap_free [cap.base() - _rcv_pt_base] = UNUSED_CAP;
+				if (!cap.is_null() && item->is_del() && max <= MAX_CAP_ARGS) {
+					if (cap.base() >= _rcv_pt_base && cap.base() < _rcv_pt_base + max)
+						_rcv_pt_cap_free [cap.base() - _rcv_pt_base] = UNUSED_CAP;
 				}
 
 				if (_rcv_pt_sel_max >= max) continue;
