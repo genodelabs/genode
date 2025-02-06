@@ -14,6 +14,23 @@
 #include <base/fixed_stdint.h>
 #include <genode_c_api/base.h>
 
+/* define required types in case they are not present */
+#ifndef AF_UNSPEC
+#define AF_UNSPEC 0
+#endif
+
+#ifndef AF_INET
+#define AF_INET 2
+#endif
+
+#ifndef SOCK_STREAM
+#define SOCK_STREAM 1
+#endif
+
+#ifndef SOCK_DGRAM
+#define SOCK_DGRAM 2
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -121,8 +138,8 @@ struct genode_sockaddr
 	union {
 		/* AF_INET (or IPv4) */
 		struct {
-			genode_uint16_t port; /* be */
-			genode_uint32_t addr; /* be */
+			genode_uint16_t port; /* big endian = network byte order */
+			genode_uint32_t addr; /* big endian = network byte order */
 		} in;
 	};
 };
@@ -142,7 +159,19 @@ void genode_socket_init(struct genode_env *env,
                         struct genode_socket_io_progress *);
 
 
-/**
+/*
+ * Wakeup remote peers. This can be used as a callback for triggering, for
+ * example, signal submission of the packet stream
+ */
+struct genode_socket_wakeup {
+	void  *data;
+	void (*callback)(void *);
+};
+
+void genode_socket_register_wakeup(struct genode_socket_wakeup *);
+void genode_socket_wakeup_remote(void);
+
+/*
  * IPv4 address configuration (DHCP or static)
  */
 struct genode_socket_config
@@ -155,25 +184,41 @@ struct genode_socket_config
 	char const *nameserver;
 };
 
-/**
+/*
  * Configure/obtain IP address (blocking)
  */
 void genode_socket_config_address(struct genode_socket_config *config);
 
-/**
+/*
+ * Retrieve IPv4 configuration
+ */
+
+struct genode_socket_info
+{
+	/* all big endian */
+	unsigned ip_addr;
+	unsigned netmask;
+	unsigned gateway;
+	unsigned nameserver;
+	bool     link_state;
+};
+
+void genode_socket_config_info(struct genode_socket_info *info);
+
+/*
  * Configure MTU size (default should be 1500)
  */
 void genode_socket_configure_mtu(unsigned mtu);
 
 
-/**
+/*
  * Wait for I/O progress (synchronous) - used for testing if no
  * genode_socket_io_progress has been registered.
  */
 void genode_socket_wait_for_progress(void);
 
 
-/**
+/*
  * The following calls have POSIX semantics and are non-blocking
  */
 
@@ -214,13 +259,14 @@ enum Errno genode_socket_getsockname(struct genode_socket_handle *,
 enum Errno genode_socket_getpeername(struct genode_socket_handle *,
                                      struct genode_sockaddr *);
 
-/**
+/*
  * I/O vector
  */
 struct genode_iovec
 {
 	void         *base;
 	unsigned long size;
+	unsigned long used;
 };
 
 
