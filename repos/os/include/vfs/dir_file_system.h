@@ -872,10 +872,15 @@ class Vfs::Dir_file_system : public File_system
 			for (unsigned i = 0; i < node.num_sub_nodes(); i++, curr = curr->next) {
 				Xml_node const &sub_node = node.sub_node(i);
 
+				if (!curr) {
+					error("VFS config update missed file system for ", sub_node);
+					return;
+				}
+
 				/* check if type of XML node matches current file-system type */
-				if (sub_node.has_type(curr->type()) == false) {
-					Genode::error("VFS config update failed (node type '",
-					               sub_node.type(), "' != fs type '", curr->type(),"')");
+				if (!curr || sub_node.has_type(curr->type()) == false) {
+					error("VFS config update failed (node type '",
+					      sub_node.type(), "' != fs type '", curr->type(),"')");
 					return;
 				}
 
