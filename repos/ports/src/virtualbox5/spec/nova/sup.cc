@@ -737,9 +737,7 @@ void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us)
 		                      Trace::timestamp() + ticks_min_sleep);
 
 		/* block until timeout fires or it gets canceled */
-		Genode::uint8_t res = sm_ctrl(sem, SEMAPHORE_DOWN, wakeup_absolute);
-		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT)
-			nova_die();
+		sm_ctrl(sem, SEMAPHORE_DOWN, wakeup_absolute);
 	}
 }
 
