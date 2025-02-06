@@ -158,6 +158,7 @@ struct Sculpt::File_browser_state : Noncopyable
 				gen_parent_rom_route(xml, "ld.lib.so");
 				gen_parent_rom_route(xml, "vfs.lib.so");
 				gen_parent_rom_route(xml, "sandbox.lib.so");
+				gen_parent_rom_route(xml, "dialog.lib.so");
 				gen_parent_rom_route(xml, "menu_view");
 				gen_parent_rom_route(xml, "libc.lib.so");
 				gen_parent_rom_route(xml, "libm.lib.so");
