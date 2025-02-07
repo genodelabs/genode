@@ -17,8 +17,7 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	} [qt5_start_nodes] {
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
 			<rom name="channel_list">
@@ -52,8 +51,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="mixer_gui_qt" caps="200">
-		<resource name="RAM" quantum="32M"/>
+	<start name="mixer_gui_qt" caps="200" ram="32M">
 		<config>
 			<vfs>
 				<dir name="dev">

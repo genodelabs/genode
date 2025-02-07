@@ -24,8 +24,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="vfs">
-			<resource name="RAM" quantum="2M"/>
+		<start name="vfs" ram="2M">
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -34,12 +33,10 @@
 				<default-policy root="/"/>
 			</config>
 		</start>
-		<start name="cached_fs_rom">
-			<resource name="RAM" quantum="10M"/>
+		<start name="cached_fs_rom" ram="10M">
 			<provides> <service name="ROM"/> </provides>
 		</start>
-		<start name="test-immutable_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="test-immutable_rom" ram="2M">
 			<route>
 				<service name="ROM" label="test">
 					<child name="cached_fs_rom"/>

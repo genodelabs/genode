@@ -70,16 +70,14 @@ install_config {
 	<default-route>
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic">
+	<start name="nic" ram="8M">
 		<binary name="nic_router" />
-		<resource name="RAM" quantum="8M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -92,8 +90,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="vfs_block">
-		<resource name="RAM" quantum="2M"/>
+	<start name="vfs_block" ram="2M">
 		<provides> <service name="Block"/> </provides>
 		<config>
 			<vfs> <rom name="block.img"/> </vfs>
@@ -104,18 +101,15 @@ install_config {
 		</route>
 	</start>
 
-	<start name="log_terminal">
-		<resource name="RAM" quantum="2M"/>
+	<start name="log_terminal" ram="2M">
 		<provides> <service name="Terminal"/> </provides>
 	</start>
 
 	<start name="terminal_crosslink">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
 
-	<start name="vmm" caps="200" priority="-1">
-		<resource name="RAM" quantum="256M"/>
+	<start name="vmm" caps="200" ram="256M" priority="-1">
 		<route>
 			<service name="Terminal" label="earlycon"> <child name="log_terminal"/> </service>
 			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
@@ -126,7 +120,6 @@ install_config {
 
 	<start name="vm">
 		<binary name="test-terminal_expect_send"/>
-		<resource name="RAM" quantum="1M"/>
 		<config expect="/ #" send="mount /dev/vda /root; cp -r /etc /root; ls /root/etc; umount /root" verbose="yes"/>
 		<route>
 			<service name="Terminal"> <child name="terminal_crosslink"/> </service>

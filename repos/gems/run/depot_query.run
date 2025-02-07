@@ -30,16 +30,14 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
 	<start name="report_rom">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
@@ -48,8 +46,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="vfs">
-		<resource name="RAM" quantum="4M"/>
+	<start name="vfs" ram="4M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -76,13 +73,11 @@ install_config {
 		</config>
 	</start>
 
-	<start name="fs_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="fs_rom" ram="4M">
 		<provides> <service name="ROM"/> </provides>
 	</start>
 
-	<start name="depot_query">
-		<resource name="RAM" quantum="2M"/>
+	<start name="depot_query" ram="2M">
 		<config query="rom">
 			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
 		</config>
@@ -93,7 +88,6 @@ install_config {
 	</start>
 
 	<start name="depot_deploy">
-		<resource name="RAM" quantum="1M"/>
 		<config arch="} [depot_spec] {">
 			<static>
 				<parent-provides>
@@ -121,8 +115,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="dynamic" caps="8000">
-		<resource name="RAM" quantum="64M"/>
+	<start name="dynamic" caps="8000" ram="64M">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>

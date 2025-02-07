@@ -31,15 +31,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -50,8 +48,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -69,15 +66,13 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="wm" caps="1000">
-		<resource name="RAM" quantum="32M"/>
+	<start name="wm" caps="1000" ram="32M">
 		<binary name="init"/>
 		<provides>
 			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
@@ -89,8 +84,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="launchpad" priority="-1" caps="1000">
-		<resource name="RAM" quantum="20M"/>
+	<start name="launchpad" priority="-1" caps="1000" ram="20M">
 		<config>
 			<launcher name="gui_fb" ram_quota="7M" caps="100">
 				<config initial_width="500" initial_height="400" />
@@ -110,8 +104,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="backdrop" priority="-1" caps="120">
-		<resource name="RAM" quantum="24M"/>
+	<start name="backdrop" priority="-1" caps="120" ram="24M">
 		<config>
 			<libc/>
 			<vfs>
@@ -129,9 +122,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="wm_backdrop" priority="-1" caps="120">
+	<start name="wm_backdrop" priority="-1" caps="120" ram="32M">
 		<binary name="backdrop" />
-		<resource name="RAM" quantum="32M"/>
 		<config>
 			<libc/>
 			<vfs>

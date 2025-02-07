@@ -26,15 +26,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -45,8 +43,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -59,8 +56,7 @@ install_config {
 		<route> <any-service> <parent/> <any-child/> </any-service> </route>
 	</start>
 
-	<start name="gui_fb">
-		<resource name="RAM" quantum="4M"/>
+	<start name="gui_fb" ram="4M">
 		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 		<config/>
 		<route>
@@ -69,9 +65,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="font_vfs">
+	<start name="font_vfs" ram="4M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -84,8 +79,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-text_painter">
-		<resource name="RAM" quantum="2M"/>
+	<start name="test-text_painter" ram="2M">
 		<config>
 			<vfs> <dir name="fonts"> <fs/> </dir> </vfs>
 		</config>

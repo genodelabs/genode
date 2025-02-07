@@ -35,35 +35,31 @@
 			<service name="LOG"/>
 		</parent-provides>
 		<default-route> <any-service> <parent/> </any-service> </default-route>
-		<start name="log_1" caps="100">
+		<start name="log_1" caps="100" ram="4M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs> <log/> </vfs>
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
-		<start name="log_2" caps="100">
+		<start name="log_2" caps="100" ram="4M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs> <log/> </vfs>
 				<default-policy writeable="yes"/>
 			</config>
 		</start>
-		<start name="log_3" caps="100">
+		<start name="log_3" caps="100" ram="4M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs> <log/> </vfs>
 				<default-policy writeable="yes"/>
 			</config>
 		</start>
-		<start name="sequence" caps="200">
-			<resource name="RAM" quantum="16M"/>
+		<start name="sequence" caps="200" ram="16M">
 			<route>
 				<service name="File_system" label_prefix="test_1">
 					<child name="log_1"/> </service>

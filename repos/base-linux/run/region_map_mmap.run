@@ -14,19 +14,14 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
-		<start name="test-region_map_mmap">
-			<resource name="RAM" quantum="2M"/>
-		</start>
+		<default caps="100" ram="1M"/>
+		<start name="test-region_map_mmap" ram="2M"/>
 
 		<!-- add signal test for concurrency -->
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="test-signal" caps="400">
-			<resource name="RAM" quantum="1M"/>
-		</start>
+		<start name="test-signal" caps="400"/>
 	</config>}
 
 build_boot_image [build_artifacts]

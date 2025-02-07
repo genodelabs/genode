@@ -55,15 +55,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="drivers" caps="1200" managing_system="yes" priority="-1">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1200" ram="32M" managing_system="yes" priority="-1">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -73,8 +71,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -112,8 +109,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-lwip_httpsrv" caps="120" priority="-1">
-		<resource name="RAM" quantum="8M"/>
+	<start name="test-lwip_httpsrv" caps="120" ram="8M" priority="-1">
 		<config>
 			<vfs>
 				<dir name="dev">    <log/>             </dir>

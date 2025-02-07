@@ -25,13 +25,12 @@
 			<service name="Timer"/>
 		</parent-provides>
 
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<service name="Rtc">
 			<default-policy> <child name="system_rtc"/> </default-policy> </service>
 
 		<start name="pc_rtc">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Rtc"/> </provides>
 			<config/>
 			<route>
@@ -40,7 +39,6 @@
 		</start>
 
 		<start name="system_rtc">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Rtc"/> </provides>
 			<config/>
 			<route>

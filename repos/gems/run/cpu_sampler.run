@@ -34,15 +34,13 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Timer"/>
 			</provides>
 		</start>
-		<start name="cpu_sampler">
-			<resource name="RAM" quantum="4M"/>
+		<start name="cpu_sampler" ram="4M">
 			<provides>
 				<service name="CPU"/>
 			</provides>
@@ -51,7 +49,6 @@ install_config {
 			</config>
 		</start>
 		<start name="test-cpu_sampler">
-			<resource name="RAM" quantum="1M"/>
 			<config ld_verbose="yes"/>
 			<route>
 				<service name="CPU"> <child name="cpu_sampler"/> </service>

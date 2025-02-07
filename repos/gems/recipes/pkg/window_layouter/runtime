@@ -27,10 +27,9 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="fs_report">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Report"/> </provides>
 			<config> <vfs> <fs/> </vfs> </config>
 			<route>
@@ -40,7 +39,6 @@
 		</start>
 
 		<start name="fs_rom">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="ROM"/> </provides>
 			<config/>
 			<route>
@@ -49,8 +47,7 @@
 			</route>
 		</start>
 
-		<start name="window_layouter" caps="120">
-			<resource name="RAM" quantum="6M"/>
+		<start name="window_layouter" caps="120" ram="6M">
 			<route>
 				<service name="ROM" label="config">
 					<parent label="window_layouter.config"/> </service>

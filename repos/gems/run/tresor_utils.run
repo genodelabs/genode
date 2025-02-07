@@ -20,8 +20,7 @@ append config {
 			<service name="CPU"/>
 		</parent-provides>
 
-		<start name="timer" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" caps="100" ram="1M">
 			<provides><service name="Timer"/></provides>
 			<route>
 				<service name="PD">  <parent/> </service>
@@ -31,8 +30,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="lx_fs" ld="no" caps="100">
-			<resource name="RAM" quantum="2M"/>
+		<start name="lx_fs" ld="no" caps="100" ram="2M">
 			<provides> <service name="File_system"/> </provides>
 			<config> <default-policy root="/" writeable="yes"/> </config>
 			<route>
@@ -43,8 +41,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="vfs" caps="120">
-			<resource name="RAM" quantum="16M"/>
+		<start name="vfs" caps="120" ram="16M">
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -65,12 +62,10 @@ append config {
 			</route>
 		</start>
 
-		<start name="sequence" caps="200">
-			<resource name="RAM" quantum="128M"/>
+		<start name="sequence" caps="200" ram="128M">
 			<config>
 
-				<start name="tresor_init_trust_anchor">
-					<resource name="RAM" quantum="4M"/>
+				<start name="tresor_init_trust_anchor" ram="4M">
 					<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
 						<vfs> <dir name="trust_anchor"> <fs label="ta"/> </dir> </vfs>
 					</config>
@@ -82,8 +77,7 @@ append config {
 					</route>
 				</start>
 
-				<start name="tresor_init">
-					<resource name="RAM" quantum="4M"/>
+				<start name="tresor_init" ram="4M">
 					<config>
 
 						<block-io type="vfs" path="/tresor.img"/>
@@ -110,8 +104,7 @@ append config {
 					</route>
 				</start>
 
-				<start name="tresor_check" caps="100">
-					<resource name="RAM" quantum="4M"/>
+				<start name="tresor_check" caps="100" ram="4M">
 					<config>
 						<block-io type="vfs" path="/tresor.img"/>
 						<crypto path="/crypto"/>

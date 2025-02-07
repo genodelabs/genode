@@ -107,16 +107,14 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
 	<start name="platform_reports">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Report"/>
 			<service name="ROM"/>
@@ -127,16 +125,14 @@ append config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="4M"/>
+	<start name="acpi" caps="350" ram="4M">
 		<route>
 			<service name="Report"> <child name="platform_reports"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="ROM" label="system"> <child name="platform_reports"/> </service>
 			<service name="Report"> <child name="platform_reports"/> </service>
@@ -144,8 +140,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform" caps="400" managing_system="yes">
-		<resource name="RAM" quantum="4M"/>
+	<start name="platform" caps="400" ram="4M" managing_system="yes">
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -164,8 +159,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="ahci" priority="-1">
-		<resource name="RAM" quantum="10M"/>
+	<start name="ahci" priority="-1" ram="10M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<policy label_prefix="part_block" device="0" writeable="yes"/>
@@ -173,7 +167,6 @@ append config {
 	</start>
 
 	<start name="ps2" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<config/>
 		<route>
 			<service name="Event"> <child name="event_filter" label="ps2"/> </service>
@@ -181,21 +174,18 @@ append config {
 		</route>
 	</start>
 
-	<start name="fb" priority="-1" caps="150">
+	<start name="fb" priority="-1" caps="150" ram="32M">
 		<binary name="vesa_fb"/>
-		<resource name="RAM" quantum="32M"/>
 		<config/>
 	</start>
 
 	<start name="pc_rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
 		</provides>
 	</start>
 
-	<start name="part_block" priority="-1">
-		<resource name="RAM" quantum="10M"/>
+	<start name="part_block" priority="-1" ram="10M">
 		<provides><service name="Block"/></provides>
 		<route>
 			<any-service><child name="ahci"/> <parent/><any-child/></any-service>
@@ -210,9 +200,8 @@ append config {
 	</start>}
 
 append_if [have_spec nova] config {
-	<start name="log_kernel">
+	<start name="log_kernel" ram="10M">
 		<binary name="log_core"/>
-		<resource name="RAM" quantum="10M"/>
 		<config period_ms="2000"/>
 		<route>
 			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
@@ -226,9 +215,8 @@ append_if [have_spec nova] config {
 	</start>}
 
 append_if [expr $use_rumpfs] config {
-	<start name="rump_fs" priority="-1" caps="200">
+	<start name="rump_fs" priority="-1" caps="200" ram="64M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config ld_verbose="yes">
 			<vfs>
@@ -245,11 +233,9 @@ append_if [expr $use_rumpfs] config {
 		</route>
 	</start>}
 
-append_if [expr $use_ram_fs] config {
-	<start name="ram_fs" priority="-1" caps="1800">
-		<binary name="vfs"/>}
 append_if [expr $use_ram_fs] config "
-		<resource name=\"RAM\" quantum=\"[expr $use_vms * 8 * 128]M\"/>"
+	<start name=\"ram_fs\" priority=\"-1\" caps=\"1800\" ram=\"[expr $use_vms * 8 * 128]M\">
+		<binary name=\"vfs\"/>"
 append_if [expr $use_ram_fs] config {
 		<provides><service name="File_system"/></provides>
 		<config>
@@ -283,9 +269,8 @@ append_if [expr $use_ram_fs] config {
 	</start>}
 
 append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
-	<start name="overlay_from_disk" priority="-1">
+	<start name="overlay_from_disk" priority="-1" ram="32M">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides><service name="ROM"/></provides>
 		<route>}
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
@@ -296,8 +281,7 @@ append_if [expr $use_ram_fs && $use_overlay_from_disk] config {
 	</start>}
 
 append_if [expr $use_cpu_load] config {
-	<start name="trace_subject_reporter" priority="-1">
-		<resource name="RAM" quantum="6M"/>
+	<start name="trace_subject_reporter" priority="-1" ram="6M">
 		<config period_ms="500">
 			<report activity="yes" affinity="yes"/>
 		</config>
@@ -310,8 +294,7 @@ append_if [expr $use_cpu_load] config {
 		</route>
 	</start>
 
-	<start name="cpu_load_display" priority="-1">
-		<resource name="RAM" quantum="6M"/>
+	<start name="cpu_load_display" priority="-1" ram="6M">
 		<config/>
 		<route>
 			<service name="LOG"><parent/></service>
@@ -322,8 +305,7 @@ append_if [expr $use_cpu_load] config {
 		</route>
 	</start>
 
-	<start name="top" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="top" priority="-1" ram="2M">
 		<config period_ms="10000"/>
 		<route>
 			<service name="TRACE"><parent label=""/></service>
@@ -335,9 +317,8 @@ append_if [expr $use_cpu_load] config {
 	</start>}
 
 append_if [expr $use_usb] config {
-	<start name="usb" caps="200">
+	<start name="usb" caps="200" ram="20M">
 		<binary name="pc_usb_host"/>
-		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -370,8 +351,7 @@ append_if [expr $use_usb] config {
 		</config>
 	</start>
 
-	<start name="usb_hid" priority="-1" caps="140">
-		<resource name="RAM" quantum="11M"/>
+	<start name="usb_hid" priority="-1" caps="140" ram="11M">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Event"> <child name="event_filter" label="usb_hid"/> </service>
@@ -382,17 +362,15 @@ append_if [expr $use_usb] config {
 	</start>}
 
 append_if [expr !$use_usb] config {
-	<start name="usb" caps="200">
+	<start name="usb" caps="200" ram="1M">
 		<binary name="black_hole"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config> <usb/> </config>
 	</start>
 }
 
 append_if [expr $use_serial] config {
-	<start name="log_terminal" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="log_terminal" priority="-1" ram="2M">
 		<provides>
 			<service name="Terminal"/>
 		</provides>

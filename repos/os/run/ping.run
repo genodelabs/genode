@@ -98,15 +98,13 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -116,7 +114,6 @@ append config {
 	</start>
 
 	<start name="report_rom" caps="200">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="ROM" />
 			<service name="Report" />
@@ -124,8 +121,7 @@ append config {
 		<config verbose="yes"/>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -156,9 +152,8 @@ append config {
 
 append_if $second_ping_via_udp config {
 
-	<start name="ping_2">
+	<start name="ping_2" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config period_sec="1"
 		        verbose="no"
 		        count="1"
@@ -173,9 +168,8 @@ append_if $second_ping_via_udp config {
 
 append config {
 
-	<start name="ping_1">
+	<start name="ping_1" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config dst_ip="} [dst_ip] {"
 		        period_sec="1"
 		        report="yes"

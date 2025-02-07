@@ -52,9 +52,8 @@
 
 		<default caps="100"/>
 
-		<start name="depot_rw">
+		<start name="depot_rw" ram="2M">
 			<binary name="chroot"/>
-			<resource name="RAM" quantum="2M" />
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<default-policy path="/depot" writeable="yes"/>
@@ -67,9 +66,8 @@
 			</route>
 		</start>
 
-		<start name="public_rw">
+		<start name="public_rw" ram="2M">
 			<binary name="chroot"/>
-			<resource name="RAM" quantum="2M" />
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<default-policy path="/public" writeable="yes"/>
@@ -82,9 +80,8 @@
 			</route>
 		</start>
 
-		<start name="report_rom">
+		<start name="report_rom" ram="2M">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="no">
 				<policy label="depot_download -> installation"
@@ -95,9 +92,8 @@
 			</route>
 		</start>
 
-		<start name="depot_download" caps="2000">
+		<start name="depot_download" caps="2000" ram="70M">
 			<binary name="init"/>
-			<resource name="RAM" quantum="70M"/>
 			<route>
 				<service name="ROM" label="config">
 					<parent label="depot_download.config"/>
@@ -118,8 +114,7 @@
 			</route>
 		</start>
 
-		<start name="dbg_download">
-			<resource name="RAM" quantum="16M"/>
+		<start name="dbg_download" ram="16M">
 			<config>
 				<vfs>
 					<dir name="config">

@@ -21,9 +21,8 @@ proc client_config { name prot ip_addr gateway netmask nic srv_port srv_ip } {
 	global nr_of_clients
 	incr nr_of_clients
 	append result {
-		<start name="} $name {" priority="-1">
+		<start name="} $name {" priority="-1" ram="8M">
 			<binary  name="} [client_bin $prot] {" />
-			<resource name="RAM" quantum="8M"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -51,9 +50,8 @@ proc client_config { name prot ip_addr gateway netmask nic srv_port srv_ip } {
 
 proc server_config { name prot ip_addr gateway netmask nic port } {
 	append result {
-		<start name="} $name {" priority="-1">
+		<start name="} $name {" priority="-1" ram="8M">
 			<binary  name="} [server_bin $prot] {" />
-			<resource name="RAM" quantum="8M"/>
 			<route>
 				<service name="Nic"> <child name="} $nic {"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>

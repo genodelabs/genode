@@ -24,15 +24,13 @@ install_config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="drivers" caps="1500" managing_system="yes">
-			<resource name="RAM" quantum="64M"/>
+		<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -43,8 +41,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="nitpicker">
-			<resource name="RAM" quantum="4M"/>
+		<start name="nitpicker" ram="4M">
 			<provides>
 				<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 			</provides>
@@ -55,8 +52,7 @@ install_config {
 			</config>
 		</start>
 
-		<start name="terminal" caps="110">
-			<resource name="RAM" quantum="6M"/>
+		<start name="terminal" caps="110" ram="6M">
 			<provides><service name="Terminal"/></provides>
 			<route>
 				<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
@@ -65,9 +61,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="test-terminal_echo">
-			<resource name="RAM" quantum="1M"/>
-		</start>
+		<start name="test-terminal_echo"/>
 	</config>
 }
 

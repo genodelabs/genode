@@ -22,9 +22,7 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
-	<start name="} [test_program_name] {">
-		<resource name="RAM" quantum="8M"/>
-	</start>
+	<start name="} [test_program_name] {" ram="8M"/>
 </config>}
 
 

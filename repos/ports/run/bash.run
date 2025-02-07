@@ -42,15 +42,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -61,8 +59,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -76,8 +73,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="terminal" caps="110">
-		<resource name="RAM" quantum="6M"/>
+	<start name="terminal" caps="110" ram="6M">
 		<provides><service name="Terminal"/></provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
@@ -86,8 +82,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="vfs" caps="120">
-		<resource name="RAM" quantum="30M"/>
+	<start name="vfs" caps="120" ram="30M">
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs>
@@ -110,8 +105,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="vfs_rom">
-		<resource name="RAM" quantum="30M"/>
+	<start name="vfs_rom" ram="30M">
 		<binary name="fs_rom"/>
 		<provides> <service name="ROM"/> </provides>
 		<config/>
@@ -121,8 +115,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="/bin/bash" caps="1000">
-		<resource name="RAM" quantum="30M" />
+	<start name="/bin/bash" caps="1000" ram="30M">
 		<config ld_verbose="yes">
 			<libc stdin="/dev/terminal" stdout="/dev/terminal"
 			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>

@@ -23,33 +23,29 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test1">
+		<start name="test1" ram="2144K">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2144K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>
 			</config>
 		</start>
-		<start name="test2">
+		<start name="test2" ram="2144K">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2144K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>
 			</config>
 		</start>
-		<start name="test3">
+		<start name="test3" ram="2144K">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2144K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>
 			</config>
 		</start>
-		<start name="test4">
+		<start name="test4" ram="2144K">
 			<binary name="test-ieee754"/>
-			<resource name="RAM" quantum="2144K"/>
 			<config>
 				<vfs> <dir name="dev"><log/></dir></vfs>
 				<libc stdout="/dev/log"/>

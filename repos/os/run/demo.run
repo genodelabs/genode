@@ -35,15 +35,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1096K"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -55,7 +53,6 @@ install_config {
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="status_bar -> focus"          report="nitpicker -> focus"/>
@@ -68,7 +65,6 @@ install_config {
 
 	<start name="nitpicker_config">
 		<binary name="rom_filter"/>
-		<resource name="RAM" quantum="1096K"/>
 		<provides> <service name="ROM"/> </provides>
 		<config>
 			<input name="xray_enabled" rom="xray" node="xray">
@@ -127,7 +123,6 @@ install_config {
 	</start>
 
 	<start name="global_keys_handler">
-		<resource name="RAM" quantum="1096K"/>
 		<config>
 			<bool name="xray" initial="no"/>
 
@@ -148,8 +143,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker" caps="120">
-		<resource name="RAM" quantum="1216K"/>
+	<start name="nitpicker" caps="120" ram="1216K">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -165,12 +159,10 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1096K"/>
 		<config/>
 	</start>
 
 	<start name="nit_focus">
-		<resource name="RAM" quantum="1M"/>
 		<config> <default-policy focus="yes"/> </config>
 		<route>
 			<service name="ROM" label="clicked"> <child name="report_rom"/> </service>
@@ -180,16 +172,13 @@ install_config {
 	</start>
 
 	<start name="status_bar">
-		<resource name="RAM" quantum="1096K"/>
 		<route>
 			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="scout" caps="10000">
-		<resource name="RAM" quantum="80M" />
-	</start>
+	<start name="scout" caps="10000" ram="80M"/>
 </config>}
 
 #

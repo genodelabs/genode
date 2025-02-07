@@ -36,8 +36,7 @@ Example configuration
 
 For a complete scenario please look into repos/libports/run/acpica.run.
 
-!<start name="report_rom">
-!  <resource name="RAM" quantum="2M"/>
+!<start name="report_rom" ram="2M">
 !  <provides> <service name="ROM"/> <service name="Report"/> </provides>
 !  <config>
 !    <policy label="acpi_event -> acpi_lid"     report="acpica -> acpi_lid"/>
@@ -49,16 +48,14 @@ For a complete scenario please look into repos/libports/run/acpica.run.
 !  </config>
 !</start>
 !
-!<start name="acpica">
-!  <resource name="RAM" quantum="8M"/>
+!<start name="acpica" ram="8M">
 !  <config report="yes"/>
 !  <route>
 !    <service name="Report"> <child name="acpi_state"/> </service>
 !  </route>
 !</start>
 !
-!<start name="acpi_event">
-!  <resource name="RAM" quantum="1M"/>
+!<start name="acpi_event" ram="1M">
 !  <config>
 !    <map acpi="lid"   value="CLOSED"    to_key="KEY_SLEEP"/>
 !    <map acpi="fixed" value="0"         to_key="KEY_POWER"/>

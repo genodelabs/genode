@@ -131,8 +131,6 @@
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-xml_node">
-			<resource name="RAM" quantum="10M"/>
-		</start>
+		<start name="test-xml_node" ram="10M"/>
 	</config>
 </runtime>

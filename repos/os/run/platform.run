@@ -30,16 +30,14 @@ install_config {
 	<default-route>
 		<any-service> <parent/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
-	<start name="timer">
-		<resource name="RAM" quantum="10M"/>
+	<start name="timer" ram="10M">
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_fs">
+	<start name="report_fs" ram="2M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -57,7 +55,6 @@ install_config {
 	</start>
 
 	<start name="fs_report">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> </provides>
 		<config> <vfs> <fs/> </vfs> </config>
 		<route>
@@ -66,9 +63,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="report_fs_rom">
+	<start name="report_fs_rom" ram="3M">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="3M"/>
 		<provides> <service name="ROM"/> </provides>
 		<route>
 			<service name="File_system"> <child name="report_fs"/> </service>
@@ -76,8 +72,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="3M"/>
+	<start name="report_rom" ram="3M">
 		<provides>
 			<service name="ROM"/>
 			<service name="Report"/>
@@ -89,7 +84,6 @@ install_config {
 	</start>
 
 	<start name="platform" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM"    label="config"> <child name="report_fs_rom"/> </service>
@@ -100,7 +94,6 @@ install_config {
 	</start>
 
 	<start name="test-platform">
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="Report" label="config">
 				<child name="fs_report" label="config"/> </service>

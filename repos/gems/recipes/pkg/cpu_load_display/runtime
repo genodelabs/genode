@@ -24,8 +24,7 @@
 
 		<default caps="100"/>
 
-		<start name="report_rom">
-			<resource name="RAM" quantum="4M"/>
+		<start name="report_rom" ram="4M">
 			<provides>
 				<service name="Report"/>
 				<service name="ROM"/>
@@ -36,8 +35,7 @@
 			</config>
 		</start>
 
-		<start name="trace_subject_reporter">
-			<resource name="RAM" quantum="6M"/>
+		<start name="trace_subject_reporter" ram="6M">
 			<config period_ms="500">
 				<report activity="yes" affinity="yes"/>
 			</config>
@@ -47,8 +45,7 @@
 			</route>
 		</start>
 
-		<start name="cpu_load_display">
-			<resource name="RAM" quantum="6M"/>
+		<start name="cpu_load_display" ram="6M">
 			<config/>
 			<route>
 				<service name="ROM" label="trace_subjects"> <child name="report_rom"/> </service>

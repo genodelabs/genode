@@ -27,13 +27,10 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 		<start name="pc_rtc" priority="-1">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Rtc"/></provides>
 		</start>
-		<start name="test-rtc" priority="-1">
-			<resource name="RAM" quantum="1M"/>
-		</start>
+		<start name="test-rtc" priority="-1"/>
 	</config>
 </runtime>

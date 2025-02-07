@@ -93,8 +93,7 @@ append config {
 			<service name="IO_PORT"/>
 		</parent-provides>
 
-		<start name="timer" caps="200">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" caps="200" ram="1M">
 			<provides> <service name="Timer"/> </provides>
 			<route>
 				<service name="PD">      <parent/> </service>
@@ -107,8 +106,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="dynamic_rom" caps="100">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" caps="100" ram="4M">
 			<provides><service name="ROM"/> </provides>
 			<config verbose="yes">
 				<rom name="file_vault_ui_config">
@@ -148,8 +146,7 @@ append config {
 								<service name="File_system"/>
 							</parent-provides>
 
-							<start name="log_terminal" caps="110">
-								<resource name="RAM" quantum="2M"/>
+							<start name="log_terminal" caps="110" ram="2M">
 								<provides><service name="Terminal"/></provides>
 								<route>
 									<service name="LOG"> <parent/> </service>
@@ -159,8 +156,7 @@ append config {
 								</route>
 							</start>
 
-							<start name="vfs" caps="120">
-								<resource name="RAM" quantum="30M"/>
+							<start name="vfs" caps="120" ram="30M">
 								<provides><service name="File_system"/></provides>
 								<config>
 									<vfs>
@@ -189,8 +185,7 @@ append config {
 								</route>
 							</start>
 
-							<start name="fs_rom" caps="100">
-								<resource name="RAM" quantum="8M"/>
+							<start name="fs_rom" caps="100" ram="8M">
 								<provides> <service name="ROM"/> </provides>
 								<config/>
 								<route>
@@ -202,8 +197,7 @@ append config {
 								</route>
 							</start>
 
-							<start name="bash" caps="500">
-								<resource name="RAM" quantum="32M"/>
+							<start name="bash" caps="500" ram="32M">
 								<binary name="/bin/bash"/>
 								<config>
 									<libc stdin="/dev/terminal" stdout="/dev/terminal"
@@ -251,8 +245,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="report_rom" caps="70">
-			<resource name="RAM" quantum="1M"/>
+		<start name="report_rom" caps="70" ram="1M">
 			<provides>
 				<service name="ROM" />
 				<service name="Report" />
@@ -270,9 +263,8 @@ if {[have_board linux]} {
 
 	append config {
 
-		<start name="data_fs" caps="200" ld="no">
+		<start name="data_fs" caps="200" ram="4M" ld="no">
 			<binary name="lx_fs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="File_system"/>
 			</provides>
@@ -290,9 +282,8 @@ if {[have_board linux]} {
 			</route>
 		</start>
 
-		<start name="trust_anchor_fs" caps="200" ld="no">
+		<start name="trust_anchor_fs" caps="200" ram="4M" ld="no">
 			<binary name="lx_fs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="File_system"/>
 			</provides>
@@ -315,9 +306,8 @@ if {[have_board linux]} {
 
 	append config {
 
-		<start name="data_fs" caps="100">
+		<start name="data_fs" caps="100" ram="10M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="10M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -335,9 +325,8 @@ if {[have_board linux]} {
 			</route>
 		</start>
 
-		<start name="trust_anchor_fs" caps="100">
+		<start name="trust_anchor_fs" caps="100" ram="4M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -358,8 +347,7 @@ if {[have_board linux]} {
 }
 append config {
 
-		<start name="file_vault" caps="1000">
-			<resource name="RAM" quantum="80M"/>
+		<start name="file_vault" caps="1000" ram="80M">
 			<provides>
 				<service name="File_system"/>
 			</provides>
@@ -389,8 +377,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="dynamic_init" caps="1000">
-			<resource name="RAM" quantum="100M"/>
+		<start name="dynamic_init" caps="1000" ram="100M">
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <child label="dynamic_init_config" name="dynamic_rom"/> </service>

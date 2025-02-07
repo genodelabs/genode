@@ -35,8 +35,7 @@
 		</default-route>
 		<default caps="256"/>
 
-		<start name="nic_router">
-			<resource name="RAM" quantum="10M"/>
+		<start name="nic_router" ram="10M">
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -47,9 +46,8 @@
 			</config>
 		</start>
 
-		<start name="server">
+		<start name="server" ram="12M">
 			<binary name="test-netty_tcp"/>
-			<resource name="RAM" quantum="12M"/>
 			<config port="80" read_write="yes" nonblock="false">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
@@ -62,8 +60,7 @@
 			</config>
 		</start>
 
-		<start name="test-libc_connect" caps="200">
-			<resource name="RAM" quantum="48M"/>
+		<start name="test-libc_connect" caps="200" ram="48M">
 			<config>
 				<vfs>
 					<dir name="dev"> <log/> </dir>

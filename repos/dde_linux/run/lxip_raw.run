@@ -25,14 +25,12 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -54,8 +52,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="test-lxip_server" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="test-lxip_server" caps="200" ram="10M">
 		<config ld_verbose="yes" ip_addr="10.0.2.3" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
@@ -63,8 +60,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-lxip_client" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="test-lxip_client" caps="200" ram="10M">
 		<config ld_verbose="yes" server_ip="10.0.2.3" server_port="80"/>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>

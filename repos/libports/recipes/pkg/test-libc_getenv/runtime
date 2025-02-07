@@ -29,8 +29,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-libc_getenv">
-			<resource name="RAM" quantum="4M"/>
+		<start name="test-libc_getenv" ram="4M">
 			<config>
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 				<libc stdout="/dev/log"/>

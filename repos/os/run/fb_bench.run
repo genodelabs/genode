@@ -40,13 +40,11 @@ install_config {
 	</default-route>
 	<default caps="100"/>
 
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" ram="1M">
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="120M"/>
+	<start name="drivers" caps="1500" ram="120M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -57,8 +55,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -70,8 +67,7 @@ install_config {
 		<route> <any-service> <parent/> <any-child/> </any-service> </route>
 	</start>
 
-	<start name="gui_fb">
-		<resource name="RAM" quantum="5M"/>
+	<start name="gui_fb" ram="5M">
 		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 		<config/>
 		<route>
@@ -80,13 +76,12 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-fb_bench">
+	<start name="test-fb_bench" ram="72M">
 		<!--
 		  - We need this big amount of RAM because the VESA driver reports a
 		  - large buffer on some hardware and the test mirrors this buffer in
 		  - RAM.
 		  -->
-		<resource name="RAM" quantum="72M"/>
 		<config/>
 	</start>
 </config>}

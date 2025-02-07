@@ -36,8 +36,7 @@ append config {
 			<service name="LOG"/>
 		</parent-provides>
 
-		<start name="timer" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" caps="100" ram="1M">
 			<provides><service name="Timer"/></provides>
 			<route>
 				<service name="PD"> <parent/> </service>
@@ -50,8 +49,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="drivers" caps="1200" managing_system="yes">
-			<resource name="RAM" quantum="32M"/>
+		<start name="drivers" caps="1200" ram="32M" managing_system="yes">
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -68,8 +66,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="nic_uplink" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="nic_uplink" caps="100" ram="1M">
 			<provides>
 				<service name="Uplink"/>
 				<service name="Nic"/>
@@ -84,9 +81,8 @@ append config {
 			</route>
 		</start>
 
-		<start name="ping_1" caps="100">
+		<start name="ping_1" caps="100" ram="8M">
 			<binary name="ping"/>
-			<resource name="RAM" quantum="8M"/>
 			<config dst_ip="} [dst_ip] {" period_sec="1" count="3"/>
 			<route>
 				<service name="Nic"> <child name="nic_uplink"/> </service>
@@ -98,9 +94,8 @@ append config {
 			</route>
 		</start>
 
-		<start name="ping_2" caps="100">
+		<start name="ping_2" caps="100" ram="8M">
 			<binary name="ping"/>
-			<resource name="RAM" quantum="8M"/>
 			<config dst_ip="} [dst_ip] {" period_sec="1" count="3"/>
 			<route>
 				<service name="Nic"> <child name="nic_uplink"/> </service>

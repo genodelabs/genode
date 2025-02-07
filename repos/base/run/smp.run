@@ -26,9 +26,7 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-smp">
-			<resource name="RAM" quantum="10M"/>
-		</start>
+		<start name="test-smp" ram="10M"/>
 	</config>
 }
 

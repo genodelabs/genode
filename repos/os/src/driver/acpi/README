@@ -16,12 +16,9 @@ the platform driver README for more details.
 Usage
 -----
 
-!<start name="acpi">
-!  <resource name="RAM" quantum="4M"/>
-!</start>
+!<start name="acpi" ram="4M"/>
 !
-!<start name="report_rom">
-!  <resource name="RAM" quantum="2M"/>
+!<start name="report_rom" ram="2M">
 !  <provides>
 !    <service name="ROM" />
 !    <service name="Report" />

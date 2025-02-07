@@ -26,8 +26,7 @@ install_config {
 		<service name="LOG"/>
 	</parent-provides>
 
-	<start name="timer" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" caps="100" ram="1M">
 		<provides> <service name="Timer"/> </provides>
 		<route>
 			<service name="ROM"> <parent/> </service>
@@ -37,8 +36,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="drivers" caps="1000" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1000" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config">
@@ -57,9 +55,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="outer_router" caps="200">
+	<start name="outer_router" caps="200" ram="10M">
 		<binary name="nic_router"/>
-		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -85,9 +82,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="inner_router" caps="200">
+	<start name="inner_router" caps="200" ram="10M">
 		<binary name="nic_router"/>
-		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -111,8 +107,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="wireguard" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="wireguard" caps="200" ram="10M">
 		<config private_key="8GRSQZMgG1uuvz4APIBqrDmiLj8L886r++hzixjjHFc="
 		        interface="10.0.3.2/24"
 		        listen_port="49002">

@@ -31,12 +31,10 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="terminal_crosslink">
-			<resource name="RAM" quantum="2M"/>
+		<start name="terminal_crosslink" ram="2M">
 			<provides> <service name="Terminal"/> </provides>
 		</start>
-		<start name="vfs">
-			<resource name="RAM" quantum="12M"/>
+		<start name="vfs" ram="12M">
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs>
@@ -46,8 +44,7 @@
 			</config>
 		</start>
 
-		<start name="test-libc_counter-source">
-			<resource name="RAM" quantum="8M"/>
+		<start name="test-libc_counter-source" ram="8M">
 			<config>
 				<vfs>
 					<dir name="dev"> <terminal/> <log/> </dir>
@@ -55,8 +52,7 @@
 				<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
 			</config>
 		</start>
-		<start name="test-libc_counter-sink">
-			<resource name="RAM" quantum="8M"/>
+		<start name="test-libc_counter-sink" ram="8M">
 			<config>
 				<vfs>
 					<dir name="dev"> <log/> <null/> </dir>

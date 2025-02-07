@@ -56,15 +56,13 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>}
 
 append_if [expr $use_top] config {
-	<start name="top">
-		<resource name="RAM" quantum="2M"/>
+	<start name="top" ram="2M">
 		<config period_ms="15000"/>
 		<route>
 			<service name="TRACE"> <parent label=""/> </service>
@@ -73,9 +71,8 @@ append_if [expr $use_top] config {
 	</start>}
 
 append config {
-	<start name="drivers" caps="1500" managing_system="yes" priority="-1">
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes" priority="-1">
 		<binary name="init"/>
-		<resource name="RAM" quantum="64M"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
@@ -86,24 +83,21 @@ append config {
 	</start>
 
 	<start name="pc_rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
 		</provides>
 	</start>}
 
 append_if [expr $use_net] config {
-	<start name="nic" priority="-1">
+	<start name="nic" priority="-1" ram="8M">
 		<binary name="pc_nic"/>
-		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 
-	<start name="nic_router" caps="120">
-		<resource name="RAM" quantum="5M"/>
+	<start name="nic_router" caps="120" ram="5M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -139,8 +133,7 @@ append_if [expr $use_net] config {
 	</start> }
 
 append_if [expr $use_serial] config {
-	<start name="log_terminal" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="log_terminal" priority="-1" ram="2M">
 		<provides>
 			<service name="Terminal"/>
 		</provides>
@@ -148,8 +141,7 @@ append_if [expr $use_serial] config {
 }
 
 append config {
-	<start name="report_rom" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" priority="-1" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pointer -> hover" report="nitpicker -> hover"/>
@@ -157,8 +149,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="nitpicker" priority="-1">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" priority="-1" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -181,8 +172,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="pointer" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pointer" priority="-1" ram="2M">
 		<provides><service name="Report"/></provides>
 		<config shapes="yes"/>
 		<route>
@@ -193,8 +183,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="wm" caps="1000" priority="-1">
-		<resource name="RAM" quantum="32M"/>
+	<start name="wm" caps="1000" priority="-1" ram="32M">
 		<binary name="init"/>
 		<provides>
 			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
@@ -210,9 +199,8 @@ append config {
 	</start>}
 
 append_if [expr $use_gui] config {
-	<start name="vbox2" priority="-2" caps="1200">
+	<start name="vbox2" priority="-2" caps="1200" ram="448M">
 		<binary name="} $virtualbox_binary {"/>
-		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
@@ -242,9 +230,8 @@ append_if [expr $use_gui] config {
 	</start>}
 
 append config {
-	<start name="vbox1" priority="-2" caps="1200">
+	<start name="vbox1" priority="-2" caps="1200" ram="448M">
 		<binary name="} $virtualbox_binary {"/>
-		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>

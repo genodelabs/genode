@@ -27,8 +27,6 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-signal" caps="500">
-			<resource name="RAM" quantum="10M"/>
-		</start>
+		<start name="test-signal" caps="500" ram="10M"/>
 	</config>
 </runtime>

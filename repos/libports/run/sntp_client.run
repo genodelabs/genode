@@ -30,10 +30,9 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label_suffix="set_rtc" report="sntp_client -> set_rtc"/>
@@ -41,12 +40,10 @@ install_config {
 	</start>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -56,8 +53,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -91,8 +87,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="sntp_client">
-		<resource name="RAM" quantum="8M"/>
+	<start name="sntp_client" ram="8M">
 		<config verbose="no" dst_addr="pool.ntp.org" period_min="1"/>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>

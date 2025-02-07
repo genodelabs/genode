@@ -61,13 +61,11 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="test-libc_vfs" caps="200">
-		<resource name="RAM" quantum="28M"/>
+	<start name="test-libc_vfs" caps="200" ram="28M">
 		<config>
 			<iterations value="1"/>}
 append_if [have_include "power_on/qemu"] config {
@@ -86,8 +84,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="vfs_block" caps="200">
-		<resource name="RAM" quantum="68M" />
+	<start name="vfs_block" caps="200" ram="68M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>
@@ -102,8 +99,7 @@ append config {
 	</start>}
 
 append_if $use_vfs_server config "
-	<start name=\"vfs\" caps=\"200\">
-		<resource name=\"RAM\" quantum=\"24M\" />
+	<start name=\"vfs\" caps=\"200\" ram=\"24M\">
 		<provides><service name=\"File_system\"/></provides>
 		<config>
 			<vfs>

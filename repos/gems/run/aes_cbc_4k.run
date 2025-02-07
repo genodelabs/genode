@@ -22,7 +22,7 @@ append config {
 		</parent-provides>
 		<default-route> <any-service> <parent/> </any-service> </default-route>
 		<default caps="100"/>
-		<start name="test-aes_cbc_4k">
+		<start name="test-aes_cbc_4k" ram="3M">
 			<config block_number="} $block_number {" test_rounds="} $test_rounds {">
 
 				<libc stdout="/dev/log" stderr="/dev/log"/>
@@ -33,7 +33,6 @@ append config {
 				</vfs>
 
 			</config>
-			<resource name="RAM" quantum="3M"/>
 		</start>
 	</config>}
 

@@ -27,8 +27,7 @@
 
 		<default caps="100"/>
 
-		<start name="report_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="report_rom" ram="2M">
 			<provides> <service name="ROM"/> <service name="Report"/> </provides>
 			<config verbose="no">
 				<policy label="init -> config" report="test-init_loop -> init.config"/>
@@ -37,8 +36,7 @@
 			<route> <any-service> <parent/> </any-service> </route>
 		</start>
 
-		<start name="test-init_loop">
-			<resource name="RAM" quantum="4M"/>
+		<start name="test-init_loop" ram="4M">
 			<provides> <service name="LOG"/> </provides>
 			<config/>
 			<route>
@@ -48,9 +46,8 @@
 			</route>
 		</start>
 
-		<start name="init" caps="2000">
+		<start name="init" caps="2000" ram="8M">
 			<binary name="init"/>
-			<resource name="RAM" quantum="8M"/>
 			<route>
 				<service name="ROM" label="config"> <child name="report_rom"/> </service>
 				<service name="Report">             <child name="report_rom"/> </service>

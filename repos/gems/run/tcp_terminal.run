@@ -40,13 +40,11 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="drivers" caps="1000" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1000" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -55,8 +53,7 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -92,8 +89,7 @@ install_config {
 
 		</config>
 	</start>
-	<start name="tcp_terminal" caps="200">
-		<resource name="RAM" quantum="8M"/>
+	<start name="tcp_terminal" caps="200" ram="8M">
 		<provides> <service name="Terminal"/> </provides>
 		<config>
 			<policy label_prefix="test-terminal_echo" port="8888"/>
@@ -109,9 +105,7 @@ install_config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="test-terminal_echo">
-		<resource name="RAM" quantum="1M"/>
-	</start>
+	<start name="test-terminal_echo"/>
 </config>
 }
 

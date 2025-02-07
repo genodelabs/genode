@@ -25,8 +25,7 @@ install_config {
 	<default-route> <any-service> <parent/> </any-service> </default-route>
 	<default caps="200"/>
 
-	<start name="test-memcpy">
-		<resource name="RAM" quantum="40M"/>
+	<start name="test-memcpy" ram="40M">
 		<config>
 			<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>

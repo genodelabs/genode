@@ -24,24 +24,21 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="report_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="report_rom" ram="2M">
 			<provides> <service name="ROM"/> <service name="Report"/> </provides>
 			<config verbose="no">
 				<policy label="init -> config" report="init_monitor -> init.config"/>
 				<policy label="init_monitor -> state" report="init -> state"/>
 			</config>
 		</start>
-		<start name="init" caps="4000">
-			<resource name="RAM" quantum="10M"/>
+		<start name="init" caps="4000" ram="10M">
 			<route>
 				<service name="ROM" label="config"> <child name="report_rom"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
-		<start name="init_monitor">
+		<start name="init_monitor" ram="2M">
 			<binary name="test-resource_request"/>
-			<resource name="RAM" quantum="2M"/>
 			<config role="monitor"/>
 			<route>
 				<service name="ROM" label="state"> <child name="report_rom"/> </service>

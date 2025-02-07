@@ -47,20 +47,17 @@ install_config {
 			<service name="File_system"> <child name="vfs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 
 		<start name="linux_rtc" ld="no">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Rtc"/> </provides>
 		</start>
 
-		<start name="lx_fs" ld="no">
-			<resource name="RAM" quantum="4M"/>
+		<start name="lx_fs" ld="no" ram="4M">
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<default-policy root="/fs" writeable="yes"/>
@@ -68,7 +65,6 @@ install_config {
 		</start>
 
 		<start name="nic_router">
-			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -82,14 +78,12 @@ install_config {
 			</config>
 		</start>
 
-		<start name="ping">
-			<resource name="RAM" quantum="10M"/>
+		<start name="ping" ram="10M">
 			<config dst_ip="10.0.4.1" period_sec="1" count="10" verbose="yes"/>
 		</start>
 
 		<!-- using dynamic_rom to delay enabling of trace_recorder -->
 		<start name="dynamic_rom">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="ROM"/></provides>
 			<config>
 				<rom name="config">
@@ -114,8 +108,7 @@ install_config {
 			</config>
 		</start>
 
-		<start name="trace_recorder" caps="200">
-			<resource name="RAM" quantum="16M"/>
+		<start name="trace_recorder" caps="200" ram="16M">
 			<route>
 				<service name="File_system"> <child name="lx_fs"/> </service>
 				<service name="ROM" label="config"> <child name="dynamic_rom"/> </service>

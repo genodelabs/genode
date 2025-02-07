@@ -20,9 +20,8 @@
 			<service name="Event"/>
 		</parent-provides>
 
-		<start name="touch_keyboard" caps="300">
+		<start name="touch_keyboard" caps="300" ram="14M">
 			<binary name="touch_keyboard"/>
-			<resource name="RAM" quantum="14M"/>
 			<config min_width="720" min_height="480"
 			        opaque="yes" background="#3e3e43"/>
 			<route>

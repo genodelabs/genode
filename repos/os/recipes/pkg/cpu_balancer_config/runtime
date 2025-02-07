@@ -30,8 +30,7 @@
 			<service name="Timer"/>
 		</parent-provides>
 
-		<start name="fs_report" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="fs_report" caps="100" ram="1M">
 			<provides> <service name="Report"/> </provides>
 			<config> <vfs> <fs/> </vfs> </config>
 			<route>
@@ -40,8 +39,7 @@
 			</route>
 		</start>
 
-		<start name="fs_rom" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="fs_rom" caps="100" ram="1M">
 			<provides> <service name="ROM"/> </provides>
 			<config/>
 			<route>
@@ -50,8 +48,7 @@
 			</route>
 		</start>
 
-		<start name="cpu_balancer" caps="200">
-			<resource name="RAM" quantum="2M"/>
+		<start name="cpu_balancer" caps="200" ram="2M">
 
 			<provides>
 				<service name="PD"/>

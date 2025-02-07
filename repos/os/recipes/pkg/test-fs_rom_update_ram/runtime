@@ -31,8 +31,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="vfs">
-			<resource name="RAM" quantum="10M"/>
+		<start name="vfs" ram="10M">
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs> <ram/> </vfs>
@@ -40,8 +39,7 @@
 				<policy label_prefix="fs_rom" root="/" writeable="no"/>
 			</config>
 		</start>
-		<start name="dynamic_rom">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" ram="4M">
 			<provides><service name="ROM"/></provides>
 			<config verbose="yes">
 				<rom name="dynamic_rom">
@@ -64,8 +62,7 @@
 				</rom>
 			</config>
 		</start>
-		<start name="rom_to_file">
-			<resource name="RAM" quantum="2M"/>
+		<start name="rom_to_file" ram="2M">
 			<config rom="dynamic_rom">
 				<vfs> <fs/> </vfs>
 			</config>
@@ -76,16 +73,14 @@
 			</route>
 		</start>
 
-		<start name="fs_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="fs_rom" ram="2M">
 			<provides><service name="ROM"/></provides>
 			<route>
 				<service name="File_system"> <child name="vfs"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>
-		<start name="rom_logger">
-			<resource name="RAM" quantum="1M"/>
+		<start name="rom_logger" ram="1M">
 			<config rom="dynamic_rom"/>
 			<route>
 				<service name="ROM" label="dynamic_rom"> <child name="fs_rom"/> </service>

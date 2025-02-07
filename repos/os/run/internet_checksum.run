@@ -45,15 +45,13 @@ install_config {
 		<service name="PD"/>
 	</parent-provides>
 
-	<start name="lx_fs" ld="no" caps="100">
-		<resource name="RAM" quantum="4M"/>
+	<start name="lx_fs" ld="no" caps="100" ram="4M">
 		<provides> <service name="File_system"/> </provides>
 		<config> <policy label="test-internet_checksum -> " root="/} $lx_fs_root {" writeable="yes"/> </config>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
-	<start name="test-internet_checksum" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="test-internet_checksum" caps="100" ram="1M">
 		<config seed="} $seed {"> <vfs> <fs/> </vfs> </config>
 		<route>
 			<service name="File_system"> <child name="lx_fs"/> </service>

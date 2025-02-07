@@ -23,9 +23,8 @@
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test">
+		<start name="test" ram="10M">
 			<binary name="test-mmio"/>
-			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
 </runtime>

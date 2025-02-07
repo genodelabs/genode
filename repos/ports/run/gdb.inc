@@ -76,10 +76,9 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 }
@@ -87,9 +86,8 @@ append config {
 if { [have_include power_on/qemu] } {
 
 	append_if [have_board pc] config {
-		<start name="uart">
+		<start name="uart" ram="2M">
 			<binary name="pc_uart"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>
 				<service name="Uart"/>
@@ -101,9 +99,8 @@ if { [have_include power_on/qemu] } {
 	}
 
 	append_if [have_board rpi3] config {
-		<start name="uart">
+		<start name="uart" ram="2M">
 			<binary name="rpi3_uart"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>
 				<service name="Uart"/>
@@ -117,8 +114,7 @@ if { [have_include power_on/qemu] } {
 } else {
 
 	append config {
-		<start name="drivers" caps="1000" managing_system="yes">
-			<resource name="RAM" quantum="32M"/>
+		<start name="drivers" caps="1000" ram="32M" managing_system="yes">
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -127,8 +123,7 @@ if { [have_include power_on/qemu] } {
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>
-		<start name="nic_router" caps="200">
-			<resource name="RAM" quantum="10M"/>
+		<start name="nic_router" caps="200" ram="10M">
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -164,24 +159,21 @@ if { [have_include power_on/qemu] } {
 
 append config {
 
-	<start name="terminal_monitor">
+	<start name="terminal_monitor" ram="2M">
 		<binary name="terminal_crosslink"/>
-		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Terminal"/>
 		</provides>
 	</start>
 
-	<start name="terminal_gdb">
+	<start name="terminal_gdb" ram="2M">
 		<binary name="terminal_crosslink"/>
-		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Terminal"/>
 		</provides>
 	</start>
 
-	<start name="monitor" caps="1000">
-		<resource name="RAM" quantum="100M"/>
+	<start name="monitor" caps="1000" ram="100M">
 		<config>
 			<parent-provides>
 				<service name="LOG"/>
@@ -195,8 +187,7 @@ append config {
 				<policy label="test-monitor_gdb" wait="yes" wx="yes"/>
 			</monitor>
 
-			<start name="test-monitor_gdb" caps="300">
-				<resource name="RAM" quantum="10M"/>
+			<start name="test-monitor_gdb" caps="300" ram="10M">
 				<config>
 					<vfs> <dir name="dev"> <log/> </dir> </vfs>
 					<libc stdout="/dev/log" stderr="/dev/log"/>
@@ -207,8 +198,7 @@ append config {
 					<any-service> <parent/> </any-service>
 				</route>
 			</start>
-			<start name="test-log">
-				<resource name="RAM" quantum="2M"/>
+			<start name="test-log" ram="2M">
 				<route>
 					<service name="PD">  <local/> </service>
 					<service name="CPU"> <local/> </service>
@@ -222,8 +212,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="vfs">
-		<resource name="RAM" quantum="12M"/>
+	<start name="vfs" ram="12M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -237,8 +226,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="vfs_rom">
-		<resource name="RAM" quantum="60M"/>
+	<start name="vfs_rom" ram="60M">
 		<binary name="fs_rom"/>
 		<provides> <service name="ROM"/> </provides>
 		<config/>
@@ -248,9 +236,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="socat" caps="200">
+	<start name="socat" caps="200" ram="30M">
 		<binary name="/bin/socat"/>
-		<resource name="RAM" quantum="30M" />
 		<config>
 			<vfs>
 				<dir name="dev">
@@ -301,9 +288,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="gdb" caps="300">
+	<start name="gdb" caps="300" ram="42M">
 		<binary name="/bin/} [gdb_prefix] {gdb"/>
-		<resource name="RAM" quantum="42M"/>
 		<config ld_verbose="yes">
 			<vfs>
 				<dir name="dev">

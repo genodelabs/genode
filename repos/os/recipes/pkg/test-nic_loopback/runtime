@@ -25,12 +25,9 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="nic_loopback">
-			<resource name="RAM" quantum="2M"/>
+		<start name="nic_loopback" ram="2M">
 			<provides><service name="Nic"/></provides>
 		</start>
-		<start name="test-nic_loopback">
-			<resource name="RAM" quantum="2M"/>
-		</start>
+		<start name="test-nic_loopback" ram="2M"/>
 	</config>
 </runtime>

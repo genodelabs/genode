@@ -10,17 +10,15 @@
 		<service name="Event"/>
 	</parent-provides>
 
-	<start name="fb_sdl" caps="100" ld="no">
-		<resource name="RAM" quantum="10M"/>
+	<start name="fb_sdl" caps="100" ram="10M" ld="no">
 		<route>
 			<service name="Event"> <parent label="sdl"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="modem" caps="120">
+	<start name="modem" caps="120" ram="1M">
 		<binary name="dummy_modem"/>
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="modem.config"/> </service>
 			<service name="ROM">    <parent/> </service>

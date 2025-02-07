@@ -37,15 +37,13 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -56,8 +54,7 @@ append config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -83,8 +80,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="nic_dump" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_dump" caps="200" ram="10M">
 		<provides><service name="Nic"/></provides>
 		<config uplink="uplink"
 		        downlink="downlink"
@@ -103,8 +99,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="ping">
-		<resource name="RAM" quantum="8M"/>
+	<start name="ping" ram="8M">
 		<config interface="10.0.3.2/24"
 		        gateway="10.0.3.1"
 		        dst_ip="} [dst_ip] {"

@@ -72,17 +72,15 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>}
 
 append_if [string equal $type "nic_router"] config {
 
-	<start name="nic_router" caps="1000">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="1000" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -98,8 +96,7 @@ append_if [string equal $type "nic_router"] config {
 
 append_if [string equal $type "nic_bridge"] config {
 
-	<start name="nic_router" caps="1000">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="1000" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -110,8 +107,7 @@ append_if [string equal $type "nic_bridge"] config {
 		</config>
 	</start>
 
-	<start name="nic_bridge" caps="1000">
-		<resource name="RAM" quantum="50M"/>
+	<start name="nic_bridge" caps="1000" ram="50M">
 		<provides><service name="Nic"/></provides>
 		<config mac="02:02:02:02:42:00">
 			<policy label_prefix="nic_stress_2"/>
@@ -127,9 +123,8 @@ append_if [string equal $type "nic_bridge"] config {
 
 append config {
 
-	<start name="nic_stress_1" caps="1000">
+	<start name="nic_stress_1" caps="1000" ram="50M">
 		<binary name="test-nic_stress"/>
-		<resource name="RAM" quantum="50M"/>
 		<config exit_support="} [exit_support] {">
 			<construct_destruct nr_of_rounds="}   [nr_of_rounds   1] {"
 			                    nr_of_sessions="} [nr_of_sessions 1] {"/>
@@ -140,9 +135,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_stress_2" caps="1000">
+	<start name="nic_stress_2" caps="1000" ram="100M">
 		<binary name="test-nic_stress"/>
-		<resource name="RAM" quantum="100M"/>
 		<config exit_support="} [exit_support] {">
 			<construct_destruct nr_of_rounds="}   [nr_of_rounds 2] {"
 			                    nr_of_sessions="} [nr_of_rounds 2] {"/>

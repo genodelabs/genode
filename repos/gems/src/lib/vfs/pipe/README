@@ -17,9 +17,8 @@ component to a named pipe and write data using standard fwrite() calls.
 
 Here a sample scenario where stdin of a component is attached to a named pipe:
 
-! <start name="vfs">
+! <start name="vfs" ram="4M">
 !   <provides> <service name="File_system"/> </provides>
-!   <resource name="RAM" quantum="4M"/>
 !   <config>
 !     <vfs>
 !       <pipe>
@@ -31,8 +30,7 @@ Here a sample scenario where stdin of a component is attached to a named pipe:
 !   </config>
 ! </start>
 !
-! <start name="my-libc-app">
-!   <resource name="RAM" quantum="4M"/>
+! <start name="my-libc-app" ram="4M">
 !   <config>
 !     <vfs>
 !       <dir name="dev">

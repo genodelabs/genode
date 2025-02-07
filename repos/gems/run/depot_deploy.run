@@ -41,15 +41,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -60,8 +58,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -77,7 +74,6 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -86,7 +82,6 @@ install_config {
 
 	<start name="report_rom">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
@@ -96,8 +91,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="vfs">
-		<resource name="RAM" quantum="4M"/>
+	<start name="vfs" ram="4M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs> <tar name="depot.tar"/> </vfs>
@@ -106,8 +100,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="fs_rom">
-		<resource name="RAM" quantum="50M"/>
+	<start name="fs_rom" ram="50M">
 		<provides> <service name="ROM"/> </provides>
 		<route>
 			<service name="File_system"> <child name="vfs"/> </service>
@@ -115,8 +108,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="depot_query">
-		<resource name="RAM" quantum="2M"/>
+	<start name="depot_query" ram="2M">
 		<config query="rom">
 			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
 		</config>
@@ -127,8 +119,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="ram_fs">
-		<resource name="RAM" quantum="8M"/>
+	<start name="ram_fs" ram="8M">
 		<binary name="vfs"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
@@ -138,7 +129,6 @@ install_config {
 	</start>
 
 	<start name="depot_deploy">
-		<resource name="RAM" quantum="1M"/>
 		<config arch="} [depot_spec] {">
 			<static>
 				<parent-provides>
@@ -248,8 +238,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="dynamic" caps="8000">
-		<resource name="RAM" quantum="180M"/>
+	<start name="dynamic" caps="8000" ram="180M">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>

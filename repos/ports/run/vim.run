@@ -32,15 +32,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -52,7 +50,6 @@ install_config {
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Report"/> <service name="ROM"/>
 		</provides>
@@ -61,8 +58,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -82,16 +78,14 @@ install_config {
 		</route>
 	</start>
 
-	<start name="pointer">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pointer" ram="2M">
 		<route>
 			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="clipboard">
-		<resource name="RAM" quantum="2M"/>
+	<start name="clipboard" ram="2M">
 		<provides>
 			<service name="ROM"/> <service name="Report"/>
 		</provides>
@@ -104,8 +98,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="wm" caps="1000">
-		<resource name="RAM" quantum="32M"/>
+	<start name="wm" caps="1000" ram="32M">
 		<binary name="init"/>
 		<provides>
 			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
@@ -119,8 +112,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="terminal" caps="110">
-		<resource name="RAM" quantum="6M"/>
+	<start name="terminal" caps="110" ram="6M">
 		<provides><service name="Terminal"/></provides>
 		<config copy="yes" paste="yes">
 			<initial width="800" height="600"/>
@@ -141,8 +133,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="vfs" caps="120">
-		<resource name="RAM" quantum="5M"/>
+	<start name="vfs" caps="120" ram="5M">
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs>
@@ -158,8 +149,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="vfs_rom">
-		<resource name="RAM" quantum="5M"/>
+	<start name="vfs_rom" ram="5M">
 		<binary name="fs_rom"/>
 		<provides> <service name="ROM"/> </provides>
 		<config/>
@@ -169,8 +159,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="/bin/vim" caps="150">
-		<resource name="RAM" quantum="10M"/>
+	<start name="/bin/vim" caps="150" ram="10M">
 		<config>
 			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/terminal"
 			      rtc="/dev/rtc"/>

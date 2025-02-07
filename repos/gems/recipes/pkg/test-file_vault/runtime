@@ -35,8 +35,7 @@
 			<service name="Timer"/>
 		</parent-provides>
 
-		<start name="dynamic_rom" caps="100">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" caps="100" ram="4M">
 			<provides><service name="ROM"/> </provides>
 			<config verbose="no">
 				<rom name="file_vault_ui_config">
@@ -63,8 +62,7 @@
 			</route>
 		</start>
 
-		<start name="report_rom" caps="70">
-			<resource name="RAM" quantum="1M"/>
+		<start name="report_rom" caps="70" ram="1M">
 			<provides>
 				<service name="ROM"/>
 				<service name="Report"/>
@@ -78,9 +76,8 @@
 			</route>
 		</start>
 
-		<start name="data_fs" caps="500">
+		<start name="data_fs" caps="500" ram="50M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="50M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -98,9 +95,8 @@
 			</route>
 		</start>
 
-		<start name="trust_anchor_fs" caps="100">
+		<start name="trust_anchor_fs" caps="100" ram="5M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="5M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -118,8 +114,7 @@
 			</route>
 		</start>
 
-		<start name="file_vault" caps="1500">
-			<resource name="RAM" quantum="180M"/>
+		<start name="file_vault" caps="1500" ram="180M">
 			<config>
 				<vfs>
 					<dir name="tresor">

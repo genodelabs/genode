@@ -25,8 +25,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="vfs_block">
-			<resource name="RAM" quantum="2M"/>
+		<start name="vfs_block" ram="2M">
 			<provides> <service name="Block"/> </provides>
 			<config>
 				<vfs>
@@ -38,8 +37,7 @@
 				<default-policy file="/block_file" block_size="4096" writeable="yes"/>
 			</config>
 		</start>
-		<start name="test-libc_vfs_block">
-			<resource name="RAM" quantum="4M"/>
+		<start name="test-libc_vfs_block" ram="4M">
 			<config>
 				<vfs> <dir name="dev"> <block/> </dir> </vfs>
 				<libc/>

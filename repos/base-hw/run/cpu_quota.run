@@ -20,14 +20,12 @@ install_config {
 
 	<default caps="100"/>
 
-	<start name="test-sync">
-		<resource name="RAM" quantum="10M"/>
+	<start name="test-sync" ram="10M">
 		<provides><service name="Sync"/></provides>
 	</start>
 
-	<start name="init_1" priority="-1" caps="1000">
+	<start name="init_1" priority="-1" caps="1000" ram="20M">
 		<binary name="init"/>
-		<resource name="RAM" quantum="20M"/>
 		<resource name="CPU" quantum="10"/>
 		<config>
 			<parent-provides>
@@ -47,18 +45,16 @@ install_config {
 			</default-route>
 			<default caps="100"/>
 
-			<start name="test_slow">
+			<start name="test_slow" ram="10M">
 				<binary name="test-cpu_quota"/>
-				<resource name="RAM" quantum="10M"/>
 				<resource name="CPU" quantum="50"/>
 			</start>
 
 		</config>
 	</start>
 
-	<start name="init_2" priority="-2" caps="1000">
+	<start name="init_2" priority="-2" caps="1000" ram="30M">
 		<binary name="init"/>
-		<resource name="RAM" quantum="30M"/>
 		<resource name="CPU" quantum="80"/>
 		<config prio_levels="2">
 			<parent-provides>
@@ -79,23 +75,20 @@ install_config {
 
 			<default caps="100"/>
 
-			<start name="test_midl" priority="0">
+			<start name="test_midl" priority="0" ram="10M">
 				<binary name="test-cpu_quota"/>
-				<resource name="RAM" quantum="10M"/>
 				<resource name="CPU" quantum="25"/>
 			</start>
 
-			<start name="test_fast" priority="-1">
+			<start name="test_fast" priority="-1" ram="10M">
 				<binary name="test-cpu_quota"/>
-				<resource name="RAM" quantum="10M"/>
 				<resource name="CPU" quantum="75"/>
 			</start>
 
 		</config>
 	</start>
 
-	<start name="timer" priority="0">
-		<resource name="RAM" quantum="10M"/>
+	<start name="timer" priority="0" ram="10M">
 		<resource name="CPU" quantum="10"/>
 		<provides><service name="Timer"/></provides>
 	</start>

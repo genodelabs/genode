@@ -44,16 +44,14 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="report_rom">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 		</start>
 
-		<start name="vfs">
-			<resource name="RAM" quantum="4M"/>
+		<start name="vfs" ram="4M">
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -70,12 +68,10 @@
 			</config>
 		</start>
 
-		<start name="test" caps="700">
+		<start name="test" caps="700" ram="16M">
 			<binary name="sequence"/>
-			<resource name="RAM" quantum="16M"/>
 			<config>
 				<start name="sleep" caps="100">
-					<resource name="RAM" quantum="4M"/>
 					<binary name="dummy"/>
 					<config>
 						<sleep ms="500"/>
@@ -95,7 +91,6 @@
 				</start>
 
 				<start name="sleep" caps="100">
-					<resource name="RAM" quantum="4M"/>
 					<binary name="dummy"/>
 					<config>
 						<sleep ms="500"/>
@@ -117,7 +112,6 @@
 				</start>
 
 				<start name="fs_query">
-					<resource name="RAM" quantum="1M"/>
 					<config>
 						<vfs> <dir name="fs"> <fs/> </dir> </vfs>
 						<query path="/fs/items" content="yes"/>
@@ -126,7 +120,6 @@
 				</start>
 
 				<start name="sleep" caps="100">
-					<resource name="RAM" quantum="4M"/>
 					<binary name="dummy"/>
 					<config>
 						<log string="sleep forever..."/>

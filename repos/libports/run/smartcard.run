@@ -47,15 +47,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<default-policy report="usb -> usb -> devices"/>
@@ -65,9 +63,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" ram="32M" managing_system="yes">
 		<binary name="init"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="ROM" label="config">
@@ -78,8 +75,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-smartcard" caps="150">
-		<resource name="RAM" quantum="5M"/>
+	<start name="test-smartcard" caps="150" ram="5M">
 		<config>
 			<vfs>
 				<dir name="dev">

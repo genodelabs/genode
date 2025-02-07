@@ -25,8 +25,7 @@
 			<service name="Timer"/>
 		</parent-provides>
 
-		<start name="black_hole" caps="100">
-			<resource name="RAM" quantum="1280K"/>
+		<start name="black_hole" caps="100" ram="1280K">
 			<provides>
 				<service name="Usb"/>
 				<service name="Gpu"/>
@@ -58,8 +57,7 @@
 			</route>
 		</start>
 
-		<start name="test-black_hole" caps="200">
-			<resource name="RAM" quantum="10M"/>
+		<start name="test-black_hole" caps="200" ram="10M">
 			<route>
 				<service name="Usb">                   <child name="black_hole"/> </service>
 				<service name="Gpu">                   <child name="black_hole"/> </service>

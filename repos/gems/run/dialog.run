@@ -25,19 +25,17 @@ install_config {
 		<service name="IO_PORT"/>
 	</parent-provides>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -49,7 +47,6 @@ install_config {
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label="text_area.1 -> hover" report="nitpicker -> hover"/>
@@ -57,8 +54,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -77,15 +73,13 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="fonts_fs" caps="300">
-		<resource name="RAM" quantum="8M"/>
+	<start name="fonts_fs" caps="300" ram="8M">
 		<binary name="vfs"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="fonts_fs.config"/> </service>
@@ -94,8 +88,7 @@ install_config {
 		<provides> <service name="File_system"/> </provides>
 	</start>
 
-	<start name="test-dialog" caps="1000">
-		<resource name="RAM" quantum="8M"/>
+	<start name="test-dialog" caps="1000" ram="8M">
 		<config/>
 		<route>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>

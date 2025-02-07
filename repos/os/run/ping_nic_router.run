@@ -37,15 +37,13 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -55,8 +53,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -92,9 +89,8 @@ append config {
 		</config>
 	</start>
 
-	<start name="ping_2_nic_router" caps="200">
+	<start name="ping_2_nic_router" caps="200" ram="10M">
 		<binary name="nic_router"/>
-		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -128,9 +124,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="ping_11">
+	<start name="ping_11" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config interface="10.0.3.2/24"
 		        gateway="10.0.3.1"
 		        dst_ip="} [good_dst_ip] {"
@@ -142,9 +137,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="ping_12">
+	<start name="ping_12" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config interface="10.0.3.3/24"
 		        gateway="10.0.3.1"
 		        dst_ip="} [good_dst_ip] {"
@@ -156,9 +150,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="ping_2_nic_bridge" caps="200">
+	<start name="ping_2_nic_bridge" caps="200" ram="10M">
 		<binary name="nic_bridge"/>
-		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config mac="12:12:12:12:12:00">
 			<policy label_prefix="ping_21"/>
@@ -170,9 +163,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="ping_21">
+	<start name="ping_21" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config dst_ip="} [good_dst_ip] {"
 		        period_sec="1"
 		        verbose="no"/>
@@ -182,9 +174,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="ping_22">
+	<start name="ping_22" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config interface="10.0.5.3/24"
 		        gateway="10.0.5.1"
 		        dst_ip="} [bad_dst_ip] {"
@@ -197,9 +188,8 @@ append config {
 	</start>}
 
 append_if $on_hardware config {
-	<start name="ping_23">
+	<start name="ping_23" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config period_sec="1"
 		        verbose="no"
 		        count="1"

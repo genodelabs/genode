@@ -69,19 +69,17 @@ install_config {
 		<service name="RM"/>
 		<service name="ROM"/>
 	</parent-provides>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<default-route>
 		<service name="Report"> <child name="report_rom"/> </service>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="drivers" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
@@ -91,8 +89,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -124,14 +121,12 @@ install_config {
 		</config>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="report_rom" ram="4M">
 		<provides> <service name="ROM"/> <service name="Report"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="fetchurl" caps="500">
-		<resource name="RAM" quantum="32M"/>
+	<start name="fetchurl" caps="500" ram="32M">
 		<config>
 			<report progress="yes"/>
 			<vfs>

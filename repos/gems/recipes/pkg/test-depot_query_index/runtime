@@ -32,16 +32,14 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="report_rom">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 		</start>
 
-		<start name="depot_query">
-			<resource name="RAM" quantum="2M"/>
+		<start name="depot_query" ram="2M">
 			<config arch="x86_64">
 
 				<!-- test queries -->

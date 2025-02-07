@@ -55,8 +55,7 @@ append config {
 			<service name="IO_PORT"/>
 		</parent-provides>
 
-		<start name="timer" caps="200">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" caps="200" ram="1M">
 			<resource name="CPU" quantum="5"/>
 			<provides> <service name="Timer"/> </provides>
 			<route>
@@ -69,8 +68,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="dynamic_rom" caps="100">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" caps="100" ram="4M">
 			<provides><service name="ROM"/> </provides>
 			<config verbose="yes">
 				<rom name="file_vault_ui_config">
@@ -97,8 +95,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="report_rom" caps="70">
-			<resource name="RAM" quantum="1M"/>
+		<start name="report_rom" caps="70" ram="1M">
 			<provides>
 				<service name="ROM" />
 				<service name="Report" />
@@ -114,9 +111,8 @@ append config {
 
 append_if [have_board linux] config {
 
-		<start name="data_fs" caps="200" ld="no">
+		<start name="data_fs" caps="200" ram="4M" ld="no">
 			<binary name="lx_fs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="File_system"/>
 			</provides>
@@ -132,9 +128,8 @@ append_if [have_board linux] config {
 			</route>
 		</start>
 
-		<start name="trust_anchor_fs" caps="200" ld="no">
+		<start name="trust_anchor_fs" caps="200" ram="4M" ld="no">
 			<binary name="lx_fs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="File_system"/>
 			</provides>
@@ -152,9 +147,8 @@ append_if [have_board linux] config {
 
 append_if [expr ![have_board linux]] config {
 
-		<start name="data_fs" caps="2000">
+		<start name="data_fs" caps="2000" ram="200M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="200M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -172,9 +166,8 @@ append_if [expr ![have_board linux]] config {
 			</route>
 		</start>
 
-		<start name="trust_anchor_fs" caps="100">
+		<start name="trust_anchor_fs" caps="100" ram="5M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="5M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -194,8 +187,7 @@ append_if [expr ![have_board linux]] config {
 
 append config {
 
-		<start name="file_vault" caps="1000">
-			<resource name="RAM" quantum="80M"/>
+		<start name="file_vault" caps="1000" ram="80M">
 			<config jitterentropy_available="} [jent_avail_attr] {">
 				<vfs>
 					<dir name="tresor">

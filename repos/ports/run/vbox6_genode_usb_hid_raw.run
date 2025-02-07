@@ -59,15 +59,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="150"/>
+	<default caps="150" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
 	<start name="report_rom" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pci_decode -> system" report="acpi -> acpi"/>
@@ -77,16 +75,14 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="250">
-		<resource name="RAM" quantum="8M"/>
+	<start name="acpi" caps="250" ram="8M">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -94,8 +90,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="platform" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="2M"/>
+	<start name="platform" caps="100" ram="2M" managing_system="yes">
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="Report">              <child name="report_rom"/> </service>
@@ -107,9 +102,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="usb" priority="-1">
+	<start name="usb" ram="16M" priority="-1">
 		<binary name="pc_usb_host"/>
-		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config>
 			<report devices="yes" config="yes"/>
@@ -122,8 +116,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker" priority="-1">
-		<resource name="RAM" quantum="12M"/>
+	<start name="nitpicker" ram="12M" priority="-1">
 		<provides> <service name="Gui"/> </provides>
 		<config>
 			<report focus="yes" hover="yes" />
@@ -139,7 +132,6 @@ install_config {
 	</start>
 
 	<start name="black_hole">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Event"/>
 			<service name="Nic"/>
@@ -149,16 +141,14 @@ install_config {
 		</config>
 	</start>
 
-	<start name="log_terminal" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="log_terminal" ram="2M" priority="-1">
 		<provides>
 			<service name="Terminal"/>
 		</provides>
 	</start>
 
-	<start name="virtualbox" caps="800" priority="-2">
+	<start name="virtualbox" caps="800" ram="1024M" priority="-2">
 		<binary name="virtualbox6"/>
-		<resource name="RAM" quantum="1024M"/>
 		<config vbox_file="vbox6_genode_usb_hid_raw.vbox" vm_name="TestVM" xhci="yes">
 			<vfs>
 				<dir name="dev">

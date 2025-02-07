@@ -31,15 +31,13 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="vfs">
-			<resource name="RAM" quantum="4M"/>
+		<start name="vfs" ram="4M">
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -50,8 +48,7 @@ install_config {
 			</config>
 		</start>
 
-		<start name="vfs_rom">
-			<resource name="RAM" quantum="10M"/>
+		<start name="vfs_rom" ram="10M">
 			<binary name="fs_rom"/>
 			<provides> <service name="ROM"/> </provides>
 			<config/>
@@ -61,9 +58,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="test" caps="500">
+		<start name="test" caps="500" ram="1G">
 			<binary name="sequence"/>
-			<resource name="RAM" quantum="1G"/>
 			<config>
 				<start name="/bin/true" caps="500">
 					<config>

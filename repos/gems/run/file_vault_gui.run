@@ -57,8 +57,7 @@ append config {
 		<service name="IO_PORT"/>
 	</parent-provides>
 
-	<start name="timer" caps="200">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" caps="200" ram="1M">
 		<resource name="CPU" quantum="5"/>
 		<provides> <service name="Timer"/> </provides>
 		<route>
@@ -71,8 +70,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="Timer"> <child name="timer"/> </service>
@@ -90,8 +88,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nitpicker" caps="100">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" caps="100" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -114,8 +111,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="pointer" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="pointer" caps="100" ram="1M">
 		<route>
 			<service name="Gui"> <child name="nitpicker" /> </service>
 			<service name="PD"> <parent/> </service>
@@ -125,9 +121,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="fonts_fs" caps="150">
+	<start name="fonts_fs" caps="150" ram="4M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="File_system"/>
 		</provides>
@@ -164,9 +159,8 @@ append config {
 
 append_if [have_board linux] config {
 
-	<start name="data_fs" caps="200" ld="no">
+	<start name="data_fs" caps="200" ram="4M" ld="no">
 		<binary name="lx_fs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="File_system"/>
 		</provides>
@@ -182,9 +176,8 @@ append_if [have_board linux] config {
 		</route>
 	</start>
 
-	<start name="trust_anchor_fs" caps="200" ld="no">
+	<start name="trust_anchor_fs" caps="200" ram="4M" ld="no">
 		<binary name="lx_fs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="File_system"/>
 		</provides>
@@ -202,9 +195,8 @@ append_if [have_board linux] config {
 
 append_if [expr ![have_board linux]] config {
 
-	<start name="data_fs" caps="2000">
+	<start name="data_fs" caps="2000" ram="200M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="200M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <dir name="data"> <ram/> </dir> </vfs>
@@ -218,9 +210,8 @@ append_if [expr ![have_board linux]] config {
 		</route>
 	</start>
 
-	<start name="trust_anchor_fs" caps="100">
+	<start name="trust_anchor_fs" caps="100" ram="5M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="5M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <dir name="trust_anchor"> <ram/> </dir> </vfs>
@@ -236,8 +227,7 @@ append_if [expr ![have_board linux]] config {
 
 append config {
 
-	<start name="report_rom" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="report_rom" caps="100" ram="1M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label="file_vault_gui -> ui_report" report="file_vault -> ui_report"/>
@@ -251,8 +241,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="file_vault" caps="1200">
-		<resource name="RAM" quantum="100M"/>
+	<start name="file_vault" caps="1200" ram="100M">
 		<config jitterentropy_available="} [jent_avail_attr] {">
 			<vfs> <dir name="tresor"> <fs label="tresor"/> </dir> </vfs>
 		</config>
@@ -274,8 +263,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="file_vault_gui" caps="400">
-		<resource name="RAM" quantum="8M"/>
+	<start name="file_vault_gui" caps="400" ram="8M">
 		<route>
 			<service name="File_system" label_last="fonts"> <child name="fonts_fs"/> </service>
 			<service name="Gui"> <child name="nitpicker"/> </service>

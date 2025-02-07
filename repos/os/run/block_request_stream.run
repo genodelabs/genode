@@ -19,21 +19,19 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
+
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
 	<start name="test-block_request_stream">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Block"/></provides>
 		<config/>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
-	<start name="block_tester">
-		<resource name="RAM" quantum="32M"/>
+	<start name="block_tester" ram="32M">
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential copy="no" length="16M" size="4K"/>

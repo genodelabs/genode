@@ -19,9 +19,8 @@ install_config {
 	</default-route>
 	<default caps="128"/>
 
-	<start name="fs">
+	<start name="fs" ram="4M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs> <log label="log"/> </vfs>
@@ -29,9 +28,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test" caps="1000">
+	<start name="test" caps="1000" ram="4M">
 		<binary name="sequence"/>
-		<resource name="RAM" quantum="4M"/>
 		<config>
 
 			<start name="root">

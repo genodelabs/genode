@@ -22,13 +22,11 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 		<start name="pbxa9_uart">
-			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Uart"/>
 				<service name="Terminal"/>
@@ -40,11 +38,9 @@ install_config {
 		</start>
 		<start name="test-uart1">
 			<binary name="test-uart"/>
-			<resource name="RAM" quantum="1M"/>
 		</start>
 		<start name="test-uart2">
 			<binary name="test-uart"/>
-			<resource name="RAM" quantum="1M"/>
 		</start>
 	</config>
 }

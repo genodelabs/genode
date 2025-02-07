@@ -312,16 +312,14 @@ proc prepare_to_run_genode { } {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="timer" priority="0">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Timer"/> </provides>
 		</start>
 
-		<start name="report_rom" priority="-1">
+		<start name="report_rom" priority="-1" ram="2M">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="no">
 				<policy label="depot_autopilot -> blueprint" report="depot_query -> blueprint"/>
@@ -330,8 +328,7 @@ proc prepare_to_run_genode { } {
 			</config>
 		</start>
 
-		<start name="vfs" priority="-1">
-			<resource name="RAM" quantum="16M"/>
+		<start name="vfs" priority="-1" ram="16M">
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs>
@@ -345,13 +342,11 @@ proc prepare_to_run_genode { } {
 			</config>
 		</start>
 
-		<start name="fs_rom" priority="-1" caps="300">
-			<resource name="RAM" quantum="32M"/>
+		<start name="fs_rom" priority="-1" caps="300" ram="32M">
 			<provides> <service name="ROM"/> </provides>
 		</start>
 
-		<start name="depot_query" priority="-1">
-			<resource name="RAM" quantum="2M"/>
+		<start name="depot_query" priority="-1" ram="2M">
 			<config query="rom">
 				<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
 			</config>
@@ -361,8 +356,7 @@ proc prepare_to_run_genode { } {
 			</route>
 		</start>
 
-		<start name="depot_autopilot" priority="-1">
-			<resource name="RAM" quantum="8M"/>
+		<start name="depot_autopilot" priority="-1" ram="8M">
 			<provides> <service name="LOG"/> </provides>
 			<config repeat="} $test_repeat {" arch="} [depot_spec] {" children_label_prefix="dynamic -> ">
 				<static>
@@ -414,8 +408,7 @@ proc prepare_to_run_genode { } {
 			</route>
 		</start>
 
-		<start name="dynamic" caps="8000" priority="-1">
-			<resource name="RAM" quantum="286M"/>
+		<start name="dynamic" caps="8000" ram="286M" priority="-1">
 			<binary name="init"/>
 			<route>
 

@@ -50,8 +50,7 @@ set virtualbox5_binary "virtualbox5-nova"
 
 set config_of_app {
 
-	<start name="event_filter">
-		<resource name="RAM" quantum="1M" />
+	<start name="event_filter" ram="1M">
 		<provides>
 			<service name="Event" />
 		</provides>
@@ -75,17 +74,15 @@ set config_of_app {
 		Note: to get network access in the VM, the virtual network adapter
 		      needs to be enabled in the .vbox file (disabled by default)
 	-->
-	<start name="nic" caps="150" priority="-1">
+	<start name="nic" caps="150" ram="8M" priority="-1">
 		<binary name="pc_nic"/>
-		<resource name="RAM" quantum="8M" />
 		<route>
 			<service name="Uplink"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -122,9 +119,8 @@ set config_of_app {
 		needs to be enabled in the .vbox file (disabled by default).
 		(Recording is configured to use the external mic.)
 	-->
-	<start name="audio" priority="-1">
+	<start name="audio" priority="-1" ram="9M">
 		<binary name="pci_audio"/>
-		<resource name="RAM" quantum="9M"/>
 		<provides>
 			<service name="Audio_out"/>
 			<service name="Audio_in"/>
@@ -136,8 +132,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pointer -> hover"  report="nitpicker -> hover"/>
@@ -152,8 +147,7 @@ append config_of_app {
 		</config>
 	</start>
 
-	<start name="nitpicker" priority="-1" caps="150">
-		<resource name="RAM" quantum="12M"/>
+	<start name="nitpicker" priority="-1" caps="150" ram="12M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -165,8 +159,7 @@ append config_of_app {
 		</route>
 	</start>
 
-	<start name="pointer" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pointer" priority="-1" ram="2M">
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
 		<route>
@@ -179,8 +172,7 @@ append config_of_app {
 
 if { $use_vms > 1 } {
 	append config_of_app {
-	<start name="wm" caps="1000">
-		<resource name="RAM" quantum="32M"/>
+	<start name="wm" caps="1000" ram="32M">
 		<binary name="init"/>
 		<provides>
 			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
@@ -194,9 +186,8 @@ if { $use_vms > 1 } {
 }
 
 append config_of_app {
-	<start name="dynamic-config" priority="-1">
+	<start name="dynamic-config" priority="-1" ram="1M">
 		<binary name="dynamic_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="capslock">
@@ -254,12 +245,10 @@ append config_of_app {
 
 for { set i 1} { $i <= $use_vms } { incr i} {
 	append config_of_app "
-	<start name=\"vbox${i}\" priority=\"-2\" caps=\"1200\">"
+	<start name=\"vbox${i}\" priority=\"-2\" caps=\"1200\" ram=\"$vm_ram\">"
 	append_if [expr $use_vbox5] config_of_app "
 		<binary name=\"$virtualbox5_binary\" />"
 
-	append config_of_app {
-		<resource name="RAM" quantum="} $vm_ram {"/>}
 	if { $use_vms eq 1 } {
 		append config_of_app "
 		<config ld_verbose=\"yes\" vbox_file=\"${vbox_file}\" vm_name=\"${flavor}\" xhci=\"yes\" capslock=\"NOROM\">"

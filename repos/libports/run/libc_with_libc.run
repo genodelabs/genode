@@ -17,14 +17,12 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="test-libc_with_libc">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-libc_with_libc" ram="4M">
 		<config>
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log"/>

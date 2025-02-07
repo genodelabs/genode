@@ -32,28 +32,24 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Timer"/> </provides>
 		</start>
 
 		<start name="report_rom">
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 		</start>
 
 		<start name="report_rom_empty_vfs">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 		</start>
 
-		<start name="vfs">
-			<resource name="RAM" quantum="10M"/>
+		<start name="vfs" ram="10M">
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -73,8 +69,7 @@ install_config {
 			</config>
 		</start>
 
-		<start name="vfs_rom">
-			<resource name="RAM" quantum="10M"/>
+		<start name="vfs_rom" ram="10M">
 			<binary name="fs_rom"/>
 			<provides> <service name="ROM"/> </provides>
 			<config/>
@@ -84,9 +79,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="fs_query_empty_vfs" caps="120">
+		<start name="fs_query_empty_vfs" caps="120" ram="2M">
 			<binary name="fs_query"/>
-			<resource name="RAM" quantum="2M"/>
 			<config>
 				<vfs/>
 				<query path="/non_existent_1"/>
@@ -101,8 +95,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="fs_query" caps="120">
-			<resource name="RAM" quantum="2M"/>
+		<start name="fs_query" caps="120" ram="2M">
 			<config>
 				<vfs>
 					<dir name="empty"/>
@@ -121,9 +114,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="test" caps="700">
+		<start name="test" caps="700" ram="20M">
 			<binary name="sequence"/>
-			<resource name="RAM" quantum="20M"/>
 			<config>
 				<start name="/bin/sleep" caps="500">
 					<config>

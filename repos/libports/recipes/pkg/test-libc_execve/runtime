@@ -22,8 +22,7 @@
 			<service name="CPU"/>
 			<service name="PD"/>
 		</parent-provides>
-		<start name="test-execve" caps="300">
-			<resource name="RAM" quantum="1G"/>
+		<start name="test-execve" caps="300" ram="1G">
 			<config ld_verbose="yes">
 				<arg value="name_of_executeable"/>
 				<arg value="100"/>

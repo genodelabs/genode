@@ -29,18 +29,15 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="lx_block" ld="no">
-		<resource name="RAM" quantum="2M"/>
+	<start name="lx_block" ld="no" ram="2M">
 		<provides> <service name="Block"/> </provides>
 		<config file="gpt.img" block_size="512" writeable="yes"/>
 	</start>
-	<start name="gpt_write">
-		<resource name="RAM" quantum="2M"/>
+	<start name="gpt_write" ram="2M">
 		<config verbose="yes" initialize="yes" align="4K">
 			<actions>
 				<add entry="1" type="BIOS"  label="GRUB BIOS"  start="2048"  size="1M"/>

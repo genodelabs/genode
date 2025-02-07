@@ -43,8 +43,7 @@ proc additional_start_nodes_for_update_test { } {
 		return { } }
 
 	return {
-	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
+	<start name="report_rom" ram="1M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label_suffix="set_rtc" report="test-rtc -> set_rtc"/>
@@ -82,21 +81,18 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
 	<start } [rtc_driver_start_attributes] { priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Rtc"/></provides>
 		} [rtc_driver_config_and_route] {
 	</start>
 
 	<start name="test-rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		} [test_rtc_config] {
 	</start>
 

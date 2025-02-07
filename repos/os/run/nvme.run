@@ -85,15 +85,13 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pci_decode -> system" report="acpi -> acpi"/>
@@ -101,8 +99,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="4M"/>
+	<start name="acpi" caps="350" ram="4M">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="IO_MEM"> <parent/> </service>
@@ -114,8 +111,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -128,8 +124,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="2M"/>
+	<start name="platform" caps="100" ram="2M" managing_system="yes">
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -151,8 +146,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="nvme" caps="120">
-		<resource name="RAM" quantum="24M"/>
+	<start name="nvme" caps="120" ram="24M">
 		<provides> <service name="Block"/> </provides>
 		<config max_hmb_size="16M" verbose_regs="yes" verbose_identify="yes">
 			<policy label_prefix="block_tester" writeable="} [writeable] {"/>
@@ -167,8 +161,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="block_tester" caps="200">
-		<resource name="RAM" quantum="64M"/>
+	<start name="block_tester" caps="200" ram="64M">
 		<config verbose="no" report="no" log="yes" stop_on_error="no">
 			<tests>}
 

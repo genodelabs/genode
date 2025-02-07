@@ -106,8 +106,7 @@ append config {
 		<service name="LOG"/>
 	</parent-provides>
 
-	<start name="timer" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" caps="100" ram="1M">
 		<provides> <service name="Timer"/> </provides>
 		<route>
 			<service name="ROM"> <parent/> </service>
@@ -117,8 +116,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="dynamic_rom" caps="100">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" caps="100" ram="4M">
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
 			<rom name="peer_2_wg_config">
@@ -173,9 +171,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="report" caps="100">
+	<start name="report" caps="100" ram="1M">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<route>
 			<service name="ROM"> <parent/> </service>
@@ -185,9 +182,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_1_ping" caps="100">
+	<start name="peer_1_ping" caps="100" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config dst_ip="10.0.9.2" period_sec="1" count="1000"/>
 		<route>
 			<service name="Nic">   <child name="nic_router"/> </service>
@@ -199,9 +195,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_4_ping" caps="100">
+	<start name="peer_4_ping" caps="100" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config dst_ip="10.0.9.2" period_sec="1" count="1000"/>
 		<route>
 			<service name="Nic">   <child name="nic_router"/> </service>
@@ -213,9 +208,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_3_fetchurl" caps="200">
+	<start name="peer_3_fetchurl" caps="200" ram="10M">
 		<binary name="fetchurl"/>
-		<resource name="RAM" quantum="10M"/>
 		<config progress_timeout="3000">
 			<report progress="yes"/>
 			<vfs>
@@ -246,9 +240,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_1_wg" caps="200">
+	<start name="peer_1_wg" caps="200" ram="10M">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="10M"/>
 		<route>
 			<service name="ROM" label="config">
 				<child label="peer_1_wg_config" name="dynamic_rom"/>
@@ -264,9 +257,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_2_wg" caps="200">
+	<start name="peer_2_wg" caps="200" ram="10M">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="10M"/>
 		<route>
 			<service name="ROM" label="config">
 				<child label="peer_2_wg_config" name="dynamic_rom"/>
@@ -282,9 +274,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_3_wg" caps="200">
+	<start name="peer_3_wg" caps="200" ram="10M">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="10M"/>
 		<config private_key="EA+4fJCOJM5/C90zCwsh4jTdKMnlQ2JOnW1bvkwdnEA="
 			     listen_port="49003">
 
@@ -305,9 +296,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_4_wg" caps="200">
+	<start name="peer_4_wg" caps="200" ram="10M">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="10M"/>
 		<config private_key="2OhXWuHHho3fTVi+7LB/ggK0w4cDvFYFJMC3/Mx6Bls="
 			     listen_port="49004">
 
@@ -328,8 +318,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -431,9 +420,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer_2_lighttpd" caps="200">
+	<start name="peer_2_lighttpd" caps="200" ram="50M">
 		<binary name="lighttpd"/>
-		<resource name="RAM" quantum="50M" />
 		<config>
 			<arg value="lighttpd" />
 			<arg value="-f" />

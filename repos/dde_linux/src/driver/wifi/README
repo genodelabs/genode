@@ -17,8 +17,7 @@ Configuration
 This configuration snippet shows how to start the component on the PC
 platform.
 
-!<start name="wifi" caps="250">
-!  <resource name="RAM" quantum="32M"/>
+!<start name="wifi" caps="250" ram="32M">
 !  <provides><service name="Nic"/></provides>
 !  <config>
 !    <libc stdout="/dev/log" stderr="/dev/null" rtc="/dev/rtc"/>
@@ -45,8 +44,7 @@ platform.
 On other platforms the wifi library will be different. So, the
 following snippet illustrates the use of the driver on the PinePhone.
 
-!<start name="wifi" caps="250">
-!  <resource name="RAM" quantum="32M"/>
+!<start name="wifi" caps="250" ram="32M">
 !  <provides><service name="Nic"/></provides>
 !  <config>
 !    <libc stdout="/dev/log" stderr="/dev/null" rtc="/dev/rtc"/>

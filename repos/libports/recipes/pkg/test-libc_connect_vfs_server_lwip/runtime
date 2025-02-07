@@ -36,8 +36,7 @@
 		</default-route>
 		<default caps="150"/>
 
-		<start name="nic_router">
-			<resource name="RAM" quantum="10M"/>
+		<start name="nic_router" ram="10M">
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -48,9 +47,8 @@
 			</config>
 		</start>
 
-		<start name="socket_fs_server">
+		<start name="socket_fs_server" ram="32M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="32M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs> <lwip ip_addr="10.0.1.2" netmask="255.255.255.0" gateway="10.0.1.1"/> </vfs>
@@ -58,9 +56,8 @@
 			</config>
 		</start>
 
-		<start name="socket_fs_client">
+		<start name="socket_fs_client" ram="32M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="32M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs> <lwip ip_addr="10.0.1.3" netmask="255.255.255.0" gateway="10.0.1.1"/>	</vfs>
@@ -68,9 +65,8 @@
 			</config>
 		</start>
 
-		<start name="server">
+		<start name="server" ram="4M">
 			<binary name="test-netty_tcp"/>
-			<resource name="RAM" quantum="4M"/>
 			<config port="80" read_write="yes" nonblock="false">
 				<vfs>
 					<dir name="dev"> <log/> </dir>
@@ -85,8 +81,7 @@
 			</route>
 		</start>
 
-		<start name="test-libc_connect">
-			<resource name="RAM" quantum="4M"/>
+		<start name="test-libc_connect" ram="4M">
 			<config>
 				<vfs>
 					<dir name="dev"> <log/> </dir>

@@ -126,15 +126,13 @@ proc qt6_start_nodes { } {
 
 	append start_nodes {
 
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" ram="1M">
 			<provides><service name="Timer"/></provides>
 		</start>
 
 		<!-- toggle key mappings depending on the numlock state -->
-		<start name="numlock_remap_rom">
+		<start name="numlock_remap_rom" ram="1M">
 			<binary name="rom_filter"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="ROM"/> </provides>
 			<config>
 				<input name="numlock_enabled" rom="numlock" node="numlock">
@@ -166,8 +164,7 @@ proc qt6_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="drivers" caps="1500" managing_system="yes">
-			<resource name="RAM" quantum="64M"/>
+		<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -181,8 +178,7 @@ proc qt6_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="nitpicker" caps="200">
-			<resource name="RAM" quantum="2M"/>
+		<start name="nitpicker" caps="200" ram="2M">
 			<provides>
 				<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 			</provides>
@@ -207,8 +203,7 @@ proc qt6_start_nodes { } {
 			</config>
 		</start>
 
-		<start name="pointer">
-			<resource name="RAM" quantum="2M"/>
+		<start name="pointer" ram="2M">
 			<provides> <service name="Report"/> </provides>
 			<config shapes="yes"/>
 			<route>
@@ -219,9 +214,8 @@ proc qt6_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="wm_report_rom">
+		<start name="wm_report_rom" ram="4M">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="Report"/>
 				<service name="ROM"/>
@@ -248,8 +242,7 @@ proc qt6_start_nodes { } {
 			</config>
 		</start>
 
-		<start name="global_keys_handler">
-			<resource name="RAM" quantum="1M"/>
+		<start name="global_keys_handler" ram="1M">
 			<config>
 				<bool name="capslock" initial="no"/>
 				<bool name="numlock"  initial="no"/>
@@ -268,8 +261,7 @@ proc qt6_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="wm" caps="250">
-			<resource name="RAM" quantum="8M"/>
+		<start name="wm" caps="250" ram="8M">
 			<provides>
 				<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
 			</provides>
@@ -289,9 +281,9 @@ proc qt6_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="layouter" caps="150">
+		<start name="layouter" caps="150" ram="4M">
 			<binary name="window_layouter"/>
-			<resource name="RAM" quantum="4M"/>} [qt6_layouter_config] {
+			} [qt6_layouter_config] {
 			<route>
 				<service name="ROM" label="window_list">       <child name="wm_report_rom"/> </service>
 				<service name="ROM" label="focus_request">     <child name="wm_report_rom"/> </service>
@@ -306,9 +298,9 @@ proc qt6_start_nodes { } {
 			</route>
 		</start>
 
-		<start name="decorator" caps="300">
+		<start name="decorator" caps="300" ram="32M">
 			<binary name="} [qt6_decorator_binary] {"/>
-			<resource name="RAM" quantum="32M"/>} [qt6_decorator_config] {
+			} [qt6_decorator_config] {
 			<route>
 				<service name="ROM" label="window_layout"> <child name="wm_report_rom"/> </service>
 				<service name="ROM" label="pointer">       <child name="wm_report_rom"/> </service>

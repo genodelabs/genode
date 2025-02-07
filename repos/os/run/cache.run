@@ -16,9 +16,7 @@ install_config {
 		</default-route>
 		<default caps="100"/>
 
-		<start name="test-cache">
-			<resource name="RAM" quantum="64M"/>
-		</start>
+		<start name="test-cache" ram="64M"/>
 	</config> }
 
 build_boot_image [build_artifacts]

@@ -22,8 +22,7 @@ library load information before starting the program.
 Configuration snippet:
 
 !<!-- bind immediately, no library informations -->
-!<start name="dynamic_binary">
-!  <resource name="RAM" quantum="1M" />
+!<start name="dynamic_binary" ram="1M">
 !  <config ld_bind_now="yes" ld_verbose="no">
 !  </config>
 !</start>

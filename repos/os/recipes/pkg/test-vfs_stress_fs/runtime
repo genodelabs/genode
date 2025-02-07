@@ -28,12 +28,10 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="vfs_stress">
-			<resource name="RAM" quantum="8M"/>
+		<start name="vfs_stress" ram="8M">
 			<config depth="16"> <vfs> <fs/> </vfs> </config>
 		</start>
-		<start name="ram_fs" caps="120">
-			<resource name="RAM" quantum="80M"/>
+		<start name="ram_fs" caps="120" ram="80M">
 			<binary name="vfs"/>
 			<provides><service name="File_system"/></provides>
 			<config>

@@ -29,17 +29,15 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="256"/>
-		<start name="pipes_fs">
+		<start name="pipes_fs" ram="4M">
 			<binary name="vfs"/>
 			<provides> <service name="File_system"/> </provides>
-			<resource name="RAM" quantum="4M"/>
 			<config>
 				<vfs> <pipe/> </vfs>
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
-		<start name="sequence">
-			<resource name="RAM" quantum="4M"/>
+		<start name="sequence" ram="4M">
 			<config>
 				<start name="libc_pipe_local">
 					<binary name="test-libc_pipe"/>

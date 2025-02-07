@@ -62,32 +62,28 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="log_terminal" caps="110">
-		<resource name="RAM" quantum="2M"/>
+	<start name="log_terminal" caps="110" ram="2M">
 		<provides><service name="Terminal"/></provides>
 		<route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="lx_fs" ld="no">
-		<resource name="RAM" quantum="4M"/>
+	<start name="lx_fs" ld="no" ram="4M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
 
-	<start name="vfs_tresor_trust_anchor" caps="120">
+	<start name="vfs_tresor_trust_anchor" caps="120" ram="16M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="16M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs>
@@ -105,12 +101,10 @@ append config {
 		</route>
 	</start>
 
-	<start name="sequence" caps="3000">
-		<resource name="RAM" quantum="300M"/>
+	<start name="sequence" caps="3000" ram="300M">
 		<config>
 
 			<start name="tresor_init_trust_anchor">
-				<resource name="RAM" quantum="4M"/>
 				<config passphrase="foobar" trust_anchor_dir="/trust_anchor">
 					<vfs>
 						<dir name="trust_anchor">
@@ -121,7 +115,6 @@ append config {
 			</start>
 
 			<start name="tresor_init">
-				<resource name="RAM" quantum="4M"/>
 				<config>
 
 					<block-io type="vfs" path="/} [tresor_image_name] {"/>
@@ -146,7 +139,6 @@ append config {
 			</start>
 
 			<start name="init" caps="1600">
-				<resource name="RAM" quantum="256M"/>
 				<config verbose="yes">
 
 					<parent-provides>
@@ -165,9 +157,8 @@ append config {
 
 					<default caps="100"/>
 
-					<start name="vfs_tresor" caps="200">
+					<start name="vfs_tresor" caps="200" ram="16M">
 						<binary name="vfs"/>
-						<resource name="RAM" quantum="16M"/>
 						<provides><service name="File_system"/></provides>
 						<config>
 							<vfs>
@@ -189,8 +180,7 @@ append config {
 						</route>
 					</start>
 
-					<start name="vfs" caps="120">
-						<resource name="RAM" quantum="30M"/>
+					<start name="vfs" caps="120" ram="30M">
 						<provides><service name="File_system"/></provides>
 						<config>
 							<vfs>
@@ -217,8 +207,7 @@ append config {
 						</route>
 					</start>
 
-					<start name="vfs_rom">
-						<resource name="RAM" quantum="30M"/>
+					<start name="vfs_rom" ram="30M">
 						<binary name="fs_rom"/>
 						<provides> <service name="ROM"/> </provides>
 						<config/>
@@ -228,8 +217,7 @@ append config {
 						</route>
 					</start>
 
-					<start name="/bin/bash" caps="1000">
-						<resource name="RAM" quantum="64M"/>
+					<start name="/bin/bash" caps="1000" ram="64M">
 						<config ld_verbose="yes">
 							<libc stdin="/dev/terminal" stdout="/dev/terminal"
 								  stderr="/dev/terminal" rtc="/dev/rtc" pipe="/dev/pipe"/>

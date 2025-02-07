@@ -44,14 +44,12 @@ set config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<start name="timer" caps="100">
-			<resource name="RAM" quantum="2M"/>
+		<start name="timer" caps="100" ram="2M">
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="drivers_reports" caps="100">
+		<start name="drivers_reports" caps="100" ram="1M">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Report"/>
 				<service name="ROM"/>
@@ -63,16 +61,14 @@ set config {
 			</config>
 		</start>
 
-		<start name="acpi" caps="350">
-			<resource name="RAM" quantum="4M"/>
+		<start name="acpi" caps="350" ram="4M">
 			<route>
 				<service name="Report"> <child name="drivers_reports"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 
-		<start name="pci_decode" caps="350">
-			<resource name="RAM" quantum="2M"/>
+		<start name="pci_decode" caps="350" ram="2M">
 			<route>
 				<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
 				<service name="Report"> <child name="drivers_reports"/> </service>
@@ -80,8 +76,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="platform" caps="400" managing_system="yes">
-			<resource name="RAM" quantum="4M"/>
+		<start name="platform" caps="400" managing_system="yes" ram="4M">
 			<provides>
 				<service name="Platform"/>
 			</provides>
@@ -96,8 +91,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="ps2" caps="100">
-			<resource name="RAM" quantum="2M"/>
+		<start name="ps2" caps="100" ram="2M">
 			<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
 			<route>
 				<service name="Platform"> <child name="platform"/> </service>
@@ -107,9 +101,8 @@ set config {
 			</route>
 		</start>
 
-		<start name="usb" caps="200">
+		<start name="usb" caps="200" ram="20M">
 			<binary name="pc_usb_host"/>
-			<resource name="RAM" quantum="20M"/>
 			<provides> <service name="Usb"/> </provides>
 			<config bios_handoff="no">
 				<report devices="yes"/>
@@ -121,8 +114,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="usb_hid" caps="140">
-			<resource name="RAM" quantum="10M"/>
+		<start name="usb_hid" caps="140" ram="10M">
 			<route>
 				<service name="ROM" label="report"> <child name="drivers_reports"/> </service>
 				<service name="Event"> <child name="event_filter" label="usb"/> </service>
@@ -131,8 +123,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="event_filter" caps="100">
-			<resource name="RAM" quantum="1M" />
+		<start name="event_filter" caps="100" ram="1M">
 			<provides> <service name="Event" /> </provides>
 			<config>
 				<output>
@@ -152,8 +143,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="event_dump" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="event_dump" caps="100" ram="1M">
 			<provides> <service name="Event"/> </provides>
 			<route>
 				<service name="Timer"> <child name="timer"/> </service>
@@ -161,8 +151,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="acpica" caps="400">
-			<resource name="RAM" quantum="8M"/>
+		<start name="acpica" caps="400" ram="8M">
 			<config ld_verbose="yes" reset="yes" poweroff="yes" report="yes"
 			        report_period_ms="0" verbose="yes">
 			</config>
@@ -173,9 +162,8 @@ set config {
 			</route>
 		</start>
 
-		<start name="acpi_state" caps="100">
+		<start name="acpi_state" caps="100" ram="2M">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="ROM" />
 				<service name="Report" />
@@ -193,8 +181,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="acpi_event" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="acpi_event" caps="100" ram="1M">
 			<config>
 				<!-- example mapping - adapt to your target notebook !!! -->
 				<!-- as="PRESS_RELEASE" is default if nothing specified -->
@@ -221,8 +208,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="dynamic_rom" caps="100">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" caps="100" ram="4M">
 			<provides><service name="ROM"/></provides>
 			<config verbose="yes">
 				<rom name="system">

@@ -73,8 +73,6 @@
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-new_delete">
-			<resource name="RAM" quantum="10M"/>
-		</start>
+		<start name="test-new_delete" ram="10M"/>
 	</config>
 </runtime>

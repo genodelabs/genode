@@ -117,17 +117,15 @@ lappend boot_modules bash.tar coreutils.tar test.bin template.bat $vbox_file
 
 set config_of_app {
 
-	<start name="nic" priority="-1">
+	<start name="nic" ram="8M" priority="-1">
 		<binary name="pc_nic"/>
-		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -161,8 +159,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="tcp_terminal" priority="-1" caps="200">
-		<resource name="RAM" quantum="6M"/>
+	<start name="tcp_terminal" priority="-1" caps="200" ram="6M">
 		<provides> <service name="Terminal"/> </provides>
 		<config>
 			<policy label_prefix="vfs" port="8888"/>
@@ -179,9 +176,8 @@ set config_of_app {
 		</route>
 	</start>
 
-	<start name="ram_fs_from" priority="-1">
+	<start name="ram_fs_from" priority="-1" ram="64M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs>
@@ -195,9 +191,8 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="ram_fs_to" priority="-1">
+	<start name="ram_fs_to" priority="-1" ram="64M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="64M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <ram/> </vfs>
@@ -205,8 +200,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="vfs" caps="120" priority="-1">
-		<resource name="RAM" quantum="30M"/>
+	<start name="vfs" caps="120" priority="-1" ram="30M">
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs>
@@ -238,8 +232,7 @@ set config_of_app {
 		</route>
 	</start>
 
-	<start name="vfs_rom" priority="-1">
-		<resource name="RAM" quantum="30M"/>
+	<start name="vfs_rom" priority="-1" ram="30M">
 		<binary name="fs_rom"/>
 		<provides> <service name="ROM"/> </provides>
 		<config/>
@@ -249,8 +242,7 @@ set config_of_app {
 		</route>
 	</start>
 
-	<start name="/bin/bash" caps="600" priority="-1">
-		<resource name="RAM" quantum="30M" />
+	<start name="/bin/bash" caps="600" priority="-1" ram="30M">
 		<config ld_verbose="yes">
 			<libc stdin="/dev/terminal" stdout="/dev/terminal"
 			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>
@@ -268,8 +260,7 @@ set config_of_app {
 		</route>
 	</start>
 
-	<start name="report_rom" priority="-1">
-		<resource name="RAM" quantum="1M"/>
+	<start name="report_rom" priority="-1" ram="1M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pointer -> hover"  report="nitpicker -> hover"/>
@@ -278,8 +269,7 @@ set config_of_app {
 		</config>
 	</start>
 
-	<start name="event_filter" priority="-1">
-		<resource name="RAM" quantum="1M" />
+	<start name="event_filter" priority="-1" ram="1M">
 		<provides>
 			<service name="Event" />
 		</provides>
@@ -305,8 +295,7 @@ append config_of_app {
 		</route>
 	</start>
 
-	<start name="nitpicker" priority="-1">
-		<resource name="RAM" quantum="12M"/>
+	<start name="nitpicker" priority="-1" ram="12M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -328,8 +317,7 @@ append config_of_app {
 		</config>
 	</start>
 
-	<start name="pointer" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pointer" priority="-1" ram="2M">
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
 		<route>
@@ -340,11 +328,10 @@ append config_of_app {
 		</route>
 	</start>
 
-	<start name="vbox1" priority="-2" caps="600">}
+	<start name="vbox1" priority="-2" caps="600" ram="1280M">}
 append_if [expr $use_vbox5] config_of_app "
 		<binary name=\"$virtualbox5_binary\" />"
 append config_of_app {
-		<resource name="RAM" quantum="1280M"/>
 		<config vbox_file="} $vbox_file {" vm_name="AutoDisk">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs>

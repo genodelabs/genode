@@ -51,8 +51,7 @@ append config {
 		<service name="LOG"/>
 	</parent-provides>
 
-	<start name="timer" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" caps="100" ram="1M">
 		<provides> <service name="Timer"/> </provides>
 		<route>
 			<service name="ROM"> <parent/> </service>
@@ -64,9 +63,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="report" caps="100">
+	<start name="report" caps="100" ram="2M">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no"/>
 		<route>
@@ -79,8 +77,7 @@ append config {
 
 append_if $linux config {
 
-	<start name="lx_fs" ld="no" caps="1000">
-		<resource name="RAM" quantum="4M"/>
+	<start name="lx_fs" ld="no" caps="1000" ram="4M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<policy label_prefix="fetchurl" root="/fetchurl_fs/" writeable="yes"/>
@@ -96,8 +93,7 @@ append_if $linux config {
 
 append config {
 
-	<start name="fetchurl" caps="300">
-		<resource name="RAM" quantum="50M"/>
+	<start name="fetchurl" caps="300" ram="50M">
 		<config verbose="no">
 			<report progress="yes"/>
 			<vfs>
@@ -140,9 +136,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer1_wireguard" caps="200">
+	<start name="peer1_wireguard" caps="200" ram="11M">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="11M"/>
 		<config private_key="0CtU34qsl97IGiYKSO4tMaF/SJvy04zzeQkhZEbZSk0="
 		        listen_port="49001">
 
@@ -163,8 +158,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -216,9 +210,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="peer2_wireguard" caps="200">
+	<start name="peer2_wireguard" caps="200" ram="11M">
 		<binary name="wireguard"/>
-		<resource name="RAM" quantum="11M"/>
 		<config private_key="8GRSQZMgG1uuvz4APIBqrDmiLj8L886r++hzixjjHFc="
 		        listen_port="49002">
 
@@ -237,8 +230,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="lighttpd" caps="200">
-		<resource name="RAM" quantum="50M" />
+	<start name="lighttpd" caps="200" ram="50M">
 		<config>
 			<arg value="lighttpd" />
 			<arg value="-f" />

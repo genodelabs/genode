@@ -31,8 +31,7 @@
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="175"/>
-		<start name="gcov">
-			<resource name="RAM" quantum="10M"/>
+		<start name="gcov" ram="10M">
 			<config>
 				<arg value="gcov"/>
 				<arg value="--genode-autopilot"/>

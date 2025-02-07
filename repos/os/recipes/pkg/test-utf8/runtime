@@ -22,8 +22,6 @@
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-utf8">
-			<resource name="RAM" quantum="1M"/>
-		</start>
+		<start name="test-utf8" ram="1M"/>
 	</config>
 </runtime>

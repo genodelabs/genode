@@ -37,9 +37,8 @@ install_config {
 			<service name="LOG"/>
 		</parent-provides>
 
-		<start name="timer" caps="100" priority="0">
+		<start name="timer" caps="100" ram="1M" priority="0">
 			<resource name="CPU" quantum="10"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 			<route>
 				<service name="PD"> <parent/> </service>
@@ -52,10 +51,9 @@ install_config {
 			</route>
 		</start>
 
-		<start name="drivers" caps="1200" managing_system="yes" priority="0">
+		<start name="drivers" caps="1200" ram="32M" managing_system="yes" priority="0">
 			<binary name="init"/>
 			<resource name="CPU" quantum="10"/>
-			<resource name="RAM" quantum="32M"/>
 			<route>
 				<service name="Timer"> <child name="timer"/> </service>
 				<service name="Uplink"> <child name="nic_router"/> </service>
@@ -71,9 +69,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="nic_router" caps="200" priority="-1">
+		<start name="nic_router" caps="200" ram="10M" priority="-1">
 			<resource name="CPU" quantum="10"/>
-			<resource name="RAM" quantum="10M"/>
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -112,9 +109,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="report_rom" caps="100" priority="-1">
+		<start name="report_rom" caps="100" ram="1M" priority="-1">
 			<resource name="CPU" quantum="10"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 			<route>
@@ -125,9 +121,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="dynamic_rom" caps="100" priority="-1">
+		<start name="dynamic_rom" caps="100" ram="4M" priority="-1">
 			<resource name="CPU" quantum="10"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides><service name="ROM"/> </provides>
 			<config>
 				<rom name="net_clients.config">
@@ -150,9 +145,8 @@ install_config {
 								<service name="Timer"/>
 							</parent-provides>
 
-							<start name="tcp_flood" caps="100">
+							<start name="tcp_flood" caps="100" ram="8M">
 								<binary name="test-net_flood"/>
-								<resource name="RAM" quantum="8M"/>
 								<config dst_ip="} [bad_dst_ip] {" protocol="tcp" verbose="no"/>
 								<route>
 									<service name="Nic"> <parent/> </service>
@@ -164,9 +158,8 @@ install_config {
 								</route>
 							</start>
 
-							<start name="udp_flood" caps="100">
+							<start name="udp_flood" caps="100" ram="8M">
 								<binary name="test-net_flood"/>
-								<resource name="RAM" quantum="8M"/>
 								<config dst_ip="} [bad_dst_ip] {" protocol="udp" verbose="no"/>
 								<route>
 									<service name="Nic"> <parent/> </service>
@@ -178,9 +171,8 @@ install_config {
 								</route>
 							</start>
 
-							<start name="icmp_flood" caps="100">
+							<start name="icmp_flood" caps="100" ram="8M">
 								<binary name="test-net_flood"/>
-								<resource name="RAM" quantum="8M"/>
 								<config dst_ip="} [bad_dst_ip] {" protocol="icmp" verbose="no"/>
 								<route>
 									<service name="Nic"> <parent/> </service>
@@ -192,8 +184,7 @@ install_config {
 								</route>
 							</start>
 
-							<start name="ping" caps="100">
-								<resource name="RAM" quantum="8M"/>
+							<start name="ping" caps="100" ram="8M">
 								<config dst_ip="} [good_dst_ip] {" period_sec="2" count="999"/>
 								<route>
 									<service name="Nic"> <parent/> </service>
@@ -220,10 +211,9 @@ install_config {
 			</route>
 		</start>
 
-		<start name="net_clients" caps="1000" priority="-2">
+		<start name="net_clients" caps="1000" ram="200M" priority="-2">
 			<binary name="init"/>
 			<resource name="CPU" quantum="0"/>
-			<resource name="RAM" quantum="200M"/>
 			<route>
 				<service name="ROM" label="config"> <child name="dynamic_rom" label="net_clients.config"/> </service>
 				<service name="Nic"> <child name="nic_router"/> </service>

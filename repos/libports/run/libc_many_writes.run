@@ -23,16 +23,14 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="128"/>
+	<default caps="128" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="ramfs">
+	<start name="ramfs" ram="4M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -43,9 +41,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="fs">
+	<start name="fs" ram="4M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -60,8 +57,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-libc_many_writes" caps="1000">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-libc_many_writes" caps="1000" ram="4M">
 		<config>
 			<vfs>
 				<dir name="rw">  <fs/>  </dir>

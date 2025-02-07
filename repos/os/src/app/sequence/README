@@ -6,8 +6,7 @@ propagated from children to the parent.
 
 A sample configuration to start a consumer after a producer has exited:
 
-! <start name="sequence" caps="100">
-!   <resource name="RAM" quantum="128M"/>
+! <start name="sequence" caps="100" ram="128M">
 !   <route>
 !     <any-service> <parent/> <any-child/> </any-service>
 !   </route>

@@ -21,15 +21,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -41,13 +39,11 @@ install_config {
 	</start>
 
 	<start name="event_dump">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Event"/> </provides>
 		<config/>
 	</start>
 
-	<start name="test-framebuffer">
-		<resource name="RAM" quantum="10M"/>
+	<start name="test-framebuffer" ram="10M">
 		<provides> <service name="Capture"/> </provides>
 		<config/>
 	</start>

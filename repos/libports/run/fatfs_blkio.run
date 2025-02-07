@@ -28,19 +28,16 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="128"/>
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" ram="1M">
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="test-fatfs_block_io">
-		<resource name="RAM" quantum="10M"/>
+	<start name="test-fatfs_block_io" ram="10M">
 		<config ld_verbose="true">
 			<libc stdout="/log" stderr="/log"/>
 			<vfs> <log/> </vfs>
 		</config>
 	</start>
-	<start name="vfs_block">
-		<resource name="RAM" quantum="4M" />
+	<start name="vfs_block" ram="4M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>

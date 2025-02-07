@@ -25,10 +25,9 @@ install_config {
 		<service name="LOG"/>
 	</parent-provides>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 		<route>
 			<service name="ROM"> <parent/> </service>
@@ -38,8 +37,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="fb_sdl" ld="no">
-		<resource name="RAM" quantum="32M"/>
+	<start name="fb_sdl" ld="no" ram="32M">
 		<config buffered="yes" width="1280" height="720" depth="16"/>
 		<route>
 			<service name="ROM">     <parent/>             </service>
@@ -54,7 +52,6 @@ install_config {
 
 	<start name="report_rom_nitpicker">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pointer -> hover" report="nitpicker -> hover"/>
@@ -69,8 +66,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -95,9 +91,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="shape-arrow">
+	<start name="shape-arrow" ram="2M">
 		<binary name="test-pointer"/>
-		<resource name="RAM" quantum="2M"/>
 		<config shape="arrow"/>
 		<route>
 			<service name="PD">     <parent/> </service>
@@ -110,9 +105,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="shape-blade">
+	<start name="shape-blade" ram="2M">
 		<binary name="test-pointer"/>
-		<resource name="RAM" quantum="2M"/>
 		<config shape="blade"/>
 		<route>
 			<service name="PD">     <parent/> </service>
@@ -125,9 +119,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="shape-bladex">
+	<start name="shape-bladex" ram="2M">
 		<binary name="test-pointer"/>
-		<resource name="RAM" quantum="2M"/>
 		<config shape="bladex"/>
 		<route>
 			<service name="PD">     <parent/> </service>
@@ -142,7 +135,6 @@ install_config {
 
 	<start name="shape-smiley-config">
 		<binary name="dynamic_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="ROM"/> </provides>
 		<config>
 			<rom name="smiley.config">
@@ -165,9 +157,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="shape-smiley">
+	<start name="shape-smiley" ram="2M">
 		<binary name="test-pointer"/>
-		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="ROM" label="config">
 				<child name="shape-smiley-config" label="smiley.config"/> </service>
@@ -182,7 +173,6 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes" verbose="no"/>
 		<route>
@@ -196,9 +186,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-no-match">
+	<start name="test-no-match" ram="2M">
 		<binary name="testnit"/>
-		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="LOG">   <parent/>                 </service>
 			<service name="PD">    <parent/>                 </service>
@@ -209,9 +198,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-label-smiley">
+	<start name="test-label-smiley" ram="2M">
 		<binary name="testnit"/>
-		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="LOG">   <parent/>                 </service>
 			<service name="PD">    <parent/>                 </service>
@@ -222,9 +210,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-label-arrow">
+	<start name="test-label-arrow" ram="2M">
 		<binary name="testnit"/>
-		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="LOG">   <parent/>                 </service>
 			<service name="PD">    <parent/>                 </service>
@@ -235,9 +222,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-label-blade">
+	<start name="test-label-blade" ram="2M">
 		<binary name="testnit"/>
-		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="PD">    <parent/>                 </service>
 			<service name="LOG">   <parent/>                 </service>
@@ -248,9 +234,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-label-bladex">
+	<start name="test-label-bladex" ram="2M">
 		<binary name="testnit"/>
-		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="PD">    <parent/>                 </service>
 			<service name="LOG">   <parent/>                 </service>

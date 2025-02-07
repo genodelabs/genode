@@ -34,16 +34,14 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>
+	<default caps="200" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="usb" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" ram="32M" managing_system="yes">
 		<binary name="init"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="ROM" label="config">
@@ -53,8 +51,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_net">
-		<resource name="RAM" quantum="20M"/>
+	<start name="usb_net" ram="20M">
 		<config mac="02:00:00:00:01:01" />
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
@@ -62,8 +59,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -90,8 +86,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-lwip_httpsrv" caps="120">
-		<resource name="RAM" quantum="6M"/>
+	<start name="test-lwip_httpsrv" caps="120" ram="6M">
 		<config>
 			<vfs>
 				<dir name="dev">    <log/>             </dir>

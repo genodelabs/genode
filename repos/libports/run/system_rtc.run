@@ -31,15 +31,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="system_rtc" caps="400" priority="-1">
-		<resource name="RAM" quantum="6M"/>
+	<start name="system_rtc" caps="400" ram="6M" priority="-1">
 		<binary name="init"/>
 		<provides> <service name="Rtc"/> <service name="Report"/> </provides>
 		<route>
@@ -57,7 +55,6 @@ install_config {
 	</start>
 
 	<start name="test-system_rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<config/>
 		<route>
 			<service name="Report"> <child name="system_rtc"/> </service>
@@ -67,8 +64,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-libc_rtc" caps="150">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-libc_rtc" caps="150" ram="4M">
 		<config>
 			<vfs> <dir name="dev"> <log/> <rtc/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>

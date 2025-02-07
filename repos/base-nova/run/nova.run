@@ -24,8 +24,7 @@ set config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-nova" caps="12350" ld="no">
-			<resource name="RAM" quantum="128M"/>}
+		<start name="test-nova" caps="12350" ram="128M" ld="no">}
 
 append config "
 			<config check_pat=\"$check_pat\"/\>"

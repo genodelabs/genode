@@ -46,15 +46,13 @@ install_config {
 	</default-route>
 	<resource name="RAM" preserve="2M"/>
 	<resource name="CAP" preserve="100"/>
-	<start name="timer" caps="100">
+	<start name="timer" caps="100" ram="1M">
 		<resource name="CPU" quantum="10"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="bomb-master" priority="-1" caps="100000">
+	<start name="bomb-master" priority="-1" caps="100000" ram="2G">
 		<binary name="bomb"/>
 		<resource name="CPU" quantum="90"/>
-		<resource name="RAM" quantum="2G"/>
 		<config rounds="} $rounds {" generations="} $generations {"
 		        children="} $children {" sleep="} $sleep {" demand="} $demand {"/>
 	</start>

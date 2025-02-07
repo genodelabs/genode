@@ -25,15 +25,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -45,7 +43,6 @@ install_config {
 	</start>
 
 	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -61,15 +58,13 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="Gui"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="report_rom" ram="4M">
 		<provides>
 			<service name="Report"/>
 			<service name="ROM"/>
@@ -80,8 +75,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="trace_subject_reporter" >
-		<resource name="RAM" quantum="6M"/>
+	<start name="trace_subject_reporter" ram="6M">
 		<config period_ms="500">
 			<report activity="yes" affinity="yes"/>
 		</config>
@@ -92,16 +86,14 @@ install_config {
 		</route>
 	</start>
 
-	<start name="cpu_load_display">
-		<resource name="RAM" quantum="6M"/>
+	<start name="cpu_load_display" ram="6M">
 		<route>
 			<service name="ROM" label="trace_subjects"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
 			<rom name="cpu_burner1.config">
@@ -129,7 +121,6 @@ install_config {
 
 	<start name="cpu_burner.1">
 		<binary name="cpu_burner"/>
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="ROM" label="config">
 				<child name="dynamic_rom" label="cpu_burner1.config"/> </service>
@@ -139,7 +130,6 @@ install_config {
 
 	<start name="cpu_burner.2">
 		<binary name="cpu_burner"/>
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="ROM" label="config">
 				<child name="dynamic_rom" label="cpu_burner2.config"/> </service>

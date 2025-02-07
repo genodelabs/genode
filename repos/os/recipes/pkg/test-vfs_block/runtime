@@ -35,8 +35,7 @@
 
 		<default caps="100"/>
 
-		<start name="vfs_block" caps="150">
-			<resource name="RAM" quantum="38M"/>
+		<start name="vfs_block" caps="150" ram="38M">
 			<provides> <service name="Block"/> </provides>
 			<config>
 				<vfs>
@@ -52,8 +51,7 @@
 			</route>
 		</start>
 
-		<start name="block_tester" caps="200">
-			<resource name="RAM" quantum="8M"/>
+		<start name="block_tester" caps="200" ram="8M">
 			<config verbose="no" report="no" log="yes" stop_on_error="no">
 				<tests>
 					<sequential length="30M" size="4K" batch="32"/>

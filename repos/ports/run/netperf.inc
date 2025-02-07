@@ -189,18 +189,16 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<resource name="CPU" quantum="10"/>
 		<provides> <service name="Timer"/> </provides>
 	</start> }
 
 if { $use_wifi_driver } {
 	append config {
-	<start name="report_rom" caps="100" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" caps="100" ram="2M" priority="-1">
 		<provides>
 			<service name="ROM" />
 			<service name="Report" />
@@ -211,20 +209,16 @@ if { $use_wifi_driver } {
 		</config>
 	</start>
 
-	<start name="acpi" caps="250" priority="-1">
-		<resource name="RAM" quantum="4M"/>
-	</start>
+	<start name="acpi" caps="250" ram="4M" priority="-1"/>
 
-	<start name="pci_decode" caps="350" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M" priority="-1">
 		<route>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="platform" caps="100" managing_system="yes" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="platform" caps="100" ram="2M" managing_system="yes" priority="-1">
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
@@ -235,9 +229,8 @@ if { $use_wifi_driver } {
 		</config>
 	</start>
 
-	<start name="config_fs" priority="-1">
+	<start name="config_fs" ram="4M" priority="-1">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -254,9 +247,8 @@ append  config { </wifi_config>
 		</config>
 	</start>
 
-	<start name="config_rom" priority="-1">
+	<start name="config_rom" ram="4M" priority="-1">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
 		<route>
 			<service name="File_system"> <child name="config_fs" /> </service>
@@ -264,9 +256,8 @@ append  config { </wifi_config>
 		</route>
 	</start>
 
-	<start name="nic" caps="340" priority="-1">
+	<start name="nic" caps="340" ram="32M" priority="-1">
 		<binary name="wifi"/>
-		<resource name="RAM" quantum="32M"/>
 		<config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
@@ -297,9 +288,8 @@ append  config { </wifi_config>
 
 	append config {
 
-	<start name="usb" caps="1500" managing_system="yes" priority="-1">
+	<start name="usb" caps="1500" ram="32M" managing_system="yes" priority="-1">
 		<binary name="init"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="ROM" label="config">
@@ -310,9 +300,8 @@ append  config { </wifi_config>
 		</route>
 	</start>
 
-	<start name="nic" caps="200" priority="-1">
+	<start name="nic" caps="200" ram="20M" priority="-1">
 		<binary name="usb_net"/>
-		<resource name="RAM" quantum="20M"/>
 		<config mac="02:00:00:00:01:01" />
 		<route>
 			<service name="Uplink"><child name="nic_router"/></service>
@@ -324,8 +313,7 @@ append  config { </wifi_config>
 
 	append config {
 
-	<start name="nic" caps="1200" managing_system="yes" priority="-1">
-		<resource name="RAM" quantum="32M"/>
+	<start name="nic" caps="1200" ram="32M" managing_system="yes" priority="-1">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -338,8 +326,7 @@ append  config { </wifi_config>
 
 append config {
 
-	<start name="nic_router" caps="120" priority="-1">
-		<resource name="RAM" quantum="5M"/>
+	<start name="nic_router" caps="120" ram="5M" priority="-1">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -383,8 +370,7 @@ append config {
 
 append_if $use_nic_bridge config {
 
-	<start name="nic_bridge" priority="-1">
-		<resource name="RAM" quantum="5M"/>
+	<start name="nic_bridge" ram="5M" priority="-1">
 		<provides><service name="Nic"/></provides>
 		<config mac="} $bridge_mac {">
 			<default-policy/>
@@ -397,9 +383,8 @@ append_if $use_nic_bridge config {
 
 append config {
 
-	<start name="netserver_genode" caps="320" priority="-2">
-	<binary name="netserver"/>
-		<resource name="RAM" quantum="14M"/>
+	<start name="netserver_genode" caps="320" ram="14M" priority="-2">
+		<binary name="netserver"/>
 		<config>
 			<arg value="netserver"/>
 			<arg value="-D"/>

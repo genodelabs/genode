@@ -39,14 +39,13 @@ install_config {
 <config>
 	<parent-provides>} [qt5_parent_provides] {
 	</parent-provides>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>} [qt5_start_nodes] {
 
 	<start name="test_reports">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="test-tiled_wm-panel -> apps"              report="test-tiled_wm-manager -> apps"/>
@@ -55,9 +54,8 @@ install_config {
 			<policy label="test-tiled_wm-manager -> overlay_request" report="test-tiled_wm-panel -> overlay_request"/>
 		</config>
 	</start>
-	<start name="wifi_reports">
+	<start name="wifi_reports" ram="4M">
 		<binary name="dynamic_rom"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<rom name="accesspoints">
@@ -92,8 +90,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-tiled_wm-manager" caps="120">
-		<resource name="RAM" quantum="8M"/>
+	<start name="test-tiled_wm-manager" caps="120" ram="8M">
 		<route>
 			<service name="ROM" label="content_request"> <child name="test_reports" /> </service>
 			<service name="ROM" label="overlay_request"> <child name="test_reports" /> </service>
@@ -102,8 +99,7 @@ install_config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="test-tiled_wm-panel" caps="250">
-		<resource name="RAM" quantum="32M"/>
+	<start name="test-tiled_wm-panel" caps="250" ram="32M">
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
@@ -128,8 +124,7 @@ install_config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="test-tiled_wm-overlay" caps="250">
-		<resource name="RAM" quantum="32M"/>
+	<start name="test-tiled_wm-overlay" caps="250" ram="32M">
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
@@ -150,9 +145,8 @@ install_config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="test-tiled_wm-app-1" caps="250">
+	<start name="test-tiled_wm-app-1" caps="250" ram="32M">
 		<binary name="test-tiled_wm-app"/>
-		<resource name="RAM" quantum="32M"/>
 		<config name="app1">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
@@ -173,9 +167,8 @@ install_config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="test-tiled_wm-app-2" caps="250">
+	<start name="test-tiled_wm-app-2" caps="250" ram="32M">
 		<binary name="test-tiled_wm-app"/>
-		<resource name="RAM" quantum="32M"/>
 		<config name="app2">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
@@ -196,8 +189,7 @@ install_config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="textedit" caps="350">
-		<resource name="RAM" quantum="70M"/>
+	<start name="textedit" caps="350" ram="70M">
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>

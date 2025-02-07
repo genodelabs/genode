@@ -269,8 +269,7 @@ install_config {
 			<service name="TRACE"/>
 		</parent-provides>
 
-		<start name="timer" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" caps="100" ram="1M">
 			<provides><service name="Timer"/></provides>
 			<route>
 				<service name="PD">      <parent/> </service>
@@ -283,8 +282,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="test" priority="-1" caps="} $caps {">
-			<resource name="RAM" quantum="} $ram {"/>
+		<start name="test" priority="-1" caps="} $caps {" ram="} $ram {">
 			<binary name="} $binary {"/>
 			<route>
 				<service name="ROM">   <parent/>    </service>

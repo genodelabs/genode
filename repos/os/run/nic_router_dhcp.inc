@@ -37,15 +37,13 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>
+	<default caps="200" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="nic_router_1.config">
@@ -164,9 +162,8 @@ append config {
 		</config>
 	</start>
 
-	<start name="nic_router_1">
+	<start name="nic_router_1" ram="10M">
 		<binary name="nic_router"/>
-		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -179,9 +176,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router_2">
+	<start name="nic_router_2" ram="10M">
 		<binary name="nic_router"/>
-		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -223,9 +219,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="test_client">
+	<start name="test_client" ram="10M">
 		<binary name="test-nic_router_dhcp-client"/>
-		<resource name="RAM" quantum="10M"/>
 		<config verbose="no"/>
 		<route>
 			<service name="Nic"> <child name="nic_router_2"/> </service>
@@ -236,7 +231,6 @@ append config {
 append_if [nic_router_2_managed] config {
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="test_manager -> router_state"
@@ -249,7 +243,6 @@ append_if [nic_router_2_managed] config {
 
 	<start name="test_manager">
 		<binary name="test-nic_router_dhcp-manager"/>
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="ROM" label="router_state">
 				<child name="report_rom"/>

@@ -49,14 +49,12 @@ install_config {
 		<service name="VM"> <parent diag="yes"/> </service>
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="vmm" caps="2048" priority="-1">
+	<start name="vmm" caps="2048" ram="256M" priority="-1">
 		<binary name="test-vmm_x86"/>
-		<resource name="RAM" quantum="256M"/>
 	</start>
 </config>
 }

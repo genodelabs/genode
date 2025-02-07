@@ -26,13 +26,11 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="vfs_block">
-		<resource name="RAM" quantum="2M"/>
+	<start name="vfs_block" ram="2M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>
@@ -42,20 +40,17 @@ install_config {
 			                writeable="no"/>
 		</config>
 	</start>
-	<start name="vfs" caps="200">
-		<resource name="RAM" quantum="20M" />
+	<start name="vfs" caps="200" ram="20M">
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <rump fs="cd9660" ram="10M" writeable="no"/> </vfs>
 			<policy label_prefix="fs_rom" root="/" writeable="no"/>
 		</config>
 	</start>
-	<start name="fs_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="fs_rom" ram="2M">
 		<provides><service name="ROM"/></provides>
 	</start>
 	<start name="test-iso">
-		<resource name="RAM" quantum="1M" />
 		<config/>
 		<route>
 			<service name="ROM" label_prefix=""><child name="fs_rom"/></service>

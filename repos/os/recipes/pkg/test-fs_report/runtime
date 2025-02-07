@@ -31,8 +31,7 @@
 
 		<default caps="100"/>
 
-		<start name="ram_fs">
-			<resource name="RAM" quantum="4M"/>
+		<start name="ram_fs" ram="4M">
 			<binary name="vfs"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
@@ -55,18 +54,15 @@
 		  All reports sent by 'test-fs_report' are prefixed with the label of the
 		  component. Hence, they are written to the 'test-fs_report/' subdirectory.
 		  -->
-		<start name="fs_report">
-			<resource name="RAM" quantum="4M"/>
+		<start name="fs_report" ram="4M">
 			<provides> <service name="Report"/> </provides>
 			<config> <vfs> <fs/> </vfs> </config>
 		</start>
-		<start name="fs_rom">
-			<resource name="RAM" quantum="4M"/>
+		<start name="fs_rom" ram="4M">
 			<provides> <service name="ROM"/> </provides>
 			<config/>
 		</start>
-		<start name="test-fs_report">
-			<resource name="RAM" quantum="4M"/>
+		<start name="test-fs_report" ram="4M">
 			<config> <vfs> <fs/> </vfs> </config>
 			<route>
 				<service name="ROM" label="devices"> <child name="fs_rom"/> </service>

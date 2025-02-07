@@ -34,15 +34,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pci_decode -> system" report="acpi -> acpi"/>
@@ -50,8 +48,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="4M"/>
+	<start name="acpi" caps="350" ram="4M">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="IO_MEM"> <parent/> </service>
@@ -63,8 +60,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -78,7 +74,6 @@ install_config {
 	</start>
 
 	<start name="platform" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -102,13 +97,11 @@ install_config {
 
 	<start name="ahci_report_rom">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="ahci">
-		<resource name="RAM" quantum="10M" />
+	<start name="ahci" ram="10M">
 		<provides><service name="Block" /></provides>
 		<config atapi="yes">
 			<report ports="yes"/>
@@ -121,9 +114,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-ahci">
+	<start name="test-ahci" ram="50M">
 		<binary name="block_tester" />
-		<resource name="RAM" quantum="50M" />
 		<config verbose="no" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential length="8M" size="1M" io_buffer="8M" batch="4"/>
@@ -136,9 +128,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-ahci-atapi">
+	<start name="test-ahci-atapi" ram="50M">
 		<binary name="block_tester" />
-		<resource name="RAM" quantum="50M" />
 		<config verbose="no" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential length="1M" size="1M" io_buffer="8M" batch="4"/>

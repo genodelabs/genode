@@ -30,14 +30,12 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="lx_block" ld="no">
-			<resource name="RAM" quantum="2M"/>
+		<start name="lx_block" ld="no" ram="2M">
 			<provides> <service name="Block"/> </provides>
 			<config file="lx_block.img" block_size="4K" writeable="yes"/>
 		</start>
-		<start name="block_tester">
+		<start name="block_tester" ram="5M">
 			<binary name="block_tester"/>
-			<resource name="RAM" quantum="5M"/>
 			<config verbose="no" log="yes" stop_on_error="no">
 				<tests>
 					<sequential length="256K" size="4K" io_buffer="128K" batch="4"/>

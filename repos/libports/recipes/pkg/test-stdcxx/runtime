@@ -24,8 +24,7 @@
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-stdcxx">
-			<resource name="RAM" quantum="10M"/>
+		<start name="test-stdcxx" ram="10M">
 			<config>
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 				<libc stdout="/dev/log"/>

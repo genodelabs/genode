@@ -45,15 +45,13 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="drivers" caps="1000" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1000" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -63,8 +61,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -105,8 +102,7 @@ append config {
 }
 
 append_if [use_dynamic_rom] config {
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="socket_fs.config"> <inline description="MTU default">
@@ -136,9 +132,8 @@ append_if [use_dynamic_rom] config {
 }
 
 append config {
-	<start name="socket_fs" caps="200">
+	<start name="socket_fs" caps="200" ram="32M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="File_system"/> </provides>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>}
@@ -174,9 +169,8 @@ append config {
 }
 
 if {[protocol] == "tcp"} { append config {
-	<start name="netty-server-80">
+	<start name="netty-server-80" ram="4M">
 		<binary name="test-netty_tcp"/>
-		<resource name="RAM" quantum="4M"/>
 		<config ld_verbose="yes" port="80" read_write="no" nonblock="true">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
@@ -186,9 +180,8 @@ if {[protocol] == "tcp"} { append config {
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
 	</start>
-	<start name="netty-server-8080">
+	<start name="netty-server-8080" ram="4M">
 		<binary name="test-netty_tcp"/>
-		<resource name="RAM" quantum="4M"/>
 		<config ld_verbose="yes" mode="server" port="8080" nonblock="false">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
@@ -199,9 +192,8 @@ if {[protocol] == "tcp"} { append config {
 		</config>
 	</start>
 <!--
-	<start name="netty-client-A">
+	<start name="netty-client-A" ram="4M">
 		<binary name="test-netty_tcp"/>
-		<resource name="RAM" quantum="4M"/>
 		<config ld_verbose="yes" mode="client" ip="10.0.3.1" port="80">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
@@ -213,9 +205,8 @@ if {[protocol] == "tcp"} { append config {
 	</start>
 -->}
 } else { append config {
-	<start name="netty-server-7">
+	<start name="netty-server-7" ram="4M">
 		<binary name="test-netty_udp"/>
-		<resource name="RAM" quantum="4M"/>
 		<config ld_verbose="yes" port="7" read_write="no" nonblock="true">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
@@ -225,9 +216,8 @@ if {[protocol] == "tcp"} { append config {
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
 	</start>
-	<start name="netty-server-7070">
+	<start name="netty-server-7070" ram="4M">
 		<binary name="test-netty_udp"/>
-		<resource name="RAM" quantum="4M"/>
 		<config ld_verbose="yes" mode="server" port="7070" nonblock="false">
 			<vfs>
 				<dir name="dev">    <log/> </dir>
@@ -238,9 +228,8 @@ if {[protocol] == "tcp"} { append config {
 		</config>
 	</start>
 <!--
-	<start name="netty-client-A">
+	<start name="netty-client-A" ram="4M">
 		<binary name="test-netty_udp"/>
-		<resource name="RAM" quantum="4M"/>
 		<config ld_verbose="yes" mode="client" ip="10.0.3.1" port="7">
 			<vfs>
 				<dir name="dev">    <log/> </dir>

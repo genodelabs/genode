@@ -44,8 +44,7 @@ install_config {
 	</default-route>
 	<default caps="100"/>
 
-	<start name="lx_fs" caps="200" ld="no">
-		<resource name="RAM" quantum="4M"/>
+	<start name="lx_fs" caps="200" ram="4M" ld="no">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<policy label_prefix="fs_rom_config" root="/lx_fs_notify"           writeable="no"/>
@@ -55,9 +54,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="fs_rom_config">
+	<start name="fs_rom_config" ram="8M">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="8M"/>
 		<provides> <service name="ROM"/> </provides>
 		<route>
 			<service name="File_system"> <child name="lx_fs"/> </service>
@@ -65,9 +63,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="fs_rom_test">
+	<start name="fs_rom_test" ram="40M">
 		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="40M"/>
 		<provides> <service name="ROM"/> </provides>
 		<route>
 			<service name="File_system"> <child name="lx_fs"/> </service>
@@ -75,16 +72,14 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-rom_log">
-		<resource name="RAM" quantum="8M"/>
+	<start name="test-rom_log" ram="8M">
 		<route>
 			<service name="ROM" label="outfile.txt"> <child name="fs_rom_test"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="init" caps="4000">
-		<resource name="RAM" quantum="300M"/>
+	<start name="init" caps="4000" ram="300M">
 		<route>
 			<service name="File_system"> <child name="lx_fs"/> </service>
 			<service name="ROM" label="config"> <child name="fs_rom_config" label="init.config"/> </service>
@@ -114,8 +109,7 @@ set init_run_fwrite_test {
 	</default-route>
 	<default caps="100"/>
 
-	<start name="test-file_writer" caps="300" version="1">
-		<resource name="RAM" quantum="16M"/>
+	<start name="test-file_writer" caps="300" ram="16M" version="1">
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 			<vfs>
@@ -151,8 +145,7 @@ set init_run_write_test {
 	</default-route>
 	<default caps="100"/>
 
-	<start name="test-file_writer" caps="300" version="2">
-		<resource name="RAM" quantum="16M"/>
+	<start name="test-file_writer" caps="300" ram="16M" version="2">
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 			<vfs>

@@ -24,15 +24,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="vfs">
-		<resource name="RAM" quantum="38M"/>
+	<start name="vfs" ram="38M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -48,8 +46,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="vfs_block" caps="120">
-		<resource name="RAM" quantum="5M"/>
+	<start name="vfs_block" caps="120" ram="5M">
 		<provides> <service name="Block"/> </provides>
 		<config>
 			<vfs>
@@ -64,8 +61,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="block_tester" caps="200">
-		<resource name="RAM" quantum="64M"/>
+	<start name="block_tester" caps="200" ram="64M">
 		<config verbose="no" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential length="32M" size="4K"   batch="128"/>

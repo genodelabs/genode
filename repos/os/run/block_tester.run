@@ -47,35 +47,31 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
+
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
 	<start name="block_report_rom">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="lx_block0" ld="no">
+	<start name="lx_block0" ld="no" ram="2G">
 		<binary name="lx_block"/>
-		<resource name="RAM" quantum="2G"/>
 		<provides><service name="Block"/></provides>
 		<config file="block0.raw" block_size="512" writeable="yes"/>
 	</start>
-	<start name="lx_block1" ld="no">
+	<start name="lx_block1" ld="no" ram="2G">
 		<binary name="lx_block"/>
-		<resource name="RAM" quantum="2G"/>
 		<provides><service name="Block"/></provides>
 		<config file="block1.raw" block_size="512" writeable="yes"/>
 	</start>
 
-	<start name="part_block0">
+	<start name="part_block0" ram="10M">
 		<binary name="part_block"/>
-		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
 			<service name="Report"><child name="block_report_rom"/></service>
@@ -89,9 +85,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="part_block1">
+	<start name="part_block1" ram="10M">
 		<binary name="part_block"/>
-		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
 			<service name="Report"><child name="block_report_rom"/></service>
@@ -105,9 +100,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-part0">
+	<start name="test-part0" ram="32M">
 		<binary name="block_tester" />
-		<resource name="RAM" quantum="32M" />
 		<config verbose="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential length="2M" size="256K" io_buffer="8M" batch="4"/>
@@ -119,9 +113,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="block_tester0">
+	<start name="block_tester0" ram="32M">
 		<binary name="block_tester" />
-		<resource name="RAM" quantum="32M"/>
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci -->
@@ -189,9 +182,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-part1">
+	<start name="test-part1" ram="32M">
 		<binary name="block_tester" />
-		<resource name="RAM" quantum="32M" />
 		<config verbose="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential length="2M" size="256K" io_buffer="8M" batch="4"/>
@@ -203,9 +195,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="block_tester1">
+	<start name="block_tester1" ram="32M">
 		<binary name="block_tester" />
-		<resource name="RAM" quantum="32M"/>
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci -->

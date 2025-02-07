@@ -195,21 +195,18 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer" priority="0">
-		<resource name="RAM" quantum="1M"/>
 		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
 	<start name="nic_loopback" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="nic_router.config">
@@ -373,8 +370,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="nic_router" caps="200" priority="-1">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" priority="-1" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -387,8 +383,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_bridge" caps="200" priority="-1">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_bridge" caps="200" priority="-1" ram="10M">
 		<provides><service name="Nic"/></provides>
 		<config>
 			<policy label_prefix="nic_router"    ip_addr="10.0.2.55"  />
@@ -404,8 +399,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
+	<start name="report_rom" ram="1M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>

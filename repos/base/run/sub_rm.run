@@ -19,8 +19,7 @@ append config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-sub_rm">
-			<resource name="RAM" quantum="10M"/>
+		<start name="test-sub_rm" ram="10M">
 			<config local_attach_addr="} [local_attach_addr] {"
 			        attach_twice_forbidden="} [attach_twice_forbidden] {"
 			        support_attach_sub_any="} [support_attach_sub_any] {"/>

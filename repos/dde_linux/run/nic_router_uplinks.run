@@ -37,10 +37,9 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
-	<start name="report_rom" caps="200">
-		<resource name="RAM" quantum="4M"/>
+	<start name="report_rom" caps="200" ram="4M">
 		<provides>
 			<service name="ROM" />
 			<service name="Report" />
@@ -53,12 +52,9 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="250">
-		<resource name="RAM" quantum="4M"/>
-	</start>
+	<start name="acpi" caps="250" ram="4M"/>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -66,8 +62,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="platform" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="2M"/>
+	<start name="platform" caps="100" ram="2M" managing_system="yes">
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
@@ -80,28 +75,24 @@ install_config {
 	</start>
 
 	<start name="timer" priority="0">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
 	<start name="pc_rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
 		</provides>
 	</start>
 
-	<start name="nic" priority="-1" caps="250">
+	<start name="nic" priority="-1" caps="250" ram="8M">
 		<binary name="pc_nic"/>
-		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Uplink"> <child name="router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="wifi" caps="600" priority="-1">
-		<resource name="RAM" quantum="32M"/>
+	<start name="wifi" caps="600" ram="32M" priority="-1">
 		<config ld_verbose="no">
 			<vfs>
 				<dir name="dev"> <log/> <rtc/> <null/>
@@ -126,9 +117,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="config_rom" priority="-2">
+	<start name="config_rom" ram="4M" priority="-2">
 		<binary name="dynamic_rom"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
 		<config>
 			<rom name="wifi_config">
@@ -142,9 +132,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="router" caps="200" priority="-2">
+	<start name="router" caps="200" ram="10M" priority="-2">
 		<binary name="nic_router"/>
-		<resource name="RAM" quantum="10M"/>
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -157,7 +146,6 @@ install_config {
 
 	<start name="test" caps="200" priority="-2">
 		<binary name="test-nic_router_uplinks"/>
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="ROM" label="ping_result"> <child name="report_rom"/> </service>
@@ -165,8 +153,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="ping" priority="-2">
-		<resource name="RAM" quantum="8M"/>
+	<start name="ping" ram="8M" priority="-2">
 		<config dst_ip="1.1.1.1"
 		        period_sec="1"
 		        report="yes"

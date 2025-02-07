@@ -26,9 +26,7 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="cpu_bench">
-			<resource name="RAM" quantum="10M"/>
-		</start>
+		<start name="cpu_bench" ram="10M"/>
 	</config>
 }
 

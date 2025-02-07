@@ -35,9 +35,8 @@
 
 		<service name="Capture"> <default-policy> <child name="nitpicker_camera"/> </default-policy> </service>
 
-		<start name="nitpicker_camera" caps="150">
+		<start name="nitpicker_camera" caps="150" ram="4M">
 			<binary name="nitpicker"/>
-				<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="Gui"/> <service name="Capture"/>
 			</provides>
@@ -53,9 +52,8 @@
 			</route>
 		</start>
 
-		<start name="report_rom">
+		<start name="report_rom" ram="2M">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="no">
 				<policy label="webcam_config -> panorama" report="nitpicker_camera -> panorama"/>
@@ -65,9 +63,8 @@
 			</route>
 		</start>
 
-		<start name="webcam_config">
+		<start name="webcam_config" ram="1M">
 			<binary name="rom_filter"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="ROM"/> </provides>
 			<config verbose="no">
 				<input name="capture_width" rom="panorama" node="panorama" default="">
@@ -91,8 +88,7 @@
 								<service name="Gui"/>
 								<service name="Usb"/>
 							</parent-provides>
-							<start name="usb_webcam" caps="300">
-								<resource name="RAM" quantum="52M"/>
+							<start name="usb_webcam" caps="300" ram="52M">
 								<config ld_verbose="no" enabled="yes" width="640" height="480" format="yuv" fps="15">
 									<vfs>
 										<dir name="dev">
@@ -119,9 +115,8 @@
 			</route>
 		</start>
 
-		<start name="webcam" caps="400">
+		<start name="webcam" caps="400" ram="54M">
 			<binary name="init"/>
-			<resource name="RAM" quantum="54M"/>
 			<route>
 				<service name="ROM" label="config">
 					<child name="webcam_config" label="config"/>

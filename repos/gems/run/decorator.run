@@ -27,15 +27,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -46,8 +44,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="ROM" />
 		           <service name="Report" /> </provides>
 		<config>
@@ -56,7 +53,6 @@ install_config {
 	</start>
 
 	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -68,8 +64,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
 			<rom name="window_layout">
@@ -173,8 +168,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="decorator">
-		<resource name="RAM" quantum="8M"/>
+	<start name="decorator" ram="8M">
 		<route>
 			<service name="ROM" label="pointer">
 				<child name="report_rom" />

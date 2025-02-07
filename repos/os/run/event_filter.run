@@ -65,15 +65,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M" priority="-1">
 		<provides> <service name="ROM"/> <service name="Report"/> </provides>
 		<config>
 			<policy label_prefix="event_filter -> config"
@@ -87,8 +85,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="event_filter" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="event_filter" ram="2M" priority="-1">
 		<provides> <service name="Event"/> </provides>
 		<route>
 			<service name="ROM" label="config">          <child name="report_rom"/> </service>
@@ -101,8 +98,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-event_filter" priority="-1">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-event_filter" ram="4M" priority="-1">
 		<provides> <service name="Event"/> </provides>
 		<config>
 

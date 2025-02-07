@@ -33,15 +33,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>
+	<default caps="200" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pci_decode -> system" report="acpi -> acpi"/>
@@ -49,16 +47,14 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="4M"/>
+	<start name="acpi" caps="350" ram="4M">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -67,7 +63,6 @@ install_config {
 	</start>
 
 	<start name="platform" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -81,9 +76,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="audio">
+	<start name="audio" ram="8M">
 		<binary name="pci_audio"/>
-		<resource name="RAM" quantum="8M"/>
 		<provides>
 			<service name="Audio_out"/>
 			<service name="Audio_in"/>
@@ -97,8 +91,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-oss">
-		<resource name="RAM" quantum="10M"/>
+	<start name="test-oss" ram="10M">
 		<config>
 			<vfs>
 				<dir name="dev">

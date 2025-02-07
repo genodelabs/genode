@@ -155,15 +155,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="vfs" caps="200">
-		<resource name="RAM" quantum="124M"/>
+	<start name="vfs" caps="200" ram="124M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -198,8 +196,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="vfs_rom">
-		<resource name="RAM" quantum="60M"/>
+	<start name="vfs_rom" ram="60M">
 		<binary name="} [fs_rom_binary] {"/>
 		<provides> <service name="ROM"/> </provides>
 		<config/>
@@ -209,8 +206,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="/bin/bash" caps="2000">
-		<resource name="RAM" quantum="300M" />
+	<start name="/bin/bash" caps="2000" ram="300M">
 		<config ld_verbose="yes">
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
 			      rtc="/dev/rtc" pipe="/pipe">

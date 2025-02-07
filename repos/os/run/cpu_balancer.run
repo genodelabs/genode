@@ -26,9 +26,8 @@ proc report_rom_start_node { } {
 		return { } }
 
 	return {
-		<start name="report_rom">
+		<start name="report_rom" ram="1M">
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 			<route>
@@ -61,10 +60,9 @@ install_config {
 		<service name="PD"> <parent/> </service>
 		<service name="ROM"> <parent/> </service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route>
 			<any-service> <parent/> </any-service>
@@ -73,8 +71,7 @@ install_config {
 
 	} [report_rom_start_node] {
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="cpu_balancer.config">
@@ -119,8 +116,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="cpu_balancer" caps="120">
-		<resource name="RAM" quantum="2M"/>
+	<start name="cpu_balancer" caps="120" ram="2M">
 		<provides>
 			<service name="PD"/>
 			<service name="CPU"/>
@@ -135,10 +131,9 @@ install_config {
 		</route>
 	</start>
 
-	<start name="cpu_burner" priority="-1" caps="120">
+	<start name="cpu_burner" priority="-1" caps="120" ram="3M">
 		<binary name="shim"/>
 		<affinity xpos="1" ypos="0" width="2" height="1"/>
-		<resource name="RAM" quantum="3M"/>
 		<config percent="95"/>
 		<route>
 
@@ -158,8 +153,7 @@ install_config {
 		</route>
 	</start>
 <!--
-	<start name="top">
-		<resource name="RAM" quantum="2M"/>
+	<start name="top" ram="2M">
 		<route>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="CPU"> <child name="cpu_balancer"/> </service>

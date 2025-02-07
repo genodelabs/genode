@@ -48,7 +48,7 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>}
+	<default caps="100" ram="1M"/>}
 
 proc depot_user_download { user } {
 	return [exec cat [select_from_repositories sculpt/depot/$user/download]] }
@@ -58,12 +58,10 @@ proc depot_user_pubkey { user } {
 
 append config {
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="drivers" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -73,8 +71,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -106,8 +103,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="vfs">
-		<resource name="RAM" quantum="20M"/>
+	<start name="vfs" ram="20M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
@@ -126,15 +122,13 @@ append config {
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 		</config>
 	</start>
 
-	<start name="depot_download" caps="2000">
+	<start name="depot_download" caps="2000" ram="70M">
 		<binary name="init"/>
-		<resource name="RAM" quantum="70M"/>
 		<route>
 			<service name="ROM" label="config">
 				<parent label="depot_download.config"/> </service>

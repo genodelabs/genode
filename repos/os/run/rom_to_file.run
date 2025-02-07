@@ -16,13 +16,11 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
 			<rom name="test">
@@ -33,15 +31,13 @@ install_config {
 			</rom>
 		</config>
 	</start>
-	<start name="lx_fs" ld="no">
-		<resource name="RAM" quantum="4M"/>
+	<start name="lx_fs" ld="no" ram="4M">
 		<provides> <service name="File_system" /> </provides>
 		<config>
 			<policy label_prefix="rom_to_file" root="/fs_test" writeable="yes" />
 		</config>
 	</start>
-	<start name="rom_to_file">
-		<resource name="RAM" quantum="4M"/>
+	<start name="rom_to_file" ram="4M">
 		<config rom="test">
 			<vfs> <fs/> </vfs>
 		</config>

@@ -173,8 +173,10 @@ class Test_fifo_pipe::Test
 					});
 					} else {
 						auto const name { node.attribute_value("name", Genode::String<128> { }) };
-						xml.node("start", [&xml, &node, &name, iteration] ( ) {
+						auto const ram  { node.attribute_value("ram",  Genode::String<128> { }) };
+						xml.node("start", [&xml, &node, &name, &ram, iteration] ( ) {
 							xml.attribute("name", name);
+							xml.attribute("ram",  ram);
 							xml.attribute("version", iteration);
 
 							node.with_raw_content([&xml] (char const *addr, size_t const size) {

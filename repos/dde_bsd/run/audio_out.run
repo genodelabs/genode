@@ -52,8 +52,7 @@ proc record_play_start_nodes { } {
 		return "" }
 
 	return {
-	<start name="mixer" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="mixer" ram="2M" priority="-1">
 		<resource name="CPU" quantum="20"/>
 		<binary name="record_play_mixer"/>
 		<provides> <service name="Record"/> <service name="Play"/> </provides>
@@ -67,8 +66,7 @@ proc record_play_start_nodes { } {
 		</config>
 	</start>
 
-	<start name="test-audio_play" priority="-2">
-		<resource name="RAM" quantum="40M"/>
+	<start name="test-audio_play" ram="40M" priority="-2">
 		<config sample_path="sample.f32">
 			<vfs> <rom name="sample.f32"/> </vfs>
 		</config>
@@ -85,8 +83,7 @@ proc audio_in_out_start_nodes { } {
 		return "" }
 
 	return {
-	<start name="test-audio_out">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-audio_out" ram="4M">
 		<config>
 			<filename>sample.f32</filename>
 		</config>
@@ -111,14 +108,12 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer" priority="0">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label="pci_decode -> system" report="acpi -> acpi"/>
@@ -126,16 +121,14 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350" priority="-1">
-		<resource name="RAM" quantum="8M"/>
+	<start name="acpi" caps="350" ram="8M" priority="-1">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M" priority="-1">
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -144,7 +137,6 @@ install_config {
 	</start>
 
 	<start name="platform" caps="100" managing_system="yes" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -158,9 +150,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="audio" caps="150" priority="-1">
+	<start name="audio" caps="150" ram="2M" priority="-1">
 		<binary name="pci_audio"/>
-		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Audio_out"/> <service name="Audio_in"/> </provides>
 		<config } [audio_driver_config_attr] {/>
 	</start>

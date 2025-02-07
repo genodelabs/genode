@@ -24,16 +24,14 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="vfs">
-			<resource name="RAM" quantum="12M"/>
+		<start name="vfs" ram="12M">
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs> <ram/> </vfs>
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
-		<start name="test-libc_vfs">
-			<resource name="RAM" quantum="4M"/>
+		<start name="test-libc_vfs" ram="4M">
 			<config>
 				<iterations value="1"/>
 				<write-read size="1M" buffer_size="8K"/>

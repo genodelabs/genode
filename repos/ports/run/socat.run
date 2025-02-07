@@ -47,10 +47,9 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 }
@@ -58,9 +57,8 @@ append config {
 if { [have_include power_on/qemu] } {
 
 	append_if [have_board pc] config {
-		<start name="uart">
+		<start name="uart" ram="2M">
 			<binary name="pc_uart"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>
 				<service name="Uart"/>
@@ -72,9 +70,8 @@ if { [have_include power_on/qemu] } {
 	}
 
 	append_if [have_board rpi3] config {
-		<start name="uart">
+		<start name="uart" ram="2M">
 			<binary name="rpi3_uart"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="Terminal"/>
 				<service name="Uart"/>
@@ -88,8 +85,7 @@ if { [have_include power_on/qemu] } {
 } else {
 
 	append config {
-		<start name="drivers" caps="1000" managing_system="yes">
-			<resource name="RAM" quantum="32M"/>
+		<start name="drivers" caps="1000" ram="32M" managing_system="yes">
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -98,8 +94,7 @@ if { [have_include power_on/qemu] } {
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>
-		<start name="nic_router" caps="200">
-			<resource name="RAM" quantum="10M"/>
+		<start name="nic_router" caps="200" ram="10M">
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -135,15 +130,13 @@ if { [have_include power_on/qemu] } {
 
 append config {
 
-	<start name="terminal_crosslink">
-		<resource name="RAM" quantum="2M"/>
+	<start name="terminal_crosslink" ram="2M">
 		<provides>
 			<service name="Terminal"/>
 		</provides>
 	</start>
 
-	<start name="vfs" caps="120">
-		<resource name="RAM" quantum="30M"/>
+	<start name="vfs" caps="120" ram="30M">
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs>
@@ -154,8 +147,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="vfs_rom">
-		<resource name="RAM" quantum="30M"/>
+	<start name="vfs_rom" ram="30M">
 		<binary name="fs_rom"/>
 		<provides> <service name="ROM"/> </provides>
 		<config/>
@@ -165,9 +157,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="socat" caps="200">
+	<start name="socat" caps="200" ram="30M">
 		<binary name="/bin/socat"/>
-		<resource name="RAM" quantum="30M" />
 		<config>
 			<vfs>
 				<dir name="dev">
@@ -218,8 +209,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="test-terminal_echo">
-		<resource name="RAM" quantum="1M"/>
+	<start name="test-terminal_echo" ram="1M">
 		<route>
 			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

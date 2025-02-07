@@ -46,8 +46,7 @@ proc record_play_start_nodes { } {
 	if {![use_record_play_sessions]} { return "" }
 
 	return {
-	<start name="mixer">
-		<resource name="RAM" quantum="2M"/>
+	<start name="mixer" ram="2M">
 		<resource name="CPU" quantum="20"/>
 		<binary name="record_play_mixer"/>
 		<provides> <service name="Record"/> <service name="Play"/> </provides>
@@ -68,9 +67,7 @@ proc audio_in_out_start_nodes { } {
 	if {[use_record_play_sessions]} { return "" }
 
 	return {
-	<start name="test-audio_in">
-		<resource name="RAM" quantum="8M"/>
-	</start>
+	<start name="test-audio_in" ram="8M"/>
 	}
 }
 
@@ -89,14 +86,12 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pci_decode -> system" report="acpi -> acpi"/>
@@ -104,16 +99,14 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="4M"/>
+	<start name="acpi" caps="350" ram="4M">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -122,7 +115,6 @@ install_config {
 	</start>
 
 	<start name="platform" caps="100" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -136,9 +128,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="audio">
+	<start name="audio" ram="2M">
 		<binary name="pci_audio"/>
-		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Audio_out"/>
 			<service name="Audio_in"/>

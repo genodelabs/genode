@@ -12,8 +12,7 @@ to the monitor's local PD and CPU services instead of the routing those
 sessions to the parent. For example, the following start node selects the
 'test-log' component to be monitored.
 
-! <start name="first-test-log">
-!   <resource name="RAM" quantum="2M"/>
+! <start name="first-test-log" ram="2M">
 !   <binary name="test-log"/>
 !   <route>
 !     <service name="PD">  <local/> </service>

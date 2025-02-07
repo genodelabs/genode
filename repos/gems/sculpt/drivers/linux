@@ -9,8 +9,7 @@
 		<service name="Event"/>
 	</parent-provides>
 
-	<start name="fb_sdl" caps="100" ld="no">
-		<resource name="RAM" quantum="32M"/>
+	<start name="fb_sdl" caps="100" ram="32M" ld="no">
 		<route>
 			<service name="Event"> <parent label="sdl"/> </service>
 			<any-service> <parent/> </any-service>

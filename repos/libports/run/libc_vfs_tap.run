@@ -20,15 +20,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="nic_router">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -45,9 +43,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="tap_uplink_client">
+	<start name="tap_uplink_client" ram="8M">
 		<binary name="test-libc_vfs_tap"/>
-		<resource name="RAM" quantum="8M"/>
 		<config>
 			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log"/>
 			<vfs>
@@ -59,9 +56,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="tap_nic_client">
+	<start name="tap_nic_client" ram="8M">
 		<binary name="test-libc_vfs_tap"/>
-		<resource name="RAM" quantum="8M"/>
 		<config>
 			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log"/>
 			<vfs>

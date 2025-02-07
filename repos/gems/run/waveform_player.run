@@ -46,23 +46,20 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<resource name="CPU" quantum="10"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="report_rom" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M" priority="-1">
 		<provides> <service name="ROM"/> <service name="Report"/> </provides>
 		<config>
 		</config>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes" priority="-1">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes" priority="-1">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -73,8 +70,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nitpicker" priority="-2">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M" priority="-2">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -87,12 +83,9 @@ install_config {
 		</config>
 	</start>
 
-	<start name="pointer" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-	</start>
+	<start name="pointer" priority="-1"/>
 
-	<start name="fonts_fs" caps="300" priority="-1">
-		<resource name="RAM" quantum="8M"/>
+	<start name="fonts_fs" caps="300" ram="8M" priority="-1">
 		<binary name="vfs"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="fonts_fs.config"/> </service>
@@ -101,8 +94,7 @@ install_config {
 		<provides> <service name="File_system"/> </provides>
 	</start>
 
-	<start name="mixer">
-		<resource name="RAM" quantum="2M"/>
+	<start name="mixer" ram="2M">
 		<resource name="CPU" quantum="10"/>
 		<binary name="record_play_mixer"/>
 		<provides> <service name="Record"/> <service name="Play"/> </provides>
@@ -126,9 +118,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="waveform_config" priority="-2">
+	<start name="waveform_config" ram="2M" priority="-2">
 		<binary name="dynamic_rom"/>
-		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="config">
@@ -158,7 +149,6 @@ install_config {
 	</start>
 
 	<start name="waveform_player" priority="0">
-		<resource name="RAM" quantum="1M"/>
 		<resource name="CPU" quantum="10"/>
 		<route>
 			<service name="ROM" label="config"> <child name="waveform_config"/> </service>
@@ -166,8 +156,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="record_rom" priority="0">
-		<resource name="RAM" quantum="8M"/>
+	<start name="record_rom" ram="8M" priority="0">
 		<resource name="CPU" quantum="10"/>
 		<provides> <service name="ROM"/> </provides>
 		<config period_ms="} [record_period_ms] {" sample_rate_hz="44100">
@@ -178,8 +167,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="rom_osci" priority="-1">
-		<resource name="RAM" quantum="8M"/>
+	<start name="rom_osci" ram="8M" priority="-1">
 		<config width="640" height="480" xpos="200" ypos="100" fps="20" v_scale="0.15" phase_lock="yes">
 			<channel label="left"   color="#ff6633" v_pos="0.2"/>
 			<channel label="lefty"  color="#cc7777" v_pos="0.4"/>

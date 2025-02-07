@@ -67,8 +67,7 @@
 			</default-policy>
 		</service>
 
-		<start name="report_rom" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="report_rom" caps="100" ram="1M">
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config>
 				<policy label="gui -> ui_report" report="file_vault -> ui_report"/>
@@ -82,8 +81,7 @@
 			</route>
 		</start>
 
-		<start name="file_vault" caps="1200">
-			<resource name="RAM" quantum="100M"/>
+		<start name="file_vault" caps="1200" ram="100M">
 			<provides>
 				<service name="File_system"/>
 			</provides>
@@ -108,9 +106,8 @@
 			</route>
 		</start>
 
-		<start name="gui" caps="400">
+		<start name="gui" caps="400" ram="8M">
 			<binary name="file_vault_gui"/>
-			<resource name="RAM" quantum="8M"/>
 			<route>
 				<service name="ROM" label="ui_report"> <child name="report_rom"/> </service>
 				<service name="Report" label="ui_config"> <child name="report_rom"/> </service>

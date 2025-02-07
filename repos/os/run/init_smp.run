@@ -33,9 +33,8 @@ proc per_cpu_start_node { i } {
 	global init_ram rounds generations children sleep demand
 
 	return [join [list {
-			<start name="init_} $i {" caps="1100">
+			<start name="init_} $i {" caps="1100" ram="} ${init_ram}M {">
 				<affinity xpos="} $i {" width="1"/>
-				<resource name="RAM" quantum="} ${init_ram}M {"/>
 				<binary name="init"/>
 				<config verbose="yes">
 					<parent-provides>
@@ -54,10 +53,9 @@ proc per_cpu_start_node { i } {
 					<resource name="RAM" preserve="2M"/>
 					<resource name="CAP" preserve="100"/>
 
-					<start name="bomb-master" priority="-1" caps="100000">
+					<start name="bomb-master" priority="-1" caps="100000" ram="2G">
 						<binary name="bomb"/>
 						<resource name="CPU" quantum="90"/>
-						<resource name="RAM" quantum="2G"/>
 						<config rounds="} $rounds {" generations="} $generations {"
 						        children="} $children {" sleep="} $sleep {" demand="} $demand {"/>
 					</start>
@@ -93,9 +91,8 @@ install_config {
 	<resource name="RAM" preserve="2M"/>
 	<resource name="CAP" preserve="100"/>
 
-	<start name="timer">
+	<start name="timer" ram="1M">
 		<resource name="CPU" quantum="10"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 

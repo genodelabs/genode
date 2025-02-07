@@ -63,15 +63,13 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1000" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+	<start name="drivers" caps="1000" ram="32M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -80,14 +78,12 @@ install_config {
 		</route>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="32M"/>
+	<start name="report_rom" ram="32M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -119,8 +115,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-lwip-udp-server">
-		<resource name="RAM" quantum="8M"/>
+	<start name="test-lwip-udp-server" ram="8M">
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

@@ -14,8 +14,7 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	} [qt5_start_nodes] {
-	<start name="ram_fs">
-		<resource name="RAM" quantum="10M"/>
+	<start name="ram_fs" ram="10M">
 		<binary name="vfs"/>
 		<provides><service name="File_system"/></provides>
 		<config>
@@ -25,8 +24,7 @@ install_config {
 			<policy label_prefix="textedit2" root="/" writeable="yes" />
 		</config>
 	</start>
-	<start name="textedit" caps="350">
-		<resource name="RAM" quantum="70M"/>
+	<start name="textedit" caps="350" ram="70M">
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
@@ -49,9 +47,8 @@ install_config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="textedit2" caps="350">
+	<start name="textedit2" caps="350" ram="70M">
 		<binary name="textedit" />
-		<resource name="RAM" quantum="70M"/>
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>

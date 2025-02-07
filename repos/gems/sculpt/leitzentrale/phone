@@ -32,8 +32,7 @@
 			<service name="Report">
 				<default-policy> <child name="report_rom"/> </default-policy> </service>
 
-			<start name="report_rom" caps="200">
-				<resource name="RAM" quantum="4M"/>
+			<start name="report_rom" caps="200" ram="4M">
 				<provides>
 					<service name="Report"/>
 					<service name="ROM"/>
@@ -52,8 +51,7 @@
 				</config>
 			</start>
 
-			<start name="wm" caps="300">
-				<resource name="RAM" quantum="4M"/>
+			<start name="wm" caps="300" ram="4M">
 				<provides>
 					<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
 				</provides>
@@ -70,9 +68,8 @@
 				</route>
 			</start>
 
-			<start name="decorator" caps="350">
+			<start name="decorator" caps="350" ram="12M">
 				<binary name="themed_decorator"/>
-				<resource name="RAM" quantum="12M"/>
 				<resource name="CPU" quantum="20"/>
 				<config>
 					<libc/>
@@ -105,9 +102,8 @@
 				</route>
 			</start>
 
-			<start name="config_fs_report">
+			<start name="config_fs_report" ram="2M">
 				<binary name="fs_report"/>
-				<resource name="RAM" quantum="2M"/>
 				<provides> <service name="Report"/> </provides>
 				<config> <vfs> <fs/> </vfs> </config>
 				<route>
@@ -116,9 +112,8 @@
 				</route>
 			</start>
 
-			<start name="manager" caps="400">
+			<start name="manager" caps="400" ram="3M">
 				<binary name="phone_manager"/>
-				<resource name="RAM" quantum="3M"/>
 				<provides> <service name="Gui"/> </provides>
 				<route>
 					<service name="ROM" label="config">
@@ -156,9 +151,8 @@
 				</route>
 			</start>
 
-			<start name="fonts_fs" caps="100">
+			<start name="fonts_fs" caps="100" ram="4M">
 				<binary name="vfs"/>
-				<resource name="RAM" quantum="4M"/>
 				<provides> <service name="File_system"/> </provides>
 				<route>
 					<service name="ROM" label="config">

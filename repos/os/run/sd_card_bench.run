@@ -43,10 +43,9 @@ install_config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="platform" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Platform"/></provides>
 		<config>
 			<policy label="sd_card -> "> <device name="mmc0"/> </policy>
@@ -55,14 +54,12 @@ install_config {
 	</start>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
-	<start name="sd_card">
+	<start name="sd_card" ram="16M">
 		<binary name="} [sd_card] {"/>
-		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Block"/></provides>
 		<config benchmark="yes" buffer_size_kib="} [buffer_size_kib] {"/>
 		<route>

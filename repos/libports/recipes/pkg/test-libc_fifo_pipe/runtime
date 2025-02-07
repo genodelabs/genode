@@ -28,11 +28,10 @@
 		</default-route>
 		<default caps="128"/>
 
-		<start name="vfs">
+		<start name="vfs" ram="4M">
 			<provides>
 				<service name="File_system"/>
 			</provides>
-			<resource name="RAM" quantum="4M"/>
 			<config>
 				<vfs>
 					<pipe>
@@ -46,9 +45,8 @@
 			</config>
 		</start>
 
-		<start name="ram_fs">
+		<start name="ram_fs" ram="2M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="2M"/>
 			<provides>
 				<service name="File_system"/>
 			</provides>
@@ -67,9 +65,8 @@
 							</parent-provides>
 							<default caps="120"/>
 
-							<start name="echo">
+							<start name="echo" ram="3M">
 								<binary name="test-libc_fifo_pipe"/>
-								<resource name="RAM" quantum="3M"/>
 								<config type="echo">
 									<vfs>
 										<dir name="dev">
@@ -92,8 +89,7 @@
 			</config>
 		</start>
 
-		<start name="fs_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="fs_rom" ram="2M">
 			<provides>
 				<service name="ROM"/>
 			</provides>
@@ -103,8 +99,7 @@
 			</route>
 		</start>
 
-		<start name="report_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="report_rom" ram="2M">
 			<provides>
 				<service name="ROM"/>
 				<service name="Report"/>
@@ -114,9 +109,8 @@
 			</config>
 		</start>
 
-		<start name="fifo-pipe-test" caps="150">
+		<start name="fifo-pipe-test" caps="150" ram="8M">
 			<binary name="test-libc_fifo_pipe"/>
-			<resource name="RAM" quantum="8M"/>
 			<config iterations="15">
 				<vfs>
 					<dir name="ro">
@@ -143,8 +137,7 @@
 			</route>
 		</start>
 
-		<start name="init" caps="250">
-			<resource name="RAM" quantum="16M"/>
+		<start name="init" caps="250" ram="16M">
 			<route>
 				<service name="ROM" label="config">    <child name="report_rom" label="init.config"/> </service>
 				<service name="File_system">           <child name="vfs"/> </service>

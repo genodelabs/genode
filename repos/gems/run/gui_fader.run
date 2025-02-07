@@ -20,19 +20,17 @@ install_config {
 		<service name="IO_PORT"/>
 	</parent-provides>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1500" managing_system="yes">
-		<resource name="RAM" quantum="64M"/>
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
@@ -44,7 +42,6 @@ install_config {
 	</start>
 
 	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -60,15 +57,13 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
 			<rom name="gui_fader.config">
@@ -93,8 +88,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="gui_fader">
-		<resource name="RAM" quantum="8M"/>
+	<start name="gui_fader" ram="8M">
 		<provides><service name="Gui"/></provides>
 		<route>
 			<service name="ROM" label="config">
@@ -105,17 +99,15 @@ install_config {
 		</route>
 	</start>
 
-	<start name="scout">
-		<resource name="RAM" quantum="16M"/>
+	<start name="scout" ram="16M">
 		<route>
 			<service name="Gui"> <child name="gui_fader" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="scout2">
+	<start name="scout2" ram="16M">
 		<binary name="scout" />
-		<resource name="RAM" quantum="16M"/>
 		<route>
 			<service name="Gui"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>

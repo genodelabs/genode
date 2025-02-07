@@ -10,8 +10,7 @@ block session. The server must be configured via a policy, that states
 which client can access a certain device:
 
 
-!<start name="ahci">
-!  <resource name="RAM" quantum="10M" />
+!<start name="ahci" ram="10M">
 !  <provides><service name="Block" /></provides> }
 !  <route>
 !    <any-service> <parent /> <any-child /> </any-service>

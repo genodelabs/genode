@@ -13,8 +13,7 @@ bulk-only interface it finds.
 
 The following configuration snippets demonstrates how to use the driver:
 
-!<start name="usb_block">
-!  <resource name="RAM" quantum="4M"/>
+!<start name="usb_block" ram="4M">
 !  <provides> <service name="Block"/> </provides>
 !  <config label="usb_stick" report="yes" writeable="yes" interface="0"
 !          alt_setting="0" lun="0" reset_device="no" verbose_scsi="no"/>
@@ -29,8 +28,7 @@ attribute. This attribute specifies the label used when opening the Usb session
 connection. A matching policy has to be configured at the USB host controller
 driver:
 
-!<start name="usb">
-!  <resource name="RAM" quantum="12M"/>
+!<start name="usb" ram="12M">
 !  <provides><service name="Usb"/></provides>
 !  <config>
 !    <raw>

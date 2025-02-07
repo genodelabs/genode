@@ -10,9 +10,8 @@ and requests ROM sessions for Nitpicker's 'hover' and 'xray' reports. The
 mapping between hovered Nitpicker sessions and applications can be achieved
 with report session label rewriting:
 
-! <start name="shape-arrow">
+! <start name="shape-arrow" ram="2M">
 ! 	<binary name="test-pointer"/>
-! 	<resource name="RAM" quantum="2M"/>
 ! 	<config shape="arrow"/>
 ! 	<route>
 ! 		<service name="PD">     <parent/> </service>

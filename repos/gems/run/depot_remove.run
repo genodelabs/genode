@@ -42,29 +42,25 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="100M"/>
+	<start name="report_rom" ram="100M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="lx_fs" ld="no">
-		<resource name="RAM" quantum="100M"/>
+	<start name="lx_fs" ld="no" ram="100M">
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<policy label="depot_remove -> " root="/depot" writeable="yes"/>
 		</config>
 	</start>
 
-	<start name="depot_remove">
-		<resource name="RAM" quantum="2M"/>
+	<start name="depot_remove" ram="2M">
 		<route>
 			<service name="ROM" label="config"> <parent label="depot_remove_config"/> </service>
 			<service name="File_system"> <child name="lx_fs"/> </service>

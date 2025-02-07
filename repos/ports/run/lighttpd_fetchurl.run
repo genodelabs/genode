@@ -63,15 +63,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -89,8 +87,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="lighttpd" caps="200">
-		<resource name="RAM" quantum="32M" />
+	<start name="lighttpd" caps="200" ram="32M">
 		<config>
 			<arg value="lighttpd" />
 			<arg value="-f" />
@@ -123,13 +120,11 @@ install_config {
 	</start>
 
 	<start name="report_rom" caps="100">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="fetchurl" caps="500">
-		<resource name="RAM" quantum="32M"/>
+	<start name="fetchurl" caps="500" ram="32M">
 		<config>
 			<report delay_ms="1000" progress="yes"/>
 			<vfs>

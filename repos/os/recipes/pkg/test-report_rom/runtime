@@ -53,15 +53,13 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="report_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="report_rom" ram="2M">
 			<provides> <service name="ROM"/> <service name="Report"/> </provides>
 			<config>
 				<policy label_prefix="test-report_rom ->" label_suffix="brightness" report="test-report_rom -> brightness"/>
 			</config>
 		</start>
-		<start name="test-report_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="test-report_rom" ram="2M">
 			<route>
 				<service name="ROM" label="brightness">
 					<child name="report_rom"/>

@@ -98,8 +98,7 @@ set server_init_config {
 				<service name="Timer"/>
 			</parent-provides>
 
-			<start name="nic_router" caps="100">
-				<resource name="RAM" quantum="10M"/>
+			<start name="nic_router" caps="100" ram="10M">
 				<provides>
 					<service name="Nic"/>
 					<service name="Uplink"/>
@@ -131,9 +130,8 @@ set server_init_config {
 			  - the wireguard server doesn't need a Rtc session, which is only
 			  - used to initiate handshakes by the client.
 			-->
-			<start name="wg_server" caps="100">
+			<start name="wg_server" caps="100" ram="10M">
 				<binary name="wireguard"/>
-				<resource name="RAM" quantum="10M"/>
 				<config private_key="8GRSQZMgG1uuvz4APIBqrDmiLj8L886r++hzixjjHFc="
 				        listen_port="49002" use_rtc="no">
 					<peer public_key="r1Gslnm82X8NaijsWzPoSFzDZGl2tTJoPa+EJL4gYQw="
@@ -145,8 +143,7 @@ set server_init_config {
 				</route>
 			</start>
 
-			<start name="lighttpd" caps="200">
-				<resource name="RAM" quantum="50M" />
+			<start name="lighttpd" caps="200" ram="50M">
 				<config>
 					<arg value="lighttpd" />
 					<arg value="-f" />
@@ -197,8 +194,7 @@ set client_init_config {
 				<service name="Timer"/>
 			</parent-provides>
 
-			<start name="nic_router" caps="100">
-				<resource name="RAM" quantum="10M"/>
+			<start name="nic_router" caps="100" ram="10M">
 				<provides>
 					<service name="Nic"/>
 					<service name="Uplink"/>
@@ -226,8 +222,7 @@ set client_init_config {
 				</route>
 			</start>
 
-			<start name="dynamic_rom" caps="100">
-				<resource name="RAM" quantum="2M"/>
+			<start name="dynamic_rom" caps="100" ram="2M">
 				<provides>
 					<service name="ROM"/>
 				</provides>
@@ -237,8 +232,7 @@ set client_init_config {
 				</route>
 			</start>
 
-			<start name="init" caps="700">
-				<resource name="RAM" quantum="25M"/>
+			<start name="init" caps="700" ram="25M">
 				<route>
 					<service name="Nic" label="fetchurl -> lwip"> <child name="nic_router"/> </service>
 					<service name="Nic"> <parent/> </service>
@@ -262,8 +256,7 @@ append config {
 		<service name="Timer"/>
 	</parent-provides>
 
-	<start name="timer" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" caps="100" ram="1M">
 		<provides>
 			<service name="Timer"/>
 		</provides>
@@ -272,9 +265,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="rtc" caps="100" ld="} [rtc_use_ld] {">
+	<start name="rtc" caps="100" ram="1M" ld="} [rtc_use_ld] {">
 		<binary name="} [rtc_binary_name] {"/>
-		<resource name="RAM" quantum="1M" />
 		<provides>
 			<service name="Rtc"/>
 		</provides>
@@ -283,8 +275,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="100">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="100" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -312,9 +303,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="server" caps="1000">
+	<start name="server" caps="1000" ram="112M">
 		<binary name="init"/>
-		<resource name="RAM" quantum="112M"/>
 } $server_init_config {
 		<route>
 			<service name="Nic"> <child name="nic_router" label="server"/> </service>
@@ -325,9 +315,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="client" caps="1000">
+	<start name="client" caps="1000" ram="40M">
 		<binary name="init"/>
-		<resource name="RAM" quantum="40M"/>
 } $client_init_config {
 		<route>
 			<service name="Nic"> <child name="nic_router" label="client"/> </service>

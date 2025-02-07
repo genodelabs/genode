@@ -40,24 +40,21 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<default-policy report="usb -> usb -> devices"/>
 		</config>
 	</start>
 
-	<start name="usb" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" ram="32M" managing_system="yes">
 		<binary name="init"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="ROM" label="config">
@@ -68,8 +65,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_hid" caps="180">
-		<resource name="RAM" quantum="11M"/>
+	<start name="usb_hid" caps="180" ram="11M">
 		<config capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
 			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
@@ -81,8 +77,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<rom name="capslock">
@@ -114,7 +109,6 @@ install_config {
 	</start>
 
 	<start name="event_dump">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Event"/> </provides>
 		<config/>
 	</start>

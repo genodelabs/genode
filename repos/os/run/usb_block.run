@@ -33,24 +33,21 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<default-policy report="usb -> usb -> devices"/>
 		</config>
 	</start>
 
-	<start name="usb" caps="1500" managing_system="yes">
+	<start name="usb" caps="1500" ram="32M" managing_system="yes">
 		<binary name="init"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Usb"/> </provides>
 		<route>
 			<service name="ROM" label="config">
@@ -61,8 +58,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="usb_block">
-		<resource name="RAM" quantum="4M"/>
+	<start name="usb_block" ram="4M">
 		<provides> <service name="Block"/> </provides>
 		<config report="yes" writeable="no"/>
 		<route>
@@ -72,8 +68,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="block_tester">
-		<resource name="RAM" quantum="64M" />
+	<start name="block_tester" ram="64M">
 		<config verbose="no" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential length="8M" size="1M" io_buffer="8M" batch="4"/>

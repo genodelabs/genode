@@ -102,13 +102,11 @@ install_config {
 			<any-service><parent/><any-child/></any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="timer">
-			<resource name="RAM" quantum="10M"/>
+		<start name="timer" ram="10M">
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="test" priority="-1">
+		<start name="test" ram="250M" priority="-1">
 			<binary name="test-timeout"/>
-			<resource name="RAM" quantum="250M"/>
 			<config precise_time="} [precise_time] {"
 			        precise_ref_time="} [precise_ref_time] {"
 			        precise_timeouts="} [precise_timeouts] {"

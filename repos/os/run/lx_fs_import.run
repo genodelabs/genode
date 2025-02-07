@@ -35,16 +35,12 @@ install_config {
 	<resource name="RAM" preserve="200M"/>
 	<resource name="CAP" preserve="1000"/>
 
-	<default caps="50"/>
-
-	<start name="timer" caps="100">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" caps="100" ram="1M">
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="import_lx_fs" caps="220" ld="no">
+	<start name="import_lx_fs" caps="220" ram="8M" ld="no">
 		<binary name="lx_fs"/>
-		<resource name="RAM" quantum="8M"/>
 		<provides>
 			<service name="File_system"/>
 		</provides>
@@ -56,9 +52,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="import_showcase" caps="100">
+	<start name="import_showcase" caps="100" ram="4M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="File_system"/>
 		</provides>

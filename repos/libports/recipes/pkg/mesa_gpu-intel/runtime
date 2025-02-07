@@ -34,8 +34,7 @@
 
 		<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
 
-		<start name="vfs" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="vfs" caps="100" ram="1M">
 			<provides> <service name="File_system"/> </provides>
 			<config verbose="yes">
 				<vfs>
@@ -45,8 +44,7 @@
 			</config>
 		</start>
 
-		<start name="cached_fs_rom" caps="100">
-			<resource name="RAM" quantum="9M"/>
+		<start name="cached_fs_rom" caps="100" ram="9M">
 			<provides> <service name="ROM"/> </provides>
 			<config/>
 		</start>

@@ -47,8 +47,7 @@ or recording because it may provoke the generation of artefacts.
 
 The following configures the driver of playback and recording:
 
-! <start name="pci_audio">
-!   <resource name="RAM" quantum="8M"/>
+! <start name="pci_audio" ram="8M">
 !   <provides>
 !     <service name="Audio_out"/>
 !     <service name="Audio_in"/>

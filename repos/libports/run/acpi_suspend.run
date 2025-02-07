@@ -65,12 +65,11 @@ proc display_config { } {
 
 	if {$board_non_intel} {
 		return {
-			<start name="fb" caps="1000">
+			<start name="fb" caps="1000" ram="60M">
 				<binary name="vesa_fb"/>
 			<!--
 				<binary name="boot_fb"/>
 			 -->
-				<resource name="RAM" quantum="60M"/>
 				<config ld_verbose="yes" width="1280" height="1024">
 					<report connectors="yes"/>
 				</config>
@@ -83,9 +82,8 @@ proc display_config { } {
 	}
 
 	return {
-		<start name="intel_fb" caps="1000">
+		<start name="intel_fb" caps="1000" ram="60M">
 			<binary name="pc_intel_fb"/>
-			<resource name="RAM" quantum="60M"/>
 			<config ld_verbose="yes" width="1024" height="768" system="yes">
 				<report connectors="yes"/>
 			</config>
@@ -124,8 +122,7 @@ proc restartable_drivers { } {
 	} [input_config] {
 	} [wifi_config] {
 
-								<start name="nano3d" caps="100">
-									<resource name="RAM" quantum="8M"/>
+								<start name="nano3d" caps="100" ram="8M">
 									<route>
 										<any-service> <parent/> </any-service>
 									</route>
@@ -143,8 +140,7 @@ proc gui_config { } {
 
 	append return_gui {
 
-	<start name="nitpicker" caps="120" } [priority_gui] {>
-		<resource name="RAM" quantum="8M"/>
+	<start name="nitpicker" caps="120" ram="8M" } [priority_gui] {>
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -166,8 +162,7 @@ proc gui_config { } {
 		</route>
 	</start>
 
-	<start name="pointer" caps="100" } [priority_gui] {>
-		<resource name="RAM" quantum="2M"/>
+	<start name="pointer" caps="100" ram="2M" } [priority_gui] {>
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes" verbose="no"/>
 		<route>
@@ -178,9 +173,8 @@ proc gui_config { } {
 		</route>
 	</start>
 
-	<start name="gui_reports" caps="100" } [priority_gui] {>
+	<start name="gui_reports" caps="100" ram="1M" } [priority_gui] {>
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pointer -> hover"  report="nitpicker -> hover"/>
@@ -189,8 +183,7 @@ proc gui_config { } {
 		</config>
 	</start>
 
-	<start name="wm" caps="1000" } [priority_wm] {>
-		<resource name="RAM" quantum="32M"/>
+	<start name="wm" caps="1000" ram="32M" } [priority_wm] {>
 		<binary name="init"/>
 		<provides>
 			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
@@ -211,8 +204,7 @@ proc gui_config { } {
 proc input_config { } {
 	return {
 
-	<start name="ps2" caps="100">
-		<resource name="RAM" quantum="3M"/>
+	<start name="ps2" caps="100" ram="3M">
 		<config/>
 		<route>
 			<service name="Platform"> <parent/> </service>
@@ -221,8 +213,7 @@ proc input_config { } {
 		</route>
 	</start>
 
-	<start name="event_filter" caps="100">
-		<resource name="RAM" quantum="1280K"/>
+	<start name="event_filter" caps="100" ram="1280M">
 		<provides> <service name="Event"/> </provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="event_filter.config"/> </service>
@@ -239,8 +230,7 @@ proc log_output { } {
 	set return_log ""
 
 	append return_log {
-	<start name="log_core" caps="100" } [priority_log] {>
-		<resource name="RAM" quantum="10M"/>
+	<start name="log_core" caps="100" ram="10M" } [priority_log] {>
 		<config period_ms="2000"/>
 		<route>
 			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
@@ -254,8 +244,7 @@ proc log_output { } {
 		</route>
 	</start>
 
-	<start name="terminal_log" caps="100" } [priority_log] {>
-		<resource name="RAM" quantum="1M"/>
+	<start name="terminal_log" caps="100" ram="1M" } [priority_log] {>
 		<provides> <service name="LOG"/> </provides>
 		<config/>
 		<route>
@@ -264,8 +253,7 @@ proc log_output { } {
 		</route>
 	</start>
 
-	<start name="terminal" caps="110" } [priority_log] {>
-		<resource name="RAM" quantum="6M"/>
+	<start name="terminal" caps="110" ram="6M" } [priority_log] {>
 		<provides><service name="Terminal"/></provides>
 		<config>
 			<initial width="1200" height="780"/>
@@ -290,9 +278,8 @@ proc log_output { } {
 	}
 
 	append_if [have_spec nova] return_log {
-	<start name="log_kernel" caps="100" } [priority_log] {>
+	<start name="log_kernel" caps="100" ram="10M" } [priority_log] {>
 		<binary name="log_core"/>
-		<resource name="RAM" quantum="10M"/>
 		<config period_ms="2000"/>
 		<route>
 			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
@@ -321,8 +308,7 @@ proc ahci_config { } {
 	}
 
 	append return_ahci {
-		<start name="ahci" caps="300" } [priority_drivers] {>
-			<resource name="RAM" quantum="12M" />
+		<start name="ahci" caps="300" ram="12M" } [priority_drivers] {>
 			<provides><service name="Block" /></provides>
 			<config atapi="yes" system="yes">
 				<report ports="yes"/>
@@ -347,9 +333,8 @@ proc ahci_config { } {
 	}
 
 	append return_ahci {
-		<start name="test-ahci" caps="200" } [priority_scenario] {>
+		<start name="test-ahci" caps="200" ram="50M" } [priority_scenario] {>
 			<binary name="block_tester" />
-			<resource name="RAM" quantum="50M" />
 			<config verbose="yes" report="no" log="yes" stop_on_error="no">
 				<tests>
 				    <random size="128K" length="1024G" seed="0xaffeaffe" batch="8"/>
@@ -377,8 +362,7 @@ proc nvme_config { } {
 	}
 
 	append return_nvme {
-		<start name="nvme" caps="300" } [priority_drivers] {>
-			<resource name="RAM" quantum="24M"/>
+		<start name="nvme" caps="300" ram="24M" } [priority_drivers] {>
 			<provides> <service name="Block"/> </provides>
 			<config max_hmb_size="16M" verbose_regs="yes" verbose_identify="yes" system="yes">
 				<policy label="test-nvme -> " writeable="no"/>
@@ -402,9 +386,8 @@ proc nvme_config { } {
 	}
 
 	append return_nvme {
-		<start name="test-nvme" caps="200" } [priority_scenario] {>
+		<start name="test-nvme" caps="200" ram="50M" } [priority_scenario] {>
 			<binary name="block_tester" />
-			<resource name="RAM" quantum="50M" />
 			<config verbose="yes" report="no" log="yes" stop_on_error="no">
 				<tests>
 				    <random size="128K" length="1024G" seed="0xaffeaffe" batch="8"/>
@@ -429,9 +412,8 @@ proc gpu_config { } {
 	set return_gpu ""
 
 	append return_gpu {
-		<start name="gpu" caps="2000" } [priority_drivers] {>
+		<start name="gpu" caps="2000" ram="40M" } [priority_drivers] {>
 			<binary name="intel_gpu"/>
-			<resource name="RAM" quantum="40M"/>
 			<provides>
 				<service name="Gpu"/>
 				<service name="Platform"/>
@@ -473,8 +455,7 @@ proc gpu_client { } {
 	set return_gpu ""
 
 	append return_gpu {
-		<start name="glmark2" caps="500" } [priority_scenario] {>
-			<resource name="RAM" quantum="240M"/>
+		<start name="glmark2" caps="500" ram="240M" } [priority_scenario] {>
 			<config>
 				<vfs>
 					<dir name="dev">
@@ -516,15 +497,13 @@ proc wifi_config { } {
 	if {!$use_wifi} { return $return_wifi }
 
 	append return_wifi {
-		<start name="pc_rtc" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="pc_rtc" caps="100" ram="1M">
 			<provides> <service name="Rtc"/> </provides>
 			<route> <any-service> <parent/> </any-service> </route>
 		</start>
 
-		<start name="config_rom" caps="100">
+		<start name="config_rom" caps="100" ram="4M">
 			<binary name="dynamic_rom"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides><service name="ROM"/></provides>
 			<config verbose="no">
 				<rom name="wifi_config">
@@ -536,8 +515,7 @@ proc wifi_config { } {
 			<route> <any-service> <parent/> </any-service> </route>
 		</start>
 
-		<start name="wifi" caps="260" priority="-1">
-			<resource name="RAM" quantum="32M"/>
+		<start name="wifi" caps="260" priority="-1" ram="32M">
 			<config ld_verbose="no">
 				<report mac_address="true"/>
 				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/urandom"/>
@@ -632,15 +610,13 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<start name="timer" caps="100" } [priority_timer] {>
+		<start name="timer" caps="100" ram="1M" } [priority_timer] {>
 			<resource name="CPU" quantum="10"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="drivers_reports" caps="100" } [priority_base] {>
+		<start name="drivers_reports" caps="100" ram="1M" } [priority_base] {>
 			<binary name="report_rom"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Report"/>
 				<service name="ROM"/>
@@ -654,8 +630,7 @@ append config {
 			</config>
 		</start>
 
-		<start name="acpi" caps="350" } [priority_base] {>
-			<resource name="RAM" quantum="5M"/>
+		<start name="acpi" caps="350" ram="5M" } [priority_base] {>
 			<config report="yes"/>
 			<route>
 				<service name="Report"> <child name="drivers_reports"/> </service>
@@ -663,8 +638,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="pci_decode" caps="350" } [priority_base] {>
-			<resource name="RAM" quantum="1M"/>
+		<start name="pci_decode" caps="350" ram="1M" } [priority_base] {>
 			<route>
 				<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
 				<service name="Report"> <child name="drivers_reports"/> </service>
@@ -672,9 +646,8 @@ append config {
 			</route>
 		</start>
 
-		<start name="platform" caps="300" managing_system="yes" } [priority_base] {>
+		<start name="platform" caps="300" managing_system="yes" ram="8M" } [priority_base] {>
 			<binary name="pc_platform"/>
-			<resource name="RAM" quantum="8M"/>
 			<provides>
 				<service name="Platform"/>
 			</provides>
@@ -712,9 +685,8 @@ append config {
 	} [ ahci_config] {
 	} [ nvme_config] {
 
-		<start name="drivers_init" caps="10000" } [priority_drivers] {>
+		<start name="drivers_init" caps="10000" ram="128M" } [priority_drivers] {>
 			<binary name="init"/>
-			<resource name="RAM" quantum="128M"/>
 			<route>
 				<service name="Report">
 					<child name="drivers_reports"/>
@@ -747,9 +719,8 @@ append config {
 			</route>
 		</start>
 
-		<start name="drivers_init_config" caps="100" } [priority_config] {>
+		<start name="drivers_init_config" caps="100" ram="1M" } [priority_config] {>
 			<binary name="rom_filter"/>
-			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="ROM"/> </provides>
 			<config verbose="yes">
 				<input name="check_system" rom="system" node="system" default="">
@@ -778,8 +749,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="acpica" caps="200" } [priority_scenario] {>
-			<resource name="RAM" quantum="8M"/>
+		<start name="acpica" caps="200" ram="8M" } [priority_scenario] {>
 			<config ld_verbose="yes" sleep="yes" reset="no" poweroff="no" report="yes" acpi_ready="no" use_gpe="} $use_gpe {">
 			</config>
 			<route>
@@ -790,8 +760,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="dynamic_rom" caps="100" } [priority_config] {>
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" caps="100" ram="4M" } [priority_config] {>
 			<provides><service name="ROM"/></provides>
 			<config verbose="yes">
 				<rom name="system">

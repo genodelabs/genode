@@ -32,13 +32,11 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
-	<start name="lx_fs" caps="200" ld="no">
-		<resource name="RAM" quantum="4M"/>
+	<start name="lx_fs" caps="200" ram="4M" ld="no">
 		<provides> <service name="File_system"/> </provides>
 		<config> <policy label_prefix="test-libc_vfs" root="/libc_vfs" writeable="yes" /> </config>
 	</start>
-	<start name="test-libc_vfs">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-libc_vfs" ram="4M">
 		<config>
 			<vfs>
 				<fs />

@@ -40,15 +40,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -66,8 +64,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="nic_bridge" caps="200">
-		<resource name="RAM" quantum="24M"/>
+	<start name="nic_bridge" caps="200" ram="24M">
 		<provides><service name="Nic"/></provides>
 		<config verbose="yes" mac="02:02:02:02:42:00">
 			<policy label_prefix="client_1"/>
@@ -81,9 +78,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="server_1" caps="120">
+	<start name="server_1" caps="120" ram="32M">
 		<binary name="test-lwip_httpsrv"/>
-		<resource name="RAM" quantum="32M"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -99,9 +95,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="server_2" caps="120">
+	<start name="server_2" caps="120" ram="32M">
 		<binary name="test-lwip_httpsrv"/>
-		<resource name="RAM" quantum="32M"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -117,9 +112,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_1" caps="120">
+	<start name="client_1" caps="120" ram="32M">
 		<binary name="test-http_clnt"/>
-		<resource name="RAM" quantum="32M"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -133,9 +127,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_2" caps="120">
+	<start name="client_2" caps="120" ram="32M">
 		<binary name="test-http_clnt"/>
-		<resource name="RAM" quantum="32M"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -149,9 +142,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_3" caps="120">
+	<start name="client_3" caps="120" ram="32M">
 		<binary name="test-http_clnt"/>
-		<resource name="RAM" quantum="32M"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

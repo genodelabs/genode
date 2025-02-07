@@ -20,9 +20,6 @@
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-rm_fault" caps="110">
-			<resource name="RAM" quantum="10M"/>
-			<config executable_fault_test="true"/>
-		</start>
+		<start name="test-rm_fault" caps="110" ram="10M"/>
 	</config>
 </runtime>

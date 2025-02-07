@@ -27,8 +27,6 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-synced_interface">
-			<resource name="RAM" quantum="1M"/>
-		</start>
+		<start name="test-synced_interface" ram="1M"/>
 	</config>
 </runtime>

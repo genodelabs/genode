@@ -27,20 +27,18 @@ append config {
 		<service name="RM"/>
 	</parent-provides>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
 	<start name="timer" priority="0">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
 	<start name="drivers_reports" caps="100">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Report"/>
 			<service name="ROM"/>
@@ -51,8 +49,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="6M"/>
+	<start name="acpi" caps="350" ram="6M">
 		<route>
 			<service name="Report"> <child name="drivers_reports"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -60,7 +57,6 @@ append config {
 	</start>
 
 	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="1M"/>
 		<route>
 			<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
 			<service name="Report"> <child name="drivers_reports"/> </service>
@@ -68,8 +64,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="platform" caps="400" managing_system="yes">
-		<resource name="RAM" quantum="4M"/>
+	<start name="platform" caps="400" ram="4M" managing_system="yes">
 		<provides>
 			<service name="Platform"/>
 		</provides>
@@ -84,13 +79,11 @@ append config {
 		</route>
 	</start>
 
-	<start name="pc_nic" priority="-1" caps="120">
-		<resource name="RAM" quantum="16M"/>
+	<start name="pc_nic" priority="-1" caps="120" ram="16M">
 		<config ld_verbose="yes"/>
 	</start>
 
-	<start name="nic_router" caps="150">
-		<resource name="RAM" quantum="8M"/>
+	<start name="nic_router" caps="150" ram="8M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>

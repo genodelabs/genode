@@ -39,13 +39,11 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="vfs_block">
-		<resource name="RAM" quantum="20M"/>
+	<start name="vfs_block" ram="20M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>
@@ -58,8 +56,7 @@ install_config {
 			                writeable="yes"/>
 		</config>
 	</start>
-	<start name="vfs_stress" caps="200">
-		<resource name="RAM" quantum="32M"/>
+	<start name="vfs_stress" caps="200" ram="32M">
 		<config depth="8">
 			<vfs> <rump fs="ext2fs" ram="30M" writeable="yes"/> </vfs>
 		</config>

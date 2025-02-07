@@ -47,22 +47,19 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="devices_report_rom">
+	<start name="devices_report_rom" ram="1200K">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1200K"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
-	<start name="linux_nic" ld="no">
-		<resource name="RAM" quantum="8M"/>
+	<start name="linux_nic" ld="no" ram="8M">
 		<config>
 			<report mac_address="true"/>
 		</config>
@@ -73,8 +70,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -101,8 +97,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-lwip_httpsrv">
-		<resource name="RAM" quantum="5M"/>
+	<start name="test-lwip_httpsrv" ram="5M">
 		<config ld_verbose="true">
 			<vfs>
 				<dir name="dev"> <log/> </dir>

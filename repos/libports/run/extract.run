@@ -19,8 +19,7 @@ install_config {
 
 	<default-route> <any-service> <parent/> </any-service> </default-route>
 
-	<start name="extract" caps="200">
-		<resource name="RAM" quantum="12M"/>
+	<start name="extract" caps="200" ram="12M">
 		<config verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"
 			      update_mtime="no"/>

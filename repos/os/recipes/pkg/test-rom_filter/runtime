@@ -41,8 +41,7 @@
 
 		<default caps="100"/>
 
-		<start name="dynamic_rom">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" ram="4M">
 			<provides><service name="ROM"/></provides>
 			<config verbose="yes">
 				<rom name="xray">
@@ -71,8 +70,7 @@
 			</config>
 		</start>
 
-		<start name="rom_filter">
-			<resource name="RAM" quantum="4M"/>
+		<start name="rom_filter" ram="4M">
 			<provides><service name="ROM"/></provides>
 			<config verbose="no">
 
@@ -116,8 +114,7 @@
 			</route>
 		</start>
 
-		<start name="rom_logger">
-			<resource name="RAM" quantum="1M"/>
+		<start name="rom_logger" ram="1M">
 			<config rom="generated"/>
 			<route>
 				<service name="ROM" label="generated"> <child name="rom_filter"/> </service>

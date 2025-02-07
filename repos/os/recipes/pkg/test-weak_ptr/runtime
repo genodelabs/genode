@@ -27,8 +27,6 @@
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-weak_ptr">
-			<resource name="RAM" quantum="10M"/>
-		</start>
+		<start name="test-weak_ptr" ram="10M"/>
 	</config>
 </runtime>

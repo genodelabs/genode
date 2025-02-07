@@ -19,13 +19,12 @@
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<service name="Platform">
 		<default-policy> <child name="platform"/> </default-policy> </service>
 
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="pci_decode -> system"    report="acpi -> acpi"/>
@@ -37,7 +36,6 @@
 	</start>
 
 	<start name="rom_reporter">
-		<resource name="RAM" quantum="1M"/>
 		<config>
 			<rom label="acpi"/>
 			<rom label="devices"/>
@@ -54,8 +52,7 @@
 		</route>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="7M"/>
+	<start name="acpi" caps="350" ram="7M">
 		<route>
 			<service name="Report" label="acpi"> <child name="report_rom"/> </service>
 			<service name="Report" label="intel_opregion"> <parent label="intel_opregion"/> </service>
@@ -69,8 +66,7 @@
 		</route>
 	</start>
 
-	<start name="pci_decode" caps="350">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pci_decode" caps="350" ram="2M">
 		<route>
 			<service name="Report">             <child name="report_rom"/> </service>
 			<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -83,9 +79,8 @@
 		</route>
 	</start>
 
-	<start name="platform" caps="400" managing_system="yes">
+	<start name="platform" caps="400" ram="6M" managing_system="yes">
 		<binary name="pc_platform"/>
-		<resource name="RAM" quantum="6M"/>
 		<provides> <service name="Platform"/> </provides>
 		<route>
 			<service name="ROM" label="system">  <parent label="system"/> </service>

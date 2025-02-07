@@ -19,8 +19,7 @@
 			<service name="CPU"/>
 			<service name="LOG"/>
 		</parent-provides>
-		<start name="test-libc_vfs" caps="100">
-			<resource name="RAM" quantum="12M"/>
+		<start name="test-libc_vfs" caps="100" ram="12M">
 			<route>
 				<any-service> <parent/> </any-service>
 			</route>

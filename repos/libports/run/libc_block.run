@@ -26,13 +26,11 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>
+	<default caps="200" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="test-libc_block">
-		<resource name="RAM" quantum="2M"/>
+	<start name="test-libc_block" ram="2M">
 		<config>
 			<libc stdout="/dev/log"/>
 			<vfs>
@@ -43,8 +41,7 @@ install_config {
 			</vfs>
 		</config>
 	</start>
-	<start name="vfs_block">
-		<resource name="RAM" quantum="68M"/>
+	<start name="vfs_block" ram="68M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>

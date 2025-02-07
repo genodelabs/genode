@@ -54,8 +54,6 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-reconstructible">
-			<resource name="RAM" quantum="1M"/>
-		</start>
+		<start name="test-reconstructible" ram="1M"/>
 	</config>
 </runtime>

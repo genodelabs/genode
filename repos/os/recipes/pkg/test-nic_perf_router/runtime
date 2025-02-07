@@ -27,9 +27,8 @@
 		</default-route>
 		<default caps="500"/>
 
-		<start name="nic_perf_tx">
+		<start name="nic_perf_tx" ram="10M">
 			<binary name="nic_perf"/>
-			<resource name="RAM" quantum="10M"/>
 			<provides>
 				<service name="Uplink"/>
 				<service name="Nic"/>
@@ -45,8 +44,7 @@
 			</route>
 		</start>
 
-		<start name="nic_router">
-			<resource name="RAM" quantum="10M"/>
+		<start name="nic_router" ram="10M">
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -70,9 +68,8 @@
 			</config>
 		</start>
 
-		<start name="nic_perf_rx">
+		<start name="nic_perf_rx" ram="10M">
 			<binary name="nic_perf"/>
-			<resource name="RAM" quantum="10M"/>
 			<provides>
 				<service name="Uplink"/>
 				<service name="Nic"/>

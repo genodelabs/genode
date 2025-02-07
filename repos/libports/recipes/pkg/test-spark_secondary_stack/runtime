@@ -23,8 +23,6 @@
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-spark_secondary_stack">
-			<resource name="RAM" quantum="10M"/>
-		</start>
+		<start name="test-spark_secondary_stack" ram="10M"/>
 	</config>
 </runtime>

@@ -45,8 +45,7 @@
 		</default-route>
 		<default caps="100"/>
 
-		<start name="trace_logger">
-			<resource name="RAM" quantum="80M"/>
+		<start name="trace_logger" ram="80M">
 			<config verbose="yes" priority="no" sc_time="no" session_ram="10M" session_arg_buffer="64K" period_sec="3" default_policy="null" default_buffer="1K">
 
 				<policy label_prefix="cpu_burner" thread="ep"/>
@@ -61,8 +60,7 @@
 			</route>
 		</start>
 
-		<start name="dynamic_rom">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" ram="4M">
 			<provides><service name="ROM"/></provides>
 			<config verbose="yes">
 				<rom name="cpu_burner1.config">
@@ -88,13 +86,10 @@
 			</config>
 		</start>
 
-		<start name="test-trace_logger">
-			<resource name="RAM" quantum="1M"/>
-		</start>
+		<start name="test-trace_logger" ram="1M"/>
 
-		<start name="cpu_burner.1">
+		<start name="cpu_burner.1" ram="1280K">
 			<binary name="cpu_burner"/>
-			<resource name="RAM" quantum="1280K"/>
 			<route>
 				<service name="ROM" label="config">
 					<child name="dynamic_rom" label="cpu_burner1.config"/> </service>
@@ -102,9 +97,8 @@
 			</route>
 		</start>
 
-		<start name="cpu_burner.2">
+		<start name="cpu_burner.2" ram="1280K">
 			<binary name="cpu_burner"/>
-			<resource name="RAM" quantum="1280K"/>
 			<route>
 				<service name="ROM" label="config">
 					<child name="dynamic_rom" label="cpu_burner2.config"/> </service>

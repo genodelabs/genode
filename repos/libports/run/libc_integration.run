@@ -72,14 +72,12 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>
+	<default caps="200" ram="1M"/>
 	<start name="timer">
 		<resource name="CPU" quantum="20"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="test-libc_integration" caps="400" priority="-1">
-		<resource name="RAM" quantum="256M"/>
+	<start name="test-libc_integration" caps="400" ram="256M" priority="-1">
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe"/>
 			<arg value="test-libc_integration"/>

@@ -64,8 +64,7 @@ append config {
 			<service name="LOG"/>
 		</parent-provides>
 
-		<start name="timer" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" caps="100" ram="1M">
 			<provides><service name="Timer"/></provides>
 			<route>
 				<service name="PD"> <parent/> </service>
@@ -78,8 +77,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="report_rom" caps="100">
-			<resource name="RAM" quantum="4M"/>
+		<start name="report_rom" caps="100" ram="4M">
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 			<route>
@@ -90,8 +88,7 @@ append config {
 			</route>
 		</start>
 
-		<start name="log_terminal" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="log_terminal" caps="100" ram="1M">
 			<provides><service name="Terminal"/></provides>
 			<route>
 				<service name="LOG"> <parent/> </service>
@@ -103,9 +100,8 @@ append config {
 
 append_if [have_board linux] config {
 
-		<start name="block_io_fs" caps="100" ld="no">
+		<start name="block_io_fs" caps="100" ram="4M" ld="no">
 			<binary name="lx_fs"/>
-			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<default-policy root="/" writeable="yes"/>
@@ -120,9 +116,8 @@ append_if [have_board linux] config {
 
 append_if [expr ![have_board linux]] config {
 
-		<start name="block_io_fs" caps="400">
+		<start name="block_io_fs" caps="400" ram="36M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="36M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -147,9 +142,8 @@ append_if [expr ![have_board linux]] config {
 
 append config {
 
-		<start name="trust_anchor_fs" caps="200">
+		<start name="trust_anchor_fs" caps="200" ram="10M">
 			<binary name="vfs"/>
-			<resource name="RAM" quantum="10M"/>
 			<provides><service name="File_system"/></provides>
 			<config>
 				<vfs>
@@ -183,10 +177,9 @@ append config {
 			</route>
 		</start>
 
-		<start name="test" caps="200">
+		<start name="test" caps="200" ram="10M">
 
 			<binary name="tresor_tester"/>
-			<resource name="RAM" quantum="10M"/>
 			<config ld_verbose="yes">
 
 				<block-io type="vfs" path="/} [tresor_image_name] {"/>

@@ -34,15 +34,13 @@ install_config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<default caps="100"/>
+		<default caps="100" ram="1M"/>
 
 		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="report_rom">
-			<resource name="RAM" quantum="2M"/>
+		<start name="report_rom" ram="2M">
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config>
 				<policy label="pci_decode -> system" report="acpi -> acpi"/>
@@ -51,8 +49,7 @@ install_config {
 			</config>
 		</start>
 
-		<start name="acpi" caps="350">
-			<resource name="RAM" quantum="4M"/>
+		<start name="acpi" caps="350" ram="4M">
 			<route>
 				<service name="Report"> <child name="report_rom"/> </service>
 				<service name="IO_MEM"> <parent/> </service>
@@ -64,8 +61,7 @@ install_config {
 			</route>
 		</start>
 
-		<start name="pci_decode" caps="350">
-			<resource name="RAM" quantum="2M"/>
+		<start name="pci_decode" caps="350" ram="2M">
 			<route>
 				<service name="Report">             <child name="report_rom"/> </service>
 				<service name="ROM" label="system"> <child name="report_rom"/> </service>
@@ -79,7 +75,6 @@ install_config {
 		</start>
 
 		<start name="platform" caps="100" managing_system="yes">
-			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Platform"/>
 			</provides>
@@ -99,9 +94,8 @@ install_config {
 			</config>
 		</start>
 
-		<start name="audio" caps="150">
+		<start name="audio" caps="150" ram="10M">
 			<binary name="pci_audio"/>
-			<resource name="RAM" quantum="10M"/>
 			<provides>
 				<service name="Audio_in"/>
 				<service name="Audio_out"/>
@@ -111,8 +105,7 @@ install_config {
 			</config>
 		</start>
 
-		<start name="dynamic_rom">
-			<resource name="RAM" quantum="4M"/>
+		<start name="dynamic_rom" ram="4M">
 			<provides><service name="ROM"/></provides>
 			<config verbose="yes">
 				<rom name="mixer.config">
@@ -162,8 +155,7 @@ install_config {
 			</config>
 		</start>
 
-		<start name="mixer">
-			<resource name="RAM" quantum="2M"/>
+		<start name="mixer" ram="2M">
 			<provides><service name="Audio_out"/></provides>
 			<route>
 				<service name="Audio_out"> <child name="audio"/> </service>
@@ -174,9 +166,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="client1">
+		<start name="client1" ram="4M">
 			<binary name="test-audio_out"/>
-			<resource name="RAM" quantum="4M"/>
 			<config>
 				<filename>client1.f32</filename>
 			</config>
@@ -186,9 +177,8 @@ install_config {
 			</route>
 		</start>
 
-		<start name="client2">
+		<start name="client2" ram="4M">
 			<binary name="test-audio_out"/>
-			<resource name="RAM" quantum="4M"/>
 			<config>
 				<filename>client2.f32</filename>
 			</config>

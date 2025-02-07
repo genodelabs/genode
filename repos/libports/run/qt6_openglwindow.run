@@ -13,8 +13,7 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	} [qt6_start_nodes] {
-	<start name="openglwindow" caps="250">
-		<resource name="RAM" quantum="80M"/>
+	<start name="openglwindow" caps="250" ram="80M">
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape">

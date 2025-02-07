@@ -76,8 +76,7 @@
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-xml_generator">
-			<resource name="RAM" quantum="2M"/>
+		<start name="test-xml_generator" ram="2M">
 			<config>
 				<libgcov>
 					<annotate source="include/util/xml_generator.h"/>

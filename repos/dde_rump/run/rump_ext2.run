@@ -45,13 +45,11 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="vfs_block" caps="120">
-		<resource name="RAM" quantum="20M"/>
+	<start name="vfs_block" caps="120" ram="20M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>
@@ -64,16 +62,14 @@ install_config {
 			                writeable="yes"/>
 		</config>
 	</start>
-	<start name="vfs" caps="200">
-		<resource name="RAM" quantum="25M" />
+	<start name="vfs" caps="200" ram="25M">
 		<provides><service name="File_system"/></provides>
 		<config>
 			<vfs> <rump fs="ext2fs" ram="10M"/> </vfs>
 			<policy label_prefix="test-libc_vfs" root="/" writeable="yes"/>
 		</config>
 	</start>
-	<start name="test-libc_vfs">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-libc_vfs" ram="4M">
 		<config>
 			<vfs>
 				<dir name="dev"> <log/> </dir>

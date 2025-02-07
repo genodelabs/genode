@@ -68,15 +68,13 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer" priority="0">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>}
 
 append_if [expr $use_top] config {
-	<start name="top" priority="0">
-		<resource name="RAM" quantum="2M"/>
+	<start name="top" priority="0" ram="2M">
 		<config period_ms="15000"/>
 		<route>
 			<service name="TRACE"> <parent label=""/> </service>
@@ -85,9 +83,8 @@ append_if [expr $use_top] config {
 	</start>}
 
 append config {
-	<start name="drivers" caps="1500" managing_system="yes" priority="-1">
+	<start name="drivers" caps="1500" ram="64M" managing_system="yes" priority="-1">
 		<binary name="init"/>
-		<resource name="RAM" quantum="64M"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="Timer">   <child name="timer"/> </service>
@@ -98,15 +95,13 @@ append config {
 	</start>
 
 	<start name="pc_rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
 		</provides>
 	</start>}
 
 append_if [expr $use_net] config {
-	<start name="nic_router" caps="120" priority="-1">
-		<resource name="RAM" quantum="5M"/>
+	<start name="nic_router" caps="120" ram="5M" priority="-1">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -134,9 +129,8 @@ append_if [expr $use_net] config {
 		</config>
 	</start>
 
-	<start name="nic" priority="-1">
+	<start name="nic" ram="8M" priority="-1">
 		<binary name="pc_nic"/>
-		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Platform"> <child name="drivers"/> </service>
 			<service name="Uplink"> <child name="nic_router"/> </service>
@@ -145,16 +139,14 @@ append_if [expr $use_net] config {
 	</start>}
 
 append_if [expr $use_serial] config {
-	<start name="log_terminal" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="log_terminal" ram="2M" priority="-1">
 		<provides>
 			<service name="Terminal"/>
 		</provides>
 	</start>}
 
 append config {
-	<start name="report_rom" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="report_rom" ram="2M" priority="-1">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<policy label="pointer -> hover" report="nitpicker -> hover"/>
@@ -163,8 +155,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="nitpicker" priority="-1">
-		<resource name="RAM" quantum="4M"/>
+	<start name="nitpicker" ram="4M" priority="-1">
 		<provides>
 			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 		</provides>
@@ -185,8 +176,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="pointer" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="pointer" ram="2M" priority="-1">
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
 		<route>
@@ -197,8 +187,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="clipboard" priority="-1">
-		<resource name="RAM" quantum="2M"/>
+	<start name="clipboard" ram="2M" priority="-1">
 		<provides>
 			<service name="ROM"/> <service name="Report"/>
 		</provides>
@@ -211,8 +200,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="wm" caps="1000" priority="-1">
-		<resource name="RAM" quantum="32M"/>
+	<start name="wm" caps="1000" ram="32M" priority="-1">
 		<binary name="init"/>
 		<provides>
 			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
@@ -227,9 +215,8 @@ append config {
 		</route>
 	</start>
 
-	<start name="vbox1" priority="-2" caps="1800">
+	<start name="vbox1" priority="-2" caps="1800" ram="3000M">
 		<binary name="virtualbox6"/>
-		<resource name="RAM" quantum="3000M"/>
 		<config vbox_file="virtualbox6.vbox" vm_name="TestVM" ld_verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc">
 				 <pthread placement="single-cpu"/>

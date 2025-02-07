@@ -43,9 +43,8 @@
 			<has_value input="leitzentrale_enabled" value="yes" />
 			<then>
 				<inline>
-					<start name="fader" priority="-1">
+					<start name="fader" ram="100M" priority="-1">
 						<binary name="gui_fader"/>
-						<resource name="RAM" quantum="100M"/>
 						<resource name="CPU" quantum="20"/>
 						<provides> <service name="Gui"/> </provides>
 						<config initial_fade_in_steps="100" fade_in_steps="20" alpha="210"/>
@@ -58,9 +57,8 @@
 			</then>
 			<else>
 				<inline>
-					<start name="fader" priority="-1">
+					<start name="fader" ram="100M" priority="-1">
 						<binary name="gui_fader"/>
-						<resource name="RAM" quantum="50M"/>
 						<resource name="CPU" quantum="20"/>
 						<provides> <service name="Gui"/> </provides>
 						<config fade_out_steps="30" alpha="0"/>
@@ -73,8 +71,7 @@
 			</else>
 		</if>
 		<inline>
-			<start name="gui_fb" priority="-1">
-				<resource name="RAM" quantum="33M"/>
+			<start name="gui_fb" ram="33M" priority="-1">
 				<resource name="CPU" quantum="20"/>
 				<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 				<route>
@@ -84,8 +81,7 @@
 				</route>
 			</start>
 
-			<start name="nitpicker" caps="200" priority="-1">
-				<resource name="RAM" quantum="14M"/>
+			<start name="nitpicker" caps="200" ram="14M" priority="-1">
 				<resource name="CPU" quantum="40"/>
 				<provides>
 					<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
@@ -106,8 +102,7 @@
 				</route>
 			</start>
 
-			<start name="report_rom" caps="200" priority="-1">
-				<resource name="RAM" quantum="4M"/>
+			<start name="report_rom" caps="200" ram="4M" priority="-1">
 				<provides>
 					<service name="Report"/>
 					<service name="ROM"/>
@@ -143,8 +138,7 @@
 				</config>
 			</start>
 
-			<start name="wm" caps="150" priority="-1">
-				<resource name="RAM" quantum="2M"/>
+			<start name="wm" caps="150" ram="2M" priority="-1">
 				<provides>
 					<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
 				</provides>
@@ -161,9 +155,8 @@
 				</route>
 			</start>
 
-			<start name="decorator" caps="580" priority="-1">
+			<start name="decorator" caps="580" ram="20M" priority="-1">
 				<binary name="themed_decorator"/>
-				<resource name="RAM" quantum="20M"/>
 				<resource name="CPU" quantum="20"/>
 				<config>
 					<libc/>
@@ -202,9 +195,8 @@
 				</route>
 			</start>
 
-			<start name="config_fs_report" priority="-1">
+			<start name="config_fs_report" ram="2M" priority="-1">
 				<binary name="fs_report"/>
-				<resource name="RAM" quantum="2M"/>
 				<provides> <service name="Report"/> </provides>
 				<config> <vfs> <fs/> </vfs> </config>
 				<route>
@@ -213,9 +205,8 @@
 				</route>
 			</start>
 
-			<start name="manager" caps="400" priority="-1">
+			<start name="manager" caps="400" ram="3M" priority="-1">
 				<binary name="sculpt_manager"/>
-				<resource name="RAM" quantum="3M"/>
 				<provides> <service name="Gui"/> </provides>
 				<route>
 					<service name="ROM" label="config">
@@ -256,9 +247,8 @@
 				</route>
 			</start>
 
-			<start name="fonts_fs" caps="100" priority="-1">
+			<start name="fonts_fs" caps="100" ram="4M" priority="-1">
 				<binary name="vfs"/>
-				<resource name="RAM" quantum="4M"/>
 				<provides> <service name="File_system"/> </provides>
 				<route>
 					<service name="ROM" label="config">
@@ -267,9 +257,8 @@
 				</route>
 			</start>
 
-			<start name="log_terminal" priority="-1" caps="120">
+			<start name="log_terminal" caps="120" ram="8M" priority="-1">
 				<binary name="terminal"/>
-				<resource name="RAM" quantum="8M"/>
 				<provides> <service name="Terminal"/> </provides>
 				<config>
 					<initial width="400"/>
@@ -292,9 +281,8 @@
 				</route>
 			</start>
 
-			<start name="log" caps="100" priority="-1">
+			<start name="log" caps="100" ram="2M" priority="-1">
 				<binary name="stdin2out"/>
-				<resource name="RAM" quantum="2M" />
 				<config>
 					<libc stdin="/report/log" stdout="/dev/terminal"/>
 					<vfs>
@@ -308,8 +296,7 @@
 				</route>
 			</start>
 
-			<start name="backdrop" caps="150" priority="-1">
-				<resource name="RAM" quantum="4M" />
+			<start name="backdrop" caps="150" ram="4M" priority="-1">
 				<config width="300" height="150">
 					<libc/>
 					<vfs> <rom name="genode_logo.png"/> </vfs>

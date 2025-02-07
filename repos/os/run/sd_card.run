@@ -22,10 +22,9 @@ install_config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 	</parent-provides>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="platform" managing_system="yes">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Platform"/></provides>
 		<config>
 			<policy label="pl180_sd_card -> ">
@@ -38,13 +37,11 @@ install_config {
 	</start>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
 	<start name="pl180_sd_card">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Block"/></provides>
 		<route>
 			<service name="ROM"> <parent/> </service>
@@ -56,8 +53,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="block_tester">
-		<resource name="RAM" quantum="64M" />
+	<start name="block_tester" ram="64M">
 		<config verbose="no" report="no" log="yes" stop_on_error="no">
 			<tests>
 				<sequential length="16M" size="1M" io_buffer="8M" batch="4"/>

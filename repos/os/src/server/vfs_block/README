@@ -9,8 +9,7 @@ Configuration
 The following configuration snippet illustrates how to set up the
 component:
 
-! <start name="vfs_block">
-!   <resource name="RAM" quantum="3M"/>
+! <start name="vfs_block" ram="3M">
 !    <provides> <service name="Block"/> </provides>
 !      <config>
 !
@@ -44,8 +43,7 @@ will nonetheless fail. The default value is 'no'.
 The component can also be configured to provide access to read-only
 files like ISO images:
 
-! <start name="vfs_block">
-!   <resource name="RAM" quantum="2M"/>
+! <start name="vfs_block" ram="2M">
 !    <provides> <service name="Block"/> </provides>
 !      <config>
 !

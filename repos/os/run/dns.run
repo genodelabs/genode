@@ -20,12 +20,10 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
 	<start name="dns_test">
-		<resource name="RAM" quantum="1M"/>
-		<config>
-		</config>
+		<config/>
 	</start>
 
 </config>}

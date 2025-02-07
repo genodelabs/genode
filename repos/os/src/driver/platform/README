@@ -37,8 +37,7 @@ Policy usage
 
 A policy may contain several nodes describing several devices.
 
-!<start name="platform" managing_system="yes">
-! <resource name="RAM" quantum="8M"/>
+!<start name="platform" managing_system="yes" ram="8M">
 ! ...
 ! <config>
 !  <policy label_prefix="usb_host" info="yes">

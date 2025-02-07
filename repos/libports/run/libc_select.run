@@ -20,19 +20,16 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 
-	<start name="timer">
-		<resource name="RAM" quantum="2M"/>
+	<start name="timer" ram="2M">
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="terminal_crosslink">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
 
-	<start name="test-libc_counter-source">
-		<resource name="RAM" quantum="8M"/>
+	<start name="test-libc_counter-source" ram="8M">
 		<config>
 			<vfs>
 				<dir name="dev"> <terminal/> <log/> </dir>
@@ -40,8 +37,7 @@ install_config {
 			<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
 		</config>
 	</start>
-	<start name="test-libc_select">
-		<resource name="RAM" quantum="4M"/>
+	<start name="test-libc_select" ram="4M">
 		<config>
 			<arg value="test-libc_select"/>
 			<arg value="/dev/log"/>

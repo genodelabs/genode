@@ -37,20 +37,17 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="tar_rom">
-		<resource name="RAM" quantum="6M"/>
+	<start name="tar_rom" ram="6M">
 		<provides><service name="ROM"/></provides>
 		<config>
 			<archive name="archive.tar"/>
 		</config>
 	</start>
-	<start name="init" caps="1000">
-		<resource name="RAM" quantum="3M"/>
+	<start name="init" caps="1000" ram="3M">
 		<config verbose="yes">
 			<parent-provides>
 				<service name="ROM"/>
@@ -59,9 +56,8 @@ install_config {
 				<service name="LOG"/>
 				<service name="Timer"/>
 			</parent-provides>
-			<default caps="100"/>
+			<default caps="100" ram="1M"/>
 			<start name="test-timer">
-				<resource name="RAM" quantum="1M"/>
 				<route> <any-service> <parent/> </any-service> </route>
 			</start>
 		</config>

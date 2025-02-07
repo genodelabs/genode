@@ -34,9 +34,8 @@ nodes:
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="init.1" priority="0">
+	<start name="init.1" priority="0" ram="5M">
 		<binary name="init"/>
-		<resource name="RAM" quantum="5M"/>
 		<!--
 		    prio_levels 4 divides priority range 65..128 into
 		    113..128 (prio  0)
@@ -56,15 +55,13 @@ nodes:
 				<any-service> <parent/> <any-child/> </any-service>
 			</default-route>
 			<!-- priority -1 results in platform priority 112 -->
-			<start name="init.11" priority="-1">
+			<start name="init.11" priority="-1" ram="512K">
 				<binary name="init"/>
-				<resource name="RAM" quantum="512K"/>
 				<config/>
 			</start>
 			<!-- priority -2 results in platform priority 96 -->
-			<start name="init.12" priority="-2">
+			<start name="init.12" priority="-2" ram="2M">
 				<binary name="init"/>
-				<resource name="RAM" quantum="2M"/>
 				<config>
 					<parent-provides>
 						<service name="ROM"/>
@@ -74,9 +71,8 @@ nodes:
 					<default-route>
 						<any-service> <parent/> </any-service>
 					</default-route>
-					<start name="init.121">
+					<start name="init.121" ram="768K">
 						<binary name="init"/>
-						<resource name="RAM" quantum="768K"/>
 						<config/>
 					</start>
 				</config>
@@ -84,9 +80,8 @@ nodes:
 		</config>
 	</start>
 	<!-- priority -1 results in platform priority 64 -->
-	<start name="init.2" priority="-1">
+	<start name="init.2" priority="-1" ram="6M">
 		<binary name="init"/>
-		<resource name="RAM" quantum="6M"/>
 		<config/>
 	</start>
 </config>

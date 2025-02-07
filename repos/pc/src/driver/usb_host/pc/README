@@ -8,9 +8,8 @@ It can report the configuration it currently has, as well as a report
 of all USB devices it has currently recognized. Both reports can be enabled
 separatly via the config node of the driver:
 
-! <start name="usb_host">
+! <start name="usb_host" ram="10M">
 !   <binary name="pc_usb_host"/>
-!   <resource name="RAM" quantum="10M"/>
 !   <provides><service name="Usb"/></provides>
 !   <config>
 !      <report config="yes" devices="yes"/>
@@ -62,9 +61,8 @@ assign devices based on their name, a vendor-product-tuple, or by
 defining the class-value for all USB device interfaces that matches
 that class. Here are some examples:
 
-! <start name="usb_host">
+! <start name="usb_host" ram="10M">
 !   <binary name="pc_usb_host"/>
-!   <resource name="RAM" quantum="10M"/>
 !   <provides><service name="Usb"/></provides>
 !   <config>
 !      <policy label="usb_hid -> ">   <device class="0x3"/>    </policy>

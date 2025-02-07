@@ -25,17 +25,15 @@ install_config {
 		<service name="Report"> <child name="report_rom"/> </service>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="200"/>
+	<default caps="200" ram="1M"/>
 
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 
 	<start name="acpi_report_rom">
 		<binary name="report_rom"/>
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Report"/>
 			<service name="ROM"/>
@@ -45,8 +43,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="acpi" caps="350">
-		<resource name="RAM" quantum="4M"/>
+	<start name="acpi" caps="350" ram="4M">
 		<route>
 			<service name="Report"> <child name="acpi_report_rom"/> </service>
 			<any-service> <parent/> </any-service>
@@ -54,7 +51,6 @@ install_config {
 	</start>
 
 	<start name="report_rom">
-		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Report"/>
 			<service name="ROM"/>
@@ -62,8 +58,7 @@ install_config {
 		<config verbose="yes"/>
 	</start>
 
-	<start name="smbios_decoder">
-		<resource name="RAM" quantum="10M"/>
+	<start name="smbios_decoder" ram="10M">
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="ROM" label="smbios_table"> <child name="acpi_report_rom"/> </service>

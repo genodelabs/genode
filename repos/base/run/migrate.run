@@ -31,13 +31,11 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<start name="timer" caps="100">
-			<resource name="RAM" quantum="1M"/>
+		<start name="timer" caps="100" ram="1M">
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="test-migrate" caps="100">
-			<resource name="RAM" quantum="10M"/>
+		<start name="test-migrate" caps="100" ram="10M">
 			<config />
 			<route>
 				<service name="TRACE"> <parent label=""/> </service>

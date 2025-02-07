@@ -29,15 +29,13 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="100" ram="1M"/>
 	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="ping_1">
+	<start name="ping_1" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config interface="10.0.2.3/24"
 		        gateway="10.0.2.1"
 		        dst_ip="10.0.2.2"
@@ -50,9 +48,8 @@ install_config {
 		</route>
 	</start>
 
-	<start name="ping_2">
+	<start name="ping_2" ram="8M">
 		<binary name="ping"/>
-		<resource name="RAM" quantum="8M"/>
 		<config interface="10.0.2.4/24"
 		        gateway="10.0.2.1"
 		        dst_ip="10.0.2.55"
@@ -65,8 +62,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+	<start name="nic_router" caps="200" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -83,8 +79,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="dynamic_rom">
-		<resource name="RAM" quantum="4M"/>
+	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="socket_fs.config"><inline description="static">
@@ -106,9 +101,8 @@ install_config {
 		</config>
 	</start>
 
-	<start name="socket_fs" caps="200">
+	<start name="socket_fs" caps="200" ram="32M">
 		<binary name="vfs"/>
-		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="File_system"/> </provides>
 		<route>
 			<service name="ROM" label="config">

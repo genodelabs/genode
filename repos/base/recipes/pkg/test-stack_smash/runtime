@@ -19,8 +19,6 @@
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-stack_smash">
-			<resource name="RAM" quantum="4M"/>
-		</start>
+		<start name="test-stack_smash" ram="4M"/>
 	</config>
 </runtime>

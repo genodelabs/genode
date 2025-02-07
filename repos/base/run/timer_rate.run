@@ -18,14 +18,12 @@ install_config {
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 	<default caps="100"/>
-	<start name="timer" priority="0">
-		<resource name="RAM" quantum="1M"/>
+	<start name="timer" priority="0" ram="1M">
 		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="test" priority="-1">
+	<start name="test" priority="-1" ram="10M">
 		<binary name="test-timer_rate"/>
-		<resource name="RAM" quantum="10M"/>
 		<config
 			max_abs_error_pc="5"
 			measure_duration_us="3000000"
