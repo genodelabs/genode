@@ -108,6 +108,7 @@
     <xs:element name="default">
      <xs:complexType>
       <xs:attribute name="caps" type="xs:int" />
+      <xs:attribute name="ram"  type="Number_of_bytes" />
      </xs:complexType>
     </xs:element> <!-- "default" -->
 
@@ -200,6 +201,7 @@
       <xs:attribute name="name"            type="xs:string" />
       <xs:attribute name="ld"              type="Boolean" />
       <xs:attribute name="caps"            type="xs:int" />
+      <xs:attribute name="ram"             type="Number_of_bytes" />
       <xs:attribute name="priority"        type="xs:int" />
       <xs:attribute name="managing_system" type="Boolean" />
      </xs:complexType>

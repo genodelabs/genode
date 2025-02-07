@@ -196,11 +196,19 @@ void Sandbox::Child::evaluate_dependencies()
 
 Sandbox::Ram_quota Sandbox::Child::_configured_ram_quota() const
 {
-	size_t assigned = 0;
+	Xml_node const &xml = _start_node->xml();
 
-	_start_node->xml().for_each_sub_node("resource", [&] (Xml_node resource) {
-		if (resource.attribute_value("name", String<8>()) == "RAM")
-			assigned = resource.attribute_value("quantum", Number_of_bytes()); });
+	Number_of_bytes const default_ram { _default_quota_accessor.default_ram().value };
+
+	size_t assigned = xml.attribute_value("ram", default_ram);
+
+	xml.for_each_sub_node("resource", [&] (Xml_node resource) {
+		if (resource.attribute_value("name", String<8>()) == "RAM") {
+			if (assigned)
+				warning(name(), ": ambigious RAM-quota definition");
+			assigned = resource.attribute_value("quantum", Number_of_bytes());
+		}
+	});
 
 	return Ram_quota { assigned };
 }
@@ -208,7 +216,7 @@ Sandbox::Ram_quota Sandbox::Child::_configured_ram_quota() const
 
 Sandbox::Cap_quota Sandbox::Child::_configured_cap_quota() const
 {
-	size_t const default_caps = _default_caps_accessor.default_caps().value;
+	size_t const default_caps = _default_quota_accessor.default_caps().value;
 
 	return Cap_quota { _start_node->xml().attribute_value("caps", default_caps) };
 }
@@ -742,7 +750,7 @@ Sandbox::Child::Child(Env                      &env,
                       Report_update_trigger    &report_update_trigger,
                       Xml_node                  start_node,
                       Default_route_accessor   &default_route_accessor,
-                      Default_caps_accessor    &default_caps_accessor,
+                      Default_quota_accessor   &default_quota_accessor,
                       Name_registry            &name_registry,
                       Ram_limit_accessor       &ram_limit_accessor,
                       Cap_limit_accessor       &cap_limit_accessor,
@@ -760,7 +768,7 @@ Sandbox::Child::Child(Env                      &env,
 	_list_element(this),
 	_start_node(_alloc, start_node),
 	_default_route_accessor(default_route_accessor),
-	_default_caps_accessor(default_caps_accessor),
+	_default_quota_accessor(default_quota_accessor),
 	_ram_limit_accessor(ram_limit_accessor),
 	_cap_limit_accessor(cap_limit_accessor),
 	_cpu_limit_accessor(cpu_limit_accessor),
@@ -768,7 +776,8 @@ Sandbox::Child::Child(Env                      &env,
 	_name_registry(name_registry),
 	_heartbeat_enabled(start_node.has_sub_node("heartbeat")),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,
-	                                      default_caps_accessor.default_caps())),
+	                                      default_quota_accessor.default_caps(),
+	                                      default_quota_accessor.default_ram())),
 	_pd_intrinsics(pd_intrinsics),
 	_parent_services(parent_services),
 	_child_services(child_services),

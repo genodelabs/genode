@@ -87,14 +87,17 @@ struct Config_model::Default_node : Node
 	}
 
 	Cap_quota &_default_caps;
+	Ram_quota &_default_ram;
 
-	Default_node(Cap_quota &default_caps) : _default_caps(default_caps) { }
+	Default_node(Cap_quota &default_caps, Ram_quota &default_ram)
+	: _default_caps(default_caps), _default_ram(default_ram) { }
 
 	bool matches(Xml_node const &xml) const override { return type_matches(xml); }
 
 	void update(Xml_node const &xml) override
 	{
 		_default_caps = Cap_quota { xml.attribute_value("caps", 0UL) };
+		_default_ram  = Ram_quota { xml.attribute_value("ram", Number_of_bytes()) };
 	}
 };
 
@@ -325,6 +328,7 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
                                    Preservation                   &preservation,
                                    Constructible<Buffered_xml>    &default_route,
                                    Cap_quota                      &default_caps,
+                                   Ram_quota                      &default_ram,
                                    Prio_levels                    &prio_levels,
                                    Constructible<Affinity::Space> &affinity_space,
                                    Start_model::Factory           &child_factory,
@@ -358,7 +362,7 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
 			return *new (alloc) Default_route_node(alloc, default_route);
 
 		if (Default_node::type_matches(xml))
-			return *new (alloc) Default_node(default_caps);
+			return *new (alloc) Default_node(default_caps, default_ram);
 
 		if (Start_node::type_matches(xml))
 			return *new (alloc) Start_node(child_factory, xml);

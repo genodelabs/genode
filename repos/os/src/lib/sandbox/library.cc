@@ -24,7 +24,7 @@
 
 struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
                                   ::Sandbox::Child::Default_route_accessor,
-                                  ::Sandbox::Child::Default_caps_accessor,
+                                  ::Sandbox::Child::Default_quota_accessor,
                                   ::Sandbox::Child::Ram_limit_accessor,
                                   ::Sandbox::Child::Cap_limit_accessor,
                                   ::Sandbox::Child::Cpu_limit_accessor,
@@ -68,6 +68,7 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	Config_model::Version          _version        { };
 	Constructible<Buffered_xml>    _default_route  { };
 	Cap_quota                      _default_caps   { 0 };
+	Ram_quota                      _default_ram    { 0 };
 	Prio_levels                    _prio_levels    { };
 	Constructible<Affinity::Space> _affinity_space { };
 	Preservation                   _preservation   { };
@@ -196,9 +197,10 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	}
 
 	/**
-	 * Default_caps_accessor interface
+	 * Default_quota_accessor interface
 	 */
 	Cap_quota default_caps() override { return _default_caps; }
+	Ram_quota default_ram()  override { return _default_ram;  }
 
 	void _update_aliases_from_config(Xml_node const &);
 	void _update_parent_services_from_config(Xml_node const &);
@@ -442,6 +444,7 @@ void Genode::Sandbox::Library::apply_config(Xml_node const &config)
 	                              _preservation,
 	                              _default_route,
 	                              _default_caps,
+	                              _default_ram,
 	                              _prio_levels,
 	                              _affinity_space,
 	                              *this, *this, _server,

@@ -273,6 +273,7 @@ class Sandbox::Config_model : Noncopyable
 		                     Preservation                   &,
 		                     Constructible<Buffered_xml>    &,
 		                     Cap_quota                      &,
+		                     Ram_quota                      &,
 		                     Prio_levels                    &,
 		                     Constructible<Affinity::Space> &,
 		                     Start_model::Factory           &,

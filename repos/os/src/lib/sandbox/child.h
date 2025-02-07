@@ -62,9 +62,10 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			}
 		};
 
-		struct Default_caps_accessor : Interface
+		struct Default_quota_accessor : Interface
 		{
 			virtual Cap_quota default_caps() = 0;
+			virtual Ram_quota default_ram()  = 0;
 		};
 
 		template <typename QUOTA>
@@ -173,7 +174,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		bool const _use_ld = _start_node->xml().attribute_value("ld", true);
 
 		Default_route_accessor &_default_route_accessor;
-		Default_caps_accessor  &_default_caps_accessor;
+		Default_quota_accessor &_default_quota_accessor;
 		Ram_limit_accessor     &_ram_limit_accessor;
 		Cap_limit_accessor     &_cap_limit_accessor;
 		Cpu_limit_accessor     &_cpu_limit_accessor;
@@ -271,33 +272,32 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		static
 		Resources _resources_from_start_node(Xml_node start_node, Prio_levels prio_levels,
 		                                     Affinity::Space const &affinity_space,
-		                                     Cap_quota default_cap_quota)
+		                                     Cap_quota default_cap_quota,
+		                                     Ram_quota default_ram_quota)
 		{
-			unsigned cpu_percent = 0;
-			Number_of_bytes ram_bytes = 0;
+			Number_of_bytes const default_ram { default_ram_quota.value };
 
-			size_t caps = start_node.attribute_value("caps", default_cap_quota.value);
+			Number_of_bytes ram { start_node.attribute_value("ram", default_ram) };
+
+			size_t caps { start_node.attribute_value("caps", default_cap_quota.value) };
+
+			unsigned cpu_percent = 0;
 
 			start_node.for_each_sub_node("resource", [&] (Xml_node rsc) {
 
 				using Name = String<8>;
 				Name const name = rsc.attribute_value("name", Name());
 
-				if (name == "RAM")
-					ram_bytes = rsc.attribute_value("quantum", ram_bytes);
-
-				if (name == "CPU")
-					cpu_percent = rsc.attribute_value("quantum", 0U);
-
-				if (name == "CAP")
-					caps = rsc.attribute_value("quantum", 0UL);
+				if (name == "RAM") ram         = rsc.attribute_value("quantum", ram);
+				if (name == "CPU") cpu_percent = rsc.attribute_value("quantum", 0U);
+				if (name == "CAP") caps        = rsc.attribute_value("quantum", 0UL);
 			});
 
 			return Resources { log2(prio_levels.value),
 			                   priority_from_xml(start_node, prio_levels),
 			                   Affinity(affinity_space,
 			                            affinity_location_from_xml(affinity_space, start_node)),
-			                   Ram_quota { ram_bytes },
+			                   Ram_quota { ram },
 			                   Cap_quota { caps },
 			                   Cpu_quota { cpu_percent } };
 		}
@@ -583,7 +583,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		      Report_update_trigger    &report_update_trigger,
 		      Xml_node                  start_node,
 		      Default_route_accessor   &default_route_accessor,
-		      Default_caps_accessor    &default_caps_accessor,
+		      Default_quota_accessor   &default_quota_accessor,
 		      Name_registry            &name_registry,
 		      Ram_limit_accessor       &ram_limit_accessor,
 		      Cap_limit_accessor       &cap_limit_accessor,
