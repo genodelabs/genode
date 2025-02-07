@@ -61,7 +61,7 @@ index 07893c6..abd2ea4 100644
  
  /*
   * Standard type definitions.
-@@ -71,11 +71,11 @@
+@@ -71,23 +71,23 @@
  typedef	__int16_t	__int_least16_t;
  typedef	__int32_t	__int_least32_t;
  typedef	__int64_t	__int_least64_t;
@@ -74,8 +74,25 @@ index 07893c6..abd2ea4 100644
 +typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
 +typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
  typedef	__int64_t	__time_t;		/* time()... */
- typedef	__uint64_t	__uintfptr_t;
- typedef	__uint64_t	__uintmax_t;
+-typedef	__uint64_t	__uintfptr_t;
+-typedef	__uint64_t	__uintmax_t;
+-typedef	__uint64_t	__uintptr_t;
++typedef	__UINTPTR_TYPE__	__uintfptr_t;
++typedef	__UINTMAX_TYPE__	__uintmax_t;
++typedef	__UINTPTR_TYPE__	__uintptr_t;
+ typedef	__uint32_t	__uint_fast8_t;
+ typedef	__uint32_t	__uint_fast16_t;
+ typedef	__uint32_t	__uint_fast32_t;
+-typedef	__uint64_t	__uint_fast64_t;
++typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
+ typedef	__uint8_t	__uint_least8_t;
+ typedef	__uint16_t	__uint_least16_t;
+ typedef	__uint32_t	__uint_least32_t;
+-typedef	__uint64_t	__uint_least64_t;
++typedef	__UINT_LEAST64_TYPE__	__uint_least64_t;
+ typedef	__uint64_t	__u_register_t;
+ typedef	__uint64_t	__vm_offset_t;
+ typedef	__uint64_t	__vm_paddr_t;
 --- src/lib/libc/sys/riscv/include/_types.h
 +++ src/lib/libc/sys/riscv/include/_types.h
 @@ -49,7 +49,7 @@
@@ -87,7 +104,7 @@ index 07893c6..abd2ea4 100644
  
  /*
   * Standard type definitions.
-@@ -71,11 +71,11 @@
+@@ -71,23 +71,23 @@
  typedef	__int16_t	__int_least16_t;
  typedef	__int32_t	__int_least32_t;
  typedef	__int64_t	__int_least64_t;
@@ -100,5 +117,22 @@ index 07893c6..abd2ea4 100644
 +typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
 +typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
  typedef	__int64_t	__time_t;		/* time()... */
- typedef	__uint64_t	__uintfptr_t;
- typedef	__uint64_t	__uintmax_t;
+-typedef	__uint64_t	__uintfptr_t;
+-typedef	__uint64_t	__uintmax_t;
+-typedef	__uint64_t	__uintptr_t;
++typedef	__UINTPTR_TYPE__	__uintfptr_t;
++typedef	__UINTMAX_TYPE__	__uintmax_t;
++typedef	__UINTPTR_TYPE__	__uintptr_t;
+ typedef	__uint32_t	__uint_fast8_t;
+ typedef	__uint32_t	__uint_fast16_t;
+ typedef	__uint32_t	__uint_fast32_t;
+-typedef	__uint64_t	__uint_fast64_t;
++typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
+ typedef	__uint8_t	__uint_least8_t;
+ typedef	__uint16_t	__uint_least16_t;
+ typedef	__uint32_t	__uint_least32_t;
+-typedef	__uint64_t	__uint_least64_t;
++typedef	__UINT_LEAST64_TYPE__	__uint_least64_t;
+ typedef	__uint64_t	__u_register_t;
+ typedef	__uint64_t	__vm_offset_t;
+ typedef	__uint64_t	__vm_paddr_t;
