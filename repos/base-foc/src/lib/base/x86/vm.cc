@@ -252,8 +252,6 @@ struct Foc_vcpu : Thread, Noncopyable
 		bool                        _show_error_unsupported_tpr   { true };
 		Semaphore                   _state_ready { 0 };
 		bool                        _dispatching { false };
-		bool                        _extra_dispatch_up { false };
-		void                       *_ep_handler    { nullptr };
 
 		Vcpu_state             _vcpu_state __attribute__((aligned(0x10))) { };
 		Vcpu_state::Fpu::State _fpu_ep     __attribute__((aligned(0x10))) { };
@@ -275,7 +273,6 @@ struct Foc_vcpu : Thread, Noncopyable
 		};
 
 		State _state_request { NONE };
-		State _state_current { NONE };
 		Mutex _remote_mutex  { };
 
 		void entry() override
@@ -305,7 +302,7 @@ struct Foc_vcpu : Thread, Noncopyable
 				      (int)Foc::L4_VCPU_STATE_VERSION);
 
 			using namespace Foc;
-			l4_vm_svm_vmcb_t *vmcb = reinterpret_cast<l4_vm_svm_vmcb_t *>(vcpu_addr + L4_VCPU_OFFSET_EXT_STATE);
+			auto * vmcb = reinterpret_cast<l4_vm_svm_vmcb_t *>(vcpu_addr + L4_VCPU_OFFSET_EXT_STATE);
 			void * vmcs = reinterpret_cast<void *>(vcpu_addr + L4_VCPU_OFFSET_EXT_STATE);
 
 			/* set vm page table */
@@ -369,39 +366,28 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			vcpu->saved_state = L4_VCPU_F_USER_MODE | L4_VCPU_F_FPU_ENABLED;
 
+			State local_state { NONE };
+
 			while (true) {
 				/* read in requested state from remote threads */
 				{
 					Mutex::Guard guard(_remote_mutex);
-					_state_current = _state_request;
+
+					local_state    = _state_request;
 					_state_request = NONE;
 				}
 
-				if (_state_current == NONE) {
+				if (local_state == NONE) {
 					_wake_up.down();
 					continue;
 				}
 
-				if (_state_current != RUN && _state_current != PAUSE) {
-					error("unknown vcpu state ", (int)_state_current);
+				if (local_state != RUN && local_state != PAUSE) {
+					error("unknown vcpu state ", (int)local_state);
 					while (true) { _remote_mutex.acquire(); }
 				}
 
-				/* transfer vCPU state to Fiasco.OC */
-				if (_vm_type == Virt::SVM)
-					_write_amd_state(state, vmcb, vcpu);
-				if (_vm_type == Virt::VMX)
-					_write_intel_state(state, vmcs, vcpu);
-
-				/* save FPU state of this thread and restore state of vCPU */
-				asm volatile ("fxsave %0" : "=m" (_fpu_ep));
-				if (state.fpu.charged()) {
-					state.fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
-						asm volatile ("fxrstor %0" : : "m" (fpu) : "memory");
-						return 512;
-					});
-				} else
-					asm volatile ("fxrstor %0" : : "m" (_fpu_vcpu) : "memory");
+				_write_foc_state(state, vcpu, vmcb, vmcs);
 
 				/* tell Fiasco.OC to run the vCPU */
 				l4_msgtag_t tag = l4_thread_vcpu_resume_start();
@@ -416,23 +402,24 @@ struct Foc_vcpu : Thread, Noncopyable
 				asm volatile ("fxrstor %0" : : "m" (_fpu_ep) : "memory");
 
 				/* got VM exit or interrupted by asynchronous signal */
-				uint64_t reason = 0;
-
 				state.discharge();
 
+				bool skip_dispatch = false;
+
 				if (_vm_type == Virt::SVM) {
-					reason = vmcb->control_area.exitcode;
+					auto reason = vmcb->control_area.exitcode;
 					if (reason == 0x400) /* no NPT support */
 						reason = 0xfc;
 
 					{
 						Mutex::Guard guard(_remote_mutex);
 						_state_request = NONE;
-						_state_current = PAUSE;
+						local_state = PAUSE;
 
 						/* remotely PAUSE was called */
 						if (l4_error(tag) && reason == 0x60) {
 							reason = VMEXIT_PAUSED;
+							skip_dispatch = true;
 
 							/* consume notification */
 							while (vcpu->sticky_flags) {
@@ -448,16 +435,17 @@ struct Foc_vcpu : Thread, Noncopyable
 				}
 
 				if (_vm_type == Virt::VMX) {
-					reason = Foc::l4_vm_vmx_read_32(vmcs, Vmcs::EXI_REASON);
+					auto reason = Foc::l4_vm_vmx_read_32(vmcs, Vmcs::EXI_REASON);
 
 					{
 						Mutex::Guard guard(_remote_mutex);
 						_state_request = NONE;
-						_state_current = PAUSE;
+						local_state = PAUSE;
 
 						/* remotely PAUSE was called */
 						if (l4_error(tag) && reason == 0x1) {
 							reason = VMEXIT_PAUSED;
+							skip_dispatch = true;
 
 							/* consume notification */
 							while (vcpu->sticky_flags) {
@@ -466,46 +454,19 @@ struct Foc_vcpu : Thread, Noncopyable
 								l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
 							}
 						}
+
 					}
 
 					state.exit_reason = reason & 0xff;
 					_read_intel_state(state, vmcs, vcpu);
 				}
 
+				/* notify vCPU handler EP that state is valid */
 				_state_ready.up();
 
-				/*
-				 * If the handler is run because the L4 IRQ triggered a
-				 * VMEXIT_PAUSED, the signal handler has already been dispatched
-				 * asynchronously and is waiting for the _state_ready semaphore
-				 * to come up. In that case wrap around the loop to continue
-				 * without another signal.
-				 *
-				 * If the async signal handler has been queued while a regular
-				 * exit was pending, the regular exit may be processed by the
-				 * async handler with the exit signal handler running
-				 * afterwards and this vCPU loop waiting for the exit signal
-				 * handler to finish.
-				 * In this case, the with_state() method does an extra up()
-				 * on the _exit_handler.ready_semaphore() to cause delivery
-				 * of the VMEXIT_PAUSED signal to the regular exit signal
-				 * handler in the next run of the loop.
-				 * Once the signal has been delivered, (_state_ready.up()), the
-				 * extra semaphore up has to be countered by an additional
-				 * down().
-				 * This down() will wait for the exit signal handler to finish
-				 * processing the VMEXIT_PAUSED before the loop is continued.
-				 */
-				if (reason == VMEXIT_PAUSED) {
-					if (_extra_dispatch_up) {
-						_extra_dispatch_up = false;
-						_exit_handler.ready_semaphore().down();
-					}
-					continue;
-				}
-
-				/* notify VM handler */
-				Signal_transmitter(_exit_handler.signal_cap()).submit();
+				if (!skip_dispatch)
+					/* notify VM handler */
+					Signal_transmitter(_exit_handler.signal_cap()).submit();
 
 				/*
 				 * Wait until VM handler is really really done,
@@ -513,6 +474,25 @@ struct Foc_vcpu : Thread, Noncopyable
 				 */
 				_exit_handler.ready_semaphore().down();
 			}
+		}
+
+		void _write_foc_state(Vcpu_state &state, auto vcpu, auto vmcb, auto vmcs)
+		{
+			/* transfer vCPU state to Fiasco.OC */
+			if (_vm_type == Virt::SVM)
+				_write_amd_state(state, vmcb, vcpu);
+			if (_vm_type == Virt::VMX)
+				_write_intel_state(state, vmcs, vcpu);
+
+			/* save FPU state of this thread and restore state of vCPU */
+			asm volatile ("fxsave %0" : "=m" (_fpu_ep));
+			if (state.fpu.charged()) {
+				state.fpu.charge([&] (Vcpu_state::Fpu::State &fpu) {
+					asm volatile ("fxrstor %0" : : "m" (fpu) : "memory");
+					return 512;
+				});
+			} else
+				asm volatile ("fxrstor %0" : : "m" (_fpu_vcpu) : "memory");
 		}
 
 		/*
@@ -1285,9 +1265,14 @@ struct Foc_vcpu : Thread, Noncopyable
 
 		void _wrapper_dispatch()
 		{
-			_dispatching = true;
-			_vcpu_handler.dispatch(1);
-			_dispatching = false;
+			try {
+				_dispatching = true;
+				_vcpu_handler.dispatch(1);
+				_dispatching = false;
+			} catch (...) {
+				_dispatching = false;
+				throw;
+			}
 		}
 
 
@@ -1303,8 +1288,6 @@ struct Foc_vcpu : Thread, Noncopyable
 			_vm_type(type)
 		{
 			Thread::start();
-
-			_ep_handler = reinterpret_cast<Thread *>(&handler.rpc_ep());
 
 			/* wait until thread is alive, e.g. Thread::cap() is valid */
 			_startup.block();
@@ -1330,8 +1313,7 @@ struct Foc_vcpu : Thread, Noncopyable
 
 			_state_request = RUN;
 
-			if (_state_current == NONE)
-				_wake_up.up();
+			_wake_up.up();
 		}
 
 		void terminate()
@@ -1342,55 +1324,41 @@ struct Foc_vcpu : Thread, Noncopyable
 
 		void with_state(auto const &fn)
 		{
-			if (!_dispatching) {
-				if (Thread::myself() != _ep_handler) {
-					error("vCPU state requested outside of vcpu_handler EP");
-					sleep_forever();
-				}
+			if (_dispatching) {
 
-				_remote_mutex.acquire();
+				/* wait for vCPU thread until it provides the state */
+				_state_ready.down();
+
+				if (fn(_vcpu_state))
+					resume();
+
+				return;
+			}
+
+			{
+				Mutex::Guard guard(_remote_mutex);
 
 				_state_request = PAUSE;
 
-				/* Trigger pause exit */
+				/* Trigger vCPU exit */
 				Foc::l4_cap_idx_t tid = native_thread().kcap;
 				Foc::l4_cap_idx_t irq = tid + Foc::TASK_VCPU_IRQ_CAP;
 				Foc::l4_irq_trigger(irq);
 
-				if (_state_current == NONE)
-					_wake_up.up();
-
-				_remote_mutex.release();
-				_state_ready.down();
-
-				/*
-				 * We're in the async dispatch, yet processing a non-pause exit.
-				 * Signal that we have to wrap the dispatch loop around.
-				 */
-				if (_vcpu_state.exit_reason != VMEXIT_PAUSED)
-					_extra_dispatch_up = true;
-			} else {
-				_state_ready.down();
+				_wake_up.up();
 			}
 
-			if (fn(_vcpu_state)
-			    || _extra_dispatch_up)
+			/* wait for vCPU thread until it provides the state */
+			_state_ready.down();
+
+			if (fn(_vcpu_state))
 				resume();
 
-			/*
-			 * The regular exit was handled by the asynchronous dispatch handler
-			 * triggered by the pause request.
-			 *
-			 * Fake finishing the exit dispatch so that the vCPU loop
-			 * processes the asynchronously dispatched exit and provides
-			 * the VMEXIT_PAUSED to the already pending dispatch function
-			 * for the exit code.
-			 */
-			if (!_dispatching && _extra_dispatch_up)
-				_exit_handler.ready_semaphore().up();
+			/* notify vCPU thread that we are done handling the state. */
+			_exit_handler.ready_semaphore().up();
 		}
 
-		Foc_native_vcpu_rpc *rpc()   { return &*_rpc; }
+		Foc_native_vcpu_rpc *rpc() { return &*_rpc; }
 };
 
 
