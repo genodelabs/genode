@@ -253,6 +253,7 @@ append_if [expr $use_overlay] config {
 				</import>}
 append config {
 			</vfs>
+			<monitor label="VBOX-1"/>
 			<arg value="virtualbox"/>
 			<env key="VBOX_USER_HOME" value="/"/>
 			<env key="VBOX_LOG_DEST" value="file=/dev/log"/>
