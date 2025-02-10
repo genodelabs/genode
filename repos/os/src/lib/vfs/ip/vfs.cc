@@ -113,7 +113,7 @@ long get_family(char const *p)
 }
 
 
-namespace Lxip {
+namespace Ip {
 
 	struct Protocol_dir;
 	struct Socket_dir;
@@ -136,29 +136,29 @@ namespace Vfs {
 	struct Directory;
 	struct File;
 
-	class Lxip_file;
-	class Lxip_data_file;
-	class Lxip_bind_file;
-	class Lxip_accept_file;
-	class Lxip_connect_file;
-	class Lxip_listen_file;
-	class Lxip_local_file;
-	class Lxip_remote_file;
-	class Lxip_peek_file;
+	class Ip_file;
+	class Ip_data_file;
+	class Ip_bind_file;
+	class Ip_accept_file;
+	class Ip_connect_file;
+	class Ip_listen_file;
+	class Ip_local_file;
+	class Ip_remote_file;
+	class Ip_peek_file;
 
-	class Lxip_socket_dir;
-	struct Lxip_socket_handle;
+	class Ip_socket_dir;
+	struct Ip_socket_handle;
 
-	struct Lxip_address_info;
-	class  Lxip_link_state_file;
-	class  Lxip_address_file;
+	struct Ip_address_info;
+	class  Ip_link_state_file;
+	class  Ip_address_file;
 
-	struct Lxip_vfs_handle;
-	class Lxip_vfs_file_handle;
-	class Lxip_vfs_dir_handle;
-	class Lxip_file_system;
+	struct Ip_vfs_handle;
+	class Ip_vfs_file_handle;
+	class Ip_vfs_dir_handle;
+	class Ip_file_system;
 
-	using Lxip_vfs_file_handles = Genode::List<List_element<Lxip_vfs_file_handle> >;
+	using Ip_vfs_file_handles = Genode::List<List_element<Ip_vfs_file_handle> >;
 }
 
 
@@ -185,7 +185,7 @@ struct Vfs::Node
 
 struct Vfs::File : Vfs::Node
 {
-	Lxip_vfs_file_handles handles { };
+	Ip_vfs_file_handles handles { };
 
 	File(char const *name) : Node(name) { }
 
@@ -199,16 +199,17 @@ struct Vfs::File : Vfs::Node
 	/**
 	 * Check for data to read or write
 	 */
-	virtual bool poll() { return true; }
+	virtual bool read_ready()  const { return true; }
+	virtual bool write_ready() const { return true; };
 
-	virtual long write(Lxip_vfs_file_handle &,
+	virtual long write(Ip_vfs_file_handle &,
 	                   Const_byte_range_ptr const &, file_size)
 	{
 		Genode::error(name(), " not writeable");
 		return -1;
 	}
 
-	virtual long read(Lxip_vfs_file_handle &,
+	virtual long read(Ip_vfs_file_handle &,
 	                  Byte_range_ptr const &, file_size)
 	{
 		Genode::error(name(), " not readable");
@@ -238,13 +239,13 @@ struct Vfs::Directory : Vfs::Node
 };
 
 
-struct Lxip::Protocol_dir : Vfs::Directory
+struct Ip::Protocol_dir : Vfs::Directory
 {
 	enum Type { TYPE_STREAM, TYPE_DGRAM };
 
 	virtual char const *top_dir() = 0;
 	virtual Type type() = 0;
-	virtual unsigned adopt_socket(Lxip::Socket_dir &) = 0;
+	virtual unsigned adopt_socket(Ip::Socket_dir &) = 0;
 	virtual bool     lookup_port(long) = 0;
 	virtual void release(unsigned id) = 0;
 
@@ -252,7 +253,7 @@ struct Lxip::Protocol_dir : Vfs::Directory
 };
 
 
-struct Lxip::Socket_dir : Vfs::Directory
+struct Ip::Socket_dir : Vfs::Directory
 {
 	using Open_result = Vfs::Directory_service::Open_result;
 
@@ -271,19 +272,20 @@ struct Lxip::Socket_dir : Vfs::Directory
 };
 
 
-struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
+struct Vfs::Ip_vfs_handle : Vfs::Vfs_handle
 {
 	using Read_result  = File_io_service:: Read_result;
 	using Write_result = File_io_service::Write_result;
 	using Sync_result  = File_io_service::Sync_result;
 
-	Lxip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags)
+	Ip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags)
 	: Vfs::Vfs_handle(fs, fs, alloc, status_flags) { }
 
 	/**
 	 * Check if the file attached to this handle is ready to read
 	 */
-	virtual bool read_ready() const = 0;
+	virtual bool read_ready()  const = 0;
+	virtual bool write_ready() const { return true; }
 
 	virtual Read_result   read(Byte_range_ptr       const &dst, size_t &out_count) = 0;
 	virtual Write_result write(Const_byte_range_ptr const &src, size_t &out_count) = 0;
@@ -293,40 +295,43 @@ struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
 };
 
 
-struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
+struct Vfs::Ip_vfs_file_handle final : Vfs::Ip_vfs_handle
 {
-	Lxip_vfs_file_handle(Lxip_vfs_file_handle const &);
-	Lxip_vfs_file_handle &operator = (Lxip_vfs_file_handle const &);
+	Ip_vfs_file_handle(Ip_vfs_file_handle const &);
+	Ip_vfs_file_handle &operator = (Ip_vfs_file_handle const &);
 
 	Vfs::File *file;
 
 	/* file association element */
-	List_element<Lxip_vfs_file_handle> file_le { this };
+	List_element<Ip_vfs_file_handle> file_le { this };
 
 	/* notification elements */
-	using Fifo_element = Genode::Fifo_element<Lxip_vfs_file_handle>;
+	using Fifo_element = Genode::Fifo_element<Ip_vfs_file_handle>;
 	using Fifo         = Genode::Fifo<Fifo_element>;
 
 	Fifo_element read_ready_elem { *this };
 
-	char content_buffer[Lxip::MAX_DATA_LEN];
+	char content_buffer[Ip::MAX_DATA_LEN];
 
-	Lxip_vfs_file_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
+	Ip_vfs_file_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
 	                     Vfs::File *file)
-	: Lxip_vfs_handle(fs, alloc, status_flags), file(file)
+	: Ip_vfs_handle(fs, alloc, status_flags), file(file)
 	{
 		if (file)
 			file->handles.insert(&file_le);
 	}
 
-	~Lxip_vfs_file_handle()
+	~Ip_vfs_file_handle()
 	{
 		if (file)
 			file->handles.remove(&file_le);
 	}
 
 	bool read_ready() const override {
-		return (file) ? file->poll() : false; }
+		return (file) ? file->read_ready() : false; }
+
+	bool write_ready() const override {
+		return (file) ? file->write_ready() : false; }
 
 	Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 	{
@@ -362,13 +367,13 @@ struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
 };
 
 
-struct Vfs::Lxip_vfs_dir_handle final : Vfs::Lxip_vfs_handle
+struct Vfs::Ip_vfs_dir_handle final : Vfs::Ip_vfs_handle
 {
 	Vfs::Directory &dir;
 
-	Lxip_vfs_dir_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
+	Ip_vfs_dir_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
 	                    Vfs::Directory &dir)
-	: Vfs::Lxip_vfs_handle(fs, alloc, status_flags),
+	: Vfs::Ip_vfs_handle(fs, alloc, status_flags),
 	  dir(dir) { }
 
 	bool read_ready() const override { return true; }
@@ -386,15 +391,15 @@ struct Vfs::Lxip_vfs_dir_handle final : Vfs::Lxip_vfs_handle
 };
 
 
-static Vfs::Lxip_vfs_file_handle::Fifo *_read_ready_waiters_ptr;
+static Vfs::Ip_vfs_file_handle::Fifo *_read_ready_waiters_ptr;
 
 static void poll_all()
 {
 	_read_ready_waiters_ptr->for_each(
-			[&] (Vfs::Lxip_vfs_file_handle::Fifo_element &elem) {
-		Vfs::Lxip_vfs_file_handle &handle = elem.object();
+			[&] (Vfs::Ip_vfs_file_handle::Fifo_element &elem) {
+		Vfs::Ip_vfs_file_handle &handle = elem.object();
 		if (handle.file) {
-			if (handle.file->poll()) {
+			if (handle.file->read_ready()) {
 				/* do not notify again until notify_read_ready */
 				_read_ready_waiters_ptr->remove(elem);
 
@@ -405,33 +410,33 @@ static void poll_all()
 }
 
 /*****************************
- ** Lxip vfs specific nodes **
+ ** Ip vfs specific nodes **
  *****************************/
 
-class Vfs::Lxip_file : public Vfs::File
+class Vfs::Ip_file : public Vfs::File
 {
 	protected:
 
-		Lxip::Socket_dir     &_parent;
+		Ip::Socket_dir     &_parent;
 		genode_socket_handle &_sock;
 
 		Errno _write_err = GENODE_ENONE;
 
 	public:
 
-		Lxip_file(Lxip::Socket_dir &p, genode_socket_handle &s, char const *name)
+		Ip_file(Ip::Socket_dir &p, genode_socket_handle &s, char const *name)
 		: Vfs::File(name), _parent(p), _sock(s) { }
 
-		virtual ~Lxip_file() { }
+		virtual ~Ip_file() { }
 
 		/**
 		 * Dissolve relationship between handle and file, file and polling list.
 		 */
 		void dissolve_handles()
 		{
-			Genode::List_element<Vfs::Lxip_vfs_file_handle> *le = handles.first();
+			Genode::List_element<Vfs::Ip_vfs_file_handle> *le = handles.first();
 			while (le) {
-				Vfs::Lxip_vfs_file_handle *h = le->object();
+				Vfs::Ip_vfs_file_handle *h = le->object();
 				handles.remove(&h->file_le);
 				h->file = nullptr;
 				le = handles.first();
@@ -447,23 +452,28 @@ class Vfs::Lxip_file : public Vfs::File
 };
 
 
-class Vfs::Lxip_data_file final : public Vfs::Lxip_file
+class Vfs::Ip_data_file final : public Vfs::Ip_file
 {
 	public:
 
-		Lxip_data_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "data") { }
+		Ip_data_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "data") { }
 
 		/********************
 		 ** File interface **
 		 ********************/
 
-		bool poll() override
+		bool read_ready() const override
 		{
 			return genode_socket_poll(&_sock) & genode_socket_pollin_set();
 		}
 
-		long write(Lxip_vfs_file_handle &,
+		bool write_ready() const override
+		{
+			return genode_socket_poll(&_sock) & genode_socket_pollout_set();
+		}
+
+		long write(Ip_vfs_file_handle &,
 		           Const_byte_range_ptr const &src,
 		           file_size /* ignored */) override
 		{
@@ -471,7 +481,7 @@ class Vfs::Lxip_data_file final : public Vfs::Lxip_file
 			Msg_header    msg_send { src.start, src.num_bytes };
 
 			/* destination address is only required for UDP */
-			if (_parent.parent().type() == Lxip::Protocol_dir::TYPE_DGRAM)
+			if (_parent.parent().type() == Ip::Protocol_dir::TYPE_DGRAM)
 				msg_send.name(_parent.remote_addr());
 
 			_write_err = genode_socket_sendmsg(&_sock, msg_send.header(), &bytes_sent);
@@ -483,7 +493,7 @@ class Vfs::Lxip_data_file final : public Vfs::Lxip_file
 			return _write_err == GENODE_ENONE ? bytes_sent : -1;
 		}
 
-		long read(Lxip_vfs_file_handle &,
+		long read(Ip_vfs_file_handle &,
 		          Byte_range_ptr const &dst,
 		          file_size /* ignored */) override
 		{
@@ -499,30 +509,28 @@ class Vfs::Lxip_data_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_peek_file final : public Vfs::Lxip_file
+class Vfs::Ip_peek_file final : public Vfs::Ip_file
 {
 	public:
 
-		Lxip_peek_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "peek") { }
+		Ip_peek_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "peek") { }
 
 		/********************
 		 ** File interface **
 		 ********************/
 
-		bool poll() override
-		{
-			/* can always peek */
-			return true;
-		}
+		/* can always peek */
+		bool read_ready()  const override { return true;  }
+		bool write_ready() const override { return false; }
 
-		long write(Lxip_vfs_file_handle &,
+		long write(Ip_vfs_file_handle &,
 		     Const_byte_range_ptr const &, file_size) override
 		{
 			return -1;
 		}
 
-		long read(Lxip_vfs_file_handle &,
+		long read(Ip_vfs_file_handle &,
 		                   Byte_range_ptr const &dst,
 		                   file_size /* ignored */) override
 		{
@@ -539,7 +547,7 @@ class Vfs::Lxip_peek_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_bind_file final : public Vfs::Lxip_file
+class Vfs::Ip_bind_file final : public Vfs::Ip_file
 {
 	private:
 
@@ -547,8 +555,8 @@ class Vfs::Lxip_bind_file final : public Vfs::Lxip_file
 
 	public:
 
-		Lxip_bind_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "bind") { }
+		Ip_bind_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "bind") { }
 
 		long port() { return _port; }
 
@@ -556,7 +564,7 @@ class Vfs::Lxip_bind_file final : public Vfs::Lxip_file
 		 ** File interface **
 		 ********************/
 
-		long write(Lxip_vfs_file_handle &handle,
+		long write(Ip_vfs_file_handle &handle,
 		           Const_byte_range_ptr const &src,
 		           file_size /* ignored */) override
 		{
@@ -586,7 +594,7 @@ class Vfs::Lxip_bind_file final : public Vfs::Lxip_file
 			return src.num_bytes;
 		}
 
-		long read(Lxip_vfs_file_handle &handle,
+		long read(Ip_vfs_file_handle &handle,
 		          Byte_range_ptr const &dst,
 		          file_size /* ignored */) override
 		{
@@ -601,7 +609,7 @@ class Vfs::Lxip_bind_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_listen_file final : public Vfs::Lxip_file
+class Vfs::Ip_listen_file final : public Vfs::Ip_file
 {
 	private:
 
@@ -609,14 +617,14 @@ class Vfs::Lxip_listen_file final : public Vfs::Lxip_file
 
 	public:
 
-		Lxip_listen_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "listen") { }
+		Ip_listen_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "listen") { }
 
 		/********************
 		 ** File interface **
 		 ********************/
 
-		long write(Lxip_vfs_file_handle &handle,
+		long write(Ip_vfs_file_handle &handle,
 		           Const_byte_range_ptr const &src,
 		           file_size /* ignored */) override
 		{
@@ -641,7 +649,7 @@ class Vfs::Lxip_listen_file final : public Vfs::Lxip_file
 			return src.num_bytes;
 		}
 
-		long read(Lxip_vfs_file_handle &,
+		long read(Ip_vfs_file_handle &,
 		          Byte_range_ptr const &dst,
 		          file_size /* ignored */) override
 		{
@@ -650,7 +658,7 @@ class Vfs::Lxip_listen_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
+class Vfs::Ip_connect_file final : public Vfs::Ip_file
 {
 	private:
 
@@ -659,14 +667,14 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 
 	public:
 
-		Lxip_connect_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "connect") { }
+		Ip_connect_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "connect") { }
 
 		/********************
 		 ** File interface **
 		 ********************/
 
-		bool poll() override
+		bool read_ready() const override
 		{
 			/*
 			 * The connect file is considered readable when the socket is
@@ -675,7 +683,9 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 			return genode_socket_poll(&_sock) & genode_socket_pollout_set();
 		}
 
-		long write(Lxip_vfs_file_handle &handle,
+		bool write_ready() const override { return true; };
+
+		long write(Ip_vfs_file_handle &handle,
 		           Const_byte_range_ptr const &src,
 		           file_size /* ignored */) override
 		{
@@ -728,7 +738,7 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 			return src.num_bytes;
 		}
 
-		long read(Lxip_vfs_file_handle &,
+		long read(Ip_vfs_file_handle &,
 		                   Byte_range_ptr const &dst,
 		                   file_size /* ignored */) override
 		{
@@ -739,7 +749,7 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 
 
 			if (err != GENODE_ENONE) {
-				Genode::error("Vfs::Lxip_connect_file::read(): getsockopt() failed");
+				Genode::error("Vfs::Ip_connect_file::read(): getsockopt() failed");
 				return -1;
 			}
 
@@ -755,18 +765,18 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_local_file final : public Vfs::Lxip_file
+class Vfs::Ip_local_file final : public Vfs::Ip_file
 {
 	public:
 
-		Lxip_local_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "local") { }
+		Ip_local_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "local") { }
 
 		/********************
 		 ** File interface **
 		 ********************/
 
-		long read(Lxip_vfs_file_handle &handle,
+		long read(Ip_vfs_file_handle &handle,
 		                   Byte_range_ptr const &dst,
 		                   file_size /* ignored */) override
 		{
@@ -785,38 +795,40 @@ class Vfs::Lxip_local_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_remote_file final : public Vfs::Lxip_file
+class Vfs::Ip_remote_file final : public Vfs::Ip_file
 {
 	public:
 
-		Lxip_remote_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "remote") { }
+		Ip_remote_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "remote") { }
 
 		/********************
 		 ** File interface **
 		 ********************/
 
-		bool poll() override
+		bool read_ready() const override
 		{
 			switch (_parent.parent().type()) {
-			case Lxip::Protocol_dir::TYPE_DGRAM:
+			case Ip::Protocol_dir::TYPE_DGRAM:
 				return genode_socket_poll(&_sock) & genode_socket_pollin_set();
 
-			case Lxip::Protocol_dir::TYPE_STREAM:
+			case Ip::Protocol_dir::TYPE_STREAM:
 				return true;
 			}
 
 			return false;
 		}
 
-		long read(Lxip_vfs_file_handle &handle,
+		bool write_ready() const override { return false; }
+
+		long read(Ip_vfs_file_handle &handle,
 		          Byte_range_ptr const &dst,
 		          file_size /* ignored */) override
 		{
 			genode_sockaddr addr { .family = AF_INET };
 
 			switch (_parent.parent().type()) {
-			case Lxip::Protocol_dir::TYPE_DGRAM:
+			case Ip::Protocol_dir::TYPE_DGRAM:
 				{
 					/* peek the sender address of the next packet */
 					unsigned long bytes = 0;
@@ -829,7 +841,7 @@ class Vfs::Lxip_remote_file final : public Vfs::Lxip_file
 					if (err) return -1;
 				}
 				break;
-			case Lxip::Protocol_dir::TYPE_STREAM:
+			case Ip::Protocol_dir::TYPE_STREAM:
 				{
 					if (genode_socket_getpeername(&_sock, &addr) != GENODE_ENONE)
 						return -1;
@@ -844,7 +856,7 @@ class Vfs::Lxip_remote_file final : public Vfs::Lxip_file
 			                        a[0], a[1], a[2], a[3], (p[0]<<8)|(p[1]<<0));
 		}
 
-		long write(Lxip_vfs_file_handle &handle,
+		long write(Ip_vfs_file_handle &handle,
 		           Const_byte_range_ptr const &src,
 		           file_size /* ignored */) override
 		{
@@ -863,23 +875,25 @@ class Vfs::Lxip_remote_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_accept_file final : public Vfs::Lxip_file
+class Vfs::Ip_accept_file final : public Vfs::Ip_file
 {
 	public:
 
-		Lxip_accept_file(Lxip::Socket_dir &p, genode_socket_handle &s)
-		: Lxip_file(p, s, "accept") { }
+		Ip_accept_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		: Ip_file(p, s, "accept") { }
 
 		/********************
 		 ** File interface **
 		 ********************/
 
-		bool poll() override
+		bool read_ready() const override
 		{
 			return genode_socket_poll(&_sock) & genode_socket_pollin_set();
 		}
 
-		long read(Lxip_vfs_file_handle &,
+		bool write_ready() const override { return false; }
+
+		long read(Ip_vfs_file_handle &,
 		          Byte_range_ptr const &dst,
 		          file_size /* ignored */) override
 		{
@@ -893,7 +907,7 @@ class Vfs::Lxip_accept_file final : public Vfs::Lxip_file
 };
 
 
-class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
+class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 {
 	public:
 
@@ -908,7 +922,7 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 	private:
 
 		Genode::Allocator        &_alloc;
-		Lxip::Protocol_dir       &_parent;
+		Ip::Protocol_dir       &_parent;
 		genode_socket_handle     &_sock;
 
 		Vfs::File *_files[MAX_FILES];
@@ -922,14 +936,14 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 			return num;
 		}
 
-		Lxip_accept_file  _accept_file  { *this, _sock };
-		Lxip_bind_file    _bind_file    { *this, _sock };
-		Lxip_connect_file _connect_file { *this, _sock };
-		Lxip_data_file    _data_file    { *this, _sock };
-		Lxip_peek_file    _peek_file    { *this, _sock };
-		Lxip_listen_file  _listen_file  { *this, _sock };
-		Lxip_local_file   _local_file   { *this, _sock };
-		Lxip_remote_file  _remote_file  { *this, _sock };
+		Ip_accept_file  _accept_file  { *this, _sock };
+		Ip_bind_file    _bind_file    { *this, _sock };
+		Ip_connect_file _connect_file { *this, _sock };
+		Ip_data_file    _data_file    { *this, _sock };
+		Ip_peek_file    _peek_file    { *this, _sock };
+		Ip_listen_file  _listen_file  { *this, _sock };
+		Ip_local_file   _local_file   { *this, _sock };
+		Ip_remote_file  _remote_file  { *this, _sock };
 
 		struct Accept_socket_file : Vfs::File
 		{
@@ -937,7 +951,7 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 
 		} _accept_socket_file { };
 
-		char _name[Lxip::MAX_SOCKET_NAME_LEN];
+		char _name[Ip::MAX_SOCKET_NAME_LEN];
 
 		Vfs::Directory_service::Open_result
 		_accept_new_socket(Vfs::File_system &fs,
@@ -948,11 +962,11 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 
 		unsigned const id;
 
-		Lxip_socket_dir(Genode::Allocator &alloc,
-		                Lxip::Protocol_dir &parent,
+		Ip_socket_dir(Genode::Allocator &alloc,
+		                Ip::Protocol_dir &parent,
 		                genode_socket_handle &sock)
 		:
-			Lxip::Socket_dir(_name),
+			Ip::Socket_dir(_name),
 			_alloc(alloc), _parent(parent),
 			_sock(sock), id(parent.adopt_socket(*this))
 		{
@@ -970,7 +984,7 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 			_files[REMOTE_NODE]  = &_remote_file;
 		}
 
-		~Lxip_socket_dir()
+		~Ip_socket_dir()
 		{
 			_accept_file.dissolve_handles();
 			_bind_file.dissolve_handles();
@@ -990,7 +1004,7 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 		 ** Socket_dir interface **
 		 **************************/
 
-		Lxip::Protocol_dir &parent() override { return _parent; }
+		Ip::Protocol_dir &parent() override { return _parent; }
 
 		genode_sockaddr &remote_addr() override { return _remote_addr; }
 
@@ -1008,8 +1022,8 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 
 			for (Vfs::File *f : _files) {
 				if (f && Genode::strcmp(f->name(), path) == 0) {
-					Vfs::Lxip_vfs_file_handle *handle = new (alloc)
-						Vfs::Lxip_vfs_file_handle(fs, alloc, mode, f);
+					Vfs::Ip_vfs_file_handle *handle = new (alloc)
+						Vfs::Ip_vfs_file_handle(fs, alloc, mode, f);
 					*out_handle = handle;
 					return Open_result::OPEN_OK;
 				}
@@ -1094,21 +1108,21 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 			return sizeof(Dirent);
 		}
 
-		Lxip_socket_dir(const Lxip_socket_dir&) = delete;
-		Lxip_socket_dir operator=(const Lxip_socket_dir&) = delete;
+		Ip_socket_dir(const Ip_socket_dir&) = delete;
+		Ip_socket_dir operator=(const Ip_socket_dir&) = delete;
 };
 
 
-struct Vfs::Lxip_socket_handle final : Vfs::Lxip_vfs_handle
+struct Vfs::Ip_socket_handle final : Vfs::Ip_vfs_handle
 {
-		Lxip_socket_dir socket_dir;
+		Ip_socket_dir socket_dir;
 
-		Lxip_socket_handle(Vfs::File_system &fs,
+		Ip_socket_handle(Vfs::File_system &fs,
 		                   Genode::Allocator &alloc,
-		                   Lxip::Protocol_dir &parent,
+		                   Ip::Protocol_dir &parent,
 		                   genode_socket_handle &sock)
 		:
-			Lxip_vfs_handle(fs, alloc, 0),
+			Ip_vfs_handle(fs, alloc, 0),
 			socket_dir(alloc, parent, sock)
 		{ }
 
@@ -1127,7 +1141,7 @@ struct Vfs::Lxip_socket_handle final : Vfs::Lxip_vfs_handle
 
 
 Vfs::Directory_service::Open_result
-Vfs::Lxip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
+Vfs::Ip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
                                          Genode::Allocator &alloc,
                                          Vfs::Vfs_handle **out_handle)
 {
@@ -1142,8 +1156,8 @@ Vfs::Lxip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
 	}
 
 	try {
-		Vfs::Lxip_socket_handle *handle = new (alloc)
-			Vfs::Lxip_socket_handle(fs, alloc, _parent, *new_sock);
+		Vfs::Ip_socket_handle *handle = new (alloc)
+			Vfs::Ip_socket_handle(fs, alloc, _parent, *new_sock);
 		*out_handle = handle;
 		return Vfs::Directory_service::Open_result::OPEN_OK;
 	}
@@ -1157,7 +1171,7 @@ Vfs::Lxip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
 };
 
 
-class Lxip::Protocol_dir_impl : public Protocol_dir
+class Ip::Protocol_dir_impl : public Protocol_dir
 {
 	private:
 
@@ -1175,7 +1189,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 		 ** Simple node registry **
 		 **************************/
 
-		enum { MAX_NODES = Lxip::MAX_SOCKETS + 1 };
+		enum { MAX_NODES = Ip::MAX_SOCKETS + 1 };
 		Vfs::Node *_nodes[MAX_NODES];
 
 		unsigned _num_nodes()
@@ -1215,7 +1229,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 			Vfs::Directory_service::Open_result res =
 				Vfs::Directory_service::Open_result::OPEN_ERR_UNACCESSIBLE;
 
-			int type = (_type == Lxip::Protocol_dir::TYPE_STREAM)
+			int type = (_type == Ip::Protocol_dir::TYPE_STREAM)
 			         ? SOCK_STREAM : SOCK_DGRAM;
 
 			Errno err;
@@ -1230,8 +1244,8 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 			}
 
 			try {
-				Vfs::Lxip_socket_handle *handle = new (alloc)
-					Vfs::Lxip_socket_handle(fs, alloc, *this, *sock);
+				Vfs::Ip_socket_handle *handle = new (alloc)
+					Vfs::Ip_socket_handle(fs, alloc, *this, *sock);
 				*out_handle = handle;
 				return Vfs::Directory_service::Open_result::OPEN_OK;
 			}
@@ -1251,7 +1265,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 		Protocol_dir_impl(Genode::Allocator        &alloc,
 		                  Vfs::File_system         &parent,
 		                  char               const *name,
-		                  Lxip::Protocol_dir::Type  type)
+		                  Ip::Protocol_dir::Type  type)
 		:
 			Protocol_dir(name),
 			_alloc(alloc), _parent(parent), _type(type)
@@ -1343,7 +1357,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 			return Open_result::OPEN_ERR_UNACCESSIBLE;
 		}
 
-		unsigned adopt_socket(Lxip::Socket_dir &dir) override
+		unsigned adopt_socket(Ip::Socket_dir &dir) override
 		{
 			Vfs::Node **node = _unused_node();
 			if (!node) throw -1;
@@ -1365,7 +1379,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 			for (Genode::size_t i = 0; i < MAX_NODES; i++) {
 				if (_nodes[i] == nullptr) continue;
 
-				Lxip::Socket_dir *dir = dynamic_cast<Lxip::Socket_dir*>(_nodes[i]);
+				Ip::Socket_dir *dir = dynamic_cast<Ip::Socket_dir*>(_nodes[i]);
 				if (dir && dir->bind() == port) return true;
 			}
 			return false;
@@ -1436,7 +1450,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 };
 
 
-struct Vfs::Lxip_address_info
+struct Vfs::Ip_address_info
 {
 	genode_socket_info _info { };
 
@@ -1444,22 +1458,22 @@ struct Vfs::Lxip_address_info
 };
 
 
-class Vfs::Lxip_address_file final : public Vfs::File
+class Vfs::Ip_address_file final : public Vfs::File
 {
 	private:
 
 		unsigned          &_numeric_address;
-		Lxip_address_info &_info;
+		Ip_address_info &_info;
 
 	public:
 
-		Lxip_address_file(char const *name,
+		Ip_address_file(char const *name,
 		                  unsigned &numeric_address,
-		                  Lxip_address_info &info)
+		                  Ip_address_info &info)
 		: Vfs::File(name),
 		  _numeric_address(numeric_address), _info(info) { }
 
-		long read(Lxip_vfs_file_handle &,
+		long read(Ip_vfs_file_handle &,
 		                   Byte_range_ptr const &dst,
 		                   file_size /* ignored */) override
 		{
@@ -1483,22 +1497,22 @@ class Vfs::Lxip_address_file final : public Vfs::File
 };
 
 
-class Vfs::Lxip_link_state_file final : public Vfs::File
+class Vfs::Ip_link_state_file final : public Vfs::File
 {
 	private:
 
 		bool              &_numeric_link_state;
-		Lxip_address_info &_info;
+		Ip_address_info &_info;
 
 	public:
 
-		Lxip_link_state_file(char const *name,
+		Ip_link_state_file(char const *name,
 		                     bool &numeric_link_state,
-		                     Lxip_address_info &info)
+		                     Ip_address_info &info)
 		: Vfs::File(name),
 		  _numeric_link_state(numeric_link_state), _info(info) { }
 
-		long read(Lxip_vfs_file_handle &,
+		long read(Ip_vfs_file_handle &,
 		          Byte_range_ptr const &dst,
 		          file_size /* ignored */) override
 		{
@@ -1526,9 +1540,9 @@ class Vfs::Lxip_link_state_file final : public Vfs::File
  ** Filesystem implementation **
  *******************************/
 
-class Vfs::Lxip_file_system : public  Vfs::File_system,
+class Vfs::Ip_file_system : public  Vfs::File_system,
                               public  Vfs::Directory,
-                              private Vfs::Lxip_address_info,
+                              private Vfs::Ip_address_info,
                               private Vfs::Remote_io
 {
 	private:
@@ -1540,16 +1554,16 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 		genode_socket_wakeup _wakeup_remote { };
 
-		Lxip::Protocol_dir_impl _tcp_dir {
-			_alloc, *this, "tcp", Lxip::Protocol_dir::TYPE_STREAM };
-		Lxip::Protocol_dir_impl _udp_dir {
-			_alloc, *this, "udp", Lxip::Protocol_dir::TYPE_DGRAM  };
+		Ip::Protocol_dir_impl _tcp_dir {
+			_alloc, *this, "tcp", Ip::Protocol_dir::TYPE_STREAM };
+		Ip::Protocol_dir_impl _udp_dir {
+			_alloc, *this, "udp", Ip::Protocol_dir::TYPE_DGRAM  };
 
-		Lxip_address_file    _address    { "address",    _info.ip_addr,    *this };
-		Lxip_address_file    _netmask    { "netmask",    _info.netmask,    *this };
-		Lxip_address_file    _gateway    { "gateway",    _info.gateway,    *this };
-		Lxip_address_file    _nameserver { "nameserver", _info.nameserver, *this };
-		Lxip_link_state_file _link_state { "link_state", _info.link_state, *this };
+		Ip_address_file    _address    { "address",    _info.ip_addr,    *this };
+		Ip_address_file    _netmask    { "netmask",    _info.netmask,    *this };
+		Ip_address_file    _gateway    { "gateway",    _info.gateway,    *this };
+		Ip_address_file    _nameserver { "nameserver", _info.nameserver, *this };
+		Ip_link_state_file _link_state { "link_state", _info.link_state, *this };
 
 		Vfs::Node *_lookup(char const *path)
 		{
@@ -1593,8 +1607,8 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 		Read_result _read(Vfs::Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
 		                  size_t &out_count)
 		{
-			Vfs::Lxip_vfs_handle *handle =
-				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
+			Vfs::Ip_vfs_handle *handle =
+				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
 
 			return handle->read(dst, out_count);
 		}
@@ -1615,13 +1629,13 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 		static void _schedule_wakeup(void *data)
 		{
-			Lxip_file_system *fs = static_cast<Lxip_file_system *>(data);
+			Ip_file_system *fs = static_cast<Ip_file_system *>(data);
 			fs->schedule_wakeup();
 		}
 
 	public:
 
-		Lxip_file_system(Vfs::Env &env, Genode::Xml_node config)
+		Ip_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Directory(""),
 			_ep(env.env().ep()), _alloc(env.alloc()), _vfs_user(env.user()),
@@ -1635,7 +1649,7 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 			apply_config(config);
 		}
 
-		~Lxip_file_system() { }
+		~Ip_file_system() { }
 
 		char const *type() override { return Vfs::ip_stack().string(); }
 
@@ -1766,14 +1780,14 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 				return STAT_OK;
 			}
 
-			if (dynamic_cast<Lxip_data_file*>(node)) {
+			if (dynamic_cast<Ip_data_file*>(node)) {
 				out.type = Node_type::CONTINUOUS_FILE;
 				out.rwx  = Node_rwx::rw();
 				out.size = 0;
 				return STAT_OK;
 			}
 
-			if (dynamic_cast<Lxip_peek_file*>(node)) {
+			if (dynamic_cast<Ip_peek_file*>(node)) {
 				out.type = Node_type::CONTINUOUS_FILE;
 				out.rwx  = Node_rwx::rw();
 				out.size = 0;
@@ -1835,8 +1849,8 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 				Vfs::File *file = dynamic_cast<Vfs::File*>(node);
 				if (file) {
-					Lxip_vfs_file_handle *handle =
-						new (alloc) Vfs::Lxip_vfs_file_handle(*this, alloc, 0, file);
+					Ip_vfs_file_handle *handle =
+						new (alloc) Vfs::Ip_vfs_file_handle(*this, alloc, 0, file);
 					*out_handle = handle;
 					return OPEN_OK;
 				}
@@ -1856,8 +1870,8 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 			Vfs::Directory *dir = dynamic_cast<Vfs::Directory*>(node);
 			if (dir) {
-				Lxip_vfs_dir_handle *handle =
-					new (alloc) Vfs::Lxip_vfs_dir_handle(*this, alloc, 0, *dir);
+				Ip_vfs_dir_handle *handle =
+					new (alloc) Vfs::Ip_vfs_dir_handle(*this, alloc, 0, *dir);
 				*out_handle = handle;
 
 				return OPENDIR_OK;
@@ -1868,11 +1882,11 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 		void close(Vfs_handle *vfs_handle) override
 		{
-			Lxip_vfs_handle *handle =
-				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
+			Ip_vfs_handle *handle =
+				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
 
-			Lxip_vfs_file_handle *file_handle =
-				dynamic_cast<Vfs::Lxip_vfs_file_handle*>(handle);
+			Ip_vfs_file_handle *file_handle =
+				dynamic_cast<Vfs::Ip_vfs_file_handle*>(handle);
 
 			if (file_handle)
 				_read_ready_waiters_ptr->remove(file_handle->read_ready_elem);
@@ -1895,15 +1909,15 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 			return RENAME_ERR_NO_PERM; }
 
 		/*************************************
-		 ** Lxip_file I/O service interface **
+		 ** Ip_file I/O service interface **
 		 *************************************/
 
 		Write_result write(Vfs_handle *vfs_handle,
 		                   Vfs::Const_byte_range_ptr const &src,
 		                   size_t &out_count) override
 		{
-			Vfs::Lxip_vfs_handle *handle =
-				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
+			Vfs::Ip_vfs_handle *handle =
+				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
 
 			try { return handle->write(src, out_count); }
 			catch (File::Would_block) { return WRITE_ERR_WOULD_BLOCK; }
@@ -1926,8 +1940,8 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 		bool notify_read_ready(Vfs_handle *vfs_handle) override
 		{
-			Lxip_vfs_file_handle *handle =
-				dynamic_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle);
+			Ip_vfs_file_handle *handle =
+				dynamic_cast<Vfs::Ip_vfs_file_handle *>(vfs_handle);
 
 			if (handle) {
 				if (!handle->read_ready_elem.enqueued())
@@ -1940,28 +1954,31 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 		bool read_ready(Vfs_handle const &vfs_handle) const override
 		{
-			Lxip_vfs_handle const &handle =
-				static_cast<Lxip_vfs_handle const &>(vfs_handle);
+			Ip_vfs_handle const &handle =
+				static_cast<Ip_vfs_handle const &>(vfs_handle);
 
 			return handle.read_ready();
 		}
 
-		bool write_ready(Vfs_handle const &) const override
+		bool write_ready(Vfs_handle const &vfs_handle) const override
 		{
 			/* wakeup from WRITE_ERR_WOULD_BLOCK not supported */
-			return true;
+			Ip_vfs_handle const &handle =
+				static_cast<Ip_vfs_handle const &>(vfs_handle);
+
+			return handle.write_ready();
 		}
 
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
-			Vfs::Lxip_vfs_handle *handle =
-				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
+			Vfs::Ip_vfs_handle *handle =
+				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
 			return handle->sync();
 		}
 };
 
 
-struct Lxip_factory : Vfs::File_system_factory
+struct Ip_factory : Vfs::File_system_factory
 {
 
 	/* wakup user task */
@@ -1981,17 +1998,17 @@ struct Lxip_factory : Vfs::File_system_factory
 
 		genode_socket_init(genode_env_ptr(env.env()), &io_progress);
 
-		return new (env.alloc()) Vfs::Lxip_file_system(env, config);
+		return new (env.alloc()) Vfs::Ip_file_system(env, config);
 	}
 };
 
 
 extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	static Vfs::Lxip_vfs_file_handle::Fifo read_ready_waiters;
+	static Vfs::Ip_vfs_file_handle::Fifo read_ready_waiters;
 
 	_read_ready_waiters_ptr = &read_ready_waiters;
 
-	static Lxip_factory factory;
+	static Ip_factory factory;
 	return &factory;
 }
