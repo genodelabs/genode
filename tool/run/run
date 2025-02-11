@@ -955,6 +955,14 @@ proc have_include { name } {
 	return false
 }
 
+##
+# Check if a specific depot recipe is available
+#
+proc have_recipe { name } {
+	set hash_rel_path "recipes/$name/hash"
+	return [expr {[repository_contains $hash_rel_path] != ""}]
+}
+
 
 ##
 # Override the exit procedure
