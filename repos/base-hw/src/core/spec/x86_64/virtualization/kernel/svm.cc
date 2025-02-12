@@ -462,44 +462,42 @@ uint64_t Vmcb::handle_vm_exit()
 	return exitcode;
 }
 
-void Vmcb::switch_world(Core::Cpu::Context &regs)
+void Vmcb::switch_world(Core::Cpu::Context &regs, addr_t stack_start)
 {
-	/*
-	 * We push the host context's physical address to trapno so that
-	 * we can pop it later
-	 */
-	regs.trapno = root_vmcb_phys;
 	asm volatile(
+	    "pushq %[stack];"
+	    "pushq %[host_state];"
 	    "fxrstor (%[fpu_context]);"
 	    "mov %[guest_state], %%rax;"
-	    "mov  %[regs], %%rsp;"
-	    "popq %%r8;"
-	    "popq %%r9;"
-	    "popq %%r10;"
-	    "popq %%r11;"
-	    "popq %%r12;"
-	    "popq %%r13;"
-	    "popq %%r14;"
-	    "popq %%r15;"
-	    "add $8, %%rsp;" /* don't pop rax */
-	    "popq %%rbx;"
-	    "popq %%rcx;"
-	    "popq %%rdx;"
-	    "popq %%rdi;"
-	    "popq %%rsi;"
-	    "popq %%rbp;"
+	    "mov %[regs], %%rbx;"
+	    "mov     (%%rbx), %%r8;"
+	    "mov  0x8(%%rbx), %%r9;"
+	    "mov 0x10(%%rbx), %%r10;"
+	    "mov 0x18(%%rbx), %%r11;"
+	    "mov 0x20(%%rbx), %%r12;"
+	    "mov 0x28(%%rbx), %%r13;"
+	    "mov 0x30(%%rbx), %%r14;"
+	    "mov 0x38(%%rbx), %%r15;"
+	    "mov 0x50(%%rbx), %%rcx;"
+	    "mov 0x58(%%rbx), %%rdx;"
+	    "mov 0x60(%%rbx), %%rdi;"
+	    "mov 0x68(%%rbx), %%rsi;"
+	    "mov 0x70(%%rbx), %%rbp;"
+	    "mov 0x48(%%rbx), %%rbx;"
 	    "clgi;"
 	    "sti;"
 	    "vmload;"
 	    "vmrun;"
 	    "vmsave;"
 	    "popq %%rax;" /* get the physical address of the host VMCB from
-	                     the stack */
+	                     the stack again */
 	    "vmload;"
+	    "popq %%rsp;" /* load stack start */
 	    "stgi;" /* maybe enter the kernel to handle an external interrupt
 	               that occured ... */
 	    "nop;"
 	    "cli;"        /* ... otherwise, just disable interrupts again */
+	    "subq $568, %%rsp;" /* keep room for fpu and general-purpose registers */
 	    "pushq %[trap_vmexit];" /* make the stack point to trapno, the right place
 	                     to jump to _kernel_entry. We push 256 because
 	                     this is outside of the valid range for interrupts
@@ -507,8 +505,11 @@ void Vmcb::switch_world(Core::Cpu::Context &regs)
 	    "jmp _kernel_entry;" /* jump to _kernel_entry to save the
 	                            GPRs without breaking any */
 	    :
-	    : [regs]        "r"(&regs.r8), [fpu_context] "r"(regs.fpu_context()),
-	      [guest_state] "r"(vcpu_data.phys_addr + get_page_size()),
+	    : [regs]        "r" (&regs.r8),
+	      [fpu_context] "r" (&regs.fpu_context()),
+	      [guest_state] "r" (vcpu_data.phys_addr + get_page_size()),
+	      [host_state]  "r" (root_vmcb_phys),
+	      [stack]       "r" (stack_start),
 	      [trap_vmexit] "i"(TRAP_VMEXIT)
 	    : "rax", "memory");
 }

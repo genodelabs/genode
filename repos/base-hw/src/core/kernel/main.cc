@@ -30,7 +30,7 @@ class Kernel::Main
 {
 	private:
 
-		friend void main_handle_kernel_entry();
+		friend void main_handle_kernel_entry(Genode::Cpu_state*);
 		friend void main_initialize_and_handle_kernel_entry();
 		friend time_t main_read_idle_thread_execution_time(unsigned cpu_idx);
 		friend void main_print_char(char c);
@@ -50,7 +50,7 @@ class Kernel::Main
 		                                                               Board::UART_CLOCK,
 		                                                               SERIAL_BAUD_RATE };
 
-		void _handle_kernel_entry();
+		void _handle_kernel_entry(Genode::Cpu_state*);
 
 	public:
 
@@ -61,26 +61,28 @@ class Kernel::Main
 Kernel::Main *Kernel::Main::_instance;
 
 
-void Kernel::Main::_handle_kernel_entry()
+void Kernel::Main::_handle_kernel_entry(Genode::Cpu_state *state)
 {
-	Cpu::Context * context;
+	Cpu::Context *context;
 
 	_mutex.execute_exclusive(
 		[&] () {
 			Cpu &cpu = _cpu_pool.cpu(Cpu::executing_id());
-			context = &cpu.handle_exception_and_schedule();
-			},
+			Cpu::Context &recent = cpu.current_context();
+			if (state) recent.exception(*state);
+			context = &cpu.schedule_next_context(recent);
+		},
 		[&] () {
-			Genode::error("Cpu ", Cpu::executing_id(), " re-entered lock.",
+			Genode::error("Cpu ", Cpu::executing_id(), " re-entered lock. ",
 			              "Kernel exception?!"); });
 
 	context->proceed();
 }
 
 
-void Kernel::main_handle_kernel_entry()
+void Kernel::main_handle_kernel_entry(Genode::Cpu_state *state)
 {
-	Main::_instance->_handle_kernel_entry();
+	Main::_instance->_handle_kernel_entry(state);
 }
 
 
@@ -132,7 +134,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 
 		while (nr_of_initialized_cpus < nr_of_cpus) { }
 
-		Main::_instance->_handle_kernel_entry();
+		Main::_instance->_handle_kernel_entry(nullptr);
 		/* never reached */
 		return;
 	}
@@ -194,7 +196,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 	 */
 	while (!kernel_initialized) {;}
 
-	Main::_instance->_handle_kernel_entry();
+	Main::_instance->_handle_kernel_entry(nullptr);
 }
 
 

@@ -28,7 +28,7 @@ void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 void Cpu::Halt_job::proceed() { }
 
 
-void Thread::exception()
+void Thread::exception(Genode::Cpu_state&)
 {
 	using Context = Core::Cpu::Context;
 	using Stval   = Core::Cpu::Stval;

@@ -14,6 +14,8 @@
 #ifndef _KERNEL__MAIN_H_
 #define _KERNEL__MAIN_H_
 
+#include <cpu/cpu_state.h>
+
 /* base-hw core includes */
 #include <kernel/types.h>
 
@@ -21,7 +23,7 @@ namespace Kernel {
 
 	void main_print_char(char const c);
 
-	void main_handle_kernel_entry();
+	void main_handle_kernel_entry(Genode::Cpu_state *state);
 
 	void main_initialize_and_handle_kernel_entry();
 

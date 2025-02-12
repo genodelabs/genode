@@ -42,7 +42,7 @@ struct Virt_interface
 				Core::Cpu::Context &regs)   = 0;
 	virtual void write_vcpu_state(Vcpu_state &state)    = 0;
 	virtual void read_vcpu_state(Vcpu_state &state)     = 0;
-	virtual void switch_world(Core::Cpu::Context &regs) = 0;
+	virtual void switch_world(Core::Cpu::Context &regs, addr_t) = 0;
 	virtual Virt_type virt_type()                       = 0;
 	virtual Genode::uint64_t handle_vm_exit()           = 0;
 

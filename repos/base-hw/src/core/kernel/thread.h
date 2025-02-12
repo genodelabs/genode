@@ -470,7 +470,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 ** Cpu_context **
 		 *****************/
 
-		void exception() override;
+		void exception(Genode::Cpu_state&) override;
 		void proceed() override;
 
 

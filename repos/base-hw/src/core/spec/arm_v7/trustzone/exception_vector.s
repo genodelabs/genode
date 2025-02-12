@@ -89,17 +89,18 @@ monitor_mode_exception_vector:
 	vstm  r0!, {d0-d15}           /* save FPU registers              */
 	vstm  r0!, {d16-d31}
 	cps   #22                     /* switch back to monitor mode     */
-	mov   r0, #0b111010011        /* spsr to SVC mode, irqs masked   */
-	msr   spsr_cxsf, r0
+	mov   r2, #0b111010011        /* spsr to SVC mode, irqs masked   */
+	msr   spsr_cxsf, r2
 	mov   r1, lr
 	cps   #19
 	mov   sp, r1
 	cps   #22
 	adr   lr, _kernel_entry
 	ldr   lr, [lr]
+	mov   r0, sp                  /* set vm context as first arg     */
 	subs  pc, lr, #0              /* jump back into kernel           */
 
-	_kernel_entry: .long _ZN6Kernel24main_handle_kernel_entryEv
+	_kernel_entry: .long _ZN6Kernel24main_handle_kernel_entryEPN6Genode9Cpu_stateE
 
 
 /* jump to this point to switch to TrustZone's normal world */

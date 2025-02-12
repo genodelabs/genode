@@ -45,7 +45,7 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 Vm::~Vm() {}
 
 
-void Vm::exception()
+void Vm::exception(Genode::Cpu_state&)
 {
 	switch(_state.cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]];

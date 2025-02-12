@@ -298,10 +298,11 @@ _from_vm:
 	mrs x27, cntv_ctl_el0
 	mrs x28, cntkctl_el1
 	stp x25, x26, [x0], #2*8
-	stp w27, w28, [x0]
+	stp w27, w28, [x0], #2*4
+	sub x0,  x0,  #0x3f0 /* overall vcpu state size */
 
-	mov  x0, #0b111
-	msr  cnthctl_el2, x0
+	mov  x1, #0b111
+	msr  cnthctl_el2, x1
 
 	ldr x29,     [sp], #2*8  /* pop vm pic state from stack       */
 	ldp x2, x30, [sp], #2*8  /* pop vm, and host state from stack */
@@ -331,53 +332,53 @@ _from_vm:
 	 ***********************/
 
 	add x30, x30,        #32*8    /* skip general-purpose regs, sp       */
-	ldr  x0,      [x30], #2*8     /* host state ip, skip esr_el1         */
-	ldr  x1,      [x30], #3*8     /* host state pstate,
+	ldr  x1,      [x30], #2*8     /* host state ip, skip esr_el1         */
+	ldr  x2,      [x30], #3*8     /* host state pstate,
 	                                 skip exception_type and esr_el2     */
-	ldp  w2,  w3, [x30], #2*4     /* fpcr and fpsr                       */
+	ldp  w3,  w4, [x30], #2*4     /* fpcr and fpsr                       */
 	add x30, x30,        #32*16+8 /* skip remaining fpu regs and elr_el1 */
-	ldr       x4, [x30], #2*8     /* sp_el1                              */
-	ldp  x5,  x6, [x30], #2*8     /* sctlr_el1, actlr_el1                */
-	ldr       x7, [x30], #1*8     /* vbar_el1                            */
-	ldr       w8, [x30], #4*4     /* cpacr_el1                           */
-	ldp  x9, x10, [x30], #2*8     /* ttbr0_el1, ttbr1_el1                */
-	ldp x11, x12, [x30], #2*8     /* tcr_el1, mair_el1                   */
-	ldr      x13, [x30]           /* amair_el1                           */
+	ldr       x5, [x30], #2*8     /* sp_el1                              */
+	ldp  x6,  x7, [x30], #2*8     /* sctlr_el1, actlr_el1                */
+	ldr       x8, [x30], #1*8     /* vbar_el1                            */
+	ldr       w9, [x30], #4*4     /* cpacr_el1                           */
+	ldp x10, x11, [x30], #2*8     /* ttbr0_el1, ttbr1_el1                */
+	ldp x12, x13, [x30], #2*8     /* tcr_el1, mair_el1                   */
+	ldr      x14, [x30]           /* amair_el1                           */
 
-	msr elr_el2,    x0
-	msr spsr_el2,   x1
-	msr fpcr,       x2
-	msr fpsr,       x3
-	msr sp_el1,     x4
-	msr sctlr_el1,  x5
-	msr actlr_el1,  x6
-	msr vbar_el1,   x7
-	msr cpacr_el1,  x8
-	msr ttbr0_el1,  x9
-	msr ttbr1_el1,  x10
-	msr tcr_el1,    x11
-	msr mair_el1,   x12
-	msr amair_el1,  x13
-	mrs x0, mpidr_el1
-	msr vmpidr_el2, x0
+	msr elr_el2,    x1
+	msr spsr_el2,   x2
+	msr fpcr,       x3
+	msr fpsr,       x4
+	msr sp_el1,     x5
+	msr sctlr_el1,  x6
+	msr actlr_el1,  x7
+	msr vbar_el1,   x8
+	msr cpacr_el1,  x9
+	msr ttbr0_el1,  x10
+	msr ttbr1_el1,  x11
+	msr tcr_el1,    x12
+	msr mair_el1,   x13
+	msr amair_el1,  x14
+	mrs x1, mpidr_el1
+	msr vmpidr_el2, x1
 
 
 	/************************
 	 ** debug/perfm access **
 	 ************************/
 
-	mrs  x0, mdcr_el2
-	movz x1, #0b111101100000
-	bic  x0, x0, x1
-	msr  mdcr_el2, x0
+	mrs  x1, mdcr_el2
+	movz x2, #0b111101100000
+	bic  x1, x1, x2
+	msr  mdcr_el2, x1
 
 	/** disable VM mode **/
-	movz x1, #0b1110000000111001
-	movk x1, #0b10111, lsl 16
-	mrs  x0, hcr_el2
+	movz x2, #0b1110000000111001
+	movk x2, #0b10111, lsl 16
+	mrs  x1, hcr_el2
 	msr vttbr_el2, xzr   /* stage2 table pointer zeroing */
-	bic  x0, x0, x1
-	msr  hcr_el2, x0
+	bic  x1, x1, x2
+	msr  hcr_el2, x1
 
 	eret
 

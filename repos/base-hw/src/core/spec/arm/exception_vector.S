@@ -61,9 +61,9 @@
 .macro _user_to_kernel exception_type, mode, pc_adjust
 
 	cpsid f, #SVC_MODE            /* disable interrupts and change to SVC mode */
+	sub   sp, sp, #0x150          /* make room for cpu context */
 	stm   sp, {r0-r14}^           /* the sp_svc contains the user context pointer */
 	add   r0, sp, #PC_OFFSET
-	ldr   sp, [sp, #STACK_OFFSET] /* restore kernel stack pointer */
 	cps   #\mode
 	sub   r1, lr, #\pc_adjust     /* calculate user program counter */
 	mrs   r2, spsr                /* get user cpsr */
@@ -131,10 +131,11 @@
 	 */
 	adr   lr, _kernel_entry
 	ldr   lr, [lr]
+	mov   r0, sp
 	bx    lr
 
 	_kernel_entry:
-	.long _ZN6Kernel24main_handle_kernel_entryEv
+	.long _ZN6Kernel24main_handle_kernel_entryEPN6Genode9Cpu_stateE
 
 	_fpu_save:
 	.long vfp_save_fpu_context
@@ -158,14 +159,14 @@
 
 	.global kernel_to_user_context_switch
 	kernel_to_user_context_switch:
-	push  { r0 }
-	mov   r0, r1
+	mov   sp, r2
 	bl    vfp_load_fpu_context
-	pop   { r0 }
-	mov   sp, r0
-	ldr   lr, [sp, #15*4]
-	ldr   r1, [sp, #16*4]
-	msr   spsr_cxsf, r1
-	ldm   sp, {r0-r14}^
+	ldr   lr, [r1, #15*4]
+	ldr   r0, [r1, #16*4]
+	msr   spsr_cxsf, r0
+	add   r0, r1, #4
+	ldm   r0, {r1-r14}^
+	sub   r0, r0, #4
+	ldr   r0, [r0]
 	SYSTEM_REGISTER_SYNC_BARRIER /* synchronize after the context switch */
 	subs  pc, lr, #0

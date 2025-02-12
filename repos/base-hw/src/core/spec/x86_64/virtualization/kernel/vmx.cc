@@ -821,7 +821,7 @@ void Vmcs::read_vcpu_state(Genode::Vcpu_state &state)
 	}
 }
 
-void Vmcs::switch_world(Core::Cpu::Context &regs)
+void Vmcs::switch_world(Core::Cpu::Context &regs, addr_t)
 {
 	_load_pointer();
 
@@ -852,7 +852,7 @@ void Vmcs::switch_world(Core::Cpu::Context &regs)
 	    "vmlaunch;"
 	    :
 	    : [regs]           "r"(&regs.r8),
-	      [fpu_context]    "r"(regs.fpu_context())
+	      [fpu_context]    "r"(&regs.fpu_context())
 	    : "memory");
 	/*
 	 * Usually when exiting guest mode, VMX will jump to the address

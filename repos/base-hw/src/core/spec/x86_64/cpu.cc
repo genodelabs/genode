@@ -141,12 +141,6 @@ void Cpu::switch_to(Mmu_context &mmu_context)
 }
 
 
-void Cpu::switch_to(Context &context)
-{
-	tss.ist[0] = (addr_t)&context + sizeof(Cpu_state);
-}
-
-
 unsigned Cpu::executing_id()
 {
 	return Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read());

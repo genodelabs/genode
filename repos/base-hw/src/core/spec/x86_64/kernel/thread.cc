@@ -181,8 +181,6 @@ void Kernel::Thread::proceed()
 	if (!_cpu().active(pd().mmu_regs) && type() != CORE)
 		_cpu().switch_to(pd().mmu_regs);
 
-	_cpu().switch_to(*regs);
-
 	asm volatile("fxrstor (%1)    \n"
 	             "mov  %0, %%rsp  \n"
 	             "popq %%r8       \n"
@@ -202,7 +200,7 @@ void Kernel::Thread::proceed()
 	             "popq %%rbp      \n"
 	             "add  $16, %%rsp \n"
 	             "iretq           \n"
-	             :: "r" (&regs->r8), "r" (regs->fpu_context()));
+	             :: "r" (&regs->r8), "r" (&regs->fpu_context()));
 }
 
 

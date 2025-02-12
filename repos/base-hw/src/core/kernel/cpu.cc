@@ -31,7 +31,7 @@ using namespace Kernel;
  ** Cpu_context **
  *****************/
 
-void Cpu_context::_activate() { _cpu().schedule(*this); }
+void Cpu_context::_activate() { _cpu().assign(*this); }
 
 
 void Cpu_context::_deactivate()
@@ -119,7 +119,7 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
 }
 
 
-void Cpu::schedule(Context &context)
+void Cpu::assign(Context &context)
 {
 	_scheduler.ready(static_cast<Scheduler::Context&>(context));
 	if (_id != executing_id() && _scheduler.need_to_schedule())
@@ -139,11 +139,8 @@ bool Cpu::handle_if_cpu_local_interrupt(unsigned const irq_id)
 }
 
 
-Cpu::Context & Cpu::handle_exception_and_schedule()
+Cpu::Context & Cpu::schedule_next_context(Context &last)
 {
-	Context &context = current_context();
-	context.exception();
-
 	if (_state == SUSPEND || _state == HALT)
 		return _halt_job;
 
@@ -154,7 +151,7 @@ Cpu::Context & Cpu::handle_exception_and_schedule()
 		time_t t = _scheduler.current_time_left();
 		_timer.set_timeout(&_timeout, t);
 		time_t duration = _timer.schedule_timeout();
-		context.update_execution_time(duration);
+		last.update_execution_time(duration);
 	}
 
 	/* return current context */

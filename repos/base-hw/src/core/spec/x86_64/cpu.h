@@ -18,6 +18,7 @@
 #define _CORE__SPEC__X86_64__CPU_H_
 
 /* base includes */
+#include <util/mmio.h>
 #include <util/register.h>
 #include <cpu/cpu_state.h>
 
@@ -29,7 +30,6 @@
 
 /* core includes */
 #include <types.h>
-#include <spec/x86_64/fpu.h>
 #include <spec/x86_64/address_space_id_allocator.h>
 #include <hw/spec/x86_64/page_table.h>
 
@@ -91,6 +91,36 @@ class Core::Cpu : public Hw::X86_64_cpu
 		} __attribute__((packed)) gdt { };
 
 
+		struct Fpu_context
+		{
+			static constexpr size_t SIZE = 512;
+
+			/*
+			 * FXSAVE area providing storage for x87 FPU, MMX, XMM,
+			 * and MXCSR registers.
+			 *
+			 * For further details see Intel SDM Vol. 2A,
+			 * 'FXSAVE instruction'.
+			 */
+			char _fxsave_area[SIZE] = { 0 };
+
+			struct Context : Mmio<SIZE>
+			{
+				struct Fcw   : Register<0, 16>  { };
+				struct Mxcsr : Register<24, 32> { };
+
+				using Mmio<SIZE>::Mmio;
+			};
+
+			Fpu_context()
+			{
+				Context init({ _fxsave_area, SIZE });
+				init.write<Context::Fcw>(0x37f);    /* mask exceptions SysV ABI */
+				init.write<Context::Mxcsr>(0x1f80);
+			}
+		} __attribute__((packed));
+
+
 		struct alignas(16) Context : Cpu_state, Fpu_context
 		{
 			enum Eflags {
@@ -112,6 +142,9 @@ class Core::Cpu : public Hw::X86_64_cpu
 					fp = (void **) fp[0];
 				}
 			}
+
+			Fpu_context& fpu_context() {
+				return static_cast<Fpu_context&>(*this); }
 		} __attribute__((packed));
 
 
@@ -127,13 +160,6 @@ class Core::Cpu : public Hw::X86_64_cpu
 		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id();
-
-		/**
-		 * Switch to new context
-		 *
-		 * \param context  next CPU context
-		 */
-		void switch_to(Context & context);
 
 		bool active(Mmu_context &mmu_context);
 		void switch_to(Mmu_context &mmu_context);

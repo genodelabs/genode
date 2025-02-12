@@ -163,7 +163,7 @@ Kernel::Vm::~Vm()
 }
 
 
-void Kernel::Vm::exception()
+void Kernel::Vm::exception(Genode::Cpu_state&)
 {
 	switch(_state.cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST:

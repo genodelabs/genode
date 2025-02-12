@@ -386,7 +386,7 @@ Board::Vmcs
 	                Core::Cpu::Context &regs) override;
 	void write_vcpu_state(Genode::Vcpu_state &state) override;
 	void read_vcpu_state(Genode::Vcpu_state &state) override;
-	void switch_world(Core::Cpu::Context &regs) override;
+	void switch_world(Core::Cpu::Context &regs, addr_t) override;
 	uint64_t handle_vm_exit() override;
 
 	void save_host_msrs();

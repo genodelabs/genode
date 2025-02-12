@@ -145,7 +145,7 @@ class Kernel::Vm : private Kernel::Object, public Cpu_context
 		 ** Cpu_context **
 		 *****************/
 
-		void exception() override;
+		void exception(Genode::Cpu_state&) override;
 		void proceed() override;
 };
 

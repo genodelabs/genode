@@ -64,19 +64,16 @@ struct Core::Cpu : Hw::Arm_64_cpu
 		RESET                   = 0x800
 	};
 
-	struct alignas(16) Fpu_state
-	{
-		uint128_t q[32];
-		uint64_t  fpsr;
-		uint64_t  fpcr;
-	};
-
 	struct alignas(16) Context : Cpu_state
 	{
 		uint64_t  pstate { };
 		uint64_t  mdscr_el1 { };
 		uint64_t  exception_type { RESET };
-		Fpu_state fpu_state { };
+
+		/* SIMD & FP registers */
+		uint64_t  fpsr { };
+		uint128_t q[32];
+		uint64_t  fpcr { };
 
 		Context(bool privileged);
 

@@ -14,7 +14,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-.include "stack_switch.s"
+.include "memory_consts.s"
 
 /* offsets of member variables in a CPU context */
 .set IP_OFFSET, 17 * 8
@@ -123,15 +123,15 @@
 	.set FPU_CONTEXT_OFFSET, SIZEOF_CPU_STATE
 	/* rsp contains pointer to Cpu::Context */
 
+	movq %rsp, %rdi
+
 	/* save FPU context */
 	movq %rsp, %rax
 	addq $FPU_CONTEXT_OFFSET, %rax
-	movq (%rax), %rax
 	fxsave (%rax)
 
-	switch_to_kernel_stack
-
-	_load_address _ZN6Kernel24main_handle_kernel_entryEv rcx
+	_load_address _ZN6Kernel24main_handle_kernel_entryEPN6Genode9Cpu_stateE rcx
+	subq $8, %rsp
 	jmp *%rcx
 
 

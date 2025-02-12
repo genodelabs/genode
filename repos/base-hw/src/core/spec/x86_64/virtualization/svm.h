@@ -336,7 +336,7 @@ struct Board::Vmcb
 	                Core::Cpu::Context &) override;
 	void write_vcpu_state(Vcpu_state &state) override;
 	void read_vcpu_state(Vcpu_state &state) override;
-	void switch_world(Core::Cpu::Context &regs) override;
+	void switch_world(Core::Cpu::Context &regs, addr_t) override;
 	Genode::uint64_t handle_vm_exit() override;
 
 	Virt_type virt_type() override

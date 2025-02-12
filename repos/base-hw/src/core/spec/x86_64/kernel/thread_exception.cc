@@ -20,9 +20,12 @@
 using namespace Kernel;
 
 
-void Thread::exception()
+void Thread::exception(Genode::Cpu_state &state)
 {
 	using Genode::Cpu_state;
+	using Ctx = Core::Cpu::Context;
+
+	Genode::memcpy(&*regs, &state, sizeof(Ctx));
 
 	switch (regs->trapno) {
 

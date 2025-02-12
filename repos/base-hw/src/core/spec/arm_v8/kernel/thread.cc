@@ -27,8 +27,10 @@ using namespace Kernel;
 void Thread::_call_suspend() { }
 
 
-void Thread::exception()
+void Thread::exception(Genode::Cpu_state &state)
 {
+	Genode::memcpy(&*regs, &state, sizeof(Core::Cpu::Context));
+
 	switch (regs->exception_type) {
 	case Cpu::RESET:         return;
 	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];

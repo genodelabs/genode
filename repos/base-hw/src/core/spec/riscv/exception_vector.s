@@ -52,7 +52,8 @@ _kernel_entry:
 	add x29, x29, x30
 	li x30, HW_MM_KERNEL_STACK_SIZE
 	add sp, x29, x30
-	la x30, _ZN6Kernel24main_handle_kernel_entryEv
+	mv x10, x31
+	la x30, _ZN6Kernel24main_handle_kernel_entryEPN6Genode9Cpu_stateE
 
 	jalr x30
 

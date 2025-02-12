@@ -165,7 +165,7 @@ Vm::~Vm()
 }
 
 
-void Vm::exception()
+void Vm::exception(Genode::Cpu_state&)
 {
 	switch (_state.exception_type) {
 	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];

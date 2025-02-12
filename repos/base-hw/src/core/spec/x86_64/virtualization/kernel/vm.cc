@@ -72,8 +72,6 @@ void Vm::run()
 void Vm::proceed()
 {
 	using namespace Board;
-	_cpu().switch_to(*_vcpu_context.regs);
-
 
 	if (_vcpu_context.init_state == Board::Vcpu_context::Init_state::INITIALIZING) {
 		_vcpu_context.initialize(_cpu(),
@@ -84,7 +82,7 @@ void Vm::proceed()
 	Cpu::Ia32_tsc_aux::write(
 	    (Cpu::Ia32_tsc_aux::access_t)_vcpu_context.tsc_aux_guest);
 
-	_vcpu_context.virt.switch_world(*_vcpu_context.regs);
+	_vcpu_context.virt.switch_world(*_vcpu_context.regs, _cpu().stack_start());
 	/*
 	 * This will fall into an interrupt or otherwise jump into
 	 * _kernel_entry. If VMX encountered a severe error condition,
@@ -95,13 +93,16 @@ void Vm::proceed()
 }
 
 
-void Vm::exception()
+void Vm::exception(Genode::Cpu_state &state)
 {
 	using namespace Board;
+	using Ctx = Core::Cpu::Context;
+
+	Genode::memcpy(&*_vcpu_context.regs, &state, sizeof(Ctx));
 
 	bool pause = false;
 
-	switch (_vcpu_context.regs->trapno) {
+	switch (state.trapno) {
 		case TRAP_VMEXIT:
 			_vcpu_context.exit_reason =
 				_vcpu_context.virt.handle_vm_exit();
@@ -219,7 +220,7 @@ void Board::Vcpu_context::read_vcpu_state(Vcpu_state &state)
 	if (state.fpu.charged()) {
 		state.fpu.with_state(
 		    [&](Vcpu_state::Fpu::State const &fpu) {
-			    memcpy((void *) regs->fpu_context(), &fpu, regs->fpu_size());
+			    memcpy(&regs->fpu_context(), &fpu, Cpu::Fpu_context::SIZE);
 		    });
 	}
 }
@@ -230,8 +231,8 @@ void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
 	state.exit_reason = (unsigned) exit_reason;
 
 	state.fpu.charge([&](Vcpu_state::Fpu::State &fpu) {
-		memcpy(&fpu, (void *) regs->fpu_context(), regs->fpu_size());
-		return regs->fpu_size();
+		memcpy(&fpu, &regs->fpu_context(), Cpu::Fpu_context::SIZE);
+		return Cpu::Fpu_context::SIZE;
 	});
 
 	/* SVM will overwrite rax but VMX doesn't. */

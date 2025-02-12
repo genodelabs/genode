@@ -90,7 +90,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 			Halt_job(Cpu &cpu)
 			: Cpu_context(cpu, 0, 0) { }
 
-			void exception() override { }
+			void exception(Genode::Cpu_state&) override { }
 			void proceed()   override;
 		} _halt_job { *this };
 
@@ -143,14 +143,14 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 		bool handle_if_cpu_local_interrupt(unsigned const irq_id);
 
 		/**
-		 * Schedule 'context' at this CPU
+		 * Assign 'context' to this CPU
 		 */
-		void schedule(Context& context);
+		void assign(Context& context);
 
 		/**
 		 * Return the context that should be executed next
 		 */
-		Context& handle_exception_and_schedule();
+		Context& schedule_next_context(Context &last);
 
 		Board::Pic & pic()   { return _pic; }
 		Timer      & timer() { return _timer; }
