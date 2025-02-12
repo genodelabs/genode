@@ -371,8 +371,10 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 							.executable = false,
 							.writeable  = true
 						});
-					if (result.ok())
+					if (result.ok()) {
+						attach_off += sz;
 						break;
+					}
 					using Error = Region_map::Attach_error;
 					if      (result == Error::OUT_OF_RAM)  rm.upgrade_ram(8*1024);
 					else if (result == Error::OUT_OF_CAPS) rm.upgrade_caps(2);
