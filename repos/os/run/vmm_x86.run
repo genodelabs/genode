@@ -12,7 +12,7 @@ if { [have_cmd_arg --autopilot] } {
 
 	assert {!([have_include power_on/qemu] && [have_spec sel4])}
 
-	assert {[have_spec nova] || [have_spec foc] || [have_spec sel4]}
+	assert {[have_spec nova] || [have_spec foc] || [have_spec sel4] || [have_spec hw]}
 }
 
 # ia32_tsc_aux with rdtscp
