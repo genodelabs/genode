@@ -559,14 +559,28 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 		 * Determine session label to be provided to the server
 		 *
 		 * By default, the client's identity (accompanied with the a
-		 * client-provided label) is presented as session label to the
-		 * server. However, the target node can explicitly override the
-		 * client's identity by a custom label via the 'label'
-		 * attribute.
+		 * client-provided label) is presented as session label to the server.
+		 * However, the target node can explicitly override the client's
+		 * identity and the client's resource selection via the 'label',
+		 * 'identity', 'resource', and 'prepend_resource' attributes.
 		 */
 		using Label = String<Session_label::capacity()>;
-		Label const target_label =
-			target.attribute_value("label", Label(label.string()));
+		auto rewritten_target_label = [&] () -> Label
+		{
+			if (target.has_attribute("label"))
+				return target.attribute_value("label", Label());
+
+			Label const
+				identity = target.attribute_value("identity", Label(label.prefix())),
+				resource = target.attribute_value("resource", Label(label.last_element())),
+				prepend  = target.attribute_value("prepend_resource", Label(""));
+
+			Label const prepended_resource { prepend, resource };
+
+			return identity.length() > 1 ? prefixed_label(identity, prepended_resource)
+			                             : prepended_resource;
+		};
+		Label const target_label = rewritten_target_label();
 
 		Session::Diag const
 			target_diag { target.attribute_value("diag", diag.enabled) };
