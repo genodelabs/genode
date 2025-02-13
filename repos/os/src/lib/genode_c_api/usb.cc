@@ -813,13 +813,15 @@ Interface_component::_handle_request(Constructible<Packet_descriptor> &cpd,
 		{
 			genode_usb_isoc_transfer_header & hdr =
 				*reinterpret_cast<genode_usb_isoc_transfer_header*>(payload.addr);
+
+			size_t const header_size = sizeof(genode_usb_isoc_transfer_header) +
+			                           (hdr.number_of_packets *
+			                           sizeof(genode_usb_isoc_descriptor));
+
 			genode_buffer_t isoc_payload {
-				(void*) ((addr_t)payload.addr +
-				         sizeof(genode_usb_isoc_transfer_header) +
-				         (hdr.number_of_packets *
-				          sizeof(genode_usb_isoc_descriptor))),
-				payload.size - sizeof(genode_usb_isoc_transfer_header) +
-				hdr.number_of_packets * sizeof(genode_usb_isoc_descriptor) };
+				(void *)(addr_t(payload.addr) + header_size),
+				payload.size - header_size };
+
 			cbs->isoc_fn(handle, cpd->index, hdr.number_of_packets,
 			             hdr.packets, isoc_payload, opaque_data);
 			break;
