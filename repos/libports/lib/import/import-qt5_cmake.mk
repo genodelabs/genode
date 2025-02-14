@@ -123,6 +123,7 @@ build_with_cmake: cmake_prepared.tag qt5_so_files
 	-DCMAKE_GL_INCDIRS="$(GENODE_CMAKE_GL_INCDIRS)" \
 	-DCMAKE_OPENGL_LIBS="$(GENODE_CMAKE_OPENGL_LIBS)" \
 	--no-warn-unused-cli \
+	$(QT5_EXTRA_CMAKE_ARGS) \
 	$(CMAKE_LISTS_DIR) \
 	$(QT5_OUTPUT_FILTER)
 

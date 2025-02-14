@@ -111,6 +111,7 @@ build_with_cmake: cmake_prepared.tag qt6_so_files
 	-DCMAKE_SHARED_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_SHLIB)" \
 	-DCMAKE_MODULE_LINKER_FLAGS="$(GENODE_CMAKE_LFLAGS_SHLIB)" \
 	--no-warn-unused-cli \
+	$(QT6_EXTRA_CMAKE_ARGS) \
 	$(CMAKE_LISTS_DIR) \
 	$(QT6_OUTPUT_FILTER)
 
