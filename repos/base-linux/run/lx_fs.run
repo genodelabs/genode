@@ -5,7 +5,7 @@
 # \date   2013-11-07
 #
 
-assert_spec linux
+assert {[have_spec linux]}
 
 #
 # Build

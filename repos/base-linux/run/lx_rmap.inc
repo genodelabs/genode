@@ -4,7 +4,7 @@
 # \date   2013-09-06
 #
 
-assert_spec linux
+assert {[have_spec linux]}
 
 build  [list core init lib/ld [test_build_target]]
 
