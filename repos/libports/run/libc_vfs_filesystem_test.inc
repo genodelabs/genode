@@ -13,13 +13,10 @@
 # \arg test_vfs_config
 #
 
+assert {[have_include power_on/qemu] || [have_spec linux]}
+
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }
-
-if {[expr ![have_include "power_on/qemu"] && ![have_spec linux]]} {
-	puts "Run script does not support this platform."
-	exit 0
-}
 
 #
 # Build

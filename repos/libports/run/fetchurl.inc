@@ -4,15 +4,16 @@
 # \date   2016-06-05
 #
 
-if {[have_board rpi3] || [have_board imx53_qsb_tz] || [have_board rpi]} {
-	puts "Run script does not support this platform."
-	exit 0
-}
+assert {![have_board rpi3]}
+assert {![have_board imx53_qsb_tz]}
+assert {![have_board rpi]}
 
-if {[get_cmd_switch --autopilot] && ([have_board linux] ||
-                                     [have_board virt_qemu_riscv])} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
+assert {[have_recipe pkg/[drivers_nic_pkg]]} \
+	"Recipe for 'pkg/[drivers_nic_pkg]' not available."
+
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_board linux] && ![have_board virt_qemu_riscv]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 #

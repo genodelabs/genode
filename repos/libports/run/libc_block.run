@@ -1,7 +1,4 @@
-if {[expr ![have_include "power_on/qemu"] && ![have_spec linux]]} {
-	puts "Test only supports Qemu or Linux.\n";
-	exit 0
-}
+assert {[have_include power_on/qemu] || [have_spec linux]}
 
 create_boot_directory
 

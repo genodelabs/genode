@@ -1,16 +1,9 @@
-if {![have_include power_on/qemu]} {
-	puts "Run script is only supported on Qemu"
-	exit 0
-}
+assert {[have_include power_on/qemu]}
+assert {![have_board rpi3]}
 
-if {[have_board rpi3]} {
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0
-}
-
-if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_board virt_qemu_riscv]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 create_boot_directory

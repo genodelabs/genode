@@ -1,14 +1,6 @@
-assert_spec x86
-
-if {[have_board linux]} {
-	puts "Run script does not support Linux."
-	exit 0
-}
-
-if {[have_include "power_on/qemu"]} {
-	puts "Run script does not support Qemu"
-	exit 0
-}
+assert {[have_spec x86]}
+assert {![have_board linux]}
+assert {![have_include power_on/qemu]}
 
 build {
 	core init timer lib/ld lib/libc lib/vfs lib/posix lib/vfs_legacy_oss

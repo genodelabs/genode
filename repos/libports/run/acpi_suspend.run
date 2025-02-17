@@ -17,15 +17,8 @@
 #
 #  Thereby, by default serial output is disabled by this script for non Qemu.
 
-assert_spec x86
-
-if {
-	![have_spec hw] &&
-	![have_spec nova]
-} {
-	puts "Platform is unsupported."
-	exit 0
-}
+assert {[have_spec x86]}
+assert {[have_spec hw] || [have_spec nova]}
 
 
 if {[have_spec nova]} {

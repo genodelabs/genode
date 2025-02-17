@@ -1,7 +1,5 @@
-if {[have_spec linux]} {
-	puts "The [run_name] scenario requires QEMU networking."
-	exit 1
-}
+assert {[have_include power_on/qemu]} \
+	"Run script requires QEMU networking"
 
 create_boot_directory
 

@@ -1,10 +1,8 @@
-#
-# Raspberry PI 1 needs "undef exc" handling emulation code in the kernel
-# for ieee754 full-compliant support
-#
-if {[have_board rpi]} {
-	puts "Run script does not support Raspberry Pi 1"
-	exit 0
+assert {![have_board rpi]} {
+	Run script is not supported on this platform.
+
+	Raspberry PI 1 needs "undef exc" handling emulation code in the kernel
+	for ieee754 full-compliant support
 }
 
 build { core init lib/ld test/ieee754 lib/posix lib/libc lib/libm lib/vfs }

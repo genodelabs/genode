@@ -20,7 +20,7 @@
 #    ! sudo ip tuntap delete $TAP_DEV mode tap
 #
 
-assert_spec linux
+assert {[have_spec linux]}
 
 build {
 	core init timer lib/ld lib/libc lib/vfs lib/vfs_lwip

@@ -10,17 +10,14 @@ set config_ds 1024
 
 set run_script_timeout 500000
 
-if { [get_cmd_switch --autopilot] } {
+if {[have_cmd_arg --autopilot]} {
 	set current_date [clock format [clock seconds] -format %a]
-	if {[get_cmd_switch --autopilot] && $current_date != "Sat" && $current_date != "Sun" } {
-		puts "\n Run script is not supported on this platform today. \n";
-		exit 0
+	assert {$current_date == "Sat" || $current_date == "Sun"} \
+		"Autopilot mode is not supported on this platform today."
 	}
 
-	if {[have_include "power_on/qemu"]} {
-		puts "Run script does not support autopilot mode on Qemu"
-		exit 0
-	}
+	assert {![have_include power_on/qemu]} \
+		"Autopilot mode is not supported on this platform."
 
 	set run 0
 	set run_script_timeout 1200
@@ -38,10 +35,7 @@ if { [get_cmd_switch --autopilot] } {
 		set run 1
 	}
 
-	if {!$run} {
-		puts "\n Run script is not supported on this platform. \n";
-		exit 0
-	}
+	assert {$run} "Autopilot mode is not supported on this platform."
 }
 
 create_boot_directory

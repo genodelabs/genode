@@ -5,12 +5,9 @@
 #       configured for the application and for the USB driver.
 #
 
-if {[have_include "power_on/qemu"] || [have_spec linux]} {
-	puts "Run script does not support Qemu or Linux"
-	exit 0
-}
-
-assert_spec x86_64
+assert {[have_spec x86_64]}
+assert {![have_include power_on/qemu]}
+assert {![have_spec linux]}
 
 #
 # Please configure your reader's vendor and product IDs here

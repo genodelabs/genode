@@ -1,8 +1,8 @@
-if { [get_cmd_switch --autopilot] } { assert_spec x86 }
+assert {![have_spec linux]}
 
-if { [have_spec linux] } {
-	puts "Run script is not supported on this platform."
-	exit 0
+if {[have_cmd_arg --autopilot]} {
+	assert {[have_spec x86]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 create_boot_directory

@@ -1,6 +1,6 @@
-if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_board virt_qemu_riscv]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 set targets {

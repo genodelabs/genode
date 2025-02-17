@@ -22,10 +22,7 @@
 #    ! sudo ip tuntap delete tap0 mode tap
 #
 
-if {![have_board linux]} {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
+assert {[have_board linux]}
 
 set nping  [installed_command nping]
 set setcap [installed_command setcap]
