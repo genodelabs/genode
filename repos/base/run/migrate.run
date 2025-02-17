@@ -1,17 +1,12 @@
 build { core init lib/ld test/migrate timer }
 
-if {![have_include "power_on/qemu"]} {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
-if {[have_spec foc] && ([have_board pbxa9] || [have_board rpi3])} {
-	# foc kernel does detect solely 1 CPU */
-	puts "Run script is not supported on this platform"
-	exit 0
-}
-if {![have_spec nova] && ![have_spec foc] && ![have_spec sel4]} {
-	puts "Run script is not supported on this platform"
-	exit 0
+assert {[have_include power_on/qemu]}
+
+assert {[have_spec nova] || [have_spec foc] || [have_spec sel4]}
+
+if {[have_spec foc]} {
+	assert {![have_board pbxa9] && ![have_board rpi3]} \
+		"foc kernel does detect solely 1 CPU"
 }
 
 create_boot_directory
