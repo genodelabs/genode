@@ -6,3 +6,6 @@ DOWNLOADS := qt6.archive
 URL(qt6) := https://download.qt.io/archive/qt/6.6/6.6.2/single/qt-everywhere-src-6.6.2.tar.xz
 SHA(qt6) := 3c1e42b3073ade1f7adbf06863c01e2c59521b7cc2349df2f74ecd7ebfcb922d
 DIR(qt6) := src/lib/qt6
+
+PATCHES   := src/qt6/host/patches/qtwebengine_qtbug59769.patch
+PATCH_OPT := -p1 -d src/lib/qt6
