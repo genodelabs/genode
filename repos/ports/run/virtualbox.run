@@ -1,4 +1,4 @@
-assert_spec nova
+assert {[have_spec nova]}
 
 set use_net 0
 set use_usb_qemu 0

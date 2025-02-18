@@ -1,4 +1,4 @@
-assert_spec x86_64
+assert {[have_spec x86_64]}
 
 set use_net 0
 set use_overlay 0

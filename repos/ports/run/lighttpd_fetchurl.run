@@ -4,10 +4,8 @@
 # \date   2022-12-03
 #
 
-if {[have_board virt_qemu_riscv]} {
-	puts "Run script is not supported on this platform (missing curl and libssh)."
-	exit 0
-}
+assert {![have_board virt_qemu_riscv]} \
+	"Run script is not supported on this platform (missing curl and libssh)."
 
 proc ip_stack      { } { return lwip }
 proc download_size { } { return "1M" }

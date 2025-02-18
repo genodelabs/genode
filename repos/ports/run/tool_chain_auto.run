@@ -1,16 +1,14 @@
-if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
-	puts "\nRunning tool-chain auto test in autopilot on Qemu is not recommended."
-	exit 0
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_include power_on/qemu]} \
+		"Running tool-chain auto test in autopilot on Qemu is not recommended."
 }
 
-if {[have_spec pistachio] || [have_spec sel4] ||
-    [have_board imx53_qsb_tz] || [have_board rpi] ||
-    [expr [have_spec foc] && [have_board imx6q_sabrelite]] ||
-    [expr [have_spec foc] && [have_board imx7d_sabre]] } {
-	puts "Platform is unsupported."
-	exit 0
-}
-
+assert {![have_spec pistachio]}
+assert {![have_spec sel4]}
+assert {![have_board imx53_qsb_tz]}
+assert {![have_board rpi]}
+assert {!([have_spec foc] && [have_board imx6q_sabrelite])}
+assert {!([have_spec foc] && [have_board imx7d_sabre])}
 
 create_boot_directory
 

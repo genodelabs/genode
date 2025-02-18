@@ -2,8 +2,8 @@
 # Debian 64bit VM cloning Genode git sources, preparing and building pieces
 #
 
-assert_spec x86
-assert_spec nova
+assert {[have_spec x86]}
+assert {[have_spec nova]}
 
 set flavor   "stress_64"
 set vm_ram   "1280M"

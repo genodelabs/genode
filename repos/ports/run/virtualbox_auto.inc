@@ -1,18 +1,11 @@
-assert_spec x86
+assert {[have_spec x86]}
+assert {[have_spec nova] || [have_spec foc]}
 
-if {(![have_spec nova] && ![have_spec foc])} {
-	puts "Platform is unsupported."
-	exit 0
-}
+assert {![have_include power_on/qemu]}
 
-if {[have_include "power_on/qemu"]} {
-	puts "\nRun script does not support Qemu.\n"
-	exit
-}
-
-if { [get_cmd_switch --autopilot] && [have_spec x86_32] } {
-	puts "Run script does not support autopilot mode on 32 bit"
-	exit 0
+if {[have_cmd_arg --autopilot]} {
+	assert {![have_spec x86_32]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 if {[have_spec nova]} {

@@ -1,14 +1,6 @@
-assert_spec x86
-
-if {(![have_spec nova] && ![have_spec foc])} {
-	puts "Platform is unsupported."
-	exit 0
-}
-
-if {[have_include "power_on/qemu"]} {
-	puts "\nRun script does not support Qemu.\n"
-	exit 0
-}
+assert {[have_spec x86]}
+assert {[have_spec nova] || [have_spec foc]}
+assert {![have_include power_on/qemu]}
 
 if {[expr !$use_rumpfs && $use_vms > 1] } {
 	puts "\nConfiguration bug - have only one raw block partition.\n"

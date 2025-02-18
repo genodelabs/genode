@@ -1,9 +1,10 @@
 #!/usr/bin/expect
 
-set current_date [clock format [clock seconds] -format %a]
-if {[get_cmd_switch --autopilot] && $current_date != "Sat" && $current_date != "Sun" } {
-	puts "\n Run script is not supported on this platform today. \n";
-	exit 0
+if {[have_cmd_arg --autopilot]} {
+	set current_date [clock format [clock seconds] -format %a]
+	assert {$current_date == "Sat" || $current_date == "Sun"} \
+		"Autopilot mode is not supported on this platform today."
+	}
 }
 
 run_genode_until $match_boot_string 40

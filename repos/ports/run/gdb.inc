@@ -9,10 +9,7 @@ proc platform_supported { } {
 	return 0
 }
 
-if {![platform_supported]} {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
+assert {[platform_supported]}
 
 proc gdb_pkg_name { } {
 	if {[have_spec arm_64]} {

@@ -1,16 +1,5 @@
-proc platform_supported { } {
-	if {[have_board pc]} {
-		return 1
-	} elseif {[have_board rpi3] && [have_include power_on/qemu]} {
-		return 1
-	}
-	return 0
-}
-
-if {![platform_supported]} {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
+assert {([have_board pc]) ||
+        ([have_board rpi3] && [have_include power_on/qemu])}
 
 create_boot_directory
 

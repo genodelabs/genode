@@ -6,12 +6,10 @@
 #
 
 # our nightly test infrastructure currently support usb 3.0 on our x86 64bit machine only
-assert_spec x86_64
+assert {[have_spec x86_64]}
 
-if {[have_include "power_on/qemu"] || [have_include "power_on/linux"]} {
-	puts stderr "\nNetperf USB3.0 running on Qemu/Linux is not supported.\n"
-	exit 0
-}
+assert {![have_include power_on/qemu]}
+assert {![have_include power_on/linux]}
 
 # network configuration
 set use_nic_bridge      0

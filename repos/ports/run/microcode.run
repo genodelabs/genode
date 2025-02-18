@@ -1,17 +1,15 @@
-assert_spec x86
+assert {[have_spec x86]}
 
 set path_microcode "[exec [genode_dir]/tool/ports/current --no-print-directory microcode_intel]/src/app/intel/intel-ucode"
 set microcode_files [glob -nocomplain -dir $path_microcode *-*-*]
 
-if { [get_cmd_switch --autopilot] } {
+if {[have_cmd_arg --autopilot]} {
 
-	if {[have_include "power_on/qemu"]} {
-		puts "\nRun script does not support Qemu.\n"
-		exit 0
-	}
+	assert {![have_include power_on/qemu]} \
+		"Autopilot mode is not supported on this platform."
 
 	# platform_info data about CPUs on other kernels missing
-	assert_spec nova
+	assert {[have_spec nova]}
 
 	if { [have_spec x86_64] } {
 		copy_file $path_microcode/06-3c-03 bin/micro.code
@@ -20,11 +18,10 @@ if { [get_cmd_switch --autopilot] } {
 	}
 }
 
-if {![file exists bin/micro.code]} {
-	puts "\nMissing bin/micro.code file for your target machine."
-	puts "Please select for your target CPU the microcode patch located in $path_microcode/xx-xx-xx."
-	puts "and copy it to bin/micro.code. xx-xx-xx stands for your target CPU, family-model-stepping\n"
-	exit 0
+assert {[file exists bin/micro.code]} {
+	Missing bin/micro.code file for your target machine.
+	Please select for your target CPU the microcode patch located in $path_microcode/xx-xx-xx.
+	and copy it to bin/micro.code. xx-xx-xx stands for your target CPU, family-model-stepping
 }
 
 proc apply_microcode { } { return true }
@@ -64,7 +61,7 @@ append qemu_args "-smp 4 "
 run_genode_until "microcode check done" 30
 
 # cleanup
-if { [get_cmd_switch --autopilot] } {
+if {[have_cmd_arg --autopilot]} {
 	file delete -force bin/micro.code
 	foreach file $microcode_files {
 	  file delete bin/$file

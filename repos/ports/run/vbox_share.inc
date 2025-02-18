@@ -57,16 +57,10 @@
 # beforehand. test.bat contains the actual instructions to be performed by
 # the VM - for this script to copy the test.bin file from D: to E:.
 
-if {[have_include "power_on/qemu"]} {
-	puts "\nRun script does not support Qemu.\n"
-	exit 0
-}
+assert {![have_include power_on/qemu]}
 
 # Tested for nova
-if {![have_spec nova]} {
-	puts "Platform is unsupported."
-	exit 0
-}
+assert {[have_spec nova]}
 
 set virtualbox_binary "virtualbox-rem"
 if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }

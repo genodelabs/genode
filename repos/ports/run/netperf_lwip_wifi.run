@@ -4,17 +4,19 @@
 # \date   2013-07-08
 #
 
-assert_spec x86
+assert {[have_spec x86]}
 
-if {[have_include "power_on/qemu"] || [have_include "power_on/linux"]} {
-	puts stderr "\nNetperf WIFI running on Qemu/Linux is not supported.\n"
-	exit 0
-}
+assert {![have_include power_on/qemu]}
+assert {![have_include power_on/linux]}
 
-if {[get_cmd_switch --autopilot] && [have_spec x86_32] &&
-    ![expr [have_spec foc] || [have_spec nova]]} {
-	puts stderr "\nNetperf WIFI running with non-ACPI kernel on native x86_32 test machine is not supported because of wrong interrupt number in pci config space (should be 11 instead 10).\n"
-	exit
+if {[have_cmd_arg --autopilot] && [have_spec x86_32]} {
+	assert {[have_spec foc] || [have_spec nova]} {
+		Autopilot mode is not supported on this platform.
+
+		Netperf WIFI running with non-ACPI kernel on native x86_32 test
+		machine is not supported because of wrong interrupt number in
+		pci config space (should be 11 instead 10).
+	}
 }
 
 # network configuration

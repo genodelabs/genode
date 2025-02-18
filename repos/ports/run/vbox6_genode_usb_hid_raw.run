@@ -8,10 +8,9 @@
 # Note: the USB device(s) to be passed through must be included in the whitelist.
 #
 
-if { [have_include "power_on/qemu"] || ![have_spec nova] || ![have_spec x86_64]} {
-	puts "Run script is only supported on 64-bit NOVA on real hardware"
-	exit 0
-}
+assert {[have_spec x86_64]}
+assert {[have_spec nova]}
+assert {![have_include power_on/qemu]}
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
@@ -184,7 +183,7 @@ global specs
 global repositories
 
 set depot_auto_update ""
-if {[get_cmd_switch --depot-auto-update]} {
+if {[have_cmd_arg --depot-auto-update]} {
 	set depot_auto_update "--depot-auto-update"
 }
 
@@ -212,7 +211,7 @@ append boot_components { usb_hid_raw.iso vbox6_genode_usb_hid_raw.vbox }
 
 build_boot_image $boot_components
 
-if { ![get_cmd_switch --autopilot] } { run_genode_until forever }
+if { ![have_cmd_arg --autopilot] } { run_genode_until forever }
 
 # autopilot test
 

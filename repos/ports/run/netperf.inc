@@ -27,15 +27,9 @@
 #    ! sudo ip tuntap delete $TAP_DEV mode tap
 #
 
-if {[have_include "power_on/qemu"]} {
-	puts "\nRun script does not support Qemu.\n"
-	exit 0
-}
-
-if {[have_board imx53_qsb_tz] || [have_board rpi]} {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
+assert {![have_include power_on/qemu]}
+assert {![have_board imx53_qsb_tz]}
+assert {![have_board rpi]}
 
 proc unique_byte_per_platform { } {
 
