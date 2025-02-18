@@ -10,7 +10,7 @@ source ${genode_dir}/repos/dde_linux/run/wifi_config.inc
 #
 # Restrict platforms
 #
-assert_spec x86
+assert {[have_spec x86]}
 
 #
 # Build

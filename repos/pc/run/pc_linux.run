@@ -1,13 +1,10 @@
-if {![have_include "load/ipxe"]} {
-	puts "run script requires load/ipxe"
-	exit 1
-}
+assert {[have_spec x86]}
+assert {[have_include load/ipxe]}
 
 proc _arch { } {
-	if {[have_spec "x86_32"]} { return "x86_32" }
-	if {[have_spec "x86_64"]} { return "x86_64" }
-	puts "not supported architecture!"
-	exit 1
+	if {[have_spec x86_32]} { return "x86_32" }
+	if {[have_spec x86_64]} { return "x86_64" }
+	assert {false} "Run script is not supported on this platform."
 }
 
 set arch    [_arch]
