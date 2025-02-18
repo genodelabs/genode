@@ -12,12 +12,13 @@ proc sculpt_version { } { return "24.10" }
 
 proc assert_platform_supported { } {
 
-	if {[have_board pc]}          return
-	if {[have_board imx8q_evk]}   return
-	if {[have_board mnt_reform2]} return
-	if {[have_board mnt_pocket]}  return
-	if {[have_board linux]}       return
-	if {[have_board pinephone]}   return
+	if {[have_board pc]}               return
+	if {[have_board imx8q_evk]}        return
+	if {[have_board mnt_reform2]}      return
+	if {[have_board mnt_pocket]}       return
+	if {[have_board linux]}            return
+	if {[have_board pinephone]}        return
+	if {[have_board imx8mp_armstone]}  return
 
 	puts "Platform is unsupported.";
 	exit 0;
@@ -229,6 +230,18 @@ proc driver_routes { } {
 		<service name="ROM" label="touch">             <parent label="goodix_touch"/> </service>
 		<service name="ROM" label="touch.dtb">         <parent label="goodix-pinephone.dtb"/> </service>
 		<service name="IRQ" label_prefix="touch ->"> <child name="drivers" label="runtime -> touch -> PH4"/> </service>
+	}
+
+	set result(imx8mp_armstone) {
+		<service name="ROM" label="fb">                <parent label="imx8mp_armstone_fb"/> </service>
+		<service name="ROM" label="fb.dtb">            <parent label="imx8mp_armstone_fb-imx8mp_armstone.dtb"/> </service>
+		<service name="ROM" label="mmc">               <parent label="imx8mq_sd_card"/> </service>
+		<service name="ROM" label="mmc.dtb">           <parent label="imx8mq_sd_card-imx8mp_armstone.dtb"/> </service>
+		<service name="ROM" label="nic">               <parent label="fec_nic"/> </service>
+		<service name="ROM" label="nic.dtb">           <parent label="fec_nic-imx8mp_armstone.dtb"/> </service>
+		<service name="ROM" label="usb">               <parent label="imx8m_usb_host"/> </service>
+		<service name="ROM" label="usb.dtb">           <parent label="imx8m_usb_host-imx8mp_armstone.dtb"/> </service>
+		<service name="I2c"> <child name="drivers"/> </service>
 	}
 
 	if {[info exists result([board])]} {
