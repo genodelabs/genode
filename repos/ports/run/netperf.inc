@@ -348,9 +348,10 @@ append_if [have_spec linux] config "
 append config {
 
 			>
-				<nat domain="server" tcp-ports="100" />
+				<nat domain="server" tcp-ports="100" udp-ports="100" />
 				<tcp-forward port="} [server_data_port] {" domain="server" to="10.0.3.2" />
 				<tcp-forward port="} [server_ctrl_port] {" domain="server" to="10.0.3.2" />
+				<udp-forward port="} [server_data_port] {" domain="server" to="10.0.3.2" />
 			</domain>
 
 			<domain name="server" interface="10.0.3.1/24" verbose_packets="no">
