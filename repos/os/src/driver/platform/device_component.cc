@@ -50,6 +50,11 @@ void Driver::Device_component::_release_resources()
 	_io_port_range_registry.for_each([&] (Io_port_range & iop) {
 		destroy(_session.heap(), &iop); });
 
+	/**
+	 * remove reserved memory ranges only from corresponding IOMMU domains
+	 * note: default domain must keep added ranges since device PD never gets
+	 *       disabled
+	 */
 	_io_mmu_registry.for_each([&] (Io_mmu & io_mmu) {
 		_session.domain_registry().with_domain(io_mmu.name,
 			[&] (Driver::Io_mmu::Domain & domain) {
@@ -338,7 +343,7 @@ Device_component::Device_component(Registry<Device_component> & registry,
 			[&] (Driver::Device::Io_mmu const &io_mmu) {
 				session.domain_registry().with_domain(io_mmu.name,
 				                                      add_range_fn,
-				                                      [&] () { });
+				                                      default_domain_fn);
 				/* save IOMMU names for this device */
 				new (session.heap()) Io_mmu(_io_mmu_registry, io_mmu.name);
 			},
