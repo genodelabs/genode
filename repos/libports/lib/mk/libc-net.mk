@@ -5,6 +5,7 @@ SRC_C = getservent.c nsdispatch.c nsparser.c nslexer.c
 
 # needed for getaddrinfo()
 SRC_C += getaddrinfo.c
+SRC_C += gai_strerror.c
 
 # needed for getnameinfo()
 SRC_C += getnameinfo.c name6.c
