@@ -1,0 +1,8 @@
+LICENSE := LGPL
+VERSION := 6.6.2
+
+DOWNLOADS := qt6_qt5compat.git
+
+URL(qt6_qt5compat) := https://github.com/cproc/qt6_qt5compat.git
+REV(qt6_qt5compat) := issue5458
+DIR(qt6_qt5compat) := src/lib/qt6_qt5compat
