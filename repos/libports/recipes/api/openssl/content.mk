@@ -18,6 +18,12 @@ include:
 	mkdir $@
 	cp -r $(PORT_DIR)/include/* $@/
 
+content: include/spec
+
+include/spec:
+	mkdir -p $@
+	cp -r $(REP_DIR)/src/lib/openssl/spec/* $@/
+
 content: src/lib/openssl
 
 src/lib/openssl:
