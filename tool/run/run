@@ -382,6 +382,11 @@ match_max -d 40000
 # the error code -2.
 #
 proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
+
+	if {$wait_for_re == "forever"} {
+		assert {![have_cmd_arg --autopilot]}
+	}
+
 	#
 	# If a running_spawn_id is specified, wait for the expected output
 	#
