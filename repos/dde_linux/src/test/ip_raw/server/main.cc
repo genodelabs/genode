@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2023-2024 Genode Labs GmbH
+ * Copyright (C) 2023-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,10 +16,10 @@
 #include <net/ipv4.h>
 #include <util/endian.h>
 
-#include <genode_c_api/socket_types.h>
 #include <genode_c_api/socket.h>
 
 #include <data.h>
+#include <socket_types.h>
 
 namespace Test {
 	using namespace Net;
@@ -66,9 +66,26 @@ struct Test::Server
 	enum { SIZE = Data::SIZE };
 	char buf[SIZE];
 
+	genode_socket_wakeup _wakeup;
+
+	void wakeup_remote_peer()
+	{
+		genode_socket_wakeup_remote();
+	}
+
+	static void _wakeup_remote(void *data)
+	{
+		Server *s = static_cast<Server *>(data);
+		s->wakeup_remote_peer();
+	}
+
 	Server(Env &env) : env(env)
 	{
 		genode_socket_init(genode_env_ptr(env), nullptr);
+
+		_wakeup.data     = this;
+		_wakeup.callback = _wakeup_remote;
+		genode_socket_register_wakeup(&_wakeup);
 
 		genode_socket_config address_config = {
 			.dhcp       = false,
@@ -131,19 +148,22 @@ struct Test::Server
 		       (handle_reuse = genode_socket(AF_INET, SOCK_STREAM, 0, &err)) != nullptr);
 
 		int opt = 1;
+		Errno reuse_err = genode_socket_setsockopt(handle, GENODE_SOL_SOCKET, GENODE_SO_REUSEPORT,
+		                                           &opt, sizeof(opt));
 		ASSERT("setsockopt REUSEPORT handle...",
-		       genode_socket_setsockopt(handle, GENODE_SOL_SOCKET, GENODE_SO_REUSEPORT,
-		                               &opt, sizeof(opt)) == GENODE_ENONE);
-		ASSERT("setsockopt REUSEPORT handle re-use...",
-		       genode_socket_setsockopt(handle_reuse, GENODE_SOL_SOCKET, GENODE_SO_REUSEPORT,
-		                               &opt, sizeof(opt)) == GENODE_ENONE);
+		       (reuse_err == GENODE_ENONE || reuse_err == GENODE_ENOPROTOOPT));
+		if (reuse_err == GENODE_ENONE)
+			ASSERT("setsockopt REUSEPORT handle re-use...",
+			       genode_socket_setsockopt(handle_reuse, GENODE_SOL_SOCKET, GENODE_SO_REUSEPORT,
+			                               &opt, sizeof(opt)) == GENODE_ENONE);
 
 		genode_sockaddr addr;
 		addr.family  = AF_INET;
 		addr.in.port = host_to_big_endian(port);
 		addr.in.addr = INADDR_ANY;
 		ASSERT("bind socket...", genode_socket_bind(handle, &addr) == GENODE_ENONE);
-		ASSERT("bind socket re-use...", genode_socket_bind(handle_reuse, &addr) == GENODE_ENONE);
+		if (reuse_err == GENODE_ENONE)
+			ASSERT("bind socket re-use...", genode_socket_bind(handle_reuse, &addr) == GENODE_ENONE);
 
 		ASSERT("listen...", genode_socket_listen(handle, 5) == GENODE_ENONE);
 

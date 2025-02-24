@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2023-2024 Genode Labs GmbH
+ * Copyright (C) 2023-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,11 +17,10 @@
 #include <net/ipv4.h>
 #include <util/endian.h>
 
-#include <genode_c_api/socket_types.h>
 #include <genode_c_api/socket.h>
 
 #include <data.h>
-
+#include <socket_types.h>
 
 namespace Test {
 	struct Client;
@@ -58,9 +57,26 @@ struct Test::Client
 	Data data { };
 	char *recv_buf[Data::SIZE];
 
+	genode_socket_wakeup _wakeup;
+
+	void wakeup_remote_peer()
+	{
+		genode_socket_wakeup_remote();
+	}
+
+	static void _wakeup_remote(void *data)
+	{
+		Client *c = static_cast<Client *>(data);
+		c->wakeup_remote_peer();
+	}
+
 	Client(Env &env) : env(env)
 	{
 		genode_socket_init(genode_env_ptr(env), nullptr);
+
+		_wakeup.data     = this;
+		_wakeup.callback = _wakeup_remote;
+		genode_socket_register_wakeup(&_wakeup);
 
 		genode_socket_config address_config = { .dhcp = true };
 		genode_socket_config_address(&address_config);
@@ -178,6 +194,8 @@ struct Test::Client
 			ASSERT("send bytes...",
 			       genode_socket_sendmsg(handle, msg.header(), &bytes_send) == GENODE_ENONE
 			       && bytes_send == MAX_UDP_LOAD);
+
+			genode_socket_wait_for_progress();
 		}
 	}
 };

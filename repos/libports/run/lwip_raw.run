@@ -1,0 +1,3 @@
+proc ipstack { } { return lwip }
+
+source ${genode_dir}/repos/dde_linux/run/ip_raw.inc
