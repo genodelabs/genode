@@ -1,0 +1,755 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 25.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+Genode 25.02 delivers a healthy mix of features, optimizations, and
+hardware-compatibility improvements.
+
+The prime feature is the continuation of the multi-monitor topic of the
+[https://genode.org/documentation/release-notes/24.11#Multi-monitor_support - previous]
+release, covering multi-monitor window management and going as far as
+seamlessly integrating multi-monitor virtual machines
+(Section [Multi-monitor window management and virtual machines]).
+The second and long anticipated feature is the Chromium engine version 112
+in combination with Qt 6.6.2, which brings our port of the Falkon web browser
+on par with the modern web (Section [Qt, WebEngine, and Falkon browser]).
+On the account of exploratory activities, we are happy to report that
+Qemu can now be used directly on Genode (Section [Qemu on Genode]).
+
+This year's [https://genode.org/about/road-map - road map] emphasizes
+rigidity, clarity, and performance. So it is no surprise that the new version
+delivers on that front. We have cut down graphics-related performance
+bottlenecks by factor 3 by leveraging SIMD (Section [SIMD optimizations]),
+made the page-fault handling of our custom base-hw microkernel more
+efficient, and lifted scalability limitations when using the seL4 and
+Fiasco.OC kernels (Section [Platforms]).
+
+Regarding hardware support, the kernel-agnostic IOMMU support got complemented
+with IRQ protection on x86, and the Genode-based Sculpt OS has become
+compatible with the latest Intel Meteor Lake Framework laptop as well as
+embedded F&S MX8MP armStone boards.
+
+
+Multi-monitor window management and virtual machines
+####################################################
+
+With
+[https://genode.org/documentation/release-notes/24.11#Multi-monitor_support - version 24.10],
+Sculpt OS became usable for mirrored and panoramic multi-monitor setups. In a
+panoramic setup, each display shows a portion of a larger panorama maintained
+by the nitpicker GUI server. So far, only the administrative user interface
+had been multi-monitor-aware. It is always presented on the display that hosts
+the mouse pointer to ensure that the entirety of the user interface is
+reachable at all times. All other parts of the GUI stack, however, interpreted
+the entire panorama as one large display spanning all monitors.
+
+The current release extends Genode's multi-monitor awareness to the window
+manager and its companion components, thereby addressing the interplay between
+virtual desktops and physical displays, preserving the reachability of all
+applications whenever a monitor is unplugged, and improving the ergonomics of
+interactive window manipulations.
+
+
+GUI stack
+---------
+
+The GUI stack comprises the following components.
+
+[image multi_monitor_wm]
+
+At the bottom, one or more display drivers access the physical monitors
+attached to the machine. For each monitor, the driver maintains a distinct
+physical framebuffer and creates a capture session at the GUI server.
+From the perspective of the GUI server, a display driver appears as a GUI
+capturing client, not unlike a screen recorder. The GUI server maintains a
+single panorama, which is a 2D coordinate system where GUI applications are
+placed. Its configuration defines which part of the panorama gets exposed to
+which capture client. In the example, the eDP capture client obtains the left
+part whereas the HDMI capture client obtains the right part.
+
+The window manager (wm) uses the nitpicker GUI server as client and acts
+as a GUI server itself, providing the same interface as nitpicker. Sitting
+in-between the nitpicker GUI server and the application, it transparently
+supplements the notions of windows, virtual desktops, and the keyboard focus.
+Among the window-manager clients, two components stand out by having special
+roles. The window layouter defines which application is presented at what
+location in the panorama by generating a window layout. The window layout is
+produced according to user configurable rules, which are updated by
+interactive layout changes like moving a window. The decorator, in turn,
+paints window decorations according to this window layout. Note that neither
+the layouter nor the decorator are able to observe information displayed by
+the applications or any user input directed to applications.
+
+The window layouter introduces the abstraction of virtual desktops, named
+_screens_ for brevity. Each screen can be assigned to a part of the panorama.
+If two screens are assigned to the same part, only the top-most screen is
+displayed. In the example, screens 1 to 3 are assigned to the part captured by
+the eDP monitor whereas screens 4 to 6 are assigned to the part captured by
+the HDMI monitor.
+
+A regular GUI application connected to the window manager only observes its
+corresponding display as its virtual panorama. A multi-window application
+maintains one GUI session per window. So from the window-manager's
+perspective, each window appears as a separate GUI client.
+
+
+Screen-to-display assignment
+----------------------------
+
+The layouter rules can host any number of display declarations as follows.
+
+! <display name="primary"/>
+
+Optional attributes 'xpos', 'ypos', 'width', and 'height' can be specified to
+assign a specific rectangle of the panorama to the display. Otherwise, the
+window layouter applies the following policy. The captured rectangles present
+in the panorama are assigned to displays in left to right order. This gives
+the opportunity to assign the notion of a "primary" or "secondary" display to
+different parts of the panorama by the mere order of '<display>' nodes.
+If more displays are declared than present, all unassigned displays will refer
+to the left-most captured rectangle of the panorama.
+
+To get more precise control over the assignment of captured areas to displays,
+a display node can host any number of '<capture>' sub nodes that are matched
+against the captured areas present within the panorama. The panorama areas are
+named after the labels of capture clients (i.e., display drivers) connected to
+the nitpicker GUI server. The matching can be expressed via the attributes
+'label', 'label_prefix', and 'label_suffix'. The first match applies.
+E.g., the following configuration may be useful for a laptop that is sometimes
+connected to an HDMI display at work or a Display-Port display at home.
+
+! <display name="primary">
+!   <capture label_suffix="HDMI-1"/>
+!   <capture label_suffix="DP-2"/>
+!   <capture label_suffix="eDP-1"/>
+! </display>
+! <display name="secondary">
+!   <capture label_suffix="eDP-1"/>
+! </display>
+
+When neither the HDMI-1 display nor the DP-2 display is present, the laptop's
+internal eDP display is used as both primary and secondary display. Once an
+external display is connected, the external display acts as primary display
+while the laptop's internal display takes the role of the secondary display.
+
+Once declared, the display names can be specified as 'display' attribute to
+'<screen>' nodes, thereby assigning virtual desktops to displays. Screens
+referring to the same portion of the panorama are organized as a stack where
+only the top-most screen is visible at a time. As each display has its own
+distinct stack of screens, one screen cannot be visible at multiple displays.
+To mirror the same content on multiple displays, it is best to leverage the
+'<merge>' feature of the display driver. Should a '<screen>' lack a valid
+display attribute, it spans the entire panorama.
+
+
+Improved focus switching and free-arrangeable layouts
+-----------------------------------------------------
+
+The switching within the focus history (Super-Tab) is now restricted to
+windows that are located at visible screens. This avoids the need to tab
+through invisible windows, which can be confusing when using windows scattered
+across several virtual desktops.
+
+Furthermore, the focus is now automatically changed to the most recently
+focused visible window whenever the currently focused window becomes
+invisible. This happens when switching between virtual desktops. This behavior
+hopefully also fits well with focus handling of temporary windows. When a
+temporary window appears, it needs to be focused manually (to prevent focus
+stealing). But once the temporary window disappears, the focus returns to the
+previously focused window.
+
+For interactively moving or resizing a window, the user needs a good aim to
+grab the corresponding window handles as presented by the decorator. We have
+now supplemented the ability to click anywhere within a window while the
+wm-modifier key (i.e., Super) is held. Depending on the position within the
+window, the click is interpreted as click on the title (when clicking at inner
+50% of the window, or as a click on the border (when clicking at an area
+nearby the window boundary).
+
+Up until now, the warping of a window to another screen required a manual
+modification of the layouter rules, which is arguably not perfectly user
+friendly. Now, for screens visible side by side in a multi-monitor setup, a
+window can be moved from one screen to another by dragging the window title.
+When using screens as virtual desktops on one display, a window can be moved
+to another screen by switching the screen (by pressing a key matching a
+desired screen) while the window is dragged with the mouse. So the user can
+drag the window between virtual desktops.
+
+As an additional convenience, the currently focused window can now be taken
+to another screen by pressing the wm-modifier key together with Shift and
+the screen number.
+
+
+Versioned layouter rules and new defaults
+-----------------------------------------
+
+To accommodate the multi-monitor window management, we had to extend the
+window-layouter rules. By renaming the rules file to a version number
+reflecting the date of change (24.12), we prevent the loss of window-layout
+state when switching back and forth between different versions of the
+window layouter.
+
+The default rules now contain the definitions of three displays ("primary",
+"secondary", and "ternary") and map three screens to each display.
+
+
+Multi-monitor virtual machines
+------------------------------
+
+A notable client of the window manager in the multi-monitor setting is
+VirtualBox, a prime example for virtual-machine monitors. For a seamless
+user experience, real displays must be integrated as virtual monitors inside
+the VM that can be dynamically enabled or disabled. The virtual monitors then
+reflect the physical display configuration and can, thus, be configured in the
+guest operating system as a virtual panorama.
+
+: <video controls width="720">
+:   <source src="https://genode.org/files/genode_25_02_multi_monitor.mp4" type="video/mp4" />
+:   <a href="https://genode.org/files/genode_25_02_multi_monitorh.mp4">Download as mp4</a>
+: </video>
+
+For that purpose, we extended VirtualBox by a two-stage monitor configuration.
+First, the '<Display>' node in the .vbox configuration file defines the
+maximum number of potentially connected virtual monitors by the 'monitorCount'
+attribute.
+
+!<Display VRAMSize="64" monitorCount="2"/>
+
+Each enabled VirtualBox monitor requests a dedicated GUI session, which is
+equivalent to a window on screen as described above. Now, the enablement and
+labeling of these sessions is done via '<monitor>' nodes in the VirtualBox
+runtime configuration as follows where up to 'monitorCount' monitors are
+supported.
+
+!<monitor label="right"/>
+!<monitor label="left"/>
+
+The labels can be used in window-manager rules to configure and place the
+corresponding window inside the panorama. The order of the nodes directly
+controls the connection order at the virtual graphics card, which is important
+for the in-guest configuration of the virtual panorama. Note that, at least
+one monitor configuration node is required as otherwise no virtual monitor
+will be enabled. This is in contrast to prior versions, which always enabled
+one monitor.
+
+
+Qemu on Genode
+##############
+
+[https://en.wikipedia.org/wiki/QEMU - Qemu] is an all-purpose open-source tool
+for cross-architecture emulation for whole operating systems. Its merits for
+efficient and rapid developments are unmatched for many system developers.
+It thereby plays a very important role in Genode development.
+
+We have longed for using Qemu natively on Genode for quite a time now - as
+documented by this [https://github.com/genodelabs/genode/issues/116 - GitHub issue],
+which dates back to 2012. Actually, in 2019 there was already an attempt (see
+the issue) to get Qemu up and running, which - well - succeeded to the degree
+that it compiled and linked. At that time the build system of Qemu was way too
+complex to be used directly by the Genode framework and hand-made solutions
+were common. Usually, once the initial rush of motivation drops, such on-off
+efforts tend to become neglected, which happened to happen also for the 2019
+Qemu attempt. So the approach was condemned to fail in the long run.
+
+Since then, the [https://github.com/genodelabs/goa - Goa] tool entered the
+picture and evolved over the years to the point where it became tempting to
+give a Qemu port a second try. The approach of Goa to reuse the unmodified
+build infrastructure of the 3rd-party software as closely as possible induced
+hope. Hence, over the last year, we have worked on bringing Qemu - with the
+help of Goa - to Genode and we are happy to announce a state that is able to
+run Qemu 9.0.1 on x86_64 for emulating ARM target architectures, e.g.
+qemu-system-aarch64 and qemu-system-arm.
+
+The Goa sources of the port are available via alex-ab's
+[https://github.com/alex-ab/goa-projects/commits/qemu_25_02 - Goa repository].
+Additionally, ready-to-use packages for Sculpt OS 24.10 are available. After
+downloading the packages via alex-ab's Sculpt index and deploying them,
+initial configuration files named _config.qemu.aarch64_ or _config.qemu.arm_
+will be imported into the selected file system. Those files can then be
+adjusted for the desired board to emulate, e.g:
+
+! ...
+! <arg value="qemu-system-aarch64"/>
+! <arg value="-M"/>         <arg value="raspi3b"/>
+! <arg value="-m"/>         <arg value="1024"/>
+! <arg value="-nographic"/>
+! <arg value="-serial"/>    <arg value="null"/>
+! <arg value="-serial"/>    <arg value="mon:stdio"/>
+! <arg value="-kernel"/>    <arg value="/image_raspi3b"/>
+! ...
+
+The example shows the familiar Qemu configuration options in Genode's XML
+configuration style. In the example above, a Raspberry PI 3b target has been
+set up that expects a kernel image named _image_raspi3b_ to be located next to
+the configuration file. After adjusting the configuration file, the component
+merely needs to be restarted and Qemu will boot with the new configuration.
+
+The current port is still work in progress. Further potential directions are
+the support of qemu-system-x86_64 and support for Genode's VM session
+interface to leverage hardware-assisted virtualization, and thereby
+complementing the existing Seoul VMM and the VirtualBox VMMs on x86 with a
+further powerful option.
+
+
+Qt, WebEngine, and Falkon browser
+#################################
+
+A big motivation for the ongoing effort to update our Qt port from Qt5 to Qt6
+was the prospect of an updated Chromium web engine for the Falkon web browser
+as more and more websites stopped working correctly with Chromium version 83
+of Qt 5.15.2. This release updates our Falkon port to version 24.01.75, which
+in addition to the previous Qt 5.15.2 port can be built with the freshly added
+Qt 6.6.2 web engine port based on Chromium version 112.
+
+Not all features of the previous Qt5-based Falkon are working yet, for example
+support for video capturing from a webcam is still missing, but other
+multimedia keatures like playing of YouTube videos are supported already.
+
+Experimental Qt6 Falkon Sculpt packages are available in the 'cproc' depot,
+but require a Sculpt version built from the current Genode release. They will
+also be made available for the upcoming official Sculpt release.
+
+Aside from the new Qt6 web engine and Falkon ports, we also split the previous
+Qt6 port into smaller ports for the individual Qt modules to avoid having to
+download and store the huge QtWebEngine code base when it is not needed.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Init configuration improvements
+===============================
+
+Simplified RAM assignments
+--------------------------
+
+In init's configuration, the assignment of RAM to a component is expressed as
+follows:
+
+! <start name="report_rom">
+!   ...
+!   <resource name="RAM" quantum="2M"/>
+!   ...
+! </start>
+
+We have now introduced a new 'ram' attribute as a concise alternative.
+
+! <start name="report_rom" ram="2M">
+!   ...
+! </start>
+
+This change is complemented with the ability of defining a global default RAM
+quota following the existing pattern of the default caps definition, e.g., the
+following '<default>' node alleviates the need to repeatedly state reasonable
+'ram' and 'caps' values in each single start node.
+
+! <default caps="100" ram="1M"/>
+
+
+Partial session-label rewriting
+-------------------------------
+
+When
+[https://genode.org/documentation/genode-foundations/24.05/system_configuration/The_init_component.html#Session_routing - routing]
+a session request, a route can be selected by using a label (or a label suffix
+or a label prefix) as key.
+In the target node ('<parent/>' or '<child name="..."/>'), it is possible to
+[https://genode.org/documentation/genode-foundations/24.05/system_configuration/The_init_component.html#Session-label_rewriting - replace]
+the label by another one. For example, the following routing rule matches a
+ROM session labeled "config". If the route is taken, the session is directed
+to the config_fs_rom server and the label is rewritten to "managed/runtime".
+So the server will hand out this file as ROM module, which then appears as
+"config" at the client.
+
+! <route>
+!   ...
+!   <service name="ROM" label="config">
+!     <child name="config_fs_rom" label="managed/runtime"/> </service>
+!   ...
+! </route>
+
+In hierarchic scenarios (e.g., nested instances of init), labels assume a form
+like "runtime -> system_shell -> terminal -> config". The client's intent (in
+this case, the client wants to obtain "config") is successively watermarked by
+the components in the chain of authority involved in the session creation.
+In the example, the terminal's session request traverses the system-shell init
+as well as the runtime init before reaching the server.
+
+In short, the label encodes two things: the expression of the client's intent
+(naming a server-provided resource like ROM module), and an unforgeable (by
+the client) representation of the client's identity as observed by the server.
+The former is the last part of the label whereas the latter are all the
+leading parts.
+
+Init's label-rewriting mechanism is a useful tool of abstraction, which allows
+for grouping clients to roles. However, as the label can only be rewritten as
+a whole, the rewriting rule needs to know both the client's identity and the
+client's intent. Should the client's intent vary (e.g., a client requesting a
+variety of ROM modules), a dedicated rewriting rule is needed for each case.
+By introducing the following new attributes for the selective rewriting of
+only the identity or the resource part of the label, such policies become much
+easier to express.
+
+:'identity="rw"': replaces the identity part of the label by "rw" while
+  keeping the resource part. So the client's identity can be replaced by
+  a role while keeping the client's intent intact.
+
+:'resource="/bin/"': replaces the client's intent while retaining the
+  client's identity. Here, a client's request for a file-system session
+  becomes hardwired to one directory of the server.
+
+:'prepend_resource="/usr/local"': prepends the resource part of the label with
+  a given prefix. The example restricts the client-provided path to the
+  bounds of the server's /usr/local/ directory, as a substitute for the
+  traditional chroot component.
+
+
+Enriched file-system session-label convention
+=============================================
+
+Genode 25.02 changes the way of how a client-selected subdirectory is
+communicated to the file-system server at session-creation time. The former
+opaque session argument is now passed as last label element, which allows for
+the flexible tweaking of this argument by init's session-routing and
+label-rewriting mechanisms. In particular, it alleviates the need for creating
+chroot component instances.
+
+This change requires the following four adaptations at the configuration
+level:
+
+* Each file-system session request must now carry a path starting
+  with '/' as last session argument. Hence, '<fs>' nodes of the VFS that
+  feature a 'label' attribute must extend the attribute value
+  with " -> /". For '<fs>' nodes with no label attribute, "/" is
+  used as last label argument by default.
+
+* For matching session-routing rules at init's configuration,
+  the matching of full labels must be replaced by 'label_prefix'
+  matches, excluding the last (path) argument.
+
+* Wherever a label of a file-system session is rewritten by using
+  init's 'label' attribute in a '<parent>' or '<child>' target node,
+  the new attribute 'identity' should be used instead. This replaces
+  the identity part of the label while preserving the client's
+  directory argument.
+
+* Analogously to the matching of session-routing rules, server-side
+  policy-selection rules that formerly matched a concrete 'label'
+  must be changed to match a 'label_prefix' instead.
+
+As a good practice, 'label_prefix' values should end with " ->" if possible,
+which clearly delimits the identity part of the label used by the matching.
+
+
+SIMD optimizations
+==================
+
+With screen resolutions growing, the proliferation of multi-monitor setups,
+and in anticipation of screen-rotation support later this year, our existing
+pixel-shovelling routines show their limitations. This prompted us to
+investigate the use of SIMD (single instruction multiple data) for such
+purpose, leveraging ARM Neon on the 64-bit ARM architecture and SSE4 on the
+64-bit x86 architecture.
+
+We have put our attention on two well known bottlenecks, namely the
+back-to-front blitting performed by display drivers and alpha blending
+performed by the nitpicker GUI server. The existing blit library has been
+extended by two new interfaces 'Blit::back2front' and 'Blit::blend_xrgb_a'
+accommodating these use cases. With the planned support for screen rotation in
+the back of our heads, the 'back2front' implementation supports the rotation
+by 0, 90, 180, and 270 degrees as well as screen flipping.
+
+Our effort spent on the SIMD optimizations paid off. The new versions improve
+the performance roughly by factor 3 compared to our original routines.
+Non-SIMD implementations of the same interfaces are available as fallbacks,
+which are employed on 32-bit architectures and RISC-V.
+
+
+Device drivers
+##############
+
+User-space IOMMU support for IRQ remapping
+==========================================
+
+While adding kernel-agnostic DMA protection in Genode
+[https://genode.org/documentation/release-notes/23.11#Kernel-agnostic_DMA_protection - 23.11],
+we intentionally left IRQ protection out of scope. This release completes the
+kernel-agnostic IOMMU enablement on Intel platforms by adding IRQ-remapping
+support to the platform driver.
+
+Since the platform driver already controls the MSI/MSI-X enablement for PCI
+devices, setting up the corresponding remapping tables was rather straightforward.
+Integrating remapping support for legacy interrupts, however, was a bit more
+involved. It required us to also add support for the _I/O APIC (Advanced_
+_Programmable Interrupt Controller)_ to the platform driver. Similar to how the
+_DMA Remapping Hardware Unit Definitions_ (DRHDs) are reflected in the _acpi_
+report generated by the ACPI driver and added to the _devices_ report by our
+PCI decode component, the available I/O APICs are now also part of the
+_devices_ report. With the added information, the platform driver is able to
+take over control of the interrupt controller and set up IRQ remapping unless
+the kernel already enabled IRQ remapping. Since the NOVA kernel already
+implements IRQ remapping, the platform driver's I/O APIC and IRQ-remapping
+logic is only effective on our base-hw kernel.
+
+Note that as a prerequisite for handling IRQ remapping tables, we also needed
+to switch from using the register-based invalidation interface to the queued
+invalidation interface, which is the new default (if supported by the
+platform).
+
+
+Sculpt-OS compatibility with F&S i.MX 8MP armStone
+==================================================
+
+During the past six months, a lot of effort was spent to support additional
+NXP i.MX 8M Plus centered devices, like the Compulab IOT Gateway and the MNT
+Pocket Reform. With the current release, we extend the range of devices
+capable to run Sculpt OS by another board featuring this SoC, namely the
+armStone board from F&S Embedded.
+
+As it is based on the same SoC, we were able to reuse most drivers for the
+platform like USB, MMC, or Ethernet. But to enable the more complex and board
+specific conglomerate of the display engine and differing connectors (HDMI
+instead of MIPI-DSI), we ported an alternative framebuffer driver from the
+vendor's Linux kernel fork to Genode.
+
+With most peripheral drivers in place, we can now provide an instance of
+Sculpt OS running on top of the armStone board. To facilitate the build of an
+SD-card image, you can extend the RUN_OPT variable by:
+
+! RUN_OPT += --include image/armstone_sdcard
+
+This will automatically create an SD-card image whenever executing a
+run-script for the armStone board, e.g.:
+
+! make run/sculpt_image BOARD=imx8mp_armstone
+
+As the resulting SD-card image is not bootable directly - since the board
+relies on booting from eMMC - a second-stage loadable u-boot (with image-size
+constraints lifted) is readily included in the image.
+
+
+USB
+===
+
+We addressed a shortcoming when selecting USB endpoints where only the
+interface number was considered in the selection process and the alternate
+settings number was ignored. Thereby the order, in which the interface
+descriptors were iterated, was accidentally determining the endpoint addresses
+that were communicated to the client, i.e., the USB device driver.
+
+In case of mass-storage devices, like external SSDs, the 'usb_block' driver
+tried to operate the device with the endpoint addresses belonging to the
+USB-Attached-SCSI (UAS) alternate setting rather than the bulk-only interface
+it supports.
+
+With the fix that includes the alternate setting number in the selection
+process in place, the order is now of no consequence and the affected devices
+are working.
+
+
+Audio
+=====
+
+In order to improve user experience, especially with regard to video
+conferencing, we extended our [https://www.openbsd.org - OpenBSD] based audio
+driver with an option to customize microphone selection. The '<config>' node
+of the audio driver now supports a 'mic_priority' attribute. Supported values
+are "internal" and "external" (default). In case two microphones are present,
+e.g., a headset and an internal microphone on a notebook, a value of
+"internal" will enable the speakers of the headset and the microphone of the
+notebook whereas "external" will enable the microphone of the headset.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Genode's custom kernel supports the notion of IPC-helping since the very
+beginning. This concept means that one thread calling another one via an
+Inter-Process-Communication (IPC) message will lend its own
+scheduling-abilities to the target thread. As the caller will block until it
+receives a response, this is a nice property to pass its time to the target
+side, which acts on behalf of the caller anyway. This nice concept was
+originally inspired by the NOVA kernel. However, in contrast to NOVA and most
+L4-like microkernels, the base-hw kernel does not use the IPC mechanism to
+forward page-faults to the pager thread that should resolve it. Thereby, all
+scheduling parameters, like priorities and CPU quanta that we can distribute
+in the system, are valid across component boundaries when using IPC, except
+for page-faults. But this can lead to unwanted interferences in between
+components of different priority bands that depend on the same pager thread.
+Therefore, we have generalized the notion of helping in our custom kernel to
+lend a thread's scheduling properties not only when doing IPC, but also when a
+page-fault occurs. Moreover, there is not only one global pager thread
+available anymore, but one pager thread per CPU.
+
+To aid debugging during development of the base system, e.g., when adding new
+features or new platforms to the kernel, we have added additional detection and
+diagnostics about the hardware state should a page fault occur in unexpected
+conditions.
+
+In order to support modern x86 hardware that doesn't feature a legacy
+programmable interval timer (PIT), we have consolidated the calibration of the
+time stamp counter (TSC) and local APIC to use the ACPI timer during bootstrap
+and provide the base-hw kernel with these calibration values as part of the
+boot information.
+
+
+NOVA microhypervisor
+====================
+
+With this release we added support to detect and parse x2APIC entries of the
+ACPI [https://wiki.osdev.org/MADT - MADT] tables, which contain information to
+locate and configure all CPUs during initialization of the NOVA kernel. Even
+though the x2APIC feature is required to support more than 256 CPUs, our
+actual motivation was a new Intel Meteor Lake based Framework notebook with 22
+CPU cores. For this specific notebook, however, no MADT entries for local APIC
+entries were available, just the x2APIC entries. We used this circumstance to
+synchronize and harmonize the local APIC implementation of the NOVA upstream
+development with the NOVA version as used by Genode.
+
+
+Lifted limitations on Fiasco.OC and seL4
+========================================
+
+During preparation of the 'Celebrating kernel diversity with Genode' talk at
+[https://fosdem.org/2025/schedule/event/fosdem-2025-5768-celebrating-kernel-diversity-with-genode - FOSDEM 2025],
+the Fiasco.OC and seL4 based platforms received several improvements in order
+to demo their principal working states with Sculpt OS.
+
+The base-foc version has become fit to boot on UEFI-based platforms by
+extending the core component to look up the initial ACPI RSDP information.
+Additionally, the base-foc capability-selector management in Genode got
+extended to support more capability selectors.
+
+The base-sel4 platform received support to set up and use MSI interrupts for
+all devices and associated drivers, which improved the success rate of
+Sculpt OS noticeable on modern notebooks.
+
+Finally, all modern kernels, namely NOVA, HW, Fiasco.OC, and seL4 are now using
+the pre-bootloader feature of bender to enable the
+[https://genode.org/documentation/release-notes/22.11#Configurable_Intel_HWP_mode - Intel HWP]
+feature during boot time consistently.
+
+
+Build system and tools
+######################
+
+Goa SDK
+=======
+
+While working on several ports of 3rd-party software using the Goa SDK, we
+further tweaked its support of commodity build systems. This includes the
+propagation of shared-library linker flags and the execution of 'make install'
+in autoconf-based and make-based projects. Moreover, Goa used to symlink the
+complete content from a project's _src/_ directory into the build directory.
+As this could create ping-pong effects with generated files, Goa now leaves
+generated files untouched (unless provided with the '--rebuild' flag).
+
+Autoconf-based projects are now pointed to the used API archives for looking up
+pkg-config files. This prevents pkg-config from accidentally pulling library
+information from the host system and instead only takes this information from
+_*.pc_ files in the referenced depot archives.
+
+Furthermore, we updated the built-in depot archive versions to Sculpt 24.10.3.
+
+
+Compilation changes
+===================
+
+During the work on ARM Neon and Intel SSE4 in the context of the SIMD
+optimizations mentioned in Section [SIMD optimizations], we encountered two
+limitations of our tool chain's default behavior:
+
+First, even though Genode does not depend on the host system's C library (a
+few hybrid Genode/Linux components notwithstanding), the tool chain defines
+'__STDC_HOSTED__' by default. This becomes a problem when using the ARM-Neon
+compiler intrinsics, which rely on the compiler's _stdint.h_, which in turn
+expects the presence of a C library whenever '__STDC_HOSTED__' is set. To
+dispel this wrong expectation, we explicitly specify the '-ffreestanding'
+compiler argument by default now. In rare cases of a hybrid Genode/Linux
+components where this default is unwanted, this default can be overridden by
+setting 'CC_OPT_FREESTANDING' to an empty value in the target's
+build-description file.
+
+Second, the tool chain does not allow for the use of SSE4 compiler intrinsics
+on x86 by default. Instead of merely enabling SSE4 via the '-msse4' compiler
+argument, we decided to globally switch to the '-march=x86-64-v2' profile to
+denote the processor generation with all its features as common baseline.
+The profile corresponds to Intel Core processors of the year 2010 or newer,
+which still comprises our precious X201 notebooks with Intel Arrandale CPUs.
+
+
+Streamlined handling of run-script preconditions
+================================================
+
+Not all run scripts are compatible with all kernels, boards, architectures, or
+circumstances. Usually, such constraints had been expressed by statements
+like this:
+
+! if {![have_board pc]} {
+!   puts stderr "only supported on PC hardware"
+!   exit 0
+! }
+
+Over the years and with the number of run scripts growing, those preconditions
+have become complex and many. Moreover, run scripts backing out because of
+an unsatisfied precondition are not easy to distinguish from successful run
+scripts when executed in an automated fashion. Thanks to the welcome
+[https://github.com/genodelabs/genode/issues/5432 - initiative] of Roman Iten
+of [https://gapfruit.com - Gapfruit], the precondition checks for executing
+run scripts have now become largely streamlined and much simpler.
+
+The run tool has been extended by an 'assert' function that is dedicated for
+expressing the preconditions of a run script. So the above example becomes:
+
+! assert {[have_board pc]}
+
+Note that the message can be dropped because any unsatisfied precondition
+is conveniently printed in the log. However, a more instructive message can
+be specified as an optional second argument.
+
+To make this pattern as ergonomic and natural as possible, the naming of the
+run tool's various checking functions has been unified and slightly extended.
+The former 'get_cmd_switch' and 'get_cmd_arg' functions are now named
+'have_cmd_switch' and 'cmd_arg'. A new 'have_recipe' function returns true
+whenever the specified depot recipe is present. This way, the compatibility
+of a run script with any board where a 'drivers_interactive' package is
+defined can be expressed in a much more concise way compared to the former
+enumeration of supported boards:
+
+! assert {[have_recipe pkg/[drivers_interactive_pkg]]}
+
+The change of the run tool is accompanied by an improvement of Genode's
+autopilot tool that now distinguishes unsatisfied run scripts from successfully
+executed run scripts.
+
+Thanks to Roman for this careful, tasteful, and comprehensive contribution!
+
+
+Meshcmd as alternative AMT tool
+===============================
+
+We use Intel Active Management Technology (AMT) on diverse native test
+hardware to forward serial output over network (SOL) to developer machines and
+to power-on, reset, and power-off test machines. Since
+[https://genode.org/documentation/release-notes/14.11#Improved_tooling_for_using_Intel_AMT - release 14.11]
+the available tools are wsman and amttool for power-cycling and
+[https://www.kraxel.org/blog/linux/amtterm/ - amtterm] for grabbing the SOL output.
+
+With this release, we added a community contribution for supporting
+[https://www.meshcommander.com - meshcmd], which is available via
+[https://github.com/Ylianst/MeshCommander - GitHub] and mentioned in
+[https://www.intel.com/content/www/us/en/developer/articles/news/meshcmd-new-intel-amt-command-line-tool.html - Intel]'s 
+release notes. The tool can be used as replacement for amtterm and
+wsman/amttool. Alternatively to the known amt-tool option 'wsman' and
+'amttool', 'meshcmd' can now be specified as a RUN_OPT:
+
+! RUN_OPT += --amt-tool meshcmd
