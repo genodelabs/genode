@@ -1,22 +1,26 @@
 /*
- * \brief  lxip-based socket file system
+ * \brief  Socket-based file system
  * \author Christian Helmuth
  * \author Josef Soentgen
  * \author Emery Hemingway
+ * \author Sebastian Sumpf
  * \date   2016-02-01
  *
  * 2023-11-08: adjust to socket C-API
+ * 2025-02-09: generalized for lxip & lwip
  */
 
 /*
- * Copyright (C) 2015-2018 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
 
 /* Genode includes */
 #include <base/log.h>
+#include <format/snprintf.h>
+#include <genode_c_api/socket.h>
 #include <net/ipv4.h>
 #include <util/string.h>
 #include <util/xml_node.h>
@@ -26,11 +30,7 @@
 #include <vfs/vfs_handle.h>
 #include <timer_session/connection.h>
 
-/* format-string includes */
-#include <format/snprintf.h>
-
-#include <genode_c_api/socket_types.h>
-#include <genode_c_api/socket.h>
+#include "vfs_ip.h"
 
 namespace {
 
@@ -149,8 +149,9 @@ namespace Vfs {
 	class Lxip_socket_dir;
 	struct Lxip_socket_handle;
 
-	class Lxip_link_state_file;
-	class Lxip_address_file;
+	struct Lxip_address_info;
+	class  Lxip_link_state_file;
+	class  Lxip_address_file;
 
 	struct Lxip_vfs_handle;
 	class Lxip_vfs_file_handle;
@@ -1435,21 +1436,35 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 };
 
 
+struct Vfs::Lxip_address_info
+{
+	genode_socket_info _info { };
+
+	void update() { genode_socket_config_info(&_info); }
+};
+
+
 class Vfs::Lxip_address_file final : public Vfs::File
 {
 	private:
 
-		unsigned int &_numeric_address;
+		unsigned          &_numeric_address;
+		Lxip_address_info &_info;
 
 	public:
 
-		Lxip_address_file(char const *name, unsigned int &numeric_address)
-		: Vfs::File(name), _numeric_address(numeric_address) { }
+		Lxip_address_file(char const *name,
+		                  unsigned &numeric_address,
+		                  Lxip_address_info &info)
+		: Vfs::File(name),
+		  _numeric_address(numeric_address), _info(info) { }
 
 		long read(Lxip_vfs_file_handle &,
 		                   Byte_range_ptr const &dst,
 		                   file_size /* ignored */) override
 		{
+			_info.update();
+
 			enum {
 				MAX_ADDRESS_STRING_SIZE = sizeof("000.000.000.000\n")
 			};
@@ -1472,17 +1487,23 @@ class Vfs::Lxip_link_state_file final : public Vfs::File
 {
 	private:
 
-		bool &_numeric_link_state;
+		bool              &_numeric_link_state;
+		Lxip_address_info &_info;
 
 	public:
 
-		Lxip_link_state_file(char const *name, bool &numeric_link_state)
-		: Vfs::File(name), _numeric_link_state(numeric_link_state) { }
+		Lxip_link_state_file(char const *name,
+		                     bool &numeric_link_state,
+		                     Lxip_address_info &info)
+		: Vfs::File(name),
+		  _numeric_link_state(numeric_link_state), _info(info) { }
 
 		long read(Lxip_vfs_file_handle &,
 		          Byte_range_ptr const &dst,
 		          file_size /* ignored */) override
 		{
+			_info.update();
+
 			enum {
 				MAX_LINK_STATE_STRING_SIZE = sizeof("down\n")
 			};
@@ -1501,21 +1522,13 @@ class Vfs::Lxip_link_state_file final : public Vfs::File
 };
 
 
-extern "C" unsigned int ic_myaddr;
-extern "C" unsigned int ic_netmask;
-extern "C" unsigned int ic_gateway;
-extern "C" unsigned int ic_nameservers[1];
-
-//XXX: handle in lxip
-bool ic_link_state = true;
-
-
 /*******************************
  ** Filesystem implementation **
  *******************************/
 
 class Vfs::Lxip_file_system : public  Vfs::File_system,
                               public  Vfs::Directory,
+                              private Vfs::Lxip_address_info,
                               private Vfs::Remote_io
 {
 	private:
@@ -1525,18 +1538,18 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 		Vfs::Env::User           &_vfs_user;
 		Remote_io::Peer           _peer;
 
-		struct genode_socket_wakeup _wakeup_remote { };
+		genode_socket_wakeup _wakeup_remote { };
 
 		Lxip::Protocol_dir_impl _tcp_dir {
 			_alloc, *this, "tcp", Lxip::Protocol_dir::TYPE_STREAM };
 		Lxip::Protocol_dir_impl _udp_dir {
 			_alloc, *this, "udp", Lxip::Protocol_dir::TYPE_DGRAM  };
 
-		Lxip_address_file    _address    { "address",    ic_myaddr };
-		Lxip_address_file    _netmask    { "netmask",    ic_netmask };
-		Lxip_address_file    _gateway    { "gateway",    ic_gateway };
-		Lxip_address_file    _nameserver { "nameserver", ic_nameservers[0] };
-		Lxip_link_state_file _link_state { "link_state", ic_link_state };
+		Lxip_address_file    _address    { "address",    _info.ip_addr,    *this };
+		Lxip_address_file    _netmask    { "netmask",    _info.netmask,    *this };
+		Lxip_address_file    _gateway    { "gateway",    _info.gateway,    *this };
+		Lxip_address_file    _nameserver { "nameserver", _info.nameserver, *this };
+		Lxip_link_state_file _link_state { "link_state", _info.link_state, *this };
 
 		Vfs::Node *_lookup(char const *path)
 		{
@@ -1624,8 +1637,7 @@ class Vfs::Lxip_file_system : public  Vfs::File_system,
 
 		~Lxip_file_system() { }
 
-		char const *name()          { return "lxip"; }
-		char const *type() override { return "lxip"; }
+		char const *type() override { return Vfs::ip_stack().string(); }
 
 		/***************************
 		 ** File_system interface **
