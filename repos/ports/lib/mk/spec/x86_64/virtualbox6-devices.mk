@@ -16,6 +16,7 @@ SRC_CC += Devices/Bus/DevPCI.cpp
 SRC_CC += Devices/Bus/DevPciIch9.cpp
 SRC_CC += Devices/Bus/MsiCommon.cpp
 SRC_CC += Devices/Bus/MsixCommon.cpp
+SRC_CC += Devices/EFI/DevEFI.cpp
 SRC_CC += Devices/EFI/DevFlash.cpp
 SRC_CC += Devices/EFI/DevSmc.cpp
 SRC_CC += Devices/EFI/FlashCore.cpp
@@ -116,6 +117,9 @@ INC_DIR += $(VBOX_DIR)/Devices/build
 INC_DIR += $(VBOX_DIR)/Devices/Bus
 INC_DIR += $(VBOX_DIR)/Devices/Graphics/shaderlib/wine/include
 INC_DIR += $(VIRTUALBOX_DIR)/include/VBox/Graphics
+
+INC_DIR += $(VBOX_DIR)/Devices/EFI/Firmware/BaseTools/Source/C/Include
+INC_DIR += $(VBOX_DIR)/Devices/EFI/Firmware/BaseTools/Source/C/Include/X64
 
 # found in src/VBox/Devices/Makefile.kmk
 CC_OPT += -DVBOX_HGCM_HOST_CODE

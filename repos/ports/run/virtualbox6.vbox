@@ -31,6 +31,8 @@
       <HID Pointing="PS2Mouse" Keyboard="PS2Keyboard"/>
       <HPET enabled="false"/>
       <Chipset type="ICH9"/>
+      <!-- types: BIOS, EFI, EFI32, EFI64, EFIDUAL -->
+      <Firmware type="BIOS"/>
       <Boot>
         <Order position="1" device="Floppy"/>
         <Order position="2" device="DVD"/>

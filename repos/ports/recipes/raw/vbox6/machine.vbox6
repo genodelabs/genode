@@ -16,6 +16,8 @@
         <HardwareVirtExLargePages enabled="false"/>
       </CPU>
       <Memory RAMSize="4096"/>
+      <!-- types: BIOS, EFI, EFI32, EFI64, EFIDUAL -->
+      <Firmware type="BIOS"/>
       <HID Pointing="PS2Mouse"/>
       <!-- normal operation -->
       <Display VRAMSize="20" monitorCount="1" controller="VBoxSVGA"/>
