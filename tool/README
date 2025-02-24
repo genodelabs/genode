@@ -18,11 +18,6 @@ of Genode.
   Genode OS Framework. For getting usage information, start the tool without
   arguments.
 
-:'create_iso':
-
-  This simple tool helps to build bootable ISO images from your build of
-  Genode. For getting usage information, start the tool without arguments.
-
 :'create_grub2':
 
   This tool prepares a partitioned disk image with GRUB2 as boot
