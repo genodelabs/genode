@@ -41,7 +41,6 @@
 #include <internal/file.h>
 #include <internal/errno.h>
 #include <internal/init.h>
-#include <internal/suspend.h>
 #include <internal/pthread.h>
 
 
@@ -52,14 +51,11 @@ namespace Libc {
 }
 
 
-static Libc::Suspend *_suspend_ptr;
 static Libc::Monitor *_monitor_ptr;
 
 
-void Libc::init_socket_fs(Suspend &suspend, Monitor &monitor,
-                          File_descriptor_allocator &fd_alloc)
+void Libc::init_socket_fs(Monitor &monitor, File_descriptor_allocator &fd_alloc)
 {
-	_suspend_ptr  = &suspend;
 	_monitor_ptr  = &monitor;
 	_fd_alloc_ptr = &fd_alloc;
 }
@@ -270,8 +266,20 @@ struct Libc::Socket_fs::Context : Plugin_context
 		bool connect_read_ready() { return _fd_read_ready(Fd::CONNECT); }
 		bool data_read_ready()    { return _fd_read_ready(Fd::DATA); }
 		bool accept_read_ready()  { return _fd_read_ready(Fd::ACCEPT); }
-		bool local_read_ready()   { return _fd_read_ready(Fd::LOCAL); }
-		bool remote_read_ready()  { return _fd_read_ready(Fd::REMOTE); }
+
+		bool local_read_ready_from_kernel()
+		{
+			if (!_fd[Fd::LOCAL].file) return false;
+
+			return  Libc::read_ready_from_kernel(_fd[Fd::LOCAL].file);
+		}
+
+		bool remote_read_ready_from_kernel()
+		{
+			if (!_fd[Fd::REMOTE].file) return false;
+
+			return  Libc::read_ready_from_kernel(_fd[Fd::REMOTE].file);
+		}
 
 		void state(State state) { _state = state; }
 		State state() const     { return _state; }
@@ -326,7 +334,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 };
 
 
-struct Libc::Socket_fs::Sockaddr_functor : Suspend_functor
+struct Libc::Socket_fs::Sockaddr_functor
 {
 	Socket_fs::Context &context;
 	bool const          nonblocking;
@@ -334,6 +342,7 @@ struct Libc::Socket_fs::Sockaddr_functor : Suspend_functor
 	Sockaddr_functor(Socket_fs::Context &context, bool nonblocking)
 	: context(context), nonblocking(nonblocking) { }
 
+	virtual bool read_ready_from_kernel() = 0;
 	virtual int fd() = 0;
 };
 
@@ -343,8 +352,10 @@ struct Libc::Socket_fs::Remote_functor : Sockaddr_functor
 	Remote_functor(Socket_fs::Context &context, bool nonblocking)
 	: Sockaddr_functor(context, nonblocking) { }
 
-	bool suspend() override { return !nonblocking && !context.remote_read_ready(); }
-	int fd()       override { return context.remote_fd(); }
+	bool read_ready_from_kernel() override {
+		return context.remote_read_ready_from_kernel(); }
+
+	int fd() override { return context.remote_fd(); }
 };
 
 
@@ -353,8 +364,10 @@ struct Libc::Socket_fs::Local_functor : Sockaddr_functor
 	Local_functor(Context &context, bool nonblocking)
 	: Sockaddr_functor(context, nonblocking) { }
 
-	bool suspend() override { return !nonblocking && !context.local_read_ready(); }
-	int fd()       override { return context.local_fd(); }
+	bool read_ready_from_kernel() override {
+		return context.local_read_ready_from_kernel(); }
+
+	int fd() override { return context.local_fd(); }
 };
 
 
@@ -498,13 +511,10 @@ static int read_sockaddr_in(Socket_fs::Sockaddr_functor &func,
 	if (!addr)                     return Errno(EFAULT);
 	if (!addrlen || *addrlen <= 0) return Errno(EINVAL);
 
-	while (!func.nonblocking && func.suspend()) {
-
-		struct Missing_call_of_init_socket_fs : Exception { };
-		if (!_suspend_ptr)
-			throw Missing_call_of_init_socket_fs();
-
-		_suspend_ptr->suspend(func);
+	if (!func.nonblocking) {
+		monitor().monitor([&] {
+			return func.read_ready_from_kernel() ? Fn::COMPLETE : Fn::INCOMPLETE;
+		});
 	}
 
 	Sockaddr_string addr_string;

@@ -515,7 +515,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_alarm(_timer_accessor, _signal);
 	init_poll(_signal, *this, _fd_alloc);
 	init_select(*this);
-	init_socket_fs(*this, *this, _fd_alloc);
+	init_socket_fs(*this, _fd_alloc);
 	init_socket_operations(_fd_alloc);
 	init_passwd(_passwd_config());
 	init_signal(_signal);
