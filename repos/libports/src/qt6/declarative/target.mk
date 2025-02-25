@@ -44,6 +44,7 @@ INSTALL_LIBS = lib/libQt6LabsAnimation.lib.so \
                qml/Qt/labs/settings/libqmlsettingsplugin.lib.so \
                qml/Qt/labs/sharedimage/libsharedimageplugin.lib.so \
                qml/Qt/labs/wavefrontmesh/libqmlwavefrontmeshplugin.lib.so \
+               qml/QtCore/libqtqmlcoreplugin.lib.so \
                qml/QtQml/Base/libqmlplugin.lib.so \
                qml/QtQml/Models/libmodelsplugin.lib.so \
                qml/QtQml/WorkerScript/libworkerscriptplugin.lib.so \
