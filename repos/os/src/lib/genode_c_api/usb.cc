@@ -610,8 +610,8 @@ class Session_component
 			if (!_ram_quota_guard().have_avail(needed_ram))
 				throw Out_of_ram();
 
-			_cap_quota_guard().replenish(Cap_quota{2});
-			_ram_quota_guard().replenish(needed_ram);
+			_cap_quota_guard().withdraw(Cap_quota{2});
+			_ram_quota_guard().withdraw(needed_ram);
 
 			return _alloc_fn(size);
 		}
