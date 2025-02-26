@@ -1185,10 +1185,11 @@ void Session_component::set_interface(genode_usb_device::Label label,
 				[&] (genode_usb_configuration & c) {
 					return c.active; },
 				[&] (genode_usb_configuration & c) {
-					c.interfaces.apply(
+					c.interfaces.for_each(
 						[&] (genode_usb_interface & i) {
-							return i.desc.number == num; },
-						[&] (genode_usb_interface & i) {
+							if (i.desc.number != num)
+								return;
+
 							if (i.active != (i.desc.alt_settings == alt)) {
 								i.active = (i.desc.alt_settings == alt);
 								changed = true;
