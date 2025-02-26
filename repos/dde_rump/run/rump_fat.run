@@ -1,4 +1,4 @@
-if {[have_spec arm]} { assert_spec arm_v7 }
+assert {[have_spec arm_v7] || ![have_spec arm]}
 
 build {
 	core lib/ld init timer lib/vfs lib/libc
