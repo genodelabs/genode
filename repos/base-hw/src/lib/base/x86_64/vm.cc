@@ -45,13 +45,13 @@ struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 		unsigned                _id { 0 };
 		void                   *_ep_handler    { nullptr };
 
-		void _run();
 		Vcpu_state & _local_state() { return *_state.local_addr<Vcpu_state>(); }
 		Capability<Native_vcpu> _create_vcpu(Vm_connection &,
 		                                     Vcpu_handler_base &);
 
 	public:
 
+		void run();
 		const Hw_vcpu& operator=(const Hw_vcpu &) = delete;
 		Hw_vcpu(const Hw_vcpu&) = delete;
 
@@ -73,11 +73,10 @@ Hw_vcpu::Hw_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler)
 	_kernel_vcpu = call<Rpc_native_vcpu>();
 	_id = counter++;
 	_ep_handler = reinterpret_cast<Thread *>(&handler.rpc_ep());
-	_run();
 }
 
 
-void Hw_vcpu::_run()
+void Hw_vcpu::run()
 {
 	Kernel::run_vm(Capability_space::capid(_kernel_vcpu));
 }
@@ -92,7 +91,7 @@ void Hw_vcpu::with_state(auto const &fn)
 	Kernel::pause_vm(Capability_space::capid(_kernel_vcpu));
 
 	if (fn(_local_state()))
-		_run();
+		run();
 }
 
 
@@ -119,4 +118,6 @@ Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,
                           Vcpu_handler_base &handler, Exit_config const &)
 :
 	_native_vcpu(*new (alloc) Hw_vcpu(vm._env, vm, handler))
-{ }
+{
+	static_cast<Hw_vcpu &>(_native_vcpu).run();
+}
