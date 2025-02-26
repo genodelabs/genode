@@ -148,7 +148,7 @@ proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {runnin
 # Whether the run script is used interactively
 #
 proc interactive {} {
-	return [expr ![get_cmd_switch --autopilot]]
+	return [expr ![have_cmd_switch --autopilot]]
 }
 
 
@@ -622,15 +622,11 @@ proc exit {{status 0}} {
 #
 # Check platform support
 #
-if {[expr ![have_spec x86] && \
-          ![have_spec arm_v6] && \
-          ![have_spec arm_v7a] && \
-          ![have_spec arm_v8a] && \
-          ![have_spec riscv]]} \
-{
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0
-}
+assert {[have_spec x86]     ||
+        [have_spec arm_v6]  ||
+        [have_spec arm_v7a] ||
+        [have_spec arm_v8a] ||
+        [have_spec riscv]}
 
 #
 # Default list of test package-archives

@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 set dd [installed_command dd]
 
@@ -266,7 +266,7 @@ set repo "[repository_contains $shell_script]"
 exec cp $repo/$shell_script bin/
 
 exec rm -rf [local_tresor_image]
-if { [get_cmd_switch --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 
 	exec rm -rf [autopilot_tresor_image]
 	catch { exec $dd if=/dev/urandom of=[autopilot_tresor_image] bs=1M count=[tresor_image_size_mb] }
@@ -285,7 +285,7 @@ build_boot_image $boot_modules
 
 run_genode_until {.*"/bin/bash".* exited with exit value 0.*\n} 120
 
-if { [get_cmd_switch --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 
 	exec rm -rf [local_tresor_image]
 	exec rm -rf [autopilot_tresor_image]

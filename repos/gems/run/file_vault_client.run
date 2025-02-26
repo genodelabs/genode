@@ -1,7 +1,4 @@
-if {[have_spec riscv]} {
-	puts "\n Run script is not supported on this platform. \n";
-	exit 0
-}
+assert {![have_spec riscv]}
 
 proc jent_avail { } {
 	if {[have_board pbxa9]} { return 0 }
@@ -454,4 +451,4 @@ if {[container_initialized]} {
 	}
 }
 
-if {[get_cmd_switch --autopilot] && [have_board linux]} { exec rm -rf [lx_fs_dir] }
+if {[have_cmd_switch --autopilot] && [have_board linux]} { exec rm -rf [lx_fs_dir] }

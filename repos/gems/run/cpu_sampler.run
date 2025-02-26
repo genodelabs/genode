@@ -1,8 +1,8 @@
-if { ![have_spec foc] && ![have_spec hw] && ![have_spec nova] &&
-     ![have_spec okl4] && ![have_spec sel4] } {
-	puts "Run script is not supported on this platform"
-	exit 0
-}
+assert {[have_spec foc]  &&
+        [have_spec hw]   &&
+        [have_spec nova] &&
+        [have_spec okl4] &&
+        [have_spec sel4]}
 
 set build_components {
 	core lib/ld init timer

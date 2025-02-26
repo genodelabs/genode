@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 # check that python-pcapng is present
 set python_pcapng_missing [catch {

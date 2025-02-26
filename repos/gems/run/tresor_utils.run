@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 append build_components {
 	core init timer lib/ld lib/vfs server/lx_block server/lx_fs server/vfs app/sequence

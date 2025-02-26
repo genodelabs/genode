@@ -1,7 +1,7 @@
 #
 # Test runs only on Linux
 #
-assert_spec linux
+assert {[have_spec linux]}
 
 #
 # Build

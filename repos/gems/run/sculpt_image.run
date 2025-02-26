@@ -2,19 +2,11 @@
 # Generates publishable Sculpt system image
 #
 
-proc board_supported { } {
-	if {[have_board pinephone]}       { return true }
-	if {[have_board pc]}              { return true }
-	if {[have_board mnt_reform2]}     { return true }
-	if {[have_board mnt_pocket]}      { return true }
-	if {[have_board imx8mp_armstone]} { return true }
-	return false
-}
-
-if {![board_supported]} {
-	puts stderr "board is not supported by the run script"
-	exit 1
-}
+assert {[have_board pinephone]       ||
+        [have_board pc]              ||
+        [have_board mnt_reform2]     ||
+        [have_board mnt_pocket]      ||
+        [have_board imx8mp_armstone]}
 
 proc assert_include { include } {
 	if {![have_include $include]} {

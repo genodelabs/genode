@@ -1,7 +1,7 @@
 # riscv lacks jitterentropy support currently
-if {[get_cmd_switch --autopilot] && [have_board virt_qemu_riscv]} {
-	puts "Autopilot mode is not supported on this platform."
-	exit 0
+if {[have_cmd_switch --autopilot]} {
+	assert {![have_board virt_qemu_riscv]} \
+		"Autopilot mode is not supported on this platform."
 }
 
 set dd [installed_command dd]
@@ -917,7 +917,7 @@ install_config $config
 if {[have_board linux]} {
 
 	exec rm -rf [lx_local_tresor_image]
-	if { [get_cmd_switch --autopilot] } {
+	if { [have_cmd_switch --autopilot] } {
 
 		exec rm -rf [lx_autopilot_tresor_image]
 		catch { exec $dd if=/dev/urandom of=[lx_autopilot_tresor_image] bs=1M count=[lx_tresor_image_size_mb] }
@@ -945,7 +945,7 @@ run_genode_until "child \"test\" exited with exit value.*\n" $test_timeout
 
 if {[have_board linux]} {
 
-	if { [get_cmd_switch --autopilot] } {
+	if { [have_cmd_switch --autopilot] } {
 
 		exec rm -rf [lx_local_tresor_image]
 		exec rm -rf [lx_autopilot_tresor_image]

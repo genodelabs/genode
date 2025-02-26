@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 create_boot_directory
 
@@ -20,7 +20,7 @@ create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                [depot_user]/pkg/themed_decorator \
                                [depot_user]/pkg/sticks_blue_backdrop
 
-if { [get_cmd_switch --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 	import_from_depot [depot_user]/src/depot_remove
 } else {
 	build { app/depot_remove }
@@ -74,7 +74,7 @@ exec mkdir [run_dir]/genode/depot
 exec tar xvf [run_dir]/genode/depot.tar -C [run_dir]/genode/depot
 exec chmod -R +r [run_dir]/genode/depot
 
-if { [get_cmd_switch --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 	build_boot_image {}
 } else {
 	build_boot_image [build_artifacts]

@@ -1,4 +1,4 @@
-assert_spec linux
+assert {[have_spec linux]}
 
 # check that babeltrace2 is present
 set babeltrace_missing [catch {
