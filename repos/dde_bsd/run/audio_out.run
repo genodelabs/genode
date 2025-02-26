@@ -1,14 +1,7 @@
-assert_spec x86
+assert {[have_spec x86]}
 
-if {[have_include "power_on/qemu"]} {
-	puts "\nAudio_out test running on Qemu is not supported.\n"
-	exit 0
-}
-
-if {[have_spec linux]} {
-	puts"\nAudio_out test running on Linux is not supported.\n"
-	exit 0
-}
+assert {![have_include power_on/qemu]}
+assert {![have_spec linux]}
 
 # select use of 'Audio_in/Audio_out' or 'Record/Play' sessions
 proc use_record_play_sessions { } { return 1 }
