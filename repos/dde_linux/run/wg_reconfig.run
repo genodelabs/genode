@@ -14,10 +14,7 @@
 # server WireGuard.
 #
 
-if {[expr ![have_spec arm_v8a] && ![have_spec x86_64]]} {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
+assert {[have_spec arm_v8a] || [have_spec x86_64]}
 
 create_boot_directory
 

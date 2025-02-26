@@ -38,10 +38,7 @@
 #
 #		The client side will be restarted two times to test reconnecting.
 
-if { ![expr [have_board linux] || [have_board pc]] } {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
+assert {[have_board linux] || [have_board pc]}
 
 
 proc rtc_binary_name { } {

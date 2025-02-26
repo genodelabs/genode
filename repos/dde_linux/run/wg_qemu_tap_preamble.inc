@@ -7,20 +7,9 @@
 # undone whenever the test terminates.
 #
 
-if {[expr ![have_spec arm_64] && ![have_spec x86_64]]} {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
-
-if {[expr [have_spec arm_64] && ![have_board virt_qemu]]} {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
-
-if {[expr ![have_include power_on/qemu]]} {
-	puts "Test requires Qemu."
-	exit 0
-}
+assert {[have_spec arm_64] || [have_spec x86_64]}
+assert {[have_board virt_qemu] || ![have_spec arm_64]}
+assert {[have_include power_on/qemu]}
 
 append wg_board_qemu_args " -m 512 "
 append wg_board_qemu_args " -nographic "
@@ -41,8 +30,7 @@ if {[have_board virt_qemu]} {
 
 } else {
 
-	puts "Run script is not supported on this platform."
-	exit 0
+	assert {false} "Run script is not supported on this platform."
 }
 
 proc board_qemu_args { } {

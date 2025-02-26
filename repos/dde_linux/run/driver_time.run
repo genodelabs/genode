@@ -1,7 +1,4 @@
-if {[expr ![have_spec arm_64] && ![have_spec x86_64]]} {
-	puts "Run script is not supported on this platform."
-	exit 0
-}
+assert {[have_spec arm_64] || [have_spec x86_64]}
 
 set use_top 0
 

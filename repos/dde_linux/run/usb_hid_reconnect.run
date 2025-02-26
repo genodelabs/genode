@@ -3,17 +3,9 @@
 #
 # Test connect and disconnect on Qemu
 
-assert_spec x86
-
-if {[have_spec linux]} {
-	puts "Run script does not support Linux."
-	exit 0
-}
-
-if {![have_include "power_on/qemu"]} {
-	puts "Test requires to be run on Qemu."
-	exit 0
-}
+assert {[have_spec x86]}
+assert {![have_spec linux]}
+assert {[have_include power_on/qemu]}
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
