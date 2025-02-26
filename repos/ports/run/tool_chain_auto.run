@@ -1,4 +1,4 @@
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 	assert {![have_include power_on/qemu]} \
 		"Running tool-chain auto test in autopilot on Qemu is not recommended."
 }

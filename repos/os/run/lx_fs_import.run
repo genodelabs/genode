@@ -7,7 +7,7 @@ lappend depot_archives [depot_user]/src/vfs_import
 
 set build_components { }
 
-if { [have_cmd_arg --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 	lappend depot_archives [depot_user]/src/lx_fs
 } else {
 	lappend build_components server/lx_fs

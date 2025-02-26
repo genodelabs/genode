@@ -1,12 +1,12 @@
 assert {![have_spec linux]}
 
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 	assert {[have_include power_on/qemu]} \
 		"Autopilot mode is not supported on this platform."
 }
 
 proc log_service { } {
-	if { [have_cmd_arg --autopilot] } { return log }
+	if { [have_cmd_switch --autopilot] } { return log }
 	return ram
 }
 
@@ -105,7 +105,7 @@ build_boot_image [build_artifacts]
 
 append qemu_args " -nographic "
 
-if { [have_cmd_arg --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 	run_genode_until {.*\[log_core -> log] \[.*\n} 20
 } else {
 	run_genode_until forever

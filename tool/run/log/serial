@@ -43,7 +43,7 @@ proc run_log { wait_for_re timeout_value } {
 	# i.e., lets only ASCII characters through.
 	#
 	set serial_cmd_chain [log_serial_cmd]
-	if {[have_cmd_arg --log-serial-filter]} {
+	if {[have_cmd_switch --log-serial-filter]} {
 		set serial_cmd_chain "$serial_cmd_chain | [log_serial_filter]"
 	}
 

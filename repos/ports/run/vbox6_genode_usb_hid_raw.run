@@ -183,7 +183,7 @@ global specs
 global repositories
 
 set depot_auto_update ""
-if {[have_cmd_arg --depot-auto-update]} {
+if {[have_cmd_switch --depot-auto-update]} {
 	set depot_auto_update "--depot-auto-update"
 }
 
@@ -211,7 +211,7 @@ append boot_components { usb_hid_raw.iso vbox6_genode_usb_hid_raw.vbox }
 
 build_boot_image $boot_components
 
-if { ![have_cmd_arg --autopilot] } { run_genode_until forever }
+if { ![have_cmd_switch --autopilot] } { run_genode_until forever }
 
 # autopilot test
 

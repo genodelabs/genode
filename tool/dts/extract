@@ -9,7 +9,7 @@
 ##
 # Return true if command-line switch was specified
 #
-proc have_cmd_arg { arg_name } {
+proc have_cmd_switch { arg_name } {
 	global argv
 	return [expr [lsearch $argv $arg_name] >= 0]
 }
@@ -405,22 +405,22 @@ foreach path [array names selected] {
 }
 
 
-if {[have_cmd_arg --labels]} {
+if {[have_cmd_switch --labels]} {
 	foreach n [lsort [array names labels]] {
 		puts "$n\t$labels($n)" } }
 
 
-if {[have_cmd_arg --nodes]} {
+if {[have_cmd_switch --nodes]} {
 	foreach n [lsort [array names selected]] {
 		puts "$n" } }
 
 
-if {[have_cmd_arg --references]} {
+if {[have_cmd_switch --references]} {
 	foreach n [lsort [array names references]] {
 		puts "$n\t$references($n)" } }
 
 
-if {[have_cmd_arg --dot-graph]} {
+if {[have_cmd_switch --dot-graph]} {
 	puts "digraph {"
 	puts {  rankdir=LR; nodesep=0.01;}
 	puts {  node[shape=polygon, height=0, color=gray, fontsize=12, margin="0.1,0.01"];}

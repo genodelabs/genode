@@ -16,7 +16,7 @@ set use_rumpfs 1
 set use_serial 0
 set use_check_result 1
 
-set use_usb [expr ![have_cmd_arg --autopilot]]
+set use_usb [expr ![have_cmd_switch --autopilot]]
 set use_ps2 1
 
 set use_vms 1

@@ -1,7 +1,7 @@
 assert {[have_recipe pkg/[drivers_interactive_pkg]]} \
 	"Recipe for 'pkg/[drivers_interactive_pkg]' not available."
 
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 	assert {![have_board linux] && ![have_include power_on/qemu]} \
 		"Autopilot mode is not supported on this platform."
 }
@@ -205,7 +205,7 @@ close $launchpad_config_fd
 
 build_boot_image [list {*}[build_artifacts] launchpad.config]
 
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 	run_genode_until {\[init -> scout\] png is.*\n} 40
 
 	grep_output {(requests resources: )|(Error)}

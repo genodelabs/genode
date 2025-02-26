@@ -3,7 +3,7 @@ assert {[have_spec x86]}
 set path_microcode "[exec [genode_dir]/tool/ports/current --no-print-directory microcode_intel]/src/app/intel/intel-ucode"
 set microcode_files [glob -nocomplain -dir $path_microcode *-*-*]
 
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 
 	assert {![have_include power_on/qemu]} \
 		"Autopilot mode is not supported on this platform."
@@ -61,7 +61,7 @@ append qemu_args "-smp 4 "
 run_genode_until "microcode check done" 30
 
 # cleanup
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 	file delete -force bin/micro.code
 	foreach file $microcode_files {
 	  file delete bin/$file

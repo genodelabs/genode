@@ -91,7 +91,7 @@ proc help { } {
 ##
 # Return true if command-line switch was specified
 #
-proc have_cmd_arg { arg_name } {
+proc have_cmd_switch { arg_name } {
 	global argv
 	return [expr [lsearch $argv $arg_name] >= 0]
 }
@@ -110,7 +110,7 @@ proc wipe_test_dir { } {
 # Remove build artifacts if commanded via the '--cleanup' argument
 #
 proc cleanup { } {
-	if {[have_cmd_arg --cleanup]} {
+	if {[have_cmd_switch --cleanup]} {
 		puts "cleaning up $test_dir"
 		wipe_test_dir
 	}
@@ -165,7 +165,7 @@ proc log_file { arch board kernel run_script } {
 proc log_fd { arch board kernel run_script } {
 
 	# if '--stdout' was specified, don't write log output to files
-	if {[have_cmd_arg --stdout]} { return stdout }
+	if {[have_cmd_switch --stdout]} { return stdout }
 
 	# create file descriptor of log file on demand
 	global _log_fds
@@ -200,7 +200,7 @@ proc execute_run_script { arch board kernel run_script } {
 	set fd [log_fd $arch $board $kernel $run_script]
 
 	if {[catch {
-		if {[have_cmd_arg --time-stamp]} {
+		if {[have_cmd_switch --time-stamp]} {
 			exec make -C [build_dir $arch] [file join run $run_script] BOARD=$board KERNEL=$kernel \
 			  |& ts "\[%F %H:%M:%S\]" >&@ $fd
 		} else {
@@ -257,7 +257,7 @@ proc build_dir_remainings { arch } {
 proc build_failed_because_of_missing_run_script { arch board kernel run_script } {
 
 	# we cannot inspect any logfile when --stdout was used
-	if {[have_cmd_arg --stdout]} { return 0 }
+	if {[have_cmd_switch --stdout]} { return 0 }
 
 	# grep log output for the respective error message of the build system
 	if {[catch {
@@ -270,7 +270,7 @@ proc build_failed_because_of_missing_run_script { arch board kernel run_script }
 proc build_failed_because_of_unsatisfied_requirement { arch board kernel run_script } {
 
 	# we cannot inspect any logfile when --stdout was used
-	if {[have_cmd_arg --stdout]} { return 0 }
+	if {[have_cmd_switch --stdout]} { return 0 }
 
 	# grep log output for the respective error message
 	if {[catch {
@@ -297,7 +297,7 @@ set make_jobs 2
 foreach_cmdline_arg j { global make_jobs; set make_jobs $j }
 
 # present help if explicitly requested
-if {[have_cmd_arg --help]} { help; exit 0 }
+if {[have_cmd_switch --help]} { help; exit 0 }
 
 #
 # Handle platform-kernel combinations by adding to targets
@@ -357,14 +357,14 @@ puts "make -j       : $make_jobs"
 # command-line arguments.
 #
 
-if {[file exists $test_dir] && ![have_cmd_arg --force] &&
-    ![have_cmd_arg --keep]} {
+if {[file exists $test_dir] && ![have_cmd_switch --force] &&
+    ![have_cmd_switch --keep]} {
 	puts stderr "Error: test directory $test_dir already exists"
 	exit -3
 }
 
 
-if {[have_cmd_arg --force]} { wipe_test_dir }
+if {[have_cmd_switch --force]} { wipe_test_dir }
 
 
 proc append_run_opt { build_conf } {
@@ -391,7 +391,7 @@ foreach arch $architectures {
 	set build_dir [build_dir $arch]
 	set build_conf [file join $build_dir etc build.conf]
 
-	if {[have_cmd_arg --keep] && [file exists $build_dir]} {
+	if {[have_cmd_switch --keep] && [file exists $build_dir]} {
 		append_run_opt $build_conf
 		continue
 	}
@@ -416,7 +416,7 @@ foreach arch $architectures {
 	exec echo "MAKE += -j$make_jobs" >> $build_conf
 
 	# optionally enable ccache
-	if {[have_cmd_arg --enable-ccache]} {
+	if {[have_cmd_switch --enable-ccache]} {
 		set tools_conf [file join $build_dir etc tools.conf]
 		exec echo "CUSTOM_CC  = ccache \$(CROSS_DEV_PREFIX)gcc" >> $tools_conf
 		exec echo "CUSTOM_CXX = ccache \$(CROSS_DEV_PREFIX)g++" >> $tools_conf
@@ -507,7 +507,7 @@ foreach arch $architectures {
 		}
 	}
 
-	if {[have_cmd_arg --skip-clean-rules]} continue
+	if {[have_cmd_switch --skip-clean-rules]} continue
 
 	# execute and validate cleanall rule
 	foreach target $targets {

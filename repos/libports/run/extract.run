@@ -1,4 +1,4 @@
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
        assert {![have_board virt_qemu_riscv]} \
                "Autopilot mode is not supported on this platform."
 }

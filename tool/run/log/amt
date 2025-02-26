@@ -29,7 +29,7 @@ proc log_amt_timeout { } {
 }
 
 proc log_amt_skip_test { } {
-	return [have_cmd_arg --log-amt-skip-test]
+	return [have_cmd_switch --log-amt-skip-test]
 }
 
 
@@ -87,7 +87,7 @@ proc run_log { wait_for_re timeout_value } {
 		set amt_log ".*session authentication"
 	}
 
-	if {[have_cmd_arg --log-amt-filter]} {
+	if {[have_cmd_switch --log-amt-filter]} {
 		set amt_cmd "$amt_cmd | [log_amt_filter]"
 	}
 

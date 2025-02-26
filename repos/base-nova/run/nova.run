@@ -5,7 +5,7 @@ if {[have_include power_on/qemu]} {
 	set check_pat 0
 }
 
-if {[have_cmd_arg --autopilot] && [have_spec x86_32]} {
+if {[have_cmd_switch --autopilot] && [have_spec x86_32]} {
 	# Disable test for our outdated nighly test machine for 32bit
 	set check_pat 0
 }

@@ -11,7 +11,7 @@ assert {![have_board rpi]}
 assert {[have_recipe pkg/[drivers_nic_pkg]]} \
 	"Recipe for 'pkg/[drivers_nic_pkg]' not available."
 
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 	assert {![have_board linux] && ![have_board virt_qemu_riscv]} \
 		"Autopilot mode is not supported on this platform."
 }

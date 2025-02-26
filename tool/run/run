@@ -71,7 +71,7 @@ proc build {targets} {
 
 	if {[llength $targets] == 0} return
 
-	if {[have_cmd_arg --skip-build]} return
+	if {[have_cmd_switch --skip-build]} return
 
 	regsub -all {\s\s+} $targets " " targets
 	puts "building targets: $targets"
@@ -384,7 +384,7 @@ match_max -d 40000
 proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
 
 	if {$wait_for_re == "forever"} {
-		assert {![have_cmd_arg --autopilot]}
+		assert {![have_cmd_switch --autopilot]}
 	}
 
 	#
@@ -593,16 +593,17 @@ proc compare_output_to { good } {
 ##
 # Return true if command-line switch was specified
 #
-proc have_cmd_arg { arg_name } {
+proc have_cmd_switch { arg_name } {
 	global argv
 	return [expr [lsearch $argv $arg_name] >= 0]
 }
 
 
+##
 # Return true if command-line switch was specified
 #
 proc get_cmd_switch { arg_name } {
-	return [have_cmd_arg $arg_name]
+	return [have_cmd_switch $arg_name]
 }
 
 
@@ -890,7 +891,7 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 proc remove_genode_dir { } {
 	global env
 
-	if {![have_cmd_arg --preserve-genode-dir]} {
+	if {![have_cmd_switch --preserve-genode-dir]} {
 		exec rm -rf [run_dir]/genode
 	}
 }

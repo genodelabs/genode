@@ -30,7 +30,7 @@ build_boot_image [build_artifacts]
 
 append qemu_args "  -nographic"
 
-if {[have_cmd_arg --autopilot]} {
+if {[have_cmd_switch --autopilot]} {
 	assert {![have_spec nova] && ![have_include power_on/qemu]} {
 		NOVA requires a CPU with invariant TSC support, which is by default not
 		supported. KVM has support by explicitly enabling this feature, but by

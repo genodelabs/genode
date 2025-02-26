@@ -39,7 +39,7 @@
 #   make run/test KERNEL=linux PKG=test-fs_report
 #
 
-assert {![have_cmd_arg --autopilot]}
+assert {![have_cmd_switch --autopilot]}
 
 ##
 # Obtain name of the test pkg from the 'PKG' environment variable

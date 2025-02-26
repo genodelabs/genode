@@ -9,9 +9,9 @@
 ##
 # Check if the uImage should be gzipped
 #
-proc image_uboot_use_no_gzip { } { return [have_cmd_arg --image-uboot-no-gzip] }
+proc image_uboot_use_no_gzip { } { return [have_cmd_switch --image-uboot-no-gzip] }
 
-proc image_uboot_use_fit { } { return [have_cmd_arg --image-uboot-fit] }
+proc image_uboot_use_fit { } { return [have_cmd_switch --image-uboot-fit] }
 
 
 ##
@@ -24,7 +24,7 @@ proc image_uboot_use_fit { } { return [have_cmd_arg --image-uboot-fit] }
 # it disabled.
 #
 proc image_uboot_gzip_opt { } {
-	if {[have_cmd_arg --image-uboot-gzip-best]} {
+	if {[have_cmd_switch --image-uboot-gzip-best]} {
 		return "--best"
 	} else {
 		return "--fast"

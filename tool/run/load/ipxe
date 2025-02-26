@@ -27,7 +27,7 @@ proc load_ipxe_base_dir { } { return [cmd_arg --load-ipxe-base-dir ""] }
 proc load_ipxe_boot_dir { } { return [cmd_arg --load-ipxe-boot-dir ""] }
 
 
-proc load_ipxe_lighttpd { } { return [have_cmd_arg --load-ipxe-lighttpd] }
+proc load_ipxe_lighttpd { } { return [have_cmd_switch --load-ipxe-lighttpd] }
 
 
 proc load_ipxe_lighttpd_port { } { return [cmd_arg --load-ipxe-lighttpd-port 8080] }

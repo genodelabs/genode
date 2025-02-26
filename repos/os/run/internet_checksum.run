@@ -11,7 +11,7 @@ rename exit run_tool_exit
 proc exit {{code 0}} {
 	global lx_fs_dir
 	global input_file
-	if {[have_cmd_arg --autopilot]} { exec rm -rf $input_file $lx_fs_dir }
+	if {[have_cmd_switch --autopilot]} { exec rm -rf $input_file $lx_fs_dir }
 	run_tool_exit $code
 }
 build { core init lib/ld lib/vfs test/internet_checksum server/lx_fs }

@@ -10,7 +10,7 @@ set demand      [expr 1*1024*1024]
 set cpus        4
 set init_ram    256
 
-if { [have_cmd_arg --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 
 	assert {![have_include power_on/qemu]} \
 		"Autopilot mode is not supported on this platform."
@@ -102,7 +102,7 @@ build_boot_image [build_artifacts]
 
 append qemu_args " -m [expr 128 + $init_ram*$cpus]M -nographic -smp $cpus"
 
-if { [have_cmd_arg --autopilot] } {
+if { [have_cmd_switch --autopilot] } {
 
 	run_genode_until {bomb started} 20
 

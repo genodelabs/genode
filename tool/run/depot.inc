@@ -224,7 +224,7 @@ proc _depot_auto_update { archives } {
 	append cmd "DEPOT_DIR=[depot_dir] "
 	append cmd "UPDATE_VERSIONS=1 FORCE=1 REBUILD= "
 
-	if {[have_cmd_arg --ccache]} {
+	if {[have_cmd_switch --ccache]} {
 		append cmd "CCACHE=1 " }
 
 	set make_j_arg ""
@@ -252,7 +252,7 @@ proc _collect_from_depot { archives } {
 	incr _collect_from_depot_nesting_level
 
 	# fill depot with up-to-date content if --depot-auto-update is enabled
-	if {[have_cmd_arg --depot-auto-update]} {
+	if {[have_cmd_switch --depot-auto-update]} {
 		if {$_collect_from_depot_nesting_level == 1} {
 			_depot_auto_update $archives } }
 

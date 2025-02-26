@@ -9,7 +9,7 @@ assert {[have_spec x86]}
 assert {![have_include power_on/qemu]}
 assert {![have_include power_on/linux]}
 
-if {[have_cmd_arg --autopilot] && [have_spec x86_32]} {
+if {[have_cmd_switch --autopilot] && [have_spec x86_32]} {
 	assert {[have_spec foc] || [have_spec nova]} {
 		Autopilot mode is not supported on this platform.
 
