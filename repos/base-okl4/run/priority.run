@@ -1,4 +1,4 @@
-assert_spec okl4
+assert {[have_spec okl4]}
 
 build { core init lib/ld }
 
