@@ -18,9 +18,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+	/* net_driver.c */
 	struct task_struct;
 	struct task_struct *lx_nic_client_rx_task(void);
-	void                lx_nic_client_schedule_peer(void);
+	bool                lx_nic_client_link_state(void);
+	bool                lx_nic_client_update_link_state(void);
+
+	/* socket.cc */
+	void socket_schedule_peer(void);
+	void socket_config_address(void);
+	void socket_unconfigure_address(void);
+	void socket_update_link_state(void);
 #ifdef __cplusplus
 }
 #endif

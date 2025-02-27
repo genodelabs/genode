@@ -25,9 +25,35 @@ static struct genode_nic_client *dev_nic_client(struct net_device *dev)
 }
 
 
+static struct net_device *dev_net_device(void)
+{
+	return dev_get_by_name(&init_net, "eth0");
+}
+
+
 static int net_open(struct net_device *dev)
 {
 	return 0;
+}
+
+
+bool lx_nic_client_link_state(void)
+{
+	return netif_carrier_ok(dev_net_device());
+}
+
+
+bool lx_nic_client_update_link_state(void)
+{
+	struct net_device *dev = dev_net_device();
+	bool state = genode_nic_client_link_state(dev_nic_client(dev));
+
+	if (state == false && netif_carrier_ok(dev))
+		netif_carrier_off(dev);
+	if (state == true && !netif_carrier_ok(dev))
+		netif_carrier_on(dev);
+
+	return state;
 }
 
 
@@ -82,7 +108,7 @@ static int driver_net_xmit(struct sk_buff *skb, struct net_device *dev)
 	stats->tx_packets++;
 	stats->tx_bytes += skb->len;
 
-	lx_nic_client_schedule_peer();
+	socket_schedule_peer();
 
 	return NETDEV_TX_OK;
 }
@@ -155,7 +181,7 @@ static int rx_task_function(void *arg)
 		                        &ctx)) {
 			progress = true; }
 
-		if (progress) lx_nic_client_schedule_peer();
+		if (progress) socket_schedule_peer();
 	}
 
 	return 0;
@@ -191,6 +217,14 @@ static int __init virtio_net_driver_init(void)
 		printk("Could not register net device driver %d\n", err);
 		goto out_nic;
 	}
+
+	if (dev_net_device() != dev) {
+		printk("error: net device name is \"%s\", but must be \"eth0\"\n",
+		       dev->name);
+		BUG();
+	}
+
+	lx_nic_client_update_link_state();
 
 	/* create RX task */
 	pid = kernel_thread(rx_task_function, dev, "rx_task", CLONE_FS | CLONE_FILES);

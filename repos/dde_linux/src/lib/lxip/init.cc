@@ -42,12 +42,16 @@ struct Main
 	: env(env), io_progress(io_progress)
 	{ }
 
+	void _io_progress()
+	{
+		if (io_progress && io_progress->callback)
+			io_progress->callback(io_progress->data);
+	}
+
 	void handle_schedule()
 	{
 		Lx_kit::env().scheduler.execute();
-
-		if (io_progress && io_progress->callback)
-			io_progress->callback(io_progress->data);
+		_io_progress();
 	}
 
 	void handle_nic_client()
@@ -62,13 +66,13 @@ struct Main
 		lx_emul_task_unblock(lx_nic_client_rx_task());
 		Lx_kit::env().scheduler.execute();
 
-		if (io_progress && io_progress->callback)
-			io_progress->callback(io_progress->data);
+		_io_progress();
 	}
 
 	void handle_link_state()
 	{
-		Genode::error("handle_link_state: not implemented");
+		socket_update_link_state();
+		_io_progress();
 	}
 
 	void init()

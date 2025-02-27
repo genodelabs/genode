@@ -588,13 +588,6 @@ void * mtree_load(struct maple_tree * mt,unsigned long index)
 }
 
 
-extern void netdev_unregister_kobject(struct net_device * ndev);
-void netdev_unregister_kobject(struct net_device * ndev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/pipe_fs_i.h>
 
 const struct pipe_buf_operations nosteal_pipe_buf_ops;
