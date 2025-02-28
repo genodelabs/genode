@@ -199,9 +199,13 @@ void Usb_device::_wait_for_urb(Urb &urb)
 			.revents = 0
 		};
 
+		if (urb.completed())
+			break;
+
 		int poll_result = poll(&pollfds, 1, -1);
 		if ((poll_result != 1) || !(pollfds.revents & POLLIN))
 			error("could not complete request");
+		libusb_genode_backend_signaling = false;
 	}
 }
 
