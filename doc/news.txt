@@ -4,6 +4,42 @@
                                ===========
 
 
+Genode OS Framework release 25.02 | 2025-02-28
+##############################################
+
+| Version 25.02 extends Genode's multi-monitor abilities to the
+| window-management level and to virtual machines, features the ports of Qemu
+| and the Chromium web engine version 112, boosts the graphics performance via
+| SIMD optimizations, and brings Sculpt OS to the latest Intel Meteor-Lake
+| Framework laptops as well as F&S MX8MP armStone hardware.
+
+With Genode 25.02, we deliver the technical underpinnings for the next version
+of Sculpt OS: An up-to-date web-browser engine, a profound window-management
+solution designed for multi-monitor setups, refined framework interfaces
+for treating individual directories as virtual file systems, and much
+improved graphics performance by leveraging vector instructions on the 64-bit
+ARM and x86 architectures.
+
+Speaking of Sculpt OS, the framework extends the range of supported
+hardware platforms to Intel Meteor Lake as used by the latest Framework
+laptops, and adds F&S MX8MP armStone to the arsenal of ready-to-use
+NXP i.MX-based boards.
+
+Under the hood, Genode's custom microkernel received much love. Besides
+maturing the kernel's x86 virtualization abilities, IOMMU IRQ protection is
+now fully supported, the kernel advanced in terms of diagnostic aid for
+developers, and gained performance.
+
+Going up the stack, the steadily evolving Goa SDK unlocks the direct use
+of 3rd-party software on Genode we could only dream about previously.
+The best example is the fresh port of Qemu, which is a crucial tool
+for the work of Genode's developers and has now become available in the
+form of a Genode component.
+
+For the full description of these and more improvements, please refer to the
+[https:/documentation/release-notes/25.02 - release documentation of version 25.02...]
+
+
 Road Map for 2025 | 2025-01-22
 ##############################
 
