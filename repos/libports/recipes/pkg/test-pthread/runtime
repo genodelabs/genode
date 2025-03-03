@@ -29,8 +29,8 @@
 		</default-route>
 		<start name="test-pthread" caps="600" ram="64M">
 			<config>
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				<libc stdout="/dev/log"/>
+				<vfs> <dir name="dev"> <log/> <inline name="rtc">2025-03-03 09:16</inline> </dir> </vfs>
+				<libc stdout="/dev/log" rtc="/dev/rtc"/>
 			</config>
 		</start>
 	</config>
