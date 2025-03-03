@@ -27,7 +27,6 @@
 #include <internal/malloc_ram_allocator.h>
 #include <internal/cloned_malloc_heap_range.h>
 #include <internal/timer.h>
-#include <internal/pthread_pool.h>
 #include <internal/init.h>
 #include <internal/env.h>
 #include <internal/vfs_plugin.h>
@@ -285,8 +284,6 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 
 		Main_timeout _main_timeout { _timer_accessor, *this };
 
-		Pthread_pool _pthreads { _timer_accessor };
-
 		Monitor::Pool _monitors { *this };
 
 		Io_signal_handler<Kernel> _execute_monitors {
@@ -538,8 +535,6 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 				else
 					_resume_main_handler.local_submit();
 			}
-
-			_pthreads.resume_all();
 		}
 
 		/**
@@ -547,6 +542,11 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		 */
 		uint64_t suspend(Suspend_functor &check, uint64_t timeout_ms) override
 		{
+			if (!_main_context()) {
+				error("libc: suspend() used by pthread. sleep forever...");
+				sleep_forever();
+			}
+
 			if (timeout_ms > 0
 			 && timeout_ms > _timer_accessor.timer().max_timeout()) {
 				warning("libc: limiting exceeding timeout of ",
@@ -556,8 +556,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 				timeout_ms = min(timeout_ms, _timer_accessor.timer().max_timeout());
 			}
 
-			return _main_context() ? _suspend_main(check, timeout_ms)
-			                       : _pthreads.suspend_myself(check, timeout_ms);
+			return _suspend_main(check, timeout_ms);
 		}
 
 		/**
