@@ -72,7 +72,7 @@ struct Test::Client
 
 	Client(Env &env) : env(env)
 	{
-		genode_socket_init(genode_env_ptr(env), nullptr);
+		genode_socket_init(genode_env_ptr(env), nullptr, "");
 
 		_wakeup.data     = this;
 		_wakeup.callback = _wakeup_remote;

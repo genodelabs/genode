@@ -156,7 +156,8 @@ struct genode_socket_io_progress
 
 
 void genode_socket_init(struct genode_env *env,
-                        struct genode_socket_io_progress *);
+                        struct genode_socket_io_progress *,
+                        char const *label);
 
 
 /*

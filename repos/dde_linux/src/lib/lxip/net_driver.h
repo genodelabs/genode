@@ -29,6 +29,10 @@ extern "C" {
 	void socket_config_address(void);
 	void socket_unconfigure_address(void);
 	void socket_update_link_state(void);
+
+	void socket_label(char const *);
+	char const *socket_nic_client_label(void);
+
 #ifdef __cplusplus
 }
 #endif

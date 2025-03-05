@@ -89,7 +89,7 @@ struct Socket::Main
 			statics().io_progress->callback(statics().io_progress->data);
 	}
 
-	Main(Env &env) : _env(env)
+	Main(Env &env, char const *label) : _env(env)
 	{
 		statics().heap = &_heap;
 
@@ -101,7 +101,7 @@ struct Socket::Main
 		Lwip::genode_init(_heap, _timer);
 
 		/* create lwIP-network interface */
-		statics().netif_ptr = lwip_genode_netif_init();
+		statics().netif_ptr = lwip_genode_netif_init(label);
 	}
 
 	void handle_nic_client()
@@ -344,14 +344,15 @@ void genode_socket_wait_for_progress()
 
 
 void genode_socket_init(struct genode_env *_env,
-                        struct genode_socket_io_progress *io_progress)
+                        struct genode_socket_io_progress *io_progress,
+                        char const *label)
 {
 	Genode::Env &env = *static_cast<Genode::Env *>(_env);
 
 	statics().env         = &env;
 	statics().io_progress = io_progress;
 
-	static Socket::Main main { env };
+	static Socket::Main main { env, label };
 }
 
 

@@ -24,7 +24,7 @@ struct genode_netif_handle;
 struct genode_socket_config;
 struct genode_socket_info;
 
-struct genode_netif_handle *lwip_genode_netif_init(void);
+struct genode_netif_handle *lwip_genode_netif_init(char const *label);
 
 void lwip_genode_netif_address(struct genode_netif_handle  *handle,
                                struct genode_socket_config *config);

@@ -193,7 +193,7 @@ static void  nic_netif_status_callback(struct netif *netif)
  * public functions of this module
  */
 
-struct genode_netif_handle *lwip_genode_netif_init(void)
+struct genode_netif_handle *lwip_genode_netif_init(char const *label)
 {
 	ip4_addr_t v4dummy;
 	IP4_ADDR(&v4dummy, 0, 0, 0, 0);
@@ -215,7 +215,7 @@ struct genode_netif_handle *lwip_genode_netif_init(void)
 		return NULL;
 	}
 
-	handle->nic_handle         = genode_nic_client_create("");
+	handle->nic_handle         = genode_nic_client_create(label);
 	handle->netif              = net;
 	handle->address_valid      = false;
 	handle->address_configured = false;

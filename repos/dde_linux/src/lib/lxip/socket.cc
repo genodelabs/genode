@@ -37,10 +37,11 @@ using Socket_queue = Fifo<Lx_call>;
 
 struct Statics
 {
-	genode_socket_wakeup *wakeup_remote { nullptr };
-	genode_socket_config  config{ };
-	bool                  address_configured { false };
-	bool                  address_valid      { false };
+	genode_socket_wakeup        *wakeup_remote { nullptr };
+	genode_socket_config         config{ };
+	bool                         address_configured { false };
+	bool                         address_valid      { false };
+	Constructible<Session_label> label { };
 };
 
 
@@ -800,4 +801,21 @@ void socket_update_link_state(void)
 		socket_config_address();
 	else
 		statics().address_configured = false;
+}
+
+
+void socket_label(char const *label)
+{
+	if (statics().label.constructed()) return;
+
+	statics().label.construct(label);
+}
+
+
+char const *socket_nic_client_label()
+{
+	if (statics().label.constructed())
+		return statics().label->string();
+
+	return "";
 }

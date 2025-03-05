@@ -89,10 +89,13 @@ struct Main
 
 
 void genode_socket_init(struct genode_env *_env,
-                        struct genode_socket_io_progress *io_progress)
+                        struct genode_socket_io_progress *io_progress,
+                        char const *label)
 {
 	Env &env = *static_cast<Env *>(_env);
 	static Main main { env, io_progress };
+
+	socket_label(label);
 
 	Lx_kit::initialize(env, main.schedule_handler);
 

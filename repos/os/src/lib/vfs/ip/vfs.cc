@@ -1996,7 +1996,10 @@ struct Ip_factory : Vfs::File_system_factory
 		io_progress.data = &env;
 		io_progress.callback = socket_progress;
 
-		genode_socket_init(genode_env_ptr(env.env()), &io_progress);
+		using Label = Genode::String<Genode::Session_label::capacity()>;
+
+		genode_socket_init(genode_env_ptr(env.env()), &io_progress,
+		                   config.attribute_value("label", Label("")).string());
 
 		return new (env.alloc()) Vfs::Ip_file_system(env, config);
 	}

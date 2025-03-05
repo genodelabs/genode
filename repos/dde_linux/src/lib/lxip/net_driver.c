@@ -202,7 +202,8 @@ static int __init virtio_net_driver_init(void)
 
 	dev->netdev_ops = &net_ops;
 
-	dev->ifalias = (struct dev_ifalias *)genode_nic_client_create("");
+	dev->ifalias = (struct dev_ifalias *)
+	               genode_nic_client_create(socket_nic_client_label());
 
 	if (!dev->ifalias) {
 		printk("Failed to create nic client\n");
