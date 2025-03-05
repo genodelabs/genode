@@ -46,7 +46,6 @@ DIR_CONTENT(include/stdcxx/bits) := \
     src/lib/stdcxx/config/os/generic/ctype_base.h \
     src/lib/stdcxx/config/os/generic/ctype_inline.h \
     src/lib/stdcxx/config/os/generic/error_constants.h \
-    src/lib/stdcxx/config/os/generic/os_defines.h \
     src/lib/stdcxx/config/locale/generic/messages_members.h \
     src/lib/stdcxx/config/locale/generic/time_members.h \
     src/lib/stdcxx/gthr.h

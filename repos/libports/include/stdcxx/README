@@ -18,3 +18,4 @@ file origins
   - copy 'build/arm_v8a/noux-pkg/gcc_arm_64/aarch64-none-elf/libstdc++-v3/include/aarch64-none-elf/bits/c++config.h'
   - #define _GLIBCXX_HAS_GTHREADS 1 in all of the copied files
   - #undef _GLIBCXX_HAVE_TLS in all of the copied files
+- bits/os_defines.h: manually created, based on config/os/generic/os_defines.h

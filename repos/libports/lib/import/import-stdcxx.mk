@@ -31,12 +31,3 @@ endif
 
 # stdcxx headers include libc headers
 include $(call select_from_repositories,lib/import/import-libc.mk)
-
-# prevent gcc headers from defining mbstate
-CC_OPT += -D_GLIBCXX_HAVE_MBSTATE_T
-
-# use compiler-builtin atomic operations
-CC_OPT += -D_GLIBCXX_ATOMIC_BUILTINS_4
-
-# No isinf isnan
-CC_OPT += -D_GLIBCXX_NO_OBSOLETE_ISINF_ISNAN_DYNAMIC
