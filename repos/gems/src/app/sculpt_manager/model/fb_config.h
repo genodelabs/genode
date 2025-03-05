@@ -53,11 +53,19 @@ struct Sculpt::Fb_config
 
 		static Entry from_manual_xml(Xml_node const &node)
 		{
+			auto mode_id   = node.attribute_value("mode", Mode_id());
+			auto mode_attr = Mode_attr::from_xml(node);
+
+			if (!node.attribute_value("enabled", true)) {
+				mode_id   = { };
+				mode_attr = { };
+			}
+
 			return { .defined    = true,
 			         .present    = false,
 			         .name       = node.attribute_value("name", Name()),
-			         .mode_id    = node.attribute_value("mode", Mode_id()),
-			         .mode_attr  = Mode_attr::from_xml(node),
+			         .mode_id    = mode_id,
+			         .mode_attr  = mode_attr,
 			         .brightness = Brightness::from_xml(node) };
 		}
 
