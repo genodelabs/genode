@@ -762,11 +762,34 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _nitpicker_hover_handler {
 		_env, "nitpicker_hover", *this, &Main::_handle_nitpicker_hover };
 
+	Rom_handler<Main> _hover_handler {
+		_env, "hover", *this, &Main::_handle_hover };
+
 	Expanding_reporter _gui_fb_config { _env, "config", "gui_fb_config" };
 
 	Constructible<Gui::Point> _pointer_pos { };
 
 	Fb_connectors::Name _hovered_display { };
+
+	void _handle_hover(Xml_node const &hover)
+	{
+		using Label = String<128>;
+
+		Label label  { hover.attribute_value("label", Label()) };
+		Label suffix { "popup_dialog" };
+
+		_popup_hovered = false;
+		if (label.length() >= suffix.length()) {
+			size_t const offset = label.length() - suffix.length();
+
+			if (!strcmp(label.string() + offset, suffix.string()))
+				_popup_hovered = true;
+		}
+
+		_hover_seq_number = { hover.attribute_value("seq_number", 0U) };
+
+		_try_handle_click();
+	}
 
 	void _handle_nitpicker_hover(Xml_node const &hover)
 	{
@@ -942,7 +965,11 @@ struct Sculpt::Main : Input_event_handler,
 
 	/* used to prevent closing the popup immediatedly after opened */
 	Input::Seq_number _popup_opened_seq_number { };
+	/* used to correlate clicks and hover reports */
+	Input::Seq_number _hover_seq_number        { };
 	Input::Seq_number _clicked_seq_number      { };
+	Input::Seq_number _last_clicked_seq_number { };
+	bool              _popup_hovered           { false };
 
 	/**
 	 * Input_event_handler interface
@@ -962,22 +989,10 @@ struct Sculpt::Main : Input_event_handler,
 		 * Detect clicks outside the popup dialog (for closing it)
 		 */
 		if (ev.key_press(Input::BTN_LEFT) || ev.touch()) {
-
 			_clicked_seq_number = _global_input_seq_number;
-
-			bool const popup_opened =
-				(_popup_opened_seq_number.value == _clicked_seq_number.value);
-
-			bool const popup_hovered =
-				_popup_dialog.if_hovered([&] (Hovered_at const &) { return true; });
-
-			if (!popup_hovered && !popup_opened) {
-				if (_popup.state == Popup::VISIBLE) {
-					_close_popup_dialog();
-					discard_construction();
-				}
-			}
+			_try_handle_click();
 		}
+
 
 		bool need_generate_dialog = false;
 
@@ -1154,6 +1169,27 @@ struct Sculpt::Main : Input_event_handler,
 		_popup.state = Popup::VISIBLE;
 		_graph_view.refresh();
 		_update_window_layout();
+	}
+
+	void _try_handle_click()
+	{
+		/* skip if already handled */
+		if (_last_clicked_seq_number.value == _clicked_seq_number.value)
+			return;
+
+		/* wait for hover to be updated */
+		if (_clicked_seq_number.value != _hover_seq_number.value)
+			return;
+
+		_last_clicked_seq_number = _clicked_seq_number;
+
+		bool const popup_opened =
+			(_popup_opened_seq_number.value == _clicked_seq_number.value);
+
+		if ((_popup.state == Popup::VISIBLE) && !_popup_hovered && !popup_opened) {
+			_close_popup_dialog();
+			discard_construction();
+		}
 	}
 
 	void _refresh_panel_and_window_layout()

@@ -960,7 +960,7 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 		_view_stack.update_all_views();
 	}
 
-	if (result.hover_changed)
+	if (result.hover_changed || result.last_seq_changed)
 		_hover_count++;
 
 	/* report mouse-position updates */

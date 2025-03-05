@@ -252,6 +252,7 @@ class Nitpicker::User_state
 			bool const motion_activity;
 			bool const key_pressed;
 			bool const last_clicked_changed;
+			bool const last_seq_changed;
 		};
 
 		Handle_input_result handle_input_events(Input_batch);

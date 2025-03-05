@@ -63,7 +63,7 @@ class Dialog::Distant_runtime : Noncopyable
 		Top_level_dialog::Name _hovered_dialog { };
 
 		Sculpt::Rom_handler<Distant_runtime> _hover_rom {
-			_env, "hover", *this, &Distant_runtime::_handle_hover };
+			_env, "menu_hover", *this, &Distant_runtime::_handle_hover };
 
 		void _handle_hover(Xml_node const &);
 

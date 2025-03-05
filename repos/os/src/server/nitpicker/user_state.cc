@@ -342,6 +342,8 @@ User_state::handle_input_events(Input_batch batch)
 	View_owner const * const old_input_receiver = _input_receiver;
 	View_owner const * const old_last_clicked   = _last_clicked;
 	unsigned           const old_clicked_count  = _clicked_count;
+	unsigned           const old_seq_number     = _last_seq_number.constructed()
+	                                            ? _last_seq_number->value : 0;
 
 	bool button_activity = false;
 
@@ -424,6 +426,9 @@ User_state::handle_input_events(Input_batch batch)
 			[&] (Nowhere) { return _pointer.ok(); });
 	};
 
+	bool const last_seq_changed = _last_seq_number.constructed()
+	                           && _last_seq_number->value != old_seq_number;
+
 	return {
 		.hover_changed        = _hovered != old_hovered,
 		.focus_changed        = (_focused != old_focused) ||
@@ -432,7 +437,8 @@ User_state::handle_input_events(Input_batch batch)
 		.button_activity      = button_activity,
 		.motion_activity      = pointer_changed() || touch_occurred,
 		.key_pressed          = _key_pressed(),
-		.last_clicked_changed = last_clicked_changed
+		.last_clicked_changed = last_clicked_changed,
+		.last_seq_changed     = last_seq_changed
 	};
 }
 
@@ -460,6 +466,9 @@ void User_state::report_hovered_view_owner(Xml_generator &xml, bool active) cons
 		_hovered->report(xml);
 
 	if (active) xml.attribute("active", "yes");
+
+	if (_last_seq_number.constructed())
+		xml.attribute("seq_number", _last_seq_number->value);
 }
 
 
