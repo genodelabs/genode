@@ -297,16 +297,26 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				session.screen_size_changed(); });
 		}
 
+		void _for_each_session_bb(auto const &fn) const
+		{
+			bool any_session_exists = false;
+			_sessions.for_each([&] (Capture_session const &session) {
+				any_session_exists = true;
+				fn(session.bounding_box()); });
+
+			if (!any_session_exists)
+				fn(_fallback_bounding_box);
+		}
+
 		/**
 		 * Determine the bounding box of all capture clients
 		 */
 		Rect bounding_box() const
 		{
-			Rect bb { };
-			_sessions.for_each([&] (Capture_session const &session) {
-				bb = Rect::compound(bb, session.bounding_box()); });
-
-			return bb.valid() ? bb : _fallback_bounding_box;
+			Rect result { };
+			_for_each_session_bb([&] (Rect const &bb) {
+				result = Rect::compound(result, bb); });
+			return result;
 		}
 
 		/**
@@ -317,11 +327,9 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 			bool result = false;
 			pointer.with_result(
 				[&] (Point const p) {
-					_sessions.for_each([&] (Capture_session const &session) {
-						if (!result && session.bounding_box().contains(p))
+					_for_each_session_bb([&] (Rect const &bb) {
+						if (!result && bb.contains(p))
 							result = true; });
-					if (!result)
-						result = _fallback_bounding_box.contains(p);
 				},
 				[&] (Nowhere) { });
 			return result;
