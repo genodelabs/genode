@@ -950,7 +950,7 @@ struct Sculpt::Main : Input_event_handler,
 	void handle_input_event(Input::Event const &ev) override
 	{
 		ev.handle_absolute_motion([&] (int x, int y) {
-			_pointer_pos.construct(x, y); });
+			_pointer_pos.construct(x + _screen_pos.x, y + _screen_pos.y); });
 
 		Keyboard_focus_guard focus_guard { *this };
 
