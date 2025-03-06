@@ -53,6 +53,21 @@ extern int       __idt;
 
 Vmcs * current_vmcs[Hw::Pc_board::NR_OF_CPUS]  = { nullptr };
 
+/*
+ * We need to push the artifical TRAP_VMEXIT value
+ * to trapno after returning from vmlauch and before
+ * jumping to _kernel_entry
+ */
+void kernel_entry_push_trap()
+{
+	asm volatile(
+	      "pushq %[trap_val];" /* make the stack point to trapno, the right place */
+	      "jmp _kernel_entry;"
+	      :
+	      : [trap_val] "i"(Board::TRAP_VMEXIT)
+	      : "memory");
+}
+
 Vmcs_buf::Vmcs_buf(Genode::uint32_t system_rev)
 {
 	Genode::memset((void *) this, 0, sizeof(Vmcs_buf));
@@ -233,8 +248,7 @@ void Vmcs::setup_vmx_info()
 	cr4_mask   = ~cr4_fixed1 | cr4_fixed0;
 }
 
-void Vmcs::initialize(Kernel::Cpu &cpu, Genode::addr_t page_table_phys,
-                      Core::Cpu::Context &regs)
+void Vmcs::initialize(Kernel::Cpu &cpu, Genode::addr_t page_table_phys)
 {
 	using Cpu = Hw::X86_64_cpu;
 
@@ -346,14 +360,14 @@ void Vmcs::initialize(Kernel::Cpu &cpu, Genode::addr_t page_table_phys,
 
 	write(E_HOST_IA32_SYSENTER_ESP, reinterpret_cast<Genode::addr_t>(&(cpu.tss.rsp[0])));
 	write(E_HOST_IA32_SYSENTER_CS, 0x8);
-	write(E_HOST_IA32_SYSENTER_EIP, reinterpret_cast<Genode::uint64_t>(&_kernel_entry));
+	write(E_HOST_IA32_SYSENTER_EIP, reinterpret_cast<Genode::uint64_t>(&kernel_entry_push_trap));
 
 	/*
 	 * Set the RSP to trapno, so that _kernel_entry will save the registers
 	 * into the right fields.
 	 */
-	write(E_HOST_RSP, reinterpret_cast<Genode::uint64_t>(&(regs.trapno)));
-	write(E_HOST_RIP, reinterpret_cast<Genode::uint64_t>(&_kernel_entry));
+	write(E_HOST_RSP, cpu.stack_start() - 568);
+	write(E_HOST_RIP, reinterpret_cast<Genode::uint64_t>(&kernel_entry_push_trap));
 }
 
 

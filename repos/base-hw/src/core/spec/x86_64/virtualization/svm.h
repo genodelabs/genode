@@ -332,8 +332,7 @@ struct Board::Vmcb
 	void enforce_intercepts(uint32_t desired_primary   = 0U,
 	                        uint32_t desired_secondary = 0U);
 	void initialize(Kernel::Cpu   &cpu,
-	                addr_t page_table_phys_addr,
-	                Core::Cpu::Context &) override;
+	                addr_t page_table_phys_addr) override;
 	void write_vcpu_state(Vcpu_state &state) override;
 	void read_vcpu_state(Vcpu_state &state) override;
 	void switch_world(Core::Cpu::Context &regs, addr_t) override;

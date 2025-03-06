@@ -67,8 +67,7 @@ Vmcb_buf &Vmcb::host_vmcb(size_t cpu_id)
 	return *host_vmcb[cpu_id];
 }
 
-void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr,
-                      Core::Cpu::Context &)
+void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr)
 {
 	using Cpu = Hw::X86_64_cpu;
 

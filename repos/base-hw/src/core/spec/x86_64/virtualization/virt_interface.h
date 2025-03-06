@@ -38,8 +38,8 @@ struct Virt_interface
 	Genode::Vcpu_data &vcpu_data;
 
 	virtual void initialize(Kernel::Cpu        &cpu,
-	                        addr_t              page_table_phys_addr,
-				Core::Cpu::Context &regs)   = 0;
+	                        addr_t              page_table_phys_addr)
+				                            = 0;
 	virtual void write_vcpu_state(Vcpu_state &state)    = 0;
 	virtual void read_vcpu_state(Vcpu_state &state)     = 0;
 	virtual void switch_world(Core::Cpu::Context &regs, addr_t) = 0;

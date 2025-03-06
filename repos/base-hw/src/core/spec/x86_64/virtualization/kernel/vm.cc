@@ -266,5 +266,5 @@ void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
 
 void Board::Vcpu_context::initialize(Kernel::Cpu &cpu, addr_t table_phys_addr)
 {
-	virt.initialize(cpu, table_phys_addr, *regs);
+	virt.initialize(cpu, table_phys_addr);
 }

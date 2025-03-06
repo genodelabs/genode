@@ -382,8 +382,7 @@ Board::Vmcs
 		return ((ar >> 4) & 0x1F00) | (ar & 0xFF);
 	}
 
-	void initialize(Kernel::Cpu &cpu, addr_t page_table_phys,
-	                Core::Cpu::Context &regs) override;
+	void initialize(Kernel::Cpu &cpu, addr_t page_table_phys) override;
 	void write_vcpu_state(Genode::Vcpu_state &state) override;
 	void read_vcpu_state(Genode::Vcpu_state &state) override;
 	void switch_world(Core::Cpu::Context &regs, addr_t) override;
