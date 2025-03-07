@@ -18,6 +18,9 @@
 #include <dynamic_generic.h>
 
 namespace Linker {
+
+	static constexpr Elf::Half E_MACHINE = EM_ARM;
+
 	enum Reloc_types {
 		R_ABS32    = 2,
 		R_REL32    = 3,

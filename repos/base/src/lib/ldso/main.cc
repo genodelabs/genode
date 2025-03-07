@@ -75,6 +75,8 @@ Genode::Mutex &Linker::shared_object_mutex()
 	return _mutex;
 }
 
+Elf::Half Linker::machine() { return E_MACHINE; };
+
 
 /**************************************************************
  ** ELF object types (shared object, dynamic binaries, ldso  **

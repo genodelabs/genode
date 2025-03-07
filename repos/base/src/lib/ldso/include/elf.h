@@ -112,9 +112,13 @@ namespace Linker {
 	/**
 	 * Legal values for e_machine (architecture)
 	 */
-	enum {
-		EM_NONE = 0,   /* no machine  */
-		EM_386  = 3,   /* intel 80386 */
+	enum Em_machine {
+		EM_NONE    = 0,   /* no machine */
+		EM_386     = 3,   /* x86_32     */
+		EM_ARM     = 40,  /* arm_v6/7   */
+		EM_X86_64  = 62,  /* x86_64     */
+		EM_AARCH64 = 183, /* arm_v8     */
+		EM_RISCV   = 243, /* riscv      */
 	};
 
 	/**

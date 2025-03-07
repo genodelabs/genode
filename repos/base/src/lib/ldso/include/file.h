@@ -34,6 +34,11 @@ namespace Linker {
 
 	static inline bool is_rw(Elf::Phdr const &ph) {
 		return ((ph.p_flags & PF_MASK) == (PF_R | PF_W)); }
+
+	/**
+	 * Returns machine linker is compiled for
+	 */
+	Elf::Half machine();
 }
 
 
@@ -154,6 +159,18 @@ struct Linker::Elf_file : File
 		start = 0;
 	}
 
+	char const * _machine(Elf::Half machine)
+	{
+		switch (machine) {
+		case EM_386:     return "x86_32";
+		case EM_ARM:     return "arm";
+		case EM_X86_64:  return "x86_64";
+		case EM_AARCH64: return "aarch64";
+		case EM_RISCV:   return "riscv";
+		default:         return "unknown";
+		}
+	}
+
 	Elf_file(Env &env, Allocator &md_alloc, Name const &name, bool load)
 	:
 		env(env), rom_cap(_rom_dataspace(name)), loaded(load)
@@ -190,6 +207,14 @@ struct Linker::Elf_file : File
 		char const * const ELFMAG = "\177ELF";
 		if (memcmp(&ehdr, ELFMAG, SELFMAG) != 0) {
 			error("LD: binary is not an ELF");
+			return false;
+		}
+
+		/* check if machine matches linker's machine */
+		if (ehdr.e_machine != Linker::machine()) {
+			error("LD: incompatbile machine in ELF ('",
+			       _machine(ehdr.e_machine), "'), expected '",
+			       _machine(Linker::machine()), "'");
 			return false;
 		}
 

@@ -19,6 +19,8 @@
 
 namespace Linker {
 
+	static constexpr Elf::Half E_MACHINE = EM_386;
+
 	enum Reloc_types {
 		R_32       = 1,
 		R_COPY     = 5,

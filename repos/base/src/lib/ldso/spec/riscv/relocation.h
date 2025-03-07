@@ -18,6 +18,8 @@
 
 namespace Linker {
 
+	static constexpr Elf::Half E_MACHINE = EM_RISCV;
+
 	inline unsigned long dynamic_address()
 	{
 		unsigned long addr;

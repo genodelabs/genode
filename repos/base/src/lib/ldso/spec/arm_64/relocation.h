@@ -20,6 +20,8 @@
 
 namespace Linker {
 
+	static constexpr Elf::Half E_MACHINE = EM_AARCH64;
+
 /**
  * Relocation types
  */
