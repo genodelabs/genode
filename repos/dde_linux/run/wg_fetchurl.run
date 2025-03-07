@@ -165,10 +165,10 @@ append config {
 
 			<policy label="peer1_wireguard -> nic_session"    domain="peer1_outer_downlink"/>
 			<policy label="peer1_wireguard -> uplink_session" domain="peer1_inner_uplink"/>
-			<policy label="fetchurl -> lwip"                  domain="peer1_inner_downlink"/>
+			<policy label="fetchurl -> "                      domain="peer1_inner_downlink"/>
 			<policy label="peer2_wireguard -> nic_session"    domain="peer2_outer_downlink"/>
 			<policy label="peer2_wireguard -> uplink_session" domain="peer2_inner_uplink"/>
-			<policy label="lighttpd -> lwip"                  domain="peer2_inner_downlink"/>
+			<policy label="lighttpd -> "                      domain="peer2_inner_downlink"/>
 
 			<domain name="peer1_outer_downlink" interface="10.1.2.1/24">
 				<dhcp-server ip_first="10.1.2.2" ip_last="10.1.2.2"/>
