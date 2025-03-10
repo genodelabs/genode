@@ -122,7 +122,6 @@ namespace File_vault {
 					gen_named_node(xml, "dir", "dev", [&] {
 						gen_named_node(xml, "block", "block", [&] {
 							xml.attribute("label", "default");
-							xml.attribute("block_buffer_count", 128);
 						});
 						gen_named_node(xml, "inline", "rtc", [&] {
 							xml.append("2018-01-01 00:01");
@@ -157,7 +156,6 @@ namespace File_vault {
 					gen_named_node(xml, "dir", "dev", [&] {
 						gen_named_node(xml, "block", "block", [&] {
 							xml.attribute("label", "default");
-							xml.attribute("block_buffer_count", 128);
 						});
 						gen_named_node(xml, "inline", "rtc", [&] {
 							xml.append("2018-01-01 00:01"); });

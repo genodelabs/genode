@@ -354,14 +354,14 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 		                 Block::Connection<>        &block,
 		                 Block::Session::Info const &info,
 		                 Name                 const &name,
-		                 unsigned                    block_buffer_count)
+		                 size_t                      io_buffer_size)
 		:
 			Single_file_system { Node_type::CONTINUOUS_FILE, name.string(),
 			                     info.writeable ? Node_rwx::rw() : Node_rwx::ro(),
 			                     Genode::Xml_node("<data/>") },
 			_env(env),
 			_block_buffer(0),
-			_block_buffer_count(block_buffer_count),
+			_block_buffer_count(unsigned(io_buffer_size / info.block_size)),
 			_block(block),
 			_info(info),
 			_tx_source(_block.tx()),
@@ -437,8 +437,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 
 	Genode::Allocator_avl _tx_block_alloc { &_env.alloc() };
 
-	Block::Connection<> _block {
-		_env.env(), &_tx_block_alloc, 128*1024, _label.string() };
+	Block::Connection<> _block;
 
 	Block::Session::Info const _info { _block.info() };
 
@@ -474,9 +473,12 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		return config.attribute_value("name", Name("block"));
 	}
 
-	static unsigned buffer_count(Xml_node const &config)
+	/* payload + packstream metadata */
+	static constexpr size_t DEFAULT_IO_BUFFER_SIZE = (4u << 20);
+
+	static size_t io_buffer(Xml_node const &config)
 	{
-		return config.attribute_value("block_buffer_count", 1U);
+		return config.attribute_value("io_buffer", DEFAULT_IO_BUFFER_SIZE);
 	}
 
 	Local_factory(Vfs::Env &env, Xml_node const &config)
@@ -484,8 +486,13 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		_label   { config.attribute_value("label", Label("")) },
 		_name    { name(config) },
 		_env     { env },
-		_data_fs { _env, _block, _info, name(config), buffer_count(config) }
+		_block   { _env.env(), &_tx_block_alloc, io_buffer(config) + (64u << 10),
+		           _label.string() },
+		_data_fs { _env, _block, _info, name(config), io_buffer(config) }
 	{
+		if (config.has_attribute("block_buffer_count"))
+			Genode::warning("'block_buffer_count' attribute is superseded by 'io_buffer'");
+
 		_block.sigh(_block_signal_handler);
 		_info_fs       .value(Info { _info });
 		_block_count_fs.value(_info.block_count);

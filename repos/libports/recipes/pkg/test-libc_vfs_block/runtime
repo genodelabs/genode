@@ -37,7 +37,7 @@
 				<default-policy file="/block_file" block_size="4096" writeable="yes"/>
 			</config>
 		</start>
-		<start name="test-libc_vfs_block" ram="4M">
+		<start name="test-libc_vfs_block" ram="9M">
 			<config>
 				<vfs> <dir name="dev"> <block/> </dir> </vfs>
 				<libc/>
