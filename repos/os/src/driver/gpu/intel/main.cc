@@ -1474,8 +1474,7 @@ struct Igd::Device
 		}
 
 		/* reset */
-		Igd::Reset reset { };
-		reset.execute(mmio);
+		Igd::Reset(mmio).execute();
 
 		/* set address of global hardware status page */
 		if (_hw_status_ctx.constructed()) {
