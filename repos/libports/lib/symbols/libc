@@ -22,6 +22,7 @@ __has_sse D 4
 __inet_addr T
 __inet_aton T
 __inet_net_pton W
+__inet_network W
 __inet_nsap_ntoa T
 __inet_ntoa T
 __inet_ntop T
@@ -590,6 +591,8 @@ pthread_rwlock_tryrdlock T
 pthread_rwlock_trywrlock T
 pthread_rwlock_unlock T
 pthread_rwlock_wrlock T
+pthread_rwlockattr_destroy T
+pthread_rwlockattr_init T
 pthread_self T
 pthread_set_name_np T
 pthread_setcancelstate T
