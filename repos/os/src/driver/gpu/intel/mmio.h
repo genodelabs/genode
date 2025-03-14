@@ -20,7 +20,7 @@
 #include <timer_session/connection.h>
 
 /* local includes */
-#include <types.h>
+#include <device_info.h>
 
 
 namespace Igd {
@@ -35,18 +35,27 @@ class Igd::Mmio : public Platform::Device::Mmio<MMIO_SIZE>
 {
 	public:
 
-		unsigned _generation { 0 };
+		/* Device info related */
 
-		void generation(unsigned gen) { _generation = gen; }
+		Device_info  _info { };
+
+		void device_info(Device_info const info) { _info = info; }
 
 		unsigned generation() const
 		{
-			if (!_generation) {
-				Genode::error("Unsupported generation: ", _generation);
+			if (!_info.generation) {
+				Genode::error("Unsupported generation: ", _info.generation);
 			}
 
-			return _generation;
+			return _info.generation;
 		}
+
+		/* expand here as needed */
+		bool skylake() const {
+			return _info.platform == Device_info::Platform::SKYLAKE; }
+
+
+		/* Register definitions */
 
 		enum {
 			/*
@@ -668,20 +677,6 @@ class Igd::Mmio : public Platform::Device::Mmio<MMIO_SIZE>
 			struct Arbiter_mode_control_1 : Bitfield<1, 1> { };
 		};
 
-
-		/*
-		 * IHD-OS-BDW-Vol 2c-11.15 p. 1315 ff.
-		 */
-		struct RC_CTRL0 : Register<0x0A090, 32> { };
-
-		/*
-		 * IHD-OS-BDW-Vol 2c-11.15 p. 1317 ff.
-		 */
-		struct RC_CTRL1 : Register<0x0A094, 32>
-		{
-			struct Rc_state : Bitfield<18, 1> { };
-		};
-
 		/*
 		 * IHD-OS-BDW-Vol 2c-11.15 p. 1095
 		 */
@@ -1140,6 +1135,109 @@ class Igd::Mmio : public Platform::Device::Mmio<MMIO_SIZE>
 		struct MI_RDRET_STATE  : Register<0x20FC, 32> { };
 		struct ECOSKPD         : Register<0x21D0, 32> { };
 
+
+		/*********
+		 ** RC6 **
+		 *********/
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1315 ff.
+		 *
+		 * GEN6_RC_CONTROL in Linux
+		 */
+		struct RC_CTRL0 : Register<0x0A090, 32>
+		{
+			struct Rc6_enable        : Bitfield<18, 1> { };
+			struct Ei_hw             : Bitfield<27, 1> { };
+			struct Hw_control_enable : Bitfield<31, 1> { };
+		};
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1317 ff.
+		 *
+		 * GEN6_RC_STATE in Linux
+		 */
+		struct RC_CTRL1 : Register<0x0A094, 32>
+		{
+			struct Target : Bitfield<16, 3> { };
+		};
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1311 ff.
+		 */
+		struct RC_WAKE_RATE_LIMIT : Register<0xA09C, 32>
+		{
+			struct Rc6_deeper : Bitfield<0, 16> { };
+			struct Rc6        : Bitfield<16, 16> { };
+		};
+
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1296 ff.
+		 */
+		struct RC_EVALUATION_INTERVAL : Register<0xA0A8, 32>
+		{
+			struct Render_standby : Bitfield<0, 24> { };
+		};
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1296 ff.
+		 */
+		struct RC_IDLE_HYSTERSIS : Register<0xA0AC, 32>
+		{
+			struct Detection : Bitfield<0, 24> { };
+		};
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1557 ff.
+		 *
+		 * GEN6_RC_SLEEP in Linux
+		 */
+		struct RC_WAKE_HYSTERSIS : Register<0xA0B0, 32>
+		{
+			/* minimum amount of time in RC0 */
+			struct Msg_to_busy_timer : Bitfield<0, 24> { };
+		};
+
+		/*
+		 * IHD-OS-BDW-Vol 2c-11.15 p. 1300 ff.
+		 *
+		 * GEN6_RC6_THRESHOLD in Linux
+		 */
+		struct RC_PROMO_TIME : Register<0xA0B8, 32>
+		{
+			/* absolute time starting from post-hyst idle */
+			struct Promotion_timer : Bitfield<0, 24> { };
+		};
+
+		/*
+		 * Undocumented (PG stands for "power gating")
+		 */
+		struct GEN9_PG_ENABLE : Register<0xA210, 32>
+		{
+			struct Gen9_render_pg_enable         : Bitfield<0, 1> { };
+			struct Gen9_media_pg_enable          : Bitfield<1, 1> { };
+			struct Gen11_media_sampler_pg_enable : Bitfield<2, 1> { };
+			/* missing HCP/MFX power gates */
+		};
+
+		/*
+		 * Undocumented
+		 */
+		struct GEN9_MEDIA_PG_IDLE_HYSTERESIS  : Register<0xA0C4, 32> { };
+		struct GEN9_RENDER_PG_IDLE_HYSTERESIS : Register<0xA0C8, 32> { };
+		/*
+		 * Undocumented
+		 */
+		struct RING_MAX_IDLE : Register<0x2054, 32> { };
+
+		/*
+		 * Bootmsg - Boot Vector in IHD-OS-BDW-Vol 2c-11.15 p. 202
+		 *
+		 * Does not seem to correlate but is used to check a Wa
+		 */
+		struct GEN8_RC6_CTX_INFO : Register<0x8504, 32> { };
+
 	private:
 
 		struct Timer_delayer : Genode::Mmio<MMIO_SIZE>::Delayer
@@ -1441,13 +1539,6 @@ class Igd::Mmio : public Platform::Device::Mmio<MMIO_SIZE>
 		 */
 		void _disable_rps()
 		{
-			/*
-			 * Set RC0 state -- does not matter at this point b/c
-			 * we disable RC states entirely.
-			 */
-			write_post<RC_CTRL1::Rc_state>(0);
-
-			write<RC_CTRL0>(0);
 			write<RP_FREQ_NORMAL::Turbo_disable>(1);
 			write<RP_CTRL>(0);
 		}

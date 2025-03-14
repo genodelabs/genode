@@ -1,11 +1,13 @@
 /*
- * \brief  Intel GPU multiplexer for Broadwell generation and newer
+ * \brief  Intel GPU multiplexer for GEN8-12
+ * \author Alexander Boettcher
  * \author Josef Soentgen
- * \data   2017-03-15
+ * \author Sebastian Sumpf
+ * \date   2017-03-15
  */
 
 /*
- * Copyright (C) 2017-2024 Genode Labs GmbH
+ * Copyright (C) 2017-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -41,6 +43,7 @@
 #include <context.h>
 #include <context_descriptor.h>
 #include <platform_session.h>
+#include <rc6.h>
 #include <reset.h>
 #include <ring_buffer.h>
 
@@ -55,19 +58,6 @@ namespace Igd {
 }
 
 
-struct Igd::Device_info
-{
-	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE, WHISKEYLAKE, TIGERLAKE };
-	enum Stepping { A0, B0, C0, D0, D1, E0, F0, G0 };
-
-	uint16_t    id;
-	uint8_t     generation;
-	Platform    platform;
-	uint64_t    features;
-};
-
-
-
 struct Igd::Device
 {
 	struct Unsupported_device    : Genode::Exception { };
@@ -75,14 +65,15 @@ struct Igd::Device
 	struct Out_of_ram            : Genode::Exception { };
 	struct Could_not_map_vram    : Genode::Exception { };
 
-	/* 200 ms */
-	enum { WATCHDOG_TIMEOUT = 200*1000 };
+	/* 300 ms */
+	enum { WATCHDOG_TIMEOUT = 300*1000 };
 
 	Env                    & _env;
 	Allocator              & _md_alloc;
 	Platform::Resources    & _resources;
 	Rm_connection          & _rm;
-	Timer::Connection        _timer      { _env };
+	Timer::Connection        _timer { _env };
+	Constructible<Rc6>       _rc6 { };
 
 	/*********
 	 ** PCI **
@@ -198,12 +189,14 @@ struct Igd::Device
 			if (info.platform == Igd::Device_info::Platform::UNKNOWN)
 				return;
 
-			/* set generation for device IO as early as possible */
-			mmio.generation(generation);
 
 			if (info.id == dev_id) {
 				_info                  = info;
 				_revision.value        = rev_id;
+
+				/* set generation for device IO as early as possible */
+				mmio.device_info(_info);
+
 				_clock_frequency.value = mmio.clock_frequency();
 
 				found = true;
@@ -1086,6 +1079,9 @@ struct Igd::Device
 			return;
 		}
 
+		/* signal alive to RC6 watchdog */
+		_rc6->progress();
+
 		Engine<Rcs_context> &rcs = gpu->rcs;
 
 		mmio.flush_gfx_tlb();
@@ -1228,7 +1224,7 @@ struct Igd::Device
 
 		_resources.with_mmio([&](auto &mmio) {
 
-			mmio.generation(_info.generation);
+			mmio.device_info(_info);
 			reinit(mmio);
 
 			_schedule_stop = false;
@@ -1267,6 +1263,11 @@ struct Igd::Device
 		mmio.reset();
 		mmio.clear_errors();
 		mmio.init();
+
+		/* try to enable RC6-sleep-state support */
+		_rc6.construct(_env, mmio);
+		_rc6->enable();
+
 		mmio.enable_intr();
 	}
 
@@ -1473,8 +1474,12 @@ struct Igd::Device
 			vgpu_unschedule(*_active_vgpu);
 		}
 
+		/* disable hw handling of RC6 */
+		_rc6->clear();
 		/* reset */
 		Igd::Reset(mmio).execute();
+		/* re-init RC6 */
+		_rc6->enable();
 
 		/* set address of global hardware status page */
 		if (_hw_status_ctx.constructed()) {
