@@ -430,6 +430,9 @@ Core::Platform::Platform()
 	region_alloc().remove_range((addr_t)__main_thread_utcb - get_page_size(),
 	                            get_page_size() * 4);
 
+	/* exclude HIP */
+	region_alloc().remove_range(addr_t(&hip), _vm_base + _vm_size - addr_t(&hip));
+
 	/* sanity checks */
 	addr_t check [] = {
 		reinterpret_cast<addr_t>(__main_thread_utcb), CORE_PAGER_UTCB_ADDR,
