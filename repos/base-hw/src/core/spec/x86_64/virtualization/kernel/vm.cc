@@ -24,7 +24,6 @@
 #include <kernel/main.h>
 
 #include <hw/spec/x86_64/x86_64.h>
-#include <virtualization/hypervisor.h>
 #include <virtualization/svm.h>
 #include <virtualization/vmx.h>
 
@@ -77,6 +76,13 @@ void Vm::proceed()
 		_vcpu_context.initialize(_cpu(),
 		    reinterpret_cast<addr_t>(_id.table));
 		_vcpu_context.tsc_aux_host = _cpu().id();
+		_vcpu_context.init_state = Board::Vcpu_context::Init_state::STARTED;
+
+		/*
+		 * Sync the initial state from the VMM that was skipped due to
+		 * the vCPU being uninitialized.
+		 */
+		_sync_from_vmm();
 	}
 
 	Cpu::Ia32_tsc_aux::write(
@@ -161,6 +167,15 @@ void Vm::exception(Genode::Cpu_state &state)
 
 void Vm::_sync_to_vmm()
 {
+	/*
+	 * If the vCPU isn't initialized, sync instructions such as vmread may fail.
+	 * Just sync the startup exit and skip the rest of the synchronization.
+	 */
+	if (_vcpu_context.init_state != Board::Vcpu_context::Init_state::STARTED) {
+		_state.exit_reason = (unsigned) Board::EXIT_STARTUP;
+		return;
+	}
+
 	_vcpu_context.write_vcpu_state(_state);
 
 	/*
@@ -173,6 +188,13 @@ void Vm::_sync_to_vmm()
 
 void Vm::_sync_from_vmm()
 {
+	/*
+	 * Syncing the state to an unitialized vCPU may fail.
+	 * The inial state from the VMM will be synced after vCPU initialization.
+	 */
+	if (_vcpu_context.init_state != Board::Vcpu_context::Init_state::STARTED)
+		return;
+
 	_vcpu_context.read_vcpu_state(_state);
 }
 

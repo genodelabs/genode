@@ -14,6 +14,7 @@
 #include <base/internal/page_size.h>
 #include <base/log.h>
 #include <hw/spec/x86_64/x86_64.h>
+#include <hw/memory_consts.h>
 #include <kernel/cpu.h>
 #include <platform.h>
 #include <spec/x86_64/virtualization/svm.h>
@@ -496,7 +497,7 @@ void Vmcb::switch_world(Core::Cpu::Context &regs, addr_t stack_start)
 	               that occured ... */
 	    "nop;"
 	    "cli;"        /* ... otherwise, just disable interrupts again */
-	    "subq $568, %%rsp;" /* keep room for fpu and general-purpose registers */
+	    "subq %[stack_offset], %%rsp;" /* keep room for fpu and general-purpose registers */
 	    "pushq %[trap_vmexit];" /* make the stack point to trapno, the right place
 	                     to jump to _kernel_entry. We push 256 because
 	                     this is outside of the valid range for interrupts
@@ -504,11 +505,12 @@ void Vmcb::switch_world(Core::Cpu::Context &regs, addr_t stack_start)
 	    "jmp _kernel_entry;" /* jump to _kernel_entry to save the
 	                            GPRs without breaking any */
 	    :
-	    : [regs]        "r" (&regs.r8),
-	      [fpu_context] "r" (&regs.fpu_context()),
-	      [guest_state] "r" (vcpu_data.phys_addr + get_page_size()),
-	      [host_state]  "r" (root_vmcb_phys),
-	      [stack]       "r" (stack_start),
-	      [trap_vmexit] "i"(TRAP_VMEXIT)
+	    : [regs]         "r" (&regs.r8),
+	      [fpu_context]  "r" (&regs.fpu_context()),
+	      [guest_state]  "r" (vcpu_data.phys_addr + get_page_size()),
+	      [host_state]   "r" (root_vmcb_phys),
+	      [stack]        "r" (stack_start),
+	      [stack_offset] "i" (Hw::Mm::KERNEL_STACK_ERRCODE_OFFSET),
+	      [trap_vmexit]  "i"(TRAP_VMEXIT)
 	    : "rax", "memory");
 }
