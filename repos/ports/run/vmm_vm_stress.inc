@@ -2,7 +2,7 @@
 
 if {[have_cmd_switch --autopilot]} {
 	set current_date [clock format [clock seconds] -format %a]
-	assert {$current_date == "Sat" || $current_date == "Sun"} \
+	assert {$current_date == "Sat" || $current_date == "Sun"} {
 		"Autopilot mode is not supported on this platform today."
 	}
 }
