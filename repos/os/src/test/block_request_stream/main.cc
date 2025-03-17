@@ -50,7 +50,10 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 		               Info { .block_size  = BLOCK_SIZE,
 		                      .block_count = NUM_BLOCKS,
 		                      .align_log2  = log2(BLOCK_SIZE),
-		                      .writeable   = true }),
+		                      .writeable   = true },
+		               Block::Constrained_view { .offset = 0,
+		                                         .num_blocks = 0,
+		                                         .writeable = true }),
 		_ep(ep)
 	{
 		_ep.manage(*this);

@@ -25,9 +25,21 @@ namespace Block {
 	using off_t          = Genode::off_t;
 	using seek_off_t     = Genode::uint64_t;
 
+	struct Constrained_view;
 	struct Operation;
 	struct Request;
 }
+
+
+struct Block::Constrained_view
+{
+	struct Offset     { Genode::uint64_t value; };
+	struct Num_blocks { Genode::uint64_t value; };
+
+	Offset     offset;
+	Num_blocks num_blocks;
+	bool       writeable;
+};
 
 
 struct Block::Operation

@@ -42,9 +42,10 @@ class Block::Request_stream : Genode::Noncopyable
 
 				friend class Request_stream;
 
-				Genode::addr_t       const _base;
-				Genode::size_t       const _size;
-				Block::Session::Info const _info;
+				Genode::addr_t                  const _base;
+				Genode::size_t                  const _size;
+				Block::Session::Info            const _info;
+				Block::Constrained_view::Offset const _view_offset;
 
 				/**
 				 * Return pointer to the first byte of the request content
@@ -84,9 +85,10 @@ class Block::Request_stream : Genode::Noncopyable
 				}
 
 				Payload(Genode::addr_t base, Genode::size_t size,
-				        Block::Session::Info info)
+				        Block::Session::Info info,
+				        Block::Constrained_view::Offset view_offset)
 				:
-					_base(base), _size(size), _info(info)
+					_base(base), _size(size), _info(info), _view_offset(view_offset)
 				{ }
 
 			public:
@@ -107,7 +109,23 @@ class Block::Request_stream : Genode::Noncopyable
 
 	private:
 
+		static Session::Info _constrain_info(Block::Session::Info    const &info,
+		                                     Block::Constrained_view const &view)
+		{
+			using namespace Genode;
+
+			return {
+				.block_size  = info.block_size,
+				.block_count = min(view.num_blocks.value ? view.num_blocks.value
+				                                         : ~0ull,
+				                   info.block_count),
+				.align_log2  = info.align_log2,
+				.writeable   = info.writeable && view.writeable };
+		}
+
 		Block::Session::Info const _info;
+
+		Block::Constrained_view::Offset const _view_offset;
 
 		Packet_stream_tx::Rpc_object<Block::Session::Tx> _tx;
 
@@ -121,11 +139,13 @@ class Block::Request_stream : Genode::Noncopyable
 		               Genode::Dataspace_capability      ds,
 		               Genode::Entrypoint               &ep,
 		               Genode::Signal_context_capability sigh,
-		               Block::Session::Info        const info)
+		               Block::Session::Info        const info,
+		               Block::Constrained_view     const view = { 0, 0, false })
 		:
-			_info(info),
+			_info(_constrain_info(info, view)),
+			_view_offset(view.offset),
 			_tx(ds, rm, ep.rpc_ep()),
-			_payload(_tx.sink()->ds_local_base(), _tx.sink()->ds_size(), info)
+			_payload(_tx.sink()->ds_local_base(), _tx.sink()->ds_size(), info, _view_offset)
 		{
 			_tx.sigh_ready_to_ack(sigh);
 			_tx.sigh_packet_avail(sigh);
@@ -189,8 +209,31 @@ class Block::Request_stream : Genode::Noncopyable
 				bool const packet_valid = tx_sink.packet_valid(packet)
 				                       && (packet.offset() >= 0);
 
+				bool const operation_in_range = packet.block_count()
+				                             && (_view_offset.value + packet.block_number()
+				                                                    + packet.block_count() - 1)
+				                             <= (_view_offset.value + _info.block_count - 1);
+
+				bool const zero_count_allowed =
+					   packet.operation_type() == Block::Operation::Type::SYNC
+					|| packet.operation_type() == Block::Operation::Type::TRIM;
+
+				bool const read_request =
+					packet.operation_type() == Block::Operation::Type::READ;
+
+				/*
+				 * As all non-read operations lead to some kind of alteration
+				 * of the block-device treat them the same.
+				 *
+				 * For now allow SYNC and TRIM to be issued without specifying
+				 * the portion of the device they actually want to cover as
+				 * some clients are fuzzy in that regard.
+				 */
+				bool const operation_allowed = (operation_in_range || zero_count_allowed)
+					&& (read_request ? true : _info.writeable);
+
 				Operation operation { .type         = packet.operation_type(),
-				                      .block_number = packet.block_number(),
+				                      .block_number = packet.block_number() + _view_offset.value,
 				                      .count        = packet.block_count() };
 
 				Request request { .operation = operation,
@@ -198,7 +241,7 @@ class Block::Request_stream : Genode::Noncopyable
 				                  .offset    = packet.offset(),
 				                  .tag       = packet.tag() };
 
-				Response const response = packet_valid
+				Response const response = packet_valid && operation_allowed
 				                        ? fn(request)
 				                        : Response::REJECTED;
 				bool progress = false;
@@ -247,10 +290,12 @@ class Block::Request_stream : Genode::Noncopyable
 
 				bool _submitted = false;
 
-				Genode::size_t const _block_size;
+				Genode::size_t   const _block_size;
+				Genode::uint64_t const _offset;
 
-				Ack(Tx_sink &tx_sink, Genode::size_t block_size)
-				: _tx_sink(tx_sink), _block_size(block_size) { }
+				Ack(Tx_sink &tx_sink, Genode::size_t block_size,
+				    Block::Constrained_view::Offset offset)
+				: _tx_sink(tx_sink), _block_size(block_size), _offset(offset.value) { }
 
 			public:
 
@@ -266,6 +311,7 @@ class Block::Request_stream : Genode::Noncopyable
 						payload { .offset = request.offset,
 						          .bytes  = request.operation.count * _block_size };
 
+					request.operation.block_number -= _offset;
 					Packet_descriptor packet(request.operation, payload, request.tag);
 
 					packet.succeeded(request.success);
@@ -289,7 +335,7 @@ class Block::Request_stream : Genode::Noncopyable
 
 			while (tx_sink.ack_slots_free()) {
 
-				Ack ack(tx_sink, _payload._info.block_size);
+				Ack ack(tx_sink, _payload._info.block_size, _payload._view_offset);
 
 				fn(ack);
 
