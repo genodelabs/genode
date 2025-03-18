@@ -97,6 +97,47 @@ class Genode::Arg
 			return true;
 		}
 
+		/**
+		 * Return long long value of argument
+		 *
+		 * \param  out_value    argument converted to unsigned long value
+		 * \param  out_sign     1 if positive; -1 if negative
+		 * \return              true if no syntactic anomaly occured
+		 */
+		bool read_ulonglong(unsigned long long *out_value, int *out_sign) const
+		{
+			Token t = _value;
+
+			/* check for sign; default is positive */
+			*out_sign = 1;
+			if (t[0] == '+')
+				t = t.next();
+			else if (t[0] == '-') {
+				*out_sign = -1;
+				t = t.next();
+			}
+
+			/* stop if token after sign is no number */
+			if (t.type() != Token::NUMBER)
+				return false;
+
+			/* read numeric value and skip the corresponding tokens */
+			unsigned long long value;
+			size_t n = ascii_to(t.start(), value);
+
+			if (n == 0)
+				return false;
+
+			t = Token(t.start() + n);
+			*out_value = value;
+
+			/* check for strange characters at the end of the number */
+			t = t.eat_whitespace();
+			if (t && (t[0] != ',')) return false;
+
+			return true;
+		}
+
 	public:
 
 		/**
@@ -119,6 +160,18 @@ class Genode::Arg
 			int sign = 1;
 
 			bool valid = read_ulong(&value, &sign);
+			if (sign < 0)
+				return default_value;
+
+			return valid ? value : default_value;
+		}
+
+		unsigned long long ulonglong_value(unsigned long long default_value) const
+		{
+			unsigned long long value = 0;
+			int sign = 1;
+
+			bool valid = read_ulonglong(&value, &sign);
 			if (sign < 0)
 				return default_value;
 
@@ -330,6 +383,26 @@ class Genode::Arg_string
 		{
 			return remove_arg(args, key)
 			    && add_arg(args, args_len, key, String<16>(value).string());
+		}
+
+		/**
+		 * Assign new ulong integer argument
+		 */
+		static bool set_arg(char *args, size_t args_len,
+		                    const char *key, unsigned long value)
+		{
+			return remove_arg(args, key)
+			    && add_arg(args, args_len, key, String<20 + 1>(value).string());
+		}
+
+		/**
+		 * Assign new ulong long integer argument
+		 */
+		static bool set_arg(char *args, size_t args_len,
+		                    const char *key, unsigned long long value)
+		{
+			return remove_arg(args, key)
+			    && add_arg(args, args_len, key, String<20 + 1>(value).string());
 		}
 
 		/**
