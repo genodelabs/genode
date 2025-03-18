@@ -1,37 +1,38 @@
-This directory contains an implementation of a block-device-partition server.
+This directory contains an implementation of a block-device partition
+multiplexer.
 
 Behavior
 --------
 
-The server uses Genode's block-session interfaces as both front and back end,
-leading to the most common use case where this server will reside "between" a
-block-driver server and a higher level component like a file-system server.
+At startup, the partition multiplexer will try to parse the master boot record
+(MBR) of its back-end block session. If no partition table is found, the whole
+block device is exported as partition '0'. In the other case, the MBR and
+possible extended boot records (EBRs) are parsed and offered as separate block
+sessions to the front-end clients. The four primary partitions will receive
+partition numbers '1' to '4' whereas the first logical partition will be
+assigned to '5'.
 
-At startup, the partition server will try to parse the master boot record (MBR)
-of its back-end block session. If no partition table is found, the whole block
-device is exported as partition '0'. In the other case, the MBR and possible
-extended boot records (EBRs) are parsed and offered as separate block sessions
-to the front-end clients. The four primary partitions will receive partition
-numbers '1' to '4' whereas the first logical partition will be assigned to '5'.
+It also understands the GUID partition table (GPT) and will always try to read
+the MBR as well as the GPT and will bail out if both are considered valid. It
+is up to the user to choose the right table. To do so, the 'ignore_mbr' or
+'ignore_gpt' config attribute may be specified. Using both at the same time is
+a configuration error. Apart from that, the server will show a warning in case
+a protective MBR is found but GPT is ignored and abort.  If a valid GPT was
+encountered without a proper protective MBR it will use the GPT but show a
+diagnostic warning.
 
-The partition server also understands the GUID partition table (GPT). It will
-always try to read the MBR as well as the GPT and will bail out if both are
-considered valid. It is up to the user to choose the right table. To do so,
-the 'ignore_mbr' or 'ignore_gpt' config attribute may be specified. Using both
-at the same time is a configuration error. Apart from that, the server will
-show a warning in case a protective MBR is found but GPT is ignored and abort.
-If valid GPT was encountered without a proper protective MBR it will use the
-GPT but show a diagnostic warning.
+The partition multiplexer forwards the augmented Block session request that
+now includes the partition's offset and number of blocks covered by it to
+the block-device driver component.
 
-
-In order to route a client to the right partition, the server parses its
+In order to route a client to the right partition, the multiplexer parses its
 configuration section looking for 'policy' tags.
 
 XML Syntax:
 ! <policy label="<program name>" partition="<partition number>"  writeable="<boolean>"/>
 
 part_block supports partition reporting, which can be enabled via the
-<report> configuration node. See below for an example. The report
+'report' node in its configuration. See below for an example. The report
 looks like follows (for MBR resp. GPT).
 
 ! <partitions type="mbr">
@@ -50,10 +51,6 @@ looks like follows (for MBR resp. GPT).
 Clients have read-only access to partitions unless overriden by a 'writeable'
 policy attribute.
 
-part_block requests a block session to access the storage device with a
-4 MiB I/O buffer per default. The buffer size can be tweaked with the
-'io_buffer' config attribute.
-
 Usage
 -----
 
@@ -71,10 +68,7 @@ Configuration snippet with two clients and an (hypothetical) IDE driver:
 !    <any-service><child name="ata_driver"/> <parent/><any-child/></any-service>
 !  </route>
 !
-!  <!-- allow program 'test-part1' to access logical partition '6', while program
-!      'test-part2' receives access to primary partition 1, the buffer between
-!       the 'ata_driver' and 'part_block' is 1 MiB ('io_buffer') -->
-!  <config io_buffer="1M">
+!  <config>
 !    <report partitions="yes"/>
 !    <policy label_prefix="test-part1" partition="6" writeable="yes"/>
 !    <policy label_prefix="test-part2" partition="1" writeable="yes"/>

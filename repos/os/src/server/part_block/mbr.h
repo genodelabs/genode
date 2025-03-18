@@ -109,8 +109,8 @@ class Block::Mbr : public Partition_table
 
 		Constructible<Mbr_partition> _part_list[MAX_PARTITIONS];
 
-		template <typename FUNC>
-		void _parse_extended(Partition_record const &record, FUNC const &f) const
+		void _parse_extended(Sync_read::Handler &handler,
+		                     Partition_record const &record, auto const &f) const
 		{
 			Reconstructible<Partition_record const> r(record.range());
 			unsigned lba = r->lba();
@@ -119,7 +119,7 @@ class Block::Mbr : public Partition_table
 			/* first logical partition number */
 			int nr = 5;
 			do {
-				Sync_read s(_handler, _alloc, lba, 1);
+				Sync_read s(handler, _alloc, lba, 1);
 				if (!s.success())
 					return;
 
@@ -147,8 +147,8 @@ class Block::Mbr : public Partition_table
 			} while (r->valid());
 		}
 
-		template <typename FUNC>
-		Parse_result _parse_mbr(Boot_record const &mbr, FUNC const &f) const
+		Parse_result _parse_mbr(Sync_read::Handler &handler, Boot_record const &mbr,
+		                        auto const &f) const
 		{
 			for (int i = 0; i < 4; i++) {
 				Partition_record const r(mbr.record(i));
@@ -162,14 +162,13 @@ class Block::Mbr : public Partition_table
 				f(i + 1, r, 0);
 
 				if (r.extended())
-					_parse_extended(r, f);
+					_parse_extended(handler, r, f);
 			}
 
 			return Parse_result::MBR;
 		}
 
-		template <typename FN>
-		void _for_each_valid_partition(FN const &fn) const
+		void _for_each_valid_partition(auto const &fn) const
 		{
 			for (unsigned i = 0; i < MAX_PARTITIONS; i++)
 				if (_part_list[i].constructed())
@@ -180,9 +179,9 @@ class Block::Mbr : public Partition_table
 
 		using Partition_table::Partition_table;
 
-		Parse_result parse()
+		Parse_result parse(Sync_read::Handler &handler)
 		{
-			Sync_read s(_handler, _alloc, 0, 1);
+			Sync_read s(handler, _alloc, 0, 1);
 			if (!s.success())
 				return Parse_result::NO_MBR;
 
@@ -191,19 +190,22 @@ class Block::Mbr : public Partition_table
 			if (!mbr.valid())
 				return Parse_result::NO_MBR;
 
-			return _parse_mbr(mbr, [&] (int nr, Partition_record const &r, unsigned offset)
-			{
-				if (!r.extended()) {
-					block_number_t const lba = r.lba() + offset;
+			return _parse_mbr(handler, mbr,
+				[&] (int nr, Partition_record const &r, unsigned offset)
+				{
+					if (!r.extended()) {
+						block_number_t const lba = r.lba() + offset;
 
-					_part_list[nr - 1].construct(lba, r.sectors(), _fs_type(lba), r.type());
-				}
+						_part_list[nr - 1].construct(lba, r.sectors(),
+						                             _fs_type(handler, lba),
+						                             r.type());
+					}
 
-				log("MBR Partition ", nr, ": LBA ",
-				    r.lba() + offset, " (",
-				    r.sectors(), " blocks) type: ",
-				    Hex(r.type(), Hex::OMIT_PREFIX));
-			});
+					log("MBR Partition ", nr, ": LBA ",
+					    r.lba() + offset, " (",
+					    r.sectors(), " blocks) type: ",
+					    Hex(r.type(), Hex::OMIT_PREFIX));
+				});
 		}
 
 		bool partition_valid(long num) const override

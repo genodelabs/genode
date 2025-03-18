@@ -44,15 +44,14 @@ class Block::Partition_table : Interface, Noncopyable
 {
 	protected:
 
-		Sync_read::Handler  &_handler;
 		Allocator           &_alloc;
 		Session::Info const  _info;
 
-		Fs::Type _fs_type(block_number_t lba)
+		Fs::Type _fs_type(Sync_read::Handler &handler, block_number_t lba)
 		{
 			/* probe for known file-system types */
 			enum { BYTES = 4096 };
-			Sync_read fs(_handler, _alloc, lba, BYTES / _info.block_size);
+			Sync_read fs(handler, _alloc, lba, BYTES / _info.block_size);
 			if (fs.success())
 				return Fs::probe((uint8_t *)fs.buffer().start, BYTES);
 			else
@@ -61,10 +60,9 @@ class Block::Partition_table : Interface, Noncopyable
 
 	public:
 
-		Partition_table(Sync_read::Handler &handler,
-		                Allocator          &alloc,
-		                Session::Info       info)
-		: _handler(handler), _alloc(alloc), _info(info) { }
+		Partition_table(Allocator     &alloc,
+		                Session::Info  info)
+		: _alloc(alloc), _info(info) { }
 
 		virtual bool           partition_valid(long num)   const = 0;
 		virtual block_number_t partition_lba(long num)     const = 0;

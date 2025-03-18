@@ -355,12 +355,12 @@ class Block::Gpt : public Block::Partition_table
 		/**
 		 * Parse the GPT header
 		 */
-		bool _parse_gpt(Gpt_hdr &gpt)
+		bool _parse_gpt(Sync_read::Handler &handler, Gpt_hdr &gpt)
 		{
-			if (!gpt.valid(_handler, _alloc, _info.block_size))
+			if (!gpt.valid(handler, _alloc, _info.block_size))
 				return false;
 
-			Sync_read entry_array(_handler, _alloc, gpt.gpe_lba(),
+			Sync_read entry_array(handler, _alloc, gpt.gpe_lba(),
 			                      gpt.entries() * gpt.entry_size() / _info.block_size);
 			if (!entry_array.success())
 				return false;
@@ -384,7 +384,8 @@ class Block::Gpt : public Block::Partition_table
 				String<40>                  type { e.type() };
 				String<Gpt_entry::NAME_LEN> name { e };
 
-				_part_list[i].construct(lba, length, _fs_type(lba), guid, type, name);
+				_part_list[i].construct(lba, length, _fs_type(handler, lba),
+				                        guid, type, name);
 
 				log("GPT Partition ", i + 1, ": LBA ", lba, " (", length,
 				    " blocks) type: '", type,
@@ -398,15 +399,15 @@ class Block::Gpt : public Block::Partition_table
 
 		using Partition_table::Partition_table;
 
-		bool parse()
+		bool parse(Sync_read::Handler &handler)
 		{
-			Sync_read s(_handler, _alloc, Gpt_hdr::Hdr_lba::LBA, 1);
+			Sync_read s(handler, _alloc, Gpt_hdr::Hdr_lba::LBA, 1);
 			if (!s.success())
 				return false;
 
 			Gpt_hdr gpt_hdr(s.buffer());
 
-			if (!_parse_gpt(gpt_hdr))
+			if (!_parse_gpt(handler, gpt_hdr))
 				return false;
 
 			for (unsigned num = 0; num < MAX_PARTITIONS; num++)

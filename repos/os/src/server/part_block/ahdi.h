@@ -130,9 +130,9 @@ class Block::Ahdi : public Partition_table
 
 		using Partition_table::Partition_table;
 
-		bool parse()
+		bool parse(Sync_read::Handler &handler)
 		{
-			Sync_read s(_handler, _alloc, 0, 1);
+			Sync_read s(handler, _alloc, 0, 1);
 
 			if (!s.success() || !_valid(s))
 				return false;
@@ -143,7 +143,7 @@ class Block::Ahdi : public Partition_table
 
 				Ahdi_partition::Type type = r.id();
 
-				_part_list[i].construct(lba, length, _fs_type(lba), type);
+				_part_list[i].construct(lba, length, _fs_type(handler, lba), type);
 
 				log("AHDI Partition ", i + 1, ": LBA ", lba, " (", length,
 				    " blocks) type: '", type, "'");

@@ -23,7 +23,7 @@ class Block::Disk : public Partition_table
 {
 	private:
 
-		Partition _part { 0, _info.block_count, _fs_type(0) };
+		Partition _part;
 
 	public:
 
@@ -31,7 +31,8 @@ class Block::Disk : public Partition_table
 		     Allocator          &alloc,
 		     Session::Info       info)
 		:
-			Partition_table(handler, alloc, info)
+			Partition_table(alloc, info),
+			_part { 0, _info.block_count, _fs_type(handler, 0) }
 		{
 			log("DISK Partition 0: LBA ", _part.lba, " (", _part.sectors, " blocks)");
 		}
