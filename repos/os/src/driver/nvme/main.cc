@@ -2343,6 +2343,19 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 
 			bool progress = false;
 
+			/* acknowledge finished jobs */
+			block_session.try_acknowledge([&] (Block_session_component::Ack &ack) {
+
+				_driver.with_any_completed_job([&] (Block::Request request) {
+
+					ack.submit(request);
+					progress = true;
+				});
+			});
+
+			/* deferred acknowledge on the controller */
+			_driver.acknowledge_if_completed();
+
 			/* import new requests */
 			block_session.with_requests([&] (Block::Request request) {
 
@@ -2364,19 +2377,6 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 
 			/* process I/O */
 			progress |= _driver.execute();
-
-			/* acknowledge finished jobs */
-			block_session.try_acknowledge([&] (Block_session_component::Ack &ack) {
-
-				_driver.with_any_completed_job([&] (Block::Request request) {
-
-					ack.submit(request);
-					progress = true;
-				});
-			});
-
-			/* deferred acknowledge on the controller */
-			_driver.acknowledge_if_completed();
 
 			_driver.device_release_if_stopped_and_idle();
 
