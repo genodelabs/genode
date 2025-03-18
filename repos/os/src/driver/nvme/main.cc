@@ -1606,15 +1606,17 @@ class Nvme::Controller : Platform::Device,
 struct Nvme::Block_session_component : Rpc_object<Block::Session>,
                                        Block::Request_stream
 {
-	Env &_env;
+	Env              &_env;
+	Util::Dma_buffer &_dma_buffer;
 
 	Block::Session::Info _info;
 
-	Block_session_component(Env &env, Dataspace_capability ds,
+	Block_session_component(Env &env, Util::Dma_buffer &dma_buffer,
 	                        Signal_context_capability sigh,
 	                        Block::Session::Info info)
 	:
-		Request_stream(env.rm(), ds, env.ep(), sigh, info), _env(env),
+		Request_stream(env.rm(), dma_buffer.cap(), env.ep(), sigh, info), _env(env),
+		_dma_buffer(dma_buffer),
 		_info(info)
 	{
 		_env.ep().manage(*this);
@@ -1628,6 +1630,8 @@ struct Nvme::Block_session_component : Rpc_object<Block::Session>,
 	}
 
 	Capability<Tx> tx_cap() override { return Request_stream::tx_cap(); }
+
+	addr_t dma_addr() const { return _dma_buffer.dma_addr(); }
 };
 
 
@@ -1657,6 +1661,7 @@ class Nvme::Driver : Genode::Noncopyable
 
 		Genode::Env          &_env;
 		Platform::Connection  _platform { _env };
+		Sliced_heap           _sliced_heap { _env.ram(), _env.rm() };
 
 		Genode::Attached_rom_dataspace &_config_rom;
 
@@ -1810,8 +1815,6 @@ class Nvme::Driver : Genode::Noncopyable
 		/*********
 		 ** DMA **
 		 *********/
-
-		Constructible<Util::Dma_buffer> _dma_buffer { };
 
 		/*
 		 * The PRP (Physical Region Pages) page is used to setup
@@ -2042,11 +2045,8 @@ class Nvme::Driver : Genode::Noncopyable
 			return Response::ACCEPTED;
 		}
 
-		void _submit(Block::Request request, Nvme::Controller &ctrlr)
+		void _submit(addr_t dma_addr, Block::Request request, Nvme::Controller &ctrlr)
 		{
-			if (!_dma_buffer.constructed())
-				return;
-
 			bool const write =
 				request.operation.type == Block::Operation::Type::WRITE;
 
@@ -2060,7 +2060,7 @@ class Nvme::Driver : Genode::Noncopyable
 
 			size_t const len        = request.operation.count * _info.block_size;
 			bool   const need_list  = len > 2 * Nvme::MPS;
-			addr_t const request_pa = _dma_buffer->dma_addr() + request.offset;
+			addr_t const request_pa = dma_addr + request.offset;
 
 			if (_verbose_io) {
 				log("Submit: ", write ? "WRITE" : "READ",
@@ -2068,7 +2068,7 @@ class Nvme::Driver : Genode::Noncopyable
 				    " need_list: ", need_list,
 				    " block count: ", count,
 				    " lba: ", lba,
-				    " dma_base: ", Hex(_dma_buffer->dma_addr()),
+				    " dma_base: ", Hex(dma_addr),
 				    " offset: ", Hex(request.offset));
 			}
 
@@ -2217,13 +2217,13 @@ class Nvme::Driver : Genode::Noncopyable
 			return result;
 		}
 
-		void submit(Block::Request const &request)
+		void submit(addr_t dma_addr, Block::Request const &request)
 		{
 			with_nvme([&](auto &ctrlr) {
 				switch (request.operation.type) {
 				case Block::Operation::Type::READ:
 				case Block::Operation::Type::WRITE:
-					_submit(request, ctrlr);
+					_submit(dma_addr, request, ctrlr);
 					break;
 				case Block::Operation::Type::SYNC:
 					_submit_sync(request, ctrlr);
@@ -2298,13 +2298,11 @@ class Nvme::Driver : Genode::Noncopyable
 			});
 		}
 
-		Dataspace_capability dma_buffer_construct(size_t size)
-		{
-			_dma_buffer.construct(_platform, size);
-			return _dma_buffer->cap();
-		}
+		Util::Dma_buffer &alloc_dma_buffer(size_t size) {
+			return *new (_sliced_heap) Util::Dma_buffer(_platform, size); }
 
-		void dma_buffer_destruct() { _dma_buffer.destruct(); }
+		void free_dma_buffer(Util::Dma_buffer &dma_buffer) {
+			destroy(_sliced_heap, &dma_buffer); }
 };
 
 
@@ -2363,7 +2361,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 
 				switch (response) {
 				case Response::ACCEPTED:
-					_driver.submit(request);
+					_driver.submit(block_session.dma_addr(), request);
 				[[fallthrough]];
 				case Response::REJECTED:
 					progress = true;
@@ -2414,7 +2412,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 				bool const writeable = policy.attribute_value("writeable", false);
 				_driver.writeable(writeable);
 
-				_block_session.construct(_env, _driver.dma_buffer_construct(tx_buf_size),
+				_block_session.construct(_env, _driver.alloc_dma_buffer(tx_buf_size),
 				                         _request_handler, _driver.info());
 				return { _block_session->cap() };
 			},
@@ -2425,12 +2423,10 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 
 	void close(Capability<Session>) override
 	{
+		Util::Dma_buffer &dma_buffer = _block_session->_dma_buffer;
+
 		_block_session.destruct();
-		/*
-		 * XXX a malicious client could submit all its requests
-		 *     and close the session...
-		 */
-		_driver.dma_buffer_destruct();
+		_driver.free_dma_buffer(dma_buffer);
 	}
 
 	Main(Genode::Env &env) : _env(env) {
