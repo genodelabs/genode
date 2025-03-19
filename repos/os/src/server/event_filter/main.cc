@@ -27,6 +27,7 @@
 #include <log_source.h>
 #include <touch_click_source.h>
 #include <touch_key_source.h>
+#include <touch_gesture_source.h>
 #include <transform_source.h>
 #include <event_session.h>
 
@@ -262,6 +263,11 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 		if (node.type() == Touch_key_source::name())
 			return *new (_heap) Touch_key_source(owner, node, *this, _heap);
+
+		if (node.type() == Touch_gesture_source::name())
+			return *new (_heap) Touch_gesture_source(owner, node, *this,
+			                                         _timer_accessor, *this,
+			                                         _heap);
 
 		warning("unknown <", node.type(), "> input-source node type");
 		throw Source::Invalid_config();

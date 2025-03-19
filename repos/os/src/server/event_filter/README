@@ -96,6 +96,41 @@ one of the following filters:
   rectangular area - using the attributes 'xpos', 'ypos', 'width', and
   'height' - and the name of the tapped key as 'key' attribute.
 
+:<touch-gesture>:
+
+  Triggers artificial key sequences or key combos when (multi-)touch gestures
+  are detected. Gesture detection is configured by the following primitives
+  expressed as sub-nodes (with specified default attributes).
+
+  :<hold fingers="1" delay_ms="1000" width="30" height="30">:
+
+    Triggers when the specified number of fingers touch and hold for at least
+    'delay_ms' milliseconds. All fingers must reside in a specified area defined
+    by the 'width' and 'height' attributes around the first touch event.
+    When this gesture has been triggered, it translates touch events into
+    relative motion events. This can be used for dragging or scrolling.
+
+  :<swipe fingers="1" duration_ms="1000" distance="100" direction="any">:
+
+    Triggers when the specified number of fingers move for at least 'distance'
+    in the specified 'direction' and within 'duration_ms' milliseconds.
+    Supported values for the 'direction' attribute are: "up", "down", "left",
+    "right". The rect in which the gesture is valid can be restricted by
+    providing the 'xpos', 'ypos', 'width' and 'height' attributes.
+
+  Key sequences are specified as '<key>' sub-nodes to the gesture
+  primitives. Key combos are specified by nesting the '<key>' sub-nodes. The
+  'name' attribute specifies the name of the pressed key. An optional 'hold'
+  attribute can be used for postponing the key release event until the touch
+  release. This is useful for dragging gestures; for example:
+
+  ! <hold>
+  !   <key name="KEY_SCREEN" hold="yes">
+  !     <key name="BTN_MIDDLE" hold="yes"/>
+  !   </key>
+  ! </hold>
+
+
 :<transform>:
 
   Transforms touch and absolute-motion event coordinates by a sequence of

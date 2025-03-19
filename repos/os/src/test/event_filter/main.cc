@@ -261,11 +261,12 @@ class Test::Input_to_filter
 						                                    (int)node.attribute_value("ry", 0L)});
 
 					if (node.has_type("touch"))
-						batch.submit(Input::Touch{ { 0 }, (float)node.attribute_value("x", 0.0),
-						                                  (float)node.attribute_value("y", 0.0)});
+						batch.submit(Input::Touch{ { node.attribute_value("id", 0U) },
+						                             (float)node.attribute_value("x", 0.0),
+						                             (float)node.attribute_value("y", 0.0)});
 
 					if (node.has_type("touch-release"))
-						batch.submit(Input::Touch_release { { 0 } } );
+						batch.submit(Input::Touch_release { { node.attribute_value("id", 0U) } } );
 				});
 			});
 		}
@@ -514,15 +515,17 @@ struct Test::Main : Input_from_filter::Event_handler
 			 && (!step.has_attribute("ay") || step.attribute_value("ay", 0L) == y))
 				step_succeeded = true; });
 
-		ev.handle_touch([&] (Input::Touch_id, float x, float y) {
+		ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
 			if (step.type() == "expect_touch"
 			 && ((float)step.attribute_value("x", 0.0) == x)
-			 && ((float)step.attribute_value("y", 0.0) == y))
+			 && ((float)step.attribute_value("y", 0.0) == y)
+			 && (step.attribute_value("id", 0U) == id.value))
 				step_succeeded = true;
 		});
 
-		ev.handle_touch_release([&] (Input::Touch_id) {
-			if (step.type() == "expect_touch_release")
+		ev.handle_touch_release([&] (Input::Touch_id id) {
+			if (step.type() == "expect_touch_release"
+			 && (step.attribute_value("id", 0U) == id.value))
 				step_succeeded = true;
 		});
 

@@ -559,6 +559,130 @@ install_config {
 			<expect_touch x="100" y="500"/>
 			<expect_touch_release/>
 
+			<message string="test touch gestures (hold)"/>
+
+			<filter_config>
+				<output>
+					<touch-gesture>
+						<hold delay_ms="400" width="30" height="30">
+							<key name="BTN_RIGHT"/> </hold>
+						<hold delay_ms="400" fingers="2" width="30" height="30">
+							<key name="KEY_ENTER"/>
+							<key hold="yes" name="KEY_SCREEN">
+								<key hold="yes" name="BTN_MIDDLE"/> </key>
+						</hold>
+						<input name="usb"/>
+					</touch-gesture>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<touch x="200" y="200" />
+				<touch-release id="0"/>
+				<touch x="200" y="300"/>
+				<touch x="220" y="300"/>
+			</usb>
+			<sleep ms="500"/>
+			<usb>
+				<touch-release id="0"/>
+				<touch x="300" y="300"/>
+				<touch x="310" y="300"/>
+			</usb>
+			<sleep ms="500"/>
+			<usb>
+				<touch id="0" x="330" y="330"/>
+				<touch-release id="0"/>
+				<touch id="0" x="100" y="100"/>
+				<touch id="1" x="110" y="100"/>
+				<touch id="1" x="112" y="100"/>
+			</usb>
+			<sleep ms="500"/>
+			<usb>
+				<touch id="0" x="150" y="100"/>
+				<touch-release id="1"/>
+				<touch-release id="0"/>
+			</usb>
+			<expect_touch x="200" y="200"/>
+			<expect_touch_release/>
+			<expect_touch x="200" y="300"/>
+			<expect_touch x="220" y="300"/>
+			<expect_touch_release/>
+			<expect_motion ax="300" ay="300"/>
+			<expect_press   code="BTN_RIGHT"/>
+			<expect_release code="BTN_RIGHT"/>
+			<expect_motion rx="30" ry="30"/>
+			<expect_motion ax="100" ay="100"/>
+			<expect_press   code="KEY_ENTER"/>
+			<expect_release code="KEY_ENTER"/>
+			<expect_press   code="KEY_SCREEN"/>
+			<expect_press   code="BTN_MIDDLE"/>
+			<expect_motion rx="50" ry="0"/>
+			<expect_release   code="BTN_MIDDLE"/>
+			<expect_release   code="KEY_SCREEN"/>
+
+			<message string="test touch gestures (swipe)"/>
+
+			<filter_config>
+				<output>
+					<touch-gesture>
+						<swipe duration_ms="400" distance="50" direction="down" xpos="0" ypos="0" width="30" height="30">
+							<key name="KEY_DASHBOARD"/> </swipe>
+						<swipe duration_ms="400" distance="100" direction="down">
+							<key name="KEY_SCREEN"/> </swipe>
+						<input name="usb"/>
+					</touch-gesture>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<touch x="15" y="15" />
+				<touch x="15" y="25" />
+				<touch-release id="0"/>
+				<touch x="15" y="400" />
+				<touch x="15" y="200" />
+				<touch-release/>
+				<touch x="15" y="200" />
+				<touch x="15" y="220" />
+			</usb>
+			<sleep ms="500"/>
+			<usb>
+				<touch x="15" y="400" />
+				<touch-release/>
+				<touch x="15" y="15" />
+				<touch x="15" y="65" />
+				<touch x="15" y="120" />
+				<touch-release id="0"/>
+				<touch x="50" y="15" />
+				<touch x="50" y="65" />
+				<touch x="50" y="120" />
+				<touch-release id="0"/>
+				<touch id="0" x="15" y="15" />
+				<touch id="1" x="10" y="10" />
+				<touch id="0" x="15" y="65" />
+				<touch-release id="1"/>
+				<touch-release id="0"/>
+			</usb>
+			<expect_touch x="15" y="15"/>
+			<expect_touch x="15" y="25"/>
+			<expect_touch_release/>
+			<expect_touch x="15" y="400"/>
+			<expect_touch x="15" y="200"/>
+			<expect_touch_release/>
+			<expect_touch x="15" y="200"/>
+			<expect_touch x="15" y="220"/>
+			<expect_touch_release/>
+			<expect_press   code="KEY_DASHBOARD"/>
+			<expect_release code="KEY_DASHBOARD"/>
+			<expect_press   code="KEY_SCREEN"/>
+			<expect_release code="KEY_SCREEN"/>
+			<expect_touch id="0" x="15" y="15"/>
+			<expect_touch id="1" x="10" y="10"/>
+			<expect_touch id="0" x="15" y="65"/>
+			<expect_touch_release id="1"/>
+			<expect_touch_release id="0"/>
+
 		</config>
 		<route>
 			<service name="Event">  <child name="event_filter"/> </service>

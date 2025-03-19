@@ -50,7 +50,8 @@ class Event_filter::Source
 			    || node.type() == "log"
 			    || node.type() == "transform"
 			    || node.type() == "touch-click"
-			    || node.type() == "touch-key";
+			    || node.type() == "touch-key"
+			    || node.type() == "touch-gesture";
 
 			return false;
 		}
