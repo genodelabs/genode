@@ -446,8 +446,11 @@ void User_state::report_keystate(Xml_generator &xml) const
 
 void User_state::report_pointer_position(Xml_generator &xml) const
 {
-	_pointer.with_result([&] (Point p) { gen_attr(xml, p); },
-	                     [&] (Nowhere) { });
+	_pointer.with_result(
+		[&] (Point p) {
+			xml.attribute("xpos", p.x);
+			xml.attribute("ypos", p.y); },
+		[&] (Nowhere) { });
 }
 
 
