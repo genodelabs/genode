@@ -726,7 +726,7 @@ class Vfs::Rump_file_system : public File_system
 				.inode  = sb.st_ino,
 				.device = sb.st_dev,
 
-				.modification_time = { 0 }
+				.modification_time = { sb.st_mtim.tv_sec }
 			};
 
 			return STAT_OK;
