@@ -717,15 +717,18 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 		if (size_changed) {
 			_view_stack.bounding_box(new_bb);
 
-			if (!_user_state.pointer().ok())
-				_user_state.pointer(_capture_root.any_visible_pointer_position());
-
-			_update_pointer_position();
 			_capture_root.screen_size_changed();
 
 			/* redraw */
 			_view_stack.update_all_views();
 		}
+
+		/* re-evaluate current pointer position */
+		_user_state.pointer(_user_state.pointer().convert<Pointer>(
+			[&] (Point p) { return p; },
+			[&] (Nowhere) { return _capture_root.any_visible_pointer_position(); }));
+
+		_update_pointer_position();
 
 		/* notify GUI clients about the mode-info change */
 		for (Gui_session *s = _session_list.first(); s; s = s->next())
@@ -733,6 +736,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 		_report_panorama();
 		_update_input_connection();
+		update_hover();
 	}
 
 	/**

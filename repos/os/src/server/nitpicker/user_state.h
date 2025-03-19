@@ -228,7 +228,11 @@ class Nitpicker::User_state
 			_view_stack(view_stack)
 		{ }
 
-		void pointer(Pointer p) { _pointer = p; }
+		void pointer(Pointer p)
+		{
+			p.with_result([&] (Point pos) { _try_move_pointer(pos); },
+			              [&] (Nowhere)   { _pointer = Nowhere { }; });
+		}
 
 		Pointer pointer() const { return _pointer; }
 
