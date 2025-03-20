@@ -1,3 +1,16 @@
+/*
+ * \brief  Definitions required by Linux
+ * \author Josef Soentgen
+ * \date   2014-11-22
+ */
+
+/*
+ * Copyright (C) 2014 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #ifndef _LX_USER_EMUL_H_
 #define _LX_USER_EMUL_H_
 

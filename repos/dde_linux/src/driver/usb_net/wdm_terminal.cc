@@ -7,8 +7,8 @@
 /*
  * Copyright (C) 2023 Genode Labs GmbH
  *
- * This file is part of the Genode OS framework, which is distributed
- * under the terms of the GNU Affero General Public License version 3.
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
  */
 
 #include <base/attached_ram_dataspace.h>

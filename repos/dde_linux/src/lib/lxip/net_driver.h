@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Nic client that transfers packets from/to IP stack to/from nic client
  *         C-API
  * \author Sebastian Sumpf
@@ -9,7 +9,7 @@
  * Copyright (C) 2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
 
 #ifndef _NET_DRIVER_H_

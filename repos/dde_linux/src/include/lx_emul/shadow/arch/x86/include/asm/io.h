@@ -4,6 +4,13 @@
  * \date   2022-02-21
  */
 
+/*
+ * Copyright (C) 2022 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #ifndef _ASM_X86_IO_H
 #define _ASM_X86_IO_H
 

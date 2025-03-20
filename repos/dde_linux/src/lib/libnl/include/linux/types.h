@@ -1,3 +1,16 @@
+/*
+ * \brief  POD-type definitions
+ * \author Josef Soentgen
+ * \date   2014-11-22
+ */
+
+/*
+ * Copyright (C) 2025 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #ifndef _LINUX_TYPES_H
 #define _LINUX_TYPES_H
 

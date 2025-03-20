@@ -1,3 +1,16 @@
+/*
+ * \brief  Interface query functions
+ * \author Josef Soentgen
+ * \date   2014-11-22
+ */
+
+/*
+ * Copyright (C) 2023 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #include <sys/socket.h>
 #include <net/if.h>
 

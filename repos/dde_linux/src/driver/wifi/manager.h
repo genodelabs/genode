@@ -11,7 +11,7 @@
  * Copyright (C) 2018-2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
 
 #ifndef _WIFI_MANAGER_H_

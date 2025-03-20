@@ -4,6 +4,14 @@
  * \date   2022-06-29
  */
 
+/*
+ * Copyright (C) 2022 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
+
 #ifndef _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__PERCPU_H_
 #define _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__PERCPU_H_
 

@@ -1,3 +1,16 @@
+/*
+ * \brief  PCI initialization
+ * \author Stefan Kalkowski
+ * \date   2022-07-29
+ */
+
+/*
+ * Copyright (C) 2022 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #include <linux/pci.h>
 #include <linux/irq.h>
 
@@ -19,6 +32,3 @@ void pci_assign_irq(struct pci_dev * dev)
 	irq_set_chip_and_handler(dev->irq, &dde_irqchip_data_chip,
 	                         handle_level_irq);
 }
-
-
-

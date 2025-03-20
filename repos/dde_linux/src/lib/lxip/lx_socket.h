@@ -3,14 +3,14 @@
  * \author Sebastian Sumpf
  * \date   2024-01-29
  *
- * Can only be called by lx_lit tasks
+ * Can only be called by lx_kit tasks
  */
 
 /*
  * Copyright (C) 2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
 
 

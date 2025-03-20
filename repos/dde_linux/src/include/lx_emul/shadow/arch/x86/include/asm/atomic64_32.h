@@ -7,6 +7,13 @@
  * actually implemented.
  */
 
+/*
+ * Copyright (C) 2022 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
+ */
+
 #ifndef _ASM__ATOMIC64_32_H_
 #define _ASM__ATOMIC64_32_H_
 

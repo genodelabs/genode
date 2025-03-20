@@ -1,3 +1,16 @@
+/*
+ * \brief  Atomic instructions for x86_32
+ * \author Josef Soentgen
+ * \date   2022-02-09
+ */
+
+/*
+ * Copyright (C) 2024 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #include <asm/atomic64_32.h>
 
 /**

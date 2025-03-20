@@ -10,7 +10,7 @@
  * Copyright (C) 2014-2017 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
 
 #ifndef _DEFS_H_

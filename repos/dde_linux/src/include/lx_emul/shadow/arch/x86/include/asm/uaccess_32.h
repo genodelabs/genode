@@ -4,6 +4,11 @@
  * \date   2022-02-17
  */
 
+/*
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
+ */
+
 #ifndef _ASM__UACCESS_32_H_
 #define _ASM__UACCESS_32_H_
 

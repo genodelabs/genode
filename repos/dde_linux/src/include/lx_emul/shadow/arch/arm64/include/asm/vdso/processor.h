@@ -4,6 +4,13 @@
  * \date   2023-03-02
  */
 
+/*
+ * Copyright (C) 2023 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #ifndef _LX_EMUL__SHADOW__ARCH__ARM64__INCLUDE__ASM__VDSO__PROCESSOR_H_
 #define _LX_EMUL__SHADOW__ARCH__ARM64__INCLUDE__ASM__VDSO__PROCESSOR_H_
 

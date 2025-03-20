@@ -4,14 +4,12 @@
  * \date   2022-04-05
  */
 
-
 /*
  * Copyright (C) 2022 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
-
 
 #include <linux/slab.h>
 #include <linux/dmapool.h>

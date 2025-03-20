@@ -4,6 +4,13 @@
  * \date   2024-06-26
  */
 
+/*
+ * Copyright (C) 2024 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
+ */
+
 #ifndef _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__CURRENT_H_
 #define _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__CURRENT_H_
 

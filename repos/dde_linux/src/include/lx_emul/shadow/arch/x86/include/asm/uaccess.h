@@ -4,6 +4,13 @@
  * \date   2022-01-14
  */
 
+/*
+ * Copyright (C) 2022 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #ifndef _ASM__UACCESS_H_
 #define _ASM__UACCESS_H_
 

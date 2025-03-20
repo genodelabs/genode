@@ -1,3 +1,17 @@
+/*
+ * \brief  Register C-API USB-client
+ * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
+ * \date   2023-07-05
+ */
+
+/*
+ * Copyright (C) 2024 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
 #include <../drivers/usb/core/usb.h>

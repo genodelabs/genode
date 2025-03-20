@@ -9,7 +9,7 @@
  * Copyright (C) 2024 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
 
 #include <linux/netdevice.h>
@@ -248,4 +248,3 @@ out:
  * an additional one
  */
 module_init(virtio_net_driver_init);
-

@@ -8,7 +8,7 @@
  * Copyright (C) 2021 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
- * version 2.
+ * version 2 or later.
  */
 
 #ifndef _LX_EMUL__SHADOW__LINUX__COMPILER_GCC_H_
@@ -16,7 +16,7 @@
 
 #include_next <linux/compiler-gcc.h>
 
-/**
+/*
  * We have to re-define `asm_volatile_goto`, because the original function
  * uses `asm goto(...)`, which is a problem when building PIC code.
  */
