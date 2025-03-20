@@ -126,7 +126,7 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>
 			return ++inode_count;
 		}
 
-		Vfs::Timestamp _modification_time { Vfs::Timestamp::INVALID };
+		Vfs::Timestamp _modification_time { };
 
 		bool _marked_as_unlinked = false;
 

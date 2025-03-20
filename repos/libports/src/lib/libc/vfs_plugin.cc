@@ -118,6 +118,10 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 
 	*dst = { };
 
+	timespec const mtime {
+		.tv_sec  = time_t( src.modification_time.ms_since_1970 / 1000),
+		.tv_nsec = time_t((src.modification_time.ms_since_1970 % 1000)*1000*1000) };
+
 	dst->st_uid     = 0;
 	dst->st_gid     = 0;
 	dst->st_mode    = (src.rwx.readable   ? readable_bits   : 0)
@@ -129,8 +133,7 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 	dst->st_blocks  = (dst->st_size + FS_BLOCK_SIZE - 1) / FS_BLOCK_SIZE;
 	dst->st_ino     = src.inode;
 	dst->st_dev     = src.device;
-	long long mtime = src.modification_time.value;
-	dst->st_mtime   = mtime != Vfs::Timestamp::INVALID ? mtime : 0;
+	dst->st_mtim    = mtime;
 	dst->st_nlink   = 1;
 }
 
@@ -546,7 +549,7 @@ struct Sync
 	enum { INITIAL, TIMESTAMP_UPDATED, QUEUED, COMPLETE } state { INITIAL };
 
 	Vfs::Vfs_handle &vfs_handle;
-	Vfs::Timestamp   mtime { Vfs::Timestamp::INVALID };
+	Vfs::Timestamp   mtime { };
 
 	Sync(Vfs::Vfs_handle &vfs_handle, Libc::Vfs_plugin::Update_mtime update_mtime,
 	     Libc::Current_real_time &current_real_time)
@@ -561,7 +564,9 @@ struct Sync
 		} else {
 			timespec const ts = current_real_time.current_real_time();
 
-			mtime = { .value = (long long)ts.tv_sec };
+			mtime.ms_since_1970 = ts.tv_sec >= 0
+			                    ? ts.tv_sec*1000ull + ts.tv_nsec/1000000ull
+			                    : 0;
 		}
 	}
 

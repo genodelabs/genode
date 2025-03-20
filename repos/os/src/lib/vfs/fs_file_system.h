@@ -300,7 +300,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 					Packet_descriptor p(source.alloc_packet(0),
 					                    file_handle(),
 					                    Packet_descriptor::WRITE_TIMESTAMP,
-					                    ::File_system::Timestamp { .value = time.value });
+					                    ::File_system::Timestamp {
+					                       .ms_since_1970 = time.ms_since_1970 });
 
 					_vfs_fs._submit_packet(p);
 				} catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
@@ -617,7 +618,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			out.rwx    = _node_rwx(status.rwx);
 			out.inode  = status.inode;
 			out.device = (Genode::addr_t)this;
-			out.modification_time.value = status.modification_time.value;
+			out.modification_time = {
+				.ms_since_1970 = status.modification_time.ms_since_1970 };
 
 			return STAT_OK;
 		}

@@ -451,7 +451,7 @@ class Vfs::Dir_file_system : public File_system
 					.rwx               = Node_rwx::rwx(),
 					.inode             = 1,
 					.device            = (Genode::addr_t)this,
-					.modification_time = { Vfs::Timestamp::INVALID },
+					.modification_time = { },
 				};
 				return STAT_OK;
 			}

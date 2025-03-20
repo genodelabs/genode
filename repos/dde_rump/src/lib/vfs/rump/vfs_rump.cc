@@ -171,8 +171,13 @@ class Vfs::Rump_file_system : public File_system
 				void update_modification_timestamp(Vfs::Timestamp time) override
 				{
 					struct timespec ts[2] = {
-						{ .tv_sec = 0,          .tv_nsec = 0 },
-						{ .tv_sec = time.value, .tv_nsec = 0 }
+						{
+							.tv_sec  = 0,
+							.tv_nsec = 0
+						}, {
+							.tv_sec  = time_t( time.ms_since_1970 / 1000),
+							.tv_nsec = time_t((time.ms_since_1970 % 1000)*1000*1000)
+						}
 					};
 
 					/* silently igore error */
@@ -726,7 +731,9 @@ class Vfs::Rump_file_system : public File_system
 				.inode  = sb.st_ino,
 				.device = sb.st_dev,
 
-				.modification_time = { sb.st_mtim.tv_sec }
+				.modification_time = {
+					.ms_since_1970 = uint64_t(sb.st_mtim.tv_sec*1000 +
+					                          sb.st_mtim.tv_nsec/1000000) }
 			};
 
 			return STAT_OK;

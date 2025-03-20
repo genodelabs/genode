@@ -116,10 +116,7 @@ class Lx_fs::Directory : public Node
 
 		void update_modification_time(Timestamp const time) override
 		{
-			struct timespec ts[2] = {
-				{ .tv_sec = (time_t)0,          .tv_nsec = 0 },
-				{ .tv_sec = (time_t)time.value, .tv_nsec = 0 }
-			};
+			struct timespec ts[2] = { { }, timespec_from_timestamp(time) };
 
 			/* silently ignore errors */
 			futimens(dirfd(_fd), (const timespec*)&ts);
@@ -258,7 +255,7 @@ class Lx_fs::Directory : public Node
 				           .writeable  = (st.st_mode & S_IWUSR) != 0,
 				           .executable = (st.st_mode & S_IXUSR) != 0},
 				.inode = (unsigned long)inode(),
-				.modification_time = { st.st_mtime }
+				.modification_time = timestamp_from_timespec(st.st_mtim)
 			};
 		}
 

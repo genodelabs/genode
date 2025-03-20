@@ -50,11 +50,7 @@ namespace Vfs {
 	using Genode::Byte_range_ptr;
 	using Genode::Const_byte_range_ptr;
 
-	struct Timestamp
-	{
-		static constexpr Genode::int64_t INVALID = 0x7fffffffffffffffLL;
-		Genode::int64_t value;
-	};
+	struct Timestamp { Genode::uint64_t ms_since_1970; };
 
 	enum class Node_type {
 		DIRECTORY,

@@ -61,6 +61,17 @@ namespace Lx_fs {
 	 *
 	 */
 	Path_string absolute_root_dir(char const *root_path);
+
+	static inline timespec timespec_from_timestamp(File_system::Timestamp t)
+	{
+		return { .tv_sec  = time_t (t.ms_since_1970 * 1000),
+		         .tv_nsec = time_t((t.ms_since_1970 % 1000)*1000*1000) };
+	}
+
+	static inline File_system::Timestamp timestamp_from_timespec(timespec ts)
+	{
+		return { .ms_since_1970 = Genode::uint64_t(ts.tv_sec*1000 + ts.tv_nsec/1000000) };
+	}
 }
 
 #endif  /* _LX_UTIL_H_ */

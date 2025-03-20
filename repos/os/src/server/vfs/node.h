@@ -447,7 +447,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		void _execute_write_timestamp()
 		{
 			_packet.with_timestamp([&] (::File_system::Timestamp const time) {
-				Vfs::Timestamp ts { .value = time.value };
+				Vfs::Timestamp ts { .ms_since_1970 = time.ms_since_1970 };
 				_handle.fs().update_modification_timestamp(&_handle, ts);
 			});
 			_acknowledge_as_success(0);

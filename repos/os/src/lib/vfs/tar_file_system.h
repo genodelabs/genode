@@ -626,6 +626,11 @@ class Vfs::Tar_file_system : public File_system
 				return Node_type::DIRECTORY;
 			};
 
+			auto timestamp_from_mtime = [] (auto mtime) -> Timestamp
+			{
+				return { .ms_since_1970 = mtime >= 0 ? Genode::uint64_t(mtime*1000) : 0 };
+			};
+
 			out = {
 				.size              = record.size(),
 				.type              = node_type(),
@@ -634,7 +639,7 @@ class Vfs::Tar_file_system : public File_system
 				                       .executable = record.rwx().executable },
 				.inode             = (Genode::addr_t)node_ptr,
 				.device            = (Genode::addr_t)this,
-				.modification_time = { record.mtime() }
+				.modification_time = timestamp_from_mtime(record.mtime())
 			};
 
 			return STAT_OK;
