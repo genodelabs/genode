@@ -420,11 +420,11 @@ grep_output {\[init -> dynamic_init -> log_terminal\].*}
 if {[container_initialized]} {
 	compare_output_to {
 [init -> dynamic_init -> log_terminal] total 1
-[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 dir_1
-[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 Jan  1  1970 file_1
-[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 lost+found
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 1970-01-01 dir_1
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 2018-01-01 file_1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 2018-01-01 lost+found
 [init -> dynamic_init -> log_terminal] total 1
-[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 66 Jan  1  1970 file_2
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 66 2018-01-01 file_2
 [init -> dynamic_init -> log_terminal] Ein zweiter Test.
 [init -> dynamic_init -> log_terminal] Eine weitere Datei.
 [init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
@@ -435,19 +435,19 @@ if {[container_initialized]} {
 [init -> dynamic_init -> log_terminal] Hallo Welt!
 [init -> dynamic_init -> log_terminal] Ein zweiter Test.
 [init -> dynamic_init -> log_terminal] total 1
-[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 Jan  1  1970 file_1
-[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 lost+found
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 2018-01-01 file_1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 2018-01-01 lost+found
 [init -> dynamic_init -> log_terminal] Eine weitere Datei.
 [init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
 [init -> dynamic_init -> log_terminal] Eine weitere Datei.
 [init -> dynamic_init -> log_terminal] Mit mehr Inhalt.
 [init -> dynamic_init -> log_terminal] Und Sonderzeichen: /.:($)=%!
 [init -> dynamic_init -> log_terminal] total 1
-[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 dir_1
-[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 Jan  1  1970 file_1
-[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 Jan  1  1970 lost+found
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 1970-01-01 dir_1
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 18 2018-01-01 file_1
+[init -> dynamic_init -> log_terminal] drwx------ 1 root 0  0 2018-01-01 lost+found
 [init -> dynamic_init -> log_terminal] total 1
-[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 66 Jan  1  1970 file_2
+[init -> dynamic_init -> log_terminal] -rwx------ 1 root 0 66 2018-01-01 file_2
 	}
 }
 
