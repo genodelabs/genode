@@ -56,7 +56,7 @@ namespace Sandbox {
 	 * \param child_name    name of the originator of the session request
 	 * \param service_name  name of the requested service
 	 */
-	inline bool service_node_matches(Xml_node           const  service_node,
+	inline bool service_node_matches(Xml_node           const &service_node,
 	                                 Session_label      const &label,
 	                                 Child_policy::Name const &child_name,
 	                                 Service::Name      const &service_name)
@@ -178,7 +178,7 @@ namespace Sandbox {
 	}
 
 
-	inline long priority_from_xml(Xml_node start_node, Prio_levels prio_levels)
+	inline long priority_from_xml(Xml_node const &start_node, Prio_levels prio_levels)
 	{
 		long const default_priority = Cpu_session::DEFAULT_PRIORITY;
 
@@ -207,7 +207,7 @@ namespace Sandbox {
 
 
 	inline Affinity::Location
-	affinity_location_from_xml(Affinity::Space const &space, Xml_node start_node)
+	affinity_location_from_xml(Affinity::Space const &space, Xml_node const &start_node)
 	{
 		using Location = Affinity::Location;
 

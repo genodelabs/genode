@@ -70,7 +70,7 @@ class Sandbox::Heartbeat : Noncopyable
 			_rate_ms = 0;
 		}
 
-		void apply_config(Xml_node heartbeat)
+		void apply_config(Xml_node const &heartbeat)
 		{
 			if (!_timer.constructed()) {
 				_timer.construct(_env);

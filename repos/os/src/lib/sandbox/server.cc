@@ -44,7 +44,7 @@ struct Sandbox::Server::Service : Service_model
 	 */
 	Service(Registry<Service>        &services,
 	        Allocator                &alloc,
-	        Xml_node                  service_node,
+	        Xml_node           const &service_node,
 	        Registry<Routed_service> &child_services)
 	:
 		_name(service_node.attribute_value("name", Name())),
@@ -204,7 +204,7 @@ void Sandbox::Server::session_closed(Session_state &session)
 }
 
 
-void Sandbox::Server::_handle_create_session_request(Xml_node request,
+void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
                                                      Parent::Client::Id id)
 {
 	/*
@@ -311,7 +311,7 @@ void Sandbox::Server::_handle_create_session_request(Xml_node request,
 }
 
 
-void Sandbox::Server::_handle_upgrade_session_request(Xml_node request,
+void Sandbox::Server::_handle_upgrade_session_request(Xml_node const &request,
                                                       Parent::Client::Id id)
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
@@ -347,14 +347,14 @@ void Sandbox::Server::_handle_upgrade_session_request(Xml_node request,
 }
 
 
-void Sandbox::Server::_handle_close_session_request(Xml_node, Parent::Client::Id id)
+void Sandbox::Server::_handle_close_session_request(Xml_node const &, Parent::Client::Id id)
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 		close_session(session); });
 }
 
 
-void Sandbox::Server::_handle_session_request(Xml_node request)
+void Sandbox::Server::_handle_session_request(Xml_node const &request)
 {
 	if (!request.has_attribute("id"))
 		return;
@@ -382,7 +382,7 @@ void Sandbox::Server::_handle_session_requests()
 
 	Xml_node const requests = _session_requests->xml();
 
-	requests.for_each_sub_node([&] (Xml_node request) {
+	requests.for_each_sub_node([&] (Xml_node const &request) {
 		_handle_session_request(request); });
 
 	_report_update_trigger.trigger_report_update();

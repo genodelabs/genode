@@ -27,7 +27,7 @@ void Sandbox::Child::destroy_services()
 
 
 Sandbox::Child::Apply_config_result
-Sandbox::Child::apply_config(Xml_node start_node)
+Sandbox::Child::apply_config(Xml_node const &start_node)
 {
 	if (abandoned() || stuck() || restart_scheduled() || _exited)
 		return NO_SIDE_EFFECTS;
@@ -112,10 +112,10 @@ Sandbox::Child::apply_config(Xml_node start_node)
 			Name const name = service.name();
 
 			bool still_provided = false;
-			_provides_sub_node(start_node)
-				.for_each_sub_node("service", [&] (Xml_node node) {
+			_with_provides_sub_node(start_node, [&] (Xml_node const &provides) {
+				provides.for_each_sub_node("service", [&] (Xml_node const &node) {
 					if (name == node.attribute_value("name", Name()))
-						still_provided = true; });
+						still_provided = true; }); });
 
 			if (!still_provided) {
 				service.abandon();
@@ -123,13 +123,14 @@ Sandbox::Child::apply_config(Xml_node start_node)
 			}
 		});
 
-		_provides_sub_node(start_node).for_each_sub_node("service",
-		                                                 [&] (Xml_node node) {
-			if (_service_exists(node))
-				return;
+		_with_provides_sub_node(start_node, [&] (Xml_node const &provides) {
+			provides.for_each_sub_node("service", [&] (Xml_node const &node) {
+				if (_service_exists(node))
+					return;
 
-			_add_service(node);
-			provided_services_changed = true;
+				_add_service(node);
+				provided_services_changed = true;
+			});
 		});
 
 		/*
@@ -762,7 +763,7 @@ Sandbox::Child::Child(Env                      &env,
                       Verbose            const &verbose,
                       Id                        id,
                       Report_update_trigger    &report_update_trigger,
-                      Xml_node                  start_node,
+                      Xml_node           const &start_node,
                       Default_route_accessor   &default_route_accessor,
                       Default_quota_accessor   &default_quota_accessor,
                       Name_registry            &name_registry,
@@ -811,9 +812,9 @@ Sandbox::Child::Child(Env                      &env,
 	/*
 	 * Determine services provided by the child
 	 */
-	_provides_sub_node(start_node)
-		.for_each_sub_node("service",
-		                   [&] (Xml_node node) { _add_service(node); });
+	_with_provides_sub_node(start_node, [&] (Xml_node const &provides) {
+		provides.for_each_sub_node("service", [&] (Xml_node const &node) {
+			_add_service(node); }); });
 
 	/*
 	 * Construct inline config ROM service if "config" node is present.

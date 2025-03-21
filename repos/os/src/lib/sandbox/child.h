@@ -187,7 +187,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 *
 		 * \throw Missing_name_attribute
 		 */
-		static Name _name_from_xml(Xml_node start_node)
+		static Name _name_from_xml(Xml_node const &start_node)
 		{
 			Name const name = start_node.attribute_value("name", Name());
 			if (name.valid())
@@ -200,7 +200,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		using Name = String<64>;
 		Name const _unique_name { _name_from_xml(_start_node->xml) };
 
-		static Binary_name _binary_from_xml(Xml_node start_node,
+		static Binary_name _binary_from_xml(Xml_node const &start_node,
 		                                    Name const &unique_name)
 		{
 			if (!start_node.has_sub_node("binary"))
@@ -270,7 +270,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		};
 
 		static
-		Resources _resources_from_start_node(Xml_node start_node, Prio_levels prio_levels,
+		Resources _resources_from_start_node(Xml_node const &start_node, Prio_levels prio_levels,
 		                                     Affinity::Space const &affinity_space,
 		                                     Cap_quota default_cap_quota,
 		                                     Ram_quota default_ram_quota)
@@ -283,7 +283,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			unsigned cpu_percent = 0;
 
-			start_node.for_each_sub_node("resource", [&] (Xml_node rsc) {
+			start_node.for_each_sub_node("resource", [&] (Xml_node const &rsc) {
 
 				using Name = String<8>;
 				Name const name = rsc.attribute_value("name", Name());
@@ -466,10 +466,10 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			catch (Service_denied) { return Route_state::UNAVAILABLE; }
 		}
 
-		static Xml_node _provides_sub_node(Xml_node start_node)
+		static void _with_provides_sub_node(Xml_node const &start_node, auto const &fn)
 		{
-			return start_node.has_sub_node("provides")
-			     ? start_node.sub_node("provides") : Xml_node("<provides/>");
+			start_node.with_sub_node("provides", [&] (Xml_node const &node) { fn(node); },
+			                                     [&] { fn(Xml_node("<provides/>")); });
 		}
 
 		/**
@@ -483,7 +483,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		/**
 		 * Return true if service of specified <provides> sub node is known
 		 */
-		bool _service_exists(Xml_node node) const
+		bool _service_exists(Xml_node const &node) const
 		{
 			bool exists = false;
 			_child_services.for_each([&] (Routed_service const &service) {
@@ -494,7 +494,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			return exists && !abandoned() && !restart_scheduled();
 		}
 
-		void _add_service(Xml_node service)
+		void _add_service(Xml_node const &service)
 		{
 			Service::Name const name =
 				service.attribute_value("name", Service::Name());
@@ -581,7 +581,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		      Verbose            const &verbose,
 		      Id                        id,
 		      Report_update_trigger    &report_update_trigger,
-		      Xml_node                  start_node,
+		      Xml_node           const &start_node,
 		      Default_route_accessor   &default_route_accessor,
 		      Default_quota_accessor   &default_quota_accessor,
 		      Name_registry            &name_registry,
@@ -665,7 +665,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 * \throw Allocator::Out_of_memory  unable to allocate buffer for new
 		 *                                  config
 		 */
-		Apply_config_result apply_config(Xml_node start_node);
+		Apply_config_result apply_config(Xml_node const &start_node);
 
 		bool uncertain_dependencies() const { return _uncertain_dependencies; }
 

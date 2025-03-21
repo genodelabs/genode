@@ -81,11 +81,11 @@ class Sandbox::Server : Session_state::Ready_callback,
 		Route _resolve_session_request(Genode::Service::Name const &,
 		                               Session_label const &);
 
-		void _handle_create_session_request (Xml_node, Parent::Client::Id);
-		void _handle_upgrade_session_request(Xml_node, Parent::Client::Id);
-		void _handle_close_session_request  (Xml_node, Parent::Client::Id);
+		void _handle_create_session_request (Xml_node const &, Parent::Client::Id);
+		void _handle_upgrade_session_request(Xml_node const &, Parent::Client::Id);
+		void _handle_close_session_request  (Xml_node const &, Parent::Client::Id);
 
-		void _handle_session_request(Xml_node);
+		void _handle_session_request(Xml_node const &);
 		void _handle_session_requests();
 
 		void _close_session(Session_state &, Parent::Session_response response);

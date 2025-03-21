@@ -217,7 +217,7 @@ struct Config_model::Resource_node : Node
 	/*
 	 * \throw Unknown_resource_name
 	 */
-	Resource_node(Preservation &keep, Xml_node xml)
+	Resource_node(Preservation &keep, Xml_node const &xml)
 	:
 		_category(_category_from_xml(xml)), _keep(keep)
 	{ }

@@ -91,7 +91,7 @@ class Sandbox::Route_model : Noncopyable
 
 				Allocator &_alloc;
 
-				Xml_node const _node; /* points to 'Route_model::_route_node' */
+				Buffered_xml const _node;
 
 				struct Selector
 				{
@@ -135,16 +135,16 @@ class Sandbox::Route_model : Noncopyable
 
 				Selector const _selector;
 				Checksum const _service_checksum;
-				bool     const _specific_service { _node.has_type("service") };
+				bool     const _specific_service { _node.xml.has_type("service") };
 
 				struct Target : Noncopyable, private List<Target>::Element
 				{
 					friend class List<Target>;
 					friend class Rule;
 
-					Xml_node const node; /* points to 'Route_model::_route_node' */
+					Buffered_xml const node;
 
-					Target(Xml_node const &node) : node(node) { }
+					Target(Allocator &alloc, Xml_node const &node) : node(alloc, node) { }
 				};
 
 				List<Target> _targets { };
@@ -154,12 +154,12 @@ class Sandbox::Route_model : Noncopyable
 				 */
 				Rule(Allocator &alloc, Xml_node const &node)
 				:
-					_alloc(alloc), _node(node), _selector(node),
+					_alloc(alloc), _node(alloc, node), _selector(node),
 					_service_checksum(node.attribute_value("name", Service::Name()))
 				{
 					Target const *at_ptr = nullptr;
 					node.for_each_sub_node([&] (Xml_node sub_node) {
-						Target &target = *new (_alloc) Target(sub_node);
+						Target &target = *new (_alloc) Target(alloc, sub_node);
 						_targets.insert(&target, at_ptr);
 						at_ptr = &target;
 					});
@@ -200,7 +200,7 @@ class Sandbox::Route_model : Noncopyable
 					if (_mismatches(query))
 						return false;
 
-					return service_node_matches(_node,
+					return service_node_matches(_node.xml,
 					                            query.label,
 					                            query.child,
 					                            query.service);
@@ -210,7 +210,7 @@ class Sandbox::Route_model : Noncopyable
 				Child_policy::Route resolve(FN const &fn) const
 				{
 					for (Target const *t = _targets.first(); t; t = t->next()) {
-						try { return fn(t->node); }
+						try { return fn(t->node.xml); }
 						catch (Service_denied) { /* try next target */ }
 					}
 

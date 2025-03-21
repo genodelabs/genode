@@ -45,7 +45,7 @@ class Sandbox::Report_detail : Genode::Noncopyable
 
 		Report_detail() { }
 
-		Report_detail(Genode::Xml_node report)
+		Report_detail(Genode::Xml_node const &report)
 		{
 			_children     = true;
 			_ids          = report.attribute_value("ids",          false);
