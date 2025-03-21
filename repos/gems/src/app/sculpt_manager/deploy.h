@@ -101,7 +101,7 @@ struct Sculpt::Deploy
 		if (!_template.constructed())
 			return;
 
-		Xml_node const deploy = _template->xml();
+		Xml_node const deploy = _template->xml;
 
 		if (deploy.type() == "empty")
 			return;

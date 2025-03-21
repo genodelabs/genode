@@ -62,8 +62,7 @@ class Dialog::Runtime : private Sandbox::State_handler
 			Buffered_xml const config { _alloc, "config", [&] (Xml_generator &xml) {
 				_generate_sandbox_config(xml); } };
 
-			config.with_xml_node([&] (Xml_node const &config) {
-				_sandbox.apply_config(config); });
+			_sandbox.apply_config(config.xml);
 		}
 
 		/**
@@ -77,9 +76,8 @@ class Dialog::Runtime : private Sandbox::State_handler
 
 			bool reconfiguration_needed = false;
 
-			state.with_xml_node([&] (Xml_node state) {
-				if (_runtime.apply_sandbox_state(state))
-					reconfiguration_needed = true; });
+			if (_runtime.apply_sandbox_state(state.xml))
+				reconfiguration_needed = true;
 
 			if (reconfiguration_needed)
 				_update_sandbox_config();

@@ -260,12 +260,12 @@ void Child::gen_start_node(Xml_generator          &xml,
 	if (_defined_by_launcher() && !_launcher_xml.constructed())
 		return;
 
-	if (!_pkg_xml->xml().has_sub_node("runtime")) {
+	if (!_pkg_xml->xml.has_sub_node("runtime")) {
 		warning("blueprint for '", _name, "' lacks runtime information");
 		return;
 	}
 
-	Xml_node const runtime = _pkg_xml->xml().sub_node("runtime");
+	Xml_node const runtime = _pkg_xml->xml.sub_node("runtime");
 
 	xml.node("start", [&] () {
 
@@ -273,13 +273,13 @@ void Child::gen_start_node(Xml_generator          &xml,
 
 		unsigned long caps = _pkg_cap_quota;
 		if (_defined_by_launcher())
-			caps = _launcher_xml->xml().attribute_value("caps", caps);
-		caps = _start_xml->xml().attribute_value("caps", caps);
+			caps = _launcher_xml->xml.attribute_value("caps", caps);
+		caps = _start_xml->xml.attribute_value("caps", caps);
 
 		xml.attribute("caps", caps);
 
 		using Version = String<64>;
-		Version const version = _start_xml->xml().attribute_value("version", Version());
+		Version const version = _start_xml->xml.attribute_value("version", Version());
 		if (version.valid())
 			xml.attribute("version", version);
 
@@ -287,8 +287,8 @@ void Child::gen_start_node(Xml_generator          &xml,
 
 		Number_of_bytes ram = _pkg_ram_quota;
 		if (_defined_by_launcher())
-			ram = _launcher_xml->xml().attribute_value("ram", ram);
-		ram = _start_xml->xml().attribute_value("ram", ram);
+			ram = _launcher_xml->xml.attribute_value("ram", ram);
+		ram = _start_xml->xml.attribute_value("ram", ram);
 
 		xml.node("resource", [&] () {
 			xml.attribute("name", "RAM");
@@ -300,11 +300,11 @@ void Child::gen_start_node(Xml_generator          &xml,
 		 * the launcher definition (if a launcher is user), or the
 		 * blueprint. The former is preferred over the latter.
 		 */
-		if (_start_xml->xml().has_sub_node("config")) {
-			_gen_copy_of_sub_node(xml, _start_xml->xml(), "config");
+		if (_start_xml->xml.has_sub_node("config")) {
+			_gen_copy_of_sub_node(xml, _start_xml->xml, "config");
 		} else {
-			if (_defined_by_launcher() && _launcher_xml->xml().has_sub_node("config")) {
-				_gen_copy_of_sub_node(xml, _launcher_xml->xml(), "config");
+			if (_defined_by_launcher() && _launcher_xml->xml.has_sub_node("config")) {
+				_gen_copy_of_sub_node(xml, _launcher_xml->xml, "config");
 			} else {
 				if (runtime.has_sub_node("config"))
 					_gen_copy_of_sub_node(xml, runtime, "config");
@@ -343,7 +343,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 
 	uint64_t max_timeout_sec = 0;
 	try {
-		Xml_node const runtime = _pkg_xml->xml().sub_node("runtime");
+		Xml_node const runtime = _pkg_xml->xml.sub_node("runtime");
 
 		/*
 		 * The check for the <events> node is made only for compatibility with
@@ -428,8 +428,8 @@ void Child::_gen_routes(Xml_generator          &xml,
 	/*
 	 * Add routes given in the start node.
 	 */
-	if (_start_xml->xml().has_sub_node("route")) {
-		Xml_node const route = _start_xml->xml().sub_node("route");
+	if (_start_xml->xml.has_sub_node("route")) {
+		Xml_node const route = _start_xml->xml.sub_node("route");
 		route.with_raw_content([&] (char const *start, size_t length) {
 			xml.append(start, length); });
 	}
@@ -437,8 +437,8 @@ void Child::_gen_routes(Xml_generator          &xml,
 	/*
 	 * Add routes given in the launcher definition.
 	 */
-	if (_launcher_xml.constructed() && _launcher_xml->xml().has_sub_node("route")) {
-		Xml_node const route = _launcher_xml->xml().sub_node("route");
+	if (_launcher_xml.constructed() && _launcher_xml->xml.has_sub_node("route")) {
+		Xml_node const route = _launcher_xml->xml.sub_node("route");
 		route.with_raw_content([&] (char const *start, size_t length) {
 			xml.append(start, length); });
 	}
@@ -462,7 +462,7 @@ void Child::_gen_routes(Xml_generator          &xml,
 	 * within the depot.
 	 */
 	if (_config_name.valid()) {
-		_pkg_xml->xml().for_each_sub_node("rom", [&] (Xml_node rom) {
+		_pkg_xml->xml.for_each_sub_node("rom", [&] (Xml_node rom) {
 
 			if (!rom.has_attribute("path"))
 				return;
@@ -498,7 +498,7 @@ void Child::_gen_routes(Xml_generator          &xml,
 	 * Add ROM routing rule with the label rewritten to the path within the
 	 * depot.
 	 */
-	_pkg_xml->xml().for_each_sub_node("rom", [&] (Xml_node rom) {
+	_pkg_xml->xml.for_each_sub_node("rom", [&] (Xml_node rom) {
 
 		if (!rom.has_attribute("path"))
 			return;
@@ -534,7 +534,7 @@ bool Child::_defined_by_launcher() const
 	 * If the <start> node lacks a 'pkg' attribute, we expect the
 	 * policy to be defined by a launcher XML snippet.
 	 */
-	return _start_xml.constructed() && !_start_xml->xml().has_attribute("pkg");
+	return _start_xml.constructed() && !_start_xml->xml.has_attribute("pkg");
 }
 
 
@@ -544,9 +544,9 @@ Archive::Path Child::_config_pkg_path() const
 		return Archive::Path(); }
 
 	if (_defined_by_launcher() && _launcher_xml.constructed())
-		return _launcher_xml->xml().attribute_value("pkg", Archive::Path());
+		return _launcher_xml->xml.attribute_value("pkg", Archive::Path());
 
-	return _start_xml->xml().attribute_value("pkg", Archive::Path());
+	return _start_xml->xml.attribute_value("pkg", Archive::Path());
 }
 
 
@@ -558,10 +558,10 @@ Child::Launcher_name Child::_launcher_name() const
 	if (!_defined_by_launcher())
 		return Launcher_name();
 
-	if (_start_xml->xml().has_attribute("launcher"))
-		return _start_xml->xml().attribute_value("launcher", Launcher_name());
+	if (_start_xml->xml.has_attribute("launcher"))
+		return _start_xml->xml.attribute_value("launcher", Launcher_name());
 
-	return _start_xml->xml().attribute_value("name", Launcher_name());
+	return _start_xml->xml.attribute_value("name", Launcher_name());
 }
 
 
@@ -607,7 +607,7 @@ Child::Child(Allocator                       &alloc,
 	_skip           { start_node.attribute_value("skip", false) },
 	_alloc          { alloc },
 	_start_xml      { _alloc, start_node },
-	_name           { _start_xml->xml().attribute_value("name", Name()) },
+	_name           { _start_xml->xml.attribute_value("name", Name()) },
 	_timer          { timer },
 	_config_handler { config_handler }
 { }
@@ -674,7 +674,7 @@ void Child::apply_config(Xml_node start_node)
 	if (_skip)
 		return;
 
-	if (!start_node.differs_from(_start_xml->xml()))
+	if (!start_node.differs_from(_start_xml->xml))
 		return;
 
 	Archive::Path const old_pkg_path = _config_pkg_path();
@@ -736,7 +736,7 @@ void Child::apply_launcher(Launcher_name const &name,
 	if (_launcher_name() != name)
 		return;
 
-	if (_launcher_xml.constructed() && !launcher.differs_from(_launcher_xml->xml()))
+	if (_launcher_xml.constructed() && !launcher.differs_from(_launcher_xml->xml))
 		return;
 
 	_launcher_xml.construct(_alloc, launcher);

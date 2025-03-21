@@ -240,7 +240,7 @@ genode_block_session * ::Root::_create_session(const char * args,
 		throw Service_denied();
 
 	Session_label      const label = label_from_args(args);
-	Session_policy     const policy(label, _config->xml());
+	Session_policy     const policy(label, _config->xml);
 	Session_info::Name const device =
 		policy.attribute_value("device", Session_info::Name());
 

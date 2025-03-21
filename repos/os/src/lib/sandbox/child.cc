@@ -60,14 +60,14 @@ Sandbox::Child::apply_config(Xml_node start_node)
 	/*
 	 * Import new start node if it differs
 	 */
-	if (start_node.differs_from(_start_node->xml())) {
+	if (start_node.differs_from(_start_node->xml)) {
 
 		/*
 		 * The <route> node may affect the availability or unavailability
 		 * of dependencies.
 		 */
 		start_node.with_optional_sub_node("route", [&] (Xml_node const &route) {
-			_start_node->xml().with_optional_sub_node("route", [&] (Xml_node const &orig) {
+			_start_node->xml.with_optional_sub_node("route", [&] (Xml_node const &orig) {
 				if (route.differs_from(orig)) {
 					_construct_route_model_from_start_node(start_node);
 					_uncertain_dependencies = true; } }); });
@@ -76,7 +76,7 @@ Sandbox::Child::apply_config(Xml_node start_node)
 		 * Determine how the inline config is affected.
 		 */
 		char const * const tag = "config";
-		bool const config_was_present = _start_node->xml().has_sub_node(tag);
+		bool const config_was_present = _start_node->xml.has_sub_node(tag);
 		bool const config_is_present  = start_node.has_sub_node(tag);
 
 		if (config_was_present != config_is_present)
@@ -90,7 +90,7 @@ Sandbox::Child::apply_config(Xml_node start_node)
 
 		if (config_was_present && config_is_present) {
 
-			Xml_node const old_config = _start_node->xml().sub_node(tag);
+			Xml_node const old_config = _start_node->xml.sub_node(tag);
 			Xml_node const new_config = start_node.sub_node(tag);
 
 			if (new_config.differs_from(old_config))
@@ -196,7 +196,7 @@ void Sandbox::Child::evaluate_dependencies()
 
 Sandbox::Ram_quota Sandbox::Child::_configured_ram_quota() const
 {
-	Xml_node const &xml = _start_node->xml();
+	Xml_node const &xml = _start_node->xml;
 
 	Number_of_bytes const default_ram { _default_quota_accessor.default_ram().value };
 
@@ -218,7 +218,7 @@ Sandbox::Cap_quota Sandbox::Child::_configured_cap_quota() const
 {
 	size_t const default_caps = _default_quota_accessor.default_caps().value;
 
-	return Cap_quota { _start_node->xml().attribute_value("caps", default_caps) };
+	return Cap_quota { _start_node->xml.attribute_value("caps", default_caps) };
 }
 
 

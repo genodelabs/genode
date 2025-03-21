@@ -193,7 +193,7 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	void _with_default_route(Child::With_xml::Ft const &fn) override
 	{
 		if (_default_route.constructed())
-			fn(_default_route->xml());
+			fn(_default_route->xml);
 	}
 
 	/**

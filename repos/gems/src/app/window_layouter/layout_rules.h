@@ -113,7 +113,7 @@ class Window_layouter::Layout_rules : Noncopyable
 			}
 
 			if (_config_rules.constructed()) {
-				fn(_config_rules->xml());
+				fn(_config_rules->xml);
 				return;
 			}
 

@@ -256,7 +256,7 @@ class Window_layouter::Target_list
 				return;
 
 			xml.append("\n");
-			_rules->xml().for_each_sub_node("screen", [&] (Xml_node screen) {
+			_rules->xml.for_each_sub_node("screen", [&] (Xml_node screen) {
 				if (screen_name.valid()) {
 					Target::Name const name =
 						screen.attribute_value("name", Target::Name());
@@ -273,7 +273,7 @@ class Window_layouter::Target_list
 			if (!screen_name.valid())
 				return;
 
-			_rules->xml().for_each_sub_node("screen", [&] (Xml_node screen) {
+			_rules->xml.for_each_sub_node("screen", [&] (Xml_node screen) {
 				Target::Name const name = screen.attribute_value("name", Target::Name());
 				if (screen_name == name)
 					return;

@@ -31,12 +31,10 @@ class Genode::Buffered_xml
 
 		struct Allocation { char *ptr; size_t size; } const _allocation;
 
-		Xml_node const _xml { _allocation.ptr, _allocation.size };
-
 		/**
 		 * \throw Allocator::Out_of_memory
 		 */
-		Allocation _copy_xml_node(Xml_node node)
+		Allocation _copy_xml_node(Xml_node const &node)
 		{
 			Allocation allocation { };
 
@@ -81,12 +79,14 @@ class Genode::Buffered_xml
 
 	public:
 
+		Xml_node const xml { _allocation.ptr, _allocation.size };
+
 		/**
 		 * Constructor for buffering a copy of the specified XML node
 		 *
 		 * \throw Allocator::Out_of_memory
 		 */
-		Buffered_xml(Allocator &alloc, Xml_node node)
+		Buffered_xml(Allocator &alloc, Xml_node const &node)
 		:
 			_alloc(alloc), _allocation(_copy_xml_node(node))
 		{ }
@@ -113,16 +113,6 @@ class Genode::Buffered_xml
 		{ }
 
 		~Buffered_xml() { _alloc.free(_allocation.ptr, _allocation.size); }
-
-		/*
-		 * \deprecated  Use 'with_xml_node' instead
-		 */
-		Xml_node xml() const { return _xml; }
-
-		/**
-		 * Call functor 'fn' with 'Xml_node const &' as argument
-		 */
-		void with_xml_node(auto const &fn) const { fn(_xml); }
 };
 
 #endif /* _OS__BUFFERED_XML_H_ */

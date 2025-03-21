@@ -164,14 +164,14 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		/*
 		 * Version attribute of the start node, used to force child restarts.
 		 */
-		Version _version { _start_node->xml().attribute_value("version", Version()) };
+		Version _version { _start_node->xml.attribute_value("version", Version()) };
 
 		bool _uncertain_dependencies = false;
 
 		/*
 		 * True if the binary is loaded with ld.lib.so
 		 */
-		bool const _use_ld = _start_node->xml().attribute_value("ld", true);
+		bool const _use_ld = _start_node->xml.attribute_value("ld", true);
 
 		Default_route_accessor &_default_route_accessor;
 		Default_quota_accessor &_default_quota_accessor;
@@ -198,7 +198,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		}
 
 		using Name = String<64>;
-		Name const _unique_name { _name_from_xml(_start_node->xml()) };
+		Name const _unique_name { _name_from_xml(_start_node->xml) };
 
 		static Binary_name _binary_from_xml(Xml_node start_node,
 		                                    Name const &unique_name)
@@ -210,7 +210,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		}
 
 		/* updated on configuration update */
-		Binary_name _binary_name { _binary_from_xml(_start_node->xml(), _unique_name) };
+		Binary_name _binary_name { _binary_from_xml(_start_node->xml, _unique_name) };
 
 		/* initialized in constructor, updated by 'apply_config' */
 		bool _heartbeat_enabled;
@@ -342,8 +342,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			 */
 			void produce_content(char *dst, Genode::size_t dst_len) override
 			{
-				Xml_node config = _child._start_node->xml().has_sub_node("config")
-				                ? _child._start_node->xml().sub_node("config")
+				Xml_node config = _child._start_node->xml.has_sub_node("config")
+				                ? _child._start_node->xml.sub_node("config")
 				                : Xml_node("<config/>");
 
 				size_t const config_len = config.size();
@@ -390,7 +390,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 * e.g., constrain physical RAM allocations.
 		 */
 		bool const _managing_system {
-			_start_node->xml().attribute_value("managing_system", false) };
+			_start_node->xml.attribute_value("managing_system", false) };
 
 		/**
 		 * Resource request initiated by the child
@@ -746,7 +746,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		void exit(int exit_value) override
 		{
 			try {
-				if (_start_node->xml().sub_node("exit").attribute_value("propagate", false)) {
+				if (_start_node->xml.sub_node("exit").attribute_value("propagate", false)) {
 					_env.parent().exit(exit_value);
 					return;
 				}

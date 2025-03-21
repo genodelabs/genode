@@ -88,7 +88,7 @@ Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 		throw Service_denied();
 
 	try {
-		Session_policy policy(label, _service_node->xml());
+		Session_policy policy(label, _service_node->xml);
 
 		if (!policy.has_sub_node("child"))
 			throw Service_denied();

@@ -234,7 +234,7 @@ class Sandbox::Route_model : Noncopyable
 			_alloc(alloc), _route_node(_alloc, route)
 		{
 			Rule const *at_ptr = nullptr;
-			_route_node.xml().for_each_sub_node([&] (Xml_node const &node) {
+			_route_node.xml.for_each_sub_node([&] (Xml_node const &node) {
 				Rule &rule = *new (_alloc) Rule(_alloc, node);
 				_rules.insert(&rule, at_ptr); /* append */
 				at_ptr = &rule;

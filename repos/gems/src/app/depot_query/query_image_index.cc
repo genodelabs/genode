@@ -65,7 +65,7 @@ void Depot_query::Main::_query_image_index(Xml_node const &index_query,
 				if (!from_index.constructed())
 					return;
 
-				from_index->xml().for_each_sub_node("info", [&] (Xml_node const &info) {
+				from_index->xml.for_each_sub_node("info", [&] (Xml_node const &info) {
 					using Text = String<160>;
 					Text const text = info.attribute_value("text", Text());
 					if (text.valid())

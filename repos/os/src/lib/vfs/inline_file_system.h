@@ -101,7 +101,7 @@ class Vfs::Inline_file_system : public Single_file_system
 		{
 			Stat_result const result = Single_file_system::stat(path, out);
 
-			_node.xml().with_raw_content([&] (char const *, size_t size) {
+			_node.xml.with_raw_content([&] (char const *, size_t size) {
 				out.size = size; });
 
 			return result;
@@ -112,7 +112,7 @@ class Vfs::Inline_file_system : public Single_file_system
 Vfs::File_io_service::Read_result
 Vfs::Inline_file_system::Handle::read(Byte_range_ptr const &dst, size_t &out_count)
 {
-	_fs._node.xml().with_raw_content([&] (char const *start, size_t const len) {
+	_fs._node.xml.with_raw_content([&] (char const *start, size_t const len) {
 
 		/* file read limit is the size of the XML-node content */
 		size_t const max_size = len;

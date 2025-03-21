@@ -250,7 +250,7 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	void update_sandbox_config()
 	{
 		Buffered_xml config { heap, "config", [&] (Xml_generator &xml) { generate_sandbox_config(xml); } };
-		config.with_xml_node([&] (Xml_node const &config) { sandbox.apply_config(config); });
+		sandbox.apply_config(config.xml);
 	}
 
 	void generate_ui_report()
@@ -574,103 +574,102 @@ void Main::handle_sandbox_state()
 	bool update_sandbox_cfg { false };
 	bool ui_report_changed { false };
 	Number_of_clients num_clients { 0 };
-	sandbox_state.with_xml_node([&] (Xml_node const &sandbox_state) {
 
-		switch (state) {
-		case SETUP_INIT_TRUST_ANCHOR:
+	switch (state) {
+	case SETUP_INIT_TRUST_ANCHOR:
 
-			if (child_succeeded(tresor_init_trust_anchor, sandbox_state)) {
-				set_state(SETUP_TRESOR_INIT);
-				update_sandbox_cfg = true;
-			}
-			break;
-
-		case SETUP_CREATE_IMAGE:
-
-			if (child_succeeded(truncate_file, sandbox_state)) {
-				set_state(SETUP_INIT_TRUST_ANCHOR);
-				update_sandbox_cfg = true;
-			}
-			break;
-
-		case UNLOCK_INIT_TRUST_ANCHOR:
-		{
-			with_exit_code(tresor_init_trust_anchor, sandbox_state, [&] (int code) {
-				if (code)
-					unlock_retry_delay.schedule(Microseconds { 3000000 });
-				else {
-					set_state(UNLOCK_START_TRESOR);
-					update_sandbox_cfg = true;
-				}
-			});
-			break;
+		if (child_succeeded(tresor_init_trust_anchor, sandbox_state.xml)) {
+			set_state(SETUP_TRESOR_INIT);
+			update_sandbox_cfg = true;
 		}
-		case SETUP_TRESOR_INIT:
+		break;
 
-			if (child_succeeded(tresor_init, sandbox_state)) {
-				set_state(SETUP_START_TRESOR);
-				update_sandbox_cfg = true;
-			}
-			break;
+	case SETUP_CREATE_IMAGE:
 
-		case SETUP_START_TRESOR:
-
-			if (child_succeeded(sync_to_tresor_vfs_init, sandbox_state)) {
-				set_state(SETUP_MKE2FS);
-				update_sandbox_cfg = true;
-			}
-			break;
-
-		case UNLOCK_START_TRESOR:
-
-			if (child_succeeded(sync_to_tresor_vfs_init, sandbox_state)) {
-				set_state(UNLOCK_READ_FS_SIZE);
-				update_sandbox_cfg = true;
-			}
-			break;
-
-		case SETUP_MKE2FS:
-
-			if (child_succeeded(mke2fs, sandbox_state)) {
-				set_state(SETUP_READ_FS_SIZE);
-				update_sandbox_cfg = true;
-			}
-			break;
-
-		case UNLOCKED:
-
-			handle_sandbox_state_extend_and_rekey(sandbox_state, update_sandbox_cfg, ui_report_changed);
-			with_child(sandbox_state, rump_vfs, [&] (Xml_node const &child) {
-				child.with_optional_sub_node("provided", [&] (Xml_node const &provided) {
-					provided.for_each_sub_node("session", [&] (Xml_node const &session) {
-						if (session.attribute_value("service", Service_name()) == "File_system")
-							num_clients.value++; }); }); });
-			break;
-
-		case LOCK_PENDING:
-
-			handle_sandbox_state_extend_and_rekey(sandbox_state, update_sandbox_cfg, ui_report_changed);
-			if (extend_state == Extend::INACTIVE && rekey_state == Rekey::INACTIVE) {
-				set_state(START_LOCKING);
-				update_sandbox_cfg = true;
-			}
-			break;
-
-		case START_LOCKING:
-
-			if (child_succeeded(lock_fs_tool, sandbox_state)) {
-				set_state(LOCKING);
-				update_sandbox_cfg = true;
-			}
-			break;
-
-		default: break;
+		if (child_succeeded(truncate_file, sandbox_state.xml)) {
+			set_state(SETUP_INIT_TRUST_ANCHOR);
+			update_sandbox_cfg = true;
 		}
-		sandbox_state.for_each_sub_node("child", [&] (Xml_node const &child) {
-			children.for_each([&] (Child_state &child_state) {
-				if (child_state.apply_child_state_report(child))
-					update_sandbox_cfg = true; }); });
-	});
+		break;
+
+	case UNLOCK_INIT_TRUST_ANCHOR:
+	{
+		with_exit_code(tresor_init_trust_anchor, sandbox_state.xml, [&] (int code) {
+			if (code)
+				unlock_retry_delay.schedule(Microseconds { 3000000 });
+			else {
+				set_state(UNLOCK_START_TRESOR);
+				update_sandbox_cfg = true;
+			}
+		});
+		break;
+	}
+	case SETUP_TRESOR_INIT:
+
+		if (child_succeeded(tresor_init, sandbox_state.xml)) {
+			set_state(SETUP_START_TRESOR);
+			update_sandbox_cfg = true;
+		}
+		break;
+
+	case SETUP_START_TRESOR:
+
+		if (child_succeeded(sync_to_tresor_vfs_init, sandbox_state.xml)) {
+			set_state(SETUP_MKE2FS);
+			update_sandbox_cfg = true;
+		}
+		break;
+
+	case UNLOCK_START_TRESOR:
+
+		if (child_succeeded(sync_to_tresor_vfs_init, sandbox_state.xml)) {
+			set_state(UNLOCK_READ_FS_SIZE);
+			update_sandbox_cfg = true;
+		}
+		break;
+
+	case SETUP_MKE2FS:
+
+		if (child_succeeded(mke2fs, sandbox_state.xml)) {
+			set_state(SETUP_READ_FS_SIZE);
+			update_sandbox_cfg = true;
+		}
+		break;
+
+	case UNLOCKED:
+
+		handle_sandbox_state_extend_and_rekey(sandbox_state.xml, update_sandbox_cfg, ui_report_changed);
+		with_child(sandbox_state.xml, rump_vfs, [&] (Xml_node const &child) {
+			child.with_optional_sub_node("provided", [&] (Xml_node const &provided) {
+				provided.for_each_sub_node("session", [&] (Xml_node const &session) {
+					if (session.attribute_value("service", Service_name()) == "File_system")
+						num_clients.value++; }); }); });
+		break;
+
+	case LOCK_PENDING:
+
+		handle_sandbox_state_extend_and_rekey(sandbox_state.xml, update_sandbox_cfg, ui_report_changed);
+		if (extend_state == Extend::INACTIVE && rekey_state == Rekey::INACTIVE) {
+			set_state(START_LOCKING);
+			update_sandbox_cfg = true;
+		}
+		break;
+
+	case START_LOCKING:
+
+		if (child_succeeded(lock_fs_tool, sandbox_state.xml)) {
+			set_state(LOCKING);
+			update_sandbox_cfg = true;
+		}
+		break;
+
+	default: break;
+	}
+	sandbox_state.xml.for_each_sub_node("child", [&] (Xml_node const &child) {
+		children.for_each([&] (Child_state &child_state) {
+			if (child_state.apply_child_state_report(child))
+				update_sandbox_cfg = true; }); });
+
 	if (ui_report.num_clients.value != num_clients.value) {
 		ui_report.num_clients.value = num_clients.value;
 		ui_report_changed = true;

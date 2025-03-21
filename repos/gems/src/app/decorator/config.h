@@ -167,7 +167,7 @@ class Decorator::Config
 			Color result = Color::rgb(68, 75, 95);
 
 			try {
-				Genode::Session_policy policy(title, _buffered_config->xml());
+				Genode::Session_policy policy(title, _buffered_config->xml);
 				result = policy.attribute_value("color", result);
 
 			} catch (Genode::Session_policy::No_policy_defined) { }
@@ -181,10 +181,10 @@ class Decorator::Config
 		unsigned gradient_percent(Window_title const &title) const
 		{
 			unsigned result =
-				_buffered_config->xml().attribute_value("gradient", 32U);
+				_buffered_config->xml.attribute_value("gradient", 32U);
 
 			try {
-				Genode::Session_policy policy(title, _buffered_config->xml());
+				Genode::Session_policy policy(title, _buffered_config->xml);
 				result = policy.attribute_value("gradient", result);
 
 			} catch (Genode::Session_policy::No_policy_defined) { }

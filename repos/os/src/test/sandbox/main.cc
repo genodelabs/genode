@@ -128,12 +128,9 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 		Buffered_xml const config { _heap, "config", [&] (Xml_generator &xml) {
 			_generate_sandbox_config(xml); } };
 
-		config.with_xml_node([&] (Xml_node const &config) {
+		log("generated config: ", config.xml);
 
-			log("generated config: ", config);
-
-			_sandbox.apply_config(config);
-		});
+		_sandbox.apply_config(config.xml);
 	}
 
 	/**

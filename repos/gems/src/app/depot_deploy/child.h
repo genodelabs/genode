@@ -73,15 +73,15 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			 * If the <start> node lacks a 'pkg' attribute, we expect the
 			 * policy to be defined by a launcher XML snippet.
 			 */
-			return _start_xml.constructed() && !_start_xml->xml().has_attribute("pkg");
+			return _start_xml.constructed() && !_start_xml->xml.has_attribute("pkg");
 		}
 
 		Archive::Path _config_pkg_path() const
 		{
 			if (_defined_by_launcher() && _launcher_xml.constructed())
-				return _launcher_xml->xml().attribute_value("pkg", Archive::Path());
+				return _launcher_xml->xml.attribute_value("pkg", Archive::Path());
 
-			return _start_xml->xml().attribute_value("pkg", Archive::Path());
+			return _start_xml->xml.attribute_value("pkg", Archive::Path());
 		}
 
 		Launcher_name _launcher_name() const
@@ -89,10 +89,10 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (!_defined_by_launcher())
 				return Launcher_name();
 
-			if (_start_xml->xml().has_attribute("launcher"))
-				return _start_xml->xml().attribute_value("launcher", Launcher_name());
+			if (_start_xml->xml.has_attribute("launcher"))
+				return _start_xml->xml.attribute_value("launcher", Launcher_name());
 
-			return _start_xml->xml().attribute_value("name", Launcher_name());
+			return _start_xml->xml.attribute_value("name", Launcher_name());
 		}
 
 		/*
@@ -156,7 +156,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		:
 			_alloc(alloc),
 			_start_xml(_alloc, start_node),
-			_name(_start_xml->xml().attribute_value("name", Name()))
+			_name(_start_xml->xml.attribute_value("name", Name()))
 		{ }
 
 		Name name() const { return _name; }
@@ -166,7 +166,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		bool apply_config(Xml_node start_node)
 		{
-			if (!start_node.differs_from(_start_xml->xml()))
+			if (!start_node.differs_from(_start_xml->xml))
 				return false;
 
 			Archive::Path const old_pkg_path = _config_pkg_path();
@@ -243,7 +243,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (_launcher_name() != name)
 				return false;
 
-			if (_launcher_xml.constructed() && !launcher.differs_from(_launcher_xml->xml()))
+			if (_launcher_xml.constructed() && !launcher.differs_from(_launcher_xml->xml))
 				return false;
 
 			_launcher_xml.construct(_alloc, launcher);
@@ -261,11 +261,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			Condition const orig_condition = _condition;
 
 			Xml_node launcher_xml = _launcher_xml.constructed()
-			                      ? _launcher_xml->xml()
+			                      ? _launcher_xml->xml
 			                      : Xml_node("<empty/>");
 
 			if (_start_xml.constructed())
-				_condition = cond_fn(_start_xml->xml(), launcher_xml)
+				_condition = cond_fn(_start_xml->xml, launcher_xml)
 				           ? SATISFIED : UNSATISFIED;
 
 			return _condition != orig_condition;
@@ -274,11 +274,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		void apply_if_unsatisfied(auto const &fn) const
 		{
 			Xml_node launcher_xml = _launcher_xml.constructed()
-			                      ? _launcher_xml->xml()
+			                      ? _launcher_xml->xml
 			                      : Xml_node("<empty/>");
 
 			if (_condition == UNSATISFIED && _start_xml.constructed())
-				fn(_start_xml->xml(), launcher_xml, _name);
+				fn(_start_xml->xml, launcher_xml, _name);
 		}
 
 		/*
@@ -403,15 +403,15 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 	if (_defined_by_launcher() && !_launcher_xml.constructed())
 		return;
 
-	if (!_pkg_xml->xml().has_sub_node("runtime")) {
+	if (!_pkg_xml->xml.has_sub_node("runtime")) {
 		warning("blueprint for '", _name, "' lacks runtime information");
 		return;
 	}
 
 	Xml_node const launcher_xml = (_defined_by_launcher())
-	                            ? _launcher_xml->xml() : Xml_node("<empty/>");
+	                            ? _launcher_xml->xml : Xml_node("<empty/>");
 
-	Xml_node const start_xml = _start_xml->xml();
+	Xml_node const start_xml = _start_xml->xml;
 
 	xml.node("start", [&] {
 
@@ -427,7 +427,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 
 		{
 			using Version = String<64>;
-			Version const version = _start_xml->xml().attribute_value("version", Version());
+			Version const version = _start_xml->xml.attribute_value("version", Version());
 			if (version.valid())
 				xml.attribute("version", version);
 		}
@@ -519,7 +519,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		}
 
 		/* runtime handling */
-		Xml_node const runtime = _pkg_xml->xml().sub_node("runtime");
+		Xml_node const runtime = _pkg_xml->xml.sub_node("runtime");
 
 		/*
 		 * Insert inline '<heartbeat>' node if provided by the start node.
@@ -605,11 +605,11 @@ void Depot_deploy::Child::gen_monitor_policy_node(Xml_generator &xml) const
 	if (_defined_by_launcher() && !_launcher_xml.constructed())
 		return;
 
-	if (!_pkg_xml->xml().has_sub_node("runtime")) {
+	if (!_pkg_xml->xml.has_sub_node("runtime")) {
 		return;
 	}
 
-	Xml_node const start_xml = _start_xml->xml();
+	Xml_node const start_xml = _start_xml->xml;
 
 	if (start_xml.has_sub_node("monitor")) {
 		Xml_node const monitor = start_xml.sub_node("monitor");
@@ -636,8 +636,8 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 	/*
 	 * Add routes given in the start node.
 	 */
-	if (_start_xml->xml().has_sub_node("route")) {
-		Xml_node const route = _start_xml->xml().sub_node("route");
+	if (_start_xml->xml.has_sub_node("route")) {
+		Xml_node const route = _start_xml->xml.sub_node("route");
 
 		route.for_each_sub_node("service", [&] (Xml_node const &service) {
 			Name const service_name = service.attribute_value("name", Name());
@@ -673,8 +673,8 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 	/*
 	 * Add routes given in the launcher definition.
 	 */
-	if (_launcher_xml.constructed() && _launcher_xml->xml().has_sub_node("route")) {
-		Xml_node const route = _launcher_xml->xml().sub_node("route");
+	if (_launcher_xml.constructed() && _launcher_xml->xml.has_sub_node("route")) {
+		Xml_node const route = _launcher_xml->xml.sub_node("route");
 		route.with_raw_content([&] (char const *start, size_t length) {
 			xml.append(start, length); });
 	}
@@ -698,7 +698,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 	 * within the depot.
 	 */
 	if (_config_name.valid()) {
-		_pkg_xml->xml().for_each_sub_node("rom", [&] (Xml_node rom) {
+		_pkg_xml->xml.for_each_sub_node("rom", [&] (Xml_node rom) {
 
 			if (!rom.has_attribute("path"))
 				return;
@@ -734,7 +734,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 	 * Add ROM routing rule with the label rewritten to the path within the
 	 * depot.
 	 */
-	_pkg_xml->xml().for_each_sub_node("rom", [&] (Xml_node rom) {
+	_pkg_xml->xml.for_each_sub_node("rom", [&] (Xml_node rom) {
 
 		if (!rom.has_attribute("path"))
 			return;

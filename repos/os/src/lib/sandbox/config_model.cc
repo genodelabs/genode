@@ -73,7 +73,7 @@ struct Config_model::Default_route_node : Node
 
 	void update(Xml_node const &xml) override
 	{
-		if (!_default_route.constructed() || _default_route->xml().differs_from(xml))
+		if (!_default_route.constructed() || _default_route->xml.differs_from(xml))
 			_default_route.construct(_alloc, xml);
 	}
 };
