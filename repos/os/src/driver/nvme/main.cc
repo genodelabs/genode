@@ -74,6 +74,11 @@ namespace Nvme {
 	struct Sq;
 	struct Cq;
 
+	struct Io_queue
+	{
+		struct Id { uint16_t value; };
+	};
+
 	struct Controller;
 
 	enum {
@@ -81,7 +86,8 @@ namespace Nvme {
 		CQE_LEN                = 1u << CQE_LEN_LOG2,
 		SQE_LEN_LOG2           = 6u,
 		SQE_LEN                = 1u << SQE_LEN_LOG2,
-		MAX_IO_QUEUES          = 1,
+		MAX_IO_QUEUES          = 128u,
+		NUM_QUEUES             = 1u + MAX_IO_QUEUES,
 
 		/*
 		 * Limit max number of I/O slots. By now most controllers
@@ -127,7 +133,6 @@ namespace Nvme {
 		 */
 		IO_NSID    = 1u,
 		MAX_NS     = 1u,
-		NUM_QUEUES = 1 + MAX_NS,
 	};
 
 	enum Opcode {
@@ -783,6 +788,7 @@ class Nvme::Controller : Platform::Device,
 	};
 
 	struct Initialization_failed : Genode::Exception { };
+	struct Admin_command_failed  : Genode::Exception { };
 
 	struct Info
 	{
@@ -850,6 +856,8 @@ class Nvme::Controller : Platform::Device,
 		QUERYNS_CID,
 		CREATE_IO_CQ_CID,
 		CREATE_IO_SQ_CID,
+		DELETE_IO_CQ_CID,
+		DELETE_IO_SQ_CID,
 		SET_HMB_CID,
 	};
 
@@ -1312,6 +1320,24 @@ class Nvme::Controller : Platform::Device,
 		}
 	}
 
+	void _delete_io_cq(uint16_t id)
+	{
+		if (!_cq[id].constructed())
+			return;
+
+		Sqe_create_cq b(_admin_command(Opcode::DELETE_IO_CQ, 0, DELETE_IO_CQ_CID));
+		b.write<Nvme::Sqe_create_cq::Cdw10::Qid>(id);
+
+		write<Admin_sdb::Sqt>(_admin_sq->tail);
+
+		if (!_wait_for_admin_cq(10, DELETE_IO_CQ_CID)) {
+			error("delete I/O cq failed");
+			throw Admin_command_failed();
+		}
+
+		_cq[id].destruct();
+	}
+
 	/**
 	 * Setup I/O submission queue
 	 *
@@ -1338,9 +1364,34 @@ class Nvme::Controller : Platform::Device,
 		write<Admin_sdb::Sqt>(_admin_sq->tail);
 
 		if (!_wait_for_admin_cq(10, CREATE_IO_SQ_CID)) {
-			error("create I/O sq failed");
+			error("delete I/O sq failed");
 			throw Initialization_failed();
 		}
+	}
+
+	/**
+	 * Free I/O submission queue
+	 *
+	 * \param id  identifier of the submission queue
+	 *
+	 * \throw Admin_command_failed() in case the queue could not be deleted
+	 */
+	void _delete_io_sq(uint16_t id)
+	{
+		if (!_sq[id].constructed())
+			return;
+
+		Sqe_create_sq b(_admin_command(Opcode::DELETE_IO_SQ, 0, DELETE_IO_SQ_CID));
+		b.write<Nvme::Sqe_create_sq::Cdw10::Qid>(id);
+
+		write<Admin_sdb::Sqt>(_admin_sq->tail);
+
+		if (!_wait_for_admin_cq(10, DELETE_IO_SQ_CID)) {
+			error("delete I/O sq failed");
+			throw Admin_command_failed();
+		}
+
+		_sq[id].destruct();
 	}
 
 	public:
@@ -1427,60 +1478,78 @@ class Nvme::Controller : Platform::Device,
 	}
 
 	/**
+	 * Delete I/O queue
+	 */
+	void delete_io(uint16_t cid, uint16_t sid)
+	{
+		_delete_io_sq(sid);
+		_delete_io_cq(cid);
+	}
+
+	/**
+	 * Query if I/O queue is used
+	 */
+	bool active_io(uint16_t qid)
+	{
+		/* SQ implies working CQ */
+		return _sq[qid].constructed();
+	}
+
+	/**
 	 * Get next free IO submission queue slot
 	 *
-	 * \param nsid  namespace identifier
+	 * \param qid  queue identifier
 	 *
 	 * \return  returns virtual address of the I/O command
 	 */
-	Byte_range_ptr io_command(uint16_t nsid, uint16_t cid)
+	Byte_range_ptr io_command(uint16_t qid, uint16_t cid)
 	{
-		Nvme::Sq &sq = *_sq[nsid];
+		Nvme::Sq &sq = *_sq[qid];
 
 		Sqe_header e(sq.next());
 		e.write<Nvme::Sqe_header::Cdw0::Cid>(cid);
-		e.write<Nvme::Sqe_header::Nsid>(nsid);
+		e.write<Nvme::Sqe_header::Nsid>(IO_NSID);
 		return e.range();
 	}
 
 	/**
 	 * Check if I/O queue is full
 	 *
-	 * \param nsid  namespace identifier
+	 * \param qid  queue identifier
 	 *
 	 * \return  true if full, otherwise false
 	 */
-	bool io_queue_full(uint16_t nsid) const
+	bool io_queue_full(uint16_t qid) const
 	{
-		Nvme::Sq const &sq = *_sq[nsid];
-		Nvme::Cq const &cq = *_cq[nsid];
+		Nvme::Sq const &sq = *_sq[qid];
+		Nvme::Cq const &cq = *_cq[qid];
 		return _queue_full(sq, cq);
 	}
 
 	/**
 	 * Write current I/O submission queue tail
 	 *
-	 * \param nsid  namespace identifier
+	 * \param qid  queue identifier
 	 */
-	void commit_io(uint16_t nsid)
+	void commit_io(uint16_t qid)
 	{
-		Nvme::Sq &sq = *_sq[nsid];
+		Nvme::Sq &sq = *_sq[qid];
 		write<Io_sdb::Sqt>(sq.tail);
 	}
 
 	/**
 	 * Process a pending I/O completion
 	 *
-	 * \param nsid  namespace identifier
+	 * \param qid   queue identifier
 	 * \param func  function that is called on each completion
 	 */
 	template <typename FUNC>
-	void handle_io_completion(uint16_t nsid, FUNC const &func)
+	void handle_io_completion(uint16_t qid, FUNC const &func)
 	{
-		if (!_cq[nsid].constructed())
+		if (!_cq[qid].constructed())
 			return;
 
-		Nvme::Cq &cq = *_cq[nsid];
+		Nvme::Cq &cq = *_cq[qid];
 
 		do {
 			Cqe e(cq.next());
@@ -1609,14 +1678,18 @@ struct Nvme::Block_session_component : Rpc_object<Block::Session>,
 	Env              &_env;
 	Util::Dma_buffer &_dma_buffer;
 
+	Io_queue::Id const _id;
+
 	Block::Session::Info _info;
 
 	Block_session_component(Env &env, Util::Dma_buffer &dma_buffer,
+	                        Io_queue::Id id,
 	                        Signal_context_capability sigh,
 	                        Block::Session::Info info)
 	:
 		Request_stream(env.rm(), dma_buffer.cap(), env.ep(), sigh, info), _env(env),
 		_dma_buffer(dma_buffer),
+		_id(id),
 		_info(info)
 	{
 		_env.ep().manage(*this);
@@ -1632,6 +1705,8 @@ struct Nvme::Block_session_component : Rpc_object<Block::Session>,
 	Capability<Tx> tx_cap() override { return Request_stream::tx_cap(); }
 
 	addr_t dma_addr() const { return _dma_buffer.dma_addr(); }
+
+	Io_queue::Id queue_id() const { return _id; }
 };
 
 
@@ -1883,7 +1958,13 @@ class Nvme::Driver : Genode::Noncopyable
 				           Hex(phys_addr + Nvme::PRP_DS_SIZE), "]");
 			}
 
-			ctrlr.setup_io(Nvme::IO_NSID, Nvme::IO_NSID);
+			/* skip the admin SQ/CQ and reinit all other used queues */
+			for (uint16_t qid = 1; qid < NUM_QUEUES; qid++) {
+				if (!ctrlr.active_io(qid))
+					continue;
+
+				ctrlr.setup_io(qid, qid);
+			}
 
 			/*
 			 * Setup Block session
@@ -1980,7 +2061,8 @@ class Nvme::Driver : Genode::Noncopyable
 		 ** Block request stream API **
 		 ******************************/
 
-		Response _check_acceptance(Block::Request          request,
+		Response _check_acceptance(Io_queue::Id            id,
+		                           Block::Request          request,
 		                           Nvme::Controller const &ctrlr) const
 		{
 			/*
@@ -1988,7 +2070,7 @@ class Nvme::Driver : Genode::Noncopyable
 			 * MAX_IO_ENTRIES requests, so it is safe to only check the
 			 * I/O queue.
 			 */
-			if (ctrlr.io_queue_full(Nvme::IO_NSID)) {
+			if (ctrlr.io_queue_full(id.value)) {
 				return Response::RETRY;
 			}
 
@@ -2045,7 +2127,10 @@ class Nvme::Driver : Genode::Noncopyable
 			return Response::ACCEPTED;
 		}
 
-		void _submit(addr_t dma_addr, Block::Request request, Nvme::Controller &ctrlr)
+		void _submit(Io_queue::Id      qid,
+		             addr_t            dma_addr,
+		             Block::Request    request,
+		             Nvme::Controller &ctrlr)
 		{
 			bool const write =
 				request.operation.type == Block::Operation::Type::WRITE;
@@ -2078,7 +2163,7 @@ class Nvme::Driver : Genode::Noncopyable
 			r = Request { .block_request = request,
 			              .id            = id };
 
-			Nvme::Sqe_io b(ctrlr.io_command(Nvme::IO_NSID, cid));
+			Nvme::Sqe_io b(ctrlr.io_command(qid.value, cid));
 			Nvme::Opcode const op = write ? Nvme::Opcode::WRITE : Nvme::Opcode::READ;
 			b.write<Nvme::Sqe_io::Cdw0::Opc>(op);
 			b.write<Nvme::Sqe_io::Prp1>(request_pa);
@@ -2121,7 +2206,8 @@ class Nvme::Driver : Genode::Noncopyable
 			b.write<Nvme::Sqe_io::Cdw12::Nlb>(count - 1); /* 0-base value */
 		}
 
-		void _submit_sync(Block::Request const &request,
+		void _submit_sync(Io_queue::Id          qid,
+		                  Block::Request const &request,
 		                  Nvme::Controller     &ctrlr)
 		{
 			uint16_t const cid = _alloc_command_id();
@@ -2130,11 +2216,12 @@ class Nvme::Driver : Genode::Noncopyable
 			r = Request { .block_request = request,
 			              .id            = id };
 
-			Nvme::Sqe_io b(ctrlr.io_command(Nvme::IO_NSID, cid));
+			Nvme::Sqe_io b(ctrlr.io_command(qid.value, cid));
 			b.write<Nvme::Sqe_io::Cdw0::Opc>(Nvme::Opcode::FLUSH);
 		}
 
-		void _submit_trim(Block::Request const &request,
+		void _submit_trim(Io_queue::Id          qid,
+		                  Block::Request const &request,
 		                  Nvme::Controller     &ctrlr)
 		{
 			uint16_t const cid = _alloc_command_id();
@@ -2146,7 +2233,7 @@ class Nvme::Driver : Genode::Noncopyable
 			uint32_t        const count = (uint32_t)request.operation.count;
 			Block::sector_t const lba   = request.operation.block_number;
 
-			Nvme::Sqe_io b(ctrlr.io_command(Nvme::IO_NSID, cid));
+			Nvme::Sqe_io b(ctrlr.io_command(qid.value, cid));
 			b.write<Nvme::Sqe_io::Cdw0::Opc>(Nvme::Opcode::WRITE_ZEROS);
 			b.write<Nvme::Sqe_io::Slba_lower>(uint32_t(lba));
 			b.write<Nvme::Sqe_io::Slba_upper>(uint32_t(lba >> 32u));
@@ -2160,11 +2247,12 @@ class Nvme::Driver : Genode::Noncopyable
 			b.write<Nvme::Sqe_io::Cdw12::Nlb>(count - 1); /* 0-base value */
 		}
 
-		void _get_completed_request(Nvme::Controller &ctrlr,
+		void _get_completed_request(Io_queue::Id      qid,
+		                            Nvme::Controller &ctrlr,
 		                            Block::Request   &out,
 		                            uint16_t         &out_cid)
 		{
-			ctrlr.handle_io_completion(Nvme::IO_NSID, [&] (Nvme::Cqe const &b) {
+			ctrlr.handle_io_completion(qid.value, [&] (Nvme::Cqe const &b) {
 
 				if (_verbose_io) { Nvme::Cqe::dump(b); }
 
@@ -2200,7 +2288,7 @@ class Nvme::Driver : Genode::Noncopyable
 		 ** driver interface **
 		 **********************/
 
-		Response acceptable(Block::Request const &request) const
+		Response acceptable(Io_queue::Id id, Block::Request const &request) const
 		{
 			Response result = Response::RETRY;
 
@@ -2208,7 +2296,7 @@ class Nvme::Driver : Genode::Noncopyable
 				return result;
 
 			with_nvme([&](auto &ctrlr) {
-				result = _check_acceptance(request, ctrlr);
+				result = _check_acceptance(id, request, ctrlr);
 			}, [&]() {
 				/* retry later */
 				result = Response::RETRY;
@@ -2217,19 +2305,19 @@ class Nvme::Driver : Genode::Noncopyable
 			return result;
 		}
 
-		void submit(addr_t dma_addr, Block::Request const &request)
+		void submit(Io_queue::Id id, addr_t dma_addr, Block::Request const &request)
 		{
 			with_nvme([&](auto &ctrlr) {
 				switch (request.operation.type) {
 				case Block::Operation::Type::READ:
 				case Block::Operation::Type::WRITE:
-					_submit(dma_addr, request, ctrlr);
+					_submit(id, dma_addr, request, ctrlr);
 					break;
 				case Block::Operation::Type::SYNC:
-					_submit_sync(request, ctrlr);
+					_submit_sync(id, request, ctrlr);
 					break;
 				case Block::Operation::Type::TRIM:
-					_submit_trim(request, ctrlr);
+					_submit_trim(id, request, ctrlr);
 					break;
 				default:
 					return;
@@ -2251,14 +2339,14 @@ class Nvme::Driver : Genode::Noncopyable
 			});
 		}
 
-		bool commit_pending_submits()
+		bool commit_pending_submits(Io_queue::Id id)
 		{
 			if (!_submits_pending) { return false; }
 
 			bool success = false;
 
 			with_nvme([&](auto &ctrlr) {
-				ctrlr.commit_io(Nvme::IO_NSID);
+				ctrlr.commit_io(id.value);
 				_submits_pending = false;
 				success = true;
 			}, [&]() {
@@ -2268,13 +2356,13 @@ class Nvme::Driver : Genode::Noncopyable
 			return success;
 		}
 
-		void with_any_completed_job(auto const &fn)
+		void with_any_completed_job(Io_queue::Id id, auto const &fn)
 		{
 			uint16_t       cid     { 0 };
 			Block::Request request { };
 
 			with_nvme([&](auto &ctrlr) {
-				_get_completed_request(ctrlr, request, cid);
+				_get_completed_request(id, ctrlr, request, cid);
 			}, [&]() { /* if hw is off, no requests are in flight */ });
 
 			if (request.operation.valid()) {
@@ -2286,15 +2374,61 @@ class Nvme::Driver : Genode::Noncopyable
 			}
 		}
 
-		void acknowledge_if_completed()
+		void acknowledge_if_completed(Io_queue::Id id)
 		{
 			if (!_completed_pending) { return; }
 
 			with_nvme([&](auto &ctrlr) {
-				ctrlr.ack_io_completions(Nvme::IO_NSID);
+				ctrlr.ack_io_completions(id.value);
 				_completed_pending = false;
 			}, [&]() {
 				error("unexepected NVME controller state - ack_if");
+			});
+		}
+
+		Command_id<MAX_IO_QUEUES> _io_queue_map { };
+
+		struct Io_queue_creation_error { };
+		using Io_queue_create_result = Attempt<Io_queue::Id,
+		                                       Io_queue_creation_error>;
+
+		Io_queue_create_result create_io_queue()
+		{
+			return _io_queue_map.alloc().convert<Io_queue_create_result>(
+				[&] (addr_t value) {
+
+					Io_queue::Id const new_id { .value = uint16_t(value + 1) };
+					/* setup_io can throw */
+					try {
+						with_nvme([&](auto &ctrlr) {
+								 log ("new_id: ", new_id.value);
+							ctrlr.setup_io(new_id.value, new_id.value);
+						},
+						[&] {
+							error("unexepected NVME controller state - create_io_queue");
+							/* reuse exception for now */
+							throw Nvme::Controller::Initialization_failed();
+						});
+					} catch (Nvme::Controller::Initialization_failed) {
+						_io_queue_map.free(new_id.value - 1);
+						return Io_queue_create_result { Io_queue_creation_error { } };
+					}
+					return Io_queue_create_result { new_id };
+				},
+				[&] (Command_id<MAX_IO_QUEUES>::Error) {
+					/* max I/O queues reached */
+					error("max I/O queues reached");
+					return Io_queue_create_result { Io_queue_creation_error { } };
+				});
+		}
+
+		void free_io_queue(Io_queue::Id queue_id)
+		{
+			with_nvme([&](auto &ctrlr) {
+				ctrlr.delete_io(queue_id.value, queue_id.value);
+				_io_queue_map.free(queue_id.value - 1);
+			}, [&]() {
+				error("unexepected NVME controller state - free_io_queue");
 			});
 		}
 
@@ -2344,24 +2478,27 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 			/* acknowledge finished jobs */
 			block_session.try_acknowledge([&] (Block_session_component::Ack &ack) {
 
-				_driver.with_any_completed_job([&] (Block::Request request) {
+				_driver.with_any_completed_job(block_session.queue_id(),
+					[&] (Block::Request request) {
 
-					ack.submit(request);
-					progress = true;
-				});
+						ack.submit(request);
+						progress = true;
+					});
 			});
 
 			/* deferred acknowledge on the controller */
-			_driver.acknowledge_if_completed();
+			_driver.acknowledge_if_completed(block_session.queue_id());
 
 			/* import new requests */
 			block_session.with_requests([&] (Block::Request request) {
 
-				Response response = _driver.acceptable(request);
+				Response response = _driver.acceptable(block_session.queue_id(), request);
 
 				switch (response) {
 				case Response::ACCEPTED:
-					_driver.submit(block_session.dma_addr(), request);
+					_driver.submit(block_session.queue_id(),
+					               block_session.dma_addr(),
+					               request);
 				[[fallthrough]];
 				case Response::REJECTED:
 					progress = true;
@@ -2374,7 +2511,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 			});
 
 			/* process I/O */
-			progress |= _driver.commit_pending_submits();
+			progress |= _driver.commit_pending_submits(block_session.queue_id());
 
 			_driver.device_release_if_stopped_and_idle();
 
@@ -2412,8 +2549,18 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 				bool const writeable = policy.attribute_value("writeable", false);
 				_driver.writeable(writeable);
 
+				Io_queue::Id new_id { 0 };
+				_driver.create_io_queue().with_result(
+					[&] (Io_queue::Id id)         { new_id = id; },
+					[&] (Driver::Io_queue_creation_error) { });
+
+				if (new_id.value == 0) {
+					error("could not create I/O queue");
+					return Session_error::DENIED;
+				}
+
 				_block_session.construct(_env, _driver.alloc_dma_buffer(tx_buf_size),
-				                         _request_handler, _driver.info());
+				                         new_id, _request_handler, _driver.info());
 				return { _block_session->cap() };
 			},
 			[&] () -> Root::Result { return Session_error::DENIED; });
@@ -2424,8 +2571,10 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 	void close(Capability<Session>) override
 	{
 		Util::Dma_buffer &dma_buffer = _block_session->_dma_buffer;
+		Io_queue::Id const queue_id = _block_session->queue_id();
 
 		_block_session.destruct();
+		_driver.free_io_queue(queue_id);
 		_driver.free_dma_buffer(dma_buffer);
 	}
 
