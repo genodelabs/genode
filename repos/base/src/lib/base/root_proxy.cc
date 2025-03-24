@@ -126,7 +126,7 @@ namespace {
 
 			Tslab<Service::Session, 4000> _session_slab { &_sliced_heap };
 
-			void _handle_session_request(Xml_node, char const *type);
+			void _handle_session_request(Xml_node const &, char const *type);
 			void _handle_session_requests();
 
 			Service_registry _services { };
@@ -152,7 +152,7 @@ namespace {
 }
 
 
-void Root_proxy::_handle_session_request(Xml_node request, char const *type)
+void Root_proxy::_handle_session_request(Xml_node const &request, char const *type)
 {
 	if (!request.has_attribute("id") || !request.has_type(type))
 		return;
@@ -235,13 +235,13 @@ void Root_proxy::_handle_session_requests()
 	 * step. If we served the new client before the old one, it would look like
 	 * an attempt to create a second session.
 	 */
-	requests.for_each_sub_node([&] (Xml_node request) {
+	requests.for_each_sub_node([&] (Xml_node const &request) {
 		_handle_session_request(request, "upgrade"); });
 
-	requests.for_each_sub_node([&] (Xml_node request) {
+	requests.for_each_sub_node([&] (Xml_node const &request) {
 		_handle_session_request(request, "close"); });
 
-	requests.for_each_sub_node([&] (Xml_node request) {
+	requests.for_each_sub_node([&] (Xml_node const &request) {
 		_handle_session_request(request, "create"); });
 }
 

@@ -241,7 +241,7 @@ struct Formatted_xml_attribute
 /**
  * Print attributes of XML node
  */
-static void print_xml_attr_info(Output &output, Xml_node node, int indent = 0)
+static void print_xml_attr_info(Output &output, Xml_node const &node, int indent = 0)
 {
 	node.for_each_attribute([&] (Xml_attribute const &a) {
 		print(output, Formatted_xml_attribute(a, indent), "\n"); });
@@ -256,10 +256,10 @@ static void print_xml_attr_info(Output &output, Xml_node node, int indent = 0)
  */
 struct Formatted_xml_node
 {
-	Xml_node const _node;
-	unsigned const _indent;
+	Xml_node const &_node;
+	unsigned const  _indent;
 
-	Formatted_xml_node(Xml_node node, unsigned indent = 0)
+	Formatted_xml_node(Xml_node const &node, unsigned indent = 0)
 	: _node(node), _indent(indent) { }
 
 	void print(Output &output) const
@@ -295,14 +295,17 @@ struct Formatted_xml_node
 /**
  * Print content of sub node with specified type
  */
-static void log_key(Xml_node node, char const *key)
+static void log_key(Xml_node const &node, char const *key)
 {
 	try {
-		Xml_node sub_node = node.sub_node(key);
-		sub_node.with_raw_content([&] (char const *start, size_t length) {
-			log("content of sub node \"", key, "\" = \"", Cstring(start, length), "\""); });
-	} catch (Xml_node::Nonexistent_sub_node) {
-		log("sub node \"", key, "\" is not defined\n");
+		node.with_sub_node(key,
+			[&] (Xml_node const &sub_node) {
+				sub_node.with_raw_content([&] (char const *start, size_t length) {
+					log("content of sub node \"", key, "\" = \"", Cstring(start, length), "\""); });
+			},
+			[&] {
+				log("sub node \"", key, "\" is not defined\n");
+			});
 	} catch (Xml_node::Invalid_syntax) {
 		log("invalid syntax of node \"", key, "\"");
 	}

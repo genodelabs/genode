@@ -166,7 +166,7 @@ void Genode::List_model<ELEM>::update_from_xml(Xml_node const &node,
 
 	ELEM *last_updated = nullptr; /* used for appending to 'updated_list' */
 
-	node.for_each_sub_node([&] (Xml_node sub_node) {
+	node.for_each_sub_node([&] (Xml_node const &sub_node) {
 
 		/* skip XML nodes that are unrelated to the data model */
 		if (!ELEM::type_matches(sub_node))
