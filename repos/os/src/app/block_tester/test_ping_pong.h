@@ -14,6 +14,8 @@
 #ifndef _TEST_PING_PONG_H_
 #define _TEST_PING_PONG_H_
 
+#include <types.h>
+
 namespace Test { struct Ping_pong; }
 
 
@@ -21,80 +23,84 @@ namespace Test { struct Ping_pong; }
  * Ping_pong operation test
  *
  * This test reads or writes the given number of blocks from the
- * specified start block sequentially in sized requests.
+ * specified start block sequentially in an alternating fashion
+ * from the beginning and the end of the session.
  */
-struct Test::Ping_pong : Test_base
+struct Test::Ping_pong : Scenario
 {
-	bool           _ping   = true;
-	block_number_t _end    = 0;
-	block_number_t _start  = _node.attribute_value("start",  0u);
-	size_t   const _size   = _node.attribute_value("size",   Number_of_bytes());
-	size_t   const _length = _node.attribute_value("length", Number_of_bytes());
+	bool           _ping = true;
+	size_t         _block_size { };
+	block_number_t _end = 0;
+	block_number_t _start;
+	size_t   const _size;
+	size_t   const _length;
 
-	Block::Operation::Type const _op_type = _node.attribute_value("write", false)
-	                                      ? Block::Operation::Type::WRITE
-	                                      : Block::Operation::Type::READ;
+	Block::Operation::Type const _op_type;
 
-	using Test_base::Test_base;
+	Ping_pong(Allocator &, Xml_node const &node)
+	:
+		Scenario(node),
+		_start  (node.attribute_value("start",  0u)),
+		_size   (node.attribute_value("size",   Number_of_bytes())),
+		_length (node.attribute_value("length", Number_of_bytes())),
+		_op_type(node.attribute_value("write", false)
+		       ? Block::Operation::Type::WRITE : Block::Operation::Type::READ)
+	{ }
 
-	void _spawn_job() override
+	bool init(Init_attr const &attr) override
 	{
-		if (_bytes >= _length)
-			return;
+		_block_size = attr.block_size;
 
-		_job_cnt++;
+		if (_size > attr.scratch_buffer_size) {
+			error("request size exceeds scratch buffer size");
+			return false;
+		}
+
+		Total const total { attr.block_count.blocks * _block_size };
+		if (_length > total.bytes - (_start * _block_size)) {
+			error("length too large invalid");
+			return false;
+		}
+
+		if (_block_size > _size || (_size % _block_size) != 0) {
+			error("request size invalid");
+			return false;
+		}
+
+		size_t const length_in_blocks = _length / _block_size;
+
+		_end = _start + length_in_blocks;
+		return true;
+	}
+
+	Next_job_result next_job(Stats const &stats) override
+	{
+		if (stats.total.bytes >= _length)
+			return No_job();
 
 		block_number_t const lba = _ping ? _start : _end - _start;
 		_ping = !_ping;
 
 		Block::Operation const operation { .type         = _op_type,
 		                                   .block_number = lba,
-		                                   .count        = _size_in_blocks };
+		                                   .count        = _size / _block_size };
+		_start += operation.count;
 
-		new (_alloc) Job(*_block, operation, _job_cnt);
-
-		_start += _size_in_blocks;
+		return operation;
 	}
 
-	void _init() override
-	{
-		if (_size > _scratch_buffer.size) {
-			error("request size exceeds scratch buffer size");
-			throw Constructing_test_failed();
-		}
-
-		size_t const total_bytes = (size_t)_info.block_count * _info.block_size;
-		if (_length > total_bytes - (_start * _info.block_size)) {
-			error("length too large invalid");
-			throw Constructing_test_failed();
-		}
-
-		if (_info.block_size > _size || (_size % _info.block_size) != 0) {
-			error("request size invalid");
-			throw Constructing_test_failed();
-		}
-
-		_size_in_blocks   = _size   / _info.block_size;
-		_length_in_blocks = _length / _info.block_size;
-		_end              = _start  + _length_in_blocks;
-	}
-
-	Result result() override
-	{
-		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, _size, _info.block_size, _triggered);
-	}
+	size_t request_size() const override { return _size; }
 
 	char const *name() const override { return "ping_pong"; }
 
 	void print(Output &out) const override
 	{
 		Genode::print(out, name(), " ", Block::Operation::type_name(_op_type), " "
-		                   "start:",  _start,  " "
-		                   "size:",   _size,   " "
-		                   "length:", _length, " "
-		                   "copy:",   _copy,   " "
-		                   "batch:",  _batch);
+		                   "start:",  _start,    " "
+		                   "size:",   _size,     " "
+		                   "length:", _length,   " "
+		                   "copy:",   attr.copy, " "
+		                   "batch:",  attr.batch);
 	}
 };
 

@@ -14,6 +14,8 @@
 #ifndef _TEST_REPLAY_H_
 #define _TEST_REPLAY_H_
 
+#include <types.h>
+
 namespace Test { struct Replay; }
 
 /*
@@ -21,57 +23,76 @@ namespace Test { struct Replay; }
  *
  * This test replays a recorded sequence of Block session requests.
  */
-struct Test::Replay : Test_base
+struct Test::Replay : Scenario
 {
-	using Test_base::Test_base;
+	Allocator &_alloc;
 
-	void _init() override
+	unsigned _next_id = 0;
+	unsigned _count   = 0;
+
+	struct Step : Id_space<Step>::Element
 	{
-		try {
-			_node.for_each_sub_node("request", [&](Xml_node request) {
+		Block::Operation operation;
+		Step(Id_space<Step> &steps, unsigned id, Block::Operation operation)
+		:
+			Id_space<Step>::Element(*this, steps, { id }), operation(operation)
+		{ }
+	};
 
-				auto op_type = [&] ()
-				{
-					using Type = String<8>;
+	Id_space<Step> _steps { };
 
-					if (request.attribute_value("type", Type()) == "read")
-						return Block::Operation::Type::READ;
+	Replay(Allocator &alloc, Xml_node const &node) : Scenario(node), _alloc(alloc)
+	{
+		node.for_each_sub_node("request", [&] (Xml_node const &request) {
 
-					if (request.attribute_value("type", Type()) == "write")
-						return Block::Operation::Type::WRITE;
+			struct Invalid { };
 
-					if (request.attribute_value("type", Type()) == "sync")
-						return Block::Operation::Type::SYNC;
+			auto op_type = [&] () -> Attempt<Block::Operation::Type, Invalid>
+			{
+				using Type = String<8>;
 
-					error("operation type not defined: ", request);
-					throw 1;
-				};
+				if (request.attribute_value("type", Type()) == "read")
+					return Block::Operation::Type::READ;
 
-				Block::Operation const operation
-				{
-					.type         = op_type(),
-					.block_number = request.attribute_value("lba", (block_number_t)0),
-					.count        = request.attribute_value("count", 0UL)
-				};
+				if (request.attribute_value("type", Type()) == "write")
+					return Block::Operation::Type::WRITE;
 
-				_job_cnt++;
-				new (&_alloc) Job(*_block, operation, _job_cnt);
-			});
-		} catch (...) {
-			error("could not read request list");
+				if (request.attribute_value("type", Type()) == "sync")
+					return Block::Operation::Type::SYNC;
 
-			_block->dissolve_all_jobs([&] (Job &job) { destroy(_alloc, &job); });
-			return;
-		}
+				return Invalid();
+			};
+
+			op_type().with_result(
+				[&] (Block::Operation::Type type) {
+					new (_alloc) Step(_steps, _count++, {
+						.type         = type,
+						.block_number = request.attribute_value("lba", (block_number_t)0),
+						.count        = request.attribute_value("count", 0UL)
+					});
+				},
+				[&] (Invalid) { error("operation type not defined: ", request); });
+		});
 	}
 
-	void _spawn_job() override { }
-
-	Result result() override
+	~Replay()
 	{
-		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, 0u, _info.block_size, _triggered);
+		while (_steps.apply_any<Step>([&] (Step &step) {
+			destroy(_alloc, &step); }));
 	}
+
+	bool init(Init_attr const &) override { return true; }
+
+	Next_job_result next_job(Stats const &) override
+	{
+		return _steps.apply<Step const>(Id_space<Step>::Id { _next_id++ },
+			[&] (Step const &step) -> Next_job_result {
+				return step.operation; },
+			[&] () -> Next_job_result {
+				return No_job(); });
+	}
+
+	size_t request_size() const override { return 0; }
 
 	char const *name() const override { return "replay"; }
 

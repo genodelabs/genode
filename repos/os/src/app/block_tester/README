@@ -11,10 +11,10 @@ will be used for every test. After each test has finished the result will be
 printed to the LOG session and a report will be generated that contains the
 duration, the number of operations and the amount of bytes processed if the
 'log' and 'report' attribute are set to 'yes'. If the 'stop_on_error' attribute
-is set, the execution stops whenever a tests failes. In addition, if the
-'calculate' attribute is set, the component will calculate MiB/s and I/O
-operations per second for each test (this data is only meaningful in conjunction
-with the other information like block size and so on).
+is set, the execution stops whenever a tests failes. In addition the component
+will calculate MiB/s and I/O operations per second for each test (this data is
+only meaningful in conjunction with the other information like block size and so
+on).
 
 The following list contains all available tests:
 
@@ -152,27 +152,25 @@ session and generating a Report.
 LOG
 ---
 
-The LOG output provides one line for every test that is composed of key and
-value tuples:
+The LOG output provides one line for every test that is composed of 'key:value'
+tuples where the keys are as follows:
 
-  * bcount:<int>    total count of blocks
-  * bsize:<int>     block size in bytes
-  * bytes:<int>     total amount of bytes of all operations
-  * duration:<int>  total duration time in milliseconds
-  * iops:<float>    total number of I/O operatins
-  * mibs:<float>    total throughput of the test in MiB/s
-  * result:<number> result of the test, either 0 (ok) or 1 (failed)
-  * rx:<int>        number of blocks read
-  * size:<int>      size of one request in bytes
-  * test:<string>   name of the test
-  * triggered<int>  number of handled I/O signals
-  * tx:<int>        number of blocks written
+  * bcount     total count of blocks
+  * bsize      block size in bytes
+  * bytes      total amount of bytes of all operations
+  * duration   total duration time in milliseconds
+  * iops       total number of I/O operatins
+  * mibs       total throughput of the test in MiB/s
+  * result     result of the test, either 0 (ok) or 1 (failed)
+  * rx         number of blocks read
+  * size       size of one request in bytes
+  * test       name of the test
+  * triggered  number of handled I/O signals
+  * tx:        number of blocks written
 
-Since the LOG output is mainly intended for automated testing and analyzing all
-size values are given in bytes. The following examplary output illustrates the
-structure:
+The following examplary output illustrates the structure:
 
-! finished sequential rx:32768 tx:0 bytes:134217728 size:131072 bsize:4096 duration:27 mibs:4740.740 iops:37925.925 triggered:35 result:ok
+! finished sequential rx:32K tx:0 bytes:128M size:128K bsize:4K duration:27 mibs:4740.740 iops:37925.925 triggered:35 result:ok
 
 
 Report

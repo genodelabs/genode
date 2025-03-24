@@ -14,6 +14,8 @@
 #ifndef _TEST_SEQUENTIAL_H_
 #define _TEST_SEQUENTIAL_H_
 
+#include <types.h>
+
 namespace Test { struct Sequential; }
 
 
@@ -23,73 +25,78 @@ namespace Test { struct Sequential; }
  * This test reads or writes the given number of blocks from the
  * specified start block sequentially in sized requests.
  */
-struct Test::Sequential : Test_base
+struct Test::Sequential : Scenario
 {
-	block_number_t _start   = _node.attribute_value("start",  0u);
-	size_t   const _size    = _node.attribute_value("size",   Number_of_bytes());
-	size_t   const _length  = _node.attribute_value("length", Number_of_bytes());
-
+	block_number_t _start;
+	size_t   const _size;
+	size_t   const _length;
 	block_number_t _end = 0;
 
-	Block::Operation::Type const _op_type = _node.attribute_value("write", false)
-	                                      ? Block::Operation::Type::WRITE
-	                                      : Block::Operation::Type::READ;
+	Block::Operation::Type const _op_type;
 
-	using Test_base::Test_base;
+	Operation_size _op_size          { };   /* assigned by init() */
+	size_t         _length_in_blocks { };
 
-	void _init() override
+	Sequential(Allocator &, Xml_node const &node)
+	:
+		Scenario(node),
+		_start  (node.attribute_value("start",  0u)),
+		_size   (node.attribute_value("size",   Number_of_bytes())),
+		_length (node.attribute_value("length", Number_of_bytes())),
+		_op_type(node.attribute_value("write", false) ? Block::Operation::Type::WRITE
+		                                              : Block::Operation::Type::READ)
+	{ }
+
+	bool init(Init_attr const &attr) override
 	{
-		if (_size > _scratch_buffer.size) {
+		if (_size > attr.scratch_buffer_size) {
 			error("request size exceeds scratch buffer size");
-			throw Constructing_test_failed();
+			return false;
 		}
 
-		if (_info.block_size > _size || (_size % _info.block_size) != 0) {
+		if (attr.block_size > _size || (_size % attr.block_size) != 0) {
 			error("request size invalid");
-			throw Constructing_test_failed();
+			return false;
 		}
 
-		_size_in_blocks   = _size   / _info.block_size;
-		_length_in_blocks = _length / _info.block_size;
+		_op_size          = { _size / attr.block_size };
+		_length_in_blocks = _length / attr.block_size;
 		_end              = _start + _length_in_blocks;
 
-		if (_length == 0 || (_length % _info.block_size) != 0)
+		if (_length == 0 || (_length % attr.block_size) != 0) {
 			error("length attribute (", _length, ") must be a multiple of "
-			      "block size (", _info.block_size, ")");
+			      "block size (", attr.block_size, ")");
+			return false;
+		}
+
+		return true;
 	}
 
-	void _spawn_job() override
+	Next_job_result next_job(Stats const &) override
 	{
-		if (_bytes >= _length || _start >= _end)
-			return;
-
-		_job_cnt++;
+		if (_start >= _end)
+			return No_job();
 
 		Block::Operation const operation { .type         = _op_type,
 		                                   .block_number = _start,
-		                                   .count        = _size_in_blocks };
+		                                   .count        = _op_size.blocks };
+		_start += _op_size.blocks;
 
-		new (_alloc) Job(*_block, operation, _job_cnt);
-
-		_start += _size_in_blocks;
+		return operation;
 	}
 
-	Result result() override
-	{
-		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, _size, _info.block_size, _triggered);
-	}
+	size_t request_size() const override { return _size; }
 
 	char const *name() const override { return "sequential"; }
 
-	void print(Genode::Output &out) const override
+	void print(Output &out) const override
 	{
 		Genode::print(out, name(), " ", Block::Operation::type_name(_op_type), " "
-		                   "start:",  _start,  " "
-		                   "size:",   _size,   " "
-		                   "length:", _length, " "
-		                   "copy:",   _copy,   " "
-		                   "batch:",  _batch);
+		                   "start:",  _start, " "
+		                   "size:",   Number_of_bytes(_size),   " "
+		                   "length:", Number_of_bytes(_length), " "
+		                   "copy:",   attr.copy, " "
+		                   "batch:",  attr.batch);
 	}
 };
 

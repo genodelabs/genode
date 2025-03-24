@@ -14,6 +14,8 @@
 #ifndef _TEST_RANDOM_H_
 #define _TEST_RANDOM_H_
 
+#include <types.h>
+
 namespace Test { struct Random; }
 
 
@@ -72,76 +74,75 @@ namespace Util {
 /*
  * Random test
  *
- * This test reads or writes the given number of bytes in a
- * deterministic order that depends and the seed value of a
- * PRNG in particular sized requests.
+ * This test reads or writes the given number of bytes in
+ * sized requests in a deterministic order that depends on
+ * the seed value of a PRNG.
  */
-struct Test::Random : Test_base
+struct Test::Random : Scenario
 {
-	bool _alternate_access { false };
-
 	Util::Xoroshiro _random;
 
-	size_t   const _size   = _node.attribute_value("size",   Number_of_bytes());
-	uint64_t const _length = _node.attribute_value("length", Number_of_bytes());
+	size_t   const _size;
+	uint64_t const _length;
+	bool     const _r;
+	bool     const _w;
+	bool     const _alternate_access = _r && _w;
 
-	Block::Operation::Type _op_type = Block::Operation::Type::READ;
+	Block::Operation::Type const _op_type = _w ? Block::Operation::Type::WRITE
+	                                           : Block::Operation::Type::READ;
+
+	Block_count    _block_count { };     /* assigned by init() */
+	Operation_size _op_size     { };
 
 	block_number_t _next_block()
 	{
 		uint64_t r = 0;
-		block_number_t max = _info.block_count;
-		if (max >= _size_in_blocks + 1)
-			max -= _size_in_blocks + 1;
+		block_number_t max = _block_count.blocks;
+		if (max >= _op_size.blocks + 1)
+			max -= _op_size.blocks + 1;
 		do {
 			r = _random.get() % max;
-		} while (r + _size_in_blocks > _info.block_count);
+		} while (r + _op_size.blocks > _block_count.blocks);
 
 		return r;
 	}
 
-	template <typename... ARGS>
-	Random(ARGS &&...args)
+	Random(Allocator &, Xml_node const &node)
 	:
-		Test_base(args...),
-		_random(_node.attribute_value("seed", 42UL))
+		Scenario(node),
+		_random(node.attribute_value("seed",   42UL)),
+		_size  (node.attribute_value("size",   Number_of_bytes())),
+		_length(node.attribute_value("length", Number_of_bytes())),
+		_r     (node.attribute_value("read",   false)),
+		_w     (node.attribute_value("write",  false))
 	{ }
 
-	void _init() override
+	bool init(Init_attr const &attr) override
 	{
-		if (_size > _scratch_buffer.size) {
-			error("request size exceeds scratch buffer size");
-			throw Constructing_test_failed();
-		}
-
 		if (!_size || !_length) {
 			error("request size or length invalid");
-			throw Constructing_test_failed();
+			return false;
 		}
 
-		if (_info.block_size > _size || (_size % _info.block_size) != 0) {
-			error("request size invalid ", _info.block_size, " ", _size);
-			throw Constructing_test_failed();
+		if (_size > attr.scratch_buffer_size) {
+			error("request size exceeds scratch buffer size");
+			return false;
 		}
 
-		bool const r = _node.attribute_value("read", false);
-		if (r) { _op_type = Block::Operation::Type::READ; }
+		if (attr.block_size > _size || (_size % attr.block_size) != 0) {
+			error("request size invalid ", attr.block_size, " ", _size);
+			return false;
+		}
 
-		bool const w = _node.attribute_value("write", false);
-		if (w) { _op_type = Block::Operation::Type::WRITE; }
-
-		_alternate_access = w && r;
-
-		_size_in_blocks   = _size / _info.block_size;
-		_length_in_blocks = (size_t)(_length / _info.block_size);
+		_block_count = { attr.block_count };
+		_op_size     = { _size / attr.block_size };
+		return true;
 	}
 
-	void _spawn_job() override
+	Next_job_result next_job(Stats const &stats) override
 	{
-		if (_bytes >= _length)
-			return;
-
-		_job_cnt++;
+		if (stats.total.bytes >= _length)
+			return No_job();
 
 		block_number_t const lba = _next_block();
 
@@ -150,28 +151,20 @@ struct Test::Random : Test_base
 			                                : Block::Operation::Type::READ
 			                  : _op_type;
 
-		Block::Operation const operation { .type         = op_type,
-		                                   .block_number = lba,
-		                                   .count        = _size_in_blocks };
-
-		new (_alloc) Job(*_block, operation, _job_cnt);
+		return Block::Operation { .type         = op_type,
+		                          .block_number = lba,
+		                          .count        = _op_size.blocks };
 	}
 
-	Result result() override
-	{
-		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, _size, _info.block_size, _triggered);
-	}
+	size_t request_size() const override { return _size; }
 
 	char const *name() const override { return "random"; }
 
 	void print(Output &out) const override
 	{
-		Genode::print(out, name(),             " "
-		                   "size:",   _size,   " "
-		                   "length:", _length, " "
-		                   "copy:",   _copy,   " "
-		                   "batch:",  _batch);
+		Genode::print(out, name(), " "
+		                   "size:",   Number_of_bytes(_size),   " "
+		                   "length:", Total(_length), " ");
 	}
 };
 

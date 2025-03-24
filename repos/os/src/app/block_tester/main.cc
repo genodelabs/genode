@@ -1,6 +1,7 @@
 /*
  * \brief  Block session testing
  * \author Josef Soentgen
+ * \author Norman Feske
  * \date   2016-07-04
  */
 
@@ -21,19 +22,40 @@
 #include <os/reporter.h>
 #include <timer_session/connection.h>
 
+/* local includes */
+#include <test_ping_pong.h>
+#include <test_random.h>
+#include <test_replay.h>
+#include <test_sequential.h>
 
 namespace Test {
-
-	using namespace Genode;
-
+	struct Config;
 	struct Scratch_buffer;
 	struct Result;
-	struct Test_base;
+	struct Test_job;
+	struct Block_connection;
+	struct Test;
 	struct Main;
-
-	struct Test_failed              : Exception { };
-	struct Constructing_test_failed : Exception { };
 }
+
+
+struct Test::Config
+{
+	bool stop_on_error, log, report, calculate;
+	size_t scratch_buffer_size;
+
+	static Config from_xml(Xml_node const &node)
+	{
+		return {
+			.stop_on_error = node.attribute_value("stop_on_error", true),
+			.log           = node.attribute_value("log",           false),
+			.report        = node.attribute_value("report",        false),
+			.calculate     = node.attribute_value("calculate",     true),
+			.scratch_buffer_size = node.attribute_value("scratch_buffer_size",
+			                                            Number_of_bytes(1U<<20)),
+		};
+	}
+};
 
 
 class Test::Scratch_buffer
@@ -59,452 +81,463 @@ class Test::Scratch_buffer
 
 struct Test::Result
 {
-	uint64_t duration     { 0 };
-	uint64_t bytes        { 0 };
-	uint64_t rx           { 0 };
-	uint64_t tx           { 0 };
-	uint64_t request_size { 0 };
-	uint64_t block_size   { 0 };
-	size_t   triggered    { 0 };
-	bool     success      { false };
+	bool     success;
+	uint64_t duration;
+	Total    total;
+	Total    rx;
+	Total    tx;
+	size_t   request_size;
+	size_t   block_size;
+	size_t   triggered;
 
-	bool   calculate { false };
-	double mibs      { 0.0f };
-	double iops      { 0.0f };
-
-	Result() { }
-
-	Result(bool success, uint64_t d, uint64_t b, uint64_t rx, uint64_t tx,
-	       uint64_t rsize, uint64_t bsize, size_t triggered)
-	:
-		duration(d), bytes(b), rx(rx), tx(tx),
-		request_size(rsize ? rsize : bsize), block_size(bsize),
-		triggered(triggered), success(success)
+	double mibs() const
 	{
-		mibs = ((double)bytes / ((double)duration/1000)) / (1024 * 1024);
-		/* total ops / seconds w/o any latency inclusion */
-		iops = (double)((rx + tx) / (request_size / block_size))
+		if (!duration)
+			return 0;
+
+		return ((double)total.bytes / ((double)duration/1000)) / (1024 * 1024);
+	}
+
+	double iops() const
+	{
+		if (!duration || !request_size)
+			return 0;
+
+		return (double)((rx.bytes + tx.bytes) / (request_size / block_size))
 		     / ((double)duration / 1000);
 	}
 
-	void print(Genode::Output &out) const
+	void print(Output &out) const
 	{
-		Genode::print(out, "rx:",       rx,           " ",
-		                   "tx:",       tx,           " ",
-		                   "bytes:",    bytes,        " ",
-		                   "size:",     request_size, " ",
-		                   "bsize:",    block_size,   " ",
-		                   "duration:", duration,     " "
-		);
+		using Genode::print;
 
-		if (calculate) {
-			Genode::print(out, "mibs:", mibs, " iops:", iops);
+		print(out, "rx:",        rx,    " "
+		           "tx:",        tx,    " "
+		           "bytes:",     total, " "
+		           "size:",      Number_of_bytes(request_size), " "
+		           "bsize:",     Number_of_bytes(block_size),   " "
+		           "mibs:",      mibs(),    " "
+		           "iops:",      iops(),    " "
+		           "duration:",  duration,  " "
+		           "triggered:", triggered, " "
+		           "result:",    success ? "ok" : "failed");
+	}
+};
+
+
+struct Test::Test_job : Block::Connection<Test_job>::Job
+{
+	unsigned const id;
+
+	Test_job(Block::Connection<Test_job> &conn, Block::Operation op, unsigned id)
+	:
+		Block::Connection<Test_job>::Job(conn, op), id(id)
+	{ }
+};
+
+
+struct Test::Block_connection : Block::Connection<Test_job>
+{
+	size_t const block_size = info().block_size;
+
+	Config const _config;
+
+	struct Attr { bool copy, verbose; };
+
+	Attr const _attr;
+
+	Allocator &_alloc;
+
+	Stats stats { };
+
+	struct Action : Genode::Interface
+	{
+		virtual void spawn_jobs(Stats &) = 0;
+		virtual void job_failed() = 0;
+		virtual void all_jobs_completed() = 0;
+	};
+
+	Action &_action;
+
+	Scratch_buffer &_scratch_buffer;
+
+	Block_connection(Config config, Attr attr, Allocator &alloc, Action &action,
+	                 Scratch_buffer &scratch_buffer, auto &&... args)
+	:
+		Block::Connection<Test_job>(args...),
+		_config(config), _attr(attr), _alloc(alloc), _action(action),
+		_scratch_buffer(scratch_buffer)
+	{ }
+
+	void _memcpy(char *dst, char const *src, size_t length)
+	{
+		if (length > _scratch_buffer.size) {
+			warning("scratch buffer too small for copying");
+			return;
 		}
 
-		Genode::print(out, " triggered:", triggered);
-		Genode::print(out, " result:", success ? "ok" : "failed");
+		Genode::memcpy(dst, src, length);
+	}
+
+	/**
+	 * Block::Connection::Update_jobs_policy
+	 */
+	void produce_write_content(Test_job &job, Block::seek_off_t offset, char *dst, size_t length)
+	{
+		stats.tx.bytes    += length / block_size;
+		stats.total.bytes += length;
+
+		if (_attr.verbose)
+			log("job ", job.id, ": writing ", length, " bytes at ", offset);
+
+		if (_attr.copy)
+			_memcpy(dst, _scratch_buffer.base, length);
+	}
+
+	/**
+	 * Block::Connection::Update_jobs_policy
+	 */
+	void consume_read_result(Test_job &job, Block::seek_off_t offset,
+	                         char const *src, size_t length)
+	{
+		stats.rx.bytes    += length / block_size;
+		stats.total.bytes += length;
+
+		if (_attr.verbose)
+			log("job ", job.id, ": got ", length, " bytes at ", offset);
+
+		if (_attr.copy)
+			_memcpy(_scratch_buffer.base, src, length);
+	}
+
+	/**
+	 * Block_connection::Update_jobs_policy
+	 */
+	void completed(Test_job &job, bool success)
+	{
+		stats.completed++;
+
+		if (_attr.verbose)
+			log("job ", job.id, ": ", job.operation(), ", completed");
+
+		if (!success) {
+			error("processing ", job.operation(), " failed");
+			for (;;);
+		}
+
+		destroy(_alloc, &job);
+
+		/* replace completed job by new one */
+		_action.spawn_jobs(stats);
+
+		if (!success)
+			_action.job_failed();
+
+		if (stats.job_cnt == stats.completed)
+			_action.all_jobs_completed();
+	}
+
+	void print(Output &out) const
+	{
+		Genode::print(out, "rx:", stats.rx, " tx:", stats.tx);
 	}
 };
 
 
 /*
- * Base class used for test running list
+ * Mechanism for executing a test scenario
  */
-struct Test::Test_base : private Genode::Fifo<Test_base>::Element
+struct Test::Test
 {
-	protected:
+	private:
 
 		Env       &_env;
 		Allocator &_alloc;
+		Scenario  &_scenario;
 
-		Xml_node const _node;
+		Timer::Connection _timer { _env };
 
-		using block_number_t = Block::block_number_t;
-
-		bool     const _verbose;
-		size_t   const _io_buffer;
-		uint64_t const _progress_interval;
-		bool     const _copy;
-		size_t   const _batch;
-
-		Constructible<Timer::Connection> _timer { };
-
-		Constructible<Timer::Periodic_timeout<Test_base>> _progress_timeout { };
+		Constructible<Timer::Periodic_timeout<Test>> _progress_timeout { };
 
 		Allocator_avl _block_alloc { &_alloc };
 
-		struct Job;
-		using Block_connection = Block::Connection<Job>;
-
-		Constructible<Block_connection> _block { };
-
-		struct Job : Block_connection::Job
-		{
-			unsigned const id;
-
-			Job(Block_connection &connection, Block::Operation operation, unsigned id)
-			:
-				Block_connection::Job(connection, operation), id(id)
-			{ }
-		};
+		Block_connection _block;
 
 		/*
 		 * Must be called by every test when it has finished
 		 */
-		Genode::Signal_context_capability _finished_sig;
+		Signal_context_capability _finished_sig;
 
 		void finish()
 		{
-			_end_time = _timer->elapsed_ms();
+			_end_time = _timer.elapsed_ms();
 
 			_finished = true;
-			if (_finished_sig.valid()) {
-				Genode::Signal_transmitter(_finished_sig).submit();
-			}
-
-			_timer.destruct();
+			if (_finished_sig.valid())
+				Signal_transmitter(_finished_sig).submit();
 		}
 
-		Block::Session::Info _info { };
+		uint64_t const _start_time = _timer.elapsed_ms();
 
-		size_t _length_in_blocks { 0 };
-		size_t _size_in_blocks   { 0 };
-
-		uint64_t _start_time { 0 };
 		uint64_t _end_time   { 0 };
-		size_t   _bytes      { 0 };
-		uint64_t _rx         { 0 };
-		uint64_t _tx         { 0 };
 		size_t   _triggered  { 0 };  /* number of I/O signals */
-		unsigned _job_cnt    { 0 };
-		unsigned _completed  { 0 };
 
-		bool _stop_on_error { true };
-		bool _finished      { false };
-		bool _success       { false };
+		bool _finished { false };
+		bool _success  { false };
 
 		Scratch_buffer &_scratch_buffer;
 
-		void _memcpy(char *dst, char const *src, size_t length)
-		{
-			if (length > _scratch_buffer.size) {
-				warning("scratch buffer too small for copying");
-				return;
-			}
-
-			Genode::memcpy(dst, src, length);
-		}
-
-	public:
-
-		/**
-		 * Block::Connection::Update_jobs_policy
-		 */
-		void produce_write_content(Job &job, Block::seek_off_t offset, char *dst, size_t length)
-		{
-			_tx    += length / _info.block_size;
-			_bytes += length;
-
-			if (_verbose)
-				log("job ", job.id, ": writing ", length, " bytes at ", offset);
-
-			if (_copy)
-				_memcpy(dst, _scratch_buffer.base, length);
-		}
-
-		/**
-		 * Block::Connection::Update_jobs_policy
-		 */
-		void consume_read_result(Job &job, Block::seek_off_t offset,
-		                         char const *src, size_t length)
-		{
-			_rx    += length / _info.block_size;
-			_bytes += length;
-
-			if (_verbose)
-				log("job ", job.id, ": got ", length, " bytes at ", offset);
-
-			if (_copy)
-				_memcpy(_scratch_buffer.base, src, length);
-		}
-
-		/**
-		 * Block_connection::Update_jobs_policy
-		 */
-		void completed(Job &job, bool success)
-		{
-			_completed++;
-
-			if (_verbose)
-				log("job ", job.id, ": ", job.operation(), ", completed");
-
-			if (!success)
-				error("processing ", job.operation(), " failed");
-
-			destroy(_alloc, &job);
-
-			if (!success && _stop_on_error)
-				throw Test_failed();
-
-			/* replace completed job by new one */
-			_spawn_job();
-
-			bool const jobs_active = (_job_cnt != _completed);
-
-			_success = !jobs_active && success;
-
-			if (!jobs_active || !success)
-				finish();
-		}
-
-	protected:
-
 		void _handle_progress_timeout(Duration)
 		{
-			log("progress: rx:", _rx, " tx:", _tx);
+			log("progress: ", _block);
 		}
 
 		void _handle_block_io()
 		{
 			_triggered++;
-			_block->update_jobs(*this);
+			_block.update_jobs(_block);
 		}
 
-		Signal_handler<Test_base> _block_io_sigh {
-			_env.ep(), *this, &Test_base::_handle_block_io };
+		Signal_handler<Test> _block_io_sigh {
+			_env.ep(), *this, &Test::_handle_block_io };
+
+		struct Block_action : Block_connection::Action
+		{
+			Test &_test;
+
+			Block_action(Test &test) : _test(test) { }
+
+			void spawn_jobs(Stats &stats) override
+			{
+				for (;;) {
+					unsigned const active_jobs = stats.job_cnt - stats.completed;
+					if (active_jobs >= _test._scenario.attr.batch)
+						break;
+
+					bool const job_spawned =
+						_test._scenario.next_job(stats).convert<bool>(
+							[&] (Block::Operation operation) {
+								stats.job_cnt++;
+								new (_test._alloc)
+									Test_job(_test._block, operation, stats.job_cnt);
+								return true;
+							},
+							[&] (Scenario::No_job) {
+								return false; });
+
+					if (!job_spawned)
+						break;
+				}
+			}
+
+			void job_failed() override
+			{
+				_test.finish();
+				_test._success = false;
+			}
+
+			void all_jobs_completed() override
+			{
+				_test.finish();
+				_test._success = true;
+			}
+
+		} _block_action { *this };
 
 	public:
 
-		friend class Genode::Fifo<Test_base>;
-
-		Test_base(Env &env, Allocator &alloc, Xml_node node,
-		          Signal_context_capability finished_sig,
-		          Scratch_buffer &scratch_buffer)
+		Test(Env &env, Allocator &alloc, Config const &config, Scenario &scenario,
+		     Signal_context_capability finished_sig,
+		     Scratch_buffer &scratch_buffer)
 		:
-			_env(env), _alloc(alloc), _node(node),
-			_verbose(node.attribute_value("verbose", false)),
-			_io_buffer(_node.attribute_value("io_buffer",
-			                                 Number_of_bytes(4*1024*1024))),
-			_progress_interval(_node.attribute_value("progress", (uint64_t)0)),
-			_copy(_node.attribute_value("copy", true)),
-			_batch(_node.attribute_value("batch", 1u)),
+			_env(env), _alloc(alloc), _scenario(scenario),
+			_block(config, { .copy    = _scenario.attr.copy,
+			                 .verbose = _scenario.attr.verbose },
+			       _alloc, _block_action, scratch_buffer,
+			       _env, &_block_alloc, _scenario.attr.io_buffer),
 			_finished_sig(finished_sig),
 			_scratch_buffer(scratch_buffer)
 		{
-			if (_progress_interval)
-				_progress_timeout.construct(*_timer, *this,
-				                            &Test_base::_handle_progress_timeout,
-				                            Microseconds(_progress_interval*1000));
-		}
+			if (_scenario.attr.progress_interval)
+				_progress_timeout.construct(_timer, *this,
+				                            &Test::_handle_progress_timeout,
+				                            Microseconds(_scenario.attr.progress_interval*1000));
 
-		virtual ~Test_base() { };
+			_block.sigh(_block_io_sigh);
 
-		void start(bool stop_on_error)
-		{
-			_stop_on_error = stop_on_error;
+			bool const init_ok =
+				_scenario.init({ .block_size          = _block.info().block_size,
+				                 .block_count         = _block.info().block_count,
+				                 .scratch_buffer_size = _scratch_buffer.size });
 
-			_block.construct(_env, &_block_alloc, _io_buffer);
-			_block->sigh(_block_io_sigh);
-			_info = _block->info();
+			if (!init_ok) {
+				error("initialization of ", scenario.name(), " failed");
+				return;
+			}
 
-			_init();
-
-			for (unsigned i = 0; i < _batch; i++)
-				_spawn_job();
-
-			_timer.construct(_env);
-			_start_time = _timer->elapsed_ms();
+			_block_action.spawn_jobs(_block.stats);
 
 			_handle_block_io();
 		}
 
-		/********************
-		 ** Test interface **
-		 ********************/
+		char const *name() const { return _scenario.name(); }
 
-		virtual void _init() = 0;
-		virtual void _spawn_job() = 0;
-		virtual Result result() = 0;
-		virtual char const *name() const = 0;
-		virtual void print(Output &) const = 0;
+		Result result()
+		{
+			return {
+				.success      = _success,
+				.duration     = _end_time - _start_time,
+				.total        = _block.stats.total,
+				.rx           = _block.stats.rx,
+				.tx           = _block.stats.tx,
+				.request_size = _scenario.request_size(),
+				.block_size   = _block.block_size,
+				.triggered    = _triggered
+			};
+		}
 };
 
 
-/* tests */
-#include <test_ping_pong.h>
-#include <test_random.h>
-#include <test_replay.h>
-#include <test_sequential.h>
-
-
-/*
- * Main
- */
 struct Test::Main
 {
-	Genode::Env  &_env;
-	Genode::Heap  _heap { _env.ram(), _env.rm() };
+	Env  &_env;
+	Heap  _heap { _env.ram(), _env.rm() };
 
-	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
+	Attached_rom_dataspace _config_rom { _env, "config" };
 
-	bool const _log {
-		_config_rom.xml().attribute_value("log", false) };
+	Config const _config = Config::from_xml(_config_rom.xml());
 
-	bool const _report {
-		_config_rom.xml().attribute_value("report", false) };
+	Fifo<Scenario> _scenarios { };
 
-	bool const _calculate {
-		_config_rom.xml().attribute_value("calculate", true) };
-
-	bool const _stop_on_error {
-		_config_rom.xml().attribute_value("stop_on_error", true) };
-
-	Genode::Number_of_bytes const _scratch_buffer_size {
-		_config_rom.xml().attribute_value("scratch_buffer_size",
-		                                  Genode::Number_of_bytes(1U<<20)) };
-
-	Genode::Fifo<Test_base> _tests { };
-
-	struct Test_result : Genode::Fifo<Test_result>::Element
+	struct Test_result : Fifo<Test_result>::Element
 	{
-		Genode::String<32> name { };
-		Test::Result result { };
+		String<32> name { };
+		Result result { };
 
 		Test_result(char const *name) : name(name) { };
 	};
-	Genode::Fifo<Test_result> _results { };
 
-	Genode::Reporter _result_reporter { _env, "results" };
+	Fifo<Test_result> _results { };
+
+	Reporter _result_reporter { _env, "results" };
 
 	void _generate_report()
 	{
 		try {
-			Genode::Reporter::Xml_generator xml(_result_reporter, [&] () {
+			Reporter::Xml_generator xml(_result_reporter, [&] () {
 				_results.for_each([&] (Test_result &tr) {
 					xml.node("result", [&] () {
 						xml.attribute("test",     tr.name);
-						xml.attribute("rx",       tr.result.rx);
-						xml.attribute("tx",       tr.result.tx);
-						xml.attribute("bytes",    tr.result.bytes);
+						xml.attribute("rx",       tr.result.rx.bytes);
+						xml.attribute("tx",       tr.result.tx.bytes);
+						xml.attribute("bytes",    tr.result.total.bytes);
 						xml.attribute("size",     tr.result.request_size);
 						xml.attribute("bsize",    tr.result.block_size);
 						xml.attribute("duration", tr.result.duration);
 
-						if (_calculate) {
-							/* XXX */
-							xml.attribute("mibs", (unsigned)(tr.result.mibs * (1<<20u)));
-							xml.attribute("iops", (unsigned)(tr.result.iops + 0.5f));
-						}
+						xml.attribute("mibs", (unsigned)(tr.result.mibs() * (1<<20u)));
+						xml.attribute("iops", (unsigned)(tr.result.iops() + 0.5f));
 
 						xml.attribute("result", tr.result.success ? 0 : 1);
 					});
 				});
 			});
-		} catch (...) { Genode::warning("could generate results report"); }
+		} catch (...) { warning("could generate results report"); }
 	}
 
-	Test_base *_current { nullptr };
+	Scenario *_current_ptr = nullptr;
 
-	bool _success { true };
+	Constructible<Test> _test { };
+
+	bool _overall_success = true;
 
 	void _handle_finished()
 	{
 		/* clean up current test */
-		if (_current) {
-			Result r = _current->result();
+		if (_current_ptr && _test.constructed()) {
+			Result r = _test->result();
 
-			if (!r.success) { _success = false; }
+			if (!r.success)
+				_overall_success = false;
 
-			r.calculate = _calculate;
+			if (_config.log)
+				log("finished ", _current_ptr->name(), " ", r);
 
-			if (_log) {
-				Genode::log("finished ", _current->name(), " ", r);
-			}
-
-			if (_report) {
-				Test_result *tr = new (&_heap) Test_result(_current->name());
+			if (_config.report) {
+				Test_result *tr = new (&_heap) Test_result(_current_ptr->name());
 				tr->result = r;
 				_results.enqueue(*tr);
 
 				_generate_report();
 			}
 
-			Genode::destroy(&_heap, _current);
-			_current = nullptr;
+			_test.destruct();
+			destroy(&_heap, _current_ptr);
+			_current_ptr = nullptr;
 		}
 
 		/* execute next test */
-		if (!_current) {
-			_tests.dequeue([&] (Test_base &head) {
-				if (_log) { Genode::log("start ", head); }
+		if (_overall_success || !_config.stop_on_error) {
+			_scenarios.dequeue([&] (Scenario &head) {
+				if (_config.log) { log("start ", head); }
 				try {
-					head.start(_stop_on_error);
-					_current = &head;
+					_test.construct(_env, _heap, _config, head,
+					                _finished_sigh, _scratch_buffer);
+					_current_ptr = &head;
 				} catch (...) {
-					Genode::log("Could not start ", head);
-					Genode::destroy(&_heap, &head);
+					log("Could not start ", head);
+					destroy(&_heap, &head);
 					throw;
 				}
 			});
 		}
 
-		if (!_current) {
+		if (!_current_ptr) {
 			/* execution is finished */
-			Genode::log("--- all tests finished ---");
-			_env.parent().exit(_success ? 0 : 1);
+			log("--- all tests finished ---");
+			_env.parent().exit(_overall_success ? 0 : 1);
 		}
 	}
 
-	Genode::Signal_handler<Main> _finished_sigh {
+	Signal_handler<Main> _finished_sigh {
 		_env.ep(), *this, &Main::_handle_finished };
 
-	Scratch_buffer _scratch_buffer { _heap, _scratch_buffer_size };
+	Scratch_buffer _scratch_buffer { _heap, _config.scratch_buffer_size };
 
-	void _construct_tests(Genode::Xml_node config)
+	void _construct_scenarios(Xml_node const &config)
 	{
+		auto create = [&] (Xml_node const &node) -> Scenario *
+		{
+			if (node.has_type("ping_pong"))  return new (&_heap) Ping_pong (_heap, node);
+			if (node.has_type("random"))     return new (&_heap) Random    (_heap, node);
+			if (node.has_type("replay"))     return new (&_heap) Replay    (_heap, node);
+			if (node.has_type("sequential")) return new (&_heap) Sequential(_heap, node);
+			return nullptr;
+		};
+
 		try {
-			Genode::Xml_node tests = config.sub_node("tests");
-			tests.for_each_sub_node([&] (Genode::Xml_node node) {
-
-				if (node.has_type("ping_pong")) {
-					Test_base *t = new (&_heap)
-						Ping_pong(_env, _heap, node, _finished_sigh, _scratch_buffer);
-					_tests.enqueue(*t);
-				} else
-
-				if (node.has_type("random")) {
-					Test_base *t = new (&_heap)
-						Random(_env, _heap, node, _finished_sigh, _scratch_buffer);
-					_tests.enqueue(*t);
-				} else
-
-				if (node.has_type("replay")) {
-					Test_base *t = new (&_heap)
-						Replay(_env, _heap, node, _finished_sigh, _scratch_buffer);
-					_tests.enqueue(*t);
-				} else
-
-				if (node.has_type("sequential")) {
-					Test_base *t = new (&_heap)
-						Sequential(_env, _heap, node, _finished_sigh, _scratch_buffer);
-					_tests.enqueue(*t);
-				}
-			});
-		} catch (...) { Genode::error("invalid tests"); }
+			config.with_sub_node("tests",
+				[&] (Xml_node const &tests) {
+					tests.for_each_sub_node([&] (Xml_node const &node) {
+						Scenario *ptr = create(node);
+						if (ptr)
+							_scenarios.enqueue(*ptr); });
+				},
+				[&] {
+					error("config lacks <tests> sub node");
+				});
+		} catch (...) { error("invalid tests"); }
 	}
 
-	/**
-	 * Constructor
-	 */
-	Main(Genode::Env &env) : _env(env)
+	Main(Env &env) : _env(env)
 	{
-		_result_reporter.enabled(_report);
+		_result_reporter.enabled(_config.report);
 
 		try {
-			_construct_tests(_config_rom.xml());
+			_construct_scenarios(_config_rom.xml());
 		} catch (...) { throw; }
 
-		Genode::log("--- start tests ---");
+		log("--- start tests ---");
 
 		/* initial kick-off */
 		_handle_finished();
@@ -513,7 +546,7 @@ struct Test::Main
 	~Main()
 	{
 		_results.dequeue_all([&] (Test_result &tr) {
-			Genode::destroy(&_heap, &tr); });
+			destroy(&_heap, &tr); });
 	}
 
 	private:
