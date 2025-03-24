@@ -1,0 +1,2492 @@
+--- a/tools/pyelf/elfweaver
++++ b/tools/pyelf/elfweaver
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python3
+ #
+ # Copyright (c) 2007 Open Kernel Labs, Inc. (Copyright Holder).
+ # All rights reserved.
+@@ -74,14 +74,14 @@
+     main(sys.argv)
+ except KeyboardInterrupt:
+     pass
+-except SystemExit, exit_code:
++except (SystemExit) as exit_code:
+     sys.exit(exit_code)
+ except:
+     import sys
+-    print "An error occurred:", sys.exc_info()[1]
++    print("An error occurred:", sys.exc_info()[1])
+     # unless --traceback is specified that's all you get
+     if traceback:
+-        print "Now printing a traceback."
+-        print
++        print("Now printing a traceback.")
++        print("")
+         print_exc(file=sys.stdout)
+-        print
++        print("")
+--- a/tools/pyelf/elf/ByteArray.py
++++ b/tools/pyelf/elf/ByteArray.py
+@@ -72,29 +72,34 @@
+     def __new__(cls, data = None):
+         """Create a new bytearray. data can be a string as per the
+         array() constructor documentation."""
+-        if data:
++        if isinstance(data,array):
++            return array.__new__(ByteArray, 'B', data)
++        if isinstance(data, bytes):
+             return array.__new__(ByteArray, 'B', data)
++        if data:
++            return array.__new__(ByteArray, 'B', data.encode("iso-8859-1"))
+         else:
+             return array.__new__(ByteArray, 'B')
+ 
+ 
+-    def set_data(self, offset, value, bytes, endian):
++    def set_data(self, offset, value, bytecc, endian):
+         """Set an integer data in the array of bytes. Offset is the 
+         place at which to insert the value. Value is the value of the integer.
+         bytes is how many bytes the integer should be. Valid values are 1, 2, 4 or 8.
+         endian is whether this is big or little endian integer. Should be either '<'
+         or '>'."""
++        bytec = int(bytecc)
+         bytes_to_format = { 1 : "B", 2 : "H", 4 : "L", 8 : "Q" }
+-        temp = struct.pack(endian + bytes_to_format[bytes], value)
+-        format = "B" * bytes
+-        self[offset:offset+bytes] = array('B', struct.unpack(format, temp))
++        temp = struct.pack(endian + bytes_to_format[bytec], value)
++        format = "B" * bytec
++        self[offset:offset+bytec] = array('B', struct.unpack(format, temp))
+ 
+-    def get_data(self, offset, bytes, endian):
+-        format = "B" * bytes
+-        a = self[offset:offset+bytes]
++    def get_data(self, offset, bytec, endian):
++        format = "B" * bytec
++        a = self[offset:offset+bytec]
+         value = struct.pack(format, *a)        
+         bytes_to_format = { 1 : "B", 2 : "H", 4 : "L", 8 : "Q" }
+-        return struct.unpack(endian + bytes_to_format[bytes], value)[0]
++        return struct.unpack(endian + bytes_to_format[bytec], value)[0]
+ 
+     def copy(self):
+         """Create a copy of the ByteArray."""
+--- a/tools/pyelf/elf/constants.py
++++ b/tools/pyelf/elf/constants.py
+@@ -251,14 +251,14 @@
+ EF_MIPS_N32         = MipsFlags(0x20, "n32")
+ EF_MIPS_ABI_O32     = MipsFlags(0x1000, "o32")
+ EF_MIPS_ABI_O64     = MipsFlags(0x2000, "o64")
+-EF_MIPS_ARCH        = MipsFlags(0xf0000000L, "")
+-EF_MIPS_ARCH_1      = MipsFlags(0x00000000L, "mips1")
+-EF_MIPS_ARCH_2      = MipsFlags(0x10000000L, "mips2")
+-EF_MIPS_ARCH_3      = MipsFlags(0x20000000L, "mips3")
+-EF_MIPS_ARCH_4      = MipsFlags(0x30000000L, "mips4")
+-EF_MIPS_ARCH_5      = MipsFlags(0x40000000L, "mips5")
+-EF_MIPS_ARCH_32     = MipsFlags(0x50000000L, "mips32")
+-EF_MIPS_ARCH_64     = MipsFlags(0x70000000L, "mips64")
++EF_MIPS_ARCH        = MipsFlags(0xf0000000, "")
++EF_MIPS_ARCH_1      = MipsFlags(0x00000000, "mips1")
++EF_MIPS_ARCH_2      = MipsFlags(0x10000000, "mips2")
++EF_MIPS_ARCH_3      = MipsFlags(0x20000000, "mips3")
++EF_MIPS_ARCH_4      = MipsFlags(0x30000000, "mips4")
++EF_MIPS_ARCH_5      = MipsFlags(0x40000000, "mips5")
++EF_MIPS_ARCH_32     = MipsFlags(0x50000000, "mips32")
++EF_MIPS_ARCH_64     = MipsFlags(0x70000000, "mips64")
+ 
+ EF_ARM_RELEXEC        = ArmFlags(0x01, "relocatable executable")
+ EF_ARM_HASENTRY       = ArmFlags(0x02, "has entry point")
+@@ -308,20 +308,20 @@
+ PT_SHLIB = ElfPhType(5, "SHLIB")
+ PT_PHDR = ElfPhType(6, "PHDR")
+ PT_TLS = ElfPhType(7, "TLS")
+-PT_LOOS = 0x60000000L
+-PT_HIOS = 0x6fffffffL
+-PT_LOPROC = 0x70000000L     # Processor specific types
+-PT_HIPROC = 0x7fffffffL
++PT_LOOS = 0x60000000
++PT_HIOS = 0x6fffffff
++PT_LOPROC = 0x70000000     # Processor specific types
++PT_HIPROC = 0x7fffffff
+ 
+ # MIPS types
+ PT_MIPS_REGINFO = ElfPhType(PT_LOPROC + 0, "MIPS_REGINFO")
+ 
+ 
+ PT_ARM_EXIDX = ElfPhType(PT_LOPROC + 1, "ARM_EXIDX")
+-PT_PAX_FLAGS    = ElfPhType(PT_LOOS + 0x5041580L, "PAX_FLAGS")
+-PT_GNU_EH_FRAME = ElfPhType(PT_LOOS + 0x474e550L, "GNU_EH_FRAME")
+-PT_GNU_STACK = ElfPhType(PT_LOOS + 0x474e551L, "GNU_STACK")
+-PT_GNU_RELRO = ElfPhType(PT_LOOS + 0x474e552L, "GNU_RELRO")
++PT_PAX_FLAGS    = ElfPhType(PT_LOOS + 0x5041580, "PAX_FLAGS")
++PT_GNU_EH_FRAME = ElfPhType(PT_LOOS + 0x474e550, "GNU_EH_FRAME")
++PT_GNU_STACK = ElfPhType(PT_LOOS + 0x474e551, "GNU_STACK")
++PT_GNU_RELRO = ElfPhType(PT_LOOS + 0x474e552, "GNU_RELRO")
+ 
+ PT_IA_64_UNWIND = ElfPhType(PT_LOPROC + 1, "IA_64_UNWIND")
+ 
+@@ -329,8 +329,8 @@
+ PF_X = (1 << 0)
+ PF_W = (1 << 1)
+ PF_R = (1 << 2)
+-PF_MASKOS = 0x0FF00000L
+-PF_MASKPROC = 0xF0000000L
++PF_MASKOS = 0x0FF00000
++PF_MASKPROC = 0xF0000000
+ 
+ class ElfShIndex(IntString):
+     """IntString for ELF section indexes"""
+@@ -366,10 +366,10 @@
+ SHT_FINI_ARRAY = ElfShType(15, "FINI_ARRAY")
+ SHT_GROUP = ElfShType(17, "GROUP")
+ 
+-SHT_LOPROC = 0x70000000L
+-SHT_HIPROC = 0x7fffffffL
+-SHT_LOUSER = 0x80000000L
+-SHT_HIUSER = 0xffffffffL
++SHT_LOPROC = 0x70000000
++SHT_HIPROC = 0x7fffffff
++SHT_LOUSER = 0x80000000
++SHT_HIUSER = 0xffffffff
+ 
+ 
+ SHT_ARM_EXIDX = ElfShType(SHT_LOPROC + 1, "ARM_EXIDX")
+@@ -393,8 +393,8 @@
+ 
+ SHF_GROUP = (1 << 9)
+ 
+-SHF_MASKOS =   0x0f000000L
+-SHF_MASKPROC = 0xf0000000L
++SHF_MASKOS =   0x0f000000
++SHF_MASKPROC = 0xf0000000
+ 
+ STN_UNDEF = 0
+ 
+--- a/tools/pyelf/elf/core.py
++++ b/tools/pyelf/elf/core.py
+@@ -170,9 +170,9 @@
+             self._sh_strndx = hdr.e_shstrndx
+             strtable = self.sections[hdr.e_shstrndx]
+             if strtable.type != SHT_STRTAB:
+-                raise ElfFormatError, \
++                raise ElfFormatError( \
+                       "The section string table is malformed. %s %s" \
+-                      % (strtable, self.sections)
++                      % (strtable, self.sections))
+             assert strtable.__class__ == {True: PreparedElfStringTable,
+                                           False: UnpreparedElfStringTable}[prepare]
+             # Now update all the section names with the string
+@@ -396,7 +396,7 @@
+         for seg in self.segments:
+             if seg.type == PT_LOAD:
+                 return seg.paddr
+-        raise InvalidArgument, "Elf file has no segments of type PT_LOAD?"
++        raise InvalidArgument( "Elf file has no segments of type PT_LOAD?")
+ 
+     def find_symbol(self, name):
+         """Find the named symbol in the file. Returns None if it can't be found.
+@@ -460,8 +460,8 @@
+         else:
+             # Base it on sections instead
+             if not virtual:
+-                raise InvalidArgument, "Can't find first physical \
+-                address in an ElfFile without segments."
++                raise InvalidArgument( "Can't find first physical \
++                address in an ElfFile without segments.")
+             addrs = [section.address for section in self.sections]
+         if addrs:
+             return min(addrs)
+@@ -485,8 +485,8 @@
+         else:
+             # Base it on sections instead
+             if not virtual:
+-                raise InvalidArgument, "Can't find last physical \
+-                address in an ElfFile without segments."
++                raise InvalidArgument( "Can't find last physical \
++                address in an ElfFile without segments.")
+             addrs = [(section.address + section.get_size(), section.addralign) for section in self.sections]
+         if addrs:
+             last_addr, last_align = max(addrs)
+@@ -622,8 +622,8 @@
+         if offset is not None:
+             min_offset = min([header_class.size() for header_class in  ELF_HEADER_CLASSES.values()])
+             if offset < min_offset:
+-                raise InvalidArgument, \
+-                      "Program header offset must be at least %d (%d)." % (min_offset, offset)
++                raise InvalidArgument( \
++                      "Program header offset must be at least %d (%d)." % (min_offset, offset))
+         
+         if not self._ph_fixed:
+             self._ph_offset = offset
+@@ -641,7 +641,7 @@
+     def remove_section(self, section):
+         """Remove section"""
+         if section not in self.sections:
+-            raise InvalidArgument, "Can't remove a section that doesn't exist"
++            raise InvalidArgument( "Can't remove a section that doesn't exist")
+         for segment in self.segments:
+             if segment.has_sections() and section in segment.sections:
+                 segment.remove_section(section)
+@@ -650,7 +650,7 @@
+     def replace_section(self, old_section, new_section):
+         """Replace section"""
+         if old_section not in self.sections:
+-            raise InvalidArgument, "Can't remove a section that doesn't exist"
++            raise InvalidArgument( "Can't remove a section that doesn't exist")
+         for segment in self.segments:
+             if segment.has_sections() and old_section in segment.sections:
+                 segment.replace_section(old_section, new_section)
+--- a/tools/pyelf/elf/File.py
++++ b/tools/pyelf/elf/File.py
+@@ -67,94 +67,47 @@
+ import os
+ from elf.ByteArray import ByteArray
+ 
+-class File(file):
++class File(object):
+     """File extends the in-built python "file" type to give it some
+     useful extra functions. In particular is support a convenient way
+     of getting stat-like data out of it. E.g: File.size()"""
+-    
+-    def stat(self):
+-        """Return stat tuple."""
+-        return os.fstat(self.fileno())        
+-    
+-    def inode_mode(self):
+-        """Inode protection mode."""
+-        return self.stat()[stat.ST_MODE]
+-
+-    def inode(self):
+-        """Inode number."""
+-        return self.stat()[stat.ST_INO]
+-    
+-    def device(self):
+-        """Device inode resides on"""
+-        return self.stat()[stat.ST_DEV]
+-
+-    def num_links(self):
+-        """Number of links to the inode"""
+-        return self.stat()[stat.ST_NLINK]
+-
+-    def uid(self):
+-        """User id of the owner"""
+-        return self.stat()[stat.ST_UID]
+-
+-    def gid(self):
+-        """Group id of the owner"""
+-        return self.stat()[stat.ST_GID]
+-
+-    def size(self):
+-        """Size in bytes of a plain file; amount of data
+-        waiting on some special files."""
+-        return self.stat()[stat.ST_SIZE]
+-
+-    def atime(self):
+-        """Time of last access."""
+-        return self.stat()[stat.ST_ATIME]
+-
+-    def mtime(self):
+-        """Time of last modification."""
+-        return self.stat()[stat.ST_MTIME]
+-    
+-    def ctime(self):
+-        """The ``ctime'' as reported by the operating system."""
+-        return self.stat()[stat.ST_CTIME]
+-
+-    def is_dir(self):
+-        """Return true if the file is a directory."""
+-        return stat.S_ISDIR(self.inode_mode())
+-
+-    def is_character(self):
+-        """Return true if the file is a character device."""
+-        return stat.S_ISDIR(self.inode_mode())
+-
+-    def is_block(self):
+-        """Return true if the file is a block device."""
+-        return stat.S_ISDIR(self.inode_mode())
+-
+-    def is_device(self):
+-        """Return true if the file is a device node.
+-        (Either chararacter, or block)."""
+-        return self.is_block() or self.is_character()
+-
+-    def is_regular(self):
+-        """Return true if the file is a regular file."""
+-        return stat.S_ISREG(self.inode_mode())
+-
+-    def is_fifo(self):
+-        """Return true if the file is a FIFO."""
+-        return stat.S_ISFIFO(self.inode_mode())
+-
+-    def is_symlink(self):
+-        """Return true if the file is a symbolic link."""
+-        return stat.S_ISLNK(self.inode_mode())
+-
+-    def is_socket(self):
+-        """Return true if the file is a socket."""
+-        return stat.S_ISSOCK(self.inode_mode())
++    def __init__(self, f, mode):
++        if isinstance(f, str):
++            self.file = open(f, mode)
++        else:
++            self.file = f
++        self.close_file = (self.file is not f)
++    def __enter__(self):
++        return self
++    def __exit__(self, *args, **kwargs):
++        if (not self.close_file):
++            return  # do nothing
++        # clean up
++        exit = getattr(self.file, '__exit__', None)
++        if exit is not None:
++            return exit(*args, **kwargs)
++        else:
++            exit = getattr(self.file, 'close', None)
++            if exit is not None:
++                exit()
++
++    def read(self, size):
++        return self.file.read(size)
++
++    def seek(self, offset):
++        return self.file.seek(int(offset))
++
++    def write(self, buf):
++        return self.file.write(buf)
++
++    def close(self):
++        return self.file.close()
+ 
+     def get_data(self, base, size):
+         """Get some size bytes of data starting at base.
+         base must be > 0."""
+-        assert 'b' in self.mode
+-        self.seek(base)
++        assert 'b' in self.file.mode
++        self.file.seek(base)
+         data = ByteArray()
+-        data.fromfile(self, size)
++        data.fromfile(self.file, size)
+         return data
+--- a/tools/pyelf/elf/section.py
++++ b/tools/pyelf/elf/section.py
+@@ -189,7 +189,7 @@
+         """Set a related section."""
+         if link is not None:
+             if not issubclass(link.__class__, BaseElfSection):
+-                raise InvalidArgument, "Link must be an ElfSection. %s" % str(link.__class__)
++                raise InvalidArgument( "Link must be an ElfSection. %s" % str(link.__class__))
+             link._backlinks.append(self)
+         self._link = link
+ 
+@@ -355,7 +355,7 @@
+         than the current size then it will be zero-filled. Size
+         can not be extended on prepared files."""
+         if size > self.get_size():
+-            raise InvalidArgument, "Cannot extend prepared section"            
++            raise InvalidArgument( "Cannot extend prepared section")
+         if self.type == SHT_NOBITS:
+             assert is_integer(size)
+             self._data = size
+@@ -456,9 +456,10 @@
+         if self._data == ByteArray('\x00'):
+             self.strings = ["\x00"]
+         else:
+-            offsets = [0] + [i+1 for (i, c) in enumerate(self._data.tostring()) if c == "\x00"][:-1]
++            offsets = [0] + [i+1 for (i, c) in enumerate(str(self._data, "iso-8859-1")) if c == "\x00"][:-1]
+             self.strings = [x + '\x00' for x in
+-                            self._data.tostring().split('\x00')[:-1]]
++                            str(self._data, "iso-8859-1").split('\x00')[:-1]]
++
+             for offset, s in zip(offsets, self.strings):
+                 s = s[:-1]
+                 self.offsets[s] = offset
+--- a/tools/pyelf/elf/segment.py
++++ b/tools/pyelf/elf/segment.py
+@@ -117,13 +117,13 @@
+     def prepare(self, offset, prog_header_size = None):
+         """Prepare this segment ready for writing."""
+         if self.prepared:
+-            raise InvalidArgument, "This segment is already prepared"
++            raise InvalidArgument( "This segment is already prepared")
+         if not prog_header_size and self.type == PT_PHDR:
+-            raise InvalidArgument, "Must set the program header size on PHDR "\
+-                  "segments when preparing"
++            raise InvalidArgument( "Must set the program header size on PHDR "\
++                  "segments when preparing")
+         if prog_header_size and self.type != PT_PHDR:
+-            raise InvalidArgument, "Program header size should only " \
+-                  "be set on phdr sections."
++            raise InvalidArgument( "Program header size should only " \
++                  "be set on phdr sections.")
+ 
+         self._offset = offset
+         self.prepared = True
+@@ -142,8 +142,8 @@
+         if self.prepared:
+             return self._offset
+         else:
+-            raise Unprepared, "Can only get the offset once the" \
+-                  " segment has been prepared."
++            raise Unprepared( "Can only get the offset once the" \
++                  " segment has been prepared.")
+     offset = property(get_offset)
+ 
+     def get_file_data(self):
+@@ -190,7 +190,7 @@
+     def vtop(self, vaddr):
+         """Convert a virtual address to a physical address"""
+         if vaddr not in self.get_span():
+-            raise InvalidArgument, "Vaddr must be in segment's range"
++            raise InvalidArgument( "Vaddr must be in segment's range")
+         return self.paddr + (vaddr - self.vaddr)
+         
+     def get_program_header(self, endianess, wordsize):
+@@ -198,15 +198,15 @@
+         and wordsize."""
+ 
+         if not self.prepared:
+-            raise Unprepared, "get_program_header can't be called if the " \
+-                  " segment is unprepared."
++            raise Unprepared( "get_program_header can't be called if the " \
++                  " segment is unprepared.")
+ 
+         try:
+             ph = ELF_PH_CLASSES[wordsize](endianess)
+         except KeyError:
+-            raise InvalidArgument, "wordsize %s is not valid. " \
++            raise InvalidArgument( "wordsize %s is not valid. " \
+                   "Only %s are valid" %  \
+-                  (wordsize, ELF_PH_CLASSES.keys())
++                  (wordsize, ELF_PH_CLASSES.keys()))
+ 
+         ph.p_type = self.type
+         ph.p_vaddr = self.vaddr
+@@ -260,8 +260,8 @@
+ 
+     def set_data(self, data):
+         """Set the data for this memory segment"""
+-        raise InvalidArgument, "Segment data can not be set when segment" \
+-              " already has sections."
++        raise InvalidArgument( "Segment data can not be set when segment" \
++              " already has sections.")
+ 
+     def get_sections(self):
+         """Return a list of sections associated with this segment."""
+@@ -270,17 +270,17 @@
+     def remove_section(self, section):
+         """Remove a section from the segment."""
+         if section not in self.sections:
+-            raise InvalidArgument, "Section must be in segment to remove it."
++            raise InvalidArgument( "Section must be in segment to remove it.")
+         self.sections.remove(section)
+ 
+     def replace_section(self, old_section, new_section):
+         if old_section not in self.sections:
+-            raise InvalidArgument, "Section must be in segment to replace it."
++            raise InvalidArgument( "Section must be in segment to replace it.")
+         self.sections[self.sections.index(old_section)] = new_section
+ 
+     def get_file_data(self):
+         """Return the data that will go into the file."""
+-        raise InvalidArgument, "You can't get file data on section file"
++        raise InvalidArgument( "You can't get file data on section file")
+ 
+     def add_section(self, section):
+         """Add a new section to a segment."""
+@@ -357,11 +357,11 @@
+ 
+     def get_sections(self):
+         """Return a list of sections associated with this segment."""
+-        raise InvalidArgument, "This segment has no sections."
++        raise InvalidArgument( "This segment has no sections.")
+ 
+     def remove_section(self, section):
+         """Remove a section from the segment."""
+-        raise InvalidArgument, "Section must be in segment to remove it."
++        raise InvalidArgument( "Section must be in segment to remove it.")
+ 
+     def get_file_data(self):
+         """Return the data that will go into the file."""
+@@ -369,21 +369,21 @@
+ 
+     def add_section(self, section):
+         """Add a new section to a segment."""
+-        raise InvalidArgument, "Can't set both data and sections"
++        raise InvalidArgument( "Can't set both data and sections")
+ 
+     def get_memsz(self):
+         """Return the size this segment occupies in memory."""
+         try:
+             return self._data.memsz
+         except AttributeError:
+-            raise InvalidArgument, "Data not yet set"
++            raise InvalidArgument( "Data not yet set")
+ 
+     def get_filesz(self):
+         """Return the size this segment occupies in memory."""
+         try:
+             return len(self._data)
+         except TypeError:
+-            raise InvalidArgument, "Data not yet set"
++            raise InvalidArgument( "Data not yet set")
+ 
+ 
+     def remove_nobits(self):
+@@ -408,28 +408,28 @@
+ 
+     def get_sections(self):
+         """Return a list of sections associated with this segment."""
+-        raise InvalidArgument, "This segment has no sections."
++        raise InvalidArgument( "This segment has no sections.")
+ 
+     def remove_section(self, section):
+         """Remove a section from the segment."""
+-        raise InvalidArgument, "Section must be in segment to remove it."
++        raise InvalidArgument( "Section must be in segment to remove it.")
+ 
+     def add_section(self, section):
+         """Add a new section to a segment."""
+-        raise InvalidArgument, "Can't set both data and sections"
++        raise InvalidArgument( "Can't set both data and sections")
+ 
+     def get_memsz(self):
+         """Return the size this segment occupies in memory."""
+         if not self.prepared:
+-            raise Unprepared, "Phdr segments must be prepared before " \
+-                  "it is possible to get their size."
++            raise Unprepared( "Phdr segments must be prepared before " \
++                  "it is possible to get their size.")
+         return self._prog_header_size
+ 
+     def get_filesz(self):
+         """Return the size this segment occupies in memory."""
+         if not self.prepared:
+-            raise Unprepared, "Phdr segments must be prepared before " \
+-                  "it is possible to get their size."
++            raise Unprepared( "Phdr segments must be prepared before " \
++                  "it is possible to get their size.")
+         return self._prog_header_size
+ 
+     def remove_nobits(self):
+--- a/tools/pyelf/elf/structures.py
++++ b/tools/pyelf/elf/structures.py
+@@ -165,20 +165,20 @@
+         of length 16. Raises ElfFormatError if data is wrong length, or
+         the magic identifier doesn't match."""
+         if len(data) != 16:
+-            raise ElfFormatError, "ElfIdentification except 16 bytes of data"
++            raise ElfFormatError( "ElfIdentification except 16 bytes of data")
+         if not self.check_magic(data):
+-            raise ElfFormatError, \
++            raise ElfFormatError( \
+                   "ElfIdentification doesn't match. [%x,%x,%x,%x]" % \
+                   (data[self.EI_MAG0], data[self.EI_MAG1],
+-                   data[self.EI_MAG2], data[self.EI_MAG3])
++                   data[self.EI_MAG2], data[self.EI_MAG3]))
+ 
+         self.ei_class = data[self.EI_CLASS]
+         if self.get_class() == ELFCLASSNONE:
+-            raise ElfFormatError, "ElfIdentification class is invalid"
++            raise ElfFormatError( "ElfIdentification class is invalid")
+ 
+         self.ei_data = data[self.EI_DATA]
+         if self.get_data() == ELFDATANONE:
+-            raise ElfFormatError, "ElfIdentification data is invalid"
++            raise ElfFormatError( "ElfIdentification data is invalid")
+ 
+         self.ei_version = data[self.EI_VERSION]
+         self.ei_osabi = data[self.EI_OSABI]
+@@ -214,8 +214,8 @@
+         try:
+             return word_sizes[self.ei_class]
+         except KeyError:
+-            raise ElfFormatError, "Unknown Elf Class unknown: %x" % \
+-                self.ei_class
++            raise ElfFormatError( "Unknown Elf Class unknown: %x" % \
++                  self.ei_class)
+ 
+     def _set_wordsize(self, wordsize):
+         """Set the class information based on the given wordsize"""
+@@ -223,7 +223,7 @@
+         try:
+             self.ei_class =  word_sizes[wordsize]
+         except KeyError:
+-            raise ElfFormatError, "Invalid wordsize %d" % wordsize
++            raise ElfFormatError( "Invalid wordsize %d" % wordsize)
+ 
+     wordsize = property(_get_wordsize, _set_wordsize)
+ 
+@@ -234,8 +234,8 @@
+         try:
+             return endianesses[self.ei_data]
+         except KeyError:
+-            raise ElfFormatError, "Unknown data encoding format: %x" % \
+-                  self.ei_data
++            raise ElfFormatError( "Unknown data encoding format: %x" % \
++                  self.ei_data)
+ 
+     def _set_endianess(self, endian):
+         """Set the endianess in the ELF header. '>' for big endian,
+@@ -244,7 +244,7 @@
+         try:
+             self.ei_data = endianesses[endian]
+         except KeyError:
+-            raise ElfFormatError, "Unknown endianess %s" % endian
++            raise ElfFormatError( "Unknown endianess %s" % endian)
+ 
+     endianess = property(_get_endianess, _set_endianess)
+ 
+@@ -299,8 +299,8 @@
+     def fromdata(self, data):
+         """Initialise an ElfHeader object from provided data"""
+         if len(data) != self.size():
+-            raise ElfFormatError, "Data size must be %s. %s provided." % \
+-                  (self.size(), len(data))
++            raise ElfFormatError( "Data size must be %s. %s provided." % \
++                  (self.size(), len(data)))
+ 
+         self.ident = ElfIdentification()
+         self.ident.fromdata(data[:16])
+@@ -325,7 +325,7 @@
+         data = self.ident.todata()
+         packed = struct.pack(self.ident.endianess + self.layout,
+                              self.e_type, self.e_machine, self.e_version,
+-                             self.e_entry, self.e_phoff, self.e_shoff,
++                             self.e_entry, self.e_phoff, int(self.e_shoff),
+                              self.e_flags, self.e_ehsize, self.e_phentsize,
+                              self.e_phnum, self.e_shentsize, self.e_shnum,
+                              self.e_shstrndx)
+@@ -505,7 +505,7 @@
+ 
+     def __init__(self, endianess):
+         if endianess not in ["<", ">"]:
+-            raise InvalidArgument, "Endianess must be either < or >"
++            raise InvalidArgument( "Endianess must be either < or >")
+         self.endianess = endianess
+         self._p_type = PT_NULL
+         self.p_offset = 0
+@@ -543,8 +543,8 @@
+     def fromdata(self, data, ehdr):
+         """Initialise an ElfHeader object from provided data"""
+         if len(data) != self.size():
+-            raise ElfFormatError, "Data size must be %s. %s provided." % \
+-                  (self.size(), len(data))
++            raise ElfFormatError( "Data size must be %s. %s provided." % \
++                  (self.size(), len(data)))
+ 
+         fields = struct.unpack(self.endianess + self.layout, data)
+         self.p_type = fields[0]
+@@ -553,7 +553,7 @@
+         if ehdr.e_machine == ElfMachine(8):
+             if ehdr.e_flags & EF_MIPS_ABI_O64:
+                 if vaddr & 0x80000000:
+-                    vaddr |= 0xffffffff00000000L
++                    vaddr |= 0xffffffff00000000
+         self.p_vaddr = vaddr
+         self.p_paddr = fields[3]
+         self.p_filesz = fields[4]
+@@ -564,10 +564,10 @@
+     def todata(self):
+         """Convert the ELF header to an array of bytes"""
+         packed = struct.pack(self.endianess + self.layout,
+-                             self.p_type, self.p_offset,
+-                             (self.p_vaddr & 0xffffffffL),
+-                             self.p_paddr, self.p_filesz,
+-                             self.p_memsz, self.p_flags, self.p_align)
++                             int(self.p_type), int(self.p_offset),
++                             int(self.p_vaddr) & 0xffffffff,
++                             int(self.p_paddr), int(self.p_filesz),
++                             int(self.p_memsz), int(self.p_flags), int(self.p_align))
+         data = ByteArray(packed)
+         return data
+ 
+@@ -576,7 +576,7 @@
+         defaults to stdout."""
+         print >> f, "  %-14.14s" % self.p_type,
+         print >> f, "0x%6.6x" % self.p_offset,
+-        print >> f, "0x%8.8x" % (self.p_vaddr & 0xffffffffL),
++        print >> f, "0x%8.8x" % (self.p_vaddr & 0xffffffff),
+         print >> f, "0x%8.8x" % self.p_paddr,
+         print >> f, "0x%5.5x" % self.p_filesz,
+         print >> f, "0x%5.5x" % self.p_memsz,
+@@ -596,8 +596,8 @@
+         """Initialise an ElfHeader object from provided data"""
+     
+         if len(data) != self.size():
+-            raise ElfFormatError, "Data size must be %s. %s provided." % \
+-                  (self.size(), len(data))
++            raise ElfFormatError( "Data size must be %s. %s provided." % \
++                  (self.size(), len(data)))
+ 
+         fields = struct.unpack(self.endianess + self.layout, data)
+         self.p_type = fields[0]
+@@ -641,7 +641,7 @@
+ 
+     def __init__(self, endianess):
+         if endianess not in ["<", ">"]:
+-            raise InvalidArgument, "Endianess must be either < or >"
++            raise InvalidArgument( "Endianess must be either < or >")
+         self.endianess = endianess
+         self.sh_name = 0
+         self._sh_type = SHT_NULL
+@@ -675,8 +675,8 @@
+     def fromdata(self, data, ehdr):
+         """Initialise an ElfHeader object from provided data"""
+         if len(data) != self.size():
+-            raise ElfFormatError, "Data size must be %s. %s provided." % \
+-                  (self.size(), len(data))
++            raise ElfFormatError( "Data size must be %s. %s provided." % \
++                  (self.size(), len(data)))
+ 
+         fields = struct.unpack(self.endianess + self.layout, data)
+         self.sh_name = fields[0]
+@@ -686,7 +686,7 @@
+         if ehdr.e_machine == ElfMachine(8):
+             if ehdr.e_flags & EF_MIPS_ABI_O64:
+                 if vaddr & 0x80000000:
+-                    vaddr |= 0xffffffff00000000L
++                    vaddr |= 0xffffffff00000000
+         self.sh_addr = vaddr
+         self.sh_offset = fields[4]
+         self.sh_size = fields[5]
+@@ -699,7 +699,7 @@
+         """Convert the ELF header to an array of bytes"""
+         packed = struct.pack(self.endianess + self.layout,
+                              self.sh_name, self.sh_type, self.sh_flags,
+-                             (self.sh_addr & 0xffffffffL),
++                             (self.sh_addr & 0xffffffff),
+                              self.sh_offset, self.sh_size, self.sh_link,
+                              self.sh_info, self.sh_addralign, self.sh_entsize)
+         data = ByteArray(packed)
+@@ -734,8 +734,8 @@
+         """Convert the ELF header to an array of bytes"""
+         packed = struct.pack(self.endianess + self.layout,
+                              self.sh_name, self.sh_type, self.sh_flags,
+-                             (self.sh_addr & 0xffffffffL),
+-                             self.sh_offset, self.sh_size, self.sh_link,
++                             int(self.sh_addr) & 0xffffffff,
++                             int(self.sh_offset), self.sh_size, self.sh_link,
+                              self.sh_info, self.sh_addralign, self.sh_entsize)
+         data = ByteArray(packed)
+         return data
+@@ -747,7 +747,7 @@
+             print >> f, "  [%2d]" % self._index,
+             print >> f, "%-17.17s" % self._name,
+         print >> f, "%-15.15s" % self.sh_type,
+-        print >> f, "%8.8x" % (self.sh_addr & 0xffffffffL),
++        print >> f, "%8.8x" % (self.sh_addr & 0xffffffff),
+         print >> f, "%6.6x" % self.sh_offset,
+         print >> f, "%6.6x" % self.sh_size,
+         print >> f, "%2.2x" % self.sh_entsize,
+@@ -803,7 +803,7 @@
+ 
+     def __init__(self, endianess):
+         if endianess not in ["<", ">"]:
+-            raise InvalidArgument, "Endianess must be either < or >"
++            raise InvalidArgument( "Endianess must be either < or >")
+         self.endianess = endianess
+         self.st_name = 0
+         self.st_value = 0
+@@ -849,8 +849,8 @@
+     def fromdata(self, data):
+         """Initialise a Symbol object from provided data"""
+         if len(data) != self.size():
+-            raise ElfFormatError, "Data size must be %s. %s provided." % \
+-                  (self.size(), len(data))
++            raise ElfFormatError( "Data size must be %s. %s provided." % \
++                  (self.size(), len(data)))
+ 
+         fields = struct.unpack(self.endianess + self.layout, data)
+         self.st_name = fields[0]
+@@ -885,8 +885,8 @@
+     def fromdata(self, data):
+         """Initialise a Symbol object from provided data"""
+         if len(data) != self.size():
+-            raise ElfFormatError, "Data size must be %s. %s provided." % \
+-                  (self.size(), len(data))
++            raise ElfFormatError( "Data size must be %s. %s provided." % \
++                  (self.size(), len(data)))
+ 
+         fields = struct.unpack(self.endianess + self.layout, data)
+         self.st_name = fields[0]
+--- a/tools/pyelf/elf/util.py
++++ b/tools/pyelf/elf/util.py
+@@ -62,7 +62,7 @@
+ 
+ import types
+ 
+-class IntString(long):
++class IntString(int):
+     """A sub-type of integer that allows you to associate
+     a string with a given integer"""
+     _show = {}
+@@ -70,15 +70,15 @@
+     def __new__(cls, arg, string=None):
+         if string:
+             cls._show[arg] = string
+-        return long.__new__(cls, arg)
++        return int.__new__(cls, arg)
+ 
+     def __str__(self):
+-        if long(self) in self._show:
+-            return self._show[long(self)]
++        if int(self) in self._show:
++            return self._show[int(self)]
+         elif self._default_string:
+-            return self._default_string % long(self)
++            return self._default_string % int(self)
+         else:
+-            return long.__str__(self)
++            return int.__str__(self)
+ 
+ def align_up(val, alignment):
+     """Round val up to a given alignment."""
+@@ -97,7 +97,7 @@
+ 
+ def is_integer(val):
+     """Return true if the val is an integer or long type."""
+-    return isinstance(val, types.IntType) or isinstance(val, types.LongType)
++    return isinstance(val, int)
+ 
+ class TransformableMixin:
+     """This is a mix-in class which allows a class instance to be
+@@ -126,7 +126,7 @@
+         to be overridden by subclasses, and is simply empty here.
+         """
+         if not issubclass(cls, self.__class__):
+-            raise Exception, "Can only transform into subclassess"
++            raise Exception( "Can only transform into subclassess")
+         self.__class__ = cls
+         self.transformer()
+ 
+--- a/tools/pyelf/weaver/allocator.py
++++ b/tools/pyelf/weaver/allocator.py
+@@ -345,11 +345,11 @@
+         for list_base, list_end, list_mem_type in self.fulllist:
+             if (base >= list_base and base <= list_end) or \
+                (end >= list_base and end <= list_end):
+-                raise AllocatorException, \
++                raise AllocatorException( \
+                       "Cannot add overlapping memory regions to the " \
+                       "Allocator.  Address (0x%x--0x%x) already in " \
+                       "(0x%x--0x%x)" % \
+-                      (base, end, list_base, list_end)
++                      (base, end, list_base, list_end))
+ 
+         self.fulllist.append((base, end, mem_type))
+         self.freelist.append((base, end, mem_type))
+@@ -372,9 +372,9 @@
+         end = base + size - 1
+ 
+         if end < base:
+-            raise AllocatorException, \
++            raise AllocatorException( \
+                   "Mark end address (0x%x) less than mark base address (0x%x)" \
+-                  % (end, base)
++                  % (end, base))
+ 
+         if base == end:
+             end = end + 1
+@@ -433,10 +433,10 @@
+         window_end = window_base + size - 1
+ 
+         if window_end < window_base:
+-            raise AllocatorException, \
++            raise AllocatorException( \
+                   "alloc_window: Window end address (0x%x) less " \
+                   "than mark base address (0x%x)" % \
+-                  (window_end, window_base)
++                  (window_end, window_base))
+ 
+         if window_base == window_end:
+             window_end = window_end + 1
+@@ -458,8 +458,8 @@
+ 
+         # OK, what's the answer?
+         if not contained:
+-            raise AllocatorException, \
+-                  "alloc_window: Window not in allocator controlled memory." 
++            raise AllocatorException( \
++                  "alloc_window: Window not in allocator controlled memory.")
+ 
+         # Transform the hole list from (base, size) to (base, end),
+         # rounded to page boundaries, and sort in increasing order of
+@@ -514,11 +514,11 @@
+                    curr_free[1] >= curr_addr:
+                 if curr_hole is not None and \
+                        curr_hole[0] <= curr_free[1]:
+-                    raise AllocatorException, \
++                    raise AllocatorException( \
+                           "alloc_window: Hole (0x%x-0x%x) overlaps " \
+                           "with free block (0x%x-0x%x)." % \
+                           (curr_hole[0], curr_hole[1], curr_free[0],
+-                           curr_free[1])
++                           curr_free[1]))
+                 else:
+                     # Remove the part we're interested in from the
+                     # freelist.  Add the excess.
+@@ -541,20 +541,20 @@
+                      curr_hole[0] == curr_addr:
+                 if curr_free is not None and \
+                        curr_free[0] <= curr_hole[1]:
+-                    raise AllocatorException, \
++                    raise AllocatorException( \
+                           "alloc_window: Hole (0x%x-0x%x) overlaps " \
+                           "with free block (0x%x-0x%x)." % \
+                           (curr_hole[0], curr_hole[1], curr_free[0],
+-                          curr_free[1])
++                          curr_free[1]))
+                 else:
+                     curr_addr = curr_hole[1] + 1
+                     curr_hole = None
+             else:
+-                raise AllocatorException, \
++                raise AllocatorException( \
+                       "Address %#x should be in a zone but is neither " \
+                       "free or in an already allocated block.  Is it part " \
+                       "of a direct addressing pool?" % \
+-                      curr_addr 
++                      curr_addr)
+ 
+         # Copy any remaining free list records into the new freelist.
+         for curr_free in free_iter:
+@@ -619,7 +619,7 @@
+ 
+         # Abort if nothing suitable was found.
+         if addr is None:
+-            raise AllocatorException, "Out of memory"
++            raise AllocatorException( "Out of memory")
+ 
+         # Copy any remaining free list records into the after_freelist
+         for curr_free in free_iter:
+@@ -681,8 +681,8 @@
+                         'this_item' : i.get_name(),
+                         'distance'  : group.get_distance()
+                         }
+-                    raise AllocatorGroupException, \
+-                          group.get_error_message() % err_txt
++                    raise AllocatorGroupException( \
++                          group.get_error_message() % err_txt)
+ 
+             addrs.append(addr)
+             last_item = i
+@@ -718,15 +718,15 @@
+             try:
+                 (ret_freelist, addrs) = self.__group_alloc(group, curr_freelist)
+             except AllocatorException:
+-                raise AllocatorException, group.get_error_message()
+-            except AllocatorGroupException, agex:
++                raise AllocatorException( group.get_error_message())
++            except AllocatorGroupException as agex:
+                 # Remove the first freelist record and try again.  If
+                 # there is fragmentation in the freelist, this may
+                 # work around it.  This exception may be raised again
+                 # if the group failed for another reason (for
+                 # instance, the could not be satisfied at all).
+                 if len(curr_freelist) <= 1:
+-                    raise AllocatorException, str(agex)
++                    raise AllocatorException( str(agex))
+                 else:
+                     new_freelist.append(curr_freelist.pop(0))
+             else:
+@@ -772,8 +772,8 @@
+         """
+ 
+         if len(self.freelist) == 0:
+-            raise AllocatorException, \
+-                      "next_avail(): Free list empty."
++            raise AllocatorException( \
++                      "next_avail(): Free list empty.")
+ 
+         return max([(end - base, base) for (base, end, _) in self.freelist])[1]
+ 
+--- a/tools/pyelf/weaver/bootinfo_elf.py
++++ b/tools/pyelf/weaver/bootinfo_elf.py
+@@ -177,9 +177,9 @@
+     def __init__(self, output, bits_per_word, endianess):
+         def encode_hdr_word(op, size):
+             if bits_per_word == 64:
+-                return op << 32 | size
++                return op << 32 | int(size)
+             else:
+-                return op << 16 | size
++                return op << 16 | int(size)
+ 
+         self.enc_func = encode_hdr_word
+ 
+@@ -188,7 +188,7 @@
+         else:
+             self.word_char = 'I'
+ 
+-        self.BI_IGNORE = (2L ** bits_per_word) - 1
++        self.BI_IGNORE = (2 ** bits_per_word) - 1
+ 
+         # FIXME: Horrible code
+         if endianess == '>':
+@@ -196,7 +196,7 @@
+         elif endianess == '<':
+             self._endianess = '<'
+         else:
+-            raise MergeError, "Bad endianess"
++            raise MergeError( "Bad endianess")
+         
+         self.output = output
+         self.format_word = self._endianess + self.word_char
+@@ -204,7 +204,7 @@
+         self.object_index = 0
+ 
+     def encode_word(self, word):
+-        return pack(self.format_word, word)
++        return pack(self.format_word, int(word))
+ 
+     def encode_hdr(self, op, size):
+         real_size = (size + 1) * self.bytes_per_word
+@@ -229,7 +229,7 @@
+         padding = 0
+         if size % self.bytes_per_word != 0:
+             padding = self.bytes_per_word - (size % self.bytes_per_word)
+-        return pack('%s%ds%dx' % (self._endianess, size, padding), string)
++        return pack('%s%ds%dx' % (self._endianess, size, padding), string.encode("iso-8859-1"))
+         
+ 
+     # Public functions, that write out each type of record.
+@@ -242,16 +242,16 @@
+         header += self.encode_word(stack_end)
+         header += self.encode_word(heap_base)
+         header += self.encode_word(heap_end)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_end(self):
+         header = self.encode_hdr(BI_OP_END, 0)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_new_pd(self, owner):
+         header = self.encode_hdr(BI_OP_NEW_PD, 1)
+         header = header + self.encode_word(owner)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+         self.object_index = self.object_index + 1
+         return self.object_index
+@@ -273,7 +273,7 @@
+         header = header + self.encode_word(physpool)
+         header = header + self.encode_word(virtpool)
+         header = header + self.encode_word(zone)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+         self.object_index = self.object_index + 1
+         return self.object_index
+@@ -284,7 +284,7 @@
+         header = header + self.encode_word(virt_end)
+         header = header + self.encode_word(phys_base)
+         header = header + self.encode_word(phys_end)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+         self.object_index = self.object_index + 3
+         return (self.object_index - 2, self.object_index - 1, self.object_index)
+@@ -292,7 +292,7 @@
+     def write_new_pool(self, is_virtual):
+         header = self.encode_hdr(BI_OP_NEW_POOL, 1)
+         header = header + self.encode_word(is_virtual)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+         self.object_index = self.object_index + 1
+         return self.object_index
+@@ -300,7 +300,7 @@
+     def write_new_zone(self, pool):
+         header = self.encode_hdr(BI_OP_NEW_ZONE, 1)
+         header = header + self.encode_word(pool)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+         self.object_index = self.object_index + 1
+         return self.object_index
+@@ -309,21 +309,21 @@
+         header = self.encode_hdr(BI_OP_ADD_ZONE_WINDOW, 2)
+         header = header + self.encode_word(zone)
+         header = header + self.encode_word(base)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_add_virt_mem(self, pool, base, end):
+         header = self.encode_hdr(BI_OP_ADD_VIRT_MEM, 3)
+         header = header + self.encode_word(pool)
+         header = header + self.encode_word(base)
+         header = header + self.encode_word(end)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_add_phys_mem(self, pool, base, end):
+         header = self.encode_hdr(BI_OP_ADD_PHYS_MEM, 3)
+         header = header + self.encode_word(pool)
+         header = header + self.encode_word(base)
+         header = header + self.encode_word(end)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_new_thread(self, owner, ip, user_main, priority, name):
+         header = self.encode_hdr(BI_OP_NEW_THREAD,
+@@ -333,7 +333,7 @@
+         header = header + self.encode_word(user_main)
+         header = header + self.encode_word(priority)
+         header = header + self.encode_string(name)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+         self.object_index = self.object_index + 1
+         return self.object_index
+@@ -342,12 +342,12 @@
+         header = self.encode_hdr(BI_OP_REGISTER_STACK, 2)
+         header = header + self.encode_word(thread)
+         header = header + self.encode_word(ms)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_run_thread(self, name):
+         header = self.encode_hdr(BI_OP_RUN_THREAD, 1)
+         header = header + self.encode_word(name)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_map(self, vaddr, size, paddr, scrub, mode):
+         header = self.encode_hdr(BI_OP_MAP, 5)
+@@ -356,53 +356,53 @@
+         header = header + self.encode_word(paddr)
+         header = header + self.encode_word(scrub)
+         header = header + self.encode_word(mode)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_attach(self, pd, ms, rights):
+         header = self.encode_hdr(BI_OP_ATTACH, 3)
+         header = header + self.encode_word(pd)
+         header = header + self.encode_word(ms)
+         header = header + self.encode_word(rights)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_grant(self, pd, obj, rights):
+         header = self.encode_hdr(BI_OP_GRANT, 3)
+         header = header + self.encode_word(pd)
+         header = header + self.encode_word(obj)
+         header = header + self.encode_word(rights)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_argv(self, thread, argv):
+         header = self.encode_hdr(BI_OP_ARGV,
+                                  1 + self.string_words(argv))
+         header = header + self.encode_word(thread)
+         header = header + self.encode_string(argv)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_register_server(self, thread, ms):
+         header = self.encode_hdr(BI_OP_REGISTER_SERVER, 2)
+         header = header + self.encode_word(thread)
+         header = header + self.encode_word(ms)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_register_callback(self, pd, ms):
+         header = self.encode_hdr(BI_OP_REGISTER_CALLBACK, 2)
+         header = header + self.encode_word(pd)
+         header = header + self.encode_word(ms)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_security_control(self, pd, obj, type):
+         header = self.encode_hdr(BI_OP_SECURITY_CONTROL, 3)
+         header += self.encode_word(pd)
+         header += self.encode_word(obj)
+         header += self.encode_word(type)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_new_cap(self, obj, rights):
+         header = self.encode_hdr(BI_OP_NEW_CAP, 2)
+         header = header + self.encode_word(obj)
+         header = header + self.encode_word(rights)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+         self.object_index = self.object_index + 1
+         return self.object_index
+@@ -411,7 +411,7 @@
+         header = self.encode_hdr(BI_OP_GRANT_CAP, 2)
+         header = header + self.encode_word(pd)
+         header = header + self.encode_word(cap)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_object_export(self, pd, key, obj, type):
+         header = self.encode_hdr(BI_OP_OBJECT_EXPORT,
+@@ -420,10 +420,10 @@
+         header = header + self.encode_word(obj)
+         header = header + self.encode_word(type)
+         header = header + self.encode_string(key)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_struct_export(self, pd, key, first, second,
+-                            third = 0L, fourth = 0, fifth = 0,
++                            third = 0, fourth = 0, fifth = 0,
+                             sixth = 0, type = BI_EXPORT_CONST):
+         header = self.encode_hdr(BI_OP_STRUCT_EXPORT,
+                                  8 + self.string_words(key))
+@@ -436,26 +436,26 @@
+         header = header + self.encode_word(sixth)
+         header = header + self.encode_word(type)
+         header = header + self.encode_string(key)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_register_env(self, pd, ms):
+         header = self.encode_hdr(BI_OP_REGISTER_ENV, 2)
+         header = header + self.encode_word(pd)
+         header = header + self.encode_word(ms)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_grant_interrupt(self, thread, irq):
+         header = self.encode_hdr(BI_OP_GRANT_INTERRUPT, 2)
+         header = header + self.encode_word(thread)
+         header = header + self.encode_word(irq)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+     def write_kernel_info(self, max_spaces, max_mutexes, max_caps):
+         header = self.encode_hdr(BI_OP_KERNEL_INFO, 3)
+         header += self.encode_word(max_spaces)
+         header += self.encode_word(max_mutexes)
+         header += self.encode_word(max_caps)
+-        self.output.write(header)
++        self.output.write(str(header, "iso-8859-1"))
+ 
+ def _words2str(words, fmt):
+     """
+@@ -891,8 +891,8 @@
+             format = self._endianess + self._word_char * (words - 1)
+             start  = idx + self._bytes_per_word
+             end    = idx + size
+-            if not IgBootInfoSection.op_classes.has_key(op):
+-                raise Exception, "Unknown opcode: %d" % op
++            if op not in IgBootInfoSection.op_classes:
++                raise Exception( "Unknown opcode: %d" % op)
+ 
+             inst   = \
+                  IgBootInfoSection.op_classes[op](self, struct.unpack(format,
++++ a/tools/pyelf/weaver/bootinfo.py
++++ b/tools/pyelf/weaver/bootinfo.py
+@@ -58,7 +58,7 @@
+ 
+ """Generate bootinfo operations for the image."""
+ 
+-from StringIO import StringIO
++from io import StringIO
+ from os.path import basename
+ from elf.ByteArray import ByteArray
+ from elf.constants import PF_R
+@@ -68,6 +68,7 @@
+ import weaver.image
+ import weaver.pools
+ import weaver.bootinfo_elf
++from functools import reduce
+ from weaver.device import AliasCapObject, VirtualDevice
+ 
+ # Default values for iguana programs.  These can be overridden by
+@@ -153,8 +154,8 @@
+         """Add a right to the cap."""
+         # Need some error checking here.
+ 
+-        if not Cap.rights.has_key(right):
+-            raise MergeError, "'%s' not a supported right." % right
++        if right not in Cap.rights:
++            raise MergeError( "'%s' not a supported right." % right)
+ 
+         self.rights.append(right)
+         self.all_rights = self.all_rights | Cap.rights[right]
+@@ -176,8 +177,8 @@
+ 
+     def add_right(self, right):
+         "This doesn't make sense for an AliasCap, throw a warning."
+-        print "Warning: trying to add %s rights to alias cap %s" % \
+-              (right, self.name)
++        print("Warning: trying to add %s rights to alias cap %s" % \
++              (right, self.name))
+ 
+     def generate_bootinfo(self, bi):
+         """
+@@ -283,7 +284,7 @@
+ 
+                 if cap is None:
+                     # Needs more context.
+-                    raise MergeError, "Cap %s not found." % e.cap_name
++                    raise MergeError( "Cap %s not found." % e.cap_name)
+                 else:
+                     e.cap = cap
+ 
+@@ -478,7 +479,7 @@
+         """Link a thread to it's stack."""
+ 
+         if self.stack_ms is not None:
+-            raise MergeError, "Thread %s already has a stack." % self.name
++            raise MergeError( "Thread %s already has a stack." % self.name)
+ 
+         # Set the defaults for the stack if they have not yet been
+         # overridden.
+@@ -869,7 +870,7 @@
+ 
+     def attach_heap(self, heap_ms):
+         if self.heap_ms is not None:
+-            raise MergeError, "PD %s already has a heap." % self.name
++            raise MergeError( "PD %s already has a heap." % self.name)
+ 
+         # Set the defaults for the heap if they have not yet been
+         # overridden.
+@@ -1253,11 +1254,11 @@
+         Set the default attributes for the image.  These are specified
+         in the rootprogram element.
+         """
+-        if not self.virtpools.has_key(virtpool_name):
+-            raise MergeError, 'Virtual pool "%s" not found.' % virtpool_name
++        if virtpool_name not in self.virtpools:
++            raise MergeError( 'Virtual pool "%s" not found.' % virtpool_name)
+ 
+-        if not self.physpools.has_key(physpool_name):
+-            raise MergeError, 'Physical pool "%s" not found.' % physpool_name
++        if physpool_name not in self.physpools:
++            raise MergeError( 'Physical pool "%s" not found.' % physpool_name)
+         
+         self.default_virtpool = self.virtpools[virtpool_name]
+         self.default_physpool = self.physpools[physpool_name]
+@@ -1394,20 +1395,20 @@
+         # write out their memory ranges.  In addition, create the caps
+         # for *all* pools.  Order does not matter here.
+ 
+-        for pool in [p for p in self.virtpools.itervalues()
++        for pool in [p for p in self.virtpools.values()
+                      if not isinstance(p, Zone)]:
+             if pool.pool.get_name() != def_virt.pool.get_name() and \
+                pool.pool.get_name() != def_direct.pool.get_name():
+                 pool.generate_bootinfo(bi)
+ 
+-            for cap in pool.caps.itervalues():
++            for cap in pool.caps.values():
+                 cap.generate_bootinfo(pool, bi)
+ 
+-        for pool in self.physpools.itervalues():
++        for pool in self.physpools.values():
+             if pool.pool.get_name() != def_phys.pool.get_name():
+                 pool.generate_bootinfo(bi)
+ 
+-            for cap in pool.caps.itervalues():
++            for cap in pool.caps.values():
+                 cap.generate_bootinfo(pool, bi)
+ 
+         bi.write_kernel_info(image.kconfig.get_max_spaces(),
+--- a/tools/pyelf/weaver/device.py
++++ b/tools/pyelf/weaver/device.py
+@@ -122,15 +122,15 @@
+         if pd.server_thread is not None:
+             self.client_tid = pd.server_thread
+         else:
+-            raise MergeError, "Receiving PD must have a server thread to get virtdev handles."
++            raise MergeError( "Receiving PD must have a server thread to get virtdev handles.")
+ 
+         # Patch server variables to tell it about client thread ids
+         elf = self.server_pd.elf
+         if not elf:
+-            raise MergeError, "You cannot give device control to PDs without an executable ELF."
++            raise MergeError( "You cannot give device control to PDs without an executable ELF.")
+         sym  = elf.find_symbol("virtual_device_instance")
+         if not sym:
+-            raise MergeError, "Cannot find symbol virtual_device_instance[]"
++            raise MergeError( "Cannot find symbol virtual_device_instance[]")
+ 
+         # XXX: The number of elements within the granted_physmem, interrupt and
+         # valid device instances is hardcoded to 4 in the code.  get_size()
+@@ -178,13 +178,13 @@
+ 
+     def get_physical_mem(self, name):
+         """Get the named list of physical memory ranges."""
+-        if self.physical_mem.has_key(name):
++        if name in self.physical_mem:
+             return self.physical_mem[name]
+ 
+     def get_interrupt(self, name):
+         """Get the named interrupt."""
+-        if not self.interrupt.has_key(name):
+-            raise MergeError, "Interrupt called %s not found." % name
++        if name not in self.interrupt:
++            raise MergeError( "Interrupt called %s not found." % name)
+ 
+         return self.interrupt[name]
+ 
+@@ -260,22 +260,22 @@
+         """
+         elf = pd.elf
+         if not elf:
+-            raise MergeError, "You cannot give device control to PDs without an executable ELF."
++            raise MergeError( "You cannot give device control to PDs without an executable ELF.")
+         sym  = elf.find_symbol("iguana_granted_interrupt")
+         if not sym:
+-            raise MergeError, "Cannot find symbol iguana_granted_interrupt[]"
++            raise MergeError( "Cannot find symbol iguana_granted_interrupt[]")
+ 
+         addr = sym.value
+         offset = 0
+         size = sym.size
+ 
+-        for irq in self.interrupt.itervalues():
++        for irq in self.interrupt.values():
+             if pd.server_thread is not None:
+                 thread = pd.server_thread
+             elif len(pd.get_threads()) > 0:
+                 thread = pd.get_threads()[0]
+             else:
+-                raise MergeError, "Cannot grant interrupt to PD with no threads"
++                raise MergeError( "Cannot grant interrupt to PD with no threads")
+ 
+             # Instruct iguana server to grant interrupt
+             bi.write_grant_interrupt(thread = thread.bi_name, irq = irq)
+@@ -295,10 +295,10 @@
+         """
+         elf = pd.elf
+         if not elf:
+-            raise MergeError, "You cannot give device control to PDs without an executable ELF."
++            raise MergeError( "You cannot give device control to PDs without an executable ELF.")
+         sym  = elf.find_symbol("iguana_granted_physmem")
+         if not sym:
+-            raise MergeError, "Cannot find symbol iguana_granted_physmem[]"
++            raise MergeError( "Cannot find symbol iguana_granted_physmem[]")
+ 
+         addr = sym.value
+         offset = 0
+@@ -306,7 +306,7 @@
+ 
+         for (name, mapping) in self.mappings.iteritems():
+             if not offset < size:
+-                raise MergeError, "The physmem array has overflowed.  Increase its size."
++                raise MergeError( "The physmem array has overflowed.  Increase its size.")
+ 
+             (pp, none, ms) = mapping
+ 
+@@ -331,7 +331,7 @@
+             # We only want to apply the patch only when the vbase
+             # is known.  This happens on the second pass to
+             # generate_bootinfo()
+-            if ms.vbase is not 0:
++            if ms.vbase != 0:
+                 image.patch(addr + offset, 4, ms.vbase)
+             offset += 4
+ 
+--- a/tools/pyelf/weaver/display.py
++++ b/tools/pyelf/weaver/display.py
+@@ -184,7 +184,7 @@
+         if kconfig:
+             kconfig.output(sys.stdout)
+         else:
+-            print "There is no kernel configuration in this file."
++            print("There is no kernel configuration in this file.")
+ 
+     if options.bootinfo:
+         print
+@@ -192,7 +192,7 @@
+         if bootinfo:
+             bootinfo.output(sys.stdout)
+         else:
+-            print "There is no Bootinfo section in this file."
++            print("There is no Bootinfo section in this file.")
+ 
+     if options.segnames:
+         print
+@@ -204,11 +204,11 @@
+                 segname = segname.strip()
+                 if segname == "":
+                     continue
+-                print segname
++                print(segname)
+         else:
+             # TODO - use the first section in each segment
+             # as the segment name and print that.
+-            print "There is no .segnames section in this file"
++            print("There is no .segnames section in this file")
+ 
+     return 0
+ 
+--- a/tools/pyelf/weaver/ezxml.py
++++ b/tools/pyelf/weaver/ezxml.py
+@@ -76,7 +76,7 @@
+         for attr in [key for key in self.__dict__ if key
+                      not in ["children", "tag"]]:
+             val = getattr(self, attr)
+-            if type(val) == long:
++            if type(val) == int:
+                 base += '%s="0x%x" ' % (attr, val)
+             else:
+                 base += '%s="%s" ' % (attr, val)
+@@ -156,7 +156,7 @@
+         # The file attribute vanishes when the contents are included,
+         # so its presence must be checked for.
+         if elem.tagName == "include" and elem.hasAttribute('file'):
+-            include_file = file(elem.getAttribute('file'))
++            include_file = open(elem.getAttribute('file'))
+             # The parser requires a root element, so wrap the file
+             # contents in another include element.  This will be
+             # stripped out below.
+@@ -183,9 +183,9 @@
+     # Do the work recursively from the top of the tree.
+     try:
+         do_incs(dom.documentElement)
+-    except EnvironmentError, ex:
+-        raise EzXMLError, 'XML include error: "%s": %s.' % \
+-              (ex.filename, ex.strerror)
++    except (EnvironmentError) as ex:
++        raise EzXMLError( 'XML include error: "%s": %s.' % \
++              (ex.filename, ex.strerror))
+ 
+ class Element:
+     """Defines a type of element, rather than a particular element
+@@ -200,7 +200,7 @@
+         self.name = __name
+         self.attributes = attributes
+         for attr in self.attributes.values():
+-            if type(attr) != types.TupleType:
++            if not isinstance(attr, (tuple, list)):
+                 raise EzXMLError("Attribute descriptors must be tuples")
+             if len(attr) != 2:
+                 raise EzXMLError("Attribute descriptors must " + \
+@@ -221,7 +221,7 @@
+         try:
+             dom = parseString(data)
+             process_includes(dom)
+-        except ExpatError, text:
++        except (ExpatError) as text:
+             raise EzXMLError("Failed to parse: %s" % text)
+         return self.walkdom(dom.documentElement)
+ 
+@@ -231,7 +231,7 @@
+         try:
+             dom = parse(filename)
+             process_includes(dom)
+-        except ExpatError, text:
++        except (ExpatError) as text:
+             raise EzXMLError("Failed to parse: %s" % text)
+         return self.walkdom(dom.documentElement)
+ 
+@@ -250,9 +250,9 @@
+         if el.attributes:
+             for attr in el.attributes.keys():
+                 if attr not in self.attributes:
+-                    raise EzXMLError, \
++                    raise EzXMLError( \
+                           'Unknown attribute in "%s" element: "%s".' % \
+-                          (el.tagName, attr)
++                          (el.tagName, attr))
+                 # and set the attributes value as seen
+                 setattr(ret, attr,
+                         self.attributes[attr][0](el.attributes[attr].value))
+@@ -260,10 +260,10 @@
+         # Ensure rquired attributes are present
+         for attr_name, descriptor in self.attributes.items():
+             if descriptor[1] == "required" and not hasattr(ret, attr_name):
+-                raise EzXMLError, \
++                raise EzXMLError( \
+                       'The required attribute "%s" is not specified in ' \
+                       'element "%s".' % \
+-                      (attr_name, el.tagName)
++                      (attr_name, el.tagName))
+ 
+         # Examine children
+         for child in el.childNodes:
+@@ -281,8 +281,8 @@
+                 elif self.extras and child.tagName in self.extras.keys():
+                     ret.children.append(self.extras[child.tagName].walkdom(child))
+                 else:
+-                    raise EzXMLError, \
+-                              "Unknown child node: %s of %s" % (child, self)
++                    raise EzXMLError( \
++                              "Unknown child node: %s of %s" % (child, self))
+ 
+ 
+             elif child.nodeType == child.TEXT_NODE:
+@@ -313,7 +313,7 @@
+ def long_attr(attr):
+     """Parse a long attribute"""
+     try:
+-        val = long(attr, 0)
++        val = int(attr, 0)
+     except ValueError:
+         raise EzXMLError("%s did not parse as an integer" % attr)
+     return val
+@@ -341,19 +341,19 @@
+ 
+     # Detect and strip off the suffix.
+     if suffix == 'K' or suffix == 'k':
+-        multiple = 1024L
++        multiple = 1024
+         attr_num = attr[:-1]
+     elif suffix == 'M' or suffix == 'm':
+-        multiple = 1024L * 1024L
++        multiple = 1024 * 1024
+         attr_num = attr[:-1]
+     elif suffix == 'G' or suffix == 'g':
+-        multiple = 1024L * 1024L * 1024L
++        multiple = 1024 * 1024 * 1024
+         attr_num = attr[:-1]
+     else:
+         attr_num = attr
+ 
+     try:
+-        val = long(attr_num, 0) * multiple
++        val = int(attr_num, 0) * multiple
+     except ValueError:
+         raise EzXMLError('"%s" did not parse as a size value.' % attr)
+     return val
+--- a/tools/pyelf/weaver/image.py
++++ b/tools/pyelf/weaver/image.py
+@@ -107,8 +107,8 @@
+         return False
+ 
+     if segment.type != PT_LOAD and segment.type != PT_ARM_EXIDX:
+-        raise MergeError, "Unable to handle segments that aren't " \
+-              "of type LOAD (found type 0x%x)." % (segment.type)
++        raise MergeError( "Unable to handle segments that aren't " \
++              "of type LOAD (found type 0x%x)." % (segment.type))
+ 
+     return True
+ 
+@@ -235,10 +235,10 @@
+ 
+         if self.attrs.direct and \
+                not pools.is_physical_direct(self.attrs.physpool):
+-            raise MergeError, \
++            raise MergeError( \
+                   'Physical pool "%s" does not support direct memory ' \
+                   'allocation.' % \
+-                  self.attrs.physpool
++                  self.attrs.physpool)
+ 
+     def post_alloc(self, pools):
+         """
+@@ -395,11 +395,11 @@
+                                      self.attrs.size)
+ 
+         if self.attrs.phys_addr is not None and not marked:
+-            raise MergeError, \
++            raise MergeError( \
+                   'Segment "%s": Cannot reserve physical addresses ' \
+                   '%#x--%#x.' % \
+                   (self.attrs.abs_name(), self.attrs.phys_addr,
+-                   self.attrs.phys_addr + self.attrs.size - 1)
++                   self.attrs.phys_addr + self.attrs.size - 1))
+ 
+         # If it's a protected segment, reserve everything in the same SECTION
+         if self.attrs.protected:
+@@ -922,7 +922,7 @@
+         if self.elf.machine == ElfMachine(8):
+             if self.elf.flags & EF_MIPS_ABI_O64:
+                 if address & 0x80000000:
+-                    address |= 0xffffffff00000000L
++                    address |= 0xffffffff00000000
+ 
+         for segment in self.elf.segments:
+             for section in segment.get_sections():
+@@ -933,7 +933,7 @@
+                         endianess = self.elf.endianess
+                     return section.get_data().get_data(offset, size, endianess)
+ 
+-        raise MergeError, "Could not find address %x in Image." % address
++        raise MergeError( "Could not find address %x in Image." % address)
+ 
+     def set_kernel(self, kernel):
+         """ Record the kernel."""
+@@ -955,7 +955,7 @@
+         if self.elf.machine == ElfMachine(8):
+             if self.elf.flags & EF_MIPS_ABI_O64:
+                 if addr & 0x80000000:
+-                    addr |= 0xffffffff00000000L
++                    addr |= 0xffffffff00000000
+         self.patches.append(self.Patch(addr, size, value))
+ 
+     def set_kernel_heap(self, attrs, pools):
+@@ -1013,11 +1017,11 @@
+ 
+         if attrs.protected:
+             if self.protected_segment is not None:
+-                raise MergeError, \
++                raise MergeError( \
+                       'Only one segment can be declared protected.  ' \
+                       'Found "%s" and  "%s".' % \
+                       (self.protected_segment.get_attrs().abs_name(),
+-                      attrs.abs_name())
++                      attrs.abs_name()))
+ 
+             self.protected_segment = iseg
+ 
+@@ -1053,7 +1057,7 @@
+                 data = attrs.data
+                 
+             if attrs.size is not None and len(data) < attrs.size:
+-                data.extend([0] * (attrs.size - len(data)))
++                data.extend([0] * (int(attrs.size) - len(data)))
+ 
+             attrs.size = data.buffer_info()[1] * data.itemsize
+ 
+@@ -1132,12 +1136,12 @@
+                 else:
+                     physical_objects[pbase, pend] = [obj.attrs.abs_name()]
+ 
+-        print "VIRTUAL:"
++        print("VIRTUAL:")
+         for (base, end), name in sorted(virtual_objects.items()):
+-            print "  <%08x:%08x> %s" % (base, end, name)
++            print("  <%08x:%08x> %s" % (base, end, name))
+ 
+-        print "PHYSICAL:"
++        print("PHYSICAL:")
+         for (base, end), names in sorted(physical_objects.items()):
+             for name in names:
+-                print "  <%08x:%08x> %s" % (base, end, name)
++                print("  <%08x:%08x> %s" % (base, end, name))
+ 
+--- a/tools/pyelf/weaver/kernel_elf.py
++++ b/tools/pyelf/weaver/kernel_elf.py
+@@ -105,7 +105,7 @@
+ 
+     def get_struct_size(wordsize):
+         """Return the binary size of this structure."""
+-        return wordsize / 8  * MemoryDescriptor.MAX_FIELDS
++        return int(wordsize / 8) * MemoryDescriptor.MAX_FIELDS
+ 
+     get_struct_size = staticmethod(get_struct_size)
+     
+@@ -212,7 +212,7 @@
+ 
+     def get_struct_size(wordsize):
+         """Return the binary size of this structure."""
+-        return (wordsize / 8  * MemorySet.MAX_FIELDS) + \
++        return (int(wordsize / 8) * MemorySet.MAX_FIELDS) + \
+                (MemorySet.MEMDESC_MAX * MemoryDescriptor.get_struct_size(wordsize))
+ 
+     get_struct_size = staticmethod(get_struct_size)
+@@ -257,7 +257,7 @@
+ 
+         _num_descs = \
+                    struct.unpack(endianess + format_str,
+-                                 data[0:(wordsize / 8) * self.MAX_FIELDS])
++                                 data[0:int(wordsize / 8) * self.MAX_FIELDS])
+ 
+         mem_map_start = (wordsize / 8) * self.MAX_FIELDS
+ 
+@@ -280,9 +280,9 @@
+         num_descs = len(self._descs)
+ 
+         if num_descs > self.MEMDESC_MAX:
+-            raise MergeError, "%d memory descriptors " \
++            raise MergeError( "%d memory descriptors " \
+             "are being added to the kernel config but the maximum is %d." % \
+-            (num_descs, self.MEMDESC_MAX)
++            (num_descs, self.MEMDESC_MAX))
+ 
+ 
+         data = ByteArray(struct.pack(endianess + format_str,
+@@ -347,7 +347,7 @@
+ 
+     def get_struct_size(wordsize):
+         """Return the binary size of this structure."""
+-        return wordsize / 8  * 3
++        return int(wordsize / 8) * 3
+ 
+     get_struct_size = staticmethod(get_struct_size)
+ 
+@@ -394,7 +394,7 @@
+             format_str = "QQQ"
+ 
+         return ByteArray(struct.pack(endianess + format_str,
+-                                     self._phys, self._virt, self._size))
++                                     int(self._phys), int(self._virt), int(self._size)))
+ 
+     def __repr__(self):
+         return "V: 0x%x P: 0x%x S: 0x%x" % (self._virt, self._phys, self._size)
+@@ -410,7 +410,7 @@
+ 
+     def get_struct_size(wordsize):
+         """Return the binary size of this structure."""
+-        return (wordsize / 8  * RootServerDescriptor.MAX_FIELDS) + \
++        return (int(wordsize / 8) * RootServerDescriptor.MAX_FIELDS) + \
+                (RootServerDescriptor.RS_MAX_MAPS *
+                 Mapping.get_struct_size(wordsize))
+ 
+@@ -442,7 +442,7 @@
+ 
+         _entry, _stack, _num_maps = \
+                 struct.unpack(endianess + format_str,
+-                              data[0:(wordsize / 8) * self.MAX_FIELDS]) 
++                              data[0: int(wordsize / 8) * self.MAX_FIELDS]) 
+ 
+         self._entry = _entry
+         self._stack = _stack
+@@ -467,13 +467,13 @@
+         num_mappings = len(self._mappings)
+ 
+         if num_mappings > self.RS_MAX_MAPS:
+-            raise MergeError, "Error: %d rootserver mappings " \
++            raise MergeError( "Error: %d rootserver mappings " \
+             "are being added to the kernel config but the maximum is %d." % \
+-            (num_mappings, self.RS_MAX_MAPS)
++            (num_mappings, self.RS_MAX_MAPS))
+ 
+ 
+-        data = ByteArray(struct.pack(endianess + format_str,
+-                                     self._entry, self._stack, num_mappings))
++        data = ByteArray(struct.pack(endianess + format_str, 
++                                     self._entry, int(self._stack), num_mappings))
+ 
+         for i in range(num_mappings):
+             data += self._mappings[i].todata(wordsize, endianess)
+@@ -546,14 +546,14 @@
+ 
+         _version, _max_spaces, _max_mutexes, _max_caps = \
+                   struct.unpack(self._format_str,
+-                                data[0 : (section.wordsize / 8) *
++                                data[0 : int(section.wordsize / 8) *
+                                      self.MAX_FIELDS])
+ 
+         if _version != self.STRUCTURE_VERSION:
+-            raise MergeError, \
++            raise MergeError( \
+                   'Unsupported kernel configuration structure ' \
+                   'version.  Expected version %d found %d.' % \
+-                  (self.STRUCTURE_VERSION, _version)
++                  (self.STRUCTURE_VERSION, _version))
+ 
+         self._version    = _version
+         self._max_spaces = _max_spaces
+@@ -562,7 +562,7 @@
+         self._rootserver = RootServerDescriptor()
+         self._memory_set = MemorySet()
+ 
+-        start = (section.wordsize / 8) * self.MAX_FIELDS
++        start = int(section.wordsize / 8) * self.MAX_FIELDS
+         self._rootserver.fromdata(section.wordsize, section.endianess,
+                                   data[start:start +
+                                        RootServerDescriptor.get_struct_size(section.wordsize)])
+@@ -582,8 +582,8 @@
+         elif parameter == "root_caps":
+             self._max_caps = value
+         else:
+-            raise MergeError, \
+-                  'Error: unknown config parameter "%s"' % parameter
++            raise MergeError( \
++                  'Error: unknown config parameter "%s"' % parameter)
+ 
+     def set_entry(self, entry_point):
+         """Set the entry point for the root server."""
+--- a/tools/pyelf/weaver/kernel.py
++++ b/tools/pyelf/weaver/kernel.py
+@@ -165,7 +165,7 @@
+         kconfig_sect = elf.find_section_named(self.section)
+ 
+         if kconfig_sect is None:
+-            raise MergeError, "Couldn't find roinit section"
++            raise MergeError( "Couldn't find roinit section")
+ 
+         kconfig_sect = kernel_elf.KernelConfigurationSection(kconfig_sect)
+ 
+--- a/tools/pyelf/weaver/kernel_xml.py
++++ b/tools/pyelf/weaver/kernel_xml.py
+@@ -102,10 +102,10 @@
+         if may_not_exist:
+             return None
+         else:
+-            raise MergeError, \
++            raise MergeError( \
+                   'Symbol "%s" not found in kernel ELF file.  ' \
+                   'Needed for XIP support.' % \
+-                  (symbol)
++                  (symbol))
+ 
+     address = sym.value
+     bytes   = sym.size
+@@ -151,8 +151,8 @@
+     #elf = PreparedElfFile(filename=kernel_el.file)
+ 
+     if elf.elf_type != ET_EXEC:
+-        raise MergeError, \
+-              "All the merged ELF files must be of EXEC type."
++        raise MergeError( \
++              "All the merged ELF files must be of EXEC type.")
+ 
+     image.set_kernel(elf)
+     segs = collect_elf_segments(elf, image.KERNEL, segment_els,
+--- a/tools/pyelf/weaver/machine.py
++++ b/tools/pyelf/weaver/machine.py
+@@ -74,19 +74,19 @@
+                         for (name, mem) in mem_map.items()
+                         for (base, size, mem_type) in mem])
+ 
+-    highest_memory = -1L
++    highest_memory = -1
+     highest = ()
+ 
+     # Check for overlaps and give a meaningful error message if there
+     # is one.
+     for (base, size, name) in mem_array:
+         if base <= highest_memory:
+-            raise MergeError, \
++            raise MergeError( \
+                   'The machine memory region 0x%x--0x%x (size 0x%x) in ' \
+                   '"%s" overlaps with region 0x%x--0x%x (size 0x%x) in ' \
+                   '"%s".' % (base, base + size - 1, size, name,
+                              highest[0], highest[0] + highest[1] -1,
+-                             highest[1], highest[2])
++                             highest[1], highest[2]))
+         else:
+             highest_memory  = base + size - 1
+             highest = (base, size, name)
+@@ -155,7 +155,7 @@
+         try:
+             val = self.cache_policies[attr]
+         except:
+-            raise MergeError, ("Unknown cache policy: '%s'." % attr)
++            raise MergeError  ("Unknown cache policy: '%s'." % attr)
+ 
+         return val
+ 
+@@ -179,22 +179,22 @@
+ 
+     def get_virtual_memory(self, name):
+         """Get the names list of virtual memory ranges."""
+-        if not self.virtual_mem.has_key(name):
+-            raise MergeError, "Virtual memory called %s not found." % name
++        if name not in self.virtual_mem:
++            raise MergeError("Virtual memory called %s not found." % name)
+ 
+         return self.virtual_mem[name]
+ 
+     def get_physical_memory(self, name):
+         """Get the names list of physical memory ranges."""
+         # First look for the physical memory in devices...
+-        for dev in self.physical_device.itervalues():
++        for dev in self.physical_device.values():
+             pm = dev.get_physical_mem(name)
+             if pm is not None:
+                 return pm
+ 
+         # ... then try to look for it in the machine
+-        if not self.physical_mem.has_key(name):
+-            raise MergeError, "Physical memory called %s not found." % name
++        if name not in self.physical_mem:
++            raise MergeError( "Physical memory called %s not found." % name)
+ 
+         return self.physical_mem[name]
+ 
+--- a/tools/pyelf/weaver/machine_xml.py
++++ b/tools/pyelf/weaver/machine_xml.py
+@@ -139,8 +139,8 @@
+         """Map the string memory type to a memory descriptor type."""
+         mem_type = getattr(region_el, "type", "conventional")
+ 
+-        if not MEMDESC_DICT.has_key(mem_type):
+-            raise MergeError, "Unknown memory type %s" % mem_type
++        if mem_type not in MEMDESC_DICT:
++            raise MergeError( "Unknown memory type %s" % mem_type)
+ 
+         return MEMDESC_DICT[mem_type]
+ 
+@@ -159,7 +159,7 @@
+     dev_ns = namespace.root.get_namespace("dev")
+ 
+     if dev_ns is None:
+-        raise MergeError, "Device namespace does not exist!"
++        raise MergeError( "Device namespace does not exist!")
+ 
+     for d_el in machine_el.find_children("phys_device"):
+         if not ignore_name.match(d_el.name):
+--- a/tools/pyelf/weaver/main.py
++++ b/tools/pyelf/weaver/main.py
+@@ -66,15 +66,15 @@
+ 
+ def print_basic_usage():
+     """Print the basic usage message"""
+-    print "Elfweaver -- a tool for manipulating ELF files."
+-    print
+-    print "Basic commands:"
+-    print
+-    print "   elfweaver print           Print display an ELF."
+-    print "   elfweaver merge           Merge a set of files into one ELF."
+-    print "   elfweaver modify          Modify attributes of an ELF."
+-    print 
+-    print "   elfweaver <cmd> -H        Obtain help on a specific command."
++    print("Elfweaver -- a tool for manipulating ELF files.")
++    print("")
++    print("Basic commands:")
++    print("")
++    print("   elfweaver print           Print display an ELF.")
++    print("   elfweaver merge           Merge a set of files into one ELF.")
++    print("   elfweaver modify          Modify attributes of an ELF.")
++    print("")
++    print("   elfweaver <cmd> -H        Obtain help on a specific command.")
+ 
+ __commands__ = {
+     "print" : print_cmd,
+--- a/tools/pyelf/weaver/merge.py
++++ b/tools/pyelf/weaver/merge.py
+@@ -156,7 +156,7 @@
+                       help="After merging, print the next available " \
+                       "physical address in each pool.") 
+     parser.add_option('-k', "--kernel-heap-size", dest="kernel_heap_size",
+-                      action="store", default="0x0L",
++                      action="store", default="0x0",
+                       help="Specify the size of the kernel heap, " \
+                       "overridding the value in the specfile.") 
+     parser.add_option('-i', "--ignore", dest="ignore_name",
+@@ -198,11 +198,11 @@
+ 
+         spec_file = args[0]
+         merge(spec_file, options)
+-    except EzXMLError, text:
+-        print >> sys.stderr, text
++    except (EzXMLError) as text:
++        print(text,file=sys.stderr)
+         sys.exit(1)
+-    except MergeError, text:
+-        print >> sys.stderr, 'Error: %s' % text
++    except (MergeError) as text:
++        print('Error: %s' % text, file=sys.stderr)
+         sys.exit(1)
+ 
+     return 0
+--- a/tools/pyelf/weaver/modify.py
++++ b/tools/pyelf/weaver/modify.py
+@@ -79,9 +79,9 @@
+                 else:
+                     segment.paddr += offset
+             else:
+-                print "don't know about field_designator %s" % field_designator[1]
++                print("don't know about field_designator %s" % field_designator[1])
+     else:
+-        raise UnknownField, "Don't know about field %s" % field_designator[0]
++        raise UnknownField( "Don't know about field %s" % field_designator[0])
+ 
+ def change(elf, field_designator, old, new):
+     if field_designator[0] == "segment":
+@@ -90,10 +90,10 @@
+                 if segment.paddr == old:
+                     segment.paddr = new
+     else:
+-        raise UnknownField, "Don't know about field %s" % field_designator[0]
++        raise UnknownField( "Don't know about field %s" % field_designator[0])
+ 
+ def merge_sections(elf, name):
+-    print "Merging elf sections", name
++    print("Merging elf sections", name)
+     base_section = None
+     for section in elf.sections[:]:
+         if base_section:
+@@ -146,13 +146,13 @@
+         absolute = True
+         if offset.startswith("+") or offset.startswith("-"):
+             absolute = False
+-        offset = long(offset, 0)
++        offset = int(offset, 0)
+         field_desc = field_desc.split(".")
+         adjust(elf, field_desc, offset, absolute)
+ 
+     for (field_desc, mod) in options.change:
+         field_desc = field_desc.split(".")
+-        (old, new) = [long(x, 0) for x in mod.split("=")]
++        (old, new) = [int(x, 0) for x in mod.split("=")]
+         change(elf, field_desc, old, new)
+             
+     for section_name in options.merge_sections:
+--- a/tools/pyelf/weaver/namespace.py
++++ b/tools/pyelf/weaver/namespace.py
+@@ -103,7 +103,7 @@
+         name isn't already in use.
+         """
+         if name in self.symbols:
+-            raise MergeError, 'Object name "%s" already in use.' % name
++            raise MergeError( 'Object name "%s" already in use.' % name)
+ 
+         self.symbols[name] = the_object
+ 
+--- a/tools/pyelf/weaver/pools.py
++++ b/tools/pyelf/weaver/pools.py
+@@ -146,7 +146,7 @@
+                                   self.WINDOW_SIZE)
+                 holes.append((base, size))
+             else:
+-                assert len(holes) is not 0
++                assert len(holes) != 0
+                 window_size = align_up(size, self.WINDOW_SIZE)
+ 
+                 free_mem = \
+@@ -169,7 +169,7 @@
+ 
+         # Clean up
+         if hole_base is not None:
+-            assert len(holes) is not 0
++            assert len(holes) != 0
+             free_mem = \
+                      pool.mark_window(hole_base, window_size,
+                                       holes)
+@@ -302,12 +302,12 @@
+                 continue
+             if (base >= alloc_base and base <= alloc_end) or \
+                    (end >= alloc_base and end <= alloc_end):
+-                raise MergeError, \
++                raise MergeError( \
+                       '%s: Parts of "%s" (0x%x-0x%x, size 0x%x) overlap with ' \
+                       '"%s" (0x%x-0x%x, size 0x%x).' % \
+                       (self.title, name, base, base + size - 1, size,
+                        alloc_name, alloc_base, alloc_end,
+-                       alloc_end - alloc_base + 1) 
++                       alloc_end - alloc_base + 1))
+ 
+     def __add(self, name, base, end, can_match_exact = False):
+         """
+@@ -382,10 +382,10 @@
+         self.allocated_virtual.set_alloc_name(range_name)
+ 
+         if name is None:
+-            raise MergeError, "No virtual pool/zone specified."
++            raise MergeError( "No virtual pool/zone specified.")
+ 
+-        if not self.virtual_pools.has_key(name):
+-            raise MergeError, 'Virtual pool/zone "%s" not found.' % name
++        if name not in self.virtual_pools:
++            raise MergeError( 'Virtual pool/zone "%s" not found.' % name)
+ 
+         if isinstance(self.virtual_pools[name], Zone):
+             self.virtual_pools[name].prime_direct([(base, size)], pools)
+@@ -408,8 +408,8 @@
+                 try:
+                     if alloc.mark(base, size):
+                         marked = True
+-                except AllocatorException, text:
+-                    raise MergeError, 'Virtual pool "%s": %s' % (name, text)
++                except( AllocatorException) as text:
++                    raise MergeError( 'Virtual pool "%s": %s' % (name, text))
+ 
+             if not marked:
+                 self.allocated_virtual.check(range_name, base, size,
+@@ -432,8 +432,8 @@
+                 try:
+                     if alloc.mark(base, size):
+                         marked = True
+-                except AllocatorException, text:
+-                    raise MergeError, 'Physical pool "%s": %s' % (name, text)
++                except AllocatorException as text:
++                    raise MergeError( 'Physical pool "%s": %s' % (name, text))
+ 
+             if not marked:
+                 self.allocated_physical.check(range_name, base, size,
+@@ -446,47 +446,47 @@
+         Allocate memory for a group of items from a virtual pool.
+         """
+         if name is None:
+-            raise MergeError, "No virtual pool/zone specified."
++            raise MergeError( "No virtual pool/zone specified.")
+ 
+-        if not self.virtual_pools.has_key(name):
+-            raise MergeError, 'Virtual pool/zone "%s" not found.' % name
++        if name not in self.virtual_pools:
++            raise MergeError( 'Virtual pool/zone "%s" not found.' % name)
+ 
+         try:
+             self.virtual_pools[name].alloc(group)
+-        except AllocatorException, text:
+-            raise MergeError, 'Physical pool "%s": %s' % (name, text)
++        except AllocatorException as text:
++            raise MergeError( 'Physical pool "%s": %s' % (name, text))
+ 
+     def alloc_physical(self, name, group):
+         """
+         Allocate memory for a group of items from a physical pool.
+         """
+         if name is None:
+-            raise MergeError, "No physical pool/zone specified."
++            raise MergeError( "No physical pool/zone specified.")
+ 
+-        if not self.physical_pools.has_key(name):
+-            raise MergeError, 'Physical pool/zone "%s" not found.' % name
++        if name not in self.physical_pools:
++            raise MergeError( 'Physical pool/zone "%s" not found.' % name)
+ 
+         try:
+             self.physical_pools[name].alloc(group)
+-        except AllocatorException, text:
+-            raise MergeError, 'Physical pool "%s": %s' % (name, text)
++        except AllocatorException as text:
++            raise MergeError( 'Physical pool "%s": %s' % (name, text))
+ 
+     def is_physical_direct(self, name):
+         """
+         Return whether or not the physical pool is a direct pool.
+         """
+         if name is None:
+-            raise MergeError, "No physical pool/zone specified."
++            raise MergeError( "No physical pool/zone specified.")
+ 
+-        if not self.physical_pools.has_key(name):
+-            raise MergeError, 'Physical pool/zone "%s" not found.' % name
++        if name not in self.physical_pools:
++            raise MergeError( 'Physical pool/zone "%s" not found.' % name)
+ 
+         return self.physical_pools[name].is_direct()
+ 
+     def new_virtual_pool(self, name, machine):
+         """Create a new virtual pool."""
+-        if self.virtual_pools.has_key(name):
+-            raise MergeError, 'Virtual pool "%s" already exists.' % name
++        if name in self.virtual_pools:
++            raise MergeError( 'Virtual pool "%s" already exists.' % name)
+ 
+         alloc = Pool(name, machine.min_page_size(),
+                      self.allocated_virtual)
+@@ -498,8 +498,8 @@
+         """Create a new zone."""
+         # Zones and virtual pools share the same address space, so they share
+         # the same namespace.
+-        if self.virtual_pools.has_key(name):
+-            raise MergeError, 'Zone  "%s" already exists.' % name
++        if name in self.virtual_pools:
++            raise MergeError( 'Zone  "%s" already exists.' % name)
+ 
+         alloc = Zone(name, machine.min_page_size(),
+                      self.allocated_virtual)
+@@ -509,8 +509,8 @@
+ 
+     def new_physical_pool(self, name, machine):
+         """Create a new physical pool."""
+-        if self.physical_pools.has_key(name):
+-            raise MergeError, 'Physical pool "%s" already exists.' % name
++        if name in self.physical_pools:
++            raise MergeError( 'Physical pool "%s" already exists.' % name)
+ 
+         alloc = Pool(name, machine.min_page_size(),
+                      self.allocated_physical)
+@@ -559,5 +559,5 @@
+         The pools are sorted to give a consistent output.
+         """
+         for (name, alloc) in sorted(self.physical_pools.items()):
+-            print "%s: 0x%x" % (name, alloc.next_avail())
++            print("%s: 0x%x" % (name, alloc.next_avail()))
+ 
+--- a/tools/pyelf/weaver/prog_pd_xml.py
++++ b/tools/pyelf/weaver/prog_pd_xml.py
+@@ -132,7 +132,7 @@
+                    namespace_thread_name = None):
+     """Collect the attributes of a thread element."""
+     if entry is None:
+-        raise MergeError, "No entry point specified for thread %s" % name
++        raise MergeError( "No entry point specified for thread %s" % name)
+ 
+     # el can be a program element or a thread element.
+     if name is None:
+@@ -213,7 +213,7 @@
+                               cap_name = cap_name, attach = attach)
+             else:
+                 if not hasattr(entry_el, 'cap'):
+-                    raise MergeError, 'Value or cap attribute required.'
++                    raise MergeError( 'Value or cap attribute required.')
+ 
+                 cap_name = entry_el.cap
+ 
+@@ -225,7 +225,7 @@
+                 cap = env.scope.lookup(cap_name)
+ 
+                 if cap is None:
+-                    raise MergeError, "Cap %s not found." % cap_name
++                    raise MergeError( "Cap %s not found." % cap_name)
+ 
+                 if isinstance(cap, AliasCap):
+                     # Always add the AliasCap before any implied object
+@@ -315,7 +315,7 @@
+     elf = UnpreparedElfFile(filename=program_el.file)
+ 
+     if elf.elf_type != ET_EXEC:
+-        raise MergeError, "All the merged ELF files must be of EXEC type."
++        raise MergeError( "All the merged ELF files must be of EXEC type.")
+ 
+     bootinfo.add_elf_info(name = program_el.file,
+                           elf_type = image.PROGRAM,
+@@ -382,7 +382,7 @@
+     dev_ns = namespace.root.get_namespace("dev")
+ 
+     if dev_ns is None:
+-        raise MergeError, "Device namespace does not exist!"
++        raise MergeError( "Device namespace does not exist!")
+ 
+     for v_el in program_el.find_children('virt_device'):
+         virt_dev = pd.add_virt_dev(v_el.name, program_el.name, pd,
+@@ -519,7 +519,7 @@
+         elf = PreparedElfFile(filename=pd_el.file)
+ 
+         if elf.elf_type != ET_EXEC:
+-            raise MergeError, "All the merged ELF files must be of EXEC type."
++            raise MergeError( "All the merged ELF files must be of EXEC type.")
+ 
+         segment_els = pd_el.find_all_children("segment")
+         segs = collect_elf_segments(elf,
+--- a/tools/pyelf/weaver/rootprogram_xml.py
++++ b/tools/pyelf/weaver/rootprogram_xml.py
+@@ -92,7 +92,7 @@
+         if may_not_exist:
+             return None
+         else:
+-            print "warn: cannot find symbol ", symbol
++            print("warn: cannot find symbol ", symbol)
+             return None
+ 
+     address = sym.get_value()
+@@ -132,7 +132,7 @@
+     elf = UnpreparedElfFile(filename=root_program_el.file)
+ 
+     if elf.elf_type != ET_EXEC:
+-        raise MergeError, "All the merged ELF files must be of EXEC type."
++        raise MergeError( "All the merged ELF files must be of EXEC type.")
+ 
+     # Record the entry point of the root program so that the kernel
+     # can start it.
+@@ -230,7 +230,7 @@
+         elf = UnpreparedElfFile(filename=extension_el.file)
+ 
+         if elf.elf_type != ET_EXEC:
+-            raise MergeError, "All the merged ELF files must be of EXEC type."
++            raise MergeError( "All the merged ELF files must be of EXEC type.")
+ 
+         segment_els = extension_el.find_children("segment")
+         segs = collect_elf_segments(elf,
+--- a/tools/pyelf/weaver/segments_xml.py
++++ b/tools/pyelf/weaver/segments_xml.py
+@@ -101,14 +101,14 @@
+     of a symbol.
+     """
+     # FIXME: depending on the type of start is not so nice
+-    if start is not None and not isinstance(start, (int, long)):
+-        if re.match("\s*0[xX][0-9a-fA-F]+$", start):
++    if start is not None and not isinstance(start, int):
++        if re.match(r"\s*0[xX][0-9a-fA-F]+$", start):
+             start = long(start, 0)
+         else:
+             sym = elf.find_symbol(start)
+ 
+             if not sym:
+-                raise MergeError, "Symbol %s not found" % (start)
++                raise MergeError( "Symbol %s not found" % (start))
+ 
+             start = sym.value
+ 
+@@ -139,7 +139,7 @@
+ 
+ def attach_to_elf_flags(attach):
+     """Convert the attach 'rwx' string to ELF flags."""
+-    flags = 0L
++    flags = 0
+ 
+     if attach.find('r') != -1:
+         flags |= PF_R
+@@ -157,11 +157,11 @@
+     VALID_PAGERS = ("none", "default", "memload")
+ 
+     if pager not in VALID_PAGERS:
+-        raise MergeError, \
++        raise MergeError( \
+               '"%s" is not a recognised pager.  Valid values are %s.' % \
+-              (pager, VALID_PAGERS)
++              (pager, VALID_PAGERS))
+ 
+-    if pager is 'none':
++    if pager == 'none':
+         pager = None
+ 
+     return pager
+@@ -169,32 +169,32 @@
+ def collect_patches(elf, patch_els, filename, image):
+     """Process 'patch' elements."""
+     for patch_el in patch_els:
+-        if re.match("\s*0[Xx][0-9a-fA-F]+L?$", patch_el.address):
++        if re.match(r"\s*0[Xx][0-9a-fA-F]+L?$", patch_el.address):
+             # convert from a string hex representation to a number 
+             patch_el.address = long(patch_el.address, 0)
+             # ensure we know how big it is
+             if not hasattr(patch_el, "bytes"):
+-                raise MergeError, \
++                raise MergeError( \
+                       "Bytes attribute must be specified if patch " \
+-                      "address is a number." 
++                      "address is a number.")
+         else:
+             # look up address of symbol
+             name = patch_el.address
+             sym = elf.find_symbol(patch_el.address)
+ 
+             if not sym:
+-                raise MergeError, \
+-                      "symbol %s not found in %s" % (patch_el.address, filename)
++                raise MergeError( \
++                      "symbol %s not found in %s" % (patch_el.address, filename))
+             patch_el.address = sym.value
+ 
+             if not hasattr(patch_el, "bytes"):
+                 # set the size
+                 patch_el.bytes = sym.get_size()
+                 if patch_el.bytes == 0:
+-                    raise MergeError, \
++                    raise MergeError( \
+                           "Elf file does not specify size of symbol " \
+                           "%s, please specify 'bytes' in this patch " \
+-                          "element" % name
++                          "element" % name)
+         
+         image.patch(patch_el.address, patch_el.bytes,
+                                  patch_el.value)
+@@ -212,9 +212,9 @@
+     elf_seg_names_txt = elf_seg_names.values()
+     for seg_name in shash.keys():
+         if seg_name not in elf_seg_names_txt:
+-            raise MergeError, \
++            raise MergeError( \
+                   '%s: Cannot find segment "%s" in the ELF file. ' \
+-                  'Valid values are %s' % (namespace.abs_name('.'), seg_name, elf_seg_names_txt)
++                  'Valid values are %s' % (namespace.abs_name('.'), seg_name, elf_seg_names_txt))
+ 
+     collected_segments = []
+ 
+@@ -239,12 +239,12 @@
+                 attrs.align = machine.min_page_size()
+                 attrs.phys_addr = segment.paddr
+ 
+-        if elf_seg_names.has_key(i):
++        if i in elf_seg_names:
+             seg_name = elf_seg_names[i]
+ 
+             attrs.name = seg_name
+ 
+-            if shash.has_key(seg_name):
++            if seg_name in shash:
+                 segment_el = shash[seg_name]
+ 
+                 attrs.phys_addr = getattr(segment_el, 'phys_addr', attrs.phys_addr)
+--- a/tools/pyelf/zelf
++++ b/tools/pyelf/zelf
+@@ -143,7 +143,7 @@
+ 
+         # Split out each string.
+         strings = [x + '\x00' for x in
+-                   data.tostring().split('\x00')[:-1]]
++                   str(data,"iso-8859-1").split('\x00')[:-1]]
+         
+         # Create a zeroed string section.
+         out_data = ByteArray('\0' * string_section.get_size())
