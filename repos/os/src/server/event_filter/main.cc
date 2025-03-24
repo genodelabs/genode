@@ -114,20 +114,18 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 			bool has_name(Name const &name) const { return _name == name; }
 
-			/**
-			 * Return ROM content as XML
-			 *
-			 * \throw Include_unavailable
-			 */
-			Xml_node xml(Include_accessor::Type const &type) const
+			void with_xml(Include_accessor::Type const &type,
+			              auto const &fn, auto const &missing_fn) const
 			{
-				Xml_node const node = _dataspace.xml();
-				if (node.type() == type)
-					return node;
+				Xml_node const &node = _dataspace.xml();
+				if (node.type() == type) {
+					fn(node);
+					return;
+				}
 
 				warning("unexpected <", node.type(), "> node " "in included "
 				        "ROM \"", _name, "\", expected, <", type, "> node");
-				throw Include_unavailable();
+				missing_fn();
 			}
 		};
 
@@ -172,7 +170,8 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 					Rom &rom = *new (_alloc) Rom(_registry, _env, name, _sigh);
 
 					/* \throw Include_unavailable on mismatching top-level node type */
-					rom.xml(type);
+					rom.with_xml(type, [] (Xml_node const &) { },
+					                   [] { throw Include_unavailable(); });
 				}
 				catch (...) { throw Include_unavailable(); }
 			}
@@ -187,7 +186,9 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 			if (!matching_rom)
 				throw Include_unavailable();
 
-			fn.apply(matching_rom->xml(type));
+			matching_rom->with_xml(type,
+				[&] (Xml_node const &node) { fn.apply(node); },
+				[&] { throw Include_unavailable(); });
 		}
 	};
 
@@ -201,7 +202,7 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 	 *
 	 * \throw Source::Invalid_config
 	 */
-	Source &create_source(Source::Owner &owner, Xml_node node) override
+	Source &create_source(Source::Owner &owner, Xml_node const &node) override
 	{
 		/*
 		 * Guard for the protection against too deep recursions while
@@ -288,10 +289,10 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 		 * \throw Source::Invalid_config
 		 * \throw Genode::Out_of_memory
 		 */
-		Output(Xml_node output, Source::Factory &factory)
+		Output(Xml_node const &output, Source::Factory &factory)
 		:
 			_owner(factory),
-			_top_level(factory.create_source(_owner, Source::input_sub_node(output)))
+			_top_level(factory.create_source_for_sub_node(_owner, output))
 		{ }
 
 		void generate(Source::Sink &destination) { _top_level.generate(destination); }
@@ -323,7 +324,7 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 	void _apply_config()
 	{
-		Xml_node const config = _config.xml();
+		Xml_node const &config = _config.xml();
 
 		_event_root.apply_config(config);
 

@@ -81,7 +81,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 
 	public:
 
-		Libusb_file_system(Vfs::Env &env, Xml_node config)
+		Libusb_file_system(Vfs::Env &env, Xml_node const &config)
 		:
 			Single_file_system(Vfs::Node_type::CONTINUOUS_FILE, name(),
 			                   Vfs::Node_rwx::ro(), config),
@@ -113,7 +113,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 
 struct Libusb_factory : Vfs::File_system_factory
 {
-	Vfs::File_system *create(Vfs::Env &env, Xml_node node) override
+	Vfs::File_system *create(Vfs::Env &env, Xml_node const &node) override
 	{
 		return new (env.alloc()) Libusb_file_system(env, node);
 	}

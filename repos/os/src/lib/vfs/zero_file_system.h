@@ -24,7 +24,7 @@ struct Vfs::Zero_file_system : Single_file_system
 {
 	Genode::size_t const _size;
 
-	Zero_file_system(Vfs::Env&, Genode::Xml_node config)
+	Zero_file_system(Vfs::Env&, Genode::Xml_node const &config)
 	:
 		Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 		                   Node_rwx::rw(), config),

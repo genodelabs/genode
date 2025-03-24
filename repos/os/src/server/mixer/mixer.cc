@@ -147,7 +147,7 @@ class Audio_out::Mixer
 			bool const sessions;
 			bool const changes;
 
-			Verbose(Genode::Xml_node config)
+			Verbose(Genode::Xml_node const &config)
 			:
 				sessions(config.attribute_value("verbose_sessions", false)),
 				changes(config.attribute_value("verbose_changes", false))

@@ -38,7 +38,7 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 
 		static Permit_any_rule *
 		_read_permit_any_rule(Domain_dict            &domains,
-		                      Genode::Xml_node const  node,
+		                      Genode::Xml_node const &node,
 		                      Genode::Allocator      &alloc);
 
 		/*
@@ -68,7 +68,7 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 		}
 
 		[[nodiscard]] bool finish_construction(Domain_dict            &domains,
-		                                       Genode::Xml_node const  node,
+		                                       Genode::Xml_node const &node,
 		                                       Genode::Cstring  const &protocol,
 		                                       Configuration          &config,
 		                                       Domain           const &domain);

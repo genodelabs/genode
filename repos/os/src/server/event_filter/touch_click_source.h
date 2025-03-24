@@ -85,11 +85,11 @@ class Event_filter::Touch_click_source : public Source, Source::Filter
 
 		static char const *name() { return "touch-click"; }
 
-		Touch_click_source(Owner &owner, Xml_node config, Source::Factory &factory)
+		Touch_click_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
 		:
 			Source(owner),
 			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config)))
+			_source(factory.create_source_for_sub_node(_owner, config))
 		{ }
 
 		void generate(Sink &destination) override

@@ -438,12 +438,12 @@ struct Genode::Directory : Noncopyable, Interface
 struct Genode::Root_directory : public Vfs::Simple_env,
                                 public Directory
 {
-	Root_directory(Genode::Env &env, Allocator &alloc, Xml_node config)
+	Root_directory(Genode::Env &env, Allocator &alloc, Xml_node const &config)
 	:
 		Vfs::Simple_env(env, alloc, config), Directory((Vfs::Simple_env&)*this)
 	{ }
 
-	void apply_config(Xml_node config) { root_dir().apply_config(config); }
+	void apply_config(Xml_node const &config) { root_dir().apply_config(config); }
 };
 
 

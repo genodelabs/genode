@@ -17,7 +17,7 @@
 using namespace Genode;
 
 
-Microseconds Genode::read_sec_attr(Xml_node const  node,
+Microseconds Genode::read_sec_attr(Xml_node const &node,
                                    char     const *name,
                                    uint64_t const  default_sec)
 {

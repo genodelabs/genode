@@ -48,7 +48,7 @@ class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 		         Port_allocator         &tcp_port_alloc,
 		         Port_allocator         &udp_port_alloc,
 		         Port_allocator         &icmp_port_alloc,
-		         Genode::Xml_node const  node,
+		         Genode::Xml_node const &node,
 		         bool             const  verbose);
 
 		Nat_rule &find_by_domain(Domain &domain);

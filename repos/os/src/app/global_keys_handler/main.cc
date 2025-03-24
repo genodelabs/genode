@@ -71,7 +71,7 @@ struct Global_keys_handler::Main
 
 		bool _state = false;
 
-		Bool_state(Registry<Bool_state> &registry, Xml_node node)
+		Bool_state(Registry<Bool_state> &registry, Xml_node const &node)
 		:
 			_element(registry, *this),
 			_name(node.attribute_value("name", Name())),
@@ -80,7 +80,7 @@ struct Global_keys_handler::Main
 
 		bool enabled() const { return _state; }
 
-		void apply_change(Xml_node event)
+		void apply_change(Xml_node const &event)
 		{
 			/* modify state of matching name only */
 			if (event.attribute_value("bool", Bool_state::Name()) != _name)
@@ -116,7 +116,7 @@ struct Global_keys_handler::Main
 
 			Bool_state::Name const _name;
 
-			Bool_condition(Registry<Bool_condition> &registry, Xml_node node)
+			Bool_condition(Registry<Bool_condition> &registry, Xml_node const &node)
 			:
 				_element(registry, *this),
 				_name(node.attribute_value("name", Bool_state::Name()))
@@ -143,7 +143,7 @@ struct Global_keys_handler::Main
 
 			Domain const _domain;
 
-			Hover_condition(Registry<Hover_condition> &registry, Xml_node node)
+			Hover_condition(Registry<Hover_condition> &registry, Xml_node const &node)
 			:
 				_element(registry, *this),
 				_domain(node.attribute_value("domain", Domain()))
@@ -182,7 +182,7 @@ struct Global_keys_handler::Main
 		Report(Env &env, Allocator &alloc,
 		       Registry<Report> &reports,
 		       Registry<Bool_state> const &bool_states,
-		       Xml_node node)
+		       Xml_node const &node)
 		:
 			_alloc(alloc),
 			_name(node.attribute_value("name", Name())),
@@ -194,10 +194,10 @@ struct Global_keys_handler::Main
 		{
 			_reporter.enabled(true);
 
-			node.for_each_sub_node("bool", [&] (Xml_node bool_node) {
+			node.for_each_sub_node("bool", [&] (Xml_node const &bool_node) {
 				new (alloc) Bool_condition(_bool_conditions, bool_node); });
 
-			node.for_each_sub_node("hovered", [&] (Xml_node hovered) {
+			node.for_each_sub_node("hovered", [&] (Xml_node const &hovered) {
 				new (alloc) Hover_condition(_hover_conditions, hovered); });
 
 			if (_delay_ms) {
@@ -301,9 +301,7 @@ void Global_keys_handler::Main::_apply_input_events(unsigned num_ev,
 		/* ignore key combinations */
 		if (_key_cnt > 1) continue;
 
-		using Xml_node = Xml_node;
-
-		auto lambda = [&] (Xml_node node) {
+		auto lambda = [&] (Xml_node const &node) {
 
 			if (!node.has_type("press") && !node.has_type("release"))
 				return;
@@ -344,7 +342,7 @@ void Global_keys_handler::Main::_handle_config()
 {
 	_config_ds.update();
 
-	Xml_node const config = _config_ds.xml();
+	Xml_node const &config = _config_ds.xml();
 
 	/*
 	 * Import bool states
@@ -352,7 +350,7 @@ void Global_keys_handler::Main::_handle_config()
 	_bool_states.for_each([&] (Bool_state &state)
 	{
 		bool keep_existing_state = false;
-		config.for_each_sub_node("bool", [&] (Xml_node node) {
+		config.for_each_sub_node("bool", [&] (Xml_node const &node) {
 			if (state.has_name(node.attribute_value("name", Bool_state::Name())))
 				keep_existing_state = true; });
 
@@ -360,7 +358,7 @@ void Global_keys_handler::Main::_handle_config()
 			destroy(_heap, &state);
 	});
 
-	config.for_each_sub_node("bool", [&] (Xml_node node)
+	config.for_each_sub_node("bool", [&] (Xml_node const &node)
 	{
 		Bool_state::Name const name = node.attribute_value("name", Bool_state::Name());
 
@@ -378,7 +376,7 @@ void Global_keys_handler::Main::_handle_config()
 	 */
 	_reports.for_each([&] (Report &report) { destroy(_heap, &report); });
 
-	config.for_each_sub_node("report", [&] (Xml_node report) {
+	config.for_each_sub_node("report", [&] (Xml_node const &report) {
 		new (_heap) Report(_env, _heap, _reports, _bool_states, report); });
 
 	/*

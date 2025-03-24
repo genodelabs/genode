@@ -95,7 +95,7 @@ bool Dhcp_server::dns_servers_empty() const
 }
 
 
-Dhcp_server::Dhcp_server(Xml_node const node, Allocator &alloc)
+Dhcp_server::Dhcp_server(Xml_node const &node, Allocator &alloc)
 :
 	Dhcp_server_base(alloc),
 	_ip_lease_time  (_init_ip_lease_time(node)),
@@ -107,7 +107,7 @@ Dhcp_server::Dhcp_server(Xml_node const node, Allocator &alloc)
 { }
 
 
-bool Dhcp_server::finish_construction(Xml_node const node,
+bool Dhcp_server::finish_construction(Xml_node const &node,
                                       Domain_dict &domains,
                                       Domain &domain,
                                       Ipv4_address_prefix const &interface)
@@ -139,7 +139,7 @@ bool Dhcp_server::finish_construction(Xml_node const node,
 }
 
 
-Microseconds Dhcp_server::_init_ip_lease_time(Xml_node const node)
+Microseconds Dhcp_server::_init_ip_lease_time(Xml_node const &node)
 {
 	uint64_t ip_lease_time_sec =
 		node.attribute_value("ip_lease_time_sec", (uint64_t)0);

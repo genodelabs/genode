@@ -79,12 +79,12 @@ class Net::Interface
 
 	public:
 
-		Interface(Genode::Entrypoint &ep,
-		          Interface_label     label,
-		          Timer::Connection  &timer,
-		          Genode::Duration   &curr_time,
-		          bool                log_time,
-		          Genode::Xml_node    config);
+		Interface(Genode::Entrypoint     &ep,
+		          Interface_label         label,
+		          Timer::Connection      &timer,
+		          Genode::Duration       &curr_time,
+		          bool                    log_time,
+		          Genode::Xml_node const &config);
 
 		virtual ~Interface() { }
 

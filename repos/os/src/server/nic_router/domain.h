@@ -28,6 +28,7 @@
 
 /* Genode includes */
 #include <util/reconstructible.h>
+#include <os/buffered_xml.h>
 
 namespace Genode {
 
@@ -90,7 +91,7 @@ class Net::Domain : public List<Domain>::Element,
 	private:
 
 		Configuration                        &_config;
-		Genode::Xml_node                      _node;
+		Genode::Buffered_xml            const _node;
 		Genode::Allocator                    &_alloc;
 		Ip_rule_list                          _ip_rules             { };
 		Forward_rule_tree                     _tcp_forward_rules    { };
@@ -130,13 +131,13 @@ class Net::Domain : public List<Domain>::Element,
 
 		[[nodiscard]] bool _read_forward_rules(Genode::Cstring  const &protocol,
 		                                       Domain_dict            &domains,
-		                                       Genode::Xml_node const  node,
+		                                       Genode::Xml_node const &node,
 		                                       char             const *type,
 		                                       Forward_rule_tree      &rules);
 
 		[[nodiscard]] bool _read_transport_rules(Genode::Cstring  const &protocol,
 		                                         Domain_dict            &domains,
-		                                         Genode::Xml_node const  node,
+		                                         Genode::Xml_node const &node,
 		                                         char             const *type,
 		                                         Transport_rule_list    &rules);
 

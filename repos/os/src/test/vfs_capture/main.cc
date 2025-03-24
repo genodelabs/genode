@@ -44,7 +44,7 @@ struct Test::Main
 
 	Root_directory _root_dir { _env, _heap, _config.xml().sub_node("vfs") };
 
-	static Gui::Area _area_from_xml(Xml_node node, Gui::Area default_area)
+	static Gui::Area _area_from_xml(Xml_node const &node, Gui::Area default_area)
 	{
 		return Gui::Area(node.attribute_value("width",  default_area.w),
 		                 node.attribute_value("height", default_area.h));
@@ -81,13 +81,13 @@ struct Test::Main
 			_env(env), _alloc(alloc),
 			_mode({ .area = _area_from_xml(config, Area { }), .alpha = false })
 		{
-			auto view_rect = [&] (Xml_node node)
+			auto view_rect = [&] (Xml_node const &node)
 			{
 				return Gui::Rect(Gui::Point::from_xml(node),
 				                 _area_from_xml(node, _mode.area));
 			};
 
-			config.for_each_sub_node("view", [&] (Xml_node node) {
+			config.for_each_sub_node("view", [&] (Xml_node const &node) {
 				new (_alloc)
 					Registered<Gui::Top_level_view>(_views, _gui, view_rect(node)); });
 		}
@@ -189,7 +189,7 @@ struct Test::Main
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Xml_node const &config = _config.xml();
 
 		_output.construct(_env, _heap, config);
 		_capture_input.construct(_env, _root_dir, _output->_mode.area, config);

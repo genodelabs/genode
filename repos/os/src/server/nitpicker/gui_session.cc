@@ -271,7 +271,7 @@ Gui_session::child_view(View_id const id, View_id const parent, View_attr const 
 }
 
 
-void Gui_session::apply_session_policy(Xml_node config,
+void Gui_session::apply_session_policy(Xml_node        const &config,
                                        Domain_registry const &domain_registry)
 {
 	reset_domain();

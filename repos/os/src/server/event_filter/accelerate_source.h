@@ -99,11 +99,11 @@ class Event_filter::Accelerate_source : public Source, Source::Filter
 
 		static char const *name() { return "accelerate"; }
 
-		Accelerate_source(Owner &owner, Xml_node config, Source::Factory &factory)
+		Accelerate_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
 		:
 			Source(owner),
 			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config))),
+			_source(factory.create_source_for_sub_node(_owner, config)),
 			_lut                (config.attribute_value("curve", 127L)),
 			_sensitivity_percent(config.attribute_value("sensitivity_percent", 100L)),
 			_max                (config.attribute_value("max", 20L))

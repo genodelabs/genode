@@ -74,13 +74,13 @@ class Event_filter::Remap_source : public Source, Source::Filter
 					destination.submit(Input::Release{remap(key)}); });
 		}
 
-		void _apply_config(Xml_node const config, unsigned const max_recursion = 4)
+		void _apply_config(Xml_node const &config, unsigned const max_recursion = 4)
 		{
-			config.for_each_sub_node([&] (Xml_node node) {
+			config.for_each_sub_node([&] (Xml_node const &node) {
 				_apply_sub_node(node, max_recursion); });
 		}
 
-		void _apply_sub_node(Xml_node const node, unsigned const max_recursion)
+		void _apply_sub_node(Xml_node const &node, unsigned const max_recursion)
 		{
 			if (max_recursion == 0) {
 				warning("too deeply nested includes");
@@ -95,7 +95,7 @@ class Event_filter::Remap_source : public Source, Source::Filter
 					Include_accessor::Name const rom =
 						node.attribute_value("rom", Include_accessor::Name());
 
-					_include_accessor.apply_include(rom, name(), [&] (Xml_node inc) {
+					_include_accessor.apply_include(rom, name(), [&] (Xml_node const &inc) {
 						_apply_config(inc, max_recursion - 1); });
 					return;
 				}
@@ -144,12 +144,12 @@ class Event_filter::Remap_source : public Source, Source::Filter
 
 		static char const *name() { return "remap"; }
 
-		Remap_source(Owner &owner, Xml_node config, Source::Factory &factory,
+		Remap_source(Owner &owner, Xml_node const &config, Source::Factory &factory,
 		             Include_accessor &include_accessor)
 		:
 			Source(owner),
 			_include_accessor(include_accessor), _owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config)))
+			_source(factory.create_source_for_sub_node(_owner, config))
 		{
 			for (unsigned i = 0; i < Input::KEY_MAX; i++)
 				_keys[i].code = Input::Keycode(i);

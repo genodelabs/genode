@@ -21,7 +21,7 @@ using namespace Genode;
 
 
 Net::Report::Report(bool                      const &verbose,
-                    Xml_node                  const  node,
+                    Xml_node                  const &node,
                     Cached_timer                    &timer,
                     Domain_dict                     &domains,
                     Quota                     const &shared_quota,

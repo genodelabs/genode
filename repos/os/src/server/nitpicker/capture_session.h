@@ -48,7 +48,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 				Attr(T value) : _defined(true), _value(value) { }
 
-				Attr(Xml_node const node, auto const &attr)
+				Attr(Xml_node const &node, auto const &attr)
 				{
 					if (node.has_attribute(attr)) {
 						_value   = node.attribute_value(attr, T { });

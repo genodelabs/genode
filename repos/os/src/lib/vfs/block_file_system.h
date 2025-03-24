@@ -466,17 +466,17 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 	Readonly_value_file_system<Genode::uint64_t> _block_count_fs { "block_count", 0 };
 	Readonly_value_file_system<size_t>           _block_size_fs  { "block_size",  0 };
 
-	static Name name(Xml_node config)
+	static Name name(Xml_node const &config)
 	{
 		return config.attribute_value("name", Name("block"));
 	}
 
-	static unsigned buffer_count(Xml_node config)
+	static unsigned buffer_count(Xml_node const &config)
 	{
 		return config.attribute_value("block_buffer_count", 1U);
 	}
 
-	Local_factory(Vfs::Env &env, Xml_node config)
+	Local_factory(Vfs::Env &env, Xml_node const &config)
 	:
 		_label   { config.attribute_value("label", Label("")) },
 		_name    { name(config) },
@@ -489,7 +489,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		_block_size_fs .value(_info.block_size);
 	}
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
+	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
 	{
 		if (node.has_type("data")) {
 			return &_data_fs;
@@ -547,7 +547,7 @@ class Vfs::Block_file_system::Compound_file_system : private Local_factory,
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node node)
+		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
 		:
 			Local_factory { vfs_env, node },
 			Vfs::Dir_file_system { vfs_env,

@@ -148,7 +148,7 @@ struct Dummy::Log_connections
 
 	Registry<Connection> _connections { };
 
-	Log_connections(Env &env, Xml_node node) : _env(env)
+	Log_connections(Env &env, Xml_node const &node) : _env(env)
 	{
 		unsigned const count = node.attribute_value("count", 0U);
 

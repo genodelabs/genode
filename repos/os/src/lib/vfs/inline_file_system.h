@@ -67,7 +67,7 @@ class Vfs::Inline_file_system : public Single_file_system
 		 * the object after construction time. The underlying backing store
 		 * must be kept in tact during the lifefile of the object.
 		 */
-		Inline_file_system(Vfs::Env &env, Genode::Xml_node config)
+		Inline_file_system(Vfs::Env &env, Genode::Xml_node const &config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::rx(), config),

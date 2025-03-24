@@ -39,7 +39,7 @@ class Event_filter::Source
 
 		virtual ~Source() { }
 
-		static bool input_node(Xml_node node)
+		static bool input_node(Xml_node const &node)
 		{
 			return node.type() == "input"
 			    || node.type() == "remap"
@@ -55,19 +55,21 @@ class Event_filter::Source
 			return false;
 		}
 
-		static Xml_node input_sub_node(Xml_node node)
+		static void with_input_sub_node(Xml_node const &node,
+		                                auto const &fn, auto const &missing_fn)
 		{
-			Xml_node result("<none/>");
+			bool found = false;
+			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+				if (!found && input_node(sub_node)) {
+					fn(sub_node);
+					found = true;
+				}
+			});
 
-			node.for_each_sub_node([&] (Xml_node sub_node) {
-				if (input_node(sub_node))
-					result = sub_node; });
-
-			if (result.type() != "none")
-				return result;
-
-			warning("missing input-source sub node in ", node);
-			throw Invalid_config { };
+			if (!found) {
+				warning("missing input-source sub node in ", node);
+				missing_fn();
+			}
 		}
 
 		struct Owner;
@@ -115,7 +117,21 @@ class Event_filter::Source
 			/*
 			 * \throw Invalid_config
 			 */
-			virtual Source &create_source(Owner &, Xml_node) = 0;
+			virtual Source &create_source(Owner &, Xml_node const &) = 0;
+
+			Source &create_source_for_sub_node(Owner &owner, Xml_node const &node)
+			{
+				Source *ptr = nullptr;
+				with_input_sub_node(node,
+					[&] (Xml_node const &sub_node) {
+						ptr = &create_source(owner, sub_node); },
+					[&] { /* no valid input sub node */ });
+
+				if (ptr)
+					return *ptr;
+				else
+					throw Invalid_config();
+			}
 
 			virtual void destroy_source(Source &) = 0;
 		};

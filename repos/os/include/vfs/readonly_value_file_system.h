@@ -112,7 +112,7 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 				handle.watch_response(); });
 		}
 
-		bool matches(Xml_node node) const
+		bool matches(Xml_node const &node) const
 		{
 			return node.has_type(type_name()) &&
 			       node.attribute_value("name", Name()) == _file_name;

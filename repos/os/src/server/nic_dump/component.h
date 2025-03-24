@@ -19,6 +19,7 @@
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
 #include <base/heap.h>
+#include <os/buffered_xml.h>
 
 /* local includes */
 #include <interface.h>
@@ -94,14 +95,14 @@ class Net::Session_component : private Session_component_base,
 
 	public:
 
-		Session_component(Genode::Ram_quota  ram_quota,
-		                  Genode::Cap_quota  cap_quota,
-		                  Genode::size_t     tx_buf_size,
-		                  Genode::size_t     rx_buf_size,
-		                  Genode::Xml_node   config,
-		                  Timer::Connection &timer,
-		                  Genode::Duration  &curr_time,
-		                  Genode::Env       &env);
+		Session_component(Genode::Ram_quota       ram_quota,
+		                  Genode::Cap_quota       cap_quota,
+		                  Genode::size_t          tx_buf_size,
+		                  Genode::size_t          rx_buf_size,
+		                  Genode::Xml_node const &config,
+		                  Timer::Connection      &timer,
+		                  Genode::Duration       &curr_time,
+		                  Genode::Env            &env);
 
 
 		/******************
@@ -120,10 +121,10 @@ class Net::Root : public Genode::Root_component<Session_component,
 {
 	private:
 
-		Genode::Env       &_env;
-		Genode::Xml_node   _config;
-		Timer::Connection &_timer;
-		Genode::Duration  &_curr_time;
+		Genode::Env               &_env;
+		Genode::Buffered_xml const _config;
+		Timer::Connection         &_timer;
+		Genode::Duration          &_curr_time;
 
 
 		/********************
@@ -134,11 +135,11 @@ class Net::Root : public Genode::Root_component<Session_component,
 
 	public:
 
-		Root(Genode::Env       &env,
-		     Genode::Allocator &alloc,
-		     Genode::Xml_node   config,
-		     Timer::Connection &timer,
-		     Genode::Duration  &curr_time);
+		Root(Genode::Env            &env,
+		     Genode::Allocator      &alloc,
+		     Genode::Xml_node const &config,
+		     Timer::Connection      &timer,
+		     Genode::Duration       &curr_time);
 };
 
 #endif /* _COMPONENT_H_ */

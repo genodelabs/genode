@@ -742,7 +742,7 @@ struct Vfs::Oss_file_system::Audio
 		Audio(Vfs::Env                              &env,
 		      Info                                  &info,
 		      Readonly_value_file_system<Info, 512> &info_fs,
-		      Xml_node                               config)
+		      Xml_node                        const &config)
 		:
 			_vfs_env { env },
 			_info    { info },
@@ -1423,14 +1423,14 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 			log("Sample rate changed to ", _info.sample_rate);
 	}
 
-	static Name name(Xml_node config)
+	static Name name(Xml_node const &config)
 	{
 		return config.attribute_value("name", Name("oss"));
 	}
 
 	Data_file_system _data_fs;
 
-	Local_factory(Vfs::Env &env, Xml_node config)
+	Local_factory(Vfs::Env &env, Xml_node const &config)
 	:
 		_label   { config.attribute_value("label", Label("")) },
 		_name    { name(config) },
@@ -1439,7 +1439,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		_data_fs { _env.env().ep(), env.user(), _audio, name(config) }
 	{ }
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
+	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
 	{
 		if (node.has_type("data")) return &_data_fs;
 		if (node.has_type("info")) return &_info_fs;
@@ -1580,7 +1580,7 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node node)
+		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
 		:
 			Local_factory { vfs_env, node },
 			Vfs::Dir_file_system { vfs_env,
@@ -1598,7 +1598,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
 		{
 			return new (env.alloc())
 				Vfs::Oss_file_system::Compound_file_system(env, config);

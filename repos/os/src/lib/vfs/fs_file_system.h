@@ -563,7 +563,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 	public:
 
-		Fs_file_system(Vfs::Env &env, Genode::Xml_node config)
+		Fs_file_system(Vfs::Env &env, Genode::Xml_node const &config)
 		:
 			_env(env),
 			_label(config.attribute_value("label", Label_string("/"))),

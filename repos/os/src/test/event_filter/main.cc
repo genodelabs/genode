@@ -213,7 +213,7 @@ class Test::Input_to_filter
 
 		Input_to_filter(Env &env) : _env(env) { }
 
-		void apply_driver(Xml_node driver)
+		void apply_driver(Xml_node const &driver)
 		{
 			using Name = String<100>;
 			Name const name = driver.attribute_value("name", Name());
@@ -224,7 +224,7 @@ class Test::Input_to_filter
 			if (name == "usb") _usb.conditional(connected, _env, "usb");
 		}
 
-		void submit_events(Xml_node step)
+		void submit_events(Xml_node const &step)
 		{
 			if (step.type() != "usb" && step.type() != "ps2") {
 				error("unexpected argument to Input_to_filter::submit");
@@ -235,7 +235,7 @@ class Test::Input_to_filter
 
 			dst.with_batch([&] (Event::Session_client::Batch &batch) {
 
-				step.for_each_sub_node([&] (Xml_node node) {
+				step.for_each_sub_node([&] (Xml_node const &node) {
 
 					bool const press   = node.has_type("press"),
 					           release = node.has_type("release");
@@ -289,7 +289,7 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	void _publish_report(Reporter &reporter, Xml_node node)
+	void _publish_report(Reporter &reporter, Xml_node const &node)
 	{
 		Reporter::Xml_generator xml(reporter, [&] () {
 			node.with_raw_content([&] (char const *start, size_t length) {
@@ -305,7 +305,7 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 	}
 
-	void _deep_filter_config(Reporter &reporter, Xml_node node)
+	void _deep_filter_config(Reporter &reporter, Xml_node const &node)
 	{
 		unsigned const depth = node.attribute_value("depth", 0U);
 
@@ -320,7 +320,13 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	uint64_t _went_to_sleep_time = 0;
 
-	Xml_node _curr_step_xml() const { return _config.xml().sub_node(_curr_step); }
+	void _with_curr_step_xml(auto const &fn) const
+	{
+		unsigned i = 0;
+		_config.xml().for_each_sub_node([&] (Xml_node const &sub_node) {
+			if (i++ == _curr_step)
+				fn(sub_node); });
+	}
 
 	void _advance_step()
 	{
@@ -333,115 +339,128 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 	};
 
+	enum class Exec_result { PROCEED, EXPECT_IO, UNEXPECTED };
+
+	Exec_result _execute_step(Xml_node const &step)
+	{
+		log("step ", _curr_step, " (", step.type(), ")");
+
+		_input_from_filter.input_expected(step.type() == "expect_press"   ||
+		                                  step.type() == "expect_release" ||
+		                                  step.type() == "not_expect_press" ||
+		                                  step.type() == "not_expect_release" ||
+		                                  step.type() == "expect_touch"   ||
+		                                  step.type() == "expect_touch_release" ||
+		                                  step.type() == "expect_char"    ||
+		                                  step.type() == "expect_motion"  ||
+		                                  step.type() == "expect_wheel");
+
+		if (step.type() == "driver") {
+			_input_to_filter.apply_driver(step);
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "filter_config") {
+			_publish_report(_event_filter_config_reporter, step);
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "deep_filter_config") {
+			_deep_filter_config(_event_filter_config_reporter, step);
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "chargen_include") {
+			_publish_report(_chargen_include_reporter, step);
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "remap_include") {
+			_publish_report(_remap_include_reporter, step);
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "capslock") {
+			Reporter::Xml_generator xml(_capslock_reporter, [&] () {
+				xml.attribute("enabled", step.attribute_value("enabled", false)); });
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "usb" || step.type() == "ps2") {
+			_input_to_filter.submit_events(step);
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "message") {
+			using Message = String<80>;
+			Message const message = step.attribute_value("string", Message());
+			log("\n--- ", message, " ---");
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "nop") {
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "expect_press" || step.type() == "expect_release"
+		 || step.type() == "not_expect_press" || step.type() == "not_expect_release"
+		 || step.type() == "expect_touch" || step.type() == "expect_touch_release"
+		 || step.type() == "expect_char"  || step.type() == "expect_motion"
+		 || step.type() == "expect_wheel")
+			return Exec_result::EXPECT_IO;
+
+		if (step.type() == "sleep") {
+			if (_went_to_sleep_time == 0) {
+				uint64_t const timeout_ms = step.attribute_value("ms", (uint64_t)250);
+				_went_to_sleep_time = _timer.elapsed_ms();
+				_timer.trigger_once(timeout_ms*1000);
+			}
+			return Exec_result::EXPECT_IO;
+		}
+
+		return Exec_result::UNEXPECTED;
+	}
+
 	void _execute_curr_step()
 	{
 		for (;;) {
-			Xml_node const step = _curr_step_xml();
+			Exec_result exec_result { };
+			_with_curr_step_xml([&] (Xml_node const &step) {
+				exec_result = _execute_step(step);
 
-			log("step ", _curr_step, " (", step.type(), ")");
-
-			_input_from_filter.input_expected(step.type() == "expect_press"   ||
-			                                  step.type() == "expect_release" ||
-			                                  step.type() == "not_expect_press" ||
-			                                  step.type() == "not_expect_release" ||
-			                                  step.type() == "expect_touch"   ||
-			                                  step.type() == "expect_touch_release" ||
-			                                  step.type() == "expect_char"    ||
-			                                  step.type() == "expect_motion"  ||
-			                                  step.type() == "expect_wheel");
-
-			if (step.type() == "driver") {
-				_input_to_filter.apply_driver(step);
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "filter_config") {
-				_publish_report(_event_filter_config_reporter, step);
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "deep_filter_config") {
-				_deep_filter_config(_event_filter_config_reporter, step);
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "chargen_include") {
-				_publish_report(_chargen_include_reporter, step);
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "remap_include") {
-				_publish_report(_remap_include_reporter, step);
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "capslock") {
-				Reporter::Xml_generator xml(_capslock_reporter, [&] () {
-					xml.attribute("enabled", step.attribute_value("enabled", false)); });
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "usb" || step.type() == "ps2") {
-				_input_to_filter.submit_events(step);
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "message") {
-				using Message = String<80>;
-				Message const message = step.attribute_value("string", Message());
-				log("\n--- ", message, " ---");
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "nop") {
-				_advance_step();
-				continue;
-			}
-
-			if (step.type() == "expect_press" || step.type() == "expect_release"
-			 || step.type() == "not_expect_press" || step.type() == "not_expect_release"
-			 || step.type() == "expect_touch" || step.type() == "expect_touch_release"
-			 || step.type() == "expect_char"  || step.type() == "expect_motion"
-			 || step.type() == "expect_wheel")
-				return;
-
-			if (step.type() == "sleep") {
-				if (_went_to_sleep_time == 0) {
-					uint64_t const timeout_ms = step.attribute_value("ms", (uint64_t)250);
-					_went_to_sleep_time = _timer.elapsed_ms();
-					_timer.trigger_once(timeout_ms*1000);
+				if (exec_result == Exec_result::UNEXPECTED) {
+					error("unexpected step: ", step);
+					throw Exception();
 				}
-				return;
-			}
+			});
 
-			error("unexpected step: ", step);
-			throw Exception();
+			switch (exec_result) {
+			case Exec_result::PROCEED:    break;
+			case Exec_result::EXPECT_IO:  return;
+			case Exec_result::UNEXPECTED: return;
+			}
 		}
 	}
 
-	/**
-	 * Input_to_filter::Event_handler interface
-	 */
-	void handle_event_from_filter(Input::Event const &ev) override
+	void _handle_event_from_filter(Xml_node const &step, Input::Event const &ev)
 	{
 		using Value = Genode::String<20>;
-
-		Xml_node const step = _curr_step_xml();
 
 		bool step_succeeded = false;
 		bool step_failed    = false;
 
 		ev.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
 
-			auto codepoint_of_step = [] (Xml_node step) {
+			auto codepoint_of_step = [] (Xml_node const &step) {
 				if (step.has_attribute("codepoint"))
 					return Codepoint { step.attribute_value("codepoint", 0U) };
 				return Utf8_ptr(step.attribute_value("char", Value()).string()).codepoint();
@@ -518,14 +537,23 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 	}
 
-	void _handle_timer()
+	/**
+	 * Input_to_filter::Event_handler interface
+	 */
+	void handle_event_from_filter(Input::Event const &ev) override
 	{
-		if (_curr_step_xml().type() != "sleep") {
+		_with_curr_step_xml([&] (Xml_node const &step) {
+			_handle_event_from_filter(step, ev); });
+	}
+
+	void _handle_timer(Xml_node const &curr_step)
+	{
+		if (curr_step.type() != "sleep") {
 			error("got spurious timeout signal");
 			throw Exception();
 		}
 
-		uint64_t const duration = _curr_step_xml().attribute_value("ms", (uint64_t)0);
+		uint64_t const duration = curr_step.attribute_value("ms", (uint64_t)0);
 		uint64_t const now      = _timer.elapsed_ms();
 		uint64_t const slept    = now - _went_to_sleep_time;
 
@@ -540,6 +568,11 @@ struct Test::Main : Input_from_filter::Event_handler
 
 		_went_to_sleep_time = 0;
 		_execute_curr_step();
+	}
+
+	void _handle_timer()
+	{
+		_with_curr_step_xml([&] (Xml_node const &step) { _handle_timer(step); });
 	}
 
 	Signal_handler<Main> _timer_handler {

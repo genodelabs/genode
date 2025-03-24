@@ -32,7 +32,7 @@ using namespace Net;
 using namespace Genode;
 
 
-Microseconds read_sec_attr(Xml_node const  node,
+Microseconds read_sec_attr(Xml_node const &node,
                            char     const *name,
                            uint64_t const  default_sec)
 {

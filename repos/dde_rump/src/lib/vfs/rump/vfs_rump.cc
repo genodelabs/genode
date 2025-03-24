@@ -884,7 +884,7 @@ class Rump_factory : public Vfs::File_system_factory
 	public:
 
 		Rump_factory(Genode::Env &env, Genode::Allocator &alloc,
-		             Vfs::Env::User &vfs_user, Genode::Xml_node config)
+		             Vfs::Env::User &vfs_user, Genode::Xml_node const &config)
 		:
 			_rump_fs_user(vfs_user)
 		{
@@ -922,7 +922,7 @@ class Rump_factory : public Vfs::File_system_factory
 			}
 		}
 
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
 		{
 			return new (env.alloc()) Vfs::Rump_file_system(env, config);
 		}
@@ -933,7 +933,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Extern_factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node node) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &node) override
 		{
 			static Rump_factory factory(env.env(), env.alloc(), env.user(), node);
 			return factory.create(env, node);

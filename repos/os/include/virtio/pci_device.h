@@ -107,12 +107,12 @@ class Virtio::Device
 		void with_virtio_range(String<16> type, auto const &fn)
 		{
 			_plat.update();
-			_plat.with_xml([&] (Xml_node xml) {
-				xml.with_optional_sub_node("device", [&] (Xml_node xml) {
+			_plat.with_xml([&] (Xml_node const &xml) {
+				xml.with_optional_sub_node("device", [&] (Xml_node const &xml) {
 					xml.with_optional_sub_node("pci-config",
-					                           [&] (Xml_node xml) {
+					                           [&] (Xml_node const &xml) {
 						xml.for_each_sub_node("virtio_range",
-						                      [&] (Xml_node xml) {
+						                      [&] (Xml_node const &xml) {
 							if (xml.attribute_value("type", String<16>()) ==
 							    type)
 								fn(xml);
@@ -126,7 +126,7 @@ class Virtio::Device
 		{
 			unsigned idx = MMIO_MAX;
 			addr_t   off = ~0UL;
-			with_virtio_range(type, [&] (Xml_node xml) {
+			with_virtio_range(type, [&] (Xml_node const &xml) {
 				idx = xml.attribute_value<unsigned>("index", MMIO_MAX);
 				off = xml.attribute_value("offset", ~0UL);
 			});
@@ -146,7 +146,7 @@ class Virtio::Device
 		       Platform::Connection & plat)
 		: _env(env), _plat(plat)
 		{
-			with_virtio_range("notify", [&] (Xml_node xml) {
+			with_virtio_range("notify", [&] (Xml_node const &xml) {
 				_notify_offset_multiplier = xml.attribute_value("factor", 0UL);
 			});
 

@@ -34,8 +34,7 @@ struct Main
 	bool                      const verbose   { config.xml().attribute_value("verbose", false) };
 	Net::Nic                        nic       { env, heap, vlan, verbose,
 	                                            nic_label };
-	Net::Root                       root      { env, nic, heap, verbose,
-	                                            config.xml() };
+	Net::Root                       root      { env, nic, heap, verbose, config };
 
 	Main(Genode::Env &e) : env(e)
 	{

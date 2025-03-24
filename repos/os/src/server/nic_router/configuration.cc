@@ -27,7 +27,7 @@ using namespace Genode;
  ** Configuration **
  *******************/
 
-Configuration::Configuration(Xml_node const  node,
+Configuration::Configuration(Xml_node const &node,
                              Allocator      &alloc)
 :
 	_alloc                          { alloc },
@@ -47,7 +47,7 @@ Configuration::Configuration(Xml_node const  node,
 	_tcp_idle_timeout               { 0 },
 	_tcp_max_segm_lifetime          { 0 },
 	_arp_request_timeout            { 0 },
-	_node                           { node }
+	_node                           { alloc, node }
 { }
 
 
@@ -82,7 +82,7 @@ Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Xml_node const &node) const
 
 
 Configuration::Configuration(Env                             &env,
-                             Xml_node                  const  node,
+                             Xml_node                  const &node,
                              Allocator                       &alloc,
                              Signal_context_capability const &report_signal_cap,
                              Cached_timer                    &timer,
@@ -107,7 +107,7 @@ Configuration::Configuration(Env                             &env,
 	_tcp_idle_timeout               { read_sec_attr(node,  "tcp_idle_timeout_sec",      600) },
 	_tcp_max_segm_lifetime          { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", 15) },
 	_arp_request_timeout            { read_sec_attr(node,  "arp_request_timeout_sec",   10) },
-	_node                           { node }
+	_node                           { alloc, node }
 {
 	/* do parts of domain initialization that do not lookup other domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
@@ -178,7 +178,7 @@ Configuration::Configuration(Env                             &env,
 			*_reporter_ptr, report_signal_cap);
 	});
 	/* initialize NIC clients */
-	_node.for_each_sub_node("nic-client", [&] (Xml_node const node) {
+	_node.xml.for_each_sub_node("nic-client", [&] (Xml_node const &node) {
 		Session_label const label {
 			node.attribute_value("label",  Session_label::String { }) };
 

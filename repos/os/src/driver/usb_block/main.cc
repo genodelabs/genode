@@ -146,7 +146,7 @@ class Usb::Block_driver
 			} catch (...) { warning("Could not report block device"); }
 		}
 
-		Interface& _construct_interface(Xml_node & cfg)
+		Interface& _construct_interface(Xml_node const &cfg)
 		{
 			using Type  = Interface::Type;
 			using Index = Interface::Index;
@@ -595,7 +595,7 @@ class Usb::Block_driver
 			};
 		}
 
-		void apply_config(Xml_node node)
+		void apply_config(Xml_node const &node)
 		{
 			_writeable    = node.attribute_value("writeable",    false);
 			_active_lun   = node.attribute_value<uint8_t>("lun",     0);
@@ -632,7 +632,7 @@ class Usb::Block_driver
 		bool device_ready() { return _state == READY; }
 
 		Block_driver(Env &env, Allocator &alloc, Signal_context_capability sigh,
-		             Xml_node config)
+		             Xml_node const &config)
 		:
 			_env(env), _ep(env.ep()), _alloc(alloc),
 			_interface(_construct_interface(config))

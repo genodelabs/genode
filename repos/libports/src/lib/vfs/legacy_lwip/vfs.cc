@@ -1769,7 +1769,7 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 			using Handle_element = Genode::Fifo_element<Vfs_handle>;
 			using Handle_queue   = Genode::Fifo<Vfs_netif::Handle_element>;
 
-			Vfs_netif(Vfs::Env &vfs_env, Genode::Xml_node config,
+			Vfs_netif(Vfs::Env &vfs_env, Genode::Xml_node const &config,
 			          Lwip::Nic_netif::Wakeup_scheduler &wakeup_scheduler)
 			:
 				Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config,
@@ -1829,7 +1829,7 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory,
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Genode::Xml_node config)
+		File_system(Vfs::Env &vfs_env, Genode::Xml_node const &config)
 		:
 			_ep(vfs_env.env().ep()),
 			_wakeup_scheduler(vfs_env, *this),
@@ -2139,7 +2139,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 	{
 		Genode::Constructible<Timer::Connection> timer { };
 
-		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Xml_node config) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Xml_node const &config) override
 		{
 			if (!timer.constructed()) {
 				timer.construct(vfs_env.env(), "vfs_lwip");

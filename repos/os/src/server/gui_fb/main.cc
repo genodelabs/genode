@@ -289,7 +289,7 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 
 		bool set { false };
 
-		Initial_size(Xml_node config)
+		Initial_size(Xml_node const &config)
 		:
 			_width (config.attribute_value("initial_width",  0L)),
 			_height(config.attribute_value("initial_height", 0L))
@@ -393,7 +393,7 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 	/**
 	 * Return screen-coordinate origin, depening on the config and screen mode
 	 */
-	static Point _coordinate_origin(Gui::Area gui_area, Xml_node config)
+	static Point _coordinate_origin(Gui::Area gui_area, Xml_node const &config)
 	{
 		char const * const attr = "origin";
 
@@ -414,7 +414,7 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 
 	void _update_size()
 	{
-		Xml_node const config = _config_rom.xml();
+		Xml_node const &config = _config_rom.xml();
 
 		Gui::Area const gui_area = _gui_window().area;
 

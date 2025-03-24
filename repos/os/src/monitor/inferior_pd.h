@@ -153,8 +153,8 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 	void apply_monitor_config(Xml_node const &monitor)
 	{
 		with_matching_policy(_name, monitor,
-			[&] (Xml_node const policy) { _policy = Policy::from_xml(policy); },
-			[&]                         { _policy = Policy::default_policy(); });
+			[&] (Xml_node const &policy) { _policy = Policy::from_xml(policy); },
+			[&]                          { _policy = Policy::default_policy(); });
 
 		if (_policy.wx) {
 			_address_space.writeable_text_segments(_alloc, _wx_ram, _local_rm);

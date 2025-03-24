@@ -33,7 +33,7 @@ Transport_rule::Transport_rule(Ipv4_address_prefix const &dst,
 
 
 bool Transport_rule::finish_construction(Domain_dict    &domains,
-                                         Xml_node const  node,
+                                         Xml_node const &node,
                                          Cstring  const &protocol,
                                          Configuration  &config,
                                          Domain   const &local_domain)
@@ -57,7 +57,7 @@ bool Transport_rule::finish_construction(Domain_dict    &domains,
 		return true;
 	}
 	/* read specific permit rules */
-	node.for_each_sub_node("permit", [&] (Xml_node const permit_node) {
+	node.for_each_sub_node("permit", [&] (Xml_node const &permit_node) {
 		if (error)
 			return;
 

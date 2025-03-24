@@ -70,7 +70,7 @@ struct Ps2::Main
 	{
 		_config.update();
 
-		Xml_node config = _config.xml();
+		Xml_node const &config = _config.xml();
 
 		bool const system_was_constructed = _system.constructed();
 

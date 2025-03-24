@@ -92,7 +92,7 @@ class Event_filter::Event_session : public Session_object<Event::Session, Event_
 		/**
 		 * (Re-)assign input name to session according to session policy
 		 */
-		void assign_input_name(Xml_node config)
+		void assign_input_name(Xml_node const &config)
 		{
 			_input_name = Input_name();
 

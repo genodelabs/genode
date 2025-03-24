@@ -160,14 +160,14 @@ Session_component::~Session_component() {
 }
 
 
-Net::Root::Root(Genode::Env       &env,
-                Net::Nic          &nic,
-                Genode::Allocator &md_alloc,
-                bool        const &verbose,
-                Genode::Xml_node   config)
+Net::Root::Root(Genode::Env                          &env,
+                Net::Nic                             &nic,
+                Genode::Allocator                    &md_alloc,
+                bool                           const &verbose,
+                Genode::Attached_rom_dataspace const &config)
 :
 	Genode::Root_component<Session_component>(env.ep(), md_alloc),
-	_mac_alloc(Mac_address(config.attribute_value("mac", Mac_address(DEFAULT_MAC)))),
+	_mac_alloc(Mac_address(config.xml().attribute_value("mac", Mac_address(DEFAULT_MAC)))),
 	_env(env),
 	_nic(nic),
 	_config(config),

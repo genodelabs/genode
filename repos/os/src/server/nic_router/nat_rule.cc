@@ -36,7 +36,7 @@ Nat_rule::Nat_rule(Domain         &domain,
                    Port_allocator &tcp_port_alloc,
                    Port_allocator &udp_port_alloc,
                    Port_allocator &icmp_port_alloc,
-                   Xml_node const  node,
+                   Xml_node const &node,
                    bool     const  verbose)
 :
 	_domain          { domain },

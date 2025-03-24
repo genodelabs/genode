@@ -113,7 +113,7 @@ class Nitpicker::Domain_registry
 				}
 		};
 
-		static Entry::Label _label(Xml_node domain)
+		static Entry::Label _label(Xml_node const &domain)
 		{
 			using Value = String<32>;
 			Value const value = domain.attribute_value("label", Value("yes"));
@@ -125,7 +125,7 @@ class Nitpicker::Domain_registry
 			return Entry::Label::YES;
 		}
 
-		static Entry::Content _content(Xml_node domain)
+		static Entry::Content _content(Xml_node const &domain)
 		{
 			using Value = String<32>;
 			Value const value = domain.attribute_value("content", Value("tinted"));
@@ -136,7 +136,7 @@ class Nitpicker::Domain_registry
 			return Entry::Content::TINTED;
 		}
 
-		static Entry::Hover _hover(Xml_node domain)
+		static Entry::Hover _hover(Xml_node const &domain)
 		{
 			using Value = String<32>;
 			Value const value = domain.attribute_value("hover", Value("focused"));
@@ -148,7 +148,7 @@ class Nitpicker::Domain_registry
 			return Entry::Hover::FOCUSED;
 		}
 
-		static Entry::Focus _focus(Xml_node domain)
+		static Entry::Focus _focus(Xml_node const &domain)
 		{
 			using Value = String<32>;
 			Value const value = domain.attribute_value("focus", Value("none"));
@@ -161,7 +161,7 @@ class Nitpicker::Domain_registry
 			return Entry::Focus::NONE;
 		}
 
-		static Entry::Origin _origin(Xml_node domain)
+		static Entry::Origin _origin(Xml_node const &domain)
 		{
 			using Value = String<32>;
 			Value const value = domain.attribute_value("origin", Value("top_left"));
@@ -176,7 +176,7 @@ class Nitpicker::Domain_registry
 			return Entry::Origin::BOTTOM_LEFT;
 		}
 
-		void _insert(Xml_node domain)
+		void _insert(Xml_node const &domain)
 		{
 			Entry::Name const name = domain.attribute_value("name", Entry::Name());
 
@@ -218,24 +218,10 @@ class Nitpicker::Domain_registry
 
 	public:
 
-		Domain_registry(Allocator &alloc, Xml_node config)
-		:
-			_alloc(alloc)
+		Domain_registry(Allocator &alloc, Xml_node const &config) : _alloc(alloc)
 		{
-			char const *type = "domain";
-
-			if (!config.has_sub_node(type))
-				return;
-
-			Xml_node domain = config.sub_node(type);
-
-			for (;; domain = domain.next(type)) {
-
-				_insert(domain);
-
-				if (domain.last(type))
-					break;
-			}
+			config.for_each_sub_node("domain", [&] (Xml_node const &domain) {
+				_insert(domain); });
 		}
 
 		~Domain_registry()

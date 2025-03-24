@@ -96,7 +96,7 @@ Net::Interface::Interface(Entrypoint        &ep,
                           Timer::Connection &timer,
                           Duration          &curr_time,
                           bool               log_time,
-                          Xml_node           config)
+                          Xml_node    const &config)
 :
 	_sink_ack          { ep, *this, &Interface::_ack_avail },
 	_sink_submit       { ep, *this, &Interface::_ready_to_submit },

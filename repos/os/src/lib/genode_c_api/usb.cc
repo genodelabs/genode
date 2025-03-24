@@ -1107,7 +1107,7 @@ void Session_component::_device_policy(genode_usb_device const &d,
 	try {
 		Session_policy const policy(label(), _config.xml());
 
-		policy.for_each_sub_node("device", [&] (Xml_node & node) {
+		policy.for_each_sub_node("device", [&] (Xml_node const &node) {
 			uint16_t vendor  = node.attribute_value<uint16_t>("vendor_id", 0);
 			uint16_t product = node.attribute_value<uint16_t>("product_id", 0);
 			Label    label   = node.attribute_value("name", Label());
@@ -1142,7 +1142,7 @@ void Session_component::_device_policy(genode_usb_device const &d,
 bool Session_component::_matches(genode_usb_device const & d)
 {
 	bool ret = false;
-	_device_policy(d, [&] (Xml_node) { ret = true; });
+	_device_policy(d, [&] (Xml_node const &) { ret = true; });
 	return ret;
 }
 
@@ -1240,11 +1240,11 @@ bool Session_component::matches(genode_usb_device::Label label, uint8_t iface)
 		[&] (genode_usb_device const & d) {
 			return d.label() == label; },
 		[&] (genode_usb_device const & d) {
-			_device_policy(d, [&] (Xml_node dev_node) {
+			_device_policy(d, [&] (Xml_node const &dev_node) {
 				if (!dev_node.has_sub_node("interface"))
 					ret = true;
 				else
-					dev_node.for_each_sub_node("interface", [&] (Xml_node & node) {
+					dev_node.for_each_sub_node("interface", [&] (Xml_node const &node) {
 						if (node.attribute_value<uint8_t>("number", 255) == iface)
 							ret = true;
 					});
@@ -1578,7 +1578,7 @@ void ::Root::_config_update()
 	/*
 	 * Check for report policy, and resp. con-/destruct device reporter
 	 */
-	_config.xml().with_optional_sub_node("report", [&] (Xml_node node) {
+	_config.xml().with_optional_sub_node("report", [&] (Xml_node const &node) {
 		_device_reporter.conditional(node.attribute_value("devices", false),
 		                             _env, "devices", "devices" );
 

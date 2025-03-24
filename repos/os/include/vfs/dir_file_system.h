@@ -365,8 +365,7 @@ class Vfs::Dir_file_system : public File_system
 
 	public:
 
-		Dir_file_system(Vfs::Env            &env,
-		                Genode::Xml_node     node,
+		Dir_file_system(Vfs::Env &env, Genode::Xml_node const &node,
 		                File_system_factory &fs_factory)
 		:
 			_env(env),
@@ -375,27 +374,23 @@ class Vfs::Dir_file_system : public File_system
 		{
 			using namespace Genode;
 
-			for (unsigned i = 0; i < node.num_sub_nodes(); i++) {
-
-				Xml_node sub_node = node.sub_node(i);
+			node.for_each_sub_node([&] (Xml_node const &sub_node) {
 
 				/* traverse into <dir> nodes */
 				if (sub_node.has_type("dir")) {
 					_append_file_system(new (_env.alloc())
 						Dir_file_system(_env, sub_node, fs_factory));
-					continue;
+					return;
 				}
 
-				File_system * const fs =
-					fs_factory.create(_env, sub_node);
-
+				File_system * const fs = fs_factory.create(_env, sub_node);
 				if (fs) {
 					_append_file_system(fs);
-					continue;
+					return;
 				}
 
 				Genode::error("failed to create VFS node: ", sub_node);
-			}
+			});
 		}
 
 		/*********************************

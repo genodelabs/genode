@@ -136,8 +136,8 @@ class Platform::Connection : public Genode::Connection<Session>,
 				Capability<Device_interface> cap;
 
 				update();
-				with_xml([&] (Xml_node & xml) {
-					xml.for_each_sub_node("device", [&] (Xml_node node) {
+				with_xml([&] (Xml_node const &xml) {
+					xml.for_each_sub_node("device", [&] (Xml_node const &node) {
 
 						/* already found a device? */
 						if (cap.valid())

@@ -21,6 +21,7 @@
 
 /* Genode includes */
 #include <base/duration.h>
+#include <os/buffered_xml.h>
 
 namespace Genode { class Allocator; }
 
@@ -49,12 +50,12 @@ class Net::Configuration
 		Genode::Microseconds    const  _udp_idle_timeout;
 		Genode::Microseconds    const  _tcp_idle_timeout;
 		Genode::Microseconds    const  _tcp_max_segm_lifetime;
-		Genode::Microseconds const  _arp_request_timeout;
+		Genode::Microseconds    const  _arp_request_timeout;
 		Genode::Constructible<Report>  _report { };
 		Genode::Reporter              *_reporter_ptr { };
 		Domain_dict                    _domains { };
 		Nic_client_dict                _nic_clients { };
-		Genode::Xml_node        const  _node;
+		Genode::Buffered_xml    const  _node;
 
 		/*
 		 * Noncopyable
@@ -70,11 +71,11 @@ class Net::Configuration
 
 	public:
 
-		Configuration(Genode::Xml_node  const  node,
+		Configuration(Genode::Xml_node  const &node,
 		              Genode::Allocator       &alloc);
 
 		Configuration(Genode::Env                             &env,
-		              Genode::Xml_node                  const  node,
+		              Genode::Xml_node                  const &node,
 		              Genode::Allocator                       &alloc,
 		              Genode::Signal_context_capability const &report_signal_cap,
 		              Cached_timer                            &timer,
@@ -108,7 +109,8 @@ class Net::Configuration
 		Genode::Microseconds  tcp_max_segm_lifetime()          const { return _tcp_max_segm_lifetime; }
 		Genode::Microseconds  arp_request_timeout()            const { return _arp_request_timeout; }
 		Domain_dict          &domains()                              { return _domains; }
-		Genode::Xml_node      node()                           const { return _node; }
+
+		void with_node(auto const &fn) const { fn(_node.xml); }
 };
 
 #endif /* _CONFIGURATION_H_ */

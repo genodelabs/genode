@@ -30,7 +30,7 @@
 #include <stdio.h> /* perror */
 #pragma GCC diagnostic pop  /* restore -Wconversion warnings */
 
-static bool xml_attr_ok(Genode::Xml_node node, char const *attr)
+static bool xml_attr_ok(Genode::Xml_node const &node, char const *attr)
 {
 	return node.attribute_value(attr, false);
 }
@@ -86,7 +86,7 @@ class Lx_block_driver : public Block::Driver
 
 		struct Could_not_open_file : Genode::Exception { };
 
-		Lx_block_driver(Genode::Env &env, Genode::Xml_node config)
+		Lx_block_driver(Genode::Env &env, Genode::Xml_node const &config)
 		:
 			Block::Driver(env.ram()),
 			_env(env),
@@ -174,7 +174,7 @@ struct Main
 	{
 		Genode::Constructible<Lx_block_driver> _driver { };
 
-		Factory(Genode::Env &env, Genode::Xml_node config)
+		Factory(Genode::Env &env, Genode::Xml_node const &config)
 		{
 			_driver.construct(env, config);
 		}

@@ -18,6 +18,7 @@
 #include <base/log.h>
 #include <base/heap.h>
 #include <base/ram_allocator.h>
+#include <base/attached_rom_dataspace.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
 #include <nic_session/connection.h>
@@ -205,11 +206,11 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 
 		enum { DEFAULT_MAC = 0x02 };
 
-		Mac_allocator     _mac_alloc;
-		Genode::Env      &_env;
-		Net::Nic         &_nic;
-		Genode::Xml_node  _config;
-		bool       const &_verbose;
+		Mac_allocator                         _mac_alloc;
+		Genode::Env                          &_env;
+		Net::Nic                             &_nic;
+		Genode::Attached_rom_dataspace const &_config;
+		bool                           const &_verbose;
 
 	protected:
 
@@ -218,7 +219,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 			using namespace Genode;
 
 			Session_label  const label  { label_from_args(args) };
-			Session_policy const policy { label, _config };
+			Session_policy const policy { label, _config.xml() };
 			Mac_address          mac    { policy.attribute_value("mac", Mac_address()) };
 
 			if (mac == Mac_address()) {
@@ -251,11 +252,11 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 
 	public:
 
-		Root(Genode::Env             &env,
-		     Net::Nic                &nic,
-		     Genode::Allocator       &md_alloc,
-		     bool              const &verbose,
-		     Genode::Xml_node         config);
+		Root(Genode::Env                          &env,
+		     Net::Nic                             &nic,
+		     Genode::Allocator                    &md_alloc,
+		     bool                           const &verbose,
+		     Genode::Attached_rom_dataspace const &config);
 };
 
 #endif /* _COMPONENT_H_ */

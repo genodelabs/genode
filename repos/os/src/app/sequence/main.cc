@@ -14,6 +14,7 @@
 #include <init/child_policy.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/child_policy_dynamic_rom.h>
+#include <os/buffered_xml.h>
 #include <base/sleep.h>
 #include <base/child.h>
 #include <base/component.h>
@@ -32,21 +33,17 @@ struct Sequence::Child : Genode::Child_policy
 
 	Heap _services_heap { _env.pd(), _env.rm() };
 
-	Xml_node const _start_node;
-
-	Name const _name = _start_node.attribute_value("name", Name());
-
-	bool const _have_config = _start_node.has_sub_node("config");
-
-	Binary_name _start_binary()
+	static Binary_name _start_binary(Name const &name, Xml_node const &start_node)
 	{
-		Binary_name name = _name;
-		_start_node.with_optional_sub_node("binary", [&] (Xml_node const &binary) {
-			name = binary.attribute_value("name", _name); });
-		return name;
+		Binary_name binary_name = name;
+		start_node.with_optional_sub_node("binary", [&] (Xml_node const &binary) {
+			binary_name = binary.attribute_value("name", name); });
+		return binary_name;
 	}
 
-	Binary_name const _binary_name = _start_binary();
+	Name        const _name;
+	bool        const _have_config;
+	Binary_name const _binary_name;
 
 	Child_policy_dynamic_rom_file _config_policy {
 		_env.rm(), "config", _env.ep().rpc_ep(), &_env.pd() };
@@ -82,14 +79,15 @@ struct Sequence::Child : Genode::Child_policy
 	      Signal_context_capability exit_handler)
 	:
 		_env(env),
-		_start_node(start_node),
+		_name(start_node.attribute_value("name", Name())),
+		_have_config(start_node.has_sub_node("config")),
+		_binary_name(_start_binary(_name, start_node)),
 		_exit_transmitter(exit_handler)
 	{
-		if (_have_config) {
-			Xml_node config_node = start_node.sub_node("config");
-			config_node.with_raw_node([&] (char const *start, size_t length) {
-				_config_policy.load(start, length); });
-		}
+		start_node.with_optional_sub_node("config",
+			[&] (Xml_node const &config_node) {
+				config_node.with_raw_node([&] (char const *start, size_t length) {
+					_config_policy.load(start, length); }); });
 	}
 
 	~Child()

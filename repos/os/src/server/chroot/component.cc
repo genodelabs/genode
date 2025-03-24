@@ -72,15 +72,15 @@ struct Chroot::Main
 
 	void handle_config_update() { config_rom.update(); }
 
-	void handle_session_request(Xml_node request);
+	void handle_session_request(Xml_node const &request);
 
 	void handle_session_requests()
 	{
 		session_requests.update();
 
-		Xml_node const requests = session_requests.xml();
+		Xml_node const &requests = session_requests.xml();
 
-		requests.for_each_sub_node([&] (Xml_node request) {
+		requests.for_each_sub_node([&] (Xml_node const &request) {
 			handle_session_request(request);
 		});
 	}
@@ -199,7 +199,7 @@ struct Chroot::Main
 };
 
 
-void Chroot::Main::handle_session_request(Xml_node request)
+void Chroot::Main::handle_session_request(Xml_node const &request)
 {
 	if (!request.has_attribute("id"))
 		return;
@@ -220,7 +220,6 @@ void Chroot::Main::handle_session_request(Xml_node request)
 				Session(env.id_space(), server_id_space, server_id);
 			Session_capability cap = request_session(session->client_id.id(), args,
 			                                         Affinity::from_xml(request));
-
 
 			env.parent().deliver_session_cap(server_id, cap);
 		}

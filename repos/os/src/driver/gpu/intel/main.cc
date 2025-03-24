@@ -175,7 +175,7 @@ struct Igd::Device
 	{
 		bool found = false;
 
-		supported.for_each_sub_node("device", [&] (Xml_node node) {
+		supported.for_each_sub_node("device", [&] (Xml_node const &node) {
 			if (found)
 				return;
 
@@ -2543,9 +2543,9 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 			plat_con.update();
 
-			plat_con.with_xml([&] (Xml_node node) {
-				node.with_optional_sub_node("device", [&] (Xml_node node) {
-					node.with_optional_sub_node("pci-config", [&] (Xml_node node) {
+			plat_con.with_xml([&] (Xml_node const &node) {
+				node.with_optional_sub_node("device", [&] (Xml_node const &node) {
+					node.with_optional_sub_node("pci-config", [&] (Xml_node const &node) {
 						device_id = node.attribute_value("device_id", 0U);
 						revision  = node.attribute_value("revision",  0U);
 						gmch_ctl  = node.attribute_value("intel_gmch_control",  0U);

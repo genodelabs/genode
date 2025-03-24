@@ -27,46 +27,39 @@ Global_keys::Policy *Global_keys::_lookup_policy(char const *key_name)
 }
 
 
-void Global_keys::apply_config(Xml_node config, Session_list &session_list)
+void Global_keys::apply_config(Xml_node const &config, Session_list &session_list)
 {
 	for (unsigned i = 0; i < NUM_POLICIES; i++)
 		_policies[i] = Policy();
 
-	char const *node_type = "global-key";
+	config.for_each_sub_node("global-key", [&] (Xml_node const &node) {
 
-	try {
-		Xml_node node = config.sub_node(node_type);
-
-		for (; ; node = node.next(node_type)) {
-
-			if (!node.has_attribute("name")) {
-				warning("attribute 'name' missing in <global-key> config node");
-				continue;
-			}
-
-			using Name = String<32>;
-			Name name = node.attribute_value("name", Name());
-			Policy * policy = _lookup_policy(name.string());
-			if (!policy) {
-				warning("invalid key name \"", name, "\"");
-				continue;
-			}
-
-			/* if two policies match, give precedence to policy defined first */
-			if (policy->defined())
-				continue;
-
-			if (!node.has_attribute("label")) {
-				warning("missing 'label' attribute for key ", name);
-				continue;
-			}
-
-			/* assign policy to matching client session */
-			for (Gui_session *s = session_list.first(); s; s = s->next())
-				if (node.attribute_value("label", String<128>()) == s->label().string())
-					policy->client(s);
+		if (!node.has_attribute("name")) {
+			warning("attribute 'name' missing in <global-key> config node");
+			return;
 		}
 
-	} catch (Xml_node::Nonexistent_sub_node) { }
+		using Name = String<32>;
+		Name name = node.attribute_value("name", Name());
+		Policy * policy = _lookup_policy(name.string());
+		if (!policy) {
+			warning("invalid key name \"", name, "\"");
+			return;
+		}
+
+		/* if two policies match, give precedence to policy defined first */
+		if (policy->defined())
+			return;
+
+		if (!node.has_attribute("label")) {
+			warning("missing 'label' attribute for key ", name);
+			return;
+		}
+
+		/* assign policy to matching client session */
+		for (Gui_session *s = session_list.first(); s; s = s->next())
+			if (node.attribute_value("label", String<128>()) == s->label().string())
+				policy->client(s);
+	});
 }
 

@@ -25,7 +25,7 @@ struct Ps2::Verbose
 	bool const scancodes;
 	bool const mouse;
 
-	Verbose(Genode::Xml_node config)
+	Verbose(Genode::Xml_node const &config)
 	:
 		keyboard (config.attribute_value("verbose_keyboard",  false)),
 		scancodes(config.attribute_value("verbose_scancodes", false)),

@@ -101,12 +101,12 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 
 		static char const *name() { return "touch-key"; }
 
-		Touch_key_source(Owner &owner, Xml_node config,
+		Touch_key_source(Owner &owner, Xml_node const &config,
 		                 Source::Factory &factory, Allocator &alloc)
 		:
 			Source(owner),
 			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config))),
+			_source(factory.create_source_for_sub_node(_owner, config)),
 			_alloc(alloc)
 		{
 			config.for_each_sub_node("tap", [&] (Xml_node const &node) {

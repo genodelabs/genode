@@ -141,7 +141,7 @@ struct Vfs::Xoroshiro_file_system : Single_file_system
 	Allocator &_alloc;
 
 	using File_path = String<256>;
-	static File_path _get_seed_file_path(Xml_node const config)
+	static File_path _get_seed_file_path(Xml_node const &config)
 	{
 		if (!config.has_attribute("seed_path"))
 			error("seed_path is unset");
@@ -210,7 +210,7 @@ struct Vfs::Xoroshiro_file_system : Single_file_system
 		bool write_ready() const override { return false; }
 	};
 
-	Xoroshiro_file_system(Vfs::Env &vfs_env, Xml_node config)
+	Xoroshiro_file_system(Vfs::Env &vfs_env, Xml_node const &config)
 	:
 		Single_file_system { Node_type::CONTINUOUS_FILE, name(),
 		                     Node_rwx::ro(), config },
@@ -260,7 +260,7 @@ struct Vfs::Xoroshiro_file_system : Single_file_system
 
 struct Xoroshiro_factory : Vfs::File_system_factory
 {
-	Vfs::File_system *create(Vfs::Env &env, Xml_node node) override
+	Vfs::File_system *create(Vfs::Env &env, Xml_node const &node) override
 	{
 		return new (env.alloc()) Vfs::Xoroshiro_file_system(env, node);
 	}

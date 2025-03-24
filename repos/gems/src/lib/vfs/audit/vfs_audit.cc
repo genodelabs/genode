@@ -103,7 +103,7 @@ class Vfs_audit::File_system : public Vfs::File_system
 
 	public:
 
-		File_system(Vfs::Env &env, Genode::Xml_node config)
+		File_system(Vfs::Env &env, Genode::Xml_node const &config)
 		:
 			_audit_log(env.env(), config.attribute_value("label", Genode::String<64>("audit")).string()),
 			_root_dir(env.root_dir()),
@@ -320,7 +320,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
 		{
 			return new (env.alloc())
 				Vfs_audit::File_system(env, config);

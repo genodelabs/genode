@@ -23,7 +23,7 @@ using namespace Genode;
 
 
 Net::Uplink::Uplink(Env               &env,
-                    Xml_node           config,
+                    Xml_node    const &config,
                     Timer::Connection &timer,
                     Duration          &curr_time,
                     Allocator         &alloc)

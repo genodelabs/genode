@@ -113,7 +113,7 @@ struct Rtc::Main
 
 	struct Invalid_timestamp_xml : Exception {};
 
-	Timestamp _parse_xml(Xml_node);
+	Timestamp _parse_xml(Xml_node const &);
 	void _handle_update();
 
 	Signal_handler<Main> _update_sigh {
@@ -140,7 +140,7 @@ struct Rtc::Main
 };
 
 
-Rtc::Timestamp Rtc::Main::_parse_xml(Xml_node node)
+Rtc::Timestamp Rtc::Main::_parse_xml(Xml_node const &node)
 {
 	bool const complete = node.has_attribute("year")
 	                   && node.has_attribute("month")
@@ -194,7 +194,7 @@ void Rtc::Main::_handle_update()
 
 	if (!_update_rom->valid()) { return; }
 
-	Genode::Xml_node node = _update_rom->xml();
+	Genode::Xml_node const &node = _update_rom->xml();
 
 	try {
 		Timestamp ts = _parse_xml(node);

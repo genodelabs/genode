@@ -59,11 +59,11 @@ Session_component_base(Ram_allocator  &ram,
  ** Session_component **
  ***********************/
 
-Net::Session_component::Session_component(Ram_quota    const ram_quota,
-                                          Cap_quota    const cap_quota,
-                                          size_t       const tx_buf_size,
-                                          size_t       const rx_buf_size,
-                                          Xml_node     const config,
+Net::Session_component::Session_component(Ram_quota   const  ram_quota,
+                                          Cap_quota   const  cap_quota,
+                                          size_t      const  tx_buf_size,
+                                          size_t      const  rx_buf_size,
+                                          Xml_node    const &config,
                                           Timer::Connection &timer,
                                           Duration          &curr_time,
                                           Env               &env)
@@ -112,13 +112,13 @@ void Session_component::_handle_link_state()
 
 Net::Root::Root(Env               &env,
                 Allocator         &alloc,
-                Xml_node           config,
+                Xml_node    const &config,
                 Timer::Connection &timer,
                 Duration          &curr_time)
 :
 	Root_component<Session_component, Genode::Single_client>(&env.ep().rpc_ep(),
 	                                                         &alloc),
-	_env(env), _config(config), _timer(timer), _curr_time(curr_time)
+	_env(env), _config(alloc, config), _timer(timer), _curr_time(curr_time)
 { }
 
 
@@ -143,7 +143,7 @@ Session_component *Net::Root::_create_session(char const *args)
 		}
 		return new (md_alloc())
 			Session_component(Ram_quota{ram_quota.value},
-			                  cap_quota, tx_buf_size, rx_buf_size, _config, _timer,
+			                  cap_quota, tx_buf_size, rx_buf_size, _config.xml, _timer,
 			                  _curr_time, _env);
 	}
 	catch (...) { throw Service_denied(); }

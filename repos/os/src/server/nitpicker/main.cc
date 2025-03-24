@@ -1008,7 +1008,7 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 /**
  * Helper function for 'handle_config'
  */
-static void configure_reporter(Genode::Xml_node config, Genode::Reporter &reporter)
+static void configure_reporter(Genode::Xml_node const &config, Genode::Reporter &reporter)
 {
 	try {
 		reporter.enabled(config.sub_node("report")
@@ -1056,7 +1056,7 @@ void Nitpicker::Main::_handle_config()
 {
 	_config_rom.update();
 
-	Xml_node const config = _config_rom.xml();
+	Xml_node const &config = _config_rom.xml();
 
 	/* update global keys policy */
 	_global_keys.apply_config(config, _session_list);

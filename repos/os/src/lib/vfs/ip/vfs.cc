@@ -1635,7 +1635,7 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 
 	public:
 
-		Ip_file_system(Vfs::Env &env, Genode::Xml_node config)
+		Ip_file_system(Vfs::Env &env, Genode::Xml_node const &config)
 		:
 			Directory(""),
 			_ep(env.env().ep()), _alloc(env.alloc()), _vfs_user(env.user()),
@@ -1991,7 +1991,7 @@ struct Ip_factory : Vfs::File_system_factory
 
 	struct genode_socket_io_progress io_progress { };
 
-	Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
+	Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
 	{
 		io_progress.data = &env;
 		io_progress.callback = socket_progress;

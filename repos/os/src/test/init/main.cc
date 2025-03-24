@@ -30,8 +30,8 @@ namespace Test {
 
 	using namespace Genode;
 
-	static bool xml_attribute_matches(Xml_node, Xml_node);
-	static bool xml_matches(Xml_node, Xml_node);
+	static bool xml_attribute_matches(Xml_node const &, Xml_node const &);
+	static bool xml_matches(Xml_node const &, Xml_node const &);
 }
 
 
@@ -39,7 +39,8 @@ namespace Test {
  ** Utilities **
  ***************/
 
-static inline bool Test::xml_attribute_matches(Xml_node condition, Xml_node node)
+static inline bool Test::xml_attribute_matches(Xml_node const &condition,
+                                               Xml_node const &node)
 {
 	using Name  = String<32>;
 	using Value = String<64>;
@@ -71,10 +72,10 @@ static inline bool Test::xml_attribute_matches(Xml_node condition, Xml_node node
  *
  * \expected  description of the XML content expected in 'node'
  */
-static inline bool Test::xml_matches(Xml_node expected, Xml_node node)
+static inline bool Test::xml_matches(Xml_node const &expected, Xml_node const &node)
 {
 	bool matches = true;
-	expected.for_each_sub_node([&] (Xml_node condition) {
+	expected.for_each_sub_node([&] (Xml_node const &condition) {
 
 		if (condition.type() == "attribute")
 			matches = matches && xml_attribute_matches(condition, node);
@@ -85,7 +86,7 @@ static inline bool Test::xml_matches(Xml_node expected, Xml_node node)
 			Name const name = condition.attribute_value("name", Name());
 
 			bool at_least_one_sub_node_matches = false;
-			node.for_each_sub_node(name.string(), [&] (Xml_node sub_node) {
+			node.for_each_sub_node(name.string(), [&] (Xml_node const &sub_node) {
 				if (xml_matches(condition, sub_node))
 					at_least_one_sub_node_matches = true; });
 
@@ -191,7 +192,7 @@ struct Test::Main : Log_message_handler
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	void _publish_report(Reporter &reporter, Xml_node node)
+	void _publish_report(Reporter &reporter, Xml_node const &node)
 	{
 		using Version = String<64>;
 		Version const version = node.attribute_value("version", Version());

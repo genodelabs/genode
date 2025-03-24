@@ -34,7 +34,7 @@ class Event_filter::Include_accessor : Interface
 
 	protected:
 
-		struct Functor : Interface { virtual void apply(Xml_node node) const = 0; };
+		struct Functor : Interface { virtual void apply(Xml_node const &node) const = 0; };
 
 		/*
 		 * \throw Include_unavailable
@@ -44,7 +44,7 @@ class Event_filter::Include_accessor : Interface
 	public:
 
 		/**
-		 * Call functor 'fn' with the 'Xml_node' of the named include
+		 * Call functor 'fn' with the 'Xml_node const &' of the named include
 		 *
 		 * \throw Include_unavailable
 		 */
@@ -57,7 +57,7 @@ class Event_filter::Include_accessor : Interface
 
 				Functor(FN const &fn) : fn(fn) { }
 
-				void apply(Xml_node node) const override { fn(node); }
+				void apply(Xml_node const &node) const override { fn(node); }
 			} _functor(fn);
 
 			_apply_include(name, type, _functor);

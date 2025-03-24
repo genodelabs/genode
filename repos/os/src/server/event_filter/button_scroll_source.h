@@ -30,19 +30,33 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 
 		struct Wheel
 		{
-			Input::Keycode const _button;
-
-			static Key_name _button_attribute(Xml_node node)
+			struct Attr
 			{
-				return node.attribute_value("button", Key_name("BTN_MIDDLE"));
-			}
+				Input::Keycode button;
 
-			/**
-			 * Factor to scale motion events in percent
-			 */
-			int const _factor;
-			int const _factor_sign    = (_factor < 0) ? -1 : 1;
-			int const _factor_percent = _factor_sign*_factor;
+				/**
+				 * Factor to scale motion events in percent
+				 */
+				int factor;
+
+				static Key_name _button_attribute(Xml_node const &node)
+				{
+					return node.attribute_value("button", Key_name("BTN_MIDDLE"));
+				}
+
+				static Attr from_xml(Xml_node const &node)
+				{
+					return {
+						.button = key_code_by_name(_button_attribute(node).string()),
+						.factor = (int)node.attribute_value("speed_percent", 0L)
+					};
+				}
+			};
+
+			Attr const _attr;
+
+			int const _factor_sign    = (_attr.factor < 0) ? -1 : 1;
+			int const _factor_percent = _factor_sign*_attr.factor;
 
 			/**
 			 * True while user holds the configured button
@@ -56,17 +70,13 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 			 */
 			int _accumulated_motion = 0;
 
-			Wheel(Xml_node config)
-			:
-				_button(key_code_by_name(_button_attribute(config).string())),
-				_factor((int)config.attribute_value("speed_percent", 0L))
-			{ }
+			Wheel(Attr const &attr) : _attr(attr) { }
 
 			void handle_activation(Input::Event const &event)
 			{
 				switch (_state) {
 				case IDLE:
-					if (event.key_press(_button)) {
+					if (event.key_press(_attr.button)) {
 						_state = BUTTON_PRESSED;
 						_accumulated_motion = 0;
 					}
@@ -91,7 +101,7 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 			 */
 			bool handle_deactivation(Input::Event const &event)
 			{
-				if (event.key_release(_button)) {
+				if (event.key_release(_attr.button)) {
 					bool const emit_press_release = (_state == BUTTON_PRESSED);
 					_state = IDLE;
 					_accumulated_motion = 0;
@@ -132,12 +142,12 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 			bool suppressed(Input::Event const event)
 			{
 				return (_state == ACTIVE && event.relative_motion())
-				     || event.key_press(_button);
+				     || event.key_press(_attr.button);
 			}
 
 			bool release(Input::Event const event) const
 			{
-				return event.key_release(_button);
+				return event.key_release(_attr.button);
 			}
 		};
 
@@ -199,23 +209,25 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 			destination.submit(event);
 		}
 
-		static Xml_node _sub_node(Xml_node node, char const *type)
+		static Wheel::Attr _attr_for_sub_node(Xml_node const &node, char const *type)
 		{
-			return node.has_sub_node(type) ? node.sub_node(type)
-			                               : Xml_node("<ignored/>");
+			Wheel::Attr result { };
+			node.with_optional_sub_node(type, [&] (Xml_node const &sub_node) {
+				result = Wheel::Attr::from_xml(sub_node); });
+			return result;
 		}
 
 	public:
 
 		static char const *name() { return "button-scroll"; }
 
-		Button_scroll_source(Owner &owner, Xml_node config, Source::Factory &factory)
+		Button_scroll_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
 		:
 			Source(owner),
-			_vertical_wheel  (_sub_node(config, "vertical")),
-			_horizontal_wheel(_sub_node(config, "horizontal")),
+			_vertical_wheel  (_attr_for_sub_node(config, "vertical")),
+			_horizontal_wheel(_attr_for_sub_node(config, "horizontal")),
 			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config)))
+			_source(factory.create_source_for_sub_node(_owner, config))
 		{ }
 
 		void generate(Sink &destination) override

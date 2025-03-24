@@ -22,7 +22,7 @@ namespace Vfs { class Null_file_system; }
 
 struct Vfs::Null_file_system : Single_file_system
 {
-	Null_file_system(Vfs::Env&, Genode::Xml_node config)
+	Null_file_system(Vfs::Env&, Genode::Xml_node const &config)
 	:
 		Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 		                   Node_rwx::rw(), config)

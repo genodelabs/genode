@@ -146,7 +146,7 @@ struct Test::Main
 
 		size_t total_loss = 0;
 
-		void update(Xml_node ram)
+		void update(Xml_node const &ram)
 		{
 			size_t const current = ram.attribute_value("quota", Number_of_bytes());
 
@@ -171,7 +171,7 @@ struct Test::Main
 	Ram_tracker _init_ram_tracker   { "init" };
 	Ram_tracker _server_ram_tracker { "server" };
 
-	static Number_of_bytes _init_ram(Xml_node state)
+	static Number_of_bytes _init_ram(Xml_node const &state)
 	{
 		/* \throw Nonexistent_sub_node */
 		return state.sub_node("ram").attribute_value("quota", Number_of_bytes());
@@ -180,9 +180,9 @@ struct Test::Main
 	using Name = String<32>;
 
 	template <typename FN>
-	void _apply_child(Xml_node state, Name const &name, FN const &fn)
+	void _apply_child(Xml_node const &state, Name const &name, FN const &fn)
 	{
-		state.for_each_sub_node("child", [&] (Xml_node child) {
+		state.for_each_sub_node("child", [&] (Xml_node const &child) {
 			if (child.attribute_value("name", Name()) == name)
 				fn(child); });
 	}
@@ -191,7 +191,7 @@ struct Test::Main
 	{
 		_init_state.update();
 
-		Xml_node const state = _init_state.xml();
+		Xml_node const &state = _init_state.xml();
 
 		/*
 		 * Detect state where the client is running and has established a
@@ -199,17 +199,17 @@ struct Test::Main
 		 */
 		bool client_present  = false;
 		bool client_complete = false;
-		_apply_child(state, "client", [&] (Xml_node child) {
+		_apply_child(state, "client", [&] (Xml_node const &child) {
 			client_present = true;
-			child.for_each_sub_node("requested", [&] (Xml_node requested) {
-				requested.for_each_sub_node("session", [&] (Xml_node session) {
+			child.for_each_sub_node("requested", [&] (Xml_node const &requested) {
+				requested.for_each_sub_node("session", [&] (Xml_node const &session) {
 					if (session.attribute_value("service", String<16>()) == "LOG"
 					 && session.attribute_value("state", String<16>()) == "CAP_HANDED_OUT")
 						client_complete = true; }); }); });
 
 		bool client_connected = false;
-		_apply_child(state, "server", [&] (Xml_node child) {
-			child.for_each_sub_node("provided", [&] (Xml_node provided) {
+		_apply_child(state, "server", [&] (Xml_node const &child) {
+			child.for_each_sub_node("provided", [&] (Xml_node const &provided) {
 				client_connected |= (provided.num_sub_nodes() > 0); }); });
 
 		if (_client_starting) {
@@ -229,7 +229,7 @@ struct Test::Main
 				if (state.has_sub_node("ram"))
 					_init_ram_tracker.update(state.sub_node("ram"));
 
-				_apply_child(state, "server", [&] (Xml_node child) {
+				_apply_child(state, "server", [&] (Xml_node const &child) {
 					_server_ram_tracker.update(child.sub_node("ram")); });
 
 				_client_starting = true;

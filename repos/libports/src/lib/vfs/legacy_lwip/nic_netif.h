@@ -273,7 +273,7 @@ class Lwip::Nic_netif
 
 		Nic_netif(Genode::Env &env,
 		          Genode::Allocator &alloc,
-		          Genode::Xml_node config,
+		          Genode::Xml_node const &config,
 		          Wakeup_scheduler &wakeup_scheduler)
 		:
 			_ep(env.ep()),
