@@ -35,7 +35,6 @@ namespace Board {
 
 	enum Platform_exitcodes : uint64_t {
 		EXIT_NPF     = 0xfc,
-		EXIT_STARTUP = 0xfe,
 		EXIT_PAUSED  = 0xff,
 	};
 
@@ -55,7 +54,6 @@ struct Board::Vcpu_context
 {
 	enum class Init_state {
 		CREATED,
-		INITIALIZING,
 		STARTED
 	};
 

@@ -19,7 +19,10 @@
 #include <base/signal.h>
 #include <base/sleep.h>
 #include <base/internal/capability_space.h>
+
 #include <kernel/interface.h>
+
+#include <spec/x86/cpu/vcpu_state.h>
 
 #include <vm_session/connection.h>
 #include <vm_session/handler.h>
@@ -38,6 +41,7 @@ using Exit_config = Vm_connection::Exit_config;
 struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 {
 	private:
+		enum Initial_exitcode : unsigned { EXIT_STARTUP = 0xfe };
 
 		Attached_dataspace      _state;
 		Native_capability       _kernel_vcpu { };
@@ -73,6 +77,11 @@ Hw_vcpu::Hw_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler)
 	_kernel_vcpu = call<Rpc_native_vcpu>();
 	_id = counter++;
 	_ep_handler = reinterpret_cast<Thread *>(&handler.rpc_ep());
+
+	/*
+	 * Set the startup exit for the initial signal to the VMM's Vcpu_handler
+	 */
+        _local_state().exit_reason = EXIT_STARTUP;
 }
 
 
@@ -119,5 +128,8 @@ Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,
 :
 	_native_vcpu(*new (alloc) Hw_vcpu(vm._env, vm, handler))
 {
-	static_cast<Hw_vcpu &>(_native_vcpu).run();
+	/*
+	 * Send the initial startup signal to the vCPU handler.
+	 */
+	Signal_transmitter(handler.signal_cap()).submit();
 }

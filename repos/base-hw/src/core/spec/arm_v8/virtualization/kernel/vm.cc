@@ -214,18 +214,19 @@ void Vm::proceed()
 
 void Vm::run()
 {
-	_sync_from_vmm();
 	if (_scheduled != ACTIVE) Cpu_context::_activate();
 	_scheduled = ACTIVE;
 }
 
 
-void Vm::_sync_to_vmm()
-{}
-
-
-void Vm::_sync_from_vmm()
-{}
+void Vm::pause()
+{
+	if (_cpu().id() != Cpu::executing_id()) {
+		Genode::error("vCPU pause called from remote core.");
+		return;
+	}
+	_pause_vcpu();
+}
 
 
 void Vm::inject_irq(unsigned irq)
