@@ -14,22 +14,10 @@ $(call check_tool,autoheader)
 $(call check_tool,autoconf)
 $(call check_tool,ed)
 
-#
-# Determine python version to use for CML2
-#
-PYTHON2 := $(notdir $(lastword $(shell which python2 $(addprefix python2.,4 5 6 7 8))))
-ifeq ($(PYTHON2),)
-default: python_not_installed
-python_not_installed:
-	$(error CML2 Configuration System needs Python 2 to be installed)
-endif
-
 default : additional_steps
 additional_steps : $(DOWNLOADS)
 	@# use GCC front end for as linker for the pistachio user land
 	$(VERBOSE)sed -i "/LD=/s/^.*$$/LD=\$$(CC)/" src/kernel/pistachio/user/config.mk.in
 	@# add '-Wl,' prefix to '-melf_*' linker options
 	$(VERBOSE)sed -i "s/-melf_/-Wl,-melf_/" `grep -rl melf_ src/kernel/pistachio/user`
-	$(VERBOSE)for i in cmlcompile.py cmlconfigure.py configtrans.py; do \
-	        sed -i "s/env python/env $(PYTHON2)/" src/kernel/pistachio/contrib/cml2/$$i; done
 	$(VERBOSE)cd src/kernel/pistachio/user; autoheader; autoconf; rm -rf autom4te.cache
