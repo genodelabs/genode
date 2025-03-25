@@ -16,6 +16,7 @@
 
 #include <base/allocator_avl.h>
 #include <base/internal/elf.h>
+#include <hw/memory_consts.h>
 #include <hw/boot_info.h>
 #include <util/reconstructible.h>
 

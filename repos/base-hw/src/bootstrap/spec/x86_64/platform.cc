@@ -170,6 +170,176 @@ static void amd_enable_serializing_lfence()
 }
 
 
+static inline void memory_add_region(addr_t base, addr_t size,
+                                     Hw::Memory_region_array &early,
+                                     Hw::Memory_region_array &late)
+{
+	using namespace Hw;
+
+	static constexpr size_t initial_map_max = 1024 * 1024 * 1024;
+
+	/*
+	 * Exclude first physical page, so that it will become part of the
+	 * MMIO allocator. The framebuffer requests this page as MMIO.
+	 */
+	if (base == 0 && size >= get_page_size()) {
+		base  = get_page_size();
+		size -= get_page_size();
+	}
+
+	/* exclude AP boot code page from normal RAM allocator */
+	if (base <= AP_BOOT_CODE_PAGE && AP_BOOT_CODE_PAGE < base + size) {
+		if (AP_BOOT_CODE_PAGE - base)
+			early.add(Memory_region { base, AP_BOOT_CODE_PAGE - base });
+
+		size -= AP_BOOT_CODE_PAGE - base;
+		size -= (get_page_size() > size) ? size : get_page_size();
+		base  = AP_BOOT_CODE_PAGE + get_page_size();
+	}
+
+	/* skip partial 4k pages (seen with Qemu with ahci model enabled) */
+	if (!aligned(base, 12)) {
+		auto new_base = align_addr(base, 12);
+		size -= (new_base - base > size) ? size : new_base - base;
+		base  = new_base;
+	}
+
+	/* remove partial 4k pages */
+	if (!aligned(size, 12))
+		size -= size & 0xffful;
+
+	if (!size)
+		return;
+
+	if (base >= initial_map_max) {
+		late.add(Memory_region { base, size });
+		return;
+	}
+
+	if (base + size <= initial_map_max) {
+		early.add(Memory_region { base, size });
+		return;
+	}
+
+	size_t low_size = initial_map_max - base;
+	early.add(Memory_region { base, low_size });
+	late.add(Memory_region { initial_map_max, size - low_size });
+}
+
+
+static inline void parse_multi_boot_1(::Board::Boot_info      &info,
+                                      Hw::Memory_region_array &early,
+                                      Hw::Memory_region_array &late)
+{
+	for (unsigned i = 0; true; i++) {
+		using Mmap = Multiboot_info::Mmap;
+
+		Mmap v(Multiboot_info(__initial_bx).phys_ram_mmap_base(i));
+		if (!v.base()) break;
+
+		Mmap::Addr::access_t   base = v.read<Mmap::Addr>();
+		Mmap::Length::access_t size = v.read<Mmap::Length>();
+
+		memory_add_region(base, size, early, late);
+	}
+
+	/* search ACPI RSDP pointer at known places */
+
+	/* BIOS range to scan for */
+	enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
+	info.acpi_rsdp = search_rsdp(BIOS_BASE, BIOS_SIZE);
+
+	if (!info.acpi_rsdp.valid()) {
+		/* page 0 is remapped to 2M - 4k - see crt_translation table */
+		addr_t const bios_addr = 2 * 1024 * 1024 - 4096;
+
+		/* search EBDA (BIOS addr + 0x40e) */
+		addr_t ebda_phys = (*reinterpret_cast<uint16_t *>(bios_addr + 0x40e)) << 4;
+		if (ebda_phys < 0x1000)
+			ebda_phys = bios_addr;
+
+		info.acpi_rsdp = search_rsdp(ebda_phys, 0x1000 /* EBDA size */);
+	}
+}
+
+
+static inline void parse_multi_boot_2(::Board::Boot_info      &info,
+                                      Hw::Memory_region_array &early,
+                                      Hw::Memory_region_array &late)
+{
+	Multiboot2_info mbi2(__initial_bx);
+
+	mbi2.for_each_tag([&] (Multiboot2_info::Memory const & m) {
+		uint32_t const type = m.read<Multiboot2_info::Memory::Type>();
+
+		if (type != Multiboot2_info::Memory::Type::MEMORY)
+			return;
+
+		uint64_t const base = m.read<Multiboot2_info::Memory::Addr>();
+		uint64_t const size = m.read<Multiboot2_info::Memory::Size>();
+
+		memory_add_region(base, size, early, late);
+	},
+	[&] (Hw::Acpi_rsdp const &rsdp_v1) {
+		/* only use ACPI RSDP v1 if nothing available/valid by now */
+		if (!info.acpi_rsdp.valid())
+			info.acpi_rsdp = rsdp_v1;
+	},
+	[&] (Hw::Acpi_rsdp const &rsdp_v2) {
+		/* prefer v2 ever, override stored previous rsdp v1 potentially */
+		info.acpi_rsdp = rsdp_v2;
+	},
+	[&] (Hw::Framebuffer const &fb) {
+		info.framebuffer = fb;
+	},
+	[&] (uint64_t const efi_sys_tab) {
+		info.efi_system_table = efi_sys_tab;
+	});
+}
+
+
+static inline void acpi_system_description_table(Hw::Acpi_rsdp & acpi_rsdp,
+                                                 auto const &per_table)
+{
+	if (!acpi_rsdp.valid())
+		return;
+
+	uint64_t const table_addr = acpi_rsdp.xsdt ? acpi_rsdp.xsdt : acpi_rsdp.rsdt;
+	if (!table_addr)
+		return;
+
+	auto lambda = [&] (auto paddr_table) {
+		addr_t const table_virt_addr = paddr_table;
+		per_table(*reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr),
+		                                                paddr_table);
+	};
+
+	Hw::Acpi_generic &table = *reinterpret_cast<Hw::Acpi_generic*>(table_addr);
+	if (!memcmp(table.signature, "RSDT", 4)) {
+		Hw::for_each_rsdt_entry(table, lambda);
+	} else if (!memcmp(table.signature, "XSDT", 4)) {
+		Hw::for_each_xsdt_entry(table, lambda);
+	}
+}
+
+
+static inline void for_each_cpu(Hw::Acpi_rsdp & acpi_rsdp,
+                                auto const &per_cpu_fn)
+{
+	auto lambda = [&] (Hw::Acpi_generic &table, uint64_t) {
+		Hw::for_each_apic_struct(table,[&](Hw::Apic_madt const *e) {
+			if (e->type != Hw::Apic_madt::LAPIC)
+				return;
+
+			/* check if APIC is enabled in hardware */
+			Hw::Apic_madt::Lapic lapic(e);
+			if (lapic.valid()) per_cpu_fn(lapic.id());
+		});
+	};
+	acpi_system_description_table(acpi_rsdp, lambda);
+}
+
+
 Bootstrap::Platform::Board::Board()
 :
 	core_mmio(Memory_region { 0, 0x1000 },
@@ -179,179 +349,51 @@ Bootstrap::Platform::Board::Board()
 	          Memory_region { __initial_bx & ~0xFFFUL,
 	                          get_page_size() })
 {
-	Hw::Acpi_rsdp & acpi_rsdp = info.acpi_rsdp;
-	static constexpr size_t initial_map_max = 1024 * 1024 * 1024;
-
-	auto lambda = [&] (addr_t base, addr_t size) {
-
-		/*
-		 * Exclude first physical page, so that it will become part of the
-		 * MMIO allocator. The framebuffer requests this page as MMIO.
-		 */
-		if (base == 0 && size >= get_page_size()) {
-			base  = get_page_size();
-			size -= get_page_size();
-		}
-
-		/* exclude AP boot code page from normal RAM allocator */
-		if (base <= AP_BOOT_CODE_PAGE && AP_BOOT_CODE_PAGE < base + size) {
-			if (AP_BOOT_CODE_PAGE - base)
-				early_ram_regions.add(Memory_region { base,
-				                                      AP_BOOT_CODE_PAGE - base });
-
-			size -= AP_BOOT_CODE_PAGE - base;
-			size -= (get_page_size() > size) ? size : get_page_size();
-			base  = AP_BOOT_CODE_PAGE + get_page_size();
-		}
-
-		/* skip partial 4k pages (seen with Qemu with ahci model enabled) */
-		if (!aligned(base, 12)) {
-			auto new_base = align_addr(base, 12);
-			size -= (new_base - base > size) ? size : new_base - base;
-			base  = new_base;
-		}
-
-		/* remove partial 4k pages */
-		if (!aligned(size, 12))
-			size -= size & 0xffful;
-
-		if (!size)
-			return;
-
-		if (base >= initial_map_max) {
-			late_ram_regions.add(Memory_region { base, size });
-			return;
-		}
-
-		if (base + size <= initial_map_max) {
-			early_ram_regions.add(Memory_region { base, size });
-			return;
-		}
-
-		size_t low_size = initial_map_max - base;
-		early_ram_regions.add(Memory_region { base, low_size });
-		late_ram_regions.add(Memory_region { initial_map_max, size - low_size });
+	switch (__initial_ax) {
+	case Multiboot_info::MAGIC:
+		parse_multi_boot_1(info, early_ram_regions, late_ram_regions);
+		break;
+	case Multiboot2_info::MAGIC:
+		parse_multi_boot_2(info, early_ram_regions, late_ram_regions);
+		break;
+	default:
+		error("invalid multiboot magic value: ", Hex(__initial_ax));
 	};
 
-	if (__initial_ax == Multiboot2_info::MAGIC) {
-		Multiboot2_info mbi2(__initial_bx);
+	/* scan ACPI tables for FADT */
+	auto lambda = [&] (Hw::Acpi_generic &table, uint64_t paddr) {
 
-		mbi2.for_each_tag([&] (Multiboot2_info::Memory const & m) {
-			uint32_t const type = m.read<Multiboot2_info::Memory::Type>();
+		/* its signature is called FACP */
+		if (memcmp(table.signature, "FACP", 4))
+			return;
 
-			if (type != Multiboot2_info::Memory::Type::MEMORY)
-				return;
+		info.acpi_fadt = addr_t(&table);
 
-			uint64_t const base = m.read<Multiboot2_info::Memory::Addr>();
-			uint64_t const size = m.read<Multiboot2_info::Memory::Size>();
+		/* show firmware that we're an ACPI-aware OS */
+		Hw::Acpi_fadt fadt(&table);
+		fadt.takeover_acpi();
 
-			lambda(base, size);
-		},
-		[&] (Hw::Acpi_rsdp const &rsdp_v1) {
-			/* only use ACPI RSDP v1 if nothing available/valid by now */
-			if (!acpi_rsdp.valid())
-				acpi_rsdp = rsdp_v1;
-		},
-		[&] (Hw::Acpi_rsdp const &rsdp_v2) {
-			/* prefer v2 ever, override stored previous rsdp v1 potentially */
-			acpi_rsdp = rsdp_v2;
-		},
-		[&] (Hw::Framebuffer const &fb) {
-			info.framebuffer = fb;
-		},
-		[&] (uint64_t const efi_sys_tab) {
-			info.efi_system_table = efi_sys_tab;
-		});
-	} else if (__initial_ax == Multiboot_info::MAGIC) {
-		for (unsigned i = 0; true; i++) {
-			using Mmap = Multiboot_info::Mmap;
+		Hw::Acpi_facs facs(fadt.facs());
+		facs.wakeup_vector(AP_BOOT_CODE_PAGE);
 
-			Mmap v(Multiboot_info(__initial_bx).phys_ram_mmap_base(i));
-			if (!v.base()) break;
+		auto mem_aligned = paddr & _align_mask(12);
+		auto mem_size    = align_addr(paddr + table.size, 12) - mem_aligned;
+		core_mmio.add({ mem_aligned, mem_size });
+	};
+	acpi_system_description_table(info.acpi_rsdp, lambda);
 
-			Mmap::Addr::access_t   base = v.read<Mmap::Addr>();
-			Mmap::Length::access_t size = v.read<Mmap::Length>();
-
-			lambda(base, size);
-		}
-
-		/* search ACPI RSDP pointer at known places */
-
-		/* BIOS range to scan for */
-		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
-		acpi_rsdp = search_rsdp(BIOS_BASE, BIOS_SIZE);
-
-		if (!acpi_rsdp.valid()) {
-			/* page 0 is remapped to 2M - 4k - see crt_translation table */
-			addr_t const bios_addr = 2 * 1024 * 1024 - 4096;
-
-			/* search EBDA (BIOS addr + 0x40e) */
-			addr_t ebda_phys = (*reinterpret_cast<uint16_t *>(bios_addr + 0x40e)) << 4;
-			if (ebda_phys < 0x1000)
-				ebda_phys = bios_addr;
-
-			acpi_rsdp = search_rsdp(ebda_phys, 0x1000 /* EBDA size */);
-		}
-	} else {
-		error("invalid multiboot magic value: ", Hex(__initial_ax));
-	}
-
-	/* remember max supported CPUs and use ACPI to get the actual number */
-	unsigned const max_cpus =
-		Hw::Mm::CPU_LOCAL_MEMORY_AREA_SIZE / Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE;
+	/* get the actual number of cpus */
+	static constexpr unsigned MAX_CPUS =
+		Hw::Mm::CPU_LOCAL_MEMORY_AREA_SIZE /
+		Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE;
 	cpus = 0;
+	for_each_cpu(info.acpi_rsdp, [this] (unsigned) { cpus++; });
 
-	/* scan ACPI tables to find out number of CPUs in this machine */
-	if (acpi_rsdp.valid()) {
-		uint64_t const table_addr = acpi_rsdp.xsdt ? acpi_rsdp.xsdt : acpi_rsdp.rsdt;
-
-		if (table_addr) {
-			auto rsdt_xsdt_lambda = [&](auto paddr_table) {
-				addr_t const table_virt_addr = paddr_table;
-				Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
-
-				if (!memcmp(table->signature, "FACP", 4)) {
-					info.acpi_fadt = addr_t(table);
-
-					Hw::Acpi_fadt fadt(table);
-					fadt.takeover_acpi();
-
-					Hw::Acpi_facs facs(fadt.facs());
-					facs.wakeup_vector(AP_BOOT_CODE_PAGE);
-
-					auto mem_aligned = paddr_table & _align_mask(12);
-					auto mem_size    = align_addr(paddr_table + table->size, 12) - mem_aligned;
-					core_mmio.add({ mem_aligned, mem_size });
-				}
-
-				if (memcmp(table->signature, "APIC", 4))
-					return;
-
-				Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
-					if (e->type == Hw::Apic_madt::LAPIC) {
-						Hw::Apic_madt::Lapic lapic(e);
-
-						/* check if APIC is enabled in hardware */
-						if (lapic.valid())
-							cpus ++;
-					}
-				});
-			};
-
-			auto table = reinterpret_cast<Hw::Acpi_generic *>(table_addr);
-			if (!memcmp(table->signature, "RSDT", 4)) {
-				Hw::for_each_rsdt_entry(*table, rsdt_xsdt_lambda);
-			} else if (!memcmp(table->signature, "XSDT", 4)) {
-				Hw::for_each_xsdt_entry(*table, rsdt_xsdt_lambda);
-			}
-		}
-	}
-
-	if (!cpus || cpus > max_cpus) {
-		Genode::warning("CPU count is unsupported ", cpus, "/", max_cpus,
-		                acpi_rsdp.valid() ? " - invalid or missing RSDT/XSDT"
-		                                  : " - invalid RSDP");
-		cpus = !cpus ? 1 : max_cpus;
+	if (!cpus || cpus > MAX_CPUS) {
+		Genode::warning("CPU count is unsupported ", cpus, "/", MAX_CPUS,
+		                info.acpi_rsdp.valid() ? " - invalid or missing RSDT/XSDT"
+		                                       : " - invalid RSDP");
+		cpus = !cpus ? 1 : MAX_CPUS;
 	}
 
 	/*
@@ -473,9 +515,7 @@ Board::Serial::Serial(addr_t, size_t, unsigned baudrate)
 
 unsigned Bootstrap::Platform::_prepare_cpu_memory_area()
 {
-	using namespace Genode;
-
-	for (size_t id = 0; id < board.cpus; id++)
-		_prepare_cpu_memory_area(id);
+	for_each_cpu(board.info.acpi_rsdp, [this] (unsigned id) {
+		_prepare_cpu_memory_area(id); });
 	return board.cpus;
 }
