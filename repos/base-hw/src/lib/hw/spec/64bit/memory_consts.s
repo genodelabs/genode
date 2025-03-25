@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+##ifndef _SRC__LIB__HW__SPEC__64BIT_MEMORY_CONSTS_H_
+##define _SRC__LIB__HW__SPEC__64BIT_MEMORY_CONSTS_H_
+
 ##include <base/stdint.h>
 
 #namespace Hw {
@@ -29,3 +32,5 @@ HW_MM_CPU_LOCAL_MEMORY_SLOT_OBJECT_SIZE   = 0x2000
 
 #	}
 #}
+
+##endif /* _SRC__LIB__HW__SPEC__64BIT_MEMORY_CONSTS_H_ */
