@@ -18,13 +18,16 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <util/xml_node.h>
+#include <util/callable.h>
 #include <vfs/types.h>  /* for 'MAX_PATH_LEN' */
 
 /* libc includes */
 #include <setjmp.h>     /* for 'jmp_buf' type */
+#include <libc/component.h>
 
 /* libc-internal includes */
 #include <internal/types.h>
+#include <internal/config.h>
 
 namespace Libc {
 
@@ -41,7 +44,6 @@ namespace Libc {
 	struct Timer_accessor;
 	struct Cwd;
 	struct Atexit;
-	struct Config_accessor;
 
 	/**
 	 * Support for shared libraries
@@ -88,12 +90,7 @@ namespace Libc {
 	/**
 	 * Support for getpwent
 	 */
-	void init_passwd(Xml_node);
-
-	/**
-	 * Set libc config node
-	 */
-	void libc_config_init(Xml_node node);
+	void init_passwd(Xml_node const &);
 
 	/**
 	 * Malloc allocator
@@ -114,8 +111,8 @@ namespace Libc {
 	/**
 	 * Socket fs
 	 */
-	void init_socket_fs(Monitor &, File_descriptor_allocator &);
-	void init_socket_operations(File_descriptor_allocator &);
+	void init_socket_fs(Monitor &, File_descriptor_allocator &, Config const &);
+	void init_socket_operations(File_descriptor_allocator &, Config const &);
 
 	/**
 	 * Pthread/semaphore support
@@ -124,11 +121,6 @@ namespace Libc {
 	void init_pthread_support(Genode::Cpu_session &, Xml_node const &,
 	                          Genode::Allocator &);
 	void init_semaphore_support(Timer_accessor &);
-
-	struct Config_accessor : Interface
-	{
-		virtual Xml_node config() const = 0;
-	};
 
 	/**
 	 * Fork mechanism
@@ -164,6 +156,11 @@ namespace Libc {
 	 * Kqueue support
 	 */
 	void init_kqueue(Genode::Allocator &, Monitor &, File_descriptor_allocator &);
+
+	/**
+	 * Random-number support
+	 */
+	void init_random(Config const &);
 }
 
 #endif /* _LIBC__INTERNAL__INIT_H_ */

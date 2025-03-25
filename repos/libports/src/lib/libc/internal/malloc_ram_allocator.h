@@ -19,6 +19,9 @@
 #include <base/allocator.h>
 #include <base/ram_allocator.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 namespace Libc { struct Malloc_ram_allocator; }
 
 

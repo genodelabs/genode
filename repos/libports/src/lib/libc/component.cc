@@ -45,8 +45,6 @@ void Component::construct(Genode::Env &env)
 	static long _kernel_obj[(sizeof(Libc::Kernel) + sizeof(long))/sizeof(long)];
 	Libc::Kernel &kernel = *new (_kernel_obj) Libc::Kernel(env, heap);
 
-	Libc::libc_config_init(kernel.libc_env().libc_config());
-
 	/*
 	 * XXX The following two steps leave us with the dilemma that we don't know
 	 * which linked library may depend on the successfull initialization of a

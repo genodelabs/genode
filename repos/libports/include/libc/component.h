@@ -22,41 +22,43 @@
 #define _INCLUDE__LIBC__COMPONENT_H_
 
 #include <util/meta.h>
+#include <util/callable.h>
 #include <base/env.h>
 #include <base/stdint.h>
 #include <util/xml_node.h>
+
+namespace Libc { class Config_accessor; }
+
+struct Libc::Config_accessor : Genode::Interface, Genode::Noncopyable
+{
+	using With_config = Genode::Callable<void, Genode::Xml_node const &>;
+
+	virtual void _with_config(With_config::Ft const &) const = 0;
+
+	/**
+	 * Call 'fn' with the 'Xml_node const &' of the component configuration
+	 */
+	void with_config(auto const &fn) const
+	{
+		_with_config( With_config::Fn { fn } );
+	}
+};
+
 
 namespace Libc { class Env; }
 
 namespace Vfs { struct Env; }
 
+
 /**
  * Interface to be provided by the component implementation
  */
-class Libc::Env : public Genode::Env
+struct Libc::Env : Genode::Env, Config_accessor
 {
-	private:
-
-		virtual Genode::Xml_node _config_xml() const = 0;
-
-	public:
-
-		/**
-		 * Component configuration
-		 */
-		template <typename FUNC>
-		void config(FUNC const &func) const {
-			func(_config_xml()); }
-
-		/**
-		 * Virtual file system configured for this component
-		 */
-		virtual Vfs::Env &vfs_env() = 0;
-
-		/**
-		 * Libc configuration for this component
-		 */
-		virtual Genode::Xml_node libc_config() = 0;
+	/**
+	 * Virtual file system configured for this component
+	 */
+	virtual Vfs::Env &vfs_env() = 0;
 };
 
 

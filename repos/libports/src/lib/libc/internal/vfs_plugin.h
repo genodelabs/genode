@@ -29,6 +29,8 @@
 #include <internal/plugin.h>
 #include <internal/fd_alloc.h>
 #include <internal/errno.h>
+#include <internal/config.h>
+#include <internal/current_time.h>
 
 namespace Libc { class Vfs_plugin; }
 
@@ -84,11 +86,10 @@ class Libc::Vfs_plugin final : public Plugin
 		File_descriptor_allocator        &_fd_alloc;
 		Genode::Allocator                &_alloc;
 		Vfs::File_system                 &_root_fs;
-		Constructible<Genode::Directory>  _root_dir { };
+		Genode::Directory                 _root_dir;
 		Vfs::Read_ready_response_handler &_response_handler;
-		Update_mtime                const _update_mtime;
+		Config                     const &_config;
 		Current_real_time                &_current_real_time;
-		bool                        const _pipe_configured;
 		Registry<Mmap_entry>              _mmap_registry;
 
 		/*
@@ -104,12 +105,7 @@ class Libc::Vfs_plugin final : public Plugin
 			template <typename FN>
 			void with_file(Absolute_path const &path, FN const &fn)
 			{
-				if (!_vfs_plugin._root_dir.constructed()) {
-					warning("Vfs_plugin::_root_dir unexpectedly not constructed");
-					return;
-				}
-
-				Directory &root_dir = *_vfs_plugin._root_dir;
+				Directory &root_dir = _vfs_plugin._root_dir;
 
 				if (path != _path && root_dir.file_exists(path.string())) {
 					_file.construct(root_dir, path);
@@ -171,52 +167,32 @@ class Libc::Vfs_plugin final : public Plugin
 		template <typename FN>
 		void _with_info(File_descriptor &fd, FN const &fn);
 
-		static bool _init_pipe_configured(Xml_node config)
-		{
-			bool result = false;
-			config.with_optional_sub_node("libc", [&] (Xml_node libc_node) {
-				result = libc_node.has_attribute("pipe"); });
-			return result;
-		}
-
 	public:
 
-		Vfs_plugin(Libc::Env                        &env,
-		           Libc::File_descriptor_allocator  &fd_alloc,
-		           Vfs::Env                         &vfs_env,
+		Vfs_plugin(File_descriptor_allocator        &fd_alloc,
 		           Genode::Allocator                &alloc,
+		           Config                     const &config,
+		           Vfs::Env                         &vfs_env,
 		           Vfs::Read_ready_response_handler &handler,
-		           Update_mtime                     update_mtime,
-		           Current_real_time               &current_real_time,
-		           Xml_node                         config)
+		           Current_real_time                &current_real_time)
 		:
 			_fd_alloc(fd_alloc),
 			_alloc(alloc),
-			_root_fs(env.vfs_env().root_dir()),
+			_root_fs(vfs_env.root_dir()),
+			_root_dir(vfs_env),
 			_response_handler(handler),
-			_update_mtime(update_mtime),
-			_current_real_time(current_real_time),
-			_pipe_configured(_init_pipe_configured(config))
-		{
-			if (config.has_sub_node("libc"))
-				_root_dir.construct(vfs_env);
-		}
+			_config(config),
+			_current_real_time(current_real_time)
+		{ }
 
-		~Vfs_plugin() final { }
-
-		template <typename FN>
-		void with_root_dir(FN const &fn)
-		{
-			if (_root_dir.constructed())
-				fn(*_root_dir);
-		}
+		void with_root_dir(auto const &fn) { fn(_root_dir); }
 
 		bool root_dir_has_dirents() const { return _root_fs.num_dirent("/") > 0; }
 
 		bool supports_access(const char *, int)                override { return true; }
 		bool supports_mkdir(const char *, mode_t)              override { return true; }
 		bool supports_open(const char *, int)                  override { return true; }
-		bool supports_pipe()                                   override { return _pipe_configured; }
+		bool supports_pipe()                                   override { return _config.pipe.length() > 1; }
 		bool supports_poll()                                   override { return true; }
 		bool supports_readlink(const char *, char *, ::size_t) override { return true; }
 		bool supports_rename(const char *, const char *)       override { return true; }

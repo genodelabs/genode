@@ -38,6 +38,7 @@ MIRROR_FROM_LIBPORTS := \
 	lib/mk/qemu-usb-webcam.inc \
 	lib/mk/spec/x86_32/qemu-usb.mk \
 	lib/mk/spec/x86_64/qemu-usb.mk \
+	src/lib/libc/internal/config.h \
 	src/lib/libc/internal/init.h \
 	src/lib/libc/internal/mem_alloc.h \
 	src/lib/libc/internal/monitor.h \

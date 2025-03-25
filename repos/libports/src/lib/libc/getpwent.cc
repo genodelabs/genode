@@ -86,7 +86,7 @@ static passwd passwd_from_fields(Passwd_fields &fields)
 }
 
 
-void Libc::init_passwd(Xml_node config)
+void Libc::init_passwd(Xml_node const &config)
 {
 	static Passwd_fields fields {
 		.name   =         config.attribute_value("name",   Passwd_string("root")),

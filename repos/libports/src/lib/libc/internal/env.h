@@ -26,48 +26,22 @@
 namespace Libc { class Env_implementation; }
 
 
-class Libc::Env_implementation : public Libc::Env, public Config_accessor
+class Libc::Env_implementation : public Libc::Env
 {
 	private:
 
 		Genode::Env &_env;
 
-		Attached_rom_dataspace _config { _env, "config" };
+		Vfs::Env &_vfs_env;
 
-		Xml_node _vfs_config()
-		{
-			try { return _config.xml().sub_node("vfs"); }
-			catch (Xml_node::Nonexistent_sub_node) { }
-			try {
-				Xml_node node = _config.xml().sub_node("libc").sub_node("vfs");
-				warning("'<config> <libc> <vfs/>' is deprecated, "
-				        "please move to '<config> <vfs/>'");
-				return node;
-			}
-			catch (Xml_node::Nonexistent_sub_node) { }
-
-			return Xml_node("<vfs/>");
-		}
-
-		Xml_node _libc_config()
-		{
-			try { return _config.xml().sub_node("libc"); }
-			catch (Xml_node::Nonexistent_sub_node) { }
-
-			return Xml_node("<libc/>");
-		}
-
-		Vfs::Simple_env _vfs_env;
-
-		Xml_node _config_xml() const override {
-			return _config.xml(); };
+		Attached_rom_dataspace const &_config_rom;
 
 	public:
 
-		Env_implementation(Genode::Env &env, Genode::Allocator &alloc,
-		                   Vfs::Env::User &vfs_user)
+		Env_implementation(Genode::Env &env, Vfs::Env &vfs_env,
+		                   Attached_rom_dataspace const &config_rom)
 		:
-			_env(env), _vfs_env(_env, alloc, _vfs_config(), vfs_user)
+			_env(env), _vfs_env(vfs_env), _config_rom(config_rom)
 		{ }
 
 		Vfs::File_system &vfs() { return _vfs_env.root_dir(); }
@@ -77,18 +51,12 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 		 ** Libc::Env interface **
 		 *************************/
 
-		Vfs::Env &vfs_env() override {
-			return _vfs_env; }
+		void _with_config(With_config::Ft const &fn) const override
+		{
+			fn(_config_rom.xml());
+		}
 
-		Xml_node libc_config() override {
-			return _libc_config(); }
-
-
-		/*************************************
-		 ** Libc::Config_accessor interface **
-		 *************************************/
-
-		Xml_node config() const override { return _config.xml(); }
+		Vfs::Env &vfs_env() override { return _vfs_env; }
 
 
 		/***************************

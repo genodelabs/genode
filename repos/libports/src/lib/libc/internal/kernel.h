@@ -24,7 +24,6 @@
 #include <libc/select.h>
 
 /* libc-internal includes */
-#include <internal/types.h>
 #include <internal/malloc_ram_allocator.h>
 #include <internal/cloned_malloc_heap_range.h>
 #include <internal/timer.h>
@@ -44,6 +43,7 @@
 #include <internal/cwd.h>
 #include <internal/atexit.h>
 #include <internal/rtc.h>
+#include <internal/config.h>
 
 namespace Libc {
 	class Kernel;
@@ -169,38 +169,36 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 			}
 		};
 
+		Attached_rom_dataspace _config_rom { _env, "config" };
+
+		Config const _config = Config::from_xml(_config_rom.xml());
+
+		void _with_libc_config(auto const &fn) const
+		{
+			_config_rom.xml().with_sub_node("libc",
+				[&] (Xml_node const &libc) { fn(libc); },
+				[&] { fn( Xml_node { "<libc/>" } ); });
+		}
+
+		void _with_libc_sub_config(char const *tag, auto const &fn) const
+		{
+			_with_libc_config([&] (Xml_node const &libc) {
+				libc.with_sub_node(tag,
+					[&] (Xml_node const pthread) { fn(pthread); },
+					[&] { fn(Xml_node(String<64>("<", tag, "/>").string())); }); });
+		};
+
 		Vfs_user _vfs_user { _io_progressed };
 
-		Env_implementation _libc_env { _env, _heap, _vfs_user };
+		Constructible<Vfs::Simple_env> _vfs_env { };
 
-		bool const _update_mtime = _libc_env.libc_config().attribute_value("update_mtime", true);
+		bool const _vfs_env_initialized = (
+			with_vfs_config(_config_rom.xml(), [&] (Xml_node const &vfs_config) {
+				_vfs_env.construct(_env, _heap, vfs_config, _vfs_user); }), true );
 
-		Vfs_plugin _vfs { _libc_env, _fd_alloc, _libc_env.vfs_env(), _heap, *this,
-		                  _update_mtime ? Vfs_plugin::Update_mtime::YES
-		                                : Vfs_plugin::Update_mtime::NO,
-		                  *this /* current_real_time */,
-		                  _libc_env.config() };
+		Env_implementation _libc_env { _env, *_vfs_env, _config_rom };
 
-		bool  const _cloned = _libc_env.libc_config().attribute_value("cloned", false);
-		pid_t const _pid    = _libc_env.libc_config().attribute_value("pid", 0U);
-
-		Xml_node _passwd_config()
-		{
-			return _libc_env.libc_config().has_sub_node("passwd")
-			     ? _libc_env.libc_config().sub_node("passwd")
-			     : Xml_node("<empty/>");
-		}
-
-		Xml_node _pthread_config()
-		{
-			return _libc_env.libc_config().has_sub_node("pthread")
-			     ? _libc_env.libc_config().sub_node("pthread")
-			     : Xml_node("<pthread/>");
-		}
-
-		using Config_attr = String<Vfs::MAX_PATH_LEN>;
-
-		Config_attr const _rtc_path = _libc_env.libc_config().attribute_value("rtc", Config_attr());
+		Vfs_plugin _vfs { _fd_alloc, _heap, _config, *_vfs_env, *this, *this };
 
 		Constructible<Rtc> _rtc { };
 
@@ -214,7 +212,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 
 		void _handle_user_interrupt();
 
-		Signal _signal { _pid };
+		Signal _signal { _config.pid };
 
 		Atexit _atexit { _heap };
 
@@ -229,11 +227,8 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 
 		addr_t _kernel_stack = Thread::mystack().top;
 
-		size_t _user_stack_size();
-
-		void *_user_stack = {
-			_myself.alloc_secondary_stack(_myself.name().string(),
-			                              _user_stack_size()) };
+		void *_user_stack = _myself.alloc_secondary_stack(_myself.name().string(),
+		                                                  _config.stack_size);
 
 		enum State { KERNEL, USER };
 
@@ -437,7 +432,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 			if (!_setjmp(_kernel_context)) {
 				/* _setjmp() returned directly -> switch to user stack and call application code */
 
-				if (_cloned) {
+				if (_config.cloned) {
 					_main_monitor_job->complete();
 					_switch_to_user();
 				} else {
@@ -683,13 +678,13 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 
 		bool has_real_time() const override
 		{
-			return (_rtc_path != "");
+			return (_config.rtc.length() > 1);
 		}
 
 		timespec current_real_time() override
 		{
 			if (!_rtc.constructed())
-				_rtc.construct(_vfs, _heap, _rtc_path, *this);
+				_rtc.construct(_vfs, _heap, _config.rtc, *this);
 
 			return _rtc->read(current_time());
 		}

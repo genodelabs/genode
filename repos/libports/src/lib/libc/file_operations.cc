@@ -74,10 +74,12 @@ void Libc::init_file_operations(Cwd &cwd, File_descriptor_allocator &fd_alloc,
 	_fd_alloc_ptr = &fd_alloc;
 	_cwd_ptr      = &cwd;
 
-	config_accessor.config().with_optional_sub_node("libc", [&] (Xml_node libc) {
-		libc.with_optional_sub_node("mmap", [&] (Xml_node mmap) {
-			_mmap_align_log2 = mmap.attribute_value("align_log2",
-			                                        (unsigned int)PAGE_SHIFT);
+	config_accessor.with_config([&] (Xml_node const &config) {
+		config.with_optional_sub_node("libc", [&] (Xml_node libc) {
+			libc.with_optional_sub_node("mmap", [&] (Xml_node mmap) {
+				_mmap_align_log2 = mmap.attribute_value("align_log2",
+				                                        (unsigned int)PAGE_SHIFT);
+			});
 		});
 	});
 }

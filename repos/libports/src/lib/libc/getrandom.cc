@@ -23,18 +23,30 @@ extern "C" {
 /* libc-internal includes */
 #include <internal/errno.h>
 #include <internal/types.h>
+#include <internal/init.h>
 
 /* Genode includes */
 #include <trace/timestamp.h>
 #include <base/log.h>
 #include <util/string.h>
 
-namespace Libc { extern char const *config_rng(); }
 
 using namespace Libc;
 
+static Config const *_config_ptr;
+
+void Libc::init_random(Config const &config)
+{
+	_config_ptr = &config;
+}
+
+
 static ssize_t read_rng(char *buf, size_t buflen)
 {
+	struct Missing_call_of_init_random : Genode::Exception { };
+	if (!_config_ptr)
+		throw Missing_call_of_init_random();
+
 	static int rng_fd { -1 };
 	static bool fallback { false };
 
@@ -51,7 +63,7 @@ static ssize_t read_rng(char *buf, size_t buflen)
 	}
 
 	if (rng_fd == -1) {
-		if (!::strcmp(config_rng(), "")) {
+		if (_config_ptr->rng.length() <= 1) {
 			warning("Libc RNG not configured");
 
 			/* initialize the FreeBSD random facility */
@@ -61,9 +73,9 @@ static ssize_t read_rng(char *buf, size_t buflen)
 			return read_rng(buf, buflen);
 		}
 
-		rng_fd = open(config_rng(), O_RDONLY);
+		rng_fd = open(_config_ptr->rng.string(), O_RDONLY);
 		if (rng_fd == -1) {
-			error("RNG device ", Cstring(config_rng()), " not readable!");
+			error("RNG device ", _config_ptr->rng.string(), " not readable!");
 			exit(~0);
 		}
 	}

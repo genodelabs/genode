@@ -60,7 +60,7 @@ namespace { using Fn = Monitor::Function_result; }
 
 static pid_t fork_result;
 
-static Env                       *_env_ptr;
+static Genode::Env               *_env_ptr;
 static File_descriptor_allocator *_fd_alloc_ptr;
 static Allocator                 *_alloc_ptr;
 static Monitor                   *_monitor_ptr;
@@ -88,34 +88,35 @@ struct Libc::Child_config
 {
 	Constructible<Attached_ram_dataspace> _ds { };
 
-	Env &_env;
+	Genode::Env &_env;
 
 	pid_t const _pid;
 
 	void _generate(Xml_generator &xml, Xml_node const &config,
 	               File_descriptor_allocator &);
 
-	Child_config(Env &env, Config_accessor const &config_accessor,
+	Child_config(Genode::Env &env, Config_accessor const &config_accessor,
 	             File_descriptor_allocator &fd_alloc, pid_t pid)
 	:
 		_env(env), _pid(pid)
 	{
-		Xml_node const config = config_accessor.config();
+		config_accessor.with_config([&] (Xml_node const &config) {
 
-		size_t buffer_size = 4096;
+			size_t buffer_size = 4096;
 
-		retry<Xml_generator::Buffer_exceeded>(
+			retry<Xml_generator::Buffer_exceeded>(
 
-			[&] () {
-				_ds.construct(env.ram(), env.rm(), buffer_size);
+				[&] {
+					_ds.construct(env.ram(), env.rm(), buffer_size);
 
-				Xml_generator
-					xml(_ds->local_addr<char>(), buffer_size, "config", [&] () {
-						_generate(xml, config, fd_alloc); });
-			},
+					Xml_generator
+						xml(_ds->local_addr<char>(), buffer_size, "config", [&] {
+							_generate(xml, config, fd_alloc); });
+				},
 
-			[&] () { buffer_size += 4096; }
-		);
+				[&] { buffer_size += 4096; }
+			);
+		});
 	}
 
 	Rom_dataspace_capability ds_cap() const
@@ -201,8 +202,8 @@ class Libc::Parent_services : Noncopyable
 {
 	private:
 
-		Env       &_env;
-		Allocator &_alloc;
+		Genode::Env &_env;
+		Allocator   &_alloc;
 
 		using Registered_service = Registered<Parent_service>;
 
@@ -210,7 +211,8 @@ class Libc::Parent_services : Noncopyable
 
 	public:
 
-		Parent_services(Env &env, Allocator &alloc) : _env(env), _alloc(alloc) { }
+		Parent_services(Genode::Env &env, Allocator &alloc)
+		: _env(env), _alloc(alloc) { }
 
 		~Parent_services()
 		{
@@ -290,7 +292,7 @@ struct Libc::Local_rom_services : Noncopyable
 
 	Registry<Registered_service> _services { };
 
-	Local_rom_services(Env &env, Entrypoint &fork_ep, Allocator &alloc)
+	Local_rom_services(Genode::Env &env, Entrypoint &fork_ep, Allocator &alloc)
 	:
 		_alloc(alloc)
 	{
@@ -340,7 +342,7 @@ struct Libc::Local_clone_service : Noncopyable
 			         .cap_quota = { Clone_session::CAP_QUOTA } };
 		}
 
-		Session(Env &env, Entrypoint &ep)
+		Session(Genode::Env &env, Entrypoint &ep)
 		:
 			Session_object<Clone_session, Session>(ep.rpc_ep(), _resources(),
 			                                       "cloned", Session::Diag()),
@@ -387,7 +389,7 @@ struct Libc::Local_clone_service : Noncopyable
 
 	Service service { _factory };
 
-	Local_clone_service(Env &env, Entrypoint &ep, Child_ready &child_ready)
+	Local_clone_service(Genode::Env &env, Entrypoint &ep, Child_ready &child_ready)
 	:
 		_session(env, ep), _child_ready(child_ready),
 		_child_ready_handler(env.ep(), *this, &Local_clone_service::_handle_child_ready),
@@ -398,7 +400,7 @@ struct Libc::Local_clone_service : Noncopyable
 
 struct Libc::Forked_child : Child_policy, Child_ready
 {
-	Env &_env;
+	Genode::Env &_env;
 
 	Binary_name const _binary_name;
 
@@ -551,7 +553,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	Child _child;
 
-	Forked_child(Env                       &env,
+	Forked_child(Genode::Env               &env,
 	             File_descriptor_allocator &fd_alloc,
 	             Entrypoint                &fork_ep,
 	             Allocator                 &alloc,
@@ -585,7 +587,7 @@ static Forked_child * fork_kernel_routine()
 		abort();
 	}
 
-	Env          &env    = *_env_ptr;
+	Genode::Env  &env    = *_env_ptr;
 	Allocator    &alloc  = *_alloc_ptr;
 	Libc::Signal &signal = *_signal_ptr;
 
@@ -752,7 +754,7 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 extern "C" pid_t wait4(pid_t, int *, int, rusage *) __attribute__((weak, alias("__sys_wait4")));
 
 
-void Libc::init_fork(Env &env, File_descriptor_allocator &fd_alloc,
+void Libc::init_fork(Genode::Env &env, File_descriptor_allocator &fd_alloc,
                      Config_accessor const &config_accessor,
                      Allocator &alloc, Heap &malloc_heap, pid_t pid,
                      Monitor &monitor, Signal &signal,

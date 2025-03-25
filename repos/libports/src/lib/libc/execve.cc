@@ -314,7 +314,7 @@ static Libc::Binary_name               *_binary_name_ptr;
 static Libc::File_descriptor_allocator *_fd_alloc_ptr;
 
 
-void Libc::init_execve(Env &env, Genode::Allocator &alloc, void *user_stack_ptr,
+void Libc::init_execve(Genode::Env &env, Genode::Allocator &alloc, void *user_stack_ptr,
                        Reset_malloc_heap &reset_malloc_heap, Binary_name &binary_name,
                        File_descriptor_allocator &fd_alloc)
 {

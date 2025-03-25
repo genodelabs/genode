@@ -22,6 +22,7 @@ Libc::Kernel * Libc::Kernel::_kernel_ptr;
 
 extern char **environ;
 
+char const *libc_resolv_path; /* expected by res_init.c */
 
 /**
  * Blockade for main context
@@ -41,17 +42,6 @@ inline void Libc::Main_blockade::wakeup()
 {
 	_woken_up = true;
 	Kernel::kernel().resume_main();
-}
-
-
-size_t Libc::Kernel::_user_stack_size()
-{
-	size_t size = Component::stack_size();
-
-	_libc_env.libc_config().with_optional_sub_node("stack", [&] (Xml_node stack) {
-		size = stack.attribute_value("size", Number_of_bytes(0)); });
-
-	return size;
 }
 
 
@@ -81,7 +71,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		Diag_guard(Kernel &kernel) : kernel(kernel) { }
 
-		~Diag_guard() { if (show) log(kernel._libc_env.libc_config()); }
+		~Diag_guard() { if (show) log(kernel._config_rom.xml()); }
 
 	} diag_guard { *this };
 
@@ -251,33 +241,34 @@ void Libc::Kernel::_init_file_descriptors()
 
 	if (_vfs.root_dir_has_dirents()) {
 
-		Xml_node const node = _libc_env.libc_config();
+		_config_rom.xml().with_optional_sub_node("libc", [&] (Xml_node const &node) {
 
-		using Path = String<Vfs::MAX_PATH_LEN>;
+			using Path = String<Vfs::MAX_PATH_LEN>;
 
-		if (node.has_attribute("cwd"))
-			_cwd.import(node.attribute_value("cwd", Path()).string(), _cwd.base());
+			if (node.has_attribute("cwd"))
+				_cwd.import(node.attribute_value("cwd", Path()).string(), _cwd.base());
 
-		init_fd(node, "stdin",  0, O_RDONLY);
-		init_fd(node, "stdout", 1, O_WRONLY);
-		init_fd(node, "stderr", 2, O_WRONLY);
+			init_fd(node, "stdin",  0, O_RDONLY);
+			init_fd(node, "stdout", 1, O_WRONLY);
+			init_fd(node, "stderr", 2, O_WRONLY);
 
-		node.for_each_sub_node("fd", [&] (Xml_node fd) {
+			node.for_each_sub_node("fd", [&] (Xml_node fd) {
 
-			unsigned const id = fd.attribute_value("id", 0U);
+				unsigned const id = fd.attribute_value("id", 0U);
 
-			bool const rd = fd.attribute_value("readable",  false);
-			bool const wr = fd.attribute_value("writeable", false);
+				bool const rd = fd.attribute_value("readable",  false);
+				bool const wr = fd.attribute_value("writeable", false);
 
-			unsigned const flags = rd ? (wr ? O_RDWR : O_RDONLY)
-			                          : (wr ? O_WRONLY : 0);
+				unsigned const flags = rd ? (wr ? O_RDWR : O_RDONLY)
+				                          : (wr ? O_WRONLY : 0);
 
-			if (!fd.has_attribute("path")) {
-				warning("unknown path for file descriptor ", id);
-				diag_guard.show = true;
-			}
+				if (!fd.has_attribute("path")) {
+					warning("unknown path for file descriptor ", id);
+					diag_guard.show = true;
+				}
 
-			init_fd(fd, "path", id, flags);
+				init_fd(fd, "path", id, flags);
+			});
 		});
 
 		/* prevent use of IDs of stdin, stdout, and stderr for other files */
@@ -360,12 +351,14 @@ void Libc::Kernel::_clone_state_from_parent()
 	 * the shared-memory buffer of the clone session may otherwise potentially
 	 * interfere with such a heap region.
 	 */
-	_libc_env.libc_config().for_each_sub_node("heap", [&] (Xml_node node) {
-		Range const range = range_attr(node);
-		new (_heap)
-			Registered<Cloned_malloc_heap_range>(_cloned_heap_ranges,
-			                                     _env.ram(), _env.rm(),
-			                                     range); });
+	_with_libc_config([&] (Xml_node const &libc) {
+		libc.for_each_sub_node("heap", [&] (Xml_node const &node) {
+			Range const range = range_attr(node);
+			new (_heap)
+				Registered<Cloned_malloc_heap_range>(_cloned_heap_ranges,
+				                                     _env.ram(), _env.rm(),
+				                                     range); });
+	});
 
 	_clone_connection.construct(_env);
 
@@ -381,34 +374,36 @@ void Libc::Kernel::_clone_state_from_parent()
 	_clone_connection->memory_content(&_main_monitor_job, sizeof(_main_monitor_job));
 	_valid_user_context = true;
 
-	_libc_env.libc_config().for_each_sub_node([&] (Xml_node node) {
+	auto copy_from_parent = [&] (Range range)
+	{
+		_clone_connection->memory_content((void *)range.start, range.num_bytes);
+	};
 
-		auto copy_from_parent = [&] (Range range)
-		{
-			_clone_connection->memory_content((void *)range.start, range.num_bytes);
-		};
+	_with_libc_config([&] (Xml_node const &libc) {
+		libc.for_each_sub_node([&] (Xml_node const &node) {
 
-		/* clone application stack */
-		if (node.type() == "stack")
-			copy_from_parent(range_attr(node));
-
-		/* clone RW segment of a shared library or the binary */
-		if (node.type() == "rw") {
-			using Name = String<64>;
-			Name const name = node.attribute_value("name", Name());
-
-			/*
-			 * The blacklisted segments are initialized via the
-			 * regular startup of the child.
-			 */
-			bool const blacklisted = (name == "ld.lib.so")
-			                      || (name == "libc.lib.so")
-			                      || (name == "libm.lib.so")
-			                      || (name == "posix.lib.so")
-			                      || (strcmp(name.string(), "vfs", 3) == 0);
-			if (!blacklisted)
+			/* clone application stack */
+			if (node.type() == "stack")
 				copy_from_parent(range_attr(node));
-		}
+
+			/* clone RW segment of a shared library or the binary */
+			if (node.type() == "rw") {
+				using Name = String<64>;
+				Name const name = node.attribute_value("name", Name());
+
+				/*
+				 * The blacklisted segments are initialized via the
+				 * regular startup of the child.
+				 */
+				bool const blacklisted = (name == "ld.lib.so")
+				                      || (name == "libc.lib.so")
+				                      || (name == "libm.lib.so")
+				                      || (name == "posix.lib.so")
+				                      || (strcmp(name.string(), "vfs", 3) == 0);
+				if (!blacklisted)
+					copy_from_parent(range_attr(node));
+			}
+		});
 	});
 
 	/* import application-heap state from parent */
@@ -484,6 +479,8 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 :
 	_env(env), _heap(heap)
 {
+	libc_resolv_path = _config.nameserver.string();
+
 	init_atexit(_atexit);
 
 	_atexit_fd_alloc_ptr = &_fd_alloc;
@@ -491,11 +488,13 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 
 	init_semaphore_support(_timer_accessor);
 	init_pthread_support(*this, _timer_accessor);
-	init_pthread_support(env.cpu(), _pthread_config(), _heap);
+
+	_with_libc_sub_config("pthread", [&] (Xml_node const &pthread_config) {
+		init_pthread_support(env.cpu(), pthread_config, _heap); });
 
 	_env.ep().register_io_progress_handler(*this);
 
-	if (_cloned) {
+	if (_config.cloned) {
 		_clone_state_from_parent();
 
 	} else {
@@ -503,7 +502,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 		init_malloc(*_malloc_heap);
 	}
 
-	init_fork(_env, _fd_alloc, _libc_env, _heap, *_malloc_heap, _pid, *this,
+	init_fork(_env, _fd_alloc, _libc_env, _heap, *_malloc_heap, _config.pid, *this,
 	          _signal, _binary_name);
 	init_execve(_env, _heap, _user_stack, *this, _binary_name, _fd_alloc);
 	init_plugin(*this);
@@ -515,11 +514,15 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_alarm(_timer_accessor, _signal);
 	init_poll(_signal, *this, _fd_alloc);
 	init_select(*this);
-	init_socket_fs(*this, _fd_alloc);
-	init_socket_operations(_fd_alloc);
-	init_passwd(_passwd_config());
+	init_socket_fs(*this, _fd_alloc, _config);
+	init_socket_operations(_fd_alloc, _config);
+
+	_with_libc_sub_config("passwd", [&] (Xml_node const &passwd_config) {
+		init_passwd(passwd_config); });
+
 	init_signal(_signal);
 	init_kqueue(_heap, *this, _fd_alloc);
+	init_random(_config);
 
 	_init_file_descriptors();
 
@@ -535,6 +538,6 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	 * pipe reference counter may reach an intermediate value of zero,
 	 * triggering the destruction of the pipe.
 	 */
-	if (_cloned)
+	if (_config.cloned)
 		_clone_connection.destruct();
 }

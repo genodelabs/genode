@@ -45,7 +45,6 @@
 
 
 namespace Libc {
-	extern char const *config_socket();
 	bool read_ready_from_kernel(File_descriptor *);
 	bool write_ready_from_kernel(File_descriptor *);
 }
@@ -53,11 +52,15 @@ namespace Libc {
 
 static Libc::Monitor *_monitor_ptr;
 
+static Libc::Config const *_config_ptr;
 
-void Libc::init_socket_fs(Monitor &monitor, File_descriptor_allocator &fd_alloc)
+
+void Libc::init_socket_fs(Monitor &monitor, File_descriptor_allocator &fd_alloc,
+                          Config const &config)
 {
 	_monitor_ptr  = &monitor;
 	_fd_alloc_ptr = &fd_alloc;
+	_config_ptr   = &config;
 }
 
 
@@ -148,7 +151,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 		}
 
 		Absolute_path const _path {
-			_read_socket_path().base(), config_socket() };
+			_read_socket_path().base(), _config_ptr->socket.string() };
 
 		enum Fd { DATA, PEEK, CONNECT, BIND, LISTEN, ACCEPT, LOCAL, REMOTE, MAX };
 
@@ -1163,7 +1166,7 @@ extern "C" int socket_fs_shutdown(int libc_fd, int how)
 
 extern "C" int socket_fs_socket(int domain, int type, int protocol)
 {
-	Socket_fs::Absolute_path path(config_socket());
+	Socket_fs::Absolute_path path(_config_ptr->socket.string());
 
 	if (path == "") {
 		error(__func__, ": socket fs not mounted");
@@ -1266,7 +1269,7 @@ extern "C" int getifaddrs(struct ifaddrs **ifap)
 
 	using Socket_fs::Absolute_path;
 
-	Absolute_path const root(config_socket());
+	Absolute_path const root(_config_ptr->socket.string());
 
 	if (read_ifaddr_file(address, Absolute_path("address", root.base())))
 		return -1;
