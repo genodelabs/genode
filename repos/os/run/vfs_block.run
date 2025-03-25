@@ -5,7 +5,7 @@ build {
 	server/vfs
 	server/vfs_block
 	app/block_tester
-	lib/vfs_import
+	lib/vfs lib/vfs_import
 }
 
 install_config {
@@ -50,7 +50,7 @@ install_config {
 		<provides> <service name="Block"/> </provides>
 		<config>
 			<vfs>
-				<fs buffer_size="4M" label="backend"/>
+				<fs buffer_size="4M" label="backend -> /"/>
 			</vfs>
 			<policy label_prefix="block_tester"
 			        file="/vfs_block.raw" block_size="512" writeable="yes"/>
