@@ -161,7 +161,7 @@ Board::Iopm::Iopm()
 }
 
 
-void Vmcb::write_vcpu_state(Vcpu_state &state)
+void Vmcb::store(Vcpu_state &state)
 {
 	state.ax.charge(v.read<Vmcb_buf::Rax>());
 	state.ip.charge(v.read<Vmcb_buf::Rip>());
@@ -286,7 +286,7 @@ void Vmcb::write_vcpu_state(Vcpu_state &state)
 }
 
 
-void Vmcb::read_vcpu_state(Vcpu_state &state)
+void Vmcb::load(Vcpu_state &state)
 {
 	if (state.ax.charged())    v.write<Vmcb_buf::Rax>(state.ax.value());
 	if (state.flags.charged()) v.write<Vmcb_buf::Rflags>(state.flags.value());

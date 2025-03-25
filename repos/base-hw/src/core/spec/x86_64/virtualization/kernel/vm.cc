@@ -70,7 +70,7 @@ void Vm::run()
 		_vcpu_context.init_state  = Board::Vcpu_context::Init_state::STARTED;
 	}
 
-	_vcpu_context.read_vcpu_state(_state);
+	_vcpu_context.load(_state);
 
 	if (_scheduled != ACTIVE) Cpu_context::_activate();
 	_scheduled = ACTIVE;
@@ -94,7 +94,7 @@ void Vm::pause()
 
 	_pause_vcpu();
 
-	_vcpu_context.write_vcpu_state(_state);
+	_vcpu_context.store(_state);
 
 	/*
 	 * Set exit code so that if _run() was not called after an exit, the
@@ -194,9 +194,9 @@ Board::Vcpu_context::Vcpu_context(unsigned id, Vcpu_data &vcpu_data)
 	regs->trapno = TRAP_VMEXIT;
 }
 
-void Board::Vcpu_context::read_vcpu_state(Vcpu_state &state)
+void Board::Vcpu_context::load(Vcpu_state &state)
 {
-	virt.read_vcpu_state(state);
+	virt.load(state);
 
 	if (state.cx.charged() || state.dx.charged() || state.bx.charged()) {
 		regs->rax   = state.ax.value();
@@ -234,7 +234,7 @@ void Board::Vcpu_context::read_vcpu_state(Vcpu_state &state)
 	}
 }
 
-void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
+void Board::Vcpu_context::store(Vcpu_state &state)
 {
 	state.discharge();
 	state.exit_reason = (unsigned) exit_reason;
@@ -269,7 +269,7 @@ void Board::Vcpu_context::write_vcpu_state(Vcpu_state &state)
 	state.tsc_aux.charge(tsc_aux_guest);
 	Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t) tsc_aux_host);
 
-	virt.write_vcpu_state(state);
+	virt.store(state);
 }
 
 

@@ -333,8 +333,8 @@ struct Board::Vmcb
 	                        uint32_t desired_secondary = 0U);
 	void initialize(Kernel::Cpu   &cpu,
 	                addr_t page_table_phys_addr) override;
-	void write_vcpu_state(Vcpu_state &state) override;
-	void read_vcpu_state(Vcpu_state &state) override;
+	void load(Vcpu_state &state) override;
+	void store(Vcpu_state &state) override;
 	void switch_world(Core::Cpu::Context &regs, addr_t) override;
 	Genode::uint64_t handle_vm_exit() override;
 

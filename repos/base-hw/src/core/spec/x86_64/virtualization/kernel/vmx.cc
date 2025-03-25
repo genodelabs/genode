@@ -501,7 +501,7 @@ void Vmcs::prepare_vmcs()
 	write(E_CR3_TARGET_COUNT, 0U);
 }
 
-void Vmcs::write_vcpu_state(Genode::Vcpu_state &state)
+void Vmcs::store(Genode::Vcpu_state &state)
 {
 	using Range   = Genode::Vcpu_state::Range;
 	using Segment = Genode::Vcpu_state::Segment;
@@ -640,7 +640,7 @@ void Vmcs::write_vcpu_state(Genode::Vcpu_state &state)
 }
 
 
-void Vmcs::read_vcpu_state(Genode::Vcpu_state &state)
+void Vmcs::load(Genode::Vcpu_state &state)
 {
 	_load_pointer();
 

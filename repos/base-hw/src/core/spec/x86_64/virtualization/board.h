@@ -59,8 +59,8 @@ struct Board::Vcpu_context
 
 	Vcpu_context(unsigned id, Vcpu_data &vcpu_data);
 	void initialize(Kernel::Cpu &cpu, addr_t table_phys_addr);
-	void read_vcpu_state(Vcpu_state &state);
-	void write_vcpu_state(Vcpu_state &state);
+	void load(Vcpu_state &state);
+	void store(Vcpu_state &state);
 
 	Genode::Align_at<Core::Cpu::Context> regs;
 
