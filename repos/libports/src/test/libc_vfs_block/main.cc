@@ -212,17 +212,17 @@ struct Test::Main
 	/*
 	 * \throw Step_failed
 	 */
-	static void _exec_step(Genode::Xml_node step, Block_device &);
+	static void _exec_step(Genode::Xml_node const &step, Block_device &);
 
 	/*
 	 * \throw Step_failed
 	 */
-	void _exec_sequence(Genode::Xml_node sequence);
+	void _exec_sequence(Genode::Xml_node const &sequence);
 
 	/*
 	 * \throw Step_failed
 	 */
-	void _exec_sequences(Genode::Xml_node config);
+	void _exec_sequences(Genode::Xml_node const &config);
 
 	/*
 	 * \throw Step_failed
@@ -235,7 +235,7 @@ struct Test::Main
 };
 
 
-void Test::Main::_exec_step(Genode::Xml_node step, Block_device &block_device)
+void Test::Main::_exec_step(Genode::Xml_node const &step, Block_device &block_device)
 {
 	if (step.has_type("write")) {
 		Block_device::Block_number const at{step.attribute_value("at", 0UL)};
@@ -264,18 +264,18 @@ void Test::Main::_exec_step(Genode::Xml_node step, Block_device &block_device)
 }
 
 
-void Test::Main::_exec_sequence(Genode::Xml_node sequence)
+void Test::Main::_exec_sequence(Genode::Xml_node const &sequence)
 {
 	Block_device dev{"/dev/block"};
 
-	sequence.for_each_sub_node([&] (Genode::Xml_node step) {
+	sequence.for_each_sub_node([&] (Genode::Xml_node const &step) {
 		_exec_step(step, dev); });
 }
 
 
-void Test::Main::_exec_sequences(Genode::Xml_node config)
+void Test::Main::_exec_sequences(Genode::Xml_node const &config)
 {
-	config.for_each_sub_node("sequence", [&] (Genode::Xml_node sequence) {
+	config.for_each_sub_node("sequence", [&] (Genode::Xml_node const &sequence) {
 		_exec_sequence(sequence); });
 }
 

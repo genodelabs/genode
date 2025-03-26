@@ -256,12 +256,10 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 	 * file in the same directory as the '.gcda' file.
 	 */
 
-	try {
+	Xml_node config(gcov_env->config.local_addr<char>(),
+	                gcov_env->config.size());
 
-		Xml_node config(gcov_env->config.local_addr<char>(),
-		                gcov_env->config.size());
-
-		Xml_node libgcov_node = config.sub_node("libgcov");
+	config.with_optional_sub_node("libgcov", [&] (Xml_node const &libgcov_node) {
 
 		Absolute_path annotate_file_name { file_name };
 		annotate_file_name.remove_trailing('a');
@@ -274,7 +272,7 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 
 		File_system::seek_off_t seek_offset = 0;
 
-		libgcov_node.for_each_sub_node("annotate", [&] (Xml_node annotate_node) {
+		libgcov_node.for_each_sub_node("annotate", [&] (Xml_node const &annotate_node) {
 
 			using Source = String<File_system::MAX_PATH_LEN>;
 			Source const source = annotate_node.attribute_value("source", Source());
@@ -291,8 +289,7 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 		});
 
 		gcov_env->fs.close(annotate_file_handle);
-	}
-	catch (Xml_node::Nonexistent_sub_node) { }
+	});
 
 	return &gcov_env->file;
 }

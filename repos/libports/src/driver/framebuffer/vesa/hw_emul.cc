@@ -60,21 +60,21 @@ class Pci_card
 		Pci_card(Genode::Env &env) : _pci_drv(env)
 		{
 			_pci_drv.update();
-			_pci_drv.with_xml([&] (Xml_node node) {
-				node.with_optional_sub_node("device", [&] (Xml_node node) {
-					node.for_each_sub_node("io_mem", [&] (Xml_node node) {
+			_pci_drv.with_xml([&] (Xml_node const &node) {
+				node.with_optional_sub_node("device", [&] (Xml_node const &node) {
+					node.for_each_sub_node("io_mem", [&] (Xml_node const &node) {
 						unsigned bar  = node.attribute_value("pci_bar", 0U);
 						uint32_t addr = node.attribute_value("phys_addr", 0UL);
 						if (bar >= BAR_MAX) throw Invalid_bar();
 						_bar[bar] = addr;
 					});
-					node.for_each_sub_node("io_port_range", [&] (Xml_node node) {
+					node.for_each_sub_node("io_port_range", [&] (Xml_node const &node) {
 						unsigned bar = node.attribute_value("pci_bar", 0U);
 						uint32_t addr = node.attribute_value("phys_addr", 0UL);
 						if (bar >= BAR_MAX) throw Invalid_bar();
 						_bar[bar] = addr | 1;
 					});
-					node.with_optional_sub_node("pci-config", [&] (Xml_node node) {
+					node.with_optional_sub_node("pci-config", [&] (Xml_node const &node) {
 						unsigned v = node.attribute_value("vendor_id", 0U);
 						unsigned d = node.attribute_value("device_id", 0U);
 						unsigned c = node.attribute_value("class",     0U);

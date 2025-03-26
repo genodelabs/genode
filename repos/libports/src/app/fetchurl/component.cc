@@ -204,7 +204,7 @@ struct Fetchurl::Main
 
 	Main(Libc::Env &e) : _env(e)
 	{
-		_env.config([&] (Xml_node const &config) {
+		_env.with_config([&] (Xml_node const &config) {
 			parse_config(config);
 		});
 	}

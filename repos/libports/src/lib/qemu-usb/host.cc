@@ -353,30 +353,38 @@ class Device : public List_model<Device>::Element
 
 		void update(Allocator &alloc, Xml_node const &node)
 		{
-			Xml_node active_config = node;
+			auto with_active_config = [] (Xml_node const &node, auto const &fn)
+			{
+				bool found = false;
+				node.for_each_sub_node("config", [&] (Xml_node const &config) {
+					if (!found && config.attribute_value("active", false)) {
+						fn(config);
+						found = true;
+					}
+				});
+				if (!found)
+					fn(node);
+			};
 
-			node.for_each_sub_node("config", [&] (Xml_node const &node) {
-				if (node.attribute_value("active", false))
-					active_config = node;
+			with_active_config(node, [&] (Xml_node const &active_config) {
+				_ifaces.update_from_xml(active_config,
+
+					/* create */
+					[&] (Xml_node const &node) -> ::Interface & {
+						return *new (alloc) ::Interface(*this, node); },
+
+					/* destroy */
+					[&] (::Interface &iface) {
+						/* first clean up urbs before isoc-caches get destroyed */
+						iface.destroy_all_urbs();
+						iface.update(alloc, Xml_node("<empty/>"));
+						destroy(alloc, &iface); },
+
+					/* update */
+					[&] (::Interface &iface, Xml_node const &node) {
+						iface.update(alloc, node); }
+				);
 			});
-
-			_ifaces.update_from_xml(active_config,
-
-				/* create */
-				[&] (Xml_node const &node) -> ::Interface & {
-					return *new (alloc) ::Interface(*this, node); },
-
-				/* destroy */
-				[&] (::Interface &iface) {
-					/* first clean up urbs before isoc-caches get destroyed */
-					iface.destroy_all_urbs();
-					iface.update(alloc, Xml_node("<empty/>"));
-					destroy(alloc, &iface); },
-
-				/* update */
-				[&] (::Interface &iface, Xml_node const &node) {
-					iface.update(alloc, node); }
-			);
 		}
 
 		void update_urbs();
@@ -416,7 +424,7 @@ struct Session
 
 	void update()
 	{
-		_usb.with_xml([&] (Xml_node node) {
+		_usb.with_xml([&] (Xml_node const &node) {
 			_model.update_from_xml(node,
 
 				/* create */

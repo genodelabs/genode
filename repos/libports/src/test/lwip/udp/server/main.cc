@@ -40,7 +40,7 @@ static void test(Libc::Env & env)
 	}
 	/* read server port */
 	unsigned port = 0;
-	env.config([&] (Xml_node const &config_node) {
+	env.with_config([&] (Xml_node const &config_node) {
 		port = config_node.attribute_value("port", 0u); });
 
 	/* create server socket address */

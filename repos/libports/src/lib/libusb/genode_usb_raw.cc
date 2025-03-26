@@ -86,8 +86,8 @@ struct Usb_device
 		_env(env), _alloc(alloc), _handler_cap(cap)
 	{
 		String<32> speed;
-		_session.with_xml([&] (Xml_node xml) {
-			xml.with_optional_sub_node("device", [&] (Xml_node node) {
+		_session.with_xml([&] (Xml_node const &xml) {
+			xml.with_optional_sub_node("device", [&] (Xml_node const &node) {
 				speed = node.attribute_value("speed", String<32>()); });
 		});
 
@@ -95,7 +95,7 @@ struct Usb_device
 		else if (speed == "full")           _speed = LIBUSB_SPEED_FULL;
 		else if (speed == "high")           _speed = LIBUSB_SPEED_HIGH;
 		else if (speed == "super" ||
-				 speed == "super_plus" ||
+		         speed == "super_plus" ||
 		         speed == "super_plus_2x2") _speed = LIBUSB_SPEED_SUPER;
 
 		_device.sigh(_handler_cap);
