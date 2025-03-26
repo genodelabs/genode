@@ -87,10 +87,13 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 		template <typename FN>
 		void for_each_domain(FN && fn)
 		{
+			bool use_default { true };
 			for_each([&] (Io_mmu_domain & wrapper) {
-				fn(wrapper.domain); });
+				fn(wrapper.domain);
+				use_default = false;
+			});
 
-			if (_default_domain.constructed())
+			if (use_default && _default_domain.constructed())
 				fn(_default_domain->domain);
 		}
 

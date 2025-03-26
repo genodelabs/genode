@@ -463,9 +463,10 @@ Session_component::Session_component(Env                          & env,
 	_ram_quota_guard().withdraw(Ram_quota{5*1024});
 
 	/**
-	 * Until we integrated IOMMU support within the platform driver, we assume
-	 * there is a kernel_iommu used by each device if _iommu is set. We therefore
-	 * construct a corresponding domain object at session construction.
+	 * Fallback, in case there is no IOMMU present but the kernel implements it,
+	 * is to let every device use the kernel IOMMU implicitly.
+	 * We therefore construct a corresponding domain object at session
+	 * construction.
 	 */
 	if (kernel_iommu)
 		_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
