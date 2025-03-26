@@ -138,10 +138,11 @@ class Genodefb :
 		{
 			HRESULT result = E_FAIL;
 
-			Lock();
 
 			/* save the new bitmap reference */
 			_display->QuerySourceBitmap(screen, _display_bitmap.asOutParam());
+
+			Lock();
 
 			bool const ok = (w <= (ULONG)_gui_win.area.w) &&
 			                (h <= (ULONG)_gui_win.area.h);
