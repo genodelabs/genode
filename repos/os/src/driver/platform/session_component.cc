@@ -335,6 +335,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 
 		Constrained_ram_allocator & _env_ram;
 		Heap                      & _heap;
+		Io_mmu_domain_registry    & _domain_registry;
 		bool                        _cleanup { true };
 
 		Ram_dataspace_capability   ram_cap { };
@@ -344,19 +345,26 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 
 		void disarm() { _cleanup = false; }
 
-		Guard(Constrained_ram_allocator & env_ram, Heap & heap)
-		: _env_ram(env_ram), _heap(heap)
+		Guard(Constrained_ram_allocator & env_ram,
+		      Heap                      & heap,
+		      Io_mmu_domain_registry    & registry)
+		: _env_ram(env_ram), _heap(heap), _domain_registry(registry)
 		{ }
 
 		~Guard()
 		{
-			if (_cleanup && buf)
+			if (_cleanup && buf) {
+				/* make sure to remove buffer range from all domains */
+				_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {
+					domain.remove_range({ buf->dma_addr, buf->size });
+				});
 				destroy(_heap, buf);
+			}
 
 			if (_cleanup && ram_cap.valid())
 				_env_ram.free(ram_cap);
 		}
-	} guard { _env_ram, heap() };
+	} guard { _env_ram, heap(), _domain_registry };
 
 	/*
 	 * Check available quota beforehand and reflect the state back
