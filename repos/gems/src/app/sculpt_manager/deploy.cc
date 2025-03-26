@@ -19,7 +19,7 @@
 bool Sculpt::Deploy::update_child_conditions()
 {
 	/* return true if any condition changed */
-	return _children.apply_condition([&] (Xml_node start, Xml_node launcher) {
+	return _children.apply_condition([&] (Xml_node const &start, Xml_node const &launcher) {
 
 		/* the child cannot run as long as any dependency is missing */
 		bool condition = true;
@@ -42,7 +42,7 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 	using Registered_message = Registered_no_delete<Message>;
 	Registry<Registered_message> messages { };
 
-	auto gen_missing_dependencies = [&] (Xml_node start, Start_name const &name)
+	auto gen_missing_dependencies = [&] (Xml_node const &start, Start_name const &name)
 	{
 		_for_each_missing_server(start, [&] (Start_name const &server) {
 
@@ -58,8 +58,9 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 		});
 	};
 
-	_children.for_each_unsatisfied_child([&] (Xml_node start, Xml_node launcher,
-	                                                  Start_name const &name) {
+	_children.for_each_unsatisfied_child([&] (Xml_node   const &start,
+	                                          Xml_node   const &launcher,
+	                                          Start_name const &name) {
 		gen_missing_dependencies(start,    name);
 		gen_missing_dependencies(launcher, name);
 	});
@@ -188,11 +189,10 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator  &xml,
 	_managed_deploy_rom.with_xml([&] (Xml_node const &managed_deploy) {
 
 		/* insert content of '<static>' node as is */
-		if (managed_deploy.has_sub_node("static")) {
-			Xml_node static_config = managed_deploy.sub_node("static");
-			static_config.with_raw_content([&] (char const *start, size_t length) {
-				xml.append(start, length); });
-		}
+		managed_deploy.with_optional_sub_node("static",
+			[&] (Xml_node const &static_config) {
+				static_config.with_raw_content([&] (char const *start, size_t length) {
+					xml.append(start, length); }); });
 
 		/* generate start nodes for deployed packages */
 		if (managed_deploy.has_sub_node("common_routes")) {

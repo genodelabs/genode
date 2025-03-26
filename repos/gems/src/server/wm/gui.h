@@ -1472,16 +1472,18 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 			/*
 			 * Determine session policy
 			 */
-			try {
-				Xml_node policy = Session_policy(label, _config.xml());
+			with_matching_policy(label, _config.xml(),
 
-				auto const value = policy.attribute_value("role", String<16>());
+				[&] (Xml_node const &policy) {
 
-				if (value == "layouter")  role = ROLE_LAYOUTER;
-				if (value == "decorator") role = ROLE_DECORATOR;
-				if (value == "direct")    role = ROLE_DIRECT;
-			}
-			catch (...) { }
+					auto const value = policy.attribute_value("role", String<16>());
+
+					if (value == "layouter")  role = ROLE_LAYOUTER;
+					if (value == "decorator") role = ROLE_DECORATOR;
+					if (value == "direct")    role = ROLE_DIRECT;
+				},
+				[&] { }
+			);
 
 			if (role == ROLE_REGULAR || role == ROLE_DECORATOR) {
 

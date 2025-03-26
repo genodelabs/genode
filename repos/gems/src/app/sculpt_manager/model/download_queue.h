@@ -114,7 +114,7 @@ struct Sculpt::Download_queue : Noncopyable
 	void apply_update_state(Xml_node const &state)
 	{
 		/* 'elem' may be of type 'index' or 'archive' */
-		state.for_each_sub_node([&] (Xml_node elem) {
+		state.for_each_sub_node([&] (Xml_node const &elem) {
 
 			Path     const path    = elem.attribute_value("path", Path());
 			size_t   const total   = elem.attribute_value("total", 0UL);

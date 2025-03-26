@@ -38,7 +38,7 @@ struct Menu_view::Root_widget : Widget
 		return result;
 	}
 
-	void update(Xml_node node) override
+	void update(Xml_node const &node) override
 	{
 		char const *dialog_tag = "dialog";
 

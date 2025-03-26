@@ -20,10 +20,10 @@ namespace Sculpt {
 
 	struct Depot_query;
 
-	static inline bool blueprint_missing        (Xml_node, Path const &);
-	static inline bool blueprint_any_missing    (Xml_node);
-	static inline bool blueprint_rom_missing    (Xml_node, Path const &);
-	static inline bool blueprint_any_rom_missing(Xml_node);
+	static inline bool blueprint_missing        (Xml_node const &, Path const &);
+	static inline bool blueprint_any_missing    (Xml_node const &);
+	static inline bool blueprint_rom_missing    (Xml_node const &, Path const &);
+	static inline bool blueprint_any_rom_missing(Xml_node const &);
 }
 
 
@@ -37,10 +37,10 @@ struct Sculpt::Depot_query : Interface
 };
 
 
-static inline bool Sculpt::blueprint_missing(Xml_node blueprint, Path const &path)
+static inline bool Sculpt::blueprint_missing(Xml_node const &blueprint, Path const &path)
 {
 	bool result = false;
-	blueprint.for_each_sub_node("missing", [&] (Xml_node missing) {
+	blueprint.for_each_sub_node("missing", [&] (Xml_node const &missing) {
 		if (missing.attribute_value("path", Path()) == path)
 			result = true; });
 
@@ -48,7 +48,7 @@ static inline bool Sculpt::blueprint_missing(Xml_node blueprint, Path const &pat
 }
 
 
-static inline bool Sculpt::blueprint_any_missing(Xml_node blueprint)
+static inline bool Sculpt::blueprint_any_missing(Xml_node const &blueprint)
 {
 	return blueprint.has_sub_node("missing");
 }
@@ -60,16 +60,16 @@ static inline bool Sculpt::blueprint_any_missing(Xml_node blueprint)
  *
  * If 'path' is an invalid string, all pkgs of the blueprint are checked.
  */
-static inline bool Sculpt::blueprint_rom_missing(Xml_node blueprint, Path const &path)
+static inline bool Sculpt::blueprint_rom_missing(Xml_node const &blueprint, Path const &path)
 {
 	bool result = false;
-	blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
+	blueprint.for_each_sub_node("pkg", [&] (Xml_node const &pkg) {
 
 		/* skip pkgs that we are not interested in */
 		if (path.valid() && pkg.attribute_value("path", Path()) != path)
 			return;
 
-		pkg.for_each_sub_node("missing_rom", [&] (Xml_node missing_rom) {
+		pkg.for_each_sub_node("missing_rom", [&] (Xml_node const &missing_rom) {
 
 			/* ld.lib.so is always taken from the base system */
 			using Label = String<64>;
@@ -85,7 +85,7 @@ static inline bool Sculpt::blueprint_rom_missing(Xml_node blueprint, Path const 
 }
 
 
-static inline bool Sculpt::blueprint_any_rom_missing(Xml_node blueprint)
+static inline bool Sculpt::blueprint_any_rom_missing(Xml_node const &blueprint)
 {
 	return blueprint_rom_missing(blueprint, Path());
 }

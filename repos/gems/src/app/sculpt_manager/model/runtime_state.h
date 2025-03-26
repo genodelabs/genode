@@ -226,7 +226,7 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		~Runtime_state() { reset_abandoned_and_launched_children(); }
 
-		void update_from_state_report(Xml_node state)
+		void update_from_state_report(Xml_node const &state)
 		{
 			_children.update_from_xml(state,
 

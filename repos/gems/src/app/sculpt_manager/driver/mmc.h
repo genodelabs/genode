@@ -74,8 +74,9 @@ struct Sculpt::Mmc_driver : private Noncopyable
 
 	void with_devices(auto const &fn) const
 	{
+		static Xml_node const none { "<none/>" };
 		_devices.with_xml([&] (Xml_node const &devices) {
-			fn(_mmc.constructed() ? devices : Xml_node("<none/>")); });
+			fn(_mmc.constructed() ? devices : none); });
 	}
 };
 

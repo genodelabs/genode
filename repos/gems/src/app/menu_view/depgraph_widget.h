@@ -442,14 +442,14 @@ struct Menu_view::Depgraph_widget : Widget
 		fn(_root_node);
 	}
 
-	Depgraph_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
+	Depgraph_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
 	:
 		Widget(factory, node, unique_id)
 	{ }
 
 	~Depgraph_widget() { _update_children(Xml_node("<empty/>")); }
 
-	void update(Xml_node node) override
+	void update(Xml_node const &node) override
 	{
 		/* update depth direction */
 		{
@@ -512,7 +512,7 @@ struct Menu_view::Depgraph_widget : Widget
 		_nodes.for_each([&] (Node &node) {
 			node.mark_deps_as_out_of_date(); });
 
-		node.for_each_sub_node([&] (Xml_node node) {
+		node.for_each_sub_node([&] (Xml_node const &node) {
 
 			bool const primary = !node.has_type("dep");
 

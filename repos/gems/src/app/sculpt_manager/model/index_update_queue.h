@@ -123,7 +123,7 @@ struct Sculpt::Index_update_queue : Noncopyable
 				fn(update); });
 	}
 
-	void apply_update_state(Xml_node state)
+	void apply_update_state(Xml_node const &state)
 	{
 		state.for_each_sub_node([&] (Xml_node const &elem) {
 

@@ -102,7 +102,7 @@ class Sculpt::Presets : public Noncopyable
 				[&] (Preset &e) { destroy(_alloc, &e); },
 
 				/* update */
-				[&] (Preset &, Xml_node) { }
+				[&] (Preset &, Xml_node const &) { }
 			);
 
 			_count = 0;

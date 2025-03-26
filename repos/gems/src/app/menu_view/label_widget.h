@@ -40,7 +40,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	List_model<Cursor>         _cursors    { };
 	List_model<Text_selection> _selections { };
 
-	Label_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
+	Label_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
 	:
 		Widget(factory, node, unique_id), _color(factory.animator)
 	{ }
@@ -80,7 +80,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		);
 	}
 
-	void update(Xml_node node) override
+	void update(Xml_node const &node) override
 	{
 		_font       = _factory.styles.font(node);
 		_text       = Text("");

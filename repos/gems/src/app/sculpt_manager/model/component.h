@@ -81,7 +81,7 @@ struct Sculpt::Component : Noncopyable
 			[&] (Route &e) { destroy(_alloc, &e); },
 
 			/* update */
-			[&] (Route &, Xml_node) { }
+			[&] (Route &, Xml_node const &) { }
 		);
 	}
 
@@ -140,11 +140,11 @@ struct Sculpt::Component : Noncopyable
 		_update_routes_from_xml(Xml_node("<empty/>"));
 	}
 
-	void try_apply_blueprint(Xml_node blueprint)
+	void try_apply_blueprint(Xml_node const &blueprint)
 	{
 		blueprint_info = { };
 
-		blueprint.for_each_sub_node([&] (Xml_node pkg) {
+		blueprint.for_each_sub_node([&] (Xml_node const &pkg) {
 
 			if (path != pkg.attribute_value("path", Path()))
 				return;
@@ -154,7 +154,7 @@ struct Sculpt::Component : Noncopyable
 				return;
 			}
 
-			pkg.with_optional_sub_node("runtime", [&] (Xml_node runtime) {
+			pkg.with_optional_sub_node("runtime", [&] (Xml_node const &runtime) {
 
 				ram  = runtime.attribute_value("ram", Number_of_bytes());
 				caps = runtime.attribute_value("caps", 0UL);

@@ -271,8 +271,8 @@ void Decorator::Main::_handle_config()
 }
 
 
-static Decorator::Window_base::Hover
-find_hover(Genode::Xml_node pointer_node, Decorator::Window_stack &window_stack)
+static Decorator::Window_base::Hover find_hover(Genode::Xml_node const &pointer_node,
+                                                Decorator::Window_stack &window_stack)
 {
 	if (!pointer_node.has_attribute("xpos")
 	 || !pointer_node.has_attribute("ypos"))

@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <os/session_policy.h>
+#include <os/buffered_xml.h>
 #include <util/color.h>
 
 /* decorator includes */
@@ -33,24 +34,27 @@ class Decorator::Config
 {
 	private:
 
-		Genode::Xml_node _config;
+		Genode::Buffered_xml const _config;
 
 		template <typename T>
 		T _policy_attribute(Window_title const &title, char const *attr,
 		                       T default_value) const
 		{
-			try {
-				Genode::Session_policy policy(title, _config);
-				return policy.attribute_value(attr, default_value);
-
-			} catch (Genode::Session_policy::No_policy_defined) { }
-
-			return default_value;
+			T result = default_value;
+			with_matching_policy(title, _config.xml,
+				[&] (Xml_node const &policy) {
+					result = policy.attribute_value(attr, result); },
+				[&] { }
+			);
+			return result;
 		}
 
 	public:
 
-		Config(Genode::Xml_node node) : _config(node) {}
+		Config(Genode::Allocator &alloc, Genode::Xml_node const &node)
+		:
+			_config(alloc, node)
+		{ }
 
 		bool show_decoration(Window_title const &title) const
 		{
@@ -68,13 +72,11 @@ class Decorator::Config
 		Color base_color(Window_title const &title) const
 		{
 			Color result = Color::black();
-
-			try {
-				Genode::Session_policy policy(title, _config);
-				result = policy.attribute_value("color", result);
-
-			} catch (Genode::Session_policy::No_policy_defined) { }
-
+			with_matching_policy(title, _config.xml,
+				[&] (Xml_node const &policy) {
+					result = policy.attribute_value("color", result); },
+				[&] { }
+			);
 			return result;
 		}
 };

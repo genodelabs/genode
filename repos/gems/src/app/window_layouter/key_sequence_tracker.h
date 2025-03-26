@@ -157,7 +157,7 @@ class Window_layouter::Key_sequence_tracker
 		/**
 		 * Execute command denoted in the specific XML node
 		 */
-		void _execute_command(Xml_node node, auto const &fn)
+		void _execute_command(Xml_node const &node, auto const &fn)
 		{
 			if (node.has_attribute("action"))
 				fn(Command::from_xml(node));

@@ -233,8 +233,9 @@ namespace Terminal {
 	{
 		private:
 
-			Genode::Env      &_env;
-			Genode::Xml_node  _config;
+			Genode::Env &_env;
+
+			Genode::Attached_rom_dataspace const &_config_rom;
 
 		protected:
 
@@ -243,7 +244,7 @@ namespace Terminal {
 				using namespace Genode;
 
 				Session_label  const label = label_from_args(args);
-				Session_policy const policy(label, _config);
+				Session_policy const policy(label, _config_rom.xml());
 
 				if (!policy.has_attribute("filename")) {
 					error("missing \"filename\" attribute in policy definition");
@@ -266,12 +267,11 @@ namespace Terminal {
 			/**
 			 * Constructor
 			 */
-			Root_component(Genode::Env       &env,
-			               Genode::Xml_node   config,
-			               Genode::Allocator *md_alloc)
+			Root_component(Genode::Env &env, Genode::Allocator &md_alloc,
+			               Genode::Attached_rom_dataspace const &config_rom)
 			:
-				Genode::Root_component<Session_component>(&env.ep().rpc_ep(), md_alloc),
-				_env(env), _config(config)
+				Genode::Root_component<Session_component>(env.ep(), md_alloc),
+				_env(env), _config_rom(config_rom)
 			{ }
 	};
 }
@@ -281,13 +281,12 @@ struct Main
 {
 	Genode::Env &_env;
 
-	Genode::Attached_rom_dataspace  _config_rom { _env, "config" };
-	Genode::Xml_node                _config     { _config_rom.xml() };
+	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
 	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	/* create root interface for service */
-	Terminal::Root_component _root { _env, _config, &_sliced_heap };
+	Terminal::Root_component _root { _env, _sliced_heap, _config_rom };
 
 	Main(Genode::Env &env) : _env(env)
 	{

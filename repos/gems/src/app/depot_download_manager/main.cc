@@ -36,9 +36,9 @@ struct Depot_download_manager::Child_exit_state
 
 	using Name = String<64>;
 
-	Child_exit_state(Xml_node init_state, Name const &name)
+	Child_exit_state(Xml_node const &init_state, Name const &name)
 	{
-		init_state.for_each_sub_node("child", [&] (Xml_node child) {
+		init_state.for_each_sub_node("child", [&] (Xml_node const &child) {
 			if (child.attribute_value("name", Name()) == name) {
 				exists = true;
 				if (child.has_attribute("exited")) {
@@ -441,10 +441,10 @@ void Depot_download_manager::Main::_handle_query_result()
 		}
 	}
 
-	Xml_node const dependencies = _dependencies.xml();
-	Xml_node const index        = _index.xml();
-	Xml_node const image        = _image.xml();
-	Xml_node const image_index  = _image_index.xml();
+	Xml_node const &dependencies = _dependencies.xml();
+	Xml_node const &index        = _index.xml();
+	Xml_node const &image        = _image.xml();
+	Xml_node const &image_index  = _image_index.xml();
 
 	/* mark jobs referring to existing depot content as unneccessary */
 	Import::for_each_present_depot_path(dependencies, index, image, image_index,
@@ -473,10 +473,10 @@ void Depot_download_manager::Main::_handle_query_result()
 	{
 		Archive::User user { };
 
-		auto assign_user_from_missing_xml_sub_node = [&] (Xml_node const node)
+		auto assign_user_from_missing_xml_sub_node = [&] (Xml_node const &node)
 		{
 			if (!user.valid())
-				node.with_optional_sub_node("missing", [&] (Xml_node missing) {
+				node.with_optional_sub_node("missing", [&] (Xml_node const &missing) {
 					user = missing.attribute_value("user", Archive::User()); });
 		};
 
@@ -487,7 +487,7 @@ void Depot_download_manager::Main::_handle_query_result()
 		if (user.valid())
 			return user;
 
-		dependencies.with_optional_sub_node("missing", [&] (Xml_node missing) {
+		dependencies.with_optional_sub_node("missing", [&] (Xml_node const &missing) {
 			user = Archive::user(missing.attribute_value("path", Archive::Path())); });
 
 		if (!user.valid())
@@ -569,7 +569,7 @@ void Depot_download_manager::Main::_handle_init_state()
 
 	if (import.unverified_archives_available()) {
 
-		_verified.xml().for_each_sub_node([&] (Xml_node node) {
+		_verified.xml().for_each_sub_node([&] (Xml_node const &node) {
 
 			/* path in the VFS name space of the 'verify' component */
 			Path const abs_path = node.attribute_value("path", Archive::Path());

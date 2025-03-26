@@ -227,7 +227,7 @@ class Decorator::Window_base : private Windows::Element
 		 * decorations haven't been redrawn already. If we updated the
 		 * GUI views at this point, we would reveal not-yet-drawn pixels.
 		 */
-		virtual bool update(Xml_node window_node) = 0;
+		virtual bool update(Xml_node const &window_node) = 0;
 
 		struct Clip : Rect { };
 

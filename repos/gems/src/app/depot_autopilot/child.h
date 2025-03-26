@@ -290,17 +290,17 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		bool _configured() const;
 
 		void _gen_routes(Xml_generator          &,
-		                 Xml_node                ,
+		                 Xml_node         const &,
 		                 Depot_rom_server const &,
 		                 Depot_rom_server const &) const;
 
 		static void _gen_provides_sub_node(Xml_generator        &xml,
-		                                   Xml_node              service,
+		                                   Xml_node       const &service,
 		                                   Xml_node::Type const &node_type,
 		                                   Service::Name  const &service_name);
 
 		static void _gen_copy_of_sub_node(Xml_generator        &xml,
-		                                  Xml_node              from_node,
+		                                  Xml_node const       &from_node,
 		                                  Xml_node::Type const &sub_node_type);
 
 		void _finished(State                   state,
@@ -314,7 +314,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		Genode::uint64_t init_time_us { 0 };
 
 		Child(Genode::Allocator                       &alloc,
-		      Genode::Xml_node                         start_node,
+		      Genode::Xml_node                  const &start_node,
 		      Timer::Connection                       &timer,
 		      Genode::Signal_context_capability const &config_handler);
 
@@ -330,14 +330,14 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		void event_occured(Event            const &event,
 		                   Genode::uint64_t const  time_us);
 
-		void apply_config(Xml_node start_node);
+		void apply_config(Xml_node const &start_node);
 
-		void apply_blueprint(Xml_node pkg);
+		void apply_blueprint(Xml_node const &pkg);
 
 		void apply_launcher(Launcher_name const &name,
-		                    Xml_node             launcher);
+		                    Xml_node      const &launcher);
 
-		void mark_as_incomplete(Xml_node missing);
+		void mark_as_incomplete(Xml_node const &missing);
 
 		/**
 		 * Reconsider deployment of child after installing missing archives
@@ -360,7 +360,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 *                            is assumed to be mutable
 		 */
 		void gen_start_node(Xml_generator          &,
-		                    Xml_node                common,
+		                    Xml_node         const &common,
 		                    Depot_rom_server const &cached_depot_rom,
 		                    Depot_rom_server const &uncached_depot_rom);
 
@@ -372,12 +372,12 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		template <typename FN>
 		void apply_if_unsatisfied(FN const &fn) const
 		{
-			if (_skip) {
-				return; }
+			if (_skip)
+				return;
 
-			Xml_node launcher_xml = _launcher_xml.constructed()
-			                      ? _launcher_xml->xml()
-			                      : Xml_node("<empty/>");
+			Xml_node const &launcher_xml = _launcher_xml.constructed()
+			                             ? _launcher_xml->xml()
+			                             : Xml_node("<empty/>");
 
 			if (_condition == UNSATISFIED && _start_xml.constructed())
 				fn(_start_xml->xml(), launcher_xml);

@@ -25,10 +25,10 @@ struct Sculpt::Nic_state
 
 	Ipv4 ipv4;
 
-	static Nic_state from_xml(Xml_node node)
+	static Nic_state from_xml(Xml_node const &node)
 	{
 		Ipv4 result { };
-		node.for_each_sub_node("domain", [&] (Xml_node domain) {
+		node.for_each_sub_node("domain", [&] (Xml_node const &domain) {
 			if (domain.attribute_value("name", String<16>()) == "uplink")
 				result = domain.attribute_value("ipv4", Ipv4()); });
 

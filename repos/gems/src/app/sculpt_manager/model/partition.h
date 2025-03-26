@@ -97,7 +97,7 @@ struct Sculpt::Partition : List_model<Partition>::Element
 		Expandable        expandable;
 		File_system::Type fs_type;
 
-		static Args from_xml(Xml_node node)
+		static Args from_xml(Xml_node const &node)
 		{
 			auto const file_system = node.attribute_value("file_system", String<16>());
 			File_system::Type const fs_type = (file_system == "Ext2")   ? File_system::EXT2
@@ -134,7 +134,7 @@ struct Sculpt::Partition : List_model<Partition>::Element
 
 	bool whole_device() const { return !number.valid(); }
 
-	static bool type_matches(Xml_node node)
+	static bool type_matches(Xml_node const &node)
 	{
 		/*
 		 * Partition "0" is a pseudo partition that refers to the whole device
@@ -143,7 +143,7 @@ struct Sculpt::Partition : List_model<Partition>::Element
 		return (node.attribute_value("number", Partition::Number()) != "0");
 	}
 
-	bool matches(Xml_node node) const
+	bool matches(Xml_node const &node) const
 	{
 		return node.attribute_value("number", Partition::Number()) == number;
 	}

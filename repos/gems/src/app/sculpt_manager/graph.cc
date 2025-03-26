@@ -244,7 +244,7 @@ void Graph::click(Clicked_at const &at, Action &action)
 
 	_plus.propagate(at, [&] {
 
-		auto popup_anchor = [] (Xml_node const dialog)
+		auto popup_anchor = [] (Xml_node const &dialog)
 		{
 			Rect result { };
 			dialog.with_optional_sub_node("depgraph", [&] (Xml_node const &depgraph) {

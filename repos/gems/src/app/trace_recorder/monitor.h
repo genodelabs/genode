@@ -53,12 +53,12 @@ class Trace_recorder::Monitor
 
 			public:
 
-				static Directory::Path root_from_config(Xml_node &config) {
+				static Directory::Path root_from_config(Xml_node const &config) {
 					return config.attribute_value("target_root", Directory::Path("/")); }
 
 				Trace_directory(Env             &env,
 				                Allocator       &alloc,
-				                Xml_node        &config,
+				                Xml_node  const &config,
 				                Rtc::Connection &rtc)
 				: _root(env, alloc, config.sub_node("vfs")),
 				  _path(Directory::join(root_from_config(config), rtc.current_time()))
@@ -136,8 +136,9 @@ class Trace_recorder::Monitor
 		Pcapng::Backend                _pcapng_backend   { _alloc, _ts_calibrator, _backends };
 
 		/* methods */
-		Session_policy _session_policy(Trace::Subject_info const &info, Xml_node config);
-		void           _handle_timeout();
+		void _with_session_policy(Trace::Subject_info const &, Xml_node const &,
+                                  auto const &fn, auto const &missing_fn);
+		void _handle_timeout();
 
 	public:
 
@@ -148,7 +149,7 @@ class Trace_recorder::Monitor
 			_timer.sigh(_timeout_handler);
 		}
 
-		void start(Xml_node config);
+		void start(Xml_node const &config);
 		void stop();
 };
 

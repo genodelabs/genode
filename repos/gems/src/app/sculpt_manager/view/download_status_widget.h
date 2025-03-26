@@ -38,7 +38,7 @@ struct Sculpt::Download_status_widget : Titled_frame
 			bool const download_in_progress = state.attribute_value("progress", false);
 
 			if (download_in_progress) {
-				state.for_each_sub_node("archive", [&] (Xml_node archive) {
+				state.for_each_sub_node("archive", [&] (Xml_node const &archive) {
 
 					Path   const path  = archive.attribute_value("path",  Path());
 					Info         info  = archive.attribute_value("state", Info());

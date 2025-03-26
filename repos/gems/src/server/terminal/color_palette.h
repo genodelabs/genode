@@ -63,9 +63,9 @@ class Terminal::Color_palette
 
 		Genode::Xml_node const _default { _default_palette };
 
-		void _apply_palette(Xml_node palette)
+		void _apply_palette(Xml_node const &palette)
 		{
-			palette.for_each_sub_node("color", [&] (Xml_node node) {
+			palette.for_each_sub_node("color", [&] (Xml_node const &node) {
 				if (!node.has_attribute("index")) return;
 				if (!node.has_attribute("value")) return;
 
@@ -82,7 +82,7 @@ class Terminal::Color_palette
 			_apply_palette(_default);
 		}
 
-		void apply_config(Xml_node config)
+		void apply_config(Xml_node const &config)
 		{
 			_apply_palette(_default);
 			if (config.has_sub_node("palette"))

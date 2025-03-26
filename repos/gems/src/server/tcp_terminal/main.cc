@@ -574,7 +574,8 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 	private:
 
 		Genode::Env &_env;
-		Genode::Xml_node  _config;
+
+		Genode::Attached_rom_dataspace const &_config_rom;
 
 	protected:
 
@@ -587,30 +588,38 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 			 */
 			Genode::size_t io_buffer_size = 4096;
 
-			Session_label  const label = label_from_args(args);
-			Session_policy const policy(label, _config);
+			Session_component *session_ptr = nullptr;
 
-			if (!policy.has_attribute("port")) {
-				error("Missing \"port\" attribute in policy definition");
+			with_matching_policy(label_from_args(args), _config_rom.xml(),
+
+				[&] (Xml_node const &policy) {
+
+					if (!policy.has_attribute("port")) {
+						error("Missing \"port\" attribute in policy definition");
+						return;
+					}
+
+					unsigned const tcp_port = policy.attribute_value("port", 0U);
+
+					if (policy.has_attribute("ip")) {
+						using Ip = Genode::String<16>;
+						Ip ip_addr = policy.attribute_value("ip", Ip());
+						Libc::with_libc([&] () {
+							session_ptr = new (md_alloc())
+								Session_component(_env, io_buffer_size, ip_addr.string(), tcp_port); });
+					} else {
+						Libc::with_libc([&] () {
+							session_ptr = new (md_alloc())
+								Session_component(_env, io_buffer_size, tcp_port); });
+					}
+				},
+				[&] { }
+			);
+
+			if (!session_ptr)
 				throw Service_denied();
-			}
 
-			unsigned const tcp_port = policy.attribute_value("port", 0U);
-
-			Session_component *session = nullptr;
-
-			if (policy.has_attribute("ip")) {
-				using Ip = Genode::String<16>;
-				Ip ip_addr = policy.attribute_value("ip", Ip());
-				Libc::with_libc([&] () {
-					session = new (md_alloc())
-						Session_component(_env, io_buffer_size, ip_addr.string(), tcp_port); });
-			} else {
-				Libc::with_libc([&] () {
-					session = new (md_alloc())
-						Session_component(_env, io_buffer_size, tcp_port); });
-			}
-			return session;
+			return session_ptr;
 		}
 
 	public:
@@ -618,13 +627,11 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 		/**
 		 * Constructor
 		 */
-		Root_component(Genode::Env       &env,
-		               Genode::Xml_node   config,
-		               Genode::Allocator &md_alloc)
+		Root_component(Genode::Env &env, Genode::Allocator &md_alloc,
+		               Genode::Attached_rom_dataspace const &config_rom)
 		:
-			Genode::Root_component<Session_component>(&env.ep().rpc_ep(),
-			                                          &md_alloc),
-			_env(env), _config(config)
+			Genode::Root_component<Session_component>(env.ep(), md_alloc),
+			_env(env), _config_rom(config_rom)
 		{ }
 };
 
@@ -633,13 +640,12 @@ struct Main
 {
 	Genode::Env &_env;
 
-	Genode::Attached_rom_dataspace  _config_rom { _env, "config" };
-	Genode::Xml_node                _config     { _config_rom.xml() };
+	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
 	Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	/* create root interface for service */
-	Terminal::Root_component _root { _env, _config, _sliced_heap };
+	Terminal::Root_component _root { _env, _sliced_heap, _config_rom };
 
 	Main(Genode::Env &env) : _env(env)
 	{

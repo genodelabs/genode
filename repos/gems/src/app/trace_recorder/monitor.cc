@@ -69,20 +69,30 @@ void Trace_recorder::Monitor::Attached_buffer::process_events(Trace_directory &t
 }
 
 
-Session_policy Trace_recorder::Monitor::_session_policy(Trace::Subject_info const &info, Xml_node config)
+void Trace_recorder::Monitor::_with_session_policy(Trace::Subject_info const &info,
+                                                   Xml_node const &config,
+                                                   auto const &fn, auto const &missing_fn)
 {
-	Session_label const label(info.session_label());
-	Session_policy policy(label, config);
+	bool found = false;
+	with_matching_policy(info.session_label(), config,
+		[&] (Xml_node const &policy) {
 
-	/* must have policy attribute */
-	if (!policy.has_attribute("policy"))
-		 throw Session_policy::No_policy_defined();
+			/* must have policy attribute */
+			if (!policy.has_attribute("policy"))
+				return;
 
-	if (policy.has_attribute("thread"))
-		if (policy.attribute_value("thread", Trace::Thread_name()) != info.thread_name())
-			throw Session_policy::No_policy_defined();
+			if (policy.has_attribute("thread"))
+				if (policy.attribute_value("thread", Trace::Thread_name()) != info.thread_name())
+					return;
 
-	return policy;
+			fn(policy);
+			found = true;
+		},
+		[&] { }
+	);
+
+	if (!found)
+		missing_fn();
 }
 
 
@@ -94,7 +104,7 @@ void Trace_recorder::Monitor::_handle_timeout()
 }
 
 
-void Trace_recorder::Monitor::start(Xml_node config)
+void Trace_recorder::Monitor::start(Xml_node const &config)
 {
 	stop();
 
@@ -112,15 +122,11 @@ void Trace_recorder::Monitor::start(Xml_node config)
 	SC::For_each_subject_info_result const info_result =
 		_trace->for_each_subject_info([&] (Trace::Subject_id   const &id,
 		                                   Trace::Subject_info const &info) {
-		try {
+		/* check if there is a matching policy in the XML config */
+		_with_session_policy(info, config, [&] (Xml_node const &session_policy) {
+
 			/* skip dead subjects */
 			if (info.state() == Trace::Subject_info::DEAD)
-				return;
-
-			/* check if there is a matching policy in the XML config */
-			Session_policy session_policy = _session_policy(info, config);
-
-			if (!session_policy.has_attribute("policy"))
 				return;
 
 			Trace::Buffer_size const buffer_size {
@@ -167,7 +173,7 @@ void Trace_recorder::Monitor::start(Xml_node config)
 			                                                        id);
 
 			/* create and register writers at trace buffer */
-			session_policy.for_each_sub_node([&] (Xml_node & node) {
+			session_policy.for_each_sub_node([&] (Xml_node const &node) {
 				bool const present =
 					_backends.with_element(node.type(),
 						[&] /* match */ (Backend_base &backend) {
@@ -186,8 +192,8 @@ void Trace_recorder::Monitor::start(Xml_node config)
 					log("Enabled ", node.type(), " writer for ", info.session_label(),
 					                             " -> ",         info.thread_name());
 			});
-		}
-		catch (Session_policy::No_policy_defined) { return; }
+		},
+		[&] { /* no session policy defined */ });
 	});
 
 	if (info_result.count == info_result.limit)

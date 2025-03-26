@@ -47,7 +47,7 @@ class Anchor
 
 	public:
 
-		Anchor(Xml_node node)
+		Anchor(Xml_node const &node)
 		{
 			char const * const attr = "anchor";
 

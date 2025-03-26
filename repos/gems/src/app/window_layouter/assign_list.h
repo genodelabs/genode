@@ -33,7 +33,7 @@ class Window_layouter::Assign_list : Noncopyable
 
 		Assign_list(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node node)
+		void update_from_xml(Xml_node const &node)
 		{
 			_assignments.update_from_xml(node,
 

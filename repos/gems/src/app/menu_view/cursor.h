@@ -58,12 +58,12 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 
 		int _xpos() const { return _position.p1().x; }
 
-		static Name _node_name(Xml_node node)
+		static Name _node_name(Xml_node const &node)
 		{
 			return node.attribute_value("name", Name(node.type()));
 		}
 
-		int _position_from_xml_node(Xml_node node)
+		int _position_from_xml_node(Xml_node const &node)
 		{
 			return _glyph_position.xpos_of_glyph(node.attribute_value("at", 0U));
 		}
@@ -81,7 +81,7 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 
 	public:
 
-		Cursor(Xml_node node, Animator &animator, Glyph_position &glyph_position,
+		Cursor(Xml_node const &node, Animator &animator, Glyph_position &glyph_position,
 		       Style_database &styles)
 		:
 			_texture(styles.texture(node, "cursor")),

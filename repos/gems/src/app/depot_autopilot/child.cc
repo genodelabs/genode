@@ -135,7 +135,7 @@ static void forward_to_log(uint64_t    const sec,
 }
 
 
-static char const *xml_content_base(Xml_node node)
+static char const *xml_content_base(Xml_node const &node)
 {
 	char const *result = nullptr;
 	node.with_raw_content([&] (char const *start, size_t) { result = start; });
@@ -143,7 +143,7 @@ static char const *xml_content_base(Xml_node node)
 }
 
 
-static size_t xml_content_size(Xml_node node)
+static size_t xml_content_size(Xml_node const &node)
 {
 	size_t result = 0;
 	node.with_raw_content([&] (char const *, size_t length) { result = length; });
@@ -216,7 +216,7 @@ static size_t sanitize_log_for_output(char                      *dst,
  ***********/
 
 void Child::gen_start_node(Xml_generator          &xml,
-                           Xml_node                common,
+                           Xml_node         const &common,
                            Depot_rom_server const &cached_depot_rom,
                            Depot_rom_server const &uncached_depot_rom)
 {
@@ -265,7 +265,12 @@ void Child::gen_start_node(Xml_generator          &xml,
 		return;
 	}
 
-	Xml_node const runtime = _pkg_xml->xml.sub_node("runtime");
+	auto with_optional_runtime = [&] (auto const &fn) {
+		_pkg_xml->xml.with_optional_sub_node("runtime", fn); };
+
+	auto with_optional_runtime_provides = [&] (auto const &fn) {
+		with_optional_runtime([&] (Xml_node const &runtime) {
+			runtime.with_optional_sub_node("provides", fn); }); };
 
 	xml.node("start", [&] () {
 
@@ -306,17 +311,18 @@ void Child::gen_start_node(Xml_generator          &xml,
 			if (_defined_by_launcher() && _launcher_xml->xml.has_sub_node("config")) {
 				_gen_copy_of_sub_node(xml, _launcher_xml->xml, "config");
 			} else {
-				if (runtime.has_sub_node("config"))
-					_gen_copy_of_sub_node(xml, runtime, "config");
+				with_optional_runtime([&] (Xml_node const &runtime) {
+					if (runtime.has_sub_node("config"))
+						_gen_copy_of_sub_node(xml, runtime, "config"); });
 			}
 		}
 
 		/*
 		 * Declare services provided by the subsystem.
 		 */
-		if (runtime.has_sub_node("provides")) {
+		with_optional_runtime_provides([&] (Xml_node const &provides) {
 			xml.node("provides", [&] () {
-				runtime.sub_node("provides").for_each_sub_node([&] (Xml_node service) {
+				provides.for_each_sub_node([&] (Xml_node service) {
 					_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
 					_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
 					_gen_provides_sub_node(xml, service, "block",       "Block");
@@ -333,7 +339,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 					_gen_provides_sub_node(xml, service, "timer",       "Timer");
 				});
 			});
-		}
+		});
 
 		xml.node("route", [&] () {
 			_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom); });
@@ -413,7 +419,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 
 
 void Child::_gen_routes(Xml_generator          &xml,
-                        Xml_node                common,
+                        Xml_node         const &common,
                         Depot_rom_server const &cached_depot_rom,
                         Depot_rom_server const &uncached_depot_rom) const
 {
@@ -576,7 +582,7 @@ bool Child::_configured() const
 
 
 void Child::_gen_provides_sub_node(Xml_generator        &xml,
-                                   Xml_node              service,
+                                   Xml_node       const &service,
                                    Xml_node::Type const &node_type,
                                    Service::Name  const &service_name)
 {
@@ -587,7 +593,7 @@ void Child::_gen_provides_sub_node(Xml_generator        &xml,
 
 
 void Child::_gen_copy_of_sub_node(Xml_generator        &xml,
-                                  Xml_node              from_node,
+                                  Xml_node       const &from_node,
                                   Xml_node::Type const &sub_node_type)
 {
 	if (!from_node.has_sub_node(sub_node_type.string()))
@@ -600,7 +606,7 @@ void Child::_gen_copy_of_sub_node(Xml_generator        &xml,
 
 
 Child::Child(Allocator                       &alloc,
-             Xml_node                         start_node,
+             Xml_node                  const &start_node,
              Timer::Connection               &timer,
              Signal_context_capability const &config_handler)
 :
@@ -669,7 +675,7 @@ size_t Child::log_session_write(Log_session::String const &str,
 }
 
 
-void Child::apply_config(Xml_node start_node)
+void Child::apply_config(Xml_node const &start_node)
 {
 	if (_skip)
 		return;
@@ -695,7 +701,7 @@ void Child::apply_config(Xml_node start_node)
 }
 
 
-void Child::apply_blueprint(Xml_node pkg)
+void Child::apply_blueprint(Xml_node const &pkg)
 {
 	if (_skip) {
 		return; }
@@ -725,7 +731,7 @@ void Child::apply_blueprint(Xml_node pkg)
 
 
 void Child::apply_launcher(Launcher_name const &name,
-                           Xml_node             launcher)
+                           Xml_node      const &launcher)
 {
 	if (_skip)
 		return;
@@ -778,7 +784,7 @@ void Child::conclusion(Result &result)
 }
 
 
-void Child::mark_as_incomplete(Xml_node missing)
+void Child::mark_as_incomplete(Xml_node const &missing)
 {
 	if (_skip) {
 		return; }

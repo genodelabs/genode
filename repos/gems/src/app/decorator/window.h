@@ -498,7 +498,7 @@ class Decorator::Window : public Window_base
 
 		void draw(Canvas_base &canvas, Ref const &, Rect clip, Draw_behind_fn const &) const override;
 
-		bool update(Xml_node) override;
+		bool update(Xml_node const &) override;
 
 		Hover hover(Point) const override;
 

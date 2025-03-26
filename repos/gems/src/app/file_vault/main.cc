@@ -444,9 +444,9 @@ void Main::handle_image_fs_query_listing(Xml_node const &listing)
 	case INVALID:
 	{
 		bool image_exists = false;
-		with_file(listing, image_name, [&] (auto) { image_exists = true; });
+		with_file(listing, image_name, [&] (Xml_node const &) { image_exists = true; });
 		if (!image_exists)
-			with_file(listing, DEPRECATED_IMAGE_NAME, [&] (auto) {
+			with_file(listing, DEPRECATED_IMAGE_NAME, [&] (Xml_node const &) {
 				image_name = DEPRECATED_IMAGE_NAME;
 				image_exists = true; });
 

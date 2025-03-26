@@ -131,17 +131,18 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 		                      Rect rect) const;
 
 		static inline
-		Xml_node _xml_node_by_window_id(Genode::Xml_node node, unsigned id)
+		void _with_window_xml(Genode::Xml_node const &node, unsigned id,
+		                      auto const &fn, auto const &missing_fn)
 		{
-			for (node = node.sub_node("window"); ; node = node.next()) {
-
-				if (node.has_type("window") && node.attribute_value("id", 0UL) == id)
-					return node;
-
-				if (node.last()) break;
-			}
-
-			throw Xml_node::Nonexistent_sub_node();
+			bool found = false;
+			node.for_each_sub_node("window", [&] (Xml_node const &window) {
+				if (!found && node.attribute_value("id", 0UL) == id) {
+					found = true;
+					fn(window);
+				}
+			});
+			if (!found)
+				missing_fn();
 		}
 
 		void _for_each_window_const(auto const &fn) const
@@ -180,7 +181,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			return result;
 		}
 
-		inline void update_model(Xml_node root_node, auto const &flush_fn);
+		inline void update_model(Xml_node const &root_node, auto const &flush_fn);
 
 		bool schedule_animated_windows()
 		{
@@ -273,7 +274,7 @@ void Decorator::Window_stack::_draw_rec(Canvas_base &canvas,
 }
 
 
-void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
+void Decorator::Window_stack::update_model(Genode::Xml_node const &root_node,
                                            auto const &flush_window_stack_changes_fn)
 {
 	Abandoned_boundaries abandoned_boundaries { };

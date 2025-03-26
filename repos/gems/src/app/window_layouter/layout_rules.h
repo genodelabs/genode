@@ -78,7 +78,7 @@ class Window_layouter::Layout_rules : Noncopyable
 			_env(env), _alloc(alloc), _action(action)
 		{ }
 
-		void update_config(Xml_node config)
+		void update_config(Xml_node const &config)
 		{
 			bool const use_rules_from_rom =
 				(config.attribute_value(Rom_rules::node_type(), String<10>()) == "rom");
@@ -105,7 +105,7 @@ class Window_layouter::Layout_rules : Noncopyable
 		void with_rules(auto const &fn) const
 		{
 			if (_rom_rules.constructed()) {
-				Xml_node const rules = _rom_rules->rom.xml();
+				Xml_node const &rules = _rom_rules->rom.xml();
 				if (rules.type() == Rom_rules::node_type()) {
 					fn(rules);
 					return;

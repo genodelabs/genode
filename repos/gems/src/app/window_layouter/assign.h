@@ -112,9 +112,9 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 	public:
 
-		Assign(Xml_node assign) : _label(Label::from_xml(assign)) { }
+		Assign(Xml_node const &assign) : _label(Label::from_xml(assign)) { }
 
-		void update(Xml_node assign)
+		void update(Xml_node const &assign)
 		{
 			target_name   = assign.attribute_value("target", Target::Name());
 			_pos_defined  = assign.has_attribute("xpos")  && assign.has_attribute("ypos");
@@ -130,7 +130,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node node) const { return Label::from_xml(node) == _label; }
+		bool matches(Xml_node const &node) const { return Label::from_xml(node) == _label; }
 
 		/**
 		 * List_model::Element

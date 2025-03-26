@@ -80,7 +80,7 @@ class Sculpt::Launchers : public Noncopyable
 				[&] (Launcher &e) { destroy(_alloc, &e); },
 
 				/* update */
-				[&] (Launcher &, Xml_node) { }
+				[&] (Launcher &, Xml_node const &) { }
 			);
 		}
 

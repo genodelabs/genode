@@ -1314,9 +1314,9 @@ struct Sculpt::Main : Input_event_handler,
 		_env, "decorator_margins", *this, &Main::_handle_window_layout_or_decorator_margins };
 
 	template <size_t N>
-	void _with_window(Xml_node window_list, String<N> const &match, auto const &fn)
+	void _with_window(Xml_node const &window_list, String<N> const &match, auto const &fn)
 	{
-		window_list.for_each_sub_node("window", [&] (Xml_node win) {
+		window_list.for_each_sub_node("window", [&] (Xml_node const &win) {
 			if (win.attribute_value("label", String<N>()) == match)
 				fn(win); });
 	}
@@ -2096,20 +2096,20 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 	 * Once after the basic GUI is up, spawn storage drivers and touch keyboard.
 	 */
 	if (!_system.storage_stage) {
-		_with_window(window_list, main_view_label, [&] (Xml_node) {
+		_with_window(window_list, main_view_label, [&] (Xml_node const &) {
 			_enter_second_driver_stage();
 			_touch_keyboard.started = true;
 			generate_runtime_config();
 		});
 	}
 
-	auto win_size = [&] (Xml_node win) {
+	auto win_size = [&] (Xml_node const &win) {
 		return Area(win.attribute_value("width",  0U),
 		            win.attribute_value("height", 0U)); };
 
 	_window_layout.generate([&] (Xml_generator &xml) {
 
-		auto gen_window = [&] (Xml_node win, Rect rect) {
+		auto gen_window = [&] (Xml_node const &win, Rect rect) {
 			if (rect.valid()) {
 				xml.node("window", [&] {
 					xml.attribute("id",     win.attribute_value("id", 0UL));
@@ -2122,7 +2122,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			}
 		};
 
-		_with_window(window_list, touch_keyboard_label, [&] (Xml_node win) {
+		_with_window(window_list, touch_keyboard_label, [&] (Xml_node const &win) {
 			if (!_leitzentrale_visible)
 				return;
 
@@ -2134,7 +2134,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			gen_window(win, Rect(pos, size));
 		});
 
-		_with_window(window_list, main_view_label, [&] (Xml_node win) {
+		_with_window(window_list, main_view_label, [&] (Xml_node const &win) {
 			Area  const size = win_size(win);
 			Point const pos(_leitzentrale_visible ? 0 : int(size.w), 0);
 			gen_window(win, Rect(pos, size));
@@ -2343,7 +2343,7 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 	}
 
 	/* upgrade RAM and cap quota on demand */
-	state.for_each_sub_node("child", [&] (Xml_node child) {
+	state.for_each_sub_node("child", [&] (Xml_node const &child) {
 
 		bool reconfiguration_needed = false;
 		_child_states.for_each([&] (Child_state &child_state) {

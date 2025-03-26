@@ -69,7 +69,7 @@ class Depot_deploy::Children
 		/*
 		 * \return true if launcher had any effect
 		 */
-		bool apply_launcher(Child::Launcher_name const &name, Xml_node launcher)
+		bool apply_launcher(Child::Launcher_name const &name, Xml_node const &launcher)
 		{
 			bool any_child_changed = false;
 
@@ -87,12 +87,12 @@ class Depot_deploy::Children
 		{
 			bool any_child_changed = false;
 
-			blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
+			blueprint.for_each_sub_node("pkg", [&] (Xml_node const &pkg) {
 				_children.for_each([&] (Child &child) {
 					if (child.apply_blueprint(pkg))
 						any_child_changed = true; }); });
 
-			blueprint.for_each_sub_node("missing", [&] (Xml_node missing) {
+			blueprint.for_each_sub_node("missing", [&] (Xml_node const &missing) {
 				_children.for_each([&] (Child &child) {
 					if (child.mark_as_incomplete(missing))
 						any_child_changed = true; }); });
@@ -127,7 +127,7 @@ class Depot_deploy::Children
 				child.reset_incomplete(); });
 		}
 
-		void gen_start_nodes(Xml_generator &xml, Xml_node common,
+		void gen_start_nodes(Xml_generator &xml, Xml_node const &common,
 		                     Child::Prio_levels prio_levels,
 		                     Affinity::Space affinity_space,
 		                     Child::Depot_rom_server const &cached_depot_rom,

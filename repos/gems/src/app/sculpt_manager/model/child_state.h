@@ -136,7 +136,7 @@ struct Sculpt::Child_state : Noncopyable
 		 * \return true if runtime must be reconfigured so that the changes
 		 *         can take effect
 		 */
-		bool apply_child_state_report(Xml_node child)
+		bool apply_child_state_report(Xml_node const &child)
 		{
 			bool result = false;
 

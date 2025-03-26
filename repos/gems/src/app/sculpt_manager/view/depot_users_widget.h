@@ -132,7 +132,7 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 				/* check for duplicated user name */
 				bool unique = true;
-				depot_users.for_each_sub_node("user", [&] (Xml_node user) {
+				depot_users.for_each_sub_node("user", [&] (Xml_node const &user) {
 					User const name = user.attribute_value("name", User());
 					if (name == result.user)
 						unique = false; });
@@ -315,11 +315,12 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 			Id const item = at.matching_id<Vbox, Frame, Vbox, Item>();
 			if (item.valid()) {
-				if (item.value == _add_id()) {
-					_selected = item.value;
+				Id::Value const value = item.value;
+				if (value == _add_id()) {
+					_selected = value;
 				} else {
-					_select_depot_user(item.value);
-					select_fn(item.value);
+					_select_depot_user(value);
+					select_fn(value);
 				}
 			}
 

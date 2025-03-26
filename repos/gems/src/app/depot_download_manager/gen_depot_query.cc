@@ -14,7 +14,7 @@
 #include "xml.h"
 
 void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
-                                                           Xml_node installation,
+                                                           Xml_node const &installation,
                                                            Archive::User const &next_user,
                                                            Depot_query_version version,
                                                            List_model<Job> const &jobs)
@@ -39,7 +39,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 		 * The inclusion of those parts may otherwise result in an infinite
 		 * loop if the installation is downloaded from a mix of depot users.
 		 */
-		auto job_failed = [&] (Xml_node node)
+		auto job_failed = [&] (Xml_node const &node)
 		{
 			Archive::Path const path = node.attribute_value("path", Archive::Path());
 
@@ -53,7 +53,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 
 		auto for_each_install_sub_node = [&] (auto node_type, auto const &fn)
 		{
-			installation.for_each_sub_node(node_type, [&] (Xml_node node) {
+			installation.for_each_sub_node(node_type, [&] (Xml_node const &node) {
 				if (!job_failed(node))
 					fn(node); });
 		};

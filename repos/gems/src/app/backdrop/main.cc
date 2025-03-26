@@ -134,8 +134,8 @@ struct Backdrop::Main
 	template <typename PT>
 	void _paint_texture(Surface<PT> &, Texture<PT> const &, Surface_base::Point, bool);
 
-	void _apply_image(Xml_node);
-	void _apply_fill(Xml_node);
+	void _apply_image(Xml_node const &);
+	void _apply_fill (Xml_node const &);
 
 	Main(Genode::Env &env) : _env(env)
 	{
@@ -152,7 +152,7 @@ struct Backdrop::Main
 /**
  * Calculate designated image size with proportional scaling applied
  */
-static Surface_base::Area calc_scaled_size(Xml_node operation,
+static Surface_base::Area calc_scaled_size(Xml_node const &operation,
                                            Surface_base::Area image_size,
                                            Surface_base::Area mode_size)
 {
@@ -216,7 +216,7 @@ void Backdrop::Main::_paint_texture(Surface<PT> &surface, Texture<PT> const &tex
 }
 
 
-void Backdrop::Main::_apply_image(Xml_node operation)
+void Backdrop::Main::_apply_image(Xml_node const &operation)
 {
 	using Point = Surface_base::Point;
 	using Area  = Surface_base::Area;
@@ -286,7 +286,7 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 }
 
 
-void Backdrop::Main::_apply_fill(Xml_node operation)
+void Backdrop::Main::_apply_fill(Xml_node const &operation)
 {
 	/*
 	 * Code specific for the screen mode's pixel format
@@ -323,7 +323,7 @@ void Backdrop::Main::_handle_config()
 	_apply_fill(Xml_node("<fill color=\"#000000\"/>"));
 
 	/* apply graphics primitives defined in the config */
-	_config.xml().for_each_sub_node([&] (Xml_node operation) {
+	_config.xml().for_each_sub_node([&] (Xml_node const &operation) {
 		try {
 			if (operation.has_type("image"))
 				_apply_image(operation);

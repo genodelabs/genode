@@ -46,16 +46,16 @@ class Sculpt::Runtime_config
 		 * - 'info' reveals system information
 		 * - 'GUI' connects to the nitpicker GUI server
 		 */
-		static Start_name _to_name(Xml_node node)
+		static Start_name _to_name(Xml_node const &node)
 		{
 			Start_name result { };
-			node.with_optional_sub_node("child", [&] (Xml_node child) {
+			node.with_optional_sub_node("child", [&] (Xml_node const &child) {
 				result = child.attribute_value("name", Start_name()); });
 
 			if (result.valid())
 				return result;
 
-			node.with_optional_sub_node("parent", [&] (Xml_node parent) {
+			node.with_optional_sub_node("parent", [&] (Xml_node const &parent) {
 
 				Service::Type_name const service =
 					node.attribute_value("name", Service::Type_name());
@@ -137,11 +137,11 @@ class Sculpt::Runtime_config
 		/**
 		 * Return component name targeted by the first route of the start node
 		 */
-		static Start_name _primary_dependency(Xml_node const start)
+		static Start_name _primary_dependency(Xml_node const &start)
 		{
 			Start_name result { };
-			start.with_optional_sub_node("route", [&] (Xml_node route) {
-				route.with_optional_sub_node("service", [&] (Xml_node service) {
+			start.with_optional_sub_node("route", [&] (Xml_node const &route) {
+				route.with_optional_sub_node("service", [&] (Xml_node const &service) {
 					result = _to_name(service); }); });
 
 			return result;
@@ -149,7 +149,7 @@ class Sculpt::Runtime_config
 
 		struct Child_service : Service, List_model<Child_service>::Element
 		{
-			static Service::Type type_from_xml(Xml_node service)
+			static Service::Type type_from_xml(Xml_node const &service)
 			{
 				auto const name = service.attribute_value("name", Service::Type_name());
 				for (unsigned i = 0; i < (unsigned)Type::UNDEFINED; i++) {
@@ -161,7 +161,7 @@ class Sculpt::Runtime_config
 				return Type::UNDEFINED;
 			}
 
-			Child_service(Start_name server, Xml_node provides)
+			Child_service(Start_name server, Xml_node const &provides)
 			: Service(server, type_from_xml(provides), { }) { }
 
 			static bool type_matches(Xml_node const &node)
@@ -247,7 +247,7 @@ class Sculpt::Runtime_config
 			{
 				primary_dependency = _primary_dependency(node);
 
-				node.with_optional_sub_node("route", [&] (Xml_node route) {
+				node.with_optional_sub_node("route", [&] (Xml_node const &route) {
 
 					deps.update_from_xml(route,
 
@@ -259,11 +259,11 @@ class Sculpt::Runtime_config
 						[&] (Dep &e) { destroy(alloc, &e); },
 
 						/* update */
-						[&] (Dep &, Xml_node) { }
+						[&] (Dep &, Xml_node const &) { }
 					);
 				});
 
-				node.with_optional_sub_node("provides", [&] (Xml_node provides) {
+				node.with_optional_sub_node("provides", [&] (Xml_node const &provides) {
 
 					_child_services.update_from_xml(provides,
 
@@ -276,7 +276,7 @@ class Sculpt::Runtime_config
 						[&] (Child_service &e) { destroy(alloc, &e); },
 
 						/* update */
-						[&] (Child_service &, Xml_node) { }
+						[&] (Child_service &, Xml_node const &) { }
 					);
 				});
 			}
@@ -355,7 +355,7 @@ class Sculpt::Runtime_config
 
 		Runtime_config(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node config)
+		void update_from_xml(Xml_node const &config)
 		{
 			_components.update_from_xml(config,
 

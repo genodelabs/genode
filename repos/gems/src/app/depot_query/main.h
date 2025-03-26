@@ -388,7 +388,7 @@ struct Depot_query::Main
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Xml_node const &config = _config.xml();
 
 		_directory_cache.construct(_heap);
 
@@ -411,7 +411,7 @@ struct Depot_query::Main
 		if (query_from_rom)
 			_query_rom->update();
 
-		Xml_node const query = (query_from_rom ? _query_rom->xml() : config);
+		Xml_node const &query = query_from_rom ? _query_rom->xml() : _config.xml();
 
 		/*
 		 * Use 64 KiB as initial report size to avoid the repetitive querying

@@ -229,7 +229,7 @@ void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 
 		Nic_target::Type result = Nic_target::DISCONNECTED;
 
-		config.for_each_sub_node("policy", [&] (Xml_node uplink) {
+		config.for_each_sub_node("policy", [&] (Xml_node const &uplink) {
 
 			/* skip uplinks not assigned to a domain called "uplink" */
 			if (uplink.attribute_value("domain", String<16>()) != "uplink")

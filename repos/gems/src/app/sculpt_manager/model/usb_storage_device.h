@@ -39,7 +39,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		Vendor   const vendor;
 		Product  const product;
 
-		Driver_info(Xml_node device)
+		Driver_info(Xml_node const &device)
 		:
 			vendor (device.attribute_value("vendor",  Vendor())),
 			product(device.attribute_value("product", Product()))
@@ -137,7 +137,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		return storage_device;
 	}
 
-	bool matches(Xml_node node) const { return _driver(node) == driver; }
+	bool matches(Xml_node const &node) const { return _driver(node) == driver; }
 };
 
 

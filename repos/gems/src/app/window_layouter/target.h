@@ -31,7 +31,7 @@ struct Window_layouter::Target : Noncopyable
 	Rect     const rect;
 	bool     const visible;
 
-	Target(Xml_node target, Rect rect, Visible visible)
+	Target(Xml_node const &target, Rect rect, Visible visible)
 	:
 		name (target.attribute_value("name", Name())),
 		layer(target.attribute_value("layer", 9999U)),

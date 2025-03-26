@@ -24,7 +24,7 @@ struct Menu_view::Float_widget : Widget
 {
 	bool _north = false, _south = false, _east = false, _west = false;
 
-	Float_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
+	Float_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
 	: Widget(factory, node, unique_id) { }
 
 	void _place_child(Widget &child)
@@ -47,7 +47,7 @@ struct Menu_view::Float_widget : Widget
 		child.size(Area(w, h));
 	}
 
-	void update(Xml_node node) override
+	void update(Xml_node const &node) override
 	{
 		_update_children(node);
 

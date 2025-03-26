@@ -160,7 +160,7 @@ struct Window_layouter::Main : User_state::Action,
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Xml_node const &config = _config.xml();
 
 		config.with_optional_sub_node("report", [&] (Xml_node const &report) {
 			_rules_reporter.conditional(report.attribute_value("rules", false),
@@ -487,8 +487,8 @@ struct Window_layouter::Main : User_state::Action,
 	{
 		_decorator_margins_rom.update();
 
-		Xml_node const margins = _decorator_margins_rom.xml();
-		margins.with_optional_sub_node("floating", [&] (Xml_node const floating) {
+		Xml_node const &margins = _decorator_margins_rom.xml();
+		margins.with_optional_sub_node("floating", [&] (Xml_node const &floating) {
 			_decorator_margins = Decorator_margins::from_xml(floating); });
 
 		/* respond to change by adapting the maximized window geometry */
@@ -541,7 +541,7 @@ struct Window_layouter::Main : User_state::Action,
 		return result;
 	}
 
-	void _import_window_list(Xml_node);
+	void _import_window_list(Xml_node const &);
 	void _gen_window_layout();
 	void _gen_resize_request();
 	void _gen_focus();

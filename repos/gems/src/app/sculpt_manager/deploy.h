@@ -101,7 +101,7 @@ struct Sculpt::Deploy
 		if (!_template.constructed())
 			return;
 
-		Xml_node const deploy = _template->xml;
+		Xml_node const &deploy = _template->xml;
 
 		if (deploy.type() == "empty")
 			return;
@@ -109,7 +109,7 @@ struct Sculpt::Deploy
 		_update_managed_deploy_config(deploy);
 	}
 
-	void _update_managed_deploy_config(Xml_node deploy)
+	void _update_managed_deploy_config(Xml_node const &deploy)
 	{
 		/*
 		 * Ignore intermediate states that may occur when manually updating
@@ -126,7 +126,7 @@ struct Sculpt::Deploy
 			if (arch.valid())
 				xml.attribute("arch", arch);
 
-			auto append_xml_node = [&] (Xml_node node) {
+			auto append_xml_node = [&] (Xml_node const &node) {
 				xml.append("\t");
 				node.with_raw_node([&] (char const *start, size_t length) {
 					xml.append(start, length); });
@@ -134,14 +134,14 @@ struct Sculpt::Deploy
 			};
 
 			/* copy <common_routes> from manual deploy config */
-			deploy.for_each_sub_node("common_routes", [&] (Xml_node node) {
+			deploy.for_each_sub_node("common_routes", [&] (Xml_node const &node) {
 				append_xml_node(node); });
 
 			/*
 			 * Copy the <start> node from manual deploy config, unless the
 			 * component was interactively killed by the user.
 			 */
-			deploy.for_each_sub_node("start", [&] (Xml_node node) {
+			deploy.for_each_sub_node("start", [&] (Xml_node const &node) {
 				Start_name const name = node.attribute_value("name", Start_name());
 				if (_runtime_info.abandoned_by_user(name))
 					return;
@@ -221,11 +221,11 @@ struct Sculpt::Deploy
 	/**
 	 * Call 'fn' for each unsatisfied dependency of the child's 'start' node
 	 */
-	void _for_each_missing_server(Xml_node start, auto const &fn) const
+	void _for_each_missing_server(Xml_node const &start, auto const &fn) const
 	{
-		start.for_each_sub_node("route", [&] (Xml_node route) {
-			route.for_each_sub_node("service", [&] (Xml_node service) {
-				service.for_each_sub_node("child", [&] (Xml_node child) {
+		start.for_each_sub_node("route", [&] (Xml_node const &route) {
+			route.for_each_sub_node("service", [&] (Xml_node const &service) {
+				service.for_each_sub_node("child", [&] (Xml_node const &child) {
 					Start_name const name = child.attribute_value("name", Start_name());
 
 					/*
@@ -254,8 +254,9 @@ struct Sculpt::Deploy
 	bool any_unsatisfied_child() const
 	{
 		bool all_satisfied = true;
-		_children.for_each_unsatisfied_child([&] (Xml_node, Xml_node, Start_name const &) {
-			all_satisfied = false; });
+		_children.for_each_unsatisfied_child(
+			[&] (Xml_node const &, Xml_node const &, Start_name const &) {
+				all_satisfied = false; });
 		return !all_satisfied;
 	}
 

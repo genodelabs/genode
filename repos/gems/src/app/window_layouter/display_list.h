@@ -51,7 +51,7 @@ struct Window_layouter::Display : List_model<Display>::Element
 	/**
 	 * List_model::Element
 	 */
-	bool matches(Xml_node node) const
+	bool matches(Xml_node const &node) const
 	{
 		return name_from_xml(node) == name;
 	}

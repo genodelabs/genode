@@ -195,7 +195,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas, Ref const &win_ref,
 }
 
 
-bool Decorator::Window::update(Genode::Xml_node window_node)
+bool Decorator::Window::update(Genode::Xml_node const &window_node)
 {
 	bool updated = false;
 
@@ -261,32 +261,38 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 	updated |= (new_controls != _controls);
 	_controls = new_controls;
 
-	Xml_node const highlight = window_node.has_sub_node("highlight")
-	                         ? window_node.sub_node("highlight")
-	                         : Xml_node("<highlight/>");
+	auto with_highlight = [&] (auto const &fn)
+	{
+		window_node.with_sub_node("highlight",
+			[&] (Xml_node const &highlight) { fn(highlight); },
+			[&] { fn(Xml_node("<highlight/>")); });
+	};
 
-	for (unsigned i = 0; i < num_elements(); i++) {
+	with_highlight([&] (Xml_node const &highlight) {
 
-		Window_element &element = _elements[i];
+		for (unsigned i = 0; i < num_elements(); i++) {
 
-		Window_element::State state = element.state();
+			Window_element &element = _elements[i];
 
-		state.highlighted = false;
-		state.pressed     = false;
-		state.focused     = _focused;
+			Window_element::State state = element.state();
 
-		highlight.for_each_sub_node([&] (Xml_node node) {
+			state.highlighted = false;
+			state.pressed     = false;
+			state.focused     = _focused;
 
-			if (node.type() == element.type_name()) {
-				state.highlighted = true;
+			highlight.for_each_sub_node([&] (Xml_node const &node) {
 
-				if (node.attribute_value("pressed", false))
-					state.pressed = true;
-			}
-		});
+				if (node.type() == element.type_name()) {
+					state.highlighted = true;
 
-		updated |= element.apply_state(state);
-	}
+					if (node.attribute_value("pressed", false))
+						state.pressed = true;
+				}
+			});
+
+			updated |= element.apply_state(state);
+		}
+	});
 
 	return updated;
 }

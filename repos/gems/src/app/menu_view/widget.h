@@ -124,7 +124,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		List_model<Widget> _children { };
 
-		inline void _update_children(Xml_node node)
+		inline void _update_children(Xml_node const &node)
 		{
 			_children.update_from_xml(node,
 
@@ -222,7 +222,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		bool has_name(Name const &name) const { return name == _name; }
 
-		virtual void update(Xml_node node) = 0;
+		virtual void update(Xml_node const &node) = 0;
 
 		virtual Area min_size() const = 0;
 

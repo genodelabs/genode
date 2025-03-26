@@ -52,7 +52,7 @@ class Depot_deploy::Children
 			_config_handler { config_handler }
 		{ }
 
-		void apply_config(Xml_node config)
+		void apply_config(Xml_node const &config)
 		{
 			_children.update_from_xml(config,
 
@@ -66,19 +66,19 @@ class Depot_deploy::Children
 			);
 		}
 
-		void apply_launcher(Child::Launcher_name const &name, Xml_node launcher)
+		void apply_launcher(Child::Launcher_name const &name, Xml_node const &launcher)
 		{
 			_children.for_each([&] (Child &child) {
 				child.apply_launcher(name, launcher); });
 		}
 
-		void apply_blueprint(Xml_node blueprint)
+		void apply_blueprint(Xml_node const &blueprint)
 		{
-			blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
+			blueprint.for_each_sub_node("pkg", [&] (Xml_node const &pkg) {
 				_children.for_each([&] (Child &child) {
 					child.apply_blueprint(pkg); }); });
 
-			blueprint.for_each_sub_node("missing", [&] (Xml_node missing) {
+			blueprint.for_each_sub_node("missing", [&] (Xml_node const &missing) {
 				_children.for_each([&] (Child &child) {
 					child.mark_as_incomplete(missing); }); });
 		}
@@ -112,7 +112,7 @@ class Depot_deploy::Children
 				child.reset_incomplete(); });
 		}
 
-		bool gen_start_nodes(Xml_generator &xml, Xml_node common,
+		bool gen_start_nodes(Xml_generator &xml, Xml_node const &common,
 		                     Child::Depot_rom_server const &cached_depot_rom,
 		                     Child::Depot_rom_server const &uncached_depot_rom)
 		{

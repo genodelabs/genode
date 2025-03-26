@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_generator.h>
+#include <util/callable.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 
@@ -116,13 +117,13 @@ namespace Sculpt {
 	}
 
 	template <typename T>
-	static T _attribute_value(Xml_node node, char const *attr_name)
+	static T _attribute_value(Xml_node const &node, char const *attr_name)
 	{
 		return node.attribute_value(attr_name, T{});
 	}
 
 	template <typename T>
-	static T _attribute_value(Xml_node node, char const *sub_node_type, auto &&... args)
+	static T _attribute_value(Xml_node const &node, char const *sub_node_type, auto &&... args)
 	{
 		if (!node.has_sub_node(sub_node_type))
 			return T{};
@@ -137,7 +138,7 @@ namespace Sculpt {
 	 * XML structure. The last argument denotes the queried attribute name.
 	 */
 	template <typename T>
-	static T query_attribute(Xml_node node, auto &&... args)
+	static T query_attribute(Xml_node const &node, auto &&... args)
 	{
 		return _attribute_value<T>(node, args...);
 	}
@@ -164,17 +165,19 @@ namespace Sculpt {
 					copy_node(xml, sub_node, { max_depth.value - 1 }); }); });
 	}
 
-	struct Rom_data : Noncopyable
+	struct Rom_data : Noncopyable, Interface
 	{
 		protected:
 
-			Xml_node _node { "<empty/>" };
+			using With_xml = Callable<void, Xml_node const &>;
+
+			virtual void _with_xml(With_xml::Ft const &) const = 0;
 
 		public:
 
-			void with_xml(auto const &fn) const { fn(_node); }
+			virtual bool valid() const = 0;
 
-			bool valid() const { return !_node.has_type("empty"); }
+			void with_xml(auto const &fn) const { _with_xml( With_xml::Fn { fn } ); }
 	};
 
 	template <typename T>
@@ -193,9 +196,10 @@ namespace Sculpt {
 			void _handle()
 			{
 				_rom.update();
-				_node = _rom.xml();
-				(_obj.*_member)(_node);
+				(_obj.*_member)(_rom.xml());
 			}
+
+			void _with_xml(With_xml::Ft const &fn) const override { fn(_rom.xml()); }
 
 		public:
 
@@ -208,6 +212,8 @@ namespace Sculpt {
 				_rom.sigh(_handler);
 				_handler.local_submit();
 			}
+
+			bool valid() const override { return !_rom.xml().has_type("empty"); }
 	};
 }
 

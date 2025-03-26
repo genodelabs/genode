@@ -225,12 +225,12 @@ struct Sculpt::Main : Input_event_handler,
 		 * Obtain font size from manually maintained fonts configuration
 		 * so that we can adjust the GUI layout accordingly.
 		 */
-		config.for_each_sub_node("vfs", [&] (Xml_node vfs) {
-			vfs.for_each_sub_node("dir", [&] (Xml_node dir) {
+		config.for_each_sub_node("vfs", [&] (Xml_node const &vfs) {
+			vfs.for_each_sub_node("dir", [&] (Xml_node const &dir) {
 				if (dir.attribute_value("name", String<16>()) == "fonts") {
-					dir.for_each_sub_node("dir", [&] (Xml_node type) {
+					dir.for_each_sub_node("dir", [&] (Xml_node const &type) {
 						if (type.attribute_value("name", String<16>()) == "text") {
-							type.for_each_sub_node("ttf", [&] (Xml_node ttf) {
+							type.for_each_sub_node("ttf", [&] (Xml_node const &ttf) {
 								double const px = ttf.attribute_value("size_px", 0.0);
 								if (px > 0.0)
 									_font_size_px = px; }); } }); } }); });
@@ -1663,9 +1663,9 @@ struct Sculpt::Main : Input_event_handler,
 	Expanding_reporter _resize_request { _env, "resize_request", "resize_request" };
 
 	template <size_t N>
-	void _with_window(Xml_node window_list, String<N> const &match, auto const &fn)
+	void _with_window(Xml_node const &window_list, String<N> const &match, auto const &fn)
 	{
-		window_list.for_each_sub_node("window", [&] (Xml_node win) {
+		window_list.for_each_sub_node("window", [&] (Xml_node const &win) {
 			if (win.attribute_value("label", String<N>()) == match)
 				fn(win); });
 	}
@@ -1909,10 +1909,10 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		editor_view_label      ("runtime -> leitzentrale -> editor"),
 		logo_label             ("logo");
 
-	auto win_size = [&] (Xml_node win) { return Area::from_xml(win); };
+	auto win_size = [&] (Xml_node const &win) { return Area::from_xml(win); };
 
 	unsigned panel_height = 0;
-	_with_window(window_list, panel_view_label, [&] (Xml_node win) {
+	_with_window(window_list, panel_view_label, [&] (Xml_node const &win) {
 		panel_height = win_size(win).h; });
 
 	/* suppress intermediate states during the restart of the panel */
@@ -2484,7 +2484,7 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 	}
 
 	/* upgrade RAM and cap quota on demand */
-	state.for_each_sub_node("child", [&] (Xml_node child) {
+	state.for_each_sub_node("child", [&] (Xml_node const &child) {
 
 		bool reconfiguration_needed = false;
 		_child_states.for_each([&] (Child_state &child_state) {

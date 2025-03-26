@@ -84,7 +84,7 @@ struct Sculpt::Storage_device
 			[&] (Partition &p) { destroy(_alloc, &p); },
 
 			/* update */
-			[&] (Partition &, Xml_node) { }
+			[&] (Partition &, Xml_node const &) { }
 		);
 	}
 
@@ -122,7 +122,7 @@ struct Sculpt::Storage_device
 			 */
 			if (!whole_device_partition.constructed() || whole_device_partition->idle()) {
 				whole_device_partition.construct(Partition::Args::whole_device(capacity));
-				report.for_each_sub_node("partition", [&] (Xml_node partition) {
+				report.for_each_sub_node("partition", [&] (Xml_node const &partition) {
 					if (partition.attribute_value("number", Partition::Number()) == "0")
 						whole_device_partition.construct(Partition::Args::from_xml(partition)); });
 			}

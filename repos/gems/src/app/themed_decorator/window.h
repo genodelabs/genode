@@ -476,7 +476,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_motion          = _config.motion(_title);
 		}
 
-		bool update(Xml_node window_node) override
+		bool update(Xml_node const &window_node) override
 		{
 			bool updated = false;
 

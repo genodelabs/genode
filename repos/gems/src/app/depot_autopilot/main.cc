@@ -126,7 +126,7 @@ struct Depot_deploy::Main
 			_config.update();
 			_blueprint.update();
 
-			Xml_node const config = _config.xml();
+			Xml_node const &config = _config.xml();
 
 			_children_label_prefix.construct(config.attribute_value("children_label_prefix", String<160>()));
 			_children.apply_config(config);
@@ -141,7 +141,7 @@ struct Depot_deploy::Main
 			/* generate init config containing all configured start nodes */
 			bool finished;
 			_init_config_reporter.generate([&] (Xml_generator &xml) {
-				Xml_node static_config = config.sub_node("static");
+				Xml_node const &static_config = config.sub_node("static");
 				static_config.with_raw_content([&] (char const *start, size_t length) {
 					xml.append(start, length); });
 				Child::Depot_rom_server const parent { };
