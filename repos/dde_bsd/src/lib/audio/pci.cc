@@ -101,7 +101,7 @@ class Pci_driver
 			bool device_list = false;
 			while (!device_list) {
 				pci.update();
-				pci.with_xml([&] (Xml_node & xml) {
+				pci.with_xml([&] (Xml_node const &xml) {
 					if (xml.num_sub_nodes()) {
 						pci.sigh(Signal_context_capability());
 						if (handler.constructed())
@@ -153,15 +153,15 @@ class Pci_driver
 
 			bool found = false;
 			_pci.update();
-			_pci.with_xml([&] (Xml_node node) {
-				node.for_each_sub_node("device", [&] (Xml_node node)
+			_pci.with_xml([&] (Xml_node const &node) {
+				node.for_each_sub_node("device", [&] (Xml_node const &node)
 				{
 					/* only use the first successfully probed device */
 					if (found) return;
 
 					String<16> name = node.attribute_value("name", String<16>());
 
-					node.with_optional_sub_node("pci-config", [&] (Xml_node node)
+					node.with_optional_sub_node("pci-config", [&] (Xml_node const &node)
 					{
 						_vendor_id      = node.attribute_value("vendor_id", 0U);
 						_device_id      = node.attribute_value("device_id", 0U);

@@ -82,7 +82,7 @@ struct Main
 	void handle_config()
 	{
 		config_rom.update();
-		Genode::Xml_node config = config_rom.xml();
+		Genode::Xml_node const &config = config_rom.xml();
 		capslock.update(config, config_handler);
 		numlock .update(config, config_handler);
 		scrlock .update(config, config_handler);

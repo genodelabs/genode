@@ -35,7 +35,7 @@ struct Usb::Led_state
 
 	Led_state(Genode::Env &env, Name const &name) : _env(env), _name(name) { }
 
-	void update(Genode::Xml_node config, Genode::Signal_context_capability sigh)
+	void update(Genode::Xml_node const &config, Genode::Signal_context_capability sigh)
 	{
 		using Attr  = Genode::String<32>;
 		using Value = Genode::String<16>;

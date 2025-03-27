@@ -49,7 +49,7 @@ struct Verify::Main
 		return Message();
 	}
 
-	void _process_verify_node(Xml_node, Xml_generator &);
+	void _process_verify_node(Xml_node const &, Xml_generator &);
 	void _handle_config_with_libc();
 	void _handle_config() { Libc::with_libc([&] () { _handle_config_with_libc(); }); }
 
@@ -63,7 +63,7 @@ struct Verify::Main
 };
 
 
-void Verify::Main::_process_verify_node(Xml_node node, Xml_generator &xml)
+void Verify::Main::_process_verify_node(Xml_node const &node, Xml_generator &xml)
 {
 	Path const data_path   = node.attribute_value("path",   Path());
 	Path const pubkey_path = node.attribute_value("pubkey", Path());
@@ -86,7 +86,7 @@ void Verify::Main::_process_verify_node(Xml_node node, Xml_generator &xml)
 
 void Verify::Main::_handle_config_with_libc()
 {
-	Xml_node const config = _config.xml();
+	Xml_node const &config = _config.xml();
 
 	_verbose = _config.xml().attribute_value("verbose", false);
 
@@ -95,7 +95,7 @@ void Verify::Main::_handle_config_with_libc()
 	}
 
 	_reporter->generate([&] (Xml_generator &xml) {
-		config.for_each_sub_node("verify", [&] (Xml_node node) {
+		config.for_each_sub_node("verify", [&] (Xml_node const &node) {
 			_process_verify_node(node, xml); }); });
 }
 

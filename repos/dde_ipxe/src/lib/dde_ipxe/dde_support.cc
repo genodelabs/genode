@@ -185,10 +185,10 @@ struct Pci_driver
 	Pci_driver(Genode::Env &env) : _env(env)
 	{
 		_pci.update();
-		_pci.with_xml([&] (Xml_node node) {
-			node.with_optional_sub_node("device", [&] (Xml_node node)
+		_pci.with_xml([&] (Xml_node const &node) {
+			node.with_optional_sub_node("device", [&] (Xml_node const &node)
 			{
-				node.with_optional_sub_node("pci-config", [&] (Xml_node node)
+				node.with_optional_sub_node("pci-config", [&] (Xml_node const &node)
 				{
 					_name = node.attribute_value("name", String<16>());
 					_pci_info.vendor     = node.attribute_value("vendor_id", 0U);
@@ -198,13 +198,13 @@ struct Pci_driver
 					_pci_info.name       = _name.string();
 				});
 
-				node.with_optional_sub_node("io_mem", [&] (Xml_node node)
+				node.with_optional_sub_node("io_mem", [&] (Xml_node const &node)
 				{
 					_mmio.construct(_dev);
 					_pci_info.io_mem_addr = (addr_t)_mmio->local_addr<void>();
 				});
 
-				node.with_optional_sub_node("io_port", [&] (Xml_node node)
+				node.with_optional_sub_node("io_port", [&] (Xml_node const &node)
 				{
 					_io_port.construct(_dev);
 					_pci_info.io_port_start = 0x10;
