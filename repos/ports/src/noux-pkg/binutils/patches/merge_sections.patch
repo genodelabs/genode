@@ -3,15 +3,15 @@ Revert to old behavior where sections with the same name are augmented
 Sebastian Sumpf
 
 diff --git a/ld/ldlang.c b/ld/ldlang.c
-index b66d8c6b..6802d4af 100644
+index 74c02719..26ff244b 100644
 --- a/ld/ldlang.c
 +++ b/ld/ldlang.c
-@@ -7370,7 +7370,7 @@ lang_enter_output_section_statement (const char *output_section_statement_name,
-   lang_output_section_statement_type *os;
+@@ -7670,7 +7670,7 @@ lang_enter_output_section_statement (const char *output_section_statement_name,
  
    os = lang_output_section_statement_lookup (output_section_statement_name,
--					     constraint, 2);
-+					     constraint, 1);
-   current_section = os;
- 
-   if (os->addr_tree == NULL)
+ 					     constraint,
+-					     in_section_ordering ? 0 : 2);
++					     in_section_ordering ? 0 : 1);
+   if (os == NULL) /* && in_section_ordering */
+     einfo (_("%F%P:%pS: error: output section '%s' must already exist\n"),
+ 	   NULL, output_section_statement_name);

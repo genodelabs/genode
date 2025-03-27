@@ -5,14 +5,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  ld/ldelf.c  |   15 ++++++++++++++-
- ld/ldfile.c |   24 ++++++++++++++++++++----
- 2 files changed, 34 insertions(+), 5 deletions(-)
+ ld/ldfile.c |   23 ++++++++++++++++++++---
+ 2 files changed, 34 insertions(+), 4 deletions(-)
 
 diff --git a/ld/ldelf.c b/ld/ldelf.c
-index eff6693e..cfc2a32a 100644
+index 4a1aa044..7719d15e 100644
 --- a/ld/ldelf.c
 +++ b/ld/ldelf.c
-@@ -1942,7 +1942,7 @@ ldelf_open_dynamic_archive (const char *arch, search_dirs_type *search,
+@@ -1952,7 +1952,7 @@ ldelf_open_dynamic_archive (const char *arch, search_dirs_type *search,
      {
        size_t xlen = 0;
  
@@ -21,7 +21,7 @@ index eff6693e..cfc2a32a 100644
  #ifdef EXTRA_SHLIB_EXTENSION
        xlen = (strlen (EXTRA_SHLIB_EXTENSION) > 3
  	      ? strlen (EXTRA_SHLIB_EXTENSION) - 3
-@@ -1950,6 +1950,19 @@ ldelf_open_dynamic_archive (const char *arch, search_dirs_type *search,
+@@ -1960,6 +1960,19 @@ ldelf_open_dynamic_archive (const char *arch, search_dirs_type *search,
  #endif
        string = (char *) xmalloc (len + xlen);
        sprintf (string, "%s/lib%s%s.so", search->name, filename, arch);
@@ -42,10 +42,10 @@ index eff6693e..cfc2a32a 100644
        /* Try the .so extension first.  If that fails build a new filename
  	 using EXTRA_SHLIB_EXTENSION.  */
 diff --git a/ld/ldfile.c b/ld/ldfile.c
-index b8fd4e5d..0dfc3944 100644
+index 12551504..3f54ec8a 100644
 --- a/ld/ldfile.c
 +++ b/ld/ldfile.c
-@@ -369,8 +369,19 @@ ldfile_open_file_search (const char *arch,
+@@ -598,8 +598,19 @@ ldfile_open_file_search (const char *arch,
  	}
  
        if (entry->flags.maybe_archive && !entry->flags.full_name_provided)
@@ -67,7 +67,7 @@ index b8fd4e5d..0dfc3944 100644
        else
  	string = concat (search->name, slash, entry->filename,
  			 (const char *) 0);
-@@ -437,6 +448,11 @@ ldfile_open_file (lang_input_statement_type *entry)
+@@ -666,6 +677,11 @@ ldfile_open_file (lang_input_statement_type *entry)
        /* Try to open <filename><suffix> or lib<filename><suffix>.a.  */
        for (arch = search_arch_head; arch != NULL; arch = arch->next)
  	{
@@ -79,16 +79,15 @@ index b8fd4e5d..0dfc3944 100644
  	  found = ldfile_open_file_search (arch->name, entry, "lib", ".a");
  	  if (found)
  	    break;
-@@ -496,7 +512,7 @@ ldfile_open_file (lang_input_statement_type *entry)
- #endif
- 	  else
- 	    einfo (_("%P: cannot find %s: %E\n"), entry->local_sym_name);
--
+@@ -732,6 +748,7 @@ ldfile_open_file (lang_input_statement_type *entry)
+ 	    einfo (_("%P: have you installed the static version of the %s library ?\n"),
+ 		     entry->local_sym_name + 2);
+ 
 +#if 0
  	  /* PR 25747: Be kind to users who forgot to add the
  	     "lib" prefix to their library when it was created.  */
  	  for (arch = search_arch_head; arch != NULL; arch = arch->next)
-@@ -512,7 +528,7 @@ ldfile_open_file (lang_input_statement_type *entry)
+@@ -747,7 +764,7 @@ ldfile_open_file (lang_input_statement_type *entry)
  		  break;
  		}
  	    }
