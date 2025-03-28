@@ -90,7 +90,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		Env &_env;
 
-		Constrained_ram_allocator _ram;
+		Accounted_ram_allocator _ram;
 
 		Handler &_handler;
 

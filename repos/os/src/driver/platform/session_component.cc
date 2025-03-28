@@ -333,22 +333,24 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 {
 	struct Guard {
 
-		Constrained_ram_allocator & _env_ram;
-		Heap                      & _heap;
-		Io_mmu_domain_registry    & _domain_registry;
-		bool                        _cleanup { true };
+		Accounted_ram_allocator &_env_ram;
+		Heap                    &_heap;
+		Io_mmu_domain_registry  &_domain_registry;
+		bool                     _cleanup { true };
 
-		Ram_dataspace_capability   ram_cap { };
+		Ram_dataspace_capability ram_cap { };
+
 		struct {
-			Dma_buffer * buf     { nullptr };
+			Dma_buffer * buf { nullptr };
 		};
 
 		void disarm() { _cleanup = false; }
 
-		Guard(Constrained_ram_allocator & env_ram,
-		      Heap                      & heap,
-		      Io_mmu_domain_registry    & registry)
-		: _env_ram(env_ram), _heap(heap), _domain_registry(registry)
+		Guard(Accounted_ram_allocator &env_ram,
+		      Heap                    &heap,
+		      Io_mmu_domain_registry  &registry)
+		:
+			_env_ram(env_ram), _heap(heap), _domain_registry(registry)
 		{ }
 
 		~Guard()
@@ -455,7 +457,7 @@ Session_component::Session_component(Env                          & env,
 	 *        exceptions resp. does not account costs for the ROM
 	 *        dataspace to the client for the moment, we cannot do
 	 *        so in the dynamic rom session, and cannot use the
-	 *        constrained ram allocator within it. Therefore,
+	 *        accounted ram allocator within it. Therefore,
 	 *        we account the costs here until the ROM session interface
 	 *        changes.
 	 */

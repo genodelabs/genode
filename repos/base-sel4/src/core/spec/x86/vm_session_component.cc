@@ -44,10 +44,10 @@ void Vm_session_component::Vcpu::_free_up()
 }
 
 
-Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
-                                 Constrained_ram_allocator &ram_alloc,
-                                 Cap_quota_guard           &cap_alloc,
-                                 seL4_Untyped const         service)
+Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint          &ep,
+                                 Accounted_ram_allocator &ram_alloc,
+                                 Cap_quota_guard         &cap_alloc,
+                                 seL4_Untyped const       service)
 :
 	_ep(ep),
 	_ram_alloc(ram_alloc),
@@ -97,8 +97,8 @@ try
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
-	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
-	_heap(_constrained_md_ram_alloc, local_rm),
+	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
+	_heap(_ram, local_rm),
 	_pd_id((uint32_t)Platform_pd::pd_id_alloc().alloc()),
 	_vm_page_table(platform_specific().core_sel_alloc().alloc()),
 	_vm_space(_vm_page_table,
@@ -212,7 +212,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 		try {
 			vcpu = new (_heap) Registered<Vcpu>(_vcpus,
 			                                    _ep,
-			                                    _constrained_md_ram_alloc,
+			                                    _ram,
 			                                    _cap_quota_guard(),
 			                                    _notifications._service);
 

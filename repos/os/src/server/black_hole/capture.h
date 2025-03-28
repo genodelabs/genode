@@ -37,7 +37,7 @@ class Capture::Session_component : public Session_object<Capture::Session>
 
 		Env &_env;
 
-		Constrained_ram_allocator _ram;
+		Accounted_ram_allocator _ram;
 
 		Constructible<Attached_ram_dataspace> _buffer { };
 

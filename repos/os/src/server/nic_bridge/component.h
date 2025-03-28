@@ -51,11 +51,11 @@ class Net::Stream_allocator
 {
 	protected:
 
-		Genode::Ram_quota_guard           _ram_guard;
-		Genode::Cap_quota_guard           _cap_guard;
-		Genode::Constrained_ram_allocator _ram;
-		Genode::Heap                      _heap;
-		::Nic::Packet_allocator           _range_alloc;
+		Genode::Ram_quota_guard         _ram_guard;
+		Genode::Cap_quota_guard         _cap_guard;
+		Genode::Accounted_ram_allocator _ram;
+		Genode::Heap                    _heap;
+		::Nic::Packet_allocator         _range_alloc;
 
 	public:
 

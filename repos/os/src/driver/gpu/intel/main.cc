@@ -1851,7 +1851,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 		Genode::Env              &_env;
 		Genode::Region_map       &_rm;
-		Constrained_ram_allocator _ram;
+		Accounted_ram_allocator   _ram;
 		Igd::Device              &_device;
 		Heap                      _heap { _device._pci_backend_alloc, _rm };
 		/* used to mark ownership of an allocated VRAM object */

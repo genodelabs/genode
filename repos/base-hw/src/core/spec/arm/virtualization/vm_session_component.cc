@@ -102,8 +102,8 @@ Vm_session_component::Vm_session_component(Vmid_allocator & vmid_alloc,
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ds_ep),
-	_constrained_md_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_constrained_md_ram_alloc, region_map),
+	_ram(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
+	_sliced_heap(_ram, region_map),
 	_region_map(region_map),
 	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
 	_table_array(*(new (cma()) Board::Vm_page_table_array([] (void * virt) {
@@ -137,7 +137,7 @@ Vm_session_component::~Vm_session_component()
 		Vcpu & vcpu = *_vcpus[i];
 		if (vcpu.ds_cap.valid()) {
 			_region_map.detach(vcpu.ds_addr);
-			_constrained_md_ram_alloc.free(vcpu.ds_cap);
+			_ram.free(vcpu.ds_cap);
 		}
 	}
 

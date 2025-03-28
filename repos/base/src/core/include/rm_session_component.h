@@ -30,10 +30,10 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 {
 	private:
 
-		Rpc_entrypoint           &_ep;
-		Constrained_ram_allocator _ram_alloc;
-		Sliced_heap               _md_alloc;
-		Pager_entrypoint         &_pager_ep;
+		Rpc_entrypoint         &_ep;
+		Accounted_ram_allocator _ram_alloc;
+		Sliced_heap             _md_alloc;
+		Pager_entrypoint       &_pager_ep;
 
 		Mutex                      _region_maps_lock { };
 		List<Region_map_component> _region_maps      { };

@@ -77,7 +77,7 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 
 	Env &_env;
 
-	Constrained_ram_allocator _ram { _env.ram(), _ram_quota_guard(), _cap_quota_guard() };
+	Accounted_ram_allocator _ram { _env.ram(), _ram_quota_guard(), _cap_quota_guard() };
 
 	Sliced_heap _session_alloc { _ram, _env.rm() };
 

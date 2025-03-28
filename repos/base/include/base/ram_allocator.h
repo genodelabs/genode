@@ -29,7 +29,7 @@ namespace Genode {
 
 	struct Ram_allocator;
 
-	class Constrained_ram_allocator;
+	class Accounted_ram_allocator;
 }
 
 
@@ -98,7 +98,7 @@ struct Genode::Ram_allocator : Interface, Noncopyable
 /**
  * Quota-bounds-checking wrapper of the 'Ram_allocator' interface
  */
-class Genode::Constrained_ram_allocator : public Ram_allocator
+class Genode::Accounted_ram_allocator : public Ram_allocator
 {
 	private:
 
@@ -108,9 +108,9 @@ class Genode::Constrained_ram_allocator : public Ram_allocator
 
 	public:
 
-		Constrained_ram_allocator(Ram_allocator   &ram_alloc,
-		                          Ram_quota_guard &ram_guard,
-		                          Cap_quota_guard &cap_guard)
+		Accounted_ram_allocator(Ram_allocator   &ram_alloc,
+		                        Ram_quota_guard &ram_guard,
+		                        Cap_quota_guard &cap_guard)
 		:
 			_ram_alloc(ram_alloc), _ram_guard(ram_guard), _cap_guard(cap_guard)
 		{ }

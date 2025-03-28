@@ -29,12 +29,12 @@ using namespace Core;
 struct Vcpu_creation_error : Exception { };
 
 
-Vcpu::Vcpu(Rpc_entrypoint            &ep,
-           Constrained_ram_allocator &ram_alloc,
-           Cap_quota_guard           &cap_alloc,
-           Platform_thread           &thread,
-           Cap_mapping               &task_cap,
-           Vcpu_id_allocator         &vcpu_alloc)
+Vcpu::Vcpu(Rpc_entrypoint          &ep,
+           Accounted_ram_allocator &ram_alloc,
+           Cap_quota_guard         &cap_alloc,
+           Platform_thread         &thread,
+           Cap_mapping             &task_cap,
+           Vcpu_id_allocator       &vcpu_alloc)
 :
 	_ep(ep),
 	_ram_alloc(ram_alloc),
@@ -99,8 +99,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
-	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
-	_heap(_constrained_md_ram_alloc, local_rm)
+	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
+	_heap(_ram, local_rm)
 {
 	Cap_quota_guard::Reservation caps(_cap_quota_guard(), Cap_quota{1});
 
@@ -152,7 +152,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 		try {
 			vcpu = new (_heap) Registered<Vcpu>(_vcpus,
 			                                    _ep,
-			                                    _constrained_md_ram_alloc,
+			                                    _ram,
 			                                    _cap_quota_guard(),
 			                                    thread->platform_thread(),
 			                                    _task_vcpu,

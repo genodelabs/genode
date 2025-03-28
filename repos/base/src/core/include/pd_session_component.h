@@ -27,7 +27,7 @@
 #include <base/internal/stack_area.h>
 
 /* core includes */
-#include <constrained_core_ram.h>
+#include <accounted_core_ram.h>
 #include <platform_pd.h>
 #include <signal_broker.h>
 #include <system_control.h>
@@ -57,16 +57,16 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		Constructible<Account<Cap_quota> > _cap_account { };
 		Constructible<Account<Ram_quota> > _ram_account { };
 
-		Rpc_entrypoint            &_ep;
-		Core::System_control      &_system_control;
-		Constrained_ram_allocator  _constrained_md_ram_alloc;
-		Constrained_core_ram       _constrained_core_ram_alloc;
-		Sliced_heap                _sliced_heap;
-		Capability<Parent>         _parent { };
-		Ram_dataspace_factory      _ram_ds_factory;
-		Signal_broker              _signal_broker;
-		Rpc_cap_factory            _rpc_cap_factory;
-		Native_pd_component        _native_pd;
+		Rpc_entrypoint         &_ep;
+		Core::System_control   &_system_control;
+		Accounted_ram_allocator _accounted_md_ram_alloc;
+		Accounted_core_ram      _accounted_core_ram_alloc;
+		Sliced_heap             _sliced_heap;
+		Capability<Parent>      _parent { };
+		Ram_dataspace_factory   _ram_ds_factory;
+		Signal_broker           _signal_broker;
+		Rpc_cap_factory         _rpc_cap_factory;
+		Native_pd_component     _native_pd;
 
 		Constructible<Platform_pd> _pd { };
 
@@ -148,11 +148,11 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			Session_object(ep, resources, label, diag),
 			_ep(ep),
 			_system_control(system_control),
-			_constrained_md_ram_alloc(*this, _ram_quota_guard(), _cap_quota_guard()),
-			_constrained_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
-			_sliced_heap(_constrained_md_ram_alloc, local_rm),
+			_accounted_md_ram_alloc(*this, _ram_quota_guard(), _cap_quota_guard()),
+			_accounted_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
+			_sliced_heap(_accounted_md_ram_alloc, local_rm),
 			_ram_ds_factory(ep, phys_alloc, phys_range,
-			                _constrained_core_ram_alloc),
+			                _accounted_core_ram_alloc),
 			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),

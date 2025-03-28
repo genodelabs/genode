@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__INCLUDE__CORE_CONSTRAINED_CORE_RAM_H_
-#define _CORE__INCLUDE__CORE_CONSTRAINED_CORE_RAM_H_
+#ifndef _CORE__INCLUDE__ACCOUNTED_CORE_RAM_H_
+#define _CORE__INCLUDE__ACCOUNTED_CORE_RAM_H_
 
 /* Genode includes */
 #include <base/allocator.h>
@@ -21,10 +21,10 @@
 /* core includes */
 #include <types.h>
 
-namespace Core { class Constrained_core_ram; }
+namespace Core { class Accounted_core_ram; }
 
 
-class Core::Constrained_core_ram : public Allocator
+class Core::Accounted_core_ram : public Allocator
 {
 	private:
 
@@ -36,14 +36,14 @@ class Core::Constrained_core_ram : public Allocator
 
 	public:
 
-		Constrained_core_ram(Ram_quota_guard &ram_guard,
-		                     Cap_quota_guard &cap_guard,
-		                     Range_allocator &core_mem)
+		Accounted_core_ram(Ram_quota_guard &ram_guard,
+		                   Cap_quota_guard &cap_guard,
+		                   Range_allocator &core_mem)
 		:
 			_ram_guard(ram_guard), _cap_guard(cap_guard), _core_mem(core_mem)
 		{ }
 
-		~Constrained_core_ram()
+		~Accounted_core_ram()
 		{
 			if (!core_mem_allocated)
 				return;
@@ -90,4 +90,4 @@ class Core::Constrained_core_ram : public Allocator
 		size_t overhead(size_t)     const override { return 0; }
 		bool   need_size_for_free() const override { return true; }
 };
-#endif /* _CORE__INCLUDE__CORE_CONSTRAINED_CORE_RAM_H_ */
+#endif /* _CORE__INCLUDE__ACCOUNTED_CORE_RAM_H_ */

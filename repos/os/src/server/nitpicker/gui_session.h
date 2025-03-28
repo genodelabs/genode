@@ -103,7 +103,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		Env    &_env;
 		Action &_action;
 
-		Constrained_ram_allocator _ram;
+		Accounted_ram_allocator _ram;
 
 		Resizeable_texture<Pixel> _texture { };
 

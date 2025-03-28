@@ -33,7 +33,7 @@ public Session_object<Event::Session, Event_session>
 {
 	private:
 
-		Constrained_ram_allocator _ram;
+		Accounted_ram_allocator _ram;
 
 		Attached_ram_dataspace _ds;
 

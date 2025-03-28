@@ -42,7 +42,7 @@ class Event_filter::Event_session : public Session_object<Event::Session, Event_
 
 		Source::Trigger &_trigger;
 
-		Constrained_ram_allocator _ram;
+		Accounted_ram_allocator _ram;
 
 		Attached_ram_dataspace _ds;
 

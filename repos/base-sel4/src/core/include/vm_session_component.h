@@ -41,7 +41,7 @@ class Core::Vm_session_component
 			private:
 
 				Rpc_entrypoint                 &_ep;
-				Constrained_ram_allocator      &_ram_alloc;
+				Accounted_ram_allocator        &_ram_alloc;
 				Ram_dataspace_capability const  _ds_cap;
 				Cap_sel                         _notification { 0 };
 
@@ -49,7 +49,7 @@ class Core::Vm_session_component
 
 			public:
 
-				Vcpu(Rpc_entrypoint &, Constrained_ram_allocator &,
+				Vcpu(Rpc_entrypoint &, Accounted_ram_allocator &,
 				     Cap_quota_guard &, seL4_Untyped);
 
 				~Vcpu();
@@ -65,14 +65,14 @@ class Core::Vm_session_component
 
 		using Avl_region = Allocator_avl_tpl<Rm_region>;
 
-		Rpc_entrypoint            &_ep;
-		Constrained_ram_allocator  _constrained_md_ram_alloc;
-		Heap                       _heap;
-		Avl_region                 _map { &_heap };
-		unsigned                   _pd_id    { 0 };
-		Cap_sel                    _vm_page_table;
-		Page_table_registry        _page_table_registry { _heap };
-		Vm_space                   _vm_space;
+		Rpc_entrypoint          &_ep;
+		Accounted_ram_allocator  _ram;
+		Heap                     _heap;
+		Avl_region               _map { &_heap };
+		unsigned                 _pd_id    { 0 };
+		Cap_sel                  _vm_page_table;
+		Page_table_registry      _page_table_registry { _heap };
+		Vm_space                 _vm_space;
 		struct {
 			addr_t       _phys;
 			seL4_Untyped _service;

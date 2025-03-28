@@ -85,7 +85,7 @@ class Core::Vm_session_component
 		Constructible<Vcpu>         _vcpus[Board::VCPU_MAX];
 
 		Rpc_entrypoint             &_ep;
-		Constrained_ram_allocator   _constrained_md_ram_alloc;
+		Accounted_ram_allocator     _ram;
 		Sliced_heap                 _sliced_heap;
 		Avl_region                  _map { &_sliced_heap };
 		Region_map                 &_region_map;

@@ -139,7 +139,7 @@ void Vm_session_component::Vcpu::exit_handler(unsigned const exit,
 
 
 Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
-                                 Constrained_ram_allocator &ram_alloc,
+                                 Accounted_ram_allocator   &ram_alloc,
                                  Cap_quota_guard           &cap_alloc,
                                  unsigned const             id,
                                  unsigned const             kernel_id,
@@ -329,7 +329,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 		Vcpu &vcpu =
 			*new (_heap) Registered<Vcpu>(_vcpus,
 			                              _ep,
-			                              _constrained_md_ram_alloc,
+			                              _ram,
 			                              _cap_quota_guard(),
 			                              vcpu_id,
 			                              (unsigned)kernel_cpu_id,
@@ -363,8 +363,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_trace_control_area(ram, local_rm), _trace_sources(trace_sources),
-	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
-	_heap(_constrained_md_ram_alloc, local_rm),
+	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
+	_heap(_ram, local_rm),
 	_priority(scale_priority(priority, "VM session")),
 	_session_label(label)
 {

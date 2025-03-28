@@ -218,10 +218,9 @@ class Core::Guest_memory
 		}
 
 
-		Guest_memory(Constrained_ram_allocator &constrained_md_ram_alloc,
-		             Region_map                &region_map)
+		Guest_memory(Accounted_ram_allocator &ram, Region_map &region_map)
 		:
-			_sliced_heap(constrained_md_ram_alloc, region_map)
+			_sliced_heap(ram, region_map)
 		{
 			/* configure managed VM area */
 			_map.add_range(0UL, ~0UL);

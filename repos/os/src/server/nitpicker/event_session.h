@@ -37,7 +37,7 @@ class Nitpicker::Event_session : public Session_object<Event::Session, Event_ses
 
 		Handler &_handler;
 
-		Constrained_ram_allocator _ram;
+		Accounted_ram_allocator _ram;
 
 		Attached_ram_dataspace _ds;
 

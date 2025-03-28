@@ -38,7 +38,7 @@ namespace Cpu {
 	using Client_id     = Id_space<Parent::Client>::Element;
 	using Child_list    = Registry<Registered<Session> >;
 	using Thread_list   = Registry<Registered<Thread_client> >;
-	using Ram_allocator = Constrained_ram_allocator;
+	using Ram_allocator = Accounted_ram_allocator;
 }
 
 struct Cpu::Thread_client : Interface

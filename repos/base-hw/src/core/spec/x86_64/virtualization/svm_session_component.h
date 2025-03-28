@@ -84,7 +84,7 @@ class Core::Svm_session_component
 		Registry<Registered<Vcpu>>          _vcpus { };
 
 		Rpc_entrypoint                     &_ep;
-		Constrained_ram_allocator           _constrained_ram_alloc;
+		Accounted_ram_allocator             _accounted_ram_alloc;
 		Region_map                         &_region_map;
 		Heap                                _heap;
 		Phys_allocated<Vm_page_table>       _table;
@@ -120,17 +120,17 @@ class Core::Svm_session_component
 		:
 			Session_object(ds_ep, resources, label, diag),
 			_ep(ds_ep),
-			_constrained_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
+			_accounted_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
 			_region_map(region_map),
-			_heap(_constrained_ram_alloc, region_map),
-			_table(_ep, _constrained_ram_alloc, _region_map),
-			_table_array(_ep, _constrained_ram_alloc, _region_map,
+			_heap(_accounted_ram_alloc, region_map),
+			_table(_ep, _accounted_ram_alloc, _region_map),
+			_table_array(_ep, _accounted_ram_alloc, _region_map,
 					[] (Phys_allocated<Vm_page_table_array> &table_array, auto *obj_ptr) {
 						construct_at<Vm_page_table_array>(obj_ptr, [&] (void *virt) {
 						return table_array.phys_addr() + ((addr_t) obj_ptr - (addr_t)virt);
 						});
 					}),
-			_memory(_constrained_ram_alloc, region_map),
+			_memory(_accounted_ram_alloc, region_map),
 			_vmid_alloc(vmid_alloc),
 			_id({(unsigned)_vmid_alloc.alloc(), (void *)_table.phys_addr()})
 		{ }
@@ -223,7 +223,7 @@ class Core::Svm_session_component
 						Registered<Vcpu>(_vcpus,
 						                 _id,
 						                 _ep,
-						                 _constrained_ram_alloc,
+						                 _accounted_ram_alloc,
 						                 _region_map,
 						                 vcpu_location);
 

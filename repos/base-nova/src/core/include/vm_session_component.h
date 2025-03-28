@@ -38,7 +38,7 @@ class Core::Vm_session_component
 {
 	private:
 
-		using Con_ram_allocator = Constrained_ram_allocator;
+		using Con_ram_allocator = Accounted_ram_allocator;
 		using Avl_region        = Allocator_avl_tpl<Rm_region>;
 
 		class Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
@@ -51,7 +51,7 @@ class Core::Vm_session_component
 			private:
 
 				Rpc_entrypoint               &_ep;
-				Constrained_ram_allocator    &_ram_alloc;
+				Accounted_ram_allocator      &_ram_alloc;
 				Cap_quota_guard              &_cap_alloc;
 				Trace::Source_registry       &_trace_sources;
 				addr_t                        _sel_sm_ec_sc;
@@ -92,7 +92,7 @@ class Core::Vm_session_component
 			public:
 
 				Vcpu(Rpc_entrypoint &,
-				     Constrained_ram_allocator &ram_alloc,
+				     Accounted_ram_allocator &ram_alloc,
 				     Cap_quota_guard &cap_alloc,
 				     unsigned id,
 				     unsigned kernel_id,
@@ -129,7 +129,7 @@ class Core::Vm_session_component
 		Rpc_entrypoint         &_ep;
 		Trace::Control_area     _trace_control_area;
 		Trace::Source_registry &_trace_sources;
-		Con_ram_allocator       _constrained_md_ram_alloc;
+		Con_ram_allocator       _ram;
 		Sliced_heap             _heap;
 		Avl_region              _map { &_heap };
 		addr_t                  _pd_sel { 0 };

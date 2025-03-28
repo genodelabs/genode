@@ -53,13 +53,13 @@ class Net::Session_component_base
 {
 	protected:
 
-		Genode::Ram_quota_guard           _ram_quota_guard;
-		Genode::Cap_quota_guard           _cap_quota_guard;
-		Genode::Constrained_ram_allocator _ram;
-		Genode::Sliced_heap               _alloc;
-		Nic::Packet_allocator             _range_alloc;
-		Communication_buffer              _tx_buf;
-		Communication_buffer              _rx_buf;
+		Genode::Ram_quota_guard         _ram_quota_guard;
+		Genode::Cap_quota_guard         _cap_quota_guard;
+		Genode::Accounted_ram_allocator _ram;
+		Genode::Sliced_heap             _alloc;
+		Nic::Packet_allocator           _range_alloc;
+		Communication_buffer            _tx_buf;
+		Communication_buffer            _rx_buf;
 
 	public:
 

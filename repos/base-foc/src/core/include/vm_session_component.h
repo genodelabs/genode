@@ -44,7 +44,7 @@ struct Core::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
 	private:
 
 		Rpc_entrypoint                 &_ep;
-		Constrained_ram_allocator      &_ram_alloc;
+		Accounted_ram_allocator        &_ram_alloc;
 		Cap_quota_guard                &_cap_alloc;
 		Vcpu_id_allocator              &_vcpu_ids;
 		Cap_mapping                     _recall            { true };
@@ -53,7 +53,7 @@ struct Core::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
 
 	public:
 
-		Vcpu(Rpc_entrypoint &, Constrained_ram_allocator &, Cap_quota_guard &,
+		Vcpu(Rpc_entrypoint &, Accounted_ram_allocator &, Cap_quota_guard &,
 		     Platform_thread &, Cap_mapping &, Vcpu_id_allocator &);
 
 		~Vcpu();
@@ -78,11 +78,11 @@ class Core::Vm_session_component
 {
 	private:
 
-		using Con_ram_allocator = Constrained_ram_allocator;
+		using Con_ram_allocator = Accounted_ram_allocator;
 		using Avl_region        = Allocator_avl_tpl<Rm_region>;
 
 		Rpc_entrypoint    &_ep;
-		Con_ram_allocator  _constrained_md_ram_alloc;
+		Con_ram_allocator  _ram;
 		Sliced_heap        _heap;
 		Avl_region         _map       { &_heap };
 		Cap_mapping        _task_vcpu { true };

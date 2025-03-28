@@ -35,7 +35,7 @@ class Core::Trace::Session_component
 {
 	private:
 
-		Constrained_ram_allocator    _ram;
+		Accounted_ram_allocator      _ram;
 		Region_map                  &_local_rm;
 		Sliced_heap                  _md_alloc { _ram, _local_rm };
 		Tslab<Trace::Subject, 4096>  _subjects_slab;

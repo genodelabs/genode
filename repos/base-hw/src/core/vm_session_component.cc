@@ -63,7 +63,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 	Vcpu & vcpu = *_vcpus[_vcpu_id_alloc];
 
 	try {
-		vcpu.ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(), Cache::UNCACHED);
+		vcpu.ds_cap = _ram.alloc(_ds_size(), Cache::UNCACHED);
 
 		Region_map::Attr attr { };
 		attr.writeable = true;
@@ -72,13 +72,13 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 			[&] (Region_map::Attach_error) -> addr_t {
 				error("failed to attach VCPU data within core");
 				if (vcpu.ds_cap.valid())
-					_constrained_md_ram_alloc.free(vcpu.ds_cap);
+					_ram.free(vcpu.ds_cap);
 				_vcpus[_vcpu_id_alloc].destruct();
 				return 0;
 			});
 	} catch (...) {
 		if (vcpu.ds_cap.valid())
-			_constrained_md_ram_alloc.free(vcpu.ds_cap);
+			_ram.free(vcpu.ds_cap);
 		_vcpus[_vcpu_id_alloc].destruct();
 		throw;
 	}

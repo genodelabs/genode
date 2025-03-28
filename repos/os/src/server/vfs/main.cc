@@ -59,11 +59,11 @@ class Vfs_server::Session_resources
 {
 	protected:
 
-		Genode::Ram_quota_guard           _ram_guard;
-		Genode::Cap_quota_guard           _cap_guard;
-		Genode::Constrained_ram_allocator _ram_alloc;
-		Genode::Attached_ram_dataspace    _packet_ds;
-		Genode::Heap                      _alloc;
+		Genode::Ram_quota_guard         _ram_guard;
+		Genode::Cap_quota_guard         _cap_guard;
+		Genode::Accounted_ram_allocator _ram_alloc;
+		Genode::Attached_ram_dataspace  _packet_ds;
+		Genode::Heap                    _alloc;
 
 		Session_resources(Genode::Ram_allocator &ram,
 		                  Genode::Region_map    &region_map,
