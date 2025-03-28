@@ -63,6 +63,7 @@ void Sculpt::gen_touch_keyboard(Xml_generator &xml, Touch_keyboard_attr const at
 			gen_parent_rom_route(xml, "libpng.lib.so");
 			gen_parent_rom_route(xml, "zlib.lib.so");
 			gen_parent_rom_route(xml, "sandbox.lib.so");
+			gen_parent_rom_route(xml, "dialog.lib.so");
 			gen_parent_rom_route(xml, "menu_view_styles.tar");
 
 			gen_parent_route<Cpu_session>    (xml);
@@ -71,9 +72,9 @@ void Sculpt::gen_touch_keyboard(Xml_generator &xml, Touch_keyboard_attr const at
 			gen_parent_route<Timer::Session> (xml);
 
 			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label", "fonts");
+				xml.attribute("label_prefix", "fonts ->");
 				xml.node("parent", [&] {
-					xml.attribute("label", "leitzentrale -> fonts"); }); });
+					xml.attribute("identity", "leitzentrale -> fonts"); }); });
 
 			gen_service_node<Gui::Session>(xml, [&] {
 				xml.node("parent", [&] {
