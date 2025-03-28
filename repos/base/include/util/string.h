@@ -55,18 +55,20 @@ class Genode::Number_of_bytes
 		 */
 		operator size_t() const { return _n; }
 
-		void print(Output &output) const
+		static void print(Output &output, auto const n)
 		{
 			using Genode::print;
 
-			enum { KB = 1024UL, MB = KB*1024UL, GB = MB*1024UL };
+			enum { KB = 1024U, MB = KB*1024U, GB = MB*1024U };
 
-			if      (_n      == 0) print(output, 0);
-			else if (_n % GB == 0) print(output, _n/GB, "G");
-			else if (_n % MB == 0) print(output, _n/MB, "M");
-			else if (_n % KB == 0) print(output, _n/KB, "K");
-			else                   print(output, _n);
+			if      (n      == 0) print(output, 0);
+			else if (n % GB == 0) print(output, n/GB, "G");
+			else if (n % MB == 0) print(output, n/MB, "M");
+			else if (n % KB == 0) print(output, n/KB, "K");
+			else                  print(output, n);
 		}
+
+		void print(Output &output) const { print(output, _n); }
 };
 
 
