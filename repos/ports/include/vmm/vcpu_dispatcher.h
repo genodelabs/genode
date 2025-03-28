@@ -79,7 +79,9 @@ class Vmm::Vcpu_dispatcher : public T
 			using namespace Genode;
 
 			/* request creation of a 'local' EC */
-			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
+			T::with_native_thread([&] (Native_thread &nt) {
+				nt.ec_sel = Native_thread::INVALID_INDEX - 1; });
+
 			T::start();
 
 		}
@@ -95,25 +97,32 @@ class Vmm::Vcpu_dispatcher : public T
 			 */
 			void (*entry)() = &_portal_entry<EV, DISPATCHER, FUNC>;
 
-			/* create the portal at the desired selector index (EV) */
-			Native_capability thread_cap =
-				Capability_space::import(T::native_thread().ec_sel);
+			Untyped_capability handler { };
 
-			Untyped_capability handler =
-				retry<Genode::Out_of_ram>(
-					[&] () {
-						/* manually define selector used for RPC result */
-						Thread::myself()->native_thread().client_rcv_sel = exc_base + EV;
-						return _native_pd.alloc_rpc_cap(thread_cap, (addr_t)entry,
-						                                mtd.value());
-					},
-					[&] () {
-						Thread::myself()->native_thread().reset_client_rcv_sel();
-						_env.parent().upgrade(Parent::Env::pd(), "ram_quota=16K");
-					});
+			T::with_native_thread([&] (Native_thread &nt) {
 
-			/* revert selector allocation to automatic mode of operation */
-			Thread::myself()->native_thread().reset_client_rcv_sel();
+				/* create the portal at the desired selector index (EV) */
+				Native_capability thread_cap =
+					Capability_space::import(nt.ec_sel);
+
+				Thread::myself()->with_native_thread([&] (Native_thread &myself_nt) {
+
+					handler = retry<Genode::Out_of_ram>(
+						[&] () {
+							/* manually define selector used for RPC result */
+							myself_nt.client_rcv_sel = exc_base + EV;
+							return _native_pd.alloc_rpc_cap(thread_cap, (addr_t)entry,
+							                                mtd.value());
+						},
+						[&] () {
+							myself_nt.reset_client_rcv_sel();
+							_env.parent().upgrade(Parent::Env::pd(), "ram_quota=16K");
+						});
+
+					/* revert selector allocation to automatic mode of operation */
+					myself_nt.reset_client_rcv_sel();
+				});
+			});
 
 			return handler.valid() && (exc_base + EV == (addr_t)handler.local_name());
 		}

@@ -27,11 +27,14 @@ void Genode::init_rpc_cap_alloc(Parent &) { }
 Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &, Native_capability,
                                                  addr_t)
 {
-	return Thread::native_thread().epoll.alloc_rpc_cap();
+	return with_native_thread(
+		[&] (Native_thread &nt) { return nt.epoll.alloc_rpc_cap(); },
+		[&]                     { return Native_capability(); });
 }
 
 
 void Rpc_entrypoint::_free_rpc_cap(Pd_session &, Native_capability cap)
 {
-	Thread::native_thread().epoll.free_rpc_cap(cap);
+	with_native_thread([&] (Native_thread &nt) {
+		nt.epoll.free_rpc_cap(cap); });
 }

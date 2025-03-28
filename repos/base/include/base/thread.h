@@ -84,7 +84,7 @@ class Genode::Thread
 		/**
 		 * Hook for platform-specific destructor supplements
 		 */
-		void _deinit_platform_thread();
+		void _deinit_native_thread(Stack &);
 
 		/*
 		 * Noncopyable
@@ -125,7 +125,7 @@ class Genode::Thread
 		/**
 		 * Pointer to kernel-specific meta data
 		 */
-		Native_thread *_native_thread = nullptr;
+		Native_thread *_native_thread_ptr = nullptr;
 
 		/**
 		 * Blockade used for synchronizing the finalization of the thread
@@ -163,7 +163,7 @@ class Genode::Thread
 		 * \param weight  weighting regarding the CPU session quota
 		 * \param type    enables selection of special initialization
 		 */
-		void _init_platform_thread(size_t weight, Type type);
+		void _init_native_thread(Stack &, size_t weight, Type type);
 
 		void _init_cpu_session_and_trace_control();
 
@@ -330,9 +330,26 @@ class Genode::Thread
 		}
 
 		/**
-		 * Return kernel-specific thread meta data
+		 * Call 'fn' with kernel-specific 'Native_thread &' as argument,
+		 * or 'invalid_fn' if the thread has not been successfully constructed
 		 */
-		Native_thread &native_thread();
+		auto with_native_thread(auto const &fn,
+		                        auto const &invalid_fn) const -> decltype(invalid_fn())
+		{
+			if (_native_thread_ptr) {
+				Native_thread &native_thread = *_native_thread_ptr;
+				return fn(native_thread);
+			}
+			return invalid_fn();
+		}
+
+		/**
+		 * Conditionally call 'fn' with kernel-specific 'Native_thread &'
+		 */
+		void with_native_thread(auto const &fn) const
+		{
+			with_native_thread(fn, [&] { });
+		}
 
 		/**
 		 * Return top of primary stack

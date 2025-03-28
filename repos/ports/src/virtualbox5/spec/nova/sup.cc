@@ -725,10 +725,14 @@ void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us)
 	Trace::Timestamp       wakeup_absolute  = Trace::timestamp();
 
 	/* initialize first time in context of running thread */
-	auto const &exc_base = Thread::myself()->native_thread().exc_pt_sel;
-	request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
-	                      exc_base + Nova::SM_SEL_SIGNAL);
-	Genode::addr_t const sem = exc_base + SM_SEL_SIGNAL;
+	Genode::addr_t const sem = Thread::myself()->with_native_thread(
+		[&] (Native_thread &nt) {
+			auto const &exc_base = nt.exc_pt_sel;
+			request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
+			                      exc_base + Nova::SM_SEL_SIGNAL);
+			return exc_base + SM_SEL_SIGNAL;
+		},
+		[&] () -> Genode::addr_t { return Native_thread::INVALID_INDEX; });
 
 	for (;;) {
 		update_func();

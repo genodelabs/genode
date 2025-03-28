@@ -32,13 +32,7 @@ using namespace Core;
 namespace Hw { extern Untyped_capability _main_thread_cap; }
 
 
-Thread::Start_result Thread::start()
-{
-	/* start thread with stack pointer at the top of stack */
-	native_thread().platform_thread->start((void *)&_thread_start, stack_top());
-
-	if (_thread_cap.failed())
-		return Start_result::DENIED;
+namespace {
 
 	struct Trace_source : public  Core::Trace::Source::Info_accessor,
 	                      private Core::Trace::Control,
@@ -51,11 +45,11 @@ Thread::Start_result Thread::start()
 		 */
 		Info trace_source_info() const override
 		{
-			Platform_thread * t = thread.native_thread().platform_thread;
+			Genode::Trace::Execution_time execution_time { 0, 0 };
 
-			Trace::Execution_time execution_time { 0, 0 };
-			if (t)
-				execution_time = t->execution_time();
+			thread.with_native_thread([&] (Native_thread &nt) {
+				if (nt.platform_thread)
+					execution_time = nt.platform_thread->execution_time(); });
 
 			return { Session_label("core"), thread.name(),
 			         execution_time, thread.affinity() };
@@ -70,34 +64,52 @@ Thread::Start_result Thread::start()
 			registry.insert(this);
 		}
 	};
+}
+
+
+Thread::Start_result Thread::start()
+{
+	if (!_stack)
+		return Start_result::DENIED;
+
+	Stack &stack = *_stack;
+
+	Native_thread &nt = stack.native_thread();
+
+	/* start thread with stack pointer at the top of stack */
+	nt.platform_thread->start((void *)&_thread_start, (void *)stack.top());
+
+	if (_thread_cap.failed())
+		return Start_result::DENIED;;
 
 	/* create trace sources for core threads */
-	new (platform().core_mem_alloc()) Trace_source(Core::Trace::sources(), *this);
+	try {
+		new (platform().core_mem_alloc()) Trace_source(Core::Trace::sources(), *this);
+	} catch (...) { }
 
 	return Start_result::OK;
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
-	/* destruct platform thread */
-	destroy(platform().core_mem_alloc(), native_thread().platform_thread);
+	destroy(platform().core_mem_alloc(), stack.native_thread().platform_thread);
 }
 
 
-void Thread::_init_platform_thread(size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
 	if (type == NORMAL) {
-		native_thread().platform_thread = new (platform().core_mem_alloc())
-			Platform_thread(_stack->name(), _stack->utcb());
+		stack.native_thread().platform_thread = new (platform().core_mem_alloc())
+			Platform_thread(_stack->name(), stack.utcb());
 		return;
 	}
 
 	/* remap initial main-thread UTCB according to stack-area spec */
 	map_local(Platform::core_main_thread_phys_utcb(),
-	          (addr_t)&_stack->utcb(),
+	          (addr_t)&stack.utcb(),
 	          max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 
 	/* adjust initial object state in case of a main thread */
-	native_thread().cap = Hw::_main_thread_cap;
+	stack.native_thread().cap = Hw::_main_thread_cap;
 }

@@ -33,6 +33,17 @@ extern Pistachio::L4_ThreadId_t main_thread_tid;
 static inline void thread_yield() { Pistachio::L4_Yield(); }
 
 
+static inline Pistachio::L4_ThreadId_t pistachio_tid(Genode::Thread *thread_ptr)
+{
+	if (!thread_ptr)
+		return main_thread_tid;
+
+	return thread_ptr->with_native_thread(
+		[&] (Genode::Native_thread &nt) { return nt.l4id; },
+		[&]                             { return Pistachio::L4_ThreadId_t { }; });
+}
+
+
 /**
  * Custom ExchangeRegisters wrapper for waking up a thread
  *
@@ -42,21 +53,17 @@ static inline void thread_yield() { Pistachio::L4_Yield(); }
  *
  * \return true if the thread was in blocking state
  */
-static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_ptr)
 {
 	using namespace Pistachio;
 
-	L4_Word_t dummy;
-	L4_ThreadId_t dummy_id;
+	L4_Word_t        dummy;
+	L4_ThreadId_t    dummy_id;
 	L4_ThreadState_t state;
 
-	Pistachio::L4_ThreadId_t tid = thread_base ?
-	                               thread_base->native_thread().l4id :
-	                               main_thread_tid;
-
 	enum { RESUME = 1 << 8, CANCEL_IPC = 3 << 1 };
-	L4_ExchangeRegisters(tid, RESUME | CANCEL_IPC, 0, 0, 0,
-	                     0, L4_nilthread, &state.raw, &dummy, &dummy, &dummy,
+	L4_ExchangeRegisters(pistachio_tid(thread_ptr), RESUME | CANCEL_IPC, 0, 0, 0, 0,
+	                     L4_nilthread, &state.raw, &dummy, &dummy, &dummy,
 	                     &dummy, &dummy_id);
 
 	return L4_ThreadWasHalted(state);
@@ -66,24 +73,18 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 /**
  * Yield CPU time to the specified thread
  */
-static inline void thread_switch_to(Genode::Thread *thread_base)
+static inline void thread_switch_to(Genode::Thread *thread_ptr)
 {
-	Pistachio::L4_ThreadId_t tid = thread_base ?
-	                               thread_base->native_thread().l4id :
-	                               main_thread_tid;
-	Pistachio::L4_ThreadSwitch(tid);
+	Pistachio::L4_ThreadSwitch(pistachio_tid(thread_ptr));
 }
 
 
 /**
  * Unconditionally block the calling thread
  */
-static inline void thread_stop_myself(Genode::Thread *myself)
+static inline void thread_stop_myself(Genode::Thread *thread_ptr)
 {
-	Pistachio::L4_ThreadId_t tid = myself ?
-	                               myself->native_thread().l4id :
-	                               main_thread_tid;
-	Pistachio::L4_Stop(tid);
+	Pistachio::L4_Stop(pistachio_tid(thread_ptr));
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

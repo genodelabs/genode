@@ -84,8 +84,10 @@ void Thread::_thread_start()
 
 void Thread::_thread_bootstrap()
 {
-	Kernel::capid_t capid = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF);
-	native_thread().cap = Capability_space::import(capid);
-	if (native_thread().cap.valid())
-		Kernel::ack_cap(Capability_space::capid(native_thread().cap));
+	with_native_thread([&] (Native_thread &nt) {
+		Kernel::capid_t capid = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF);
+		nt.cap = Capability_space::import(capid);
+		if (nt.cap.valid())
+			Kernel::ack_cap(Capability_space::capid(nt.cap));
+	});
 }

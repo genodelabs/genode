@@ -32,11 +32,16 @@ static inline void thread_yield() { Kernel::yield_thread(); }
 /**
  * Return kernel name of thread t
  */
-static inline Kernel::capid_t
-native_thread_id(Genode::Thread * const t)
+static inline Kernel::capid_t native_thread_id(Genode::Thread *thread_ptr)
 {
 	using Genode::Capability_space::capid;
-	return t ? capid(t->native_thread().cap) : capid(Hw::_main_thread_cap);
+
+	if (!thread_ptr)
+		return capid(Hw::_main_thread_cap);
+
+	return thread_ptr->with_native_thread(
+		[&] (Genode::Native_thread &nt) { return capid(nt.cap); },
+		[&]                             { return Kernel::cap_id_invalid(); });
 }
 
 
@@ -52,10 +57,9 @@ static inline void thread_switch_to(Genode::Thread *)
 /**
  * Resume thread t and return wether t was paused or not
  */
-static inline bool
-thread_check_stopped_and_restart(Genode::Thread * const t)
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_ptr)
 {
-	return Kernel::restart_thread(native_thread_id(t));
+	return Kernel::restart_thread(native_thread_id(thread_ptr));
 }
 
 

@@ -51,14 +51,14 @@ static Thread_capability main_thread_cap(Thread_capability main_cap = { })
  ** Thread **
  ************/
 
-void Thread::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 {
 	_init_cpu_session_and_trace_control();
 
 	if (type == NORMAL) {
 
 		/* create server object */
-		addr_t const utcb = (addr_t)&_stack->utcb();
+		addr_t const utcb = (addr_t)&stack.utcb();
 
 		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name(), _affinity,
 		                                          Weight(weight), utcb);
@@ -67,7 +67,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	/* if we got reinitialized we have to get rid of the old UTCB */
 	size_t const utcb_size  = sizeof(Native_utcb);
 	addr_t const stack_area = stack_area_virtual_base();
-	addr_t const utcb_new   = (addr_t)&_stack->utcb() - stack_area;
+	addr_t const utcb_new   = (addr_t)&stack.utcb() - stack_area;
 
 	/* remap initial main-thread UTCB according to stack-area spec */
 	if (env_stack_area_region_map->attach(Hw::_main_thread_utcb_ds, {
@@ -81,12 +81,12 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 		error("failed to attach UTCB to local address space");
 
 	/* adjust initial object state in case of a main thread */
-	native_thread().cap = Hw::_main_thread_cap;
+	stack.native_thread().cap = Hw::_main_thread_cap;
 	_thread_cap = main_thread_cap();
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
 	if (!_cpu_session) {
 		error("Thread::_cpu_session unexpectedly not defined");
@@ -98,8 +98,8 @@ void Thread::_deinit_platform_thread()
 		[&] (Cpu_session::Create_thread_error) { });
 
 	/* detach userland stack */
-	size_t const size = sizeof(_stack->utcb());
-	addr_t utcb = Stack_allocator::addr_to_base(_stack) +
+	size_t const size = sizeof(stack.utcb());
+	addr_t utcb = Stack_allocator::addr_to_base(&stack) +
 	              stack_virtual_size() - size - stack_area_virtual_base();
 	env_stack_area_region_map->detach(utcb);
 }
@@ -107,6 +107,11 @@ void Thread::_deinit_platform_thread()
 
 Thread::Start_result Thread::start()
 {
+	if (!_stack)
+		return Start_result::DENIED;
+
+	Stack &stack = *_stack;
+
 	while (avail_capability_slab() < 5)
 		upgrade_capability_slab();
 
@@ -115,19 +120,19 @@ Thread::Start_result Thread::start()
 			Cpu_thread_client cpu_thread(cap);
 
 			/* attach UTCB at top of stack */
-			size_t const size = sizeof(_stack->utcb());
+			size_t const size = sizeof(stack.utcb());
 			return env_stack_area_region_map->attach(cpu_thread.utcb(), {
 				.size       = size,
 				.offset     = { },
 				.use_at     = true,
-				.at         = Stack_allocator::addr_to_base(_stack)
+				.at         = Stack_allocator::addr_to_base(&stack)
 				            + stack_virtual_size() - size - stack_area_virtual_base(),
 				.executable = { },
 				.writeable  = true
 			}).convert<Start_result>(
 				[&] (Region_map::Range) {
 					/* start execution with initial IP and aligned SP */
-					cpu_thread.start((addr_t)_thread_start, _stack->top());
+					cpu_thread.start((addr_t)_thread_start, stack.top());
 					return Start_result::OK;
 				},
 				[&] (Region_map::Attach_error) {

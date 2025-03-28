@@ -130,8 +130,12 @@ void Native_thread::Epoll::_exec_control(FN const &fn)
 	 * If 'myself_ptr' is nullptr, the caller is the initial thread w/o
 	 * a valid 'Thread' object associated yet. This thread is never polling.
 	 */
-	bool const myself_is_polling = (myself_ptr != nullptr)
-	                            && (&myself_ptr->native_thread().epoll == this);
+	auto myself_is_polling = [&]
+	{
+		return myself_ptr && myself_ptr->with_native_thread(
+			[&] (Native_thread &nt) { return (&nt.epoll == this); },
+			[&] { return false; });
+	};
 
 	/*
 	 * If caller runs in the context of the same thread that executes 'poll' we
@@ -139,7 +143,7 @@ void Native_thread::Epoll::_exec_control(FN const &fn)
 	 * block at this time. If the RPC entrypoint has existed its dispatch
 	 * loop, it also cannot poll anymore.
 	 */
-	if (myself_is_polling || _rpc_ep_exited) {
+	if (myself_is_polling() || _rpc_ep_exited) {
 		fn();
 		return;
 	}

@@ -14,19 +14,21 @@
 #ifndef _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 #define _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 
-#include <base/stdint.h>
+#include <util/noncopyable.h>
 #include <base/native_capability.h>
 
 namespace Genode { struct Native_thread; }
 
-
 namespace Core { class  Platform_thread; }
 
 
-struct Genode::Native_thread
+struct Genode::Native_thread : Noncopyable
 {
-	Core::Platform_thread *platform_thread;
-	Native_capability cap;
+	Native_capability cap { };
+
+	struct { Core::Platform_thread *platform_thread; };
+
+	Native_thread() { }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

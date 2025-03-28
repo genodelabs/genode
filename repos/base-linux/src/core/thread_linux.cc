@@ -58,15 +58,19 @@ void Thread::_thread_start()
 }
 
 
-void Thread::_init_platform_thread(size_t, Type) { }
+void Thread::_init_native_thread(Stack &, size_t, Type) { }
 
 
-void Thread::_deinit_platform_thread() { }
+void Thread::_deinit_native_thread(Stack &) { }
 
 
 Thread::Start_result Thread::start()
 {
-	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top());
-	native_thread().pid = lx_getpid();
-	return Start_result::OK;
+	return with_native_thread(
+		[&] (Native_thread &nt) {
+			nt.tid = lx_create_thread(Thread::_thread_start, stack_top());
+			nt.pid = lx_getpid();
+			return Start_result::OK;
+		},
+		[&] { return Start_result::DENIED; });
 }

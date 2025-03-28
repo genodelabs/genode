@@ -54,11 +54,13 @@ namespace Genode {
 			: Rpc_client<Nova_signal_source>(static_cap_cast<Nova_signal_source>(cap))
 			{
 				/* request mapping of semaphore capability selector */
-				Thread * myself = Thread::myself();
-				auto const &exc_base = myself->native_thread().exc_pt_sel;
-				request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
-				                      exc_base + Nova::SM_SEL_SIGNAL);
-				_sem = Capability_space::import(exc_base + Nova::SM_SEL_SIGNAL);
+				Thread &myself = *Thread::myself();
+				myself.with_native_thread([&] (Native_thread &nt) {
+					auto const exc_base = nt.exc_pt_sel;
+					request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
+					                      exc_base + Nova::SM_SEL_SIGNAL);
+					_sem = Capability_space::import(exc_base + Nova::SM_SEL_SIGNAL);
+				});
 				call<Rpc_register_semaphore>(_sem);
 			}
 

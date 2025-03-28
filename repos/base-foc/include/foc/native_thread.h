@@ -19,22 +19,21 @@
 #define _INCLUDE__FOC__NATIVE_THREAD_H_
 
 /* Genode includes */
-#include <base/stdint.h>
+#include <util/noncopyable.h>
 #include <foc/receive_window.h>
 #include <foc/syscall.h>
 
 namespace Genode { struct Native_thread; }
 
 
-struct Genode::Native_thread
+struct Genode::Native_thread : Noncopyable
 {
-	Foc::l4_cap_idx_t kcap = 0;
+	Foc::l4_cap_idx_t kcap { };
 
 	/* receive window for capability selectors received at the server side */
 	Receive_window rcv_window { };
 
 	Native_thread() { }
-	explicit Native_thread(Foc::l4_cap_idx_t kcap) : kcap(kcap) { }
 };
 
 #endif /* _INCLUDE__FOC__NATIVE_THREAD_H_ */

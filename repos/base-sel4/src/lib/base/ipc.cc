@@ -39,10 +39,17 @@ enum {
 };
 
 
+static unsigned &main_rcv_sel()
+{
+	static unsigned _main_rcv_sel = Capability_space::alloc_rcv_sel();
+	return _main_rcv_sel;
+}
+
+
 /**
- * Return reference to receive selector of the calling thread
+ * Call 'fn' with a reference to the receive selector of the calling thread
  */
-static unsigned &rcv_sel()
+static void with_rcv_sel_ref(auto const &fn)
 {
 	/*
 	 * When the function is called at the very early initialization phase, we
@@ -50,12 +57,21 @@ static unsigned &rcv_sel()
 	 * Thread object of the main thread does not exist yet. During this
 	 * phase, we return a reference to the 'main_rcv_sel' variable.
 	 */
-	if (Thread::myself()) {
-		return Thread::myself()->native_thread().rcv_sel;
-	}
+	Thread * const myself_ptr = Thread::myself();
+	if (!myself_ptr)
+		fn(main_rcv_sel());
+	else
+		myself_ptr->with_native_thread(
+			[&] (Native_thread &nt) { fn(nt.attr.rcv_sel); },
+			[&] { ASSERT(false); /* thread w/o stack cannot execute */ });
+}
 
-	static unsigned main_rcv_sel = Capability_space::alloc_rcv_sel();
-	return main_rcv_sel;
+
+static void allocate_and_define_rcv_sel()
+{
+	with_rcv_sel_ref([&] (unsigned &rcv_sel) {
+		if (!rcv_sel)
+			rcv_sel = Capability_space::alloc_rcv_sel(); });
 }
 
 
@@ -253,34 +269,37 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 
 			Native_capability arg_cap = Capability_space::lookup(rpc_obj_key);
 
-			if (arg_cap.valid()) {
+			with_rcv_sel_ref([&] (unsigned &rcv_sel_ref) {
 
-				/*
-				 * Discard the received selector and keep using the already
-				 * present one.
-				 *
-				 * XXX We'd need to find out if both the received and the
-				 *     looked-up selector refer to the same endpoint.
-				 *      Unfortunaltely, seL4 lacks such a comparison operation.
-				 */
+				if (arg_cap.valid()) {
 
-				Capability_space::reset_sel(rcv_sel());
+					/*
+					 * Discard the received selector and keep using the already
+					 * present one.
+					 *
+					 * XXX We'd need to find out if both the received and the
+					 *     looked-up selector refer to the same endpoint.
+					 *      Unfortunaltely, seL4 lacks such a comparison operation.
+					 */
 
-				dst_msg.insert(arg_cap);
+					Capability_space::reset_sel(rcv_sel_ref);
 
-			} else {
+					dst_msg.insert(arg_cap);
 
-				Capability_space::Ipc_cap_data const
-					ipc_cap_data(rpc_obj_key, rcv_sel());
+				} else {
 
-				dst_msg.insert(Capability_space::import(ipc_cap_data));
+					Capability_space::Ipc_cap_data const
+						ipc_cap_data(rpc_obj_key, rcv_sel_ref);
 
-				/*
-				 * Since we keep using the received selector, we need to
-				 * allocate a fresh one for the next incoming delegation.
-				 */
-				rcv_sel() = Capability_space::alloc_rcv_sel();
-			}
+					dst_msg.insert(Capability_space::import(ipc_cap_data));
+
+					/*
+					 * Since we keep using the received selector, we need to
+					 * allocate a fresh one for the next incoming delegation.
+					 */
+					rcv_sel_ref = Capability_space::alloc_rcv_sel();
+				}
+			});
 		}
 		curr_sel4_cap_idx++;
 	}
@@ -300,9 +319,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		kernel_debugger_panic("IPC destination is invalid");
 	}
 
-	/* allocate and define receive selector */
-	if (!rcv_sel())
-		rcv_sel() = Capability_space::alloc_rcv_sel();
+	allocate_and_define_rcv_sel();
 
 	rcv_msg.reset();
 
@@ -330,9 +347,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
-	/* allocate and define receive selector */
-	if (!rcv_sel())
-		rcv_sel() = Capability_space::alloc_rcv_sel();
+	allocate_and_define_rcv_sel();
 
 	/**
 	 * Do not use Genode primitives after this point until the return which may
@@ -352,29 +367,30 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
                                            Msgbuf_base            &reply_msg,
                                            Msgbuf_base            &request_msg)
 {
-	/* allocate and define receive selector */
-	if (!rcv_sel())
-		rcv_sel() = Capability_space::alloc_rcv_sel();
+	allocate_and_define_rcv_sel();
 
-	seL4_CPtr const dest  = Thread::myself()->native_thread().ep_sel;
 	seL4_Word badge = 0;
 
-	if (exc.value == Rpc_exception_code::INVALID_OBJECT)
-		reply_msg.reset();
+	Thread::myself()->with_native_thread([&] (Native_thread &nt) {
 
-	request_msg.reset();
+		seL4_CPtr const dest = nt.attr.ep_sel;
 
-	/**
-	 * Do not use Genode primitives after this point until the return which may
-	 * alter the content of the IPCBuffer, e.g. Lock or RPC.
-	 */
+		if (exc.value == Rpc_exception_code::INVALID_OBJECT)
+			reply_msg.reset();
 
-	seL4_MessageInfo_t const reply_msg_info = new_seL4_message(reply_msg);
-	seL4_SetMR(MR_IDX_EXC_CODE, exc.value);
-	seL4_MessageInfo_t const req = seL4_ReplyRecv(dest, reply_msg_info, &badge);
+		request_msg.reset();
 
-	decode_seL4_message(req, request_msg);
+		/**
+		 * Do not use Genode primitives after this point until the return which may
+		 * alter the content of the IPCBuffer, e.g. Lock or RPC.
+		 */
 
+		seL4_MessageInfo_t const reply_msg_info = new_seL4_message(reply_msg);
+		seL4_SetMR(MR_IDX_EXC_CODE, exc.value);
+		seL4_MessageInfo_t const req = seL4_ReplyRecv(dest, reply_msg_info, &badge);
+
+		decode_seL4_message(req, request_msg);
+	});
 	return Rpc_request(Native_capability(), badge);
 }
 

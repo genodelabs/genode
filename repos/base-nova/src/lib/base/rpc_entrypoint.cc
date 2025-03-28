@@ -42,26 +42,28 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 		return obj->cap();
 	}
 
-	Untyped_capability ec_cap;
+	return with_native_thread(
+		[&] (Native_thread &nt) {
 
-	/* _ec_sel is invalid until thread gets started */
-	if (native_thread().ec_sel != Native_thread::INVALID_INDEX)
-		ec_cap = Capability_space::import(native_thread().ec_sel);
-	else
-		ec_cap = Thread::cap();
+			Untyped_capability const ec_cap =
+				nt.ec_valid() ? Capability_space::import(nt.ec_sel) : Thread::cap();
 
-	Untyped_capability obj_cap = _alloc_rpc_cap(_pd_session, ec_cap,
-	                                            (addr_t)&_activation_entry);
-	if (!obj_cap.valid())
-		return obj_cap;
+			Untyped_capability const obj_cap =
+				_alloc_rpc_cap(_pd_session, ec_cap, (addr_t)&_activation_entry);
 
-	/* add server object to object pool */
-	obj->cap(obj_cap);
-	insert(obj);
+			if (!obj_cap.valid())
+				return Untyped_capability();
 
-	/* return object capability managed by entrypoint thread */
-	return obj_cap;
+			/* add server object to object pool */
+			obj->cap(obj_cap);
+			insert(obj);
+
+			/* return object capability managed by entrypoint thread */
+			return obj_cap;
+		},
+		[&] { return Untyped_capability(); });
 }
+
 
 static void cleanup_call(Rpc_object_base *obj, Nova::Utcb * ep_utcb,
                          Native_capability &cap)
@@ -129,52 +131,54 @@ void Rpc_entrypoint::_activation_entry()
 	Rpc_entrypoint &ep   = *static_cast<Rpc_entrypoint *>(Thread::myself());
 	Nova::Utcb     &utcb = *(Nova::Utcb *)Thread::myself()->utcb();
 
-	Receive_window &rcv_window = ep.native_thread().server_rcv_window;
-	rcv_window.post_ipc(utcb);
+	ep.with_native_thread([&] (Native_thread &nt) {
+		Receive_window &rcv_window = nt.server_rcv_window;
+		rcv_window.post_ipc(utcb);
 
-	/* handle ill-formed message */
-	if (utcb.msg_words() < 2) {
-		ep._rcv_buf.word(0) = ~0UL; /* invalid opcode */
-	} else {
-		copy_utcb_to_msgbuf(utcb, rcv_window, ep._rcv_buf);
-	}
+		/* handle ill-formed message */
+		if (utcb.msg_words() < 2) {
+			ep._rcv_buf.word(0) = ~0UL; /* invalid opcode */
+		} else {
+			copy_utcb_to_msgbuf(utcb, rcv_window, ep._rcv_buf);
+		}
 
-	Ipc_unmarshaller unmarshaller(ep._rcv_buf);
+		Ipc_unmarshaller unmarshaller(ep._rcv_buf);
 
-	Rpc_opcode opcode(0);
-	unmarshaller.extract(opcode);
+		Rpc_opcode opcode(0);
+		unmarshaller.extract(opcode);
 
-	/* default return value */
-	Rpc_exception_code exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
+		/* default return value */
+		Rpc_exception_code exc = Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
-	/* in case of a portal cleanup call we are done here - just reply */
-	if (ep._cap.local_name() == (long)id_pt) {
-		if (!rcv_window.prepare_rcv_window(utcb))
+		/* in case of a portal cleanup call we are done here - just reply */
+		if (ep._cap.local_name() == (long)id_pt) {
+			if (!rcv_window.prepare_rcv_window(utcb))
+				warning("out of capability selectors for handling server requests");
+
+			ep._rcv_buf.reset();
+			reply(utcb, exc, ep._snd_buf);
+		}
+
+		/* atomically lookup and lock referenced object */
+		auto lambda = [&] (Rpc_object_base *obj)
+		{
+			if (!obj) {
+				error("could not look up server object, return from call id_pt=", id_pt);
+				return;
+			}
+
+			/* dispatch request */
+			ep._snd_buf.reset();
+			exc = obj->dispatch(opcode, unmarshaller, ep._snd_buf);
+		};
+		ep.apply(id_pt, lambda);
+
+		if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)ep.utcb()))
 			warning("out of capability selectors for handling server requests");
 
 		ep._rcv_buf.reset();
 		reply(utcb, exc, ep._snd_buf);
-	}
-
-	/* atomically lookup and lock referenced object */
-	auto lambda = [&] (Rpc_object_base *obj)
-	{
-		if (!obj) {
-			error("could not look up server object, return from call id_pt=", id_pt);
-			return;
-		}
-
-		/* dispatch request */
-		ep._snd_buf.reset();
-		exc = obj->dispatch(opcode, unmarshaller, ep._snd_buf);
-	};
-	ep.apply(id_pt, lambda);
-
-	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)ep.utcb()))
-		warning("out of capability selectors for handling server requests");
-
-	ep._rcv_buf.reset();
-	reply(utcb, exc, ep._snd_buf);
+	});
 }
 
 
@@ -202,28 +206,33 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	_pd_session(*pd_session)
 {
 	/* set magic value evaluated by thread_nova.cc to start a local thread */
-	if (native_thread().ec_sel == Native_thread::INVALID_INDEX) {
-		native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
-		native_thread().initial_ip = (addr_t)&_activation_entry;
-	}
+	with_native_thread([&] (Native_thread &nt) {
+		if (nt.ec_valid())
+			return;
+
+		nt.ec_sel     = Native_thread::INVALID_INDEX - 1;
+		nt.initial_ip = (addr_t)&_activation_entry;
+	});
 
 	/* required to create a 'local' EC */
 	Thread::start();
 
 	/* create cleanup portal */
-	_cap = _alloc_rpc_cap(_pd_session,
-	                      Capability_space::import(native_thread().ec_sel),
-	                      (addr_t)_activation_entry);
+	with_native_thread([&] (Native_thread &nt) {
+		_cap = _alloc_rpc_cap(_pd_session, Capability_space::import(nt.ec_sel),
+		                      (addr_t)_activation_entry); });
 	if (!_cap.valid()) {
 		error("failed to allocate RPC cap for new entrypoint");
 		return;
 	}
 
-	Receive_window &rcv_window = Thread::native_thread().server_rcv_window;
+	with_native_thread([&] (Native_thread &nt) {
+		Receive_window &rcv_window = nt.server_rcv_window;
 
-	/* prepare portal receive window of new thread */
-	if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)&_stack->utcb()))
-		error("failed to prepare receive window for RPC entrypoint");
+		/* prepare portal receive window of new thread */
+		if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)&_stack->utcb()))
+			error("failed to prepare receive window for RPC entrypoint");
+	});
 }
 
 

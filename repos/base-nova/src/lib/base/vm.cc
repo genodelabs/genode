@@ -655,12 +655,13 @@ void Nova_vcpu::with_state(auto const &fn)
 
 static void nova_reply(Thread &myself, Nova::Utcb &utcb, auto &&... args)
 {
-	Receive_window &rcv_window = myself.native_thread().server_rcv_window;
+	myself.with_native_thread([&] (Native_thread &nt) {
 
-	/* reset receive window to values expected by RPC server code */
-	rcv_window.prepare_rcv_window(utcb);
+		/* reset receive window to values expected by RPC server code */
+		nt.server_rcv_window.prepare_rcv_window(utcb);
 
-	Nova::reply(myself.stack_top(), args...);
+		Nova::reply(myself.stack_top(), args...);
+	});
 }
 
 
@@ -697,19 +698,23 @@ Signal_context_capability Nova_vcpu::_create_exit_handler(Pd_session        &pd,
                                                           uint16_t           exit_reason,
                                                           Nova::Mtd          mtd)
 {
-	Thread *tep = reinterpret_cast<Thread *>(&handler.rpc_ep());
+	Thread *ep = reinterpret_cast<Thread *>(&handler.rpc_ep());
 
-	Native_capability thread_cap = Capability_space::import(tep->native_thread().ec_sel);
+	return ep->with_native_thread([&] (Native_thread &nt) {
 
-	Nova_native_pd_client native_pd { pd.native_pd() };
+		Native_capability thread_cap = Capability_space::import(nt.ec_sel);
 
-	Native_capability vm_exit_cap =
-		native_pd.alloc_rpc_cap(thread_cap, (addr_t)Nova_vcpu::_exit_entry, mtd.value());
+		Nova_native_pd_client native_pd { pd.native_pd() };
 
-	Badge const badge { vcpu_id, exit_reason };
-	native_pd.imprint_rpc_cap(vm_exit_cap, badge.value());
+		Native_capability vm_exit_cap =
+			native_pd.alloc_rpc_cap(thread_cap, (addr_t)Nova_vcpu::_exit_entry, mtd.value());
 
-	return reinterpret_cap_cast<Signal_context>(vm_exit_cap);
+		Badge const badge { vcpu_id, exit_reason };
+		native_pd.imprint_rpc_cap(vm_exit_cap, badge.value());
+
+		return reinterpret_cap_cast<Signal_context>(vm_exit_cap);
+
+	}, [&] { return Signal_context_capability(); });
 }
 
 

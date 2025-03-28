@@ -35,18 +35,19 @@ void Thread::_thread_start()
 
 Thread::Start_result Thread::start()
 {
-	/* create and start platform thread */
-	native_thread().pt = new (Core::platform_specific().thread_slab())
-		Core::Platform_thread(Core::platform_specific().core_pd(), _stack->name().string());
+	with_native_thread([&] (Native_thread &nt) {
+		nt.pt = new (Core::platform_specific().thread_slab())
+			Core::Platform_thread(Core::platform_specific().core_pd(),
+			                      _stack->name().string());
 
-	native_thread().pt->start((void *)_thread_start, stack_top());
-
+		nt.pt->start((void *)_thread_start, stack_top());
+	});
 	return Start_result::OK;
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
 	/* destruct platform thread */
-	destroy(Core::platform_specific().thread_slab(), native_thread().pt);
+	destroy(Core::platform_specific().thread_slab(), stack.native_thread().pt);
 }

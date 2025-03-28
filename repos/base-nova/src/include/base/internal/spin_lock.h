@@ -29,14 +29,28 @@ enum State {
 
 enum { RESERVED_BITS = 12, COUNTER_MASK = 0xFFC };
 
+
+static inline Genode::addr_t ec_sel(Genode::Thread *thread_ptr)
+{
+	if (!thread_ptr)
+		return Nova::EC_SEL_THREAD;
+
+	using namespace Genode;
+
+	return thread_ptr->with_native_thread(
+		[&] (Native_thread &nt) { return nt.ec_sel; },
+		[&] { error("failed to obtain ec_sel for invalid thread"); return 0UL; });
+}
+
+
 template <typename T>
 static inline void spinlock_lock(volatile T *lock_variable)
 {
 	using Genode::cmpxchg;
 
 	Genode::Thread * myself = Genode::Thread::myself();
-	T const tid = (T)(myself ? myself->native_thread().ec_sel
-	                         : (Genode::addr_t)Nova::EC_SEL_THREAD);
+
+	T const tid = (T)ec_sel(myself);
 
 	unsigned help_counter = 0;
 

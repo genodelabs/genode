@@ -201,11 +201,6 @@ void Thread::free_secondary_stack(void* stack_addr)
 }
 
 
-Native_thread &Thread::native_thread() {
-
-	return _stack->native_thread(); }
-
-
 void *Thread::stack_top() const { return (void *)_stack->top(); }
 
 
@@ -250,7 +245,8 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 	_trace_control(nullptr),
 	_stack(_alloc_stack(stack_size, name, type == MAIN))
 {
-	_init_platform_thread(weight, type);
+	_native_thread_ptr = &_stack->native_thread();
+	_init_native_thread(*_stack, weight, type);
 }
 
 
@@ -308,7 +304,8 @@ Thread::~Thread()
 		sleep_forever();
 	}
 
-	_deinit_platform_thread();
+	_deinit_native_thread(*_stack);
+
 	_free_stack(_stack);
 
 	cxx_free_tls(this);

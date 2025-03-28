@@ -14,16 +14,17 @@
 #ifndef _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 #define _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 
+#include <util/noncopyable.h>
 #include <base/stdint.h>
 
 namespace Genode { struct Native_thread; }
 
-struct Genode::Native_thread
+
+struct Genode::Native_thread : Noncopyable
 {
-	unsigned tcb_sel = 0;
-	unsigned ep_sel  = 0;
-	unsigned rcv_sel = 0;
-	unsigned lock_sel = 0;
+	struct Attr { unsigned tcb_sel, ep_sel, rcv_sel, lock_sel; } attr { };
+
+	Native_thread() { }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

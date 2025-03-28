@@ -383,9 +383,10 @@ static void adopt_thread(Native_thread::Meta_data *meta_data)
 	/*
 	 * Initialize thread meta data
 	 */
-	Native_thread &native_thread = meta_data->thread_base.native_thread();
-	native_thread.tid = lx_gettid();
-	native_thread.pid = lx_getpid();
+	meta_data->thread_base.with_native_thread([&] (Native_thread &nt) {
+		nt.tid = lx_gettid();
+		nt.pid = lx_getpid();
+	});
 }
 
 
@@ -483,10 +484,10 @@ Thread *Thread::myself()
 		new (global_alloc()) Thread_meta_data_adopted(thread);
 
 	/*
-	 * Initialize 'Thread::_native_thread' to point to the default-
+	 * Initialize 'Thread::_native_thread_ptr' to point to the default-
 	 * constructed 'Native_thread' (part of 'Meta_data').
 	 */
-	meta_data->thread_base._native_thread = &meta_data->native_thread;
+	meta_data->thread_base._native_thread_ptr = &meta_data->native_thread;
 	adopt_thread(meta_data);
 
 	return thread;
@@ -498,18 +499,18 @@ Thread::Start_result Thread::start()
 	/*
 	 * Unblock thread that is supposed to slumber in 'thread_start'.
 	 */
-	native_thread().meta_data->started();
+	with_native_thread([&] (Native_thread &nt) {
+		nt.meta_data->started(); });
+
 	return Start_result::OK;
 }
 
 
 void Thread::join()
 {
-	native_thread().meta_data->wait_for_join();
+	with_native_thread([&] (Native_thread &nt) {
+		nt.meta_data->wait_for_join(); });
 }
-
-
-Native_thread &Thread::native_thread() { return *_native_thread; }
 
 
 Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
@@ -519,7 +520,7 @@ Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
 	Native_thread::Meta_data *meta_data =
 		new (global_alloc()) Thread_meta_data_created(this);
 
-	_native_thread = &meta_data->native_thread;
+	_native_thread_ptr = &meta_data->native_thread;
 
 	int const ret = pthread_create(&meta_data->pt, 0, thread_start, meta_data);
 	if (ret) {
@@ -528,18 +529,21 @@ Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
 		throw Out_of_stack_space();
 	}
 
-	native_thread().meta_data->wait_for_construction();
+	with_native_thread([&] (Native_thread &nt) {
 
-	_thread_cap = _cpu_session->create_thread(_env_ptr->pd_session_cap(), name,
-	                                          Location(), Weight(weight));
-	_thread_cap.with_result(
-		[&] (Thread_capability cap) {
-			Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
-			native_cpu.thread_id(cap, native_thread().pid, native_thread().tid);
-		},
-		[&] (Cpu_session::Create_thread_error) {
-			error("failed to create hybrid thread"); }
-	);
+		nt.meta_data->wait_for_construction();
+
+		_thread_cap = _cpu_session->create_thread(_env_ptr->pd_session_cap(), name,
+		                                          Location(), Weight(weight));
+		_thread_cap.with_result(
+			[&] (Thread_capability cap) {
+				Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
+				native_cpu.thread_id(cap, nt.pid, nt.tid);
+			},
+			[&] (Cpu_session::Create_thread_error) {
+				error("failed to create hybrid thread"); }
+		);
+	});
 }
 
 
@@ -561,22 +565,25 @@ Thread::Thread(Env &env, Name const &name, size_t stack_size)
 
 Thread::~Thread()
 {
-	bool const needs_join = (pthread_cancel(native_thread().meta_data->pt) == 0);
+	with_native_thread([&] (Native_thread &nt) {
 
-	if (needs_join) {
-		int const ret = pthread_join(native_thread().meta_data->pt, 0);
-		if (ret)
-			warning("pthread_join unexpectedly returned "
-			        "with ", ret, " (errno=", errno, ")");
-	}
+		bool const needs_join = (pthread_cancel(nt.meta_data->pt) == 0);
 
-	Thread_meta_data_created *meta_data =
-		dynamic_cast<Thread_meta_data_created *>(native_thread().meta_data);
+		if (needs_join) {
+			int const ret = pthread_join(nt.meta_data->pt, 0);
+			if (ret)
+				warning("pthread_join unexpectedly returned "
+				        "with ", ret, " (errno=", errno, ")");
+		}
 
-	if (meta_data)
-		destroy(global_alloc(), meta_data);
+		Thread_meta_data_created *meta_data =
+			dynamic_cast<Thread_meta_data_created *>(nt.meta_data);
 
-	_native_thread = nullptr;
+		if (meta_data)
+			destroy(global_alloc(), meta_data);
+	});
+
+	_native_thread_ptr = nullptr;
 
 	/* inform core about the killed thread */
 	_thread_cap.with_result(

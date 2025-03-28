@@ -32,13 +32,22 @@
 extern int main_thread_running_semaphore();
 
 
-static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
+static inline Genode::addr_t sm_sel_ec(Genode::Thread *thread_ptr)
 {
-	Genode::addr_t sem = thread_base ?
-	                     thread_base->native_thread().exc_pt_sel + Nova::SM_SEL_EC :
-	                     main_thread_running_semaphore();
+	if (!thread_ptr)
+		return main_thread_running_semaphore();
 
-	Nova::sm_ctrl(sem, Nova::SEMAPHORE_UP);
+	using namespace Genode;
+
+	return thread_ptr->with_native_thread(
+		[&] (Native_thread &nt) { return nt.exc_pt_sel + Nova::SM_SEL_EC; },
+		[&] { error("attempt to synchronize invalid thread"); return 0UL; });
+}
+
+
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_ptr)
+{
+	Nova::sm_ctrl(sm_sel_ec(thread_ptr), Nova::SEMAPHORE_UP);
 	return true;
 }
 
@@ -48,16 +57,7 @@ static inline void thread_switch_to(Genode::Thread *) { }
 
 static inline void thread_stop_myself(Genode::Thread *myself)
 {
-	using namespace Genode;
-	using namespace Nova;
-
-	addr_t sem;
-	if (myself)
-		sem = myself->native_thread().exc_pt_sel + SM_SEL_EC;
-	else
-		sem = main_thread_running_semaphore();
-
-	sm_ctrl(sem, SEMAPHORE_DOWNZERO);
+	Nova::sm_ctrl(sm_sel_ec(myself), Nova::SEMAPHORE_DOWNZERO);
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

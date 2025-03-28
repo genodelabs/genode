@@ -199,12 +199,11 @@ void Pager_entrypoint::dissolve(Pager_object &o)
 Pager_capability Pager_entrypoint::manage(Pager_object &o)
 {
 	unsigned const cpu = o.location().xpos();
-	if (cpu >= _cpus) {
+	if (cpu >= _cpus)
 		error("Invalid location of pager object ", cpu);
-	} else {
-		o.start_paging(_threads[cpu]._kobj,
-		               *_threads[cpu].native_thread().platform_thread);
-	}
+	else
+		_threads[cpu].with_native_thread([&] (Native_thread &nt) {
+			o.start_paging(_threads[cpu]._kobj, *nt.platform_thread); });
 
 	return reinterpret_cap_cast<Pager_object>(o.cap());
 }

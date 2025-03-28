@@ -165,11 +165,18 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 }
 
 
-Ipc_server::Ipc_server()
-:
-	Native_capability(Thread::myself() ? Thread::myself()->native_thread().cap
-	                                   : Hw::_main_thread_cap)
-{ }
+static inline Native_capability my_native_thread_cap()
+{
+	if (!Thread::myself())
+		return Hw::_main_thread_cap;
+
+	return Thread::myself()->with_native_thread(
+		[&] (Native_thread &nt) { return nt.cap; },
+		[&]                     { return Native_capability(); });
+}
+
+
+Ipc_server::Ipc_server() : Native_capability(my_native_thread_cap()) { }
 
 
 Ipc_server::~Ipc_server() { }

@@ -61,26 +61,29 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capabili
 			                              "cap_quota=", cap_upgrade).string());
 		});
 	}
-	return Thread::native_thread().epoll.alloc_rpc_cap();
+	return with_native_thread(
+		[&] (Native_thread &nt) { return nt.epoll.alloc_rpc_cap(); },
+		[&] { return Native_capability(); });
 }
 
 
 void Rpc_entrypoint::_free_rpc_cap(Pd_session& pd, Native_capability cap)
 {
-	Native_thread::Epoll &epoll = Thread::native_thread().epoll;
+	with_native_thread([&] (Native_thread &nt) {
 
-	/*
-	 * Flag RPC entrypoint as exited to prevent 'free_rpc_cap' from issuing
-	 * a remote control request.
-	 */
-	if (_exit_handler.exit)
-		epoll.rpc_ep_exited();
+		/*
+		 * Flag RPC entrypoint as exited to prevent 'free_rpc_cap' from issuing
+		 * a remote control request.
+		 */
+		if (_exit_handler.exit)
+			nt.epoll.rpc_ep_exited();
 
-	/*
-	 * Perform the accounting of the PDs cap quota at core, to remain
-	 * consistent with other kernel platforms.
-	 */
-	pd.free_rpc_cap(Native_capability());
+		/*
+		 * Perform the accounting of the PDs cap quota at core, to remain
+		 * consistent with other kernel platforms.
+		 */
+		pd.free_rpc_cap(Native_capability());
 
-	epoll.free_rpc_cap(cap);
+		nt.epoll.free_rpc_cap(cap);
+	});
 }

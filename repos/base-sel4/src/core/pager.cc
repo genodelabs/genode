@@ -65,19 +65,19 @@ void Ipc_pager::reply_and_wait_for_fault()
 {
 	seL4_Word badge = Rpc_obj_key::INVALID;
 
-	seL4_MessageInfo_t page_fault_msg_info;
+	seL4_MessageInfo_t page_fault_msg_info { };
 
-	if (_badge) {
+	Thread::myself()->with_native_thread([&] (Native_thread &nt) {
 
-		seL4_MessageInfo_t const reply_msg = seL4_MessageInfo_new(0, 0, 0, 0);
+		if (_badge) {
+			seL4_MessageInfo_t const reply_msg = seL4_MessageInfo_new(0, 0, 0, 0);
 
-		page_fault_msg_info =
-			seL4_ReplyRecv(Thread::myself()->native_thread().ep_sel, reply_msg, &badge);
+			page_fault_msg_info = seL4_ReplyRecv(nt.attr.ep_sel, reply_msg, &badge);
 
-	} else {
-		page_fault_msg_info =
-			seL4_Recv(Thread::myself()->native_thread().ep_sel, &badge);
-	}
+		} else {
+			page_fault_msg_info = seL4_Recv(nt.attr.ep_sel, &badge);
+		}
+	});
 
 	Fault_info const fault_info(page_fault_msg_info);
 

@@ -64,7 +64,7 @@ void Thread::_thread_start()
  ** Thread **
  ************/
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &)
 {
 	if (!_cpu_session) {
 		error("Thread::_cpu_session unexpectedly not defined");
@@ -81,8 +81,13 @@ Thread::Start_result Thread::start()
 {
 	_init_cpu_session_and_trace_control();
 
+	if (!_stack)
+		return Start_result::DENIED;
+
+	Stack &stack = *_stack;
+
 	/* create thread at core */
-	addr_t const utcb = (addr_t)&_stack->utcb();
+	addr_t const utcb = (addr_t)&stack.utcb();
 
 	_thread_cap = _cpu_session->create_thread(pd_session_cap(), name(), _affinity,
 	                                          Weight(), utcb);
@@ -90,7 +95,7 @@ Thread::Start_result Thread::start()
 		[&] (Thread_capability cap) {
 
 			/* start execution at initial instruction pointer and stack pointer */
-			Cpu_thread_client(cap).start((addr_t)_thread_start, _stack->top());
+			Cpu_thread_client(cap).start((addr_t)_thread_start, stack.top());
 			return Start_result::OK;
 		},
 		[&] (Cpu_session::Create_thread_error) { return Start_result::DENIED; });

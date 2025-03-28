@@ -31,28 +31,28 @@ static inline void thread_switch_to(Genode::Thread *)
 }
 
 
-static inline bool thread_check_stopped_and_restart(Genode::Thread *thread)
+static inline unsigned sel4_lock_sel(Genode::Thread *thread_ptr)
 {
-	unsigned lock_sel = Genode::INITIAL_SEL_LOCK; /* main thread */
+	if (!thread_ptr)
+		return Genode::INITIAL_SEL_LOCK; /* main thread */
 
-	if (thread)
-		lock_sel = thread->native_thread().lock_sel;
+	return thread_ptr->with_native_thread(
+		[&] (Genode::Native_thread &nt) { return nt.attr.lock_sel; },
+		[&] () -> unsigned              { return Genode::INITIAL_SEL_LOCK; });
+}
 
-	seL4_Signal(lock_sel);
 
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_ptr)
+{
+	seL4_Signal(sel4_lock_sel(thread_ptr));
 	return true;
 }
 
 
-static inline void thread_stop_myself(Genode::Thread *myself)
+static inline void thread_stop_myself(Genode::Thread *myself_ptr)
 {
-	unsigned lock_sel = Genode::INITIAL_SEL_LOCK; /* main thread */
-
-	if (myself)
-		lock_sel = myself->native_thread().lock_sel;
-
 	seL4_Word sender = ~0U;
-	seL4_Wait(lock_sel, &sender);
+	seL4_Wait(sel4_lock_sel(myself_ptr), &sender);
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

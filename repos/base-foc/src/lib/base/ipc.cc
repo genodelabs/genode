@@ -310,52 +310,57 @@ Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
                                    Msgbuf_base            &reply_msg,
                                    Msgbuf_base            &request_msg)
 {
-	Receive_window &rcv_window = Thread::myself()->native_thread().rcv_window;
+	return Thread::myself()->with_native_thread([&] (Native_thread &nt) {
 
-	bool need_to_wait = false;
+		Receive_window &rcv_window = nt.rcv_window;
 
-	for (;;) {
+		bool need_to_wait = false;
 
-		request_msg.reset();
+		for (;;) {
 
-		/* prepare receive window in UTCB */
-		addr_t rcv_cap_sel = rcv_window.rcv_cap_sel_base();
-		for (size_t i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
-			l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
-			rcv_cap_sel += L4_CAP_SIZE;
+			request_msg.reset();
+
+			/* prepare receive window in UTCB */
+			addr_t rcv_cap_sel = rcv_window.rcv_cap_sel_base();
+			for (size_t i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
+				l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
+				rcv_cap_sel += L4_CAP_SIZE;
+			}
+			l4_utcb_br()->bdr &= ~L4_BDR_OFFSET_MASK;
+
+			l4_msgtag_t request_tag;
+			l4_umword_t label = 0; /* kernel-protected label of invoked capability */
+
+			if (exc.value != Rpc_exception_code::INVALID_OBJECT && !need_to_wait) {
+
+				l4_msgtag_t const reply_tag = copy_msgbuf_to_utcb(reply_msg, exc.value);
+
+				request_tag = l4_ipc_reply_and_wait(l4_utcb(), reply_tag, &label, L4_IPC_SEND_TIMEOUT_0);
+			} else {
+				request_tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
+			}
+
+			if (ipc_error(request_tag, false)) {
+				need_to_wait = true;
+				continue;
+			} else need_to_wait = false;
+
+			/* copy request message from the UTCBs message registers */
+			unsigned long const badge =
+				extract_msg_from_utcb(request_tag, rcv_window, request_msg);
+
+			/* ignore request if we detect a forged badge */
+			if (!badge_matches_label(badge, label)) {
+				raw("badge does not match label, ignoring request");
+				continue;
+			}
+
+			return Rpc_request(Native_capability(), badge);
 		}
-		l4_utcb_br()->bdr &= ~L4_BDR_OFFSET_MASK;
-
-		l4_msgtag_t request_tag;
-		l4_umword_t label = 0; /* kernel-protected label of invoked capability */
-
-		if (exc.value != Rpc_exception_code::INVALID_OBJECT
-		    && !need_to_wait) {
-
-			l4_msgtag_t const reply_tag = copy_msgbuf_to_utcb(reply_msg, exc.value);
-
-			request_tag = l4_ipc_reply_and_wait(l4_utcb(), reply_tag, &label, L4_IPC_SEND_TIMEOUT_0);
-		} else {
-			request_tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
-		}
-
-		if (ipc_error(request_tag, false)) {
-			need_to_wait = true;
-			continue;
-		} else need_to_wait = false;
-
-		/* copy request message from the UTCBs message registers */
-		unsigned long const badge =
-			extract_msg_from_utcb(request_tag, rcv_window, request_msg);
-
-		/* ignore request if we detect a forged badge */
-		if (!badge_matches_label(badge, label)) {
-			raw("badge does not match label, ignoring request");
-			continue;
-		}
-
-		return Rpc_request(Native_capability(), badge);
-	}
+	},
+	[&] () -> Rpc_request {
+		sleep_forever();   /* ipc_reply_wait called by uninitialized thread */
+	});
 }
 
 
@@ -363,7 +368,8 @@ Ipc_server::Ipc_server()
 :
 	Native_capability((Cap_index*)Foc::l4_utcb_tcr()->user[Foc::UTCB_TCR_BADGE])
 {
-	Thread::myself()->native_thread().rcv_window.init();
+	Thread::myself()->with_native_thread([&] (Native_thread &nt) {
+		nt.rcv_window.init(); });
 }
 
 

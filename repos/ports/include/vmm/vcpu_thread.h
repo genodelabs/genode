@@ -112,9 +112,9 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			 * Translate vcpu_vm thread cap via current executing thread,
 			 * which is used to lookup current PD to delegate VM-exit portals.
 			 */
-			addr_t const current = Thread::myself()->native_thread().exc_pt_sel
-			                       + Nova::PT_SEL_PAGE_FAULT;
-			translate_remote_pager(current, vcpu_vm.local_name());
+			Thread::myself()->with_native_thread([&] (Native_thread &nt) {
+				addr_t const current = nt.exc_pt_sel + Nova::PT_SEL_PAGE_FAULT;
+				translate_remote_pager(current, vcpu_vm.local_name()); });
 
 			/* start vCPU in separate PD */
 			cpu_thread.start(0, 0);

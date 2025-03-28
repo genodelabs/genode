@@ -35,21 +35,30 @@ void Thread::_thread_start()
 
 Thread::Start_result Thread::start()
 {
+	if (!_stack)
+		return Start_result::DENIED;
+
+	Stack &stack = *_stack;
+
+	Native_thread &nt = stack.native_thread();
+
 	/* create and start platform thread */
-	native_thread().pt = new (platform().core_mem_alloc())
-		Platform_thread(platform_specific().core_pd(), _stack->name().string());
+	try {
+		nt.pt = new (platform().core_mem_alloc())
+			Platform_thread(platform_specific().core_pd(), stack.name().string());
+	}
+	catch (...) { return Start_result::DENIED; }
 
-	native_thread().pt->pager(platform_specific().core_pager());
-	native_thread().l4id = native_thread().pt->native_thread_id();
+	nt.pt->pager(platform_specific().core_pager());
+	nt.l4id = nt.pt->native_thread_id();
 
-	native_thread().pt->start((void *)_thread_start, stack_top());
+	nt.pt->start((void *)_thread_start, (void *)stack.top());
 
 	return Start_result::OK;
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
-	/* destruct platform thread */
-	destroy(platform().core_mem_alloc(), native_thread().pt);
+	destroy(platform().core_mem_alloc(), stack.native_thread().pt);
 }

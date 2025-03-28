@@ -35,6 +35,17 @@
 static inline void thread_yield() { Foc::l4_thread_yield(); }
 
 
+static inline Foc::l4_cap_idx_t foc_cap_idx(Genode::Thread *thread_ptr)
+{
+	if (!thread_ptr)
+		return Foc::MAIN_THREAD_CAP;
+
+	return thread_ptr->with_native_thread(
+		[&] (Genode::Native_thread &nt) { return nt.kcap; },
+		[&]                             { return Foc::MAIN_THREAD_CAP; });
+}
+
+
 /**
  * Custom ExchangeRegisters wrapper for waking up a thread
  *
@@ -44,13 +55,9 @@ static inline void thread_yield() { Foc::l4_thread_yield(); }
  *
  * \return true if the thread was in blocking state
  */
-static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_ptr)
 {
-	Foc::l4_cap_idx_t tid = thread_base ?
-	                           thread_base->native_thread().kcap :
-	                           Foc::MAIN_THREAD_CAP;
-	Foc::l4_cap_idx_t irq = tid + Foc::THREAD_IRQ_CAP;
-	Foc::l4_irq_trigger(irq);
+	Foc::l4_irq_trigger(foc_cap_idx(thread_ptr) + Foc::THREAD_IRQ_CAP);
 	return true;
 }
 
@@ -58,12 +65,9 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 /**
  * Yield CPU time to the specified thread
  */
-static inline void thread_switch_to(Genode::Thread *thread_base)
+static inline void thread_switch_to(Genode::Thread *thread_ptr)
 {
-	Foc::l4_cap_idx_t tid = thread_base ?
-	                           thread_base->native_thread().kcap :
-	                           Foc::MAIN_THREAD_CAP;
-	Foc::l4_thread_switch(tid);
+	Foc::l4_thread_switch(foc_cap_idx(thread_ptr));
 }
 
 
@@ -78,13 +82,8 @@ __attribute__((used))
 static void thread_stop_myself(Genode::Thread *)
 {
 	using namespace Foc;
-
-	Genode::Thread *myself = Genode::Thread::myself();
-	Foc::l4_cap_idx_t tid = myself ?
-	                           myself->native_thread().kcap :
-	                           Foc::MAIN_THREAD_CAP;
-	Foc::l4_cap_idx_t irq = tid + THREAD_IRQ_CAP;
-	l4_irq_receive(irq, L4_IPC_NEVER);
+	l4_irq_receive(foc_cap_idx(Genode::Thread::myself()) + THREAD_IRQ_CAP,
+	                    L4_IPC_NEVER);
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

@@ -104,7 +104,9 @@ class Timer::Device
 
 				static Sel init_signal_sem(Thread &thread)
 				{
-					auto const exc_base = thread.native_thread().exc_pt_sel;
+					addr_t exc_base = Native_thread::INVALID_INDEX;
+					thread.with_native_thread([&] (Native_thread &nt) {
+						exc_base = nt.exc_pt_sel; });
 
 					request_signal_sm_cap(exc_base + Nova::PT_SEL_PAGE_FAULT,
 					                      exc_base + Nova::SM_SEL_SIGNAL);

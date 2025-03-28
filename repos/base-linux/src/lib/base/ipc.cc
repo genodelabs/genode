@@ -392,36 +392,38 @@ Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 		for (;;) lx_nanosleep(&ts, 0);
 	}
 
-	Native_thread::Epoll &epoll = myself_ptr->native_thread().epoll;
+	return myself_ptr->with_native_thread([&] (Native_thread &nt) {
 
-	for (;;) {
+		for (;;) {
 
-		Lx_sd const selected_sd = epoll.poll();
+			Lx_sd const selected_sd = nt.epoll.poll();
 
-		Protocol_header &header = request_msg.header<Protocol_header>();
-		Message msg(header.msg_start(), sizeof(Protocol_header) + request_msg.capacity());
+			Protocol_header &header = request_msg.header<Protocol_header>();
+			Message msg(header.msg_start(), sizeof(Protocol_header) + request_msg.capacity());
 
-		msg.accept_sockets(Message::MAX_SDS_PER_MSG);
+			msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
-		request_msg.reset();
-		int const ret = lx_recvmsg(selected_sd, msg.msg(), 0x40);
+			request_msg.reset();
+			int const ret = lx_recvmsg(selected_sd, msg.msg(), 0x40);
 
-		if (ret < 0)
-			continue;
+			if (ret < 0)
+				continue;
 
-		if (msg.num_sockets() == 0 || !msg.socket_at_index(0).valid()) {
-			warning("ipc_reply_wait: failed to obtain reply socket");
-			continue;
+			if (msg.num_sockets() == 0 || !msg.socket_at_index(0).valid()) {
+				warning("ipc_reply_wait: failed to obtain reply socket");
+				continue;
+			}
+
+			Lx_sd const reply_socket = msg.socket_at_index(0);
+
+			/* start at offset 1 to skip the reply channel */
+			extract_sds_from_message(1, msg, header, request_msg);
+
+			return Rpc_request(Capability_space::import(Rpc_destination(reply_socket),
+			                                            Rpc_obj_key()), selected_sd.value);
 		}
 
-		Lx_sd const reply_socket = msg.socket_at_index(0);
-
-		/* start at offset 1 to skip the reply channel */
-		extract_sds_from_message(1, msg, header, request_msg);
-
-		return Rpc_request(Capability_space::import(Rpc_destination(reply_socket),
-		                                            Rpc_obj_key()), selected_sd.value);
-	}
+	}, [&] () -> Rpc_request { sleep_forever(); });
 }
 
 
@@ -435,16 +437,16 @@ Ipc_server::Ipc_server()
 	if (!Thread::myself())
 		return;
 
-	Native_thread &native_thread = Thread::myself()->native_thread();
+	Thread::myself()->with_native_thread([&] (Native_thread &nt) {
 
-	if (native_thread.is_ipc_server) {
-		Genode::raw(lx_getpid(), ":", lx_gettid(),
-		            " unexpected multiple instantiation of Ipc_server by one thread");
-		struct Ipc_server_multiple_instance { };
-		throw Ipc_server_multiple_instance();
-	}
+		if (nt.is_ipc_server) {
+			Genode::raw(lx_getpid(), ":", lx_gettid(),
+			            " unexpected multiple instantiation of Ipc_server by one thread");
+			sleep_forever();
+		}
 
-	native_thread.is_ipc_server = true;
+		nt.is_ipc_server = true;
+	});
 }
 
 
@@ -457,7 +459,6 @@ Ipc_server::~Ipc_server()
 	 * Reset thread role to non-server such that we can enter 'sleep_forever'
 	 * without getting a warning.
 	 */
-	Native_thread &native_thread = Thread::myself()->native_thread();
-
-	native_thread.is_ipc_server = false;
+	Thread::myself()->with_native_thread([&] (Native_thread &nt) {
+		nt.is_ipc_server = false; });
 }

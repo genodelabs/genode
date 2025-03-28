@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 
 /* Genode includes */
-#include <base/stdint.h>
+#include <util/noncopyable.h>
 
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
@@ -25,9 +25,9 @@ namespace Core { struct Platform_thread; }
 namespace Genode { struct Native_thread; }
 
 
-struct Genode::Native_thread
+struct Genode::Native_thread : Noncopyable
 {
-	Fiasco::l4_threadid_t l4id;
+	Fiasco::l4_threadid_t l4id { };
 
 	/**
 	 * Only used in core
@@ -36,7 +36,9 @@ struct Genode::Native_thread
 	 * thread object, which is going to be destroyed on destruction of the
 	 * 'Thread'.
 	 */
-	Core::Platform_thread *pt;
+	struct { Core::Platform_thread *pt = nullptr; };
+
+	Native_thread() { }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

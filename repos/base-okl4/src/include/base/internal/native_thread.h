@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 
 /* Genode includes */
+#include <util/noncopyable.h>
 #include <base/stdint.h>
 
 /* base-internal includes */
@@ -22,22 +23,24 @@
 
 namespace Core { class  Platform_thread; }
 
-
 namespace Genode { struct Native_thread; }
 
 
-struct Genode::Native_thread
+struct Genode::Native_thread : Noncopyable
 {
-	Okl4::L4_ThreadId_t l4id;
+	Okl4::L4_ThreadId_t l4id { };
 
 	/**
 	 * Only used in core
 	 *
-	 * For 'Thread' objects created within core, 'pt' points to
-	 * the physical thread object, which is going to be destroyed
-	 * on destruction of the 'Thread'.
+	 * For 'Thread' objects created within core, 'pt' points to the physical
+	 * thread object, which is going to be destroyed on destruction of the
+	 * 'Thread'.
 	 */
-	Core::Platform_thread *pt;
+
+	struct { Core::Platform_thread *pt = nullptr; };
+
+	Native_thread() { }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

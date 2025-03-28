@@ -46,11 +46,11 @@ static Thread_capability main_thread_cap(Thread_capability main_cap = { })
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
 	using namespace Foc;
 
-	if (native_thread().kcap) {
+	if (stack.native_thread().kcap) {
 		Cap_index *i = (Cap_index*)l4_utcb_tcr_u(utcb()->foc_utcb)->user[UTCB_TCR_BADGE];
 		cap_map().remove(i);
 	}
@@ -61,7 +61,7 @@ void Thread::_deinit_platform_thread()
 }
 
 
-void Thread::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 {
 	_init_cpu_session_and_trace_control();
 
@@ -74,7 +74,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	}
 
 	/* adjust values whose computation differs for a main thread */
-	native_thread().kcap = Foc::MAIN_THREAD_CAP;
+	stack.native_thread().kcap = Foc::MAIN_THREAD_CAP;
 	_thread_cap = main_thread_cap();
 
 	if (_thread_cap.failed()) {
@@ -104,7 +104,8 @@ Thread::Start_result Thread::start()
 			Foc::l4_utcb_t * const foc_utcb = (Foc::l4_utcb_t *)state.utcb;
 			utcb()->foc_utcb = foc_utcb;
 
-			native_thread() = Native_thread(state.kcap);
+			with_native_thread([&] (Native_thread &nt) {
+				nt.kcap = state.kcap; });
 
 			Cap_index *i = cap_map().insert(state.id, state.kcap);
 			l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE]      = (unsigned long) i;

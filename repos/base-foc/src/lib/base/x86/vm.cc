@@ -423,9 +423,11 @@ struct Foc_vcpu : Thread, Noncopyable
 
 							/* consume notification */
 							while (vcpu->sticky_flags) {
-								Foc::l4_cap_idx_t tid = native_thread().kcap;
-								Foc::l4_cap_idx_t irq = tid + Foc::TASK_VCPU_IRQ_CAP;
-								l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+								with_native_thread([&] (Native_thread &nt) {
+									Foc::l4_cap_idx_t tid = nt.kcap;
+									Foc::l4_cap_idx_t irq = tid + Foc::TASK_VCPU_IRQ_CAP;
+									l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+								});
 							}
 						}
 					}
@@ -449,9 +451,11 @@ struct Foc_vcpu : Thread, Noncopyable
 
 							/* consume notification */
 							while (vcpu->sticky_flags) {
-								Foc::l4_cap_idx_t tid = native_thread().kcap;
-								Foc::l4_cap_idx_t irq = tid + Foc::TASK_VCPU_IRQ_CAP;
-								l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+								with_native_thread([&] (Native_thread &nt) {
+									Foc::l4_cap_idx_t tid = nt.kcap;
+									Foc::l4_cap_idx_t irq = tid + Foc::TASK_VCPU_IRQ_CAP;
+									l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+								});
 							}
 						}
 
@@ -1341,9 +1345,11 @@ struct Foc_vcpu : Thread, Noncopyable
 				_state_request = PAUSE;
 
 				/* Trigger vCPU exit */
-				Foc::l4_cap_idx_t tid = native_thread().kcap;
-				Foc::l4_cap_idx_t irq = tid + Foc::TASK_VCPU_IRQ_CAP;
-				Foc::l4_irq_trigger(irq);
+				with_native_thread([&] (Native_thread &nt) {
+					Foc::l4_cap_idx_t tid = nt.kcap;
+					Foc::l4_cap_idx_t irq = tid + Foc::TASK_VCPU_IRQ_CAP;
+					Foc::l4_irq_trigger(irq);
+				});
 
 				_wake_up.up();
 			}

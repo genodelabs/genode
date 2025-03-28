@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_
 
 /* Genode includes */
+#include <util/noncopyable.h>
 #include <base/stdint.h>
 
 /* base-internal includes */
@@ -25,9 +26,9 @@ namespace Genode { struct Native_thread; }
 namespace Core { class Platform_thread; }
 
 
-struct Genode::Native_thread
+struct Genode::Native_thread : Noncopyable
 {
-	Pistachio::L4_ThreadId_t l4id;
+	Pistachio::L4_ThreadId_t l4id { };
 
 	/**
 	 * Only used in core
@@ -36,7 +37,9 @@ struct Genode::Native_thread
 	 * the physical thread object, which is going to be destroyed
 	 * on destruction of the 'Thread'.
 	 */
-	Core::Platform_thread *pt;
+	struct { Core::Platform_thread *pt = nullptr; };
+
+	Native_thread() { }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

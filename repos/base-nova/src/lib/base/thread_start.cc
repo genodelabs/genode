@@ -55,8 +55,6 @@ static Thread_capability main_thread_cap(Thread_capability main_cap = { })
  */
 void Thread::_thread_start()
 {
-	using namespace Genode;
-
 	/* catch any exception at this point and try to print an error message */
 	try {
 		Thread::myself()->entry();
@@ -83,24 +81,23 @@ void Thread::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 {
-	using namespace Nova;
+	Native_thread &nt = stack.native_thread();
 
 	/*
 	 * Allocate capability selectors for the thread's execution context,
 	 * running semaphore and exception handler portals.
 	 */
-	native_thread().ec_sel = Native_thread::INVALID_INDEX;
 
 	/* for main threads the member initialization differs */
 	if (type == MAIN) {
 		_thread_cap = main_thread_cap();
 
-		native_thread().exc_pt_sel = 0;
-		native_thread().ec_sel     = Nova::EC_SEL_THREAD;
+		nt.exc_pt_sel = 0;
+		nt.ec_sel     = Nova::EC_SEL_THREAD;
 
-		request_native_ec_cap(PT_SEL_PAGE_FAULT, native_thread().ec_sel);
+		request_native_ec_cap(Nova::PT_SEL_PAGE_FAULT, nt.ec_sel);
 		return;
 	}
 
@@ -113,12 +110,12 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	 * 'Cpu_session::kill_thread()' and is not able to revoke the UTCB
 	 * afterwards.
 	 */
-	Rights rwx(true, true, true);
-	addr_t utcb = reinterpret_cast<addr_t>(&_stack->utcb());
-	revoke(Mem_crd(utcb >> 12, 0, rwx));
+	Nova::Rights rwx(true, true, true);
+	addr_t utcb = reinterpret_cast<addr_t>(&stack.utcb());
+	Nova::revoke(Nova::Mem_crd(utcb >> 12, 0, rwx));
 
-	native_thread().exc_pt_sel = cap_map().insert(NUM_INITIAL_PT_LOG2);
-	if (native_thread().exc_pt_sel == Native_thread::INVALID_INDEX) {
+	nt.exc_pt_sel = cap_map().insert(Nova::NUM_INITIAL_PT_LOG2);
+	if (nt.exc_pt_sel == Native_thread::INVALID_INDEX) {
 		error("failed allocate exception-portal selector for new thread");
 		return;
 	}
@@ -134,88 +131,87 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
-	using namespace Nova;
+	Native_thread &nt = stack.native_thread();
 
-	if (native_thread().ec_sel != Native_thread::INVALID_INDEX) {
-		revoke(Obj_crd(native_thread().ec_sel, 0));
-	}
+	if (nt.ec_valid())
+		Nova::revoke(Nova::Obj_crd(nt.ec_sel, 0));
 
 	/* de-announce thread */
 	_thread_cap.with_result(
 		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
 		[&] (Cpu_session::Create_thread_error) { });
 
-	cap_map().remove(native_thread().exc_pt_sel, NUM_INITIAL_PT_LOG2);
+	cap_map().remove(nt.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
 }
 
 
 Thread::Start_result Thread::start()
 {
-	if (native_thread().ec_sel < Native_thread::INVALID_INDEX - 1) {
-		error("Thread::start failed due to invalid exception portal selector");
-		return Start_result::DENIED;
-	}
+	return with_native_thread([&] (Native_thread &nt) {
 
-	if (_thread_cap.failed())
-		return Start_result::DENIED;
+		if (nt.ec_sel < Native_thread::INVALID_INDEX - 1) {
+			error("Thread::start failed due to invalid exception portal selector");
+			return Start_result::DENIED;
+		}
 
-	/*
-	 * Default: create global thread - ec.sel == INVALID_INDEX
-	 *          create  local thread - ec.sel == INVALID_INDEX - 1
-	 */
-	bool global = native_thread().ec_sel == Native_thread::INVALID_INDEX;
+		if (_thread_cap.failed())
+			return Start_result::DENIED;
 
-	using namespace Genode;
+		/*
+		 * Default: create global thread - ec.sel == INVALID_INDEX
+		 *          create  local thread - ec.sel == INVALID_INDEX - 1
+		 */
+		bool global = nt.ec_sel == Native_thread::INVALID_INDEX;
 
-	/* create EC at core */
+		/* create EC at core */
 
-	try {
-		Cpu_session::Native_cpu::Thread_type thread_type;
+		try {
+			Cpu_session::Native_cpu::Thread_type thread_type;
+
+			if (global)
+				thread_type = Cpu_session::Native_cpu::Thread_type::GLOBAL;
+			else
+				thread_type = Cpu_session::Native_cpu::Thread_type::LOCAL;
+
+			Cpu_session::Native_cpu::Exception_base exception_base { nt.exc_pt_sel };
+
+			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
+			native_cpu.thread_type(cap(), thread_type, exception_base);
+		} catch (...) {
+			error("Thread::start failed to set thread type");
+			return Start_result::DENIED;
+		}
+
+		/* local thread have no start instruction pointer - set via portal entry */
+		addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : nt.initial_ip;
+
+		Cpu_thread_client cpu_thread(cap());
+		cpu_thread.start(thread_ip, _stack->top());
+
+		/* request native EC thread cap */ 
+		nt.ec_sel = nt.exc_pt_sel + Nova::EC_SEL_THREAD;
+
+		/*
+		 * Requested ec cap that is used for recall and
+		 * creation of portals (Native_pd::alloc_rpc_cap).
+		 */
+		request_native_ec_cap(nt.exc_pt_sel + Nova::PT_SEL_PAGE_FAULT,
+		                      nt.ec_sel);
+
+		/* default: we don't accept any mappings or translations */
+		Nova::Utcb &utcb = *(Nova::Utcb *)Thread::utcb();
+		utcb.crd_rcv = Nova::Obj_crd();
+		utcb.crd_xlt = Nova::Obj_crd();
 
 		if (global)
-			thread_type = Cpu_session::Native_cpu::Thread_type::GLOBAL;
-		else
-			thread_type = Cpu_session::Native_cpu::Thread_type::LOCAL;
+			/* request creation of SC to let thread run*/
+			cpu_thread.resume();
 
-		Cpu_session::Native_cpu::Exception_base exception_base { native_thread().exc_pt_sel };
+		return Start_result::OK;
 
-		Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
-		native_cpu.thread_type(cap(), thread_type, exception_base);
-	} catch (...) {
-		error("Thread::start failed to set thread type");
-		return Start_result::DENIED;
-	}
-
-	/* local thread have no start instruction pointer - set via portal entry */
-	addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : native_thread().initial_ip;
-
-	Cpu_thread_client cpu_thread(cap());
-	cpu_thread.start(thread_ip, _stack->top());
-
-	/* request native EC thread cap */ 
-	native_thread().ec_sel = native_thread().exc_pt_sel + Nova::EC_SEL_THREAD;
-
-	/*
-	 * Requested ec cap that is used for recall and
-	 * creation of portals (Native_pd::alloc_rpc_cap).
-	 */
-	request_native_ec_cap(native_thread().exc_pt_sel + Nova::PT_SEL_PAGE_FAULT,
-	                      native_thread().ec_sel);
-
-	using namespace Nova;
-
-	/* default: we don't accept any mappings or translations */
-	Utcb * utcb_obj = reinterpret_cast<Utcb *>(utcb());
-	utcb_obj->crd_rcv = Obj_crd();
-	utcb_obj->crd_xlt = Obj_crd();
-
-	if (global)
-		/* request creation of SC to let thread run*/
-		cpu_thread.resume();
-
-	return Start_result::OK;
+	}, [&] { return Start_result::DENIED; });
 }
 
 

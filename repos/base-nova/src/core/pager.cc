@@ -569,13 +569,16 @@ void Exception_handlers::register_handler(Pager_object &obj, Mtd mtd,
                                           void (* __attribute__((regparm(1))) func)(Pager_object &))
 {
 	uint8_t res = !Nova::NOVA_OK;
-	with_pager_thread(obj.location(), platform_specific(), [&] (Pager_thread &pager_thread) {
-		addr_t const ec_sel = pager_thread.native_thread().ec_sel;
+	with_pager_thread(obj.location(), platform_specific(), [&] (Pager_thread &thread) {
+		thread.with_native_thread([&] (Native_thread &nt) {
+			addr_t const ec_sel = nt.ec_sel;
 
-		/* compiler generates instance of exception entry if not specified */
-		addr_t entry = func ? (addr_t)func : (addr_t)(&_handler<EV>);
-		res = create_portal(obj.exc_pt_sel_client() + EV,
-		                    platform_specific().core_pd_sel(), ec_sel, mtd, entry, &obj);
+			/* compiler generates instance of exception entry if not specified */
+			addr_t entry = func ? (addr_t)func : (addr_t)(&_handler<EV>);
+			res = create_portal(obj.exc_pt_sel_client() + EV,
+			                    platform_specific().core_pd_sel(),
+			                    ec_sel, mtd, entry, &obj);
+		});
 	});
 
 	if (res != Nova::NOVA_OK)
@@ -644,13 +647,15 @@ void Pager_object::_construct_pager()
 	uint8_t res = !Nova::NOVA_OK;
 
 	with_pager_thread(_location, platform_specific(), [&] (Pager_thread &pager_thread) {
+		pager_thread.with_native_thread([&] (Native_thread &nt) {
 
-		addr_t const ec_sel = pager_thread.native_thread().ec_sel;
+			addr_t const ec_sel = nt.ec_sel;
 
-		/* create portal for final cleanup call used during destruction */
-		res = create_portal(sel_pt_cleanup(), pd_sel, ec_sel, Mtd(0),
-		                    reinterpret_cast<addr_t>(_invoke_handler),
-		                    this);
+			/* create portal for final cleanup call used during destruction */
+			res = create_portal(sel_pt_cleanup(), pd_sel, ec_sel, Mtd(0),
+			                    reinterpret_cast<addr_t>(_invoke_handler),
+			                    this);
+		});
 	});
 	if (res != Nova::NOVA_OK) {
 		error("could not create pager cleanup portal, error=", res);
@@ -872,8 +877,10 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 
 	if (assert) {
 		error("unknown OOM case - stop core pager thread");
-		utcb.set_msg_word(0);
-		reply(myself.stack_top(), myself.native_thread().exc_pt_sel + Nova::SM_SEL_EC);
+		myself.with_native_thread([&] (Native_thread &nt) {
+			utcb.set_msg_word(0);
+			reply(myself.stack_top(), nt.exc_pt_sel + Nova::SM_SEL_EC);
+		});
 	}
 
 	/* be strict in case of the -strict- STOP policy - stop causing thread */
@@ -892,8 +899,11 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	case SRC_PD_UNKNOWN:
 		/* should not happen on Genode - we create and know every PD in core */
 		error("Unknown PD has insufficient kernel memory left - stop thread");
-		utcb.set_msg_word(0);
-		reply(myself.stack_top(), myself.native_thread().exc_pt_sel + Nova::SM_SEL_EC);
+		myself.with_native_thread([&] (Native_thread &nt) {
+			utcb.set_msg_word(0);
+			reply(myself.stack_top(), nt.exc_pt_sel + Nova::SM_SEL_EC);
+		});
+		break;
 
 	case SRC_CORE_PD:
 		/* core PD -> other PD, which has insufficient kernel resources */
@@ -943,13 +953,14 @@ addr_t Pager_object::create_oom_portal()
 {
 	uint8_t res = !Nova::NOVA_OK;
 
-	with_pager_thread(_location, platform_specific(),
-		[&] (Pager_thread &thread) {
+	with_pager_thread(_location, platform_specific(), [&] (Pager_thread &thread) {
+		thread.with_native_thread([&] (Native_thread &nt) {
 			addr_t const core_pd_sel = platform_specific().core_pd_sel();
-			addr_t const ec_sel      = thread.native_thread().ec_sel;
+			addr_t const ec_sel      = nt.ec_sel;
 			res = create_portal(sel_oom_portal(), core_pd_sel, ec_sel, Mtd(0),
 			                    reinterpret_cast<addr_t>(_oom_handler),
 			                    this);
+		});
 	});
 
 	if (res == Nova::NOVA_OK)

@@ -19,21 +19,17 @@
 #ifndef _INCLUDE__NOVA__NATIVE_THREAD_H_
 #define _INCLUDE__NOVA__NATIVE_THREAD_H_
 
-#include <base/stdint.h>
 #include <nova/receive_window.h>
 
 namespace Genode { struct Native_thread; }
 
-struct Genode::Native_thread
+
+struct Genode::Native_thread : Noncopyable
 {
 	static constexpr unsigned long INVALID_INDEX = ~0UL;
 
-	addr_t ec_sel     { 0 };      /* selector for execution context */
-	addr_t exc_pt_sel { 0 };      /* base of event portal window */
-	addr_t initial_ip { 0 };      /* initial IP of local thread */
-
-	/* receive window for capability selectors received at the server side */
-	Receive_window server_rcv_window { };
+	addr_t ec_sel     = INVALID_INDEX;   /* selector for execution context */
+	addr_t exc_pt_sel = INVALID_INDEX;   /* base of event portal window */
 
 	/*
 	 * Designated selector to populate with the result of an IPC call
@@ -49,13 +45,19 @@ struct Genode::Native_thread
 	 */
 	addr_t client_rcv_sel = INVALID_INDEX;
 
-	void reset_client_rcv_sel() { client_rcv_sel = INVALID_INDEX; }
+	addr_t initial_ip = 0;
+
+	/* receive window for capability selectors received at the server side */
+	Receive_window server_rcv_window { };
 
 	Native_capability pager_cap { };
 
-	Native_thread() : ec_sel(INVALID_INDEX),
-	                  exc_pt_sel(INVALID_INDEX),
-	                  initial_ip(0) { }
+	Native_thread() { }
+
+	/* ec_sel is invalid until thread gets started */
+	bool ec_valid() const { return ec_sel != INVALID_INDEX; }
+
+	void reset_client_rcv_sel() { client_rcv_sel = INVALID_INDEX; }
 };
 
 #endif /* _INCLUDE__NOVA__NATIVE_THREAD_H_ */

@@ -16,7 +16,7 @@
 #include <base/env.h>
 
 /* base-internal includes */
-#include <base/internal/native_thread.h>
+#include <base/internal/stack.h>
 #include <base/internal/globals.h>
 #include <base/internal/pistachio.h>
 
@@ -49,16 +49,17 @@ void Genode::prepare_init_main_thread()
 
 void Genode::Thread::_thread_bootstrap()
 {
-	native_thread().l4id = Pistachio::L4_Myself();
+	with_native_thread([&] (Native_thread &nt) {
+		nt.l4id = Pistachio::L4_Myself(); });
 }
 
 
-void Genode::Thread::_init_platform_thread(size_t, Type type)
+void Genode::Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
 	if (type == NORMAL)
 		return;
 
-	native_thread().l4id = main_thread_tid;
+	stack.native_thread().l4id = main_thread_tid;
 
 	_thread_cap = main_thread_cap();
 }

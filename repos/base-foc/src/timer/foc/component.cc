@@ -134,7 +134,7 @@ class Timer::Device
 
 			void entry() override
 			{
-				_myself = native_thread().kcap;
+				with_native_thread([&] (Native_thread &nt) { _myself = nt.kcap; });
 
 				for (;;) {
 

@@ -29,40 +29,13 @@
 using namespace Core;
 
 
-void Thread::_deinit_platform_thread()
-{
-	warning(__func__, ": not implemented yet!");
-}
+void Thread::_deinit_native_thread(Stack &) { }
 
 
-void Thread::_init_platform_thread(size_t, Type) { }
+void Thread::_init_native_thread(Stack &, size_t, Type) { }
 
 
-Thread::Start_result Thread::start()
-{
-	using namespace Foc;
-
-	/* create and start platform thread */
-	Platform_thread &pt = *new (platform().core_mem_alloc())
-		Platform_thread(_stack->name().string());
-
-	platform_specific().core_pd().bind_thread(pt);
-
-	l4_utcb_t * const foc_utcb = (l4_utcb_t *)(pt.utcb());
-
-	native_thread() = Native_thread(pt.gate().remote);
-
-	utcb()->foc_utcb = foc_utcb;
-
-	_thread_cap =
-		reinterpret_cap_cast<Cpu_thread>(Native_capability(pt.thread().local));
-
-	pt.pager(platform_specific().core_pager());
-
-	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE] = (unsigned long) pt.gate().local.data();
-	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
-
-	pt.start((void *)_thread_start, stack_top());
+namespace {
 
 	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
 	                           private Core::Trace::Control,
@@ -95,9 +68,9 @@ Thread::Start_result Thread::start()
 			}
 
 			return { Session_label("core"), thread.name(),
-			         Trace::Execution_time(ec_time, sc_time, 10000,
-			                               platform_thread.prio()),
-			         thread._affinity };
+			         Genode::Trace::Execution_time(ec_time, sc_time, 10000,
+			                                       platform_thread.prio()),
+			         thread.affinity() };
 		}
 
 		Core_trace_source(Core::Trace::Source_registry &registry, Thread &t,
@@ -109,9 +82,44 @@ Thread::Start_result Thread::start()
 			registry.insert(this);
 		}
 	};
+}
 
-	new (platform().core_mem_alloc()) Core_trace_source(Core::Trace::sources(),
-	                                                    *this, pt);
+
+Thread::Start_result Thread::start()
+{
+	using namespace Foc;
+
+	try {
+		/* create and start platform thread */
+		Platform_thread &pt = *new (platform().core_mem_alloc())
+			Platform_thread(_stack->name().string());
+
+		platform_specific().core_pd().bind_thread(pt);
+
+		l4_utcb_t * const foc_utcb = (l4_utcb_t *)(pt.utcb());
+
+		with_native_thread([&] (Native_thread &nt) {
+			nt.kcap = pt.gate().remote; });
+
+		utcb()->foc_utcb = foc_utcb;
+
+		_thread_cap =
+			reinterpret_cap_cast<Cpu_thread>(Native_capability(pt.thread().local));
+
+		pt.pager(platform_specific().core_pager());
+
+		l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE] = (unsigned long) pt.gate().local.data();
+		l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
+
+		pt.start((void *)_thread_start, stack_top());
+
+		try {
+			new (platform().core_mem_alloc())
+				Core_trace_source(Core::Trace::sources(), *this, pt);
+		}
+		catch (...) { }
+	}
+	catch (...) { return Start_result::DENIED; }
 
 	return Start_result::OK;
 }

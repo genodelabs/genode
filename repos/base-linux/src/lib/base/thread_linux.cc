@@ -83,10 +83,10 @@ void Thread::_thread_start()
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 
 	/* inform core about the new thread and process ID of the new thread */
-	{
+	thread->with_native_thread([&] (Native_thread &nt) {
 		Linux_native_cpu_client native_cpu(thread->_cpu_session->native_cpu());
-		native_cpu.thread_id(thread->cap(), thread->native_thread().pid, thread->native_thread().tid);
-	}
+		native_cpu.thread_id(thread->cap(), nt.pid, nt.tid);
+	});
 
 	/* wakeup 'start' function */
 	startup_lock().wakeup();
@@ -100,7 +100,7 @@ void Thread::_thread_start()
 }
 
 
-void Thread::_init_platform_thread(size_t /* weight */, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t /* weight */, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session) {
@@ -110,7 +110,7 @@ void Thread::_init_platform_thread(size_t /* weight */, Type type)
 
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_cpu_session->create_thread(pd_session_cap(), _stack->name().string(),
+		_cpu_session->create_thread(pd_session_cap(), stack.name(),
 		                            Affinity::Location(), Weight()).with_result(
 			[&] (Thread_capability cap) { _thread_cap = cap; },
 			[&] (Cpu_session::Create_thread_error) {
@@ -119,12 +119,12 @@ void Thread::_init_platform_thread(size_t /* weight */, Type type)
 		return;
 	}
 	/* adjust initial object state for main threads */
-	native_thread().futex_counter = main_thread_futex_counter;
+	stack.native_thread().futex_counter = main_thread_futex_counter;
 	_thread_cap = main_thread_cap();
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
 	/*
 	 * Kill thread until it is really really dead
@@ -139,12 +139,12 @@ void Thread::_deinit_platform_thread()
 	 * anymore.
 	 */
 	for (;;) {
+		Native_thread &nt = stack.native_thread();
 
 		/* destroy thread locally */
-		int pid = native_thread().pid;
-		if (pid == 0) break;
+		if (nt.pid == 0) break;
 
-		int ret = lx_tgkill(pid, native_thread().tid, LX_SIGCANCEL);
+		int ret = lx_tgkill(nt.pid, nt.tid, LX_SIGCANCEL);
 
 		if (ret < 0) break;
 
@@ -180,8 +180,10 @@ Thread::Start_result Thread::start()
 		threadlib_initialized = true;
 	}
 
-	native_thread().tid = lx_create_thread(Thread::_thread_start, stack_top());
-	native_thread().pid = lx_getpid();
+	with_native_thread([&] (Native_thread &nt) {
+		nt.tid = lx_create_thread(Thread::_thread_start, stack_top());
+		nt.pid = lx_getpid();
+	});
 
 	/* wait until the 'thread_start' function got entered */
 	startup_lock().block();

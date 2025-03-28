@@ -17,10 +17,10 @@
 #include <base/env.h>
 
 /* base-internal includes */
-#include <base/internal/native_thread.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/globals.h>
 #include <base/internal/okl4.h>
+#include <base/internal/stack.h>
 
 using namespace Genode;
 
@@ -81,16 +81,17 @@ void Genode::prepare_init_main_thread()
 
 void Thread::_thread_bootstrap()
 {
-	native_thread().l4id.raw = Okl4::copy_uregister_to_utcb();
+	with_native_thread([&] (Native_thread &nt) {
+		nt.l4id.raw = Okl4::copy_uregister_to_utcb(); });
 }
 
 
-void Thread::_init_platform_thread(size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
 	if (type == NORMAL)
 		return;
 
-	native_thread().l4id.raw = main_thread_tid.raw;
+	stack.native_thread().l4id.raw = main_thread_tid.raw;
 	_thread_cap = main_thread_cap();
 }
 

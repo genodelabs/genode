@@ -31,12 +31,14 @@ void Genode::prepare_init_main_thread() { }
  ** Thread **
  ************/
 
-void Genode::Thread::_thread_bootstrap() 
+void Genode::Thread::_thread_bootstrap()
 {
-	if (native_thread().ep_sel == 0) {
-		native_thread().ep_sel   = (unsigned)_stack->utcb().ep_sel();
-		native_thread().lock_sel = (unsigned)_stack->utcb().lock_sel();
-	}
+	with_native_thread([&] (Native_thread &nt) {
+		if (nt.attr.ep_sel == 0) {
+			nt.attr.ep_sel   = (unsigned)_stack->utcb().ep_sel();
+			nt.attr.lock_sel = (unsigned)_stack->utcb().lock_sel();
+		}
+	});
 }
 
 

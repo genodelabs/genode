@@ -101,7 +101,9 @@ void Ipc_pager::acknowledge_wakeup()
 
 Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 {
-	return Capability_space::import(native_thread().l4id, Rpc_obj_key(badge));
+	return with_native_thread(
+		[&] (Native_thread &nt) { return Capability_space::import(nt.l4id, Rpc_obj_key(badge)); },
+		[&]                     { return Untyped_capability(); });
 }
 
 

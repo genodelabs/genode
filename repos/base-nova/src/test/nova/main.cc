@@ -227,8 +227,9 @@ void test_revoke(Genode::Env &env)
 	 * as used before by copy_session_cap
 	 */
 	Genode::Thread * myself = Genode::Thread::myself();
-	request_native_ec_cap(myself->native_thread().exc_pt_sel + Nova::PT_SEL_PAGE_FAULT,
-	                      copy_session_cap.local_name());
+	myself->with_native_thread([&] (Native_thread &nt) {
+		request_native_ec_cap(nt.exc_pt_sel + Nova::PT_SEL_PAGE_FAULT,
+		                      copy_session_cap.local_name()); });
 
 	/* check whether the requested cap before is valid and placed well */
 	crd_ses = Nova::Obj_crd(copy_session_cap.local_name(), 0);
@@ -319,33 +320,37 @@ void test_pat(Genode::Env &env)
 		touch_read_write(reinterpret_cast<unsigned char *>(   memory + offset));
 	}
 
+	Nova::Rights const all(true, true, true);
+
 	/*
 	 * Establish memory mapping with evilly wrong mapping attributes
 	 */
 	Nova_native_pd_client native_pd { env.pd().native_pd() };
 	Thread * thread = reinterpret_cast<Genode::Thread *>(&ep);
-	Native_capability const thread_cap
-		= Capability_space::import(thread->native_thread().ec_sel);
 
-	Untyped_capability const pt =
-		native_pd.alloc_rpc_cap(thread_cap, (addr_t)portal_entry, 0 /* MTD */);
+	thread->with_native_thread([&] (Native_thread &nt) {
 
-	Nova::Rights  const all(true, true, true);
-	Nova::Mem_crd const rcv_crd(memory_remap >> PAGE_4K, DS_ORDER, all);
-	Nova::Mem_crd const snd_crd(memory_wc >> PAGE_4K, DS_ORDER, all);
-	Nova::Crd     const old_crd = utcb.crd_rcv;
+		Native_capability const thread_cap = Capability_space::import(nt.ec_sel);
 
-	utcb.crd_rcv = rcv_crd;
-	utcb.set_msg_word(1);
-	utcb.msg()[0] = snd_crd.value();
+		Untyped_capability const pt =
+			native_pd.alloc_rpc_cap(thread_cap, (addr_t)portal_entry, 0 /* MTD */);
 
-	uint8_t const res = Nova::call(pt.local_name());
-	utcb.crd_rcv = old_crd;
+		Nova::Mem_crd const rcv_crd(memory_remap >> PAGE_4K, DS_ORDER, all);
+		Nova::Mem_crd const snd_crd(memory_wc >> PAGE_4K, DS_ORDER, all);
+		Nova::Crd     const old_crd = utcb.crd_rcv;
 
-	if (res != Nova::NOVA_OK) {
-		Genode::error("establishing memory failed ", res);
-		failed++;
-	}
+		utcb.crd_rcv = rcv_crd;
+		utcb.set_msg_word(1);
+		utcb.msg()[0] = snd_crd.value();
+
+		uint8_t const res = Nova::call(pt.local_name());
+		utcb.crd_rcv = old_crd;
+
+		if (res != Nova::NOVA_OK) {
+			Genode::error("establishing memory failed ", res);
+			failed++;
+		}
+	});
 
 	/* sanity check - touch re-mapped area */
 	for (auto offset = 0; offset < DS_SIZE; offset += (1 << PAGE_4K))
@@ -488,20 +493,23 @@ class Pager : private Genode::Thread {
 			touch_read(reinterpret_cast<unsigned char *>(_ds_mem));
 
 			/* request creation of a 'local' EC */
-			Thread::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
-			Thread::start();
+			with_native_thread([&] (Native_thread &nt) {
 
-			Genode::warning("pager: created");
+				nt.ec_sel = Native_thread::INVALID_INDEX - 1;
 
-			Native_capability thread_cap =
-				Capability_space::import(Thread::native_thread().ec_sel);
+				Thread::start();
 
-			Genode::Nova_native_pd_client native_pd(env.pd().native_pd());
-			Nova::Mtd mtd (Nova::Mtd::QUAL | Nova::Mtd::EIP | Nova::Mtd::ESP);
-			Genode::addr_t entry = reinterpret_cast<Genode::addr_t>(page_fault);
+				Genode::warning("pager: created");
 
-			_call_to_map = native_pd.alloc_rpc_cap(thread_cap, entry,
-			                                       mtd.value());
+				Native_capability thread_cap = Capability_space::import(nt.ec_sel);
+
+				Genode::Nova_native_pd_client native_pd(env.pd().native_pd());
+				Nova::Mtd mtd (Nova::Mtd::QUAL | Nova::Mtd::EIP | Nova::Mtd::ESP);
+				Genode::addr_t entry = reinterpret_cast<Genode::addr_t>(page_fault);
+
+				_call_to_map = native_pd.alloc_rpc_cap(thread_cap, entry,
+				                                       mtd.value());
+			});
 		}
 
 		Native_capability call_to_map() { return _call_to_map; }
@@ -700,10 +708,13 @@ Main::Main(Env &env) : env(env)
 	};
 
 	addr_t sel_pd  = cap_map().insert();
-	addr_t sel_ec  = myself->native_thread().ec_sel;
+	addr_t sel_ec  = Native_thread::INVALID_INDEX;
 	addr_t sel_cap = cap_map().insert();
 	addr_t handler = 0UL;
 	uint8_t    res = 0;
+
+	myself->with_native_thread([&] (Native_thread &nt) {
+		sel_ec = nt.ec_sel; });
 
 	Nova::Mtd mtd(Nova::Mtd::ALL);
 
@@ -721,9 +732,10 @@ Main::Main(Env &env) : env(env)
 
 	/* changing the badge of one of the portal must fail */
 	for (unsigned i = 0; i < (1U << Nova::NUM_INITIAL_PT_LOG2); i++) {
-		addr_t sel_exc = myself->native_thread().exc_pt_sel + i;
-		res = Nova::pt_ctrl(sel_exc, 0xbadbad);
-		check(res, "pt_ctrl ", i);
+		myself->with_native_thread([&] (Native_thread &nt) {
+			res = Nova::pt_ctrl(nt.exc_pt_sel + i, 0xbadbad);
+			check(res, "pt_ctrl ", i);
+		});
 	}
 
 	/* test PAT kernel feature */

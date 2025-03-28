@@ -13,22 +13,20 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/internal/native_thread.h>
+#include <base/internal/stack.h>
 #include <base/internal/capability_space_sel4.h>
 
 using namespace Genode;
 
 
-void Thread::_init_platform_thread(size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
-	/**
+	/*
 	 * Reset to default values. The default values trigger initial allocations
 	 * and associations the thread, like IPCbuffer in ipc.cc.
 	 */
-	native_thread() = Native_thread();
+	stack.native_thread().attr = { };
 
-	if (type == MAIN) {
-		native_thread().lock_sel = INITIAL_SEL_LOCK;
-		return;
-	}
+	if (type == MAIN)
+		stack.native_thread().attr.lock_sel = INITIAL_SEL_LOCK;
 }

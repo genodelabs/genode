@@ -65,8 +65,15 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	 * Determine manually defined selector for receiving the call result.
 	 * See the comment in 'base-nova/include/nova/native_thread.h'.
 	 */
-	addr_t const manual_rcv_sel = myself ? myself->native_thread().client_rcv_sel
-	                                     : Receive_window::INVALID_INDEX;
+	auto manual_rcv_sel_for_myself = [&]
+	{
+		addr_t sel = Receive_window::INVALID_INDEX;
+		if (myself)
+			myself->with_native_thread([&] (Native_thread &nt) {
+				sel = nt.client_rcv_sel; });
+		return sel;
+	};
+	addr_t const manual_rcv_sel = manual_rcv_sel_for_myself();
 
 	/* if we can't setup receive window, die in order to recognize the issue */
 	if (!rcv_window.prepare_rcv_window(utcb, manual_rcv_sel))

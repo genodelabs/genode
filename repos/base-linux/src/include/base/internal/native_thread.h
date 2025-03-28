@@ -22,92 +22,82 @@
 namespace Genode { struct Native_thread; }
 
 
-class Genode::Native_thread
+struct Genode::Native_thread : Noncopyable
 {
-	private:
+	/*
+	 * Unfortunately, both - PID and TID - are needed for lx_tgkill()
+	 */
+	unsigned int tid = 0;  /* Native thread ID type as returned by the
+	                          'clone' system call */
+	unsigned int pid = 0;  /* process ID (resp. thread-group ID) */
 
-		/*
-		 * Noncopyable
-		 */
-		Native_thread(Native_thread const &);
-		Native_thread &operator = (Native_thread const &);
+	bool is_ipc_server = false;
 
-	public:
+	/**
+	 * Natively aligned memory location used in the lock implementation
+	 */
+	int futex_counter __attribute__((aligned(sizeof(Genode::addr_t)))) = 0;
 
-		/*
-		 * Unfortunately, both - PID and TID - are needed for lx_tgkill()
-		 */
-		unsigned int tid = 0;  /* Native thread ID type as returned by the
-		                          'clone' system call */
-		unsigned int pid = 0;  /* process ID (resp. thread-group ID) */
+	struct Meta_data;
 
-		bool is_ipc_server = false;
+	/**
+	 * Opaque pointer to additional thread-specific meta data
+	 *
+	 * This pointer is used by hybrid Linux/Genode programs to maintain
+	 * POSIX-thread-related meta data. For non-hybrid Genode programs, it
+	 * remains unused.
+	 */
+	struct { Meta_data *meta_data = nullptr; };
 
-		/**
-		 * Natively aligned memory location used in the lock implementation
-		 */
-		int futex_counter __attribute__((aligned(sizeof(Genode::addr_t)))) = 0;
+	class Epoll
+	{
+		private:
 
-		struct Meta_data;
+			Lx_socketpair _control { };
 
-		/**
-		 * Opaque pointer to additional thread-specific meta data
-		 *
-		 * This pointer is used by hybrid Linux/Genode programs to maintain
-		 * POSIX-thread-related meta data. For non-hybrid Genode programs, it
-		 * remains unused.
-		 */
-		Meta_data *meta_data = nullptr;
+			Lx_epoll_sd const _epoll;
 
-		class Epoll
-		{
-			private:
+			void _add   (Lx_sd);
+			void _remove(Lx_sd);
 
-				Lx_socketpair _control { };
+			bool _rpc_ep_exited = false;
 
-				Lx_epoll_sd const _epoll;
+			struct Control_function : Interface
+			{
+				virtual void execute() = 0;
+			};
 
-				void _add   (Lx_sd);
-				void _remove(Lx_sd);
+			/*
+			 * Execute functor 'fn' in the context of the 'poll' method.
+			 */
+			void _exec_control(auto const &fn);
 
-				bool _rpc_ep_exited = false;
+		public:
 
-				struct Control_function : Interface
-				{
-					virtual void execute() = 0;
-				};
+			Epoll();
 
-				/*
-				 * Execute functor 'fn' in the context of the 'poll' method.
-				 */
-				void _exec_control(auto const &fn);
+			~Epoll();
 
-			public:
+			/**
+			 * Wait for incoming RPC messages
+			 *
+			 * \return  valid socket descriptor that matches the invoked
+			 *          RPC object
+			 */
+			Lx_sd poll();
 
-				Epoll();
+			Native_capability alloc_rpc_cap();
 
-				~Epoll();
+			void free_rpc_cap(Native_capability);
 
-				/**
-				 * Wait for incoming RPC messages
-				 *
-				 * \return  valid socket descriptor that matches the invoked
-				 *          RPC object
-				 */
-				Lx_sd poll();
+			/**
+			 * Flag RPC entrypoint as no longer in charge of dispatching
+			 */
+			void rpc_ep_exited() { _rpc_ep_exited = true; }
 
-				Native_capability alloc_rpc_cap();
+	} epoll { };
 
-				void free_rpc_cap(Native_capability);
-
-				/**
-				 * Flag RPC entrypoint as no longer in charge of dispatching
-				 */
-				void rpc_ep_exited() { _rpc_ep_exited = true; }
-
-		} epoll { };
-
-		Native_thread() { }
+	Native_thread() { }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_THREAD_H_ */

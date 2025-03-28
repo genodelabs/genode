@@ -30,13 +30,15 @@
 using namespace Core;
 
 
-void Thread::_init_platform_thread(size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
-	Utcb_virt const utcb_virt { (addr_t)&_stack->utcb() };
+	Native_thread &nt = stack.native_thread();
+
+	Utcb_virt const utcb_virt { (addr_t)&stack.utcb() };
 
 	if (type == MAIN) {
-		native_thread().tcb_sel = seL4_CapInitThreadTCB;
-		native_thread().lock_sel = INITIAL_SEL_LOCK;
+		nt.attr.tcb_sel = seL4_CapInitThreadTCB;
+		nt.attr.lock_sel = INITIAL_SEL_LOCK;
 		return;
 	}
 
@@ -49,15 +51,15 @@ void Thread::_init_platform_thread(size_t, Type type)
 		      "local=%", Hex(utcb_virt.addr));
 	}
 
-	native_thread().tcb_sel  = thread_info.tcb_sel.value();
-	native_thread().ep_sel   = thread_info.ep_sel.value();
-	native_thread().lock_sel = thread_info.lock_sel.value();
+	nt.attr.tcb_sel  = thread_info.tcb_sel.value();
+	nt.attr.ep_sel   = thread_info.ep_sel.value();
+	nt.attr.lock_sel = thread_info.lock_sel.value();
 
 	Platform &platform = platform_specific();
 
 	seL4_CNode_CapData guard = seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - 32);
 	seL4_CNode_CapData no_cap_data = { { 0 } };
-	int const ret = seL4_TCB_SetSpace(native_thread().tcb_sel, 0,
+	int const ret = seL4_TCB_SetSpace(nt.attr.tcb_sel, 0,
 	                                  platform.top_cnode().sel().value(),
 	                                  guard.words[0],
 	                                  seL4_CapInitThreadPD, no_cap_data.words[0]);
@@ -69,24 +71,24 @@ void Thread::_init_platform_thread(size_t, Type type)
 
 	platform.core_cnode().mint(platform.core_cnode(), unbadged_sel, lock_sel);
 
-	native_thread().lock_sel = lock_sel.value();
+	nt.attr.lock_sel = lock_sel.value();
 }
 
 
-void Thread::_deinit_platform_thread()
+void Thread::_deinit_native_thread(Stack &stack)
 {
-	addr_t const utcb_virt_addr = (addr_t)&_stack->utcb();
+	addr_t const utcb_virt_addr = (addr_t)&stack.utcb();
 
 	bool ret = unmap_local(utcb_virt_addr, 1);
 	ASSERT(ret);
 
 	int res = seL4_CNode_Delete(seL4_CapInitThreadCNode,
-	                            native_thread().lock_sel, 32);
+	                            stack.native_thread().attr.lock_sel, 32);
 	if (res)
 		error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
-		      Hex(native_thread().lock_sel), ") returned ", res);
+		      Hex(stack.native_thread().attr.lock_sel), ") returned ", res);
 
-	platform_specific().core_sel_alloc().free(Cap_sel(native_thread().lock_sel));
+	platform_specific().core_sel_alloc().free(Cap_sel(stack.native_thread().attr.lock_sel));
 }
 
 
@@ -99,13 +101,7 @@ void Thread::_thread_start()
 }
 
 
-Thread::Start_result Thread::start()
-{
-	/* write ipcbuffer address to utcb*/
-	utcb()->ipcbuffer(Native_utcb::Virt { addr_t(utcb()) });
-
-	start_sel4_thread(Cap_sel(native_thread().tcb_sel), (addr_t)&_thread_start,
-	                  (addr_t)stack_top(), _affinity.xpos(), addr_t(utcb()));
+namespace {
 
 	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
 	                           private Core::Trace::Control,
@@ -123,13 +119,14 @@ Thread::Start_result Thread::start()
 			seL4_IPCBuffer &ipc_buffer = *reinterpret_cast<seL4_IPCBuffer *>(myself.utcb());
 			uint64_t const * const buf =  reinterpret_cast<uint64_t *>(ipc_buffer.msg);
 
-			seL4_BenchmarkGetThreadUtilisation(_thread.native_thread().tcb_sel);
+			_thread.with_native_thread([&] (Native_thread &nt) {
+				seL4_BenchmarkGetThreadUtilisation(nt.attr.tcb_sel); });
+
 			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
 
 			return { Session_label("core"), _thread.name(),
-			         Trace::Execution_time(thread_time, 0), _thread._affinity };
+			         Genode::Trace::Execution_time(thread_time, 0), _thread.affinity() };
 		}
-
 
 		Core_trace_source(Core::Trace::Source_registry &registry, Thread &t)
 		:
@@ -139,9 +136,26 @@ Thread::Start_result Thread::start()
 			registry.insert(this);
 		}
 	};
+}
 
-	new (platform().core_mem_alloc())
-		Core_trace_source(Core::Trace::sources(), *this);
+
+Thread::Start_result Thread::start()
+{
+	if (!_stack)
+		return Start_result::DENIED;
+
+	Stack &stack = *_stack;
+
+	/* write ipcbuffer address to utcb*/
+	utcb()->ipcbuffer(Native_utcb::Virt { addr_t(utcb()) });
+
+	start_sel4_thread(Cap_sel(stack.native_thread().attr.tcb_sel),
+	                  (addr_t)&_thread_start, stack.top(),
+	                  _affinity.xpos(), addr_t(utcb()));
+	try {
+		new (platform().core_mem_alloc())
+			Core_trace_source(Core::Trace::sources(), *this);
+	} catch (...) { }
 
 	return Start_result::OK;
 }

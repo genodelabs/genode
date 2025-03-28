@@ -37,12 +37,23 @@ static inline void thread_yield()
 }
 
 
-static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
+static inline int *futex_counter_ptr(Genode::Thread *thread_ptr)
 {
-	const int *futex_counter_ptr = thread_base ?
-	                               &thread_base->native_thread().futex_counter :
-	                               &main_thread_futex_counter;
-	return lx_futex(futex_counter_ptr, LX_FUTEX_WAKE, 1);
+	if (!thread_ptr)
+		return &main_thread_futex_counter;
+
+	return thread_ptr->with_native_thread(
+		[&] (Genode::Native_thread &nt) { return &nt.futex_counter; },
+		[&] {
+			Genode::error("attempt to access futex of invalid thread");
+			return (int *)nullptr;
+		});
+}
+
+
+static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_ptr)
+{
+	return lx_futex(futex_counter_ptr(thread_ptr), LX_FUTEX_WAKE, 1);
 }
 
 
@@ -56,10 +67,7 @@ static inline void thread_stop_myself(Genode::Thread *myself)
 	 * 'thread_check_stopped_and_restart()' function will get called
 	 * repeatedly until this thread has actually executed the syscall.
 	 */
-	const int *futex_counter_ptr = myself ?
-	                               &myself->native_thread().futex_counter :
-	                               &main_thread_futex_counter;
-	lx_futex(futex_counter_ptr, LX_FUTEX_WAIT, 0);
+	lx_futex(futex_counter_ptr(myself), LX_FUTEX_WAIT, 0);
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

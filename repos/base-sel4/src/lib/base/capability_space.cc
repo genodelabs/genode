@@ -95,11 +95,15 @@ namespace {
 
 Native_capability Capability_space::create_ep_cap(Thread &ep_thread)
 {
-	Cap_sel const ep_sel = Cap_sel(ep_thread.native_thread().ep_sel);
+	return ep_thread.with_native_thread(
+		[&] (Native_thread &nt) {
+			Cap_sel const ep_sel = Cap_sel(nt.attr.ep_sel);
 
-	Native_capability::Data *data =
-		&local_capability_space().create_capability(ep_sel, Rpc_obj_key());
-	return Native_capability(data);
+			Native_capability::Data *data =
+				&local_capability_space().create_capability(ep_sel, Rpc_obj_key());
+			return Native_capability(data);
+		},
+		[&] { return Native_capability(); });
 }
 
 
