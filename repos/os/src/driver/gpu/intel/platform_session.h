@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2021-2024 Genode Labs GmbH
+ * Copyright (C) 2021-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -400,9 +400,10 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 		Reconstructible<Platform::Device>           _device    { _platform      };
 		Reconstructible<Platform::Device::Irq>      _irq       { *_device       };
 		Reconstructible<Igd::Mmio>                  _mmio      { *_device, _env };
-		Reconstructible<Platform::Device::Mmio<0> > _gmadr     { *_device, Platform::Device::Mmio<0>::Index(1) };
-		Reconstructible<Attached_dataspace>         _gmadr_mem { _env.rm(), _gmadr->cap() };
+		Constructible<Platform::Device::Mmio<0> >   _gmadr     { };
+		Constructible<Attached_dataspace>           _gmadr_mem { };
 
+		uint64_t const      _aperture_size;
 		uint64_t const      _aperture_reserved;
 
 		Region_map_client   _rm_gttmm;
@@ -412,7 +413,7 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 
 		void _reinit()
 		{
-			with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
+			with_mmio([&](auto &mmio) {
 
 				using namespace Igd;
 
@@ -451,42 +452,84 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 					.writeable  = true
 				 }).failed()) error("failed to re-attach mmio at gtt offset to gttmm");
 
-				_rm_gmadr.detach(0ul);
-				if (_rm_gmadr.attach(gmadr.cap(), {
-					.size       = size_t(aperture_reserved()),
-					.offset     = { },
-					.use_at     = true,
-					.at         = 0,
-					.executable = { },
-					.writeable  = true
-				}).failed()) error("failed to re-attach gmadr");
-
 			}, []() {
 				error("reinit failed");
 			});
 		}
 
-		Number_of_bytes _sanitized_aperture_size() const
+		/*
+		 * Always try to reserve 32 MiB for the multiplexer itself but
+		 * we also make sure that 32 MiB are available for the display
+		 * driver (or at least all of the available aperture). We
+		 * prioritize a working display over having the GPU service
+		 * available because investigating the later is futil without
+		 * the former.
+		 */
+		static auto constexpr GPU_SERVICE_APERTURE = (32ull << 20);
+		static auto constexpr DISPLAY_MIN_APERTURE = (32ull << 20);
+
+		Number_of_bytes _sanitized_aperture_size()
 		{
-			/*
-			 * Always try to reserve 32 MiB for the multiplexer itself but
-			 * we also make sure that 32 MiB are available for the display
-			 * driver (or at least all of the available aperture). We
-			 * prioritize a working display over having the GPU service
-			 * available because investigating the later is futil without
-			 * the former.
-			 */
-			auto constexpr GPU_SERVICE_APERTURE = (32ull << 20);
-			auto constexpr DISPLAY_MIN_APERTURE = (32ull << 20);
+			auto apert_reserved = _aperture_size;
 
-			if (_gmadr->size() <= DISPLAY_MIN_APERTURE)
-				return _gmadr->size();
-
+			if (_aperture_size <= DISPLAY_MIN_APERTURE)
+				apert_reserved = _aperture_size;
+			else
 			/* guard against non 2^x aperture size */
-			if ((_gmadr->size() - GPU_SERVICE_APERTURE) < DISPLAY_MIN_APERTURE)
-				return DISPLAY_MIN_APERTURE;
+			if ((_aperture_size - GPU_SERVICE_APERTURE) < DISPLAY_MIN_APERTURE)
+				apert_reserved = DISPLAY_MIN_APERTURE;
+			else
+				apert_reserved = _aperture_size - GPU_SERVICE_APERTURE;
 
-			return _gmadr->size() - GPU_SERVICE_APERTURE;
+			log("Aperture max: ", Number_of_bytes(_aperture_size),
+			    " display: ", Number_of_bytes(apert_reserved));
+
+			/* reserved space is used to calculate vGPU available */
+			if (_aperture_size == apert_reserved)
+				warning("GPU service not usable due to insufficient aperture space");
+
+			return apert_reserved;
+		}
+
+		Number_of_bytes _aperture_size_via_device_rom()
+		{
+			auto apert_size = DISPLAY_MIN_APERTURE;
+
+			_platform.with_xml([&](auto const &node) {
+				node.for_each_sub_node("device", [&] (Xml_node const &dev) {
+					dev.for_each_sub_node("pci-config", [&] (Xml_node const &cfg) {
+
+						if (cfg.attribute_value("vendor_id", 0) != 0x8086)
+							return;
+
+						dev.for_each_sub_node("io_mem", [&] (Xml_node const &mem) {
+							if (mem.attribute_value("pci_bar", ~0u) != 2)
+								return;
+
+							apert_size = mem.attribute_value("size", apert_size);
+						});
+					});
+				});
+			});
+
+			return apert_size;
+		}
+
+		bool _make_aperture_accessible()
+		{
+			bool reconstructed = false;
+
+			if (_device.constructed() && !_gmadr.constructed()) {
+				_gmadr.construct(*_device, Platform::Device::Mmio<0>::Index(1));
+				reconstructed = true;
+			}
+
+			if (_gmadr.constructed() && !_gmadr_mem.constructed()) {
+				_gmadr_mem.construct(_env.rm(), _gmadr->cap());
+				reconstructed = true;
+			}
+
+			return reconstructed;
 		}
 
 	public:
@@ -495,19 +538,13 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 		:
 			_env(env),
 			_irq_cap(irq),
+			_aperture_size(_aperture_size_via_device_rom()),
 			_aperture_reserved(_sanitized_aperture_size()),
 			_rm_gttmm(rm.create(_mmio->size())),
 			_rm_gmadr(rm.create(aperture_reserved())),
 			_range_gttmm(1ul << 30, _mmio->size()),
 			_range_gmadr(1ul << 29, aperture_reserved())
 		{
-			log("Aperture max: ", Number_of_bytes(_gmadr->size()),
-			    " display: ", Number_of_bytes(_aperture_reserved));
-
-			/* reserved space is used to calculate vGPU available */
-			if (_gmadr->size() == _aperture_reserved)
-				warning("GPU service not usable due to insufficient aperture space");
-
 			_irq->sigh(_irq_cap);
 
 			/* GTT starts at half of the mmio memory */
@@ -554,18 +591,10 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 			}
 		}
 
-		void with_mmio_gmadr(auto const &fn, auto const &fn_error)
-		{
-			if (!_mmio.constructed() || !_gmadr.constructed()) {
-				fn_error();
-				return;
-			}
-
-			fn(*_mmio, *_gmadr);
-		}
-
 		void with_gmadr(auto const offset, auto const &fn, auto const &fn_error)
 		{
+			_make_aperture_accessible();
+
 			if (!_gmadr.constructed() || !_gmadr_mem.constructed()) {
 				fn_error();
 				return;
@@ -592,6 +621,23 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 
 		void with_gttm_gmadr(auto const &fn)
 		{
+			bool attach_required = _make_aperture_accessible();
+
+			if (attach_required) {
+				_rm_gmadr.detach(0ul);
+				if (_rm_gmadr.attach(_gmadr->cap(), {
+					.size       = size_t(aperture_reserved()),
+					.offset     = { },
+					.use_at     = true,
+					.at         = 0,
+					.executable = { },
+					.writeable  = true
+				}).failed()) {
+					error("failed to re-attach gmadr");
+					return;
+				}
+			}
+
 			fn(_platform, _rm_gttmm, _range_gttmm, _rm_gmadr, _range_gmadr);
 		}
 
@@ -605,25 +651,30 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 			_irq->sigh(_irq_cap);
 
 			_mmio.construct(*_device, _env);
-			_gmadr.construct(*_device, Platform::Device::Mmio<0>::Index(1));
-			_gmadr_mem.construct(_env.rm(), _gmadr->cap());
 
 			_reinit();
 		}
 
 		void release_device()
 		{
-			_gmadr_mem.destruct();
-			_gmadr.destruct();
+			release_aperture_access();
+
 			_mmio.destruct();
 			_irq.destruct();
 			_device.destruct();
+		}
+
+		void release_aperture_access()
+		{
+			_gmadr_mem.destruct();
+			_gmadr.destruct();
 		}
 
 		/*
 		 * Reserved aperture for platform service
 		 */
 		uint64_t aperture_reserved() const { return _aperture_reserved; }
+		uint64_t aperture_size()     const { return _aperture_size; }
 
 		uint64_t gtt_reserved() const
 		{
@@ -695,6 +746,8 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 		{
 			if (_session.constructed())
 				_session.destruct();
+
+			_resources.release_aperture_access();
 		}
 
 		bool handle_irq()

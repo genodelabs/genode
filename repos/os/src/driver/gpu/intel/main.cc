@@ -1187,7 +1187,9 @@ struct Igd::Device
 
 				_active_vgpu->rcs.with_context_ring([&](auto &context, auto &ring) {
 					context.dump();
-					_hw_status_page->dump();
+
+					with_hw_status_page([&](auto & hw_status) {
+						hw_status.dump(); });
 
 					ring.update_head(context.head_offset());
 					ring.dump(4096, context.tail_offset() * 2,
@@ -1286,12 +1288,12 @@ struct Igd::Device
 	{
 		using namespace Genode;
 
-		_resources.with_mmio_gmadr([&](auto &mmio, auto &gmadr) {
+		_resources.with_mmio([&](auto &mmio) {
 			_resources.with_platform([&](auto &plat_con) {
 				auto const ggtt_base = mmio.base() + (mmio.size() / 2);
 
 				_ggtt.construct(plat_con, mmio, ggtt_base,
-				                _ggtt_size(gmch_ctl), gmadr.size(),
+				                _ggtt_size(gmch_ctl), _resources.aperture_size(),
 				                _resources.aperture_reserved());
 
 				if (!_supported(mmio, supported, device_id, revision))
@@ -1299,7 +1301,7 @@ struct Igd::Device
 
 				_ggtt->dump();
 
-				_vgpu_avail = (gmadr.size() - _resources.aperture_reserved())
+				_vgpu_avail = (_resources.aperture_size() - _resources.aperture_reserved())
 				            / Vgpu::DUMMY_MESA_APERTURE_SIZE;
 
 				reinit(mmio);
@@ -1320,12 +1322,6 @@ struct Igd::Device
 		/* setup global hardware status page */
 		if (!_hw_status_ctx.constructed())
 			_hw_status_ctx.construct(_md_alloc, *this, 1, 0);
-		if (!_hw_status_page.constructed()) {
-			/* global hw_status_ctx becomes never invalid up to now, so using vrange is ok */
-			_hw_status_ctx->with_vrange([&](Byte_range_ptr const &vrange) {
-				_hw_status_page.construct(vrange);
-			});
-		}
 
 		Mmio::HWS_PGA_RCSUNIT::access_t const addr = _hw_status_ctx->gmaddr();
 		mmio.write_post<Igd::Mmio::HWS_PGA_RCSUNIT>(addr);
@@ -1567,18 +1563,42 @@ struct Igd::Device
 		return hw_status_page_gmaddr() + Hardware_status_page::Semaphore::OFFSET;
 	}
 
+	void with_hw_status_page(auto const &fn)
+	{
+		if (!_hw_status_ctx.constructed())
+			return;
+
+		if (!_hw_status_page.constructed()) {
+			/* global hw_status_ctx becomes never invalid up to now, so using vrange is ok */
+			_hw_status_ctx->with_vrange([&](Byte_range_ptr const &vrange) {
+				_hw_status_page.construct(vrange);
+			});
+		}
+
+		if (!_hw_status_page.constructed())
+			return;
+
+		fn(*_hw_status_page);
+	}
+
 	/*
 	 * Pause the physical ring by setting semaphore value programmed by
 	 * 'setup_ring_vram' to 1, causing GPU to spin.
 	 */
 	void hw_status_page_pause_ring(bool pause)
 	{
-		_hw_status_page->semaphore(pause ? 1 : 0);
+		with_hw_status_page([&](auto & hw_status) {
+			hw_status.semaphore(pause ? 1 : 0); });
 	}
 
 	uint64_t seqno()
 	{
-		return _hw_status_page->sequence_number();
+		uint64_t seq = 0;
+
+		with_hw_status_page([&](auto & hw_status) {
+			seq = hw_status.sequence_number(); });
+
+		return seq;
 	}
 
 
