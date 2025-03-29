@@ -1321,8 +1321,9 @@ struct Sculpt::Main : Input_event_handler,
 				fn(win); });
 	}
 
-	Expanding_reporter _wm_focus      { _env, "focus",         "wm_focus" };
-	Expanding_reporter _window_layout { _env, "window_layout", "window_layout" };
+	Expanding_reporter _wm_focus       { _env, "focus",          "wm_focus" };
+	Expanding_reporter _window_layout  { _env, "window_layout",  "window_layout" };
+	Expanding_reporter _resize_request { _env, "resize_request", "resize_request" };
 
 	void _reset_storage_widget_operation()
 	{
@@ -2107,7 +2108,17 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		return Area(win.attribute_value("width",  0U),
 		            win.attribute_value("height", 0U)); };
 
-	_window_layout.generate([&] (Xml_generator &xml) {
+	auto generate_within_screen_boundary = [&] (auto const &fn)
+	{
+		_resize_request.generate([&] (Xml_generator &resize_xml) {
+			_window_layout.generate([&] (Xml_generator &xml) {
+				xml.node("boundary", [&] {
+					xml.attribute("width",  _screen_size.w);
+					xml.attribute("height", _screen_size.h);
+					fn(xml, resize_xml); }); }); });
+	};
+
+	generate_within_screen_boundary([&] (Xml_generator &xml, Xml_generator &) {
 
 		auto gen_window = [&] (Xml_node const &win, Rect rect) {
 			if (rect.valid()) {
