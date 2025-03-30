@@ -35,7 +35,6 @@ class Core::Core_cap_index : public Native_capability::Data
 
 		Pd_session_component  *_session;
 		Platform_thread const *_pt;
-		Native_thread          _gate;
 
 		/*
 		 * Noncopyable
@@ -46,15 +45,13 @@ class Core::Core_cap_index : public Native_capability::Data
 	public:
 
 		Core_cap_index(Pd_session_component *session = 0,
-		               Platform_thread      *pt      = 0,
-		               Native_thread         gate    = Native_thread() )
+		               Platform_thread      *pt      = 0)
 		:
-			_session(session), _pt(pt), _gate(gate)
+			_session(session), _pt(pt)
 		{ }
 
 		Pd_session_component const *session() const { return _session; }
 		Platform_thread      const *pt()      const { return _pt; }
-		Native_thread        gate()           const { return _gate; }
 
 		void session(Pd_session_component *c) { _session = c; }
 		void pt(Platform_thread const *t)     { _pt = t;      }
