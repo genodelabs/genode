@@ -61,7 +61,7 @@ void Pager_entrypoint::entry()
 
 					/* handle request */
 					if (obj->pager(_pager) == Pager_object::Pager_result::CONTINUE) {
-						_pager.set_reply_dst(Native_thread(obj->badge()));
+						_pager.set_reply_dst({ .kcap = obj->badge() });
 						reply_pending = true;
 						return;
 					}
@@ -79,7 +79,7 @@ void Pager_entrypoint::entry()
 					 */
 
 					/* send reply to the caller */
-					_pager.set_reply_dst(Native_thread());
+					_pager.set_reply_dst({ });
 					_pager.acknowledge_wakeup();
 
 					{
@@ -91,7 +91,7 @@ void Pager_entrypoint::entry()
 					}
 
 					/* send wake up message to requested thread */
-					_pager.set_reply_dst(Native_thread(obj->badge()));
+					_pager.set_reply_dst({ .kcap = obj->badge() });
 					_pager.acknowledge_exception();
 					break;
 				}
@@ -113,7 +113,7 @@ void Pager_entrypoint::entry()
 					 * that case we unblock it immediately.
 					 */
 					if (!obj->state.paused) {
-						_pager.set_reply_dst(Native_thread(obj->badge()));
+						_pager.set_reply_dst({ .kcap = obj->badge() });
 						reply_pending = true;
 					}
 					break;

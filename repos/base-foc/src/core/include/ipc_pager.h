@@ -16,22 +16,11 @@
 #define _CORE__INCLUDE__IPC_PAGER_H_
 
 /* Genode includes */
-#include <base/ipc.h>
-#include <base/stdint.h>
-#include <base/native_capability.h>
-#include <base/thread_state.h>
-#include <util/touch.h>
 #include <foc/native_capability.h>
 #include <foc/thread_state.h>
 
-/* base-internal includes */
-#include <base/internal/native_thread.h>
-
 /* core includes */
 #include <mapping.h>
-
-/* Fiasco.OC includes */
-#include <foc/syscall.h>
 
 namespace Core { class Ipc_pager; }
 
@@ -44,7 +33,9 @@ class Core::Ipc_pager : public Native_capability
 
 	private:
 
-		Native_thread      _last    { };        /* origin of last fault     */
+		struct Last { Foc::l4_cap_idx_t kcap; };
+
+		Last               _last    { };        /* origin of last fault     */
 		addr_t             _pf_addr { 0 };      /* page-fault address       */
 		addr_t             _pf_ip   { 0 };      /* ip of faulter            */
 		Mapping            _reply_mapping { };  /* page-fault answer        */
@@ -97,7 +88,7 @@ class Core::Ipc_pager : public Native_capability
 		/**
 		 * Set destination for next reply
 		 */
-		void set_reply_dst(Native_thread t) { _last = t; }
+		void set_reply_dst(Last last) { _last = last; }
 
 		/**
 		 * Answer call without sending a flex-page mapping
@@ -115,7 +106,7 @@ class Core::Ipc_pager : public Native_capability
 		/**
 		 * Return thread ID of last faulter
 		 */
-		Native_thread last() const { return _last; }
+		Last last() const { return _last; }
 
 		/**
 		 * Return badge for faulting thread
