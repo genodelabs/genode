@@ -9,7 +9,7 @@
 #
 
 assert {[have_spec x86_64]}
-assert {[have_spec nova]}
+assert {[have_spec nova] || [have_spec hw]}
 assert {![have_include power_on/qemu]}
 
 create_boot_directory
@@ -104,7 +104,7 @@ install_config {
 	<start name="usb" ram="16M" priority="-1">
 		<binary name="pc_usb_host"/>
 		<provides> <service name="Usb"/> </provides>
-		<config>
+		<config bios_handoff="no">
 			<report devices="yes" config="yes"/>
 			<policy label_prefix="virtualbox"> <device class="0x3"/> </policy>
 		</config>
@@ -182,6 +182,9 @@ puts "--- executing the 'usb_hid_raw' run script to generate the 'usb_hid_raw.is
 global specs
 global repositories
 
+if [have_spec nova] { set kernel nova }
+if [have_spec hw]   { set kernel hw }
+
 set depot_auto_update ""
 if {[have_cmd_switch --depot-auto-update]} {
 	set depot_auto_update "--depot-auto-update"
@@ -198,7 +201,7 @@ exec -ignorestderr \
      --depot-user [depot_user] \
      $depot_auto_update \
      --cross-dev-prefix "[cross_dev_prefix]" \
-     --include boot_dir/nova \
+     --include "boot_dir/$kernel" \
      --include image/iso \
      --include [repository_contains run/usb_hid_raw.run]/run/usb_hid_raw.run
 
