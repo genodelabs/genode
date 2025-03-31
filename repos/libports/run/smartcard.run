@@ -97,7 +97,7 @@ install_config {
 # Define USB host controller config
 #
 append usb_config {
-<config bios_handoff="yes">
+<config bios_handoff="no">
 	<report devices="yes"/>
 	<policy label="test-smartcard -> "><device vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/></policy>
 </config>}

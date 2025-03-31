@@ -105,7 +105,7 @@ install_config {
 #
 # Define USB host controller config
 #
-set config {<config bios_handoff="yes">}
+set config {<config bios_handoff="no">}
 append_if [have_board rpi] config {
 	<policy label_prefix="usb_net">
 		<device vendor_id="0x0424" product_id="0xec00"/> </policy>}

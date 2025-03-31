@@ -424,7 +424,7 @@ install_config $config
 #
 if { $use_usb_driver } {
 	set fd [open [run_dir]/genode/usb_host.config w]
-	append usb_config {<config bios_handoff="yes">}
+	append usb_config {<config bios_handoff="no">}
 	append_if [have_board rpi] usb_config {
 		<policy label_prefix="nic">
 			<device vendor_id="0x0424" product_id="0xec00"/>
