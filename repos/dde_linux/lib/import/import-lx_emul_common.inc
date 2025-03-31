@@ -150,7 +150,7 @@ CC_C_OPT += -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs
 CC_C_OPT += -Werror=implicit-function-declaration -Werror=implicit-int
 CC_C_OPT += -Werror=return-type -Wno-format-security -Wno-psabi -Wno-sign-compare
 CC_C_OPT += -Wno-frame-address -Wno-format-truncation -Wno-format-overflow -Wno-address-of-packed-member
-CC_C_OPT += -Wframe-larger-than=2048 -Wno-main -Wno-unused-but-set-variable -Wimplicit-fallthrough
+CC_C_OPT += -Wno-main -Wno-unused-but-set-variable -Wimplicit-fallthrough
 CC_C_OPT += -Wno-unused-const-variable -Wdeclaration-after-statement -Wvla
 CC_C_OPT += -Wno-pointer-sign -Wcast-function-type -Wno-stringop-truncation -Wno-array-bounds -Wno-stringop-overflow
 CC_C_OPT += -Wno-restrict -Wno-maybe-uninitialized -Werror=date-time
