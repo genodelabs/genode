@@ -56,6 +56,7 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char connected,
                                    char valid_fb,
                                    unsigned brightness,
+                                   char const *display_name,
                                    unsigned width_mm, unsigned height_mm);
 void lx_emul_i915_iterate_modes(void *lx_data, void * genode_data);
 void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *);

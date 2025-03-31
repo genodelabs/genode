@@ -15,6 +15,7 @@
 #include <linux/sched/task.h>
 
 #include <drm/drm_client.h>
+#include <drm/drm_edid.h>
 #include <drm_crtc_internal.h>
 
 #include "i915_drv.h"
@@ -855,6 +856,29 @@ void lx_user_init(void)
 }
 
 
+static void display_name_from_edid(struct drm_property_blob *edid_blob_ptr,
+                                   char *name, size_t capacity)
+{
+	struct edid const *edid = edid_blob_ptr->data;
+	if (!edid)
+		return;
+
+	drm_edid_get_monitor_name(edid, name, capacity);
+
+	/* fall back to PNP ID */
+	if (name[0] == 0) {
+		u32 const panel_id = (u32)edid->mfg_id[0] << 24
+		                   | (u32)edid->mfg_id[1] << 16
+		                   | (u32)EDID_PRODUCT_ID(edid);
+		u16 prod;
+		char vend[4];
+
+		drm_edid_decode_panel_id(panel_id, vend, &prod);
+		snprintf(name, capacity, "%.3s%04X", vend, prod);
+	}
+}
+
+
 static void _report_connectors(void * genode_data, bool const discrete)
 {
 	struct drm_connector_list_iter   conn_iter;
@@ -868,17 +892,23 @@ static void _report_connectors(void * genode_data, bool const discrete)
 
 		struct genode_mode conf_mode = {};
 
+		char display_name[16] = { 0 };
+
 		/* read configuration for connector */
 		lx_emul_i915_connector_config(connector->name, &conf_mode);
 
 		if ((discrete && conf_mode.mirror) || (!discrete && !conf_mode.mirror))
 			continue;
 
+		if (connector->edid_blob_ptr)
+			display_name_from_edid(connector->edid_blob_ptr, display_name, sizeof(display_name));
+
 		lx_emul_i915_report_connector(connector, genode_data,
 		                              connector->name,
 		                              connector->status != connector_status_disconnected,
 		                              valid_fb,
 		                              get_brightness(connector, INVALID_BRIGHTNESS),
+		                              *display_name ? display_name : 0,
 		                              connector->display_info.width_mm,
 		                              connector->display_info.height_mm);
 	}

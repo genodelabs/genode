@@ -36,7 +36,7 @@ The exported report has the following format:
 !       <mode width="1920" height="1080" hz="60" id="1" preferred="true" used="true" width_mm="288" height_mm="165"/>
 !       ...
 !     </connector>
-!     <connector name="DP-1" connected="true" width_mm="280" height_mm="160">
+!     <connector name="DP-1" connected="true" display_name="ACME 123" width_mm="280" height_mm="160">
 !       <mode width="1920" height="1200" hz="60" id="1" preferred="true" width_mm="280" height_mm="160"/>
 !       <mode width="1920" height="1080" hz="60" id="2" used="true" width_mm="278" height_mm="158"/>
 !       <mode width="1280" height="1024" hz="60" id="3"/>
@@ -47,6 +47,7 @@ The exported report has the following format:
 !   </merge>
 ! </connectors>
 
+If available, the EDID display name is reported via 'display_name'.
 The physical dimension of the display is reported as 'width_mm' and 'height_mm'
 in millimeter per connector and if available, also per mode. The values can
 be used as input to DPI calculations. The currently used mode of the connector

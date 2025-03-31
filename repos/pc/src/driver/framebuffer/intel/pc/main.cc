@@ -683,8 +683,9 @@ int lx_emul_i915_action_to_process(int const action_failed)
 void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char const *name, char const connected,
                                    char const /* fb_available */,
-                                   unsigned brightness, unsigned width_mm,
-                                   unsigned height_mm)
+                                   unsigned brightness,
+                                   char const *display_name,
+                                   unsigned width_mm, unsigned height_mm)
 {
 	auto &xml = *reinterpret_cast<Genode::Xml_generator *>(genode_xml);
 
@@ -692,6 +693,8 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
 	{
 		xml.attribute("connected", !!connected);
 		xml.attribute("name", name);
+		if (display_name)
+			xml.attribute("display_name", display_name);
 		if (width_mm)
 			xml.attribute("width_mm" , width_mm);
 		if (height_mm)
