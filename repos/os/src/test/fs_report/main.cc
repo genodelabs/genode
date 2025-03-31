@@ -30,7 +30,7 @@ struct Test::Main
 {
 	Env &_env;
 
-	Genode::Heap _heap { _env.pd(), _env.rm() };
+	Genode::Heap _heap { _env.ram(), _env.rm() };
 
 	Timer::Connection _timer { _env };
 

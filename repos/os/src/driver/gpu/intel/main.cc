@@ -149,7 +149,7 @@ struct Igd::Device
 		 * RAM allocator interface
 		 */
 
-		size_t dataspace_size(Ram_dataspace_capability) const override { return 0; }
+		size_t dataspace_size(Ram_dataspace_capability) override { return 0; }
 
 		Alloc_result try_alloc(size_t size, Cache) override
 		{

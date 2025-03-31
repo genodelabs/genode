@@ -31,8 +31,11 @@ static void test_linux_rmmap_bug(Env &env)
 
 	log("line: ", __LINE__);
 	for (unsigned i = 0; i < ROUNDS; ++i) {
-		Ram_dataspace_capability ds(pd.alloc(CHUNK));
-		log(i + 1, " of ", (unsigned)ROUNDS, " pages allocated");
+		Pd_session::Alloc_ram_result const result = pd.alloc_ram(CHUNK);
+		if (result.ok())
+			log(i + 1, " of ", (unsigned)ROUNDS, " pages allocated");
+		else
+			error("allocation ", i + 1, " of ", (unsigned)ROUNDS, " failed");
 	}
 
 	log("Done.");

@@ -50,6 +50,8 @@ struct Genode::Component_env : Env
 	Capability<Pd_session>  _pd_cap  = _platform.pd.rpc_cap();
 	Capability<Cpu_session> _cpu_cap = _platform.cpu.rpc_cap();
 
+	Pd_ram_allocator _ram { _pd  };
+
 	Entrypoint &_ep;
 
 	/**
@@ -81,11 +83,12 @@ struct Genode::Component_env : Env
 		_platform(platform), _ep(ep)
 	{ }
 
-	Parent      &parent() override { return _parent; }
-	Cpu_session &cpu()    override { return _cpu; }
-	Region_map  &rm()     override { return _rm; }
-	Pd_session  &pd()     override { return _pd; }
-	Entrypoint  &ep()     override { return _ep; }
+	Parent        &parent() override { return _parent; }
+	Cpu_session   &cpu()    override { return _cpu; }
+	Region_map    &rm()     override { return _rm; }
+	Pd_session    &pd()     override { return _pd; }
+	Ram_allocator &ram()    override { return _ram; }
+	Entrypoint    &ep()     override { return _ep; }
 
 	Cpu_session_capability cpu_session_cap() override { return _cpu_cap; }
 	Pd_session_capability  pd_session_cap()  override { return _pd_cap; }

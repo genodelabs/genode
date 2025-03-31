@@ -91,7 +91,7 @@ struct Genode::Ram_allocator : Interface, Noncopyable
 	/**
 	 * Return size of dataspace in bytes
 	 */
-	virtual size_t dataspace_size(Ram_dataspace_capability) const = 0;
+	virtual size_t dataspace_size(Ram_dataspace_capability) = 0;
 };
 
 
@@ -165,7 +165,7 @@ class Genode::Accounted_ram_allocator : public Ram_allocator
 			_cap_guard.replenish(Cap_quota{1});
 		}
 
-		size_t dataspace_size(Ram_dataspace_capability ds) const override
+		size_t dataspace_size(Ram_dataspace_capability ds) override
 		{
 			return _ram_alloc.dataspace_size(ds);
 		}

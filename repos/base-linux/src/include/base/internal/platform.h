@@ -52,9 +52,11 @@ struct Genode::Platform
 
 	Local_pd_session pd { parent, pd_cap };
 
+	Pd_ram_allocator ram { pd };
+
 	Expanding_cpu_session_client cpu { parent, cpu_cap, Parent::Env::cpu() };
 
-	Heap heap { pd, rm };
+	Heap heap { ram, rm };
 
 	Platform() { _attach_stack_area(); }
 

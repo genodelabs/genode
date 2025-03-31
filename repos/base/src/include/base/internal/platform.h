@@ -47,11 +47,13 @@ struct Genode::Platform : Noncopyable
 	Expanding_region_map_client rm {
 		parent, pd.rpc_cap(), pd.address_space(), Parent::Env::pd() };
 
+	Pd_ram_allocator ram { pd };
+
 	Attached_stack_area stack_area { parent, pd.rpc_cap() };
 
 	Platform()
 	{
-		env_stack_area_ram_allocator = &pd;
+		env_stack_area_ram_allocator = &ram;
 		env_stack_area_region_map    = &stack_area;
 	}
 };

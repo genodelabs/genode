@@ -31,7 +31,7 @@ struct Sequence::Child : Genode::Child_policy
 {
 	Genode::Env &_env;
 
-	Heap _services_heap { _env.pd(), _env.rm() };
+	Heap _services_heap { _env.ram(), _env.rm() };
 
 	static Binary_name _start_binary(Name const &name, Xml_node const &start_node)
 	{
@@ -46,7 +46,7 @@ struct Sequence::Child : Genode::Child_policy
 	Binary_name const _binary_name;
 
 	Child_policy_dynamic_rom_file _config_policy {
-		_env.rm(), "config", _env.ep().rpc_ep(), &_env.pd() };
+		_env.rm(), "config", _env.ep().rpc_ep(), &_env.ram() };
 
 	class Parent_service : public Genode::Parent_service
 	{
@@ -133,7 +133,7 @@ struct Sequence::Child : Genode::Child_policy
 		return route(service);
 	}
 
-	Ram_allocator &session_md_ram() override { return _env.pd(); }
+	Ram_allocator &session_md_ram() override { return _env.ram(); }
 
 	/**
 	 * Only a single child is managed at a time so

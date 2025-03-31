@@ -33,5 +33,5 @@ void Platform::_attach_stack_area()
 	});
 
 	env_stack_area_region_map    = &pd._stack_area;
-	env_stack_area_ram_allocator = &pd;
+	env_stack_area_ram_allocator = &ram;
 }

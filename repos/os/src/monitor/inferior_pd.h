@@ -231,27 +231,27 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 	Cap_quota used_caps() const override {
 		return _real.call<Rpc_used_caps>(); }
 
-	Alloc_result try_alloc(size_t size, Cache cache = CACHED) override
+	Alloc_ram_result alloc_ram(size_t size, Cache cache = CACHED) override
 	{
-		return _real.call<Rpc_try_alloc>(size, cache).convert<Alloc_result>(
-			[&] (Ram_dataspace_capability cap) -> Alloc_result {
+		return _real.call<Rpc_alloc_ram>(size, cache).convert<Alloc_ram_result>(
+			[&] (Ram_dataspace_capability cap) -> Alloc_ram_result {
 				new (_alloc) Ram_ds(_ram_dataspaces, cap);
 				return cap;
 			},
-			[&] (Alloc_error e) -> Alloc_result { return e; });
+			[&] (Alloc_ram_error e) -> Alloc_ram_result { return e; });
 	}
 
-	void free(Ram_dataspace_capability ds) override
+	void free_ram(Ram_dataspace_capability ds) override
 	{
 		_ram_dataspaces.apply<Ram_ds &>(Ram_ds::id(ds), [&] (Ram_ds &ram_ds) {
 			_wipe_ram_ds(ram_ds); });
 
-		_real.call<Rpc_free>(ds);
+		_real.call<Rpc_free_ram>(ds);
 	}
 
-	size_t dataspace_size(Ram_dataspace_capability ds) const override
+	size_t ram_size(Ram_dataspace_capability ds) override
 	{
-		return ds.valid() ? Dataspace_client(ds).size() : 0;
+		return _real.call<Rpc_ram_size>(ds);
 	}
 
 	Ram_quota ram_quota() const override {

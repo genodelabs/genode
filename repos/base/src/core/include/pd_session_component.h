@@ -59,6 +59,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 
 		Rpc_entrypoint         &_ep;
 		Core::System_control   &_system_control;
+		Pd_ram_allocator        _pd_ram;
 		Accounted_ram_allocator _accounted_md_ram_alloc;
 		Accounted_core_ram      _accounted_core_ram_alloc;
 		Sliced_heap             _sliced_heap;
@@ -148,7 +149,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			Session_object(ep, resources, label, diag),
 			_ep(ep),
 			_system_control(system_control),
-			_accounted_md_ram_alloc(*this, _ram_quota_guard(), _cap_quota_guard()),
+			_pd_ram(*this),
+			_accounted_md_ram_alloc(_pd_ram, _ram_quota_guard(), _cap_quota_guard()),
 			_accounted_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
 			_sliced_heap(_accounted_md_ram_alloc, local_rm),
 			_ram_ds_factory(ep, phys_alloc, phys_range,
@@ -356,11 +358,11 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		 ** RAM allocation and accounting **
 		 ***********************************/
 
-		Alloc_result try_alloc(size_t, Cache) override;
+		Alloc_ram_result alloc_ram(size_t, Cache) override;
 
-		void free(Ram_dataspace_capability) override;
+		void free_ram(Ram_dataspace_capability) override;
 
-		size_t dataspace_size(Ram_dataspace_capability) const override;
+		size_t ram_size(Ram_dataspace_capability) override;
 
 
 		/*******************************************

@@ -83,7 +83,7 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 
 		Ram_quota_guard        _ram_guard;
 		Cap_quota_guard        _cap_guard;
-		Ram_allocator          _ram      { _env.pd(), _ram_guard, _cap_guard };
+		Ram_allocator          _ram      { _env.ram(), _ram_guard, _cap_guard };
 		Heap                   _md_alloc { _ram, _env.rm() };
 
 		Ram_quota              _reclaim_ram { 0 };

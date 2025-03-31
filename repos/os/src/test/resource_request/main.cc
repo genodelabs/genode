@@ -220,7 +220,7 @@ void Component::construct(Genode::Env &env)
 	 * which is the most likely case in normal scenarios.
 	 */
 	log("\n-- out-of-memory during RAM allocation --");
-	env.pd().alloc(512*1024);
+	env.ram().alloc(512*1024);
 	print_quota_stats(env.pd());
 	size_t const used_quota_after_alloc = env.pd().used_ram().value;
 

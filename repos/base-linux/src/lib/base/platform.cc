@@ -156,7 +156,7 @@ Platform &Genode::init_platform()
 	init_thread(platform.cpu, platform.rm);
 	init_thread_start(platform.pd.rpc_cap());
 	init_thread_bootstrap(platform.cpu, platform.parent.main_thread_cap());
-	init_exception_handling(platform.pd, platform.rm);
+	init_exception_handling(platform.ram, platform.rm);
 	init_signal_receiver(platform.pd, platform.parent);
 
 	return platform;

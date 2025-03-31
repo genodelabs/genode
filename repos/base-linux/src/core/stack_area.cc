@@ -81,7 +81,7 @@ struct Stack_area_ram_allocator : Genode::Ram_allocator
 
 	void free(Genode::Ram_dataspace_capability) override { }
 
-	Genode::size_t dataspace_size(Genode::Ram_dataspace_capability) const override { return 0; }
+	Genode::size_t dataspace_size(Genode::Ram_dataspace_capability) override { return 0; }
 };
 
 

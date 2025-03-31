@@ -75,16 +75,16 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	Cap_quota cap_quota() const override { return call<Rpc_cap_quota>(); }
 	Cap_quota used_caps() const override { return call<Rpc_used_caps>(); }
 
-	Alloc_result try_alloc(size_t size, Cache cache = CACHED) override
+	Alloc_ram_result alloc_ram(size_t size, Cache cache = CACHED) override
 	{
-		return call<Rpc_try_alloc>(size, cache);
+		return call<Rpc_alloc_ram>(size, cache);
 	}
 
-	void free(Ram_dataspace_capability ds) override { call<Rpc_free>(ds); }
+	void free_ram(Ram_dataspace_capability ds) override { call<Rpc_free_ram>(ds); }
 
-	size_t dataspace_size(Ram_dataspace_capability ds) const override
+	size_t ram_size(Ram_dataspace_capability cap) override
 	{
-		return ds.valid() ? Dataspace_client(ds).size() : 0;
+		return call<Rpc_ram_size>(cap);
 	}
 
 	Transfer_result transfer_quota(Capability<Pd_account> pd, Ram_quota amount) override

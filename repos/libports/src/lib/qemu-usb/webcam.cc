@@ -159,7 +159,7 @@ struct Capture_webcam
 			_libyuv_ds.destruct();
 
 		if (!_libyuv_ds.constructed() || _libyuv_ds->size() != size)
-			_libyuv_ds.construct(_env.pd(), _env.rm(), size);
+			_libyuv_ds.construct(_env.ram(), _env.rm(), size);
 
 		_libyuv_alloc_in_use = true;
 

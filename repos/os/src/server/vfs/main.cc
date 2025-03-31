@@ -451,7 +451,7 @@ class Vfs_server::Session_component : private Session_resources,
 		                  char          const *root_path,
 		                  bool                 writeable)
 		:
-			Session_resources(env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size),
+			Session_resources(env.ram(), env.rm(), ram_quota, cap_quota, tx_buf_size),
 			Session_rpc_object(_packet_ds.cap(), env.rm(), env.ep().rpc_ep()),
 			_vfs(vfs),
 			_io(io),

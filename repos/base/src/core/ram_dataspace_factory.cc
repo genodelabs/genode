@@ -17,12 +17,12 @@
 using namespace Core;
 
 
-Ram_allocator::Alloc_result
-Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
+Ram_dataspace_factory::Alloc_ram_result
+Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size)
-			return Alloc_error::DENIED;
+			return Alloc_ram_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
@@ -82,9 +82,13 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 		error("out of physical memory while allocating ", ds_size, " bytes ",
 		      "in range [", Hex(_phys_range.start), "-", Hex(_phys_range.end), "]");
 
-		return allocated_range.convert<Ram_allocator::Alloc_result>(
-			[&] (void *)            { return Alloc_error::DENIED; },
-			[&] (Alloc_error error) { return error; });
+		if (allocated_range == Allocator::Alloc_error::OUT_OF_RAM)
+			return Alloc_ram_error::OUT_OF_RAM;
+
+		if (allocated_range == Allocator::Alloc_error::OUT_OF_CAPS)
+			return Alloc_ram_error::OUT_OF_CAPS;
+
+		return Alloc_ram_error::DENIED;
 	}
 
 	/*
@@ -106,7 +110,7 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 
 	allocated_range.with_result(
 		[&] (void *ptr) { phys_alloc_guard.ds_addr = ptr; },
-		[&] (Alloc_error) { /* already checked above */ });
+		[&] (Allocator::Alloc_error) { /* already checked above */ });
 
 	/*
 	 * For non-cached RAM dataspaces, we mark the dataspace as write
@@ -119,9 +123,9 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 			Dataspace_component(ds_size, (addr_t)phys_alloc_guard.ds_addr,
 			                    cache, true, this);
 	}
-	catch (Out_of_ram)  { return Alloc_error::OUT_OF_RAM; }
-	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
-	catch (...)         { return Alloc_error::DENIED; }
+	catch (Out_of_ram)  { return Alloc_ram_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Alloc_ram_error::OUT_OF_CAPS; }
+	catch (...)         { return Alloc_ram_error::DENIED; }
 
 	Dataspace_component &ds = *ds_ptr;
 
@@ -132,7 +136,7 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 
 		/* cleanup unneeded resources */
 		destroy(_ds_slab, &ds);
-		return Alloc_error::DENIED;
+		return Alloc_ram_error::DENIED;
 	}
 
 	/*
@@ -150,7 +154,7 @@ Ram_dataspace_factory::try_alloc(size_t ds_size, Cache cache)
 }
 
 
-void Ram_dataspace_factory::free(Ram_dataspace_capability ds_cap)
+void Ram_dataspace_factory::free_ram(Ram_dataspace_capability ds_cap)
 {
 	Dataspace_component *ds = nullptr;
 	_ep.apply(ds_cap, [&] (Dataspace_component *c)
@@ -181,7 +185,7 @@ void Ram_dataspace_factory::free(Ram_dataspace_capability ds_cap)
 }
 
 
-size_t Ram_dataspace_factory::dataspace_size(Ram_dataspace_capability ds_cap) const
+size_t Ram_dataspace_factory::ram_size(Ram_dataspace_capability ds_cap)
 {
 	size_t result = 0;
 	_ep.apply(ds_cap, [&] (Dataspace_component *c) {

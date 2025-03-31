@@ -25,6 +25,7 @@
 namespace Genode {
 	struct Pd_account;
 	struct Pd_session;
+	struct Pd_ram_allocator;
 	struct Pd_session_client;
 	struct Parent;
 	struct Signal_context;
@@ -51,7 +52,7 @@ struct Genode::Pd_account : Interface, Noncopyable
 };
 
 
-struct Genode::Pd_session : Session, Pd_account, Ram_allocator
+struct Genode::Pd_session : Session, Pd_account
 {
 	/*
 	 * A PD session consumes a dataspace capability for the session-object
@@ -97,6 +98,38 @@ struct Genode::Pd_session : Session, Pd_account, Ram_allocator
 	 * silently ignore the request.
 	 */
 	virtual Map_result map(Virt_range) = 0;
+
+
+	/******************************
+	 ** RAM dataspace allocation **
+	 ******************************/
+
+	enum class Alloc_ram_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+
+	using Alloc_ram_result = Attempt<Ram_dataspace_capability, Alloc_ram_error>;
+
+	/**
+	 * Allocate RAM dataspace
+	 *
+	 * \param  size   size of RAM dataspace
+	 * \param  cache  selects cacheability attributes of the memory,
+	 *                uncached memory, i.e., for DMA buffers
+	 *
+	 * \return capability to RAM dataspace, or error code of type 'Alloc_error'
+	 */
+	virtual Alloc_ram_result alloc_ram(size_t size, Cache cache = CACHED) = 0;
+
+	/**
+	 * Free RAM dataspace
+	 *
+	 * \param ds  dataspace capability as returned by alloc_ram
+	 */
+	virtual void free_ram(Ram_dataspace_capability ds) = 0;
+
+	/**
+	 * Return size of dataspace in bytes
+	 */
+	virtual size_t ram_size(Ram_dataspace_capability) = 0;
 
 
 	/********************************
@@ -355,8 +388,9 @@ struct Genode::Pd_session : Session, Pd_account, Ram_allocator
 	GENODE_RPC(Rpc_ref_account, Ref_account_result, ref_account, Capability<Pd_account>);
 	GENODE_RPC(Rpc_cap_quota, Cap_quota, cap_quota);
 	GENODE_RPC(Rpc_used_caps, Cap_quota, used_caps);
-	GENODE_RPC(Rpc_try_alloc, Alloc_result, try_alloc, size_t, Cache);
-	GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
+	GENODE_RPC(Rpc_alloc_ram, Alloc_ram_result, alloc_ram, size_t, Cache);
+	GENODE_RPC(Rpc_free_ram, void, free_ram, Ram_dataspace_capability);
+	GENODE_RPC(Rpc_ram_size, size_t, ram_size, Ram_dataspace_capability);
 	GENODE_RPC(Rpc_ram_quota, Ram_quota, ram_quota);
 	GENODE_RPC(Rpc_used_ram, Ram_quota, used_ram);
 	GENODE_RPC(Rpc_native_pd, Capability<Native_pd>, native_pd);
@@ -372,10 +406,44 @@ struct Genode::Pd_session : Session, Pd_account, Ram_allocator
 		Rpc_alloc_context, Rpc_free_context, Rpc_submit,
 		Rpc_alloc_rpc_cap, Rpc_free_rpc_cap, Rpc_address_space,
 		Rpc_stack_area, Rpc_linker_area, Rpc_ref_account,
-		Rpc_cap_quota, Rpc_used_caps, Rpc_try_alloc, Rpc_free,
-		Rpc_ram_quota, Rpc_used_ram,
+		Rpc_alloc_ram, Rpc_free_ram, Rpc_ram_size,
+		Rpc_cap_quota, Rpc_used_caps, Rpc_ram_quota, Rpc_used_ram,
 		Rpc_native_pd, Rpc_system_control_cap,
 		Rpc_dma_addr, Rpc_attach_dma);
+};
+
+
+struct Genode::Pd_ram_allocator : Ram_allocator
+{
+	Pd_session &_pd;
+
+	Alloc_result try_alloc(size_t size, Cache cache) override
+	{
+		using Pd_error = Pd_session::Alloc_ram_error;
+		return _pd.alloc_ram(size, cache).convert<Alloc_result>(
+			[&] (Ram_dataspace_capability cap) { return cap; },
+			[&] (Pd_error e) {
+				switch (e) {
+				case Pd_error::OUT_OF_CAPS: return Alloc_error::OUT_OF_CAPS;
+				case Pd_error::OUT_OF_RAM: return Alloc_error::OUT_OF_RAM;;
+				case Pd_error::DENIED:
+					break;
+				}
+				return Alloc_error::DENIED;
+			});
+	}
+
+	void free(Ram_dataspace_capability ds) override
+	{
+		_pd.free_ram(ds);
+	}
+
+	size_t dataspace_size(Ram_dataspace_capability ds) override
+	{
+		return _pd.ram_size(ds);
+	}
+
+	Pd_ram_allocator(Pd_session &pd) : _pd(pd) { }
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

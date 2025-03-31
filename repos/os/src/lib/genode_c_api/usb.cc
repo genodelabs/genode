@@ -530,7 +530,7 @@ class Session_component
 		genode_shared_dataspace_free_t         _free_fn;
 		genode_usb_dev_release_t               _release_fn;
 
-		Accounted_ram_allocator    _env_ram     { _env.pd(),
+		Accounted_ram_allocator    _env_ram     { _env.ram(),
 		                                          _ram_quota_guard(),
 		                                          _cap_quota_guard()  };
 		Heap                       _heap        { _env_ram, _env.rm() };

@@ -121,7 +121,7 @@ class Driver::Session_component
 		Io_mmu_devices               & _io_mmu_devices;
 		Registry<Irq_controller>     & _irq_controller_registry;
 		Device::Owner                  _owner_id    { *this };
-		Accounted_ram_allocator        _env_ram     { _env.pd(),
+		Accounted_ram_allocator        _env_ram     { _env.ram(),
 		                                              _ram_quota_guard(),
 		                                              _cap_quota_guard()  };
 		Heap                           _md_alloc    { _env_ram, _env.rm() };

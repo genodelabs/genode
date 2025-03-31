@@ -67,6 +67,7 @@ class Libc::Env_implementation : public Libc::Env
 		Cpu_session   &cpu()    override { return _env.cpu(); }
 		Region_map    &rm()     override { return _env.rm(); }
 		Pd_session    &pd()     override { return _env.pd(); }
+		Ram_allocator &ram()    override { return _env.ram(); }
 		Entrypoint    &ep()     override { return _env.ep(); }
 
 		Cpu_session_capability cpu_session_cap() override {

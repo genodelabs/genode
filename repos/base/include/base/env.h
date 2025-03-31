@@ -44,9 +44,9 @@ struct Genode::Env : Interface
 	virtual Pd_session &pd() = 0;
 
 	/**
-	 * Memory allocator
+	 * RAM backing-store allocator
 	 */
-	Ram_allocator &ram() { return pd(); }
+	virtual Ram_allocator &ram() = 0;
 
 	/**
 	 * Entrypoint for handling RPC requests and signals

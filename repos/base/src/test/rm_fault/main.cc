@@ -215,7 +215,7 @@ class Test_child_policy : public Child_policy
 
 		Binary_name binary_name() const override { return "test-rm_fault"; }
 
-		Ram_allocator &session_md_ram() override { return _env.pd(); }
+		Ram_allocator &session_md_ram() override { return _env.ram(); }
 
 		Pd_account            &ref_account()           override { return _env.pd(); }
 		Capability<Pd_account> ref_account_cap() const override { return _env.pd_session_cap(); }

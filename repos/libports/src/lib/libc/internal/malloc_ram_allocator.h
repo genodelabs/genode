@@ -75,7 +75,7 @@ struct Libc::Malloc_ram_allocator : Ram_allocator
 				_release(ds); });
 	}
 
-	size_t dataspace_size(Ram_dataspace_capability ds_cap) const override
+	size_t dataspace_size(Ram_dataspace_capability ds_cap) override
 	{
 		return _ram.dataspace_size(ds_cap);
 	}

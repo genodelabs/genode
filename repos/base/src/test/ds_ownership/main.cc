@@ -27,13 +27,15 @@ void Component::construct(Genode::Env &env)
 	static Pd_connection pd_1 { env };
 	static Pd_connection pd_2 { env };
 
+	Pd_ram_allocator ram_1 { pd_1 }, ram_2 { pd_2 };
+
 	log("allocate dataspace from one RAM session");
 	pd_1.ref_account(env.pd_session_cap());
 	env.pd().transfer_quota(pd_1.cap(), Ram_quota{8*1024});
-	Ram_dataspace_capability ds = pd_1.alloc(sizeof(unsigned));
+	Ram_dataspace_capability ds = ram_1.alloc(sizeof(unsigned));
 
 	log("attempt to free dataspace from foreign RAM session");
-	pd_2.free(ds);
+	ram_2.free(ds);
 
 	log("try to attach dataspace to see if it still exists");
 	env.rm().attach(ds, { });
@@ -42,7 +44,7 @@ void Component::construct(Genode::Env &env)
 
 	log("free dataspace from legitimate RAM session");
 	Ram_quota const quota_before_free { pd_1.avail_ram() };
-	pd_1.free(ds);
+	ram_1.free(ds);
 	Ram_quota const quota_after_free { pd_1.avail_ram() };
 
 	if (quota_after_free.value > quota_before_free.value)

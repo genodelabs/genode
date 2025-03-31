@@ -299,7 +299,7 @@ class Lx_fs::Session_component : private Session_resources,
 		                  bool                 writeable,
 		                  Notifier            &notifier)
 		:
-			Session_resources { env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size },
+			Session_resources { env.ram(), env.rm(), ram_quota, cap_quota, tx_buf_size },
 			Session_rpc_object {_packet_ds.cap(), env.rm(), env.ep().rpc_ep() },
 			_env { env },
 			_root { *new (&_alloc) Directory { _alloc, root_dir, false } },

@@ -232,7 +232,7 @@ class Vfs_import::File_system : public Vfs::File_system
 	public:
 
 		File_system(Vfs::Env &env, Genode::Xml_node const &config)
-		: _heap(env.env().pd(), env.env().rm())
+		: _heap(env.env().ram(), env.env().rm())
 		{
 			bool overwrite = config.attribute_value("overwrite", false);
 

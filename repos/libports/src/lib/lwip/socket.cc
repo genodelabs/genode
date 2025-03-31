@@ -75,7 +75,7 @@ Errno Socket::genode_errno(Lwip::err_t errno)
 struct Socket::Main
 {
 	Env  &_env;
-	Heap  _heap { _env.pd(), _env.rm() };
+	Heap  _heap { _env.ram(), _env.rm() };
 
 	Timer::Connection _timer { _env, "vfs_lwip" };
 

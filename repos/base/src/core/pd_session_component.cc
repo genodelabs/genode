@@ -19,23 +19,22 @@
 using namespace Core;
 
 
-Ram_allocator::Alloc_result
-Pd_session_component::try_alloc(size_t ds_size, Cache cache)
+Pd_session::Alloc_ram_result
+Pd_session_component::alloc_ram(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size)
-		return Alloc_error::DENIED;
+		return Alloc_ram_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
 
-	using Result      = Ram_allocator::Alloc_result;
 	using Reservation = Genode::Reservation;
 
 	/* track quota use */
-	return _ram_quota_guard().with_reservation<Result>(Ram_quota{ds_size},
+	return _ram_quota_guard().with_reservation<Alloc_ram_result>(Ram_quota{ds_size},
 
-		[&] (Reservation &ram_reservation) -> Result {
+		[&] (Reservation &ram_reservation) -> Alloc_ram_result {
 
 			/*
 			 * In the worst case, we need to allocate a new slab block for
@@ -48,41 +47,41 @@ Pd_session_component::try_alloc(size_t ds_size, Cache cache)
 
 			if (!_ram_quota_guard().have_avail(overhead)) {
 				ram_reservation.cancel();
-				return Ram_allocator::Alloc_error::OUT_OF_RAM;
+				return Alloc_ram_error::OUT_OF_RAM;
 			}
 
 			/*
 			 * Each dataspace is an RPC object and thereby consumes a
 			 * capability.
 			 */
-			return _cap_quota_guard().with_reservation<Result>(Cap_quota{1},
+			return _cap_quota_guard().with_reservation<Alloc_ram_result>(Cap_quota{1},
 
-				[&] (Genode::Reservation &) -> Result {
-					return _ram_ds_factory.try_alloc(ds_size, cache);
+				[&] (Genode::Reservation &) -> Alloc_ram_result {
+					return _ram_ds_factory.alloc_ram(ds_size, cache);
 				},
-				[&] () -> Result {
+				[&] () -> Alloc_ram_result {
 					ram_reservation.cancel();
-					return Ram_allocator::Alloc_error::OUT_OF_CAPS;
+					return Alloc_ram_error::OUT_OF_CAPS;
 				}
 			);
 		},
-		[&] () -> Result {
-			return Ram_allocator::Alloc_error::OUT_OF_RAM;
+		[&] () -> Alloc_ram_result {
+			return Alloc_ram_error::OUT_OF_RAM;
 		}
 	);
 }
 
 
-void Pd_session_component::free(Ram_dataspace_capability ds_cap)
+void Pd_session_component::free_ram(Ram_dataspace_capability ds_cap)
 {
 	if (this->cap() == ds_cap)
 		return;
 
-	size_t const size = _ram_ds_factory.dataspace_size(ds_cap);
+	size_t const size = _ram_ds_factory.ram_size(ds_cap);
 	if (size == 0)
 		return;
 
-	_ram_ds_factory.free(ds_cap);
+	_ram_ds_factory.free_ram(ds_cap);
 
 	/* physical memory */
 	_ram_account->replenish(Ram_quota{size});
@@ -92,12 +91,12 @@ void Pd_session_component::free(Ram_dataspace_capability ds_cap)
 }
 
 
-size_t Pd_session_component::dataspace_size(Ram_dataspace_capability ds_cap) const
+size_t Pd_session_component::ram_size(Ram_dataspace_capability ds_cap)
 {
 	if (this->cap() == ds_cap)
 		return 0;
 
-	return _ram_ds_factory.dataspace_size(ds_cap);
+	return _ram_ds_factory.ram_size(ds_cap);
 }
 
 

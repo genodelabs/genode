@@ -34,7 +34,7 @@ struct Fs_packet::Main
 
 	int _packet_count = _config.xml().attribute_value("count", 1U << 10);
 
-	Heap                    _heap { _env.pd(), _env.rm() };
+	Heap                    _heap { _env.ram(), _env.rm() };
 	Allocator_avl           _avl_alloc { &_heap };
 	File_system::Connection _fs { _env, _avl_alloc, "/", false, 4<<10 };
 

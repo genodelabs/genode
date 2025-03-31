@@ -134,7 +134,7 @@ struct Stack_area_ram_allocator : Ram_allocator
 
 	void free(Ram_dataspace_capability) override { }
 
-	size_t dataspace_size(Ram_dataspace_capability) const override { return 0; }
+	size_t dataspace_size(Ram_dataspace_capability) override { return 0; }
 };
 
 

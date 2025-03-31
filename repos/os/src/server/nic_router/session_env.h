@@ -136,7 +136,7 @@ class Genode::Session_env : public Ram_allocator,
 			try {
 				_consume(ds_size, MAX_SHARED_RAM, 1, MAX_SHARED_CAP, [&] ()
 				{
-					result = _env.pd().try_alloc(ds_size, cache);
+					result = _env.ram().try_alloc(ds_size, cache);
 				});
 			}
 			catch (Out_of_ram)  { result = Alloc_error::OUT_OF_RAM; }
@@ -148,12 +148,12 @@ class Genode::Session_env : public Ram_allocator,
 
 		void free(Ram_dataspace_capability ds) override
 		{
-			_replenish(_env.pd().dataspace_size(ds), 1, [&] () {
-				_env.pd().free(ds);
+			_replenish(_env.ram().dataspace_size(ds), 1, [&] () {
+				_env.ram().free(ds);
 			});
 		}
 
-		size_t dataspace_size(Ram_dataspace_capability ds) const override { return _env.pd().dataspace_size(ds); }
+		size_t dataspace_size(Ram_dataspace_capability ds) override { return _env.ram().dataspace_size(ds); }
 
 
 		/****************

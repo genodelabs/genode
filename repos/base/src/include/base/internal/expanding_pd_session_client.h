@@ -38,23 +38,23 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 	Expanding_pd_session_client(Parent &parent, Pd_session_capability cap)
 	: Pd_session_client(cap), _parent(parent) { }
 
-	Alloc_result try_alloc(size_t size, Cache cache) override
+	Alloc_ram_result alloc_ram(size_t size, Cache cache) override
 	{
 		/*
 		 * If the PD session runs out of quota, issue a resource request
 		 * to the parent and retry.
 		 */
 		for (;;) {
-			Alloc_result const result = Pd_session_client::try_alloc(size, cache);
+			Alloc_ram_result const result = Pd_session_client::alloc_ram(size, cache);
 			if (result.ok())
 				return result;
 
 			bool denied = false;
 			result.with_error(
-				[&] (Alloc_error error) {
+				[&] (Alloc_ram_error error) {
 					switch (error) {
 
-					case Alloc_error::OUT_OF_RAM:
+					case Alloc_ram_error::OUT_OF_RAM:
 						/*
 						 * The RAM service withdraws the meta data for the allocator
 						 * from the RAM quota. In the worst case, a new slab block
@@ -69,17 +69,17 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 						_request_ram_from_parent(size + OVERHEAD);
 						break;
 
-					case Alloc_error::OUT_OF_CAPS:
+					case Alloc_ram_error::OUT_OF_CAPS:
 						_request_caps_from_parent(4);
 						break;
 
-					case Alloc_error::DENIED:
+					case Alloc_ram_error::DENIED:
 						denied = true;
 					}
 				});
 
 			if (denied)
-				return Alloc_error::DENIED;
+				return Alloc_ram_error::DENIED;
 		}
 	}
 

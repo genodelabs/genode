@@ -56,9 +56,9 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 		Capability<Region_map> linker_area()                             override { never_called(__func__); };
 		Cap_quota              cap_quota() const                         override { never_called(__func__); };
 		Cap_quota              used_caps() const                         override { never_called(__func__); };
-		Alloc_result           try_alloc(size_t, Cache)                  override { never_called(__func__); };
-		void                   free(Ram_ds_cap)                          override { never_called(__func__); };
-		size_t                 dataspace_size(Ram_ds_cap) const          override { never_called(__func__); };
+		Alloc_ram_result       alloc_ram(size_t, Cache)                  override { never_called(__func__); };
+		void                   free_ram(Ram_ds_cap)                      override { never_called(__func__); };
+		size_t                 ram_size(Ram_ds_cap)                      override { never_called(__func__); };
 		Ram_quota              ram_quota() const                         override { never_called(__func__); };
 		Ram_quota              used_ram()  const                         override { never_called(__func__); };
 		Capability<Native_pd>  native_pd()                               override { never_called(__func__); };

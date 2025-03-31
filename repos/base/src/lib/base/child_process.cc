@@ -210,7 +210,8 @@ Child::Start_result Child::_start_process(Dataspace_capability   ldso_ds,
                                           Region_map            &remote_rm,
                                           Parent_capability      parent_cap)
 {
-	return _load_static_elf(ldso_ds, pd, local_rm, remote_rm, parent_cap).convert<Start_result>(
+	Pd_ram_allocator ram { pd };
+	return _load_static_elf(ldso_ds, ram, local_rm, remote_rm, parent_cap).convert<Start_result>(
 		[&] (Entry entry) {
 			initial_thread.start(entry.ip, start);
 			return Start_result::OK;

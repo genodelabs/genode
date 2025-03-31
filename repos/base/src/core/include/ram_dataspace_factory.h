@@ -27,8 +27,7 @@
 namespace Core { class Ram_dataspace_factory; }
 
 
-class Core::Ram_dataspace_factory : public Ram_allocator,
-                                    public Dataspace_owner
+class Core::Ram_dataspace_factory : public Dataspace_owner
 {
 	public:
 
@@ -84,6 +83,9 @@ class Core::Ram_dataspace_factory : public Ram_allocator,
 
 	public:
 
+		using Alloc_ram_error  = Pd_session::Alloc_ram_error;
+		using Alloc_ram_result = Pd_session::Alloc_ram_result;
+
 		Ram_dataspace_factory(Rpc_entrypoint  &ep,
 		                      Range_allocator &phys_alloc,
 		                      Phys_range       phys_range,
@@ -96,20 +98,15 @@ class Core::Ram_dataspace_factory : public Ram_allocator,
 		~Ram_dataspace_factory()
 		{
 			while (Dataspace_component *ds = _ds_slab.first_object())
-				free(static_cap_cast<Ram_dataspace>(
+				free_ram(static_cap_cast<Ram_dataspace>(
 				       static_cap_cast<Dataspace>(ds->cap())));
 		}
 
 		addr_t dataspace_dma_addr(Ram_dataspace_capability);
 
-
-		/*****************************
-		 ** Ram_allocator interface **
-		 *****************************/
-
-		Alloc_result try_alloc(size_t, Cache) override;
-		void free(Ram_dataspace_capability) override;
-		size_t dataspace_size(Ram_dataspace_capability ds) const override;
+		Alloc_ram_result alloc_ram(size_t, Cache);
+		void free_ram(Ram_dataspace_capability);
+		size_t ram_size(Ram_dataspace_capability ds);
 };
 
 #endif /* _CORE__INCLUDE__RAM_DATASPACE_FACTORY_H_ */

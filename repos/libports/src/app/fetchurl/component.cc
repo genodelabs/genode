@@ -102,7 +102,7 @@ struct Fetchurl::Main
 
 	Libc::Env &_env;
 
-	Heap _heap { _env.pd(), _env.rm() };
+	Heap _heap { _env.ram(), _env.rm() };
 
 	Timer::Connection _timer { _env, "reporter" };
 

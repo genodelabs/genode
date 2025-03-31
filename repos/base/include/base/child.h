@@ -20,6 +20,7 @@
 #include <base/mutex.h>
 #include <base/local_connection.h>
 #include <base/quota_guard.h>
+#include <base/ram_allocator.h>
 #include <util/arg_string.h>
 #include <region_map/client.h>
 #include <pd_session/connection.h>
@@ -389,7 +390,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		enum class Start_result { UNKNOWN, OK, OUT_OF_RAM, OUT_OF_CAPS, INVALID };
 
 		static Start_result _start_process(Dataspace_capability   ldso_ds,
-		                                   Pd_session            &pd,
+		                                   Pd_session            &,
 		                                   Initial_thread_base   &,
 		                                   Initial_thread::Start &,
 		                                   Region_map            &local_rm,
@@ -760,11 +761,9 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		Parent_capability parent_cap() const { return cap(); }
 
-		Ram_allocator       &ram()       { return _pd.session(); }
-		Ram_allocator const &ram() const { return _pd.session(); }
-		Cpu_session         &cpu()       { return _cpu.session(); }
-		Pd_session          &pd()        { return _pd.session(); }
-		Pd_session    const &pd()  const { return _pd.session(); }
+		Cpu_session      &cpu()      { return _cpu.session(); }
+		Pd_session       &pd()       { return _pd.session(); }
+		Pd_session const &pd() const { return _pd.session(); }
 
 		/**
 		 * Request factory for creating session-state objects

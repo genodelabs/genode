@@ -33,6 +33,7 @@
 #include <trace/root.h>
 #include <platform_services.h>
 #include <core_child.h>
+#include <core_ram_allocator.h>
 #include <pager.h>
 
 Core::Platform &Core::platform_specific()
@@ -93,8 +94,10 @@ void Genode::bootstrap_component(Genode::Platform &)
 
 	static Core::Core_account core_account { ep, avail_ram, avail_caps };
 
-	static Ram_dataspace_factory core_ram {
+	static Ram_dataspace_factory core_ds_factory {
 		ep, ram_ranges, Ram_dataspace_factory::any_phys_range(), core_alloc };
+
+	static Core_ram_allocator core_ram { core_ds_factory };
 
 	static Core_region_map core_rm { ep };
 

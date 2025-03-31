@@ -68,7 +68,7 @@ struct Cached_fs_rom::Cached_rom final
 	 * This shall be valid even if the file is empty.
 	 */
 	Attached_ram_dataspace ram_ds {
-		env.pd(), env.rm(), file_size ? file_size : 1 };
+		env.ram(), env.rm(), file_size ? file_size : 1 };
 
 	/**
 	 * Read-only region map exposed as ROM module to the client
@@ -287,7 +287,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 	Transfer_space transfers { };
 	Session_space  sessions  { };
 
-	Heap heap { env.pd(), env.rm() };
+	Heap heap { env.ram(), env.rm() };
 
 	Allocator_avl           fs_tx_block_alloc { &heap };
 	File_system::Connection fs { env, fs_tx_block_alloc, "/", false, 4*1024*1024 };
