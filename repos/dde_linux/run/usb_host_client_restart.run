@@ -1,0 +1,171 @@
+#
+# USB test for client disconnect / reconnect.
+#
+
+assert [expr [have_spec x86] || [have_spec arm_v8a]]
+
+if {[have_spec linux]} {
+	puts "Run script does not support Linux."
+	exit 0
+}
+
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host-[board] \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/init \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/usb_hid \
+
+build { server/event_dump }
+
+install_config {
+<config verbose="no">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<default-policy report="usb -> usb -> devices"/>
+		</config>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="usb" caps="1200" managing_system="yes">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="Usb"/> </provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="usb_hid" caps="580">
+		<binary name="init"/>
+		<resource name="RAM" quantum="21M"/>
+		<route>
+			<service name="Event"> <child name="event_dump"/> </service>
+			<service name="ROM" label="config"> <child name="dynamic_rom" label="hid_init"/> </service>
+			<service name="ROM" label="report"> <child name="report_rom"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Usb"> <child name="usb"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<rom name="hid_init">
+				<inline>
+					<config verbose="no">
+						<parent-provides>
+							<service name="ROM"/>
+							<service name="IRQ"/>
+							<service name="IO_MEM"/>
+							<service name="IO_PORT"/>
+							<service name="PD"/>
+							<service name="RM"/>
+							<service name="CPU"/>
+							<service name="LOG"/>
+						</parent-provides>
+						<default caps="100"/>
+					</config>
+				</inline>
+				<sleep milliseconds="8000" />
+				<inline>
+					<config verbose="no">
+						<parent-provides>
+							<service name="CPU"/>
+							<service name="Event"/>
+							<service name="LOG"/>
+							<service name="PD"/>
+							<service name="RM"/>
+							<service name="ROM"/>
+							<service name="Report"/>
+							<service name="Timer"/>
+							<service name="Usb"/>
+						</parent-provides>
+						<default caps="100"/>
+						<start name="usb_hid" caps="180">
+							<resource name="RAM" quantum="11M"/>
+							<config/>
+							<route>
+								<any-service> <parent/> </any-service>
+							</route>
+						</start>
+					</config>
+				</inline>
+				<sleep milliseconds="8000"/>
+			</rom>
+
+		</config>
+		<route>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="event_dump">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Event"/> </provides>
+		<config/>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+#
+# Define USB host controller config
+#
+set fd [open [run_dir]/genode/usb_host.config w]
+puts $fd {
+<config bios_handoff="yes">
+	<report devices="yes"/>
+	<policy label_prefix="usb_hid"> <device class="0x3"/> </policy>
+</config>}
+close $fd
+
+# create simple system state ROM
+if { [have_spec arm_v8a] } {
+	set fd [open [run_dir]/genode/system w]
+	puts $fd { <system state=""/> }
+	close $fd
+}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -device nec-usb-xhci,id=xhci "
+append qemu_args " -device usb-kbd,bus=xhci.0 "
+append qemu_args " -device usb-mouse,bus=xhci.0 "
+append qemu_args " -display sdl "
+
+run_genode_until forever
