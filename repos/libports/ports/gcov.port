@@ -2,7 +2,7 @@ LICENSE   := GPLv2
 VERSION   := 12.3.0
 DOWNLOADS := gcov.archive generated.git
 
-URL(gcov) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
+URL(gcov) := http://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
 SHA(gcov) := 949a5d4f99e786421a93b532b22ffab5578de7321369975b91aec97adfda8c3b
 DIR(gcov) := src/gcov
 SIG(gcov) := ${URL(gcov)}
