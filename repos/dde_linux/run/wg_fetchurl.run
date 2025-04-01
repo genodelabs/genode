@@ -22,12 +22,18 @@ set file_size_in_bytes [expr 16*1024*1024]
 
 create_boot_directory
 
-import_from_depot [depot_user]/src/libc \
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/curl \
+                  [depot_user]/src/fetchurl \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
                   [depot_user]/src/libssh \
                   [depot_user]/src/lighttpd \
+                  [depot_user]/src/nic_router \
                   [depot_user]/src/openssl \
                   [depot_user]/src/pcre \
                   [depot_user]/src/posix \
+                  [depot_user]/src/report_rom \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_lwip \
                   [depot_user]/src/vfs_pipe \
@@ -353,9 +359,7 @@ append config {
 
 install_config $config
 
-append targets {
-	core init timer lib/ld server/nic_router server/report_rom lib/curl
-	app/fetchurl }
+set targets { }
 
 exec head -c $file_size_in_bytes < /dev/urandom > bin/wg_fetchurl.data
 
@@ -383,7 +387,7 @@ build_boot_image [list {*}[build_artifacts] {*}$boot_modules]
 append qemu_args "-nographic "
 
 # run the scenario till fetchurl succeeded to download the file
-run_genode_until "fetchurl. exited with exit value 0.*\n" 90
+run_genode_until "fetchurl. exited with exit value 0.*\n" 120
 
 if {$linux} {
 
