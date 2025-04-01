@@ -89,7 +89,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="server_2" caps="120" ram="32M">
+	<start name="server_2" caps="170" ram="32M">
 		<binary name="test-lwip_httpsrv"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -121,7 +121,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_2" caps="120" ram="32M">
+	<start name="client_2" caps="170" ram="32M">
 		<binary name="test-http_clnt"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
