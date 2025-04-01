@@ -215,7 +215,10 @@ struct genode_netif_handle *lwip_genode_netif_init(char const *label)
 		return NULL;
 	}
 
-	handle->nic_handle         = genode_nic_client_create(label);
+	handle->nic_handle = genode_nic_client_create(label);
+	if (handle->nic_handle == NULL)
+		return NULL;
+
 	handle->netif              = net;
 	handle->address_valid      = false;
 	handle->address_configured = false;

@@ -88,7 +88,7 @@ struct Main
 };
 
 
-void genode_socket_init(struct genode_env *_env,
+bool genode_socket_init(struct genode_env *_env,
                         struct genode_socket_io_progress *io_progress,
                         char const *label)
 {
@@ -108,4 +108,6 @@ void genode_socket_init(struct genode_env *_env,
 
 	/* wait to finish initialization before returning to callee */
 	lx_emul_execute_kernel_until(lx_user_startup_complete, nullptr);
+
+	return lx_nic_client_initialized();
 }

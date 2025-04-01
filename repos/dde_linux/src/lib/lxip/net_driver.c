@@ -188,6 +188,10 @@ static int rx_task_function(void *arg)
 }
 
 
+static bool initialized;
+
+bool lx_nic_client_initialized() { return initialized; }
+
 static int __init virtio_net_driver_init(void)
 {
 	struct net_device *dev;
@@ -232,6 +236,7 @@ static int __init virtio_net_driver_init(void)
 
 	nic_rx_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
 
+	initialized = true;
 	return 0;
 
 out_nic:

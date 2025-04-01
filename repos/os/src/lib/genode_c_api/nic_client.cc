@@ -249,11 +249,13 @@ struct genode_nic_client *genode_nic_client_create(char const *label)
 		return nullptr;
 	}
 
-	return new (*statics().alloc_ptr)
-		Registered<genode_nic_client>(statics().nic_clients, *statics().env_ptr,
-		                              *statics().alloc_ptr,
-		                              statics().sigh, statics().link_sigh,
-		                              Session_label(label));
+	try {
+		return new (*statics().alloc_ptr)
+			Registered<genode_nic_client>(statics().nic_clients, *statics().env_ptr,
+			                              *statics().alloc_ptr,
+			                              statics().sigh, statics().link_sigh,
+			                              Session_label(label));
+	} catch (...) { return nullptr; }
 }
 
 

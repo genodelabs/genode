@@ -38,6 +38,8 @@ struct Statics
 	genode_socket_io_progress *io_progress;
 	Genode::Heap              *heap;
 	Genode::Env               *env;
+
+	bool initialized() const { return netif_ptr && io_progress && heap && env; }
 };
 
 
@@ -343,7 +345,7 @@ void genode_socket_wait_for_progress()
 }
 
 
-void genode_socket_init(struct genode_env *_env,
+bool genode_socket_init(struct genode_env *_env,
                         struct genode_socket_io_progress *io_progress,
                         char const *label)
 {
@@ -353,6 +355,8 @@ void genode_socket_init(struct genode_env *_env,
 	statics().io_progress = io_progress;
 
 	static Socket::Main main { env, label };
+
+	return statics().initialized();
 }
 
 

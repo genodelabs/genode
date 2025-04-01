@@ -23,6 +23,7 @@ extern "C" {
 	struct task_struct *lx_nic_client_rx_task(void);
 	bool                lx_nic_client_link_state(void);
 	bool                lx_nic_client_update_link_state(void);
+	bool                lx_nic_client_initialized(void);
 
 	/* socket.cc */
 	void socket_schedule_peer(void);
