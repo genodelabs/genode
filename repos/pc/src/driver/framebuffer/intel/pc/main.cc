@@ -569,7 +569,7 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 
 	drv.ids.apply<Connector>(id, [&](Connector &conn) {
 
-		Capture::Area const area     (xres, yres);
+		Capture::Area const area     (phys_width, phys_height);
 		Capture::Area const area_phys(phys_width, phys_height);
 
 		bool const merge = Capture::Connection::Label(conn_name) == "mirror_capture";
