@@ -417,30 +417,30 @@ struct Genode::Pd_ram_allocator : Ram_allocator
 {
 	Pd_session &_pd;
 
-	Alloc_result try_alloc(size_t size, Cache cache) override
+	using Pd_error = Pd_session::Alloc_ram_error;
+
+	static Ram::Error ram_error(Pd_error e)
 	{
-		using Pd_error = Pd_session::Alloc_ram_error;
+		switch (e) {
+		case Pd_error::OUT_OF_CAPS: return Ram::Error::OUT_OF_CAPS;
+		case Pd_error::OUT_OF_RAM:  return Ram::Error::OUT_OF_RAM;;
+		case Pd_error::DENIED:      break;
+		}
+		return Ram::Error::DENIED;
+	}
+
+	Result try_alloc(size_t size, Cache cache) override
+	{
+		using Capability = Ram::Capability;
+
 		return _pd.alloc_ram(size, cache).convert<Alloc_result>(
-			[&] (Ram_dataspace_capability cap) { return cap; },
-			[&] (Pd_error e) {
-				switch (e) {
-				case Pd_error::OUT_OF_CAPS: return Alloc_error::OUT_OF_CAPS;
-				case Pd_error::OUT_OF_RAM: return Alloc_error::OUT_OF_RAM;;
-				case Pd_error::DENIED:
-					break;
-				}
-				return Alloc_error::DENIED;
-			});
+			[&] (Capability ds) -> Result { return { *this, { ds, size } }; },
+			[&] (Pd_error e)    -> Result { return ram_error(e); });
 	}
 
-	void free(Ram_dataspace_capability ds) override
+	void _free(Ram::Allocation &allocation) override
 	{
-		_pd.free_ram(ds);
-	}
-
-	size_t dataspace_size(Ram_dataspace_capability ds) override
-	{
-		return _pd.ram_size(ds);
+		_pd.free_ram(allocation.cap);
 	}
 
 	Pd_ram_allocator(Pd_session &pd) : _pd(pd) { }

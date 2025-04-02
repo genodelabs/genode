@@ -65,24 +65,25 @@ Session_component::Alloc_policy_rpc_result Session_component::alloc_policy(Polic
 
 	Policy_id const id { ++_policy_cnt };
 
-	return _ram.try_alloc(size.num_bytes).convert<Alloc_policy_rpc_result>(
+	auto policy_error = [&] (Ram::Error e)
+	{
+		switch (e) {
+		case Ram::Error::OUT_OF_RAM:  return Alloc_policy_rpc_error::OUT_OF_RAM;
+		case Ram::Error::OUT_OF_CAPS: return Alloc_policy_rpc_error::OUT_OF_CAPS;
+		case Ram::Error::DENIED:      break;
+		}
+		return Alloc_policy_rpc_error::INVALID;
+	};
 
-		[&] (Ram_dataspace_capability const ds_cap) -> Alloc_policy_rpc_result {
-			try {
-				_policies.insert(*this, id, _policies_slab, ds_cap, size);
-			}
-			catch (Out_of_ram)  { _ram.free(ds_cap); return Alloc_policy_rpc_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { _ram.free(ds_cap); return Alloc_policy_rpc_error::OUT_OF_CAPS; }
-			return id;
-		},
-		[&] (Ram_allocator::Alloc_error const e) -> Alloc_policy_rpc_result {
-			switch (e) {
-			case Ram_allocator::Alloc_error::OUT_OF_RAM:  return Alloc_policy_rpc_error::OUT_OF_RAM;
-			case Ram_allocator::Alloc_error::OUT_OF_CAPS: return Alloc_policy_rpc_error::OUT_OF_CAPS;
-			case Ram_allocator::Alloc_error::DENIED:      break;
-			}
-			return Alloc_policy_rpc_error::INVALID;
-		});
+	try {
+		Policy_registry::Insert_result r =
+			_policies.insert(*this, id, _policies_slab, _ram, size);
+		return r.convert<Alloc_policy_rpc_result>(
+			[&] (auto) /* ok */ { return id; },
+			[&] (Ram::Error e)  { return policy_error(e); });
+	}
+	catch (Out_of_ram)  { return Alloc_policy_rpc_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Alloc_policy_rpc_error::OUT_OF_CAPS; }
 }
 
 
@@ -99,7 +100,9 @@ void Session_component::unload_policy(Policy_id const id)
 {
 	_policies.with_dataspace(*this, id, [&] (Dataspace_capability ds) {
 		_policies.remove(*this, id);
-		_ram.free(static_cap_cast<Ram_dataspace>(ds)); });
+		/* deallocate via '~Allocation' */
+		Ram::Allocation { _ram, { static_cap_cast<Ram_dataspace>(ds), 0 } };
+	});
 }
 
 

@@ -17,7 +17,10 @@
 #include <base/stdint.h>
 #include <exception.h>
 
-class Ram {
+namespace Vmm { class Ram; }
+
+
+class Vmm::Ram {
 
 	private:
 

@@ -102,8 +102,8 @@ namespace Allocator {
 
 				_ds_cap[_index] =  Rump::env().env().ram().try_alloc(BLOCK_SIZE, _cache)
 					.template convert<Ram_dataspace_capability>(
-						[&] (Ram_dataspace_capability cap) { return cap; },
-						[&] (Allocator::Alloc_error)       { return Ram_dataspace_capability(); }
+						[&] (Ram::Allocation &a) { a.deallocate = false; return a.cap; },
+						[&] (Allocator::Alloc_error) { return Ram_dataspace_capability(); }
 					);
 
 				if (!_ds_cap[_index].valid()) {

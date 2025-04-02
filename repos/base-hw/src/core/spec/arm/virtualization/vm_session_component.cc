@@ -135,10 +135,8 @@ Vm_session_component::~Vm_session_component()
 			continue;
 
 		Vcpu & vcpu = *_vcpus[i];
-		if (vcpu.ds_cap.valid()) {
+		if (vcpu.state().valid())
 			_region_map.detach(vcpu.ds_addr);
-			_ram.free(vcpu.ds_cap);
-		}
 	}
 
 	/* free guest-to-host page tables */

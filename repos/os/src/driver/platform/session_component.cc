@@ -391,7 +391,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 	try {
 		Dma_buffer & buf = _dma_allocator.alloc_buffer(guard.ram_cap,
 		                                               _env.pd().dma_addr(guard.ram_cap),
-		                                               _env_ram.dataspace_size(guard.ram_cap));
+		                                               _env.pd().ram_size(guard.ram_cap));
 		guard.buf = &buf;
 
 		_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {

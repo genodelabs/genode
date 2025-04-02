@@ -40,10 +40,10 @@ class Core::Vm_session_component
 		{
 			private:
 
-				Rpc_entrypoint                 &_ep;
-				Accounted_ram_allocator        &_ram_alloc;
-				Ram_dataspace_capability const  _ds_cap;
-				Cap_sel                         _notification { 0 };
+				Rpc_entrypoint             &_ep;
+				Accounted_ram_allocator    &_ram_alloc;
+				Ram_allocator::Result const _ds;
+				Cap_sel                     _notification { 0 };
 
 				void _free_up();
 
@@ -60,7 +60,12 @@ class Core::Vm_session_component
 				 ** Native_vcpu RPC interface **
 				 *******************************/
 
-				Capability<Dataspace> state() const { return _ds_cap; }
+				Capability<Dataspace> state() const
+				{
+					return _ds.convert<Capability<Dataspace>>(
+						[&] (Ram::Allocation const &ds) { return ds.cap; },
+						[&] (Ram::Error) { return Capability<Dataspace>(); });
+				}
 		};
 
 		using Avl_region = Allocator_avl_tpl<Rm_region>;

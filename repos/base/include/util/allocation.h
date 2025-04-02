@@ -22,13 +22,17 @@ namespace Genode { template <typename> class Allocation; }
 /**
  * Representation of an allocation
  *
- * The 'Allocation' base class provides a guard mechanism for reverting the
- * allocation at destruction time of an 'Allocation' object, unless the
- * 'deallocate' member is manually set to false. The 'ALLOCATOR' is expected
- * to implement a '_free' method performing the deallocation.
+ * An 'Allocation' object holds allocator-type-specific attributes ('Attr'),
+ * which are directly accessible in the scope of the 'Allocation' object.
+ * It provides a guard mechanism for reverting the allocation at destruction
+ * time of an 'Allocation' object. The automatic deallocation can be manually
+ * discharged by setting the 'deallocate' member to 'false'.
  *
- * An 'Allocation' object holds allocator-type-specific attributes ('Attr')
- * that are directly accessible in the scope of the 'Allocation' object.
+ * The 'ALLOCATOR' type is expected to implement a '_free' method performing
+ * the deallocation. This method is prefixed with '_' to indicate that it is
+ * not meant to be explicitly called. It is supposed to be called only at the
+ * destruction time of an 'Allocation' or by allocator wrappers such as
+ * 'Ram::Accounted_allocator'.
  */
 template <typename ALLOC>
 class Genode::Allocation : Noncopyable, public ALLOC::Attr

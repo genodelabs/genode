@@ -129,38 +129,39 @@ class Genode::Session_env : public Ram_allocator,
 			enum { MAX_SHARED_RAM           = 4096 };
 			enum { DS_SIZE_GRANULARITY_LOG2 = 12 };
 
-			Alloc_result result = Alloc_error::DENIED;
-
 			size_t const ds_size = align_addr(size, DS_SIZE_GRANULARITY_LOG2);
 
+			Alloc_result result = Alloc_error::DENIED;
 			try {
-				_consume(ds_size, MAX_SHARED_RAM, 1, MAX_SHARED_CAP, [&] ()
+				_consume(ds_size, MAX_SHARED_RAM, 1, MAX_SHARED_CAP, [&]
 				{
 					result = _env.ram().try_alloc(ds_size, cache);
 				});
 			}
-			catch (Out_of_ram)  { result = Alloc_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { result = Alloc_error::OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return Alloc_error::OUT_OF_RAM;  }
+			catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
 
-			return result;
+			return result.convert<Alloc_result>(
+				[&] (Allocation &a) -> Alloc_result {
+					a.deallocate = false;
+					return { *this, a };
+				},
+				[&] (Alloc_error e) { return e; });
 		}
 
 
-		void free(Ram_dataspace_capability ds) override
+		void _free(Allocation &ds) override
 		{
-			_replenish(_env.ram().dataspace_size(ds), 1, [&] () {
-				_env.ram().free(ds);
-			});
+			_replenish(_env.pd().ram_size(ds.cap), 1, [&] {
+				_env.ram().free(ds.cap); });
 		}
-
-		size_t dataspace_size(Ram_dataspace_capability ds) override { return _env.ram().dataspace_size(ds); }
 
 
 		/****************
 		 ** Region_map **
 		 ****************/
 
-		Attach_result attach(Dataspace_capability ds, Attr const &attr) override
+		Attach_result attach(Dataspace_capability ds, Region_map::Attr const &attr) override
 		{
 			enum { MAX_SHARED_CAP = 2 };
 			enum { MAX_SHARED_RAM = 4 * 4096 };

@@ -84,7 +84,7 @@ Child::Load_result Child::_load_static_elf(Dataspace_capability elf_ds,
 			 */
 
 			/* alloc dataspace */
-			Ram_allocator::Alloc_result const alloc_result = ram.try_alloc(size);
+			Ram_allocator::Result alloc_result = ram.try_alloc(size);
 
 			if (alloc_result.failed())
 				error("allocation of read-write segment failed");
@@ -96,7 +96,10 @@ Child::Load_result Child::_load_static_elf(Dataspace_capability elf_ds,
 			if (alloc_result.failed())                    return Load_error::INVALID;
 
 			Dataspace_capability ds_cap = alloc_result.convert<Dataspace_capability>(
-				[&] (Ram_dataspace_capability cap)    { return cap; },
+				[&] (Ram::Allocation &allocation) {
+					allocation.deallocate = false;
+					return allocation.cap;
+				},
 				[&] (Alloc_error) { /* handled above */ return Dataspace_capability(); });
 
 			/* attach dataspace */

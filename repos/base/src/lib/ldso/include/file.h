@@ -363,7 +363,14 @@ struct Linker::Elf_file : File
 
 		addr_t const dst = p.p_vaddr + reloc_base;
 
-		ram_cap[nr] = env.ram().alloc(p.p_memsz);
+		env.pd().alloc_ram(p.p_memsz).with_result(
+			[&] (Ram_dataspace_capability cap) { ram_cap[nr] = cap; },
+			[&] (Pd_session::Alloc_ram_error) { });
+
+		if (!ram_cap[nr].valid()) {
+			error("dynamic linker failed to allocate RAM for RW segment ", nr);
+			return;
+		}
 
 		Region_map::r()->attach(ram_cap[nr], Region_map::Attr {
 			.size       = { },
@@ -404,9 +411,8 @@ struct Linker::Elf_file : File
 
 		/* free ram of RW segments */
 		for (unsigned i = 0; i < Phdr::MAX_PHDR; i++)
-			if (ram_cap[i].valid()) {
-				env.ram().free(ram_cap[i]);
-			}
+			if (ram_cap[i].valid())
+				env.pd().free_ram(ram_cap[i]);
 	}
 };
 

@@ -45,6 +45,7 @@ void Heap::Dataspace_pool::remove_and_free(Dataspace &ds)
 
 	Ram_dataspace_capability ds_cap = ds.cap;
 	addr_t const at = addr_t(ds.local_addr);
+	size_t const size = ds.size;
 
 	remove(&ds);
 
@@ -57,7 +58,11 @@ void Heap::Dataspace_pool::remove_and_free(Dataspace &ds)
 	ds.~Dataspace();
 
 	region_map->detach(at);
-	ram_alloc->free(ds_cap);
+
+	{
+		/* deallocate via '~Allocation' */
+		Ram::Allocation { *ram_alloc, { ds_cap, size } };
+	}
 }
 
 
@@ -84,20 +89,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 
 	return _ds_pool.ram_alloc->try_alloc(size).convert<Result>(
 
-		[&] (Ram_dataspace_capability ds_cap) -> Result {
-
-			struct Alloc_guard
-			{
-				Ram_allocator &ram;
-				Ram_dataspace_capability ds;
-				bool keep = false;
-
-				Alloc_guard(Ram_allocator &ram, Ram_dataspace_capability ds)
-				: ram(ram), ds(ds) { }
-
-				~Alloc_guard() { if (!keep) ram.free(ds); }
-
-			} alloc_guard(*_ds_pool.ram_alloc, ds_cap);
+		[&] (Ram::Allocation &allocation) -> Result {
 
 			struct Attach_guard
 			{
@@ -113,7 +105,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 
 			Region_map::Attr attr { };
 			attr.writeable = true;
-			Region_map::Attach_result const result = _ds_pool.region_map->attach(ds_cap, attr);
+			Region_map::Attach_result const result = _ds_pool.region_map->attach(allocation.cap, attr);
 			if (result.failed()) {
 				using Error = Region_map::Attach_error;
 				return result.convert<Alloc_error>(
@@ -128,6 +120,9 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 						return Alloc_error::DENIED;
 					});
 			}
+
+			allocation.deallocate = false;
+			attach_guard.keep     = true;
 
 			result.with_result(
 				[&] (Region_map::Range range) { attach_guard.range = range; },
@@ -151,10 +146,9 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 
 			return metadata.convert<Result>(
 				[&] (void *md_ptr) -> Result {
-					Dataspace &ds = *construct_at<Dataspace>(md_ptr, ds_cap,
+					Dataspace &ds = *construct_at<Dataspace>(md_ptr, allocation.cap,
 					                                         (void *)attach_guard.range.start, size);
 					_ds_pool.insert(&ds);
-					alloc_guard.keep = attach_guard.keep = true;
 					return &ds;
 				},
 				[&] (Alloc_error error) {
@@ -312,7 +306,7 @@ void Heap::free(void *addr, size_t)
 	_quota_used -= ds->size;
 
 	_ds_pool.remove_and_free(*ds);
-	_alloc->free(ds);
+	_alloc->free(ds, ds->size);
 }
 
 

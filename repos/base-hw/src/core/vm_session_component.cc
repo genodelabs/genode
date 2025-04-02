@@ -23,7 +23,7 @@
 using namespace Core;
 
 
-size_t Vm_session_component::_ds_size() {
+size_t Vm_session_component::Vcpu::_ds_size() {
 	return align_addr(sizeof(Board::Vcpu_state), get_page_size_log2()); }
 
 
@@ -59,26 +59,22 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 	if (_vcpus[_vcpu_id_alloc].constructed())
 		return { };
 
-	_vcpus[_vcpu_id_alloc].construct(_id, _ep);
+	_vcpus[_vcpu_id_alloc].construct(_ram, _id, _ep);
 	Vcpu & vcpu = *_vcpus[_vcpu_id_alloc];
 
-	try {
-		vcpu.ds_cap = _ram.alloc(_ds_size(), Cache::UNCACHED);
+	vcpu.ds.with_error([&] (Ram::Error e) { throw_exception(e); });
 
+	try {
 		Region_map::Attr attr { };
 		attr.writeable = true;
-		vcpu.ds_addr = _region_map.attach(vcpu.ds_cap, attr).convert<addr_t>(
+		vcpu.ds_addr = _region_map.attach(vcpu.state(), attr).convert<addr_t>(
 			[&] (Region_map::Range range) { return _alloc_vcpu_data(range.start); },
 			[&] (Region_map::Attach_error) -> addr_t {
 				error("failed to attach VCPU data within core");
-				if (vcpu.ds_cap.valid())
-					_ram.free(vcpu.ds_cap);
 				_vcpus[_vcpu_id_alloc].destruct();
 				return 0;
 			});
 	} catch (...) {
-		if (vcpu.ds_cap.valid())
-			_ram.free(vcpu.ds_cap);
 		_vcpus[_vcpu_id_alloc].destruct();
 		throw;
 	}

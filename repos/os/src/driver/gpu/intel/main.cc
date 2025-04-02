@@ -131,6 +131,8 @@ struct Igd::Device
 			_pci.free_dma_buffer(cap);
 		}
 
+		void _free(Genode::Ram::Allocation &a) override { free(a.cap); }
+
 		addr_t dma_addr(Ram_dataspace_capability ds_cap) override
 		{
 			return _pci.dma_addr(ds_cap);
@@ -140,11 +142,9 @@ struct Igd::Device
 		 * RAM allocator interface
 		 */
 
-		size_t dataspace_size(Ram_dataspace_capability) override { return 0; }
-
 		Alloc_result try_alloc(size_t size, Cache) override
 		{
-			return alloc(size);
+			return { *this, { alloc(size), size } };
 		}
 
 	} _pci_backend_alloc;

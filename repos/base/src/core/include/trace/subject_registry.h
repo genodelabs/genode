@@ -53,82 +53,76 @@ class Core::Trace::Subject
 {
 	private:
 
-		class Ram_dataspace
+		struct Ram_dataspace : Noncopyable
 		{
-			private:
+			enum class Setup_result { OK, OUT_OF_RAM, OUT_OF_CAPS, DENIED };
 
-				Ram_allocator           *_ram_ptr { nullptr };
-				size_t                   _size    { 0 };
-				Ram_dataspace_capability _ds      { };
+			Ram_allocator::Result ds { { } };
 
-				void _reset()
-				{
-					_ram_ptr = nullptr;
-					_size    = 0;
-					_ds      = Ram_dataspace_capability();
+			Ram_dataspace() { }
+
+			static Setup_result _result(Ram::Error e)
+			{
+				switch (e) {
+				case Ram::Error::OUT_OF_RAM:  return Setup_result::OUT_OF_RAM;
+				case Ram::Error::OUT_OF_CAPS: return Setup_result::OUT_OF_CAPS;
+				case Ram::Error::DENIED:      break;
 				}
+				return Setup_result::DENIED;
+			}
 
-				/*
-				 * Noncopyable
-				 */
-				Ram_dataspace(Ram_dataspace const &);
-				Ram_dataspace &operator = (Ram_dataspace const &);
-
-			public:
-
-				Ram_dataspace() { _reset(); }
-
-				~Ram_dataspace() { flush(); }
-
-				/**
-				 * Allocate new dataspace
-				 */
-				void setup(Ram_allocator &ram, size_t size)
-				{
-					if (_size && _size == size)
-						return;
-
-					if (_size)
-						_ram_ptr->free(_ds);
-
-					_ds      = ram.alloc(size); /* may throw */
-					_ram_ptr = &ram;
-					_size    = size;
-				}
-
-				/**
-				 * Clone dataspace into newly allocated dataspace
-				 */
-				void setup(Ram_allocator &ram, Region_map &local_rm,
-				           Dataspace_capability &from_ds, size_t size)
-				{
-					if (_size)
-						flush();
-
-					_ds      = ram.alloc(size); /* may throw */
-					_ram_ptr = &ram;
-					_size    = size;
-
-					/* copy content */
+			Setup_result _copy_content(Region_map &local_rm, size_t num_bytes,
+			                           Dataspace_capability from_ds,
+			                           Dataspace_capability to_ds)
+			{
+				try {
 					Attached_dataspace from { local_rm, from_ds },
-					                   to   { local_rm, _ds };
+					                   to   { local_rm, to_ds };
 
-					Genode::memcpy(to.local_addr<char>(), from.local_addr<char const>(), _size);
+					using Genode::memcpy;
+					memcpy(to.local_addr<char>(), from.local_addr<char const>(),
+					       num_bytes);
 				}
+				catch (Out_of_caps) { return Setup_result::OUT_OF_CAPS; }
+				catch (Out_of_ram)  { return Setup_result::OUT_OF_RAM; }
+				catch (...)         { return Setup_result::DENIED; }
+				return Setup_result::OK;
+			}
 
-				/**
-				 * Release dataspace
-				 */
-				size_t flush()
-				{
-					if (_ram_ptr)
-						_ram_ptr->free(_ds);
+			/**
+			 * Allocate new dataspace
+			 */
+			[[nodiscard]] Setup_result setup(Ram_allocator &ram, size_t size)
+			{
+				ds = ram.try_alloc(size);
+				return ds.convert<Setup_result>(
+					[] (Ram::Allocation &) { return Setup_result::OK; },
+					[] (Ram::Error e)      { return _result(e); });
+			}
 
-					_reset();
-					return 0;
-				}
+			/**
+			 * Clone dataspace into newly allocated dataspace
+			 */
+			[[nodiscard]] Setup_result setup(Ram_allocator        &ram,
+			                                 Region_map           &local_rm,
+			                                 Dataspace_capability &from_ds,
+			                                 size_t                size)
+			{
+				ds = ram.try_alloc(size);
+				return ds.convert<Setup_result>(
+					[&] (Ram::Allocation &allocation) {
+						_copy_content(local_rm, size, from_ds, allocation.cap);
+						return Setup_result::OK;
+					},
+					[] (Ram::Error e) { return _result(e); });
+			}
 
-				Dataspace_capability dataspace() const { return _ds; }
+			Ram::Capability dataspace() const
+			{
+				return ds.convert<Ram::Capability>(
+					[&] (Ram::Allocation const &a) { return a.cap; },
+					[&] (Ram::Error) { return Ram::Capability(); });
+			}
 		};
 
 		friend class Subject_registry;
@@ -213,24 +207,28 @@ class Core::Trace::Subject
 			case Subject_info::TRACED:    break;
 			}
 
-			try {
-				_buffer.setup(ram, size.num_bytes);
-			}
-			catch (Out_of_ram)  { return Trace_result::OUT_OF_RAM;  }
-			catch (Out_of_caps) { return Trace_result::OUT_OF_CAPS; }
+			using Setup_result = Ram_dataspace::Setup_result;
 
-			try {
-				_policy.setup(ram, local_rm, policy_ds, policy_size.num_bytes);
+			switch (_buffer.setup(ram, size.num_bytes)) {
+			case Setup_result::OUT_OF_RAM:  return Trace_result::OUT_OF_RAM;
+			case Setup_result::OUT_OF_CAPS: return Trace_result::OUT_OF_CAPS;
+			case Setup_result::DENIED:      return Trace_result::INVALID_SUBJECT;
+			case Setup_result::OK:          break;
 			}
-			catch (Out_of_ram)  { _buffer.flush(); return Trace_result::OUT_OF_RAM;  }
-			catch (Out_of_caps) { _buffer.flush(); return Trace_result::OUT_OF_CAPS; }
+
+			switch (_policy.setup(ram, local_rm, policy_ds, policy_size.num_bytes)) {
+			case Setup_result::OUT_OF_RAM:  return Trace_result::OUT_OF_RAM;
+			case Setup_result::OUT_OF_CAPS: return Trace_result::OUT_OF_CAPS;
+			case Setup_result::DENIED:      return Trace_result::INVALID_SUBJECT;
+			case Setup_result::OK:          break;
+			}
 
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
 			if (!source->try_acquire(*this)) {
-				_policy.flush();
-				_buffer.flush();
+				_policy.ds = { };
+				_buffer.ds = { };
 				return Trace_result::FOREIGN;
 			}
 
@@ -291,8 +289,8 @@ class Core::Trace::Subject
 			source->disable();
 			source->release_ownership(*this);
 
-			_buffer.flush();
-			_policy.flush();
+			_buffer.ds = { };
+			_policy.ds = { };
 		}
 };
 

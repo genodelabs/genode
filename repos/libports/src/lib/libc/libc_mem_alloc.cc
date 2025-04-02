@@ -53,13 +53,14 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 
 	Ram_dataspace_capability new_ds_cap { };
 	int result = 0;
+
 	_ram->try_alloc(size).with_result(
-		[&] (Ram_dataspace_capability cap) { new_ds_cap = cap; },
-		[&] (Ram_allocator::Alloc_error e) {
+		[&] (Ram::Allocation &a) { a.deallocate = false; new_ds_cap = a.cap; },
+		[&] (Ram::Error e) {
 			switch (e) {
-			case Ram_allocator::Alloc_error::OUT_OF_RAM:  result = -2; break;
-			case Ram_allocator::Alloc_error::OUT_OF_CAPS: result = -4; break;
-			case Ram_allocator::Alloc_error::DENIED:      break;
+			case Ram::Error::OUT_OF_RAM:  result = -2; break;
+			case Ram::Error::OUT_OF_CAPS: result = -4; break;
+			case Ram::Error::DENIED:      break;
 			}
 			result = -5;
 		});

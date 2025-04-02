@@ -42,7 +42,7 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		Vcpu_data                  _vcpu_data { };
 		Kernel_object<Kernel::Vm>  _kobj { };
 		Accounted_ram_allocator   &_ram;
-		Ram_dataspace_capability   _ds_cap { };
+		Ram_allocator::Result      _ds;
 		Region_map                &_region_map;
 		Affinity::Location         _location;
 		Phys_allocated<Data_pages> _vcpu_data_pages;
@@ -64,36 +64,35 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 			_id(id),
 			_ep(ep),
 			_ram(ram),
-			_ds_cap( {_ram.alloc(vcpu_state_size(), Cache::UNCACHED)} ),
+			_ds( {_ram.try_alloc(vcpu_state_size(), Cache::UNCACHED)} ),
 			_region_map(region_map),
 			_location(location),
 			_vcpu_data_pages(ep, ram, region_map)
 		{
-			Region_map::Attr attr { };
-			attr.writeable = true;
-			_vcpu_data.vcpu_state = _region_map.attach(_ds_cap, attr).convert<Vcpu_state *>(
-				[&] (Region_map::Range range) { return (Vcpu_state *)range.start; },
-				[&] (Region_map::Attach_error) -> Vcpu_state * {
-					error("failed to attach VCPU data within core");
-					return nullptr;
-				});
+			_ds.with_result([&] (Ram::Allocation &allocation) {
+				Region_map::Attr attr { };
+				attr.writeable = true;
+				_vcpu_data.vcpu_state = _region_map.attach(allocation.cap, attr).convert<Vcpu_state *>(
+					[&] (Region_map::Range range) { return (Vcpu_state *)range.start; },
+					[&] (Region_map::Attach_error) -> Vcpu_state * {
+						error("failed to attach VCPU data within core");
+						return nullptr;
+					});
 
-			if (!_vcpu_data.vcpu_state) {
-				_ram.free(_ds_cap);
+				if (!_vcpu_data.vcpu_state)
+					throw Attached_dataspace::Region_conflict();
 
-				throw Attached_dataspace::Region_conflict();
-			}
+				_vcpu_data.virt_area = &_vcpu_data_pages.obj;
+				_vcpu_data.phys_addr = _vcpu_data_pages.phys_addr();
 
-			_vcpu_data.virt_area = &_vcpu_data_pages.obj;
-			_vcpu_data.phys_addr = _vcpu_data_pages.phys_addr();
-
-			ep.manage(this);
+				ep.manage(this);
+			},
+			[&] (Ram::Error e) { throw_exception(e); });
 		}
 
 		~Vcpu()
 		{
 			_region_map.detach((addr_t)_vcpu_data.vcpu_state);
-			_ram.free(_ds_cap);
 			_ep.dissolve(this);
 		}
 
@@ -101,7 +100,13 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		 ** Native_vcpu RPC interface **
 		 *******************************/
 
-		Capability<Dataspace>   state() const { return _ds_cap; }
+		Capability<Dataspace> state() const
+		{
+			return _ds.convert<Capability<Dataspace>>(
+				[&] (Ram::Allocation const &ds) { return ds.cap; },
+				[&] (Ram::Error) { return Capability<Dataspace>(); });
+		}
+
 		Native_capability native_vcpu()       { return _kobj.cap(); }
 
 		void exception_handler(Signal_context_capability handler)

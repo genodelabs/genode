@@ -51,7 +51,7 @@ class Genode::Attached_ram_dataspace
 				_rm->detach(_at);
 
 			if (_ds.valid())
-				_ram->free(_ds);
+				_ram->free(_ds, _size);
 		}
 
 		void _alloc_and_attach()
@@ -66,7 +66,7 @@ class Genode::Attached_ram_dataspace
 				[&] (Region_map::Range range) { _at = range.start; },
 				[&] (Region_map::Attach_error e) {
 					/* revert allocation if attaching the dataspace failed */
-					_ram->free(_ds);
+					_ram->free(_ds, _size);
 					if (e == Region_map::Attach_error::OUT_OF_RAM)  throw Out_of_ram();
 					if (e == Region_map::Attach_error::OUT_OF_CAPS) throw Out_of_caps();
 					throw Attached_dataspace::Region_conflict();

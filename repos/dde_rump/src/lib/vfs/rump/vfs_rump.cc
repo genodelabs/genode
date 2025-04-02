@@ -486,8 +486,8 @@ class Vfs::Rump_file_system : public File_system
 			};
 
 			return _env.env().ram().try_alloc(s.st_size).convert<Dataspace_capability>(
-				[&] (Ram_dataspace_capability const ds_cap) {
-					return _env.env().rm().attach(ds_cap, {
+				[&] (Genode::Ram::Allocation &a) {
+					return _env.env().rm().attach(a.cap, {
 						.size = { },  .offset     = { },  .use_at    = { },
 						.at   = { },  .executable = { },  .writeable = true
 					}).convert<Dataspace_capability>(
@@ -496,15 +496,15 @@ class Vfs::Rump_file_system : public File_system
 							bool const complete = read_file_content(range);
 							_env.env().rm().detach(range.start);
 
-							if (complete)
-								return ds_cap;
+							if (complete) {
+								a.deallocate = false;
+								return a.cap;
+							}
 
 							Genode::error("rump failed to read content into VFS dataspace");
-							_env.env().ram().free(ds_cap);
 							return Dataspace_capability();
 						},
 						[&] (Region_map::Attach_error) {
-							_env.env().ram().free(ds_cap);
 							return Dataspace_capability();
 						}
 					);

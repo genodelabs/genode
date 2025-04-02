@@ -55,14 +55,18 @@ class Core::Vm_session_component
 
 		struct Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		{
+			static size_t _ds_size();
+
 			Kernel::Vm::Identity      &id;
 			Rpc_entrypoint            &ep;
-			Ram_dataspace_capability   ds_cap   { };
+			Ram_allocator::Result      ds;
 			addr_t                     ds_addr  { };
 			Kernel_object<Kernel::Vm>  kobj     { };
 			Affinity::Location         location { };
 
-			Vcpu(Kernel::Vm::Identity &id, Rpc_entrypoint &ep) : id(id), ep(ep)
+			Vcpu(Ram_allocator &ram, Kernel::Vm::Identity &id, Rpc_entrypoint &ep)
+			:
+				id(id), ep(ep), ds(ram.try_alloc(_ds_size(), Cache::UNCACHED))
 			{
 				ep.manage(this);
 			}
@@ -76,8 +80,14 @@ class Core::Vm_session_component
 			 ** Native_vcpu RPC interface **
 			 *******************************/
 
-			Capability<Dataspace>   state() const { return ds_cap; }
-			Native_capability native_vcpu()       { return kobj.cap(); }
+			Capability<Dataspace> state() const
+			{
+				return ds.convert<Capability<Dataspace>>(
+					[&] (Ram::Allocation const &ds) { return ds.cap; },
+					[&] (Ram::Error) { return Capability<Dataspace>(); });
+			}
+
+			Native_capability native_vcpu() { return kobj.cap(); }
 
 			void exception_handler(Signal_context_capability);
 		};
@@ -95,7 +105,6 @@ class Core::Vm_session_component
 		Kernel::Vm::Identity        _id;
 		unsigned                    _vcpu_id_alloc { 0 };
 
-		static size_t _ds_size();
 		static size_t _alloc_vcpu_data(Genode::addr_t ds_addr);
 
 		void *_alloc_table();

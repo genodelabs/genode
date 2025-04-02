@@ -60,24 +60,21 @@ struct Libc::Malloc_ram_allocator : Ram_allocator
 	{
 		return _ram.try_alloc(size, cache).convert<Alloc_result>(
 
-			[&] (Ram_dataspace_capability cap) {
-				new (_md_alloc) Registered<Dataspace>(_dataspaces, cap);
-				return cap; },
+			[&] (Ram::Allocation &a) -> Result {
+				new (_md_alloc) Registered<Dataspace>(_dataspaces, a.cap);
+				a.deallocate = false;
+				return { *this, { a.cap, size } };
+			},
 
-			[&] (Alloc_error error) {
+			[&] (Alloc_error error) -> Result {
 				return error; });
 	}
 
-	void free(Ram_dataspace_capability ds_cap) override
+	void _free(Ram::Allocation &a) override
 	{
 		_dataspaces.for_each([&] (Registered<Dataspace> &ds) {
-			if (ds_cap == ds.cap)
+			if (a.cap == ds.cap)
 				_release(ds); });
-	}
-
-	size_t dataspace_size(Ram_dataspace_capability ds_cap) override
-	{
-		return _ram.dataspace_size(ds_cap);
 	}
 };
 

@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__ALLOCATOR_H_
 
 #include <util/interface.h>
+#include <util/attempt.h>
 #include <base/stdint.h>
 #include <base/exception.h>
 #include <base/quota_guard.h>

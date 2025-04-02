@@ -30,9 +30,6 @@ using namespace Core;
 
 void Vm_session_component::Vcpu::_free_up()
 {
-	if (_ds_cap.valid())
-		_ram_alloc.free(_ds_cap);
-
 	if (_notification.value()) {
 		int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
 	                                _notification.value(), 32);
@@ -51,9 +48,10 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint          &ep,
 :
 	_ep(ep),
 	_ram_alloc(ram_alloc),
-	_ds_cap (_ram_alloc.alloc(align_addr(sizeof(Vcpu_state), 12),
-	                          Cache::CACHED))
+	_ds(_ram_alloc.try_alloc(align_addr(sizeof(Vcpu_state), 12), Cache::CACHED))
 {
+	_ds.with_error([] (Ram::Error e) { throw_exception(e); });
+
 	try {
 		/* notification cap */
 		Cap_quota_guard::Reservation caps(cap_alloc, Cap_quota{1});
@@ -67,7 +65,6 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint          &ep,
 
 		caps.acknowledge();
 	} catch (...) {
-		_free_up();
 		throw;
 	}
 }

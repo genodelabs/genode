@@ -55,9 +55,9 @@ Stack::Size_result Stack::size(size_t const size)
 	Region_map    &rm  = *env_stack_area_region_map;
 
 	return ram.try_alloc(ds_size).convert<Size_result>(
-		[&] (Ram_dataspace_capability ds_cap) {
+		[&] (Ram::Allocation &allocation) {
 
-			return rm.attach(ds_cap, Region_map::Attr {
+			return rm.attach(allocation.cap, Region_map::Attr {
 				.size       = ds_size,
 				.offset     = 0,
 				.use_at     = true,
@@ -72,6 +72,8 @@ Stack::Size_result Stack::size(size_t const size)
 
 					/* update stack information */
 					_base -= ds_size;
+
+					allocation.deallocate = false;
 
 					return (addr_t)_stack - _base;
 				},
@@ -118,11 +120,11 @@ Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
 	/* allocate and attach backing store for the stack */
 	return ram.try_alloc(ds_size).convert<Alloc_stack_result>(
 
-		[&] (Ram_dataspace_capability const ds_cap)
-		{
+	 [&] (Ram::Allocation &allocation)
+	 {
 			addr_t const attach_addr = ds_addr - stack_area_virtual_base();
 
-			return env_stack_area_region_map->attach(ds_cap, Region_map::Attr {
+			return env_stack_area_region_map->attach(allocation.cap, Region_map::Attr {
 				.size       = ds_size,
 				.offset     = { },
 				.use_at     = true,
@@ -132,10 +134,8 @@ Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
 			}).convert<Alloc_stack_result>(
 
 				[&] (Region_map::Range const range) -> Alloc_stack_result {
-					if (range.start != attach_addr) {
-						ram.free(ds_cap);
+					if (range.start != attach_addr)
 						return Stack_error::STACK_TOO_LARGE;
-					}
 
 					/*
 					 * Now the stack is backed by memory, it is safe to access
@@ -146,15 +146,14 @@ Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
 					 * cause trouble when the assignment operator of
 					 * Native_capability is used.
 					 */
-					construct_at<Stack>(stack, name, *this, ds_addr, ds_cap);
+					construct_at<Stack>(stack, name, *this, ds_addr, allocation.cap);
 
 					Abi::init_stack(stack->top());
+					allocation.deallocate = false;
 					return stack;
 				},
 				[&] (Region_map::Attach_error) -> Alloc_stack_result {
-					ram.free(ds_cap);
-					return Stack_error::STACK_AREA_EXHAUSTED;
-				}
+					return Stack_error::STACK_AREA_EXHAUSTED; }
 			);
 		},
 		[&] (Ram_allocator::Alloc_error) -> Alloc_stack_result {
@@ -172,7 +171,11 @@ void Thread::_free_stack(Stack &stack)
 	stack.~Stack();
 
 	Genode::env_stack_area_region_map->detach(ds_addr);
-	Genode::env_stack_area_ram_allocator->free(ds_cap);
+
+	/* deallocate RAM block */
+	{
+		Ram::Allocation { *env_stack_area_ram_allocator, { ds_cap, 0 } };
+	}
 
 	/* stack ready for reuse */
 	Stack_allocator::stack_allocator().free(stack);

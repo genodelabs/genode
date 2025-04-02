@@ -31,13 +31,19 @@ using namespace Core;
 
 addr_t Platform_thread::Utcb::_attach(Region_map &core_rm)
 {
-	Region_map::Attr attr { };
-	attr.writeable = true;
-	return core_rm.attach(_ds, attr).convert<addr_t>(
-		[&] (Region_map::Range range) { return range.start; },
-		[&] (Region_map::Attach_error) {
-			error("failed to attach UTCB of new thread within core");
-			return 0ul; });
+	addr_t start = 0;
+	ds.with_result(
+		[&] (Ram::Allocation const &allocation) {
+			Region_map::Attr attr { };
+			attr.writeable = true;
+			core_rm.attach(allocation.cap, attr).with_result(
+				[&] (Region_map::Range range) { start = range.start; },
+				[&] (Region_map::Attach_error) {
+					error("failed to attach UTCB of new thread within core"); });
+		},
+		[&] (Ram::Error) { });
+
+	return start;
 }
 
 
@@ -66,6 +72,7 @@ static addr_t _alloc_core_local_utcb(addr_t core_addr)
 
 Platform_thread::Utcb::Utcb(addr_t core_addr)
 :
+	ds(Ram::Error::DENIED),
 	core_addr(core_addr),
 	phys_addr(_alloc_core_local_utcb(core_addr))
 { }
@@ -118,6 +125,8 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(),
 	      _priority, _quota, _label.string())
 {
+	_utcb.ds.with_error([] (Ram::Error e) { throw_exception(e); });
+
 	_address_space = pd.weak_ptr();
 	pd.has_any_thread = true;
 }
@@ -126,7 +135,7 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 Platform_thread::~Platform_thread()
 {
 	/* core/kernel threads have no dataspace, but plain memory as UTCB */
-	if (!_utcb._ds.valid()) {
+	if (!_utcb.ds_cap().valid()) {
 		error("UTCB of core/kernel thread gets destructed!");
 		return;
 	}
@@ -179,7 +188,7 @@ void Platform_thread::start(void * const ip, void * const sp)
 	utcb.cap_add(Capability_space::capid(_kobj.cap()));
 	if (_main_thread) {
 		utcb.cap_add(Capability_space::capid(_pd.parent()));
-		utcb.cap_add(Capability_space::capid(_utcb._ds));
+		utcb.cap_add(Capability_space::capid(_utcb.ds_cap()));
 	}
 
 	Kernel::start_thread(*_kobj, _pd.kernel_pd(),

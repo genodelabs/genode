@@ -409,9 +409,11 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 		return _ram.try_alloc(BLOCK_SIZE).convert<Extend_result>(
 
-			[&] (Ram_dataspace_capability ds) -> Extend_result {
+			[&] (Ram::Allocation &allocation) -> Extend_result {
 
-				_ds_cap[_index] = ds;
+				allocation.deallocate = false;
+
+				_ds_cap[_index] = allocation.cap;
 
 				return Region_map_client::attach(_ds_cap[_index], {
 					.size       = BLOCK_SIZE,
@@ -435,7 +437,6 @@ struct Slab_backend_alloc : public Genode::Allocator,
 					[&] (Region_map::Attach_error e) {
 
 						Genode::error("Slab_backend_alloc: local attach_at failed");
-						_ram.free(ds);
 						_ds_cap[_index] = { };
 
 						using Error = Region_map::Attach_error;

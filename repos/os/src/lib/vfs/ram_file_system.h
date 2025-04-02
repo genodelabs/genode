@@ -909,18 +909,18 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			size_t const len = file->length();
 
 			return _env.env().ram().try_alloc(len).convert<Dataspace_capability>(
-				[&] (Ram_dataspace_capability ds_cap) {
-					return _env.env().rm().attach(ds_cap, {
+				[&] (Ram::Allocation &allocation) {
+					return _env.env().rm().attach(allocation.cap, {
 						.size = { },  .offset     = { },  .use_at    = { },
 						.at   = { },  .executable = { },  .writeable = true
 					}).convert<Dataspace_capability>(
 						[&] (Region_map::Range const range) {
 							file->read(Byte_range_ptr((char *)range.start, len), Seek{0});
 							_env.env().rm().detach(range.start);
-							return ds_cap;
+							allocation.deallocate = false;
+							return allocation.cap;
 						},
 						[&] (Region_map::Attach_error) {
-							_env.env().ram().free(ds_cap);
 							return Dataspace_capability();
 						}
 					);

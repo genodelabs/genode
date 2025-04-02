@@ -113,13 +113,10 @@ class Stack_area_region_map : public Region_map
 
 struct Stack_area_ram_allocator : Ram_allocator
 {
-	Alloc_result try_alloc(size_t, Cache) override {
-		return reinterpret_cap_cast<Ram_dataspace>(Native_capability()); }
+	Result try_alloc(size_t, Cache) override { return { *this, { } }; }
 
-	void free(Ram_dataspace_capability) override {
+	void _free(Ram::Allocation &) override {
 		warning(__func__, " not implemented"); }
-
-	size_t dataspace_size(Ram_dataspace_capability) override { return 0; }
 };
 
 

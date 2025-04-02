@@ -31,42 +31,36 @@ namespace Core { namespace Trace {
 class Core::Trace::Policy_owner : Interface { };
 
 
-class Core::Trace::Policy : public List<Policy>::Element
+struct Core::Trace::Policy : List<Policy>::Element
 {
-	friend class Policy_registry;
+	Policy_owner const &_owner;
+	Policy_id    const  _id;
+	Allocator          &md_alloc;
 
-	private:
+	Ram::Allocator::Result const ds;
 
-		Policy_owner  const &_owner;
-		Allocator           &_md_alloc;
-		Policy_id     const  _id;
-		Dataspace_capability _ds;
-		Policy_size   const  _size;
+	Policy(Policy_owner const &owner, Policy_id id, Allocator &md_alloc,
+	       Ram::Allocator &ram, Policy_size size)
+	:
+		_owner(owner), _id(id), md_alloc(md_alloc), ds(ram.try_alloc(size.num_bytes))
+	{ }
 
-		/**
-		 * Constructor
-		 *
-		 * \param md_alloc  allocator that holds the 'Policy' object
-		 */
-		Policy(Policy_owner const &owner, Policy_id const id,
-		       Allocator &md_alloc, Dataspace_capability ds, Policy_size size)
-		:
-			_owner(owner), _md_alloc(md_alloc), _id(id), _ds(ds), _size(size)
-		{ }
+	bool has_id  (Policy_id    const id)     const { return _id == id; }
+	bool owned_by(Policy_owner const &owner) const { return &_owner == &owner; }
 
-		Allocator &md_alloc() { return _md_alloc; }
+	Ram::Capability dataspace() const
+	{
+		return ds.convert<Ram::Capability>(
+			[&] (Ram::Allocation const &a) { return a.cap; },
+			[&] (Ram::Error)               { return Ram::Capability(); });
+	}
 
-		bool owned_by(Policy_owner const &owner) const
-		{
-			return &_owner == &owner;
-		}
-
-		bool has_id(Policy_id id) const { return id == _id; }
-
-	public:
-
-		Dataspace_capability dataspace() const { return _ds; }
-		Policy_size          size()      const { return _size; }
+	Policy_size size() const
+	{
+		return ds.convert<Policy_size>(
+			[&] (Ram::Allocation const &a) -> Policy_size { return { a.num_bytes }; },
+			[&] (Ram::Error)               -> Policy_size { return { }; });
+	}
 };
 
 
@@ -108,13 +102,24 @@ class Core::Trace::Policy_registry
 				_policies.remove(p);
 		}
 
-		void insert(Policy_owner const &owner, Policy_id const id,
-		            Allocator &md_alloc, Dataspace_capability ds, Policy_size size)
+		struct Insert_ok { };
+		using Insert_result = Attempt<Insert_ok, Ram::Error>;
+
+		Insert_result insert(Policy_owner const &owner, Policy_id const id,
+		                     Allocator &md_alloc, Ram::Allocator &ram,
+		                     Policy_size size)
 		{
 			Mutex::Guard guard(_mutex);
 
-			Policy &policy = *new (&md_alloc) Policy(owner, id, md_alloc, ds, size);
-			_policies.insert(&policy);
+			try {
+				Policy &policy = *new (&md_alloc) Policy(owner, id, md_alloc, ram, size);
+				_policies.insert(&policy);
+				return policy.ds.convert<Insert_result>(
+					[&] (Ram::Allocation const &) { return Insert_ok(); },
+					[&] (Ram::Error e)            { return e; });
+			}
+			catch (Out_of_ram)  { return Ram::Error::OUT_OF_RAM; }
+			catch (Out_of_caps) { return Ram::Error::OUT_OF_CAPS; }
 		}
 
 		void remove(Policy_owner &owner, Policy_id id)
@@ -127,7 +132,7 @@ class Core::Trace::Policy_registry
 
 				if (tmp->owned_by(owner) && tmp->has_id(id)) {
 					_policies.remove(tmp);
-					destroy(&tmp->md_alloc(), tmp);
+					destroy(&tmp->md_alloc, tmp);
 				}
 			}
 		}
@@ -138,7 +143,7 @@ class Core::Trace::Policy_registry
 
 			while (Policy *p = _any_policy_owned_by(owner)) {
 				_policies.remove(p);
-				destroy(&p->md_alloc(), p);
+				destroy(&p->md_alloc, p);
 			}
 		}
 

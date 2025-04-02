@@ -45,20 +45,7 @@ Allocator::Alloc_result Sliced_heap::try_alloc(size_t size)
 
 	return _ram_alloc.try_alloc(size).convert<Alloc_result>(
 
-		[&] (Ram_dataspace_capability ds_cap) -> Alloc_result {
-
-			struct Alloc_guard
-			{
-				Ram_allocator &ram;
-				Ram_dataspace_capability ds;
-				bool keep = false;
-
-				Alloc_guard(Ram_allocator &ram, Ram_dataspace_capability ds)
-				: ram(ram), ds(ds) { }
-
-				~Alloc_guard() { if (!keep) ram.free(ds); }
-
-			} alloc_guard(_ram_alloc, ds_cap);
+		[&] (Ram::Allocation &allocation) -> Alloc_result {
 
 			struct Attach_guard
 			{
@@ -74,7 +61,7 @@ Allocator::Alloc_result Sliced_heap::try_alloc(size_t size)
 
 			Region_map::Attr attr { };
 			attr.writeable = true;
-			Region_map::Attach_result const result = _region_map.attach(ds_cap, attr);
+			Region_map::Attach_result const result = _region_map.attach(allocation.cap, attr);
 			if (result.failed()) {
 				using Error = Region_map::Attach_error;
 				return result.convert<Alloc_error>(
@@ -98,18 +85,18 @@ Allocator::Alloc_result Sliced_heap::try_alloc(size_t size)
 			Mutex::Guard guard(_mutex);
 
 			Block * const block = construct_at<Block>((void *)attach_guard.range.start,
-			                                          ds_cap, size);
+			                                          allocation.cap, size);
 			_consumed += size;
 			_blocks.insert(block);
 
-			alloc_guard.keep = attach_guard.keep = true;
+			allocation.deallocate = false;
+			attach_guard.keep = true;
 
 			/* skip meta data prepended to the payload portion of the block */
 			void *ptr = block + 1;
 			return ptr;
 		},
-		[&] (Alloc_error error) {
-			return error; });
+		[&] (Ram::Error e) { return e; });
 }
 
 
@@ -117,6 +104,7 @@ void Sliced_heap::free(void *addr, size_t)
 {
 	Ram_dataspace_capability ds_cap;
 	void *local_addr = nullptr;
+	size_t num_bytes = 0;
 	{
 		/* serialize access to block list */
 		Mutex::Guard guard(_mutex);
@@ -130,8 +118,10 @@ void Sliced_heap::free(void *addr, size_t)
 
 		_blocks.remove(block);
 		_consumed -= block->size;
-		ds_cap = block->ds;
+
+		ds_cap     = block->ds;
 		local_addr = block;
+		num_bytes  = block->size;
 
 		/*
 		 * Call destructor to properly destruct the dataspace capability
@@ -141,7 +131,11 @@ void Sliced_heap::free(void *addr, size_t)
 	}
 
 	_region_map.detach(addr_t(local_addr));
-	_ram_alloc.free(ds_cap);
+
+	{
+		/* deallocate via '~Allocation' */
+		Ram::Allocation { _ram_alloc, { ds_cap, num_bytes } };
+	}
 }
 
 

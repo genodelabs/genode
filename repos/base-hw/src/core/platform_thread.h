@@ -64,26 +64,24 @@ class Core::Platform_thread : Noncopyable
 				Region_map    *_core_rm_ptr = nullptr;
 			};
 
-			Ram_dataspace_capability _ds { }; /* UTCB ds of non-core threads */
+			Ram_allocator::Result const ds; /* UTCB ds of non-core threads */
 
 			addr_t const core_addr; /* UTCB address within core/kernel */
 			addr_t const phys_addr;
 
-			/*
-			 * \throw Out_of_ram
-			 * \throw Out_of_caps
-			 */
-			Ram_dataspace_capability _allocate(Ram_allocator &ram)
-			{
-				return ram.alloc(sizeof(Native_utcb), CACHED);
-			}
-
 			addr_t _attach(Region_map &);
 
-			static addr_t _ds_phys(Rpc_entrypoint &ep, Dataspace_capability ds)
+			static addr_t _phys(Rpc_entrypoint &ep, Dataspace_capability ds)
 			{
 				return ep.apply(ds, [&] (Dataspace_component *dsc) {
 					return dsc ? dsc->phys_addr() : 0; });
+			}
+
+			static addr_t _ds_phys(Rpc_entrypoint &ep, Ram_allocator::Result const &ram)
+			{
+				return ram.convert<addr_t>(
+					[&] (Ram::Allocation const &ds) { return _phys(ep, ds.cap); },
+					[&] (Ram::Error)                { return 0UL; });
 			}
 
 			/**
@@ -97,18 +95,22 @@ class Core::Platform_thread : Noncopyable
 			Utcb(Rpc_entrypoint &ep, Ram_allocator &ram, Region_map &core_rm)
 			:
 				_core_rm_ptr(&core_rm),
-				_ds(_allocate(ram)),
+				ds(ram.try_alloc(sizeof(Native_utcb), CACHED)),
 				core_addr(_attach(core_rm)),
-				phys_addr(_ds_phys(ep, _ds))
+				phys_addr(_ds_phys(ep, ds))
 			{ }
 
 			~Utcb()
 			{
 				if (_core_rm_ptr)
 					_core_rm_ptr->detach(core_addr);
+			}
 
-				if (_ram_ptr && _ds.valid())
-					_ram_ptr->free(_ds);
+			Ram_dataspace_capability ds_cap() const
+			{
+				return ds.convert<Ram_dataspace_capability>(
+					[&] (Ram::Allocation const &ds) { return ds.cap; },
+					[&] (Ram::Error) { return Ram_dataspace_capability { }; });
 			}
 		};
 
@@ -299,7 +301,7 @@ class Core::Platform_thread : Noncopyable
 
 		Platform_pd &pd() const { return _pd; }
 
-		Ram_dataspace_capability utcb() const { return _utcb._ds; }
+		Ram_dataspace_capability utcb() const { return _utcb.ds_cap(); }
 };
 
 #endif /* _CORE__PLATFORM_THREAD_H_ */

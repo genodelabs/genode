@@ -289,3 +289,9 @@ void Genode::bootstrap_component(Platform &platform)
 
 	/* never reached */
 }
+
+
+size_t Genode::Ram_allocator::_legacy_dataspace_size(Dataspace_capability ds)
+{
+	return Dataspace_client(ds).size();
+}
