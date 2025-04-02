@@ -186,9 +186,11 @@ struct Blit::Neon::B2f
 };
 
 
-void Blit::Neon::B2f::r0(uint32_t       *dst, unsigned const line_w,
-                         uint32_t const *src, unsigned const w, unsigned const h)
+void Blit::Neon::B2f::r0(uint32_t       *dst, unsigned line_w,
+                         uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	uint32x4_t const *s = (uint32x4_t const *)src;
 	uint32x4_t       *d = (uint32x4_t       *)dst;
 
@@ -200,10 +202,12 @@ void Blit::Neon::B2f::r0(uint32_t       *dst, unsigned const line_w,
 }
 
 
-void Blit::Neon::B2f::r90(uint32_t       *dst, unsigned const dst_w,
-                          uint32_t const *src, unsigned const src_w,
-                          unsigned const w, unsigned const h)
+void Blit::Neon::B2f::r90(uint32_t       *dst, unsigned dst_w,
+                          uint32_t const *src, unsigned src_w,
+                          unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { -2*int(src_w), 8*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((uint32x4_t *)src + 2*src_w*(8*h - 1), steps.src_y);
@@ -213,9 +217,11 @@ void Blit::Neon::B2f::r90(uint32_t       *dst, unsigned const dst_w,
 }
 
 
-void Blit::Neon::B2f::r180(uint32_t       *dst, unsigned const line_w,
-                           uint32_t const *src, unsigned const w, unsigned const h)
+void Blit::Neon::B2f::r180(uint32_t       *dst, unsigned line_w,
+                           uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	uint32x4_t       *d = (uint32x4_t *)dst;
 	uint32x4_t const *s = (uint32x4_t const *)src + 2*line_w*8*h;
 
@@ -227,10 +233,12 @@ void Blit::Neon::B2f::r180(uint32_t       *dst, unsigned const line_w,
 }
 
 
-void Blit::Neon::B2f::r270(uint32_t       *dst, unsigned const dst_w,
-                           uint32_t const *src, unsigned const src_w,
-                           unsigned const w, const unsigned h)
+void Blit::Neon::B2f::r270(uint32_t       *dst, unsigned dst_w,
+                           uint32_t const *src, unsigned src_w,
+                           unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { 2*int(src_w), -8*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((uint32x4_t *)src,            steps.src_y);
@@ -249,9 +257,11 @@ struct Blit::Neon::B2f_flip
 };
 
 
-void Blit::Neon::B2f_flip::r0(uint32_t       *dst, unsigned const line_w,
-                              uint32_t const *src, unsigned const w, unsigned const h)
+void Blit::Neon::B2f_flip::r0(uint32_t       *dst, unsigned line_w,
+                              uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	uint32x4_t const *s = (uint32x4_t const *)src;
 	uint32x4_t       *d = (uint32x4_t       *)dst;
 
@@ -263,10 +273,12 @@ void Blit::Neon::B2f_flip::r0(uint32_t       *dst, unsigned const line_w,
 }
 
 
-void Blit::Neon::B2f_flip::r90(uint32_t       *dst, unsigned const dst_w,
-                               uint32_t const *src, unsigned const src_w,
-                               unsigned const w, unsigned const h)
+void Blit::Neon::B2f_flip::r90(uint32_t       *dst, unsigned dst_w,
+                               uint32_t const *src, unsigned src_w,
+                               unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { 2*int(src_w), 8*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((uint32x4_t *)src, steps.src_y);
@@ -276,9 +288,11 @@ void Blit::Neon::B2f_flip::r90(uint32_t       *dst, unsigned const dst_w,
 }
 
 
-void Blit::Neon::B2f_flip::r180(uint32_t       *dst, unsigned const line_w,
-                                uint32_t const *src, unsigned const w, unsigned const h)
+void Blit::Neon::B2f_flip::r180(uint32_t       *dst, unsigned line_w,
+                                uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	uint32x4_t const *s = (uint32x4_t const *)src + 2*line_w*8*h;
 	uint32x4_t       *d = (uint32x4_t       *)dst;
 
@@ -290,10 +304,12 @@ void Blit::Neon::B2f_flip::r180(uint32_t       *dst, unsigned const line_w,
 }
 
 
-void Blit::Neon::B2f_flip::r270(uint32_t       *dst, unsigned const dst_w,
-                                uint32_t const *src, unsigned const src_w,
-                                unsigned const w, const unsigned h)
+void Blit::Neon::B2f_flip::r270(uint32_t       *dst, unsigned dst_w,
+                                uint32_t const *src, unsigned src_w,
+                                unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { -2*int(src_w), -8*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((uint32x4_t *)src + 2*src_w*(8*h - 1), steps.src_y);

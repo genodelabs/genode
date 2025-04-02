@@ -31,9 +31,9 @@ namespace Blit {
 	                                uint32_t       *dst,
 	                                unsigned w, unsigned h, int dx, int dy)
 	{
-		for (unsigned lines = h*8; lines; lines--) {
-			_write_line(src, dst, 8*w, dx);
-			src += 8*src_w;
+		for (unsigned lines = h; lines; lines--) {
+			_write_line(src, dst, w, dx);
+			src += src_w;
 			dst += dy;
 		}
 	};
@@ -60,7 +60,7 @@ struct Blit::Slow::B2f
 void Blit::Slow::B2f::r0(uint32_t       *dst, unsigned line_w,
                          uint32_t const *src, unsigned w, unsigned h)
 {
-	_write_lines(src, line_w, dst, w, h, 1, 8*line_w);
+	_write_lines(src, line_w, dst, w, h, 1, line_w);
 }
 
 
@@ -68,15 +68,15 @@ void Blit::Slow::B2f::r90(uint32_t       *dst, unsigned dst_w,
                           uint32_t const *src, unsigned src_w,
                           unsigned w, unsigned h)
 {
-	_write_lines(src, src_w, dst + 8*h - 1, w, h, 8*dst_w, -1);
+	_write_lines(src, src_w, dst + h - 1, w, h, dst_w, -1);
 }
 
 
 void Blit::Slow::B2f::r180(uint32_t       *dst, unsigned line_w,
                            uint32_t const *src, unsigned w, unsigned h)
 {
-	dst += 8*w - 1 + (8*h - 1)*8*line_w;
-	_write_lines(src, line_w, dst, w, h, -1, -8*line_w);
+	dst += w - 1 + (h - 1)*line_w;
+	_write_lines(src, line_w, dst, w, h, -1, -line_w);
 }
 
 
@@ -84,8 +84,8 @@ void Blit::Slow::B2f::r270(uint32_t       *dst, unsigned dst_w,
                            uint32_t const *src, unsigned src_w,
                            unsigned w, unsigned h)
 {
-	dst += 8*dst_w*(8*w - 1);
-	_write_lines(src, src_w, dst, w, h, -8*dst_w, 1);
+	dst += dst_w*(w - 1);
+	_write_lines(src, src_w, dst, w, h, -dst_w, 1);
 }
 
 
@@ -101,7 +101,7 @@ struct Blit::Slow::B2f_flip
 void Blit::Slow::B2f_flip::r0(uint32_t       *dst, unsigned line_w,
                               uint32_t const *src, unsigned w, unsigned h)
 {
-	_write_lines(src, line_w, dst + 8*w - 1, w, h, -1, 8*line_w);
+	_write_lines(src, line_w, dst + w - 1, w, h, -1, line_w);
 }
 
 
@@ -109,15 +109,15 @@ void Blit::Slow::B2f_flip::r90(uint32_t       *dst, unsigned dst_w,
                                uint32_t const *src, unsigned src_w,
                                unsigned w, unsigned h)
 {
-	_write_lines(src, src_w, dst, w, h, 8*dst_w, 1);
+	_write_lines(src, src_w, dst, w, h, dst_w, 1);
 }
 
 
 void Blit::Slow::B2f_flip::r180(uint32_t       *dst, unsigned line_w,
                                 uint32_t const *src, unsigned w, unsigned h)
 {
-	dst += (8*h - 1)*8*line_w;
-	_write_lines(src, line_w, dst, w, h, 1, -8*line_w);
+	dst += (h - 1)*line_w;
+	_write_lines(src, line_w, dst, w, h, 1, -line_w);
 }
 
 
@@ -125,8 +125,8 @@ void Blit::Slow::B2f_flip::r270(uint32_t       *dst, unsigned dst_w,
                                 uint32_t const *src, unsigned src_w,
                                 unsigned w, unsigned h)
 {
-	dst += 8*h - 1 + 8*dst_w*(8*w - 1);
-	_write_lines(src, src_w, dst, w, h, -8*dst_w, -1);
+	dst += h - 1 + dst_w*(w - 1);
+	_write_lines(src, src_w, dst, w, h, -dst_w, -1);
 }
 
 

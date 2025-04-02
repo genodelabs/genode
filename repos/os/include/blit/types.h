@@ -74,6 +74,8 @@ namespace Blit {
 		                              .y = ((r.y2() + 8) & ~0x7) - 1 });
 	}
 
+	static inline bool divisable_by_8x8(Area a) { return ((a.w | a.h) & 0x7) == 0; }
+
 	template <typename B2F>
 	static inline void _b2f(uint32_t       *dst, unsigned dst_w,
 	                        uint32_t const *src, unsigned src_w,
@@ -92,23 +94,17 @@ namespace Blit {
 	                        Texture<Pixel_rgb888> const &texture,
 	                        Rect rect, Rotate rotate, Flip flip)
 	{
-		/* surface size must be divisible by 8 */
-		if (!aligned(surface.size().w, 2) || !aligned(surface.size().h, 2)) {
-			warning("surface size ", surface.size(), " not divisible by 8");
-			return;
-		}
-
 		/* check compatibility of surface with texture */
 		if (transformed(surface.size(), rotate) != texture.size()) {
 			warning("surface ", surface.size(), " mismatches texture ", texture.size());
 			return;
 		}
 
-		/* restrict rect to texture size */
-		rect = Rect::intersect(rect, Rect { { }, texture.size() });
+		/* snap src coordinates to multiple of px, restrict to texture size */
+		Rect const src_rect = Rect::intersect(snapped_to_8x8_grid(rect),
+		                                      Rect { { }, texture.size() });
 
 		/* compute base addresses of affected pixel window */
-		Rect const src_rect = snapped_to_8x8_grid(rect);
 		Rect const dst_rect = transformed(src_rect, texture.size(), rotate, flip);
 
 		uint32_t const * const src = (uint32_t const *)texture.pixel()
@@ -119,11 +115,10 @@ namespace Blit {
 		                           + dst_rect.y1()*surface.size().w
 		                           + dst_rect.x1();
 
-		/* coordinates converted to 8x8 units */
-		unsigned const src_w = texture.size().w >> 3,
-		               dst_w = surface.size().w >> 3,
-		               w     = src_rect.area.w  >> 3,
-		               h     = src_rect.area.h  >> 3;
+		unsigned const src_w = texture.size().w,
+		               dst_w = surface.size().w,
+		               w     = src_rect.area.w,
+		               h     = src_rect.area.h;
 
 		if (w && h) {
 			if (flip.enabled)

@@ -173,6 +173,8 @@ struct Blit::Sse4::B2f
 void Blit::Sse4::B2f::r0(uint32_t       *dst, unsigned line_w,
                          uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	__m128i const *s = (__m128i const *)src;
 	__m128i       *d = (__m128i       *)dst;
 
@@ -188,6 +190,8 @@ void Blit::Sse4::B2f::r90(uint32_t       *dst, unsigned dst_w,
                           uint32_t const *src, unsigned src_w,
                           unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { -2*int(src_w), 2*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((__m128i *)src + 2*src_w*(8*h - 1), steps.src_y_4);
@@ -200,6 +204,8 @@ void Blit::Sse4::B2f::r90(uint32_t       *dst, unsigned dst_w,
 void Blit::Sse4::B2f::r180(uint32_t       *dst, unsigned line_w,
                            uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	__m128i       *d = (__m128i *)dst;
 	__m128i const *s = (__m128i const *)src + 2*line_w*8*h;
 
@@ -215,6 +221,8 @@ void Blit::Sse4::B2f::r270(uint32_t       *dst, unsigned dst_w,
                            uint32_t const *src, unsigned src_w,
                            unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { 2*int(src_w), -2*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((__m128i *)src,                          steps.src_y_4);
@@ -236,6 +244,8 @@ struct Blit::Sse4::B2f_flip
 void Blit::Sse4::B2f_flip::r0(uint32_t       *dst, unsigned line_w,
                               uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	__m128i const *s = (__m128i const *)src;
 	__m128i       *d = (__m128i       *)dst;
 
@@ -251,6 +261,8 @@ void Blit::Sse4::B2f_flip::r90(uint32_t       *dst, unsigned dst_w,
                                uint32_t const *src, unsigned src_w,
                                unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { 2*int(src_w), 2*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((__m128i *)src, steps.src_y_4);
@@ -263,6 +275,8 @@ void Blit::Sse4::B2f_flip::r90(uint32_t       *dst, unsigned dst_w,
 void Blit::Sse4::B2f_flip::r180(uint32_t       *dst, unsigned line_w,
                                 uint32_t const *src, unsigned w, unsigned h)
 {
+	line_w >>= 3, w >>= 3, h >>= 3;
+
 	__m128i const *s = (__m128i const *)src + 2*line_w*8*h;
 	__m128i       *d = (__m128i       *)dst;
 
@@ -278,6 +292,8 @@ void Blit::Sse4::B2f_flip::r270(uint32_t       *dst, unsigned dst_w,
                                 uint32_t const *src, unsigned src_w,
                                 unsigned w, unsigned h)
 {
+	dst_w >>= 3, src_w >>= 3, w >>= 3, h >>= 3;
+
 	Steps const steps { -2*int(src_w), -2*int(dst_w) };
 
 	Src_ptr4 src_ptr4 ((__m128i *)src + 2*int(src_w)*(h*8 - 1), steps.src_y_4);
