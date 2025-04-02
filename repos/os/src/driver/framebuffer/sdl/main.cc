@@ -162,9 +162,6 @@ struct Fb_sdl::Sdl : Noncopyable
 	{
 		Area const size;
 
-		Area padded_size() const { return { .w = align_addr(size.w, 3),
-		                                    .h = align_addr(size.h, 3) }; }
-
 		SDL_Renderer &renderer;
 
 		SDL_Surface &_surface = _init_surface();
@@ -180,7 +177,7 @@ struct Fb_sdl::Sdl : Noncopyable
 			unsigned const alpha_mask = 0xFF000000;
 
 			SDL_Surface * const surface_ptr =
-				SDL_CreateRGBSurface(flags, padded_size().w, padded_size().h, bpp,
+				SDL_CreateRGBSurface(flags, size.w, size.h, bpp,
 				                     red_mask, green_mask, blue_mask, alpha_mask);
 			if (!surface_ptr) {
 				error("SDL_CreateRGBSurface failed (", Cstring(SDL_GetError()), ")");
@@ -195,7 +192,7 @@ struct Fb_sdl::Sdl : Noncopyable
 			SDL_Texture * const texture_ptr =
 				SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888,
 				                  SDL_TEXTUREACCESS_STREAMING,
-				                  padded_size().w, padded_size().h);
+				                  size.w, size.h);
 			if (!texture_ptr) {
 				error("SDL_CreateTexture failed (", Cstring(SDL_GetError()), ")");
 				throw Createtexture_failed();
@@ -214,7 +211,7 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		void with_surface(auto const &fn)
 		{
-			Surface<Pixel> surface { (Pixel *)_surface.pixels, padded_size() };
+			Surface<Pixel> surface { (Pixel *)_surface.pixels, size };
 			fn(surface);
 		}
 

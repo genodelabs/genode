@@ -113,9 +113,6 @@ class Capture::Connection::Screen
 			Area   mm;  /* physical size in millimeters */
 			Rotate rotate;
 			Flip   flip;
-
-			Area padded_px() const { return { .w = align_addr(px.w, 3),
-			                                  .h = align_addr(px.h, 3) }; }
 		};
 
 		Attr const attr;
@@ -129,8 +126,7 @@ class Capture::Connection::Screen
 
 		Attached_dataspace _ds;
 
-		Texture<Pixel> const _texture { _ds.local_addr<Pixel>(), nullptr,
-		                                attr.padded_px() };
+		Texture<Pixel> const _texture { _ds.local_addr<Pixel>(), nullptr, attr.px };
 
 	public:
 
