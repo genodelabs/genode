@@ -41,18 +41,20 @@ class Genode::Thread
 {
 	public:
 
-		class Out_of_stack_space : public Exception { };
-		class Stack_too_large    : public Exception { };
-		class Stack_alloc_failed : public Exception { };
-
 		using Location = Affinity::Location;
 		using Name     = Cpu_session::Name;
 		using Weight   = Cpu_session::Weight;
 
+		enum class Stack_error { STACK_AREA_EXHAUSTED, STACK_TOO_LARGE };
+
 		struct Stack_info { addr_t base; addr_t top;
 		                    addr_t libc_tls_pointer_offset; };
 
+		Name const name;
+
 	private:
+
+		using Alloc_stack_result = Attempt<Stack *, Stack_error>;
 
 		/**
 		 * Allocate and locally attach a new stack
@@ -60,12 +62,13 @@ class Genode::Thread
 		 * \param stack_size   size of this threads stack
 		 * \param main_thread  wether this is the main thread
 		 */
-		Stack *_alloc_stack(size_t stack_size, char const *name, bool main_thread);
+		Alloc_stack_result _alloc_stack(size_t stack_size, Name const &name,
+		                                bool main_thread);
 
 		/**
 		 * Detach and release stack of the thread
 		 */
-		void _free_stack(Stack *stack);
+		void _free_stack(Stack &stack);
 
 		/**
 		 * Platform-specific thread-startup code
@@ -118,9 +121,9 @@ class Genode::Thread
 		Trace::Control *_trace_control = nullptr;
 
 		/**
-		 * Pointer to primary stack
+		 * Primary stack
 		 */
-		Stack *_stack = nullptr;
+		Attempt<Stack *, Stack_error> _stack = Stack_error::STACK_AREA_EXHAUSTED;
 
 		/**
 		 * Pointer to kernel-specific meta data
@@ -188,10 +191,6 @@ class Genode::Thread
 		 * \param name        thread name (for debugging)
 		 * \param stack_size  stack size
 		 *
-		 * \throw Stack_too_large
-		 * \throw Stack_alloc_failed
-		 * \throw Out_of_stack_space
-		 *
 		 * The stack for the new thread will be allocated from the RAM session
 		 * of the component environment. A small portion of the stack size is
 		 * internally used by the framework for storing thread-specific
@@ -218,10 +217,6 @@ class Genode::Thread
 		 * \param type        enables selection of special construction
 		 * \param cpu_session capability to cpu session used for construction
 		 *
-		 * \throw Stack_too_large
-		 * \throw Stack_alloc_failed
-		 * \throw Out_of_stack_space
-		 *
 		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
 		Thread(size_t weight, const char *name, size_t stack_size,
@@ -245,10 +240,6 @@ class Genode::Thread
 		 * needs to interact with the environment for attaching the thread's
 		 * stack, the trace-control dataspace, and the thread's trace buffer
 		 * and policy.
-		 *
-		 * \throw Stack_too_large
-		 * \throw Stack_alloc_failed
-		 * \throw Out_of_stack_space
 		 */
 		Thread(Env &env, Name const &name, size_t stack_size, Location location,
 		       Weight weight, Cpu_session &cpu);
@@ -282,25 +273,10 @@ class Genode::Thread
 		 */
 		virtual Start_result start();
 
-		/**
-		 * Request name of thread
-		 *
-		 * \noapi
-		 * \deprecated  use the 'Name name() const' method instead
-		 */
-		void name(char *dst, size_t dst_len);
-
-		/**
-		 * Request name of thread
-		 */
-		Name name() const;
+		using Alloc_secondary_stack_result = Attempt<void *, Stack_error>;
 
 		/**
 		 * Add an additional stack to the thread
-		 *
-		 * \throw Stack_too_large
-		 * \throw Stack_alloc_failed
-		 * \throw Out_of_stack_space
 		 *
 		 * The stack for the new thread will be allocated from the RAM
 		 * session of the component environment. A small portion of the
@@ -309,7 +285,8 @@ class Genode::Thread
 		 *
 		 * \return  pointer to the new stack's top
 		 */
-		void* alloc_secondary_stack(char const *name, size_t stack_size);
+		Alloc_secondary_stack_result alloc_secondary_stack(Name const &name,
+		                                                   size_t stack_size);
 
 		/**
 		 * Remove a secondary stack from the thread
@@ -352,20 +329,6 @@ class Genode::Thread
 		}
 
 		/**
-		 * Return top of primary stack
-		 *
-		 * \return  pointer just after first stack element
-		 */
-		void *stack_top() const;
-
-		/**
-		 * Return base of primary stack
-		 *
-		 * \return  pointer to last stack element
-		 */
-		void *stack_base() const;
-
-		/**
 		 * Return virtual size reserved for each stack within the stack area
 		 */
 		static size_t stack_virtual_size();
@@ -380,6 +343,13 @@ class Genode::Thread
 		 */
 		static size_t stack_area_virtual_size();
 
+		using Info_result = Attempt<Stack_info, Stack_error>;
+
+		/**
+		 * Return information about the thread's stack
+		 */
+		Info_result info() const;
+
 		/**
 		 * Return 'Thread' object corresponding to the calling thread
 		 *
@@ -392,15 +362,14 @@ class Genode::Thread
 		 */
 		static Stack_info mystack();
 
+		using Stack_size_result = Attempt<size_t, Stack_error>;
+
 		/**
 		 * Ensure that the stack has a given size at the minimum
 		 *
 		 * \param size  minimum stack size
-		 *
-		 * \throw Stack_too_large
-		 * \throw Stack_alloc_failed
 		 */
-		void stack_size(size_t const size);
+		Stack_size_result stack_size(size_t const size);
 
 		/**
 		 * Return user-level thread control block

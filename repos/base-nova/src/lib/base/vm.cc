@@ -660,7 +660,7 @@ static void nova_reply(Thread &myself, Nova::Utcb &utcb, auto &&... args)
 		/* reset receive window to values expected by RPC server code */
 		nt.server_rcv_window.prepare_rcv_window(utcb);
 
-		Nova::reply(myself.stack_top(), args...);
+		Nova::reply((void *)Thread::mystack().top, args...);
 	});
 }
 

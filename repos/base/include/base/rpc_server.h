@@ -487,11 +487,11 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * Check whether given stack info matches stack of the entrypoint.
 		 *
 		 * \noapi
-		 *
 		 */
 		bool myself(addr_t const ptr) const
 		{
-			return addr_t(stack_base()) <= ptr && ptr <= addr_t(stack_top());
+			Stack_info const info = mystack();
+			return info.base <= ptr && ptr <= info.top;
 		}
 };
 

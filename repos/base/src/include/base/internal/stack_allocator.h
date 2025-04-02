@@ -64,7 +64,7 @@ class Genode::Stack_allocator
 		/**
 		 * Release stack
 		 */
-		void free(Stack *);
+		void free(Stack &);
 
 		/**
 		 * Return 'Stack' object for a given base address

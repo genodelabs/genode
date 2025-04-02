@@ -107,7 +107,7 @@ void Scheduler::execute()
 	auto const thread = Genode::Thread::myself();
 	if (!_ep.rpc_ep().myself(addr_t(&thread))) {
 		Genode::error("Lx_kit::Scheduler called by invalid thread/stack ",
-		              thread->name(), " ",
+		              thread->name, " ",
 		              Genode::Hex(thread->mystack().base), "-",
 		              Genode::Hex(thread->mystack().top));
 		Genode::backtrace();

@@ -77,5 +77,5 @@ void Ipc_pager::reply_and_wait_for_fault(addr_t sm)
 	 */
 	utcb.set_msg_word((_normal_ipc && _syscall_res != Nova::NOVA_OK) ? 1 : 0);
 
-	Nova::reply(myself.stack_top(), sm);
+	Nova::reply((void *)Thread::mystack().top, sm);
 }

@@ -741,7 +741,7 @@ extern "C" {
 		 */
 		if (!_pthread_main_np()) {
 			error("pthread_self() called from alien thread named ",
-			      "'", Thread::myself()->name().string(), "'");
+			      "'", Thread::myself()->name, "'");
 			return nullptr;
 		}
 

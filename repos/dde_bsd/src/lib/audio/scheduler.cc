@@ -59,7 +59,12 @@ bool Bsd::Task::run()
 		_state = STATE_RUNNING;
 		Genode::Thread *th = Genode::Thread::myself();
 
-		_stack = th->alloc_secondary_stack(_name, _stack_size);
+		_stack = th->alloc_secondary_stack(_name, _stack_size).convert<void *>(
+			[&] (void *sp) { return sp; },
+			[&] (Genode::Thread::Stack_error) {
+				Genode::error("failed to allocate secondary stack");
+				return nullptr;
+			});
 
 		/* switch stack and call '_func(_arg)' */
 		platform_execute(_stack, (void *)_func, _arg);

@@ -30,11 +30,12 @@ static Region_map  *local_rm_ptr;
 static Cpu_session *cpu_session_ptr;
 
 
-void Stack::size(size_t const size)
+Stack::Size_result Stack::size(size_t const size)
 {
 	/* check if the stack needs to be enhanced */
 	size_t const stack_size = (addr_t)_stack - _base;
-	if (stack_size >= size) { return; }
+	if (stack_size >= size)
+		return stack_size;
 
 	/* check if the stack enhancement fits the stack region */
 	enum {
@@ -45,7 +46,7 @@ void Stack::size(size_t const size)
 	addr_t const stack_slot_base = Stack_allocator::addr_to_base(this);
 	size_t const ds_size = align_addr(size - stack_size, PAGE_SIZE_LOG2);
 	if (_base - ds_size < stack_slot_base)
-		throw Thread::Stack_too_large();
+		return Error::STACK_TOO_LARGE;
 
 	/* allocate and attach backing store for the stack enhancement */
 	addr_t const ds_addr = _base - ds_size - stack_area_virtual_base();
@@ -53,41 +54,44 @@ void Stack::size(size_t const size)
 	Ram_allocator &ram = *env_stack_area_ram_allocator;
 	Region_map    &rm  = *env_stack_area_region_map;
 
-	ram.try_alloc(ds_size).with_result(
+	return ram.try_alloc(ds_size).convert<Size_result>(
 		[&] (Ram_dataspace_capability ds_cap) {
 
-			rm.attach(ds_cap, Region_map::Attr {
+			return rm.attach(ds_cap, Region_map::Attr {
 				.size       = ds_size,
 				.offset     = 0,
 				.use_at     = true,
 				.at         = ds_addr,
 				.executable = { },
 				.writeable  = true,
-			}).with_result(
-				[&] (Region_map::Range r) {
+			}).convert<Size_result> (
+
+				[&] (Region_map::Range r) -> Size_result {
 					if (r.start != ds_addr)
-						throw Thread::Stack_alloc_failed();
+						return Error::STACK_AREA_EXHAUSTED;
 
 					/* update stack information */
 					_base -= ds_size;
+
+					return (addr_t)_stack - _base;
 				},
 				[&] (Region_map::Attach_error) {
-					throw Thread::Stack_alloc_failed(); }
+					return Error::STACK_AREA_EXHAUSTED; }
 			);
 		},
 		[&] (Ram_allocator::Alloc_error) {
-			throw Thread::Stack_alloc_failed(); }
+			return Error::STACK_AREA_EXHAUSTED; }
 	);
 }
 
 
-Stack *
-Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
+Thread::Alloc_stack_result
+Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
 {
 	/* allocate stack */
 	Stack *stack = Stack_allocator::stack_allocator().alloc(this, main_thread);
 	if (!stack)
-		throw Out_of_stack_space();
+		return Stack_error::STACK_AREA_EXHAUSTED;
 
 	/* determine size of dataspace to allocate for the stack */
 	enum { PAGE_SIZE_LOG2 = 12 };
@@ -95,7 +99,7 @@ Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 
 	if (stack_size >= stack_virtual_size() -
 	    sizeof(Native_utcb) - (1UL << PAGE_SIZE_LOG2))
-		throw Stack_too_large();
+		return Stack_error::STACK_TOO_LARGE;
 
 	/*
 	 * Calculate base address of the stack
@@ -112,7 +116,7 @@ Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 	Ram_allocator &ram = *env_stack_area_ram_allocator;
 
 	/* allocate and attach backing store for the stack */
-	return ram.try_alloc(ds_size).convert<Stack *>(
+	return ram.try_alloc(ds_size).convert<Alloc_stack_result>(
 
 		[&] (Ram_dataspace_capability const ds_cap)
 		{
@@ -125,12 +129,12 @@ Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 				.at         = attach_addr,
 				.executable = { },
 				.writeable  = true
-			}).convert<Stack *>(
+			}).convert<Alloc_stack_result>(
 
-				[&] (Region_map::Range const range) -> Stack * {
+				[&] (Region_map::Range const range) -> Alloc_stack_result {
 					if (range.start != attach_addr) {
 						ram.free(ds_cap);
-						throw Stack_alloc_failed();
+						return Stack_error::STACK_TOO_LARGE;
 					}
 
 					/*
@@ -147,25 +151,25 @@ Thread::_alloc_stack(size_t stack_size, char const *name, bool main_thread)
 					Abi::init_stack(stack->top());
 					return stack;
 				},
-				[&] (Region_map::Attach_error) -> Stack * {
+				[&] (Region_map::Attach_error) -> Alloc_stack_result {
 					ram.free(ds_cap);
-					throw Stack_alloc_failed();
+					return Stack_error::STACK_AREA_EXHAUSTED;
 				}
 			);
 		},
-		[&] (Ram_allocator::Alloc_error) -> Stack * {
-			throw Stack_alloc_failed(); }
+		[&] (Ram_allocator::Alloc_error) -> Alloc_stack_result {
+			return Stack_error::STACK_AREA_EXHAUSTED; }
 	);
 }
 
 
-void Thread::_free_stack(Stack *stack)
+void Thread::_free_stack(Stack &stack)
 {
-	addr_t ds_addr = stack->base() - stack_area_virtual_base();
-	Ram_dataspace_capability ds_cap = stack->ds_cap();
+	addr_t ds_addr = stack.base() - stack_area_virtual_base();
+	Ram_dataspace_capability ds_cap = stack.ds_cap();
 
 	/* call de-constructor explicitly before memory gets detached */
-	stack->~Stack();
+	stack.~Stack();
 
 	Genode::env_stack_area_region_map->detach(ds_addr);
 	Genode::env_stack_area_ram_allocator->free(ds_cap);
@@ -175,47 +179,55 @@ void Thread::_free_stack(Stack *stack)
 }
 
 
-void Thread::name(char *dst, size_t dst_len)
+static Thread::Stack_info stack_info(Stack &stack)
 {
-	copy_cstring(dst, name().string(), dst_len);
+	return { stack.base(), stack.top(),
+	         stack_virtual_size() - stack.libc_tls_pointer_offset() };
 }
 
 
-Thread::Name Thread::name() const { return _stack->name(); }
+Thread::Info_result Thread::info() const
+{
+	return _stack.convert<Info_result>(
+		[&] (Stack *stack)  { return stack_info(*stack); },
+		[&] (Stack_error e) { return e; });
+}
 
 
 void Thread::join() { _join.block(); }
 
 
-void *Thread::alloc_secondary_stack(char const *name, size_t stack_size)
+Thread::Alloc_secondary_stack_result
+Thread::alloc_secondary_stack(Name const &name, size_t stack_size)
 {
-	Stack *stack = _alloc_stack(stack_size, name, false);
-	return (void *)stack->top();
+	return _alloc_stack(stack_size, name, false).convert<Alloc_secondary_stack_result>(
+		[&] (Stack *stack)  { return (void *)stack->top(); },
+		[&] (Stack_error e) { return e; });
 }
 
 
 void Thread::free_secondary_stack(void* stack_addr)
 {
 	addr_t base = Stack_allocator::addr_to_base(stack_addr);
-	_free_stack(Stack_allocator::base_to_stack(base));
+	_free_stack(*Stack_allocator::base_to_stack(base));
 }
 
 
-void *Thread::stack_top() const { return (void *)_stack->top(); }
-
-
-void *Thread::stack_base() const { return (void*)_stack->base(); }
-
-
-void Thread::stack_size(size_t const size) { _stack->size(size); }
+Thread::Stack_size_result Thread::stack_size(size_t const size)
+{
+	return _stack.convert<Stack_size_result>(
+		[&] (Stack *stack)  {
+			stack->size(size);
+			return stack->top() - stack->base();
+		},
+		[&] (Stack_error e) { return e; });
+}
 
 
 Thread::Stack_info Thread::mystack()
 {
 	addr_t base = Stack_allocator::addr_to_base(&base);
-	Stack *stack = Stack_allocator::base_to_stack(base);
-	return { stack->base(), stack->top(),
-	         stack_virtual_size() - stack->libc_tls_pointer_offset() };
+	return stack_info(*Stack_allocator::base_to_stack(base));
 }
 
 
@@ -240,13 +252,18 @@ size_t Thread::stack_area_virtual_size()
 Thread::Thread(size_t weight, const char *name, size_t stack_size,
                Type type, Cpu_session *cpu_session, Affinity::Location affinity)
 :
+	name(name),
 	_cpu_session(cpu_session),
 	_affinity(affinity),
 	_trace_control(nullptr),
 	_stack(_alloc_stack(stack_size, name, type == MAIN))
 {
-	_native_thread_ptr = &_stack->native_thread();
-	_init_native_thread(*_stack, weight, type);
+	_stack.with_result(
+		[&] (Stack *stack) {
+			_native_thread_ptr = &stack->native_thread();
+			_init_native_thread(*stack, weight, type);
+		},
+		[&] (Stack_error) { /* error reflected by 'info()' */ });
 }
 
 
@@ -299,14 +316,16 @@ Thread::Thread(Env &env, Name const &name, size_t stack_size)
 Thread::~Thread()
 {
 	if (Thread::myself() == this) {
-		error("thread '", _stack->name().string(), "' "
-		      "tried to self de-struct - sleeping forever.");
+		error("thread '", name, "' tried to self de-struct - sleeping forever.");
 		sleep_forever();
 	}
 
-	_deinit_native_thread(*_stack);
-
-	_free_stack(_stack);
+	_stack.with_result(
+		[&] (Stack *stack) {
+			_deinit_native_thread(*stack);
+			_free_stack(*stack);
+		},
+		[&] (Stack_error) { });
 
 	cxx_free_tls(this);
 

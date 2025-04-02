@@ -20,6 +20,3 @@ Genode::Thread * Genode::Thread::myself()
 	assert(false);
 	return nullptr;
 }
-
-
-Genode::Thread::Name Genode::Thread::name() const { return "bootstrap"; }

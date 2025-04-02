@@ -60,9 +60,9 @@ Stack_allocator::alloc(Thread *, bool main_thread)
 }
 
 
-void Stack_allocator::free(Stack *stack)
+void Stack_allocator::free(Stack &stack)
 {
-	addr_t const base = addr_to_base(stack);
+	addr_t const base = addr_to_base(&stack);
 
 	Mutex::Guard guard(_threads_mutex);
 	_alloc.free(base_to_idx(base));

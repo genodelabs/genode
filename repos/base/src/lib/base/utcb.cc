@@ -19,4 +19,8 @@
 #include <base/internal/native_utcb.h>
 
 
-Genode::Native_utcb *Genode::Thread::utcb() { return &_stack->utcb(); }
+Genode::Native_utcb *Genode::Thread::utcb()
+{
+	return _stack.convert<Native_utcb *>([&] (Stack *stack) { return &stack->utcb(); },
+	                                     [&] (Stack_error)  { return nullptr; });
+}

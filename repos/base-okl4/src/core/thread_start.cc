@@ -35,14 +35,19 @@ void Thread::_thread_start()
 
 Thread::Start_result Thread::start()
 {
-	with_native_thread([&] (Native_thread &nt) {
+	return _stack.convert<Start_result>([&] (Stack * const stack) {
+
+		Native_thread &nt = stack->native_thread();
+
 		nt.pt = new (Core::platform_specific().thread_slab())
 			Core::Platform_thread(Core::platform_specific().core_pd(),
-			                      _stack->name().string());
+			                      name.string());
 
-		nt.pt->start((void *)_thread_start, stack_top());
-	});
-	return Start_result::OK;
+		nt.pt->start((void *)_thread_start, (void *)stack->top());
+
+		return Start_result::OK;
+
+	}, [&] (Stack_error) { return Start_result::DENIED; });
 }
 
 

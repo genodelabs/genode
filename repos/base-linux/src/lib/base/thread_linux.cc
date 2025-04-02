@@ -65,16 +65,22 @@ static void thread_exit_signal_handler(int) { lx_exit(0); }
 
 void Thread::_thread_start()
 {
-	Thread * const thread = Thread::myself();
+	Thread &thread = *Thread::myself();
 
-	/* use primary stack as alternate stack for fatal signals (exceptions) */
-	void   *stack_base = (void *)thread->_stack->base();
-	size_t  stack_size = thread->_stack->top() - thread->_stack->base();
+	thread._stack.with_result(
+		[&] (Stack *stack) {
+			/* use primary stack as alternate stack for fatal signals (exceptions) */
+			void   *stack_base = (void *)stack->base();
+			size_t  stack_size = stack->top() - stack->base();
 
-	lx_sigaltstack(stack_base, stack_size);
-	if (stack_size < 0x1000)
-		raw("small stack of ", stack_size, " bytes for \"", thread->name(),
-		    "\" may break Linux signal handling");
+			lx_sigaltstack(stack_base, stack_size);
+			if (stack_size < 0x1000)
+				raw("small stack of ", stack_size, " bytes for \"", thread.name,
+				    "\" may break Linux signal handling");
+		},
+		[&] (Stack_error) {
+			warning("attempt to start thread ", thread.name, " without stack"); }
+	);
 
 	/*
 	 * Set signal handler such that canceled system calls get not
@@ -83,18 +89,18 @@ void Thread::_thread_start()
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 
 	/* inform core about the new thread and process ID of the new thread */
-	thread->with_native_thread([&] (Native_thread &nt) {
-		Linux_native_cpu_client native_cpu(thread->_cpu_session->native_cpu());
-		native_cpu.thread_id(thread->cap(), nt.pid, nt.tid);
+	thread.with_native_thread([&] (Native_thread &nt) {
+		Linux_native_cpu_client native_cpu(thread._cpu_session->native_cpu());
+		native_cpu.thread_id(thread.cap(), nt.pid, nt.tid);
 	});
 
 	/* wakeup 'start' function */
 	startup_lock().wakeup();
 
-	thread->entry();
+	thread.entry();
 
 	/* unblock caller of 'join()' */
-	thread->_join.wakeup();
+	thread._join.wakeup();
 
 	sleep_forever();
 }
@@ -180,15 +186,19 @@ Thread::Start_result Thread::start()
 		threadlib_initialized = true;
 	}
 
-	with_native_thread([&] (Native_thread &nt) {
-		nt.tid = lx_create_thread(Thread::_thread_start, stack_top());
-		nt.pid = lx_getpid();
-	});
+	return _stack.convert<Start_result>(
+		[&] (Stack *stack) {
+			Native_thread &nt = stack->native_thread();
 
-	/* wait until the 'thread_start' function got entered */
-	startup_lock().block();
+			nt.tid = lx_create_thread(Thread::_thread_start, (void *)stack->top());
+			nt.pid = lx_getpid();
 
-	return Start_result::OK;
+			/* wait until the 'thread_start' function got entered */
+			startup_lock().block();
+
+			return Start_result::OK;
+		},
+		[&] (Stack_error) { return Start_result::DENIED; });
 }
 
 

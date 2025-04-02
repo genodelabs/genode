@@ -81,7 +81,10 @@ extern "C" void init_main_thread()
 	 * The new stack pointer enables the caller to switch from its current
 	 * environment to the those that the thread object provides.
 	 */
-	addr_t const sp = reinterpret_cast<addr_t>(main_thread.stack_top());
+	addr_t const sp = main_thread.info().convert<addr_t>(
+		[&] (Thread::Stack_info info) { return info.top; },
+		[&] (Thread::Stack_error)     { return 0UL; });
+
 	init_main_thread_result = sp;
 
 	/*

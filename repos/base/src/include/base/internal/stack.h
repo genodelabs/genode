@@ -74,7 +74,9 @@ class Genode::Stack
 {
 	public:
 
-		using Name = Cpu_session::Name;
+		using Name        = Cpu_session::Name;
+		using Size_result = Thread::Stack_size_result;
+		using Error       = Thread::Stack_error;
 
 	private:
 
@@ -170,11 +172,9 @@ class Genode::Stack
 		 * Ensure that the stack has a given minimum size
 		 *
 		 * \param size  minimum stack size
-		 *
-		 * \throw Stack_too_large
-		 * \throw Stack_alloc_failed
+		 * \return      actually available stack size
 		 */
-		void size(size_t const size);
+		Size_result size(size_t const size);
 
 		/**
 		 * Return kernel-specific thread meta data

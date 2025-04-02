@@ -124,6 +124,13 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 
 		seL4_VCPUContext _recent_gpr { };
 
+		addr_t _with_utcb(auto const &fn)
+		{
+			return _stack.convert<addr_t>(
+				[&] (Stack *stack) { return fn(stack->utcb()); },
+				[&] (Stack_error)  { return 0UL; /* cannot happen */ });
+		}
+
 		void entry() override
 		{
 			/* trigger that thread is up */
@@ -133,9 +140,12 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 			_wake_up.down();
 
 			/* get selector to read/write VMCS */
-			addr_t const service = _stack->utcb().ep_sel();
+			addr_t const service = _with_utcb([&] (Native_utcb &utcb) {
+				return utcb.ep_sel(); });
+
 			/* get selector to call back a vCPU into VMM */
-			_recall = _stack->utcb().lock_sel();
+			_recall = _with_utcb([&] (Native_utcb &utcb) {
+				return utcb.lock_sel(); });
 
 			Vcpu_state &state = _state;
 			state.discharge();

@@ -33,12 +33,17 @@ void Genode::prepare_init_main_thread() { }
 
 void Genode::Thread::_thread_bootstrap()
 {
-	with_native_thread([&] (Native_thread &nt) {
-		if (nt.attr.ep_sel == 0) {
-			nt.attr.ep_sel   = (unsigned)_stack->utcb().ep_sel();
-			nt.attr.lock_sel = (unsigned)_stack->utcb().lock_sel();
-		}
-	});
+	_stack.with_result(
+		[&] (Stack *stack) {
+			Native_thread &nt = stack->native_thread();
+
+			if (nt.attr.ep_sel == 0) {
+				nt.attr.ep_sel   = (unsigned)stack->utcb().ep_sel();
+				nt.attr.lock_sel = (unsigned)stack->utcb().lock_sel();
+			}
+		},
+		[&] (Stack_error) { }
+	);
 }
 
 

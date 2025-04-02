@@ -60,7 +60,7 @@ void Thread::_thread_start()
 		Thread::myself()->entry();
 	} catch (...) {
 		try {
-			error("Thread '", Thread::myself()->name(), "' "
+			error("Thread '", Thread::myself()->name, "' "
 			      "died because of an uncaught exception");
 		} catch (...) {
 			/* die in a noisy way */
@@ -123,7 +123,7 @@ void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 	_init_cpu_session_and_trace_control();
 
 	/* create thread at core */
-	_cpu_session->create_thread(pd_session_cap(), name(),
+	_cpu_session->create_thread(pd_session_cap(), name,
 	                            _affinity, Weight(weight)).with_result(
 		[&] (Thread_capability cap) { _thread_cap = cap; },
 		[&] (Cpu_session::Create_thread_error) {
@@ -149,7 +149,9 @@ void Thread::_deinit_native_thread(Stack &stack)
 
 Thread::Start_result Thread::start()
 {
-	return with_native_thread([&] (Native_thread &nt) {
+	return _stack.convert<Start_result>([&] (Stack *stack) {
+
+		Native_thread &nt = stack->native_thread();
 
 		if (nt.ec_sel < Native_thread::INVALID_INDEX - 1) {
 			error("Thread::start failed due to invalid exception portal selector");
@@ -188,7 +190,7 @@ Thread::Start_result Thread::start()
 		addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : nt.initial_ip;
 
 		Cpu_thread_client cpu_thread(cap());
-		cpu_thread.start(thread_ip, _stack->top());
+		cpu_thread.start(thread_ip, stack->top());
 
 		/* request native EC thread cap */ 
 		nt.ec_sel = nt.exc_pt_sel + Nova::EC_SEL_THREAD;
@@ -211,7 +213,7 @@ Thread::Start_result Thread::start()
 
 		return Start_result::OK;
 
-	}, [&] { return Start_result::DENIED; });
+	}, [&] (Stack_error) { return Start_result::DENIED; });
 }
 
 

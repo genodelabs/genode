@@ -36,16 +36,19 @@ bool Task::runnable() const
 
 static inline void * _alloc_stack(const char * name)
 {
-	enum { STACK_SIZE = 32 * 1024 };
-	Genode::Thread * th = Genode::Thread::myself();
-	return th->alloc_secondary_stack(name, STACK_SIZE);
+	size_t const stack_size { 32*1024 };
+	return Thread::myself()->alloc_secondary_stack(name, stack_size).convert<void *>(
+		[&] (void *sp) { return sp; },
+		[&] (Thread::Stack_error) {
+			error("lx_kit failed to allocate secondary stack");
+			return nullptr;
+		});
 }
 
 
 static inline void _free_stack(void *addr)
 {
-	Genode::Thread * th = Genode::Thread::myself();
-	th->free_secondary_stack(addr);
+	Thread::myself()->free_secondary_stack(addr);
 }
 
 

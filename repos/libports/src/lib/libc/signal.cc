@@ -251,10 +251,11 @@ extern "C" int sigaltstack(stack_t const * const ss, stack_t * const old_ss)
 
 		} else {
 			/* ss->ss_sp is ignored, ever use alloc_secondary stack */
-			void * stack = myself->alloc_secondary_stack("sigaltstack",
-			                                             ss->ss_size);
-
-			signal.use_alternative_stack(stack);
+			myself->alloc_secondary_stack("sigaltstack", ss->ss_size).with_result(
+				[&] (void *sp) {
+					signal.use_alternative_stack(sp); },
+				[&] (Thread::Stack_error) {
+					error("failed to allocate sigaltstack"); });
 		}
 	}
 

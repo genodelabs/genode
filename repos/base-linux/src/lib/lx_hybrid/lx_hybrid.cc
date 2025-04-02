@@ -515,7 +515,8 @@ void Thread::join()
 
 Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
                Type, Cpu_session * cpu_sess, Affinity::Location)
-: _cpu_session(cpu_sess), _affinity()
+:
+	name(name), _cpu_session(cpu_sess), _affinity()
 {
 	Native_thread::Meta_data *meta_data =
 		new (global_alloc()) Thread_meta_data_created(this);
@@ -526,7 +527,7 @@ Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
 	if (ret) {
 		error("pthread_create failed (returned ", ret, ", errno=", errno, ")");
 		destroy(global_alloc(), meta_data);
-		throw Out_of_stack_space();
+		return;
 	}
 
 	with_native_thread([&] (Native_thread &nt) {

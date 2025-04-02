@@ -30,13 +30,20 @@ static void empty_signal_handler(int) { }
 
 void Thread::_thread_start()
 {
-	Thread * const thread_ptr = Thread::myself();
+	Thread &thread = *Thread::myself();
 
-	/* use primary stack as alternate stack for fatal signals (exceptions) */
-	void   *stack_base = (void *)thread_ptr->_stack->base();
-	size_t  stack_size = thread_ptr->_stack->top() - thread_ptr->_stack->base();
+	thread._stack.with_result(
+		[&] (Stack *stack) {
 
-	lx_sigaltstack(stack_base, stack_size);
+			/* use primary stack as alternate stack for fatal signals (exceptions) */
+			void   *stack_base = (void *)stack->base();
+			size_t  stack_size = stack->top() - stack->base();
+
+			lx_sigaltstack(stack_base, stack_size);
+		},
+		[&] (Stack_error) {
+			warning("attempt to start thread ", thread.name, " without stack"); }
+	);
 
 	/*
 	 * Set signal handler such that canceled system calls get not transparently
@@ -52,8 +59,8 @@ void Thread::_thread_start()
 	 */
 	lx_sigsetmask(LX_SIGCHLD, false);
 
-	Thread::myself()->entry();
-	Thread::myself()->_join.wakeup();
+	thread.entry();
+	thread._join.wakeup();
 	sleep_forever();
 }
 
@@ -66,11 +73,12 @@ void Thread::_deinit_native_thread(Stack &) { }
 
 Thread::Start_result Thread::start()
 {
-	return with_native_thread(
-		[&] (Native_thread &nt) {
-			nt.tid = lx_create_thread(Thread::_thread_start, stack_top());
+	return _stack.convert<Start_result>(
+		[&] (Stack *stack) {
+			Native_thread &nt = stack->native_thread();
+			nt.tid = lx_create_thread(Thread::_thread_start, (void *)stack->top());
 			nt.pid = lx_getpid();
 			return Start_result::OK;
 		},
-		[&] { return Start_result::DENIED; });
+		[&] (Stack_error) { return Start_result::DENIED; });
 }

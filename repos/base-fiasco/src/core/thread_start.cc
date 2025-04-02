@@ -35,26 +35,25 @@ void Thread::_thread_start()
 
 Thread::Start_result Thread::start()
 {
-	if (!_stack)
-		return Start_result::DENIED;
+	return _stack.convert<Start_result>([&] (Stack * const stack) {
 
-	Stack &stack = *_stack;
+		Native_thread &nt = stack->native_thread();
 
-	Native_thread &nt = stack.native_thread();
+		/* create and start platform thread */
+		try {
+			nt.pt = new (platform().core_mem_alloc())
+				Platform_thread(platform_specific().core_pd(), name.string());
+		}
+		catch (...) { return Start_result::DENIED; }
 
-	/* create and start platform thread */
-	try {
-		nt.pt = new (platform().core_mem_alloc())
-			Platform_thread(platform_specific().core_pd(), stack.name().string());
-	}
-	catch (...) { return Start_result::DENIED; }
+		nt.pt->pager(platform_specific().core_pager());
+		nt.l4id = nt.pt->native_thread_id();
 
-	nt.pt->pager(platform_specific().core_pager());
-	nt.l4id = nt.pt->native_thread_id();
+		nt.pt->start((void *)_thread_start, (void *)stack->top());
 
-	nt.pt->start((void *)_thread_start, (void *)stack.top());
+		return Start_result::OK;
 
-	return Start_result::OK;
+	}, [&] (Stack_error) { return Start_result::DENIED; });
 }
 
 

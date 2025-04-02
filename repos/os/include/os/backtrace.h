@@ -60,7 +60,7 @@ struct Genode::Backtrace
 	{
 		using Genode::print;
 
-		print(out, "backtrace \"", Thread::myself()->name(), "\"");
+		print(out, "backtrace \"", Thread::myself()->name, "\"");
 
 		struct Addr : Hex { Addr(void *v) : Hex((addr_t)v, OMIT_PREFIX) { } };
 

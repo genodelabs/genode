@@ -90,25 +90,34 @@ Thread::Start_result Thread::start()
 	 */
 	using namespace Nova;
 
-	addr_t sp   = _stack->top();
-	Utcb  &utcb = *reinterpret_cast<Utcb *>(&_stack->utcb());
+	bool const ec_created = _stack.convert<bool>([&] (Stack *stack) {
 
-	/* create local EC */
-	enum { LOCAL_THREAD = false };
-	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(_affinity);
+		addr_t sp   = stack->top();
+		Utcb  &utcb = reinterpret_cast<Utcb &>(stack->utcb());
 
-	uint8_t res { };
-	with_native_thread([&] (Native_thread &nt) {
-		res = create_ec(nt.ec_sel, platform_specific().core_pd_sel(), kernel_cpu_id,
-		                (mword_t)&utcb, sp, nt.exc_pt_sel, LOCAL_THREAD); });
-	if (res != NOVA_OK) {
-		error("Thread::start: create_ec returned ", res);
+		/* create local EC */
+		enum { LOCAL_THREAD = false };
+		unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(_affinity);
+
+		Native_thread &nt = stack->native_thread();
+
+		uint8_t res = create_ec(nt.ec_sel, platform_specific().core_pd_sel(),
+		                        kernel_cpu_id, (mword_t)&utcb, sp, nt.exc_pt_sel,
+		                        LOCAL_THREAD);
+		if (res != NOVA_OK) {
+			error("Thread::start: create_ec returned ", res);
+			return false;
+		}
+
+		/* default: we don't accept any mappings or translations */
+		utcb.crd_rcv = Obj_crd();
+		utcb.crd_xlt = Obj_crd();
+		return true;
+
+	}, [&] (Stack_error) { return false; });
+
+	if (!ec_created)
 		return Start_result::DENIED;
-	}
-
-	/* default: we don't accept any mappings or translations */
-	utcb.crd_rcv = Obj_crd();
-	utcb.crd_xlt = Obj_crd();
 
 	for (unsigned i = 0; i < NUM_INITIAL_PT; i++) {
 		if (i == SM_SEL_EC)
@@ -148,7 +157,7 @@ Thread::Start_result Thread::start()
 					warning("ec_time for core thread failed res=", res);
 			});
 
-			return { Session_label("core"), thread.name(),
+			return { Session_label("core"), thread.name,
 			         Trace::Execution_time(ec_time, 0), thread._affinity };
 		}
 

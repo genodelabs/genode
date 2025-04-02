@@ -26,7 +26,7 @@ static int sys_thr_self()
 
 	addr_t const base  = Genode::Thread::stack_area_virtual_base();
 	addr_t const size  = Genode::Thread::stack_virtual_size();
-	addr_t const stack = (addr_t)Genode::Thread::myself()->stack_base();
+	addr_t const stack = Genode::Thread::mystack().base;
 
 	return int((stack - base) / size + 1);
 }

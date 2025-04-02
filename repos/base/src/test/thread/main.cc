@@ -59,7 +59,12 @@ class Helper : Thread
 
 		Helper(Env &env) : Thread(env, "helper", STACK_SIZE), _env(env) { }
 
-		void *stack() const { return _stack; }
+		void *stack() const
+		{
+			return info().convert<void *>(
+				[&] (Stack_info info) { return (void *)info.top; },
+				[&] (Stack_error)     { return nullptr; });
+		}
 
 		void entry() override
 		{
@@ -169,16 +174,16 @@ static void test_main_thread()
 	addr_t const stack_slot_size = Thread::stack_area_virtual_size();
 	addr_t const stack_slot_top  = stack_slot_base + stack_slot_size;
 
-	addr_t const stack_top  = (addr_t)myself->stack_top();
-	addr_t const stack_base = (addr_t)myself->stack_base();
+	addr_t const stack_top  = Thread::mystack().top;
+	addr_t const stack_base = Thread::mystack().base;
 
 	if (stack_top  <= stack_slot_base) { throw -2; }
 	if (stack_top  >  stack_slot_top)  { throw -3; }
 	if (stack_base >= stack_slot_top)  { throw -4; }
 	if (stack_base <  stack_slot_base) { throw -5; }
 
-	log("thread stack top     ", myself->stack_top());
-	log("thread stack bottom  ", myself->stack_base());
+	log("thread stack top     ", (void *)stack_top);
+	log("thread stack bottom  ", (void *)stack_base);
 
 	/* check wether my stack pointer is inside my stack */
 	unsigned dummy = 0;
@@ -205,8 +210,7 @@ struct Cpu_helper : Thread
 
 	void entry() override
 	{
-		log(Thread::name().string(), " : _cpu_session=", _cpu_session,
-		    " env.cpu()=", &_env.cpu());
+		log(Thread::name, " : _cpu_session=", _cpu_session, " env.cpu()=", &_env.cpu());
 	}
 };
 
@@ -317,14 +321,17 @@ static void test_create_as_many_threads(Env &env)
 	for (; i < max; i++) {
 		try {
 			threads[i] = new (heap) Cpu_helper(env, Thread::Name(i + 1), env.cpu());
+
+			if (threads[i]->info() == Thread::Stack_error::STACK_AREA_EXHAUSTED) {
+				out_of_stack_space = true;
+				break;
+			}
+
 			if (threads[i]->start() == Thread::Start_result::DENIED) {
 				denied = true;
 				break;
 			}
 			threads[i]->join();
-		} catch (Thread::Out_of_stack_space) {
-			out_of_stack_space = true;
-			break;
 		} catch (Genode::Native_capability::Reference_count_overflow) {
 			warning("Native_capability::Reference_count_overflow");
 			denied = true;
@@ -371,7 +378,7 @@ struct Lock_helper : Thread
 
 	void entry() override
 	{
-		log(" thread '", name(), "' started");
+		log(" thread '", name, "' started");
 
 		if (unlock)
 			lock.wakeup();
@@ -379,12 +386,12 @@ struct Lock_helper : Thread
 		lock.block();
 
 		if (!lock_is_free) {
-			log(" thread '", name(), "' got lock but somebody else is within"
+			log(" thread '", name, "' got lock but somebody else is within"
 			    " critical section !?");
 			throw -22;
 		}
 
-		log(" thread '", name(), "' done");
+		log(" thread '", name, "' done");
 
 		lock.wakeup();
 	}
@@ -413,7 +420,7 @@ static void test_locks(Genode::Env &env)
 
 	lock.block();
 
-	log(" thread '", Thread::myself()->name(), "' - I'm the lock holder - "
+	log(" thread '", Thread::myself()->name, "' - I'm the lock holder - "
 	    "take lock again");
 
 	/* we are within the critical section - lock is not free */
@@ -467,7 +474,7 @@ struct Cxa_helper : Thread
 
 	void entry() override
 	{
-		log(" thread '", name(), "' started");
+		log(" thread '", name, "' started");
 
 		if (sync)
 			sync_startup.wakeup();
@@ -482,20 +489,20 @@ struct Cxa_helper : Thread
 		};
 
 		if (test == 1)
-			static Contention contention (name(), in_cxa, sync_startup);
+			static Contention contention (name, in_cxa, sync_startup);
 		else
 		if (test == 2)
-			static Contention contention (name(), in_cxa, sync_startup);
+			static Contention contention (name, in_cxa, sync_startup);
 		else
 		if (test == 3)
-			static Contention contention (name(), in_cxa, sync_startup);
+			static Contention contention (name, in_cxa, sync_startup);
 		else
 		if (test == 4)
-			static Contention contention (name(), in_cxa, sync_startup);
+			static Contention contention (name, in_cxa, sync_startup);
 		else
 			throw -25;
 
-		log(" thread '", name(), "' done");
+		log(" thread '", name, "' done");
 	}
 };
 

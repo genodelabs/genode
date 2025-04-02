@@ -96,7 +96,9 @@ struct Libc::Signal : Noncopyable
 			if (!signal_stack) {
 				auto myself = Thread::myself();
 				if (myself)
-					_signal_stack_default = { myself->alloc_secondary_stack("signal", 16 * 1024) };
+					myself->alloc_secondary_stack("signal", 16 * 1024).with_result(
+						[&] (void *sp) { _signal_stack_default = sp; },
+						[&] (Thread::Stack_error) { });
 
 				signal_stack = _signal_stack_default;
 			}

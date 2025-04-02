@@ -124,7 +124,7 @@ namespace {
 
 			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
 
-			return { Session_label("core"), _thread.name(),
+			return { Session_label("core"), _thread.name,
 			         Genode::Trace::Execution_time(thread_time, 0), _thread.affinity() };
 		}
 
@@ -141,30 +141,28 @@ namespace {
 
 Thread::Start_result Thread::start()
 {
-	if (!_stack)
-		return Start_result::DENIED;
+	return _stack.convert<Start_result>([&] (Stack *stack) {
 
-	Stack &stack = *_stack;
+		/* write ipcbuffer address to utcb*/
+		utcb()->ipcbuffer(Native_utcb::Virt { addr_t(utcb()) });
 
-	/* write ipcbuffer address to utcb*/
-	utcb()->ipcbuffer(Native_utcb::Virt { addr_t(utcb()) });
+		start_sel4_thread(Cap_sel(stack->native_thread().attr.tcb_sel),
+		                  (addr_t)&_thread_start, stack->top(),
+		                  _affinity.xpos(), addr_t(utcb()));
+		try {
+			new (platform().core_mem_alloc())
+				Core_trace_source(Core::Trace::sources(), *this);
+		} catch (...) { }
 
-	start_sel4_thread(Cap_sel(stack.native_thread().attr.tcb_sel),
-	                  (addr_t)&_thread_start, stack.top(),
-	                  _affinity.xpos(), addr_t(utcb()));
-	try {
-		new (platform().core_mem_alloc())
-			Core_trace_source(Core::Trace::sources(), *this);
-	} catch (...) { }
+		return Start_result::OK;
 
-	return Start_result::OK;
+	}, [&] (Stack_error) { return Start_result::DENIED; });
 }
 
 
 Native_utcb *Thread::utcb()
 {
-	if (!_stack)
-		return nullptr;
-
-	return &_stack->utcb();
+	return _stack.convert<Native_utcb *>(
+		[] (Stack *stack) { return &stack->utcb(); },
+		[] (Stack_error)  { return nullptr; });
 }

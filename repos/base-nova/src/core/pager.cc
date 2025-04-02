@@ -39,6 +39,10 @@ using namespace Nova;
 
 static Rpc_entrypoint *_core_ep_ptr;
 
+
+static inline void *my_stack_top() { return (void *)Thread::mystack().top; }
+
+
 void Core::init_page_fault_handling(Rpc_entrypoint &ep) { _core_ep_ptr = &ep; }
 
 
@@ -244,7 +248,7 @@ void Pager_object::exception(uint8_t const exit_id)
 	utcb.set_msg_word(0);
 	utcb.mtd = mtd;
 
-	reply(myself.stack_top());
+	reply(my_stack_top());
 }
 
 
@@ -308,7 +312,7 @@ void Pager_object::_recall_handler(Pager_object &obj)
 
 		utcb.set_msg_word(0);
 		utcb.mtd = 0;
-		reply(myself.stack_top());
+		reply(my_stack_top());
 	}
 
 	if (obj._state.modified) {
@@ -343,7 +347,7 @@ void Pager_object::_recall_handler(Pager_object &obj)
 	obj._state_lock.release();
 
 	utcb.set_msg_word(0);
-	reply(myself.stack_top(), sm);
+	reply(my_stack_top(), sm);
 }
 
 
@@ -365,7 +369,7 @@ void Pager_object::_startup_handler(Pager_object &obj)
 
 	utcb.set_msg_word(0);
 
-	reply(myself.stack_top());
+	reply(my_stack_top());
 }
 
 
@@ -378,7 +382,7 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 	if (utcb.msg_words() != 1) {
 		utcb.mtd = 0;
 		utcb.set_msg_word(0);
-		reply(myself.stack_top());
+		reply(my_stack_top());
 	}
 
 	addr_t const event = utcb.msg()[0];
@@ -413,7 +417,7 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 
 		utcb.mtd = 0;
 		utcb.set_msg_word(0);
-		reply(myself.stack_top());
+		reply(my_stack_top());
 	}
 
 	utcb.mtd = 0;
@@ -449,7 +453,7 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 			bool res = Nova::create_sm(obj.exc_pt_sel_client() + PT_SEL_STARTUP,
 			                           platform_specific().core_pd_sel(), 0);
 			if (res != Nova::NOVA_OK)
-				reply(myself.stack_top());
+				reply(my_stack_top());
 
 			obj._state.mark_signal_sm();
 		}
@@ -459,7 +463,7 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 		(void)res;
 	}
 
-	reply(myself.stack_top());
+	reply(my_stack_top());
 }
 
 
@@ -879,7 +883,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		error("unknown OOM case - stop core pager thread");
 		myself.with_native_thread([&] (Native_thread &nt) {
 			utcb.set_msg_word(0);
-			reply(myself.stack_top(), nt.exc_pt_sel + Nova::SM_SEL_EC);
+			reply(my_stack_top(), nt.exc_pt_sel + Nova::SM_SEL_EC);
 		});
 	}
 
@@ -887,7 +891,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	if (policy == STOP) {
 		error("PD has insufficient kernel memory left - stop thread");
 		utcb.set_msg_word(0);
-		reply(myself.stack_top(), obj_dst.sel_sm_block_pause());
+		reply(my_stack_top(), obj_dst.sel_sm_block_pause());
 	}
 
 	char const * src_pd     = "core";
@@ -901,7 +905,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		error("Unknown PD has insufficient kernel memory left - stop thread");
 		myself.with_native_thread([&] (Native_thread &nt) {
 			utcb.set_msg_word(0);
-			reply(myself.stack_top(), nt.exc_pt_sel + Nova::SM_SEL_EC);
+			reply(my_stack_top(), nt.exc_pt_sel + Nova::SM_SEL_EC);
 		});
 		break;
 
@@ -933,7 +937,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	uint8_t res = obj_dst.handle_oom(transfer_from, src_pd, src_thread, policy);
 	if (res == Nova::NOVA_OK)
 		/* handling succeeded - continue with original IPC */
-		reply(myself.stack_top());
+		reply(my_stack_top());
 
 	/* transfer nothing */
 	utcb.set_msg_word(0);
@@ -945,7 +949,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	/* else: caller will get blocked until RCU period is over */
 
 	/* block caller in semaphore */
-	reply(myself.stack_top(), obj_dst.sel_sm_block_oom());
+	reply(my_stack_top(), obj_dst.sel_sm_block_oom());
 }
 
 

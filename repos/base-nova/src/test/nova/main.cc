@@ -285,7 +285,7 @@ static void portal_entry()
 	                           SOLELY_MAP, NO_DMA, EVILLY_DONT_WRITE_COMBINE);
 	(void)ok;
 
-	Nova::reply(myself.stack_top());
+	Nova::reply((void *)Thread::mystack().top);
 }
 
 void test_pat(Genode::Env &env)
@@ -478,7 +478,7 @@ class Pager : private Genode::Thread {
 			bool res = utcb->append_item(crd_map, 0);
 			(void)res;
 
-			Nova::reply(myself->stack_top());
+			Nova::reply((void *)Thread::mystack().top);
 		}
 
 	public:

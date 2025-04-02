@@ -66,10 +66,12 @@ void Genode::prepare_init_main_thread()
 __attribute__((optimize("-fno-delete-null-pointer-checks")))
 Native_utcb *Thread::utcb()
 {
-	if (this)
-		return &_stack->utcb();
+	if (!this)
+		return utcb_main_thread();
 
-	return utcb_main_thread();
+	return _stack.convert<Native_utcb *>(
+		[&] (Stack *stack) { return &stack->utcb(); },
+		[&] (Stack_error)  { return utcb_main_thread(); });
 }
 
 

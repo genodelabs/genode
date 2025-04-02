@@ -115,7 +115,7 @@ static void reply(Nova::Utcb &utcb, Rpc_exception_code exc, Msgbuf_base &snd_msg
 {
 	copy_msgbuf_to_utcb(utcb, snd_msg, exc.value);
 
-	Nova::reply(Thread::myself()->stack_top());
+	Nova::reply((void *)Thread::mystack().top);
 }
 
 
@@ -226,13 +226,16 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 		return;
 	}
 
-	with_native_thread([&] (Native_thread &nt) {
-		Receive_window &rcv_window = nt.server_rcv_window;
+	_stack.with_result(
+		[&] (Stack *stack) {
+			Receive_window &rcv_window = stack->native_thread().server_rcv_window;
 
-		/* prepare portal receive window of new thread */
-		if (!rcv_window.prepare_rcv_window(*(Nova::Utcb *)&_stack->utcb()))
-			error("failed to prepare receive window for RPC entrypoint");
-	});
+			/* prepare portal receive window of new thread */
+			if (!rcv_window.prepare_rcv_window((Nova::Utcb &)stack->utcb()))
+				error("failed to prepare receive window for RPC entrypoint");
+		},
+		[&] (Stack_error) { }
+	);
 }
 
 

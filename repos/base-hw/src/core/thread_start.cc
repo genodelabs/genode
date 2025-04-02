@@ -51,7 +51,7 @@ namespace {
 				if (nt.platform_thread)
 					execution_time = nt.platform_thread->execution_time(); });
 
-			return { Session_label("core"), thread.name(),
+			return { Session_label("core"), thread.name,
 			         execution_time, thread.affinity() };
 		}
 
@@ -69,25 +69,24 @@ namespace {
 
 Thread::Start_result Thread::start()
 {
-	if (!_stack)
-		return Start_result::DENIED;
+	return _stack.convert<Start_result>([&] (Stack * const stack) {
 
-	Stack &stack = *_stack;
+		Native_thread &nt = stack->native_thread();
 
-	Native_thread &nt = stack.native_thread();
+		/* start thread with stack pointer at the top of stack */
+		nt.platform_thread->start((void *)&_thread_start, (void *)stack->top());
 
-	/* start thread with stack pointer at the top of stack */
-	nt.platform_thread->start((void *)&_thread_start, (void *)stack.top());
+		if (_thread_cap.failed())
+			return Start_result::DENIED;;
 
-	if (_thread_cap.failed())
-		return Start_result::DENIED;;
+		/* create trace sources for core threads */
+		try {
+			new (platform().core_mem_alloc()) Trace_source(Core::Trace::sources(), *this);
+		} catch (...) { }
 
-	/* create trace sources for core threads */
-	try {
-		new (platform().core_mem_alloc()) Trace_source(Core::Trace::sources(), *this);
-	} catch (...) { }
+		return Start_result::OK;
 
-	return Start_result::OK;
+	}, [&] (Stack_error) { return Start_result::DENIED; });
 }
 
 
@@ -100,8 +99,10 @@ void Thread::_deinit_native_thread(Stack &stack)
 void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
 	if (type == NORMAL) {
-		stack.native_thread().platform_thread = new (platform().core_mem_alloc())
-			Platform_thread(_stack->name(), stack.utcb());
+		_stack.with_result([&] (Stack * const stack) {
+			stack->native_thread().platform_thread = new (platform().core_mem_alloc())
+				Platform_thread(name, stack->utcb());
+		}, [&] (Stack_error) { });
 		return;
 	}
 

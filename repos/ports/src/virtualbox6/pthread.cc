@@ -96,8 +96,11 @@ class Pthread::Entrypoint : public Pthread::Emt
 		{
 			Genode::Thread &myself = *Genode::Thread::myself();
 
-			_emt_stack = myself.alloc_secondary_stack(myself.name().string(),
-			                                          _stack_size);
+			_emt_stack = myself.alloc_secondary_stack(myself.name, _stack_size).convert<void *>(
+				[&] (void *sp) { return sp; },
+				[&] (Genode::Thread::Stack_error) {
+					Genode::error("failed to allocate secondary stack for EMT");
+					return nullptr; });
 
 			Libc::pthread_create_from_thread(&_emt_pthread, myself, _emt_stack);
 

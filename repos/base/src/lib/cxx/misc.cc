@@ -96,13 +96,7 @@ extern "C" __attribute__((weak)) void raise()
 
 extern "C" void abort(void)
 {
-	Genode::Thread const * const myself = Genode::Thread::myself();
-	Genode::Thread::Name name = "unknown";
-
-	if (myself)
-		name = myself->name();
-
-	Genode::warning("abort called - thread: ", name.string());
+	Genode::warning("abort called - thread: ", Genode::Thread::myself()->name);
 
 	Genode::sleep_forever();
 }

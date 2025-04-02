@@ -324,13 +324,13 @@ void Vmm::Vm::_handle_timer()
 	}
 
 	if (_vcpu1.halted()) {
-		log(Thread::myself()->name(), "     : request pause of vcpu ", _vcpu1.id());
+		log(Thread::myself()->name, "     : request pause of vcpu ", _vcpu1.id());
 		/* test to trigger a Genode signal even if we're already blocked */
 		_vcpu1.request_intercept();
 	}
 
 	if (_vcpu1.paused_1st()) {
-		log(Thread::myself()->name(), "     : request resume (A) of vcpu ", _vcpu1.id());
+		log(Thread::myself()->name, "     : request resume (A) of vcpu ", _vcpu1.id());
 
 		_vcpu1.with_state([this](Vcpu_state & state) {
 			state.discharge();
@@ -340,7 +340,7 @@ void Vmm::Vm::_handle_timer()
 			return true;
 		});
 	} else if (_vcpu1.paused_2nd()) {
-		log(Thread::myself()->name(), "     : request resume (B) of vcpu ", _vcpu1.id());
+		log(Thread::myself()->name, "     : request resume (B) of vcpu ", _vcpu1.id());
 
 		_vcpu1.with_state([this](Vcpu_state & state) {
 			state.discharge();
@@ -357,7 +357,7 @@ void Vmm::Vm::_handle_timer()
 		/* request on the next timeout to stop the jmp endless loop */
 		_vcpu1.break_endless_loop();
 	} else if (_vcpu1.paused_3rd()) {
-		log(Thread::myself()->name(), "     : request resume (C) of vcpu ", _vcpu1.id());
+		log(Thread::myself()->name, "     : request resume (C) of vcpu ", _vcpu1.id());
 
 		_vcpu1.with_state([this](Vcpu_state & state) {
 			state.discharge();
@@ -398,7 +398,7 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 
 	log("vcpu ", _id, " : ", _exit_count, ". vm exit - ",
 	    "reason ", Hex((unsigned)exit), " handled by '",
-	    Thread::myself()->name(), "'");
+	    Thread::myself()->name, "'");
 
 	switch (exit) {
 
@@ -422,11 +422,11 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 		/* FIXME handle remote resume */
 		if (id() == 2) {
 			if (paused_1st()) {
-				log(Thread::myself()->name(), "     : request resume of vcpu ", id());
+				log(Thread::myself()->name, "     : request resume of vcpu ", id());
 				return true;
 			}
 			if (paused_2nd()) {
-				log(Thread::myself()->name(), "     : request resume of vcpu ", id());
+				log(Thread::myself()->name, "     : request resume of vcpu ", id());
 
 					/* skip over next hlt instructions after second paused state */
 					skip_instruction(state, 1*1 /* 1x hlt instruction size */);
