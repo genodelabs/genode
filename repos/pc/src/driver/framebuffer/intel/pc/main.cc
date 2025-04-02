@@ -361,10 +361,8 @@ void Framebuffer::Driver::process_action()
 	if (action_in_execution())
 		return;
 
-	if (!lx_user_task) {
-		error("no lx user task");
+	if (!lx_user_task)
 		return;
-	}
 
 	lx_emul_task_unblock(lx_user_task);
 	Lx_kit::env().scheduler.execute();
