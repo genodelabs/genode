@@ -289,7 +289,7 @@ void Sandboxed_runtime::Menu_view_state::gen_start_node(Xml_generator &xml, View
 				xml.node("dir", [&] () {
 					xml.attribute("name", "fonts");
 					xml.node("fs", [&] () {
-						xml.attribute("label", "fonts");
+						xml.attribute("label", "fonts -> /");
 					});
 				});
 			});
