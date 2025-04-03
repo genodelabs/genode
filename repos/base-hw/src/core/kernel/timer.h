@@ -65,11 +65,11 @@ class Kernel::Timer
 		{
 			private:
 
-				Cpu & _cpu;
+				Timer &_timer;
 
 			public:
 
-				Irq(unsigned id, Cpu & cpu);
+				Irq(unsigned id, Cpu &cpu);
 
 				void occurred() override;
 		};
@@ -88,18 +88,15 @@ class Kernel::Timer
 
 		time_t _duration() const;
 
+		void _process_timeouts();
+
+		void _schedule_timeout();
+
 	public:
 
 		Timer(Cpu & cpu);
 
-		/**
-		 * Return duration from last call of this function
-		 */
-		time_t schedule_timeout();
-
-		void process_timeouts();
-
-		void set_timeout(Timeout * const timeout, time_t const duration);
+		void set_timeout(Timeout &timeout, time_t const duration);
 
 		time_t us_to_ticks(time_t const us) const;
 

@@ -20,13 +20,13 @@
 using namespace Kernel;
 
 
-void Timer::Irq::occurred() { _cpu.scheduler().timeout(); }
+void Timer::Irq::occurred() { _timer._process_timeouts(); }
 
 
 Timer::Irq::Irq(unsigned id, Cpu &cpu)
 :
 	Kernel::Irq { id, cpu.irq_pool(), cpu.pic() },
-	_cpu        { cpu }
+	_timer { cpu.timer() }
 { }
 
 
@@ -36,19 +36,19 @@ time_t Timer::timeout_max_us() const
 }
 
 
-void Timer::set_timeout(Timeout * const timeout, time_t const duration)
+void Timer::set_timeout(Timeout &timeout, time_t const duration)
 {
 	/*
 	 * Remove timeout if it is already in use. Timeouts may get overridden as
 	 * result of an update.
 	 */
-	if (timeout->_listed)
-		_timeout_list.remove(timeout);
+	if (timeout._listed)
+		_timeout_list.remove(&timeout);
 	else
-		timeout->_listed = true;
+		timeout._listed = true;
 
 	/* set timeout parameters */
-	timeout->_end = time() + duration;
+	timeout._end = time() + duration;
 
 	/*
 	 * Insert timeout. Timeouts are ordered ascending according to their end
@@ -56,30 +56,30 @@ void Timer::set_timeout(Timeout * const timeout, time_t const duration)
 	 */
 	Timeout * t1 = 0;
 	for (Timeout * t2 = _timeout_list.first();
-	     t2 && t2->_end < timeout->_end;
+	     t2 && t2->_end < timeout._end;
 	     t1 = t2, t2 = t2->next()) { }
 
-	_timeout_list.insert(timeout, t1);
+	_timeout_list.insert(&timeout, t1);
+
+	if (_timeout_list.first() == &timeout)
+		_schedule_timeout();
 }
 
 
-time_t Timer::schedule_timeout()
+void Timer::_schedule_timeout()
 {
 	/* get the timeout with the nearest end time */
 	Timeout * timeout = _timeout_list.first();
-	assert(timeout);
+	time_t end = timeout ? timeout->_end : _time + _max_value();
 
 	/* install timeout at timer hardware */
-	time_t duration = _duration();
-	_time          += duration;
-	_last_timeout_duration = (timeout->_end > _time) ? timeout->_end - _time : 1;
+	_time += _duration();
+	_last_timeout_duration = (end > _time) ? end - _time : 1;
 	_start_one_shot(_last_timeout_duration);
-
-	return duration;
 }
 
 
-void Timer::process_timeouts()
+void Timer::_process_timeouts()
 {
 	/*
 	 * Walk through timeouts until the first whose end time is in the future.
@@ -97,10 +97,13 @@ void Timer::process_timeouts()
 		timeout->_listed = false;
 		timeout->timeout_triggered();
 	}
+
+	if (_timeout_list.first())
+		_schedule_timeout();
 }
 
 
-Timer::Timer(Cpu & cpu)
+Timer::Timer(Cpu &cpu)
 :
 	_device(cpu.id()), _irq(interrupt_id(), cpu),
 	_last_timeout_duration(_max_value())

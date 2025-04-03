@@ -99,10 +99,9 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 		State          _state { RUN };
 		unsigned const _id;
 		Board::Pic     _pic;
-		Timeout        _timeout {};
 		Timer          _timer;
-		Scheduler      _scheduler;
 		Idle_thread    _idle;
+		Scheduler      _scheduler;
 		Ipi            _ipi_irq;
 
 		Inter_processor_work_list &_global_work_list;
@@ -150,7 +149,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 		/**
 		 * Return the context that should be executed next
 		 */
-		Context& schedule_next_context(Context &last);
+		Context& schedule_next_context();
 
 		Board::Pic & pic()   { return _pic; }
 		Timer      & timer() { return _timer; }

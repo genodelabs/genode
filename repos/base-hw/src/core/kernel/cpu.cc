@@ -68,14 +68,6 @@ void Cpu_context::_interrupt(Irq::Pool &user_irq_pool)
 }
 
 
-void Cpu_context::affinity(Cpu &cpu)
-{
-	_cpu().scheduler().remove(*this);
-	_cpu_ptr = &cpu;
-	_cpu().scheduler().insert(*this);
-}
-
-
 void Cpu_context::quota(unsigned const q)
 {
 	_cpu().scheduler().quota(*this, q);
@@ -122,7 +114,7 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
 void Cpu::assign(Context &context)
 {
 	_scheduler.ready(static_cast<Scheduler::Context&>(context));
-	if (_id != executing_id() && _scheduler.need_to_schedule())
+	if (_id != executing_id() && _scheduler.need_to_update())
 		trigger_ip_interrupt();
 }
 
@@ -139,22 +131,12 @@ bool Cpu::handle_if_cpu_local_interrupt(unsigned const irq_id)
 }
 
 
-Cpu::Context & Cpu::schedule_next_context(Context &last)
+Cpu::Context & Cpu::schedule_next_context()
 {
 	if (_state == SUSPEND || _state == HALT)
 		return _halt_job;
 
-	/* update schedule if necessary */
-	if (_scheduler.need_to_schedule()) {
-		_timer.process_timeouts();
-		_scheduler.update(_timer.time());
-		time_t t = _scheduler.current_time_left();
-		_timer.set_timeout(&_timeout, t);
-		time_t duration = _timer.schedule_timeout();
-		last.update_execution_time(duration);
-	}
-
-	/* return current context */
+	_scheduler.update();
 	return current_context();
 }
 
@@ -182,9 +164,9 @@ Cpu::Cpu(unsigned                     const  id,
 	_id               { id },
 	_pic              { global_irq_ctrl },
 	_timer            { *this },
-	_scheduler        { _idle, _quota(), _fill() },
 	_idle             { addr_space_id_alloc, user_irq_pool, cpu_pool, *this,
 	                    core_pd },
+	_scheduler        { _timer, _idle, _quota(), _fill() },
 	_ipi_irq          { *this },
 	_global_work_list { cpu_pool.work_list() }
 {

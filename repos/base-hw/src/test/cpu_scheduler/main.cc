@@ -84,8 +84,8 @@ class Scheduler_test::Main
 		Env                      &_env;
 		Context                 _idle_context               { 0, 0, (unsigned)IDLE_SHARE_ID };
 		Constructible<Context>  _contexts[MAX_NR_OF_SHARES] { };
-		time_t                    _current_time             { 0 };
-		Scheduler             _scheduler;
+		Timer                   _timer {};
+		Scheduler               _scheduler;
 
 		unsigned _id_of_context(Context const &c) const
 		{
@@ -182,11 +182,16 @@ class Scheduler_test::Main
 		void _update_current_and_check(unsigned const consumed_time,
 		                               unsigned const expected_round_time,
 		                               unsigned const expected_current_id,
-		                               unsigned const expected_current_time_left,
+		                               unsigned const,
 		                               unsigned const line_nr)
 		{
-			_current_time += consumed_time;
-			_scheduler.update(_current_time);
+			_timer.add_time(consumed_time);
+
+			/* we've to force it's no up-to-date, otherwise update has no effect */
+			if (_scheduler._state == Scheduler::UP_TO_DATE)
+				_scheduler._state = Scheduler::OUT_OF_DATE;
+
+			_scheduler.update();
 			unsigned const round_time {
 				_scheduler._super_period_length - _scheduler._super_period_left };
 
@@ -196,17 +201,11 @@ class Scheduler_test::Main
 				_env.parent().exit(-1);
 			}
 			Context &current { cast(_scheduler.current()) };
-			unsigned const current_time_left { _scheduler.current_time_left() };
 			if (&current != &_context(expected_current_id)) {
 
 				error("wrong share ", _id_of_context(current), " in line ",
 				      line_nr);
 
-				_env.parent().exit(-1);
-			}
-			if (current_time_left != expected_current_time_left) {
-
-				error("wrong quota ", current_time_left, " in line ", line_nr);
 				_env.parent().exit(-1);
 			}
 		}
@@ -216,10 +215,10 @@ class Scheduler_test::Main
 		                                unsigned const line_nr)
 		{
 			_scheduler.ready(_context(share_id));
-			if (_scheduler.need_to_schedule() != expect_current_outdated) {
+			if (_scheduler.need_to_update() != expect_current_outdated) {
 
 				error("wrong check result ",
-				      _scheduler.need_to_schedule(), " in line ", line_nr);
+				      _scheduler.need_to_update(), " in line ", line_nr);
 
 				_env.parent().exit(-1);
 			}
@@ -260,13 +259,13 @@ void Scheduler_test::Scheduler::print(Output &output) const
 	print(output, "(\n");
 	print(output, "   quota: ", _super_period_left, "/", _super_period_length, ", ");
 	print(output, "slack: ", _slack_quota, ", ");
-	print(output, "need to schedule: ", need_to_schedule() ? "true" : "false", ", ");
+	print(output, "need to update: ", need_to_update() ? "true" : "false", ", ");
 	print(output, "last_time: ", _last_time);
 
 	if (_current != nullptr) {
 
 		print(output, "\n   current: ( ");
-		if (need_to_schedule()) {
+		if (need_to_update()) {
 			print(output, "\033[31m");
 		} else {
 			print(output, "\033[32m");
@@ -299,7 +298,7 @@ void Scheduler_test::Scheduler::print(Output &output) const
 					_rpl[p].for_each([&] (Kernel::Scheduler::Context const &c) {
 
 						if (&c == _current && _current->_priotized_time_left) {
-							if (need_to_schedule()) {
+							if (need_to_update()) {
 								print(output, "\033[31m");
 							} else {
 								print(output, "\033[32m");
@@ -339,7 +338,7 @@ void Scheduler_test::Scheduler::print(Output &output) const
 		_slack_list.for_each([&] (Kernel::Scheduler::Context const &c) {
 
 			if (&c == _current && !_current->_priotized_time_left) {
-				if (need_to_schedule()) {
+				if (need_to_update()) {
 					print(output, "\033[31m");
 				} else {
 					print(output, "\033[32m");
@@ -368,7 +367,7 @@ void Scheduler_test::Scheduler::print(Output &output) const
 Scheduler_test::Main::Main(Env &env)
 :
 	_env       { env },
-	_scheduler { _idle_context, 1000, 100 }
+	_scheduler { _timer, _idle_context, 1000, 100 }
 {
 	/********************
 	 ** Round #1: Idle **

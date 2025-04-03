@@ -70,7 +70,7 @@ void Kernel::Main::_handle_kernel_entry(Genode::Cpu_state *state)
 			Cpu &cpu = _cpu_pool.cpu(Cpu::executing_id());
 			Cpu::Context &recent = cpu.current_context();
 			if (state) recent.exception(*state);
-			context = &cpu.schedule_next_context(recent);
+			context = &cpu.schedule_next_context();
 		},
 		[&] () { _cpu_pool.cpu(Cpu::executing_id()).panic(*state); });
 

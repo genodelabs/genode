@@ -35,8 +35,7 @@ class Kernel::Cpu_context : private Scheduler::Context
 
 		friend class Cpu;
 
-		time_t _execution_time { 0 };
-		Cpu   *_cpu_ptr;
+		Cpu *_cpu_ptr;
 
 		/*
 		 * Noncopyable
@@ -84,24 +83,11 @@ class Kernel::Cpu_context : private Scheduler::Context
 		virtual ~Cpu_context();
 
 		/**
-		 * Link context to CPU 'cpu'
-		 */
-		void affinity(Cpu &cpu);
-
-		/**
 		 * Set CPU quota of the context to 'q'
 		 */
 		void quota(unsigned const q);
 
-		/**
-		 * Update total execution time
-		 */
-		void update_execution_time(time_t duration) { _execution_time += duration; }
-
-		/**
-		 * Return total execution time
-		 */
-		time_t execution_time() const { return _execution_time; }
+		using Scheduler::Context::execution_time;
 
 		/**
 		 * Handle exception that occured during execution of this context

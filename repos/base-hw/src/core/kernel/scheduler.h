@@ -20,6 +20,7 @@
 #include <util/list.h>
 #include <util/misc_math.h>
 #include <kernel/configuration.h>
+#include <kernel/timer.h>
 
 namespace Kernel { class Scheduler; }
 
@@ -79,6 +80,8 @@ class Kernel::Scheduler
 				List         _helper_list {};
 				Context     *_destination { nullptr };
 
+				time_t _execution_time { 0 };
+
 				bool _ready { false };
 
 				void _reset() { _priotized_time_left = _quota; }
@@ -104,6 +107,9 @@ class Kernel::Scheduler
 				void help(Context &c);
 				void helping_finished();
 				Context& helping_destination();
+
+				time_t execution_time() const {
+					return _execution_time; }
 		};
 
 	private:
@@ -174,6 +180,15 @@ class Kernel::Scheduler
 				}
 		};
 
+		struct Timeout : Kernel::Timeout
+		{
+			Scheduler &_scheduler;
+
+			Timeout(Scheduler &scheduler) : _scheduler(scheduler) {}
+
+			virtual void timeout_triggered() override;
+		};
+
 		enum State { UP_TO_DATE, OUT_OF_DATE, YIELD };
 
 		unsigned const _slack_quota;
@@ -182,8 +197,11 @@ class Kernel::Scheduler
 		unsigned _super_period_left { _super_period_length };
 		unsigned _current_quantum { 0 };
 
-		time_t _last_time { 0 };
-		State  _state { UP_TO_DATE };
+		Timer  &_timer;
+		Timeout _timeout { *this };
+		time_t  _last_time { 0 };
+
+		State _state { UP_TO_DATE };
 
 		Context_list _rpl[cpu_priorities]; /* ready lists by priority   */
 		Context_list _upl[cpu_priorities]; /* unready lists by priority */
@@ -206,21 +224,25 @@ class Kernel::Scheduler
 		bool _schedule_priotized();
 		bool _schedule_slack();
 
+		/**
+		 * Noncopyable
+		 */
+		Scheduler(const Scheduler&) = delete;
+		Scheduler& operator=(const Scheduler&) = delete;
+
 	public:
 
-		Scheduler(Context       &idle,
+		Scheduler(Timer         &timer,
+		          Context       &idle,
 		          unsigned const super_period_length,
 		          unsigned const slack_quota);
 
-		bool need_to_schedule() const { return _state != UP_TO_DATE; }
-
-		void timeout() {
-			if (_state == UP_TO_DATE) _state = OUT_OF_DATE; }
+		bool need_to_update() const { return _state != UP_TO_DATE; }
 
 		/**
-		 * Update state according to the current (absolute) time
+		 * Update state
 		 */
-		void update(time_t time);
+		void update();
 
 		/**
 		 * Set 'context' ready
@@ -253,9 +275,6 @@ class Kernel::Scheduler
 		void quota(Context &context, unsigned const quota);
 
 		Context& current();
-
-		unsigned current_time_left() const {
-			return Genode::min(_current_quantum, _super_period_left); }
 };
 
 #endif /* _CORE__KERNEL__SCHEDULER_H_ */

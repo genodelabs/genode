@@ -51,6 +51,13 @@ Scheduler::Context::~Context()
 }
 
 
+void Scheduler::Timeout::timeout_triggered()
+{
+	if (_scheduler._state == UP_TO_DATE)
+		_scheduler._state = OUT_OF_DATE;
+}
+
+
 void Scheduler::_consumed(unsigned const time)
 {
 	if (_super_period_left > time) {
@@ -149,14 +156,20 @@ bool Scheduler::_schedule_slack()
 }
 
 
-void Scheduler::update(time_t time)
+void Scheduler::update()
 {
 	using namespace Genode;
 
+	if (!need_to_update())
+		return;
+
+	time_t time = _timer.time();
 	unsigned const duration =
 		min(min((unsigned)(time-_last_time), _current_quantum),
 		    _super_period_left);
 	_last_time = time;
+
+	if (_current) _current->_execution_time += duration;
 
 	/* do not detract the quota of idle or removed context */
 	if (_current && _current != &_idle) {
@@ -169,13 +182,12 @@ void Scheduler::update(time_t time)
 
 	_state = UP_TO_DATE;
 
-	if (_schedule_priotized())
-		return;
+	if (!_schedule_priotized())
+		if (!_schedule_slack())
+			_set_current(_idle, _slack_quota);
 
-	if (_schedule_slack())
-		return;
-
-	_set_current(_idle, _slack_quota);
+	_timer.set_timeout(_timeout,
+	                   Genode::min(_current_quantum, _super_period_left));
 }
 
 
@@ -298,18 +310,20 @@ Scheduler::Context& Scheduler::current()
 {
 	if (!_current) {
 		Genode::error("attempt to access invalid scheduler's current context");
-		update(_last_time);
+		update();
 	}
 	return *_current;
 }
 
 
-Scheduler::Scheduler(Context       &idle,
+Scheduler::Scheduler(Timer         &timer,
+                     Context       &idle,
                      unsigned const super_period_length,
                      unsigned const slack_quota)
 :
 	_slack_quota(slack_quota),
 	_super_period_length(super_period_length),
+	_timer(timer),
 	_idle(idle)
 {
 	_set_current(idle, slack_quota);

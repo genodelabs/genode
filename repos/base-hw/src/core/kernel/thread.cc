@@ -503,7 +503,7 @@ void Thread::_call_timeout()
 {
 	Timer & t = _cpu().timer();
 	_timeout_sigid = (Kernel::capid_t)user_arg_2();
-	t.set_timeout(this, t.us_to_ticks(user_arg_1()));
+	t.set_timeout(*this, t.us_to_ticks(user_arg_1()));
 }
 
 
