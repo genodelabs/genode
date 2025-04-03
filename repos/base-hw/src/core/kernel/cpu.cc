@@ -85,6 +85,8 @@ Cpu_context::Cpu_context(Cpu           &cpu,
 
 Cpu_context::~Cpu_context()
 {
+	assert(_cpu().id() == Cpu::executing_id() ||
+	       &_cpu().current_context() != this);
 	_cpu().scheduler().remove(*this);
 }
 
