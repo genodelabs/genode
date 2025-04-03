@@ -36,7 +36,6 @@ void Cpu_context::_activate() { _cpu().assign(*this); }
 
 void Cpu_context::_deactivate()
 {
-	assert(_cpu().id() == Cpu::executing_id());
 	_cpu().scheduler().unready(*this);
 }
 
