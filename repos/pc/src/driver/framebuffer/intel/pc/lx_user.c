@@ -42,6 +42,8 @@ static struct state {
 	struct drm_framebuffer     * fbs;
 	struct i915_vma            * vma;
 	unsigned long                vma_flags;
+	unsigned                     rotate;
+	bool                         flip;
 	uint8_t                      mode_id;
 	uint8_t                      unchanged;
 	bool                         mirrored;
@@ -54,7 +56,8 @@ static int user_register_fb(struct drm_client_dev   const * const dev,
                             struct drm_framebuffer        * const fb,
                             struct i915_vma              ** vma,
                             unsigned long                 * vma_flags,
-                            unsigned width_mm, unsigned height_mm);
+                            unsigned width_mm, unsigned height_mm,
+                            unsigned rotate, bool flip);
 
 
 static int check_resize_fb(struct drm_client_dev       * const dev,
@@ -268,7 +271,9 @@ static void destroy_fb(struct drm_client_dev       * const dev,
 
 static int kernel_register_fb(struct fb_info const * const fb_info,
                               unsigned               const width_mm,
-                              unsigned               const height_mm)
+                              unsigned               const height_mm,
+                              unsigned               const rotate,
+                              bool                   const flip)
 {
 	lx_emul_i915_framebuffer_ready(fb_info->node,
 	                               fb_info->par,
@@ -279,7 +284,8 @@ static int kernel_register_fb(struct fb_info const * const fb_info,
 	                               fb_info->fix.line_length /
 	                               (fb_info->var.bits_per_pixel / 8),
 	                               fb_info->var.yres,
-	                               width_mm, height_mm);
+	                               width_mm, height_mm,
+	                               rotate, flip);
 
 	return 0;
 }
@@ -295,7 +301,7 @@ static void destroy_fb_and_capture(struct drm_client_dev       * const dev,
 	info.node               = connector->index;
 	info.par                = connector->name;
 
-	kernel_register_fb(&info, 0, 0);
+	kernel_register_fb(&info, 0, 0, 0, false);
 
 	if (state->vma) {
 		intel_unpin_fb_vma(state->vma,
@@ -351,7 +357,7 @@ static void close_unused_captures(struct drm_client_dev * const dev)
 		fb_info.node               = CONNECTOR_ID_MIRROR;
 		fb_info.par                = "mirror_capture";
 
-		kernel_register_fb(&fb_info, 0, 0);
+		kernel_register_fb(&fb_info, 0, 0, 0, false);
 	}
 }
 
@@ -461,6 +467,8 @@ struct meta_data_mirror {
 	struct drm_display_mode mode;
 	unsigned                width_mm;
 	unsigned                height_mm;
+	bool                    rotate_initialized;
+	bool                    rotate_invalid;
 	bool                    report;
 };
 
@@ -588,7 +596,9 @@ static void reconfigure(struct drm_client_dev * const dev)
 		/* reduce flickering if in same state */
 		same_state = conf_mode.mirror  == state->mirrored &&
 		             conf_mode.enabled == state->enabled  &&
-		             mode_id           == state->mode_id;
+		             mode_id           == state->mode_id  &&
+		             conf_mode.rotate  == state->rotate   &&
+		             conf_mode.flip    == state->flip;
 
 		/* close capture on change of discrete -> mirror */
 		if (!state->mirrored && conf_mode.mirror)
@@ -596,6 +606,8 @@ static void reconfigure(struct drm_client_dev * const dev)
 
 		state->mirrored = conf_mode.mirror;
 		state->enabled  = conf_mode.enabled;
+		state->rotate   = conf_mode.rotate;
+		state->flip     = conf_mode.flip;
 		state->mode_id  = mode_id;
 
 		if (!mode)
@@ -635,6 +647,30 @@ static void reconfigure(struct drm_client_dev * const dev)
 
 		if (!conf_mode.enabled)
 			continue;
+
+		/* check for opponent rotate or flip attributes of mirrored connectors */
+		if (conf_mode.mirror) {
+			struct state * state_mirror = &states[CONNECTOR_ID_MIRROR];
+
+			if (state_mirror->rotate != state->rotate ||
+			    state_mirror->flip != state->flip) {
+
+				if (mirror.rotate_initialized) {
+					state_mirror->rotate = 0;
+					state_mirror->flip   = false;
+
+					if (!mirror.rotate_invalid)
+						printk("opponent rotate configuration in merge -> deny rotation\n");
+
+					mirror.rotate_invalid = true;
+				} else {
+					state_mirror->rotate = state->rotate;
+					state_mirror->flip   = state->flip;
+				}
+			}
+
+			mirror.rotate_initialized = true;
+		}
 
 		/* set brightness */
 		if (conf_mode.brightness <= MAX_BRIGHTNESS) {
@@ -676,7 +712,8 @@ static void reconfigure(struct drm_client_dev * const dev)
 
 			int err = user_register_fb(dev, &fb_info, state->fbs,
 			                           &state->vma, &state->vma_flags,
-			                           width_mm, height_mm);
+			                           width_mm, height_mm,
+			                           state->rotate, state->flip);
 
 			if (err == -ENOSPC) {
 				if (state->fbs) {
@@ -690,11 +727,12 @@ static void reconfigure(struct drm_client_dev * const dev)
 	drm_connector_list_iter_end(&conn_iter);
 
 	if (mirror.report) {
-		user_register_fb(dev, &mirror.info,
-		                  states[CONNECTOR_ID_MIRROR].fbs,
-		                 &states[CONNECTOR_ID_MIRROR].vma,
-		                 &states[CONNECTOR_ID_MIRROR].vma_flags,
-		                 mirror.width_mm, mirror.height_mm);
+		struct state * state_mirror = &states[CONNECTOR_ID_MIRROR];
+
+		user_register_fb(dev, &mirror.info, state_mirror->fbs,
+		                 &state_mirror->vma, &state_mirror->vma_flags,
+		                 mirror.width_mm, mirror.height_mm,
+		                 state_mirror->rotate, state_mirror->flip);
 	}
 
 	close_unused_captures(dev);
@@ -889,6 +927,10 @@ static void _report_connectors(void * genode_data, bool const discrete)
 
 		bool const valid_fb = connector->index < MAX_CONNECTORS
 		                    ? states[connector->index].fbs : false;
+		unsigned const rotate = connector->index < MAX_CONNECTORS
+		                ? states[connector->index].rotate : 0;
+		char const flip = connector->index < MAX_CONNECTORS
+		                ? states[connector->index].flip : false;
 
 		struct genode_mode conf_mode = {};
 
@@ -916,7 +958,8 @@ static void _report_connectors(void * genode_data, bool const discrete)
 		                              brightness,
 		                              *display_name ? display_name : 0,
 		                              connector->display_info.width_mm,
-		                              connector->display_info.height_mm);
+		                              connector->display_info.height_mm,
+		                              rotate, flip);
 	}
 	drm_connector_list_iter_end(&conn_iter);
 }
@@ -1197,7 +1240,9 @@ static int user_register_fb(struct drm_client_dev const * const dev,
                             struct i915_vma            ** const vma,
                             unsigned long               * const vma_flags,
                             unsigned                      const width_mm,
-                            unsigned                      const height_mm)
+                            unsigned                      const height_mm,
+                            unsigned                      const rotate,
+                            bool                          const flip)
 {
 	intel_wakeref_t wakeref;
 
@@ -1277,7 +1322,7 @@ static int user_register_fb(struct drm_client_dev const * const dev,
 
 	intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
 
-	kernel_register_fb(info, width_mm, height_mm);
+	kernel_register_fb(info, width_mm, height_mm, rotate, flip);
 
 	return 0;
 }

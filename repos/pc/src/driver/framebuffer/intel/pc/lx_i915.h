@@ -29,6 +29,8 @@ struct genode_mode {
 	unsigned preferred;
 	unsigned inuse;
 	unsigned id;
+	unsigned rotate;
+	char flip;
 	char mirror;
 	char name[32];
 };
@@ -57,7 +59,8 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    char valid_fb,
                                    unsigned brightness,
                                    char const *display_name,
-                                   unsigned width_mm, unsigned height_mm);
+                                   unsigned width_mm, unsigned height_mm,
+                                   unsigned rotate, char flip);
 void lx_emul_i915_iterate_modes(void *lx_data, void * genode_data);
 void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *);
 void lx_emul_i915_connector_config(char * name, struct genode_mode *);
@@ -70,6 +73,8 @@ void lx_emul_i915_framebuffer_ready(unsigned connector_id,
                                     unsigned virtual_width,
                                     unsigned virtual_height,
                                     unsigned mm_width,
-                                    unsigned mm_height);
+                                    unsigned mm_height,
+                                    unsigned rotate,
+                                    char     flip);
 
 #endif /* _LX_I915_H_ */

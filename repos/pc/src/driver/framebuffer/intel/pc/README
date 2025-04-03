@@ -57,7 +57,7 @@ Each of the connectors can be configured a specific mode and
 whether it should be enabled or not. This looks like the following:
 
 ! <config>
-!   <connector name="eDP-1" enabled="true" width="1920" height="1080" hz="60" brightness="75"/>
+!   <connector name="eDP-1" enabled="true" width="1920" height="1080" hz="60" brightness="75" rotate="0" flip="false"/>
 !   <connector name="DP-1"  enabled="true" mode="2"/>
 ! </config>
 
@@ -68,6 +68,10 @@ matching mode out of multiple matching modes potentially.
 
 The brightness value is in percent and takes effect only if supported by
 the hardware.
+
+The supported rotate values are 0, 90, 180 and 270 degree. The rotation is done
+by the CPU. Connectors in the merge node have to have the same rotate and flip
+value configured, otherwise the rotation and flipping is ignored.
 
 The maximal physical resolution across all connectors can be restricted by:
 
