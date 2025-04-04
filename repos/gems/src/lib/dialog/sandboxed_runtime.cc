@@ -84,6 +84,9 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 	{
 		_gui_input.for_each_event([&] (Input::Event const &ev) {
 
+			/* ignore sequence number events because we generate our own below */
+			if (ev.seq_number()) return;
+
 			/*
 			 * Assign new event sequence number, pass seq event to menu view
 			 * to ensure freshness of hover information.
@@ -93,17 +96,21 @@ struct Sandboxed_runtime::Gui_session : Session_object<Gui::Session>
 			if (click(ev)) _clicked = true;
 			if (clack(ev)) _clicked = false;
 
-			if (orig_clicked != _clicked) {
-				Event::Seq_number &global_seq = _view._runtime._global_seq_number;
-				global_seq.value++;
-				_input_component.submit(Input::Seq_number { global_seq.value });
-			}
+			bool const new_seq = (!orig_clicked && _clicked);
+			if (new_seq)
+				_view._runtime._global_seq_number.value++;
 
 			/* local event (click/clack) handling */
 			_view._handle_input_event(ev);
 
 			/* forward event to menu_view */
 			_input_component.submit(ev);
+
+			/* pass seq event after touch to pass it to the correct client */
+			if (new_seq) {
+				Input::Seq_number seq_number { _view._runtime._global_seq_number.value };
+				_input_component.submit(seq_number);
+			}
 		});
 	}
 
