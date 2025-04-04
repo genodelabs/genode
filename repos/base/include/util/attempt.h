@@ -14,7 +14,12 @@
 #ifndef _INCLUDE__UTIL__ATTEMPT_H_
 #define _INCLUDE__UTIL__ATTEMPT_H_
 
-namespace Genode { template <typename, typename> struct Attempt; }
+#include <util/reconstructible.h>
+
+namespace Genode {
+	template <typename, typename> struct Attempt;
+	template <typename, typename> struct Unique_attempt;
+}
 
 
 /**
@@ -78,6 +83,69 @@ class Genode::Attempt
 
 		bool ok()     const { return  _ok; }
 		bool failed() const { return !_ok; }
+};
+
+
+/**
+ * Base type for the result of constrained RAM allocations
+ *
+ * The type is a unique pointer to the allocated RAM while also holding
+ * allocation-error information, following the conventions of 'Attempt'.
+ */
+template <typename RESULT, typename ERROR>
+class Genode::Unique_attempt : Noncopyable
+{
+	private:
+
+		Constructible<RESULT> _result { };
+
+		ERROR _error { };
+
+	protected:
+
+		void _construct(auto &&... args) { _result.construct(args...); }
+		void _destruct (ERROR e)         { _result.destruct(); _error = e; }
+
+	public:
+
+		Unique_attempt(auto &&... args) { _result.construct(args...); }
+		Unique_attempt(ERROR error)     { _destruct(error); }
+
+		template <typename RET>
+		RET convert(auto const &access_fn, auto const &fail_fn)
+		{
+			return _result.constructed() ? RET { access_fn(*_result) }
+			                             : RET { fail_fn(_error) };
+		}
+
+		template <typename RET>
+		RET convert(auto const &access_fn, auto const &fail_fn) const
+		{
+			return _result.constructed() ? RET { access_fn(*_result) }
+			                             : RET { fail_fn(_error) };
+		}
+
+		void with_result(auto const &access_fn, auto const &fail_fn)
+		{
+			_result.constructed() ? access_fn(*_result) : fail_fn(_error);
+		}
+
+		void with_result(auto const &access_fn, auto const &fail_fn) const
+		{
+			_result.constructed() ? access_fn(*_result) : fail_fn(_error);
+		}
+
+		void with_error(auto const &fail_fn) const
+		{
+			if (!_result.constructed())
+				fail_fn(_error);
+		}
+
+		bool operator == (ERROR const &rhs) const {
+			return failed() && (_error == rhs); }
+
+		bool ok()     const { return  _result.constructed(); }
+		bool failed() const { return !_result.constructed(); }
 };
 
 #endif /* _INCLUDE__UTIL__ATTEMPT_H_ */
