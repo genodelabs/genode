@@ -182,34 +182,28 @@ struct Dummy::Log_connections
 
 struct Dummy::Ram_consumer
 {
-	size_t _amount = 0;
-
-	Ram_dataspace_capability _ds_cap { };
-
 	Ram_allocator &_ram;
+	Ram_allocator::Result _ds = Ram::Error::DENIED;
 
 	Ram_consumer(Ram_allocator &ram) : _ram(ram) { }
 
 	void release()
 	{
-		if (!_amount)
-			return;
+		_ds.with_result(
+			[&] (Ram::Allocation &a) {
+				log("release ", Number_of_bytes(a.num_bytes), " bytes of memory"); },
+			[&] (Ram::Error) { });
 
-		log("release ", Number_of_bytes(_amount), " bytes of memory");
-		_ram.free(_ds_cap);
-
-		_ds_cap = Ram_dataspace_capability();
-		_amount = 0;
+		_ds = Ram::Error::DENIED;
 	}
 
 	void consume(size_t amount)
 	{
-		if (_amount)
+		if (_ds.ok())
 			release();
 
 		log("consume ", Number_of_bytes(amount), " bytes of memory");
-		_ds_cap = _ram.alloc(amount);
-		_amount = amount;
+		_ds = _ram.try_alloc(amount);
 	}
 };
 
