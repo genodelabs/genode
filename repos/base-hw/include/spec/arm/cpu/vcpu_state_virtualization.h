@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__SPEC__ARNDALE__VM_STATE_H_
-#define _INCLUDE__SPEC__ARNDALE__VM_STATE_H_
+#ifndef _INCLUDE__SPEC__ARM__CPU__VCPU_STATE_VIRTUALIZATION_H_
+#define _INCLUDE__SPEC__ARM__CPU__VCPU_STATE_VIRTUALIZATION_H_
 
 /* Genode includes */
 #include <cpu/cpu_state.h>
@@ -85,4 +85,4 @@ struct Genode::Vcpu_state : Genode::Cpu_state_modes
 	} irqs {};
 };
 
-#endif /* _INCLUDE__SPEC__ARNDALE__VM_STATE_H_ */
+#endif /* _INCLUDE__SPEC__ARM__CPU__VCPU_STATE_VIRTUALIZATION_H_ */

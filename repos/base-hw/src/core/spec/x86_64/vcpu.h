@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2015-2024 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -21,7 +21,7 @@
 
 /* base-hw includes */
 #include <hw_native_vcpu/hw_native_vcpu.h>
-#include <kernel/vm.h>
+#include <kernel/vcpu.h>
 
 /* core includes */
 #include <phys_allocated.h>
@@ -37,15 +37,15 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 			uint8_t _[Vcpu_data::size()];
 		};
 
-		Kernel::Vm::Identity      &_id;
-		Rpc_entrypoint            &_ep;
-		Vcpu_data                  _vcpu_data { };
-		Kernel_object<Kernel::Vm>  _kobj { };
-		Accounted_ram_allocator   &_ram;
-		Ram_allocator::Result      _ds;
-		Local_rm                  &_local_rm;
-		Affinity::Location         _location;
-		Phys_allocated<Data_pages> _vcpu_data_pages;
+		Kernel::Vcpu::Identity     &_id;
+		Rpc_entrypoint             &_ep;
+		Vcpu_data                   _vcpu_data { };
+		Kernel_object<Kernel::Vcpu> _kobj { };
+		Accounted_ram_allocator    &_ram;
+		Ram_allocator::Result       _ds;
+		Local_rm                   &_local_rm;
+		Affinity::Location          _location;
+		Phys_allocated<Data_pages>  _vcpu_data_pages;
 
 		constexpr size_t vcpu_state_size()
 		{
@@ -55,7 +55,7 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 
 	public:
 
-		Vcpu(Kernel::Vm::Identity    &id,
+		Vcpu(Kernel::Vcpu::Identity  &id,
 		     Rpc_entrypoint          &ep,
 		     Accounted_ram_allocator &ram,
 		     Local_rm                &local_rm,
@@ -127,7 +127,7 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 
 			if (!_kobj.create(cpu, (void *)&_vcpu_data,
 			                  Capability_space::capid(handler), _id))
-				warning("Cannot instantiate vm kernel object, invalid signal context?");
+				warning("Cannot instantiate vcpu kernel object, invalid signal context?");
 		}
 };
 

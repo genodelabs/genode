@@ -5,14 +5,14 @@
  */
 
 /*
- * Copyright (C) 2022-2024 Genode Labs GmbH
+ * Copyright (C) 2022-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__SPEC__PC__VM_STATE_H_
-#define _INCLUDE__SPEC__PC__VM_STATE_H_
+#ifndef _INCLUDE__SPEC__X86_64__CPU__VCPU_STATE_VIRTUALIZATION_H_
+#define _INCLUDE__SPEC__X86_64__CPU__VCPU_STATE_VIRTUALIZATION_H_
 
 #include <base/internal/page_size.h>
 /* x86 CPU state */
@@ -39,4 +39,4 @@ namespace Genode {
 	};
 };
 
-#endif /* _INCLUDE__SPEC__PC__VM_STATE_H_ */
+#endif /* _INCLUDE__SPEC__X86_64__CPU__VCPU_STATE_VIRTUALIZATION_H_ */

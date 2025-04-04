@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -27,7 +27,7 @@
 /* core includes */
 #include <object.h>
 #include <region_map_component.h>
-#include <kernel/vm.h>
+#include <kernel/vcpu.h>
 #include <trace/source_registry.h>
 
 #include <vmid_allocator.h>
@@ -57,14 +57,14 @@ class Core::Vm_session_component
 		{
 			static size_t _ds_size();
 
-			Kernel::Vm::Identity      &id;
-			Rpc_entrypoint            &ep;
-			Ram_allocator::Result      ds;
-			addr_t                     ds_addr  { };
-			Kernel_object<Kernel::Vm>  kobj     { };
-			Affinity::Location         location { };
+			Kernel::Vcpu::Identity     &id;
+			Rpc_entrypoint             &ep;
+			Ram_allocator::Result       ds;
+			addr_t                      ds_addr  { };
+			Kernel_object<Kernel::Vcpu> kobj     { };
+			Affinity::Location          location { };
 
-			Vcpu(Ram_allocator &ram, Kernel::Vm::Identity &id, Rpc_entrypoint &ep)
+			Vcpu(Ram_allocator &ram, Kernel::Vcpu::Identity &id, Rpc_entrypoint &ep)
 			:
 				id(id), ep(ep), ds(ram.try_alloc(_ds_size(), Cache::UNCACHED))
 			{
@@ -102,7 +102,7 @@ class Core::Vm_session_component
 		Board::Vm_page_table       &_table;
 		Board::Vm_page_table_array &_table_array;
 		Vmid_allocator             &_vmid_alloc;
-		Kernel::Vm::Identity        _id;
+		Kernel::Vcpu::Identity      _id;
 		unsigned                    _vcpu_id_alloc { 0 };
 
 		static size_t _alloc_vcpu_data(Genode::addr_t ds_addr);

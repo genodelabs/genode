@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -35,7 +35,7 @@ namespace Kernel {
 	class Thread;
 	class Signal_context;
 	class Signal_receiver;
-	class Vm;
+	class Vcpu;
 
 	/**
 	 * Base class of all Kernel objects
@@ -85,7 +85,7 @@ class Kernel::Object : private Object_identity_list
 {
 	private:
 
-		enum Type { THREAD, PD, SIGNAL_RECEIVER, SIGNAL_CONTEXT, IRQ, VM };
+		enum Type { THREAD, PD, SIGNAL_RECEIVER, SIGNAL_CONTEXT, IRQ, VCPU };
 
 		/*
 		 * Noncopyable
@@ -108,7 +108,7 @@ class Kernel::Object : private Object_identity_list
 		Object(Signal_receiver &obj);
 		Object(Signal_context &obj);
 		Object(Pd &obj);
-		Object(Vm &obj);
+		Object(Vcpu &obj);
 
 		~Object();
 

@@ -15,11 +15,8 @@
 #ifndef _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_
 #define _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_
 
-/* base-hw core includes */
-#include <kernel/configuration.h>
-#include <kernel/irq.h>
+#include <session/session.h>
 
-#include <cpu.h>
 #include <cpu/vcpu_state_virtualization.h>
 #include <hw/spec/x86_64/x86_64.h>
 #include <spec/x86_64/virtualization/svm.h>
@@ -41,12 +38,6 @@ namespace Board {
 	enum Custom_trapnos : uint64_t {
 		TRAP_VMEXIT = 256,
 	};
-};
-
-
-namespace Kernel {
-	class Cpu;
-	class Vm;
 };
 
 

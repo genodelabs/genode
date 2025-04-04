@@ -28,7 +28,6 @@
 /* core includes */
 #include <cpu_thread_component.h>
 #include <region_map_component.h>
-#include <kernel/vm.h>
 #include <trace/source_registry.h>
 
 #include <vcpu.h>
@@ -91,7 +90,7 @@ class Core::Vmx_session_component
 		Phys_allocated<Vm_page_table_array> _table_array;
 		Guest_memory                        _memory;
 		Vmid_allocator                     &_vmid_alloc;
-		Kernel::Vm::Identity                _id;
+		Kernel::Vcpu::Identity              _id;
 		uint8_t                             _remaining_print_count { 10 };
 
 		void _detach_at(addr_t addr)

@@ -14,7 +14,6 @@
 #ifndef _INCLUDE__SPEC__PC__VIRT_INTERFACE_H_
 #define _INCLUDE__SPEC__PC__VIRT_INTERFACE_H_
 
-#include <cpu.h>
 #include <cpu/vcpu_state.h>
 #include <cpu/vcpu_state_virtualization.h>
 
@@ -23,7 +22,6 @@ using Genode::Vcpu_state;
 
 namespace Kernel {
 	class Cpu;
-	class Vm;
 };
 
 namespace Board

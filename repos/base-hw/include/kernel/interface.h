@@ -44,8 +44,8 @@ namespace Kernel {
 	constexpr Call_arg call_id_timeout()                  { return 19; }
 	constexpr Call_arg call_id_timeout_max_us()           { return 20; }
 	constexpr Call_arg call_id_time()                     { return 21; }
-	constexpr Call_arg call_id_run_vm()                   { return 22; }
-	constexpr Call_arg call_id_pause_vm()                 { return 23; }
+	constexpr Call_arg call_id_run_vcpu()                 { return 22; }
+	constexpr Call_arg call_id_pause_vcpu()               { return 23; }
 	constexpr Call_arg call_id_suspend()                  { return 24; }
 
 
@@ -218,8 +218,6 @@ namespace Kernel {
 
 	/**
 	 * Get cache line size
-	 *
-	 * \param vm  pointer to vm kernel object
 	 */
 	inline size_t cache_line_size()
 	{
@@ -412,22 +410,22 @@ namespace Kernel {
 	/**
 	 * Execute a virtual-machine (again)
 	 *
-	 * \param vm  pointer to VM kernel object
+	 * \param vcpu  capability of vcpu kernel object
 	 */
-	inline void run_vm(capid_t const cap)
+	inline void run_vcpu(capid_t const cap)
 	{
-		call(call_id_run_vm(), cap);
+		call(call_id_run_vcpu(), cap);
 	}
 
 
 	/**
 	 * Stop execution of a virtual-machine
 	 *
-	 * \param vm  pointer to VM kernel object
+	 * \param vcpu  capability of vcpu kernel object
 	 */
-	inline void pause_vm(capid_t const cap)
+	inline void pause_vcpu(capid_t const cap)
 	{
-		call(call_id_pause_vm(), cap);
+		call(call_id_pause_vcpu(), cap);
 	}
 
 

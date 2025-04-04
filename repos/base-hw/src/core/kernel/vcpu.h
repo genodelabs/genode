@@ -1,19 +1,20 @@
 /*
  * \brief   Kernel backend for virtual machines
  * \author  Martin Stein
- * \author Benjamin Lamowski
+ * \author  Benjamin Lamowski
+ * \author  Stefan Kalkowski
  * \date    2013-10-30
  */
 
 /*
- * Copyright (C) 2013-2023 Genode Labs GmbH
+ * Copyright (C) 2013-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__KERNEL__VM_H_
-#define _CORE__KERNEL__VM_H_
+#ifndef _CORE__KERNEL__VCPU_H_
+#define _CORE__KERNEL__VCPU_H_
 
 /* core includes */
 #include <kernel/cpu.h>
@@ -28,11 +29,11 @@ namespace Kernel {
 	/**
 	 * Kernel backend for a virtual machine
 	 */
-	class Vm;
+	class Vcpu;
 }
 
 
-class Kernel::Vm : private Kernel::Object, public Cpu_context
+class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 {
 	public:
 
@@ -49,8 +50,8 @@ class Kernel::Vm : private Kernel::Object, public Cpu_context
 		/*
 		 * Noncopyable
 		 */
-		Vm(Vm const &);
-		Vm &operator = (Vm const &);
+		Vcpu(Vcpu const &);
+		Vcpu &operator = (Vcpu const &);
 
 		enum Scheduler_state { ACTIVE, INACTIVE };
 
@@ -79,13 +80,13 @@ class Kernel::Vm : private Kernel::Object, public Cpu_context
 		 * \param state    initial CPU state
 		 * \param context  signal for VM exceptions other than interrupts
 		 */
-		Vm(Irq::Pool              & user_irq_pool,
-		   Cpu                    & cpu,
-		   Genode::Vcpu_data      & data,
-		   Kernel::Signal_context & context,
-		   Identity               & id);
+		Vcpu(Irq::Pool              &user_irq_pool,
+		     Cpu                    &cpu,
+		     Genode::Vcpu_data      &data,
+		     Kernel::Signal_context &context,
+		     Identity               &id);
 
-		~Vm();
+		~Vcpu();
 
 		/**
 		 * Inject an interrupt to this VM
@@ -105,35 +106,36 @@ class Kernel::Vm : private Kernel::Object, public Cpu_context
 		 *
 		 * \retval cap id when successful, otherwise invalid cap id
 		 */
-		static capid_t syscall_create(Core::Kernel_object<Vm> &vm,
-		                              unsigned                 cpu,
-		                              void * const             data,
-		                              capid_t const            signal_context_id,
-		                              Identity                &id)
+		static capid_t syscall_create(Core::Kernel_object<Vcpu> &vcpu,
+		                              unsigned                   cpu,
+		                              void * const               data,
+		                              capid_t const              signal_context_id,
+		                              Identity                  &id)
 		{
-			return (capid_t)call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)cpu,
+			return (capid_t)call(call_id_new_vcpu(), (Call_arg)&vcpu, (Call_arg)cpu,
 			                     (Call_arg)data, (Call_arg)&id, signal_context_id);
 		}
 
 		/**
 		 * Destruct a virtual-machine
 		 *
-		 * \param vm  pointer to vm kernel object
+		 * \param vcpu  pointer to vcpu kernel object
 		 *
 		 * \retval 0 when successful, otherwise !=0
 		 */
-		static void syscall_destroy(Core::Kernel_object<Vm> & vm) {
-			call(call_id_delete_vm(), (Call_arg) &vm); }
+		static void syscall_destroy(Core::Kernel_object<Vcpu> & vcpu) {
+			call(call_id_delete_vcpu(), (Call_arg) &vcpu); }
 
 		Object &kernel_object() { return _kernel_object; }
 
-		/****************
-		 ** Vm_session **
-		 ****************/
+
+		/******************
+		 ** Vcpu_session **
+		 ******************/
 
 		void run();
-
 		void pause();
+
 
 		/*****************
 		 ** Cpu_context **
@@ -143,4 +145,4 @@ class Kernel::Vm : private Kernel::Object, public Cpu_context
 		void proceed() override;
 };
 
-#endif /* _CORE__KERNEL__VM_H_ */
+#endif /* _CORE__KERNEL__VCPU_H_ */

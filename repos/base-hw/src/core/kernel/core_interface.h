@@ -1,11 +1,12 @@
 /*
  * \brief  Parts of the kernel interface that are restricted to core
  * \author Martin stein
+ * \author Stefan Kalkowski
  * \date   2014-03-15
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -31,7 +32,7 @@ namespace Kernel {
 	class Thread;
 	class Signal_receiver;
 	class Signal_context;
-	class Vm;
+	class Vcpu;
 	class User_irq;
 	using Native_utcb = Genode::Native_utcb;
 	using Cpu_state   = Genode::Cpu_state;
@@ -54,8 +55,8 @@ namespace Kernel {
 	constexpr Call_arg call_id_new_signal_context()     { return 111; }
 	constexpr Call_arg call_id_delete_signal_context()  { return 112; }
 	constexpr Call_arg call_id_delete_signal_receiver() { return 113; }
-	constexpr Call_arg call_id_new_vm()                 { return 114; }
-	constexpr Call_arg call_id_delete_vm()              { return 117; }
+	constexpr Call_arg call_id_new_vcpu()               { return 114; }
+	constexpr Call_arg call_id_delete_vcpu()            { return 117; }
 	constexpr Call_arg call_id_new_irq()                { return 118; }
 	constexpr Call_arg call_id_delete_irq()             { return 119; }
 	constexpr Call_arg call_id_ack_irq()                { return 120; }

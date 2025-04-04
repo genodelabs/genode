@@ -49,7 +49,7 @@ namespace Board {
 
 namespace Kernel {
 	class Cpu;
-	class Vm;
+	class Vcpu;
 };
 
 
@@ -67,7 +67,7 @@ struct Board::Vcpu_context
 
 			virtual ~Vm_irq() {};
 
-			virtual void handle(Kernel::Vm &vm, unsigned irq);
+			virtual void handle(Kernel::Vcpu &vcpu, unsigned irq);
 
 			void occurred() override;
 	};
@@ -77,7 +77,7 @@ struct Board::Vcpu_context
 	{
 		Pic_maintainance_irq(Kernel::Cpu &);
 
-		void handle(Kernel::Vm &, unsigned) override { }
+		void handle(Kernel::Vcpu&, unsigned) override { }
 	};
 
 

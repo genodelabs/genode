@@ -20,14 +20,14 @@
 #include <map_local.h>
 #include <platform_pd.h>
 #include <kernel/cpu.h>
-#include <kernel/vm.h>
+#include <kernel/vcpu.h>
 #include <kernel/main.h>
 
 #include <spec/arm_v8/virtualization/hypervisor.h>
 
 using Genode::addr_t;
 using Kernel::Cpu;
-using Kernel::Vm;
+using Kernel::Vcpu;
 
 
 static Genode::Vcpu_state & host_context(Cpu & cpu)
@@ -70,15 +70,15 @@ Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
 { }
 
 
-void Board::Vcpu_context::Vm_irq::handle(Vm & vm, unsigned irq) {
-	vm.inject_irq(irq); }
+void Board::Vcpu_context::Vm_irq::handle(Vcpu &vcpu, unsigned irq) {
+	vcpu.inject_irq(irq); }
 
 
 void Board::Vcpu_context::Vm_irq::occurred()
 {
-	Vm *vm = dynamic_cast<Vm*>(&_cpu.current_context());
-	if (!vm) Genode::raw("VM interrupt while VM is not runnning!");
-	else     handle(*vm, _irq_nr);
+	Vcpu *vcpu = dynamic_cast<Vcpu*>(&_cpu.current_context());
+	if (!vcpu) Genode::raw("VM interrupt while VM is not runnning!");
+	else     handle(*vcpu, _irq_nr);
 }
 
 
@@ -108,11 +108,11 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 }
 
 
-Vm::Vm(Irq::Pool              & user_irq_pool,
-       Cpu                    & cpu,
-       Genode::Vcpu_data      & data,
-       Kernel::Signal_context & context,
-       Identity               & id)
+Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
+           Cpu                    &cpu,
+           Genode::Vcpu_data      &data,
+           Kernel::Signal_context &context,
+           Identity               &id)
 :
 	Kernel::Object { *this },
 	Cpu_context(cpu, Scheduler::Priority::min(), 0),
@@ -156,7 +156,7 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 }
 
 
-Vm::~Vm()
+Vcpu::~Vcpu()
 {
 	Cpu::Vttbr_el2::access_t vttbr_el2 =
 		Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
@@ -165,7 +165,7 @@ Vm::~Vm()
 }
 
 
-void Vm::exception(Genode::Cpu_state&)
+void Vcpu::exception(Genode::Cpu_state&)
 {
 	switch (_state.exception_type) {
 	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];
@@ -192,7 +192,7 @@ void Vm::exception(Genode::Cpu_state&)
 }
 
 
-void Vm::proceed()
+void Vcpu::proceed()
 {
 	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
 
@@ -212,14 +212,14 @@ void Vm::proceed()
 }
 
 
-void Vm::run()
+void Vcpu::run()
 {
 	if (_scheduled != ACTIVE) Cpu_context::_activate();
 	_scheduled = ACTIVE;
 }
 
 
-void Vm::pause()
+void Vcpu::pause()
 {
 	if (_cpu().id() != Cpu::executing_id()) {
 		Genode::error("vCPU pause called from remote core.");
@@ -229,7 +229,7 @@ void Vm::pause()
 }
 
 
-void Vm::inject_irq(unsigned irq)
+void Vcpu::inject_irq(unsigned irq)
 {
 	_state.irqs.last_irq = irq;
 	pause();

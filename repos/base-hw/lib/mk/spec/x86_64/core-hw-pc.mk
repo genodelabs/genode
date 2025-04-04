@@ -19,8 +19,8 @@ SRC_S += spec/x86_64/exception_vector.s
 # add C++ sources
 SRC_CC += kernel/cpu_mp.cc
 SRC_CC += kernel/mutex.cc
-SRC_CC += kernel/vm_thread_on.cc
-SRC_CC += spec/x86_64/virtualization/kernel/vm.cc
+SRC_CC += kernel/vcpu_thread_on.cc
+SRC_CC += spec/x86_64/virtualization/kernel/vcpu.cc
 SRC_CC += spec/x86_64/virtualization/kernel/svm.cc
 SRC_CC += spec/x86_64/virtualization/kernel/vmx.cc
 SRC_CC += spec/x86_64/pic.cc

@@ -20,7 +20,7 @@
 #include <platform_pd.h>
 #include <platform.h>
 #include <kernel/cpu.h>
-#include <kernel/vm.h>
+#include <kernel/vcpu.h>
 #include <kernel/main.h>
 
 #include <hw/spec/x86_64/x86_64.h>
@@ -30,14 +30,14 @@
 using namespace Genode;
 
 using Kernel::Cpu;
-using Kernel::Vm;
+using Kernel::Vcpu;
 
 
-Vm::Vm(Irq::Pool              & user_irq_pool,
-       Cpu                    & cpu,
-       Vcpu_data              & data,
-       Kernel::Signal_context & context,
-       Identity               & id)
+Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
+           Cpu                    &cpu,
+           Vcpu_data              &data,
+           Kernel::Signal_context &context,
+           Identity               &id)
 :
 	Kernel::Object { *this },
 	Cpu_context(cpu, Scheduler::Priority::min(), 0),
@@ -48,12 +48,12 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 	_vcpu_context(id.id, data) { }
 
 
-Vm::~Vm()
+Vcpu::~Vcpu()
 {
 }
 
 
-void Vm::run()
+void Vcpu::run()
 {
 	if (_cpu().id() != Cpu::executing_id()) {
 		error("vCPU run called from remote core.");
@@ -77,7 +77,7 @@ void Vm::run()
 }
 
 
-void Vm::pause()
+void Vcpu::pause()
 {
 	if (_cpu().id() != Cpu::executing_id()) {
 		Genode::error("vCPU pause called from remote core.");
@@ -104,7 +104,7 @@ void Vm::pause()
 }
 
 
-void Vm::proceed()
+void Vcpu::proceed()
 {
 	Cpu::Ia32_tsc_aux::write(
 	    (Cpu::Ia32_tsc_aux::access_t)_vcpu_context.tsc_aux_guest);
@@ -120,7 +120,7 @@ void Vm::proceed()
 }
 
 
-void Vm::exception(Genode::Cpu_state &state)
+void Vcpu::exception(Genode::Cpu_state &state)
 {
 	using namespace Board;
 	using Ctx = Core::Cpu::Context;
@@ -169,7 +169,7 @@ void Vm::exception(Genode::Cpu_state &state)
 			_interrupt(_user_irq_pool);
 			break;
 		default:
-			error("VM: triggered unknown exception ",
+			error("Vcpu: triggered unknown exception ",
 			              _vcpu_context.regs->trapno,
 			              " with error code ", _vcpu_context.regs->errcode,
 			              " at ip=",

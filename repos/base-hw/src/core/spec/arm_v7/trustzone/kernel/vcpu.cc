@@ -15,17 +15,17 @@
 
 /* core includes */
 #include <kernel/cpu.h>
-#include <kernel/vm.h>
+#include <kernel/vcpu.h>
 #include <cpu/vcpu_state_trustzone.h>
 
 using namespace Kernel;
 
 
-Vm::Vm(Irq::Pool              & user_irq_pool,
-       Cpu                    & cpu,
-       Genode::Vcpu_data      & data,
-       Kernel::Signal_context & context,
-       Identity               & id)
+Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
+           Cpu                    &cpu,
+           Genode::Vcpu_data      &data,
+           Kernel::Signal_context &context,
+           Identity               &id)
 :
 	Kernel::Object { *this },
 	Cpu_context(cpu, Scheduler::Priority::min(), 0),
@@ -42,10 +42,10 @@ Vm::Vm(Irq::Pool              & user_irq_pool,
 }
 
 
-Vm::~Vm() {}
+Vcpu::~Vcpu() {}
 
 
-void Vm::exception(Genode::Cpu_state&)
+void Vcpu::exception(Genode::Cpu_state&)
 {
 	switch(_state.cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]];
@@ -68,7 +68,7 @@ bool secure_irq(unsigned const i);
 extern "C" void monitor_mode_enter_normal_world(Genode::Vcpu_state&, void*);
 
 
-void Vm::proceed()
+void Vcpu::proceed()
 {
 	unsigned const irq = _state.irq_injection;
 	if (irq) {
@@ -84,14 +84,14 @@ void Vm::proceed()
 }
 
 
-void Vm::run()
+void Vcpu::run()
 {
 	if (_scheduled != ACTIVE) Cpu_context::_activate();
 	_scheduled = ACTIVE;
 }
 
 
-void Vm::pause()
+void Vcpu::pause()
 {
 	if (_cpu().id() != Cpu::executing_id()) {
 		Genode::error("vCPU pause called from remote core.");

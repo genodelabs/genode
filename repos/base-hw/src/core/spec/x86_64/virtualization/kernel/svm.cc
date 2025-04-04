@@ -23,7 +23,7 @@
 using namespace Genode;
 
 using Kernel::Cpu;
-using Kernel::Vm;
+using Kernel::Vcpu;
 using Board::Vmcb;
 using Board::Vmcb_buf;
 

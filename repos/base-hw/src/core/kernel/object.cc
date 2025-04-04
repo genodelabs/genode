@@ -1,3 +1,16 @@
+/*
+ * \brief   Kernel object identities and references
+ * \author  Stefan Kalkowski
+ * \date    2012-11-30
+ */
+
+/*
+ * Copyright (C) 2012-2025 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
 #include <kernel/object.h>
 #include <kernel/pd.h>
 
@@ -45,9 +58,9 @@ Object::Object(Pd &obj)
 { }
 
 
-Object::Object(Vm &obj)
+Object::Object(Vcpu &obj)
 :
-	_type { VM },
+	_type { VCPU },
 	_obj  { (void *)&obj }
 { }
 
@@ -101,12 +114,12 @@ namespace Kernel {
 		return reinterpret_cast<Thread *>(_obj);
 	}
 
-	template <> Vm *Object::obj<Vm>() const
+	template <> Vcpu *Object::obj<Vcpu>() const
 	{
-		if (_type != VM)
+		if (_type != VCPU)
 			return nullptr;
 
-		return reinterpret_cast<Vm *>(_obj);
+		return reinterpret_cast<Vcpu *>(_obj);
 	}
 }
 

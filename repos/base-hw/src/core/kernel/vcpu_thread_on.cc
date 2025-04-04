@@ -13,10 +13,10 @@
 
 /* core includes */
 #include <kernel/thread.h>
-#include <kernel/vm.h>
+#include <kernel/vcpu.h>
 #include <kernel/cpu.h>
 
-void Kernel::Thread::_call_new_vm()
+void Kernel::Thread::_call_new_vcpu()
 {
 	Signal_context * context =
 		pd().cap_tree().find<Signal_context>((capid_t)user_arg_5());
@@ -25,42 +25,42 @@ void Kernel::Thread::_call_new_vm()
 		return;
 	}
 
-	_call_new<Vm>(_user_irq_pool, _cpu_pool.cpu((unsigned)user_arg_2()),
+	_call_new<Vcpu>(_user_irq_pool, _cpu_pool.cpu((unsigned)user_arg_2()),
 	              *(Board::Vcpu_data*)user_arg_3(),
-	              *context, *(Vm::Identity*)user_arg_4());
+	              *context, *(Vcpu::Identity*)user_arg_4());
 }
 
 
-void Kernel::Thread::_call_delete_vm() { _call_delete<Vm>(); }
+void Kernel::Thread::_call_delete_vcpu() { _call_delete<Vcpu>(); }
 
 
-void Kernel::Thread::_call_run_vm()
+void Kernel::Thread::_call_run_vcpu()
 {
 	Object_identity_reference * ref = pd().cap_tree().find((capid_t)user_arg_1());
-	Vm * vm = ref ? ref->object<Vm>() : nullptr;
+	Vcpu * vcpu = ref ? ref->object<Vcpu>() : nullptr;
 
-	if (!vm) {
-		Genode::raw("Invalid VM cap");
+	if (!vcpu) {
+		Genode::raw("Invalid Vcpu cap");
 		user_arg_0(-1);
 		return;
 	}
 
-	vm->run();
+	vcpu->run();
 	user_arg_0(0);
 }
 
 
-void Kernel::Thread::_call_pause_vm()
+void Kernel::Thread::_call_pause_vcpu()
 {
 	Object_identity_reference * ref = pd().cap_tree().find((capid_t)user_arg_1());
-	Vm * vm = ref ? ref->object<Vm>() : nullptr;
+	Vcpu * vcpu = ref ? ref->object<Vcpu>() : nullptr;
 
-	if (!vm) {
-		Genode::raw("Invalid VM cap");
+	if (!vcpu) {
+		Genode::raw("Invalid Vcpu cap");
 		user_arg_0(-1);
 		return;
 	}
 
-	vm->pause();
+	vcpu->pause();
 	user_arg_0(0);
 }

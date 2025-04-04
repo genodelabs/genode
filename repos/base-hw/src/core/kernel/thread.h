@@ -1,11 +1,12 @@
 /*
  * \brief   Kernel backend for execution contexts in userland
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-11-30
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -289,10 +290,10 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		void _call_submit_signal();
 		void _call_ack_signal();
 		void _call_kill_signal_context();
-		void _call_new_vm();
-		void _call_delete_vm();
-		void _call_run_vm();
-		void _call_pause_vm();
+		void _call_new_vcpu();
+		void _call_delete_vcpu();
+		void _call_run_vcpu();
+		void _call_pause_vcpu();
 		void _call_pager();
 		void _call_new_irq();
 		void _call_irq_mode();

@@ -24,7 +24,7 @@
 
 using Genode::addr_t;
 using Kernel::Cpu;
-using Kernel::Vm;
+using Kernel::Vcpu;
 using Board::Vmcs;
 using Board::Vmcs_buf;
 
