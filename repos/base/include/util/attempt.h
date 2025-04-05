@@ -88,6 +88,12 @@ class Genode::Attempt
 
 		bool ok()     const { return  _ok; }
 		bool failed() const { return !_ok; }
+
+		void print(Output &out) const
+		{
+			with_result([&] (RESULT const &result) { Genode::print(out, result); },
+			            [&] (ERROR  const &error)  { Genode::print(out, error); });
+		}
 };
 
 
@@ -151,6 +157,12 @@ class Genode::Unique_attempt : Noncopyable
 
 		bool ok()     const { return  _result.constructed(); }
 		bool failed() const { return !_result.constructed(); }
+
+		void print(auto &out) const
+		{
+			with_result([&] (RESULT const &result) { Genode::print(out, result); },
+			            [&] (ERROR  const &error)  { Genode::print(out, error); });
+		}
 };
 
 #endif /* _INCLUDE__UTIL__ATTEMPT_H_ */
