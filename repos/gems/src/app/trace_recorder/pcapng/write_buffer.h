@@ -32,8 +32,7 @@ class Pcapng::Write_buffer
 	public:
 
 		enum class Append_error  { OUT_OF_MEM, OVERFLOW };
-		struct Append_ok { };
-		using Append_result  = Attempt<Append_ok, Append_error>;
+		using Append_result  = Attempt<Ok, Append_error>;
 
 	private:
 
@@ -59,7 +58,7 @@ class Pcapng::Write_buffer
 
 			_total_length += block.size();
 
-			return Append_ok();
+			return Ok();
 		}
 
 		void write_to_file(Genode::Append_file &dst, Directory::Path const &path)

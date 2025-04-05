@@ -113,10 +113,9 @@ struct Extract::Extracted_archive : Noncopyable
 
 	struct Strip { unsigned value; };
 
-	struct Extract_ok { };
 	enum class Extract_error : uint32_t {
 		OPEN_FAILED, READ_FAILED, WRITE_FAILED, };
-	using Extract_result = Attempt<Extract_ok, Extract_error>;
+	using Extract_result = Attempt<Ok, Extract_error>;
 
 	/**
 	 * \param path      path to archive file
@@ -223,7 +222,7 @@ struct Extract::Extracted_archive : Noncopyable
 				return Extract_error::WRITE_FAILED;
 		}
 
-		return Extract_ok();
+		return Ok();
 	}
 };
 
@@ -279,7 +278,7 @@ struct Extract::Main
 
 			Extracted_archive archive;
 			archive.extract(src_path, strip, raw_name).with_result(
-				[&] (Extracted_archive::Extract_ok) {
+				[&] (Ok) {
 
 					if (_verbose)
 						log("extracted '", src_path, "' to '", dst_path, "'");

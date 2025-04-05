@@ -254,7 +254,7 @@ Allocator_avl_base::Range_result Allocator_avl_base::add_range(addr_t new_addr, 
 			/* create new block that spans over all merged blocks */
 			_add_block(*new_block_ptr, new_addr, new_size, Block::FREE);
 
-			return Range_ok();
+			return Ok();
 		},
 		[&] (Alloc_error error) {
 			return error; });
@@ -287,7 +287,7 @@ Allocator_avl_base::Range_result Allocator_avl_base::remove_range(addr_t base, s
 					_md_alloc.free(blocks.b2_ptr, sizeof(Block));
 
 					if (b == 0)
-						result = Range_ok();
+						result = Ok();
 
 					done = true;
 					return;

@@ -138,7 +138,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 
 				/* add new local address range to our local allocator */
 				_alloc->add_range(attach_guard.range.start, size).with_result(
-					[&] (Range_allocator::Range_ok) {
+					[&] (Ok) {
 						metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace), log2(16U)); },
 					[&] (Alloc_error error) {
 						metadata = error; });

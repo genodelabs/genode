@@ -103,7 +103,7 @@ size_t Terminal_crosslink::Session_component::_write(size_t num_bytes)
 
 	while ((num_bytes_written < num_bytes) && !error)
 		_buffer.add(src[num_bytes_written]).with_result(
-			[&] (Ring_buffer::Add_ok)    { ++num_bytes_written; },
+			[&] (Ok)                     { ++num_bytes_written; },
 			[&] (Ring_buffer::Add_error) { error = true; }
 		);
 

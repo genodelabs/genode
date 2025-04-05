@@ -366,7 +366,7 @@ Region_map_component::attach_dma(Dataspace_capability ds_cap, addr_t at)
 	using Attach_dma_error = Pd_session::Attach_dma_error;
 
 	return _attach(ds_cap, attr).convert<Attach_dma_result>(
-		[&] (Range) { return Pd_session::Attach_dma_ok(); },
+		[&] (Range) { return Ok(); },
 		[&] (Attach_error e) {
 			switch (e) {
 			case Attach_error::OUT_OF_RAM:  return Attach_dma_error::OUT_OF_RAM;

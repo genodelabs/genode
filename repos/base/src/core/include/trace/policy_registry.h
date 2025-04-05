@@ -102,8 +102,7 @@ class Core::Trace::Policy_registry
 				_policies.remove(p);
 		}
 
-		struct Insert_ok { };
-		using Insert_result = Attempt<Insert_ok, Ram::Error>;
+		using Insert_result = Attempt<Ok, Ram::Error>;
 
 		Insert_result insert(Policy_owner const &owner, Policy_id const id,
 		                     Allocator &md_alloc, Ram::Allocator &ram,
@@ -115,7 +114,7 @@ class Core::Trace::Policy_registry
 				Policy &policy = *new (&md_alloc) Policy(owner, id, md_alloc, ram, size);
 				_policies.insert(&policy);
 				return policy.ds.convert<Insert_result>(
-					[&] (Ram::Allocation const &) { return Insert_ok(); },
+					[&] (Ram::Allocation const &) { return Ok(); },
 					[&] (Ram::Error e)            { return e; });
 			}
 			catch (Out_of_ram)  { return Ram::Error::OUT_OF_RAM; }

@@ -40,7 +40,7 @@ struct Genode::Trace::Session : Genode::Session
 	using Alloc_policy_rpc_result = Attempt<Policy_id,    Alloc_policy_rpc_error>;
 	using Subjects_rpc_result     = Attempt<Num_subjects, Alloc_rpc_error>;
 	using Infos_rpc_result        = Attempt<Num_subjects, Alloc_rpc_error>;
-	using Trace_rpc_result        = Attempt<Trace_ok,     Trace_rpc_error>;
+	using Trace_rpc_result        = Attempt<Ok,           Trace_rpc_error>;
 
 
 	virtual ~Session() { }

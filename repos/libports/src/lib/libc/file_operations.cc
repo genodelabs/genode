@@ -193,7 +193,7 @@ Symlink_resolve_result Libc::resolve_symlinks(char const *path, Absolute_path &r
 	resolved_path = next_iteration_working_path;
 	resolved_path.remove_trailing('/');
 
-	return Symlinks_resolved_ok();
+	return Ok();
 }
 
 
@@ -214,7 +214,7 @@ static Symlink_resolve_result resolve_symlinks_except_last_element(char const *p
 		return Symlink_resolve_error();
 	}
 
-	return Symlinks_resolved_ok();
+	return Ok();
 }
 
 

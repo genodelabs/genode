@@ -96,7 +96,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	void unload_policy(Policy_id id) { call<Rpc_unload_policy>(id); }
 
 	enum class Trace_error { FOREIGN, SOURCE_IS_DEAD, INVALID_SUBJECT, INVALID_POLICY };
-	using Trace_result = Attempt<Trace_ok, Trace_error>;
+	using Trace_result = Attempt<Ok, Trace_error>;
 
 	/**
 	 * Start tracing of a subject
@@ -108,7 +108,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 				return call<Rpc_trace>(s, p, size); });
 
 		return rpc_result.convert<Trace_result>(
-			[&] (Trace_ok ok) { return ok; },
+			[&] (Ok ok) { return ok; },
 			[&] (Trace_rpc_error e) {
 				switch (e) {
 				case Trace_rpc_error::OUT_OF_RAM: /* cannot occur, handled by '_retry' above */

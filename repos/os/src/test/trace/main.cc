@@ -300,7 +300,7 @@ struct Test_tracing
 						_trace.trace(id, policy_id, Trace::Buffer_size{16384});
 
 					trace_result.with_result(
-						[&] (Trace::Trace_ok) {
+						[&] (Ok) {
 							Dataspace_capability ds_cap = _trace.buffer(id);
 							_test_monitor.construct(env.rm(), id, ds_cap);
 						},

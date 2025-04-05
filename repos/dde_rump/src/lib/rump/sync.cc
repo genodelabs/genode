@@ -243,7 +243,7 @@ struct Cond
 				Genode::Microseconds(timeout_ms(currtime, *abstime) * 1000);
 	
 			signal_sem.down(true, timeout_us).with_result(
-				[&] (Timed_semaphore::Down_ok) { },
+				[&] (Timed_semaphore::Ok) { },
 				[&] (Timed_semaphore::Down_timed_out) { result = -2; }
 			);
 		}

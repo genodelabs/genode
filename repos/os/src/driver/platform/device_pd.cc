@@ -67,7 +67,7 @@ void Device_pd::add_range(Io_mmu::Range        const & range,
 
 	do {
 		_pd.attach_dma(cap, range.start).with_result(
-			[&] (Pd_session::Attach_dma_ok) {
+			[&] (Ok) {
 				/* trigger eager mapping of memory */
 				_pd.map(Pd_session::Virt_range { range.start, range.size });
 				retry = false;

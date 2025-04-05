@@ -120,7 +120,7 @@ Session_component::trace(Subject_id subject_id, Policy_id policy_id, Buffer_size
 	{
 		using Result = Subject::Trace_result;
 		switch (result) {
-		case Result::OK:              return Trace_ok { };
+		case Result::OK:              return Ok { };
 		case Result::OUT_OF_RAM:      return Trace_rpc_error::OUT_OF_RAM;
 		case Result::OUT_OF_CAPS:     return Trace_rpc_error::OUT_OF_CAPS;
 		case Result::FOREIGN:         return Trace_rpc_error::FOREIGN;

@@ -26,9 +26,8 @@ namespace Genode { namespace Trace {
 	using Thread_name = String<32>;
 
 	struct Num_subjects { unsigned value; };
-	struct Policy_size { size_t num_bytes; };
-	struct Buffer_size { size_t num_bytes; };
-	struct Trace_ok { };
+	struct Policy_size  { size_t num_bytes; };
+	struct Buffer_size  { size_t num_bytes; };
 
 	struct Policy_id;
 	struct Subject_id;

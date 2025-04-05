@@ -22,9 +22,8 @@ using namespace Genode;
 
 struct Entropy_source : Interface
 {
-	struct Collect_ok    { };
 	struct Collect_error { };
-	using Collect_result = Attempt<Collect_ok, Collect_error>;
+	using Collect_result = Attempt<Ok, Collect_error>;
 
 	virtual Collect_result collect(Byte_range_ptr const &dst) = 0;
 };
@@ -87,7 +86,7 @@ struct Xoroshiro_128_plus_reseeding
 		{
 			return _entropy_src.collect(Byte_range_ptr { (char*)&_seed,
 			                                             sizeof(_seed) }).convert<bool>(
-				[&] (Entropy_source::Collect_ok) {
+				[&] (Ok) {
 					_consumed_limit = CONSUME_THRESHOLD + (_seed & 0xfffu);
 					_xoroshiro.construct(_seed);
 					return true;
@@ -161,7 +160,7 @@ struct Vfs::Xoroshiro_file_system : Single_file_system
 		Collect_result collect(Byte_range_ptr const &dst) override
 		{
 			if (_seed_file.read(Readonly_file::At { 0 }, dst) >= dst.num_bytes)
-				return Collect_ok();
+				return Ok();
 
 			return Collect_error();
 		}

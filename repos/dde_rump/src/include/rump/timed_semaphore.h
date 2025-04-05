@@ -112,9 +112,9 @@ class Timed_semaphore
 {
 	public:
 
-		struct Down_ok { };
 		struct Down_timed_out { };
-		using Down_result = Genode::Attempt<Down_ok, Down_timed_out>;
+		using Ok = Genode::Ok;
+		using Down_result = Genode::Attempt<Ok, Down_timed_out>;
 
 	private:
 
@@ -198,7 +198,7 @@ class Timed_semaphore
 				blockade.block();
 
 				if (wakeup_called)
-					return Down_ok();
+					return Ok();
 				else
 					return Down_timed_out();
 			}
@@ -338,7 +338,7 @@ class Timed_semaphore
 
 			} else {
 				_meta_mutex.release();
-				return Down_ok();
+				return Ok();
 			}
 		}
 };

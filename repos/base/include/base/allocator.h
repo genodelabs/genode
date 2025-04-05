@@ -137,8 +137,7 @@ struct Genode::Range_allocator : Allocator
 	/**
 	 * Return type of range-management operations
 	 */
-	struct Range_ok { };
-	using Range_result = Attempt<Range_ok, Alloc_error>;
+	using Range_result = Attempt<Ok, Alloc_error>;
 
 	/**
 	 * Add free address range to allocator

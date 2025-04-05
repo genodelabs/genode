@@ -158,15 +158,13 @@ void Libc::Kernel::_init_file_descriptors()
 		resolved_path = next_iteration_working_path;
 		resolved_path.remove_trailing('/');
 
-		return Symlinks_resolved_ok();
+		return Ok();
 	};
 
 	using Path = String<Vfs::MAX_PATH_LEN>;
 
-	struct Absolute_path_resolved_ok { };
 	struct Absolute_path_resolve_error { };
-	using Absolute_path_resolve_result = Attempt<Absolute_path_resolved_ok,
-	                                             Absolute_path_resolve_error>;
+	using Absolute_path_resolve_result = Attempt<Ok, Absolute_path_resolve_error>;
 
 	auto resolve_absolute_path = [&] (Path const &path, Absolute_path &abs_path) -> Absolute_path_resolve_result
 	{
@@ -177,7 +175,7 @@ void Libc::Kernel::_init_file_descriptors()
 			if (resolve_symlinks(abs_dir, abs_path).failed())
 				return Absolute_path_resolve_error();
 			abs_path.append_element(dir_entry.string());
-			return Absolute_path_resolved_ok();
+			return Ok();
 		} catch (Path_base::Path_too_long) { return Absolute_path_resolve_error(); }
 	};
 

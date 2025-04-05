@@ -101,7 +101,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 				if (bits_cnt > max_cnt)
 					_array->set(max_cnt, bits_cnt - max_cnt);
 
-				return Range_ok();
+				return Ok();
 
 			}
 			catch (Out_of_ram)  { error = Alloc_error::OUT_OF_RAM; }
@@ -134,7 +134,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 				_bits = nullptr;
 			}
 
-			return Range_ok();
+			return Ok();
 		}
 
 		Alloc_result alloc_aligned(size_t size, unsigned, Range) override

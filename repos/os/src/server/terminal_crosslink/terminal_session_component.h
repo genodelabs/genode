@@ -51,10 +51,9 @@ namespace Terminal_crosslink {
 			Ring_buffer(Byte_range_ptr const &buffer)
 			: _queue(buffer.start), _queue_size(buffer.num_bytes) { }
 
-			struct     Add_ok    { };
 			enum class Add_error { OVERFLOW };
 
-			using Add_result = Attempt<Add_ok, Add_error>;
+			using Add_result = Attempt<Ok, Add_error>;
 
 			/**
 			 * Place element into ring buffer
@@ -64,7 +63,7 @@ namespace Terminal_crosslink {
 				if ((_head + 1)%_queue_size != _tail) {
 					_queue[_head] = ev;
 					_head = (_head + 1)%_queue_size;
-					return Add_ok();
+					return Ok();
 				} else
 					return Add_error::OVERFLOW;
 			}

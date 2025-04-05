@@ -395,8 +395,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 	Genode::Allocator_avl            _range;
 	Genode::Ram_allocator           &_ram;
 
-	struct Extend_ok { };
-	using Extend_result = Genode::Attempt<Extend_ok, Alloc_error>;
+	using Extend_result = Genode::Attempt<Ok, Alloc_error>;
 
 	Extend_result _extend_one_block()
 	{
@@ -430,8 +429,8 @@ struct Slab_backend_alloc : public Genode::Allocator,
 
 						return _range.add_range(_base + range.start, range.num_bytes)
 							.convert<Extend_result>(
-								[&] (Range_allocator::Range_ok) { return Extend_ok(); },
-								[&] (Alloc_error e)             { return e; });
+								[&] (Ok)            { return Ok(); },
+								[&] (Alloc_error e) { return e; });
 					},
 
 					[&] (Region_map::Attach_error e) {
@@ -479,8 +478,8 @@ struct Slab_backend_alloc : public Genode::Allocator,
 			return result;
 
 		return _extend_one_block().convert<Alloc_result>(
-			[&] (Extend_ok)         { return _range.try_alloc(size); },
-			[&] (Alloc_error error) { return error; });
+			[&] (Ok)            { return _range.try_alloc(size); },
+			[&] (Alloc_error e) { return e; });
 	}
 
 	void           free(void *addr, Genode::size_t size) { _range.free(addr, size); }

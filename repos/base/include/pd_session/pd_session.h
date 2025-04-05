@@ -353,9 +353,8 @@ struct Genode::Pd_session : Session, Pd_account
 	virtual addr_t dma_addr(Ram_dataspace_capability) = 0;
 
 	enum class Attach_dma_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
-	struct     Attach_dma_ok    { };
 
-	using Attach_dma_result = Attempt<Attach_dma_ok, Attach_dma_error>;
+	using Attach_dma_result = Attempt<Ok, Attach_dma_error>;
 
 	/**
 	 * Attach dataspace to I/O page table at specified address 'at'

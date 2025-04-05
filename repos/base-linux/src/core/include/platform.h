@@ -87,30 +87,11 @@ class Core::Platform : public Platform_generic
 		 */
 		struct Pseudo_ram_allocator : Range_allocator
 		{
-			Alloc_result try_alloc(size_t) override
-			{
-				return nullptr;
-			}
-
-			Alloc_result alloc_aligned(size_t, unsigned, Range) override
-			{
-				return nullptr;
-			}
-
-			Alloc_result alloc_addr(size_t, addr_t) override
-			{
-				return nullptr;
-			}
-
-			Range_result add_range(addr_t, size_t)    override
-			{
-				return Range_ok();
-			}
-
-			Range_result remove_range(addr_t, size_t) override
-			{
-				return Range_ok();
-			}
+			Alloc_result try_alloc(size_t)                      override { return nullptr; }
+			Alloc_result alloc_aligned(size_t, unsigned, Range) override { return nullptr; }
+			Alloc_result alloc_addr(size_t, addr_t)             override { return nullptr; }
+			Range_result add_range(addr_t, size_t)              override { return Ok(); }
+			Range_result remove_range(addr_t, size_t)           override { return Ok(); }
 
 			void   free(void *)                 override { }
 			void   free(void *, size_t)         override { }

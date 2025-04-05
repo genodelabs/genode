@@ -331,7 +331,7 @@ void Slab::_insert_sb(Block *sb)
 Slab::Expand_result Slab::_expand()
 {
 	if (!_backing_store || _nested)
-		return Expand_ok();
+		return Ok();
 
 	/* allocate new block for slab */
 	_nested = true;
@@ -353,7 +353,7 @@ Slab::Expand_result Slab::_expand()
 			 * list.
 			 */
 			_insert_sb(sb_ptr);
-			return Expand_ok(); },
+			return Ok(); },
 
 		[&] (Alloc_error error) {
 			return error; });
@@ -387,8 +387,8 @@ Allocator::Alloc_result Slab::try_alloc(size_t size)
 		Expand_result expand_result = _expand();
 		if (expand_result.failed())
 			return expand_result.convert<Alloc_result>(
-				[&] (Expand_ok)         { return Alloc_error::DENIED; },
-				[&] (Alloc_error error) { return error; });
+				[&] (Ok)            { return Alloc_error::DENIED; },
+				[&] (Alloc_error e) { return e; });
 	}
 
 	/* skip completely occupied slab blocks, detect cycles */

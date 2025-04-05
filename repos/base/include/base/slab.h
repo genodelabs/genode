@@ -63,8 +63,7 @@ class Genode::Slab : public Allocator
 		 */
 		void _insert_sb(Block *);
 
-		struct Expand_ok { };
-		using Expand_result = Attempt<Expand_ok, Alloc_error>;
+		using Expand_result = Attempt<Ok, Alloc_error>;
 
 		/**
 		 * Expand slab by one block

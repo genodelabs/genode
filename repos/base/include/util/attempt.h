@@ -19,6 +19,11 @@
 namespace Genode {
 	template <typename, typename> struct Attempt;
 	template <typename, typename> struct Unique_attempt;
+
+	/**
+	 * Type used for results with no return value but error conditions
+	 */
+	struct Ok { };
 }
 
 
