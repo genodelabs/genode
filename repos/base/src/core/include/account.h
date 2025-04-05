@@ -27,6 +27,11 @@ namespace Core { template <typename> class Account; }
 template <typename UNIT>
 class Core::Account
 {
+	public:
+
+		using Limit_exceeded = UNIT::Exhausted_exception;
+		using Guard          = Quota_guard<UNIT>;
+
 	private:
 
 		/*
@@ -35,7 +40,7 @@ class Core::Account
 		Account(Account const &);
 		Account &operator = (Account const &);
 
-		Quota_guard<UNIT> &_quota_guard;
+		Guard &_quota_guard;
 
 		Session::Label const &_label;
 
@@ -88,16 +93,11 @@ class Core::Account
 
 	public:
 
-		using Limit_exceeded = typename Quota_guard<UNIT>::Limit_exceeded;
-
-		class Unrelated_account : Exception { };
-
 		/**
 		 * Constructor for creating a regular account that is rechargeable by
 		 * the specified reference account
 		 */
-		Account(Quota_guard<UNIT> &quota_guard, Session_label const &label,
-		        Account &ref_account)
+		Account(Guard &quota_guard, Session_label const &label, Account &ref_account)
 		:
 			_quota_guard(quota_guard), _label(label),
 			_initial_limit(_quota_guard.limit())
@@ -108,7 +108,7 @@ class Core::Account
 		/**
 		 * Constructor used for creating the initial account
 		 */
-		Account(Quota_guard<UNIT> &quota_guard, Session_label const &label)
+		Account(Guard &quota_guard, Session_label const &label)
 		: _quota_guard(quota_guard), _label(label), _initial_limit(UNIT{0}) { }
 
 		~Account()

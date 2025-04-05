@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__SESSION__SESSION_H_
 #define _INCLUDE__SESSION__SESSION_H_
 
+#include <base/exception.h>
 #include <base/quota_guard.h>
 #include <base/session_label.h>
 #include <util/arg_string.h>
@@ -34,7 +35,7 @@ namespace Genode {
 	 */
 	struct Insufficient_ram_quota : Exception { };
 	struct Insufficient_cap_quota : Exception { };
-	struct Service_denied         : Exception { };
+	using  Service_denied = Denied;
 }
 
 

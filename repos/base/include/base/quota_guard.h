@@ -22,6 +22,8 @@ namespace Genode {
 
 	struct Ram_quota
 	{
+		using Exhausted_exception = Out_of_ram;
+
 		size_t value;
 
 		static char const *name() { return "bytes"; }
@@ -31,6 +33,8 @@ namespace Genode {
 
 	struct Cap_quota
 	{
+		using Exhausted_exception = Out_of_caps;
+
 		size_t value;
 
 		static char const *name() { return "caps"; }
@@ -171,7 +175,7 @@ class Genode::Quota_guard
 
 	public:
 
-		struct Limit_exceeded : Exception { };
+		using Limit_exceeded = typename UNIT::Exhausted_exception;
 
 		Quota_guard() { }
 		Quota_guard(UNIT amount) { upgrade(amount); }
@@ -288,12 +292,8 @@ class Genode::Quota_guard
 
 
 namespace Genode {
-
 	using Ram_quota_guard = Quota_guard<Ram_quota>;
 	using Cap_quota_guard = Quota_guard<Cap_quota>;
-
-	using Out_of_ram = Ram_quota_guard::Limit_exceeded;
-	using Out_of_caps = Cap_quota_guard::Limit_exceeded;
 }
 
 #endif /* _INCLUDE__BASE__QUOTA_GUARD_H_ */

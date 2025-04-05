@@ -60,16 +60,13 @@ struct Genode::Deallocator : Interface
 
 struct Genode::Allocator : Deallocator
 {
-	/**
-	 * Exception type
-	 */
 	using Out_of_memory = Out_of_ram;
-	using Denied        = Ram_allocator::Denied;
+	using Denied        = Genode::Denied;
 
 	/**
 	 * Return type of 'try_alloc'
 	 */
-	using Alloc_error  = Ram_allocator::Alloc_error;
+	using Alloc_error  = Genode::Alloc_error;
 	using Alloc_result = Attempt<void *, Alloc_error>;
 
 	/**
