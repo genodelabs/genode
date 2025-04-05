@@ -221,26 +221,10 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 	                   / (_slab_size + sizeof(Entry) + 1)),
 	_initial_sb((Block *)initial_sb),
 	_nested(false),
-	_curr_sb((Block *)initial_sb),
 	_backing_store(backing_store)
 {
 	static_assert(sizeof(Slab::Block) <= overhead_per_block());
 	static_assert(sizeof(Slab::Entry) <= overhead_per_entry());
-
-	/* if no initial slab block was specified, try to get one */
-	if (!_curr_sb && _backing_store)
-		_new_slab_block().with_result(
-			[&] (Block *sb) { _curr_sb = sb; },
-			[&] (Alloc_error error) {
-				Allocator::throw_alloc_error(error); });
-
-	if (!_curr_sb)
-		throw Allocator::Denied();
-
-	/* init first slab block */
-	construct_at<Block>(_curr_sb, *this);
-	_total_avail = _entries_per_block;
-	_num_blocks  = 1;
 }
 
 
@@ -280,6 +264,9 @@ Slab::New_slab_block_result Slab::_new_slab_block()
 
 void Slab::_release_backing_store(Block *block)
 {
+	if (!block)
+		return;
+
 	if (block->avail() != _entries_per_block)
 		error("freeing non-empty slab block");
 
@@ -373,6 +360,24 @@ Allocator::Alloc_result Slab::try_alloc(size_t size)
 		error("requested size ", size, " is larger then slab size ",
 		      _slab_size);
 		return Alloc_error::DENIED;
+	}
+
+	/* init very first block */
+	if (!_curr_sb) {
+		Alloc_error error = Alloc_error::DENIED;
+		if (_initial_sb)
+			_curr_sb = _initial_sb;
+		else
+			_new_slab_block().with_result(
+				[&] (Block *sb) { _curr_sb = sb; },
+				[&] (Alloc_error e) { error = e; });
+
+		if (!_curr_sb)
+			return error;
+
+		construct_at<Block>(_curr_sb, *this);
+		_total_avail = _entries_per_block;
+		_num_blocks  = 1;
 	}
 
 	/*

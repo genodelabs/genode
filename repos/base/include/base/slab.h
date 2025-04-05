@@ -95,10 +95,6 @@ class Genode::Slab : public Allocator
 		 * block that is used for the first couple of allocations,
 		 * especially for the allocation of the second slab
 		 * block.
-		 * 
-		 * \throw Out_of_ram
-		 * \throw Out_of_caps
-		 * \throw Allocator::Denied  failed to obtain initial slab block
 		 */
 		Slab(size_t slab_size, size_t block_size, void *initial_sb,
 		     Allocator *backing_store = 0);
@@ -142,7 +138,6 @@ class Genode::Slab : public Allocator
 		 * \noapi
 		 */
 		Allocator *backing_store() { return _backing_store; }
-
 
 		/**
 		 * Free memory of empty slab blocks
