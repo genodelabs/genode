@@ -162,7 +162,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	_priority(priority),
 	_label(label),
 	_pd_sel(pd_sel),
-	_trace_control_slot(trace_control_area)
+	_trace_control_slot(trace_control_area.alloc())
 {
 	/* account caps required to setup vCPU */
 	Cap_quota_guard::Reservation caps(_cap_alloc, Cap_quota{CAP_RANGE});
@@ -220,7 +220,12 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 
 	_ep.manage(this);
 
-	_trace_sources.insert(&_trace_source);
+	trace_control_area.with_control(_trace_control_slot,
+		[&] (Trace::Control &control) {
+			_trace_source.construct(*this, control);
+			Trace::Source &source = *_trace_source;
+			_trace_sources.insert(&source);
+		});
 
 	caps.acknowledge();
 }
@@ -230,7 +235,10 @@ Vm_session_component::Vcpu::~Vcpu()
 {
 	_ep.dissolve(this);
 
-	_trace_sources.remove(&_trace_source);
+	if (_trace_source.constructed()) {
+		Trace::Source &source = *_trace_source;
+		_trace_sources.remove(&source);
+	}
 
 	if (_sel_sm_ec_sc != invalid_sel()) {
 		_cap_alloc.replenish(Cap_quota{CAP_RANGE});

@@ -93,18 +93,24 @@ void Cpu_thread_component::affinity(Affinity::Location location)
 
 unsigned Cpu_thread_component::trace_control_index()
 {
-	return _trace_control_slot.index;
+	return _trace_control_slot.convert<unsigned>(
+		[&] (Trace::Control_area::Slot const &slot) { return slot.index; },
+		[&] (Trace::Control_area::Error)            { return 0u; });
 }
 
 
 Dataspace_capability Cpu_thread_component::trace_buffer()
 {
-	return _trace_source.buffer();
+	if (!_trace_source.constructed())
+		return { };
+	return _trace_source->buffer();
 }
 
 
 Dataspace_capability Cpu_thread_component::trace_policy()
 {
-	return _trace_source.policy();
+	if (!_trace_source.constructed())
+		return { };
+	return _trace_source->policy();
 }
 

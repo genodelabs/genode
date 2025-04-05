@@ -24,67 +24,79 @@
 namespace Genode { namespace Trace { class Control_area; } }
 
 
-class Genode::Trace::Control_area
+struct Genode::Trace::Control_area : Noncopyable
 {
-	public:
+	enum { SIZE = 8192 };
 
-		enum { SIZE = 8192 };
+	Alloc_error error = Alloc_error::DENIED;
+	Constructible<Attached_ram_dataspace> _area { };
 
-	private:
+	bool _index_valid(unsigned const index) const {
+		return index < SIZE / sizeof(Control); }
 
-		Ram_allocator                &_ram;
-		Region_map                   &_rm;
-		Attached_ram_dataspace const  _area;
+	auto _with_control_at_index(unsigned i, auto const &fn,
+	                                        auto const &missing_fn) const
+	-> decltype(missing_fn())
+	{
+		if (!_area.constructed() || !_index_valid(i))
+			return missing_fn();
 
-		bool _index_valid(unsigned const index) const {
-			return index < SIZE / sizeof(Trace::Control); }
+		return fn(_area->local_addr<Control>()[i]);
+	}
 
-		/*
-		 * Noncopyable
-		 */
-		Control_area(Control_area const &);
-		Control_area &operator = (Control_area const &);
+	Control_area(Ram_allocator &ram, Region_map &rm)
+	{
+		try { _area.construct(ram, rm, SIZE); }
+		catch (Out_of_ram)  { error = Alloc_error::OUT_OF_RAM; }
+		catch (Out_of_caps) { error = Alloc_error::OUT_OF_CAPS; }
+		catch (...)         { }
+	}
 
-		Trace::Control * _local_base() const {
-			return _area.local_addr<Trace::Control>(); }
+	~Control_area() { }
 
-	public:
+	bool valid() const { return _area.constructed(); }
 
-		Control_area(Ram_allocator &ram, Region_map &rm)
-		:
-			_ram(ram), _rm(rm), _area(ram, rm, SIZE)
-		{ }
+	Ram::Capability dataspace() const
+	{
+		return _area.constructed() ? _area->cap() : Ram::Capability();
+	}
 
-		~Control_area() { }
+	struct Attr { unsigned index; };
 
-		Dataspace_capability dataspace() const { return _area.cap(); }
+	using Error  = Denied;
+	using Slot   = Allocation<Control_area>;
+	using Result = Slot::Attempt;
 
-		bool alloc(unsigned &index_out)
+	Result alloc()
+	{
+		auto try_alloc = [&] (Control &control)
 		{
-			for (unsigned index = 0; _index_valid(index); index++) {
-				if (!_local_base()[index].is_free()) {
-					continue;
-				}
+			if (!control.is_free())
+				return false;
+			control.alloc();
+			return true;
+		};
 
-				_local_base()[index].alloc();
-				index_out = index;
-				return true;
-			}
+		for (unsigned i = 0; _index_valid(i); i++)
+			if (_with_control_at_index(i, try_alloc, [&] { return false; }))
+				return { *this, { i } };
 
-			error("trace-control allocation failed");
-			return false;
-		}
+		return Error();
+	}
 
-		void free(unsigned index)
-		{
-			if (_index_valid(index))
-				_local_base()[index].reset();
-		}
+	void _free(Slot &slot)
+	{
+		_with_control_at_index(slot.index,
+			[&] (Control &control) { control.reset(); }, [] { });
+	}
 
-		Trace::Control *at(unsigned index)
-		{
-			return _index_valid(index) ? &(_local_base()[index]) : nullptr;
-		}
+	void with_control(Result const &slot, auto const &fn) const
+	{
+		slot.with_result(
+			[&] (Slot const &slot) {
+				_with_control_at_index(slot.index, fn, [&] { }); },
+			[&] (Error) { });
+	}
 };
 
 #endif /* _CORE__INCLUDE__TRACE__CONTROL_AREA_H_ */

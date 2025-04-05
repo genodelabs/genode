@@ -62,32 +62,8 @@ class Core::Vm_session_component
 				Session_label      const     &_label;
 				addr_t             const      _pd_sel;
 
-				struct Trace_control_slot
-				{
-					unsigned index = 0;
-					Trace::Control_area &_trace_control_area;
-
-					Trace_control_slot(Trace::Control_area &trace_control_area)
-					: _trace_control_area(trace_control_area)
-					{
-						if (!_trace_control_area.alloc(index))
-							throw Out_of_ram();
-					}
-
-					~Trace_control_slot()
-					{
-						_trace_control_area.free(index);
-					}
-
-					Trace::Control &control()
-					{
-						return *_trace_control_area.at(index);
-					}
-				};
-
-				Trace_control_slot _trace_control_slot;
-
-				Trace::Source _trace_source { *this, _trace_control_slot.control() };
+				Trace::Control_area::Result  _trace_control_slot;
+				Constructible<Trace::Source> _trace_source { };
 
 			public:
 

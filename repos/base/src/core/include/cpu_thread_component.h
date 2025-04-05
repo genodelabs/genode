@@ -69,32 +69,9 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		 */
 		Signal_context_capability _thread_sigh { };
 
-		struct Trace_control_slot
-		{
-			unsigned index = 0;
-			Trace::Control_area &trace_control_area;
+		Trace::Control_area::Result _trace_control_slot;
 
-			Trace_control_slot(Trace::Control_area &trace_control_area)
-			: trace_control_area(trace_control_area)
-			{
-				if (!trace_control_area.alloc(index))
-					throw Out_of_ram();
-			}
-
-			~Trace_control_slot()
-			{
-				trace_control_area.free(index);
-			}
-
-			Trace::Control &control()
-			{
-				return *trace_control_area.at(index);
-			}
-		};
-
-		Trace_control_slot _trace_control_slot;
-
-		Trace::Source _trace_source { *this, _trace_control_slot.control() };
+		Constructible<Trace::Source> _trace_source { };
 
 		Trace::Source_registry &_trace_sources;
 
@@ -164,7 +141,7 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 			_pd_element(pd_threads, *this),
 			_platform_thread(platform_pd, ep, cpu_ram, core_rm, quota, name.string(),
 			                 priority, location, utcb),
-			_trace_control_slot(trace_control_area),
+			_trace_control_slot(trace_control_area.alloc()),
 			_trace_sources(trace_sources),
 			_managed_thread_cap(_ep, *this),
 			_rm_client(cpu_session_cap, _managed_thread_cap.cap(),
@@ -177,12 +154,20 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 
 			_address_space_region_map.add_client(_rm_client);
 			_platform_thread.pager(_rm_client);
-			_trace_sources.insert(&_trace_source);
+			trace_control_area.with_control(_trace_control_slot,
+				[&] (Trace::Control &control) {
+					_trace_source.construct(*this, control);
+					Trace::Source &source = *_trace_source;
+					_trace_sources.insert(&source);
+				});
 		}
 
 		~Cpu_thread_component()
 		{
-			_trace_sources.remove(&_trace_source);
+			if (_trace_source.constructed()) {
+				Trace::Source &source = *_trace_source;
+				_trace_sources.remove(&source);
+			}
 			_pager_ep.dissolve(_rm_client);
 
 			_address_space_region_map.remove_client(_rm_client);
