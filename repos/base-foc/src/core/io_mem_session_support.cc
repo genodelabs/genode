@@ -41,17 +41,17 @@ Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(
 	/* find appropriate region and map it locally */
 	return platform().region_alloc().alloc_aligned(size, (unsigned)alignment).convert<Map_local_result>(
 
-		[&] (void *local_base) {
-			if (!map_local_io(base, (addr_t)local_base, size >> get_page_size_log2())) {
+		[&] (Range_allocator::Allocation &local) {
+			if (!map_local_io(base, (addr_t)local.ptr, size >> get_page_size_log2())) {
 				error("map_local_io failed ", Hex_range(base, size));
-				platform().region_alloc().free(local_base, base);
 				return Map_local_result();
 			}
-			return Map_local_result { .core_local_addr = addr_t(local_base),
+			local.deallocate = false;
+			return Map_local_result { .core_local_addr = addr_t(local.ptr),
 			                          .success         = true };
 		},
 
-		[&] (Range_allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			error("allocation of virtual memory for local I/O mapping failed");
 			return Map_local_result(); });
 }

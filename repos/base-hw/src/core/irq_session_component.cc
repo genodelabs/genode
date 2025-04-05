@@ -77,8 +77,10 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 	}
 
 	/* allocate interrupt */
-	if (_irq_alloc.alloc_addr(1, _irq_number).failed()) {
-		error("unavailable interrupt ", _irq_number, " requested");
-		throw Service_denied();
-	}
+	_irq_alloc.alloc_addr(1, _irq_number).with_result(
+		[&] (Range_allocator::Allocation &irq_number) {
+			irq_number.deallocate = false; },
+		[&] (Alloc_error) {
+			error("unavailable interrupt ", _irq_number, " requested");
+			throw Service_denied(); });
 }

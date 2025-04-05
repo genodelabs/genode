@@ -280,14 +280,21 @@ class Genode::Allocator_avl_base : public Range_allocator
 		using Range_allocator::alloc_aligned; /* import overloads */
 
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
 		Alloc_result try_alloc(size_t size) override
 		{
 			return Allocator_avl_base::alloc_aligned(size, (unsigned)log2(sizeof(addr_t)));
 		}
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
 
 		void free(void *addr, size_t) override { free(addr); }
 

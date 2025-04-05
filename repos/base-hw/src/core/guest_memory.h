@@ -72,11 +72,11 @@ class Core::Guest_memory
 		                     Attach_attr          attr,
 		                     auto const          &map_fn)
 		{
-		        /*
+			/*
 			 * unsupported - deny otherwise arbitrary physical
-		         * memory can be mapped to a VM
+			 * memory can be mapped to a VM
 			 */
-		        if (dsc.managed())
+			if (dsc.managed())
 				return Attach_result::INVALID_DS;
 
 			if (guest_phys & 0xffful || attr.offset & 0xffful ||
@@ -97,11 +97,9 @@ class Core::Guest_memory
 			    attr.offset > dsc.size() - attr.size)
 				return Attach_result::INVALID_DS;
 
-			using Alloc_error = Range_allocator::Alloc_error;
-
 			Attach_result const retval = _map.alloc_addr(attr.size, guest_phys).convert<Attach_result>(
 
-				[&] (void *) {
+				[&] (Range_allocator::Allocation &allocation) {
 
 					Rm_region::Attr const region_attr
 					{
@@ -131,6 +129,7 @@ class Core::Guest_memory
 					/* inform dataspace about attachment */
 					dsc.attached_to(region);
 
+					allocation.deallocate = false;
 					return Attach_result::OK;
 				},
 

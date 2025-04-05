@@ -176,7 +176,10 @@ class Acpi::Memory
 			}
 
 			/* allocate ACPI range as I/O memory */
-			_range.alloc_addr(loop_region.size(), loop_region.base());
+			_range.alloc_addr(loop_region.size(), loop_region.base()).with_result(
+				[&] (Range_allocator::Allocation &a) { a.deallocate = false; },
+				[&] (Alloc_error e) { raise(e); });
+
 			_range.construct_metadata((void *)loop_region.base(), _env, loop_region);
 
 			/*

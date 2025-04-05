@@ -63,13 +63,13 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 		    attribute.offset > dsc.size() - attribute.size)
 			throw Invalid_dataspace();
 
-		using Alloc_error = Range_allocator::Alloc_error;
-
 		Region_map_detach &rm_detach = *this;
+
+		using Guest_phys_allocation = Range_allocator::Allocation;
 
 		_map.alloc_addr(attribute.size, guest_phys).with_result(
 
-			[&] (void *) {
+			[&] (Guest_phys_allocation &allocation) {
 
 				Rm_region::Attr const region_attr
 				{
@@ -92,6 +92,8 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 				}
 
 				Rm_region &region = *_map.metadata((void *)guest_phys);
+
+				allocation.deallocate = false;
 
 				/* inform dataspace about attachment */
 				dsc.attached_to(region);

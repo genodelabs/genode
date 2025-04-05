@@ -41,34 +41,33 @@ struct E : C, D
 
 struct Allocator : Genode::Allocator
 {
-	Genode::Heap        heap;
-	Genode::Allocator & a { heap };
+	Genode::Heap       _heap;
+	Genode::Allocator &_a { _heap };
 
-	Allocator(Genode::Env & env) : heap(env.ram(), env.rm()) { }
+	Allocator(Genode::Env &env) : _heap(env.ram(), env.rm()) { }
 	virtual ~Allocator() { }
 
 	Genode::size_t consumed() const override {
-		return a.consumed(); }
+		return _a.consumed(); }
 
 	Genode::size_t overhead(Genode::size_t size) const override {
-		return a.overhead(size); }
+		return _a.overhead(size); }
 
 	bool need_size_for_free() const override {
-		return a.need_size_for_free(); }
+		return _a.need_size_for_free(); }
 
 	Alloc_result try_alloc(Genode::size_t size) override
 	{
-		Alloc_result const result = a.try_alloc(size);
-
 		log("Allocator::alloc()");
-
-		return result;
+		return _a.try_alloc(size);
 	}
+
+	void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 	void free(void *p, Genode::size_t size) override
 	{
 		log("Allocator::free()");
-		a.free(p, size);
+		_a.free(p, size);
 	}
 };
 

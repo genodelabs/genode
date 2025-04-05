@@ -123,7 +123,6 @@ class Core::Mapped_mem_allocator : public Core_mem_translator
 		 * \param phys_alloc  allocator of physical memory
 		 * \param virt_alloc  allocator of core-local virtual memory ranges
 		 */
-
 		Mapped_mem_allocator(Synced_mapped_allocator &phys_alloc,
 		                     Synced_mapped_allocator &virt_alloc)
 		: _phys_alloc(&phys_alloc._alloc), _virt_alloc(&virt_alloc._alloc) { }
@@ -178,12 +177,20 @@ class Core::Mapped_mem_allocator : public Core_mem_translator
 		using Range_allocator::alloc_aligned; /* import overloads */
 
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
 		Alloc_result try_alloc(size_t size) override {
 			return alloc_aligned(size, (unsigned)log2(sizeof(addr_t))); }
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
+
 		void   free(void *addr, size_t) override;
 		size_t consumed() const override { return _phys_alloc->consumed(); }
 		size_t overhead(size_t size) const override {
@@ -301,14 +308,21 @@ class Core::Core_mem_allocator : public Core_mem_translator
 		using Range_allocator::alloc_aligned; /* import overloads */
 
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
 		Alloc_result try_alloc(size_t size) override
 		{
 			return alloc_aligned(size, (unsigned)log2(sizeof(addr_t)));
 		}
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
 
 		void free(void *addr, size_t size) override
 		{

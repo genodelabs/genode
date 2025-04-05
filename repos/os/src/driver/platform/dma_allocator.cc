@@ -23,14 +23,14 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
                                       size_t const size,
                                       bool   const force_phys_addr)
 {
-	using Alloc_error = Allocator::Alloc_error;
-
 	/*
 	 * 1:1 mapping (allocate at specified range from DMA memory allocator)
 	 */
 	if (force_phys_addr || !_remapping) {
 		return _dma_alloc.alloc_addr(size, phys_addr).convert<addr_t>(
-			[&] (void *) -> addr_t { return phys_addr; },
+			[&] (Range_allocator::Allocation &a) -> addr_t {
+				a.deallocate = false;
+				return addr_t(a.ptr); },
 			[&] (Alloc_error err) -> addr_t {
 				switch (err) {
 				case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
@@ -57,7 +57,9 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 		guarded_size += 0x1000; /* 4 kB */
 
 	return _dma_alloc.alloc_aligned(guarded_size, size_align_log2).convert<addr_t>(
-		[&] (void *ptr) { return (addr_t)ptr; },
+		[&] (Range_allocator::Allocation &a) {
+			a.deallocate = false;
+			return (addr_t)a.ptr; },
 		[&] (Alloc_error err) -> addr_t {
 			switch (err) {
 			case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();

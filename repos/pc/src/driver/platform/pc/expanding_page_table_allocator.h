@@ -38,7 +38,7 @@ class Driver::Expanding_page_table_allocator
 	private:
 
 		using Alloc_result  = Allocator::Alloc_result;
-		using Alloc_error   = Allocator::Alloc_error;
+		using Alloc_error   = Genode::Alloc_error;
 
 		enum { MAX_CHUNK_SIZE = 2*1024*1024 };
 
@@ -237,7 +237,9 @@ Genode::addr_t Driver::Expanding_page_table_allocator<TABLE_SIZE>::_alloc()
 	}
 
 	return result.convert<addr_t>(
-		[&] (void * ptr)  -> addr_t { return (addr_t)ptr; },
+		[&] (Allocator::Allocation &a)  -> addr_t {
+			a.deallocate = false;
+			return (addr_t)a.ptr; },
 		[&] (Alloc_error) -> addr_t { throw Alloc_failed(); });
 }
 

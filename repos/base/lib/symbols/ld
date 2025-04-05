@@ -367,15 +367,15 @@ _ZTSN6Genode6ThreadE R 17
 _ZTSN6Genode7ConsoleE R 18
 _ZTVN5Timer10ConnectionE D 320
 _ZTVN6Genode10Vm_sessionE D 56
-_ZTVN6Genode11Sliced_heapE D 72
+_ZTVN6Genode11Sliced_heapE D 128
 _ZTVN6Genode14Rpc_entrypointE D 80
 _ZTVN6Genode14Signal_contextE D 32
 _ZTVN6Genode17Region_map_clientE D 72
 _ZTVN6Genode17Rm_session_clientE D 48
 _ZTVN6Genode17Timeout_schedulerE D 112
-_ZTVN6Genode18Allocator_avl_baseE D 128
-_ZTVN6Genode4HeapE D 72
-_ZTVN6Genode4SlabE D 72
+_ZTVN6Genode18Allocator_avl_baseE D 184
+_ZTVN6Genode4HeapE D 128
+_ZTVN6Genode4SlabE D 128
 _ZTVN6Genode5Child14Initial_threadE D 48
 _ZTVN6Genode5ChildE D 440
 _ZTVN6Genode6OutputE D 48
@@ -383,11 +383,22 @@ _ZTVN6Genode6ThreadE D 48
 _ZTVN6Genode7ConsoleE D 48
 _ZThn104_N5Timer10Connection11set_timeoutEN6Genode12MicrosecondsERNS1_15Timeout_handlerE T
 _ZThn104_N5Timer10Connection9curr_timeEv T
+_ZThn4_N6Genode11Sliced_heap9try_allocEm T
+_ZThn4_N6Genode4Heap9try_allocEm T
+_ZThn4_N6Genode4HeapD0Ev T
+_ZThn4_N6Genode4HeapD1Ev T
+_ZThn4_N6Genode4Slab9try_allocEm T
+_ZThn4_N6Genode4SlabD0Ev T
+_ZThn4_N6Genode4SlabD1Ev T
 _ZThn52_N5Timer10Connection11set_timeoutEN6Genode12MicrosecondsERNS1_15Timeout_handlerE T
 _ZThn52_N5Timer10Connection9curr_timeEv T
+_ZThn8_N6Genode11Sliced_heap9try_allocEm T
 _ZThn8_N6Genode17Timeout_scheduler14handle_timeoutENS_8DurationE T
 _ZThn8_N6Genode17Timeout_schedulerD0Ev T
 _ZThn8_N6Genode17Timeout_schedulerD1Ev T
+_ZThn8_N6Genode18Allocator_avl_base9try_allocEm T
+_ZThn8_N6Genode4Heap9try_allocEm T
+_ZThn8_N6Genode4Slab9try_allocEm T
 _ZdlPvPN6Genode11DeallocatorE T
 _ZdlPvPN6Genode9AllocatorE W
 _ZdlPvRN6Genode11DeallocatorE T

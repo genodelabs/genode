@@ -28,6 +28,8 @@ using namespace Core;
  */
 static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 {
+	using Region_allocation = Range_allocator::Allocation;
+
 	/*
 	 * Allocate range in core's virtual address space
 	 *
@@ -39,8 +41,8 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	for (; align_log2 >= get_page_size_log2(); align_log2--) {
 
 		platform().region_alloc().alloc_aligned(size, (unsigned)align_log2).with_result(
-			[&] (void *ptr) { virt_addr = ptr; },
-			[&] (Allocator::Alloc_error) { });
+			[&] (Region_allocation &a) { a.deallocate = false; virt_addr = a.ptr; },
+			[&] (Alloc_error) { });
 
 		if (virt_addr)
 			break;

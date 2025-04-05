@@ -699,10 +699,11 @@ class Genode::Packet_stream_source : private Packet_stream_base
 
 			return _packet_alloc.alloc_aligned(size, align).convert<Packet_descriptor>(
 
-				[&] (void *base) {
-					return Packet_descriptor((Genode::off_t)base, size); },
+				[&] (Range_allocator::Allocation &a) {
+					a.deallocate = false;
+					return Packet_descriptor((Genode::off_t)a.ptr, size); },
 
-				[&] (Allocator::Alloc_error) -> Packet_descriptor {
+				[&] (Alloc_error) -> Packet_descriptor {
 					throw Packet_alloc_failed(); });
 		}
 
@@ -722,10 +723,11 @@ class Genode::Packet_stream_source : private Packet_stream_base
 
 			return _packet_alloc.alloc_aligned(size, align).convert<Alloc_packet_result>(
 
-				[&] (void *base) {
-					return Packet_descriptor((Genode::off_t)base, size); },
+				[&] (Range_allocator::Allocation &a) {
+					a.deallocate = false;
+					return Packet_descriptor((Genode::off_t)a.ptr, size); },
 
-				[&] (Allocator::Alloc_error) {
+				[&] (Alloc_error) {
 					return Alloc_packet_error::FAILED; });
 		}
 

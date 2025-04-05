@@ -20,6 +20,8 @@ using namespace Core;
 Ram_dataspace_factory::Alloc_ram_result
 Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 {
+	using Range_allocation = Range_allocator::Allocation;
+
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size)
 			return Alloc_ram_error::DENIED;
@@ -35,7 +37,7 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 	 * If this does not work, we subsequently weaken the alignment constraint
 	 * until the allocation succeeds.
 	 */
-	Range_allocator::Alloc_result allocated_range = Allocator::Alloc_error::DENIED;
+	Range_allocator::Alloc_result allocated_range = Alloc_error::DENIED;
 
 	/* apply constraints */
 	if (_phys_range.start != 0 || _phys_range.end != ~0UL) {
@@ -82,35 +84,14 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 		error("out of physical memory while allocating ", ds_size, " bytes ",
 		      "in range [", Hex(_phys_range.start), "-", Hex(_phys_range.end), "]");
 
-		if (allocated_range == Allocator::Alloc_error::OUT_OF_RAM)
+		if (allocated_range == Alloc_error::OUT_OF_RAM)
 			return Alloc_ram_error::OUT_OF_RAM;
 
-		if (allocated_range == Allocator::Alloc_error::OUT_OF_CAPS)
+		if (allocated_range == Alloc_error::OUT_OF_CAPS)
 			return Alloc_ram_error::OUT_OF_CAPS;
 
 		return Alloc_ram_error::DENIED;
 	}
-
-	/*
-	 * Helper to release the allocated physical memory whenever we leave the
-	 * scope via an exception.
-	 */
-	struct Phys_alloc_guard
-	{
-		Range_allocator &phys_alloc;
-		struct { void * ds_addr = nullptr; };
-		bool keep = false;
-
-		Phys_alloc_guard(Range_allocator &phys_alloc)
-		: phys_alloc(phys_alloc) { }
-
-		~Phys_alloc_guard() { if (!keep && ds_addr) phys_alloc.free(ds_addr); }
-
-	} phys_alloc_guard(_phys_alloc);
-
-	allocated_range.with_result(
-		[&] (void *ptr) { phys_alloc_guard.ds_addr = ptr; },
-		[&] (Allocator::Alloc_error) { /* already checked above */ });
 
 	/*
 	 * For non-cached RAM dataspaces, we mark the dataspace as write
@@ -119,9 +100,12 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 	 */
 	Dataspace_component *ds_ptr = nullptr;
 	try {
-		ds_ptr = new (_ds_slab)
-			Dataspace_component(ds_size, (addr_t)phys_alloc_guard.ds_addr,
-			                    cache, true, this);
+		allocated_range.with_result(
+			[&] (Range_allocation &range) {
+				ds_ptr = new (_ds_slab)
+					Dataspace_component(ds_size, (addr_t)range.ptr,
+					                    cache, true, this); },
+			[] (Alloc_error) { });
 	}
 	catch (Out_of_ram)  { return Alloc_ram_error::OUT_OF_RAM; }
 	catch (Out_of_caps) { return Alloc_ram_error::OUT_OF_CAPS; }
@@ -148,7 +132,9 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 
 	Dataspace_capability ds_cap = _ep.manage(&ds);
 
-	phys_alloc_guard.keep = true;
+	allocated_range.with_result(
+		[&] (Range_allocation &a) { a.deallocate = false; },
+		[]  (Alloc_error) { });
 
 	return static_cap_cast<Ram_dataspace>(ds_cap);
 }

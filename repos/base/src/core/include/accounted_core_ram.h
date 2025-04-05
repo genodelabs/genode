@@ -1,6 +1,5 @@
 /*
- * \brief  Quota-bounds-checking implementation of the 'Ram_allocator'
- *         interface specifically for core
+ * \brief  Quota-bounds-checking implementation of the 'Allocator' for core
  * \author Norman Feske
  * \date   2017-05-02
  */
@@ -63,15 +62,18 @@ class Core::Accounted_core_ram : public Allocator
 
 			return _core_mem.try_alloc(page_aligned_size).convert<Alloc_result>(
 
-				[&] (void *ptr) {
+				[&] (Allocation &a) -> Alloc_result {
+					a.deallocate = false;
 					ram.acknowledge();
 					caps.acknowledge();
 					core_mem_allocated += page_aligned_size;
-					return ptr; },
+					return { *this, { a.ptr, page_aligned_size } }; },
 
 				[&] (Alloc_error error) {
 					return error; });
 		}
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 		void free(void *ptr, size_t const size) override
 		{

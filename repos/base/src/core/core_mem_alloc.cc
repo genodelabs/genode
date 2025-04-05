@@ -42,28 +42,27 @@ Mapped_mem_allocator::alloc_aligned(size_t size, unsigned align, Range range)
 	return _phys_alloc->alloc_aligned(page_rounded_size, align, range)
 	                   .convert<Alloc_result>(
 
-		[&] (void *phys_addr) -> Alloc_result {
+		[&] (Allocation &phys) -> Alloc_result {
 
 			/* allocate range in core's virtual address space */
 			return _virt_alloc->alloc_aligned(page_rounded_size, align)
 			                   .convert<Alloc_result>(
 
-				[&] (void *virt_addr) {
+				[&] (Allocation &virt) -> Alloc_result {
 
-					_phys_alloc->metadata(phys_addr, { virt_addr });
-					_virt_alloc->metadata(virt_addr, { phys_addr });
+					_phys_alloc->metadata(phys.ptr, { virt.ptr });
+					_virt_alloc->metadata(virt.ptr, { phys.ptr });
 
 					/* make physical page accessible at the designated virtual address */
-					_map_local((addr_t)virt_addr, (addr_t)phys_addr, page_rounded_size);
+					_map_local((addr_t)virt.ptr, (addr_t)phys.ptr, page_rounded_size);
 
-					return virt_addr;
+					phys.deallocate = false;
+					virt.deallocate = false;
+					return { *this, { virt.ptr, page_rounded_size } };
 				},
 				[&] (Alloc_error e) {
 					error("Could not allocate virtual address range in core of size ",
 					      page_rounded_size, " (error ", (int)e, ")");
-
-					/* revert physical allocation */
-					_phys_alloc->free(phys_addr);
 					return e;
 				});
 		},

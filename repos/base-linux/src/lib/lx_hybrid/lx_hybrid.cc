@@ -430,7 +430,10 @@ namespace {
 	{
 		using size_t = Genode::size_t;
 
-		Alloc_result try_alloc(size_t size) override { return malloc(size); }
+		Alloc_result try_alloc(size_t size) override {
+			return { *this, { malloc(size), size } }; }
+
+		void _free(Allocation &a) override { ::free(a.ptr); }
 
 		void free(void *addr, size_t) override { ::free(addr); }
 

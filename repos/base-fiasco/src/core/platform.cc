@@ -444,11 +444,11 @@ Core::Platform::Platform()
 		size_t const size = 1 << get_page_size_log2();
 		ram_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
 
-			[&] (void *phys_ptr) {
+			[&] (Range_allocator::Allocation &phys) {
 
 				/* core-local memory is one-to-one mapped physical RAM */
-				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-				void * const core_local_ptr = phys_ptr;
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
+				void * const core_local_ptr = phys.ptr;
 
 				region_alloc().remove_range((addr_t)core_local_ptr, size);
 				memset(core_local_ptr, 0, size);
@@ -456,8 +456,10 @@ Core::Platform::Platform()
 
 				new (core_mem_alloc())
 					Rom_module(_rom_fs, rom_name, phys_addr, size);
+
+				phys.deallocate = false;
 			},
-			[&] (Range_allocator::Alloc_error) {
+			[&] (Alloc_error) {
 				warning("failed to export ", rom_name, " as ROM module"); }
 		);
 	};

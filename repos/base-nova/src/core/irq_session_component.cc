@@ -64,14 +64,16 @@ static void deassociate(addr_t irq_sel)
 static bool associate_msi(addr_t irq_sel, addr_t phys_mem, addr_t &msi_addr,
                           addr_t &msi_data, Signal_context_capability sig_cap)
 {
+	using Virt_allocation = Range_allocator::Allocation;
+
 	if (!phys_mem)
 		return irq_ctrl(irq_sel, msi_addr, msi_data, sig_cap.local_name(), Nova::Gsi_flags(), 0);
 
 	return platform().region_alloc().alloc_aligned(4096, 12).convert<bool>(
 
-		[&] (void *virt_ptr) {
+		[&] (Virt_allocation &virt) {
 
-			addr_t const virt_addr = reinterpret_cast<addr_t>(virt_ptr);
+			addr_t const virt_addr = reinterpret_cast<addr_t>(virt.ptr);
 
 			using Nova::Rights;
 			using Nova::Utcb;
@@ -81,20 +83,17 @@ static bool associate_msi(addr_t irq_sel, addr_t phys_mem, addr_t &msi_addr,
 
 			Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 
-			if (map_local_phys_to_virt(utcb, phys_crd, virt_crd, platform_specific().core_pd_sel())) {
-				platform().region_alloc().free(virt_ptr, 4096);
+			if (map_local_phys_to_virt(utcb, phys_crd, virt_crd, platform_specific().core_pd_sel()))
 				return false;
-			}
 
 			/* try to assign MSI to device */
 			bool res = irq_ctrl(irq_sel, msi_addr, msi_data, sig_cap.local_name(), Nova::Gsi_flags(), virt_addr);
 
 			unmap_local(Nova::Mem_crd(virt_addr >> 12, 0, Rights(true, true, true)));
-			platform().region_alloc().free(virt_ptr, 4096);
 
 			return res;
 		},
-		[&] (Range_allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			return false;
 		});
 }
@@ -231,10 +230,11 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 			throw Service_denied();
 	}
 
-	if (irq_alloc.alloc_addr(1, irq_number).failed()) {
-		error("unavailable IRQ ", irq_number, " requested");
-		throw Service_denied();
-	}
+	irq_alloc.alloc_addr(1, irq_number).with_result(
+		[&] (Allocator::Allocation &a) { a.deallocate = false; },
+		[&] (Alloc_error) {
+			error("unavailable IRQ ", irq_number, " requested");
+			throw Service_denied(); });
 
 	_irq_number = (unsigned)irq_number;
 

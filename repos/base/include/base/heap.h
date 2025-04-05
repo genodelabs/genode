@@ -155,12 +155,19 @@ class Genode::Heap : public Allocator
 				fn(ds->local_addr, ds->size);
 		}
 
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		Alloc_result try_alloc(size_t) override;
 
-		Alloc_result try_alloc(size_t)           override;
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
+
 		void         free(void *, size_t)        override;
 		size_t       consumed()            const override { return _quota_used; }
 		size_t       overhead(size_t size) const override { return _alloc->overhead(size); }
@@ -211,11 +218,19 @@ class Genode::Sliced_heap : public Allocator
 		~Sliced_heap();
 
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
-		Alloc_result try_alloc(size_t)     override;
+		Alloc_result try_alloc(size_t size) override;
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
+
 		void         free(void *, size_t)        override;
 		size_t       consumed()            const override { return _consumed; }
 		size_t       overhead(size_t size) const override;

@@ -107,10 +107,12 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 {
 	Irq_args const irq_args(args);
 
-	if (irq_alloc.alloc_addr(1, _irq_number).failed()) {
-		error("unavailable IRQ ", _irq_number, " requested");
-		throw Service_denied();
-	}
+	_irq_alloc.alloc_addr(1, _irq_number).with_result(
+		[&] (Range_allocator::Allocation &irq_number) {
+			irq_number.deallocate = false; },
+		[&] (Alloc_error) {
+			error("unavailable interrupt ", _irq_number, " requested");
+			throw Service_denied(); });
 
 	if (!_irq_object.associate(irq_args)) {
 		error("could not associate with IRQ ", irq_args.irq_number());

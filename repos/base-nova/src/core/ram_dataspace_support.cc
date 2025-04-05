@@ -31,6 +31,8 @@ void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &) { }
 
 static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 {
+	using Region_allocation = Range_allocator::Allocation;
+
 	/*
 	 * Allocate range in core's virtual address space
 	 *
@@ -42,8 +44,8 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	for (; align_log2 >= get_page_size_log2(); align_log2--) {
 
 		platform().region_alloc().alloc_aligned(size, (unsigned)align_log2).with_result(
-			[&] (void *ptr) { virt_addr = ptr; },
-			[&] (Range_allocator::Alloc_error) { /* try next iteration */ }
+			[&] (Region_allocation &a) { a.deallocate = false; virt_addr = a.ptr; },
+			[&] (Alloc_error) { /* try next iteration */ }
 		);
 		if (virt_addr)
 			return virt_addr;

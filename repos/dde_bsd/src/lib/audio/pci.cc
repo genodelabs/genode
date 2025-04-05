@@ -227,8 +227,10 @@ class Pci_driver
 			using namespace Genode;
 
 			return _alloc.alloc_aligned(size, align).convert<Genode::addr_t>(
-				[&] (void *ptr)                  { return (addr_t)ptr; },
-				[&] (Allocator_avl::Alloc_error) { return 0UL; });
+				[&] (Range_allocator::Allocation &a) {
+					a.deallocate = false;
+					return (addr_t)a.ptr; },
+				[&] (Alloc_error) { return 0UL; });
 		}
 
 		void free(Genode::addr_t virt, Genode::size_t size) {

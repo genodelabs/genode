@@ -69,9 +69,19 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 	                        (req_base == 0xfd6e0000ull && req_size == 4096);
 
 	/* allocate region */
-	if (!skip_iomem_check && _io_mem_alloc.alloc_addr(req_size, req_base).failed()) {
-		error("I/O memory ", Hex_range<addr_t>(req_base, req_size), " not available");
-		return Dataspace_attr();
+	if (!skip_iomem_check) {
+
+		bool const ok = _io_mem_alloc.alloc_addr(req_size, req_base).convert<bool>(
+
+			[&] (Range_allocator::Allocation &io_mem) {
+				io_mem.deallocate = false; return true; },
+
+			[&] (Alloc_error) { return false; });
+
+		if (!ok) {
+			error("I/O memory ", Hex_range<addr_t>(req_base, req_size), " not available");
+			return Dataspace_attr();
+		}
 	}
 
 	/* request local mapping */

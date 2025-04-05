@@ -35,15 +35,16 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 
 		/* allocate range in core's virtual address space */
 		return platform().region_alloc().try_alloc(page_rounded_size).convert<Attach_result>(
-			[&] (void *virt_ptr) {
+			[&] (Range_allocator::Allocation &virt) {
 
 				/* map the dataspace's physical pages to core-local virtual addresses */
 				size_t num_pages = page_rounded_size >> get_page_size_log2();
-				map_local(ds->phys_addr(), (addr_t)virt_ptr, num_pages);
+				map_local(ds->phys_addr(), (addr_t)virt.ptr, num_pages);
 
-				return Range { .start = addr_t(virt_ptr), .num_bytes = page_rounded_size };
+				virt.deallocate = false;
+				return Range { .start = addr_t(virt.ptr), .num_bytes = page_rounded_size };
 			},
-			[&] (Range_allocator::Alloc_error) -> Attach_result {
+			[&] (Alloc_error) -> Attach_result {
 				error("could not allocate virtual address range in core of size ",
 				      page_rounded_size);
 				return Attach_error::REGION_CONFLICT;

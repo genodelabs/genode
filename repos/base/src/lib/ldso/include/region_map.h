@@ -84,6 +84,7 @@ class Linker::Region_map
 		using Alloc_region_result = Attempt<addr_t, Alloc_region_error>;
 		using Attach_result       = Genode::Region_map::Attach_result;
 		using Attr                = Genode::Region_map::Attr;
+		using Range_allocation    = Range_allocator::Allocation;
 
 		/**
 		 * Allocate region anywhere within the region map
@@ -91,8 +92,11 @@ class Linker::Region_map
 		Alloc_region_result alloc_region(size_t size)
 		{
 			return _range.alloc_aligned(size, get_page_size_log2()).convert<Alloc_region_result>(
-				[&] (void *ptr)                { return (addr_t)ptr; },
-				[&] (Allocator::Alloc_error e) { return e; });
+				[&] (Range_allocation &a)                {
+					a.deallocate = false;
+					return (addr_t)a.ptr;
+				},
+				[&] (Alloc_error e) { return e; });
 		}
 
 		/**
@@ -101,8 +105,11 @@ class Linker::Region_map
 		Alloc_region_result alloc_region_at(size_t size, addr_t vaddr)
 		{
 			return _range.alloc_addr(size, vaddr).convert<Alloc_region_result>(
-				[&] (void *ptr)                { return (addr_t)ptr; },
-				[&] (Allocator::Alloc_error e) { return e; });
+				[&] (Range_allocation &a) {
+					a.deallocate = false;
+					return (addr_t)a.ptr;
+				},
+				[&] (Alloc_error e) { return e; });
 		}
 
 		Alloc_region_result alloc_region_at_end(size_t size)

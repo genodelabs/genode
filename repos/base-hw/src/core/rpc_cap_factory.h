@@ -86,10 +86,10 @@ class Core::Rpc_cap_factory
 
 			return _slab.try_alloc(sizeof(Kobject)).convert<Native_capability>(
 
-				[&] (void *ptr) {
+				[&] (Memory::Allocation &a) {
 
 					/* create kernel object */
-					Kobject &obj = *construct_at<Kobject>(ptr, ep);
+					Kobject &obj = *construct_at<Kobject>(a.ptr, ep);
 
 					if (!obj.cap.valid()) {
 						raw("Invalid entrypoint ", (addr_t)Capability_space::capid(ep),
@@ -100,9 +100,10 @@ class Core::Rpc_cap_factory
 
 					/* store it in the list and return result */
 					_list.insert(&obj);
+					a.deallocate = false;
 					return obj.cap;
 				},
-				[&] (Allocator::Alloc_error) -> Native_capability {
+				[&] (Alloc_error) -> Native_capability {
 					/* XXX distinguish error conditions */
 					throw Allocator::Out_of_memory();
 				});

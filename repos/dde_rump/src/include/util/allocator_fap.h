@@ -103,7 +103,7 @@ namespace Allocator {
 				_ds_cap[_index] =  Rump::env().env().ram().try_alloc(BLOCK_SIZE, _cache)
 					.template convert<Ram_dataspace_capability>(
 						[&] (Ram::Allocation &a) { a.deallocate = false; return a.cap; },
-						[&] (Allocator::Alloc_error) { return Ram_dataspace_capability(); }
+						[&] (Alloc_error) { return Ram_dataspace_capability(); }
 					);
 
 				if (!_ds_cap[_index].valid()) {
@@ -147,27 +147,34 @@ namespace Allocator {
 				_range(&Rump::env().heap())
 			{ }
 
-			/**
-			 * Allocate
-			 */
 			Alloc_result try_alloc(size_t size) override
 			{
-				Alloc_result result = _range.try_alloc(size);
-				if (result.ok())
-					return result;
+				return _range.try_alloc(size).convert<Alloc_result>(
+					[&] (Allocation &a) -> Alloc_result {
+						a.deallocate = false;
+						return { *this, a };
+					},
+					[&] (Alloc_error) -> Alloc_result {
+						if (!_alloc_block())
+							return Alloc_error::DENIED;
 
-				if (!_alloc_block())
-					return Alloc_error::DENIED;
-
-				return _range.try_alloc(size);
+						return _range.try_alloc(size).convert<Alloc_result>(
+							[&] (Allocation &a) -> Alloc_result {
+								a.deallocate = false;
+								return { *this, a };
+							},
+							[&] (Alloc_error e) { return e; });
+					});
 			}
+
+			void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 			void *alloc_aligned(size_t size, unsigned align = 0)
 			{
 				Alloc_result result = _range.alloc_aligned(size, align);
 				if (result.ok())
 					return result.convert<void *>(
-						[&] (void *ptr) { return ptr; },
+						[&] (Allocation &a) { a.deallocate = false; return a.ptr; },
 						[&] (Alloc_error) -> void * { return nullptr; });
 
 				if (!_alloc_block())
@@ -175,8 +182,9 @@ namespace Allocator {
 
 				return _range.alloc_aligned(size, align).convert<void *>(
 
-					[&] (void *ptr) {
-						return ptr; },
+					[&] (Allocation &a) {
+						a.deallocate = false;
+						return a.ptr; },
 
 					[&] (Alloc_error e) -> void * {
 						error("backend allocator: Unable to allocate memory "

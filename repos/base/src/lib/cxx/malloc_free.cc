@@ -80,10 +80,9 @@ extern "C" void *malloc(size_t size)
 
 	void *addr = nullptr;
 	cxx_heap().try_alloc(real_size).with_result(
-		[&] (void *ptr) { addr = ptr; },
-		[&] (Allocator::Alloc_error error) {
-			Genode::error(__func__,
-			              ": cxx_heap allocation failed with error ", (int)error); });
+		[&] (Memory::Allocation &a) { a.deallocate = false; addr = a.ptr; },
+		[&] (Alloc_error e) {
+			Genode::error(__func__, ": cxx_heap allocation failed with ", e); });
 	if (!addr)
 		return nullptr;
 

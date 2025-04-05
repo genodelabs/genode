@@ -203,10 +203,12 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 		}
 		msi_alloc().set(_irq_number, 1);
 	} else {
-		if (irq_alloc.alloc_addr(1, _irq_number).failed()) {
-			error("unavailable IRQ ", _irq_number, " requested");
-			throw Service_denied();
-		}
+		irq_alloc.alloc_addr(1, _irq_number).with_result(
+			[&] (Range_allocator::Allocation &irq_number) {
+				irq_number.deallocate = false; },
+			[&] (Alloc_error) {
+				error("unavailable interrupt ", _irq_number, " requested");
+				throw Service_denied(); });
 	}
 
 	if (_irq_object.associate(_irq_number, msi, irq_args.trigger(),

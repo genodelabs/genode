@@ -177,10 +177,9 @@ extern "C" void *__emutls_get_address(void *obj)
 		void *address = nullptr;
 
 		cxx_heap().try_alloc(emutls_object->size).with_result(
-			[&] (void *ptr) { address = ptr; },
-			[&] (Allocator::Alloc_error e) {
-				error(__func__,
-				      ": could not allocate thread-local variable, error ", (int)e); });
+			[&] (Memory::Allocation &a) { a.deallocate = false; address = a.ptr; },
+			[&] (Alloc_error e) {
+				error(__func__, ": could not allocate thread-local variable, ", e); });
 		if (!address)
 			return nullptr;
 

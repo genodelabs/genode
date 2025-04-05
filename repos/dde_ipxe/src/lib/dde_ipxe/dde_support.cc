@@ -321,9 +321,10 @@ extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align,
 {
 	return allocator().alloc_aligned(size, Genode::log2(align)).convert<void *>(
 
-		[&] (void *ptr) { return ptr; },
+		[&] (Genode::Allocator::Allocation &a) {
+			a.deallocate = false; return a.ptr; },
 
-		[&] (Genode::Range_allocator::Alloc_error) -> void * {
+		[&] (Genode::Alloc_error) -> void * {
 			Genode::error("memory allocation failed in alloc_memblock ("
 			              "size=",   size, " "
 			              "align=",  Genode::Hex(align), " "
@@ -467,20 +468,31 @@ struct Slab_backend_alloc : public Genode::Allocator,
 	Genode::addr_t start() const { return _base; }
 	Genode::addr_t end()   const { return _base + VM_SIZE - 1; }
 
-	/*************************
-	 ** Allocator interface **
-	 *************************/
+
+	/*********************************
+	 ** Memory::Allocator interface **
+	 *********************************/
 
 	Alloc_result try_alloc(Genode::size_t size) override
 	{
-		Alloc_result result = _range.try_alloc(size);
-		if (result.ok())
-			return result;
-
-		return _extend_one_block().convert<Alloc_result>(
-			[&] (Ok)            { return _range.try_alloc(size); },
-			[&] (Alloc_error e) { return e; });
+		return _range.try_alloc(size).convert<Alloc_result>(
+			[&] (Allocation &a) -> Alloc_result {
+				a.deallocate = false;
+				return { *this, a };
+			},
+			[&] (Alloc_error) {
+				return _extend_one_block().convert<Alloc_result>(
+					[&] (Ok)            { return _range.try_alloc(size); },
+					[&] (Alloc_error e) { return e; });
+			});
 	}
+
+	void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
+
+
+	/*************************
+	 ** Allocator interface **
+	 *************************/
 
 	void           free(void *addr, Genode::size_t size) { _range.free(addr, size); }
 	Genode::size_t overhead(Genode::size_t size) const   { return 0; }
@@ -511,7 +523,8 @@ class Slab_alloc : public Genode::Slab
 		Genode::addr_t alloc()
 		{
 			return Slab::try_alloc(_object_size).convert<Genode::addr_t>(
-				[&] (void *ptr) { return (Genode::addr_t)ptr; },
+				[&] (Allocator::Allocation &a) {
+					a.deallocate = false; return (Genode::addr_t)a.ptr; },
 				[&] (Alloc_error) -> Genode::addr_t { return 0; });
 		}
 

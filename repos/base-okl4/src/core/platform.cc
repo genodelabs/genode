@@ -184,32 +184,31 @@ Core::Platform::Platform()
 
 	/* core log as ROM module */
 	{
-		unsigned const pages  = 1;
-		size_t const log_size = pages << get_page_size_log2();
-		unsigned const align  = get_page_size_log2();
+		unsigned const pages    = 1;
+		size_t   const log_size = pages << get_page_size_log2();
+		unsigned const align    = get_page_size_log2();
 
 		ram_alloc().alloc_aligned(log_size, align).with_result(
 
-			[&] (void *phys) {
-				addr_t const phys_addr = reinterpret_cast<addr_t>(phys);
+			[&] (Range_allocator::Allocation &phys) {
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 
 				region_alloc().alloc_aligned(log_size, align). with_result(
+					[&] (Range_allocator::Allocation &virt) {
 
-					[&] (void *ptr) {
-
-						map_local(phys_addr, (addr_t)ptr, pages);
-						memset(ptr, 0, log_size);
+						map_local(phys_addr, (addr_t)virt.ptr, pages);
+						memset(virt.ptr, 0, log_size);
 
 						new (core_mem_alloc())
 							Rom_module(_rom_fs, "core_log", phys_addr, log_size);
 
-						init_core_log(Core_log_range { (addr_t)ptr, log_size } );
+						init_core_log(Core_log_range { (addr_t)virt.ptr, log_size } );
+
+						phys.deallocate = virt.deallocate = false;
 					},
-					[&] (Range_allocator::Alloc_error) { }
-				);
+					[&] (Alloc_error) { });
 			},
-			[&] (Range_allocator::Alloc_error) { }
-		);
+			[&] (Alloc_error) { });
 	}
 
 	/* export platform-specific infos */
@@ -219,14 +218,14 @@ Core::Platform::Platform()
 
 		ram_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
 
-			[&] (void *phys_ptr) {
-				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+			[&] (Range_allocator::Allocation &phys) {
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 
 				/* let one page free after the log buffer */
 				region_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
 
-					[&] (void *core_local_ptr) {
-						addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+					[&] (Range_allocator::Allocation &core_local) {
+						addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local.ptr);
 
 						if (map_local(phys_addr, core_local_addr, pages)) {
 
@@ -237,13 +236,13 @@ Core::Platform::Platform()
 
 							new (core_mem_alloc())
 								Rom_module(_rom_fs, "platform_info", phys_addr, size);
+
+							phys.deallocate = core_local.deallocate = false;
 						}
 					},
-					[&] (Range_allocator::Alloc_error) { }
-				);
+					[&] (Alloc_error) { });
 			},
-			[&] (Range_allocator::Alloc_error) { }
-		);
+			[&] (Alloc_error) { });
 	}
 }
 

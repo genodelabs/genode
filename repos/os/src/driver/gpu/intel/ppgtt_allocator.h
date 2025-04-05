@@ -63,8 +63,17 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 
 		Alloc_result try_alloc(size_t size) override
 		{
-			Alloc_result result = _range.alloc_aligned(size, 12);
-			if (result.ok()) return result;
+			return _range.alloc_aligned(size, 12).convert<Alloc_result>(
+				[&] (Allocation &a) -> Alloc_result {
+					a.deallocate = false;
+					return { *this, a }; },
+				[&] (Genode::Alloc_error) {
+					return _grow_and_alloc(size); });
+		}
+
+		Alloc_result _grow_and_alloc(size_t size)
+		{
+			using Alloc_error = Genode::Alloc_error;
 
 			Genode::Ram_dataspace_capability ds { };
 
@@ -116,6 +125,8 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 				}
 			);
 		}
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 		void free(void *addr, size_t size) override
 		{

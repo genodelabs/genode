@@ -83,8 +83,9 @@ extern "C" {
 	void *genode_malloc(unsigned long size)
 	{
 		return Lwip::_heap->try_alloc(size).convert<void *>(
-			[&] (void *ptr) { return ptr; },
-			[&] (Genode::Allocator::Alloc_error) -> void * { return nullptr; });
+			[&] (Genode::Allocator::Allocation &a) {
+				a.deallocate = false; return a.ptr; },
+			[&] (Genode::Alloc_error) -> void * { return nullptr; });
 	}
 
 	void *genode_calloc(unsigned long number, unsigned long size)

@@ -183,12 +183,12 @@ index 0000000..78ee830
 +
 +	return heap().try_alloc(size).convert<void *>(
 +
-+		[&] (void *ptr) {
++		[&] (Genode::Range_allocator::Allocation &a) {
 +			IncreaseTotalMmap(size);
-+			return ptr;
++			a.deallocate = false; return a.ptr;
 +		},
 +
-+		[&] (Genode::Allocator::Alloc_error) -> void * {
++		[&] (Genode::Alloc_error) -> void * {
 +			ReportMmapFailureAndDie(size, mem_type, "allocate", 0, raw_report);
 +			return nullptr;
 +		}

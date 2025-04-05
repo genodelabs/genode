@@ -58,12 +58,13 @@ static addr_t _alloc_core_local_utcb(addr_t core_addr)
 	 */
 	return platform().ram_alloc().try_alloc(sizeof(Native_utcb)).convert<addr_t>(
 
-		[&] (void *utcb_phys) {
-			map_local((addr_t)utcb_phys, core_addr,
+		[&] (Range_allocator::Allocation &utcb_phys) {
+			map_local((addr_t)utcb_phys.ptr, core_addr,
 			          sizeof(Native_utcb) / get_page_size());
-			return addr_t(utcb_phys);
+			utcb_phys.deallocate = false;
+			return addr_t(utcb_phys.ptr);
 		},
-		[&] (Range_allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			error("failed to allocate UTCB for core/kernel thread!");
 			return 0ul;
 		});

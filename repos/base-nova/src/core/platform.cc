@@ -77,23 +77,28 @@ extern unsigned _prog_img_beg, _prog_img_end;
 addr_t Core::Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
                                   bool guard_page)
 {
+	using Region_allocation = Range_allocator::Allocation;
+
 	addr_t const size = pages << get_page_size_log2();
 
 	/* try to reserve contiguous virtual area */
 	return region_alloc().alloc_aligned(size + (guard_page ? get_page_size() : 0),
 	                                    get_page_size_log2()).convert<addr_t>(
-		[&] (void *core_local_ptr) {
+		[&] (Region_allocation &core_local) {
 
-			addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+			addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local.ptr);
 
 			int res = map_local(_core_pd_sel, *__main_thread_utcb, phys_addr,
 			                    core_local_addr, pages,
 			                    Nova::Rights(true, true, false), true);
+			if (res)
+				return 0UL;
 
-			return res ? 0 : core_local_addr;
+			core_local.deallocate = false;
+			return core_local_addr;
 		},
 
-		[&] (Allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			return 0UL; });
 }
 
@@ -619,17 +624,18 @@ Core::Platform::Platform()
 
 	auto export_pages_as_rom_module = [&] (auto rom_name, size_t pages, auto content_fn)
 	{
+		using Phys_allocation = Range_allocator::Allocation;
+
 		size_t const bytes = pages << get_page_size_log2();
 		ram_alloc().alloc_aligned(bytes, get_page_size_log2()).with_result(
 
-			[&] (void *phys_ptr) {
+			[&] (Phys_allocation &phys) {
 
-				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 				char * const core_local_ptr = (char *)_map_pages(phys_addr, pages);
 
 				if (!core_local_ptr) {
 					warning("failed to export ", rom_name, " as ROM module");
-					ram_alloc().free(phys_ptr, bytes);
 					return;
 				}
 
@@ -639,10 +645,12 @@ Core::Platform::Platform()
 				new (core_mem_alloc())
 					Rom_module(_rom_fs, rom_name, phys_addr, bytes);
 
+				phys.deallocate = false;
+
 				/* leave the ROM backing store mapped within core */
 			},
 
-			[&] (Range_allocator::Alloc_error) {
+			[&] (Alloc_error) {
 				warning("failed to allocate physical memory for exporting ",
 				        rom_name, " as ROM module"); });
 	};
@@ -811,29 +819,29 @@ Core::Platform::Platform()
 	unsigned index = first_index;
 	for (unsigned i = 0; i < 32; i++)
 	{
-		void * phys_ptr = nullptr;
+		using Phys_allocation = Range_allocator::Allocation;
 
-		ram_alloc().alloc_aligned(get_page_size(), get_page_size_log2()).with_result(
-			[&] (void *ptr) { phys_ptr = ptr; },
-			[&] (Range_allocator::Alloc_error) { /* covered by nullptr test below */ });
+		bool ok = ram_alloc().alloc_aligned(get_page_size(),
+		                                    get_page_size_log2()).convert<bool>(
+			[&] (Phys_allocation &phys) {
+				addr_t phys_addr = reinterpret_cast<addr_t>(phys.ptr);
+				addr_t core_local_addr = _map_pages(phys_addr, 1);
 
-		if (phys_ptr == nullptr)
+				if (!core_local_addr)
+					return false;
+
+				Cap_range &range = *reinterpret_cast<Cap_range *>(core_local_addr);
+				construct_at<Cap_range>(&range, index);
+
+				cap_map().insert(range);
+				index = (unsigned)(range.base() + range.elements());
+				phys.deallocate = false;
+				return true;
+			},
+			[&] (Alloc_error) { log("Alloc_error"); return false; });
+
+		if (!ok)
 			break;
-
-		addr_t phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-		addr_t core_local_addr = _map_pages(phys_addr, 1);
-
-		if (!core_local_addr) {
-			ram_alloc().free(phys_ptr);
-			break;
-		}
-
-		Cap_range &range = *reinterpret_cast<Cap_range *>(core_local_addr);
-		construct_at<Cap_range>(&range, index);
-
-		cap_map().insert(range);
-
-		index = (unsigned)(range.base() + range.elements());
 	}
 	_max_caps = index - first_index;
 

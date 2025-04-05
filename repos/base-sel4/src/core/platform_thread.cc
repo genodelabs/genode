@@ -105,29 +105,24 @@ static void prepopulate_ipc_buffer(Ipc_buffer_phys const ipc_buffer_phys,
 	/* allocate range in core's virtual address space */
 	platform().region_alloc().try_alloc(page_rounded_size).with_result(
 
-		[&] (void *virt_ptr) {
+		[&] (Range_allocator::Allocation &virt) {
 
 			/* map the IPC buffer to core-local virtual addresses */
-			map_local(ipc_buffer_phys.addr, (addr_t)virt_ptr, 1);
+			map_local(ipc_buffer_phys.addr, (addr_t)virt.ptr, 1);
 
 			/* populate IPC buffer with thread information */
-			Native_utcb &utcb = *(Native_utcb *)virt_ptr;
+			Native_utcb &utcb = *(Native_utcb *)virt.ptr;
 			utcb.ep_sel  (ep_sel  .value());
 			utcb.lock_sel(lock_sel.value());
 			utcb.ipcbuffer(utcb_virt);
 
 			/* unmap IPC buffer from core */
-			if (!unmap_local((addr_t)virt_ptr, 1)) {
+			if (!unmap_local((addr_t)virt.ptr, 1))
 				error("could not unmap core virtual address ",
-				      virt_ptr, " in ", __PRETTY_FUNCTION__);
-				return;
-			}
-
-			/* free core's virtual address space */
-			platform().region_alloc().free(virt_ptr, page_rounded_size);
+				      virt.ptr, " in ", __PRETTY_FUNCTION__);
 		},
 
-		[&] (Range_allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			error("could not allocate virtual address range in core of size ",
 			      page_rounded_size);
 		}

@@ -51,12 +51,19 @@ class Genode::Synced_allocator : public Allocator
 		Guard operator () () const { return _synced_object(); }
 
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
 		Alloc_result try_alloc(size_t size) override {
 			return _synced_object()->try_alloc(size); }
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
 
 		void free(void *addr, size_t size) override {
 			_synced_object()->free(addr, size); }

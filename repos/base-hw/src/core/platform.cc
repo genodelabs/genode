@@ -116,41 +116,26 @@ void Platform::_init_platform_info()
 	size_t   const  rom_size = pages << get_page_size_log2();
 	const char     *rom_name = "platform_info";
 
-	struct Guard
-	{
-		Range_allocator &phys_alloc;
-		Range_allocator &virt_alloc;
+	Range_allocator::Result phys = ram_alloc().try_alloc(get_page_size());
+	Range_allocator::Result virt = region_alloc().try_alloc(rom_size);
 
-		struct {
-			void *phys_ptr = nullptr;
-			void *virt_ptr = nullptr;
-		};
+	if (phys.failed())
+		error("could not setup platform_info ROM - RAM allocation error");
+	if (virt.failed())
+		error("could not setup platform_info ROM - region allocation error");
 
-		Guard(Range_allocator &phys_alloc, Range_allocator &virt_alloc)
-		: phys_alloc(phys_alloc), virt_alloc(virt_alloc) { }
-
-		~Guard()
-		{
-			if (phys_ptr) phys_alloc.free(phys_ptr);
-			if (virt_ptr) virt_alloc.free(phys_ptr);
-		}
-	} guard { ram_alloc(), region_alloc() };
-
-	ram_alloc().try_alloc(get_page_size()).with_result(
-		[&] (void *ptr) { guard.phys_ptr = ptr; },
-		[&] (Allocator::Alloc_error) {
-			error("could not setup platform_info ROM - RAM allocation error"); });
-
-	region_alloc().try_alloc(rom_size).with_result(
-		[&] (void *ptr) { guard.virt_ptr = ptr; },
-		[&] (Allocator::Alloc_error) {
-			error("could not setup platform_info ROM - region allocation error"); });
-
-	if (!guard.phys_ptr || !guard.virt_ptr)
+	if (phys.failed() || virt.failed())
 		return;
 
-	addr_t const phys_addr = reinterpret_cast<addr_t>(guard.phys_ptr);
-	addr_t const virt_addr = reinterpret_cast<addr_t>(guard.virt_ptr);
+	auto start_addr = [&] (Range_allocator::Result &range)
+	{
+		return range.convert<addr_t>(
+			[&] (Range_allocator::Allocation &a) { return addr_t(a.ptr); },
+			[]  (Alloc_error)                    { return 0UL; });
+	};
+
+	addr_t const phys_addr = start_addr(phys);
+	addr_t const virt_addr = start_addr(virt);
 
 	if (!map_local(phys_addr, virt_addr, pages, Hw::PAGE_FLAGS_KERN_DATA)) {
 		error("could not setup platform_info ROM - map error");
@@ -182,7 +167,8 @@ void Platform::_init_platform_info()
 	new (core_mem_alloc()) Rom_module(_rom_fs, rom_name, phys_addr, rom_size);
 
 	/* keep phys allocation but let guard revert virt allocation */
-	guard.phys_ptr = nullptr;
+	phys.with_result([&] (auto &allocation) { allocation.deallocate = false; },
+	                 []  (Alloc_error) { });
 }
 
 
@@ -226,32 +212,31 @@ Platform::Platform()
 
 	/* core log as ROM module */
 	{
-		unsigned const pages  = 1;
-		size_t const log_size = pages << get_page_size_log2();
-		unsigned const align  = get_page_size_log2();
+		unsigned const pages    = 1;
+		size_t   const log_size = pages << get_page_size_log2();
+		unsigned const align    = get_page_size_log2();
+
+		using Allocation = Range_allocator::Allocation;
 
 		ram_alloc().alloc_aligned(log_size, align).with_result(
-
-			[&] (void *phys) {
-				addr_t const phys_addr = reinterpret_cast<addr_t>(phys);
-
+			[&] (Allocation &phys) {
 				region_alloc().alloc_aligned(log_size, align). with_result(
+					[&] (Allocation &virt) {
+						addr_t const phys_addr = addr_t(phys.ptr);
+						addr_t const virt_addr = addr_t(virt.ptr);
 
-					[&] (void *ptr) {
-
-						map_local(phys_addr, (addr_t)ptr, pages);
-						memset(ptr, 0, log_size);
+						map_local(phys_addr, virt_addr, pages);
+						memset(virt.ptr, 0, log_size);
 
 						new (core_mem_alloc())
 							Rom_module(_rom_fs, "core_log", phys_addr, log_size);
 
-						init_core_log(Core_log_range { (addr_t)ptr, log_size } );
+						init_core_log(Core_log_range { virt_addr, log_size } );
+						phys.deallocate = virt.deallocate = false;
 					},
-					[&] (Range_allocator::Alloc_error) { /* ignored */ }
-				);
+					[&] (Alloc_error) { });
 			},
-			[&] (Range_allocator::Alloc_error) { }
-		);
+			[&] (Alloc_error) { });
 	}
 
 	unsigned const cpus = _boot_info().cpus;

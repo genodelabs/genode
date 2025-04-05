@@ -38,10 +38,10 @@ Sliced_heap::~Sliced_heap()
 }
 
 
-Allocator::Alloc_result Sliced_heap::try_alloc(size_t size)
+Allocator::Alloc_result Sliced_heap::try_alloc(size_t requested_size)
 {
 	/* allocation includes space for block meta data and is page-aligned */
-	size = align_addr(size + sizeof(Block), 12);
+	size_t const size = align_addr(requested_size + sizeof(Block), 12);
 
 	return _ram_alloc.try_alloc(size).convert<Alloc_result>(
 
@@ -93,8 +93,7 @@ Allocator::Alloc_result Sliced_heap::try_alloc(size_t size)
 			attach_guard.keep = true;
 
 			/* skip meta data prepended to the payload portion of the block */
-			void *ptr = block + 1;
-			return ptr;
+			return { *this, { .ptr = block + 1, .num_bytes = requested_size } };
 		},
 		[&] (Ram::Error e) { return e; });
 }

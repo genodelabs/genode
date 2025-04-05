@@ -245,10 +245,11 @@ struct Gpu::Vram
 	Allocation alloc(Genode::size_t size)
 	{
 		return _alloc.alloc_aligned(size, 12).convert<Allocation>(
-			[&] (void *offset) {
-				return Allocation { _elem.id(), _cap, Genode::off_t(offset), size };
+			[&] (Genode::Range_allocator::Allocation &a) {
+				a.deallocate = false;
+				return Allocation { _elem.id(), _cap, Genode::off_t(a.ptr), size };
 			},
-			[&] (Genode::Allocator::Alloc_error err) -> Allocation {
+			[&] (Genode::Alloc_error err) -> Allocation {
 				return Allocation();
 			});
 	}

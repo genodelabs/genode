@@ -145,9 +145,9 @@ class Genode::Slab : public Allocator
 		void free_empty_blocks();
 
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
 		/**
 		 * Allocate slab entry
@@ -156,6 +156,14 @@ class Genode::Slab : public Allocator
 		 * preconfigured slab-entry size are allocated.
 		 */
 		Alloc_result try_alloc(size_t size) override;
+
+		void _free(Allocation &a) override { _free(a.ptr); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
+
 		void   free(void *addr, size_t) override { _free(addr); }
 		size_t consumed() const override;
 		size_t overhead(size_t) const override { return _block_size/_entries_per_block; }

@@ -71,17 +71,17 @@ struct Allocator_tracer : Allocator
 	{
 		return wrapped.try_alloc(size).convert<Alloc_result>(
 
-			[&] (void *ptr) {
+			[&] (Allocation &a) -> Alloc_result {
 				sum += size;
-				new (wrapped) Alloc(allocs, Alloc::Id { (addr_t)ptr }, size);
-				return ptr;
+				new (wrapped) Alloc(allocs, Alloc::Id { (addr_t)a.ptr }, size);
+				a.deallocate = false;
+				return { *this, { a.ptr, size } };
 			},
-
-			[&] (Allocator::Alloc_error error) {
-				return error;
-			}
+			[&] (Alloc_error error) { return error; }
 		);
 	}
+
+	void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 	void free(void *addr, size_t size) override
 	{

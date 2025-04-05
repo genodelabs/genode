@@ -309,8 +309,11 @@ class Lima::Call
 			Gpu::Virtual_address alloc(uint32_t size)
 			{
 				return Gpu::Virtual_address { _alloc.alloc_aligned(size, 12).convert<::uint64_t>(
-					[&] (void *ptr) { return (::uint64_t)ptr; },
-					[&] (Range_allocator::Alloc_error) -> ::uint64_t {
+					[&] (Range_allocator::Allocation &a) {
+						a.deallocate = false;
+						return ::uint64_t(a.ptr);
+					},
+					[&] (Alloc_error) -> ::uint64_t {
 						error("Could not allocate GPU virtual address for size: ", size);
 						return 0;
 					}) };

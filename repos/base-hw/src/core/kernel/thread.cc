@@ -35,8 +35,9 @@ using namespace Kernel;
 
 Thread::Ipc_alloc_result Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 {
-	using Allocator = Genode::Allocator;
-	using Result    = Ipc_alloc_result;
+	using Allocator   = Genode::Allocator;
+	using Result      = Ipc_alloc_result;
+	using Alloc_error = Genode::Alloc_error;
 
 	Allocator &slab = pd().platform_pd().capability_slab();
 	for (unsigned i = 0; i < cap_count; i++) {
@@ -46,11 +47,12 @@ Thread::Ipc_alloc_result Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 		Result const result =
 			slab.try_alloc(sizeof(Object_identity_reference)).convert<Result>(
 
-			[&] (void *ptr) {
-				_obj_id_ref_ptr[i] = ptr;
-				return Result::OK; },
-
-			[&] (Allocator::Alloc_error e) {
+			[&] (Genode::Memory::Allocation &a) {
+				_obj_id_ref_ptr[i] = a.ptr;
+				a.deallocate = false;
+				return Result::OK;
+			},
+			[&] (Alloc_error e) {
 
 				/*
 				 * Conditions other than DENIED cannot happen because the slab
@@ -58,7 +60,7 @@ Thread::Ipc_alloc_result Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 				 * expanded by the client as response to the EXHAUSTED return
 				 * value.
 				 */
-				if (e != Allocator::Alloc_error::DENIED)
+				if (e != Alloc_error::DENIED)
 					Genode::raw("unexpected recv_caps allocation failure");
 
 				return Result::EXHAUSTED;

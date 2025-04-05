@@ -98,8 +98,9 @@ void Allocator_avl_base::Block::recompute()
 Allocator_avl_base::Alloc_md_result Allocator_avl_base::_alloc_block_metadata()
 {
 	return _md_alloc.try_alloc(sizeof(Block)).convert<Alloc_md_result>(
-		[&] (void *ptr) {
-			return construct_at<Block>(ptr, 0U, 0U, 0); },
+		[&] (Range_allocator::Allocation &a) {
+			a.deallocate = false;
+			return construct_at<Block>(a.ptr, 0U, 0U, 0); },
 		[&] (Alloc_error error) {
 			return error; });
 }
@@ -337,10 +338,10 @@ Allocator_avl_base::_allocate(size_t const size, unsigned align, Range range,
 			/* create allocated block */
 			return _alloc_block_metadata().convert<Alloc_result>(
 
-				[&] (Block *new_block_ptr) {
+				[&] (Block *new_block_ptr) -> Alloc_result {
 					_add_block(*new_block_ptr, new_addr, size, Block::USED);
-					return reinterpret_cast<void *>(new_addr); },
-
+					return { *this, { reinterpret_cast<void *>(new_addr), size } };
+				},
 				[&] (Alloc_error error) {
 					return error; });
 		},

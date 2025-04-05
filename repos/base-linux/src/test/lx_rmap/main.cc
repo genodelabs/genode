@@ -52,8 +52,8 @@ Main::Main(Env &env) : heap(env.ram(), env.rm())
 	/* induce initial heap expansion to remove RM noise */
 	if (1) {
 		heap.try_alloc(0x100000).with_result(
-			[&] (void *ptr) { heap.free(ptr, 0); },
-			[&] (Allocator::Alloc_error) { });
+			[&] (Heap::Allocation &) { /* deallocate == true */ },
+			[&] (Alloc_error) { });
 	}
 
 	addr_t beg((addr_t)&blob_beg);

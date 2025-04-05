@@ -96,13 +96,14 @@ Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(
 
 	return platform().region_alloc().alloc_aligned(size, align).convert<Map_local_result>(
 
-		[&] (void *ptr) {
-			addr_t const core_local_base = (addr_t)ptr;
+		[&] (Range_allocator::Allocation &core_local) {
+			addr_t const core_local_base = (addr_t)core_local.ptr;
 			map_io_region(phys_base, core_local_base, size);
+			core_local.deallocate = false;
 			return Map_local_result { .core_local_addr = core_local_base, .success = true };
 		},
 
-		[&] (Range_allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			error("core-local mapping of memory-mapped I/O range failed");
 			return Map_local_result();
 		});

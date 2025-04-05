@@ -41,8 +41,8 @@ void *Hw::Address_space::_table_alloc()
 
 	return _cma().alloc_aligned(sizeof(Page_table), align).convert<void *>(
 
-		[&] (void *ptr) {
-			return ptr; },
+		[&] (Range_allocator::Allocation &a) {
+			a.deallocate = false; return a.ptr; },
 
 		[&] (Range_allocator::Alloc_result) -> void * {
 			/* XXX distinguish error conditions */
@@ -147,13 +147,11 @@ Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 void Cap_space::upgrade_slab(Allocator &alloc)
 {
 	alloc.try_alloc(SLAB_SIZE).with_result(
-
-		[&] (void *ptr) {
-			_slab.insert_sb(ptr); },
-
-		[&] (Allocator::Alloc_error error) {
-			Allocator::throw_alloc_error(error);
-	});
+		[&] (Memory::Allocation &a) {
+			a.deallocate = false;
+			_slab.insert_sb(a.ptr);
+		},
+		[&] (Alloc_error e) { raise(e); });
 }
 
 

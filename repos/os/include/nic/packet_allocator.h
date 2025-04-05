@@ -57,31 +57,29 @@ struct Nic::Packet_allocator : Genode::Packet_allocator
 	Packet_allocator(Genode::Allocator *md_alloc)
 	: Genode::Packet_allocator(md_alloc, DEFAULT_PACKET_SIZE) {}
 
-	Alloc_result try_alloc(size_t size) override
+	Result try_alloc(size_t size) override
 	{
 		if (!size || size > OFFSET_PACKET_SIZE) {
 			Genode::error("unsupported NIC packet size ", size);
-			return Alloc_result { Alloc_error::DENIED };
+			return Error::DENIED;
 		}
 
-		Alloc_result result = Genode::Packet_allocator::try_alloc(size + OFFSET);
-
-		result.with_result(
-			[&] (void *content) {
+		return Genode::Packet_allocator::try_alloc(size + OFFSET).convert<Result>(
+			[&] (Allocation &a) -> Result {
 				/* assume word-aligned packet buffer and offset packet by 2 bytes */
-				if ((Genode::addr_t)content & 0b11) {
+				if ((Genode::addr_t)a.ptr & 0b11) {
 					Genode::error("NIC packet allocation not word-aligned");
-					result = { Alloc_error::DENIED };
-				} else {
-					result = Alloc_result {
-						reinterpret_cast<void *>((Genode::uint8_t *)content + OFFSET) };
+					return Error::DENIED;
 				}
+				a.deallocate = false;
+				return { *this, {
+					.ptr = reinterpret_cast<void *>((Genode::uint8_t *)a.ptr + OFFSET),
+					.num_bytes = size } };
 			},
-			[] (Alloc_error) { }
-		);
-
-		return result;
+			[] (Error e) { return e; });
 	}
+
+	void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 	void free(void *addr, size_t size) override
 	{

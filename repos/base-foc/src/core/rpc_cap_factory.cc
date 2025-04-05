@@ -200,10 +200,10 @@ Cap_id_allocator::id_t Cap_id_allocator::alloc()
 
 	return _id_alloc.try_alloc(CAP_ID_OFFSET).convert<id_t>(
 
-		[&] (void *id) -> id_t {
-			return (addr_t)id & ID_MASK; },
+		[&] (Range_allocator::Allocation &id) -> id_t {
+			id.deallocate = false; return (addr_t)id.ptr & ID_MASK; },
 
-		[&] (Range_allocator::Alloc_error) -> id_t {
+		[&] (Alloc_error) -> id_t {
 			throw Out_of_ids(); });
 }
 

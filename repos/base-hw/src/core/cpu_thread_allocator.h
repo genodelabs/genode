@@ -52,12 +52,24 @@ class Core::Cpu_thread_allocator : public Allocator
 		Cpu_thread_allocator(Allocator &alloc) : _alloc(alloc) { }
 
 
-		/*************************
-		 ** Allocator interface **
-		 *************************/
+		/*********************************
+		 ** Memory::Allocator interface **
+		 *********************************/
 
-		Alloc_result try_alloc(size_t size) override {
-			return _alloc.alloc(size); }
+		Alloc_result try_alloc(size_t size) override
+		{
+			return _alloc.try_alloc(size).convert<Alloc_result>(
+				[&] (Allocation &a) -> Alloc_result {
+					a.deallocate = false; return { *this, a }; },
+				[&] (Alloc_error e) { return e; });
+		}
+
+		void _free(Allocation &a) override { _alloc.free(a.ptr, a.num_bytes); }
+
+
+		/****************************************
+		 ** Legacy Genode::Allocator interface **
+		 ****************************************/
 
 		void free(void *addr, size_t size) override {
 			_alloc.free(addr, size); }

@@ -16,6 +16,7 @@
 
 #include <util/interface.h>
 #include <util/attempt.h>
+#include <base/memory.h>
 #include <base/stdint.h>
 #include <base/exception.h>
 #include <base/quota_guard.h>
@@ -58,30 +59,12 @@ struct Genode::Deallocator : Interface
 };
 
 
-struct Genode::Allocator : Deallocator
+struct Genode::Allocator : Deallocator, Memory::Constrained_allocator
 {
 	using Out_of_memory = Out_of_ram;
 	using Denied        = Genode::Denied;
-
-	/**
-	 * Return type of 'try_alloc'
-	 */
-	using Alloc_error  = Genode::Alloc_error;
-	using Alloc_result = Attempt<void *, Alloc_error>;
-
-	/**
-	 * Destructor
-	 */
-	virtual ~Allocator() { }
-
-	/**
-	 * Allocate block
-	 *
-	 * \param size      block size to allocate
-	 * \param out_addr  resulting pointer to the new block,
-	 *                  undefined in the error case
-	 */
-	virtual Alloc_result try_alloc(size_t size) = 0;
+	using Alloc_result  = Memory::Constrained_allocator::Result;
+	using Allocation    = Memory::Allocation;
 
 	/**
 	 * Return total amount of backing store consumed by the allocator
@@ -118,7 +101,7 @@ struct Genode::Allocator : Deallocator
 	void *alloc(size_t size)
 	{
 		return try_alloc(size).convert<void *>(
-			[&] (void *ptr) { return ptr; },
+			[&] (Allocation &a) { a.deallocate = false; return a.ptr; },
 			[&] (Alloc_error e) -> void * { raise(e); });
 	}
 };
@@ -126,10 +109,7 @@ struct Genode::Allocator : Deallocator
 
 struct Genode::Range_allocator : Allocator
 {
-	/**
-	 * Destructor
-	 */
-	virtual ~Range_allocator() { }
+	using Allocation = Allocator::Allocation;
 
 	/**
 	 * Return type of range-management operations
@@ -156,12 +136,12 @@ struct Genode::Range_allocator : Allocator
 	 *                  as the power of two
 	 * \param range     address-range constraint for the allocation
 	 */
-	virtual Alloc_result alloc_aligned(size_t size, unsigned align, Range range) = 0;
+	virtual Result alloc_aligned(size_t size, unsigned align, Range range) = 0;
 
 	/**
 	 * Allocate block without constraining the address range
 	 */
-	Alloc_result alloc_aligned(size_t size, unsigned align)
+	Result alloc_aligned(size_t size, unsigned align)
 	{
 		return alloc_aligned(size, align, Range { .start = 0, .end = ~0UL });
 	}
@@ -172,7 +152,7 @@ struct Genode::Range_allocator : Allocator
 	 * \param size   size of new block
 	 * \param addr   desired address of block
 	 */
-	virtual Alloc_result alloc_addr(size_t size, addr_t addr) = 0;
+	virtual Result alloc_addr(size_t size, addr_t addr) = 0;
 
 	/**
 	 * Free a previously allocated block
@@ -297,17 +277,6 @@ void Genode::destroy(auto && dealloc, T *obj)
 	 * this pointer to 'free'.
 	 */
 	operator delete (obj, dealloc);
-}
-
-
-namespace Genode {
-
-	void static inline print(Output &out, Allocator::Alloc_result result)
-	{
-		result.with_result(
-			[&] (void *ptr)   { Genode::print(out, ptr); },
-			[&] (auto  error) { Genode::print(out, error); });
-	}
 }
 
 #endif /* _INCLUDE__BASE__ALLOCATOR_H_ */

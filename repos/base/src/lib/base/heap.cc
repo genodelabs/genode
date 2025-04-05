@@ -145,8 +145,9 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 			}
 
 			return metadata.convert<Result>(
-				[&] (void *md_ptr) -> Result {
-					Dataspace &ds = *construct_at<Dataspace>(md_ptr, allocation.cap,
+				[&] (Allocation &md) -> Result {
+					md.deallocate = false;
+					Dataspace &ds = *construct_at<Dataspace>(md.ptr, allocation.cap,
 					                                         (void *)attach_guard.range.start, size);
 					_ds_pool.insert(&ds);
 					return &ds;
@@ -163,9 +164,10 @@ Allocator::Alloc_result Heap::_try_local_alloc(size_t size)
 {
 	return _alloc->alloc_aligned(size, log2(16U)).convert<Alloc_result>(
 
-		[&] (void *ptr) {
+		[&] (Allocation &a) -> Alloc_result {
+			a.deallocate = false;
 			_quota_used += size;
-			return ptr; },
+			return { *this, { a.ptr, size } }; },
 
 		[&] (Alloc_error error) {
 			return error; });
@@ -188,9 +190,9 @@ Allocator::Alloc_result Heap::_unsynchronized_alloc(size_t size)
 
 		return _allocate_dataspace(dataspace_size, true).convert<Alloc_result>(
 
-			[&] (Dataspace *ds_ptr) {
+			[&] (Dataspace *ds_ptr) -> Alloc_result {
 				_quota_used += ds_ptr->size;
-				return ds_ptr->local_addr; },
+				return { *this, { ds_ptr->local_addr, size } }; },
 
 			[&] (Alloc_error error) {
 				return error; });
@@ -200,7 +202,11 @@ Allocator::Alloc_result Heap::_unsynchronized_alloc(size_t size)
 	{
 		Alloc_result result = _try_local_alloc(size);
 		if (result.ok())
-			return result;
+			return result.convert<Alloc_result>(
+				[&] (Allocation &a) -> Alloc_result {
+					a.deallocate = false;
+					return { *this, a }; },
+				[&] (Alloc_error e) { return e; });
 	}
 
 	size_t dataspace_size = size

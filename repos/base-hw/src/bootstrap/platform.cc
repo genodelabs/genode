@@ -36,8 +36,8 @@ void * Platform::Ram_allocator::alloc_aligned(size_t size, unsigned align)
 
 	return Base::alloc_aligned(Hw::round_page(size), align).convert<void *>(
 
-		[&] (void *ptr) { return ptr; },
-		[&] (Ram_allocator::Alloc_error e) -> void *
+		[&] (Range_allocator::Allocation &a) { a.deallocate = false; return a.ptr; },
+		[&] (Alloc_error e) -> void *
 		{
 			error("bootstrap RAM allocation failed, error=", e);
 			assert(false);

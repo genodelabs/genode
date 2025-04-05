@@ -64,6 +64,7 @@ class Core::Platform : public Platform_generic
 
 		struct Dummy_allocator : Range_allocator
 		{
+			void         _free(Allocation &)           override { ASSERT_NEVER_CALLED; }
 			void         free(void *, size_t)          override { ASSERT_NEVER_CALLED; }
 			bool         need_size_for_free()    const override { ASSERT_NEVER_CALLED; }
 			size_t       consumed()              const override { ASSERT_NEVER_CALLED; }
@@ -87,9 +88,10 @@ class Core::Platform : public Platform_generic
 		 */
 		struct Pseudo_ram_allocator : Range_allocator
 		{
-			Alloc_result try_alloc(size_t)                      override { return nullptr; }
-			Alloc_result alloc_aligned(size_t, unsigned, Range) override { return nullptr; }
-			Alloc_result alloc_addr(size_t, addr_t)             override { return nullptr; }
+			void         _free(Allocation &)                    override { }
+			Alloc_result try_alloc(size_t)                      override { return { *this, { } }; }
+			Alloc_result alloc_aligned(size_t, unsigned, Range) override { return { *this, { } }; }
+			Alloc_result alloc_addr(size_t, addr_t)             override { return { *this, { } }; }
 			Range_result add_range(addr_t, size_t)              override { return Ok(); }
 			Range_result remove_range(addr_t, size_t)           override { return Ok(); }
 

@@ -26,6 +26,8 @@ using namespace Core;
 Region_map::Attach_result
 Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 {
+	using Virt_allocation = Range_allocator::Allocation;
+
 	return _ep.apply(ds_cap, [&] (Dataspace_component *ds_ptr) -> Attach_result {
 
 		if (!ds_ptr)
@@ -43,7 +45,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 		unsigned const align = get_page_size_log2();
 
 		/* allocate range in core's virtual address space */
-		Allocator::Alloc_result const virt =
+		Allocator::Alloc_result virt =
 			platform().region_alloc().alloc_aligned(page_rounded_size, align);
 
 		if (virt.failed()) {
@@ -68,15 +70,15 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 
 		return virt.convert<Attach_result>(
 
-			[&] (void *virt_addr) -> Attach_result {
-				if (map_local(ds.phys_addr(), (addr_t)virt_addr, num_pages, flags))
-					return Range { .start     = addr_t(virt_addr),
-					               .num_bytes = page_rounded_size };
+			[&] (Virt_allocation &a) -> Attach_result {
+				if (!map_local(ds.phys_addr(), (addr_t)a.ptr, num_pages, flags))
+					return Attach_error::REGION_CONFLICT;
 
-				platform().region_alloc().free(virt_addr, page_rounded_size);
-				return Attach_error::REGION_CONFLICT; },
-
-			[&] (Allocator::Alloc_error) {
+				a.deallocate = false;
+				return Range { .start     = addr_t(a.ptr),
+				               .num_bytes = page_rounded_size };
+			},
+			[&] (Alloc_error) {
 				return Attach_error::REGION_CONFLICT; });
 	});
 }

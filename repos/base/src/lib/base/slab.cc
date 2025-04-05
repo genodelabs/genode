@@ -255,8 +255,9 @@ Slab::New_slab_block_result Slab::_new_slab_block()
 
 	Slab &this_slab = *this;
 	return _backing_store->try_alloc(_block_size).convert<Result>(
-		[&] (void *sb) {
-			return construct_at<Block>(sb, this_slab); },
+		[&] (Allocation &sb) {
+			sb.deallocate = false;
+			return construct_at<Block>(sb.ptr, this_slab); },
 		[&] (Alloc_error error) {
 			return error; });
 }
@@ -408,7 +409,7 @@ Allocator::Alloc_result Slab::try_alloc(size_t size)
 
 	_total_avail--;
 
-	return ptr;
+	return { *this, { ptr, _slab_size } };
 }
 
 

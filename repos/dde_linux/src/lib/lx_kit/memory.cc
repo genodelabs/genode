@@ -71,9 +71,11 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 
 	return _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
 
-		[&] (void *ptr) { return cleared_allocation(ptr, size); },
+		[&] (Allocator::Allocation &a) {
+			a.deallocate = false;
+			return cleared_allocation(a.ptr, size); },
 
-		[&] (Range_allocator::Alloc_error) {
+		[&] (Alloc_error) {
 
 			/*
 			 * Restrict the minimum buffer size to avoid the creation of
@@ -97,9 +99,11 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 			/* re-try allocation */
 			void * const virt_addr = _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
 
-				[&] (void *ptr) { return cleared_allocation(ptr, size); },
+				[&] (Allocator::Allocation &a) {
+					a.deallocate = false;
+					return cleared_allocation(a.ptr, size); },
 
-				[&] (Range_allocator::Alloc_error) -> void * {
+				[&] (Alloc_error) -> void * {
 					error("memory allocation failed for ", size, " align ", align);
 					return nullptr; }
 			);

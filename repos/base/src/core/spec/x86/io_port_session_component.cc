@@ -32,18 +32,18 @@ Io_port_session_component::Io_port_session_component(Range_allocator &io_port_al
 
 	/* allocate region (also checks out-of-bounds regions) */
 	io_port_alloc.alloc_addr(size, base).with_error(
-		[&] (Allocator::Alloc_error e) {
+		[&] (Alloc_error e) {
 
 			switch (e) {
-			case Range_allocator::Alloc_error::DENIED:
+			case Alloc_error::DENIED:
 				error("I/O port ", Hex_range<uint16_t>(base, size), " not available");
 				throw Service_denied();
 
-			case Range_allocator::Alloc_error::OUT_OF_RAM:
+			case Alloc_error::OUT_OF_RAM:
 				error("I/O port allocator ran out of RAM");
 				throw Service_denied();
 
-			case Range_allocator::Alloc_error::OUT_OF_CAPS:
+			case Alloc_error::OUT_OF_CAPS:
 				error("I/O port allocator ran out of caps");
 				throw Service_denied();
 			}

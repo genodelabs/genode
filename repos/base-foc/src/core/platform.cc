@@ -381,31 +381,31 @@ static void add_acpi_rsdp(auto &region_alloc, auto &xml)
 		auto offset = desc[i].start() & 0xffful;
 		auto pages = align_addr(offset + desc[i].size(), 12) >> 12;
 
-		region_alloc.alloc_aligned(pages * 4096, 12).with_result([&] (void *core_local_ptr) {
+		region_alloc.alloc_aligned(pages * 4096, 12).with_result(
+			[&] (Range_allocator::Allocation &core_local) {
 
-			if (!map_local_io(desc[i].start(), (addr_t)core_local_ptr, pages))
-				return;
+				if (!map_local_io(desc[i].start(), (addr_t)core_local.ptr, pages))
+					return;
 
-			Byte_range_ptr const ptr((char *)(addr_t(core_local_ptr) + offset),
-			                         pages * 4096 - offset);
-			auto const rsdp = Acpi_rsdp(ptr);
+				Byte_range_ptr const ptr((char *)(addr_t(core_local.ptr) + offset),
+				                         pages * 4096 - offset);
+				auto const rsdp = Acpi_rsdp(ptr);
 
-			if (!rsdp.valid())
-				return;
+				if (!rsdp.valid())
+					return;
 
-			xml.node("acpi", [&] {
-				xml.attribute("revision", rsdp.read<Acpi_rsdp::Revision>());
-				if (rsdp.read<Acpi_rsdp::Rsdt>())
-					xml.attribute("rsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Rsdt>())));
-				if (rsdp.read<Acpi_rsdp::Xsdt>())
-					xml.attribute("xsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Xsdt>())));
-			});
+				xml.node("acpi", [&] {
+					xml.attribute("revision", rsdp.read<Acpi_rsdp::Revision>());
+					if (rsdp.read<Acpi_rsdp::Rsdt>())
+						xml.attribute("rsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Rsdt>())));
+					if (rsdp.read<Acpi_rsdp::Xsdt>())
+						xml.attribute("xsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Xsdt>())));
+				});
 
-			unmap_local(addr_t(core_local_ptr), pages);
-			region_alloc.free(core_local_ptr);
+				unmap_local(addr_t(core_local.ptr), pages);
 
-			pages = 0;
-		}, [&] (Range_allocator::Alloc_error) { });
+				pages = 0;
+			}, [&] (Alloc_error) { });
 
 		if (!pages)
 			return;
@@ -545,35 +545,31 @@ Core::Platform::Platform()
 		size_t const bytes = pages << get_page_size_log2();
 		ram_alloc().alloc_aligned(bytes, align).with_result(
 
-			[&] (void *phys_ptr) {
-
-				addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+			[&] (Range_allocator::Allocation &phys) {
+				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 
 				region_alloc().alloc_aligned(bytes, align).with_result(
-					[&] (void *core_local_ptr) {
+					[&] (Range_allocator::Allocation &core_local) {
 
-						if (!map_local(phys_addr, (addr_t)core_local_ptr, pages)) {
+						if (!map_local(phys_addr, (addr_t)core_local.ptr, pages)) {
 							warning("map_local failed while exporting ",
 							        rom_name, " as ROM module");
-							ram_alloc().free(phys_ptr, bytes);
-							region_alloc().free(core_local_ptr, bytes);
-							return;
-						}
+							return; }
 
-						memset(core_local_ptr, 0, bytes);
-						content_fn((char *)core_local_ptr, bytes);
+						memset(core_local.ptr, 0, bytes);
+						content_fn((char *)core_local.ptr, bytes);
 
 						new (core_mem_alloc())
 							Rom_module(_rom_fs, rom_name, phys_addr, bytes);
+
+						phys.deallocate = core_local.deallocate = false;
 					},
-					[&] (Range_allocator::Alloc_error) {
+					[&] (Alloc_error) {
 						warning("failed allocate virtual memory to export ",
-						        rom_name, " as ROM module");
-						ram_alloc().free(phys_ptr, bytes);
-					}
+						        rom_name, " as ROM module"); }
 				);
 			},
-			[&] (Range_allocator::Alloc_error) {
+			[&] (Alloc_error) {
 				warning("failed to export ", rom_name, " as ROM module"); }
 		);
 	};

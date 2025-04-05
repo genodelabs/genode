@@ -75,8 +75,9 @@ Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(
 		                           : log2(size);
 
 		return platform().region_alloc().alloc_aligned(size, align).convert<addr_t>(
-			[&] (void *ptr) { return (addr_t)ptr; },
-			[&] (Range_allocator::Alloc_error) -> addr_t {
+			[&] (Range_allocator::Allocation &a) {
+				a.deallocate = false; return (addr_t)a.ptr; },
+			[&] (Alloc_error) -> addr_t {
 				error(__func__, ": alloc_aligned failed!");
 				return 0; });
 	};

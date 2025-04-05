@@ -44,12 +44,12 @@ extern "C" void *malloc(size_t size)
 
 	return alloc().try_alloc(real_size).convert<void *>(
 
-		[&] (void *ptr) {
+		[&] (Allocator::Allocation &a) {
+			a.deallocate = false;
+			*(unsigned long *)a.ptr = real_size;
+			return (unsigned long *)a.ptr + 1; },
 
-			*(unsigned long *)ptr = real_size;
-			return (unsigned long *)ptr + 1; },
-
-		[&] (Allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			return nullptr; });
 }
 

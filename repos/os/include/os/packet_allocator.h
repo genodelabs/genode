@@ -157,8 +157,10 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 
 						_array->set(i, cnt);
 						_next = i + cnt;
-						return reinterpret_cast<void *>(i * _block_size
-						                                + _base);
+						return { *this, {
+							.ptr = reinterpret_cast<void *>(i * _block_size + _base),
+							.num_bytes = size } };
+
 					}
 				} catch (typename Bit_array_base::Invalid_index_access) { }
 
@@ -169,6 +171,8 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 
 			return Alloc_error::DENIED;
 		}
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 		void free(void *addr, size_t size) override
 		{

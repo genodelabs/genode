@@ -384,8 +384,8 @@ extern "C" int getpid()
 extern "C" void *malloc(size_t size)
 {
 	return gcov_env->heap.try_alloc(size).convert<void *>(
-		[&] (void *ptr) { return ptr; },
-		[&] (Allocator::Alloc_error) -> void * { return nullptr; });
+		[&] (Allocator::Allocation &a) { a.deallocate = false; return a.ptr; },
+		[&] (Alloc_error) -> void *    { return nullptr; });
 }
 
 

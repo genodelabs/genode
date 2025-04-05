@@ -39,10 +39,11 @@ struct Core::Untyped_memory
 
 		return phys_alloc.alloc_aligned(size, align).convert<addr_t>(
 
-			[&] (void *ptr) {
-				return (addr_t)ptr; },
+			[&] (Range_allocator::Allocation &phys) {
+				phys.deallocate = false;
+				return (addr_t)phys.ptr; },
 
-			[&] (Range_allocator::Alloc_error) -> addr_t {
+			[&] (Alloc_error) -> addr_t {
 				error(__PRETTY_FUNCTION__, ": allocation of untyped memory failed");
 				throw Phys_alloc_failed(); });
 	}

@@ -101,10 +101,11 @@ Sup::Gmm::Vmm_addr Sup::Gmm::_alloc_pages(Pages pages)
 
 	return _alloc.alloc_aligned(bytes, align).convert<Vmm_addr>(
 
-		[&] (void *ptr) {
-			return Vmm_addr { _map.base.value + (addr_t)ptr }; },
+		[&] (Range_allocator::Allocation &a) {
+			a.deallocate = false;
+			return Vmm_addr { _map.base.value + (addr_t)a.ptr }; },
 
-		[&] (Range_allocator::Alloc_error) -> Vmm_addr {
+		[&] (Alloc_error) -> Vmm_addr {
 			error("Gmm allocation failed");
 			throw Allocation_failed();
 		}

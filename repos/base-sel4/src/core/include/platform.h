@@ -60,10 +60,12 @@ class Core::Static_allocator : public Allocator
 			}
 
 			try {
-				return &_elements[_used.alloc()]; }
+				return { *this, { &_elements[_used.alloc()], size } }; }
 			catch (typename Bit_allocator<MAX>::Out_of_indices) {
 				return Alloc_error::DENIED; }
 		}
+
+		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 		size_t overhead(size_t) const override { return 0; }
 

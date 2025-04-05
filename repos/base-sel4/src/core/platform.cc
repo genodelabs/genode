@@ -295,8 +295,9 @@ void Core::Platform::_init_rom_modules()
 		size_t const align = get_page_size_log2();
 
 		return _unused_phys_alloc.alloc_aligned(size, align).convert<addr_t>(
-			[&] (void *ptr) { return (addr_t)ptr; },
-			[&] (Range_allocator::Alloc_error) -> addr_t {
+			[&] (Range_allocator::Allocation &a) {
+				a.deallocate = false; return (addr_t)a.ptr; },
+			[&] (Alloc_error) -> addr_t {
 				error("could not reserve phys CNode space for boot modules");
 				struct Init_rom_modules_failed { };
 				throw Init_rom_modules_failed();
@@ -476,7 +477,7 @@ void Core::Platform::_init_rom_modules()
 
 			addr_t const addr = Untyped_memory::alloc_page(_alloc);
 
-			bool keep = false;
+			bool deallocate = true;
 
 			Phys_alloc_guard(Range_allocator &alloc) :_alloc(alloc)
 			{
@@ -485,10 +486,8 @@ void Core::Platform::_init_rom_modules()
 
 			~Phys_alloc_guard()
 			{
-				if (keep)
-					return;
-
-				Untyped_memory::free_page(_alloc, addr);
+				if (deallocate)
+					Untyped_memory::free_page(_alloc, addr);
 			}
 		} phys { ram_alloc() };
 
@@ -497,24 +496,23 @@ void Core::Platform::_init_rom_modules()
 
 		region_alloc().alloc_aligned(size, align).with_result(
 
-			[&] (void *core_local_ptr) {
+			[&] (Range_allocator::Allocation &core_local) {
 
-				if (!map_local(phys.addr, (addr_t)core_local_ptr, pages, this)) {
+				if (!map_local(phys.addr, (addr_t)core_local.ptr, pages, this)) {
 					error("could not setup platform_info ROM - map error");
-					region_alloc().free(core_local_ptr);
 					return;
 				}
 
-				memset(core_local_ptr, 0, size);
-				content_fn((char *)core_local_ptr, size);
+				memset(core_local.ptr, 0, size);
+				content_fn((char *)core_local.ptr, size);
 
 				new (core_mem_alloc())
 					Rom_module(_rom_fs, rom_name, phys.addr, size);
 
-				phys.keep = true;
+				phys.deallocate = core_local.deallocate = false;
 			},
 
-			[&] (Range_allocator::Alloc_error) {
+			[&] (Alloc_error) {
 				error("could not setup platform_info ROM - region allocation error");
 			}
 		);
@@ -588,17 +586,19 @@ Core::Platform::Platform()
 	addr_t const virt_size = 32 * 1024 * 1024;
 	_unused_virt_alloc.alloc_aligned(virt_size, get_page_size_log2()).with_result(
 
-		[&] (void *virt_ptr) {
-			addr_t const virt_addr = (addr_t)virt_ptr;
+		[&] (Range_allocator::Allocation &virt) {
+			addr_t const virt_addr = (addr_t)virt.ptr;
 
 			/* add to available virtual region of core */
 			_core_mem_alloc.virt_alloc().add_range(virt_addr, virt_size);
 
 			/* back region by page tables */
 			_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);
+
+			virt.deallocate = false;
 		},
 
-		[&] (Range_allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			warning("failed to reserve core virtual memory for dynamic use"); }
 	);
 

@@ -79,14 +79,16 @@ class Genode::Cached_font : public Text_painter::Font
 
 				return _alloc.try_alloc(size).convert<Alloc_result>(
 
-					[&] (void *ptr) {
-						memset(ptr, 0, size);
+					[&] (Allocation &a) -> Result {
+						memset(a.ptr, 0, size);
 						_consumed_bytes += size + overhead(size);
-						return ptr; },
+						a.deallocate = false;
+						return { *this, { a.ptr, size } }; },
 
-					[&] (Alloc_error error) {
-						return error; });
+					[&] (Error e) { return e; });
 			}
+
+			void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
 			size_t consumed() const override { return _alloc.consumed(); }
 

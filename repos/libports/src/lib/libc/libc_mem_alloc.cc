@@ -99,13 +99,14 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	/* now that we have new backing store, allocate Dataspace structure */
 	return alloc->alloc_aligned(sizeof(Dataspace), 2).convert<int>(
 
-		[&] (void *ptr) {
+		[&] (Range_allocator::Allocation &a) {
 			/* add dataspace information to list of dataspaces */
-			Dataspace *ds  = construct_at<Dataspace>(ptr, new_ds_cap, range);
+			Dataspace *ds = construct_at<Dataspace>(a.ptr, new_ds_cap, range);
 			insert(ds);
+			a.deallocate = false;
 			return 0; },
 
-		[&] (Allocator::Alloc_error) {
+		[&] (Alloc_error) {
 			warning("libc: could not allocate meta data - this should never happen");
 			return -1; });
 }
@@ -116,13 +117,16 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	/* serialize access of heap functions */
 	Mutex::Guard guard(_mutex);
 
-	void *out_addr = nullptr;
+	auto alloc_or_nullptr = [&]
+	{
+		return _alloc.alloc_aligned(size, align_log2).convert<void *>(
+			[&] (Range_allocator::Allocation &a) {
+				a.deallocate = false; return a.ptr; },
+			[&] (Alloc_error) { return nullptr; });
+	};
 
 	/* try allocation at our local allocator */
-	_alloc.alloc_aligned(size, align_log2).with_result(
-		[&] (void *ptr) { out_addr = ptr; },
-		[&] (Allocator::Alloc_error) { });
-
+	void * const out_addr = alloc_or_nullptr();
 	if (out_addr)
 		return out_addr;
 
@@ -151,11 +155,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	}
 
 	/* allocate originally requested block */
-	_alloc.alloc_aligned(size, align_log2).with_result(
-		[&] (void *ptr) { out_addr = ptr; },
-		[&] (Allocator::Alloc_error) { });
-
-	return out_addr;
+	return alloc_or_nullptr();
 }
 
 

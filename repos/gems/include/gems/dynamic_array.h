@@ -92,9 +92,9 @@ struct Genode::Dynamic_array
 
 				_alloc.try_alloc(sizeof(Element)*new_capacity).with_result(
 
-					[&] (void *ptr) {
+					[&] (Allocator::Allocation &a) {
 
-						Element *new_array = (Element *)ptr;
+						Element *new_array = (Element *)a.ptr;
 
 						for (unsigned i = 0; i < new_capacity; i++)
 							construct_at<Element>(&new_array[i]);
@@ -108,9 +108,10 @@ struct Genode::Dynamic_array
 
 						_array    = new_array;
 						_capacity = new_capacity;
+
+						a.deallocate = false;
 					},
-					[&] (Allocator::Alloc_error e) {
-						Allocator::throw_alloc_error(e); }
+					[&] (Alloc_error e) { raise(e); }
 				);
 			}
 

@@ -165,6 +165,8 @@ void Rm_faulter::continue_after_resolved_fault()
 Region_map::Attach_result
 Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const core_attr)
 {
+	using Region_allocation = Range_allocator::Allocation;
+
 	Attr const attr = core_attr.attr;
 
 	/* serialize access */
@@ -175,8 +177,6 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 		return Attach_error::REGION_CONFLICT;
 
 	auto lambda = [&] (Dataspace_component *dsc) -> Attach_result {
-
-		using Alloc_error = Range_allocator::Alloc_error;
 
 		/* check dataspace validity */
 		if (!dsc)
@@ -204,7 +204,10 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 		if (attr.use_at) {
 			Alloc_error error = Alloc_error::DENIED;
 			_map.alloc_addr(size, attr.at).with_result(
-				[&] (void *ptr)     { at = addr_t(ptr); at_defined = true; },
+				[&] (Region_allocation &a) {
+					a.deallocate = false;
+					at = addr_t(a.ptr);
+					at_defined = true; },
 				[&] (Alloc_error e) { error = e; });
 
 			if (error == Alloc_error::OUT_OF_RAM)  return Attach_error::OUT_OF_RAM;
@@ -234,7 +237,10 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 				/* try allocating the aligned region */
 				Alloc_error error = Alloc_error::DENIED;
 				_map.alloc_aligned(size, unsigned(align_log2)).with_result(
-					[&] (void *ptr) { at = addr_t(ptr); at_defined = true; },
+					[&] (Region_allocation &a) {
+						a.deallocate = false;
+						at = addr_t(a.ptr);
+						at_defined = true; },
 					[&] (Alloc_error e) { error = e; });
 
 				if (error == Alloc_error::OUT_OF_RAM)  return Attach_error::OUT_OF_RAM;

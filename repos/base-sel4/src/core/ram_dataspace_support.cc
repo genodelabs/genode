@@ -45,8 +45,9 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 	auto alloc_one_virt_page = [&] () -> void *
 	{
 		return platform().region_alloc().try_alloc(get_page_size()).convert<void *>(
-			[&] (void *ptr) { return ptr; },
-			[&] (Range_allocator::Alloc_error) -> void * {
+			[&] (Range_allocator::Allocation &a) {
+				a.deallocate = false; return a.ptr; },
+			[&] (Alloc_error) -> void * {
 				ASSERT_NEVER_CALLED; });
 	};
 

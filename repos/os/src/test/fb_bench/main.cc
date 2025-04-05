@@ -42,8 +42,11 @@ struct Test
 		log("\nTEST ", id, ": ", brief, "\n");
 		for (unsigned i = 0; i < 2; i++) {
 			heap.try_alloc(fb_ds.size()).with_result(
-				[&] (void *ptr) { buf[i] = (char *)ptr; },
-				[&] (Allocator::Alloc_error e) {
+				[&] (Heap::Allocation &a) {
+					buf[i]       = (char *)a.ptr;
+					a.deallocate = false;
+				},
+				[&] (Alloc_error e) {
 					env.parent().exit(-1);
 					Allocator::throw_alloc_error(e);
 				}

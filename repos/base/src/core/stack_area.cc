@@ -67,6 +67,8 @@ class Stack_area_region_map : public Region_map
 		 */
 		Attach_result attach(Dataspace_capability, Attr const &attr) override
 		{
+			using Phys_allocation = Range_allocator::Allocation;
+
 			/* allocate physical memory */
 			size_t const size = round_page(attr.size);
 
@@ -74,10 +76,10 @@ class Stack_area_region_map : public Region_map
 
 			return phys.alloc_aligned(size, get_page_size_log2()).convert<Attach_result>(
 
-				[&] (void *phys_ptr) -> Attach_result {
+				[&] (Phys_allocation &phys) -> Attach_result {
 
 					try {
-						addr_t const phys_base = (addr_t)phys_ptr;
+						addr_t const phys_base = (addr_t)phys.ptr;
 
 						Dataspace_component &ds = *new (&_ds_slab)
 							Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
@@ -90,18 +92,18 @@ class Stack_area_region_map : public Region_map
 							error("could not map phys ", Hex(ds.phys_addr()),
 							      " at local ", Hex(core_local_addr));
 
-							phys.free(phys_ptr);
 							return Attach_error::INVALID_DATASPACE;
 						}
 
 						ds.assign_core_local_addr((void*)core_local_addr);
+						phys.deallocate = false;
 
 						return Range { .start = attr.at, .num_bytes = size };
 					}
 					catch (Out_of_ram)  { return Attach_error::OUT_OF_RAM; }
 					catch (Out_of_caps) { return Attach_error::OUT_OF_CAPS; }
 				},
-				[&] (Range_allocator::Alloc_error) {
+				[&] (Alloc_error) {
 					error("could not allocate backing store for new stack");
 					return Attach_error::REGION_CONFLICT; });
 		}
