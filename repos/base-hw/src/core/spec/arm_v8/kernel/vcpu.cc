@@ -23,7 +23,7 @@
 #include <kernel/vcpu.h>
 #include <kernel/main.h>
 
-#include <spec/arm_v8/virtualization/hypervisor.h>
+#include <spec/arm_v8/hypervisor.h>
 
 using Genode::addr_t;
 using Kernel::Cpu;

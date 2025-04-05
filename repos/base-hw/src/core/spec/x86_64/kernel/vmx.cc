@@ -18,7 +18,7 @@
 #include <kernel/cpu.h>
 #include <platform.h>
 #include <spec/x86_64/kernel/panic.h>
-#include <spec/x86_64/virtualization/vmx.h>
+#include <spec/x86_64/vmx.h>
 #include <util/construct_at.h>
 #include <util/mmio.h>
 

@@ -24,8 +24,8 @@
 #include <kernel/main.h>
 
 #include <hw/spec/x86_64/x86_64.h>
-#include <virtualization/svm.h>
-#include <virtualization/vmx.h>
+#include <svm.h>
+#include <vmx.h>
 
 using namespace Genode;
 

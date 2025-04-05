@@ -19,7 +19,7 @@
 #include <cpu.h>
 #include <cpu/vcpu_state.h>
 #include <cpu/vcpu_state_virtualization.h>
-#include <spec/x86_64/virtualization/virt_interface.h>
+#include <spec/x86_64/virt_interface.h>
 #include <util/mmio.h>
 #include <util/string.h>
 

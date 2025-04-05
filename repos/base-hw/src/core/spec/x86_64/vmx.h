@@ -20,7 +20,7 @@
 #include <cpu/vcpu_state_virtualization.h>
 #include <hw/assert.h>
 #include <hw/spec/x86_64/cpu.h>
-#include <spec/x86_64/virtualization/virt_interface.h>
+#include <spec/x86_64/virt_interface.h>
 #include <util/register.h>
 #include <util/string.h>
 

@@ -22,8 +22,8 @@
  #include <hw/spec/x86_64/x86_64.h>
 
 /* core includes */
-#include <virtualization/vmx_session_component.h>
-#include <virtualization/svm_session_component.h>
+#include <vmx_session_component.h>
+#include <svm_session_component.h>
 
 #include <vmid_allocator.h>
 

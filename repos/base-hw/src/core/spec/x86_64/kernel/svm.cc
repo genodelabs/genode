@@ -17,7 +17,7 @@
 #include <hw/memory_consts.h>
 #include <kernel/cpu.h>
 #include <platform.h>
-#include <spec/x86_64/virtualization/svm.h>
+#include <spec/x86_64/svm.h>
 #include <util/mmio.h>
 
 using namespace Genode;

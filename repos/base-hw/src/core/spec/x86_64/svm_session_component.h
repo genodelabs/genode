@@ -23,7 +23,7 @@
 #include <dataspace/capability.h>
 
 /* base-hw includes */
-#include <spec/x86_64/virtualization/hpt.h>
+#include <spec/x86_64/hpt.h>
 
 /* core includes */
 #include <cpu_thread_component.h>

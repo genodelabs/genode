@@ -176,6 +176,45 @@ void Kernel::Thread::_call_cache_line_size()
 }
 
 
+void Kernel::Thread::exception(Genode::Cpu_state &state)
+{
+	using Genode::Cpu_state;
+	using Ctx = Core::Cpu::Context;
+
+	Genode::memcpy(&*regs, &state, sizeof(Ctx));
+
+	switch (regs->trapno) {
+
+	case Cpu_state::PAGE_FAULT:
+		_mmu_exception();
+		return;
+
+	case Cpu_state::DIVIDE_ERROR:
+	case Cpu_state::DEBUG:
+	case Cpu_state::BREAKPOINT:
+	case Cpu_state::UNDEFINED_INSTRUCTION:
+	case Cpu_state::GENERAL_PROTECTION:
+		_exception();
+		return;
+
+	case Cpu_state::SUPERVISOR_CALL:
+		_call();
+		return;
+	}
+
+	if (regs->trapno >= Cpu_state::INTERRUPTS_START &&
+	    regs->trapno <= Cpu_state::INTERRUPTS_END) {
+		_interrupt(_user_irq_pool);
+		return;
+	}
+
+	Genode::raw(*this, ": triggered unknown exception ", regs->trapno,
+	            " with error code ", regs->errcode, " at ip=", (void*)regs->ip, " sp=", (void*)regs->sp);
+
+	_die();
+}
+
+
 void Kernel::Thread::proceed()
 {
 	if (!_cpu().active(pd().mmu_regs) && type() != CORE)

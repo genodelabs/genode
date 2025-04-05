@@ -17,7 +17,7 @@
 /* base-hw internal includes */
 #include <hw/spec/x86_64/pc_board.h>
 /* PC virtualization */
-#include <spec/x86_64/virtualization/board.h>
+#include <spec/x86_64/board.h>
 
 /* base-hw core includes */
 #include <spec/x86_64/pic.h>
