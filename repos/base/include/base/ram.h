@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__RAM_H_
 
 #include <util/allocation.h>
+#include <base/error.h>
 #include <base/capability.h>
 #include <base/quota_guard.h>
 #include <base/cache.h>
@@ -25,8 +26,7 @@ namespace Genode::Ram {
 	struct Dataspace : Genode::Dataspace { };
 
 	using Capability = Genode::Capability<Dataspace>;
-
-	enum class Error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+	using Error      = Alloc_error;
 
 	struct Unmapped_allocator;
 
