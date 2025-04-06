@@ -29,16 +29,18 @@
 using namespace Core;
 
 
-addr_t Platform_thread::Utcb::_attach(Region_map &core_rm)
+addr_t Platform_thread::Utcb::_attach(Local_rm &local_rm)
 {
 	addr_t start = 0;
 	ds.with_result(
 		[&] (Ram::Allocation const &allocation) {
 			Region_map::Attr attr { };
 			attr.writeable = true;
-			core_rm.attach(allocation.cap, attr).with_result(
-				[&] (Region_map::Range range) { start = range.start; },
-				[&] (Region_map::Attach_error) {
+			local_rm.attach(allocation.cap, attr).with_result(
+				[&] (Local_rm::Attachment &a) {
+					a.deallocate = false;
+					start = addr_t(a.ptr); },
+				[&] (Local_rm::Error) {
 					error("failed to attach UTCB of new thread within core"); });
 		},
 		[&] (Ram::Error) { });
@@ -108,7 +110,7 @@ Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
 Platform_thread::Platform_thread(Platform_pd              &pd,
                                  Rpc_entrypoint           &ep,
                                  Ram_allocator            &ram,
-                                 Region_map               &core_rm,
+                                 Local_rm                 &local_rm,
                                  size_t             const  quota,
                                  Label              const &label,
                                  unsigned           const  virt_prio,
@@ -118,7 +120,7 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 	_label(label),
 	_pd(pd),
 	_pager(nullptr),
-	_utcb(ep, ram, core_rm),
+	_utcb(ep, ram, local_rm),
 	_priority(_scale_priority(virt_prio)),
 	_quota((unsigned)quota),
 	_main_thread(!pd.has_any_thread),

@@ -21,7 +21,7 @@
 #include <platform_generic.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
-#include <core_region_map.h>
+#include <core_local_rm.h>
 #include <core_mem_alloc.h>
 
 /* base-internal includes */

@@ -652,43 +652,39 @@ void Genode::init_ldso_phdr(Env &env)
 	 * dynamic linker within the linker area, keeping the rest of the
 	 * component's virtual address space unpolluted.
 	 */
-	struct Linker_area_region_map : Region_map
+	struct Linker_local_rm : Env::Local_rm
 	{
-		struct Not_implemented : Exception { };
-
-		Attach_result attach(Dataspace_capability ds, Attr const &) override
+		Result attach(Dataspace_capability ds, Attach_attr const &) override
 		{
 			size_t const size = Dataspace_client(ds).size();
 
 			Linker::Region_map &linker_area = *Linker::Region_map::r();
 
-			return linker_area.alloc_region_at_end(size).convert<Attach_result>(
+			return linker_area.alloc_region_at_end(size).convert<Result>(
 				[&] (addr_t const at) {
-					return linker_area.attach(ds, Region_map::Attr {
-						.size       = size,
-						.offset     = { },
-						.use_at     = true,
-						.at         = at,
-						.executable = { },
-						.writeable  = true });
+
+					Linker::Region_map::Attach_result const area_result =
+						linker_area.attach(ds, {
+							.size       = size, .offset    = { },
+							.use_at     = true, .at        = at,
+							.executable = { },  .writeable = true });
+
+					return area_result.convert<Result>(
+						[&] (Region_map::Range r) -> Result {
+							return { *this, { (void *)r.start, r.num_bytes } };
+						},
+						[&] (Error e) { return e; }
+					);
 				},
 				[&] (Linker::Region_map::Alloc_region_error) {
-					return Attach_error::REGION_CONFLICT; }
+					return Error::REGION_CONFLICT; }
 			);
 		}
 
-		void detach(addr_t) override { throw Not_implemented(); }
-
-		void fault_handler(Signal_context_capability) override { }
-
-		Fault fault() override { throw Not_implemented(); }
-
-		Dataspace_capability dataspace() override { throw Not_implemented(); }
-
-		Linker_area_region_map() { }
+		void _free(Attachment &) override { };
 	};
 
-	static Linker_area_region_map ld_rm { };
+	static Linker_local_rm ld_rm { };
 
 	/*
 	 * Use a statically allocated initial block to make the first dynamic
@@ -773,6 +769,7 @@ void *Dynamic_linker::_respawn(Env &env, char const *binary, char const *entry_n
 	throw Dynamic_linker::Invalid_symbol();
 }
 
+extern "C" void wait_for_continue();
 
 void Component::construct(Genode::Env &env)
 {

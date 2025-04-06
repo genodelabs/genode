@@ -207,11 +207,11 @@ class Block::Session_component : public Block::Session_component_base,
 		 * \param ep              entrypoint handling this session component
 		 * \param buf_size        size of packet-stream payload buffer
 		 */
-		Session_component(Driver_factory     &driver_factory,
-		                  Genode::Entrypoint &ep,
-		                  Genode::Region_map &rm,
-		                  size_t              buf_size,
-		                  bool                writeable)
+		Session_component(Driver_factory        &driver_factory,
+		                  Genode::Entrypoint    &ep,
+		                  Genode::Env::Local_rm &rm,
+		                  size_t                 buf_size,
+		                  bool                   writeable)
 		: Session_component_base(driver_factory, buf_size),
 		  Driver_session(rm, _rq.ds, ep.rpc_ep()),
 		  _rq_phys(_rq.dma_addr),
@@ -275,10 +275,10 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 {
 	private:
 
-		Driver_factory     &_driver_factory;
-		Genode::Entrypoint &_ep;
-		Genode::Region_map &_rm;
-		bool const          _writeable;
+		Driver_factory        &_driver_factory;
+		Genode::Entrypoint    &_ep;
+		Genode::Env::Local_rm &_rm;
+		bool const             _writeable;
 
 	protected:
 
@@ -322,11 +322,11 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 		 * \param rm              region map
 		 * \param driver_factory  factory to create and destroy driver backend
 		 */
-		Root(Genode::Entrypoint &ep,
-		     Allocator          &md_alloc,
-		     Genode::Region_map &rm,
-		     Driver_factory     &driver_factory,
-		     bool                writeable)
+		Root(Genode::Entrypoint    &ep,
+		     Allocator             &md_alloc,
+		     Genode::Env::Local_rm &rm,
+		     Driver_factory        &driver_factory,
+		     bool                   writeable)
 		:
 			Root_component(ep, md_alloc),
 			_driver_factory(driver_factory), _ep(ep), _rm(rm), _writeable(writeable)

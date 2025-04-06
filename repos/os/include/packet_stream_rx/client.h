@@ -43,7 +43,7 @@ class Packet_stream_rx::Client : public Genode::Rpc_client<CHANNEL>
 		 * Constructor
 		 */
 		Client(Genode::Capability<CHANNEL> channel_cap,
-		       Genode::Region_map &rm)
+		       Genode::Env::Local_rm &rm)
 		:
 			Genode::Rpc_client<CHANNEL>(channel_cap),
 			_sink(Base::template call<Rpc_dataspace>(), rm)

@@ -29,7 +29,7 @@ void Core::platform_add_local_services(Rpc_entrypoint         &,
                                        Registry<Service>      &local_services,
                                        Trace::Source_registry &,
                                        Ram_allocator          &,
-                                       Region_map             &,
+                                       Local_rm               &,
                                        Range_allocator        &io_port_ranges)
 {
 	static Io_port_root io_port_root(io_port_ranges, sliced_heap);

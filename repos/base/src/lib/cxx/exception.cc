@@ -70,7 +70,8 @@ static void terminate_handler()
 }
 
 
-void Genode::init_exception_handling(Ram_allocator &ram, Region_map &rm)
+void Genode::init_exception_handling(Ram_allocator                 &ram,
+                                     Local::Constrained_region_map &rm)
 {
 	init_cxx_heap(ram, rm);
 

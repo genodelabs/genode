@@ -140,7 +140,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		                     Phys_range        phys_range,
 		                     Virt_range        virt_range,
 		                     Managing_system   managing_system,
-		                     Region_map       &local_rm,
+		                     Local_rm         &local_rm,
 		                     Pager_entrypoint &pager_ep,
 		                     char const       *args,
 		                     Range_allocator  &core_mem,

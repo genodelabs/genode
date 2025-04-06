@@ -26,7 +26,7 @@ namespace Libc { struct Cloned_malloc_heap_range; }
 struct Libc::Cloned_malloc_heap_range
 {
 	Ram_allocator &ram;
-	Region_map    &rm;
+	Env::Local_rm &rm;
 
 	Ram_dataspace_capability ds;
 
@@ -34,10 +34,11 @@ struct Libc::Cloned_malloc_heap_range
 
 	Range const range;
 
-	Cloned_malloc_heap_range(Ram_allocator &ram, Region_map &rm, Range const range)
+	Cloned_malloc_heap_range(Ram_allocator &ram, Env::Local_rm &rm, Range const range)
 	:
 		ram(ram), rm(rm), ds(ram.alloc(range.num_bytes)), range(range)
 	{
+		using Error = Env::Local_rm::Error;
 		rm.attach(ds, {
 			.size       = { },
 			.offset     = { },
@@ -46,9 +47,8 @@ struct Libc::Cloned_malloc_heap_range
 			.executable = { },
 			.writeable  = true
 		}).with_result(
-			[&] (Range) { },
-			[&] (Region_map::Attach_error e) {
-				using Error = Region_map::Attach_error;
+			[&] (Env::Local_rm::Attachment &a) { a.deallocate = false; },
+			[&] (Error e) {
 				switch (e) {
 				case Error::OUT_OF_RAM:        throw Out_of_ram();
 				case Error::OUT_OF_CAPS:       throw Out_of_caps();

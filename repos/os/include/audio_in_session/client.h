@@ -58,7 +58,7 @@ class Audio_in::Session_client : public Genode::Rpc_client<Session>
 		 * \param session          session capability
 		 * \param progress_signal  true, install 'progress_signal' receiver
 		 */
-		Session_client(Genode::Region_map &rm,
+		Session_client(Genode::Env::Local_rm &rm,
 		               Genode::Capability<Session> session,
 		               bool progress_signal)
 		:

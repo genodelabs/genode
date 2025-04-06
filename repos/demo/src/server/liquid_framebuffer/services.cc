@@ -85,7 +85,7 @@ class Window_content : public Scout::Element
 			unsigned char                        *alpha;
 			Genode::Texture<Genode::Pixel_rgb888> texture;
 
-			Fb_texture(Genode::Ram_allocator &ram, Genode::Region_map &local_rm,
+			Fb_texture(Genode::Ram_allocator &ram, Genode::Env::Local_rm &local_rm,
 			           Genode::Allocator &alloc,
 			           unsigned w, unsigned h, bool config_alpha)
 			:
@@ -129,7 +129,7 @@ class Window_content : public Scout::Element
 		};
 
 		Genode::Ram_allocator &_ram;
-		Genode::Region_map    &_rm;
+		Genode::Env::Local_rm &_rm;
 		Genode::Allocator     &_alloc;
 		bool                   _config_alpha;
 		Content_event_handler  _ev_handler;
@@ -157,7 +157,7 @@ class Window_content : public Scout::Element
 
 	public:
 
-		Window_content(Genode::Ram_allocator &ram, Genode::Region_map &rm,
+		Window_content(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 		               Genode::Allocator &alloc, unsigned fb_w, unsigned fb_h,
 		               Input::Session_component &input_session,
 		               bool config_alpha)
@@ -284,7 +284,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 };
 
 
-void init_window_content(Genode::Ram_allocator &ram, Genode::Region_map &rm,
+void init_window_content(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
                          Genode::Allocator &alloc,
                          Input::Session_component &input_component,
                          unsigned fb_w, unsigned fb_h, bool config_alpha)

@@ -29,7 +29,7 @@ class Core::Rm_root : public Root_component<Rm_session_component>
 	private:
 
 		Ram_allocator    &_ram_alloc;
-		Region_map       &_local_rm;
+		Local_rm         &_local_rm;
 		Pager_entrypoint &_pager_ep;
 
 	protected:
@@ -64,7 +64,7 @@ class Core::Rm_root : public Root_component<Rm_session_component>
 		Rm_root(Rpc_entrypoint   &session_ep,
 		        Allocator        &md_alloc,
 		        Ram_allocator    &ram_alloc,
-		        Region_map       &local_rm,
+		        Local_rm         &local_rm,
 		        Pager_entrypoint &pager_ep)
 		:
 			Root_component<Rm_session_component>(&session_ep, &md_alloc),

@@ -65,11 +65,14 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 	vcpu.ds.with_error([&] (Ram::Error e) { throw_exception(e); });
 
 	try {
-		Region_map::Attr attr { };
+		Local_rm::Attach_attr attr { };
 		attr.writeable = true;
-		vcpu.ds_addr = _region_map.attach(vcpu.state(), attr).convert<addr_t>(
-			[&] (Region_map::Range range) { return _alloc_vcpu_data(range.start); },
-			[&] (Region_map::Attach_error) -> addr_t {
+		vcpu.ds_addr = _local_rm.attach(vcpu.state(), attr).convert<addr_t>(
+			[&] (Local_rm::Attachment &a) {
+				a.deallocate = false;
+				return _alloc_vcpu_data(addr_t(a.ptr));
+			},
+			[&] (Local_rm::Error) -> addr_t {
 				error("failed to attach VCPU data within core");
 				_vcpus[_vcpu_id_alloc].destruct();
 				return 0;

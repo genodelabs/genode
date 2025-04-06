@@ -18,7 +18,10 @@
 
 namespace Genode {
 
-	class Region_map;
+	namespace Local { struct Constrained_region_map; }
+
+	using Local_rm = Local::Constrained_region_map;
+
 	class Ram_allocator;
 	class Env;
 	class Platform;
@@ -30,11 +33,11 @@ namespace Genode {
 	Platform &init_platform();
 
 	void init_stack_area();
-	void init_exception_handling(Ram_allocator &, Region_map &);
+	void init_exception_handling(Ram_allocator &, Local::Constrained_region_map &);
 	void init_signal_transmitter(Env &);
 	void init_signal_receiver(Pd_session &, Parent &);
 	void init_cap_slab(Pd_session &, Parent &);
-	void init_cxx_heap(Ram_allocator &, Region_map &);
+	void init_cxx_heap(Ram_allocator &, Local::Constrained_region_map &);
 	void init_cxx_guard();
 	void init_ldso_phdr(Env &);
 	void init_signal_thread(Env &);
@@ -44,7 +47,7 @@ namespace Genode {
 	void init_rpc_cap_alloc(Parent &);
 	void init_parent_resource_requests(Env &);
 	void init_heartbeat_monitoring(Env &);
-	void init_thread(Cpu_session &, Region_map &);
+	void init_thread(Cpu_session &, Local_rm &);
 	void init_thread_start(Capability<Pd_session>);
 	void init_thread_bootstrap(Cpu_session &, Thread_capability);
 	void exec_static_constructors();

@@ -771,7 +771,7 @@ void Child::_try_construct_env_dependent_members()
 	if (_policy.forked()) {
 		_start_result = Start_result::OK;
 	} else {
-		_policy.with_address_space(_pd.session(), [&] (Region_map &address_space) {
+		_policy.with_address_space(_pd.session(), [&] (Genode::Region_map &address_space) {
 			_start_result = _start_process(_linker_dataspace(), _pd.session(),
 			                               *_initial_thread, _initial_thread_start,
 			                               _local_rm, address_space, cap());
@@ -922,7 +922,7 @@ void Child::close_all_sessions()
 }
 
 
-Child::Child(Region_map      &local_rm,
+Child::Child(Local_rm        &local_rm,
              Rpc_entrypoint  &entrypoint,
              Child_policy    &policy)
 :

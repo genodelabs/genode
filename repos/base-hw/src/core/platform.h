@@ -32,7 +32,7 @@
 
 /* base-hw core includes */
 #include <platform_generic.h>
-#include <core_region_map.h>
+#include <core_local_rm.h>
 #include <core_mem_alloc.h>
 #include <assertion.h>
 #include <board.h>
@@ -121,7 +121,7 @@ class Core::Platform : public Platform_generic
 
 		/**
 		 * Determine size of a core local mapping required for a
-		 * Core_region_map::detach().
+		 * Core_local_rm::_free().
 		 */
 		size_t region_alloc_size_at(void * addr)
 		{

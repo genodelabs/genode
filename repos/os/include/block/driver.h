@@ -59,7 +59,7 @@ class Block::Driver_session : public Driver_session_base,
 		 *               for the tx packet stream
 		 * \param ep     entry point used for packet-stream channel
 		 */
-		Driver_session(Genode::Region_map           &rm,
+		Driver_session(Genode::Env::Local_rm        &rm,
 		               Genode::Dataspace_capability  tx_ds,
 		               Genode::Rpc_entrypoint       &ep)
 		: Session_rpc_object(rm, tx_ds, ep) { }

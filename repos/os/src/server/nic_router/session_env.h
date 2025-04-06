@@ -21,7 +21,7 @@ namespace Genode { class Session_env; }
 
 
 class Genode::Session_env : public Ram_allocator,
-                            public Region_map
+                            public Env::Local_rm
 {
 	private:
 
@@ -157,24 +157,37 @@ class Genode::Session_env : public Ram_allocator,
 		}
 
 
-		/****************
-		 ** Region_map **
-		 ****************/
+		/*******************
+		 ** Env::Local_rm **
+		 *******************/
 
-		Attach_result attach(Dataspace_capability ds, Region_map::Attr const &attr) override
+		Env::Local_rm::Result attach(Capability<Dataspace> ds, Attach_attr const &attr) override
 		{
+			using Result = Env::Local_rm::Result;
+
 			enum { MAX_SHARED_CAP = 2 };
 			enum { MAX_SHARED_RAM = 4 * 4096 };
 
-			Attach_result result = Attach_error::REGION_CONFLICT;
+			Result result = Env::Local_rm::Error::REGION_CONFLICT;
 			try {
 				_consume(0, MAX_SHARED_RAM, 0, MAX_SHARED_CAP, [&] {
 					result = _env.rm().attach(ds, attr);
 				});
 			}
-			catch (Out_of_ram)  { result = Attach_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { result = Attach_error::OUT_OF_CAPS; }
-			return result;
+			catch (Out_of_ram)  { result = Env::Local_rm::Error::OUT_OF_RAM; }
+			catch (Out_of_caps) { result = Env::Local_rm::Error::OUT_OF_CAPS; }
+
+			return result.convert<Result>(
+				[&] (Attachment &a) -> Result {
+					a.deallocate = false;
+					return { *this , a };
+				},
+				[&] (Env::Local_rm::Error e) { return e; });
+		}
+
+		void _free(Attachment &a) override
+		{
+			_replenish(0, 0, [&] { _env.rm().detach(addr_t(a.ptr)); });
 		}
 
 		bool report_empty() const { return false; }
@@ -192,15 +205,6 @@ class Genode::Session_env : public Ram_allocator,
 				xml.attribute("avail", _cap_guard.avail().value);
 			});
 		}
-
-		void detach(addr_t at) override
-		{
-			_replenish(0, 0, [&] { _env.rm().detach(at); });
-		}
-
-		void fault_handler(Signal_context_capability handler) override { _env.rm().fault_handler(handler); }
-		Fault fault() override { return _env.rm().fault(); }
-		Dataspace_capability dataspace() override { return _env.rm().dataspace(); }
 
 
 		/***************

@@ -34,12 +34,12 @@ class Monitor_base
 	protected:
 
 		Genode::Trace::Connection &_trace;
-		Genode::Region_map        &_rm;
+		Genode::Env::Local_rm     &_rm;
 		Genode::Attached_dataspace _ds;
 		Genode::Trace::Buffer     &_buffer_raw = *_ds.local_addr<Genode::Trace::Buffer>();
 
 		Monitor_base(Genode::Trace::Connection &trace,
-		             Genode::Region_map        &rm,
+		             Genode::Env::Local_rm     &rm,
 		             Genode::Trace::Subject_id  subject_id)
 		:
 			_trace(trace), _rm(rm), _ds(rm, _trace.buffer(subject_id))
@@ -72,7 +72,7 @@ class Monitor : public Monitor_base,
 		};
 
 		Monitor(Genode::Trace::Connection &trace,
-		        Genode::Region_map        &rm,
+		        Genode::Env::Local_rm     &rm,
 		        Genode::Trace::Subject_id  subject_id);
 
 		/**

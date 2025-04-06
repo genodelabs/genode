@@ -210,7 +210,7 @@ struct Block_session_component : Rpc_object<Block::Session>,
 	Vfs_block::File &_file;
 	Vfs::Env::Io    &_io;
 
-	Block_session_component(Region_map                 &rm,
+	Block_session_component(Env::Local_rm              &rm,
 	                        Entrypoint                 &ep,
 	                        Dataspace_capability        ds,
 	                        Signal_context_capability   sigh,

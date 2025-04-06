@@ -86,7 +86,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Label const &,
                                            Diag,
                                            Ram_allocator &ram,
-                                           Region_map &local_rm,
+                                           Local_rm &local_rm,
                                            unsigned,
                                            Trace::Source_registry &)
 try

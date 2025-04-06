@@ -29,7 +29,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 {
 	private:
 
-		Genode::Region_map      &_rm;
+		Genode::Env::Local_rm   &_rm;
 		Utils::Backend_alloc    &_backend;
 
 		enum { ELEMENTS = 128, }; /* max 128M for page tables */
@@ -40,7 +40,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 	public:
 
 		Ppgtt_allocator(Genode::Allocator       &md_alloc,
-		                Genode::Region_map      &rm,
+		                Genode::Env::Local_rm   &rm,
 		                Utils::Backend_alloc    &backend)
 		:
 			_rm         { rm },
@@ -95,29 +95,30 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 				.writeable  = true
 			}).convert<Alloc_result>(
 
-				[&] (Genode::Region_map::Range const range) -> Alloc_result {
+				[&] (Genode::Env::Local_rm::Attachment &range) -> Alloc_result {
 
-					void * const va = (void*)range.start;
+					void * const va = (void*)range.ptr;
 					void * const pa = (void*)_backend.dma_addr(ds);
 
 					if (_map.add(ds, pa, va, range.num_bytes) == true) {
-						if (_range.add_range(range.start, range.num_bytes).ok())
+						if (_range.add_range(addr_t(range.ptr), range.num_bytes).ok()) {
+							range.deallocate = false;
 							return _range.alloc_aligned(size, 12);
+						}
 
 						Genode::error("Ppgtt_allocator failed to extend meta data");
 					}
 
 					/* _map.add failed, roll back _rm.attach */
-					_rm.detach(range.start);
 					_backend.free(ds);
 					return Alloc_error::DENIED;
 				},
 
-				[&] (Genode::Region_map::Attach_error e) {
+				[&] (Genode::Env::Local_rm::Error e) {
 
 					_backend.free(ds);
 
-					using Error = Genode::Region_map::Attach_error;
+					using Error = Genode::Env::Local_rm::Error;
 
 					if (e == Error::OUT_OF_RAM)  return Alloc_error::OUT_OF_RAM;
 					if (e == Error::OUT_OF_CAPS) return Alloc_error::OUT_OF_CAPS;

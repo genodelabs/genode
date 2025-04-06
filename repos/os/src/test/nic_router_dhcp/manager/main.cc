@@ -29,10 +29,10 @@ using namespace Net;
 using namespace Genode;
 using Domain_name = String<160>;
 
-namespace Local { class Main; }
+namespace Test { class Main; }
 
 
-class Local::Main
+class Test::Main
 {
 	private:
 
@@ -53,7 +53,7 @@ class Local::Main
 };
 
 
-Local::Main::Main(Env &env) : _env(env)
+Test::Main::Main(Env &env) : _env(env)
 {
 	log("Initialized");
 	_router_state_rom.sigh(_router_state_handler);
@@ -61,7 +61,7 @@ Local::Main::Main(Env &env) : _env(env)
 }
 
 
-void Local::Main::_handle_router_state()
+void Test::Main::_handle_router_state()
 {
 	/* Request the moste recent content of the router state dataspace. */
 	log("Read state of nic_router_2");
@@ -208,4 +208,4 @@ void Local::Main::_handle_router_state()
 }
 
 
-void Component::construct(Env &env) { static Local::Main main(env); }
+void Component::construct(Env &env) { static Test::Main main(env); }

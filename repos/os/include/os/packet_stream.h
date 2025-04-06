@@ -490,7 +490,7 @@ class Genode::Packet_stream_base
 
 	protected:
 
-		Genode::Region_map          &_rm;
+		Genode::Env::Local_rm       &_rm;
 		Genode::Dataspace_capability _ds_cap;
 		Genode::Attached_dataspace   _ds { _rm, _ds_cap };
 
@@ -507,7 +507,7 @@ class Genode::Packet_stream_base
 		 * \throw                    'Transport_dataspace_too_small'
 		 */
 		Packet_stream_base(Genode::Dataspace_capability transport_ds,
-		                   Genode::Region_map &rm,
+		                   Genode::Env::Local_rm &rm,
 		                   Genode::size_t submit_queue_size,
 		                   Genode::size_t ack_queue_size)
 		:
@@ -633,7 +633,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 * rather than pointers.
 		 */
 		Packet_stream_source(Genode::Dataspace_capability  transport_ds_cap,
-		                     Genode::Region_map           &rm,
+		                     Genode::Env::Local_rm        &rm,
 		                     Genode::Range_allocator      &packet_alloc)
 		:
 			Packet_stream_base(transport_ds_cap, rm,
@@ -869,7 +869,7 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		 *                      source and sink
 		 */
 		Packet_stream_sink(Genode::Dataspace_capability transport_ds,
-		                   Genode::Region_map &rm)
+		                   Genode::Env::Local_rm &rm)
 		:
 			Packet_stream_base(transport_ds, rm, sizeof(Submit_queue), sizeof(Ack_queue)),
 

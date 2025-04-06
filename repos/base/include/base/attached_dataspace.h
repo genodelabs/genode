@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__ATTACHED_DATASPACE_H_
 
 #include <dataspace/client.h>
-#include <base/env.h>
+#include <base/local.h>
 
 namespace Genode { class Attached_dataspace; }
 
@@ -29,29 +29,18 @@ class Genode::Attached_dataspace : Noncopyable
 
 	private:
 
-		Dataspace_capability _ds;
+		using Local_rm = Local::Constrained_region_map;
 
-		Region_map &_rm;
+		Dataspace_capability const _ds;
 
-		Dataspace_capability _check(Dataspace_capability ds)
-		{
-			if (ds.valid())
-				return ds;
-
-			throw Invalid_dataspace();
-		}
-
-		Region_map::Attach_result _attached = _rm.attach(_ds, {
-			.size       = { }, .offset    = { },
-			.use_at     = { }, .at        = { },
-			.executable = { }, .writeable = true });
+		Local_rm::Result _attached;
 
 		template <typename T>
 		T *_ptr() const
 		{
 			return _attached.convert<T *>(
-				[&] (Region_map::Range range)  { return (T *)range.start; },
-				[&] (Region_map::Attach_error) { return nullptr; });
+				[&] (Local_rm::Attachment const &a) { return (T *)a.ptr; },
+				[&] (Local_rm::Error)               { return nullptr; });
 		}
 
 	public:
@@ -60,29 +49,26 @@ class Genode::Attached_dataspace : Noncopyable
 		 * Constructor
 		 *
 		 * \throw Region_conflict
-		 * \throw Invalid_dataspace
 		 * \throw Out_of_caps
 		 * \throw Out_of_ram
 		 */
-		Attached_dataspace(Region_map &rm, Dataspace_capability ds)
+		Attached_dataspace(Local_rm &rm, Dataspace_capability ds)
 		:
-			_ds(_check(ds)), _rm(rm)
+			_ds(ds),
+			_attached(rm.attach(ds, {
+				.size       = { }, .offset    = { },
+				.use_at     = { }, .at        = { },
+				.executable = { }, .writeable = true
+			}))
 		{
-			_attached.with_error([&] (Region_map::Attach_error e) {
-				if (e == Region_map::Attach_error::OUT_OF_RAM)  throw Out_of_ram();
-				if (e == Region_map::Attach_error::OUT_OF_CAPS) throw Out_of_caps();
-				throw Region_conflict();
+			_attached.with_error([&] (Local_rm::Error e) {
+				switch (e) {
+				case Local_rm::Error::OUT_OF_RAM:        throw Out_of_ram();
+				case Local_rm::Error::OUT_OF_CAPS:       throw Out_of_caps();
+				case Local_rm::Error::REGION_CONFLICT:   throw Region_conflict();
+				case Local_rm::Error::INVALID_DATASPACE: throw Invalid_dataspace();
+				}
 			});
-		}
-
-		/**
-		 * Destructor
-		 */
-		~Attached_dataspace()
-		{
-			_attached.with_result(
-				[&] (Region_map::Range range)  { _rm.detach(range.start); },
-				[&] (Region_map::Attach_error) { });
 		}
 
 		/**
@@ -108,8 +94,8 @@ class Genode::Attached_dataspace : Noncopyable
 		size_t size() const
 		{
 			return _attached.convert<size_t>(
-				[&] (Region_map::Range range)  { return range.num_bytes; },
-				[&] (Region_map::Attach_error) { return 0UL; });
+				[&] (Local_rm::Attachment const &a) { return a.num_bytes; },
+				[&] (Local_rm::Error)               { return 0UL; });
 		}
 
 		/**
@@ -126,7 +112,7 @@ class Genode::Attached_dataspace : Noncopyable
 		 * removed the memory mappings of the dataspace. So we have to omit the
 		 * detach operation in '~Attached_dataspace'.
 		 */
-		void invalidate() { _attached = Region_map::Attach_error::INVALID_DATASPACE; }
+		void invalidate() { _attached = Local_rm::Error::INVALID_DATASPACE; }
 };
 
 #endif /* _INCLUDE__BASE__ATTACHED_DATASPACE_H_ */

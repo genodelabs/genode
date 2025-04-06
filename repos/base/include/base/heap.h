@@ -17,7 +17,7 @@
 #include <util/list.h>
 #include <util/reconstructible.h>
 #include <base/ram_allocator.h>
-#include <region_map/region_map.h>
+#include <base/local.h>
 #include <base/allocator_avl.h>
 #include <base/mutex.h>
 
@@ -38,6 +38,8 @@ namespace Genode {
 class Genode::Heap : public Allocator
 {
 	private:
+
+		using Local_rm = Local::Constrained_region_map;
 
 		class Dataspace : public List<Dataspace>::Element
 		{
@@ -76,17 +78,17 @@ class Genode::Heap : public Allocator
 			public:
 
 				Ram_allocator *ram_alloc; /* backing store */
-				Region_map    *region_map;
+				Local_rm      *local_rm;
 
-				Dataspace_pool(Ram_allocator *ram, Region_map *rm)
-				: ram_alloc(ram), region_map(rm) { }
+				Dataspace_pool(Ram_allocator *ram, Local_rm *rm)
+				: ram_alloc(ram), local_rm(rm) { }
 
 				~Dataspace_pool();
 
 				void remove_and_free(Dataspace &);
 
-				void reassign_resources(Ram_allocator *ram, Region_map *rm) {
-					ram_alloc = ram, region_map = rm; }
+				void reassign_resources(Ram_allocator *ram, Local_rm *rm) {
+					ram_alloc = ram, local_rm = rm; }
 		};
 
 		Mutex                  mutable _mutex { };
@@ -122,12 +124,12 @@ class Genode::Heap : public Allocator
 		static constexpr size_t UNLIMITED = ~0;
 
 		Heap(Ram_allocator *ram_allocator,
-		     Region_map    *region_map,
+		     Local_rm      *local_rm,
 		     size_t         quota_limit = UNLIMITED,
 		     void          *static_addr = 0,
 		     size_t         static_size = 0);
 
-		Heap(Ram_allocator &ram, Region_map &rm) : Heap(&ram, &rm) { }
+		Heap(Ram_allocator &ram, Local_rm &rm) : Heap(&ram, &rm) { }
 
 		~Heap();
 
@@ -142,7 +144,7 @@ class Genode::Heap : public Allocator
 		/**
 		 * Re-assign RAM allocator and region map
 		 */
-		void reassign_resources(Ram_allocator *ram, Region_map *rm) {
+		void reassign_resources(Ram_allocator *ram, Local_rm *rm) {
 			_ds_pool.reassign_resources(ram, rm); }
 
 		/**
@@ -182,6 +184,8 @@ class Genode::Sliced_heap : public Allocator
 {
 	private:
 
+		using Local_rm = Local::Constrained_region_map;
+
 		/**
 		 * Meta-data header placed in front of each allocated block
 		 */
@@ -195,7 +199,7 @@ class Genode::Sliced_heap : public Allocator
 		};
 
 		Ram_allocator  &_ram_alloc;     /* RAM allocator for backing store */
-		Region_map     &_region_map;    /* region map of the address space */
+		Local_rm       &_local_rm;      /* region map of the address space */
 		size_t          _consumed = 0;  /* number of allocated bytes       */
 		List<Block>     _blocks { };    /* list of allocated blocks        */
 		Mutex           _mutex  { };    /* serialize allocations           */
@@ -210,7 +214,7 @@ class Genode::Sliced_heap : public Allocator
 		/**
 		 * Constructor
 		 */
-		Sliced_heap(Ram_allocator &ram_alloc, Region_map &region_map);
+		Sliced_heap(Ram_allocator &ram_alloc, Local_rm &local_rm);
 
 		/**
 		 * Destructor

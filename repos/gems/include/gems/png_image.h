@@ -49,7 +49,7 @@ class Png_image
 		};
 
 		Genode::Ram_allocator &_ram;
-		Genode::Region_map    &_rm;
+		Genode::Env::Local_rm &_rm;
 		Genode::Allocator     &_alloc;
 
 		class Read_struct
@@ -176,7 +176,7 @@ class Png_image
 		 * \throw Read_struct_failed
 		 * \throw Info_failed
 		 */
-		Png_image(Genode::Ram_allocator &ram, Genode::Region_map &rm,
+		Png_image(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 		          Genode::Allocator &alloc, void const *data)
 		:
 			_ram(ram), _rm(rm), _alloc(alloc), _read_struct(data)

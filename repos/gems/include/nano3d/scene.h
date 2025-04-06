@@ -75,7 +75,7 @@ class Nano3d::Scene
 		{
 			enum { NUM_BUFFERS = 3 };
 
-			Genode::Region_map &rm;
+			Genode::Env::Local_rm &local_rm;
 
 			static Framebuffer::Session &
 			_init_framebuffer(Gui::Connection &gui,
@@ -105,7 +105,7 @@ class Nano3d::Scene
 				return Gui::Area(mode.area.w, mode.area.h/NUM_BUFFERS);
 			}
 
-			Genode::Attached_dataspace ds { rm, framebuffer.dataspace() };
+			Genode::Attached_dataspace ds { local_rm, framebuffer.dataspace() };
 
 			PT *pixel_base(unsigned i)
 			{
@@ -136,9 +136,9 @@ class Nano3d::Scene
 			}
 
 			Mapped_framebuffer(Gui::Connection &gui, Gui::Area size,
-			                   Genode::Region_map &rm)
+			                   Genode::Env::Local_rm &local_rm)
 			:
-				rm(rm), framebuffer(_init_framebuffer(gui, size))
+				local_rm(local_rm), framebuffer(_init_framebuffer(gui, size))
 			{ }
 
 		} _framebuffer { _gui, _size, _env.rm() };

@@ -38,7 +38,7 @@ class Core::Phys_allocated : Genode::Noncopyable
 
 		Rpc_entrypoint &_ep;
 		Ram_allocator  &_ram;
-		Region_map     &_rm;
+		Local_rm       &_rm;
 
 		Attached_ram_dataspace _ds { _ram, _rm, sizeof(T) };
 	public:
@@ -47,7 +47,7 @@ class Core::Phys_allocated : Genode::Noncopyable
 
 		Phys_allocated(Rpc_entrypoint &ep,
 		               Ram_allocator  &ram,
-		               Region_map     &rm)
+		               Local_rm       &rm)
 		:
 		_ep(ep), _ram(ram), _rm(rm)
 		{
@@ -56,7 +56,7 @@ class Core::Phys_allocated : Genode::Noncopyable
 
 		Phys_allocated(Rpc_entrypoint &ep,
 		               Ram_allocator  &ram,
-		               Region_map     &rm,
+		               Local_rm       &rm,
 		               auto const     &construct_fn)
 		:
 		_ep(ep), _ram(ram), _rm(rm)

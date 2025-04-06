@@ -44,7 +44,7 @@ struct Genode::Trace::Control_area : Noncopyable
 		return fn(_area->local_addr<Control>()[i]);
 	}
 
-	Control_area(Ram_allocator &ram, Region_map &rm)
+	Control_area(Ram_allocator &ram, Core::Local_rm &rm)
 	{
 		try { _area.construct(ram, rm, SIZE); }
 		catch (Out_of_ram)  { error = Alloc_error::OUT_OF_RAM; }

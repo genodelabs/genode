@@ -33,7 +33,7 @@ void Core::platform_add_local_services(Rpc_entrypoint         &ep,
                                        Registry<Service>      &services,
                                        Trace::Source_registry &trace_sources,
                                        Ram_allocator          &core_ram,
-                                       Region_map             &core_rm,
+                                       Local_rm               &local_rm,
                                        Range_allocator        &)
 {
 	static addr_t const phys_base =
@@ -42,7 +42,7 @@ void Core::platform_add_local_services(Rpc_entrypoint         &ep,
 	map_local(phys_base, Hw::Mm::system_exception_vector().base, 1,
 	          Hw::PAGE_FLAGS_KERN_TEXT);
 
-	static Vm_root vm_root(ep, sliced_heap, core_ram, core_rm, trace_sources);
+	static Vm_root vm_root(ep, sliced_heap, core_ram, local_rm, trace_sources);
 
 	static Core_service<Vm_session_component> vm_service(services, vm_root);
 }

@@ -70,6 +70,8 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 	private:
 
+		using Local_rm = Local::Constrained_region_map;
+
 		/*
 		 * Synchronize calls of 'trigger_update' (called locally) with the
 		 * 'Rom_session' methods (invoked via RPC).
@@ -78,7 +80,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		Rpc_entrypoint            &_ep;
 		Ram_allocator             &_ram;
-		Region_map                &_rm;
+		Local_rm                  &_rm;
 		Signal_context_capability  _sigh { };
 		Content_producer          &_content_producer;
 
@@ -162,7 +164,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		Dynamic_rom_session(Rpc_entrypoint   &ep,
 		                    Ram_allocator    &ram,
-		                    Region_map       &rm,
+		                    Local_rm         &rm,
 		                    Content_producer &content_producer)
 		:
 			_ep(ep), _ram(ram), _rm(rm), _content_producer(content_producer)
@@ -187,7 +189,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		 */
 		Dynamic_rom_session(Entrypoint       &ep,
 		                    Ram_allocator    &ram,
-		                    Region_map       &rm,
+		                    Local_rm         &rm,
 		                    Content_producer &content_producer)
 		:
 			Dynamic_rom_session(ep.rpc_ep(), ram, rm, content_producer)

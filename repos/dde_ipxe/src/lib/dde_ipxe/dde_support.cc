@@ -456,13 +456,13 @@ struct Slab_backend_alloc : public Genode::Allocator,
 				return e; });
 	}
 
-	Slab_backend_alloc(Genode::Env &env, Genode::Region_map &rm,
+	Slab_backend_alloc(Genode::Env &env, Genode::Env::Local_rm &local_rm,
 	                   Genode::Ram_allocator &ram,
 	                   Genode::Allocator &md_alloc)
 	:
 		Rm_connection(env),
 		Region_map_client(Rm_connection::create(VM_SIZE)),
-		_managed_ds(rm, dataspace()), _range(&md_alloc), _ram(ram)
+		_managed_ds(local_rm, dataspace()), _range(&md_alloc), _ram(ram)
 	{ }
 
 	Genode::addr_t start() const { return _base; }

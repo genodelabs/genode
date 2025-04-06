@@ -64,7 +64,7 @@ class Net::Session_component_base
 	public:
 
 		Session_component_base(Genode::Ram_allocator &ram,
-		                       Genode::Region_map    &local_rm,
+		                       Genode::Env::Local_rm &local_rm,
 		                       Genode::Ram_quota      ram_quota,
 		                       Genode::Cap_quota      cap_quota,
 		                       Genode::size_t   const tx_buf_size,

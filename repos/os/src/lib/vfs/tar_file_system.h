@@ -565,21 +565,18 @@ class Vfs::Tar_file_system : public File_system
 
 			size_t const len = size_t(record->size());
 
-			using Region_map = Genode::Region_map;
-
 			return _env.ram().try_alloc(len).convert<Dataspace_capability>(
 				[&] (Genode::Ram::Allocation &allocation) {
 					return _env.rm().attach(allocation.cap, {
 						.size = { },  .offset     = { },  .use_at    = { },
 						.at   = { },  .executable = { },  .writeable = true
 					}).convert<Dataspace_capability>(
-						[&] (Region_map::Range const range) {
-							memcpy((void *)range.start, record->data(), len);
-							_env.rm().detach(range.start);
+						[&] (Genode::Env::Local_rm::Attachment &a) {
+							memcpy(a.ptr, record->data(), len);
 							allocation.deallocate = false;
 							return allocation.cap;
 						},
-						[&] (Region_map::Attach_error) {
+						[&] (Genode::Env::Local_rm::Error) {
 							return Dataspace_capability();
 						}
 					);

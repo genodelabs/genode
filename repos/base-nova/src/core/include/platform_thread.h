@@ -93,7 +93,7 @@ class Core::Platform_thread
 		/**
 		 * Constructor
 		 */
-		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Region_map &,
+		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Local_rm &,
 		                size_t quota, char const *name, unsigned priority,
 		                Affinity::Location affinity, addr_t utcb);
 

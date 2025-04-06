@@ -6,7 +6,7 @@ SRC_CC      += stack_area.cc \
                core_mem_alloc.cc \
                core_log.cc \
                core_log_out.cc \
-               core_region_map.cc \
+               core_local_rm.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \

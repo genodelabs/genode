@@ -486,33 +486,32 @@ class Vfs::Rump_file_system : public File_system
 			};
 
 			return _env.env().ram().try_alloc(s.st_size).convert<Dataspace_capability>(
-				[&] (Genode::Ram::Allocation &a) {
-					return _env.env().rm().attach(a.cap, {
+				[&] (Genode::Ram::Allocation &allocation) {
+					return _env.env().rm().attach(allocation.cap, {
 						.size = { },  .offset     = { },  .use_at    = { },
 						.at   = { },  .executable = { },  .writeable = true
 					}).convert<Dataspace_capability>(
-						[&] (Region_map::Range const range) -> Dataspace_capability {
+						[&] (Genode::Env::Local_rm::Attachment &attachment) -> Dataspace_capability {
 
-							bool const complete = read_file_content(range);
-							_env.env().rm().detach(range.start);
+							bool const complete = read_file_content({
+								.start     = Genode::addr_t(attachment.ptr),
+								.num_bytes = attachment.num_bytes });
 
 							if (complete) {
-								a.deallocate = false;
-								return a.cap;
+								allocation.deallocate = false;
+								attachment.deallocate = false;
+								return allocation.cap;
 							}
-
 							Genode::error("rump failed to read content into VFS dataspace");
 							return Dataspace_capability();
 						},
-						[&] (Region_map::Attach_error) {
-							return Dataspace_capability();
-						}
+						[&] (Genode::Env::Local_rm::Error) {
+							return Dataspace_capability(); }
 					);
 				},
 				[&] (Genode::Ram_allocator::Alloc_error) {
 					Genode::error("rump failed to allocate VFS dataspace of size ", s.st_size);
-					return Dataspace_capability();
-				}
+					return Dataspace_capability(); }
 			);
 		}
 

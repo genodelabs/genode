@@ -26,29 +26,23 @@ using namespace Genode;
 
 Child::Load_result Child::_load_static_elf(Dataspace_capability elf_ds,
                                            Ram_allocator       &ram,
-                                           Region_map          &local_rm,
+                                           Local_rm            &local_rm,
                                            Region_map          &remote_rm,
                                            Parent_capability    parent_cap)
 {
-	addr_t const elf_addr = local_rm.attach(elf_ds, Region_map::Attr{}).convert<addr_t>(
-		[&] (Region_map::Range range) { return range.start; },
-		[&] (Region_map::Attach_error const e) -> addr_t {
-			if (e == Region_map::Attach_error::INVALID_DATASPACE)
-				error("dynamic linker is an invalid dataspace");
-			if (e == Region_map::Attach_error::REGION_CONFLICT)
-				error("region conflict while attaching dynamic linker");
-			return 0; });
+	Local_rm::Result attached_elf = local_rm.attach(elf_ds, { });
+
+	if (attached_elf == Local_rm::Error::INVALID_DATASPACE)
+		error("dynamic linker is an invalid dataspace");
+	if (attached_elf == Local_rm::Error::REGION_CONFLICT)
+		error("region conflict while attaching dynamic linker");
+
+	addr_t const elf_addr = attached_elf.convert<addr_t>(
+		[&] (Local_rm::Attachment &a) { return addr_t(a.ptr); },
+		[&] (Local_rm::Error)         { return 0UL; });
 
 	if (!elf_addr)
 		return Load_error::INVALID;
-
-	/* detach ELF binary from local address space when leaving the scope */
-	struct Elf_detach_guard
-	{
-		Region_map &local_rm;
-		addr_t const addr;
-		~Elf_detach_guard() { local_rm.detach(addr); }
-	} elf_detach_guard { .local_rm = local_rm, .addr = elf_addr };
 
 	Elf_binary elf(elf_addr);
 
@@ -84,71 +78,63 @@ Child::Load_result Child::_load_static_elf(Dataspace_capability elf_ds,
 			 */
 
 			/* alloc dataspace */
-			Ram_allocator::Result alloc_result = ram.try_alloc(size);
-
-			if (alloc_result.failed())
+			Ram_allocator::Result allocated_rw = ram.try_alloc(size);
+			if (allocated_rw.failed())
 				error("allocation of read-write segment failed");
 
-			using Alloc_error = Ram_allocator::Alloc_error;
+			if (allocated_rw == Alloc_error::OUT_OF_RAM)  return Load_error::OUT_OF_RAM;
+			if (allocated_rw == Alloc_error::OUT_OF_CAPS) return Load_error::OUT_OF_CAPS;
+			if (allocated_rw.failed())                    return Load_error::INVALID;
 
-			if (alloc_result == Alloc_error::OUT_OF_RAM)  return Load_error::OUT_OF_RAM;
-			if (alloc_result == Alloc_error::OUT_OF_CAPS) return Load_error::OUT_OF_CAPS;
-			if (alloc_result.failed())                    return Load_error::INVALID;
+			Ram::Capability ds_cap = allocated_rw.convert<Ram::Capability>(
+				[&] (Ram::Allocation &a) { return a.cap; },
+				[&] (Alloc_error)        { return Ram::Capability(); });
 
-			Dataspace_capability ds_cap = alloc_result.convert<Dataspace_capability>(
-				[&] (Ram::Allocation &allocation) {
-					allocation.deallocate = false;
-					return allocation.cap;
-				},
-				[&] (Alloc_error) { /* handled above */ return Dataspace_capability(); });
-
-			/* attach dataspace */
+			/* locally attach dataspace for segment */
 			Region_map::Attr attr { };
 			attr.writeable = true;
-			void * const ptr = local_rm.attach(ds_cap, attr).convert<void *>(
-				[&] (Region_map::Range range) { return (void *)range.start; },
-				[&] (Region_map::Attach_error const e) {
-					if (e == Region_map::Attach_error::INVALID_DATASPACE)
-						error("attempt to attach invalid segment dataspace");
-					if (e == Region_map::Attach_error::REGION_CONFLICT)
-						error("region conflict while locally attaching ELF segment");
-					return nullptr; });
-			if (!ptr)
+			Local_rm::Result attached_rw = local_rm.attach(ds_cap, attr);
+
+			if (attached_rw == Local_rm::Error::INVALID_DATASPACE)
+				error("attempt to attach invalid segment dataspace");
+			if (attached_rw == Local_rm::Error::REGION_CONFLICT)
+				error("region conflict while locally attaching ELF segment");
+			if (attached_rw.failed())
 				return Load_error::INVALID;
 
-			addr_t const laddr = elf_addr + seg.file_offset();
+			attached_rw.with_result([&] (Local_rm::Attachment &dst) {
 
-			/* copy contents and fill with zeros */
-			memcpy(ptr, (void *)laddr, seg.file_size());
-			if (size > seg.file_size())
-				memset((void *)((addr_t)ptr + seg.file_size()),
-				       0, size - seg.file_size());
+				/* copy contents and fill with zeros */
+				addr_t const src_addr = elf_addr + seg.file_offset();
+				memcpy(dst.ptr, (void *)src_addr, seg.file_size());
+				if (size > seg.file_size())
+					memset((void *)(addr_t(dst.ptr) + seg.file_size()),
+					       0, size - seg.file_size());
 
-			/*
-			 * We store the parent information at the beginning of the first
-			 * data segment
-			 */
-			if (!parent_info) {
-				*(Untyped_capability::Raw *)ptr = parent_cap.raw();
-				parent_info = true;
-			}
-
-			/* detach dataspace */
-			local_rm.detach(addr_t(ptr));
+				/*
+				 * We store the parent information at the beginning of the
+				 * first data segment
+				 */
+				if (!parent_info) {
+					*(Untyped_capability::Raw *)dst.ptr = parent_cap.raw();
+					parent_info = true;
+				}
+			}, [&] (Local_rm::Error) { });
 
 			auto remote_attach_result = remote_rm.attach(ds_cap, Region_map::Attr {
-				.size       = size,
-				.offset     = { },
-				.use_at     = true,
-				.at         = addr,
-				.executable = false,
-				.writeable  = true
+				.size       = size,   .offset    = { },
+				.use_at     = true,   .at        = addr,
+				.executable = false,  .writeable = true
 			});
 			if (remote_attach_result.failed()) {
 				error("failed to remotely attach writable ELF segment");
 				error("addr=", (void *)addr, " size=", (void *)size);
 				return Load_error::INVALID;
 			}
+
+			/* keep allocation */
+			allocated_rw.with_result([] (Ram::Allocation &a) { a.deallocate = false; },
+			                         [] (Alloc_error)        { });
 		} else {
 
 			/* read-only segment */
@@ -157,12 +143,9 @@ Child::Load_result Child::_load_static_elf(Dataspace_capability elf_ds,
 				warning("filesz and memsz for read-only segment differ");
 
 			auto remote_attach_result = remote_rm.attach(elf_ds, Region_map::Attr {
-				.size       = size,
-				.offset     = seg.file_offset(),
-				.use_at     = true,
-				.at         = addr,
-				.executable = seg.flags().x,
-				.writeable  = false
+				.size       = size,           .offset    = seg.file_offset(),
+				.use_at     = true,           .at        = addr,
+				.executable = seg.flags().x,  .writeable = false
 			});
 			if (remote_attach_result.failed()) {
 				error("failed to remotely attach read-only ELF segment");
@@ -209,7 +192,7 @@ Child::Start_result Child::_start_process(Dataspace_capability   ldso_ds,
                                           Pd_session            &pd,
                                           Initial_thread_base   &initial_thread,
                                           Initial_thread::Start &start,
-                                          Region_map            &local_rm,
+                                          Local_rm              &local_rm,
                                           Region_map            &remote_rm,
                                           Parent_capability      parent_cap)
 {

@@ -30,6 +30,8 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 {
 	private:
 
+		using Local_rm = Genode::Local::Constrained_region_map;
+
 		Genode::Mutex _mutex { };
 
 		/**
@@ -40,7 +42,7 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 
 	public:
 
-		Session_client(Genode::Region_map &local_rm, Genode::Capability<Session> cap)
+		Session_client(Local_rm &local_rm, Genode::Capability<Session> cap)
 		:
 			Genode::Rpc_client<Session>(cap),
 			_io_buffer(local_rm, call<Rpc_dataspace>())

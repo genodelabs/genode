@@ -118,8 +118,9 @@ class Sup::Gmm
 					.size = { },  .offset     = { },  .use_at     = { },
 					.at   = { },  .executable = { },  .writeable  = true
 				}).convert<addr_t>(
-					[&] (Region_map::Range range)  { return range.start; },
-					[&] (Region_map::Attach_error) { return 0UL; }
+					[&] (Env::Local_rm::Attachment &a)  {
+						a.deallocate = false; return addr_t(a.ptr); },
+					[&] (Env::Local_rm::Error) { return 0UL; }
 				);
 			}
 

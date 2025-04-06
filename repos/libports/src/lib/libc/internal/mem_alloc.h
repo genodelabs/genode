@@ -66,7 +66,7 @@ namespace Libc {
 				private:
 
 					Ram_allocator *_ram;          /* RAM session for backing store */
-					Region_map    *_region_map;   /* region map of address space   */
+					Env::Local_rm *_local_rm;     /* region map of address space   */
 					bool const     _executable;   /* whether to allocate executable dataspaces */
 
 				public:
@@ -74,10 +74,10 @@ namespace Libc {
 					/**
 					 * Constructor
 					 */
-					Dataspace_pool(Ram_allocator *ram,
-					               Region_map *rm, bool executable) :
-						_ram(ram), _region_map(rm),
-						_executable(executable)
+					Dataspace_pool(Ram_allocator *ram, Env::Local_rm *rm,
+					               bool executable)
+					:
+						_ram(ram), _local_rm(rm), _executable(executable)
 					{ }
 
 					/**
@@ -98,8 +98,11 @@ namespace Libc {
 					 */
 					int expand(size_t size, Range_allocator *alloc);
 
-					void reassign_resources(Ram_allocator *ram, Region_map *rm) {
-						_ram = ram, _region_map = rm; }
+					void reassign_resources(Ram_allocator *ram,
+					                        Env::Local_rm *rm)
+					{
+						_ram = ram, _local_rm = rm;
+					}
 			};
 
 			Mutex  mutable _mutex;
@@ -119,7 +122,7 @@ namespace Libc {
 
 		public:
 
-			Mem_alloc_impl(Region_map &rm, Ram_allocator &ram,
+			Mem_alloc_impl(Env::Local_rm &rm, Ram_allocator &ram,
 			               bool executable = false)
 			:
 				_ds_pool(&ram, &rm, executable),

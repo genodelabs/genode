@@ -6,7 +6,7 @@ SRC_CC      += stack_area.cc \
                stack_area_addr.cc \
                core_log.cc \
                core_log_out.cc \
-               core_region_map.cc \
+               core_local_rm.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \
@@ -70,7 +70,7 @@ vpath ram_dataspace_factory.cc    $(GEN_CORE_DIR)
 vpath signal_transmitter_proxy.cc $(GEN_CORE_DIR)
 vpath signal_receiver.cc          $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
-vpath core_region_map.cc          $(GEN_CORE_DIR)
+vpath core_local_rm.cc            $(GEN_CORE_DIR)
 vpath platform_rom_modules.cc     $(GEN_CORE_DIR)
 vpath heartbeat.cc                $(GEN_CORE_DIR)
 vpath vm_session_common.cc        $(GEN_CORE_DIR)

@@ -43,7 +43,7 @@ class Packet_stream_tx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		 *            interface
 		 */
 		Rpc_object(Genode::Dataspace_capability ds,
-		           Genode::Region_map     &rm,
+		           Genode::Env::Local_rm  &rm,
 		           Genode::Rpc_entrypoint &ep)
 		:
 			_ep(ep), _sink(ds, rm)

@@ -44,10 +44,11 @@ struct Genode::Platform : Noncopyable
 	Expanding_cpu_session_client cpu {
 		parent, _request<Cpu_session>(Parent::Env::cpu()), Parent::Env::cpu() };
 
-	Expanding_region_map_client rm {
+	Expanding_region_map_client pd_rm {
 		parent, pd.rpc_cap(), pd.address_space(), Parent::Env::pd() };
 
-	Pd_ram_allocator ram { pd };
+	Pd_local_rm      local_rm { pd_rm };
+	Pd_ram_allocator ram      { pd };
 
 	Attached_stack_area stack_area { parent, pd.rpc_cap() };
 

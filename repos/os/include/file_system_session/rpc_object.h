@@ -36,7 +36,7 @@ class File_system::Session_rpc_object : public Genode::Rpc_object<Session, Sessi
 		 * \param ep     entry point used for packet-stream channel
 		 */
 		Session_rpc_object(Genode::Dataspace_capability  tx_ds,
-		                   Genode::Region_map           &rm,
+		                   Genode::Env::Local_rm        &rm,
 		                   Genode::Rpc_entrypoint       &ep)
 		: _tx(tx_ds, rm, ep) { }
 

@@ -18,9 +18,9 @@
 using namespace Genode;
 
 
-Sliced_heap::Sliced_heap(Ram_allocator &ram_alloc, Region_map &region_map)
+Sliced_heap::Sliced_heap(Ram_allocator &ram_alloc, Local_rm &local_rm)
 :
-	_ram_alloc(ram_alloc), _region_map(region_map)
+	_ram_alloc(ram_alloc), _local_rm(local_rm)
 { }
 
 
@@ -40,6 +40,8 @@ Sliced_heap::~Sliced_heap()
 
 Allocator::Alloc_result Sliced_heap::try_alloc(size_t requested_size)
 {
+	using Result = Alloc_result;
+
 	/* allocation includes space for block meta data and is page-aligned */
 	size_t const size = align_addr(requested_size + sizeof(Block), 12);
 
@@ -47,55 +49,40 @@ Allocator::Alloc_result Sliced_heap::try_alloc(size_t requested_size)
 
 		[&] (Ram::Allocation &allocation) -> Alloc_result {
 
-			struct Attach_guard
-			{
-				Region_map &rm;
-				Region_map::Range range { };
-				bool keep = false;
-
-				Attach_guard(Region_map &rm) : rm(rm) { }
-
-				~Attach_guard() { if (!keep && range.start) rm.detach(range.start); }
-
-			} attach_guard(_region_map);
-
-			Region_map::Attr attr { };
+			Local_rm::Attach_attr attr { };
 			attr.writeable = true;
-			Region_map::Attach_result const result = _region_map.attach(allocation.cap, attr);
-			if (result.failed()) {
-				using Error = Region_map::Attach_error;
-				return result.convert<Alloc_error>(
-					[&] (auto) /* never called */ { return Alloc_error::DENIED; },
-					[&] (Error e) {
-						switch (e) {
-						case Error::OUT_OF_RAM:  return Alloc_error::OUT_OF_RAM;
-						case Error::OUT_OF_CAPS: return Alloc_error::OUT_OF_CAPS;
-						case Error::REGION_CONFLICT:   break;
-						case Error::INVALID_DATASPACE: break;
-						}
-						return Alloc_error::DENIED;
-					});
-			}
+			return _local_rm.attach(allocation.cap, attr).convert<Result>(
 
-			result.with_result(
-				[&] (Region_map::Range range) { attach_guard.range = range; },
-				[&] (auto) { /* handled above */ });
+				[&] (Local_rm::Attachment &attachment) -> Result {
 
-			/* serialize access to block list */
-			Mutex::Guard guard(_mutex);
+					/* serialize access to block list */
+					Mutex::Guard guard(_mutex);
 
-			Block * const block = construct_at<Block>((void *)attach_guard.range.start,
-			                                          allocation.cap, size);
-			_consumed += size;
-			_blocks.insert(block);
+					Block * const block = construct_at<Block>(attachment.ptr,
+					                                          allocation.cap, size);
+					_consumed += size;
+					_blocks.insert(block);
 
-			allocation.deallocate = false;
-			attach_guard.keep = true;
+					allocation.deallocate = false;
+					attachment.deallocate = false;
 
-			/* skip meta data prepended to the payload portion of the block */
-			return { *this, { .ptr = block + 1, .num_bytes = requested_size } };
+					/* skip meta data prepended to the payload portion of the block */
+					return { *this, { .ptr = block + 1, .num_bytes = requested_size } };
+				},
+				[&] (Local_rm::Error e) {
+
+					using Error = Local_rm::Error;
+					switch (e) {
+					case Error::OUT_OF_RAM:  return Alloc_error::OUT_OF_RAM;
+					case Error::OUT_OF_CAPS: return Alloc_error::OUT_OF_CAPS;
+					case Error::REGION_CONFLICT:   break;
+					case Error::INVALID_DATASPACE: break;
+					}
+					return Alloc_error::DENIED;
+				}
+			);
 		},
-		[&] (Ram::Error e) { return e; });
+		[&] (Alloc_error e) { return e; });
 }
 
 
@@ -129,7 +116,7 @@ void Sliced_heap::free(void *addr, size_t)
 		block->~Block();
 	}
 
-	_region_map.detach(addr_t(local_addr));
+	_local_rm.detach(addr_t(local_addr));
 
 	{
 		/* deallocate via '~Allocation' */

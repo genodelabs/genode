@@ -7,7 +7,7 @@ SRC_CC       = stack_area.cc \
                core_log.cc \
                core_log_out.cc \
                core_rpc_cap_alloc.cc \
-               core_region_map.cc \
+               core_local_rm.cc \
                cpu_session_component.cc \
                cpu_session_support.cc \
                cpu_thread_component.cc \
@@ -70,7 +70,7 @@ vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath default_log.cc              $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
-vpath core_region_map.cc          $(GEN_CORE_DIR)
+vpath core_local_rm.cc            $(GEN_CORE_DIR)
 vpath stack_area.cc               $(GEN_CORE_DIR)
 vpath pager_ep.cc                 $(GEN_CORE_DIR)
 vpath platform_rom_modules.cc     $(GEN_CORE_DIR)

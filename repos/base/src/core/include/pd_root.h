@@ -32,7 +32,7 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 		Rpc_entrypoint   &_signal_ep;
 		Pager_entrypoint &_pager_ep;
 		Range_allocator  &_phys_alloc;
-		Region_map       &_local_rm;
+		Local_rm         &_local_rm;
 		Range_allocator  &_core_mem;
 		System_control   &_system_control;
 
@@ -111,7 +111,7 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 		        Rpc_entrypoint   &signal_ep,
 		        Pager_entrypoint &pager_ep,
 		        Range_allocator  &phys_alloc,
-		        Region_map       &local_rm,
+		        Local_rm         &local_rm,
 		        Allocator        &md_alloc,
 		        Range_allocator  &core_mem,
 		        System_control   &system_control)

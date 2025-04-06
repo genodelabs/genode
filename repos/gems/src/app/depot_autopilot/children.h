@@ -34,7 +34,7 @@ class Depot_deploy::Children
 		Genode::Allocator                       &_alloc;
 		Timer::Connection                       &_timer;
 		Genode::Signal_context_capability const  _config_handler;
-		Local::Const_pointer<Child>              _curr_child { };
+		::Local::Const_pointer<Child>            _curr_child { };
 
 		List_model<Child> _children { };
 
@@ -152,11 +152,11 @@ class Depot_deploy::Children
 			try {
 				Child const &child = _curr_child();
 				if (child.finished()) {
-					throw Local::Const_pointer<Child>::Invalid(); }
+					throw ::Local::Const_pointer<Child>::Invalid(); }
 
 				child.gen_query(xml);
 			}
-			catch (Local::Const_pointer<Child>::Invalid) {
+			catch (::Local::Const_pointer<Child>::Invalid) {
 				struct Break : Exception { };
 				try {
 					_children.for_each([&] (Child const &child) {

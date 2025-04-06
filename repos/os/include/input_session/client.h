@@ -26,6 +26,8 @@ class Input::Session_client : public Rpc_client<Session>
 {
 	private:
 
+		using Local_rm = Local::Constrained_region_map;
+
 		Attached_dataspace _event_ds;
 
 		size_t const _max_events = _event_ds.size() / sizeof(Input::Event);
@@ -34,7 +36,7 @@ class Input::Session_client : public Rpc_client<Session>
 
 	public:
 
-		Session_client(Region_map &local_rm, Session_capability session)
+		Session_client(Local_rm &local_rm, Session_capability session)
 		:
 			Rpc_client<Session>(session),
 			_event_ds(local_rm, call<Rpc_dataspace>())

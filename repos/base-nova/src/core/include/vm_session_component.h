@@ -131,7 +131,7 @@ class Core::Vm_session_component
 		using Cap_quota_guard::upgrade;
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
-		                     Diag, Ram_allocator &ram, Region_map &, unsigned,
+		                     Diag, Ram_allocator &ram, Local_rm &, unsigned,
 		                     Trace::Source_registry &);
 		~Vm_session_component();
 

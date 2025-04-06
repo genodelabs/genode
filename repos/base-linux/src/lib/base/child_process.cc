@@ -59,7 +59,7 @@ Child::Start_result Child::_start_process(Dataspace_capability   ldso_ds,
                                           Pd_session            &pd,
                                           Initial_thread_base   &,
                                           Initial_thread::Start &,
-                                          Region_map            &,
+                                          Local_rm              &,
                                           Region_map            &,
                                           Parent_capability)
 {

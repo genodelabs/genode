@@ -295,7 +295,7 @@ class Device : public List_model<Device>::Element
 		       Speed                    &speed,
 		       Usb::Connection          &usb,
 		       Allocator                &alloc,
-		       Region_map               &rm,
+		       Env::Local_rm            &rm,
 		       Id_space<Device>         &space,
 		       Signal_context_capability cap)
 		:

@@ -72,10 +72,11 @@ void * Vm_session_component::_alloc_table()
 	/* get some aligned space for the translation table */
 	return cma().alloc_aligned(sizeof(Board::Vm_page_table),
 	                           Board::Vm_page_table::ALIGNM_LOG2).convert<void *>(
-		[&] (void *table_ptr) {
-			return table_ptr; },
+		[&] (Range_allocator::Allocation &a) {
+			a.deallocate = false;
+			return a.ptr; },
 
-		[&] (Range_allocator::Alloc_error) -> void * {
+		[&] (Alloc_error) -> void * {
 			/* XXX handle individual error conditions */
 			error("failed to allocate kernel object");
 			throw Insufficient_ram_quota(); }
@@ -95,7 +96,7 @@ Vm_session_component::Vm_session_component(Vmid_allocator & vmid_alloc,
                                            Label const &,
                                            Diag,
                                            Ram_allocator &ram_alloc,
-                                           Region_map &region_map,
+                                           Local_rm &local_rm,
                                            unsigned,
                                            Trace::Source_registry &)
 :
@@ -103,8 +104,8 @@ Vm_session_component::Vm_session_component(Vmid_allocator & vmid_alloc,
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ds_ep),
 	_ram(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_ram, region_map),
-	_region_map(region_map),
+	_sliced_heap(_ram, local_rm),
+	_local_rm(local_rm),
 	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
 	_table_array(*(new (cma()) Board::Vm_page_table_array([] (void * virt) {
 	                           return (addr_t)cma().phys_addr(virt);}))),
@@ -112,8 +113,8 @@ Vm_session_component::Vm_session_component(Vmid_allocator & vmid_alloc,
 	_id({(unsigned)_vmid_alloc.alloc(), cma().phys_addr(&_table)})
 {
 	/* configure managed VM area */
-	_map.add_range(0, 0UL - 0x1000);
-	_map.add_range(0UL - 0x1000, 0x1000);
+	(void)_map.add_range(0, 0UL - 0x1000);
+	(void)_map.add_range(0UL - 0x1000, 0x1000);
 }
 
 
@@ -136,7 +137,7 @@ Vm_session_component::~Vm_session_component()
 
 		Vcpu & vcpu = *_vcpus[i];
 		if (vcpu.state().valid())
-			_region_map.detach(vcpu.ds_addr);
+			_local_rm.detach(vcpu.ds_addr);
 	}
 
 	/* free guest-to-host page tables */

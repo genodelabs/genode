@@ -51,8 +51,9 @@ static void test_out_of_bounds_access(Env &env)
 		.use_at     = { },   .at        = { },
 		.executable = { },   .writeable = true }
 	).convert<char *>(
-		[&] (Region_map::Range range)  { return (char *)range.start; },
-		[&] (Region_map::Attach_error) { return nullptr; }
+		[&] (Env::Local_rm::Attachment &a) {
+			a.deallocate = false; return (char *)a.ptr; },
+		[&] (Env::Local_rm::Error) { return nullptr; }
 	);
 
 	auto tokenize_two_tokens_at_end_of_buffer = [&] (char const * const input)

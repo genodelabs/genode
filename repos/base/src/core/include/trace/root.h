@@ -28,7 +28,7 @@ class Core::Trace::Root : public Root_component<Session_component>
 	private:
 
 		Ram_allocator   &_ram;
-		Region_map      &_local_rm;
+		Local_rm        &_local_rm;
 		Source_registry &_sources;
 		Policy_registry &_policies;
 
@@ -65,7 +65,7 @@ class Core::Trace::Root : public Root_component<Session_component>
 		 *
 		 * \param session_ep  entry point for managing session objects
 		 */
-		Root(Ram_allocator &ram, Region_map &local_rm,
+		Root(Ram_allocator &ram, Local_rm &local_rm,
 		     Rpc_entrypoint &session_ep, Allocator &md_alloc,
 		     Source_registry &sources, Policy_registry &policies)
 		:

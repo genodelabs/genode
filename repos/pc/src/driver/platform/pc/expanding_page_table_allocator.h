@@ -67,7 +67,7 @@ class Driver::Expanding_page_table_allocator
 
 						Element(Range_allocator   & range_alloc,
 						        Ram_allocator     & ram_alloc,
-						        Region_map        & rm,
+						        Env::Local_rm     & rm,
 						        Pd_session        & pd,
 						        size_t              size)
 						: _range_alloc(range_alloc),

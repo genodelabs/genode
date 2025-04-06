@@ -354,8 +354,8 @@ struct Linker::Elf_file : File
 			.executable = { },
 			.writeable  = true
 		}).convert<void *>(
-			[&] (Genode::Region_map::Range range)  { return (void *)range.start; },
-			[&] (Genode::Region_map::Attach_error) { return nullptr; }
+			[&] (Env::Local_rm::Attachment &a) { a.deallocate = false; return a.ptr; },
+			[&] (Env::Local_rm::Error)         { return nullptr; }
 		);
 		if (!src) {
 			error("dynamic linker failed to locally map RW segment ", nr);

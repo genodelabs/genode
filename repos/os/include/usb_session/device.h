@@ -241,7 +241,7 @@ class Usb::Urb_handler
 	public:
 
 		Urb_handler(Capability<typename SESSION::Tx> cap,
-		            Region_map &rm, Allocator &md_alloc)
+		            Env::Local_rm &rm, Allocator &md_alloc)
 		:
 			_alloc(&md_alloc, URB_ALLOC_GRANULARITY),
 			_tx(cap, rm, _alloc) {}
@@ -499,7 +499,7 @@ class Usb::Device
 
 		::Usb::Connection &_session;
 		Allocator         &_md_alloc;
-		Region_map        &_rm;
+		Env::Local_rm     &_rm;
 		Name         const _name { };
 
 		Urb_handler<Device_session> _urb_handler;
@@ -516,9 +516,9 @@ class Usb::Device
 	public:
 
 		Device(Connection &usb_session, Allocator &md_alloc,
-		       Region_map &rm, Name name);
+		       Env::Local_rm &rm, Name name);
 
-		Device(Connection &session, Allocator &md_alloc, Region_map &rm);
+		Device(Connection &session, Allocator &md_alloc, Env::Local_rm &rm);
 
 		~Device() { _session.release_device(*this); }
 
@@ -758,10 +758,10 @@ Usb::Device::_interface_index(Interface::Type t)
 }
 
 
-inline Usb::Device::Device(Connection &session,
-                           Allocator  &md_alloc,
-                           Region_map &rm,
-                           Name        name)
+inline Usb::Device::Device(Connection    &session,
+                           Allocator     &md_alloc,
+                           Env::Local_rm &rm,
+                           Name           name)
 :
 	Device_capability(session.acquire_device(name)),
 	_session(session),
@@ -771,9 +771,9 @@ inline Usb::Device::Device(Connection &session,
 	_urb_handler(call<Rpc_tx_cap>(), rm, md_alloc) {}
 
 
-inline Usb::Device::Device(Connection &session,
-                           Allocator  &md_alloc,
-                           Region_map &rm)
+inline Usb::Device::Device(Connection    &session,
+                           Allocator     &md_alloc,
+                           Env::Local_rm &rm)
 :
 	Device_capability(session.acquire_device()),
 	_session(session),

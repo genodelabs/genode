@@ -41,7 +41,7 @@ class Nic::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_o
 		 *                         buffer of the rx packet stream
 		 * \param ep               entry point used for packet-stream channels
 		 */
-		Session_rpc_object(Genode::Region_map           &rm,
+		Session_rpc_object(Genode::Env::Local_rm        &rm,
 		                   Genode::Dataspace_capability  tx_ds,
 		                   Genode::Dataspace_capability  rx_ds,
 		                   Genode::Range_allocator      *rx_buffer_alloc,

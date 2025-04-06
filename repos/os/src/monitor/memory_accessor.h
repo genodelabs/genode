@@ -46,9 +46,9 @@ class Monitor::Memory_accessor : Noncopyable
 
 		struct Curr_view
 		{
-			Region_map  &_local_rm;
-			Inferior_pd &_pd;
-			addr_t const _offset;
+			Env::Local_rm &_local_rm;
+			Inferior_pd   &_pd;
+			addr_t   const _offset;
 
 			struct { uint8_t * const _local_ptr; };
 
@@ -62,12 +62,14 @@ class Monitor::Memory_accessor : Noncopyable
 					.executable = false,
 					.writeable  = true
 				}).convert<uint8_t *>(
-					[&] (Region_map::Range range)  { return (uint8_t *)range.start; },
+					[&] (Env::Local_rm::Attachment &a) {
+						a.deallocate = false;
+						return (uint8_t *)a.ptr; },
 					[&] (Region_map::Attach_error) { return nullptr; }
 				);
 			}
 
-			Curr_view(Region_map &local_rm, Inferior_pd &pd, addr_t offset)
+			Curr_view(Env::Local_rm &local_rm, Inferior_pd &pd, addr_t offset)
 			:
 				_local_rm(local_rm), _pd(pd), _offset(offset), _local_ptr(_attach())
 			{ }

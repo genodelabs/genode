@@ -57,7 +57,7 @@ class Platform::Device : Interface, Noncopyable
 			return _cap.call<Device_interface::Rpc_io_port_range>(index);
 		}
 
-		Region_map &_rm() { return _platform._env.rm(); }
+		Env::Local_rm &_rm() { return _platform._env.rm(); }
 
 	public:
 

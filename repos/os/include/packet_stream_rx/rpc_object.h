@@ -45,7 +45,7 @@ class Packet_stream_rx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		 *                      interface
 		 */
 		Rpc_object(Genode::Dataspace_capability  ds,
-		           Genode::Region_map           &rm,
+		           Genode::Env::Local_rm        &rm,
 		           Genode::Range_allocator      &buffer_alloc,
 		           Genode::Rpc_entrypoint       &ep)
 		:

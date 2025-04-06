@@ -861,11 +861,11 @@ struct Ahci::Port : private Port_base
 
 	struct Not_ready : Exception { };
 
-	Protocol    &protocol;
-	Region_map  &rm;
-	unsigned     cmd_slots = hba.command_slots();
+	Protocol      &protocol;
+	Env::Local_rm &rm;
+	unsigned       cmd_slots = hba.command_slots();
 
-	bool         stop_processing { };
+	bool stop_processing { };
 
 	Platform::Dma_buffer device_dma { plat, 0x1000, CACHED };
 	Platform::Dma_buffer cmd_dma    { plat,
@@ -892,7 +892,7 @@ struct Ahci::Port : private Port_base
 		}, fn_error);
 	}
 
-	Port(Protocol &protocol, Region_map &rm, Platform::Connection & plat,
+	Port(Protocol &protocol, Env::Local_rm &rm, Platform::Connection &plat,
 	     Hba &hba, Mmio_port::Delayer &delayer, unsigned index)
 	:
 		Port_base(index, plat, hba, delayer),

@@ -28,7 +28,7 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 	private:
 
 		Ram_allocator          &_ram_alloc;
-		Region_map             &_local_rm;
+		Local_rm               &_local_rm;
 		Rpc_entrypoint         &_thread_ep;
 		Pager_entrypoint       &_pager_ep;
 		Trace::Source_registry &_trace_sources;
@@ -73,7 +73,7 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 		 * \param md_alloc     meta data allocator to be used by root component
 		 */
 		Cpu_root(Ram_allocator          &ram_alloc,
-		         Region_map             &local_rm,
+		         Local_rm               &local_rm,
 		         Rpc_entrypoint         &session_ep,
 		         Rpc_entrypoint         &thread_ep,
 		         Pager_entrypoint       &pager_ep,

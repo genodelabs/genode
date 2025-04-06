@@ -98,7 +98,7 @@ class Core::Vm_session_component
 		Accounted_ram_allocator     _ram;
 		Sliced_heap                 _sliced_heap;
 		Avl_region                  _map { &_sliced_heap };
-		Region_map                 &_region_map;
+		Local_rm                   &_local_rm;
 		Board::Vm_page_table       &_table;
 		Board::Vm_page_table_array &_table_array;
 		Vmid_allocator             &_vmid_alloc;
@@ -128,7 +128,7 @@ class Core::Vm_session_component
 
 		Vm_session_component(Vmid_allocator &, Rpc_entrypoint &,
 		                     Resources, Label const &, Diag,
-		                     Ram_allocator &ram, Region_map &, unsigned,
+		                     Ram_allocator &ram, Local_rm &, unsigned,
 		                     Trace::Source_registry &);
 		~Vm_session_component();
 

@@ -109,7 +109,7 @@ void Session_component::set_ipv4_address(Ipv4_address ip_addr)
 
 
 Session_component::Session_component(Genode::Ram_allocator       &ram,
-                                     Genode::Region_map          &rm,
+                                     Genode::Env::Local_rm       &rm,
                                      Genode::Entrypoint          &ep,
                                      Genode::Ram_quota            ram_quota,
                                      Genode::Cap_quota            cap_quota,

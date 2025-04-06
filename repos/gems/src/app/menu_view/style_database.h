@@ -112,7 +112,7 @@ class Menu_view::Style_database
 			 *
 			 * \throw Reading_failed
 			 */
-			Texture_entry(Ram_allocator &ram, Region_map &rm, Allocator &alloc,
+			Texture_entry(Ram_allocator &ram, Env::Local_rm &rm, Allocator &alloc,
 			              Directory const &dir, Path const &path)
 			:
 				path(path),
@@ -168,7 +168,7 @@ class Menu_view::Style_database
 
 		Entrypoint      &_ep;
 		Ram_allocator   &_ram;
-		Region_map      &_rm;
+		Env::Local_rm   &_rm;
 		Allocator       &_alloc;
 		Directory const &_fonts_dir;
 		Directory const &_styles_dir;
@@ -234,7 +234,7 @@ class Menu_view::Style_database
 
 	public:
 
-		Style_database(Entrypoint &ep, Ram_allocator &ram, Region_map &rm,
+		Style_database(Entrypoint &ep, Ram_allocator &ram, Env::Local_rm &rm,
 		               Allocator &alloc,
 		               Directory const &fonts_dir, Directory const &styles_dir,
 		               Signal_context_capability style_changed_sigh)

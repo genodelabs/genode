@@ -16,21 +16,22 @@
 
 /* core includes */
 #include <platform.h>
-#include <core_region_map.h>
+#include <core_local_rm.h>
+#include <dataspace_component.h>
 
 using namespace Core;
 
 
-Region_map::Attach_result
-Core_region_map::attach(Dataspace_capability ds_cap, Attr const &)
+Core_local_rm::Result
+Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &)
 {
-	return _ep.apply(ds_cap, [] (Dataspace_component *ds) -> Attach_result {
+	return _ep.apply(ds_cap, [&] (Dataspace_component *ds) -> Result {
 		if (!ds)
-			return Attach_error::INVALID_DATASPACE;
+			return Error::INVALID_DATASPACE;
 
-		return Range { .start = ds->phys_addr(), .num_bytes = ds->size() };
+		return { *this, { (void *)ds->phys_addr(), ds->size() } };
 	});
 }
 
 
-void Core_region_map::detach(addr_t) { }
+void Core_local_rm::_free(Attachment &) { }

@@ -24,6 +24,8 @@ class Genode::Session_requester
 {
 	private:
 
+		using Local_rm = Local::Constrained_region_map;
+
 		Id_space<Parent::Server> _id_space { };
 
 		struct Content_producer : Dynamic_rom_session::Content_producer
@@ -64,7 +66,7 @@ class Genode::Session_requester
 		 * \param ram  backing store for the ROM dataspace
 		 * \param rm   local address space, needed to populate the dataspace
 		 */
-		Session_requester(Rpc_entrypoint &ep, Ram_allocator &ram, Region_map &rm)
+		Session_requester(Rpc_entrypoint &ep, Ram_allocator &ram, Local_rm &rm)
 		:
 			_session(ep, ram, rm, _content_producer)
 		{ }

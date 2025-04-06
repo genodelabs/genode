@@ -49,7 +49,7 @@ class Packet_stream_tx::Client : public Genode::Rpc_client<CHANNEL>
 		 *                      transmission buffer
 		 */
 		Client(Genode::Capability<CHANNEL> channel_cap,
-		       Genode::Region_map &rm,
+		       Genode::Env::Local_rm   &rm,
 		       Genode::Range_allocator &buffer_alloc)
 		:
 			Genode::Rpc_client<CHANNEL>(channel_cap),

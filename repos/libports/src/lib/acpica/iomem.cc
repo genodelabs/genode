@@ -192,8 +192,10 @@ class Acpica::Io_mem
 						.use_at     = true,   .at        = orig_virt,
 						.executable = false,  .writeable = true
 					}).convert<Genode::addr_t>(
-						[&] (Genode::Region_map::Range range)  { return range.start; },
-						[&] (Genode::Region_map::Attach_error) { return 0UL; }
+						[&] (Genode::Env::Local_rm::Attachment &a) {
+							a.deallocate = false;
+							return Genode::addr_t(a.ptr); },
+						[&] (Genode::Env::Local_rm::Error) { return 0UL; }
 					);
 
 				if (orig_virt != re_attached_virt)
@@ -308,8 +310,10 @@ class Acpica::Io_mem
 				.use_at     = { },            .at        = { },
 				.executable = { },            .writeable = true
 			}).convert<Genode::uint8_t *>(
-				[&] (Genode::Region_map::Range r)      { return (Genode::uint8_t *)r.start; },
-				[&] (Genode::Region_map::Attach_error) { return nullptr; }
+				[&] (Genode::Env::Local_rm::Attachment &a) {
+					a.deallocate = false;
+					return (Genode::uint8_t *)a.ptr; },
+				[&] (Genode::Env::Local_rm::Error) { return nullptr; }
 			);
 
 			return reinterpret_cast<Genode::addr_t>(io_mem->_virt);
@@ -383,7 +387,9 @@ class Acpica::Io_mem
 					.use_at     = { },  .at        = { },
 					.executable = { },  .writeable = true
 				}).convert<Genode::uint8_t *>(
-					[&] (Genode::Region_map::Range range)  { return (Genode::uint8_t *)range.start; },
+					[&] (Genode::Env::Local_rm::Attachment &a) {
+						a.deallocate = false;
+						return (Genode::uint8_t *)a.ptr; },
 					[&] (Genode::Region_map::Attach_error) {
 						Genode::error("attaching while io_ds failed");
 						return nullptr;

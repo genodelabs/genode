@@ -34,14 +34,14 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 	{
 		Allocator     &_alloc;
 		Ram_allocator &_ram;
-		Region_map    &_local_rm;
+		Env::Local_rm &_local_rm;
 
 		struct Ram_ds : Registry<Ram_ds>::Element
 		{
 			Attached_ram_dataspace ds;
 
-			Ram_ds(Registry<Ram_ds> &registry, Ram_allocator &ram, Region_map &local_rm,
-			       Const_byte_range_ptr const &content)
+			Ram_ds(Registry<Ram_ds> &registry, Ram_allocator &ram,
+			       Env::Local_rm &local_rm, Const_byte_range_ptr const &content)
 			:
 				Registry<Ram_ds>::Element(registry, *this),
 				ds(ram, local_rm, content.num_bytes)
@@ -54,7 +54,7 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 
 		Writeable_text_segments(Allocator     &alloc,
 		                        Ram_allocator &ram,
-		                        Region_map    &local_rm)
+		                        Env::Local_rm &local_rm)
 		:
 			_alloc(alloc), _ram(ram), _local_rm(local_rm)
 		{ }
@@ -95,7 +95,7 @@ struct Monitor::Monitored_region_map : Monitored_rpc_object<Region_map>
 
 	void writeable_text_segments(Allocator     &alloc,
 	                             Ram_allocator &ram,
-	                             Region_map    &local_rm)
+	                             Env::Local_rm &local_rm)
 	{
 		if (!_writeable_text_segments.constructed())
 			_writeable_text_segments.construct(alloc, ram, local_rm);

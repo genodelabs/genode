@@ -66,15 +66,15 @@ class Vfs_server::Session_resources
 		Genode::Heap                    _alloc;
 
 		Session_resources(Genode::Ram_allocator &ram,
-		                  Genode::Region_map    &region_map,
+		                  Genode::Env::Local_rm &local_rm,
 		                  Genode::Ram_quota     ram_quota,
 		                  Genode::Cap_quota     cap_quota,
 		                  Genode::size_t        buffer_size)
 		:
 			_ram_guard(ram_quota), _cap_guard(cap_quota),
 			_ram_alloc(ram, _ram_guard, _cap_guard),
-			_packet_ds(_ram_alloc, region_map, buffer_size),
-			_alloc(_ram_alloc, region_map)
+			_packet_ds(_ram_alloc, local_rm, buffer_size),
+			_alloc(_ram_alloc, local_rm)
 		{ }
 };
 

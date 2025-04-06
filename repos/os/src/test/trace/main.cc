@@ -67,7 +67,7 @@ class Trace_buffer_monitor
 		static constexpr size_t MAX_ENTRY_BUF = 256;
 
 		char                  _buf[MAX_ENTRY_BUF];
-		Region_map           &_rm;
+		Env::Local_rm        &_rm;
 		Trace::Subject_id     _id;
 		Trace::Buffer        *_buffer_raw;
 		Trace_buffer          _buffer;
@@ -82,7 +82,7 @@ class Trace_buffer_monitor
 
 	public:
 
-		Trace_buffer_monitor(Region_map           &rm,
+		Trace_buffer_monitor(Env::Local_rm        &rm,
 		                     Trace::Subject_id     id,
 		                     Dataspace_capability  ds_cap)
 		:
@@ -92,8 +92,10 @@ class Trace_buffer_monitor
 				.use_at     = { }, .at        = { },
 				.executable = { }, .writeable = true
 			}).convert<Trace::Buffer *>(
-				[&] (Region_map::Range r)      { return (Trace::Buffer *)r.start; },
-				[&] (Region_map::Attach_error) { return nullptr; }
+				[&] (Env::Local_rm::Attachment &a) {
+					a.deallocate = false;
+					return (Trace::Buffer *)a.ptr; },
+				[&] (Env::Local_rm::Error) { return nullptr; }
 			)),
 			_buffer(*_buffer_raw)
 		{

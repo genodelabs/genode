@@ -33,7 +33,7 @@ struct Gui_buffer : Genode::Noncopyable
 	using uint8_t       = Genode::uint8_t;
 
 	Genode::Ram_allocator &_ram;
-	Genode::Region_map    &_rm;
+	Genode::Env::Local_rm &_rm;
 
 	Gui::Connection &_gui;
 
@@ -67,7 +67,7 @@ struct Gui_buffer : Genode::Noncopyable
 	 * Constructor
 	 */
 	Gui_buffer(Gui::Connection &gui, Area size,
-	           Genode::Ram_allocator &ram, Genode::Region_map &rm,
+	           Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 	           Alpha alpha = Alpha::ALPHA,
 	           Genode::Color reset_color = default_reset_color)
 	:

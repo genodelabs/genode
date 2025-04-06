@@ -73,7 +73,7 @@ class Ahci::Driver : Noncopyable
 		bool _enable_atapi;
 		bool _schedule_stop { };
 
-		unsigned _scan_ports(Region_map &rm, Platform::Connection &plat, Hba &hba)
+		unsigned _scan_ports(Env::Local_rm &rm, Platform::Connection &plat, Hba &hba)
 		{
 			log("port scan:");
 

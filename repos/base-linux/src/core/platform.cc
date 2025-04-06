@@ -21,7 +21,7 @@
 
 /* local includes */
 #include <platform.h>
-#include <core_region_map.h>
+#include <core_local_rm.h>
 #include <resource_path.h>
 
 /* Linux includes */
@@ -171,7 +171,7 @@ void Core::init_page_fault_handling(Rpc_entrypoint &) { }
 static Rpc_entrypoint *_core_ep_ptr;
 
 
-void Core_region_map::init(Rpc_entrypoint &ep) { _core_ep_ptr = &ep; }
+void Core_local_rm::init(Rpc_entrypoint &ep) { _core_ep_ptr = &ep; }
 
 
 static auto with_linux_dataspace(Capability<Dataspace> ds,

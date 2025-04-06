@@ -24,9 +24,10 @@
 #include <base/internal/globals.h>
 
 using namespace Genode;
+using Local_rm = Local::Constrained_region_map;
 
 
-static Region_map  *local_rm_ptr;
+static Local_rm    *local_rm_ptr;
 static Cpu_session *cpu_session_ptr;
 
 
@@ -284,8 +285,9 @@ void Thread::_init_cpu_session_and_trace_control()
 		Region_map::Attr attr { };
 		attr.writeable = true;
 		local_rm_ptr->attach(ds, attr).with_result(
-			[&] (Region_map::Range range) {
-				_trace_control = reinterpret_cast<Trace::Control *>(range.start); },
+			[&] (Local_rm::Attachment &a) {
+				a.deallocate = false;
+				_trace_control = reinterpret_cast<Trace::Control *>(a.ptr); },
 			[&] (Region_map::Attach_error) {
 				error("failed to initialize trace control for new thread"); }
 		);
@@ -340,7 +342,7 @@ Thread::~Thread()
 }
 
 
-void Genode::init_thread(Cpu_session &cpu_session, Region_map &local_rm)
+void Genode::init_thread(Cpu_session &cpu_session, Local_rm &local_rm)
 {
 	local_rm_ptr    = &local_rm;
 	cpu_session_ptr = &cpu_session;

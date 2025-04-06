@@ -21,11 +21,13 @@
 #include <session/session.h>
 #include <region_map/region_map.h>
 #include <base/ram_allocator.h>
+#include <base/local.h>
 
 namespace Genode {
 	struct Pd_account;
 	struct Pd_session;
 	struct Pd_ram_allocator;
+	struct Pd_local_rm;
 	struct Pd_session_client;
 	struct Parent;
 	struct Signal_context;
@@ -443,6 +445,27 @@ struct Genode::Pd_ram_allocator : Ram_allocator
 	}
 
 	Pd_ram_allocator(Pd_session &pd) : _pd(pd) { }
+};
+
+
+struct Genode::Pd_local_rm : Genode::Local::Constrained_region_map
+{
+	Region_map &_rm;
+
+	Pd_local_rm(Region_map &rm) : _rm(rm) { }
+
+	Result attach(Capability<Dataspace> ds, Attach_attr const &attr) override
+	{
+		if (!ds.valid())
+			return Error::INVALID_DATASPACE;
+
+		return _rm.attach(ds, attr).convert<Result>(
+			[&] (Region_map::Range const &r) -> Result {
+				return { *this, { (void *)r.start, r.num_bytes } }; },
+			[&] (Error e) { return e; });
+	}
+
+	void _free(Attachment &a) override { _rm.detach(addr_t(a.ptr)); }
 };
 
 #endif /* _INCLUDE__PD_SESSION__PD_SESSION_H_ */

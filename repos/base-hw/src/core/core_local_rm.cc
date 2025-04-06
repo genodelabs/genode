@@ -16,22 +16,23 @@
 
 /* core includes */
 #include <platform.h>
-#include <core_region_map.h>
+#include <core_local_rm.h>
 #include <map_local.h>
 #include <util.h>
+#include <dataspace_component.h>
 
 using namespace Core;
 
 
-Region_map::Attach_result
-Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
+Core_local_rm::Result
+Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 {
 	using Virt_allocation = Range_allocator::Allocation;
 
-	return _ep.apply(ds_cap, [&] (Dataspace_component *ds_ptr) -> Attach_result {
+	return _ep.apply(ds_cap, [&] (Dataspace_component *ds_ptr) -> Result {
 
 		if (!ds_ptr)
-			return Attach_error::INVALID_DATASPACE;
+			return Error::INVALID_DATASPACE;
 
 		Dataspace_component &ds = *ds_ptr;
 
@@ -40,7 +41,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 
 		/* attach attributes 'use_at' and 'offset' not supported within core */
 		if (attr.use_at || attr.offset)
-			return Attach_error::REGION_CONFLICT;
+			return Error::REGION_CONFLICT;
 
 		unsigned const align = get_page_size_log2();
 
@@ -51,7 +52,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 		if (virt.failed()) {
 			error("could not allocate virtual address range in core of size ",
 			      page_rounded_size);
-			return Attach_error::REGION_CONFLICT;
+			return Error::REGION_CONFLICT;
 		}
 
 		using namespace Hw;
@@ -68,27 +69,27 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 			.cacheable  = ds.cacheability()
 		};
 
-		return virt.convert<Attach_result>(
+		return virt.convert<Result>(
 
-			[&] (Virt_allocation &a) -> Attach_result {
+			[&] (Virt_allocation &a) -> Result {
 				if (!map_local(ds.phys_addr(), (addr_t)a.ptr, num_pages, flags))
-					return Attach_error::REGION_CONFLICT;
+					return Error::REGION_CONFLICT;
 
 				a.deallocate = false;
-				return Range { .start     = addr_t(a.ptr),
-				               .num_bytes = page_rounded_size };
+				return { *this, { .ptr       = a.ptr,
+				                  .num_bytes = page_rounded_size } };
 			},
 			[&] (Alloc_error) {
-				return Attach_error::REGION_CONFLICT; });
+				return Error::REGION_CONFLICT; });
 	});
 }
 
 
-void Core_region_map::detach(addr_t core_local_addr)
+void Core_local_rm::_free(Attachment &a)
 {
-	size_t size = platform_specific().region_alloc_size_at((void *)core_local_addr);
+	size_t size = platform_specific().region_alloc_size_at(a.ptr);
 
-	unmap_local(core_local_addr, size >> get_page_size_log2());
+	unmap_local(addr_t(a.ptr), size >> get_page_size_log2());
 
-	platform().region_alloc().free((void *)core_local_addr);
+	platform().region_alloc().free(a.ptr);
 }

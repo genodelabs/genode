@@ -99,7 +99,7 @@ Monitor &Monitor::find_by_subject_id(Trace::Subject_id const subject_id)
 
 
 Monitor::Monitor(Trace::Connection      &trace,
-                 Region_map             &rm,
+                 Env::Local_rm          &rm,
                  Trace::Subject_id const subject_id)
 :
 	Monitor_base(trace, rm, subject_id),

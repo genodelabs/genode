@@ -15,6 +15,7 @@
 #ifndef _INCLUDE__VM_SESSION__HANDLER_H_
 #define _INCLUDE__VM_SESSION__HANDLER_H_
 
+#include <base/env.h>
 #include <base/signal.h>
 
 namespace Genode {

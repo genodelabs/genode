@@ -138,7 +138,7 @@ struct Rom::Module : private Module_list::Element, Readable_module
 		Name _name;
 
 		Genode::Ram_allocator &_ram;
-		Genode::Region_map    &_rm;
+		Genode::Env::Local_rm &_rm;
 
 		Read_policy  const &_read_policy;
 		Write_policy const &_write_policy;
@@ -185,7 +185,7 @@ struct Rom::Module : private Module_list::Element, Readable_module
 		 *                      time when the module content is changed
 		 */
 		Module(Genode::Ram_allocator &ram,
-		       Genode::Region_map    &rm,
+		       Genode::Env::Local_rm &rm,
 		       Name            const &name,
 		       Read_policy     const &read_policy,
 		       Write_policy    const &write_policy)

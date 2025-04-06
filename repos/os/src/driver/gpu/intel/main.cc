@@ -627,7 +627,7 @@ struct Igd::Device
 		}
 
 		Vgpu(Device &device, Allocator &alloc,
-		     Ram_allocator &ram, Region_map &rm)
+		     Ram_allocator &ram, Env::Local_rm &rm)
 		:
 			_device(device),
 			_id(_id_alloc()),
@@ -1874,7 +1874,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		};
 
 		Genode::Env              &_env;
-		Genode::Region_map       &_rm;
+		Genode::Env::Local_rm    &_rm;
 		Accounted_ram_allocator   _ram;
 		Igd::Device              &_device;
 		Heap                      _heap { _device._pci_backend_alloc, _rm };
@@ -2041,10 +2041,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		 * \param ram_quota  initial ram quota
 		 * \param device     reference to the physical device
 		 */
-		Session_component(Env &env,
+		Session_component(Env           &env,
 		                  Entrypoint    &ep,
 		                  Ram_allocator &ram,
-		                  Region_map    &rm,
+		                  Env::Local_rm &rm,
 		                  Resources      resources,
 		                  Label   const &label,
 		                  Diag           diag,

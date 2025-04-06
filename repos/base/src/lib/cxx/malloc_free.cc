@@ -48,7 +48,7 @@ Heap &cxx_heap()
  * '__cxa_allocate_exception', which, in turn, calls 'malloc'. The cxx library
  * uses a local implementation of 'malloc' using a dedicated heap instance.
  */
-void Genode::init_cxx_heap(Ram_allocator &ram, Region_map &rm)
+void Genode::init_cxx_heap(Ram_allocator &ram, Local::Constrained_region_map &rm)
 {
 	/*
 	 * Exception frames are small. Hence, a small static backing store suffices

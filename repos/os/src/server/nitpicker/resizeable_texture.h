@@ -51,7 +51,7 @@ class Nitpicker::Resizeable_texture
 
 		void release_current() { _textures[_current].destruct(); }
 
-		bool try_construct_next(Ram_allocator &ram, Region_map &rm, Framebuffer::Mode mode)
+		bool try_construct_next(Ram_allocator &ram, Env::Local_rm &rm, Framebuffer::Mode mode)
 		{
 			try {
 				unsigned const next = !_current;

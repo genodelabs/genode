@@ -335,7 +335,7 @@ struct Drm::Buffer
 
 	bool mmap(Genode::Env &env)
 	{
-		using Region_map = Genode::Region_map;
+		using Local_rm = Genode::Env::Local_rm;
 
 		if (!_local_addr)
 			env.rm().attach(_allocation.cap, {
@@ -346,8 +346,11 @@ struct Drm::Buffer
 				.executable = { },
 				.writeable  = true
 			}).with_result(
-				[&] (Region_map::Range range)  { _local_addr = range.start; },
-				[&] (Region_map::Attach_error) { Genode::error("Drm::Buffer::mmap failed"); }
+				[&] (Local_rm::Attachment &a) {
+					a.deallocate = false;
+					_local_addr = Gpu::addr_t(a.ptr); },
+				[&] (Local_rm::Error) {
+					Genode::error("Drm::Buffer::mmap failed"); }
 			);
 
 		return (_local_addr != 0);

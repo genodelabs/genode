@@ -39,7 +39,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		Graphics_backend_impl(Graphics_backend_impl const &);
 		Graphics_backend_impl &operator = (Graphics_backend_impl const &);
 
-		Genode::Region_map &_local_rm;
+		Genode::Env::Local_rm &_local_rm;
 
 		Gui::Connection &_gui;
 
@@ -82,7 +82,7 @@ class Scout::Graphics_backend_impl : public Graphics_backend
 		 *
 		 * \param alloc  allocator used for allocating textures
 		 */
-		Graphics_backend_impl(Genode::Region_map &local_rm,
+		Graphics_backend_impl(Genode::Env::Local_rm &local_rm,
 		                      Gui::Connection &gui,
 		                      Genode::Allocator &alloc,
 		                      Area max_size, Point position, Area view_size)

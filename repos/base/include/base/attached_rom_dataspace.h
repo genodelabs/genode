@@ -26,7 +26,9 @@ class Genode::Attached_rom_dataspace
 {
 	private:
 
-		Region_map    &_rm;
+		using Local_rm = Local::Constrained_region_map;
+
+		Local_rm      &_rm;
 		Rom_connection _rom;
 
 		/*

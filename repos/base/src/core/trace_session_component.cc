@@ -172,7 +172,7 @@ Session_component::Session_component(Rpc_entrypoint  &ep,
                                      Label     const &label,
                                      Diag      const &diag,
                                      Ram_allocator   &ram,
-                                     Region_map      &local_rm,
+                                     Local_rm        &local_rm,
                                      size_t           arg_buffer_size,
                                      Source_registry &sources,
                                      Policy_registry &policies)

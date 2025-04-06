@@ -12,10 +12,11 @@
  */
 
 /* core includes */
-#include <core_region_map.h>
+#include <core_local_rm.h>
 #include <platform.h>
 #include <util.h>
 #include <nova_util.h>
+#include <dataspace_component.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -51,26 +52,26 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	return virt_addr;
 }
 
-Region_map::Attach_result
-Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
+Core_local_rm::Result
+Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 {
-	return _ep.apply(ds_cap, [&] (Dataspace_component * const ds_ptr) -> Attach_result {
+	return _ep.apply(ds_cap, [&] (Dataspace_component * const ds_ptr) -> Result {
 
 		if (!ds_ptr)
-			return Attach_error::INVALID_DATASPACE;
+			return Error::INVALID_DATASPACE;
 
 		Dataspace_component &ds = *ds_ptr;
 
 		/* attach attributes 'use_at' and 'offset' not supported within core */
 		if (attr.use_at || attr.offset)
-			return Attach_error::REGION_CONFLICT;
+			return Error::REGION_CONFLICT;
 
 		const size_t page_rounded_size = align_addr(ds.size(), get_page_size_log2());
 
 		/* allocate the virtual region contiguous for the dataspace */
 		void * virt_ptr = alloc_region(ds, page_rounded_size);
 		if (!virt_ptr)
-			return Attach_error::OUT_OF_RAM;
+			return Error::OUT_OF_RAM;
 
 		/* map it */
 		Nova::Utcb &utcb = *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
@@ -81,20 +82,19 @@ Core_region_map::attach(Dataspace_capability ds_cap, Attr const &attr)
 		              page_rounded_size >> get_page_size_log2(), rights, true)) {
 			platform().region_alloc().free(virt_ptr, page_rounded_size);
 
-			return Attach_error::OUT_OF_RAM;
+			return Error::OUT_OF_RAM;
 		}
-
-		return Range { .start = addr_t(virt_ptr), .num_bytes = page_rounded_size };
+		return { *this, { virt_ptr, page_rounded_size } };
 	});
 }
 
 
-void Core_region_map::detach(addr_t core_local_addr)
+void Core_local_rm::_free(Attachment &a)
 {
-	size_t size = platform_specific().region_alloc_size_at((void *)core_local_addr);
+	size_t size = platform_specific().region_alloc_size_at(a.ptr);
 
 	unmap_local(*reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
-	            core_local_addr, size >> get_page_size_log2());
+	            addr_t(a.ptr), size >> get_page_size_log2());
 
-	platform().region_alloc().free((void *)core_local_addr);
+	platform().region_alloc().free(a.ptr);
 }

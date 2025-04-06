@@ -42,15 +42,17 @@ struct Genode::Component_env : Env
 {
 	Platform &_platform;
 
-	Parent      &_parent = _platform.parent;
-	Pd_session  &_pd     = _platform.pd;
-	Cpu_session &_cpu    = _platform.cpu;
-	Region_map  &_rm     = _platform.rm;
+	using Local_rm = Local::Constrained_region_map;
+
+	Parent      &_parent   = _platform.parent;
+	Pd_session  &_pd       = _platform.pd;
+	Cpu_session &_cpu      = _platform.cpu;
+	Local_rm    &_local_rm = _platform.local_rm;
 
 	Capability<Pd_session>  _pd_cap  = _platform.pd.rpc_cap();
 	Capability<Cpu_session> _cpu_cap = _platform.cpu.rpc_cap();
 
-	Pd_ram_allocator _ram { _pd  };
+	Pd_ram_allocator _ram { _pd };
 
 	Entrypoint &_ep;
 
@@ -85,7 +87,7 @@ struct Genode::Component_env : Env
 
 	Parent        &parent() override { return _parent; }
 	Cpu_session   &cpu()    override { return _cpu; }
-	Region_map    &rm()     override { return _rm; }
+	Local_rm      &rm()     override { return _local_rm; }
 	Pd_session    &pd()     override { return _pd; }
 	Ram_allocator &ram()    override { return _ram; }
 	Entrypoint    &ep()     override { return _ep; }

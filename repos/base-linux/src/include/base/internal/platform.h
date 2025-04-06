@@ -34,11 +34,11 @@ namespace Genode { struct Platform; }
 
 struct Genode::Platform
 {
-	Region_map_mmap rm { false };
+	Region_map_mmap mmap_rm { false };
 
 	static Capability<Parent> _obtain_parent_cap();
 
-	Local_parent parent { _obtain_parent_cap(), rm, heap };
+	Local_parent parent { _obtain_parent_cap(), mmap_rm, heap };
 
 	Capability<Pd_session> pd_cap =
 		parent.session_cap(Parent::Env::pd()).convert<Capability<Pd_session>>(
@@ -52,11 +52,12 @@ struct Genode::Platform
 
 	Local_pd_session pd { parent, pd_cap };
 
-	Pd_ram_allocator ram { pd };
+	Pd_local_rm      local_rm { mmap_rm };
+	Pd_ram_allocator ram      { pd };
 
 	Expanding_cpu_session_client cpu { parent, cpu_cap, Parent::Env::cpu() };
 
-	Heap heap { ram, rm };
+	Heap heap { ram, local_rm };
 
 	Platform() { _attach_stack_area(); }
 

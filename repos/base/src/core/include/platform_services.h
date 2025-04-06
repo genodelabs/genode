@@ -42,7 +42,7 @@ namespace Core {
 	                                 Registry<Service>      &reg,
 	                                 Trace::Source_registry &trace,
 	                                 Ram_allocator          &core_ram,
-	                                 Region_map             &core_rm,
+	                                 Local_rm               &local_rm,
 	                                 Range_allocator        &io_port_ranges);
 }
 

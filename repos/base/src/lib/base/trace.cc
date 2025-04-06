@@ -105,9 +105,10 @@ bool Trace::Logger::_evaluate_control()
 			.use_at     = { },   .at         = { },
 			.executable = true,  .writeable  = true,
 		}).with_result(
-			[&] (Region_map::Range range)  {
-				policy_module = reinterpret_cast<Policy_module *>(range.start); },
-			[&] (Region_map::Attach_error) { error("failed to attach trace policy"); }
+			[&] (Env::Local_rm::Attachment &a)  {
+				a.deallocate = false;
+				policy_module = reinterpret_cast<Policy_module *>(a.ptr); },
+			[&] (Env::Local_rm::Error) { error("failed to attach trace policy"); }
 		);
 
 		if (!policy_module)
@@ -134,8 +135,9 @@ bool Trace::Logger::_evaluate_control()
 		Region_map::Attr attr { };
 		attr.writeable = true;
 		_env().rm().attach(buffer_ds, attr).with_result(
-			[&] (Region_map::Range range) {
-				buffer = reinterpret_cast<Buffer *>(range.start); },
+			[&] (Env::Local_rm::Attachment &a) {
+				a.deallocate = false;
+				buffer = reinterpret_cast<Buffer *>(a.ptr); },
 			[&] (Region_map::Attach_error) { error("failed to attach trace buffer"); });
 		if (!buffer)
 			return false;
@@ -242,8 +244,9 @@ Trace::Logger *Thread::_logger()
 				Region_map::Attr attr { };
 				attr.writeable = true;
 				_env().rm().attach(ds, attr).with_result(
-					[&] (Region_map::Range range) {
-						main_trace_control = reinterpret_cast<Trace::Control *>(range.start); },
+					[&] (Env::Local_rm::Attachment &a) {
+						a.deallocate = false;
+						main_trace_control = reinterpret_cast<Trace::Control *>(a.ptr); },
 					[&] (Region_map::Attach_error) {
 						error("failed to attach trace control"); });
 			}

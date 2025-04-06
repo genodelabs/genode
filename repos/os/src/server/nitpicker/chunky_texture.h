@@ -69,7 +69,7 @@ class Nitpicker::Chunky_texture : Buffer, public Texture<PT>
 
 		using Buffer::cap;
 
-		Chunky_texture(Ram_allocator &ram, Region_map &rm, Framebuffer::Mode mode)
+		Chunky_texture(Ram_allocator &ram, Env::Local_rm &rm, Framebuffer::Mode mode)
 		:
 			Buffer(ram, rm, mode.num_bytes()),
 			Texture<PT>((PT *)Buffer::bytes().start, _alpha_base(*this, mode), mode.area),

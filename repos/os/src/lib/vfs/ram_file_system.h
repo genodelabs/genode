@@ -914,13 +914,12 @@ class Vfs::Ram_file_system : public Vfs::File_system
 						.size = { },  .offset     = { },  .use_at    = { },
 						.at   = { },  .executable = { },  .writeable = true
 					}).convert<Dataspace_capability>(
-						[&] (Region_map::Range const range) {
-							file->read(Byte_range_ptr((char *)range.start, len), Seek{0});
-							_env.env().rm().detach(range.start);
+						[&] (Genode::Env::Local_rm::Attachment &a) {
+							file->read(Byte_range_ptr((char *)a.ptr, len), Seek{0});
 							allocation.deallocate = false;
 							return allocation.cap;
 						},
-						[&] (Region_map::Attach_error) {
+						[&] (Genode::Env::Local_rm::Error) {
 							return Dataspace_capability();
 						}
 					);

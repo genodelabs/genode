@@ -60,7 +60,7 @@ class Net::Stream_allocator
 	public:
 
 		Stream_allocator(Genode::Ram_allocator &ram,
-		                 Genode::Region_map    &rm,
+		                 Genode::Env::Local_rm &rm,
 		                 Genode::Ram_quota      ram_quota,
 		                 Genode::Cap_quota      cap_quota)
 		:
@@ -133,7 +133,7 @@ class Net::Session_component : private Net::Stream_allocator,
 		 * \param vmac         virtual mac address
 		 */
 		Session_component(Genode::Ram_allocator       &ram,
-		                  Genode::Region_map          &rm,
+		                  Genode::Env::Local_rm       &rm,
 		                  Genode::Entrypoint          &ep,
 		                  Genode::Ram_quota            ram_quota,
 		                  Genode::Cap_quota            cap_quota,

@@ -47,14 +47,14 @@
 #include <internal/current_time.h>
 
 
-static Libc::Monitor      *_monitor_ptr;
-static Genode::Region_map *_region_map_ptr;
+static Libc::Monitor         *_monitor_ptr;
+static Genode::Env::Local_rm *_local_rm_ptr;
 
 
-void Libc::init_vfs_plugin(Monitor &monitor, Genode::Region_map &rm)
+void Libc::init_vfs_plugin(Monitor &monitor, Genode::Env::Local_rm &rm)
 {
 	_monitor_ptr = &monitor;
-	_region_map_ptr = &rm;
+	_local_rm_ptr = &rm;
 }
 
 
@@ -67,12 +67,12 @@ static Libc::Monitor & monitor()
 }
 
 
-static Genode::Region_map &region_map()
+static Genode::Env::Local_rm &local_rm()
 {
 	struct Missing_call_of_init_vfs_plugin : Genode::Exception { };
-	if (!_region_map_ptr)
+	if (!_local_rm_ptr)
 		throw Missing_call_of_init_vfs_plugin();
-	return *_region_map_ptr;
+	return *_local_rm_ptr;
 }
 
 
@@ -2375,16 +2375,16 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 			return MAP_FAILED;
 		}
 
-		region_map().attach(ds_cap, {
+		addr = local_rm().attach(ds_cap, {
 			.size       = length,
 			.offset     = addr_t(offset),
 			.use_at     = { },
 			.at         = { },
 			.executable = { },
 			.writeable  = true
-		}).with_result(
-			[&] (Region_map::Range range)  { addr = (void *)range.start; },
-			[&] (Region_map::Attach_error) { addr = nullptr; }
+		}).convert<void *>(
+			[&] (Env::Local_rm::Attachment &a) { a.deallocate = false; return a.ptr; },
+			[&] (Env::Local_rm::Error)         { return nullptr; }
 		);
 
 		if (!addr) {
@@ -2430,7 +2430,7 @@ int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 		if (entry.start == addr) {
 			reference_handle = entry.reference_handle;
 			destroy(_alloc, &entry);
-			region_map().detach(addr_t(addr));
+			local_rm().detach(addr_t(addr));
 		}
 	});
 

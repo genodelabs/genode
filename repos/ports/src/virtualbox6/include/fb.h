@@ -51,8 +51,9 @@ class Genodefb :
 				.size = { },  .offset     = { },  .use_at     = { },
 				.at   = { },  .executable = { },  .writeable  = true
 			}).convert<void *>(
-				[&] (Genode::Region_map::Range range)  { return (void *)range.start; },
-				[&] (Genode::Region_map::Attach_error) { return nullptr; }
+				[&] (Genode::Env::Local_rm::Attachment &a) {
+					a.deallocate = false; return a.ptr; },
+				[&] (Genode::Env::Local_rm::Error) { return nullptr; }
 			);
 		}
 

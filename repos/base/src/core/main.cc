@@ -19,7 +19,7 @@
 
 /* core includes */
 #include <platform.h>
-#include <core_region_map.h>
+#include <core_local_rm.h>
 #include <core_service.h>
 #include <signal_transmitter.h>
 #include <system_control.h>
@@ -99,11 +99,11 @@ void Genode::bootstrap_component(Genode::Platform &)
 
 	static Core_ram_allocator core_ram { core_ds_factory };
 
-	static Core_region_map core_rm { ep };
+	static Core_local_rm local_rm { ep };
 
 	static Rpc_entrypoint &signal_ep = core_signal_ep(ep);
 
-	init_exception_handling(core_ram, core_rm);
+	init_exception_handling(core_ram, local_rm);
 	init_core_signal_transmitter(signal_ep);
 	init_page_fault_handling(ep);
 
@@ -120,7 +120,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 	 * Allocate session meta data on distinct dataspaces to enable independent
 	 * destruction (to enable quota trading) of session component objects.
 	 */
-	static Sliced_heap sliced_heap { core_ram, core_rm };
+	static Sliced_heap sliced_heap { core_ram, local_rm };
 
 	/*
 	 * Factory for creating RPC capabilities within core
@@ -135,16 +135,16 @@ void Genode::bootstrap_component(Genode::Platform &)
 	static Core::System_control &system_control = init_system_control(sliced_heap, ep);
 
 	static Rom_root    rom_root    (ep, ep, rom_modules, sliced_heap);
-	static Rm_root     rm_root     (ep, sliced_heap, core_ram, core_rm, pager_ep);
-	static Cpu_root    cpu_root    (core_ram, core_rm, ep, ep, pager_ep,
+	static Rm_root     rm_root     (ep, sliced_heap, core_ram, local_rm, pager_ep);
+	static Cpu_root    cpu_root    (core_ram, local_rm, ep, ep, pager_ep,
 	                                sliced_heap, Core::Trace::sources());
-	static Pd_root     pd_root     (ep, signal_ep, pager_ep, ram_ranges, core_rm, sliced_heap,
+	static Pd_root     pd_root     (ep, signal_ep, pager_ep, ram_ranges, local_rm, sliced_heap,
 	                                platform_specific().core_mem_alloc(),
 	                                system_control);
 	static Log_root    log_root    (ep, sliced_heap);
 	static Io_mem_root io_mem_root (ep, ep, io_mem_ranges, ram_ranges, sliced_heap);
 	static Irq_root    irq_root    (irq_ranges, sliced_heap);
-	static Trace_root  trace_root  (core_ram, core_rm, ep, sliced_heap,
+	static Trace_root  trace_root  (core_ram, local_rm, ep, sliced_heap,
 	                                Core::Trace::sources(), trace_policies);
 
 	static Core_service<Rom_session_component>    rom_service    (services, rom_root);
@@ -158,7 +158,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 
 	/* make platform-specific services known to service pool */
 	platform_add_local_services(ep, sliced_heap, services, Core::Trace::sources(),
-	                            core_ram, core_rm, io_port_ranges);
+	                            core_ram, local_rm, io_port_ranges);
 
 	if (!core_account.ram_account.try_withdraw({ 224*1024 })) {
 		error("core preservation exceeds available RAM");
@@ -179,14 +179,14 @@ void Genode::bootstrap_component(Genode::Platform &)
 		         Session::Resources{{Cpu_session::RAM_QUOTA},
 		                            {Cpu_session::CAP_QUOTA}},
 		         "core", Session::Diag{false},
-		         core_ram, core_rm, ep, pager_ep, Core::Trace::sources(), "",
+		         core_ram, local_rm, ep, pager_ep, Core::Trace::sources(), "",
 		         Affinity::unrestricted(), Cpu_session::QUOTA_LIMIT);
 
 	log(init_ram_quota.value / (1024*1024), " MiB RAM and ",
 	    init_cap_quota, " caps assigned to init");
 
 	static Reconstructible<Core::Core_child>
-		init(services, ep, core_rm, core_ram, core_account,
+		init(services, ep, local_rm, core_ram, core_account,
 		     core_cpu, core_cpu.cap(), init_cap_quota, init_ram_quota);
 
 	Core::platform().wait_for_exit();

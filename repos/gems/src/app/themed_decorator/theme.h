@@ -38,7 +38,7 @@ class Decorator::Theme
 	private:
 
 		Genode::Ram_allocator &_ram;
-		Genode::Region_map    &_rm;
+		Genode::Env::Local_rm &_rm;
 		Genode::Allocator     &_alloc;
 
 	public:
@@ -52,8 +52,11 @@ class Decorator::Theme
 
 		enum Element_type { ELEMENT_TYPE_CLOSER, ELEMENT_TYPE_MAXIMIZER };
 
-		Theme(Genode::Ram_allocator &ram, Genode::Region_map &rm, Genode::Allocator &alloc)
-		: _ram(ram), _rm(rm), _alloc(alloc) { }
+		Theme(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
+		      Genode::Allocator &alloc)
+		:
+			_ram(ram), _rm(rm), _alloc(alloc)
+		{ }
 
 		Area background_size() const;
 

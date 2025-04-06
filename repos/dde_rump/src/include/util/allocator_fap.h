@@ -71,7 +71,7 @@ namespace Allocator {
 			Allocator_avl            _range;             /* manage allocations */
 			bool                     _quota_exceeded = false;
 
-			addr_t _attach_managed_ds(Region_map &local_rm)
+			addr_t _attach_managed_ds(Env::Local_rm &local_rm)
 			{
 				return local_rm.attach(dataspace(), {
 					.size   = { },
@@ -81,8 +81,10 @@ namespace Allocator {
 					.executable = false,
 					.writeable  = true
 				}).convert<addr_t>(
-					[&] (Range range) { return range.start; },
-					[&] (Attach_error) {
+					[&] (Env::Local_rm::Attachment &a) {
+						a.deallocate = false;
+						return addr_t(a.ptr); },
+					[&] (Env::Local_rm::Error) {
 						error("rump backend allocator failed to attach managed dataspace");
 						return 0UL; }
 				);

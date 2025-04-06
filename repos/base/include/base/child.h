@@ -268,6 +268,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 {
 	private:
 
+		using Local_rm = Local::Constrained_region_map;
+
 		struct Initial_thread_base : Interface
 		{
 			struct Start : Interface
@@ -322,7 +324,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		/* print error message with the child's name prepended */
 		void _error(auto &&... args) { error(_policy.name(), ": ", args...); }
 
-		Region_map &_local_rm;
+		Local_rm &_local_rm;
 
 		Capability_guard _parent_cap_guard;
 
@@ -383,7 +385,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		static Load_result _load_static_elf(Dataspace_capability elf_ds,
 		                                    Ram_allocator       &ram,
-		                                    Region_map          &local_rm,
+		                                    Local_rm            &local_rm,
 		                                    Region_map          &remote_rm,
 		                                    Parent_capability    parent_cap);
 
@@ -393,7 +395,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		                                   Pd_session            &,
 		                                   Initial_thread_base   &,
 		                                   Initial_thread::Start &,
-		                                   Region_map            &local_rm,
+		                                   Local_rm              &local_rm,
 		                                   Region_map            &remote_rm,
 		                                   Parent_capability      parent);
 
@@ -660,7 +662,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 * \throw Service_denied  the initial sessions for the child's
 		 *                        environment could not be established
 		 */
-		Child(Region_map &rm, Rpc_entrypoint &entrypoint, Child_policy &policy);
+		Child(Local_rm &rm, Rpc_entrypoint &entrypoint, Child_policy &policy);
 
 		/**
 		 * Destructor

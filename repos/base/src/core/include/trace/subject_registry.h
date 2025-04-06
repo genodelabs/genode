@@ -71,7 +71,7 @@ class Core::Trace::Subject
 				return Setup_result::DENIED;
 			}
 
-			Setup_result _copy_content(Region_map &local_rm, size_t num_bytes,
+			Setup_result _copy_content(Local_rm &local_rm, size_t num_bytes,
 			                           Dataspace_capability from_ds,
 			                           Dataspace_capability to_ds)
 			{
@@ -104,7 +104,7 @@ class Core::Trace::Subject
 			 * Clone dataspace into newly allocated dataspace
 			 */
 			[[nodiscard]] Setup_result setup(Ram_allocator        &ram,
-			                                 Region_map           &local_rm,
+			                                 Local_rm             &local_rm,
 			                                 Dataspace_capability &from_ds,
 			                                 size_t                size)
 			{
@@ -194,7 +194,7 @@ class Core::Trace::Subject
 		 */
 		Trace_result trace(Policy_id policy_id, Dataspace_capability policy_ds,
 		                   Policy_size policy_size, Ram_allocator &ram,
-		                   Region_map &local_rm, Buffer_size size)
+		                   Local_rm &local_rm, Buffer_size size)
 		{
 			/* check state and return error if subject is not traceable */
 			switch(_state()) {

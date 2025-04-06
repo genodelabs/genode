@@ -60,9 +60,11 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 					.use_at     = { },  .at        = { },
 					.executable = { },  .writeable = true
 				}).with_result(
-					[&] (Region_map::Range range) {
-						_buffer.construct(*(Trace::Buffer *)range.start); },
-					[&] (Region_map::Attach_error) {
+					[&] (Genode::Env::Local_rm::Attachment &a) {
+						a.deallocate = false;
+						_buffer.construct(*(Trace::Buffer *)a.ptr);
+					},
+					[&] (Genode::Env::Local_rm::Error) {
 						error("failed to attach trace buffer"); }
 				);
 			}

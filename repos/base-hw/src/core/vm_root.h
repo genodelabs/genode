@@ -30,7 +30,7 @@ class Core::Vm_root : public Root_component<Vm_session_component>
 	private:
 
 		Ram_allocator          &_ram_allocator;
-		Region_map             &_local_rm;
+		Local_rm               &_local_rm;
 		Trace::Source_registry &_trace_sources;
 		Vmid_allocator          _vmid_alloc { };
 
@@ -74,7 +74,7 @@ class Core::Vm_root : public Root_component<Vm_session_component>
 		Vm_root(Rpc_entrypoint         &session_ep,
 		        Allocator              &md_alloc,
 		        Ram_allocator          &ram_alloc,
-		        Region_map             &local_rm,
+		        Local_rm               &local_rm,
 		        Trace::Source_registry &trace_sources)
 		:
 			Root_component<Vm_session_component>(&session_ep, &md_alloc),

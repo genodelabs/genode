@@ -34,7 +34,7 @@ struct Nitpicker::Buffer : private Attached_ram_dataspace
 	 * \throw Out_of_caps
 	 * \throw Region_map::Region_conflict
 	 */
-	Buffer(Ram_allocator &ram, Region_map &rm, size_t num_bytes)
+	Buffer(Ram_allocator &ram, Env::Local_rm &rm, size_t num_bytes)
 	:
 		Attached_ram_dataspace(ram, rm, num_bytes)
 	{ }

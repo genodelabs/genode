@@ -27,7 +27,7 @@ GEN_SRC_CC += \
 REP_SRC_CC += \
               capability_space.cc \
               core_log_out.cc \
-              core_region_map.cc \
+              core_local_rm.cc \
               io_mem_session_support.cc \
               irq_session_component.cc \
               pager.cc \

@@ -36,14 +36,14 @@ class Nic::Communication_buffers
 
 		Communication_buffers(Genode::Allocator     &rx_block_md_alloc,
 		                      Genode::Ram_allocator &ram,
-		                      Genode::Region_map    &region_map,
+		                      Genode::Env::Local_rm &local_rm,
 		                      Genode::size_t         tx_size,
 		                      Genode::size_t         rx_size,
 		                      Genode::Cache          cache_policy)
 		:
 			_rx_packet_alloc(&rx_block_md_alloc),
-			_tx_ds(ram, region_map, tx_size, cache_policy),
-			_rx_ds(ram, region_map, rx_size, cache_policy)
+			_tx_ds(ram, local_rm, tx_size, cache_policy),
+			_rx_ds(ram, local_rm, rx_size, cache_policy)
 		{ }
 };
 

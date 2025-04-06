@@ -89,7 +89,7 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 		 * Constructor
 		 */
 		Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-		                Region_map &, size_t, const char *name, unsigned priority,
+		                Local_rm &, size_t, const char *name, unsigned priority,
 		                Affinity::Location, addr_t utcb);
 
 		/**

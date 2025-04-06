@@ -58,7 +58,7 @@ struct Fb_sdl::Sdl : Noncopyable
 {
 	Event::Connection   &_event;
 	Capture::Connection &_capture;
-	Region_map          &_rm;
+	Env::Local_rm       &_rm;
 
 	struct Ticks { Uint32 ms; };
 
@@ -294,8 +294,8 @@ struct Fb_sdl::Sdl : Noncopyable
 	/*
 	 * Construction executed by the main thread
 	 */
-	Sdl(Event::Connection &event, Capture::Connection &capture, Region_map &rm,
-	    Attr const attr)
+	Sdl(Event::Connection &event, Capture::Connection &capture,
+	    Env::Local_rm &rm, Attr const attr)
 	:
 		_event(event), _capture(capture), _rm(rm), _attr(attr)
 	{ }

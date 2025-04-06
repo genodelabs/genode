@@ -36,7 +36,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 	private:
 
 		Genode::Ram_allocator &_ram;
-		Genode::Region_map    &_rm;
+		Genode::Env::Local_rm &_rm;
 
 		Registry_for_reader &_registry;
 
@@ -80,7 +80,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 	public:
 
-		Session_component(Genode::Ram_allocator &ram, Genode::Region_map &rm,
+		Session_component(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 		                  Registry_for_reader &registry,
 		                  Genode::Session_label const &label)
 		:

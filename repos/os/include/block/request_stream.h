@@ -117,7 +117,7 @@ class Block::Request_stream : Genode::Noncopyable
 
 	public:
 
-		Request_stream(Genode::Region_map               &rm,
+		Request_stream(Genode::Env::Local_rm            &rm,
 		               Genode::Dataspace_capability      ds,
 		               Genode::Entrypoint               &ep,
 		               Genode::Signal_context_capability sigh,

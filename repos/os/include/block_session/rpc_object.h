@@ -36,7 +36,7 @@ class Block::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc
 		 *               for the tx packet stream
 		 * \param ep     entry point used for packet-stream channel
 		 */
-		Session_rpc_object(Genode::Region_map &local_rm,
+		Session_rpc_object(Genode::Env::Local_rm &local_rm,
 		                   Genode::Dataspace_capability tx_ds,
 		                   Genode::Rpc_entrypoint &ep)
 		: _tx(tx_ds, local_rm, ep) { }

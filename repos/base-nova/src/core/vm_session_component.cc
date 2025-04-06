@@ -363,7 +363,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Label const &label,
                                            Diag,
                                            Ram_allocator &ram,
-                                           Region_map &local_rm,
+                                           Local_rm &local_rm,
                                            unsigned const priority,
                                            Trace::Source_registry &trace_sources)
 :

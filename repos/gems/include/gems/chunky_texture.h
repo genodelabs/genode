@@ -53,7 +53,7 @@ class Chunky_texture : Genode::Attached_ram_dataspace, public Genode::Texture<PT
 
 	public:
 
-		Chunky_texture(Genode::Ram_allocator &ram, Genode::Region_map &rm,
+		Chunky_texture(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 		               Genode::Surface_base::Area size)
 		:
 			Genode::Attached_ram_dataspace(ram, rm, _num_bytes(size)),

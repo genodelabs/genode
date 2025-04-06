@@ -41,7 +41,7 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 	using Block::Request_stream::try_acknowledge;
 	using Block::Request_stream::wakeup_client_if_needed;
 
-	Block_session_component(Region_map               &rm,
+	Block_session_component(Env::Local_rm            &rm,
 	                        Dataspace_capability      ds,
 	                        Entrypoint               &ep,
 	                        Signal_context_capability sigh)

@@ -40,7 +40,7 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 		 */
 		Session_client(Session_capability       session,
 		               Genode::Range_allocator &tx_buffer_alloc,
-		               Genode::Region_map      &rm)
+		               Genode::Env::Local_rm   &rm)
 		:
 			Genode::Rpc_client<Session>(session),
 			_tx(tx_cap(), rm, tx_buffer_alloc)

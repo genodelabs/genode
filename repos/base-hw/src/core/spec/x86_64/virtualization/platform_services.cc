@@ -30,12 +30,12 @@ void Core::platform_add_local_services(Rpc_entrypoint         &ep,
                                        Registry<Service>      &local_services,
                                        Trace::Source_registry &trace_sources,
                                        Ram_allocator          &core_ram,
-                                       Region_map             &core_rm,
+                                       Local_rm               &local_rm,
                                        Range_allocator        &io_port_ranges)
 {
 	static Io_port_root io_port_root(io_port_ranges, sliced_heap);
 
-	static Vm_root vm_root(ep, sliced_heap, core_ram, core_rm, trace_sources);
+	static Vm_root vm_root(ep, sliced_heap, core_ram, local_rm, trace_sources);
 
 	static Core_service<Session_object<Vm_session>> vm_service(local_services, vm_root);
 

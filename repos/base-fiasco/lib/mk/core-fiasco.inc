@@ -4,7 +4,7 @@ GEN_SRC_DIR  := $(realpath $(GEN_CORE_DIR)/..)
 SRC_CC      += stack_area.cc \
                core_log.cc \
                core_log_out.cc \
-               core_region_map.cc \
+               core_local_rm.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \
                cpu_thread_component.cc \
@@ -62,7 +62,7 @@ vpath capability_space.cc         $(GEN_CORE_DIR)
 vpath rpc_cap_factory_l4.cc       $(GEN_CORE_DIR)
 vpath ram_dataspace_factory.cc    $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
-vpath core_region_map.cc          $(GEN_CORE_DIR)
+vpath core_local_rm.cc            $(GEN_CORE_DIR)
 vpath pd_session_support.cc       $(GEN_CORE_DIR)
 vpath pd_upgrade_ram_quota.cc     $(GEN_CORE_DIR)
 vpath region_map_component.cc     $(GEN_CORE_DIR)

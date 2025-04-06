@@ -18,6 +18,7 @@
 #include <util/reconstructible.h>
 #include <util/interface.h>
 #include <base/log.h>
+#include <base/local.h>
 
 namespace Core {
 
@@ -57,6 +58,8 @@ namespace Core {
 			Genode::print(out, "(r", w ? "w" : "-", x ? "x" : "-", ")");
 		}
 	};
+
+	using Local_rm = Local::Constrained_region_map;
 }
 
 namespace Genode {

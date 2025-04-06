@@ -31,26 +31,14 @@ class Genode::Attached_io_mem_dataspace
 {
 	private:
 
-		Region_map                 &_env_rm;
 		Io_mem_connection           _mmio;
 		Io_mem_dataspace_capability _ds;
+		Env::Local_rm::Result const _attached;
 		addr_t                const _at;
 
 		static addr_t _with_sub_page_offset(addr_t local, addr_t io_base)
 		{
 			return local | (io_base & 0xfffUL);
-		}
-
-		addr_t _attach()
-		{
-			return _env_rm.attach(_ds, {
-				.size       = { }, .offset     = { },
-				.use_at     = { }, .at         = { },
-				.executable = { }, .writeable  = true
-			}).convert<addr_t>(
-				[&] (Region_map::Range range)  { return range.start; },
-				[&] (Region_map::Attach_error) { return 0UL;  }
-			);
 		}
 
 	public:
@@ -73,19 +61,22 @@ class Genode::Attached_io_mem_dataspace
 		Attached_io_mem_dataspace(Env &env, Genode::addr_t base, Genode::size_t size,
 		                          bool write_combined = false)
 		:
-			_env_rm(env.rm()),
 			_mmio(env, base, size, write_combined),
 			_ds(_mmio.dataspace()),
-			_at(_with_sub_page_offset(_attach(), base))
+
+			_attached(env.rm().attach(_ds, {
+				.size       = { }, .offset     = { },
+				.use_at     = { }, .at         = { },
+				.executable = { }, .writeable  = true })),
+
+			_at(_attached.convert<addr_t>(
+				[&] (Env::Local_rm::Attachment const &a) {
+					return _with_sub_page_offset(addr_t(a.ptr), base); },
+				[&] (Env::Local_rm::Error) { return 0UL; }))
 		{
 			if (!_ds.valid()) throw Attached_dataspace::Invalid_dataspace();
 			if (!_at)         throw Attached_dataspace::Region_conflict();
 		}
-
-		/**
-		 * Destructor
-		 */
-		~Attached_io_mem_dataspace() { if (_at) _env_rm.detach(_at); }
 
 		/**
 		 * Return capability of the used RAM dataspace

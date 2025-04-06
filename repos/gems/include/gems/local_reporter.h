@@ -34,7 +34,7 @@ class Local_reporter
 
 	public:
 
-		Local_reporter(Genode::Region_map &rm, char const *name,
+		Local_reporter(Genode::Env::Local_rm &rm, char const *name,
 		               Genode::Capability<Report::Session> session_cap)
 		:
 			_session(session_cap), _ds(rm, _session.dataspace()), _name(name)

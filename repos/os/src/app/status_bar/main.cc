@@ -67,7 +67,7 @@ struct Status_bar::Buffer
 	Tff_font::Static_glyph_buffer<4096> _glyph_buffer { };
 	Tff_font _font { &_binary_default_tff_start, _glyph_buffer };
 
-	Buffer(Region_map &rm, Gui::Connection &gui)
+	Buffer(Env::Local_rm &rm, Gui::Connection &gui)
 	:
 		_gui(gui), _fb_ds(rm, _init_buffer())
 	{ }

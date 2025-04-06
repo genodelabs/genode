@@ -69,7 +69,7 @@ class Core::Platform_thread : Noncopyable
 		/**
 		 * Constructor
 		 */
-		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Region_map &,
+		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Local_rm &,
 		                size_t, auto const &name, auto...)
 		: _name(name) { }
 

@@ -41,7 +41,7 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 		remove(ds);
 		delete ds;
 
-		_region_map->detach(range.start);
+		_local_rm->detach(range.start);
 		_ram->free(ds_cap);
 	}
 }
@@ -68,7 +68,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	if (result < 0)
 		return result;
 
-	Region_map::Range const range = _region_map->attach(new_ds_cap, {
+	Region_map::Range const range = _local_rm->attach(new_ds_cap, {
 		.size       = { },
 		.offset     = { },
 		.use_at     = { },
@@ -76,7 +76,9 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 		.executable = _executable,
 		.writeable  = true
 	}).convert<Region_map::Range>(
-		[&] (Region_map::Range range) { return range; },
+		[&] (Env::Local_rm::Attachment &a) -> Region_map::Range {
+			a.deallocate = false;
+			return { addr_t(a.ptr), a.num_bytes }; },
 		[&] (Region_map::Attach_error e) {
 			switch (e) {
 			case Region_map::Attach_error::OUT_OF_RAM:        result = -2; break;
@@ -184,7 +186,7 @@ static Libc::Mem_alloc *_libc_mem_alloc_rw  = nullptr;
 static Libc::Mem_alloc *_libc_mem_alloc_rwx = nullptr;
 
 
-static void _init_mem_alloc(Region_map &rm, Ram_allocator &ram)
+static void _init_mem_alloc(Env::Local_rm &rm, Ram_allocator &ram)
 {
 	enum { MEMORY_EXECUTABLE = true };
 

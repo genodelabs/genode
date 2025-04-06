@@ -37,7 +37,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		Child_policy_dynamic_rom_file &operator = (Child_policy_dynamic_rom_file const &);
 
 		Ram_allocator *_ram;
-		Region_map    &_rm;
+		Env::Local_rm &_rm;
 
 		/*
 		 * The ROM module may be written and consumed by different threads,
@@ -82,7 +82,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 *
 		 * If 'ram' is 0, the child policy is ineffective.
 		 */
-		Child_policy_dynamic_rom_file(Region_map     &rm,
+		Child_policy_dynamic_rom_file(Env::Local_rm  &rm,
 		                              char const     *module_name,
 		                              Rpc_entrypoint &ep,
 		                              Ram_allocator  *ram)

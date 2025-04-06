@@ -30,7 +30,7 @@ class Core::Core_child : public Child_policy
 
 		Registry<Service> &_services;
 		Rpc_entrypoint    &_ep;
-		Region_map        &_core_rm;
+		Local_rm          &_local_rm;
 		Ram_allocator     &_core_ram;
 		Core_account      &_core_account;
 
@@ -42,17 +42,17 @@ class Core::Core_child : public Child_policy
 
 		Id_space<Parent::Server> _server_ids { };
 
-		Child _child { _core_rm, _ep, *this };
+		Child _child { _local_rm, _ep, *this };
 
 	public:
 
 		Core_child(Registry<Service> &services, Rpc_entrypoint &ep,
-		           Region_map &core_rm, Ram_allocator &core_ram,
+		           Local_rm &local_rm, Ram_allocator &core_ram,
 		           Core_account &core_account,
 		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap,
 		           Cap_quota cap_quota, Ram_quota ram_quota)
 		:
-			_services(services), _ep(ep), _core_rm(core_rm), _core_ram(core_ram),
+			_services(services), _ep(ep), _local_rm(local_rm), _core_ram(core_ram),
 			_core_account(core_account),
 			_core_cpu_cap(core_cpu_cap), _core_cpu(core_cpu),
 			_cap_quota(Child::effective_quota(cap_quota)),

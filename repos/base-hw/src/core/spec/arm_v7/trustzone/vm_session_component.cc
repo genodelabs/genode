@@ -63,15 +63,15 @@ Vm_session_component::Vm_session_component(Vmid_allocator &vmids, Rpc_entrypoint
                                            Label const &,
                                            Diag,
                                            Ram_allocator &ram_alloc,
-                                           Region_map &region_map,
+                                           Local_rm &local_rm,
                                            unsigned, Trace::Source_registry &)
 :
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_ram(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_ram, region_map),
-	_region_map(region_map),
+	_sliced_heap(_ram, local_rm),
+	_local_rm(local_rm),
 	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
 	_table_array(dummy_array()),
 	_vmid_alloc(vmids),
@@ -103,7 +103,7 @@ Vm_session_component::~Vm_session_component()
 
 		Vcpu & vcpu = *_vcpus[i];
 		if (vcpu.state().valid())
-			_region_map.detach(vcpu.ds_addr);
+			_local_rm.detach(vcpu.ds_addr);
 	}
 
 	id_alloc--;

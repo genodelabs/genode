@@ -80,11 +80,11 @@ class Event::Session_client : public Genode::Rpc_client<Session>
 				}
 		};
 
+		using Local_rm = Genode::Local::Constrained_region_map;
 
 	public:
 
-		Session_client(Genode::Region_map &local_rm,
-		               Genode::Capability<Session> session)
+		Session_client(Local_rm &local_rm, Genode::Capability<Session> session)
 		:
 			Genode::Rpc_client<Session>(session),
 			_ds(local_rm, call<Rpc_dataspace>())

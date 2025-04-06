@@ -169,8 +169,10 @@ int Framebuffer::map_io_mem(addr_t base, size_t size, bool write_combined,
 		.executable = false,
 		.writeable  = true
 	}).with_result(
-		[&] (Region_map::Range range)  { *out_addr = (void *)range.start; },
-		[&] (Region_map::Attach_error) { }
+		[&] (Env::Local_rm::Attachment &a) {
+			a.deallocate = false;
+			*out_addr = a.ptr; },
+		[&] (Env::Local_rm::Error) { }
 	);
 
 	if (*out_addr == nullptr)

@@ -60,8 +60,8 @@ class Core::Platform_thread : Noncopyable
 		struct Utcb : Noncopyable
 		{
 			struct {
-				Ram_allocator *_ram_ptr     = nullptr;
-				Region_map    *_core_rm_ptr = nullptr;
+				Ram_allocator *_ram_ptr      = nullptr;
+				Local_rm      *_local_rm_ptr = nullptr;
 			};
 
 			Ram_allocator::Result const ds; /* UTCB ds of non-core threads */
@@ -69,7 +69,7 @@ class Core::Platform_thread : Noncopyable
 			addr_t const core_addr; /* UTCB address within core/kernel */
 			addr_t const phys_addr;
 
-			addr_t _attach(Region_map &);
+			addr_t _attach(Local_rm &);
 
 			static addr_t _phys(Rpc_entrypoint &ep, Dataspace_capability ds)
 			{
@@ -92,18 +92,18 @@ class Core::Platform_thread : Noncopyable
 			/**
 			 * Constructor used for threads outside of core
 			 */
-			Utcb(Rpc_entrypoint &ep, Ram_allocator &ram, Region_map &core_rm)
+			Utcb(Rpc_entrypoint &ep, Ram_allocator &ram, Local_rm &local_rm)
 			:
-				_core_rm_ptr(&core_rm),
+				_local_rm_ptr(&local_rm),
 				ds(ram.try_alloc(sizeof(Native_utcb), CACHED)),
-				core_addr(_attach(core_rm)),
+				core_addr(_attach(local_rm)),
 				phys_addr(_ds_phys(ep, ds))
 			{ }
 
 			~Utcb()
 			{
-				if (_core_rm_ptr)
-					_core_rm_ptr->detach(core_addr);
+				if (_local_rm_ptr)
+					_local_rm_ptr->detach(core_addr);
 			}
 
 			Ram_dataspace_capability ds_cap() const
@@ -173,7 +173,7 @@ class Core::Platform_thread : Noncopyable
 		 * \param utcb       core local pointer to userland stack
 		 */
 		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &,
-		                Region_map &, size_t const quota, Label const &label,
+		                Local_rm &, size_t const quota, Label const &label,
 		                unsigned const virt_prio, Affinity::Location,
 		                addr_t const utcb);
 

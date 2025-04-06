@@ -35,9 +35,11 @@ class Genode::Attached_ram_dataspace
 {
 	private:
 
+		using Local_rm = Local::Constrained_region_map;
+
 		size_t                    _size  = 0;
 		Ram_allocator            *_ram   = nullptr;
-		Region_map               *_rm    = nullptr;
+		Local_rm                 *_rm    = nullptr;
 		Ram_dataspace_capability  _ds { };
 		addr_t                    _at    = 0;
 		Cache               const _cache = CACHED;
@@ -60,15 +62,16 @@ class Genode::Attached_ram_dataspace
 
 			_ds = _ram->alloc(_size, _cache);
 
-			Region_map::Attr attr { };
+			Local_rm::Attach_attr attr { };
 			attr.writeable = true;
 			_rm->attach(_ds, attr).with_result(
-				[&] (Region_map::Range range) { _at = range.start; },
-				[&] (Region_map::Attach_error e) {
+				[&] (Local_rm::Attachment &a) {
+					a.deallocate = false; _at = addr_t(a.ptr); },
+				[&] (Local_rm::Error e) {
 					/* revert allocation if attaching the dataspace failed */
 					_ram->free(_ds, _size);
-					if (e == Region_map::Attach_error::OUT_OF_RAM)  throw Out_of_ram();
-					if (e == Region_map::Attach_error::OUT_OF_CAPS) throw Out_of_caps();
+					if (e == Local_rm::Error::OUT_OF_RAM)  throw Out_of_ram();
+					if (e == Local_rm::Error::OUT_OF_CAPS) throw Out_of_caps();
 					throw Attached_dataspace::Region_conflict();
 				});
 
@@ -106,7 +109,7 @@ class Genode::Attached_ram_dataspace
 		 * \throw Attached_dataspace::Region_conflict
 		 * \throw Attached_dataspace::Invalid_dataspace
 		 */
-		Attached_ram_dataspace(Ram_allocator &ram, Region_map &rm,
+		Attached_ram_dataspace(Ram_allocator &ram, Local_rm &rm,
 		                       size_t size, Cache cache = CACHED)
 		:
 			_size(size), _ram(&ram), _rm(&rm), _cache(cache)

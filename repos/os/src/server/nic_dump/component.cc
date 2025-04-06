@@ -39,7 +39,7 @@ Communication_buffer::Communication_buffer(Ram_allocator &ram,
 
 Session_component_base::
 Session_component_base(Ram_allocator  &ram,
-                       Region_map     &local_rm,
+                       Env::Local_rm  &local_rm,
                        Ram_quota const ram_quota,
                        Cap_quota const cap_quota,
                        size_t    const tx_buf_size,

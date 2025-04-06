@@ -61,7 +61,8 @@ class Linker::Region_map
 				.executable = true,
 				.writeable  = true
 			}).with_result(
-				[&] (Genode::Region_map::Range) {
+				[&] (Env::Local_rm::Attachment &a) {
+					a.deallocate = false;
 					if (_range.add_range(base, Pd_session::LINKER_AREA_SIZE).failed())
 						warning("failed to initialize linker-area range allocator");
 
@@ -70,7 +71,7 @@ class Linker::Region_map
 						    " .. ", Hex(base + Pd_session::LINKER_AREA_SIZE - 1),
 						    ": linker area");
 				},
-				[&] (Genode::Region_map::Attach_error) {
+				[&] (Env::Local_rm::Error) {
 					error("failed to locally attach linker area"); }
 			);
 		}

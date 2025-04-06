@@ -62,7 +62,7 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		 *
 		 * \param dst  destination dataspace
 		 */
-		void _copy_content_to_dataspace(Region_map &rm, Dataspace_capability dst,
+		void _copy_content_to_dataspace(Env::Local_rm &rm, Dataspace_capability dst,
 		                                char const *src, size_t len)
 		{
 			/* temporarily map dataspace */
@@ -76,7 +76,7 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		/**
 		 * Initialize dataspace containing the content of the archived file
 		 */
-		Ram_dataspace_capability _init_file_ds(Ram_allocator &ram, Region_map &rm,
+		Ram_dataspace_capability _init_file_ds(Ram_allocator &ram, Env::Local_rm &rm,
 		                                       Session_label const &name)
 		{
 			/* measure size of archive in blocks */
@@ -151,7 +151,7 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		 *
 		 * \throw Service_denied
 		 */
-		Rom_session_component(Ram_allocator &ram, Region_map &rm,
+		Rom_session_component(Ram_allocator &ram, Env::Local_rm &rm,
 		                      char const *tar_addr, unsigned tar_size,
 		                      Session_label const &label)
 		:

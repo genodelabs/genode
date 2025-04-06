@@ -51,7 +51,7 @@ class Input::Session_component : public Rpc_object<Input::Session>
 		 * \param ram  allocator for the shared-memory input buffer
 		 */
 		Session_component(Entrypoint &ep, Ram_allocator &ram,
-		                  Region_map &rm, Action &action)
+		                  Env::Local_rm &rm, Action &action)
 		:
 			_ep(ep), _action(action),
 			_ds(ram, rm, Event_queue::QUEUE_SIZE*sizeof(Input::Event))

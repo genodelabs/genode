@@ -44,11 +44,9 @@ class Core::Platform_thread
 
 		Okl4::L4_ThreadId_t _l4_thread_id = Okl4::L4_nilthread;
 
-		char          _name[32];            /* thread name that will be
-		                                       registered at the kernel
-		                                       debugger */
+		char          _name[32];   /* thread name at the kernel debugger */
 		Platform_pd  &_pd;
-		unsigned      _priority = 0;        /* thread priority */
+		unsigned      _priority = 0;
 		Pager_object *_pager = nullptr;
 
 		bool _bound_to_pd = false;
@@ -62,7 +60,7 @@ class Core::Platform_thread
 		 * Constructor
 		 */
 		Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-		                Region_map &, size_t, const char *name,
+		                Local_rm &, size_t, const char *name,
 		                unsigned prio, Affinity::Location, addr_t)
 		:
 			_pd(pd), _priority(prio)

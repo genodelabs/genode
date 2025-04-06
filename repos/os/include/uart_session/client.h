@@ -29,7 +29,8 @@ class Uart::Session_client : public Genode::Rpc_client<Session>
 
 	public:
 
-		Session_client(Genode::Region_map &local_rm, Genode::Capability<Session> cap)
+		Session_client(Genode::Env::Local_rm &local_rm,
+		               Genode::Capability<Session> cap)
 		:
 			Genode::Rpc_client<Session>(cap), _terminal(local_rm, cap)
 		{ }

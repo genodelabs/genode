@@ -36,7 +36,7 @@ class Core::Trace::Session_component
 	private:
 
 		Accounted_ram_allocator      _ram;
-		Region_map                  &_local_rm;
+		Local_rm                    &_local_rm;
 		Sliced_heap                  _md_alloc { _ram, _local_rm };
 		Tslab<Trace::Subject, 4096>  _subjects_slab;
 		Tslab<Trace::Policy, 4096>   _policies_slab;
@@ -67,7 +67,7 @@ class Core::Trace::Session_component
 		                  Label     const &label,
 		                  Diag      const &diag,
 		                  Ram_allocator   &ram,
-		                  Region_map      &local_rm,
+		                  Local_rm        &local_rm,
 		                  size_t           arg_buffer_size,
 		                  Source_registry &sources,
 		                  Policy_registry &policies);

@@ -85,7 +85,7 @@ class Core::Vmx_session_component
 
 		Rpc_entrypoint                     &_ep;
 		Accounted_ram_allocator             _accounted_ram_alloc;
-		Region_map                         &_region_map;
+		Local_rm                           &_local_rm;
 		Heap                                _heap;
 		Phys_allocated<Vm_page_table>       _table;
 		Phys_allocated<Vm_page_table_array> _table_array;
@@ -115,22 +115,22 @@ class Core::Vmx_session_component
 		                      Label const &label,
 		                      Diag diag,
 		                      Ram_allocator &ram_alloc,
-		                      Region_map &region_map,
+		                      Local_rm &local_rm,
 		                      Trace::Source_registry &)
 		:
 			Session_object(ds_ep, resources, label, diag),
 			_ep(ds_ep),
 			_accounted_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-			_region_map(region_map),
-			_heap(_accounted_ram_alloc, region_map),
-			_table(_ep, _accounted_ram_alloc, _region_map),
-			_table_array(_ep, _accounted_ram_alloc, _region_map,
+			_local_rm(local_rm),
+			_heap(_accounted_ram_alloc, local_rm),
+			_table(_ep, _accounted_ram_alloc, _local_rm),
+			_table_array(_ep, _accounted_ram_alloc, _local_rm,
 					[] (Phys_allocated<Vm_page_table_array> &table_array, auto *obj_ptr) {
 						construct_at<Vm_page_table_array>(obj_ptr, [&] (void *virt) {
 						return table_array.phys_addr() + ((addr_t) obj_ptr - (addr_t)virt);
 						});
 					}),
-			_memory(_accounted_ram_alloc, region_map),
+			_memory(_accounted_ram_alloc, local_rm),
 			_vmid_alloc(vmid_alloc),
 			_id({(unsigned)_vmid_alloc.alloc(), (void *)_table.phys_addr()})
 		{ }
@@ -224,7 +224,7 @@ class Core::Vmx_session_component
 						                 _id,
 						                 _ep,
 						                 _accounted_ram_alloc,
-						                 _region_map,
+						                 _local_rm,
 						                 vcpu_location);
 
 			return vcpu.cap();

@@ -630,8 +630,9 @@ class Greedy : public Genode::Thread {
 			for (unsigned i = 0; i < SUB_RM_SIZE / 4096; i++) {
 
 				addr_t const map_to = _env.rm().attach(ds, { }).convert<addr_t>(
-					[&] (Region_map::Range r) { return r.start; },
-					[&] (Region_map::Attach_error) {
+					[&] (Env::Local_rm::Attachment &a) {
+						a.deallocate = false; return addr_t(a.ptr); },
+					[&] (Env::Local_rm::Error) {
 						error("Greedy: failed to attach RAM dataspace");
 						return 0UL;
 					}

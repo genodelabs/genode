@@ -18,12 +18,15 @@
 #include <base/entrypoint.h>
 #include <cpu_session/capability.h>
 #include <pd_session/capability.h>
+#include <base/local.h>
 
 namespace Genode { struct Env; }
 
 
 struct Genode::Env : Interface
 {
+	using Local_rm = Local::Constrained_region_map;
+
 	virtual Parent &parent() = 0;
 
 	/**
@@ -36,7 +39,7 @@ struct Genode::Env : Interface
 	/**
 	 * Region map of the component's address space
 	 */
-	virtual Region_map &rm() = 0;
+	virtual Local_rm &rm() = 0;
 
 	/**
 	 * PD session of the component as created by the parent

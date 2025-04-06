@@ -91,7 +91,7 @@ namespace Genode {
  * For lx_hybrid programs, C++ support is initialized by the startup code
  * provided by the host toolchain.
  */
-void Genode::init_exception_handling(Ram_allocator &, Region_map &) { }
+void Genode::init_exception_handling(Ram_allocator &, Env::Local_rm &) { }
 
 
 /*
@@ -409,7 +409,7 @@ static void *thread_start(void *arg)
 }
 
 
-void Genode::init_thread(Cpu_session &, Region_map &)  { }
+void Genode::init_thread(Cpu_session &, Env::Local_rm &)  { }
 void Genode::init_thread_start(Capability<Pd_session>) { }
 
 

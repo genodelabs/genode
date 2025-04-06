@@ -48,7 +48,7 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		                     Label      const &label,
 		                     Diag       const &diag,
 		                     Ram_allocator    &ram_alloc,
-		                     Region_map       &local_rm,
+		                     Local_rm         &local_rm,
 		                     Pager_entrypoint &pager_ep)
 		:
 			Session_object(ep, resources, label, diag),

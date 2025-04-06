@@ -34,7 +34,7 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 
 	Io_signal_handler<Inferior_pd> _page_fault_handler;
 
-	Region_map    &_local_rm;  /* for wiping RAM dataspaces on free */
+	Env::Local_rm &_local_rm;  /* for wiping RAM dataspaces on free */
 	Allocator     &_alloc;     /* used for allocating 'Ram_ds' objects */
 	Ram_allocator &_wx_ram;    /* RAM used for writeable text segments */
 
@@ -128,7 +128,7 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 
 
 	Inferior_pd(Entrypoint &ep, Capability<Pd_session> real, Name const &name,
-	            Inferiors &inferiors, Inferiors::Id id, Region_map &local_rm,
+	            Inferiors &inferiors, Inferiors::Id id, Env::Local_rm &local_rm,
 	            Allocator &alloc, Ram_allocator &wx_ram)
 	:
 		Monitored_pd_session(ep, real, name),

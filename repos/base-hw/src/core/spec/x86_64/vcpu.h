@@ -43,7 +43,7 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		Kernel_object<Kernel::Vm>  _kobj { };
 		Accounted_ram_allocator   &_ram;
 		Ram_allocator::Result      _ds;
-		Region_map                &_region_map;
+		Local_rm                  &_local_rm;
 		Affinity::Location         _location;
 		Phys_allocated<Data_pages> _vcpu_data_pages;
 
@@ -58,23 +58,24 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		Vcpu(Kernel::Vm::Identity    &id,
 		     Rpc_entrypoint          &ep,
 		     Accounted_ram_allocator &ram,
-		     Region_map              &region_map,
+		     Local_rm                &local_rm,
 		     Affinity::Location       location)
 		:
 			_id(id),
 			_ep(ep),
 			_ram(ram),
 			_ds( {_ram.try_alloc(vcpu_state_size(), Cache::UNCACHED)} ),
-			_region_map(region_map),
+			_local_rm(local_rm),
 			_location(location),
-			_vcpu_data_pages(ep, ram, region_map)
+			_vcpu_data_pages(ep, ram, local_rm)
 		{
 			_ds.with_result([&] (Ram::Allocation &allocation) {
 				Region_map::Attr attr { };
 				attr.writeable = true;
-				_vcpu_data.vcpu_state = _region_map.attach(allocation.cap, attr).convert<Vcpu_state *>(
-					[&] (Region_map::Range range) { return (Vcpu_state *)range.start; },
-					[&] (Region_map::Attach_error) -> Vcpu_state * {
+				_vcpu_data.vcpu_state = _local_rm.attach(allocation.cap, attr).convert<Vcpu_state *>(
+					[&] (Local_rm::Attachment &a) {
+						a.deallocate = false; return (Vcpu_state *)a.ptr; },
+					[&] (Local_rm::Error) -> Vcpu_state * {
 						error("failed to attach VCPU data within core");
 						return nullptr;
 					});
@@ -92,7 +93,7 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 
 		~Vcpu()
 		{
-			_region_map.detach((addr_t)_vcpu_data.vcpu_state);
+			_local_rm.detach((addr_t)_vcpu_data.vcpu_state);
 			_ep.dissolve(this);
 		}
 

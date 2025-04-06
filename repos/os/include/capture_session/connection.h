@@ -130,7 +130,7 @@ class Capture::Connection::Screen
 
 	public:
 
-		Screen(Capture::Connection &connection, Region_map &rm, Attr attr)
+		Screen(Capture::Connection &connection, Env::Local_rm &rm, Attr attr)
 		:
 			attr(attr), _connection(connection), _ds(rm, _connection.dataspace())
 		{ }

@@ -70,11 +70,11 @@ Main::Main(Env &env) : heap(env.ram(), env.rm())
 		.use_at     = true,  .at        = beg,
 		.executable = { },   .writeable = true
 	}).with_result(
-		[&] (Region_map::Range) {
+		[&] (Env::Local_rm::Attachment &) {
 			error("after RAM dataspace attach -- ERROR");
 			env.parent().exit(-1); },
-		[&] (Region_map::Attach_error e) {
-			if (e == Region_map::Attach_error::REGION_CONFLICT)
+		[&] (Env::Local_rm::Error e) {
+			if (e == Env::Local_rm::Error::REGION_CONFLICT)
 				log("OK caught Region_conflict exception"); }
 	);
 
@@ -89,11 +89,11 @@ Main::Main(Env &env) : heap(env.ram(), env.rm())
 			.use_at     = true,  .at        = beg,
 			.executable = { },   .writeable = true
 		}).with_result(
-			[&] (Region_map::Range) {
+			[&] (Env::Local_rm::Attachment &) {
 				error("after sub-RM dataspace attach -- ERROR");
 				env.parent().exit(-1); },
-			[&] (Region_map::Attach_error e) {
-				if (e == Region_map::Attach_error::REGION_CONFLICT)
+			[&] (Env::Local_rm::Error e) {
+				if (e == Env::Local_rm::Error::REGION_CONFLICT)
 					log("OK caught Region_conflict exception"); }
 		);
 	}
@@ -107,7 +107,10 @@ Main::Main(Env &env) : heap(env.ram(), env.rm())
 			.size       = { },   .offset    = { },
 			.use_at     = true,  .at        = 0x1000,
 			.executable = { },   .writeable = true
-		});
+		}).with_result(
+			[&] (Region_map::Range) { },
+			[&] (Region_map::Attach_error) { error("mapping to managed dataspace failed"); }
+		);
 
 		log("before populated sub-RM dataspace attach");
 		char * const addr = env.rm().attach(rm.dataspace(), {
@@ -115,8 +118,11 @@ Main::Main(Env &env) : heap(env.ram(), env.rm())
 				.use_at     = { },   .at        = { },
 				.executable = { },   .writeable = true
 			}).convert<char *>(
-				[&] (Region_map::Range r)      { return (char *)r.start + 0x1000; },
-				[&] (Region_map::Attach_error) { return nullptr; }
+				[&] (Env::Local_rm::Attachment &a) {
+					a.deallocate = false;
+					return (char *)a.ptr + 0x1000;
+				},
+				[&] (Env::Local_rm::Error) { return nullptr; }
 			);
 		log("after populated sub-RM dataspace attach / before touch");
 		char const val = *addr;

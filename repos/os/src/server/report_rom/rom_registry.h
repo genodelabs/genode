@@ -27,7 +27,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 
 		Genode::Allocator              &_md_alloc;
 		Genode::Ram_allocator          &_ram;
-		Genode::Region_map             &_rm;
+		Genode::Env::Local_rm          &_rm;
 		Genode::Attached_rom_dataspace &_config_rom;
 
 		Module_list _modules { };
@@ -134,7 +134,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 	public:
 
 		Registry(Genode::Allocator &md_alloc,
-		         Genode::Ram_allocator &ram, Genode::Region_map &rm,
+		         Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 		         Genode::Attached_rom_dataspace &config_rom)
 		:
 			_md_alloc(md_alloc), _ram(ram), _rm(rm), _config_rom(config_rom)

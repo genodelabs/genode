@@ -14,6 +14,9 @@
 #ifndef _CANVAS_H_
 #define _CANVAS_H_
 
+/* Genode includes */
+#include <base/env.h>
+
 /* Painters of the nitpicker and scout graphics backends */
 #include <nitpicker_gfx/text_painter.h>
 #include <nitpicker_gfx/box_painter.h>
@@ -36,7 +39,7 @@ namespace Decorator {
 
 	Genode::Texture_base const &texture_by_id(Texture_id,
 	                                          Genode::Ram_allocator &,
-	                                          Genode::Region_map &);
+	                                          Genode::Env::Local_rm &);
 
 	class Canvas_base;
 	template <typename PT> class Canvas;
@@ -63,12 +66,12 @@ class Decorator::Canvas : public Decorator::Canvas_base
 	private:
 
 		Genode::Ram_allocator &_ram;
-		Genode::Region_map    &_rm;
+		Genode::Env::Local_rm &_rm;
 		Genode::Surface<PT>    _surface;
 
 	public:
 
-		Canvas(PT *base, Area size, Genode::Ram_allocator &ram, Genode::Region_map &rm)
+		Canvas(PT *base, Area size, Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm)
 		: _ram(ram), _rm(rm), _surface(base, size) { }
 
 		Rect clip() const override { return _surface.clip(); }
