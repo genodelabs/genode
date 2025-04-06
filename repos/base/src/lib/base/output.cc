@@ -100,3 +100,16 @@ void Genode::Hex::print(Output &output) const
 	                                [&] (char c) { output.out_char(c); });
 }
 
+
+void Genode::print(Output &out, Alloc_error e)
+{
+	auto name = [] (Alloc_error e)
+	{
+		switch (e) {
+		case Alloc_error::OUT_OF_RAM:  return "OUT_OF_RAM";
+		case Alloc_error::OUT_OF_CAPS: return "OUT_OF_CAPS";
+		case Alloc_error::DENIED:      return "DENIED"; }
+		return "<unknown>";
+	};
+	print(out, name(e));
+}

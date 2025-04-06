@@ -305,23 +305,6 @@ void Genode::destroy(auto && dealloc, T *obj)
 
 namespace Genode {
 
-	void static inline print(Output &out, Allocator::Alloc_error error)
-	{
-		using Error = Allocator::Alloc_error;
-
-		auto name = [] (Error error)
-		{
-			switch (error) {
-			case Error::OUT_OF_RAM:  return "OUT_OF_RAM";
-			case Error::OUT_OF_CAPS: return "OUT_OF_CAPS";
-			case Error::DENIED:      return "DENIED";
-			}
-			return "<unknown>";
-		};
-
-		Genode::print(out, name(error));
-	}
-
 	void static inline print(Output &out, Allocator::Alloc_result result)
 	{
 		result.with_result(

@@ -244,6 +244,7 @@ _ZN6Genode5Trace6Logger17_evaluate_controlEv T
 _ZN6Genode5Trace6Logger3logEPKcm T
 _ZN6Genode5Trace6LoggerC1Ev T
 _ZN6Genode5Trace6LoggerC2Ev T
+_ZN6Genode5printERNS_6OutputENS_11Alloc_errorE T
 _ZN6Genode5printERNS_6OutputEPKc T
 _ZN6Genode5printERNS_6OutputEPKv T
 _ZN6Genode5printERNS_6OutputEd T

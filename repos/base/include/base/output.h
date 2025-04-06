@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__OUTPUT_H_
 
 #include <base/stdint.h>
+#include <base/error.h>
 #include <util/interface.h>
 
 namespace Genode { struct Output; }
@@ -209,6 +210,11 @@ namespace Genode {
 
 		void print(Output &output) const { output.out_char(c); }
 	};
+
+	/**
+	 * Print error codes defined at base/error.h
+	 */
+	void print(Output &, Alloc_error);
 
 	/**
 	 * Print information about object 'obj'
