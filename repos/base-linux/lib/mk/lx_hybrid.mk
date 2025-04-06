@@ -1,11 +1,12 @@
 SRC_CC += lx_hybrid.cc new_delete.cc capability_space.cc
-SRC_CC += signal_transmitter.cc signal.cc
+SRC_CC += signal_transmitter.cc signal.cc raise.cc
 SRC_C  += libgcc.c
 
 # new_delete.cc uses libsupc++ which means we need to access
 # its include directory.
 STDINC := yes
 
+vpath raise.cc      $(BASE_DIR)/src/lib/cxx
 vpath new_delete.cc $(BASE_DIR)/src/lib/cxx
 vpath lx_hybrid.cc   $(REP_DIR)/src/lib/lx_hybrid
 vpath libgcc.c       $(REP_DIR)/src/lib/lx_hybrid

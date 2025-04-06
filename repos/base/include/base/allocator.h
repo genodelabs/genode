@@ -95,15 +95,13 @@ struct Genode::Allocator : Deallocator
 
 	/**
 	 * Raise exception according to the 'error' value
+	 *
+	 * \deprecated  use 'raise()' instead
+	 * \noapi
 	 */
-	static void throw_alloc_error(Alloc_error error) __attribute__((noreturn))
+	static void throw_alloc_error(Alloc_error e) __attribute__((noreturn))
 	{
-		switch (error) {
-		case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-		case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-		case Alloc_error::DENIED:      break;
-		}
-		throw Denied();
+		raise(e);
 	}
 
 	/**
@@ -121,8 +119,7 @@ struct Genode::Allocator : Deallocator
 	{
 		return try_alloc(size).convert<void *>(
 			[&] (void *ptr) { return ptr; },
-			[&] (Alloc_error error) -> void * {
-				throw_alloc_error(error); });
+			[&] (Alloc_error e) -> void * { raise(e); });
 	}
 };
 
