@@ -29,7 +29,7 @@ namespace Genode {
 }
 
 
-struct Genode::Ram_allocator : Ram::Unmapped_allocator
+struct Genode::Ram_allocator : Ram::Constrained_allocator
 {
 	/**
 	 * Allocate RAM
@@ -71,7 +71,7 @@ struct Genode::Ram_allocator : Ram::Unmapped_allocator
 	}
 
 	/* type aliases used for API transition */
-	using Alloc_result = Ram::Unmapped_allocator::Result;
+	using Alloc_result = Ram::Constrained_allocator::Result;
 	using Alloc_error  = Ram::Error;
 	using Denied       = Genode::Denied;
 };

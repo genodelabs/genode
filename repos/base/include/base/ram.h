@@ -28,7 +28,7 @@ namespace Genode::Ram {
 	using Capability = Genode::Capability<Dataspace>;
 	using Error      = Alloc_error;
 
-	struct Unmapped_allocator;
+	struct Constrained_allocator;
 
 	template <typename> struct Accounted_allocator;
 }
@@ -37,7 +37,7 @@ namespace Genode::Ram {
 /**
  * Allocator of RAM inaccessible by the component at allocation time
  */
-struct Genode::Ram::Unmapped_allocator : Interface, Noncopyable
+struct Genode::Ram::Constrained_allocator : Interface, Noncopyable
 {
 	struct Attr
 	{
@@ -46,7 +46,7 @@ struct Genode::Ram::Unmapped_allocator : Interface, Noncopyable
 	};
 
 	using Error      = Ram::Error;
-	using Allocation = Genode::Allocation<Unmapped_allocator>;
+	using Allocation = Genode::Allocation<Constrained_allocator>;
 	using Result     = Allocation::Attempt;
 
 	virtual Result try_alloc(size_t size, Cache cache = CACHED) = 0;
@@ -136,7 +136,7 @@ struct Genode::Ram::Accounted_allocator : ALLOC
 namespace Genode::Ram {
 
 	/* shortcuts for the most commonly used type of allocator */
-	using Allocator  = Unmapped_allocator;
+	using Allocator  = Constrained_allocator;
 	using Allocation = Allocator::Allocation;
 }
 
