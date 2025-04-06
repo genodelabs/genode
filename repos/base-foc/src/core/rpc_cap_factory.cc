@@ -190,7 +190,8 @@ Cap_id_allocator::Cap_id_allocator(Allocator &alloc)
 :
 	_id_alloc(&alloc)
 {
-	_id_alloc.add_range(CAP_ID_OFFSET, unsigned(CAP_ID_RANGE) - unsigned(CAP_ID_OFFSET));
+	(void)_id_alloc.add_range(CAP_ID_OFFSET,
+	                          unsigned(CAP_ID_RANGE) - unsigned(CAP_ID_OFFSET));
 }
 
 

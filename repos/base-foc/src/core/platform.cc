@@ -188,6 +188,11 @@ struct Region
 	{
 		return (((base + size) > start) && (base < end));
 	}
+
+	void print(Output &out) const
+	{
+		Genode::print(out, Hex_range(start, end - start));
+	}
 };
 
 
@@ -200,7 +205,8 @@ static inline void add_region(Region r, Range_allocator &alloc)
 	addr_t const start = trunc_page(r.start);
 	addr_t const end   = round_page(r.end);
 
-	alloc.add_range(start, end - start);
+	if (alloc.add_range(start, end - start).failed())
+		warning("unable to add allocator region: ", r);
 }
 
 
@@ -213,7 +219,8 @@ static inline void remove_region(Region r, Range_allocator &alloc)
 	addr_t const start = trunc_page(r.start);
 	addr_t const end   = round_page(r.end);
 
-	alloc.remove_range(start, end - start);
+	if (alloc.remove_range(start, end - start).failed())
+		warning("unable to exclude allocator region: ", r);
 }
 
 
@@ -339,7 +346,8 @@ void Core::Platform::_setup_irq_alloc()
 	if (l4_error(res))
 		panic("could not determine number of IRQs");
 
-	_irq_alloc.add_range(0, info.nr_irqs);
+	if (_irq_alloc.add_range(0, info.nr_irqs).failed())
+		warning("unable to initialize IRQ allocator");
 }
 
 
@@ -458,18 +466,22 @@ void Core::Platform::_setup_basics()
 		_vm_start = VCPU_VIRT_EXT_END;
 	}
 
-	_region_alloc.add_range(_vm_start, _vm_size);
+	if (_region_alloc.add_range(_vm_start, _vm_size).failed())
+		warning("unable to initialize core's virtual memory");
 
 	/* preserve stack area in core's virtual address space */
-	_region_alloc.remove_range(stack_area_virtual_base(),
-	                           stack_area_virtual_size());
+	if (_region_alloc.remove_range(stack_area_virtual_base(),
+	                               stack_area_virtual_size()).failed())
+		warning("unable to exclude stack area from core-local allocator");
 
 	/* preserve utcb- area in core's virtual address space */
-	_region_alloc.remove_range((addr_t)l4_utcb(), L4_PAGESIZE * 16);
+	if (_region_alloc.remove_range((addr_t)l4_utcb(), L4_PAGESIZE * 16).failed())
+		warning("unable to exclude UTCB area from core-local allocator");
 
 	/* I/O memory could be the whole user address space */
 	/* FIXME if the kernel helps to find out max address - use info here */
-	_io_mem_alloc.add_range(0, ~0);
+	if (_io_mem_alloc.add_range(0, ~0).failed())
+		warning("unable to initialize I/O-memory allocator");
 
 	/* remove KIP and MBI area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)&kip, (addr_t)&kip + L4_PAGESIZE), _region_alloc);
@@ -485,8 +497,9 @@ void Core::Platform::_setup_basics()
 	add_region(Region(img_start, img_end), _core_address_ranges());
 
 	/* requested as I/O memory by the VESA driver and ACPI (rsdp search) */
-	_io_mem_alloc.add_range   (0, 0x2000);
-	ram_alloc()  .remove_range(0, 0x2000);
+	if (_io_mem_alloc.add_range   (0, 0x2000).failed()
+	 || ram_alloc()  .remove_range(0, 0x2000).failed())
+		warning("unable to register RSDP as memory-mapped I/O range");
 }
 
 

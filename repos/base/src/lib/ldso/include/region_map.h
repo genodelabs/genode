@@ -62,7 +62,8 @@ class Linker::Region_map
 				.writeable  = true
 			}).with_result(
 				[&] (Genode::Region_map::Range) {
-					_range.add_range(base, Pd_session::LINKER_AREA_SIZE);
+					if (_range.add_range(base, Pd_session::LINKER_AREA_SIZE).failed())
+						warning("failed to initialize linker-area range allocator");
 
 					if (Linker::verbose)
 						log("  ",   Hex(base),

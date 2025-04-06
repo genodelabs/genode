@@ -23,14 +23,15 @@ using namespace Genode;
 
 void Platform::_attach_stack_area()
 {
-	pd._address_space.attach(pd._stack_area.dataspace(), Region_map::Attr {
+	if (pd._address_space.attach(pd._stack_area.dataspace(), Region_map::Attr {
 		.size       = stack_area_virtual_size(),
 		.offset     = { },
 		.use_at     = true,
 		.at         = stack_area_virtual_base(),
 		.executable = { },
 		.writeable  = true
-	});
+	}).failed())
+		warning("unable to attach stack area to local address space");
 
 	env_stack_area_region_map    = &pd._stack_area;
 	env_stack_area_ram_allocator = &ram;

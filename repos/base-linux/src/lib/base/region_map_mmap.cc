@@ -260,9 +260,9 @@ Region_map_mmap::attach(Dataspace_capability ds, Attr const &attr)
 		 * argument as the region was reserved by a PROT_NONE mapping.
 		 */
 		if (_is_attached())
-			_map_local(ds, region_size, attr.offset,
-			           true, _base + attr.at,
-			           attr.executable, true, attr.writeable);
+			if (_map_local(ds, region_size, attr.offset, true, _base + attr.at,
+			                attr.executable, true, attr.writeable).failed())
+				return Attach_error::REGION_CONFLICT;
 
 		return Range { .start = attr.at, .num_bytes = region_size };
 
@@ -317,9 +317,10 @@ Region_map_mmap::attach(Dataspace_capability ds, Attr const &attr)
 						 * We have to enforce the mapping via the 'overmap' argument as
 						 * the region was reserved by a PROT_NONE mapping.
 						 */
-						_map_local(region.dataspace(), region.size(), region.offset(),
-						           true, rm->_base + region.start() + region.offset(),
-						           attr.executable, true, attr.writeable);
+						if (_map_local(region.dataspace(), region.size(), region.offset(),
+						               true, rm->_base + region.start() + region.offset(),
+						               attr.executable, true, attr.writeable).failed())
+							return Attach_error::REGION_CONFLICT;
 					}
 
 					return Range { .start = rm->_base, .num_bytes = region_size };
@@ -398,7 +399,8 @@ void Region_map_mmap::detach(addr_t at)
 		 */
 		if (_is_attached()) {
 			lx_munmap((void *)(at + _base), region.size());
-			_reserve_local(true, at + _base, region.size());
+			if (_reserve_local(true, at + _base, region.size()).failed())
+				warning(__PRETTY_FUNCTION__, ": _reserve_local unexpectedly failed");
 		}
 
 	} else {

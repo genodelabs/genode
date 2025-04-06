@@ -111,7 +111,8 @@ Core::Platform::Platform()
 	/* create resource directory under /tmp */
 	lx_mkdir(resource_path(), S_IRWXU);
 
-	_core_mem_alloc.add_range((addr_t)_core_mem, sizeof(_core_mem));
+	if (_core_mem_alloc.add_range((addr_t)_core_mem, sizeof(_core_mem)).failed())
+		warning("failed to initialize core memory allocator");
 
 	/*
 	 * Occupy the socket handle that will be used to propagate the parent

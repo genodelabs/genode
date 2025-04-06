@@ -135,8 +135,11 @@ void Component::construct(Env &env)
 		.use_at     = true,  .at        = local_attach_addr,
 		.executable = { },   .writeable = true
 	}).convert<char *>(
-		[&] (Region_map::Range const range) { return (char *)range.start; },
-		[&] (Region_map::Attach_error)      { return nullptr; }
+		[&] (Env::Local_rm::Attachment &a) {
+			a.deallocate = false;
+			return (char *)a.ptr;
+		},
+		[&] (Env::Local_rm::Error) { return nullptr; }
 	);
 
 	log("validate pattern in sub rm");
@@ -225,7 +228,10 @@ void Component::construct(Env &env)
 		.size       = { },   .offset    = 4096,
 		.use_at     = true,  .at        = DS_SUB_OFFSET_3,
 		.executable = { },   .writeable = true
-	});
+	}).with_result(
+		[&] (Region_map::Range) { },
+		[&] (Region_map::Attach_error) { fail("RAM attachment with offset"); }
+	);
 	validate_pattern_at(test_pattern_2(), sub_rm_base + DS_SUB_OFFSET_3);
 
 	/*
@@ -238,7 +244,10 @@ void Component::construct(Env &env)
 		.size       = 2*4096,  .offset    = 4096,
 		.use_at     = true,    .at        = DS_SUB_OFFSET_4,
 		.executable = { },     .writeable = true
-	});
+	}).with_result(
+		[&] (Region_map::Range) { },
+		[&] (Region_map::Attach_error) { fail("RAM attachment with offset and size"); }
+	);
 	validate_pattern_at(test_pattern_2(), sub_rm_base + DS_SUB_OFFSET_4);
 
 	/*

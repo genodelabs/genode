@@ -35,14 +35,15 @@ struct Genode::Attached_stack_area : Expanding_region_map_client
 	{
 		Region_map_client local_rm(Pd_session_client(pd).address_space());
 
-		local_rm.attach(Expanding_region_map_client::dataspace(), Region_map::Attr {
+		if (local_rm.attach(Expanding_region_map_client::dataspace(), Region_map::Attr {
 			.size       = stack_area_virtual_size(),
 			.offset     = { },
 			.use_at     = true,
 			.at         = stack_area_virtual_base(),
 			.executable = false,
 			.writeable  = true
-		});
+		}).failed())
+			warning("unable to attach stack area to local address space");
 	}
 };
 

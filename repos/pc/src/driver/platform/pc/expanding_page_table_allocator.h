@@ -75,11 +75,11 @@ class Driver::Expanding_page_table_allocator
 						  _virt_addr((addr_t)_dataspace.local_addr<void>()),
 						  _phys_addr(pd.dma_addr(_dataspace.cap()))
 						{
-							_range_alloc.add_range(_phys_addr, size);
+							(void)_range_alloc.add_range(_phys_addr, size);
 						}
 
 						~Element() {
-							_range_alloc.remove_range(_phys_addr, _dataspace.size()); }
+							(void)_range_alloc.remove_range(_phys_addr, _dataspace.size()); }
 
 						bool matches(addr_t pa)
 						{

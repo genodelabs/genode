@@ -26,5 +26,6 @@ void Platform::_setup_io_port_alloc()
 {
 	/* setup allocator */
 	enum { IO_PORT_RANGE_SIZE = 0x10000 };
-	_io_port_alloc.add_range(0, IO_PORT_RANGE_SIZE);
+	if (_io_port_alloc.add_range(0, IO_PORT_RANGE_SIZE).failed())
+		warning("unable to initialize default I/O-port range");
 }

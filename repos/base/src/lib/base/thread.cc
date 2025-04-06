@@ -219,10 +219,7 @@ void Thread::free_secondary_stack(void* stack_addr)
 Thread::Stack_size_result Thread::stack_size(size_t const size)
 {
 	return _stack.convert<Stack_size_result>(
-		[&] (Stack *stack)  {
-			stack->size(size);
-			return stack->top() - stack->base();
-		},
+		[&] (Stack *stack)  { return stack->size(size); },
 		[&] (Stack_error e) { return e; });
 }
 

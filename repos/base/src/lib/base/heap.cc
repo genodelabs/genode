@@ -328,7 +328,8 @@ Heap::Heap(Ram_allocator *ram_alloc,
 	_chunk_size(MIN_CHUNK_SIZE)
 {
 	if (static_addr)
-		_alloc->add_range((addr_t)static_addr, static_size);
+		if (_alloc->add_range((addr_t)static_addr, static_size).failed())
+			warning("unable to add static range at heap-construction time");
 }
 
 

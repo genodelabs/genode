@@ -75,9 +75,12 @@ addr_t Platform::core_main_thread_phys_utcb()
 void Platform::_init_io_mem_alloc()
 {
 	/* add entire adress space minus the RAM memory regions */
-	_io_mem_alloc.add_range(0, ~0x0UL);
+	if (_io_mem_alloc.add_range(0, ~0x0UL).failed())
+		warning("unable to initialize I/O-memory allocator");
+
 	_boot_info().ram_regions.for_each([this] (unsigned, Hw::Memory_region const &r) {
-		_io_mem_alloc.remove_range(r.base, r.size); });
+		if (_io_mem_alloc.remove_range(r.base, r.size).failed())
+			warning("unable to exclude I/O range from RAM: ", r); });
 };
 
 
@@ -180,14 +183,21 @@ Platform::Platform()
 {
 	struct Kernel_resource : Exception { };
 
-	_core_mem_alloc.virt_alloc().add_range(Hw::Mm::core_heap().base,
-	                                       Hw::Mm::core_heap().size);
+	if (_core_mem_alloc.virt_alloc().add_range(Hw::Mm::core_heap().base,
+	                                           Hw::Mm::core_heap().size).failed())
+		warning("unable to initialize core virtual-memory allocator");
+
 	_core_virt_regions().for_each([this] (unsigned, Hw::Memory_region const & r) {
-		_core_mem_alloc.virt_alloc().remove_range(r.base, r.size); });
+		if (_core_mem_alloc.virt_alloc().remove_range(r.base, r.size).failed())
+			warning("unable to exclude core from core's virtual memory"); });
+
 	_boot_info().elf_mappings.for_each([this] (unsigned, Hw::Mapping const & m) {
-		_core_mem_alloc.virt_alloc().remove_range(m.virt(), m.size()); });
+		if (_core_mem_alloc.virt_alloc().remove_range(m.virt(), m.size()).failed())
+			warning("unable to exclude ELF mapping from core's virtual memory"); });
+
 	_boot_info().ram_regions.for_each([this] (unsigned, Hw::Memory_region const & region) {
-		_core_mem_alloc.phys_alloc().add_range(region.base, region.size); });
+		if (_core_mem_alloc.phys_alloc().add_range(region.base, region.size).failed())
+			warning("unable to register RAM region ", region); });
 
 	_init_io_port_alloc();
 
@@ -203,7 +213,8 @@ Platform::Platform()
 		if (kernel_resource) {
 			continue;
 		}
-		_irq_alloc.add_range(i, 1);
+		if (_irq_alloc.add_range(i, 1).failed())
+			warning("unable to register IRQ ", i);
 	}
 
 	_init_io_mem_alloc();

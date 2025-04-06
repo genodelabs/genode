@@ -17,8 +17,8 @@
 #include <util/reconstructible.h>
 
 namespace Genode {
-	template <typename, typename> struct Attempt;
-	template <typename, typename> struct Unique_attempt;
+	template <typename, typename> struct [[nodiscard]] Attempt;
+	template <typename, typename> struct [[nodiscard]] Unique_attempt;
 
 	/**
 	 * Type used for results with no return value but error conditions
@@ -86,8 +86,8 @@ class Genode::Attempt
 		bool operator == (RESULT const &rhs) const {
 			return ok()     && (_result == rhs); }
 
-		bool ok()     const { return  _ok; }
-		bool failed() const { return !_ok; }
+		[[nodiscard]] bool ok()     const { return  _ok; }
+		[[nodiscard]] bool failed() const { return !_ok; }
 
 		void print(Output &out) const
 		{
@@ -155,8 +155,8 @@ class Genode::Unique_attempt : Noncopyable
 		bool operator == (ERROR const &rhs) const {
 			return failed() && (_error == rhs); }
 
-		bool ok()     const { return  _result.constructed(); }
-		bool failed() const { return !_result.constructed(); }
+		[[nodiscard]] bool ok()     const { return  _result.constructed(); }
+		[[nodiscard]] bool failed() const { return !_result.constructed(); }
 
 		void print(auto &out) const
 		{

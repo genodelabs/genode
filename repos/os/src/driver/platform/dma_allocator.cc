@@ -121,7 +121,8 @@ Dma_allocator::Dma_allocator(Allocator       & md_alloc,
 {
 	/* 0x1000 - 4GB */
 	enum { DMA_SIZE = 0xffffe000 };
-	_dma_alloc.add_range(0x1000, DMA_SIZE);
+	if (_dma_alloc.add_range(0x1000, DMA_SIZE).failed())
+		warning("unable to add 0x1000 range to DMA allocator");
 
 	/*
 	 * Interrupt address range is special handled and in general not
@@ -130,7 +131,8 @@ Dma_allocator::Dma_allocator(Allocator       & md_alloc,
 	 * (March 2023, Revision 4.1)
 	 */
 	enum { IRQ_RANGE_BASE = 0xfee00000u, IRQ_RANGE_SIZE = 0x100000 };
-	_dma_alloc.remove_range(IRQ_RANGE_BASE, IRQ_RANGE_SIZE);
+	if (_dma_alloc.remove_range(IRQ_RANGE_BASE, IRQ_RANGE_SIZE).failed())
+		warning("unable to exclude IRQ range from DMA allocator");
 }
 
 

@@ -424,7 +424,8 @@ struct Linker::Binary : private Root_object, public Elf_object
 			size_t const stack_size = ((size_t(*)())addr)();
 
 			/* expand stack according to the component's needs */
-			Thread::myself()->stack_size(stack_size);
+			if (Thread::myself()->stack_size(stack_size).failed())
+				warning("unable to set initial stack size to ", stack_size);
 		}
 
 		/* call 'Component::construct' function if present */

@@ -303,7 +303,8 @@ class Lima::Call
 				 * The end of range correspondes to LIMA_VA_RESERVE_START
 				 * in Linux minus the page we omit at the start.
 				 */
-				_alloc.add_range(0x1000, 0xfff00000ul - 0x1000);
+				if(_alloc.add_range(0x1000, 0xfff00000ul - 0x1000).failed())
+					Genode::warning("unable to initialize Gpu::Vram allocator");
 			}
 
 			Gpu::Virtual_address alloc(uint32_t size)

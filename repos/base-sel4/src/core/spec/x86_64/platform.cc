@@ -87,8 +87,9 @@ void Platform::_init_core_page_table_registry()
 			if (device_memory)
 				return false;
 
-			phys_alloc_16k().add_range(phys, size);
-			_unused_phys_alloc.remove_range(phys, size);
+			if (phys_alloc_16k()  .add_range   (phys, size).failed()
+			 || _unused_phys_alloc.remove_range(phys, size).failed())
+				warning("unable to register range as RAM: ", Hex_range(phys, size));
 
 			return true;
 		},
@@ -103,7 +104,8 @@ void Platform::_init_io_ports()
 	enum { PORTS = 0x10000, PORT_FIRST = 0, PORT_LAST = PORTS - 1 };
 
 	/* I/O port allocator (only meaningful for x86) */
-	_io_port_alloc.add_range(PORT_FIRST, PORTS);
+	if (_io_port_alloc.add_range(PORT_FIRST, PORTS).failed())
+		warning("unable to register default I/O-port range");
 
 	/* create I/O port capability used by io_port_session_support.cc */
 	auto const root   = _core_cnode.sel().value();

@@ -61,7 +61,11 @@ class Local_fault_handler : public Entrypoint
 			_region_map.attach(ds, {
 				.size       = { },   .offset    = { },
 				.use_at     = true,  .at        = fault.addr & ~(PAGE_SIZE - 1),
-				.executable = { },   .writeable = true });
+				.executable = { },   .writeable = true })
+			.with_result(
+				[&] (Region_map::Range) { },
+				[&] (Region_map::Attach_error) { warning("attach to sub rm failed"); }
+			);
 
 			log("returning from handle_fault");
 		}

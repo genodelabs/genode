@@ -113,8 +113,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	}
 
 	/* configure managed VM area */
-	_map.add_range(0, 0UL - 0x1000);
-	_map.add_range(0UL - 0x1000, 0x1000);
+	(void)_map.add_range(0, 0UL - 0x1000);
+	(void)_map.add_range(0UL - 0x1000, 0x1000);
 
 	caps.acknowledge();
 }

@@ -91,8 +91,9 @@ void Platform::_init_core_page_table_registry()
 			if (device_memory)
 				return false;
 
-			phys_alloc_16k().add_range(phys, size);
-			_unused_phys_alloc.remove_range(phys, size);
+			if (phys_alloc_16k()  .add_range   (phys, size).failed()
+			 || _unused_phys_alloc.remove_range(phys, size).failed())
+				warning("unable to register range as RAM: ", Hex_range(phys, size));
 
 			return true;
 		},

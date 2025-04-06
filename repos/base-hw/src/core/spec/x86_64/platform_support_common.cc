@@ -22,7 +22,8 @@ using namespace Core;
 
 void Platform::_init_io_port_alloc()
 {
-	_io_port_alloc.add_range(0, 0x10000);
+	if (_io_port_alloc.add_range(0, 0x10000).failed())
+		warning("unable to register default I/O-port range");
 }
 
 

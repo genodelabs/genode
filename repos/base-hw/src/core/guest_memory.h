@@ -222,7 +222,8 @@ class Core::Guest_memory
 			_sliced_heap(ram, region_map)
 		{
 			/* configure managed VM area */
-			_map.add_range(0UL, ~0UL);
+			if (_map.add_range(0UL, ~0UL).failed())
+				warning("unable to initialize guest-memory allocator");
 		}
 
 		~Guest_memory()

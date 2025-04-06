@@ -388,7 +388,8 @@ void Allocator_avl_base::free(void *addr)
 
 	_destroy_block(*b);
 
-	add_range(new_addr, new_size);
+	add_range(new_addr, new_size).with_error([&] (Alloc_error e) {
+		error(__PRETTY_FUNCTION__, ": unable to release freed range: ", e); });
 }
 
 

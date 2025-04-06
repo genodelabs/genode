@@ -38,7 +38,8 @@ void Component::construct(Genode::Env &env)
 	ram_2.free(ds);
 
 	log("try to attach dataspace to see if it still exists");
-	env.rm().attach(ds, { });
+	if (env.rm().attach(ds, { }).failed())
+		warning("dataspace unexpectedly vanished");
 
 	log("attach operation succeeded");
 

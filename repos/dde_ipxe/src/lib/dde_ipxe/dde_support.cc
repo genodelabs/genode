@@ -303,7 +303,7 @@ struct Backing_store
 	Backing_store (Genode::Allocator &alloc) : _avl(&alloc)
 	{
 		Range r = pci_drv().dma();
-		_avl.add_range(r.start, r.size);
+		(void)_avl.add_range(r.start, r.size);
 	}
 };
 

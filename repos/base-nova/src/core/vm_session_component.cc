@@ -397,8 +397,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	 * Configure managed VM area. The two ranges work around the size
 	 * limitation to ULONG_MAX.
 	 */
-	_map.add_range(0, 0UL - 0x1000);
-	_map.add_range(0UL - 0x1000, 0x1000);
+	(void)_map.add_range(0, 0UL - 0x1000);
+	(void)_map.add_range(0UL - 0x1000, 0x1000);
 }
 
 

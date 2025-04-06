@@ -94,7 +94,8 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 			 */
 			Buffer & buffer = alloc_buffer(max(size + 1, min_buffer_size));
 
-			_mem.add_range(buffer.virt_addr(), buffer.size() - 1);
+			if (_mem.add_range(buffer.virt_addr(), buffer.size() - 1).failed())
+				warning("Lx_kit::Mem_allocator unable to extend virtual allocator");
 
 			/* re-try allocation */
 			void * const virt_addr = _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(

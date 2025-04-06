@@ -88,14 +88,16 @@ bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr, size
 void Core::Platform::_init_unused_phys_alloc()
 {
 	/* the lower physical ram is kept by the kernel and not usable to us */
-	_unused_phys_alloc.add_range(0x100000, 0UL - 0x100000);
+	if (_unused_phys_alloc.add_range(0x100000, 0UL - 0x100000).failed())
+		warning("unable to mark kernel-only memory as preserved");
 }
 
 
 void Core::Platform::_init_allocators()
 {
 	/* interrupt allocator */
-	_irq_alloc.add_range(0, 256);
+	if (_irq_alloc.add_range(0, 256).failed())
+		warning("unable to initialize IRQ allocator");
 
 	/*
 	 * XXX allocate intermediate CNodes for organizing the untyped pages here
@@ -109,12 +111,17 @@ void Core::Platform::_init_allocators()
 			addr_t const phys_addr = trunc_page(phys);
 			size_t const phys_size = round_page(phys - phys_addr + size);
 
-			if (device_memory)
-				_io_mem_alloc.add_range(phys_addr, phys_size);
-			else
-				_core_mem_alloc.phys_alloc().add_range(phys_addr, phys_size);
+			Hex_range const range { phys_addr, phys_size };
 
-			_unused_phys_alloc.remove_range(phys_addr, phys_size);
+			if (device_memory) {
+				if (_io_mem_alloc.add_range(phys_addr, phys_size).failed())
+					warning("failed to register I/O range: ", range);
+			} else {
+				if (_core_mem_alloc.phys_alloc().add_range(phys_addr, phys_size).failed())
+					warning("failed to register RAM range: ", range);
+			}
+			if (_unused_phys_alloc.remove_range(phys_addr, phys_size).failed())
+				warning("failed to mark range as used: ", range);
 
 			return true; /* range used by this functor */
 		});
@@ -125,7 +132,8 @@ void Core::Platform::_init_allocators()
 	 */
 
 	/* core's maximum virtual memory area */
-	_unused_virt_alloc.add_range(_vm_base, _vm_size);
+	if (_unused_virt_alloc.add_range(_vm_base, _vm_size).failed())
+		warning("unable to initialize core's virtual memory allocator");
 
 	/* remove core image from core's virtual address allocator */
 	addr_t const modules_start  = reinterpret_cast<addr_t>(&_boot_modules_binaries_begin);
@@ -133,23 +141,29 @@ void Core::Platform::_init_allocators()
 	             core_virt_end  = round_page((addr_t)&_prog_img_end);
 	addr_t const image_elf_size = core_virt_end - core_virt_beg;
 
-	_unused_virt_alloc.remove_range(core_virt_beg, image_elf_size);
-	_core_mem_alloc.virt_alloc().add_range(modules_start, core_virt_end - modules_start);
+	if (_unused_virt_alloc.remove_range(core_virt_beg, image_elf_size).failed())
+		warning("unable to mark virtual range of core image as used");
+
+	if (_core_mem_alloc.virt_alloc() .add_range(modules_start, core_virt_end - modules_start).failed())
+		warning("unable to register ROM-module range at core;s virtual memory");
 
 	/* remove initial IPC buffer from core's virtual address allocator */
 	seL4_BootInfo const &bi = sel4_boot_info();
 	addr_t const core_ipc_buffer = reinterpret_cast<addr_t>(bi.ipcBuffer);
 	addr_t const core_ipc_bsize  = 4096;
-	_unused_virt_alloc.remove_range(core_ipc_buffer, core_ipc_bsize);
+	if (_unused_virt_alloc.remove_range(core_ipc_buffer, core_ipc_bsize).failed())
+		warning("unable to mark core's IPC buffer as preserved virtual memory");
 
 	/* remove sel4_boot_info page from core's virtual address allocator */
 	addr_t const boot_info_page = reinterpret_cast<addr_t>(&bi);
 	addr_t const boot_info_size = 4096 + bi.extraLen;
-	_unused_virt_alloc.remove_range(boot_info_page, boot_info_size);
+	if (_unused_virt_alloc.remove_range(boot_info_page, boot_info_size).failed())
+		warning("unable to mark seL4 boot-info page as preserved virtual memory");
 
 	/* preserve stack area in core's virtual address space */
-	_unused_virt_alloc.remove_range(stack_area_virtual_base(),
-	                                stack_area_virtual_size());
+	if (_unused_virt_alloc.remove_range(stack_area_virtual_base(),
+	                                    stack_area_virtual_size()).failed())
+		warning("unable to mark stack area as preserved virtual memory");
 
 	if (verbose_boot_info) {
 		using Hex_range = Hex_range<addr_t>;
@@ -590,7 +604,8 @@ Core::Platform::Platform()
 			addr_t const virt_addr = (addr_t)virt.ptr;
 
 			/* add to available virtual region of core */
-			_core_mem_alloc.virt_alloc().add_range(virt_addr, virt_size);
+			if (_core_mem_alloc.virt_alloc().add_range(virt_addr, virt_size).failed())
+				warning("unable to register virtual range for dynamic allocations");
 
 			/* back region by page tables */
 			_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);

@@ -110,7 +110,8 @@ class Acpi::Memory
 
 		Memory(Env &env, Allocator &heap) : _env(env), _heap(heap)
 		{
-			_range.add_range(0, ~0UL);
+			if (_range.add_range(0, ~0UL).failed())
+				warning("unable to initialize Memory::_range");
 		}
 
 		addr_t map_region(addr_t const req_base, addr_t const req_size)
@@ -182,20 +183,23 @@ class Acpi::Memory
 
 			_range.construct_metadata((void *)loop_region.base(), _env, loop_region);
 
+			Io_mem &io_mem = *_range.metadata((void *)loop_region.base());
+
 			/*
 			 * We attach the I/O memory dataspace into a virtual-memory window,
 			 * which starts at _io_region.base(). Therefore, the attachment
 			 * address is the offset of loop_region.base() from
 			 * _io_region.base().
 			 */
-			_acpi_window.attach(_range.metadata((void *)loop_region.base())->connection->dataspace(), {
+			if (_acpi_window.attach(io_mem.connection->dataspace(), {
 				.size       = loop_region.size(),
 				.offset     = { },
 				.use_at     = true,
 				.at         = loop_region.base() - _io_region->base(),
 				.executable = { },
 				.writeable  = { }
-			});
+			}).failed())
+				warning("unable to attach io_mem to ACPI window: ", io_mem.region);
 
 			return _acpi_ptr(req_base);
 		}

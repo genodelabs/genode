@@ -46,9 +46,8 @@ void Platform::_setup_io_port_alloc()
 	    && fp.iofp.f == 0xf                            /* got IO ports */
 	    && fp.iofp.iosize == L4_WHOLE_IOADDRESS_SPACE
 	    && fp.iofp.iopage == 0))                       /* got whole IO space */
+		panic("Received no I/O ports from sigma0");
 
-	panic("Received no I/O ports from sigma0");
-
-	/* setup allocator */
-	_io_port_alloc.add_range(0, 0x10000);
+	if (_io_port_alloc.add_range(0, 0x10000).failed())
+		warning("unable to initialize default I/O-port range");
 }

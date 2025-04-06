@@ -39,7 +39,7 @@ void Writer::start_iteration(Directory             &root,
 
 		_interface_registry.clear();
 		_buffer.clear();
-		_buffer.append<Section_header_block>();
+		(void)_buffer.append<Section_header_block>(); /* header always fits in */
 		_empty_section = true;
 	}
 	catch (Append_file::Create_failed)  {

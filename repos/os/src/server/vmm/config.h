@@ -120,8 +120,11 @@ class Vmm::Config
 
 	public:
 
-		Config(Heap & heap) : _heap(heap) {
-			_mmio_alloc.add_range(VIRTIO_MMIO_START, VIRTIO_MMIO_SIZE); }
+		Config(Heap & heap) : _heap(heap)
+		{
+			if (_mmio_alloc.add_range(VIRTIO_MMIO_START, VIRTIO_MMIO_SIZE).failed())
+				warning("failed to add virtio MMIO range");
+		}
 
 		bool initrd() const { return _initrd_name.valid(); }
 

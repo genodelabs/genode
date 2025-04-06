@@ -229,7 +229,8 @@ struct Gpu::Vram
 	  _cap(gpu.alloc_vram(_elem.id(), size)),
 	  _alloc(&md_alloc)
 	{
-		_alloc.add_range(0, Genode::Dataspace_client(_cap).size());
+		if (_alloc.add_range(0, Genode::Dataspace_client(_cap).size()).failed())
+			Genode::warning("unable to initialize Gpu::Vram allocator");
 	}
 
 	struct Allocation

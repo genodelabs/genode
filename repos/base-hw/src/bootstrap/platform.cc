@@ -45,12 +45,18 @@ void * Platform::Ram_allocator::alloc_aligned(size_t size, unsigned align)
 }
 
 
-void Platform::Ram_allocator::add(Memory_region const & region) {
-	add_range(region.base, region.size); }
+void Platform::Ram_allocator::add(Memory_region const & region)
+{
+	if (add_range(region.base, region.size).failed())
+		Genode::warning("bootstrap failed to register RAM: ", region);
+}
 
 
-void Platform::Ram_allocator::remove(Memory_region const & region) {
-	remove_range(region.base, region.size); }
+void Platform::Ram_allocator::remove(Memory_region const & region)
+{
+	if (remove_range(region.base, region.size).failed())
+		Genode::warning("bootstrap unable to exclude RAM: ", region);
+}
 
 
 /******************

@@ -130,7 +130,8 @@ struct Linker::Elf_file : File
 		bool const binary = (start != 0);
 
 		if (binary) {
-			Region_map::r()->alloc_region_at(size, start);
+			if (Region_map::r()->alloc_region_at(size, start).failed())
+				warning("unable to allocate linker-area region for ", name);;
 			reloc_base = 0;
 			return;
 		}

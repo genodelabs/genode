@@ -56,8 +56,8 @@ int Core::Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_
                                 const Okl4::bi_user_data_t *data)
 {
 	Platform &p = *(Platform *)data->user_data;
-	p._core_mem_alloc.phys_alloc().add_range(phys_base, phys_end - phys_base + 1);
-	p._core_mem_alloc.virt_alloc().add_range(virt_base, virt_end - virt_base + 1);
+	(void)p._core_mem_alloc.phys_alloc().add_range(phys_base, phys_end - phys_base + 1);
+	(void)p._core_mem_alloc.virt_alloc().add_range(virt_base, virt_end - virt_base + 1);
 	return 0;
 }
 
@@ -70,7 +70,7 @@ int Core::Platform::bi_add_virt_mem(Okl4::bi_name_t, Okl4::uintptr_t base,
 		return 0;
 
 	Platform &p = *(Platform *)data->user_data;
-	p._core_mem_alloc.virt_alloc().add_range(base, end - base + 1);
+	(void)p._core_mem_alloc.virt_alloc().add_range(base, end - base + 1);
 	return 0;
 }
 
@@ -80,7 +80,7 @@ int Core::Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 {
 	if (pool == 2) {
 		Platform &p = *(Platform *)data->user_data;
-		p._core_mem_alloc.phys_alloc().add_range(base, end - base + 1);
+		(void)p._core_mem_alloc.phys_alloc().add_range(base, end - base + 1);
 	}
 	return 0;
 }
@@ -149,19 +149,23 @@ Core::Platform::Platform()
 	Okl4::bootinfo_parse((void *)boot_info_addr, &callbacks, this);
 
 	/* initialize interrupt allocator */
-	_irq_alloc.add_range(0, 0x10);
+	if (_irq_alloc.add_range(0, 0x10).failed())
+		warning("unable to initialize IRQ allocator");
 
 	/* I/O memory could be the whole user address space */
-	_io_mem_alloc.add_range(0, ~0);
+	if (_io_mem_alloc.add_range(0, ~0).failed())
+		warning("unable to initialize I/O-memory allocator");
 
 	/* I/O port allocator (only meaningful for x86) */
-	_io_port_alloc.add_range(0, 0x10000);
+	if (_io_port_alloc.add_range(0, 0x10000).failed())
+		warning("unable to initialize I/O-port allocator");
 
 	_init_rom_modules();
 
 	/* preserve stack area in core's virtual address space */
-	_core_mem_alloc.virt_alloc().remove_range(stack_area_virtual_base(),
-	                                          stack_area_virtual_size());
+	if (_core_mem_alloc.virt_alloc().remove_range(stack_area_virtual_base(),
+	                                              stack_area_virtual_size()).failed())
+		warning("unable to mark stack area as preserved virtual memory");
 
 	_vm_start = 0x1000;
 	_vm_size  = 0xc0000000 - _vm_start;

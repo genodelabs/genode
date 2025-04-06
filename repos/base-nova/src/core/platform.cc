@@ -405,7 +405,7 @@ Core::Platform::Platform()
 	/* define core's virtual address space */
 	addr_t virt_beg = _vm_base;
 	addr_t virt_end = _vm_size;
-	_core_mem_alloc.virt_alloc().add_range(virt_beg, virt_end - virt_beg);
+	(void)_core_mem_alloc.virt_alloc().add_range(virt_beg, virt_end - virt_beg);
 
 	/* exclude core image from core's virtual address allocator */
 	addr_t const core_virt_beg = trunc_page((addr_t)&_prog_img_beg);
@@ -414,29 +414,33 @@ Core::Platform::Platform()
 	addr_t const binaries_end  = round_page((addr_t)&_boot_modules_binaries_end);
 
 	size_t const core_size     = binaries_beg - core_virt_beg;
-	region_alloc().remove_range(core_virt_beg, core_size);
+
+	auto exclude_from_core = [&] (addr_t start, size_t num_bytes)
+	{
+		if (region_alloc().remove_range(start, num_bytes).failed())
+			warning("unable to exclude core-local range ", Hex_range(start, num_bytes));
+	};
+
+	exclude_from_core(core_virt_beg, core_size);
 
 	/* ROM modules are un-used by core - de-detach region */
 	addr_t const binaries_size  = binaries_end - binaries_beg;
 	unmap_local(*__main_thread_utcb, binaries_beg, binaries_size >> 12);
 
 	/* preserve Bios Data Area (BDA) in core's virtual address space */
-	region_alloc().remove_range(BDA_VIRT_ADDR, 0x1000);
+	exclude_from_core(BDA_VIRT_ADDR, 0x1000);
 
 	/* preserve stack area in core's virtual address space */
-	region_alloc().remove_range(stack_area_virtual_base(),
-	                            stack_area_virtual_size());
+	exclude_from_core(stack_area_virtual_base(), stack_area_virtual_size());
 
 	/* exclude utcb of core pager thread + empty guard pages before and after */
-	region_alloc().remove_range(CORE_PAGER_UTCB_ADDR - get_page_size(),
-	                            get_page_size() * 3);
+	exclude_from_core(CORE_PAGER_UTCB_ADDR - get_page_size(), get_page_size() * 3);
 
 	/* exclude utcb of main thread and hip + empty guard pages before and after */
-	region_alloc().remove_range((addr_t)__main_thread_utcb - get_page_size(),
-	                            get_page_size() * 4);
+	exclude_from_core((addr_t)__main_thread_utcb - get_page_size(), get_page_size() * 4);
 
 	/* exclude HIP */
-	region_alloc().remove_range(addr_t(&hip), _vm_base + _vm_size - addr_t(&hip));
+	exclude_from_core(addr_t(&hip), _vm_base + _vm_size - addr_t(&hip));
 
 	/* sanity checks */
 	addr_t check [] = {
@@ -458,7 +462,7 @@ Core::Platform::Platform()
 	}
  
 	/* initialize core's physical-memory and I/O memory allocator */
-	_io_mem_alloc.add_range(0, ~0xfffUL);
+	(void)_io_mem_alloc.add_range(0, ~0xfffUL);
 	Hip::Mem_desc *mem_desc = (Hip::Mem_desc *)mem_desc_base;
 
 	Hip::Mem_desc *boot_fb = nullptr;
@@ -495,9 +499,15 @@ Core::Platform::Platform()
 		else
 			size = trunc_page(mem_desc->addr + mem_desc->size) - base;
 
-		_io_mem_alloc.remove_range((addr_t)base, (size_t)size);
-		ram_alloc().add_range((addr_t)base, (size_t)size);
+		(void)_io_mem_alloc.remove_range((addr_t)base, (size_t)size);
+		(void)ram_alloc().add_range((addr_t)base, (size_t)size);
 	}
+
+	auto exclude_from_ram = [&] (addr_t start, size_t num_bytes)
+	{
+		if (ram_alloc().remove_range(start, num_bytes).failed())
+			warning("unable to exclude RAM range ", Hex_range(start, num_bytes));
+	};
 
 	addr_t hyp_log = 0;
 	size_t hyp_log_size = 0;
@@ -542,14 +552,14 @@ Core::Platform::Platform()
 		/* make acpi regions as io_mem available to platform driver */
 		if (mem_desc->type == Hip::Mem_desc::ACPI_RECLAIM_MEMORY ||
 		    mem_desc->type == Hip::Mem_desc::ACPI_NVS_MEMORY)
-			_io_mem_alloc.add_range((addr_t)base, (size_t)size);
+			(void)_io_mem_alloc.add_range((addr_t)base, (size_t)size);
 
-		ram_alloc().remove_range((addr_t)base, (size_t)size);
+		exclude_from_ram((addr_t)base, (size_t)size);
 	}
 
 	/* needed as I/O memory by the VESA driver */
-	_io_mem_alloc.add_range(0, 0x1000);
-	ram_alloc().remove_range(0, 0x1000);
+	(void)_io_mem_alloc.add_range(0, 0x1000);
+	exclude_from_ram(0, 0x1000);
 
 	/* exclude pages holding multi-boot command lines from core allocators */
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
@@ -561,8 +571,8 @@ Core::Platform::Platform()
 		curr_cmd_line_page = mem_desc->aux >> get_page_size_log2();
 		if (curr_cmd_line_page == prev_cmd_line_page) continue;
 
-		ram_alloc().remove_range(curr_cmd_line_page << get_page_size_log2(),
-		                         get_page_size() * 2);
+		exclude_from_ram(curr_cmd_line_page << get_page_size_log2(),
+		                 get_page_size() * 2);
 		prev_cmd_line_page = curr_cmd_line_page;
 	}
 
@@ -804,10 +814,10 @@ Core::Platform::Platform()
 	}
 
 	/* I/O port allocator (only meaningful for x86) */
-	_io_port_alloc.add_range(0, 0x10000);
+	(void)_io_port_alloc.add_range(0, 0x10000);
 
 	/* IRQ allocator */
-	_irq_alloc.add_range(0, hip.sel_gsi);
+	(void)_irq_alloc.add_range(0, hip.sel_gsi);
 	_gsi_base_sel = (hip.mem_desc_offset - hip.cpu_desc_offset) / hip.cpu_desc_size;
 
 	log(_rom_fs);

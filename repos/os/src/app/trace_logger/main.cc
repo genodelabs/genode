@@ -181,7 +181,9 @@ class Main
 			{
 				policy.id.with_result(
 					[&] (Trace::Policy_id const policy_id) {
-						_trace.trace(id, policy_id, buffer_size); },
+						if (_trace.trace(id, policy_id, buffer_size).failed())
+							warning("failed to enable tracing with policy '", policy_name, "'");
+					},
 					[&] (auto) {
 						warning("skip tracing because of invalid policy '", policy_name, "'");
 					});

@@ -94,7 +94,8 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	}
 
 	/* add new local address range to our local allocator */
-	alloc->add_range(range.start, range.num_bytes);
+	if (alloc->add_range(range.start, range.num_bytes).failed())
+		warning("libc is unable to extend range allocator of dataspace pool");
 
 	/* now that we have new backing store, allocate Dataspace structure */
 	return alloc->alloc_aligned(sizeof(Dataspace), 2).convert<int>(

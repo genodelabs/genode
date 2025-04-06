@@ -648,14 +648,14 @@ class Genode::Packet_stream_source : private Packet_stream_base
 			                                      Ack_queue::CONSUMER))
 		{
 			/* initialize packet allocator */
-			_packet_alloc.add_range(_bulk_buffer_offset,
-			                         _bulk_buffer_size);
+			if (_packet_alloc.add_range(_bulk_buffer_offset, _bulk_buffer_size).failed())
+				warning("unable to initialize packet-stream source allocator");
 		}
 
 		~Packet_stream_source()
 		{
-			_packet_alloc.remove_range(_bulk_buffer_offset,
-			                            _bulk_buffer_size);
+			if (_packet_alloc.remove_range(_bulk_buffer_offset, _bulk_buffer_size).failed())
+				warning("packet-stream source allocator in bad state at destruction time");
 		}
 
 		using Packet_stream_base::packet_valid;

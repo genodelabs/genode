@@ -538,7 +538,8 @@ Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
 	_ds_cap(_type_deduction_helper(_ds_ep.manage(&_ds)))
 {
 	/* configure managed VM area */
-	_map.add_range(vm_start, align_addr(vm_size, get_page_size_log2()));
+	if (_map.add_range(vm_start, align_addr(vm_size, get_page_size_log2())).failed())
+		warning("unable to initialize region-map allocator");
 
 	Capability<Region_map> cap = ep.manage(this);
 	_ds.sub_rm(cap);
