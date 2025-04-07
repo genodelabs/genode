@@ -22,6 +22,7 @@
 #include <base/heap.h>
 #include <base/sleep.h>
 #include <block/request_stream.h>
+#include <block/session_map.h>
 #include <os/reporter.h>
 #include <timer_session/connection.h>
 #include <usb_session/device.h>
@@ -39,6 +40,7 @@ namespace Usb {
 	struct Io_error  {};
 	class  Block_driver;
 	struct Block_session_component;
+	using Session_space = Id_space<Block_session_component>;
 	struct Main;
 }
 
@@ -514,8 +516,11 @@ class Usb::Block_driver
 			void * const address;
 			size_t       size;
 
+			Session_space::Id session_id;
+
 			Block_command(Block_driver &drv, Request request,
-			              void *addr, size_t sz, uint32_t tag)
+			              void *addr, size_t sz, uint32_t tag,
+			              Session_space::Id session_id)
 			:
 				cmd(drv,
 				    &Block_driver::_block_command,
@@ -523,7 +528,8 @@ class Usb::Block_driver
 				    &Block_driver::_block_write,
 				    tag, sz,
 				    request.operation.type == Block::Operation::Type::READ),
-				block_request(request), address(addr), size(sz)
+				block_request(request), address(addr), size(sz),
+				session_id(session_id)
 			{
 				if (!address && !size) cmd.state = Scsi_command::DONE;
 			}
@@ -662,7 +668,8 @@ class Usb::Block_driver
 		}
 
 		Response submit(Request                 const &block_request,
-		                Request_stream::Payload const &payload)
+		                Request_stream::Payload const &payload,
+		                Session_space::Id              session_id)
 		{
 			if (_state != READY)
 				return Response::REJECTED;
@@ -679,10 +686,6 @@ class Usb::Block_driver
 
 			Operation const &op = block_request.operation;
 
-			/* read only */
-			if (_writeable == false && op.type == Type::WRITE)
-				return Response::REJECTED;
-
 			/* range check */
 			block_number_t const last = op.block_number + op.count;
 			if (last > _block_count)
@@ -697,7 +700,7 @@ class Usb::Block_driver
 			payload.with_content(block_request, [&](void *a, size_t sz) {
 				addr = a; size = sz; });
 
-			_block_cmd.construct(*this, block_request, addr, size, _new_tag());
+			_block_cmd.construct(*this, block_request, addr, size, _new_tag(), session_id);
 
 			/* operations currently handled as successful NOP */
 			if (_block_cmd.constructed() &&
@@ -711,39 +714,58 @@ class Usb::Block_driver
 		}
 
 		template <typename FUNC>
-		void with_completed(FUNC const &fn)
+		void with_completed(Session_space::Id session_id, FUNC const &fn)
 		{
 			if (_block_cmd.constructed() &&
+			    _block_cmd->session_id == session_id &&
 			    _block_cmd->block_request.success) {
 				fn(_block_cmd->block_request);
 				_block_cmd.destruct();
 			}
 		}
+
+		bool request_pending() const { return _block_cmd.constructed(); }
 };
 
 
-struct Usb::Block_session_component : Rpc_object<Block::Session>,
-                                      Block::Request_stream
+struct Usb::Block_session_component : Rpc_object<Block::Session>
 {
 	Env &_env;
 
-	Block_session_component(Env &env, Dataspace_capability ds,
-	                        Signal_context_capability sigh,
-	                        Block::Session::Info info)
+	Session_space::Element const _elem;
+
+	Attached_ram_dataspace _ram_ds;
+	Request_stream         _request_stream;
+
+	Block_session_component(Session_space             &space,
+	                        uint16_t                   session_id_value,
+	                        Env                       &env,
+	                        size_t                     ds_size,
+	                        Signal_context_capability  sigh,
+	                        Block::Constrained_view    view,
+	                        Block::Session::Info       info)
 	:
-		Request_stream(env.rm(), ds, env.ep(), sigh, info),
-		_env(env)
+		_env(env),
+		_elem(*this, space, Session_space::Id { .value = session_id_value }),
+		_ram_ds(env.ram(), env.rm(), ds_size),
+		_request_stream(env.rm(), _ram_ds.cap(), env.ep(), sigh, info, view)
 	{
 		_env.ep().manage(*this);
 	}
 
 	~Block_session_component() { _env.ep().dissolve(*this); }
 
-	Info info() const override { return Request_stream::info(); }
+	bool pending { false };
 
-	Capability<Tx> tx_cap() override { return Request_stream::tx_cap(); }
+	Info info() const override { return _request_stream.info(); }
+
+	Capability<Tx> tx_cap() override { return _request_stream.tx_cap(); }
+
+	Session_space::Id session_id() const { return _elem.id(); }
+
+	void with_request_stream(auto const &fn) {
+		fn(_request_stream); }
 };
-
 
 
 struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
@@ -751,10 +773,15 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 	Env &env;
 	Heap heap { env.ram(), env.rm() };
 
+	Sliced_heap _sliced_heap { env.ram(), env.rm() };
+
 	Attached_rom_dataspace config { env, "config" };
 
-	Constructible<Attached_ram_dataspace>  block_ds { }; 
-	Constructible<Block_session_component> block_session { };
+	using Session_space = Id_space<Block_session_component>;
+	Session_space _sessions { };
+
+	using Session_map = Block::Session_map<>;
+	Session_map _session_map { };
 
 	Signal_handler<Main> config_handler { env.ep(), *this,
 	                                      &Main::update_config };
@@ -773,9 +800,9 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 	void handle()
 	{
 		try {
-			bool progress = true;
+			for (;;) {
+				bool progress = false;
 
-			while (progress) {
 				while (driver.handle_io()) ;
 
 				if (!driver.device_ready())
@@ -786,34 +813,62 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 					state = ANNOUNCED;
 				}
 
-				if (!block_session.constructed())
-					return;
-
-				progress = false;
-
 				/* ack and release possibly pending packet */
-				block_session->try_acknowledge([&] (Block_session_component::Ack &ack) {
-					driver.with_completed([&] (Block::Request const &request) {
-						ack.submit(request);
-						progress = true;
-					});
-				});
+				auto session_ack_fn = [&] (Block_session_component &block_session) {
+					if (!block_session.pending)
+						return;
 
-				block_session->with_requests([&] (Request const request) {
+					auto request_stream_ack_fn = [&] (Request_stream &request_stream) {
+						auto ack_fn = [&] (Request_stream::Ack &ack) {
+							auto completed_fn = [&] (Block::Request &request) {
 
-					Response response = Response::RETRY;
+								ack.submit(request);
+								progress = true;
 
-					block_session->with_payload([&] (Request_stream::Payload const &payload) {
-						response = driver.submit(request, payload);
-					});
-					if (response != Response::RETRY)
-						progress = true;
+								block_session.pending = false;
+							};
+							driver.with_completed(block_session.session_id(), completed_fn);
+						};
+						request_stream.try_acknowledge(ack_fn);
+						request_stream.wakeup_client_if_needed();
+					};
+					block_session.with_request_stream(request_stream_ack_fn);
+				};
+				_sessions.for_each<Block_session_component>(session_ack_fn);
 
-					return response;
-				});
+				auto index_fn = [&] (Session_map::Index index) {
+					Session_space::Id const session_id { .value = index.value };
+					auto block_session_submit_fn = [&] (Block_session_component &block_session) {
+						auto request_stream_submit_fn = [&] (Request_stream &request_stream) {
+							auto request_submit_fn = [&] (Request request) {
+
+								Response response = Response::RETRY;
+								auto payload_submit_fn = [&] (Request_stream::Payload const &payload) {
+									response = driver.submit(request, payload,
+									                         block_session.session_id());
+								};
+								request_stream.with_payload(payload_submit_fn);
+								if (response != Response::RETRY) {
+									progress = true;
+									block_session.pending = true;
+								}
+
+								return response;
+							};
+							request_stream.with_requests(request_submit_fn);
+						};
+						block_session.with_request_stream(request_stream_submit_fn);
+					};
+					_sessions.apply<Block_session_component>(session_id,
+					                                         block_session_submit_fn);
+				};
+
+				if (!driver.request_pending())
+					_session_map.for_each_index(index_fn);
+
+				if (!progress)
+					break;
 			}
-
-			block_session->wakeup_client_if_needed();
 		} catch (Io_error&) {
 			error("An unrecoverable USB error occured, will halt!");
 			sleep_forever();
@@ -830,11 +885,6 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 
 	Root::Result session(Root::Session_args const &args, Affinity const &) override
 	{
-		if (block_session.constructed()) {
-			error("device is already in use");
-			return Session_error::DENIED;
-		}
-
 		size_t const ds_size =
 			Arg_string::find_arg(args.string(), "tx_buf_size").ulong_value(0);
 
@@ -845,21 +895,67 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
-		block_ds.construct(env.ram(), env.rm(), ds_size);
-		block_session.construct(env, block_ds->cap(), io_handler, driver.info());
+		Session_label  const label  { label_from_args(args.string()) };
 
-		return { block_session->cap() };
+		bool const writeable_arg =
+			Arg_string::find_arg(args.string(), "writeable")
+			                     .bool_value(true);
+
+		Block::Constrained_view const view {
+			.offset     = Block::Constrained_view::Offset {
+				Arg_string::find_arg(args.string(), "offset") .ulonglong_value(0) },
+			.num_blocks = Block::Constrained_view::Num_blocks {
+				Arg_string::find_arg(args.string(), "num_blocks") .ulonglong_value(0) },
+			.writeable  = driver.info().writeable && writeable_arg
+		};
+
+		Session_map::Index new_session_id { 0u };
+
+		if (!_session_map.alloc().convert<bool>(
+			[&] (Session_map::Alloc_ok ok) {
+				new_session_id = ok.index;
+				return true;
+			},
+			[&] (Session_map::Alloc_error) {
+				return false; }))
+			return Session_error::DENIED;
+
+		try {
+			Block_session_component *session =
+				new (_sliced_heap) Block_session_component(_sessions,
+				                                           new_session_id.value,
+				                                           env, ds_size, io_handler,
+				                                           view, driver.info());
+			return { session->cap() };
+		} catch (...) {
+			_session_map.free(new_session_id);
+			return Session_error::DENIED;
+		}
 	}
 
 	void upgrade(Genode::Session_capability, Root::Upgrade_args const&) override { }
 
 	void close(Genode::Session_capability cap) override
 	{
-		if (!block_session.constructed() || !(block_session->cap() == cap))
-			return;
+		bool found = false;
+		Session_space::Id session_id { .value = 0 };
 
-		block_session.destruct();
-		block_ds.destruct();
+		_sessions.for_each<Block_session_component>(
+			[&] (Block_session_component &session) {
+				if (!(cap == session.cap()))
+					return;
+
+				found = true;
+				session_id = session.session_id();
+			});
+
+		if (found)
+			_sessions.apply<Block_session_component>(session_id,
+				[&] (Block_session_component &session) {
+					Session_map::Index const index =
+						Session_map::Index::from_id(session_id.value);
+					_session_map.free(index);
+					destroy(_sliced_heap, &session); });
 	}
 
 	Main(Env &env) : env(env) { config.sigh(config_handler); }
