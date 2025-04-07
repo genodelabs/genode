@@ -124,6 +124,17 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 			record_session.wakeup(); });
 	}
 
+	/**
+	 * Play_session::Operations
+	 */
+	void wakeup_depleted_record_clients() override
+	{
+		_record_sessions.for_each([&] (Record_session &record_session) {
+			if (record_session.depleted())
+				record_session.wakeup();
+		});
+	}
+
 	void _generate_state_report(Xml_generator &xml) const
 	{
 		if (_clock_from_config.constructed())

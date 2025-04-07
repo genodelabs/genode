@@ -38,6 +38,7 @@ class Mixer::Play_session : public Session_object<Play::Session, Play_session>,
 			virtual void update_play_sessions_state() = 0;
 			virtual void bind_play_sessions_to_audio_signals() = 0;
 			virtual void wakeup_record_clients() = 0;
+			virtual void wakeup_depleted_record_clients() = 0;
 		};
 
 	private:
@@ -386,6 +387,7 @@ class Mixer::Play_session : public Session_object<Play::Session, Play_session>,
 
 			if (!_scheduler.consecutive())
 				_operations.wakeup_record_clients();
+			else _operations.wakeup_depleted_record_clients();
 
 			return window.convert<Time_window>(
 				[&] (Time_window const &tw) -> Time_window { return tw; },

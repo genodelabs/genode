@@ -68,6 +68,8 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 
 		Operations &_operations;
 
+		bool _depleted { false };
+
 		bool _produce_scaled_sample_data(Time_window tw, Float_range_ptr &samples_ptr)
 		{
 			if (!_sample_producer_ptr)
@@ -103,6 +105,8 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 			if (!_scheduler.consecutive() && _wakeup_sigh.valid())
 				Signal_transmitter(_wakeup_sigh).submit();
 		}
+
+		bool depleted() const { return _depleted; }
 
 		void assign_sample_producer(Sample_producer &s) { _sample_producer_ptr = &s; }
 
@@ -187,6 +191,7 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 			Float_range_ptr samples_ptr(_ds.local_addr<float>(), num_samples.value());
 
 			if (_produce_scaled_sample_data(time_window, samples_ptr)) {
+				_depleted = false;
 				_stalled.destruct();
 
 			} else {
@@ -201,6 +206,7 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 				if (now.later_than(_stalled->after_us(250*1000))) {
 					_scheduler = { };
 					_stalled.destruct();
+					_depleted = true;
 					return Depleted();
 				}
 			}
