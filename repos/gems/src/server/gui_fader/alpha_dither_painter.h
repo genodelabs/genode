@@ -69,7 +69,7 @@ struct Alpha_dither_painter
 			unsigned const y_offset = y << 4;
 
 			for (dst = dst_line, w = clipped.w(); w--; dst++, x++)
-				dst->pixel = tile.v[(y_offset + x) & 0xff];
+				dst->pixel = tile.v[(y_offset + (x & 0xf)) & 0xff];
 		}
 	}
 
