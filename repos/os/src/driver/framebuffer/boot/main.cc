@@ -60,12 +60,20 @@ struct Framebuffer::Main
 			return result;
 		}
 
+		Area phys_area() const
+		{
+			auto const sanitized_bpp = bpp ? : 1;
+			auto const width = pitch ? pitch * 8 / sanitized_bpp : size.w;
+
+			return { width, size.h };
+		}
+
 		enum { TYPE_RGB_COLOR = 1 };
 
 		void print(Output &out) const
 		{
 			Genode::print(out, size, "x", bpp, " @ ", (void*)addr, " "
-			                   "type=", type, " pitch=", pitch);
+			              "type=", type, " pitch=", pitch, " -> ", phys_area());
 		}
 	};
 
@@ -88,7 +96,7 @@ struct Framebuffer::Main
 	Capture::Connection _capture { _env };
 
 	Capture::Connection::Screen _captured_screen { _capture, _env.rm(), {
-	                                               .px     = _info.size,
+	                                               .px     = _info.phys_area(),
 	                                               .mm     = { },
 	                                               .rotate = { },
 	                                               .flip   = { } } };
@@ -98,9 +106,7 @@ struct Framebuffer::Main
 
 	void _handle_timer()
 	{
-		Area const phys_size { (uint32_t)(_info.pitch/sizeof(Pixel)), _info.size.h };
-
-		Surface<Pixel> surface(_fb_ds.local_addr<Pixel>(), phys_size);
+		Surface<Pixel> surface(_fb_ds.local_addr<Pixel>(), _info.phys_area());
 
 		_captured_screen.apply_to_surface(surface);
 	}
