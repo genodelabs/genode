@@ -245,5 +245,6 @@ Platform::Platform()
 	ram_alloc.for_each_free_region([&] (Memory_region const & r) {
 		bootinfo.ram_regions.add(r); });
 	board.late_ram_regions.for_each([&] (unsigned, Memory_region const & r) {
-		bootinfo.ram_regions.add(r); });
+		/* is zero initialized on some platforms */
+		if (r.size) bootinfo.ram_regions.add(r); });
 }
