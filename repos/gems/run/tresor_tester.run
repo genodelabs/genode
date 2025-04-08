@@ -43,7 +43,6 @@ append build_components {
 append_if [jent_avail] build_components { lib/vfs_jitterentropy }
 
 append_if [have_board linux] build_components { server/lx_fs }
-append_if [have_board linux] build_components { server/lx_block }
 
 build $build_components
 

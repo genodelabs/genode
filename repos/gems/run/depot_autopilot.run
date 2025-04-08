@@ -267,9 +267,6 @@ proc prepare_to_run_genode { } {
 		} [depot_user] {/src/init
 		} [depot_user] {/src/depot_query
 	}
-	if {![skip_test test-lx_block]} {
-		append import_archives [depot_user] {/raw/test-lx_block }
-	}
 
 	# check existance of all required archives at once
 	set all_archives [concat $depot_tar_pkg_archives \
@@ -682,7 +679,6 @@ set default_test_pkgs {
 	test-libc_vfs_fs_chained
 	test-libc_vfs_ram
 	test-log
-	test-lx_block
 	test-mmio
 	test-new_delete
 	test-nic_loopback
@@ -775,7 +771,6 @@ skip_test_if [have_board rpi] test-file_vault_no_entropy
 set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
 set skip_test(test-libc)            [expr [have_spec sel4] || [have_board rpi] || [have_board imx53_qsb_tz]]
-set skip_test(test-lx_block)        [expr ![have_board linux]]
 set skip_test(test-read_only_rom)   [expr [have_board linux]]
 set skip_test(test-rm_fault)        [expr [have_board linux] || ![non_executable_supported]]
 set skip_test(test-rm_fault_no_nox) [expr [have_board linux] || ![skip_test test-rm_fault]]

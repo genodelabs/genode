@@ -1,7 +1,7 @@
 assert {[have_spec linux]}
 
 append build_components {
-	core init timer lib/ld lib/vfs server/lx_block server/lx_fs server/vfs app/sequence
+	core init timer lib/ld lib/vfs server/lx_fs server/vfs app/sequence
 	app/tresor_init_trust_anchor app/tresor_init app/tresor_check
 	lib/vfs_tresor_crypto_aes_cbc lib/vfs_tresor_trust_anchor lib/vfs_jitterentropy
 	lib/libc lib/libcrypto }
