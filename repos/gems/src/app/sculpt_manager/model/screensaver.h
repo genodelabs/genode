@@ -100,6 +100,44 @@ class Sculpt::Screensaver : Noncopyable
 		Watched_rom _nitpicker_focus { *this, "nitpicker_focus" };
 		Watched_rom _nitpicker_hover { *this, "nitpicker_hover" };
 
+		/**
+		 * Utility for watching the 'seq_number' attribute of a ROM module
+		 */
+		struct Watched_rom_seq_number : Noncopyable
+		{
+			Screensaver &_screensaver;
+
+			Attached_rom_dataspace _rom;
+
+			Signal_handler<Watched_rom_seq_number> _handler {
+				_screensaver._env.ep(), *this, &Watched_rom_seq_number::_handle };
+
+			uint64_t _seq_number { 0 };
+
+			Watched_rom_seq_number(Screensaver &screensaver, char const *label)
+			:
+				_screensaver(screensaver), _rom(screensaver._env, label)
+			{
+				_rom.sigh(_handler);
+			}
+
+			void _handle()
+			{
+				_rom.update();
+
+				uint64_t seq_number = _rom.xml().attribute_value("seq_number", 0ul);
+				if (!seq_number) return;
+
+				if (seq_number > _seq_number) {
+					_seq_number = seq_number;
+					_screensaver._keep_display_enabled_for_some_time();
+				}
+			}
+		};
+
+		/* matches <hover seq_number=.../> */
+		Watched_rom_seq_number _menu_hover { *this, "menu_hover" };
+
 	public:
 
 		Screensaver(Env &env, Action &action) : _env(env), _action(action)
