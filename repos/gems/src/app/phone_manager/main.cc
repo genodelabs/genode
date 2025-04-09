@@ -2156,11 +2156,13 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 void Sculpt::Main::_handle_gui_mode()
 {
-	auto const panorama = _gui.panorama();
+	bool capture_present = false;
+	_gui.with_info([&](Xml_node const &info) {
+		capture_present = info.has_sub_node("capture"); });
 
-	_screensaver.display_driver_ready(panorama.ok());
+	_screensaver.display_driver_ready(capture_present);
 
-	panorama.with_result(
+	_gui.panorama().with_result(
 		[&] (Gui::Rect const rect) {
 			_gui_mode_ready = true;
 			_screen_size = rect.area;
