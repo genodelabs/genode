@@ -17,6 +17,7 @@
 
 #include <dataspace/capability.h>
 #include <base/stdint.h>
+#include <os/reporter.h>
 
 #include "vbe.h"
 
@@ -26,6 +27,8 @@ namespace Genode {
 }
 
 namespace Framebuffer {
+
+	using Genode::Expanding_reporter;
 
 	struct Fatal { }; /* exception */
 
@@ -49,7 +52,8 @@ namespace Framebuffer {
 	 * \return  0 on success,
 	 *          non-zero otherwise
 	 */
-	int set_mode(unsigned &width, unsigned &height, unsigned mode);
+	int set_mode(unsigned &width, unsigned &height, unsigned mode,
+	             Expanding_reporter &);
 
 	/**
 	 * Map given device memory, return out_addr (map address)

@@ -46,11 +46,13 @@ struct Vesa_driver::Main
 	 * Config
 	 */
 
-	Attached_rom_dataspace _config { _env, "config" };
+	Attached_rom_dataspace _config   { _env, "config" };
+	Expanding_reporter     _reporter { _env, "connectors", "connectors" };
 
 	Area _size { 1, 1 };
 
 	void _handle_config();
+	Area _configured_size(Xml_node const &);
 
 	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
 
@@ -104,23 +106,62 @@ void Vesa_driver::Main::_handle_timer()
 }
 
 
+Capture::Area Vesa_driver::Main::_configured_size(Xml_node const & config)
+{
+	Area area { config.attribute_value( "width", 0U),
+	            config.attribute_value("height", 0U) };
+
+	auto with_connector = [&](auto const &node) {
+
+		bool enabled = node.attribute_value("enabled", true);
+
+		if (!enabled || node.attribute_value("name", String<5>("none")) != "VESA")
+			return;
+
+		auto  width = node.attribute_value("width"  , 0U);
+		auto height = node.attribute_value("height" , 0U);
+
+		area = { width, height };
+	};
+
+	/* lookup config of discrete connectors */
+	config.for_each_sub_node("connector", [&] (auto const &conn) {
+		with_connector(conn);
+	});
+
+	/* lookup config of mirrored connectors */
+	config.with_optional_sub_node("merge", [&] (auto const & merge) {
+		merge.for_each_sub_node("connector", [&] (auto const & conn) {
+			with_connector(conn);
+		});
+	});
+
+	return area;
+}
+
+
 void Vesa_driver::Main::_handle_config()
 {
 	_config.update();
 
-	Xml_node const config = _config.xml();
+	if (!_config.valid())
+		return;
 
-	Area const configured_size { config.attribute_value("width",  0U),
-	                             config.attribute_value("height", 0U) };
+	auto const & config          = _config.xml();
+	auto const   period_ms       = config.attribute_value("period_ms", 20UL);
+	Area const   configured_size = _configured_size(config);
+
 	if (configured_size == _size)
 		return;
 
-	_size = Area { };
+	auto const old_size = _size;
+
+	_size = { };
 	_fb_ds.destruct();
 	_timer.trigger_periodic(0);
 
 	/* set VESA mode */
-	{
+	auto apply_mode = [&] (auto const configure) {
 		enum { BITS_PER_PIXEL = 32 };
 
 		struct Pretty_mode
@@ -130,22 +171,29 @@ void Vesa_driver::Main::_handle_config()
 				Genode::print(out, "VESA mode ", size, "@", (int)BITS_PER_PIXEL); }
 		};
 
-		unsigned width  = configured_size.w,
-		         height = configured_size.h;
+		unsigned width  = configure.w,
+		         height = configure.h;
 
-		if (Framebuffer::set_mode(width, height, BITS_PER_PIXEL) != 0) {
-			warning("could not set ", Pretty_mode{configured_size});
-			return;
+		if (Framebuffer::set_mode(width, height, BITS_PER_PIXEL, _reporter) != 0) {
+			warning("could not set ", Pretty_mode{configure});
+			return false;
 		}
 
 		/*
 		 * Framebuffer::set_mode may return a size different from the passed
-		 * argument. In paricular, when passing a size of (0,0), the function
+		 * argument. In particular, when passing a size of (0,0), the function
 		 * sets and returns the highest screen mode possible.
 		 */
 		_size = Area { width, height };
 
 		log("using ", Pretty_mode{_size});
+
+		return true;
+	};
+
+	if (!apply_mode(configured_size)) {
+		/* in case of failure try to re-setup previous mode */
+		apply_mode(old_size);
 	}
 
 	/* enable pixel capturing */
@@ -159,7 +207,6 @@ void Vesa_driver::Main::_handle_config()
 		.rotate   = { },
 		.flip     = { } });
 
-	unsigned long const period_ms = config.attribute_value("period_ms", 20U);
 	_timer.trigger_periodic(period_ms*1000);
 }
 

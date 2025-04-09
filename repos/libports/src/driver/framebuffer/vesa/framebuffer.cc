@@ -47,6 +47,24 @@ static inline uint32_t to_phys(uint32_t addr)
 }
 
 
+static void for_each_mode(mb_vbe_ctrl_t const & ctrl_info, auto const & fn)
+{
+	/*
+	 * The virtual address of the ctrl_info mapping may change on x86_cmd
+	 * execution. Therefore, we resolve the address on each iteration.
+	 */
+#define MODE_PTR(off) (X86emu::virt_addr<uint16_t>(to_phys(ctrl_info.video_mode)) + off)
+	for (unsigned off = 0; *MODE_PTR(off) != 0xFFFF; ++off) {
+		if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, *MODE_PTR(off), VESA_MODE_OFFS) != VBE_SUPPORTED)
+			continue;
+
+		fn(*MODE_PTR(off));
+
+	}
+#undef MODE_PTR
+}
+
+
 static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info,
                               unsigned &width, unsigned &height, unsigned depth,
                               bool verbose)
@@ -58,21 +76,14 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 	if (verbose)
 		log("Supported mode list");
 
-	/*
-	 * The virtual address of the ctrl_info mapping may change on x86_cmd
-	 * execution. Therefore, we resolve the address on each iteration.
-	 */
-#define MODE_PTR(off) (X86emu::virt_addr<uint16_t>(to_phys(ctrl_info->video_mode)) + off)
-	for (unsigned off = 0; *MODE_PTR(off) != 0xFFFF; ++off) {
-		if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, *MODE_PTR(off), VESA_MODE_OFFS) != VBE_SUPPORTED)
-			continue;
+	auto const & fn = [&](auto const & mode) {
 
 		enum { DIRECT_COLOR = 0x06 };
 		if (mode_info->memory_model != DIRECT_COLOR)
-			continue;
+			return;
 
 		if (verbose)
-			log("    ", Hex((short)*MODE_PTR(off), Hex::PREFIX, Hex::PAD), " ",
+			log("    ", Hex((short)mode, Hex::PREFIX, Hex::PAD), " ",
 			    (unsigned)mode_info->x_resolution, "x",
 			    (unsigned)mode_info->y_resolution, "@",
 			    (unsigned)mode_info->bits_per_pixel);
@@ -94,7 +105,7 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 				 */
 				width = mode_info->bytes_per_scanline / (mode_info->bits_per_pixel / 8);
 				height = mode_info->y_resolution;
-				ret = *MODE_PTR(off);
+				ret = mode;
 			}
 		} else {
 			if (mode_info->x_resolution == width &&
@@ -111,11 +122,12 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 				 * visible.
 				 */
 				width = mode_info->bytes_per_scanline / (mode_info->bits_per_pixel / 8);
-				ret = *MODE_PTR(off);
+				ret = mode;
 			}
 		}
-	}
-#undef MODE_PTR
+	};
+
+	for_each_mode(*ctrl_info, fn);
 
 	if (ret)
 		return ret;
@@ -137,6 +149,45 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 	}
 
 	return get_default_vesa_mode(width, height, depth);
+}
+
+
+static void generate_report(Xml_generator       & xml,
+                            mb_vbe_ctrl_t const & ctrl_info,
+                            mb_vbe_mode_t const & mode_info,
+                            unsigned      const   depth,
+                            uint16_t      const   vesa_mode)
+{
+	xml.node("merge", [&]() {
+		xml.attribute("name", "mirror");
+
+		xml.node("connector", [&] () {
+			xml.attribute("connected", true);
+			xml.attribute("name", "VESA");
+
+			for_each_mode(ctrl_info, [&](auto const & mode) {
+
+				enum { DIRECT_COLOR = 0x06 };
+				if (mode_info.memory_model != DIRECT_COLOR)
+					return;
+
+				if (mode_info.bits_per_pixel != depth)
+					return;
+
+				auto name = String<32>(mode_info.x_resolution, "x",
+				                       mode_info.y_resolution);
+
+				xml.node("mode", [&] () {
+					xml.attribute(    "id", mode);
+					xml.attribute( "width", mode_info.x_resolution);
+					xml.attribute("height", mode_info.y_resolution);
+					xml.attribute(  "name", name);
+					if (mode == vesa_mode)
+						xml.attribute("used", true);
+				});
+			});
+		});
+	});
 }
 
 
@@ -187,12 +238,13 @@ int Framebuffer::map_io_mem(addr_t base, size_t size, bool write_combined,
 }
 
 
-int Framebuffer::set_mode(unsigned &width, unsigned &height, unsigned mode)
+int Framebuffer::set_mode(unsigned &width, unsigned &height,
+                          unsigned const depth,
+                          Expanding_reporter & reporter)
 {
 	mb_vbe_ctrl_t *ctrl_info;
 	mb_vbe_mode_t *mode_info;
 	char * oem_string;
-	uint16_t vesa_mode;
 
 	/* set location of data types */
 	ctrl_info = reinterpret_cast<mb_vbe_ctrl_t*>(X86emu::x86_mem.data_addr()
@@ -210,15 +262,17 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height, unsigned mode)
 	}
 
 	/* retrieve vesa mode hex value */
-	if (!(vesa_mode = get_vesa_mode(ctrl_info, mode_info, width, height, mode, verbose))) {
-		warning("graphics mode ", width, "x", height, "@", mode, " not found");
+	auto const vesa_mode = get_vesa_mode(ctrl_info, mode_info, width, height,
+	                                     depth, verbose);
+	if (!vesa_mode) {
+		warning("graphics mode ", width, "x", height, "@", depth, " not found");
 		/* print available modes */
-		get_vesa_mode(ctrl_info, mode_info, width, height, mode, true);
+		get_vesa_mode(ctrl_info, mode_info, width, height, depth, true);
 		return -2;
 	}
 
 	/* use current refresh rate, set flat framebuffer model */
-	vesa_mode = (vesa_mode & VBE_CUR_REFRESH_MASK) | VBE_SET_FLAT_FB;
+	auto const vesa_mode_cmd = (vesa_mode & VBE_CUR_REFRESH_MASK) | VBE_SET_FLAT_FB;
 
 	/* determine VBE version and OEM string */
 	oem_string = X86emu::virt_addr<char>(to_phys(ctrl_info->oem_string));
@@ -235,16 +289,16 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height, unsigned mode)
 	/* get mode info */
 	/* 0x91 tests MODE SUPPORTED (0x1) | GRAPHICS  MODE (0x10) | LINEAR
 	 * FRAME BUFFER (0x80) bits */
-	if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode, VESA_MODE_OFFS) != VBE_SUPPORTED
+	if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode_cmd, VESA_MODE_OFFS) != VBE_SUPPORTED
 	   || (mode_info->mode_attributes & 0x91) != 0x91) {
-		warning("graphics mode ", width, "x", height, "@", mode, " not supported");
+		warning("graphics mode ", width, "x", height, "@", depth, " not supported");
 		/* print available modes */
-		get_vesa_mode(ctrl_info, mode_info, width, height, mode, true);
+		get_vesa_mode(ctrl_info, mode_info, width, height, depth, true);
 		return -4;
 	}
 
 	/* set mode */
-	if ((X86emu::x86emu_cmd(VBE_MODE_FUNC, vesa_mode) & 0xFF00) != VBE_SUCCESS) {
+	if ((X86emu::x86emu_cmd(VBE_MODE_FUNC, vesa_mode_cmd) & 0xFF00) != VBE_SUCCESS) {
 		error("VBE SET error");
 		return -5;
 	}
@@ -252,7 +306,7 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height, unsigned mode)
 	/* map framebuffer */
 	void *fb;
 	if (!io_mem_cap.valid()) {
-		X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode, VESA_MODE_OFFS);
+		X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode_cmd, VESA_MODE_OFFS);
 
 		log("Found: physical frame buffer at ", Hex(mode_info->phys_base), " "
 		    "size: ", ctrl_info->total_memory << 16);
@@ -262,6 +316,9 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height, unsigned mode)
 
 	if (verbose)
 		X86emu::print_regions();
+
+	reporter.generate([&] (auto & xml) {
+		generate_report(xml, *ctrl_info, *mode_info, depth, vesa_mode); });
 
 	return 0;
 }
