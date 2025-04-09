@@ -299,12 +299,16 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 
 		void _for_each_session_bb(auto const &fn) const
 		{
-			bool any_session_exists = false;
-			_sessions.for_each([&] (Capture_session const &session) {
-				any_session_exists = true;
-				fn(session.bounding_box()); });
+			bool any_valid_bounding_box_exists = false;
 
-			if (!any_session_exists)
+			_sessions.for_each([&] (Capture_session const &session) {
+				auto const bounding_box = session.bounding_box();
+				if (bounding_box.valid())
+					any_valid_bounding_box_exists = true;
+				fn(bounding_box);
+			});
+
+			if (!any_valid_bounding_box_exists)
 				fn(_fallback_bounding_box);
 		}
 
