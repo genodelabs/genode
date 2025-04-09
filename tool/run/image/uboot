@@ -75,7 +75,7 @@ proc run_image { } {
 		close $fd
 		exec $dtc [run_dir]/dummy.dts -o [run_dir]/dummy.dtb
 
-		exec mkimage -f auto -T kernel -C $compress_type -a $load_addr \
+		exec mkimage -f auto -A $arch -T kernel -C $compress_type -a $load_addr \
 		             -e $entrypoint -b [run_dir]/dummy.dtb  -d $bin_img$bin_ext $uboot_img
 
 		# cleanup dummy files
