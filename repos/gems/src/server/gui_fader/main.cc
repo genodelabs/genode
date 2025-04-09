@@ -459,6 +459,9 @@ class Gui_fader::Gui_session_component
 
 		Buffer_result buffer(Framebuffer::Mode mode) override
 		{
+			if (!mode.area.valid())
+				mode.area = { 1, 1 };
+
 			_src_buffer.construct(_env, mode);
 
 			_gui.buffer({ .area = mode.area, .alpha = true });
