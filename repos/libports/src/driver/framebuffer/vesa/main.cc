@@ -153,10 +153,11 @@ void Vesa_driver::Main::_handle_config()
 
 	using Attr = Capture::Connection::Screen::Attr;
 	_captured_screen.construct(_capture, _env.rm(), Attr {
-		.px     = _size,
-		.mm     = { },
-		.rotate = { },
-		.flip   = { } });
+		.px       = _size,
+		.mm       = { },
+		.viewport = _size,
+		.rotate   = { },
+		.flip     = { } });
 
 	unsigned long const period_ms = config.attribute_value("period_ms", 20U);
 	_timer.trigger_periodic(period_ms*1000);

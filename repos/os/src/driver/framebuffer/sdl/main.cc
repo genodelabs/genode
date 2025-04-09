@@ -282,10 +282,11 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		using Attr = Capture::Connection::Screen::Attr;
 		_captured_screen.construct(_capture, _rm, Attr {
-			.px     = Blit::transformed(size, _attr.rotate),
-			.mm     = { },
-			.rotate = _attr.rotate,
-			.flip   = _attr.flip });
+			.px       = Blit::transformed(size, _attr.rotate),
+			.mm       = { },
+			.viewport = Blit::transformed(size, _attr.rotate),
+			.rotate   = _attr.rotate,
+			.flip     = _attr.flip });
 
 		_update_screen_from_capture();
 		_schedule_next_frame();

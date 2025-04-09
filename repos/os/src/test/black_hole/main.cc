@@ -262,10 +262,11 @@ class Black_hole_test::Capture_test
 		Capture::Pixel               _pixels[1];
 		Surface<Capture::Pixel>      _surface     { _pixels, _screen_size };
 		Capture::Connection::Screen  _screen      { _connection, _env.rm(),
-		                                            { .px     = _screen_size,
-		                                              .mm     = { },
-		                                              .rotate = { },
-		                                              .flip   = { } } };
+		                                            { .px       = _screen_size,
+		                                              .mm       = { },
+		                                              .viewport = _screen_size,
+		                                              .rotate   = { },
+		                                              .flip     = { } } };
 		bool                         _finished    { false };
 
 	public:

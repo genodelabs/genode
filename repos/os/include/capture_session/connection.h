@@ -109,8 +109,9 @@ class Capture::Connection::Screen
 
 		struct Attr
 		{
-			Area   px;  /* buffer area in pixels */
-			Area   mm;  /* physical size in millimeters */
+			Area   px;       /* buffer area in pixels */
+			Area   mm;       /* physical size in millimeters */
+			Area   viewport; /* watched part of the buffer */
 			Rotate rotate;
 			Flip   flip;
 		};
@@ -122,7 +123,9 @@ class Capture::Connection::Screen
 		Capture::Connection &_connection;
 
 		bool const _buffer_initialized = (
-			_connection.buffer({ .px = attr.px, .mm = attr.mm }), true );
+			_connection.buffer({ .px       = attr.px,
+			                     .mm       = attr.mm,
+			                     .viewport = attr.viewport }), true );
 
 		Attached_dataspace _ds;
 

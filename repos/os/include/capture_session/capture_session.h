@@ -79,8 +79,9 @@ struct Capture::Session : Genode::Session
 
 	struct Buffer_attr
 	{
-		Area px;  /* buffer area in pixels */
-		Area mm;  /* physical size in millimeters */
+		Area px;       /* buffer area in pixels */
+		Area mm;       /* physical size in millimeters */
+		Area viewport; /* part of the buffer watched by the client */
 	};
 
 	/**
