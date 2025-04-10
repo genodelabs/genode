@@ -226,7 +226,7 @@ struct Framebuffer::Driver
 
 		Capture::Connection::Screen::Attr attr = { .px       = conn.size,
 		                                           .mm       = conn.size_mm,
-		                                           .viewport = conn.size,
+		                                           .viewport = { { }, conn.size },
 		                                           .rotate   = { },
 		                                           .flip     = { } };
 

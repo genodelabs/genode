@@ -284,7 +284,7 @@ struct Fb_sdl::Sdl : Noncopyable
 		_captured_screen.construct(_capture, _rm, Attr {
 			.px       = Blit::transformed(size, _attr.rotate),
 			.mm       = { },
-			.viewport = Blit::transformed(size, _attr.rotate),
+			.viewport = { { }, Blit::transformed(size, _attr.rotate) },
 			.rotate   = _attr.rotate,
 			.flip     = _attr.flip });
 

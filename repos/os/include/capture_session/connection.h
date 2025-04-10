@@ -111,7 +111,7 @@ class Capture::Connection::Screen
 		{
 			Area   px;       /* buffer area in pixels */
 			Area   mm;       /* physical size in millimeters */
-			Area   viewport; /* watched part of the buffer */
+			Rect   viewport; /* watched part of the buffer */
 			Rotate rotate;
 			Flip   flip;
 		};

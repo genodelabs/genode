@@ -361,7 +361,7 @@ class Virtio_fb::Driver
 			_captured_screen.construct(_capture, _env.rm(), Attr {
 				.px       = _display_area,
 				.mm       = { },
-				.viewport = _display_area,
+				.viewport = { { }, _display_area },
 				.rotate   = { },
 				.flip     = { } });
 		}

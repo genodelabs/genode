@@ -98,7 +98,7 @@ struct Framebuffer::Main
 	Capture::Connection::Screen _captured_screen { _capture, _env.rm(), {
 	                                               .px       = _info.phys_area(),
 	                                               .mm       = { },
-	                                               .viewport = _info.phys_area(),
+	                                               .viewport = { { }, _info.phys_area() },
 	                                               .rotate   = { },
 	                                               .flip     = { } } };
 	Timer::Connection _timer { _env };

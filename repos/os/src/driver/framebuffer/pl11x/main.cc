@@ -62,7 +62,7 @@ struct Pl11x_driver::Main
 	Capture::Connection::Screen _captured_screen { _capture, _env.rm(), {
 	                                               .px       = _size,
 	                                               .mm       = { },
-	                                               .viewport = _size,
+	                                               .viewport = { { }, _size },
 	                                               .rotate   = { },
 	                                               .flip     = { } } };
 

@@ -264,7 +264,7 @@ class Black_hole_test::Capture_test
 		Capture::Connection::Screen  _screen      { _connection, _env.rm(),
 		                                            { .px       = _screen_size,
 		                                              .mm       = { },
-		                                              .viewport = _screen_size,
+		                                              .viewport = { { }, _screen_size },
 		                                              .rotate   = { },
 		                                              .flip     = { } } };
 		bool                         _finished    { false };

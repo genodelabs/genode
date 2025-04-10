@@ -155,7 +155,7 @@ void Vesa_driver::Main::_handle_config()
 	_captured_screen.construct(_capture, _env.rm(), Attr {
 		.px       = _size,
 		.mm       = { },
-		.viewport = _size,
+		.viewport = { { }, _size },
 		.rotate   = { },
 		.flip     = { } });
 
