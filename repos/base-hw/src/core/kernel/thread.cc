@@ -167,22 +167,26 @@ Tlb_invalidation::Tlb_invalidation(Inter_processor_work_list &global_work_list,
 }
 
 
-Thread::Destroy::Destroy(Thread & caller, Core::Kernel_object<Thread> & to_delete)
+template <typename Obj>
+Thread::Destroy<Obj>::Destroy(Thread &caller, Obj &to_destroy)
 :
-	caller(caller), thread_to_destroy(to_delete)
+	_caller(caller), _obj_to_destroy(to_destroy)
 {
-	thread_to_destroy->_cpu().work_list().insert(&_le);
-	caller._become_inactive(AWAITS_RESTART);
+	_obj_to_destroy->_cpu().work_list().insert(&_le);
+	_caller._become_inactive(AWAITS_RESTART);
 }
 
 
-void
-Thread::Destroy::execute(Cpu &)
+template <typename Obj>
+void Thread::Destroy<Obj>::execute(Cpu &)
 {
-	thread_to_destroy->_cpu().work_list().remove(&_le);
-	thread_to_destroy.destruct();
-	caller._restart();
+	_obj_to_destroy->_cpu().work_list().remove(&_le);
+	_obj_to_destroy.destruct();
+	_caller._restart();
 }
+
+template class Thread::Destroy<Thread>;
+template class Thread::Destroy<Vcpu>;
 
 
 void Thread_fault::print(Genode::Output &out) const
@@ -458,7 +462,7 @@ void Thread::_call_delete_thread()
 	/**
 	 * Construct a cross-cpu work item and send an IPI
 	 */
-	_destroy.construct(*this, to_delete);
+	_thread_destroy.construct(*this, to_delete);
 	to_delete->_cpu().trigger_ip_interrupt();
 }
 

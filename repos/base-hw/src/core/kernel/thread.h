@@ -23,6 +23,7 @@
 #include <kernel/inter_processor_work.h>
 #include <kernel/signal.h>
 #include <kernel/ipc_node.h>
+#include <kernel/vcpu.h>
 #include <object.h>
 #include <kernel/interface.h>
 #include <assertion.h>
@@ -97,17 +98,19 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		};
 
 		/**
-		 * The destruction of a thread still active on another cpu
+		 * The destruction of a thread/vcpu still active on another cpu
 		 * needs cross-cpu synchronization
 		 */
+		template <typename OBJ>
 		struct Destroy : Inter_processor_work
 		{
-			using Kthread = Core::Kernel_object<Thread>;
+			using Obj = Core::Kernel_object<OBJ>;
 
-			Thread  & caller; /* the caller gets blocked till the end */
-			Kthread & thread_to_destroy; /* thread to be destroyed */
+			Thread &_caller; /* the caller gets blocked till the end */
+			Obj    &_obj_to_destroy; /* obj to be destroyed */
 
-			Destroy(Thread & caller, Kthread & to_destroy);
+			Destroy(Thread &caller, Obj &to_destroy);
+
 
 			/************************************
 			 ** Inter_processor_work interface **
@@ -143,10 +146,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 
 			void execute(Cpu &) override;
 		};
-
-		friend void Tlb_invalidation::execute(Cpu &);
-		friend void Destroy::execute(Cpu &);
-		friend void Flush_and_stop_cpu::execute(Cpu &);
 
 	protected:
 
@@ -195,7 +194,8 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		Exception_state                    _exception_state          { NO_EXCEPTION };
 
 		Genode::Constructible<Tlb_invalidation>   _tlb_invalidation {};
-		Genode::Constructible<Destroy>            _destroy {};
+		Genode::Constructible<Destroy<Thread>>    _thread_destroy {};
+		Genode::Constructible<Destroy<Vcpu>>      _vcpu_destroy {};
 		Genode::Constructible<Flush_and_stop_cpu> _stop_cpu {};
 
 		/**

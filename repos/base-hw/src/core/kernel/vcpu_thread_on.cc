@@ -31,7 +31,27 @@ void Kernel::Thread::_call_new_vcpu()
 }
 
 
-void Kernel::Thread::_call_delete_vcpu() { _call_delete<Vcpu>(); }
+void Kernel::Thread::_call_delete_vcpu()
+{
+	Core::Kernel_object<Vcpu> & to_delete =
+		*(Core::Kernel_object<Vcpu>*)user_arg_1();
+
+	/**
+	 * Delete a vcpu immediately if it is assigned to this cpu,
+	 * or the assigned cpu did not scheduled it.
+	 */
+	if (to_delete->_cpu().id() == Cpu::executing_id() ||
+	    &to_delete->_cpu().current_context() != &*to_delete) {
+		_call_delete<Vcpu>();
+		return;
+	}
+
+	/**
+	 * Construct a cross-cpu work item and send an IPI
+	 */
+	_vcpu_destroy.construct(*this, to_delete);
+	to_delete->_cpu().trigger_ip_interrupt();
+}
 
 
 void Kernel::Thread::_call_run_vcpu()

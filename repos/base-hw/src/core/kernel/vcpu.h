@@ -17,7 +17,6 @@
 #define _CORE__KERNEL__VCPU_H_
 
 /* core includes */
-#include <kernel/cpu.h>
 #include <kernel/cpu_context.h>
 #include <kernel/pd.h>
 #include <kernel/signal.h>
@@ -25,6 +24,9 @@
 #include <board.h>
 
 namespace Kernel {
+
+	class Cpu;
+	class Thread;
 
 	/**
 	 * Kernel backend for a virtual machine
@@ -70,6 +72,8 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 
 			_scheduled = INACTIVE;
 		}
+
+		friend class Thread;
 
 	public:
 
