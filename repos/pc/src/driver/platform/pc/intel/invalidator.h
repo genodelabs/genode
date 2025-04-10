@@ -213,8 +213,15 @@ class Intel::Queued_invalidator : public Invalidator
 		bool _empty() {
 			return _queue_mmio.read<Queue_mmio::Head>() == _queue_mmio.read<Queue_mmio::Tail>(); }
 
-		Descriptor::access_t *_tail() {
-			return (Descriptor::access_t*)(_queue_mmio.read<Queue_mmio::Tail>() + (addr_t)_queue.local_addr<void>()); }
+		Descriptor::access_t *_tail()
+		{
+			Descriptor::access_t *tail =
+				(Descriptor::access_t*)(_queue_mmio.read<Queue_mmio::Tail>() +
+				                        (addr_t)_queue.local_addr<void>());
+
+			*tail = 0;
+			return tail;
+		}
 
 		void _next()
 		{
@@ -239,7 +246,7 @@ class Intel::Queued_invalidator : public Invalidator
 		: _queue_mmio({(char*)queue_reg_base, 56}),
 		  _queue(env.ram(), env.rm(), 4096, Cache::CACHED)
 		{
-			/* set tail register to zero*/
+			/* set tail register to zero */
 			_queue_mmio.write<Queue_mmio::Tail>(0);
 
 			/* write physical address of invalidation queue into address register */
