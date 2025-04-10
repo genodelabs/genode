@@ -67,7 +67,7 @@ void Platform_thread::affinity(Affinity::Location location)
 	if (!_pager)
 		return;
 
-	if (worker() || vcpu() || !sc_created())
+	if (worker() || !sc_created())
 		return;
 
 	_pager->migrate(platform_specific().sanitize(location));
@@ -109,7 +109,7 @@ void Platform_thread::start(void *ip, void *sp)
 
 	Pager_object &pager = *_pager;
 
-	if (main_thread() && !vcpu() && (_pd.parent_pt_sel() == Native_thread::INVALID_INDEX)) {
+	if (main_thread() && (_pd.parent_pt_sel() == Native_thread::INVALID_INDEX)) {
 		error("protection domain undefined");
 		return;
 	}
@@ -125,7 +125,7 @@ void Platform_thread::start(void *ip, void *sp)
 
 	if (!main_thread()) {
 		addr_t const initial_sp = reinterpret_cast<addr_t>(sp);
-		addr_t const utcb_addr  = vcpu() ? 0 : round_page(initial_sp);
+		addr_t const utcb_addr  = round_page(initial_sp);
 
 		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 			error("exception base not specified");
@@ -144,12 +144,11 @@ void Platform_thread::start(void *ip, void *sp)
 			return;
 		}
 
-		if (!vcpu())
-			res = map_thread_portals(pager, _sel_exc_base, utcb);
+		res = map_thread_portals(pager, _sel_exc_base, utcb);
 
 		if (res != NOVA_OK) {
 			revoke(Obj_crd(_sel_ec(), 0));
-			error("creation of new thread/vcpu failed ", res);
+			error("creation of new thread failed ", res);
 			return;
 		}
 
@@ -164,28 +163,26 @@ void Platform_thread::start(void *ip, void *sp)
 		return;
 	}
 
-	if (!vcpu() && _sel_exc_base != Native_thread::INVALID_INDEX) {
+	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
 		error("thread already started");
 		return;
 	}
 
 	addr_t pd_utcb = 0;
 
-	if (!vcpu()) {
-		_sel_exc_base = 0;
+	_sel_exc_base = 0;
 
-		pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
+	pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
 
-		addr_t remap_src[] = { _pd.parent_pt_sel() };
-		addr_t remap_dst[] = { PT_SEL_PARENT };
+	addr_t remap_src[] = { _pd.parent_pt_sel() };
+	addr_t remap_dst[] = { PT_SEL_PARENT };
 
-		/* remap exception portals for first thread */
-		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
-			if (map_local(source_pd, utcb,
-			              Obj_crd(remap_src[i], 0),
-			              Obj_crd(pager.exc_pt_sel_client() + remap_dst[i], 0)))
-				return;
-		}
+	/* remap exception portals for first thread */
+	for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
+		if (map_local(source_pd, utcb,
+		              Obj_crd(remap_src[i], 0),
+		              Obj_crd(pager.exc_pt_sel_client() + remap_dst[i], 0)))
+			return;
 	}
 
 	/* create first thread in task */
@@ -202,10 +199,7 @@ void Platform_thread::start(void *ip, void *sp)
 	pager.initial_eip((addr_t)ip);
 	pager.initial_esp((addr_t)sp);
 
-	if (vcpu())
-		_features |= REMOTE_PD;
-	else
-		res = map_thread_portals(pager, 0, utcb);
+	res = map_thread_portals(pager, 0, utcb);
 
 	if (res == NOVA_OK) {
 		res = syscall_retry(pager,
@@ -333,13 +327,11 @@ void Platform_thread::thread_type(Cpu_session::Native_cpu::Thread_type thread_ty
 	if (_sel_exc_base != Native_thread::INVALID_INDEX)
 		return;
 
-	if (!main_thread() || (thread_type == Cpu_session::Native_cpu::Thread_type::VCPU))
+	if (!main_thread())
 		_sel_exc_base = exception_base.exception_base;
 
 	if (thread_type == Cpu_session::Native_cpu::Thread_type::LOCAL)
 		_features |= WORKER;
-	else if (thread_type == Cpu_session::Native_cpu::Thread_type::VCPU)
-		_features |= VCPU;
 }
 
 

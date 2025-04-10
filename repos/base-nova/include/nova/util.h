@@ -57,35 +57,4 @@ inline void request_signal_sm_cap(Genode::addr_t const cap,
 }
 
 
-inline void translate_remote_pager(Genode::addr_t const cap,
-                                   Genode::addr_t const sel)
-{
-	Genode::Thread * myself = Genode::Thread::myself();
-	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
-
-	/* save original receive window */
-	Nova::Crd orig_crd = utcb->crd_rcv;
-
-	utcb->crd_rcv = Nova::Obj_crd();
-
-	Genode::uint8_t res = Nova::NOVA_OK;
-	enum {
-		TRANSLATE = true, THIS_PD = false, NON_GUEST = false, HOTSPOT = 0
-	};
-
-	/* translate one item */
-	utcb->msg()[0] = 0xaffe;
-	utcb->set_msg_word(1);
-
-	Nova::Obj_crd obj_crd(sel, 0);
-	if (utcb->append_item(obj_crd, HOTSPOT, THIS_PD, NON_GUEST, TRANSLATE))
-		/* trigger the translation */
-		res = Nova::call(cap);
-
-	/* restore original receive window */
-	utcb->crd_rcv = orig_crd;
-
-	if (res != Nova::NOVA_OK)
-		Genode::error("setting exception portals for vCPU failed res=", res);
-}
 #endif /* _INCLUDE__NOVA__UTIL_H_ */

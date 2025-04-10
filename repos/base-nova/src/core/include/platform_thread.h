@@ -47,10 +47,8 @@ class Core::Platform_thread
 
 		enum {
 			MAIN_THREAD = 0x1U,
-			VCPU        = 0x2U,
-			WORKER      = 0x4U,
-			SC_CREATED  = 0x8U,
-			REMOTE_PD   = 0x10U,
+			WORKER      = 0x2U,
+			SC_CREATED  = 0x4U,
 		};
 		uint8_t _features;
 		uint8_t _priority;
@@ -63,10 +61,8 @@ class Core::Platform_thread
 
 		/* convenience function to access _feature variable */
 		inline bool main_thread() const { return _features & MAIN_THREAD; }
-		inline bool vcpu()        const { return _features & VCPU; }
 		inline bool worker()      const { return _features & WORKER; }
 		inline bool sc_created()  const { return _features & SC_CREATED; }
-		inline bool remote_pd()   const { return _features & REMOTE_PD; }
 
 		/*
 		 * Noncopyable
@@ -80,15 +76,6 @@ class Core::Platform_thread
 		bool _create_and_map_oom_portal(Nova::Utcb &);
 
 	public:
-
-		/* mark as vcpu in remote pd if it is a vcpu */
-		addr_t remote_vcpu() {
-			if (!vcpu())
-				return Native_thread::INVALID_INDEX;
-
-			_features |= Platform_thread::REMOTE_PD;
-			return _sel_exc_base;
-		}
 
 		/**
 		 * Constructor

@@ -20,7 +20,7 @@
 
 struct Genode::Cpu_session::Native_cpu : Interface
 {
-	enum Thread_type { GLOBAL, LOCAL, VCPU };
+	enum Thread_type { GLOBAL, LOCAL };
 
 	/*
 	 * Exception base of thread in caller protection domain - not in core!

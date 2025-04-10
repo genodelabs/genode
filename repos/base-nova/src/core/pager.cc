@@ -387,39 +387,6 @@ void Pager_object::_invoke_handler(Pager_object &obj)
 
 	addr_t const event = utcb.msg()[0];
 
-	/* check for translated pager portals - required for vCPU in remote PDs */
-	if (utcb.msg_items() == 1 && utcb.msg_words() == 1 && event == 0xaffe) {
-
-		Nova::Utcb::Item const &item = *utcb.get_item(0);
-		Nova::Crd const cap(item.crd);
-
-		/* valid item which got translated ? */
-		if (!cap.is_null() && !item.is_del() && _core_ep_ptr) {
-			_core_ep_ptr->apply(cap.base(),
-				[&] (Cpu_thread_component *source) {
-					if (!source)
-						return;
-
-					Platform_thread &p = source->platform_thread();
-					addr_t const sel_exc_base = p.remote_vcpu();
-					if (sel_exc_base == Native_thread::INVALID_INDEX)
-						return;
-
-					/* delegate VM-exit portals */
-					map_vcpu_portals(p.pager(), sel_exc_base, sel_exc_base,
-					                 utcb, obj.pd_sel());
-
-					/* delegate portal to contact pager */
-					map_pagefault_portal(obj, p.pager().exc_pt_sel_client(),
-					                     sel_exc_base, obj.pd_sel(), utcb);
-				});
-		}
-
-		utcb.mtd = 0;
-		utcb.set_msg_word(0);
-		reply(my_stack_top());
-	}
-
 	utcb.mtd = 0;
 	utcb.set_msg_word(0);
 
