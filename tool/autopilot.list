@@ -64,7 +64,6 @@ nova
 platform
 rtc
 rump_ext2
-sd_card_bench
 sd_card_zynq
 seoul-auto
 smartcard
