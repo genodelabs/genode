@@ -104,7 +104,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				gen_parent_route<Platform::Session>(xml);
 				gen_capture_route(xml);
 				gen_parent_rom_route(xml, "vesa_fb");
-				gen_parent_rom_route(xml, "config", "config -> fb");
+				gen_parent_rom_route(xml, "config", "config -> managed/fb");
 				gen_parent_route<Io_mem_session>(xml);
 				gen_parent_route<Io_port_session>(xml);
 				gen_common_routes(xml);

@@ -100,7 +100,7 @@ void Graph::_view_selected_node_content(Scope<Depgraph, Frame, Vbox> &s,
 	if (name == "ram_fs")
 		s.widget(_ram_fs_widget, _selected_target, _ram_fs_state);
 
-	if (name == "intel_fb")
+	if (name == "intel_fb" || name == "vesa_fb")
 		s.widget(_fb_widget, _fb_connectors, _fb_config, _hovered_display);
 
 	String<100> const
