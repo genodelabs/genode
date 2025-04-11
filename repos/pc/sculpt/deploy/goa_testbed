@@ -60,13 +60,13 @@
 		</route>
 	</start>
 
-	<start name="fs_rom" priority="-2" pkg="jschlatow/pkg/fs_rom/2024-10-07">
+	<start name="fs_rom" priority="-2" pkg="jschlatow/pkg/fs_rom/2025-04-09">
 		<route>
 			<service name="File_system"> <parent identity="report"/> </service>
 		</route>
 	</start>
 
-	<start name="system_info" pkg="jschlatow/pkg/system_info/2024-10-09" priority="-2">
+	<start name="system_info" pkg="jschlatow/pkg/system_info/2025-04-11" priority="-2">
 		<route>
 			<service name="Gui"> <parent label="backdrop"/> </service>
 			<service name="Rtc"> <child name="system_clock"/> </service>
@@ -89,7 +89,7 @@
 		</config>
 	</start>
 
-	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2024-10-11" priority="-2">
+	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2025-04-11" priority="-2">
 		<route>
 			<service name="TRACE">       <parent/> </service>
 			<service name="VM">          <parent/> </service>
@@ -101,7 +101,7 @@
 			<service name="Usb">         <child name="black_hole"/>      </service>
 			<service name="Event">       <child name="black_hole"/>      </service>
 			<service name="Capture">     <child name="black_hole"/>      </service>
-			<service name="File_system"> <child name="recall_fs"/>       </service>
+			<service name="File_system"> <child identity="goa_testbed" name="recall_fs"/>       </service>
 			<service name="Nic" label_prefix="telnet"> <child name="nic_router" label="telnet"/> </service>
 			<service name="Nic" label_prefix="http">   <child name="nic_router" label="http"/>   </service>
 			<service name="Nic" label_prefix="gdb">    <child name="nic_router" label="gdb"/>    </service>
