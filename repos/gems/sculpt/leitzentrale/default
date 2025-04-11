@@ -87,7 +87,7 @@
 					<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 				</provides>
 				<config focus="rom" request_input="yes" request_framebuffer="yes">
-					<report hover="yes"/>
+					<report hover="yes" touch="yes"/>
 					<background color="#272f45"/>
 					<domain name="default" layer="1" content="client" label="no" hover="always" focus="click"/>
 					<default-policy domain="default"/>
@@ -118,6 +118,7 @@
 					<policy label="nitpicker -> focus"           report="manager -> focus"/>
 					<policy label="gui_fb -> config"             report="manager -> gui_fb_config"/>
 					<policy label="manager -> hover"             report="nitpicker -> hover"/>
+					<policy label="manager -> touch"             report="nitpicker -> touch"/>
 
 					<policy label="runtime -> leitzentrale -> diag_dialog"
 					        report="manager -> diag_dialog"/>
@@ -242,6 +243,7 @@
 					<service name="ROM" label="nitpicker_focus">  <parent/> </service>
 					<service name="ROM" label="nitpicker_hover">  <parent/> </service>
 					<service name="ROM" label="hover">             <child name="report_rom"/> </service>
+					<service name="ROM" label="touch">             <child name="report_rom"/> </service>
 					<service name="ROM" label="menu_hover">        <child name="report_rom"/> </service>
 					<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
 					<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
