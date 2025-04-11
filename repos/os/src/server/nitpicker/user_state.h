@@ -101,9 +101,19 @@ class Nitpicker::User_state
 		Pointer _pointer = Nowhere { };
 
 		/*
+		 * Position of initial touch point
+		 */
+		Attempt<Point, Nowhere> _touched_position = Nowhere { };
+
+		/*
 		 * Currently pointed-at view owner
 		 */
 		View_owner *_hovered = nullptr;
+
+		/*
+		 * Currently touched view owner
+		 */
+		View_owner *_touched = nullptr;
 
 		/*
 		 * View owner that receives the current stream of input events
@@ -250,6 +260,7 @@ class Nitpicker::User_state
 			bool const key_state_affected;
 			bool const button_activity;
 			bool const motion_activity;
+			bool const touch_activity;
 			bool const key_pressed;
 			bool const last_clicked_changed;
 			bool const last_seq_changed;
@@ -269,6 +280,7 @@ class Nitpicker::User_state
 		struct Handle_forget_result
 		{
 			bool const hover_changed;
+			bool const touch_changed;
 			bool const focus_changed;
 		};
 
@@ -282,6 +294,7 @@ class Nitpicker::User_state
 		void report_pointer_position(Xml_generator &) const;
 		void report_hovered_view_owner(Xml_generator &, bool motion_active) const;
 		void report_focused_view_owner(Xml_generator &, bool button_active) const;
+		void report_touched_view_owner(Xml_generator &, bool touch_active)  const;
 		void report_last_clicked_view_owner(Xml_generator &) const;
 
 		/**

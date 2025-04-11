@@ -100,6 +100,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 		View                         &_pointer_origin;
 		View                         &_builtin_background;
 		Reporter                     &_focus_reporter;
+		Reporter                     &_touch_reporter;
 		Focus_updater                &_focus_updater;
 		Hover_updater                &_hover_updater;
 
@@ -158,6 +159,11 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 			if (result.hover_changed)
 				_hover_updater.update_hover();
 
+			if (result.touch_changed) {
+				Reporter::Xml_generator xml(_touch_reporter, [&] {
+					_user_state.report_touched_view_owner(xml, false); });
+			}
+
 			/* report focus changes */
 			if (_focus_reporter.enabled() && result.focus_changed) {
 				Reporter::Xml_generator xml(_focus_reporter, [&] () {
@@ -182,6 +188,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 		         View                         &builtin_background,
 		         Allocator                    &md_alloc,
 		         Reporter                     &focus_reporter,
+		         Reporter                     &touch_reporter,
 		         Focus_updater                &focus_updater,
 		         Hover_updater                &hover_updater)
 		:
@@ -191,8 +198,8 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 			_view_stack(view_stack), _user_state(user_state),
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
-			_focus_reporter(focus_reporter), _focus_updater(focus_updater),
-			_hover_updater(hover_updater)
+			_focus_reporter(focus_reporter), _touch_reporter(touch_reporter),
+			_focus_updater(focus_updater), _hover_updater(hover_updater)
 		{ }
 };
 
@@ -635,6 +642,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	Reporter _pointer_reporter  = { _env, "pointer" };
 	Reporter _hover_reporter    = { _env, "hover" };
 	Reporter _focus_reporter    = { _env, "focus" };
+	Reporter _touch_reporter    = { _env, "touch" };
 	Reporter _keystate_reporter = { _env, "keystate" };
 	Reporter _clicked_reporter  = { _env, "clicked" };
 	Reporter _panorama_reporter = { _env, "panorama" };
@@ -646,7 +654,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	Gui_root _gui_root { _env, *this, _config_rom, _session_list, *_domain_registry,
 	                     _global_keys, _view_stack, _user_state, _pointer_origin,
 	                     _builtin_background, _sliced_heap,
-	                     _focus_reporter, *this, *this };
+	                     _focus_reporter, _touch_reporter, *this, *this };
 
 	/**
 	 * Gui_session::Action interface
@@ -870,12 +878,15 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	bool _reported_button_activity = false;
 	bool _reported_motion_activity = false;
+	bool _reported_touch_activity  = false;
 
 	unsigned _reported_focus_count = 0;
 	unsigned _reported_hover_count = 0;
+	unsigned _reported_touch_count = 0;
 
 	unsigned _focus_count = 0;
 	unsigned _hover_count = 0;
+	unsigned _touch_count = 0;
 
 	void _update_motion_and_focus_activity_reports();
 
@@ -883,7 +894,8 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	 * Track when the user was active the last time
 	 */
 	Ticks _last_button_activity { },
-	      _last_motion_activity { };
+	      _last_motion_activity { },
+	      _last_touch_activity  { };
 
 	/**
 	 * Number of milliseconds since the last user interaction, after which
@@ -940,6 +952,7 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 
 	if (result.button_activity) _last_button_activity = now;
 	if (result.motion_activity) _last_motion_activity = now;
+	if (result.touch_activity)  _last_touch_activity  = now;
 
 	/*
 	 * Report information about currently pressed keys whenever the key state
@@ -964,6 +977,9 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 		_view_stack.update_all_views();
 	}
 
+	if (result.touch_activity || result.last_seq_changed)
+		_touch_count++;
+
 	if (result.hover_changed || result.last_seq_changed)
 		_hover_count++;
 
@@ -987,6 +1003,7 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 
 	bool const button_activity = (now.ms - _last_button_activity.ms < _activity_threshold.ms);
 	bool const motion_activity = (now.ms - _last_motion_activity.ms < _activity_threshold.ms);
+	bool const touch_activity  = (now.ms - _last_touch_activity .ms < _activity_threshold.ms);
 
 	bool const hover_changed = (_reported_hover_count != _hover_count);
 	if (hover_changed || (_reported_motion_activity != motion_activity)) {
@@ -1002,10 +1019,18 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 			_user_state.report_focused_view_owner(xml, button_activity); });
 	}
 
+	bool const touch_changed = (_reported_touch_count != _touch_count);
+	if (touch_changed || (_reported_touch_activity != touch_activity)) {
+		Reporter::Xml_generator xml(_touch_reporter, [&] {
+			_user_state.report_touched_view_owner(xml, touch_activity); });
+	}
+
 	_reported_motion_activity = motion_activity;
 	_reported_button_activity = button_activity;
+	_reported_touch_activity  = touch_activity;
 	_reported_hover_count     = _hover_count;
 	_reported_focus_count     = _focus_count;
+	_reported_touch_count     = _touch_count;
 }
 
 
@@ -1075,6 +1100,7 @@ void Nitpicker::Main::_handle_config()
 	configure_reporter(config, _pointer_reporter);
 	configure_reporter(config, _hover_reporter);
 	configure_reporter(config, _focus_reporter);
+	configure_reporter(config, _touch_reporter);
 	configure_reporter(config, _keystate_reporter);
 	configure_reporter(config, _clicked_reporter);
 	configure_reporter(config, _panorama_reporter);

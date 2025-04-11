@@ -111,10 +111,6 @@ void User_state::_handle_input_event(Input::Event ev)
 			[&] (Nowhere) { ev = { }; });
 	});
 
-	/* let pointer position correspond to most recent touch position */
-	ev.handle_touch([&] (Input::Touch_id, float x, float y) {
-		_try_move_pointer({ int(x), int(y) }); });
-
 	/* track key states, drop double press/release events */
 	{
 		bool drop = false;
@@ -143,7 +139,7 @@ void User_state::_handle_input_event(Input::Event ev)
 	if (ev.press()) _key_cnt++;
 	if (ev.release() && (_key_cnt > 0)) _key_cnt--;
 
-	if (ev.absolute_motion() || ev.relative_motion() || ev.touch()) {
+	if (ev.absolute_motion() || ev.relative_motion()) {
 		update_hover();
 
 		if (_key_cnt > 0) {
@@ -161,6 +157,16 @@ void User_state::_handle_input_event(Input::Event ev)
 			}
 		}
 	}
+
+	ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
+
+		if (id.value == 0) {
+			Point at { int(x), int(y) };
+			View const * const touched_view = _view_stack.find_view(at);
+			_touched = touched_view ? &touched_view->owner() : nullptr;
+			_touched_position = at;
+		}
+	});
 
 	/*
 	 * Handle start of a key sequence
@@ -281,6 +287,18 @@ void User_state::_handle_input_event(Input::Event ev)
 				receiver = abs_motion_receiver();
 		}
 
+		if (ev.touch() || ev.touch_release())
+			if (_touched)
+				receiver = _touched;
+
+		if (ev.seq_number()) {
+			receiver = _focused;
+			if (_hovered)
+				receiver = _hovered;
+			if (_touched)
+				receiver = _touched;
+		}
+
 		/*
 		 * Route relative motion (exclusive input) to the focused client
 		 */
@@ -330,6 +348,16 @@ void User_state::_handle_input_event(Input::Event ev)
 			_global_key_sequence = false;
 		}
 	}
+
+	/*
+	 * Detect end-of-touch sequence
+	 *
+	 * Don't reset '_touched' here to retain the information for the 'touch'
+	 * report until the activity timeout is reached.
+	 */
+	ev.handle_touch_release([&] (Input::Touch_id id) {
+		if (id.value == 0)
+			_touched_position = Nowhere(); });
 }
 
 
@@ -395,8 +423,9 @@ User_state::handle_input_events(Input_batch batch)
 	bool touch_occurred = false;
 	bool key_state_affected = false;
 	for (unsigned i = 0; i < batch.count; i++) {
-		key_state_affected |= (batch.events[i].press() || batch.events[i].release());
-		touch_occurred     |= batch.events[i].touch();
+		Input::Event const &ev = batch.events[i];
+		key_state_affected |= (ev.press() || ev.release());
+		touch_occurred     |= (ev.touch() || ev.touch_release());
 	}
 
 	_apply_pending_focus_change();
@@ -435,7 +464,8 @@ User_state::handle_input_events(Input_batch batch)
 		                        (_input_receiver != old_input_receiver),
 		.key_state_affected   = key_state_affected,
 		.button_activity      = button_activity,
-		.motion_activity      = pointer_changed() || touch_occurred,
+		.motion_activity      = pointer_changed(),
+		.touch_activity       = touch_occurred,
 		.key_pressed          = _key_pressed(),
 		.last_clicked_changed = last_clicked_changed,
 		.last_seq_changed     = last_seq_changed
@@ -482,6 +512,24 @@ void User_state::report_focused_view_owner(Xml_generator &xml, bool active) cons
 }
 
 
+void User_state::report_touched_view_owner(Xml_generator &xml, bool active) const
+{
+	if (_touched)
+		_touched->report(xml);
+
+	if (active) xml.attribute("active", "yes");
+
+	_touched_position.with_result(
+		[&] (Point p) {
+			xml.attribute("xpos", p.x);
+			xml.attribute("ypos", p.y); },
+		[&] (Nowhere) { });
+
+	if (_last_seq_number.constructed())
+		xml.attribute("seq_number", _last_seq_number->value);
+}
+
+
 void User_state::report_last_clicked_view_owner(Xml_generator &xml) const
 {
 	if (_last_seq_number.constructed())
@@ -501,6 +549,7 @@ User_state::Handle_forget_result User_state::forget(View_owner const &owner)
 	bool const need_to_update_all_views = (&owner == _focused);
 	bool const focus_vanished = (&owner == _focused);
 	bool const hover_vanished = (&owner == _hovered);
+	bool const touch_vanished = (&owner == _touched);
 
 	auto wipe_ptr = [&] (auto &ptr) {
 		if (&owner == ptr)
@@ -510,6 +559,7 @@ User_state::Handle_forget_result User_state::forget(View_owner const &owner)
 	wipe_ptr(_next_focused);
 	wipe_ptr(_last_clicked);
 	wipe_ptr(_hovered);
+	wipe_ptr(_touched);
 
 	Update_hover_result const update_hover_result = update_hover();
 
@@ -521,6 +571,7 @@ User_state::Handle_forget_result User_state::forget(View_owner const &owner)
 	return {
 		.hover_changed = update_hover_result.hover_changed
 		               || hover_vanished,
+		.touch_changed = touch_vanished,
 		.focus_changed = focus_vanished,
 	};
 }
