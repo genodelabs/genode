@@ -762,11 +762,11 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _nitpicker_hover_handler {
 		_env, "nitpicker_hover", *this, &Main::_handle_nitpicker_hover };
 
-	Rom_handler<Main> _hover_handler {
-		_env, "hover", *this, &Main::_handle_hover };
+	Rom_handler<Main> _clicked_handler {
+		_env, "clicked", *this, &Main::_handle_click_report };
 
 	Rom_handler<Main> _touch_handler {
-		_env, "touch", *this, &Main::_handle_touch };
+		_env, "touch", *this, &Main::_handle_touch_report };
 
 	Expanding_reporter _gui_fb_config { _env, "config", "gui_fb_config" };
 
@@ -789,17 +789,33 @@ struct Sculpt::Main : Input_event_handler,
 		return false;
 	}
 
-	void _handle_touch(Xml_node const &touch)
+	/*
+	 * The seq-number check ensures the freshness of the _popup_touched and
+	 * _popup_hovered information.
+	 */
+	static bool _seq_number_attr_matches(Xml_node const &node, Input::Seq_number seq)
 	{
-		_popup_touched = _matches_popup_dialog(touch);
-		_observed_touch_seq_number = { touch.attribute_value("seq_number", 0U) };
+		return node.has_attribute("seq_number")
+		    && (node.attribute_value("seq_number", 0U) == seq.value);
+	}
+
+	void _handle_touch_report(Xml_node const &touch)
+	{
+		if (!_seq_number_attr_matches(touch, _emitted_touch_seq_number))
+			_popup_touched = Popup_touched::MAYBE;
+		else if (_popup_touched == Popup_touched::MAYBE)
+			_popup_touched = _matches_popup_dialog(touch) ? Popup_touched::YES
+			                                              : Popup_touched::NO;
 		_try_handle_popup_close();
 	}
 
-	void _handle_hover(Xml_node const &hover)
+	void _handle_click_report(Xml_node const &click)
 	{
-		_popup_hovered = _matches_popup_dialog(hover);
-		_observed_hover_seq_number = { hover.attribute_value("seq_number", 0U) };
+		if (!_seq_number_attr_matches(click, _emitted_click_seq_number))
+			_popup_clicked = Popup_clicked::MAYBE;
+		else if (_popup_clicked == Popup_clicked::MAYBE)
+			_popup_clicked = _matches_popup_dialog(click) ? Popup_clicked::YES
+			                                              : Popup_clicked::NO;
 		_try_handle_popup_close();
 	}
 
@@ -981,14 +997,12 @@ struct Sculpt::Main : Input_event_handler,
 
 	/* used to correlate clicks with the matching hover report */
 	Input::Seq_number _emitted_click_seq_number  { };
-	Input::Seq_number _observed_touch_seq_number { };
 
 	/* used to correlate touch event with touched-session info from nitpicker */
 	Input::Seq_number _emitted_touch_seq_number  { };
-	Input::Seq_number _observed_hover_seq_number { };
 
-	bool _popup_touched { };
-	bool _popup_hovered { };
+	enum class Popup_touched { MAYBE, NO, YES } _popup_touched { };
+	enum class Popup_clicked { MAYBE, NO, YES } _popup_clicked { };
 
 	/**
 	 * Input_event_handler interface
@@ -1009,11 +1023,13 @@ struct Sculpt::Main : Input_event_handler,
 		 */
 		if (ev.key_press(Input::BTN_LEFT)) {
 			_emitted_click_seq_number = _global_input_seq_number;
-			_try_handle_popup_close();
+			_popup_clicked = Popup_clicked::MAYBE;
 		}
 		if (ev.touch()) {
+			if (_emitted_touch_seq_number.value != _global_input_seq_number.value)
+				_popup_touched = Popup_touched::MAYBE;
+
 			_emitted_touch_seq_number = _global_input_seq_number;
-			_try_handle_popup_close();
 		}
 
 		bool need_generate_dialog = false;
@@ -1185,6 +1201,8 @@ struct Sculpt::Main : Input_event_handler,
 			return;
 
 		_popup_opened_seq_number = _global_input_seq_number;
+		_popup_clicked = Popup_clicked::MAYBE;
+		_popup_touched = Popup_touched::MAYBE;
 
 		_popup_dialog.refresh();
 		_popup.anchor = anchor;
@@ -1209,22 +1227,11 @@ struct Sculpt::Main : Input_event_handler,
 		if (!Popup::VISIBLE)
 			return;
 
-		bool popup_close = false;
+		bool close = false;
+		if (_popup_touched == Popup_touched::NO) close = true;
+		if (_popup_clicked == Popup_clicked::NO) close = true;
 
-		/*
-		 * The seq-number check ensures the freshness of the _popup_touched and
-		 * _popup_hovered information, observed reports.
-		 */
-
-		if (_emitted_touch_seq_number.value == _observed_touch_seq_number.value)
-			if (!_popup_touched)
-				popup_close = true;
-
-		if (_emitted_click_seq_number.value == _observed_touch_seq_number.value)
-			if (!_popup_hovered)
-				popup_close = true;
-
-		if (popup_close) {
+		if (close) {
 			_popup_closed_seq_number = _popup_opened_seq_number;
 			_close_popup_dialog();
 			discard_construction();
