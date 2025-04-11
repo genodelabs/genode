@@ -21,11 +21,11 @@
 
 /* local includes */
 #include <intel/domain_allocator.h>
+#include <intel/fault_handler.h>
 
 namespace Intel {
 	using namespace Genode;
 
-	class Io_mmu; /* forward declaration */
 	class Invalidator;
 	class Register_invalidator;
 	class Queued_invalidator;
@@ -213,6 +213,8 @@ class Intel::Queued_invalidator : public Invalidator
 		bool _empty() {
 			return _queue_mmio.read<Queue_mmio::Head>() == _queue_mmio.read<Queue_mmio::Tail>(); }
 
+		void _wait_for_completion();
+
 		Descriptor::access_t *_tail()
 		{
 			Descriptor::access_t *tail =
@@ -234,6 +236,8 @@ class Intel::Queued_invalidator : public Invalidator
 			_queue_mmio.write<Queue_mmio::Tail>(tail_offset);
 		}
 
+		Fault_handler & _fault_handler;
+
 	public:
 
 		void invalidate_irq(unsigned, bool) override;
@@ -242,9 +246,12 @@ class Intel::Queued_invalidator : public Invalidator
 		void invalidate_all(Domain_id domain = Domain_id { Domain_id::INVALID },
 		                    Pci::rid_t = 0) override;
 
-		Queued_invalidator(Genode::Env & env, addr_t queue_reg_base)
+		Queued_invalidator(Genode::Env          & env,
+		                   Intel::Fault_handler & fh,
+		                   addr_t                 queue_reg_base)
 		: _queue_mmio({(char*)queue_reg_base, 56}),
-		  _queue(env.ram(), env.rm(), 4096, Cache::CACHED)
+		  _queue(env.ram(), env.rm(), 4096, Cache::CACHED),
+		  _fault_handler(fh)
 		{
 			/* set tail register to zero */
 			_queue_mmio.write<Queue_mmio::Tail>(0);

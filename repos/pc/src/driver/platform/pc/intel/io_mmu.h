@@ -33,6 +33,7 @@
 #include <intel/default_mappings.h>
 #include <intel/invalidator.h>
 #include <intel/irq_remap_table.h>
+#include <intel/fault_handler.h>
 #include <expanding_page_table_allocator.h>
 
 namespace Intel {
@@ -56,7 +57,8 @@ namespace Intel {
 
 class Intel::Io_mmu : private Attached_mmio<0x800>,
                       public  Driver::Io_mmu,
-                      private Translation_table_registry
+                      private Translation_table_registry,
+                      public  Fault_handler
 {
 	public:
 
@@ -353,6 +355,9 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 			/* not using extended interrupt mode (x2APIC) */
 		};
 
+		struct Invalidation_queue_error : Register<0xb0,32>
+		{ };
+
 		struct Fault_status : Register<0x34, 32>
 		{
 			/* fault record index */
@@ -562,6 +567,13 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		uint32_t supported_page_sizes() const { return _supported_page_sizes; }
 
 		void flush_write_buffer();
+
+		/**
+		 * Fault_handler interface
+		 */
+
+		bool iq_error() override;
+		void handle_faults() override;
 
 		/**
 		 * Io_mmu suspend/resume interface

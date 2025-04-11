@@ -137,25 +137,33 @@ void Intel::Io_mmu::_handle_faults()
 	if (_fault_irq.constructed())
 		_fault_irq->ack_irq();
 
-	if (read<Fault_status::Pending>()) {
-		if (read<Fault_status::Overflow>())
-			error("Fault recording overflow");
+	handle_faults();
+}
 
-		if (read<Fault_status::Iqe>())
-			error("Invalidation queue error");
 
-		if (read<Fault_status::Ice>())
-			error("Invalidation completion error");
+void Intel::Io_mmu::handle_faults()
+{
+	Fault_status::access_t status = read<Fault_status>();
 
-		if (read<Fault_status::Ite>())
-			error("Invalidation time-out error");
+	if (Fault_status::Overflow::get(status))
+		error("Fault recording overflow");
 
-		/* acknowledge all faults */
-		write<Fault_status>(0x7d);
+	if (Fault_status::Iqe::get(status))
+		error("Invalidation queue error: ", Hex(read<Invalidation_queue_error>()));
 
+	if (Fault_status::Ice::get(status))
+		error("Invalidation completion error");
+
+	if (Fault_status::Ite::get(status))
+		error("Invalidation time-out error");
+
+	/* acknowledge all faults */
+	write<Fault_status>(status);
+
+	if (Fault_status::Pending::get(status)) {
 		error("Faults records for ", name());
 		unsigned num_registers = read<Capability::Nfr>() + 1;
-		for (unsigned i = read<Fault_status::Fri>(); ; i = (i + 1) % num_registers) {
+		for (unsigned i = Fault_status::Fri::get(status); ; i = (i + 1) % num_registers) {
 			Fault_record_hi::access_t hi = read_fault_record<Fault_record_hi>(i);
 
 			if (!Fault_record_hi::Fault::get(hi))
@@ -177,6 +185,15 @@ void Intel::Io_mmu::_handle_faults()
 			clear_fault_record(i);
 		}
 	}
+}
+
+
+bool Intel::Io_mmu::iq_error()
+{
+	Fault_status::access_t status = read<Fault_status>();
+	return Fault_status::Iqe::get(status) ||
+	       Fault_status::Ice::get(status) ||
+	       Fault_status::Ite::get(status);
 }
 
 
@@ -386,7 +403,7 @@ void Intel::Io_mmu::_init()
 
 	if (read<Extended_capability::Qi>()) {
 		/* enable queued invalidation if supported */
-		_queued_invalidator.construct(_env, base() + 0x80);
+		_queued_invalidator.construct(_env, *this, base() + 0x80);
 		_global_command<Global_command::Qie>(true);
 	} else {
 		/* use register-based invalidation interface as fallback */

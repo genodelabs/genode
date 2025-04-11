@@ -13,7 +13,6 @@
 
 /* local includes */
 #include <intel/invalidator.h>
-#include <intel/io_mmu.h>
 
 /**
  * Clear IOTLB.
@@ -120,6 +119,20 @@ void Intel::Register_invalidator::invalidate_all(Domain_id domain_id, Pci::rid_t
 }
 
 
+void Intel::Queued_invalidator::_wait_for_completion()
+{
+	while (!_empty()) {
+		if (_fault_handler.iq_error()) {
+			/* reset tail pointer to recover from invalidation queue error */
+			_queue_mmio.write<Queue_mmio::Tail>(_queue_mmio.read<Queue_mmio::Head>());
+
+			_fault_handler.handle_faults();
+			return;
+		}
+	}
+}
+
+
 /* Clear interrupt entry cache */
 void Intel::Queued_invalidator::invalidate_irq(unsigned idx, bool global)
 {
@@ -130,8 +143,7 @@ void Intel::Queued_invalidator::invalidate_irq(unsigned idx, bool global)
 
 	_next();
 
-	/* wait for completion */
-	while (!_empty());
+	_wait_for_completion();
 }
 
 
@@ -159,8 +171,7 @@ void Intel::Queued_invalidator::invalidate_iotlb(Domain_id domain_id)
 
 	_next();
 
-	/* wait for completion */
-	while (!_empty());
+	_wait_for_completion();
 
 	/*
 	 * Note: At the moment we have no practical benefit from implementing
@@ -203,8 +214,7 @@ void Intel::Queued_invalidator::invalidate_context(Domain_id domain_id, Pci::rid
 
 	_next();
 
-	/* wait for completion */
-	while (!_empty());
+	_wait_for_completion();
 }
 
 
