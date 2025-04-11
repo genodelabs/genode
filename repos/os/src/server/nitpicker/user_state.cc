@@ -539,6 +539,9 @@ void User_state::report_last_clicked_view_owner(Xml_generator &xml) const
 		_last_clicked->report(xml);
 
 	xml.attribute("version", _last_clicked_version);
+
+	if (_last_seq_number.constructed())
+		xml.attribute("seq_number", _last_seq_number->value);
 }
 
 
