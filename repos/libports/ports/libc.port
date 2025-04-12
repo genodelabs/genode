@@ -60,7 +60,7 @@ DIR_CONTENT(include/libc) := \
                 stringlist.h glob.h a.out.h elf-hints.h nlist.h spawn.h \
                 readpassphrase.h setjmp.h elf.h ulimit.h utime.h wordexp.h \
                 complex.h semaphore.h uchar.h iconv.h termios.h \
-                xlocale.h runetype.h)  \
+                xlocale.h runetype.h utmpx.h)  \
     $(addprefix $(D)/sys/sys/,\
                 syslog.h fcntl.h stdint.h sched.h ktrace.h \
                 _semaphore.h ucontext.h) \

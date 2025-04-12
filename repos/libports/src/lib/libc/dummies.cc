@@ -222,5 +222,22 @@ int __attribute__((weak)) madvise(void *addr, size_t length, int advice)
 
 const struct res_sym __p_type_syms[] = { };
 
+
+/***********
+ * Utmp(x) *
+ ***********/
+#include <utmpx.h>
+
+struct utmpx *getutxent(void)
+{
+	errno = ESRCH;
+
+	return nullptr;
+}
+
+DUMMY(void, , setutxent, (void));
+DUMMY(void, , endutxent, (void));
+DUMMY(int, -1, utmpxname, (const char *));
+
 } /* extern "C" */
 
