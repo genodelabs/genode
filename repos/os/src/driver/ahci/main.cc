@@ -14,24 +14,32 @@
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <block/request_stream.h>
-#include <os/session_policy.h>
-#include <timer_session/connection.h>
+#include <block/session_map.h>
 #include <os/reporter.h>
+#include <os/session_policy.h>
 #include <root/root.h>
+#include <timer_session/connection.h>
+#include <util/bit_array.h>
+#include <util/xml_node.h>
 
 /* local includes */
 #include <ahci.h>
 #include <ata_protocol.h>
 #include <atapi_protocol.h>
 
+
 namespace Ahci {
+	using namespace Block;
+
 	struct Dispatch;
 	class  Driver;
 	struct Main;
-	struct Block_session_handler;
+	struct Port_dispatcher;
 	struct Block_session_component;
+	using Session_space = Id_space<Block_session_component>;
 }
 
 
@@ -293,100 +301,199 @@ class Ahci::Driver : Noncopyable
 };
 
 
-struct Ahci::Block_session_handler : Interface
+struct Ahci::Block_session_component : Rpc_object<Block::Session>
 {
-	Env                 &env;
-	Port                &port;
-	Dataspace_capability ds;
+	Env  &_env;
+	Port &_port;
 
-	Signal_handler<Block_session_handler> request_handler
-	  { env.ep(), *this, &Block_session_handler::handle};
+	Session_space::Element const _elem;
 
-	Block_session_handler(Env &env, Port &port, size_t buffer_size)
-	: env(env), port(port), ds(port.alloc_buffer(buffer_size))
-	{ }
+	Dataspace_capability  _dma_cap;
+	Block::Request_stream _request_stream;
 
-	~Block_session_handler()
-	{
-		port.free_buffer();
-	}
-
-	virtual void handle_requests() = 0;
-
-	void handle()
-	{
-		handle_requests();
-	}
-};
-
-struct Ahci::Block_session_component : Rpc_object<Block::Session>,
-                                       Block_session_handler,
-                                       Block::Request_stream
-{
-	Block_session_component(Env &env, Port &port, size_t buffer_size)
+	Block_session_component(Session_space             &space,
+	                        uint16_t                   session_id_value,
+	                        Env                       &env,
+	                        Port                      &port,
+	                        Signal_context_capability  sigh,
+	                        Block::Constrained_view    view,
+	                        size_t                     buffer_size)
 	:
-	  Block_session_handler(env, port, buffer_size),
-	  Request_stream(env.rm(), ds, env.ep(), request_handler, port.info())
+		_env(env),
+		_port(port),
+		_elem(*this, space, Session_space::Id { .value = session_id_value }),
+		_dma_cap(_port.alloc_buffer(_elem.id().value, buffer_size)),
+		_request_stream(_env.rm(), _dma_cap, _env.ep(), sigh, _port.info(), view)
 	{
-		env.ep().manage(*this);
+		_env.ep().manage(*this);
 	}
 
 	~Block_session_component()
 	{
-		env.ep().dissolve(*this);
+		_env.ep().dissolve(*this);
+		_port.free_buffer(_elem.id().value, _dma_cap);
 	}
 
-	Info info() const override { return Request_stream::info(); }
+	Info info() const override { return _request_stream.info(); }
 
-	Capability<Tx> tx_cap() override { return Request_stream::tx_cap(); }
+	Capability<Tx> tx_cap() override { return _request_stream.tx_cap(); }
 
-	void handle_requests() override
-	{
-		while (true) {
+	Session_space::Id session_id() const { return _elem.id(); }
 
-			bool progress = false;
-
-			/*
-			 * Acknowledge any pending packets before sending new request to the
-			 * controller.
-			 */
-			try_acknowledge([&](Ack &ack) {
-				port.for_one_completed_request([&] (Block::Request request) {
-					progress = true;
-					ack.submit(request);
-				});
-			});
-
-			/* all completed packets are handled, but no further processing */
-			if (port.stop_processing)
-				break;
-
-			with_requests([&] (Block::Request request) {
-
-				Response response = Response::RETRY;
-
-				/* ignored operations */
-				if (request.operation.type == Block::Operation::Type::TRIM ||
-				    request.operation.type == Block::Operation::Type::INVALID) {
-					request.success = true;
-					progress = true;
-					return Response::REJECTED;
-				}
-
-				if ((response = port.submit(request)) != Response::RETRY)
-					progress = true;
-
-				return response;
-			});
-
-			if (progress == false) break;
-		}
-
-		/* poke */
-		wakeup_client_if_needed();
-	}
+	void with_request_stream(auto const &fn) {
+		fn(_request_stream); }
 };
 
+
+struct Ahci::Port_dispatcher
+{
+	Env &_env;
+	Port &_port;
+
+	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
+
+	using Session_space = Id_space<Block_session_component>;
+	Session_space _sessions { };
+
+	using Session_map = Block::Session_map<>;
+	Session_map _session_map { };
+
+	Signal_handler<Port_dispatcher> _request_handler {
+		_env.ep(), *this, &Port_dispatcher::_handle};
+
+	void _handle()
+	{
+		handle_requests();
+	}
+
+	Port_dispatcher(Env &env, Port &port)
+	: _env  { env }, _port { port } { }
+
+	void with_managed_session(Session_capability cap, auto const &fn) const
+	{
+		_sessions.for_each<Block_session_component>(
+			[&] (Block_session_component &session) {
+				if (cap == session.cap())
+					fn(session.session_id());
+			});
+	}
+
+	void close(Session_space::Id session_id)
+	{
+		_sessions.apply<Block_session_component>(session_id,
+			[&] (Block_session_component &session) {
+				Session_map::Index const index =
+					Session_map::Index::from_id(session_id.value);
+				_session_map.free(index);
+				destroy(_sliced_heap, &session);
+			});
+	}
+
+	bool active_sessions() const
+	{
+		bool active = false;
+		_sessions.for_each<Block_session_component>(
+			[&] (Block_session_component const &) {
+				active = true;
+			});
+		return active;
+	}
+
+	Root::Result new_session(Block::Constrained_view const &view,
+	                         size_t                         tx_buf_size)
+	{
+		Session_map::Index new_session_id { 0u };
+
+		if (!_session_map.alloc().convert<bool>(
+			[&] (Session_map::Alloc_ok ok) {
+				new_session_id = ok.index;
+				return true;
+				},
+			[&] (Session_map::Alloc_error) {
+				return false; }))
+			return Session_error::DENIED;
+
+		try {
+			Block_session_component *session =
+				new (_sliced_heap) Block_session_component(_sessions, new_session_id.value,
+				                                           _env, _port, _request_handler,
+				                                           view, tx_buf_size);
+			return { session->cap() };
+		} catch (...) {
+			_session_map.free(new_session_id);
+			return Session_error::DENIED;
+		}
+	}
+
+	void handle_requests()
+	{
+		for (;;) {
+			bool progress = false;
+
+			/* ack and release possibly pending packet */
+			auto session_ack_fn = [&] (Block_session_component &block_session) {
+				auto request_stream_ack_fn = [&] (Request_stream &request_stream) {
+					auto ack_fn = [&] (Request_stream::Ack &ack) {
+						auto completed_fn = [&] (Block::Request &request) {
+
+							if (!request.operation.valid())
+								return;
+
+							ack.submit(request);
+							progress = true;
+						};
+						_port.for_one_completed_request(block_session.session_id().value,
+						                                completed_fn);
+					};
+					request_stream.try_acknowledge(ack_fn);
+					request_stream.wakeup_client_if_needed();
+				};
+				block_session.with_request_stream(request_stream_ack_fn);
+			};
+			_sessions.for_each<Block_session_component>(session_ack_fn);
+
+			/* all completed packets are handled, but no further processing */
+			if (_port.stop_processing)
+				break;
+
+			auto index_fn = [&] (Session_map::Index index) {
+				Session_space::Id const session_id { .value = index.value };
+				auto block_session_submit_fn = [&] (Block_session_component &block_session) {
+					auto request_stream_submit_fn = [&] (Request_stream &request_stream) {
+						auto request_submit_fn = [&] (Request request) {
+
+							Response response = Response::RETRY;
+
+							/* ignored operations */
+
+							if (request.operation.type == Block::Operation::Type::TRIM
+							 || request.operation.type == Block::Operation::Type::INVALID) {
+								request.success = true;
+								progress = true;
+								return Response::REJECTED;
+							}
+
+							response = _port.submit(block_session.session_id().value, request);
+
+							if (response != Response::RETRY)
+								progress = true;
+
+							return response;
+						};
+						request_stream.with_requests(request_submit_fn);
+					};
+					block_session.with_request_stream(request_stream_submit_fn);
+				};
+				_sessions.apply<Block_session_component>(session_id,
+				                                         block_session_submit_fn);
+			};
+			_session_map.for_each_index(index_fn);
+
+			if (!progress)
+				break;
+		}
+	}
+};
 
 struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 {
@@ -394,7 +501,7 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 	Attached_rom_dataspace                 config   { env, "config" };
 	Constructible<Ahci::Driver>            driver   { };
 	Constructible<Reporter>                reporter { };
-	Constructible<Block_session_component> block_session[Driver::MAX_PORTS];
+	Constructible<Port_dispatcher>         port_dispatcher[Driver::MAX_PORTS] { };
 
 	Main(Env &env) : env(env)
 	{
@@ -417,8 +524,8 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 
 	void session(unsigned index) override
 	{
-		if (index > Driver::MAX_PORTS || !block_session[index].constructed()) return;
-		block_session[index]->handle_requests();
+		if (index > Driver::MAX_PORTS || !port_dispatcher[index].constructed()) return;
+		port_dispatcher[index]->handle_requests();
 	}
 
 	Root::Result session(Root::Session_args const &args, Affinity const &) override
@@ -441,21 +548,36 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 		return with_matching_policy(label, config.node(),
 			[&] (Node const &policy) -> Root::Result {
 				try {
+					/*
+					 * Will throw Service_denied in case there is no device
+					 * attached to the port.
+					 */
 					Port &port = driver->port(label, policy);
 
-					if (block_session[port.index].constructed()) {
-						error("Device with number=", port.index, " is already in use");
-						return Session_error::DENIED;
-					}
+					if (!port_dispatcher[port.index].constructed())
+						port_dispatcher[port.index].construct(env, port);
 
-					port.writeable(policy.attribute_value("writeable", false));
-					block_session[port.index].construct(env, port, tx_buf_size);
-					return { block_session[port.index]->cap() };
+					bool const writeable_policy =
+						policy.attribute_value("writeable", false);
 
+					bool const writeable_arg =
+						Arg_string::find_arg(args.string(), "writeable")
+						                     .bool_value(true);
+
+					Block::Constrained_view const view {
+						.offset     = Block::Constrained_view::Offset {
+							Arg_string::find_arg(args.string(), "offset")
+							                     .ulonglong_value(0) },
+						.num_blocks = Block::Constrained_view::Num_blocks {
+							Arg_string::find_arg(args.string(), "num_blocks")
+							                     .ulonglong_value(0) },
+						.writeable  = writeable_policy && writeable_arg
+					};
+
+					return port_dispatcher[port.index]->new_session(view, tx_buf_size);
 				} catch (...) { return Session_error::DENIED; }
 			},
 			[&] () -> Root::Result { return Session_error::DENIED; });
-
 	}
 
 	void upgrade(Session_capability, Root::Upgrade_args const&) override { }
@@ -463,10 +585,24 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 	void close(Session_capability cap) override
 	{
 		for (int index = 0; index < Driver::MAX_PORTS; index++) {
-			if (!block_session[index].constructed() || !(cap == block_session[index]->cap()))
+			if (!port_dispatcher[index].constructed())
 				continue;
 
-			block_session[index].destruct();
+			bool found = false;
+			Session_space::Id session_id { .value = 0 };
+			port_dispatcher[index]->with_managed_session(cap,
+				[&] (Session_space::Id id) {
+					session_id = id;
+					found = true;
+				});
+
+			if (!found)
+				continue;
+
+			port_dispatcher[index]->close(session_id);
+
+			if (!port_dispatcher[index]->active_sessions())
+				port_dispatcher[index].destruct();
 		}
 	}
 

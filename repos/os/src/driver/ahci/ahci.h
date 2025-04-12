@@ -701,8 +701,8 @@ struct Ahci::Protocol : Interface
 {
 	virtual unsigned             init(Port &, Port_mmio &) = 0;
 	virtual Block::Session::Info info() const = 0;
-	virtual Response             submit(Port &, Block::Request const &, Port_mmio &) = 0;
-	virtual Block::Request       completed(Port_mmio &) = 0;
+	virtual Response             submit(Port &, unsigned long, Block::Request const &, Port_mmio &) = 0;
+	virtual Block::Request       completed(unsigned long, Port_mmio &) = 0;
 	virtual void                 handle_irq(Port &, Port_mmio &) = 0;
 	virtual void                 writeable(bool rw) = 0;
 	virtual bool                 pending_requests() const = 0;
@@ -878,9 +878,6 @@ struct Ahci::Port : private Port_base
 	Constructible<Byte_range_ptr> fis { };
 	Constructible<Byte_range_ptr> cmd_table { };
 	Constructible<Byte_range_ptr> device_info { };
-
-	Constructible<Platform::Dma_buffer> dma_buffer { };
-	addr_t dma_base  = 0; /* physical address of DMA memory */
 
 	void _with_port_mmio(auto const &fn, auto const &fn_error)
 	{
@@ -1160,7 +1157,7 @@ struct Ahci::Port : private Port_base
 		mmio.write<Ci>(1U << slot);
 	}
 
-	bool sanity_check(Block::Request const &request)
+	bool sanity_check(unsigned long id, Block::Request const &request)
 	{
 		Block::Session::Info const i = info();
 
@@ -1172,27 +1169,45 @@ struct Ahci::Port : private Port_base
 
 		/* sanity check */
 		if (request.operation.count + request.operation.block_number > i.block_count) {
-			error("error: requested blocks are outside of device");
+			error("error: requested blocks by session ", id, " are outside of device: last block: ",
+			      request.operation.count + request.operation.block_number, " "
+			      "max block: ", i.block_count);
 			return false;
 		}
 
 		return true;
 	}
 
-	Dataspace_capability alloc_buffer(size_t size)
+	static constexpr unsigned MAX_DMA_BUFFER = 64u;
+	Constructible<Platform::Dma_buffer> _dma_buffer[MAX_DMA_BUFFER] { };
+
+	Dataspace_capability alloc_buffer(unsigned long id, size_t size)
 	{
-		if (dma_buffer.constructed()) return Dataspace_capability();
+		if (id >= MAX_DMA_BUFFER || _dma_buffer[id].constructed())
+			return Dataspace_capability();
 
-		dma_buffer.construct(plat, size, CACHED);
-		dma_base = dma_buffer->dma_addr();
+		_dma_buffer[id].construct(plat, size, CACHED);
 
-		return dma_buffer->cap();
+		return _dma_buffer[id]->cap();
 	}
 
-	void free_buffer()
+	void free_buffer(unsigned long id, Dataspace_capability cap)
 	{
-		if (!dma_buffer.constructed()) return;
-		dma_buffer.destruct();
+		if (id >= MAX_DMA_BUFFER || !_dma_buffer[id].constructed())
+			return;
+
+		if (!(_dma_buffer[id]->cap() == cap)) {
+			error("mismatching dataspace capability stored for ", id);
+			return;
+		}
+
+		_dma_buffer[id].destruct();
+	}
+
+	addr_t dma_base(unsigned long id) const
+	{
+		return id < MAX_DMA_BUFFER && _dma_buffer[id].constructed()
+		       ? _dma_buffer[id]->dma_addr() : 0ull;
 	}
 
 	/**********************
@@ -1209,22 +1224,22 @@ struct Ahci::Port : private Port_base
 		}, [&](){ error("Port::handle_irq failed"); });
 	}
 
-	Response submit(Block::Request const &request)
+	Response submit(unsigned long id, Block::Request const &request)
 	{
 		Response response { };
 
 		_with_port_mmio([&](Port_mmio &mmio) {
-			response = protocol.submit(*this, request, mmio);
+			response = protocol.submit(*this, id, request, mmio);
 		}, [&](){ error("Port::submit failed"); });
 
 		return response;
 	}
 
-	void for_one_completed_request(auto const &fn)
+	void for_one_completed_request(unsigned long id, auto const &fn)
 	{
 		_with_port_mmio([&](Port_mmio &mmio) {
 
-			Block::Request request = protocol.completed(mmio);
+			Block::Request request = protocol.completed(id, mmio);
 			if (!request.operation.valid()) return;
 
 			request.success = true;

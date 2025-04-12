@@ -27,6 +27,7 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 {
 	private:
 
+		unsigned long   _pending_id { 0 };
 		Block::Request  _pending { };
 		block_number_t  _block_count { 0 };
 		size_t          _block_size { 2048 };
@@ -144,23 +145,24 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 
 		void writeable(bool) override { }
 
-		Response submit(Port &port, Block::Request const &request,
+		Response submit(Port &port, unsigned long id, Block::Request const &request,
 		                Port_mmio &mmio) override
 		{
 			if (request.operation.type != Block::Operation::Type::READ ||
-			    port.sanity_check(request) == false || port.dma_base == 0)
+			    port.sanity_check(id, request) == false || port.dma_base(id) == 0)
 				return Response::REJECTED;
 
 			if (_pending.operation.valid())
 				return Response::RETRY;
 
 			Block::Operation op = request.operation;
+			_pending_id = id;
 			_pending = request;
 			_pending.success = false;
 
 			/* setup fis */
 			Command_table table(port.command_table_range(0),
-			                    port.dma_base + request.offset,
+			                    port.dma_base(id) + request.offset,
 			                    op.count * _block_size);
 			table.fis.atapi();
 
@@ -178,9 +180,12 @@ class Atapi::Protocol : public Ahci::Protocol, Noncopyable
 			return Response::ACCEPTED;
 		}
 
-		Block::Request completed(Port_mmio &mmio) override
+		Block::Request completed(unsigned long id, Port_mmio &mmio) override
 		{
 			if (!_pending.operation.valid() || mmio.read<Port::Ci>())
+				return Block::Request();
+
+			if (_pending_id != id)
 				return Block::Request();
 
 			Block::Request request = _pending;
