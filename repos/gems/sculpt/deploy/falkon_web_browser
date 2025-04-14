@@ -4,6 +4,7 @@
 		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
 		<service name="CPU">   <parent/> </service>
 		<service name="PD">    <parent/> </service>
+		<service name="RM">    <parent/> </service>
 		<service name="LOG">   <parent/> </service>
 		<service name="Timer"> <parent/> </service>
 	</common_routes>
@@ -61,7 +62,7 @@
 		</config>
 	</start>
 
-	<start name="falkon-jemalloc" priority="-2" pkg="cproc/pkg/falkon-jemalloc/2024-10-28">
+	<start name="falkon_qt6-jemalloc" priority="-2" pkg="cproc/pkg/falkon_qt6-jemalloc/2025-04-11">
 		<route>
 			<service name="Nic">     <child name="nic_router"/>   </service>
 			<service name="Rtc">     <child name="system_clock"/> </service>
