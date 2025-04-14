@@ -130,8 +130,8 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 		Area _area_bounds() const
 		{
-			return { .w = _policy.w.or_default(_buffer_attr.px.w),
-			         .h = _policy.h.or_default(_buffer_attr.px.h) };
+			return { .w = _policy.w.or_default(_buffer_attr.clipped_viewport().w()),
+			         .h = _policy.h.or_default(_buffer_attr.clipped_viewport().h()) };
 		}
 
 	public:
@@ -263,7 +263,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			if (!_buffer.constructed())
 				return Affected_rects { };
 
-			Point const anchor = _anchor_point() + pos;
+			Point const anchor = _anchor_point() + pos - _buffer_attr.clipped_viewport().at;
 
 			Canvas<Pixel_rgb888> canvas { _buffer->local_addr<Pixel_rgb888>(),
 			                              anchor, _buffer_attr.px };

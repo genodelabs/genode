@@ -82,6 +82,11 @@ struct Capture::Session : Genode::Session
 		Area px;       /* buffer area in pixels */
 		Area mm;       /* physical size in millimeters */
 		Rect viewport; /* part of the buffer watched by the client */
+
+		Rect clipped_viewport() const
+		{
+			return Rect::intersect(viewport, Rect { { }, px } );
+		}
 	};
 
 	/**
