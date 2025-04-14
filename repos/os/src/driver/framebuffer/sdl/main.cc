@@ -158,9 +158,16 @@ struct Fb_sdl::Sdl : Noncopyable
 		}
 	};
 
+	static unsigned aligned_at_8px(unsigned w) { return (w + 7U) & ~7U; }
+
+	static Area aligned_at_8x8(Area a) { return { aligned_at_8px(a.w),
+	                                              aligned_at_8px(a.h) }; }
+
 	struct Screen
 	{
 		Area const size;
+
+		Area const aligned_size = aligned_at_8x8(size);
 
 		SDL_Renderer &renderer;
 
@@ -177,7 +184,7 @@ struct Fb_sdl::Sdl : Noncopyable
 			unsigned const alpha_mask = 0xFF000000;
 
 			SDL_Surface * const surface_ptr =
-				SDL_CreateRGBSurface(flags, size.w, size.h, bpp,
+				SDL_CreateRGBSurface(flags, aligned_size.w, aligned_size.h, bpp,
 				                     red_mask, green_mask, blue_mask, alpha_mask);
 			if (!surface_ptr) {
 				error("SDL_CreateRGBSurface failed (", Cstring(SDL_GetError()), ")");
@@ -192,7 +199,7 @@ struct Fb_sdl::Sdl : Noncopyable
 			SDL_Texture * const texture_ptr =
 				SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888,
 				                  SDL_TEXTUREACCESS_STREAMING,
-				                  size.w, size.h);
+				                  aligned_size.w, aligned_size.h);
 			if (!texture_ptr) {
 				error("SDL_CreateTexture failed (", Cstring(SDL_GetError()), ")");
 				throw Createtexture_failed();
@@ -211,7 +218,7 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		void with_surface(auto const &fn)
 		{
-			Surface<Pixel> surface { (Pixel *)_surface.pixels, size };
+			Surface<Pixel> surface { (Pixel *)_surface.pixels, aligned_at_8x8(size) };
 			fn(surface);
 		}
 
@@ -280,11 +287,14 @@ struct Fb_sdl::Sdl : Noncopyable
 	{
 		_screen.construct(size, _window->renderer);
 
+		Area const padded_px = aligned_at_8x8(size);
+
 		using Attr = Capture::Connection::Screen::Attr;
 		_captured_screen.construct(_capture, _rm, Attr {
-			.px       = Blit::transformed(size, _attr.rotate),
+			.px       = Blit::transformed(padded_px, _attr.rotate),
 			.mm       = { },
-			.viewport = { { }, Blit::transformed(size, _attr.rotate) },
+			.viewport = Blit::transformed(Rect { { }, size }, padded_px,
+			                              _attr.rotate, _attr.flip),
 			.rotate   = _attr.rotate,
 			.flip     = _attr.flip });
 
