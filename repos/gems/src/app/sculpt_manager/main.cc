@@ -913,6 +913,8 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_diag_dialog.refresh();
 		_graph_view.refresh();
+		if (_popup.state == Popup::VISIBLE)
+			_popup_dialog.refresh();
 
 		if (_system_visible)
 			_system_dialog.refresh();
@@ -2362,11 +2364,12 @@ void Sculpt::Main::_handle_update_state(Xml_node const &update_state)
 
 void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 {
-	_runtime_state.update_from_state_report(state);
-
 	bool reconfigure_runtime = false;
 	bool regenerate_dialog   = false;
 	bool refresh_storage     = false;
+
+	if (_runtime_state.update_from_state_report(state).progress)
+		regenerate_dialog = true;
 
 	/* check for completed storage operations */
 	_storage._storage_devices.for_each([&] (Storage_device &device) {
@@ -2564,10 +2567,8 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 	if (refresh_storage)
 		_handle_storage_devices();
 
-	if (regenerate_dialog) {
+	if (regenerate_dialog)
 		_generate_dialog();
-		_graph_view.refresh();
-	}
 
 	if (reconfigure_runtime)
 		generate_runtime_config();

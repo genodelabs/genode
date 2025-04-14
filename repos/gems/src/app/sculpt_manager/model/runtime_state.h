@@ -49,6 +49,17 @@ class Sculpt::Runtime_state : public Runtime_info
 			unsigned long avail_caps;
 
 			Version version;
+
+			bool operator != (Info const &other) const
+			{
+				return selected      != other.selected
+				    || tcb_updated   != other.tcb_updated
+				    || assigned_ram  != other.assigned_ram
+				    || avail_ram     != other.avail_ram
+				    || assigned_caps != other.assigned_caps
+				    || avail_caps    != other.avail_caps
+				    || version.value != other.version.value;
+			}
 		};
 
 	private:
@@ -84,8 +95,9 @@ class Sculpt::Runtime_state : public Runtime_info
 				return node.has_type("child");
 			}
 
-			void update_from_xml(Xml_node const &node)
+			Progress update_from_xml(Xml_node const &node)
 			{
+				Info const orig_info = info;
 				node.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
 					info.assigned_ram = max(ram.attribute_value("assigned", Number_of_bytes()),
 					                        ram.attribute_value("quota",    Number_of_bytes()));
@@ -99,6 +111,8 @@ class Sculpt::Runtime_state : public Runtime_info
 				});
 
 				info.version.value = node.attribute_value("version", 0U);
+
+				return { info != orig_info };
 			}
 		};
 
@@ -226,22 +240,28 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		~Runtime_state() { reset_abandoned_and_launched_children(); }
 
-		void update_from_state_report(Xml_node const &state)
+		Progress update_from_state_report(Xml_node const &state)
 		{
+			Progress result { };
 			_children.update_from_xml(state,
 
 				/* create */
 				[&] (Xml_node const &node) -> Child & {
+					result.progress = true;
 					return *new (_alloc)
 						Child(node.attribute_value("name", Start_name())); },
 
 				/* destroy */
-				[&] (Child &child) { destroy(_alloc, &child); },
+				[&] (Child &child) {
+					result.progress = true;
+					destroy(_alloc, &child); },
 
 				/* update */
 				[&] (Child &child, Xml_node const &node) {
-					child.update_from_xml(node); }
+					if (child.update_from_xml(node).progress)
+						result.progress = true; }
 			);
+			return result;
 		}
 
 		/**
