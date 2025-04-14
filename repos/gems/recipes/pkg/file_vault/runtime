@@ -46,6 +46,7 @@
 		<rom label="menu_view"/>
 		<rom label="menu_view_styles.tar"/>
 		<rom label="libpng.lib.so"/>
+		<rom label="dialog.lib.so"/>
 	</content>
 
 	<config>
@@ -111,7 +112,7 @@
 			<route>
 				<service name="ROM" label="ui_report"> <child name="report_rom"/> </service>
 				<service name="Report" label="ui_config"> <child name="report_rom"/> </service>
-				<service name="File_system" label_last="fonts -> /"> <parent identity="fonts"/> </service>
+				<service name="File_system" label_prefix="fonts ->"> <parent identity="fonts"/> </service>
 				<service name="Gui"> <parent/> </service>
 				<service name="Timer"> <parent/> </service>
 				<service name="PD"> <parent/> </service>
