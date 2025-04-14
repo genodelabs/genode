@@ -38,6 +38,9 @@ namespace Menu_view {
 	using Rect  = Surface_base::Rect;
 
 	struct Ticks { uint64_t cs; /* centi-seconds (10 ms) */ };
+
+	struct Hover_version { uint64_t value; };
+
 }
 
 #endif /* _TYPES_H_ */

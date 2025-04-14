@@ -39,6 +39,8 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 
 	Widget_factory &_global_widget_factory;
 
+	Hover_version &_global_hover_version;
+
 	Animator _local_animator { };
 
 	Widget_factory _widget_factory { _global_widget_factory.alloc,
@@ -94,6 +96,8 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 	 */
 	Point _hovered_position { };
 
+	Hover_version observed_hover_version { };
+
 	bool _hovered = false;
 	bool _redraw_scheduled = false;
 
@@ -135,9 +139,10 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 	void _handle_dialog();
 
 	Dialog(Env &env, Widget_factory &widget_factory, Action &action,
-	       Xml_node const &node)
+	       Hover_version &global_hover_version, Xml_node const &node)
 	:
-		_env(env), _global_widget_factory(widget_factory), _action(action),
+		_env(env), _global_widget_factory(widget_factory),
+		_global_hover_version(global_hover_version), _action(action),
 		_name(_name_from_attr(node))
 	{
 		_gui.view(_view.id(), { });
@@ -291,6 +296,8 @@ void Menu_view::Dialog::_handle_input()
 		{
 			_hovered = true;
 			_hovered_position = Point(x, y) - _position;
+			_global_hover_version.value++;
+			observed_hover_version.value = _global_hover_version.value;
 		};
 
 		auto unhover = [&] ()

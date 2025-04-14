@@ -83,6 +83,8 @@ struct Menu_view::Main : Dialog::Action
 
 	} _input_seq_number { };
 
+	Hover_version _global_hover_version { 1 };
+
 	Timer::Connection _timer { _env };
 
 	/**
@@ -129,6 +131,10 @@ void Menu_view::Main::_update_hover_report()
 
 	_dialogs.for_each([&] (Dialog const &dialog) {
 
+		/* consider only the dialog that observed the most recent hover change */
+		if (dialog.observed_hover_version.value != _global_hover_version.value)
+			return;
+
 		if (!dialog.hovered())
 			return;
 
@@ -174,7 +180,8 @@ void Menu_view::Main::_handle_config()
 
 		/* create */
 		[&] (Xml_node const &node) -> Dialog & {
-			return *new (_heap) Dialog(_env, _widget_factory, *this, node); },
+			return *new (_heap)
+				Dialog(_env, _widget_factory, *this, _global_hover_version, node); },
 
 		/* destroy */
 		[&] (Dialog &d) { destroy(_heap, &d); },
