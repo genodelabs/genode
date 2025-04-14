@@ -26,22 +26,12 @@
 #include "lx_emul.h"
 
 
-/* defined in #include <drm/drm_internal.h> */
-int drm_wait_vblank_ioctl(struct drm_device *dev, void *data,
-                          struct drm_file *filp);
-
-
-enum { MAX_BRIGHTNESS  = 100, INVALID_BRIGHTNESS  = MAX_BRIGHTNESS + 1 };
-enum { MAX_CONNECTORS  =  32, CONNECTOR_ID_MIRROR = MAX_CONNECTORS - 1 };
-enum { MAX_CRTCS       =   4 };
-
-static struct update_task {
-	struct task_struct * lx_task;
-	unsigned             pipe_id;
-	unsigned             unchanged;
-} update_tasks[MAX_CRTCS];
+enum { MAX_BRIGHTNESS  = 100, INVALID_BRIGHTNESS   = MAX_BRIGHTNESS + 1 };
+enum { MAX_CONNECTORS  =  32, CONNECTOR_ID_MIRROR  = MAX_CONNECTORS - 1 };
+enum { CAPTURE_RATE_MS =  10, ATTEMPTS_BEFORE_STOP = 7 };
 
        struct task_struct      * lx_user_task   = NULL;
+static struct task_struct      * lx_update_task = NULL;
 static struct drm_client_dev   * dev_client     = NULL;
 
 static bool const verbose = false;
@@ -53,6 +43,7 @@ static struct state {
 	struct i915_vma            * vma;
 	unsigned long                vma_flags;
 	uint8_t                      mode_id;
+	uint8_t                      unchanged;
 	bool                         mirrored;
 	bool                         enabled;
 } states [MAX_CONNECTORS] = { };
@@ -315,6 +306,7 @@ static void destroy_fb_and_capture(struct drm_client_dev       * const dev,
 	}
 
 	state->enabled   = false;
+	state->unchanged = 0;
 
 	destroy_fb(dev, &(state->fb_dumb), &(state->fb_cmd));
 }
@@ -737,12 +729,6 @@ static int do_action_loop(void * data)
 			status_last_action = probe_and_apply_fbs(dev_client, false)
 			                   ? ACTION_FAILED : !ACTION_FAILED;
 
-			/* wakeup tasks, connector->state->crtc should now be assigned */
-			for (unsigned pipe_id = 0; pipe_id < MAX_CRTCS; pipe_id++) {
-				update_tasks[pipe_id].unchanged = 0;
-				lx_emul_task_unblock(update_tasks[pipe_id].lx_task);
-			}
-
 			break;
 		default:
 			lx_emul_task_schedule(true /* block task */);
@@ -754,164 +740,104 @@ static int do_action_loop(void * data)
 }
 
 
-void lx_emul_i915_wakeup(unsigned const connector_id)
+static void mark_framebuffer_dirty(struct drm_framebuffer * const fb)
 {
-	struct drm_connector_list_iter conn_iter;
-	struct drm_connector * connector = NULL;
+	struct drm_clip_rect        *clips = NULL;
+	struct drm_mode_fb_dirty_cmd r     = { };
 
-	unsigned pipe_id = ~0U; /* invalid pipe id */
+	unsigned flags     = 0;
+	int      num_clips = 0;
+	int      ret       = 0;
 
 	if (!dev_client)
 		return;
 
-	drm_connector_list_iter_begin(dev_client->dev, &conn_iter);
-	drm_client_for_each_connector_iter(connector, &conn_iter) {
-		struct drm_crtc * crtc = NULL;
-		bool mirrored = false;
-
-		if (!connector)
-			continue;
-
-		mirrored = connector_id == CONNECTOR_ID_MIRROR &&
-		           connector->index < MAX_CONNECTORS &&
-		           states[connector->index].mirrored &&
-		           states[connector->index].enabled;
-
-		if (!mirrored && connector->index != connector_id)
-			continue;
-
-		if (!connector->state || !connector->state->crtc) {
-			if (!mirrored && verbose)
-				printk("unable to look up pipe id of connector %s index=%u\n",
-				       connector->name, connector->index);
-			continue;
-		}
-
-		crtc = connector->state->crtc;
-
-		if (verbose)
-			printk("%s:%u %s %u->%u %s %s\n", __func__, __LINE__,
-			       connector->name,
-			       crtc->base.id, drm_crtc_index(crtc), crtc->name,
-			       crtc->enabled ? "enabled" : "not enabled");
-
-		pipe_id = drm_crtc_index(crtc);
-
-		break;
-	}
-	drm_connector_list_iter_end(&conn_iter);
-
-	if (pipe_id >= MAX_CRTCS) {
-		if (verbose)
-			printk("unknown pipe id for connector %u\n", connector_id);
+	if (!fb || !fb->funcs || !fb->funcs->dirty)
 		return;
-	}
 
-	update_tasks[pipe_id].unchanged = 0;
+	ret = fb->funcs->dirty(fb, dev_client->file, flags, r.color, clips,
+	                       num_clips);
 
-	/* wake potential sleeping update task */
-	lx_emul_task_unblock(update_tasks[pipe_id].lx_task);
+	if (ret)
+		printk("%s failed %d\n", __func__, ret);
 }
 
 
-static int update_content(void * task_info)
+void lx_emul_i915_wakeup(unsigned const connector_id)
 {
-	struct update_task * const info = (struct update_task *)task_info;
+	bool const valid_id  = connector_id < MAX_CONNECTORS;
 
-	unsigned long  last_usec     = 0;
-	unsigned long  last_sec      = 0;
-	bool           block_task    = true;
-	unsigned const stop_after_ms = 70; /* when nothing changed content wise */
+	if (!valid_id) {
+		printk("%s: connector id invalid %d\n", __func__, connector_id);
+		return;
+	}
 
-	lx_emul_task_schedule(true /* block task */);
+	states[connector_id].unchanged = 0;
 
+	/* wake potential sleeping update task */
+	lx_emul_task_unblock(lx_update_task);
+}
+
+
+static int update_content(void *)
+{
 	while (true) {
-		struct drm_device    * dev                  = dev_client->dev;
-		union drm_wait_vblank  vblwait              = {};
-		int                    error                = -1;
-		unsigned               hz                   = 60;
-		unsigned               attempts_before_stop = 4;
+		struct drm_connector_list_iter   conn_iter;
+		struct drm_connector           * connector  = NULL;
+		struct drm_device const        * dev        = dev_client->dev;
+		bool                             block_task = true;
+		bool                             mirror_run = false;
 
-		/* adjust to actual current hz value of active hw mode */
-		if (dev->num_crtcs > info->pipe_id) {
-			struct drm_vblank_crtc *vblank = &dev->vblank[info->pipe_id];
+		drm_connector_list_iter_begin(dev, &conn_iter);
+		drm_client_for_each_connector_iter(connector, &conn_iter) {
 
-			hz = vblank ? drm_mode_vrefresh(&vblank->hwmode) : 60;
-			if (hz == 0) hz = 60;
-		}
+			bool       may_sleep = false;
+			unsigned   index     = connector->index;
 
-		attempts_before_stop = stop_after_ms * hz / 1000;
-		if (attempts_before_stop < 2) attempts_before_stop = 2;
+			if (connector->status != connector_status_connected)
+				continue;
 
-		/* wait for next vblank sequence */
-		vblwait.request.sequence = 1;
-		vblwait.request.type     = _DRM_VBLANK_RELATIVE
-		                         |  info->pipe_id << _DRM_VBLANK_HIGH_CRTC_SHIFT;
-
-		/* wait for next vblank before capturing */
-		error = drm_wait_vblank_ioctl(dev, &vblwait, dev_client->file);
-
-		if (error) {
-			if (verbose)
-				printk("%s:%u pipe=%u error=%d %s\n", __func__, __LINE__,
-				       info->pipe_id, error,
-				       error == -EINVAL ? "EINVAL" : "");
-
-			/* block connectors with errors by now */
-			info->unchanged = attempts_before_stop;
-		}
-
-		/* debugging - statistics */
-		if (verbose && !block_task && !error) {
-			uint64_t diff_us = last_usec < vblwait.reply.tval_usec
-			                 ? vblwait.reply.tval_usec - last_usec
-			                 : vblwait.reply.tval_usec + 1000000 - last_usec;
-
-			uint64_t warn_min_us = 1000ul * 1000 * 0.95 / hz;
-			uint64_t warn_max_us = 1000ul * 1000 * 1.05 / hz;
-
-			if (diff_us < warn_min_us || diff_us > warn_max_us)
-				printk("%s:%u pipe=%u %llu us [%llu,%llu] (seq=%u)\n",
-				       __func__, __LINE__, info->pipe_id, diff_us,
-				       warn_min_us, warn_max_us, vblwait.reply.sequence);
-		}
-
-		last_sec  = vblwait.reply.tval_sec;
-		last_usec = vblwait.reply.tval_usec;
-
-		block_task = info->unchanged++ >= attempts_before_stop;
-
-		{
-			struct drm_connector_list_iter   conn_iter;
-			struct drm_connector           * connector    = NULL;
-			unsigned                         connector_id = 0;
-
-			drm_connector_list_iter_begin(dev, &conn_iter);
-			drm_client_for_each_connector_iter(connector, &conn_iter) {
-
-				if (!connector->state || !connector->state->crtc)
-					continue;
-
-				if (info->pipe_id != drm_crtc_index(connector->state->crtc))
-					continue;
-
-				if (connector->index >= MAX_CONNECTORS)
-					continue;
-
-				connector_id = states[connector->index].mirrored
-				             ? CONNECTOR_ID_MIRROR : connector->index;
-
-				/* hint that capturing may be stopped now, when block_task */
-				if (lx_emul_i915_blit(connector_id, block_task)) {
-					info->unchanged = 0;
-					block_task      = false;
-				}
+			if (connector->index >= MAX_CONNECTORS) {
+				printk("%s: connector id invalid %d\n", __func__, index);
+				index = CONNECTOR_ID_MIRROR; /* should never happen case */
 			}
-			drm_connector_list_iter_end(&conn_iter);
+
+			if (!states[index].enabled)
+				continue;
+
+			if (states[index].mirrored) {
+				if (mirror_run)
+					continue;
+
+				mirror_run = true;
+				index = CONNECTOR_ID_MIRROR;
+			}
+
+			states[index].unchanged ++;
+
+			may_sleep = states[index].unchanged >= ATTEMPTS_BEFORE_STOP;
+
+			if (!lx_emul_i915_blit(index, may_sleep)) {
+				if (!may_sleep)
+					block_task = false;
+
+				continue;
+			}
+
+			block_task = false;
+
+			states[index].unchanged = 0;
+
+			if (states[index].fbs)
+				mark_framebuffer_dirty(states[index].fbs);
 		}
+		drm_connector_list_iter_end(&conn_iter);
 
 		if (block_task)
 			lx_emul_task_schedule(true /* block task */);
+		else
+			/* schedule_timeout(jiffes) or hrtimer or msleep */
+			msleep(CAPTURE_RATE_MS);
 	}
 
 	return 0;
@@ -920,18 +846,13 @@ static int update_content(void * task_info)
 
 void lx_user_init(void)
 {
-	int pid = kernel_thread(do_action_loop, NULL, "lx_user",
-	                        CLONE_FS | CLONE_FILES);
+	int pid  = kernel_thread(do_action_loop, NULL, "lx_user",
+	                         CLONE_FS | CLONE_FILES);
+	int pid2 = kernel_thread(update_content, NULL, "lx_update",
+	                         CLONE_FS | CLONE_FILES);
 
-	lx_user_task = find_task_by_pid_ns(pid , NULL);
-
-	for (unsigned i = 0; i < MAX_CRTCS; i++) {
-		int pid_update;
-		update_tasks[i].pipe_id = i;
-		pid_update = kernel_thread(update_content, &update_tasks[i],
-		                          "lx_update", CLONE_FS | CLONE_FILES);
-		update_tasks[i].lx_task = find_task_by_pid_ns(pid_update, NULL);
-	}
+	lx_user_task   = find_task_by_pid_ns(pid , NULL);
+	lx_update_task = find_task_by_pid_ns(pid2, NULL);
 }
 
 
