@@ -185,8 +185,11 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 		if (orig_fb_name != _fb_name()) {
 			Session_label label { "report -> runtime/", _fb_name(), "/connectors" };
-			_connectors.conditional((label.length() > 1), _env, label,
-			                        *this, &Fb_driver::_handle_connectors);
+			if (_fb_name().length() > 1)
+				_connectors.construct(_env, label,
+				                      *this, &Fb_driver::_handle_connectors);
+			else
+				_connectors.destruct();
 		}
 	}
 
