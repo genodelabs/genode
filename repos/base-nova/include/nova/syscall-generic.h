@@ -255,10 +255,38 @@ namespace Nova {
 		 */
 		bool for_all_cpus(auto const &fn) const
 		{
-			for (uint16_t package = 0; package <= 255; package++) {
-				for (uint16_t core = 0; core <= 255; core++) {
-					for (uint16_t thread = 0; thread <= 255; thread++) {
-						for (unsigned i = 0; i < cpu_max(); i++) {
+			struct range { uint16_t min; uint16_t max; };
+
+			range pkg    { 255, 0 };
+			range thread { 255, 0 };
+			range core   { 255, 0 };
+
+			unsigned cpu_fn_cnt = 0;
+			unsigned cpu_fn_max = 0;
+
+			for (unsigned i = 0; i < cpu_max(); i++) {
+				if (!is_cpu_enabled(i))
+						continue;
+
+				auto const cpu = cpu_desc_of_cpu(i);
+				if (!cpu)
+					continue;
+
+				if (cpu->package < pkg   .min) pkg   .min = cpu->package;
+				if (cpu->package > pkg   .max) pkg   .max = cpu->package;
+				if (cpu->thread  < thread.min) thread.min = cpu->thread;
+				if (cpu->thread  > thread.max) thread.max = cpu->thread;
+				if (cpu->core    < core  .min) core  .min = cpu->core;
+				if (cpu->core    > core  .max) core  .max = cpu->core;
+
+				cpu_fn_max ++;
+			}
+
+			for (auto p = pkg.min; p <= pkg.max; p++) {
+				for (auto c = core.min; c <= core.max; c++) {
+					for (auto t = thread.min; t <= thread.max; t++) {
+						for (unsigned i = 0; i < cpu_fn_max; i++) {
+
 							if (!is_cpu_enabled(i))
 								continue;
 
@@ -266,12 +294,15 @@ namespace Nova {
 							if (!cpu)
 								continue;
 
-							if (!(cpu->package == package && cpu->core == core &&
-							      cpu->thread == thread))
+							if (!(cpu->package == p && cpu->core == c &&
+							      cpu->thread == t))
 								continue;
 
+							cpu_fn_cnt ++;
+
 							bool done = fn(*cpu, i);
-							if (done)
+
+							if (done || cpu_fn_cnt >= cpu_fn_max)
 								return done;
 						}
 					}
