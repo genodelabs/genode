@@ -23,17 +23,19 @@ struct Sculpt::Fb_config
 {
 	struct Entry
 	{
-		using Name       = Fb_connectors::Name;
-		using Mode_id    = Fb_connectors::Connector::Mode::Id;
-		using Mode_attr  = Fb_connectors::Connector::Mode::Attr;
-		using Brightness = Fb_connectors::Brightness;
+		using Name        = Fb_connectors::Name;
+		using Mode_id     = Fb_connectors::Connector::Mode::Id;
+		using Mode_attr   = Fb_connectors::Connector::Mode::Attr;
+		using Brightness  = Fb_connectors::Brightness;
+		using Orientation = Fb_connectors::Orientation;
 
-		bool       defined;
-		bool       present;  /* false if imported from config but yet unused */
-		Name       name;
-		Mode_id    mode_id;
-		Mode_attr  mode_attr;
-		Brightness brightness;
+		bool        defined;
+		bool        present;  /* false if imported from config but yet unused */
+		Name        name;
+		Mode_id     mode_id;
+		Mode_attr   mode_attr;
+		Brightness  brightness;
+		Orientation orientation;
 
 		static Entry from_connector(Fb_connectors::Connector const &connector)
 		{
@@ -43,12 +45,13 @@ struct Sculpt::Fb_config
 				mode_attr = mode.attr;
 				mode_id   = mode.id; });
 
-			return { .defined    = true,
-			         .present    = true,
-			         .name       = connector.name,
-			         .mode_id    = mode_id,
-			         .mode_attr  = mode_attr,
-			         .brightness = connector.brightness };
+			return { .defined     = true,
+			         .present     = true,
+			         .name        = connector.name,
+			         .mode_id     = mode_id,
+			         .mode_attr   = mode_attr,
+			         .brightness  = connector.brightness,
+			         .orientation = connector.orientation };
 		}
 
 		static Entry from_manual_xml(Xml_node const &node)
@@ -61,12 +64,13 @@ struct Sculpt::Fb_config
 				mode_attr = { };
 			}
 
-			return { .defined    = true,
-			         .present    = false,
-			         .name       = node.attribute_value("name", Name()),
-			         .mode_id    = mode_id,
-			         .mode_attr  = mode_attr,
-			         .brightness = Brightness::from_xml(node) };
+			return { .defined     = true,
+			         .present     = false,
+			         .name        = node.attribute_value("name", Name()),
+			         .mode_id     = mode_id,
+			         .mode_attr   = mode_attr,
+			         .brightness  = Brightness::from_xml(node),
+			         .orientation = Orientation::from_xml(node) };
 		}
 
 		void generate(Xml_generator &xml) const
@@ -85,6 +89,8 @@ struct Sculpt::Fb_config
 						xml.attribute("brightness", brightness.percent);
 					if (mode_id.length() > 1)
 						xml.attribute("mode", mode_id);
+
+					orientation.gen_attr(xml);
 				} else {
 					xml.attribute("enabled", "no");
 				}
@@ -274,6 +280,43 @@ struct Sculpt::Fb_config
 	{
 		_with_entry(conn, [&] (Entry &entry) {
 			entry.brightness.percent = percent; });
+	}
+
+	bool _merged(Fb_connectors::Name const &conn) const
+	{
+		for (unsigned i = 0; i < _num_merged; i++)
+			if (_entries[i].name == conn)
+				return true;
+		return false;
+	}
+
+	void _for_each_merged(auto const &fn)
+	{
+		for (unsigned i = 0; i < _num_merged; i++)
+			if (_entries[i].defined && _entries[i].present)
+				fn(_entries[i]);
+	}
+
+	void rotation(Fb_connectors::Name const &conn, Fb_connectors::Orientation::Rotate r)
+	{
+		_with_entry(conn, [&] (Entry &entry) {
+			entry.orientation.rotate = r; });
+
+		/* apply change of a merged entry to all merged entries */
+		if (_merged(conn))
+			_for_each_merged([&] (Entry &e) { e.orientation.rotate = r; });
+	}
+
+	void toggle_flip(Fb_connectors::Name const &conn)
+	{
+		Fb_connectors::Orientation::Flip toggled { };
+		_with_entry(conn, [&] (Entry &entry) {
+			toggled = entry.orientation.toggled_flip();
+			entry.orientation.flip = toggled; });
+
+		/* when toggling a merged entry, change all merged entries */
+		if (_merged(conn))
+			_for_each_merged([&] (Entry &e) { e.orientation.flip = toggled; });
 	}
 
 	void _with_idx(Fb_connectors::Name const &conn, auto const &fn) const

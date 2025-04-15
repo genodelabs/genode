@@ -44,11 +44,75 @@ struct Sculpt::Fb_connectors : private Noncopyable
 		}
 	};
 
+	struct Orientation
+	{
+		enum class Rotate { UNSUPPORTED, R0, R90, R180, R270 } rotate;
+		enum class Flip   { UNSUPPORTED, NO, YES }             flip;
+
+		Flip toggled_flip() const
+		{
+			return flip == Flip::NO  ? Flip::YES
+			     : flip == Flip::YES ? Flip::NO
+			     :                     Flip::UNSUPPORTED;
+		}
+
+		bool operator != (Orientation const &other) const
+		{
+			return rotate != other.rotate || flip != other.flip;
+		}
+
+		static Orientation from_xml(Xml_node const &node)
+		{
+			unsigned const rotate = node.attribute_value("rotate", ~0u);
+			bool     const flip   = node.attribute_value("flip",   false);
+			bool     const flip_supported = node.has_attribute("flip");
+
+			return {
+				.rotate = (rotate ==   0) ? Rotate::R0
+				        : (rotate ==  90) ? Rotate::R90
+				        : (rotate == 180) ? Rotate::R180
+				        : (rotate == 270) ? Rotate::R270
+				        :                   Rotate::UNSUPPORTED,
+
+				.flip   = (flip_supported &&  flip) ? Flip::YES
+				        : (flip_supported && !flip) ? Flip::NO
+				        :                             Flip::UNSUPPORTED
+			};
+		}
+
+		unsigned angle() const
+		{
+			switch (rotate) {
+			case Rotate::UNSUPPORTED:
+			case Rotate::R0:   break;
+			case Rotate::R90:  return 90;
+			case Rotate::R180: return 180;
+			case Rotate::R270: return 270;
+			}
+			return 0;
+		}
+
+		void gen_attr(Xml_generator &xml) const
+		{
+			if (rotate != Rotate::UNSUPPORTED)
+				xml.attribute("rotate", angle());
+
+			if (flip != Flip::UNSUPPORTED)
+				xml.attribute("flip", flip == Flip::YES ? "yes" : "no");
+		}
+
+		bool rotate_supported() const { return rotate != Rotate::UNSUPPORTED; }
+		bool flip_supported()   const { return flip   != Flip::UNSUPPORTED;   }
+
+		bool supported() const { return rotate_supported() || flip_supported(); }
+	};
+
 	struct Connector : Connectors::Element
 	{
-		Name const name;
-		Area       mm { };
-		Brightness brightness { };
+		Name  const name;
+		Area        mm { };
+		Brightness  brightness  { };
+		Orientation orientation { };
 
 		struct Mode;
 		using  Modes = List_model<Mode>;
@@ -171,14 +235,18 @@ struct Sculpt::Fb_connectors : private Noncopyable
 
 		bool update(Allocator &alloc, Xml_node const &node)
 		{
-			Area       const orig_mm = mm;
-			Brightness const orig_brightness = brightness;
+			Area        const orig_mm = mm;
+			Brightness  const orig_brightness  = brightness;
+			Orientation const orig_orientation = orientation;
 
-			mm.w       = node.attribute_value("width_mm",  0u);
-			mm.h       = node.attribute_value("height_mm", 0u);
-			brightness = Brightness::from_xml(node);
+			mm.w        = node.attribute_value("width_mm",  0u);
+			mm.h        = node.attribute_value("height_mm", 0u);
+			brightness  = Brightness::from_xml(node);
+			orientation = Orientation::from_xml(node);
 
-			bool progress = (orig_mm != mm || orig_brightness != brightness);
+			bool progress = orig_mm          != mm
+			             || orig_brightness  != brightness
+			             || orig_orientation != orientation;
 
 			_modes.update_from_xml(node,
 				[&] (Xml_node const &node) -> Mode & {

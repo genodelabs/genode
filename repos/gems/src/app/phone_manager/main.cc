@@ -2022,6 +2022,8 @@ struct Sculpt::Main : Input_event_handler,
 	void toggle_fb_merge_discrete(Fb_connectors::Name const &)           override { }
 	void swap_fb_connector       (Fb_connectors::Name const &)           override { }
 	void fb_brightness           (Fb_connectors::Name const &, unsigned) override { }
+	void fb_rotation             (Fb_connectors::Name const &, Fb_connectors::Orientation::Rotate) override { }
+	void fb_toggle_flip          (Fb_connectors::Name const &) override { }
 
 
 	/*******************

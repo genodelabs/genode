@@ -1850,6 +1850,24 @@ struct Sculpt::Main : Input_event_handler,
 		_generate_fb_config();
 	}
 
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void fb_rotation(Fb_connectors::Name const &conn, Fb_connectors::Orientation::Rotate r) override
+	{
+		_fb_config.rotation(conn, r);
+		_generate_fb_config();
+	}
+
+	/**
+	 * Fb_widget::Action interface
+	 */
+	void fb_toggle_flip(Fb_connectors::Name const &conn) override
+	{
+		_fb_config.toggle_flip(conn);
+		_generate_fb_config();
+	}
+
 
 	/*******************
 	 ** Runtime graph **

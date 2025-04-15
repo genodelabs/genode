@@ -25,6 +25,8 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 	using Mode          = Connector::Mode;
 	using Hosted_choice = Hosted<Vbox, Choice<Mode::Id>>;
 	using Mode_radio    = Hosted<Radio_select_button<Mode::Id>>;
+	using Rotate        = Fb_connectors::Orientation::Rotate;
+	using Flip          = Fb_connectors::Orientation::Flip;
 
 	struct Action : Interface
 	{
@@ -33,6 +35,8 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 		virtual void toggle_fb_merge_discrete(Fb_connectors::Name const &) = 0;
 		virtual void swap_fb_connector(Fb_connectors::Name const &) = 0;
 		virtual void fb_brightness(Fb_connectors::Name const &, unsigned) = 0;
+		virtual void fb_rotation(Fb_connectors::Name const &, Rotate) = 0;
+		virtual void fb_toggle_flip(Fb_connectors::Name const &) = 0;
 	};
 
 	Fb_connectors::Name _selected_connector { };
@@ -70,6 +74,36 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 
 	using Hosted_brightness = Hosted<Bar>;
 
+	struct Orientation : Widget<Hbox>
+	{
+		Hosted<Hbox, Select_button<Rotate>> angles[4] {
+			{ { "  0°" }, Rotate::R0   },  { { " 90°" }, Rotate::R90  },
+			{ { "180°" }, Rotate::R180 },  { { "270°" }, Rotate::R270 } };
+
+		Hosted<Hbox, Toggle_button> flip { { "Flip" } };
+
+		void view(Scope<Hbox> &s, Fb_connectors::Orientation const curr) const
+		{
+			if (curr.rotate_supported())
+				for (auto const &angle : angles)
+					s.widget(angle, curr.rotate);
+
+			if (curr.flip_supported())
+				s.widget(flip, curr.flip == Flip::YES);
+		}
+
+		void click(Clicked_at const &at, Fb_connectors::Name const &conn, Action &action)
+		{
+			Id const id = at.matching_id<Hbox, Button>();
+			for (auto const &angle : angles)
+				if (id == angle.id)
+					action.fb_rotation(conn, angle._value);
+
+			if (id.value == "Flip")
+				action.fb_toggle_flip(conn);
+		}
+	};
+
 	void view(Scope<Vbox> &s, Fb_connectors const &connectors, Fb_config const &config,
 	          Fb_connectors::Name const &hovered_display) const
 	{
@@ -93,6 +127,11 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 					if (conn.brightness.defined) {
 						Hosted_brightness brightness { Id { "brightness" } };
 						s.widget(brightness, conn.brightness.percent);
+					}
+
+					if (conn.orientation.supported()) {
+						Hosted<Orientation> orientation { Id { "orientation" } };
+						s.widget(orientation, conn.orientation);
 					}
 
 					conn._modes.for_each([&] (Mode const &mode) {
@@ -179,6 +218,9 @@ struct Sculpt::Fb_widget : Widget<Vbox>
 						action.disable_fb_connector(conn.name);
 					else if (id.valid())
 						action.select_fb_mode(conn.name, id);
+
+					Hosted<Orientation> orientation { Id { "orientation" } };
+					orientation.propagate(at, conn.name, action);
 				});
 		};
 
