@@ -162,7 +162,7 @@ struct Chroot::Main
 			Genode::error(new_root,": unknown error");     throw; }
 
 		/* rewrite the root session argument */
-		enum { ARGS_MAX_LEN = 256 };
+		enum { ARGS_MAX_LEN = Parent::Session_args::MAX_SIZE };
 		char new_args[ARGS_MAX_LEN];
 
 		copy_cstring(new_args, args.string(), ARGS_MAX_LEN);
@@ -192,7 +192,10 @@ struct Chroot::Main
 		Session_label const rewritten_label =
 			prefixed_label(label.prefix(), Session_label(root_path.string(), "/"));
 
-		Arg_string::set_arg_string(new_args, ARGS_MAX_LEN, "label", rewritten_label.string());
+		if (!Arg_string::set_arg_string(new_args, ARGS_MAX_LEN, "label", rewritten_label.string())) {
+			warning("label \"", rewritten_label, "\" is too long for session arguments");
+			throw Service_denied();
+		}
 
 		return env.session("File_system", id, new_args, affinity);
 	}
