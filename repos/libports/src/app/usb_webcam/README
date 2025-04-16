@@ -9,7 +9,7 @@ order to render the camera into.
 Configuration
 -------------
 
-! <config width="320" height="240" format="yuv" fps="30">
+! <config width="640" height="480" format="yuv" fps="30">
 !   <vfs>
 !     <dir name="dev"> <log/> <inline name="rtc">2018-01-01 00:01</inline> </dir>
 !     <dir name="pipe"> <pipe/> </dir>
@@ -17,7 +17,16 @@ Configuration
 !  <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
 ! </conifg>
 
-The frame format can be configured via the config attributes "width", "height",
-"format", "fps". Currently the "yuv" and "mjpeg" formats are supported. In
-case there is no suitable frame format present, the app will dump the camera
+The camera mode can be configured via the following optional config attributes.
+
+:width/height: frame size
+  (default is 640x480)
+
+:format: currently "yuv" (YUY2) and "mjpeg" (MJPG) formats are supported
+  (default is yuv)
+
+:fps: frame interval in frames-per-second
+  (default is auto selection/detection)
+
+In case there is no suitable mode present, the app will dump the camera
 supported formats during startup.

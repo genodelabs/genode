@@ -89,7 +89,7 @@
 								<service name="Usb"/>
 							</parent-provides>
 							<start name="usb_webcam" caps="300" ram="52M">
-								<config ld_verbose="no" width="640" height="480" format="yuv" fps="15">
+								<config ld_verbose="no" width="640" height="480" format="yuv">
 									<vfs>
 										<dir name="dev">
 											<log/>

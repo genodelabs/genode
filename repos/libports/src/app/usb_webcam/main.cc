@@ -261,7 +261,7 @@ class Main
 			Xml_node config = _config_rom.xml();
 			unsigned  width   = config.attribute_value("width", 640u);
 			unsigned  height  = config.attribute_value("height", 480u);
-			unsigned  fps     = config.attribute_value("fps", 15u);
+			unsigned  fps     = config.attribute_value("fps", 0u);
 			String<8> format  { config.attribute_value("format", String<8>("yuv")) };
 
 			uvc_frame_format frame_format;
@@ -274,7 +274,9 @@ class Main
 				frame_format = UVC_FRAME_FORMAT_YUYV;
 			}
 
-			log("config: ", width, "x", height, " frame format: ", format, " (", (unsigned)frame_format, ")");
+			log("config: ", width, "x", height,
+			    " frame format: ", format, " (", (unsigned)frame_format, ")",
+			    " fps: ", fps ? String<6>(fps) : "auto");
 
 			Framebuffer::Mode mode { .area = { width, height }, .alpha = false };
 			_webcam.construct(_env, mode, frame_format, fps);
