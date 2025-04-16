@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2007-2020 Genode Labs GmbH
+ * Copyright (C) 2007-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -49,7 +49,8 @@ struct Vesa_driver::Main
 	Attached_rom_dataspace _config   { _env, "config" };
 	Expanding_reporter     _reporter { _env, "connectors", "connectors" };
 
-	Area _size { 1, 1 };
+	Area _virt_size { 1, 1 };
+	Area _phys_size { 1, 1 };
 
 	void _handle_config();
 	Area _configured_size(Xml_node const &);
@@ -100,7 +101,7 @@ void Vesa_driver::Main::_handle_timer()
 	if (!_fb_ds.constructed())
 		return;
 
-	Surface<Pixel> surface(_fb_ds->local_addr<Pixel>(), _size);
+	Surface<Pixel> surface(_fb_ds->local_addr<Pixel>(), _phys_size);
 
 	_captured_screen->apply_to_surface(surface);
 }
@@ -151,12 +152,9 @@ void Vesa_driver::Main::_handle_config()
 	auto const   period_ms       = config.attribute_value("period_ms", 20UL);
 	Area const   configured_size = _configured_size(config);
 
-	if (configured_size == _size)
+	if (configured_size == _virt_size)
 		return;
 
-	auto const old_size = _size;
-
-	_size = { };
 	_fb_ds.destruct();
 	_timer.trigger_periodic(0);
 
@@ -164,18 +162,11 @@ void Vesa_driver::Main::_handle_config()
 	auto apply_mode = [&] (auto const configure) {
 		enum { BITS_PER_PIXEL = 32 };
 
-		struct Pretty_mode
-		{
-			Area size;
-			void print(Output &out) const {
-				Genode::print(out, "VESA mode ", size, "@", (int)BITS_PER_PIXEL); }
-		};
+		Area virt_size { configure.w, configure.h };
+		Area phys_size = virt_size;
 
-		unsigned width  = configure.w,
-		         height = configure.h;
-
-		if (Framebuffer::set_mode(width, height, BITS_PER_PIXEL, _reporter) != 0) {
-			warning("could not set ", Pretty_mode{configure});
+		if (Framebuffer::set_mode(_reporter, phys_size, virt_size, BITS_PER_PIXEL) != 0) {
+			warning("could not set ", configure);
 			return false;
 		}
 
@@ -184,26 +175,28 @@ void Vesa_driver::Main::_handle_config()
 		 * argument. In particular, when passing a size of (0,0), the function
 		 * sets and returns the highest screen mode possible.
 		 */
-		_size = Area { width, height };
+		_phys_size = phys_size;
+		_virt_size = virt_size;
 
-		log("using ", Pretty_mode{_size});
+		log("using ", _virt_size, " (", _phys_size, ")");
 
 		return true;
 	};
 
 	if (!apply_mode(configured_size)) {
 		/* in case of failure try to re-setup previous mode */
-		apply_mode(old_size);
+		apply_mode(_virt_size);
 	}
 
 	/* enable pixel capturing */
 	_fb_ds.construct(_env.rm(), Framebuffer::hw_framebuffer());
 
 	using Attr = Capture::Connection::Screen::Attr;
+
 	_captured_screen.construct(_capture, _env.rm(), Attr {
-		.px       = _size,
+		.px       = _phys_size,
 		.mm       = { },
-		.viewport = { { }, _size },
+		.viewport = { { }, _virt_size },
 		.rotate   = { },
 		.flip     = { } });
 

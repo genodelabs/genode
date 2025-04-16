@@ -65,11 +65,12 @@ static void for_each_mode(mb_vbe_ctrl_t const & ctrl_info, auto const & fn)
 }
 
 
-static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info,
-                              unsigned &width, unsigned &height, unsigned depth,
-                              bool verbose)
+static uint16_t get_vesa_mode(mb_vbe_ctrl_t const & ctrl_info,
+                              mb_vbe_mode_t const & mode_info,
+                              Capture::Area & phys, Capture::Area & virt,
+                              unsigned const depth, bool const verbose)
 {
-	bool choose_highest_resolution_mode = ((width == 0) || (height == 0));
+	bool choose_highest_resolution_mode = !virt.valid();
 
 	uint16_t ret = 0;
 
@@ -79,55 +80,38 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 	auto const & fn = [&](auto const & mode) {
 
 		enum { DIRECT_COLOR = 0x06 };
-		if (mode_info->memory_model != DIRECT_COLOR)
+		if (mode_info.memory_model != DIRECT_COLOR)
 			return;
 
 		if (verbose)
 			log("    ", Hex((short)mode, Hex::PREFIX, Hex::PAD), " ",
-			    (unsigned)mode_info->x_resolution, "x",
-			    (unsigned)mode_info->y_resolution, "@",
-			    (unsigned)mode_info->bits_per_pixel);
+			    (unsigned)mode_info.x_resolution, "x",
+			    (unsigned)mode_info.y_resolution, "@",
+			    (unsigned)mode_info.bits_per_pixel);
+
+		if (mode_info.bits_per_pixel != depth)
+			return;
 
 		if (choose_highest_resolution_mode) {
-			if ((mode_info->bits_per_pixel == depth) &&
-			    ((mode_info->x_resolution > width) ||
-			     ((mode_info->x_resolution == width) &&
-			      (mode_info->y_resolution > height)))) {
-				/*
-				 * FIXME
-				 *
-				 * The width of a line in the framebuffer can be higher than
-				 * the visible width (for example: visible width 1366,
-				 * framebuffer width 1376). Currently, the framebuffer width
-				 * is reported to the client, which does not know the
-				 * difference and assumes the whole width to be completely
-				 * visible.
-				 */
-				width = mode_info->bytes_per_scanline / (mode_info->bits_per_pixel / 8);
-				height = mode_info->y_resolution;
-				ret = mode;
-			}
+			if (!((mode_info.x_resolution > virt.w) ||
+			     ((mode_info.x_resolution == virt.w) &&
+			      (mode_info.y_resolution > virt.h))))
+				return;
 		} else {
-			if (mode_info->x_resolution == width &&
-			    mode_info->y_resolution == height &&
-			    mode_info->bits_per_pixel == depth) {
-				/*
-				 * FIXME
-				 *
-				 * The width of a line in the framebuffer can be higher than
-				 * the visible width (for example: visible width 1366,
-				 * framebuffer width 1376). Currently, the framebuffer width
-				 * is reported to the client, which does not know the
-				 * difference and assumes the whole width to be completely
-				 * visible.
-				 */
-				width = mode_info->bytes_per_scanline / (mode_info->bits_per_pixel / 8);
-				ret = mode;
-			}
+			if (mode_info.x_resolution != virt.w || mode_info.y_resolution != virt.h)
+				return;
 		}
+
+		phys.w = mode_info.bytes_per_scanline / (mode_info.bits_per_pixel / 8);
+		phys.h = mode_info.y_resolution;
+
+		virt.w = mode_info.x_resolution;
+		virt.h = mode_info.y_resolution;
+
+		ret = mode;
 	};
 
-	for_each_mode(*ctrl_info, fn);
+	for_each_mode(ctrl_info, fn);
 
 	if (ret)
 		return ret;
@@ -141,14 +125,13 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 		 * Default to 1024x768 for now.
 		 */
 		ret = get_default_vesa_mode(1024, 768, depth);
-		if (ret != 0) {
-			width = 1024;
-			height = 768;
-		}
+		if (ret != 0)
+			virt = { 1024, 768 };
+
 		return ret;
 	}
 
-	return get_default_vesa_mode(width, height, depth);
+	return get_default_vesa_mode(virt.w, virt.h, depth);
 }
 
 
@@ -238,22 +221,18 @@ int Framebuffer::map_io_mem(addr_t base, size_t size, bool write_combined,
 }
 
 
-int Framebuffer::set_mode(unsigned &width, unsigned &height,
-                          unsigned const depth,
-                          Expanding_reporter & reporter)
+int Framebuffer::set_mode(Expanding_reporter & reporter,
+                          Capture::Area & phys, Capture::Area & virt,
+                          unsigned const depth)
 {
-	mb_vbe_ctrl_t *ctrl_info;
-	mb_vbe_mode_t *mode_info;
-	char * oem_string;
-
 	/* set location of data types */
-	ctrl_info = reinterpret_cast<mb_vbe_ctrl_t*>(X86emu::x86_mem.data_addr()
-	                                             + VESA_CTRL_OFFS);
-	mode_info = reinterpret_cast<mb_vbe_mode_t*>(X86emu::x86_mem.data_addr()
-	                                             + VESA_MODE_OFFS);
+	auto & ctrl_info = *reinterpret_cast<mb_vbe_ctrl_t*>(X86emu::x86_mem.data_addr()
+	                                                     + VESA_CTRL_OFFS);
+	auto & mode_info = *reinterpret_cast<mb_vbe_mode_t*>(X86emu::x86_mem.data_addr()
+	                                                     + VESA_MODE_OFFS);
 
 	/* request VBE 2.0 information */
-	memcpy(ctrl_info->signature, "VBE2", 4);
+	memcpy(ctrl_info.signature, "VBE2", 4);
 
 	/* retrieve controller information */
 	if (X86emu::x86emu_cmd(VBE_CONTROL_FUNC, 0, 0, VESA_CTRL_OFFS) != VBE_SUPPORTED) {
@@ -262,12 +241,12 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height,
 	}
 
 	/* retrieve vesa mode hex value */
-	auto const vesa_mode = get_vesa_mode(ctrl_info, mode_info, width, height,
+	auto const vesa_mode = get_vesa_mode(ctrl_info, mode_info, phys, virt,
 	                                     depth, verbose);
 	if (!vesa_mode) {
-		warning("graphics mode ", width, "x", height, "@", depth, " not found");
+		warning("graphics mode ", virt, "@", depth, " not found");
 		/* print available modes */
-		get_vesa_mode(ctrl_info, mode_info, width, height, depth, true);
+		get_vesa_mode(ctrl_info, mode_info, phys, virt, depth, true);
 		return -2;
 	}
 
@@ -275,13 +254,13 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height,
 	auto const vesa_mode_cmd = (vesa_mode & VBE_CUR_REFRESH_MASK) | VBE_SET_FLAT_FB;
 
 	/* determine VBE version and OEM string */
-	oem_string = X86emu::virt_addr<char>(to_phys(ctrl_info->oem_string));
+	auto oem_string = X86emu::virt_addr<char>(to_phys(ctrl_info.oem_string));
 
 	log("Found: VESA BIOS version ",
-	    ctrl_info->version >> 8, ".", ctrl_info->version & 0xFF, "\n"
-	    "OEM: ", Cstring(ctrl_info->oem_string ? oem_string : "[unknown]"));
+	    ctrl_info.version >> 8, ".", ctrl_info.version & 0xFF, "\n"
+	    "OEM: ", Cstring(ctrl_info.oem_string ? oem_string : "[unknown]"));
 
-	if (ctrl_info->version < 0x200) {
+	if (ctrl_info.version < 0x200) {
 		warning("VESA Bios version 2.0 or later required");
 		return -3;
 	}
@@ -290,10 +269,10 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height,
 	/* 0x91 tests MODE SUPPORTED (0x1) | GRAPHICS  MODE (0x10) | LINEAR
 	 * FRAME BUFFER (0x80) bits */
 	if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode_cmd, VESA_MODE_OFFS) != VBE_SUPPORTED
-	   || (mode_info->mode_attributes & 0x91) != 0x91) {
-		warning("graphics mode ", width, "x", height, "@", depth, " not supported");
+	   || (mode_info.mode_attributes & 0x91) != 0x91) {
+		warning("graphics mode ", virt, "@", depth, " not supported");
 		/* print available modes */
-		get_vesa_mode(ctrl_info, mode_info, width, height, depth, true);
+		get_vesa_mode(ctrl_info, mode_info, phys, virt, depth, true);
 		return -4;
 	}
 
@@ -308,9 +287,9 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height,
 	if (!io_mem_cap.valid()) {
 		X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode_cmd, VESA_MODE_OFFS);
 
-		log("Found: physical frame buffer at ", Hex(mode_info->phys_base), " "
-		    "size: ", ctrl_info->total_memory << 16);
-		map_io_mem(mode_info->phys_base, ctrl_info->total_memory << 16, true,
+		log("Found: physical frame buffer at ", Hex(mode_info.phys_base), " "
+		    "size: ", ctrl_info.total_memory << 16);
+		map_io_mem(mode_info.phys_base, ctrl_info.total_memory << 16, true,
 		           &fb, 0, &io_mem_cap);
 	}
 
@@ -318,7 +297,7 @@ int Framebuffer::set_mode(unsigned &width, unsigned &height,
 		X86emu::print_regions();
 
 	reporter.generate([&] (auto & xml) {
-		generate_report(xml, *ctrl_info, *mode_info, depth, vesa_mode); });
+		generate_report(xml, ctrl_info, mode_info, depth, vesa_mode); });
 
 	return 0;
 }
