@@ -58,24 +58,30 @@ struct Sculpt::Panorama_config
 	{
 		int xpos = 0;
 
-		auto append = [&] (auto const &name, auto const area)
+		auto append = [&] (auto const &name, auto const area, auto const orientation)
 		{
 			if (_num_entries == MAX_ENTRIES)
 				return;
 
+			Area area_rotate = area;
+
+			if (orientation.rotate == Fb_connectors::Orientation::Rotate::R90 ||
+			    orientation.rotate == Fb_connectors::Orientation::Rotate::R270)
+				area_rotate = { area.h, area.w };
+
 			_entries[_num_entries] = Entry {
 				.name = name,
-				.rect = { .at = { .x = xpos, .y = 0 }, .area = area } };
+				.rect = { .at = { .x = xpos, .y = 0 }, .area = area_rotate } };
 
 			_num_entries++;
-			xpos += area.w;
+			xpos += area_rotate.w;
 		};
 
 		fb_config.with_merge_info([&] (Fb_config::Merge_info const &info) {
-			append(info.name, info.px); });
+			append(info.name, info.px, info.orientation); });
 
 		fb_config.for_each_discrete_entry([&] (Fb_config::Entry const &entry) {
-			append(entry.name, entry.mode_attr.px); });
+			append(entry.name, entry.mode_attr.px, entry.orientation); });
 	}
 
 	void gen_policy_entries(Xml_generator &xml) const

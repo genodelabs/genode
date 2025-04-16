@@ -387,15 +387,16 @@ struct Sculpt::Fb_config
 		});
 	}
 
-	struct Merge_info { Entry::Name name; Area px; };
+	struct Merge_info { Entry::Name name; Area px; Entry::Orientation orientation; };
 
 	void with_merge_info(auto const &fn) const
 	{
 		/* merged screen size and name corresponds to first enabled connector */
 		for (unsigned i = 0; i < _num_merged; i++) {
 			if (_entries[i].present && _entries[i].mode_attr.px.valid()) {
-				fn({ .name = _entries[i].name,
-				     .px   = _entries[i].mode_attr.px });
+				fn({ .name        = _entries[i].name,
+				     .px          = _entries[i].mode_attr.px,
+				     .orientation = _entries[i].orientation });
 				return;
 			}
 		}
@@ -403,11 +404,13 @@ struct Sculpt::Fb_config
 		/* if all merged connectors are switched off, use name of first present one */
 		for (unsigned i = 0; i < _num_merged; i++) {
 			if (_entries[i].present) {
-				fn({ .name = _entries[i].name, .px = { }});
+				fn({ .name        = _entries[i].name,
+				     .px          = { },
+				     .orientation = { }});
 				return;
 			}
 		}
-	};
+	}
 
 	void _gen_merge_node(Xml_generator &xml) const
 	{
