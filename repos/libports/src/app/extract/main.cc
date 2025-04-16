@@ -128,7 +128,8 @@ struct Extract::Extracted_archive : Noncopyable
 	                       Strip    const strip,
 	                       Raw_name const &raw_name)
 	{
-		archive_read_support_format_all(src.ptr);
+		archive_read_support_format_tar(src.ptr);
+		archive_read_support_format_zip(src.ptr);
 		archive_read_support_format_raw(src.ptr);
 		archive_read_support_filter_all(src.ptr);
 
