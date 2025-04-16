@@ -33,7 +33,8 @@ void Kernel::Cpu::_arch_init()
 
 	switch (context.exception_type) {
 	case Cpu::SYNC_LEVEL_EL0:         [[fallthrough]];
-	case Cpu::SYNC_LEVEL_EL1:
+	case Cpu::SYNC_LEVEL_EL1:         [[fallthrough]];
+	case Cpu::SYNC_LEVEL_EL1_EXC_MODE:
 		using Ec = Cpu::Esr::Ec;
 		switch (Ec::get(state.esr_el1)) {
 		case Ec::INST_ABORT_SAME_LEVEL:   [[fallthrough]];
@@ -46,11 +47,13 @@ void Kernel::Cpu::_arch_init()
 		default: ;
 		}
 		break;
-	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];
-	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
-	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
-	case Cpu::FIQ_LEVEL_EL1: reason = "interrupt "; break;
-	case Cpu::RESET:         reason = "reset ";     break;
+	case Cpu::IRQ_LEVEL_EL0:          [[fallthrough]];
+	case Cpu::IRQ_LEVEL_EL1:          [[fallthrough]];
+	case Cpu::IRQ_LEVEL_EL1_EXC_MODE: [[fallthrough]];
+	case Cpu::FIQ_LEVEL_EL0:          [[fallthrough]];
+	case Cpu::FIQ_LEVEL_EL1:          [[fallthrough]];
+	case Cpu::FIQ_LEVEL_EL1_EXC_MODE: reason = "interrupt "; break;
+	case Cpu::RESET:                  reason = "reset ";     break;
 	default: ;
 	};
 
@@ -64,6 +67,7 @@ void Kernel::Cpu::_arch_init()
 	log("sp      = ", Hex(state.sp));
 	log("ip      = ", Hex(state.ip));
 	log("esr_el1 = ", Hex(state.esr_el1));
+	log("far_el1 = ", Hex(Far_el1::read()), " (fault-address if page-fault)");
 	log("");
 	log("Backtrace:");
 
