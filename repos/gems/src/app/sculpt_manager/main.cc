@@ -42,6 +42,7 @@
 #include <model/system_state.h>
 #include <model/fb_config.h>
 #include <model/panorama_config.h>
+#include <model/dir_query.h>
 #include <view/download_status_widget.h>
 #include <view/popup_dialog.h>
 #include <view/panel_dialog.h>
@@ -75,6 +76,7 @@ struct Sculpt::Main : Input_event_handler,
                       Popup_dialog::Action,
                       Component::Construction_info,
                       Depot_query,
+                      Dir_query::Action,
                       Panel_dialog::State,
                       Screensaver::Action,
                       Drivers::Info,
@@ -969,6 +971,10 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_runtime_config(Xml_node const &runtime_config)
 	{
 		_cached_runtime_config.update_from_xml(runtime_config);
+
+		if (_dir_query.update(_heap, _cached_runtime_config).runtime_reconfig_needed)
+			generate_runtime_config();
+
 		_graph_view.refresh();
 
 		if (_selected_tab == Panel_dialog::Tab::FILES)
@@ -1463,6 +1469,26 @@ struct Sculpt::Main : Input_event_handler,
 		_update_event_filter_config();
 	}
 
+	/**
+	 * Dir_query::Action interface
+	 */
+	void queried_dir_response() override
+	{
+		if (_popup.state == Popup::VISIBLE)
+			_popup_dialog.refresh();
+	}
+
+	/**
+	 * Component_add_widget::Action interface
+	 */
+	void query_directory(Dir_query::Query const &query) override
+	{
+		if (_dir_query.update_query(_env, *this, _child_states, query).runtime_reconfig_needed)
+			generate_runtime_config();
+	}
+
+	Dir_query _dir_query { _env, *this };
+
 	Signal_handler<Main> _fs_query_result_handler {
 		_env.ep(), *this, &Main::_handle_fs_query_result };
 
@@ -1615,6 +1641,9 @@ struct Sculpt::Main : Input_event_handler,
 
 		/* reset state of the '+' button */
 		_graph_view.refresh();
+
+		if (_dir_query.drop_query().runtime_reconfig_needed)
+			generate_runtime_config();
 	}
 
 	void new_construction(Component::Path const &pkg, Verify verify,
@@ -1679,8 +1708,8 @@ struct Sculpt::Main : Input_event_handler,
 	                                          _launchers, _network._nic_state,
 	                                          _index_update_queue, _index_rom,
 	                                          _download_queue, _runtime_state,
-	                                          _cached_runtime_config, _scan_rom,
-	                                          *this };
+	                                          _cached_runtime_config, _dir_query,
+	                                          _scan_rom, *this };
 
 	Dialog_view<File_browser_dialog> _file_browser_dialog { _dialog_runtime,
 	                                                        _cached_runtime_config,
@@ -2647,6 +2676,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	_dialog_runtime.gen_start_nodes(xml);
 	_storage.gen_runtime_start_nodes(xml);
 	_file_browser_state.gen_start_nodes(xml);
+	_dir_query.gen_start_nodes(xml);
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition

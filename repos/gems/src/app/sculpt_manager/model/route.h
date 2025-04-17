@@ -117,6 +117,42 @@ struct Sculpt::Route : List_model<Route>::Element
 
 	Id selected_service_id { };
 
+	/*
+	 * Directory selection of a file-system route
+	 */
+
+	using Path = String<256>;
+
+	struct Browsed
+	{
+		Id   service_id;
+		Path path;
+
+		static constexpr unsigned MAX_LEVELS = 10;
+		unsigned _dirent_index[MAX_LEVELS];
+
+		void index_at_level(unsigned level, unsigned index)
+		{
+			if (level < MAX_LEVELS)
+				_dirent_index[level] = index;
+		}
+
+		unsigned index_at_level(unsigned level) const
+		{
+			return level < MAX_LEVELS ? _dirent_index[level] : 0;
+		}
+
+	} browsed { };
+
+	Path selected_path { };
+
+	void deselect()
+	{
+		selected_service.destruct();
+		selected_service_id = { };
+		selected_path = { };
+	}
+
 	/**
 	 * Constructor
 	 *
@@ -159,7 +195,12 @@ struct Sculpt::Route : List_model<Route>::Element
 				}
 			}
 
-			selected_service->gen_xml(xml);
+			if (selected_service->type == Service::Type::FILE_SYSTEM)
+				selected_service->gen_xml(xml, [&] {
+					if (selected_path.length() > 1)
+						xml.attribute("prepend_resource", selected_path); });
+			else
+				selected_service->gen_xml(xml);
 		});
 	}
 

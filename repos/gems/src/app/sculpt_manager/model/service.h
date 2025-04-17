@@ -103,7 +103,7 @@ struct Sculpt::Service
 		type(type), label(label), info(info), match_label(match_label)
 	{ }
 
-	void gen_xml(Xml_generator &xml) const
+	void gen_xml(Xml_generator &xml, auto const &attr_fn) const
 	{
 		bool const parent = !server.valid();
 
@@ -117,7 +117,23 @@ struct Sculpt::Service
 
 			if (label.valid() && match_label == Match_label::FS)
 				xml.attribute("identity", label);
+
+			attr_fn();
 		});
+	}
+
+	void gen_xml(Xml_generator &xml) const { gen_xml(xml, [] { }); }
+
+	/**
+	 * Return name of file-system service
+	 */
+	Start_name fs_name() const
+	{
+		bool const parent = !server.valid();
+		if (parent)
+			return label;   /* "report" and "config" file system */
+
+		return server;      /* file system provided by a child */
 	}
 };
 

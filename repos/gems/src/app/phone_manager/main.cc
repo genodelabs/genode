@@ -73,6 +73,7 @@ struct Sculpt::Main : Input_event_handler,
                       Network::Info,
                       Graph::Action,
                       Depot_query,
+                      Dir_query::Action,
                       Component::Construction_info,
                       Device_controls_widget::Action,
                       Device_power_widget::Action,
@@ -798,7 +799,7 @@ struct Sculpt::Main : Input_event_handler,
 		_software_add_widget { Id { "software_add" }, _build_info, _sculpt_version,
 		                       _network._nic_state, _index_update_queue,
 		                       _index_rom, _download_queue,
-		                       _cached_runtime_config,
+		                       _cached_runtime_config, _dir_query,
 		                       *this, _scan_rom };
 
 	Conditional_widget<Software_update_widget>
@@ -1161,6 +1162,10 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_runtime_config(Xml_node const &runtime_config)
 	{
 		_cached_runtime_config.update_from_xml(runtime_config);
+
+		if (_dir_query.update(_heap, _cached_runtime_config).runtime_reconfig_needed)
+			generate_runtime_config();
+
 		_generate_dialog(); /* update graph */
 	}
 
@@ -1478,6 +1483,25 @@ struct Sculpt::Main : Input_event_handler,
 								_deploy.use_as_deploy_template(config);
 								_deploy.update_managed_deploy_config(); }); } }); } }); });
 	}
+
+	/**
+	 * Dir_query::Action interface
+	 */
+	void queried_dir_response() override
+	{
+		_generate_dialog();
+	}
+
+	/**
+	 * Component_add_widget::Action interface
+	 */
+	void query_directory(Dir_query::Query const &query) override
+	{
+		if (_dir_query.update_query(_env, *this, _child_states, query).runtime_reconfig_needed)
+			generate_runtime_config();
+	}
+
+	Dir_query _dir_query { _env, *this };
 
 	/**
 	 * Software_options_widget::Action interface
@@ -2442,6 +2466,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 
 	_dialog_runtime.gen_start_nodes(xml);
 	_storage.gen_runtime_start_nodes(xml);
+	_dir_query.gen_start_nodes(xml);
 
 	if (_system.storage_stage) /* touch keyboard not needed at earliest boot stage */
 		_touch_keyboard.gen_start_node(xml);

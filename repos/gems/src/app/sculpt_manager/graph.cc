@@ -168,6 +168,7 @@ void Graph::view(Scope<Depgraph> &s) const
 		                  || name == "depot_rom"
 		                  || name == "dynamic_depot_rom"
 		                  || name == "depot_query"
+		                  || name == "dir_query"
 		                  || name == "manager_keyboard");
 		if (hidden)
 			return;

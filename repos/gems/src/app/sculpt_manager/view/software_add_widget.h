@@ -73,6 +73,7 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 	                    Index              const &index,
 	                    Download_queue     const &download_queue,
 	                    Runtime_config     const &runtime_config,
+	                    Dir_query          const &dir_query,
 	                    Construction_info  const &construction_info,
 	                    Depot_users        const &depot_users)
 	:
@@ -82,7 +83,7 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 		_depot_users(depot_users),
 		_users(Id { "users" }, depot_users, _build_info.depot_user),
 		_menu(Id { "menu" }, index),
-		_component_add(Id { "add" }, runtime_config),
+		_component_add(Id { "add" }, runtime_config, dir_query),
 		_pkg(Id { "pkg" })
 	{ }
 
@@ -219,7 +220,7 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 	bool keyboard_needed() const { return _users.keyboard_needed(); }
 
 	struct Action : virtual Depot_users_widget::Action,
-	                virtual Component::Construction_action
+	                virtual Component_add_widget::Action
 	{
 		virtual void query_index        (User const &) = 0;
 		virtual void update_sculpt_index(User const &, Verify) = 0;

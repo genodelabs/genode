@@ -20,6 +20,7 @@
 #include <view/resource_widget.h>
 #include <view/debug_widget.h>
 #include <view/pd_route_widget.h>
+#include <view/fs_route_widget.h>
 #include <view/component_info_widget.h>
 
 namespace Sculpt { struct Component_add_widget; }
@@ -27,10 +28,15 @@ namespace Sculpt { struct Component_add_widget; }
 
 struct Sculpt::Component_add_widget : Widget<Vbox>
 {
-	using Name   = Start_name;
-	using Action = Component::Construction_action;
+	using Name = Start_name;
+
+	struct Action : virtual Component::Construction_action
+	{
+		virtual void query_directory(Dir_query::Query const &) = 0;
+	};
 
 	Runtime_config const &_runtime_config;
+	Dir_query      const &_dir_query;
 
 	using Route_entry   = Hosted<Vbox, Frame, Vbox, Menu_entry>;
 	using Service_entry = Hosted<Vbox, Frame, Vbox, Menu_entry>;
@@ -48,8 +54,9 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 		unsigned count = 0;
 		action.apply_to_construction([&] (Component &component) {
 			component.routes.for_each([&] (Route &route) {
-				if (_route_selected(Route::Id(count++)))
-					fn(route); }); });
+				Route::Id const id { count++ };
+				if (_route_selected(id))
+					fn(route, id); }); });
 	}
 
 	bool _route_selected(Route::Id const &id) const
@@ -60,6 +67,15 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 	bool _resource_widget_selected() const
 	{
 		return _route_selected("resources");
+	}
+
+	bool _file_system_route_selected(Action &action)
+	{
+		bool result = false;
+		_apply_to_selected_route(action, [&] (Route const &route, Route::Id) {
+			if (route.required == Service::Type::FILE_SYSTEM)
+				result = true; });
+		return result;
 	}
 
 	void _view_pkg_elements(Scope<Vbox> &s, Component const &component) const
@@ -78,6 +94,18 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 		component.routes.for_each([&] (Route const &route) {
 
 			Id const id { Id::Value { count++ } };
+
+			/*
+			 * Present directory selector for file-system routes
+			 */
+			if (route.required == Service::Type::FILE_SYSTEM) {
+				s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
+					Hosted<Vbox, Frame, Fs_route_widget> fs_route_widget(id);
+					s.widget(fs_route_widget, _selected_route, component,
+					         route, _runtime_config, _dir_query);
+				});
+				return;
+			}
 
 			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
 				s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
@@ -152,9 +180,10 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 			s.widget(_launch);
 	}
 
-	Component_add_widget(Runtime_config const &runtime_config)
+	Component_add_widget(Runtime_config const &runtime_config,
+	                     Dir_query      const &dir_query)
 	:
-		_runtime_config(runtime_config)
+		_runtime_config(runtime_config), _dir_query(dir_query)
 	{ }
 
 	void reset() { _selected_route = { }; }
@@ -200,11 +229,47 @@ struct Sculpt::Component_add_widget : Widget<Vbox>
 					_resources.propagate(at, component); });
 			}
 
+		} else if (_file_system_route_selected(action)) {
+
+			_apply_to_selected_route(action, [&] (Route &route, Route::Id id) {
+
+				if (at.matching_id<Vbox, Frame, Fs_route_widget>() != Id { id }) {
+					/* select different route */
+					if (route_id.valid())
+						_selected_route = route_id;
+					return;
+				}
+
+				/* click inside the file-system route widget */
+				action.apply_to_construction([&] (Component &component) {
+
+					Hosted<Vbox, Frame, Fs_route_widget> fs_route_widget(Id { id });
+
+					Route::Id const orig_selected_service = route.selected_service_id;
+					Path      const orig_selected_path    = route.selected_path;
+
+					fs_route_widget.propagate(at, _runtime_config, _dir_query,
+					                          component, route);
+
+					Dir_query::Query const query =
+						Fs_route_widget::browsed_path_query(component, route);
+
+					if (query != _dir_query._query)
+						action.query_directory(query);
+
+					bool const selection_changed = (orig_selected_service != route.selected_service_id)
+					                            || (orig_selected_path    != route.selected_path);
+
+					if (selection_changed) /* close options on selection or deselection */
+						_selected_route = { };
+				});
+			});
+
 		} else {
 
 			bool clicked_on_selected_route = false;
 
-			_apply_to_selected_route(action, [&] (Route &route) {
+			_apply_to_selected_route(action, [&] (Route &route, Route::Id) {
 
 				unsigned count = 0;
 				_runtime_config.for_each_service([&] (Service const &service) {

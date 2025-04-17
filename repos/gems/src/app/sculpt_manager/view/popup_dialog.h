@@ -83,13 +83,14 @@ struct Sculpt::Popup_dialog : Dialog::Top_level_dialog
 	             Download_queue     const &download_queue,
 	             Runtime_info       const &runtime_info,
 	             Runtime_config     const &runtime_config,
+	             Dir_query          const &dir_query,
 	             Depot_users        const &depot_users,
 	             Construction_info  const &construction_info)
 	:
 		Top_level_dialog("popup"), _action(action),
 		_add(Id { "add" }, build_info, sculpt_version, nic_state,
 		     index_update_queue, index, download_queue, runtime_config,
-		     construction_info, depot_users),
+		     dir_query, construction_info, depot_users),
 		_options(Id { "options" }, runtime_info, launchers)
 	{ }
 

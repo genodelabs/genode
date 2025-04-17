@@ -70,6 +70,21 @@ namespace Sculpt {
 	struct Verify { bool value; };
 
 	struct Progress { bool progress; };
+
+	/**
+	 * Call 'fn' with the two strings preceeding and following the character 'c'
+	 */
+	template <typename FN, size_t N>
+	static inline auto with_split(String<N> const &s, char c, FN const &fn)
+	-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
+	{
+		char const * const str = s.string();
+		for (unsigned i = 0; i < s.length() - 1; i++)
+			if (str[i] == c) {
+				return fn(String<N>(Cstring(str, i)), String<N>(str + i + 1));
+			}
+		return fn(String<N>(s), String<N>());
+	}
 }
 
 #endif /* _TYPES_H_ */

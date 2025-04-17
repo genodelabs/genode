@@ -226,6 +226,8 @@
 						<child name="config_fs_report" label="managed -> nic_router"/> </service>
 					<service name="Report" label="fb_config">
 						<child name="config_fs_report" label="managed -> fb"/> </service>
+					<service name="Report" label="dir_query_config">
+						<child name="config_fs_report" label="managed -> dir_query"/> </service>
 					<service name="Report" label="nitpicker_config">
 						<child name="config_fs_report" label="managed -> nitpicker"/> </service>
 					<service name="Report" label="usb_config">
