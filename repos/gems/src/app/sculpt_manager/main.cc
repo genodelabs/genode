@@ -2270,7 +2270,7 @@ void Sculpt::Main::_handle_gui_mode()
 
 		double const orig_font_size_px = _font_size_px;
 
-		_font_size_px = (double)_screen_size.h / 60.0;
+		_font_size_px = (double)min(_screen_size.w, _screen_size.h) / 60.0;
 
 		if (_settings.font_size == Settings::Font_size::SMALL) _font_size_px *= 0.85;
 		if (_settings.font_size == Settings::Font_size::LARGE) _font_size_px *= 1.35;
