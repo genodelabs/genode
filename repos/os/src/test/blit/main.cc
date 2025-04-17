@@ -67,9 +67,9 @@ struct Image
 #define TEST_LANDSCAPE(SIMD, FN, DST_W, DST_H, W, H) \
 { \
 	Image<DST_W, DST_H> dst { }, ref { }; \
-	Slow:: FN(ref.pixels, ref.w/8, src.pixels, W, H); \
+	Slow:: FN(ref.pixels, ref.w, src.pixels, W, H); \
 	log(#FN, " ref:\n", ref); \
-	SIMD:: FN(dst.pixels, dst.w/8, src.pixels, W, H); \
+	SIMD:: FN(dst.pixels, dst.w, src.pixels, W, H); \
 	log(#FN, " got:\n", dst); \
 	if (dst != ref) { \
 		error("", #FN, " failed"); \
@@ -81,9 +81,9 @@ struct Image
 #define TEST_PORTRAIT(SIMD, FN, DST_W, DST_H, W, H) \
 { \
 	Image<DST_W, DST_H> dst { }, ref { }; \
-	Slow:: FN(ref.pixels, ref.w/8, src.pixels, src.w/8, W, H); \
+	Slow:: FN(ref.pixels, ref.w, src.pixels, src.w, W, H); \
 	log(#FN, " ref:\n", ref); \
-	SIMD:: FN(dst.pixels, dst.w/8, src.pixels, src.w/8, W, H); \
+	SIMD:: FN(dst.pixels, dst.w, src.pixels, src.w, W, H); \
 	log(#FN, " got:\n", dst); \
 	if (dst != ref) { \
 		error("", #FN, " failed"); \
@@ -99,14 +99,14 @@ static void test_simd_b2f()
 
 	log("source image:\n", src);
 
-	TEST_LANDSCAPE ( SIMD, B2f       ::r0, 48, 32, 2, 4 );
-	TEST_LANDSCAPE ( SIMD, B2f_flip  ::r0, 48, 32, 2, 4 );
-	TEST_PORTRAIT  ( SIMD, B2f      ::r90, 32, 48, 4, 2 );
-	TEST_PORTRAIT  ( SIMD, B2f_flip ::r90, 32, 48, 4, 2 );
-	TEST_LANDSCAPE ( SIMD, B2f     ::r180, 48, 32, 2, 4 );
-	TEST_LANDSCAPE ( SIMD, B2f_flip::r180, 48, 32, 2, 4 );
-	TEST_PORTRAIT  ( SIMD, B2f     ::r270, 32, 48, 4, 2 );
-	TEST_PORTRAIT  ( SIMD, B2f_flip::r270, 32, 48, 4, 2 );
+	TEST_LANDSCAPE ( SIMD, B2f       ::r0, 48, 32, 2*8, 4*8 );
+	TEST_LANDSCAPE ( SIMD, B2f_flip  ::r0, 48, 32, 2*8, 4*8 );
+	TEST_PORTRAIT  ( SIMD, B2f      ::r90, 32, 48, 4*8, 2*8 );
+	TEST_PORTRAIT  ( SIMD, B2f_flip ::r90, 32, 48, 4*8, 2*8 );
+	TEST_LANDSCAPE ( SIMD, B2f     ::r180, 48, 32, 2*8, 4*8 );
+	TEST_LANDSCAPE ( SIMD, B2f_flip::r180, 48, 32, 2*8, 4*8 );
+	TEST_PORTRAIT  ( SIMD, B2f     ::r270, 32, 48, 4*8, 2*8 );
+	TEST_PORTRAIT  ( SIMD, B2f_flip::r270, 32, 48, 4*8, 2*8 );
 }
 
 
@@ -238,21 +238,21 @@ static inline void test_b2f_dispatch()
 		Rect const rect { { x, y }, { w, h } };
 
 		test(texture_landscape, rect, Rotate::R0,   Flip { },
-		     expected(y*640 + x, 80, src_landscape_ptr, 80, 8, 6));
+		     expected(y*640 + x, 640, src_landscape_ptr, 640, 8*8, 6*8));
 		test(texture_landscape, rect, Rotate::R0,   Flip { true },
-		     expected(y*640 + 640 - w - x, 80, src_landscape_ptr, 80, 8, 6));
+		     expected(y*640 + 640 - w - x, 640, src_landscape_ptr, 640, 8*8, 6*8));
 		test(texture_portrait, rect, Rotate::R90,  Flip { },
-		     expected(x*640 + 640 - h - y, 80, src_portrait_ptr, 60, 8, 6));
+		     expected(x*640 + 640 - h - y, 640, src_portrait_ptr, 60*8, 8*8, 6*8));
 		test(texture_portrait, rect, Rotate::R90,  Flip { true },
-		     expected(x*640 + y, 80, src_portrait_ptr, 60, 8, 6));
+		     expected(x*640 + y, 640, src_portrait_ptr, 60*8, 8*8, 6*8));
 		test(texture_landscape, rect, Rotate::R180, Flip { },
-		     expected((480 - y - h)*640 + 640 - x - w, 80, src_landscape_ptr, 80, 8, 6));
+		     expected((480 - y - h)*640 + 640 - x - w, 640, src_landscape_ptr, 640, 8*8, 6*8));
 		test(texture_landscape, rect, Rotate::R180, Flip { true },
-		     expected((480 - y - h)*640 + x, 80, src_landscape_ptr, 80, 8, 6));
+		     expected((480 - y - h)*640 + x, 640, src_landscape_ptr, 640, 8*8, 6*8));
 		test(texture_portrait, rect, Rotate::R270, Flip { },
-		     expected((480 - x - w)*640 + y, 80, src_portrait_ptr, 60, 8, 6));
+		     expected((480 - x - w)*640 + y, 640, src_portrait_ptr, 60*8, 8*8, 6*8));
 		test(texture_portrait, rect, Rotate::R270, Flip { true },
-		     expected((480 - x - w)*640 + 640 - y - h, 80, src_portrait_ptr, 60, 8, 6));
+		     expected((480 - x - w)*640 + 640 - y - h, 640, src_portrait_ptr, 60*8, 8*8, 6*8));
 	}
 
 	log("check for compatibility of surface and texture");
@@ -261,7 +261,7 @@ static inline void test_b2f_dispatch()
 
 	log("clamp rect to texture size");
 	test(texture_landscape, { { -99, -99 }, { 999, 999 } }, Rotate::R0, Flip { },
-	     expected(0, 80, 0, 80, 80, 60));
+	     expected(0, 640, 0, 640, 640, 60*8));
 
 	log("ignore out-of-bounds rect");
 	test(texture_landscape, { { 1000, 0 }, { 16, 16 } }, Rotate::R0, Flip { },
@@ -270,7 +270,7 @@ static inline void test_b2f_dispatch()
 	/* snap to grid */
 	log("snap rect argument to 8x8 grid");
 	test(texture_landscape, { { 31, 63 }, { 2, 2 } }, Rotate::R0, Flip { },
-	     expected(56*640 + 24, 80, 56*640 + 24, 80, 2, 2));
+	     expected(56*640 + 24, 640, 56*640 + 24, 640, 2*8, 2*8));
 }
 
 
