@@ -67,27 +67,16 @@ void Cpu_context::_interrupt(Irq::Pool &user_irq_pool)
 }
 
 
-void Cpu_context::quota(unsigned const q)
-{
-	_cpu().scheduler().quota(*this, q);
-}
-
-
-Cpu_context::Cpu_context(Cpu           &cpu,
-                         Priority const priority,
-                         unsigned const quota)
+Cpu_context::Cpu_context(Cpu &cpu, Group_id const id)
 :
-	Context(priority, quota), _cpu_ptr(&cpu)
-{
-	_cpu().scheduler().insert(*this);
-}
+	Context(id), _cpu_ptr(&cpu) { }
 
 
 Cpu_context::~Cpu_context()
 {
 	assert(_cpu().id() == Cpu::executing_id() ||
 	       &_cpu().current_context() != this);
-	_cpu().scheduler().remove(*this);
+	_deactivate();
 }
 
 
@@ -105,7 +94,7 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
                               Pd                                &core_pd)
 :
 	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, cpu,
-	         core_pd, Priority::min(), 0, "idle", Thread::IDLE }
+	         core_pd, Scheduler::Group_id::INVALID, "idle", Thread::IDLE }
 {
 	regs->ip = (addr_t)&idle_thread_main;
 	Thread::_pd = &core_pd;
@@ -115,8 +104,7 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
 void Cpu::assign(Context &context)
 {
 	_scheduler.ready(static_cast<Scheduler::Context&>(context));
-	if (_id != executing_id() && _scheduler.need_to_update())
-		trigger_ip_interrupt();
+	if (_id != executing_id()) trigger_ip_interrupt();
 }
 
 
@@ -167,7 +155,7 @@ Cpu::Cpu(unsigned                     const  id,
 	_timer            { *this },
 	_idle             { addr_space_id_alloc, user_irq_pool, cpu_pool, *this,
 	                    core_pd },
-	_scheduler        { _timer, _idle, _quota(), _fill() },
+	_scheduler        { _timer, _idle },
 	_ipi_irq          { *this },
 	_global_work_list { cpu_pool.work_list() }
 {

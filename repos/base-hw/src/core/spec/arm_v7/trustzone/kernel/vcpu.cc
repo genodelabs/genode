@@ -28,7 +28,7 @@ Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
            Identity               &id)
 :
 	Kernel::Object { *this },
-	Cpu_context(cpu, Scheduler::Priority::min(), 0),
+	Cpu_context(cpu, Scheduler::Group_id::BACKGROUND),
 	_user_irq_pool(user_irq_pool),
 	_state(state),
 	_context(context),

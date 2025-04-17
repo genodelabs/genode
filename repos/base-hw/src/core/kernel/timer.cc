@@ -113,22 +113,4 @@ Timer::Timer(Cpu &cpu)
 	 * timeout syscall value (1 us).
 	 */
 	assert(ticks_to_us(1) < 1 || ticks_to_us(_max_value()) == _max_value());
-
-	/*
-	 * The maximum measurable timeout is also the maximum age of a timeout
-	 * installed by the timeout syscall. The timeout-age syscall returns a
-	 * bogus value for older timeouts. A user that awoke from waiting for a
-	 * timeout might not be schedulable in the same super period anymore.
-	 * However, if the user can't manage to read the timeout age during the
-	 * next super period, it's a bad configuration or the users fault. That
-	 * said, the maximum timeout should be at least two times the super
-	 * period).
-	 */
-	assert(ticks_to_us(_max_value()) > 2 * cpu_quota_us);
-
-	/*
-	 * Kernel::cpu_quota_us is used in ticks for quota calculations
-	 * and must fit into its datatype, which is size_t not time_t
-	 */
-	assert(us_to_ticks(cpu_quota_us) < ~0UL);
 }

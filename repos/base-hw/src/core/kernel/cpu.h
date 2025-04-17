@@ -88,7 +88,7 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		struct Halt_job : Cpu_context
 		{
 			Halt_job(Cpu &cpu)
-			: Cpu_context(cpu, 0, 0) { }
+			: Cpu_context(cpu, Scheduler::Group_id::BACKGROUND) { }
 
 			void exception(Genode::Cpu_state&) override { }
 			void proceed()   override;
@@ -107,9 +107,7 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		Inter_processor_work_list &_global_work_list;
 		Inter_processor_work_list  _local_work_list {};
 
-		void     _arch_init();
-		unsigned _quota() const { return (unsigned)_timer.us_to_ticks(cpu_quota_us); }
-		unsigned _fill() const  { return (unsigned)_timer.us_to_ticks(cpu_fill_us); }
+		void _arch_init();
 
 	public:
 

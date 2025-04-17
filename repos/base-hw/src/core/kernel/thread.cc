@@ -285,24 +285,6 @@ void Thread::_become_inactive(State const s)
 void Thread::_die() { _become_inactive(DEAD); }
 
 
-size_t Thread::_core_to_kernel_quota(size_t const quota) const
-{
-	using Genode::Cpu_session;
-
-	/* we assert at timer construction that cpu_quota_us in ticks fits size_t */
-	size_t const ticks = (size_t)
-		_cpu().timer().us_to_ticks(Kernel::cpu_quota_us);
-	return Cpu_session::quota_lim_downscale(quota, ticks);
-}
-
-
-void Thread::_call_thread_quota()
-{
-	Thread * const thread = (Thread *)user_arg_1();
-	thread->Cpu_context::quota((unsigned)(_core_to_kernel_quota(user_arg_2())));
-}
-
-
 void Thread::_call_start_thread()
 {
 	user_arg_0(0);
@@ -785,15 +767,13 @@ void Thread::_call()
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
 		                  _cpu_pool.cpu((unsigned)user_arg_2()),
 		                  _core_pd, (unsigned) user_arg_3(),
-		                  (unsigned) _core_to_kernel_quota(user_arg_4()),
-		                  (char const *) user_arg_5(), USER);
+		                  (char const *) user_arg_4(), USER);
 		return;
 	case call_id_new_core_thread():
 		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
 		                  _cpu_pool.cpu((unsigned)user_arg_2()),
 		                  _core_pd, (char const *) user_arg_3());
 		return;
-	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
 	case call_id_resume_thread():          _call_resume_thread(); return;
@@ -904,13 +884,12 @@ Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
                Cpu_pool                          &cpu_pool,
                Cpu                               &cpu,
                Pd                                &core_pd,
-               unsigned                    const  priority,
-               unsigned                    const  quota,
+               Scheduler::Group_id         const  group_id,
                char                 const *const  label,
                Type                               type)
 :
 	Kernel::Object       { *this },
-	Cpu_context          { cpu, priority, quota },
+	Cpu_context          { cpu, group_id },
 	_addr_space_id_alloc { addr_space_id_alloc },
 	_user_irq_pool       { user_irq_pool },
 	_cpu_pool            { cpu_pool },

@@ -30,12 +30,7 @@ Dataspace_capability Cpu_thread_component::utcb()
 }
 
 
-Cpu_session::Quota Cpu_session_component::quota()
-{
-	size_t const spu = Kernel::cpu_quota_us;
-	size_t const u = quota_lim_downscale(_quota, spu);
-	return { spu, u };
-}
+Cpu_session::Quota Cpu_session_component::quota() { return Quota(); }
 
 
 size_t Cpu_session_component::_utcb_quota_size() {

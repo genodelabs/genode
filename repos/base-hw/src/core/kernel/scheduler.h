@@ -1,12 +1,11 @@
 /*
- * \brief   Schedules CPU shares for the execution time of a CPU
- * \author  Martin Stein
+ * \brief   Schedules execution times of a CPU
  * \author  Stefan Kalkowski
  * \date    2014-10-09
  */
 
 /*
- * Copyright (C) 2014-2024 Genode Labs GmbH
+ * Copyright (C) 2014-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,75 +15,78 @@
 #define _CORE__KERNEL__SCHEDULER_H_
 
 /* core includes */
-#include <util.h>
 #include <util/list.h>
 #include <util/misc_math.h>
-#include <kernel/configuration.h>
 #include <kernel/timer.h>
+#include <base/log.h>
 
 namespace Kernel { class Scheduler; }
 
 
 /**
- * Forward declaration of corresponding unit-test classes for friendship
+ * Forward declaration of unit-test class
  */
-namespace Scheduler_test {
-	class Scheduler;
-	class Context;
-	class Main;
-}
+namespace Scheduler_test { class Main; }
 
 
 class Kernel::Scheduler
 {
 	public:
 
-		struct Priority
+		enum { MIN_SCHEDULE_US = 5000 };
+
+		using vtime_t = time_t;
+
+		struct Group_id
 		{
-			unsigned value;
+			enum Ids : unsigned {
+				DRIVER,
+				MULTIMEDIA,
+				APP,
+				BACKGROUND,
+				MAX = BACKGROUND,
+				INVALID,
+			};
 
-			static constexpr unsigned min() { return 0; }
-			static constexpr unsigned max() { return cpu_priorities - 1; }
+			unsigned const value;
 
-			Priority(unsigned const value)
-			: value(Genode::min(value, max())) { }
+			Group_id(unsigned const id) : value(id) { }
 
-			Priority &operator =(unsigned const v)
-			{
-				value = Genode::min(v, max());
-				return *this;
-			}
+			bool valid() const { return value <= MAX; }
 		};
-
 
 		class Context
 		{
 			private:
 
 				friend class Scheduler;
-				friend class Scheduler_test::Scheduler;
-				friend class Scheduler_test::Context;
+				friend class Scheduler_test::Main;
+
+				Group_id const _id;
+
+				vtime_t _vtime { 0 };
+
+				time_t _execution_time { 0 };
+
+				enum State { UNREADY, LISTED, READY };
+
+				State _state { UNREADY };
 
 				using List_element = Genode::List_element<Context>;
 				using List         = Genode::List<List_element>;
 
-				unsigned     _priority;
-				unsigned     _quota;
-				List_element _priotized_le { this };
-				unsigned     _priotized_time_left { 0 };
-
-				List_element _slack_le { this };
-				unsigned     _slack_time_left { 0 };
+				List_element _group_le { this };
 
 				List_element _helper_le   { this };
 				List         _helper_list {};
 				Context     *_destination { nullptr };
 
-				time_t _execution_time { 0 };
-
-				bool _ready { false };
-
-				void _reset() { _priotized_time_left = _quota; }
+				void _for_each_helper(auto const fn)
+				{
+					for (List_element *h = _helper_list.first();
+					     h; h = h->next())
+						fn(*h->object());
+				}
 
 				/**
 				 * Noncopyable
@@ -94,90 +96,77 @@ class Kernel::Scheduler
 
 			public:
 
-				Context(Priority const priority,
-				        unsigned const quota)
-				:
-					_priority(priority.value),
-					_quota(quota) { }
+				Context(Group_id const id) : _id(id) {}
 				~Context();
 
-				bool ready() const { return _ready; }
-				void quota(unsigned const q) { _quota = q; }
+				bool ready() const { return _state != UNREADY; }
+
+				bool equal_group(Context const &other) const {
+					return _id.value == other._id.value; }
 
 				void help(Context &c);
 				void helping_finished();
+
 				Context& helping_destination();
 
 				time_t execution_time() const {
 					return _execution_time; }
+
+				vtime_t vtime() const { return _vtime; }
+
+				bool valid() const { return _id.valid(); }
 		};
 
 	private:
 
-		friend class Scheduler_test::Scheduler;
 		friend class Scheduler_test::Main;
 
-		class Context_list
+		using List = Genode::List<Genode::List_element<Context>>;
+
+		class Group
 		{
 			private:
 
-				using List_element = Genode::List_element<Context>;
+				friend class Scheduler;
+				friend class Scheduler_test::Main;
 
-				Genode::List<List_element> _list {};
-				List_element              *_last { nullptr };
+				/* higher weight results in slower virtual time */
+				vtime_t const _weight;
+
+				/* warp = backwards shift in virtual time */
+				vtime_t const _warp;
+
+				/* group's virtual time */
+				vtime_t _vtime { 0 };
+
+				/* minimum virtual time within the group */
+				vtime_t _min_vtime { 0 };
+
+				List _contexts {};
+
+				/**
+				 * Noncopyable
+				 */
+				Group(const Group&) = delete;
+				Group& operator=(const Group&) = delete;
 
 			public:
 
-				void for_each(auto const &fn)
-				{
-					for (List_element * le = _list.first(); le; le = le->next())
-						fn(*le->object());
-				}
+				Group(vtime_t weight, vtime_t warp)
+				:
+					_weight(weight), _warp(warp) {}
 
-				void for_each(auto const &fn) const
-				{
-					for (List_element const * le = _list.first(); le;
-					     le = le->next()) fn(*le->object());
-				}
+				void insert_orderly(Context &c);
+				void remove(Context &c);
 
-				Context* head() const {
-					return _list.first() ? _list.first()->object() : nullptr; }
+				void with_first(auto const fn) const {
+					if (_contexts.first()) fn(*_contexts.first()->object()); }
 
-				void insert_head(List_element * const le)
-				{
-					_list.insert(le);
-					if (!_last) _last = le;
-				}
+				void add_ticks(time_t ticks) {
+					_vtime += (ticks > _weight) ? ticks / _weight : 1; }
 
-				void insert_tail(List_element * const le)
-				{
-					_list.insert(le, _last);
-					_last = le;
-				}
-
-				void remove(List_element * const le)
-				{
-					_list.remove(le);
-
-					if (_last != le)
-						return;
-
-					_last = nullptr;
-					for (List_element * le = _list.first(); le; le = le->next())
-						_last = le;
-				}
-
-				void to_tail(List_element * const le)
-				{
-					remove(le);
-					insert_tail(le);
-				}
-
-				void to_head(List_element * const le)
-				{
-					remove(le);
-					insert_head(le);
-				}
+				bool earlier(Group const &other) const {
+					return (other._vtime + _warp) >= (_vtime + other._warp); }
 		};
 
 		struct Timeout : Kernel::Timeout
@@ -189,40 +178,56 @@ class Kernel::Scheduler
 			virtual void timeout_triggered() override;
 		};
 
-		enum State { UP_TO_DATE, OUT_OF_DATE, YIELD };
-
-		unsigned const _slack_quota;
-		unsigned const _super_period_length;
-
-		unsigned _super_period_left { _super_period_length };
-		unsigned _current_quantum { 0 };
-
 		Timer  &_timer;
 		Timeout _timeout { *this };
+		time_t  _min_timeout { _timer.us_to_ticks(MIN_SCHEDULE_US) };
+		time_t  _max_timeout { _timer.us_to_ticks(_timer.timeout_max_us()) };
 		time_t  _last_time { 0 };
 
-		State _state { UP_TO_DATE };
+		/* minimum virtual time of all groups */
+		vtime_t _min_vtime { 0 };
 
-		Context_list _rpl[cpu_priorities]; /* ready lists by priority   */
-		Context_list _upl[cpu_priorities]; /* unready lists by priority */
-		Context_list _slack_list { };
+		enum State { UP_TO_DATE, OUT_OF_DATE }
+			_state { UP_TO_DATE };
 
 		Context &_idle;
-		Context *_current { nullptr };
+		Context *_current { &_idle };
 
-		void _each_prio_until(auto const &fn)
-		{
-			for (unsigned p = Priority::max(); p != Priority::min()-1; p--)
-				if (fn(p))
-					return;
-		}
+		/* stores LISTED contexts, will be moved into groups by update() */
+		List _ready_contexts {};
 
-		void _consumed(unsigned const q);
-		void _set_current(Context &context, unsigned const q);
-		void _account_priotized(Context &, unsigned const r);
-		void _account_slack(Context &c, unsigned const r);
-		bool _schedule_priotized();
-		bool _schedule_slack();
+		/* The guaranteed CPU share of a group calculates as weight/sum_of_weights */
+		Group _groups[Group_id::MAX + 1] {
+			{ 35, _timer.us_to_ticks(800) }, /* drivers    */
+			{ 10, _timer.us_to_ticks(400) }, /* multimedia */
+			{  4, _timer.us_to_ticks(200) }, /* apps       */
+			{  1, _timer.us_to_ticks(  0) }  /* background */
+		};
+
+		void _for_each_group(auto const fn) {
+			for (unsigned i = 0; i <= Group_id::MAX; i++) fn(_groups[i]); }
+
+		void _update_time();
+
+		bool _is_current(Context &c) const {
+			return _current == &c; }
+
+		bool _up_to_date() const {
+			return _state == UP_TO_DATE; }
+
+		void _with_group(Context const &c, auto const fn) {
+			if (c._id.valid()) fn(_groups[c._id.value]); }
+
+		void _with_group(Context const &c, auto const fn) const {
+			if (c._id.valid()) fn(_groups[c._id.value]); }
+
+		bool _earlier(Context const &first, Context const &second) const;
+
+		bool _ready(Group const &group) const;
+
+		void _check_ready_contexts();
+
+		time_t _ticks_distant_to_current(Context const &context) const;
 
 		/**
 		 * Noncopyable
@@ -232,12 +237,9 @@ class Kernel::Scheduler
 
 	public:
 
-		Scheduler(Timer         &timer,
-		          Context       &idle,
-		          unsigned const super_period_length,
-		          unsigned const slack_quota);
-
-		bool need_to_update() const { return _state != UP_TO_DATE; }
+		Scheduler(Timer &timer, Context &idle)
+		:
+			_timer(timer), _idle(idle) { }
 
 		/**
 		 * Update state
@@ -259,22 +261,8 @@ class Kernel::Scheduler
 		 */
 		void yield();
 
-		/**
-		 * Remove 'context' from scheduler
-		 */
-		void remove(Context &context);
-
-		/**
-		 * Insert 'context' into scheduler
-		 */
-		void insert(Context &context);
-
-		/**
-		 * Set prioritized quota of 'context' to 'quota'
-		 */
-		void quota(Context &context, unsigned const quota);
-
-		Context& current();
+		Context& current() const {
+			return _current ? *_current : _idle; }
 };
 
 #endif /* _CORE__KERNEL__SCHEDULER_H_ */

@@ -1,21 +1,19 @@
 /*
- * \brief   Schedules CPU contexts for the execution time of a CPU
- * \author  Martin Stein
+ * \brief   Schedules execution times of a CPU
  * \author  Stefan Kalkowski
  * \date    2014-10-09
  */
 
 /*
- * Copyright (C) 2014-2024 Genode Labs GmbH
+ * Copyright (C) 2014-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <types.h>
-#include <hw/assert.h>
 #include <kernel/scheduler.h>
 
+using namespace Genode;
 using namespace Kernel;
 
 
@@ -51,108 +49,143 @@ Scheduler::Context::~Context()
 }
 
 
+void Scheduler::Group::insert_orderly(Context &c)
+{
+	using List_element = Genode::List_element<Context>;
+
+	if (!_contexts.first() ||
+	    _contexts.first()->object()->vtime() >= c.vtime()) {
+		_contexts.insert(&c._group_le);
+		return;
+	}
+
+	for (List_element * le = _contexts.first(); le;
+	     le = le->next())
+		if (!le->next() ||
+		    le->next()->object()->vtime() >= c.vtime()) {
+			_contexts.insert(&c._group_le, le);
+			return;
+		}
+}
+
+
+void Scheduler::Group::remove(Context &c)
+{
+	_contexts.remove(&c._group_le);
+}
+
+
 void Scheduler::Timeout::timeout_triggered()
 {
-	if (_scheduler._state == UP_TO_DATE)
-		_scheduler._state = OUT_OF_DATE;
+	_scheduler._update_time();
+	_scheduler._state = OUT_OF_DATE;
 }
 
 
-void Scheduler::_consumed(unsigned const time)
+bool Scheduler::_earlier(Context const &first, Context const &second) const
 {
-	if (_super_period_left > time) {
-		_super_period_left -= time;
-		return;
-	}
+	if (first.equal_group(second))
+		return first._vtime <= second._vtime;
 
-	/**
-	 * Start of a new super period
-	 */
-	_super_period_left = _super_period_length;
-
-	/* reset all priotized contexts */
-	_each_prio_until([&] (Priority const priority) {
-		unsigned const p = priority.value;
-		_rpl[p].for_each([&] (Context &c) { c._reset(); });
-		_upl[p].for_each([&] (Context &c) { c._reset(); });
-		return false;
+	bool ret = false;
+	_with_group(first, [&] (Group const &g1) {
+		ret = true;
+		_with_group(second, [&] (Group const &g2) {
+			ret = g1.earlier(g2); });
 	});
+
+	return ret;
 }
 
 
-void Scheduler::_set_current(Context &context, unsigned const q)
+bool Scheduler::_ready(Group const &group) const
 {
-	_current_quantum = q;
-	_current = &context;
-}
-
-
-void Scheduler::_account_priotized(Context &c, unsigned const r)
-{
-	if (!c._quota)
-		return;
-
-	c._priotized_time_left = (r > c._quota) ? c._quota : r;
-
-	if (c._priotized_time_left || !c.ready())
-		return;
-
-	_rpl[c._priority].to_tail(&c._priotized_le);
-
-	/*
-	 * This is an optimization for the case that a prioritized scheduling
-	 * context needs sligtly more time during a round than granted via quota.
-	 * If this is the case, we move the scheduling context to the front of
-	 * the unprioritized schedule once its quota gets depleted and thereby
-	 * at least ensure that it does not have to wait for all unprioritized
-	 * scheduling contexts as well before being scheduled again.
-	 */
-	if (_state != YIELD)
-		_slack_list.to_head(&c._slack_le);
-}
-
-
-void Scheduler::_account_slack(Context &c, unsigned const r)
-{
-	if (r) {
-		c._slack_time_left = r;
-		return;
-	}
-
-	c._slack_time_left = _slack_quota;
-	if (c.ready()) _slack_list.to_tail(&c._slack_le);
-}
-
-
-bool Scheduler::_schedule_priotized()
-{
-	bool result { false };
-
-	_each_prio_until([&] (Priority const p) {
-		Context* const context = _rpl[p.value].head();
-
-		if (!context)
-			return false;
-
-		if (!context->_priotized_time_left)
-			return false;
-
-		_set_current(*context, context->_priotized_time_left);
-		result = true;
+	/* ready if there is any context in 'group' */
+	if (group._contexts.first())
 		return true;
-	});
-	return result;
+
+	/* also ready if the current context is the only context in 'group' */
+	bool ready = false;
+	_with_group(current(), [&] (Group const &cg) {
+		if (&cg == &group) ready = true; });
+	return ready;
 }
 
 
-bool Scheduler::_schedule_slack()
+void Scheduler::_update_time()
 {
-	Context *const context = _slack_list.head();
-	if (!context)
-		return false;
+	time_t const time = _timer.time();
+	time_t const duration = time - _last_time;
+	_last_time = time;
 
-	_set_current(*context, context->_slack_time_left);
-	return true;
+	current().helping_destination()._execution_time += duration;
+
+	if (!current().valid())
+		return;
+
+	current()._vtime += duration;
+
+	_with_group(current(), [&] (Group &group) {
+		group._min_vtime = current()._vtime;
+		group.with_first([&] (Context &context) {
+			group._min_vtime = min(context._vtime, group._min_vtime); });
+		group.add_ticks(duration);
+		_min_vtime = group._vtime;
+	});
+
+	_for_each_group([&] (Group &group) {
+		if (group._contexts.first() && group._vtime < _min_vtime)
+			_min_vtime = group._vtime; });
+}
+
+
+void Scheduler::_check_ready_contexts()
+{
+	if (!_ready_contexts.first())
+		return;
+
+	_update_time();
+
+	while (_ready_contexts.first()) {
+		Context &c = *_ready_contexts.first()->object();
+		_ready_contexts.remove(&c._group_le);
+
+		_with_group(c, [&] (Group &group) {
+
+			/* If group has a vtime in the past, use minimum vtime */
+			if (!_ready(group) && (_min_vtime > group._vtime))
+				group._vtime = _min_vtime;
+
+			/* if context has a vtime in the past, use groups' minimum time */
+			if (group._min_vtime > c._vtime)
+				c._vtime = group._min_vtime;
+
+			if (_earlier(c, current()) ||
+			    _ticks_distant_to_current(c) < _timer.ticks_left(_timeout))
+				_state = OUT_OF_DATE;
+
+			group.insert_orderly(c);
+		});
+		c._state = Context::READY;
+	}
+}
+
+
+time_t Scheduler::_ticks_distant_to_current(Context const &context) const
+{
+	time_t time = _max_timeout;
+
+	_with_group(current(), [&] (Group const &cur) {
+		_with_group(context, [&] (Group const &oth) {
+			if (&cur == &oth)
+				time = (context._vtime - current()._vtime) + _min_timeout;
+			else
+				time = ((oth._vtime+cur._warp)
+				        - (cur._vtime+oth._warp)) * cur._weight + _min_timeout;
+		});
+	});
+
+	return time;
 }
 
 
@@ -160,171 +193,92 @@ void Scheduler::update()
 {
 	using namespace Genode;
 
-	if (!need_to_update())
+	/* move contexts from _ready_contexts into groups */
+	_check_ready_contexts();
+
+	if (_up_to_date())
 		return;
 
-	time_t time = _timer.time();
-	unsigned const duration =
-		min(min((unsigned)(time-_last_time), _current_quantum),
-		    _super_period_left);
-	_last_time = time;
+	/* determine the group with minimum virtual time */
+	Context *earliest = &_idle;
+	_for_each_group([&] (Group &group) {
+		group.with_first([&] (Context &context) {
+			if (_earlier(context, *earliest)) earliest = &context; });
+	});
 
-	if (_current) _current->_execution_time += duration;
-
-	/* do not detract the quota of idle or removed context */
-	if (_current && _current != &_idle) {
-		unsigned const r = (_state != YIELD) ? _current_quantum - duration : 0;
-		if (_current->_priotized_time_left) _account_priotized(*_current, r);
-		else _account_slack(*_current, r);
+	/* switch if earliest group has context earlier than current */
+	if (_earlier(*earliest, current())) {
+		_with_group(current(), [&] (Group &group) {
+			group.insert_orderly(current()); });
+		_current = earliest;
+		_with_group(current(), [&] (Group &group) {
+			group.remove(current()); });
 	}
 
-	_consumed(duration);
+	/* find max run-time till next context should be scheduled */
+	time_t ticks_next = _max_timeout;
+	_for_each_group([&] (Group const &group) {
+		group.with_first([&] (Context &context) {
+			time_t t = _ticks_distant_to_current(context);
+			if (t < ticks_next) ticks_next = t;
+		});
+	});
+	_timer.set_timeout(_timeout, ticks_next);
 
 	_state = UP_TO_DATE;
-
-	if (!_schedule_priotized())
-		if (!_schedule_slack())
-			_set_current(_idle, _slack_quota);
-
-	_timer.set_timeout(_timeout,
-	                   Genode::min(_current_quantum, _super_period_left));
 }
 
 
 void Scheduler::ready(Context &c)
 {
-	assert(&c != &_idle);
-
 	if (c.ready())
 		return;
 
-	c._ready = true;
+	_ready_contexts.insert(&c._group_le);
 
-	bool keep_current =
-		(_current->_priotized_time_left &&
-		 !c._priotized_time_left) ||
-		(_current->_priotized_time_left &&
-		 (_current->_priority > c._priority));
+	c._for_each_helper([this] (Context &helper) { ready(helper); });
 
-	if (c._quota) {
-		_upl[c._priority].remove(&c._priotized_le);
-		if (c._priotized_time_left)
-			_rpl[c._priority].insert_head(&c._priotized_le);
-		else
-			_rpl[c._priority].insert_tail(&c._priotized_le);
-	}
-
-	_slack_list.insert_head(&c._slack_le);
-
-	if (!keep_current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
-
-	for (Context::List_element *helper = c._helper_list.first();
-	     helper; helper = helper->next())
-		if (!helper->object()->ready()) ready(*helper->object());
+	c._state = Context::LISTED;
 }
 
 
 void Scheduler::unready(Context &c)
 {
-	assert(&c != &_idle);
+	switch (c._state) {
+	case Context::UNREADY:
+		return;
+	case Context::LISTED:
+		_ready_contexts.remove(&c._group_le);
+		break;
+	case Context::READY:
+		_with_group(c, [&] (Group &group) { group.remove(c); });
+	};
 
-	if (!c.ready())
+	c._for_each_helper([this] (Context &helper) { unready(helper); });
+
+	c._state = Context::UNREADY;
+
+	if (!_is_current(c))
 		return;
 
-	if (&c == _current && _state == UP_TO_DATE) _state = OUT_OF_DATE;
-
-	c._ready = false;
-	_slack_list.remove(&c._slack_le);
-
-	if (c._quota) {
-		_rpl[c._priority].remove(&c._priotized_le);
-		_upl[c._priority].insert_tail(&c._priotized_le);
-	}
-
-	for (Context::List_element *helper = c._helper_list.first();
-	     helper; helper = helper->next())
-		if (helper->object()->ready()) unready(*helper->object());
+	/* update time before context vanishs */
+	_update_time();
+	_current = &_idle;
+	_state = OUT_OF_DATE;
 }
 
 
 void Scheduler::yield()
 {
-	_state = YIELD;
-}
-
-
-void Scheduler::remove(Context &c)
-{
-	assert(&c != &_idle);
-
-	if (c._ready) unready(c);
-
-	if (&c == _current)
-		_current = nullptr;
-
-	if (!c._quota)
-		return;
-
-	_upl[c._priority].remove(&c._priotized_le);
-}
-
-
-void Scheduler::insert(Context &c)
-{
-	assert(!c.ready());
-
-	c._slack_time_left = _slack_quota;
-
-	if (!c._quota)
-		return;
-
-	c._reset();
-	_upl[c._priority].insert_head(&c._priotized_le);
-}
-
-
-void Scheduler::quota(Context &c, unsigned const q)
-{
-	assert(&c != &_idle);
-
-	if (c._quota) {
-		if (c._priotized_time_left > q) c._priotized_time_left = q;
-
-		/* does the quota gets revoked completely? */
-		if (!q) {
-			if (c.ready()) _rpl[c._priority].remove(&c._priotized_le);
-			else           _upl[c._priority].remove(&c._priotized_le);
-		}
-	} else if (q) {
-
-		/* initial quota introduction */
-		if (c.ready()) _rpl[c._priority].insert_tail(&c._priotized_le);
-		else           _upl[c._priority].insert_tail(&c._priotized_le);
-	}
-
-	c.quota(q);
-}
-
-
-Scheduler::Context& Scheduler::current()
-{
-	if (!_current) {
-		Genode::error("attempt to access invalid scheduler's current context");
-		update();
-	}
-	return *_current;
-}
-
-
-Scheduler::Scheduler(Timer         &timer,
-                     Context       &idle,
-                     unsigned const super_period_length,
-                     unsigned const slack_quota)
-:
-	_slack_quota(slack_quota),
-	_super_period_length(super_period_length),
-	_timer(timer),
-	_idle(idle)
-{
-	_set_current(idle, slack_quota);
+	/*
+	 * When yielding, we want the current context's vtime
+	 * reflect the situation as if the context consumed as much of its
+	 * time slice so that another context will be scheduled next. As any context's
+	 * vtime is never more than _min_timeout behind nor ahead of any other context
+	 * (in the same group), adding _min_timeout will basically move another context
+	 * to the first position in the group.
+	 */
+	current()._vtime += _min_timeout;
+	_update_time();
+	_state = OUT_OF_DATE;
 }

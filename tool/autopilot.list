@@ -3,7 +3,6 @@ aes_cbc_4k
 bomb
 cpu_balancer
 cpu_bench
-cpu_quota
 cpu_sampler
 cpu_scheduler
 demo

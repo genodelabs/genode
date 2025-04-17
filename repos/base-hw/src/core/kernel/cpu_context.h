@@ -74,18 +74,11 @@ class Kernel::Cpu_context : private Scheduler::Context
 	public:
 
 		using Context  = Scheduler::Context;
-		using Priority = Scheduler::Priority;
+		using Group_id = Scheduler::Group_id;
 
-		Cpu_context(Cpu           &cpu,
-		            Priority const priority,
-		            unsigned const quota);
+		Cpu_context(Cpu &cpu, Group_id const id);
 
 		virtual ~Cpu_context();
-
-		/**
-		 * Set CPU quota of the context to 'q'
-		 */
-		void quota(unsigned const q);
 
 		using Scheduler::Context::execution_time;
 

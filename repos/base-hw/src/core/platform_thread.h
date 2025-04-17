@@ -116,11 +116,10 @@ class Core::Platform_thread : Noncopyable
 
 		Label              const _label;
 		Platform_pd             &_pd;
-		Weak_ptr<Address_space>  _address_space  { };
+		Weak_ptr<Address_space>  _address_space { };
 		Pager_object *           _pager;
 		Utcb                     _utcb;
-		unsigned                 _priority       {0};
-		unsigned                 _quota          {0};
+		unsigned                 _group_id { 0 };
 
 		/*
 		 * Wether this thread is the main thread of a program.
@@ -148,8 +147,9 @@ class Core::Platform_thread : Noncopyable
 
 		unsigned _scale_priority(unsigned virt_prio)
 		{
-			static constexpr unsigned p = Kernel::Scheduler::Priority::max()+1;
-			return Cpu_session::scale_priority(p, virt_prio);
+			static constexpr unsigned p =
+				Kernel::Scheduler::Group_id::BACKGROUND+1;
+			return Cpu_session::scale_priority(p, virt_prio, false);
 		}
 
 		Platform_pd &_kernel_main_get_core_platform_pd();
@@ -247,7 +247,7 @@ class Core::Platform_thread : Noncopyable
 		/**
 		 * Set CPU quota of the thread to 'quota'
 		 */
-		void quota(size_t const quota);
+		void quota(size_t const) { }
 
 		/**
 		 * Get raw thread state
@@ -288,7 +288,7 @@ class Core::Platform_thread : Noncopyable
 		{
 			uint64_t execution_time =
 				const_cast<Platform_thread *>(this)->_kobj->execution_time();
-			return { execution_time, 0, _quota, _priority }; }
+			return { execution_time, 0, 0, _group_id }; }
 
 
 		/***************

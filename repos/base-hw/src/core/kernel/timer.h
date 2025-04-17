@@ -98,6 +98,9 @@ class Kernel::Timer
 
 		void set_timeout(Timeout &timeout, time_t const duration);
 
+		time_t ticks_left(Timeout const &timeout) const {
+			return (timeout._end > time()) ? timeout._end - time() : 0; }
+
 		time_t us_to_ticks(time_t const us) const;
 
 		time_t ticks_to_us(time_t const ticks) const;

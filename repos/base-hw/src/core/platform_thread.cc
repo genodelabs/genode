@@ -88,13 +88,6 @@ Weak_ptr<Address_space>& Platform_thread::address_space() {
 	return _address_space; }
 
 
-void Platform_thread::quota(size_t const quota)
-{
-	_quota = (unsigned)quota;
-	Kernel::thread_quota(*_kobj, quota);
-}
-
-
 Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb,
                                  Affinity::Location const location)
 :
@@ -112,7 +105,7 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
                                  Rpc_entrypoint           &ep,
                                  Ram_allocator            &ram,
                                  Local_rm                 &local_rm,
-                                 size_t             const  quota,
+                                 size_t             const,
                                  Label              const &label,
                                  unsigned           const  virt_prio,
                                  Affinity::Location const  location,
@@ -122,12 +115,11 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 	_pd(pd),
 	_pager(nullptr),
 	_utcb(ep, ram, local_rm),
-	_priority(_scale_priority(virt_prio)),
-	_quota((unsigned)quota),
+	_group_id(_scale_priority(virt_prio)),
 	_main_thread(!pd.has_any_thread),
 	_location(location),
 	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(),
-	      _priority, _quota, _label.string())
+	      _group_id, _label.string())
 {
 	_utcb.ds.with_result([&] (auto &) {
 		_address_space = pd.weak_ptr();

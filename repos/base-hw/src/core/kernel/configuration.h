@@ -22,15 +22,6 @@ namespace Kernel {
 		DEFAULT_STACK_SIZE = 16 * 1024,
 		DEFAULT_TRANSLATION_TABLE_MAX = 1024,
 	};
-
-	/* amount of priority bands amongst quota owners in CPU scheduling */
-	constexpr unsigned cpu_priorities = 4;
-
-	/* super period in CPU scheduling and the overall allocatable CPU time */
-	constexpr time_t cpu_quota_us = 1000000;
-
-	/* time slice for the round-robin mode and the idle in CPU scheduling */
-	constexpr time_t cpu_fill_us = 10000;
 }
 
 #endif /* _CORE__KERNEL__CONFIGURATION_H_ */
