@@ -131,13 +131,13 @@ struct Blit::Sse4
 		}
 	};
 
-	static inline void _rotate_4_lines(Src_ptr4 src, Dst_ptr4 dst,
-	                                   unsigned len_4, auto const dst_4_step)
+	static inline void _rotate_4_lines(Src_ptr4 src, Dst_ptr4 dst, unsigned len_4,
+	                                   auto const src_4_step, auto const dst_4_step)
 	{
 		Tile_4x4 t;
 		while (len_4--) {
 			src.load(t);
-			src.incr_4(1);
+			src.incr_4(src_4_step);
 			src.prefetch();
 			_MM_TRANSPOSE4_PS(t.ps[0], t.ps[1], t.ps[2], t.ps[3]);
 			dst.store(t);
@@ -148,10 +148,10 @@ struct Blit::Sse4
 	static inline void _rotate(Src_ptr4 src, Dst_ptr4 dst,
 	                           Steps const steps, unsigned w, unsigned h)
 	{
-		for (unsigned i = 2*h; i; i--) {
-			_rotate_4_lines(src, dst, 2*w, 4*steps.dst_y_4);
-			src.incr_4(4*steps.src_y_4);
-			dst.incr_4(1);
+		for (unsigned i = 2*w; i; i--) {
+			_rotate_4_lines(src, dst, 2*h, 4*steps.src_y_4, 1);
+			src.incr_4(1);
+			dst.incr_4(4*steps.dst_y_4);
 		}
 	}
 
