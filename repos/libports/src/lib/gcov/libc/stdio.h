@@ -25,6 +25,7 @@ typedef struct FILE FILE;
 extern FILE *stderr;
 
 int fclose(FILE *stream);
+int feof(FILE *stream);
 FILE *fopen(const char *path, const char *mode);
 int fprintf(FILE *stream, const char *format, ...);
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);

@@ -16,8 +16,10 @@
 #define STDLIB_H
 
 void abort(void);
+int abs(int j);
 void atexit(void (*func)(void));
 int atoi(const char *nptr);
+void *calloc(size_t nmemb, size_t size);
 void exit(int status);
 void free(void *ptr);
 char *getenv(const char *name);

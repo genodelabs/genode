@@ -9,6 +9,7 @@ SRC_C = argv.c \
         d-demangle.c \
         filename_cmp.c \
         fopen_unlocked.c \
+        getpwd.c \
         hashtab.c \
         hex.c \
         lbasename.c \

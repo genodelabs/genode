@@ -9,10 +9,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  2 files changed, 8 insertions(+)
 
 diff --git a/gcc/tsystem.h b/gcc/tsystem.h
-index dfaf9e8..d7cac00 100644
+index bb0bfc2..ed48f82 100644
 --- a/gcc/tsystem.h
 +++ b/gcc/tsystem.h
-@@ -90,7 +90,9 @@ extern void *memset (void *, int, size_t);
+@@ -98,7 +98,9 @@ extern void *memset (void *, int, size_t);
  #include <sys/types.h>
  
  /* All systems have this header.  */
@@ -22,7 +22,7 @@ index dfaf9e8..d7cac00 100644
  
  #ifndef errno
  extern int errno;
-@@ -102,10 +104,14 @@ extern int errno;
+@@ -110,10 +112,14 @@ extern int errno;
  #include <unistd.h>
  
  /* GCC supplies this header.  */
@@ -38,7 +38,7 @@ index dfaf9e8..d7cac00 100644
  #endif /* inhibit_libc */
  
 diff --git a/libgcc/libgcov.h b/libgcc/libgcov.h
-index c77a74a..f3ba7ce 100644
+index 9d83a27..4d748ad 100644
 --- a/libgcc/libgcov.h
 +++ b/libgcc/libgcov.h
 @@ -49,6 +49,8 @@

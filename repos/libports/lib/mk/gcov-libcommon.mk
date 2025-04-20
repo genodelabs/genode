@@ -2,8 +2,14 @@ GCOV_PORT_DIR := $(call select_from_ports,gcov)
 
 GCOV_DIR := $(GCOV_PORT_DIR)/src/gcov
 
-SRC_CC = diagnostic.cc \
+SRC_CC = text-art/box-drawing.cc \
+         text-art/canvas.cc \
+         text-art/style.cc \
+         text-art/theme.cc \
+         diagnostic.cc \
          diagnostic-color.cc \
+         diagnostic-format-json.cc \
+         diagnostic-format-sarif.cc \
          diagnostic-show-locus.cc \
          edit-context.cc \
          ggc-none.cc \
@@ -18,7 +24,7 @@ SRC_CC = diagnostic.cc \
 
 CC_OPT += -DIN_GCC
 
-CC_OPT_version += -DBASEVER="\"12.3.0\"" \
+CC_OPT_version += -DBASEVER="\"14.2.0\"" \
                   -DDATESTAMP="\"\"" \
                   -DREVISION="\"\"" \
                   -DDEVPHASE="\"\"" \
@@ -28,7 +34,8 @@ CC_OPT_version += -DBASEVER="\"12.3.0\"" \
 LIBS += libc gmp stdcxx format
 
 INC_DIR += $(GCOV_DIR)/include \
-           $(GCOV_DIR)/libcpp/include
+           $(GCOV_DIR)/libcpp/include \
+           $(GCOV_DIR)/gcc
 
 ifeq ($(filter-out $(SPECS),arm),)
 	INC_DIR += $(GCOV_PORT_DIR)/include/arm/gcc

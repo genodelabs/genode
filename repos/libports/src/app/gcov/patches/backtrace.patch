@@ -5,11 +5,11 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  gcc/diagnostic-show-locus.cc |    2 ++
- gcc/diagnostic.cc            |   15 ++++++++++-----
- 2 files changed, 12 insertions(+), 5 deletions(-)
+ gcc/diagnostic.cc            |   14 ++++++++++----
+ 2 files changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/gcc/diagnostic-show-locus.cc b/gcc/diagnostic-show-locus.cc
-index 6eafe19..7490241 100644
+index ceccc0b..04b7efd 100644
 --- a/gcc/diagnostic-show-locus.cc
 +++ b/gcc/diagnostic-show-locus.cc
 @@ -24,7 +24,9 @@ along with GCC; see the file COPYING3.  If not see
@@ -23,10 +23,10 @@ index 6eafe19..7490241 100644
  #include "diagnostic-color.h"
  #include "gcc-rich-location.h"
 diff --git a/gcc/diagnostic.cc b/gcc/diagnostic.cc
-index 73324a7..ce14cac 100644
+index 6ffd623..42cf02c 100644
 --- a/gcc/diagnostic.cc
 +++ b/gcc/diagnostic.cc
-@@ -28,7 +28,9 @@ along with GCC; see the file COPYING3.  If not see
+@@ -29,7 +29,9 @@ along with GCC; see the file COPYING3.  If not see
  #include "version.h"
  #include "demangle.h"
  #include "intl.h"
@@ -36,7 +36,7 @@ index 73324a7..ce14cac 100644
  #include "diagnostic.h"
  #include "diagnostic-color.h"
  #include "diagnostic-url.h"
-@@ -521,7 +523,7 @@ static const char * const bt_stop[] =
+@@ -628,7 +630,7 @@ static const char * const bt_stop[] =
  };
  
  /* A callback function passed to the backtrace_full function.  */
@@ -45,19 +45,19 @@ index 73324a7..ce14cac 100644
  static int
  bt_callback (void *data, uintptr_t pc, const char *filename, int lineno,
  	     const char *function)
-@@ -601,7 +603,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
+@@ -708,7 +710,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
    fprintf (stderr, "%s%s%s\n", msg, errnum == 0 ? "" : ": ",
  	   errnum == 0 ? "" : xstrerror (errnum));
  }
 -
 +#endif
  /* Check if we've met the maximum error limit, and if so fatally exit
-    with a message.  CONTEXT is the context to check, and FLUSH
-    indicates whether a diagnostic_finish call is needed.  */
-@@ -656,14 +658,17 @@ diagnostic_action_after_output (diagnostic_context *context,
-     case DK_ICE:
-     case DK_ICE_NOBT:
-       {
+    with a message.
+    FLUSH indicates whether a diagnostic_context::finish call is needed.  */
+@@ -773,13 +775,17 @@ diagnostic_context::action_after_output (diagnostic_t diag_kind)
+ 	/* The context might have had diagnostic_finish called on
+ 	   it at this point.  */
+ 
 +#if 0
  	struct backtrace_state *state = NULL;
  	if (diag_kind == DK_ICE)
@@ -68,12 +68,11 @@ index 73324a7..ce14cac 100644
  	if (state != NULL)
  	  backtrace_full (state, 2, bt_callback, bt_err_callback,
  			  (void *) &count);
--
 +#endif
- 	if (context->abort_on_error)
- 	  real_abort ();
  
-@@ -2027,7 +2032,7 @@ fancy_abort (const char *file, int line, const char *function)
+ 	if (m_abort_on_error)
+ 	  real_abort ();
+@@ -2333,7 +2339,7 @@ fancy_abort (const char *file, int line, const char *function)
        fnotice (stderr, diagnostic_kind_text[DK_ICE]);
        fnotice (stderr, "in %s, at %s:%d", function, trim_filename (file), line);
        fputc ('\n', stderr);
@@ -82,7 +81,7 @@ index 73324a7..ce14cac 100644
        /* Attempt to print a backtrace.  */
        struct backtrace_state *state
  	= backtrace_create_state (NULL, 0, bt_err_callback, NULL);
-@@ -2035,7 +2040,7 @@ fancy_abort (const char *file, int line, const char *function)
+@@ -2341,7 +2347,7 @@ fancy_abort (const char *file, int line, const char *function)
        if (state != NULL)
  	backtrace_full (state, 2, bt_callback, bt_err_callback,
  			(void *) &count);

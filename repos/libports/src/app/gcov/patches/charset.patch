@@ -4,29 +4,34 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- libcpp/charset.cc |    4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ libcpp/charset.cc |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/libcpp/charset.cc b/libcpp/charset.cc
-index ca8b7cf..b76d0fa 100644
+index 54d7b9e..8353d8d 100644
 --- a/libcpp/charset.cc
 +++ b/libcpp/charset.cc
-@@ -2480,9 +2480,10 @@ cpp_display_column_to_byte_column (const char *data, int data_length,
+@@ -3406,11 +3406,12 @@ get_cppchar_property (cppchar_t c,
     are not highly optimized, but for the present purpose of outputting
     diagnostics, they are sufficient.  */
  
 -#include "generated_cpp_wcwidth.h"
 +//#include "generated_cpp_wcwidth.h"
- int cpp_wcwidth (cppchar_t c)
+ 
+ int
+ cpp_wcwidth (cppchar_t c)
  {
 +#if 0
-   if (__builtin_expect (c <= wcwidth_range_ends[0], true))
-     return wcwidth_widths[0];
- 
-@@ -2506,5 +2507,6 @@ int cpp_wcwidth (cppchar_t c)
- 
-   if (__builtin_expect (begin != end, true))
-     return wcwidth_widths[begin];
+   const size_t num_ranges
+     = sizeof wcwidth_range_ends / sizeof (*wcwidth_range_ends);
+   return get_cppchar_property<unsigned char > (c,
+@@ -3418,6 +3419,9 @@ cpp_wcwidth (cppchar_t c)
+ 					       &wcwidth_widths[0],
+ 					       num_ranges,
+ 					       1);
++#else
++  return 1;
 +#endif
-   return 1;
  }
+ 
+ #include "combining-chars.inc"

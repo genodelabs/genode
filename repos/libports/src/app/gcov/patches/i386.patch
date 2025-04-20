@@ -8,18 +8,18 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/gcc/config/i386/i386.h b/gcc/config/i386/i386.h
-index 363082b..dc3e19d 100644
+index 26e15d2..e0b0469 100644
 --- a/gcc/config/i386/i386.h
 +++ b/gcc/config/i386/i386.h
-@@ -2351,6 +2351,7 @@ constexpr wide_int_bitmask PTA_ALDERLAKE = PTA_TREMONT | PTA_ADX | PTA_AVX
- constexpr wide_int_bitmask PTA_KNM = PTA_KNL | PTA_AVX5124VNNIW
-   | PTA_AVX5124FMAPS | PTA_AVX512VPOPCNTDQ;
+@@ -2455,6 +2455,7 @@ constexpr wide_int_bitmask PTA_LUJIAZUI = PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SS
+ constexpr wide_int_bitmask PTA_YONGFENG = PTA_LUJIAZUI | PTA_AVX | PTA_AVX2 | PTA_F16C
+   | PTA_FMA | PTA_SHA | PTA_LZCNT;
  
 +#if 0
  #ifndef GENERATOR_FILE
  
  #include "insn-attr-common.h"
-@@ -2373,6 +2374,7 @@ extern unsigned int const pta_size;
+@@ -2477,6 +2478,7 @@ extern unsigned int const pta_size;
  extern unsigned int const num_arch_names;
  #endif
  
@@ -27,7 +27,7 @@ index 363082b..dc3e19d 100644
  #endif
  
  extern enum processor_type ix86_tune;
-@@ -2847,11 +2849,13 @@ extern void debug_dispatch_window (int);
+@@ -2964,11 +2966,13 @@ extern void debug_dispatch_window (int);
  
  #define TARGET_SUPPORTS_WIDE_INT 1
  

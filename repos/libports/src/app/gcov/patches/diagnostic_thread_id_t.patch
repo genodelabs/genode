@@ -1,0 +1,21 @@
+diagnostic_thread_id_t.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/diagnostic-event-id.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gcc/diagnostic-event-id.h b/gcc/diagnostic-event-id.h
+index 78c2ccb..b3c1754 100644
+--- a/gcc/diagnostic-event-id.h
++++ b/gcc/diagnostic-event-id.h
+@@ -61,6 +61,6 @@ typedef diagnostic_event_id_t *diagnostic_event_id_ptr;
+ /* A type for compactly referring to a particular thread within a
+    diagnostic_path.  Typically there is just one thread per path,
+    with id 0.  */
+-typedef unsigned diagnostic_thread_id_t;
++typedef int diagnostic_thread_id_t;
+ 
+ #endif /* ! GCC_DIAGNOSTIC_EVENT_ID_H */

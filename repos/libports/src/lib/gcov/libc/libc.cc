@@ -220,6 +220,12 @@ extern "C" int fclose(FILE *stream)
 }
 
 
+extern "C" int feof(FILE *stream)
+{
+	return 0;
+}
+
+
 extern "C" FILE *fopen(const char *path, const char *mode)
 {
 	Absolute_path dir_path(path);

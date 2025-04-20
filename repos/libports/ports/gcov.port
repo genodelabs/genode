@@ -1,15 +1,15 @@
 LICENSE   := GPLv2
-VERSION   := 12.3.0
+VERSION   := 14.2.0
 DOWNLOADS := gcov.archive generated.git
 
 URL(gcov) := http://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(gcov) := 949a5d4f99e786421a93b532b22ffab5578de7321369975b91aec97adfda8c3b
+SHA(gcov) := a7b39bc69cbf9e25826c5a60ab26477001f7c08d85cec04bc0e29cabed6f3cc9
 DIR(gcov) := src/gcov
 SIG(gcov) := ${URL(gcov)}
 KEY(gcov) := GNU
 
 URL(generated) := https://github.com/cproc/genode-generated.git
-REV(generated) := fa7211312ffe0a7ab4055245bffcea38a3f2fc40
+REV(generated) := 163f58cf43c8553e991dfb8ea65974990fbd2256
 DIR(generated) := include
 
 TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
@@ -17,10 +17,15 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/gcc/defaults.h \
                  gcc-$(VERSION)/gcc/diagnostic.cc \
+                 gcc-$(VERSION)/gcc/diagnostic-client-data-hooks.h \
                  gcc-$(VERSION)/gcc/diagnostic-color.cc \
                  gcc-$(VERSION)/gcc/diagnostic-color.h \
                  gcc-$(VERSION)/gcc/diagnostic-core.h \
+                 gcc-$(VERSION)/gcc/diagnostic-diagram.h \
                  gcc-$(VERSION)/gcc/diagnostic-event-id.h \
+                 gcc-$(VERSION)/gcc/diagnostic-format-json.cc \
+                 gcc-$(VERSION)/gcc/diagnostic-format-sarif.cc \
+                 gcc-$(VERSION)/gcc/diagnostic-format-sarif.h \
                  gcc-$(VERSION)/gcc/diagnostic-metadata.h \
                  gcc-$(VERSION)/gcc/diagnostic-path.h \
                  gcc-$(VERSION)/gcc/diagnostic-show-locus.cc \
@@ -56,7 +61,9 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/iterator-utils.h \
                  gcc-$(VERSION)/gcc/json.cc \
                  gcc-$(VERSION)/gcc/json.h \
+                 gcc-$(VERSION)/gcc/logical-location.h \
                  gcc-$(VERSION)/gcc/machmode.h \
+                 gcc-$(VERSION)/gcc/make-unique.h \
                  gcc-$(VERSION)/gcc/memory-block.cc \
                  gcc-$(VERSION)/gcc/memory-block.h \
                  gcc-$(VERSION)/gcc/mem-stats.h \
@@ -67,6 +74,7 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/poly-int-types.h \
                  gcc-$(VERSION)/gcc/pretty-print.cc \
                  gcc-$(VERSION)/gcc/pretty-print.h \
+                 gcc-$(VERSION)/gcc/pretty-print-urlifier.h \
                  gcc-$(VERSION)/gcc/profile-count.h \
                  gcc-$(VERSION)/gcc/real.h \
                  gcc-$(VERSION)/gcc/selftest.h \
@@ -75,6 +83,17 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/sort.cc \
                  gcc-$(VERSION)/gcc/statistics.h \
                  gcc-$(VERSION)/gcc/system.h \
+                 gcc-$(VERSION)/gcc/text-art/box-drawing.cc \
+                 gcc-$(VERSION)/gcc/text-art/box-drawing-chars.inc \
+                 gcc-$(VERSION)/gcc/text-art/box-drawing.h \
+                 gcc-$(VERSION)/gcc/text-art/canvas.cc \
+                 gcc-$(VERSION)/gcc/text-art/canvas.h \
+                 gcc-$(VERSION)/gcc/text-art/ruler.h \
+                 gcc-$(VERSION)/gcc/text-art/selftests.h \
+                 gcc-$(VERSION)/gcc/text-art/style.cc \
+                 gcc-$(VERSION)/gcc/text-art/theme.cc \
+                 gcc-$(VERSION)/gcc/text-art/theme.h \
+                 gcc-$(VERSION)/gcc/text-art/types.h \
                  gcc-$(VERSION)/gcc/tsystem.h \
                  gcc-$(VERSION)/gcc/typed-splay-tree.h \
                  gcc-$(VERSION)/gcc/vec.cc \
@@ -82,7 +101,6 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/wide-int.h \
                  gcc-$(VERSION)/gcc/wide-int-bitmask.h \
                  gcc-$(VERSION)/gcc/wide-int-print.h \
-                 gcc-$(VERSION)/gcc/config/dbxelf.h \
                  gcc-$(VERSION)/gcc/config/elfos.h \
                  gcc-$(VERSION)/gcc/config/initfini-array.h \
                  gcc-$(VERSION)/gcc/config/newlib-stdint.h \
@@ -92,9 +110,12 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/config/aarch64/aarch64-elf-raw.h \
                  gcc-$(VERSION)/gcc/config/aarch64/aarch64-elf.h \
                  gcc-$(VERSION)/gcc/config/aarch64/aarch64-errata.h \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-isa-modes.def \
+                 gcc-$(VERSION)/gcc/config/aarch64/aarch64-option-extensions.def \
                  gcc-$(VERSION)/gcc/config/aarch64/aarch64-opts.h \
                  gcc-$(VERSION)/gcc/config/aarch64/aarch64.h \
                  gcc-$(VERSION)/gcc/config/aarch64/biarchlp64.h \
+                 gcc-$(VERSION)/gcc/config/arm/aarch-common.h \
                  gcc-$(VERSION)/gcc/config/arm/aout.h \
                  gcc-$(VERSION)/gcc/config/arm/arm.h \
                  gcc-$(VERSION)/gcc/config/arm/arm-flags.h \
@@ -123,15 +144,19 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/include/safe-ctype.h \
                  gcc-$(VERSION)/include/splay-tree.h \
                  gcc-$(VERSION)/libcpp/charset.cc \
+                 gcc-$(VERSION)/libcpp/combining-chars.inc \
                  gcc-$(VERSION)/libcpp/errors.cc \
                  gcc-$(VERSION)/libcpp/files.cc \
                  gcc-$(VERSION)/libcpp/internal.h \
                  gcc-$(VERSION)/libcpp/line-map.cc \
+                 gcc-$(VERSION)/libcpp/printable-chars.inc \
                  gcc-$(VERSION)/libcpp/system.h \
                  gcc-$(VERSION)/libcpp/ucnid.h \
+                 gcc-$(VERSION)/libcpp/uname2c.h \
                  gcc-$(VERSION)/libcpp/include/cpplib.h \
                  gcc-$(VERSION)/libcpp/include/line-map.h \
                  gcc-$(VERSION)/libcpp/include/mkdeps.h \
+                 gcc-$(VERSION)/libcpp/include/rich-location.h \
                  gcc-$(VERSION)/libcpp/include/symtab.h \
                  gcc-$(VERSION)/libgcc/gthr.h \
                  gcc-$(VERSION)/libgcc/libgcov-driver.c \
@@ -148,6 +173,7 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/libiberty/d-demangle.c \
                  gcc-$(VERSION)/libiberty/filename_cmp.c \
                  gcc-$(VERSION)/libiberty/fopen_unlocked.c \
+                 gcc-$(VERSION)/libiberty/getpwd.c \
                  gcc-$(VERSION)/libiberty/hashtab.c \
                  gcc-$(VERSION)/libiberty/hex.c \
                  gcc-$(VERSION)/libiberty/lbasename.c \
