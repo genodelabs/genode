@@ -23,7 +23,7 @@ if {$::argc == 0} {
 }
 
 
-set genode_tools_dir "/usr/local/genode/tool/23.05/bin"
+set genode_tools_dir "/usr/local/genode/tool/25.05/bin"
 
 set arch {}
 

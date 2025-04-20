@@ -1,4 +1,4 @@
-QT_TOOLS_DIR = /usr/local/genode/tool/23.05
+QT_TOOLS_DIR = /usr/local/genode/tool/25.05
 
 ifeq ($(filter-out $(SPECS),arm),)
 QT_PLATFORM = genode-arm-g++
