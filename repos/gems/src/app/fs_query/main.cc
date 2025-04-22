@@ -154,14 +154,46 @@ struct Fs_query::Watched_directory
 
 	bool has_name(Directory::Path const &name) const { return _rel_path == name; }
 
+	struct Count
+	{
+		unsigned dirs, files, symlinks;
+
+		void gen_attr(Xml_generator &xml) const
+		{
+			if (dirs)     xml.attribute("num_dirs",     dirs);
+			if (files)    xml.attribute("num_files",    files);
+			if (symlinks) xml.attribute("num_symlinks", symlinks);
+		}
+
+		static Count from_dir(Directory const &dir)
+		{
+			using Type = Vfs::Directory_service::Dirent_type;
+			Count count { };
+			dir.for_each_entry([&] (Directory::Entry const &entry) {
+				switch (entry.type()) {
+				case Type::TRANSACTIONAL_FILE:
+				case Type::CONTINUOUS_FILE:    count.files++;    break;
+				case Type::DIRECTORY:          count.dirs++;     break;
+				case Type::SYMLINK:            count.symlinks++; break;
+				case Type::END:                break;
+				}
+			});
+			return count;
+		}
+	};
+
 	void gen_query_response(Xml_generator &xml, Xml_node const &query) const
 	{
+		bool const count_enabled = query.attribute_value("count", false);
+
 		xml.node("dir", [&] () {
 			xml.attribute("path", _rel_path);
 
 			for_each_subdir_name(_alloc, _dir, [&] (Directory::Entry::Name const &name) {
 				xml.node("dir", [&] () {
-					xml.attribute("name", name); }); });
+					xml.attribute("name", name);
+					if (count_enabled)
+						Count::from_dir(Directory(_dir, name)).gen_attr(xml); }); });
 
 			sorted_for_each(_alloc, _files, [&] (Watched_file const &file) {
 				file.gen_query_response(xml, query, _alloc, _dir); });
