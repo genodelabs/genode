@@ -148,19 +148,34 @@ void blk_unregister_queue(struct gendisk * disk)
 }
 
 
+struct genode_block_session_context
+{
+	struct gendisk              *disk;
+	struct genode_block_request *req;
+};
+
+
+static inline int block_handle_end_io(struct genode_block_session_context *ctx,
+                               struct genode_block_session *session)
+{
+	struct genode_block_request * const req = ctx->req;
+
+	if (genode_block_ack_request(session, req, true))
+		lx_user_handle_io();
+
+	return 1;
+}
+
 
 static void bio_end_io(struct bio *bio)
 {
 	struct genode_block_request * const req =
 		(struct genode_block_request*) bio->bi_private;
-	struct genode_block_session * const session =
-		genode_block_session_by_name(bio->bi_bdev->bd_disk->disk_name);
 
-	if (session) {
-		genode_block_ack_request(session, req, true);
-		lx_user_handle_io();
-	} else
-		printk("Error: could not find session or gendisk for bio %p\n", bio);
+	struct genode_block_session_context ctx = { .req = req };
+
+	genode_block_session_ack_by_name(bio->bi_bdev->bd_disk->disk_name,
+	                                 req->id, &ctx, block_handle_end_io);
 
 	bio_put(bio);
 }
@@ -197,20 +212,24 @@ static inline void block_request(struct block_device         * const bdev,
 }
 
 
-static inline void
-block_handle_session(struct genode_block_session * const session,
-                     struct gendisk              * const disk)
+static inline int
+block_handle_session(struct genode_block_session_context * const ctx,
+                     struct genode_block_session * const session)
 {
 	if (!session)
-		return;
+		return 1;
 
+	int resume = 0;
+
+	unsigned count = 0;
 	for (;;) {
 		struct genode_block_request * const req =
 			genode_block_request_by_session(session);
-		struct block_device * const bdev = disk->part0;
+		struct block_device * const bdev = ctx->disk->part0;
 
-		if (!req)
-			return;
+		if (!req) {
+			break;
+		}
 
 		switch (req->op) {
 		case GENODE_BLOCK_READ:
@@ -222,9 +241,23 @@ block_handle_session(struct genode_block_session * const session,
 		case GENODE_BLOCK_SYNC:
 			genode_block_ack_request(session, req, block_sync(bdev));
 			genode_block_notify_peers();
-		default: ;
+			break;
+		default:
+			break;
 		};
+
+		/*
+		 * Interrupt processing after some requests were handled
+		 * to give other sessions a chance to submit their requests
+		 * as well.
+		 */
+
+		if (++count >= 8) {
+			resume = 1;
+			break;
+		}
 	}
+	return resume;
 }
 
 
@@ -240,8 +273,19 @@ static int block_poll_sessions(void * data)
 			if (!disk)
 				continue;
 
-			block_handle_session(genode_block_session_by_name(disk->disk_name),
-			                     disk);
+			{
+				struct genode_block_session_context ctx = { .disk = disk };
+
+				/*
+				 * Loop as long as at least on session has not finished
+				 * submitting its requests. This is mostly the case due
+				 * to being interrupted forcefully in 'block_handle_session()'
+				 * to allow other sessions to submit requests as well.
+				 */
+				if (!genode_block_session_for_each_by_name(disk->disk_name, &ctx,
+				                                           block_handle_session))
+					continue;
+			}
 		}
 
 		lx_emul_task_schedule(true);

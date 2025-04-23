@@ -70,20 +70,32 @@ enum Operation {
 };
 
 struct genode_block_request {
+	unsigned long         id;
 	int                   op;
 	genode_block_sector_t blk_nr;
 	genode_block_sector_t blk_cnt;
 	void *                addr;
 };
 
-struct genode_block_session * genode_block_session_by_name(const char * name);
+struct genode_block_session_context;
+typedef int (*genode_block_session_one_session_t)
+	(struct genode_block_session_context *, struct genode_block_session *);
+
+int genode_block_session_for_each_by_name(const char * name,
+                                          struct genode_block_session_context *,
+                                          genode_block_session_one_session_t session_fn);
+
+void genode_block_session_ack_by_name(const char * name,
+                                      unsigned long id,
+                                      struct genode_block_session_context *,
+                                      genode_block_session_one_session_t session_fn);
 
 struct genode_block_request *
 genode_block_request_by_session(struct genode_block_session * const session);
 
-void genode_block_ack_request(struct genode_block_session * const session,
-                              struct genode_block_request * const request,
-                              int success);
+int genode_block_ack_request(struct genode_block_session * const session,
+                             struct genode_block_request * const request,
+                             int success);
 
 void genode_block_notify_peers(void);
 
