@@ -14,6 +14,11 @@ include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)
 #
 CC_DEF += -DARCH_DMA_MINALIGN=16 -DARCH_SLAB_MINALIGN=16
 
+#
+# Prevent compiler from emitting vector instructions
+#
+CC_C_OPT += -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx
+
 INC_DIR += $(REP_DIR)/src/include
 
 # Handle specific source requirements
