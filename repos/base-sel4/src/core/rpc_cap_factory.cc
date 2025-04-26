@@ -16,7 +16,6 @@
 #include <util/misc_math.h>
 
 /* core includes */
-#include <pd_session/pd_session.h>
 #include <rpc_cap_factory.h>
 #include <platform.h>
 
@@ -26,27 +25,23 @@
 using namespace Core;
 
 
-static unsigned unique_id_cnt;
-
-
-Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory *owner,
-                                          Native_capability ep)
+Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 {
-	if (!ep.valid()) {
-		warning("Invalid entrypoint capability");
+	static unsigned unique_id_cnt;
+
+	if (!ep.valid())
 		return Native_capability();
-	}
+
+	Mutex::Guard guard(_mutex);
 
 	Rpc_obj_key const rpc_obj_key(++unique_id_cnt);
 
-	// XXX remove cast
-	return Capability_space::create_rpc_obj_cap(ep, (Pd_session*)owner, rpc_obj_key);
-}
+	auto cap = Capability_space::create_rpc_obj_cap(ep, rpc_obj_key);
 
+	if (cap.valid())
+		_pool.insert(new (_entry_slab) Entry(cap));
 
-Native_capability Rpc_cap_factory::alloc(Native_capability ep)
-{
-	return Rpc_cap_factory::_alloc(this, ep);
+	return cap;
 }
 
 
@@ -55,14 +50,30 @@ void Rpc_cap_factory::free(Native_capability cap)
 	if (!cap.valid())
 		return;
 
-	/*
-	 * XXX check whether this CAP session has created the capability to delete.
-	 */
+	Mutex::Guard guard(_mutex);
 
-	static uint64_t leakage = 0;
+	Entry * entry_ptr = nullptr;
+	_pool.apply(cap, [&] (Entry * ptr) {
+		if (!ptr)
+			return;
 
-	leakage ++;
-	if (1ULL << log2(leakage) == leakage)
-		warning(__PRETTY_FUNCTION__, " not implemented - resources leaked: ", Hex(leakage));
+		_pool.remove(ptr);
+
+		Capability_space::destroy_rpc_obj_cap(cap);
+
+		entry_ptr = ptr;
+	});
+
+	if (entry_ptr)
+		destroy(_entry_slab, entry_ptr);
 }
 
+
+Rpc_cap_factory::~Rpc_cap_factory()
+{
+	Mutex::Guard guard(_mutex);
+
+	_pool.remove_all([this] (Entry *ptr) {
+		if (ptr)
+			destroy(_entry_slab, ptr); });
+}

@@ -28,23 +28,14 @@
  */
 class Genode::Native_capability::Data : public Capability_data
 {
-	private:
-
-		Pd_session const *_pd_session = nullptr;
-
 	public:
 
-		Data(Pd_session const *pd_session, Rpc_obj_key key)
+		Data(Rpc_obj_key key)
 		:
-			Capability_data(key), _pd_session(pd_session)
+			Capability_data(key)
 		{ }
 
 		Data() { }
-
-		bool belongs_to(Pd_session const *session) const
-		{
-			return _pd_session == session;
-		}
 };
 
 
@@ -76,18 +67,17 @@ namespace {
 
 Native_capability
 Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
-                                     Pd_session const *pd_session,
                                      Rpc_obj_key rpc_obj_key)
 {
+	if (!ep_cap.valid())
+		return { };
+
 	/* allocate core-local selector for RPC object */
 	Cap_sel const rpc_obj_sel = platform_specific().core_sel_alloc().alloc();
 
 	/* create Genode capability */
-	Native_capability::Data &data =
-		local_capability_space().create_capability(rpc_obj_sel, pd_session,
-		                                           rpc_obj_key);
-
-	ASSERT(ep_cap.valid());
+	auto & data = local_capability_space().create_capability(rpc_obj_sel,
+	                                                         rpc_obj_key);
 
 	Cap_sel const ep_sel(local_capability_space().sel(*ep_cap.data()));
 
@@ -117,6 +107,31 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 }
 
 
+void Capability_space::destroy_rpc_obj_cap(Native_capability &cap)
+{
+	if (!cap.valid() || !cap.data())
+		return;
+
+	Cap_sel const sel(local_capability_space().sel(*cap.data()));
+	seL4_CNode_Revoke(seL4_CapInitThreadCNode, sel.value(), 32);
+}
+
+
+template <unsigned A, unsigned B, typename C>
+void Capability_space_sel4<A, B, C>::_cleanup_last_ref(Native_capability::Data & data)
+{
+	Cap_sel const sel(local_capability_space().sel(data));
+
+	/*
+	 * Continues cleanup of destroy_rpc_obj_cap() and reverts the allocation
+	 * of create_rpc_obj_cap () since the ref count dropped now to zero.
+	 */
+	seL4_CNode_Revoke(seL4_CapInitThreadCNode, sel.value(), 32);
+	seL4_CNode_Delete(seL4_CapInitThreadCNode, sel.value(), 32);
+	platform_specific().core_sel_alloc().free(sel);
+}
+
+
 /******************************************************
  ** Implementation of the Capability_space interface **
  ******************************************************/
@@ -128,11 +143,7 @@ Native_capability Capability_space::create_ep_cap(Thread &ep_thread)
 			Cap_sel const ep_sel(nt.attr.ep_sel);
 
 			/* entrypoint capabilities are not allocated from a PD session */
-			Pd_session const *pd_session = nullptr;
-
-			Native_capability::Data &data =
-				local_capability_space().create_capability(ep_sel, pd_session,
-				                                           Rpc_obj_key());
+			auto &data = local_capability_space().create_capability(ep_sel, Rpc_obj_key());
 			return Native_capability(&data);
 		},
 		[&] { return Native_capability(); });
@@ -183,14 +194,10 @@ void Capability_space::reset_sel(unsigned sel)
 }
 
 
-Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
+Native_capability Capability_space::import(Ipc_cap_data ipc_data)
 {
-	/* imported capabilities are not associated with a PD session */
-	Pd_session const *pd_session = nullptr;
-
-	Native_capability::Data &data =
-		local_capability_space().create_capability(ipc_cap_data.sel, pd_session,
-		                                           ipc_cap_data.rpc_obj_key);
+	auto &data = local_capability_space().create_capability(ipc_data.sel,
+	                                                        ipc_data.rpc_obj_key);
 
 	return Native_capability(&data);
 }
@@ -199,11 +206,8 @@ Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 Native_capability
 Capability_space::create_notification_cap(Cap_sel &notify_cap)
 {
-	Pd_session const *pd_session = nullptr;
-
-	Native_capability::Data &data =
-		local_capability_space().create_capability(notify_cap, pd_session,
-		                                           Rpc_obj_key());
+	auto &data = local_capability_space().create_capability(notify_cap,
+	                                                        Rpc_obj_key());
 
 	return Native_capability(&data);
 }

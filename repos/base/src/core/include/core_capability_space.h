@@ -22,7 +22,6 @@
 
 namespace Genode {
 
-	class Pd_session;
 	class Cap_sel;
 
 	namespace Capability_space {
@@ -31,8 +30,9 @@ namespace Genode {
 	 * Create new RPC object capability for the specified entrypoint
 	 */
 	Native_capability create_rpc_obj_cap(Native_capability ep_cap,
-	                                     Pd_session const *,
 	                                     Rpc_obj_key);
+
+	void destroy_rpc_obj_cap(Native_capability &);
 
 	Native_capability create_notification_cap(Cap_sel &notify_cap);
 } }

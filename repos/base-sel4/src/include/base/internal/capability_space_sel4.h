@@ -191,11 +191,15 @@ class Genode::Capability_space_sel4
 
 		void _remove(Native_capability::Data &data)
 		{
-			if (_caps_data[_index(data)].rpc_obj_key().valid())
+			if (_caps_data[_index(data)].rpc_obj_key().valid()) {
 				_tree.remove(static_cast<Tree_managed_data *>(&data));
+				_cleanup_last_ref(data);
+			}
 
 			construct_at<Tree_managed_data>(&_caps_data[_index(data)]);
 		}
+
+		void _cleanup_last_ref(Native_capability::Data &);
 
 	public:
 

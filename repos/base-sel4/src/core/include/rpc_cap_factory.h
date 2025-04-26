@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,6 +17,11 @@
 /* Genode includes */
 #include <base/allocator.h>
 #include <base/capability.h>
+#include <base/object_pool.h>
+#include <base/tslab.h>
+
+/* base-internal includes */
+#include <base/internal/page_size.h>
 
 /* core includes */
 #include <types.h>
@@ -28,12 +33,26 @@ class Core::Rpc_cap_factory
 {
 	private:
 
-		static Native_capability _alloc(Rpc_cap_factory *owner,
-		                                Native_capability ep);
+		struct Entry : Object_pool<Entry>::Entry
+		{
+			Entry(Native_capability cap) : Object_pool<Entry>::Entry(cap) {}
+		};
+
+		Object_pool<Entry> _pool { };
+
+		enum { SBS = 960*sizeof(long) };
+		uint8_t _initial_sb[SBS];
+
+		Tslab<Entry, SBS> _entry_slab;
+
+		Mutex             _mutex { };
 
 	public:
 
-		Rpc_cap_factory(Allocator &) { }
+		Rpc_cap_factory(Allocator &md_alloc)
+		: _entry_slab(md_alloc, _initial_sb) { }
+
+		~Rpc_cap_factory();
 
 		Native_capability alloc(Native_capability ep);
 

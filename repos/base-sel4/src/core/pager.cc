@@ -164,7 +164,7 @@ Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 	Rpc_obj_key rpc_obj_key((addr_t)badge);
 
 	Untyped_capability ep_cap(Capability_space::create_ep_cap(*this));
-	return Capability_space::create_rpc_obj_cap(ep_cap, nullptr, rpc_obj_key);
+	return Capability_space::create_rpc_obj_cap(ep_cap, rpc_obj_key);
 }
 
 
