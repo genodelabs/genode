@@ -7,21 +7,21 @@
   <xs:choice minOccurs="1" maxOccurs="3">
    <xs:element name="parent">
     <xs:complexType>
-     <xs:attribute name="label"           type="Session_label" />
-     <xs:attribute name="identity"        type="Session_label" />
-     <xs:attribute name="resource"        type="Session_label" />
-     <xs:attribute name="prefix_resource" type="Session_label" />
-     <xs:attribute name="diag"            type="Boolean" />
+     <xs:attribute name="label"            type="Session_label" />
+     <xs:attribute name="identity"         type="Session_label" />
+     <xs:attribute name="resource"         type="Session_label" />
+     <xs:attribute name="prepend_resource" type="Session_label" />
+     <xs:attribute name="diag"             type="Boolean" />
     </xs:complexType>
    </xs:element>
    <xs:element name="any-child"/>
    <xs:element name="child">
     <xs:complexType>
-     <xs:attribute name="name"            type="xs:string" />
-     <xs:attribute name="label"           type="Session_label" />
-     <xs:attribute name="identity"        type="Session_label" />
-     <xs:attribute name="resource"        type="Session_label" />
-     <xs:attribute name="prefix_resource" type="Session_label" />
+     <xs:attribute name="name"             type="xs:string" />
+     <xs:attribute name="label"            type="Session_label" />
+     <xs:attribute name="identity"         type="Session_label" />
+     <xs:attribute name="resource"         type="Session_label" />
+     <xs:attribute name="prepend_resource" type="Session_label" />
     </xs:complexType>
    </xs:element>
   </xs:choice>
