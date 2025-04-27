@@ -1,9 +1,9 @@
 LICENSE   := LGPL
-VERSION   := 12.3.0
+VERSION   := 14.2.0
 DOWNLOADS := sanitizer.archive
 
 URL(sanitizer) := http://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
-SHA(sanitizer) := 949a5d4f99e786421a93b532b22ffab5578de7321369975b91aec97adfda8c3b
+SHA(sanitizer) := a7b39bc69cbf9e25826c5a60ab26477001f7c08d85cec04bc0e29cabed6f3cc9
 DIR(sanitizer) := src/lib/sanitizer
 SIG(sanitizer) := ${URL(gcc)}
 KEY(sanitizer) := GNU
