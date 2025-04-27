@@ -33,8 +33,8 @@
 						<zero/> <null/> <log/> <rtc/>
 					</dir>
 					<dir name="pipe"> <pipe/> </dir>
-					<dir name="rw">     <fs label="target"/> </dir>
-					<dir name="report"> <fs label="report"/> </dir>
+					<dir name="rw">     <fs label="target -> /"/> </dir>
+					<dir name="report"> <fs label="report -> /"/> </dir>
 					<dir name="tmp"> <ram /> </dir>
 					<inline name=".bash_profile">
 						while true; do
@@ -49,8 +49,8 @@
 				<default-policy root="/" writeable="yes"/>
 			</config>
 			<route>
-				<service name="File_system" label="target"> <parent label="target -> /"/> </service>
-				<service name="File_system" label="report"> <parent label="report -> /"/> </service>
+				<service name="File_system" label_prefix="target ->"> <parent identity="target"/> </service>
+				<service name="File_system" label_prefix="report ->"> <parent identity="report"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>

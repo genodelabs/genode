@@ -2,7 +2,7 @@
 
 	<route>
 		<service name="File_system" label_prefix="report ->">
-			<parent label="report"/> </service>
+			<parent identity="report"/> </service>
 		<service name="File_system" label_prefix="target ->">
 			<child name="default_fs_rw"/> </service>
 		<service name="Rtc">
