@@ -791,7 +791,7 @@ class Vfs_tresor::Plugin : private Noncopyable, private Client_data_interface, p
 		Plugin(Vfs::Env &vfs_env, Xml_node const &config)
 		:
 			_vfs_env(vfs_env),
-			_verbose(config.attribute_value("verbose", _verbose)),
+			_verbose(config.attribute_value("verbose", false)),
 			_crypto_path(config.attribute_value("crypto", Tresor::Path())),
 			_block_io_path(config.attribute_value("block", Tresor::Path())),
 			_trust_anchor_path(config.attribute_value("trust_anchor", Tresor::Path()))
