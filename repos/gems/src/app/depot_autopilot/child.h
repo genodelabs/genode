@@ -376,11 +376,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 				return;
 
 			Xml_node const &launcher_xml = _launcher_xml.constructed()
-			                             ? _launcher_xml->xml()
+			                             ? _launcher_xml->xml
 			                             : Xml_node("<empty/>");
 
 			if (_condition == UNSATISFIED && _start_xml.constructed())
-				fn(_start_xml->xml(), launcher_xml);
+				fn(_start_xml->xml, launcher_xml);
 		}
 
 		/*
@@ -395,11 +395,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			Condition const orig_condition = _condition;
 
 			Xml_node launcher_xml = _launcher_xml.constructed()
-			                      ? _launcher_xml->xml()
+			                      ? _launcher_xml->xml
 			                      : Xml_node("<empty/>");
 
 			if (_start_xml.constructed())
-				_condition = fn(_start_xml->xml(), launcher_xml)
+				_condition = fn(_start_xml->xml, launcher_xml)
 				           ? SATISFIED : UNSATISFIED;
 
 			return _condition != orig_condition;
