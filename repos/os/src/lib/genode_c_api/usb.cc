@@ -465,6 +465,7 @@ class Device_component
 		Reg_list<Interface_component>    _interfaces {};
 		Signal_context_capability        _sigh_cap;
 		bool                             _warn_once { true };
+		bool                             _warn_once_timeout { true };
 
 		void
 		_handle_request(Constructible<Packet_descriptor> &cp,
@@ -939,8 +940,24 @@ Device_component::_handle_request(Constructible<Packet_descriptor> &cpd,
 		return;
 	}
 
+	/**
+	 * Choose max timeout based on USB_CTRL_GET_TIMEOUT && USB_CTRL_SET_TIMEOUT
+	 * value as defined by linux/include/linux/usb.h, which is 5'000 by now.
+	 */
+	auto const timeout_ms = (cpd->timeout > 5'000 || !cpd->timeout)
+	                      ? 5'000 : cpd->timeout;
+
+	if ((_warn_once_timeout || cpd->timeout) && timeout_ms != cpd->timeout) {
+		warning("Control URB timeout adjusted from ",
+		        cpd->timeout ? String<16>(cpd->timeout)
+		                     : String<16>("infinity "),
+		        "ms to ", timeout_ms, "ms of device ", _device_label,
+		        " from session ", _session.label());
+		_warn_once_timeout = false;
+	}
+
 	cbs->ctrl_fn(handle, cpd->request, cpd->request_type, cpd->value,
-	             cpd->index, cpd->timeout, payload, opaque_data);
+	             cpd->index, timeout_ms, payload, opaque_data);
 }
 
 

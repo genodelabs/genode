@@ -406,7 +406,8 @@ static int poll_usb_device(void * args)
 
 	for (;;) {
 		if (data->dev) usb_lock_device(data->dev);
-		while (data->dev && check_for_urbs(data->dev)) ;
+		while (data->dev && !data->kill_task && check_for_urbs(data->dev)) ;
+
 		if (data->dev) usb_unlock_device(data->dev);
 
 		/* check if device got removed */
