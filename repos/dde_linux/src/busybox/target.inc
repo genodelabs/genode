@@ -15,6 +15,9 @@ busybox.links:
 	$(MSG_CONFIG)Buildroot
 	$(VERBOSE)$(MAKE) -C $(BB_DIR) O=$(PWD) $(BB_MK_ARGS) defconfig $(BUILD_OUTPUT_FILTER)
 	$(VERBOSE)sed -i -e 's/^# CONFIG_STATIC.*/CONFIG_STATIC=y/' .config
+	$(VERBOSE)sed -i -e 's/^CONFIG_TC=y/# CONFIG_TC is not set/' .config
+	$(VERBOSE)sed -i -e '/^CONFIG_FEATURE_TC.*/d' .config
+	$(VERBOSE)$(MAKE) $(BB_MK_ARGS) oldconfig
 	$(MSG_BUILD)Buildroot
 	$(VERBOSE)$(MAKE) $(BB_MK_ARGS) $(BUILD_OUTPUT_FILTER)
 	$(VERBOSE)$(MAKE) $(BB_MK_ARGS) CONFIG_PREFIX=rootfs install $(BUILD_OUTPUT_FILTER)
