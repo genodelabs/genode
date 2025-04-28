@@ -7,3 +7,6 @@ REV(e2fsprogs) := v$(VERSION)
 DIR(e2fsprogs) := src/noux-pkg/e2fsprogs
 
 PATCHES := src/noux-pkg/e2fsprogs/patches/*.patch
+
+default: e2fsprogs.git
+	@touch src/noux-pkg/e2fsprogs/intl/plural.c
