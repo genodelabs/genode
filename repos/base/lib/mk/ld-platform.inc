@@ -12,6 +12,7 @@ SRC_S        = jmp_slot.s
 INC_DIR     += $(DIR)/include
 INC_DIR     += $(BASE_DIR)/src/include
 LD_OPT      += -Bsymbolic-functions --version-script=symbol.map
+LD_OPT      += --dynamic-list=$(DIR)/ld.dl
 
 # enable use of 'check_abi'
 SYMBOLS := $(BASE_DIR)/lib/symbols/ld

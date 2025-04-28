@@ -1,0 +1,14 @@
+/*
+ * Symbols that shall be added to the .dynsym section (if global), meaning ldso
+ * will create a jump slot and search dependencies instead of calling these
+ * symbols directly in ldso.
+ */
+{
+	/*
+	 * Symbols that should resolve to stdcxx, if present
+	 */
+	_ZdlPv;                 /* void operator delete (void *) */
+	_ZdlPvSt11align_val_t;  /* void operator delete (void *, std::align_val_t) */
+	_ZdlPvm;                /* void operator delete (void *, unsigned long) */
+	_ZdlPvmSt11align_val_t; /* void operator delete (void *, unsigned long, std::align_val_t) */
+};
