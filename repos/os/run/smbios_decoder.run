@@ -57,6 +57,7 @@ install_config {
 	</start>
 
 	<start name="smbios_decoder" ram="10M">
+		<config verbose="yes"/>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="ROM" label="smbios_table"> <child name="acpi_report_rom"/> </service>
