@@ -142,9 +142,13 @@ class Driver::Ioapic_factory : public Driver::Irq_controller_factory
 
 				device.for_each_io_mem([&] (unsigned idx, Range range, Device::Pci_bar, bool)
 				{
-					if (idx == 0)
-						new (alloc) Ioapic(_env, irq_controller_registry, device.name(),
-						                   iommu.name, Pci::Bdf::bdf(rid), range, irq_start);
+					try {
+						if (idx == 0)
+							new (alloc) Ioapic(_env, irq_controller_registry, device.name(),
+							                   iommu.name, Pci::Bdf::bdf(rid), range, irq_start);
+					} catch (...) {
+						warning("Access to IO-APIC failed - ", device.name());
+					}
 				});
 			}, [] () { /* empty fn */ });
 		}

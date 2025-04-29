@@ -333,8 +333,11 @@ void Intel::Io_mmu::resume()
 }
 
 
-void Intel::Io_mmu::_enable_irq_remapping()
+bool Intel::Io_mmu::_enable_irq_remapping()
 {
+	if (!_remap_irqs)
+		return false;
+
 	/*
 	 * If IRQ remapping has already been enabled during boot, the kernel is
 	 * in charge of the remapping. Since there is no way to get the required
@@ -343,7 +346,7 @@ void Intel::Io_mmu::_enable_irq_remapping()
 
 	if (read<Global_status::Ires>()) {
 		warning("IRQ remapping is controlled by kernel for ", name());
-		return;
+		return false;
 	}
 
 	/* caches must be cleared if Esirtps is not set */
@@ -366,7 +369,7 @@ void Intel::Io_mmu::_enable_irq_remapping()
 
 	log("enabled interrupt remapping for ", name());
 
-	_remap_irqs = true;
+	return true;
 }
 
 
@@ -430,17 +433,22 @@ void Intel::Io_mmu::_init()
 	 * might be the possibility that the ACPI DMAR table says otherwise but
 	 * we've never seen such a case yet.
 	 */
-	if (read<Extended_capability::Ir>())
-		_enable_irq_remapping();
+	if (_remap_irqs && read<Extended_capability::Ir>())
+		_remap_irqs = _enable_irq_remapping();
+	else {
+		_remap_irqs = false;
+		warning("interrupt remapping for ", name(), " not available");
+	}
 }
 
 
-Intel::Io_mmu::Io_mmu(Env                      &env,
-                      Io_mmu_devices           &io_mmu_devices,
-                      Device::Name       const &name,
-                      Device::Io_mem::Range     range,
-                      Context_table_allocator  &table_allocator,
-                      unsigned                  irq_number)
+Intel::Io_mmu::Io_mmu(Env                            &env,
+                      Io_mmu_devices                 &io_mmu_devices,
+                      Registry<Irq_controller> const &irq_controllers,
+                      Device::Name             const &name,
+                      Device::Io_mem::Range           range,
+                      Context_table_allocator        &table_allocator,
+                      unsigned                        irq_number)
 : Attached_mmio(env, {(char *)range.start, range.size}),
   Driver::Io_mmu(io_mmu_devices, name),
   _env(env),
@@ -467,6 +475,12 @@ Intel::Io_mmu::Io_mmu(Env                      &env,
 		_fault_irq->sigh(_fault_handler);
 		_fault_irq->ack_irq();
 	}
+
+	/* Access to the irq controllers are required for IRQ remapping */
+	irq_controllers.for_each([&](auto const &) {
+		/* this flag will be overwritten by _init if IO-MMU has no support */
+		_remap_irqs = true;
+	});
 
 	_init();
 }

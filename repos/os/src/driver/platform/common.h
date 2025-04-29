@@ -130,7 +130,8 @@ void Driver::Common::acquire_io_mmu_devices()
 
 			if (factory.matches(dev)) {
 				dev.acquire(*this);
-				factory.create(_heap, _io_mmu_devices, dev);
+				factory.create(_heap, _io_mmu_devices,
+				               _irq_controller_registry, dev);
 
 				_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
 					if (io_mmu_dev.name() == dev.name())
@@ -190,8 +191,8 @@ void Driver::Common::_handle_devices()
 {
 	_devices_rom.update();
 	_devices.update(_devices_rom.node(), _root);
-	acquire_io_mmu_devices();
 	acquire_irq_controller();
+	acquire_io_mmu_devices();
 	update_report();
 	_root.update_policy();
 }

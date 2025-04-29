@@ -493,7 +493,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 		void _handle_faults();
 
-		void _enable_irq_remapping();
+		bool _enable_irq_remapping();
 
 		/* utility methods used on boot and resume */
 		void _init();
@@ -655,12 +655,13 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		 * Constructor/Destructor
 		 */
 
-		Io_mmu(Env                      &env,
-		       Io_mmu_devices           &io_mmu_devices,
-		       Device::Name       const &name,
-		       Device::Io_mem::Range     range,
-		       Context_table_allocator  &table_allocator,
-		       unsigned                  irq_number);
+		Io_mmu(Env                            &env,
+		       Io_mmu_devices                 &io_mmu_devices,
+		       Registry<Irq_controller> const &irq_controllers,
+		       Device::Name             const &name,
+		       Device::Io_mem::Range           range,
+		       Context_table_allocator        &table_allocator,
+		       unsigned                        irq_number);
 
 		~Io_mmu()
 		{
@@ -702,7 +703,9 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 		  _env(env)
 		{ }
 
-		void create(Allocator &alloc, Io_mmu_devices &io_mmu_devices, Device const &device) override
+		void create(Allocator &alloc, Io_mmu_devices &io_mmu_devices,
+		            Registry<Irq_controller> const &irq_controllers,
+		            Device const &device) override
 		{
 			using Range = Device::Io_mem::Range;
 
@@ -718,7 +721,8 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 			{
 				try {
 					if (idx == 0)
-						new (alloc) Intel::Io_mmu(_env, io_mmu_devices, device.name(),
+						new (alloc) Intel::Io_mmu(_env, io_mmu_devices,
+						                          irq_controllers, device.name(),
 						                          range, _table_allocator, irq_number);
 				} catch (...) {
 					error("Intel::Io_mmu failed to initialize - ", device.name());

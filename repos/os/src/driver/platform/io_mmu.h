@@ -212,6 +212,7 @@ class Driver::Io_mmu_factory : private Genode::Registry<Io_mmu_factory>::Element
 
 		virtual void create(Allocator &,
 		                    Io_mmu_devices &,
+		                    Registry<Irq_controller> const &,
 		                    Device const &) = 0;
 };
 

@@ -52,8 +52,8 @@ struct Driver::Main
 		_handle_config();
 		_system_update();
 
-		_common.acquire_io_mmu_devices();
 		_common.acquire_irq_controller();
+		_common.acquire_io_mmu_devices();
 		_common.announce_service();
 	}
 };
