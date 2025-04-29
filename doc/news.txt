@@ -4,6 +4,45 @@
                                ===========
 
 
+Sculpt OS release 25.04 | 2025-04-29
+####################################
+
+| Sculpt OS 25.04 brings compatibility with Intel's Meteor-Lake hardware,
+| introduces multi-monitor window management and display rotation,
+| and is accompanied by a major update of the Chromium web engine.
+
+Incorporating all the technical advancements of the
+framework releases [https:/documentation/release-notes/24.11 - 24.11] and
+[https:/documentation/release-notes/25.02 - 25.02], Sculpt OS has now
+become compatible to Intel's Meteor-Lake hardware, leverages modern
+IOMMU features, and benefits from recent SIMD-based graphics optimizations.
+
+Usability-wise, the new version comes with two highly anticipated features.
+First, building upon the multi-monitor support added with the previous release,
+the new version takes multi-monitor awareness to the window management level,
+allowing for the flexible assignment of virtual desktops to physical displays,
+adding new window-manipulation conveniences, and supporting rotated displays.
+Second, a new directory browser allows the user to interactively assign
+arbitrary directories as file systems to components, vastly easing the
+fine-grained sandboxing of subsystems.
+
+For staying on the heels of the modern web, an updated version of the Falkon
+web browser has become readily available. This version is based on the
+Chromium engine version 112 and Qt 6.6.2.
+
+In tandem with the Sculpt OS release, the Goa SDK has been updated, targeting
+the new version by default while introducing sandboxed builds. Thanks to this
+new confinement, complex 3rd-party build systems can no longer accidentally
+affect any part of the host system outside the respective project directory.
+This, in turn, gives developers peace of mind when bringing more and more
+sophisticated and often unfathomable complex software stacks to Genode.
+
+Sculpt OS 25.04 is available as ready-to-use system image for PC hardware,
+the PinePhone, and the MNT Reform laptop at the
+[https:/download/sculpt - Sculpt download page] accompanied
+with updated [https:/documentation/articles/sculpt-25-04 - documentation].
+
+
 Genode OS Framework release 25.02 | 2025-02-28
 ##############################################
 
