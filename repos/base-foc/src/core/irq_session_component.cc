@@ -94,6 +94,7 @@ bool Irq_object::associate(unsigned irq, bool msi,
 {
 	using namespace Foc;
 
+	_msi      = false;
 	_irq      = irq;
 	_trigger  = trigger;
 	_polarity = polarity;
@@ -135,6 +136,7 @@ bool Irq_object::associate(unsigned irq, bool msi,
 		}
 		_msi_addr = info.msi_addr;
 		_msi_data = info.msi_data;
+		_msi      = true;
 	}
 
 	return true;
@@ -154,10 +156,7 @@ void Irq_object::ack_irq()
 
 Irq_object::Irq_object()
 :
-	 _cap(cap_map().insert((Cap_index::id_t)platform_specific().cap_id_alloc().alloc())),
-	 _trigger(Irq_session::TRIGGER_UNCHANGED),
-	 _polarity(Irq_session::POLARITY_UNCHANGED),
-	 _irq(~0U), _msi_addr(0), _msi_data(0)
+	 _cap(cap_map().insert((Cap_index::id_t)platform_specific().cap_id_alloc().alloc()))
 { }
 
 
@@ -187,56 +186,53 @@ Irq_object::~Irq_object()
  ** IRQ session component **
  ***************************/
 
+static Range_allocator::Result allocate_legacy(Range_allocator &irq_alloc,
+                                               Irq_args const &args)
+{
+	if (args.msi())
+		return Alloc_error::DENIED;
+
+	return irq_alloc.alloc_addr(1, args.irq_number());
+}
+
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number((unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1)),
-	_irq_alloc(irq_alloc), _irq_object()
+	_irq_number(allocate_legacy(irq_alloc, Irq_args(args))), _irq_object()
 {
 	Irq_args const irq_args(args);
-	bool msi { irq_args.type() != TYPE_LEGACY };
 
-	if (msi) {
-		if (msi_alloc().get(_irq_number, 1)) {
-			error("unavailable MSI ", _irq_number, " requested");
-			throw Service_denied();
+	if (irq_args.msi()) {
+		unsigned msi_number = 0;
+		if (msi_alloc().get(msi_number, 1)) {
+			error("unavailable MSI ", msi_number, " requested");
+			return;
 		}
-		msi_alloc().set(_irq_number, 1);
+		msi_alloc().set(msi_number, 1);
+		if (_irq_object.associate(msi_number, true, irq_args.trigger(),
+		                          irq_args.polarity()))
+			return;
+
+		msi_alloc().clear(msi_number, 1);
+
 	} else {
-		irq_alloc.alloc_addr(1, _irq_number).with_result(
-			[&] (Range_allocator::Allocation &irq_number) {
-				irq_number.deallocate = false; },
-			[&] (Alloc_error) {
-				error("unavailable interrupt ", _irq_number, " requested");
-				throw Service_denied(); });
+
+		_irq_number.with_result([&] (Range_allocator::Allocation const &a) {
+			unsigned irq_number = unsigned(addr_t(a.ptr));
+			_irq_object.associate(irq_number, false, irq_args.trigger(),
+			                      irq_args.polarity());
+		}, [&] (Alloc_error) { });
 	}
 
-	if (_irq_object.associate(_irq_number, msi, irq_args.trigger(),
-	                          irq_args.polarity()))
-		return;
-
-	/* cleanup */
-	if (msi)
-		msi_alloc().clear(_irq_number, 1);
-	else {
-		addr_t const free_irq = _irq_number;
-		_irq_alloc.free((void *)free_irq);
-	}
-	throw Service_denied();
+	if (!_irq_object.msi() && _irq_number.failed())
+		error("unavailable interrupt ", irq_args.irq_number(), " requested");
 }
 
 
 Irq_session_component::~Irq_session_component()
 {
-	if (_irq_number == ~0U)
-		return;
-
-	if (_irq_object.msi_address()) {
-		msi_alloc().clear(_irq_number, 1);
-	} else {
-		addr_t const free_irq = _irq_number;
-		_irq_alloc.free((void *)free_irq);
-	}
+	if (_irq_object.msi() && _irq_object.msi_address())
+		msi_alloc().clear(_irq_object.irq(), 1);
 }
 
 

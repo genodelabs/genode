@@ -80,12 +80,14 @@ void Irq_object::entry()
 	}
 }
 
+
 void Irq_object::ack_irq()
 {
 	int res = seL4_IRQHandler_Ack(_kernel_irq_sel.value());
 	if (res != seL4_NoError)
 		error("ack_irq failed - ", res);
 }
+
 
 Irq_object::Irq_object(unsigned irq)
 :
@@ -96,27 +98,27 @@ Irq_object::Irq_object(unsigned irq)
 { }
 
 
+static unsigned irq_number(Irq_args const &args)
+{
+	return args.msi() ? unsigned(args.irq_number() + Irq_object::MSI_OFFSET)
+	                  : unsigned(args.irq_number());
+}
+
+
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(unsigned(Irq_args(args).type() == TYPE_LEGACY ?
-	            Irq_args(args).irq_number() :
-	            Irq_args(args).irq_number() + Irq_object::MSI_OFFSET)),
-	_irq_alloc(irq_alloc),
-	_irq_object(_irq_number)
+	_irq_number(irq_alloc.alloc_addr(1, irq_number(Irq_args(args)))),
+	_irq_object(irq_number(Irq_args(args)))
 {
-	Irq_args const irq_args(args);
+	if (_irq_number.failed()) {
+		error("unavailable interrupt ", Irq_args(args).irq_number(), " requested");
+		return;
+	}
 
-	_irq_alloc.alloc_addr(1, _irq_number).with_result(
-		[&] (Range_allocator::Allocation &irq_number) {
-			irq_number.deallocate = false; },
-		[&] (Alloc_error) {
-			error("unavailable interrupt ", _irq_number, " requested");
-			throw Service_denied(); });
-
-	if (!_irq_object.associate(irq_args)) {
-		error("could not associate with IRQ ", irq_args.irq_number());
-		throw Service_denied();
+	if (!_irq_object.associate(Irq_args(args))) {
+		error("could not associate with IRQ ", Irq_args(args).irq_number());
+		return;
 	}
 
 	_irq_object.start();
@@ -144,12 +146,15 @@ void Irq_session_component::sigh(Signal_context_capability cap)
 Irq_session::Info Irq_session_component::info()
 {
 	if (!_irq_object.msi())
-		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
+		return { };
 
 	// see include/plat/pc99/plat/machine.h
 	enum { PIC_IRQ_LINES = 16, IRQ_INT_OFFSET = 0x20 };
 
-	return { .type    = Info::Type::MSI,
-	         .address = 0xfee00000ul,
-	         .value   = IRQ_INT_OFFSET + PIC_IRQ_LINES + _irq_number };
+	return _irq_number.convert<Info>(
+		[&] (Range_allocator::Allocation const &a) -> Info {
+			return { .type    = Info::Type::MSI,
+			         .address = 0xfee00000ul,
+			         .value   = IRQ_INT_OFFSET + PIC_IRQ_LINES + addr_t(a.ptr) };
+		}, [&] (Alloc_error) { return Info { }; });
 }

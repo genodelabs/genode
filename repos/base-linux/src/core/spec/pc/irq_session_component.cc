@@ -32,10 +32,7 @@ Irq_session_component::Irq_session_component(Range_allocator &, const char *args
 }
 
 
-Irq_session_component::~Irq_session_component()
-{
-	warning(__func__, " not implemented");
-}
+Irq_session_component::~Irq_session_component() { }
 
 
 void Irq_session_component::ack_irq()

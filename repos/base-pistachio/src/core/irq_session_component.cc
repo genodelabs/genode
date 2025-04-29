@@ -23,7 +23,7 @@ using namespace Core;
 using namespace Pistachio;
 
 
-static inline L4_ThreadId_t irqno_to_threadid(unsigned int irqno)
+static inline L4_ThreadId_t irqno_to_threadid(unsigned irqno)
 {
 	/*
 	 * Interrupt threads have their number as thread_no and a version of 1.
@@ -120,25 +120,25 @@ Irq_object::Irq_object(unsigned irq)
  ** IRQ session component **
  ***************************/
 
+static Range_allocator::Result allocate(Range_allocator &irq_alloc, Irq_args const &args)
+{
+	if (args.msi())
+		return Alloc_error::DENIED;
+
+	return irq_alloc.alloc_addr(1, args.irq_number());
+}
+
 
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
-	_irq_alloc(irq_alloc),
-	_irq_object(_irq_number)
+	_irq_number(allocate(irq_alloc, Irq_args(args))),
+	_irq_object(Irq_args(args).irq_number())
 {
-	Irq_args irq_args(args);
-	bool msi { irq_args.type() != Irq_session::TYPE_LEGACY };
-	if (msi)
-		throw Service_denied();
-
-	_irq_alloc.alloc_addr(1, _irq_number).with_result(
-		[&] (Range_allocator::Allocation &irq_number) {
-			irq_number.deallocate = false; },
-		[&] (Alloc_error) {
-			error("unavailable interrupt ", _irq_number, " requested");
-			throw Service_denied(); });
+	if (_irq_number.failed()) {
+		error("unavailable interrupt ", Irq_args(args).irq_number(), " requested");
+		return;
+	}
 
 	_irq_object.start();
 }
@@ -146,10 +146,12 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 
 Irq_session_component::~Irq_session_component()
 {
-	L4_Word_t res = L4_DeassociateInterrupt(irqno_to_threadid(_irq_number));
+	_irq_number.with_result([&] (Range_allocator::Allocation const &a) {
+		unsigned const n = unsigned(addr_t(a.ptr));
+		if (L4_DeassociateInterrupt(irqno_to_threadid(n)) != 1)
+			error("L4_DeassociateInterrupt failed");
 
-	if (res != 1)
-		error("L4_DeassociateInterrupt failed");
+	}, [] (Alloc_error) { });
 }
 
 

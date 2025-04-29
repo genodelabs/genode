@@ -120,32 +120,31 @@ Irq_object::Irq_object(unsigned irq)
 { }
 
 
+static Range_allocator::Result allocate(Range_allocator &irq_alloc, Irq_args const &args)
+{
+	if (args.msi())
+		return Alloc_error::DENIED;
+
+	return irq_alloc.alloc_addr(1, args.irq_number());
+}
+
+
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
-	_irq_alloc(irq_alloc),
-	_irq_object(_irq_number)
+	_irq_number(allocate(irq_alloc, Irq_args(args))),
+	_irq_object(Irq_args(args).irq_number())
 {
-	Irq_args irq_args(args);
-	bool msi { irq_args.type() != Irq_session::TYPE_LEGACY };
-
-	if (msi)
-		throw Service_denied();
-
-	if (irq_alloc.alloc_addr(1, _irq_number).failed()) {
-		error("unavailable IRQ ", _irq_number, " requested");
-		throw Service_denied();
+	if (_irq_number.failed()) {
+		error("unavailable IRQ ", Irq_args(args).irq_number(), " requested");
+		return;
 	}
 
 	_irq_object.start();
 }
 
 
-Irq_session_component::~Irq_session_component()
-{
-	error(__func__, " - not implemented");
-}
+Irq_session_component::~Irq_session_component() { }
 
 
 void Irq_session_component::ack_irq()

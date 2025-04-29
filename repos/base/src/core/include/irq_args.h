@@ -58,9 +58,7 @@ class Core::Irq_args
 				_irq_trigger = Irq_session::TRIGGER_LEVEL;
 				break;
 			default:
-				error("invalid trigger mode ", irq_trg, " specified for IRQ ",
-				      _irq_number);
-				throw Service_denied();
+				warning("invalid trigger mode ", irq_trg, " specified for IRQ ", _irq_number);
 			}
 
 			switch (irq_pol) {
@@ -75,9 +73,7 @@ class Core::Irq_args
 				_irq_polarity = Irq_session::POLARITY_LOW;
 				break;
 			default:
-				error("invalid polarity ", irq_pol, " specified for IRQ ",
-				      _irq_number);
-				throw Service_denied();
+				warning("invalid polarity ", irq_pol, " specified for IRQ ", _irq_number);
 			}
 
 			switch (irq_type) {
@@ -92,9 +88,7 @@ class Core::Irq_args
 				_irq_type = Irq_session::TYPE_MSIX;
 				break;
 			default:
-				error("invalid type ", irq_type, " specified for IRQ ",
-				      _irq_number);
-				throw Service_denied();
+				warning("invalid type ", irq_type, " specified for IRQ ", _irq_number);
 			}
 		}
 
@@ -102,6 +96,8 @@ class Core::Irq_args
 		Irq_session::Trigger  trigger()    const { return _irq_trigger; }
 		Irq_session::Polarity polarity()   const { return _irq_polarity; }
 		Irq_session::Type     type()       const { return _irq_type; }
+
+		bool msi() const { return _irq_type != Irq_session::TYPE_LEGACY; }
 
 		unsigned pci_bus()  const { return 0xffu & (_bdf >> 8); }
 		unsigned pci_dev()  const { return 0x1fu & (_bdf >> 3); }

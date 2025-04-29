@@ -34,15 +34,25 @@ class Core::Irq_session_component : public  Rpc_object<Irq_session>,
 
 		friend class List<Irq_session_component>;
 
-		Irq_args const                  _irq_args;
-		unsigned                        _irq_number;
-		Range_allocator               & _irq_alloc;
-		Kernel_object<Kernel::User_irq> _kobj;
-		bool                            _is_msi;
-		addr_t                          _address, _value;
-		Signal_context_capability       _sig_cap { };
+		Irq_args const _args;
 
-		unsigned _find_irq_number(const char * const args);
+		Kernel_object<Kernel::User_irq> _kobj { };
+
+		struct Msi
+		{
+			addr_t address { }, value { };
+			bool const allocated { };
+
+			Msi(Irq_args const &args);
+			~Msi();
+
+		} const _msi { _args };
+
+		Signal_context_capability  _sig_cap { };
+
+		Range_allocator::Result const _irq_number;
+
+		Range_allocator::Result _allocate(Range_allocator &irq_alloc) const;
 
 	public:
 
@@ -52,13 +62,14 @@ class Core::Irq_session_component : public  Rpc_object<Irq_session>,
 		 * \param irq_alloc    platform-dependent IRQ allocator
 		 * \param args         session construction arguments
 		 */
-		Irq_session_component(Range_allocator &irq_alloc,
-		                      const char      *args);
+		Irq_session_component(Range_allocator &irq_alloc, const char *args)
+		:
+			_args(args), _irq_number(_allocate(irq_alloc))
+		{
+			if (_irq_number.failed())
+				error("unavailable interrupt ", _args.irq_number(), " requested");
+		}
 
-		/**
-		 * Destructor
-		 */
-		~Irq_session_component();
 
 		/***************************
 		 ** Irq session interface **
@@ -69,12 +80,10 @@ class Core::Irq_session_component : public  Rpc_object<Irq_session>,
 
 		Info info() override
 		{
-			if (!_is_msi)
-				return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
-
-			return { .type    = Info::Type::MSI,
-			         .address = _address,
-			         .value   = _value };
+			return _msi.allocated ? Info { .type    = Info::Type::MSI,
+			                               .address = _msi.address,
+			                               .value   = _msi.value }
+			                      : Info { };
 		}
 };
 

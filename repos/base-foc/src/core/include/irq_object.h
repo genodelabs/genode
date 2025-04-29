@@ -37,12 +37,13 @@ class Core::Irq_object
 		Irq_object &operator = (Irq_object const &);
 
 		Cap_index             *_cap;
-		Irq_session::Trigger   _trigger;  /* interrupt trigger */
-		Irq_session::Polarity  _polarity; /* interrupt polarity */
+		Irq_session::Trigger   _trigger  = Irq_session::TRIGGER_UNCHANGED;
+		Irq_session::Polarity  _polarity = Irq_session::POLARITY_UNCHANGED;
 
-		unsigned               _irq;
-		uint64_t               _msi_addr;
-		addr_t                 _msi_data;
+		bool                   _msi = false;
+		unsigned               _irq = ~0u;
+		uint64_t               _msi_addr { };
+		addr_t                 _msi_data { };
 
 		Signal_context_capability _sig_cap { };
 
@@ -56,6 +57,8 @@ class Core::Irq_object
 		Irq_session::Trigger  trigger()  const { return _trigger; }
 		Irq_session::Polarity polarity() const { return _polarity; }
 
+		bool     msi()         const { return _msi; }
+		unsigned irq()         const { return _irq; }
 		uint64_t msi_address() const { return _msi_addr; }
 		addr_t   msi_value()   const { return _msi_data; }
 

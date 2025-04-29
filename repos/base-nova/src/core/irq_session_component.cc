@@ -153,11 +153,12 @@ void Irq_object::start(unsigned irq, addr_t const device_phys, Irq_args const &i
 	                    src, dst, MAP_FROM_KERNEL_TO_CORE);
 	if (ret) {
 		error("getting IRQ from kernel failed - ", irq);
-		throw Service_denied();
+		return;
 	}
 
 	/* initialize GSI IRQ flags */
-	auto gsi_flags = [] (Irq_args const &args) {
+	auto gsi_flags = [] (Irq_args const &args)
+	{
 		if (args.trigger() == Irq_session::TRIGGER_UNCHANGED
 		 || args.polarity() == Irq_session::POLARITY_UNCHANGED)
 			return Nova::Gsi_flags();
@@ -174,14 +175,17 @@ void Irq_object::start(unsigned irq, addr_t const device_phys, Irq_args const &i
 	_gsi_flags = gsi_flags(irq_args);
 
 	/* associate GSI or MSI to device belonging to device_phys */
-	bool ok = false;
-	if (irq_args.type() == Irq_session::TYPE_LEGACY)
-		ok = associate_gsi(irq_sel(), _sigh_cap, _gsi_flags);
-	else
-		ok = associate_msi(irq_sel(), device_phys, _msi_addr, _msi_data, _sigh_cap);
-
-	if (!ok)
-		throw Service_denied();
+	if (irq_args.msi()) {
+		if (!associate_msi(irq_sel(), device_phys, _msi_addr, _msi_data, _sigh_cap)) {
+			error("unable to associate IRQ");
+			return;
+		}
+	} else {
+		if (!associate_gsi(irq_sel(), _sigh_cap, _gsi_flags)) {
+			error("unable to associate GSI");
+			return;
+		}
+	}
 
 	_device_phys = device_phys;
 }
@@ -210,47 +214,41 @@ Irq_object::~Irq_object()
  ** IRQ session component **
  ***************************/
 
+static Range_allocator::Result allocate(Range_allocator &irq_alloc, Irq_args const &args)
+{
+	unsigned n = unsigned(args.irq_number());
+
+	if (args.type() != Irq_session::TYPE_LEGACY) {
+
+		if (n >= kernel_hip().sel_gsi)
+			return Alloc_error::DENIED;
+
+		n = kernel_hip().sel_gsi - 1 - n;
+		/* XXX last GSI number unknown - assume 40 GSIs (depends on IO-APIC) */
+		if (n < 40)
+			return Alloc_error::DENIED;
+	}
+
+	return irq_alloc.alloc_addr(1, n);
+}
+
 
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(~0U), _irq_alloc(irq_alloc), _irq_object()
+	_irq_number(allocate(irq_alloc, Irq_args(args))), _irq_object()
 {
-	Irq_args const irq_args(args);
-
-	long irq_number = irq_args.irq_number();
-	if (irq_args.type() != Irq_session::TYPE_LEGACY) {
-
-		if ((unsigned long)irq_number >= kernel_hip().sel_gsi)
-			throw Service_denied();
-
-		irq_number = kernel_hip().sel_gsi - 1 - irq_number;
-		/* XXX last GSI number unknown - assume 40 GSIs (depends on IO-APIC) */
-		if (irq_number < 40)
-			throw Service_denied();
-	}
-
-	irq_alloc.alloc_addr(1, irq_number).with_result(
-		[&] (Allocator::Allocation &a) { a.deallocate = false; },
+	_irq_number.with_result(
+		[&] (Range_allocator::Allocation const &a) {
+			long device_phys = Arg_string::find_arg(args, "device_config_phys").long_value(0);
+			_irq_object.start(unsigned(addr_t(a.ptr)), device_phys, Irq_args(args));
+		},
 		[&] (Alloc_error) {
-			error("unavailable IRQ ", irq_number, " requested");
-			throw Service_denied(); });
-
-	_irq_number = (unsigned)irq_number;
-
-	long device_phys = Arg_string::find_arg(args, "device_config_phys").long_value(0);
-	_irq_object.start(_irq_number, device_phys, irq_args);
+			error("unavailable IRQ ", Irq_args(args).irq_number(), " requested"); });
 }
 
 
-Irq_session_component::~Irq_session_component()
-{
-	if (_irq_number == ~0U)
-		return;
-
-	addr_t free_irq = _irq_number;
-	_irq_alloc.free((void *)free_irq);
-}
+Irq_session_component::~Irq_session_component() { }
 
 
 void Irq_session_component::ack_irq()
@@ -268,7 +266,7 @@ void Irq_session_component::sigh(Signal_context_capability cap)
 Irq_session::Info Irq_session_component::info()
 {
 	if (!_irq_object.msi_address() || !_irq_object.msi_value())
-		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
+		return { };
 
 	return {
 		.type    = Info::Type::MSI,

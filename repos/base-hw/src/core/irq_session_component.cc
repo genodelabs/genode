@@ -26,12 +26,6 @@
 using namespace Core;
 
 
-unsigned Irq_session_component::_find_irq_number(const char * const args)
-{
-	return (unsigned)Arg_string::find_arg(args, "irq_number").long_value(-1);
-}
-
-
 void Irq_session_component::ack_irq()
 {
 	if (_kobj.constructed()) Kernel::ack_irq(*_kobj);
@@ -40,47 +34,44 @@ void Irq_session_component::ack_irq()
 
 void Irq_session_component::sigh(Signal_context_capability cap)
 {
-	if (_sig_cap.valid()) {
-		warning("signal handler already registered for IRQ ", _irq_number);
-		return;
-	}
+	_irq_number.with_result([&] (Range_allocator::Allocation const &a) {
+		unsigned const n = unsigned(addr_t(a.ptr));
 
-	_sig_cap = cap;
+		if (_sig_cap.valid()) {
+			warning("signal handler already registered for IRQ ", n);
+			return;
+		}
 
-	if (!_kobj.create(_irq_number, _irq_args.trigger(), _irq_args.polarity(),
-	                  Capability_space::capid(_sig_cap)))
-		warning("invalid signal handler for IRQ ", _irq_number);
+		_sig_cap = cap;
+
+		if (!_kobj.create(n, _args.trigger(), _args.polarity(),
+		                  Capability_space::capid(_sig_cap)))
+			warning("invalid signal handler for IRQ ", n);
+
+	}, [&] (Alloc_error) { });
 }
 
 
-Irq_session_component::~Irq_session_component()
-{
-	using namespace Kernel;
-
-	_irq_alloc.free((void *)(addr_t)_irq_number);
-	if (_is_msi) Platform::free_msi_vector(_address, _value);
-}
-
-
-Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
-                                             const char * const args)
+Irq_session_component::Msi::Msi(Irq_args const &args)
 :
-	_irq_args(args),
-	_irq_number((unsigned)Platform::irq(_irq_args.irq_number())),
-	_irq_alloc(irq_alloc), _kobj(), _is_msi(false), _address(0), _value(0)
-{
-	if (_irq_args.type() != Irq_session::TYPE_LEGACY) {
-		_is_msi = Platform::alloc_msi_vector(_address, _value);
-		if (!_is_msi)
-			throw Service_denied();
-		_irq_number = (unsigned) _value;
-	}
+	allocated(args.msi() ? Platform::alloc_msi_vector(address, value) : false)
+{ }
 
-	/* allocate interrupt */
-	_irq_alloc.alloc_addr(1, _irq_number).with_result(
-		[&] (Range_allocator::Allocation &irq_number) {
-			irq_number.deallocate = false; },
-		[&] (Alloc_error) {
-			error("unavailable interrupt ", _irq_number, " requested");
-			throw Service_denied(); });
+
+Irq_session_component::Msi::~Msi()
+{
+	if (allocated) Platform::free_msi_vector(address, value);
+}
+
+
+Range_allocator::Result Irq_session_component::_allocate(Range_allocator &irq_alloc) const
+{
+	if (_args.msi()) {
+		if (!_msi.allocated) {
+			error("allocation of MSI vector failed");
+			return Alloc_error::DENIED;
+		}
+		return irq_alloc.alloc_addr(1, _msi.value);
+	}
+	return irq_alloc.alloc_addr(1, Platform::irq(_args.irq_number()));
 }

@@ -29,10 +29,7 @@ Irq_session_component::Irq_session_component(Range_allocator &, const char *)
 { }
 
 
-Irq_session_component::~Irq_session_component()
-{
-	warning(__func__, " not implemented");
-}
+Irq_session_component::~Irq_session_component() { }
 
 
 void Irq_session_component::ack_irq() { }
@@ -51,38 +48,18 @@ Irq_object::Irq_object(unsigned irq)
 :
 	Thread(Weight::DEFAULT_WEIGHT, "irq", 4096 /* stack */, Type::NORMAL),
 	_sig_cap(Signal_context_capability()), _irq(irq), _fd(-1)
-{
-	warning(__func__, " not implemented");
-}
+{ }
 
 
-bool Irq_object::_associate()
-{
-	warning(__func__, " not implemented");
-	return false;
-}
-
-
-void Irq_object::entry()
-{
-	warning(__func__, " not implemented");
-}
-
-
-void Irq_object::ack_irq()
-{
-	warning(__func__, " not implemented");
-}
+bool Irq_object::_associate() { return false; }
+void Irq_object::entry() { }
+void Irq_object::ack_irq() { }
 
 
 Thread::Start_result Irq_object::start()
 {
-	warning(__func__, " not implemented");
 	return Start_result::DENIED;
 }
 
 
-void Irq_object::sigh(Signal_context_capability)
-{
-	warning(__func__, " not implemented");
-}
+void Irq_object::sigh(Signal_context_capability) { }

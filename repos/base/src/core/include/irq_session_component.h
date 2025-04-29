@@ -33,9 +33,9 @@ class Core::Irq_session_component : public  Rpc_object<Irq_session>,
 
 		friend class List<Irq_session_component>;
 
-		unsigned         _irq_number;
-		Range_allocator &_irq_alloc;
-		Irq_object       _irq_object;
+		Range_allocator::Result const _irq_number;
+
+		Irq_object _irq_object;
 
 	public:
 
