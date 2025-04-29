@@ -212,7 +212,7 @@ if {[have_include power_on/qemu]} {
 		append qemu_args " -serial chardev:uart "
 	}
 
-	append qemu_args " -chardev socket,id=uart,port=$port,host=$host,server,nowait,ipv4 "
+	append qemu_args " -chardev socket,id=uart,port=$port,host=$host,server=on,wait=off,ipv4=on "
 
 	run_genode_until {.*monitor ready*} 30
 
