@@ -14,9 +14,10 @@ FILTER_OUT += strstream.cc
 # add libstdc++ sources
 SRC_CC += $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(STDCXX_DIR)/src/c++98/*.cc)))
 
-CC_CXX_OPT_STD             = -std=gnu++98
-CC_CXX_OPT_STD_locale_init = -std=gnu++11
-CC_CXX_OPT_STD_localename  = -std=gnu++11
+CC_CXX_OPT_STD                  = -std=gnu++98
+CC_CXX_OPT_STD_basic_file_stdio = -std=gnu++11
+CC_CXX_OPT_STD_locale_init      = -std=gnu++11
+CC_CXX_OPT_STD_localename       = -std=gnu++11
 
 CC_OPT_collate_members_cow  += -D_GLIBCXX_USE_CXX11_ABI=0
 CC_OPT_messages_members_cow += -D_GLIBCXX_USE_CXX11_ABI=0
