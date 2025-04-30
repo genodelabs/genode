@@ -8,10 +8,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index ff4e5f776..cd7ee3fac 100644
+index e479b0d7f..048930162 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
-@@ -90,11 +90,13 @@ AC_SYS_LARGEFILE
+@@ -99,11 +99,13 @@ AC_SYS_LARGEFILE
  GLIBCXX_CONFIGURE
  
  # Libtool setup.
@@ -25,7 +25,7 @@ index ff4e5f776..cd7ee3fac 100644
  AM_PROG_LIBTOOL
  ACX_LT_HOST_FLAGS
  AC_SUBST(enable_shared)
-@@ -209,7 +211,9 @@ AC_CHECK_HEADERS(fenv.h complex.h)
+@@ -225,7 +227,9 @@ AC_CHECK_HEADERS(fenv.h complex.h)
  GLIBCXX_CHECK_C99_TR1
  
  # For the EOF, SEEK_CUR, and SEEK_END integer constants.

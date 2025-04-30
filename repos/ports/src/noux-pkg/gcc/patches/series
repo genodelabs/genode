@@ -1,4 +1,3 @@
-bug109804.patch
 isl.patch
 config.patch
 misc.patch
@@ -18,3 +17,4 @@ emutls.patch
 frame_pointer.patch
 gcov.patch
 libcody.patch
+getopt.patch

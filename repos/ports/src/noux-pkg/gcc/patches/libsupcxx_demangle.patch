@@ -5,12 +5,12 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  include/libiberty.h                |    4 ++++
- libiberty/cp-demangle.c            |    4 +++-
+ libiberty/cp-demangle.c            |   20 +++++++++++++++++++-
  libstdc++-v3/libsupc++/Makefile.in |   19 ++++++++++++++++++-
- 3 files changed, 25 insertions(+), 2 deletions(-)
+ 3 files changed, 41 insertions(+), 2 deletions(-)
 
 diff --git a/include/libiberty.h b/include/libiberty.h
-index a65ced9c8..b9d7904f1 100644
+index 323859116..08188a980 100644
 --- a/include/libiberty.h
 +++ b/include/libiberty.h
 @@ -46,7 +46,11 @@ extern "C" {
@@ -26,7 +26,7 @@ index a65ced9c8..b9d7904f1 100644
  /* If the OS supports it, ensure that the supplied stream is setup to
     avoid any multi-threaded locking.  Otherwise leave the FILE pointer
 diff --git a/libiberty/cp-demangle.c b/libiberty/cp-demangle.c
-index 6dff7d28f..a73684ff3 100644
+index fc2cf64e6..56bf38822 100644
 --- a/libiberty/cp-demangle.c
 +++ b/libiberty/cp-demangle.c
 @@ -106,7 +106,9 @@
@@ -39,7 +39,30 @@ index 6dff7d28f..a73684ff3 100644
  
  #ifdef HAVE_STDLIB_H
  #include <stdlib.h>
-@@ -6546,7 +6548,7 @@ d_demangle (const char *mangled, int options, size_t *palc)
+@@ -139,6 +141,22 @@ extern char *alloca ();
+ #include "demangle.h"
+ #include "cp-demangle.h"
+ 
++#ifdef GENODE
++/* stdio.h */
++extern int sprintf(char *, const char *, ...);
++/* stdlib.h */
++extern void abort(void);
++extern void free(void *);
++extern void *realloc(void *, size_t);
++/* string.h */
++extern int memcmp(const void *, const void *, size_t);
++extern void *memcpy(void *, const void *, size_t);
++extern int strcmp(const char *, const char *);
++extern char *strcpy(char *, const char *);
++extern size_t strlen(const char*);
++extern int strncmp(const char *, const char *, size_t);
++#endif
++
+ /* If IN_GLIBCPP_V3 is defined, some functions are made static.  We
+    also rename them via #define to avoid compiler errors when the
+    static definition conflicts with the extern declaration in a header
+@@ -6928,7 +6946,7 @@ d_demangle (const char *mangled, int options, size_t *palc)
    return dgs.buf;
  }
  
@@ -49,10 +72,10 @@ index 6dff7d28f..a73684ff3 100644
  extern char *__cxa_demangle (const char *, char *, size_t *, int *);
  
 diff --git a/libstdc++-v3/libsupc++/Makefile.in b/libstdc++-v3/libsupc++/Makefile.in
-index a4402009b..1e6ba69e7 100644
+index 732ab89c8..cc31bb463 100644
 --- a/libstdc++-v3/libsupc++/Makefile.in
 +++ b/libstdc++-v3/libsupc++/Makefile.in
-@@ -168,7 +168,11 @@ am__objects_1 = array_type_info.lo atexit_arm.lo atexit_thread.lo \
+@@ -167,7 +167,11 @@ am__objects_1 = array_type_info.lo atexit_arm.lo atexit_thread.lo \
  	del_opvsa.lo pbase_type_info.lo pmem_type_info.lo \
  	pointer_type_info.lo pure.lo si_class_type_info.lo tinfo.lo \
  	tinfo2.lo vec.lo vmi_class_type_info.lo vterminate.lo

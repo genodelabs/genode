@@ -1,0 +1,26 @@
+getopt.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Fix implicit function declaration error when
+building on Genode.
+---
+ libiberty/getopt1.c |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/libiberty/getopt1.c b/libiberty/getopt1.c
+index 7db3d1677..813ed21ad 100644
+--- a/libiberty/getopt1.c
++++ b/libiberty/getopt1.c
+@@ -64,6 +64,11 @@
+ #define NULL 0
+ #endif
+ 
++extern int
++_getopt_internal (int argc, char *const *argv, const char *optstring,
++                  const struct option *longopts,
++                  int *longind, int long_only);
++
+ int
+ getopt_long (int argc,  char *const *argv,  const char *options,
+              const struct option *long_options, int *opt_index)

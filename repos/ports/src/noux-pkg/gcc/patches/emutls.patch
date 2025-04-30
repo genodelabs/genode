@@ -9,10 +9,10 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  2 files changed, 9 insertions(+), 3 deletions(-)
 
 diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
-index e559cb8ac..863031b6a 100644
+index 80ed13e7e..1c21b4d7a 100644
 --- a/libgcc/Makefile.in
 +++ b/libgcc/Makefile.in
-@@ -433,9 +433,12 @@ LIB2ADD += enable-execute-stack.c
+@@ -439,9 +439,12 @@ LIB2ADD += $(srcdir)/hardcfr.c
  # While emutls.c has nothing to do with EH, it is in LIB2ADDEH*
  # instead of LIB2ADD because that's the way to be sure on some targets
  # (e.g. *-*-darwin*) only one copy of it is linked.
@@ -29,10 +29,10 @@ index e559cb8ac..863031b6a 100644
  # Library members defined in libgcc2.c.
  lib2funcs = _muldi3 _negdi2 _lshrdi3 _ashldi3 _ashrdi3 _cmpdi2 _ucmpdi2	   \
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index cd7ee3fac..08427e107 100644
+index 048930162..6e96820c3 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
-@@ -389,6 +389,9 @@ else
+@@ -438,6 +438,9 @@ dnl # rather than hardcoding that information.
      AC_DEFINE(HAVE_TANL)
      AC_DEFINE(HAVE_TANHL)
    fi

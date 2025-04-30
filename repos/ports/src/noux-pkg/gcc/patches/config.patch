@@ -14,10 +14,10 @@ From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
  7 files changed, 62 insertions(+), 11 deletions(-)
 
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index c5064dd37..d98f66763 100644
+index 95c91ee02..bbbc17e84 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
-@@ -1364,7 +1364,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
+@@ -1480,7 +1480,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
  	case ${target} in
  	arm*-*-eabi*)
  	  tm_file="$tm_file newlib-stdint.h"
@@ -27,10 +27,10 @@ index c5064dd37..d98f66763 100644
  	  ;;
  	arm*-*-fuchsia*)
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
-index f47954081..907281781 100644
+index 0cd5d7339..e57dea4b0 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -753,11 +753,11 @@ extern const int arm_arch_cde_coproc_bits[];
+@@ -759,11 +759,11 @@ extern const int arm_arch_cde_coproc_bits[];
  #define MAX_FIXED_MODE_SIZE 64
  
  #ifndef SIZE_TYPE
@@ -45,7 +45,7 @@ index f47954081..907281781 100644
  
  /* AAPCS requires that structure alignment is affected by bitfields.  */
 diff --git a/gcc/config/arm/unknown-elf.h b/gcc/config/arm/unknown-elf.h
-index bfb294bea..f83897fb0 100644
+index 6b313042f..4498375ef 100644
 --- a/gcc/config/arm/unknown-elf.h
 +++ b/gcc/config/arm/unknown-elf.h
 @@ -93,4 +93,17 @@
@@ -67,7 +67,7 @@ index bfb294bea..f83897fb0 100644
 +  "%(shared:-shared) \
 +   %{!static:--eh-frame-hdr}"
 diff --git a/gcc/config/i386/x86-64.h b/gcc/config/i386/x86-64.h
-index 065269908..f1c34d76e 100644
+index d70f22870..b30e04092 100644
 --- a/gcc/config/i386/x86-64.h
 +++ b/gcc/config/i386/x86-64.h
 @@ -37,10 +37,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
@@ -103,10 +103,10 @@ index 065269908..f1c34d76e 100644
 +   %{shared:-shared} \
 +   %{!static:--eh-frame-hdr}"
 diff --git a/gcc/config/riscv/elf.h b/gcc/config/riscv/elf.h
-index f0e865d6e..30e976371 100644
+index c97f13c0c..d55e134e1 100644
 --- a/gcc/config/riscv/elf.h
 +++ b/gcc/config/riscv/elf.h
-@@ -17,12 +17,14 @@ You should have received a copy of the GNU General Public License
+@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
  along with GCC; see the file COPYING3.  If not see
  <http://www.gnu.org/licenses/>.  */
  
@@ -114,6 +114,7 @@ index f0e865d6e..30e976371 100644
  #define LINK_SPEC "\
  -melf" XLEN_SPEC DEFAULT_ENDIAN_SPEC "riscv \
  %{mno-relax:--no-relax} \
+@@ -24,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
  %{mbig-endian:-EB} \
  %{mlittle-endian:-EL} \
  %{shared}"
@@ -122,11 +123,11 @@ index f0e865d6e..30e976371 100644
  /* Link against Newlib libraries, because the ELF backend assumes Newlib.
     Handle the circular dependence between libc and libgloss. */
 diff --git a/gcc/config/riscv/riscv.h b/gcc/config/riscv/riscv.h
-index b3eb6abc2..ccd718a3d 100644
+index 7797e6731..1cfac7796 100644
 --- a/gcc/config/riscv/riscv.h
 +++ b/gcc/config/riscv/riscv.h
-@@ -912,10 +912,10 @@ while (0)
- #define ASM_COMMENT_START "#"
+@@ -1100,10 +1100,10 @@ while (0)
+   riscv_asm_output_external (STR, DECL, NAME)
  
  #undef SIZE_TYPE
 -#define SIZE_TYPE (POINTER_SIZE == 64 ? "long unsigned int" : "unsigned int")
@@ -138,9 +139,9 @@ index b3eb6abc2..ccd718a3d 100644
  
  /* The maximum number of bytes copied by one iteration of a cpymemsi loop.  */
  
-@@ -1006,4 +1006,17 @@ extern void riscv_remove_unneeded_save_restore_calls (void);
- #define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
-   ((VALUE) = GET_MODE_UNIT_BITSIZE (MODE), 2)
+@@ -1237,4 +1237,17 @@ extern void riscv_remove_unneeded_save_restore_calls (void);
+ /* Check TLS Descriptors mechanism is selected.  */
+ #define TARGET_TLSDESC (riscv_tls_dialect == TLS_DESCRIPTORS)
  
 + /* genode.h */
 +
@@ -157,10 +158,10 @@ index b3eb6abc2..ccd718a3d 100644
 +
  #endif /* ! GCC_RISCV_H */
 diff --git a/libgcc/config.host b/libgcc/config.host
-index 8c56fcae5..574ef77bd 100644
+index e75a7af64..d6b12727d 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
-@@ -348,7 +348,7 @@ case ${host} in
+@@ -381,7 +381,7 @@ case ${host} in
    tmake_file=t-vxworks
    ;;
  *-*-elf)
@@ -169,7 +170,7 @@ index 8c56fcae5..574ef77bd 100644
    ;;
  esac
  
-@@ -516,8 +516,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -565,8 +565,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	tm_file="$tm_file arm/bpabi-lib.h"
  	case ${host} in
  	arm*-*-eabi* | arm*-*-rtems*)
@@ -177,13 +178,13 @@ index 8c56fcae5..574ef77bd 100644
 +	  # The 't-eh-dw2-dip' tmake file is needed to let the tool chain use 'unwind-dw2-fde-dip.c',
 +	  # needed for the exception handling on Genode in the presence of shared libraries.
 +	  tmake_file="${tmake_file} t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
- 	  tmake_file="${tmake_file} arm/t-bpabi t-crtfm"
+ 	  tmake_file="${tmake_file} arm/t-bpabi arm/t-sync t-crtfm"
 -	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
 +	  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
  	  ;;
  	arm*-*-symbianelf*)
  	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
-@@ -715,6 +719,10 @@ i[34567]86-*-elf*)
+@@ -742,6 +746,10 @@ i[34567]86-*-elf*)
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	;;
  x86_64-*-elf* | x86_64-*-rtems*)
@@ -194,7 +195,7 @@ index 8c56fcae5..574ef77bd 100644
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	case ${host} in
  	  x86_64-*-rtems*)
-@@ -1311,8 +1319,8 @@ riscv*-*-freebsd*)
+@@ -1357,8 +1365,8 @@ riscv*-*-freebsd*)
  	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o crtendS.o crtbeginT.o"
  	;;
  riscv*-*-*)

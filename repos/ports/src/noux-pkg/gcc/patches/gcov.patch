@@ -8,7 +8,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/gcc/coverage.cc b/gcc/coverage.cc
-index 8ece5db68..5ce8f4e3d 100644
+index f60d1ac98..8a95ae2c7 100644
 --- a/gcc/coverage.cc
 +++ b/gcc/coverage.cc
 @@ -1275,6 +1275,7 @@ coverage_init (const char *filename)
