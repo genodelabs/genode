@@ -202,7 +202,8 @@ static Symlink_resolve_result resolve_symlinks_except_last_element(char const *p
 	Absolute_path absolute_path_without_last_element(path, cwd().base());
 	absolute_path_without_last_element.strip_last_element();
 
-	resolve_symlinks(absolute_path_without_last_element.base(), resolved_path);
+	if (resolve_symlinks(absolute_path_without_last_element.base(), resolved_path).failed())
+		return Symlink_resolve_error();
 
 	/* append last element to resolved path */
 	Absolute_path absolute_path_last_element(path, cwd().base());
