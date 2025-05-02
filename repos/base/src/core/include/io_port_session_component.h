@@ -22,55 +22,45 @@
 #include <io_port_session/io_port_session.h>
 
 /* core includes */
-#include <dataspace_component.h>
+#include <types.h>
 
-namespace Core { class Io_port_session_component; }
+namespace Core { struct Io_port_session_component; }
 
 
-class Core::Io_port_session_component : public Rpc_object<Io_port_session>
+struct Core::Io_port_session_component :  Rpc_object<Io_port_session>
 {
-	private:
+	Range_allocator::Result const _io_port_range;
 
-		Range_allocator &_io_port_alloc;
-		unsigned short   _base = 0;
-		unsigned short   _size = 0;
+	bool _in_bounds(unsigned short addr, unsigned width)
+	{
+		return _io_port_range.convert<bool>(
+			[&] (Range_allocator::Allocation const &a) {
+				addr_t const base = addr_t(a.ptr);
+				return (addr >= base) && (addr + width <= base + a.num_bytes); },
+			[&] (Alloc_error) { return false; });
+	}
 
-		/**
-		 * Check if access exceeds range
-         */
-		bool _in_bounds(unsigned short address, unsigned width) {
-			return (address >= _base) && (address + width <= _base + _size); }
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param io_port_alloc  IO_PORT region allocator
-		 * \param args           session construction arguments, in
-		 *                       particular port base and size
-		 * \throw                Service_denied
-		 */
-		Io_port_session_component(Range_allocator &io_port_alloc,
-		                          const char      *args);
-
-		/**
-		 * Destructor
-		 */
-		~Io_port_session_component();
+	/**
+	 * Constructor
+	 *
+	 * \param io_port_alloc  IO_PORT region allocator
+	 * \param args           session construction arguments, in
+	 *                       particular port base and size
+	 */
+	Io_port_session_component(Range_allocator &io_port_alloc, const char *args);
 
 
-		/*******************************
-		 ** Io-port session interface **
-		 *******************************/
+	/*******************************
+	 ** Io-port session interface **
+	 *******************************/
 
-		unsigned char  inb(unsigned short) override;
-		unsigned short inw(unsigned short) override;
-		unsigned       inl(unsigned short) override;
+	unsigned char  inb(unsigned short) override;
+	unsigned short inw(unsigned short) override;
+	unsigned       inl(unsigned short) override;
 
-		void outb(unsigned short, unsigned char)  override;
-		void outw(unsigned short, unsigned short) override;
-		void outl(unsigned short, unsigned)       override;
+	void outb(unsigned short, unsigned char)  override;
+	void outw(unsigned short, unsigned short) override;
+	void outl(unsigned short, unsigned)       override;
 };
 
 #endif /* _CORE__INCLUDE__IO_PORT_SESSION_COMPONENT_H_ */

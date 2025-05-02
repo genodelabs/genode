@@ -16,13 +16,7 @@
 using namespace Core;
 
 
-Io_port_session_component::Io_port_session_component(Range_allocator &io_port_alloc,
-                                                     const char *)
+Io_port_session_component::Io_port_session_component(Range_allocator &, char const *)
 :
-	_io_port_alloc(io_port_alloc)
-{
-	warning("I/O port access is not supported on base linux");
-}
-
-
-Io_port_session_component::~Io_port_session_component() { }
+	_io_port_range(Alloc_error::DENIED)
+{ }

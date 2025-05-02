@@ -13,6 +13,7 @@
 
 /* core includes */
 #include <io_port_session_component.h>
+#include <platform.h>
 
 /* base-internal includes */
 #include <base/internal/sel4.h>
