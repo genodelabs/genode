@@ -379,7 +379,7 @@ struct Libc::Local_clone_service : Noncopyable
 		Factory(Session &session, Signal_context_capability started_sigh)
 		: _session(session), _started_sigh(started_sigh) { }
 
-		Session &create(Args const &, Affinity) override { return _session; }
+		Result create(Args const &, Affinity) override { return _session; }
 
 		void upgrade(Session &, Args const &) override { }
 

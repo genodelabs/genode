@@ -44,6 +44,8 @@ class Genode::Service : public Ram_transfer::Account,
 		using Ram_transfer_result = Ram_transfer::Account::Transfer_result;
 		using Cap_transfer_result = Cap_transfer::Account::Transfer_result;
 
+		enum class Create_error { DENIED, INSUFFICIENT_CAPS, INSUFFICIENT_RAM };
+
 	private:
 
 		Name const _name;
@@ -114,19 +116,12 @@ class Genode::Local_service : public Service
 
 		struct Factory : Interface
 		{
-			using Args = Session_state::Args;
+			using Args   = Session_state::Args;
+			using Result = Unique_attempt<SESSION &, Create_error>;
 
-			/**
-			 * Create session
-			 *
-			 * \throw Service_denied
-			 * \throw Insufficient_ram_quota
-			 * \throw Insufficient_cap_quota
-			 */
-			virtual SESSION &create(Args const &, Affinity)  = 0;
-
-			virtual void upgrade(SESSION &, Args const &) = 0;
-			virtual void destroy(SESSION &)               = 0;
+			virtual Result create (Args const &, Affinity)  = 0;
+			virtual void   upgrade(SESSION &, Args const &) = 0;
+			virtual void   destroy(SESSION &) = 0;
 		};
 
 		/**
@@ -136,17 +131,18 @@ class Genode::Local_service : public Service
 		{
 			private:
 
-				using Args = Session_state::Args;
+				using Args   = Factory::Args;
+				using Result = Factory::Result;
 
-				SESSION &_s;
+				SESSION &_obj;
 
 			public:
 
-				Single_session_factory(SESSION &session) : _s(session) { }
+				Single_session_factory(SESSION &obj) : _obj(obj) { }
 
-				SESSION &create  (Args const &, Affinity)  override { return _s; }
-				void     upgrade (SESSION &, Args const &) override { }
-				void     destroy (SESSION &)               override { }
+				Result create (Args const &, Affinity)  override { return { _obj }; }
+				void   upgrade(SESSION &, Args const &) override { }
+				void   destroy(SESSION &)               override { }
 		};
 
 	private:
@@ -178,23 +174,23 @@ class Genode::Local_service : public Service
 
 			case Session_state::CREATE_REQUESTED:
 
-				try {
-					SESSION &rpc_obj = _factory.create(Session_state::Server_args(session).string(),
-					                                   session.affinity());
-					session.local_ptr = &rpc_obj;
-					session.cap       = rpc_obj.cap();
-					session.phase     = Session_state::AVAILABLE;
-				}
-				catch (Service_denied) {
-					session.phase = Session_state::SERVICE_DENIED; }
-				catch (Insufficient_cap_quota) {
-					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; }
-				catch (Insufficient_ram_quota) {
-					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; }
-				catch (...) {
-					warning("unexpected exception during ",
-					        SESSION::service_name(), " session construction"); }
-
+				_factory.create(Session_state::Server_args(session).string(),
+				                session.affinity()).with_result(
+					[&] (SESSION &obj) {
+						session.local_ptr = &obj;
+						session.cap       =  obj.cap();
+						session.phase     =  Session_state::AVAILABLE;
+					},
+					[&] (Create_error e) {
+						switch (e) {
+						case Create_error::DENIED:
+							session.phase = Session_state::SERVICE_DENIED; break;
+						case Create_error::INSUFFICIENT_RAM:
+							session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; break;
+						case Create_error::INSUFFICIENT_CAPS:
+							session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; break;
+						}
+					});
 				break;
 
 			case Session_state::UPGRADE_REQUESTED:

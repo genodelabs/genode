@@ -309,17 +309,17 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 ** Local_service::Factory interface **
 		 **************************************/
 
-		SESSION_TYPE &create(Session_state::Args const &args,
-		                     Affinity affinity) override
+		using Create_result = Local_service<SESSION_TYPE>::Factory::Result;
+
+		Create_result create(Session_state::Args const &args, Affinity affinity) override
 		{
-			try { return _create(args, affinity); }
-			catch (Insufficient_ram_quota) { throw; }
-			catch (Insufficient_cap_quota) { throw; }
-			catch (...) { throw Service_denied(); }
+			try { return { _create(args, affinity) }; }
+			catch (Insufficient_ram_quota) { return Service::Create_error::INSUFFICIENT_RAM; }
+			catch (Insufficient_cap_quota) { return Service::Create_error::INSUFFICIENT_CAPS; }
+			catch (...)                    { return Service::Create_error::DENIED; }
 		}
 
-		void upgrade(SESSION_TYPE &session,
-		             Session_state::Args const &args) override
+		void upgrade(SESSION_TYPE &session, Session_state::Args const &args) override
 		{
 			_upgrade_session(&session, args.string());
 		}
