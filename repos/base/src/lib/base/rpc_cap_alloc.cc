@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <util/retry.h>
+#include <base/sleep.h>
 #include <base/rpc_server.h>
 #include <pd_session/client.h>
 
@@ -37,24 +38,25 @@ static Parent &_parent()
 void Genode::init_rpc_cap_alloc(Parent &parent) { _parent_ptr = &parent; }
 
 
-Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd,
-                                                 Native_capability, addr_t)
+Rpc_entrypoint::Alloc_rpc_cap_result
+Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capability, addr_t)
 {
 	for (;;) {
 
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		using Error = Pd_session::Alloc_rpc_cap_error;
-
 		Native_capability result { };
 
 		pd.alloc_rpc_cap(_cap).with_result(
 			[&] (Native_capability cap) { result = cap; },
-			[&] (Error e) {
+			[&] (Alloc_error e) {
 				switch (e) {
-				case Error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
-				case Error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+				case Alloc_error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
+				case Alloc_error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+				case Alloc_error::DENIED:
+					error("allocation of RPC cap denied");
+					sleep_forever();
 				}
 			});
 

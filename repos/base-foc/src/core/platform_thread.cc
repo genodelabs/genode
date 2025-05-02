@@ -250,7 +250,10 @@ void Platform_thread::_create_thread()
 		error("cannot create more thread kernel-objects!");
 
 	/* create initial gate for thread */
-	_gate.local = thread_cap_factory().alloc(_thread.local);
+	thread_cap_factory().alloc(_thread.local).with_result(
+		[&] (Native_capability cap) { _gate.local = cap; },
+		[&] (Alloc_error e) {
+			error("unable to create platform thread (", e, ")"); });
 }
 
 

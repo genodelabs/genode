@@ -17,7 +17,6 @@ SRC_CC       := main.cc \
                 native_pd_component.cc \
                 native_cpu_component.cc \
                 capability_space.cc \
-                rpc_cap_factory_linux.cc \
                 ram_dataspace_factory.cc \
                 core_rpc_cap_alloc.cc \
                 io_mem_session_component.cc \

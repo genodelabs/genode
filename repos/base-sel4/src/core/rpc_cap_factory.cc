@@ -25,7 +25,7 @@
 using namespace Core;
 
 
-Native_capability Rpc_cap_factory::alloc(Native_capability ep)
+Rpc_cap_factory::Alloc_result Rpc_cap_factory::alloc(Native_capability ep)
 {
 	static unsigned unique_id_cnt;
 
@@ -38,10 +38,16 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 
 	auto cap = Capability_space::create_rpc_obj_cap(ep, rpc_obj_key);
 
-	if (cap.valid())
-		_pool.insert(new (_entry_slab) Entry(cap));
+	try {
+		if (cap.valid()) {
+			_pool.insert(new (_entry_slab) Entry(cap));
+			return cap;
+		}
+	}
+	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
+	catch (Out_of_ram)  { return Alloc_error::OUT_OF_RAM;  }
 
-	return cap;
+	return Alloc_error::DENIED;
 }
 
 

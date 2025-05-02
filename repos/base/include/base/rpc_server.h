@@ -370,6 +370,8 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 */
 		void _block_until_cap_valid();
 
+		using Alloc_rpc_cap_result = Attempt<Native_capability, Alloc_error>;
+
 		/**
 		 * Allocate new RPC object capability
 		 *
@@ -380,8 +382,8 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * The 'entry' argument is used only on NOVA. It is the server-side
 		 * instruction pointer to be associated with the RPC object capability.
 		 */
-		Native_capability _alloc_rpc_cap(Pd_session &, Native_capability ep,
-		                                 addr_t entry = 0);
+		Alloc_rpc_cap_result _alloc_rpc_cap(Pd_session &, Native_capability ep,
+		                                    addr_t entry = 0);
 
 		/**
 		 * Free RPC object capability

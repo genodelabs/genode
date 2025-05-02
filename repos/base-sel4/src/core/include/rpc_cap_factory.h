@@ -54,7 +54,9 @@ class Core::Rpc_cap_factory
 
 		~Rpc_cap_factory();
 
-		Native_capability alloc(Native_capability ep);
+		using Alloc_result = Attempt<Native_capability, Alloc_error>;
+
+		Alloc_result alloc(Native_capability ep);
 
 		void free(Native_capability cap);
 };

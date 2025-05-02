@@ -140,18 +140,23 @@ Pager_capability Pager_entrypoint::manage(Pager_object &obj)
 {
 	using namespace Foc;
 
-	return _thread_cap.convert<Pager_capability>(
-		[&] (Thread_capability thread_cap) {
-			Native_capability cap(_cap_factory.alloc(thread_cap));
+	return _thread_cap.convert<Pager_capability>([&] (Thread_capability thread_cap) {
 
-			/* add server object to object pool */
-			obj.cap(cap);
-			insert(&obj);
+		return _cap_factory.alloc(thread_cap).convert<Pager_capability>(
+			[&] (Native_capability cap) {
+				/* add server object to object pool */
+				obj.cap(cap);
+				insert(&obj);
 
-			/* return capability that uses the object id as badge */
-			return reinterpret_cap_cast<Pager_object>(cap);
-		},
-		[&] (Cpu_session::Create_thread_error) { return Pager_capability(); });
+				/* return capability that uses the object id as badge */
+				return reinterpret_cap_cast<Pager_object>(cap);
+			},
+			[&] (Alloc_error e) {
+				error("unable to manage pager object (", e, ")");
+				return Pager_capability();
+			});
+
+	}, [&] (Cpu_session::Create_thread_error) { return Pager_capability(); });
 }
 
 

@@ -19,14 +19,18 @@
 using namespace Core;
 
 
-Native_capability Native_pd_component::alloc_rpc_cap(Native_capability ep,
-                                                     addr_t entry, addr_t mtd)
+Pd_session::Alloc_rpc_cap_result
+Native_pd_component::alloc_rpc_cap(Native_capability ep, addr_t entry, addr_t mtd)
 {
-	try {
-		_pd_session._consume_cap(Pd_session_component::RPC_CAP);
-		return _pd_session._rpc_cap_factory.alloc(ep, entry, mtd); }
+	try { _pd_session._consume_cap(Pd_session_component::RPC_CAP); }
+	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
 
-	catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
+	Alloc_rpc_cap_result result = _pd_session._rpc_cap_factory.alloc(ep, entry, mtd);
+
+	if (result.failed())
+		_pd_session._released_cap_silent();
+
+	return result;
 }
 
 

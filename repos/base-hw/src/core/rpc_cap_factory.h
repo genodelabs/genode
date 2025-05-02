@@ -75,18 +75,15 @@ class Core::Rpc_cap_factory
 			}
 		}
 
-		/**
-		 * Allocate RPC capability
-		 *
-		 * \throw Allocator::Out_of_memory
-		 */
-		Native_capability alloc(Native_capability ep)
+		using Alloc_result = Attempt<Native_capability, Alloc_error>;
+
+		Alloc_result alloc(Native_capability ep)
 		{
 			Mutex::Guard guard(_mutex);
 
-			return _slab.try_alloc(sizeof(Kobject)).convert<Native_capability>(
+			return _slab.try_alloc(sizeof(Kobject)).convert<Alloc_result>(
 
-				[&] (Memory::Allocation &a) {
+				[&] (Memory::Allocation &a) -> Alloc_result {
 
 					/* create kernel object */
 					Kobject &obj = *construct_at<Kobject>(a.ptr, ep);
@@ -95,7 +92,7 @@ class Core::Rpc_cap_factory
 						raw("Invalid entrypoint ", (addr_t)Capability_space::capid(ep),
 						    " for allocating a capability!");
 						destroy(&_slab, &obj);
-						return Native_capability();
+						return Alloc_error::DENIED;
 					}
 
 					/* store it in the list and return result */
@@ -103,10 +100,7 @@ class Core::Rpc_cap_factory
 					a.deallocate = false;
 					return obj.cap;
 				},
-				[&] (Alloc_error) -> Native_capability {
-					/* XXX distinguish error conditions */
-					throw Allocator::Out_of_memory();
-				});
+				[&] (Alloc_error e) { return e; });
 		}
 
 		void free(Native_capability cap)

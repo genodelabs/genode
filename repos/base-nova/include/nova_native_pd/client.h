@@ -25,8 +25,8 @@ struct Genode::Nova_native_pd_client : Rpc_client<Pd_session::Native_pd>
 	explicit Nova_native_pd_client(Capability<Native_pd> cap)
 	: Rpc_client<Pd_session::Native_pd>(static_cap_cast<Pd_session::Native_pd>(cap)) { }
 
-	Native_capability alloc_rpc_cap(Native_capability ep,
-	                                addr_t entry, addr_t mtd) override
+	Alloc_rpc_cap_result alloc_rpc_cap(Native_capability ep,
+	                                   addr_t entry, addr_t mtd) override
 	{
 		return call<Rpc_alloc_rpc_cap>(ep, entry, mtd);
 	}

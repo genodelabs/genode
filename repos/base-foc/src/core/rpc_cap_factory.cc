@@ -85,7 +85,7 @@ Cap_mapping::Cap_mapping(Native_capability cap, Foc::l4_cap_idx_t r)
  **  Rpc_cap_factory  **
  ***********************/
 
-Native_capability Rpc_cap_factory::alloc(Native_capability ep)
+Rpc_cap_factory::Alloc_result Rpc_cap_factory::alloc(Native_capability ep)
 {
 	Native_capability cap;
 

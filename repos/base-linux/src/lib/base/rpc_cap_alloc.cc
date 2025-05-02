@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/sleep.h>
 #include <base/rpc_server.h>
 
 /* base-internal includes */
@@ -36,8 +37,8 @@ static Parent &_parent()
 void Genode::init_rpc_cap_alloc(Parent &parent) { _parent_ptr = &parent; }
 
 
-Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capability,
-                                                 addr_t)
+Rpc_entrypoint::Alloc_rpc_cap_result
+Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capability, addr_t)
 {
 	/* first we allocate a cap from core, to allow accounting of caps. */
 	for (;;) {
@@ -46,15 +47,17 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capabili
 		if (result.ok())
 			break;
 
-		using Error = Pd_session::Alloc_rpc_cap_error;
-		pd.alloc_rpc_cap(_cap).with_error([&] (Error e) {
+		pd.alloc_rpc_cap(_cap).with_error([&] (Alloc_error e) {
 
 			Ram_quota ram_upgrade { 0 };
 			Cap_quota cap_upgrade { 0 };
 
 			switch (e) {
-			case Error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
-			case Error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+			case Alloc_error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
+			case Alloc_error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+			case Alloc_error::DENIED:
+					error("allocation of RPC cap denied");
+					sleep_forever();
 			}
 			_parent().upgrade(Parent::Env::pd(),
 			                  String<100>("ram_quota=", ram_upgrade, ", "

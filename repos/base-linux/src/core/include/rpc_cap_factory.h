@@ -21,23 +21,18 @@
 /* core includes */
 #include <types.h>
 
-namespace Core { class Rpc_cap_factory; }
+namespace Core { struct Rpc_cap_factory; }
 
 
-class Core::Rpc_cap_factory
+struct Core::Rpc_cap_factory : Noncopyable
 {
-	private:
+	using Alloc_result = Attempt<Native_capability, Alloc_error>;
 
-		static Native_capability _alloc(Rpc_cap_factory &owner,
-		                                Native_capability ep);
+	Rpc_cap_factory(Allocator &) { }
 
-	public:
+	Alloc_result alloc(Native_capability) { return Native_capability(); }
 
-		Rpc_cap_factory(Allocator &) { }
-
-		Native_capability alloc(Native_capability ep);
-
-		void free(Native_capability cap);
+	void free(Native_capability) { }
 };
 
 #endif /* _CORE__INCLUDE__RPC_CAP_FACTORY_H_ */

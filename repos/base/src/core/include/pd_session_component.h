@@ -293,14 +293,13 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			/* may throw 'Out_of_caps' */
 			try { _consume_cap(RPC_CAP); }
 			catch (Out_of_caps) {
-				return Alloc_rpc_cap_error::OUT_OF_CAPS; }
+				return Alloc_error::OUT_OF_CAPS; }
 
-			/* may throw 'Out_of_ram' */
-			try {
-				return _rpc_cap_factory.alloc(ep); }
-			catch (...) {
-				_released_cap_silent();
-				return Alloc_rpc_cap_error::OUT_OF_RAM; }
+			return _rpc_cap_factory.alloc(ep).convert<Alloc_rpc_cap_result>(
+				[&] (Untyped_capability cap) { return cap; },
+				[&] (Alloc_error e) {
+					_released_cap_silent();
+					return e; });
 		}
 
 		void free_rpc_cap(Native_capability cap) override

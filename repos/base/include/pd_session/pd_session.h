@@ -200,8 +200,7 @@ struct Genode::Pd_session : Session, Pd_account
 	 ** Support for the RPC framework **
 	 ***********************************/
 
-	enum class Alloc_rpc_cap_error { OUT_OF_RAM, OUT_OF_CAPS };
-	using Alloc_rpc_cap_result = Attempt<Native_capability, Alloc_rpc_cap_error>;
+	using Alloc_rpc_cap_result = Attempt<Native_capability, Alloc_error>;
 
 	/**
 	 * Allocate new RPC-object capability

@@ -19,6 +19,8 @@
 
 struct Genode::Pd_session::Native_pd : Interface
 {
+	using Alloc_rpc_cap_result = Pd_session::Alloc_rpc_cap_result;
+
 	/**
 	 * Allocate RPC object capability
 	 *
@@ -26,22 +28,18 @@ struct Genode::Pd_session::Native_pd : Interface
 	 * \param entry  server-side instruction pointer of the RPC handler
 	 * \param mtd    NOVA message transfer descriptor
 	 *
-	 * \throw        Out_of_ram
-	 * \throw        Out_of_caps
-	 *
 	 * \return new RPC object capability
 	 */
-	virtual Native_capability alloc_rpc_cap(Native_capability ep,
-	                                        addr_t entry, addr_t mtd) = 0;
+	virtual Alloc_rpc_cap_result alloc_rpc_cap(Native_capability ep,
+	                                           addr_t entry, addr_t mtd) = 0;
 
 	/**
 	 * Imprint badge into the portal of the specified RPC capability
 	 */
 	virtual void imprint_rpc_cap(Native_capability cap, unsigned long badge) = 0;
 
-	GENODE_RPC_THROW(Rpc_alloc_rpc_cap, Native_capability, alloc_rpc_cap,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
-	                 Native_capability, addr_t, addr_t);
+	GENODE_RPC(Rpc_alloc_rpc_cap, Alloc_rpc_cap_result, alloc_rpc_cap,
+	           Native_capability, addr_t, addr_t);
 	GENODE_RPC(Rpc_imprint_rpc_cap, void, imprint_rpc_cap,
 	           Native_capability, unsigned long);
 	GENODE_RPC_INTERFACE(Rpc_alloc_rpc_cap, Rpc_imprint_rpc_cap);

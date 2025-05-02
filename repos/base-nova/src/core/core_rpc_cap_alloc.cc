@@ -35,12 +35,10 @@ static Core::Rpc_cap_factory &rpc_cap_factory()
 }
 
 
-Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &, Native_capability ep,
-                                                 addr_t entry)
+Rpc_entrypoint::Alloc_rpc_cap_result
+Rpc_entrypoint::_alloc_rpc_cap(Pd_session &, Native_capability ep, addr_t entry)
 {
-	Native_capability cap = rpc_cap_factory().alloc(ep, entry, 0);
-	imprint_badge(cap.local_name(), cap.local_name());
-	return cap;
+	return rpc_cap_factory().alloc(ep, entry, 0);
 }
 
 

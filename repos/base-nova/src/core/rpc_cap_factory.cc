@@ -21,7 +21,8 @@
 using namespace Core;
 
 
-Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, addr_t mtd)
+Rpc_cap_factory::Alloc_result
+Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, addr_t mtd)
 {
 	addr_t const pt_sel = cap_map().insert();
 	addr_t const pd_sel = platform_specific().core_pd_sel();
@@ -32,9 +33,11 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, add
 	Mutex::Guard guard(_mutex);
 
 	/* create cap object */
-	Cap_object * pt_cap = new (&_slab) Cap_object(pt_sel);
-	if (!pt_cap)
-		return Native_capability();
+	Cap_object * pt_cap = nullptr;
+	try { pt_cap = new (&_slab) Cap_object(pt_sel); }
+	catch (Out_of_ram)  { return Alloc_error::OUT_OF_RAM; }
+	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
+	catch (...)         { return Alloc_error::DENIED; }
 
 	_list.insert(pt_cap);
 

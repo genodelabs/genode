@@ -19,6 +19,7 @@
 #include <base/mutex.h>
 #include <base/capability.h>
 #include <base/tslab.h>
+#include <base/rpc_server.h>
 
 /* core includes */
 #include <types.h>
@@ -50,20 +51,12 @@ class Core::Rpc_cap_factory
 
 		~Rpc_cap_factory();
 
-		/**
-		 * Allocate RPC capability
-		 *
-		 * \throw Allocator::Out_of_memory
-		 *
-		 * This function is invoked via Native_pd::alloc_rpc_cap.
-		 */
-		Native_capability alloc(Native_capability ep, addr_t entry, addr_t mtd);
+		using Alloc_result = Attempt<Native_capability, Alloc_error>;
 
-		Native_capability alloc(Native_capability)
-		{
-			warning("unexpected call to non-implemented Rpc_cap_factory::alloc");
-			return Native_capability();
-		}
+		Alloc_result alloc(Native_capability ep, addr_t entry, addr_t mtd);
+
+		/* unused on NOVA */
+		Alloc_result alloc(Native_capability) { return Alloc_error::DENIED; }
 
 		void free(Native_capability cap);
 };

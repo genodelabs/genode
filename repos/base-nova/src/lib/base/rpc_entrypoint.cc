@@ -48,18 +48,24 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 			Untyped_capability const ec_cap =
 				nt.ec_valid() ? Capability_space::import(nt.ec_sel) : Thread::cap();
 
-			Untyped_capability const obj_cap =
-				_alloc_rpc_cap(_pd_session, ec_cap, (addr_t)&_activation_entry);
+			return _alloc_rpc_cap(_pd_session, ec_cap,
+			                      addr_t(&_activation_entry)).convert<Untyped_capability>(
 
-			if (!obj_cap.valid())
-				return Untyped_capability();
+				[&] (Untyped_capability const obj_cap) {
+					if (!obj_cap.valid())
+						return Untyped_capability();
 
-			/* add server object to object pool */
-			obj->cap(obj_cap);
-			insert(obj);
+					/* add server object to object pool */
+					obj->cap(obj_cap);
+					insert(obj);
 
-			/* return object capability managed by entrypoint thread */
-			return obj_cap;
+					/* return object capability managed by entrypoint thread */
+					return obj_cap;
+				},
+				[&] (Alloc_error e) {
+					error("unable to allocate RPC cap (", e, ")");
+					return Untyped_capability();
+				});
 		},
 		[&] { return Untyped_capability(); });
 }
@@ -217,17 +223,19 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	/* required to create a 'local' EC */
 	Thread::start();
 
-	/* create cleanup portal */
-	with_native_thread([&] (Native_thread &nt) {
-		_cap = _alloc_rpc_cap(_pd_session, Capability_space::import(nt.ec_sel),
-		                      (addr_t)_activation_entry); });
-	if (!_cap.valid()) {
-		error("failed to allocate RPC cap for new entrypoint");
-		return;
-	}
-
 	_stack.with_result(
 		[&] (Stack &stack) {
+
+			/* create cleanup portal */
+			_cap = _alloc_rpc_cap(_pd_session,
+			                      Capability_space::import(stack.native_thread().ec_sel),
+			                      addr_t(_activation_entry)).convert<Untyped_capability>(
+				[&] (Untyped_capability cap) { return cap; },
+				[&] (Alloc_error e) {
+					error("failed to allocate RPC cap for new entrypoint (", e, ")");
+					return Untyped_capability();
+				});
+
 			Receive_window &rcv_window = stack.native_thread().server_rcv_window;
 
 			/* prepare portal receive window of new thread */

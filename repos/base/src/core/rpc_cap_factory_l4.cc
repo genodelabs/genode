@@ -25,12 +25,12 @@ using namespace Core;
 static unsigned unique_id_cnt;
 
 
-Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory &,
-                                          Native_capability ep)
+Rpc_cap_factory::Alloc_result
+Rpc_cap_factory::_alloc(Rpc_cap_factory &, Native_capability ep)
 {
 	if (!ep.valid()) {
 		warning("Invalid entrypoint capability");
-		return Native_capability();
+		return Alloc_error::DENIED;
 	}
 
 	Rpc_obj_key const rpc_obj_key(++unique_id_cnt);
@@ -43,7 +43,7 @@ Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory &,
 }
 
 
-Native_capability Rpc_cap_factory::alloc(Native_capability ep)
+Rpc_cap_factory::Alloc_result Rpc_cap_factory::alloc(Native_capability ep)
 {
 	return Rpc_cap_factory::_alloc(*this, ep);
 }

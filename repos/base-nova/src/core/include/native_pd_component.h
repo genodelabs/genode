@@ -42,7 +42,8 @@ class Core::Native_pd_component : public Rpc_object<Pd_session::Native_pd>
 		/**
 		 * Native_pd interface
 		 */
-		Native_capability alloc_rpc_cap(Native_capability, addr_t, addr_t) override;
+		Alloc_rpc_cap_result alloc_rpc_cap(Native_capability, addr_t, addr_t) override;
+
 		void imprint_rpc_cap(Native_capability, unsigned long) override;
 };
 

@@ -15,6 +15,7 @@
 #include <base/env.h>
 #include <util/retry.h>
 #include <base/rpc_server.h>
+#include <base/sleep.h>
 #include <pd_session/client.h>
 
 /* base-internal includes */
@@ -40,8 +41,8 @@ static Parent &_parent()
 void Genode::init_rpc_cap_alloc(Parent &parent) { _parent_ptr = &parent; }
 
 
-Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capability ep,
-                                                 addr_t entry)
+Rpc_entrypoint::Alloc_rpc_cap_result
+Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capability ep, addr_t entry)
 {
 	if (!_native_pd_cap.valid())
 		_native_pd_cap = pd.native_pd();
@@ -50,16 +51,28 @@ Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capabili
 
 	for (;;) {
 
+		Native_capability result { };
+
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		try {
-			Untyped_capability new_obj_cap = native_pd.alloc_rpc_cap(ep, entry, 0);
-			native_pd.imprint_rpc_cap(new_obj_cap, new_obj_cap.local_name());
-			return new_obj_cap;
-		}
-		catch (Out_of_ram)  { ram_upgrade = Ram_quota { 2*1024*sizeof(long) }; }
-		catch (Out_of_caps) { cap_upgrade = Cap_quota { 4 }; }
+		native_pd.alloc_rpc_cap(ep, entry, 0).with_result(
+			[&] (Untyped_capability cap) {
+				native_pd.imprint_rpc_cap(cap, cap.local_name());
+				result = cap;
+			},
+			[&] (Alloc_error e) {
+				switch (e) {
+				case Alloc_error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
+				case Alloc_error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+				case Alloc_error::DENIED:
+					error("allocation of RPC cap denied");
+					sleep_forever();
+				}
+			});
+
+		if (result.valid())
+			return result;
 
 		_parent().upgrade(Parent::Env::pd(),
 		                  String<100>("ram_quota=", ram_upgrade, ", "

@@ -706,15 +706,20 @@ Signal_context_capability Nova_vcpu::_create_exit_handler(Pd_session        &pd,
 
 		Nova_native_pd_client native_pd { pd.native_pd() };
 
-		Native_capability vm_exit_cap =
-			native_pd.alloc_rpc_cap(thread_cap, (addr_t)Nova_vcpu::_exit_entry, mtd.value());
+		return native_pd.alloc_rpc_cap(thread_cap, addr_t(_exit_entry), mtd.value())
+			.convert<Capability<Signal_context>>(
+				[&] (Native_capability vm_exit_cap) {
+					Badge const badge { vcpu_id, exit_reason };
+					native_pd.imprint_rpc_cap(vm_exit_cap, badge.value());
+					return reinterpret_cap_cast<Signal_context>(vm_exit_cap);
+				},
+				[&] (Alloc_error e) {
+					if (e == Alloc_error::OUT_OF_CAPS) throw Out_of_caps();
+					if (e == Alloc_error::OUT_OF_RAM)  throw Out_of_ram();
+					return Capability<Signal_context>();
+				});
 
-		Badge const badge { vcpu_id, exit_reason };
-		native_pd.imprint_rpc_cap(vm_exit_cap, badge.value());
-
-		return reinterpret_cap_cast<Signal_context>(vm_exit_cap);
-
-	}, [&] { return Signal_context_capability(); });
+	}, [&] { return Capability<Signal_context>(); });
 }
 
 

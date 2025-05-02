@@ -333,7 +333,10 @@ void test_pat(Genode::Env &env)
 		Native_capability const thread_cap = Capability_space::import(nt.ec_sel);
 
 		Untyped_capability const pt =
-			native_pd.alloc_rpc_cap(thread_cap, (addr_t)portal_entry, 0 /* MTD */);
+			native_pd.alloc_rpc_cap(thread_cap, (addr_t)portal_entry, 0 /* MTD */)
+				.convert<Untyped_capability>(
+					[&] (Untyped_capability cap) { return cap; },
+					[&] (Alloc_error) { return Untyped_capability(); });
 
 		Nova::Mem_crd const rcv_crd(memory_remap >> PAGE_4K, DS_ORDER, all);
 		Nova::Mem_crd const snd_crd(memory_wc >> PAGE_4K, DS_ORDER, all);
@@ -507,8 +510,10 @@ class Pager : private Genode::Thread {
 				Nova::Mtd mtd (Nova::Mtd::QUAL | Nova::Mtd::EIP | Nova::Mtd::ESP);
 				Genode::addr_t entry = reinterpret_cast<Genode::addr_t>(page_fault);
 
-				_call_to_map = native_pd.alloc_rpc_cap(thread_cap, entry,
-				                                       mtd.value());
+				_call_to_map = native_pd.alloc_rpc_cap(thread_cap, entry, mtd.value())
+					.convert<Untyped_capability>(
+						[&] (Untyped_capability cap) { return cap; },
+						[&] (Alloc_error) { return Untyped_capability(); });
 			});
 		}
 

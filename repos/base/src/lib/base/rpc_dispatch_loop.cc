@@ -33,14 +33,20 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 		return obj->cap();
 	}
 
-	Untyped_capability new_obj_cap = _alloc_rpc_cap(_pd_session, _cap);
+	return _alloc_rpc_cap(_pd_session, _cap).convert<Untyped_capability>(
+		[&] (Untyped_capability cap) {
 
-	/* add server object to object pool */
-	obj->cap(new_obj_cap);
-	insert(obj);
+			/* add server object to object pool */
+			obj->cap(cap);
+			insert(obj);
 
-	/* return capability that uses the object id as badge */
-	return new_obj_cap;
+			/* return capability that uses the object id as badge */
+			return cap;
+		},
+		[&] (Alloc_error e) {
+			error("unable to allocate RPC cap (", e, ")");
+			return Untyped_capability();
+		});
 }
 
 
