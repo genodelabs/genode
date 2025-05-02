@@ -87,6 +87,12 @@ static void allocate_and_define_rcv_sel()
 static seL4_MessageInfo_t new_seL4_message(Msgbuf_base const &msg)
 {
 	/*
+	 * currently only 1 CAP can be sent and received,
+	 * since alloc_rcv_sel only allocates 1 slot and not MAX_CAPS_PER_MSG
+	 */
+	ASSERT(msg.used_caps() <= 1);
+
+	/*
 	 * Supply capabilities to kernel IPC message
 	 */
 	seL4_SetMR(MR_IDX_NUM_CAPS, msg.used_caps());
@@ -244,7 +250,9 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 			Native_capability arg_cap = Capability_space::lookup(rpc_obj_key);
 
 			dst_msg.insert(arg_cap);
-
+		} if (curr_sel4_cap_idx >= caps_extra) {
+			dst_msg.insert(Native_capability());
+			continue;
 		} else {
 
 			/*
@@ -262,10 +270,6 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 			 * - We received a selector on the IPC reply path, where seL4's
 			 *   badge mechanism is not in effect.
 			 */
-
-			bool const delegated = caps_extra;
-
-			ASSERT(delegated);
 
 			Native_capability arg_cap = Capability_space::lookup(rpc_obj_key);
 
