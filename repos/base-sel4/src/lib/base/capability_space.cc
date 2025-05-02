@@ -181,5 +181,15 @@ Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 
 
 template <unsigned A, unsigned B, typename C>
-void Capability_space_sel4<A, B, C>::_cleanup_last_ref(Native_capability::Data &)
-{ }
+void Capability_space_sel4<A, B, C>::_cleanup_last_ref(Native_capability::Data & data)
+{
+	Cap_sel const sel(local_capability_space().sel(data));
+
+	int const ret = seL4_CNode_Delete(INITIAL_SEL_CNODE, sel.value(),
+	                                  CSPACE_SIZE_LOG2);
+
+	if (ret == seL4_NoError)
+		sel_alloc().free(sel.value());
+	else
+		error(__func__, " seL4_CNode_Delete returned ", ret);
+}
