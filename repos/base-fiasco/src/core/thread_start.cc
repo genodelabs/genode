@@ -35,9 +35,9 @@ void Thread::_thread_start()
 
 Thread::Start_result Thread::start()
 {
-	return _stack.convert<Start_result>([&] (Stack * const stack) {
+	return _stack.convert<Start_result>([&] (Stack &stack) {
 
-		Native_thread &nt = stack->native_thread();
+		Native_thread &nt = stack.native_thread();
 
 		/* create and start platform thread */
 		try {
@@ -49,7 +49,7 @@ Thread::Start_result Thread::start()
 		nt.pt->pager(platform_specific().core_pager());
 		nt.l4id = nt.pt->native_thread_id();
 
-		nt.pt->start((void *)_thread_start, (void *)stack->top());
+		nt.pt->start((void *)_thread_start, (void *)stack.top());
 
 		return Start_result::OK;
 

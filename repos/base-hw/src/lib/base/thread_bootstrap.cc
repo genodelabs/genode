@@ -70,8 +70,8 @@ Native_utcb *Thread::utcb()
 		return utcb_main_thread();
 
 	return _stack.convert<Native_utcb *>(
-		[&] (Stack *stack) { return &stack->utcb(); },
-		[&] (Stack_error)  { return utcb_main_thread(); });
+		[&] (Stack &s)    { return &s.utcb(); },
+		[&] (Stack_error) { return utcb_main_thread(); });
 }
 
 

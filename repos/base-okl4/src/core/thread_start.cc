@@ -35,15 +35,15 @@ void Thread::_thread_start()
 
 Thread::Start_result Thread::start()
 {
-	return _stack.convert<Start_result>([&] (Stack * const stack) {
+	return _stack.convert<Start_result>([&] (Stack &stack) {
 
-		Native_thread &nt = stack->native_thread();
+		Native_thread &nt = stack.native_thread();
 
 		nt.pt = new (Core::platform_specific().thread_slab())
 			Core::Platform_thread(Core::platform_specific().core_pd(),
 			                      name.string());
 
-		nt.pt->start((void *)_thread_start, (void *)stack->top());
+		nt.pt->start((void *)_thread_start, (void *)stack.top());
 
 		return Start_result::OK;
 

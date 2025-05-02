@@ -227,11 +227,11 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 	}
 
 	_stack.with_result(
-		[&] (Stack *stack) {
-			Receive_window &rcv_window = stack->native_thread().server_rcv_window;
+		[&] (Stack &stack) {
+			Receive_window &rcv_window = stack.native_thread().server_rcv_window;
 
 			/* prepare portal receive window of new thread */
-			if (!rcv_window.prepare_rcv_window((Nova::Utcb &)stack->utcb()))
+			if (!rcv_window.prepare_rcv_window((Nova::Utcb &)stack.utcb()))
 				error("failed to prepare receive window for RPC entrypoint");
 		},
 		[&] (Stack_error) { }

@@ -68,10 +68,10 @@ void Thread::_thread_start()
 	Thread &thread = *Thread::myself();
 
 	thread._stack.with_result(
-		[&] (Stack *stack) {
+		[&] (Stack &stack) {
 			/* use primary stack as alternate stack for fatal signals (exceptions) */
-			void   *stack_base = (void *)stack->base();
-			size_t  stack_size = stack->top() - stack->base();
+			void   *stack_base = (void *)stack.base();
+			size_t  stack_size = stack.top() - stack.base();
 
 			lx_sigaltstack(stack_base, stack_size);
 			if (stack_size < 0x1000)
@@ -187,10 +187,10 @@ Thread::Start_result Thread::start()
 	}
 
 	return _stack.convert<Start_result>(
-		[&] (Stack *stack) {
-			Native_thread &nt = stack->native_thread();
+		[&] (Stack &stack) {
+			Native_thread &nt = stack.native_thread();
 
-			nt.tid = lx_create_thread(Thread::_thread_start, (void *)stack->top());
+			nt.tid = lx_create_thread(Thread::_thread_start, (void *)stack.top());
 			nt.pid = lx_getpid();
 
 			/* wait until the 'thread_start' function got entered */

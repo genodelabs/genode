@@ -92,9 +92,11 @@ Thread::Alloc_stack_result
 Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
 {
 	/* allocate stack */
-	Stack *stack = Stack_allocator::stack_allocator().alloc(this, main_thread);
-	if (!stack)
+	Stack *stack_ptr = Stack_allocator::stack_allocator().alloc(this, main_thread);
+	if (!stack_ptr)
 		return Stack_error::STACK_AREA_EXHAUSTED;
+
+	Stack &stack = *stack_ptr;
 
 	/* determine size of dataspace to allocate for the stack */
 	enum { PAGE_SIZE_LOG2 = 12 };
@@ -109,7 +111,7 @@ Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
 	 *
 	 * The stack pointer is always located at the top of the stack header.
 	 */
-	addr_t ds_addr = Stack_allocator::addr_to_base(stack) +
+	addr_t ds_addr = Stack_allocator::addr_to_base(&stack) +
 	                 stack_virtual_size() - ds_size;
 
 	/* add padding for UTCB if defined for the platform */
@@ -147,9 +149,9 @@ Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
 					 * cause trouble when the assignment operator of
 					 * Native_capability is used.
 					 */
-					construct_at<Stack>(stack, name, *this, ds_addr, allocation.cap);
+					construct_at<Stack>(&stack, name, *this, ds_addr, allocation.cap);
 
-					Abi::init_stack(stack->top());
+					Abi::init_stack(stack.top());
 					allocation.deallocate = false;
 					return stack;
 				},
@@ -183,7 +185,7 @@ void Thread::_free_stack(Stack &stack)
 }
 
 
-static Thread::Stack_info stack_info(Stack &stack)
+static Thread::Stack_info stack_info(Stack const &stack)
 {
 	return { stack.base(), stack.top(),
 	         stack_virtual_size() - stack.libc_tls_pointer_offset() };
@@ -193,8 +195,8 @@ static Thread::Stack_info stack_info(Stack &stack)
 Thread::Info_result Thread::info() const
 {
 	return _stack.convert<Info_result>(
-		[&] (Stack *stack)  { return stack_info(*stack); },
-		[&] (Stack_error e) { return e; });
+		[&] (Stack const &stack) { return stack_info(stack); },
+		[&] (Stack_error e)      { return e; });
 }
 
 
@@ -205,8 +207,8 @@ Thread::Alloc_secondary_stack_result
 Thread::alloc_secondary_stack(Name const &name, size_t stack_size)
 {
 	return _alloc_stack(stack_size, name, false).convert<Alloc_secondary_stack_result>(
-		[&] (Stack *stack)  { return (void *)stack->top(); },
-		[&] (Stack_error e) { return e; });
+		[&] (Stack const &stack) { return (void *)stack.top(); },
+		[&] (Stack_error e)      { return e; });
 }
 
 
@@ -220,7 +222,7 @@ void Thread::free_secondary_stack(void* stack_addr)
 Thread::Stack_size_result Thread::stack_size(size_t const size)
 {
 	return _stack.convert<Stack_size_result>(
-		[&] (Stack *stack)  { return stack->size(size); },
+		[&] (Stack &stack)  { return stack.size(size); },
 		[&] (Stack_error e) { return e; });
 }
 
@@ -260,9 +262,9 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 	_stack(_alloc_stack(stack_size, name, type == MAIN))
 {
 	_stack.with_result(
-		[&] (Stack *stack) {
-			_native_thread_ptr = &stack->native_thread();
-			_init_native_thread(*stack, weight, type);
+		[&] (Stack &stack) {
+			_native_thread_ptr = &stack.native_thread();
+			_init_native_thread(stack, weight, type);
 		},
 		[&] (Stack_error) { /* error reflected by 'info()' */ });
 }
@@ -323,9 +325,9 @@ Thread::~Thread()
 	}
 
 	_stack.with_result(
-		[&] (Stack *stack) {
-			_deinit_native_thread(*stack);
-			_free_stack(*stack);
+		[&] (Stack &stack) {
+			_deinit_native_thread(stack);
+			_free_stack(stack);
 		},
 		[&] (Stack_error) { });
 

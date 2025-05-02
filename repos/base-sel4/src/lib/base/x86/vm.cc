@@ -127,7 +127,7 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 		addr_t _with_utcb(auto const &fn)
 		{
 			return _stack.convert<addr_t>(
-				[&] (Stack *stack) { return fn(stack->utcb()); },
+				[&] (Stack &stack) { return fn(stack.utcb()); },
 				[&] (Stack_error)  { return 0UL; /* cannot happen */ });
 		}
 

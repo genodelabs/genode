@@ -152,7 +152,7 @@ class Genode::Stack
 		 *
 		 * The alignment constrains are enforced by the CPU-specific ABI.
 		 */
-		addr_t top() const { return Abi::stack_align((addr_t)_stack); }
+		addr_t top() const { return Abi::stack_align(addr_t(_stack)); }
 
 		/**
 		 * Return base (the "end") of stack
@@ -162,10 +162,9 @@ class Genode::Stack
 		/**
 		 * Return libc TLS pointer offset relative to end of stack
 		 */
-		addr_t libc_tls_pointer_offset()
+		addr_t libc_tls_pointer_offset() const
 		{
-			return (addr_t)this + sizeof(Stack) -
-			       (addr_t)&_libc_tls_pointer;
+			return addr_t(this) + sizeof(Stack) - addr_t(&_libc_tls_pointer);
 		}
 
 		/**

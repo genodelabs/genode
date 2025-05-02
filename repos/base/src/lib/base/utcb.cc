@@ -21,6 +21,6 @@
 
 Genode::Native_utcb *Genode::Thread::utcb()
 {
-	return _stack.convert<Native_utcb *>([&] (Stack *stack) { return &stack->utcb(); },
+	return _stack.convert<Native_utcb *>([&] (Stack &stack) { return &stack.utcb(); },
 	                                     [&] (Stack_error)  { return nullptr; });
 }

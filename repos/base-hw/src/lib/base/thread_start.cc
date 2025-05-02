@@ -58,7 +58,7 @@ void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 	if (type == NORMAL) {
 
 		/* create server object */
-		addr_t const utcb = (addr_t)&stack.utcb();
+		addr_t const utcb = addr_t(&stack.utcb());
 
 		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name, _affinity,
 		                                          Weight(weight), utcb);
@@ -67,7 +67,7 @@ void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 	/* if we got reinitialized we have to get rid of the old UTCB */
 	size_t const utcb_size  = sizeof(Native_utcb);
 	addr_t const stack_area = stack_area_virtual_base();
-	addr_t const utcb_new   = (addr_t)&stack.utcb() - stack_area;
+	addr_t const utcb_new   = addr_t(&stack.utcb()) - stack_area;
 
 	/* remap initial main-thread UTCB according to stack-area spec */
 	if (env_stack_area_region_map->attach(Hw::_main_thread_utcb_ds, {
@@ -107,7 +107,7 @@ void Thread::_deinit_native_thread(Stack &stack)
 
 Thread::Start_result Thread::start()
 {
-	return _stack.convert<Start_result>([&] (Stack * const stack) {
+	return _stack.convert<Start_result>([&] (Stack &stack) {
 
 		while (avail_capability_slab() < 5)
 			upgrade_capability_slab();
@@ -117,19 +117,19 @@ Thread::Start_result Thread::start()
 				Cpu_thread_client cpu_thread(cap);
 
 				/* attach UTCB at top of stack */
-				size_t const size = sizeof(stack->utcb());
+				size_t const size = sizeof(stack.utcb());
 				return env_stack_area_region_map->attach(cpu_thread.utcb(), {
 					.size       = size,
 					.offset     = { },
 					.use_at     = true,
-					.at         = Stack_allocator::addr_to_base(stack)
+					.at         = Stack_allocator::addr_to_base(&stack)
 					            + stack_virtual_size() - size - stack_area_virtual_base(),
 					.executable = { },
 					.writeable  = true
 				}).convert<Start_result>(
 					[&] (Region_map::Range) {
 						/* start execution with initial IP and aligned SP */
-						cpu_thread.start((addr_t)_thread_start, stack->top());
+						cpu_thread.start(addr_t(_thread_start), stack.top());
 						return Start_result::OK;
 					},
 					[&] (Region_map::Attach_error) {

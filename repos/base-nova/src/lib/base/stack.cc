@@ -117,6 +117,6 @@ Native_utcb *Thread::utcb()
 	if (this == 0) return main_thread_utcb();
 
 	return _stack.convert<Native_utcb *>(
-		[&] (Stack *stack) { return &stack->utcb(); },
+		[&] (Stack &stack) { return &stack.utcb(); },
 		[&] (Stack_error)  { return main_thread_utcb(); });
 }

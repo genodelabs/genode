@@ -34,7 +34,7 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
 	Native_thread &nt = stack.native_thread();
 
-	Utcb_virt const utcb_virt { (addr_t)&stack.utcb() };
+	Utcb_virt const utcb_virt { addr_t(&stack.utcb()) };
 
 	if (type == MAIN) {
 		nt.attr.tcb_sel = seL4_CapInitThreadTCB;
@@ -77,7 +77,7 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 
 void Thread::_deinit_native_thread(Stack &stack)
 {
-	addr_t const utcb_virt_addr = (addr_t)&stack.utcb();
+	addr_t const utcb_virt_addr = addr_t(&stack.utcb());
 
 	bool ret = unmap_local(utcb_virt_addr, 1);
 	ASSERT(ret);
@@ -141,13 +141,13 @@ namespace {
 
 Thread::Start_result Thread::start()
 {
-	return _stack.convert<Start_result>([&] (Stack *stack) {
+	return _stack.convert<Start_result>([&] (Stack &stack) {
 
 		/* write ipcbuffer address to utcb*/
 		utcb()->ipcbuffer(Native_utcb::Virt { addr_t(utcb()) });
 
-		start_sel4_thread(Cap_sel(stack->native_thread().attr.tcb_sel),
-		                  (addr_t)&_thread_start, stack->top(),
+		start_sel4_thread(Cap_sel(stack.native_thread().attr.tcb_sel),
+		                  addr_t(&_thread_start), stack.top(),
 		                  _affinity.xpos(), addr_t(utcb()));
 		try {
 			new (platform().core_mem_alloc())
@@ -163,6 +163,6 @@ Thread::Start_result Thread::start()
 Native_utcb *Thread::utcb()
 {
 	return _stack.convert<Native_utcb *>(
-		[] (Stack *stack) { return &stack->utcb(); },
+		[] (Stack &stack) { return &stack.utcb(); },
 		[] (Stack_error)  { return nullptr; });
 }

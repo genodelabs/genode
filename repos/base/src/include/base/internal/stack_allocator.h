@@ -74,7 +74,9 @@ class Genode::Stack_allocator
 		/**
 		 * Return base address of stack containing the specified address
 		 */
-		static addr_t addr_to_base(void *addr);
+		static addr_t addr_to_base(addr_t);
+
+		static addr_t addr_to_base(void *ptr) { return addr_to_base(addr_t(ptr)); };
 
 		/**
 		 * Return index in stack area for a given base address

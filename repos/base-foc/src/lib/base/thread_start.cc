@@ -115,8 +115,8 @@ Thread::Start_result Thread::start()
 			Cpu_thread_client cpu_thread(cap);
 
 			return _stack.convert<Start_result>(
-				[&] (Stack *stack) {
-					cpu_thread.start((addr_t)_thread_start, stack->top());
+				[&] (Stack &stack) {
+					cpu_thread.start((addr_t)_thread_start, stack.top());
 					return Start_result::OK;
 				},
 				[&] (Stack_error) { return Start_result::DENIED; });

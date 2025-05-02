@@ -149,9 +149,9 @@ void Thread::_deinit_native_thread(Stack &stack)
 
 Thread::Start_result Thread::start()
 {
-	return _stack.convert<Start_result>([&] (Stack *stack) {
+	return _stack.convert<Start_result>([&] (Stack &stack) {
 
-		Native_thread &nt = stack->native_thread();
+		Native_thread &nt = stack.native_thread();
 
 		if (nt.ec_sel < Native_thread::INVALID_INDEX - 1) {
 			error("Thread::start failed due to invalid exception portal selector");
@@ -190,9 +190,9 @@ Thread::Start_result Thread::start()
 		addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : nt.initial_ip;
 
 		Cpu_thread_client cpu_thread(cap());
-		cpu_thread.start(thread_ip, stack->top());
+		cpu_thread.start(thread_ip, stack.top());
 
-		/* request native EC thread cap */ 
+		/* request native EC thread cap */
 		nt.ec_sel = nt.exc_pt_sel + Nova::EC_SEL_THREAD;
 
 		/*

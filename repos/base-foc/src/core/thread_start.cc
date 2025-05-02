@@ -112,8 +112,8 @@ Thread::Start_result Thread::start()
 		l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 		return _stack.convert<Start_result>(
-			[&] (Stack *stack) {
-				pt.start((void *)_thread_start, (void *)stack->top());
+			[&] (Stack &stack) {
+				pt.start((void *)_thread_start, (void *)stack.top());
 
 				try {
 					new (platform().core_mem_alloc())

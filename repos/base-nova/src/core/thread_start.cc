@@ -90,16 +90,16 @@ Thread::Start_result Thread::start()
 	 */
 	using namespace Nova;
 
-	bool const ec_created = _stack.convert<bool>([&] (Stack *stack) {
+	bool const ec_created = _stack.convert<bool>([&] (Stack &stack) {
 
-		addr_t sp   = stack->top();
-		Utcb  &utcb = reinterpret_cast<Utcb &>(stack->utcb());
+		addr_t sp   = stack.top();
+		Utcb  &utcb = reinterpret_cast<Utcb &>(stack.utcb());
 
 		/* create local EC */
 		enum { LOCAL_THREAD = false };
 		unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(_affinity);
 
-		Native_thread &nt = stack->native_thread();
+		Native_thread &nt = stack.native_thread();
 
 		uint8_t res = create_ec(nt.ec_sel, platform_specific().core_pd_sel(),
 		                        kernel_cpu_id, (mword_t)&utcb, sp, nt.exc_pt_sel,

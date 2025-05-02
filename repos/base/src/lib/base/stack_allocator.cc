@@ -26,9 +26,9 @@ Stack *Stack_allocator::base_to_stack(addr_t base)
 }
 
 
-addr_t Stack_allocator::addr_to_base(void *addr)
+addr_t Stack_allocator::addr_to_base(addr_t stack_addr)
 {
-	return ((addr_t)addr) & ~(stack_virtual_size() - 1);
+	return stack_addr & ~(stack_virtual_size() - 1);
 }
 
 

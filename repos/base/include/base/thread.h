@@ -54,7 +54,7 @@ class Genode::Thread
 
 	private:
 
-		using Alloc_stack_result = Attempt<Stack *, Stack_error>;
+		using Alloc_stack_result = Unique_attempt<Stack &, Stack_error>;
 
 		/**
 		 * Allocate and locally attach a new stack
@@ -123,7 +123,7 @@ class Genode::Thread
 		/**
 		 * Primary stack
 		 */
-		Attempt<Stack *, Stack_error> _stack = Stack_error::STACK_AREA_EXHAUSTED;
+		Alloc_stack_result _stack = Stack_error::STACK_AREA_EXHAUSTED;
 
 		/**
 		 * Pointer to kernel-specific meta data

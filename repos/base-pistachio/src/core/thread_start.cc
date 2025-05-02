@@ -36,17 +36,17 @@ void Thread::_thread_start()
 
 Thread::Start_result Thread::start()
 {
-	return _stack.convert<Start_result>([&] (Stack * const stack) {
+	return _stack.convert<Start_result>([&] (Stack &stack) {
 
-		Native_thread &nt = stack->native_thread();
+		Native_thread &nt = stack.native_thread();
 
 		nt.pt = new (platform().core_mem_alloc())
-			Platform_thread(platform_specific().core_pd(), stack->name().string());
+			Platform_thread(platform_specific().core_pd(), stack.name().string());
 
 		nt.pt->pager(platform_specific().core_pager());
 		nt.l4id = nt.pt->native_thread_id();
 
-		nt.pt->start((void *)_thread_start, (void *)stack->top());
+		nt.pt->start((void *)_thread_start, (void *)stack.top());
 		return Start_result::OK;
 
 	}, [&] (Stack_error) { return Start_result::DENIED; });
