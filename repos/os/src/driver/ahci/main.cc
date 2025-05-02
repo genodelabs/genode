@@ -20,6 +20,7 @@
 #include <timer_session/connection.h>
 #include <util/xml_node.h>
 #include <os/reporter.h>
+#include <root/root.h>
 
 /* local includes */
 #include <ahci.h>
@@ -418,8 +419,7 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 		block_session[index]->handle_requests();
 	}
 
-	Session_capability session(Root::Session_args const &args,
-	                            Affinity const &) override
+	Root::Result session(Root::Session_args const &args, Affinity const &) override
 	{
 		Session_label const label = label_from_args(args.string());
 		Session_policy const policy(label, config.xml());
@@ -429,24 +429,27 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 			Arg_string::find_arg(args.string(), "tx_buf_size").ulong_value(0);
 
 		if (!tx_buf_size)
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 
 		if (tx_buf_size > ram_quota.value) {
 			error("insufficient 'ram_quota' from '", label, "',"
 			      " got ", ram_quota, ", need ", tx_buf_size);
-			throw Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
-		Port &port = driver->port(label, policy);
+		try {
+			Port &port = driver->port(label, policy);
 
-		if (block_session[port.index].constructed()) {
-			error("Device with number=", port.index, " is already in use");
-			throw Service_denied();
-		}
+			if (block_session[port.index].constructed()) {
+				error("Device with number=", port.index, " is already in use");
+				return Service::Create_error::DENIED;
+			}
 
-		port.writeable(policy.attribute_value("writeable", false));
-		block_session[port.index].construct(env, port, tx_buf_size);
-		return block_session[port.index]->cap();
+			port.writeable(policy.attribute_value("writeable", false));
+			block_session[port.index].construct(env, port, tx_buf_size);
+			return { block_session[port.index]->cap() };
+
+		} catch (...) { return Service::Create_error::DENIED; }
 	}
 
 	void upgrade(Session_capability, Root::Upgrade_args const&) override { }

@@ -1457,8 +1457,7 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 
 		static_assert(Gui::Session::CAP_QUOTA == 9);
 
-		Genode::Session_capability session(Session_args const &args,
-		                                   Affinity     const &) override
+		Root::Result session(Session_args const &args, Affinity const &) override
 		{
 			using Session = Genode::Session;
 
@@ -1522,10 +1521,10 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 						                  _pointer_tracker,
 						                  _click_handler);
 					_sessions.insert(&session);
-					return session.cap();
+					return { session.cap() };
 				}
-				catch (Out_of_ram)  { throw Insufficient_ram_quota(); }
-				catch (Out_of_caps) { throw Insufficient_cap_quota(); }
+				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
 
 			case ROLE_DECORATOR:
 				try {
@@ -1535,30 +1534,33 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 						                      _window_layouter_input,
 						                      *this);
 					_decorator_sessions.insert(&session);
-					return session.cap();
+					return { session.cap() };
 				}
-				catch (Out_of_ram)  { throw Insufficient_ram_quota(); }
-				catch (Out_of_caps) { throw Insufficient_cap_quota(); }
+				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
 
 			case ROLE_LAYOUTER:
-				{
+				try {
 					_layouter_session = new (_sliced_heap)
 						Layouter_gui_session(_env, resources, label, diag,
 						                     _window_layouter_input.cap());
 
-					return _layouter_session->cap();
+					return { _layouter_session->cap() };
 				}
+				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
 
 			case ROLE_DIRECT:
-				{
+				try {
 					Direct_gui_session &session = *new (_sliced_heap)
 						Direct_gui_session(_env, resources, label, diag);
 
-					return session.cap();
+					return { session.cap() };
 				}
+				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
 			}
-
-			return { };
+			return Service::Create_error::DENIED;
 		}
 
 		void upgrade(Genode::Session_capability session_cap, Upgrade_args const &args) override

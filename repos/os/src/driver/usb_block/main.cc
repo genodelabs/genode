@@ -25,6 +25,7 @@
 #include <os/reporter.h>
 #include <timer_session/connection.h>
 #include <usb_session/device.h>
+#include <root/root.h>
 
 /* local includes */
 #include <cbw_csw.h>
@@ -824,12 +825,11 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 	 ** Block session interface **
 	 *****************************/
 
-	Genode::Session_capability session(Root::Session_args const &args,
-	                                   Affinity const &) override
+	Root::Result session(Root::Session_args const &args, Affinity const &) override
 	{
 		if (block_session.constructed()) {
 			error("device is already in use");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
 
 		size_t const ds_size =
@@ -839,13 +839,13 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 
 		if (ds_size >= ram_quota.value) {
 			warning("communication buffer size exceeds session quota");
-			throw Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
 		block_ds.construct(env.ram(), env.rm(), ds_size);
 		block_session.construct(env, block_ds->cap(), io_handler, driver.info());
 
-		return block_session->cap();
+		return { block_session->cap() };
 	}
 
 	void upgrade(Genode::Session_capability, Root::Upgrade_args const&) override { }

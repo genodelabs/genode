@@ -154,15 +154,20 @@ struct Cpu::Pd_root : Rpc_object<Typed_root<Pd_session>>
 	Sliced_heap                            slice    { env.ram(), env.rm() };
 	Registry<Registered<Cpu_pd_session> >  sessions { };
 
-	Session_capability session(Root::Session_args const &args,
+	Root::Result session(Root::Session_args const &args,
 	                           Affinity const &affinity) override
 	{
-		return withdraw_quota(slice, args,
-		                      [&] (char const * const session_args) {
-			return (new (slice) Registered<Cpu_pd_session>(sessions, env,
-			                                               session_args,
-			                                               affinity))->pd_cap;
-		});
+		try {
+			return withdraw_quota(slice, args,
+			                      [&] (char const * const session_args) {
+				return Session_capability {
+					(new (slice) Registered<Cpu_pd_session>(sessions, env,
+					                                        session_args,
+					                                        affinity))->pd_cap };
+			});
+		}
+		catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
+		catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
 	}
 
 	void upgrade(Session_capability const, Root::Upgrade_args const &) override
@@ -237,23 +242,28 @@ struct Cpu::Balancer : Rpc_object<Typed_root<Cpu_session>>
 	 ** Session interface **
 	 ***********************/
 
-	Session_capability session(Root::Session_args const &args,
+	Root::Result session(Root::Session_args const &args,
 	                           Affinity const &affinity) override
 	{
-		return withdraw_quota(slice, args,
-		                      [&] (char const * const session_args) {
-			if (verbose)
-				log("new session '", args.string(), "' -> '", session_args, "' ",
-				    affinity.space().width(), "x", affinity.space().height(), " ",
-				    affinity.location().xpos(), "x", affinity.location().ypos(),
-				    " ", affinity.location().width(), "x", affinity.location().height());
+		try {
+			return withdraw_quota(slice, args,
+			                      [&] (char const * const session_args) {
+				if (verbose)
+					log("new session '", args.string(), "' -> '", session_args, "' ",
+					    affinity.space().width(), "x", affinity.space().height(), " ",
+					    affinity.location().xpos(), "x", affinity.location().ypos(),
+					    " ", affinity.location().width(), "x", affinity.location().height());
 
-			Mutex::Guard guard(list_mutex);
+				Mutex::Guard guard(list_mutex);
 
-			return (new (slice) Registered<Session>(list, env, affinity,
-			                                        session_args, list, config,
-			                                        verbose))->cap();
-		});
+				return Session_capability {
+					(new (slice) Registered<Session>(list, env, affinity,
+					                                 session_args, list, config,
+					                                 verbose))->cap() };
+			});
+		}
+		catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
+		catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
 	}
 
 	void upgrade(Session_capability const cap, Root::Upgrade_args const &args) override

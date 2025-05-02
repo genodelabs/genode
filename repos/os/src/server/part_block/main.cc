@@ -19,6 +19,7 @@
 #include <base/attached_ram_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
+#include <root/root.h>
 #include <block_session/rpc_object.h>
 #include <block/request_stream.h>
 #include <os/session_policy.h>
@@ -311,8 +312,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		 ** Session interface **
 		 ***********************/
 
-		Genode::Session_capability session(Root::Session_args const &args,
-		                                   Affinity const &) override
+		Root::Result session(Root::Session_args const &args, Affinity const &) override
 		{
 			long num = -1;
 			bool writeable = false;
@@ -330,23 +330,23 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			} catch (Session_policy::No_policy_defined) {
 				error("rejecting session request, no matching policy for '",
 				      label, "'");
-				throw Service_denied();
+				return Service::Create_error::DENIED;
 			}
 
 			if (num == -1) {
 				error("policy does not define partition number for for '", label, "'");
-				throw Service_denied();
+				return Service::Create_error::DENIED;
 			}
 
 			if (!_partition_table.partition_valid(num)) {
 				error("Partition ", num, " unavailable for '", label, "'");
-				throw Service_denied();
+				return Service::Create_error::DENIED;
 			}
 
 			if (num >= MAX_SESSIONS || _sessions[num]) {
 				error("Partition ", num, " already in use or session limit reached for '",
 				      label, "'");
-				throw Service_denied();
+				return Service::Create_error::DENIED;
 			}
 
 			Ram_quota const ram_quota = ram_quota_from_args(args.string());
@@ -354,7 +354,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 				Arg_string::find_arg(args.string(), "tx_buf_size").ulong_value(0);
 
 			if (!tx_buf_size)
-				throw Service_denied();
+				return Service::Create_error::DENIED;
 
 			/*
 			 * Check if donated ram quota suffices for both
@@ -364,7 +364,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			if (tx_buf_size > ram_quota.value) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
 				     tx_buf_size);
-				throw Insufficient_ram_quota();
+				return Service::Create_error::INSUFFICIENT_RAM;
 			}
 
 			Session::Info info {
@@ -374,9 +374,14 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 				.writeable   = writeable,
 			};
 
-			_sessions[num] = new (_heap) Session_component(_env, num, tx_buf_size,
-			                                               info, *this);
-			return _sessions[num]->cap();
+			try {
+				_sessions[num] = new (_heap) Session_component(_env, num, tx_buf_size,
+				                                               info, *this);
+			}
+			catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
+			catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
+
+			return { _sessions[num]->cap() };
 		}
 
 		void close(Genode::Session_capability cap) override

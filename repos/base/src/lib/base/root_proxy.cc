@@ -170,26 +170,30 @@ void Root_proxy::_handle_session_request(Xml_node const &request, char const *ty
 		Args const args = request.sub_node("args").decoded_content<Args>();
 
 		/* construct session */
-		try {
-			Service::Name const name = request.attribute_value("service", Service::Name());
+		Service::Name const name = request.attribute_value("service", Service::Name());
 
-			_services.apply(name, [&] (Service &service) {
+		using Error = Genode::Service::Create_error;
 
-				Session_capability cap =
-					Root_client(service.root).session(args.string(),
-					                                  Affinity::from_xml(request));
+		auto error_response = [] (Error e)
+		{
+			switch (e) {
+			case Error::INSUFFICIENT_RAM:  return Parent::INSUFFICIENT_RAM_QUOTA;
+			case Error::INSUFFICIENT_CAPS: return Parent::INSUFFICIENT_CAP_QUOTA;
+			case Error::DENIED:            break;
+			}
+			return Parent::SERVICE_DENIED;
+		};
 
-
-				new (_session_slab) Session(_id_space, id, service, cap);
-				_env.parent().deliver_session_cap(id, cap);
-			});
-		}
-		catch (Insufficient_ram_quota) {
-			_env.parent().session_response(id, Parent::INSUFFICIENT_RAM_QUOTA); }
-		catch (Insufficient_cap_quota) {
-			_env.parent().session_response(id, Parent::INSUFFICIENT_CAP_QUOTA); }
-		catch (Service_denied) {
-			_env.parent().session_response(id, Parent::SERVICE_DENIED); }
+		_services.apply(name, [&] (Service &service) {
+			Root_client(service.root).session(args.string(), Affinity::from_xml(request))
+				.with_result([&] (Session_capability cap) {
+					new (_session_slab) Session(_id_space, id, service, cap);
+					_env.parent().deliver_session_cap(id, cap);
+				},
+				[&] (Error e) {
+					_env.parent().session_response(id, error_response(e));
+				});
+		});
 	}
 
 	if (request.has_type("upgrade")) {

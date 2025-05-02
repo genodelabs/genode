@@ -20,12 +20,13 @@
 #include <base/thread.h>
 #include <base/id_space.h>
 #include <session/capability.h>
-#include <root/capability.h>
 
 namespace Genode {
 
 	class Session_state;
 	class Parent;
+	class Root;
+	template <typename> struct Typed_root;
 }
 
 
@@ -109,7 +110,7 @@ class Genode::Parent
 		 * The method solely exists for API compatibility.
 		 */
 		static void announce(Service_name const &service_name,
-		                     Root_capability service_root);
+		                     Capability<Root> service_root);
 
 		/**
 		 * Announce service to the parent

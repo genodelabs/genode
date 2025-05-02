@@ -25,7 +25,7 @@ struct Genode::Root_client : Rpc_client<Root>
 	explicit Root_client(Root_capability root)
 	: Rpc_client<Root>(root) { }
 
-	Session_capability session(Session_args const &args, Affinity const &affinity) override {
+	Result session(Session_args const &args, Affinity const &affinity) override {
 		return call<Rpc_session>(args, affinity); }
 
 	void upgrade(Session_capability session, Upgrade_args const &args) override {

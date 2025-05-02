@@ -209,12 +209,11 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 	 * Root interface
 	 */
 
-	Capability<Session> session(Root::Session_args const &args,
-	                            Affinity const &) override
+	Root::Result session(Root::Session_args const &args, Affinity const &) override
 	{
 		if (_block_session.constructed()) {
 			error("already in use");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
 
 		size_t const ds_size =
@@ -224,14 +223,15 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 
 		if (ds_size >= ram_quota.value) {
 			warning("communication buffer size exceeds session quota");
-			throw Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
 		_block_ds.construct(_env.ram(), _env.rm(), ds_size);
 		_block_session.construct(_env.rm(), _block_ds->cap(), _env.ep(),
 		                         _request_handler);
 
-		return _block_session->cap();
+		Session_capability cap = _block_session->cap();
+		return cap;
 	}
 
 	void upgrade(Capability<Session>, Root::Upgrade_args const &) override { }

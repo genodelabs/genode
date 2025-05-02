@@ -49,12 +49,11 @@ class Input::Root_component : public Genode::Static_root<Input::Session>
 			_ep.dissolve(&_session);
 		}
 
-		Genode::Capability<Genode::Session>
-		session(Genode::Root::Session_args const &args,
-    	        Genode::Affinity           const &affinity) override
+		Root::Result session(Genode::Root::Session_args const &args,
+		                     Genode::Affinity           const &affinity) override
 		{
 			if (_session.event_queue().enabled())
-				throw Genode::Service_denied();
+				return Genode::Service::Create_error::DENIED;
 
 			_session.event_queue().enabled(true);
 

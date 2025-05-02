@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <root/component.h>
+#include <root/root.h>
 
 /* local includes */
 #include "terminal_session_component.h"
@@ -40,8 +41,7 @@ namespace Terminal_crosslink {
 
 		public:
 
-			Session_capability session(Root::Session_args const &,
-			                           Genode::Affinity   const &) override
+			Genode::Root::Result session(Session_args const &, Affinity const &) override
 			{
 				if (!(_session_state & FIRST_SESSION_OPEN)) {
 					_session_state |= FIRST_SESSION_OPEN;

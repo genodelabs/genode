@@ -23,6 +23,7 @@
 #include <base/trace/types.h>
 #include <cpu_session/client.h>
 #include <os/reporter.h>
+#include <root/root.h>
 
 #include "policy.h"
 

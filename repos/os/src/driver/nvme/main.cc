@@ -2392,12 +2392,11 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 		block_session.wakeup_client_if_needed();
 	}
 
-	Capability<Session> session(Root::Session_args const &args,
-	                            Affinity const &) override
+	Root::Result session(Root::Session_args const &args, Affinity const &) override
 	{
 		if (_block_session.constructed()) {
 			error("device is already in use");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
 
 		Session_label  const label  { label_from_args(args.string()) };
@@ -2413,7 +2412,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 		if (tx_buf_size > ram_quota.value) {
 			error("insufficient 'ram_quota' from '", label, "',"
 			      " got ", ram_quota, ", need ", tx_buf_size);
-			throw Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
 		bool const writeable = policy.attribute_value("writeable", false);
@@ -2421,7 +2420,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 
 		_block_session.construct(_env, _driver.dma_buffer_construct(tx_buf_size),
 		                         _request_handler, _driver.info());
-		return _block_session->cap();
+		return { _block_session->cap() };
 	}
 
 	void upgrade(Capability<Session>, Root::Upgrade_args const&) override { }

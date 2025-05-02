@@ -102,23 +102,26 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 	private:
 
 		/*
-		 * Entry point that manages the session objects
-		 * created by this root interface
+		 * Entry point that manages the session objects created by this root
+		 * interface
 		 */
-		Rpc_entrypoint *_ep;
+		Rpc_entrypoint &_ep;
 
 		/*
-		 * Allocator for allocating session objects.
-		 * This allocator must be used by the derived
-		 * class when calling the 'new' operator for
+		 * Allocator for allocating session objects. This allocator must be
+		 * used by the derived class when calling the 'new' operator for
 		 * creating a new session.
 		 */
-		Allocator *_md_alloc;
+		Allocator &_md_alloc;
+
+		using Local_service = Genode::Local_service<SESSION_TYPE>;
+		using Create_error  = Service::Create_error;
+		using Create_result = Local_service::Factory::Result;
 
 		/*
 		 * Used by both the legacy 'Root::session' and the new 'Factory::create'
 		 */
-		SESSION_TYPE &_create(Session_state::Args const &args, Affinity affinity)
+		Create_result _create(Session_state::Args const &args, Affinity affinity)
 		{
 			POLICY::aquire(args.string());
 
@@ -134,73 +137,30 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 				~Guard() { if (!ack) root.release(); }
 			} aquire_guard { *this };
 
-			/*
-			 * We need to decrease 'ram_quota' by
-			 * the size of the session object.
-			 */
-			Ram_quota const ram_quota = ram_quota_from_args(args.string());
+			try {
+				SESSION_TYPE &s =
+					*_create_session(args.string(), affinity);
 
-			size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
+				/*
+				 * Consider that the session-object constructor may already
+				 * have called 'manage'.
+				 */
+				if (!s.cap().valid())
+					_ep.manage(&s);
 
-			if (needed > ram_quota.value)
-				throw Insufficient_ram_quota();
-
-			Ram_quota const remaining_ram_quota { ram_quota.value - needed };
-
-			/*
-			 * Validate that the client provided the amount of caps as mandated
-			 * for the session interface.
-			 */
-			Cap_quota const cap_quota = cap_quota_from_args(args.string());
-
-			if (cap_quota.value < SESSION_TYPE::CAP_QUOTA)
-				throw Insufficient_cap_quota();
-
-			/*
-			 * Account for the dataspace capability needed for allocating the
-			 * session object from the sliced heap.
-			 */
-			if (cap_quota.value < 1)
-				throw Insufficient_cap_quota();
-
-			Cap_quota const remaining_cap_quota { cap_quota.value - 1 };
-
-			/*
-			 * Deduce ram quota needed for allocating the session object from the
-			 * donated ram quota.
-			 */
-			enum { MAX_ARGS_LEN = 256 };
-			char adjusted_args[MAX_ARGS_LEN];
-			copy_cstring(adjusted_args, args.string(), sizeof(adjusted_args));
-
-			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
-			                    "ram_quota", String<64>(remaining_ram_quota).string());
-
-			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
-			                    "cap_quota", String<64>(remaining_cap_quota).string());
-
-			SESSION_TYPE *s = 0;
-			try { s = _create_session(adjusted_args, affinity); }
-			catch (Out_of_ram)             { throw Insufficient_ram_quota(); }
-			catch (Out_of_caps)            { throw Insufficient_cap_quota(); }
-			catch (Service_denied)         { throw; }
-			catch (Insufficient_cap_quota) { throw; }
-			catch (Insufficient_ram_quota) { throw; }
+				aquire_guard.ack = true;
+				return s;
+			}
+			catch (Out_of_ram)             { return Create_error::INSUFFICIENT_RAM; }
+			catch (Out_of_caps)            { return Create_error::INSUFFICIENT_CAPS; }
+			catch (Service_denied)         { return Create_error::DENIED; }
+			catch (Insufficient_cap_quota) { return Create_error::INSUFFICIENT_CAPS; }
+			catch (Insufficient_ram_quota) { return Create_error::INSUFFICIENT_RAM; }
 			catch (...) {
 				warning("unexpected exception during ",
 				        SESSION_TYPE::service_name(), "-session creation");
-				throw Service_denied();
 			}
-
-			/*
-			 * Consider that the session-object constructor may already have
-			 * called 'manage'.
-			 */
-			if (!s->cap().valid())
-				_ep->manage(s);
-
-			aquire_guard.ack = true;
-			return *s;
+			return Create_error::DENIED;
 		}
 
 		/*
@@ -271,12 +231,12 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		/**
 		 * Return allocator to allocate server object in '_create_session()'
 		 */
-		Allocator *md_alloc() { return _md_alloc; }
+		Allocator *md_alloc() { return &_md_alloc; }
 
 		/**
 		 * Return entrypoint that serves the root component
 		 */
-		Rpc_entrypoint *ep() { return _ep; }
+		Rpc_entrypoint *ep() { return &_ep; }
 
 	public:
 
@@ -290,7 +250,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 */
 		Root_component(Entrypoint &ep, Allocator &md_alloc)
 		:
-			_ep(&ep.rpc_ep()), _md_alloc(&md_alloc)
+			_ep(ep.rpc_ep()), _md_alloc(md_alloc)
 		{ }
 
 		/**
@@ -301,7 +261,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 */
 		Root_component(Rpc_entrypoint *ep, Allocator *md_alloc)
 		:
-			_ep(ep), _md_alloc(md_alloc)
+			_ep(*ep), _md_alloc(*md_alloc)
 		{ }
 
 
@@ -309,14 +269,12 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 ** Local_service::Factory interface **
 		 **************************************/
 
-		using Create_result = Local_service<SESSION_TYPE>::Factory::Result;
-
 		Create_result create(Session_state::Args const &args, Affinity affinity) override
 		{
-			try { return { _create(args, affinity) }; }
-			catch (Insufficient_ram_quota) { return Service::Create_error::INSUFFICIENT_RAM; }
-			catch (Insufficient_cap_quota) { return Service::Create_error::INSUFFICIENT_CAPS; }
-			catch (...)                    { return Service::Create_error::DENIED; }
+			return Local_service::budget_adjusted_args(args, *md_alloc()).template convert<Create_result>(
+				[&] (Session_state::Args const &adjusted_args) -> Create_result {
+					return _create(adjusted_args, affinity); },
+				[&] (Create_error e) { return e; });
 		}
 
 		void upgrade(SESSION_TYPE &session, Session_state::Args const &args) override
@@ -334,34 +292,38 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 ** Root interface **
 		 ********************/
 
-		Session_capability session(Root::Session_args const &args,
-		                           Affinity           const &affinity) override
+		Root::Result session(Root::Session_args const &args,
+		                     Affinity           const &affinity) override
 		{
-			if (!args.valid_string()) throw Service_denied();
-			SESSION_TYPE &session = _create(args.string(), affinity);
-			return session.cap();
+			if (!args.valid_string()) return Create_error::DENIED;
+
+			return Local_service::budget_adjusted_args(args.string(), *md_alloc())
+				.template convert<Root::Result>(
+					[&] (Session_state::Args const &adjusted_args) -> Root::Result {
+						return _create(adjusted_args.string(), affinity)
+							.template convert<Root::Result>(
+								[&] (SESSION_TYPE &obj) { return obj.cap(); },
+								[&] (Create_error e)    { return e; });
+					},
+					[&] (Create_error e) { return e; });
 		}
 
-		void upgrade(Session_capability session, Root::Upgrade_args const &args) override
+		void upgrade(Session_capability cap, Root::Upgrade_args const &args) override
 		{
-			if (!args.valid_string()) throw Service_denied();
-
-			_ep->apply(session, [&] (SESSION_TYPE *s) {
-				if (!s) return;
-
-				_upgrade_session(s, args.string());
-			});
+			_ep.apply(cap, [&] (SESSION_TYPE *s) {
+				if (s && args.valid_string())
+					_upgrade_session(s, args.string()); });
 		}
 
 		void close(Session_capability session_cap) override
 		{
 			SESSION_TYPE * session;
 
-			_ep->apply(session_cap, [&] (SESSION_TYPE *s) {
+			_ep.apply(session_cap, [&] (SESSION_TYPE *s) {
 				session = s;
 
 				/* let the entry point forget the session object */
-				if (session) _ep->dissolve(session);
+				if (session) _ep.dissolve(session);
 			});
 
 			if (!session) return;

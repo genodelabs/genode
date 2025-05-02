@@ -17,6 +17,7 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <block/request_stream.h>
+#include <root/root.h>
 #include <os/session_policy.h>
 #include <util/string.h>
 #include <vfs/simple_env.h>
@@ -333,12 +334,11 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 	 * Root interface
 	 */
 
-	Capability<Session> session(Root::Session_args const &args,
-	                            Affinity const &) override
+	Root::Result session(Root::Session_args const &args,
+	                     Affinity const &) override
 	{
-		if (_block_session.constructed()) {
-			throw Service_denied();
-		}
+		if (_block_session.constructed())
+			return Service::Create_error::DENIED;
 
 		size_t const tx_buf_size =
 			Arg_string::find_arg(args.string(),
@@ -348,7 +348,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 
 		if (tx_buf_size > ram_quota.value) {
 			warning("communication buffer size exceeds session quota");
-			throw Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
 		/* make sure policy is up-to-date */
@@ -359,7 +359,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 
 		if (!policy.has_attribute("file")) {
 			error("policy lacks 'file' attribute");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
 
 		Vfs_block::File_info const file_info =
@@ -373,9 +373,9 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 			                         _request_handler, *_block_file,
 			                         _vfs_env.io());
 
-			return _block_session->cap();
+			return { _block_session->cap() };
 		} catch (...) {
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
 	}
 

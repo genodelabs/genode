@@ -145,6 +145,59 @@ class Genode::Local_service : public Service
 				void   destroy(SESSION &)               override { }
 		};
 
+		using Budget_result = Attempt<Session_state::Args, Create_error>;
+
+		static Budget_result budget_adjusted_args(Session_state::Args const &args,
+		                                          Allocator &alloc)
+		{
+			/*
+			 * We need to decrease 'ram_quota' by
+			 * the size of the session object.
+			 */
+			Ram_quota const ram_quota = ram_quota_from_args(args.string());
+
+			size_t needed = sizeof(SESSION) + alloc.overhead(sizeof(SESSION));
+
+			if (needed > ram_quota.value)
+				return Create_error::INSUFFICIENT_RAM;
+
+			Ram_quota const remaining_ram_quota { ram_quota.value - needed };
+
+			/*
+			 * Validate that the client provided the amount of caps as mandated
+			 * for the session interface.
+			 */
+			Cap_quota const cap_quota = cap_quota_from_args(args.string());
+
+			if (cap_quota.value < SESSION::CAP_QUOTA)
+				return Create_error::INSUFFICIENT_CAPS;
+
+			/*
+			 * Account for the dataspace capability needed for allocating the
+			 * session object from the sliced heap.
+			 */
+			if (cap_quota.value < 1)
+				return Create_error::INSUFFICIENT_CAPS;
+
+			Cap_quota const remaining_cap_quota { cap_quota.value - 1 };
+
+			/*
+			 * Deduce ram quota needed for allocating the session object from the
+			 * donated ram quota.
+			 */
+			enum { MAX_ARGS_LEN = 256 };
+			char adjusted_args[MAX_ARGS_LEN];
+			copy_cstring(adjusted_args, args.string(), sizeof(adjusted_args));
+
+			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
+			                    "ram_quota", String<64>(remaining_ram_quota).string());
+
+			Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
+			                    "cap_quota", String<64>(remaining_cap_quota).string());
+
+			return { adjusted_args };
+		}
+
 	private:
 
 		Factory &_factory;
