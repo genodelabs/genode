@@ -150,7 +150,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 
 		/* needed for privately inheriting 'Views::Element' */
 		friend class Dictionary<View, Top_level_dialog::Name>;
-		friend class Avl_node<View>;
+		friend class Genode::Avl_node<View>;
 		friend class Avl_tree<View>;
 
 		friend class Distant_runtime;
