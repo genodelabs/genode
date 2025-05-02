@@ -34,32 +34,31 @@ namespace Genode {
  * is useful for replacing aggregated members during the lifetime of a compound
  * object.
  *
- * \param  MT type
+ * \param  T type
  */
-template <typename MT>
-class alignas(Genode::max(alignof(MT), sizeof(Genode::addr_t)))
-Genode::Reconstructible : Noncopyable
+template <typename T>
+class Genode::Reconstructible : Noncopyable
 {
 	private:
 
 		/**
 		 * Static reservation of memory for the embedded object
 		 */
-		alignas(sizeof(addr_t)) char _space[sizeof(MT)];
+		alignas(max(alignof(T), sizeof(addr_t))) char _space[sizeof(T)];
 
 		/**
-		 * True if the volatile object contains a constructed object
+		 * True if constructed object is present
 		 */
 		bool _constructed = false;
 
 		void _do_construct(auto &&... args)
 		{
-			construct_at<MT>(_space, args...);
+			construct_at<T>(_space, args...);
 			_constructed = true;
 		}
 
-		MT       *_ptr()             { return reinterpret_cast<MT       *>(_space); }
-		MT const *_const_ptr() const { return reinterpret_cast<MT const *>(_space); }
+		T       *_ptr()             { return reinterpret_cast<T       *>(_space); }
+		T const *_const_ptr() const { return reinterpret_cast<T const *>(_space); }
 
 		void _check_constructed() const
 		{
@@ -116,18 +115,18 @@ Genode::Reconstructible : Noncopyable
 				return;
 
 			/* invoke destructor */
-			_ptr()->~MT();
+			_ptr()->~T();
 
 			_constructed = false;
 		}
 
 		/**
-		 * Return true of volatile object contains a constructed object
+		 * Return true of constructed object is present
 		 */
 		bool constructed() const { return _constructed; }
 
 		/**
-		 * Construct or destruct volatile object according to 'condition'
+		 * Construct or destruct object according to 'condition'
 		 */
 		void conditional(bool condition, auto &&... args)
 		{
@@ -141,11 +140,11 @@ Genode::Reconstructible : Noncopyable
 		/**
 		 * Access contained object
 		 */
-		MT       *operator -> ()       { _check_constructed(); return       _ptr(); }
-		MT const *operator -> () const { _check_constructed(); return _const_ptr(); }
+		T       *operator -> ()       { _check_constructed(); return       _ptr(); }
+		T const *operator -> () const { _check_constructed(); return _const_ptr(); }
 
-		MT       &operator * ()       { _check_constructed(); return       *_ptr(); }
-		MT const &operator * () const { _check_constructed(); return *_const_ptr(); }
+		T       &operator * ()       { _check_constructed(); return       *_ptr(); }
+		T const &operator * () const { _check_constructed(); return *_const_ptr(); }
 
 		void print(Output &out) const
 		{
@@ -157,14 +156,74 @@ Genode::Reconstructible : Noncopyable
 };
 
 
+template <typename T>
+class Genode::Reconstructible<T &> : Noncopyable
+{
+	private:
+
+		T *_ptr;
+
+		T const *_const_ptr() const { return reinterpret_cast<T const *>(_ptr); }
+
+		void _check_non_null() const
+		{
+			if (!_ptr)
+				throw Deref_unconstructed_object();
+		}
+
+		Reconstructible operator = (Reconstructible const &);
+		Reconstructible(Reconstructible const &);
+
+	protected:
+
+		struct Lazy { };
+
+		Reconstructible(Lazy *) : _ptr(nullptr) { }
+
+	public:
+
+		class Deref_unconstructed_object { };
+
+		Reconstructible(T &ref) : _ptr(&ref) { }
+
+		void construct(T &ref) { _ptr = &ref; }
+		void destruct()        { _ptr = nullptr; }
+
+		bool constructed() const { return _ptr != nullptr; }
+
+		void conditional(bool condition, T &ref)
+		{
+			if (condition && !constructed()) construct(ref);
+			if (!condition && constructed()) destruct();
+		}
+
+		/**
+		 * Access referenced object
+		 */
+		T       *operator -> ()       { _check_non_null(); return       _ptr; }
+		T const *operator -> () const { _check_non_null(); return _const_ptr(); }
+
+		T       &operator * ()       { _check_non_null(); return       *_ptr; }
+		T const &operator * () const { _check_non_null(); return *_const_ptr(); }
+
+		void print(Output &out) const
+		{
+			if (_ptr)
+				_const_ptr()->print(out);
+			else
+				out.out_string("<unconstructed>");
+		}
+};
+
+
 /**
  * Reconstructible object that holds no initially constructed object
  */
-template <typename MT>
-struct Genode::Constructible : Reconstructible<MT>
+template <typename T>
+struct Genode::Constructible : Reconstructible<T>
 {
 	Constructible()
-	: Reconstructible<MT>((typename Reconstructible<MT>::Lazy *)nullptr) { }
+	: Reconstructible<T>((typename Reconstructible<T>::Lazy *)nullptr) { }
 };
 
 #endif /* _INCLUDE__UTIL__RECONSTRUCTIBLE_H_ */
