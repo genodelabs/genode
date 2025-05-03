@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__DATASPACE__DATASPACE_H_
 #define _INCLUDE__DATASPACE__DATASPACE_H_
 
+#include <util/interface.h>
 #include <base/stdint.h>
 #include <base/rpc.h>
 

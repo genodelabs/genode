@@ -34,14 +34,14 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 	Session_label const label = label_from_args(args);
 	if (label.last_element().length() > Linux_dataspace::Filename::capacity()) {
 		error("file name too long: ", label.last_element());
-		throw Service_denied();
+		return { };
 	}
 
 	Linux_dataspace::Filename const fname = label.last_element();
 
 	/* only files inside the current working directory are allowed */
 	for (const char *c = fname.string(); *c; ++c)
-		if (*c == '/') throw Service_denied();
+		if (*c == '/') return { };
 
 	return fname;
 }
@@ -50,8 +50,8 @@ Linux_dataspace::Filename Dataspace_component::_file_name(const char *args)
 size_t Dataspace_component::_file_size()
 {
 	Genode::uint64_t size = 0;
-	if (lx_stat_size(_fname.string(), size) < 0)
-		throw Service_denied();
+	if (_fname == "" || lx_stat_size(_fname.string(), size) < 0)
+		return 0;
 
 	return align_addr((size_t)size, 12);
 }
@@ -62,16 +62,16 @@ Dataspace_component::Dataspace_component(const char *args)
 	_fname(_file_name(args)),
 	_size(_file_size()),
 	_addr(0),
-	_cap(_fd_to_cap(lx_open(_fname.string(), O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR))),
+	_cap(_size ? _fd_to_cap(lx_open(_fname.string(),
+	                                O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR))
+	           : Dataspace_capability()),
 	_writeable(false),
-	_owner(0)
+	_owner(nullptr)
 { }
 
 
 Dataspace_component::Dataspace_component(size_t size, addr_t, addr_t phys_addr,
-                                         Cache, bool, Dataspace_owner *_owner)
+                                         Cache, bool w, Dataspace_owner *_owner)
 :
-	_size(size), _addr(phys_addr), _cap(), _writeable(false), _owner(_owner)
-{
-	warning("Should only be used for IOMEM and not within Linux.");
-}
+	_size(size), _addr(phys_addr), _cap(), _writeable(w), _owner(_owner)
+{ }

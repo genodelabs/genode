@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,66 +17,60 @@
 #include <base/rpc_server.h>
 #include <dataspace_component.h>
 #include <rom_session/rom_session.h>
-#include <base/session_label.h>
 
 /* core includes */
 #include <rom_fs.h>
 
-namespace Core { class Rom_session_component; }
+namespace Core { struct Rom_session_component; }
 
 
-class Core::Rom_session_component : public Rpc_object<Rom_session>
+struct Core::Rom_session_component : Rpc_object<Rom_session>
 {
-	private:
+	struct Ds
+	{
+		Rpc_entrypoint     &_ep;
+		Dataspace_component _ds;
 
-		Rom_module const * const _rom_module = nullptr;
-		Dataspace_component      _ds;
-		Rpc_entrypoint          &_ds_ep;
-		Rom_dataspace_capability _ds_cap;
-
-		Rom_module const &_find_rom(Rom_fs &rom_fs, const char *args)
+		static Capability<Rom_dataspace> _rom_ds_cap(Capability<Dataspace> cap)
 		{
-			return rom_fs.with_element(label_from_args(args).last_element(),
-
-				[&] (Rom_module const &rom) -> Rom_module const & {
-					return rom; },
-
-				[&] () -> Rom_module const & {
-					throw Service_denied(); });
+			/*
+			 * On Linux, the downcast from 'Linux_dataspace' to 'Dataspace'
+			 * happens implicitly by passing the argument. The upcast to
+			 * 'Linux_dataspace' happens explicitly.
+			 */
+			return static_cap_cast<Rom_dataspace>(cap);
 		}
 
-		/*
-		 * Noncopyable
-		 */
-		Rom_session_component(Rom_session_component const &);
-		Rom_session_component &operator = (Rom_session_component const &);
+		Capability<Rom_dataspace> const cap = _rom_ds_cap(_ep.manage(&_ds));
 
-	public:
+		Ds(Rpc_entrypoint &ep, auto &&... args) : _ep(ep), _ds(args...) { }
 
-		/**
-		 * Constructor
-		 *
-		 * \param rom_fs  ROM filesystem
-		 * \param ds_ep   entry point to manage the dataspace
-		 *                corresponding the rom session
-		 * \param args    session-construction arguments
-		 */
-		Rom_session_component(Rom_fs         &rom_fs,
-		                      Rpc_entrypoint &ds_ep,
-		                      const char     *args);
+		~Ds() { _ep.dissolve(&_ds); }
+	};
 
-		/**
-		 * Destructor
-		 */
-		~Rom_session_component();
+	Constructible<Ds> _ds { };
+
+	/**
+	 * Constructor
+	 *
+	 * \param rom_fs  ROM filesystem
+	 * \param ep      entry point to manage the dataspace
+	 *                corresponding the rom session
+	 * \param args    session-construction arguments
+	 */
+	Rom_session_component(Rom_fs &rom_fs, Rpc_entrypoint &ep, const char *args);
 
 
-		/***************************
-		 ** Rom session interface **
-		 ***************************/
+	/***************************
+	 ** Rom session interface **
+	 ***************************/
 
-		Rom_dataspace_capability dataspace() override { return _ds_cap; }
-		void sigh(Signal_context_capability) override { }
+	Rom_dataspace_capability dataspace() override
+	{
+		return _ds.constructed() ? _ds->cap : Capability<Rom_dataspace>();
+	}
+
+	void sigh(Signal_context_capability) override { }
 };
 
 #endif /* _CORE__INCLUDE__ROM_SESSION_COMPONENT_H_ */
