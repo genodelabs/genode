@@ -41,9 +41,6 @@ struct Acpi::Main
 		{
 			try {
 				Acpi::generate_report(env, heap, config_xml);
-			} catch (Genode::Xml_generator::Buffer_exceeded) {
-				error("ACPI report too large - failure");
-				throw;
 			} catch (...) {
 				error("Unknown exception occured - failure");
 				throw;

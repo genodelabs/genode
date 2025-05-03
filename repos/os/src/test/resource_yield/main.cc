@@ -301,10 +301,15 @@ class Test::Parent
 
 			struct Config_producer : Dynamic_rom_session::Content_producer
 			{
-				void produce_content(char *dst, Genode::size_t dst_len) override
+				Result produce_content(char *dst, Genode::size_t dst_len) override
 				{
-					Xml_generator xml(dst, dst_len, "config", [&] () {
+					Xml_generator xml(dst, dst_len, "config", [&] {
 						xml.attribute("child", "yes"); });
+
+					if (xml.exceeded())
+						return Error::EXCEEDED;
+
+					return Ok();
 				}
 			} _config_producer { };
 

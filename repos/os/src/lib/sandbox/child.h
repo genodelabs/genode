@@ -344,7 +344,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			/**
 			 * Dynamic_rom_session::Content_producer interface
 			 */
-			void produce_content(char *dst, Genode::size_t dst_len) override
+			Result produce_content(char *dst, Genode::size_t dst_len) override
 			{
 				Xml_node config = _child._start_node->xml.has_sub_node("config")
 				                ? _child._start_node->xml.sub_node("config")
@@ -353,7 +353,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				size_t const config_len = config.size();
 
 				if (config_len + 1 /* null termination */ >= dst_len)
-					throw Buffer_capacity_exceeded();
+					return Error::EXCEEDED;
 
 				config.with_raw_node([&] (char const *start, size_t length) {
 
@@ -368,6 +368,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 					 */
 					copy_cstring(dst, start, length + 1);
 				});
+				return Ok();
 			}
 
 			void trigger_update() { _session.trigger_update(); }

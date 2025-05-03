@@ -104,8 +104,6 @@ class Genode::Sandbox : Noncopyable
 
 		/**
 		 * Generate state report as configured by the <report> config node
-		 *
-		 * \throw Xml_generator::Buffer_exceeded
 		 */
 		void generate_state_report(Xml_generator &) const;
 };

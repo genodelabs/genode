@@ -99,29 +99,26 @@ void Framebuffer_controller::_update_connector_config(Xml_generator & xml,
 
 void Framebuffer_controller::_update_fb_config(Xml_node const &report)
 {
-	try {
-		static char buf[4096];
+	static char buf[4096];
 
-		Xml_generator xml(buf, sizeof(buf), "config", [&] {
-			xml.attribute("apply_on_hotplug", "no");
-			xml.node("report", [&] {
-				xml.attribute("connectors", "yes");
-			});
-
-			report.for_each_sub_node("connector", [&] (Xml_node &node) {
-			                         _update_connector_config(xml, node); });
+	Xml_generator::generate({ buf, sizeof(buf) - 1 }, "config", [&] (Xml_generator &xml) {
+		xml.attribute("apply_on_hotplug", "no");
+		xml.node("report", [&] {
+			xml.attribute("connectors", "yes");
 		});
-		buf[xml.used()] = 0;
 
-		{
-			New_file file { _root_dir, "fb.config" };
-
-			file.append(buf, xml.used());
-		}
-
-	} catch (...) {
-		error("Cannot update config");
-	}
+		report.for_each_sub_node("connector", [&] (Xml_node &node) {
+		                         _update_connector_config(xml, node); });
+	}).with_result(
+		[&] (size_t used) {
+			buf[used] = 0;
+			try {
+				New_file file { _root_dir, "fb.config" };
+				file.append(buf, used + 1);
+			} catch (...) { error("failed to write config to file"); }
+		},
+		[&] (Buffer_error) { error("config exceeds maximum buffer size"); }
+	);
 }
 
 

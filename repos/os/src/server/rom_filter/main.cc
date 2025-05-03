@@ -371,21 +371,17 @@ void Rom_filter::Main::_evaluate()
 		Node_type_name const node_type =
 			output.attribute_value("node", Node_type_name(""));
 
-		/*
-		 * Generate output, expand dataspace on demand
-		 */
-		enum { UPGRADE = 4096, NUM_ATTEMPTS = ~0L };
-		Genode::retry<Xml_generator::Buffer_exceeded>(
-			[&] () {
-				Xml_generator xml(_xml_ds->local_addr<char>(),
-				                  _xml_ds->size(), node_type.string(),
-				                  [&] () { _evaluate_node(output, xml); });
+		/* generate output, expand dataspace on demand */
+		for (;;) {
+			Xml_generator xml(_xml_ds->local_addr<char>(),
+			                  _xml_ds->size(), node_type.string(),
+			                  [&] { _evaluate_node(output, xml); });
+			if (!xml.exceeded()) {
 				_xml_output_len = xml.used();
-			},
-			[&] () {
-				_xml_ds.construct(_env.ram(), _env.rm(), _xml_ds->size() + UPGRADE);
-			},
-			NUM_ATTEMPTS);
+				break;
+			}
+			_xml_ds.construct(_env.ram(), _env.rm(), _xml_ds->size() + 4096);
+		}
 	});
 
 	_root.notify_clients();

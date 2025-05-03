@@ -19,6 +19,9 @@
 using Genode::size_t;
 
 
+struct Buffer_exceeded { };
+
+
 static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
 {
 	Genode::Xml_generator xml(dst, dst_len, "config", [&]
@@ -58,6 +61,9 @@ static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
 			xml.attribute("longlong", 3ULL);
 		});
 	});
+
+	if (xml.exceeded())
+		throw Buffer_exceeded();
 
 	return xml.used();
 }
@@ -185,7 +191,7 @@ void Component::construct(Genode::Env &env)
 	 */
 	try {
 		fill_buffer_with_xml(dst, 20); }
-	catch (Genode::Xml_generator::Buffer_exceeded) {
+	catch (Buffer_exceeded) {
 		log("buffer exceeded (expected error)\n"); }
 
 	/*

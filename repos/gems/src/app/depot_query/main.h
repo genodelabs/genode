@@ -457,8 +457,6 @@ struct Depot_query::Main
 			query.for_each_sub_node("blueprint", [&] (Xml_node node) {
 				Archive::Path pkg = node.attribute_value("pkg", Archive::Path());
 				try { _query_blueprint(pkg, xml); }
-				catch (Xml_generator::Buffer_exceeded) {
-					throw; /* handled by 'generate' */ }
 				catch (...) {
 					xml.node("missing", [&] () {
 						xml.attribute("path", pkg); }); }

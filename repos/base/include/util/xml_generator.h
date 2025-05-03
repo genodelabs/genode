@@ -15,6 +15,7 @@
 #define _INCLUDE__UTIL__XML_GENERATOR_H_
 
 #include <util/string.h>
+#include <util/callable.h>
 #include <util/print_lines.h>
 
 namespace Genode { class Xml_generator; }
@@ -22,102 +23,123 @@ namespace Genode { class Xml_generator; }
 
 class Genode::Xml_generator
 {
-	public:
-
-		/**
-		 * Exception type
-		 */
-		class Buffer_exceeded { };
-
 	private:
 
-		/**
-		 * Buffer descriptor where the XML output goes to
-		 *
-		 * All 'append' methods may throw a 'Buffer_exceeded' exception.
-		 */
 		class Out_buffer
 		{
 			private:
 
-				char  *_dst;
-				size_t _capacity;
-				size_t _used = 0;
+				char  *_dst      = nullptr;
+				size_t _capacity = 0;
+				size_t _used     = 0;
 
-				void _check_advance(size_t const len) const {
-					if (_used + len > _capacity)
-						throw Buffer_exceeded(); }
+				/*
+				 * Return true if adding 'len' chars would exhaust the buffer
+				 */
+				[[nodiscard]] bool _exhausted(size_t const len) const
+				{
+					return _used + len > _capacity;
+				}
 
 			public:
+
+				struct [[nodiscard]] Result { bool exceeded; };
 
 				Out_buffer(char *dst, size_t capacity)
 				: _dst(dst), _capacity(capacity) { }
 
-				void advance(size_t const len)
+				static Out_buffer invalid() { return { nullptr, 0 }; }
+
+				bool valid() const { return _dst != nullptr; }
+
+				Result advance(size_t const len)
 				{
-					_check_advance(len);
+					if (_exhausted(len))
+						return { .exceeded = true };
+
 					_used += len;
+					return { };
 				}
 
-				void undo_append(size_t const len) {
-					_used = len < _used ? _used - len : 0; }
+				void undo_append(size_t const len)
+				{
+					_used = len < _used ? _used - len : 0;
+				}
 
 				/**
 				 * Append character
 				 */
-				void append(char const c)
+				Result append(char const c)
 				{
-					_check_advance(1);
+					if (_exhausted(1))
+						return { .exceeded = true };
+
 					_dst[_used] = c;
-					advance(1);
+					return advance(1);
 				}
 
 				/**
 				 * Append character 'n' times
 				 */
-				void append(char const c, size_t n) {
-					for (; n--; append(c)); }
+				Result append(char const c, size_t n)
+				{
+					while (n--)
+						if (append(c).exceeded)
+							return { .exceeded = true };
+					return { };
+				}
 
 				/**
 				 * Append character buffer
 				 */
-				void append(char const *src, size_t len) {
-					for (; len--; append(*src++)); }
+				Result append(char const *src, size_t len)
+				{
+					while (len--)
+						if (append(*src++).exceeded)
+							return { .exceeded = true };
+					return { };
+				}
 
 				/**
 				 * Append null-terminated string
 				 */
-				void append(char const *src) { append(src, strlen(src)); }
+				Result append(char const *src) { return append(src, strlen(src)); }
 
 				/**
 				 * Append character, sanitize it if needed
 				 */
-				void append_sanitized(char const c)
+				Result append_sanitized(char const c)
 				{
 					switch (c) {
-					case 0:    append("&#x00;"); break;
-					case '>':  append("&gt;");   break;
-					case '<':  append("&lt;");   break;
-					case '&':  append("&amp;");  break;
-					case '"':  append("&quot;"); break;
-					case '\'': append("&apos;"); break;
-					default:   append(c);        break;
+					case 0:    return append("&#x00;");
+					case '>':  return append("&gt;");
+					case '<':  return append("&lt;");
+					case '&':  return append("&amp;");
+					case '"':  return append("&quot;");
+					case '\'': return append("&apos;");
+					default:   return append(c);
 					}
+					return { };
 				}
 
 				/**
 				 * Append character buffer, sanitize characters if needed
 				 */
-				void append_sanitized(char const *src, size_t len)
+				Result append_sanitized(char const *src, size_t len)
 				{
-					for (; len--; append_sanitized(*src++));
+					while (len--)
+						if (append_sanitized(*src++).exceeded)
+							return { .exceeded = true };
+					return { };
 				}
 
 				/**
 				 * Return unused part of the buffer
 				 */
-				Out_buffer remainder() const {
-					return Out_buffer(_dst + _used, _capacity - _used); }
+				Out_buffer remainder() const
+				{
+					return Out_buffer(_dst + _used, _capacity - _used);
+				}
 
 				/**
 				 * Insert gap into already populated part of the buffer
@@ -128,13 +150,17 @@ class Genode::Xml_generator
 				{
 					/* don't allow the insertion into non-populated part */
 					if (at > _used)
-						return Out_buffer(_dst + at, 0);
+						return Out_buffer::invalid();
 
-					_check_advance(len);
+					if (_exhausted(len))
+						return Out_buffer::invalid();
+
 					memmove(_dst + at + len, _dst + at, _used - at);
-					advance(len);
 
-					return Out_buffer(_dst + at, len);
+					if (advance(len).exceeded)
+						return Out_buffer::invalid();
+
+					return { _dst + at, len };
 				}
 
 				bool has_trailing_newline() const
@@ -156,6 +182,10 @@ class Genode::Xml_generator
 
 		class Node
 		{
+			public:
+
+				using Result = Out_buffer::Result;
+
 			private:
 
 				/**
@@ -169,8 +199,9 @@ class Genode::Xml_generator
 
 				Out_buffer _out_buffer;
 
-				bool _has_content    = false;
-				bool _is_indented    = false;
+				bool _has_content = false;
+				bool _is_indented = false;
+				bool _exceeded    = false;
 
 				/**
 				 * Cursor position of next attribute to insert
@@ -189,10 +220,12 @@ class Genode::Xml_generator
 				Out_buffer _content_buffer(bool indented)
 				{
 					if (!_has_content)
-						_out_buffer.append(">");
+						if (_out_buffer.append(">").exceeded)
+							return Out_buffer::invalid();
 
 					if (indented)
-						_out_buffer.append("\n");
+						if (_out_buffer.append("\n").exceeded)
+							return Out_buffer::invalid();
 
 					_has_content = true;
 					_is_indented = indented;
@@ -217,82 +250,83 @@ class Genode::Xml_generator
 				/**
 				 * Called by sub node
 				 */
-				void _commit_content(Out_buffer content_buffer)
+				Out_buffer::Result _commit_content(Out_buffer content_buffer)
 				{
-					_out_buffer.advance(content_buffer.used());
+					return _out_buffer.advance(content_buffer.used());
 				}
 
-				/*
-				 * Helper used to pass the 'fn' argument of the public 'Node'
-				 * constructor through an ABI to the implementation of the
-				 * private 'Node' constructor.
-				 */
-				struct _Fn : Interface { virtual void call() const = 0; };
+				Node(Xml_generator &, char const *, bool, Callable<void>::Ft const &);
 
-				template <typename T>
-				struct _Typed_fn : _Fn
+				Result _with_out_buffer(auto const &fn)
 				{
-					T const &_fn;
-					_Typed_fn(T const &fn) : _fn(fn) { }
-					void call() const override { _fn(); }
-				};
+					Out_buffer dst = _content_buffer(false);
 
-				Node(Xml_generator &, char const *, _Fn const &);
+					return { .exceeded = !dst.valid()
+					                   || fn(dst).exceeded
+					                   || _commit_content(dst).exceeded };
+				}
+
+				void _on_exception(Xml_generator &);
 
 			public:
 
-				void insert_attribute(char const *name, char const *value)
+				Result insert_attribute(char const *name, char const *value)
 				{
 					/* ' ' + name + '=' + '"' + value + '"' */
 					size_t const gap = 1 + strlen(name) + 1 + 1 + strlen(value) + 1;
 
 					Out_buffer dst = _out_buffer.insert_gap(_attr_offset, gap);
-					dst.append(' ');
-					dst.append(name);
-					dst.append("=\"");
-					dst.append(value, strlen(value));
-					dst.append("\"");
 
-					_attr_offset += gap;
+					Result const result {
+						.exceeded = !dst.valid()
+						          || dst.append(' ')  .exceeded
+						          || dst.append(name) .exceeded
+						          || dst.append("=\"").exceeded
+						          || dst.append(value, strlen(value)).exceeded
+						          || dst.append("\"") .exceeded
+					};
+
+					if (!result.exceeded)
+						_attr_offset += gap;
+
+					return result;
 				}
 
-				void append(char const *src, size_t src_len)
+				Result append(char const *src, size_t src_len)
 				{
-					Out_buffer content_buffer = _content_buffer(false);
-					content_buffer.append(src, src_len);
-					_commit_content(content_buffer);
+					return _with_out_buffer([&] (Out_buffer &dst) {
+						return dst.append(src, src_len); });
 				}
 
 				/**
 				 * Append character, sanitize it if needed
 				 */
-				void append_sanitized(char const c)
+				Result append_sanitized(char const c)
 				{
-					Out_buffer content_buffer = _content_buffer(false);
-					content_buffer.append_sanitized(c);
-					_commit_content(content_buffer);
+					return _with_out_buffer([&] (Out_buffer &dst) {
+						return dst.append_sanitized(c); });
 				}
 
-				void append_sanitized(char const *src, size_t src_len)
+				Result append_sanitized(char const *src, size_t src_len)
 				{
-					Out_buffer content_buffer = _content_buffer(false);
-					content_buffer.append_sanitized(src, src_len);
-					_commit_content(content_buffer);
+					return _with_out_buffer([&] (Out_buffer &dst) {
+						return dst.append_sanitized(src, src_len); });
 				}
 
-				template <typename FN>
-				Node(Xml_generator &xml, char const *name, FN const &fn)
+				Node(Xml_generator &xml, char const *name, auto const &fn)
 				:
-					Node(xml, name, static_cast<_Fn const &>(_Typed_fn<FN>(fn)))
+					Node(xml, name, false, Callable<void>::Fn { fn })
 				{ }
 
-				bool has_content() { return _has_content; }
-				bool is_indented() { return _is_indented; }
+				bool has_content() const { return _has_content; }
+				bool is_indented() const { return _is_indented; }
+				bool exceeded()    const { return _exceeded;    }
 		};
 
 		Out_buffer _out_buffer;
 		Node      *_curr_node   = 0;
 		unsigned   _curr_indent = 0;
+		bool       _exceeded = false;
 
 	public:
 
@@ -302,37 +336,39 @@ class Genode::Xml_generator
 		{
 			if (dst) {
 				node(name, fn);
-				_out_buffer.append('\n');
-				_out_buffer.append('\0');
+				_exceeded |= _out_buffer.append('\n').exceeded
+				          || _out_buffer.append('\0').exceeded;
 			}
 		}
 
 		void node(char const *name, auto const &fn = [] { } )
 		{
-			Node(*this, name, fn);
+			if (!_exceeded)
+				_exceeded |= Node(*this, name, fn).exceeded();
 		}
 
-		void node(char const *name) { Node(*this, name, [] { }); }
+		void node(char const *name) { node(name, [] { }); }
 
 		void attribute(char const *name, char const *str)
 		{
-			_curr_node->insert_attribute(name, str);
+			_exceeded |= _curr_node->insert_attribute(name, str).exceeded;
 		}
 
 		template <size_t N>
 		void attribute(char const *name, String<N> const &str)
 		{
-			_curr_node->insert_attribute(name, str.string());
+			_exceeded |= _curr_node->insert_attribute(name, str.string()).exceeded;
 		}
 
 		void attribute(char const *name, bool value)
 		{
-			_curr_node->insert_attribute(name, value ? "true" : "false");
+			char const *text = value ? "true" : "false";
+			_exceeded |= _curr_node->insert_attribute(name, text).exceeded;
 		}
 
 		void attribute(char const *name, long long value)
 		{
-			_curr_node->insert_attribute(name, String<64>(value).string());
+			_exceeded |= _curr_node->insert_attribute(name, String<64>(value).string()).exceeded;
 		}
 
 		void attribute(char const *name, long value)
@@ -347,7 +383,7 @@ class Genode::Xml_generator
 
 		void attribute(char const *name, unsigned long long value)
 		{
-			_curr_node->insert_attribute(name, String<64>(value).string());
+			_exceeded |= _curr_node->insert_attribute(name, String<64>(value).string()).exceeded;
 		}
 
 		void attribute(char const *name, unsigned long value)
@@ -363,7 +399,7 @@ class Genode::Xml_generator
 		void attribute(char const *name, double value)
 		{
 			String<64> buf(value);
-			_curr_node->insert_attribute(name, buf.string());
+			_exceeded |= _curr_node->insert_attribute(name, buf.string()).exceeded;
 		}
 
 		/**
@@ -373,7 +409,8 @@ class Genode::Xml_generator
 		 */
 		void append(char const *str, size_t str_len = ~0UL)
 		{
-			_curr_node->append(str, str_len == ~0UL ? strlen(str) : str_len);
+			size_t const num_bytes = (str_len == ~0UL) ? strlen(str) : str_len;
+			_exceeded |= _curr_node->append(str, num_bytes).exceeded;
 		}
 
 		/**
@@ -383,7 +420,8 @@ class Genode::Xml_generator
 		 */
 		void append_sanitized(char const *str, size_t str_len = ~0UL)
 		{
-			_curr_node->append_sanitized(str, str_len == ~0UL ? strlen(str) : str_len);
+			size_t const num_bytes = (str_len == ~0UL) ? strlen(str) : str_len;
+			_exceeded |= _curr_node->append_sanitized(str, num_bytes).exceeded;
 		}
 
 		/**
@@ -395,24 +433,26 @@ class Genode::Xml_generator
 		{
 			struct Node_output : Genode::Output
 			{
-				Node &node; Node_output(Node &n) : node(n) { }
+				Node &node;
+				bool  exceeded = false;
 
-				/******************************
-				 ** Genode::Output interface **
-				 ******************************/
+				Node_output(Node &node) : node(node) { }
 
 				void out_char(char c) override {
-					node.append_sanitized(c); }
+					exceeded |= node.append_sanitized(c).exceeded; }
 
 				void out_string(char const *str, size_t n) override {
-					node.append_sanitized(str, n); }
+					exceeded |= node.append_sanitized(str, n).exceeded; }
 
 			} output { *_curr_node };
 
 			Output::out_args(output, args...);
+
+			_exceeded |= output.exceeded;
 		}
 
-		size_t used() const { return _out_buffer.used(); }
+		size_t used()     const { return _out_buffer.used(); }
+		bool   exceeded() const { return _exceeded; }
 };
 
 #endif /* _INCLUDE__UTIL__XML_GENERATOR_H_ */

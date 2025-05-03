@@ -44,31 +44,6 @@ namespace Cpu {
 	using Genode::Pd_session;
 }
 
-template <typename EXC, typename T, typename FUNC, typename HANDLER>
-auto retry(T &env, FUNC func, HANDLER handler,
-           unsigned attempts = ~0U) -> decltype(func())
-{
-	try {
-		for (unsigned i = 0; attempts == ~0U || i < attempts; i++)
-			try { return func(); }
-			catch (EXC) {
-				if ((i + 1) % 5 == 0 || env.pd().avail_ram().value < 8192)
-					Genode::warning(i, ". attempt to extend dialog report "
-					                "size, ram_avail=", env.pd().avail_ram());
-
-				if (env.pd().avail_ram().value < 8192)
-					throw;
-
-				handler();
-			}
-
-		throw EXC();
-	} catch (Genode::Xml_generator::Buffer_exceeded) {
-		Genode::error("not enough memory for xml");
-	}
-	return;
-}
-
 using Sleeper_list  = Genode::Registry<Genode::Registered<Cpu::Sleeper> >;
 using Tslab_sleeper = Genode::Tslab<Genode::Registered<Cpu::Sleeper>, 4096>;
 
@@ -410,17 +385,28 @@ void Cpu::Balancer::handle_timeout()
 	if (reporter.constructed() && update_report) {
 		bool reset_report = false;
 
-		retry<Genode::Xml_generator::Buffer_exceeded>(env, [&] () {
+		for (unsigned i = 0; ; i++) {
+
 			Reporter::Xml_generator xml(*reporter, [&] () {
 				list.for_each([&](auto &session) {
-					reset_report |= session.report_state(xml);
-				});
-			});
-		}, [&] () {
+					reset_report |= session.report_state(xml); }); });
+
+			if (xml.exceeded())
+				break;
+
+			if ((i + 1) % 5 == 0 || env.pd().avail_ram().value < 8192)
+				Genode::warning(i, ". attempt to extend dialog report "
+				                "size, ram_avail=", env.pd().avail_ram());
+
+			if (env.pd().avail_ram().value < 8192) {
+				Genode::error("not enough memory for xml");
+				break;
+			}
+
 			report_size += 4096;
 			reporter.construct(env, "components", "components", report_size);
 			reporter->enabled(true);
-		});
+		}
 
 		if (reset_report) {
 			list.for_each([](auto &session) {

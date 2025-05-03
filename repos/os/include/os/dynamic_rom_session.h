@@ -30,14 +30,14 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		struct Content_producer : Interface
 		{
-			using Buffer_capacity_exceeded = Xml_generator::Buffer_exceeded;
+			enum class Error { EXCEEDED };
+
+			using Result = Attempt<Ok, Error>;
 
 			/**
 			 * Write content into the specified buffer
-			 *
-			 * \throw  Buffer_capacity_exceeded
 			 */
-			virtual void produce_content(char *dst, size_t dst_len) = 0;
+			virtual Result produce_content(char *dst, size_t dst_len) = 0;
 		};
 
 		class Xml_producer : public Content_producer
@@ -50,10 +50,15 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 				Node_name const _node_name;
 
-				void produce_content(char *dst, size_t dst_len) override
+				Result produce_content(char *dst, size_t dst_len) override
 				{
-					Xml_generator xml(dst, dst_len, _node_name.string(), [&] () {
+					Xml_generator xml(dst, dst_len, _node_name.string(), [&] {
 						produce_xml(xml); });
+
+					if (xml.exceeded())
+						return Error::EXCEEDED;
+
+					return Ok();
 				}
 
 			public:
@@ -62,8 +67,6 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 				/**
 				 * Generate ROM content
-				 *
-				 * \throw Xml_generator::Buffer_exceeded
 				 */
 				virtual void produce_xml(Xml_generator &) = 0;
 		};
@@ -145,18 +148,15 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 					return true;
 				}
 
-				try {
-					_content_producer.produce_content(_ds->local_addr<char>(),
-					                                  _ds->size());
+				if (_content_producer.produce_content(_ds->local_addr<char>(),
+				                                      _ds->size()).ok()) {
 					_client_version = _current_version;
 					return !ds_reallocated;
 				}
-				catch (Content_producer::Buffer_capacity_exceeded) {
 
-					/* force the re-allocation of a larger buffer */
-					_ds.destruct();
-					_ds_size *= 2;
-				}
+				/* force the re-allocation of a larger buffer */
+				_ds.destruct();
+				_ds_size *= 2;
 			}
 		}
 

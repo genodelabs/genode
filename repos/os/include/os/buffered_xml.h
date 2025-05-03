@@ -53,22 +53,17 @@ class Genode::Buffered_xml
 		 */
 		Allocation _generate(char const *node_name, auto const &fn, size_t size)
 		{
-			Allocation allocation { };
+			for (;;) {
+				Allocation allocation { (char *)_alloc.alloc(size), size };
+				Xml_generator xml(allocation.ptr, size, node_name,
+				                  [&] { fn(xml); });
+				if (!xml.exceeded())
+					return allocation;
 
-			retry<Xml_generator::Buffer_exceeded>(
-
-				[&] () {
-					allocation = Allocation { (char *)_alloc.alloc(size), size };
-					Xml_generator xml(allocation.ptr, size, node_name,
-					                  [&] () { fn(xml); }); },
-
-				[&] () {
-					_alloc.free(allocation.ptr, allocation.size);
-					allocation = { };
-					size = size*2;
-				}
-			);
-			return allocation;
+				_alloc.free(allocation.ptr, allocation.size);
+				allocation = { };
+				size = size*2;
+			}
 		}
 
 		/*

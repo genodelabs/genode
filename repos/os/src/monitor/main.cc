@@ -359,20 +359,16 @@ struct Monitor::Main : Sandbox::State_handler,
 	 */
 	void handle_sandbox_state() override
 	{
-		try {
-			Reporter::Xml_generator xml(*_reporter, [&] () {
-				_sandbox.generate_state_report(xml); });
-		}
-		catch (Xml_generator::Buffer_exceeded) {
+		Reporter::Xml_generator xml(*_reporter, [&] () {
+			_sandbox.generate_state_report(xml); });
+
+		if (xml.exceeded()) {
 
 			error("state report exceeds maximum size");
 
 			/* try to reflect the error condition as state report */
-			try {
-				Reporter::Xml_generator xml(*_reporter, [&] () {
-					xml.attribute("error", "report buffer exceeded"); });
-			}
-			catch (...) { }
+			Reporter::Xml_generator xml(*_reporter, [&] () {
+				xml.attribute("error", "report buffer exceeded"); });
 		}
 	}
 

@@ -109,7 +109,6 @@ struct Fs_query::Watched_file
 			warning("cannot open file ", _name, " for reading"); }
 		catch (File::Truncated_during_read) {
 			warning("file ", _name, " truncated during read"); }
-		catch (Xml_generator::Buffer_exceeded) { throw; }
 	}
 };
 

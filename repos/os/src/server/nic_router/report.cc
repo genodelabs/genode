@@ -52,28 +52,25 @@ Net::Report::Report(bool                      const &verbose,
 
 void Net::Report::generate() const
 {
-	try {
-		Reporter::Xml_generator xml(_reporter, [&] {
-			if (_quota) {
-				xml.node("ram", [&] {
-					xml.attribute("quota",  _pd.ram_quota().value);
-					xml.attribute("used",   _pd.used_ram().value);
-					xml.attribute("shared", _shared_quota.ram);
-				});
-				xml.node("cap", [&] {
-					xml.attribute("quota",  _pd.cap_quota().value);
-					xml.attribute("used",   _pd.used_caps().value);
-					xml.attribute("shared", _shared_quota.cap);
-				});
-			}
-			_domains.for_each([&] (Domain const &domain) {
-				if (!domain.report_empty(*this))
-					xml.node("domain", [&] { domain.report(xml, *this); }); });
-		});
-	} catch (Xml_generator::Buffer_exceeded) {
-		if (_verbose) {
-			log("Failed to generate report"); }
-	}
+	Reporter::Xml_generator xml(_reporter, [&] {
+		if (_quota) {
+			xml.node("ram", [&] {
+				xml.attribute("quota",  _pd.ram_quota().value);
+				xml.attribute("used",   _pd.used_ram().value);
+				xml.attribute("shared", _shared_quota.ram);
+			});
+			xml.node("cap", [&] {
+				xml.attribute("quota",  _pd.cap_quota().value);
+				xml.attribute("used",   _pd.used_caps().value);
+				xml.attribute("shared", _shared_quota.cap);
+			});
+		}
+		_domains.for_each([&] (Domain const &domain) {
+			if (!domain.report_empty(*this))
+				xml.node("domain", [&] { domain.report(xml, *this); }); });
+	});
+	if (xml.exceeded() && _verbose)
+		warning("report exceeds maximum buffer size");
 }
 
 

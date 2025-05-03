@@ -35,15 +35,16 @@ class Genode::Session_requester
 			Content_producer(Id_space<Parent::Server> &id_space)
 			: _id_space(id_space) { }
 
-			void produce_content(char *dst, Genode::size_t dst_len) override
+			Result produce_content(char *dst, Genode::size_t dst_len) override
 			{
-				try {
-					Xml_generator xml(dst, dst_len, "session_requests", [&] () {
-						_id_space.for_each<Session_state const>([&] (Session_state const &s) {
-							s.generate_session_request(xml); }); });
-				} catch (Xml_generator::Buffer_exceeded &) {
-					throw Buffer_capacity_exceeded();
-				}
+				Xml_generator xml(dst, dst_len, "session_requests", [&] () {
+					_id_space.for_each<Session_state const>([&] (Session_state const &s) {
+						s.generate_session_request(xml); }); });
+
+				if (xml.exceeded())
+					return Error::EXCEEDED;
+
+				return Ok();
 			}
 		} _content_producer { _id_space };
 

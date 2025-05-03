@@ -17,7 +17,18 @@
 using namespace Genode;
 
 
-Xml_generator::Node::Node(Xml_generator &xml, char const *name, _Fn const &func)
+void Xml_generator::Node::_on_exception(Xml_generator &xml)
+{
+	/* reset and drop changes by not committing it */
+	xml._curr_node = _parent_node;
+	xml._curr_indent--;
+	if (_parent_node)
+		_parent_node->_undo_content_buffer(true, _parent_was_indented, _parent_had_content);
+}
+
+
+Xml_generator::Node::Node(Xml_generator &xml, char const *name, bool,
+                          Callable<void>::Ft const &fn)
 :
 	_indent_level(xml._curr_indent),
 	_parent_node(xml._curr_node),
@@ -26,47 +37,54 @@ Xml_generator::Node::Node(Xml_generator &xml, char const *name, _Fn const &func)
 	_out_buffer(_parent_node ? _parent_node->_content_buffer(true)
 	                         : xml._out_buffer)
 {
-	_out_buffer.append('\t', _indent_level);
-	_out_buffer.append("<");
-	_out_buffer.append(name);
+	_exceeded |= _out_buffer.append('\t', _indent_level).exceeded
+	          || _out_buffer.append("<").exceeded
+	          || _out_buffer.append(name).exceeded;
+
+	if (_exceeded)
+		return;
+
 	_attr_offset = _out_buffer.used();
 
 	xml._curr_node = this;
 	xml._curr_indent++;
 
-	try {
-		/*
-		 * Process attributes and sub nodes
-		 */
-		func.call();
-	} catch (...) {
-		/* reset and drop changes by not committing it */
-		xml._curr_node = _parent_node;
-		xml._curr_indent--;
-		if (_parent_node) {
-			_parent_node->_undo_content_buffer(true, _parent_was_indented, _parent_had_content); }
-		throw;
-	}
+	/*
+	 * Handle exception thrown by fn()
+	 */
+	struct Guard
+	{
+		Xml_generator &xml;
+		Node          &_this;
+		bool ok = false;
+		~Guard() { if (!ok) _this._on_exception(xml); }
+	} guard { xml, *this };
+
+	/*
+	 * Process attributes and sub nodes
+	 */
+	fn();
+
+	guard.ok = true;
 
 	xml._curr_node = _parent_node;
 	xml._curr_indent--;
 
-	if (_is_indented) {
-		_out_buffer.append("\n");
-		_out_buffer.append('\t', _indent_level);
-	}
+	if (_is_indented)
+		_exceeded |= _out_buffer.append("\n").exceeded
+		          || _out_buffer.append('\t', _indent_level).exceeded;
 
-	if (_has_content) {
-		_out_buffer.append("</");
-		_out_buffer.append(name);
-		_out_buffer.append(">");
-	} else
-		_out_buffer.append("/>");
+	if (_has_content)
+		_exceeded |= _out_buffer.append("</").exceeded
+		          || _out_buffer.append(name).exceeded
+		          || _out_buffer.append(">") .exceeded;
+	else
+		_exceeded |= _out_buffer.append("/>").exceeded;
 
 	if (_parent_node)
-		_parent_node->_commit_content(_out_buffer);
+		_exceeded |= _parent_node->_commit_content(_out_buffer).exceeded;
 	else
 		xml._out_buffer = _out_buffer;
 
-	_out_buffer.append('\0');
+	_exceeded |= _out_buffer.append('\0').exceeded;
 }

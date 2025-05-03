@@ -142,7 +142,7 @@ class Genode::Reporter
  * Reporter that increases the report buffer capacity on demand
  *
  * This convenience wrapper of the 'Reporter' alleviates the need to handle
- * 'Xml_generator::Buffer_exceeded' exceptions manually. In most cases, the
+ * the exhaustion of the 'Xml_generator' buffer manually. In most cases, the
  * only reasonable way to handle such an exception is upgrading the report
  * buffer as done by this class. Furthermore, in contrast to the regular
  * 'Reporter', which needs to be 'enabled', the 'Expanding_reporter' is
@@ -189,14 +189,15 @@ class Genode::Expanding_reporter
 
 		void generate(auto const &fn)
 		{
-			retry<Xml_generator::Buffer_exceeded>(
+			for (;;) {
+				Reporter::Xml_generator
+					xml(*_reporter, [&] () { fn(xml); });
 
-				[&] () {
-					Reporter::Xml_generator
-						xml(*_reporter, [&] () { fn(xml); }); },
+				if (!xml.exceeded())
+					return;
 
-				[&] () { _increase_report_buffer(); }
-			);
+				_increase_report_buffer();
+			}
 		}
 
 		void generate(Xml_node node)
