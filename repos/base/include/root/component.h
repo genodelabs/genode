@@ -46,12 +46,15 @@ class Genode::Single_client
 
 		Single_client() : _used(0) { }
 
-		void aquire(const char *)
+		using Result = Attempt<Ok, Service::Create_error>;
+
+		Result aquire(const char *)
 		{
 			if (_used)
-				throw Service_denied();
+				return Service::Create_error::DENIED;
 
 			_used = true;
+			return Ok();
 		}
 
 		void release() { _used = false; }
@@ -63,7 +66,9 @@ class Genode::Single_client
  */
 struct Genode::Multiple_clients
 {
-	void aquire(const char *) { }
+	using Result = Attempt<Ok, Service::Create_error>;
+
+	Result aquire(const char *) { return Ok(); }
 	void release() { }
 };
 
@@ -84,8 +89,6 @@ struct Genode::Multiple_clients
  * 'aquire(const char *args)' is called with the session arguments
  * at creation time of each new session. It can therefore implement
  * a session-creation policy taking session arguments into account.
- * If the policy denies the creation of a new session, it throws
- * one of the exceptions defined in the 'Root' interface.
  *
  * 'release' is called at the destruction time of a session. It enables
  * the policy to keep track of and impose restrictions on the number
@@ -123,7 +126,13 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 */
 		Create_result _create(Session_state::Args const &args, Affinity affinity)
 		{
-			POLICY::aquire(args.string());
+			{
+				typename POLICY::Result const result = POLICY::aquire(args.string());
+				if (result.failed())
+					return result.template convert<Create_error>(
+						[] (auto &) /* never */ { return Create_error { }; },
+						[] (Create_error e)     { return e; });
+			}
 
 			/*
 			 * Guard to ensure that 'release' is called whenever the scope
@@ -187,7 +196,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 * affinity, it suffices to override the overload without the
 		 * affinity argument.
 		 *
-		 * \throw Out_of_ram 
+		 * \throw Out_of_ram
 		 * \throw Out_of_caps
 		 * \throw Service_denied
 		 * \throw Insufficient_cap_quota

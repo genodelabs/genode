@@ -222,7 +222,9 @@ class Audio_out::Out
  */
 struct Audio_out::Root_policy
 {
-	void aquire(const char *args)
+	using Result = Attempt<Ok, Service::Create_error>;
+
+	Result aquire(const char *args)
 	{
 		size_t ram_quota =
 			Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
@@ -230,7 +232,7 @@ struct Audio_out::Root_policy
 		if (sizeof(Stream) > ram_quota) {
 			error("insufficient 'ram_quota', got ", ram_quota,
 			      " need ", sizeof(Stream));
-			throw Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
 		char channel_name[16];
@@ -241,13 +243,14 @@ struct Audio_out::Root_policy
 		if (!Out::channel_number(channel_name, &channel_number)) {
 			error("invalid output channel '",(char const *)channel_name,"' requested, "
 			      "denying '", label_from_args(args), "'");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
 		if (Audio_out::channel_acquired[channel_number]) {
 			error("output channel '",(char const *)channel_name,"' is unavailable, "
 			      "denying '", label_from_args(args), "'");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
+		return Ok();
 	}
 
 	void release() { }
@@ -407,7 +410,9 @@ class Audio_in::In
 
 struct Audio_in::Root_policy
 {
-	void aquire(char const *args)
+	using Result = Attempt<Ok, Service::Create_error>;
+
+	Result aquire(char const *args)
 	{
 		size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
@@ -415,7 +420,7 @@ struct Audio_in::Root_policy
 			error("insufficient 'ram_quota', got ", ram_quota,
 			      " need ", sizeof(Stream),
 			      ", denying '", label_from_args(args),"'");
-			throw Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
 		char channel_name[16];
@@ -426,13 +431,14 @@ struct Audio_in::Root_policy
 		if (!In::channel_number(channel_name, &channel_number)) {
 			error("invalid input channel '",(char const *)channel_name,"' requested, "
 			      "denying '", label_from_args(args),"'");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
 		if (Audio_in::channel_acquired) {
 			error("input channel '",(char const *)channel_name,"' is unavailable, "
 			      "denying '", label_from_args(args),"'");
-			throw Service_denied();
+			return Service::Create_error::DENIED;
 		}
+		return Ok();
 	}
 
 	void release() { }

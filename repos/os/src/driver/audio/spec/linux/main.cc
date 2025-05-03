@@ -201,7 +201,9 @@ class Audio_out::Out
  */
 struct Audio_out::Root_policy
 {
-	void aquire(const char *args)
+	using Result = Attempt<Ok, Service::Create_error>;
+
+	Result aquire(const char *args)
 	{
 		size_t ram_quota =
 			Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
@@ -209,7 +211,7 @@ struct Audio_out::Root_policy
 		if (sizeof(Stream) > ram_quota) {
 			Genode::error("insufficient 'ram_quota', got ", ram_quota,
 			              " need ", sizeof(Stream));
-			throw Genode::Insufficient_ram_quota();
+			return Service::Create_error::INSUFFICIENT_RAM;
 		}
 
 		char channel_name[16];
@@ -218,9 +220,11 @@ struct Audio_out::Root_policy
 		                                             sizeof(channel_name),
 		                                             "left");
 		if (!channel_number_from_string(channel_name, &channel_number))
-			throw Genode::Service_denied();
+			return Service::Create_error::DENIED;
 		if (Audio_out::channel_acquired[channel_number])
-			throw Genode::Service_denied();
+			return Service::Create_error::DENIED;
+
+		return Ok();
 	}
 
 	void release() { }
