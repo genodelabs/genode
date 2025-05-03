@@ -224,7 +224,22 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 				}
 
 				/* try to dispatch session request synchronously */
-				service.initiate_request(session);
+				{
+					using Error = Service::Initiate_error;
+					auto session_error = [] (Error e)
+					{
+						switch (e) {
+						case Error::OUT_OF_RAM:  return Session_error::OUT_OF_RAM;
+						case Error::OUT_OF_CAPS: break;
+						}
+						return Session_error::OUT_OF_CAPS;
+					};
+					auto const result = service.initiate_request(session);
+					if (result.failed())
+						return result.convert<Session_error>(
+							[&] (Ok) /* never */ { return Session_error { }; },
+							[&] (Error e)        { return session_error(e); });
+				}
 
 				if (session.phase == Session_state::SERVICE_DENIED) {
 					_revert_quota_and_destroy(session);
@@ -367,7 +382,25 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 				session.increase_donated_quota(ram_quota, cap_quota);
 				session.phase = Session_state::UPGRADE_REQUESTED;
 
-				session.service().initiate_request(session);
+				auto upgrade_error = [] (Service::Initiate_error e)
+				{
+					using Error = Service::Initiate_error;
+					switch (e) {
+					case Error::OUT_OF_RAM:  return Upgrade_result::OUT_OF_RAM;
+					case Error::OUT_OF_CAPS: break;
+					}
+					return Upgrade_result::OUT_OF_CAPS;
+				};
+
+				Service::Initiate_result const initiate_result =
+					session.service().initiate_request(session);
+
+				if (initiate_result.failed()) {
+					initiate_result.with_error([&] (Service::Initiate_error e) {
+						result = upgrade_error(e); });
+					return;
+				}
+
 				session_state_changed = true;
 
 				/* finish transaction */
@@ -476,7 +509,8 @@ Child::Close_result Child::_close(Session_state &session)
 	/* close session if alive */
 	if (session.alive()) {
 		session.phase = Session_state::CLOSE_REQUESTED;
-		session.service().initiate_request(session);
+		if (session.service().initiate_request(session).failed())
+			warning("failed to initiate close request: ", session);
 	}
 
 	/*
@@ -646,7 +680,8 @@ void Child::deliver_session_cap(Server::Id id, Session_capability cap)
 		 */
 		if (!session.client_exists()) {
 			session.phase = Session_state::CLOSE_REQUESTED;
-			session.service().initiate_request(session);
+			if (session.service().initiate_request(session).failed())
+				warning("failed to initiate close for vanished client: ", session);
 			session.service().wakeup();
 			return;
 		}

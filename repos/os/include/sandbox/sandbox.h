@@ -198,9 +198,9 @@ class Genode::Sandbox::Local_service_base : public Service
 		/**
 		 * Service interface
 		 */
-		void initiate_request(Session_state &session) override
+		Initiate_result initiate_request(Session_state &session) override
 		{
-			_async_service.initiate_request(session);
+			return _async_service.initiate_request(session);
 		}
 
 		void wakeup() override { _async_service.wakeup(); }

@@ -4,10 +4,7 @@
  * \date   2008-09-24
  *
  * This program starts itself as child. When started, it first determines
- * whether it is parent or child by requesting a RM session. Because the
- * program blocks all session-creation calls for the RM service, each program
- * instance can determine its parent or child role by the checking the result
- * of the session creation.
+ * whether it is parent or child by looking at the available RAM quota.
  */
 
 /*
@@ -192,6 +189,9 @@ class Test_child_policy : public Child_policy
 
 	public:
 
+		static constexpr Ram_quota RAM_QUOTA = { 1*1024*1024 };
+		static constexpr Cap_quota CAP_QUOTA = { 20 };
+
 		/**
 		 * Constructor
 		 */
@@ -223,8 +223,8 @@ class Test_child_policy : public Child_policy
 		{
 			session.ref_account(_env.pd_session_cap());
 
-			_env.pd().transfer_quota(cap, Ram_quota{1*1024*1024});
-			_env.pd().transfer_quota(cap, Cap_quota{20});
+			_env.pd().transfer_quota(cap, RAM_QUOTA);
+			_env.pd().transfer_quota(cap, CAP_QUOTA);
 
 			Region_map_client address_space(session.address_space());
 			address_space.fault_handler(_fault_handler_sigh);
@@ -463,16 +463,11 @@ void Component::construct(Env &env)
 {
 	log("--- region-manager fault test ---");
 
-	try {
-		/*
-		 * Distinguish parent from child by requesting an service that is only
-		 * available to the parent.
-		 */
+	if (env.pd().avail_ram().value > Test_child_policy::RAM_QUOTA.value) {
 		Rm_connection rm(env);
 		static Main_parent parent(env);
 		log("-- parent role started --");
-	}
-	catch (Service_denied) {
+	} else {
 		main_child(env);
 	}
 }

@@ -59,10 +59,10 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 		return genode_env.session(service_name, id, session_args, affinity);
 	}
 
-	Session_capability try_session(Parent::Service_name const &service_name,
-	                               Parent::Client::Id id,
-	                               Parent::Session_args const &session_args,
-	                               Affinity             const &affinity) override
+	Session_result try_session(Parent::Service_name const &service_name,
+	                           Parent::Client::Id id,
+	                           Parent::Session_args const &session_args,
+	                           Affinity             const &affinity) override
 	{
 		return genode_env.try_session(service_name, id, session_args, affinity);
 	}

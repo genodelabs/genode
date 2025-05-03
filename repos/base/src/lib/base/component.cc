@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,6 +18,7 @@
 #include <base/connection.h>
 #include <base/service.h>
 #include <base/env.h>
+#include <base/sleep.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -112,47 +113,47 @@ struct Genode::Component_env : Env
 		_session_blockade->block();
 	}
 
-	Session_capability try_session(Parent::Service_name const &name,
-	                               Parent::Client::Id          id,
-	                               Parent::Session_args const &args,
-	                               Affinity             const &affinity) override
+	Session_result try_session(Parent::Service_name const &name,
+	                           Parent::Client::Id          id,
+	                           Parent::Session_args const &args,
+	                           Affinity             const &affinity) override
 	{
 		if (!args.valid_string()) {
 			warning(name.string(), " session denied because of truncated arguments");
-			throw Service_denied();
+			return Session_error::DENIED;
 		}
 
 		Mutex::Guard guard(_mutex);
 
-		return _parent.session(id, name, args, affinity).convert<Capability<Session>>(
-			[&] (Capability<Session> cap) -> Capability<Session> {
+		return _parent.session(id, name, args, affinity).convert<Session_result>(
+			[&] (Capability<Session> cap) -> Session_result {
 				if (cap.valid())
 					return cap;
 
 				_block_for_session();
 
-				return _parent.session_cap(id).convert<Capability<Session>>(
+				return _parent.session_cap(id).convert<Session_result>(
 					[&] (Capability<Session> cap) { return cap; },
-					[&] (Parent::Session_cap_error const e) -> Capability<Session> {
+					[&] (Parent::Session_cap_error const e) -> Session_result {
 						using Error = Parent::Session_cap_error;
 						switch (e) {
-						case Error::INSUFFICIENT_RAM_QUOTA: throw Insufficient_ram_quota();
-						case Error::INSUFFICIENT_CAP_QUOTA: throw Insufficient_cap_quota();
+						case Error::INSUFFICIENT_RAM_QUOTA: return Session_error::INSUFFICIENT_RAM;
+						case Error::INSUFFICIENT_CAP_QUOTA: return Session_error::INSUFFICIENT_CAPS;
 						case Error::DENIED:                 break;
 						}
-						throw Service_denied(); }
+						return Session_error::DENIED; }
 				);
 			},
-			[&] (Parent::Session_error const e) -> Capability<Session> {
+			[&] (Parent::Session_error const e) -> Session_result {
 				using Error = Parent::Session_error;
 				switch (e) {
-				case Error::OUT_OF_RAM:             throw Out_of_ram();
-				case Error::OUT_OF_CAPS:            throw Out_of_caps();
-				case Error::INSUFFICIENT_RAM_QUOTA: throw Insufficient_ram_quota();
-				case Error::INSUFFICIENT_CAP_QUOTA: throw Insufficient_cap_quota();
+				case Error::OUT_OF_RAM:             return Session_error::OUT_OF_RAM;
+				case Error::OUT_OF_CAPS:            return Session_error::OUT_OF_CAPS;
+				case Error::INSUFFICIENT_RAM_QUOTA: return Session_error::INSUFFICIENT_RAM;
+				case Error::INSUFFICIENT_CAP_QUOTA: return Session_error::INSUFFICIENT_CAPS;
 				case Error::DENIED:                 break;
 				}
-				throw Service_denied();
+				return Session_error::DENIED;
 			});
 	}
 
@@ -161,6 +162,8 @@ struct Genode::Component_env : Env
 	                           Parent::Session_args const &args,
 	                           Affinity             const &affinity) override
 	{
+		Session_capability result { };
+
 		/*
 		 * Since we account for the backing store for session meta data on
 		 * the route between client and server, the session quota provided
@@ -179,36 +182,47 @@ struct Genode::Component_env : Env
 
 		for (unsigned cnt = 0;; cnt++) {
 
-			try {
+			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+			                    String<32>(ram_quota).string());
 
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
-				                    String<32>(ram_quota).string());
+			Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota",
+			                    String<32>(cap_quota).string());
 
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota",
-				                    String<32>(cap_quota).string());
+			try_session(name, id, Parent::Session_args(argbuf), affinity).with_result(
+				[&] (Session_capability cap) { result = cap; },
+				[&] (Session_error e) {
+					switch (e) {
+					case Session_error::OUT_OF_RAM:
+						if (ram_quota.value > pd().avail_ram().value) {
+							Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
+							_parent.resource_request(args);
+						}
+						break;
 
-				return try_session(name, id, Parent::Session_args(argbuf), affinity);
-			}
+					case Session_error::OUT_OF_CAPS:
+						if (cap_quota.value > pd().avail_caps().value) {
+							Parent::Resource_args args(String<64>("cap_quota=", cap_quota));
+							_parent.resource_request(args);
+						}
+						break;
 
-			catch (Insufficient_ram_quota) {
-				ram_quota = Ram_quota { ram_quota.value + 4096 }; }
+					case Session_error::DENIED:
+						error("stop because parent denied ", name.string(), "-session: ", Cstring(argbuf));
+						sleep_forever();
 
-			catch (Insufficient_cap_quota) {
-				cap_quota = Cap_quota { cap_quota.value + 4 }; }
+					case Session_error::INSUFFICIENT_RAM:
+						ram_quota = Ram_quota { ram_quota.value + 4096 };
+						break;
 
-			catch (Out_of_ram) {
-				if (ram_quota.value > pd().avail_ram().value) {
-					Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
-					_parent.resource_request(args);
+					case Session_error::INSUFFICIENT_CAPS:
+						cap_quota = Cap_quota { cap_quota.value + 4 };
+						break;
+					}
 				}
-			}
+			);
 
-			catch (Out_of_caps) {
-				if (cap_quota.value > pd().avail_caps().value) {
-					Parent::Resource_args args(String<64>("cap_quota=", cap_quota));
-					_parent.resource_request(args);
-				}
-			}
+			if (result.valid())
+				return result;
 
 			if (cnt == warn_after_attempts) {
 				warning("re-attempted ", name.string(), " session request ",

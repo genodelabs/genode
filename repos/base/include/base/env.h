@@ -74,8 +74,6 @@ struct Genode::Env : Interface
 	/**
 	 * Create session with quota upgrades as needed
 	 *
-	 * \throw Service_denied
-	 *
 	 * In contrast to 'try_session', this method implicitly handles
 	 * 'Insufficient_ram_quota' and 'Insufficient_cap_quota' by successively
 	 * increasing the session quota. On the occurrence of an 'Out_of_ram'
@@ -93,8 +91,6 @@ struct Genode::Env : Interface
 	 * \param id               session ID of new session
 	 * \param args             session constructor arguments
 	 * \param affinity         preferred CPU affinity for the session
-	 *
-	 * \throw Service_denied
 	 *
 	 * See the documentation of 'Parent::session'.
 	 *
@@ -116,9 +112,6 @@ struct Genode::Env : Interface
 	 *
 	 * \param id    ID of recipient session
 	 * \param args  description of the amount of quota to transfer
-	 *
-	 * \throw Out_of_ram
-	 * \throw Out_of_caps
 	 *
 	 * See the documentation of 'Parent::upgrade'.
 	 *
@@ -144,19 +137,18 @@ struct Genode::Env : Interface
 	 */
 	virtual void exec_static_constructors() = 0;
 
+	enum class Session_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED,
+	                           INSUFFICIENT_RAM, INSUFFICIENT_CAPS };
+
+	using Session_result = Attempt<Session_capability, Session_error>;
+
 	/**
 	 * Attempt the creation of a session
-	 *
-	 * \throw Service_denied
-	 * \throw Insufficient_cap_quota
-	 * \throw Insufficient_ram_quota
-	 * \throw Out_of_caps
-	 * \throw Out_of_ram
 	 */
-	virtual Session_capability try_session(Parent::Service_name const &,
-	                                       Parent::Client::Id,
-	                                       Parent::Session_args const &,
-	                                       Affinity             const &) = 0;
+	virtual Session_result try_session(Parent::Service_name const &,
+	                                   Parent::Client::Id,
+	                                   Parent::Session_args const &,
+	                                   Affinity             const &) = 0;
 };
 
 #endif /* _INCLUDE__BASE__ENV_H_ */

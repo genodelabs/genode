@@ -25,10 +25,7 @@
 			[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)
 			[init -> test-report_rom] ROM client: wait for update notification
 			[init -> test-report_rom] ROM client: try to open the same report again
-			[init -> test-report_rom] *Error: Report-session creation failed*label="brightness"*
-			[init -> test-report_rom] ROM client: caught Service_denied - OK
-			[init -> test-report_rom] --- test-report_rom finished ---
-			[init] child "test-report_rom" exited with exit value 0
+			[init -> test-report_rom] *Error: stop because parent denied Report-session: label="brightness"
 	</succeed>
 
 	<content>

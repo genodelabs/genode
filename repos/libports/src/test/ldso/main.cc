@@ -229,13 +229,6 @@ void Libc::Component::construct(Libc::Env &env)
 
 	log("Catch exceptions in program");
 	log("---------------------------");
-	try {
-		Rom_connection rom(env, "unknown_rom");
-		error("undelivered exception in remote procedure call");
-	}
-	catch (Rom_connection::Rom_connection_failed) {
-		log("exception in remote procedure call: caught");
-	}
 
 	try {
 		exception();

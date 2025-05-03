@@ -72,7 +72,8 @@ struct Genode::Local_connection_base : Noncopyable
 				                         _init_args(args, resources, diag),
 				                         affinity);
 
-				_session_state->service().initiate_request(*_session_state);
+				if (_session_state->service().initiate_request(*_session_state).failed())
+					warning("unable to initiate ", service.name(), " session");
 
 				if (_session_state->alive())
 					break;
@@ -101,7 +102,8 @@ struct Genode::Local_connection_base : Noncopyable
 		{
 			if (_session_state->alive()) {
 				_session_state->phase = Session_state::CLOSE_REQUESTED;
-				_session_state->service().initiate_request(*_session_state);
+				if (_session_state->service().initiate_request(*_session_state).failed())
+					warning("unable to initiate ", _session_state->service().name(), " close request");
 			}
 		}
 

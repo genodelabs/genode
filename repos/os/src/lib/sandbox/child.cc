@@ -654,6 +654,11 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 		throw Service_denied();
 	};
 
+	if (!_route_model.constructed()) {
+		denied_fn();
+		return;
+	}
+
 	Route_model::Query const query(name(), service_name, label);
 
 	try { fn(_route_model->resolve(query, resolve_at_target)); }

@@ -40,9 +40,6 @@
 			[init -> test-ldso] *
 			[init -> test-ldso] Catch exceptions in program*
 			[init -> test-ldso] ---------------------------*
-			[init -> test-ldso] *Error: ROM-session creation failed*label="unknown_rom"*
-			[init -> test-ldso] *Error: could not open ROM session for "unknown_rom"*
-			[init -> test-ldso] exception in remote procedure call: caught*
 			[init -> test-ldso] exception in program: caught*
 			[init -> test-ldso] exception in shared lib: caught*
 			[init -> test-ldso] exception in dynamic linker: caught*

@@ -87,6 +87,10 @@ class Genode::Service : public Ram_transfer::Account,
 			return _factory(client_factory).create(*this, args...);
 		}
 
+		enum class Initiate_error { OUT_OF_CAPS, OUT_OF_RAM };
+
+		using Initiate_result = Attempt<Ok, Initiate_error>;
+
 		/**
 		 * Attempt the immediate (synchronous) creation of a session
 		 *
@@ -95,7 +99,7 @@ class Genode::Service : public Ram_transfer::Account,
 		 * In these cases, it is not needed to wait for an asynchronous
 		 * response.
 		 */
-		virtual void initiate_request(Session_state &session) = 0;
+		virtual Initiate_result initiate_request(Session_state &session) = 0;
 
 		/**
 		 * Wake up service to query session requests
@@ -221,7 +225,7 @@ class Genode::Local_service : public Service
 		Local_service(Factory &factory)
 		: Service(SESSION::service_name()), _factory(factory) { }
 
-		void initiate_request(Session_state &session) override
+		Initiate_result initiate_request(Session_state &session) override
 		{
 			switch (session.phase) {
 
@@ -276,6 +280,7 @@ class Genode::Local_service : public Service
 			case Session_state::CLOSED:
 				break;
 			}
+			return Ok();
 		}
 };
 
@@ -294,55 +299,63 @@ class Genode::Try_parent_service : public Service
 
 		Env &_env;
 
+		using Error = Env::Session_error;
+
+		static Session_state::Phase session_phase_from_error(Error e)
+		{
+			switch (e) {
+			case Error::OUT_OF_RAM:        break;
+			case Error::OUT_OF_CAPS:       break;
+			case Error::DENIED:            return Session_state::SERVICE_DENIED;
+			case Error::INSUFFICIENT_RAM:  return Session_state::INSUFFICIENT_RAM_QUOTA;
+			case Error::INSUFFICIENT_CAPS: return Session_state::INSUFFICIENT_CAP_QUOTA;
+			}
+			return Session_state::CLOSED;
+		};
+
+		static Initiate_result result_from_error(Error e)
+		{
+			switch (e) {
+			case Error::OUT_OF_RAM:        return Initiate_error::OUT_OF_RAM;
+			case Error::OUT_OF_CAPS:       return Initiate_error::OUT_OF_CAPS;
+			case Error::DENIED:            break;
+			case Error::INSUFFICIENT_RAM:  break;
+			case Error::INSUFFICIENT_CAPS: break;
+			}
+			return Ok();
+		};
+
 	public:
 
 		Try_parent_service(Env &env, Service::Name const &name)
 		: Service(name), _env(env) { }
 
-		/*
-		 * \throw Out_of_ram
-		 * \throw Out_of_caps
-		 */
-		void initiate_request(Session_state &session) override
+		Initiate_result initiate_request(Session_state &session) override
 		{
+			Initiate_result result = Ok();
+
 			switch (session.phase) {
 
 			case Session_state::CREATE_REQUESTED:
 
 				session.id_at_parent.construct(session.parent_client,
 				                               _env.id_space());
-				try {
 
-					session.cap = _env.try_session(name().string(),
-					                               session.id_at_parent->id(),
-					                               Session_state::Server_args(session).string(),
-					                               session.affinity());
+				_env.try_session(name().string(),
+				                 session.id_at_parent->id(),
+				                 Session_state::Server_args(session).string(),
+				                 session.affinity()).with_result(
 
-					session.phase = Session_state::AVAILABLE;
-				}
-				catch (Out_of_ram) {
-					session.id_at_parent.destruct();
-					session.phase = Session_state::CLOSED;
-					throw;
-				}
-				catch (Out_of_caps) {
-					session.id_at_parent.destruct();
-					session.phase = Session_state::CLOSED;
-					throw;
-				}
-				catch (Insufficient_ram_quota) {
-					session.id_at_parent.destruct();
-					session.phase = Session_state::INSUFFICIENT_RAM_QUOTA;
-				}
-				catch (Insufficient_cap_quota) {
-					session.id_at_parent.destruct();
-					session.phase = Session_state::INSUFFICIENT_CAP_QUOTA;
-				}
-				catch (Service_denied) {
-					session.id_at_parent.destruct();
-					session.phase = Session_state::SERVICE_DENIED;
-				}
-
+					[&] (Session_capability cap) {
+						session.cap = cap;
+						session.phase = Session_state::AVAILABLE;
+					},
+					[&] (Env::Session_error e) {
+						session.id_at_parent.destruct();
+						session.phase = session_phase_from_error(e);
+						result = result_from_error(e);
+					}
+				);
 				break;
 
 			case Session_state::UPGRADE_REQUESTED:
@@ -353,12 +366,7 @@ class Genode::Try_parent_service : public Service
 					if (!session.id_at_parent.constructed())
 						error("invalid parent-session state: ", session);
 
-					try {
-						_env.upgrade(session.id_at_parent->id(), args.string()); }
-					catch (Out_of_ram) {
-						warning("RAM quota exceeded while upgrading parent session"); }
-					catch (Out_of_caps) {
-						warning("cap quota exceeded while upgrading parent session"); }
+					_env.upgrade(session.id_at_parent->id(), args.string());
 
 					session.confirm_ram_upgrade();
 					session.phase = Session_state::CAP_HANDED_OUT;
@@ -382,6 +390,7 @@ class Genode::Try_parent_service : public Service
 			case Session_state::CLOSED:
 				break;
 			}
+			return result;
 		}
 };
 
@@ -405,31 +414,33 @@ class Genode::Parent_service : public Try_parent_service
 		Parent_service(Env &env, Service::Name const &name)
 		: Try_parent_service(env, name), _env(env) { }
 
-		void initiate_request(Session_state &session) override
+		Initiate_result initiate_request(Session_state &session) override
 		{
+			Initiate_result result = Ok();
+
 			Session_state::Phase original_phase = session.phase;
 
 			for (unsigned i = 0; i < 10; i++) {
 
-				try {
-					Try_parent_service::initiate_request(session);
-					return;
-				}
-				catch (Out_of_ram) {
+				result = Try_parent_service::initiate_request(session);
+				if (result.ok())
+					return result;
+
+				if (result == Initiate_error::OUT_OF_RAM) {
 					Ram_quota ram_quota { ram_quota_from_args(session.args().string()) };
 					Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
 					_env.parent().resource_request(args);
 					session.phase = original_phase;
 				}
-				catch (Out_of_caps) {
+				if (result == Initiate_error::OUT_OF_CAPS) {
 					Cap_quota cap_quota { cap_quota_from_args(session.args().string()) };
 					Parent::Resource_args args(String<64>("cap_quota=", cap_quota));
 					_env.parent().resource_request(args);
 					session.phase = original_phase;
 				}
 			}
-
 			error("parent-session request repeatedly failed");
+			return result;
 		}
 };
 
@@ -481,12 +492,13 @@ class Genode::Async_service : public Service
 			_server_factory(factory), _wakeup(wakeup)
 		{ }
 
-		void initiate_request(Session_state &session) override
+		Initiate_result initiate_request(Session_state &session) override
 		{
 			if (!session.id_at_server.constructed())
 				session.id_at_server.construct(session, _server_id_space);
 
 			session.async_client_notify = true;
+			return Ok();
 		}
 
 		bool has_id_space(Id_space<Parent::Server> const &id_space) const

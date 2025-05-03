@@ -19,6 +19,7 @@
 
 #include <base/ram_allocator.h>
 #include <base/rpc_server.h>
+#include <base/service.h>
 #include <base/attached_ram_dataspace.h>
 #include <rom_session/rom_session.h>
 
@@ -163,7 +164,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 ** Service interface **
 		 ***********************/
 
-		void initiate_request(Session_state &session) override
+		Initiate_result initiate_request(Session_state &session) override
 		{
 			switch (session.phase) {
 
@@ -189,6 +190,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			case Session_state::CLOSED:
 				break;
 			}
+			return Ok();
 		}
 
 

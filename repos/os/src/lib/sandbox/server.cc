@@ -140,7 +140,8 @@ Sandbox::Server::_resolve_session_request(Service::Name const &service_name,
 static void close_session(Genode::Session_state &session)
 {
 	session.phase = Genode::Session_state::CLOSE_REQUESTED;
-	session.service().initiate_request(session);
+	if (session.service().initiate_request(session).failed())
+		warning("failed to initiate close request: ", session);
 	session.service().wakeup();
 }
 
@@ -283,7 +284,8 @@ void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
 		session.closed_callback = this;
 
 		/* initiate request */
-		route.service.initiate_request(session);
+		if (route.service.initiate_request(session).failed())
+			warning("failed to initiate server request: ", session);
 
 		/* if request was not handled synchronously, kick off async operation */
 		if (session.phase == Session_state::CREATE_REQUESTED)
@@ -341,7 +343,8 @@ void Sandbox::Server::_handle_upgrade_session_request(Xml_node const &request,
 
 		session.phase = Session_state::UPGRADE_REQUESTED;
 		session.increase_donated_quota(ram_quota, cap_quota);
-		session.service().initiate_request(session);
+		if (session.service().initiate_request(session).failed())
+			warning("failed to initiate server-upgrade request: ", session);
 		session.service().wakeup();
 	});
 }

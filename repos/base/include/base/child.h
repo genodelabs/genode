@@ -441,12 +441,14 @@ class Genode::Child : protected Rpc_object<Parent>,
 				 */
 				bool _first_request = true;
 
-				void initiate_request(Session_state &session) override
+				Initiate_result initiate_request(Session_state &session) override
 				{
 					session.ready_callback = this;
 					session.async_client_notify = true;
 
-					_service.initiate_request(session);
+					Initiate_result const result = _service.initiate_request(session);
+					if (result.failed())
+						return result;
 
 					/*
 					 * If the env session is provided by an async service,
@@ -482,6 +484,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 					 */
 					if (session.phase == Session_state::CLOSE_REQUESTED)
 						_service.wakeup();
+
+					return Ok();
 				}
 
 				/**
@@ -601,12 +605,14 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 			void with_session(auto const &fn, auto const &denied_fn)
 			{
-				_connection->with_session(fn, denied_fn);
+				if (!_connection.constructed()) denied_fn();
+				else _connection->with_session(fn, denied_fn);
 			}
 
 			void with_session(auto const &fn, auto const &denied_fn) const
 			{
-				_connection->with_session(fn, denied_fn);
+				if (!_connection.constructed()) denied_fn();
+				else _connection->with_session(fn, denied_fn);
 			}
 
 			Capability<SESSION> cap() const
