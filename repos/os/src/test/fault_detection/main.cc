@@ -121,21 +121,25 @@ class Test_child : public Genode::Child_policy
 			address_space.fault_handler(_sigh);
 		}
 
-		Route resolve_session_request(Service::Name const &service,
-		                              Session_label const &label,
-		                              Session::Diag const  diag) override
+		void _with_route(Service::Name     const &service,
+		                 Session_label     const &label,
+		                 Session::Diag     const  diag,
+		                 With_route::Ft    const &fn,
+		                 With_no_route::Ft const &denied_fn) override
 		{
-			auto route = [&] (Service &service) {
+			auto route = [&] (Service &service)
+			{
 				return Route { .service = service,
 				               .label   = label,
-				               .diag    = diag }; };
+				               .diag    = diag };
+			};
 
-			if (service == Cpu_session::service_name()) return route(_cpu_service);
-			if (service ==  Pd_session::service_name()) return route( _pd_service);
-			if (service == Log_session::service_name()) return route(_log_service);
-			if (service == Rom_session::service_name()) return route(_rom_service);
-
-			throw Service_denied();
+			if      (service == Cpu_session::service_name()) fn(route(_cpu_service));
+			else if (service ==  Pd_session::service_name()) fn(route( _pd_service));
+			else if (service == Log_session::service_name()) fn(route(_log_service));
+			else if (service == Rom_session::service_name()) fn(route(_rom_service));
+			else
+				denied_fn();
 		}
 
 		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }

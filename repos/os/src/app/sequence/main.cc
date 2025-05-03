@@ -111,26 +111,31 @@ struct Sequence::Child : Genode::Child_policy
 	 * Provide a "config" ROM if configured to do so,
 	 * otherwise forward directly to the parent.
 	 */
-	Route resolve_session_request(Service::Name const &name,
-	                              Session_label const &label,
-	                              Session::Diag const  diag) override
+	void _with_route(Service::Name     const &name,
+	                 Session_label     const &label,
+	                 Session::Diag     const  diag,
+	                 With_route::Ft    const &fn,
+	                 With_no_route::Ft const &) override
 	{
-		auto route = [&] (Service &service) {
+		auto route = [&] (Service &service)
+		{
 			return Route { .service = service,
 			               .label   = label,
-			               .diag    = diag }; };
+			               .diag    = diag };
+		};
 
 		if (_have_config) {
-			Service *s =
-				_config_policy.resolve_session_request(name, label);
-			if (s)
-				return route(*s);
+			Service *s = _config_policy.resolve_session_request(name, label);
+			if (s) {
+				fn(route(*s));
+				return;
+			}
 		}
 
 		Service &service = *new (_services_heap)
 			Parent_service(_parent_services, _env, name);
 
-		return route(service);
+		fn(route(service));
 	}
 
 	Ram_allocator &session_md_ram() override { return _env.ram(); }

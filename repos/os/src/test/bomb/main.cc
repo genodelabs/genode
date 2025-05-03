@@ -85,32 +85,37 @@ class Bomb_child : public Child_policy
 		Pd_account            &ref_account()           override { return _env.pd(); }
 		Capability<Pd_account> ref_account_cap() const override { return _env.pd_session_cap(); }
 
-		Service &_matching_service(Service::Name const &service_name,
-		                           Session_label const &label)
+		void _with_matching_service(Service::Name const &service_name,
+		                           Session_label  const &label,
+		                           auto const &fn, auto const &denied_fn)
 		{
 			Service *service = nullptr;
 
 			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(service_name, label)))
-				return *service;
+			if ((service = _config_policy.resolve_session_request(service_name, label))) {
+				fn(*service);
+				return;
+			}
 
 			_parent_services.for_each([&] (Service &s) {
 				if (!service && service_name == s.name())
 					service = &s; });
 
-			if (!service)
-				throw Service_denied();
-
-			return *service;
+			if (service) fn(*service); else denied_fn();
 		}
 
-		Route resolve_session_request(Service::Name const &service_name,
-		                              Session_label const &label,
-		                              Session::Diag const  diag) override
+		void _with_route(Service::Name     const &service_name,
+		                 Session_label     const &label,
+		                 Session::Diag     const  diag,
+		                 With_route::Ft    const &fn,
+		                 With_no_route::Ft const &denied_fn) override
 		{
-			return Route { .service = _matching_service(service_name, label),
-			               .label   = label,
-			               .diag    = diag };
+			_with_matching_service(service_name, label,
+				[&] (Service &service) {
+					fn(Route { .service = service,
+					           .label   = label,
+					           .diag    = diag });
+				}, denied_fn);
 		}
 
 		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }

@@ -483,9 +483,11 @@ struct Libc::Forked_child : Child_policy, Child_ready
 		_env.pd().transfer_quota(cap, Cap_quota{100});
 	}
 
-	Route resolve_session_request(Service::Name const &name,
-	                              Session_label const &label,
-	                              Session::Diag const  diag) override
+	void _with_route(Service::Name     const &name,
+	                 Session_label     const &label,
+	                 Session::Diag     const  diag,
+	                 With_route::Ft    const &fn,
+	                 With_no_route::Ft const &denied_fn) override
 	{
 		Session_label rewritten_label = label;
 
@@ -517,11 +519,11 @@ struct Libc::Forked_child : Child_policy, Child_ready
 			service_ptr = &_parent_services.matching_service(name);
 
 		if (service_ptr)
-			return Route { .service = *service_ptr,
-			               .label   = rewritten_label,
-			               .diag    = diag };
-
-		throw Service_denied();
+			fn(Route { .service = *service_ptr,
+			           .label   = rewritten_label,
+			           .diag    = diag });
+		else
+			denied_fn();
 	}
 
 	void resource_request(Parent::Resource_args const &args) override

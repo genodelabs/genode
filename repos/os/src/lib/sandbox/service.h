@@ -67,13 +67,23 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 
 		struct Pd_accessor : Interface
 		{
-			virtual Pd_session           &pd()           = 0;
+			using With_pd = Callable<void, Pd_session &>;
+
+			virtual void _with_pd(With_pd::Ft const &) = 0;
+
+			void with_pd(auto const &fn) { _with_pd(With_pd::Fn { fn }); };
+
 			virtual Pd_session_capability pd_cap() const = 0;
 		};
 
 		struct Ram_accessor : Interface
 		{
-			virtual Pd_session           &ram()           = 0;
+			using With_ram = Callable<void, Pd_session &>;
+
+			virtual void _with_ram(With_ram::Ft const &) = 0;
+
+			void with_ram(auto const &fn) { _with_ram(With_ram::Fn { fn }); };
+
 			virtual Pd_session_capability ram_cap() const = 0;
 		};
 
@@ -120,8 +130,11 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		 */
 		Ram_transfer_result transfer(Capability<Pd_account> to, Ram_quota amount) override
 		{
-			return to.valid() ? _pd_accessor.pd().transfer_quota(to, amount)
-			                  : Ram_transfer_result::OK;
+			Ram_transfer_result result = Ram_transfer_result::INVALID;
+			_pd_accessor.with_pd([&] (Pd_session &pd) {
+				result = to.valid() ? pd.transfer_quota(to, amount)
+				                    : Ram_transfer_result::OK; });
+			return result;
 		}
 
 		/**
@@ -137,8 +150,11 @@ class Sandbox::Routed_service : public Async_service, public Abandonable
 		 */
 		Cap_transfer_result transfer(Capability<Pd_account> to, Cap_quota amount) override
 		{
-			return to.valid() ? _pd_accessor.pd().transfer_quota(to, amount)
-			                  : Cap_transfer_result::OK;
+			Cap_transfer_result result = Cap_transfer_result::INVALID;
+			_pd_accessor.with_pd([&] (Pd_session &pd) {
+				result = to.valid() ? pd.transfer_quota(to, amount)
+				                    : Cap_transfer_result::OK; });
+			return result;
 		}
 
 		/**

@@ -151,10 +151,11 @@ class Launchpad_child : public  Genode::Child_policy,
 		Genode::Id_space<Genode::Parent::Server> &server_id_space() override {
 			return _session_requester.id_space(); }
 
-		Genode::Child_policy::Route
-		resolve_session_request(Genode::Service::Name const &service_name,
-		                        Genode::Session_label const &label,
-		                        Genode::Session::Diag const  diag) override
+		void _with_route(Genode::Service::Name const &service_name,
+		                 Genode::Session_label const &label,
+		                 Genode::Session::Diag const  diag,
+		                 With_route::Ft        const &fn,
+		                 With_no_route::Ft     const &denied_fn) override
 		{
 			auto route = [&] (Genode::Service &service) {
 				return Genode::Child_policy::Route { .service = service,
@@ -164,17 +165,23 @@ class Launchpad_child : public  Genode::Child_policy,
 			Genode::Service *service = nullptr;
 
 			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request_with_label(service_name, label)))
-				return route(*service);
+			if ((service = _config_policy.resolve_session_request_with_label(service_name, label))) {
+				fn(route(*service));
+				return;
+			}
 
 			/* check for "session_requests" ROM request */
 			if (service_name == Genode::Rom_session::service_name()
-			 && label.last_element() == Genode::Session_requester::rom_name())
-				return route(_session_requester.service());
+			 && label.last_element() == Genode::Session_requester::rom_name()) {
+				fn(route(_session_requester.service()));
+				return;
+			}
 
 			/* if service is provided by one of our children, use it */
-			if ((service = _find_service(_child_services, service_name)))
-				return route(*service);
+			if ((service = _find_service(_child_services, service_name))) {
+				fn(route(*service));
+				return;
+			}
 
 			/*
 			 * Handle special case of the demo scenario when the user uses
@@ -192,11 +199,13 @@ class Launchpad_child : public  Genode::Child_policy,
 			 */
 			if (service_name != "Input"
 			 && service_name != "Framebuffer"
-			 && ((service = _find_service(_parent_services, service_name))))
-				return route(*service);
+			 && ((service = _find_service(_parent_services, service_name)))) {
+				fn(route(*service));
+				return;
+			}
 
 			Genode::warning(name(), ": service ", service_name, " not available");
-			throw Genode::Service_denied();
+			denied_fn();
 		}
 
 		void announce_service(Genode::Service::Name const &service_name) override

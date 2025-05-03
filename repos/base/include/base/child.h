@@ -22,6 +22,7 @@
 #include <base/quota_guard.h>
 #include <base/ram_allocator.h>
 #include <util/arg_string.h>
+#include <util/callable.h>
 #include <region_map/client.h>
 #include <pd_session/connection.h>
 #include <cpu_session/connection.h>
@@ -77,16 +78,21 @@ struct Genode::Child_policy
 		Session::Diag  const diag;
 	};
 
+	using With_route    = Callable<void, Route const &>;
+	using With_no_route = Callable<void>;
+
+	virtual void _with_route(Service::Name const &, Session_label const &, Session::Diag,
+	                         With_route::Ft const &, With_no_route::Ft const &) = 0;
+
 	/**
 	 * Determine service and server-side label for a given session request
-	 *
-	 * \return  routing and policy-selection information for the session
-	 *
-	 * \throw Service_denied
 	 */
-	virtual Route resolve_session_request(Service::Name const &,
-	                                      Session_label const &,
-	                                      Session::Diag) = 0;
+	void with_route(Service::Name const &name, Session_label const &label,
+	                Session::Diag diag, auto const &fn, auto const &denied_fn)
+	{
+		_with_route(name, label, diag, With_route::Fn    { fn },
+		                               With_no_route::Fn { denied_fn } );
+	}
 
 	/**
 	 * Apply transformations to session arguments
@@ -304,12 +310,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				using Name = Cpu_session::Name;
 
-				/**
-				 * Constructor
-				 *
-				 * \throw Out_of_ram
-				 * \throw Out_of_caps
-				 */
 				Initial_thread(Cpu_session &, Pd_session_capability, Name const &);
 				~Initial_thread();
 
@@ -579,32 +579,41 @@ class Genode::Child : protected Rpc_object<Parent>,
 				if (_connection.constructed())
 					return;
 
-				try {
-					Child_policy::Route const route =
-						_child._policy.resolve_session_request(_service_name(),
-						                                       label_from_args(_args.string()),
-						                                       session_diag_from_args(_args.string()));
-					_env_service.construct(_child, route.service);
+				Affinity const affinity =
+					_child._policy.filter_session_affinity(Affinity::unrestricted());
 
-					Affinity const affinity =
-						_child._policy.filter_session_affinity(Affinity::unrestricted());
-
-					_connection.construct(*_env_service, _child._id_space, _client_id,
-					                      _args, affinity, route.label, route.diag);
-				}
-				catch (Service_denied) {
-					error(_child._policy.name(), ": ", _service_name(), " "
-					      "environment session denied (", _args.string(), ")"); }
+				_child._policy.with_route(_service_name(),
+				                          label_from_args(_args.string()),
+				                          session_diag_from_args(_args.string()),
+					[&] (Child_policy::Route const &route) {
+						_env_service.construct(_child, route.service);
+						_connection.construct(*_env_service, _child._id_space, _client_id,
+						                      _args, affinity, route.label, route.diag);
+					},
+					[&] {
+						error(_child._policy.name(), ": ", _service_name(), " "
+						      "environment session denied (", _args.string(), ")"); });
 			}
 
-			using SESSION = typename CONNECTION::Session_type;
+			using Session_error  = Local_connection<CONNECTION>::Session_error;
+			using Session_result = Local_connection<CONNECTION>::Session_result;
+			using SESSION        = typename CONNECTION::Session_type;
 
-			SESSION       &session()       { return _connection->session(); }
-			SESSION const &session() const { return _connection->session(); }
+			void with_session(auto const &fn, auto const &denied_fn)
+			{
+				_connection->with_session(fn, denied_fn);
+			}
 
-			Capability<SESSION> cap() const {
+			void with_session(auto const &fn, auto const &denied_fn) const
+			{
+				_connection->with_session(fn, denied_fn);
+			}
+
+			Capability<SESSION> cap() const
+			{
 				return _connection.constructed() ? _connection->cap()
-				                                 : Capability<SESSION>(); }
+				                                 : Capability<SESSION>();
+			}
 
 			bool closed() const { return !_connection.constructed() || _connection->closed(); }
 
@@ -620,10 +629,15 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		Dataspace_capability _linker_dataspace()
 		{
-			return _linker.constructed() ? _linker->session().dataspace()
-			                             : Rom_dataspace_capability();
+			Dataspace_capability result { };
+			if (_linker.constructed())
+				_linker->with_session(
+					[&] (Rom_session &session) { result = session.dataspace(); },
+					[&] { });
+			return result;
 		}
 
+		void _revert_quota_and_destroy(Pd_session &, Session_state &);
 		void _revert_quota_and_destroy(Session_state &);
 
 		void _discard_env_session(Id_space<Parent::Client>::Id);
@@ -658,9 +672,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 * \param entrypoint  entrypoint used to serve the parent interface of
 		 *                    the child
 		 * \param policy      policy for the child
-		 *
-		 * \throw Service_denied  the initial sessions for the child's
-		 *                        environment could not be established
 		 */
 		Child(Local_rm &rm, Rpc_entrypoint &entrypoint, Child_policy &policy);
 
@@ -763,9 +774,9 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		Parent_capability parent_cap() const { return cap(); }
 
-		Cpu_session      &cpu()      { return _cpu.session(); }
-		Pd_session       &pd()       { return _pd.session(); }
-		Pd_session const &pd() const { return _pd.session(); }
+		void with_pd (auto &&... args)       { _pd .with_session(args...); }
+		void with_pd (auto &&... args) const { _pd .with_session(args...); }
+		void with_cpu(auto &&... args)       { _cpu.with_session(args...); }
 
 		/**
 		 * Request factory for creating session-state objects

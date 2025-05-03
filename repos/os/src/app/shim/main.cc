@@ -120,14 +120,16 @@ class Shim::Main : public Child_policy
 			ref_account().transfer_quota(pd_cap, _ram_quota);
 		}
 
-		Route resolve_session_request(Service::Name const &name,
-		                              Session_label const &label,
-		                              Session::Diag const  diag) override
+		void _with_route(Service::Name     const &name,
+		                 Session_label     const &label,
+		                 Session::Diag     const  diag,
+		                 With_route::Ft    const &fn,
+		                 With_no_route::Ft const &) override
 		{
-			return Route { .service = _matching_service(name),
-			               .label   = skip_name_prefix(label.string(),
-			                                           label.length()),
-			               .diag    = diag };
+			fn(Route { .service = _matching_service(name),
+			           .label   = skip_name_prefix(label.string(),
+			                                       label.length()),
+			           .diag    = diag });
 		}
 
 		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }

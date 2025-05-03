@@ -173,12 +173,8 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 	/* adjust the session information as presented to the server */
 	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", (int)forward_ram_quota.value);
 
-	try {
-		/* may throw a 'Service_denied' exception */
-		Child_policy::Route route =
-			_policy.resolve_session_request(name.string(), label,
-			                                session_diag_from_args(argbuf));
-
+	auto create = [&] (Pd_session &pd, Child_policy::Route const &route)
+	{
 		Service &service = route.service;
 
 		/* propagate diag flag */
@@ -198,8 +194,8 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 					Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
 					Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
 
-					Ram_transfer::Remote_account ram_account { pd(), pd_session_cap() };
-					Cap_transfer::Remote_account cap_account { pd(), pd_session_cap() };
+					Ram_transfer::Remote_account ram_account { pd, pd_session_cap() };
+					Cap_transfer::Remote_account cap_account { pd, pd_session_cap() };
 
 					/* transfer the quota donation from the child's account to ourself */
 					Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
@@ -263,8 +259,18 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 				return cap;
 			}
 		);
-	}
-	catch (Service_denied) { return Session_error::DENIED; }
+	};
+
+	Session_result result = Session_error::DENIED;
+	with_pd(
+		[&] (Pd_session &pd) {
+			_policy.with_route(name.string(), label, session_diag_from_args(argbuf),
+				[&] (Child_policy::Route const &route) { result = create(pd, route); },
+				[&] { });
+		},
+		[&] { error(_policy.name(), ": PD uninitialized at sesssion-creation time"); });
+
+	return result;
 }
 
 
@@ -345,28 +351,32 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 			Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
 			Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
 
-			Ram_transfer::Remote_account ram_account { pd(), pd_session_cap() };
-			Cap_transfer::Remote_account cap_account { pd(), pd_session_cap() };
+			with_pd([&] (Pd_session &pd) {
 
-			/* transfer quota from client to ourself */
-			Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
-			Cap_transfer cap_donation_from_child(cap_quota, cap_account, ref_cap_account);
+				Ram_transfer::Remote_account ram_account { pd, pd_session_cap() };
+				Cap_transfer::Remote_account cap_account { pd, pd_session_cap() };
 
-			/* transfer session quota from ourself to the service provider */
-			Ram_transfer ram_donation_to_service(ram_quota, ref_ram_account, session.service());
-			Cap_transfer cap_donation_to_service(cap_quota, ref_cap_account, session.service());
+				/* transfer quota from client to ourself */
+				Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
+				Cap_transfer cap_donation_from_child(cap_quota, cap_account, ref_cap_account);
 
-			session.increase_donated_quota(ram_quota, cap_quota);
-			session.phase = Session_state::UPGRADE_REQUESTED;
+				/* transfer session quota from ourself to the service provider */
+				Ram_transfer ram_donation_to_service(ram_quota, ref_ram_account, session.service());
+				Cap_transfer cap_donation_to_service(cap_quota, ref_cap_account, session.service());
 
-			session.service().initiate_request(session);
-			session_state_changed = true;
+				session.increase_donated_quota(ram_quota, cap_quota);
+				session.phase = Session_state::UPGRADE_REQUESTED;
 
-			/* finish transaction */
-			ram_donation_from_child.acknowledge();
-			cap_donation_from_child.acknowledge();
-			ram_donation_to_service.acknowledge();
-			cap_donation_to_service.acknowledge();
+				session.service().initiate_request(session);
+				session_state_changed = true;
+
+				/* finish transaction */
+				ram_donation_from_child.acknowledge();
+				cap_donation_from_child.acknowledge();
+				ram_donation_to_service.acknowledge();
+				cap_donation_to_service.acknowledge();
+			},
+			[&] { warning(_policy.name(), ": PD unexpectedly not initialized"); });
 		}
 		catch (Ram_transfer::Quota_exceeded) {
 			warning(_policy.name(), ": RAM upgrade of ", session.service().name(), " failed");
@@ -395,15 +405,15 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 }
 
 
-void Child::_revert_quota_and_destroy(Session_state &session)
+void Child::_revert_quota_and_destroy(Pd_session &pd, Session_state &session)
 {
 	Ram_transfer::Remote_account   ref_ram_account(_policy.ref_account(), _policy.ref_account_cap());
 	Ram_transfer::Account     &service_ram_account = session.service();
-	Ram_transfer::Remote_account child_ram_account(pd(), pd_session_cap());
+	Ram_transfer::Remote_account child_ram_account(pd, pd_session_cap());
 
 	Cap_transfer::Remote_account   ref_cap_account(_policy.ref_account(), _policy.ref_account_cap());
 	Cap_transfer::Account     &service_cap_account = session.service();
-	Cap_transfer::Remote_account child_cap_account(pd(), pd_session_cap());
+	Cap_transfer::Remote_account child_cap_account(pd, pd_session_cap());
 
 	try {
 		/* transfer session quota from the service to ourself */
@@ -440,6 +450,13 @@ void Child::_revert_quota_and_destroy(Session_state &session)
 
 	session.destroy();
 	_policy.session_state_changed();
+}
+
+
+void Child::_revert_quota_and_destroy(Session_state &session)
+{
+	with_pd([&] (Pd_session &pd) { _revert_quota_and_destroy(pd, session); },
+	        [&] { warning(_policy.name(), ": PD invalid at destruction time"); });
 }
 
 
@@ -758,25 +775,30 @@ void Child::_try_construct_env_dependent_members()
 	if (_start_result == Start_result::OK || _start_result == Start_result::INVALID)
 		return;
 
-	_policy.init(_cpu.session(), _cpu.cap());
+	with_cpu(
+		[&] (Cpu_session &cpu) {
+			_policy.init(cpu, _cpu.cap());
+			_initial_thread.construct(cpu, _pd.cap(), _policy.name());
+		},
+		[&] { _error("CPU session missing for initialization"); }
+	);
 
-	try {
-		_initial_thread.construct(_cpu.session(), _pd.cap(), _policy.name());
-	}
-	catch (Out_of_ram)  { _error("out of RAM while creating initial child thread");  }
-	catch (Out_of_caps) { _error("out of caps while creating initial child thread"); }
+	with_pd(
+		[&] (Pd_session &pd) {
+			pd.assign_parent(cap());
 
-	_pd.session().assign_parent(cap());
-
-	if (_policy.forked()) {
-		_start_result = Start_result::OK;
-	} else {
-		_policy.with_address_space(_pd.session(), [&] (Genode::Region_map &address_space) {
-			_start_result = _start_process(_linker_dataspace(), _pd.session(),
-			                               *_initial_thread, _initial_thread_start,
-			                               _local_rm, address_space, cap());
-		});
-	}
+			if (_policy.forked()) {
+				_start_result = Start_result::OK;
+			} else {
+				_policy.with_address_space(pd, [&] (Genode::Region_map &address_space) {
+					_start_result = _start_process(_linker_dataspace(), pd,
+					                               *_initial_thread, _initial_thread_start,
+					                               _local_rm, address_space, cap());
+				});
+			}
+		},
+		[&] { _error("PD session missing for initialization"); }
+	);
 
 	if (_start_result == Start_result::OUT_OF_RAM)  _error("out of RAM during ELF loading");
 	if (_start_result == Start_result::OUT_OF_CAPS) _error("out of caps during ELF loading");
@@ -795,7 +817,8 @@ void Child::_discard_env_session(Id_space<Parent::Client>::Id id)
 void Child::initiate_env_pd_session()
 {
 	_pd.initiate();
-	_policy.init(_pd.session(), _pd.cap());
+
+	with_pd([&] (Pd_session &pd) { _policy.init(pd, _pd.cap()); }, [&] { });
 }
 
 

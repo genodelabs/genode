@@ -311,7 +311,11 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		void _with_pd_intrinsics(auto const &fn)
 		{
-			with_pd_intrinsics(_pd_intrinsics, _child.pd_session_cap(), _child.pd(), fn);
+			_child.with_pd(
+				[&] (Pd_session &child_pd) {
+					with_pd_intrinsics(_pd_intrinsics, _child.pd_session_cap(),
+					                   child_pd, fn); },
+				[&] { });
 		}
 
 		Capability<Pd_session> _ref_pd_cap { }; /* defined by 'init' */
@@ -417,8 +421,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			Pd_accessor(Genode::Child &child) : _child(child) { }
 
-			Pd_session           &pd()            override { return _child.pd(); }
-			Pd_session_capability pd_cap()  const override { return _child.pd_session_cap(); }
+			void _with_pd(With_pd::Ft const &fn) override { _child.with_pd(fn, [&] { }); }
+			Pd_session_capability pd_cap() const override { return _child.pd_session_cap(); }
 
 		} _pd_accessor { _child };
 
@@ -428,7 +432,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			Ram_accessor(Genode::Child &child) : _child(child) { }
 
-			Pd_session           &ram()            override { return _child.pd(); }
+			void _with_ram(With_ram::Ft const &fn) override { _child.with_pd(fn, [&] { }); }
 			Pd_session_capability ram_cap()  const override { return _child.pd_session_cap(); }
 
 		} _ram_accessor { _child };
@@ -444,26 +448,24 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		enum class Route_state { VALID, MISMATCH, UNAVAILABLE };
 
 		/**
-		 * Return true if the policy results in the current route of the session
+		 * Return whether the policy results in the current route of the session
 		 *
 		 * This method is used to check if a policy change affects an existing
 		 * client session of a child, i.e., to determine whether the child must
 		 * be restarted.
 		 */
-		Route_state _route_valid(Session_state const &session)
+		Route_state _route_valid(Session_state const &s)
 		{
-			try {
-				Route const route =
-					resolve_session_request(session.service().name(),
-					                        session.client_label(),
-					                        session.diag());
+			Route_state result = Route_state::UNAVAILABLE;
 
-				bool const valid = (session.service() == route.service)
-				                && (route.label == session.label());
+			with_route(s.service().name(), s.client_label(), s.diag(),
+				[&] (Child_policy::Route const &route) {
+					bool const valid = (s.service() == route.service)
+					                && (route.label == s.label());
+					result = valid ? Route_state::VALID : Route_state::MISMATCH;
+				}, [&] { });
 
-				return valid ? Route_state::VALID : Route_state::MISMATCH;
-			}
-			catch (Service_denied) { return Route_state::UNAVAILABLE; }
+			return result;
 		}
 
 		static void _with_provides_sub_node(Xml_node const &start_node, auto const &fn)
@@ -735,8 +737,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		Id_space<Parent::Server> &server_id_space() override {
 			return _session_requester.id_space(); }
 
-		Route resolve_session_request(Service::Name const &,
-		                              Session_label const &, Session::Diag) override;
+		void _with_route(Service::Name const &, Session_label const &, Session::Diag,
+		                 With_route::Ft const &, With_no_route::Ft const &) override;
 
 		void     filter_session_args(Service::Name const &, char *, size_t) override;
 		Affinity filter_session_affinity(Affinity const &) override;

@@ -195,8 +195,10 @@ class Test::Parent
 
 		void _print_status()
 		{
-			log("quota: ", _child.pd().ram_quota().value / 1024, " KiB  "
-			    "used: ",  _child.pd().used_ram().value  / 1024, " KiB");
+			_child.with_pd([&] (Pd_session &pd) {
+				log("quota: ", pd.ram_quota().value / 1024, " KiB  "
+				    "used: ",  pd.used_ram().value  / 1024, " KiB");
+			}, [&] { });
 		}
 
 		size_t _used_ram_prior_yield = 0;
@@ -227,7 +229,8 @@ class Test::Parent
 		void _request_yield()
 		{
 			/* remember quantum of resources used by the child */
-			_used_ram_prior_yield = _child.pd().used_ram().value;
+			_child.with_pd([&] (Pd_session &pd) {
+				_used_ram_prior_yield = pd.used_ram().value; }, [&] { });
 
 			log("request yield (ram prior yield: ", _used_ram_prior_yield);
 
@@ -257,11 +260,13 @@ class Test::Parent
 			_print_status();
 
 			/* validate that the amount of yielded resources matches the request */
-			size_t const used_after_yield = _child.pd().used_ram().value;
-			if (used_after_yield + 5*1024*1024 > _used_ram_prior_yield) {
-				error("child has not yielded enough resources");
-				throw Insufficient_yield();
-			}
+			_child.with_pd([&] (Pd_session &pd) {
+				size_t const used_after_yield = pd.used_ram().value;
+				if (used_after_yield + 5*1024*1024 > _used_ram_prior_yield) {
+					error("child has not yielded enough resources");
+					throw Insufficient_yield();
+				}
+			}, [&] { });
 
 			if (_cnt-- > 0) {
 				_init();
@@ -335,27 +340,28 @@ class Test::Parent
 				ref_account().transfer_quota(pd_cap, _ram_quota);
 			}
 
-			Route resolve_session_request(Service::Name const &service_name,
-			                              Session_label const &label,
-			                              Session::Diag const  diag) override
+			void _with_route(Service::Name     const &service_name,
+			                 Session_label     const &label,
+			                 Session::Diag     const  diag,
+			                 With_route::Ft    const &fn,
+			                 With_no_route::Ft const &denied_fn) override
 			{
 				auto route = [&] (Service &service) {
 					return Route { .service = service,
 					               .label   = label,
 					               .diag    = diag }; };
 
-				if (service_name == "ROM" && label == "child -> config")
-					return route(_config_service);
+				if (service_name == "ROM" && label == "child -> config") {
+					fn(route(_config_service));
+					return;
+				}
 
 				Service *service_ptr = nullptr;
 				_parent_services.for_each([&] (Service &s) {
 					if (!service_ptr && service_name == s.name())
 						service_ptr = &s; });
 
-				if (!service_ptr)
-					throw Service_denied();
-
-				return route(*service_ptr);
+				if (service_ptr) fn(route(*service_ptr)); else denied_fn();
 			}
 
 			Id_space<Genode::Parent::Server> &server_id_space() override { return _server_ids; }

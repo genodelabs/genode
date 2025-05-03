@@ -312,11 +312,11 @@ void Sandbox::Child::_apply_resource_downgrade(QUOTA &assigned, QUOTA const conf
 
 		QUOTA const transfer { min(avail - preserved.value, decrement.value) };
 
-		try {
-			_child.pd().transfer_quota(ref_account_cap(), transfer);
-			assigned.value -= transfer.value;
-			break;
-		} catch (...) { }
+		_child.with_pd([&] (Pd_session &pd) {
+			auto const OK = Pd_account::Transfer_result::OK;
+			if (pd.transfer_quota(ref_account_cap(), transfer) == OK)
+				assigned.value -= transfer.value;
+		}, [&] { });
 	}
 
 	if (attempts == max_attempts)
@@ -329,13 +329,15 @@ void Sandbox::Child::apply_downgrade()
 	Ram_quota const configured_ram_quota = _configured_ram_quota();
 	Cap_quota const configured_cap_quota = _configured_cap_quota();
 
-	_apply_resource_downgrade(_resources.assigned_ram_quota,
-	                          configured_ram_quota, Ram_quota{16*1024},
-	                          [&] () { return _child.pd().avail_ram(); });
+	_child.with_pd([&] (Pd_session &pd) {
+		_apply_resource_downgrade(_resources.assigned_ram_quota,
+		                          configured_ram_quota, Ram_quota{16*1024},
+		                          [&] { return pd.avail_ram(); });
 
-	_apply_resource_downgrade(_resources.assigned_cap_quota,
-	                          configured_cap_quota, Cap_quota{5},
-	                          [&] () { return _child.pd().avail_caps(); });
+		_apply_resource_downgrade(_resources.assigned_cap_quota,
+		                          configured_cap_quota, Cap_quota{5},
+		                          [&] { return pd.avail_caps(); });
+	}, [&] { });
 
 	/*
 	 * If designated resource quota is lower than the child's consumed quota,
@@ -391,7 +393,8 @@ void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detai
 					Number_of_bytes(_resources.assigned_ram_quota.value) });
 
 				if (_pd_alive())
-					Ram_info::from_pd(_child.pd()).generate(xml);
+					_child.with_pd([&] (Pd_session const &pd) {
+						Ram_info::from_pd(pd).generate(xml); }, [&] { });
 
 				if (_requested_resources.constructed() && _requested_resources->ram.value)
 					xml.attribute("requested", String<32>(_requested_resources->ram));
@@ -404,7 +407,8 @@ void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detai
 				xml.attribute("assigned", String<32>(_resources.assigned_cap_quota));
 
 				if (_pd_alive())
-					Cap_info::from_pd(_child.pd()).generate(xml);
+					_child.with_pd([&] (Pd_session const &pd) {
+						Cap_info::from_pd(pd).generate(xml); }, [&] { });
 
 				if (_requested_resources.constructed() && _requested_resources->caps.value)
 					xml.attribute("requested", String<32>(_requested_resources->caps));
@@ -443,7 +447,9 @@ Sandbox::Child::Sample_state_result Sandbox::Child::sample_state()
 
 	Sampled_state const orig_state = _sampled_state;
 
-	_sampled_state = Sampled_state::from_pd(_child.pd());
+	_child.with_pd(
+		[&] (Pd_session &pd) { _sampled_state = Sampled_state::from_pd(pd); },
+		[&] { });
 
 	return (orig_state != _sampled_state) ? Sample_state_result::CHANGED
 	                                      : Sample_state_result::UNCHANGED;
@@ -508,15 +514,18 @@ void Sandbox::Child::init(Cpu_session &session, Cpu_session_capability cap)
 	_with_pd_intrinsics([&] (Pd_intrinsics::Intrinsics &intrinsics) {
 		session.ref_account(intrinsics.ref_cpu_cap); });
 
-	_cpu_quota_transfer.transfer_cpu_quota(_child.pd_session_cap(), _child.pd(),
-	                                       cap, effective);
+	_child.with_pd([&] (Pd_session &pd) {
+		_cpu_quota_transfer.transfer_cpu_quota(_child.pd_session_cap(), pd,
+		                                       cap, effective);
+	}, [&] { });
 }
 
 
-Sandbox::Child::Route
-Sandbox::Child::resolve_session_request(Service::Name const &service_name,
-                                        Session_label const &label,
-                                        Session::Diag const  diag)
+void Sandbox::Child::_with_route(Service::Name     const &service_name,
+                                 Session_label     const &label,
+                                 Session::Diag     const  diag,
+                                 With_route::Ft    const &fn,
+                                 With_no_route::Ft const &denied_fn)
 {
 	bool const rom_service = (service_name == Rom_session::service_name());
 
@@ -524,9 +533,11 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 	if (rom_service && label.last_element() == "config") {
 
 		if (_config_rom_service.constructed() &&
-		   !_config_rom_service->abandoned())
-			return Route { _config_rom_service->service(), label,
-			               Session::Diag{false} };
+		   !_config_rom_service->abandoned()) {
+
+			fn(Route { _config_rom_service->service(), label, Session::Diag{false} });
+			return;
+		}
 
 		/*
 		 * If there is no inline '<config>', we apply the regular session
@@ -543,16 +554,22 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 	 * we resolve the session request with the binary name as label.
 	 * Otherwise the regular routing is applied.
 	 */
-	if (rom_service && label == _unique_name && _unique_name != _binary_name)
-		return resolve_session_request(service_name, _binary_name, diag);
+	if (rom_service && label == _unique_name && _unique_name != _binary_name) {
+		_with_route(service_name, _binary_name, diag, fn, denied_fn);
+		return;
+	}
 
 	/* supply binary as dynamic linker if '<start ld="no">' */
-	if (rom_service && !_use_ld && label == "ld.lib.so")
-		return resolve_session_request(service_name, _binary_name, diag);
+	if (rom_service && !_use_ld && label == "ld.lib.so") {
+		_with_route(service_name, _binary_name, diag, fn, denied_fn);
+		return;
+	}
 
 	/* check for "session_requests" ROM request */
-	if (rom_service && label.last_element() == Session_requester::rom_name())
-		return Route { _session_requester.service(), Session::Label(), diag };
+	if (rom_service && label.last_element() == Session_requester::rom_name()) {
+		fn(Route { _session_requester.service(), Session::Label(), diag });
+		return;
+	}
 
 	auto resolve_at_target = [&] (Xml_node const &target) -> Route
 	{
@@ -639,7 +656,8 @@ Sandbox::Child::resolve_session_request(Service::Name const &service_name,
 
 	Route_model::Query const query(name(), service_name, label);
 
-	return _route_model->resolve(query, resolve_at_target);
+	try { fn(_route_model->resolve(query, resolve_at_target)); }
+	catch (Service_denied) { denied_fn(); }
 }
 
 

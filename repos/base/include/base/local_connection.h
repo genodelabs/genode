@@ -125,15 +125,21 @@ class Genode::Local_connection : Local_connection_base
 			return reinterpret_cap_cast<SESSION>(_session_state->cap);
 		}
 
-		SESSION &session()
+		enum class Session_error { DENIED };
+
+		using Session_result = Unique_attempt<SESSION &, Session_error>;
+
+		void with_session(auto const &fn, auto const &denied_fn)
 		{
 			/*
 			 * If session comes from a local service (e.g,. a virtualized
 			 * RAM session, we return the reference to the corresponding
 			 * component object, which can be called directly.
 			 */
-			if (_session_state->local_ptr)
-				return *static_cast<SESSION *>(_session_state->local_ptr);
+			if (_session_state->local_ptr) {
+				fn(*static_cast<SESSION *>(_session_state->local_ptr));
+				return;
+			}
 
 			/*
 			 * The session is provided remotely. So return a client stub for
@@ -143,8 +149,10 @@ class Genode::Local_connection : Local_connection_base
 			if (!_client.constructed() && _session_state->cap.valid())
 				_client.construct(cap());
 
-			if (_client.constructed())
-				return *_client;
+			if (_client.constructed()) {
+				fn(*_client);
+				return;
+			}
 
 			/*
 			 * This error is printed if the session could not be
@@ -152,12 +160,12 @@ class Genode::Local_connection : Local_connection_base
 			 */
 			error(SESSION::service_name(), " session (", _session_state->args(), ") "
 			      "unavailable");
-			throw Service_denied();
+			denied_fn();
 		}
 
-		SESSION const &session() const
+		void with_session(auto const &fn, auto const &denied_fn) const
 		{
-			return const_cast<Local_connection *>(this)->session();
+			return const_cast<Local_connection *>(this)->with_session(fn, denied_fn);
 		}
 
 		Local_connection(Service &service, Id_space<Parent::Client> &id_space,

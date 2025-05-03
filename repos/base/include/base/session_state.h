@@ -133,7 +133,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 		 * The client-provided (and child-name-prefixed) session label is
 		 * contained in 'args'. In contrast, the 'label' argument is the label
 		 * presented to the server along with the session request, which
-		 * depends on the policy of 'Child_policy::resolve_session_request'.
+		 * depends on the policy of 'Child_policy::with_route'.
 		 */
 		Session_state(Service                  &service,
 		              Id_space<Parent::Client> &client_id_space,
@@ -265,7 +265,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 
 		/**
 		 * Utility to override the client-provided label by the label assigned
-		 * by 'Child_policy::resolve_session_request'.
+		 * by 'Child_policy::_with_route'.
 		 */
 		struct Server_args
 		{

@@ -4,7 +4,7 @@
  * \date   2008-09-24
  *
  * This program starts itself as child. When started, it first determines
- * wheather it is parent or child by requesting a RM session. Because the
+ * whether it is parent or child by requesting a RM session. Because the
  * program blocks all session-creation calls for the RM service, each program
  * instance can determine its parent or child role by the checking the result
  * of the session creation.
@@ -20,6 +20,7 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/child.h>
+#include <base/sleep.h>
 #include <rm_session/connection.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
@@ -178,17 +179,15 @@ class Test_child_policy : public Child_policy
 		Signal_context_capability const _fault_handler_sigh;
 		Signal_context_capability const _fault_handler_stack_sigh;
 
-		Service &_matching_service(Service::Name const &name)
+		void _with_matching_service(Service::Name const &name,
+		                            auto const &fn, auto const &denied_fn)
 		{
-			Service *service = nullptr;
+			Service *service_ptr = nullptr;
 			_parent_services.for_each([&] (Service &s) {
-				if (!service && name == s.name())
-					service = &s; });
+				if (!service_ptr && name == s.name())
+					service_ptr = &s; });
 
-			if (!service)
-				throw Service_denied();
-
-			return *service;
+			if (service_ptr) fn(*service_ptr); else denied_fn();
 		}
 
 	public:
@@ -234,13 +233,17 @@ class Test_child_policy : public Child_policy
 			stack_area.fault_handler(_fault_handler_stack_sigh);
 		}
 
-		Route resolve_session_request(Service::Name const &name,
-		                              Session_label const &label,
-		                              Session::Diag const  diag) override
+		void _with_route(Service::Name     const &name,
+		                 Session_label     const &label,
+		                 Session::Diag     const  diag,
+		                 With_route::Ft    const &fn,
+		                 With_no_route::Ft const &) override
 		{
-			return Route { .service = _matching_service(name),
-			               .label   = label,
-			               .diag    = diag };
+			_with_matching_service(name, [&] (Service &service) {
+				fn(Route { .service = service,
+				           .label   = label,
+				           .diag    = diag });
+			}, [&] { });
 		}
 
 		Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
@@ -287,7 +290,18 @@ struct Main_parent
 
 	Child _child { _env.rm(), _env.ep().rpc_ep(), _child_policy };
 
-	Region_map_client _address_space { _child.pd().address_space() };
+	Pd_session &_child_pd()
+	{
+		Pd_session *pd_ptr = nullptr;
+		_child.with_pd([&] (Pd_session &pd) { pd_ptr = &pd; }, [&] { });
+		if (!pd_ptr) {
+			error("child PD unexpectedly uninitialized");
+			sleep_forever();
+		}
+		return *pd_ptr;
+	}
+
+	Region_map_client _address_space { _child_pd().address_space() };
 
 	/* dataspace used for creating shared memory between parent and child */
 	Attached_ram_dataspace _ds { _env.ram(), _env.rm(), 4096 };
