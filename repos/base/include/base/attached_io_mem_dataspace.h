@@ -50,9 +50,6 @@ class Genode::Attached_io_mem_dataspace
 		 * \param size            size of resource
 		 * \param write_combined  enable write combining for the resource
 		 *
-		 * \throw Service_denied
-		 * \throw Insufficient_ram_quota
-		 * \throw Insufficient_cap_quota
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
 		 * \throw Attached_dataspace::Region_conflict

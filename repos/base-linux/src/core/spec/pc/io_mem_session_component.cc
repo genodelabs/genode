@@ -59,17 +59,16 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
 	_ds_ep(ds_ep),
 	_ds_cap(Io_mem_dataspace_capability())
 {
-	int _fd = lx_open("/dev/hwio", O_RDWR | O_SYNC);
+	int const fd = lx_open("/dev/hwio", O_RDWR | O_SYNC);
 
-	lx_ioctl_iomem(_fd, (unsigned long)get_arg_phys(args), get_arg_size(args));
+	lx_ioctl_iomem(fd, (unsigned long)get_arg_phys(args), get_arg_size(args));
 
-	if (_fd > 0) {
-		_ds.fd(_fd);
-	} else {
-		error("Failed to open /dev/hwio");
-		throw Genode::Service_denied();
+	if (fd <= 0) {
+		error("failed to open /dev/hwio");
+		return;
 	}
 
+	_ds.fd(fd);
 	_ds_cap = static_cap_cast<Io_mem_dataspace>(static_cap_cast<Dataspace>(_ds_ep.manage(&_ds)));
 }
 

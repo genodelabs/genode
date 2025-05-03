@@ -105,10 +105,8 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc
 	_ds_ep(ds_ep)
 {
 	if (!_ds.valid()) {
-		error("Local MMIO mapping failed!");
-
-		_ds_cap = Io_mem_dataspace_capability();
-		throw Service_denied();
+		error("unable to access MMIO mapping: ", args);
+		return;
 	}
 
 	_ds_cap = static_cap_cast<Io_mem_dataspace>(_ds_ep.manage(&_ds));
@@ -121,7 +119,8 @@ Io_mem_session_component::~Io_mem_session_component()
 	_ds.detach_from_rm_sessions();
 
 	/* dissolve IO_MEM dataspace from service entry point */
-	_ds_ep.dissolve(&_ds);
+	if (_ds.cap().valid())
+		_ds_ep.dissolve(&_ds);
 
 	/* flush local mapping of IO_MEM */
 	_unmap_local(_ds.core_local_addr(), _ds.size(), _ds.phys_addr());
