@@ -37,16 +37,6 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 
 		Cpu_session_component *_create_session(char const *args,
 		                                       Affinity const &affinity) override {
-
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-
-			if (ram_quota < Trace::Control_area::SIZE)
-				throw Insufficient_ram_quota();
-
-			if (!affinity.valid())
-				throw Service_denied();
-
 			return new (md_alloc())
 				Cpu_session_component(*this->ep(),
 				                      session_resources_from_args(args),
