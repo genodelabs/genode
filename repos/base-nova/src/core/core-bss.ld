@@ -1,6 +1,6 @@
 SECTIONS
 {
 	.data : {
-		*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+		*(.bss .bss.* .lbss .lbss.* .gnu.linkonce.b.* COMMON)
 	} : rw
 }
