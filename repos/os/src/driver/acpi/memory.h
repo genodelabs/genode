@@ -181,7 +181,9 @@ class Acpi::Memory
 				[&] (Range_allocator::Allocation &a) { a.deallocate = false; },
 				[&] (Alloc_error e) { raise(e); });
 
-			_range.construct_metadata((void *)loop_region.base(), _env, loop_region);
+			void * const loop_ptr = (void *)loop_region.base();
+			if (!_range.construct_metadata(loop_ptr, _env, loop_region))
+				error("failed to construct metadate for loop region");
 
 			Io_mem &io_mem = *_range.metadata((void *)loop_region.base());
 

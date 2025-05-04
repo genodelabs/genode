@@ -339,8 +339,6 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 
 	public:
 
-		struct Assign_metadata_failed : Exception { };
-
 		/**
 		 * Constructor
 		 *
@@ -379,25 +377,26 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 		/**
 		 * Assign custom meta data to block at specified address
 		 *
-		 * \throw Assign_metadata_failed
+		 * \return true on success
 		 */
-		void metadata(void *addr, BMDT bmd) const
+		[[nodiscard]] bool metadata(void *addr, BMDT bmd) const
 		{
 			Block * const b = static_cast<Block *>(_find_by_address((addr_t)addr));
 			if (b) *static_cast<BMDT *>(b) = bmd;
-			else throw Assign_metadata_failed();
+			return b != nullptr;
 		}
 
 		/**
 		 * Construct meta-data object in place
 		 *
 		 * \param args  arguments passed to the meta-data constuctor
+		 * \return      true on success
 		 */
-		void construct_metadata(void *addr, auto &&... args)
+		[[nodiscard]] bool construct_metadata(void *addr, auto &&... args)
 		{
 			Block * const b = static_cast<Block *>(_find_by_address((addr_t)addr));
 			if (b) construct_at<BMDT>(static_cast<BMDT *>(b), args...);
-			else throw Assign_metadata_failed();
+			return b != nullptr;
 		}
 
 		/**

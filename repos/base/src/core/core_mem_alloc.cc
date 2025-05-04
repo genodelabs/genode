@@ -50,8 +50,11 @@ Mapped_mem_allocator::alloc_aligned(size_t size, unsigned align, Range range)
 
 				[&] (Allocation &virt) -> Alloc_result {
 
-					_phys_alloc->metadata(phys.ptr, { virt.ptr });
-					_virt_alloc->metadata(virt.ptr, { phys.ptr });
+					if (!_phys_alloc->metadata(phys.ptr, { virt.ptr }))
+						error("unable to assign meta data to phys allocation");
+
+					if (!_virt_alloc->metadata(virt.ptr, { phys.ptr }))
+						error("unable to assign meta data to virt allocation");
 
 					/* make physical page accessible at the designated virtual address */
 					_map_local((addr_t)virt.ptr, (addr_t)phys.ptr, page_rounded_size);

@@ -261,10 +261,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 		};
 
 		/* store attachment info in meta data */
-		try {
-			_map.construct_metadata((void *)at, *dsc, *this, region_attr);
-		}
-		catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
+		if (!_map.construct_metadata((void *)at, *dsc, *this, region_attr)) {
 			error("failed to store attachment info");
 			return Attach_error::INVALID_DATASPACE;
 		}

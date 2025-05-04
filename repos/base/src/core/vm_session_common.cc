@@ -82,11 +82,8 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 				};
 
 				/* store attachment info in meta data */
-				try {
-					_map.construct_metadata((void *)guest_phys,
-					                        dsc, rm_detach, region_attr);
-
-				} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
+				if (!_map.construct_metadata((void *)guest_phys,
+				                             dsc, rm_detach, region_attr)) {
 					error("failed to store attachment info");
 					throw Invalid_dataspace();
 				}
