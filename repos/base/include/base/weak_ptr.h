@@ -19,6 +19,7 @@
 #include <base/log.h>
 #include <base/exception.h>
 #include <util/list.h>
+#include <util/attempt.h>
 
 namespace Genode {
 	class Weak_object_base;
@@ -136,12 +137,6 @@ class Genode::Weak_object_base
 
 	public:
 
-		/**
-		 * This exception signals a weak pointer that the object
-		 * is in destruction progress
-		 */
-		class In_destruction : Exception {};
-
 		~Weak_object_base()
 		{
 			if (_list.first())
@@ -149,11 +144,12 @@ class Genode::Weak_object_base
 				     "there are still dangling pointers to it");
 		}
 
-		void disassociate(Weak_ptr_base *ptr)
-		{
-			if (!ptr) return;
+		enum class Disassociate_error { IN_DESTRUCTION };
+		using      Disassociate_result = Attempt<Ok, Disassociate_error>;
 
-			{
+		Disassociate_result disassociate(Weak_ptr_base *ptr)
+		{
+			if (ptr) {
 				Mutex::Guard guard(_list_mutex);
 
 				/*
@@ -163,10 +159,11 @@ class Genode::Weak_object_base
 				 * and block until invalidation is finished.
 				 */
 				if (_ptr_in_destruction == ptr)
-					throw In_destruction();
+					return Disassociate_error::IN_DESTRUCTION;
 
 				_list.remove(ptr);
 			}
+			return Ok();
 		}
 
 		/**
@@ -364,8 +361,7 @@ void Genode::Weak_ptr_base::_adopt(Genode::Weak_object_base *obj)
 {
 	_obj = obj;
 
-	if (_obj)
-	{
+	if (_obj) {
 		Mutex::Guard guard(_obj->_list_mutex);
 		_obj->_list.insert(this);
 	}
@@ -375,13 +371,13 @@ void Genode::Weak_ptr_base::_adopt(Genode::Weak_object_base *obj)
 void Genode::Weak_ptr_base::_disassociate()
 {
 	/* defer destruction of object */
-	try {
-		Mutex::Guard guard(_mutex);
+	Mutex::Guard guard(_mutex);
 
-		if (_obj) _obj->disassociate(this);
-	} catch(Weak_object_base::In_destruction&) {
+	if (!_obj)
+		return;
+
+	if (_obj->disassociate(this) == Weak_object_base::Disassociate_error::IN_DESTRUCTION)
 		_destruct.block();
-	}
 }
 
 
