@@ -128,8 +128,6 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 		 * \param client_id        session ID picked by the client
 		 * \param args             session arguments
 		 *
-		 * \throw Id_space<Parent::Client>::Conflicting_id
-		 *
 		 * The client-provided (and child-name-prefixed) session label is
 		 * contained in 'args'. In contrast, the 'label' argument is the label
 		 * presented to the server along with the session request, which

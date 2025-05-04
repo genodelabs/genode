@@ -246,8 +246,6 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 	public:
 
-		struct Method_cannot_be_used_in_timeout_framework_mode : Genode::Exception { };
-
 		/**
 		 * Constructor
 		 *
@@ -270,14 +268,12 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		/*
 		 * Intercept 'sigh' to keep track of customized signal handlers
-		 *
-		 * \noapi
-		 * \deprecated  Use One_shot_timeout (or Periodic_timeout) instead
 		 */
 		void sigh(Signal_context_capability sigh) override
 		{
 			if (_mode == TIMEOUT_FRAMEWORK) {
-				throw Method_cannot_be_used_in_timeout_framework_mode();
+				Genode::error("unable to register timer signal handler");
+				return;
 			}
 			_custom_sigh_cap = sigh;
 			Session_client::sigh(_custom_sigh_cap);
@@ -285,14 +281,12 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		/*
 		 * Block for a time span of 'us' microseconds
-		 *
-		 * \noapi
-		 * \deprecated  Use One_shot_timeout (or Periodic_timeout) instead
 		 */
 		void usleep(uint64_t us) override
 		{
 			if (_mode == TIMEOUT_FRAMEWORK) {
-				throw Method_cannot_be_used_in_timeout_framework_mode();
+				Genode::error("attempt to usleep in timeout-framework mode");
+				return;
 			}
 			/*
 			 * Omit the interaction with the timer driver for the corner case
@@ -323,14 +317,12 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		/*
 		 * Block for a time span of 'ms' milliseconds
-		 *
-		 * \noapi
-		 * \deprecated  Use One_shot_timeout (or Periodic_timeout) instead
 		 */
 		void msleep(uint64_t ms) override
 		{
 			if (_mode == TIMEOUT_FRAMEWORK) {
-				throw Method_cannot_be_used_in_timeout_framework_mode();
+				Genode::error("attempt to msleep in timeout-framework mode");
+				return;
 			}
 			usleep(1000*ms);
 		}

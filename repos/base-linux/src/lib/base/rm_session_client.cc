@@ -22,8 +22,6 @@ using namespace Genode;
 
 /**
  * Return pointer to locally implemented RM session
- *
- * \throw Local_interface::Non_local_capability
  */
 static Rm_session *_local(Capability<Rm_session> cap)
 {

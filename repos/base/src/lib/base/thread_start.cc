@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Genode Labs GmbH
+ * Copyright (C) 2010-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -39,19 +39,20 @@ void Thread::_thread_start()
 {
 	Thread::myself()->_thread_bootstrap();
 
+	auto on_exception = [&] {
+		raw("Thread '", Thread::myself()->name,
+		    "' died because of an uncaught exception"); };
+
+	struct Guard
+	{
+		decltype(on_exception) &fn;
+		bool ok = false;
+		~Guard() { if (!ok) fn(); }
+	} guard { .fn = on_exception };
+
 	/* catch any exception at this point and try to print an error message */
-	try {
-		Thread::myself()->entry();
-	} catch (...) {
-		try {
-			raw("Thread '", Thread::myself()->name,
-			    "' died because of an uncaught exception");
-		} catch (...) {
-			/* die in a noisy way */
-			*(unsigned long *)0 = 0xdead;
-		}
-		throw;
-	}
+	Thread::myself()->entry();
+	guard.ok = true;
 
 	Thread::myself()->_join.wakeup();
 

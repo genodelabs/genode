@@ -25,8 +25,6 @@ class Genode::Native_capability
 {
 	public:
 
-		struct Reference_count_overflow : Exception { };
-
 		/*
 		 * Platform-specific raw information of the capability that is
 		 * transferred as-is when the capability is delegated.

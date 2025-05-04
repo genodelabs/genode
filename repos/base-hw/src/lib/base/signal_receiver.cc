@@ -35,8 +35,8 @@ static Env &env()
 	if (_env_ptr)
 		return *_env_ptr;
 
-	class Missing_init_signal_thread { };
-	throw Missing_init_signal_thread();
+	error("missing call of init_signal_thread");
+	sleep_forever();
 }
 
 

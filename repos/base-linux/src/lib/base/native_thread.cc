@@ -20,9 +20,6 @@
 using namespace Genode;
 
 
-struct Epoll_error : Exception { };
-
-
 Native_thread::Epoll::Epoll()
 :
 	_epoll(lx_epoll_create())
@@ -48,10 +45,8 @@ void Native_thread::Epoll::_add(Lx_sd sd)
 	event.events = EPOLLIN;
 	event.data.fd = sd.value;
 	int ret = lx_epoll_ctl(_epoll, EPOLL_CTL_ADD, sd, &event);
-	if (ret < 0) {
+	if (ret < 0)
 		warning(lx_getpid(), ":", lx_gettid(), " lx_epoll_ctl add failed with ", ret);
-		throw Epoll_error();
-	}
 }
 
 
@@ -65,10 +60,8 @@ void Native_thread::Epoll::_remove(Lx_sd sd)
 		/* ignore file already closed */
 	} else if (ret == -9) {
 		/* ignore file already closed */
-	} else if (ret < 0) {
+	} else if (ret < 0)
 		warning(lx_getpid(), ":", lx_gettid(), " lx_epoll_ctl remove failed with ", ret);
-		throw Epoll_error();
-	}
 }
 
 

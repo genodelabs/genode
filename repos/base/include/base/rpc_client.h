@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__RPC_CLIENT_H_
 
 #include <base/ipc.h>
+#include <base/sleep.h>
 #include <base/trace/events.h>
 
 namespace Genode {
@@ -152,8 +153,10 @@ namespace Genode {
 		Rpc_exception_code const exception_code =
 			ipc_call(*this, call_buf, reply_buf, RECEIVE_CAPS);
 
-		if (exception_code.value == Rpc_exception_code::INVALID_OBJECT)
-			throw Ipc_error();
+		if (exception_code.value == Rpc_exception_code::INVALID_OBJECT) {
+			error("attempt of IPC call to an invalid object");
+			sleep_forever();
+		}
 
 		Ipc_unmarshaller unmarshaller(reply_buf);
 

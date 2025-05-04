@@ -200,8 +200,10 @@ class Genode::Capability_space_tpl : Noncopyable
 		{
 			Mutex::Guard guard(_mutex);
 
-			if (data.inc_ref() == 255)
-				throw Native_capability::Reference_count_overflow();
+			if (data.inc_ref() == 255) {
+				error("capability ref count overflow");
+				data.dec_ref(); /* clamp to max */
+			}
 		}
 
 		Rpc_obj_key rpc_obj_key(Data const &data) const
@@ -226,8 +228,8 @@ class Genode::Capability_space_tpl : Noncopyable
 			 * This method is never called on base-linux. It merely exists
 			 * for the compatiblity with the generic 'capability_space.cc'.
 			 */
-			struct Unreachable { };
-			throw Unreachable();
+			error("unexpected call of Capability_space_tpl::lookup");
+			sleep_forever();
 		}
 
 		Native_capability import(Rpc_destination dst, Rpc_obj_key key)

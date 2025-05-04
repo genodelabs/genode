@@ -319,24 +319,18 @@ static void test_create_as_many_threads(Env &env)
 	bool denied = false;
 	bool out_of_stack_space = false;
 	for (; i < max; i++) {
-		try {
-			threads[i] = new (heap) Cpu_helper(env, Thread::Name(i + 1), env.cpu());
+		threads[i] = new (heap) Cpu_helper(env, Thread::Name(i + 1), env.cpu());
 
-			if (threads[i]->info() == Thread::Stack_error::STACK_AREA_EXHAUSTED) {
-				out_of_stack_space = true;
-				break;
-			}
+		if (threads[i]->info() == Thread::Stack_error::STACK_AREA_EXHAUSTED) {
+			out_of_stack_space = true;
+			break;
+		}
 
-			if (threads[i]->start() == Thread::Start_result::DENIED) {
-				denied = true;
-				break;
-			}
-			threads[i]->join();
-		} catch (Genode::Native_capability::Reference_count_overflow) {
-			warning("Native_capability::Reference_count_overflow");
+		if (threads[i]->start() == Thread::Start_result::DENIED) {
 			denied = true;
 			break;
 		}
+		threads[i]->join();
 	}
 
 	for (unsigned j = i; j > 0; j--) {

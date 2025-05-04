@@ -48,11 +48,6 @@ struct Genode::Cpu_session : Session
 
 	using Client = Cpu_session_client;
 
-
-	/*********************
-	 ** Exception types **
-	 *********************/
-
 	enum { PRIORITY_LIMIT = 1 << 16 };
 	enum { QUOTA_LIMIT_LOG2 = 15 };
 	enum { QUOTA_LIMIT = 1 << QUOTA_LIMIT_LOG2 };

@@ -20,18 +20,14 @@
 using namespace Genode;
 
 
-class Capability_invalid : public Genode::Exception {};
-
-
 /**
  * Return pointer to locally implemented region map
- *
- * \throw Local_interface::Non_local_capability
  */
 static Region_map *_local(Capability<Region_map> cap)
 {
 	if (!cap.valid())
-		throw Capability_invalid();
+		return nullptr;
+
 	return Local_capability<Region_map>::deref(cap);
 }
 
@@ -66,7 +62,7 @@ Region_map::Fault Region_map_client::fault() { return _local(rpc_cap())->fault()
 
 Dataspace_capability Region_map_client::dataspace()
 {
-	try {
-		return _local(rpc_cap())->dataspace();
-	} catch (Capability_invalid&) { return Dataspace_capability(); }
+	Region_map * const ptr = _local(rpc_cap());
+
+	return ptr ? ptr->dataspace() : Dataspace_capability();
 }

@@ -208,8 +208,8 @@ class Genode::Entrypoint : Noncopyable
 		void register_io_progress_handler(Io_progress_handler &handler)
 		{
 			if (_io_progress_handler != nullptr) {
-				error("cannot call ", __func__, " twice!");
-				throw Exception();
+				error("attempt to register more than one I/O progress handler");
+				return;
 			}
 			_io_progress_handler = &handler;
 		}

@@ -56,19 +56,19 @@ static Thread_capability main_thread_cap(Thread_capability main_cap = { })
 void Thread::_thread_start()
 {
 	/* catch any exception at this point and try to print an error message */
-	try {
-		Thread::myself()->entry();
-	} catch (...) {
-		try {
-			error("Thread '", Thread::myself()->name, "' "
-			      "died because of an uncaught exception");
-		} catch (...) {
-			/* die in a noisy way */
-			*(unsigned *)0 = 0xdead;
-		}
+	auto on_exception = [&] {
+		raw("Thread '", Thread::myself()->name,
+		    "' died because of an uncaught exception"); };
 
-		throw;
-	}
+	struct Guard
+	{
+		decltype(on_exception) &fn;
+		bool ok = false;
+		~Guard() { if (!ok) fn(); }
+	} guard { .fn = on_exception };
+
+	Thread::myself()->entry();
+	guard.ok = true;
 
 	Thread::myself()->_join.wakeup();
 
@@ -168,23 +168,17 @@ Thread::Start_result Thread::start()
 		bool global = nt.ec_sel == Native_thread::INVALID_INDEX;
 
 		/* create EC at core */
+		Cpu_session::Native_cpu::Thread_type thread_type;
 
-		try {
-			Cpu_session::Native_cpu::Thread_type thread_type;
+		if (global)
+			thread_type = Cpu_session::Native_cpu::Thread_type::GLOBAL;
+		else
+			thread_type = Cpu_session::Native_cpu::Thread_type::LOCAL;
 
-			if (global)
-				thread_type = Cpu_session::Native_cpu::Thread_type::GLOBAL;
-			else
-				thread_type = Cpu_session::Native_cpu::Thread_type::LOCAL;
+		Cpu_session::Native_cpu::Exception_base exception_base { nt.exc_pt_sel };
 
-			Cpu_session::Native_cpu::Exception_base exception_base { nt.exc_pt_sel };
-
-			Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
-			native_cpu.thread_type(cap(), thread_type, exception_base);
-		} catch (...) {
-			error("Thread::start failed to set thread type");
-			return Start_result::DENIED;
-		}
+		Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
+		native_cpu.thread_type(cap(), thread_type, exception_base);
 
 		/* local thread have no start instruction pointer - set via portal entry */
 		addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : nt.initial_ip;

@@ -203,18 +203,18 @@ struct Duration_test : Test
 		Duration two_max    = max;
 		Duration two_max_ms = max_ms;
 		two_hours.add(Microseconds((uint64_t)US_PER_HOUR));
-		try {
-			two_max.add(Microseconds(1));
-			error(__func__, ":", __LINE__); error_cnt++;
-		} catch (Duration::Overflow) { }
-		try {
-			two_max.add(Milliseconds(1));
-			error(__func__, ":", __LINE__); error_cnt++;
-		} catch (Duration::Overflow) { }
-		try {
-			two_max_ms.add(Milliseconds(1));
-			error(__func__, ":", __LINE__); error_cnt++;
-		} catch (Duration::Overflow) { }
+
+		two_max.add(Microseconds(1)); /* clamp to max */
+		if (two_max.less_than(max)) {
+			error(__func__, ":", __LINE__); error_cnt++; }
+
+		two_max.add(Milliseconds(1));
+		if (two_max.less_than(max)) {
+			error(__func__, ":", __LINE__); error_cnt++; }
+
+		two_max_ms.add(Milliseconds(1));
+		if (two_max.less_than(max)) {
+			error(__func__, ":", __LINE__); error_cnt++; }
 
 		if (two_hours.less_than(hour)) {
 			error(__func__, ":", __LINE__); error_cnt++; }

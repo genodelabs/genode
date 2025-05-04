@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/ipc.h>
+#include <base/sleep.h>
 
 /* base-internal includes */
 #include <base/internal/ipc_server.h>
@@ -166,7 +167,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 	if (L4_IPC_IS_ERROR(ipc_result)) {
 		error("ipc_call error ", Hex(L4_IPC_ERROR(ipc_result)));
-		throw Genode::Ipc_error();
+		sleep_forever();
 	}
 
 	return Rpc_exception_code(rcv_header.protocol_word);

@@ -105,22 +105,26 @@ with_new_session(Child_policy::Name const &child_name, Service &service,
 	using Error = Parent::Session_error;
 
 	Error session_error = Error::DENIED;
+
 	try {
+		bool const id_ok = id_space.apply<Session_state>(id,
+			[&] (Session_state &session) {
+				error(child_name, " requested conflicting session ID ", id, " "
+				      "(service=", service.name(), " args=", args, ")");
+				error("existing session: ", session);
+				return false;
+			},
+			[&] /* ID not yet used */ { return true; });
+
+		if (!id_ok)
+			return Error::DENIED;
+
 		return fn(service.create_session(factory, id_space, id, label, diag, args, affinity));
 	}
 	catch (Insufficient_ram_quota) { session_error = Error::INSUFFICIENT_RAM_QUOTA; }
 	catch (Insufficient_cap_quota) { session_error = Error::INSUFFICIENT_CAP_QUOTA; }
 	catch (Out_of_ram)             { session_error = Error::OUT_OF_RAM;  }
 	catch (Out_of_caps)            { session_error = Error::OUT_OF_CAPS; }
-	catch (Id_space<Parent::Client>::Conflicting_id) {
-
-		error(child_name, " requested conflicting session ID ", id, " "
-		      "(service=", service.name(), " args=", args, ")");
-
-		id_space.apply<Session_state>(id,
-			[&] (Session_state &session) { error("existing session: ", session); },
-			[&] /* missing */ { });
-	}
 
 	if (session_error == Error::OUT_OF_RAM || session_error == Error::OUT_OF_CAPS)
 		error(child_name, " session meta data could not be allocated");

@@ -36,13 +36,13 @@ static inline void check_ipc_result(L4_MsgTag_t result, L4_Word_t error_code)
 	 */
 	if (L4_IpcFailed(result)) {
 		raw("Error in thread ", Hex(L4_Myself().raw), ". IPC failed.");
-		throw Ipc_error();
+		sleep_forever();
 	}
 
 	if (L4_UntypedWords(result) < 2) {
 		raw("Error in thread ", Hex(L4_Myself().raw), ". "
 		    "Expected at leat two untyped words, but got ", L4_UntypedWords(result), ".\n");
-		throw Ipc_error();
+		sleep_forever();
 	}
 }
 

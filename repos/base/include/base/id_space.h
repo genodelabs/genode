@@ -38,9 +38,6 @@ class Genode::Id_space : public Noncopyable
 			void print(Output &out) const { Genode::print(out, value); }
 		};
 
-		class Out_of_ids     : Exception { };
-		class Conflicting_id : Exception { };
-
 		class Element : public Avl_node<Element>
 		{
 			private:
@@ -79,8 +76,6 @@ class Genode::Id_space : public Noncopyable
 
 				/**
 				 * Constructor
-				 *
-				 * \throw Out_of_ids  ID space is exhausted
 				 */
 				Element(T &obj, Id_space &id_space)
 				:
@@ -93,8 +88,6 @@ class Genode::Id_space : public Noncopyable
 
 				/**
 				 * Constructor
-				 *
-				 * \throw Conflicting_id  'id' is already present in ID space
 				 */
 				Element(T &obj, Id_space &id_space, Id_space::Id id)
 				:
@@ -131,7 +124,6 @@ class Genode::Id_space : public Noncopyable
 		 * Return ID that does not exist within the ID space
 		 *
 		 * \return ID assigned to the element within the ID space
-		 * \throw  Out_of_ids
 		 */
 		Id _unused_id()
 		{
@@ -146,18 +138,22 @@ class Genode::Id_space : public Noncopyable
 
 				return id;
 			}
-			throw Out_of_ids();
+			/*
+			 * The number of IDs exhausts the number of unsigned long values.
+			 * In this hypothetical case, accept ID ambiguities.
+			 */
+			return { ~0UL };
 		}
 
-		/**
-		 * Check if ID is already in use
-		 *
-		 * \throw  Conflicting_id
-		 */
 		void _check_conflict(Id id)
 		{
+			/*
+			 * The ambiguity is not fatal to the integrity of the ID space
+			 * but it hints strongly at a bug at the user of the ID space.
+			 * Hence, print a diagnostic error but do not escalate.
+			 */
 			if (_elements.first() && _elements.first()->_lookup(id))
-				throw Conflicting_id();
+				error("ID space misused with ambiguous IDs");
 		}
 
 	public:

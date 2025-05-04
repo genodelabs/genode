@@ -211,7 +211,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 
 	if (num_msg_words > L4_UTCB_GENERIC_DATA_SIZE) {
 		raw("receive message buffer too small");
-		throw Ipc_error();
+		return l4_msgtag(0, 0, 0, 0);
 	}
 
 	l4_mword_t *msg_words = (l4_mword_t *)l4_utcb_mr();
@@ -270,8 +270,10 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		rcv_cap_sel += L4_CAP_SIZE;
 	}
 
-	if (!dst.valid())
-		throw Genode::Ipc_error();
+	if (!dst.valid()) {
+		raw("attempt to call on invalid capability");
+		sleep_forever();
+	}
 
 	l4_msgtag_t const reply_tag =
 		l4_ipc_call(dst.data()->kcap(), l4_utcb(), call_tag, L4_IPC_NEVER);

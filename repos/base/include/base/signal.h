@@ -291,8 +291,6 @@ class Genode::Signal_receiver : Noncopyable
 
 			public:
 
-				struct Break_for_each : Exception { };
-
 				Signal_context *head() const { return _head; }
 
 				void head(Signal_context *re) { _head = re; }

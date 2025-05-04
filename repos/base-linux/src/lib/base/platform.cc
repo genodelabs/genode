@@ -181,7 +181,7 @@ void Genode::binary_ready_hook_for_platform()
 {
 	if (lx_prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {
 		error("PR_SET_NO_NEW_PRIVS failed");
-		throw Exception();
+		sleep_forever();
 	}
 
 	struct Bpf_program
@@ -213,6 +213,6 @@ void Genode::binary_ready_hook_for_platform()
 	auto ret = lx_seccomp(SECCOMP_SET_MODE_FILTER, (int)flags, &program);
 	if (ret != 0) {
 		error("SECCOMP_SET_MODE_FILTER failed ", ret);
-		throw Exception();
+		sleep_forever();
 	}
 }

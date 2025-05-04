@@ -211,8 +211,8 @@ static Parent     *_parent_ptr;
 Signal_receiver::Signal_receiver() : _pd(*_pd_ptr)
 {
 	if (!_pd_ptr) {
-		struct Missing_call_of_init_signal_receiver { };
-		throw  Missing_call_of_init_signal_receiver();
+		error("missing call of init_signal_receiver");
+		sleep_forever();
 	}
 }
 

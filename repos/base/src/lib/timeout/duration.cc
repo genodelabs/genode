@@ -13,13 +13,16 @@
 
 /* Genode includes */
 #include <base/duration.h>
+#include <base/log.h>
 
 using namespace Genode;
+
 
 void Duration::add(Microseconds us)
 {
 	if (us.value > ~(uint64_t)0 - _microseconds) {
-		throw Overflow();
+		error("integer overflow while adding microseconds");
+		return;
 	}
 	_microseconds += us.value;
 }
@@ -28,7 +31,8 @@ void Duration::add(Microseconds us)
 void Duration::add(Milliseconds ms)
 {
 	if (ms.value > ~(uint64_t)0 / 1000) {
-		throw Overflow();
+		error("integer overflow while adding milliseconds");
+		return;
 	}
 	add(Microseconds(ms.value * 1000));
 }

@@ -66,10 +66,6 @@ struct Genode::Milliseconds
  */
 struct Genode::Duration
 {
-	public:
-
-		struct Overflow : Exception { };
-
 	private:
 
 		enum { US_PER_MS    = 1000UL                  };

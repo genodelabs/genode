@@ -149,11 +149,6 @@ class Genode::Msgbuf_base : Noncopyable
 		void data_size(size_t data_size) { _data_size = data_size; }
 
 		/**
-		 * Exception type
-		 */
-		class Too_many_caps : public Exception { };
-
-		/**
 		 * Return number of marshalled capabilities
 		 */
 		size_t used_caps() const { return _used_caps; }
@@ -211,9 +206,10 @@ class Genode::Msgbuf_base : Noncopyable
 		 */
 		void insert(Native_capability const &cap)
 		{
-			if (_used_caps == MAX_CAPS_PER_MSG)
-				throw Too_many_caps();
-
+			if (_used_caps == MAX_CAPS_PER_MSG) {
+				error("attempt to transfer too many caps as IPC arguments");
+				return;
+			}
 			_caps[_used_caps++] = cap;
 		}
 

@@ -15,6 +15,7 @@
 #include <base/env.h>
 #include <base/thread.h>
 #include <base/trace/policy.h>
+#include <base/sleep.h>
 #include <dataspace/client.h>
 #include <util/construct_at.h>
 #include <cpu_thread/client.h>
@@ -36,8 +37,8 @@ static Env &_env()
 	if (_env_ptr)
 		return *_env_ptr;
 
-	struct Missing_call_of_init_tracing { };
-	throw  Missing_call_of_init_tracing();
+	error("missing call of init_tracing");
+	sleep_forever();
 }
 
 
