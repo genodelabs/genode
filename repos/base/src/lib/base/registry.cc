@@ -130,12 +130,11 @@ void Registry_base::_for_each(Untyped_functor &functor)
 		 */
 		_elements.remove(e);
 
-		/* the element may disappear during the call of 'fn' */
-		try { functor.call(e->_obj); }
-
-		/* propagate exceptions while keeping registry consistent */
-		catch (...) {
-
+		/*
+		 * Handle exception thrown by functor, keeping registry consistent
+		 */
+		auto on_exception = [&]
+		{
 			/* handle current element */
 			at = _processed(notify, processed, *e, at);
 
@@ -145,10 +144,18 @@ void Registry_base::_for_each(Untyped_functor &functor)
 				at = _processed(notify, processed, *e, at);
 			};
 			_elements = processed;
+		};
 
-			/* propagate exception to caller */
-			throw;
-		}
+		struct Guard
+		{
+			decltype(on_exception) const &fn;
+			bool ok = false;
+			~Guard() { if (!ok) fn(); }
+		} guard { .fn = on_exception };
+
+		/* the element may disappear during the call of 'fn' */
+		functor.call(e->_obj);
+		guard.ok = true;
 
 		at = _processed(notify, processed, *e, at);
 	}
