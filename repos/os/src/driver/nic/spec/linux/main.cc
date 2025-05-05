@@ -208,7 +208,7 @@ struct Main
 
 	Uplink_client _uplink { _env, _heap, _tap_name, _mac_address };
 
-	Constructible<Reporter> _reporter { };
+	Constructible<Expanding_reporter> _reporter { };
 
 	Main(Env &env) : _env(env)
 	{
@@ -220,9 +220,8 @@ struct Main
 				return;
 
 			_reporter.construct(_env, "devices");
-			_reporter->enabled(true);
 
-			Reporter::Xml_generator report(*_reporter, [&] () {
+			_reporter->generate([&] (Xml_generator &report) {
 				report.node("nic", [&] () {
 					report.attribute("label", _tap_name);
 					report.attribute("mac_address", String<32>(_mac_address));

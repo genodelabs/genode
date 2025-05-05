@@ -38,11 +38,11 @@ class Test::Nitpicker
 
 		Timer::Session &_timer;
 
-		Reporter _focus_reporter { _env, "focus" };
+		Expanding_reporter _focus_reporter { _env, "focus" };
 
 		void _focus(char const *domain, bool active)
 		{
-			Reporter::Xml_generator xml(_focus_reporter, [&] () {
+			_focus_reporter.generate([&] (Xml_generator &xml) {
 				xml.attribute("domain", domain);
 				xml.attribute("active", active ? "yes" : "no");
 			});
@@ -57,12 +57,7 @@ class Test::Nitpicker
 
 	public:
 
-		Nitpicker(Env &env, Timer::Session &timer)
-		:
-			_env(env), _timer(timer)
-		{
-			_focus_reporter.enabled(true);
-		}
+		Nitpicker(Env &env, Timer::Session &timer) : _env(env), _timer(timer) { }
 
 		void focus_active  (char const *domain) { _focus(domain, true);  }
 		void focus_inactive(char const *domain) { _focus(domain, false); }
@@ -182,19 +177,19 @@ class Test::Subsystem
 
 		void copy(char const *str)
 		{
-			Xml_generator xml(_export_report_ds.local_addr<char>(),
-			                  _export_report_ds.size(), "clipboard", [&] ()
-			{
-				xml.attribute("origin", _name.string());
-				xml.node("text", [&] () {
-					xml.append(str, strlen(str));
+			Xml_generator::generate(_export_report_ds.bytes(), "clipboard",
+				[&] (Xml_generator &xml) {
+					xml.attribute("origin", _name.string());
+					xml.node("text", [&] { xml.append(str, strlen(str));
 				});
-			});
-
-			log("\n", _name, ": export content:");
-			_log_lines(_export_report_ds.local_addr<char>(), xml.used());
-
-			_export_report.submit(xml.used());
+			}).with_result(
+				[&] (size_t used)  {
+					log("\n", _name, ": export content:");
+					_log_lines(_export_report_ds.local_addr<char>(), used);
+					_export_report.submit(used);
+				},
+				[&] (Buffer_error) { error("copy exceeded maximum buffer size"); }
+			);
 		}
 
 		bool has_content(char const *str) const

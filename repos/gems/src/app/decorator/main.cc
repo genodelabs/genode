@@ -148,11 +148,11 @@ struct Decorator::Main : Window_factory_base
 
 	Window_base::Hover _hover { };
 
-	Reporter _hover_reporter = { _env, "hover" };
+	Expanding_reporter _hover_reporter = { _env, "hover" };
 
 	bool _window_layout_update_needed = false;
 
-	Reporter _decorator_margins_reporter = { _env, "decorator_margins" };
+	Expanding_reporter _decorator_margins_reporter = { _env, "decorator_margins" };
 
 	Animator _animator { };
 
@@ -198,12 +198,7 @@ struct Decorator::Main : Window_factory_base
 		_window_layout.sigh(_window_layout_handler);
 		_pointer.sigh(_pointer_handler);
 
-		_hover_reporter.enabled(true);
-
-		_decorator_margins_reporter.enabled(true);
-
-		Genode::Reporter::Xml_generator xml(_decorator_margins_reporter, [&] ()
-		{
+		_decorator_margins_reporter.generate([&] (Xml_generator &xml) {
 			xml.node("floating", [&] () {
 
 				Window::Border const border = Window::border_floating();
@@ -285,7 +280,7 @@ static Decorator::Window_base::Hover find_hover(Genode::Xml_node const &pointer_
 static void update_hover_report(Genode::Xml_node pointer_node,
                                 Decorator::Window_stack &window_stack,
                                 Decorator::Window_base::Hover &hover,
-                                Genode::Reporter &hover_reporter)
+                                Genode::Expanding_reporter &hover_reporter)
 {
 	Decorator::Window_base::Hover const new_hover =
 		find_hover(pointer_node, window_stack);
@@ -295,8 +290,7 @@ static void update_hover_report(Genode::Xml_node pointer_node,
 
 		hover = new_hover;
 
-		Genode::Reporter::Xml_generator xml(hover_reporter, [&] ()
-		{
+		hover_reporter.generate([&] (Genode::Xml_generator &xml) {
 			if (hover.window_id.value > 0) {
 
 				xml.node("window", [&] () {

@@ -169,23 +169,24 @@ struct Vfs::Oss_file_system::Audio
 			{
 				char buf[512] { };
 
-				Genode::Xml_generator xml(buf, sizeof(buf), "oss", [&] () {
-					xml.attribute("plugin_version",    plugin_version);
-					xml.attribute("channels",          channels);
-					xml.attribute("format",            format);
-					xml.attribute("sample_rate",       sample_rate);
-					xml.attribute("ifrag_total",       ifrag_total);
-					xml.attribute("ifrag_size",        ifrag_size);
-					xml.attribute("ifrag_avail",       ifrag_avail);
-					xml.attribute("ifrag_bytes",       ifrag_bytes);
-					xml.attribute("ofrag_total",       ofrag_total);
-					xml.attribute("ofrag_size",        ofrag_size);
-					xml.attribute("ofrag_avail",       ofrag_avail);
-					xml.attribute("ofrag_bytes",       ofrag_bytes);
-					xml.attribute("optr_samples",      optr_samples);
-					xml.attribute("optr_fifo_samples", optr_fifo_samples);
-					xml.attribute("play_underruns",    play_underruns);
-				});
+				(void)Genode::Xml_generator::generate({ buf, sizeof(buf) }, "oss",
+					[&] (Genode::Xml_generator &xml) {
+						xml.attribute("plugin_version",    plugin_version);
+						xml.attribute("channels",          channels);
+						xml.attribute("format",            format);
+						xml.attribute("sample_rate",       sample_rate);
+						xml.attribute("ifrag_total",       ifrag_total);
+						xml.attribute("ifrag_size",        ifrag_size);
+						xml.attribute("ifrag_avail",       ifrag_avail);
+						xml.attribute("ifrag_bytes",       ifrag_bytes);
+						xml.attribute("ofrag_total",       ofrag_total);
+						xml.attribute("ofrag_size",        ofrag_size);
+						xml.attribute("ofrag_avail",       ofrag_avail);
+						xml.attribute("ofrag_bytes",       ofrag_bytes);
+						xml.attribute("optr_samples",      optr_samples);
+						xml.attribute("optr_fifo_samples", optr_fifo_samples);
+						xml.attribute("play_underruns",    play_underruns);
+					});
 
 				Genode::print(out, Genode::Cstring(buf));
 			}
@@ -1114,7 +1115,8 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Xml_generator xml(buf, sizeof(buf), "compound", [&] () {
+			(void)Genode::Xml_generator::generate({ buf, sizeof(buf) }, "compound",
+			                                      [&] (Genode::Xml_generator &xml) {
 
 				xml.node("data", [&] () {
 					xml.attribute("name", name); });

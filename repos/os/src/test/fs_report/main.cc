@@ -48,14 +48,14 @@ struct Test::Main
 
 	Vfs::Simple_env _vfs_env { _env, _heap, vfs_config() };
 
-	Constructible<Reporter> _devices_reporter { };
-	Constructible<Reporter> _focus_reporter   { };
+	Constructible<Expanding_reporter> _devices_reporter { };
+	Constructible<Expanding_reporter> _focus_reporter   { };
 
 	using Version = String<80>;
 
-	void _report(Reporter &reporter, Version const &version)
+	void _report(Expanding_reporter &reporter, Version const &version)
 	{
-		Reporter::Xml_generator xml(reporter, [&] () {
+		reporter.generate([&] (Xml_generator &xml) {
 			xml.attribute("version", version); });
 	}
 
@@ -84,7 +84,6 @@ struct Test::Main
 
 		log("(2) issue new \"devices\" report before installing a ROM signal handler");
 		_devices_reporter.construct(_env, "devices");
-		_devices_reporter->enabled(true);
 		_report(*_devices_reporter, "version 2");
 
 		log("(3) wait a bit to let the report reach the RAM fs");
@@ -123,7 +122,6 @@ struct Test::Main
 	{
 		log("(8) generate \"focus\" report, is expected to trigger ROM notification");
 		_focus_reporter.construct(_env, "focus");
-		_focus_reporter->enabled(true);
 		_report(*_focus_reporter, "focus version 1");
 	}
 

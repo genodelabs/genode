@@ -73,7 +73,7 @@ void Mac_address_registry::_report()
 	if (!_reporter.constructed())
 		return;
 
-	_reporter->generate([&] (Reporter::Xml_generator &report) {
+	_reporter->generate([&] (Xml_generator &report) {
 		_registry.for_each([&] (Mac_address const &e) {
 			e.report(report);
 		});

@@ -231,18 +231,22 @@ Core::Platform::Platform()
 					[&] (Range_allocator::Allocation &core_local) {
 						addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local.ptr);
 
-						if (map_local(phys_addr, core_local_addr, pages)) {
-
-							Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
-							                  size, "platform_info", [&] {
-								xml.node("kernel", [&] { xml.attribute("name", "okl4"); });
-							});
-
-							new (core_mem_alloc())
-								Rom_module(_rom_fs, "platform_info", phys_addr, size);
-
-							phys.deallocate = core_local.deallocate = false;
+						if (!map_local(phys_addr, core_local_addr, pages)) {
+							error("map_local of platform_info failed");
+							return;
 						}
+
+						Byte_range_ptr dst { reinterpret_cast<char *>(core_local_addr), size };
+						Xml_generator::generate(dst, "platform_info", [&] (Xml_generator &xml) {
+							xml.node("kernel", [&] { xml.attribute("name", "okl4"); }); }
+						).with_error([] (Buffer_error) {
+							error("platform_info exceeds maximum buffer size");
+						});
+
+						new (core_mem_alloc())
+							Rom_module(_rom_fs, "platform_info", phys_addr, size);
+
+						phys.deallocate = core_local.deallocate = false;
 					},
 					[&] (Alloc_error) { });
 			},

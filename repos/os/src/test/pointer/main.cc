@@ -176,7 +176,10 @@ struct Main
 			}
 		}
 
-		_reporter.report(&_shape_report, sizeof(Pointer::Shape_report));
+		Genode::Const_byte_range_ptr const
+			bytes ((char const *)&_shape_report, sizeof(Pointer::Shape_report));
+
+		(void)_reporter.generate(bytes);
 	}
 
 	Main(Genode::Env &env) : _env(env)

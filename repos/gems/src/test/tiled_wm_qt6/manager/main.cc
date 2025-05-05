@@ -38,10 +38,9 @@ struct Test::Manager
 	Genode::Signal_handler<Manager> overlay_request_handler {
 		env.ep(), *this, &Manager::handle_overlay_request };
 
-	Genode::Reporter apps_report         { env, "apps" };
-	Genode::Reporter overlay_report      { env, "overlay" };
-
-	Genode::Reporter layout_rules_report { env, "rules", "layout_rules" };
+	Genode::Expanding_reporter apps_report         { env, "apps" };
+	Genode::Expanding_reporter overlay_report      { env, "overlay" };
+	Genode::Expanding_reporter layout_rules_report { env, "rules", "layout_rules" };
 
 	struct App {
 		char const *label;
@@ -114,7 +113,7 @@ void Test::Manager::handle_overlay_request()
 
 void Test::Manager::report_apps()
 {
-	Genode::Reporter::Xml_generator xml(apps_report, [&] () {
+	apps_report.generate([&] (Genode::Xml_generator &xml) {
 		for (App &app : apps) {
 			xml.node("app", [&] () {
 				xml.attribute("name", app.name);
@@ -127,7 +126,7 @@ void Test::Manager::report_apps()
 
 void Test::Manager::report_overlay()
 {
-	Genode::Reporter::Xml_generator xml(overlay_report, [&] () {
+	overlay_report.generate([&] (Genode::Xml_generator &xml) {
 		xml.attribute("visible", overlay_visible);
 	});
 }
@@ -135,7 +134,7 @@ void Test::Manager::report_overlay()
 
 void Test::Manager::report_layout_rules()
 {
-	Genode::Reporter::Xml_generator xml(layout_rules_report, [&] () {
+	layout_rules_report.generate([&] (Genode::Xml_generator &xml) {
 		xml.node("screen", [&] () {
 			xml.node("column", [&] () {
 				xml.attribute("name",  "screen");
@@ -194,10 +193,6 @@ void Test::Manager::report_layout_rules()
 
 Test::Manager::Manager(Genode::Env &env) : env(env)
 {
-	apps_report.enabled(true);
-	overlay_report.enabled(true);
-	layout_rules_report.enabled(true);
-
 	content_request_rom.sigh(content_request_handler);
 	overlay_request_rom.sigh(overlay_request_handler);
 

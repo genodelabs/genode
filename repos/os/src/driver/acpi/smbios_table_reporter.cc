@@ -123,9 +123,9 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 		memcpy((void *)ram_vir, ep_vir, ep_size);
 		memcpy((void *)(ram_vir + ep_size), (void *)st_vir, st_size);
 
-		_reporter.construct(env, "smbios_table", "smbios_table", ram_size);
-		_reporter->enabled(true);
-		_reporter->report((void *)ram_vir, ram_size);
+		_reporter.construct(env, "smbios_table", "smbios_table",
+		                    Expanding_reporter::Initial_buffer_size { ram_size });
+		_reporter->generate(Const_byte_range_ptr { (char *)ram_vir, ram_size });
 
 		alloc.free((void *)ram_vir, ep_size + st_size);
 	};

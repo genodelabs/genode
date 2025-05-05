@@ -533,8 +533,9 @@ void Core::Platform::_init_rom_modules()
 	};
 
 	export_page_as_rom_module("platform_info", [&] (char *ptr, size_t size) {
-		Xml_generator xml(ptr, size, "platform_info", [&] {
-			gen_platform_info(xml); }); });
+		Xml_generator::generate({ ptr, size }, "platform_info", gen_platform_info)
+			.with_error([] (Buffer_error) {
+				warning("platform info exceeds maximum buffer size"); }); });
 
 	export_page_as_rom_module("core_log", [&] (char *ptr, size_t size) {
 		init_core_log(Core_log_range { (addr_t)ptr, size } ); });

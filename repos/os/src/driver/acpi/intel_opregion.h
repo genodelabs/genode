@@ -26,7 +26,7 @@ class Acpi::Intel_opregion
 {
 	private:
 
-		Constructible<Reporter>  _report { };
+		Constructible<Expanding_reporter>  _report { };
 
 		void generate_report(Env &env, addr_t, addr_t);
 

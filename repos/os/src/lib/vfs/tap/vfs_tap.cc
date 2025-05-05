@@ -226,10 +226,13 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 		{
 
 			char buf[128] { };
-			Genode::Xml_generator xml(buf, sizeof(buf), "tap", [&] () {
-				xml.attribute("mac_addr", String<20>(_mac_addr_fs.value()));
-				xml.attribute("name", _name);
-			});
+			Xml_generator::generate({ buf, sizeof(buf) }, "tap",
+				[&] (Xml_generator &xml) {
+					xml.attribute("mac_addr", String<20>(_mac_addr_fs.value()));
+					xml.attribute("name", _name);
+			}).with_error([&] (Buffer_error) {
+				warning("VFS-tap info exceeds maximum buffer size"); });
+
 			Genode::print(out, Genode::Cstring(buf));
 		}
 	};
@@ -330,17 +333,20 @@ class Vfs::Tap_file_system::Compound_file_system : private Local_factory<FS>,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Xml_generator xml(buf, sizeof(buf), "compound", [&] () {
+			Xml_generator::generate({ buf, sizeof(buf) }, "compound",
+				[&] (Xml_generator &xml) {
 
-				xml.node("data", [&] () {
-					xml.attribute("name", name); });
+					xml.node("data", [&] () {
+						xml.attribute("name", name); });
 
-				xml.node("dir", [&] () {
-					xml.attribute("name", Name(".", name));
-					xml.node("info",       [&] () {});
-					xml.node("mac_addr",   [&] () {});
-					xml.node("name",       [&] () {});
-				});
+					xml.node("dir", [&] () {
+						xml.attribute("name", Name(".", name));
+						xml.node("info");
+						xml.node("mac_addr");
+						xml.node("name");
+					});
+			}).with_error([] (Buffer_error) {
+				Genode::warning("VFS-tap compound exceeds maximum buffer size");
 			});
 
 			return Config(Genode::Cstring(buf));

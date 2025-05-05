@@ -283,16 +283,17 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	Input_to_filter _input_to_filter { _env };
 
-	Reporter _event_filter_config_reporter { _env, "config",   "event_filter.config" };
-	Reporter _chargen_include_reporter     { _env, "chargen",  "chargen_include" };
-	Reporter _remap_include_reporter       { _env, "remap",    "remap_include" };
-	Reporter _capslock_reporter            { _env, "capslock", "capslock" };
+	Expanding_reporter
+		_event_filter_config_reporter { _env, "config",   "event_filter.config" },
+		_chargen_include_reporter     { _env, "chargen",  "chargen_include" },
+		_remap_include_reporter       { _env, "remap",    "remap_include" },
+		_capslock_reporter            { _env, "capslock", "capslock" };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	void _publish_report(Reporter &reporter, Xml_node const &node)
+	void _publish_report(Expanding_reporter &reporter, Xml_node const &node)
 	{
-		Reporter::Xml_generator xml(reporter, [&] () {
+		reporter.generate([&] (Xml_generator &xml) {
 			node.with_raw_content([&] (char const *start, size_t length) {
 				xml.append(start, length); }); });
 	}
@@ -306,11 +307,11 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 	}
 
-	void _deep_filter_config(Reporter &reporter, Xml_node const &node)
+	void _deep_filter_config(Expanding_reporter &reporter, Xml_node const &node)
 	{
 		unsigned const depth = node.attribute_value("depth", 0U);
 
-		Reporter::Xml_generator xml(reporter, [&] () {
+		reporter.generate([&] (Xml_generator &xml) {
 			xml.node("input",  [&] () { xml.attribute("label", "usb"); });
 			xml.node("output", [&] () { _gen_chargen_rec(xml, depth); });
 		});
@@ -387,7 +388,7 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 
 		if (step.type() == "capslock") {
-			Reporter::Xml_generator xml(_capslock_reporter, [&] () {
+			_capslock_reporter.generate([&] (Xml_generator &xml) {
 				xml.attribute("enabled", step.attribute_value("enabled", false)); });
 			_advance_step();
 			return Exec_result::PROCEED;
@@ -584,10 +585,6 @@ struct Test::Main : Input_from_filter::Event_handler
 	Main(Env &env) : _env(env)
 	{
 		_timer.sigh(_timer_handler);
-		_event_filter_config_reporter.enabled(true);
-		_chargen_include_reporter.enabled(true);
-		_remap_include_reporter.enabled(true);
-		_capslock_reporter.enabled(true);
 		_execute_curr_step();
 	}
 };

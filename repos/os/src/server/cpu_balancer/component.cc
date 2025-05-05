@@ -387,15 +387,16 @@ void Cpu::Balancer::handle_timeout()
 
 		for (unsigned i = 0; ; i++) {
 
-			Reporter::Xml_generator xml(*reporter, [&] () {
-				list.for_each([&](auto &session) {
-					reset_report |= session.report_state(xml); }); });
+			Reporter::Result const result = 
+				reporter->generate([&] (Xml_generator &xml) {
+					list.for_each([&](auto &session) {
+						reset_report |= session.report_state(xml); }); });
 
-			if (xml.exceeded())
+			if (result.ok())
 				break;
 
 			if ((i + 1) % 5 == 0 || env.pd().avail_ram().value < 8192)
-				Genode::warning(i, ". attempt to extend dialog report "
+				Genode::warning(i, ". attempt to extend report "
 				                "size, ram_avail=", env.pd().avail_ram());
 
 			if (env.pd().avail_ram().value < 8192) {

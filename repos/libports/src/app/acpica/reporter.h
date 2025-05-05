@@ -38,12 +38,12 @@ class Acpica::Reportstate {
 
 	private:
 
-		Genode::Reporter _reporter_lid;
-		Genode::Reporter _reporter_ac;
-		Genode::Reporter _reporter_sb;
-		Genode::Reporter _reporter_ec;
-		Genode::Reporter _reporter_fix;
-		Genode::Reporter _reporter_hid;
+		Genode::Expanding_reporter _reporter_lid;
+		Genode::Expanding_reporter _reporter_ac;
+		Genode::Expanding_reporter _reporter_sb;
+		Genode::Expanding_reporter _reporter_ec;
+		Genode::Expanding_reporter _reporter_fix;
+		Genode::Expanding_reporter _reporter_hid;
 
 		bool _changed_lid   = false;
 		bool _changed_ac    = false;
@@ -78,15 +78,6 @@ class Acpica::Reportstate {
 		void add_notify(Acpica::Callback<Ac> * a)      { _list_ac.insert(a); }
 		void add_notify(Acpica::Reporter * r)          { _list_hid.insert(r); }
 
-		void enable() {
-			_reporter_ac.enabled(true);
-			_reporter_ec.enabled(true);
-			_reporter_sb.enabled(true);
-			_reporter_lid.enabled(true);
-			_reporter_fix.enabled(true);
-			_reporter_hid.enabled(true);
-		}
-
 		void battery_event() { _changed_sb    = true; }
 		void ec_event()      { _changed_ec    = true; }
 		void fixed_event()   { _changed_fixed = true; }
@@ -102,51 +93,45 @@ class Acpica::Reportstate {
 			if (_changed_lid || force) {
 				_changed_lid = false;
 				if (_lid)
-					Genode::Reporter::Xml_generator xml(_reporter_lid, [&] () {
-						_lid->generate(xml);
-					});
+					_reporter_lid.generate([&] (Xml_generator &xml) {
+						_lid->generate(xml); });
 			}
 
 			if (_changed_ac || force) {
 				_changed_ac = false;
-				Genode::Reporter::Xml_generator xml(_reporter_ac, [&] () {
+				_reporter_ac.generate([&] (Xml_generator &xml) {
 					for (Callback<Ac> * ac = _list_ac.first(); ac; ac = ac->next())
-						xml.node("ac", [&] { ac->generate(xml); });
-				});
+						xml.node("ac", [&] { ac->generate(xml); }); });
 			}
 
 			if (_changed_ec || force) {
 				_changed_ec = false;
-				Genode::Reporter::Xml_generator xml(_reporter_ec, [&] () {
+				_reporter_ec.generate([&] (Xml_generator &xml) {
 					for (Callback<Ec> * ec = _list_ec.first(); ec; ec = ec->next())
-						xml.node("ec", [&] { ec->generate(xml); });
-				});
+						xml.node("ec", [&] { ec->generate(xml); }); });
 			}
 
 			if (_changed_sb || force) {
 				_changed_sb = false;
-				Genode::Reporter::Xml_generator xml(_reporter_sb, [&] () {
+				_reporter_sb.generate([&] (Xml_generator &xml) {
 					for (Callback<Battery> * sb = _list_sb.first(); sb; sb = sb->next())
-						xml.node("sb", [&] { sb->generate(xml); });
-				});
+						xml.node("sb", [&] { sb->generate(xml); }); });
 			}
 
 			if (_changed_fixed || force) {
 				_changed_fixed = false;
 				if (_fixed)
-					Genode::Reporter::Xml_generator xml(_reporter_fix, [&] () {
-						_fixed->generate(xml);
-					});
+					_reporter_fix.generate([&] (Xml_generator &xml) {
+						_fixed->generate(xml); });
 			}
 
 			if (_changed_hid || force) {
 				_changed_hid = false;
 
 				if (_list_hid.first())
-					Genode::Reporter::Xml_generator xml(_reporter_hid, [&] () {
+					_reporter_hid.generate([&] (Xml_generator &xml) {
 						for (auto * hid = _list_hid.first(); hid; hid = hid->next())
-							hid->generate(xml);
-					});
+							hid->generate(xml); });
 			}
 
 			return changed;

@@ -36,11 +36,11 @@ struct Test::Main
 
 	Timer::Connection _timer { _env };
 
-	Constructible<Reporter> _brightness_reporter { };
+	Constructible<Expanding_reporter> _brightness_reporter { };
 
 	void _report_brightness(int value)
 	{
-		Reporter::Xml_generator xml(*_brightness_reporter, [&] () {
+		_brightness_reporter->generate([&] (Xml_generator &xml) {
 			xml.attribute("value", value); });
 	}
 
@@ -61,7 +61,7 @@ struct Test::Main
 			log("         -> ", _brightness_rom->local_addr<char const>());
 
 			log("Reporter: close report session, wait a bit");
-			_brightness_reporter->enabled(false);
+			_brightness_reporter.destruct();
 
 			_timer.trigger_once(250*1000);
 			_state = WAIT_FOR_TIMEOUT;
@@ -71,8 +71,7 @@ struct Test::Main
 		if (_state == WAIT_FOR_SECOND_UPDATE) {
 			try {
 				log("ROM client: try to open the same report again");
-				Reporter again { _env, "brightness" };
-				again.enabled(true);
+				Expanding_reporter again { _env, "brightness" };
 				error("expected Service_denied");
 				throw -3;
 			}
@@ -104,7 +103,7 @@ struct Test::Main
 			log("ROM client: ROM is available despite report was closed - OK");
 
 			log("Reporter: start reporting (while the ROM client still listens)");
-			_brightness_reporter->enabled(true);
+			_brightness_reporter.construct(_env, "brightness");
 			_report_brightness(99);
 
 			log("ROM client: wait for update notification");
@@ -124,7 +123,6 @@ struct Test::Main
 
 		log("Reporter: open session");
 		_brightness_reporter.construct(_env, "brightness");
-		_brightness_reporter->enabled(true);
 
 		log("Reporter: brightness 10");
 		_report_brightness(10);

@@ -158,7 +158,7 @@ struct Global_keys_handler::Main
 		Registry<Bool_condition>  _bool_conditions  { };
 		Registry<Hover_condition> _hover_conditions { };
 
-		Reporter _reporter;
+		Expanding_reporter _reporter;
 
 		bool _initial_report = true;
 
@@ -166,7 +166,7 @@ struct Global_keys_handler::Main
 
 		void _generate_report()
 		{
-			Reporter::Xml_generator xml(_reporter, [&] () {
+			_reporter.generate([&] (Xml_generator &xml) {
 				xml.attribute("enabled", _curr_value ? "yes" : "no"); });
 		}
 
@@ -192,8 +192,6 @@ struct Global_keys_handler::Main
 			_delay_ms(node.attribute_value("delay_ms", (uint64_t)0)),
 			_timer_handler(env.ep(), *this, &Report::_generate_report)
 		{
-			_reporter.enabled(true);
-
 			node.for_each_sub_node("bool", [&] (Xml_node const &bool_node) {
 				new (alloc) Bool_condition(_bool_conditions, bool_node); });
 

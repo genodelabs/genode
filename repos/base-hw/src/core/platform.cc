@@ -145,7 +145,8 @@ void Platform::_init_platform_info()
 		return;
 	}
 
-	Xml_generator xml(reinterpret_cast<char *>(virt_addr), rom_size, rom_name, [&]
+	Xml_generator::generate({ reinterpret_cast<char *>(virt_addr), rom_size },
+	                        rom_name, [&] (Xml_generator &xml)
 	{
 		xml.node("kernel", [&] {
 			xml.attribute("name", "hw");
@@ -160,7 +161,8 @@ void Platform::_init_platform_info()
 			xml.attribute("width", affinity_space().width());
 			xml.attribute("height", affinity_space().height());
 		});
-	});
+	}).with_error([] (Buffer_error) {
+		warning("platform info exceeds maximum buffer size"); });
 
 	if (!unmap_local(virt_addr, pages)) {
 		error("could not setup platform_info ROM - unmap error");

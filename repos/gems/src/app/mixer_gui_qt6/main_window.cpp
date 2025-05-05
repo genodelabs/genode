@@ -328,11 +328,10 @@ static int write_config(char const *file, char const *data, size_t length)
 
 void Main_window::_update_config()
 {
-	char   xml_data[2048];
-	size_t xml_used = 0;
+	char buf[2048];
 
-	try {
-		Genode::Xml_generator xml(xml_data, sizeof(xml_data), "config", [&] {
+	Genode::Xml_generator::generate({ buf, sizeof(buf) }, "config",
+		[&] (Genode::Xml_generator &xml) {
 
 			xml.node("default", [&] {
 				xml.attribute("out_volume", _default_out_volume);
@@ -370,12 +369,11 @@ void Main_window::_update_config()
 					}
 				}
 			});
-		});
-		xml_used = xml.used();
-
-	} catch (...) { Genode::warning("could generate 'mixer.config'"); }
-
-	write_config(config_file, xml_data, xml_used);
+		}).with_result(
+			[&] (size_t used) { write_config(config_file, buf, used); },
+			[&] (Genode::Buffer_error)  {
+				Genode::warning("could generate 'mixer.config'"); }
+		);
 }
 
 

@@ -30,35 +30,32 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		struct Content_producer : Interface
 		{
-			enum class Error { EXCEEDED };
-
-			using Result = Attempt<Ok, Error>;
+			using Result = Attempt<Ok, Buffer_error>;
 
 			/**
 			 * Write content into the specified buffer
 			 */
-			virtual Result produce_content(char *dst, size_t dst_len) = 0;
+			virtual Result produce_content(Byte_range_ptr const &dst) = 0;
 		};
 
 		class Xml_producer : public Content_producer
 		{
 			public:
 
-				using Node_name = String<64>;
+				using Node_name = Xml_generator::Tag_name;
 
 			private:
 
 				Node_name const _node_name;
 
-				Result produce_content(char *dst, size_t dst_len) override
+				Result produce_content(Byte_range_ptr const &dst) override
 				{
-					Xml_generator xml(dst, dst_len, _node_name.string(), [&] {
-						produce_xml(xml); });
-
-					if (xml.exceeded())
-						return Error::EXCEEDED;
-
-					return Ok();
+					return Xml_generator::generate(dst, _node_name,
+						[&] (Xml_generator &xml) { produce_xml(xml); }
+					).convert<Result>(
+						[&] (size_t)         { return Ok(); },
+						[&] (Buffer_error e) { return e; }
+					);
 				}
 
 			public:
@@ -148,8 +145,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 					return true;
 				}
 
-				if (_content_producer.produce_content(_ds->local_addr<char>(),
-				                                      _ds->size()).ok()) {
+				if (_content_producer.produce_content(_ds->bytes()).ok()) {
 					_client_version = _current_version;
 					return !ds_reallocated;
 				}

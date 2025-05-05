@@ -24,7 +24,7 @@ class Genode::Smbios_table_reporter
 {
 	private:
 
-		Constructible<Reporter> _reporter { };
+		Constructible<Expanding_reporter> _reporter { };
 
 	public:
 

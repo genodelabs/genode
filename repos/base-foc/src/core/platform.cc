@@ -587,27 +587,26 @@ Core::Platform::Platform()
 		);
 	};
 
-	export_page_as_rom_module("platform_info",
-		[&] (char *core_local_ptr, size_t size) {
-			Xml_generator xml(core_local_ptr, size, "platform_info", [&]
-			{
-				xml.node("kernel", [&] {
-					xml.attribute("name", "foc");
-					xml.attribute("acpi", true);
-					xml.attribute("msi" , true);
-				});
-				xml.node("hardware", [&] {
-					_setup_platform_info(xml, sigma0_map_kip()); });
+	export_page_as_rom_module("platform_info", [&] (char *core_local_ptr, size_t size) {
+		Byte_range_ptr dst { reinterpret_cast<char *>(core_local_ptr), size };
+		Xml_generator::generate(dst, "platform_info", [&] (Xml_generator &xml) {
+			xml.node("kernel", [&] {
+				xml.attribute("name", "foc");
+				xml.attribute("acpi", true);
+				xml.attribute("msi" , true); });
 
-				xml.node("affinity-space", [&] {
-					xml.attribute("width", affinity_space().width());
-					xml.attribute("height", affinity_space().height());
-				});
+			xml.node("hardware", [&] {
+				_setup_platform_info(xml, sigma0_map_kip()); });
 
-				add_acpi_rsdp(region_alloc(), xml);
-			});
-		}
-	);
+			xml.node("affinity-space", [&] {
+				xml.attribute("width", affinity_space().width());
+				xml.attribute("height", affinity_space().height()); });
+
+			add_acpi_rsdp(region_alloc(), xml);
+		}).with_error([] (Buffer_error) {
+			error("platform_info exceeds maximum buffer size");
+		});
+	});
 
 	export_page_as_rom_module("core_log",
 		[&] (char *core_local_ptr, size_t size) {

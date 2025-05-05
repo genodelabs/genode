@@ -336,13 +336,16 @@ class Vfs_tresor_crypto::Key_file_system : private Key_local_factory,
 		{
 			char buf[Config::capacity()] { };
 
-			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
+			Xml_generator::generate({ buf, sizeof(buf) }, "dir",
+				[&] (Xml_generator &xml) {
 
-				xml.attribute("name", String<16>(key_id));
+					xml.attribute("name", String<16>(key_id));
 
-				xml.node("decrypt", [&] () { });
-				xml.node("encrypt", [&] () { });
-			});
+					xml.node("decrypt");
+					xml.node("encrypt");
+
+			}).with_error([] (Genode::Buffer_error) {
+				warning("VFS-tresor_crypto key compound exceeds maximum buffer size"); });
 
 			return Config(Cstring(buf));
 		}
@@ -1103,14 +1106,16 @@ class Vfs_tresor_crypto::File_system : private Local_factory,
 			(void)node;
 			char buf[Config::capacity()] { };
 
-			Xml_generator xml(buf, sizeof (buf), "dir", [&] () {
-				xml.attribute(
-					"name", node.attribute_value("name", String<64>("")));
+			Xml_generator::generate({ buf, sizeof(buf) }, "dir",
+				[&] (Xml_generator &xml) {
+					xml.attribute(
+						"name", node.attribute_value("name", String<64>("")));
 
-				xml.node("add_key",    [&] () { });
-				xml.node("remove_key", [&] () { });
-				xml.node("keys",       [&] () { });
-			});
+					xml.node("add_key",    [&] () { });
+					xml.node("remove_key", [&] () { });
+					xml.node("keys",       [&] () { });
+			}).with_error([] (Genode::Buffer_error) {
+				warning("VFS-tresor_crypto compound exceeds maximum buffer size"); });
 
 			return Config(Cstring(buf));
 		}

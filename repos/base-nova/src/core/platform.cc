@@ -667,7 +667,9 @@ Core::Platform::Platform()
 
 	export_pages_as_rom_module("platform_info", 1 + (MAX_SUPPORTED_CPUS / 32),
 		[&] (char * const ptr, size_t const size) {
-			Xml_generator xml(ptr, size, "platform_info", [&]
+
+			Xml_generator::generate( { ptr, size }, "platform_info",
+			                        [&] (Xml_generator &xml)
 			{
 				xml.node("kernel", [&] {
 					xml.attribute("name", "nova");
@@ -747,6 +749,8 @@ Core::Platform::Platform()
 						});
 					});
 				});
+			}).with_error([] (Buffer_error) {
+				error("platform_info exceeds maximum buffer size");
 			});
 		}
 	);

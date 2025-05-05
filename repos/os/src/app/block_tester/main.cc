@@ -419,30 +419,31 @@ struct Test::Main
 
 	Fifo<Test_result> _results { };
 
-	Reporter _result_reporter { _env, "results" };
+	Constructible<Expanding_reporter> _result_reporter { };
 
 	void _generate_report()
 	{
-		try {
-			Reporter::Xml_generator xml(_result_reporter, [&] () {
-				_results.for_each([&] (Test_result &tr) {
-					xml.node("result", [&] () {
-						xml.attribute("test",     tr.name);
-						xml.attribute("rx",       tr.result.rx.bytes);
-						xml.attribute("tx",       tr.result.tx.bytes);
-						xml.attribute("bytes",    tr.result.total.bytes);
-						xml.attribute("size",     tr.result.request_size);
-						xml.attribute("bsize",    tr.result.block_size);
-						xml.attribute("duration", tr.result.duration);
+		if (!_result_reporter.constructed())
+			return;
 
-						xml.attribute("mibs", (unsigned)(tr.result.mibs() * (1<<20u)));
-						xml.attribute("iops", (unsigned)(tr.result.iops() + 0.5f));
+		_result_reporter->generate([&] (Xml_generator &xml) {
+			_results.for_each([&] (Test_result &tr) {
+				xml.node("result", [&] () {
+					xml.attribute("test",     tr.name);
+					xml.attribute("rx",       tr.result.rx.bytes);
+					xml.attribute("tx",       tr.result.tx.bytes);
+					xml.attribute("bytes",    tr.result.total.bytes);
+					xml.attribute("size",     tr.result.request_size);
+					xml.attribute("bsize",    tr.result.block_size);
+					xml.attribute("duration", tr.result.duration);
 
-						xml.attribute("result", tr.result.success ? 0 : 1);
-					});
+					xml.attribute("mibs", (unsigned)(tr.result.mibs() * (1<<20u)));
+					xml.attribute("iops", (unsigned)(tr.result.iops() + 0.5f));
+
+					xml.attribute("result", tr.result.success ? 0 : 1);
 				});
 			});
-		} catch (...) { warning("could generate results report"); }
+		});
 	}
 
 	Scenario *_current_ptr = nullptr;
@@ -531,7 +532,7 @@ struct Test::Main
 
 	Main(Env &env) : _env(env)
 	{
-		_result_reporter.enabled(_config.report);
+		_result_reporter.conditional(_config.report, env, "results");
 
 		try {
 			_construct_scenarios(_config_rom.xml());

@@ -268,7 +268,7 @@ class Ahci::Driver : Noncopyable
 
 		void report_ports(Reporter &reporter)
 		{
-			Reporter::Xml_generator xml(reporter, [&] () {
+			Reporter::Result const result = reporter.generate([&] (Xml_generator &xml) {
 
 				auto report = [&](Port const &port, unsigned index, bool atapi) {
 
@@ -287,6 +287,9 @@ class Ahci::Driver : Noncopyable
 
 				for_each_port(report);
 			});
+
+			if (result == Buffer_error::EXCEEDED)
+				warning("report exceeds maximum size");
 		}
 };
 

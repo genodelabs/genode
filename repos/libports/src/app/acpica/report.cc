@@ -17,8 +17,7 @@
 
 using namespace Acpica;
 
-void Acpica::generate_suspend_report(Reporter::Xml_generator &xml,
-                                     String<32> const &state)
+void Acpica::generate_suspend_report(Xml_generator &xml, String<32> const &state)
 {
 	static unsigned version = 0;
 

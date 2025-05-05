@@ -33,9 +33,7 @@ struct Rom_reporter::Rom_module
 
 	Attached_rom_dataspace _rom_ds { _env, _label.string() };
 
-	size_t _report_size = 0;
-
-	Constructible<Reporter> _reporter { };
+	Expanding_reporter _reporter { _env, "", _label };
 
 	Signal_handler<Rom_module> _rom_update_handler {
 		_env.ep(), *this, &Rom_module::_handle_rom_update };
@@ -43,18 +41,7 @@ struct Rom_reporter::Rom_module
 	void _handle_rom_update()
 	{
 		_rom_ds.update();
-
-		Xml_node const xml = _rom_ds.xml();
-
-		size_t const content_size = xml.size();
-
-		if (!_reporter.constructed() || (content_size > _report_size)) {
-			_reporter.construct(_env, "", _label.string(), content_size);
-			_reporter->enabled(true);
-		}
-
-		xml.with_raw_node([&] (char const *start, size_t length) {
-			_reporter->report(start, length); });
+		_reporter.generate(_rom_ds.xml());
 	}
 
 	Rom_module(Env &env, Label const &label) : _env(env), _label(label)

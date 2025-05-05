@@ -221,9 +221,6 @@ struct Acpica::Main
 
 		init_acpica(config.xml().attribute_value("use_gpe", true));
 
-		if (enable_report)
-			report->enable();
-
 		if (enable_reset || enable_poweroff || enable_sleep)
 			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff,
 			                               enable_sleep, report_sleep_states);

@@ -88,7 +88,7 @@ class Clipboard
 		void report(char const *content)
 		{
 			try {
-				_report.generate([&] (Reporter::Xml_generator &xml) {
+				_report.generate([&] (Xml_generator &xml) {
 					xml.append_sanitized(content); });
 			} catch (...) {
 				error("shared clipboard: could not report new content");

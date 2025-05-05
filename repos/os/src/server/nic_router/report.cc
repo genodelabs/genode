@@ -52,7 +52,7 @@ Net::Report::Report(bool                      const &verbose,
 
 void Net::Report::generate() const
 {
-	Reporter::Xml_generator xml(_reporter, [&] {
+	Reporter::Result const result = _reporter.generate([&] (Xml_generator &xml) {
 		if (_quota) {
 			xml.node("ram", [&] {
 				xml.attribute("quota",  _pd.ram_quota().value);
@@ -69,7 +69,8 @@ void Net::Report::generate() const
 			if (!domain.report_empty(*this))
 				xml.node("domain", [&] { domain.report(xml, *this); }); });
 	});
-	if (xml.exceeded() && _verbose)
+
+	if (result == Buffer_error::EXCEEDED && _verbose)
 		warning("report exceeds maximum buffer size");
 }
 

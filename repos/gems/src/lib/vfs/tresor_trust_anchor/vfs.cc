@@ -1966,14 +1966,18 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 		{
 			char buf[Config::capacity()] { };
 
-			Xml_generator xml(buf, sizeof (buf), "dir", [&] () {
+			Xml_generator::generate({ buf, sizeof(buf) }, "dir", [&] (Xml_generator &xml) {
+
 				xml.attribute("name", node.attribute_value("name", String<32>("")));
 
-				xml.node("decrypt",      [&] () { });
-				xml.node("encrypt",      [&] () { });
-				xml.node("generate_key", [&] () { });
-				xml.node("hash",      [&] () { });
-				xml.node("initialize",   [&] () { });
+				xml.node("decrypt");
+				xml.node("encrypt");
+				xml.node("generate_key");
+				xml.node("hash");
+				xml.node("initialize");
+
+			}).with_error([] (Genode::Buffer_error) {
+				Genode::warning("VFS-tresor_trust_anchor config exceeds maximum buffer size");
 			});
 
 			return Config(Cstring(buf));

@@ -54,7 +54,7 @@ void App_bar::_app_button(QAbstractButton *b, bool checked)
 	if (Panel_button *button = qobject_cast<Panel_button *>(b)) {
 		Name name { button->text().toUtf8().constData() };
 
-		Genode::Reporter::Xml_generator xml(_content_request, [&] () {
+		_content_request.generate([&] (Genode::Xml_generator &xml) {
 			xml.attribute("name", name);
 		});
 	}
@@ -96,8 +96,6 @@ App_bar::App_bar(Genode::Env &env, Genode::Entrypoint &sig_ep)
 	_apps(env, "apps"), _content_request(env, "content_request"),
 	_apps_proxy(sig_ep)
 {
-	_content_request.enabled(true);
-
 	_button_group->setExclusive(true);
 
 	_handle_apps();
@@ -115,7 +113,7 @@ App_bar::~App_bar() { }
 
 void Panel::_wifi_toggled(bool checked)
 {
-	Genode::Reporter::Xml_generator xml(_overlay_request, [&] () {
+	_overlay_request.generate([&] (Genode::Xml_generator &xml) {
 		xml.attribute("visible", checked);
 	});
 }
@@ -137,8 +135,6 @@ Panel::Panel(Genode::Env &env, Genode::Entrypoint &sig_ep)
 
 	_wifi_button->setObjectName("wifi");
 	_wifi_button->setToolTip("Open WiFi overlay");
-
-	_overlay_request.enabled(true);
 
 	_wifi_toggled(_wifi_button->isChecked());
 

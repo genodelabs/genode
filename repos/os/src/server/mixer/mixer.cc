@@ -205,7 +205,7 @@ class Audio_out::Mixer
 		 *
 		 * Each session in a channel is reported as an input node.
 		 */
-		Genode::Reporter _reporter { env, "channel_list" };
+		Genode::Expanding_reporter _reporter { env, "channel_list" };
 
 		/**
 		 * Report available channels
@@ -216,7 +216,7 @@ class Audio_out::Mixer
 		void _report_channels()
 		{
 			try {
-				Genode::Reporter::Xml_generator xml(_reporter, [&] () {
+				_reporter.generate([&] (Genode::Xml_generator &xml) {
 					/* output channels */
 					for_each_index(MAX_CHANNELS, [&] (int const i) {
 						Channel::Number const num = (Channel::Number)i;
@@ -547,8 +547,6 @@ class Audio_out::Mixer
 		 */
 		Mixer(Genode::Env &env) : env(env)
 		{
-			_reporter.enabled(true);
-
 			_out[LEFT]  = &_left;
 			_out[RIGHT] = &_right;
 

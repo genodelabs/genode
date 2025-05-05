@@ -29,9 +29,9 @@ struct Main
 	Timer::Connection _timer { _env };
 	Rtc::Connection   _rtc   { _env };
 
-	void _set_rtc(Reporter &reporter, Rtc::Timestamp const &ts)
+	void _set_rtc(Expanding_reporter &reporter, Rtc::Timestamp const &ts)
 	{
-		Reporter::Xml_generator xml(reporter, [&] () {
+		reporter.generate([&] (Xml_generator &xml) {
 			xml.attribute("year",   ts.year);
 			xml.attribute("month",  ts.month);
 			xml.attribute("day",    ts.day);
@@ -95,7 +95,7 @@ struct Main
 			log("Set driver RTC value: ", _ts);
 
 			_drv_rtc_set = true;
-			_set_rtc(*_drv_reporter, _ts);
+			_set_rtc(_drv_reporter, _ts);
 
 			_timer.msleep(5000);
 		} else if (_drv_rtc_set) {
@@ -114,7 +114,7 @@ struct Main
 
 			log("Set system RTC value: ", _ts);
 
-			_set_rtc(*_sys_reporter, _ts);
+			_set_rtc(_sys_reporter, _ts);
 			_timer.msleep(3500);
 		} else {
 			log("RTC value: ", _ts);
@@ -123,8 +123,8 @@ struct Main
 		}
 	}
 
-	Constructible<Reporter> _sys_reporter { };
-	Constructible<Reporter> _drv_reporter { };
+	Expanding_reporter _sys_reporter { _env, "sys_set_rtc" };
+	Expanding_reporter _drv_reporter { _env, "drv_set_rtc" };
 
 	void _parent_exit(int exit_code)
 	{
@@ -134,12 +134,6 @@ struct Main
 
 	Main(Genode::Env &env) : _env(env)
 	{
-		_sys_reporter.construct(_env, "sys_set_rtc");
-		_sys_reporter->enabled(true);
-
-		_drv_reporter.construct(_env, "drv_set_rtc");
-		_drv_reporter->enabled(true);
-
 		Genode::log("--- system RTC test started ---");
 
 		_rtc.set_sigh(_set_sigh);
@@ -157,7 +151,7 @@ struct Main
 		log("Set system RTC value: ", _ts);
 
 		_sys_rtc_set = true;
-		_set_rtc(*_sys_reporter, _ts);
+		_set_rtc(_sys_reporter, _ts);
 
 		_timer.msleep(5000);
 	}

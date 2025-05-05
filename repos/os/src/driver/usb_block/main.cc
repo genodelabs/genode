@@ -134,8 +134,8 @@ class Usb::Block_driver
 			if (!_reporter.enabled())
 				return;
 
-			try {
-				Reporter::Xml_generator xml(_reporter, [&] () {
+			Reporter::Result const result =
+				_reporter.generate([&] (Xml_generator &xml) {
 					xml.node("device", [&] () {
 						xml.attribute("vendor",      _vendor);
 						xml.attribute("product",     _product);
@@ -144,7 +144,9 @@ class Usb::Block_driver
 						xml.attribute("writeable",   _writeable);
 					});
 				});
-			} catch (...) { warning("Could not report block device"); }
+
+			if (result.failed())
+				warning("Could not report block device");
 		}
 
 		Interface& _construct_interface(Xml_node const &cfg)

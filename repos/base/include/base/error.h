@@ -33,6 +33,11 @@ namespace Genode {
 	enum class Alloc_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
 
 	/**
+	 * Common error returned when exhaustion a destination buffer
+	 */
+	enum class Buffer_error { EXCEEDED };
+
+	/**
 	 * Raise an error without return
 	 *
 	 * This function should never be called except in panic situations where

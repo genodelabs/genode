@@ -22,10 +22,12 @@ using Genode::size_t;
 struct Buffer_exceeded { };
 
 
-static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
+static size_t fill_buffer_with_xml(Genode::Byte_range_ptr const &dst)
 {
-	Genode::Xml_generator xml(dst, dst_len, "config", [&]
-	{
+	using namespace Genode;
+
+	return Xml_generator::generate(dst, "config", [&] (Xml_generator &xml) {
+
 		xml.attribute("xpos", "27");
 		xml.attribute("ypos", "34");
 
@@ -60,19 +62,17 @@ static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
 			xml.attribute("long",     2UL);
 			xml.attribute("longlong", 3ULL);
 		});
-	});
-
-	if (xml.exceeded())
-		throw Buffer_exceeded();
-
-	return xml.used();
+	}).convert<size_t>([&] (size_t used)            { return used; },
+	                   [&] (Buffer_error) -> size_t { throw Buffer_exceeded(); });
 }
 
 
-static size_t xml_with_exceptions(char *dst, size_t dst_len)
+static size_t xml_with_exceptions(Genode::Byte_range_ptr const &dst)
 {
-	Genode::Xml_generator xml(dst, dst_len, "config", [&]
-	{
+	using namespace Genode;
+
+	return Xml_generator::generate(dst, "config", [&] (Xml_generator &xml) {
+
 		xml.node("level1", [&]
 		{
 			xml.node("level2", [&]
@@ -98,7 +98,7 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 							});
 						});
 					} catch (unsigned error) {
-						Genode::log("exception with value ", error, " on level 4 (expected error)");
+						log("exception with value ", error, " on level 4 (expected error)");
 					}
 					xml.node("level3", [&]
 					{
@@ -136,7 +136,7 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 								});
 							});
 						} catch (unsigned error) {
-							Genode::log("exception with value ", error, " on level 8 (expected error)");
+							log("exception with value ", error, " on level 8 (expected error)");
 						}
 						xml.node("level4_2", [&] { });
 						try {
@@ -147,7 +147,7 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 								throw 30 + i;
 							});
 						} catch (unsigned error) {
-							Genode::log("exception with value ", error, " on level 4 (expected error)");
+							log("exception with value ", error, " on level 4 (expected error)");
 						}
 					});
 				}
@@ -158,11 +158,11 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 					throw 40;
 				});
 			} catch (int error) {
-				Genode::log("exception with value ", error, " on level 2 (expected error)");
+				log("exception with value ", error, " on level 2 (expected error)");
 			}
 		});
-	});
-	return xml.used();
+	}).convert<size_t>([&] (size_t used) { return used; },
+	                   [&] (Buffer_error) -> size_t { throw Buffer_exceeded(); });
 }
 
 extern void gcov_init(Genode::Env &env);
@@ -177,29 +177,31 @@ void Component::construct(Genode::Env &env)
 	env.exec_static_constructors();
 	gcov_init(env);
 
-	static char dst[1000];
+	static char dst_buf[1000];
+
+	Byte_range_ptr const dst(dst_buf, sizeof(dst_buf));
 
 	/*
 	 * Good-case test (to be matched against a known-good pattern in the
 	 * corresponding run script).
 	 */
-	size_t used = fill_buffer_with_xml(dst, sizeof(dst));
-	log("\nused ", used, " bytes, result:\n\n", Cstring(dst));
+	size_t used = fill_buffer_with_xml(dst);
+	log("\nused ", used, " bytes, result:\n\n", Cstring(dst.start));
 
 	/*
 	 * Test buffer overflow
 	 */
 	try {
-		fill_buffer_with_xml(dst, 20); }
+		fill_buffer_with_xml({ dst.start, 20 }); }
 	catch (Buffer_exceeded) {
 		log("buffer exceeded (expected error)\n"); }
 
 	/*
 	 * Test throwing non-XML related exceptions during xml generation
 	 */
-	memset(dst, 0, sizeof(dst));
-	used = xml_with_exceptions(dst, sizeof(dst));
-	log("\nused ", used, " bytes, result:\n\n", Cstring(dst));
+	memset(dst.start, 0, dst.num_bytes);
+	used = xml_with_exceptions(dst);
+	log("\nused ", used, " bytes, result:\n\n", Cstring(dst.start));
 
 	/*
 	 * Test the sanitizing of XML node content
@@ -211,14 +213,14 @@ void Component::construct(Genode::Env &env)
 			pattern[i] = (char)i;
 
 		/* generate XML with the pattern as content */
-		Xml_generator xml(dst, sizeof(dst), "data", [&] {
+		(void)Xml_generator::generate(dst, "data", [&] (Xml_generator &xml ) {
 			xml.append_sanitized(pattern, sizeof(pattern)); });
 
 		/* parse the generated XML data */
-		Xml_node node(dst);
+		Xml_node node(dst.start);
 
 		/* obtain decoded node content */
-		char decoded[sizeof(dst)];
+		char decoded[dst.num_bytes];
 		size_t const decoded_len = node.decoded_content(decoded, sizeof(decoded));
 
 		/* compare result with original pattern */
@@ -236,11 +238,11 @@ void Component::construct(Genode::Env &env)
 	 * Test arbitrary content
 	 */
 	{
-		Xml_generator xml(dst, sizeof(dst), "data", [&] {
+		(void)Xml_generator::generate(dst, "data", [&] (Xml_generator &xml) {
 			xml.append_content(" ", 2 + 2, " == 2 + 2 == ", 4.0, " ");
 		});
 
-		Xml_node node(dst);
+		Xml_node node(dst.start);
 		auto s = node.decoded_content<String<32>>();
 		if (s != " 4 == 2 + 2 == 4.0 ") {
 			error("decoded content does not match expect content");

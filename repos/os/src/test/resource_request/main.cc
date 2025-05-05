@@ -44,7 +44,7 @@ struct Test::Monitor
 
 	Attached_rom_dataspace _init_state { _env, "state" };
 
-	Reporter _init_config { _env, "init.config" };
+	Expanding_reporter _init_config { _env, "init.config" };
 
 	size_t _ram_quota = 2*1024*1024;
 
@@ -57,7 +57,7 @@ struct Test::Monitor
 
 	void _generate_init_config()
 	{
-		Reporter::Xml_generator xml(_init_config, [&] () {
+		_init_config.generate([&] (Xml_generator &xml) {
 
 			xml.node("report", [&] () { xml.attribute("child_ram", true); });
 
@@ -129,7 +129,6 @@ struct Test::Monitor
 
 	Monitor(Env &env) : _env(env)
 	{
-		_init_config.enabled(true);
 		_init_state.sigh(_init_state_handler);
 		_generate_init_config();
 	}

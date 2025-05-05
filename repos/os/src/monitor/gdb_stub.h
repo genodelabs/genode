@@ -34,14 +34,16 @@ struct Monitor::Gdb::State : Noncopyable
 
 		Thread_list(Inferiors const &inferiors)
 		{
-			Xml_generator xml(_buf, sizeof(_buf), "threads", [&] {
+			Xml_generator::generate({ _buf, sizeof(_buf) }, "threads", [&] (Xml_generator &xml) {
 				inferiors.for_each<Inferior_pd const &>([&] (Inferior_pd const &inferior) {
 					inferior.for_each_thread([&] (Monitored_thread const &thread) {
 						xml.node("thread", [&] {
 							String<32> const id("p", inferior.id(), ".", thread.id());
 							xml.attribute("id",   id);
 							xml.attribute("core", 0);
-							xml.attribute("name", thread._name); }); }); }); });
+							xml.attribute("name", thread._name); }); }); });
+			}).with_error([] (Buffer_error) {
+				warning("thread list exceeds maximum buffer size"); });
 
 			_len = strlen(_buf);
 		}
@@ -62,7 +64,8 @@ struct Monitor::Gdb::State : Noncopyable
 		{
 			using Value = String<16>;
 
-			Xml_generator xml(_buf, sizeof(_buf), "memory-map", [&] {
+			Xml_generator::generate({ _buf, sizeof(_buf) }, "memory-map",
+			                        [&] (Xml_generator &xml) {
 
 				inferior._address_space.for_each_region(
 				    [&] (Monitored_region_map::Region const &region) {
@@ -113,7 +116,8 @@ struct Monitor::Gdb::State : Noncopyable
 						xml.attribute("length", Value(Hex(region.range.num_bytes)));
 					});
 				});
-			});
+			}).with_error([] (Buffer_error) {
+				warning("memory map exceeds maximum buffer size"); });
 
 			_len = strlen(_buf);
 		}

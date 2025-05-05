@@ -62,61 +62,55 @@ class Table
 
 		char const *_base_board_feature(uint8_t idx) const;
 
-		void _report_base_board_features(Reporter::Xml_generator &xml,
-		                                 uint8_t                  code) const;
+		void _report_base_board_features(Xml_generator &xml, uint8_t code) const;
 
-		void _report_base_board_handles(Reporter::Xml_generator &xml,
-		                                uint8_t                  count,
-		                                uint8_t           const *data) const;
+		void _report_base_board_handles(Xml_generator &xml,
+		                                uint8_t        count,
+		                                uint8_t const *data) const;
 
-		void _report_base_board(Reporter::Xml_generator &xml,
-		                        Smbios_structure  const &header) const;
+		void _report_base_board(Xml_generator &xml,
+		                        Smbios_structure const &header) const;
 
-		void _report_bios_character_0(Reporter::Xml_generator &xml,
-		                              uint64_t                 code) const;
+		void _report_bios_character_0(Xml_generator &xml, uint64_t code) const;
 
 		char const *_bios_character_1(uint8_t idx) const;
 
-		void _report_bios_character_1(Reporter::Xml_generator &xml,
-		                              uint8_t                  code) const;
+		void _report_bios_character_1(Xml_generator &xml, uint8_t code) const;
 
 		char const *_bios_character_2(uint8_t idx) const;
 
-		void _report_bios_character_2(Reporter::Xml_generator &xml,
-		                              uint8_t                  code) const;
+		void _report_bios_character_2(Xml_generator &xml, uint8_t code) const;
 
-		void _report_bios_rom_size(Reporter::Xml_generator &xml,
-		                           uint8_t                  code_1,
-		                           uint16_t                 code_2) const;
+		void _report_bios_rom_size(Xml_generator &xml,
+		                           uint8_t        code_1,
+		                           uint16_t       code_2) const;
 
-		void _report_string(Reporter::Xml_generator &xml,
-		                    char              const *type,
-		                    char              const *value) const;
+		void _report_string(Xml_generator &xml,
+		                    char    const *type,
+		                    char    const *value) const;
 
-		void _report_string_set_item(Reporter::Xml_generator &xml,
+		void _report_string_set_item(Xml_generator           &xml,
 		                             Smbios_structure  const &header,
 		                             char              const *type,
 		                             unsigned                 idx) const;
 
-		void _report_system_uuid(Reporter::Xml_generator &xml,
-		                         uint8_t const           *data) const;
+		void _report_system_uuid(Xml_generator &xml, uint8_t const *data) const;
 
-		void _report_system(Reporter::Xml_generator &xml,
+		void _report_system(Xml_generator &xml,
 		                    Smbios_structure  const &header) const;
 
-		void _report_bios(Reporter::Xml_generator &xml,
-		                  Smbios_structure  const &header) const;
+		void _report_bios(Xml_generator &xml,
+		                  Smbios_structure const &header) const;
 
-		void _report_smbios_struct(Reporter::Xml_generator &xml,
-		                           Smbios_structure  const &smbios_struct) const;
+		void _report_smbios_struct(Xml_generator &xml,
+		                           Smbios_structure const &smbios_struct) const;
 
-		void _report_smbios_structs(Reporter::Xml_generator &xml,
-		                            Dmi_entry_point const   &smbios_ep) const;
+		void _report_smbios_structs(Xml_generator &xml,
+		                            Dmi_entry_point const &smbios_ep) const;
 
-		void _report_dmi_ep(Reporter::Xml_generator &xml,
-		                    Dmi_entry_point const   &ep) const;
+		void _report_dmi_ep(Xml_generator &xml, Dmi_entry_point const &ep) const;
 
-		void _report_smbios_ep(Reporter::Xml_generator  &xml,
+		void _report_smbios_ep(Xml_generator &xml,
 		                       Smbios_entry_point const &smbios_ep) const;
 
 	public:
@@ -130,7 +124,7 @@ class Table
 			_verbose { verbose }
 		{ }
 
-		void report(Reporter::Xml_generator &xml) const;
+		void report(Xml_generator &xml) const;
 };
 
 
@@ -183,9 +177,7 @@ void Main::_handle_table_ds()
 		return;
 	}
 	_table.construct((addr_t)_table_ds.local_addr<int>(), _table_ds.size(), _verbose);
-	_reporter.generate([&] (Reporter::Xml_generator &xml) {
-		_table->report(xml);
-	});
+	_reporter.generate([&] (Xml_generator &xml) { _table->report(xml); });
 }
 
 
@@ -193,9 +185,9 @@ void Main::_handle_table_ds()
  ** Table **
  ***********/
 
-void Table::_report_string(Reporter::Xml_generator &xml,
-                           char              const *type,
-                           char              const *value) const
+void Table::_report_string(Xml_generator &xml,
+                           char const *type,
+                           char const *value) const
 {
 	xml.node(type, [&] () { xml.attribute("value", value); });
 }
@@ -325,8 +317,7 @@ char const *Table::_base_board_feature(uint8_t idx) const
 }
 
 
-void Table::_report_base_board_features(Reporter::Xml_generator &xml,
-                                        uint8_t                  code) const
+void Table::_report_base_board_features(Xml_generator &xml, uint8_t code) const
 {
 	if ((code & 0x1f) == 0) {
 		_report_string(xml, "feature", "[none]");
@@ -340,8 +331,7 @@ void Table::_report_base_board_features(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_bios_character_0(Reporter::Xml_generator &xml,
-                                     uint64_t                 code) const
+void Table::_report_bios_character_0(Xml_generator &xml, uint64_t code) const
 {
 	if (code & (1 << 3)) {
 		xml.node("characteristic", [&] () {
@@ -360,8 +350,7 @@ void Table::_report_bios_character_0(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_bios_character_1(Reporter::Xml_generator &xml,
-                                     uint8_t                  code) const
+void Table::_report_bios_character_1(Xml_generator &xml, uint8_t code) const
 {
 	for (uint8_t idx = 0; idx <= 7; idx++) {
 		if ((code & (1 << idx)) == 0) {
@@ -374,8 +363,7 @@ void Table::_report_bios_character_1(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_bios_character_2(Reporter::Xml_generator &xml,
-                                     uint8_t                  code) const
+void Table::_report_bios_character_2(Xml_generator &xml, uint8_t code) const
 {
 	for (uint8_t idx = 0; idx <= 4; idx++) {
 		if ((code & (1 << idx)) == 0) {
@@ -388,9 +376,9 @@ void Table::_report_bios_character_2(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_bios_rom_size(Reporter::Xml_generator &xml,
-                                  uint8_t                  code_1,
-                                  uint16_t                 code_2) const
+void Table::_report_bios_rom_size(Xml_generator &xml,
+                                  uint8_t  code_1,
+                                  uint16_t code_2) const
 {
 	xml.node("rom-size", [&] () {
 		if (code_1 != 0xff) {
@@ -406,7 +394,7 @@ void Table::_report_bios_rom_size(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_string_set_item(Reporter::Xml_generator &xml,
+void Table::_report_string_set_item(Xml_generator           &xml,
                                     Smbios_structure  const &header,
                                     char              const *type,
                                     unsigned                 idx) const
@@ -416,8 +404,7 @@ void Table::_report_string_set_item(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_bios(Reporter::Xml_generator &xml,
-                         Smbios_structure  const &header) const
+void Table::_report_bios(Xml_generator &xml, Smbios_structure const &header) const
 {
 	uint8_t const *data { (uint8_t *)&header };
 	xml.attribute("description", "BIOS Information");
@@ -472,8 +459,7 @@ void Table::_report_bios(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_system_uuid(Reporter::Xml_generator &xml,
-                                uint8_t const           *data) const
+void Table::_report_system_uuid(Xml_generator &xml, uint8_t const *data) const
 {
 	bool only_zeros { true };
 	bool only_ones  { true };
@@ -553,9 +539,9 @@ const char *Table::_base_board_type(uint8_t idx) const
 }
 
 
-void Table::_report_base_board_handles(Reporter::Xml_generator &xml,
-                                       uint8_t                  count,
-                                       uint8_t           const *data) const
+void Table::_report_base_board_handles(Xml_generator &xml,
+                                       uint8_t        count,
+                                       uint8_t const *data) const
 {
 	for (uint8_t idx = 0; idx < count; idx++) {
 		xml.node("contained-object-handle", [&] () {
@@ -566,8 +552,8 @@ void Table::_report_base_board_handles(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_base_board(Reporter::Xml_generator &xml,
-                               Smbios_structure  const &header) const
+void Table::_report_base_board(Xml_generator &xml,
+                               Smbios_structure const &header) const
 {
 	xml.attribute("name", "Base Board Information");
 	if (header.length < 8) {
@@ -605,7 +591,7 @@ void Table::_report_base_board(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_system(Reporter::Xml_generator &xml,
+void Table::_report_system(Xml_generator &xml,
                            Smbios_structure  const &header) const
 {
 	uint8_t const *data { (uint8_t *)&header };
@@ -630,7 +616,7 @@ void Table::_report_system(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_smbios_struct(Reporter::Xml_generator &xml,
+void Table::_report_smbios_struct(Xml_generator &xml,
                                   Smbios_structure  const &smbios_struct) const
 {
 	xml.node("structure", [&] () {
@@ -649,7 +635,7 @@ void Table::_report_smbios_struct(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_smbios_structs(Reporter::Xml_generator &xml,
+void Table::_report_smbios_structs(Xml_generator &xml,
                                    Dmi_entry_point   const &ep) const
 {
 	Smbios_structure *smbios_struct { (Smbios_structure *)(
@@ -691,7 +677,7 @@ void Table::_report_smbios_structs(Reporter::Xml_generator &xml,
 }
 
 
-void Table::_report_smbios_ep(Reporter::Xml_generator  &xml,
+void Table::_report_smbios_ep(Xml_generator &xml,
                               Smbios_entry_point const &smbios_ep) const
 {
 	/* fix weird versions reported by some systems */
@@ -722,8 +708,7 @@ void Table::_report_smbios_ep(Reporter::Xml_generator  &xml,
 }
 
 
-void Table::_report_dmi_ep(Reporter::Xml_generator &xml,
-                           Dmi_entry_point   const &ep) const
+void Table::_report_dmi_ep(Xml_generator &xml, Dmi_entry_point const &ep) const
 {
 	/* fix weird versions reported by some systems */
 	uint8_t ver_maj { (uint8_t)(ep.bcd_revision >> 4) };
@@ -740,7 +725,7 @@ void Table::_report_dmi_ep(Reporter::Xml_generator &xml,
 }
 
 
-void Table::report(Reporter::Xml_generator &xml) const
+void Table::report(Xml_generator &xml) const
 {
 
 	/* check if entry point is valid and of which type it is */

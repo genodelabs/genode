@@ -30,7 +30,7 @@ struct Nit_focus::Main
 	Attached_rom_dataspace _config_rom  { _env, "config" };
 	Attached_rom_dataspace _clicked_rom { _env, "clicked" };
 
-	Reporter _focus_reporter { _env, "focus" };
+	Expanding_reporter _focus_reporter { _env, "focus" };
 
 	void _handle_update()
 	{
@@ -43,7 +43,7 @@ struct Nit_focus::Main
 		try {
 			Session_policy const policy(label, _config_rom.xml());
 			if (policy.attribute_value("focus", true)) {
-				Reporter::Xml_generator xml(_focus_reporter, [&] () {
+				_focus_reporter.generate([&] (Xml_generator &xml) {
 					xml.attribute("label", label); });
 			}
 		}
@@ -56,7 +56,6 @@ struct Nit_focus::Main
 	Main(Env &env) : _env(env)
 	{
 		_clicked_rom.sigh(_update_handler);
-		_focus_reporter.enabled(true);
 		_handle_update();
 	}
 };

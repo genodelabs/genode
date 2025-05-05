@@ -1698,7 +1698,7 @@ class Nvme::Driver : Genode::Noncopyable
 		void _report_namespaces(Nvme::Controller &ctrlr)
 		{
 			try {
-				Genode::Reporter::Xml_generator xml(_namespace_reporter, [&]() {
+				(void)_namespace_reporter.generate([&] (Xml_generator &xml) {
 					Nvme::Controller::Info const &info = ctrlr.info();
 
 					xml.attribute("serial", info.sn);

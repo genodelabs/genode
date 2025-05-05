@@ -159,16 +159,14 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 			if (result.hover_changed)
 				_hover_updater.update_hover();
 
-			if (result.touch_changed) {
-				Reporter::Xml_generator xml(_touch_reporter, [&] {
+			if (result.touch_changed)
+				(void)_touch_reporter.generate([&] (Xml_generator &xml) {
 					_user_state.report_touched_view_owner(xml, false); });
-			}
 
 			/* report focus changes */
-			if (_focus_reporter.enabled() && result.focus_changed) {
-				Reporter::Xml_generator xml(_focus_reporter, [&] () {
+			if (_focus_reporter.enabled() && result.focus_changed)
+				(void)_focus_reporter.generate([&] (Xml_generator &xml) {
 					_user_state.report_focused_view_owner(xml, false); });
-			}
 		}
 
 	public:
@@ -670,12 +668,10 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	void _generate_hover_report()
 	{
-		if (_hover_reporter.enabled()) {
-			Reporter::Xml_generator xml(_hover_reporter, [&] () {
+		if (_hover_reporter.enabled())
+			(void)_hover_reporter.generate([&] (Xml_generator &xml) {
 				_user_state.report_hovered_view_owner(xml, false);
-				_user_state.report_pointer_position(xml);
-			});
-		}
+				_user_state.report_pointer_position(xml); });
 	}
 
 	Signal_handler<Main> _damage_handler { _env.ep(), *this, &Main::_handle_damage };
@@ -958,19 +954,17 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 	 * Report information about currently pressed keys whenever the key state
 	 * is affected by the incoming events.
 	 */
-	if (_keystate_reporter.enabled() && result.key_state_affected) {
-		Reporter::Xml_generator xml(_keystate_reporter, [&] () {
+	if (_keystate_reporter.enabled() && result.key_state_affected)
+		(void)_keystate_reporter.generate([&] (Xml_generator &xml) {
 			_user_state.report_keystate(xml); });
-	}
 
 	/*
 	 * Report whenever a non-focused view owner received a click. This report
 	 * can be consumed by a focus-managing component.
 	 */
-	if (_clicked_reporter.enabled() && result.last_clicked_changed) {
-		Reporter::Xml_generator xml(_clicked_reporter, [&] () {
+	if (_clicked_reporter.enabled() && result.last_clicked_changed)
+		(void)_clicked_reporter.generate([&] (Xml_generator &xml) {
 			_user_state.report_last_clicked_view_owner(xml); });
-	}
 
 	if (result.focus_changed) {
 		_focus_count++;
@@ -984,10 +978,9 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 		_hover_count++;
 
 	/* report mouse-position updates */
-	if (_pointer_reporter.enabled() && result.motion_activity) {
-		Reporter::Xml_generator xml(_pointer_reporter, [&] () {
+	if (_pointer_reporter.enabled() && result.motion_activity)
+		(void)_pointer_reporter.generate([&] (Xml_generator &xml) {
 			_user_state.report_pointer_position(xml); });
-	}
 
 	/* update pointer position */
 	if (result.motion_activity)
@@ -1006,24 +999,21 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 	bool const touch_activity  = (now.ms - _last_touch_activity .ms < _activity_threshold.ms);
 
 	bool const hover_changed = (_reported_hover_count != _hover_count);
-	if (hover_changed || (_reported_motion_activity != motion_activity)) {
-		Reporter::Xml_generator xml(_hover_reporter, [&] {
+	if (hover_changed || (_reported_motion_activity != motion_activity))
+		(void)_hover_reporter.generate([&] (Xml_generator &xml) {
 			_user_state.report_hovered_view_owner(xml, motion_activity);
 			_user_state.report_pointer_position(xml);
 		});
-	}
 
 	bool const focus_changed = (_reported_focus_count != _focus_count);
-	if (focus_changed || (_reported_button_activity != button_activity)) {
-		Reporter::Xml_generator xml(_focus_reporter, [&] {
+	if (focus_changed || (_reported_button_activity != button_activity))
+		(void)_focus_reporter.generate([&] (Xml_generator &xml) {
 			_user_state.report_focused_view_owner(xml, button_activity); });
-	}
 
 	bool const touch_changed = (_reported_touch_count != _touch_count);
-	if (touch_changed || (_reported_touch_activity != touch_activity)) {
-		Reporter::Xml_generator xml(_touch_reporter, [&] {
+	if (touch_changed || (_reported_touch_activity != touch_activity))
+		(void)_touch_reporter.generate([&] (Xml_generator &xml) {
 			_user_state.report_touched_view_owner(xml, touch_activity); });
-	}
 
 	_reported_motion_activity = motion_activity;
 	_reported_button_activity = button_activity;
@@ -1147,7 +1137,7 @@ void Nitpicker::Main::_handle_config()
 	_view_stack.update_all_views();
 
 	/* update focus report since the domain colors might have changed */
-	Reporter::Xml_generator xml(_focus_reporter, [&] () {
+	(void)_focus_reporter.generate([&] (Xml_generator &xml) {
 		bool const button_activity = (_now().ms - _last_button_activity.ms < _activity_threshold.ms);
 		_user_state.report_focused_view_owner(xml, button_activity); });
 
@@ -1174,7 +1164,7 @@ void Nitpicker::Main::_report_panorama()
 	if (!_panorama_reporter.enabled())
 		return;
 
-	Reporter::Xml_generator xml(_panorama_reporter, [&] () {
+	(void)_panorama_reporter.generate([&] (Xml_generator &xml) {
 		if (_fb_screen.constructed())
 			xml.node("panorama", [&] { gen_attr(xml, _fb_screen->_rect); });
 

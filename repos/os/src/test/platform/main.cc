@@ -56,9 +56,10 @@ struct Main
 		}
 	};
 
-	Env      & env;
-	Reporter   config_reporter { env, "config"  };
-	Reporter   device_reporter { env, "devices" };
+	Env &env;
+
+	Expanding_reporter config_reporter { env, "config"  };
+	Expanding_reporter device_reporter { env, "devices" };
 
 	Reconstructible<Platform::Connection> platform { env };
 
@@ -73,8 +74,8 @@ struct Main
 	{
 		state++;
 
-		Reporter::Xml_generator devs(device_reporter, [&] ()
-		{
+		device_reporter.generate([&] (Xml_generator &devs) {
+
 			for (unsigned idx = 0; idx < total; idx++) {
 				devs.node("device", [&]
 				{
@@ -94,8 +95,8 @@ struct Main
 			}
 		});
 
-		Reporter::Xml_generator cfg(config_reporter, [&] ()
-		{
+		config_reporter.generate([&] (Xml_generator &cfg) {
+
 			cfg.node("report", [&]
 			{
 				cfg.attribute("devices", true);
@@ -196,7 +197,7 @@ struct Main
 			{
 				Platform::Device dev (*platform, Platform::Device::Type({"dummy-device"}));
 				if (dev._cap.valid()) log("Found next valid device of dummy type");
-				Reporter::Xml_generator xml(config_reporter, [&] {
+				config_reporter.generate([&] (Xml_generator &xml) {
 					xml.node("default-policy", [&] { }); });
 				break;
 			}
@@ -223,8 +224,6 @@ struct Main
 	Main(Env &env) : env(env)
 	{
 		platform->sigh(device_rom_handler);
-		config_reporter.enabled(true);
-		device_reporter.enabled(true);
 		step();
 	}
 };

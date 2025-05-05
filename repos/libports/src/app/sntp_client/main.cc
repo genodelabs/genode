@@ -79,7 +79,7 @@ class Main : public Nic_handler,
 		Reconstructible<Ipv4_config>    _ip_config     { _config.attribute_value("interface", Ipv4_address_prefix()),
 		                                                 _config.attribute_value("gateway",   Ipv4_address()),
 		                                                 _config.attribute_value("dns-server",   Ipv4_address()) };
-		Reporter reporter                              { _env, "set_rtc" };
+		Expanding_reporter reporter                    { _env, "set_rtc" };
 
 		Sntp_timestamp _rtc_ts_to_sntp_ts(Rtc::Timestamp const rtc_ts)
 		{
@@ -181,8 +181,6 @@ Main::Main(Env &env) : _env(env)
 	/* else, start the DHCP client for requesting an IP config */
 	else {
 		_dhcp_client.construct(_heap, _timer, _nic, *this); }
-
-	reporter.enabled(true);
 }
 
 
@@ -285,7 +283,7 @@ void Main::_handle_udp(Ipv4_packet &ip,
 	}
 
 	Rtc::Timestamp rtc_ts { _sntp_ts_to_rtc_ts(sntp.transmit_timestamp()) };
-	Reporter::Xml_generator xml(reporter, [&] () {
+	reporter.generate([&] (Xml_generator &xml) {
 		xml.attribute("year",   rtc_ts.year);
 		xml.attribute("month",  rtc_ts.month);
 		xml.attribute("day",    rtc_ts.day);

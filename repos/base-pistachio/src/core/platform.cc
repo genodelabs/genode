@@ -644,13 +644,15 @@ Core::Platform::Platform()
 			init_core_log(Core_log_range { (addr_t)core_local_ptr, size } ); });
 
 	/* export platform specific infos */
-	export_page_as_rom_module("platform_info",
-		[&] (void *core_local_ptr, size_t size) {
-			Xml_generator xml(reinterpret_cast<char *>(core_local_ptr),
-			                  size, "platform_info",
-				[&] {
-					xml.node("kernel", [&] {
-						xml.attribute("name", "pistachio"); }); }); });
+	export_page_as_rom_module("platform_info", [&] (void *core_local_ptr, size_t size) {
+		Byte_range_ptr dst { reinterpret_cast<char *>(core_local_ptr), size };
+		Xml_generator::generate(dst, "platform_info", [&] (Xml_generator &xml) {
+			xml.node("kernel", [&] {
+				xml.attribute("name", "pistachio"); }); }
+		).with_error([] (Buffer_error) {
+			error("platform_info exceeds maximum buffer size");
+		});
+	});
 }
 
 

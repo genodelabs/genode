@@ -653,11 +653,11 @@ class Root : Sliced_heap, public Root_component<Session_component>
 		Attached_rom_dataspace      _config   { _env, "config"  };
 		Signal_handler<Root>        _config_handler { _env.ep(), *this,
 		                                              &Root::_config_update };
-		Reporter                    _config_reporter { _env, "config"  };
 		Reg_list<genode_usb_device> _devices {};
 		bool                        _announced { false };
 
-		Constructible<Expanding_reporter> _device_reporter {};
+		Constructible<Expanding_reporter> _config_reporter { };
+		Constructible<Expanding_reporter> _device_reporter { };
 		Reg_list<Session_component>       _sessions {};
 
 		genode_shared_dataspace_alloc_attach_t _alloc_fn;
@@ -1568,7 +1568,7 @@ void ::Root::report()
 	if (!_device_reporter.constructed())
 		return;
 
-	_device_reporter->generate([&] (Reporter::Xml_generator &xml) {
+	_device_reporter->generate([&] (Xml_generator &xml) {
 		_devices.for_each([&] (genode_usb_device & d) {
 			bool acquired = false;
 			_sessions.apply(
@@ -1598,20 +1598,21 @@ void ::Root::_config_update()
 	_config.xml().with_optional_sub_node("report", [&] (Xml_node const &node) {
 		_device_reporter.conditional(node.attribute_value("devices", false),
 		                             _env, "devices", "devices" );
-
-		_config_reporter.enabled(node.attribute_value("config", false));
+		_config_reporter.conditional(node.attribute_value("config", false),
+		                             _env, "config");
 	});
 
 	/*
 	 * Report the own configuration to show management component
 	 * that we've consumed the configuration
 	 */
-	Reporter::Xml_generator xml(_config_reporter, [&] {
-		xml.attribute("bios_handoff",
-		              _config.xml().attribute_value("bios_handoff", true));
-		_config.xml().with_raw_content([&] (char const *start, size_t len) {
-			xml.append(start, len); });
-	});
+	if (_config_reporter.constructed())
+		_config_reporter->generate([&] (Xml_generator &xml) {
+			xml.attribute("bios_handoff",
+			              _config.xml().attribute_value("bios_handoff", true));
+			_config.xml().with_raw_content([&] (char const *start, size_t len) {
+				xml.append(start, len); });
+		});
 
 	_announce_service();
 

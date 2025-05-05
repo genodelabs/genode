@@ -132,8 +132,8 @@ struct Virtdev_rom::Main
 	{
 		Attached_dataspace ds(_env.rm(), _ds);
 
-		Xml_generator xml(ds.local_addr<char>(), ds.size(), "devices", [&] ()
-		{
+		Xml_generator::generate(ds.bytes(), "devices", [&] (Xml_generator &xml) {
+
 			uint8_t device_type_idx[Device::Id::MAX_VAL] = { 0 };
 
 			for (size_t idx = 0; idx < NUM_VIRTIO_TRANSPORTS; ++idx) {
@@ -164,7 +164,8 @@ struct Virtdev_rom::Main
 					});
 				});
 			}
-		});
+		}).with_error([] (Buffer_error) {
+			warning("devices info exceeds maximum buffer size"); });
 	}
 
 	Main(Env &env) : _env(env)

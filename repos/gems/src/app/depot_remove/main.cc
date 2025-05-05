@@ -197,7 +197,7 @@ class Depot_remove::Archive_remover
 
 		void generate_report(Expanding_reporter &reporter) const
 		{
-			reporter.generate([&](Reporter::Xml_generator &xml) {
+			reporter.generate([&](Xml_generator &xml) {
 				_deleted_archives.for_each([&] (auto &path) {
 					xml.node("removed", [&]() {
 						xml.attribute("path", path); }); }); });

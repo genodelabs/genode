@@ -151,7 +151,8 @@ struct App::Main
 
 	Trace::Connection _trace { _env, 128*1024, 32*1024 };
 
-	Reporter _reporter { _env, "trace_subjects", "trace_subjects", 64*1024 };
+	Expanding_reporter _reporter { _env, "trace_subjects", "trace_subjects",
+	                               Expanding_reporter::Initial_buffer_size { 64*1024 } };
 
 	static uint64_t _default_period_ms() { return 5000; }
 
@@ -191,8 +192,6 @@ struct App::Main
 		_handle_config();
 
 		_timer.sigh(_periodic_handler);
-
-		_reporter.enabled(true);
 	}
 };
 
@@ -216,9 +215,7 @@ void App::Main::_handle_period()
 	_trace_subject_registry.update(_trace, _heap);
 
 	/* generate report */
-	_reporter.clear();
-	Genode::Reporter::Xml_generator xml(_reporter, [&] ()
-	{
+	_reporter.generate([&] (Xml_generator &xml) {
 		_trace_subject_registry.report(xml, _report_affinity, _report_activity);
 	});
 }

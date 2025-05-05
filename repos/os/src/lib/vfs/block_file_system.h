@@ -454,9 +454,12 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		void print(Genode::Output &out) const
 		{
 			char buf[128] { };
-			Genode::Xml_generator xml(buf, sizeof(buf), "block", [&] () {
-				xml.attribute("count", Block::Session::Info::block_count);
-				xml.attribute("size",  Block::Session::Info::block_size);
+			Genode::Xml_generator::generate({ buf, sizeof(buf) }, "block",
+				[&] (Genode::Xml_generator &xml) {
+					xml.attribute("count", Block::Session::Info::block_count);
+					xml.attribute("size",  Block::Session::Info::block_size);
+			}).with_error([] (Genode::Buffer_error) {
+				Genode::warning("VFS-block info exceeds maximum buffer size");
 			});
 			Genode::print(out, Genode::Cstring(buf));
 		}
@@ -529,17 +532,20 @@ class Vfs::Block_file_system::Compound_file_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Xml_generator xml(buf, sizeof(buf), "compound", [&] () {
+			Genode::Xml_generator::generate({ buf, sizeof(buf) }, "compound",
+				[&] (Genode::Xml_generator &xml) {
 
-				xml.node("data", [&] () {
-					xml.attribute("name", name); });
+					xml.node("data", [&] { xml.attribute("name", name); });
 
-				xml.node("dir", [&] () {
-					xml.attribute("name", Name(".", name));
-					xml.node("info",  [&] () {});
-					xml.node("block_count", [&] () {});
-					xml.node("block_size",  [&] () {});
-				});
+					xml.node("dir", [&] {
+						xml.attribute("name", Name(".", name));
+						xml.node("info");
+						xml.node("block_count");
+						xml.node("block_size");
+					});
+
+			}).with_error([&] (Genode::Buffer_error) {
+				Genode::warning("VFS-block compound exceeds maximum buffer size");
 			});
 
 			return Config(Genode::Cstring(buf));

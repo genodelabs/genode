@@ -102,7 +102,8 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 		{
 			char buf[Config::capacity()] { };
 
-			Xml_generator xml(buf, sizeof(buf), type_name(), [&] () { });
+			(void)Xml_generator::generate({ buf, sizeof(buf) }, type_name(),
+				[&] (Xml_generator &) { });
 
 			return Config(Cstring(buf));
 		}
@@ -309,11 +310,15 @@ class Vfs_trace::Subject : private Subject_factory,
 		{
 			char buf[Config::capacity()] { };
 
-			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
-				xml.attribute("name", node.attribute_value("name", Vfs_trace::Name()));
-				xml.node("value", [&] () { xml.attribute("name", "enable"); });
-				xml.node("value", [&] () { xml.attribute("name", "buffer_size"); });
-				xml.node(Trace_buffer_file_system::type_name(), [&] () {});
+			Xml_generator::generate({ buf, sizeof(buf) }, "dir",
+				[&] (Xml_generator &xml) {
+
+					xml.attribute("name", node.attribute_value("name", Vfs_trace::Name()));
+					xml.node("value", [&] () { xml.attribute("name", "enable"); });
+					xml.node("value", [&] () { xml.attribute("name", "buffer_size"); });
+					xml.node(Trace_buffer_file_system::type_name(), [&] () {});
+			}).with_error([] (Genode::Buffer_error) {
+				warning("VFS-trace compound exceeds maximum buffer size");
 			});
 
 			return Config(Cstring(buf));
@@ -445,9 +450,11 @@ class Vfs_trace::File_system : private Local_factory,
 		static char const *_config(Vfs::Env &vfs_env, Trace_directory &directory)
 		{
 			char *buf = (char *)vfs_env.alloc().alloc(Config::capacity());
-			Xml_generator xml(buf, Config::capacity(), "node", [&] () {
-				directory.xml(xml);
-			});
+
+			Xml_generator::generate({ buf, sizeof(buf) }, "node",
+				[&] (Xml_generator &xml) { directory.xml(xml); }
+			).with_error([&] (Genode::Buffer_error) {
+				warning("VFS-trace node exceeds maximum buffer size"); });
 
 			return buf;
 		}

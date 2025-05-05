@@ -108,7 +108,7 @@ class Root : public Root_component<genode_block_session>
 		Env                         & _env;
 		Signal_context_capability     _sigh_cap;
 		Constructible<Buffered_xml>   _config   { };
-		Reporter                      _reporter { _env, "block_devices" };
+		Expanding_reporter            _reporter { _env, "block_devices" };
 		Constructible<Session_info>   _sessions[MAX_BLOCK_DEVICES];
 		bool                          _announced     { false };
 		bool                          _report_needed { false };
@@ -290,8 +290,7 @@ void ::Root::_report()
 	if (!_report_needed)
 		return;
 
-	_reporter.enabled(true);
-	Reporter::Xml_generator xml(_reporter, [&] () {
+	_reporter.generate([&] (Xml_generator &xml) {
 		_for_each_session_info([&] (Session_info & si) {
 			xml.node("device", [&] {
 				xml.attribute("label",       si.name);

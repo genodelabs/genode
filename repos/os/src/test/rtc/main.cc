@@ -55,13 +55,12 @@ struct Main
 		_parent_exit(exit_code);
 	}
 
-	Constructible<Reporter> _reporter { };
+	Constructible<Expanding_reporter> _reporter { };
 
 	void _test_update(Xml_node const &config)
 	{
 		try {
 			_reporter.construct(_env, "set_rtc");
-			_reporter->enabled(true);
 
 			rtc1.set_sigh(_set_sigh);
 
@@ -75,7 +74,7 @@ struct Main
 
 			_ts = ts;
 
-			Reporter::Xml_generator xml(*_reporter, [&] () {
+			_reporter->generate([&] (Xml_generator &xml) {
 				xml.attribute("year",   ts.year);
 				xml.attribute("month",  ts.month);
 				xml.attribute("day",    ts.day);

@@ -47,9 +47,9 @@ void Acpi::Intel_opregion::generate_report(Genode::Env &env,
 
 		/* create report */
 		_report.construct(env, "intel_opregion", "intel_opregion",
-		                  report_ds.size());
-		_report->enabled(true);
-		_report->report(report_mem.local_addr<void>(), report_ds.size());
+		                  Expanding_reporter::Initial_buffer_size { report_ds.size() });
+		_report->generate(Const_byte_range_ptr { report_mem.local_addr<char>(),
+		                                         report_ds.size() });
 
 	} catch (...) {
 		Genode::warning("Intel opregion region copy failed");

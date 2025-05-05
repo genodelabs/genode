@@ -67,7 +67,7 @@ class App_bar : public Compound_widget<QWidget, QHBoxLayout>
 	private:
 
 		Genode::Attached_rom_dataspace _apps;
-		Genode::Reporter               _content_request;
+		Genode::Expanding_reporter     _content_request;
 
 		QMember<QButtonGroup>        _button_group;
 		QMember<Genode_signal_proxy> _apps_proxy;
@@ -92,7 +92,7 @@ class Panel : public Compound_widget<QWidget, QHBoxLayout>
 	private:
 
 		Genode::Attached_rom_dataspace _overlay;
-		Genode::Reporter               _overlay_request;
+		Genode::Expanding_reporter     _overlay_request;
 
 		QMember<Panel_button> _panel_button;
 		QMember<App_bar>      _app_bar;

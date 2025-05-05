@@ -103,12 +103,15 @@ struct Libc::Child_config
 		config_accessor.with_config([&] (Xml_node const &config) {
 
 			for (size_t buffer_size = 4096; ; buffer_size += 4096) {
+
 				_ds.construct(env.ram(), env.rm(), buffer_size);
-				Xml_generator
-					xml(_ds->local_addr<char>(), buffer_size, "config", [&] {
+
+				Xml_generator::Result const result =
+					Xml_generator::generate({ _ds->local_addr<char>(), buffer_size, },
+					                        "config", [&] (Xml_generator &xml) {
 						_generate(xml, config, fd_alloc); });
 
-				if (!xml.exceeded())
+				if (result.ok())
 					break;
 			}
 		});

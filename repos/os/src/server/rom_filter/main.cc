@@ -361,10 +361,12 @@ void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
 
 void Rom_filter::Main::_evaluate()
 {
+	using namespace Genode;
+
 	_config.xml().with_optional_sub_node("output", [&] (Xml_node const &output) {
 
 		if (!output.has_attribute("node")) {
-			Genode::error("missing 'node' attribute in '<output>' node");
+			error("missing 'node' attribute in '<output>' node");
 			return;
 		}
 
@@ -373,13 +375,16 @@ void Rom_filter::Main::_evaluate()
 
 		/* generate output, expand dataspace on demand */
 		for (;;) {
-			Xml_generator xml(_xml_ds->local_addr<char>(),
-			                  _xml_ds->size(), node_type.string(),
-			                  [&] { _evaluate_node(output, xml); });
-			if (!xml.exceeded()) {
-				_xml_output_len = xml.used();
+			Xml_generator::Result const result =
+				Xml_generator::generate(_xml_ds->bytes(), node_type,
+					[&] (Xml_generator &xml) { _evaluate_node(output, xml); });
+
+			_xml_output_len =
+				result.convert<size_t>([&] (size_t used)  { return used; },
+				                       [&] (Buffer_error) { return 0ul; });
+			if (result.ok())
 				break;
-			}
+
 			_xml_ds.construct(_env.ram(), _env.rm(), _xml_ds->size() + 4096);
 		}
 	});

@@ -221,14 +221,12 @@ class Vfs_capture::File_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Xml_generator xml(buf, sizeof(buf), "compound", [&] () {
-
-				xml.node("data", [&] () {
-					xml.attribute("name", name); });
-
-				xml.node("dir", [&] () {
-					xml.attribute("name", Name(".", name));
-				});
+			Genode::Xml_generator::generate({ buf, sizeof(buf) }, "compound",
+				[&] (Genode::Xml_generator &xml) {
+					xml.node("data", [&] { xml.attribute("name", name); });
+					xml.node("dir",  [&] { xml.attribute("name", Name(".", name)); });
+			}).with_error([] (Genode::Buffer_error) {
+				Genode::warning("VFS-capture compound exceeds maximum buffer size");
 			});
 
 			return Config(Genode::Cstring(buf));

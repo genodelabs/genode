@@ -128,7 +128,8 @@ struct Main
 	Heap                         _heap       { _env.ram(), _env.rm() };
 	Attached_rom_dataspace       _config_rom { _env, "config" };
 	Constructible<Uplink_client> _uplink     { };
-	Constructible<Reporter>      _reporter   { };
+
+	Constructible<Expanding_reporter> _reporter { };
 
 	Main(Env &env) : _env(env)
 	{
@@ -150,9 +151,8 @@ struct Main
 				return;
 
 			_reporter.construct(_env, "devices");
-			_reporter->enabled(true);
 
-			Reporter::Xml_generator report(*_reporter, [&] () {
+			_reporter->generate([&] (Xml_generator &report) {
 				report.node("nic", [&] () {
 					report.attribute("mac_address", String<32>(_uplink->mac_address()));
 				});

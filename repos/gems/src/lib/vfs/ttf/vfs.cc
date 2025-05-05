@@ -169,14 +169,16 @@ class Vfs_ttf::File_system : private Local_factory,
 		{
 			char buf[Config::capacity()] { };
 
-			Xml_generator xml(buf, sizeof(buf), "dir", [&] () {
+			Xml_generator::generate({ buf, sizeof(buf) }, "dir", [&] (Xml_generator &xml) {
 				using Name = String<64>;
 				xml.attribute("name", node.attribute_value("name", Name()));
-				xml.node("glyphs", [&] () { });
-				xml.node("readonly_value", [&] () { xml.attribute("name", "baseline");   });
-				xml.node("readonly_value", [&] () { xml.attribute("name", "height");     });
-				xml.node("readonly_value", [&] () { xml.attribute("name", "max_width");  });
-				xml.node("readonly_value", [&] () { xml.attribute("name", "max_height"); });
+				xml.node("glyphs");
+				xml.node("readonly_value", [&] { xml.attribute("name", "baseline");   });
+				xml.node("readonly_value", [&] { xml.attribute("name", "height");     });
+				xml.node("readonly_value", [&] { xml.attribute("name", "max_width");  });
+				xml.node("readonly_value", [&] { xml.attribute("name", "max_height"); });
+			}).with_error([] (Genode::Buffer_error) {
+				Genode::warning("VFS-TTF compound exceeds maximum buffer size");
 			});
 			return Config(Cstring(buf));
 		}
