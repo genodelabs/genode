@@ -2003,17 +2003,19 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			return valid;
 		}
 
-		template <typename FN>
-		void _apply_vram_local(Gpu::Vram_id id, FN const &fn)
+		auto _apply_vram_local(Gpu::Vram_id id, auto const &fn,
+		                                        auto const &missing_fn) -> decltype(missing_fn())
 		{
 			Vram_local::Id_space::Id local_id { .value = id.value };
-			try {
-				_vram_space.apply<Vram_local>(local_id, [&] (Vram_local &vram) {
-					fn(vram);
-				});
-			} catch (Vram_local::Id_space::Unknown_id) {
-				error("Unknown id: ", id.value);
-			}
+			return _vram_space.apply<Vram_local>(local_id,
+				[&] (Vram_local &vram) { return fn(vram); },
+				[&]                    { return missing_fn(); });
+		}
+
+		bool _id_conflict(Gpu::Vram_id id)
+		{
+			return _apply_vram_local(id, [] (Vram_local &) { return true;  },
+			                             []                { return false; });
 		}
 
 		Genode::uint64_t seqno { 0 };
@@ -2167,7 +2169,8 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					return;
 
 				found = _vgpu.setup_ring_vram(ppgtt_va);
-			});
+
+			}, [&] { warning("unknown Vram_id ", id); });
 
 			if (dev_offline && ppgtt_va_valid) {
 				/* add vGPU to the delayed list, resumed after dev is re-acquired */
@@ -2223,14 +2226,14 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			Vram *vram                      = new (&_heap) Vram(ds_cap, phys_addr, _owner);
 			_env.ep().manage(*vram);
 
-			try {
-				new (&_heap) Vram_local(vram->cap(), size, _vram_space, id);
-			} catch (Id_space<Vram_local>::Conflicting_id) {
+			if (_id_conflict(id)) {
 				_env.ep().dissolve(*vram);
 				destroy(&_heap, vram);
 				_device.free_vram(_heap, ds_cap);
 				return Dataspace_capability();
 			}
+
+			new (&_heap) Vram_local(vram->cap(), size, _vram_space, id);
 
 			size_t caps_after = _env.pd().avail_caps().value;
 			size_t ram_after  = _env.pd().avail_ram().value;
@@ -2267,16 +2270,18 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				_free_local_vram(vram_local);
 			};
 
-			_apply_vram_local(id, lookup_and_free);
+			_apply_vram_local(id, lookup_and_free, [] { });
 		}
 
 		Vram_capability export_vram(Vram_id id) override
 		{
 			Vram_capability cap { };
-			_apply_vram_local(id, [&] (Vram_local &vram_local) {
-				if (_vram_valid(vram_local.vram_cap))
-					cap = vram_local.vram_cap;
-			});
+			_apply_vram_local(id,
+				[&] (Vram_local &vram_local) {
+					if (_vram_valid(vram_local.vram_cap))
+						cap = vram_local.vram_cap;
+				},
+				[&] { warning("attempt to export unknown Vram_id ", id); });
 			return cap;
 		}
 
@@ -2285,14 +2290,15 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			if (_vram_valid(cap) == false)
 				throw Gpu::Session::Invalid_state();
 
+			if (_id_conflict(id))
+				throw Gpu::Session::Conflicting_id();
+
 			try {
 				Vram_local *vram_local = new (_heap) Vram_local(cap, 0, _vram_space, id);
 
-				_apply_vram(*vram_local, [&](Vram &vram) {
-					vram_local->size = vram.size; return false; });
+				_apply_vram(*vram_local,
+					[&](Vram &vram) { vram_local->size = vram.size; return false; });
 
-			} catch (Id_space<Vram_local>::Conflicting_id) {
-				throw Gpu::Session::Conflicting_id();
 			} catch (Cap_quota_guard::Limit_exceeded) {
 				throw Gpu::Session::Out_of_caps();
 			} catch (Ram_quota_guard::Limit_exceeded) {
@@ -2355,7 +2361,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			size_t caps_before = _env.pd().avail_caps().value;
 			size_t ram_before  = _env.pd().avail_ram().value;
 
-			_apply_vram_local(id, lookup_and_map);
+			_apply_vram_local(id, lookup_and_map, [] { });
 
 			size_t caps_after = _env.pd().avail_caps().value;
 			size_t ram_after  = _env.pd().avail_ram().value;
@@ -2383,7 +2389,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					[&] () { error("VRAM: nothing mapped at offset ", Hex(offset)); }
 				);
 			};
-			_apply_vram_local(id, lookup_and_unmap);
+			_apply_vram_local(id, lookup_and_unmap, [] { });
 		}
 
 		bool set_tiling_gpu(Vram_id id, off_t offset, unsigned mode) override
@@ -2412,9 +2418,9 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 				return false;
 			};
 
-			_apply_vram_local(id, [&](Vram_local &vram_local) {
-				_apply_vram(vram_local, lookup);
-			});
+			_apply_vram_local(id,
+				[&] (Vram_local &vram_local) { _apply_vram(vram_local, lookup); },
+				[&] { warning("attempt to set tiling for unknown Vram_id ", id); });
 
 			if (v == nullptr) {
 				Genode::error("attempt to set tiling for non-mapped or non-owned vram");
