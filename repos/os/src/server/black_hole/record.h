@@ -85,12 +85,12 @@ class Black_hole::Record_root : public Root_component<Record_session>
 
 	protected:
 
-		Record_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			if (session_resources_from_args(args).ram_quota.value < Record::Session::DATASPACE_SIZE)
 				throw Insufficient_ram_quota();
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Record_session(_env,
 				             session_resources_from_args(args),
 				             session_label_from_args(args),

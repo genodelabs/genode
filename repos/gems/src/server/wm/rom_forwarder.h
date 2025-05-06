@@ -68,16 +68,16 @@ struct Wm::Rom_forwarder
 		Env       &_env;
 		Allocator &_alloc;
 
-		Session *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
-			return new (md_alloc()) Session(_env, session_resources_from_args(args),
-			                                      session_label_from_args(args),
-			                                      session_diag_from_args(args));
+			return *new (md_alloc()) Session(_env, session_resources_from_args(args),
+			                                       session_label_from_args(args),
+			                                       session_diag_from_args(args));
 		}
 
-		void _upgrade_session(Session *session, const char *args) override
+		void _upgrade_session(Session &s, const char *args) override
 		{
-			session->upgrade(session_resources_from_args(args));
+			s.upgrade(session_resources_from_args(args));
 		}
 
 		Root(Env &env, Allocator &alloc)

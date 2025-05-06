@@ -133,12 +133,12 @@ class Rom_filter::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
 			/*
 			 * We ignore the name of the ROM module requested
 			 */
-			return new (md_alloc()) Session_component(_env, _sessions, _output_buffer);
+			return *new (md_alloc()) Session_component(_env, _sessions, _output_buffer);
 		}
 
 	public:

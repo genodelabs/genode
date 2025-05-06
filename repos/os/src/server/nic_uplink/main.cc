@@ -214,8 +214,8 @@ class Net::Uplink_session_root
 		 ** Root_component **
 		 ********************/
 
-		Uplink_session_component *_create_session(char const *args) override;
-		void _destroy_session(Uplink_session_component *session) override;
+		Create_result _create_session(char const *args) override;
+		void _destroy_session(Uplink_session_component &) override;
 
 	public:
 
@@ -313,8 +313,8 @@ class Net::Nic_session_root
 		 ** Root_component **
 		 ********************/
 
-		Nic_session_component *_create_session(char const *args) override;
-		void _destroy_session(Nic_session_component *session) override;
+		Create_result _create_session(char const *args) override;
+		void _destroy_session(Nic_session_component &) override;
 
 	public:
 
@@ -584,7 +584,7 @@ Net::Uplink_session_root::Uplink_session_root(Env &env,
 { }
 
 
-Uplink_session_component *
+Net::Uplink_session_root::Create_result
 Net::Uplink_session_root::_create_session(char const *args)
 {
 	Session_creation<Uplink_session_component> session_creation { };
@@ -593,7 +593,7 @@ Net::Uplink_session_root::_create_session(char const *args)
 		throw Service_denied();
 	}
 	try {
-		return session_creation.execute(
+		return *session_creation.execute(
 			_env, _shared_quota, args,
 			[&] (Session_env &session_env, void *session_at, Ram_dataspace_capability ram_ds)
 			{
@@ -634,18 +634,18 @@ Net::Uplink_session_root::_create_session(char const *args)
 	}
 }
 
-void Net::Uplink_session_root::_destroy_session(Uplink_session_component *session_ptr)
+void Net::Uplink_session_root::_destroy_session(Uplink_session_component &session)
 {
-	_main.dissolve_uplink_session(*session_ptr);
+	_main.dissolve_uplink_session(session);
 
 	/* read out initial dataspace and session env and destruct session */
-	Ram_dataspace_capability ram_ds { session_ptr->ram_ds() };
-	Session_env const &session_env { session_ptr->session_env() };
-	session_ptr->~Uplink_session_component();
+	Ram_dataspace_capability ram_ds { session.ram_ds() };
+	Session_env const &session_env { session.session_env() };
+	session.~Uplink_session_component();
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
-	session_env_stack.detach(addr_t(session_ptr));
+	session_env_stack.detach(addr_t(&session));
 	session_env_stack.detach(addr_t(&session_env));
 	session_env_stack.free(ram_ds);
 
@@ -675,11 +675,12 @@ Net::Nic_session_root::Nic_session_root(Env &env,
 { }
 
 
-Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
+Net::Nic_session_root::Create_result
+Net::Nic_session_root::_create_session(char const *args)
 {
 	Session_creation<Nic_session_component> session_creation { };
 	try {
-		return session_creation.execute(
+		return *session_creation.execute(
 			_env, _shared_quota, args,
 			[&] (Session_env &session_env, void *session_at, Ram_dataspace_capability ram_ds)
 			{
@@ -705,18 +706,18 @@ Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
 	}
 }
 
-void Net::Nic_session_root::_destroy_session(Nic_session_component *session_ptr)
+void Net::Nic_session_root::_destroy_session(Nic_session_component &session)
 {
-	_main.dissolve_nic_session(*session_ptr);
+	_main.dissolve_nic_session(session);
 
 	/* read out initial dataspace and session env and destruct session */
-	Ram_dataspace_capability ram_ds { session_ptr->ram_ds() };
-	Session_env const &session_env { session_ptr->session_env() };
-	session_ptr->~Nic_session_component();
+	Ram_dataspace_capability ram_ds { session.ram_ds() };
+	Session_env const &session_env { session.session_env() };
+	session.~Nic_session_component();
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
-	session_env_stack.detach(addr_t(session_ptr));
+	session_env_stack.detach(addr_t(&session));
 	session_env_stack.detach(addr_t(&session_env));
 	session_env_stack.free(ram_ds);
 

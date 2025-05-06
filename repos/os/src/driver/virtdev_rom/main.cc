@@ -67,10 +67,10 @@ class Virtdev_rom::Root : public Root_component<Session_component>
 
 		Ram_dataspace_capability  _ds;
 
-		Session_component *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
 			auto cap = static_cap_cast<Dataspace>(_ds);
-			return new (md_alloc()) Session_component(
+			return *new (md_alloc()) Session_component(
 				static_cap_cast<Rom_dataspace>(cap));
 		}
 

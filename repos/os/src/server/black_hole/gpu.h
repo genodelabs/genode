@@ -135,7 +135,7 @@ class Black_hole::Gpu_root : public Gpu_root_component
 
 	protected:
 
-		Gpu_session *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
 			/* at the moment we just need about ~160KiB for initial RCS bring-up */
 			size_t const required_quota { Gpu::Session::REQUIRED_QUOTA / 2 };
@@ -153,7 +153,7 @@ class Black_hole::Gpu_root : public Gpu_root_component
 			Genode::Session::Resources const resources {
 				session_resources_from_args(args) };
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Gpu_session {
 					_env, resources, session_label_from_args(args),
 					session_diag_from_args(args) };

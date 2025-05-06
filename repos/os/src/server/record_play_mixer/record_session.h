@@ -235,12 +235,12 @@ class Mixer::Record_root : public Root_component<Record_session>
 
 	protected:
 
-		Record_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			if (session_resources_from_args(args).ram_quota.value < Record::Session::DATASPACE_SIZE)
 				throw Insufficient_ram_quota();
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Record_session(_sessions,
 				               _env,
 				               session_resources_from_args(args),
@@ -249,15 +249,15 @@ class Mixer::Record_root : public Root_component<Record_session>
 				               _operations);
 		}
 
-		void _upgrade_session(Record_session *s, const char *args) override
+		void _upgrade_session(Record_session &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Record_session *session) override
+		void _destroy_session(Record_session &s) override
 		{
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 			_operations.update_record_sessions_state();
 		}
 

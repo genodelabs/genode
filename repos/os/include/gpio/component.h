@@ -118,7 +118,7 @@ class Gpio::Root : public Genode::Root_component<Gpio::Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			unsigned pin = (unsigned)
 				Genode::Arg_string::find_arg(args, "gpio").ulong_value(0);
@@ -135,7 +135,7 @@ class Gpio::Root : public Genode::Root_component<Gpio::Session_component>
 				throw Genode::Insufficient_ram_quota();
 			}
 
-			return new (md_alloc()) Session_component(_ep, _driver, pin);
+			return *new (md_alloc()) Session_component(_ep, _driver, pin);
 		}
 
 	public:

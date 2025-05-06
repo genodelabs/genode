@@ -221,7 +221,7 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -241,7 +241,7 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 				throw Insufficient_ram_quota();
 			}
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_env, _heap, _vfs_env.io(), _vfs_env.root_dir(),
 				                  label, buffer_size);
 		}

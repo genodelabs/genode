@@ -92,7 +92,7 @@ class Nic_perf::Nic_root : public Root_component<Nic_session_component>
 
 	protected:
 
-		Nic_session_component *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
@@ -118,9 +118,9 @@ class Nic_perf::Nic_root : public Root_component<Nic_session_component>
 
 			Session_policy policy(label, _config.xml());
 
-			return new (md_alloc()) Nic_session_component(tx_buf_size, rx_buf_size,
-			                                              *md_alloc(), _env, label, policy,
-			                                              _registry, _timer);
+			return *new (md_alloc())
+				Nic_session_component(tx_buf_size, rx_buf_size, *md_alloc(),
+				                      _env, label, policy, _registry, _timer);
 		}
 
 	public:

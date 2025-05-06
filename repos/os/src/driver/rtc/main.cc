@@ -71,9 +71,9 @@ class Rtc::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Registered<Session_component>(_sessions, _env);
 		}
 

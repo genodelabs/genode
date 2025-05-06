@@ -132,7 +132,7 @@ class Black_hole::Uplink_root : public Root_component<Uplink_session>
 
 		Env &_env;
 
-		Uplink_session *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
@@ -149,7 +149,7 @@ class Black_hole::Uplink_root : public Root_component<Uplink_session>
 				throw Insufficient_ram_quota();
 			}
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Uplink_session(_env, tx_buf_size, rx_buf_size, *md_alloc());
 		}
 

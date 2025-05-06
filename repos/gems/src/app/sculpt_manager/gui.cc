@@ -167,22 +167,22 @@ struct Gui::Session_component : Rpc_object<Gui::Session>,
 };
 
 
-Gui::Session_component *Gui::Root::_create_session(const char *args)
+Gui::Root::Create_result Gui::Root::_create_session(const char *args)
 {
-	return new (md_alloc()) Session_component(_env, args, _event_handler,
-	                                          _global_input_seq_number);
+	return *new (md_alloc()) Session_component(_env, args, _event_handler,
+	                                           _global_input_seq_number);
 }
 
 
-void Gui::Root::_upgrade_session(Session_component *session, const char *args)
+void Gui::Root::_upgrade_session(Session_component &s, const char *args)
 {
-	session->upgrade(session_resources_from_args(args));
+	s.upgrade(session_resources_from_args(args));
 }
 
 
-void Gui::Root::_destroy_session(Session_component *session)
+void Gui::Root::_destroy_session(Session_component &s)
 {
-	Genode::destroy(md_alloc(), session);
+	Genode::destroy(md_alloc(), &s);
 }
 
 

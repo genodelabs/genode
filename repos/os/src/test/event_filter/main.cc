@@ -100,18 +100,18 @@ struct Test::Event_root : Root_component<Event_session>
 		Root_component(ep, md_alloc), _session(session)
 	{ }
 
-	Event_session *_create_session(const char *, Affinity const &) override
+	Create_result _create_session(const char *, Affinity const &) override
 	{
 		_filter_connected = true;
 
-		return &_session;
+		return _session;
 	}
 
 	/*
 	 * Prevent the default 'Root_component' implementation from attempting
 	 * to free the session objects.
 	 */
-	void _destroy_session(Event_session *) override { }
+	void _destroy_session(Event_session &) override { }
 };
 
 

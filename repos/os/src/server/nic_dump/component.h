@@ -131,7 +131,7 @@ class Net::Root : public Genode::Root_component<Session_component,
 		 ** Root_component **
 		 ********************/
 
-		Session_component *_create_session(char const *args) override;
+		Create_result _create_session(char const *args) override;
 
 	public:
 

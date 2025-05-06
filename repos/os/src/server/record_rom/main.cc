@@ -257,11 +257,11 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 		Env  &_env;
 		Main &_main;
 
-		Dynamic_rom_session *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
 			using namespace Genode;
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Dynamic_rom_session(_env.ep(), _env.ram(), _env.rm(), _main);
 		}
 

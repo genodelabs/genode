@@ -150,8 +150,8 @@ class Net::Uplink_session_root
 		 ** Root_component **
 		 ********************/
 
-		Uplink_session_component *_create_session(char const *args) override;
-		void _destroy_session(Uplink_session_component *session) override;
+		Create_result _create_session(char const *args) override;
+		void _destroy_session(Uplink_session_component &) override;
 
 	public:
 

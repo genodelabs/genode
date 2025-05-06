@@ -2460,7 +2460,7 @@ class Gpu::Root : public Gpu::Root_component
 
 	protected:
 
-		Session_component *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
 			if (!_device || !_device->vgpu_avail()) {
 				throw Genode::Service_denied();
@@ -2483,7 +2483,7 @@ class Gpu::Root : public Gpu::Root_component
 
 				using namespace Genode;
 
-				return new (md_alloc())
+				return *new (md_alloc())
 					Session_component(_env, _env.ep(), _device->_pci_backend_alloc, _env.rm(),
 					                  resources,
 					                  session_label_from_args(args),
@@ -2492,15 +2492,15 @@ class Gpu::Root : public Gpu::Root_component
 			} catch (...) { throw; }
 		}
 
-		void _upgrade_session(Session_component *s, const char *args) override
+		void _upgrade_session(Session_component &s, const char *args) override
 		{
 			Session::Resources const res = session_resources_from_args(args);
-			s->upgrade_resources(res);
+			s.upgrade_resources(res);
 		}
 
-		void _destroy_session(Session_component *s) override
+		void _destroy_session(Session_component &s) override
 		{
-			if (s->vgpu_active()) {
+			if (s.vgpu_active()) {
 				bool warn = true;
 
 				if (_device) {
@@ -2515,10 +2515,10 @@ class Gpu::Root : public Gpu::Root_component
 					Genode::warning("vGPU active, reset of device failed");
 			} else {
 				/* remove from scheduled list */
-				s->vgpu_unschedule();
+				s.vgpu_unschedule();
 			}
 
-			Genode::destroy(md_alloc(), s);
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

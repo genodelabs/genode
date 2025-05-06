@@ -33,9 +33,9 @@ class Core::Io_mem_root : public Root_component<Io_mem_session_component>
 
 	protected:
 
-		Io_mem_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Io_mem_session_component(_io_mem_alloc, _ram_alloc,
 			                             _ds_ep, args);
 		}

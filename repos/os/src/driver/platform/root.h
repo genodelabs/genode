@@ -62,9 +62,9 @@ class Driver::Root : public Root_component<Session_component>,
 
 	private:
 
-		Session_component * _create_session(const char * args) override;
+		Create_result _create_session(const char * args) override;
 
-		void _upgrade_session(Session_component *, const char *) override;
+		void _upgrade_session(Session_component &, const char *) override;
 
 		Env                          & _env;
 		Attached_rom_dataspace const & _config;

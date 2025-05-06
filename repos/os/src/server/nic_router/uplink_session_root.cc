@@ -132,12 +132,12 @@ Net::Uplink_session_root::Uplink_session_root(Env               &env,
 { }
 
 
-Uplink_session_component *
+Net::Uplink_session_root::Create_result
 Net::Uplink_session_root::_create_session(char const *args)
 {
 	Session_creation<Uplink_session_component> session_creation { };
 	try {
-		return session_creation.execute(
+		return *session_creation.execute(
 			_env, _shared_quota, args,
 			[&] (Session_env &session_env, void *session_at, Ram_dataspace_capability ram_ds)
 			{
@@ -176,17 +176,17 @@ Net::Uplink_session_root::_create_session(char const *args)
 }
 
 void
-Net::Uplink_session_root::_destroy_session(Uplink_session_component *session)
+Net::Uplink_session_root::_destroy_session(Uplink_session_component &session)
 {
 	/* read out initial dataspace and session env and destruct session */
-	Ram_dataspace_capability  ram_ds        { session->ram_ds() };
-	Session_env        const &session_env   { session->session_env() };
-	Session_label      const  session_label { session->interface_policy().label() };
-	session->~Uplink_session_component();
+	Ram_dataspace_capability  ram_ds        { session.ram_ds() };
+	Session_env        const &session_env   { session.session_env() };
+	Session_label      const  session_label { session.interface_policy().label() };
+	session.~Uplink_session_component();
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
-	session_env_stack.detach(addr_t(session));
+	session_env_stack.detach(addr_t(&session));
 	session_env_stack.detach(addr_t(&session_env));
 	session_env_stack.free(ram_ds);
 

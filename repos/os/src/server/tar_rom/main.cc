@@ -195,16 +195,16 @@ class Tar_rom::Rom_root : public Root_component<Rom_session_component>
 		char const * const _tar_addr;
 		unsigned     const _tar_size;
 
-		Rom_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			Session_label const label = label_from_args(args);
 			Session_label const module_name = label.last_element();
 			log("connection for module '", module_name, "' requested");
 
 			/* create new session for the requested file */
-			return new (md_alloc()) Rom_session_component(_env.ram(), _env.rm(),
-			                                              _tar_addr, _tar_size,
-			                                              module_name.string());
+			return *new (md_alloc()) Rom_session_component(_env.ram(), _env.rm(),
+			                                               _tar_addr, _tar_size,
+			                                               module_name.string());
 		}
 
 	public:

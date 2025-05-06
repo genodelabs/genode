@@ -77,7 +77,7 @@ class Black_hole::Nic_root : public Root_component<Nic_session>
 
 	protected:
 
-		Nic_session *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
@@ -94,8 +94,8 @@ class Black_hole::Nic_root : public Root_component<Nic_session>
 				throw Insufficient_ram_quota();
 			}
 
-			return new (md_alloc()) Nic_session(tx_buf_size, rx_buf_size,
-			                                    *md_alloc(), _env);
+			return *new (md_alloc()) Nic_session(tx_buf_size, rx_buf_size,
+			                                     *md_alloc(), _env);
 		}
 
 	public:

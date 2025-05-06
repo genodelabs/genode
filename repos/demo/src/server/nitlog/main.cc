@@ -326,11 +326,11 @@ class Nitlog::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			log("create log session args: ", args);
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(label_from_args(args),
 				                  _log_window, _session_cnt);
 		}

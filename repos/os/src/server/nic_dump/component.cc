@@ -122,7 +122,7 @@ Net::Root::Root(Env               &env,
 { }
 
 
-Session_component *Net::Root::_create_session(char const *args)
+Net::Root::Create_result Net::Root::_create_session(char const *args)
 {
 	try {
 		Ram_quota const ram_quota = ram_quota_from_args(args);
@@ -141,7 +141,7 @@ Session_component *Net::Root::_create_session(char const *args)
 			error("insufficient 'ram_quota' for session creation");
 			throw Insufficient_ram_quota();
 		}
-		return new (md_alloc())
+		return *new (md_alloc())
 			Session_component(Ram_quota{ram_quota.value},
 			                  cap_quota, tx_buf_size, rx_buf_size, _config.xml, _timer,
 			                  _curr_time, _env);

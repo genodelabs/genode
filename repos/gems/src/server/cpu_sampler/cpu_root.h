@@ -39,19 +39,16 @@ class Cpu_sampler::Cpu_root : public Root_component<Cpu_session_component>
 
 	protected:
 
-		Cpu_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			Cpu_session_component *cpu_session_component =
-				new (md_alloc()) Cpu_session_component(_thread_ep, _env,
-				                                       _md_alloc, _thread_list,
-				                                       _thread_list_change_handler,
-				                                       args);
-			return cpu_session_component;
+			return *new (md_alloc())
+				Cpu_session_component(_thread_ep, _env, _md_alloc, _thread_list,
+				                      _thread_list_change_handler, args);
 		}
 
-		void _upgrade_session(Cpu_session_component *cpu, const char *args) override
+		void _upgrade_session(Cpu_session_component &cpu, const char *args) override
 		{
-			cpu->upgrade_quota(args);
+			cpu.upgrade_quota(args);
 		}
 
 	public:

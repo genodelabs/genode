@@ -149,7 +149,7 @@ class Event_filter::Event_root : public Root_component<Event_session>
 
 	protected:
 
-		Event_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			Event_session &session = *new (md_alloc())
 				Registered<Event_session>(_sessions,
@@ -161,18 +161,18 @@ class Event_filter::Event_root : public Root_component<Event_session>
 
 			session.assign_input_name(_config.xml());
 
-			return &session;
+			return session;
 		}
 
-		void _upgrade_session(Event_session *s, const char *args) override
+		void _upgrade_session(Event_session &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Event_session *session) override
+		void _destroy_session(Event_session &s) override
 		{
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

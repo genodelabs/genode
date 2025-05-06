@@ -80,9 +80,9 @@ class Black_hole::Usb_root : public Root_component<Usb_session>
 
 	protected:
 
-		Usb_session *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Usb_session { _env,
 				              session_label_from_args(args),
 				              session_resources_from_args(args),

@@ -171,11 +171,11 @@ class Test::Log_root : public Root_component<Log_session_component>
 			Root_component(ep, md_alloc), _handler(handler)
 		{ }
 
-		Log_session_component *_create_session(const char *args, Affinity const &) override
+		Create_result _create_session(const char *args, Affinity const &) override
 		{
 			Session_label const label = label_from_args(args);
 
-			return new (md_alloc()) Log_session_component(label, _handler);
+			return *new (md_alloc()) Log_session_component(label, _handler);
 		}
 };
 

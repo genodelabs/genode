@@ -96,13 +96,13 @@ struct Dummy::Log_service
 				_timer.construct(env);
 		}
 
-		Session_component *_create_session(const char *args, Affinity const &) override
+		Create_result _create_session(const char *args, Affinity const &) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(label_from_args(args), _service_args);
 		}
 
-		void _upgrade_session(Session_component *, const char *args) override
+		void _upgrade_session(Session_component &, const char *args) override
 		{
 			size_t const ram_quota =
 				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
@@ -111,7 +111,7 @@ struct Dummy::Log_service
 				log("received session quota upgrade");
 		}
 
-		void _destroy_session(Session_component *session) override
+		void _destroy_session(Session_component &session) override
 		{
 			if (_timer.constructed()) {
 				log("delay close by ", _service_args.delay_close_ms, " ms");

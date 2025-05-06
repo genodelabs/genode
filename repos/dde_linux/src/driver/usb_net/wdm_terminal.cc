@@ -176,13 +176,13 @@ class Terminal::Root : public Genode::Root_component<Session_component, Genode::
 
 	protected:
 
-		Session_component *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
 			if (!_session.constructed()) {
 				lx_emul_task_unblock(_create_task);
 				Lx_kit::env().scheduler.execute();
 			}
-			return &*_session;
+			return *_session;
 		}
 
 	public:

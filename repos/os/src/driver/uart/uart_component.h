@@ -217,7 +217,7 @@ class Uart::Root : public Uart::Root_component
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			Session_label  const label = label_from_args(args);
 			Session_policy const policy(label, _config.xml());
@@ -226,7 +226,7 @@ class Uart::Root : public Uart::Root_component
 			unsigned const baudrate    = policy.attribute_value("baudrate",    0U);
 			bool     const detect_size = policy.attribute_value("detect_size", false);
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_env, _driver_factory, index,
 				                  baudrate, detect_size);
 		}

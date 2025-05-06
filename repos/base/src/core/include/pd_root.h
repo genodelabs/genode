@@ -80,9 +80,9 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 
 	protected:
 
-		Pd_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Pd_session_component(_ep,
 				                     _signal_ep,
 				                     session_resources_from_args(args),
@@ -96,10 +96,10 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 				                     _core_mem, _system_control);
 		}
 
-		void _upgrade_session(Pd_session_component *pd, const char *args) override
+		void _upgrade_session(Pd_session_component &pd, const char *args) override
 		{
-			pd->upgrade(ram_quota_from_args(args));
-			pd->upgrade(cap_quota_from_args(args));
+			pd.upgrade(ram_quota_from_args(args));
+			pd.upgrade(cap_quota_from_args(args));
 		}
 
 	public:

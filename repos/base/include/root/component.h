@@ -76,9 +76,9 @@ struct Genode::Multiple_clients
 /**
  * Template for implementing the root interface
  *
- * \param SESSION_TYPE  session-component type to manage,
- *                      derived from 'Rpc_object'
- * \param POLICY        session-creation policy
+ * \param SESSION  session-component type to manage,
+ *                 derived from 'Rpc_object'
+ * \param POLICY   session-creation policy
  *
  * The 'POLICY' template parameter allows for constraining the session
  * creation to only one instance at a time (using the 'Single_session'
@@ -97,11 +97,17 @@ struct Genode::Multiple_clients
  * The default policy 'Multiple_clients' imposes no restrictions on the
  * creation of new sessions.
  */
-template <typename SESSION_TYPE, typename POLICY>
-class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
-                               public Local_service<SESSION_TYPE>::Factory,
+template <typename SESSION, typename POLICY>
+class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
+                               public Local_service<SESSION>::Factory,
                                private POLICY
 {
+	public:
+
+		using Local_service = Genode::Local_service<SESSION>;
+		using Create_error  = Service::Create_error;
+		using Create_result = Local_service::Factory::Result;
+
 	private:
 
 		/*
@@ -117,10 +123,6 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 */
 		Allocator &_md_alloc;
 
-		using Local_service = Genode::Local_service<SESSION_TYPE>;
-		using Create_error  = Service::Create_error;
-		using Create_result = Local_service::Factory::Result;
-
 		/*
 		 * Used by both the legacy 'Root::session' and the new 'Factory::create'
 		 */
@@ -135,41 +137,31 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			}
 
 			/*
-			 * Guard to ensure that 'release' is called whenever the scope
-			 * is left with an exception.
+			 * Guard to ensure that 'release' is called if '_create_session'
+			 * throws an exception.
 			 */
 			struct Guard
 			{
-				bool ack = false;
+				bool ok = false;
 				Root_component &root;
 				Guard(Root_component &root) : root(root) { }
-				~Guard() { if (!ack) root.release(); }
+				~Guard() { if (!ok) root.release(); }
 			} aquire_guard { *this };
 
-			try {
-				SESSION_TYPE &s =
-					*_create_session(args.string(), affinity);
+			return _create_session(args.string(), affinity)
+				.template convert<Create_result>([&] (SESSION &s) -> SESSION & {
 
-				/*
-				 * Consider that the session-object constructor may already
-				 * have called 'manage'.
-				 */
-				if (!s.cap().valid())
-					_ep.manage(&s);
+					/*
+					 * Consider that the session-object constructor may
+					 * already have called 'manage'.
+					 */
+					if (!s.cap().valid())
+						_ep.manage(&s);
 
-				aquire_guard.ack = true;
-				return s;
-			}
-			catch (Out_of_ram)             { return Create_error::INSUFFICIENT_RAM; }
-			catch (Out_of_caps)            { return Create_error::INSUFFICIENT_CAPS; }
-			catch (Service_denied)         { return Create_error::DENIED; }
-			catch (Insufficient_cap_quota) { return Create_error::INSUFFICIENT_CAPS; }
-			catch (Insufficient_ram_quota) { return Create_error::INSUFFICIENT_RAM; }
-			catch (...) {
-				warning("unexpected exception during ",
-				        SESSION_TYPE::service_name(), "-session creation");
-			}
-			return Create_error::DENIED;
+					aquire_guard.ok = true;
+					return s;
+				},
+				[&] (Create_error e) { return e; });
 		}
 
 		/*
@@ -196,19 +188,21 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 * affinity, it suffices to override the overload without the
 		 * affinity argument.
 		 *
+		 * This method supports the propagation of errors either as
+		 * 'Create_error' result values or by exceptions.
+		 *
 		 * \throw Out_of_ram
 		 * \throw Out_of_caps
 		 * \throw Service_denied
 		 * \throw Insufficient_cap_quota
 		 * \throw Insufficient_ram_quota
 		 */
-		virtual SESSION_TYPE *_create_session(const char *args,
-		                                      Affinity const &)
+		virtual Create_result _create_session(const char *args, Affinity const &)
 		{
 			return _create_session(args);
 		}
 
-		virtual SESSION_TYPE *_create_session(const char *)
+		virtual Create_result _create_session(const char *)
 		{
 			throw Service_denied();
 		}
@@ -232,10 +226,10 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		 * \param args     description of additional resources in the
 		 *                 same format as used at session creation
 		 */
-		virtual void _upgrade_session(SESSION_TYPE *, const char *) { }
+		virtual void _upgrade_session(SESSION &, const char *) { }
 
-		virtual void _destroy_session(SESSION_TYPE *session) {
-			Genode::destroy(_md_alloc, session); }
+		virtual void _destroy_session(SESSION &session) {
+			Genode::destroy(_md_alloc, &session); }
 
 		/**
 		 * Return allocator to allocate server object in '_create_session()'
@@ -286,12 +280,12 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 				[&] (Create_error e) { return e; });
 		}
 
-		void upgrade(SESSION_TYPE &session, Session_state::Args const &args) override
+		void upgrade(SESSION &session, Session_state::Args const &args) override
 		{
-			_upgrade_session(&session, args.string());
+			_upgrade_session(session, args.string());
 		}
 
-		void destroy(SESSION_TYPE &session) override
+		void destroy(SESSION &session) override
 		{
 			close(session.cap());
 		}
@@ -306,29 +300,41 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 		{
 			if (!args.valid_string()) return Create_error::DENIED;
 
-			return Local_service::budget_adjusted_args(args.string(), *md_alloc())
-				.template convert<Root::Result>(
-					[&] (Session_state::Args const &adjusted_args) -> Root::Result {
-						return _create(adjusted_args.string(), affinity)
-							.template convert<Root::Result>(
-								[&] (SESSION_TYPE &obj) { return obj.cap(); },
-								[&] (Create_error e)    { return e; });
-					},
-					[&] (Create_error e) { return e; });
+			try {
+				return Local_service::budget_adjusted_args(args.string(), *md_alloc())
+					.template convert<Root::Result>(
+						[&] (Session_state::Args const &adjusted_args) -> Root::Result {
+							return _create(adjusted_args.string(), affinity)
+								.template convert<Root::Result>(
+									[&] (SESSION &obj) { return obj.cap(); },
+									[&] (Create_error e)    { return e; });
+						},
+						[&] (Create_error e) { return e; });
+			}
+			catch (Out_of_ram)             { return Create_error::INSUFFICIENT_RAM; }
+			catch (Out_of_caps)            { return Create_error::INSUFFICIENT_CAPS; }
+			catch (Service_denied)         { return Create_error::DENIED; }
+			catch (Insufficient_cap_quota) { return Create_error::INSUFFICIENT_CAPS; }
+			catch (Insufficient_ram_quota) { return Create_error::INSUFFICIENT_RAM; }
+			catch (...) {
+				warning("unexpected exception during ",
+				        SESSION::service_name(), "-session creation");
+			}
+			return Create_error::DENIED;
 		}
 
 		void upgrade(Session_capability cap, Root::Upgrade_args const &args) override
 		{
-			_ep.apply(cap, [&] (SESSION_TYPE *s) {
+			_ep.apply(cap, [&] (SESSION *s) {
 				if (s && args.valid_string())
-					_upgrade_session(s, args.string()); });
+					_upgrade_session(*s, args.string()); });
 		}
 
 		void close(Session_capability session_cap) override
 		{
-			SESSION_TYPE * session;
+			SESSION *session = nullptr;
 
-			_ep.apply(session_cap, [&] (SESSION_TYPE *s) {
+			_ep.apply(session_cap, [&] (SESSION *s) {
 				session = s;
 
 				/* let the entry point forget the session object */
@@ -337,7 +343,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 
 			if (!session) return;
 
-			_destroy_session(session);
+			_destroy_session(*session);
 
 			POLICY::release();
 		}

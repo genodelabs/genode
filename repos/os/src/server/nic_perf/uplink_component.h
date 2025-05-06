@@ -125,6 +125,7 @@ class Nic_perf::Uplink_session_component : private Uplink_session_base,
 class Nic_perf::Uplink_root : public Root_component<Uplink_session_component>
 {
 	private:
+
 		Env                    &_env;
 		Attached_rom_dataspace &_config;
 		Interface_registry     &_registry;
@@ -132,7 +133,7 @@ class Nic_perf::Uplink_root : public Root_component<Uplink_session_component>
 
 	protected:
 
-		Uplink_session_component *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
@@ -171,9 +172,10 @@ class Nic_perf::Uplink_root : public Root_component<Uplink_session_component>
 
 			Session_policy policy(label, _config.xml());
 
-			return new (md_alloc()) Uplink_session_component(tx_buf_size, rx_buf_size,
-			                                                 *md_alloc(), _env, label, policy,
-			                                                 _registry, mac, _timer);
+			return *new (md_alloc())
+				Uplink_session_component(tx_buf_size, rx_buf_size,
+				                         *md_alloc(), _env, label, policy,
+				                         _registry, mac, _timer);
 		}
 
 	public:

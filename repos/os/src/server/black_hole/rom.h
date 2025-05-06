@@ -69,9 +69,9 @@ class Black_hole::Rom_root : public Root_component<Rom_session>
 
 	protected:
 
-		Rom_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Rom_session {
 					_env, session_resources_from_args(args),
 					session_label_from_args(args),

@@ -221,7 +221,7 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -239,7 +239,7 @@ class Dynamic_rom::Root : public Genode::Root_component<Session_component>
 					error("ROM module lookup of '", label.string(), "' failed");
 					throw Service_denied(); });
 
-			return result;
+			return *result;
 		}
 
 	public:

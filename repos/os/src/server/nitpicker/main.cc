@@ -106,7 +106,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 
 	protected:
 
-		Gui_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			Session_label const label = label_from_args(args);
 
@@ -119,7 +119,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 				throw Insufficient_cap_quota();
 			resources.cap_quota.value -= 2;
 
-			Gui_session *session = new (md_alloc())
+			Gui_session &session = *new (md_alloc())
 				Gui_session(_env, _action,
 				            resources, label,
 				            session_diag_from_args(args), _view_stack,
@@ -127,8 +127,8 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 				            _builtin_background, provides_default_bg,
 				            _focus_reporter);
 
-			session->apply_session_policy(_config.xml(), _domain_registry);
-			_session_list.insert(session);
+			session.apply_session_policy(_config.xml(), _domain_registry);
+			_session_list.insert(&session);
 			_global_keys.apply_config(_config.xml(), _session_list);
 			_focus_updater.update_focus();
 			_hover_updater.update_hover();
@@ -136,25 +136,25 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 			return session;
 		}
 
-		void _upgrade_session(Gui_session *s, const char *args) override
+		void _upgrade_session(Gui_session &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Gui_session *session) override
+		void _destroy_session(Gui_session &session) override
 		{
 			/* invalidate pointers held by other sessions to the destroyed session */
 			for (Gui_session *s = _session_list.first(); s; s = s->next())
-				s->forget(*session);
+				s->forget(session);
 
-			_session_list.remove(session);
+			_session_list.remove(&session);
 			_global_keys.apply_config(_config.xml(), _session_list);
 
-			session->destroy_all_views();
-			User_state::Handle_forget_result result = _user_state.forget(*session);
+			session.destroy_all_views();
+			User_state::Handle_forget_result result = _user_state.forget(session);
 
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &session);
 
 			if (result.hover_changed)
 				_hover_updater.update_hover();
@@ -229,7 +229,7 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 
 	protected:
 
-		Capture_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			Capture_session &session = *new (md_alloc())
 				Registered<Capture_session>(_sessions, _env,
@@ -239,25 +239,25 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				                            _handler, _view_stack);
 
 			_action.capture_client_appeared_or_disappeared();
-			return &session;
+			return session;
 		}
 
-		void _upgrade_session(Capture_session *s, const char *args) override
+		void _upgrade_session(Capture_session &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Capture_session *session) override
+		void _destroy_session(Capture_session &s) override
 		{
 			/*
 			 * Retain buffer size of the last vanishing session. This avoids
 			 * mode switches when the only capture client temporarily
 			 * disappears (driver restart).
 			 */
-			_fallback_bounding_box = session->bounding_box();
+			_fallback_bounding_box = s.bounding_box();
 
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 
 			_action.capture_client_appeared_or_disappeared();
 		}
@@ -400,9 +400,9 @@ class Nitpicker::Event_root : public Root_component<Event_session>
 
 	protected:
 
-		Event_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Event_session(_env,
 				              session_resources_from_args(args),
 				              session_label_from_args(args),
@@ -410,15 +410,15 @@ class Nitpicker::Event_root : public Root_component<Event_session>
 				              _handler);
 		}
 
-		void _upgrade_session(Event_session *s, const char *args) override
+		void _upgrade_session(Event_session &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Event_session *session) override
+		void _destroy_session(Event_session &s) override
 		{
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

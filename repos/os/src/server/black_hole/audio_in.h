@@ -120,7 +120,7 @@ class Audio_in::Root : public Audio_in::Root_component
 		Genode::Env &_env;
 		Timer::Connection _timer;
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -133,16 +133,12 @@ class Audio_in::Root : public Audio_in::Root_component
 				throw Insufficient_ram_quota();
 			}
 
-			Session_component *session = new (md_alloc())
-				Session_component(_env, _timer);
-
-			return session;
-
+			return *new (md_alloc()) Session_component(_env, _timer);
 		}
 
-		void _destroy_session(Session_component *session) override
+		void _destroy_session(Session_component &s) override
 		{
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

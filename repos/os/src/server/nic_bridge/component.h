@@ -214,7 +214,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -233,7 +233,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 				throw Service_denied();
 			}
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_env.ram(), _env.rm(), _env.ep(),
 				                  ram_quota_from_args(args),
 				                  cap_quota_from_args(args),
@@ -244,10 +244,10 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		}
 
 		
-		void _destroy_session(Session_component *session) override
+		void _destroy_session(Session_component &s) override
 		{
-			_mac_alloc.free(session->vmac());
-			Genode::destroy(md_alloc(), session);
+			_mac_alloc.free(s.vmac());
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

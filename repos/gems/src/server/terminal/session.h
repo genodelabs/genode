@@ -170,7 +170,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
 			/*
 			 * XXX read I/O buffer size from args
@@ -187,7 +187,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 			/* propagate current terminal size to client */
 			session.notify_resized(_terminal_size);
 
-			return &session;
+			return session;
 		}
 
 	public:

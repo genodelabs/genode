@@ -30,9 +30,9 @@ class Core::Log_root : public Root_component<Log_session_component>
 		/**
 		 * Root component interface
 		 */
-		Log_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc()) Log_session_component(label_from_args(args));
+			return *new (md_alloc()) Log_session_component(label_from_args(args));
 		}
 
 	public:

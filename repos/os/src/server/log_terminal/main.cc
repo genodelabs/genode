@@ -163,10 +163,10 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
 			size_t const io_buffer_size = 4096;
-			return new (md_alloc()) Session_component(_ram, _rm, io_buffer_size);
+			return *new (md_alloc()) Session_component(_ram, _rm, io_buffer_size);
 		}
 
 	public:

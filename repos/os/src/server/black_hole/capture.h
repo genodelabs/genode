@@ -112,28 +112,26 @@ class Capture::Root : public Capture::Root_component
 
 		Genode::Env &_env;
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
-			Session_component *session = new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_env,
 				                  session_resources_from_args(args),
 				                  session_label_from_args(args),
 				                  session_diag_from_args(args));
-
-			return session;
 		}
 
-		void _upgrade_session(Session_component *s, const char *args) override
+		void _upgrade_session(Session_component &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Session_component *session) override
+		void _destroy_session(Session_component &s) override
 		{
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

@@ -70,24 +70,24 @@ class Black_hole::Event_root : public Root_component<Event_session>
 
 	protected:
 
-		Event_session *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Event_session(_env,
 				              session_resources_from_args(args),
 				              session_label_from_args(args),
 				              session_diag_from_args(args));
 		}
 
-		void _upgrade_session(Event_session *s, const char *args) override
+		void _upgrade_session(Event_session &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Event_session *session) override
+		void _destroy_session(Event_session &s) override
 		{
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

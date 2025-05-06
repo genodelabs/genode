@@ -239,7 +239,7 @@ namespace Terminal {
 
 		protected:
 
-			Session_component *_create_session(const char *args) override
+			Create_result _create_session(const char *args) override
 			{
 				using namespace Genode;
 
@@ -258,7 +258,7 @@ namespace Terminal {
 				size_t const io_buffer_size =
 					policy.attribute_value("io_buffer_size", 4096UL);
 
-				return new (md_alloc())
+				return *new (md_alloc())
 				       Session_component(_env, io_buffer_size, file_name.string());
 			}
 

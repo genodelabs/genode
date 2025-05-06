@@ -523,13 +523,13 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 			}
 		}
 
-		Rom_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			Session_label const label = label_from_args(args);
 			Session_label const module_name = label.last_element();
 
 			/* create new session for the requested file */
-			return new (md_alloc())
+			return *new (md_alloc())
 				Rom_session_component(_env, _sessions, _fs, module_name.string());
 		}
 

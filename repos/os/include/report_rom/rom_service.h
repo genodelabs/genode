@@ -177,11 +177,11 @@ class Rom::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_env.ram(), _env.rm(), _registry, label_from_args(args));
 		}
 

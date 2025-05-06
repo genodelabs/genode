@@ -213,9 +213,10 @@ class Pin::Root : Genode::Root_component<SC>
 {
 	private:
 
-		using Pin_id  = typename SC::Pin_id;
-		using Driver  = Pin::Driver<Pin_id>;
-		using Session = Registered<SC>;
+		using Pin_id        = typename SC::Pin_id;
+		using Driver        = Pin::Driver<Pin_id>;
+		using Session       = Registered<SC>;
+		using Create_result = Root_component<SC>::Create_result;
 
 		Entrypoint &_ep;
 
@@ -223,9 +224,9 @@ class Pin::Root : Genode::Root_component<SC>
 
 		Registry<Session> _sessions { };
 
-		SC *_create_session(char const *args) override
+		Create_result _create_session(char const *args) override
 		{
-			return new (Root_component<SC>::md_alloc())
+			return *new (Root_component<SC>::md_alloc())
 				Session(_sessions, _ep,
 				        session_resources_from_args(args),
 				        session_label_from_args(args),

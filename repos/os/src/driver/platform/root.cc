@@ -33,7 +33,7 @@ void Driver::Root::update_policy()
 }
 
 
-Driver::Session_component * Driver::Root::_create_session(const char *args)
+Driver::Root::Create_result Driver::Root::_create_session(const char *args)
 {
 	Session_component * sc = nullptr;
 
@@ -59,14 +59,14 @@ Driver::Session_component * Driver::Root::_create_session(const char *args)
 		throw;
 	}
 
-	return sc;
+	return *sc;
 }
 
 
-void Driver::Root::_upgrade_session(Session_component * sc, const char * args)
+void Driver::Root::_upgrade_session(Session_component &sc, const char * args)
 {
-	sc->upgrade(ram_quota_from_args(args));
-	sc->upgrade(cap_quota_from_args(args));
+	sc.upgrade(ram_quota_from_args(args));
+	sc.upgrade(cap_quota_from_args(args));
 }
 
 

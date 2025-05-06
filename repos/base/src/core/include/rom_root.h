@@ -31,8 +31,8 @@ class Core::Rom_root : public Root_component<Rom_session_component>
 
 	protected:
 
-		Rom_session_component *_create_session(const char *args) override {
-			return new (md_alloc()) Rom_session_component(_rom_fs, _ds_ep, args); }
+		Create_result _create_session(const char *args) override {
+			return *new (md_alloc()) Rom_session_component(_rom_fs, _ds_ep, args); }
 
 	public:
 

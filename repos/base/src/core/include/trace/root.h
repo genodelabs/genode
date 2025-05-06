@@ -34,7 +34,7 @@ class Core::Trace::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			size_t ram_quota       = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			size_t arg_buffer_size = Arg_string::find_arg(args, "arg_buffer_size").ulong_value(0);
@@ -42,7 +42,7 @@ class Core::Trace::Root : public Root_component<Session_component>
 			if (arg_buffer_size > ram_quota)
 				throw Insufficient_ram_quota();
 
-			return new (md_alloc())
+			return *new (md_alloc())
 			       Session_component(*this->ep(),
 			                         session_resources_from_args(args),
 			                         session_label_from_args(args),
@@ -52,10 +52,10 @@ class Core::Trace::Root : public Root_component<Session_component>
 			                         _sources, _policies);
 		}
 
-		void _upgrade_session(Session_component *s, const char *args) override
+		void _upgrade_session(Session_component &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
 	public:

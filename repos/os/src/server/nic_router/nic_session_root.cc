@@ -302,11 +302,12 @@ Net::Nic_session_root::Nic_session_root(Env               &env,
 }
 
 
-Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
+Net::Nic_session_root::Create_result
+Net::Nic_session_root::_create_session(char const *args)
 {
 	Session_creation<Nic_session_component> session_creation { };
 	try {
-		return session_creation.execute(
+		return *session_creation.execute(
 			_env, _shared_quota, args,
 			[&] (Session_env &session_env, void *session_at, Ram_dataspace_capability ram_ds)
 			{
@@ -344,19 +345,19 @@ Nic_session_component *Net::Nic_session_root::_create_session(char const *args)
 	}
 }
 
-void Net::Nic_session_root::_destroy_session(Nic_session_component *session)
+void Net::Nic_session_root::_destroy_session(Nic_session_component &session)
 {
-	Mac_address const mac = session->mac_address();
+	Mac_address const mac = session.mac_address();
 
 	/* read out initial dataspace and session env and destruct session */
-	Ram_dataspace_capability  ram_ds        { session->ram_ds() };
-	Session_env        const &session_env   { session->session_env() };
-	Session_label      const  session_label { session->interface_policy().label() };
-	session->~Nic_session_component();
+	Ram_dataspace_capability  ram_ds        { session.ram_ds() };
+	Session_env        const &session_env   { session.session_env() };
+	Session_label      const  session_label { session.interface_policy().label() };
+	session.~Nic_session_component();
 
 	/* copy session env to stack and detach/free all session data */
 	Session_env session_env_stack { session_env };
-	session_env_stack.detach(addr_t(session));
+	session_env_stack.detach(addr_t(&session));
 	session_env_stack.detach(addr_t(&session_env));
 	session_env_stack.free(ram_ds);
 

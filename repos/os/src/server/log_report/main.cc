@@ -80,7 +80,7 @@ class Report::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -91,7 +91,7 @@ class Report::Root : public Genode::Root_component<Session_component>
 			size_t const buffer_size =
 				Arg_string::find_arg(args, "buffer_size").ulong_value(0);
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_ram, _rm, label, buffer_size);
 		}
 

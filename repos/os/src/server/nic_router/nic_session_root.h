@@ -199,8 +199,8 @@ class Net::Nic_session_root
 		 ** Root_component **
 		 ********************/
 
-		Nic_session_component *_create_session(char const *args) override;
-		void _destroy_session(Nic_session_component *session) override;
+		Create_result _create_session(char const *args) override;
+		void _destroy_session(Nic_session_component &) override;
 
 	public:
 

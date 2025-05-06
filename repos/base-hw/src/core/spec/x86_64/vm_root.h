@@ -41,12 +41,12 @@ class Core::Vm_root : public Root_component<Session_object<Vm_session>>
 
 	protected:
 
-		Session_object<Vm_session> *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			Session::Resources resources = session_resources_from_args(args);
 
 			if (Hw::Virtualization_support::has_svm())
-				return new (md_alloc())
+				return *new (md_alloc())
 					Svm_session_component(_vmid_alloc,
 					                      *ep(),
 					                      resources,
@@ -56,7 +56,7 @@ class Core::Vm_root : public Root_component<Session_object<Vm_session>>
 					                      _trace_sources);
 
 			if (Hw::Virtualization_support::has_vmx())
-				return new (md_alloc())
+				return *new (md_alloc())
 					Vmx_session_component(_vmid_alloc,
 					                      *ep(),
 					                      session_resources_from_args(args),
@@ -69,10 +69,10 @@ class Core::Vm_root : public Root_component<Session_object<Vm_session>>
 			throw Core::Service_denied();
 		}
 
-		void _upgrade_session(Session_object<Vm_session> *vm, const char *args) override
+		void _upgrade_session(Session_object<Vm_session> &vm, const char *args) override
 		{
-			vm->upgrade(ram_quota_from_args(args));
-			vm->upgrade(cap_quota_from_args(args));
+			vm.upgrade(ram_quota_from_args(args));
+			vm.upgrade(cap_quota_from_args(args));
 		}
 
 	public:

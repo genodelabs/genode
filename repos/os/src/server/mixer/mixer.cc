@@ -683,7 +683,7 @@ class Audio_out::Root : public Audio_out::Root_component
 		Mixer       &_mixer;
 		int          _sessions = { 0 };
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -716,14 +716,14 @@ class Audio_out::Root : public Audio_out::Root_component
 				Session_component(_env, label.string(), (Channel::Number)ch, _mixer);
 
 			if (++_sessions == 1) _mixer.start();
-			return session;
+			return *session;
 
 		}
 
-		void _destroy_session(Session_component *session) override
+		void _destroy_session(Session_component &s) override
 		{
 			if (--_sessions == 0) _mixer.stop();
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &s);
 		}
 
 	public:

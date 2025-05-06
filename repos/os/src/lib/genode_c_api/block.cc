@@ -27,7 +27,7 @@ class genode_block_session : public Rpc_object<Block::Session>
 {
 	private:
 
-		friend class Root;
+		friend class Block_root;
 
 		enum { MAX_REQUESTS = 32 };
 
@@ -88,7 +88,7 @@ class genode_block_session : public Rpc_object<Block::Session>
 };
 
 
-class Root : public Root_component<genode_block_session>
+class Block_root : public Root_component<genode_block_session>
 {
 	private:
 
@@ -113,13 +113,12 @@ class Root : public Root_component<genode_block_session>
 		bool                          _announced     { false };
 		bool                          _report_needed { false };
 
-		Root(const Root&);
-		Root & operator=(const Root&);
+		Block_root(const Block_root&);
+		Block_root & operator=(const Block_root&);
 
-		genode_block_session * _create_session(const char * args,
-		                                       Affinity const &) override;
+		Create_result _create_session(const char *args, Affinity const &) override;
 
-		void _destroy_session(genode_block_session * session) override;
+		void _destroy_session(genode_block_session &) override;
 
 		template <typename FUNC>
 		void _for_each_session_info(FUNC const & fn)
@@ -135,7 +134,7 @@ class Root : public Root_component<genode_block_session>
 
 		struct Invalid_block_device_id {};
 
-		Root(Env & env, Allocator & alloc, Signal_context_capability);
+		Block_root(Env &env, Allocator &alloc, Signal_context_capability);
 
 		void announce_device(const char * name, Block::Session::Info info);
 		void discontinue_device(const char * name);
@@ -145,7 +144,7 @@ class Root : public Root_component<genode_block_session>
 };
 
 
-static ::Root                               * _block_root        = nullptr;
+static Block_root                           * _block_root        = nullptr;
 static genode_shared_dataspace_alloc_attach_t _alloc_peer_buffer = nullptr;
 static genode_shared_dataspace_free_t         _free_peer_buffer  = nullptr;
 
@@ -233,8 +232,8 @@ genode_block_session::genode_block_session(Env                     & env,
 	_rs(env.rm(), genode_shared_dataspace_capability(_ds), env.ep(), cap, info) { }
 
 
-genode_block_session * ::Root::_create_session(const char * args,
-                                                    Affinity const &)
+Block_root::Create_result Block_root::_create_session(const char * args,
+                                                      Affinity const &)
 {
 	if (!_config.constructed())
 		throw Service_denied();
@@ -268,24 +267,24 @@ genode_block_session * ::Root::_create_session(const char * args,
 	});
 
 	if (!ret) throw Service_denied();
-	return ret;
+	return *ret;
 }
 
 
-void ::Root::_destroy_session(genode_block_session * session)
+void Block_root::_destroy_session(genode_block_session &session)
 {
 	_for_each_session_info([&] (Session_info & si) {
-		if (si.block_session == session)
+		if (si.block_session == &session)
 			si.block_session = nullptr;
 	});
 
-	genode_shared_dataspace * ds = session->_ds;
-	Genode::destroy(md_alloc(), session);
+	genode_shared_dataspace * ds = session._ds;
+	Genode::destroy(md_alloc(), &session);
 	_free_peer_buffer(ds);
 }
 
 
-void ::Root::_report()
+void Block_root::_report()
 {
 	if (!_report_needed)
 		return;
@@ -302,7 +301,7 @@ void ::Root::_report()
 }
 
 
-void ::Root::announce_device(const char * name, Block::Session::Info info)
+void Block_root::announce_device(const char * name, Block::Session::Info info)
 {
 	for (unsigned idx = 0; idx < MAX_BLOCK_DEVICES; idx++) {
 		if (_sessions[idx].constructed())
@@ -321,7 +320,7 @@ void ::Root::announce_device(const char * name, Block::Session::Info info)
 }
 
 
-void ::Root::discontinue_device(const char * name)
+void Block_root::discontinue_device(const char * name)
 {
 	for (unsigned idx = 0; idx < MAX_BLOCK_DEVICES; idx++) {
 		if (!_sessions[idx].constructed() || _sessions[idx]->name != name)
@@ -334,7 +333,7 @@ void ::Root::discontinue_device(const char * name)
 }
 
 
-genode_block_session * ::Root::session(const char * name)
+genode_block_session * Block_root::session(const char * name)
 {
 	genode_block_session * ret = nullptr;
 	_for_each_session_info([&] (Session_info & si) {
@@ -345,7 +344,7 @@ genode_block_session * ::Root::session(const char * name)
 }
 
 
-void ::Root::notify_peers()
+void Block_root::notify_peers()
 {
 	_for_each_session_info([&] (Session_info & si) {
 		if (si.block_session)
@@ -354,14 +353,14 @@ void ::Root::notify_peers()
 }
 
 
-void ::Root::apply_config(Xml_node const & config)
+void Block_root::apply_config(Xml_node const & config)
 {
 	_config.construct(*md_alloc(), config);
 	_report_needed = config.attribute_value("report", false);
 }
 
 
-::Root::Root(Env & env, Allocator & alloc, Signal_context_capability cap)
+Block_root::Block_root(Env & env, Allocator & alloc, Signal_context_capability cap)
 :
 	Root_component<genode_block_session>(env.ep(), alloc),
 	_env(env), _sigh_cap(cap) { }
@@ -374,7 +373,7 @@ genode_block_init(genode_env                           * env_ptr,
                   genode_shared_dataspace_alloc_attach_t alloc_func,
                   genode_shared_dataspace_free_t         free_func)
 {
-	static ::Root root(*static_cast<Env*>(env_ptr),
+	static Block_root root(*static_cast<Env*>(env_ptr),
 	                   *static_cast<Allocator*>(alloc_ptr),
 	                   cap(sigh_ptr));
 	_alloc_peer_buffer = alloc_func;

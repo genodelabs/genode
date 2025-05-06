@@ -508,7 +508,7 @@ class Device_component
 		void release_interface(Interface_capability cap);
 };
 
-class Root;
+class Usb_root;
 
 class Session_component
 :
@@ -522,7 +522,7 @@ class Session_component
 		friend class Device_component;
 
 		Env                                   &_env;
-		::Root                                &_root;
+		Usb_root                              &_root;
 		Reg_list<Session_component>           &_sessions;
 		Reg_list<genode_usb_device>           &_devices;
 		Attached_rom_dataspace                &_config;
@@ -560,7 +560,7 @@ class Session_component
 	public:
 
 		Session_component(Env                                   &env,
-		                  ::Root                                &root,
+		                  Usb_root                              &root,
 		                  Reg_list<Session_component>           &registry,
 		                  Reg_list<genode_usb_device>           &devices,
 		                  Attached_rom_dataspace                &config,
@@ -643,7 +643,7 @@ class Session_component
 };
 
 
-class Root : Sliced_heap, public Root_component<Session_component>
+class Usb_root : Sliced_heap, public Root_component<Session_component>
 {
 	private:
 
@@ -651,8 +651,8 @@ class Root : Sliced_heap, public Root_component<Session_component>
 		Heap                        _heap { _env.ram(), _env.rm() };
 		Signal_context_capability   _sigh_cap;
 		Attached_rom_dataspace      _config   { _env, "config"  };
-		Signal_handler<Root>        _config_handler { _env.ep(), *this,
-		                                              &Root::_config_update };
+		Signal_handler<Usb_root>    _config_handler { _env.ep(), *this,
+		                                              &Usb_root::_config_update };
 		Reg_list<genode_usb_device> _devices {};
 		bool                        _announced { false };
 
@@ -664,23 +664,22 @@ class Root : Sliced_heap, public Root_component<Session_component>
 		genode_shared_dataspace_free_t         _free_fn;
 		genode_usb_dev_release_t               _release_fn;
 
-		Root(const Root&);
-		Root & operator=(const Root&);
+		Usb_root(const Usb_root&);
+		Usb_root & operator=(const Usb_root&);
 
-		Session_component * _create_session(const char * args,
-		                                     Affinity const &) override;
-		void _upgrade_session(Session_component *, const char *) override;
+		Create_result _create_session(const char *args, Affinity const &) override;
+		void _upgrade_session(Session_component &, const char *) override;
 
 		void _config_update();
 		void _announce_service();
 
 	public:
 
-		Root(Env                                   &env,
-		     Signal_context_capability              sigh_cap,
-		     genode_shared_dataspace_alloc_attach_t alloc_fn,
-		     genode_shared_dataspace_free_t         free_fn,
-		     genode_usb_dev_release_t               release_fn);
+		Usb_root(Env                                   &env,
+		         Signal_context_capability              sigh_cap,
+		         genode_shared_dataspace_alloc_attach_t alloc_fn,
+		         genode_shared_dataspace_free_t         free_fn,
+		         genode_usb_dev_release_t               release_fn);
 
 		/*
 		 * Update report about existing USB devices
@@ -732,7 +731,7 @@ class Root : Sliced_heap, public Root_component<Session_component>
 };
 
 
-static ::Root * _usb_root  = nullptr;
+static Usb_root * _usb_root  = nullptr;
 
 
 void genode_usb_device::generate(Xml_generator & xml, bool acquired) const
@@ -1495,7 +1494,7 @@ void Session_component::wakeup()
 
 
 Session_component::Session_component(Env                                   &env,
-                                     ::Root                                &root,
+                                     Usb_root                              &root,
                                      Reg_list<Session_component>           &registry,
                                      Reg_list<genode_usb_device>           &devices,
                                      Attached_rom_dataspace                &config,
@@ -1536,34 +1535,27 @@ Session_component::~Session_component()
 }
 
 
-Session_component * ::Root::_create_session(const char * args,
-                                             Affinity const &)
+Usb_root::Create_result Usb_root::_create_session(const char * args,
+                                                  Affinity const &)
 {
-	Session_component * sc = nullptr;
-	try {
-		Session_label const label { session_label_from_args(args) };
+	Session_label const label { session_label_from_args(args) };
 
-		sc = new (md_alloc())
-			Session_component(_env, *this, _sessions, _devices, _config,
-			                  _sigh_cap, _alloc_fn, _free_fn, _release_fn,
-			                  label, session_resources_from_args(args),
-			                  session_diag_from_args(args));
-	} catch (...) {
-		if (sc) { Genode::destroy(md_alloc(), sc); }
-		throw;
-	}
-	return sc;
+	return *new (md_alloc())
+		Session_component(_env, *this, _sessions, _devices, _config,
+		                  _sigh_cap, _alloc_fn, _free_fn, _release_fn,
+		                  label, session_resources_from_args(args),
+		                  session_diag_from_args(args));
 }
 
 
-void ::Root::_upgrade_session(Session_component * sc, const char * args)
+void Usb_root::_upgrade_session(Session_component &s, const char * args)
 {
-	sc->upgrade(ram_quota_from_args(args));
-	sc->upgrade(cap_quota_from_args(args));
+	s.upgrade(ram_quota_from_args(args));
+	s.upgrade(cap_quota_from_args(args));
 }
 
 
-void ::Root::report()
+void Usb_root::report()
 {
 	if (!_device_reporter.constructed())
 		return;
@@ -1582,7 +1574,7 @@ void ::Root::report()
 }
 
 
-void ::Root::_config_update()
+void Usb_root::_config_update()
 {
 	/*
 	 * Defer the startup of the USB driver until the first configuration
@@ -1621,7 +1613,7 @@ void ::Root::_config_update()
 }
 
 
-void ::Root::_announce_service()
+void Usb_root::_announce_service()
 {
 	if (_announced)
 		return;
@@ -1633,19 +1625,19 @@ void ::Root::_announce_service()
 }
 
 
-void ::Root::device_add_endpoint(struct genode_usb_interface   *iface,
-                                 genode_usb_endpoint_descriptor desc)
+void Usb_root::device_add_endpoint(struct genode_usb_interface   *iface,
+                                   genode_usb_endpoint_descriptor desc)
 {
 	new (_heap) genode_usb_endpoint(iface->endpoints, desc);
 }
 
 
-void ::Root::device_add_interface(struct genode_usb_configuration *cfg,
-                                  genode_usb_dev_string_item_t     info_string,
-                                  genode_usb_interface_descriptor  desc,
-                                  genode_usb_dev_add_endp_t        callback,
-                                  void                            *opaque_data,
-                                  bool                             active)
+void Usb_root::device_add_interface(struct genode_usb_configuration *cfg,
+                                    genode_usb_dev_string_item_t     info_string,
+                                    genode_usb_interface_descriptor  desc,
+                                    genode_usb_dev_add_endp_t        callback,
+                                    void                            *opaque_data,
+                                    bool                             active)
 {
 	String_item info { string_item(info_string, opaque_data) };
 
@@ -1656,11 +1648,11 @@ void ::Root::device_add_interface(struct genode_usb_configuration *cfg,
 }
 
 
-void ::Root::device_add_configuration(struct genode_usb_device    *dev,
-                                      genode_usb_config_descriptor desc,
-                                      genode_usb_dev_add_iface_t   callback,
-                                      void                        *opaque_data,
-                                      bool                         active)
+void Usb_root::device_add_configuration(struct genode_usb_device    *dev,
+                                        genode_usb_config_descriptor desc,
+                                        genode_usb_dev_add_iface_t   callback,
+                                        void                        *opaque_data,
+                                        bool                         active)
 {
 	genode_usb_configuration *config = new (_heap)
 		genode_usb_configuration(dev->configs, desc, active);
@@ -1669,14 +1661,14 @@ void ::Root::device_add_configuration(struct genode_usb_device    *dev,
 }
 
 
-void ::Root::announce_device(genode_usb_bus_num_t         bus,
-                             genode_usb_dev_num_t         dev,
-                             genode_usb_speed_t           speed,
-                             genode_usb_dev_string_item_t manufacturer_string,
-                             genode_usb_dev_string_item_t product_string,
-                             genode_usb_device_descriptor desc,
-                             genode_usb_dev_add_config_t  callback,
-                             void                        *opaque_data)
+void Usb_root::announce_device(genode_usb_bus_num_t         bus,
+                               genode_usb_dev_num_t         dev,
+                               genode_usb_speed_t           speed,
+                               genode_usb_dev_string_item_t manufacturer_string,
+                               genode_usb_dev_string_item_t product_string,
+                               genode_usb_device_descriptor desc,
+                               genode_usb_dev_add_config_t  callback,
+                               void                        *opaque_data)
 {
 	String_item manufacturer { string_item(manufacturer_string, opaque_data) };
 	String_item product      { string_item(product_string, opaque_data) };
@@ -1692,8 +1684,8 @@ void ::Root::announce_device(genode_usb_bus_num_t         bus,
 }
 
 
-void ::Root::discontinue_device(genode_usb_bus_num_t bus,
-                                genode_usb_dev_num_t dev)
+void Usb_root::discontinue_device(genode_usb_bus_num_t bus,
+                                  genode_usb_dev_num_t dev)
 {
 	_devices.apply(
 		[&] (genode_usb_device & device) {
@@ -1717,7 +1709,7 @@ void ::Root::discontinue_device(genode_usb_bus_num_t bus,
 }
 
 
-bool ::Root::acquired(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev)
+bool Usb_root::acquired(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev)
 {
 	bool ret = false;
 	_devices.apply(
@@ -1734,10 +1726,10 @@ bool ::Root::acquired(genode_usb_bus_num_t bus, genode_usb_dev_num_t dev)
 }
 
 
-bool ::Root::request(genode_usb_bus_num_t            bus,
-                     genode_usb_dev_num_t            dev,
-                     genode_usb_req_callback_t const callback,
-                     void                           *opaque_data)
+bool Usb_root::request(genode_usb_bus_num_t            bus,
+                       genode_usb_dev_num_t            dev,
+                       genode_usb_req_callback_t const callback,
+                       void                           *opaque_data)
 {
 	bool ret = false;
 	_devices.apply(
@@ -1754,9 +1746,9 @@ bool ::Root::request(genode_usb_bus_num_t            bus,
 }
 
 
-void ::Root::handle_response(genode_usb_request_handle_t id,
-                             genode_usb_request_ret_t    ret,
-                             uint32_t                   *actual_sizes)
+void Usb_root::handle_response(genode_usb_request_handle_t id,
+                               genode_usb_request_ret_t    ret,
+                               uint32_t                   *actual_sizes)
 {
 	_sessions.apply(
 		[&] (Session_component & sc) {
@@ -1765,24 +1757,24 @@ void ::Root::handle_response(genode_usb_request_handle_t id,
 }
 
 
-void ::Root::handle_disconnected_sessions()
+void Usb_root::handle_disconnected_sessions()
 {
 	_sessions.for_each([&] (Session_component & sc) {
 		sc.handle_disconnected(); });
 }
 
 
-void ::Root::wakeup()
+void Usb_root::wakeup()
 {
 	_sessions.for_each([&] (Session_component & sc) { sc.wakeup(); });
 }
 
 
-::Root::Root(Env                                   &env,
-             Signal_context_capability              cap,
-             genode_shared_dataspace_alloc_attach_t alloc_fn,
-             genode_shared_dataspace_free_t         free_fn,
-             genode_usb_dev_release_t               release_fn)
+Usb_root::Usb_root(Env                                   &env,
+                   Signal_context_capability              cap,
+                   genode_shared_dataspace_alloc_attach_t alloc_fn,
+                   genode_shared_dataspace_free_t         free_fn,
+                   genode_usb_dev_release_t               release_fn)
 :
 	Sliced_heap(env.ram(), env.rm()),
 	Root_component<Session_component>(env.ep(), *this),
@@ -1801,7 +1793,7 @@ Genode_c_api::initialize_usb_service(Env                                   &env,
                                      genode_shared_dataspace_free_t         free_fn,
                                      genode_usb_dev_release_t               release_fn)
 {
-	static ::Root root(env, sigh, alloc_fn, free_fn, release_fn);
+	static Usb_root root(env, sigh, alloc_fn, free_fn, release_fn);
 	_usb_root = &root;
 }
 

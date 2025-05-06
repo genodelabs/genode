@@ -108,7 +108,7 @@ struct Report::Root : Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -131,7 +131,7 @@ struct Report::Root : Genode::Root_component<Session_component>
 				throw Service_denied();
 			}
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_env, label, buffer_size,
 				                  _rom_registry, _verbose);
 		}

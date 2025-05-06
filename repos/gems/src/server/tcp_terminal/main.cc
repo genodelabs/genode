@@ -579,7 +579,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Create_result _create_session(const char *args)
 		{
 			using namespace Genode;
 
@@ -619,7 +619,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 			if (!session_ptr)
 				throw Service_denied();
 
-			return session_ptr;
+			return *session_ptr;
 		}
 
 	public:

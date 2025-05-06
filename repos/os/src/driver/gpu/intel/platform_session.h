@@ -715,7 +715,7 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 			env.parent().announce(env.ep().manage(*this));
 		}
 
-		Session_component *_create_session(char const * /* args */) override
+		Create_result _create_session(char const * /* args */) override
 		{
 			_resources.with_gttm_gmadr([&](auto &platform,
 			                               auto &rm_gttmm, auto &range_gttmm,
@@ -729,10 +729,10 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 			if (!_session.constructed())
 				throw Service_denied();
 
-			return &*_session;
+			return *_session;
 		}
 
-		void _upgrade_session(Session_component *, const char *args) override
+		void _upgrade_session(Session_component &, const char *args) override
 		{
 			if (!_session.constructed()) return;
 
@@ -742,7 +742,7 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 			});
 		}
 
-		void _destroy_session(Session_component *) override
+		void _destroy_session(Session_component &) override
 		{
 			if (_session.constructed())
 				_session.destruct();

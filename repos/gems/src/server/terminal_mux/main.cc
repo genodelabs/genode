@@ -358,14 +358,14 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Create_result _create_session(const char *args)
 		{
 			/*
 			 * XXX read I/O buffer size from args
 			 */
 			Genode::size_t io_buffer_size = 4096;
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(io_buffer_size, _ncurses, _session_manager,
 				                  Genode::label_from_args(args), _env, _heap);
 		}

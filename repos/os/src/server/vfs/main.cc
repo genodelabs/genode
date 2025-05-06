@@ -865,7 +865,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -970,7 +970,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 					                ", '", label, "'");
 			}
 
-			return session;
+			return *session;
 		}
 
 		/**
@@ -978,16 +978,16 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 		 * this allows sessions to open arbitrarily large amounts
 		 * of handles without starving other sessions.
 		 */
-		void _upgrade_session(Session_component *session,
+		void _upgrade_session(Session_component &s,
 		                      char        const *args) override
 		{
-			Genode::Ram_quota more_ram = parse_ram_quota(args);
+			Genode::Ram_quota more_ram  = parse_ram_quota(args);
 			Genode::Cap_quota more_caps = parse_cap_quota(args);
 
 			if (more_ram.value > 0)
-				session->upgrade(more_ram);
+				s.upgrade(more_ram);
 			if (more_caps.value > 0)
-				session->upgrade(more_caps);
+				s.upgrade(more_caps);
 		}
 
 	public:

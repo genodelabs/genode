@@ -42,8 +42,8 @@ class Core::Irq_root : public Root_component<Irq_session_component>
 
 	protected:
 
-		Irq_session_component *_create_session(const char *args) override {
-			return new (md_alloc()) Irq_session_component(_irq_alloc, args); }
+		Create_result _create_session(const char *args) override {
+			return *new (md_alloc()) Irq_session_component(_irq_alloc, args); }
 
 	public:
 

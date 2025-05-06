@@ -42,10 +42,10 @@ class Hello::Root_component
 {
 	protected:
 
-		Session_component *_create_session(const char *) override
+		Create_result _create_session(const char *) override
 		{
 			Genode::log("creating hello session");
-			return new (md_alloc()) Session_component();
+			return *new (md_alloc()) Session_component();
 		}
 
 	public:

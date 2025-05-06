@@ -36,7 +36,7 @@ class Core::Vm_root : public Root_component<Vm_session_component>
 
 	protected:
 
-		Vm_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
 			unsigned priority = 0;
 			Arg a = Arg_string::find_arg(args, "priority");
@@ -47,7 +47,7 @@ class Core::Vm_root : public Root_component<Vm_session_component>
 				priority = min((unsigned)Cpu_session::PRIORITY_LIMIT - 1, priority);
 			}
 
-			return new (md_alloc())
+			return *new (md_alloc())
 				Vm_session_component(_vmid_alloc,
 				                     *ep(),
 				                     session_resources_from_args(args),
@@ -57,10 +57,10 @@ class Core::Vm_root : public Root_component<Vm_session_component>
 				                     _trace_sources);
 		}
 
-		void _upgrade_session(Vm_session_component *vm, const char *args) override
+		void _upgrade_session(Vm_session_component &vm, const char *args) override
 		{
-			vm->upgrade(ram_quota_from_args(args));
-			vm->upgrade(cap_quota_from_args(args));
+			vm.upgrade(ram_quota_from_args(args));
+			vm.upgrade(cap_quota_from_args(args));
 		}
 
 	public:

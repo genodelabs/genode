@@ -355,9 +355,9 @@ struct Timer::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 				Session_component(_env,
 				                  session_resources_from_args(args),
 				                  session_label_from_args(args),
@@ -365,15 +365,15 @@ struct Timer::Root : public Root_component<Session_component>
 				                  _alarms, _device);
 		}
 
-		void _upgrade_session(Session_component *s, const char *args) override
+		void _upgrade_session(Session_component &s, const char *args) override
 		{
-			s->upgrade(ram_quota_from_args(args));
-			s->upgrade(cap_quota_from_args(args));
+			s.upgrade(ram_quota_from_args(args));
+			s.upgrade(cap_quota_from_args(args));
 		}
 
-		void _destroy_session(Session_component *session) override
+		void _destroy_session(Session_component &session) override
 		{
-			Genode::destroy(md_alloc(), session);
+			Genode::destroy(md_alloc(), &session);
 		}
 
 	public:

@@ -34,9 +34,9 @@ class Core::Rm_root : public Root_component<Rm_session_component>
 
 	protected:
 
-		Rm_session_component *_create_session(const char *args) override
+		Create_result _create_session(const char *args) override
 		{
-			return new (md_alloc())
+			return *new (md_alloc())
 			       Rm_session_component(*this->ep(),
 			                            session_resources_from_args(args),
 			                            session_label_from_args(args),
@@ -44,10 +44,10 @@ class Core::Rm_root : public Root_component<Rm_session_component>
 			                            _ram_alloc, _local_rm, _pager_ep);
 		}
 
-		void _upgrade_session(Rm_session_component *rm, const char *args) override
+		void _upgrade_session(Rm_session_component &rm, const char *args) override
 		{
-			rm->upgrade(ram_quota_from_args(args));
-			rm->upgrade(cap_quota_from_args(args));
+			rm.upgrade(ram_quota_from_args(args));
+			rm.upgrade(cap_quota_from_args(args));
 		}
 
 	public:

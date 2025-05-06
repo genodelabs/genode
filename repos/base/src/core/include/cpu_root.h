@@ -35,9 +35,9 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 
 	protected:
 
-		Cpu_session_component *_create_session(char const *args,
+		Create_result _create_session(char const *args,
 		                                       Affinity const &affinity) override {
-			return new (md_alloc())
+			return *new (md_alloc())
 				Cpu_session_component(*this->ep(),
 				                      session_resources_from_args(args),
 				                      session_label_from_args(args),
@@ -47,10 +47,10 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 				                      args, affinity, 0);
 		}
 
-		void _upgrade_session(Cpu_session_component *cpu, const char *args) override
+		void _upgrade_session(Cpu_session_component &cpu, const char *args) override
 		{
-			cpu->upgrade(ram_quota_from_args(args));
-			cpu->upgrade(cap_quota_from_args(args));
+			cpu.upgrade(ram_quota_from_args(args));
+			cpu.upgrade(cap_quota_from_args(args));
 		}
 
 	public:
