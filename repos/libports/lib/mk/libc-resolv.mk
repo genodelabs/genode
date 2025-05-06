@@ -6,8 +6,6 @@ SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIBC_RESOLV_DIR)/*.c)))
 
 include $(REP_DIR)/lib/mk/libc-common.inc
 
-CC_DEF += -DSTDERR_FILENO=2
-
 # suppress "warning: ‘strncpy’ specified bound depends on the length of the source argument"
 CC_OPT_res_query := -Wno-stringop-overflow
 
