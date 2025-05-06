@@ -145,10 +145,11 @@ void Native_pd_component::_start(Dataspace_component &ds)
 		{ "DISPLAY=",           get_env("DISPLAY") },
 		{ "HOME=",              get_env("HOME") },
 		{ "LD_LIBRARY_PATH=",   get_env("LD_LIBRARY_PATH") },
+		{ "XDG_RUNTIME_DIR=",   get_env("XDG_RUNTIME_DIR") },
 	};
 	char const *env[] = { env_strings[0].string(), env_strings[1].string(),
 	                      env_strings[2].string(), env_strings[3].string(),
-	                      nullptr };
+	                      env_strings[4].string(), nullptr };
 
 	/* prefix name of Linux program (helps killing some zombies) */
 	using Pname = String<Session::Label::capacity() + 9>;
