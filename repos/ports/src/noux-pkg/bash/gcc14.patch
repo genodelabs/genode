@@ -1,0 +1,57 @@
+gcc14.patch
+
+diff --git a/configure b/configure
+--- a/configure
++++ b/configure
+@@ -14417,6 +14417,7 @@ else
+ /* end confdefs.h.  */
+ #include <sys/types.h>
+ #include <signal.h>
++#include <string.h>
+ int
+ main ()
+ {
+diff --git a/lib/termcap/tparam.c b/lib/termcap/tparam.c
+--- a/lib/termcap/tparam.c
++++ b/lib/termcap/tparam.c
+@@ -34,6 +34,10 @@ extern char *realloc ();
+ #include <string.h>
+ #endif
+ 
++#if defined(HAVE_UNISTD_H)
++#include <unistd.h>
++#endif
++
+ #if !defined (HAVE_BCOPY) && (defined (HAVE_STRING_H) || defined (STDC_HEADERS))
+ #  define bcopy(s, d, n)	memcpy ((d), (s), (n))
+ #endif
+diff --git a/parse.y b/parse.y
+--- a/parse.y
++++ b/parse.y
+@@ -5738,7 +5738,11 @@ decode_prompt_string (string)
+ 	      goto add_string;
+ 
+ 	    case 'j':
++#if defined (JOB_CONTROL)
+ 	      temp = itos (count_all_jobs ());
++#else
++	      temp = savestring("1");
++#endif
+ 	      goto add_string;
+ 
+ 	    case 'l':
+diff --git a/y.tab.c b/y.tab.c
+--- a/y.tab.c
++++ b/y.tab.c
+@@ -8029,7 +8029,11 @@ decode_prompt_string (string)
+ 	      goto add_string;
+ 
+ 	    case 'j':
++#if defined (JOB_CONTROL)
+ 	      temp = itos (count_all_jobs ());
++#else
++	      temp = savestring("1");
++#endif
+ 	      goto add_string;
+ 
+ 	    case 'l':
