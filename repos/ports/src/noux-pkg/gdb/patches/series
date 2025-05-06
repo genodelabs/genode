@@ -9,3 +9,4 @@ memory_map.patch
 first_inferior.patch
 symlinks.patch
 sigaltstack.patch
+gcc14.patch

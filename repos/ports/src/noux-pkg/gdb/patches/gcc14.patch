@@ -1,0 +1,17 @@
+gcc14.patch
+
+diff --git a/libiberty/getopt1.c b/libiberty/getopt1.c
+--- a/libiberty/getopt1.c
++++ b/libiberty/getopt1.c
+@@ -64,6 +64,11 @@
+ #define NULL 0
+ #endif
+ 
++extern int
++_getopt_internal (int argc, char *const *argv, const char *optstring,
++                  const struct option *longopts,
++                  int *longind, int long_only);
++
+ int
+ getopt_long (int argc,  char *const *argv,  const char *options,
+              const struct option *long_options, int *opt_index)
