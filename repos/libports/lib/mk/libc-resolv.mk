@@ -6,9 +6,6 @@ SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIBC_RESOLV_DIR)/*.c)))
 
 include $(REP_DIR)/lib/mk/libc-common.inc
 
-INC_DIR += sys/sys
-INC_DIR += $(LIBC_DIR)/sys/sys
-
 CC_DEF += -DSTDERR_FILENO=2
 
 # suppress "warning: ‘strncpy’ specified bound depends on the length of the source argument"
