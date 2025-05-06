@@ -123,6 +123,8 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
 		 */
 		Allocator &_md_alloc;
 
+		Memory::Constrained_obj_allocator<SESSION> _obj_alloc { *md_alloc() };
+
 		/*
 		 * Used by both the legacy 'Root::session' and the new 'Factory::create'
 		 */
@@ -171,6 +173,26 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
 		Root_component &operator = (Root_component const &);
 
 	protected:
+
+		/**
+		 * Construct session object allocated from 'md_alloc'
+		 */
+		Create_result _alloc_obj(auto &&... args)
+		{
+			return _obj_alloc.create(args...).template convert<Create_result>(
+				[&] (auto &a) -> SESSION & {
+					a.deallocate = false;
+					return a.obj;
+				},
+				[&] (Alloc_error e) {
+					switch (e) {
+					case Alloc_error::OUT_OF_RAM:  return Create_error::INSUFFICIENT_RAM;
+					case Alloc_error::OUT_OF_CAPS: return Create_error::INSUFFICIENT_CAPS;
+					case Alloc_error::DENIED:      break;
+					}
+					return Create_error::DENIED;
+				});
+		}
 
 		/**
 		 * Create new session (to be implemented by a derived class)
