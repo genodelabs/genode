@@ -22,6 +22,7 @@ INC_DIR += $(MESA_GEN_DIR)/src/compiler \
            $(MESA_SRC_DIR)/src/compiler/glsl/glcpp \
            $(MESA_SRC_DIR)/src/compiler/nir \
            $(MESA_SRC_DIR)/src/compiler/spirv \
+           $(MESA_SRC_DIR)/src/egl/main \
            $(MESA_SRC_DIR)/src/gallium/auxiliary \
            $(MESA_SRC_DIR)/src/gallium/drivers \
            $(MESA_SRC_DIR)/src/gallium/frontends/dri \

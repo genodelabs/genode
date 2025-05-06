@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -19,6 +19,7 @@ namespace Genode { class Env; }
 extern Genode::Env *genode_env;
 #endif
 
+#include <egltypedefs.h>
 #include <EGL/egl.h>
 
 enum {
@@ -32,20 +33,20 @@ void genode_blit(void const *src, unsigned src_w, void *dst, unsigned dst_w, int
 void genode_drm_init();
 void genode_drm_complete();
 
-EGLSurface *
-dri2_genode_create_window_surface(EGLDisplay *disp,
-                                  EGLConfig *conf, void *native_window,
+_EGLSurface *
+dri2_genode_create_window_surface(_EGLDisplay *disp,
+                                  _EGLConfig *conf, void *native_window,
                                   const EGLint *attrib_list);
 EGLBoolean
-dri2_genode_destroy_surface(EGLDisplay *disp, EGLSurface *surf);
+dri2_genode_destroy_surface(_EGLDisplay *disp, _EGLSurface *surf);
 
-EGLSurface *
-dri2_genode_create_pixmap_surface(EGLDisplay *disp,
-                                  EGLConfig *conf, void *native_window,
+_EGLSurface *
+dri2_genode_create_pixmap_surface(_EGLDisplay *disp,
+                                  _EGLConfig *conf, void *native_window,
                                   const EGLint *attrib_list);
 
 EGLBoolean
-dri2_genode_swap_interval(EGLDisplay *disp,
-                          EGLSurface *surf, EGLint interval);
+dri2_genode_swap_interval(_EGLDisplay *disp,
+                          _EGLSurface *surf, EGLint interval);
 
 #endif
