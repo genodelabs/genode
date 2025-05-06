@@ -51,7 +51,7 @@ index 2e76f0e..ff7e432 100644
 +       if (!dev) return -ENOMEM;
 +
 +       dev->bustype = DRM_BUS_PLATFORM;
-+       dev->businfo.platform    = addr;
++       dev->businfo.platform    = (drmPlatformBusInfoPtr)addr;
 +       dev->deviceinfo.platform = NULL;
 +    }
 +
