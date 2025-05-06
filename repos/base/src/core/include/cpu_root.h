@@ -35,16 +35,15 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 
 	protected:
 
-		Create_result _create_session(char const *args,
-		                                       Affinity const &affinity) override {
-			return *new (md_alloc())
-				Cpu_session_component(*this->ep(),
-				                      session_resources_from_args(args),
-				                      session_label_from_args(args),
-				                      session_diag_from_args(args),
-				                      _ram_alloc, _local_rm,
-				                      _thread_ep, _pager_ep, _trace_sources,
-				                      args, affinity, 0);
+		Create_result _create_session(char const *args, Affinity const &affinity) override
+		{
+			return _alloc_obj(*this->ep(),
+				              session_resources_from_args(args),
+				              session_label_from_args(args),
+				              session_diag_from_args(args),
+				              _ram_alloc, _local_rm,
+				              _thread_ep, _pager_ep, _trace_sources,
+				              args, affinity, 0);
 		}
 
 		void _upgrade_session(Cpu_session_component &cpu, const char *args) override

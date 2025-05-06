@@ -20,33 +20,20 @@
 /* core includes */
 #include <log_session_component.h>
 
-namespace Core { class Log_root; }
+namespace Core { struct Log_root; }
 
 
-class Core::Log_root : public Root_component<Log_session_component>
+struct Core::Log_root : Root_component<Log_session_component>
 {
-	protected:
+	Create_result _create_session(const char *args) override
+	{
+		return _alloc_obj(label_from_args(args));
+	}
 
-		/**
-		 * Root component interface
-		 */
-		Create_result _create_session(const char *args) override
-		{
-			return *new (md_alloc()) Log_session_component(label_from_args(args));
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param session_ep  entry point for managing cpu session objects
-		 * \param md_alloc    meta-data allocator to be used by root component
-		 */
-		Log_root(Rpc_entrypoint &session_ep, Allocator &md_alloc)
-		:
-			Root_component<Log_session_component>(&session_ep, &md_alloc)
-		{ }
+	Log_root(Rpc_entrypoint &session_ep, Allocator &md_alloc)
+	:
+		Root_component<Log_session_component>(&session_ep, &md_alloc)
+	{ }
 };
 
 #endif /* _CORE__INCLUDE__LOG_ROOT_H_ */

@@ -82,18 +82,16 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 
 		Create_result _create_session(const char *args) override
 		{
-			return *new (md_alloc())
-				Pd_session_component(_ep,
-				                     _signal_ep,
-				                     session_resources_from_args(args),
-				                     session_label_from_args(args),
-				                     session_diag_from_args(args),
-				                     _phys_alloc,
-				                     _phys_range_from_args(args),
-				                     _virt_range_from_args(args),
-				                     _managing_system(args),
-				                     _local_rm, _pager_ep, args,
-				                     _core_mem, _system_control);
+			return _alloc_obj(_ep, _signal_ep,
+			                  session_resources_from_args(args),
+			                  session_label_from_args(args),
+			                  session_diag_from_args(args),
+			                  _phys_alloc,
+			                  _phys_range_from_args(args),
+			                  _virt_range_from_args(args),
+			                  _managing_system(args),
+			                  _local_rm, _pager_ep, args,
+			                  _core_mem, _system_control);
 		}
 
 		void _upgrade_session(Pd_session_component &pd, const char *args) override
