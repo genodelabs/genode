@@ -8,4 +8,5 @@ SIG(coreutils) := ${URL(coreutils)}.sig
 KEY(coreutils) := GNU
 DIR(coreutils) := src/noux-pkg/coreutils
 
-PATCHES := src/noux-pkg/coreutils/copy.patch
+PATCHES := src/noux-pkg/coreutils/copy.patch \
+           src/noux-pkg/coreutils/readutmp.patch

@@ -1,0 +1,16 @@
++++ src/noux-pkg/coreutils/lib/readutmp.h
+@@ -45,12 +45,13 @@
+ #  define SET_UTMP_ENT setutxent
+ #  define GET_UTMP_ENT getutxent
+ #  define END_UTMP_ENT endutxent
++#if 0
+ #  ifdef HAVE_UTMPXNAME
+ #   define UTMP_NAME_FUNCTION utmpxname
+ #  elif defined UTXDB_ACTIVE
+ #   define UTMP_NAME_FUNCTION(x) setutxdb (UTXDB_ACTIVE, x)
+ #  endif
+-
++#endif
+ #  if HAVE_STRUCT_UTMPX_UT_EXIT_E_TERMINATION
+ #   define UT_EXIT_E_TERMINATION(U) ((U)->ut_exit.e_termination)
+ #  else
