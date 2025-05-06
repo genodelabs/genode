@@ -18,9 +18,6 @@
 #include <util/bit_allocator.h>
 #include <base/id_space.h>
 
-/* gems includes */
-#include <gems/local_reporter.h>
-
 /* local includes */
 #include <types.h>
 
