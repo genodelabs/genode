@@ -1,14 +1,8 @@
 build.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- src/Makefile     |    2 +-
- src/xxd/Makefile |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
-
-+++ src/noux-pkg/vim/src/Makefile
+diff --git a/src/Makefile b/src/Makefile
+--- a/src/Makefile
++++ b/src/Makefile
 @@ -1698,7 +1698,7 @@ $(VIMTARGET): auto/config.mk objects $(OBJ) version.c version.h
  		MAKE="$(MAKE)" sh $(srcdir)/link.sh
  
@@ -18,7 +12,9 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  		$(MAKE) -f Makefile
  
  # Build the language specific files if they were unpacked.
-+++ src/noux-pkg/vim/src/xxd/Makefile
+diff --git a/src/xxd/Makefile b/src/xxd/Makefile
+--- a/src/xxd/Makefile
++++ b/src/xxd/Makefile
 @@ -1,7 +1,7 @@
  # The most simplistic Makefile
  

@@ -6,7 +6,9 @@ URL(vim) := https://github.com/vim/vim/archive/v$(VERSION).tar.gz
 SHA(vim) := 56f330c33411d4fd3ae2017ea26b07b8bff9b3ac712d5a77f79ccd5374ee39f4
 DIR(vim) := src/noux-pkg/vim
 
-PATCHES := src/noux-pkg/vim/build.patch
+PATCHES := src/noux-pkg/vim/build.patch \
+           src/noux-pkg/vim/gcc14.patch
+PATCH_OPT := -p1 -d ${DIR(vim)}
 
 default : additional_fixes
 additional_fixes : $(DOWNLOADS)

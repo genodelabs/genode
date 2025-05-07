@@ -1,0 +1,14 @@
+gcc14.patch
+
+diff --git a/src/auto/configure b/src/auto/configure
+--- a/src/auto/configure
++++ b/src/auto/configure
+@@ -9865,7 +9865,7 @@ if test "x$olibs" = "x$LIBS"; then
+ $as_echo_n "checking for tgetent()... " >&6; }
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-
++int tgetent(char *, const char *);
+ int
+ main ()
+ {
