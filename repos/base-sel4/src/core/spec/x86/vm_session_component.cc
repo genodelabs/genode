@@ -110,10 +110,8 @@ try
 	Range_allocator &phys_alloc = platform.ram_alloc();
 
 	/* _pd_id && _vm_page_table */
-	Cap_quota_guard::Reservation caps(_cap_quota_guard(), Cap_quota{2});
-	/* ept object requires a page taken directly from core's phys_alloc */
-	/* notifications requires a page taken directly from core's phys_alloc */
-	Ram_quota_guard::Reservation ram(_ram_quota_guard(), Ram_quota{2 * 4096});
+	Cap_quota_guard::Reservation cap_reservation(_cap_quota_guard(), Cap_quota{2});
+	Ram_quota_guard::Reservation ram_reservation(_ram_quota_guard(), Ram_quota{2 * 4096});
 
 	try {
 		_ept._phys    = Untyped_memory::alloc_page(phys_alloc);
@@ -141,8 +139,8 @@ try
 	(void)_map.add_range(0, 0UL - 0x1000);
 	(void)_map.add_range(0UL - 0x1000, 0x1000);
 
-	caps.acknowledge();
-	ram.acknowledge();
+	cap_reservation.acknowledge();
+	ram_reservation.acknowledge();
 } catch (...) {
 
 	if (_notifications._service)
