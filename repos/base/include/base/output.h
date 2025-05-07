@@ -216,6 +216,13 @@ namespace Genode {
 	 */
 	void print(Output &, Alloc_error);
 
+	struct Ok;
+
+	/**
+	 * Print success of 'Attempt'
+	 */
+	static inline void print(Output &out, Ok const &) { print(out, "ok"); }
+
 	/**
 	 * Print information about object 'obj'
 	 *
