@@ -6,6 +6,7 @@ LIBS        += libusb libc
 
 # find 'config.h'
 INC_DIR += $(REP_DIR)/src/lib/ccid
+CC_DEF  += -DHAVE_CONFIG_H
 
 INC_DIR += $(LIBCCID_DIR)/src
 
