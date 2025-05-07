@@ -15,15 +15,13 @@
 #define _INCLUDE__BASE__QUOTA_GUARD_H_
 
 #include <util/string.h>
+#include <util/allocation.h>
 #include <base/log.h>
-#include <base/exception.h>
 
 namespace Genode {
 
 	struct Ram_quota
 	{
-		using Exhausted_exception = Out_of_ram;
-
 		size_t value;
 
 		static char const *name() { return "bytes"; }
@@ -33,8 +31,6 @@ namespace Genode {
 
 	struct Cap_quota
 	{
-		using Exhausted_exception = Out_of_caps;
-
 		size_t value;
 
 		static char const *name() { return "caps"; }
@@ -45,11 +41,6 @@ namespace Genode {
 	class Quota_guard_untyped;
 
 	template <typename> class Quota_guard;
-
-	struct Reservation : Interface
-	{
-		virtual void cancel() = 0;
-	};
 }
 
 
@@ -131,38 +122,6 @@ class Genode::Quota_guard_untyped
 			/* clamp lower bound of used value to zero */
 			_used = underflow ? 0 : _used - amount;
 		}
-
-		/**
-		 * Guard for rolling back a quota reservation
-		 */
-		class Reservation_guard : public Reservation, Noncopyable
-		{
-			private:
-
-				Quota_guard_untyped &_quota_guard;
-
-				size_t const _amount;
-
-				bool _canceled = false;
-
-			public:
-
-				Reservation_guard(Quota_guard_untyped &quota_guard, size_t const amount)
-				:
-					_quota_guard(quota_guard), _amount(amount)
-				{ }
-
-				~Reservation_guard()
-				{
-					if (_canceled)
-						_quota_guard.replenish(_amount);
-				}
-
-				/**
-				 * Reservation interface
-				 */
-				void cancel() override { _canceled = true; }
-		};
 };
 
 
@@ -174,8 +133,6 @@ class Genode::Quota_guard
 		Quota_guard_untyped _guard { };
 
 	public:
-
-		using Limit_exceeded = typename UNIT::Exhausted_exception;
 
 		Quota_guard() { }
 		Quota_guard(UNIT amount) { upgrade(amount); }
@@ -206,20 +163,17 @@ class Genode::Quota_guard
 		}
 
 		/**
-		 * Consume specified amount of quota
-		 *
-		 * \throw Limit_exceeded  amount exceeds available quota
-		 */
-		void withdraw(UNIT amount)
-		{
-			if (!_guard.try_withdraw(amount.value))
-				throw Limit_exceeded();
-		}
-
-		/**
 		 * Hand back specified amount to available quota
 		 */
 		void replenish(UNIT amount) { _guard.replenish(amount.value); }
+
+		/**
+		 * Return true if specified amount is available
+		 */
+		bool have_avail(UNIT const amount) const
+		{
+			return _guard.avail() >= amount.value;
+		}
 
 		void print(Output &out) const
 		{
@@ -227,67 +181,26 @@ class Genode::Quota_guard
 			                   "limit=", UNIT{_guard.limit()});
 		}
 
-		/**
-		 * Utility used for transactional multi-step resource allocations
-		 *
-		 * \deprecated  Use 'with_reservation' instead
-		 *
-		 * Note that this class is not related to the 'Genode::Reservation'
-		 * interface.
+		/*
+		 * Reservation modelled via the 'Allocation' pattern
 		 */
-		struct Reservation
-		{
-			Quota_guard &_quota_guard;
-			UNIT   const _amount;
-			bool         _ack = false;
 
-			/**
-			 * Constructor
-			 *
-			 * \throw Limit_exceeded
-			 */
-			Reservation(Quota_guard &quota_guard, UNIT amount)
-			:
-				_quota_guard(quota_guard), _amount(amount)
-			{
-				_quota_guard.withdraw(_amount);
-			}
+		struct Attr { size_t amount; };
 
-			~Reservation()
-			{
-				if (!_ack)
-					_quota_guard.replenish(_amount);
-			}
+		enum class Error { LIMIT_EXCEEDED };
 
-			void acknowledge() { _ack = true; }
-		};
+		using Reservation = Genode::Allocation<Quota_guard>;
+		using Result      = typename Reservation::Attempt;
 
-		template <typename RET>
-		RET with_reservation(UNIT const amount,
-		                     auto const &fn,
-		                     auto const &error_fn)
+		Result reserve(UNIT amount)
 		{
 			if (!_guard.try_withdraw(amount.value))
-				return error_fn();
+				return Error::LIMIT_EXCEEDED;
 
-			/*
-			 * The withdrawal was successful. Use reservation guard to
-			 * rollback the withdrawal depending on 'fn'.
-			 */
-
-			Quota_guard_untyped::Reservation_guard
-				reservation_guard { _guard, amount.value };
-
-			/* expose only the 'Reservation' interface to 'fn' */
-			::Genode::Reservation &interface = reservation_guard;
-
-			return fn(interface);
+			return { *this, { amount.value } };
 		}
 
-		bool have_avail(UNIT const amount) const
-		{
-			return _guard.avail() >= amount.value;
-		}
+		void _free(Reservation &r) { _guard.replenish(r.amount); }
 };
 
 

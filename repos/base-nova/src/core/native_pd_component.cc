@@ -22,8 +22,8 @@ using namespace Core;
 Pd_session::Alloc_rpc_cap_result
 Native_pd_component::alloc_rpc_cap(Native_capability ep, addr_t entry, addr_t mtd)
 {
-	try { _pd_session._consume_cap(Pd_session_component::RPC_CAP); }
-	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
+	if (!_pd_session._consume_cap(Pd_session_component::RPC_CAP))
+		return Alloc_error::OUT_OF_CAPS;
 
 	Alloc_rpc_cap_result result = _pd_session._rpc_cap_factory.alloc(ep, entry, mtd);
 

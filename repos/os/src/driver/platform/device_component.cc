@@ -243,6 +243,29 @@ Genode::Io_port_session_capability Device_component::io_port_range(unsigned idx)
 }
 
 
+template <typename SESSION>
+void Device_component::_with_reserved_quota_for_session(Driver::Session_component &session,
+                                      auto const &fn)
+{
+	Cap_quota const caps { SESSION::CAP_QUOTA };
+	Ram_quota const ram  { SESSION::RAM_QUOTA };
+
+	session.ram_quota_guard().reserve(ram).with_result(
+		[&] (Ram_quota_guard::Reservation &reserved_ram) {
+			session.cap_quota_guard().reserve(caps).with_result(
+				[&] (Cap_quota_guard::Reservation &reserved_caps) {
+					reserved_ram.deallocate  = false;
+					reserved_caps.deallocate = false;
+					_ram_quota += reserved_ram.amount;
+					_cap_quota += reserved_caps.amount;
+					fn();
+				},
+				[&] (Cap_quota_guard::Error) { throw Out_of_caps(); });
+		},
+		[&] (Ram_quota_guard::Error) { throw Out_of_ram(); });
+}
+
+
 Device_component::Device_component(Registry<Device_component> & registry,
                                    Env                        & env,
                                    Driver::Session_component  & session,
@@ -255,7 +278,9 @@ Device_component::Device_component(Registry<Device_component> & registry,
 	_device(device.name()),
 	_reg_elem(registry, *this)
 {
-	session.cap_quota_guard().withdraw(Cap_quota{1});
+	if (!session.cap_quota_guard().try_withdraw(Cap_quota{1}))
+		throw Out_of_caps();
+
 	_cap_quota += 1;
 
 	/**
@@ -277,54 +302,42 @@ Device_component::Device_component(Registry<Device_component> & registry,
 		                         Irq_session::Trigger  mode,
 		                         bool                  shared)
 		{
-			session.ram_quota_guard().withdraw(Ram_quota{Irq_session::RAM_QUOTA});
-			_ram_quota += Irq_session::RAM_QUOTA;
-			session.cap_quota_guard().withdraw(Cap_quota{Irq_session::CAP_QUOTA});
-			_cap_quota += Irq_session::CAP_QUOTA;
-			new (session.heap()) Irq(_irq_registry, idx, nr, type, polarity,
-			                         mode, shared);
+			_with_reserved_quota_for_session<Irq_session>(session, [&] {
+				new (session.heap())
+					Irq(_irq_registry, idx, nr, type, polarity, mode, shared); });
 		});
 
 		device.for_each_io_mem([&] (unsigned idx, Range range,
 		                            Device::Pci_bar bar, bool pf)
 		{
-			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
-			_ram_quota += Io_mem_session::RAM_QUOTA;
-			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
-			_cap_quota += Io_mem_session::CAP_QUOTA;
-			new (session.heap()) Io_mem(_io_mem_registry, bar, idx, range, pf);
+			_with_reserved_quota_for_session<Io_mem_session>(session, [&] {
+				new (session.heap())
+					Io_mem(_io_mem_registry, bar, idx, range, pf); });
 		});
 
 		device.for_each_io_port_range([&] (unsigned idx, Io_port_range::Range range,
 		                                   Device::Pci_bar)
 		{
-			session.ram_quota_guard().withdraw(Ram_quota{Io_port_session::RAM_QUOTA});
-			_ram_quota += Io_port_session::RAM_QUOTA;
-			session.cap_quota_guard().withdraw(Cap_quota{Io_port_session::CAP_QUOTA});
-			_cap_quota += Io_port_session::CAP_QUOTA;
-			new (session.heap()) Io_port_range(_io_port_range_registry, idx, range);
+			_with_reserved_quota_for_session<Io_port_session>(session, [&] {
+				new (session.heap())
+					Io_port_range(_io_port_range_registry, idx, range); });
 		});
 
 		device.for_pci_config([&] (Device::Pci_config const & cfg)
 		{
-			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
-			_ram_quota += Io_mem_session::RAM_QUOTA;
-			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
-			_cap_quota += Io_mem_session::CAP_QUOTA;
-			Pci::Bdf bdf { cfg.bus_num, cfg.dev_num, cfg.func_num };
-			_pci_config.construct(cfg.addr, bdf);
+			_with_reserved_quota_for_session<Io_mem_session>(session, [&] {
+				Pci::Bdf bdf { cfg.bus_num, cfg.dev_num, cfg.func_num };
+				_pci_config.construct(cfg.addr, bdf); });
 		});
 
 		device.for_each_reserved_memory([&] (unsigned idx, Range range)
 		{
-			session.ram_quota_guard().withdraw(Ram_quota{Io_mem_session::RAM_QUOTA});
-			_ram_quota += Io_mem_session::RAM_QUOTA;
-			session.cap_quota_guard().withdraw(Cap_quota{Io_mem_session::CAP_QUOTA});
-			_cap_quota += Io_mem_session::CAP_QUOTA;
-			Io_mem & iomem = *(new (session.heap())
-				Io_mem(_reserved_mem_registry, {0}, idx, range, false));
-			iomem.io_mem.construct(_env, iomem.range.start,
-			                       iomem.range.size, false);
+			_with_reserved_quota_for_session<Io_mem_session>(session, [&] {
+				Io_mem & iomem = *(new (session.heap())
+					Io_mem(_reserved_mem_registry, {0}, idx, range, false));
+				iomem.io_mem.construct(_env, iomem.range.start,
+				                       iomem.range.size, false);
+			});
 		});
 
 		auto add_range_fn = [&] (Driver::Io_mmu::Domain & domain) {

@@ -68,8 +68,8 @@ class Driver::Device_pd : public Io_mmu::Domain
 
 			Attach_result attach(Dataspace_capability ds, Attr const &attr) override;
 
-			void upgrade_ram();
-			void upgrade_caps();
+			[[nodiscard]] bool upgrade_ram();
+			[[nodiscard]] bool upgrade_caps();
 		} _address_space;
 
 	public:

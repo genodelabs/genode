@@ -1906,28 +1906,35 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			void withdraw(size_t caps_old, size_t caps_new,
 			              size_t ram_old, size_t ram_new)
 			{
-				size_t caps = caps_old > caps_new ? caps_old - caps_new : 0;
-				size_t ram  = ram_old > ram_new ? ram_old - ram_new : 0;
+				Cap_quota needed_caps { caps_old > caps_new ? caps_old - caps_new : 0 };
+				Ram_quota needed_ram  { ram_old  > ram_new  ? ram_old  - ram_new  : 0 };
 
-				try {
-					_cap_quota_guard.withdraw(Cap_quota { caps });
-					_ram_quota_guard.withdraw(Ram_quota { ram });
-				} catch (Genode::Out_of_caps) {
-					/*
-					 * At this point something in the accounting went wrong
-					 * and as quick-fix let the client abort rather than the
-					 * multiplexer.
-					 */
-					Genode::error("Quota guard out of caps! from ", __builtin_return_address(0));
-					throw Gpu::Session::Out_of_caps();
-				} catch (Genode::Out_of_ram) {
-					Genode::error("Quota guard out of ram! from ", __builtin_return_address(0));
-					Genode::error("guard ram: ", _ram_quota_guard.avail().value, " requested: ", ram);
-					throw Gpu::Session::Out_of_ram();
-				} catch (...) {
-					Genode::error("Unknown exception in 'Resourcd_guard::withdraw'");
-					throw;
-				}
+				_ram_quota_guard.reserve(needed_ram).with_result(
+					[&] (Ram_quota_guard::Reservation &reserved_ram) {
+						_cap_quota_guard.reserve(needed_caps).with_result(
+							[&] (Cap_quota_guard::Reservation &reserved_caps) {
+								reserved_ram.deallocate  = false;
+								reserved_caps.deallocate = false;
+							},
+							[&] (Cap_quota_guard::Error) {
+								/*
+								 * At this point something in the accounting
+								 * went wrong and as quick-fix let the client
+								 * abort rather than the multiplexer.
+								 */
+								Genode::error("Quota guard out of caps! from ",
+								              __builtin_return_address(0));
+								throw Gpu::Session::Out_of_caps();
+							});
+					},
+					[&] (Ram_quota_guard::Error) {
+						Genode::error("Quota guard out of ram! from ",
+						              __builtin_return_address(0));
+						Genode::error("guard ram: ", _ram_quota_guard.avail(),
+						              " requested: ", needed_ram);
+						throw Gpu::Session::Out_of_ram();
+					}
+				);
 			}
 
 			void replenish(size_t caps, size_t ram)
@@ -2296,14 +2303,13 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			try {
 				Vram_local *vram_local = new (_heap) Vram_local(cap, 0, _vram_space, id);
 
-				_apply_vram(*vram_local,
-					[&](Vram &vram) { vram_local->size = vram.size; return false; });
-
-			} catch (Cap_quota_guard::Limit_exceeded) {
-				throw Gpu::Session::Out_of_caps();
-			} catch (Ram_quota_guard::Limit_exceeded) {
-				throw Gpu::Session::Out_of_ram();
+				_apply_vram(*vram_local, [&](Vram &vram) {
+					vram_local->size = vram.size;
+					return false;
+				});
 			}
+			catch (Out_of_caps) { throw Gpu::Session::Out_of_caps(); }
+			catch (Out_of_ram)  { throw Gpu::Session::Out_of_ram(); }
 		}
 
 		Genode::Dataspace_capability map_cpu(Gpu::Vram_id,

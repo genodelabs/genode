@@ -86,7 +86,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		 ** Utilities for capability accounting **
 		 *****************************************/
 
-		enum Cap_type { RPC_CAP, DS_CAP, SIG_SOURCE_CAP, SIG_CONTEXT_CAP, IGN_CAP };
+		enum Cap_type { RPC_CAP, DS_CAP, SIG_SOURCE_CAP, SIG_REC_CAP,
+		                SIG_CONTEXT_CAP, IGN_CAP };
 
 		char const *_name(Cap_type type)
 		{
@@ -94,23 +95,24 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			case RPC_CAP:         return "RPC";
 			case DS_CAP:          return "dataspace";
 			case SIG_SOURCE_CAP:  return "signal-source";
+			case SIG_REC_CAP:     return "signal-receiver";
 			case SIG_CONTEXT_CAP: return "signal-context";
 			default:              return "";
 			}
 		}
 
 		/*
-		 * \throw Out_of_caps
+		 * Withdraw one cap from budget, return true on success
 		 */
-		void _consume_cap(Cap_type type)
+		[[nodiscard]] bool _consume_cap(Cap_type type)
 		{
-			try { withdraw(Cap_quota{1}); }
-			catch (Out_of_caps) {
+			if (!try_withdraw(Cap_quota{1})) {
 				diag("out of caps while consuming ", _name(type), " cap "
 				     "(", _cap_account, ")");
-				throw;
+				return false;
 			}
 			diag("consumed ", _name(type), " cap (", _cap_account, ")");
+			return true;
 		}
 
 		void _released_cap_silent() { replenish(Cap_quota{1}); }
@@ -232,9 +234,8 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 
 		Signal_source_result signal_source() override
 		{
-			try { _consume_cap(SIG_SOURCE_CAP); }
-			catch (Out_of_caps) {
-				return Signal_source_error::OUT_OF_CAPS; }
+			if (!_consume_cap(SIG_SOURCE_CAP))
+				return Signal_source_error::OUT_OF_CAPS;
 
 			Signal_source_result result = Capability<Signal_source>();
 
@@ -257,21 +258,24 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		Alloc_context_result
 		alloc_context(Capability<Signal_source> sig_rec_cap, Imprint imprint) override
 		{
-			try {
-				Cap_quota_guard::Reservation cap_costs(_cap_quota_guard(), Cap_quota{1});
+			return _cap_quota_guard().reserve({1}).convert<Alloc_context_result>(
+				[&] (Cap_quota_guard::Reservation &reserved_cap) -> Alloc_context_result {
+					try {
+						/* may throw 'Out_of_ram', 'Out_of_caps', or 'Invalid_signal_source' */
+						Signal_context_capability cap =
+							_signal_broker.alloc_context(sig_rec_cap, imprint.value);
 
-				/* may throw 'Out_of_ram', 'Out_of_caps', or 'Invalid_signal_source' */
-				Signal_context_capability cap =
-					_signal_broker.alloc_context(sig_rec_cap, imprint.value);
-
-				cap_costs.acknowledge();
-				diag("consumed signal-context cap (", _cap_account, ")");
-				return cap;
-			}
-			catch (Signal_broker::Invalid_signal_source) {
-				return Alloc_context_error::INVALID_SIGNAL_SOURCE; }
-			catch (Out_of_ram)  { return Alloc_context_error::OUT_OF_RAM;  }
-			catch (Out_of_caps) { return Alloc_context_error::OUT_OF_CAPS; }
+						reserved_cap.deallocate = false;
+						diag("consumed signal-context cap (", _cap_account, ")");
+						return cap;
+					}
+					catch (Signal_broker::Invalid_signal_source) {
+						return Alloc_context_error::INVALID_SIGNAL_SOURCE; }
+					catch (Out_of_ram)  { return Alloc_context_error::OUT_OF_RAM;  }
+					catch (Out_of_caps) { return Alloc_context_error::OUT_OF_CAPS; }
+				},
+				[&] (Cap_quota_guard::Error) { return Alloc_context_error::OUT_OF_CAPS; }
+			);
 		}
 
 		void free_context(Signal_context_capability cap) override
@@ -290,16 +294,17 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 
 		Alloc_rpc_cap_result alloc_rpc_cap(Native_capability ep) override
 		{
-			/* may throw 'Out_of_caps' */
-			try { _consume_cap(RPC_CAP); }
-			catch (Out_of_caps) {
-				return Alloc_error::OUT_OF_CAPS; }
 
-			return _rpc_cap_factory.alloc(ep).convert<Alloc_rpc_cap_result>(
-				[&] (Untyped_capability cap) { return cap; },
-				[&] (Alloc_error e) {
-					_released_cap_silent();
-					return e; });
+			return _cap_quota_guard().reserve({1}).convert<Alloc_rpc_cap_result>(
+				[&] (Cap_quota_guard::Reservation &reserved_cap) -> Alloc_rpc_cap_result {
+					return _rpc_cap_factory.alloc(ep).convert<Alloc_rpc_cap_result>(
+						[&] (Untyped_capability cap) {
+							reserved_cap.deallocate = false;
+							return cap; },
+						[&] (Alloc_error e) { return e; });
+				},
+				[&] (Cap_quota_guard::Error) { return Alloc_error::OUT_OF_CAPS; }
+			);
 		}
 
 		void free_rpc_cap(Native_capability cap) override

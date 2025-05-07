@@ -33,8 +33,6 @@ class Genode::Session_object : private Ram_quota_guard,
 
 		using Ram_quota_guard::try_withdraw;
 		using Cap_quota_guard::try_withdraw;
-		using Ram_quota_guard::withdraw;
-		using Cap_quota_guard::withdraw;
 		using Ram_quota_guard::replenish;
 		using Cap_quota_guard::replenish;
 		using Ram_quota_guard::upgrade;
@@ -65,10 +63,7 @@ class Genode::Session_object : private Ram_quota_guard,
 		{ }
 
 		/**
-		 * Constructor
-		 *
-		 * \deprecated This constructor exists for backward compatibility only
-		 *             and will eventually be removed.
+		 * Constructor used by core
 		 */
 		Session_object(Rpc_entrypoint &ep, Resources const &resources,
 		               Label const &label, Diag diag)
@@ -77,14 +72,18 @@ class Genode::Session_object : private Ram_quota_guard,
 			Cap_quota_guard(resources.cap_quota),
 			_ep(ep), _diag(diag), _label(label)
 		{
-			Cap_quota_guard::withdraw(Cap_quota{1});
-			_ep.manage(this);
+			if (Cap_quota_guard::try_withdraw(Cap_quota{1}))
+				_ep.manage(this);
+			else
+				error("insufficient cap quota for session-object creation");
 		}
 
 		~Session_object()
 		{
-			_ep.dissolve(this);
-			Cap_quota_guard::replenish(Cap_quota{1});
+			if (Rpc_object<RPC_INTERFACE, SERVER>::cap().valid()) {
+				_ep.dissolve(this);
+				Cap_quota_guard::replenish(Cap_quota{1});
+			}
 		}
 
 		/**

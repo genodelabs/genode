@@ -52,21 +52,20 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint          &ep,
 {
 	_ds.with_error([] (Ram::Error e) { throw_exception(e); });
 
-	try {
-		/* notification cap */
-		Cap_quota_guard::Reservation caps(cap_alloc, Cap_quota{1});
+	/* account for notification cap */
+	Cap_quota_guard::Result caps = cap_alloc.reserve(Cap_quota{1});
+	if (caps.failed())
+		throw Out_of_caps();
 
-		_notification = platform_specific().core_sel_alloc().alloc();
-		create<Notification_kobj>(service,
-		                          platform_specific().core_cnode().sel(),
-		                          _notification);
+	_notification = platform_specific().core_sel_alloc().alloc();
+	create<Notification_kobj>(service,
+	                          platform_specific().core_cnode().sel(),
+	                          _notification);
 
-		_ep.manage(this);
+	_ep.manage(this);
 
-		caps.acknowledge();
-	} catch (...) {
-		throw;
-	}
+	caps.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
+	                 [&] (Cap_quota_guard::Error) { /* handled at 'reserve' */ });
 }
 
 
@@ -110,8 +109,11 @@ try
 	Range_allocator &phys_alloc = platform.ram_alloc();
 
 	/* _pd_id && _vm_page_table */
-	Cap_quota_guard::Reservation cap_reservation(_cap_quota_guard(), Cap_quota{2});
-	Ram_quota_guard::Reservation ram_reservation(_ram_quota_guard(), Ram_quota{2 * 4096});
+	Cap_quota_guard::Result cap_reservation = _cap_quota_guard().reserve(Cap_quota{2});
+	Ram_quota_guard::Result ram_reservation = _ram_quota_guard().reserve(Ram_quota{2 * 4096});
+
+	if (cap_reservation.failed()) throw Out_of_caps();
+	if (ram_reservation.failed()) throw Out_of_ram();
 
 	try {
 		_ept._phys    = Untyped_memory::alloc_page(phys_alloc);
@@ -139,8 +141,11 @@ try
 	(void)_map.add_range(0, 0UL - 0x1000);
 	(void)_map.add_range(0UL - 0x1000, 0x1000);
 
-	cap_reservation.acknowledge();
-	ram_reservation.acknowledge();
+	/* errors handled at 'reserve' */
+	cap_reservation.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
+	                            [&] (Cap_quota_guard::Error) { });
+	ram_reservation.with_result([&] (Ram_quota_guard::Reservation &r) { r.deallocate = false; },
+	                            [&] (Ram_quota_guard::Error) { });
 } catch (...) {
 
 	if (_notifications._service)

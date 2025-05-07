@@ -34,21 +34,25 @@ class Genode::Session_env : public Ram_allocator,
 		              size_t      max_shared_ram,
 		              size_t      own_cap,
 		              size_t      max_shared_cap,
-		              auto const &functor)
+		              auto const &fn)
 		{
 			size_t const max_ram_consumpt { own_ram + max_shared_ram };
 			size_t const max_cap_consumpt { own_cap + max_shared_cap };
 			size_t ram_consumpt { _env.pd().used_ram().value };
 			size_t cap_consumpt { _env.pd().used_caps().value };
-			{
-				Ram_quota_guard::Reservation ram_reserv { _ram_guard, Ram_quota { max_ram_consumpt } };
-				Cap_quota_guard::Reservation cap_reserv { _cap_guard, Cap_quota { max_cap_consumpt } };
 
-				functor();
+			_ram_guard.reserve(Ram_quota{max_ram_consumpt}).with_result(
+				[&] (Ram_quota_guard::Reservation &reserved_ram) {
+					_cap_guard.reserve(Cap_quota{max_cap_consumpt}).with_result(
+						[&] (Cap_quota_guard::Reservation &reserved_caps) {
+							reserved_ram.deallocate  = false;
+							reserved_caps.deallocate = false;
+							fn();
+						},
+						[&] (Cap_quota_guard::Error) { throw Out_of_caps(); });
+				},
+				[&] (Ram_quota_guard::Error) { throw Out_of_ram(); });
 
-				ram_reserv.acknowledge();
-				cap_reserv.acknowledge();
-			}
 			ram_consumpt = _env.pd().used_ram().value  - ram_consumpt;
 			cap_consumpt = _env.pd().used_caps().value - cap_consumpt;
 

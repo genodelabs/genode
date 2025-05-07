@@ -29,8 +29,7 @@ class Core::Account
 {
 	public:
 
-		using Limit_exceeded = UNIT::Exhausted_exception;
-		using Guard          = Quota_guard<UNIT>;
+		using Guard = Quota_guard<UNIT>;
 
 	private:
 
@@ -178,19 +177,6 @@ class Core::Account
 		{
 			Mutex::Guard guard(_mutex);
 			return _quota_guard.avail();
-		}
-
-		/**
-		 * Withdraw quota from account
-		 *
-		 * Called when allocating physical resources
-		 *
-		 * \throw Limit_exceeded
-		 */
-		void withdraw(UNIT amount)
-		{
-			Mutex::Guard guard(_mutex);
-			_quota_guard.withdraw(amount);
 		}
 
 		/**

@@ -116,6 +116,9 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		Framebuffer::Session_component _framebuffer_session_component;
 
+		void withdraw(Ram_quota q) { if (!try_withdraw(q)) throw Out_of_ram(); }
+		void withdraw(Cap_quota q) { if (!try_withdraw(q)) throw Out_of_caps(); }
+
 		bool const _input_session_accounted = (
 			withdraw(Ram_quota{Input::Session_component::ev_ds_size()}), true );
 

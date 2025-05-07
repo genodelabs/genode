@@ -82,45 +82,27 @@ struct Genode::Ram::Accounted_allocator : ALLOC
 
 	Result try_alloc(size_t size, Cache cache = CACHED) override
 	{
-		size_t const page_aligned_size = align_addr(size, 12);
-
-		Ram_quota const needed_ram  { page_aligned_size };
+		Ram_quota const needed_ram  { align_addr(size, 12) };
 		Cap_quota const needed_caps { 1 };
 
-		Capability cap   { };
-		bool       ok    { };
-		Error      error { };
-
-		_ram_guard.with_reservation<void>(needed_ram,
-			[&] (Reservation &ram_reservation) {
-				_cap_guard.with_reservation<void>(needed_caps,
-					[&] (Reservation &cap_reservation) {
-
-						_alloc.try_alloc(page_aligned_size, cache).with_result(
-							[&] (Allocation &allocation) {
-								cap = allocation.cap;
-								ok  = true;
-								allocation.deallocate = false;
-							},
-							[&] (Error e) {
-								cap_reservation.cancel();
-								ram_reservation.cancel();
-								error = e;
-							});
-					},
-					[&] {
-						ram_reservation.cancel();
-						error = Error::OUT_OF_CAPS;
-					}
+		return _ram_guard.reserve(needed_ram).convert<Result>(
+			[&] (Ram_quota_guard::Reservation &reserved_ram) {
+				return _cap_guard.reserve(needed_caps).convert<Result>(
+					[&] (Cap_quota_guard::Reservation &reserved_caps) {
+						return _alloc.try_alloc(reserved_ram.amount, cache)
+							.template convert<Result>(
+								[&] (Allocation &allocation) -> Result {
+									allocation.deallocate    = false;
+									reserved_ram.deallocate  = false;
+									reserved_caps.deallocate = false;
+									return { _alloc, { allocation.cap,
+									                   allocation.num_bytes } };
+								},
+								[&] (Error e) { return e; });
+					}, [&] (Cap_quota_guard::Error) { return Error::OUT_OF_CAPS; }
 				);
-			},
-			[&] { error = Error::OUT_OF_RAM; }
+			}, [&] (Ram_quota_guard::Error) { return Error::OUT_OF_RAM; }
 		);
-
-		if (!ok)
-			return error;
-
-		return { *this, { cap, page_aligned_size } };
 	}
 
 	void _free(Allocation &allocation) override

@@ -606,13 +606,20 @@ class Session_component
 
 		genode_shared_dataspace * alloc_dma_dataspace(size_t size) override
 		{
-			Ram_quota const needed_ram { size + 4096 };
+			Ram_quota const needed_ram  { size + 4096 };
+			Cap_quota const needed_caps { 2 };
 
-			if (!_ram_quota_guard().have_avail(needed_ram))
-				throw Out_of_ram();
-
-			_cap_quota_guard().withdraw(Cap_quota{2});
-			_ram_quota_guard().withdraw(needed_ram);
+			_ram_quota_guard().reserve(needed_ram).with_result(
+				[&] (Ram_quota_guard::Reservation &reserved_ram) {
+					_cap_quota_guard().reserve(needed_caps).with_result(
+						[&] (Cap_quota_guard::Reservation &reserved_caps) {
+							reserved_ram.deallocate  = false;
+							reserved_caps.deallocate = false;
+						},
+						[&] (Cap_quota_guard::Error) { throw Out_of_caps(); });
+				},
+				[&] (Ram_quota_guard::Error) { throw Out_of_ram(); }
+			);
 
 			return _alloc_fn(size);
 		}

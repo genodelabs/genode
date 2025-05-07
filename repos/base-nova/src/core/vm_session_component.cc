@@ -165,7 +165,9 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	_trace_control_slot(trace_control_area.alloc())
 {
 	/* account caps required to setup vCPU */
-	Cap_quota_guard::Reservation caps(_cap_alloc, Cap_quota{CAP_RANGE});
+	Cap_quota_guard::Result caps = _cap_alloc.reserve(Cap_quota{CAP_RANGE});
+	if (caps.failed())
+		throw Out_of_caps();
 
 	/* now try to allocate cap indexes */
 	_sel_sm_ec_sc = cap_map().insert(CAP_RANGE_LOG2);
@@ -227,7 +229,8 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 			_trace_sources.insert(&source);
 		});
 
-	caps.acknowledge();
+	caps.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
+	                 [&] (Cap_quota_guard::Error) { /* handled at 'reserve' */ });
 }
 
 
@@ -376,7 +379,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	_priority(scale_priority(priority, "VM session")),
 	_session_label(label)
 {
-	_cap_quota_guard().withdraw(Cap_quota{1});
+	if (!_cap_quota_guard().try_withdraw(Cap_quota{1}))
+		throw Out_of_caps();
 
 	_pd_sel = cap_map().insert();
 	if (!_pd_sel || _pd_sel == invalid_sel())

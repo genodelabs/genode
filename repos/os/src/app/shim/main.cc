@@ -40,7 +40,7 @@ class Shim::Main : public Child_policy
 			if (preserved.value > total.value) {
 				error("insufficient quota to spawn child "
 				      "(have ", total, " need ", preserved, ")");
-				throw typename Quota_guard<QUOTA>::Limit_exceeded();
+				sleep_forever();
 			}
 
 			return QUOTA { total.value - preserved.value };

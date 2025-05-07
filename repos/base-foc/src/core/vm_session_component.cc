@@ -102,7 +102,9 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_heap(_ram, local_rm)
 {
-	Cap_quota_guard::Reservation caps(_cap_quota_guard(), Cap_quota{1});
+	Cap_quota_guard::Result caps = _cap_quota_guard().reserve(Cap_quota{1});
+	if (caps.failed())
+		throw Out_of_caps();
 
 	using namespace Foc;
 	l4_msgtag_t msg = l4_factory_create_vm(L4_BASE_FACTORY_CAP,
@@ -116,7 +118,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	(void)_map.add_range(0, 0UL - 0x1000);
 	(void)_map.add_range(0UL - 0x1000, 0x1000);
 
-	caps.acknowledge();
+	caps.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
+	                 [&] (Cap_quota_guard::Error) { /* handled at 'reserve' */ });
 }
 
 

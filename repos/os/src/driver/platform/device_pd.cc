@@ -31,27 +31,40 @@ Device_pd::Region_map_client::attach(Dataspace_capability ds, Attr const &attr)
 {
 	for (;;) {
 		Attach_result const result = Genode::Region_map_client::attach(ds, attr);
-		if      (result == Attach_error::OUT_OF_RAM)  upgrade_ram();
-		else if (result == Attach_error::OUT_OF_CAPS) upgrade_caps();
-		else
-			return result;
+		if (result == Attach_error::OUT_OF_RAM) {
+			if (!upgrade_ram())
+				return result;
+			continue;
+		}
+		if (result == Attach_error::OUT_OF_CAPS) {
+			if (!upgrade_caps())
+				return result;
+			continue;
+		}
+		return result;
 	}
 }
 
 
-void Device_pd::Region_map_client::upgrade_ram()
+bool Device_pd::Region_map_client::upgrade_ram()
 {
 	Ram_quota const ram { 4096 };
-	_ram_guard.withdraw(ram);
+	if (!_ram_guard.try_withdraw(ram))
+		return false;
+
 	_env.pd().transfer_quota(_pd.rpc_cap(), ram);
+	return true;
 }
 
 
-void Device_pd::Region_map_client::upgrade_caps()
+bool Device_pd::Region_map_client::upgrade_caps()
 {
 	Cap_quota const caps { 2 };
-	_cap_guard.withdraw(caps);
+	if (!_cap_guard.try_withdraw(caps))
+		return false;
+
 	_env.pd().transfer_quota(_pd.rpc_cap(), caps);
+	return true;
 }
 
 
@@ -75,11 +88,13 @@ void Device_pd::add_range(Io_mmu::Range        const & range,
 			[&] (Pd_session::Attach_dma_error e) {
 				switch (e) {
 				case Pd_session::Attach_dma_error::OUT_OF_RAM:
-					_address_space.upgrade_ram();
+					if (!_address_space.upgrade_ram())
+						throw Out_of_ram();
 					retry = true;
 					break;
 				case Pd_session::Attach_dma_error::OUT_OF_CAPS:
-					_address_space.upgrade_caps();
+					if (!_address_space.upgrade_caps())
+						throw Out_of_caps();
 					retry = true;
 					break;
 				case Pd_session::Attach_dma_error::DENIED:

@@ -29,45 +29,38 @@ Pd_session_component::alloc_ram(size_t ds_size, Cache cache)
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
 
-	using Reservation = Genode::Reservation;
-
 	/* track quota use */
-	return _ram_quota_guard().with_reservation<Alloc_ram_result>(Ram_quota{ds_size},
+	return _ram_quota_guard().reserve(Ram_quota{ds_size}).convert<Alloc_ram_result>(
 
-		[&] (Reservation &ram_reservation) -> Alloc_ram_result {
+		[&] (Ram_quota_guard::Reservation &reserved_ram) -> Alloc_ram_result {
 
 			/*
 			 * In the worst case, we need to allocate a new slab block for
 			 * the meta data of the dataspace to be created. Therefore, we
-			 * temporarily withdraw the slab block size here to trigger an
-			 * exception if the account does not have enough room for the meta
-			 * data.
+			 * temporarily withdraw the slab block size here to trigger
+			 * OUT_OF_RAM if the account does not have enough room for the
+			 * meta data.
 			 */
 			Ram_quota const overhead { Ram_dataspace_factory::SLAB_BLOCK_SIZE };
 
-			if (!_ram_quota_guard().have_avail(overhead)) {
-				ram_reservation.cancel();
+			if (!_ram_quota_guard().have_avail(overhead))
 				return Alloc_ram_error::OUT_OF_RAM;
-			}
 
 			/*
 			 * Each dataspace is an RPC object and thereby consumes a
 			 * capability.
 			 */
-			return _cap_quota_guard().with_reservation<Alloc_ram_result>(Cap_quota{1},
+			return _cap_quota_guard().reserve(Cap_quota{1}).convert<Alloc_ram_result>(
 
-				[&] (Genode::Reservation &) -> Alloc_ram_result {
+				[&] (Cap_quota_guard::Reservation &reserved_cap) -> Alloc_ram_result {
+					reserved_ram.deallocate = false;
+					reserved_cap.deallocate = false;
 					return _ram_ds_factory.alloc_ram(ds_size, cache);
 				},
-				[&] () -> Alloc_ram_result {
-					ram_reservation.cancel();
-					return Alloc_ram_error::OUT_OF_CAPS;
-				}
+				[&] (Cap_quota_guard::Error) { return Alloc_ram_error::OUT_OF_CAPS; }
 			);
 		},
-		[&] () -> Alloc_ram_result {
-			return Alloc_ram_error::OUT_OF_RAM;
-		}
+		[&] (Ram_quota_guard::Error) { return Alloc_ram_error::OUT_OF_RAM; }
 	);
 }
 

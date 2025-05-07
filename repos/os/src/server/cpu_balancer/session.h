@@ -382,7 +382,8 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 
 				if (remove.value > _ram_guard.avail().value)
 					_ram_guard.upgrade(Ram_quota{remove.value - _ram_guard.avail().value});
-				_ram_guard.withdraw(remove);
+				if (!_ram_guard.try_withdraw(remove))
+					throw Out_of_ram();
 			}
 
 			if (_reclaim_cap.value) {
@@ -394,7 +395,8 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 
 				if (remove.value > _cap_guard.avail().value)
 					_cap_guard.upgrade(Cap_quota{remove.value - _cap_guard.avail().value});
-				_cap_guard.withdraw(remove);
+				if (!_cap_guard.try_withdraw(remove))
+					throw Out_of_caps();
 			}
 
 			_ram_guard.upgrade(ram_args);
@@ -408,8 +410,10 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 			}
 
 			/* track how many resources we donated to parent done by fn() call */
-			_ram_guard.withdraw(ram_args);
-			_cap_guard.withdraw(cap_args);
+			if (!_ram_guard.try_withdraw(ram_args))
+				throw Out_of_ram();
+			if (!_cap_guard.try_withdraw(cap_args))
+				throw Out_of_caps();
 
 			/* rewrite args if we removed some for reclaim quirk */
 			if (recreate_args) {

@@ -461,8 +461,10 @@ Session_component::Session_component(Env                          & env,
 	 *        we account the costs here until the ROM session interface
 	 *        changes.
 	 */
-	_cap_quota_guard().withdraw(Cap_quota{Rom_session::CAP_QUOTA});
-	_ram_quota_guard().withdraw(Ram_quota{5*1024});
+	if (!_cap_quota_guard().try_withdraw(Cap_quota{Rom_session::CAP_QUOTA}))
+		throw Out_of_caps();
+	if (!_ram_quota_guard().try_withdraw(Ram_quota{5*1024}))
+		throw Out_of_ram();
 
 	/**
 	 * Fallback, in case there is no IOMMU present but the kernel implements it,

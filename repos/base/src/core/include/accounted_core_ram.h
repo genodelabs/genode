@@ -53,24 +53,28 @@ class Core::Accounted_core_ram : public Allocator
 
 		Alloc_result try_alloc(size_t const size) override
 		{
-			size_t const page_aligned_size = align_addr(size, 12);
+			Ram_quota const page_aligned_size { align_addr(size, 12) };
 
-			Ram_quota_guard::Reservation ram (_ram_guard,
-			                                  Ram_quota{page_aligned_size});
-			/* on some kernels we require a cap, on some not XXX */
-			Cap_quota_guard::Reservation caps(_cap_guard, Cap_quota{1});
-
-			return _core_mem.try_alloc(page_aligned_size).convert<Alloc_result>(
-
-				[&] (Allocation &a) -> Alloc_result {
-					a.deallocate = false;
-					ram.acknowledge();
-					caps.acknowledge();
-					core_mem_allocated += page_aligned_size;
-					return { *this, { a.ptr, page_aligned_size } }; },
-
-				[&] (Alloc_error error) {
-					return error; });
+			return _ram_guard.reserve(page_aligned_size).convert<Result>(
+				[&] (Ram_quota_guard::Reservation &reserved_ram) {
+					/* an allocation consumes a dataspace cap */
+					return _cap_guard.reserve({ 1 }).convert<Result>(
+						[&] (Cap_quota_guard::Reservation &reserved_caps) {
+							return _core_mem.try_alloc(reserved_ram.amount)
+								.convert<Alloc_result>(
+									[&] (Allocation &a) -> Alloc_result {
+										reserved_ram .deallocate = false;
+										reserved_caps.deallocate = false;
+										a            .deallocate = false;
+										core_mem_allocated += reserved_ram.amount;
+										return { *this, { a.ptr, reserved_ram.amount } };
+									},
+									[&] (Alloc_error error) { return error; }
+							);
+						}, [&] (Cap_quota_guard::Error) { return Error::OUT_OF_CAPS; }
+					);
+				}, [&] (Ram_quota_guard::Error) { return Error::OUT_OF_RAM; }
+			);
 		}
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
@@ -82,7 +86,6 @@ class Core::Accounted_core_ram : public Allocator
 			_core_mem.free(ptr, page_aligned_size);
 
 			_ram_guard.replenish(Ram_quota{page_aligned_size});
-			/* on some kernels we require a cap, on some not XXX */
 			_cap_guard.replenish(Cap_quota{1});
 
 			core_mem_allocated -= page_aligned_size;
