@@ -62,14 +62,12 @@ class Core::Ram_dataspace_factory : public Dataspace_owner
 		 ** Platform-implemented support functions **
 		 ********************************************/
 
-		struct Core_virtual_memory_exhausted : Exception { };
-
 		/**
 		 * Export RAM dataspace as shared memory block
 		 *
-		 * \throw Core_virtual_memory_exhausted
+		 * \return false if core-virtual memory is exhausted
 		 */
-		void _export_ram_ds(Dataspace_component &ds);
+		[[nodiscard]] bool _export_ram_ds(Dataspace_component &);
 
 		/**
 		 * Revert export of RAM dataspace

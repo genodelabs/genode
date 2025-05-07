@@ -30,7 +30,7 @@ using namespace Core;
 
 static int ram_ds_cnt = 0;  /* counter for creating unique dataspace IDs */
 
-void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
+bool Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 {
 	Linux_dataspace::Filename const fname(resource_path(), "/ds-", ram_ds_cnt++);
 
@@ -49,6 +49,7 @@ void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 	 * w/o the right file descriptor won't be able to open and access the file.
 	 */
 	lx_unlink(fname.string());
+	return true;
 }
 
 

@@ -28,7 +28,7 @@
 using namespace Core;
 
 
-void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &) { }
+bool Ram_dataspace_factory::_export_ram_ds(Dataspace_component &) { return true; }
 
 
 void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &) { }

@@ -114,8 +114,7 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 	Dataspace_component &ds = *ds_ptr;
 
 	/* create native shared memory representation of dataspace */
-	try { _export_ram_ds(ds); }
-	catch (Core_virtual_memory_exhausted) {
+	if (!_export_ram_ds(ds)) {
 		warning("could not export RAM dataspace of size ", ds.size());
 
 		/* cleanup unneeded resources */

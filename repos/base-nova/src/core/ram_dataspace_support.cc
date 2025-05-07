@@ -81,14 +81,14 @@ void Ram_dataspace_factory::_clear_ds(Dataspace_component &ds)
 }
 
 
-void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds) {
+bool Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds) {
 
 	size_t page_rounded_size = align_addr(ds.size(), get_page_size_log2());
 
 	/* allocate the virtual region contiguous for the dataspace */
 	void * const virt_ptr = alloc_region(ds, page_rounded_size);
 	if (!virt_ptr)
-		throw Core_virtual_memory_exhausted();
+		return false;
 
 	/* map it writeable for _clear_ds */
 	Nova::Utcb &utcb = *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
@@ -98,9 +98,10 @@ void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds) {
 	              reinterpret_cast<addr_t>(virt_ptr),
 	              page_rounded_size >> get_page_size_log2(), rights_rw, true)) {
 		platform().region_alloc().free(virt_ptr, page_rounded_size);
-		throw Core_virtual_memory_exhausted();
+		return false;
 	}
 
 	/* assign virtual address to the dataspace to be used by clear_ds */
 	ds.assign_core_local_addr(virt_ptr);
+	return true;
 }
