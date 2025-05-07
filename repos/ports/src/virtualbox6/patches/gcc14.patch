@@ -1,0 +1,25 @@
+gcc14.patch
+
+diff --git a/src/virtualbox6/src/VBox/Main/src-server/HostDnsService.h b/src/virtualbox6/src/VBox/Main/src-server/HostDnsService.h
+--- a/src/virtualbox6/src/VBox/Main/src-server/HostDnsService.h
++++ b/src/virtualbox6/src/VBox/Main/src-server/HostDnsService.h
+@@ -198,6 +198,7 @@ public:
+ 
+ public:
+ 
++    using HostDnsServiceBase::init;
+     HRESULT init(HostDnsMonitorProxy *pProxy, const char *aResolvConfFileName);
+     void uninit(void);
+ 
+diff --git a/src/virtualbox6/src/libs/xpcom18a4/nsprpub/pr/src/md/unix/unix.c b/src/virtualbox6/src/libs/xpcom18a4/nsprpub/pr/src/md/unix/unix.c
+--- a/src/virtualbox6/src/libs/xpcom18a4/nsprpub/pr/src/md/unix/unix.c
++++ b/src/virtualbox6/src/libs/xpcom18a4/nsprpub/pr/src/md/unix/unix.c
+@@ -76,7 +76,7 @@
+ #elif (defined(AIX) && !defined(AIX4_1)) || defined(FREEBSD) \
+     || defined(NETBSD) || defined(OPENBSD) || defined(UNIXWARE) \
+     || defined(DGUX) || defined(VMS) || defined(NTO)
+-#define _PRSockLen_t size_t
++#define _PRSockLen_t socklen_t
+ #else
+ #error "Cannot determine architecture"
+ #endif
