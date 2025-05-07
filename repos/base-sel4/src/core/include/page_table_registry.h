@@ -33,7 +33,7 @@ class Core::Page_table_registry
 
 		struct Mapping_cache_full : Exception
 		{
-			enum Type { MEMORY, CAPS } reason;
+			enum Type { MEMORY, CAPS, DENIED } reason;
 
 			Mapping_cache_full(enum Type reason) : reason(reason) { };
 		};
@@ -183,6 +183,8 @@ class Core::Page_table_registry
 				throw Mapping_cache_full(Mapping_cache_full::Type::MEMORY);
 			} catch (Out_of_caps) {
 				throw Mapping_cache_full(Mapping_cache_full::Type::CAPS);
+			} catch (Genode::Denied) {
+				throw Mapping_cache_full(Mapping_cache_full::Type::DENIED);
 			}
 		}
 

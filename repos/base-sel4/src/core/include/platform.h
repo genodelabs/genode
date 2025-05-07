@@ -62,7 +62,10 @@ class Core::Static_allocator : public Allocator
 			return _used.alloc().template convert<Alloc_result>(
 				[&](addr_t const idx) {
 					return Alloc_result(*this, { &_elements[idx], size }); },
-				[](auto) { return Alloc_error::DENIED; });
+				[](auto) {
+					error("core page table allocation failed");
+					return Alloc_error::DENIED;
+				});
 		}
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
@@ -177,7 +180,10 @@ class Core::Platform : public Platform_generic
 
 				return Core_sel_bit_alloc::alloc().convert<Cap_sel>(
 					[](addr_t const idx) { return Cap_sel(unsigned(idx)); },
-					[](auto) -> Cap_sel { throw Alloc_failed(); });
+					[](auto) -> Cap_sel {
+						raw("core selector allocator out of indices");
+						throw Alloc_failed();
+				});
 			}
 
 			void free(Cap_sel sel) override
@@ -195,7 +201,7 @@ class Core::Platform : public Platform_generic
 		void       _switch_to_core_cspace();
 		bool const _switch_to_core_cspace_done;
 
-		Static_allocator<sizeof(void *) * 6> _core_page_table_registry_alloc { };
+		Static_allocator<sizeof(void *) * 12> _core_page_table_registry_alloc { };
 		Page_table_registry _core_page_table_registry;
 
 		/**
