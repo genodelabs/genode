@@ -29,3 +29,6 @@ CC_OPT += -D_GNU_SOURCE
 # Enable definition of __STDC_HOSTED__
 #
 CC_OPT_FREESTANDING =
+
+# fix '_Float*' redeclaration error with GCC 14 and older glibc
+CC_OPT += -D_BITS_FLOATN_H
