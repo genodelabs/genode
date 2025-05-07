@@ -40,7 +40,6 @@ SRC_CC      += stack_area.cc \
                bios_data_area.cc \
                trace_session_component.cc \
                signal_transmitter_noinit.cc \
-               signal_receiver.cc \
                vm_session_component.cc \
                vm_session_common.cc \
                heartbeat.cc
@@ -63,7 +62,6 @@ vpath pd_upgrade_ram_quota.cc      $(GEN_CORE_DIR)
 vpath region_map_component.cc      $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
 vpath signal_transmitter_noinit.cc $(GEN_CORE_DIR)
-vpath signal_receiver.cc           $(GEN_CORE_DIR)
 vpath io_port_session_component.cc $(GEN_CORE_DIR)/spec/x86
 vpath io_port_session_support.cc   $(GEN_CORE_DIR)/spec/x86
 vpath io_mem_session_component.cc  $(GEN_CORE_DIR)

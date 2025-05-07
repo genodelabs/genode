@@ -41,7 +41,6 @@ SRC_CC += ram_dataspace_support.cc
 SRC_CC += region_map_component.cc
 SRC_CC += rom_session_component.cc
 SRC_CC += trace_session_component.cc
-SRC_CC += signal_receiver.cc
 SRC_CC += ram_dataspace_factory.cc
 SRC_CC += signal_transmitter_noinit.cc
 SRC_CC += thread_start.cc

@@ -19,7 +19,6 @@ GEN_SRC_CC += \
               ram_dataspace_factory.cc \
               region_map_component.cc \
               rom_session_component.cc \
-              signal_receiver.cc \
               signal_transmitter_proxy.cc \
               trace_session_component.cc \
               heartbeat.cc

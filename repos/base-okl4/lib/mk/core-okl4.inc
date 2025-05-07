@@ -39,7 +39,6 @@ SRC_CC += stack_area.cc \
           rom_session_component.cc \
           signal_source_component.cc \
           signal_transmitter_proxy.cc \
-          signal_receiver.cc \
           thread_start.cc \
           trace_session_component.cc \
           heartbeat.cc
@@ -66,7 +65,6 @@ vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath signal_transmitter_proxy.cc $(GEN_CORE_DIR)
-vpath signal_receiver.cc          $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)

@@ -23,7 +23,6 @@ SRC_CC       := main.cc \
                 irq_session_component.cc \
                 signal_source_component.cc \
                 signal_transmitter_proxy.cc \
-                signal_receiver.cc \
                 trace_session_component.cc \
                 thread_linux.cc \
                 stack_area.cc \
@@ -52,7 +51,6 @@ vpath capability_space.cc          $(GEN_CORE_DIR)
 vpath ram_dataspace_factory.cc     $(GEN_CORE_DIR)
 vpath signal_source_component.cc   $(GEN_CORE_DIR)
 vpath signal_transmitter_proxy.cc  $(GEN_CORE_DIR)
-vpath signal_receiver.cc           $(GEN_CORE_DIR)
 vpath trace_session_component.cc   $(GEN_CORE_DIR)
 vpath default_log.cc               $(GEN_CORE_DIR)
 vpath heartbeat.cc                 $(GEN_CORE_DIR)
