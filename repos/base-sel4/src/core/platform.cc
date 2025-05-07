@@ -175,6 +175,8 @@ void Core::Platform::_init_allocators()
 		log(" stack area ", Hex_range(stack_area_virtual_base(),
 		                              stack_area_virtual_size()));
 	}
+
+	platform_in_construction = this;
 }
 
 
@@ -566,8 +568,6 @@ Core::Platform::Platform()
 	               _core_page_table_registry,
 	               "core")
 {
-	platform_in_construction = this;
-
 	/* start benchmarking for CPU utilization in TRACE service */
 	seL4_BenchmarkResetLog();
 
@@ -599,7 +599,7 @@ Core::Platform::Platform()
 		error("setup of virtual memory space of core failed");
 
 	/* add some minor virtual region for dynamic usage by core */
-	addr_t const virt_size = 32 * 1024 * 1024;
+	addr_t const virt_size = 2 * _core_vm_space.max_page_frames() * get_page_size();
 	_unused_virt_alloc.alloc_aligned(virt_size, get_page_size_log2()).with_result(
 
 		[&] (Range_allocator::Allocation &virt) {
@@ -619,6 +619,9 @@ Core::Platform::Platform()
 		[&] (Alloc_error) {
 			warning("failed to reserve core virtual memory for dynamic use"); }
 	);
+
+	log("Physical memory per PD at most: ",
+	    Number_of_bytes(_core_vm_space.max_page_frames() * get_page_size()));
 
 	/* add idle thread trace subjects */
 	for (unsigned cpu_id = 0; cpu_id < affinity_space().width(); cpu_id ++) {

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -63,41 +63,43 @@ class Core::Vm_space
 			NUM_LEAF_CNODES_LOG2 = (CONFIG_WORD_SIZE == 32) ? 6 : 5,
 			NUM_LEAF_CNODES      = 1UL << NUM_LEAF_CNODES_LOG2,
 
+			NUM_CNODE_3RD_LOG2 = 3,
+			NUM_CNODE_3RD      = 1UL << NUM_CNODE_3RD_LOG2,
+
 			/**
 			 * Maximum number of page tables and page frames for the VM space
 			 */
-			NUM_VM_SEL_LOG2 = LEAF_CNODE_SIZE_LOG2 + NUM_LEAF_CNODES_LOG2,
+			NUM_VM_SEL_LOG2 = LEAF_CNODE_SIZE_LOG2 + NUM_LEAF_CNODES_LOG2 +
+			                  NUM_CNODE_3RD_LOG2,
+
+			/**
+			 * Number of remaining bits for vm_space to manage
+			 */
+			CNODE_BITS_2ND_3RD_4TH_LOG2 = 32 - Core_cspace::NUM_TOP_SEL_LOG2,
 
 			/**
 			 * Number of entries of the VM padding CNode ('_vm_pad_cnode')
 			 */
-			VM_PAD_CNODE_SIZE_LOG2 = 32 - Core_cspace::NUM_TOP_SEL_LOG2
-			                       - VM_3RD_CNODE_SIZE_LOG2 - LEAF_CNODE_SIZE_LOG2,
+			VM_2ND_CNODE_LOG2 = CNODE_BITS_2ND_3RD_4TH_LOG2
+			                  - VM_3RD_CNODE_SIZE_LOG2
+			                  - LEAF_CNODE_SIZE_LOG2,
 		};
 
 		Cnode &_top_level_cnode;
 		Cnode &_phys_cnode;
 
 		/**
-		 * 2nd-level CNode for aligning '_vm_cnode' with the LSB of the CSpace
+		 * 2nd-level CNode for aligning '_4th' with the LSB of the CSpace
 		 */
 		Cnode _vm_pad_cnode;
 
-		/**
-		 * 3rd-level CNode that hosts the leaf CNodes
-		 */
-		Cnode _vm_3rd_cnode;
-
-		/***
-		 * 4th-level CNode for storing page-table and page-frame capabilities
-		 */
-		class Leaf_cnode
+		class Construct_cnode
 		{
 			private:
 
 				/*
 				 * We leave the CNode unconstructed at the time of its
-				 * instantiation to be able to create an array of 'Leaf_cnode'
+				 * instantiation to be able to create an array of 'Construct_cnode'
 				 * objects (where we cannot pass any arguments to the
 				 * constructors of the individual objects).
 				 */
@@ -107,14 +109,15 @@ class Core::Vm_space
 
 				void construct(Cap_sel_alloc   &cap_sel_alloc,
 				               Cap_sel          core_cnode_sel,
-				               Range_allocator &phys_alloc)
+				               Range_allocator &phys_alloc,
+				               auto const       size_log2)
 				{
 					_cnode.construct(core_cnode_sel, cap_sel_alloc.alloc(),
-					                 LEAF_CNODE_SIZE_LOG2, phys_alloc);
+					                 size_log2, phys_alloc);
 				}
 
 				void destruct(Cap_sel_alloc &cap_sel_alloc,
-				               Range_allocator &phys_alloc)
+				              Range_allocator &phys_alloc)
 				{
 					_cnode->destruct(phys_alloc);
 					cap_sel_alloc.free(_cnode->sel());
@@ -123,12 +126,19 @@ class Core::Vm_space
 				Cnode &cnode() { return *_cnode; }
 		};
 
-		Leaf_cnode _vm_cnodes[NUM_LEAF_CNODES];
+		/***
+		 * 4th-level CNode for storing page-table and page-frame capabilities
+		 * 3rd-level CNode that hosts the leaf CNodes
+		 */
+		struct {
+			Construct_cnode _4th [NUM_LEAF_CNODES];
+			Construct_cnode _3rd { };
+		} _cnodes [NUM_CNODE_3RD];
 
 	public:
 
 		/**
-		 * Allocator for the selectors within '_vm_cnodes'
+		 * Allocator for the selectors within '_cnodes'
 		 */
 		using Selector_allocator = Bit_allocator<1UL << NUM_VM_SEL_LOG2>;
 
@@ -144,9 +154,14 @@ class Core::Vm_space
 		/**
 		 * Return leaf CNode that contains an index allocated from '_sel_alloc'
 		 */
-		Cnode &_leaf_cnode(unsigned idx)
+		Cnode & _leaf_cnode(unsigned const idx)
 		{
-			return _vm_cnodes[idx >> LEAF_CNODE_SIZE_LOG2].cnode();
+			auto const l4 = (idx >> LEAF_CNODE_SIZE_LOG2) & (NUM_LEAF_CNODES - 1);
+			auto const l3 = idx >> (LEAF_CNODE_SIZE_LOG2 + NUM_LEAF_CNODES_LOG2);
+
+			ASSERT(l3 < NUM_CNODE_3RD);
+
+			return _cnodes[l3]._4th[l4].cnode();
 		}
 
 		/**
@@ -160,24 +175,33 @@ class Core::Vm_space
 		Mutex _mutex { };
 
 		/**
-		 * Return selector for a capability slot within '_vm_cnodes'
+		 * Return selector for a capability slot within '_cnodes'
 		 */
-		Cap_sel _idx_to_sel(addr_t idx) const
+		Cap_sel _idx_to_sel(addr_t const index) const
 		{
-			return Cap_sel((uint32_t)((_id << 20) | idx));
+			auto const leafs = LEAF_CNODE_SIZE_LOG2 + NUM_LEAF_CNODES_LOG2;
+			auto const  low  = index & ((1ul << leafs) - 1);
+			auto const  high = index >> leafs;
+			auto const shift = VM_3RD_CNODE_SIZE_LOG2 + LEAF_CNODE_SIZE_LOG2;
+			auto const   sel = (_id << CNODE_BITS_2ND_3RD_4TH_LOG2)
+			                 | (high << shift) | low;
+
+			return Cap_sel(unsigned(sel));
 		}
 
-		void _flush(bool const flush_support, auto const &fn)
+		bool _flush(bool const flush_support, auto const &fn)
 		{
 			if (!flush_support) {
 				warning("mapping cache full, but can't flush");
-				throw;
+				return false;
 			}
 
 			warning("flush page table entries - mapping cache full - PD: ",
 			        _pd_label.string());
 
 			_page_table_registry.flush_pages(fn);
+
+			return true;
 		}
 
 		bool _map_frame(addr_t const from_phys, addr_t const to_dest,
@@ -199,7 +223,8 @@ class Core::Vm_space
 			auto pte_result = _sel_alloc.alloc();
 			if (pte_result.failed()) {
 				/* free all page-table-entry selectors and retry once */
-				_flush(attr.flush_support, fn);
+				if (!_flush(attr.flush_support, fn))
+					return false;
 
 				pte_result = _sel_alloc.alloc();
 				if (pte_result.failed())
@@ -225,7 +250,9 @@ class Core::Vm_space
 			catch (Page_table_registry::Mapping_cache_full) {
 
 				/* free all entries of mapping cache and re-try once */
-				_flush(attr.flush_support, fn);
+				if (!_flush(attr.flush_support, fn))
+					return false;
+
 				_page_table_registry.insert_page_frame(to_dest, Cap_sel(pte_idx));
 			}
 
@@ -239,7 +266,6 @@ class Core::Vm_space
 				return false;
 			}
 
-			/* XXX free is missing */
 			return true;
 		}
 
@@ -309,6 +335,18 @@ class Core::Vm_space
 			Untyped_memory::free_page(_phys_alloc, paddr);
 		}
 
+		void _construct_cnodes_l3(auto const & fn)
+		{
+			for (unsigned l3 = 0; l3 < NUM_CNODE_3RD; l3++)
+				fn(l3, _cnodes[l3]._3rd, _cnodes[l3]._4th);
+		}
+
+		void _revert_cnodes_l3(auto const & fn)
+		{
+			for (int l3 = NUM_CNODE_3RD - 1; l3 >= 0; l3--)
+				fn(l3, _cnodes[l3]._3rd, _cnodes[l3]._4th);
+		}
+
 	public:
 
 		/**
@@ -342,27 +380,33 @@ class Core::Vm_space
 			_phys_cnode(phys_cnode),
 			_vm_pad_cnode(core_cnode.sel(),
 			              Cnode_index(_cap_sel_alloc.alloc().value()),
-			              VM_PAD_CNODE_SIZE_LOG2, phys_alloc),
-			_vm_3rd_cnode(core_cnode.sel(),
-			              Cnode_index(_cap_sel_alloc.alloc().value()),
-			              VM_3RD_CNODE_SIZE_LOG2, phys_alloc)
+			              VM_2ND_CNODE_LOG2, phys_alloc)
 		{
+			static_assert(NUM_CNODE_3RD_LOG2 <= VM_2ND_CNODE_LOG2);
+
 			Cnode_base const cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
-
-			for (unsigned i = 0; i < NUM_LEAF_CNODES; i++) {
-
-				/* init leaf VM CNode */
-				_vm_cnodes[i].construct(_cap_sel_alloc, core_cnode.sel(), phys_alloc);
-
-				/* insert leaf VM CNode into 3nd-level VM CNode */
-				_vm_3rd_cnode.copy(cspace, _vm_cnodes[i].cnode().sel(), Cnode_index(i));
-			}
-
-			/* insert 3rd-level VM CNode into 2nd-level VM-pad CNode */
-			_vm_pad_cnode.copy(cspace, _vm_3rd_cnode.sel(), Cnode_index(0));
 
 			/* insert 2nd-level VM-pad CNode into 1st-level CNode */
 			_top_level_cnode.copy(cspace, _vm_pad_cnode.sel(), Cnode_index(_id));
+
+			_construct_cnodes_l3([&](int l3, auto & cnode_3rd, auto & leafs) {
+
+				cnode_3rd.construct(_cap_sel_alloc, core_cnode.sel(),
+					                phys_alloc, VM_3RD_CNODE_SIZE_LOG2);
+
+				for (unsigned l4 = 0; l4 < NUM_LEAF_CNODES; l4++) {
+
+					/* init leaf VM CNode */
+					leafs[l4].construct(_cap_sel_alloc, core_cnode.sel(),
+					                    phys_alloc, LEAF_CNODE_SIZE_LOG2);
+
+					/* insert leaf VM CNode into 3nd-level VM CNode */
+					cnode_3rd.cnode().copy(cspace, leafs[l4].cnode().sel(), Cnode_index(l4));
+				}
+
+				/* insert 3rd-level VM CNode into 2nd-level VM-pad CNode */
+				_vm_pad_cnode.copy(cspace, cnode_3rd.cnode().sel(), Cnode_index(l3));
+			});
 		}
 
 		~Vm_space()
@@ -383,17 +427,21 @@ class Core::Vm_space
 				_unmap_and_free(idx, paddr);
 			});
 
-			for (unsigned i = 0; i < NUM_LEAF_CNODES; i++) {
-				_vm_3rd_cnode.remove(Cnode_index(i));
-				_vm_cnodes[i].destruct(_cap_sel_alloc, _phys_alloc);
-			}
-			_vm_pad_cnode.remove(Cnode_index(0));
+			_revert_cnodes_l3([&](auto l3, auto & cnode_3rd, auto & leafs) {
+				for (int l4 = NUM_LEAF_CNODES - 1; l4 >= 0; l4--) {
+					cnode_3rd.cnode().remove(Cnode_index(l4));
+					leafs[l4].destruct(_cap_sel_alloc, _phys_alloc);
+				}
+
+				_vm_pad_cnode.remove(Cnode_index(l3));
+
+				cnode_3rd.cnode().destruct(_phys_alloc);
+				cnode_3rd.destruct(_cap_sel_alloc, _phys_alloc);
+			});
+
 			_top_level_cnode.remove(Cnode_index(_id));
 
-			_vm_3rd_cnode.destruct(_phys_alloc);
 			_vm_pad_cnode.destruct(_phys_alloc);
-
-			_cap_sel_alloc.free(_vm_3rd_cnode.sel());
 			_cap_sel_alloc.free(_vm_pad_cnode.sel());
 		}
 
@@ -520,6 +568,8 @@ class Core::Vm_space
 		}
 
 		Session_label const & pd_label() const { return _pd_label; }
+
+		auto max_page_frames() { return 1ul << NUM_VM_SEL_LOG2; }
 };
 
 #endif /* _CORE__INCLUDE__VM_SPACE_H_ */
