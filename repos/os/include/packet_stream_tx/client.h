@@ -42,6 +42,9 @@ class Packet_stream_tx::Client : public Genode::Rpc_client<CHANNEL>
 
 	public:
 
+		Genode::Attempt<Genode::Ok, Genode::Alloc_error>
+			const constructed = _source.constructed;
+
 		/**
 		 * Constructor
 		 *

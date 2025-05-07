@@ -58,6 +58,11 @@ class Net::Nic_session_component : private Nic_session_component_base,
 {
 	private:
 
+		/* turn Session_rpc_object creation error into an exception */
+		bool const _session_rpc_object_construction_checked = (
+			::Nic::Session_rpc_object::constructed.with_error(
+				[&] (Genode::Alloc_error e) { raise(e); }), true);
+
 		class Interface_policy : public Net::Interface_policy
 		{
 			private:

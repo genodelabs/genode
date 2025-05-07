@@ -34,6 +34,9 @@ class Packet_stream_rx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 
 	public:
 
+		Genode::Attempt<Genode::Ok, Genode::Alloc_error> const
+			constructed = _source.constructed;
+
 		/**
 		 * Constructor
 		 *
@@ -89,7 +92,12 @@ class Packet_stream_rx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		void sigh_ack_avail(Genode::Signal_context_capability sigh) {
 			_sigh_ack_avail = sigh; }
 
-		typename CHANNEL::Source *source() { return &_source; }
+		typename CHANNEL::Source *source()
+		{
+			if (_source.constructed.failed())
+				Genode::warning("Packet_stream_rx::Rpc_object: ", _source.constructed);
+			return &_source;
+		}
 
 		Genode::Capability<CHANNEL> cap() const { return _cap; }
 

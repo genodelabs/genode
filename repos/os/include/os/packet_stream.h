@@ -608,6 +608,10 @@ class Genode::Packet_stream_source : private Packet_stream_base
 
 	public:
 
+		/* initialize packet allocator */
+		Attempt<Ok, Alloc_error> const constructed =
+			_packet_alloc.add_range(_bulk_buffer_offset, _bulk_buffer_size);
+
 		/**
 		 * Exception type
 		 */
@@ -646,16 +650,13 @@ class Genode::Packet_stream_source : private Packet_stream_base
 			                                               Submit_queue::PRODUCER)),
 			_ack_receiver(construct_at<Ack_queue>(_ack_queue_local_base(),
 			                                      Ack_queue::CONSUMER))
-		{
-			/* initialize packet allocator */
-			if (_packet_alloc.add_range(_bulk_buffer_offset, _bulk_buffer_size).failed())
-				warning("unable to initialize packet-stream source allocator");
-		}
+		{ }
 
 		~Packet_stream_source()
 		{
 			if (_packet_alloc.remove_range(_bulk_buffer_offset, _bulk_buffer_size).failed())
-				warning("packet-stream source allocator in bad state at destruction time");
+				if (constructed.ok()) /* went bad after initially good? */
+					warning("packet-stream source allocator in bad state at destruction time");
 		}
 
 		using Packet_stream_base::packet_valid;
@@ -694,6 +695,9 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 */
 		Packet_descriptor alloc_packet(Genode::size_t size, unsigned align = PACKET_ALIGNMENT)
 		{
+			if (constructed.failed())
+				warning("Packet_stream_source construction failed:", constructed);
+
 			if (size == 0)
 				return Packet_descriptor(0, 0);
 

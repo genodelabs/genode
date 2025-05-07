@@ -31,6 +31,9 @@ class Uplink::Session_rpc_object : public Genode::Rpc_object<Session, Session_rp
 
 	public:
 
+		Genode::Attempt<Genode::Ok, Genode::Alloc_error> const
+			constructed = _rx.constructed;
+
 		/**
 		 * Constructor
 		 *
