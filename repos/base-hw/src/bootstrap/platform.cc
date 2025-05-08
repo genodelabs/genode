@@ -28,13 +28,13 @@ extern unsigned _bss_end;
  ** Platform::Ram_allocator **
  *****************************/
 
-void * Platform::Ram_allocator::alloc_aligned(size_t size, unsigned align)
+void * Platform::Ram_allocator::alloc(size_t size, Align align)
 {
 	using namespace Genode;
 
-	align = max(align, (unsigned)get_page_size_log2());
+	align.log2 = max(align.log2, (uint8_t)get_page_size_log2());
 
-	return Base::alloc_aligned(Hw::round_page(size), align).convert<void *>(
+	return Base::alloc_aligned(Hw::round_page(size), align.log2).convert<void *>(
 
 		[&] (Range_allocator::Allocation &a) { a.deallocate = false; return a.ptr; },
 		[&] (Alloc_error e) -> void *
@@ -65,8 +65,8 @@ void Platform::Ram_allocator::remove(Memory_region const & region)
 
 Platform::Pd::Pd(Platform::Ram_allocator & alloc)
 :
-	table_base(alloc.alloc_aligned(sizeof(Table),       Table::ALIGNM_LOG2)),
-	array_base(alloc.alloc_aligned(sizeof(Table_array), Table::ALIGNM_LOG2)),
+	table_base(alloc.alloc(sizeof(Table),       { Table::ALIGNM_LOG2 })),
+	array_base(alloc.alloc(sizeof(Table_array), { Table::ALIGNM_LOG2 })),
 	table(*Genode::construct_at<Table>(table_base)),
 	array(*Genode::construct_at<Table_array>(array_base))
 {
@@ -114,12 +114,11 @@ Mapping Platform::_load_elf()
 		size_t const size = round_page(segment.mem_size());
 
 		if (segment.flags().w) {
-			unsigned align_log2;
+			uint8_t align_log2;
 			for (align_log2 = 0; align_log2 < 8*sizeof(addr_t); align_log2++)
 				if ((addr_t)(1 << align_log2) & (addr_t)phys) break;
 
-			void * const dst = ram_alloc.alloc_aligned(segment.mem_size(),
-			                                           align_log2);
+			void * const dst = ram_alloc.alloc(segment.mem_size(), { align_log2 });
 			memcpy(dst, phys, segment.file_size());
 
 			if (size > segment.file_size())
@@ -173,9 +172,8 @@ void Platform::_prepare_cpu_memory_area(size_t cpu_id)
 	Page_flags flags{RW, NO_EXEC, KERN, GLOBAL, RAM, CACHED};
 
 	addr_t base = cpu_local_memory().base + CPU_LOCAL_MEMORY_SLOT_SIZE*cpu_id;
-	void * const stack_ram = ram_alloc.alloc_aligned(KERNEL_STACK_SIZE, 1);
-	void * const cpu_ram =
-		ram_alloc.alloc_aligned(CPU_LOCAL_MEMORY_SLOT_OBJECT_SIZE, 1);
+	void * const stack_ram = ram_alloc.alloc(KERNEL_STACK_SIZE, { });
+	void * const cpu_ram   = ram_alloc.alloc(CPU_LOCAL_MEMORY_SLOT_OBJECT_SIZE, { });
 
 	core_pd->map_insert(Mapping((addr_t)stack_ram,
 	                            base+CPU_LOCAL_MEMORY_SLOT_STACK_OFFSET,
@@ -232,7 +230,7 @@ Platform::Platform()
 	Mapping boot_modules = _load_elf();
 
 	/* setup boot info page */
-	void * bi_base = ram_alloc.alloc(sizeof(Boot_info));
+	void * bi_base = ram_alloc.alloc(sizeof(Boot_info), { });
 	core_pd->map_insert(Mapping((addr_t)bi_base, Hw::Mm::boot_info().base,
 	                            sizeof(Boot_info), Genode::PAGE_FLAGS_KERN_TEXT));
 	Boot_info & bootinfo =

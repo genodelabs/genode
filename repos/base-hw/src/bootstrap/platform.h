@@ -79,8 +79,9 @@ class Bootstrap::Platform
 					_slab(this, (Block *)&_first_slab)
 				{ }
 
-				void * alloc_aligned(size_t size, unsigned align);
-				void * alloc(size_t size) { return alloc_aligned(size, 0); }
+				struct Align { Genode::uint8_t log2; };
+
+				void * alloc(size_t size, Align);
 
 				void add(Memory_region const &);
 				void remove(Memory_region const &);
