@@ -1,0 +1,10 @@
++++ src/noux-pkg/less/configure
+@@ -4106,7 +4106,7 @@ if test "x$TERMLIBS" = x; then
+     LIBS="$LIBS $TERMLIBS"
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-
++#include <term.h>
+ int
+ main ()
+ {

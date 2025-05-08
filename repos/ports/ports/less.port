@@ -8,4 +8,6 @@ SIG(less) := ${URL(less)}.sig
 KEY(less) := GNU
 DIR(less) := src/noux-pkg/less
 
-PATCHES   := src/noux-pkg/less/tty_fd.patch src/noux-pkg/less/libs.patch
+PATCHES   := src/noux-pkg/less/tty_fd.patch \
+             src/noux-pkg/less/libs.patch \
+             src/noux-pkg/less/gcc14.patch
