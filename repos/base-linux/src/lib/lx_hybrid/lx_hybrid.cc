@@ -608,3 +608,28 @@ void Platform::_attach_stack_area()
 	 * locations of shared objects or the binary.
 	 */
 }
+
+
+/***************
+ ** Operators **
+ ***************/
+
+/*
+ * 32-Bit Host-libsup++ provides delete(void *, unsigned), but the Genode
+ * compiler will generate delete(void *, unsigned long) because of size_t being
+ * unsigned long on Genode. Therefore, we provide delete(void *, unsigned
+ * long) for 32-Bit system here which in turn calls delete(void *, unsigned)
+ */
+#ifndef _LP64
+#pragma GCC diagnostic ignored "-Wsized-deallocation"
+
+static void _delete(void *ptr, unsigned long size) {
+	::operator delete(ptr, unsigned(size));
+}
+
+
+void operator delete (void *ptr, unsigned long size) {
+	_delete(ptr, size); }
+
+#pragma GCC diagnostic pop
+#endif
