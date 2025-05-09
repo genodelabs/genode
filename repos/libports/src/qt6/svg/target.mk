@@ -26,6 +26,7 @@ build: cmake_prepared.tag qt6_so_files
 
 	$(VERBOSE)cmake \
 		-G "Unix Makefiles" \
+		-DQT_HOST_PATH="$(QT_TOOLS_DIR)" \
 		-DCMAKE_PREFIX_PATH="$(CURDIR)/build_dependencies" \
 		-DCMAKE_MODULE_PATH="$(CURDIR)/build_dependencies/lib/cmake/Modules" \
 		-DCMAKE_SYSTEM_NAME="Genode" \
