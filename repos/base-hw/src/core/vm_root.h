@@ -39,6 +39,8 @@ class Core::Vm_root : public Root_component<Session_object<Vm_session>>
 		Trace::Source_registry &_trace_sources;
 		Vmid_allocator          _vmid_alloc { };
 
+		Registry<Session_object<Vm_session>> _registry {};
+
 	protected:
 
 		Create_result _create_session(const char *args) override;

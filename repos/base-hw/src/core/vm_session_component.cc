@@ -102,7 +102,8 @@ Core::Vm_root::Create_result Core::Vm_root::_create_session(const char *args)
 	}
 
 	return *new (md_alloc())
-		Vm_session_component(_vmid_alloc,
+		Vm_session_component(_registry,
+		                     _vmid_alloc,
 		                     *ep(),
 		                     session_resources_from_args(args),
 		                     session_label_from_args(args),

@@ -85,6 +85,7 @@ class Core::Vm_session_component
 
 		Registry<Registered<Vcpu>>          _vcpus { };
 
+		Registry<Session_object<Vm_session>>::Element _elem;
 		Rpc_entrypoint                     &_ep;
 		Accounted_ram_allocator             _accounted_ram_alloc;
 		Local_rm                           &_local_rm;
@@ -111,7 +112,8 @@ class Core::Vm_session_component
 
 	public:
 
-		Vm_session_component(Vmid_allocator & vmid_alloc,
+		Vm_session_component(Registry<Session_object<Vm_session>> &registry,
+		                     Vmid_allocator & vmid_alloc,
 		                     Rpc_entrypoint &ds_ep,
 		                     Resources resources,
 		                     Label const &label,
@@ -121,6 +123,7 @@ class Core::Vm_session_component
 		                     Trace::Source_registry &)
 		:
 			Session_object(ds_ep, resources, label, diag),
+			_elem(registry, *this),
 			_ep(ds_ep),
 			_accounted_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
 			_local_rm(local_rm),

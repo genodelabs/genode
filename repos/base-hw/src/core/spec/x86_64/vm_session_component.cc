@@ -25,7 +25,8 @@ Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 
 	if (Hw::Virtualization_support::has_svm())
 		return *new (md_alloc())
-			Svm_session_component(_vmid_alloc,
+			Svm_session_component(_registry,
+			                      _vmid_alloc,
 			                      *ep(),
 			                      resources,
 			                      session_label_from_args(args),
@@ -35,7 +36,8 @@ Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 
 	if (Hw::Virtualization_support::has_vmx())
 		return *new (md_alloc())
-			Vmx_session_component(_vmid_alloc,
+			Vmx_session_component(_registry,
+			                      _vmid_alloc,
 			                      *ep(),
 			                      session_resources_from_args(args),
 			                      session_label_from_args(args),

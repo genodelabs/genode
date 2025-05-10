@@ -15,8 +15,8 @@
 #define _CORE__IRQ_SESSION_COMPONENT_H_
 
 /* Genode includes */
+#include <base/registry.h>
 #include <base/rpc_server.h>
-#include <util/list.h>
 #include <irq_session/capability.h>
 
 /* core includes */
@@ -27,12 +27,11 @@
 namespace Core { class Irq_session_component; }
 
 
-class Core::Irq_session_component : public  Rpc_object<Irq_session>,
-                                    private List<Irq_session_component>::Element
+class Core::Irq_session_component : public  Rpc_object<Irq_session>
 {
 	private:
 
-		friend class List<Irq_session_component>;
+		Registry<Irq_session_component>::Element _elem;
 
 		Irq_args const _args;
 
@@ -62,9 +61,11 @@ class Core::Irq_session_component : public  Rpc_object<Irq_session>,
 		 * \param irq_alloc    platform-dependent IRQ allocator
 		 * \param args         session construction arguments
 		 */
-		Irq_session_component(Range_allocator &irq_alloc, const char *args)
+		Irq_session_component(Registry<Irq_session_component> &registry,
+		                      Range_allocator &irq_alloc,
+		                      const char *args)
 		:
-			_args(args), _irq_number(_allocate(irq_alloc))
+			_elem(registry, *this), _args(args), _irq_number(_allocate(irq_alloc))
 		{
 			if (_irq_number.failed())
 				error("unavailable interrupt ", _args.irq_number(), " requested");

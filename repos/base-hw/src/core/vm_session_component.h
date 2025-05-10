@@ -17,6 +17,7 @@
 /* base includes */
 #include <base/allocator.h>
 #include <base/allocator_avl.h>
+#include <base/registry.h>
 #include <base/session_object.h>
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
@@ -92,6 +93,8 @@ class Core::Vm_session_component
 
 		Constructible<Vcpu>         _vcpus[Board::VCPU_MAX];
 
+		Registry<Session_object<Vm_session>>::Element _elem;
+
 		Rpc_entrypoint             &_ep;
 		Accounted_ram_allocator     _ram;
 		Sliced_heap                 _sliced_heap;
@@ -115,7 +118,8 @@ class Core::Vm_session_component
 
 	public:
 
-		Vm_session_component(Vmid_allocator &, Rpc_entrypoint &,
+		Vm_session_component(Registry<Session_object<Vm_session>> &registry,
+		                     Vmid_allocator &, Rpc_entrypoint &,
 		                     Resources, Label const &, Diag,
 		                     Ram_allocator &ram, Local_rm &, unsigned,
 		                     Trace::Source_registry &);
