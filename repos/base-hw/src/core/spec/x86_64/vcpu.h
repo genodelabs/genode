@@ -30,7 +30,8 @@
 namespace Core { struct Vcpu; }
 
 
-class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
+class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
+                   public Revoke
 {
 	private:
 		struct Data_pages {
@@ -40,6 +41,7 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 		Kernel::Vcpu::Identity     &_id;
 		Rpc_entrypoint             &_ep;
 		Vcpu_data                   _vcpu_data { };
+		Signal_context_capability   _sigh_cap { };
 		Kernel_object<Kernel::Vcpu> _kobj { };
 		Accounted_ram_allocator    &_ram;
 		Ram_allocator::Result       _ds;
@@ -97,6 +99,16 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 			_ep.dissolve(this);
 		}
 
+		void revoke_signal_context(Signal_context_capability cap) override
+		{
+			if (cap != _sigh_cap)
+				return;
+
+			_sigh_cap = Signal_context_capability();
+			if (_kobj.constructed()) _kobj.destruct();
+		}
+
+
 		/*******************************
 		 ** Native_vcpu RPC interface **
 		 *******************************/
@@ -122,6 +134,8 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
 				warning("Cannot register vcpu handler twice");
 				return;
 			}
+
+			_sigh_cap = handler;
 
 			unsigned const cpu = _location.xpos();
 

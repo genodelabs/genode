@@ -22,12 +22,17 @@
 /* core includes */
 #include <irq_args.h>
 #include <object.h>
+#include <revoke.h>
 #include <kernel/irq.h>
 
 namespace Core { class Irq_session_component; }
 
 
-class Core::Irq_session_component : public  Rpc_object<Irq_session>
+class Core::Irq_session_component
+:
+	public Rpc_object<Irq_session>,
+	public Revoke
+
 {
 	private:
 
@@ -70,6 +75,8 @@ class Core::Irq_session_component : public  Rpc_object<Irq_session>
 			if (_irq_number.failed())
 				error("unavailable interrupt ", _args.irq_number(), " requested");
 		}
+
+		void revoke_signal_context(Signal_context_capability cap) override;
 
 
 		/***************************

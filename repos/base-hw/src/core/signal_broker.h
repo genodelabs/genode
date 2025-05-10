@@ -58,6 +58,7 @@ class Core::Signal_broker
 		~Signal_broker()
 		{
 			_contexts.remove_all([this] (Signal_context_component *c) {
+				platform_specific().revoke.revoke_signal_context(reinterpret_cap_cast<Signal_context>(c->cap()));
 				destroy(&_contexts_slab, c);});
 			_sources.remove_all([this] (Signal_source_component *s) {
 				destroy(&_sources_slab, s);});
@@ -127,6 +128,7 @@ class Core::Signal_broker
 					return;
 				}
 
+				platform_specific().revoke.revoke_signal_context(context_cap);
 				context = c;
 				_contexts.remove(context);
 			};

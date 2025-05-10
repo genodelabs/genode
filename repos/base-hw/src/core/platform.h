@@ -36,9 +36,12 @@
 #include <core_mem_alloc.h>
 #include <assertion.h>
 #include <board.h>
+#include <revoke.h>
 
 namespace Core {
 	class Address_space;
+	class Irq_root;
+	class Vm_root;
 	class Platform;
 };
 
@@ -86,6 +89,14 @@ class Core::Platform : public Platform_generic
 		addr_t _rom_module_phys(addr_t virt);
 
 	public:
+
+		struct Singleton_revoke : Revoke
+		{
+			Irq_root *irq_root = nullptr;
+			Vm_root  *vm_root  = nullptr;
+
+			void revoke_signal_context(Signal_context_capability) override;
+		} revoke {};
 
 		Platform();
 

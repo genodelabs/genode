@@ -52,6 +52,15 @@ void Irq_session_component::sigh(Signal_context_capability cap)
 }
 
 
+void Irq_session_component::revoke_signal_context(Signal_context_capability cap)
+{
+	if (cap != _sig_cap)
+		return;
+	_sig_cap = Signal_context_capability();
+	if (_kobj.constructed()) _kobj.destruct();
+}
+
+
 Irq_session_component::Msi::Msi(Irq_args const &args)
 :
 	allocated(args.msi() ? Platform::alloc_msi_vector(address, value) : false)

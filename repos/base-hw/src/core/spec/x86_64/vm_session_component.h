@@ -46,7 +46,8 @@ namespace Core {
 template <typename TABLE>
 class Core::Vm_session_component
 :
-	public Session_object<Vm_session>
+	public Session_object<Vm_session>,
+	public Revoke
 {
 	private:
 
@@ -85,7 +86,7 @@ class Core::Vm_session_component
 
 		Registry<Registered<Vcpu>>          _vcpus { };
 
-		Registry<Session_object<Vm_session>>::Element _elem;
+		Registry<Revoke>::Element           _elem;
 		Rpc_entrypoint                     &_ep;
 		Accounted_ram_allocator             _accounted_ram_alloc;
 		Local_rm                           &_local_rm;
@@ -112,7 +113,7 @@ class Core::Vm_session_component
 
 	public:
 
-		Vm_session_component(Registry<Session_object<Vm_session>> &registry,
+		Vm_session_component(Registry<Revoke> &registry,
 		                     Vmid_allocator & vmid_alloc,
 		                     Rpc_entrypoint &ds_ep,
 		                     Resources resources,
@@ -146,6 +147,12 @@ class Core::Vm_session_component
 				destroy(_heap, &vcpu); });
 
 			_vmid_alloc.free(_id.id);
+		}
+
+		void revoke_signal_context(Signal_context_capability cap) override
+		{
+			_vcpus.for_each([&] (Vcpu &vcpu) {
+				vcpu.revoke_signal_context(cap); });
 		}
 
 

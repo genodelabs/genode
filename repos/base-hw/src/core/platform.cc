@@ -16,6 +16,8 @@
 /* core includes */
 #include <boot_modules.h>
 #include <core_log.h>
+#include <irq_root.h>
+#include <vm_root.h>
 
 /* base-hw core includes */
 #include <map_local.h>
@@ -89,6 +91,13 @@ Hw::Memory_region_array const & Platform::_core_virt_regions()
 	static Hw::Memory_region_array array {
 		Hw::Memory_region(stack_area_virtual_base(), stack_area_virtual_size()) };
 	return array;
+}
+
+
+void Platform::Singleton_revoke::revoke_signal_context(Signal_context_capability cap)
+{
+	if (irq_root) irq_root->revoke_signal_context(cap);
+	if (vm_root)  vm_root->revoke_signal_context(cap);
 }
 
 

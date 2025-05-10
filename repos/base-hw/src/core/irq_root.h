@@ -20,11 +20,14 @@
 
 /* core includes */
 #include <irq_session_component.h>
+#include <revoke.h>
+#include <platform.h>
 
 namespace Core { class Irq_root; }
 
 
-class Core::Irq_root : public Root_component<Irq_session_component>
+class Core::Irq_root : public Root_component<Irq_session_component>,
+                       public Revoke
 {
 
 	private:
@@ -63,7 +66,15 @@ class Core::Irq_root : public Root_component<Irq_session_component>
 			Root_component<Irq_session_component>(&_session_ep, &md_alloc),
 			_session_ep(nullptr, STACK_SIZE, "irq", Affinity::Location()),
 			_irq_alloc(irq_alloc)
-		{ }
+		{
+			platform_specific().revoke.irq_root = this;
+		}
+
+		void revoke_signal_context(Signal_context_capability cap) override
+		{
+			_registry.for_each([&] (Irq_session_component &component) {
+				component.revoke_signal_context(cap); });
+		}
 };
 
 #endif /* _CORE__INCLUDE__IRQ_ROOT_H_ */

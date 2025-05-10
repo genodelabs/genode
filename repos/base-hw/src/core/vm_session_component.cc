@@ -40,10 +40,22 @@ void Vm_session_component::Vcpu::exception_handler(Signal_context_capability han
 		return;
 	}
 
+	sigh_cap = handler;
+
 	unsigned const cpu = location.xpos();
 
 	if (!kobj.create(cpu, (void *)ds_addr, Capability_space::capid(handler), id))
 		Genode::warning("Cannot instantiate vm kernel object, invalid signal context?");
+}
+
+
+void Vm_session_component::Vcpu::revoke_signal_context(Signal_context_capability cap)
+{
+	if (cap != sigh_cap)
+		return;
+
+	sigh_cap = Signal_context_capability();
+	if (kobj.constructed()) kobj.destruct();
 }
 
 

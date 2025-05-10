@@ -24,13 +24,16 @@
 
 /* core includes */
 #include <vmid_allocator.h>
+#include <revoke.h>
+#include <platform.h>
 
 namespace Core {
 	class Vm_root;
 	using namespace Genode;
 }
 
-class Core::Vm_root : public Root_component<Session_object<Vm_session>>
+class Core::Vm_root : public Root_component<Session_object<Vm_session>>,
+                      public Revoke
 {
 	private:
 
@@ -39,7 +42,7 @@ class Core::Vm_root : public Root_component<Session_object<Vm_session>>
 		Trace::Source_registry &_trace_sources;
 		Vmid_allocator          _vmid_alloc { };
 
-		Registry<Session_object<Vm_session>> _registry {};
+		Registry<Revoke> _registry {};
 
 	protected:
 
@@ -69,7 +72,15 @@ class Core::Vm_root : public Root_component<Session_object<Vm_session>>
 			_ram_allocator(ram_alloc),
 			_local_rm(local_rm),
 			_trace_sources(trace_sources)
-		{ }
+		{
+			platform_specific().revoke.vm_root = this;
+		}
+
+		void revoke_signal_context(Signal_context_capability cap) override
+		{
+			_registry.for_each([&] (Revoke &r) {
+				r.revoke_signal_context(cap); });
+		}
 };
 
 #endif /* _CORE__INCLUDE__VM_ROOT_H_ */

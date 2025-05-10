@@ -40,7 +40,8 @@ namespace Core { class Vm_session_component; }
 class Core::Vm_session_component
 :
 	public Session_object<Vm_session>,
-	public  Region_map_detach
+	public Region_map_detach,
+	public Revoke
 {
 	private:
 
@@ -52,13 +53,15 @@ class Core::Vm_session_component
 		Vm_session_component(Vm_session_component const &);
 		Vm_session_component &operator = (Vm_session_component const &);
 
-		struct Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>
+		struct Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
+		              public Revoke
 		{
 			static size_t _ds_size();
 
 			Kernel::Vcpu::Identity     &id;
 			Rpc_entrypoint             &ep;
 			Ram_allocator::Result       ds;
+			Signal_context_capability   sigh_cap { };
 			addr_t                      ds_addr  { };
 			Kernel_object<Kernel::Vcpu> kobj     { };
 			Affinity::Location          location { };
@@ -89,11 +92,13 @@ class Core::Vm_session_component
 			Native_capability native_vcpu() { return kobj.cap(); }
 
 			void exception_handler(Signal_context_capability);
+
+			void revoke_signal_context(Signal_context_capability cap) override;
 		};
 
-		Constructible<Vcpu>         _vcpus[Board::VCPU_MAX];
+		Constructible<Vcpu> _vcpus[Board::VCPU_MAX];
 
-		Registry<Session_object<Vm_session>>::Element _elem;
+		Registry<Revoke>::Element _elem;
 
 		Rpc_entrypoint             &_ep;
 		Accounted_ram_allocator     _ram;
@@ -118,12 +123,18 @@ class Core::Vm_session_component
 
 	public:
 
-		Vm_session_component(Registry<Session_object<Vm_session>> &registry,
+		Vm_session_component(Registry<Revoke> &registry,
 		                     Vmid_allocator &, Rpc_entrypoint &,
 		                     Resources, Label const &, Diag,
 		                     Ram_allocator &ram, Local_rm &, unsigned,
 		                     Trace::Source_registry &);
 		~Vm_session_component();
+
+		void revoke_signal_context(Signal_context_capability cap) override
+		{
+			for (unsigned i = 0; i < Board::VCPU_MAX; i++)
+				if (_vcpus[i].constructed()) _vcpus[i]->revoke_signal_context(cap);
+		}
 
 
 		/*********************************
