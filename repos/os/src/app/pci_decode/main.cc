@@ -757,6 +757,46 @@ void Main::parse_acpi_device_info(Node const &node, Generator &g)
 			g.attribute("polarity", "low");
 		});
 	});
+
+	/*
+	 * Intel Meteorlake PCH Pinctrl/GPIO
+	 */
+	g.node("device", [&]
+	{
+		g.attribute("name", "INTC1083");
+		g.attribute("type", "acpi");
+		g.node("irq", [&]
+		{
+			g.attribute("number", 14U);
+			g.attribute("mode", "level");
+			g.attribute("polarity", "low");
+		});
+		g.node("io_mem", [&]
+		{
+			g.attribute("address", "0xe0d50000");
+			g.attribute("size",    "0x1000");
+		});
+		g.node("io_mem", [&]
+		{
+			g.attribute("address", "0xe0d40000");
+			g.attribute("size",    "0x1000");
+		});
+		g.node("io_mem", [&]
+		{
+			g.attribute("address", "0xe0d30000");
+			g.attribute("size",    "0x1000");
+		});
+		g.node("io_mem", [&]
+		{
+			g.attribute("address", "0xe0d20000");
+			g.attribute("size",    "0x1000");
+		});
+		g.node("io_mem", [&]
+		{
+			g.attribute("address", "0xe0d10000");
+			g.attribute("size",    "0x1000");
+		});
+	});
 }
 
 
