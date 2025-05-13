@@ -38,9 +38,7 @@ namespace Core { class Vm_session_component; }
 
 class Core::Vm_session_component
 :
-	private Ram_quota_guard,
-	private Cap_quota_guard,
-	public  Rpc_object<Vm_session, Vm_session_component>,
+	public Session_object<Vm_session>,
 	public  Region_map_detach
 {
 	private:
@@ -115,16 +113,7 @@ class Core::Vm_session_component
 		void _detach_vm_memory(addr_t, size_t);
 		void _with_region(addr_t, auto const &);
 
-	protected:
-
-		Ram_quota_guard &_ram_quota_guard() { return *this; }
-		Cap_quota_guard &_cap_quota_guard() { return *this; }
-
 	public:
-
-		using Ram_quota_guard::upgrade;
-		using Cap_quota_guard::upgrade;
-		using Rpc_object<Vm_session, Vm_session_component>::cap;
 
 		Vm_session_component(Vmid_allocator &, Rpc_entrypoint &,
 		                     Resources, Label const &, Diag,

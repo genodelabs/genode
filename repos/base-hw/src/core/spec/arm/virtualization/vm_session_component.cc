@@ -93,15 +93,14 @@ Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
 Vm_session_component::Vm_session_component(Vmid_allocator & vmid_alloc,
                                            Rpc_entrypoint &ds_ep,
                                            Resources resources,
-                                           Label const &,
-                                           Diag,
+                                           Label const &label,
+                                           Diag diag,
                                            Ram_allocator &ram_alloc,
                                            Local_rm &local_rm,
                                            unsigned,
                                            Trace::Source_registry &)
 :
-	Ram_quota_guard(resources.ram_quota),
-	Cap_quota_guard(resources.cap_quota),
+	Session_object(ds_ep, resources, label, diag),
 	_ep(ds_ep),
 	_ram(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
 	_sliced_heap(_ram, local_rm),

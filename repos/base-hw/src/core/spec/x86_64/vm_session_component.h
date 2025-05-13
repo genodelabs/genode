@@ -1,19 +1,19 @@
 /*
- * \brief  SVM VM session component for 'base-hw'
+ * \brief  VM session component for 'base-hw'
  * \author Stefan Kalkowski
  * \author Benjamin Lamowski
  * \date   2024-09-20
  */
 
 /*
- * Copyright (C) 2015-2024 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SVM_VM_SESSION_COMPONENT_H_
-#define _CORE__SVM_VM_SESSION_COMPONENT_H_
+#ifndef _CORE__VM_SESSION_COMPONENT_H_
+#define _CORE__VM_SESSION_COMPONENT_H_
 
 /* base includes */
 #include <base/allocator.h>
@@ -22,46 +22,49 @@
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
 
-/* base-hw includes */
-#include <spec/x86_64/hpt.h>
-
 /* core includes */
 #include <cpu_thread_component.h>
 #include <region_map_component.h>
 #include <trace/source_registry.h>
 
+/* base-hw includes */
+#include <spec/x86_64/ept.h>
+#include <spec/x86_64/hpt.h>
 #include <vcpu.h>
 #include <vmid_allocator.h>
 #include <guest_memory.h>
 #include <phys_allocated.h>
 
 
-namespace Core { class Svm_session_component; }
+namespace Core {
+	template <typename TABLE> class Vm_session_component;
+	using Vmx_session_component = Vm_session_component<Hw::Ept>;
+	using Svm_session_component = Vm_session_component<Hw::Hpt>;
+}
 
 
-class Core::Svm_session_component
+template <typename TABLE>
+class Core::Vm_session_component
 :
 	public Session_object<Vm_session>
 {
 	private:
 
-		using Vm_page_table = Hw::Hpt;
-
 		using Vm_page_table_array =
-			Vm_page_table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
+			typename TABLE::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 
 
 		/*
 		 * Noncopyable
 		 */
-		Svm_session_component(Svm_session_component const &);
-		Svm_session_component &operator = (Svm_session_component const &);
+		Vm_session_component(Vm_session_component const &);
+		Vm_session_component &operator = (Vm_session_component const &);
 
 		struct Detach : Region_map_detach
 		{
-			Svm_session_component &_session;
+			Vm_session_component &_session;
 
-			Detach(Svm_session_component &session) : _session(session)
+			Detach(Vm_session_component &session) : _session(session)
 			{ }
 
 			void detach_at(addr_t at) override
@@ -86,7 +89,7 @@ class Core::Svm_session_component
 		Accounted_ram_allocator             _accounted_ram_alloc;
 		Local_rm                           &_local_rm;
 		Heap                                _heap;
-		Phys_allocated<Vm_page_table>       _table;
+		Phys_allocated<TABLE>               _table;
 		Phys_allocated<Vm_page_table_array> _table_array;
 		Guest_memory                        _memory;
 		Vmid_allocator                     &_vmid_alloc;
@@ -108,14 +111,14 @@ class Core::Svm_session_component
 
 	public:
 
-		Svm_session_component(Vmid_allocator         &vmid_alloc,
-		                      Rpc_entrypoint         &ds_ep,
-		                      Resources        const &resources,
-		                      Label            const &label,
-		                      Diag                    diag,
-		                      Ram_allocator          &ram_alloc,
-		                      Local_rm               &local_rm,
-		                      Trace::Source_registry &)
+		Vm_session_component(Vmid_allocator & vmid_alloc,
+		                     Rpc_entrypoint &ds_ep,
+		                     Resources resources,
+		                     Label const &label,
+		                     Diag diag,
+		                     Ram_allocator &ram_alloc,
+		                     Local_rm &local_rm,
+		                     Trace::Source_registry &)
 		:
 			Session_object(ds_ep, resources, label, diag),
 			_ep(ds_ep),
@@ -134,7 +137,7 @@ class Core::Svm_session_component
 			_id({(unsigned)_vmid_alloc.alloc(), (void *)_table.phys_addr()})
 		{ }
 
-		~Svm_session_component()
+		~Vm_session_component()
 		{
 			_vcpus.for_each([&] (Registered<Vcpu> &vcpu) {
 				destroy(_heap, &vcpu); });
@@ -230,4 +233,4 @@ class Core::Svm_session_component
 		}
 };
 
-#endif /* _CORE__SVM_VM_SESSION_COMPONENT_H_ */
+#endif /* _CORE__VM_SESSION_COMPONENT_H_ */

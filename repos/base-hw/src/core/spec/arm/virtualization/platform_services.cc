@@ -55,7 +55,7 @@ void Core::platform_add_local_services(Rpc_entrypoint         &ep,
 			stack.deallocate = false;
 
 			static Vm_root vm_root(ep, sh, core_ram, local_rm, trace_sources);
-			static Core_service<Vm_session_component> vm_service(services, vm_root);
+			static Core_service<Session_object<Vm_session>> vm_service(services, vm_root);
 		},
 		[&] (Alloc_error) {
 			warning("failed to allocate hypervisor stack for VM service");

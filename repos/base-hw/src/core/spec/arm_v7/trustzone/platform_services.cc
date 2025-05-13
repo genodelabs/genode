@@ -43,6 +43,5 @@ void Core::platform_add_local_services(Rpc_entrypoint         &ep,
 	          Hw::PAGE_FLAGS_KERN_TEXT);
 
 	static Vm_root vm_root(ep, sliced_heap, core_ram, local_rm, trace_sources);
-
-	static Core_service<Vm_session_component> vm_service(services, vm_root);
+	static Core_service<Session_object<Vm_session>> vm_service(services, vm_root);
 }

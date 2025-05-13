@@ -35,6 +35,7 @@ SRC_CC += spec/x86_64/platform_services.cc
 SRC_CC += spec/x86_64/platform_support.cc
 SRC_CC += spec/x86_64/platform_support_common.cc
 SRC_CC += spec/x86_64/timer.cc
+SRC_CC += spec/x86_64/vm_session_component.cc
 
 PD_SESSION_SUPPORT_CC_PATH := \
    $(call select_from_repositories,src/core/spec/x86_64/pd_session_support.cc)

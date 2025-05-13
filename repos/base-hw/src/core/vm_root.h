@@ -16,16 +16,21 @@
 #define _CORE__INCLUDE__VM_ROOT_H_
 
 /* Genode includes */
+#include <base/heap.h>
+#include <base/session_object.h>
 #include <root/component.h>
+#include <trace/source_registry.h>
+#include <vm_session/vm_session.h>
 
 /* core includes */
-#include <vm_session_component.h>
-
 #include <vmid_allocator.h>
 
-namespace Core { class Vm_root; }
+namespace Core {
+	class Vm_root;
+	using namespace Genode;
+}
 
-class Core::Vm_root : public Root_component<Vm_session_component>
+class Core::Vm_root : public Root_component<Session_object<Vm_session>>
 {
 	private:
 
@@ -36,28 +41,9 @@ class Core::Vm_root : public Root_component<Vm_session_component>
 
 	protected:
 
-		Create_result _create_session(const char *args) override
-		{
-			unsigned priority = 0;
-			Arg a = Arg_string::find_arg(args, "priority");
-			if (a.valid()) {
-				priority = (unsigned)a.ulong_value(0);
+		Create_result _create_session(const char *args) override;
 
-				/* clamp priority value to valid range */
-				priority = min((unsigned)Cpu_session::PRIORITY_LIMIT - 1, priority);
-			}
-
-			return *new (md_alloc())
-				Vm_session_component(_vmid_alloc,
-				                     *ep(),
-				                     session_resources_from_args(args),
-				                     session_label_from_args(args),
-				                     session_diag_from_args(args),
-				                     _ram_allocator, _local_rm, priority,
-				                     _trace_sources);
-		}
-
-		void _upgrade_session(Vm_session_component &vm, const char *args) override
+		void _upgrade_session(Session_object<Vm_session> &vm, const char *args) override
 		{
 			vm.upgrade(ram_quota_from_args(args));
 			vm.upgrade(cap_quota_from_args(args));
@@ -77,7 +63,7 @@ class Core::Vm_root : public Root_component<Vm_session_component>
 		        Local_rm               &local_rm,
 		        Trace::Source_registry &trace_sources)
 		:
-			Root_component<Vm_session_component>(&session_ep, &md_alloc),
+			Root_component<Session_object<Vm_session>>(&session_ep, &md_alloc),
 			_ram_allocator(ram_alloc),
 			_local_rm(local_rm),
 			_trace_sources(trace_sources)
