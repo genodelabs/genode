@@ -123,6 +123,7 @@ SECTIONS
 	.bss : {
 		_bss_start = ALIGN(8);
 		*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+		*(.lbss .lbss.* .gnu.linkonce.b.* COMMON)
 	}
 	_bss_end = ALIGN(8);
 
