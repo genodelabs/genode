@@ -43,8 +43,6 @@ static void dde_irq_unmask(struct irq_data *d)
 
 static int dde_irq_set_type(struct irq_data *d, unsigned int type)
 {
-	if (type != IRQ_TYPE_LEVEL_HIGH)
-		lx_emul_trace_and_stop(__func__);
 	return 0;
 }
 
