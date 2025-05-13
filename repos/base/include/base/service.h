@@ -44,8 +44,6 @@ class Genode::Service : public Ram_transfer::Account,
 		using Ram_transfer_result = Ram_transfer::Account::Transfer_result;
 		using Cap_transfer_result = Cap_transfer::Account::Transfer_result;
 
-		enum class Create_error { DENIED, INSUFFICIENT_CAPS, INSUFFICIENT_RAM };
-
 	private:
 
 		Name const _name;
@@ -75,6 +73,8 @@ class Genode::Service : public Ram_transfer::Account,
 		 */
 		Name const &name() const { return _name; }
 
+		using Create_result = Unique_attempt<Session_state &, Alloc_error>;
+
 		/**
 		 * Create new session-state object
 		 *
@@ -82,7 +82,7 @@ class Genode::Service : public Ram_transfer::Account,
 		 * session state. All subsequent 'Session_state' arguments correspond
 		 * to the forwarded 'args'.
 		 */
-		Session_state &create_session(Factory &client_factory, auto &&... args)
+		Create_result create_session(Factory &client_factory, auto &&... args)
 		{
 			return _factory(client_factory).create(*this, args...);
 		}
@@ -121,7 +121,7 @@ class Genode::Local_service : public Service
 		struct Factory : Interface
 		{
 			using Args   = Session_state::Args;
-			using Result = Unique_attempt<SESSION &, Create_error>;
+			using Result = Unique_attempt<SESSION &, Session_error>;
 
 			virtual Result create (Args const &, Affinity)  = 0;
 			virtual void   upgrade(SESSION &, Args const &) = 0;
@@ -149,7 +149,7 @@ class Genode::Local_service : public Service
 				void   destroy(SESSION &)               override { }
 		};
 
-		using Budget_result = Attempt<Session_state::Args, Create_error>;
+		using Budget_result = Attempt<Session_state::Args, Session_error>;
 
 		static Budget_result budget_adjusted_args(Session_state::Args const &args,
 		                                          Allocator &alloc)
@@ -163,7 +163,7 @@ class Genode::Local_service : public Service
 			size_t needed = sizeof(SESSION) + alloc.overhead(sizeof(SESSION));
 
 			if (needed > ram_quota.value)
-				return Create_error::INSUFFICIENT_RAM;
+				return Session_error::INSUFFICIENT_RAM;
 
 			Ram_quota const remaining_ram_quota { ram_quota.value - needed };
 
@@ -174,14 +174,14 @@ class Genode::Local_service : public Service
 			Cap_quota const cap_quota = cap_quota_from_args(args.string());
 
 			if (cap_quota.value < SESSION::CAP_QUOTA)
-				return Create_error::INSUFFICIENT_CAPS;
+				return Session_error::INSUFFICIENT_CAPS;
 
 			/*
 			 * Account for the dataspace capability needed for allocating the
 			 * session object from the sliced heap.
 			 */
 			if (cap_quota.value < 1)
-				return Create_error::INSUFFICIENT_CAPS;
+				return Session_error::INSUFFICIENT_CAPS;
 
 			Cap_quota const remaining_cap_quota { cap_quota.value - 1 };
 
@@ -238,13 +238,15 @@ class Genode::Local_service : public Service
 						session.cap       =  obj.cap();
 						session.phase     =  Session_state::AVAILABLE;
 					},
-					[&] (Create_error e) {
+					[&] (Session_error e) {
 						switch (e) {
-						case Create_error::DENIED:
+						case Session_error::DENIED:
 							session.phase = Session_state::SERVICE_DENIED; break;
-						case Create_error::INSUFFICIENT_RAM:
+						case Session_error::INSUFFICIENT_RAM:
+						case Session_error::OUT_OF_RAM:
 							session.phase = Session_state::INSUFFICIENT_RAM_QUOTA; break;
-						case Create_error::INSUFFICIENT_CAPS:
+						case Session_error::INSUFFICIENT_CAPS:
+						case Session_error::OUT_OF_CAPS:
 							session.phase = Session_state::INSUFFICIENT_CAP_QUOTA; break;
 						}
 					});
@@ -299,7 +301,7 @@ class Genode::Try_parent_service : public Service
 
 		Env &_env;
 
-		using Error = Env::Session_error;
+		using Error = Session_error;
 
 		static Session_state::Phase session_phase_from_error(Error e)
 		{
@@ -350,7 +352,7 @@ class Genode::Try_parent_service : public Service
 						session.cap = cap;
 						session.phase = Session_state::AVAILABLE;
 					},
-					[&] (Env::Session_error e) {
+					[&] (Session_error e) {
 						session.id_at_parent.destruct();
 						session.phase = session_phase_from_error(e);
 						result = result_from_error(e);

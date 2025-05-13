@@ -141,10 +141,10 @@ struct Cpu::Pd_root : Rpc_object<Typed_root<Pd_session>>
 					                                        affinity))->pd_cap };
 			});
 		}
-		catch (Insufficient_ram_quota) { return Service::Create_error::INSUFFICIENT_RAM; }
-		catch (Insufficient_cap_quota) { return Service::Create_error::INSUFFICIENT_CAPS; }
-		catch (Out_of_ram)             { return Service::Create_error::INSUFFICIENT_RAM; }
-		catch (Out_of_caps)            { return Service::Create_error::INSUFFICIENT_CAPS; }
+		catch (Insufficient_ram_quota) { return Session_error::INSUFFICIENT_RAM;  }
+		catch (Insufficient_cap_quota) { return Session_error::INSUFFICIENT_CAPS; }
+		catch (Out_of_ram)             { return Session_error::INSUFFICIENT_RAM;  }
+		catch (Out_of_caps)            { return Session_error::INSUFFICIENT_CAPS; }
 	}
 
 	void upgrade(Session_capability const, Root::Upgrade_args const &) override
@@ -239,10 +239,10 @@ struct Cpu::Balancer : Rpc_object<Typed_root<Cpu_session>>
 					                                 verbose))->cap() };
 			});
 		}
-		catch (Insufficient_ram_quota) { return Service::Create_error::INSUFFICIENT_RAM; }
-		catch (Insufficient_cap_quota) { return Service::Create_error::INSUFFICIENT_CAPS; }
-		catch (Out_of_ram)             { return Service::Create_error::INSUFFICIENT_RAM; }
-		catch (Out_of_caps)            { return Service::Create_error::INSUFFICIENT_CAPS; }
+		catch (Insufficient_ram_quota) { return Session_error::INSUFFICIENT_RAM;  }
+		catch (Insufficient_cap_quota) { return Session_error::INSUFFICIENT_CAPS; }
+		catch (Out_of_ram)             { return Session_error::INSUFFICIENT_RAM;  }
+		catch (Out_of_caps)            { return Session_error::INSUFFICIENT_CAPS; }
 	}
 
 	void upgrade(Session_capability const cap, Root::Upgrade_args const &args) override

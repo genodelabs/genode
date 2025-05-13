@@ -53,7 +53,7 @@ class Input::Root_component : public Genode::Static_root<Input::Session>
 		                     Genode::Affinity           const &affinity) override
 		{
 			if (_session.event_queue().enabled())
-				return Genode::Service::Create_error::DENIED;
+				return Genode::Session_error::DENIED;
 
 			_session.event_queue().enabled(true);
 

@@ -1523,8 +1523,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 					_sessions.insert(&session);
 					return { session.cap() };
 				}
-				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
-				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
+				catch (Out_of_ram)  { return Session_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Session_error::INSUFFICIENT_CAPS; }
 
 			case ROLE_DECORATOR:
 				try {
@@ -1536,8 +1536,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 					_decorator_sessions.insert(&session);
 					return { session.cap() };
 				}
-				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
-				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
+				catch (Out_of_ram)  { return Session_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Session_error::INSUFFICIENT_CAPS; }
 
 			case ROLE_LAYOUTER:
 				try {
@@ -1547,8 +1547,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 
 					return { _layouter_session->cap() };
 				}
-				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
-				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
+				catch (Out_of_ram)  { return Session_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Session_error::INSUFFICIENT_CAPS; }
 
 			case ROLE_DIRECT:
 				try {
@@ -1557,10 +1557,10 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 
 					return { session.cap() };
 				}
-				catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
-				catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
+				catch (Out_of_ram)  { return Session_error::INSUFFICIENT_RAM; }
+				catch (Out_of_caps) { return Session_error::INSUFFICIENT_CAPS; }
 			}
-			return Service::Create_error::DENIED;
+			return Session_error::DENIED;
 		}
 
 		void upgrade(Genode::Session_capability session_cap, Upgrade_args const &args) override

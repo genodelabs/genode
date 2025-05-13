@@ -137,9 +137,6 @@ struct Genode::Env : Interface
 	 */
 	virtual void exec_static_constructors() = 0;
 
-	enum class Session_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED,
-	                           INSUFFICIENT_RAM, INSUFFICIENT_CAPS };
-
 	using Session_result = Attempt<Session_capability, Session_error>;
 
 	/**

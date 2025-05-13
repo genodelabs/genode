@@ -338,7 +338,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 	                     Affinity const &) override
 	{
 		if (_block_session.constructed())
-			return Service::Create_error::DENIED;
+			return Session_error::DENIED;
 
 		size_t const tx_buf_size =
 			Arg_string::find_arg(args.string(),
@@ -348,7 +348,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 
 		if (tx_buf_size > ram_quota.value) {
 			warning("communication buffer size exceeds session quota");
-			return Service::Create_error::INSUFFICIENT_RAM;
+			return Session_error::INSUFFICIENT_RAM;
 		}
 
 		/* make sure policy is up-to-date */
@@ -359,7 +359,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 
 		if (!policy.has_attribute("file")) {
 			error("policy lacks 'file' attribute");
-			return Service::Create_error::DENIED;
+			return Session_error::DENIED;
 		}
 
 		Vfs_block::File_info const file_info =
@@ -375,7 +375,7 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 
 			return { _block_session->cap() };
 		} catch (...) {
-			return Service::Create_error::DENIED;
+			return Session_error::DENIED;
 		}
 	}
 

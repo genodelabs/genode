@@ -229,13 +229,13 @@ void Chroot::Main::handle_session_request(Xml_node const &request)
 
 		catch (Session_policy::No_policy_defined) {
 			Genode::error("no policy defined for '", label_from_args(args.string()), "'");
-			env.parent().session_response(server_id, Parent::SERVICE_DENIED);
+			env.parent().session_response(server_id, Parent::Session_response::DENIED);
 		}
 
 		catch (...) {
 			if (session)
 				destroy(heap, session);
-			env.parent().session_response(server_id, Parent::SERVICE_DENIED);
+			env.parent().session_response(server_id, Parent::Session_response::DENIED);
 		}
 	}
 
@@ -249,7 +249,7 @@ void Chroot::Main::handle_session_request(Xml_node const &request)
 			String<128> args("ram_quota=", ram_quota, ", cap_quota=", cap_quota);
 
 			env.upgrade(session.client_id.id(), args.string());
-			env.parent().session_response(server_id, Parent::SESSION_OK);
+			env.parent().session_response(server_id, Parent::Session_response::OK);
 		});
 	}
 
@@ -257,7 +257,7 @@ void Chroot::Main::handle_session_request(Xml_node const &request)
 		server_id_space.apply<Session>(server_id, [&] (Session &session) {
 			env.close(session.client_id.id());
 			destroy(heap, &session);
-			env.parent().session_response(server_id, Parent::SESSION_CLOSED);
+			env.parent().session_response(server_id, Parent::Session_response::CLOSED);
 		});
 	}
 }

@@ -289,6 +289,10 @@ class Genode::Session_state::Factory : Noncopyable
 
 		Slab _slab;
 
+		using Obj_alloc = Memory::Constrained_obj_allocator<Session_state>;
+
+		Obj_alloc _obj_alloc { _slab };
+
 	public:
 
 		struct Batch_size { size_t value; };
@@ -314,18 +318,22 @@ class Genode::Session_state::Factory : Noncopyable
 			      nullptr, &md_alloc)
 		{ }
 
+		using Create_result = Unique_attempt<Session_state &, Alloc_error>;
+
 		/**
 		 * Create a new session-state object
 		 *
 		 * The 'args' are passed the 'Session_state' constructor.
-		 *
-		 * \throw Allocator::Out_of_memory
 		 */
-		Session_state &create(auto &&... args)
+		Create_result create(auto &&... args)
 		{
-			Session_state &session = *new (_slab) Session_state(args...);
-			session.owner(*this);
-			return session;
+			return _obj_alloc.create(args...).template convert<Create_result>(
+				[&] (Obj_alloc::Allocation &a) -> Session_state & {
+					a.obj.owner(*this);
+					a.deallocate = false;
+					return a.obj;
+				},
+				[&] (Alloc_error e) { return e; });
 		}
 
 		/**

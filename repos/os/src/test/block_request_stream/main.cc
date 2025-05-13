@@ -213,7 +213,7 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 	{
 		if (_block_session.constructed()) {
 			error("already in use");
-			return Service::Create_error::DENIED;
+			return Session_error::DENIED;
 		}
 
 		size_t const ds_size =
@@ -223,7 +223,7 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 
 		if (ds_size >= ram_quota.value) {
 			warning("communication buffer size exceeds session quota");
-			return Service::Create_error::INSUFFICIENT_RAM;
+			return Session_error::INSUFFICIENT_RAM;
 		}
 
 		_block_ds.construct(_env.ram(), _env.rm(), ds_size);

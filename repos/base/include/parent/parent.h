@@ -144,14 +144,6 @@ class Genode::Parent
 		 */
 		virtual void session_sigh(Signal_context_capability) = 0;
 
-		enum class Session_error {
-			OUT_OF_RAM,             /* session RAM quota exceeds our resources */
-			OUT_OF_CAPS,            /* session CAP quota exceeds our resources */
-			INSUFFICIENT_RAM_QUOTA, /* RAM donation does not suffice */
-			INSUFFICIENT_CAP_QUOTA, /* CAP donation does not suffice */
-			DENIED,                 /* parent or server denies request */
-		};
-
 		using Session_result = Attempt<Capability<Session>, Session_error>;
 
 		/**
@@ -176,8 +168,7 @@ class Genode::Parent
 		                               Session_args const &args,
 		                               Affinity     const &affinity = Affinity()) = 0;
 
-		enum class Session_cap_error { INSUFFICIENT_RAM_QUOTA,
-		                               INSUFFICIENT_CAP_QUOTA, DENIED, };
+		enum class Session_cap_error { DENIED, INSUFFICIENT_RAM, INSUFFICIENT_CAPS, };
 
 		using Session_cap_result = Attempt<Capability<Session>, Session_cap_error>;
 
@@ -215,8 +206,8 @@ class Genode::Parent
 		 * Interface for providing services
 		 */
 
-		enum Session_response { SESSION_OK, SESSION_CLOSED, SERVICE_DENIED,
-		                        INSUFFICIENT_RAM_QUOTA, INSUFFICIENT_CAP_QUOTA };
+		enum class Session_response { DENIED, OK, CLOSED,
+		                              INSUFFICIENT_RAM, INSUFFICIENT_CAPS };
 
 		/**
 		 * Set state of a session provided by the child service

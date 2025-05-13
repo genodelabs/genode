@@ -38,6 +38,17 @@ namespace Genode {
 	enum class Buffer_error { EXCEEDED };
 
 	/**
+	 * Error conditions during session-creation
+	 */
+	enum class Session_error {
+		DENIED,             /* parent or server denies request */
+		OUT_OF_RAM,         /* session RAM quota exceeds our resources */
+		OUT_OF_CAPS,        /* session CAP quota exceeds our resources */
+		INSUFFICIENT_RAM,   /* RAM donation does not suffice */
+		INSUFFICIENT_CAPS,  /* CAP donation does not suffice */
+	};
+
+	/**
 	 * Raise an error without return
 	 *
 	 * This function should never be called except in panic situations where

@@ -172,16 +172,23 @@ void Root_proxy::_handle_session_request(Xml_node const &request, char const *ty
 		/* construct session */
 		Service::Name const name = request.attribute_value("service", Service::Name());
 
-		using Error = Genode::Service::Create_error;
+		using Error = Genode::Session_error;
 
 		auto error_response = [] (Error e)
 		{
 			switch (e) {
-			case Error::INSUFFICIENT_RAM:  return Parent::INSUFFICIENT_RAM_QUOTA;
-			case Error::INSUFFICIENT_CAPS: return Parent::INSUFFICIENT_CAP_QUOTA;
-			case Error::DENIED:            break;
+
+			case Error::OUT_OF_RAM:
+			case Error::INSUFFICIENT_RAM:
+				return Parent::Session_response::INSUFFICIENT_RAM;
+
+			case Error::OUT_OF_CAPS:
+			case Error::INSUFFICIENT_CAPS:
+				return Parent::Session_response::INSUFFICIENT_CAPS;
+
+			case Error::DENIED: break;
 			}
-			return Parent::SERVICE_DENIED;
+			return Parent::Session_response::DENIED;
 		};
 
 		_services.apply(name, [&] (Service &service) {
@@ -207,7 +214,7 @@ void Root_proxy::_handle_session_request(Xml_node const &request, char const *ty
 
 			Root_client(session.service.root).upgrade(session.cap, args.string());
 
-			_env.parent().session_response(id, Parent::SESSION_OK);
+			_env.parent().session_response(id, Parent::Session_response::OK);
 		});
 	}
 
@@ -219,7 +226,7 @@ void Root_proxy::_handle_session_request(Xml_node const &request, char const *ty
 
 			destroy(_session_slab, &session);
 
-			_env.parent().session_response(id, Parent::SESSION_CLOSED);
+			_env.parent().session_response(id, Parent::Session_response::CLOSED);
 		});
 	}
 }

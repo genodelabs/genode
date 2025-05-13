@@ -157,7 +157,7 @@ void Sandbox::Server::session_ready(Session_state &session)
 	 */
 	if (session.phase == Session_state::CAP_HANDED_OUT) {
 		Parent::Server::Id id { session.id_at_client().value };
-		_env.parent().session_response(id, Parent::SESSION_OK);
+		_env.parent().session_response(id, Parent::Session_response::OK);
 	}
 
 	if (session.phase == Session_state::AVAILABLE) {
@@ -167,13 +167,13 @@ void Sandbox::Server::session_ready(Session_state &session)
 	}
 
 	if (session.phase == Session_state::SERVICE_DENIED)
-		_close_session(session, Parent::SERVICE_DENIED);
+		_close_session(session, Parent::Session_response::DENIED);
 
 	if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA)
-		_close_session(session, Parent::INSUFFICIENT_RAM_QUOTA);
+		_close_session(session, Parent::Session_response::INSUFFICIENT_RAM);
 
 	if (session.phase == Session_state::INSUFFICIENT_CAP_QUOTA)
-		_close_session(session, Parent::INSUFFICIENT_CAP_QUOTA);
+		_close_session(session, Parent::Session_response::INSUFFICIENT_CAPS);
 }
 
 
@@ -201,7 +201,7 @@ void Sandbox::Server::_close_session(Session_state &session,
 
 void Sandbox::Server::session_closed(Session_state &session)
 {
-	_close_session(session, Parent::SESSION_CLOSED);
+	_close_session(session, Parent::Session_response::CLOSED);
 }
 
 
@@ -251,10 +251,34 @@ void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
 
 		Session::Diag const diag = session_diag_from_args(args.string());
 
-		Session_state &session =
-			route.service.create_session(route.service.factory(),
-			                             _client_id_space, id, route.label,
-			                             diag, argbuf, Affinity::from_xml(request));
+		using Phase = Session_state::Phase;
+
+		Session_state *session_ptr = nullptr;
+		route.service.create_session(route.service.factory(),
+		                             _client_id_space, id, route.label,
+		                             diag, argbuf, Affinity::from_xml(request))
+			.with_result(
+				[&] (Session_state &s) {
+
+					if (s.phase == Phase::SERVICE_DENIED)         throw Service_denied();
+					if (s.phase == Phase::INSUFFICIENT_CAP_QUOTA) throw Insufficient_cap_quota();
+					if (s.phase == Phase::INSUFFICIENT_RAM_QUOTA) throw Insufficient_ram_quota();
+
+					session_ptr = &s;
+				},
+				[&] (Alloc_error e) {
+					switch (e) {
+					case Alloc_error::OUT_OF_RAM:  throw Insufficient_ram_quota();
+					case Alloc_error::OUT_OF_CAPS: throw Insufficient_cap_quota();
+					case Alloc_error::DENIED:      break;
+					}
+					throw Service_denied();
+				});
+
+		if (!session_ptr)
+			throw Service_denied();
+
+		Session_state &session = *session_ptr;
 
 		/* transfer session quota */
 		try {
@@ -302,13 +326,13 @@ void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
 	}
 	catch (Service_denied) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
-		                               Parent::SERVICE_DENIED); }
+		                               Parent::Session_response::DENIED); }
 	catch (Insufficient_ram_quota) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
-		                               Parent::INSUFFICIENT_RAM_QUOTA); }
+		                               Parent::Session_response::INSUFFICIENT_RAM); }
 	catch (Insufficient_cap_quota) {
 		_env.parent().session_response(Parent::Server::Id { id.value },
-		                               Parent::INSUFFICIENT_CAP_QUOTA); }
+		                               Parent::Session_response::INSUFFICIENT_CAPS); }
 	catch (Service_not_present) { /* keep request pending */ }
 }
 

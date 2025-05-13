@@ -430,7 +430,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 		{
 			env.ep().dissolve(session);
 			destroy(heap, &session);
-			env.parent().session_response(pid, Parent::SESSION_CLOSED);
+			env.parent().session_response(pid, Parent::Session_response::CLOSED);
 		});
 	}
 

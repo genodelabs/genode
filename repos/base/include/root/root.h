@@ -35,7 +35,7 @@ struct Genode::Root
 
 	virtual ~Root() { }
 
-	using Result = Attempt<Session_capability, Service::Create_error>;
+	using Result = Attempt<Session_capability, Session_error>;
 
 	/**
 	 * Create session

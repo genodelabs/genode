@@ -330,23 +330,23 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			} catch (Session_policy::No_policy_defined) {
 				error("rejecting session request, no matching policy for '",
 				      label, "'");
-				return Service::Create_error::DENIED;
+				return Session_error::DENIED;
 			}
 
 			if (num == -1) {
 				error("policy does not define partition number for for '", label, "'");
-				return Service::Create_error::DENIED;
+				return Session_error::DENIED;
 			}
 
 			if (!_partition_table.partition_valid(num)) {
 				error("Partition ", num, " unavailable for '", label, "'");
-				return Service::Create_error::DENIED;
+				return Session_error::DENIED;
 			}
 
 			if (num >= MAX_SESSIONS || _sessions[num]) {
 				error("Partition ", num, " already in use or session limit reached for '",
 				      label, "'");
-				return Service::Create_error::DENIED;
+				return Session_error::DENIED;
 			}
 
 			Ram_quota const ram_quota = ram_quota_from_args(args.string());
@@ -354,7 +354,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 				Arg_string::find_arg(args.string(), "tx_buf_size").ulong_value(0);
 
 			if (!tx_buf_size)
-				return Service::Create_error::DENIED;
+				return Session_error::DENIED;
 
 			/*
 			 * Check if donated ram quota suffices for both
@@ -364,7 +364,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			if (tx_buf_size > ram_quota.value) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", need ",
 				     tx_buf_size);
-				return Service::Create_error::INSUFFICIENT_RAM;
+				return Session_error::INSUFFICIENT_RAM;
 			}
 
 			Session::Info info {
@@ -378,8 +378,8 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 				_sessions[num] = new (_heap) Session_component(_env, num, tx_buf_size,
 				                                               info, *this);
 			}
-			catch (Out_of_ram)  { return Service::Create_error::INSUFFICIENT_RAM; }
-			catch (Out_of_caps) { return Service::Create_error::INSUFFICIENT_CAPS; }
+			catch (Out_of_ram)  { return Session_error::INSUFFICIENT_RAM; }
+			catch (Out_of_caps) { return Session_error::INSUFFICIENT_CAPS; }
 
 			return { _sessions[num]->cap() };
 		}

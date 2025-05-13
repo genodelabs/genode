@@ -137,24 +137,14 @@ struct Genode::Component_env : Env
 					[&] (Parent::Session_cap_error const e) -> Session_result {
 						using Error = Parent::Session_cap_error;
 						switch (e) {
-						case Error::INSUFFICIENT_RAM_QUOTA: return Session_error::INSUFFICIENT_RAM;
-						case Error::INSUFFICIENT_CAP_QUOTA: return Session_error::INSUFFICIENT_CAPS;
-						case Error::DENIED:                 break;
+						case Error::INSUFFICIENT_RAM:  return Session_error::INSUFFICIENT_RAM;
+						case Error::INSUFFICIENT_CAPS: return Session_error::INSUFFICIENT_CAPS;
+						case Error::DENIED:            break;
 						}
 						return Session_error::DENIED; }
 				);
 			},
-			[&] (Parent::Session_error const e) -> Session_result {
-				using Error = Parent::Session_error;
-				switch (e) {
-				case Error::OUT_OF_RAM:             return Session_error::OUT_OF_RAM;
-				case Error::OUT_OF_CAPS:            return Session_error::OUT_OF_CAPS;
-				case Error::INSUFFICIENT_RAM_QUOTA: return Session_error::INSUFFICIENT_RAM;
-				case Error::INSUFFICIENT_CAP_QUOTA: return Session_error::INSUFFICIENT_CAPS;
-				case Error::DENIED:                 break;
-				}
-				return Session_error::DENIED;
-			});
+			[&] (Session_error e) { return e; });
 	}
 
 	Session_capability session(Parent::Service_name const &name,

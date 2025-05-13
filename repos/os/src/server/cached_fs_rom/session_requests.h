@@ -70,14 +70,14 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 
 				try { _requests_handler.handle_session_create(name, id, args); }
 				catch (Service_denied) {
-					_parent.session_response(id, Parent::SERVICE_DENIED); }
+					_parent.session_response(id, Parent::Session_response::DENIED); }
 				catch (Insufficient_ram_quota) {
-					_parent.session_response(id, Parent::INSUFFICIENT_RAM_QUOTA); }
+					_parent.session_response(id, Parent::Session_response::INSUFFICIENT_RAM); }
 				catch (Insufficient_cap_quota) {
-					_parent.session_response(id, Parent::INSUFFICIENT_CAP_QUOTA); }
+					_parent.session_response(id, Parent::Session_response::INSUFFICIENT_CAPS); }
 				catch (...) {
 					error("unhandled exception while creating session");
-					_parent.session_response(id, Parent::SERVICE_DENIED);
+					_parent.session_response(id, Parent::Session_response::DENIED);
 					throw;
 				}
 			};

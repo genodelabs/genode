@@ -46,12 +46,12 @@ class Genode::Single_client
 
 		Single_client() : _used(0) { }
 
-		using Result = Attempt<Ok, Service::Create_error>;
+		using Result = Attempt<Ok, Session_error>;
 
 		Result aquire(const char *)
 		{
 			if (_used)
-				return Service::Create_error::DENIED;
+				return Session_error::DENIED;
 
 			_used = true;
 			return Ok();
@@ -66,7 +66,7 @@ class Genode::Single_client
  */
 struct Genode::Multiple_clients
 {
-	using Result = Attempt<Ok, Service::Create_error>;
+	using Result = Attempt<Ok, Session_error>;
 
 	Result aquire(const char *) { return Ok(); }
 	void release() { }
@@ -105,7 +105,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
 	public:
 
 		using Local_service = Genode::Local_service<SESSION>;
-		using Create_error  = Service::Create_error;
+		using Create_error  = Session_error;
 		using Create_result = Local_service::Factory::Result;
 
 	private:

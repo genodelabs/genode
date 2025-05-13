@@ -102,40 +102,39 @@ with_new_session(Child_policy::Name const &child_name, Service &service,
                  Affinity const &affinity,
                  auto const &fn)
 {
-	using Error = Parent::Session_error;
+	bool const id_ok = id_space.apply<Session_state>(id,
+		[&] (Session_state &session) {
+			error(child_name, " requested conflicting session ID ", id, " "
+			      "(service=", service.name(), " args=", args, ")");
+			error("existing session: ", session);
+			return false;
+		},
+		[&] /* ID not yet used */ { return true; });
 
-	Error session_error = Error::DENIED;
+	using Error = Session_error;
+	using Phase = Session_state::Phase;
 
-	try {
-		bool const id_ok = id_space.apply<Session_state>(id,
-			[&] (Session_state &session) {
-				error(child_name, " requested conflicting session ID ", id, " "
-				      "(service=", service.name(), " args=", args, ")");
-				error("existing session: ", session);
-				return false;
+	if (!id_ok)
+		return Error::DENIED;
+
+	return service.create_session(factory, id_space, id, label, diag, args, affinity)
+		.convert<Parent::Session_result>(
+			[&] (Session_state &s) -> Parent::Session_result {
+
+				if (s.phase == Phase::SERVICE_DENIED)         return Error::DENIED;
+				if (s.phase == Phase::INSUFFICIENT_CAP_QUOTA) return Error::INSUFFICIENT_CAPS;
+				if (s.phase == Phase::INSUFFICIENT_RAM_QUOTA) return Error::INSUFFICIENT_RAM;
+
+				return fn(s);
 			},
-			[&] /* ID not yet used */ { return true; });
-
-		if (!id_ok)
-			return Error::DENIED;
-
-		return fn(service.create_session(factory, id_space, id, label, diag, args, affinity));
-	}
-	catch (Insufficient_ram_quota) { session_error = Error::INSUFFICIENT_RAM_QUOTA; }
-	catch (Insufficient_cap_quota) { session_error = Error::INSUFFICIENT_CAP_QUOTA; }
-	catch (Out_of_ram)             { session_error = Error::OUT_OF_RAM;  }
-	catch (Out_of_caps)            { session_error = Error::OUT_OF_CAPS; }
-
-	if (session_error == Error::OUT_OF_RAM || session_error == Error::OUT_OF_CAPS)
-		error(child_name, " session meta data could not be allocated");
-
-	if (session_error == Error::INSUFFICIENT_RAM_QUOTA)
-		error(child_name, " requested session with insufficient RAM quota");
-
-	if (session_error == Error::INSUFFICIENT_CAP_QUOTA)
-		error(child_name, " requested session with insufficient cap quota");
-
-	return session_error;
+			[&] (Alloc_error e) -> Session_error {
+				switch (e) {
+				case Alloc_error::OUT_OF_RAM:  return Error::OUT_OF_RAM;
+				case Alloc_error::OUT_OF_CAPS: return Error::OUT_OF_CAPS;
+				case Alloc_error::DENIED:      break;
+				}
+				return Error::DENIED;
+			});
 }
 
 
@@ -169,7 +168,7 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 	size_t const keep_ram_quota = _session_factory.session_costs();
 
 	if (ram_quota.value < keep_ram_quota)
-		return Session_error::INSUFFICIENT_RAM_QUOTA;
+		return Session_error::INSUFFICIENT_RAM;
 
 	/* ram quota to be forwarded to the server */
 	Ram_quota const forward_ram_quota { ram_quota.value - keep_ram_quota };
@@ -252,12 +251,12 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 
 				if (session.phase == Session_state::INSUFFICIENT_RAM_QUOTA) {
 					_revert_quota_and_destroy(session);
-					return Session_error::INSUFFICIENT_RAM_QUOTA;
+					return Session_error::INSUFFICIENT_RAM;
 				}
 
 				if (session.phase == Session_state::INSUFFICIENT_CAP_QUOTA) {
 					_revert_quota_and_destroy(session);
-					return Session_error::INSUFFICIENT_CAP_QUOTA;
+					return Session_error::INSUFFICIENT_CAPS;
 				}
 
 				/*
@@ -314,8 +313,8 @@ Parent::Session_cap_result Child::session_cap(Client::Id id)
 
 				switch (phase) {
 				case Session_state::SERVICE_DENIED:         return Session_cap_error::DENIED;
-				case Session_state::INSUFFICIENT_RAM_QUOTA: return Session_cap_error::INSUFFICIENT_RAM_QUOTA;
-				case Session_state::INSUFFICIENT_CAP_QUOTA: return Session_cap_error::INSUFFICIENT_CAP_QUOTA;
+				case Session_state::INSUFFICIENT_RAM_QUOTA: return Session_cap_error::INSUFFICIENT_RAM;
+				case Session_state::INSUFFICIENT_CAP_QUOTA: return Session_cap_error::INSUFFICIENT_CAPS;
 				default: break;
 				}
 			}
@@ -578,7 +577,7 @@ void Child::session_response(Server::Id id, Session_response response)
 
 		switch (response) {
 
-		case Parent::SESSION_CLOSED:
+		case Parent::Session_response::CLOSED:
 			session.phase = Session_state::CLOSED;
 
 			/*
@@ -628,25 +627,25 @@ void Child::session_response(Server::Id id, Session_response response)
 			}
 			break;
 
-		case Parent::SERVICE_DENIED:
+		case Parent::Session_response::DENIED:
 			session.phase = Session_state::SERVICE_DENIED;
 			if (session.ready_callback)
 				session.ready_callback->session_ready(session);
 			break;
 
-		case Parent::INSUFFICIENT_RAM_QUOTA:
+		case Parent::Session_response::INSUFFICIENT_RAM:
 			session.phase = Session_state::INSUFFICIENT_RAM_QUOTA;
 			if (session.ready_callback)
 				session.ready_callback->session_ready(session);
 			break;
 
-		case Parent::INSUFFICIENT_CAP_QUOTA:
+		case Parent::Session_response::INSUFFICIENT_CAPS:
 			session.phase = Session_state::INSUFFICIENT_CAP_QUOTA;
 			if (session.ready_callback)
 				session.ready_callback->session_ready(session);
 			break;
 
-		case Parent::SESSION_OK:
+		case Parent::Session_response::OK:
 			if (session.phase == Session_state::UPGRADE_REQUESTED) {
 				session.phase = Session_state::CAP_HANDED_OUT;
 				if (session.ready_callback)

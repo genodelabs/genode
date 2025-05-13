@@ -458,7 +458,7 @@ struct Nvme::Set_hmb : Nvme::Sqe_set_feature<0x40>
 
 
 /*
- *  Create completion queue command
+ * Create completion queue command
  */
 struct Nvme::Sqe_create_cq : Nvme::Sqe<0x30>
 {
@@ -2396,7 +2396,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 	{
 		if (_block_session.constructed()) {
 			error("device is already in use");
-			return Service::Create_error::DENIED;
+			return Session_error::DENIED;
 		}
 
 		Session_label  const label  { label_from_args(args.string()) };
@@ -2412,7 +2412,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 		if (tx_buf_size > ram_quota.value) {
 			error("insufficient 'ram_quota' from '", label, "',"
 			      " got ", ram_quota, ", need ", tx_buf_size);
-			return Service::Create_error::INSUFFICIENT_RAM;
+			return Session_error::INSUFFICIENT_RAM;
 		}
 
 		bool const writeable = policy.attribute_value("writeable", false);
