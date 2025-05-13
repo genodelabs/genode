@@ -144,6 +144,8 @@ void Platform_thread::start(void *ip, void *sp)
 			return;
 		}
 
+		_features |= EC_CREATED;
+
 		res = map_thread_portals(pager, _sel_exc_base, utcb);
 
 		if (res != NOVA_OK) {
@@ -222,7 +224,7 @@ void Platform_thread::start(void *ip, void *sp)
 		return;
 	}
 
-	_features |= SC_CREATED;
+	_features |= EC_CREATED | SC_CREATED;
 }
 
 
@@ -296,6 +298,9 @@ Trace::Execution_time Platform_thread::execution_time() const
 {
 	uint64_t sc_time = 0;
 	uint64_t ec_time = 0;
+
+	if (!ec_created())
+		return { ec_time, sc_time, Nova::Qpd::DEFAULT_QUANTUM, _priority };
 
 	if (!sc_created()) {
 		/* time executed by EC (on whatever SC) */

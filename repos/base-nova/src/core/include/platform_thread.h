@@ -49,6 +49,7 @@ class Core::Platform_thread
 			MAIN_THREAD = 0x1U,
 			WORKER      = 0x2U,
 			SC_CREATED  = 0x4U,
+			EC_CREATED  = 0x8U,
 		};
 		uint8_t _features;
 		uint8_t _priority;
@@ -63,6 +64,7 @@ class Core::Platform_thread
 		inline bool main_thread() const { return _features & MAIN_THREAD; }
 		inline bool worker()      const { return _features & WORKER; }
 		inline bool sc_created()  const { return _features & SC_CREATED; }
+		inline bool ec_created()  const { return _features & EC_CREATED; }
 
 		/*
 		 * Noncopyable
