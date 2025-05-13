@@ -55,8 +55,10 @@ Use the socket plugin of an other vfs (store file in a directory):
 
 The two primary options are 'url', the URL to fetch, and 'path', the
 file-system path where fetched data is written. Secondary options are
-'retry' and 'proxy'. Retry is the number of fetch attempts to make
-following failure, and proxy is used to reroute requests.
+'retry', 'proxy' and 'head'. Retry is the number of fetch attempts to
+make following failure, proxy is used to reroute requests and head
+instructs the component to only perform a HTTP HEAD request on the
+given URL.
 
 An example TOR proxying configuration:
 
