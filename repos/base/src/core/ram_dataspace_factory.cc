@@ -24,7 +24,7 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size)
-			return Alloc_ram_error::DENIED;
+			return Alloc_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
@@ -85,12 +85,12 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 		      "in range [", Hex(_phys_range.start), "-", Hex(_phys_range.end), "]");
 
 		if (allocated_range == Alloc_error::OUT_OF_RAM)
-			return Alloc_ram_error::OUT_OF_RAM;
+			return Alloc_error::OUT_OF_RAM;
 
 		if (allocated_range == Alloc_error::OUT_OF_CAPS)
-			return Alloc_ram_error::OUT_OF_CAPS;
+			return Alloc_error::OUT_OF_CAPS;
 
-		return Alloc_ram_error::DENIED;
+		return Alloc_error::DENIED;
 	}
 
 	/*
@@ -98,18 +98,21 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 	 * combined and expect the pager to evaluate this dataspace property
 	 * when resolving page faults.
 	 */
+	Alloc_error error { };
 	Dataspace_component *ds_ptr = nullptr;
-	try {
-		allocated_range.with_result(
-			[&] (Range_allocation &range) {
-				ds_ptr = new (_ds_slab)
-					Dataspace_component(ds_size, (addr_t)range.ptr,
-					                    cache, true, this); },
-			[] (Alloc_error) { });
-	}
-	catch (Out_of_ram)  { return Alloc_ram_error::OUT_OF_RAM; }
-	catch (Out_of_caps) { return Alloc_ram_error::OUT_OF_CAPS; }
-	catch (...)         { return Alloc_ram_error::DENIED; }
+	allocated_range.with_result(
+		[&] (Range_allocation &range) {
+			_ds_alloc.create(ds_size, (addr_t)range.ptr, cache, true, this)
+				.with_result(
+					[&] (Ds_alloc::Allocation &a) {
+						a.deallocate = false;
+						ds_ptr = &a.obj;
+					},
+					[&] (Alloc_error e) { error = e; });
+		},
+		[&] (Alloc_error e) { error = e; });
+	if (!ds_ptr)
+		return error;
 
 	Dataspace_component &ds = *ds_ptr;
 
@@ -118,8 +121,8 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 		warning("could not export RAM dataspace of size ", ds.size());
 
 		/* cleanup unneeded resources */
-		destroy(_ds_slab, &ds);
-		return Alloc_ram_error::DENIED;
+		_ds_alloc.destroy(ds);
+		return Alloc_error::DENIED;
 	}
 
 	/*
@@ -166,7 +169,7 @@ void Ram_dataspace_factory::free_ram(Ram_dataspace_capability ds_cap)
 
 	/* call dataspace destructor and free memory */
 	if (ds)
-		destroy(_ds_slab, ds);
+		_ds_alloc.destroy(*ds);
 }
 
 

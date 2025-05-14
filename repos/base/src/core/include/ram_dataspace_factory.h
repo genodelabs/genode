@@ -57,6 +57,10 @@ class Core::Ram_dataspace_factory : public Dataspace_owner
 
 		Tslab<Dataspace_component, SLAB_BLOCK_SIZE> _ds_slab;
 
+		using Ds_alloc = Memory::Constrained_obj_allocator<Dataspace_component>;
+
+		Ds_alloc _ds_alloc { _ds_slab };
+
 
 		/********************************************
 		 ** Platform-implemented support functions **
@@ -81,7 +85,6 @@ class Core::Ram_dataspace_factory : public Dataspace_owner
 
 	public:
 
-		using Alloc_ram_error  = Pd_session::Alloc_ram_error;
 		using Alloc_ram_result = Pd_session::Alloc_ram_result;
 
 		Ram_dataspace_factory(Rpc_entrypoint  &ep,

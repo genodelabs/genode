@@ -29,20 +29,11 @@ struct Core::Core_ram_allocator : Ram_allocator
 
 	Result try_alloc(size_t size, Cache cache) override
 	{
-		using Pd_error = Pd_session::Alloc_ram_error;
 		return _factory.alloc_ram(size, cache).convert<Result>(
 			[&] (Ram_dataspace_capability cap) -> Result {
 				return Result { *this, { cap, size } };
 			},
-			[&] (Pd_error e) -> Result {
-				switch (e) {
-				case Pd_error::OUT_OF_CAPS: return Ram::Error::OUT_OF_CAPS;
-				case Pd_error::OUT_OF_RAM:  return Ram::Error::OUT_OF_RAM;;
-				case Pd_error::DENIED:
-					break;
-				}
-				return Ram::Error::DENIED;
-			});
+			[&] (Alloc_error e) -> Result { return e; });
 	}
 
 	void _free(Ram::Allocation &allocation) override

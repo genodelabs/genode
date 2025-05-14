@@ -106,9 +106,7 @@ struct Genode::Pd_session : Session, Pd_account
 	 ** RAM dataspace allocation **
 	 ******************************/
 
-	enum class Alloc_ram_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
-
-	using Alloc_ram_result = Attempt<Ram_dataspace_capability, Alloc_ram_error>;
+	using Alloc_ram_result = Attempt<Ram_dataspace_capability, Alloc_error>;
 
 	/**
 	 * Allocate RAM dataspace
@@ -351,8 +349,7 @@ struct Genode::Pd_session : Session, Pd_account
 	 */
 	virtual addr_t dma_addr(Ram_dataspace_capability) = 0;
 
-	enum class Attach_dma_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
-
+	using Attach_dma_error  = Alloc_error;
 	using Attach_dma_result = Attempt<Ok, Attach_dma_error>;
 
 	/**
@@ -415,25 +412,13 @@ struct Genode::Pd_ram_allocator : Ram_allocator
 {
 	Pd_session &_pd;
 
-	using Pd_error = Pd_session::Alloc_ram_error;
-
-	static Ram::Error ram_error(Pd_error e)
-	{
-		switch (e) {
-		case Pd_error::OUT_OF_CAPS: return Ram::Error::OUT_OF_CAPS;
-		case Pd_error::OUT_OF_RAM:  return Ram::Error::OUT_OF_RAM;;
-		case Pd_error::DENIED:      break;
-		}
-		return Ram::Error::DENIED;
-	}
-
 	Result try_alloc(size_t size, Cache cache) override
 	{
 		using Capability = Ram::Capability;
 
 		return _pd.alloc_ram(size, cache).convert<Alloc_result>(
 			[&] (Capability ds) -> Result { return { *this, { ds, size } }; },
-			[&] (Pd_error e)    -> Result { return ram_error(e); });
+			[&] (Alloc_error e) -> Result { return e; });
 	}
 
 	void _free(Ram::Allocation &allocation) override

@@ -24,7 +24,7 @@ Pd_session_component::alloc_ram(size_t ds_size, Cache cache)
 {
 	/* zero-sized dataspaces are not allowed */
 	if (!ds_size)
-		return Alloc_ram_error::DENIED;
+		return Alloc_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
 	ds_size = align_addr(ds_size, 12);
@@ -44,7 +44,7 @@ Pd_session_component::alloc_ram(size_t ds_size, Cache cache)
 			Ram_quota const overhead { Ram_dataspace_factory::SLAB_BLOCK_SIZE };
 
 			if (!_ram_quota_guard().have_avail(overhead))
-				return Alloc_ram_error::OUT_OF_RAM;
+				return Alloc_error::OUT_OF_RAM;
 
 			/*
 			 * Each dataspace is an RPC object and thereby consumes a
@@ -57,10 +57,10 @@ Pd_session_component::alloc_ram(size_t ds_size, Cache cache)
 					reserved_cap.deallocate = false;
 					return _ram_ds_factory.alloc_ram(ds_size, cache);
 				},
-				[&] (Cap_quota_guard::Error) { return Alloc_ram_error::OUT_OF_CAPS; }
+				[&] (Cap_quota_guard::Error) { return Alloc_error::OUT_OF_CAPS; }
 			);
 		},
-		[&] (Ram_quota_guard::Error) { return Alloc_ram_error::OUT_OF_RAM; }
+		[&] (Ram_quota_guard::Error) { return Alloc_error::OUT_OF_RAM; }
 	);
 }
 

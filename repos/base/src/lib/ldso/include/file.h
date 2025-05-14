@@ -366,7 +366,7 @@ struct Linker::Elf_file : File
 
 		env.pd().alloc_ram(p.p_memsz).with_result(
 			[&] (Ram_dataspace_capability cap) { ram_cap[nr] = cap; },
-			[&] (Pd_session::Alloc_ram_error) { });
+			[&] (Alloc_error) { });
 
 		if (!ram_cap[nr].valid()) {
 			error("dynamic linker failed to allocate RAM for RW segment ", nr);

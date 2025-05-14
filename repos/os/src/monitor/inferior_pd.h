@@ -238,7 +238,7 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 				new (_alloc) Ram_ds(_ram_dataspaces, cap);
 				return cap;
 			},
-			[&] (Alloc_ram_error e) -> Alloc_ram_result { return e; });
+			[&] (Alloc_error e) -> Alloc_ram_result { return e; });
 	}
 
 	void free_ram(Ram_dataspace_capability ds) override

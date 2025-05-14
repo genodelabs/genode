@@ -51,10 +51,10 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 
 			bool denied = false;
 			result.with_error(
-				[&] (Alloc_ram_error error) {
+				[&] (Alloc_error error) {
 					switch (error) {
 
-					case Alloc_ram_error::OUT_OF_RAM:
+					case Alloc_error::OUT_OF_RAM:
 						/*
 						 * The RAM service withdraws the meta data for the allocator
 						 * from the RAM quota. In the worst case, a new slab block
@@ -69,17 +69,17 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 						_request_ram_from_parent(size + OVERHEAD);
 						break;
 
-					case Alloc_ram_error::OUT_OF_CAPS:
+					case Alloc_error::OUT_OF_CAPS:
 						_request_caps_from_parent(4);
 						break;
 
-					case Alloc_ram_error::DENIED:
+					case Alloc_error::DENIED:
 						denied = true;
 					}
 				});
 
 			if (denied)
-				return Alloc_ram_error::DENIED;
+				return Alloc_error::DENIED;
 		}
 	}
 
