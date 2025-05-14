@@ -22,6 +22,10 @@ void Platform::_init_rom_modules()
 {
 	Boot_modules_header const *header_ptr = &_boot_modules_headers_begin;
 
+	using Rom_alloc = Memory::Constrained_obj_allocator<Rom_module>;
+
+	Rom_alloc rom_alloc { core_mem_alloc() };
+
 	for (; header_ptr < &_boot_modules_headers_end; header_ptr++) {
 
 		Rom_name const name((char const *)header_ptr->name);
@@ -30,8 +34,9 @@ void Platform::_init_rom_modules()
 			warning("ignore zero-sized boot module '", name, "'");
 			continue;
 		}
-		new (core_mem_alloc())
-			Rom_module(_rom_fs, name,
-			           _rom_module_phys(header_ptr->base), header_ptr->size);
+		rom_alloc.create(_rom_fs, name, _rom_module_phys(header_ptr->base),
+		                 header_ptr->size).with_result(
+			[&] (Rom_alloc::Allocation &a) { a.deallocate = false; },
+			[&] (Alloc_error) { error("unable to allocate ROM meta data for ", name); });
 	}
 }
