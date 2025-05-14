@@ -142,6 +142,10 @@ class Core::Cpu_session_component : public  Session_object<Cpu_session>,
 
 	public:
 
+		using Constructed = Trace::Control_area::Constructed;
+
+		Constructed const constructed = _trace_control_area.constructed;
+
 		/**
 		 * Constructor
 		 */

@@ -53,40 +53,63 @@ class Core::Trace::Subject
 {
 	private:
 
+		struct Mapped_dataspace : Noncopyable
+		{
+			using Local_rm = Local::Constrained_region_map;
+
+			Dataspace_capability const _ds;
+
+			Local_rm::Result mapped;
+
+			Mapped_dataspace(Local_rm &rm, Dataspace_capability ds)
+			:
+				_ds(ds),
+				mapped(rm.attach(ds, {
+					.size       = { }, .offset    = { },
+					.use_at     = { }, .at        = { },
+					.executable = { }, .writeable = true
+				}))
+			{ }
+		};
+
 		struct Ram_dataspace : Noncopyable
 		{
-			enum class Setup_result { OK, OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+			using Setup_result = Attempt<Ok, Alloc_error>;
+			using Attach_error = Region_map::Attach_error;
 
 			Ram_allocator::Result ds { { } };
 
 			Ram_dataspace() { }
 
-			static Setup_result _result(Ram::Error e)
+			static Alloc_error alloc_error(Attach_error e)
 			{
 				switch (e) {
-				case Ram::Error::OUT_OF_RAM:  return Setup_result::OUT_OF_RAM;
-				case Ram::Error::OUT_OF_CAPS: return Setup_result::OUT_OF_CAPS;
-				case Ram::Error::DENIED:      break;
+				case Attach_error::OUT_OF_RAM:  return Alloc_error::OUT_OF_RAM;
+				case Attach_error::OUT_OF_CAPS: return Alloc_error::OUT_OF_CAPS;
+				case Attach_error::REGION_CONFLICT:   break;
+				case Attach_error::INVALID_DATASPACE: break;
 				}
-				return Setup_result::DENIED;
-			}
+				return Alloc_error::DENIED;
+			};
 
 			Setup_result _copy_content(Local_rm &local_rm, size_t num_bytes,
 			                           Dataspace_capability from_ds,
 			                           Dataspace_capability to_ds)
 			{
-				try {
-					Attached_dataspace from { local_rm, from_ds },
-					                   to   { local_rm, to_ds };
+				Mapped_dataspace from { local_rm, from_ds },
+				                 to   { local_rm, to_ds };
 
-					using Genode::memcpy;
-					memcpy(to.local_addr<char>(), from.local_addr<char const>(),
-					       num_bytes);
-				}
-				catch (Out_of_caps) { return Setup_result::OUT_OF_CAPS; }
-				catch (Out_of_ram)  { return Setup_result::OUT_OF_RAM; }
-				catch (...)         { return Setup_result::DENIED; }
-				return Setup_result::OK;
+				return from.mapped.convert<Setup_result>(
+					[&] (Local_rm::Attachment &from_range) {
+						return to.mapped.convert<Setup_result>(
+							[&] (Local_rm::Attachment &to_range) -> Setup_result {
+								Genode::memcpy(to_range.ptr, from_range.ptr,
+								               num_bytes);
+								return Ok();
+							},
+							[&] (Attach_error e) -> Setup_result { return alloc_error(e); });
+					},
+					[&] (Attach_error e) -> Setup_result { return alloc_error(e); });
 			}
 
 			/**
@@ -96,8 +119,8 @@ class Core::Trace::Subject
 			{
 				ds = ram.try_alloc(size);
 				return ds.convert<Setup_result>(
-					[] (Ram::Allocation &) { return Setup_result::OK; },
-					[] (Ram::Error e)      { return _result(e); });
+					[] (Ram::Allocation &) { return Ok(); },
+					[] (Alloc_error e)     { return e; });
 			}
 
 			/**
@@ -111,10 +134,9 @@ class Core::Trace::Subject
 				ds = ram.try_alloc(size);
 				return ds.convert<Setup_result>(
 					[&] (Ram::Allocation &allocation) {
-						_copy_content(local_rm, size, from_ds, allocation.cap);
-						return Setup_result::OK;
+						return _copy_content(local_rm, size, from_ds, allocation.cap);
 					},
-					[] (Ram::Error e) { return _result(e); });
+					[] (Alloc_error e) { return e; });
 			}
 
 			Ram::Capability dataspace() const
@@ -209,19 +231,27 @@ class Core::Trace::Subject
 
 			using Setup_result = Ram_dataspace::Setup_result;
 
-			switch (_buffer.setup(ram, size.num_bytes)) {
-			case Setup_result::OUT_OF_RAM:  return Trace_result::OUT_OF_RAM;
-			case Setup_result::OUT_OF_CAPS: return Trace_result::OUT_OF_CAPS;
-			case Setup_result::DENIED:      return Trace_result::INVALID_SUBJECT;
-			case Setup_result::OK:          break;
-			}
+			auto trace_error = [] (Setup_result r)
+			{
+				return r.convert<Trace_result>(
+					[] (Ok) /* never */ { return Trace_result::INVALID_SUBJECT; },
+					[] (Alloc_error e) {
+						switch (e) {
+						case Alloc_error::OUT_OF_RAM:  return Trace_result::OUT_OF_RAM;
+						case Alloc_error::OUT_OF_CAPS: return Trace_result::OUT_OF_CAPS;
+						case Alloc_error::DENIED:      break;
+						}
+						return Trace_result::INVALID_SUBJECT;
+					});
+			};
 
-			switch (_policy.setup(ram, local_rm, policy_ds, policy_size.num_bytes)) {
-			case Setup_result::OUT_OF_RAM:  return Trace_result::OUT_OF_RAM;
-			case Setup_result::OUT_OF_CAPS: return Trace_result::OUT_OF_CAPS;
-			case Setup_result::DENIED:      return Trace_result::INVALID_SUBJECT;
-			case Setup_result::OK:          break;
-			}
+			Setup_result buffer = _buffer.setup(ram, size.num_bytes);
+			if (buffer.failed())
+				return trace_error(buffer);
+
+			Setup_result policy = _policy.setup(ram, local_rm, policy_ds, policy_size.num_bytes);
+			if (policy.failed())
+				return trace_error(policy);
 
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
@@ -313,6 +343,10 @@ class Core::Trace::Subject_registry
 		Mutex            _mutex   { };
 		Subjects         _entries { };
 
+		using Subject_alloc = Memory::Constrained_obj_allocator<Subject>;
+
+		Subject_alloc _subject_alloc { _md_alloc };
+
 		/**
 		 * Destroy subject, and release policy and trace buffers
 		 */
@@ -320,7 +354,7 @@ class Core::Trace::Subject_registry
 		{
 			_entries.remove(&s);
 			s.release();
-			destroy(&_md_alloc, &s);
+			_subject_alloc.destroy(s);
 		};
 
 		/**
@@ -349,10 +383,9 @@ class Core::Trace::Subject_registry
 				_unsynchronized_destroy(*s);
 		}
 
-		/**
-		 * \throw  Out_of_ram
-		 */
-		void import_new_sources(Source_registry &)
+		using Import_result = Attempt<Ok, Alloc_error>;
+
+		Import_result import_new_sources(Source_registry &)
 		{
 			Mutex::Guard guard(_mutex);
 
@@ -369,7 +402,11 @@ class Core::Trace::Subject_registry
 				return strcmp(_filter.string(), label.string(), _filter.length() - 1) == 0;
 			};
 
+			Import_result result = Ok();
+
 			_sources.for_each_source([&] (Source &source) {
+				if (result.failed())
+					return;
 
 				Source::Info const info = source.info();
 
@@ -378,10 +415,19 @@ class Core::Trace::Subject_registry
 
 				Weak_ptr<Source> source_ptr = source.weak_ptr();
 
-				_entries.insert(new (_md_alloc)
-					Subject(Subject_id(++_id_cnt), source.id(),
-					        source_ptr, info.label, info.name));
+				_subject_alloc.create(Subject_id(_id_cnt + 1), source.id(),
+				                      source_ptr, info.label, info.name).with_result(
+
+					[&] (Subject_alloc::Allocation &a) {
+						_entries.insert(&a.obj);
+						_id_cnt++;
+						a.deallocate = false;
+					},
+					[&] (Alloc_error e) { result = e; }
+				);
 			});
+
+			return result;
 		}
 
 		/**

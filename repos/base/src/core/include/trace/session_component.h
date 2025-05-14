@@ -18,7 +18,6 @@
 #include <base/session_object.h>
 #include <base/tslab.h>
 #include <base/heap.h>
-#include <base/attached_ram_dataspace.h>
 #include <trace_session/trace_session.h>
 
 /* core includes */
@@ -38,13 +37,16 @@ class Core::Trace::Session_component
 		Accounted_ram_allocator      _ram;
 		Local_rm                    &_local_rm;
 		Sliced_heap                  _md_alloc { _ram, _local_rm };
+		Trace::Policy::Alloc         _policy_alloc { _md_alloc };
 		Tslab<Trace::Subject, 4096>  _subjects_slab;
 		Tslab<Trace::Policy, 4096>   _policies_slab;
 		Source_registry             &_sources;
 		Policy_registry             &_policies;
 		Subject_registry             _subjects;
 		unsigned                     _policy_cnt { 0 };
-		Attached_ram_dataspace       _argument_buffer;
+
+		Ram_allocator::Result _argument_ds;
+		Local_rm     ::Result _argument_mapped;
 
 		/*
 		 * Whenever a trace session is deliberately labeled as empty by the

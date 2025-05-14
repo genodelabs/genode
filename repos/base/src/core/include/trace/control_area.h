@@ -16,7 +16,6 @@
 
 #include <base/env.h>
 #include <dataspace/capability.h>
-#include <base/attached_ram_dataspace.h>
 
 /* base-internal includes */
 #include <base/internal/trace_control.h>
@@ -28,37 +27,57 @@ struct Genode::Trace::Control_area : Noncopyable
 {
 	enum { SIZE = 8192 };
 
-	Alloc_error error = Alloc_error::DENIED;
-	Constructible<Attached_ram_dataspace> _area { };
+	using Local_rm = Core::Local_rm;
+
+	Ram_allocator::Result _ram;
+	Local_rm     ::Result _mapped = Local_rm::Error::INVALID_DATASPACE;
 
 	bool _index_valid(unsigned const index) const {
 		return index < SIZE / sizeof(Control); }
 
 	auto _with_control_at_index(unsigned i, auto const &fn,
 	                                        auto const &missing_fn) const
-	-> decltype(missing_fn())
 	{
-		if (!_area.constructed() || !_index_valid(i))
-			return missing_fn();
+		if (!_index_valid(i)) {
+			missing_fn();
+			return;
+		}
 
-		return fn(_area->local_addr<Control>()[i]);
+		return _mapped.with_result(
+			[&] (Local_rm::Attachment const &a) { fn(((Control *)a.ptr)[i]); },
+			[&] (Local_rm::Error)               { missing_fn(); });
 	}
+
+	using Constructed = Attempt<Ok, Alloc_error>;
+
+	Constructed const constructed = _mapped.convert<Constructed>(
+		[&] (Local_rm::Attachment const &) { return Ok(); },
+		[&] (Local_rm::Error) {
+			return _ram.convert<Alloc_error>(
+				[&] (Ram::Allocation const &) { return Alloc_error::DENIED; /* never */ },
+				[&] (Alloc_error e)     { return e; }); });
 
 	Control_area(Ram_allocator &ram, Core::Local_rm &rm)
-	{
-		try { _area.construct(ram, rm, SIZE); }
-		catch (Out_of_ram)  { error = Alloc_error::OUT_OF_RAM; }
-		catch (Out_of_caps) { error = Alloc_error::OUT_OF_CAPS; }
-		catch (...)         { }
-	}
+	:
+		_ram(ram.try_alloc(SIZE)),
+		_mapped(_ram.convert<Local_rm::Result>(
+			[&] (Ram_allocator::Allocation const &ram) {
+				return rm.attach(ram.cap, {
+					.size       = { }, .offset    = { },
+					.use_at     = { }, .at        = { },
+					.executable = { }, .writeable = true });
+			},
+			[&] (Alloc_error) { return Local_rm::Error::INVALID_DATASPACE; }
+		))
+	{ }
 
 	~Control_area() { }
 
-	bool valid() const { return _area.constructed(); }
-
 	Ram::Capability dataspace() const
 	{
-		return _area.constructed() ? _area->cap() : Ram::Capability();
+		return _ram.convert<Ram::Capability>(
+			[&] (Ram_allocator::Allocation const &ram) { return ram.cap; },
+			[&] (Alloc_error) { return Ram::Capability(); });
 	}
 
 	struct Attr { unsigned index; };
@@ -69,25 +88,27 @@ struct Genode::Trace::Control_area : Noncopyable
 
 	Result alloc()
 	{
-		auto try_alloc = [&] (Control &control)
-		{
-			if (!control.is_free())
-				return false;
-			control.alloc();
-			return true;
-		};
+		for (unsigned i = 0; _index_valid(i); i++) {
 
-		for (unsigned i = 0; _index_valid(i); i++)
-			if (_with_control_at_index(i, try_alloc, [&] { return false; }))
+			bool ok = false;
+			_with_control_at_index(i,
+				[&] (Control &control) {
+					if (control.is_free()) {
+						control.alloc();
+						ok = true; } },
+				[&] { });
+
+			if (ok)
 				return { *this, { i } };
-
+		}
 		return Error();
 	}
 
 	void _free(Slot &slot)
 	{
 		_with_control_at_index(slot.index,
-			[&] (Control &control) { control.reset(); }, [] { });
+			[&] (Control &control) { control.reset(); return true; },
+			[] { return true; });
 	}
 
 	void with_control(Result const &slot, auto const &fn) const

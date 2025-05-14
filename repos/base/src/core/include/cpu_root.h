@@ -38,12 +38,31 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 		Create_result _create_session(char const *args, Affinity const &affinity) override
 		{
 			return _alloc_obj(*this->ep(),
-				              session_resources_from_args(args),
-				              session_label_from_args(args),
-				              session_diag_from_args(args),
-				              _ram_alloc, _local_rm,
-				              _thread_ep, _pager_ep, _trace_sources,
-				              args, affinity, 0);
+			                  session_resources_from_args(args),
+			                  session_label_from_args(args),
+			                  session_diag_from_args(args),
+			                  _ram_alloc, _local_rm,
+			                  _thread_ep, _pager_ep, _trace_sources,
+			                  args, affinity, 0).convert<Create_result>(
+
+				[&] (Cpu_session_component &cpu) -> Create_result {
+					if (cpu.constructed.ok())
+						return { cpu };
+
+					Alloc_error const e = cpu.constructed.convert<Alloc_error>(
+						[&] (Ok)            { return Alloc_error::DENIED; },
+						[&] (Alloc_error e) { return e; });
+
+					_destroy_session(cpu);
+
+					switch (e) {
+					case Alloc_error::OUT_OF_RAM:  return Session_error::INSUFFICIENT_RAM;
+					case Alloc_error::OUT_OF_CAPS: return Session_error::INSUFFICIENT_CAPS;
+					case Alloc_error::DENIED:      break;
+					}
+					return Session_error::DENIED;
+				},
+				[&] (Session_error e) { return e; });
 		}
 
 		void _upgrade_session(Cpu_session_component &cpu, const char *args) override

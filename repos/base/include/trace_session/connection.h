@@ -74,12 +74,12 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 		if (size.num_bytes > _max_arg_size)
 			return Alloc_policy_error::INVALID;
 
-		Alloc_policy_rpc_result const result = _retry<Alloc_policy_rpc_error>([&] {
+		Alloc_policy_rpc_result const result = _retry<Alloc_error>([&] {
 			return call<Rpc_alloc_policy>(size); });
 
 		return result.convert<Alloc_policy_result>(
-			[&] (Policy_id const id)     { return id; },
-			[&] (Alloc_policy_rpc_error) { return Alloc_policy_error::INVALID; });
+			[&] (Policy_id const id) { return id; },
+			[&] (Alloc_error)        { return Alloc_policy_error::INVALID; });
 	}
 
 	/**
@@ -127,7 +127,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	 */
 	Num_subjects subjects(Subject_id * const dst, Num_subjects const dst_num_subjects)
 	{
-		Subjects_rpc_result const result = _retry<Alloc_rpc_error>([&] {
+		Subjects_rpc_result const result = _retry<Alloc_error>([&] {
 			return call<Rpc_subjects>(); });
 
 		return result.convert<Num_subjects>(
@@ -138,7 +138,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 				return Num_subjects { n };
 			},
 
-			[&] (Alloc_rpc_error) { return Num_subjects { 0 }; });
+			[&] (Alloc_error) { return Num_subjects { 0 }; });
 	}
 
 	struct For_each_subject_info_result { unsigned count; unsigned limit; };
@@ -148,7 +148,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	 */
 	For_each_subject_info_result for_each_subject_info(auto const &fn)
 	{
-		Infos_rpc_result const result = _retry<Alloc_rpc_error>([&] {
+		Infos_rpc_result const result = _retry<Alloc_error>([&] {
 			return call<Rpc_subject_infos>(); });
 
 		return result.convert<For_each_subject_info_result>(
@@ -167,7 +167,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 				return { .count = n.value, .limit = max_subjects };
 			},
 
-			[&] (Alloc_rpc_error) { return For_each_subject_info_result { }; });
+			[&] (Alloc_error) { return For_each_subject_info_result { }; });
 	}
 
 	/**

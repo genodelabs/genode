@@ -31,15 +31,13 @@ struct Genode::Trace::Session : Genode::Session
 
 	enum { CAP_QUOTA = 6 };
 
-	enum class Alloc_rpc_error        { OUT_OF_RAM, OUT_OF_CAPS };
-	enum class Alloc_policy_rpc_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID };
-	enum class Trace_rpc_error        { OUT_OF_RAM, OUT_OF_CAPS, FOREIGN,
-	                                    SOURCE_IS_DEAD, INVALID_SUBJECT,
-	                                    INVALID_POLICY };
+	enum class Trace_rpc_error { OUT_OF_RAM, OUT_OF_CAPS, FOREIGN,
+	                             SOURCE_IS_DEAD, INVALID_SUBJECT,
+	                             INVALID_POLICY };
 
-	using Alloc_policy_rpc_result = Attempt<Policy_id,    Alloc_policy_rpc_error>;
-	using Subjects_rpc_result     = Attempt<Num_subjects, Alloc_rpc_error>;
-	using Infos_rpc_result        = Attempt<Num_subjects, Alloc_rpc_error>;
+	using Alloc_policy_rpc_result = Attempt<Policy_id,    Alloc_error>;
+	using Subjects_rpc_result     = Attempt<Num_subjects, Alloc_error>;
+	using Infos_rpc_result        = Attempt<Num_subjects, Alloc_error>;
 	using Trace_rpc_result        = Attempt<Ok,           Trace_rpc_error>;
 
 

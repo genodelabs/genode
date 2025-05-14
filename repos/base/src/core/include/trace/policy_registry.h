@@ -35,14 +35,17 @@ struct Core::Trace::Policy : List<Policy>::Element
 {
 	Policy_owner const &_owner;
 	Policy_id    const  _id;
-	Allocator          &md_alloc;
+
+	using Alloc = Memory::Constrained_obj_allocator<Policy>;
+
+	Alloc &alloc;
 
 	Ram::Allocator::Result const ds;
 
-	Policy(Policy_owner const &owner, Policy_id id, Allocator &md_alloc,
+	Policy(Policy_owner const &owner, Policy_id id, Alloc &alloc,
 	       Ram::Allocator &ram, Policy_size size)
 	:
-		_owner(owner), _id(id), md_alloc(md_alloc), ds(ram.try_alloc(size.num_bytes))
+		_owner(owner), _id(id), alloc(alloc), ds(ram.try_alloc(size.num_bytes))
 	{ }
 
 	bool has_id  (Policy_id    const id)     const { return _id == id; }
@@ -61,6 +64,8 @@ struct Core::Trace::Policy : List<Policy>::Element
 			[&] (Ram::Allocation const &a) -> Policy_size { return { a.num_bytes }; },
 			[&] (Ram::Error)               -> Policy_size { return { }; });
 	}
+
+	void destroy() { alloc.destroy(*this); }
 };
 
 
@@ -102,23 +107,26 @@ class Core::Trace::Policy_registry
 				_policies.remove(p);
 		}
 
-		using Insert_result = Attempt<Ok, Ram::Error>;
+		using Insert_result = Attempt<Ok, Alloc_error>;
 
 		Insert_result insert(Policy_owner const &owner, Policy_id const id,
-		                     Allocator &md_alloc, Ram::Allocator &ram,
+		                     Policy::Alloc &policy_alloc, Ram::Allocator &ram,
 		                     Policy_size size)
 		{
 			Mutex::Guard guard(_mutex);
 
-			try {
-				Policy &policy = *new (&md_alloc) Policy(owner, id, md_alloc, ram, size);
-				_policies.insert(&policy);
-				return policy.ds.convert<Insert_result>(
-					[&] (Ram::Allocation const &) { return Ok(); },
-					[&] (Ram::Error e)            { return e; });
-			}
-			catch (Out_of_ram)  { return Ram::Error::OUT_OF_RAM; }
-			catch (Out_of_caps) { return Ram::Error::OUT_OF_CAPS; }
+			return policy_alloc.create(owner, id, policy_alloc, ram, size)
+				.convert<Insert_result>(
+					[&] (Policy::Alloc::Allocation &policy) -> Insert_result {
+						return policy.obj.ds.convert<Insert_result>(
+							[&] (Ram::Allocation const &) {
+								_policies.insert(&policy.obj);
+								policy.deallocate = false;
+								return Ok();
+							},
+							[&] (Alloc_error e) { return e; });
+					},
+					[&] (Alloc_error e) { return e; });
 		}
 
 		void remove(Policy_owner &owner, Policy_id id)
@@ -131,7 +139,8 @@ class Core::Trace::Policy_registry
 
 				if (tmp->owned_by(owner) && tmp->has_id(id)) {
 					_policies.remove(tmp);
-					destroy(&tmp->md_alloc, tmp);
+					tmp->destroy();
+					return;
 				}
 			}
 		}
@@ -142,7 +151,7 @@ class Core::Trace::Policy_registry
 
 			while (Policy *p = _any_policy_owned_by(owner)) {
 				_policies.remove(p);
-				destroy(&p->md_alloc, p);
+				p->destroy();
 			}
 		}
 

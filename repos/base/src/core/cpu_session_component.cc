@@ -274,9 +274,6 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
 	_quota(quota), _ref(0),
 	_native_cpu(*this, args)
 {
-	if (!_trace_control_area.valid())
-		raise(_trace_control_area.error);
-
 	Arg a = Arg_string::find_arg(args, "priority");
 	if (a.valid()) {
 		_priority = (unsigned)a.ulong_value(0);

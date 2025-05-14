@@ -24,66 +24,63 @@ using namespace Core::Trace;
 
 Dataspace_capability Session_component::dataspace()
 {
-	return _argument_buffer.cap();
+	return _argument_ds.convert<Dataspace_capability>(
+		[&] (Ram_allocator::Allocation &a) { return a.cap; },
+		[&] (Alloc_error) { return Dataspace_capability(); });
 }
 
 
 Session_component::Subjects_rpc_result Session_component::subjects()
 {
-	try {
-		_subjects.import_new_sources(_sources);
-	}
-	catch (Out_of_ram)  { return Alloc_rpc_error::OUT_OF_RAM; }
-	catch (Out_of_caps) { return Alloc_rpc_error::OUT_OF_CAPS; }
-
-	return Num_subjects { _subjects.subjects(_argument_buffer.local_addr<Subject_id>(),
-	                                         _argument_buffer.size()/sizeof(Subject_id)) };
+	return _subjects.import_new_sources(_sources).convert<Subjects_rpc_result>(
+		[&] (Ok) -> Subjects_rpc_result {
+			return _argument_mapped.convert<Subjects_rpc_result>(
+				[&] (Local_rm::Attachment &local) -> Num_subjects {
+					return { _subjects.subjects((Subject_id *)local.ptr,
+					                            local.num_bytes/sizeof(Subject_id)) };
+				},
+				[&] (Local_rm::Error) { return Alloc_error::DENIED; });
+		},
+		[&] (Alloc_error e) { return e; });
 }
 
 
 Session_component::Infos_rpc_result Session_component::subject_infos()
 {
-	try {
-		_subjects.import_new_sources(_sources);
-	}
-	catch (Out_of_ram)  { return Alloc_rpc_error::OUT_OF_RAM; }
-	catch (Out_of_caps) { return Alloc_rpc_error::OUT_OF_CAPS; }
+	return _subjects.import_new_sources(_sources).convert<Subjects_rpc_result>(
+		[&] (Ok) -> Infos_rpc_result {
 
-	unsigned const count = unsigned(_argument_buffer.size() /
-	                                (sizeof(Subject_info) + sizeof(Subject_id)));
+			return _argument_mapped.convert<Subjects_rpc_result>(
+				[&] (Local_rm::Attachment &local) -> Num_subjects {
 
-	Subject_info * const infos = _argument_buffer.local_addr<Subject_info>();
-	Subject_id   * const ids   = reinterpret_cast<Subject_id *>(infos + count);
+					unsigned const count = unsigned(local.num_bytes /
+					                                (sizeof(Subject_info) + sizeof(Subject_id)));
 
-	return Num_subjects { _subjects.subjects(infos, ids, count) };
+					Subject_info * const infos = (Subject_info *)local.ptr;
+					Subject_id   * const ids   = reinterpret_cast<Subject_id *>(infos + count);
+
+					return Num_subjects { _subjects.subjects(infos, ids, count) };
+				},
+				[&] (Local_rm::Error) { return Alloc_error::DENIED; });
+		},
+		[&] (Alloc_error e) { return e; });
 }
 
 
 Session_component::Alloc_policy_rpc_result Session_component::alloc_policy(Policy_size size)
 {
-	size.num_bytes = min(size.num_bytes, _argument_buffer.size());
+	size_t const argument_buffer_size = _argument_mapped.convert<size_t>(
+		[&] (Local_rm::Attachment const &a) { return a.num_bytes; },
+		[&] (Local_rm::Error)               { return 0ul; });
 
-	Policy_id const id { ++_policy_cnt };
+	size.num_bytes = min(size.num_bytes, argument_buffer_size);
 
-	auto policy_error = [&] (Ram::Error e)
-	{
-		switch (e) {
-		case Ram::Error::OUT_OF_RAM:  return Alloc_policy_rpc_error::OUT_OF_RAM;
-		case Ram::Error::OUT_OF_CAPS: return Alloc_policy_rpc_error::OUT_OF_CAPS;
-		case Ram::Error::DENIED:      break;
-		}
-		return Alloc_policy_rpc_error::INVALID;
-	};
+	Policy_id const id { _policy_cnt + 1 };
 
-	try {
-		Policy_registry::Insert_result r =
-			_policies.insert(*this, id, _policies_slab, _ram, size);
-		return r.convert<Alloc_policy_rpc_result>(
-			[&] (auto) /* ok */ { return id; },
-			[&] (Ram::Error e)  { return policy_error(e); });
-	}
-	catch (Out_of_ram)  { return Alloc_policy_rpc_error::OUT_OF_RAM; }
-	catch (Out_of_caps) { return Alloc_policy_rpc_error::OUT_OF_CAPS; }
+	return _policies.insert(*this, id, _policy_alloc, _ram, size)
+		.convert<Alloc_policy_rpc_result>(
+			[&] (Ok) { _policy_cnt++; return id; },
+			[&] (Alloc_error e) { return e; });
 }
 
 
@@ -185,7 +182,16 @@ Session_component::Session_component(Rpc_entrypoint  &ep,
 	_sources(sources),
 	_policies(policies),
 	_subjects(_subjects_slab, _sources, _filter()),
-	_argument_buffer(_ram, local_rm, arg_buffer_size)
+	_argument_ds(_ram.try_alloc(arg_buffer_size)),
+	_argument_mapped(_argument_ds.convert<Local_rm::Result>(
+		[&] (Ram_allocator::Allocation const &ram) {
+			return local_rm.attach(ram.cap, {
+				.size       = { }, .offset    = { },
+				.use_at     = { }, .at        = { },
+				.executable = { }, .writeable = true });
+		},
+		[&] (Alloc_error) { return Local_rm::Error::INVALID_DATASPACE; }
+	))
 { }
 
 
