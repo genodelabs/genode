@@ -36,14 +36,16 @@ struct Genode::Rm_connection : Connection<Rm_session>
 	Capability<Region_map> create(size_t size)
 	{
 		Capability<Region_map> result { };
-		using Error = Rm_session::Create_error;
-		while (!result.valid())
+		for (bool denied = false; !denied && !result.valid(); )
 			_client.create(size).with_result(
 				[&] (Capability<Region_map> cap) { result = cap; },
-				[&] (Error e) {
+				[&] (Alloc_error e) {
 					switch (e) {
-					case Error::OUT_OF_RAM:  upgrade_ram(8*1024); break;
-					case Error::OUT_OF_CAPS: upgrade_caps(2);     break;
+					case Alloc_error::OUT_OF_RAM:  upgrade_ram(8*1024); break;
+					case Alloc_error::OUT_OF_CAPS: upgrade_caps(2);     break;
+					case Alloc_error::DENIED:
+						error("region-map creation denied");
+						denied = true;
 					}
 				});
 		return result;

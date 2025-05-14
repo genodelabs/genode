@@ -38,6 +38,10 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		Mutex                      _region_maps_lock { };
 		List<Region_map_component> _region_maps      { };
 
+		using Rm_alloc = Memory::Constrained_obj_allocator<Region_map_component>;
+
+		Rm_alloc _rm_alloc { _md_alloc };
+
 	public:
 
 		/**
@@ -64,7 +68,7 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 
 			while (Region_map_component *rmc = _region_maps.first()) {
 				_region_maps.remove(rmc);
-				Genode::destroy(_md_alloc, rmc);
+				_rm_alloc.destroy(*rmc);
 			}
 		}
 
@@ -77,38 +81,29 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		{
 			Mutex::Guard guard(_region_maps_lock);
 
-			try {
-				Region_map_component *rm =
-					new (_md_alloc)
-						Region_map_component(_ep, _md_alloc, _pager_ep, 0, size,
-						                     Diag{false});
-
-				_region_maps.insert(rm);
-
-				return rm->cap();
-			}
-			catch (Out_of_ram)  { return Create_error::OUT_OF_RAM; }
-			catch (Out_of_caps) { return Create_error::OUT_OF_CAPS; }
+			return _rm_alloc.create(_ep, _md_alloc, _pager_ep, 0, size, Diag{false})
+				.convert<Create_result>(
+					[&] (Rm_alloc::Allocation &a) {
+						_region_maps.insert(&a.obj);
+						a.deallocate = false;
+						return a.obj.cap();
+					},
+					[&] (Alloc_error e) { return e; });
 		}
 
 		void destroy(Capability<Region_map> cap) override
 		{
 			Mutex::Guard guard(_region_maps_lock);
 
-			Region_map_component *rm = nullptr;
-
+			Region_map_component *rm_ptr = nullptr;
 			_ep.apply(cap, [&] (Region_map_component *rmc) {
-				if (!rmc) {
-					warning("could not look up region map to destruct");
-					return;
-				}
+				rm_ptr = rmc; });
 
-				_region_maps.remove(rmc);
-				rm = rmc;
-			});
+			if (!rm_ptr)
+				return;
 
-			if (rm)
-				Genode::destroy(_md_alloc, rm);
+			_region_maps.remove(rm_ptr);
+			_rm_alloc.destroy(*rm_ptr);
 		}
 };
 

@@ -33,8 +33,7 @@ struct Genode::Rm_session : Session
 	 */
 	enum { CAP_QUOTA = 2 };
 
-	enum class Create_error { OUT_OF_RAM, OUT_OF_CAPS };
-	using Create_result = Attempt<Capability<Region_map>, Create_error>;
+	using Create_result = Attempt<Capability<Region_map>, Alloc_error>;
 
 	/**
 	 * Create region map
