@@ -154,11 +154,11 @@ class Terminal::Root : public Genode::Root_component<Session_component, Genode::
 		Genode::Env &_env;
 
 		task_struct *_create_task  {
-			lx_user_new_usb_task(_create_session, this, "terminal_session")};
+			lx_user_new_usb_task(_new_session, this, "terminal_session")};
 
 		Genode::Constructible<Session_component> _session { };
 
-		static int _create_session(void *arg)
+		static int _new_session(void *arg)
 		{
 			Root *root = static_cast<Root *>(arg);
 			Genode::size_t const io_buffer_size = 4096ul;
