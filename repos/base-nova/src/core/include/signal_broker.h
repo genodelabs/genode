@@ -40,9 +40,11 @@ class Core::Signal_broker
 		Capability<Signal_source>             _source_cap;
 		Signal_context_slab                   _context_slab { _md_alloc };
 
-	public:
+		using Context_alloc = Memory::Constrained_obj_allocator<Signal_context_component>;
 
-		class Invalid_signal_source : public Exception { };
+		Context_alloc _context_alloc { _context_slab };
+
+	public:
 
 		Signal_broker(Allocator      &md_alloc,
 		              Rpc_entrypoint &source_ep,
@@ -65,27 +67,26 @@ class Core::Signal_broker
 				free_context(reinterpret_cap_cast<Signal_context>(r->cap()));
 		}
 
-		Capability<Signal_source> alloc_signal_source() { return _source_cap; }
+		using Alloc_source_result = Attempt<Capability<Signal_source>, Alloc_error>;
+
+		Alloc_source_result alloc_signal_source() { return _source_cap; }
 
 		void free_signal_source(Capability<Signal_source>) { }
 
-		/*
-		 * \throw Allocator::Out_of_memory
-		 */
-		Signal_context_capability
-		alloc_context(Capability<Signal_source>, unsigned long imprint)
+		using Alloc_context_result = Attempt<Signal_context_capability, Alloc_error>;
+
+		Alloc_context_result alloc_context(Capability<Signal_source>, unsigned long imprint)
 		{
 			/*
-			 * XXX  For now, we ignore the signal-source argument as we
-			 *      create only a single receiver for each PD.
+			 * Ignore the signal-source argument as we create only a single
+			 * receiver for each PD.
 			 */
 
 			Native_capability sm = _source.blocking_semaphore();
 
 			if (!sm.valid()) {
 				warning("signal receiver sm is not valid");
-				for (;;);
-				return Signal_context_capability();
+				return Alloc_error::DENIED;
 			}
 
 			Native_capability si = Capability_space::import(cap_map().insert());
@@ -96,14 +97,16 @@ class Core::Signal_broker
 			                              imprint, sm.local_name());
 			if (res != Nova::NOVA_OK) {
 				warning("creating signal failed - error ", res);
-				return Signal_context_capability();
+				return Alloc_error::DENIED;
 			}
 
-			/* the _contexts_slab may throw Allocator::Out_of_memory */
-			_obj_pool.insert(new (&_context_slab) Signal_context_component(cap));
-
-			/* return unique capability for the signal context */
-			return cap;
+			return _context_alloc.create(cap).convert<Alloc_context_result>(
+				[&] (Context_alloc::Allocation &a) {
+					a.deallocate = false;
+					_obj_pool.insert(&a.obj);
+					return cap; /* unique capability for the signal context */
+				},
+				[&] (Alloc_error e) { return e; });
 		}
 
 		void free_context(Signal_context_capability context_cap)
@@ -120,7 +123,7 @@ class Core::Signal_broker
 				        Hex(context_cap.local_name()));
 				return;
 			}
-			destroy(&_context_slab, context);
+			_context_alloc.destroy(*context);
 
 			Nova::revoke(Nova::Obj_crd(context_cap.local_name(), 0));
 			cap_map().remove(context_cap.local_name(), 0);
@@ -132,7 +135,6 @@ class Core::Signal_broker
 			 * On NOVA, signals are submitted directly to the kernel, not
 			 * by using core as a proxy.
 			 */
-			ASSERT_NEVER_CALLED;
 		}
 };
 

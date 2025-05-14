@@ -41,14 +41,18 @@ class Core::Signal_broker
 		};
 
 		Allocator                     &_md_alloc;
-		Slab<Signal_source_component>  _sources_slab { &_md_alloc };
+		Slab<Signal_source_component>  _source_slab { &_md_alloc };
 		Signal_source_pool             _sources { };
-		Slab<Signal_context_component> _contexts_slab { &_md_alloc };
+		Slab<Signal_context_component> _context_slab { &_md_alloc };
 		Signal_context_pool            _contexts { };
 
-	public:
+		using Context_alloc = Memory::Constrained_obj_allocator<Signal_context_component>;
+		using Source_alloc  = Memory::Constrained_obj_allocator<Signal_source_component>;
 
-		class Invalid_signal_source : public Exception { };
+		Context_alloc _context_alloc { _context_slab };
+		Source_alloc  _source_alloc  { _source_slab  };
+
+	public:
 
 		Signal_broker(Allocator &md_alloc, Rpc_entrypoint &, Rpc_entrypoint &)
 		:
@@ -59,85 +63,72 @@ class Core::Signal_broker
 		{
 			_contexts.remove_all([this] (Signal_context_component *c) {
 				platform_specific().revoke.revoke_signal_context(reinterpret_cap_cast<Signal_context>(c->cap()));
-				destroy(&_contexts_slab, c);});
+				_context_alloc.destroy(*c); });
+
 			_sources.remove_all([this] (Signal_source_component *s) {
-				destroy(&_sources_slab, s);});
+				_source_alloc.destroy(*s); });
 		}
 
-		/*
-		 * \throw Allocator::Out_of_memory
-		 */
-		Capability<Signal_source> alloc_signal_source()
+		using Alloc_source_result = Attempt<Capability<Signal_source>, Alloc_error>;
+
+		Alloc_source_result alloc_signal_source()
 		{
-			/* the _sources_slab may throw Allocator::Out_of_memory */
-			Signal_source_component *s = new (_sources_slab) Signal_source_component();
-			_sources.insert(s);
-			return reinterpret_cap_cast<Signal_source>(s->cap());
+			return _source_alloc.create().convert<Alloc_source_result>(
+				[&] (Source_alloc::Allocation &a) {
+					_sources.insert(&a.obj);
+					a.deallocate = false;
+					return reinterpret_cap_cast<Signal_source>(a.obj.cap());
+				},
+				[&] (Alloc_error e) { return e; }
+			);
 		}
 
 		void free_signal_source(Capability<Signal_source> cap)
 		{
-			Signal_source_component *source = nullptr;
-			auto lambda = [&] (Signal_source_component *s) {
+			Signal_source_component *source_ptr = nullptr;
+			_sources.apply(cap, [&] (Signal_source_component *s) {
+				source_ptr = s; });
 
-				if (!s) {
-					error("unknown signal source");
-					return;
-				}
+			if (!source_ptr)
+				return;
 
-				source = s;
-				_sources.remove(source);
-			};
-			_sources.apply(cap, lambda);
-
-			/* destruct signal source outside the lambda to prevent deadlock */
-			if (source)
-				destroy(&_sources_slab, source);
+			/* destruct signal source outside 'apply' to prevent deadlock */
+			_sources.remove(source_ptr);
+			_source_alloc.destroy(*source_ptr);
 		}
 
-		/*
-		 * \throw Allocator::Out_of_memory
-		 * \throw Invalid_signal_source
-		 */
-		Signal_context_capability
-		alloc_context(Capability<Signal_source> source, addr_t imprint)
+		using Alloc_context_result = Attempt<Signal_context_capability, Alloc_error>;
+
+		Alloc_context_result alloc_context(Capability<Signal_source> source, addr_t imprint)
 		{
-			auto lambda = [&] (Signal_source_component *s) {
-				if (!s) {
-					error("unknown signal source");
-					throw Invalid_signal_source();
-				}
+			return _sources.apply(source,
+				[&] (Signal_source_component *s) -> Alloc_context_result {
+					if (!s) return Alloc_error::DENIED;
 
-				/* the _contexts_slab may throw Allocator::Out_of_memory */
-				Signal_context_component *c = new (_contexts_slab)
-					Signal_context_component(*s, imprint);
-
-				_contexts.insert(c);
-				return reinterpret_cap_cast<Signal_context>(c->cap());
-			};
-			return _sources.apply(source, lambda);
+					return _context_alloc.create(*s, imprint).convert<Alloc_context_result>(
+						[&] (Context_alloc::Allocation &a) {
+							_contexts.insert(&a.obj);
+							a.deallocate = false;
+							return reinterpret_cap_cast<Signal_context>(a.obj.cap());
+						},
+						[&] (Alloc_error e) { return e; });
+			});
 		}
 
 		void free_context(Signal_context_capability context_cap)
 		{
-			Signal_context_component *context = nullptr;
-			auto lambda = [&] (Signal_context_component *c) {
+			platform_specific().revoke.revoke_signal_context(context_cap);
 
-				if (!c) {
-					error("unknown signal context");
-					return;
-				}
+			Signal_context_component *context_ptr = nullptr;
+			_contexts.apply(context_cap, [&] (Signal_context_component *c) {
+				context_ptr = c; });
 
-				platform_specific().revoke.revoke_signal_context(context_cap);
-				context = c;
-				_contexts.remove(context);
-			};
-
-			_contexts.apply(context_cap, lambda);
+			if (!context_ptr)
+				return;
 
 			/* destruct context outside the lambda to prevent deadlock */
-			if (context)
-				destroy(&_contexts_slab, context);
+			_contexts.remove(context_ptr);
+			_context_alloc.destroy(*context_ptr);
 		}
 
 		void submit(Signal_context_capability, unsigned)

@@ -57,7 +57,7 @@ Signal_receiver::Signal_receiver() : _pd(env().pd())
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		using Error = Pd_session::Signal_source_error;
+		using Error = Alloc_error;
 
 		env().pd().signal_source().with_result(
 			[&] (Capability<Signal_source> cap) { _cap = cap; },
@@ -65,6 +65,9 @@ Signal_receiver::Signal_receiver() : _pd(env().pd())
 				switch (e) {
 				case Error::OUT_OF_RAM:  ram_upgrade = { 2*1024*sizeof(long) }; break;
 				case Error::OUT_OF_CAPS: cap_upgrade = { 4 };                   break;
+				case Error::DENIED:
+					error("stop because parent denied signal-source creation");
+					sleep_forever();
 				}
 			});
 
@@ -122,8 +125,6 @@ Signal_context_capability Signal_receiver::manage(Signal_context &context)
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		using Error = Pd_session::Alloc_context_error;
-
 		/* use pointer to signal context as imprint */
 		Pd_session::Imprint const imprint { addr_t(&context) };
 
@@ -133,15 +134,15 @@ Signal_context_capability Signal_receiver::manage(Signal_context &context)
 				context._receiver = &this_receiver;
 				_contexts.insert_as_tail(&context);
 			},
-			[&] (Error e) {
+			[&] (Alloc_error e) {
 				switch (e) {
-				case Error::OUT_OF_RAM:
+				case Alloc_error::OUT_OF_RAM:
 					ram_upgrade = Ram_quota { 1024*sizeof(long) };
 					break;
-				case Error::OUT_OF_CAPS:
+				case Alloc_error::OUT_OF_CAPS:
 					cap_upgrade = Cap_quota { 4 };
 					break;
-				case Error::INVALID_SIGNAL_SOURCE:
+				case Alloc_error::DENIED:
 					error("ill-attempt to create context for invalid signal source");
 					sleep_forever();
 					break;

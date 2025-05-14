@@ -31,12 +31,14 @@ class Core::Signal_broker
 		Rpc_entrypoint           &_context_ep;
 		Signal_source_component   _source;
 		Capability<Signal_source> _source_cap;
-		Signal_context_slab       _contexts_slab { _md_alloc };
+		Signal_context_slab       _context_slab { _md_alloc };
 		Signal_delivery_proxy_component _delivery_proxy { _source_ep };
 
-	public:
+		using Context_alloc = Memory::Constrained_obj_allocator<Signal_context_component>;
 
-		class Invalid_signal_source : public Exception { };
+		Context_alloc _context_alloc { _context_slab };
+
+	public:
 
 		Signal_broker(Allocator      &md_alloc,
 		              Rpc_entrypoint &source_ep,
@@ -55,25 +57,30 @@ class Core::Signal_broker
 			_source_ep.dissolve(&_source);
 
 			/* free all signal contexts */
-			while (Signal_context_component *r = _contexts_slab.any_signal_context())
+			while (Signal_context_component *r = _context_slab.any_signal_context())
 				free_context(r->cap());
 		}
 
-		Capability<Signal_source> alloc_signal_source() { return _source_cap; }
+		using Alloc_source_result = Attempt<Capability<Signal_source>, Alloc_error>;
+
+		Alloc_source_result alloc_signal_source() { return _source_cap; }
 
 		void free_signal_source(Capability<Signal_source>) { }
 
-		Signal_context_capability
-		alloc_context(Capability<Signal_source>, unsigned long imprint)
+		using Alloc_context_result = Attempt<Signal_context_capability, Alloc_error>;
+
+		Alloc_context_result alloc_context(Capability<Signal_source>, unsigned long imprint)
 		{
 			/*
-			 * XXX  For now, we ignore the signal-source argument as we
-			 *      create only a single receiver for each PD.
+			 * Ignore the signal-source argument as we create only a single
+			 * receiver for each PD.
 			 */
-			Signal_context_component &context = *new (&_contexts_slab)
-				Signal_context_component(imprint, _source);
-
-			return _context_ep.manage(&context);
+			return _context_alloc.create(imprint, _source).convert<Alloc_context_result>(
+				[&] (Context_alloc::Allocation &a) {
+					a.deallocate = false;
+					return _context_ep.manage(&a.obj);
+				},
+				[&] (Alloc_error e) { return e; });
 		}
 
 		void free_context(Signal_context_capability context_cap)
@@ -99,7 +106,7 @@ class Core::Signal_broker
 			if (context->enqueued() && !_context_ep.is_myself())
 					_delivery_proxy.release(*context);
 
-			destroy(&_contexts_slab, context);
+			_context_alloc.destroy(*context);
 		}
 
 		void submit(Signal_context_capability const cap, unsigned const cnt)

@@ -234,17 +234,17 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 
 		Signal_source_result signal_source() override
 		{
-			if (!_consume_cap(SIG_SOURCE_CAP))
-				return Signal_source_error::OUT_OF_CAPS;
-
-			Signal_source_result result = Capability<Signal_source>();
-
-			try { return _signal_broker.alloc_signal_source(); }
-			catch (Out_of_ram)  { result = Signal_source_error::OUT_OF_RAM;  }
-			catch (Out_of_caps) { result = Signal_source_error::OUT_OF_CAPS; }
-
-			_released_cap_silent();
-			return result;
+			return _cap_quota_guard().reserve({1}).convert<Signal_source_result>(
+				[&] (Cap_quota_guard::Reservation &reserved_cap) -> Signal_source_result {
+					return _signal_broker.alloc_signal_source().convert<Signal_source_result>(
+						[&] (Capability<Signal_source> cap) {
+							reserved_cap.deallocate = false;
+							return cap;
+						},
+						[&] (Alloc_error e) { return e; });
+				},
+				[&] (Cap_quota_guard::Error) { return Alloc_error::OUT_OF_CAPS; }
+			);
 		}
 
 		void free_signal_source(Capability<Signal_source> sig_rec_cap) override
@@ -260,21 +260,16 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		{
 			return _cap_quota_guard().reserve({1}).convert<Alloc_context_result>(
 				[&] (Cap_quota_guard::Reservation &reserved_cap) -> Alloc_context_result {
-					try {
-						/* may throw 'Out_of_ram', 'Out_of_caps', or 'Invalid_signal_source' */
-						Signal_context_capability cap =
-							_signal_broker.alloc_context(sig_rec_cap, imprint.value);
-
-						reserved_cap.deallocate = false;
-						diag("consumed signal-context cap (", _cap_account, ")");
-						return cap;
-					}
-					catch (Signal_broker::Invalid_signal_source) {
-						return Alloc_context_error::INVALID_SIGNAL_SOURCE; }
-					catch (Out_of_ram)  { return Alloc_context_error::OUT_OF_RAM;  }
-					catch (Out_of_caps) { return Alloc_context_error::OUT_OF_CAPS; }
+					return _signal_broker.alloc_context(sig_rec_cap, imprint.value)
+						.convert<Alloc_context_result>(
+							[&] (Signal_context_capability cap) {
+								reserved_cap.deallocate = false;
+								diag("consumed signal-context cap (", _cap_account, ")");
+								return cap;
+							},
+							[&] (Alloc_error e) { return e; });
 				},
-				[&] (Cap_quota_guard::Error) { return Alloc_context_error::OUT_OF_CAPS; }
+				[&] (Cap_quota_guard::Error) { return Alloc_error::OUT_OF_CAPS; }
 			);
 		}
 

@@ -138,8 +138,7 @@ struct Genode::Pd_session : Session, Pd_account
 	 ** Support for the signal API **
 	 ********************************/
 
-	enum class Signal_source_error { OUT_OF_RAM, OUT_OF_CAPS };
-	using Signal_source_result = Attempt<Capability<Signal_source>, Signal_source_error>;
+	using Signal_source_result = Attempt<Capability<Signal_source>, Alloc_error>;
 
 	/**
 	 * Return signal source for the PD
@@ -155,8 +154,7 @@ struct Genode::Pd_session : Session, Pd_account
 	 */
 	virtual void free_signal_source(Capability<Signal_source> cap) = 0;
 
-	enum class Alloc_context_error { OUT_OF_RAM, OUT_OF_CAPS, INVALID_SIGNAL_SOURCE };
-	using Alloc_context_result = Attempt<Capability<Signal_context>, Alloc_context_error>;
+	using Alloc_context_result = Attempt<Capability<Signal_context>, Alloc_error>;
 
 	struct Imprint { addr_t value; };
 

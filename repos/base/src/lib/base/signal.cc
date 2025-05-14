@@ -49,7 +49,7 @@ class Signal_handler_thread : Thread, Blockade
 				_signal_source.construct(_cpu, source);
 				wakeup();
 				Signal_receiver::dispatch_signals(*_signal_source); },
-			[&] (Pd_session::Signal_source_error) {
+			[&] (Alloc_error) {
 				error("failed to initialize signal-source interface"); });
 		}
 
@@ -239,22 +239,20 @@ Signal_context_capability Signal_receiver::manage(Signal_context &context)
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };
 
-		using Error = Pd_session::Alloc_context_error;
-
 		/* use pointer to signal context as imprint */
 		Pd_session::Imprint const imprint { addr_t(&context) };
 
 		_pd.alloc_context(_cap, imprint).with_result(
 			[&] (Capability<Signal_context> cap) { context._cap = cap; },
-			[&] (Error e) {
+			[&] (Alloc_error e) {
 				switch (e) {
-				case Error::OUT_OF_RAM:
+				case Alloc_error::OUT_OF_RAM:
 					ram_upgrade = Ram_quota { 1024*sizeof(long) };
 					break;
-				case Error::OUT_OF_CAPS:
+				case Alloc_error::OUT_OF_CAPS:
 					cap_upgrade = Cap_quota { 4 };
 					break;
-				case Error::INVALID_SIGNAL_SOURCE:
+				case Alloc_error::DENIED:
 					error("ill-attempt to create context for invalid signal source");
 					sleep_forever();
 					break;
