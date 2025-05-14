@@ -35,6 +35,12 @@ namespace Core {
 
 class Core::Platform_thread : Interface
 {
+	public:
+
+		enum { DEFAULT_PRIORITY = 128 };
+
+		using Constructed = Attempt<Ok, Alloc_error>;
+
 	private:
 
 		/*
@@ -70,7 +76,7 @@ class Core::Platform_thread : Interface
 
 	public:
 
-		enum { DEFAULT_PRIORITY = 128 };
+		Constructed constructed = Alloc_error::DENIED;
 
 		/**
 		 * Constructor for non-core threads

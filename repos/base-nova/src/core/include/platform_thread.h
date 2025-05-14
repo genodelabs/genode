@@ -77,6 +77,10 @@ class Core::Platform_thread
 
 	public:
 
+		using Constructed = Attempt<Ok, Alloc_error>;
+
+		Constructed const constructed = Ok();
+
 		/**
 		 * Constructor
 		 */
@@ -88,11 +92,6 @@ class Core::Platform_thread
 		 * Destructor
 		 */
 		~Platform_thread();
-
-		/**
-		 * Return true if thread creation succeeded
-		 */
-		bool valid() const { return true; }
 
 		/**
 		 * Start thread

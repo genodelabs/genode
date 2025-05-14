@@ -237,6 +237,7 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 
 		_pd.map_ipc_buffer(_info.ipc_buffer_phys, _utcb);
 		_bound_to_pd = true;
+		constructed = Ok();
 	} catch (Platform_pd::Sel_alloc::Out_of_indices) {
 
 		/* revert allocations */

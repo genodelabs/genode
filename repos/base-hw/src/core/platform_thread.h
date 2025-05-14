@@ -156,6 +156,12 @@ class Core::Platform_thread : Noncopyable
 
 	public:
 
+		using Constructed = Attempt<Ok, Alloc_error>;
+
+		Constructed const constructed = _utcb.ds.convert<Constructed>(
+			[] (auto &)        { return Ok(); },
+			[] (Alloc_error e) { return e; });
+
 		/**
 		 * Constructor for core threads
 		 *
@@ -181,11 +187,6 @@ class Core::Platform_thread : Noncopyable
 		 * Destructor
 		 */
 		~Platform_thread();
-
-		/**
-		 * Return true if thread creation succeeded
-		 */
-		bool valid() const { return true; }
 
 		/**
 		 * Return information about current exception state

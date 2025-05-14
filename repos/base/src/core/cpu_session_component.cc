@@ -59,29 +59,26 @@ Cpu_session_component::create_thread(Capability<Pd_session> pd_cap,
 
 		pd->with_threads([&] (Pd_session_component::Threads &pd_threads) {
 			pd->with_platform_pd([&] (Platform_pd &platform_pd) {
-				try {
-					Cpu_thread_component &thread = *new (&_thread_alloc)
-						Cpu_thread_component(
-							cap(), *this, _thread_ep, _local_rm, _pager_ep,
-							*pd, _ram_alloc, platform_pd, pd_threads, _trace_control_area,
-							_trace_sources, weight, _weight_to_quota(weight.value),
-							_thread_affinity(affinity), _label, name,
-							_priority, utcb);
 
-					if (!thread.valid()) { /* 'Platform_thread' creation failed */
-						destroy(&_thread_alloc, &thread);
-						result = Create_thread_error::DENIED;
-						return;
-					}
+				_thread_alloc.create(cap(), *this, _thread_ep, _local_rm,
+				                     _pager_ep, *pd, _ram_alloc, platform_pd,
+				                     pd_threads, _trace_control_area,
+				                     _trace_sources, weight,
+				                     _weight_to_quota(weight.value),
+				                     _thread_affinity(affinity), _label, name,
+				                     _priority, utcb).with_result(
 
-					thread.session_exception_sigh(_exception_sigh);
-
-					_thread_list.insert(&thread);
-					result = thread.cap();
-				}
-				catch (Out_of_ram)  { result = Create_thread_error::OUT_OF_RAM;  }
-				catch (Out_of_caps) { result = Create_thread_error::OUT_OF_CAPS; }
-				catch (...)         { result = Create_thread_error::DENIED;      }
+					[&] (Thread_alloc::Allocation &thread) {
+						thread.obj.constructed.with_result(
+							[&] (Ok) {
+								thread.obj.session_exception_sigh(_exception_sigh);
+								_thread_list.insert(&thread.obj);
+								thread.deallocate = false;
+								result = thread.obj.cap();
+							},
+							[&] (Alloc_error e) { result = e; });
+					},
+					[&] (Alloc_error e) { result = e; });
 			});
 		});
 	});
@@ -115,18 +112,18 @@ Affinity::Location Cpu_session_component::_thread_affinity(Affinity::Location lo
 
 void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread_cap)
 {
-	Cpu_thread_component *thread = nullptr;
-	_thread_ep.apply(thread_cap, [&] (Cpu_thread_component *t) { thread = t; });
+	Cpu_thread_component *thread_ptr = nullptr;
+	_thread_ep.apply(thread_cap, [&] (Cpu_thread_component *t) { thread_ptr = t; });
 
-	if (!thread) return;
+	if (!thread_ptr) return;
 
-	_thread_list.remove(thread);
+	_thread_list.remove(thread_ptr);
 
-	_decr_weight(thread->weight());
+	_decr_weight(thread_ptr->weight());
 
 	{
 		Mutex::Guard lock_guard(_thread_alloc_lock);
-		destroy(&_thread_alloc, thread);
+		_thread_alloc.destroy(*thread_ptr);
 	}
 
 	replenish(Ram_quota{_utcb_quota_size()});
@@ -264,7 +261,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
 	_local_rm(local_rm),
 	_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
 	_md_alloc(_ram_alloc, local_rm),
-	_thread_alloc(_md_alloc), _priority(0),
+	_thread_slab(_md_alloc), _priority(0),
 
 	/* map affinity to a location within the physical affinity space */
 	_location(affinity.scale_to(platform().affinity_space())),

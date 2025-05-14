@@ -40,13 +40,16 @@ class Core::Cpu_session_component : public  Session_object<Cpu_session>,
 {
 	private:
 
+		using Thread_alloc = Memory::Constrained_obj_allocator<Cpu_thread_component>;
+
 		Rpc_entrypoint            &_session_ep;
 		Rpc_entrypoint            &_thread_ep;
 		Pager_entrypoint          &_pager_ep;
 		Local_rm                  &_local_rm;
 		Accounted_ram_allocator    _ram_alloc;
 		Sliced_heap                _md_alloc;               /* guarded meta-data allocator */
-		Cpu_thread_allocator       _thread_alloc;           /* meta-data allocator */
+		Cpu_thread_allocator       _thread_slab;            /* meta-data allocator */
+		Thread_alloc               _thread_alloc { _thread_slab };
 		Mutex                      _thread_alloc_lock { };  /* protect allocator access */
 		List<Cpu_thread_component> _thread_list       { };
 		Mutex                      _thread_list_lock  { };  /* protect thread list */

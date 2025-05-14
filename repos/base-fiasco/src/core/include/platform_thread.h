@@ -58,6 +58,12 @@ class Core::Platform_thread : Interface
 
 	public:
 
+		using Constructed = Attempt<Ok, Alloc_error>;
+
+		Constructed const constructed = _id.convert<Constructed>(
+			[] (auto &)                             { return Ok(); },
+			[] (Platform_pd::Alloc_thread_id_error) { return Alloc_error::DENIED; });
+
 		/**
 		 * Constructor
 		 */
@@ -76,11 +82,6 @@ class Core::Platform_thread : Interface
 		 * Destructor
 		 */
 		~Platform_thread();
-
-		/**
-		 * Return false if thread IDs are exhausted
-		 */
-		bool valid() const { return _id.ok(); }
 
 		/**
 		 * Start thread

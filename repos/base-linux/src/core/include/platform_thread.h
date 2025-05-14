@@ -66,17 +66,16 @@ class Core::Platform_thread : Noncopyable
 
 	public:
 
+		using Constructed = Attempt<Ok, Alloc_error>;
+
+		Constructed const constructed = Ok();
+
 		/**
 		 * Constructor
 		 */
 		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Local_rm &,
 		                size_t, auto const &name, auto...)
 		: _name(name) { }
-
-		/**
-		 * Return true if thread creation succeeded
-		 */
-		bool valid() const { return true; }
 
 		const char *name() { return _name.string(); }
 

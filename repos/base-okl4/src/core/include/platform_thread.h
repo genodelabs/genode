@@ -32,6 +32,13 @@ namespace Core {
 
 class Core::Platform_thread
 {
+	public:
+
+		enum { THREAD_INVALID   = -1 };   /* invalid thread number */
+		enum { DEFAULT_PRIORITY = 128 };
+
+		using Constructed = Attempt<Ok, Alloc_error>;
+
 	private:
 
 		/*
@@ -49,12 +56,17 @@ class Core::Platform_thread
 		unsigned      _priority = 0;
 		Pager_object *_pager = nullptr;
 
-		bool _bound_to_pd = false;
+		bool const _bound_to_pd = _pd.bind_thread(*this);
+
+		Constructed _constructed() const
+		{
+			if (_bound_to_pd) return Ok();
+			else              return Alloc_error::DENIED;
+		}
 
 	public:
 
-		enum { THREAD_INVALID   = -1 };   /* invalid thread number */
-		enum { DEFAULT_PRIORITY = 128 };
+		Constructed const constructed = _constructed();
 
 		/**
 		 * Constructor
@@ -66,7 +78,6 @@ class Core::Platform_thread
 			_pd(pd), _priority(prio)
 		{
 			copy_cstring(_name, name, sizeof(_name));
-			_bound_to_pd = pd.bind_thread(*this);
 		}
 
 		/**
@@ -75,18 +86,12 @@ class Core::Platform_thread
 		Platform_thread(Platform_pd &pd, char const *name) : _pd(pd)
 		{
 			copy_cstring(_name, name, sizeof(_name));
-			_bound_to_pd = pd.bind_thread(*this);
 		}
 
 		/**
 		 * Destructor
 		 */
 		~Platform_thread();
-
-		/**
-		 * Return true if thread creation succeeded
-		 */
-		bool valid() const { return _bound_to_pd; }
 
 		/**
 		 * Start thread

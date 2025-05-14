@@ -173,7 +173,9 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 			_address_space_region_map.remove_client(_rm_client);
 		}
 
-		bool valid() { return _platform_thread.valid(); }
+		using Constructed = Attempt<Ok, Alloc_error>;
+
+		Constructed const constructed = _platform_thread.constructed;
 
 		void destroy(); /* solely called by ~Pd_session_component */
 

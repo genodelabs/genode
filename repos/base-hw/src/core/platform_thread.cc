@@ -128,21 +128,15 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(),
 	      _priority, _quota, _label.string())
 {
-	_utcb.ds.with_error([] (Ram::Error e) { throw_exception(e); });
-
-	_address_space = pd.weak_ptr();
-	pd.has_any_thread = true;
+	_utcb.ds.with_result([&] (auto &) {
+		_address_space = pd.weak_ptr();
+		pd.has_any_thread = true;
+	}, [] (Alloc_error) { });
 }
 
 
 Platform_thread::~Platform_thread()
 {
-	/* core/kernel threads have no dataspace, but plain memory as UTCB */
-	if (!_utcb.ds_cap().valid()) {
-		error("UTCB of core/kernel thread gets destructed!");
-		return;
-	}
-
 	/* detach UTCB of main threads */
 	if (_main_thread) {
 		Locked_ptr<Address_space> locked_ptr(_address_space);

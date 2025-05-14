@@ -85,6 +85,10 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 
 	public:
 
+		using Constructed = Attempt<Ok, Alloc_error>;
+
+		Constructed constructed = Alloc_error::DENIED;
+
 		/**
 		 * Constructor
 		 */

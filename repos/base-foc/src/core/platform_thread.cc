@@ -300,6 +300,8 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 	_finalize_construction();
 	affinity(location);
 	_bound_to_pd = pd.bind_thread(*this);
+	if (_bound_to_pd)
+		constructed = Ok();
 }
 
 
@@ -318,6 +320,7 @@ Platform_thread::Platform_thread(Core_cap_index &thread,
 {
 	((Core_cap_index *)_thread.local.data())->pt(this);
 	_finalize_construction();
+	constructed = Ok();
 }
 
 

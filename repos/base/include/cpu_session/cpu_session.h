@@ -73,7 +73,7 @@ struct Genode::Cpu_session : Session
 
 	virtual ~Cpu_session() { }
 
-	enum class Create_thread_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+	using Create_thread_error  = Alloc_error;
 	using Create_thread_result = Attempt<Thread_capability, Create_thread_error>;
 
 	/**
