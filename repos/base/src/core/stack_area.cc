@@ -60,6 +60,10 @@ class Stack_area_region_map : public Region_map
 
 		Ds_slab _ds_slab { platform().core_mem_alloc() };
 
+		using Ds_alloc = Memory::Constrained_obj_allocator<Core::Dataspace_component>;
+
+		Ds_alloc _ds_alloc { _ds_slab };
+
 	public:
 
 		/**
@@ -73,35 +77,40 @@ class Stack_area_region_map : public Region_map
 			size_t const size = round_page(attr.size);
 
 			Range_allocator &phys = platform_specific().ram_alloc();
-
 			return phys.alloc_aligned(size, get_page_size_log2()).convert<Attach_result>(
 
 				[&] (Phys_allocation &phys) -> Attach_result {
+					return _ds_alloc.create(size, 0, addr_t(phys.ptr), CACHED,
+					                        true, nullptr).convert<Attach_result>(
 
-					try {
-						addr_t const phys_base = (addr_t)phys.ptr;
+						[&] (Ds_alloc::Allocation &ds) -> Attach_result {
 
-						Dataspace_component &ds = *new (&_ds_slab)
-							Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
+							addr_t const core_local_addr = stack_area_virtual_base()
+							                             + attr.at;
 
-						addr_t const core_local_addr = stack_area_virtual_base()
-						                             + attr.at;
+							if (!map_local(ds.obj.phys_addr(), core_local_addr,
+							               ds.obj.size() >> get_page_size_log2())) {
+								error("could not map phys ", Hex(ds.obj.phys_addr()),
+								      " at local ", Hex(core_local_addr));
 
-						if (!map_local(ds.phys_addr(), core_local_addr,
-						               ds.size() >> get_page_size_log2())) {
-							error("could not map phys ", Hex(ds.phys_addr()),
-							      " at local ", Hex(core_local_addr));
+								return Attach_error::INVALID_DATASPACE;
+							}
 
+							ds.obj.assign_core_local_addr((void*)core_local_addr);
+
+							ds  .deallocate = false;
+							phys.deallocate = false;
+
+							return Range { .start = attr.at, .num_bytes = size };
+						},
+						[&] (Alloc_error e) {
+							switch (e) {
+							case Alloc_error::OUT_OF_RAM:  return Attach_error::OUT_OF_RAM;
+							case Alloc_error::OUT_OF_CAPS: return Attach_error::OUT_OF_CAPS;
+							case Alloc_error::DENIED:      break;
+							}
 							return Attach_error::INVALID_DATASPACE;
-						}
-
-						ds.assign_core_local_addr((void*)core_local_addr);
-						phys.deallocate = false;
-
-						return Range { .start = attr.at, .num_bytes = size };
-					}
-					catch (Out_of_ram)  { return Attach_error::OUT_OF_RAM; }
-					catch (Out_of_caps) { return Attach_error::OUT_OF_CAPS; }
+						});
 				},
 				[&] (Alloc_error) {
 					error("could not allocate backing store for new stack");
