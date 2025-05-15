@@ -31,6 +31,10 @@ struct Genode::Local_rm_session : Rm_session, Local_session
 	Region_map &_local_rm;
 	Allocator  &_md_alloc;
 
+	using Region_map_alloc = Memory::Constrained_obj_allocator<Region_map_mmap>;
+
+	Region_map_alloc _region_map_alloc { _md_alloc };
+
 	Local_rm_session(Region_map &local_rm, Allocator &md_alloc,
 	                 Id_space<Parent::Client> &id_space, Parent::Client::Id id)
 	:
@@ -40,12 +44,12 @@ struct Genode::Local_rm_session : Rm_session, Local_session
 
 	Create_result create(size_t size) override
 	{
-		try {
-			Region_map *rm = new (_md_alloc) Region_map_mmap(true, size);
-			return Local_capability<Region_map>::local_cap(rm);
-		}
-		catch (Out_of_ram)  { return Create_error::OUT_OF_RAM; }
-		catch (Out_of_caps) { return Create_error::OUT_OF_CAPS; }
+		return _region_map_alloc.create(true, size).convert<Create_result>(
+			[&] (Region_map_alloc::Allocation &a) {
+				a.deallocate = false;
+				return Local_capability<Region_map>::local_cap(&a.obj);
+			},
+			[&] (Alloc_error e) { return e; });
 	}
 
 	void destroy(Capability<Region_map> cap) override

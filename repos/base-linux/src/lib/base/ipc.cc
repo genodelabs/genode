@@ -369,7 +369,7 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 {
 	Lx_sd const reply_socket = Capability_space::ipc_cap_data(caller).dst.socket;
 
-	try { lx_reply(reply_socket, exc, snd_msg); } catch (Ipc_error) { }
+	lx_reply(reply_socket, exc, snd_msg);
 }
 
 
