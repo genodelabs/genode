@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/signal.h>
+#include <base/sleep.h>
 #include <util/arg_string.h>
 #include <util/retry.h>
 #include <parent/client.h>
@@ -101,16 +102,8 @@ class Genode::Expanding_parent_client : public Parent_client
 
 		void exit(int exit_value) override
 		{
-			try {
-				Parent_client::exit(exit_value);
-			} catch (Genode::Ipc_error) {
-				/*
-				 * This can happen if the child is being destroyed before
-				 * calling 'exit()'. Catching the exception avoids an
-				 * 'abort()' loop with repeated error messages, because
-				 * 'abort()' calls 'exit()' too.
-				 */
-			}
+			Parent_client::exit(exit_value);
+			sleep_forever();
 		}
 
 		Session_result session(Client::Id          id,
