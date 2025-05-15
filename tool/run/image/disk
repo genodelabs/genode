@@ -62,7 +62,7 @@ proc run_image { } {
 
 	# calculate size of grub2 header and the size of Genode scenario
 	set size_header [expr [regsub {\s.*} [exec du -b  [run_dir].header] {}]]
-	set size_run    [expr [regsub {\s.*} [exec du -skL [run_dir]] {}]]
+	set size_run    [expr [regsub {\s.*} [exec du --apparent-size -skL [run_dir]] {}]]
 
 	if {[image_disk_size] > 0} {
 		set disk_size_kb [expr [image_disk_size] * 1024]
