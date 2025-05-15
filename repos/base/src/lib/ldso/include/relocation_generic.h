@@ -66,7 +66,7 @@ template<typename REL, unsigned TYPE, unsigned JMPSLOT>
 struct Linker::Reloc_plt_generic
 {
 	Reloc_plt_generic(Object const &obj, D_tag const type,
-	                  Elf::Rel const *start, unsigned long size)
+	                  Elf::Rel const *start, unsigned long size) SELF_RELOC
 	{
 		if (type != TYPE) {
 			error("LD: Unsupported translation table address format.",
