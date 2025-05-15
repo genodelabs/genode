@@ -66,12 +66,19 @@ namespace {
 
 		public:
 
-			Sel_alloc() { _reserve(0, 1UL << NUM_CORE_MANAGED_SEL_LOG2); }
+			Sel_alloc()
+			{
+				bool ok = _reserve(0, 1UL << NUM_CORE_MANAGED_SEL_LOG2);
+				ASSERT (ok);
+			}
 
 			unsigned alloc()
 			{
 				Mutex::Guard guard(_mutex);
-				return (unsigned)Bit_allocator::alloc();
+
+				return Bit_allocator::alloc().convert<unsigned>(
+					[ ](auto idx) { return unsigned(idx); },
+					[ ](auto ) { ASSERT (!"out of cap selectors"); return 0u; });
 			}
 
 			void free(unsigned sel)

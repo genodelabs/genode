@@ -24,7 +24,12 @@ Config::Virtio_device::Virtio_device(Name & name, Type type, Config & config)
 	type(type),
 	mmio_start(config._mmio_alloc.alloc(MMIO_SIZE)),
 	mmio_size(MMIO_SIZE),
-	irq(config._irq_alloc.alloc()) {}
+	irq(config._irq_alloc.alloc().convert<unsigned>(
+		[&] (unsigned v) { return v; },
+		[&] (Config::Irq_allocator::Error) {
+			error("failed to allocate IRQ for Virtio_device");
+			return 0u; }))
+{ }
 
 
 Config::Virtio_device::~Virtio_device()

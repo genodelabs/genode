@@ -155,33 +155,35 @@ class Intel::Irq_remap_table
 			if (Format::get(session_info.address) == Format::REMAPPABLE)
 				return info;
 
-			try {
-				unsigned idx = (unsigned)irq_alloc.alloc();
+			return irq_alloc.alloc().template convert<Irq_info>(
+				[&] (addr_t const allocated_irq) -> Irq_info {
 
-				_entries[_hi_index(idx)] = Irq_remap::hi_val(bdf);
-				_entries[_lo_index(idx)] = Irq_remap::lo_val(session_info, config);
+					unsigned idx = unsigned(allocated_irq);
 
-				clflush(&_entries[_lo_index(idx)]);
-				clflush(&_entries[_hi_index(idx)]);
+					_entries[_hi_index(idx)] = Irq_remap::hi_val(bdf);
+					_entries[_lo_index(idx)] = Irq_remap::lo_val(session_info, config);
 
-				fn(idx);
+					clflush(&_entries[_lo_index(idx)]);
+					clflush(&_entries[_hi_index(idx)]);
 
-				if (session_info.type == Irq_session::Info::Type::MSI) {
-					session_info.address = 0xfee00000U
-					                       | Irq_remap::Irq_address::Handle::bits(idx)
-					                       | Format::bits(Format::REMAPPABLE);
-					session_info.value = 0;
-				}
+					fn(idx);
 
-				/* XXX support multi-vectors MSI (see 5.1.5.2) */
+					if (session_info.type == Irq_session::Info::Type::MSI) {
+						session_info.address = 0xfee00000U
+						                       | Irq_remap::Irq_address::Handle::bits(idx)
+						                       | Format::bits(Format::REMAPPABLE);
+						session_info.value = 0;
+					}
 
-				/* return remapped Irq_info */
-				return { Irq_info::REMAPPED, session_info, idx };
+					/* XXX support multi-vectors MSI (see 5.1.5.2) */
 
-			} catch (typename Irq_allocator::Out_of_indices) {
-				error("IRQ remapping table is full"); }
-
-			return info;
+					/* return remapped Irq_info */
+					return { Irq_info::REMAPPED, session_info, idx };
+				},
+				[&] (Irq_allocator::Error) {
+					error("IRQ remapping table is full");
+					return info;
+				});
 		}
 
 		bool unmap(Irq_allocator & irq_alloc, Pci::Bdf const & bdf, unsigned idx)

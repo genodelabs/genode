@@ -307,9 +307,14 @@ static Affinity::Space setup_affinity_space(Hip const &hip)
 
 	hip.for_each_enabled_cpu([&](Hip::Cpu_desc const &cpu, unsigned) {
 		cpus ++;
-		if (threads.get(cpu.thread, 1)) return;
 
-		threads.set(cpu.thread, 1);
+		bool const set = threads.get(cpu.thread, 1).convert<bool>(
+			[] (bool v) { return v; }, [] (auto) { return false; });
+
+		if (set)
+			return;
+
+		(void)threads.set(cpu.thread, 1);
 		ids_thread ++;
 	});
 

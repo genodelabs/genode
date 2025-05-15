@@ -95,18 +95,22 @@ try
 	_ep(ep),
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_heap(_ram, local_rm),
-	_pd_id((uint32_t)Platform_pd::pd_id_alloc().alloc()),
-	_vm_page_table(platform_specific().core_sel_alloc().alloc()),
-	_vm_space(_vm_page_table,
-	          platform_specific().core_sel_alloc(),
-	          platform().ram_alloc(),
-	          platform_specific().top_cnode(),
-	          platform_specific().core_cnode(),
-	          platform_specific().phys_cnode(),
-	          _pd_id, _page_table_registry, "VM")
+	_vm_page_table(platform_specific().core_sel_alloc().alloc())
 {
 	Platform        &platform   = platform_specific();
 	Range_allocator &phys_alloc = platform.ram_alloc();
+
+	Platform_pd::pd_id_alloc().alloc().with_result(
+		[&](addr_t idx) { _pd_id = unsigned(idx); },
+		[ ](auto      ) { throw Service_denied(); });
+
+	_vm_space.construct(_vm_page_table,
+	                    platform_specific().core_sel_alloc(),
+	                    phys_alloc,
+	                    platform_specific().top_cnode(),
+	                    platform_specific().core_cnode(),
+	                    platform_specific().phys_cnode(),
+	                    _pd_id, _page_table_registry, "VM");
 
 	/* _pd_id && _vm_page_table */
 	Cap_quota_guard::Result cap_reservation = _cap_quota_guard().reserve(Cap_quota{2});
@@ -253,59 +257,22 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 		.executable     = attribute.executable,
 		.flush_support  = false };
 
-	Vm_space::Map_attr const attr_flush {
-		.cached         = (dsc.cacheability() == CACHED),
-		.write_combined = (dsc.cacheability() == WRITE_COMBINED),
-		.writeable      = dsc.writeable() && attribute.writeable,
-		.executable     = attribute.executable,
-		.flush_support  = true };
-
 	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
 	                       guest_phys, attribute.size, guest_phys);
 
 	Flexpage page = flex.page();
 	while (page.valid()) {
 		try {
-			try {
-				_vm_space.alloc_guest_page_tables(page.hotspot, 1 << page.log2_order);
+			if (!_vm_space->alloc_guest_page_tables(page.hotspot, 1 << page.log2_order))
+				throw Service_denied();
 
-				_vm_space.map_guest(page.addr, page.hotspot,
-				                    (1 << page.log2_order) / 4096, attr_noflush);
-			} catch (Page_table_registry::Mapping_cache_full full) {
-				if (full.reason == Page_table_registry::Mapping_cache_full::MEMORY) {
-					if (_ram_quota_guard().limit().value > 4 * 1024 * 1024)
-						/* we get in trouble in core if we use too much memory */
-						throw Vm_space::Selector_allocator::Out_of_indices();
-					throw Out_of_ram();
-				}
-				if (full.reason == Page_table_registry::Mapping_cache_full::CAPS)
-					throw Out_of_caps();
-				return;
-			}
-		} catch (Vm_space::Selector_allocator::Out_of_indices) {
-			warning("run out of indices - flush all - cap=",
-			        _cap_quota_guard().used(), "/",
-			        _cap_quota_guard().avail(), "/",
-			        _cap_quota_guard().limit(), " ram=",
-			        _ram_quota_guard().used(), "/",
-			        _ram_quota_guard().avail(), "/",
-			        _ram_quota_guard().limit(), " guest=",
-			        Hex(0UL - _map.avail()));
-
-			/* drop all attachment to limit ram usage of this session */
-			while (true) {
-				addr_t out_addr = 0;
-
-				if (!_map.any_block_addr(&out_addr))
-					break;
-
-				detach_at(out_addr);
-			}
-
-			_vm_space.map_guest(page.addr, page.hotspot,
-			                    (1 << page.log2_order) / 4096, attr_flush);
-		} catch (Vm_space::Alloc_page_table_failed) {
-			error("alloc page table failed");
+			_vm_space->map_guest(page.addr, page.hotspot,
+			                    (1 << page.log2_order) / 4096, attr_noflush);
+		} catch (Page_table_registry::Mapping_cache_full full) {
+			if (full.reason == Page_table_registry::Mapping_cache_full::MEMORY)
+				throw Out_of_ram();
+			if (full.reason == Page_table_registry::Mapping_cache_full::CAPS)
+				throw Out_of_caps();
 			return;
 		}
 
@@ -320,7 +287,7 @@ void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 	Flexpage page = flex.page();
 
 	while (page.valid()) {
-		_vm_space.unmap(page.addr, (1 << page.log2_order) / 4096);
+		_vm_space->unmap(page.addr, (1 << page.log2_order) / 4096);
 
 		page = flex.page();
 	}

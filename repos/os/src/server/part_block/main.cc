@@ -50,10 +50,11 @@ struct Block::Job_queue
 	Job_object           _jobs[ITEMS];
 	Bit_allocator<ITEMS> _alloc;
 
-	addr_t alloc()
+	using Error = Bit_allocator<ITEMS>::Error;
+
+	Attempt<addr_t, Error> alloc()
 	{
-		addr_t index = _alloc.alloc();
-		return index;
+		return _alloc.alloc();
 	}
 
 	void free(addr_t index)
@@ -435,35 +436,35 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			if (last > _partition_table.partition_sectors(number))
 				return Response::REJECTED;
 
-			addr_t index = 0;
-			try {
-				index  = _job_queue.alloc();
-			} catch (...) { return Response::RETRY; }
+			return _job_queue.alloc().convert<Response>(
 
-			_job_queue.with_job(index, [&](Job_object &job) {
+				[&] (addr_t index) {
+					_job_queue.with_job(index, [&](Job_object &job) {
 
-				Operation op     = request.operation;
-				op.block_number += _partition_table.partition_lba(number);
+						Operation op     = request.operation;
+						op.block_number += _partition_table.partition_lba(number);
 
-				job.construct(_block, op, _job_registry, index, number, request, addr);
-			});
-
-			return Response::ACCEPTED;
+						job.construct(_block, op, _job_registry, index, number,
+						              request, addr);
+					});
+					return Response::ACCEPTED;
+				},
+				[&] (Job_queue<128>::Error) {
+					return Response::RETRY; });
 		}
 
 		Response sync(long number, Request const &request) override
 		{
-			addr_t index = 0;
-			try {
-				index = _job_queue.alloc();
-			} catch (...) { return Response::RETRY; }
-
-			_job_queue.with_job(index, [&](Job_object &job) {
-				job.construct(_block, request.operation, _job_registry,
-				              index, number, request, 0);
-			});
-
-			return Response::ACCEPTED;
+			return _job_queue.alloc().convert<Response>(
+				[&] (addr_t index) {
+					_job_queue.with_job(index, [&](Job_object &job) {
+						job.construct(_block, request.operation, _job_registry,
+						              index, number, request, 0);
+					});
+					return Response::ACCEPTED;
+				},
+				[&] (Job_queue<128>::Error) {
+					return Response::RETRY; });
 		}
 
 		void acknowledge_completed(bool all = true, long number = -1) override

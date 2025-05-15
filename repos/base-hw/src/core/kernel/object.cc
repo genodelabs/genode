@@ -208,7 +208,10 @@ void Object_identity_reference::invalidate()
 Object_identity_reference::Object_identity_reference(Object_identity *oi,
                                                      Pd              &pd)
 :
-	_capid((capid_t)pd.capid_alloc().alloc()), _identity(oi), _pd(pd), _in_utcbs(0)
+	_identity(oi), _pd(pd), _in_utcbs(0),
+	_capid(pd.capid_alloc().alloc().convert<capid_t>(
+		[&] (addr_t const id)            { return capid_t(id); },
+		[&] (Pd::Capid_allocator::Error) { return cap_id_invalid(); }))
 {
 	if (_identity)
 		_identity->insert(this);

@@ -130,10 +130,9 @@ class Genode::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 
 		unsigned _alloc() override
 		{
-			try {
-				return (unsigned)_free_tables.alloc();
-			} catch (typename Bit_allocator::Out_of_indices&) {}
-			throw Out_of_tables();
+			return _free_tables.alloc().template convert<unsigned>(
+				[] (addr_t v)             -> unsigned { return unsigned(v); },
+				[] (Bit_allocator::Error) -> unsigned { throw Out_of_tables(); });
 		}
 
 		void _free(unsigned idx) override { _free_tables.free(idx); }

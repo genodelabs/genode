@@ -171,7 +171,7 @@ class Wm::Window_registry
 			_alloc(alloc), _window_list_reporter(window_list_reporter)
 		{
 			/* preserve ID 0 to represent an invalid ID */
-			_window_ids.alloc();
+			(void)_window_ids.alloc();
 		}
 
 		enum class Create_error { IDS_EXHAUSTED };
@@ -184,11 +184,11 @@ class Wm::Window_registry
 				for (unsigned i = 0; i < MAX_WINDOWS; i++) {
 					unsigned try_id = _next_id;
 					_next_id = (_next_id + 1) % MAX_WINDOWS;
-					try {
-						_window_ids.alloc_addr(try_id);
-						return Id { try_id };
-					}
-					catch (...) { }
+
+					if (_window_ids.alloc_addr(try_id).failed())
+						continue;
+
+					return Id { try_id };
 				}
 				return Create_error::IDS_EXHAUSTED;
 			};

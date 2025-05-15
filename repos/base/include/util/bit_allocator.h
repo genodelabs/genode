@@ -40,22 +40,22 @@ class Genode::Bit_allocator
 		/**
 		 * Reserve consecutive number of bits
 		 *
+		 * \return true on success
 		 * \noapi
 		 */
-		void _reserve(addr_t bit_start, size_t const num)
+		[[nodiscard]] bool _reserve(addr_t bit_start, size_t const num)
 		{
-			if (!num) return;
+			if (!num) return true;
 
-			_array.set(bit_start, num);
+			return _array.set(bit_start, num).ok();
 		}
 
 	public:
 
-		class Out_of_indices : Exception {};
-		class Range_conflict : Exception {};
-
-		Bit_allocator() { _reserve(BITS, BITS_ALIGNED - BITS); }
+		Bit_allocator() { (void)_reserve(BITS, BITS_ALIGNED - BITS); }
 		Bit_allocator(Bit_allocator const &other) : _array(other._array) { }
+
+		using Error = Array::Error;
 
 		/**
 		 * Allocate block of bits
@@ -64,33 +64,43 @@ class Genode::Bit_allocator
 		 *
 		 * The requested block is allocated at the lowest available index in
 		 * the bit array.
-		 *
-		 * \throw Array::Out_of_indices
 		 */
-		addr_t alloc(size_t const num_log2 = 0)
+		Attempt<addr_t, Error> alloc(size_t const num_log2 = 0)
 		{
 			addr_t const step = 1UL << num_log2;
 			addr_t max = ~0UL;
 
 			do {
-				try {
-					/* throws exception if array is accessed outside bounds */
-					for (addr_t i = _next & ~(step - 1); i < max; i += step) {
-						if (_array.get(i, step))
-							continue;
+				for (addr_t i = _next & ~(step - 1); i < max; i += step) {
 
-						_array.set(i, step);
-						_next = i + step;
-						return i;
-					}
-				} catch (typename Array::Invalid_index_access) { }
+					bool occupied = false, done = false, denied = false;
 
+					_array.get(i, step).with_result(
+						[&] (bool any_bit_set) {
+							if (any_bit_set) {
+								occupied = true;
+							} else {
+								if (_array.set(i, step).ok()) {
+									_next = i + step;
+									done = true;
+								} else {
+									denied = true; /* unexpected */
+								}
+							}
+						},
+						[&] (Error) { denied = true; }
+					);
+
+					if (done)     return i;
+					if (occupied) continue;
+					if (denied)   break;
+				}
 				max = _next;
 				_next = 0;
 
 			} while (max != 0);
 
-			throw Out_of_indices();
+			return Error::DENIED;
 		}
 
 		/**
@@ -98,24 +108,27 @@ class Genode::Bit_allocator
 		 *
 		 * \param first_bit  desired address of block
 		 * \param num_log2   2-based logarithm of size of block
-		 *
-		 * \throw Range_conflict
-		 * \throw Array::Invalid_index_access
 		 */
-		void alloc_addr(addr_t const bit_start, size_t const num_log2 = 0)
+		Attempt<Ok, Error> alloc_addr(addr_t const bit_start, size_t const num_log2 = 0)
 		{
 			addr_t const step = 1UL << num_log2;
-			if (_array.get(bit_start, step))
-				throw Range_conflict();
 
-			_array.set(bit_start, step);
-			_next = bit_start + step;
-			return;
+			return _array.get(bit_start, step).template convert<Attempt<Ok, Error>>(
+
+				[&] (bool any_bit_set) -> Attempt<Ok, Error> {
+					if (any_bit_set)
+						return Error::DENIED;
+
+					auto const result = _array.set(bit_start, step);
+					_next = bit_start + step;
+					return result;
+				},
+				[&] (Error) { return Error::DENIED; });
 		}
 
 		void free(addr_t const bit_start, size_t const num_log2 = 0)
 		{
-			_array.clear(bit_start, 1UL << num_log2);
+			(void)_array.clear(bit_start, 1UL << num_log2);
 
 			/*
 			 * We only rewind the _next pointer (if needed) to densely allocate

@@ -15,8 +15,7 @@
 #ifndef _INCLUDE__UTIL__BIT_ARRAY_H_
 #define _INCLUDE__UTIL__BIT_ARRAY_H_
 
-#include <base/exception.h>
-#include <base/error.h>
+#include <util/attempt.h>
 #include <base/log.h>
 
 namespace Genode {
@@ -28,10 +27,6 @@ namespace Genode {
 
 class Genode::Bit_array_base
 {
-	public:
-
-		using Invalid_index_access = Genode::Index_out_of_bounds;
-
 	protected:
 
 		enum {
@@ -45,56 +40,60 @@ class Genode::Bit_array_base
 		unsigned const _word_cnt = _bit_cnt / BITS_PER_WORD;
 		addr_t * const _words;
 
-		addr_t _word(addr_t index) const {
-			return index / BITS_PER_WORD; }
+		addr_t _word(addr_t index) const { return index / BITS_PER_WORD; }
 
-		void _check_range(addr_t const index,
-		                  addr_t const width) const
+		bool _range_valid(addr_t const index, addr_t const width) const
 		{
-			if ((index >= _word_cnt * BITS_PER_WORD) ||
-			    width > _word_cnt * BITS_PER_WORD ||
-			    _word_cnt * BITS_PER_WORD - width < index)
-				raise(Unexpected_error::INDEX_OUT_OF_BOUNDS);
+			unsigned const num_bits = _word_cnt*BITS_PER_WORD;
+			bool     const conflict = (index >= num_bits)
+			                       || (width >  num_bits)
+			                       || (num_bits - width < index);
+			return !conflict;
 		}
 
-		addr_t _mask(addr_t const index, addr_t const width,
-		             addr_t &rest) const
+		addr_t _mask(addr_t const index, addr_t const width, addr_t &remain) const
 		{
 			addr_t const shift = index - _word(index) * BITS_PER_WORD;
 
-			rest = width + shift > BITS_PER_WORD ?
-			       width + shift - BITS_PER_WORD : 0;
+			remain = width + shift > BITS_PER_WORD ?
+			         width + shift - BITS_PER_WORD : 0;
 
 			return (width >= BITS_PER_WORD) ? ~0UL << shift
 			                                : ((1UL << width) - 1) << shift;
 		}
 
-		void _set(addr_t index, addr_t width, bool free)
+		/**
+		 * \return true on success
+		 */
+		[[nodiscard]] bool _set(addr_t index, addr_t width, bool free)
 		{
-			_check_range(index, width);
+			if (!_range_valid(index, width))
+				return false;
 
-			addr_t rest;
+			addr_t remain;
 			do {
 				addr_t const word = _word(index);
-				addr_t const mask = _mask(index, width, rest);
+				addr_t const mask = _mask(index, width, remain);
 
 				if (free) {
 					if ((_words[word] & mask) != mask) {
 						error("Bit_array: invalid clear");
-						return;
+						return false;
 					}
 					_words[word] &= ~mask;
 				} else {
 					if (_words[word] & mask) {
 						error("Bit_array: invalid set");
-						return;
+						return false;
 					}
 					_words[word] |= mask;
 				}
 
 				index = (_word(index) + 1) * BITS_PER_WORD;
-				width = rest;
-			} while (rest);
+				width = remain;
+			} while (remain);
+
+			return true;
 		}
 
 		/*
@@ -119,31 +118,44 @@ class Genode::Bit_array_base
 				error("Bit_array: invalid bit count");
 		}
 
+		enum class Error { DENIED };
+
 		/**
 		 * Return true if at least one bit is set between
 		 * index until index + width - 1
 		 */
-		bool get(addr_t index, addr_t width) const
+		Attempt<bool, Error> get(addr_t index, addr_t width) const
 		{
-			_check_range(index, width);
+			if (!_range_valid(index, width))
+				return Error::DENIED;
 
 			bool used = false;
-			addr_t rest, mask;
+			addr_t remain, mask;
 			do {
-				mask  = _mask(index, width, rest);
+				mask  = _mask(index, width, remain);
 				used  = _words[_word(index)] & mask;
 				index = (_word(index) + 1) * BITS_PER_WORD;
-				width = rest;
-			} while (!used && rest);
+				width = remain;
+			} while (!used && remain);
 
 			return used;
 		}
 
-		void set(addr_t const index, addr_t const width) {
-			_set(index, width, false); }
+		Attempt<Ok, Error> set(addr_t const index, addr_t const width)
+		{
+			if (_set(index, width, false))
+				return Ok();
 
-		void clear(addr_t const index, addr_t const width) {
-			_set(index, width, true); }
+			return Error::DENIED;
+		}
+
+		Attempt<Ok, Error> clear(addr_t const index, addr_t const width)
+		{
+			if (_set(index, width, true))
+				return Ok();
+
+			return Error::DENIED;
+		}
 };
 
 

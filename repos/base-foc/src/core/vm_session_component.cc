@@ -48,19 +48,19 @@ Vcpu::Vcpu(Rpc_entrypoint          &ep,
 		throw Vcpu_creation_error();
 	}
 
-	try {
-		unsigned const vcpu_id = (unsigned)_vcpu_ids.alloc();
-		_task_index_client = thread.setup_vcpu(vcpu_id, task_cap, recall_cap(),
-	                                           _foc_vcpu_state);
-		if (_task_index_client == Foc::L4_INVALID_CAP) {
-			vcpu_alloc.free(vcpu_id);
-			if (l4_error(Foc::l4_irq_detach(_recall.local.data()->kcap())))
-				error("cannot detach IRQ");
-			throw Vcpu_creation_error();
-		}
-	} catch (Vcpu_id_allocator::Out_of_indices) {
-		throw Vcpu_creation_error();
-	}
+	_vcpu_ids.alloc().with_result(
+		[&] (auto const vcpu_id) {
+			_task_index_client = thread.setup_vcpu(vcpu_id, task_cap, recall_cap(),
+			                                       _foc_vcpu_state);
+
+			if (_task_index_client == Foc::L4_INVALID_CAP) {
+				(void)vcpu_alloc.free(vcpu_id);
+				if (l4_error(Foc::l4_irq_detach(_recall.local.data()->kcap())))
+					error("cannot detach IRQ");
+				throw Vcpu_creation_error();
+			}
+		},
+		[&] (Vcpu_id_allocator::Error) { throw Vcpu_creation_error(); });
 
 	_ep.manage(this);
 }

@@ -98,11 +98,16 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 
 				/* reserve bits which are unavailable */
 				size_t const max_cnt = size / _block_size;
-				if (bits_cnt > max_cnt)
-					_array->set(max_cnt, bits_cnt - max_cnt);
-
-				return Ok();
-
+				if (bits_cnt > max_cnt) {
+					if (_array->set(max_cnt, bits_cnt - max_cnt).ok()) {
+						return Ok();
+					} else {
+						warning("Packet_allocator unable to reserve bits");
+						error = Alloc_error::DENIED;
+					}
+				} else {
+					return Ok();
+				}
 			}
 			catch (Out_of_ram)  { error = Alloc_error::OUT_OF_RAM; }
 			catch (Out_of_caps) { error = Alloc_error::OUT_OF_CAPS; }
@@ -149,20 +154,33 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			addr_t max = ~0UL;
 
 			do {
-				try {
-					/* throws exception if array is accessed outside bounds */
-					for (addr_t i = _next & ~(cnt - 1); i < max; i += cnt) {
-						if (_array->get(i, cnt))
-							continue;
+				for (addr_t i = _next & ~(cnt - 1); i < max; i += cnt) {
 
-						_array->set(i, cnt);
-						_next = i + cnt;
+					bool occupied = false, done = false, denied = false;
+
+					_array->get(i, cnt).with_result(
+						[&] (bool any_bit_set) {
+							if (any_bit_set) {
+								occupied = true;
+							} else {
+								if (_array->set(i, cnt).ok()) {
+									_next = i + cnt;
+									done = true;
+								} else {
+									denied = true; /* unexpected */
+								}
+							}
+						},
+						[&] (Bit_array_base::Error) { denied = true; }
+					);
+
+					if (occupied) continue;
+					if (denied)   break;
+					if (done)
 						return { *this, {
 							.ptr = reinterpret_cast<void *>(i * _block_size + _base),
 							.num_bytes = size } };
-
-					}
-				} catch (typename Bit_array_base::Invalid_index_access) { }
+				}
 
 				max = _next;
 				_next = 0;
@@ -179,7 +197,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			addr_t i   = (((addr_t)addr) - _base) / _block_size;
 			size_t cnt = (size % _block_size) ? size / _block_size + 1
 			                                  : size / _block_size;
-			try { _array->clear(i, cnt); } catch(...) { }
+			(void)_array->clear(i, cnt);
 			_next = i;
 		}
 

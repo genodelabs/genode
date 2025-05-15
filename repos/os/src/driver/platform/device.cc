@@ -485,17 +485,28 @@ void Driver::Device_model::update(Xml_node const & node,
 	 */
 	enum { MAX_IRQ = 1024 };
 	Bit_array<MAX_IRQ> detected_irqs, shared_irqs;
+
+	auto shared_irq = [&] (unsigned n)
+	{
+		return shared_irqs.get(n, 1).convert<bool>(
+			[&] (bool shared) { return shared; },
+			[&] (auto &)      { return false; });
+	};
+
 	for_each([&] (Device const & device) {
 		device._irq_list.for_each([&] (Device::Irq const & irq) {
 
 			if (irq.type != Irq_session::TYPE_LEGACY)
 				return;
 
-			if (detected_irqs.get(irq.number, 1)) {
-				if (!shared_irqs.get(irq.number, 1))
-					shared_irqs.set(irq.number, 1);
-			} else
-				detected_irqs.set(irq.number, 1);
+			detected_irqs.get(irq.number, 1).with_result([&] (bool detected) {
+				if (detected) {
+					if (!shared_irq(irq.number))
+						(void)shared_irqs.set(irq.number, 1);
+				} else {
+					(void)detected_irqs.set(irq.number, 1);
+				}
+			}, [&] (auto &) { });
 		});
 	});
 
@@ -508,7 +519,7 @@ void Driver::Device_model::update(Xml_node const & node,
 			if (irq.type != Irq_session::TYPE_LEGACY)
 				return;
 
-			if (shared_irqs.get(irq.number, 1))
+			if (shared_irq(irq.number))
 				irq.shared = true;
 		});
 	});
@@ -517,7 +528,7 @@ void Driver::Device_model::update(Xml_node const & node,
 	 * Create shared interrupt objects
 	 */
 	for (unsigned i = 0; i < MAX_IRQ; i++) {
-		if (!shared_irqs.get(i, 1))
+		if (!shared_irq(i))
 			continue;
 		bool found = false;
 		_shared_irqs.for_each([&] (Shared_interrupt & sirq) {

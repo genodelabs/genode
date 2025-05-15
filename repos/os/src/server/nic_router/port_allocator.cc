@@ -39,11 +39,9 @@ Net::Port_allocator::Alloc_result Net::Port_allocator::alloc()
 
 		uint16_t const port_offset = _next_port_offset;
 		_next_port_offset = (_next_port_offset + 1) % NR_OF_PORTS;
-		try {
-			_bit_allocator.alloc_addr(port_offset);
+
+		if (_bit_allocator.alloc_addr(port_offset).ok())
 			return Port { (uint16_t)(port_offset + FIRST_PORT) };
-		}
-		catch (Bit_allocator<NR_OF_PORTS>::Range_conflict) { }
 	}
 	return Alloc_error();
 }
@@ -51,12 +49,7 @@ Net::Port_allocator::Alloc_result Net::Port_allocator::alloc()
 
 bool Net::Port_allocator::alloc(Port const port)
 {
-	try {
-		_bit_allocator.alloc_addr(port.value - FIRST_PORT);
-		return true;
-	}
-	catch (Bit_allocator<NR_OF_PORTS>::Range_conflict) { }
-	return false;
+	return _bit_allocator.alloc_addr(port.value - FIRST_PORT).ok();
 }
 
 

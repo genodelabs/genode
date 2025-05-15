@@ -83,7 +83,9 @@ Cpu::Mmu_context::Mmu_context(addr_t table,
 	_addr_space_id_alloc(id_alloc),
 	ttbr(Ttbr::Baddr::masked(table))
 {
-	Ttbr::Asid::set(ttbr, (uint16_t)_addr_space_id_alloc.alloc());
+	Ttbr::Asid::set(ttbr, _addr_space_id_alloc.alloc().convert<uint16_t>(
+		[&] (addr_t v) { return uint16_t(v); },
+		[&] (auto &)   { error("ASID allocation failed"); return uint16_t(0); }));
 }
 
 

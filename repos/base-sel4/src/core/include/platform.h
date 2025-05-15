@@ -59,10 +59,10 @@ class Core::Static_allocator : public Allocator
 				return Alloc_error::DENIED;
 			}
 
-			try {
-				return { *this, { &_elements[_used.alloc()], size } }; }
-			catch (typename Bit_allocator<MAX>::Out_of_indices) {
-				return Alloc_error::DENIED; }
+			return _used.alloc().template convert<Alloc_result>(
+				[&](addr_t const idx) {
+					return Alloc_result(*this, { &_elements[idx], size }); },
+				[](auto) { return Alloc_error::DENIED; });
 		}
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
@@ -166,16 +166,18 @@ class Core::Platform : public Platform_generic
 		{
 			Mutex _mutex { };
 
-			Core_sel_alloc() { _reserve(0, Core_cspace::core_static_sel_end()); }
+			Core_sel_alloc() {
+				bool ok = _reserve(0, Core_cspace::core_static_sel_end());
+				ASSERT (ok);
+			}
 
 			Cap_sel alloc() override
 			{
 				Mutex::Guard guard(_mutex);
 
-				try {
-					return Cap_sel((uint32_t)Core_sel_bit_alloc::alloc()); }
-				catch (Bit_allocator::Out_of_indices) {
-					throw Alloc_failed(); }
+				return Core_sel_bit_alloc::alloc().convert<Cap_sel>(
+					[](addr_t const idx) { return Cap_sel(unsigned(idx)); },
+					[](auto) -> Cap_sel { throw Alloc_failed(); });
 			}
 
 			void free(Cap_sel sel) override

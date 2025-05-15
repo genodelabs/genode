@@ -71,7 +71,7 @@ long Vm_space::_invalidate_page(Cap_sel   const &idx,
 }
 
 
-void Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
+bool Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
                                                 addr_t const size)
 {
 	addr_t constexpr PAGE_TABLE_AREA = 1UL << PAGE_TABLE_LOG2_SIZE;
@@ -84,13 +84,15 @@ void Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
 		addr_t phys = 0;
 
 		/* 1 MB range - page table */
-		Cap_sel const pt = _alloc_and_map<Page_table_kobj>(virt, map_page_table, phys);
-		try {
+		bool ok = _alloc_and_map<Page_table_kobj>(virt, map_page_table, phys, [&](Cap_sel const pt) {
 			_page_table_registry.insert_page_table(virt, pt, phys,
 			                                       PAGE_TABLE_LOG2_SIZE);
-		} catch (...) {
-			_unmap_and_free(pt, phys);
-			throw;
-		}
+			return true;
+		});
+
+		if (!ok)
+			return false;
 	}
+
+	return true;
 }

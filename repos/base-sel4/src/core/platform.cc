@@ -593,9 +593,10 @@ Core::Platform::Platform()
 
 	/* back stack area with page tables */
 	enum { MAX_CORE_THREADS = 32 };
-	_core_vm_space.unsynchronized_alloc_page_tables(stack_area_virtual_base(),
-	                                                stack_virtual_size() *
-	                                                MAX_CORE_THREADS);
+	if (!_core_vm_space.unsynchronized_alloc_page_tables(stack_area_virtual_base(),
+	                                                     stack_virtual_size() *
+	                                                     MAX_CORE_THREADS))
+		error("setup of virtual memory space of core failed");
 
 	/* add some minor virtual region for dynamic usage by core */
 	addr_t const virt_size = 32 * 1024 * 1024;
@@ -609,7 +610,8 @@ Core::Platform::Platform()
 				warning("unable to register virtual range for dynamic allocations");
 
 			/* back region by page tables */
-			_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);
+			if (!_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size))
+				warning("unable to setup virtual range for dynamic allocations");
 
 			virt.deallocate = false;
 		},

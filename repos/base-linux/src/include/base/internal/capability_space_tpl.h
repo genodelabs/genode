@@ -135,28 +135,36 @@ class Genode::Capability_space_tpl : Noncopyable
 			return _tree.first()->find_by_key(key);
 		}
 
+		enum class Create_error { EXHAUSTED };
+
+		using Create_result = Unique_attempt<Native_capability::Data &, Create_error>;
+
 		/**
 		 * Create Genode capability
 		 *
 		 * The arguments are passed to the constructor of the
 		 * 'Native_capability::Data' type.
 		 */
-		Native_capability::Data &_create_capability_unsynchronized(auto &&... args)
+		Create_result _create_capability_unsynchronized(auto &&... args)
 		{
-			addr_t const index = _alloc.alloc();
+			return _alloc.alloc().template convert<Create_result>(
+				[&] (addr_t const index) -> Native_capability::Data & {
+					Tree_managed_data &data = _caps_data[index];
 
-			Tree_managed_data &data = _caps_data[index];
+					construct_at<Tree_managed_data>(&data, args...);
 
-			construct_at<Tree_managed_data>(&data, args...);
+					/*
+					 * Register capability in the tree only if it refers to a valid
+					 * object hosted locally within the component (not foreign).
+					 */
+					if (data.rpc_obj_key().valid() && !data.dst.foreign)
+						_tree.insert(&data);
 
-			/*
-			 * Register capability in the tree only if it refers to a valid
-			 * object hosted locally within the component (not foreign).
-			 */
-			if (data.rpc_obj_key().valid() && !data.dst.foreign)
-				_tree.insert(&data);
-
-			return data;
+					return data;
+				},
+				[&] (Bit_allocator<NUM_CAPS>::Error) {
+					return Create_error::EXHAUSTED; }
+			);
 		}
 
 	public:
@@ -260,7 +268,12 @@ class Genode::Capability_space_tpl : Noncopyable
 				}
 
 				if (data_ptr == nullptr)
-					data_ptr = &_create_capability_unsynchronized(dst, key);
+					_create_capability_unsynchronized(dst, key).with_result(
+						[&] (Native_capability::Data &data) {
+							data_ptr = &data; },
+						[&] (Create_error) {
+							error("failed to import cap into local capability space"); }
+					);
 			}
 
 			/* 'Native_capability' constructor aquires '_mutex' via 'inc_ref' */

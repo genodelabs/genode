@@ -136,24 +136,33 @@ class Genode::Capability_space_tpl
 
 	public:
 
+		enum class Create_error { EXHAUSTED };
+
+		using Create_result = Unique_attempt<Native_capability::Data &, Create_error>;
+
 		/**
 		 * Create Genode capability
 		 *
 		 * The arguments are passed to the constructor of the
 		 * 'Native_capability::Data' type.
 		 */
-		Native_capability::Data &create_capability(auto... args)
+		Create_result create_capability(auto... args)
 		{
 			Mutex::Guard guard(_mutex);
 
-			addr_t const index = _alloc.alloc();
+			return _alloc.alloc().template convert<Create_result>(
+				[&] (addr_t const index) -> Create_result {
 
-			construct_at<Tree_managed_data>(&_caps_data[index], args...);
+					construct_at<Tree_managed_data>(&_caps_data[index], args...);
 
-			if (_caps_data[index].rpc_obj_key().valid())
-				_tree.insert(&_caps_data[index]);
+					if (_caps_data[index].rpc_obj_key().valid())
+						_tree.insert(&_caps_data[index]);
 
-			return _caps_data[index];
+					return _caps_data[index];
+				},
+				[&] (Bit_allocator<NUM_CAPS>::Error) {
+					return Create_error::EXHAUSTED; }
+			);
 		}
 
 		void dec_ref(Data &data)
@@ -203,7 +212,14 @@ class Genode::Capability_space_tpl
 
 		Native_capability import(Rpc_destination dst, Rpc_obj_key key)
 		{
-			return Native_capability(&create_capability(dst, key));
+			return create_capability(dst, key).template convert<Native_capability>(
+
+				[&] (Native_capability::Data &data) {
+					return Native_capability(&data); },
+
+				[&] (Create_error) {
+					error("failed to import cap into local capability space");
+					return Native_capability(); });
 		}
 };
 

@@ -224,34 +224,68 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 	_info.init(_utcb, _priority);
 	platform_thread_registry().insert(*this);
 
-	try {
+	_pd.alloc_thread_selectors([&](auto & sel) {
+		bool ok = true;
+
 		/* allocate fault handler selector in the PD's CSpace */
-		_fault_handler_sel = _pd.alloc_sel();
+		if (ok)
+			sel.alloc().with_result(
+				[&](auto idx) { _fault_handler_sel = Cap_sel(unsigned(idx)); },
+				[&](auto    ) { ok = false; });
+
 		/* allocate endpoint selector in the PD's CSpace */
-		_ep_sel   = _pd.alloc_sel();
-		_vcpu_sel = _pd.alloc_sel();
+		if (ok)
+			sel.alloc().with_result(
+				[&](auto idx) { _ep_sel = Cap_sel(unsigned(idx)); },
+				[&](auto    ) { ok = false; });
+		if (ok)
+			sel.alloc().with_result(
+				[&](auto idx) { _vcpu_sel = Cap_sel(unsigned(idx)); },
+				[&](auto    ) { ok = false; });
+		if (ok)
+			sel.alloc().with_result(
+				[&](auto idx) { _vcpu_notify_sel = Cap_sel(unsigned(idx)); },
+				[&](auto    ) { ok = false; });
+
 		/* allocate asynchronous selector used for locks in the PD's CSpace */
-		_lock_sel = main_thread() ? Cap_sel(INITIAL_SEL_LOCK)
-		                          : _pd.alloc_sel();
-		_vcpu_notify_sel = _pd.alloc_sel();
+		if (ok) {
+			if (main_thread())
+				_lock_sel = Cap_sel(INITIAL_SEL_LOCK);
+			else
+				sel.alloc().with_result(
+					[&](auto idx) { _lock_sel = Cap_sel(unsigned(idx)); },
+					[&](auto    ) { ok = false; });
+		}
 
-		_pd.map_ipc_buffer(_info.ipc_buffer_phys, _utcb);
-		_bound_to_pd = true;
-		constructed = Ok();
-	} catch (Platform_pd::Sel_alloc::Out_of_indices) {
+		if (ok && _pd.map_ipc_buffer(_info.ipc_buffer_phys, _utcb)) {
+			_bound_to_pd = true;
+			constructed = Ok();
+		}
+	});
 
-		/* revert allocations */
-		if (_fault_handler_sel.value()) _pd.free_sel(_fault_handler_sel);
-		if (_ep_sel.value())            _pd.free_sel(_ep_sel);
-		if (_vcpu_sel.value())          _pd.free_sel(_vcpu_sel);
-		if (_vcpu_notify_sel.value())   _pd.free_sel(_vcpu_notify_sel);
+	if (_bound_to_pd)
+		return;
 
+	/* revert allocations */
+	if (_fault_handler_sel.value()) {
+		_pd.free_sel(_fault_handler_sel);
 		_fault_handler_sel = Cap_sel { 0 };
-		_ep_sel            = Cap_sel { 0 };
-		_vcpu_sel          = Cap_sel { 0 };
-		_vcpu_notify_sel   = Cap_sel { 0 };
-
-		_bound_to_pd = false;
+	}
+	if (_ep_sel.value()) {
+		_pd.free_sel(_ep_sel);
+		_ep_sel = Cap_sel { 0 };
+	}
+	if (_vcpu_sel.value()) {
+		_pd.free_sel(_vcpu_sel);
+		_vcpu_sel = Cap_sel { 0 };
+	}
+	if (_vcpu_notify_sel.value()) {
+		_pd.free_sel(_vcpu_notify_sel);
+		_vcpu_notify_sel = Cap_sel { 0 };
+	}
+	if (_lock_sel.value()) {
+		_pd.free_sel(_lock_sel);
+		_lock_sel = Cap_sel { 0 };
 	}
 }
 

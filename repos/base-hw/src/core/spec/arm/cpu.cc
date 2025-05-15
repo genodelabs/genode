@@ -67,7 +67,10 @@ Mmu_context(addr_t                             table,
             Board::Address_space_id_allocator &addr_space_id_alloc)
 :
 	_addr_space_id_alloc(addr_space_id_alloc),
-	cidr((uint8_t)_addr_space_id_alloc.alloc()),
+	cidr(_addr_space_id_alloc.alloc().convert<uint8_t>(
+		[&] (addr_t v) { return uint8_t(v); },
+		[&] (auto &) -> uint8_t {
+			error("failed to allocate Mmu_context::cidr"); return 0; })),
 	ttbr0(Ttbr::init(table))
 { }
 

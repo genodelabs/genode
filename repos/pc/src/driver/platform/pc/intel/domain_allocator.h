@@ -68,18 +68,17 @@ class Intel::Domain_allocator
 
 		Domain_id alloc()
 		{
-			try {
-				addr_t new_id = _allocator.alloc() + 1;
-
-				if (new_id > _max_id.value) {
-					_allocator.free(new_id - 1);
-					throw Out_of_domains();
-				}
-
-				return Domain_id { new_id };
-			} catch (typename Bit_allocator::Out_of_indices) { }
-
-			throw Out_of_domains();
+			return _allocator.alloc().convert<Domain_id>(
+				[&] (addr_t const allocated_id) {
+					addr_t const new_id = allocated_id + 1;
+					if (new_id > _max_id.value) {
+						_allocator.free(allocated_id);
+						throw Out_of_domains();
+					}
+					return Domain_id { new_id };
+				},
+				[&] (Bit_allocator::Error) -> Domain_id {
+					throw Out_of_domains(); });
 		}
 
 		void free(Domain_id domain)

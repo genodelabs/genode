@@ -78,19 +78,21 @@ class Igd::Ggtt
 
 			bool allocated(addr_t const index) const
 			{
-				return _array.get(index, 1);
+				return _array.get(index, 1).convert<bool>(
+					[] (bool v) { return v; },
+					[] (auto &) { return false; });
 			}
 
 			void set(addr_t const index)
 			{
 				_used++;
-				_array.set(index, 1);
+				(void)_array.set(index, 1);
 			}
 
 			void clear(addr_t const index)
 			{
 				_used--;
-				_array.clear(index, 1);
+				(void)_array.clear(index, 1);
 			}
 
 			unsigned free_index(unsigned start_index, unsigned end_index,
@@ -99,7 +101,12 @@ class Igd::Ggtt
 				for (unsigned index = start_index; index < end_index; index += num) {
 					if (index + num >= end_index)
 						throw Could_not_find_free();
-					if (!_array.get(index, num))
+
+					auto all_bits_clear = _array.get(index, num).convert<bool>(
+						[] (bool v) { return v == 0; },
+						[] (auto &) { return false; });
+
+					if (all_bits_clear)
 						return index;
 				}
 

@@ -94,15 +94,21 @@ class Vmm::Config
 		{
 			Bit_allocator<VIRTIO_IRQ_COUNT> _alloc {};
 
-			unsigned alloc()
+			using Error  = Bit_allocator<VIRTIO_IRQ_COUNT>::Error;
+			using Result = Attempt<unsigned, Error>;
+
+			Result alloc()
 			{
 				/* we assume that the max number of IRQs does fit unsigned */
 				static_assert(VIRTIO_IRQ_COUNT < ~0U);
-				return VIRTIO_IRQ_START + (unsigned)_alloc.alloc();
+
+				return _alloc.alloc().convert<Result>(
+					[&] (addr_t n) { return VIRTIO_IRQ_START + unsigned(n); },
+					[&] (Error e)  { return e; });
 			}
 
 			void free(unsigned irq) {
-				_alloc.free(VIRTIO_IRQ_START+irq); }
+				(void)_alloc.free(VIRTIO_IRQ_START+irq); }
 		};
 
 		Heap        & _heap;

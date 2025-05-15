@@ -72,10 +72,10 @@ struct Msi_allocator : Bit_array<MAX_MSIS>
 		l4_msgtag_t const res = l4_icu_info(Foc::L4_BASE_ICU_CAP, &info);
 
 		if (l4_error(res) || !(info.features & L4_ICU_FLAG_MSI))
-			set(0, MAX_MSIS);
+			(void)set(0, MAX_MSIS);
 		else
 			if (info.nr_msis < MAX_MSIS)
-				set(info.nr_msis, MAX_MSIS - info.nr_msis);
+				(void)set(info.nr_msis, MAX_MSIS - info.nr_msis);
 	}
 
 };
@@ -204,16 +204,19 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 
 	if (irq_args.msi()) {
 		unsigned msi_number = 0;
-		if (msi_alloc().get(msi_number, 1)) {
+		if (msi_alloc().get(msi_number, 1).convert<bool>(
+			[] (bool v) { return v; },
+			[] (auto)   { return true; }
+		)) {
 			error("unavailable MSI ", msi_number, " requested");
 			return;
 		}
-		msi_alloc().set(msi_number, 1);
+		(void)msi_alloc().set(msi_number, 1);
 		if (_irq_object.associate(msi_number, true, irq_args.trigger(),
 		                          irq_args.polarity()))
 			return;
 
-		msi_alloc().clear(msi_number, 1);
+		(void)msi_alloc().clear(msi_number, 1);
 
 	} else {
 
@@ -232,7 +235,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 Irq_session_component::~Irq_session_component()
 {
 	if (_irq_object.msi() && _irq_object.msi_address())
-		msi_alloc().clear(_irq_object.irq(), 1);
+		(void)msi_alloc().clear(_irq_object.irq(), 1);
 }
 
 

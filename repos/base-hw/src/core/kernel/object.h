@@ -155,10 +155,10 @@ class Kernel::Object_identity_reference
 		Object_identity_reference(Object_identity_reference const &);
 		Object_identity_reference &operator = (Object_identity_reference const &);
 
-		capid_t          _capid;
 		Object_identity *_identity;
 		Pd              &_pd;
 		unsigned short   _in_utcbs;
+		capid_t    const _capid;
 
 	public:
 

@@ -111,7 +111,11 @@ Vm_session_component::Vm_session_component(Registry<Revoke> &registry,
 	_table_array(*(new (cma()) Board::Vm_page_table_array([] (void * virt) {
 	                           return (addr_t)cma().phys_addr(virt);}))),
 	_vmid_alloc(vmid_alloc),
-	_id({(unsigned)_vmid_alloc.alloc(), cma().phys_addr(&_table)})
+	_id({(unsigned)_vmid_alloc.alloc().convert<unsigned>(
+		[&] (addr_t v) { return unsigned(v); },
+		[&] (auto &) { error("vmid allocation failed"); return unsigned(0); }),
+		cma().phys_addr(&_table)
+	})
 {
 	/* configure managed VM area */
 	(void)_map.add_range(0, 0UL - 0x1000);

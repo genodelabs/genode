@@ -163,7 +163,7 @@ class Core::Platform_thread : Interface
 		/**
 		 * Turn thread into vCPU
 		 */
-		Foc::l4_cap_idx_t setup_vcpu(unsigned, Cap_mapping const &,
+		Foc::l4_cap_idx_t setup_vcpu(addr_t, Cap_mapping const &,
 		                             Cap_mapping &, addr_t &);
 
 

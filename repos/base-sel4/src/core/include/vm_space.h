@@ -132,8 +132,6 @@ class Core::Vm_space
 		 */
 		using Selector_allocator = Bit_allocator<1UL << NUM_VM_SEL_LOG2>;
 
-		class Alloc_page_table_failed : Exception { };
-
 		struct Map_attr
 		{
 			bool cached, write_combined, writeable, executable, flush_support;
@@ -196,15 +194,21 @@ class Core::Vm_space
 				 */
 				return true;
 			}
-			/* allocate page-table-entry selector */
-			uint32_t pte_idx = 0;
-			try { pte_idx = (uint32_t)_sel_alloc.alloc(); }
-			catch (Selector_allocator::Out_of_indices) {
 
+			/* allocate page-table-entry selector */
+			auto pte_result = _sel_alloc.alloc();
+			if (pte_result.failed()) {
 				/* free all page-table-entry selectors and retry once */
 				_flush(attr.flush_support, fn);
-				pte_idx = (uint32_t)_sel_alloc.alloc();
+
+				pte_result = _sel_alloc.alloc();
+				if (pte_result.failed())
+					return false;
 			}
+
+			uint32_t pte_idx = 0;
+			pte_result.with_result([&] (addr_t n) { pte_idx = unsigned(n); },
+			                       [&] (auto) { /* handled before */ });
 
 			/*
 			 * Copy page-frame selector to pte_sel
@@ -234,6 +238,8 @@ class Core::Vm_space
 				      Hex(to_dest), " returned ", ret);
 				return false;
 			}
+
+			/* XXX free is missing */
 			return true;
 		}
 
@@ -247,35 +253,51 @@ class Core::Vm_space
 
 		/**
 		 * Allocate and install page structures for the protection domain.
-		 *
-		 * \throw Alloc_page_table_failed
 		 */
 		template <typename KOBJ>
-		Cap_sel _alloc_and_map(addr_t const virt,
-		                       long (&map_fn)(Cap_sel, Cap_sel, addr_t),
-		                       addr_t &phys)
+		[[nodiscard]] bool _alloc_and_map(addr_t const virt,
+		                                  long (&map_fn)(Cap_sel, Cap_sel, addr_t),
+		                                  addr_t &phys,
+		                                  auto const &fn)
 		{
 			/* allocate page-* selector */
-			uint32_t const idx = (uint32_t)_sel_alloc.alloc();
+			auto const result_idx = _sel_alloc.alloc();
+
+			if (result_idx.failed())
+				return false;
+
+			uint32_t pte_idx = 0;
+			result_idx.with_result([&] (addr_t n) { pte_idx = unsigned(n); },
+			                       [&] (auto) { /* handled before */ });
 
 			try {
 				phys = Untyped_memory::alloc_page(_phys_alloc);
 				seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
-				create<KOBJ>(service, _leaf_cnode(idx).sel(),
-				             _leaf_cnode_entry(idx));
+				create<KOBJ>(service, _leaf_cnode(pte_idx).sel(),
+				             _leaf_cnode_entry(pte_idx));
 			} catch (...) {
-				/* XXX free idx, revert untyped memory, phys_addr, */
-				 throw Alloc_page_table_failed();
+				error("leaking untyped memory and phys addr in _alloc_and_map");
+				_sel_alloc.free(pte_idx);
+				return false;
 			}
 
-			Cap_sel const pt_sel = _idx_to_sel(idx);
+			Cap_sel const pt_sel = _idx_to_sel(pte_idx);
 
 			long const result = map_fn(pt_sel, _pd_sel, virt);
-			if (result != seL4_NoError)
+			if (result != seL4_NoError) {
 				error("seL4_*_Page*_Map(,", Hex(virt), ") returned ",
 				      result);
 
-			return Cap_sel(idx);
+				error("leaking idx, untyped memory and phys addr in _alloc_and_map");
+				return false;
+			}
+
+			if (fn(Cap_sel(pte_idx)))
+				return true;
+
+			_unmap_and_free(Cap_sel(pte_idx), phys);
+
+			return false;
 		}
 
 		void _unmap_and_free(Cap_sel const idx, addr_t const paddr)
@@ -482,21 +504,19 @@ class Core::Vm_space
 			return unmap_success;
 		}
 
-		void unsynchronized_alloc_page_tables(addr_t const start,
-		                                      addr_t const size);
+		[[nodiscard]] bool unsynchronized_alloc_page_tables(addr_t, addr_t);
+		[[nodiscard]] bool unsynchronized_alloc_guest_page_tables(addr_t, addr_t);
 
-		void unsynchronized_alloc_guest_page_tables(addr_t, addr_t);
-
-		void alloc_page_tables(addr_t const start, addr_t const size)
+		[[nodiscard]] bool alloc_page_tables(addr_t const start, addr_t const size)
 		{
 			Mutex::Guard guard(_mutex);
-			unsynchronized_alloc_page_tables(start, size);
+			return unsynchronized_alloc_page_tables(start, size);
 		}
 
-		void alloc_guest_page_tables(addr_t const start, addr_t const size)
+		[[nodiscard]] bool alloc_guest_page_tables(addr_t const start, addr_t const size)
 		{
 			Mutex::Guard guard(_mutex);
-			unsynchronized_alloc_guest_page_tables(start, size);
+			return unsynchronized_alloc_guest_page_tables(start, size);
 		}
 
 		Session_label const & pd_label() const { return _pd_label; }

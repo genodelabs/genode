@@ -29,7 +29,7 @@
 #include <platform_session/device.h>
 #include <root/root.h>
 #include <timer_session/connection.h>
-#include <util/bit_array.h>
+#include <util/bit_allocator.h>
 #include <util/interface.h>
 #include <util/misc_math.h>
 
@@ -1726,37 +1726,31 @@ class Nvme::Driver : Genode::Noncopyable
 		};
 
 		template <uint16_t ENTRIES>
-		struct Command_id
+		struct Command_id : Genode::Bit_allocator<ENTRIES>
 		{
-			using Bitmap = Genode::Bit_array<ENTRIES>;
-			Bitmap _bitmap { };
-
-			uint16_t _bitmap_find_free() const
-			{
-				for (uint16_t i = 0; i < ENTRIES; i++) {
-					if (_bitmap.get(i, 1)) { continue; }
-					return i;
-				}
-				return ENTRIES;
-			}
-
 			bool used(uint16_t const cid) const
 			{
-				return _bitmap.get(cid, 1);
-			}
+				using BA = Bit_allocator<ENTRIES>;
 
-			uint16_t alloc()
-			{
-				uint16_t const id = _bitmap_find_free();
-				_bitmap.set(id, 1);
-				return id;
-			}
-
-			void free(uint16_t id)
-			{
-				_bitmap.clear(id, 1);
+				return BA::_array.get(cid, 1).template convert<bool>(
+					[&] (bool used) { return used; },
+					/* cannot happen as cid is capped to ENTRIES */
+					[&] (BA::Error) { return false; });
 			}
 		};
+
+		uint16_t _alloc_command_id()
+		{
+			return _command_id_allocator.alloc().convert<uint16_t>(
+				[&] (addr_t cid) { return uint16_t(cid); },
+				[&] (Command_id<Nvme::MAX_IO_ENTRIES>::Error) {
+					/*
+					 * Cannot happen because the acceptance check
+					 * was successful and we are not called otherwise.
+					*/
+					return uint16_t(0);
+				});
+		}
 
 		Command_id<Nvme::MAX_IO_ENTRIES> _command_id_allocator { };
 		Request                          _requests[Nvme::MAX_IO_ENTRIES] { };
@@ -2078,7 +2072,7 @@ class Nvme::Driver : Genode::Noncopyable
 				    " offset: ", Hex(request.offset));
 			}
 
-			uint16_t const cid = _command_id_allocator.alloc();
+			uint16_t const cid = _alloc_command_id();
 			uint32_t const id  = cid | (Nvme::IO_NSID<<16);
 			Request &r = _requests[cid];
 			r = Request { .block_request = request,
@@ -2130,7 +2124,7 @@ class Nvme::Driver : Genode::Noncopyable
 		void _submit_sync(Block::Request const &request,
 		                  Nvme::Controller     &ctrlr)
 		{
-			uint16_t const cid = _command_id_allocator.alloc();
+			uint16_t const cid = _alloc_command_id();
 			uint32_t const id  = cid | (Nvme::IO_NSID<<16);
 			Request &r = _requests[cid];
 			r = Request { .block_request = request,
@@ -2143,7 +2137,7 @@ class Nvme::Driver : Genode::Noncopyable
 		void _submit_trim(Block::Request const &request,
 		                  Nvme::Controller     &ctrlr)
 		{
-			uint16_t const cid = _command_id_allocator.alloc();
+			uint16_t const cid = _alloc_command_id();
 			uint32_t const id  = cid | (Nvme::IO_NSID<<16);
 			Request &r = _requests[cid];
 			r = Request { .block_request = request,

@@ -56,16 +56,22 @@ class Event_filter::Log_source : public Source, Source::Filter
 				if (event.release()) --_key_cnt;
 
 				event.handle_touch([&] (Input::Touch_id id, float, float) {
-					if (!_fingers.get(id.value, 1)) {
+					if(!_fingers.get(id.value, 1).convert<bool>(
+						[] (bool used) { return used; },
+						[] (auto)      { return true; }
+					)) {
 						_finger_cnt++;
-						_fingers.set(id.value, 1);
+						(void)_fingers.set(id.value, 1);
 					}
 				});
 
 				event.handle_touch_release([&] (Input::Touch_id id) {
-					if (_fingers.get(id.value, 1)) {
+					if(_fingers.get(id.value, 1).convert<bool>(
+						[] (bool used) { return used; },
+						[] (auto)      { return false; }
+					)) {
 						_finger_cnt--;
-						_fingers.clear(id.value, 1);
+						(void)_fingers.clear(id.value, 1);
 					}
 				});
 

@@ -81,7 +81,12 @@ Mmu_context::Mmu_context(addr_t page_table_base,
 :
 	_addr_space_id_alloc(id_alloc)
 {
-	Satp::Asid::set(satp, (uint8_t)_addr_space_id_alloc.alloc());
+	Satp::Asid::set(satp, _addr_space_id_alloc.alloc().convert<uint8_t>(
+		[&] (addr_t v) { return uint8_t(v); },
+		[&] (auto &) -> uint8_t {
+			error("failed to allocate Mmu_context::Asid"); return 0; })
+	);
+
 	Satp::Ppn::set(satp, page_table_base >> 12);
 	Satp::Mode::set(satp, 8);
 }

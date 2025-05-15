@@ -51,12 +51,11 @@ Stack_allocator::alloc(Thread *, bool main_thread)
 		/* the main-thread stack is the first one */
 		return base_to_stack(stack_area_virtual_base());
 
-	try {
-		Mutex::Guard guard(_threads_mutex);
-		return base_to_stack(idx_to_base(_alloc.alloc()));
-	} catch(Bit_allocator<MAX_THREADS>::Out_of_indices) {
-		return 0;
-	}
+	Mutex::Guard guard(_threads_mutex);
+
+	return _alloc.alloc().convert<Stack *>(
+		[&] (addr_t i) { return base_to_stack(idx_to_base(i)); },
+		[&] (Stack_bit_allocator::Error) -> Stack * { return nullptr; });
 }
 
 

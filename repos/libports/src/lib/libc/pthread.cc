@@ -548,7 +548,9 @@ class Key_allocator : public Genode::Bit_allocator<PTHREAD_KEYS_MAX>
 
 	public:
 
-		addr_t alloc_key()
+		using Error = Bit_allocator<PTHREAD_KEYS_MAX>::Error;
+
+		Attempt<addr_t, Error> alloc_key()
 		{
 			Mutex::Guard guard(_mutex);
 			return alloc();
@@ -573,18 +575,21 @@ static key_destructor_func key_destructors[PTHREAD_KEYS_MAX];
 
 extern "C" {
 
-	int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
+	int pthread_key_create(pthread_key_t *out_key, void (*destructor)(void*))
 	{
-		if (!key)
+		if (!out_key)
 			return EINVAL;
 
-		try {
-			*key = key_allocator().alloc_key();
-			key_destructors[*key] = destructor;
-			return 0;
-		} catch (Key_allocator::Out_of_indices) {
-			return EAGAIN;
-		}
+		return key_allocator().alloc_key().convert<int>(
+			[&] (addr_t key) {
+				*out_key = key;
+				key_destructors[key] = destructor;
+				return 0;
+			},
+			[&] (Key_allocator::Error) {
+				warning("failed to allocate pthread key");
+				return EAGAIN;
+			});
 	}
 
 	typeof(pthread_key_create) _pthread_key_create

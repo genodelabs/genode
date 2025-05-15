@@ -43,31 +43,49 @@ static long map_directory(Cap_sel   const pd,
 	                                  seL4_X86_Default_VMAttributes);
 }
 
-void Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
+bool Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
                                                 addr_t const size)
 {
 	addr_t constexpr PAGE_TABLE_AREA = 1UL << PAGE_TABLE_LOG2_SIZE;
 	addr_t virt = start & ~(PAGE_TABLE_AREA - 1);
+
+	auto & registry = _page_table_registry;
+
 	for (; virt < start + size; virt += PAGE_TABLE_AREA) {
 		addr_t phys = 0;
 
-		if (!_page_table_registry.page_level3_at(virt, PAGE_PDPT_LOG2_SIZE)) {
+		if (!registry.page_level3_at(virt, PAGE_PDPT_LOG2_SIZE)) {
 			/* 512 GB range - page directory pointer table */
-			Cap_sel const pd = _alloc_and_map<Page_pointer_table_kobj>(virt, map_pdpt, phys);
-			_page_table_registry.insert_page_level3(virt, pd, phys, PAGE_PDPT_LOG2_SIZE);
+			bool ok = _alloc_and_map<Page_pointer_table_kobj>(virt, map_pdpt, phys, [&](Cap_sel const pd) {
+				registry.insert_page_level3(virt, pd, phys, PAGE_PDPT_LOG2_SIZE);
+				return true; /* XXX check result of insert */
+			});
+
+			if (!ok)
+				return false;
 		}
-		if (!_page_table_registry.page_directory_at(virt, PAGE_DIR_LOG2_SIZE)) {
+		if (!registry.page_directory_at(virt, PAGE_DIR_LOG2_SIZE)) {
 			/*   1 GB range - page directory */
-			Cap_sel const pd = _alloc_and_map<Page_directory_kobj>(virt, map_directory, phys);
-			_page_table_registry.insert_page_directory(virt, pd, phys,
-			                                           PAGE_DIR_LOG2_SIZE);
+			bool ok = _alloc_and_map<Page_directory_kobj>(virt, map_directory, phys, [&](Cap_sel const pd) {
+				registry.insert_page_directory(virt, pd, phys, PAGE_DIR_LOG2_SIZE);
+				return true; /* XXX check result of insert */
+			});
+
+			if (!ok)
+				return false;
 		}
 
-		if (!_page_table_registry.page_table_at(virt, PAGE_TABLE_LOG2_SIZE)) {
+		if (!registry.page_table_at(virt, PAGE_TABLE_LOG2_SIZE)) {
 			/*   2 MB range - page table */
-			Cap_sel const pt = _alloc_and_map<Page_table_kobj>(virt, map_page_table, phys);
-			_page_table_registry.insert_page_table(virt, pt, phys,
-		                                           PAGE_TABLE_LOG2_SIZE);
+			bool ok = _alloc_and_map<Page_table_kobj>(virt, map_page_table, phys, [&](Cap_sel const pt) {
+				registry.insert_page_table(virt, pt, phys, PAGE_TABLE_LOG2_SIZE);
+				return true; /* XXX check result of insert */
+			});
+
+			if (!ok)
+				return false;
 		}
 	}
+
+	return true;
 }

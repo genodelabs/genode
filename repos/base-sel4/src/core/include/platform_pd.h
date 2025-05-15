@@ -37,19 +37,22 @@ class Core::Platform_pd : public Address_space
 		 */
 		struct Sel_alloc : Bit_allocator<1 << NUM_CORE_MANAGED_SEL_LOG2>
 		{
-			Sel_alloc() { _reserve(0, INITIAL_SEL_END); }
+			Sel_alloc() {
+				bool ok = _reserve(0, INITIAL_SEL_END);
+				ASSERT (ok);
+			}
 		};
 
 	private:
 
-		unsigned const _id;  /* used as index in top-level CNode */
+		unsigned _id { };  /* used as index in top-level CNode */
 
 		Page_table_registry _page_table_registry;
 
 		Cap_sel const _page_directory_sel;
 		addr_t  const _page_directory;
 
-		Vm_space _vm_space;
+		Constructible<Vm_space> _vm_space { };
 
 		Cnode _cspace_cnode_1st;
 
@@ -76,19 +79,29 @@ class Core::Platform_pd : public Address_space
 		~Platform_pd();
 
 		/**
-		 * Allocate capability selector
+		 * Allocate capability selector for threads
 		 */
-		Cap_sel alloc_sel();
+		void alloc_thread_selectors(auto const &fn)
+		{
+			Mutex::Guard guard(_sel_alloc_mutex);
+
+			fn(_sel_alloc);
+		}
 
 		/**
 		 * Release capability selector
 		 */
-		void free_sel(Cap_sel);
+		void free_sel(Cap_sel sel)
+		{
+			Mutex::Guard guard(_sel_alloc_mutex);
+
+			_sel_alloc.free(sel.value());
+		}
 
 		/**
 		 * Map physical IPC buffer to virtual UTCB address
 		 */
-		void map_ipc_buffer(Ipc_buffer_phys, Utcb_virt);
+		[[nodiscard]] bool map_ipc_buffer(Ipc_buffer_phys, Utcb_virt);
 
 		/**
 		 * Unmap IPC buffer from PD, at 'Platform_thread' destruction time

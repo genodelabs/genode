@@ -354,10 +354,10 @@ Platform_thread::~Platform_thread()
 		_platform_pd->unbind_thread(*this);
 }
 
-Foc::l4_cap_idx_t Platform_thread::setup_vcpu(unsigned const vcpu_id,
+Foc::l4_cap_idx_t Platform_thread::setup_vcpu(addr_t      const  vcpu_id,
                                               Cap_mapping const &task_vcpu,
-                                              Cap_mapping &vcpu_irq,
-                                              addr_t &vcpu_state)
+                                              Cap_mapping       &vcpu_irq,
+                                              addr_t            &vcpu_state)
 {
 	if (!_platform_pd)
 		return Foc::L4_INVALID_CAP;

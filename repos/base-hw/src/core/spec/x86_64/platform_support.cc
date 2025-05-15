@@ -75,12 +75,13 @@ Bit_allocator<64> &msi_allocator()
 
 bool Platform::alloc_msi_vector(addr_t & address, addr_t & value)
 {
-	try {
-		address = Hw::Cpu_memory_map::lapic_phys_base();
-		value   = Board::Pic::IPI - 1 - msi_allocator().alloc();
-	return true;
-	} catch(...) {}
-	return false;
+	return msi_allocator().alloc().convert<bool>(
+		[&] (addr_t const v) {
+			address = Hw::Cpu_memory_map::lapic_phys_base();
+			value = Board::Pic::IPI - 1 - v;
+			return true;
+		},
+		[&] (Bit_allocator<64>::Error) { return false; });
 }
 
 

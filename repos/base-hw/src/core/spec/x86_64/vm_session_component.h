@@ -95,8 +95,14 @@ class Core::Vm_session_component
 		Phys_allocated<Vm_page_table_array> _table_array;
 		Guest_memory                        _memory;
 		Vmid_allocator                     &_vmid_alloc;
-		Kernel::Vcpu::Identity              _id;
 		uint8_t                             _remaining_print_count { 10 };
+
+		Kernel::Vcpu::Identity _id {
+			_vmid_alloc.alloc().convert<unsigned>(
+				[] (addr_t const id)       -> unsigned { return unsigned(id); },
+				[] (Vmid_allocator::Error) -> unsigned { throw Service_denied(); }),
+			(void *)_table.phys_addr()
+		};
 
 		void _detach_at(addr_t addr)
 		{
@@ -137,8 +143,7 @@ class Core::Vm_session_component
 						});
 					}),
 			_memory(_accounted_ram_alloc, local_rm),
-			_vmid_alloc(vmid_alloc),
-			_id({(unsigned)_vmid_alloc.alloc(), (void *)_table.phys_addr()})
+			_vmid_alloc(vmid_alloc)
 		{ }
 
 		~Vm_session_component()
@@ -146,7 +151,7 @@ class Core::Vm_session_component
 			_vcpus.for_each([&] (Registered<Vcpu> &vcpu) {
 				destroy(_heap, &vcpu); });
 
-			_vmid_alloc.free(_id.id);
+			(void)_vmid_alloc.free(_id.id);
 		}
 
 		void revoke_signal_context(Signal_context_capability cap) override

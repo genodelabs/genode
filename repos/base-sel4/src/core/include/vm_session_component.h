@@ -77,7 +77,8 @@ class Core::Vm_session_component
 		unsigned                 _pd_id    { 0 };
 		Cap_sel                  _vm_page_table;
 		Page_table_registry      _page_table_registry { _heap };
-		Vm_space                 _vm_space;
+		Constructible<Vm_space>  _vm_space { };
+
 		struct {
 			addr_t       _phys;
 			seL4_Untyped _service;

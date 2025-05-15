@@ -26,8 +26,8 @@ struct Core::Vmid_allocator
 	Vmid_allocator()
 	{
 		/* reserve VM ID 0 for the hypervisor */
-		Genode::addr_t id = alloc();
-		assert (id == 0);
+		alloc().with_result([] (addr_t id)             { assert(id == 0); },
+		                    [] (Vmid_allocator::Error) { assert(false); });
 	}
 };
 

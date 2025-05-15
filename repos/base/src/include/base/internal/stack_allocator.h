@@ -42,7 +42,7 @@ class Genode::Stack_allocator
 			Stack_bit_allocator()
 			{
 				/* the first index is used by main thread */
-				_reserve(0, 1);
+				(void)_reserve(0, 1);
 			}
 		} _alloc { };
 

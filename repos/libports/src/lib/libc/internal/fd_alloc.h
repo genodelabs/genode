@@ -85,7 +85,9 @@ class Libc::File_descriptor_allocator
 
 		Id_space _id_space;
 
-		Genode::Bit_allocator<MAX_NUM_FDS> _id_allocator;
+		using Id_bit_alloc = Genode::Bit_allocator<MAX_NUM_FDS>;
+
+		Id_bit_alloc _id_allocator;
 
 	public:
 

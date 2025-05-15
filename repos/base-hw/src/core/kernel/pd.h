@@ -69,8 +69,8 @@ class Kernel::Pd
 			_platform_pd(platform_pd),
 			mmu_regs((addr_t)&table, addr_space_id_alloc)
 		{
-			capid_t invalid = (capid_t)_capid_alloc.alloc();
-			assert(invalid == cap_id_invalid());
+			/* exclude invalid ID from allocator */
+			assert(_capid_alloc.alloc(cap_id_invalid()).ok());
 		}
 
 		~Pd()
