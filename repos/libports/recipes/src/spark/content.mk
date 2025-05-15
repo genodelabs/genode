@@ -63,7 +63,6 @@ $(MIRROR_FROM_ADA_RT_DIR):
 
 MIRROR_FROM_REP_DIR := \
 	lib/mk/spark.mk \
-	lib/mk/spark.inc \
 	lib/import/import-spark.mk \
 	include/ada/exception.h
 

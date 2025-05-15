@@ -25,11 +25,6 @@ extern "C" void __gnat_eh_personality()
 	Genode::warning(__func__, " not implemented");
 }
 
-extern "C" void __gnat_rcheck_CE_Overflow_Check()
-{
-    Genode::warning(__func__, " not implemented");
-}
-
 extern "C" void adainit();
 extern "C" void adafinal();
 

@@ -71,17 +71,11 @@ $(MIRROR_FROM_ADA_ALI_DIR):
 	cp -a $(ADA_ALI_DIR)/$@ lib/ali/spark/
 
 MIRROR_FROM_REP_DIR := \
-	lib/import/import-spark.mk \
 	include/ada \
-	lib/symbols/spark \
+	lib/import/import-spark.mk \
+	lib/symbols/spark
 
 content: $(MIRROR_FROM_REP_DIR)
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
-
-content: lib/mk/spark.mk
-
-lib/mk/spark.mk:
-	mkdir -p $(dir $@)
-	cp -a $(REP_DIR)/lib/mk/spark.inc $@

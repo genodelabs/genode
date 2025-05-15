@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/mk/spark.inc
+include $(REP_DIR)/lib/import/import-spark.mk
 
 ADALIB     = $(ADA_RTS)/adalib
 ADAINCLUDE = $(ADA_RTS)/adainclude
@@ -24,6 +24,8 @@ SRC_ADB += \
 	s-init.adb
 
 CUSTOM_ADA_FLAGS = --RTS=$(ADA_RTS) -c -gnatg -gnatp -gnatpg -gnatn2
+
+CC_ADA_WARN_STRICT =
 
 # C runtime glue code
 SRC_CC += genode.cc

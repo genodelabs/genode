@@ -23,11 +23,6 @@ extern "C" void print_stage(int s)
     Genode::log("stage: ", s);
 }
 
-extern "C" void __gnat_rcheck_CE_Overflow_Check()
-{
-    Genode::warning(__func__, " not implemented");
-}
-
 void Component::construct(Genode::Env &env)
 {
     adainit();
