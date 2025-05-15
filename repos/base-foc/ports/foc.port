@@ -47,5 +47,6 @@ PATCH_OPT(patches/0024-FOC-ia32-add-implementation-for-__udivmoddi4.patch)      
 PATCH_OPT(patches/0025-FOC-no-tree-loop-distribute-patterns.patch)                := -p1 -d${DIR(foc)}
 PATCH_OPT(patches/0026-FOC-enable-gcc_14.patch)                                   := -p1 -d${DIR(foc)}
 PATCH_OPT(patches/0027-L4-enable-gcc_14.patch)                                    := -p1 -d${DIR(mk)}
+PATCH_OPT(patches/0028-gas-section-flags.patch)                                   := -p1 -d${DIR(mk)}
 
 $(call check_tool,gawk)
