@@ -2,7 +2,7 @@
 
 	<requires> <timer/> </requires>
 
-	<fail after_seconds="20"/>
+	<fail after_seconds="20">invisible message</fail>
 	<succeed>Finished</succeed>
 
 	<content>
@@ -36,6 +36,7 @@
 				<service name="Capture"/>
 				<service name="Audio_in"/>
 				<service name="Audio_out"/>
+				<service name="LOG"/>
 			</provides>
 			<config>
 				<usb/>
@@ -47,6 +48,7 @@
 				<capture/>
 				<audio_in/>
 				<audio_out/>
+				<log/>
 			</config>
 			<route>
 				<service name="Timer"> <parent/> </service>
@@ -68,7 +70,8 @@
 				<service name="Capture">               <child name="black_hole"/> </service>
 				<service name="Audio_in">              <child name="black_hole"/> </service>
 				<service name="Audio_out">             <child name="black_hole"/> </service>
-				<service name="ROM">                  <parent/> </service>
+				<service name="LOG" label="any_label"> <child name="black_hole"/> </service>
+				<service name="ROM">                   <parent/> </service>
 				<service name="PD">                    <parent/> </service>
 				<service name="LOG">                   <parent/> </service>
 				<service name="CPU">                   <parent/> </service>

@@ -34,6 +34,7 @@
 #include <nic/packet_allocator.h>
 #include <input/keycodes.h>
 #include <timer_session/connection.h>
+#include <log_session/connection.h>
 
 using namespace Genode;
 
@@ -389,6 +390,8 @@ class Black_hole_test::Main
 		Event_test             _event_test     { _env };
 		Usb_test               _usb_test       { _env, _heap };
 		Rom_test               _rom_test       { _env };
+		Log_connection         _log            { _env, "any_label" };
+
 
 		void _handle_signal()
 		{
@@ -406,6 +409,7 @@ class Black_hole_test::Main
 			    _usb_test.finished() &&
 			    _rom_test.finished()) {
 
+				_log.write("invisible message");
 				log("Finished");
 			}
 		}

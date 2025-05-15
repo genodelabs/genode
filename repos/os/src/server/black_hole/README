@@ -15,6 +15,7 @@ in the configuration of the component.
 * Usb
 * Play
 * Record
+* Log
 
 <config>
 	<audio_in/>
@@ -28,6 +29,7 @@ in the configuration of the component.
 	<usb/>
 	<play/>
 	<record/>
+	<log/>
 </config>
 
 Black hole optionally requests the following sessions as client.

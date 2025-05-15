@@ -17,6 +17,7 @@
 				<xs:element name="capture"/>
 				<xs:element name="audio_in"/>
 				<xs:element name="audio_out"/>
+				<xs:element name="log"/>
 			</xs:choice>
 		</xs:complexType>
 	</xs:element><!-- config -->
