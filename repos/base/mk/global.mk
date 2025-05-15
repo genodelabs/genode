@@ -198,8 +198,8 @@ CC_OPT     += $(CC_OPT_PIC)
 CC_CXX_OPT += $(CC_OPT) $(CC_CXX_WARN)
 CC_C_OPT   += $(CC_OPT)
 CC_ADA_OPT += $(CC_ADA_WARN) -fexceptions
-CC_ADA_OPT += $(filter-out -fno-builtin-cos -fno-builtin-sin \
-                           -fno-builtin-cosf -fno-builtin-sinf ,$(CC_OPT))
+CC_ADA_OPT += $(filter-out -ffreestanding -fno-builtin-cos -fno-builtin-sin \
+                           -fno-builtin-cosf -fno-builtin-sinf,$(CC_OPT))
 
 #
 # Enable C++11 by default
