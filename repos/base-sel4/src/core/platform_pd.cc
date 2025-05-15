@@ -15,7 +15,6 @@
 #include <platform_pd.h>
 #include <platform.h>
 #include <util.h>
-#include <core_cspace.h>
 #include <kernel_object.h>
 
 /* base-internal includes */
@@ -28,23 +27,28 @@ using namespace Core;
  ** Allocator for protection-domain IDs **
  *****************************************/
 
-struct Pd_id_alloc : Bit_allocator<1024>
+struct Pd_id_alloc : Platform_pd::Pd_id_allocator
 {
 	Pd_id_alloc()
 	{
 		/*
-		 * Skip 0 because this top-level index is used to address the core
-		 * CNode.
+		 * Reserve Top_cnode_index used by core
 		 */
-		bool ok = _reserve(0, 1);
+		bool ok = _reserve(Core_cspace::TOP_CNODE_CORE_IDX, 1); /* 0x000 */
 		ASSERT (ok);
-		ok = _reserve(Core_cspace::CORE_VM_ID, 1);
+		ok = _reserve(Core_cspace::CORE_VM_ID             , 1); /* 0x001 */
+		ASSERT (ok);
+		ok = _reserve(Core_cspace::TOP_CNODE_UNTYPED_16K  , 1); /* 0xffd */
+		ASSERT (ok);
+		ok = _reserve(Core_cspace::TOP_CNODE_UNTYPED_4K   , 1); /* 0xffe */
+		ASSERT (ok);
+		ok = _reserve(Core_cspace::TOP_CNODE_PHYS_IDX     , 1); /* 0xfff */
 		ASSERT (ok);
 	}
 };
 
 
-Bit_allocator<1024> &Platform_pd::pd_id_alloc()
+Platform_pd::Pd_id_allocator & Platform_pd::pd_id_alloc()
 {
 	static Pd_id_alloc inst;
 	return inst;
@@ -189,4 +193,6 @@ Platform_pd::~Platform_pd()
 
 	_deinit_page_directory(_page_directory);
 	platform_specific().core_sel_alloc().free(_page_directory_sel);
+
+	pd_id_alloc().free(_id);
 }
