@@ -193,38 +193,39 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 				session.ready_callback = this;
 				session.closed_callback = this;
 
-				try {
-					Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
-					Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
+				/* release session meta data if any quota transfer fails */
+				struct Guard {
+					Session_state &session;
+					bool ok;
+					~Guard() { if (!ok) session.destroy(); }
+				} session_guard { .session = session, .ok = false };
 
-					Ram_transfer::Remote_account ram_account { pd, pd_session_cap() };
-					Cap_transfer::Remote_account cap_account { pd, pd_session_cap() };
+				Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
+				Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
 
-					/* transfer the quota donation from the child's account to ourself */
-					Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
-					Cap_transfer cap_donation_from_child(cap_quota, cap_account, ref_cap_account);
+				Ram_transfer::Remote_account ram_account { pd, pd_session_cap() };
+				Cap_transfer::Remote_account cap_account { pd, pd_session_cap() };
 
-					/* transfer session quota from ourself to the service provider */
-					Ram_transfer ram_donation_to_service(forward_ram_quota, ref_ram_account, service);
-					Cap_transfer cap_donation_to_service(cap_quota,         ref_cap_account, service);
+				/* transfer the quota donation from the child's account to ourself */
+				Ram_transfer ram_from_child (ram_quota, ram_account, ref_ram_account);
+				Cap_transfer caps_from_child(cap_quota, cap_account, ref_cap_account);
 
-					/* finish transaction */
-					ram_donation_from_child.acknowledge();
-					cap_donation_from_child.acknowledge();
-					ram_donation_to_service.acknowledge();
-					cap_donation_to_service.acknowledge();
-				}
-				/*
-				 * Release session meta data if one of the quota transfers went wrong.
-				 */
-				catch (Ram_transfer::Quota_exceeded) {
-					session.destroy();
-					return Session_error::OUT_OF_RAM;
-				}
-				catch (Cap_transfer::Quota_exceeded) {
-					session.destroy();
-					return Session_error::OUT_OF_CAPS;
-				}
+				if (ram_from_child.failed())  return Session_error::OUT_OF_RAM;
+				if (caps_from_child.failed()) return Session_error::OUT_OF_CAPS;
+
+				/* transfer session quota from ourself to the service provider */
+				Ram_transfer ram_to_service (forward_ram_quota, ref_ram_account, service);
+				Cap_transfer caps_to_service(cap_quota,         ref_cap_account, service);
+
+				if (ram_to_service.failed())  return Session_error::OUT_OF_RAM;
+				if (caps_to_service.failed()) return Session_error::OUT_OF_CAPS;
+
+				/* finish transaction */
+				session_guard.ok = true;
+				ram_from_child .acknowledge();
+				caps_from_child.acknowledge();
+				ram_to_service .acknowledge();
+				caps_to_service.acknowledge();
 
 				/* try to dispatch session request synchronously */
 				{
@@ -365,65 +366,70 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 		Cap_quota const cap_quota {
 			Arg_string::find_arg(args.string(), "cap_quota").ulong_value(0) };
 
-		try {
-			Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
-			Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
+		Ram_transfer::Remote_account ref_ram_account { _policy.ref_account(), _policy.ref_account_cap() };
+		Cap_transfer::Remote_account ref_cap_account { _policy.ref_account(), _policy.ref_account_cap() };
 
-			with_pd([&] (Pd_session &pd) {
+		with_pd([&] (Pd_session &pd) {
 
-				Ram_transfer::Remote_account ram_account { pd, pd_session_cap() };
-				Cap_transfer::Remote_account cap_account { pd, pd_session_cap() };
+			Ram_transfer::Remote_account ram_account { pd, pd_session_cap() };
+			Cap_transfer::Remote_account cap_account { pd, pd_session_cap() };
 
-				/* transfer quota from client to ourself */
-				Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
-				Cap_transfer cap_donation_from_child(cap_quota, cap_account, ref_cap_account);
+			/* transfer quota from client to ourself */
+			Ram_transfer ram_from_child (ram_quota, ram_account, ref_ram_account);
+			Cap_transfer caps_from_child(cap_quota, cap_account, ref_cap_account);
 
-				/* transfer session quota from ourself to the service provider */
-				Ram_transfer ram_donation_to_service(ram_quota, ref_ram_account, session.service());
-				Cap_transfer cap_donation_to_service(cap_quota, ref_cap_account, session.service());
+			if (ram_from_child .failed()) { result = Upgrade_result::OUT_OF_RAM;  return; }
+			if (caps_from_child.failed()) { result = Upgrade_result::OUT_OF_CAPS; return; }
 
-				session.increase_donated_quota(ram_quota, cap_quota);
-				session.phase = Session_state::UPGRADE_REQUESTED;
+			/* transfer session quota from ourself to the service provider */
+			Ram_transfer ram_to_service (ram_quota, ref_ram_account, session.service());
+			Cap_transfer caps_to_service(cap_quota, ref_cap_account, session.service());
 
-				auto upgrade_error = [] (Service::Initiate_error e)
-				{
-					using Error = Service::Initiate_error;
-					switch (e) {
-					case Error::OUT_OF_RAM:  return Upgrade_result::OUT_OF_RAM;
-					case Error::OUT_OF_CAPS: break;
-					}
-					return Upgrade_result::OUT_OF_CAPS;
-				};
+			if (ram_to_service .failed()) { result = Upgrade_result::OUT_OF_RAM;  return; }
+			if (caps_to_service.failed()) { result = Upgrade_result::OUT_OF_CAPS; return; }
 
-				Service::Initiate_result const initiate_result =
-					session.service().initiate_request(session);
+			session.increase_donated_quota(ram_quota, cap_quota);
+			session.phase = Session_state::UPGRADE_REQUESTED;
 
-				if (initiate_result.failed()) {
-					initiate_result.with_error([&] (Service::Initiate_error e) {
-						result = upgrade_error(e); });
-					return;
+			auto upgrade_error = [] (Service::Initiate_error e)
+			{
+				using Error = Service::Initiate_error;
+				switch (e) {
+				case Error::OUT_OF_RAM:  return Upgrade_result::OUT_OF_RAM;
+				case Error::OUT_OF_CAPS: break;
 				}
+				return Upgrade_result::OUT_OF_CAPS;
+			};
 
-				session_state_changed = true;
+			Service::Initiate_result const initiate_result =
+				session.service().initiate_request(session);
 
-				/* finish transaction */
-				ram_donation_from_child.acknowledge();
-				cap_donation_from_child.acknowledge();
-				ram_donation_to_service.acknowledge();
-				cap_donation_to_service.acknowledge();
-			},
-			[&] { warning(_policy.name(), ": PD unexpectedly not initialized"); });
-		}
-		catch (Ram_transfer::Quota_exceeded) {
+			if (initiate_result.failed()) {
+				initiate_result.with_error([&] (Service::Initiate_error e) {
+					result = upgrade_error(e); });
+				return;
+			}
+
+			session_state_changed = true;
+
+			/* finish transaction */
+			ram_from_child .acknowledge();
+			caps_from_child.acknowledge();
+			ram_to_service .acknowledge();
+			caps_to_service.acknowledge();
+		},
+		[&] { warning(_policy.name(), ": PD unexpectedly not initialized"); });
+
+		if (result == Upgrade_result::OUT_OF_RAM) {
 			warning(_policy.name(), ": RAM upgrade of ", session.service().name(), " failed");
-			result = Upgrade_result::OUT_OF_RAM;
 			return;
 		}
-		catch (Cap_transfer::Quota_exceeded) {
+
+		if (result == Upgrade_result::OUT_OF_CAPS) {
 			warning(_policy.name(), ": cap upgrade of ", session.service().name(), " failed");
-			result = Upgrade_result::OUT_OF_CAPS;
 			return;
 		}
+
 		if (session.phase == Session_state::CAP_HANDED_OUT) {
 			result = Upgrade_result::OK;
 			_policy.session_state_changed();
@@ -451,13 +457,13 @@ void Child::_revert_quota_and_destroy(Pd_session &pd, Session_state &session)
 	Cap_transfer::Account     &service_cap_account = session.service();
 	Cap_transfer::Remote_account child_cap_account(pd, pd_session_cap());
 
-	try {
+	{
 		/* transfer session quota from the service to ourself */
-		Ram_transfer ram_donation_from_service(session.donated_ram_quota(),
-		                                       service_ram_account, ref_ram_account);
+		Ram_transfer ram_from_service(session.donated_ram_quota(),
+		                              service_ram_account, ref_ram_account);
 
-		Cap_transfer cap_donation_from_service(session.donated_cap_quota(),
-		                                       service_cap_account, ref_cap_account);
+		Cap_transfer caps_from_service(session.donated_cap_quota(),
+		                               service_cap_account, ref_cap_account);
 
 		/*
 		 * Transfer session quota from ourself to the client (our child). In
@@ -468,21 +474,27 @@ void Child::_revert_quota_and_destroy(Pd_session &pd, Session_state &session)
 		Ram_quota const returned_ram { session.donated_ram_quota().value +
 		                               _session_factory.session_costs() };
 
-		Ram_transfer ram_donation_to_client(returned_ram,
-		                                    ref_ram_account, child_ram_account);
-		Cap_transfer cap_donation_to_client(session.donated_cap_quota(),
-		                                    ref_cap_account, child_cap_account);
+		Ram_transfer ram_to_client(returned_ram,
+		                           ref_ram_account, child_ram_account);
+		Cap_transfer caps_to_client(session.donated_cap_quota(),
+		                            ref_cap_account, child_cap_account);
 
 		/* finish transaction */
-		ram_donation_from_service.acknowledge();
-		cap_donation_from_service.acknowledge();
-		ram_donation_to_client.acknowledge();
-		cap_donation_to_client.acknowledge();
+
+		if (ram_from_service.ok && ram_to_client.ok) {
+			ram_from_service .acknowledge();
+			ram_to_client    .acknowledge();
+		} else {
+			warning(_policy.name(), ": could not revert session RAM quota (", session, ")");
+		}
+
+		if (caps_from_service.ok && caps_to_client.ok) {
+			caps_from_service.acknowledge();
+			caps_to_client   .acknowledge();
+		} else {
+			warning(_policy.name(), ": could not revert session cap quota (", session, ")");
+		}
 	}
-	catch (Ram_transfer::Quota_exceeded) {
-		warning(_policy.name(), ": could not revert session RAM quota (", session, ")"); }
-	catch (Cap_transfer::Quota_exceeded) {
-		warning(_policy.name(), ": could not revert session cap quota (", session, ")"); }
 
 	session.destroy();
 	_policy.session_state_changed();
@@ -604,23 +616,25 @@ void Child::session_response(Server::Id id, Session_response response)
 				Cap_transfer::Remote_account ref_cap_account(_policy.ref_account(), _policy.ref_account_cap());
 				Cap_transfer::Account   &service_cap_account = session.service();
 
-				try {
-					/* transfer session quota from the service to ourself */
-					Ram_transfer ram_donation_from_service(session.donated_ram_quota(),
-					                                       service_ram_account, ref_ram_account);
+				/* transfer session quota from the service to ourself */
+				Ram_transfer ram_from_service(session.donated_ram_quota(),
+				                              service_ram_account, ref_ram_account);
 
-					Cap_transfer cap_donation_from_service(session.donated_cap_quota(),
-					                                       service_cap_account, ref_cap_account);
+				Cap_transfer caps_from_service(session.donated_cap_quota(),
+				                               service_cap_account, ref_cap_account);
 
-					ram_donation_from_service.acknowledge();
-					cap_donation_from_service.acknowledge();
-				}
-				catch (Ram_transfer::Quota_exceeded) {
+				if (ram_from_service.failed())
 					warning(_policy.name(), " failed to return session RAM quota "
-					        "(", session.donated_ram_quota(), ")"); }
-				catch (Cap_transfer::Quota_exceeded) {
-					warning(_policy.name(), " failed to return session cap quota "
-					        "(", session.donated_cap_quota(), ")"); }
+					        "(", session.donated_ram_quota(), ")");
+
+				if (caps_from_service.failed())
+					warning(_policy.name(), " failed to return session CAP quota "
+					        "(", session.donated_cap_quota(), ")");
+
+				if (ram_from_service.ok && caps_from_service.ok) {
+					ram_from_service .acknowledge();
+					caps_from_service.acknowledge();
+				}
 
 				session.destroy();
 				_policy.session_state_changed();
@@ -871,11 +885,8 @@ void Child::initiate_env_sessions()
 	 * accept this request to fail. In this case, the child creation may still
 	 * succeed if the binary is statically linked.
 	 */
-	try {
-		_linker.construct(*this, Parent::Env::linker(), _policy.linker_name());
-		_linker->initiate();
-	}
-	catch (Service_denied) { }
+	_linker.construct(*this, Parent::Env::linker(), _policy.linker_name());
+	_linker->initiate();
 
 	_try_construct_env_dependent_members();
 }

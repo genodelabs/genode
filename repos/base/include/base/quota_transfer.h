@@ -102,14 +102,16 @@ class Genode::Quota_transfer
 
 	private:
 
-		bool       _ack;
+		bool       _ack = false;
 		UNIT const _amount;
 		Account   &_from;
 		Account   &_to;
 
 	public:
 
-		class Quota_exceeded : Exception { };
+		bool const ok = !_from.cap(UNIT()).valid()
+		             || !_to.cap(UNIT()).valid()
+		             || (_from.transfer(_to.cap(UNIT()), _amount) != RESULT::EXCEEDED);
 
 		/**
 		 * Constructor
@@ -121,14 +123,8 @@ class Genode::Quota_transfer
 		 */
 		Quota_transfer(UNIT amount, Account &from, Account &to)
 		:
-			_ack(false), _amount(amount), _from(from), _to(to)
-		{
-			if (!_from.cap(UNIT()).valid() || !_to.cap(UNIT()).valid())
-				return;
-
-			if (_from.transfer(_to.cap(UNIT()), amount) == RESULT::EXCEEDED)
-				throw Quota_exceeded();
-		}
+			_amount(amount), _from(from), _to(to)
+		{ }
 
 		/**
 		 * Destructor
@@ -139,11 +135,13 @@ class Genode::Quota_transfer
 		 */
 		~Quota_transfer()
 		{
-			if (_ack || !_from.cap(UNIT()).valid() || !_to.cap(UNIT()).valid())
+			if (!ok || _ack || !_from.cap(UNIT()).valid() || !_to.cap(UNIT()).valid())
 				return;
 
 			_to.try_transfer(_from.cap(UNIT()), _amount);
 		}
+
+		bool failed() const { return !ok; }
 
 		/**
 		 * Acknowledge quota donation
