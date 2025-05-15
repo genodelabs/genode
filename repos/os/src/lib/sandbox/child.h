@@ -748,12 +748,14 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		void exit(int exit_value) override
 		{
-			try {
-				if (_start_node->xml.sub_node("exit").attribute_value("propagate", false)) {
-					_env.parent().exit(exit_value);
-					return;
-				}
-			} catch (...) { }
+			bool propagate = false;
+			_start_node->xml.with_optional_sub_node("exit", [&] (Xml_node const &node) {
+				propagate = node.attribute_value("propagate", false); });
+
+			if (propagate) {
+				_env.parent().exit(exit_value);
+				return;
+			}
 
 			/*
 			 * Trigger a new report for exited children so that any management
