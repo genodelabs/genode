@@ -225,7 +225,7 @@ struct Sequence::Main
 
 	Xml_node const config_xml = config_rom.xml();
 
-	int next_xml_index = 0;
+	unsigned next_xml_index = 0;
 
 	void start_next_child();
 
@@ -266,15 +266,20 @@ void Sequence::Main::start_next_child()
 	if (constructed)
 		child.destruct();
 
-	try { while (true) {
+	bool finished = false;
+	while (true) {
+		if (next_xml_index >= config_xml.num_sub_nodes()) {
+			finished = true;
+			break;
+		}
 		Xml_node sub_node = config_xml.sub_node(next_xml_index++);
 		if (sub_node.type() != "start")
 			continue;
 		child.construct(env, sub_node, exit_handler);
 		break;
-	} }
+	}
 
-	catch (Xml_node::Nonexistent_sub_node) {
+	if (finished) {
 
 		if (config_xml.attribute_value("repeat", false)) {
 			next_xml_index = 0;
