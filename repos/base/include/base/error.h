@@ -60,6 +60,28 @@ namespace Genode {
 	 * contain no unhandled error conditions.
 	 */
 	void raise(Alloc_error) __attribute__((noreturn));
+
+	/**
+	 * Error conditions of panic situations
+	 *
+	 * Those conditions should never occur in well-behaving programs.
+	 */
+	enum class Unexpected_error {
+		INDEX_OUT_OF_BOUNDS,       /* 'Array' accessed w/o index validation */
+		NONEXISTENT_SUB_NODE,      /* use of 'sub_node' instead of 'with_sub_node' */
+		ACCESS_UNCONSTRUCTED_OBJ,  /* missing check of 'constructed()' */
+		IPC_BUFFER_EXCEEDED,       /* IPC marshalling/unmarshalling */
+	};
+
+	/**
+	 * Raise an unexpected error
+	 *
+	 * As the occurrence of an 'Unexpected_error' conditions hints at
+	 * programming bug, the function prints a backtrace and reflects the
+	 * situation by throwing the matching exception defined at
+	 * _base/exception.h_.
+	 */
+	void raise(Unexpected_error) __attribute__((noreturn));
 }
 
 #endif /* _INCLUDE__BASE__ERROR_H_ */

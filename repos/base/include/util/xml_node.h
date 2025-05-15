@@ -14,9 +14,10 @@
 #ifndef _INCLUDE__UTIL__XML_NODE_H_
 #define _INCLUDE__UTIL__XML_NODE_H_
 
-#include <base/log.h>
 #include <util/token.h>
 #include <util/noncopyable.h>
+#include <base/log.h>
+#include <base/error.h>
 #include <base/exception.h>
 
 namespace Genode {
@@ -33,7 +34,16 @@ namespace Genode {
  */
 class Genode::Xml_attribute
 {
+	public:
+
+		class Invalid_syntax : public Exception { };
+
 	private:
+
+		/*
+		 * \noapi
+		 */
+		static inline void _raise_invalid_syntax() __attribute__((noreturn));
 
 		struct Scanner_policy_xml_identifier
 		{
@@ -93,10 +103,10 @@ class Genode::Xml_attribute
 		explicit Xml_attribute(Token t) : _tokens(t)
 		{
 			if (_tokens.name.type() != Token::IDENT)
-				throw Invalid_syntax();
+				_raise_invalid_syntax();
 
 			if (!_tokens.valid())
-				throw Invalid_syntax();
+				_raise_invalid_syntax();
 		}
 
 		/**
@@ -105,13 +115,6 @@ class Genode::Xml_attribute
 		Token _next_token() const { return _tokens.value.next(); }
 
 	public:
-
-		/*********************
-		 ** Exception types **
-		 *********************/
-
-		class Invalid_syntax : public Exception { };
-
 
 		using Name = String<64>;
 		Name name() const {
@@ -233,10 +236,8 @@ class Genode::Xml_node
 		 ** Exception types **
 		 *********************/
 
-		using Invalid_syntax = Xml_attribute::Invalid_syntax;
-
-		class Nonexistent_sub_node  : public Exception { };
-
+		using Invalid_syntax       = Xml_attribute::Invalid_syntax;
+		using Nonexistent_sub_node = Genode::Nonexistent_sub_node;
 
 		/**
 		 * Type definition for maintaining backward compatibility
@@ -621,7 +622,7 @@ class Genode::Xml_node
 		Xml_node _node_at(char const *at) const
 		{
 			if (!_valid_node_at(at))
-				throw Nonexistent_sub_node();
+				raise(Unexpected_error::NONEXISTENT_SUB_NODE);
 
 			return Xml_node(at, _max_len - (at - _addr));
 		}
@@ -646,7 +647,7 @@ class Genode::Xml_node
 			_addr(bytes.start), _max_len(bytes.num_bytes)
 		{
 			if (!_valid(_tags))
-				throw Invalid_syntax();
+				Xml_attribute::_raise_invalid_syntax();
 		}
 
 		Xml_node(char const *addr, size_t max_len = ~0UL)
@@ -764,15 +765,7 @@ class Genode::Xml_node
 		 *
 		 * \throw Nonexistent_sub_node  subsequent node does not exist
 		 */
-		Xml_node next() const
-		{
-			Token after_node = _tags.end.next_token();
-			after_node = skip_non_tag_characters(after_node);
-			try {
-				return _node_at(after_node.start());
-			}
-			catch (Invalid_syntax) { throw Nonexistent_sub_node(); }
-		}
+		inline Xml_node next() const;
 
 		/**
 		 * Return next XML node of specified type
@@ -816,18 +809,7 @@ class Genode::Xml_node
 		 *                               default is the first node
 		 * \throw  Nonexistent_sub_node  no such sub node exists
 		 */
-		Xml_node sub_node(unsigned idx = 0U) const
-		{
-			if (_tags.num_sub_nodes > 0) {
-				try {
-					Xml_node curr_node = _node_at(_content_base());
-					for (; idx > 0; idx--)
-						curr_node = curr_node.next();
-					return curr_node;
-				} catch (Invalid_syntax) { }
-			}
-			throw Nonexistent_sub_node();
-		}
+		inline Xml_node sub_node(unsigned idx = 0U) const;
 
 		/**
 		 * Return first sub node that matches the specified type
@@ -836,17 +818,23 @@ class Genode::Xml_node
 		 */
 		Xml_node sub_node(char const *type) const
 		{
+			struct Guard {
+				bool ok = false;
+				~Guard() { if (!ok) raise(Unexpected_error::NONEXISTENT_SUB_NODE); }
+			} guard { };
+
 			if (_tags.num_sub_nodes > 0) {
 
 				/* search for sub node of specified type */
-				try {
-					Xml_node curr_node = _node_at(_content_base());
-					for ( ; true; curr_node = curr_node.next())
-						if (!type || curr_node.has_type(type))
-							return curr_node;
-				} catch (...) { }
+				Xml_node curr_node = _node_at(_content_base());
+				for ( ; true; curr_node = curr_node.next()) {
+					if (!type || curr_node.has_type(type)) {
+						guard.ok = true;
+						return curr_node;
+					}
+				}
 			}
-			throw Nonexistent_sub_node();
+			raise(Unexpected_error::NONEXISTENT_SUB_NODE);
 		}
 
 		/**
@@ -1022,6 +1010,59 @@ class Genode::Xml_node
 			return result;
 		}
 };
+
+
+/*
+ * Provide functions that depend of C++ exceptions. The attempt to combine
+ * 'Xml_node' with '-fno-exceptions' results in a link error.
+ */
+#ifdef __EXCEPTIONS
+
+void Genode::Xml_attribute::_raise_invalid_syntax() { throw Invalid_syntax(); }
+
+Genode::Xml_node Genode::Xml_node::next() const
+{
+	Token after_node = _tags.end.next_token();
+	after_node = skip_non_tag_characters(after_node);
+	try {
+		return _node_at(after_node.start());
+	}
+	catch (Invalid_syntax) {
+		raise(Unexpected_error::NONEXISTENT_SUB_NODE); }
+}
+
+Genode::Xml_node Genode::Xml_node::sub_node(unsigned idx) const
+{
+	if (_tags.num_sub_nodes > 0) {
+		try {
+			Xml_node curr_node = _node_at(_content_base());
+			for (; idx > 0; idx--)
+				curr_node = curr_node.next();
+			return curr_node;
+		} catch (Invalid_syntax) { }
+	}
+	raise(Unexpected_error::NONEXISTENT_SUB_NODE);
+}
+
+#else /* __EXCEPTIONS */
+
+extern void attempt_to_use_xml_node_without_exceptions() __attribute__((noreturn));
+
+void Genode::Xml_attribute::_raise_invalid_syntax()
+{
+	attempt_to_use_xml_node_without_exceptions();
+}
+
+Genode::Xml_node Genode::Xml_node::next() const
+{
+	attempt_to_use_xml_node_without_exceptions();
+}
+
+Genode::Xml_node Genode::Xml_node::sub_node(unsigned) const
+{
+	attempt_to_use_xml_node_without_exceptions();
+}
+#endif /* __EXCEPTIONS */
 
 
 /**

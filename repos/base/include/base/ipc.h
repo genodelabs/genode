@@ -18,11 +18,10 @@
 #include <util/meta.h>
 #include <base/ipc_msgbuf.h>
 #include <base/rpc_args.h>
+#include <base/error.h>
 #include <base/log.h>
 
 namespace Genode {
-
-	struct Ipc_error : Exception { };
 
 	class Ipc_unmarshaller;
 
@@ -113,19 +112,21 @@ class Genode::Ipc_unmarshaller : Noncopyable
 			 * Note: The addr of the Rpc_in_buffer_base is a null pointer when this
 			 *       condition triggers.
 			 */
+#ifdef __EXCEPTIONS
 			try {
 				b = extract(Meta::Overload_selector<Rpc_in_buffer<SIZE> >());
 			} catch (Ipc_error) { }
+#else
+			b = extract(Meta::Overload_selector<Rpc_in_buffer<SIZE> >());
+#endif /* __EXCEPTIONS */
 		}
 
 		template<size_t SIZE>
 		Rpc_in_buffer<SIZE> extract(Meta::Overload_selector<Rpc_in_buffer<SIZE> >)
 		{
 			size_t size = extract(Meta::Overload_selector<size_t>());
-			if (_read_offset + size > _rcv_buf_size) {
-				error("message buffer overrun");
-				throw Ipc_error();
-			}
+			if (_read_offset + size > _rcv_buf_size)
+				raise(Unexpected_error::IPC_BUFFER_EXCEEDED);
 
 			Rpc_in_buffer<SIZE> buf(&_rcv_buf[_read_offset], size);
 			_read_offset += align_natural(size);
@@ -145,7 +146,8 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		T extract(Meta::Overload_selector<T>)
 		{
 			/* check receive buffer range */
-			if (_read_offset + sizeof(T) > _rcv_buf_size) throw Ipc_error();
+			if (_read_offset + sizeof(T) > _rcv_buf_size)
+				raise(Unexpected_error::IPC_BUFFER_EXCEEDED);
 
 			/* return value from receive buffer */
 			T value = *reinterpret_cast<T *>(&_rcv_buf[_read_offset]);

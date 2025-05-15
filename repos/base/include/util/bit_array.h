@@ -15,9 +15,9 @@
 #ifndef _INCLUDE__UTIL__BIT_ARRAY_H_
 #define _INCLUDE__UTIL__BIT_ARRAY_H_
 
-#include <util/string.h>
 #include <base/exception.h>
-#include <base/stdint.h>
+#include <base/error.h>
+#include <base/log.h>
 
 namespace Genode {
 
@@ -30,10 +30,7 @@ class Genode::Bit_array_base
 {
 	public:
 
-		class Invalid_bit_count    : public Exception {};
-		class Invalid_index_access : public Exception {};
-		class Invalid_clear        : public Exception {};
-		class Invalid_set          : public Exception {};
+		using Invalid_index_access = Genode::Index_out_of_bounds;
 
 	protected:
 
@@ -57,7 +54,7 @@ class Genode::Bit_array_base
 			if ((index >= _word_cnt * BITS_PER_WORD) ||
 			    width > _word_cnt * BITS_PER_WORD ||
 			    _word_cnt * BITS_PER_WORD - width < index)
-				throw Invalid_index_access();
+				raise(Unexpected_error::INDEX_OUT_OF_BOUNDS);
 		}
 
 		addr_t _mask(addr_t const index, addr_t const width,
@@ -82,12 +79,16 @@ class Genode::Bit_array_base
 				addr_t const mask = _mask(index, width, rest);
 
 				if (free) {
-					if ((_words[word] & mask) != mask)
-						throw Invalid_clear();
+					if ((_words[word] & mask) != mask) {
+						error("Bit_array: invalid clear");
+						return;
+					}
 					_words[word] &= ~mask;
 				} else {
-					if (_words[word] & mask)
-						throw Invalid_set();
+					if (_words[word] & mask) {
+						error("Bit_array: invalid set");
+						return;
+					}
 					_words[word] |= mask;
 				}
 
@@ -109,14 +110,13 @@ class Genode::Bit_array_base
 		 *
 		 * \param ptr  pointer to array used as backing store for the bits.
 		 *             The array must be initialized with zeros.
-		 *
-		 * \throw Invalid_bit_count
 		 */
 		Bit_array_base(unsigned bits, addr_t *ptr)
 		:
 			_bit_cnt(bits), _words(ptr)
 		{
-			if (!bits || bits % BITS_PER_WORD) throw Invalid_bit_count();
+			if (!bits || bits % BITS_PER_WORD)
+				error("Bit_array: invalid bit count");
 		}
 
 		/**

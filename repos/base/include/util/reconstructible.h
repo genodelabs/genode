@@ -16,8 +16,9 @@
 
 #include <util/construct_at.h>
 #include <util/misc_math.h>
-#include <base/stdint.h>
 #include <util/noncopyable.h>
+#include <base/stdint.h>
+#include <base/error.h>
 
 namespace Genode {
 	template<typename> class Reconstructible;
@@ -63,7 +64,7 @@ class Genode::Reconstructible : Noncopyable
 		void _check_constructed() const
 		{
 			if (!_constructed)
-				throw Deref_unconstructed_object();
+				raise(Unexpected_error::ACCESS_UNCONSTRUCTED_OBJ);
 		}
 
 	protected:
@@ -81,8 +82,6 @@ class Genode::Reconstructible : Noncopyable
 		Reconstructible(Lazy *) { }
 
 	public:
-
-		class Deref_unconstructed_object { };
 
 		/**
 		 * Constructor
@@ -168,7 +167,7 @@ class Genode::Reconstructible<T &> : Noncopyable
 		void _check_non_null() const
 		{
 			if (!_ptr)
-				throw Deref_unconstructed_object();
+				raise(Unexpected_error::ACCESS_UNCONSTRUCTED_OBJ);
 		}
 
 		Reconstructible operator = (Reconstructible const &);
@@ -181,8 +180,6 @@ class Genode::Reconstructible<T &> : Noncopyable
 		Reconstructible(Lazy *) : _ptr(nullptr) { }
 
 	public:
-
-		class Deref_unconstructed_object { };
 
 		Reconstructible(T &ref) : _ptr(&ref) { }
 

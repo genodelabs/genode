@@ -79,15 +79,10 @@ struct Genode::Ram_allocator : Ram::Constrained_allocator
 
 namespace Genode {
 
-	static inline void throw_exception(Ram::Error e)
-	{
-		switch (e) {
-		case Ram::Error::OUT_OF_RAM:  throw Out_of_ram();
-		case Ram::Error::OUT_OF_CAPS: throw Out_of_caps();
-		case Ram::Error::DENIED:      break;
-		}
-		throw Denied();
-	}
+	/*
+	 * \deprecated
+	 */
+	static inline void throw_exception(Ram::Error e) { raise(e); }
 }
 
 #endif /* _INCLUDE__BASE__RAM_ALLOCATOR_H_ */

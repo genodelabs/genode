@@ -20,6 +20,11 @@ namespace Genode {
 	struct Out_of_ram  : Exception { };
 	struct Out_of_caps : Exception { };
 	struct Denied      : Exception { };
+
+	struct Index_out_of_bounds      : Exception { };
+	struct Access_unconstructed_obj : Exception { };
+	struct Nonexistent_sub_node     : Exception { };
+	struct Ipc_error                : Exception { };
 }
 
 #endif /* _INCLUDE__BASE__EXCEPTION_H_ */

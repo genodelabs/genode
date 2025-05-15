@@ -421,6 +421,13 @@ void Genode::init_thread_bootstrap(Cpu_session &cpu, Thread_capability main_cap)
 }
 
 
+Genode::Thread::Stack_info Genode::Thread::mystack()
+{
+	error("unsupported 'Thread::mystack' call by lx_hybrid component");
+	sleep_forever();
+}
+
+
 extern "C" void *malloc(::size_t size);
 extern "C" void free(void *);
 

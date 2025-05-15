@@ -28,7 +28,7 @@ using Genode::sleep_forever;
 static void *try_alloc(Allocator *alloc, size_t size)
 {
 	if (!alloc)
-		throw Allocator::Out_of_memory();
+		Genode::raise(Genode::Alloc_error::DENIED);
 
 	return alloc->alloc(size);
 }

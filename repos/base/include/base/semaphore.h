@@ -45,7 +45,7 @@ class Genode::Semaphore
 		~Semaphore()
 		{
 			/* synchronize destruction with unfinished 'up()' */
-			try { _meta_lock.acquire(); } catch (...) { }
+			_meta_lock.acquire();
 		}
 
 		/**

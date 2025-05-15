@@ -117,7 +117,7 @@ struct Main
 
 			log("try to call method on member, catch exception");
 			try { call_const_method(compound); }
-			catch (typename Reconstructible<Member_with_reference>::Deref_unconstructed_object) {
+			catch (Access_unconstructed_obj) {
 				log("got exception, as expected"); }
 
 			log("destruct Compound and Objects 1 and 2");

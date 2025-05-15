@@ -20,3 +20,10 @@ Genode::Thread * Genode::Thread::myself()
 	assert(false);
 	return nullptr;
 }
+
+
+Genode::Thread::Stack_info Genode::Thread::mystack()
+{
+	assert(false);
+	return { };
+}

@@ -115,6 +115,8 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 		void _write_results(Msgbuf_base &, Meta::Empty) { }
 
+#ifdef __EXCEPTIONS
+
 		template <typename RPC_FUNCTION, typename EXC_TL>
 		typename RPC_FUNCTION::Ret_type
 		_do_serve(typename RPC_FUNCTION::Server_args &args,
@@ -136,6 +138,8 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 				throw Rpc_exception_code(EXCEPTION_CODE);
 			}
 		}
+
+#endif /* __EXCEPTIONS */
 
 		template <typename RPC_FUNCTION>
 		typename RPC_FUNCTION::Ret_type
@@ -175,13 +179,16 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 
 				using Ret_type = typename This_rpc_function::Ret_type;
 				Rpc_exception_code exc(Rpc_exception_code::SUCCESS);
+#ifdef __EXCEPTIONS
 				try {
+#endif
 					using Exceptions = typename This_rpc_function::Exceptions;
 					Overload_selector<This_rpc_function, Exceptions> overloader;
 					Ret_type ret = _do_serve(args, overloader);
 
 					_write_results(out, args);
 					out.insert(ret);
+#ifdef __EXCEPTIONS
 				} catch (Rpc_exception_code thrown) {
 					/**
 					 * Output arguments may be modified although an exception was thrown.
@@ -190,6 +197,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 					_write_results(out, args);
 					exc = thrown;
 				}
+#endif
 
 				{
 					Trace::Rpc_reply trace_event(This_rpc_function::name());

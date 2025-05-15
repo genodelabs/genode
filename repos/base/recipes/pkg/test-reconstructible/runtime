@@ -23,6 +23,8 @@
 			[init -> test-reconstructible] destruct member
 			[init -> test-reconstructible] destruct Member_with_reference
 			[init -> test-reconstructible] try to call method on member, catch exception
+			[init -> test-reconstructible] *Error: attempt to access unconstructed object*
+			[init -> test-reconstructible] backtrace "ep"*
 			[init -> test-reconstructible] got exception, as expected
 			[init -> test-reconstructible] destruct Compound and Objects 1 and 2
 			[init -> test-reconstructible] destruct Compound

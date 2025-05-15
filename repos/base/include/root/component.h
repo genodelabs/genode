@@ -226,7 +226,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
 
 		virtual Create_result _create_session(const char *)
 		{
-			throw Service_denied();
+			return Create_error::DENIED;
 		}
 
 		/**
@@ -322,7 +322,9 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
 		{
 			if (!args.valid_string()) return Create_error::DENIED;
 
+#ifdef __EXCEPTIONS
 			try {
+#endif
 				return Local_service::budget_adjusted_args(args.string(), *md_alloc())
 					.template convert<Root::Result>(
 						[&] (Session_state::Args const &adjusted_args) -> Root::Result {
@@ -332,6 +334,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
 									[&] (Create_error e)    { return e; });
 						},
 						[&] (Create_error e) { return e; });
+#ifdef __EXCEPTIONS
 			}
 			catch (Out_of_ram)             { return Create_error::INSUFFICIENT_RAM; }
 			catch (Out_of_caps)            { return Create_error::INSUFFICIENT_CAPS; }
@@ -342,6 +345,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION> >,
 				warning("unexpected exception during ",
 				        SESSION::service_name(), "-session creation");
 			}
+#endif
 			return Create_error::DENIED;
 		}
 

@@ -9,6 +9,16 @@ src/include src/core src/lib src/timer lib/mk:
 	cp -r $(GENODE_DIR)/repos/base/$@/* $@
 	cp -r $(REP_DIR)/$@/* $@
 
+# content needed for os/backtrace.h
+MIRROR_FROM_OS += include/os/backtrace.h include/util/formatted_output.h \
+                  $(foreach A, x86_32 x86_64 arm arm_64, \
+                     include/spec/$A/os/for_each_return_address.h)
+
+content: $(MIRROR_FROM_OS)
+$(MIRROR_FROM_OS):
+	mkdir -p $(dir $@)
+	cp $(GENODE_DIR)/repos/os/$@ $@
+
 LICENSE:
 	cp $(GENODE_DIR)/LICENSE $@
 

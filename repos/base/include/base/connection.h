@@ -121,15 +121,19 @@ class Genode::Connection : public Connection_base
 				warning("truncated arguments of ",
 				        SESSION_TYPE::service_name(), " session");
 
+#ifdef __EXCEPTIONS
 			try {
+#endif
 				return env.session<SESSION_TYPE>(id, complete_args.string(),
 				                                 affinity);
+#ifdef __EXCEPTIONS
 			}
 			catch (...) {
 				error(SESSION_TYPE::service_name(), "-session creation failed "
 				      "(", complete_args, ")");
 				throw;
 			}
+#endif
 		}
 
 		Capability<SESSION_TYPE> _cap;

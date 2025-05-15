@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__UTIL__ARRAY_H_
 #define _INCLUDE__UTIL__ARRAY_H_
 
+#include <base/error.h>
+
 namespace Genode { template <typename, unsigned> class Array; }
 
 
@@ -32,8 +34,6 @@ class Genode::Array
 		T        _objs[MAX];
 
 	public:
-
-		struct Index_out_of_bounds {}; /* Exception type */
 
 		/**
 		 * Constructs an empty array
@@ -67,7 +67,7 @@ class Genode::Array
 		T & value(unsigned idx)
 		{
 			if (idx >= _count)
-				throw Index_out_of_bounds();
+				raise(Unexpected_error::INDEX_OUT_OF_BOUNDS);
 			return _objs[idx];
 		}
 
@@ -84,7 +84,7 @@ class Genode::Array
 		void add(T obj)
 		{
 			if ((_count + 1) > MAX)
-				throw Index_out_of_bounds();
+				raise(Unexpected_error::INDEX_OUT_OF_BOUNDS);
 			_objs[_count++] = obj;
 		}
 
