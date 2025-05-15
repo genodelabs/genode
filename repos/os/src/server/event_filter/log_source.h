@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <input/keycodes.h>
+#include <util/bit_array.h>
 
 /* local includes */
 #include <include_accessor.h>
@@ -39,9 +40,11 @@ class Event_filter::Log_source : public Source, Source::Filter
 
 		Source &_source;
 
-		unsigned _event_cnt = 0;
-		int      _key_cnt   = 0;
+		unsigned _event_cnt  = 0;
+		int      _key_cnt    = 0;
+		int      _finger_cnt = 0;
 
+		Bit_array<64> _fingers { };
 
 		/**
 		 * Filter interface
@@ -52,7 +55,21 @@ class Event_filter::Log_source : public Source, Source::Filter
 				if (event.press())   ++_key_cnt;
 				if (event.release()) --_key_cnt;
 
-				log(_prefix, "Input event #", _event_cnt++, "\t", event, "\tkey count: ", _key_cnt);
+				event.handle_touch([&] (Input::Touch_id id, float, float) {
+					if (!_fingers.get(id.value, 1)) {
+						_finger_cnt++;
+						_fingers.set(id.value, 1);
+					}
+				});
+
+				event.handle_touch_release([&] (Input::Touch_id id) {
+					if (_fingers.get(id.value, 1)) {
+						_finger_cnt--;
+						_fingers.clear(id.value, 1);
+					}
+				});
+
+				log(_prefix, "Input event #", _event_cnt++, "\t", event, "\tkey count: ", _key_cnt, "\tfinger count: ", _finger_cnt);
 			}
 
 			/* forward event */
