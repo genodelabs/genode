@@ -172,6 +172,7 @@ SECTIONS
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
     KEEP (*(.init_array)) /* list of constructors specific for ARM eabi */
+    KEEP (*(SORT(.init_array.*)))
     _ctors_end = .;
     KEEP(*(_mark_ctors_end));
     
