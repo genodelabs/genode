@@ -1,0 +1,26 @@
+gcc14.patch
+
+diff -ru snapshot/kernel/fiasco/src/lib/libk/slab_cache_anon.cpp snapshot.works/kernel/fiasco/src/lib/libk/slab_cache_anon.cpp
+--- fiasco/snapshot/kernel/fiasco/src/lib/libk/slab_cache_anon.cpp	2025-05-16 12:07:27.582988071 +0200
++++ fiasco/snapshot/kernel/fiasco/src/lib/libk/slab_cache_anon.cpp	2025-05-16 12:07:14.666988120 +0200
+@@ -406,7 +406,7 @@
+     return 0;
+ 
+   void *r;
+-  if (EXPECT_FALSE(!(r=alloc())))
++  if (!(r=alloc()))
+     {
+       quota->free(_elem_size);
+       return 0;
+diff -ru snapshot/l4/mk/config.in snapshot.works/l4/mk/config.in
+--- fiasco/snapshot/l4/mk/config.in	2025-05-16 12:07:27.607988071 +0200
++++ fiasco/snapshot/l4/mk/config.in	2025-05-16 12:07:14.670988120 +0200
+@@ -166,7 +166,7 @@
+ bool 'Strip binaries on install' BID_STRIP_PROGS
+ bool 'Generate stabs-compatible debug Infos with gcc-3+' BID_GSTAB_SW
+ if [ "$BID_GSTAB_SW" = "y" ] ; then
+-    define_string BID_CFLAGS_GSTAB "-gstabs+"
++    define_string BID_CFLAGS_GSTAB "-ggdb"
+ fi
+ bool 'GCC: Omit Frame-pointers' BID_GCC_OMIT_FP
+ if [ "$BID_GCC_OMIT_FP" = "y" ] ; then
