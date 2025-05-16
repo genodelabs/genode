@@ -65,7 +65,7 @@ class Libc::Slab_alloc : public Slab
 				[&] (Alloc_error)   { return nullptr; });
 		}
 
-		void free(void *ptr) { Slab::free(ptr, _object_size); }
+		void dealloc(void *ptr) { Slab::free(ptr, _object_size); }
 };
 
 
@@ -226,7 +226,7 @@ class Libc::Malloc
 			if (msb > SLAB_STOP) {
 				_backing_store.free(alloc_addr, real_size);
 			} else {
-				_slabs[msb - SLAB_START]->free(alloc_addr);
+				_slabs[msb - SLAB_START]->dealloc(alloc_addr);
 			}
 		}
 };
