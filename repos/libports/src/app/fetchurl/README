@@ -78,6 +78,11 @@ attributes:
 
 * :timeout: denotes if the download timed-out
 
+* :finished: denotes if the download has finished
+
+* :result: denotes the result of the download attempt.
+  Valid values are 'success' and 'failed'.
+
 ! <progress>
-!   <fetch url="..." total="16380" now="4096"/>
+!   <fetch url="..." total="16380" now="4096" finished="false"/>
 ! </progress>
