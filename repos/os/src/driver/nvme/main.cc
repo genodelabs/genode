@@ -1911,13 +1911,13 @@ class Nvme::Driver : Genode::Noncopyable
 			    "I/O entries: ", ctrlr.max_io_entries());
 
 			/* generate Report if requested */
-			try {
-				Genode::Xml_node report = _config_rom.xml().sub_node("report");
-				if (report.attribute_value("namespaces", false)) {
-					_namespace_reporter.enabled(true);
-					_report_namespaces(ctrlr);
-				}
-			} catch (...) { }
+			_config_rom.xml().with_optional_sub_node("report",
+				[&] (Xml_node const &report) {
+					if (report.attribute_value("namespaces", false)) {
+						_namespace_reporter.enabled(true);
+						_report_namespaces(ctrlr);
+					}
+				});
 		}
 
 		~Driver() { /* free resources */ }
