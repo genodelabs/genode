@@ -9,7 +9,8 @@ INC_DIR = $(FFI_PORT)/include
 INC_DIR += $(call select_from_ports,ffi)/include/ffi/spec/x86_32 \
            $(REP_DIR)/src/lib/ffi
 
-CC_OPT = -DFFI_NO_RAW_API=0
+CC_OPT  = -DFFI_NO_RAW_API=0
+CC_OPT += -Wno-incompatible-pointer-types
 
 SRC_C = prep_cif.c types.c ffi.c dummies.c
 SRC_S = sysv.S
