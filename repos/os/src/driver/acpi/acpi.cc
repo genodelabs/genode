@@ -1578,12 +1578,13 @@ class Acpi_table
 
 			/* try platform_info ROM provided by core */
 			try {
-				Genode::Attached_rom_dataspace info(_env, "platform_info");
-				Genode::Xml_node xml(info.local_addr<char>(), info.size());
-				Xml_node acpi_node = xml.sub_node("acpi");
-				acpi_revision = acpi_node.attribute_value("revision", 0U);
-				rsdt = acpi_node.attribute_value("rsdt", 0UL);
-				xsdt = acpi_node.attribute_value("xsdt", 0UL);
+				Attached_rom_dataspace(_env, "platform_info")
+					.xml().with_optional_sub_node("acpi",
+						[&] (Xml_node const &acpi_node) {
+							acpi_revision = acpi_node.attribute_value("revision", 0U);
+							rsdt = acpi_node.attribute_value("rsdt", 0UL);
+							xsdt = acpi_node.attribute_value("xsdt", 0UL);
+						});
 			} catch (...) { }
 
 			/* try legacy way if not found in platform_info */

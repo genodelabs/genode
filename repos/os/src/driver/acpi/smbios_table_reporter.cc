@@ -146,12 +146,10 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 	};
 
 	addr_t efi_sys_tab_phy = 0;
-	try {
-		Attached_rom_dataspace info(env, "platform_info");
-		Xml_node xml(info.local_addr<char>(), info.size());
-		Xml_node acpi_node = xml.sub_node("efi-system-table");
-		efi_sys_tab_phy = acpi_node.attribute_value("address", 0UL);
-	} catch (...) { }
+	Attached_rom_dataspace info(env, "platform_info");
+	info.xml().with_optional_sub_node("efi-system-table",
+		[&] (Xml_node const &acpi_node) {
+			efi_sys_tab_phy = acpi_node.attribute_value("address", 0UL); });
 
 	if (!efi_sys_tab_phy) {
 		Smbios_table::from_scan(phy_mem, handle_smbios_3,
