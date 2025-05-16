@@ -64,6 +64,9 @@ ASM_SYM_DEPENDENCY := .long \1
 ifeq ($(filter-out $(SPECS),x86_64),)
 ASM_SYM_DEPENDENCY := movq \1@GOTPCREL(%rip), %rax
 endif
+ifeq ($(filter-out $(SPECS),riscv),)
+ASM_SYM_DEPENDENCY := .dword \1
+endif
 
 symbols.s: $(SYMBOLS)
 	$(MSG_CONVERT)$@
