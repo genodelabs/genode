@@ -1029,11 +1029,13 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
  */
 static void configure_reporter(Genode::Xml_node const &config, Genode::Reporter &reporter)
 {
-	try {
-		reporter.enabled(config.sub_node("report")
-		                       .attribute_value(reporter.name().string(), false));
-	}
-	catch (...) { reporter.enabled(false); }
+	config.with_sub_node("report",
+		[&] (Genode::Xml_node const &node) {
+			reporter.enabled(node.attribute_value(reporter.name().string(), false));
+		},
+		[&] {
+			reporter.enabled(false);
+		});
 }
 
 
@@ -1081,11 +1083,12 @@ void Nitpicker::Main::_handle_config()
 	_global_keys.apply_config(config, _session_list);
 
 	/* update background color */
-	_builtin_background.color = Background::default_color();
-	if (config.has_sub_node("background"))
-		_builtin_background.color =
-			config.sub_node("background")
-			      .attribute_value("color", Background::default_color());
+	config.with_sub_node("background",
+		[&] (Xml_node const &node) {
+			_builtin_background.color =
+				node.attribute_value("color", Background::default_color()); },
+		[&] {
+			_builtin_background.color = Background::default_color(); });
 
 	configure_reporter(config, _pointer_reporter);
 	configure_reporter(config, _hover_reporter);
