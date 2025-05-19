@@ -147,6 +147,10 @@ class Window_layouter::Window : public List_model<Window>::Element
 		 */
 		Area _requested_size() const
 		{
+			/* return resize to 0x0 (i.e. close) irrespective of maximized state */
+			if (!_dragged_size.valid())
+				return _dragged_size;
+
 			return (_maximized || !_floating)
 			       ? _decorator_margins.inner_geometry({ { }, _target_area }).area
 			       : _dragged_size;
