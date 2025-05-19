@@ -222,6 +222,8 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
+		using Single_file_system::close;
+
 		void close(Vfs_watch_handle *handle) override
 		{
 			if (handle && (&handle->fs() == this))
