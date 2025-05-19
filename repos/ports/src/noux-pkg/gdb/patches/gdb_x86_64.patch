@@ -1,17 +1,6 @@
 gdb_x86_64.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- gdb/amd64-tdep.c |   14 ++++++++++++++
- gdb/i386-tdep.c  |    5 +++++
- gdb/osabi.c      |    3 +++
- gdb/osabi.h      |    1 +
- 4 files changed, 23 insertions(+)
-
 diff --git a/gdb/amd64-tdep.c b/gdb/amd64-tdep.c
-index 74cb9cf..bf45fd0 100644
 --- a/gdb/amd64-tdep.c
 +++ b/gdb/amd64-tdep.c
 @@ -51,6 +51,7 @@
@@ -22,7 +11,7 @@ index 74cb9cf..bf45fd0 100644
  #include "solib-svr4.h"
  
  /* Note that the AMD64 architecture was previously known as x86-64.
-@@ -3356,7 +3357,15 @@ amd64_target_description (uint64_t xcr0, bool segments)
+@@ -3378,7 +3379,15 @@ amd64_target_description (uint64_t xcr0, bool segments)
    return *tdesc;
  }
  
@@ -38,7 +27,7 @@ index 74cb9cf..bf45fd0 100644
  void
  _initialize_amd64_tdep ()
  {
-@@ -3364,6 +3373,11 @@ _initialize_amd64_tdep ()
+@@ -3386,6 +3395,11 @@ _initialize_amd64_tdep ()
  			  amd64_none_init_abi);
    gdbarch_register_osabi (bfd_arch_i386, bfd_mach_x64_32, GDB_OSABI_NONE,
  			  amd64_x32_none_init_abi);
@@ -51,10 +40,9 @@ index 74cb9cf..bf45fd0 100644
  
  
 diff --git a/gdb/i386-tdep.c b/gdb/i386-tdep.c
-index 49a7497..21c1101 100644
 --- a/gdb/i386-tdep.c
 +++ b/gdb/i386-tdep.c
-@@ -9122,6 +9122,11 @@ is \"default\"."),
+@@ -8955,6 +8955,11 @@ is \"default\"."),
    gdbarch_register_osabi (bfd_arch_i386, 0, GDB_OSABI_SVR4,
  			  i386_svr4_init_abi);
  
@@ -67,18 +55,9 @@ index 49a7497..21c1101 100644
    i386_init_reggroups ();
  
 diff --git a/gdb/osabi.c b/gdb/osabi.c
-index d18802a..3c9a812 100644
 --- a/gdb/osabi.c
 +++ b/gdb/osabi.c
-@@ -82,6 +82,7 @@ static const struct osabi_names gdb_osabi_names[] =
-   { "Newlib", NULL },
-   { "SDE", NULL },
-   { "PikeOS", NULL },
-+  { "Genode", NULL },
- 
-   { "<invalid>", NULL }
- };
-@@ -609,6 +610,8 @@ generic_elf_osabi_sniffer (bfd *abfd)
+@@ -520,6 +520,8 @@ generic_elf_osabi_sniffer (bfd *abfd)
        if (memcmp (&elf_elfheader (abfd)->e_ident[8],
  		  "FreeBSD", sizeof ("FreeBSD")) == 0)
  	osabi = GDB_OSABI_FREEBSD;
@@ -87,15 +66,13 @@ index d18802a..3c9a812 100644
      }
  
    return osabi;
-diff --git a/gdb/osabi.h b/gdb/osabi.h
-index 35f14ec..ae521e1 100644
---- a/gdb/osabi.h
-+++ b/gdb/osabi.h
-@@ -46,6 +46,7 @@ enum gdb_osabi
-   GDB_OSABI_NEWLIB,
-   GDB_OSABI_SDE,
-   GDB_OSABI_PIKEOS,
-+  GDB_OSABI_GENODE,
+diff --git a/gdbsupport/osabi.def b/gdbsupport/osabi.def
+--- a/gdbsupport/osabi.def
++++ b/gdbsupport/osabi.def
+@@ -53,5 +53,6 @@ GDB_OSABI_DEF (LYNXOS178, "LynxOS178", nullptr)
+ GDB_OSABI_DEF (NEWLIB, "Newlib", nullptr)
+ GDB_OSABI_DEF (SDE, "SDE", nullptr)
+ GDB_OSABI_DEF (PIKEOS, "PikeOS", nullptr)
++GDB_OSABI_DEF (GENODE, "Genode", nullptr)
  
-   GDB_OSABI_INVALID		/* keep this last */
- };
+ GDB_OSABI_DEF_LAST (INVALID, "<invalid>", nullptr)

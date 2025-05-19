@@ -6,10 +6,9 @@ can be used to get the memory maps of different
 inferiors.
 
 diff --git a/gdb/memattr.c b/gdb/memattr.c
-index fafd909..258aca3 100644
 --- a/gdb/memattr.c
 +++ b/gdb/memattr.c
-@@ -105,7 +105,7 @@ require_user_regions (int from_tty)
+@@ -108,7 +108,7 @@ require_user_regions (int from_tty)
  static void
  require_target_regions (void)
  {

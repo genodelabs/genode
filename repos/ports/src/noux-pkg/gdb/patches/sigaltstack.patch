@@ -1,7 +1,6 @@
 sigaltstack.patch
 
 diff --git a/gdbsupport/alt-stack.h b/gdbsupport/alt-stack.h
-index 1424793..49332a6 100644
 --- a/gdbsupport/alt-stack.h
 +++ b/gdbsupport/alt-stack.h
 @@ -37,7 +37,23 @@ class alternate_signal_stack

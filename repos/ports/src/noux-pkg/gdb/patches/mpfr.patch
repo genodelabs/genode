@@ -1,0 +1,65 @@
+mpfr.patch
+
+diff --git a/configure b/configure
+--- a/configure
++++ b/configure
+@@ -8791,7 +8791,7 @@ if test -d ${srcdir}/gdb ; then
+   fi
+ fi
+ 
+-gmplibs="-lmpfr -lgmp"
++gmplibs="-lgmp"
+ if test x"$require_mpc" = "xyes" ; then
+   gmplibs="-lmpc $gmplibs"
+ fi
+@@ -8986,7 +8986,7 @@ fi
+ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ 
+   # If we have GMP, check the MPFR version.
+-  if test x"$have_gmp" = xyes; then
++  if test x"$have_gmp" = xyes_xxx; then
+     # Check for the recommended and required versions of MPFR.
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of mpfr.h" >&5
+ $as_echo_n "checking for the correct version of mpfr.h... " >&6; }
+@@ -9090,7 +9090,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+   fi
+ 
+   # Now check the MPFR library.
+-  if test x"$have_gmp" = xyes; then
++  if test x"$have_gmp" = xyes_xxx; then
+     saved_LIBS="$LIBS"
+     LIBS="$LIBS $gmplibs"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the correct version of the gmp/mpfr libraries" >&5
+diff --git a/gdb/target-float.c b/gdb/target-float.c
+--- a/gdb/target-float.c
++++ b/gdb/target-float.c
+@@ -1155,6 +1155,8 @@ host_float_ops<T>::compare (const gdb_byte *x, const struct type *type_x,
+ /* Implementation of target_float_ops using the MPFR library
+    mpfr_t as intermediate type.  */
+ 
++#ifdef HAVE_LIBMPFR
++
+ #define MPFR_USE_INTMAX_T
+ 
+ #include <mpfr.h>
+@@ -1712,6 +1714,8 @@ mpfr_float_ops::compare (const gdb_byte *x, const struct type *type_x,
+     return 1;
+ }
+ 
++#endif
++
+ 
+ /* Helper routines operating on decimal floating-point data.  */
+ 
+@@ -2261,7 +2265,11 @@ get_target_float_ops (enum target_float_ops_kind kind)
+ 	 use the largest host floating-point type as intermediate format.  */
+       case target_float_ops_kind::binary:
+ 	{
++#ifdef HAVE_LIBMPFR
+ 	  static mpfr_float_ops binary_float_ops;
++#else
++	  static host_float_ops<long double> binary_float_ops;
++#endif
+ 	  return &binary_float_ops;
+ 	}
+ 

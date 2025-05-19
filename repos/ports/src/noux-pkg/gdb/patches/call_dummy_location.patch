@@ -1,17 +1,9 @@
 call_dummy_location.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- gdb/i386-tdep.c |    2 ++
- 1 file changed, 2 insertions(+)
-
 diff --git a/gdb/i386-tdep.c b/gdb/i386-tdep.c
-index 21c1101..81c6d45 100644
 --- a/gdb/i386-tdep.c
 +++ b/gdb/i386-tdep.c
-@@ -8567,7 +8567,9 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
+@@ -8670,7 +8670,9 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
    set_gdbarch_get_longjmp_target (gdbarch, i386_get_longjmp_target);
  
    /* Call dummy code.  */

@@ -1,21 +1,9 @@
 noux_build.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- gdb/configure                     |    2 +-
- gdb/dwarf2/index-write.c          |    2 +-
- gdbsupport/scoped_ignore_signal.h |    2 ++
- gnulib/config.in                  |    2 ++
- sim/common/Make-common.in         |    2 +-
- 5 files changed, 7 insertions(+), 3 deletions(-)
-
 diff --git a/gdb/configure b/gdb/configure
-index bdc84be..5122989 100755
 --- a/gdb/configure
 +++ b/gdb/configure
-@@ -26053,7 +26053,7 @@ sigjmp_buf env;
+@@ -20969,7 +20969,7 @@ sigjmp_buf env;
    return 0;
  }
  _ACEOF
@@ -24,21 +12,7 @@ index bdc84be..5122989 100755
    gdb_cv_func_sigsetjmp=yes
  else
    gdb_cv_func_sigsetjmp=no
-diff --git a/gdb/dwarf2/index-write.c b/gdb/dwarf2/index-write.c
-index ced58ea..ef0bf35 100644
---- a/gdb/dwarf2/index-write.c
-+++ b/gdb/dwarf2/index-write.c
-@@ -618,7 +618,7 @@ class debug_names
-     gdb_assert (m_abbrev_table.empty ());
-     const size_t name_count = m_name_to_value_set.size ();
-     m_bucket_table.resize
--      (std::pow (2, std::ceil (std::log2 (name_count * 4 / 3))));
-+      (std::pow (2, std::ceil (log2 (name_count * 4 / 3))));
-     m_hash_table.reserve (name_count);
-     m_name_table_string_offs.reserve (name_count);
-     m_name_table_entry_offs.reserve (name_count);
 diff --git a/gdbsupport/scoped_ignore_signal.h b/gdbsupport/scoped_ignore_signal.h
-index 1c015a9..5105a94 100644
 --- a/gdbsupport/scoped_ignore_signal.h
 +++ b/gdbsupport/scoped_ignore_signal.h
 @@ -22,6 +22,8 @@
@@ -51,7 +25,6 @@ index 1c015a9..5105a94 100644
     supported, then the signal is only ignored by the calling thread.
     Otherwise, the signal disposition is set to SIG_IGN, which affects
 diff --git a/gnulib/config.in b/gnulib/config.in
-index f70c6a5..09675d9 100644
 --- a/gnulib/config.in
 +++ b/gnulib/config.in
 @@ -1492,6 +1492,7 @@
@@ -70,16 +43,3 @@ index f70c6a5..09675d9 100644
  
  
  /* Define to 1 in order to get the POSIX compatible declarations of socket
-diff --git a/sim/common/Make-common.in b/sim/common/Make-common.in
-index 88c66b3..645bf41 100644
---- a/sim/common/Make-common.in
-+++ b/sim/common/Make-common.in
-@@ -175,7 +175,7 @@ CSEARCH = -I. -I$(srcdir) -I$(srccom) \
-   -I../../bfd -I$(srcroot)/bfd \
-   -I$(srcroot)/opcodes \
-   -I../..
--ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(INCGNU) $(SIM_EXTRA_CFLAGS) $(CFLAGS)
-+ALL_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(INCGNU) $(SIM_EXTRA_CFLAGS) $(CPPFLAGS) $(CFLAGS)
- BUILD_CFLAGS = $(CFLAGS_FOR_BUILD) $(CSEARCH)
- 
- COMMON_DEP_CFLAGS = $(CONFIG_CFLAGS) $(CSEARCH) $(SIM_EXTRA_CFLAGS)
