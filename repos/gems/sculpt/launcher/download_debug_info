@@ -4,7 +4,7 @@
 			<parent identity="config"/>
 		</service>
 		<service name="File_system" label_prefix="used ->">
-			<child identity="default_fs_rw"/>
+			<child name="default_fs_rw"/>
 		</service>
 		<service name="ROM" label="build_info">
 			<parent label="build_info"/>
