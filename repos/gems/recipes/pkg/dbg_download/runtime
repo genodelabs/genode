@@ -2,7 +2,8 @@
 
 	<requires>
 		<file_system label="system_config" writeable="no"/>
-		<file_system label="used" writeable="yes"/>
+		<file_system label="depot" writeable="yes"/>
+		<file_system label="public" writeable="yes"/>
 		<rom label="build_info"/>
 		<nic/>
 		<rm/>
@@ -52,34 +53,6 @@
 
 		<default caps="100"/>
 
-		<start name="depot_rw" ram="2M">
-			<binary name="chroot"/>
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<default-policy path="/depot" writeable="yes"/>
-			</config>
-			<route>
-				<service name="File_system">
-					<parent identity="used"/>
-				</service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="public_rw" ram="2M">
-			<binary name="chroot"/>
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<default-policy path="/public" writeable="yes"/>
-			</config>
-			<route>
-				<service name="File_system">
-					<parent identity="used"/>
-				</service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
 		<start name="report_rom" ram="2M">
 			<binary name="report_rom"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
@@ -102,10 +75,10 @@
 					<child name="report_rom" label="depot_download -> installation"/>
 				</service>
 				<service name="File_system" label_prefix="depot ->">
-					<child name="depot_rw"/>
+					<parent identity="depot"/>
 				</service>
 				<service name="File_system" label_prefix="public ->">
-					<child name="public_rw"/>
+					<parent identity="public"/>
 				</service>
 				<service name="Report">
 					<child name="report_rom"/>
