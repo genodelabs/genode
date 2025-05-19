@@ -1,0 +1,916 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 25.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+It's been
+[https://genode.org/documentation/release-notes/16.05#The_great_API_renovation - 9 years]
+since we disrupted Genode's API. Back then, we changed the execution model of
+components, consistently applied the dependency-injection pattern to shun
+global side effects, and largely removed C-isms like format strings and
+pointers. These changes ultimately paved the ground for sophisticated systems
+like [https://genode.org/download/sculpt - Sculpt OS].
+
+Since then, we identified several potential areas for further safety
+improvements, unlocked by the evolution of the C++ core language and inspired
+by the popularization of sum types for error propagation by the Rust community.
+With the current release, we uplift the framework API to foster a programming
+style that *leaves no possible error condition unconsidered*, reaching for a
+new level of rock-solidness of the framework.
+Section [The Great API hardening] explains how we achieved that. The revisited
+framework API comes in tandem with a new tool chain based on GCC 14 and
+binutils 2.44 (Section [Tool-chain update]).
+
+As we are in the middle of Genode's [https://genode.org/about/road-map - year]
+of "rigidity, clarity, and performance", the release contains a fair amount of
+consolidation work. For example, by unifying the integration of the TCP/IP
+stacks ported from Linux and lwIP, the release paves the ground for subsequent
+work on network protocols and optimization (Section [TCP/IP stacks revisited]).
+
+Feature-wise, the release brings a few improvements that can already be
+enjoyed with the [https://genodians.org/nfeske/2025-04-30-sculpt-os - latest]
+Sculpt OS version, namely the enhanced flexibility of the Intel and VESA
+display drivers as well as the improved power management of our Intel GPU
+multiplexer (Section [Device drivers]).
+
+
+Tool-chain update
+#################
+
+Following a regular cycle of two years, we updated our tool chain to recent
+versions again, this time in particular to GCC 14.2.0, binutils 2.44, and
+GDB 16.3.
+
+The most noticeable change of the GCC update is the improved error checking
+with regard to missing function declarations, incompatible pointer types, or
+hidden overloaded virtual functions.
+
+We also took the update as opportunity to unify fixed-width C types like
+'int64_t' across 32-bit and 64-bit architectures and across GCC, libc, and the
+Genode base library to harmonize the binary interfaces of the compiled code
+across architectures.
+
+:Instructions for downloading or building the Genode tool chain:
+
+  [https://genode.org/download/tool-chain]
+
+
+The Great API hardening
+#######################
+
+Since the birth of the project in 2008, Genode has employed C++ exceptions for
+propagating error conditions, the rationale being that this form of error
+handling would facilitate the use of the language as intended by the language
+designers. Even though we found that the exception mechanism introduces a fair
+bit of complexity and uncertainty, we came up with feasible coping strategies
+and stayed true to it.
+
+However, in
+[https://genode.org/documentation/release-notes/21.11#New_pattern_for_C___error_handling - Genode 21.11]
+we started
+[https://genodians.org/nfeske/2021-11-26-attempt-no-exceptions - exploring]
+the use of [https://en.wikipedia.org/wiki/Tagged_union - sum types] as a
+promising alternative to exceptions. This form of error handling has recently
+become widely popularized by the Rust programming language with its
+'Result<T,E>' type, which clearly shows that a world without exceptions is not
+only possible but highly desirable. Once we identified workable patterns for
+redesigning our formerly exception-heavy APIs, we ultimately
+[https://github.com/genodelabs/genode/issues/5245 - reached the conclusion]
+to relieve Genode from the burden of the C++ exception mechanism.
+
+What are these burdens specifically? They boil down to two problems that
+cannot be surmounted without language changes.
+
+First, the C++ exception mechanism requires a dynamic memory allocator.
+This allocator needs to be flexible about allocation sizes because those sizes
+ultimately depend on the exception types. Even though the exception types used
+by Genode are known, the C++ runtime must also be compatible with 3rd-party
+code and the exception types used therein. The allocator must also be
+thread-safe. In other words, there is the unwritten assumption that the C++
+runtime sits atop a C runtime providing malloc. Genode's C-free
+[https://genode.org/documentation/genode-foundations/24.05/under_the_hood/C++_runtime.html - C++ runtime]
+deviates from this beaten track. Even though we certainly made it work, it
+cannot be made perfect because it contradicts with Genode's rigid
+resource-partitioning regime.
+
+Second, and more importantly, the compiler gives us no means to statically
+check that no error condition remains unconsidered. This property, however,
+is fundamentally needed to attain assurance. Our coping strategy combined
+disciplined annotations in the form of comments with extensive testing.
+But as with any measure that depends on discipline and testing, certainty
+remains unattainable.
+
+Sum types overcome both of these two hard problems. As they can be expressed
+using C++ templates without any cleverness, there exists a natural migration
+path that is worth going for. As a further plus, we gain the prospect of
+shaving off the complexity of the C++ runtime (rtti, stack unwinding) from
+Genode's dependencies.
+
+
+Return values expressed via sum types
+=====================================
+
+The basic building block is the 'Attempt' utility provided by
+[https://github.com/genodelabs/genode/blob/master/repos/base/include/util/attempt.h - util/attempt.h].
+By using a return value of type 'Attempt<T,E>', the returned value can either
+be a valid value of type 'T' or an error value of type 'E'. The name reflects
+its designated use as a carrier for return values. To illustrate its use, here
+is an excerpt of the 'Thread::info()' interface that provides information of a
+thread's stack.
+
+! class Genode::Thread
+! {
+!   ...
+!   struct Stack_info { addr_t base, top; };
+!
+!   enum class Stack_error { STACK_AREA_EXHAUSTED, STACK_TOO_LARGE };
+!
+!   using Info_result = Attempt<Stack_info, Stack_error>;
+!
+!   Info_result info() const;
+!   ...
+! };
+
+As expressed by the 'Stack_error' type, there are certain conditions where no
+stack information is available. The 'Info_result' type precisely models the
+possible outcomes of 'info()'. Whenever 'info()' succeeds, the value will hold
+an object of type 'Stack_info'. Otherwise, it will hold an error value of type
+'Stack_error'.
+
+At the caller side, the 'Attempt' utility is extremely rigid. The caller can
+access the value only when providing both a handler for the value and a
+handler for the error code. For example, with 'thread' being a reference to a
+'Thread', a  call to 'info' may look like this:
+
+! thread.info().with_result(
+!   [&] (Thread::Stack_info info) {
+!     ...
+!   },
+!   [&] (Thread::Stack_error e) {
+!     switch (e) {
+!
+!     case Thread::Stack_error::STACK_AREA_EXHAUSTED:
+!       ...
+!       break;
+!
+!     case Thread::Stack_error::STACK_TOO_LARGE:
+!       ...
+!       break;
+!     }
+!   });
+
+Which of both lambda functions gets called depends on the success of the
+'info' call. The value returned by 'info' is only reachable by the code in the
+scope of the lambda function. The code within this scope can rely on the
+validity of the argument.
+
+By expressing error codes as an enum class, we let the compiler assist us to
+cover all possible error cases (using switch). This is a key benefit over the
+use of exceptions, which are unfortunately not covered by function/method
+signatures. By using the 'Attempt' utility, we implicitly tie functions
+together with their error conditions using C++ types. As another benefit over
+'catch' handlers, the use of 'switch' allows us to share error handling code
+for different conditions by grouping 'case' statements.
+
+Result-type conversions
+-----------------------
+
+Note that in the example above, the valid 'info' object cannot leave the scope
+of its lambda function. Sometimes, however, we need to pass a return value
+along a chain of callers. This situation is covered by the 'Attempt::convert'
+method. Analogously to 'with_result', it takes two lambda functions as
+arguments. But in contrast to 'with_result', both lambda functions return a
+value of the same type. This naturally confronts the programmer with the
+question of how to convert all possible errors to this specific type. If this
+question cannot be answered for all error cases, the design of the code is
+most likely flawed. Unlike Rust's 'Result<T,E>', there is deliberately no
+notion of 'unwrap'.
+
+Non-copyable result types
+-------------------------
+
+The 'Attempt' utility supports any type 'T' that is copyable and can be passed
+as value. Situations where the returned type is not copyable, for example a
+factory method returning a reference to a created object, are accommodated by
+the new 'Unique_attempt' utility.
+
+The 'Unique_attempt' utility combines the 'Attempt' with
+[https://en.cppreference.com/w/cpp/memory/unique_ptr - unique-pointer]
+semantics. In contrast to 'Attempt', it is able to hold a non-copyable object
+or a reference. Like a unique pointer, the lifetime of the pointed-to object
+is bounded by the lifetime of the 'Unique_attempt'. It thereby fosters a
+strong sense of ownership of the allocated object. In most cases, it is
+suitable to host a 'Unique_attempt' as member variable at the owning object.
+
+Being designated for enclosing a non-copyable object, a 'Unique_attempt'
+cannot be copied. But it can be re-assigned. Hence, when used as a member
+variable, it can be updated. Upon re-assigning a new value, the originally
+enclosed object is destructed.
+
+Enforced error handling
+-----------------------
+
+The proliferation of 'Attempt' and 'Unique_attempt' return values across our
+code base gives us the opportunity to enforce the handling of errors. Both
+utilities are marked as 'nodiscard', which tells the compiler that values of
+these types must be evaluated at the caller side. The omission of error
+handling produces a compile error. Combined with the explicitly enumerated
+error conditions specified for the 'Attempt'-based result type, the enforced
+error handling leaves *no possible error condition unconsidered*. Even if the
+caller deliberately ignores an error, this ignorance must be explicitly
+written down in the code. This in turn, raises eyebrows - and the right
+questions about dealing with corner cases.
+
+To facilitate the enforced error handling in the absence of a return value,
+the 'Ok' type allows for the easy creation of a suitable result type. For
+example, 'Trace::Connection::trace' returns the type
+! using Trace_result = Attempt<Ok, Trace_error>;
+imposing the handling of the 'Trace_error' conditions on the caller.
+
+
+Common error types
+==================
+
+While converting the base framework to the encoding of error conditions via
+'Attempt' types, certain patterns stood out, which called for the definition
+of common error types at a central place, namely _base/error.h_.
+
+Constrained allocations
+-----------------------
+
+!enum class Alloc_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+
+'Alloc_error' represents the error conditions returned by resource-constrained
+allocators, and indirectly by any functionality that internally depends on
+such allocations. This is the case for most services that operate on
+client-accounted resources.
+
+'OUT_OF_RAM' and 'OUT_OF_CAPS' reflects the depletion of the client's resource
+budget. It can in principle be resolved by the client upgrading the resource
+budget of the allocator.
+
+'DENIED' expresses a situation where the allocator cannot satisfy the
+allocation for reasons unresolvable by the client. For example, the allocator
+may have a hard limit of the number of allocations, or the allocation of a
+large contiguous range is prevented by internal fragmentation, or a requested
+alignment constraint cannot be met. In these cases, the allocator reflects the
+condition to the caller to stay healthy and let the caller fail gracefully or
+consciously panic at the caller side.
+
+Session creation
+----------------
+
+!enum class Session_error { DENIED, OUT_OF_RAM, OUT_OF_CAPS,
+!                           INSUFFICIENT_RAM, INSUFFICIENT_CAPS };
+
+One of the 'Session_error' conditions can occur when establishing a
+connection to a service provided by another component.
+
+'DENIED' reflects that the session request could not be fulfilled due to a
+policy decision of the server, the parent, or another intermediate component
+on the route from the client to the server. This condition is unresolvable by
+the client. As sessions are considered as the life supplies for clients,
+'DENIED' is considered as fatal, most likely caused by a
+configuration/integration mistake.
+
+'OUT_OF_RAM' and 'OUT_OF_CAPS' reflect the client-local depletion of the
+resources needed to allocate the meta data for the new session. This condition
+can occur in situations where the client is a resource-multiplexing server
+that acts on behalf of its clients. So the budget is deliberately constrained,
+and 'OUT_OF_RAM' or 'OUT_OF_CAPS' can be escalated to the respective client of
+the resource multiplexer.
+
+In contrast to 'OUT_OF_RAM and 'OUT_OF_CAPS', which refer to client-local
+resources, 'INSUFFICIENT_RAM' and 'INSUFFICIENT_CAPS' originates from the
+server expressing the need for a budget higher than the session resources
+offered by the client. The client can resolve these conditions by repeating
+the session request with an increased budget offering.
+
+Data generation
+---------------
+
+!enum class Buffer_error { EXCEEDED };
+
+A 'Buffer_error' reflects the condition where generated data does not
+fit a statically-dimensioned buffer. The most prominent example is the
+'Xml_generator', which operates on a prior allocated buffer. The
+'Expanding_reporter' handles this error by successively enlarging the buffer
+and re-attempting the generation of data. The 'Buffer_error' replaces the
+former 'Buffer_exceeded' exception.
+
+Unexpected errors
+-----------------
+
+There exist four documented error conditions that should never occur in
+well-behaving programs. Those conditions are enumerated as 'Unexpected_error'
+type.
+
+:INDEX_OUT_OF_BOUNDS:
+  an 'Array' or 'Bit_array' is accessed without index validation
+
+:NONEXISTENT_SUB_NODE:
+  use of 'Xml_node::sub_node' instead of 'with_sub_node'
+
+:ACCESS_UNCONSTRUCTED_OBJ:
+  a check of 'Constructible::constructed()' is missing
+
+:IPC_BUFFER_EXCEEDED:
+  the IPC marshalling/unmarshalling exceeds the maximum IPC-buffer size
+
+Those runtime conditions are considered as programming errors. Down the road,
+they will successively be replaced by compile-time constraints, e.g., by
+tracking the population of the IPC buffers via C++ types at compile time. As
+of today, unexpected errors result in a diagnostic message, followed by the
+raising of a corresponding exception as defined at _base/exception.h_.
+
+Raising 'Unexpected_error' and 'Alloc_error'
+--------------------------------------------
+
+The new 'raise' function declared at _base/error.h_ is used instead of 'throw'
+to keep the framework headers void of C++ throw statements, which would
+otherwise prevent the compilation of the headers with '-fno-exceptions'.
+
+In the presence of the C++ runtime, the 'raise' implementation reflects the
+supplied error value(s) as C++ exceptions of the appropriate type. In the
+(future) optional absence of the C++ runtime, 'raise' would be unresolved.
+The absence of a link error would henceforth give us the assurance that the
+binary contains no code path leading to 'raise'. Consequently, all error
+conditions must have been covered in other ways than 'raise'.
+
+Following this rationale, 'Genode::raise' is not provided by the base library
+but the cxx library (C++ runtime). Once we allow components to opt out of the
+cxx library, 'raise' will automatically become unresolved for those strict
+components.
+
+
+Removed reliance of the base framework from C++ exceptions
+==========================================================
+
+Genode 25.05 applies the exception-less error handling to the entirety of the
+base framework while retaining exception support for components built on top.
+It goes without saying that a change of these proportions affects API users.
+
+base/thread.h
+-------------
+
+The exception types 'Out_of_stack_space', 'Stack_too_large', and
+'Stack_alloc_failed' have been replaced by the 'Stack_error' type as returned
+by methods that depend on a valid stack. The distinction between
+'Stack_alloc_failed' and 'Out_of_stack_space' has been removed.
+
+After construction, a 'Thread' object may remain in a dysfunctional state
+should the stack allocation have failed. This condition is no longer reflected
+as a C++ exception but as result value of 'Thread::info()'. The 'Thread::name'
+is now kept as public constant because the stack is not always available for
+storing the name.
+
+The 'stack_top' accessor has been removed because this information is already
+provided by 'Thread::info()'.
+
+base/service.h, root/root.h, root/component.h
+---------------------------------------------
+
+The exception types 'Service_denied', 'Insufficient_ram_quota', and
+'Insufficient_cap_quota' are no longer thrown but are still supported for API
+users, in particular servers implementing 'Root::Component::_create_session'.
+However, this function has been changed to also support 'Session_error' return
+values. This way, components can be gradually adjusted by replacing the use of
+exceptions by 'Session_error' return values.
+
+The '_upgrade_session' and '_destroy_session' methods now take a reference
+instead of a pointer as argument.
+
+base/env.h, base/connection.h
+-----------------------------
+
+The denial of a session request during the construction of 'Connection' is no
+longer reflected as an exception but is considered as fatal. It results in a
+diagnostic error message and stops the execution of the component. E.g.,
+
+! Error: stop because parent denied ROM-session: label="brightness"
+
+Consequently, any form of probing for services, e.g., probing for the
+availability of ROM modules, is no longer possible. Such heuristics must be
+replaced by explicit configurations, telling the components what to do.
+
+The 'Env::try_session' method now uses a result type instead of exceptions to
+reflect all error conditions, including 'Session_error::DENIED'. This is
+useful for intermediary components like init, which initiate session requests
+on behalf of their children and shall never reach a non-recoverable state.
+
+base/child.h
+------------
+
+The former 'Child_policy::resolve_session_request' has been replaced by the
+'with_route' method that takes two functors as arguments. Since a 'Child' may
+remain in an incomplete state after construction, the former 'Child::pd'
+accessor had to be replaced by 'Child::with_pd' to account for the error case.
+
+Removal of diagnostic exceptions
+--------------------------------
+
+Throughout the framework, exceptions were sometimes used for diagnostic
+feedback with the (almost never used) option to handle them. However, the
+distinction between the use of exceptions as assertions, or the reflection of
+non-fatal situations was not clear-cut. We have now replaced all mere
+diagnostic exceptions by error messages. Non-recoverable situations
+deliberately call 'sleep_forever'.
+
+In particular, invalid IPC calls are now infinitely blocked at the caller
+site. Integer overflows in 'Duration' arithmetic yield an error message and
+are skipped. ID-space ambiguities are accepted as they do not violate the
+internal consistency of the data structure, but are warned about.
+
+
+Unified allocation pattern
+==========================
+
+Being an operating system, Genode is mostly about arbitration and allocation.
+Think of the allocation of physical memory, virtual addresses, interrupt
+numbers, I/O ports, resource budgets, address-space IDs, file handles. The
+list goes on.
+
+Many operations combine multiple allocations. For example, to make a piece of
+memory usable by an application, a range of physical RAM must be allocated,
+followed by a reservation of a virtual address range where the RAM shall
+be locally mapped within the application. Each step may fail for a variety
+of reasons. It's the job of the operating system to properly respond to each
+possible combination of circumstances. E.g., if one step fails, the preceding
+steps should be rolled back. With _util/allocation.h_, Genode 25.05 introduces
+a common programming pattern for dealing with allocations and their error
+conditions in particular.
+
+An 'Allocation<ALLOC>' object holds allocator-type-specific attributes
+('Attr'), which are directly accessible in the scope of the 'Allocation'
+object. It provides a guard mechanism for reverting the allocation at
+destruction time of an 'Allocation' object. The automatic deallocation can be
+manually discharged by setting the 'deallocate' member to 'false'.
+
+An allocation may fail, which is modelled by the 'Allocation<ALLOC>::Attempt'
+type. This type is a suitable 'Result' type for allocators that either return
+an 'Allocation' or an 'Error'. The 'Attempt' type has unique-pointer
+semantics. Values cannot be copied. But they can be reassigned.
+
+For example, the interface of allocating physical memory is now defined at
+_base/ram.h_ like this:
+
+! struct Genode::Ram::Constrained_allocator : Interface, Noncopyable
+! {
+!   struct Attr { Capability<Dataspace> cap; size_t num_bytes; };
+!
+!   using Error      = Alloc_error;
+!   using Allocation = Genode::Allocation<Constrained_allocator>;
+!   using Result     = Allocation::Attempt;
+!
+!   virtual Result try_alloc(size_t size, Cache) = 0;
+!
+!   virtual void _free(Allocation &) = 0;
+! };
+
+The 'try_alloc' method either returns an allocation with the attributes 'cap'
+and 'num_bytes', or an 'Alloc_error'. The 'Allocation' pattern introduces the
+following conventions:
+
+* Allocation attributes are represented as a struct named 'Attr'. The
+  attributes are allocator-specific.
+* Allocation errors are represented as 'Error' type in the scope of the
+  allocator.
+* The allocation result type is built using the 'Allocation' template,
+  which takes the allocator as template argument.
+* The '_free' method reverts an allocation.
+
+The allocation type and the allocating method can be freely named to fit the
+purpose of the allocator. For example, the local region map for interacting
+with the component's virtual memory is now modelled as follows:
+
+! struct Genode::Local::Constrained_region_map : Interface, Noncopyable
+! {
+!   struct Attr { void *ptr; size_t num_bytes; };
+!
+!   using Error      = Region_map::Attach_error;
+!   using Attachment = Allocation<Constrained_region_map>;
+!   using Result     = Attachment::Attempt;
+!
+!   virtual Result attach(Capability<Dataspace>, Attach_attr const &) = 0;
+!
+!   virtual void _free(Attachment &) = 0;
+!};
+
+In this domain, the allocation type is named 'Attachment' and the allocating
+method is named 'attach'. Each allocation keeps a local pointer and size as
+attributes.
+
+_Note that the former 'Constrained_allocator' utility has been renamed_
+_to 'Accounted_ram_allocator' to consistently use the term "constrained"_
+_as prefix for all kinds of resource-constrained allocators._
+
+The existing memory-allocator interfaces ('Allocator', 'Range_allocator') and
+their implementations ('Heap', 'Sliced heap', 'Slab', 'Allocator_avl',
+'Synced_allocator') have been converted to the new 'Allocation' utility. The
+new interface resides at base/memory.h whereas the traditional allocators
+implement the new interface. Down the road, the individual allocators will
+successively be decoupled from the traditional 'Allocator' and
+'Range_allocator' interfaces.
+
+Exception-free alternative to 'new'
+-----------------------------------
+
+The new 'Memory::Constrained_obj_allocator<T>' template hosted at
+_base/memory.h_ allows for the creation of an allocator of objects of type
+'T'. Its 'create' method constructs an object on backing store allocated from
+a constrained memory allocator. Constructor arguments are passed as arguments
+to 'create'.
+
+In contrast to the traditional 'new' operator, the 'create' method reflects
+allocation errors as return values instead of exceptions.
+
+An object is destructed at deallocation time.
+
+In contrast to the traditional 'delete' operator, which accepts the object type
+of a base class of the allocated object as argument, the type for the
+deallocation has to correspond to the allocated type.
+
+Replaced use of local 'Region_map' by dedicated 'Local_rm'
+----------------------------------------------------------
+
+The interaction of a component with its local region map is now modelled via a
+dedicated 'Local_rm' type employing the 'Allocation' pattern.
+
+The decoupling of 'Local_rm' from 'Region_map' narrows the API, makes
+API-using code more self-explanatory, and reduces the likelihood for API
+misuse (e.g., using a non-local 'Region_map' for creating a 'Heap'). The new
+type(s) also gives us a chance to clearly distinguish the 'Env::Local_rm'
+(used by regular components) and 'Core::Local_rm'. The latter does no longer
+need to be a 'Region_map', lifting complexity from core.
+
+
+API safety for parsing XML
+==========================
+
+Each 'Xml_node' object contains a pointer to the character buffer holding the
+data. In the name of API safety, those objects should better not be copyable.
+However, traditionally, 'Xml_node' objects are casually passed or returned by
+value. Genode 25.05 makes 'Xml_node' non-copyable, removing this class of
+memory-safety risk from the API.
+
+Existing XML-parsing code must be adapted to use 'Xml_node const &' instead of
+'Xml_node' arguments. This change also affects VFS plugins as the signature of
+'Vfs::File_system_factory::create' had to be changed to take a const reference
+as argument.
+
+As the only remaining special case, the (copying) 'Xml_node::sub_node' method
+has not (yet) been removed from the API to allow for a step-wise migration to
+the consistent use of the safe 'with_sub_node' method instead.
+
+The 'Buffered_xml' utility has been simplified, now hosting a public 'xml'
+const member instead of a 'with_xml_node' method.
+
+
+Unified handling of buffer exhaustions while generating XML
+===========================================================
+
+The former 'Buffer_exceeded' exception has been replaced by the 'Buffer_error'
+type. The 'Xml_generator' API has been simplified by providing a plain class
+function 'Xml_generator::generate'. As this change touches _os/reporter.h_, we
+took the opportunity to harmonize the interfaces of 'Reporter' and
+'Expanding_reporter', using Byte_range_ptr instead of basic types. Most
+components have been adapted to use 'Expanding_reporter' where appropriate. In
+contrast to 'Reporter', 'Expanding_reporter' handles 'Buffer_error'
+internally.
+
+
+Security-enhanced Goa SDK
+#########################
+
+The Goa SDK came to life almost
+[https://genode.org/documentation/release-notes/19.11#New_tooling_for_bridging_existing_build_systems_with_Genode - six years ago]
+as a prototypical attempt to streamline the application development and
+porting for Genode. As it measured up to our expectations, we moved its
+maintenance under the umbrella of Genode Labs in
+[https://genode.org/documentation/release-notes/23.05#Goa_tool_updated_to_Sculpt_OS_23.04__initial_support_for_Rust - 23.05].
+The growing user base of Goa now prompted us to invest into the tool's
+security and rectify a few pragmatisms that we now consider insecure.
+
+Furthermore, we updated the built-in version information to the latest Sculpt
+release. You can switch to the new version with Goa's 'update-goa' command:
+
+! goa update-goa 25.04
+
+
+Sandboxed build systems and config-file processing
+==================================================
+
+Since its very beginning, Goa used to support user-defined and
+project-specific configuration files. These files used to be interpreted by
+the TCL interpreter without any safety measures. Executing Goa in a foreign
+and potentially untrusted repository hosting custom configuration files
+therefore had the potential for arbitrary code execution.
+
+With this release, we are leveraging
+[https://www.tcl-lang.org/man/tcl8.7/TclCmd/interp.html#M45 - TCL's safe interpreter]
+and use a greatly restricted child interpreter for loading configuration
+files. In consequence, configuration files become merely able to modify known
+configuration variables (see 'goa help config') via the 'set' and 'lappend'
+primitives. Additionally, we added input validation for path variables in
+order to prevent arbitrary access to the host file system. By default, only
+paths within the current working directory are accepted. To extend this, we
+introduced the notion of privileged configuration files residing at _/goarc_
+or _~/goarc_. These privileged configuration files are permitted to extend the
+scope via the 'lappend allowed_paths ...' primitive. We established a similar
+mechanism for restricting the accepted paths to executables via the privileged
+'allowed_tools' variable.
+
+With these mechanisms in place, Goa is able to validate its own file
+operations (after symlink resolution). For preventing unintended side effects
+of external tools such as any of the supported build systems, we applied
+sandboxing based on [https://github.com/containers/bubblewrap - bubblewrap].
+For debugging purposes, it is possible to disable sandboxing via 'set
+disable_sandbox 1' in a privileged configuration file or by setting the
+'DISABLE_SANDBOX' environment variable.
+
+:Corresponding discussion on issue tracker:
+
+  [https://github.com/genodelabs/goa/issues/99]
+
+
+Assistance for common error situations
+======================================
+
+Having a sandboxing mechanism in place allowed us to gracefully deal with a
+missing Genode tool chain. The new 'install-toolchain' command downloads the
+current tool chain and converts it into a squashfs. This will be passed to the
+sandboxed build environment if no system-wide installation is available. When
+using the 'install-toolchain' command, it is good practice to set the
+'install_dir' variable. Otherwise, the tool chain is downloaded into the
+project's _var/_ directory.
+
+When building shared libraries with Goa, a common error situation is that
+linker flags are not passed along correctly. In this situation, the shared
+library is built without complaint but using it causes a rather cryptic
+runtime error. We therefore added a sanity check to Goa, which compares the
+library's program headers with those defined by the linker script.
+
+
+New functionality
+=================
+
+Building shared libraries with Goa requires the propagation of particular
+linker flags to the build system. Some build systems have distinct mechanisms
+to set linker flags for executables and shared libraries separately. For
+autoconf, however, there is no general way. We therefore opted for setting a
+custom 'LDLIBS_SHARED' environment variable when calling './configure' and
+'make' In most cases, the configure script requires patching to make use of
+this variable, though. A good entry point for patching is to look for the
+'archive_cmds' variable that is passed to libtool. An example is documented in
+the article on genodians.org:
+[https://genodians.org/jschlatow/2025-03-07-porting-curl - Porting the curl command-line tool and library with Goa]
+
+Since release 23.08, Goa
+[https://genode.org/documentation/release-notes/23.08#Support_of_index_projects - supports index projects]
+which allow publishing a user's depot index along with the referenced
+archives. An index project, however, was restricted to archives of a single
+user. With this release, we lifted the restriction. For more details, please
+refer to 'goa help index'.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+TCP/IP stacks revisited
+=======================
+
+In Genode's
+[https://genode.org/documentation/release-notes/24.02#TCP_IP_stack_based_on_DDE-Linux_version_6.1.20 - 24.02]
+release, we hinted at the goal to replace the VFS plugins for Linux (vfs_lxip)
+and lwIP (vfs_lwip) with a unified version through the socket C-API. With the
+current release, we have reached this goal and unified the VFS plugin's source
+code. While the socket C-API had been already implemented for the Linux
+IP-stack (lxip), we had to implement the API on the lwIP side. This required
+to move most of the functionality provided by the vfs_lwip plugin to the
+lwIP-stack. The shared-plugin code can be found under _os/src/lib/vfs/ip_.
+Because this work is a drop-in replacement, both plugins vfs_lxip and vfs_lwip
+are still built but merely use the same source code. All configuration options
+remain intact.
+
+The previous vfs_lwip version is still available and can be found under
+_libports/src/lib/vfs/legacy_lwip_ and _libports/receipe/src/vfs_legacy_lwip_.
+
+
+Support for touch gestures
+==========================
+
+Genode's event-filter component, first introduced with
+[https://genode.org/documentation/release-notes/17.02#Input-event_filter - release 17.02],
+reworked in
+[https://genode.org/documentation/release-notes/20.08#Replacing_the_input_filter_with_an_event_filter - 20.08]),
+and refined in
+[https://genode.org/documentation/release-notes/21.05#Input-event_handling - 21.05],
+[https://genode.org/documentation/release-notes/21.11#Event_filter_for_converting_touch_to_pointer_input - 21.11]
+and
+[https://genode.org/documentation/release-notes/24.02#Improved_human-interface_device_handling - 24.02],
+plays a central role in merging and translating all kinds of input events.
+With this release, we added support for touchscreen gestures.
+
+The component received a new '<touch-gesture>' filter. The filter intercepts
+touch events and instead emits artificial key sequences or key combos when one
+of the configured gestures has been detected. It is configured by an arbitrary
+number of '<hold>' and '<swipe>' nodes. The former triggers when the specified
+number of 'fingers' are held for at least 'delay_ms' milliseconds in an area
+defined by the 'width' and 'height' attributes. The latter triggers when the
+specified number of 'fingers' is moved for at least 'distance' in the
+specified 'direction' ("up", "down", "left" or "right") within 'duration_ms'
+milliseconds. Swipe gestures can further be restricted to a certain part of
+the screen defined by the 'xpos', 'ypos', 'width', and 'height' attributes.
+Key sequences are specified as a series of '<key name="...">' sub nodes. Key
+combos are configured by nesting the '<key>' nodes.
+
+For instance, touch gestures for emulating right clicks via hold and
+KEY_DASHBOARD via a two-finger down swipe are instantiated as follows.
+
+! <config>
+!   <output>
+!     <touch-gesture>
+!       <input name="touch"/>
+!       <hold fingers="1" delay_ms="1000" width="30" height="30">
+!         <key name="BTN_RIGHT"/> </hold>
+!       <swipe fingers="2" direction="down" duration_ms="1000" distance="100">
+!         <key name="KEY_DASHBOARD"/> </swipe>
+!     </touch-gesture>
+!   </output>
+!   <policy label="touch" input="touch"/>
+! </config>
+
+Furthermore, once a hold gesture has triggered, it will emit artificial
+relative motion events until all contact points have been released. The
+optional 'hold' attribute of the '<key>' node specifies which of the keys
+shall be held until all contact points have been released. This enables
+gestures such as two-finger scrolling.
+
+! <config>
+!   <output>
+!     <button-scroll>
+!       <touch-gesture>
+!         <input name="touch"/>
+!         <hold fingers="2" delay_ms="200" width="300" height="300">
+!           <key hold="yes" name="BTN_MIDDLE"/> </hold>
+!       </touch-gesture>
+!       <vertical   button="BTN_MIDDLE" speed_percent="-5"/>
+!       <horizontal button="BTN_MIDDLE" speed_percent="-5"/>
+!     </button-scroll>
+!   </output>
+!   <policy label="touch" input="touch"/>
+! </config>
+
+As a side effect of the gesture support, we extended the '<log>' filter to
+print the number of present contact points/fingers with each event.
+
+
+Increased resolution of file-modification times
+===============================================
+
+The file-system session interface and the VFS support time stamps in
+millisecond resolution now. The corresponding 'Timestamp' type holds an
+unsigned 64-bit value of the number of milliseconds since the UNIX epoch
+(beginning of 1970). The special case of an invalid timestamp has been
+removed as it was never consistently handled anyway.
+
+In contrast to the POSIX timespec type, which represents 'tv_sec' and
+'tv_nsec' both as signed values, 'Timestamp' uses an unsigned value because
+the interpretation of negative 'tv_sec' and 'tv_nsec' values is too muddy to
+be handled consistently. We avoid those muddy waters by never exposing
+negative timestamps to the libc. Hypothetical modification times older than
+1970 are capped at 1970.
+
+
+Libraries and applications
+##########################
+
+Pseudo-random-number generator as VFS plugin
+============================================
+
+We added a VFS plugin that exposes a PRNG based on the Xoroshiro128+
+algorithm. It reseeds itself after a specific amount of state was consumed.
+The plugin supports the following configuration options:
+
+:name: sets the file-name under which the plugin exposes itself to the VFS,
+  the default is 'xoroshiro'.
+
+:seed_path: specifies the file in the VFS that is read to reseed the PRNG.
+
+The following exemplary config snippet illustrates its usage:
+
+!<vfs>
+!  <dir name="dev">
+!    <jitterentropy name="entropy"/>
+!    <xoroshiro     name="random" seed_path="/dev/entropy"/>
+!  </dir>
+!</vfs>
+
+
+Removal of deprecated components
+================================
+
+Our version of VirtualBox 6 reached feature parity with version 5 in
+[https://genode.org/documentation/release-notes/21.11#Feature_completion_of_VirtualBox_6 - Genode 21.11]
+and, since then, has been enhanced beyond the capabilities of the prior
+version, recently with the addition of
+[https://genode.org/documentation/release-notes/25.02#Multi-monitor_virtual_machines - multi-monitor support].
+As we do not plan to further develop VirtualBox 5 and because the
+implementation depended on base framework features we scheduled for removal,
+we removed virtualbox5 from Genode in this release.
+
+With this release, we also removed the dated 'Block::Driver' interface that
+provided a basis for block server components in the past. It has been
+superseded by the 'Block::Request_stream' API for some time now and was solely
+in use by old drivers or components that are redundant by now.
+
+As the drivers - including the SD card driver for i.MX53/6, PL180, and the
+RaspberryPi 1 - were no longer put to good use other than in the nightly CI
+runs for the past years, we opted to remove them all together. The 'lx_block'
+component on the other hand that is specific to base-linux can be replaced by
+'vfs_block' in all use-cases, which allows for more flexibility. Therefore,
+'lx_block' has now been removed.
+
+
+Device drivers
+##############
+
+Intel and VESA display-driver enhancements
+==========================================
+
+The ported Intel display driver now reports the display name of connectors
+as provided by the EDID information to identify different displays.
+Additionally, the orientation of the display can be configured by a flip and
+rotation value of 0, 90, 180 and 270 degree.
+
+!  <connector name="eDP-1" width="1920" height="1080" rotate="90" flip="false"/>
+
+The VESA framebuffer driver reports the available resolutions and accepts
+resolution re-configuration similar to the Intel display driver, so that it
+is now possible to configure it in Sculpt OS interactively. The feature is
+especially of interest when running Sculpt on a VM where the VESA support is
+usually available.
+
+
+Intel GPU driver
+================
+
+One shortcoming of our custom Intel-GPU driver has always been power
+management. Once the GPU was enabled, it remained enabled while constantly
+drawing power. This behavior became an issue on battery-powered devices like
+laptops, where it led to reduced battery-operation times and warm or even hot
+device chassis.
+
+Fortunately, power-management is a built-in feature of Intel GPU's provided by
+[https://www.intel.com/content/dam/doc/white-paper/power-management-technologies-for-processor-graphics-display-and-memory-paper.pdf - RC6]
+RC6 is configured by the GPU driver and can be entered automatically by the
+GPU itself or forcefully by the driver.
+
+We experimented with both RC6 enter options (automatic and software driven)
+and found the behavior in cases where we let the GPU handle RC6 management
+across various GPU-models to be inconsistent. E.g., on some devices we
+observed performance degradations or insufficient power-savings.
+
+For this reason, we implemented a software based RC6 enter/exit solution
+within the GPU-driver: The driver now tracks render-job activity using a
+watchdog timer. If no new jobs are submitted to the driver for two seconds,
+the driver will enable RC6. In case new jobs are submitted by GPU-clients, the
+driver forces an RC6 exit. While the RC6 implementation still contains
+GPU-generation-specific code, this approach works reasonably well for all
+supported GPUs starting with Intel Skylake.
+
+The RC6 feature works out of the box and no additional configuration is
+required.
+
+
+Platforms
+#########
+
+Improved support for the seL4 kernel
+====================================
+
+Up to now, the support of Genode on seL4 sufficed for rather static scenarios
+only. In order to leverage the full dynamic nature of Genode on this kernel,
+e.g. Sculpt OS in the future, we picked up the loose ends on several
+unfinished parts in base-sel4, reviewing the current limitations and
+addressing them as we go. During the release cycle, several allocators got
+expanded and more resources are released on clearance. The current
+improvements are in full swing and more changes are to be expected.
+
+
+Build system and tools
+######################
+
+GRUB boot loader updated to version 2.12+
+=========================================
+
+Our former GRUB2-2.06-based port got updated to the current GRUB2 upstream
+version. Main reasons were tooling incompatibilities with newer Linux
+distributions and fixes due to recent CVEs. Additionally, our new pre-built
+GRUB2 port now contains an ARMv8 build with principal Multiboot2 and UEFI
+support.
