@@ -5,13 +5,12 @@
 		<terminal label="monitor"/>
 		<terminal label="ui"/>
 		<file_system label="system_config" writeable="no"/>
-		<file_system label="used" writeable="no"/>
+		<file_system label="depot" writeable="no"/>
 		<rom label="build_info"/>
 		<rm/>
 	</requires>
 
 	<content>
-		<rom label="chroot"/>
 		<rom label="gdb.config"/>
 		<rom label="gdb_support"/>
 		<rom label="init"/>
