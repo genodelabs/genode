@@ -17,7 +17,7 @@
 #include <base/log.h>
 #include <cpu/page_flags.h>
 #include <hw/page_table_allocator.h>
-#include <util/misc_math.h>
+#include <util/string.h>
 #include <util/register.h>
 
 namespace Sv39 {
