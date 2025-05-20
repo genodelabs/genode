@@ -1,14 +1,60 @@
 Use the unified size types provided by the Genode tool chain.
 
 diff --git src/lib/libc/sys/arm/include/_types.h src/lib/libc/sys/arm/include/_types.h
-index 3012f97..3ec5a24 100644
 --- src/lib/libc/sys/arm/include/_types.h
 +++ src/lib/libc/sys/arm/include/_types.h
-@@ -85,11 +85,11 @@ typedef	__int8_t	__int_least8_t;
- typedef	__int16_t	__int_least16_t;
- typedef	__int32_t	__int_least32_t;
- typedef	__int64_t	__int_least64_t;
+@@ -48,17 +48,17 @@
+ /*
+  * Basic types upon which most other types are built.
+  */
+-typedef	signed char		__int8_t;
+-typedef	unsigned char		__uint8_t;
+-typedef	short			__int16_t;
+-typedef	unsigned short		__uint16_t;
+-typedef	int			__int32_t;
+-typedef	unsigned int		__uint32_t;
++typedef	__INT8_TYPE__		__int8_t;
++typedef	__UINT8_TYPE__		__uint8_t;
++typedef	__INT16_TYPE__			__int16_t;
++typedef	__UINT16_TYPE__		__uint16_t;
++typedef	__INT32_TYPE__			__int32_t;
++typedef	__UINT32_TYPE__		__uint32_t;
+ #ifndef lint
+ __extension__
+ #endif
+ /* LONGLONG */
+-typedef	long long		__int64_t;
++typedef	__INT64_TYPE__		__int64_t;
+ #ifndef lint
+ __extension__
+ #endif
+@@ -74,34 +74,34 @@ typedef	__int32_t	__critical_t;
+ typedef	double		__double_t;
+ typedef	float		__float_t;
+ #endif
+-typedef	__int32_t	__intfptr_t;
+-typedef	__int64_t	__intmax_t;
+-typedef	__int32_t	__intptr_t;
+-typedef	__int32_t	__int_fast8_t;
+-typedef	__int32_t	__int_fast16_t;
+-typedef	__int32_t	__int_fast32_t;
+-typedef	__int64_t	__int_fast64_t;
+-typedef	__int8_t	__int_least8_t;
+-typedef	__int16_t	__int_least16_t;
+-typedef	__int32_t	__int_least32_t;
+-typedef	__int64_t	__int_least64_t;
 -typedef	__int32_t	__ptrdiff_t;		/* ptr1 - ptr2 */
++typedef	__INTPTR_TYPE__	__intfptr_t;
++typedef	__INTMAX_TYPE__	__intmax_t;
++typedef	__INTPTR_TYPE__	__intptr_t;
++typedef	__INT_FAST8_TYPE__	__int_fast8_t;
++typedef	__INT_FAST16_TYPE__	__int_fast16_t;
++typedef	__INT_FAST32_TYPE__	__int_fast32_t;
++typedef	__INT_FAST64_TYPE__	__int_fast64_t;
++typedef	__INT_LEAST8_TYPE__	__int_least8_t;
++typedef	__INT_LEAST16_TYPE__	__int_least16_t;
++typedef	__INT_LEAST32_TYPE__	__int_least32_t;
++typedef	__INT_LEAST64_TYPE__	__int_least64_t;
 +typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
  typedef	__int32_t	__register_t;
  typedef	__int32_t	__segsz_t;		/* segment size (in pages) */
@@ -17,15 +63,538 @@ index 3012f97..3ec5a24 100644
 +typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
 +typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
  typedef	__int64_t	__time_t;		/* time()... */
- typedef	__uint32_t	__uintfptr_t;
- typedef	__uint64_t	__uintmax_t;
+-typedef	__uint32_t	__uintfptr_t;
+-typedef	__uint64_t	__uintmax_t;
+-typedef	__uint32_t	__uintptr_t;
+-typedef	__uint32_t	__uint_fast8_t;
+-typedef	__uint32_t	__uint_fast16_t;
+-typedef	__uint32_t	__uint_fast32_t;
+-typedef	__uint64_t	__uint_fast64_t;
+-typedef	__uint8_t	__uint_least8_t;
+-typedef	__uint16_t	__uint_least16_t;
+-typedef	__uint32_t	__uint_least32_t;
+-typedef	__uint64_t	__uint_least64_t;
++typedef	__UINTPTR_TYPE__	__uintfptr_t;
++typedef	__UINTMAX_TYPE__	__uintmax_t;
++typedef	__UINTPTR_TYPE__	__uintptr_t;
++typedef	__UINT_FAST8_TYPE__	__uint_fast8_t;
++typedef	__UINT_FAST16_TYPE__	__uint_fast16_t;
++typedef	__UINT_FAST32_TYPE__	__uint_fast32_t;
++typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
++typedef	__UINT_LEAST8_TYPE__	__uint_least8_t;
++typedef	__UINT_LEAST16_TYPE__	__uint_least16_t;
++typedef	__UINT_LEAST32_TYPE__	__uint_least32_t;
++typedef	__UINT_LEAST64_TYPE__	__uint_least64_t;
+ typedef	__uint32_t	__u_register_t;
+ typedef	__uint32_t	__vm_offset_t;
+ typedef	__uint32_t	__vm_paddr_t;
+diff --git src/lib/libc/sys/arm64/include/_inttypes.h src/lib/libc/sys/arm64/include/_inttypes.h
+--- src/lib/libc/sys/arm64/include/_inttypes.h
++++ src/lib/libc/sys/arm64/include/_inttypes.h
+@@ -42,7 +42,7 @@
+ #define	PRId8		"d"	/* int8_t */
+ #define	PRId16		"d"	/* int16_t */
+ #define	PRId32		"d"	/* int32_t */
+-#define	PRId64		"ld"	/* int64_t */
++#define	PRId64		"lld"	/* int64_t */
+ #define	PRIdLEAST8	"d"	/* int_least8_t */
+ #define	PRIdLEAST16	"d"	/* int_least16_t */
+ #define	PRIdLEAST32	"d"	/* int_least32_t */
+@@ -57,7 +57,7 @@
+ #define	PRIi8		"i"	/* int8_t */
+ #define	PRIi16		"i"	/* int16_t */
+ #define	PRIi32		"i"	/* int32_t */
+-#define	PRIi64		"li"	/* int64_t */
++#define	PRIi64		"lli"	/* int64_t */
+ #define	PRIiLEAST8	"i"	/* int_least8_t  */
+ #define	PRIiLEAST16	"i"	/* int_least16_t */
+ #define	PRIiLEAST32	"i"	/* int_least32_t */
+@@ -74,7 +74,7 @@
+ #define	PRIo8		"o"	/* uint8_t */
+ #define	PRIo16		"o"	/* uint16_t */
+ #define	PRIo32		"o"	/* uint32_t */
+-#define	PRIo64		"lo"	/* uint64_t */
++#define	PRIo64		"llo"	/* uint64_t */
+ #define	PRIoLEAST8	"o"	/* uint_least8_t */
+ #define	PRIoLEAST16	"o"	/* uint_least16_t */
+ #define	PRIoLEAST32	"o"	/* uint_least32_t */
+@@ -89,7 +89,7 @@
+ #define	PRIu8		"u"	/* uint8_t */
+ #define	PRIu16		"u"	/* uint16_t */
+ #define	PRIu32		"u"	/* uint32_t */
+-#define	PRIu64		"lu"	/* uint64_t */
++#define	PRIu64		"llu"	/* uint64_t */
+ #define	PRIuLEAST8	"u"	/* uint_least8_t */
+ #define	PRIuLEAST16	"u"	/* uint_least16_t */
+ #define	PRIuLEAST32	"u"	/* uint_least32_t */
+@@ -104,7 +104,7 @@
+ #define	PRIx8		"x"	/* uint8_t */
+ #define	PRIx16		"x"	/* uint16_t */
+ #define	PRIx32		"x"	/* uint32_t */
+-#define	PRIx64		"lx"	/* uint64_t */
++#define	PRIx64		"llx"	/* uint64_t */
+ #define	PRIxLEAST8	"x"	/* uint_least8_t */
+ #define	PRIxLEAST16	"x"	/* uint_least16_t */
+ #define	PRIxLEAST32	"x"	/* uint_least32_t */
+@@ -119,7 +119,7 @@
+ #define	PRIX8		"X"	/* uint8_t */
+ #define	PRIX16		"X"	/* uint16_t */
+ #define	PRIX32		"X"	/* uint32_t */
+-#define	PRIX64		"lX"	/* uint64_t */
++#define	PRIX64		"llX"	/* uint64_t */
+ #define	PRIXLEAST8	"X"	/* uint_least8_t */
+ #define	PRIXLEAST16	"X"	/* uint_least16_t */
+ #define	PRIXLEAST32	"X"	/* uint_least32_t */
+@@ -136,7 +136,7 @@
+ #define	SCNd8		"hhd"	/* int8_t */
+ #define	SCNd16		"hd"	/* int16_t */
+ #define	SCNd32		"d"	/* int32_t */
+-#define	SCNd64		"ld"	/* int64_t */
++#define	SCNd64		"lld"	/* int64_t */
+ #define	SCNdLEAST8	"hhd"	/* int_least8_t */
+ #define	SCNdLEAST16	"hd"	/* int_least16_t */
+ #define	SCNdLEAST32	"d"	/* int_least32_t */
+@@ -151,7 +151,7 @@
+ #define	SCNi8		"hhi"	/* int8_t */
+ #define	SCNi16		"hi"	/* int16_t */
+ #define	SCNi32		"i"	/* int32_t */
+-#define	SCNi64		"li"	/* int64_t */
++#define	SCNi64		"lli"	/* int64_t */
+ #define	SCNiLEAST8	"hhi"	/* int_least8_t */
+ #define	SCNiLEAST16	"hi"	/* int_least16_t */
+ #define	SCNiLEAST32	"i"	/* int_least32_t */
+@@ -168,7 +168,7 @@
+ #define	SCNo8		"hho"	/* uint8_t */
+ #define	SCNo16		"ho"	/* uint16_t */
+ #define	SCNo32		"o"	/* uint32_t */
+-#define	SCNo64		"lo"	/* uint64_t */
++#define	SCNo64		"llo"	/* uint64_t */
+ #define	SCNoLEAST8	"hho"	/* uint_least8_t */
+ #define	SCNoLEAST16	"ho"	/* uint_least16_t */
+ #define	SCNoLEAST32	"o"	/* uint_least32_t */
+@@ -183,7 +183,7 @@
+ #define	SCNu8		"hhu"	/* uint8_t */
+ #define	SCNu16		"hu"	/* uint16_t */
+ #define	SCNu32		"u"	/* uint32_t */
+-#define	SCNu64		"lu"	/* uint64_t */
++#define	SCNu64		"llu"	/* uint64_t */
+ #define	SCNuLEAST8	"hhu"	/* uint_least8_t */
+ #define	SCNuLEAST16	"hu"	/* uint_least16_t */
+ #define	SCNuLEAST32	"u"	/* uint_least32_t */
+@@ -198,7 +198,7 @@
+ #define	SCNx8		"hhx"	/* uint8_t */
+ #define	SCNx16		"hx"	/* uint16_t */
+ #define	SCNx32		"x"	/* uint32_t */
+-#define	SCNx64		"lx"	/* uint64_t */
++#define	SCNx64		"llx"	/* uint64_t */
+ #define	SCNxLEAST8	"hhx"	/* uint_least8_t */
+ #define	SCNxLEAST16	"hx"	/* uint_least16_t */
+ #define	SCNxLEAST32	"x"	/* uint_least32_t */
+diff --git src/lib/libc/sys/arm64/include/_stdint.h src/lib/libc/sys/arm64/include/_stdint.h
+--- src/lib/libc/sys/arm64/include/_stdint.h
++++ src/lib/libc/sys/arm64/include/_stdint.h
+@@ -38,12 +38,12 @@
+ #define	INT8_C(c)		(c)
+ #define	INT16_C(c)		(c)
+ #define	INT32_C(c)		(c)
+-#define	INT64_C(c)		(c ## L)
++#define	INT64_C(c)		(c ## LL)
+ 
+ #define	UINT8_C(c)		(c)
+ #define	UINT16_C(c)		(c)
+ #define	UINT32_C(c)		(c ## U)
+-#define	UINT64_C(c)		(c ## UL)
++#define	UINT64_C(c)		(c ## ULL)
+ 
+ #define	INTMAX_C(c)		INT64_C(c)
+ #define	UINTMAX_C(c)		UINT64_C(c)
+diff --git src/lib/libc/sys/arm64/include/_types.h src/lib/libc/sys/arm64/include/_types.h
+--- src/lib/libc/sys/arm64/include/_types.h
++++ src/lib/libc/sys/arm64/include/_types.h
+@@ -42,14 +42,14 @@
+ /*
+  * Basic types upon which most other types are built.
+  */
+-typedef	signed char		__int8_t;
+-typedef	unsigned char		__uint8_t;
+-typedef	short			__int16_t;
+-typedef	unsigned short		__uint16_t;
+-typedef	int			__int32_t;
+-typedef	unsigned int		__uint32_t;
+-typedef	long			__int64_t;
+-typedef	unsigned long		__uint64_t;
++typedef	__INT8_TYPE__		__int8_t;
++typedef	__UINT8_TYPE__		__uint8_t;
++typedef	__INT16_TYPE__			__int16_t;
++typedef	__UINT16_TYPE__		__uint16_t;
++typedef	__INT32_TYPE__			__int32_t;
++typedef	__UINT32_TYPE__		__uint32_t;
++typedef	__INT64_TYPE__			__int64_t;
++typedef	unsigned long long	__uint64_t;
+ 
+ /*
+  * Standard type definitions.
+@@ -60,34 +60,34 @@ typedef	__int64_t	__critical_t;
+ typedef	double		__double_t;
+ typedef	float		__float_t;
+ #endif
+-typedef	__int64_t	__intfptr_t;
+-typedef	__int64_t	__intmax_t;
+-typedef	__int64_t	__intptr_t;
+-typedef	__int32_t	__int_fast8_t;
+-typedef	__int32_t	__int_fast16_t;
+-typedef	__int32_t	__int_fast32_t;
+-typedef	__int64_t	__int_fast64_t;
+-typedef	__int8_t	__int_least8_t;
+-typedef	__int16_t	__int_least16_t;
+-typedef	__int32_t	__int_least32_t;
+-typedef	__int64_t	__int_least64_t;
+-typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
++typedef	__INTPTR_TYPE__	__intfptr_t;
++typedef	__INTMAX_TYPE__	__intmax_t;
++typedef	__INTPTR_TYPE__	__intptr_t;
++typedef	__INT_FAST8_TYPE__	__int_fast8_t;
++typedef	__INT_FAST16_TYPE__	__int_fast16_t;
++typedef	__INT_FAST32_TYPE__	__int_fast32_t;
++typedef	__INT_FAST64_TYPE__	__int_fast64_t;
++typedef	__INT_LEAST8_TYPE__	__int_least8_t;
++typedef	__INT_LEAST16_TYPE__	__int_least16_t;
++typedef	__INT_LEAST32_TYPE__	__int_least32_t;
++typedef	__INT_LEAST64_TYPE__	__int_least64_t;
++typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
+ typedef	__int64_t	__register_t;
+ typedef	__int64_t	__segsz_t;		/* segment size (in pages) */
+-typedef	__uint64_t	__size_t;		/* sizeof() */
+-typedef	__int64_t	__ssize_t;		/* byte count or error */
++typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
++typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
+ typedef	__int64_t	__time_t;		/* time()... */
+-typedef	__uint64_t	__uintfptr_t;
+-typedef	__uint64_t	__uintmax_t;
+-typedef	__uint64_t	__uintptr_t;
+-typedef	__uint32_t	__uint_fast8_t;
+-typedef	__uint32_t	__uint_fast16_t;
+-typedef	__uint32_t	__uint_fast32_t;
+-typedef	__uint64_t	__uint_fast64_t;
+-typedef	__uint8_t	__uint_least8_t;
+-typedef	__uint16_t	__uint_least16_t;
+-typedef	__uint32_t	__uint_least32_t;
+-typedef	__uint64_t	__uint_least64_t;
++typedef	__UINTPTR_TYPE__	__uintfptr_t;
++typedef	__UINTMAX_TYPE__	__uintmax_t;
++typedef	__UINTPTR_TYPE__	__uintptr_t;
++typedef	__UINT_FAST8_TYPE__	__uint_fast8_t;
++typedef	__UINT_FAST16_TYPE__	__uint_fast16_t;
++typedef	__UINT_FAST32_TYPE__	__uint_fast32_t;
++typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
++typedef	__UINT_LEAST8_TYPE__	__uint_least8_t;
++typedef	__UINT_LEAST16_TYPE__	__uint_least16_t;
++typedef	__UINT_LEAST32_TYPE__	__uint_least32_t;
++typedef	__UINT_LEAST64_TYPE__	__uint_least64_t;
+ typedef	__uint64_t	__u_register_t;
+ typedef	__uint64_t	__vm_offset_t;
+ typedef	__uint64_t	__vm_paddr_t;
+diff --git src/lib/libc/sys/riscv/include/_inttypes.h src/lib/libc/sys/riscv/include/_inttypes.h
+--- src/lib/libc/sys/riscv/include/_inttypes.h
++++ src/lib/libc/sys/riscv/include/_inttypes.h
+@@ -42,7 +42,7 @@
+ #define	PRId8		"d"	/* int8_t */
+ #define	PRId16		"d"	/* int16_t */
+ #define	PRId32		"d"	/* int32_t */
+-#define	PRId64		"ld"	/* int64_t */
++#define	PRId64		"lld"	/* int64_t */
+ #define	PRIdLEAST8	"d"	/* int_least8_t */
+ #define	PRIdLEAST16	"d"	/* int_least16_t */
+ #define	PRIdLEAST32	"d"	/* int_least32_t */
+@@ -57,7 +57,7 @@
+ #define	PRIi8		"i"	/* int8_t */
+ #define	PRIi16		"i"	/* int16_t */
+ #define	PRIi32		"i"	/* int32_t */
+-#define	PRIi64		"li"	/* int64_t */
++#define	PRIi64		"lli"	/* int64_t */
+ #define	PRIiLEAST8	"i"	/* int_least8_t  */
+ #define	PRIiLEAST16	"i"	/* int_least16_t */
+ #define	PRIiLEAST32	"i"	/* int_least32_t */
+@@ -74,7 +74,7 @@
+ #define	PRIo8		"o"	/* uint8_t */
+ #define	PRIo16		"o"	/* uint16_t */
+ #define	PRIo32		"o"	/* uint32_t */
+-#define	PRIo64		"lo"	/* uint64_t */
++#define	PRIo64		"llo"	/* uint64_t */
+ #define	PRIoLEAST8	"o"	/* uint_least8_t */
+ #define	PRIoLEAST16	"o"	/* uint_least16_t */
+ #define	PRIoLEAST32	"o"	/* uint_least32_t */
+@@ -89,7 +89,7 @@
+ #define	PRIu8		"u"	/* uint8_t */
+ #define	PRIu16		"u"	/* uint16_t */
+ #define	PRIu32		"u"	/* uint32_t */
+-#define	PRIu64		"lu"	/* uint64_t */
++#define	PRIu64		"llu"	/* uint64_t */
+ #define	PRIuLEAST8	"u"	/* uint_least8_t */
+ #define	PRIuLEAST16	"u"	/* uint_least16_t */
+ #define	PRIuLEAST32	"u"	/* uint_least32_t */
+@@ -104,7 +104,7 @@
+ #define	PRIx8		"x"	/* uint8_t */
+ #define	PRIx16		"x"	/* uint16_t */
+ #define	PRIx32		"x"	/* uint32_t */
+-#define	PRIx64		"lx"	/* uint64_t */
++#define	PRIx64		"llx"	/* uint64_t */
+ #define	PRIxLEAST8	"x"	/* uint_least8_t */
+ #define	PRIxLEAST16	"x"	/* uint_least16_t */
+ #define	PRIxLEAST32	"x"	/* uint_least32_t */
+@@ -119,7 +119,7 @@
+ #define	PRIX8		"X"	/* uint8_t */
+ #define	PRIX16		"X"	/* uint16_t */
+ #define	PRIX32		"X"	/* uint32_t */
+-#define	PRIX64		"lX"	/* uint64_t */
++#define	PRIX64		"llX"	/* uint64_t */
+ #define	PRIXLEAST8	"X"	/* uint_least8_t */
+ #define	PRIXLEAST16	"X"	/* uint_least16_t */
+ #define	PRIXLEAST32	"X"	/* uint_least32_t */
+@@ -136,7 +136,7 @@
+ #define	SCNd8		"hhd"	/* int8_t */
+ #define	SCNd16		"hd"	/* int16_t */
+ #define	SCNd32		"d"	/* int32_t */
+-#define	SCNd64		"ld"	/* int64_t */
++#define	SCNd64		"lld"	/* int64_t */
+ #define	SCNdLEAST8	"hhd"	/* int_least8_t */
+ #define	SCNdLEAST16	"hd"	/* int_least16_t */
+ #define	SCNdLEAST32	"d"	/* int_least32_t */
+@@ -151,7 +151,7 @@
+ #define	SCNi8		"hhi"	/* int8_t */
+ #define	SCNi16		"hi"	/* int16_t */
+ #define	SCNi32		"i"	/* int32_t */
+-#define	SCNi64		"li"	/* int64_t */
++#define	SCNi64		"lli"	/* int64_t */
+ #define	SCNiLEAST8	"hhi"	/* int_least8_t */
+ #define	SCNiLEAST16	"hi"	/* int_least16_t */
+ #define	SCNiLEAST32	"i"	/* int_least32_t */
+@@ -168,7 +168,7 @@
+ #define	SCNo8		"hho"	/* uint8_t */
+ #define	SCNo16		"ho"	/* uint16_t */
+ #define	SCNo32		"o"	/* uint32_t */
+-#define	SCNo64		"lo"	/* uint64_t */
++#define	SCNo64		"llo"	/* uint64_t */
+ #define	SCNoLEAST8	"hho"	/* uint_least8_t */
+ #define	SCNoLEAST16	"ho"	/* uint_least16_t */
+ #define	SCNoLEAST32	"o"	/* uint_least32_t */
+@@ -183,7 +183,7 @@
+ #define	SCNu8		"hhu"	/* uint8_t */
+ #define	SCNu16		"hu"	/* uint16_t */
+ #define	SCNu32		"u"	/* uint32_t */
+-#define	SCNu64		"lu"	/* uint64_t */
++#define	SCNu64		"llu"	/* uint64_t */
+ #define	SCNuLEAST8	"hhu"	/* uint_least8_t */
+ #define	SCNuLEAST16	"hu"	/* uint_least16_t */
+ #define	SCNuLEAST32	"u"	/* uint_least32_t */
+@@ -198,7 +198,7 @@
+ #define	SCNx8		"hhx"	/* uint8_t */
+ #define	SCNx16		"hx"	/* uint16_t */
+ #define	SCNx32		"x"	/* uint32_t */
+-#define	SCNx64		"lx"	/* uint64_t */
++#define	SCNx64		"llx"	/* uint64_t */
+ #define	SCNxLEAST8	"hhx"	/* uint_least8_t */
+ #define	SCNxLEAST16	"hx"	/* uint_least16_t */
+ #define	SCNxLEAST32	"x"	/* uint_least32_t */
+diff --git src/lib/libc/sys/riscv/include/_stdint.h src/lib/libc/sys/riscv/include/_stdint.h
+--- src/lib/libc/sys/riscv/include/_stdint.h
++++ src/lib/libc/sys/riscv/include/_stdint.h
+@@ -38,12 +38,12 @@
+ #define	INT8_C(c)		(c)
+ #define	INT16_C(c)		(c)
+ #define	INT32_C(c)		(c)
+-#define	INT64_C(c)		(c ## L)
++#define	INT64_C(c)		(c ## LL)
+ 
+ #define	UINT8_C(c)		(c)
+ #define	UINT16_C(c)		(c)
+ #define	UINT32_C(c)		(c ## U)
+-#define	UINT64_C(c)		(c ## UL)
++#define	UINT64_C(c)		(c ## ULL)
+ 
+ #define	INTMAX_C(c)		INT64_C(c)
+ #define	UINTMAX_C(c)		UINT64_C(c)
+diff --git src/lib/libc/sys/riscv/include/_types.h src/lib/libc/sys/riscv/include/_types.h
+--- src/lib/libc/sys/riscv/include/_types.h
++++ src/lib/libc/sys/riscv/include/_types.h
+@@ -42,14 +42,14 @@
+ /*
+  * Basic types upon which most other types are built.
+  */
+-typedef	signed char		__int8_t;
+-typedef	unsigned char		__uint8_t;
+-typedef	short			__int16_t;
+-typedef	unsigned short		__uint16_t;
+-typedef	int			__int32_t;
+-typedef	unsigned int		__uint32_t;
+-typedef	long			__int64_t;
+-typedef	unsigned long		__uint64_t;
++typedef	__INT8_TYPE__		__int8_t;
++typedef	__UINT8_TYPE__		__uint8_t;
++typedef	__INT16_TYPE__			__int16_t;
++typedef	__UINT16_TYPE__		__uint16_t;
++typedef	__INT32_TYPE__			__int32_t;
++typedef	__UINT32_TYPE__		__uint32_t;
++typedef	__INT64_TYPE__			__int64_t;
++typedef	unsigned long long	__uint64_t;
+ 
+ /*
+  * Standard type definitions.
+@@ -60,34 +60,34 @@ typedef	__int64_t	__critical_t;
+ typedef	double		__double_t;
+ typedef	float		__float_t;
+ #endif
+-typedef	__int64_t	__intfptr_t;
+-typedef	__int64_t	__intmax_t;
+-typedef	__int64_t	__intptr_t;
+-typedef	__int32_t	__int_fast8_t;
+-typedef	__int32_t	__int_fast16_t;
+-typedef	__int32_t	__int_fast32_t;
+-typedef	__int64_t	__int_fast64_t;
+-typedef	__int8_t	__int_least8_t;
+-typedef	__int16_t	__int_least16_t;
+-typedef	__int32_t	__int_least32_t;
+-typedef	__int64_t	__int_least64_t;
+-typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
++typedef	__INTPTR_TYPE__	__intfptr_t;
++typedef	__INTMAX_TYPE__	__intmax_t;
++typedef	__INTPTR_TYPE__	__intptr_t;
++typedef	__INT_FAST8_TYPE__	__int_fast8_t;
++typedef	__INT_FAST16_TYPE__	__int_fast16_t;
++typedef	__INT_FAST32_TYPE__	__int_fast32_t;
++typedef	__INT_FAST64_TYPE__	__int_fast64_t;
++typedef	__INT_LEAST8_TYPE__	__int_least8_t;
++typedef	__INT_LEAST16_TYPE__	__int_least16_t;
++typedef	__INT_LEAST32_TYPE__	__int_least32_t;
++typedef	__INT_LEAST64_TYPE__	__int_least64_t;
++typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
+ typedef	__int64_t	__register_t;
+ typedef	__int64_t	__segsz_t;		/* segment size (in pages) */
+-typedef	__uint64_t	__size_t;		/* sizeof() */
+-typedef	__int64_t	__ssize_t;		/* byte count or error */
++typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
++typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
+ typedef	__int64_t	__time_t;		/* time()... */
+-typedef	__uint64_t	__uintfptr_t;
+-typedef	__uint64_t	__uintmax_t;
+-typedef	__uint64_t	__uintptr_t;
+-typedef	__uint32_t	__uint_fast8_t;
+-typedef	__uint32_t	__uint_fast16_t;
+-typedef	__uint32_t	__uint_fast32_t;
+-typedef	__uint64_t	__uint_fast64_t;
+-typedef	__uint8_t	__uint_least8_t;
+-typedef	__uint16_t	__uint_least16_t;
+-typedef	__uint32_t	__uint_least32_t;
+-typedef	__uint64_t	__uint_least64_t;
++typedef	__UINTPTR_TYPE__	__uintfptr_t;
++typedef	__UINTMAX_TYPE__	__uintmax_t;
++typedef	__UINTPTR_TYPE__	__uintptr_t;
++typedef	__UINT_FAST8_TYPE__	__uint_fast8_t;
++typedef	__UINT_FAST16_TYPE__	__uint_fast16_t;
++typedef	__UINT_FAST32_TYPE__	__uint_fast32_t;
++typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
++typedef	__UINT_LEAST8_TYPE__	__uint_least8_t;
++typedef	__UINT_LEAST16_TYPE__	__uint_least16_t;
++typedef	__UINT_LEAST32_TYPE__	__uint_least32_t;
++typedef	__UINT_LEAST64_TYPE__	__uint_least64_t;
+ typedef	__uint64_t	__u_register_t;
+ typedef	__uint64_t	__vm_offset_t;
+ typedef	__uint64_t	__vm_paddr_t;
+diff --git src/lib/libc/sys/x86/include/_inttypes.h src/lib/libc/sys/x86/include/_inttypes.h
+--- src/lib/libc/sys/x86/include/_inttypes.h
++++ src/lib/libc/sys/x86/include/_inttypes.h
+@@ -40,7 +40,7 @@
+  */
+ 
+ #ifdef __LP64__
+-#define	__PRI64		"l"
++#define	__PRI64		"ll"
+ #define	__PRIptr	"l"
+ #else
+ #define	__PRI64		"ll"
+diff --git src/lib/libc/sys/x86/include/_stdint.h src/lib/libc/sys/x86/include/_stdint.h
+--- src/lib/libc/sys/x86/include/_stdint.h
++++ src/lib/libc/sys/x86/include/_stdint.h
+@@ -55,8 +55,8 @@
+ #define	UINT32_C(c)		(c ## U)
+ 
+ #ifdef	__LP64__
+-#define	INT64_C(c)		(c ## L)
+-#define	UINT64_C(c)		(c ## UL)
++#define	INT64_C(c)		(c ## LL)
++#define	UINT64_C(c)		(c ## ULL)
+ #else
+ #define	INT64_C(c)		(c ## LL)
+ #define	UINT64_C(c)		(c ## ULL)
 diff --git src/lib/libc/sys/x86/include/_types.h src/lib/libc/sys/x86/include/_types.h
-index 07893c6..abd2ea4 100644
 --- src/lib/libc/sys/x86/include/_types.h
 +++ src/lib/libc/sys/x86/include/_types.h
-@@ -100,20 +100,20 @@ typedef	__int16_t	__int_least16_t;
- typedef	__int32_t	__int_least32_t;
- typedef	__int64_t	__int_least64_t;
+@@ -52,18 +52,18 @@
+ /*
+  * Basic types upon which most other types are built.
+  */
+-typedef	signed char		__int8_t;
+-typedef	unsigned char		__uint8_t;
+-typedef	short			__int16_t;
+-typedef	unsigned short		__uint16_t;
+-typedef	int			__int32_t;
+-typedef	unsigned int		__uint32_t;
++typedef	__INT8_TYPE__		__int8_t;
++typedef	__UINT8_TYPE__		__uint8_t;
++typedef	__INT16_TYPE__			__int16_t;
++typedef	__UINT16_TYPE__		__uint16_t;
++typedef	__INT32_TYPE__			__int32_t;
++typedef	__UINT32_TYPE__		__uint32_t;
+ #ifdef	__LP64__
+-typedef	long			__int64_t;
+-typedef	unsigned long		__uint64_t;
++typedef	__INT64_TYPE__			__int64_t;
++typedef	unsigned long long	__uint64_t;
+ #else
+ __extension__
+-typedef	long long		__int64_t;
++typedef	__INT64_TYPE__		__int64_t;
+ __extension__
+ typedef	unsigned long long	__uint64_t;
+ #endif
+@@ -78,8 +78,8 @@ typedef	__int64_t	__critical_t;
+ typedef	double		__double_t;
+ typedef	float		__float_t;
+ #endif
+-typedef	__int64_t	__intfptr_t;
+-typedef	__int64_t	__intptr_t;
++typedef	__INTPTR_TYPE__	__intfptr_t;
++typedef	__INTPTR_TYPE__	__intptr_t;
+ #else
+ typedef	unsigned long	__clock_t;
+ typedef	__int32_t	__critical_t;
+@@ -87,46 +87,46 @@ typedef	__int32_t	__critical_t;
+ typedef	long double	__double_t;
+ typedef	long double	__float_t;
+ #endif
+-typedef	__int32_t	__intfptr_t;
+-typedef	__int32_t	__intptr_t;
++typedef	__INTPTR_TYPE__	__intfptr_t;
++typedef	__INTPTR_TYPE__	__intptr_t;
+ #endif
+-typedef	__int64_t	__intmax_t;
+-typedef	__int32_t	__int_fast8_t;
+-typedef	__int32_t	__int_fast16_t;
+-typedef	__int32_t	__int_fast32_t;
+-typedef	__int64_t	__int_fast64_t;
+-typedef	__int8_t	__int_least8_t;
+-typedef	__int16_t	__int_least16_t;
+-typedef	__int32_t	__int_least32_t;
+-typedef	__int64_t	__int_least64_t;
++typedef	__INTMAX_TYPE__	__intmax_t;
++typedef	__INT_FAST8_TYPE__	__int_fast8_t;
++typedef	__INT_FAST16_TYPE__	__int_fast16_t;
++typedef	__INT_FAST32_TYPE__	__int_fast32_t;
++typedef	__INT_FAST64_TYPE__	__int_fast64_t;
++typedef	__INT_LEAST8_TYPE__	__int_least8_t;
++typedef	__INT_LEAST16_TYPE__	__int_least16_t;
++typedef	__INT_LEAST32_TYPE__	__int_least32_t;
++typedef	__INT_LEAST64_TYPE__	__int_least64_t;
  #ifdef	__LP64__
 -typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
 +typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
@@ -36,8 +605,10 @@ index 07893c6..abd2ea4 100644
 +typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
 +typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
  typedef	__int64_t	__time_t;		/* time()... */
- typedef	__uint64_t	__uintfptr_t;
- typedef	__uint64_t	__uintptr_t;
+-typedef	__uint64_t	__uintfptr_t;
+-typedef	__uint64_t	__uintptr_t;
++typedef	__UINTPTR_TYPE__	__uintfptr_t;
++typedef	__UINTPTR_TYPE__	__uintptr_t;
  #else
 -typedef	__int32_t	__ptrdiff_t;
 +typedef	__PTRDIFF_TYPE__	__ptrdiff_t;
@@ -48,91 +619,29 @@ index 07893c6..abd2ea4 100644
 +typedef	__SIZE_TYPE__	__size_t;
 +typedef	__PTRDIFF_TYPE__	__ssize_t;
  typedef	__int32_t	__time_t;
- typedef	__uint32_t	__uintfptr_t;
- typedef	__uint32_t	__uintptr_t;
---- src/lib/libc/sys/arm64/include/_types.h
-+++ src/lib/libc/sys/arm64/include/_types.h
-@@ -49,7 +49,7 @@
- typedef	int			__int32_t;
- typedef	unsigned int		__uint32_t;
- typedef	long			__int64_t;
--typedef	unsigned long		__uint64_t;
-+typedef	unsigned long long	__uint64_t;
- 
- /*
-  * Standard type definitions.
-@@ -71,23 +71,23 @@
- typedef	__int16_t	__int_least16_t;
- typedef	__int32_t	__int_least32_t;
- typedef	__int64_t	__int_least64_t;
--typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
-+typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
- typedef	__int64_t	__register_t;
- typedef	__int64_t	__segsz_t;		/* segment size (in pages) */
--typedef	__uint64_t	__size_t;		/* sizeof() */
--typedef	__int64_t	__ssize_t;		/* byte count or error */
-+typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
-+typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
- typedef	__int64_t	__time_t;		/* time()... */
--typedef	__uint64_t	__uintfptr_t;
--typedef	__uint64_t	__uintmax_t;
--typedef	__uint64_t	__uintptr_t;
+-typedef	__uint32_t	__uintfptr_t;
+-typedef	__uint32_t	__uintptr_t;
 +typedef	__UINTPTR_TYPE__	__uintfptr_t;
-+typedef	__UINTMAX_TYPE__	__uintmax_t;
 +typedef	__UINTPTR_TYPE__	__uintptr_t;
- typedef	__uint32_t	__uint_fast8_t;
- typedef	__uint32_t	__uint_fast16_t;
- typedef	__uint32_t	__uint_fast32_t;
+ #endif
+-typedef	__uint64_t	__uintmax_t;
+-typedef	__uint32_t	__uint_fast8_t;
+-typedef	__uint32_t	__uint_fast16_t;
+-typedef	__uint32_t	__uint_fast32_t;
 -typedef	__uint64_t	__uint_fast64_t;
-+typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
- typedef	__uint8_t	__uint_least8_t;
- typedef	__uint16_t	__uint_least16_t;
- typedef	__uint32_t	__uint_least32_t;
+-typedef	__uint8_t	__uint_least8_t;
+-typedef	__uint16_t	__uint_least16_t;
+-typedef	__uint32_t	__uint_least32_t;
 -typedef	__uint64_t	__uint_least64_t;
++typedef	__UINTMAX_TYPE__	__uintmax_t;
++typedef	__UINT_FAST8_TYPE__	__uint_fast8_t;
++typedef	__UINT_FAST16_TYPE__	__uint_fast16_t;
++typedef	__UINT_FAST32_TYPE__	__uint_fast32_t;
++typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
++typedef	__UINT_LEAST8_TYPE__	__uint_least8_t;
++typedef	__UINT_LEAST16_TYPE__	__uint_least16_t;
++typedef	__UINT_LEAST32_TYPE__	__uint_least32_t;
 +typedef	__UINT_LEAST64_TYPE__	__uint_least64_t;
+ #ifdef	__LP64__
  typedef	__uint64_t	__u_register_t;
  typedef	__uint64_t	__vm_offset_t;
- typedef	__uint64_t	__vm_paddr_t;
---- src/lib/libc/sys/riscv/include/_types.h
-+++ src/lib/libc/sys/riscv/include/_types.h
-@@ -49,7 +49,7 @@
- typedef	int			__int32_t;
- typedef	unsigned int		__uint32_t;
- typedef	long			__int64_t;
--typedef	unsigned long		__uint64_t;
-+typedef	unsigned long long	__uint64_t;
- 
- /*
-  * Standard type definitions.
-@@ -71,23 +71,23 @@
- typedef	__int16_t	__int_least16_t;
- typedef	__int32_t	__int_least32_t;
- typedef	__int64_t	__int_least64_t;
--typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
-+typedef	__PTRDIFF_TYPE__	__ptrdiff_t;		/* ptr1 - ptr2 */
- typedef	__int64_t	__register_t;
- typedef	__int64_t	__segsz_t;		/* segment size (in pages) */
--typedef	__uint64_t	__size_t;		/* sizeof() */
--typedef	__int64_t	__ssize_t;		/* byte count or error */
-+typedef	__SIZE_TYPE__	__size_t;		/* sizeof() */
-+typedef	__PTRDIFF_TYPE__	__ssize_t;		/* byte count or error */
- typedef	__int64_t	__time_t;		/* time()... */
--typedef	__uint64_t	__uintfptr_t;
--typedef	__uint64_t	__uintmax_t;
--typedef	__uint64_t	__uintptr_t;
-+typedef	__UINTPTR_TYPE__	__uintfptr_t;
-+typedef	__UINTMAX_TYPE__	__uintmax_t;
-+typedef	__UINTPTR_TYPE__	__uintptr_t;
- typedef	__uint32_t	__uint_fast8_t;
- typedef	__uint32_t	__uint_fast16_t;
- typedef	__uint32_t	__uint_fast32_t;
--typedef	__uint64_t	__uint_fast64_t;
-+typedef	__UINT_FAST64_TYPE__	__uint_fast64_t;
- typedef	__uint8_t	__uint_least8_t;
- typedef	__uint16_t	__uint_least16_t;
- typedef	__uint32_t	__uint_least32_t;
--typedef	__uint64_t	__uint_least64_t;
-+typedef	__UINT_LEAST64_TYPE__	__uint_least64_t;
- typedef	__uint64_t	__u_register_t;
- typedef	__uint64_t	__vm_offset_t;
- typedef	__uint64_t	__vm_paddr_t;

@@ -10,3 +10,9 @@ CC_OPT  += -Wno-error=narrowing \
            -Wno-error=float-conversion \
            -Wno-error=unused-parameter \
            -Wno-error=cpp
+
+#
+# Fix builtin declaration mismatch error for 'imaxabs' in
+# /usr/include/inttypes.h
+#
+CC_OPT += -Wno-builtin-declaration-mismatch

@@ -35,7 +35,7 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance,
 
 int com::VBoxLogRelCreate(char const*, char const*, unsigned int, char const*,
                           char const*, unsigned int, unsigned int, unsigned int,
-                          unsigned int, unsigned long, RTERRINFO*) { return NS_OK; }
+                          unsigned int, unsigned long long, RTERRINFO*) { return NS_OK; }
 
 
 /* DisplayPNGUtil.cpp */

@@ -1,15 +1,45 @@
 libgcov.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- gcc/tsystem.h    |    6 ++++++
- libgcc/libgcov.h |    2 ++
- 2 files changed, 8 insertions(+)
-
+diff --git a/gcc/config/genode-stdint.h b/gcc/config/genode-stdint.h
+new file mode 100644
+--- /dev/null
++++ b/gcc/config/genode-stdint.h
+@@ -0,0 +1,34 @@
++#define SIG_ATOMIC_TYPE   "int"
++
++#define INT8_TYPE         "signed char"
++#define INT16_TYPE        "short int"
++#define INT32_TYPE        "int"
++#define INT64_TYPE        "long long int"
++#define UINT8_TYPE        "unsigned char"
++#define UINT16_TYPE       "short unsigned int"
++#define UINT32_TYPE       "unsigned int"
++#define UINT64_TYPE       "long long unsigned int"
++
++#define INT_LEAST8_TYPE   "signed char"
++#define INT_LEAST16_TYPE  "short int"
++#define INT_LEAST32_TYPE  "int"
++#define INT_LEAST64_TYPE  "long long int"
++#define UINT_LEAST8_TYPE  "unsigned char"
++#define UINT_LEAST16_TYPE "short unsigned int"
++#define UINT_LEAST32_TYPE "unsigned int"
++#define UINT_LEAST64_TYPE "long long unsigned int"
++
++#define INT_FAST8_TYPE    "int"
++#define INT_FAST16_TYPE   "int"
++#define INT_FAST32_TYPE   "int"
++#define INT_FAST64_TYPE   "long long int"
++#define UINT_FAST8_TYPE   "unsigned int"
++#define UINT_FAST16_TYPE  "unsigned int"
++#define UINT_FAST32_TYPE  "unsigned int"
++#define UINT_FAST64_TYPE  "long long unsigned int"
++
++#define INTMAX_TYPE       "long long int"
++#define UINTMAX_TYPE      "long long unsigned int"
++
++#define INTPTR_TYPE       "long int"
++#define UINTPTR_TYPE      "long unsigned int"
 diff --git a/gcc/tsystem.h b/gcc/tsystem.h
-index bb0bfc2..ed48f82 100644
 --- a/gcc/tsystem.h
 +++ b/gcc/tsystem.h
 @@ -98,7 +98,9 @@ extern void *memset (void *, int, size_t);
@@ -38,7 +68,6 @@ index bb0bfc2..ed48f82 100644
  #endif /* inhibit_libc */
  
 diff --git a/libgcc/libgcov.h b/libgcc/libgcov.h
-index 9d83a27..4d748ad 100644
 --- a/libgcc/libgcov.h
 +++ b/libgcc/libgcov.h
 @@ -49,6 +49,8 @@

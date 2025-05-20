@@ -32,3 +32,9 @@ CC_OPT_FREESTANDING =
 
 # fix '_Float*' redeclaration error with GCC 14 and older glibc
 CC_OPT += -D_BITS_FLOATN_H
+
+#
+# Fix 'redefined' errors for built-in macros that are defined
+# differently in the Genode tool chain.
+#
+CC_OPT += -U__INT64_C -U__UINT64_C

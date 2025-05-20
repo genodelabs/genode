@@ -9,7 +9,7 @@ SIG(gcov) := ${URL(gcov)}
 KEY(gcov) := GNU
 
 URL(generated) := https://github.com/cproc/genode-generated.git
-REV(generated) := 163f58cf43c8553e991dfb8ea65974990fbd2256
+REV(generated) := 1ecb9c359a3807ac77216e8aa8eeee861d53d749
 DIR(generated) := include
 
 TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
@@ -103,7 +103,6 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/align.h \
                  gcc-$(VERSION)/gcc/wide-int-print.h \
                  gcc-$(VERSION)/gcc/config/elfos.h \
                  gcc-$(VERSION)/gcc/config/initfini-array.h \
-                 gcc-$(VERSION)/gcc/config/newlib-stdint.h \
                  gcc-$(VERSION)/gcc/config/vxworks-dummy.h \
                  gcc-$(VERSION)/gcc/config/aarch64/aarch64-arches.def \
                  gcc-$(VERSION)/gcc/config/aarch64/aarch64-cores.def \

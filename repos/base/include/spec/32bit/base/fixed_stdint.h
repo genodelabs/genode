@@ -32,14 +32,14 @@
  ** Fixed-size types usable from both C and C++ programs **
  **********************************************************/
 
-typedef signed char        genode_int8_t;
-typedef unsigned char      genode_uint8_t;
-typedef signed short       genode_int16_t;
-typedef unsigned short     genode_uint16_t;
-typedef signed             genode_int32_t;
-typedef unsigned           genode_uint32_t;
-typedef signed long long   genode_int64_t;
-typedef unsigned long long genode_uint64_t;
+typedef __INT8_TYPE__   genode_int8_t;
+typedef __UINT8_TYPE__  genode_uint8_t;
+typedef __INT16_TYPE__  genode_int16_t;
+typedef __UINT16_TYPE__ genode_uint16_t;
+typedef __INT32_TYPE__  genode_int32_t;
+typedef __UINT32_TYPE__ genode_uint32_t;
+typedef __INT64_TYPE__  genode_int64_t;
+typedef __UINT64_TYPE__ genode_uint64_t;
 
 
 /**************************************************

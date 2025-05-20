@@ -4,28 +4,59 @@ From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
 
 
 ---
- gcc/config.gcc               |    2 +-
+ gcc/config.gcc               |   10 +++++-----
  gcc/config/arm/arm.h         |    4 ++--
  gcc/config/arm/unknown-elf.h |   13 +++++++++++++
+ gcc/config/genode-stdint.h   |   34 ++++++++++++++++++++++++++++++++++
  gcc/config/i386/x86-64.h     |   19 +++++++++++++++++--
  gcc/config/riscv/elf.h       |    2 ++
  gcc/config/riscv/riscv.h     |   17 +++++++++++++++--
  libgcc/config.host           |   16 ++++++++++++----
- 7 files changed, 62 insertions(+), 11 deletions(-)
+ 8 files changed, 100 insertions(+), 15 deletions(-)
+ create mode 100644 gcc/config/genode-stdint.h
 
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index 95c91ee02..bbbc17e84 100644
+index 95c91ee02..2f1e9f2cd 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
-@@ -1480,7 +1480,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
+@@ -1190,7 +1190,7 @@ esac
+ 
+ case ${target} in
+ aarch64*-*-elf | aarch64*-*-fuchsia* | aarch64*-*-rtems*)
+-	tm_file="${tm_file} elfos.h newlib-stdint.h"
++	tm_file="${tm_file} elfos.h genode-stdint.h"
+ 	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-elf-raw.h"
+ 	tmake_file="${tmake_file} aarch64/t-aarch64"
+ 	case $target in
+@@ -1479,8 +1479,8 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
+ 	target_cpu_cname="arm7tdmi"
  	case ${target} in
  	arm*-*-eabi*)
- 	  tm_file="$tm_file newlib-stdint.h"
+-	  tm_file="$tm_file newlib-stdint.h"
 -	  tmake_file="${tmake_file} arm/t-bpabi"
++	  tm_file="$tm_file genode-stdint.h"
 +	  tmake_file="${tmake_file} arm/t-bpabi t-slibgcc"
  	  use_gcc_stdint=wrap
  	  ;;
  	arm*-*-fuchsia*)
+@@ -1933,7 +1933,7 @@ i[34567]86-*-elf*)
+ 	tm_file="${tm_file} i386/unix.h i386/att.h elfos.h newlib-stdint.h i386/i386elf.h"
+ 	;;
+ x86_64-*-elf*)
+-	tm_file="${tm_file} i386/unix.h i386/att.h elfos.h newlib-stdint.h i386/i386elf.h i386/x86-64.h"
++	tm_file="${tm_file} i386/unix.h i386/att.h elfos.h genode-stdint.h i386/i386elf.h i386/x86-64.h"
+ 	;;
+ x86_64-*-rtems*)
+ 	tm_file="${tm_file} i386/unix.h i386/att.h elfos.h newlib-stdint.h i386/i386elf.h i386/x86-64.h i386/rtemself.h rtems.h"
+@@ -2505,7 +2505,7 @@ riscv*-*-linux*)
+ 	with_tls=${with_tls:-trad}
+ 	;;
+ riscv*-*-elf* | riscv*-*-rtems*)
+-	tm_file="elfos.h newlib-stdint.h ${tm_file} riscv/elf.h"
++	tm_file="elfos.h genode-stdint.h ${tm_file} riscv/elf.h"
+ 	case ${target} in
+ 	*-*-rtems*)
+ 	  tm_file="${tm_file} riscv/rtems.h rtems.h"
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
 index 0cd5d7339..e57dea4b0 100644
 --- a/gcc/config/arm/arm.h
@@ -66,6 +97,46 @@ index 6b313042f..4498375ef 100644
 +#define LINK_SPEC \
 +  "%(shared:-shared) \
 +   %{!static:--eh-frame-hdr}"
+diff --git a/gcc/config/genode-stdint.h b/gcc/config/genode-stdint.h
+new file mode 100644
+index 000000000..14519f022
+--- /dev/null
++++ b/gcc/config/genode-stdint.h
+@@ -0,0 +1,34 @@
++#define SIG_ATOMIC_TYPE   "int"
++
++#define INT8_TYPE         "signed char"
++#define INT16_TYPE        "short int"
++#define INT32_TYPE        "int"
++#define INT64_TYPE        "long long int"
++#define UINT8_TYPE        "unsigned char"
++#define UINT16_TYPE       "short unsigned int"
++#define UINT32_TYPE       "unsigned int"
++#define UINT64_TYPE       "long long unsigned int"
++
++#define INT_LEAST8_TYPE   "signed char"
++#define INT_LEAST16_TYPE  "short int"
++#define INT_LEAST32_TYPE  "int"
++#define INT_LEAST64_TYPE  "long long int"
++#define UINT_LEAST8_TYPE  "unsigned char"
++#define UINT_LEAST16_TYPE "short unsigned int"
++#define UINT_LEAST32_TYPE "unsigned int"
++#define UINT_LEAST64_TYPE "long long unsigned int"
++
++#define INT_FAST8_TYPE    "int"
++#define INT_FAST16_TYPE   "int"
++#define INT_FAST32_TYPE   "int"
++#define INT_FAST64_TYPE   "long long int"
++#define UINT_FAST8_TYPE   "unsigned int"
++#define UINT_FAST16_TYPE  "unsigned int"
++#define UINT_FAST32_TYPE  "unsigned int"
++#define UINT_FAST64_TYPE  "long long unsigned int"
++
++#define INTMAX_TYPE       "long long int"
++#define UINTMAX_TYPE      "long long unsigned int"
++
++#define INTPTR_TYPE       "long int"
++#define UINTPTR_TYPE      "long unsigned int"
 diff --git a/gcc/config/i386/x86-64.h b/gcc/config/i386/x86-64.h
 index d70f22870..b30e04092 100644
 --- a/gcc/config/i386/x86-64.h
