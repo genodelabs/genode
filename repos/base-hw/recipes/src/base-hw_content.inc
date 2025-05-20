@@ -208,7 +208,7 @@ generalize_target_names: $(CONTENT)
 
 # content needed for os/backtrace.h
 MIRROR_FROM_OS += include/os/backtrace.h include/util/formatted_output.h \
-                  $(foreach A, x86_32 x86_64 arm arm_64, \
+                  $(foreach A, x86_32 x86_64 arm arm_64 riscv, \
                      include/spec/$A/os/for_each_return_address.h)
 
 content: $(MIRROR_FROM_OS)
