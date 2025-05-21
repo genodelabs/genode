@@ -610,7 +610,6 @@ struct Igd::Device
 		Signal_context_capability        _completion_sigh { };
 		uint32_t                  const  _id;
 		Engine<Rcs_context>              rcs;
-		uint32_t                         active_fences    { 0 };
 		uint64_t                         _current_seqno   { 0 };
 		Gpu::addr_t                      _delayed_execute { 0 };
 
@@ -1714,41 +1713,6 @@ struct Igd::Device
 		_pci_backend_alloc.free(Genode::static_cap_cast<Genode::Ram_dataspace>(cap));
 	}
 
-	/**
-	 * Set tiling mode for GGTT region
-	 *
-	 * \param start  offset of the GGTT start entry
-	 * \param size   size of the region
-	 * \param mode   tiling mode for the region
-	 *
-	 * \return id of the used fence register
-	 */
-	uint32_t set_tiling(Igd::Mmio &mmio, Ggtt::Offset const start,
-	                    size_t const size, uint32_t const mode)
-	{
-		uint32_t const id = _get_free_fence(mmio);
-		if (id == INVALID_FENCE) {
-			Genode::warning("could not find free FENCE");
-			return id;
-		}
-		addr_t   const lower = start * PAGE_SIZE;
-		addr_t   const upper = lower + size;
-		uint32_t const pitch = ((mode & 0xffff0000) >> 16) / 128 - 1;
-		bool     const tilex = (mode & 0x1);
-
-		return _update_fence(mmio, id, lower, upper, pitch, tilex);
-	}
-
-	/**
-	 * Clear tiling for given fence
-	 *
-	 * \param id  id of fence register
-	 */
-	void clear_tiling(Igd::Mmio &mmio, uint32_t const id)
-	{
-		_clear_fence(mmio, id);
-	}
-
 	bool handle_irq(Igd::Mmio &mmio)
 	{
 		bool display_irq = mmio.display_irq();
@@ -1845,11 +1809,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 			Ram_dataspace_capability ds_cap;
 			Owner const             &owning_session;
-
-			enum { INVALID_FENCE = 0xff };
-			Genode::uint32_t fenced { INVALID_FENCE };
-
-			Igd::Ggtt::Mapping map { };
 
 			addr_t phys_addr { 0 };
 			size_t size { 0 };
@@ -2079,20 +2038,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 					 */
 					if (vram.owner(_owner.cap) == false) return false;
 
-					if (!vram.map.invalid()) {
-						_device.unmap_dataspace_ggtt(_heap, &vram.map);
-					}
-
-					if (vram.fenced != Vram::INVALID_FENCE) {
-						_device._resources.with_mmio([&](auto &mmio) {
-							_device.clear_tiling(mmio, vram.fenced);
-						}, [&]() {
-							warning("tiling could not be cleared");
-						});
-
-						_vgpu.active_fences--;
-					}
-
 					_env.ep().dissolve(vram);
 					_device.free_vram(_heap, vram.ds_cap);
 					return true;
@@ -2262,11 +2207,6 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 
 					if (vram.owner(cap()) == false) return false;
 
-					if (!vram.map.invalid()) {
-						Genode::error("cannot free mapped vram");
-						/* XXX throw */
-						return false;
-					}
 					_env.ep().dissolve(vram);
 					_device.free_vram(_heap, vram.ds_cap);
 					_resource_guard.replenish(vram.caps_used ? 1 : 0,
@@ -2398,50 +2338,10 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			_apply_vram_local(id, lookup_and_unmap, [] { });
 		}
 
-		bool set_tiling_gpu(Vram_id id, off_t offset, unsigned mode) override
+		bool set_tiling_gpu(Vram_id, off_t, unsigned) override
 		{
-			bool result = false;
-
-			_device._resources.with_mmio([&](auto &mmio) {
-				result = _set_tiling_gpu(mmio, id, offset, mode);
-			}, []() { });
-
-			return result;
-		}
-
-		bool _set_tiling_gpu(Igd::Mmio &mmio, Vram_id const id,
-		                     off_t const offset, unsigned const mode)
-		{
-			if (_vgpu.active_fences > Igd::Device::Vgpu::MAX_FENCES) {
-				Genode::error("no free fences left, already active: ", _vgpu.active_fences);
-				return false;
-			}
-
-			Vram *v = nullptr;
-			auto lookup = [&] (Vram &vram) {
-				if (vram.map.invalid() || !vram.owner(cap())) { return false; }
-				v = &vram;
-				return false;
-			};
-
-			_apply_vram_local(id,
-				[&] (Vram_local &vram_local) { _apply_vram(vram_local, lookup); },
-				[&] { warning("attempt to set tiling for unknown Vram_id ", id); });
-
-			if (v == nullptr) {
-				Genode::error("attempt to set tiling for non-mapped or non-owned vram");
-				return false;
-			}
-
-			//XXX: support change of already fenced bo's fencing mode
-			if (v->fenced) return true;
-
-			Igd::size_t const size = v->size;
-			auto const fenced = _device.set_tiling(mmio, v->map.offset + offset, size, mode);
-
-			v->fenced = fenced;
-			if (fenced != Vram::INVALID_FENCE) { _vgpu.active_fences++; }
-			return fenced != Vram::INVALID_FENCE;
+			error("set_tiling_gpu: called not implemented");
+			return false;
 		}
 };
 
