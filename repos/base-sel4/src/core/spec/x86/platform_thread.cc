@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -36,8 +36,17 @@ bool Thread_info::init_vcpu(Platform &platform, Cap_sel ept)
 {
 	enum { PAGES_16K = (1UL << Vcpu_kobj::SIZE_LOG2) / 4096 };
 
-	this->vcpu_state_phys = Untyped_memory::alloc_pages(phys_alloc_16k(), PAGES_16K);
-	this->vcpu_sel        = platform.core_sel_alloc().alloc();
+	auto phys_result = Untyped_memory::alloc_pages(phys_alloc_16k(), PAGES_16K);
+
+	if (phys_result.failed())
+		return false;
+
+	phys_result.with_result([&](auto & result) {
+		result.deallocate = false;
+		this->vcpu_state_phys = addr_t(result.ptr);
+	}, [](auto) { /* handled before by explicit failed() check */ });
+
+	this->vcpu_sel = platform.core_sel_alloc().alloc();
 
 	seL4_Untyped const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, vcpu_state_phys, Vcpu_kobj::SIZE_LOG2).value();
 

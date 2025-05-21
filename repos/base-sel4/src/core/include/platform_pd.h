@@ -52,8 +52,9 @@ class Core::Platform_pd : public Address_space
 
 		Page_table_registry _page_table_registry;
 
+		Allocator::Alloc_result _page_directory { };
+
 		Cap_sel const _page_directory_sel;
-		addr_t  const _page_directory;
 
 		Constructible<Vm_space> _vm_space { };
 
@@ -66,8 +67,8 @@ class Core::Platform_pd : public Address_space
 		Sel_alloc _sel_alloc { };
 		Mutex _sel_alloc_mutex { };
 
-		addr_t _init_page_directory() const;
-		void   _deinit_page_directory(addr_t) const;
+		Cap_sel _init_page_directory();
+		void    _deinit_page_directory();
 
 	public:
 
@@ -104,7 +105,7 @@ class Core::Platform_pd : public Address_space
 		/**
 		 * Map physical IPC buffer to virtual UTCB address
 		 */
-		[[nodiscard]] bool map_ipc_buffer(Ipc_buffer_phys, Utcb_virt);
+		[[nodiscard]] bool map_ipc_buffer(Ipc_buffer_phys const &, Utcb_virt);
 
 		/**
 		 * Unmap IPC buffer from PD, at 'Platform_thread' destruction time
@@ -128,16 +129,26 @@ class Core::Platform_pd : public Address_space
 		 ** seL4-specific interface **
 		 *****************************/
 
-		Cnode &cspace_cnode(Cap_sel sel)
+		void with_cspace_cnode(Cap_sel sel, auto const &fn)
 		{
 			const unsigned index = sel.value() / (1 << CSPACE_SIZE_LOG2_2ND);
-			ASSERT(index < sizeof(_cspace_cnode_2nd) /
-	                       sizeof(_cspace_cnode_2nd[0]));
 
-			return *_cspace_cnode_2nd[index];
+			if (index >= sizeof(_cspace_cnode_2nd) /
+			             sizeof(_cspace_cnode_2nd[0]))
+				return;
+
+			if (_cspace_cnode_2nd[index].constructed() &&
+			    _cspace_cnode_2nd[index]->constructed())
+				fn(*_cspace_cnode_2nd[index]);
+			else
+				warning(__func__, " invalid sel");
 		}
 
-		Cnode &cspace_cnode_1st() { return _cspace_cnode_1st; }
+		void with_cspace_cnode_1st(auto const &fn)
+		{
+			if (_cspace_cnode_1st.constructed())
+				fn(_cspace_cnode_1st);
+		}
 
 		Cap_sel page_directory_sel() const { return _page_directory_sel; }
 
@@ -145,7 +156,7 @@ class Core::Platform_pd : public Address_space
 
 		bool install_mapping(Mapping const &mapping, const char * thread_name);
 
-		static Pd_id_allocator & pd_id_alloc();
+		static Pd_id_allocator &pd_id_alloc();
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

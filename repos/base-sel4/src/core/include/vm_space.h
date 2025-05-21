@@ -123,6 +123,9 @@ class Core::Vm_space
 					cap_sel_alloc.free(_cnode->sel());
 				}
 
+				bool constructed() const {
+					return _cnode.constructed() && _cnode->constructed(); }
+
 				Cnode &cnode() { return *_cnode; }
 		};
 
@@ -296,11 +299,20 @@ class Core::Vm_space
 			result_idx.with_result([&] (addr_t n) { pte_idx = unsigned(n); },
 			                       [&] (auto) { /* handled before */ });
 
+			auto phys_result = Untyped_memory::alloc_page(_phys_alloc);
+
+			if (phys_result.failed())
+				return false;
+
 			try {
-				phys = Untyped_memory::alloc_page(_phys_alloc);
-				seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
-				create<KOBJ>(service, _leaf_cnode(pte_idx).sel(),
-				             _leaf_cnode_entry(pte_idx));
+				phys_result.with_result([&](auto &result) {
+					result.deallocate = false;
+
+					phys = addr_t(result.ptr);
+					seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
+					create<KOBJ>(service, _leaf_cnode(pte_idx).sel(),
+					             _leaf_cnode_entry(pte_idx));
+				}, [&] (auto) { /* handled before by explicit failed() check */ });
 			} catch (...) {
 				error("leaking untyped memory and phys addr in _alloc_and_map");
 				_sel_alloc.free(pte_idx);
@@ -335,13 +347,13 @@ class Core::Vm_space
 			Untyped_memory::free_page(_phys_alloc, paddr);
 		}
 
-		void _construct_cnodes_l3(auto const & fn)
+		void _for_each_l3_cnodes(auto const &fn)
 		{
 			for (unsigned l3 = 0; l3 < NUM_CNODE_3RD; l3++)
 				fn(l3, _cnodes[l3]._3rd, _cnodes[l3]._4th);
 		}
 
-		void _revert_cnodes_l3(auto const & fn)
+		void _revert_cnodes_l3(auto const &fn)
 		{
 			for (int l3 = NUM_CNODE_3RD - 1; l3 >= 0; l3--)
 				fn(l3, _cnodes[l3]._3rd, _cnodes[l3]._4th);
@@ -389,7 +401,7 @@ class Core::Vm_space
 			/* insert 2nd-level VM-pad CNode into 1st-level CNode */
 			_top_level_cnode.copy(cspace, _vm_pad_cnode.sel(), Cnode_index(_id));
 
-			_construct_cnodes_l3([&](int l3, auto & cnode_3rd, auto & leafs) {
+			_for_each_l3_cnodes([&](int l3, auto &cnode_3rd, auto &leafs) {
 
 				cnode_3rd.construct(_cap_sel_alloc, core_cnode.sel(),
 					                phys_alloc, VM_3RD_CNODE_SIZE_LOG2);
@@ -407,6 +419,33 @@ class Core::Vm_space
 				/* insert 3rd-level VM CNode into 2nd-level VM-pad CNode */
 				_vm_pad_cnode.copy(cspace, cnode_3rd.cnode().sel(), Cnode_index(l3));
 			});
+		}
+
+		bool constructed()
+		{
+			if (!_vm_pad_cnode.constructed())
+				return false;
+
+			bool success = true;
+
+			_for_each_l3_cnodes([&](int, auto &cnode_3rd, auto &leafs) {
+				if (!success)
+					return;
+
+				success = cnode_3rd.constructed();
+
+				if (!success)
+					return;
+
+				for (unsigned l4 = 0; l4 < NUM_LEAF_CNODES; l4++) {
+					success = leafs[l4].constructed();
+
+					if (!success)
+						break;
+				}
+			});
+
+			return success;
 		}
 
 		~Vm_space()
@@ -427,7 +466,7 @@ class Core::Vm_space
 				_unmap_and_free(idx, paddr);
 			});
 
-			_revert_cnodes_l3([&](auto l3, auto & cnode_3rd, auto & leafs) {
+			_revert_cnodes_l3([&](auto l3, auto &cnode_3rd, auto &leafs) {
 				for (int l4 = NUM_LEAF_CNODES - 1; l4 >= 0; l4--) {
 					cnode_3rd.cnode().remove(Cnode_index(l4));
 					leafs[l4].destruct(_cap_sel_alloc, _phys_alloc);

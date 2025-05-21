@@ -31,6 +31,9 @@ void Signal_source_component::release(Signal_context_component &context)
 void Signal_source_component::submit(Signal_context_component &context,
                                      unsigned long             cnt)
 {
+	if (!_notify.valid())
+		return;
+
 	/*
 	 * If the client does not block in 'wait_for_signal', the
 	 * signal will be delivered as result of the next
@@ -67,15 +70,26 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint &ep)
 	Platform        &platform   = platform_specific();
 	Range_allocator &phys_alloc = platform.ram_alloc();
 
-	addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
-	seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+	auto phys_result = Untyped_memory::alloc_page(phys_alloc);
 
-	/* allocate notification object within core's CNode */
-	Cap_sel ny_sel = platform.core_sel_alloc().alloc();
-	create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel);
+	phys_result.with_result([&](auto & result) {
+		result.deallocate = false;
 
-	_notify = Capability_space::create_notification_cap(ny_sel);
+		seL4_Untyped const service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
+
+		/* allocate notification object within core's CNode */
+		Cap_sel ny_sel = platform.core_sel_alloc().alloc();
+		create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel);
+
+		_notify = Capability_space::create_notification_cap(ny_sel);
+	}, [] (auto) {
+		/* _notify stays invalid */
+		error("Signal_source_component construction failed");
+	});
 }
 
 
-Signal_source_component::~Signal_source_component() { }
+Signal_source_component::~Signal_source_component()
+{
+	warning(__func__, " leaking resources");
+}

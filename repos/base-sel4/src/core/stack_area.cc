@@ -65,24 +65,32 @@ class Stack_area_region_map : public Region_map
 
 			/* allocate physical memory */
 			Range_allocator &phys_alloc = Core::platform_specific().ram_alloc();
-			addr_t const phys = Untyped_memory::alloc_pages(phys_alloc, num_pages);
-			Untyped_memory::convert_to_page_frames(phys, num_pages);
 
-			Dataspace_component &ds = *new (&_ds_slab)
-				Dataspace_component(size, 0, phys, CACHED, true, 0);
+			auto phys_result = Untyped_memory::alloc_pages(phys_alloc, num_pages);
 
-			addr_t const core_local_addr = stack_area_virtual_base() + attr.at;
+			return phys_result.convert<Attach_result>([&](auto &result) {
+				result.deallocate = false;
 
-			if (!map_local(ds.phys_addr(), core_local_addr,
-			               ds.size() >> get_page_size_log2())) {
-				error(__func__, ": could not map phys ", Hex(ds.phys_addr()), " "
-				      "at local ", Hex(core_local_addr));
-				return Attach_error::INVALID_DATASPACE;
-			}
+				addr_t const phys = addr_t(result.ptr);
+				Untyped_memory::convert_to_page_frames(phys, num_pages);
 
-			ds.assign_core_local_addr((void*)core_local_addr);
+				auto &ds = *new (&_ds_slab) Dataspace_component(size, 0, phys,
+				                                                CACHED, true, 0);
 
-			return Range { .start = attr.at, .num_bytes = size };
+				addr_t const core_local_addr = stack_area_virtual_base() + attr.at;
+
+				if (!map_local(ds.phys_addr(), core_local_addr,
+				               ds.size() >> get_page_size_log2())) {
+					error(__func__, ": could not map phys ", Hex(ds.phys_addr()), " "
+					      "at local ", Hex(core_local_addr));
+					return Attach_result(Attach_error::INVALID_DATASPACE);
+				}
+
+				ds.assign_core_local_addr((void*)core_local_addr);
+
+				return Attach_result(Range { .start = attr.at, .num_bytes = size });
+			}, [&](auto) {
+				return Attach_result(Attach_error::INVALID_DATASPACE); });
 		}
 
 		void detach(addr_t at) override

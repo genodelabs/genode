@@ -1,11 +1,12 @@
 /*
  * \brief   Utilities for dealing with untyped memory
  * \author  Norman Feske
+ * \author  Alexander Boettcher
  * \date    2015-05-06
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -29,29 +30,19 @@ namespace Core { struct Untyped_memory; }
 
 struct Core::Untyped_memory
 {
-	class Phys_alloc_failed : Exception { };
-
-
-	static inline addr_t alloc_pages(Range_allocator &phys_alloc, size_t num_pages)
+	static inline Allocator::Alloc_result alloc_pages(Range_allocator &phys,
+	                                                  size_t const num_pages)
 	{
-		size_t   const size = num_pages*get_page_size();
+		size_t   const size  = num_pages * get_page_size();
 		unsigned const align = get_page_size_log2();
 
-		return phys_alloc.alloc_aligned(size, align).convert<addr_t>(
-
-			[&] (Range_allocator::Allocation &phys) {
-				phys.deallocate = false;
-				return (addr_t)phys.ptr; },
-
-			[&] (Alloc_error) -> addr_t {
-				error(__PRETTY_FUNCTION__, ": allocation of untyped memory failed");
-				throw Phys_alloc_failed(); });
+		return phys.alloc_aligned(size, align);
 	}
 
 
-	static inline addr_t alloc_page(Range_allocator &phys_alloc)
+	static inline Allocator::Alloc_result alloc_page(Range_allocator &phys)
 	{
-		return alloc_pages(phys_alloc, 1);
+		return alloc_pages(phys, 1);
 	}
 
 

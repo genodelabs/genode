@@ -42,14 +42,17 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 		return;
 	}
 
-	Thread_info thread_info;
-	thread_info.init(utcb_virt, CONFIG_NUM_PRIORITIES - 1);
+	bool const auto_deallocate = false;
 
-	if (!map_local(thread_info.ipc_buffer_phys.addr, utcb_virt.addr, 1)) {
-		error(__func__, ": could not map IPC buffer "
-		      "phys=",   Hex(thread_info.ipc_buffer_phys.addr), " "
-		      "local=%", Hex(utcb_virt.addr));
-	}
+	Thread_info thread_info;
+	thread_info.init(utcb_virt, CONFIG_NUM_PRIORITIES - 1, auto_deallocate);
+
+	thread_info.ipc_phys.with_result([&](auto &result) {
+		if (!map_local(addr_t(result.ptr), utcb_virt.addr, 1)) {
+			error(__func__, ": could not map IPC buffer "
+			      "phys=", result.ptr, " local=", Hex(utcb_virt.addr));
+		}
+	}, [](auto) { error(__func__, " IPC buffer error"); });
 
 	nt.attr.tcb_sel  = thread_info.tcb_sel.value();
 	nt.attr.ep_sel   = thread_info.ep_sel.value();

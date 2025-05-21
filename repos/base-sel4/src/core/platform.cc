@@ -485,53 +485,46 @@ void Core::Platform::_init_rom_modules()
 	/* export x86 platform specific infos via 'platform_info' ROM */
 	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
 	{
-		constexpr unsigned const pages = 1;
+		Untyped_memory::alloc_page(ram_alloc()).with_result([&](auto &result) {
 
-		struct Phys_alloc_guard
-		{
-			Range_allocator &_alloc;
+			constexpr unsigned const pages = 1;
 
-			addr_t const addr = Untyped_memory::alloc_page(_alloc);
+			auto const phys_addr = addr_t(result.ptr);
 
-			bool deallocate = true;
+			Untyped_memory::convert_to_page_frames(phys_addr, pages);
 
-			Phys_alloc_guard(Range_allocator &alloc) :_alloc(alloc)
-			{
-				Untyped_memory::convert_to_page_frames(addr, pages);
-			}
+			addr_t   const size  = pages << get_page_size_log2();
+			size_t   const align = get_page_size_log2();
 
-			~Phys_alloc_guard()
-			{
-				if (deallocate)
-					Untyped_memory::free_page(_alloc, addr);
-			}
-		} phys { ram_alloc() };
+			region_alloc().alloc_aligned(size, align).with_result(
 
-		addr_t   const size  = pages << get_page_size_log2();
-		size_t   const align = get_page_size_log2();
+				[&] (Range_allocator::Allocation &core_local) {
 
-		region_alloc().alloc_aligned(size, align).with_result(
+					if (!map_local(phys_addr, (addr_t)core_local.ptr, pages, this)) {
+						error("could not setup platform_info ROM - map error");
+						return;
+					}
 
-			[&] (Range_allocator::Allocation &core_local) {
+					memset(core_local.ptr, 0, size);
+					content_fn((char *)core_local.ptr, size);
 
-				if (!map_local(phys.addr, (addr_t)core_local.ptr, pages, this)) {
-					error("could not setup platform_info ROM - map error");
-					return;
+					new (core_mem_alloc())
+						Rom_module(_rom_fs, rom_name, phys_addr, size);
+
+					result.deallocate = core_local.deallocate = false;
+				},
+
+				[&] (Alloc_error) {
+					error("could not setup platform_info ROM - region allocation error");
 				}
+			);
 
-				memset(core_local.ptr, 0, size);
-				content_fn((char *)core_local.ptr, size);
+			if (result.deallocate)
+				Untyped_memory::free_page(ram_alloc(), phys_addr);
 
-				new (core_mem_alloc())
-					Rom_module(_rom_fs, rom_name, phys.addr, size);
-
-				phys.deallocate = core_local.deallocate = false;
-			},
-
-			[&] (Alloc_error) {
-				error("could not setup platform_info ROM - region allocation error");
-			}
-		);
+		}, [] (auto) {
+			error("could not setup platform_info ROM - phys allocation error");
+		});
 	};
 
 	export_page_as_rom_module("platform_info", [&] (char *ptr, size_t size) {
@@ -575,11 +568,14 @@ Core::Platform::Platform()
 	Cap_sel lock_sel (INITIAL_SEL_LOCK);
 	Cap_sel core_sel = _core_sel_alloc.alloc();
 
-	{
-		addr_t       const phys_addr = Untyped_memory::alloc_page(ram_alloc());
-		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+	Untyped_memory::alloc_page(ram_alloc()).with_result([&](auto &result) {
+		result.deallocate = false;
+		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 		create<Notification_kobj>(service, core_cnode().sel(), core_sel);
-	}
+	}, [] (auto) {
+		error("setup of kernel notification object for Genode::Lock failed");
+		ASSERT(false);
+	});
 
 	/* mint a copy of the notification object with badge of lock_sel */
 	_core_cnode.mint(_core_cnode, core_sel, lock_sel);

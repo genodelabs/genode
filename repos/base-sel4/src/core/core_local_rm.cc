@@ -40,7 +40,8 @@ Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 
 				/* map the dataspace's physical pages to core-local virtual addresses */
 				size_t num_pages = page_rounded_size >> get_page_size_log2();
-				map_local(ds->phys_addr(), (addr_t)virt.ptr, num_pages);
+				if (!map_local(ds->phys_addr(), (addr_t)virt.ptr, num_pages))
+					return Error::REGION_CONFLICT;
 
 				virt.deallocate = false;
 				return { *this, { .ptr       = virt.ptr,

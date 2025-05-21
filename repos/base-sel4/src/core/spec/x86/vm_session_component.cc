@@ -119,12 +119,18 @@ try
 	if (cap_reservation.failed()) throw Out_of_caps();
 	if (ram_reservation.failed()) throw Out_of_ram();
 
-	try {
-		_ept._phys    = Untyped_memory::alloc_page(phys_alloc);
-		_ept._service = Untyped_memory::untyped_sel(_ept._phys).value();
+	auto ept_phys = Untyped_memory::alloc_page(phys_alloc);
 
-		create<Ept_kobj>(_ept._service, platform.core_cnode().sel(),
-		                 _vm_page_table);
+	try {
+		ept_phys.with_result([&](auto & result) {
+			result.deallocate = false;
+
+			_ept._phys    = addr_t(result.ptr);
+			_ept._service = Untyped_memory::untyped_sel(_ept._phys).value();
+
+			create<Ept_kobj>(_ept._service, platform.core_cnode().sel(),
+			                 _vm_page_table);
+		}, [&](auto) { throw 1; });
 	} catch (...) {
 		throw Service_denied();
 	}
@@ -134,9 +140,15 @@ try
 	if (ret != seL4_NoError)
 		throw Service_denied();
 
+	auto notify_phys = Untyped_memory::alloc_page(phys_alloc);
+
 	try {
-		_notifications._phys = Untyped_memory::alloc_page(phys_alloc);
-		_notifications._service = Untyped_memory::untyped_sel(_notifications._phys).value();
+		notify_phys.with_result([&](auto & result) {
+			result.deallocate = false;
+
+			_notifications._phys = addr_t(result.ptr);
+			_notifications._service = Untyped_memory::untyped_sel(_notifications._phys).value();
+		}, [&](auto) { throw 1; });
 	} catch (...) {
 		throw Service_denied();
 	}

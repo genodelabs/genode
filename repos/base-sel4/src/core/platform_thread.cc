@@ -94,39 +94,42 @@ bool Core::install_mapping(Mapping const &mapping, unsigned long pager_object_ba
  ** Utilities to support the Platform_thread interface **
  ********************************************************/
 
-static void prepopulate_ipc_buffer(Ipc_buffer_phys const ipc_buffer_phys,
-                                   Cap_sel         const ep_sel,
-                                   Cap_sel         const lock_sel,
-                                   Utcb_virt       const utcb_virt)
+static void prepopulate_ipc_buffer(Ipc_buffer_phys const &ipc_buffer_phys,
+                                   Cap_sel         const &ep_sel,
+                                   Cap_sel         const &lock_sel,
+                                   Utcb_virt       const &utcb_virt)
 {
-	/* IPC buffer is one page */
-	size_t const page_rounded_size = get_page_size();
+	ipc_buffer_phys.with_result([&](auto &result) {
 
-	/* allocate range in core's virtual address space */
-	platform().region_alloc().try_alloc(page_rounded_size).with_result(
+		/* IPC buffer is one page */
+		size_t const page_rounded_size = get_page_size();
 
-		[&] (Range_allocator::Allocation &virt) {
+		/* allocate range in core's virtual address space */
+		platform().region_alloc().try_alloc(page_rounded_size).with_result(
 
-			/* map the IPC buffer to core-local virtual addresses */
-			map_local(ipc_buffer_phys.addr, (addr_t)virt.ptr, 1);
+			[&] (Range_allocator::Allocation &virt) {
 
-			/* populate IPC buffer with thread information */
-			Native_utcb &utcb = *(Native_utcb *)virt.ptr;
-			utcb.ep_sel  (ep_sel  .value());
-			utcb.lock_sel(lock_sel.value());
-			utcb.ipcbuffer(utcb_virt);
+				/* map the IPC buffer to core-local virtual addresses */
+				map_local(addr_t(result.ptr), addr_t(virt.ptr), 1);
 
-			/* unmap IPC buffer from core */
-			if (!unmap_local((addr_t)virt.ptr, 1))
-				error("could not unmap core virtual address ",
-				      virt.ptr, " in ", __PRETTY_FUNCTION__);
-		},
+				/* populate IPC buffer with thread information */
+				Native_utcb &utcb = *(Native_utcb *)virt.ptr;
+				utcb.ep_sel  (ep_sel  .value());
+				utcb.lock_sel(lock_sel.value());
+				utcb.ipcbuffer(utcb_virt);
 
-		[&] (Alloc_error) {
-			error("could not allocate virtual address range in core of size ",
-			      page_rounded_size);
-		}
-	);
+				/* unmap IPC buffer from core */
+				if (!unmap_local((addr_t)virt.ptr, 1))
+					error("could not unmap core virtual address ",
+					      virt.ptr, " in ", __PRETTY_FUNCTION__);
+			},
+
+			[&] (Alloc_error) {
+				error("could not allocate virtual address range in core of size ",
+				      page_rounded_size);
+			}
+		);
+	}, [&](auto) { error("prepopulate ipc buffer failed"); });
 }
 
 
@@ -136,29 +139,34 @@ static void prepopulate_ipc_buffer(Ipc_buffer_phys const ipc_buffer_phys,
 
 void Platform_thread::start(void *ip, void *sp, unsigned int)
 {
-	ASSERT(_pager);
+	if (!_pager || constructed.failed())
+		return;
 
 	/* pager endpoint in core */
 	Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
 
 	/* install page-fault handler endpoint selector to the PD's CSpace */
-	_pd.cspace_cnode(_fault_handler_sel).copy(platform_specific().core_cnode(),
-	                                          pager_sel, _fault_handler_sel);
+	_pd.with_cspace_cnode(_fault_handler_sel, [&] (auto &cnode) {
+		cnode.copy(platform_specific().core_cnode(),
+		           pager_sel, _fault_handler_sel);
+	});
 
 	/* install the thread's endpoint selector to the PD's CSpace */
-	_pd.cspace_cnode(_ep_sel).copy(platform_specific().core_cnode(),
-	                               _info.ep_sel, _ep_sel);
+	_pd.with_cspace_cnode(_ep_sel, [&] (auto &cnode) {
+		cnode.copy(platform_specific().core_cnode(), _info.ep_sel, _ep_sel);
+	});
 
 	/* install the thread's notification object to the PD's CSpace */
-	_pd.cspace_cnode(_lock_sel).mint(platform_specific().core_cnode(),
-	                                 _info.lock_sel, _lock_sel);
+	_pd.with_cspace_cnode(_lock_sel, [&] (auto &cnode) {
+		cnode.mint(platform_specific().core_cnode(), _info.lock_sel, _lock_sel);
+	});
 
 	/*
 	 * Populate the thread's IPC buffer with initial information about the
 	 * thread. Once started, the thread picks up this information in the
 	 * 'Thread::_thread_bootstrap' method.
 	 */
-	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel, _lock_sel, _utcb);
+	prepopulate_ipc_buffer(_info.ipc_phys, _ep_sel, _lock_sel, _utcb);
 
 	/* bind thread to PD and CSpace */
 	seL4_CNode_CapData const guard_cap_data =
@@ -166,16 +174,18 @@ void Platform_thread::start(void *ip, void *sp, unsigned int)
 
 	seL4_CNode_CapData const no_cap_data = { { 0 } };
 
-	int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(),
-	                                  _fault_handler_sel.value(),
-	                                  _pd.cspace_cnode_1st().sel().value(),
-	                                  guard_cap_data.words[0],
-	                                  _pd.page_directory_sel().value(),
-	                                  no_cap_data.words[0]);
-	ASSERT(ret == 0);
+	_pd.with_cspace_cnode_1st([&](auto const &cnode_1st) {
+		int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(),
+		                                  _fault_handler_sel.value(),
+		                                  cnode_1st.sel().value(),
+		                                  guard_cap_data.words[0],
+		                                  _pd.page_directory_sel().value(),
+		                                  no_cap_data.words[0]);
+		ASSERT(ret == 0);
 
-	start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp), _location.xpos(),
-	                  _utcb.addr);
+		start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp), _location.xpos(),
+		                  _utcb.addr);
+	});
 }
 
 
@@ -221,10 +231,14 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 	if (_priority > 0)
 		_priority -= 1;
 
-	_info.init(_utcb, _priority);
 	platform_thread_registry().insert(*this);
 
-	_pd.alloc_thread_selectors([&](auto & sel) {
+	_info.init(_utcb, _priority);
+
+	if (!_info.valid())
+		return;
+
+	_pd.alloc_thread_selectors([&](auto &sel) {
 		bool ok = true;
 
 		/* allocate fault handler selector in the PD's CSpace */
@@ -257,7 +271,7 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 					[&](auto    ) { ok = false; });
 		}
 
-		if (ok && _pd.map_ipc_buffer(_info.ipc_buffer_phys, _utcb)) {
+		if (ok && _pd.map_ipc_buffer(_info.ipc_phys, _utcb)) {
 			_bound_to_pd = true;
 			constructed = Ok();
 		}
@@ -292,7 +306,8 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 
 Platform_thread::~Platform_thread()
 {
-	seL4_TCB_Suspend(_info.tcb_sel.value());
+	if (_info.valid())
+		seL4_TCB_Suspend(_info.tcb_sel.value());
 
 	if (_bound_to_pd) {
 		if (!main_thread())
@@ -311,8 +326,10 @@ Platform_thread::~Platform_thread()
 		seL4_CNode_Revoke(seL4_CapInitThreadCNode, pager_sel.value(), 32);
 	}
 
-	seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.lock_sel.value(), 32);
-	seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.ep_sel.value(), 32);
+	if (_info.valid()) {
+		seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.lock_sel.value(), 32);
+		seL4_CNode_Revoke(seL4_CapInitThreadCNode, _info.ep_sel.value(), 32);
+	}
 
 	_info.destruct();
 
@@ -323,10 +340,9 @@ Platform_thread::~Platform_thread()
 
 Trace::Execution_time Platform_thread::execution_time() const
 {
-	if (!Thread::myself() || !Thread::myself()->utcb()) {
-		error("don't know myself");
+	if (constructed.failed() || !Thread::myself() || !Thread::myself()->utcb())
 		return { 0, 0, 10000, _priority };
-	}
+
 	Thread &myself = *Thread::myself();
 
 	seL4_IPCBuffer &ipc_buffer = *reinterpret_cast<seL4_IPCBuffer *>(myself.utcb());
@@ -349,11 +365,14 @@ void Platform_thread::setup_vcpu(Cap_sel ept, Cap_sel notification)
 	}
 
 	/* install the thread's endpoint selector to the PD's CSpace */
-	_pd.cspace_cnode(_vcpu_sel).copy(platform_specific().core_cnode(),
-	                                 _info.vcpu_sel, _vcpu_sel);
-	_pd.cspace_cnode(_vcpu_notify_sel).copy(platform_specific().core_cnode(),
-	                                        notification, _vcpu_notify_sel);
+	_pd.with_cspace_cnode(_vcpu_sel, [&](auto &cnode) {
+		cnode.copy(platform_specific().core_cnode(), _info.vcpu_sel, _vcpu_sel);
+	});
 
-	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _vcpu_sel, _vcpu_notify_sel,
-	                       _utcb);
+	_pd.with_cspace_cnode(_vcpu_notify_sel, [&](auto &cnode) {
+		cnode.copy(platform_specific().core_cnode(), notification,
+		           _vcpu_notify_sel);
+	});
+
+	prepopulate_ipc_buffer(_info.ipc_phys, _vcpu_sel, _vcpu_notify_sel, _utcb);
 }

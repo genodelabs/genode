@@ -15,6 +15,7 @@
 #include <base/ipc.h>
 #include <base/log.h>
 #include <base/thread.h>
+#include <base/sleep.h>
 #include <util/misc_math.h>
 
 /* base-internal includes */
@@ -320,7 +321,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 {
 	if (!dst.valid()) {
 		error("Trying to invoke an invalid capability, stop.");
-		kernel_debugger_panic("IPC destination is invalid");
+		sleep_forever();
 	}
 
 	allocate_and_define_rcv_sel();

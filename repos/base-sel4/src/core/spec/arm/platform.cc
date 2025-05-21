@@ -103,39 +103,46 @@ void Platform::_init_core_page_table_registry()
 }
 
 
-addr_t Platform_pd::_init_page_directory() const
+Cap_sel Platform_pd::_init_page_directory()
 {
+	Cap_sel sel_page_directory = platform_specific().core_sel_alloc().alloc();
+
 	/* page directory table contains 4096 elements of 32bits -> 16k required */
 	enum { PAGES_16K = (1UL << Page_directory_kobj::SIZE_LOG2) / 4096 };
 
-	addr_t const phys_addr = Untyped_memory::alloc_pages(phys_alloc_16k(), PAGES_16K);
-	seL4_Untyped const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, phys_addr, Page_directory_kobj::SIZE_LOG2).value();
+	_page_directory = Untyped_memory::alloc_pages(phys_alloc_16k(), PAGES_16K);
 
-	create<Page_directory_kobj>(service,
-	                            platform_specific().core_cnode().sel(),
-	                            _page_directory_sel);
+	_page_directory.with_result([&](auto &result) {
+		auto const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, addr_t(result.ptr), Page_directory_kobj::SIZE_LOG2).value();
 
-	long ret = seL4_ARM_ASIDPool_Assign(platform_specific().asid_pool().value(),
-	                                    _page_directory_sel.value());
+		create<Page_directory_kobj>(service,
+		                            platform_specific().core_cnode().sel(),
+		                            sel_page_directory);
 
-	if (ret != seL4_NoError)
-		error("seL4_ARM_ASIDPool_Assign returned ", ret);
 
-	return phys_addr;
+		long ret = seL4_ARM_ASIDPool_Assign(platform_specific().asid_pool().value(),
+		                                    sel_page_directory.value());
+
+		if (ret != seL4_NoError)
+			error("seL4_ARM_ASIDPool_Assign returned ", ret);
+
+	}, [&] (auto) { /* handled manually in platform_pd - to be improved */ });
+
+	return sel_page_directory;
 }
 
 
-void Platform_pd::_deinit_page_directory(addr_t phys_addr) const
+void Platform_pd::_deinit_page_directory()
 {
-	int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
-	                            _page_directory_sel.value(), 32);
-	if (ret != seL4_NoError) {
-		error(__FUNCTION__, ": could not free ASID entry, "
-		      "leaking physical memory ", ret);
-		return;
-	}
-
-	Untyped_memory::free_page(phys_alloc_16k(), phys_addr);
+	_page_directory.with_result([&](auto &result) {
+		int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
+		                            _page_directory_sel.value(), 32);
+		if (ret != seL4_NoError) {
+			error(__FUNCTION__, ": could not free ASID entry, "
+			      "leaking physical memory ", ret);
+			result.deallocate = false;
+		}
+	}, [](auto) { /* allocation failed, so we have nothing to revert */ });
 }
 
 

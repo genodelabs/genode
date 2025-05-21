@@ -130,7 +130,7 @@ class Core::Cnode : public Cnode_base, Noncopyable
 {
 	private:
 
-		addr_t _phys = 0UL;
+		Allocator::Alloc_result _phys { };
 
 	public:
 
@@ -148,7 +148,6 @@ class Core::Cnode : public Cnode_base, Noncopyable
 		 * \param phys_alloc  physical-memory allocator used for allocating
 		 *                    the CNode backing store
 		 *
-		 * \throw Phys_alloc_failed
 		 * \throw Untyped_address::Lookup_failed
 		 *
 		 * \deprecated
@@ -156,11 +155,18 @@ class Core::Cnode : public Cnode_base, Noncopyable
 		Cnode(Cap_sel parent_sel, Index dst_idx, uint8_t size_log2,
 		      Range_allocator &phys_alloc)
 		:
-			Cnode_base(dst_idx, size_log2)
+			Cnode_base(dst_idx, size_log2),
+			_phys(Untyped_memory::alloc_page(phys_alloc))
 		{
-			_phys = Untyped_memory::alloc_page(phys_alloc);
-			seL4_Untyped const service = Untyped_memory::untyped_sel(_phys).value();
-			create<Cnode_kobj>(service, parent_sel, dst_idx, size_log2);
+			_phys.with_result([&](auto &res) {
+				auto const service = Untyped_memory::untyped_sel(addr_t(res.ptr)).value();
+				create<Cnode_kobj>(service, parent_sel, dst_idx, size_log2);
+			}, [&](auto) { error("Cnode construction failed"); });
+		}
+
+		bool constructed() const
+		{
+			return !_phys.failed();
 		}
 
 		/**
@@ -190,10 +196,8 @@ class Core::Cnode : public Cnode_base, Noncopyable
 		{
 			/* revert phys allocation */
 
-			if (!_phys) {
-				error("invalid call to destruct Cnode");
+			if (_phys.failed())
 				return;
-			}
 
 			if (revoke) {
 				int ret = seL4_CNode_Revoke(seL4_CapInitThreadCNode,
@@ -209,20 +213,24 @@ class Core::Cnode : public Cnode_base, Noncopyable
 				error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
 				      Hex(sel().value()), ") returned ", ret);
 
-			Untyped_memory::free_page(phys_alloc, _phys);
+			_phys.with_result([&](auto &phys) {
+				Untyped_memory::free_page(phys_alloc, addr_t(phys.ptr));
+			}, [] (auto){ /* handled at the beginning of the method */ });
 
-			_phys = ~0UL;
+			_phys = { };
 		}
 
 		~Cnode()
 		{
-			if (_phys == ~0UL)
+			if (_phys.failed())
 				return;
 
-			/* convert CNode back to untyped memory */
+			/* XXX convert CNode back to untyped memory */
 
-			error(__FUNCTION__, " - not implemented phys=", Hex(_phys),
-			      " sel=", Hex(sel().value()));
+			_phys.with_result([&](auto &phys) {
+				error(__FUNCTION__, " - not implemented phys=", phys.ptr,
+				      " sel=", Hex(sel().value()));
+			}, [&] (auto) { /* handled at the beginning of the method */ });
 		}
 };
 

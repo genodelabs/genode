@@ -1,11 +1,12 @@
 /*
  * \brief  Implementation of IRQ session component
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2015-05-01
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -28,13 +29,19 @@ bool Irq_object::associate(Irq_args const &args)
 	auto &platform   = platform_specific();
 	auto &phys_alloc = platform.ram_alloc();
 
-	{
-		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
-		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
+	auto phys_result = Untyped_memory::alloc_page(phys_alloc);
+
+	if (phys_result.failed())
+		return false;
+
+	phys_result.with_result([&](auto &result) {
+		result.deallocate = false;
+
+		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		create<Notification_kobj>(service, platform.core_cnode().sel(),
 		                          _kernel_notify_sel);
-	}
+	}, [](auto) { /* check before with explicit failed() */ });
 
 	/* setup IRQ platform specific */
 	long res = _associate(args);
