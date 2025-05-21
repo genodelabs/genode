@@ -12,6 +12,7 @@ SRC_CC += libc.cc unimpl.cc dummies.cc pdm.cc devices.cc nem.cc
 SRC_CC += pthread.cc network.cc devxhci.cc
 SRC_CC += sup.cc sup_sem.cc sup_gmm.cc sup_drv.cc sup_vm.cc sup_vcpu.cc sup_gim.cc
 SRC_CC += HostServices/common/message.cpp services/services.cc
+SRC_CC += call_func.cc
 
 LIBS  += base
 LIBS  += stdcxx
@@ -38,7 +39,6 @@ LIBS += virtualbox6-apiwrap
 LIBS += virtualbox6-client
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
-INC_DIR += $(call select_from_repositories,src/lib/libc)/spec/x86_64
 
 INC_DIR += $(REP_DIR)/src/virtualbox6
 INC_DIR += $(VBOX_DIR)/HostDrivers/Support
@@ -59,6 +59,7 @@ LD_OPT = --export-dynamic
 
 LIBS += blit
 
+vpath call_func.cc $(call select_from_repositories,src/lib/libc)/spec/x86_64
 vpath %.cc $(REP_DIR)/src/virtualbox6/
 
 CC_CXX_WARN_STRICT =
