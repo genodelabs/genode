@@ -237,10 +237,4 @@ Signal Signal_receiver::pending_signal()
 }
 
 
-void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &rpc_ep)
-{
-	Kernel::cancel_next_await_signal(native_thread_id(&rpc_ep));
-}
-
-
 void Signal_receiver::local_submit(Signal::Data) { Genode::error("not implemented"); }

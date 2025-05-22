@@ -32,21 +32,20 @@ namespace Kernel {
 	constexpr Call_arg call_id_submit_signal()            { return  7; }
 	constexpr Call_arg call_id_await_signal()             { return  8; }
 	constexpr Call_arg call_id_pending_signal()           { return  9; }
-	constexpr Call_arg call_id_cancel_next_await_signal() { return 10; }
-	constexpr Call_arg call_id_ack_signal()               { return 11; }
-	constexpr Call_arg call_id_print_char()               { return 12; }
-	constexpr Call_arg call_id_cache_coherent_region()    { return 13; }
-	constexpr Call_arg call_id_cache_clean_inv_region()   { return 14; }
-	constexpr Call_arg call_id_cache_inv_region()         { return 15; }
-	constexpr Call_arg call_id_cache_line_size()          { return 16; }
-	constexpr Call_arg call_id_ack_cap()                  { return 17; }
-	constexpr Call_arg call_id_delete_cap()               { return 18; }
-	constexpr Call_arg call_id_timeout()                  { return 19; }
-	constexpr Call_arg call_id_timeout_max_us()           { return 20; }
-	constexpr Call_arg call_id_time()                     { return 21; }
-	constexpr Call_arg call_id_run_vcpu()                 { return 22; }
-	constexpr Call_arg call_id_pause_vcpu()               { return 23; }
-	constexpr Call_arg call_id_suspend()                  { return 24; }
+	constexpr Call_arg call_id_ack_signal()               { return 10; }
+	constexpr Call_arg call_id_print_char()               { return 11; }
+	constexpr Call_arg call_id_cache_coherent_region()    { return 12; }
+	constexpr Call_arg call_id_cache_clean_inv_region()   { return 13; }
+	constexpr Call_arg call_id_cache_inv_region()         { return 14; }
+	constexpr Call_arg call_id_cache_line_size()          { return 15; }
+	constexpr Call_arg call_id_ack_cap()                  { return 16; }
+	constexpr Call_arg call_id_delete_cap()               { return 17; }
+	constexpr Call_arg call_id_timeout()                  { return 18; }
+	constexpr Call_arg call_id_timeout_max_us()           { return 19; }
+	constexpr Call_arg call_id_time()                     { return 20; }
+	constexpr Call_arg call_id_run_vcpu()                 { return 21; }
+	constexpr Call_arg call_id_pause_vcpu()               { return 22; }
+	constexpr Call_arg call_id_suspend()                  { return 23; }
 
 
 	/*****************************************************************
@@ -330,23 +329,6 @@ namespace Kernel {
 	inline int pending_signal(capid_t const receiver_id)
 	{
 		return (int)call(call_id_pending_signal(), receiver_id);
-	}
-
-
-	/**
-	 * Request to cancel the next signal blocking of a local thread
-	 *
-	 * \param thread_id  capability ID of the targeted thread
-	 *
-	 * Does not block. Targeted thread must be in the same PD as the caller.
-	 * If the targeted thread is in a signal blocking, cancels the blocking
-	 * directly. Otherwise, stores the request and avoids the next signal
-	 * blocking of the targeted thread as if it was immediately cancelled.
-	 * If the target thread already holds a request, further ones get ignored.
-	 */
-	inline void cancel_next_await_signal(capid_t const thread_id)
-	{
-		call(call_id_cancel_next_await_signal(), thread_id);
 	}
 
 

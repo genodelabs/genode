@@ -315,11 +315,6 @@ Signal Signal_receiver::pending_signal()
 	return Signal();
 }
 
-void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &)
-{
-	_signal_available.up();
-}
-
 
 void Signal_receiver::local_submit(Signal::Data data)
 {

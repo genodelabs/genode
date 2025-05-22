@@ -389,11 +389,6 @@ class Genode::Signal_receiver : Noncopyable
 		void block_for_signal();
 
 		/**
-		 * Unblock signal waiter
-		 */
-		void unblock_signal_waiter(Rpc_entrypoint &rpc_ep);
-
-		/**
 		 * Retrieve pending signal
 		 *
 		 * \return  received signal (invalid if no pending signal found)

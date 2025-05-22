@@ -189,7 +189,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		char   const *const                _label;
 		capid_t                            _timeout_sigid            { 0 };
 		bool                               _paused                   { false };
-		bool                               _cancel_next_await_signal { false };
 		Type const                         _type;
 		Exception_state                    _exception_state          { NO_EXCEPTION };
 
@@ -284,7 +283,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		void _call_print_char();
 		void _call_await_signal();
 		void _call_pending_signal();
-		void _call_cancel_next_await_signal();
 		void _call_submit_signal();
 		void _call_ack_signal();
 		void _call_kill_signal_context();
