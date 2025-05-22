@@ -255,8 +255,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 */
 		size_t _core_to_kernel_quota(size_t const quota) const;
 
-		void _cancel_blocking();
-
 		bool _restart();
 
 
@@ -452,7 +450,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		void ipc_send_request_succeeded() ;
 		void ipc_send_request_failed()    ;
 		void ipc_await_request_succeeded();
-		void ipc_await_request_failed()   ;
 		void ipc_copy_msg(Thread &sender) ;
 
 

@@ -106,18 +106,6 @@ void Ipc_node::reply()
 }
 
 
-void Ipc_node::cancel_waiting()
-{
-	if (_out.sending())
-		_cancel_send();
-
-	if (_in.waiting()) {
-		_in.state = In::READY;
-		_thread.ipc_await_request_failed();
-	}
-}
-
-
 Ipc_node::Ipc_node(Thread &thread)
 :
 	_thread(thread)

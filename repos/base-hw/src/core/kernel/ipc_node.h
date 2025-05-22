@@ -118,11 +118,6 @@ class Kernel::Ipc_node
 		void reply();
 
 		/**
-		 * If IPC node waits, cancel it
-		 */
-		void cancel_waiting();
-
-		/**
 		 * Return whether this IPC node is waiting for messages
 		 */
 		bool waiting() const { return _in.waiting(); }

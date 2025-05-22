@@ -268,14 +268,6 @@ void Thread::ipc_await_request_succeeded()
 }
 
 
-void Thread::ipc_await_request_failed()
-{
-	assert(_state == AWAITS_IPC);
-	user_arg_0(-1);
-	_become_active();
-}
-
-
 void Thread::_become_active()
 {
 	if (_state != ACTIVE && !_paused) Cpu_context::_activate();
@@ -406,35 +398,6 @@ bool Thread::_restart()
 	_exception_state = NO_EXCEPTION;
 	_become_active();
 	return true;
-}
-
-
-void Thread::_cancel_blocking()
-{
-	switch (_state) {
-	case AWAITS_RESTART:
-		_become_active();
-		return;
-	case AWAITS_IPC:
-		_ipc_node.cancel_waiting();
-		return;
-	case AWAITS_SIGNAL:
-		_signal_handler.cancel_waiting();
-		user_arg_0(-1);
-		_become_active();
-		return;
-	case AWAITS_SIGNAL_CONTEXT_KILL:
-		_signal_context_killer.cancel_waiting();
-		return;
-	case ACTIVE:
-		return;
-	case DEAD:
-		Genode::raw("can't cancel blocking of dead thread");
-		return;
-	case AWAITS_START:
-		Genode::raw("can't cancel blocking of not yet started thread");
-		return;
-	}
 }
 
 
@@ -632,7 +595,8 @@ void Thread::_call_pending_signal()
 	}
 
 	if (_state == AWAITS_SIGNAL) {
-		_cancel_blocking();
+		_signal_handler.cancel_waiting();
+		_become_active();
 		user_arg_0(-1);
 		return;
 	}
