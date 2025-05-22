@@ -58,11 +58,11 @@ void Heap::Dataspace_pool::remove_and_free(Dataspace &ds)
 	ds.~Dataspace();
 
 	{
-		/* deallocate via '~Allocation' */
-		Ram::Allocation { *ram_alloc, { ds_cap, size } };
-
 		/* detach via '~Attachment' */
 		Local_rm::Attachment { *local_rm, { at, size } };
+
+		/* deallocate via '~Allocation' */
+		Ram::Allocation { *ram_alloc, { ds_cap, size } };
 	}
 }
 
