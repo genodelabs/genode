@@ -30,14 +30,17 @@ tool chain. It can be obtained in two ways: as pre-compiled binaries or
 manually compiled:
 
 :Pre-compiled:
-  [https://github.com/genodelabs/genode/releases/download/23.05/genode-toolchain-23.05.tar.xz - Download the tool chain]
-  pre-compiled for Linux x86_64.
+  Download the tool chain for
+  [https://github.com/genodelabs/genode/releases/download/25.05/genode-toolchain-25.05-debian-12.10.tar.xz - Debian 12.10]
+  or
+  [https://github.com/genodelabs/genode/releases/download/25.05/genode-toolchain-25.05-ubuntu-24.04.tar.xz - Ubuntu 24.04].
 
-  ! SHA256 880886efba0f592a3d3c5ffb9fa63e692cb6bd643e13c5c468d0da027c22716e
+  ! SHA256 245d553c85934589fe3d2d892ce7b3555ad548ece0d000e04c57076d00826850 (Debian)
+  ! SHA256 6cab8e5f4490399a296a73b01695d5fb055a40f6ac04d61a3f7a7344003eb739 (Ubuntu)
 
   To extract the archive, use the following command:
 
-  ! sudo tar xPf genode-toolchain-<version>-<arch>.tar.xz
+  ! sudo tar xPf genode-toolchain-<version>-<os>.tar.xz
 
   The use of the 'P' option ensures that the tool chain will be installed at
   _/usr/local/genode/tool/<version>_, which is the location expected by
