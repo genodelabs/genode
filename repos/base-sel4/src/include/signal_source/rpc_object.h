@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__SIGNAL_SOURCE__RPC_OBJECT_H_
 #define _INCLUDE__SIGNAL_SOURCE__RPC_OBJECT_H_
 
+#include <base/allocator.h>
 #include <base/rpc_server.h>
 #include <signal_source/sel4_signal_source.h>
 
@@ -25,7 +26,8 @@ struct Genode::Signal_source_rpc_object : Rpc_object<SeL4_signal_source,
 {
 	protected:
 
-		Native_capability _notify { };
+		Allocator::Alloc_result _notify_phys { };
+		Native_capability       _notify      { };
 
 	public:
 

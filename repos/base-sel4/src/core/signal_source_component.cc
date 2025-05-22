@@ -70,11 +70,9 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint &ep)
 	Platform        &platform   = platform_specific();
 	Range_allocator &phys_alloc = platform.ram_alloc();
 
-	auto phys_result = Untyped_memory::alloc_page(phys_alloc);
+	_notify_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	phys_result.with_result([&](auto & result) {
-		result.deallocate = false;
-
+	_notify_phys.with_result([&](auto &result) {
 		seL4_Untyped const service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		/* allocate notification object within core's CNode */
@@ -82,6 +80,15 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint &ep)
 		create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel);
 
 		_notify = Capability_space::create_notification_cap(ny_sel);
+
+		if (!_notify.valid()) {
+			auto res = seL4_CNode_Delete(seL4_CapInitThreadCNode, ny_sel.value(), 32);
+
+			if (res == seL4_NoError)
+				platform_specific().core_sel_alloc().free(ny_sel);
+			else
+				error(__func__, " failed - leaking resources");
+		}
 	}, [] (auto) {
 		/* _notify stays invalid */
 		error("Signal_source_component construction failed");
@@ -91,5 +98,23 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint &ep)
 
 Signal_source_component::~Signal_source_component()
 {
-	warning(__func__, " leaking resources");
+	if (!_notify.valid())
+		return;
+
+	/*
+	 * _notify has no valid rpc_obj_key, see create_notification_cap() impl.
+	 * Without it, the automatic ref counting won't destruct it, so we do
+	 * it here manually.
+	 */
+
+	Cap_sel const sel = Capability_space::ipc_cap_data(_notify).sel;
+
+	_notify = { };
+
+	auto res = seL4_CNode_Delete(seL4_CapInitThreadCNode, sel.value(), 32);
+
+	if (res == seL4_NoError)
+		platform_specific().core_sel_alloc().free(sel);
+	else
+		error(__func__, " failed - leaking resources");
 }
