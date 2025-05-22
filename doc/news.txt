@@ -4,6 +4,47 @@
                                ===========
 
 
+Genode OS Framework release 25.05 | 2025-05-28
+##############################################
+
+| In tandem with the tool-chain upgrade to GCC 14.2 and binutils 2.44, Genode
+| 25.05 hardens the framework API to foster a programming style that leaves
+| no error condition unconsidered. Further highlights are the rigid sandboxing
+| of the Goa SDK, the consolidation of the two supported TCP/IP stacks, and
+| enhanced graphics drivers.
+
+Being in the middle of Genode's year of "rigidity, clarity, and performance",
+the work on the just released version 25.05 was focused on API safety,
+consolidation work, and developer tooling.
+
+Following our established two-year rhythm of updating the tool chain, Genode
+25.05 consistently uses GCC 14.2 and binutils 2.44 across all kernels and CPU
+architectures supported by the framework.
+
+The primary topic of the release, however, is the much revised framework API
+that no longer relies on the C++ exception mechanism but precisely encodes
+all possible error conditions as sum types. The new API rules out several
+classes of programming errors by design. It enforces the conscious handling
+of error conditions, eliminates the accidental leakage of pointers, and
+promotes clarity of object ownership and lifetimes. As those changes affect
+all API users, the release notes explain the changes in great detail.
+
+The Goa SDK had been a recurring topic of the previous releases. By now, it
+has become the go-to solution for bringing application workloads to Sculpt OS.
+With this growing popularity comes the responsibility to protect the developer
+from risks originating from 3rd-party code and 3rd-party build systems.
+Goa now mitigates such risks by sandboxing all tools and tightly restricting
+the reach of its own configuration files. So developers can now enjoy peace
+of mind while importing, building, and testing projects of unvetted origin.
+
+The release is topped off with enhanced drivers for Intel and VESA graphics,
+the unified integration of lwIP and the Linux TCP/IP stack, and by unlocking
+additional workloads when using the seL4 kernel.
+
+For the full details, please refer to the
+[https:/documentation/release-notes/25.05 - release documentation of version 25.05...]
+
+
 Sculpt OS release 25.04 | 2025-04-29
 ####################################
 
