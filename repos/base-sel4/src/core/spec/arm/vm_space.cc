@@ -81,10 +81,8 @@ bool Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
 		if (_page_table_registry.page_table_at(virt, PAGE_TABLE_LOG2_SIZE))
 			continue;
 
-		addr_t phys = 0;
-
 		/* 1 MB range - page table */
-		bool ok = _alloc_and_map<Page_table_kobj>(virt, map_page_table, phys, [&](Cap_sel const pt) {
+		bool ok = _alloc_and_map<Page_table_kobj>(virt, map_page_table, [&](Cap_sel const pt, addr_t const phys) {
 			_page_table_registry.insert_page_table(virt, pt, phys,
 			                                       PAGE_TABLE_LOG2_SIZE);
 			return true;

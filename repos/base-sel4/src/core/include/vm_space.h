@@ -126,7 +126,15 @@ class Core::Vm_space
 				bool constructed() const {
 					return _cnode.constructed() && _cnode->constructed(); }
 
-				Cnode &cnode() { return *_cnode; }
+				bool with_cnode(auto const &fn)
+				{
+					if (!constructed())
+						return false;
+
+					fn(*_cnode);
+
+					return true;
+				}
 		};
 
 		/***
@@ -157,14 +165,14 @@ class Core::Vm_space
 		/**
 		 * Return leaf CNode that contains an index allocated from '_sel_alloc'
 		 */
-		Cnode & _leaf_cnode(unsigned const idx)
+		bool _leaf_cnode(unsigned const idx, auto const &fn)
 		{
 			auto const l4 = (idx >> LEAF_CNODE_SIZE_LOG2) & (NUM_LEAF_CNODES - 1);
 			auto const l3 = idx >> (LEAF_CNODE_SIZE_LOG2 + NUM_LEAF_CNODES_LOG2);
 
 			ASSERT(l3 < NUM_CNODE_3RD);
 
-			return _cnodes[l3]._4th[l4].cnode();
+			return _cnodes[l3]._4th[l4].with_cnode(fn);
 		}
 
 		/**
@@ -244,9 +252,14 @@ class Core::Vm_space
 			 * This is needed because each page-frame selector can be
 			 * inserted into only a single page table.
 			 */
-			_leaf_cnode(pte_idx).copy(_phys_cnode,
-			                          Cnode_index((uint32_t)(from_phys >> get_page_size_log2())),
-			                          Cnode_index(_leaf_cnode_entry(pte_idx)));
+			if (!_leaf_cnode(pte_idx, [&](auto &leaf_cnode) {
+				leaf_cnode.copy(_phys_cnode,
+				                Cnode_index((uint32_t)(from_phys >> get_page_size_log2())),
+				                Cnode_index(_leaf_cnode_entry(pte_idx)));
+			})) {
+				_sel_alloc.free(pte_idx);
+				return false;
+			}
 
 			/* remember relationship between pte_sel and the virtual address */
 			try { _page_table_registry.insert_page_frame(to_dest, Cap_sel(pte_idx)); }
@@ -286,7 +299,6 @@ class Core::Vm_space
 		template <typename KOBJ>
 		[[nodiscard]] bool _alloc_and_map(addr_t const virt,
 		                                  long (&map_fn)(Cap_sel, Cap_sel, addr_t),
-		                                  addr_t &phys,
 		                                  auto const &fn)
 		{
 			/* allocate page-* selector */
@@ -301,20 +313,31 @@ class Core::Vm_space
 
 			auto phys_result = Untyped_memory::alloc_page(_phys_alloc);
 
-			if (phys_result.failed())
+			if (phys_result.failed()) {
+				_sel_alloc.free(pte_idx);
 				return false;
+			}
+
+			addr_t phys = 0;
 
 			try {
 				phys_result.with_result([&](auto &result) {
-					result.deallocate = false;
+					bool ok = _leaf_cnode(pte_idx, [&](auto &leaf_cnode) {
+						phys = addr_t(result.ptr);
+						seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
 
-					phys = addr_t(result.ptr);
-					seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
-					create<KOBJ>(service, _leaf_cnode(pte_idx).sel(),
-					             _leaf_cnode_entry(pte_idx));
+						create<KOBJ>(service, leaf_cnode.sel(),
+						             _leaf_cnode_entry(pte_idx));
+					});
+
+					result.deallocate = !ok;
 				}, [&] (auto) { /* handled before by explicit failed() check */ });
 			} catch (...) {
-				error("leaking untyped memory and phys addr in _alloc_and_map");
+				_sel_alloc.free(pte_idx);
+				return false;
+			}
+
+			if (!phys) {
 				_sel_alloc.free(pte_idx);
 				return false;
 			}
@@ -330,7 +353,7 @@ class Core::Vm_space
 				return false;
 			}
 
-			if (fn(Cap_sel(pte_idx)))
+			if (fn(Cap_sel(pte_idx), phys))
 				return true;
 
 			_unmap_and_free(Cap_sel(pte_idx), phys);
@@ -340,11 +363,13 @@ class Core::Vm_space
 
 		void _unmap_and_free(Cap_sel const idx, addr_t const paddr)
 		{
-			_leaf_cnode(idx.value()).remove(idx);
+			_leaf_cnode(idx.value(), [&](auto &leaf_cnode) {
+				leaf_cnode.remove(idx);
 
-			_sel_alloc.free(idx.value());
+				_sel_alloc.free(idx.value());
 
-			Untyped_memory::free_page(_phys_alloc, paddr);
+				Untyped_memory::free_page(_phys_alloc, paddr);
+			});
 		}
 
 		void _for_each_l3_cnodes(auto const &fn)
@@ -413,11 +438,17 @@ class Core::Vm_space
 					                    phys_alloc, LEAF_CNODE_SIZE_LOG2);
 
 					/* insert leaf VM CNode into 3nd-level VM CNode */
-					cnode_3rd.cnode().copy(cspace, leafs[l4].cnode().sel(), Cnode_index(l4));
+					cnode_3rd.with_cnode([&](auto &cnode_3rd) {
+						leafs[l4].with_cnode([&](auto &cnode_4th) {
+							cnode_3rd.copy(cspace, cnode_4th.sel(), Cnode_index(l4));
+						});
+					});
 				}
 
 				/* insert 3rd-level VM CNode into 2nd-level VM-pad CNode */
-				_vm_pad_cnode.copy(cspace, cnode_3rd.cnode().sel(), Cnode_index(l3));
+				cnode_3rd.with_cnode([&](auto &cnode) {
+					_vm_pad_cnode.copy(cspace, cnode.sel(), Cnode_index(l3));
+				});
 			});
 		}
 
@@ -457,7 +488,9 @@ class Core::Vm_space
 				if (err != seL4_NoError)
 					error("unmap ", Hex(virt), " failed, ", idx, " res=", err);
 
-				_leaf_cnode(idx.value()).remove(_leaf_cnode_entry(idx.value()));
+				_leaf_cnode(idx.value(), [&](auto &leaf_cnode) {
+					leaf_cnode.remove(_leaf_cnode_entry(idx.value()));
+				});
 
 				_sel_alloc.free(idx.value());
 
@@ -468,13 +501,17 @@ class Core::Vm_space
 
 			_revert_cnodes_l3([&](auto l3, auto &cnode_3rd, auto &leafs) {
 				for (int l4 = NUM_LEAF_CNODES - 1; l4 >= 0; l4--) {
-					cnode_3rd.cnode().remove(Cnode_index(l4));
-					leafs[l4].destruct(_cap_sel_alloc, _phys_alloc);
+					cnode_3rd.with_cnode([&](auto & cnode) {
+						cnode.remove(Cnode_index(l4));
+						leafs[l4].destruct(_cap_sel_alloc, _phys_alloc);
+					});
 				}
 
 				_vm_pad_cnode.remove(Cnode_index(l3));
 
-				cnode_3rd.cnode().destruct(_phys_alloc);
+				cnode_3rd.with_cnode([&](auto &cnode) {
+					cnode.destruct(_phys_alloc);
+				});
 				cnode_3rd.destruct(_cap_sel_alloc, _phys_alloc);
 			});
 
@@ -503,7 +540,9 @@ class Core::Vm_space
 				if (err != seL4_NoError)
 					error("unmap failed, idx=", idx, " res=", err);
 
-				_leaf_cnode(idx.value()).remove(_leaf_cnode_entry(idx.value()));
+				_leaf_cnode(idx.value(), [&](auto &leaf_cnode) {
+					leaf_cnode.remove(_leaf_cnode_entry(idx.value()));
+				});
 
 				_sel_alloc.free(idx.value());
 
@@ -539,7 +578,9 @@ class Core::Vm_space
 				if (err != seL4_NoError)
 					error("unmap failed, idx=", idx, " res=", err);
 
-				_leaf_cnode(idx.value()).remove(_leaf_cnode_entry(idx.value()));
+				_leaf_cnode(idx.value(), [&](auto &leaf_cnode) {
+					leaf_cnode.remove(_leaf_cnode_entry(idx.value()));
+				});
 
 				_sel_alloc.free(idx.value());
 
@@ -583,7 +624,9 @@ class Core::Vm_space
 						unmap_success = false;
 					}
 
-					_leaf_cnode(idx.value()).remove(_leaf_cnode_entry(idx.value()));
+					_leaf_cnode(idx.value(), [&](auto &leaf_cnode) {
+						leaf_cnode.remove(_leaf_cnode_entry(idx.value()));
+					});
 
 					_sel_alloc.free(idx.value());
 				});
