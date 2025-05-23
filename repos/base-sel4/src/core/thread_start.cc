@@ -69,12 +69,19 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 	ASSERT(ret == seL4_NoError);
 
 	/* mint notification object with badge - used by Genode::Lock */
-	Cap_sel unbadged_sel = thread_info.lock_sel;
-	Cap_sel lock_sel = platform.core_sel_alloc().alloc();
+	Cap_sel const unbadged_sel = thread_info.lock_sel;
 
-	platform.core_cnode().mint(platform.core_cnode(), unbadged_sel, lock_sel);
+	platform.core_sel_alloc().alloc().with_result([&](auto sel) {
+		auto lock_sel = Cap_sel(unsigned(sel));
 
-	nt.attr.lock_sel = lock_sel.value();
+		/* XXX */
+		warning("core thread: leaking lock_sel due to overwrite");
+
+		platform.core_cnode().mint(platform.core_cnode(), unbadged_sel,
+		                           lock_sel);
+
+		nt.attr.lock_sel = lock_sel.value();
+	}, [](auto) { error("unhandled case"); });
 }
 
 

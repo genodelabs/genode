@@ -24,6 +24,7 @@
 /* core includes */
 #include <types.h>
 #include <irq_args.h>
+#include <cap_sel_alloc.h>
 
 namespace Core { class Irq_object; }
 
@@ -35,8 +36,9 @@ class Core::Irq_object : public Thread {
 		Signal_context_capability _sig_cap { };
 		Blockade                  _sync_bootup { };
 		unsigned                  _irq;
-		Cap_sel                   _kernel_irq_sel;
-		Cap_sel                   _kernel_notify_sel;
+
+		Cap_sel_alloc::Cap_sel_attempt _kernel_irq_sel;
+		Cap_sel_alloc::Cap_sel_attempt _kernel_notify_sel;
 
 		void _wait_for_irq();
 
@@ -49,6 +51,7 @@ class Core::Irq_object : public Thread {
 		enum { MSI_OFFSET = 64 };
 
 		Irq_object(unsigned irq);
+		~Irq_object();
 
 		void sigh(Signal_context_capability cap) { _sig_cap = cap; }
 		void notify() { Signal_transmitter(_sig_cap).submit(1); }

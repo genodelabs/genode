@@ -57,10 +57,12 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint          &ep,
 	if (caps.failed())
 		throw Out_of_caps();
 
-	_notification = platform_specific().core_sel_alloc().alloc();
-	create<Notification_kobj>(service,
-	                          platform_specific().core_cnode().sel(),
-	                          _notification);
+	platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
+		_notification = Cap_sel(unsigned(sel));
+		create<Notification_kobj>(service,
+		                          platform_specific().core_cnode().sel(),
+		                          _notification);
+	}, [](auto) { /* _notification stays invalid */ });
 
 	_ep.manage(this);
 
@@ -94,11 +96,14 @@ try
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
-	_heap(_ram, local_rm),
-	_vm_page_table(platform_specific().core_sel_alloc().alloc())
+	_heap(_ram, local_rm)
 {
 	Platform        &platform   = platform_specific();
 	Range_allocator &phys_alloc = platform.ram_alloc();
+
+	platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
+		_vm_page_table = Cap_sel(unsigned(sel));
+	}, [](auto) { throw Service_denied(); });
 
 	Platform_pd::pd_id_alloc().alloc().with_result(
 		[&](addr_t idx) { _pd_id = unsigned(idx); },

@@ -221,7 +221,6 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 :
 	_name(name),
 	_utcb(utcb ? utcb : addr_t(INITIAL_IPC_BUFFER_VIRT)),
-	_pager_obj_sel(platform_specific().core_sel_alloc().alloc()),
 	_pd(pd), _location(location),
 	_priority((uint16_t)(Cpu_session::scale_priority(CONFIG_NUM_PRIORITIES, priority)))
 
@@ -232,6 +231,13 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 		_priority -= 1;
 
 	platform_thread_registry().insert(*this);
+
+	platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
+		_pager_obj_sel = Cap_sel(unsigned(sel));
+	}, [&](auto) { });
+
+	if (!_pager_obj_sel.value())
+		return;
 
 	_info.init(_utcb, _priority);
 
@@ -334,7 +340,9 @@ Platform_thread::~Platform_thread()
 	_info.destruct();
 
 	platform_thread_registry().remove(*this);
-	platform_specific().core_sel_alloc().free(_pager_obj_sel);
+
+	if (_pager_obj_sel.value())
+		platform_specific().core_sel_alloc().free(_pager_obj_sel);
 }
 
 

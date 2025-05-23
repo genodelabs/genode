@@ -34,24 +34,32 @@ bool Irq_object::associate(Irq_args const &args)
 	if (phys_result.failed())
 		return false;
 
-	phys_result.with_result([&](auto &result) {
-		result.deallocate = false;
+	bool ok = true;
 
-		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
+	phys_result.with_result([&](auto &phys) {
+		auto service = Untyped_memory::untyped_sel(addr_t(phys.ptr)).value();
 
-		create<Notification_kobj>(service, platform.core_cnode().sel(),
-		                          _kernel_notify_sel);
-	}, [](auto) { /* check before with explicit failed() */ });
+		_kernel_notify_sel.with_result([&](auto notify_sel) {
+			create<Notification_kobj>(service, platform.core_cnode().sel(),
+			                          Cnode_index(unsigned(notify_sel)));
+		}, [&](auto) { ok = false; });
+
+		phys.deallocate = !ok;
+	}, [&](auto) { ok = false; });
+
+	if (!ok)
+		return false;
 
 	/* setup IRQ platform specific */
-	long res = _associate(args);
+	auto res = _associate(args);
 	if (res != seL4_NoError)
 		return false;
 
-	seL4_CPtr irq_handler = _kernel_irq_sel.value();
-	seL4_CPtr notification = _kernel_notify_sel.value();
-
-	res = seL4_IRQHandler_SetNotification(irq_handler, notification);
+	_kernel_irq_sel.with_result([&](auto irq_sel) {
+		_kernel_notify_sel.with_result([&](auto notify_sel) {
+			res = seL4_IRQHandler_SetNotification(irq_sel, notify_sel);
+		}, [&](auto) { res = seL4_FailedLookup; });
+	}, [&](auto) { res = seL4_FailedLookup; });
 
 	return (res == seL4_NoError);
 }
@@ -59,7 +67,9 @@ bool Irq_object::associate(Irq_args const &args)
 
 void Irq_object::_wait_for_irq()
 {
-	seL4_Wait(_kernel_notify_sel.value(), nullptr);
+	_kernel_notify_sel.with_result([&](auto notify_sel) {
+		seL4_Wait(notify_sel, nullptr);
+	}, [](auto) { error("_wait_for_irq failed"); });
 }
 
 
@@ -90,9 +100,11 @@ void Irq_object::entry()
 
 void Irq_object::ack_irq()
 {
-	int res = seL4_IRQHandler_Ack(_kernel_irq_sel.value());
-	if (res != seL4_NoError)
-		error("ack_irq failed - ", res);
+	_kernel_irq_sel.with_result([&](auto sel) {
+		int res = seL4_IRQHandler_Ack(sel);
+		if (res != seL4_NoError)
+			error("ack_irq failed - ", res);
+	}, [](auto) { error("irq sel invalid"); });
 }
 
 
@@ -103,6 +115,18 @@ Irq_object::Irq_object(unsigned irq)
 	_kernel_irq_sel(platform_specific().core_sel_alloc().alloc()),
 	_kernel_notify_sel(platform_specific().core_sel_alloc().alloc())
 { }
+
+
+Irq_object::~Irq_object()
+{
+	_kernel_irq_sel.with_result([&](auto sel) {
+		platform_specific().core_sel_alloc().free(Cap_sel(unsigned(sel)));
+	}, [](auto) { });
+
+	_kernel_notify_sel.with_result([&](auto sel) {
+		platform_specific().core_sel_alloc().free(Cap_sel(unsigned(sel)));
+	}, [](auto) { });
+}
 
 
 static unsigned irq_number(Irq_args const &args)

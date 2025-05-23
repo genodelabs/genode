@@ -54,11 +54,11 @@ class Core::Platform_pd : public Address_space
 
 		Allocator::Alloc_result _page_directory { };
 
-		Cap_sel const _page_directory_sel;
+		Cap_sel _page_directory_sel { 0 };
 
 		Constructible<Vm_space> _vm_space { };
 
-		Cnode _cspace_cnode_1st;
+		Constructible<Cnode> _cspace_cnode_1st { };
 
 		Constructible<Cnode> _cspace_cnode_2nd[1UL << CSPACE_SIZE_LOG2_1ST];
 
@@ -67,8 +67,8 @@ class Core::Platform_pd : public Address_space
 		Sel_alloc _sel_alloc { };
 		Mutex _sel_alloc_mutex { };
 
-		Cap_sel _init_page_directory();
-		void    _deinit_page_directory();
+		void _init_page_directory();
+		void _deinit_page_directory();
 
 	public:
 
@@ -146,8 +146,8 @@ class Core::Platform_pd : public Address_space
 
 		void with_cspace_cnode_1st(auto const &fn)
 		{
-			if (_cspace_cnode_1st.constructed())
-				fn(_cspace_cnode_1st);
+			if (_cspace_cnode_1st.constructed() && _cspace_cnode_1st->constructed())
+				fn(*_cspace_cnode_1st);
 		}
 
 		Cap_sel page_directory_sel() const { return _page_directory_sel; }

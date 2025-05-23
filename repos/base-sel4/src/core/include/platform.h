@@ -174,16 +174,11 @@ class Core::Platform : public Platform_generic
 				ASSERT (ok);
 			}
 
-			Cap_sel alloc() override
+			Cap_sel_attempt alloc() override
 			{
 				Mutex::Guard guard(_mutex);
 
-				return Core_sel_bit_alloc::alloc().convert<Cap_sel>(
-					[](addr_t const idx) { return Cap_sel(unsigned(idx)); },
-					[](auto) -> Cap_sel {
-						raw("core selector allocator out of indices");
-						throw Alloc_failed();
-				});
+				return Core_sel_bit_alloc::alloc();
 			}
 
 			void free(Cap_sel sel) override

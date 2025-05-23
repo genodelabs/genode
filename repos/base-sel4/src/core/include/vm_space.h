@@ -88,11 +88,6 @@ class Core::Vm_space
 		Cnode &_top_level_cnode;
 		Cnode &_phys_cnode;
 
-		/**
-		 * 2nd-level CNode for aligning '_4th' with the LSB of the CSpace
-		 */
-		Cnode _vm_pad_cnode;
-
 		class Construct_cnode
 		{
 			private:
@@ -103,7 +98,8 @@ class Core::Vm_space
 				 * objects (where we cannot pass any arguments to the
 				 * constructors of the individual objects).
 				 */
-				Constructible<Cnode> _cnode { };
+				Constructible<Cnode>           _cnode     { };
+				Cap_sel_alloc::Cap_sel_attempt _cnode_sel { Cap_sel_alloc::Cap_sel_error::DENIED };
 
 			public:
 
@@ -112,19 +108,31 @@ class Core::Vm_space
 				               Range_allocator &phys_alloc,
 				               auto const       size_log2)
 				{
-					_cnode.construct(core_cnode_sel, cap_sel_alloc.alloc(),
-					                 size_log2, phys_alloc);
+					_cnode_sel = cap_sel_alloc.alloc();
+
+					_cnode_sel.with_result([&](auto result) {
+						_cnode.construct(core_cnode_sel, Cnode_index(unsigned(result)),
+						                 size_log2, phys_alloc);
+					}, [](auto){ /* checked by constructed() */ });
 				}
 
-				void destruct(Cap_sel_alloc &cap_sel_alloc,
+				void destruct(Cap_sel_alloc   &cap_sel_alloc,
 				              Range_allocator &phys_alloc)
 				{
 					_cnode->destruct(phys_alloc);
-					cap_sel_alloc.free(_cnode->sel());
+
+					_cnode_sel.with_result([&](auto result) {
+						cap_sel_alloc.free(Cap_sel(unsigned(result)));
+					}, [](auto) { });
+
+					_cnode_sel = { Cap_sel_alloc::Cap_sel_error::DENIED };
 				}
 
-				bool constructed() const {
-					return _cnode.constructed() && _cnode->constructed(); }
+				bool constructed() const
+				{
+					return !_cnode_sel.failed() && _cnode.constructed() &&
+					        _cnode->constructed();
+				}
 
 				bool with_cnode(auto const &fn)
 				{
@@ -136,6 +144,11 @@ class Core::Vm_space
 					return true;
 				}
 		};
+
+		/**
+		 * 2nd-level CNode for aligning '_4th' with the LSB of the CSpace
+		 */
+		Construct_cnode _vm_pad_cnode { };
 
 		/***
 		 * 4th-level CNode for storing page-table and page-frame capabilities
@@ -414,40 +427,42 @@ class Core::Vm_space
 			_id(id), _pd_sel(pd_sel),
 			_phys_alloc(phys_alloc),
 			_top_level_cnode(top_level_cnode),
-			_phys_cnode(phys_cnode),
-			_vm_pad_cnode(core_cnode.sel(),
-			              Cnode_index(_cap_sel_alloc.alloc().value()),
-			              VM_2ND_CNODE_LOG2, phys_alloc)
+			_phys_cnode(phys_cnode)
 		{
 			static_assert(NUM_CNODE_3RD_LOG2 <= VM_2ND_CNODE_LOG2);
 
-			Cnode_base const cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
+			_vm_pad_cnode.construct(_cap_sel_alloc, core_cnode.sel(),
+			                        phys_alloc, VM_2ND_CNODE_LOG2);
 
-			/* insert 2nd-level VM-pad CNode into 1st-level CNode */
-			_top_level_cnode.copy(cspace, _vm_pad_cnode.sel(), Cnode_index(_id));
+			_vm_pad_cnode.with_cnode([&](auto &vm_pad_cnode) {
+				Cnode_base const cspace(Cap_sel(seL4_CapInitThreadCNode), 32);
 
-			_for_each_l3_cnodes([&](int l3, auto &cnode_3rd, auto &leafs) {
+				/* insert 2nd-level VM-pad CNode into 1st-level CNode */
+				_top_level_cnode.copy(cspace, vm_pad_cnode.sel(), Cnode_index(_id));
 
-				cnode_3rd.construct(_cap_sel_alloc, core_cnode.sel(),
-					                phys_alloc, VM_3RD_CNODE_SIZE_LOG2);
+				_for_each_l3_cnodes([&](int l3, auto &cnode_3rd, auto &leafs) {
 
-				for (unsigned l4 = 0; l4 < NUM_LEAF_CNODES; l4++) {
+					cnode_3rd.construct(_cap_sel_alloc, core_cnode.sel(),
+						                phys_alloc, VM_3RD_CNODE_SIZE_LOG2);
 
-					/* init leaf VM CNode */
-					leafs[l4].construct(_cap_sel_alloc, core_cnode.sel(),
-					                    phys_alloc, LEAF_CNODE_SIZE_LOG2);
+					for (unsigned l4 = 0; l4 < NUM_LEAF_CNODES; l4++) {
 
-					/* insert leaf VM CNode into 3nd-level VM CNode */
-					cnode_3rd.with_cnode([&](auto &cnode_3rd) {
-						leafs[l4].with_cnode([&](auto &cnode_4th) {
-							cnode_3rd.copy(cspace, cnode_4th.sel(), Cnode_index(l4));
+						/* init leaf VM CNode */
+						leafs[l4].construct(_cap_sel_alloc, core_cnode.sel(),
+						                    phys_alloc, LEAF_CNODE_SIZE_LOG2);
+
+						/* insert leaf VM CNode into 3nd-level VM CNode */
+						cnode_3rd.with_cnode([&](auto &cnode_3rd) {
+							leafs[l4].with_cnode([&](auto &cnode_4th) {
+								cnode_3rd.copy(cspace, cnode_4th.sel(), Cnode_index(l4));
+							});
 						});
-					});
-				}
+					}
 
-				/* insert 3rd-level VM CNode into 2nd-level VM-pad CNode */
-				cnode_3rd.with_cnode([&](auto &cnode) {
-					_vm_pad_cnode.copy(cspace, cnode.sel(), Cnode_index(l3));
+					/* insert 3rd-level VM CNode into 2nd-level VM-pad CNode */
+					cnode_3rd.with_cnode([&](auto &cnode) {
+						vm_pad_cnode.copy(cspace, cnode.sel(), Cnode_index(l3));
+					});
 				});
 			});
 		}
@@ -499,26 +514,28 @@ class Core::Vm_space
 				_unmap_and_free(idx, paddr);
 			});
 
-			_revert_cnodes_l3([&](auto l3, auto &cnode_3rd, auto &leafs) {
-				for (int l4 = NUM_LEAF_CNODES - 1; l4 >= 0; l4--) {
-					cnode_3rd.with_cnode([&](auto & cnode) {
-						cnode.remove(Cnode_index(l4));
-						leafs[l4].destruct(_cap_sel_alloc, _phys_alloc);
+			_vm_pad_cnode.with_cnode([&](auto &vm_pad_cnode) {
+				_revert_cnodes_l3([&](auto l3, auto &cnode_3rd, auto &leafs) {
+					for (int l4 = NUM_LEAF_CNODES - 1; l4 >= 0; l4--) {
+						cnode_3rd.with_cnode([&](auto & cnode) {
+							cnode.remove(Cnode_index(l4));
+							leafs[l4].destruct(_cap_sel_alloc, _phys_alloc);
+						});
+					}
+
+					vm_pad_cnode.remove(Cnode_index(l3));
+
+					cnode_3rd.with_cnode([&](auto &cnode) {
+						cnode.destruct(_phys_alloc);
 					});
-				}
-
-				_vm_pad_cnode.remove(Cnode_index(l3));
-
-				cnode_3rd.with_cnode([&](auto &cnode) {
-					cnode.destruct(_phys_alloc);
+					cnode_3rd.destruct(_cap_sel_alloc, _phys_alloc);
 				});
-				cnode_3rd.destruct(_cap_sel_alloc, _phys_alloc);
+
+				_top_level_cnode.remove(Cnode_index(_id));
+
+				vm_pad_cnode.destruct(_phys_alloc);
+				_cap_sel_alloc.free(vm_pad_cnode.sel());
 			});
-
-			_top_level_cnode.remove(Cnode_index(_id));
-
-			_vm_pad_cnode.destruct(_phys_alloc);
-			_cap_sel_alloc.free(_vm_pad_cnode.sel());
 		}
 
 		bool map(addr_t const from_phys, addr_t const to_virt,

@@ -123,24 +123,28 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session,
                            Cpu_session::Name const &name)
 :
 	_badge(badge), _cpu_session_cap(cpu_session), _thread_cap(thread),
-	_reply_cap(platform_specific().core_sel_alloc().alloc()),
+	_reply_cap_sel(platform_specific().core_sel_alloc().alloc()),
 	_pd_label(pd_label), _name(name)
 { }
 
 
 Pager_object::~Pager_object()
 {
-	seL4_CNode_Delete(seL4_CapInitThreadCNode, _reply_cap.value(), 32);
-	platform_specific().core_sel_alloc().free(_reply_cap);
-	/* invalidate reply cap for Pager_object::wait_for_fault() _reply_sel */
-	_reply_cap = Cap_sel(0);
+	_reply_cap_sel.with_result([&](auto result) {
+		auto reply_cap = Cap_sel(unsigned(result));
+
+		seL4_CNode_Delete(seL4_CapInitThreadCNode, reply_cap.value(), 32);
+		platform_specific().core_sel_alloc().free(reply_cap);
+	}, [](auto) { /* destructing something invalid is okay */ });
 }
 
 
 void Pager_object::wake_up()
 {
-	seL4_MessageInfo_t const send_msg = seL4_MessageInfo_new(0, 0, 0, 0);
-	seL4_Send(_reply_cap.value(), send_msg);
+	_reply_cap_sel.with_result([&](auto result) {
+		seL4_MessageInfo_t const send_msg = seL4_MessageInfo_new(0, 0, 0, 0);
+		seL4_Send(result, send_msg);
+	}, [](auto) { error("pager wake_up failed"); });
 }
 
 
@@ -230,7 +234,9 @@ void Pager_entrypoint::entry()
 			if (reply_pending)
 				(void)_pager.install_mapping();
 			else
-				_pager.reply_save_caller(obj->reply_cap_sel());
+				obj->with_reply_cap([&](auto sel) {
+					_pager.reply_save_caller(sel);
+				});
 		});
 	}
 }

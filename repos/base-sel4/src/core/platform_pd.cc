@@ -155,14 +155,21 @@ void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 
 Platform_pd::Platform_pd(Allocator &md_alloc, char const *label)
 :
-	_page_table_registry(md_alloc),
-	_page_directory_sel(_init_page_directory()),
-	_cspace_cnode_1st(platform_specific().core_cnode().sel(),
-	                  platform_specific().core_sel_alloc().alloc(),
-	                  CSPACE_SIZE_LOG2_1ST,
-	                  platform().ram_alloc())
+	_page_table_registry(md_alloc)
 {
-	if (_page_directory.failed())
+	_init_page_directory();
+
+	if (!_page_directory_sel.value() || _page_directory.failed())
+		return;
+
+	platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
+		_cspace_cnode_1st.construct(platform_specific().core_cnode().sel(),
+		                            Cap_sel(unsigned(sel)),
+		                            CSPACE_SIZE_LOG2_1ST,
+		                            platform().ram_alloc());
+	}, [](auto) { });
+
+	if (!_cspace_cnode_1st.constructed() || !_cspace_cnode_1st->constructed())
 		return;
 
 	pd_id_alloc().alloc().with_result(
@@ -182,40 +189,43 @@ Platform_pd::Platform_pd(Allocator &md_alloc, char const *label)
 	                    _page_table_registry,
 	                    label);
 
-	if (!_cspace_cnode_1st.constructed() || !_vm_space->constructed())
+	if (!_vm_space->constructed())
 		return;
 
-	/* add all 2nd level CSpace's to 1st level CSpace */
 	for (unsigned i = 0; i < sizeof(_cspace_cnode_2nd) /
 	                         sizeof(_cspace_cnode_2nd[0]); i++) {
-		_cspace_cnode_2nd[i].construct(platform_specific().core_cnode().sel(),
-		                               platform_specific().core_sel_alloc().alloc(),
-		                               CSPACE_SIZE_LOG2_2ND,
-		                               platform().ram_alloc());
 
-		if (!_cspace_cnode_2nd->constructed())
-			return;
+		platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
+			/* add all 2nd level CSpace's to 1st level CSpace */
+			_cspace_cnode_2nd[i].construct(platform_specific().core_cnode().sel(),
+			                               Cap_sel(unsigned(sel)),
+			                               CSPACE_SIZE_LOG2_2ND,
+			                               platform().ram_alloc());
 
-		_cspace_cnode_1st.copy(platform_specific().core_cnode(),
-		                       _cspace_cnode_2nd[i]->sel(),
-		                       Cnode_index(i));
+			if (!_cspace_cnode_2nd->constructed())
+				return;
+
+			_cspace_cnode_1st->copy(platform_specific().core_cnode(),
+			                        _cspace_cnode_2nd[i]->sel(),
+			                        Cnode_index(i));
+		}, [](auto) { /* _cspace_cnode_2nd[0] stays invalid, which is checked for */  });
 	}
 
 	/* install CSpace selector at predefined position in the PD's CSpace */
 	if (_cspace_cnode_2nd[0].constructed() && _cspace_cnode_2nd[0]->constructed())
 		_cspace_cnode_2nd[0]->copy(platform_specific().core_cnode(),
-		                           _cspace_cnode_1st.sel(),
+		                           _cspace_cnode_1st->sel(),
 		                           Cnode_index(INITIAL_SEL_CNODE));
 }
 
 
 Platform_pd::~Platform_pd()
 {
-	if (_cspace_cnode_1st.constructed()) {
+	with_cspace_cnode_1st([&](auto &cspace_cnode_1st) {
 
 		for (unsigned i = 0; i < sizeof(_cspace_cnode_2nd) /
 		                         sizeof(_cspace_cnode_2nd[0]); i++) {
-			_cspace_cnode_1st.remove(Cnode_index(i));
+			cspace_cnode_1st.remove(Cnode_index(i));
 
 			if (_cspace_cnode_2nd[i].constructed()) {
 				_cspace_cnode_2nd[i]->destruct(platform().ram_alloc(), true);
@@ -223,12 +233,16 @@ Platform_pd::~Platform_pd()
 			}
 		}
 
-		_cspace_cnode_1st.destruct(platform().ram_alloc(), true);
-		platform_specific().core_sel_alloc().free(_cspace_cnode_1st.sel());
-	}
+		cspace_cnode_1st.destruct(platform().ram_alloc(), true);
+		platform_specific().core_sel_alloc().free(cspace_cnode_1st.sel());
+	});
+
+	_cspace_cnode_1st.destruct();
 
 	_deinit_page_directory();
-	platform_specific().core_sel_alloc().free(_page_directory_sel);
+
+	if (_page_directory_sel.value())
+		platform_specific().core_sel_alloc().free(_page_directory_sel);
 
 	if (_id)
 		pd_id_alloc().free(_id);

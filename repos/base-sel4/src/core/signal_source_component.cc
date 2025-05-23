@@ -76,23 +76,26 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint &ep)
 		seL4_Untyped const service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		/* allocate notification object within core's CNode */
-		Cap_sel ny_sel = platform.core_sel_alloc().alloc();
-		create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel);
+		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
+			auto ny_sel = Cap_sel(unsigned(sel));
+			create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel);
 
-		_notify = Capability_space::create_notification_cap(ny_sel);
+			_notify = Capability_space::create_notification_cap(ny_sel);
 
-		if (!_notify.valid()) {
-			auto res = seL4_CNode_Delete(seL4_CapInitThreadCNode, ny_sel.value(), 32);
+			if (!_notify.valid()) {
+				auto res = seL4_CNode_Delete(seL4_CapInitThreadCNode, ny_sel.value(), 32);
 
-			if (res == seL4_NoError)
-				platform_specific().core_sel_alloc().free(ny_sel);
-			else
-				error(__func__, " failed - leaking resources");
-		}
-	}, [] (auto) {
-		/* _notify stays invalid */
+				if (res == seL4_NoError)
+					platform_specific().core_sel_alloc().free(ny_sel);
+				else
+					error(__func__, " failed - leaking resources");
+			}
+		}, [&] (auto) { /* _notify stays invalid */ });
+	}, [&] (auto) { /* _notify stays invalid */ });
+
+	/* _notify stays invalid */
+	if (!_notify.valid())
 		error("Signal_source_component construction failed");
-	});
 }
 
 

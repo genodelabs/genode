@@ -73,16 +73,19 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 		return { };
 
 	/* allocate core-local selector for RPC object */
-	Cap_sel const rpc_obj_sel = platform_specific().core_sel_alloc().alloc();
+	auto cap_sel = platform_specific().core_sel_alloc().alloc();
 
-	/* create Genode capability */
-	auto & data = local_capability_space().create_capability(rpc_obj_sel,
-	                                                         rpc_obj_key);
+	return cap_sel.convert<Native_capability>([&](auto result) {
 
-	Cap_sel const ep_sel(local_capability_space().sel(*ep_cap.data()));
+		auto rpc_obj_sel = Cap_sel(unsigned(result));
 
-	/* mint endpoint capability into RPC object capability */
-	{
+		/* create Genode capability */
+		auto & data = local_capability_space().create_capability(rpc_obj_sel,
+		                                                         rpc_obj_key);
+
+		Cap_sel const ep_sel(local_capability_space().sel(*ep_cap.data()));
+
+		/* mint endpoint capability into RPC object capability */
 		seL4_CNode       const service    = seL4_CapInitThreadCNode;
 		seL4_Word        const dest_index = rpc_obj_sel.value();
 		uint8_t          const dest_depth = 32;
@@ -101,9 +104,9 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 		                                rights,
 		                                badge);
 		ASSERT(ret == seL4_NoError);
-	}
 
-	return Native_capability(&data);
+		return Native_capability(&data);
+	}, [](auto) { return Native_capability(); });
 }
 
 

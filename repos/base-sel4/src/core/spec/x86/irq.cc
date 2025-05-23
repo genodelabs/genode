@@ -26,24 +26,26 @@ long Irq_object::_associate(Irq_args const & args)
 	if (args.polarity() != Irq_session::POLARITY_UNCHANGED)
 		polarity = (args.polarity() == Irq_session::POLARITY_HIGH) ? IRQ_HIGH : IRQ_LOW;
 
-	seL4_CNode const root   = seL4_CapInitThreadCNode;
-	seL4_Word  const index  = _kernel_irq_sel.value();
-	seL4_Uint8 const depth  = 32;
-	seL4_Word  const ioapic = 0;
-	seL4_Word  const pin    = _irq ? _irq : 2;
-	seL4_Word  const vector = _irq;
-	seL4_Word  const handle = 0;
+	return _kernel_irq_sel.convert<long>([&](auto irq_sel) {
+		seL4_CNode const root   = seL4_CapInitThreadCNode;
+		seL4_Word  const index  = Cap_sel(unsigned(irq_sel)).value();
+		seL4_Uint8 const depth  = 32;
+		seL4_Word  const ioapic = 0;
+		seL4_Word  const pin    = _irq ? _irq : 2;
+		seL4_Word  const vector = _irq;
+		seL4_Word  const handle = 0;
 
-	switch (args.type()) {
-	case Irq_session::TYPE_LEGACY:
-		return seL4_IRQControl_GetIOAPIC(seL4_CapIRQControl, root, index, depth,
-		                                 ioapic, pin, level, polarity, vector);
-	case Irq_session::TYPE_MSI:
-	case Irq_session::TYPE_MSIX:
-		return seL4_IRQControl_GetMSI(seL4_CapIRQControl, root, index, depth,
-		                              args.pci_bus(), args.pci_dev(),
-		                              args.pci_func(), handle, vector);
-	default:
-		return seL4_InvalidArgument;
-	}
+		switch (args.type()) {
+		case Irq_session::TYPE_LEGACY:
+			return seL4_IRQControl_GetIOAPIC(seL4_CapIRQControl, root, index, depth,
+			                                 ioapic, pin, level, polarity, vector);
+		case Irq_session::TYPE_MSI:
+		case Irq_session::TYPE_MSIX:
+			return seL4_IRQControl_GetMSI(seL4_CapIRQControl, root, index, depth,
+			                              args.pci_bus(), args.pci_dev(),
+			                              args.pci_func(), handle, vector);
+		default:
+			return seL4_InvalidArgument;
+		}
+	}, [](auto) { return seL4_InvalidArgument; });
 }

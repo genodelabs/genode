@@ -16,11 +16,13 @@
 
 /* Genode includes */
 #include <base/exception.h>
+#include <util/bit_allocator.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space_sel4.h>
 
 /* core includes */
+#include <core_cspace.h>
 #include <types.h>
 
 namespace Core { struct Cap_sel_alloc; }
@@ -30,7 +32,11 @@ struct Core::Cap_sel_alloc : Interface
 {
 	struct Alloc_failed : Exception { };
 
-	virtual Cap_sel alloc() = 0;
+	using Core_sel_bit_alloc = Bit_allocator<1 << Core_cspace::NUM_CORE_SEL_LOG2>;
+	using Cap_sel_error      = Core_sel_bit_alloc::Error;
+	using Cap_sel_attempt    = Attempt<addr_t, Cap_sel_error>;
+
+	virtual Cap_sel_attempt alloc() = 0;
 
 	virtual void free(Cap_sel) = 0;
 };

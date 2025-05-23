@@ -566,19 +566,25 @@ Core::Platform::Platform()
 
 	/* create notification object for Genode::Lock used by this first thread */
 	Cap_sel lock_sel (INITIAL_SEL_LOCK);
-	Cap_sel core_sel = _core_sel_alloc.alloc();
 
-	Untyped_memory::alloc_page(ram_alloc()).with_result([&](auto &result) {
-		result.deallocate = false;
-		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
-		create<Notification_kobj>(service, core_cnode().sel(), core_sel);
-	}, [] (auto) {
-		error("setup of kernel notification object for Genode::Lock failed");
+	_core_sel_alloc.alloc().with_result([&](auto sel) {
+		auto core_sel = Cap_sel(unsigned(sel));
+
+		Untyped_memory::alloc_page(ram_alloc()).with_result([&](auto &result) {
+			result.deallocate = false;
+			auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
+			create<Notification_kobj>(service, core_cnode().sel(), core_sel);
+		}, [] (auto) {
+			error("setup of kernel notification object for Genode::Lock failed");
+			ASSERT(false);
+		});
+
+		/* mint a copy of the notification object with badge of lock_sel */
+		_core_cnode.mint(_core_cnode, core_sel, lock_sel);
+	}, [&](auto) {
+		error("selector for kernel notification object for Genode::Lock failed");
 		ASSERT(false);
 	});
-
-	/* mint a copy of the notification object with badge of lock_sel */
-	_core_cnode.mint(_core_cnode, core_sel, lock_sel);
 
 	/* test signal/wakeup once */
 	seL4_Word sender;
@@ -678,12 +684,17 @@ Core::Platform::Platform()
 
 unsigned Core::Platform::alloc_core_rcv_sel()
 {
-	Cap_sel rcv_sel = _core_sel_alloc.alloc();
+	return _core_sel_alloc.alloc().convert<unsigned>([&](auto sel) {;
+		auto rcv_sel = Cap_sel(unsigned(sel));
 
-	seL4_SetCapReceivePath(_core_cnode.sel().value(), rcv_sel.value(),
-	                       _core_cnode.size_log2());
+		seL4_SetCapReceivePath(_core_cnode.sel().value(), rcv_sel.value(),
+		                       _core_cnode.size_log2());
 
-	return rcv_sel.value();
+		return rcv_sel.value();
+	}, [&](auto) {
+		seL4_SetCapReceivePath(~0u, 0, 0);
+		return 0u;
+	});
 }
 
 

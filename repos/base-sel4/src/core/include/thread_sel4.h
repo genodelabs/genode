@@ -62,7 +62,7 @@ struct Genode::Thread_info
 
 	Thread_info() { }
 
-	inline void init_tcb(Core::Platform &, Range_allocator &,
+	inline bool init_tcb(Core::Platform &, Range_allocator &,
 	                     unsigned const prio, unsigned const cpu,
 	                     bool auto_deallocate = false);
 	inline void init(Core::Utcb_virt const utcb_virt,
@@ -80,13 +80,15 @@ struct Genode::Thread_info
 };
 
 
-void Genode::Thread_info::init_tcb(Core::Platform &platform,
+bool Genode::Thread_info::init_tcb(Core::Platform &platform,
                                    Range_allocator &phys_alloc,
                                    unsigned const prio,
                                    unsigned const cpu,
                                    bool auto_deallocate)
 {
 	using namespace Core;
+
+	bool ok = false;
 
 	/* allocate TCB within core's CNode */
 	tcb_phys = Untyped_memory::alloc_page(phys_alloc);
@@ -96,16 +98,22 @@ void Genode::Thread_info::init_tcb(Core::Platform &platform,
 
 		seL4_Untyped const service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
-		tcb_sel = platform.core_sel_alloc().alloc();
-		create<Tcb_kobj>(service, platform.core_cnode().sel(), tcb_sel);
+		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
+			tcb_sel = Cap_sel(unsigned(sel));
+			create<Tcb_kobj>(service, platform.core_cnode().sel(), tcb_sel);
 
-		/* set scheduling priority */
-		seL4_TCB_SetMCPriority(tcb_sel.value(), Cnode_index(seL4_CapInitThreadTCB).value(), prio);
-		seL4_TCB_SetPriority(tcb_sel.value(), Cnode_index(seL4_CapInitThreadTCB).value(), prio);
+			/* set scheduling priority */
+			seL4_TCB_SetMCPriority(tcb_sel.value(), Cnode_index(seL4_CapInitThreadTCB).value(), prio);
+			seL4_TCB_SetPriority(tcb_sel.value(), Cnode_index(seL4_CapInitThreadTCB).value(), prio);
 
-		/* place at cpu */
-		affinity_sel4_thread(tcb_sel, cpu);
-	}, [&](auto) { error("init tcb failed"); });
+			/* place at cpu */
+			affinity_sel4_thread(tcb_sel, cpu);
+
+			ok = true;
+		}, [&](auto) { /* ok is false */ });
+	}, [&](auto) {  /* ok is false */});
+
+	return ok;
 }
 
 
@@ -127,7 +135,8 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 	}, [](auto) { error("ipc buffer issue"); });
 
 	/* allocate TCB within core's CNode */
-	init_tcb(platform, phys_alloc, prio, 0, auto_deallocate);
+	if (!init_tcb(platform, phys_alloc, prio, 0, auto_deallocate))
+		error("init_tcb failed");
 
 	ep_phys   = Untyped_memory::alloc_page(phys_alloc);
 	lock_phys = Untyped_memory::alloc_page(phys_alloc);
@@ -138,8 +147,10 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 
 		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
-		ep_sel = platform.core_sel_alloc().alloc();
-		create<Endpoint_kobj>(service, platform.core_cnode().sel(), ep_sel);
+		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
+			ep_sel = Cap_sel(unsigned(sel));
+			create<Endpoint_kobj>(service, platform.core_cnode().sel(), ep_sel);
+		}, [](auto) { /* ep_sel stays invalid, which is checked for */ });
 	}, [](auto) { /* ep_sel stays invalid, which is checked for */ });
 
 	/* allocate asynchronous object within core's CSpace */
@@ -148,8 +159,10 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 
 		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
-		lock_sel = platform.core_sel_alloc().alloc();
-		create<Notification_kobj>(service, platform.core_cnode().sel(), lock_sel);
+		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
+			lock_sel = Cap_sel(unsigned(sel));
+			create<Notification_kobj>(service, platform.core_cnode().sel(), lock_sel);
+		}, [](auto) { /* lock_sel stays invalid, which is checked for */ });
 	}, [](auto) { /* lock_sel stays invalid, which is checked for */ });
 
 	/* assign IPC buffer to thread */

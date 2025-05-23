@@ -13,9 +13,11 @@ using namespace Core;
 
 long Irq_object::_associate(Irq_args const &)
 {
-	seL4_CNode const root  = seL4_CapInitThreadCNode;
-	seL4_Word  const index = _kernel_irq_sel.value();
-	seL4_Uint8 const depth = 32;
+	return _kernel_irq_sel.convert<long>([&](auto irq_sel) {
+		seL4_CNode const root  = seL4_CapInitThreadCNode;
+		seL4_Word  const index = irq_sel;
+		seL4_Uint8 const depth = 32;
 
-	return seL4_IRQControl_Get(seL4_CapIRQControl, _irq, root, index, depth);
+		return seL4_IRQControl_Get(seL4_CapIRQControl, _irq, root, index, depth);
+	}, [](auto) { return seL4_InvalidArgument; });
 }

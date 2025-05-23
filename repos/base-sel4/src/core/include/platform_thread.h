@@ -57,7 +57,7 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 
 		Thread_info _info { };
 
-		Cap_sel const _pager_obj_sel;
+		Cap_sel _pager_obj_sel { 0 };
 
 		/*
 		 * Selectors within the PD's CSpace

@@ -46,18 +46,20 @@ bool Thread_info::init_vcpu(Platform &platform, Cap_sel ept)
 		this->vcpu_state_phys = addr_t(result.ptr);
 	}, [](auto) { /* handled before by explicit failed() check */ });
 
-	this->vcpu_sel = platform.core_sel_alloc().alloc();
+	return platform.core_sel_alloc().alloc().convert<bool>([&](auto sel) {
+		this->vcpu_sel = Cap_sel(unsigned(sel));
 
-	seL4_Untyped const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, vcpu_state_phys, Vcpu_kobj::SIZE_LOG2).value();
+		seL4_Untyped const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, vcpu_state_phys, Vcpu_kobj::SIZE_LOG2).value();
 
-	create<Vcpu_kobj>(service, platform.core_cnode().sel(), vcpu_sel);
-	seL4_Error res = seL4_X86_VCPU_SetTCB(vcpu_sel.value(), tcb_sel.value());
-	if (res != seL4_NoError)
-		return false;
+		create<Vcpu_kobj>(service, platform.core_cnode().sel(), vcpu_sel);
+		seL4_Error res = seL4_X86_VCPU_SetTCB(vcpu_sel.value(), tcb_sel.value());
+		if (res != seL4_NoError)
+			return false;
 
-	int error = seL4_TCB_SetEPTRoot(tcb_sel.value(), ept.value());
-	if (error != seL4_NoError)
-		return false;
+		int error = seL4_TCB_SetEPTRoot(tcb_sel.value(), ept.value());
+		if (error != seL4_NoError)
+			return false;
 
-	return true;
+		return true;
+	}, [](auto) { return false; });
 }

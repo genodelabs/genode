@@ -26,6 +26,7 @@
 /* core includes */
 #include <rpc_cap_factory.h>
 #include <base/internal/capability_space_sel4.h>
+#include <cap_sel_alloc.h>
 
 namespace Core {
 
@@ -62,7 +63,8 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 
 		Cpu_session_capability _cpu_session_cap;
 		Thread_capability      _thread_cap;
-		Cap_sel                _reply_cap;
+
+		Cap_sel_alloc::Cap_sel_attempt _reply_cap_sel;
 
 		/**
 		 * User-level signal handler registered for this pager object via
@@ -94,7 +96,11 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 
 		unsigned long badge() const { return _badge; }
 
-		unsigned long reply_cap_sel() const { return _reply_cap.value(); }
+		void with_reply_cap(auto const &fn)
+		{
+			_reply_cap_sel.with_result([&](auto value) { fn(value); },
+			                           [](auto) { error("pager reply cap"); });
+		}
 
 		enum class Pager_result { STOP, CONTINUE };
 
