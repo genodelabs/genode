@@ -217,20 +217,31 @@ namespace {
  */
 struct Gpu::Vram
 {
+	Gpu::Connection                   &_gpu;
 	Gpu::Vram_id_space::Element  const _elem;
 	Genode::Dataspace_capability const _cap;
 	Genode::Allocator_avl              _alloc;
+
+	enum { BLOCK_SIZE = 16*1024*1024 };
+	size_t _size;
 
 	Vram(Gpu::Connection    &gpu,
 	     Genode::Allocator  &md_alloc,
 	     Gpu::Vram_id_space &space,
 	     Genode::size_t      size)
-	: _elem(*this, space),
+	: _gpu(gpu),
+	  _elem(*this, space),
 	  _cap(gpu.alloc_vram(_elem.id(), size)),
-	  _alloc(&md_alloc)
+	  _alloc(&md_alloc),
+	  _size(size)
 	{
 		if (_alloc.add_range(0, Genode::Dataspace_client(_cap).size()).failed())
 			Genode::warning("unable to initialize Gpu::Vram allocator");
+	}
+
+	~Vram()
+	{
+		_gpu.free_vram(_elem.id());
 	}
 
 	struct Allocation
@@ -256,12 +267,13 @@ struct Gpu::Vram
 	}
 
 	void free(Allocation &allocation) { _alloc.free((void *)allocation.offset); };
+
+	bool large() const { return _size > BLOCK_SIZE; }
 };
 
 
 struct Gpu::Vram_allocator
 {
-	enum { VRAM_BLOCK_SIZE = 16*1024*1024 };
 	Gpu::Connection       &_gpu;
 	Genode::Allocator     &_md_alloc;
 	Gpu::Vram_id_space     _vram_space { };
@@ -273,32 +285,42 @@ struct Gpu::Vram_allocator
 	Vram::Allocation alloc(Genode::size_t size)
 	{
 		Vram::Allocation allocation { };
+		bool large = (size > Vram::BLOCK_SIZE);
 
-		if (size <= VRAM_BLOCK_SIZE)
+		if (large == false)
 			_vram_space.for_each<Vram>([&] (Vram &vram) {
-				if (allocation.valid()) return;
+				if (allocation.valid() || vram.large()) return;
 				allocation = vram.alloc(size);
 			});
 
 		if (allocation.valid()) return allocation;
 
 		/* alloc more Vram from session */
-		Vram *vram = new (_md_alloc) Vram(_gpu, _md_alloc, _vram_space,
-		                                  size <= VRAM_BLOCK_SIZE ? VRAM_BLOCK_SIZE : size);
+		Vram *vram = new (_md_alloc) Vram(_gpu, _md_alloc, _vram_space, size);
 		return vram->alloc(size);
 	}
 
-	void free(Vram::Allocation &allocation)
+	bool free(Vram::Allocation &allocation)
 	{
-		if (allocation.valid() == false) return;
+		if (allocation.valid() == false) return false;
+
+		bool vram_freed = false;
 
 		try {
 			_vram_space.apply<Vram>(allocation.id, [&](Vram &vram) {
 				vram.free(allocation);
+
+				/* free large allocations immediately to avoid fragmentation */
+				if (vram.large()) {
+					destroy(_md_alloc, &vram);
+					vram_freed = true;
+				}
 			});
 		} catch (Gpu::Vram_id_space::Unknown_id) {
 			Genode::error(__func__, ": id ", allocation.id, " invalid");
 		}
+
+		return vram_freed;
 	}
 };
 
@@ -574,15 +596,28 @@ struct Drm::Context
 
 	int fd() const { return _fd; }
 
+	void vram_map_remove(Gpu::Vram_id id)
+	{
+		_vram_map.with_element(id.value,
+			[&] (Vram_map &map) {
+				_gpu.free_vram(id);
+				destroy(_alloc, &map);
+			},
+			[ ] { }
+		);
+	}
+
 	void free_buffer(Drm::Buffer_id id)
 	{
 		try {
 			_buffer_space.apply<Buffer>(Buffer::Id_space::Id { .value = id.value },
 			                            [&] (Buffer &buffer) {
-			  _unmap_buffer_gpu(buffer);
+				_unmap_buffer_gpu(buffer);
 				destroy(_alloc, &buffer);
 			});
-		} catch (Buffer::Id_space::Unknown_id) { return; }
+		} catch (Buffer::Id_space::Unknown_id) {
+			/* buffer was not imported into this context */
+		}
 	}
 
 	void free_buffers()
@@ -600,7 +635,9 @@ struct Drm::Context
 			                            [&] (Buffer &buffer) {
 				_unmap_buffer_gpu(buffer);
 			});
-		} catch (Buffer::Id_space::Unknown_id) { }
+		} catch (Buffer::Id_space::Unknown_id) {
+				/* buffer was not imported into this context */
+		}
 	}
 
 	int exec_buffer(drm_i915_gem_exec_object2 *obj, uint64_t count,
@@ -774,7 +811,14 @@ class Drm::Call
 					_context_space.for_each<Drm::Context>([&] (Drm::Context &context) {
 						context.free_buffer(b.id()); });
 
-					_vram_allocator.free(b.vram());
+					bool vram_freed = _vram_allocator.free(b.vram());
+
+					/* remove from Vram_map for re-import */
+					if (vram_freed) {
+						_context_space.for_each<Drm::Context>([&] (Drm::Context &context) {
+							context.vram_map_remove(b.vram().id);
+						});
+					}
 					Genode::destroy(&_heap, &b);
 				});
 
