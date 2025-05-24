@@ -101,7 +101,7 @@ struct Igd::Device
 						[&] ()
 						{
 							if (_env.pd().avail_caps().value < UPGRADE_CAPS) {
-								warning("alloc dma vram: out if caps");
+								if (DEBUG) warning("alloc dma vram: out if caps");
 								throw Gpu::Session::Out_of_caps();
 							}
 
@@ -112,7 +112,7 @@ struct Igd::Device
 				[&] ()
 				{
 					if (_env.pd().avail_ram().value < size) {
-						warning("alloc dma vram: out of ram");
+						if (DEBUG) warning("alloc dma vram: out of ram");
 						throw Gpu::Session::Out_of_ram();
 					}
 					_pci.upgrade_ram(size);
