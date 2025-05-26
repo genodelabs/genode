@@ -469,14 +469,13 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 
 	void report_ports()
 	{
-		try {
-			Xml_node report = config.xml().sub_node("report");
+		config.xml().with_optional_sub_node("report", [&](auto const &report) {
 			if (report.attribute_value("ports", false)) {
 				reporter.construct(env, "ports");
 				reporter->enabled(true);
 				driver->report_ports(*reporter);
 			}
-		} catch (Xml_node::Nonexistent_sub_node) { }
+		});
 	}
 };
 
