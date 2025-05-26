@@ -6,6 +6,40 @@
 
 assert {[have_spec x86]}
 
+proc check_qemu_version {qemu_version qemu_min qemu_max} {
+	set version_min_list [split $qemu_min ".-"]
+	set version_min_list_len [llength $version_min_list]
+
+	set version_max_list [split $qemu_max ".-"]
+	set version_max_list_len [llength $version_max_list]
+
+	set version_list [split $qemu_version ".-"]
+	set version_list_len [llength $version_list]
+
+	set cmp 0
+	set cmp_min 0
+	set cmp_max 0
+	set i 0
+
+	foreach number $version_list {
+		set min 0
+		set max 0
+		if { $i < $version_min_list_len } { set min [lindex $version_min_list $i] }
+		if { $i < $version_max_list_len } { set max [lindex $version_max_list $i] }
+
+		set cmp     [expr {$cmp  + $number * pow(1000, $version_list_len - $i) }]
+		set cmp_min [expr {$cmp_min + $min * pow(1000, $version_list_len - $i) }]
+		set cmp_max [expr {$cmp_max + $max * pow(1000, $version_list_len - $i) }]
+
+		incr i
+	}
+
+	return [expr {($cmp_min < $cmp) && ($cmp < $cmp_max)}]
+}
+
+set guest_fault_address 0xfffffff0
+append qemu_args " -accel kvm -cpu host"
+
 if { [have_cmd_switch --autopilot] } {
 	assert {!([have_spec x86_32] && ![have_include power_on/qemu])} \
 		"Nightly x86 32-bit test machine has no vmx support."
@@ -14,6 +48,40 @@ if { [have_cmd_switch --autopilot] } {
 
 	assert {[have_spec nova] || [have_spec foc] || [have_spec sel4] || [have_spec hw]}
 }
+
+if { [have_include power_on/qemu] } {
+	if {[regexp -- {-accel kvm -cpu host} $qemu_args dummy]} {
+
+		catch {exec cat /proc/cpuinfo | grep AMD | grep vendor_id } host_cpu
+		if {[regexp -- {AMD} $host_cpu dummy]} {
+			# the initial AMD NPT fault on Qemu is page size aligned
+			set guest_fault_address 0xfffff000
+		}
+
+	} else {
+		# Qemu TCG SVM is broken after $qemu_good_old and until before $qemu_good_new
+
+		catch {exec qemu-system-x86_64 --version} qemu_version
+		set qemu_version [regexp -inline {version[ ][0-9]+\.[0-9]+[\.0-9]*} $qemu_version]
+		set qemu_version [regexp -inline {[0-9]+\.[0-9]+[\.0-9]*} $qemu_version]
+
+		set qemu_good_old "6.0.1"
+		set qemu_good_new "100.0.0-unknown"
+
+		# Beginning with 6.1.0 the initial NPT fault is missing and actually
+		# no guest memory is mapped by our test VMM. Nevertheless something
+		# is executed by Qemu ???
+		if {[check_qemu_version $qemu_version $qemu_good_old $qemu_good_new]} {
+			puts "\nYour Qemu version '$qemu_version' is not working with AMD SVM virtualisation"
+			puts "Known good Qemu versions are until $qemu_good_old and starting with $qemu_good_new\n"
+			exit 1
+		}
+
+		# only AMD CPUs have Qemu TCG virtualization support
+		append qemu_args " -cpu EPYC"
+	}
+}
+
 
 # ia32_tsc_aux with rdtscp
 set test_rdtscp [have_spec nova]
@@ -74,8 +142,7 @@ if {[have_spec linux]} {
 
 build_boot_image [build_artifacts]
 
-append qemu_args " -cpu EPYC -smp 2"
-append qemu_args " -nographic "
+append qemu_args " -smp 2 -nographic "
 
 #run_genode_until {.*vcpu 1 : 7\. vm exit -.*\n} 20
 #run_genode_until forever
@@ -93,7 +160,7 @@ unify_output "vcpu 0 : XX. vm exit - reason 0xfc handled by 'ep'" ""
 unify_output "vcpu 0 : XX. vm exit - reason 0x4e handled by 'ep'" ""
 # Intel with EPT
 unify_output "vcpu 0 : XX. vm exit - reason 0x30 handled by 'ep'" ""
-unify_output "vcpu 0 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 0 : XX. vm exit -  guest fault address: $guest_fault_address" ""
 unify_output "vcpu 0 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 0 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
@@ -111,7 +178,7 @@ unify_output "vcpu 1 : XX. vm exit - reason 0xfc handled by 'ep'" ""
 unify_output "vcpu 1 : XX. vm exit - reason 0x4e handled by 'ep'" ""
 # Intel with EPT
 unify_output "vcpu 1 : XX. vm exit - reason 0x30 handled by 'ep'" ""
-unify_output "vcpu 1 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 1 : XX. vm exit -  guest fault address: $guest_fault_address" ""
 unify_output "vcpu 1 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 1 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
@@ -129,7 +196,7 @@ unify_output "vcpu 2 : XX. vm exit - reason 0xfc handled by 'second ep'" ""
 unify_output "vcpu 2 : XX. vm exit - reason 0x4e handled by 'second ep'" ""
 # Intel with EPT
 unify_output "vcpu 2 : XX. vm exit - reason 0x30 handled by 'second ep'" ""
-unify_output "vcpu 2 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 2 : XX. vm exit -  guest fault address: $guest_fault_address" ""
 unify_output "vcpu 2 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 2 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
@@ -147,7 +214,7 @@ unify_output "vcpu 3 : XX. vm exit - reason 0xfc handled by 'second ep'" ""
 unify_output "vcpu 3 : XX. vm exit - reason 0x4e handled by 'second ep'" ""
 # Intel with EPT
 unify_output "vcpu 3 : XX. vm exit - reason 0x30 handled by 'second ep'" ""
-unify_output "vcpu 3 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 3 : XX. vm exit -  guest fault address: $guest_fault_address" ""
 unify_output "vcpu 3 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 3 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""

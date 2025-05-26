@@ -478,7 +478,7 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 				/* no memory - we halt the vcpu */
 				return false;
 			}
-			if (guest_fault_addr != 0xfffffff0UL) {
+			if ((guest_fault_addr & 0xfffff000UL) != 0xfffff000ul ) {
 				error("vcpu ", _id, " : ", _exit_count, ". vm exit - "
 				      " unknown guest fault address");
 				return false;
