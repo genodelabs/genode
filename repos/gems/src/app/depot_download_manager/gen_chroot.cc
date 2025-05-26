@@ -17,7 +17,7 @@ void Depot_download_manager::gen_chroot_start_content(Xml_generator &xml,
                                                       Archive::User const &user)
 {
 	gen_common_start_content(xml, Path("/depot/", user),
-	                         Cap_quota{100}, Ram_quota{1*1024*1024 + 32*1024});
+	                         Cap_quota{100}, Ram_quota{2*1024*1024});
 
 	xml.node("binary", [&] () { xml.attribute("name", "chroot"); });
 

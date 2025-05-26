@@ -30,7 +30,7 @@
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<default caps="175"/>
+		<default caps="185"/>
 		<start name="gcov" ram="10M">
 			<config>
 				<arg value="gcov"/>

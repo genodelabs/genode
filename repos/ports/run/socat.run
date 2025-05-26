@@ -74,7 +74,7 @@ if { [have_include power_on/qemu] } {
 } else {
 
 	append config {
-		<start name="drivers" caps="1000" ram="32M" managing_system="yes">
+		<start name="drivers" caps="1500" ram="32M" managing_system="yes">
 			<binary name="init"/>
 			<route>
 				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>

@@ -81,7 +81,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="vfs_block" caps="200" ram="68M">
+	<start name="vfs_block" caps="300" ram="68M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>

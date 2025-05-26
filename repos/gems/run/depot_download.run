@@ -126,7 +126,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="depot_download" caps="2000" ram="70M">
+	<start name="depot_download" caps="2000" ram="72M">
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config">

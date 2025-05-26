@@ -34,7 +34,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100" ram="1096K"/>
+	<default caps="100" ram="1196K"/>
 
 	<start name="timer">
 		<provides><service name="Timer"/></provides>
@@ -51,7 +51,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="report_rom">
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no">
 			<policy label="status_bar -> focus"          report="nitpicker -> focus"/>

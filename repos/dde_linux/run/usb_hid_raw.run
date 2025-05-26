@@ -82,7 +82,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom">
+	<start name="report_rom" caps="120" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
 			<default-policy report="usb -> usb -> devices"/>

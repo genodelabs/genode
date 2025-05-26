@@ -47,7 +47,7 @@ install_config {
 	<start name="timer">
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="vfs_block" caps="120" ram="20M">
+	<start name="vfs_block" caps="160" ram="20M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>

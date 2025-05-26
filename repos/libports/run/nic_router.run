@@ -353,7 +353,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="report_rom">
+	<start name="report_rom" ram="2M">
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes"/>
 	</start>
