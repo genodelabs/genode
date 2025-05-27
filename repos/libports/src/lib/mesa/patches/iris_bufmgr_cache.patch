@@ -1,0 +1,18 @@
+This disable the buffer-object case in the Iris-buffer manager. We already cache
+within libdrm.
+diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+index 759e986..884f399 100644
+--- a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
++++ b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
+@@ -1179,7 +1179,10 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
+    if (size >= 1024 * 1024)
+       size = align64(size, 2 * 1024 * 1024);
+ 
+-   bucket = bucket_for_size(bufmgr, size, heap, flags);
++   /*
++    * short-circuit the bo_cache because we already cache within libdrm
++    */
++   bucket = NULL; //bucket_for_size(bufmgr, size, heap, flags);
+ 
+    if (memzone != IRIS_MEMZONE_OTHER || (flags & BO_ALLOC_COHERENT))
+       flags |= BO_ALLOC_NO_SUBALLOC;
