@@ -34,4 +34,7 @@ CFLAGS += -fcommon
 # Pass the correct strip program to 'install-sh'
 MAKE_ENV += "STRIPPROG=$(STRIP)"
 
+# Prevent compile errors with host GCC 15 which defaults to -std=gnu23
+CONFIGURE_ARGS += "CFLAGS_FOR_BUILD=\"-std=gnu17\""
+
 include $(call select_from_repositories,mk/noux.mk)
