@@ -61,8 +61,6 @@ namespace Core {
 		static char const *name() { return "cnode"; }
 	};
 
-	struct Retype_untyped_failed : Genode::Exception { };
-
 
 	/**
 	 * Create kernel object
@@ -74,15 +72,14 @@ namespace Core {
 	 * \param dst_idx        designated index of cap selector within 'dst_cnode'
 	 * \param size_log2      size of kernel object in bits
 	 *
-	 * \throw Phys_alloc_failed
-	 * \throw Retype_untyped_failed
+	 * \return true on success, otherwise false
 	 *
 	 * The kernel-object description is a policy type that contains enum
 	 * definitions for 'SEL4_TYPE' and 'SIZE_LOG2', and a static function
 	 * 'name' that returns the type name as a char const pointer.
 	 */
 	template <typename KOBJ>
-	static void create(seL4_Untyped const service,
+	static bool create(seL4_Untyped const service,
 	                   Cap_sel      const dst_cnode_sel,
 	                   Cnode_index  const dst_idx,
 	                   uint8_t      const size_log2 = 0)
@@ -104,11 +101,12 @@ namespace Core {
 		                                    node_offset,
 		                                    num_objects);
 
-		if (ret != 0) {
+		if (ret != seL4_NoError) {
 			error("seL4_Untyped_RetypeAtOffset (", KOBJ::name(), ") "
 			      "returned ", ret);
-			throw Retype_untyped_failed();
 		}
+
+		return ret == seL4_NoError;
 	}
 };
 

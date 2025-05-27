@@ -315,8 +315,7 @@ void Core::Platform::_init_rom_modules()
 				a.deallocate = false; return (addr_t)a.ptr; },
 			[&] (Alloc_error) -> addr_t {
 				error("could not reserve phys CNode space for boot modules");
-				struct Init_rom_modules_failed { };
-				throw Init_rom_modules_failed();
+				sleep_forever();
 			});
 	};
 
@@ -569,15 +568,18 @@ Core::Platform::Platform()
 
 	_core_sel_alloc.alloc().with_result([&](auto sel) {
 		auto core_sel = Cap_sel(unsigned(sel));
+		bool ok = false;
 
 		Untyped_memory::alloc_page(ram_alloc()).with_result([&](auto &result) {
 			result.deallocate = false;
 			auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
-			create<Notification_kobj>(service, core_cnode().sel(), core_sel);
-		}, [] (auto) {
+			ok = create<Notification_kobj>(service, core_cnode().sel(), core_sel);
+		}, [] (auto) { /* ok stays false */});
+
+		if (!ok) {
 			error("setup of kernel notification object for Genode::Lock failed");
 			ASSERT(false);
-		});
+		}
 
 		/* mint a copy of the notification object with badge of lock_sel */
 		_core_cnode.mint(_core_cnode, core_sel, lock_sel);

@@ -67,7 +67,7 @@ class Core::Platform_pd : public Address_space
 		Sel_alloc _sel_alloc { };
 		Mutex _sel_alloc_mutex { };
 
-		void _init_page_directory();
+		bool _init_page_directory();
 		void _deinit_page_directory();
 
 	public:

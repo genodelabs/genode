@@ -99,8 +99,14 @@ bool Genode::Thread_info::init_tcb(Core::Platform &platform,
 		seL4_Untyped const service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
-			tcb_sel = Cap_sel(unsigned(sel));
-			create<Tcb_kobj>(service, platform.core_cnode().sel(), tcb_sel);
+			auto cap_sel = Cap_sel(unsigned(sel));
+			if (!create<Tcb_kobj>(service, platform.core_cnode().sel(),
+			                      cap_sel)) {
+				platform.core_sel_alloc().free(cap_sel);
+				return;
+			}
+
+			tcb_sel = cap_sel;
 
 			/* set scheduling priority */
 			seL4_TCB_SetMCPriority(tcb_sel.value(), Cnode_index(seL4_CapInitThreadTCB).value(), prio);
@@ -148,8 +154,13 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
-			ep_sel = Cap_sel(unsigned(sel));
-			create<Endpoint_kobj>(service, platform.core_cnode().sel(), ep_sel);
+			auto cap_sel = Cap_sel(unsigned(sel));
+			if (!create<Endpoint_kobj>(service, platform.core_cnode().sel(),
+			                           cap_sel)) {
+				platform.core_sel_alloc().free(cap_sel);
+				return;
+			}
+			ep_sel = cap_sel;
 		}, [](auto) { /* ep_sel stays invalid, which is checked for */ });
 	}, [](auto) { /* ep_sel stays invalid, which is checked for */ });
 
@@ -160,8 +171,15 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
-			lock_sel = Cap_sel(unsigned(sel));
-			create<Notification_kobj>(service, platform.core_cnode().sel(), lock_sel);
+			auto cap_sel = Cap_sel(unsigned(sel));
+			if (!create<Notification_kobj>(service,
+			                               platform.core_cnode().sel(),
+			                               cap_sel)) {
+				platform.core_sel_alloc().free(cap_sel);
+				return;
+			}
+
+			lock_sel = cap_sel;
 		}, [](auto) { /* lock_sel stays invalid, which is checked for */ });
 	}, [](auto) { /* lock_sel stays invalid, which is checked for */ });
 

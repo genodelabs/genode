@@ -1,11 +1,12 @@
 /*
  * \brief   Utilities for manipulating seL4 CNodes
  * \author  Norman Feske
+ * \author  Alexander Boettcher
  * \date    2015-05-04
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -130,12 +131,9 @@ class Core::Cnode : public Cnode_base, Noncopyable
 {
 	private:
 
-		Allocator::Alloc_result _phys { };
+		Allocator::Alloc_result _phys  { };
 
 	public:
-
-		class Untyped_lookup_failed : Exception { };
-		class Retype_untyped_failed : Exception { };
 
 		/**
 		 * Constructor
@@ -148,8 +146,6 @@ class Core::Cnode : public Cnode_base, Noncopyable
 		 * \param phys_alloc  physical-memory allocator used for allocating
 		 *                    the CNode backing store
 		 *
-		 * \throw Untyped_address::Lookup_failed
-		 *
 		 * \deprecated
 		 */
 		Cnode(Cap_sel parent_sel, Index dst_idx, uint8_t size_log2,
@@ -158,10 +154,17 @@ class Core::Cnode : public Cnode_base, Noncopyable
 			Cnode_base(dst_idx, size_log2),
 			_phys(Untyped_memory::alloc_page(phys_alloc))
 		{
+			bool ok = false;
+
 			_phys.with_result([&](auto &res) {
 				auto const service = Untyped_memory::untyped_sel(addr_t(res.ptr)).value();
-				create<Cnode_kobj>(service, parent_sel, dst_idx, size_log2);
-			}, [&](auto) { error("Cnode construction failed"); });
+				ok = create<Cnode_kobj>(service, parent_sel, dst_idx, size_log2);
+			}, [&](auto) { /* ok stays false */ });
+
+			if (!ok) {
+				error("Cnode construction failed");
+				_phys = { };
+			}
 		}
 
 		bool constructed() const
@@ -180,7 +183,6 @@ class Core::Cnode : public Cnode_base, Noncopyable
 		 * \param untyped_pool  initial untyped memory pool used for allocating
 		 *                      the CNode backing store
 		 *
-		 * \throw Retype_untyped_failed
 		 * \throw Initial_untyped_pool::Initial_untyped_pool_exhausted
 		 */
 		Cnode(Cap_sel parent_sel, Index dst_idx, uint8_t size_log2,
@@ -189,7 +191,8 @@ class Core::Cnode : public Cnode_base, Noncopyable
 			Cnode_base(dst_idx, size_log2)
 		{
 			seL4_Untyped sel = untyped_pool.alloc(Cnode_kobj::SIZE_LOG2 + size_log2);
-			create<Cnode_kobj>(sel, parent_sel, dst_idx, size_log2);
+			if (!create<Cnode_kobj>(sel, parent_sel, dst_idx, size_log2))
+				error("leaking untyped - no way to convert back");
 		}
 
 		void destruct(Range_allocator &phys_alloc, bool revoke = false)

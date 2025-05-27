@@ -58,10 +58,14 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint          &ep,
 		throw Out_of_caps();
 
 	platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
-		_notification = Cap_sel(unsigned(sel));
-		create<Notification_kobj>(service,
-		                          platform_specific().core_cnode().sel(),
-		                          _notification);
+		auto cap_sel = Cap_sel(unsigned(sel));
+
+		if (create<Notification_kobj>(service,
+		                              platform_specific().core_cnode().sel(),
+		                              cap_sel))
+			_notification = Cap_sel(unsigned(sel));
+		else
+			platform_specific().core_sel_alloc().free(cap_sel);
 	}, [](auto) { /* _notification stays invalid */ });
 
 	_ep.manage(this);
@@ -126,19 +130,21 @@ try
 
 	auto ept_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	try {
-		ept_phys.with_result([&](auto & result) {
-			result.deallocate = false;
+	ept_phys.with_result([&](auto & result) {
+		result.deallocate = false;
 
-			_ept._phys    = addr_t(result.ptr);
-			_ept._service = Untyped_memory::untyped_sel(_ept._phys).value();
+		auto ept_phys    = addr_t(result.ptr);
+		auto ept_service = Untyped_memory::untyped_sel(ept_phys).value();
 
-			create<Ept_kobj>(_ept._service, platform.core_cnode().sel(),
-			                 _vm_page_table);
-		}, [&](auto) { throw 1; });
-	} catch (...) {
+		if (create<Ept_kobj>(ept_service, platform.core_cnode().sel(),
+		                     _vm_page_table)) {
+			_ept._phys    = ept_phys;
+			_ept._service = ept_service;
+		} else
+			throw Service_denied();
+	}, [&](auto) {
 		throw Service_denied();
-	}
+	});
 
 	long ret = seL4_X86_ASIDPool_Assign(platform.asid_pool().value(),
 	                                    _vm_page_table.value());

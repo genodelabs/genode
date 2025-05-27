@@ -157,7 +157,8 @@ Platform_pd::Platform_pd(Allocator &md_alloc, char const *label)
 :
 	_page_table_registry(md_alloc)
 {
-	_init_page_directory();
+	if (!_init_page_directory())
+		return;
 
 	if (!_page_directory_sel.value() || _page_directory.failed())
 		return;

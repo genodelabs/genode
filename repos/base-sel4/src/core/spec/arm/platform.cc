@@ -103,9 +103,9 @@ void Platform::_init_core_page_table_registry()
 }
 
 
-void Platform_pd::_init_page_directory()
+bool Platform_pd::_init_page_directory()
 {
-	platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
+	return platform_specific().core_sel_alloc().alloc().convert<bool>([&](auto sel) {
 		_page_directory_sel = Cap_sel(unsigned(sel));
 
 		/* page directory table contains 4096 elements of 32bits -> 16k required */
@@ -113,12 +113,13 @@ void Platform_pd::_init_page_directory()
 
 		_page_directory = Untyped_memory::alloc_pages(phys_alloc_16k(), PAGES_16K);
 
-		_page_directory.with_result([&](auto &result) {
+		return _page_directory.convert<bool>([&](auto &result) {
 			auto const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, addr_t(result.ptr), Page_directory_kobj::SIZE_LOG2).value();
 
-			create<Page_directory_kobj>(service,
-			                            platform_specific().core_cnode().sel(),
-			                            _page_directory_sel);
+			if (!create<Page_directory_kobj>(service,
+			                                 platform_specific().core_cnode().sel(),
+			                                 _page_directory_sel))
+				return false;
 
 
 			long ret = seL4_ARM_ASIDPool_Assign(platform_specific().asid_pool().value(),
@@ -127,8 +128,10 @@ void Platform_pd::_init_page_directory()
 			if (ret != seL4_NoError)
 				error("seL4_ARM_ASIDPool_Assign returned ", ret);
 
-		}, [&] (auto) { /* handled manually in platform_pd - to be improved */ });
-	}, [](auto) { /* _page_directory_sel stays invalid */ });
+			return ret == seL4_NoError;
+
+		}, [&] (auto) { return false; });
+	}, [](auto) { return false; });
 }
 
 

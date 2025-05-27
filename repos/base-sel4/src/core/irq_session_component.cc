@@ -34,18 +34,19 @@ bool Irq_object::associate(Irq_args const &args)
 	if (phys_result.failed())
 		return false;
 
-	bool ok = true;
+	bool ok = false;
 
 	phys_result.with_result([&](auto &phys) {
 		auto service = Untyped_memory::untyped_sel(addr_t(phys.ptr)).value();
 
 		_kernel_notify_sel.with_result([&](auto notify_sel) {
-			create<Notification_kobj>(service, platform.core_cnode().sel(),
-			                          Cnode_index(unsigned(notify_sel)));
-		}, [&](auto) { ok = false; });
+			ok = create<Notification_kobj>(service,
+			                               platform.core_cnode().sel(),
+			                               Cnode_index(unsigned(notify_sel)));
+		}, [&](auto) { });
 
 		phys.deallocate = !ok;
-	}, [&](auto) { ok = false; });
+	}, [&](auto) { });
 
 	if (!ok)
 		return false;

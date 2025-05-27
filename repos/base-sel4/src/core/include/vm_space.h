@@ -339,8 +339,8 @@ class Core::Vm_space
 						phys = addr_t(result.ptr);
 						seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
 
-						create<KOBJ>(service, leaf_cnode.sel(),
-						             _leaf_cnode_entry(pte_idx));
+						return create<KOBJ>(service, leaf_cnode.sel(),
+						                    _leaf_cnode_entry(pte_idx));
 					});
 
 					result.deallocate = !ok;

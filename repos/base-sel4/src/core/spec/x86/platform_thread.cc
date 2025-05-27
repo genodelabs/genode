@@ -51,7 +51,9 @@ bool Thread_info::init_vcpu(Platform &platform, Cap_sel ept)
 
 		seL4_Untyped const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, vcpu_state_phys, Vcpu_kobj::SIZE_LOG2).value();
 
-		create<Vcpu_kobj>(service, platform.core_cnode().sel(), vcpu_sel);
+		if (!create<Vcpu_kobj>(service, platform.core_cnode().sel(), vcpu_sel))
+			return false;
+
 		seL4_Error res = seL4_X86_VCPU_SetTCB(vcpu_sel.value(), tcb_sel.value());
 		if (res != seL4_NoError)
 			return false;

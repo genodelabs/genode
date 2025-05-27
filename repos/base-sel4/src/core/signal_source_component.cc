@@ -78,7 +78,10 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint &ep)
 		/* allocate notification object within core's CNode */
 		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
 			auto ny_sel = Cap_sel(unsigned(sel));
-			create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel);
+			if (!create<Notification_kobj>(service, platform.core_cnode().sel(), ny_sel)) {
+				platform.core_sel_alloc().free(ny_sel);
+				return /* notify stays invalid */;
+			}
 
 			_notify = Capability_space::create_notification_cap(ny_sel);
 
