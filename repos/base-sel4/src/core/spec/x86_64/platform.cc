@@ -55,22 +55,26 @@ void Platform::_init_core_page_table_registry()
 	/*
 	 * Register initial pdpt and page directory
 	 */
-	_core_page_table_registry.insert_page_level3(virt_addr, Cap_sel(sel),
-	                                             XXX_PHYS_UNKNOWN,
-	                                             PAGE_PDPT_LOG2_SIZE);
-	_core_page_table_registry.insert_page_directory(virt_addr,
-	                                                Cap_sel(sel + 1),
-	                                                XXX_PHYS_UNKNOWN,
-	                                                PAGE_DIR_LOG2_SIZE);
-	sel += 2;
+	if (_core_page_table_registry.insert_page_level3(virt_addr, Cap_sel(sel++),
+	                                                 XXX_PHYS_UNKNOWN,
+	                                                 PAGE_PDPT_LOG2_SIZE).failed())
+		error(__func__, ":", __LINE__, " page table allocation failed");
+
+	if (_core_page_table_registry.insert_page_directory(virt_addr,
+	                                                    Cap_sel(sel++),
+	                                                    XXX_PHYS_UNKNOWN,
+	                                                    PAGE_DIR_LOG2_SIZE).failed())
+		error(__func__, ":", __LINE__, " page table allocation failed");
 
 	/*
 	 * Register initial page tables
 	 */
 	for (; sel < bi.userImagePaging.end; sel++) {
-		_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel),
-		                                            XXX_PHYS_UNKNOWN,
-		                                            PAGE_TABLE_LOG2_SIZE);
+		if (_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel),
+		                                                XXX_PHYS_UNKNOWN,
+		                                                PAGE_TABLE_LOG2_SIZE).failed())
+			error(__func__, ":", __LINE__, " page table allocation failed");
+
 		virt_addr += 512 * get_page_size();
 	}
 

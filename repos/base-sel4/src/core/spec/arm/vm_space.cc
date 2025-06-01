@@ -78,17 +78,22 @@ bool Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
 	addr_t virt = start & ~(PAGE_TABLE_AREA - 1);
 	for (; virt < start + size; virt += PAGE_TABLE_AREA) {
 
-		if (_page_table_registry.page_table_at(virt, PAGE_TABLE_LOG2_SIZE))
+		if (_pt_registry.page_table_at(virt, PAGE_TABLE_LOG2_SIZE))
 			continue;
 
 		/* 1 MB range - page table */
-		bool ok = _alloc_and_map<Page_table_kobj>(virt, map_page_table, [&](Cap_sel const pt, addr_t const phys) {
-			_page_table_registry.insert_page_table(virt, pt, phys,
-			                                       PAGE_TABLE_LOG2_SIZE);
-			return true;
+		auto result = _alloc_and_map<Page_table_kobj>(virt,
+			[&](Cap_sel const pdpt, Cap_sel const vroot, addr_t const pguest,
+			    Cap_sel const pt, addr_t const phys) {
+
+			if (map_page_table(pdpt, vroot, pguest) != seL4_NoError)
+				return Vm_space::Result(Alloc_error::DENIED);
+
+			return _pt_registry.insert_page_table(virt, pt, phys,
+			                                      PAGE_TABLE_LOG2_SIZE);
 		});
 
-		if (!ok)
+		if (result.failed())
 			return false;
 	}
 

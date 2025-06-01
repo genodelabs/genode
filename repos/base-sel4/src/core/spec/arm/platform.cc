@@ -69,9 +69,11 @@ void Platform::_init_core_page_table_registry()
 	 * Register initial page tables
 	 */
 	for (; sel < bi.userImagePaging.end; sel++) {
-		_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel),
-		                                            XXX_PHYS_UNKNOWN,
-		                                            PAGE_TABLE_LOG2_SIZE);
+		if (_core_page_table_registry.insert_page_table(virt_addr, Cap_sel(sel),
+		                                                XXX_PHYS_UNKNOWN,
+		                                                PAGE_TABLE_LOG2_SIZE).failed())
+			error("page table insertion failed");
+
 		virt_addr += 256 * get_page_size();
 	}
 

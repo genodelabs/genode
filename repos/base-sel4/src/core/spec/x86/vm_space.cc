@@ -111,44 +111,63 @@ static long map_directory(Cap_sel const pd,
 	                          seL4_X86_Default_VMAttributes);
 }
 
-bool Vm_space::unsynchronized_alloc_guest_page_tables(addr_t const start, addr_t size)
+Vm_space::Result Vm_space::unsynchronized_alloc_guest_page_tables(addr_t const start, addr_t size)
 {
 	addr_t constexpr PAGE_TABLE_AREA = 1UL << EPT_PAGE_TABLE_LOG2_SIZE;
 	addr_t virt = start & ~(PAGE_TABLE_AREA - 1);
 	for (; size != 0; size -= min(size, PAGE_TABLE_AREA), virt += PAGE_TABLE_AREA) {
-		if (!_page_table_registry.page_level3_at(virt, EPT_PAGE_PDPT_LOG2_SIZE)) {
+		if (!_pt_registry.page_level3_at(virt, EPT_PAGE_PDPT_LOG2_SIZE)) {
 			/* 512 GB range - page directory pointer table */
-			bool ok = _alloc_and_map<Ept_page_pointer_table_kobj>(virt, map_pdpt, [&](auto const pd, addr_t const phys) {
-				_page_table_registry.insert_page_level3(virt, pd, phys, EPT_PAGE_PDPT_LOG2_SIZE);
-				return true;
+			auto result = _alloc_and_map<Ept_page_pointer_table_kobj>(virt,
+				[&](Cap_sel const pdpt, Cap_sel const vroot, addr_t const pguest,
+				    auto const pd, addr_t const phys) {
+
+					auto res = map_pdpt(pdpt, vroot, pguest);
+					if (res != seL4_NoError)
+						return Vm_space::Result(Alloc_error::DENIED);
+
+					return _pt_registry.insert_page_level3(virt, pd, phys,
+					                                       EPT_PAGE_PDPT_LOG2_SIZE);
 			});
 
-			if (!ok)
-				return ok;
+			if (result.failed())
+				return result;
 		}
 
-		if (!_page_table_registry.page_directory_at(virt, EPT_PAGE_DIR_LOG2_SIZE)) {
+		if (!_pt_registry.page_directory_at(virt, EPT_PAGE_DIR_LOG2_SIZE)) {
 			/*   1 GB range - page directory */
-			bool ok = _alloc_and_map<Ept_page_directory_kobj>(virt, map_directory, [&](auto const pd, addr_t const phys) {
-				_page_table_registry.insert_page_directory(virt, pd, phys,
-				                                           EPT_PAGE_DIR_LOG2_SIZE);
-				return true;
+			auto result = _alloc_and_map<Ept_page_directory_kobj>(virt,
+				[&](Cap_sel const pdpt, Cap_sel const vroot, addr_t const pguest,
+				    auto const pd, addr_t const phys) {
+
+					auto res = map_directory(pdpt, vroot, pguest);
+					if (res != seL4_NoError)
+						return Vm_space::Result(Alloc_error::DENIED);
+
+					return _pt_registry.insert_page_directory(virt, pd, phys,
+					                                          EPT_PAGE_DIR_LOG2_SIZE);
 			});
 
-			if (!ok)
-				return ok;
+			if (result.failed())
+				return result;
 		}
 
-		if (!_page_table_registry.page_table_at(virt, EPT_PAGE_TABLE_LOG2_SIZE)) {
+		if (!_pt_registry.page_table_at(virt, EPT_PAGE_TABLE_LOG2_SIZE)) {
 			/*   2 MB range - page table */
-			bool ok = _alloc_and_map<Ept_page_table_kobj>(virt, map_page_table, [&](auto const pt, addr_t const phys) {
-				_page_table_registry.insert_page_table(virt, pt, phys,
-				                                       EPT_PAGE_TABLE_LOG2_SIZE);
-				return true;
+			auto result = _alloc_and_map<Ept_page_table_kobj>(virt,
+				[&](Cap_sel const pdpt, Cap_sel const vroot, addr_t const pguest,
+				    auto const pt, addr_t const phys) {
+
+					auto res = map_page_table(pdpt, vroot, pguest);
+					if (res != seL4_NoError)
+						return Vm_space::Result(Alloc_error::DENIED);
+
+					return _pt_registry.insert_page_table(virt, pt, phys,
+					                                      EPT_PAGE_TABLE_LOG2_SIZE);
 			});
 
-			if (!ok)
-				return ok;
+			if (result.failed())
+				return result;
 		}
 	}
 

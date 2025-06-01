@@ -34,16 +34,13 @@ class Core::Vm_space
 {
 	private:
 
-		Session_label _pd_label;
-
-		Cap_sel_alloc &_cap_sel_alloc;
-
-		Page_table_registry &_page_table_registry;
+		Session_label        _pd_label;
+		Cap_sel_alloc       &_cap_sel_alloc;
+		Page_table_registry &_pt_registry;
+		Range_allocator     &_phys_alloc;
 
 		unsigned const _id;
 		Cap_sel  const _pd_sel;
-
-		Range_allocator &_phys_alloc;
 
 		enum {
 			/**
@@ -223,15 +220,17 @@ class Core::Vm_space
 			warning("flush page table entries - mapping cache full - PD: ",
 			        _pd_label.string());
 
-			_page_table_registry.flush_pages(fn);
+			_pt_registry.flush_pages(fn);
 
 			return true;
 		}
 
-		bool _map_frame(addr_t const from_phys, addr_t const to_dest,
-		                Map_attr const attr, bool guest, auto const &fn)
+		using Result = Page_table_registry::Result;
+
+		Result _map_frame(addr_t const from_phys, addr_t const to_dest,
+		                  Map_attr const attr, bool guest, auto const &fn)
 		{
-			if (_page_table_registry.page_frame_at(to_dest)) {
+			if (_pt_registry.page_frame_at(to_dest)) {
 				/*
 				 * Valid behaviour if multiple threads concurrently
 				 * causing the same page-fault. For the first thread the
@@ -248,11 +247,11 @@ class Core::Vm_space
 			if (pte_result.failed()) {
 				/* free all page-table-entry selectors and retry once */
 				if (!_flush(attr.flush_support, fn))
-					return false;
+					return Result(Alloc_error::DENIED);
 
 				pte_result = _sel_alloc.alloc();
 				if (pte_result.failed())
-					return false;
+					return Result(Alloc_error::DENIED);
 			}
 
 			uint32_t pte_idx = 0;
@@ -271,18 +270,22 @@ class Core::Vm_space
 				                Cnode_index(_leaf_cnode_entry(pte_idx)));
 			})) {
 				_sel_alloc.free(pte_idx);
-				return false;
+				return Result(Alloc_error::DENIED);
 			}
 
 			/* remember relationship between pte_sel and the virtual address */
-			try { _page_table_registry.insert_page_frame(to_dest, Cap_sel(pte_idx)); }
-			catch (Page_table_registry::Mapping_cache_full) {
+			auto res = _pt_registry.insert_page_frame(to_dest, Cap_sel(pte_idx));
+
+			if (res.failed()) {
 
 				/* free all entries of mapping cache and re-try once */
 				if (!_flush(attr.flush_support, fn))
-					return false;
+					return Result(Alloc_error::DENIED);
 
-				_page_table_registry.insert_page_frame(to_dest, Cap_sel(pte_idx));
+				res = _pt_registry.insert_page_frame(to_dest, Cap_sel(pte_idx));
+
+				if (res.failed())
+					return Result(Alloc_error::DENIED);
 			}
 
 			/*
@@ -292,7 +295,7 @@ class Core::Vm_space
 			if (ret != seL4_NoError) {
 				error("seL4_*_Page_Map ", Hex(from_phys), "->",
 				      Hex(to_dest), " returned ", ret);
-				return false;
+				return Result(Alloc_error::DENIED);
 			}
 
 			return true;
@@ -310,15 +313,13 @@ class Core::Vm_space
 		 * Allocate and install page structures for the protection domain.
 		 */
 		template <typename KOBJ>
-		[[nodiscard]] bool _alloc_and_map(addr_t const virt,
-		                                  long (&map_fn)(Cap_sel, Cap_sel, addr_t),
-		                                  auto const &fn)
+		Result _alloc_and_map(addr_t const virt, auto const &fn)
 		{
 			/* allocate page-* selector */
 			auto const result_idx = _sel_alloc.alloc();
 
 			if (result_idx.failed())
-				return false;
+				return Result(Alloc_error::DENIED);
 
 			uint32_t pte_idx = 0;
 			result_idx.with_result([&] (addr_t n) { pte_idx = unsigned(n); },
@@ -328,50 +329,39 @@ class Core::Vm_space
 
 			if (phys_result.failed()) {
 				_sel_alloc.free(pte_idx);
-				return false;
+				return Result(Alloc_error::DENIED);
 			}
 
 			addr_t phys = 0;
 
-			try {
-				phys_result.with_result([&](auto &result) {
-					bool ok = _leaf_cnode(pte_idx, [&](auto &leaf_cnode) {
-						phys = addr_t(result.ptr);
-						seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
+			phys_result.with_result([&](auto &result) {
+				bool ok = _leaf_cnode(pte_idx, [&](auto &leaf_cnode) {
+					phys = addr_t(result.ptr);
+					seL4_Untyped const service = Untyped_memory::untyped_sel(phys).value();
 
-						return create<KOBJ>(service, leaf_cnode.sel(),
-						                    _leaf_cnode_entry(pte_idx));
-					});
+					return create<KOBJ>(service, leaf_cnode.sel(),
+					                    _leaf_cnode_entry(pte_idx));
+				});
 
-					result.deallocate = !ok;
-				}, [&] (auto) { /* handled before by explicit failed() check */ });
-			} catch (...) {
-				_sel_alloc.free(pte_idx);
-				return false;
-			}
+				result.deallocate = !ok;
+			}, [&] (auto) { /* handled before by explicit failed() check */ });
 
 			if (!phys) {
 				_sel_alloc.free(pte_idx);
-				return false;
+				return Result(Alloc_error::DENIED);
 			}
 
 			Cap_sel const pt_sel = _idx_to_sel(pte_idx);
 
-			long const result = map_fn(pt_sel, _pd_sel, virt);
-			if (result != seL4_NoError) {
-				error("seL4_*_Page*_Map(,", Hex(virt), ") returned ",
-				      result);
+			auto result = fn(pt_sel, _pd_sel, virt, Cap_sel(pte_idx), phys);
+			if (!result.failed())
+				return result;
 
-				error("leaking idx, untyped memory and phys addr in _alloc_and_map");
-				return false;
-			}
-
-			if (fn(Cap_sel(pte_idx), phys))
-				return true;
+			error(__func__, " failed, seL4_*_Page*_Map()");
 
 			_unmap_and_free(Cap_sel(pte_idx), phys);
 
-			return false;
+			return result;
 		}
 
 		void _unmap_and_free(Cap_sel const idx, addr_t const paddr)
@@ -423,9 +413,9 @@ class Core::Vm_space
 		:
 			_pd_label(label),
 			_cap_sel_alloc(cap_sel_alloc),
-			_page_table_registry(page_table_registry),
-			_id(id), _pd_sel(pd_sel),
+			_pt_registry(page_table_registry),
 			_phys_alloc(phys_alloc),
+			_id(id), _pd_sel(pd_sel),
 			_top_level_cnode(top_level_cnode),
 			_phys_cnode(phys_cnode)
 		{
@@ -497,7 +487,7 @@ class Core::Vm_space
 		~Vm_space()
 		{
 			/* delete copy of the mapping's page-frame selectors */
-			_page_table_registry.flush_all([&] (Cap_sel const &idx, addr_t const virt) {
+			_pt_registry.flush_all([&] (Cap_sel const &idx, addr_t const virt) {
 
 				long err = _unmap_page(idx);
 				if (err != seL4_NoError)
@@ -573,8 +563,11 @@ class Core::Vm_space
 			for (size_t i = 0; i < num_pages; i++) {
 				addr_t const offset = i << get_page_size_log2();
 
-				if (_map_frame(from_phys + offset, to_virt + offset, attr,
-				               false /* host page table */, fn_unmap))
+				auto result = _map_frame(from_phys + offset, to_virt + offset,
+				                         attr,
+				                         false /* host page table */, fn_unmap);
+
+				if (!result.failed())
 					continue;
 
 				ok = false;
@@ -582,13 +575,14 @@ class Core::Vm_space
 				warning("mapping failed ", Hex(from_phys + offset),
 				        " -> ", Hex(to_virt + offset), " ",
 				        !attr.flush_support ? "core" : "");
+				break;
 			}
 
 			return ok;
 		}
 
-		void map_guest(addr_t const from_phys, addr_t const guest_phys,
-		               size_t const num_pages, Map_attr const attr)
+		Result map_guest(addr_t const from_phys, addr_t const guest_phys,
+		                 size_t const num_pages, Map_attr const attr)
 		{
 			auto fn_unmap = [&] (Cap_sel const &idx, addr_t const) {
 				long err = _unmap_page(idx);
@@ -609,9 +603,14 @@ class Core::Vm_space
 			for (size_t i = 0; i < num_pages; i++) {
 				addr_t const offset = i << get_page_size_log2();
 
-				_map_frame(from_phys + offset, guest_phys + offset, attr,
-				           true /* guest page table */, fn_unmap);
+				auto result = _map_frame(from_phys + offset,
+				                         guest_phys + offset, attr,
+				                         true /* guest page table */, fn_unmap);
+				if (result.failed())
+					return result;
 			}
+
+			return true;
 		}
 
 		bool unmap(addr_t const virt, size_t const num_pages,
@@ -624,7 +623,7 @@ class Core::Vm_space
 			for (size_t i = 0; unmap_success && i < num_pages; i++) {
 				addr_t const offset = i << get_page_size_log2();
 
-				_page_table_registry.flush_page(virt + offset, [&] (Cap_sel const &idx, addr_t) {
+				_pt_registry.flush_page(virt + offset, [&] (Cap_sel const &idx, addr_t) {
 
 					if (invalidate) {
 						long result = _invalidate_page(idx, virt + offset,
@@ -652,7 +651,7 @@ class Core::Vm_space
 		}
 
 		[[nodiscard]] bool unsynchronized_alloc_page_tables(addr_t, addr_t);
-		[[nodiscard]] bool unsynchronized_alloc_guest_page_tables(addr_t, addr_t);
+		Result unsynchronized_alloc_guest_page_tables(addr_t, addr_t);
 
 		[[nodiscard]] bool alloc_page_tables(addr_t const start, addr_t const size)
 		{
@@ -660,7 +659,7 @@ class Core::Vm_space
 			return unsynchronized_alloc_page_tables(start, size);
 		}
 
-		[[nodiscard]] bool alloc_guest_page_tables(addr_t const start, addr_t const size)
+		Result alloc_guest_page_tables(addr_t const start, addr_t const size)
 		{
 			Mutex::Guard guard(_mutex);
 			return unsynchronized_alloc_guest_page_tables(start, size);

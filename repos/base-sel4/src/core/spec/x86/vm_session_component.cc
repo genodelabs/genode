@@ -153,16 +153,12 @@ try
 
 	auto notify_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	try {
-		notify_phys.with_result([&](auto & result) {
-			result.deallocate = false;
+	notify_phys.with_result([&](auto & result) {
+		result.deallocate = false;
 
-			_notifications._phys = addr_t(result.ptr);
-			_notifications._service = Untyped_memory::untyped_sel(_notifications._phys).value();
-		}, [&](auto) { throw 1; });
-	} catch (...) {
-		throw Service_denied();
-	}
+		_notifications._phys = addr_t(result.ptr);
+		_notifications._service = Untyped_memory::untyped_sel(_notifications._phys).value();
+	}, [&](auto) { throw Service_denied(); });
 
 	/* configure managed VM area */
 	(void)_map.add_range(0, 0UL - 0x1000);
@@ -285,19 +281,32 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 
 	Flexpage page = flex.page();
 	while (page.valid()) {
-		try {
-			if (!_vm_space->alloc_guest_page_tables(page.hotspot, 1 << page.log2_order))
-				throw Service_denied();
 
-			_vm_space->map_guest(page.addr, page.hotspot,
-			                    (1 << page.log2_order) / 4096, attr_noflush);
-		} catch (Page_table_registry::Mapping_cache_full full) {
-			if (full.reason == Page_table_registry::Mapping_cache_full::MEMORY)
-				throw Out_of_ram();
-			if (full.reason == Page_table_registry::Mapping_cache_full::CAPS)
-				throw Out_of_caps();
-			return;
-		}
+		auto result_vm = _vm_space->alloc_guest_page_tables(page.hotspot,
+		                                                    1 << page.log2_order);
+		result_vm.with_result([](auto ok) {
+			if (!ok) throw Invalid_dataspace();
+		}, [](auto e) {
+			switch(e) {
+			case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+			case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+			case Alloc_error::DENIED:      throw Invalid_dataspace();
+			}
+		});
+
+		auto result_map = _vm_space->map_guest(page.addr, page.hotspot,
+		                                       (1 << page.log2_order) / 4096,
+		                                       attr_noflush);
+
+		result_map.with_result([](auto ok) {
+			if (!ok) throw Invalid_dataspace();
+		}, [](auto e) {
+			switch(e) {
+			case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+			case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+			case Alloc_error::DENIED:      throw Invalid_dataspace();
+			}
+		});
 
 		page = flex.page();
 	}

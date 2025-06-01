@@ -31,12 +31,7 @@ class Core::Page_table_registry
 {
 	public:
 
-		struct Mapping_cache_full : Exception
-		{
-			enum Type { MEMORY, CAPS, DENIED } reason;
-
-			Mapping_cache_full(enum Type reason) : reason(reason) { };
-		};
+		using Result = Attempt<bool, Alloc_error>;
 
 	private:
 
@@ -157,35 +152,33 @@ class Core::Page_table_registry
 		Avl_tree<Table> _level2 { };
 		Avl_tree<Table> _level3 { };
 
-		void _insert(addr_t const vaddr, Cap_sel const sel, Level const level,
-		             addr_t const paddr, unsigned const level_log2_size)
+		Result _insert(addr_t const vaddr, Cap_sel const sel, Level const level,
+		               addr_t const paddr, unsigned const level_log2_size)
 		{
-			try {
-				switch (level) {
-				case FRAME:
-					_frames.insert(new (_alloc_frames) Frame(vaddr, sel,
-					                                         level_log2_size));
-					break;
-				case PAGE_TABLE:
-					_level1.insert(new (_alloc_high) Table(vaddr, paddr, sel,
-					                                         level_log2_size));
-					break;
-				case LEVEL2:
-					_level2.insert(new (_alloc_high) Table(vaddr, paddr, sel,
-					                                      level_log2_size));
-					break;
-				case LEVEL3:
-					_level3.insert(new (_alloc_high) Table(vaddr, paddr, sel,
-					                                      level_log2_size));
-					break;
-				}
-			} catch (Allocator::Out_of_memory) {
-				throw Mapping_cache_full(Mapping_cache_full::Type::MEMORY);
-			} catch (Out_of_caps) {
-				throw Mapping_cache_full(Mapping_cache_full::Type::CAPS);
-			} catch (Genode::Denied) {
-				throw Mapping_cache_full(Mapping_cache_full::Type::DENIED);
+			if (level == FRAME) {
+				return _alloc_frames.try_alloc(sizeof(Frame)).convert<Result>([&](auto &res) {
+					res.deallocate = false;
+					auto frame = construct_at<Frame>(res.ptr, vaddr, sel,
+				                                     level_log2_size);
+					_frames.insert(frame);
+
+					return true;
+				}, [&](auto e){ return e; });
 			}
+
+			return _alloc_high.try_alloc(sizeof(Table)).convert<Result>([&](auto &res) {
+				res.deallocate = false;
+				auto table = construct_at<Table>(res.ptr, vaddr, paddr,
+				                                 sel, level_log2_size);
+
+				switch(level) {
+				case PAGE_TABLE : _level1.insert(table); return true;
+				case LEVEL2     : _level2.insert(table); return true;
+				case LEVEL3     : _level3.insert(table); return true;
+				case FRAME      : return false;
+				}
+				return false;
+			}, [&](auto e){ return e; });
 		}
 
 		template <typename T>
@@ -229,17 +222,17 @@ class Core::Page_table_registry
 		bool page_level3_at(addr_t const vaddr, unsigned const level_log2) {
 			return Table::lookup(_level3, vaddr, level_log2); }
 
-		void insert_page_frame(addr_t const vaddr, Cap_sel const sel) {
-			_insert(vaddr, sel, Level::FRAME, 0, LEVEL_0); }
-		void insert_page_table(addr_t const vaddr, Cap_sel const sel,
-		                       addr_t const paddr, unsigned const level_log2) {
-			_insert(vaddr, sel, Level::PAGE_TABLE, paddr, level_log2); }
-		void insert_page_directory(addr_t const vaddr, Cap_sel const sel,
-		                           addr_t const paddr, unsigned const level_log2) {
-			_insert(vaddr, sel, Level::LEVEL2, paddr, level_log2); }
-		void insert_page_level3(addr_t const vaddr, Cap_sel const sel,
-		                        addr_t const paddr, unsigned const level_log2) {
-			_insert(vaddr, sel, Level::LEVEL3, paddr, level_log2); }
+		Result insert_page_frame(addr_t const vaddr, Cap_sel const sel) {
+			return _insert(vaddr, sel, Level::FRAME, 0, LEVEL_0); }
+		Result insert_page_table(addr_t const vaddr, Cap_sel const sel,
+		                         addr_t const paddr, unsigned level_log2) {
+			return _insert(vaddr, sel, Level::PAGE_TABLE, paddr, level_log2); }
+		Result insert_page_directory(addr_t const vaddr, Cap_sel const sel,
+		                             addr_t const paddr, unsigned level_log2) {
+			return _insert(vaddr, sel, Level::LEVEL2, paddr, level_log2); }
+		Result insert_page_level3(addr_t const vaddr, Cap_sel const sel,
+		                          addr_t const paddr, unsigned level_log2) {
+			return _insert(vaddr, sel, Level::LEVEL3, paddr, level_log2); }
 
 		/**
 		 * Apply functor 'fn' to selector of specified virtual address and

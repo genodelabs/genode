@@ -40,13 +40,9 @@ namespace Core {
 		                                .writeable      = true,
 		                                .executable     = false,
 		                                .flush_support  = false };
-		try {
-			platform = platform ? platform : &platform_specific();
-			platform->core_vm_space().map(from_phys, to_virt, num_pages, attr);
-		} catch (Page_table_registry::Mapping_cache_full) {
-			return false;
-		}
-		return true;
+
+		platform = platform ? platform : &platform_specific();
+		return platform->core_vm_space().map(from_phys, to_virt, num_pages, attr);
 	}
 
 
