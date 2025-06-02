@@ -27,7 +27,7 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 
 		Packet_stream_tx::Client<Tx> _tx;
 
-		Info const _info = info();
+		Info const _info = call<Rpc_info>();
 
 	public:
 
@@ -51,7 +51,7 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 		 ** Block session interface **
 		 *****************************/
 
-		Info info() const override { return call<Rpc_info>(); }
+		Info info() const override { return _info; }
 
 		Tx *tx_channel() override { return &_tx; }
 
