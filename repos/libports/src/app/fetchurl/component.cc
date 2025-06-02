@@ -157,23 +157,22 @@ struct Fetchurl::Main
 	{
 		using namespace Genode;
 
-		try {
-			enum { DEFAULT_DELAY_MS = 100UL };
+		enum { DEFAULT_DELAY_MS = 100UL };
 
-			Xml_node const report_node = config_node.sub_node("report");
-			if (report_node.attribute_value("progress", false)) {
-				Milliseconds delay_ms { 0 };
-				delay_ms.value = report_node.attribute_value(
-					"delay_ms", (unsigned)DEFAULT_DELAY_MS);
-				if (delay_ms.value < 1)
-					delay_ms.value = DEFAULT_DELAY_MS;
+		config_node.with_optional_sub_node("report",
+			[&] (Xml_node const &report_node) {
+				if (report_node.attribute_value("progress", false)) {
+					Milliseconds delay_ms { 0 };
+					delay_ms.value = report_node.attribute_value(
+						"delay_ms", (unsigned)DEFAULT_DELAY_MS);
+					if (delay_ms.value < 1)
+						delay_ms.value = DEFAULT_DELAY_MS;
 
-				_report_delay = Duration(delay_ms);
-				_schedule_report();
-				_reporter.construct(_env, "progress", "progress");
-			}
-		}
-		catch (...) { }
+					_report_delay = Duration(delay_ms);
+					_schedule_report();
+					_reporter.construct(_env, "progress", "progress");
+				}
+			});
 
 		_progress_timeout.value = config_node.attribute_value("progress_timeout",
 		                                                      _progress_timeout.value);
