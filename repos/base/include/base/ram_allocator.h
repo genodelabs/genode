@@ -2,6 +2,8 @@
  * \brief  Exception-based interface for allocating RAM dataspaces
  * \author Norman Feske
  * \date   2017-05-02
+ *
+ * \deprecated  use 'Ram::Constrained_allocator' instead
  */
 
 /*

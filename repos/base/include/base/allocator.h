@@ -2,6 +2,8 @@
  * \brief  Generic allocator interface
  * \author Norman Feske
  * \date   2006-04-16
+ *
+ * \deprecated  use 'Memory::Constrained_obj_allocator' instead on 'new'
  */
 
 /*

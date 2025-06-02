@@ -33,104 +33,111 @@ namespace Framebuffer {
 	using Point = Surface_base::Point;
 	using Rect  = Surface_base::Rect;
 
-	struct Mode
-	{
-		Area area;
-		bool alpha;
-
-		void print(Output &out) const { Genode::print(out, area); }
-
-		/*
-		 * If using an alpha channel, the alpha buffer follows the pixel
-		 * buffer. The alpha buffer is followed by an input-mask buffer.
-		 *
-		 * The input-mask buffer contains a byte value per texture pixel,
-		 * which describes the policy of handling user input referring to the
-		 * pixel. If set to zero, the input is passed through the view such
-		 * that it can be handled by one of the subsequent views in the view
-		 * stack. If set to one, the input is consumed by the view.
-		 */
-
-		void with_pixel_surface(auto &ds, auto const &fn) const
-		{
-			Surface<Pixel_rgb888> surface { ds.bytes(), area };
-			fn(surface);
-		}
-
-		void with_alpha_bytes(auto &ds, auto const &fn) const
-		{
-			if (!alpha)
-				return;
-
-			size_t const offset = area.count()*sizeof(Pixel_rgb888);
-			ds.bytes().with_skipped_bytes(offset, [&] (Byte_range_ptr const &bytes) {
-				fn(bytes); });
-		}
-
-		void with_alpha_surface(auto &ds, auto const &fn) const
-		{
-			with_alpha_bytes(ds, [&] (Byte_range_ptr const &bytes) {
-				Surface<Pixel_alpha8> surface { bytes, area };
-				fn(surface); });
-		}
-
-		void with_input_bytes(auto &ds, auto const &fn) const
-		{
-			if (!alpha)
-				return;
-
-			size_t const offset = area.count()*sizeof(Pixel_rgb888) + area.count();
-			ds.bytes().with_skipped_bytes(offset, [&] (Byte_range_ptr const &bytes) {
-				fn(bytes); });
-		}
-
-		void with_input_surface(auto &ds, auto const &fn) const
-		{
-			with_input_bytes(ds, [&] (Byte_range_ptr const &bytes) {
-				Surface<Pixel_input8> surface { bytes, area };
-				fn(surface); });
-		}
-
-		size_t num_bytes() const
-		{
-			size_t const bytes_per_pixel =
-				sizeof(Pixel_rgb888) + alpha*(sizeof(Pixel_alpha8) + sizeof(Pixel_input8));
-
-			return area.count()*bytes_per_pixel;
-		}
-	};
-
-	struct Transfer
-	{
-		Rect  from;  /* source rectangle */
-		Point   to;  /* destination position */
-
-		/**
-		 * Return true if transfer is applicable to 'mode'
-		 *
-		 * Pixels are transferred only if the source rectangle lies within
-		 * the bounds of the framebuffer, and source does not overlap the
-		 * destination.
-		 */
-		bool valid(Mode const &mode) const
-		{
-			Rect const fb   { { }, mode.area };
-			Rect const dest { to,  from.area };
-
-			return from.area.valid()
-			    && fb.contains(from.p1()) && fb.contains(from.p2())
-			    && fb.contains(dest.p1()) && fb.contains(dest.p2())
-			    && !Rect::intersect(from, dest).valid();
-		}
-	};
-
-	struct Blit_batch
-	{
-		static constexpr unsigned N = 4;
-
-		Transfer transfer[N];
-	};
+	struct Mode;
+	struct Transfer;
+	struct Blit_batch;
 }
+
+
+struct Framebuffer::Mode
+{
+	Area area;
+	bool alpha;
+
+	void print(Output &out) const { Genode::print(out, area); }
+
+	/*
+	 * If using an alpha channel, the alpha buffer follows the pixel
+	 * buffer. The alpha buffer is followed by an input-mask buffer.
+	 *
+	 * The input-mask buffer contains a byte value per texture pixel,
+	 * which describes the policy of handling user input referring to the
+	 * pixel. If set to zero, the input is passed through the view such
+	 * that it can be handled by one of the subsequent views in the view
+	 * stack. If set to one, the input is consumed by the view.
+	 */
+
+	void with_pixel_surface(auto &ds, auto const &fn) const
+	{
+		Surface<Pixel_rgb888> surface { ds.bytes(), area };
+		fn(surface);
+	}
+
+	void with_alpha_bytes(auto &ds, auto const &fn) const
+	{
+		if (!alpha)
+			return;
+
+		size_t const offset = area.count()*sizeof(Pixel_rgb888);
+		ds.bytes().with_skipped_bytes(offset, [&] (Byte_range_ptr const &bytes) {
+			fn(bytes); });
+	}
+
+	void with_alpha_surface(auto &ds, auto const &fn) const
+	{
+		with_alpha_bytes(ds, [&] (Byte_range_ptr const &bytes) {
+			Surface<Pixel_alpha8> surface { bytes, area };
+			fn(surface); });
+	}
+
+	void with_input_bytes(auto &ds, auto const &fn) const
+	{
+		if (!alpha)
+			return;
+
+		size_t const offset = area.count()*sizeof(Pixel_rgb888) + area.count();
+		ds.bytes().with_skipped_bytes(offset, [&] (Byte_range_ptr const &bytes) {
+			fn(bytes); });
+	}
+
+	void with_input_surface(auto &ds, auto const &fn) const
+	{
+		with_input_bytes(ds, [&] (Byte_range_ptr const &bytes) {
+			Surface<Pixel_input8> surface { bytes, area };
+			fn(surface); });
+	}
+
+	size_t num_bytes() const
+	{
+		size_t const bytes_per_pixel =
+			sizeof(Pixel_rgb888) + alpha*(sizeof(Pixel_alpha8) + sizeof(Pixel_input8));
+
+		return area.count()*bytes_per_pixel;
+	}
+};
+
+
+struct Framebuffer::Transfer
+{
+	Rect  from;  /* source rectangle */
+	Point   to;  /* destination position */
+
+	/**
+	 * Return true if transfer is applicable to 'mode'
+	 *
+	 * Pixels are transferred only if the source rectangle lies within
+	 * the bounds of the framebuffer, and source does not overlap the
+	 * destination.
+	 */
+	bool valid(Mode const &mode) const
+	{
+		Rect const fb   { { }, mode.area };
+		Rect const dest { to,  from.area };
+
+		return from.area.valid()
+		    && fb.contains(from.p1()) && fb.contains(from.p2())
+		    && fb.contains(dest.p1()) && fb.contains(dest.p2())
+		    && !Rect::intersect(from, dest).valid();
+	}
+};
+
+
+struct Framebuffer::Blit_batch
+{
+	static constexpr unsigned N = 4;
+
+	Transfer transfer[N];
+};
 
 
 struct Framebuffer::Session : Genode::Session

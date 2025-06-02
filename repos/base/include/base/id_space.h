@@ -209,6 +209,8 @@ class Genode::Id_space : public Noncopyable
 		 * See 'for_each' for a description of the 'ARG' argument.
 		 *
 		 * \throw Unknown_id
+		 * \deprecated
+		 * \noapi
 		 */
 		template <typename ARG, typename FN>
 		auto apply(Id id, FN const &fn)

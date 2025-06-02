@@ -28,7 +28,7 @@ namespace Genode { template <typename> class Allocation; }
  * time of an 'Allocation' object. The automatic deallocation can be manually
  * discharged by setting the 'deallocate' member to 'false'.
  *
- * The 'ALLOCATOR' type is expected to implement a '_free' method performing
+ * The 'ALLOC' type is expected to implement a '_free' method performing
  * the deallocation. This method is prefixed with '_' to indicate that it is
  * not meant to be explicitly called. It is supposed to be called only at the
  * destruction time of an 'Allocation' or by allocator wrappers such as

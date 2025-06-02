@@ -764,6 +764,8 @@ class Genode::Xml_node
 		 * Return XML node following the current one
 		 *
 		 * \throw Nonexistent_sub_node  subsequent node does not exist
+		 * \deprecated
+		 * \noapi
 		 */
 		inline Xml_node next() const;
 
@@ -773,6 +775,8 @@ class Genode::Xml_node
 		 * \param type  type of XML node, or nullptr for matching any type
 		 *
 		 * \throw Nonexistent_sub_node  subsequent node does not exist
+		 * \deprecated
+		 * \noapi
 		 */
 		Xml_node next(char const *type) const
 		{
@@ -808,6 +812,8 @@ class Genode::Xml_node
 		 * \param  idx                   index of sub node,
 		 *                               default is the first node
 		 * \throw  Nonexistent_sub_node  no such sub node exists
+		 * \deprecated
+		 * \noapi
 		 */
 		inline Xml_node sub_node(unsigned idx = 0U) const;
 
@@ -815,6 +821,8 @@ class Genode::Xml_node
 		 * Return first sub node that matches the specified type
 		 *
 		 * \throw Nonexistent_sub_node  no such sub node exists
+		 * \deprecated
+		 * \noapi
 		 */
 		Xml_node sub_node(char const *type) const
 		{
