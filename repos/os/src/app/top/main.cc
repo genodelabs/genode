@@ -208,13 +208,25 @@ struct Trace_subject_registry
 			for (unsigned x = 0; x < MAX_CPUS_X; x++) {
 				for (unsigned y = 0; y < MAX_CPUS_Y; y++) {
 					for (unsigned i = 0; i < MAX_ELEMENTS_PER_CPU; i++) {
-						if (!load[x][y][i] || !total_first[x][y])
+
+						if (!load[x][y][i])
 							continue;
 
 						Entry const &entry = *load[x][y][i];
 
-						unsigned ec_percent = (unsigned)(entry.recent_time[first] * 100   / total_first[x][y]);
-						unsigned ec_rest    = (unsigned)(entry.recent_time[first] * 10000 / total_first[x][y] - (ec_percent * 100));
+						bool guessed = false;
+						unsigned ec_percent = 0;
+						unsigned ec_rest    = 0;
+						if (total_first[x][y]) {
+							ec_percent = (unsigned)(entry.recent_time[first] * 100   / total_first[x][y]);
+							ec_rest    = (unsigned)(entry.recent_time[first] * 10000 / total_first[x][y] - (ec_percent * 100));
+						} else {
+							guessed = true;
+							if (entry.info.thread_name()   == "idle" ||
+							    entry.info.session_label() == "kernel") {
+								ec_percent = 100;
+							}
+						}
 
 						unsigned sc_percent = 0;
 						unsigned sc_rest    = 0;
@@ -244,7 +256,8 @@ struct Trace_subject_registry
 						    " ", _align_right<4>(entry.info.execution_time().priority),
 						    " ", _align_right<6>(entry.info.execution_time().quantum),
 						    " ", _align_right<4>(ec_percent),
-						    ".", _align_right<3>(ec_rest, true), "%"
+						    ".", _align_right<3>(ec_rest, true), "%",
+						    guessed ? "?" : " ",
 						    " ", _align_right<4>(sc_percent),
 						    ".", _align_right<3>(sc_rest, true), "% "
 						    "thread='", entry.info.thread_name(), "' ", space_string,
