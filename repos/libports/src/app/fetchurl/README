@@ -66,9 +66,18 @@ An example TOR proxying configuration:
 The presence of a 'report' node in the configuration with an
 affirmative 'progress' attribute will enable a progress report.
 The 'delay_ms' attribute will set the minimum interval between
-reports and defauts to 100 miliseconds. The report format is as
-follows.
+reports and defauts to 100 miliseconds. The report format consists
+of a '<fetch>' node for each resource that features the following
+attributes:
+
+* :url: specified URL of the resource
+
+* :total: total amount of bytes to download
+
+* :now: amount of bytes downloaded so far
+
+* :timeout: denotes if the download timed-out
 
 ! <progress>
-!   <fetch url="..." total="100.0" now="50.0"/>
+!   <fetch url="..." total="16380" now="4096"/>
 ! </progress>

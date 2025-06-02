@@ -87,7 +87,7 @@ class Depot_download_manager::Import
 						return false;
 
 					/* fetchurl has not yet determined the file size */
-					if (total == "0.0")
+					if (total == "0")
 						return false;
 
 					return now == total;
