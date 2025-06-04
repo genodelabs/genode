@@ -94,8 +94,6 @@ bool Genode::Thread_info::init_tcb(Core::Platform &platform,
 	tcb_phys = Untyped_memory::alloc_page(phys_alloc);
 
 	tcb_phys.with_result([&](auto &result) {
-		result.deallocate = auto_deallocate;
-
 		seL4_Untyped const service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
@@ -117,6 +115,9 @@ bool Genode::Thread_info::init_tcb(Core::Platform &platform,
 
 			ok = true;
 		}, [&](auto) { /* ok is false */ });
+
+		result.deallocate = !ok ? true : auto_deallocate;
+
 	}, [&](auto) {  /* ok is false */});
 
 	return ok;
@@ -135,14 +136,21 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 	ipc_phys = Untyped_memory::alloc_page(phys_alloc);
 
 	/* create IPC buffer of one page */
-	ipc_phys.with_result([&](auto &result) {
-		result.deallocate = auto_deallocate;
-		Untyped_memory::convert_to_page_frames(addr_t(result.ptr), 1);
-	}, [](auto) { error("ipc buffer issue"); });
+	if (!ipc_phys.convert<bool>(
+		[&](auto &result) {
+			bool ok = Untyped_memory::convert_to_page_frames(addr_t(result.ptr), 1);
+			result.deallocate = !ok ? true : auto_deallocate;
+			return ok;
+		}, [](auto) { return false; })) {
+		ipc_phys = { };
+		return;
+	}
 
 	/* allocate TCB within core's CNode */
-	if (!init_tcb(platform, phys_alloc, prio, 0, auto_deallocate))
-		error("init_tcb failed");
+	if (!init_tcb(platform, phys_alloc, prio, 0, auto_deallocate)) {
+		tcb_phys = { };
+		return;
+	}
 
 	ep_phys   = Untyped_memory::alloc_page(phys_alloc);
 	lock_phys = Untyped_memory::alloc_page(phys_alloc);

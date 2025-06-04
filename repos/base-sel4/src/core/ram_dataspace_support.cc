@@ -25,8 +25,7 @@ bool Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 	size_t const page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
 	size_t const num_pages = page_rounded_size >> get_page_size_log2();
 
-	Untyped_memory::convert_to_page_frames(ds.phys_addr(), num_pages);
-	return true;
+	return Untyped_memory::convert_to_page_frames(ds.phys_addr(), num_pages);
 }
 
 

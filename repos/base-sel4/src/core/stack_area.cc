@@ -69,10 +69,10 @@ class Stack_area_region_map : public Region_map
 			auto phys_result = Untyped_memory::alloc_pages(phys_alloc, num_pages);
 
 			return phys_result.convert<Attach_result>([&](auto &result) {
-				result.deallocate = false;
-
 				addr_t const phys = addr_t(result.ptr);
-				Untyped_memory::convert_to_page_frames(phys, num_pages);
+
+				if (!Untyped_memory::convert_to_page_frames(phys, num_pages))
+					return Attach_result(Attach_error::INVALID_DATASPACE);
 
 				auto &ds = *new (&_ds_slab) Dataspace_component(size, 0, phys,
 				                                                CACHED, true, 0);
@@ -83,10 +83,15 @@ class Stack_area_region_map : public Region_map
 				               ds.size() >> get_page_size_log2())) {
 					error(__func__, ": could not map phys ", Hex(ds.phys_addr()), " "
 					      "at local ", Hex(core_local_addr));
+
+					destroy(_ds_slab, &ds);
+
 					return Attach_result(Attach_error::INVALID_DATASPACE);
 				}
 
 				ds.assign_core_local_addr((void*)core_local_addr);
+
+				result.deallocate = false;
 
 				return Attach_result(Range { .start = attr.at, .num_bytes = size });
 			}, [&](auto) {

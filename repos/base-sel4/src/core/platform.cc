@@ -64,9 +64,15 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t
 
 	size_t const num_pages = size / get_page_size();
 
-	Untyped_memory::convert_to_page_frames(phys_addr, num_pages);
+	if (!Untyped_memory::convert_to_page_frames(phys_addr, num_pages))
+		return false;
 
-	return map_local(phys_addr, virt_addr, num_pages, platform_in_construction);
+	if (!map_local(phys_addr, virt_addr, num_pages, platform_in_construction)) {
+		Untyped_memory::convert_to_untyped_frames(phys_addr, num_pages * get_page_size());
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -490,7 +496,10 @@ void Core::Platform::_init_rom_modules()
 
 			auto const phys_addr = addr_t(result.ptr);
 
-			Untyped_memory::convert_to_page_frames(phys_addr, pages);
+			if (!Untyped_memory::convert_to_page_frames(phys_addr, pages)) {
+				result.deallocate = true;
+				return;
+			}
 
 			addr_t   const size  = pages << get_page_size_log2();
 			size_t   const align = get_page_size_log2();
