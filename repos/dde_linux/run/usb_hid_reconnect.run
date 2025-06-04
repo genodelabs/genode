@@ -132,13 +132,16 @@ send "\x01\x63"
 # wait for monitor to become ready
 run_genode_until {(qemu)} 20 $spawn_id
 
-for {set i 0} {$i < 50} {incr i} {
+for {set i 0} {$i < 140} {incr i} {
 
 	# connect keyboard
 	send "device_add usb-kbd,id=ukb$i\n"
 
 	# wait for keyboard
 	run_genode_until {.*USB HID.*Keyboard.*\n} 10 $spawn_id
+
+	send "sendkey a\n"
+	sleep 0.1
 
 	# disconnect keyboard
 	send "device_del ukb$i\n"

@@ -54,11 +54,14 @@ static struct usb_hcd * dummy_hc_device(void)
 	return &hcd;
 }
 
+/* bus-device numbers */
+static DECLARE_BITMAP(devmap, 128);
+static int devnum_next = 1;
+
 static void * register_device(genode_usb_client_dev_handle_t handle,
                               char const *label, genode_usb_speed_t speed)
 {
-	int err;
-	static int num = 0;
+	int err, devnum;
 	struct usb_device * udev;
 	struct usb_device_descriptor *descr = NULL;
 
@@ -75,7 +78,13 @@ static void * register_device(genode_usb_client_dev_handle_t handle,
 	 */
 	udev->filelist.prev = (struct list_head *) handle;
 
-	udev->devnum = num++;
+	/* from hub.c choose_devnum() */
+	devnum = find_next_zero_bit(devmap, 128, devnum_next);
+	if (devnum >= 128)
+		devnum = find_next_zero_bit(devmap, 128, 1);
+	devnum_next = (devnum >= 127 ? 1 : devnum + 1);
+	set_bit(devnum, devmap);
+	udev->devnum = devnum;
 
 	switch (speed) {
 	case GENODE_USB_SPEED_LOW:   udev->speed = USB_SPEED_LOW;   break;
@@ -183,6 +192,10 @@ static void unregister_device(genode_usb_client_dev_handle_t handle, void *data)
 
 	/* inform driver about ongoing unregister before disconnection */
 	lx_emul_usb_client_device_unregister_callback(udev);
+
+	/* from hub.c release_devnum() */
+	if (udev->devnum > 0)
+		clear_bit(udev->devnum, devmap);
 
 	udev->filelist.prev = NULL;
 	usb_disconnect(&udev);
