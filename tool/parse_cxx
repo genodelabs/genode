@@ -324,7 +324,7 @@ foreach keyword {
 	while for if else switch do return typedef
 	static_cast reinterpret_cast dynamic_cast
 	using namespace class struct union enum template
-	const inline static virtual friend explicit
+	const inline static virtual friend explicit auto
 	volatile case default operator new throw alignas
 	try catch continue sizeof asm override typename constexpr
 	GENODE_RPC GENODE_RPC_THROW
@@ -339,6 +339,9 @@ foreach keyword {
 
 # extract extern "C"
 extract "keyexternc" {§keyextern\d+°\s*§string\d+°} content
+
+# extract [[nodiscard]]
+extract "keynodiscard" {\[\[nodiscard\]\]} content
 
 # fold parenthesis and blocks
 extract parenblk {\([^()]*?\)} {content parenblk}
@@ -423,6 +426,9 @@ extract identifier {§identifier\d+°\s*§doublecolon\d+°\s*§identifier\d+°} {conte
 # extract identifiers in the root namespace
 extract identifier {§doublecolon\d+°\s*§identifier\d+°} {content block}
 
+# extract using type aliases
+extract usingalias {§keyusing\d+°\s*§identifier\d+°\s*§assign\d+°\s*§identifier\d+°\s*;} {content block}
+
 extract whilecond {§keywhile\d+°\s*§parenblk\d+°} block
 extract forcond {§keyfor\d+°\s*§parenblk\d+°} block
 extract ifcond {§keyif\d+°\s*§parenblk\d+°} block
@@ -434,10 +440,11 @@ extract classdecl  {§keyclass\d+°\s*§identifier\d+°\s*;}  {content block}
 extract structdecl {§keystruct\d+°\s*§identifier\d+°\s*;} {content block}
 
 # extract classes
-extract class   {(§mlcomment\d+° *\n[ \t]*)?§keyclass\d+°\s*(§alignas\d+°\s*)?§identifier\d+°[^;]*;}  {content block}
-extract struct  {(§mlcomment\d+° *\n[ \t]*)?§keystruct\d+°\s*(§alignas\d+°\s*)?§identifier\d+°[^;]*;} {content block}
-extract union   {(§mlcomment\d+° *\n[ \t]*)?§keyunion\d+°\s*§identifier\d+°[^;]*;}  {content block}
-extract enum    {(§mlcomment\d+° *\n[ \t]*)?§keyenum\d+°\s*[^;]*;}                  {content block}
+extract enum   {(§mlcomment\d+° *\n[ \t]*)?§keyenum\d+°\s*§keyclass\d+°\s*[^;]*;}  {content block}
+extract class  {(§mlcomment\d+° *\n[ \t]*)?§keyclass\d+°\s*(§alignas\d+°\s*)?§identifier\d+°[^;]*;}  {content block}
+extract struct {(§mlcomment\d+° *\n[ \t]*)?§keystruct\d+°\s*(§alignas\d+°\s*)?§identifier\d+°[^;]*;} {content block}
+extract union  {(§mlcomment\d+° *\n[ \t]*)?§keyunion\d+°\s*§identifier\d+°[^;]*;}  {content block}
+extract enum   {(§mlcomment\d+° *\n[ \t]*)?§keyenum\d+°\s*[^;]*;}                  {content block}
 
 extract inherit {:.*?(?=\s*§block\d+°)} {class struct union}
 
@@ -523,13 +530,14 @@ extract identifier {§keynew\d+°\s*(§parenblk\d+°\s*)?§function\d+°} block
 extract return {§keyreturn\d+°[^;]*} {block}
 
 # extract modifiers
-extract modifier {(§key(extern|externc|constexpr|static|inline|virtual|volatile)\d+°\s*)+} {content classblock block}
+extract modifier {(§key(extern|externc|constexpr|static|inline|virtual|volatile|nodiscard)\d+°\s*)+} {content classblock block}
 
 # extract function declarations
-extract funcdecl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*§(identifier|keyunsigned|keyconst)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*(§assign\d+°\s*§identifier\d+°)?\s*;} {content block classblock}
+extract funcdecl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*§(identifier|keyunsigned|keyconst)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*(§assign\d+°\s*§(identifier|keydefault)\d+°)?\s*;} {content block classblock}
 
 # extract function implementations
 extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned|keyconst)\d+°\s*)*(§(identifier|keyunsigned|keyconst)\d+°\s*)+(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§(keyconst|keyoverride)\d+°\s*)*(§attribute\d+°\s*)*§block\d+°[;\t ]*} {content block classblock}
+extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?§keyauto\d+°\s*§function\d+°\s*§deref\d+°\s*(§keytypename\d+°)?\s*§identifier\d+°\s*§block\d+°} {content block classblock}
 extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?§operatorfunction\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
 
 # extract template functions
@@ -549,10 +557,10 @@ extract constimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyexplicit)\d+°\s*)*§
 extract tplfunc {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§constimpl\d+°} {content block classblock}
 
 # extract destructor declarations
-extract destdecl {(§mlcomment\d+° *\n[ \t]*)?(§modifier\d+°\s*)?§tilde\d+°§function\d+°\s*(§assign\d+°\s+§identifier\d+°)?\s*;} {classblock}
+extract destdecl {(§mlcomment\d+° *\n[ \t]*)?(§modifier\d+°\s*)?§tilde\d+°§function\d+°\s*(§assign\d+°\s+§(identifier|keydefault)\d+°)?\s*;} {classblock}
 
 # extract constructor declarations
-extract constdecl {(§mlcomment\d+° *\n[ \t]*)?(§keyexplicit\d+°[ \t]*)?§function\d+°\s*(§assign\d+°\s+§identifier\d+°)?\s*;} {classblock}
+extract constdecl {(§mlcomment\d+° *\n[ \t]*)?(§keyexplicit\d+°[ \t]*)?§function\d+°\s*(§assign\d+°\s+§(identifier|keydefault)\d+°)?\s*;} {classblock}
 
 # extract friendship declarations
 extract frienddecl {§keyfriend\d+°\s*§classdecl\d+°} {classblock}
@@ -580,22 +588,23 @@ refine_sub_tokens tplargs less    openparen
 extract varargs {(§dot\d+°){3}} {argparenblk tplargs}
 extract keytypename {§keytypename\d+°\s*§varargs\d+°} tplargs
 
-extract argdecl {(§(argmodifier|keytypename|keyunsigned|identifier|tilde|minus|amper|star|and|varargs|assign|string)\d+°\s*)+(?=§comma)}      {argparenblk tplargs}
-extract argdecl {(§(argmodifier|keytypename|keyunsigned|identifier|tilde|minus|amper|star|and|varargs|assign|string)\d+°\s*)+(?=§closeparen)} {argparenblk tplargs}
+extract argdecl {(§(argmodifier|keytypename|keyunsigned|identifier|keyauto|tilde|minus|amper|star|and|varargs|assign|string)\d+°\s*)+(?=§comma)}      {argparenblk tplargs}
+extract argdecl {(§(argmodifier|keytypename|keyunsigned|identifier|keyauto|tilde|minus|amper|star|and|varargs|assign|string)\d+°\s*)+(?=§closeparen)} {argparenblk tplargs}
 extract argdefault {§assign\d+°.*} argdecl
 
 extract argname {§identifier\d+°\s*(?=§argdefault)} {argdecl}
 
 # there may be just a type and no name
-extract argtype {^\s*§identifier\d+°\s*$} {argdecl}
+extract argtype {^\s*§(identifier|auto)\d+°\s*$} {argdecl}
 
 # the last identifier is the name
 extract argname {§identifier\d+°\s*$} {argdecl}
-extract argtype {^(§(argmodifier|keyunsigned)\d+°\s*)*(§(identifier|keytypename|varargs|keyunsigned)\d+°)(\s*|(§(amper|and|argmodifier)\d+°)|(§star\d+°))*(§argmodifier\d+°\s*)*(§varargs\d+°)?} argdecl
+extract argtype {^(§(argmodifier|keyunsigned)\d+°\s*)*(§(identifier|keyauto|keytypename|varargs|keyunsigned)\d+°)(\s*|(§(amper|and|argmodifier)\d+°)|(§star\d+°))*(§argmodifier\d+°\s*)*(§varargs\d+°)?} argdecl
 
 # extract typedefs
 extract typedef {(§mlcomment\d+° *\n[ \t]*)?§keytypedef\d+°(\s*§(identifier|keyunsigned|keytypename)\d+°)+\s*;} {content classblock block}
 extract typename {§identifier\d+°(?=;)} typedef
+extract typename {§identifier\d+°\s*(?=§assign)} usingalias
 extract identifier {(\s*§(identifier|keyunsigned)\d+°){2,}} typedef
 extract identifier {\s*§keyunsigned\d+°} typedef
 
@@ -609,7 +618,7 @@ extract vardecl {(§alignas\d+°\s*)?(§(modifier|keyunsigned)\d+°\s*)*(§(identifie
 extract commentedvardecl {§vardecl\d+°\s*§m?lcomment\d+°(\s*§lcomment\d°)*} {content classblock block}
 
 # extract valid declaration sequences
-set elem "(mlcomment|lcomment|vardecl|array|commentedvardecl|typedef|funcimpl|funcdecl|enum|class|struct|union|constimpl|constdecl|destimpl|destdecl|tplfunc|tplfuncdecl|tplstruct|tplstructdecl|tplclass|tplclassdecl|frienddecl|classdecl|structdecl)"
+set elem "(mlcomment|lcomment|vardecl|array|commentedvardecl|typedef|usingalias|funcimpl|funcdecl|enum|class|struct|union|constimpl|constdecl|destimpl|destdecl|tplfunc|tplfuncdecl|tplstruct|tplstructdecl|tplclass|tplclassdecl|frienddecl|classdecl|structdecl)"
 extract declseq "§$elem\\d+°(\\s*§$elem\\d+°)*" {classblock}
 
 # group protection scopes with corresponding declaration sequences
