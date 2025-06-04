@@ -50,14 +50,24 @@ Mapped_mem_allocator::alloc_aligned(size_t size, unsigned align, Range range)
 
 				[&] (Allocation &virt) -> Alloc_result {
 
-					if (!_phys_alloc->metadata(phys.ptr, { virt.ptr }))
+					if (!_phys_alloc->metadata(phys.ptr, { virt.ptr })) {
 						error("unable to assign meta data to phys allocation");
+						return Alloc_error::DENIED;
+					}
 
-					if (!_virt_alloc->metadata(virt.ptr, { phys.ptr }))
+					if (!_virt_alloc->metadata(virt.ptr, { phys.ptr })) {
 						error("unable to assign meta data to virt allocation");
+						(void)_phys_alloc->metadata(phys.ptr, { });
+						return Alloc_error::DENIED;
+					}
 
 					/* make physical page accessible at the designated virtual address */
-					_map_local((addr_t)virt.ptr, (addr_t)phys.ptr, page_rounded_size);
+					if (!_map_local((addr_t)virt.ptr, (addr_t)phys.ptr, page_rounded_size)) {
+						error("local map in core failed");
+						(void)_phys_alloc->metadata(phys.ptr, { });
+						(void)_virt_alloc->metadata(virt.ptr, { });
+						return Alloc_error::DENIED;
+					}
 
 					phys.deallocate = false;
 					virt.deallocate = false;
