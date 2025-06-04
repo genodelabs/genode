@@ -26,6 +26,8 @@ struct Window_layouter::Panorama
 
 	Rect rect { };
 
+	bool valid_capture { };
+
 	struct Capture;
 	using Captures = List_model<Capture>;
 
@@ -69,6 +71,8 @@ struct Window_layouter::Panorama
 	{
 		rect = Rect::from_node(gui_info);
 
+		valid_capture = false;
+
 		_captures.update_from_node(gui_info,
 
 			[&] (Node const &node) -> Capture & {
@@ -76,7 +80,10 @@ struct Window_layouter::Panorama
 
 			[&] (Capture &capture) { destroy(_alloc, &capture); },
 
-			[&] (Capture &capture, Node const &node) { capture.update(node); }
+			[&] (Capture &capture, Node const &node) {
+				if (node.has_attribute("width") && node.has_attribute("height"))
+					valid_capture = true;
+				capture.update(node); }
 		);
 	}
 

@@ -93,7 +93,9 @@ struct Window_layouter::Main : User_state::Action,
 		_window_list.dissolve_windows_from_assignments();
 
 		_layout_rules.with_rules([&] (Node const &rules) {
-			_display_list.update_from_node(_panorama, rules);
+			/* suppress changes if panorama has temporary no valid capture */
+			if (_panorama.valid_capture)
+				_display_list.update_from_node(_panorama, rules);
 			_assign_list.update_from_node(rules);
 			_target_list.update_from_node(rules, _display_list);
 		});
