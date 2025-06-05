@@ -22,12 +22,6 @@
 using namespace Core;
 
 
-void Io_mem_session_component::_unmap_local(addr_t base, size_t, addr_t)
-{
-	platform().region_alloc().free(reinterpret_cast<void *>(base));
-}
-
-
 static inline bool can_use_super_page(addr_t, size_t)
 {
 	/*
@@ -38,10 +32,13 @@ static inline bool can_use_super_page(addr_t, size_t)
 }
 
 
-Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(addr_t const phys_base,
-                                                                                size_t const size_in)
+Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys_range request)
 {
-	size_t const size = size_in;
+	if (!request.req_size)
+		return Dataspace_attr();
+
+	auto const size = request.size();
+	auto const base = request.base();
 
 	auto map_io_region = [] (addr_t phys_base, addr_t local_base, size_t size)
 	{
@@ -94,17 +91,23 @@ Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(
 	size_t align = (size >= get_super_page_size()) ? get_super_page_size_log2()
 	                                               : get_page_size_log2();
 
-	return platform().region_alloc().alloc_aligned(size, align).convert<Map_local_result>(
-
+	return platform().region_alloc().alloc_aligned(size, align).convert<Dataspace_attr>(
 		[&] (Range_allocator::Allocation &core_local) {
 			addr_t const core_local_base = (addr_t)core_local.ptr;
-			map_io_region(phys_base, core_local_base, size);
+			map_io_region(base, core_local_base, size);
 			core_local.deallocate = false;
-			return Map_local_result { .core_local_addr = core_local_base, .success = true };
-		},
 
+			return Dataspace_attr(size, core_local_base, base, _cacheable,
+			                      request.req_base);
+		},
 		[&] (Alloc_error) {
 			error("core-local mapping of memory-mapped I/O range failed");
-			return Map_local_result();
+			return Dataspace_attr();
 		});
+}
+
+
+void Io_mem_session_component::_release(Dataspace_attr const &attr)
+{
+	platform().region_alloc().free(reinterpret_cast<void *>(attr.core_local_addr));
 }

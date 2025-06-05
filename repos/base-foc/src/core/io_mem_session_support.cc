@@ -21,37 +21,44 @@
 using namespace Core;
 
 
-void Io_mem_session_component::_unmap_local(addr_t base, size_t size, addr_t)
+Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys_range request)
 {
-	if (!base)
-		return;
+	if (!request.req_size)
+		return Dataspace_attr();
 
-	unmap_local(base, size >> 12);
-	platform().region_alloc().free(reinterpret_cast<void *>(base));
+	auto const size = request.size();
+	auto const base = request.base();
+
+	/* align large I/O dataspaces on a super-page boundary within core */
+	auto const alignment = unsigned(size >= get_super_page_size()
+	                     ? get_super_page_size_log2()
+	                     : get_page_size_log2());
+
+	/* find appropriate region and map it locally */
+	return platform().region_alloc().alloc_aligned(size, alignment).convert<Dataspace_attr>(
+		[&] (Range_allocator::Allocation &local) {
+			if (!map_local_io(base, addr_t(local.ptr), size >> get_page_size_log2())) {
+				error("map_local_io failed ", Hex_range(base, size));
+				return Dataspace_attr();
+			}
+			local.deallocate = false;
+
+			return Dataspace_attr(size, addr_t(local.ptr),
+			                      base, _cacheable, request.req_base);
+		}, [&] (Alloc_error) {
+			error("allocation of virtual memory for local I/O mapping failed");
+			return Dataspace_attr();
+	});
 }
 
 
-Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(addr_t const base,
-                                                                                size_t const size)
+void Io_mem_session_component::_release(Dataspace_attr const &attr)
 {
-	/* align large I/O dataspaces on a super-page boundary within core */
-	size_t alignment = (size >= get_super_page_size()) ? get_super_page_size_log2()
-	                                                   : get_page_size_log2();
+	auto const base = attr.core_local_addr;
 
-	/* find appropriate region and map it locally */
-	return platform().region_alloc().alloc_aligned(size, (unsigned)alignment).convert<Map_local_result>(
+	if (!base)
+		return;
 
-		[&] (Range_allocator::Allocation &local) {
-			if (!map_local_io(base, (addr_t)local.ptr, size >> get_page_size_log2())) {
-				error("map_local_io failed ", Hex_range(base, size));
-				return Map_local_result();
-			}
-			local.deallocate = false;
-			return Map_local_result { .core_local_addr = addr_t(local.ptr),
-			                          .success         = true };
-		},
-
-		[&] (Alloc_error) {
-			error("allocation of virtual memory for local I/O mapping failed");
-			return Map_local_result(); });
+	unmap_local(base, attr.size >> 12);
+	platform().region_alloc().free(reinterpret_cast<void *>(base));
 }

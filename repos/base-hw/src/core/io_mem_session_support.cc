@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,10 +18,14 @@
 using namespace Core;
 
 
-void Io_mem_session_component::_unmap_local(addr_t, size_t, addr_t) { }
-
-
-Io_mem_session_component::Map_local_result Io_mem_session_component::_map_local(addr_t const base, size_t)
+Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys_range request)
 {
-	return { .core_local_addr = base, .success = true };
+	if (!request.req_size)
+		return Dataspace_attr();
+
+	return Dataspace_attr(request.size(), 0 /* no core local mapping */,
+	                      request.base(), _cacheable, request.req_base);
 }
+
+
+void Io_mem_session_component::_release(Dataspace_attr const &) { }
