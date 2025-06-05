@@ -44,6 +44,17 @@ int usb_hcd_submit_urb (struct urb *urb, gfp_t mem_flags)
 	switch(usb_pipetype(urb->pipe)) {
 	case PIPE_CONTROL:
 		{
+			/*
+			 * Apply USB_CTRL_GET_TIMEOUT/USB_CTRL_SET_TIMEOUT timeout value as
+			 * defined by linux/include/linux/usb.h. A custom timeout cannot be
+			 * applied this way as it is hidden in the contrib code, which uses
+			 * wait_for_completion_timeout() and kills the urb on timeout by
+			 * itself.
+			 *
+			 * Note, the host driver also enforces this max timeout but warns
+			 * on the first violation, which we prevent by applying the timeout
+			 * explicitly for all Linux USB-client drivers here.
+			 */
 			struct usb_ctrlrequest * ctrl = (struct usb_ctrlrequest *)
 				urb->setup_packet;
 			r = genode_usb_client_device_control(handle,
@@ -52,6 +63,7 @@ int usb_hcd_submit_urb (struct urb *urb, gfp_t mem_flags)
 			                                     ctrl->wValue,
 			                                     ctrl->wIndex,
 			                                     urb->transfer_buffer_length,
+			                                     USB_CTRL_GET_TIMEOUT,
 			                                     urb);
 			break;
 		}

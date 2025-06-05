@@ -244,11 +244,12 @@ class Device : public List_model<Device>::Element
 			    uint16_t value,
 			    uint16_t index,
 			    size_t   size,
+			    size_t   timeout,
 			    void    *opaque_data)
 			:
 				Usb::Device::Urb(device._device, request,
 				                 (Request_type::access_t)request_type,
-				                 value, index, size),
+				                 value, index, size, timeout),
 				_driver_data{opaque_data} {}
 
 			bool set_interface() const;
@@ -571,6 +572,7 @@ genode_usb_client_device_control(genode_usb_client_dev_handle_t handle,
                                  genode_uint16_t                value,
                                  genode_uint16_t                index,
                                  unsigned long                  size,
+                                 unsigned long                  timeout,
                                  void                          *opaque_data)
 {
 	try {
@@ -581,7 +583,7 @@ genode_usb_client_device_control(genode_usb_client_dev_handle_t handle,
 		                                          [&] (Device & device) {
 			new (device.slab())
 				Device::Urb(device, request, request_type,
-				            value, index, size, opaque_data);
+				            value, index, size, timeout, opaque_data);
 			return OK;
 		});
 	} catch(Id_space<Device>::Unknown_id&) {

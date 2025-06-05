@@ -95,6 +95,7 @@ genode_usb_client_device_control(genode_usb_client_dev_handle_t handle,
                                  genode_uint16_t                value,
                                  genode_uint16_t                index,
                                  unsigned long                  size,
+                                 unsigned long                  timeout,
                                  void                          *opaque_data);
 
 void
