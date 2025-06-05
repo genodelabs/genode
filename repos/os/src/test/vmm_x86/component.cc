@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Genode Labs GmbH
+ * Copyright (C) 2018-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -35,7 +35,7 @@ namespace Vmm {
 
 	/*
 	 * Note, the test implementation requires the exit values to be disjunct
-	 * between Intel and AMD due to conditional not checking the used harwdare
+	 * between Intel and AMD due to conditional not checking the used hardware
 	 * platform.
 	 */
 	enum class Exit : unsigned {
@@ -46,6 +46,7 @@ namespace Vmm {
 		AMD_PF              = 0x4e,
 		AMD_HLT             = 0x78,
 		AMD_TRIPLE_FAULT    = 0x7f,
+		AMD_RDTSCP          = 0x87,
 		AMD_NPT             = 0xfc,
 
 		/* synthetic exits */
@@ -461,6 +462,11 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 		_hlt_count ++;
 		return false;
 
+	case Exit::AMD_RDTSCP: {
+		/* skip over exit, if kernel does not allow to disable exit (FOC) */
+		state.ip.charge(state.ip.value() + 3); /* 3 is sizeof RDTSCP instr */
+		break;
+	}
 	case Exit::INTEL_EPT:
 	case Exit::AMD_NPT:
 	case Exit::AMD_PF: {

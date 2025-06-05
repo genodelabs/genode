@@ -164,6 +164,11 @@ unify_output "vcpu 0 : XX. vm exit -  guest fault address: $guest_fault_address"
 unify_output "vcpu 0 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 0 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
+# remove rdtscp exit on kernels not supporting it */
+if {!$test_rdtscp} {
+	# AMD RDTSCP exit
+	unify_output "vcpu 0 : XX. vm exit - reason 0x87 handled by 'ep'" ""
+}
 trim_lines
 set output_0 $output
 
@@ -182,6 +187,11 @@ unify_output "vcpu 1 : XX. vm exit -  guest fault address: $guest_fault_address"
 unify_output "vcpu 1 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 1 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
+# remove rdtscp exit on kernels not supporting it */
+if {!$test_rdtscp} {
+	# AMD RDTSCP exit
+	unify_output "vcpu 1 : XX. vm exit - reason 0x87 handled by 'ep'" ""
+}
 trim_lines
 set output_1 $output
 
@@ -200,6 +210,11 @@ unify_output "vcpu 2 : XX. vm exit -  guest fault address: $guest_fault_address"
 unify_output "vcpu 2 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 2 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
+# remove rdtscp exit on kernels not supporting it */
+if {!$test_rdtscp} {
+	# AMD RDTSCP exit
+	unify_output "vcpu 2 : XX. vm exit - reason 0x87 handled by 'second ep'" ""
+}
 trim_lines
 set output_2 $output
 
@@ -218,6 +233,11 @@ unify_output "vcpu 3 : XX. vm exit -  guest fault address: $guest_fault_address"
 unify_output "vcpu 3 : XX. vm exit - resume vcpu" ""
 # remove rdtscp output from unified output, some kernel don't support tsc_aux
 unify_output {vcpu 3 : XX. vm exit -  rdtscp.* host=0x[0-9]} ""
+# remove rdtscp exit on kernels not supporting it */
+if {!$test_rdtscp} {
+	# AMD RDTSCP exit
+	unify_output "vcpu 3 : XX. vm exit - reason 0x87 handled by 'second ep'" ""
+}
 trim_lines
 set output_3 $output
 
