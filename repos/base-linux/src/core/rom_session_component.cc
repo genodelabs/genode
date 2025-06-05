@@ -25,4 +25,7 @@ Rom_session_component::Rom_session_component(Rom_fs         &,
                                              const char     *args)
 {
 	_ds.construct(ds_ep, args);
+
+	if (_ds.constructed() && !_ds->_ds.fd().valid())
+		_ds.destruct();
 }
