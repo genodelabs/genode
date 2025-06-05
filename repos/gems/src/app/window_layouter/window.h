@@ -363,10 +363,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		bool resize_request_needed() const
 		{
 			/* a resize request for the current size is already in flight */
-			if (_requested_size() == _reported_resize_request)
-				return false;
-
-			return (_requested_size() != _client_size);
+			return _requested_size() != _reported_resize_request;
 		}
 
 		/**
