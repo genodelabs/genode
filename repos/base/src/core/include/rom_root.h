@@ -29,7 +29,17 @@ struct Core::Rom_root : Root_component<Rom_session_component>
 
 	Create_result _create_session(const char *args) override
 	{
-		return _alloc_obj(_rom_fs, _ds_ep, args);
+		return _alloc_obj(_rom_fs, _ds_ep, args).convert<Create_result>(
+			[&] (Rom_session_component &rom) -> Create_result {
+
+			if (rom.dataspace().valid())
+				return { rom };
+
+			_destroy_session(rom);
+
+			return Session_error::DENIED;
+		},
+		[&] (Session_error e) { return e; });
 	}
 
 	/**
