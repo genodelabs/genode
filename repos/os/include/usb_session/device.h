@@ -196,8 +196,8 @@ class Usb::Urb_handler
 
 				Urb(Urb_handler &handler,
 				    Direction    direction,
-				    size_t       size = 0,
-				    uint32_t     isoc_packets = 0)
+				    size_t       size,
+				    uint32_t     isoc_packets)
 				:
 					_urb_handler(handler),
 					_direction(direction),
@@ -363,8 +363,8 @@ class Usb::Interface
 
 				Urb(Interface &iface, Endpoint &ep,
 				    Packet_descriptor::Type     type,
-				    size_t                      size = 0,
-				    uint32_t                    isoc_packets = 0)
+				    size_t                      size,
+				    uint32_t                    isoc_packets)
 				:
 					Base(iface._urb_handler, ep.direction(),
 					     size, isoc_packets),
@@ -480,13 +480,12 @@ class Usb::Device
 
 				Urb(Device &device,
 				    uint8_t  request, Type::access_t request_type,
-				    uint16_t value, uint16_t index, size_t size = 0,
-				    size_t timeout = 0)
+				    uint16_t value, uint16_t index, size_t size, size_t timeout)
 				:
 					Base(device._urb_handler,
 					     Type::D::get(request_type) ? Endpoint::IN
 					                                : Endpoint::OUT,
-					     size),
+					     size, 0),
 					_request(request), _request_type(request_type),
 					_value(value), _index(index), _timeout(timeout) {}
 		};
@@ -556,7 +555,7 @@ struct Usb::Interface::Alt_setting : Device::Urb
 		            P::Request::SET_INTERFACE,
 		            Rt::value(P::Recipient::IFACE, P::Type::STANDARD,
 		                      P::Direction::IN),
-		            iface.index().alt_setting, iface.index().number) {}
+		            iface.index().alt_setting, iface.index().number, 0, 5'000) {}
 };
 
 

@@ -81,7 +81,7 @@ class Interface : public List_model<::Interface>::Element
 				:
 					Usb::Endpoint(endp.address, endp.attributes),
 					Usb::Interface::Urb(iface._session(), *this, _type(type),
-					                    size),
+					                    size, 0),
 					_driver_data{opaque_data} {}
 		};
 

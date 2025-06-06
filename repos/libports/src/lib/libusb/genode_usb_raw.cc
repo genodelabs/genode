@@ -384,7 +384,7 @@ static int genode_get_device_descriptor(struct libusb_device *,
 	Usb_device::Urb urb(buffer, sizeof(libusb_device_descriptor),
 	                    device()._device, LIBUSB_REQUEST_GET_DESCRIPTOR,
 	                    LIBUSB_ENDPOINT_IN, (LIBUSB_DT_DEVICE << 8) | 0, 0,
-	                    LIBUSB_DT_DEVICE_SIZE);
+	                    LIBUSB_DT_DEVICE_SIZE, 5'000);
 	device()._wait_for_urb(urb);
 	*host_endian = 0;
 	return urb.ret_val;
@@ -401,7 +401,7 @@ static int genode_get_config_descriptor(struct libusb_device *,
 	genode_usb_config_descriptor desc;
 	Usb_device::Urb cfg(&desc, sizeof(desc), device()._device,
 	                    LIBUSB_REQUEST_GET_DESCRIPTOR, LIBUSB_ENDPOINT_IN,
-	                    (LIBUSB_DT_CONFIG << 8) | idx, 0, sizeof(desc));
+	                    (LIBUSB_DT_CONFIG << 8) | idx, 0, sizeof(desc), 5'000);
 	device()._wait_for_urb(cfg);
 
 	if (cfg.ret_val != LIBUSB_SUCCESS)
@@ -411,7 +411,7 @@ static int genode_get_config_descriptor(struct libusb_device *,
 	Usb_device::Urb all(buffer, len, device()._device,
 	                    LIBUSB_REQUEST_GET_DESCRIPTOR, LIBUSB_ENDPOINT_IN,
 	                    (LIBUSB_DT_CONFIG << 8) | idx, 0,
-	                    (size_t)desc.total_length);
+	                    (size_t)desc.total_length, 5'000);
 	device()._wait_for_urb(all);
 	if (all.ret_val != LIBUSB_SUCCESS)
 		return 0;
@@ -501,7 +501,7 @@ static int genode_set_interface_altsetting(struct libusb_device_handle* dev_hand
 	Usb_device::Urb urb(nullptr, 0, device()._device, P::Request::SET_INTERFACE,
 	                    Rt::value(P::Recipient::IFACE, P::Type::STANDARD,
 	                              P::Direction::OUT),
-	                    (uint8_t)altsetting, (uint8_t)interface_number, 0);
+	                    (uint8_t)altsetting, (uint8_t)interface_number, 0, 5'000);
 	device()._wait_for_urb(urb);
 	if (urb.ret_val != LIBUSB_SUCCESS)
 		return urb.ret_val;
@@ -529,12 +529,16 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 				(struct libusb_control_setup*)transfer->buffer;
 
 			void * addr = transfer->buffer + LIBUSB_CONTROL_SETUP_SIZE;
+
+			/* replace infinite timeout by max timeout of 5s */
+			unsigned const timeout = transfer->timeout ?: 5'000;
+
 			new (device()._alloc)
 				Usb_device::Urb(addr, setup->wLength, itransfer,
 				                device()._device, setup->bRequest,
 				                setup->bmRequestType, setup->wValue,
 				                setup->wIndex, setup->wLength,
-				                transfer->timeout);
+				                timeout);
 			device().handle_events();
 			return LIBUSB_SUCCESS;
 		}

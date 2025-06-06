@@ -66,6 +66,7 @@ class Usb::Block_driver
 			BULK_RESET       = 0xff
 		};
 
+		/* see USB MSC Section 3.1 Bulk-Only Mass Storage Reset */
 		struct Reset : Device::Urb
 		{
 			using P  = Device::Packet_descriptor;
@@ -76,7 +77,7 @@ class Usb::Block_driver
 				Device::Urb(dev, BULK_RESET,
 				            Rt::value(P::Recipient::IFACE, P::Type::CLASS,
 				                      P::Direction::IN),
-				            iface.index().number, 0) {}
+				            0, iface.index().number, 0ul, 1'000ul) {}
 		};
 
 		Env        &_env;
@@ -412,12 +413,12 @@ class Usb::Block_driver
 				if (!urb.constructed())
 					switch (state) {
 					case CBW:  urb.construct(drv._interface, drv._ep_out,
-					                         Desc::BULK, Cbw::LENGTH);  break;
+					                         Desc::BULK, Cbw::LENGTH, 0);  break;
 					case DATA: urb.construct(drv._interface,
 					                         in ? drv._ep_in : drv._ep_out,
-					                         Desc::BULK, size); break;
+					                         Desc::BULK, size, 0); break;
 					case CSW:  urb.construct(drv._interface, drv._ep_in,
-					                         Desc::BULK, Csw::LENGTH);  break;
+					                         Desc::BULK, Csw::LENGTH, 0);  break;
 					default: break;
 					};
 

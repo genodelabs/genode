@@ -483,7 +483,7 @@ Urb::Urb(Registry<Urb> &registry,
 	Registry<Urb>::Element(registry, *this),
 	Usb::Endpoint(endp.address(), endp.attributes()),
 	Usb::Interface::Urb(iface._session(), *this,
-	                    _type(type), size),
+	                    _type(type), size, 0),
 	_endpoint(endp), _packet(packet) { }
 
 

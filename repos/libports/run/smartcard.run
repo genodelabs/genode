@@ -107,6 +107,11 @@ close $fd
 
 build_boot_image [list {*}[build_artifacts] Info.plist]
 
+append qemu_args " -device qemu-xhci,id=xhci "
+append qemu_args " -device usb-ccid,bus=xhci.0 "
+# see https://www.qemu.org/docs/master/system/devices/ccid.html for info about fake-smartcard
+append qemu_args " -device ccid-card-emulated,backend=certificates,cert1=id-cert,cert2=signing-cert,cert3=encryption-cert,db=fake-smartcard "
+
 run_genode_until { Response: 62 0A 82 01 38 83 02 3F 00 8A 01 05 90 00} 30
 
 exec rm bin/Info.plist
