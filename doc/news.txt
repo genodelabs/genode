@@ -4,6 +4,53 @@
                                ===========
 
 
+Revised Foundations and Applications books | 2025-06-06
+#######################################################
+
+| The "Genode Foundations" and "Genode Applications" books have been
+| updated to match the Genode framework 25.05 and Sculpt OS 25.04.
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org/documentation/genode-foundations-25-05.pdf">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+Following the release of
+[https://genode.org/news/genode-os-framework-release-25.05 - Genode 25.05],
+the *Genode Foundations* book has received its annual revision.
+The new version features an updated discussion of error handling and the
+C++ exception mechanism, adjusts many examples to a more concise configuration
+style, and covers recent additions like partial session-label rewriting.
+Most notably, however, the API reference has received much attention,
+reflecting the move of the framework away from C++ exceptions to the use
+of sum types for error handling.
+
+[https://genode.org/documentation/genode-foundations-25-05.pdf - Genode Foundations 25.05] (PDF)
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org/documentation/genode-applications-25-04.pdf">
+:    <img class="image-inline" src="https://genode.org/documentation/genode-applications-title.png">
+:   </a>
+:  </div>
+: </p>
+Developers targeting Sculpt OS version 25.04 can now enjoy a wealth of
+up-to-date material in the form of the revised *Genode Applications* book.
+Besides the adaptation to the current versions of the Goa SDK and Sculpt OS,
+the book features a new tutorial for porting 3rd-party software, taking curl
+as a practical example. It also gives plenty of practical advice, from
+setting up virtual networking on a developer's machine to the sandboxed
+operation of the Goa SDK.
+
+[https://genode.org/documentation/genode-applications-25-04.pdf - Genode Foundations 25.04] (PDF)
+
+: <div class="visualClear"><!-- --></div>
+
+
 Genode OS Framework release 25.05 | 2025-05-28
 ##############################################
 
