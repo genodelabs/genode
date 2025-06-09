@@ -38,7 +38,9 @@ struct Pd_id_alloc : Platform_pd::Pd_id_allocator
 		ASSERT (ok);
 		ok = _reserve(Core_cspace::CORE_VM_ID             , 1); /* 0x001 */
 		ASSERT (ok);
-		ok = _reserve(Core_cspace::TOP_CNODE_UNTYPED_16K  , 1); /* 0x7fd */
+		ok = _reserve(Core_cspace::TOP_CNODE_UNTYPED_16K  , 1); /* 0x7fc */
+		ASSERT (ok);
+		ok = _reserve(Core_cspace::TOP_CNODE_UNTYPED_8K   , 1); /* 0x7fd */
 		ASSERT (ok);
 		ok = _reserve(Core_cspace::TOP_CNODE_UNTYPED_4K   , 1); /* 0x7fe */
 		ASSERT (ok);

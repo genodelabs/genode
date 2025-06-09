@@ -1,0 +1,7 @@
+This archive contains the seL4-specific part of Genode.
+
+It also contains the source code of the seL4 kernel in the
+'src/kernel/sel4' directory.
+
+Please note that seL4 has a license distinct from Genode. seL4's
+license can be found at 'src/kernel/sel4/LICENSE_GPLv2.txt'.

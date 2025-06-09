@@ -32,7 +32,8 @@ ARCH_INCLUDES += objecttype.h types.h constants.h deprecated.h \
                  syscalls.h invocation.h simple_types.h
 
 ifeq ($(ARCH),arm)
-ARCH_INCLUDES += constants_cortex_a9.h
+ARCH_INCLUDES += constants_cortex_a9.h \
+                 constants_cortex_a53.h
 endif
 
 INCLUDES := objecttype.h types.h bootinfo.h bootinfo_types.h errors.h \

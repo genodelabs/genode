@@ -155,6 +155,11 @@ class Core::Platform : public Platform_generic
 		                       Cnode_index(Core_cspace::untyped_cnode_4k()),
 		                       Core_cspace::NUM_PHYS_SEL_LOG2, _initial_untyped_pool };
 
+		/* allocate 2nd-level CNode for storing cap selectors for untyped 8k objects */
+		Cnode _untyped_cnode_8k { Cap_sel(seL4_CapInitThreadCNode),
+		                          Cnode_index(Core_cspace::untyped_cnode_8k()),
+		                          Core_cspace::NUM_PHYS_SEL_LOG2, _initial_untyped_pool };
+
 		/* allocate 2nd-level CNode for storing cap selectors for untyped 16k objects */
 		Cnode _untyped_cnode_16k { Cap_sel(seL4_CapInitThreadCNode),
 		                           Cnode_index(Core_cspace::untyped_cnode_16k()),

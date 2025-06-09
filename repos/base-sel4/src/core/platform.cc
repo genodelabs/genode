@@ -300,6 +300,10 @@ void Core::Platform::_switch_to_core_cspace()
 	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_4K));
 
 	/* insert 2nd-level untyped-pages CNode into 1st-level CNode */
+	_top_cnode.move(initial_cspace, Cnode_index(Core_cspace::untyped_cnode_8k()),
+	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_8K));
+
+	/* insert 2nd-level untyped-pages CNode into 1st-level CNode */
 	_top_cnode.move(initial_cspace, Cnode_index(Core_cspace::untyped_cnode_16k()),
 	                                Cnode_index(Core_cspace::TOP_CNODE_UNTYPED_16K));
 

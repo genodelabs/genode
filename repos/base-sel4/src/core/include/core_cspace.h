@@ -39,7 +39,8 @@ class Core::Core_cspace
 		static unsigned core_cnode_sel()      { return core_pad_cnode_sel() + 1; }
 		static unsigned phys_cnode_sel()      { return core_cnode_sel()     + 1; }
 		static unsigned untyped_cnode_4k()    { return phys_cnode_sel()     + 1; }
-		static unsigned untyped_cnode_16k()   { return untyped_cnode_4k()   + 1; }
+		static unsigned untyped_cnode_8k()    { return untyped_cnode_4k()   + 1; }
+		static unsigned untyped_cnode_16k()   { return untyped_cnode_8k()   + 1; }
 		static unsigned io_port_sel()         { return untyped_cnode_16k()  + 1; }
 		static unsigned core_static_sel_end() { return io_port_sel()        + 1; }
 
@@ -47,7 +48,8 @@ class Core::Core_cspace
 		enum Top_cnode_idx {
 			TOP_CNODE_CORE_IDX    = 0,
 
-			TOP_CNODE_UNTYPED_16K = 0x7fd, /* untyped objects 16K  */
+			TOP_CNODE_UNTYPED_16K = 0x7fc, /* untyped objects 16K  */
+			TOP_CNODE_UNTYPED_8K  = 0x7fd, /* untyped objects  8K  */
 			TOP_CNODE_UNTYPED_4K  = 0x7fe, /* untyped objects  4K  */
 			TOP_CNODE_PHYS_IDX    = 0x7ff  /* physical page frames */
 		};

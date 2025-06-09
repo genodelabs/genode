@@ -1,0 +1,11 @@
+--- src/kernel/sel4/libsel4/sel4_arch_include/aarch64/sel4/sel4_arch/deprecated.h
++++ src/kernel/sel4/libsel4/sel4_arch_include/aarch64/sel4/sel4_arch/deprecated.h
+@@ -6,7 +6,7 @@
+ 
+ #pragma once
+ 
+-#define seL4_ARM_PageDirectory seL4_ARM_PageTable;
++#define seL4_ARM_PageDirectory seL4_ARM_PageTable
+ #define seL4_ARM_PageDirectory_Map seL4_ARM_PageTable_Map
+ #define seL4_ARM_PageDirectory_Unmap seL4_ARM_PageTable_Unmap
+ #define ARMPageDirectoryMap ARMPageTableMap

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2017 Genode Labs GmbH
+ * Copyright (C) 2017-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -24,13 +24,13 @@
 using namespace Core;
 
 
-static Phys_allocator *_phys_alloc_16k_ptr;
+static Phys_allocator *_phys_alloc_8k_ptr;
 
 
-static Phys_allocator &phys_alloc_16k()
+static Phys_allocator &phys_alloc_8k()
 {
-	if (_phys_alloc_16k_ptr)
-		return *_phys_alloc_16k_ptr;
+	if (_phys_alloc_8k_ptr)
+		return *_phys_alloc_8k_ptr;
 
 	ASSERT_NEVER_CALLED;
 }
@@ -65,6 +65,12 @@ void Platform::_init_core_page_table_registry()
 	/* we don't know the physical location of some objects XXX */
 	enum { XXX_PHYS_UNKNOWN = ~0UL };
 
+	if (_core_page_table_registry.insert_page_directory(virt_addr,
+	                                                    Cap_sel(sel++),
+	                                                    XXX_PHYS_UNKNOWN,
+	                                                    PAGE_DIR_LOG2_SIZE).failed())
+		error(__func__, ":", __LINE__, " page table allocation failed");
+
 	/*
 	 * Register initial page tables
 	 */
@@ -74,20 +80,20 @@ void Platform::_init_core_page_table_registry()
 		                                                PAGE_TABLE_LOG2_SIZE).failed())
 			error("page table insertion failed");
 
-		virt_addr += 256 * get_page_size();
+		virt_addr += 512 * get_page_size();
 	}
 
-	/* initialize 16k memory allocator */
+	/* initialize 8k memory allocator */
 	{
 		static Phys_allocator inst(&core_mem_alloc());
-		_phys_alloc_16k_ptr = &inst;
+		_phys_alloc_8k_ptr = &inst;
 	}
-	
-	/* reserve some memory for page directory construction - must be 16k on ARM */
-	enum { MAX_PROCESS_COUNT = 32 };
+
+	/* reserve some memory for page directory construction - must be 8k on v8 */
+	enum { MAX_PROCESS_COUNT = 64 };
 	addr_t const max_pd_mem = MAX_PROCESS_COUNT * (1UL << Page_directory_kobj::SIZE_LOG2);
 
-	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_16K,
+	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_8K,
 		[&] (addr_t const phys, addr_t const size, bool const device_memory) {
 
 			if (device_memory)
@@ -98,7 +104,7 @@ void Platform::_init_core_page_table_registry()
 				return false;
 			}
 
-			if (phys_alloc_16k().add_range(phys, size).failed()) {
+			if (phys_alloc_8k().add_range(phys, size).failed()) {
 				if (_unused_phys_alloc.add_range(phys, size).failed())
 					warning("unable to remove range as RAM: ", Hex_range(phys, size));
 				warning("unable to register range as RAM: ", Hex_range(phys, size));
@@ -111,13 +117,13 @@ void Platform::_init_core_page_table_registry()
 			if (device_memory)
 				return;
 
-			if (phys_alloc_16k()  .remove_range(phys, size).failed() ||
+			if (phys_alloc_8k()  .remove_range(phys, size).failed() ||
 			    _unused_phys_alloc.add_range   (phys, size).failed())
 				warning("unable to re-add phys RAM: ", Hex_range(phys, size));
 		},
 		Page_directory_kobj::SIZE_LOG2, max_pd_mem);
 
-	log(":phys_mem_16k:     ",  phys_alloc_16k());
+	log(":phys_mem_8k:     ",  phys_alloc_8k());
 }
 
 
@@ -126,19 +132,18 @@ bool Platform_pd::_init_page_directory()
 	return platform_specific().core_sel_alloc().alloc().convert<bool>([&](auto sel) {
 		_page_directory_sel = Cap_sel(unsigned(sel));
 
-		/* page directory table contains 4096 elements of 32bits -> 16k required */
-		enum { PAGES_16K = (1UL << Page_directory_kobj::SIZE_LOG2) / 4096 };
+		/* page directory table contains 8192 elements on 64bits */
+		enum { PAGES_8K = (1UL << Page_directory_kobj::SIZE_LOG2) / 4096 };
 
-		_page_directory = Untyped_memory::alloc_pages(phys_alloc_16k(), PAGES_16K);
+		_page_directory = Untyped_memory::alloc_pages(phys_alloc_8k(), PAGES_8K);
 
 		return _page_directory.convert<bool>([&](auto &result) {
-			auto const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, addr_t(result.ptr), Page_directory_kobj::SIZE_LOG2).value();
+			auto const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_8K, addr_t(result.ptr), Page_directory_kobj::SIZE_LOG2).value();
 
-			if (!create<Page_directory_kobj>(service,
-			                                 platform_specific().core_cnode().sel(),
-			                                 _page_directory_sel))
+			if (!create<Vspace_kobj>(service,
+			                         platform_specific().core_cnode().sel(),
+			                         _page_directory_sel))
 				return false;
-
 
 			long ret = seL4_ARM_ASIDPool_Assign(platform_specific().asid_pool().value(),
 			                                    _page_directory_sel.value());
