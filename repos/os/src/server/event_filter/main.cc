@@ -87,30 +87,121 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 		{
 			using Name = Include_accessor::Name;
 
-			Registry<Rom>::Element    _reg_elem;
-			Name             const    _name;
-			Attached_rom_dataspace    _dataspace;
+			Registry<Rom>::Element _reg_elem;
+
+			Env &_env;
+
+			Name const _name;
+
+			Parent::Client _parent_client { };
+
+			Id_space<Parent::Client>::Element const
+				_client_id { _parent_client, _env.id_space() };
+
+			using Session_result = Env::Session_result;
+
+			template <typename SESSION>
+			static constexpr Session::Resources _session_resources()
+			{
+				return { .ram_quota = { SESSION::RAM_QUOTA },
+				         .cap_quota = { SESSION::CAP_QUOTA } };
+			}
+
+			Session_result _try_session_with_upgrade(char const *         const  service,
+			                                         Parent::Client::Id   const  id,
+			                                         Session::Resources          resources,
+			                                         Session_label        const &label,
+			                                         Parent::Session_args const &args,
+			                                         Affinity             const &affinity)
+			{
+				char argbuf[Parent::Session_args::MAX_SIZE];
+				copy_cstring(argbuf, args.string(), sizeof(argbuf));
+
+				Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label",
+				                           label.string());
+				for (;;) {
+
+					Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+					                    String<32>(resources.ram_quota).string());
+
+					Arg_string::set_arg(argbuf, sizeof(argbuf), "cap_quota",
+					                    String<32>(resources.cap_quota).string());
+
+					Session_result const result =
+						_env.try_session(service, id, Parent::Session_args(argbuf), affinity);
+
+					if (result == Session_error::INSUFFICIENT_RAM) {
+						resources.ram_quota.value += 4096;
+						continue;
+					}
+
+					if (result == Session_error::INSUFFICIENT_CAPS) {
+						resources.cap_quota.value += 4;
+						continue;
+					}
+
+					return result;
+				}
+			}
+
+			Session_result const _session =
+				_try_session_with_upgrade(Rom_session::service_name(),
+				                          _client_id.id(),
+				                          _session_resources<Rom_session>(),
+				                          _name, { }, { });
+
+			void _with_client(auto const &fn)
+			{
+				_session.with_result(
+					[&] (Session_capability cap) {
+						Rom_session_client client { static_cap_cast<Rom_session>(cap) };
+						fn(client);
+					},
+					[&] (Session_error) { error("ROM \"", _name, "\" unavailable"); });
+			}
+
+			Env::Local_rm::Result _attached = Env::Local_rm::Error::INVALID_DATASPACE;
+
 			Signal_context_capability _reconfig_sigh;
+
+			void _try_attach()
+			{
+				_with_client([&] (Rom_session_client &rom) {
+					if (!_attached.ok() || rom.update() == false)
+						_attached = _env.rm().attach(rom.dataspace(), { });
+
+					_attached.with_error([&] (Env::Local_rm::Error) {
+						warning("ROM \"", _name, "\" could not be attached"); });
+				});
+			}
 
 			void _handle_rom_update()
 			{
-				_dataspace.update();
+				_try_attach();
 
 				/* trigger reconfiguration */
 				Signal_transmitter(_reconfig_sigh).submit();
 			}
 
-			Signal_handler<Rom> _rom_update_handler;
+			Signal_handler<Rom> _rom_update_handler {
+					_env.ep(), *this, &Rom::_handle_rom_update };
 
 			Rom(Registry<Rom> &registry, Env &env, Name const &name,
 			    Signal_context_capability reconfig_sigh)
 			:
-				_reg_elem(registry, *this), _name(name),
-				_dataspace(env, name.string()), _reconfig_sigh(reconfig_sigh),
-				_rom_update_handler(env.ep(), *this, &Rom::_handle_rom_update)
+				_reg_elem(registry, *this), _env(env), _name(name),
+				_reconfig_sigh(reconfig_sigh)
 			{
-				/* respond to ROM updates */
-				_dataspace.sigh(_rom_update_handler);
+				_try_attach();
+				_with_client([&] (Rom_session_client &rom) {
+					rom.sigh(_rom_update_handler); });
+			}
+
+			~Rom()
+			{
+				_session.with_result(
+					[&] (Session_capability) { _env.close(_client_id.id()); },
+					[&] (Session_error) { });
 			}
 
 			bool has_name(Name const &name) const { return _name == name; }
@@ -118,15 +209,26 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 			void with_xml(Include_accessor::Type const &type,
 			              auto const &fn, auto const &missing_fn) const
 			{
-				Xml_node const &node = _dataspace.xml();
-				if (node.type() == type) {
-					fn(node);
-					return;
-				}
+				_attached.with_result(
+					[&] (Env::Local_rm::Attachment const &a) {
+						Const_byte_range_ptr bytes { (char const *)a.ptr, a.num_bytes };
+						try {
+							Xml_node node(bytes);
+							if (node.type() == type) {
+								fn(node);
+								return;
+							}
 
-				warning("unexpected <", node.type(), "> node " "in included "
-				        "ROM \"", _name, "\", expected, <", type, "> node");
-				missing_fn();
+							warning("unexpected <", node.type(), "> node " "in included "
+							        "ROM \"", _name, "\", expected, <", type, "> node");
+							missing_fn();
+
+						} catch (...) {
+							warning("ROM \"", _name, "\" has invalid syntax");
+							missing_fn();
+						}
+					},
+					[&] (Env::Local_rm::Error) { });
 			}
 		};
 
