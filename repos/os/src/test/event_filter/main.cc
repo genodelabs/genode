@@ -325,8 +325,9 @@ struct Test::Main : Input_from_filter::Event_handler
 	void _with_curr_step_xml(auto const &fn) const
 	{
 		unsigned i = 0;
+		unsigned const index = _curr_step;
 		_config.xml().for_each_sub_node([&] (Xml_node const &sub_node) {
-			if (i++ == _curr_step)
+			if (i++ == index)
 				fn(sub_node); });
 	}
 
