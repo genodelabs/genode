@@ -432,27 +432,31 @@ class Audio_out::Mixer
 		{
 			using namespace Genode;
 
-			try {
-				Xml_node default_node = node.sub_node("default");
-				long v = 0;
+			_default_out_volume = 0;
+			_default_volume     = 0;
+			_default_muted      = false;
 
-				v = default_node.attribute_value<long>("out_volume", 0);
-				_default_out_volume = (float)v / MAX_VOLUME;
+			node.with_optional_sub_node("default",
+				[&] (Xml_node const &default_node) {
 
-				v = default_node.attribute_value<long>("volume", 0);
-				_default_volume = (float)v / MAX_VOLUME;
+					long v = 0;
 
-				v = default_node.attribute_value<bool>("muted", false);
-				_default_muted = v ;
+					v = default_node.attribute_value<long>("out_volume", 0);
+					_default_out_volume = (float)v / MAX_VOLUME;
 
-				if (_verbose->changes) {
-					log("Set default "
-					     "out_volume: ", (int)(MAX_VOLUME*_default_out_volume), " "
-					     "volume: ",     (int)(MAX_VOLUME*_default_volume), " "
-					     "muted: ",      _default_muted);
-				}
+					v = default_node.attribute_value<long>("volume", 0);
+					_default_volume = (float)v / MAX_VOLUME;
 
-			} catch (...) { Genode::warning("config invalid"); }
+					v = default_node.attribute_value<bool>("muted", false);
+					_default_muted = v ;
+				});
+
+			if (_verbose->changes) {
+				log("Set default "
+				     "out_volume: ", (int)(MAX_VOLUME*_default_out_volume), " "
+				     "volume: ",     (int)(MAX_VOLUME*_default_volume), " "
+				     "muted: ",      _default_muted);
+			}
 		}
 
 		/**
@@ -473,51 +477,49 @@ class Audio_out::Mixer
 			_out_volume[LEFT]  = _default_out_volume;
 			_out_volume[RIGHT] = _default_out_volume;
 
-			try {
-				Xml_node channel_list_node = config_node.sub_node("channel_list");
+			config_node.with_optional_sub_node("channel_list",
+				[&] (Xml_node const &channel_list_node) {
 
-				channel_list_node.for_each_sub_node([&] (Xml_node const &node) {
-					Channel ch(node);
+					channel_list_node.for_each_sub_node([&] (Xml_node const &node) {
+						Channel ch(node);
 
-					if (ch.type == Channel::Type::INPUT) {
-						_for_each_channel([&] (Channel::Number, Session_channel *sc) {
+						if (ch.type == Channel::Type::INPUT) {
+							_for_each_channel([&] (Channel::Number, Session_channel *sc) {
 
-							sc->for_each_session([&] (Session_elem &session) {
-								if (session.number != ch.number) return;
-								if (session.label != ch.label) return;
+								sc->for_each_session([&] (Session_elem &session) {
+									if (session.number != ch.number) return;
+									if (session.label != ch.label) return;
 
-								session.volume = (float)ch.volume / MAX_VOLUME;
-								session.muted  = ch.muted;
+									session.volume = (float)ch.volume / MAX_VOLUME;
+									session.muted  = ch.muted;
+
+									if (_verbose->changes) {
+										log("Set label: '", ch.label, "' "
+										    "channel: '",   string_from_number(ch.number), "' "
+										    "nr: ",         (int)ch.number, " "
+										    "volume: ",     (int)(MAX_VOLUME*session.volume), " "
+										    "muted: ",      ch.muted);
+									}
+								});
+							});
+						}
+						else if (ch.type == Channel::Type::OUTPUT) {
+							for_each_index(MAX_CHANNELS, [&] (int const i) {
+								if (ch.number != i) return;
+
+								_out_volume[i] = (float)ch.volume / MAX_VOLUME;
 
 								if (_verbose->changes) {
-									log("Set label: '", ch.label, "' "
-									    "channel: '",   string_from_number(ch.number), "' "
-									    "nr: ",         (int)ch.number, " "
-									    "volume: ",     (int)(MAX_VOLUME*session.volume), " "
-									    "muted: ",      ch.muted);
+									log("Set label: 'master' "
+									    "channel: '", string_from_number(ch.number), "' "
+									    "nr: ",       (int)ch.number, " "
+									    "volume: ",   (int)(MAX_VOLUME*_out_volume[i]), " "
+									    "muted: ",    ch.muted);
 								}
 							});
-						});
-					}
-					else if (ch.type == Channel::Type::OUTPUT) {
-						for_each_index(MAX_CHANNELS, [&] (int const i) {
-							if (ch.number != i) return;
-
-							_out_volume[i] = (float)ch.volume / MAX_VOLUME;
-
-							if (_verbose->changes) {
-								log("Set label: 'master' "
-								    "channel: '", string_from_number(ch.number), "' "
-								    "nr: ",       (int)ch.number, " "
-								    "volume: ",   (int)(MAX_VOLUME*_out_volume[i]), " "
-								    "muted: ",    ch.muted);
-							}
-						});
-					}
+						}
+					});
 				});
-			} catch (Xml_node::Nonexistent_sub_node) {
-				Genode::warning("channel_list node missing");
-			}
 
 			/*
 			 * Report back any changes so a front-end can update its state
