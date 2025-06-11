@@ -11,14 +11,19 @@
 		<service name="Gui">     <parent/> </service>
 	</common_routes>
 
-	<start name="webcam" ram="64M" pkg="usb_webcam">
+	<start name="internal" ram="64M" pkg="usb_webcam">
 		<route>
-			<service name="Usb">   <child name="usb"/>   </service>
+			<service name="Usb"> <child name="usb"/> </service>
 			<any-service> <parent /> </any-service>
 		</route>
 		<provides> <service name="Capture"/> <service name="Report"/> </provides>
 	</start>
 
-	<start name="test-capture"/>
+	<start name="external" ram="64M" pkg="usb_webcam">
+		<route>
+			<service name="Usb"> <child name="usb"/> </service>
+			<any-service> <parent /> </any-service>
+		</route>
+		<provides> <service name="Capture"/> <service name="Report"/> </provides>
+	</start>
 </config>
-
