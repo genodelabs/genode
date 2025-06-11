@@ -2,6 +2,7 @@
  * \brief  USB webcam app using libuvc
  * \author Josef Soentgen
  * \author Sebastian Sumpf
+ * \author Christian Helmuth
  * \date   2021-01-25
  *
  * The test component is based on the original 'example.c'.
@@ -78,7 +79,7 @@ class Viewer
 
 static void cb(uvc_frame_t *frame, void *ptr)
 {
-	Viewer *viewer = ptr ? reinterpret_cast<Viewer*>(ptr) : nullptr;
+	Viewer * const viewer = ptr ? reinterpret_cast<Viewer*>(ptr) : nullptr;
 	if (!viewer) return;
 
 	int err = 0;
@@ -134,7 +135,8 @@ class Webcam
 		uvc_context_t       *_context { nullptr };
 		uvc_device_t        *_device  { nullptr };
 		uvc_device_handle_t *_handle  { nullptr };
-		Viewer               _viewer;
+
+		Constructible<Viewer> _viewer { };
 
 		void _cleanup()
 		{
@@ -142,6 +144,7 @@ class Webcam
 				if (_handle)  uvc_stop_streaming(_handle);
 				if (_device)  uvc_unref_device(_device);
 				if (_context) uvc_exit(_context);
+				_viewer.destruct();
 			});
 		}
 
@@ -149,7 +152,7 @@ class Webcam
 
 		Webcam(Env &env, Framebuffer::Mode mode, uvc_frame_format format, unsigned fps)
 		:
-		  _env(env), _viewer(env, mode)
+		  _env(env)
 		{
 			int result = Libc::with_libc([&] () {
 
@@ -183,7 +186,9 @@ class Webcam
 					return -4;
 				}
 
-				res = uvc_start_streaming(_handle, &control, cb, &_viewer, 0);
+				_viewer.construct(env, mode);
+
+				res = uvc_start_streaming(_handle, &control, cb, &*_viewer, 0);
 				if (res < 0) {
 					uvc_perror(res, "Start streaming failed");
 					return -5;
@@ -227,16 +232,11 @@ class Webcam
 				return 0;
 			});
 
-			if (result < 0) {
+			if (result < 0)
 				_cleanup();
-				throw -1;
-			}
 		}
 
-		~Webcam()
-		{
-			_cleanup();
-		}
+		~Webcam() { _cleanup(); }
 };
 
 
@@ -247,16 +247,18 @@ class Main
 		Env                   &_env;
 		Attached_rom_dataspace _config_rom { _env, "config" };
 		Constructible<Webcam>  _webcam { };
-		Signal_handler<Main>   _config_sigh { _env.ep(), *this, &Main::_config_update };
 
-		void _config_update()
+		void _apply_config()
 		{
 			_config_rom.update();
 
-			if (_config_rom.valid() == false) return;
+			if (_config_rom.valid() == false) {
+				error("invalid config - aborting");
+				_env.parent().exit(-1);
+				return;
+			}
 
 			Xml_node config = _config_rom.xml();
-			bool      enabled = config.attribute_value("enabled", false);
 			unsigned  width   = config.attribute_value("width", 640u);
 			unsigned  height  = config.attribute_value("height", 480u);
 			unsigned  fps     = config.attribute_value("fps", 15u);
@@ -268,31 +270,19 @@ class Main
 			else if (format == "mjpeg")
 				frame_format = UVC_FRAME_FORMAT_MJPEG;
 			else {
-				warning("Unkown format '", format, "' trying 'yuv'");
+				warning("Unknown format '", format, "' trying 'yuv'");
 				frame_format = UVC_FRAME_FORMAT_YUYV;
 			}
 
-			log("config: enabled: ", enabled, " ", width, "x", height, " format: ", (unsigned)frame_format);
-			if (_webcam.constructed())
-				_webcam.destruct();
+			log("config: ", width, "x", height, " frame format: ", format, " (", (unsigned)frame_format, ")");
 
 			Framebuffer::Mode mode { .area = { width, height }, .alpha = false };
-			if (enabled) {
-				try {
-					_webcam.construct(_env, mode, frame_format, fps);
-				}  catch (...) { }
-			}
+			_webcam.construct(_env, mode, frame_format, fps);
 		}
 
 	public:
 
-		Main(Env &env)
-		:
-		  _env(env)
-		{
-			_config_rom.sigh(_config_sigh);
-			_config_update();
-		}
+		Main(Env &env) : _env(env) { _apply_config(); }
 };
 
 

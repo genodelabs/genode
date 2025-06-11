@@ -9,7 +9,7 @@ order to render the camera into.
 Configuration
 -------------
 
-! <config enabled="yes" width="320" height="240" format="yuv" fps="30">
+! <config width="320" height="240" format="yuv" fps="30">
 !   <vfs>
 !     <dir name="dev"> <log/> <inline name="rtc">2018-01-01 00:01</inline> </dir>
 !     <dir name="pipe"> <pipe/> </dir>
@@ -18,9 +18,6 @@ Configuration
 ! </conifg>
 
 The frame format can be configured via the config attributes "width", "height",
-"format", "fps". Currently the "yuv" and "mjpeg" formats are supported. The
-"enabled" attribute allows for dynamic power on/off of the camera at runtime. In
+"format", "fps". Currently the "yuv" and "mjpeg" formats are supported. In
 case there is no suitable frame format present, the app will dump the camera
 supported formats during startup.
-
-
