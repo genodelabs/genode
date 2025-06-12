@@ -76,25 +76,8 @@ class Depot_download_manager::Import
 
 			void update(Xml_node const &node)
 			{
-				auto complete_from_xml = [&]
-				{
-					using Bytes = String<32>;
-					Bytes const total = node.attribute_value("total", Bytes()),
-					            now   = node.attribute_value("now",   Bytes());
-
-					/* fetchurl did not return valid download info */
-					if (total == "")
-						return false;
-
-					/* fetchurl has not yet determined the file size */
-					if (total == "0")
-						return false;
-
-					return now == total;
-				};
-
 				progress = Progress::from_xml(node);
-				complete = complete_from_xml();
+				complete = node.attribute_value("finished", false);
 			}
 
 			bool matches(Xml_node const &node) const
