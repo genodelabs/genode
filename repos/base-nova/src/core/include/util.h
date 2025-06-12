@@ -44,7 +44,7 @@ namespace Core {
 	{
 		using Nova::Qpd;
 		unsigned priority = Cpu_session::scale_priority(Qpd::DEFAULT_PRIORITY,
-		                                                prio);
+		                                                prio)+1;
 		if (priority == 0) {
 			warning("priority of thread '", name, "' below minimum - boost to 1");
 			priority = 1;

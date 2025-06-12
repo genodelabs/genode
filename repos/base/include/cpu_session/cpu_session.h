@@ -123,12 +123,12 @@ struct Genode::Cpu_session : Session
 	/**
 	 * Translate generic priority value to kernel-specific priority levels
 	 *
-	 * \param pf_prio_limit  maximum priority used for the kernel, must
+	 * \param pf_prio_limit  number of priorities used for the kernel, should
 	 *                       be power of 2
 	 * \param prio           generic priority value as used by the CPU
 	 *                       session interface
 	 * \param inverse        order of platform priorities, if true
-	 *                       'pf_prio_limit' corresponds to the highest
+	 *                       'pf_prio_limit-1' corresponds to the highest
 	 *                       priority, otherwise it refers to the
 	 *                       lowest priority.
 	 * \return               platform-specific priority value
@@ -137,13 +137,13 @@ struct Genode::Cpu_session : Session
 	                               bool inverse = true)
 	{
 		/*
-		 * Generic priority values are (0 is highest, 'PRIORITY_LIMIT'
+		 * Generic priority values are (0 is highest, 'PRIORITY_LIMIT-1'
 		 * is lowest. On platforms where priority levels are defined
 		 * the other way round, we have to invert the priority value.
 		 */
-		prio = inverse ? Cpu_session::PRIORITY_LIMIT - prio : prio;
+		prio = inverse ? Cpu_session::PRIORITY_LIMIT-1 - prio : prio;
 
-		/* scale value to platform priority range 0..pf_prio_limit */
+		/* scale value to platform priority range 0..pf_prio_limit-1 */
 		return (prio*pf_prio_limit)/Cpu_session::PRIORITY_LIMIT;
 	}
 

@@ -232,9 +232,6 @@ Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocato
 {
 	static_assert(CONFIG_NUM_PRIORITIES == 256, " unknown priority configuration");
 
-	if (_priority > 0)
-		_priority -= 1;
-
 	platform_thread_registry().insert(*this);
 
 	platform_specific().core_sel_alloc().alloc().with_result([&](auto sel) {
