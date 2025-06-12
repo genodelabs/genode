@@ -1,0 +1,12 @@
+--- a/src/stream.c
++++ b/src/stream.c
+@@ -598,8 +598,7 @@ static int _uvc_stream_params_negotiated(
+   uvc_stream_ctrl_t *required,
+   uvc_stream_ctrl_t *actual) {
+     return required->bFormatIndex == actual->bFormatIndex &&
+-    required->bFrameIndex == actual->bFrameIndex &&
+-    required->dwMaxPayloadTransferSize >= actual->dwMaxPayloadTransferSize;
++    required->bFrameIndex == actual->bFrameIndex;
+ }
+ 
+ /** @internal

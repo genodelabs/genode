@@ -3,13 +3,13 @@ DOWNLOADS := libuvc.git
 VERSION   := git
 
 URL(libuvc) := https://github.com/libuvc/libuvc.git
-REV(libuvc) := 5cddef71b17d41f7e98875a840c50d9704c3d2b2
+REV(libuvc) := 047920bcdfb1dac42424c90de5cc77dfc9fba04d
 DIR(libuvc) := src/lib/libuvc
 
 DIRS := include/libuvc
 DIR_CONTENT(include/libuvc) := src/lib/libuvc/include/libuvc/libuvc.h
 
-PATCHES := src/lib/libuvc/uvc150.patch
+PATCHES := $(addprefix src/lib/libuvc/,uvc150.patch relax_check.patch)
 PATCH_OPT := -p1 -d src/lib/libuvc
 
 default: include/libuvc/libuvc_config.h
