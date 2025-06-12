@@ -86,38 +86,42 @@ static void cb(uvc_frame_t *frame, void *ptr)
 	int width  = viewer->mode().area.w;
 	int height = viewer->mode().area.h;
 
+	/* skip invalid frames */
+	if (!frame->data_bytes)
+		return;
+
 	switch (frame->frame_format) {
-		case UVC_COLOR_FORMAT_MJPEG:
-			err = libyuv::MJPGToARGB((uint8_t const *)frame->data,
-			                         frame->data_bytes,
-			                         viewer->framebuffer(),
-			                         width * 4,
-			                         width, height,
-			                         width, height);
-			if (err) {
-				error("MJPGToARGB returned:", err);
-				return;
-			}
-			break;
-
-		case UVC_COLOR_FORMAT_YUYV:
-
-			/* skip incomplete frames */
-			if (frame->data_bytes < width * height * 2ul)
-				break;
-
-			err = libyuv::YUY2ToARGB((uint8_t const *)frame->data,
-			                         width * 2,
-			                         viewer->framebuffer(),
-			                         width * 4,
-			                         width, height);
-			if (err) {
-				error("YUY2ToARGB returned:", err);
-				return;
-			}
-			break;
-		default:
+	case UVC_COLOR_FORMAT_MJPEG:
+		err = libyuv::MJPGToARGB((uint8_t const *)frame->data,
+		                         frame->data_bytes,
+		                         viewer->framebuffer(),
+		                         width * 4,
+		                         width, height,
+		                         width, height);
+		if (err) {
+			warning("MJPGToARGB returned ", err);
 			return;
+		}
+		break;
+
+	case UVC_COLOR_FORMAT_YUYV:
+
+		/* skip incomplete frames */
+		if (frame->data_bytes < width * height * 2ul)
+			break;
+
+		err = libyuv::YUY2ToARGB((uint8_t const *)frame->data,
+		                         width * 2,
+		                         viewer->framebuffer(),
+		                         width * 4,
+		                         width, height);
+		if (err) {
+			warning("YUY2ToARGB returned ", err);
+			return;
+		}
+		break;
+	default:
+		return;
 	};
 
 	viewer->refresh();
@@ -175,7 +179,7 @@ class Webcam
 					return -3;
 				}
 
-				uvc_stream_ctrl_t control;
+				uvc_stream_ctrl_t control { };
 				res = uvc_get_stream_ctrl_format_size(_handle, &control, format,
 				                                      mode.area.w, mode.area.h,
 				                                      fps);
@@ -262,17 +266,15 @@ class Main
 			unsigned  width   = config.attribute_value("width", 640u);
 			unsigned  height  = config.attribute_value("height", 480u);
 			unsigned  fps     = config.attribute_value("fps", 0u);
-			String<8> format  { config.attribute_value("format", String<8>("yuv")) };
+			String<8> format  { config.attribute_value("format", String<8>("auto")) };
 
-			uvc_frame_format frame_format;
+			uvc_frame_format frame_format = UVC_FRAME_FORMAT_ANY; /* auto */
 			if (format == "yuv")
 				frame_format = UVC_FRAME_FORMAT_YUYV;
 			else if (format == "mjpeg")
 				frame_format = UVC_FRAME_FORMAT_MJPEG;
-			else {
-				warning("Unknown format '", format, "' trying 'yuv'");
-				frame_format = UVC_FRAME_FORMAT_YUYV;
-			}
+			else if (!(format == "auto"))
+				warning("Unknown format '", format, "' trying auto selection/detection");
 
 			log("config: ", width, "x", height,
 			    " frame format: ", format, " (", (unsigned)frame_format, ")",

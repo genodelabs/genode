@@ -23,7 +23,7 @@ The camera mode can be configured via the following optional config attributes.
   (default is 640x480)
 
 :format: currently "yuv" (YUY2) and "mjpeg" (MJPG) formats are supported
-  (default is yuv)
+  (default is auto selection/detection)
 
 :fps: frame interval in frames-per-second
   (default is auto selection/detection)
