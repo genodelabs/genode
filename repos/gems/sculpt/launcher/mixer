@@ -1,4 +1,4 @@
-<launcher pkg="record_play_mixer" priority="0">
+<launcher pkg="record_play_mixer" priority="-1">
 	<config jitter_ms="10" warning_rate_ms="0">
 		<!--
 			These default wildcard rules match all regular play clients.

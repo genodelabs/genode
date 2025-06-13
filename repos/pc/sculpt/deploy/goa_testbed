@@ -11,7 +11,7 @@
 	<start name="recall_fs"/>
 	<start name="black_hole"/>
 
-	<start name="window_layouter" priority="-1" pkg="window_layouter">
+	<start name="window_layouter" priority="-2" pkg="window_layouter">
 		<route>
 			<service name="Gui">                           <child name="wm"/> </service>
 			<service name="ROM" label="window_list">       <child name="wm"/> </service>
@@ -25,7 +25,7 @@
 		</route>
 	</start>
 
-	<start name="themed_decorator" priority="-1" pkg="themed_decorator">
+	<start name="themed_decorator" priority="-2" pkg="themed_decorator">
 		<route>
 			<service name="ROM" label="window_layout"> <child name="wm"/> </service>
 			<service name="ROM" label="pointer">       <child name="wm"/> </service>
@@ -34,7 +34,7 @@
 		</route>
 	</start>
 
-	<start name="wm" priority="-1" pkg="wm">
+	<start name="wm" priority="-2" pkg="wm">
 		<route>
 			<service name="Gui" label="focus"> <parent label="focus"/> </service>
 			<service name="Gui">                           <parent/> </service>
@@ -44,7 +44,7 @@
 		</route>
 	</start>
 
-	<start name="fonts_fs" priority="-2" pkg="fonts_fs">
+	<start name="fonts_fs" priority="-3" pkg="fonts_fs">
 		<route>
 			<service name="ROM" label="config">
 				<parent label="config -> managed/fonts"/>
@@ -54,19 +54,19 @@
 
 	<start name="system_clock"/>
 
-	<start name="mesa_gpu-intel" priority="-2" pkg="mesa_gpu-intel">
+	<start name="mesa_gpu-intel" priority="-3" pkg="mesa_gpu-intel">
 		<route>
 			<service name="RM"> <parent/> </service>
 		</route>
 	</start>
 
-	<start name="fs_rom" priority="-2" pkg="jschlatow/pkg/fs_rom/2025-04-09">
+	<start name="fs_rom" priority="-3" pkg="jschlatow/pkg/fs_rom/2025-04-09">
 		<route>
 			<service name="File_system"> <parent identity="report"/> </service>
 		</route>
 	</start>
 
-	<start name="system_info" pkg="jschlatow/pkg/system_info/2025-04-11" priority="-2">
+	<start name="system_info" pkg="jschlatow/pkg/system_info/2025-04-11" priority="-3">
 		<route>
 			<service name="Gui"> <parent label="backdrop"/> </service>
 			<service name="Rtc"> <child name="system_clock"/> </service>
@@ -89,7 +89,7 @@
 		</config>
 	</start>
 
-	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2025-04-11" priority="-2">
+	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2025-04-11" priority="-3">
 		<route>
 			<service name="TRACE">       <parent/> </service>
 			<service name="VM">          <parent/> </service>

@@ -1,4 +1,4 @@
-<launcher pkg="nano3d" priority="-1">
+<launcher pkg="nano3d" priority="-2">
 	<route>
 		<service name="Gui"> <child name="wm"/> </service>
 	</route>

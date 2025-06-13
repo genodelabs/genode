@@ -54,12 +54,12 @@ namespace Sculpt {
 	 * CPU priorities used within the runtime subsystem
 	 */
 	enum class Priority {
-		BACKGROUND   = -3,
-		DEFAULT      = -2,
+		BACKGROUND   = -4,
+		DEFAULT      = -3,
 		NETWORK      = DEFAULT,
 		STORAGE      = DEFAULT,
-		MULTIMEDIA   = -1,
-		DRIVER       = 0,        /* only for latency-critical drivers */
+		MULTIMEDIA   = -2,
+		DRIVER       = -1,       /* only for latency-critical drivers */
 		LEITZENTRALE = MULTIMEDIA,
 		NESTED_MAX   = 0,        /* within nested init (inspect) */
 	};

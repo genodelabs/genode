@@ -1,4 +1,4 @@
-<launcher pkg="system_shell" priority="-2">
+<launcher pkg="system_shell" priority="-3">
 	<route>
 		<service name="Gui"> <child name="wm"/> </service>
 		<service name="File_system" label_prefix="fonts ->">  <child name="fonts_fs"/>      </service>

@@ -686,7 +686,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Deploy **
 	 ************/
 
-	Deploy::Prio_levels const _prio_levels { 4 };
+	Deploy::Prio_levels const _prio_levels { 8 };
 
 	Rom_handler<Main> _scan_rom {
 		_env, "report -> runtime/depot_query/scan", *this, &Main::_handle_scan };

@@ -11,7 +11,7 @@
 	<start name="recall_fs"/>
 	<start name="black_hole"/>
 
-	<start name="system_shell" priority="-2" pkg="system_shell">
+	<start name="system_shell" priority="-3" pkg="system_shell">
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="File_system" label_prefix="config ->"> <parent identity="config"/> </service>
@@ -25,7 +25,7 @@
 		</route>
 	</start>
 
-	<start name="window_layouter" priority="-1" pkg="window_layouter">
+	<start name="window_layouter" priority="-2" pkg="window_layouter">
 		<route>
 			<service name="Gui">                           <child name="wm"/> </service>
 			<service name="ROM" label="window_list">       <child name="wm"/> </service>
@@ -39,7 +39,7 @@
 		</route>
 	</start>
 
-	<start name="themed_decorator" priority="-1" pkg="themed_decorator">
+	<start name="themed_decorator" priority="-2" pkg="themed_decorator">
 		<route>
 			<service name="ROM" label="window_layout"> <child name="wm"/> </service>
 			<service name="ROM" label="pointer">       <child name="wm"/> </service>
@@ -48,7 +48,7 @@
 		</route>
 	</start>
 
-	<start name="wm" priority="-1" pkg="wm">
+	<start name="wm" priority="-2" pkg="wm">
 		<route>
 			<service name="Gui" label="focus"> <parent label="focus"/> </service>
 			<service name="Gui">                           <parent/> </service>
@@ -58,7 +58,7 @@
 		</route>
 	</start>
 
-	<start name="fonts_fs" priority="-2" pkg="fonts_fs">
+	<start name="fonts_fs" priority="-3" pkg="fonts_fs">
 		<route>
 			<service name="ROM" label="config">
 				<parent label="config -> managed/fonts"/>
@@ -66,7 +66,7 @@
 		</route>
 	</start>
 
-	<start name="wm_backdrop" priority="-2" pkg="sticks_blue_backdrop">
+	<start name="wm_backdrop" priority="-3" pkg="sticks_blue_backdrop">
 		<route>
 			<service name="Gui"> <parent label="backdrop"/> </service>
 		</route>

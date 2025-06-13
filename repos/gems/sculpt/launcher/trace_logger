@@ -1,4 +1,4 @@
-<launcher pkg="trace_logger" priority="-2">
+<launcher pkg="trace_logger" priority="-3">
 
 	<route>
 		<!-- replace "global" by "runtime" to narrow the view -->

@@ -1,4 +1,4 @@
-<launcher priority="-2" pkg="recall_fs">
+<launcher priority="-3" pkg="recall_fs">
 	<route>
 		<service name="File_system"> <child name="default_fs_rw"/> </service>
 	</route>
