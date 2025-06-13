@@ -138,11 +138,37 @@ class Core::Platform_thread : Noncopyable
 		 */
 		bool _attaches_utcb_by_itself();
 
-		unsigned _scale_priority(unsigned virt_prio)
+		/**
+		 * Map recursively grown, calculated priorities (16-bit)
+		 * to kernel-specific scheduling group ids.
+		 *
+		 * Note: this implements an heuristic, which addresses
+		 *       Sculpt OS only!
+		 * It is assumed that we have two levels of priorities.
+		 * The upper level has two priorities that are mapped
+		 * to either driver or multimedia scheduling group,
+		 * whereby the second level (runtime) consists out of
+		 * 8 levels, but only 0-4 are used. Priority 0 in this
+		 * level (runtime init) is mapped to the multimedia group,
+		 * and prios 1-4 are mapped to: driver, multimedia, app,
+		 * and background group.
+		 */
+		unsigned _priority_to_group(unsigned priority)
 		{
-			static constexpr unsigned p =
-				Kernel::Scheduler::Group_id::BACKGROUND+1;
-			return Cpu_session::scale_priority(p, virt_prio, false);
+			using Id = Kernel::Scheduler::Group_id;
+
+			enum { TOP_LEVEL_PRIO_HIGH = Cpu_session::PRIORITY_LIMIT / 2 };
+
+			if (priority < TOP_LEVEL_PRIO_HIGH)
+				return Id::DRIVER;
+
+			switch (priority >> 12) {
+			case 0x8: return Id::MULTIMEDIA;
+			case 0x9: return Id::DRIVER;
+			case 0xa: return Id::MULTIMEDIA;
+			case 0xb: return Id::APP;
+			default:  return Id::BACKGROUND;
+			};
 		}
 
 		Platform_pd_interface & _core_platform_pd();
