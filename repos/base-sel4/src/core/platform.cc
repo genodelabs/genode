@@ -527,9 +527,6 @@ void Core::Platform::_init_rom_modules()
 				}
 			);
 
-			if (result.deallocate)
-				Untyped_memory::free_page(ram_alloc(), phys_addr);
-
 		}, [] (auto) {
 			error("could not setup platform_info ROM - phys allocation error");
 		});
@@ -591,7 +588,10 @@ Core::Platform::Platform()
 		}
 
 		/* mint a copy of the notification object with badge of lock_sel */
-		_core_cnode.mint(_core_cnode, core_sel, lock_sel);
+		if (!_core_cnode.mint(_core_cnode, core_sel, lock_sel)) {
+			error("mint of kernel notification object for Genode::Lock failed");
+			ASSERT(false);
+		}
 	}, [&](auto) {
 		error("selector for kernel notification object for Genode::Lock failed");
 		ASSERT(false);

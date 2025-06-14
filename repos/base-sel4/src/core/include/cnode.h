@@ -69,7 +69,7 @@ class Core::Cnode_base
 		/**
 		 * Mint selector from another CNode
 		 */
-		void mint(Cnode_base const &from, Index from_idx, Index to_idx)
+		bool mint(Cnode_base const &from, Index from_idx, Index to_idx)
 		{
 			seL4_CNode       const service    = sel().value();
 			seL4_Word        const dest_index = to_idx.value();
@@ -83,7 +83,11 @@ class Core::Cnode_base
 			int const ret = seL4_CNode_Mint(service, dest_index, dest_depth,
 			                                src_root, src_index, src_depth,
 			                                rights, badge);
-			ASSERT(ret == seL4_NoError);
+
+			if (ret != seL4_NoError)
+				warning(__FUNCTION__, ": seL4_CNode_Mint failed ", ret);
+
+			return ret == seL4_NoError;
 		}
 
 		/**

@@ -77,8 +77,9 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 		/* XXX */
 		warning("core thread: leaking lock_sel due to overwrite");
 
-		platform.core_cnode().mint(platform.core_cnode(), unbadged_sel,
-		                           lock_sel);
+		if (!platform.core_cnode().mint(platform.core_cnode(), unbadged_sel,
+		                                lock_sel))
+			warning("core thread: minting failed");
 
 		nt.attr.lock_sel = lock_sel.value();
 	}, [](auto) { error("unhandled case"); });

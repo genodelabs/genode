@@ -158,7 +158,8 @@ void Platform_thread::start(void *ip, void *sp, unsigned int)
 
 	/* install the thread's notification object to the PD's CSpace */
 	_pd.with_cspace_cnode(_lock_sel, [&] (auto &cnode) {
-		cnode.mint(platform_specific().core_cnode(), _info.lock_sel, _lock_sel);
+		if (!cnode.mint(platform_specific().core_cnode(), _info.lock_sel, _lock_sel))
+			error("Thread::start mint failed");
 	});
 
 	/*
