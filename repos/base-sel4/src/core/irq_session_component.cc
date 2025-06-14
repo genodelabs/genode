@@ -29,24 +29,17 @@ bool Irq_object::associate(Irq_args const &args)
 	auto &platform   = platform_specific();
 	auto &phys_alloc = platform.ram_alloc();
 
-	auto phys_result = Untyped_memory::alloc_page(phys_alloc);
+	_kernel_notify_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	if (phys_result.failed())
-		return false;
-
-	bool ok = false;
-
-	phys_result.with_result([&](auto &phys) {
+	bool ok = _kernel_notify_phys.convert<bool>([&](auto &phys) {
 		auto service = Untyped_memory::untyped_sel(addr_t(phys.ptr)).value();
 
-		_kernel_notify_sel.with_result([&](auto notify_sel) {
-			ok = create<Notification_kobj>(service,
-			                               platform.core_cnode().sel(),
-			                               Cnode_index(unsigned(notify_sel)));
-		}, [&](auto) { });
-
-		phys.deallocate = !ok;
-	}, [&](auto) { });
+		return _kernel_notify_sel.convert<bool>([&](auto notify_sel) {
+			return create<Notification_kobj>(service,
+			                                 platform.core_cnode().sel(),
+			                                 Cnode_index(unsigned(notify_sel)));
+		}, [&](auto) { return false; });
+	}, [&](auto) { return false; });
 
 	if (!ok)
 		return false;
@@ -87,7 +80,7 @@ void Irq_object::entry()
 	/* thread is up and ready */
 	_sync_bootup.wakeup();
 
-	while (true) {
+	while (!_stop) {
 
 		_wait_for_irq();
 
@@ -118,14 +111,48 @@ Irq_object::Irq_object(unsigned irq)
 { }
 
 
+void Irq_object::stop_thread()
+{
+	/* signal IRQ thread to go out-of-service */
+	_stop = true;
+
+	_kernel_notify_sel.with_result([&](auto sel) {
+		seL4_Signal(sel);
+		join();
+	}, [](auto){ error("IRQ thread could not be stopped"); });
+}
+
+
 Irq_object::~Irq_object()
 {
-	_kernel_irq_sel.with_result([&](auto sel) {
-		platform_specific().core_sel_alloc().free(Cap_sel(unsigned(sel)));
+	_kernel_irq_sel.with_result([&](auto irq_sel) {
+		auto res = seL4_IRQHandler_Clear(irq_sel);
+		if (res != seL4_NoError) {
+			error("seL4_IRQHandler_Clear failed - leaking resources");
+			return;
+		}
+
+		res = seL4_CNode_Delete(seL4_CapInitThreadCNode, irq_sel, 32);
+		if (res != seL4_NoError) {
+			error("~Irq_object: leaking irq_sel");
+			return;
+		}
+		platform_specific().core_sel_alloc().free(Cap_sel(unsigned(irq_sel)));
 	}, [](auto) { });
 
 	_kernel_notify_sel.with_result([&](auto sel) {
+		auto res = seL4_CNode_Delete(seL4_CapInitThreadCNode, sel, 32);
+		if (res != seL4_NoError) {
+			error("~Irq_object: leaking notify_sel");
+			return;
+		}
 		platform_specific().core_sel_alloc().free(Cap_sel(unsigned(sel)));
+	}, [](auto) { });
+
+	_kernel_notify_phys.with_result([&](auto &phys) {
+		auto &platform   = platform_specific();
+		auto &phys_alloc = platform.ram_alloc();
+		Untyped_memory::free_page(phys_alloc, addr_t(phys.ptr));
 	}, [](auto) { });
 }
 
@@ -159,7 +186,7 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 
 Irq_session_component::~Irq_session_component()
 {
-	error(__PRETTY_FUNCTION__, "- not yet implemented.");
+	_irq_object.stop_thread();
 }
 
 

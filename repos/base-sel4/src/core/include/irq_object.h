@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__IRQ_OBJECT_H_
 
 /* Genode includes */
+#include <base/allocator.h>
 #include <base/thread.h>
 #include <irq_session/irq_session.h>
 
@@ -36,9 +37,11 @@ class Core::Irq_object : public Thread {
 		Signal_context_capability _sig_cap { };
 		Blockade                  _sync_bootup { };
 		unsigned                  _irq;
+		volatile bool             _stop { };
 
 		Cap_sel_alloc::Cap_sel_attempt _kernel_irq_sel;
 		Cap_sel_alloc::Cap_sel_attempt _kernel_notify_sel;
+		Allocator::Alloc_result        _kernel_notify_phys { };
 
 		void _wait_for_irq();
 
@@ -61,6 +64,8 @@ class Core::Irq_object : public Thread {
 		bool associate(Irq_args const &);
 
 		bool msi() const { return _irq >= MSI_OFFSET; }
+
+		void stop_thread();
 };
 
 #endif /* _CORE__INCLUDE__IRQ_OBJECT_H_ */
