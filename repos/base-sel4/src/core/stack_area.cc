@@ -2,6 +2,7 @@
  * \brief  Support code for the thread API
  * \author Norman Feske
  * \author Stefan Kalkowski
+ * \author Alexander Boettcher
  * \date   2010-01-13
  */
 
@@ -15,8 +16,6 @@
 /* Genode includes */
 #include <region_map/region_map.h>
 #include <base/ram_allocator.h>
-#include <base/synced_allocator.h>
-#include <base/thread.h>
 
 /* local includes */
 #include <platform.h>
@@ -28,7 +27,16 @@
 #include <base/internal/stack_area.h>
 #include <base/internal/globals.h>
 
-using namespace Genode;
+namespace Genode {
+
+	Region_map    *env_stack_area_region_map;
+	Ram_allocator *env_stack_area_ram_allocator;
+
+	void init_stack_area();
+}
+
+
+using namespace Core;
 
 
 /**
@@ -46,10 +54,24 @@ class Stack_area_region_map : public Region_map
 {
 	private:
 
-		using Ds_slab = Synced_allocator<Tslab<Core::Dataspace_component,
-		                                       get_page_size()> >;
+		enum { CORE_MAX_THREADS = stack_area_virtual_size() /
+		                          stack_virtual_size() };
+		struct {
+			Allocator::Result phys { };
+			addr_t            core_local_addr { };
+		} _core_stacks_phys_to_virt[CORE_MAX_THREADS];
 
-		Ds_slab _ds_slab { Core::platform().core_mem_alloc() };
+		Attach_result with_phys_result(addr_t const at, auto const &fn)
+		{
+			if (at >= stack_area_virtual_size())
+				return Attach_result(Attach_error::INVALID_DATASPACE);
+
+			auto stack_id = at / stack_virtual_size();
+			if (stack_id >= CORE_MAX_THREADS)
+				return Attach_result(Attach_error::INVALID_DATASPACE);
+
+			return fn(_core_stacks_phys_to_virt[stack_id].phys);
+		}
 
 	public:
 
@@ -58,62 +80,62 @@ class Stack_area_region_map : public Region_map
 		 */
 		Attach_result attach(Dataspace_capability, Attr const &attr) override
 		{
-			using namespace Core;
+			return with_phys_result(attr.at, [&](auto &phys_result) {
 
-			size_t const size      = round_page(attr.size);
-			size_t const num_pages = size >> get_page_size_log2();
+				Range_allocator &phys_alloc = platform_specific().ram_alloc();
 
-			/* allocate physical memory */
-			Range_allocator &phys_alloc = Core::platform_specific().ram_alloc();
+				size_t const size      = round_page(attr.size);
+				size_t const num_pages = size >> get_page_size_log2();
 
-			auto phys_result = Untyped_memory::alloc_pages(phys_alloc, num_pages);
+				/* allocate physical memory */
+				phys_result = Untyped_memory::alloc_pages(phys_alloc, num_pages);
 
-			return phys_result.convert<Attach_result>([&](auto &result) {
-				addr_t const phys = addr_t(result.ptr);
+				return phys_result.template convert<Attach_result>([&](auto &result) {
+					addr_t const phys = addr_t(result.ptr);
 
-				if (!Untyped_memory::convert_to_page_frames(phys, num_pages))
-					return Attach_result(Attach_error::INVALID_DATASPACE);
+					if (!Untyped_memory::convert_to_page_frames(phys, num_pages))
+						return Attach_result(Attach_error::INVALID_DATASPACE);
 
-				auto &ds = *new (&_ds_slab) Dataspace_component(size, 0, phys,
-				                                                CACHED, true, 0);
+					addr_t const core_local_addr = stack_area_virtual_base() + attr.at;
 
-				addr_t const core_local_addr = stack_area_virtual_base() + attr.at;
+					if (!map_local(phys, core_local_addr, num_pages)) {
+						error(__func__, ": could not map phys ", Hex(phys), " "
+						      "at local ", Hex(core_local_addr));
+						return Attach_result(Attach_error::INVALID_DATASPACE);
+					}
 
-				if (!map_local(ds.phys_addr(), core_local_addr,
-				               ds.size() >> get_page_size_log2())) {
-					error(__func__, ": could not map phys ", Hex(ds.phys_addr()), " "
-					      "at local ", Hex(core_local_addr));
-
-					destroy(_ds_slab, &ds);
-
-					return Attach_result(Attach_error::INVALID_DATASPACE);
-				}
-
-				ds.assign_core_local_addr((void*)core_local_addr);
-
-				result.deallocate = false;
-
-				return Attach_result(Range { .start = attr.at, .num_bytes = size });
-			}, [&](auto) {
-				return Attach_result(Attach_error::INVALID_DATASPACE); });
+					return Attach_result(Range { .start = attr.at, .num_bytes = size });
+				}, [&](auto) {
+					return Attach_result(Attach_error::INVALID_DATASPACE); });
+			});
 		}
 
-		void detach(addr_t at) override
+		void detach(addr_t const at) override
 		{
-			using namespace Core;
+			auto result = with_phys_result(at, [&](auto &phys_result) {
 
-			if (at >= stack_area_virtual_size())
-				return;
+				addr_t const detach = stack_area_virtual_base() + at;
+				addr_t const stack  = stack_virtual_size();
+				/* calculate stack and ipc buffer size */
+				addr_t const size_i = (detach & ~(stack - 1)) + stack - detach;
+				/* remove IPC buffer size */
+				addr_t const size   = size_i >= 4096 ? size_i - 4096 : size_i;
+				addr_t const pages  = size >> get_page_size_log2();
 
-			addr_t const detach = stack_area_virtual_base() + at;
-			addr_t const stack  = stack_virtual_size();
-			addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
-			                      >> get_page_size_log2();
+				unmap_local(detach, pages);
 
-			unmap_local(detach, pages);
+				phys_result.with_result([&](auto &result) {
+					Untyped_memory::convert_to_untyped_frames(addr_t(result.ptr), size);
+				}, [](auto) { });
 
-			/* XXX missing XXX */
-			warning(__PRETTY_FUNCTION__, ": not implemented");
+				/* deallocate phys */
+				phys_result = { };
+
+				return Attach_result(Range { .start = at, .num_bytes = 0 });
+			});
+
+			if (result.failed())
+				error(__func__, " failed");
 		}
 
 		void fault_handler(Signal_context_capability) override { }
@@ -128,22 +150,15 @@ struct Stack_area_ram_allocator : Ram_allocator
 {
 	Result try_alloc(size_t, Cache) override { return { *this, { } }; }
 
-	void _free(Ram::Allocation &) override {
-		warning(__func__, " not implemented"); }
+	void _free(Ram::Allocation &) override { }
 };
 
 
-namespace Genode {
+void Genode::init_stack_area()
+{
+	static Stack_area_region_map rm;
+	env_stack_area_region_map = &rm;
 
-	Region_map    *env_stack_area_region_map;
-	Ram_allocator *env_stack_area_ram_allocator;
-
-	void init_stack_area()
-	{
-		static Stack_area_region_map rm_inst;
-		env_stack_area_region_map = &rm_inst;
-
-		static Stack_area_ram_allocator ram_inst;
-		env_stack_area_ram_allocator = &ram_inst;
-	}
+	static Stack_area_ram_allocator ram;
+	env_stack_area_ram_allocator = &ram;
 }
