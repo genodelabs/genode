@@ -1,11 +1,12 @@
 /*
  * \brief  Implementation of Thread API interface for core
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2015-05-01
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -30,6 +31,34 @@
 using namespace Core;
 
 
+enum { CORE_MAX_THREADS = stack_area_virtual_size() /
+                          stack_virtual_size() };
+
+
+static auto & _raw_thread_info_storage()
+{
+	/* not instantiated within with_thread_info() due to template */
+	static Thread_info thread_infos[CORE_MAX_THREADS];
+	return thread_infos;
+}
+
+
+static bool with_thread_info(Stack &stack, auto const &fn)
+{
+	auto &thread_infos = _raw_thread_info_storage();
+
+	if (stack.top() < stack_area_virtual_base())
+		return false;
+
+	auto const id = (stack.top() - stack_area_virtual_base()) / stack_virtual_size();
+
+	if (id >= CORE_MAX_THREADS)
+		return false;
+
+	return fn(thread_infos[id]);
+}
+
+
 void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 {
 	Native_thread &nt = stack.native_thread();
@@ -42,64 +71,83 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 		return;
 	}
 
-	bool const auto_deallocate = false;
+	with_thread_info(stack, [&](auto &thread_info){
 
-	Thread_info thread_info;
-	thread_info.init(utcb_virt, CONFIG_NUM_PRIORITIES - 1, auto_deallocate);
+		thread_info.init(utcb_virt, CONFIG_NUM_PRIORITIES - 1);
 
-	thread_info.ipc_phys.with_result([&](auto &result) {
-		if (!map_local(addr_t(result.ptr), utcb_virt.addr, 1)) {
-			error(__func__, ": could not map IPC buffer "
-			      "phys=", result.ptr, " local=", Hex(utcb_virt.addr));
+		bool ok = thread_info.ipc_phys.template convert<bool>([&](auto &result) {
+			if (!map_local(addr_t(result.ptr), utcb_virt.addr, 1)) {
+				error(__func__, ": could not map IPC buffer "
+				      "phys=", result.ptr, " local=", Hex(utcb_virt.addr));
+				return false;
+			}
+			return true;
+		}, [](auto) {
+			error(__func__, " IPC buffer error");
+			return false;
+		});
+
+		if (!ok)
+			return ok;
+
+		nt.attr.tcb_sel  = thread_info.tcb_sel.value();
+		nt.attr.ep_sel   = thread_info.ep_sel.value();
+		nt.attr.lock_sel = thread_info.lock_sel.value();
+
+		Platform &platform = platform_specific();
+
+		seL4_CNode_CapData guard = seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - 32);
+		seL4_CNode_CapData no_cap_data = { { 0 } };
+		int const ret = seL4_TCB_SetSpace(nt.attr.tcb_sel, 0,
+		                                  platform.top_cnode().sel().value(),
+		                                  guard.words[0],
+		                                  seL4_CapInitThreadPD, no_cap_data.words[0]);
+		if (ret != seL4_NoError) {
+			error("seL4_TCB_SetSpace failed");
+			return false;
 		}
-	}, [](auto) { error(__func__, " IPC buffer error"); });
 
-	nt.attr.tcb_sel  = thread_info.tcb_sel.value();
-	nt.attr.ep_sel   = thread_info.ep_sel.value();
-	nt.attr.lock_sel = thread_info.lock_sel.value();
+		/* mint notification object with badge - used by Genode::Lock */
+		Cap_sel const unbadged_sel = thread_info.lock_sel;
 
-	Platform &platform = platform_specific();
+		return platform.core_sel_alloc().alloc().convert<bool>([&](auto sel) {
+			auto lock_sel = Cap_sel(unsigned(sel));
 
-	seL4_CNode_CapData guard = seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - 32);
-	seL4_CNode_CapData no_cap_data = { { 0 } };
-	int const ret = seL4_TCB_SetSpace(nt.attr.tcb_sel, 0,
-	                                  platform.top_cnode().sel().value(),
-	                                  guard.words[0],
-	                                  seL4_CapInitThreadPD, no_cap_data.words[0]);
-	ASSERT(ret == seL4_NoError);
+			if (!platform.core_cnode().mint(platform.core_cnode(), unbadged_sel,
+			                                lock_sel)) {
+				warning("core thread: mint failed");
+				return false;
+			}
 
-	/* mint notification object with badge - used by Genode::Lock */
-	Cap_sel const unbadged_sel = thread_info.lock_sel;
+			nt.attr.lock_sel = lock_sel.value();
 
-	platform.core_sel_alloc().alloc().with_result([&](auto sel) {
-		auto lock_sel = Cap_sel(unsigned(sel));
+			/* remember for destruction of thread, e.g. IRQ thread */
+			thread_info.lock_sel          = lock_sel;
+			thread_info.lock_sel_unminted = unbadged_sel;
 
-		/* XXX */
-		warning("core thread: leaking lock_sel due to overwrite");
-
-		if (!platform.core_cnode().mint(platform.core_cnode(), unbadged_sel,
-		                                lock_sel))
-			warning("core thread: minting failed");
-
-		nt.attr.lock_sel = lock_sel.value();
-	}, [](auto) { error("unhandled case"); });
+			return true;
+		}, [](auto) {
+			warning("core thread: selector allocation failed");
+			return false;
+		});
+	});
 }
 
 
 void Thread::_deinit_native_thread(Stack &stack)
 {
-	addr_t const utcb_virt_addr = addr_t(&stack.utcb());
+	with_thread_info(stack, [&](auto &thread_info){
+		addr_t const utcb_virt_addr = addr_t(&stack.utcb());
 
-	bool ret = unmap_local(utcb_virt_addr, 1);
-	ASSERT(ret);
+		if (!unmap_local(utcb_virt_addr, 1))
+			error("could not unmap IPC buffer");
 
-	int res = seL4_CNode_Delete(seL4_CapInitThreadCNode,
-	                            stack.native_thread().attr.lock_sel, 32);
-	if (res)
-		error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
-		      Hex(stack.native_thread().attr.lock_sel), ") returned ", res);
+		thread_info.destruct();
+		/* trigger auto deallocate of phys* and re-init to default values */
+		thread_info = { };
 
-	platform_specific().core_sel_alloc().free(Cap_sel(stack.native_thread().attr.lock_sel));
+		return true;
+	});
 }
 
 

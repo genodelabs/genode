@@ -1,6 +1,7 @@
 /*
  * \brief  Utilities for thread creation on seL4
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2015-05-12
  *
  * This file is used by both the core-specific implementation of the Thread API
@@ -8,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,7 +19,6 @@
 #define _CORE__INCLUDE__THREAD_SEL4_H_
 
 /* base-internal includes */
-#include <base/internal/assert.h>
 #include <base/internal/native_utcb.h>
 
 /* core includes */
@@ -51,6 +51,8 @@ struct Genode::Thread_info
 	Cap_sel lock_sel { 0 };
 	Cap_sel vcpu_sel { 0 };
 
+	Cap_sel lock_sel_unminted { 0 };
+
 	addr_t vcpu_state_phys { 0 };
 
 	inline void write_thread_info_to_ipc_buffer(Cap_sel pd_ep_sel);
@@ -63,11 +65,8 @@ struct Genode::Thread_info
 	Thread_info() { }
 
 	inline bool init_tcb(Core::Platform &, Range_allocator &,
-	                     unsigned const prio, unsigned const cpu,
-	                     bool auto_deallocate = false);
-	inline void init(Core::Utcb_virt const utcb_virt,
-	                 unsigned const prio,
-	                 bool auto_deallocate = true);
+	                     unsigned const prio, unsigned const cpu);
+	inline void init(Core::Utcb_virt const utcb_virt, unsigned const prio);
 	inline void destruct();
 
 	bool init_vcpu(Core::Platform &, Cap_sel ept);
@@ -83,25 +82,22 @@ struct Genode::Thread_info
 bool Genode::Thread_info::init_tcb(Core::Platform &platform,
                                    Range_allocator &phys_alloc,
                                    unsigned const prio,
-                                   unsigned const cpu,
-                                   bool auto_deallocate)
+                                   unsigned const cpu)
 {
 	using namespace Core;
-
-	bool ok = false;
 
 	/* allocate TCB within core's CNode */
 	tcb_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	tcb_phys.with_result([&](auto &result) {
+	return tcb_phys.convert<bool>([&](auto &result) {
 		seL4_Untyped const service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
-		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
+		return platform.core_sel_alloc().alloc().convert<bool>([&](auto sel) {
 			auto cap_sel = Cap_sel(unsigned(sel));
 			if (!create<Tcb_kobj>(service, platform.core_cnode().sel(),
 			                      cap_sel)) {
 				platform.core_sel_alloc().free(cap_sel);
-				return;
+				return false;
 			}
 
 			tcb_sel = cap_sel;
@@ -113,20 +109,14 @@ bool Genode::Thread_info::init_tcb(Core::Platform &platform,
 			/* place at cpu */
 			affinity_sel4_thread(tcb_sel, cpu);
 
-			ok = true;
-		}, [&](auto) { /* ok is false */ });
-
-		result.deallocate = !ok ? true : auto_deallocate;
-
-	}, [&](auto) {  /* ok is false */});
-
-	return ok;
+			return true;
+		}, [&](auto) { return false; });
+	}, [&](auto) { return false; });
 }
 
 
 void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
-                               unsigned        const prio,
-                               bool            const auto_deallocate)
+                               unsigned        const prio)
 {
 	using namespace Core;
 
@@ -135,19 +125,11 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 
 	ipc_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	/* create IPC buffer of one page */
-	if (!ipc_phys.convert<bool>(
-		[&](auto &result) {
-			bool ok = Untyped_memory::convert_to_page_frames(addr_t(result.ptr), 1);
-			result.deallocate = !ok ? true : auto_deallocate;
-			return ok;
-		}, [](auto) { return false; })) {
-		ipc_phys = { };
+	if (ipc_phys.failed())
 		return;
-	}
 
 	/* allocate TCB within core's CNode */
-	if (!init_tcb(platform, phys_alloc, prio, 0, auto_deallocate)) {
+	if (!init_tcb(platform, phys_alloc, prio, 0)) {
 		tcb_phys = { };
 		return;
 	}
@@ -157,8 +139,6 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 
 	/* allocate synchronous endpoint within core's CNode */
 	ep_phys.with_result([&](auto &result) {
-		result.deallocate = auto_deallocate;
-
 		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
@@ -174,8 +154,6 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 
 	/* allocate asynchronous object within core's CSpace */
 	lock_phys.with_result([&](auto &result) {
-		result.deallocate = auto_deallocate;
-
 		auto service = Untyped_memory::untyped_sel(addr_t(result.ptr)).value();
 
 		platform.core_sel_alloc().alloc().with_result([&](auto sel) {
@@ -192,14 +170,26 @@ void Genode::Thread_info::init(Core::Utcb_virt const utcb_virt,
 	}, [](auto) { /* lock_sel stays invalid, which is checked for */ });
 
 	/* assign IPC buffer to thread */
-	ipc_phys.with_result([&](auto &result) {
+	bool ok = ipc_phys.convert<bool>([&](auto &result) {
+		if (!Untyped_memory::convert_to_page_frames(addr_t(result.ptr), 1))
+			return false;
+
 		/* determine page frame selector of the allocated IPC buffer */
 		Cap_sel ipc_buffer_sel = Untyped_memory::frame_sel(addr_t(result.ptr));
 
 		int const ret = seL4_TCB_SetIPCBuffer(tcb_sel.value(), utcb_virt.addr,
 		                                      ipc_buffer_sel.value());
-		ASSERT(ret == 0);
-	}, [](auto) { error("ipc buffer issue"); });
+		if (ret != seL4_NoError) {
+			error("seL4_TCB_SetIPCBuffer failed ", ret);
+			Untyped_memory::convert_to_untyped_frames(addr_t(result.ptr), 4096);
+		}
+
+		return ret == seL4_NoError;
+	}, [](auto) { return false; });
+
+	/* invalidate IPC buffer so that valid() will return false */
+	if (!ok)
+		ipc_phys = { };
 }
 
 
@@ -207,17 +197,25 @@ void Genode::Thread_info::destruct()
 {
 	using namespace Core;
 
+	if (lock_sel_unminted.value()) {
+		seL4_CNode_Delete(seL4_CapInitThreadCNode, lock_sel_unminted.value(), 32);
+		platform_specific().core_sel_alloc().free(lock_sel_unminted);
+		lock_sel_unminted = Cap_sel(0);
+	}
 	if (lock_sel.value()) {
 		seL4_CNode_Delete(seL4_CapInitThreadCNode, lock_sel.value(), 32);
 		platform_specific().core_sel_alloc().free(lock_sel);
+		lock_sel = Cap_sel(0);
 	}
 	if (ep_sel.value()) {
 		seL4_CNode_Delete(seL4_CapInitThreadCNode, ep_sel.value(), 32);
 		platform_specific().core_sel_alloc().free(ep_sel);
+		ep_sel = Cap_sel(0);
 	}
 	if (tcb_sel.value()) {
 		seL4_CNode_Delete(seL4_CapInitThreadCNode, tcb_sel.value(), 32);
 		platform_specific().core_sel_alloc().free(tcb_sel);
+		tcb_sel = Cap_sel(0);
 	}
 	if (vcpu_sel.value()) {
 		error(__func__, " vcpu memory leakage");
