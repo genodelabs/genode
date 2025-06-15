@@ -46,6 +46,7 @@ Rpc_cap_factory::Alloc_result Rpc_cap_factory::alloc(Native_capability ep)
 	}
 	catch (Out_of_caps) { return Alloc_error::OUT_OF_CAPS; }
 	catch (Out_of_ram)  { return Alloc_error::OUT_OF_RAM;  }
+	catch (Denied)      { return Alloc_error::DENIED;      }
 
 	return Alloc_error::DENIED;
 }

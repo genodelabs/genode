@@ -31,6 +31,48 @@
 using namespace Core;
 
 
+namespace {
+
+	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
+	                           private Core::Trace::Control,
+	                           private Core::Trace::Source
+	{
+		Core::Trace::Source_registry &_registry;
+		Thread                       &_thread;
+
+		/**
+		 * Trace::Source::Info_accessor interface
+		 */
+		Info trace_source_info() const override
+		{
+			Thread &myself = *Thread::myself();
+
+			seL4_IPCBuffer &ipc_buffer = *reinterpret_cast<seL4_IPCBuffer *>(myself.utcb());
+			uint64_t const * const buf =  reinterpret_cast<uint64_t *>(ipc_buffer.msg);
+
+			_thread.with_native_thread([&] (Native_thread &nt) {
+				seL4_BenchmarkGetThreadUtilisation(nt.attr.tcb_sel); });
+
+			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
+
+			return { Session_label("core"), _thread.name,
+			         Genode::Trace::Execution_time(thread_time, 0), _thread.affinity() };
+		}
+
+		Core_trace_source(Core::Trace::Source_registry &registry, Thread &t)
+		:
+			Core::Trace::Control(),
+			Core::Trace::Source(*this, *this),
+			_registry(registry), _thread(t)
+		{
+			_registry.insert(this);
+		}
+
+		~Core_trace_source() { _registry.remove(this); }
+	};
+}
+
+
 enum { CORE_MAX_THREADS = stack_area_virtual_size() /
                           stack_virtual_size() };
 
@@ -56,6 +98,30 @@ static bool with_thread_info(Stack &stack, auto const &fn)
 		return false;
 
 	return fn(thread_infos[id]);
+}
+
+
+static auto & _raw_core_trace_sources()
+{
+	/* not instantiated within with_thread_info() due to template */
+	static Constructible<Core_trace_source> traces[CORE_MAX_THREADS];
+	return traces;
+}
+
+
+static bool with_trace_source(Stack &stack, auto const &fn)
+{
+	auto &trace_sources = _raw_core_trace_sources();
+
+	if (stack.top() < stack_area_virtual_base())
+		return false;
+
+	auto const id = (stack.top() - stack_area_virtual_base()) / stack_virtual_size();
+
+	if (id >= CORE_MAX_THREADS)
+		return false;
+
+	return fn(trace_sources[id]);
 }
 
 
@@ -136,6 +202,11 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 
 void Thread::_deinit_native_thread(Stack &stack)
 {
+	with_trace_source(stack, [&](auto &trace_source) {
+		trace_source.destruct();
+		return true;
+	});
+
 	with_thread_info(stack, [&](auto &thread_info){
 		addr_t const utcb_virt_addr = addr_t(&stack.utcb());
 
@@ -161,44 +232,6 @@ void Thread::_thread_start()
 }
 
 
-namespace {
-
-	struct Core_trace_source : public  Core::Trace::Source::Info_accessor,
-	                           private Core::Trace::Control,
-	                           private Core::Trace::Source
-	{
-		Thread &_thread;
-
-		/**
-		 * Trace::Source::Info_accessor interface
-		 */
-		Info trace_source_info() const override
-		{
-			Thread &myself = *Thread::myself();
-
-			seL4_IPCBuffer &ipc_buffer = *reinterpret_cast<seL4_IPCBuffer *>(myself.utcb());
-			uint64_t const * const buf =  reinterpret_cast<uint64_t *>(ipc_buffer.msg);
-
-			_thread.with_native_thread([&] (Native_thread &nt) {
-				seL4_BenchmarkGetThreadUtilisation(nt.attr.tcb_sel); });
-
-			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
-
-			return { Session_label("core"), _thread.name,
-			         Genode::Trace::Execution_time(thread_time, 0), _thread.affinity() };
-		}
-
-		Core_trace_source(Core::Trace::Source_registry &registry, Thread &t)
-		:
-			Core::Trace::Control(),
-			Core::Trace::Source(*this, *this), _thread(t)
-		{
-			registry.insert(this);
-		}
-	};
-}
-
-
 Thread::Start_result Thread::start()
 {
 	return _stack.convert<Start_result>([&] (Stack &stack) {
@@ -212,10 +245,10 @@ Thread::Start_result Thread::start()
 			return Start_result::DENIED;
 		}
 
-		try {
-			new (platform().core_mem_alloc())
-				Core_trace_source(Core::Trace::sources(), *this);
-		} catch (...) { }
+		with_trace_source(stack, [&](auto &trace_source) {
+			trace_source.construct(Core::Trace::sources(), *this);
+			return true;
+		});
 
 		return Start_result::OK;
 
