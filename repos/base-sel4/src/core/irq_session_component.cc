@@ -119,6 +119,17 @@ void Irq_object::stop_thread()
 	_kernel_notify_sel.with_result([&](auto sel) {
 		seL4_Signal(sel);
 		join();
+
+		with_native_thread([&](auto const &nt) {
+			/*
+			 * Suppress kernel warnings on thread in destruction ...
+			 * since attr.lock_sel may still be in use for sleep_forever.
+			 */
+			auto ret = seL4_TCB_Suspend(nt.attr.tcb_sel);
+			if (ret != seL4_NoError)
+				error("could not suspend IRQ thread before destruction");
+		}, []() { error("native IRQ thread invalid"); });
+
 	}, [](auto){ error("IRQ thread could not be stopped"); });
 }
 

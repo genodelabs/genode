@@ -25,7 +25,7 @@
 using namespace Core;
 
 
-void Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
+bool Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
                              unsigned cpu, addr_t const virt_utcb)
 {
 	/* set register values for the instruction pointer and stack pointer */
@@ -36,27 +36,30 @@ void Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
 	regs.rip = ip;
 	regs.rsp = sp;
 
-	long const ret = seL4_TCB_WriteRegisters(tcb_sel.value(), false, 0,
-	                                         num_regs, &regs);
-	ASSERT(ret == 0);
+	auto ret = seL4_TCB_WriteRegisters(tcb_sel.value(), false, 0,
+	                                   num_regs, &regs);
+	if (ret != seL4_NoError)
+		return false;
 
-	affinity_sel4_thread(tcb_sel, cpu);
+	if (!affinity_sel4_thread(tcb_sel, cpu))
+		return false;
 
 	/*
 	 * Set tls pointer to location, where ipcbuffer address is stored, so
 	 * that it can be used by register fs (seL4_GetIPCBuffer())
 	 */
-	auto error = seL4_TCB_SetTLSBase(tcb_sel.value(),
-	                                 virt_utcb + Native_utcb::tls_ipcbuffer_offset);
-	ASSERT(not error);
+	ret = seL4_TCB_SetTLSBase(tcb_sel.value(),
+	                          virt_utcb + Native_utcb::tls_ipcbuffer_offset);
+	if (ret != seL4_NoError)
+		return false;
 
-	seL4_TCB_Resume(tcb_sel.value());
+	return seL4_TCB_Resume(tcb_sel.value()) == seL4_NoError;
 }
 
 
-void Core::affinity_sel4_thread(Cap_sel const &tcb_sel, unsigned cpu)
+bool Core::affinity_sel4_thread(Cap_sel const &tcb_sel, unsigned cpu)
 {
-	seL4_TCB_SetAffinity(tcb_sel.value(), cpu);
+	return seL4_TCB_SetAffinity(tcb_sel.value(), cpu) == seL4_NoError;
 }
 
 

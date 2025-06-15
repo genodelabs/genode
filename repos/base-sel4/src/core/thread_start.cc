@@ -206,9 +206,12 @@ Thread::Start_result Thread::start()
 		/* write ipcbuffer address to utcb*/
 		utcb()->ipcbuffer(Native_utcb::Virt { addr_t(utcb()) });
 
-		start_sel4_thread(Cap_sel(stack.native_thread().attr.tcb_sel),
-		                  addr_t(&_thread_start), stack.top(),
-		                  _affinity.xpos(), addr_t(utcb()));
+		if (!start_sel4_thread(Cap_sel(stack.native_thread().attr.tcb_sel),
+		                       addr_t(&_thread_start), stack.top(),
+		                       _affinity.xpos(), addr_t(utcb()))) {
+			return Start_result::DENIED;
+		}
+
 		try {
 			new (platform().core_mem_alloc())
 				Core_trace_source(Core::Trace::sources(), *this);

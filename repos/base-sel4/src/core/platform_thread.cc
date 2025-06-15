@@ -176,16 +176,20 @@ void Platform_thread::start(void *ip, void *sp, unsigned int)
 	seL4_CNode_CapData const no_cap_data = { { 0 } };
 
 	_pd.with_cspace_cnode_1st([&](auto const &cnode_1st) {
-		int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(),
-		                                  _fault_handler_sel.value(),
-		                                  cnode_1st.sel().value(),
-		                                  guard_cap_data.words[0],
-		                                  _pd.page_directory_sel().value(),
-		                                  no_cap_data.words[0]);
-		ASSERT(ret == 0);
+		auto const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(),
+		                                   _fault_handler_sel.value(),
+		                                   cnode_1st.sel().value(),
+		                                   guard_cap_data.words[0],
+		                                   _pd.page_directory_sel().value(),
+		                                   no_cap_data.words[0]);
+		if (ret != seL4_NoError) {
+			error("seL4_TCB_SetSpace failed - thread is dead");
+			return;
+		}
 
-		start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp), _location.xpos(),
-		                  _utcb.addr);
+		if (!start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp),
+		                       _location.xpos(), _utcb.addr))
+			error("start_sel4_thread failed - thread is dead");
 	});
 }
 
