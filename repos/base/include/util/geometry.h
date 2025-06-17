@@ -63,15 +63,23 @@ struct Genode::Point
 	}
 
 	/**
-	 * Construct point from XML node attributes
+	 * Construct point from node attributes
 	 *
-	 * The XML node is expected to feature the attributes 'xpos' and 'ypos'.
+	 * The node is expected to feature the attributes 'xpos' and 'ypos'.
 	 */
-	static Point from_xml(Xml_node const &node)
+	static Point from_node(auto const &node)
 	{
 		return Point(node.attribute_value("xpos", CT{}),
 		             node.attribute_value("ypos", CT{}));
 	}
+
+	/**
+	 * API-compatibility wrapper for 'from_node'
+	 *
+	 * \noapi
+	 * \deprecated
+	 */
+	static Point from_xml(Xml_node const &node) { return from_node(node); };
 };
 
 
@@ -100,16 +108,24 @@ struct Genode::Area
 	void print(Output &out) const { Genode::print(out, w, "x", h); }
 
 	/**
-	 * Construct area from XML node attributes
+	 * Construct area from node attributes
 	 *
-	 * The XML node is expected to feature the attributes 'width' and
+	 * The node is expected to feature the attributes 'width' and
 	 * 'height'.
 	 */
-	static Area from_xml(Xml_node const &node)
+	static Area from_node(auto const &node)
 	{
 		return Area(node.attribute_value("width",  DT{}),
 		            node.attribute_value("height", DT{}));
 	}
+
+	/**
+	 * API-compatibility wrapper for 'from_node'
+	 *
+	 * \noapi
+	 * \deprecated
+	 */
+	static Area from_xml(Xml_node const &node) { return from_node(node); }
 };
 
 
@@ -254,16 +270,24 @@ struct Genode::Rect
 	void print(Output &out) const { Genode::print(out, area, at); }
 
 	/**
-	 * Construct rectangle from XML node attributes
+	 * Construct rectangle from node attributes
 	 *
 	 * The XML node is expected to feature the attributes 'xpos', 'ypos'.
 	 * 'width', and 'height'. If an attribute is absent, the corresponding
 	 * value is set to 0.
 	 */
-	static Rect from_xml(Xml_node const &node)
+	static Rect from_node(auto const &node)
 	{
-		return Rect(Point::from_xml(node), Area::from_xml(node));
+		return Rect(Point::from_node(node), Area::from_node(node));
 	}
+
+	/**
+	 * API-compatibility wrapper for 'from_node'
+	 *
+	 * \noapi
+	 * \deprecated
+	 */
+	static Rect from_xml(Xml_node const &node) { return from_node(node); }
 };
 
 #endif /* _INCLUDE__UTIL__GEOMETRY_H_ */

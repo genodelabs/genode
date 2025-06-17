@@ -126,7 +126,7 @@ namespace {
 
 			Tslab<Service::Session, 4000> _session_slab { &_sliced_heap };
 
-			void _handle_session_request(Xml_node const &, char const *type);
+			void _handle_session_request(Node const &, char const *type);
 			void _handle_session_requests();
 
 			Service_registry _services { };
@@ -152,7 +152,7 @@ namespace {
 }
 
 
-void Root_proxy::_handle_session_request(Xml_node const &request, char const *type)
+void Root_proxy::_handle_session_request(Node const &request, char const *type)
 {
 	if (!request.has_attribute("id") || !request.has_type(type))
 		return;
@@ -168,8 +168,8 @@ void Root_proxy::_handle_session_request(Xml_node const &request, char const *ty
 
 		using Args = Session_state::Args;
 		Args const args = request.with_sub_node("args",
-			[] (Xml_node const &node) { return node.decoded_content<Args>(); },
-			[]                        { return Args(); });
+			[] (Node const &node) { return node.decoded_content<Args>(); },
+			[]                    { return Args(); });
 
 		/* construct session */
 		Service::Name const name = request.attribute_value("service", Service::Name());
@@ -194,7 +194,7 @@ void Root_proxy::_handle_session_request(Xml_node const &request, char const *ty
 		};
 
 		_services.apply(name, [&] (Service &service) {
-			Root_client(service.root).session(args.string(), Affinity::from_xml(request))
+			Root_client(service.root).session(args.string(), Affinity::from_node(request))
 				.with_result([&] (Session_capability cap) {
 					new (_session_slab) Session(_id_space, id, service, cap);
 					_env.parent().deliver_session_cap(id, cap);
@@ -238,7 +238,7 @@ void Root_proxy::_handle_session_requests()
 {
 	_session_requests.update();
 
-	Xml_node const requests = _session_requests.xml();
+	Node const requests = _session_requests.node();
 
 	/*
 	 * Make sure to hande create requests after close requests. Otherwise, a
@@ -248,13 +248,13 @@ void Root_proxy::_handle_session_requests()
 	 * step. If we served the new client before the old one, it would look like
 	 * an attempt to create a second session.
 	 */
-	requests.for_each_sub_node([&] (Xml_node const &request) {
+	requests.for_each_sub_node([&] (Node const &request) {
 		_handle_session_request(request, "upgrade"); });
 
-	requests.for_each_sub_node([&] (Xml_node const &request) {
+	requests.for_each_sub_node([&] (Node const &request) {
 		_handle_session_request(request, "close"); });
 
-	requests.for_each_sub_node([&] (Xml_node const &request) {
+	requests.for_each_sub_node([&] (Node const &request) {
 		_handle_session_request(request, "create"); });
 }
 

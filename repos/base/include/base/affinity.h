@@ -88,11 +88,19 @@ class Genode::Affinity
 				 */
 				inline Location location_of_index(int index) const;
 
-				static Space from_xml(Xml_node const &node)
+				static Space from_node(auto const &node)
 				{
 					return Affinity::Space(node.attribute_value("width",  0U),
 					                       node.attribute_value("height", 0U));
 				}
+
+				/**
+				 * API-compatibility wrapper for 'from_node'
+				 *
+				 * \noapi
+				 * \deprecated
+				 */
+				static Space from_xml(Xml_node const &node) { return from_node(node); }
 		};
 
 
@@ -153,7 +161,7 @@ class Genode::Affinity
 					    && y1 >= 0 && y1 <= y2 && (unsigned)y2 < space.height();
 				}
 
-				static Location from_xml(Space const &space, Xml_node const &node)
+				static Location from_node(Space const &space, auto const &node)
 				{
 					/* if no position value is specified, select the whole row/column */
 					unsigned const
@@ -166,6 +174,13 @@ class Genode::Affinity
 					                node.attribute_value("height", default_height));
 				}
 
+				/**
+				 * API-compatibility wrapper for 'from_node'
+				 *
+				 * \noapi
+				 * \deprecated
+				 */
+				static Location from_xml(auto &&... args) { return from_node(args...); }
 		};
 
 	private:
@@ -184,20 +199,28 @@ class Genode::Affinity
 		Location location() const { return _location; }
 		bool     valid()    const { return _location.within(_space); }
 
-		static Affinity from_xml(Xml_node const &node)
+		static Affinity from_node(auto const &node)
 		{
 			Affinity::Space    space    { };
 			Affinity::Location location { };
 
-			node.with_optional_sub_node("affinity", [&] (Xml_node const &node) {
-				node.with_optional_sub_node("space", [&] (Xml_node const &node) {
-					space = Space::from_xml(node); });
-				node.with_optional_sub_node("location", [&] (Xml_node const &node) {
-					location = Location::from_xml(space, node); });
+			node.with_optional_sub_node("affinity", [&] (auto const &node) {
+				node.with_optional_sub_node("space", [&] (auto const &node) {
+					space = Space::from_node(node); });
+				node.with_optional_sub_node("location", [&] (auto const &node) {
+					location = Location::from_node(space, node); });
 			});
 
 			return Affinity(space, location);
 		}
+
+		/**
+		 * API-compatibility wrapper for 'from_node'
+		 *
+		 * \noapi
+		 * \deprecated
+		 */
+		static Affinity from_xml(Xml_node const &node) { return from_node(node); }
 
 		static Affinity unrestricted()
 		{

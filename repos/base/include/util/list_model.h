@@ -1,50 +1,50 @@
 /*
- * \brief  List-based data model created and updated from XML
+ * \brief  List-based data model created and updated from node content
  * \author Norman Feske
  * \date   2017-08-09
  *
- * The 'List_model' stores a component-internal representation of XML-node
+ * The 'List_model' stores a component-internal representation of node
  * content. The internal representation 'ELEM' carries two methods 'matches'
- * and 'type_matches' that define the relation of the elements to XML nodes.
+ * and 'type_matches' that define the relation of the elements to nodes.
  * E.g.,
  *
  * ! struct Item : List_model<Item>::Element
  * ! {
- * !   static bool type_matches(Xml_node const &);
+ * !   static bool type_matches(Node const &);
  * !
- * !   bool matches(Xml_node const &) const;
+ * !   bool matches(Node const &) const;
  * !   ...
  * ! };
  *
- * The class function 'type_matches' returns true if the specified XML node
- * matches the 'Item' type. It can thereby be used to control the creation
- * of 'ELEM' nodes by responding to specific XML tags while ignoring unrelated
- * XML tags.
+ * The class function 'type_matches' returns true if the specified 'Node'
+ * matches the 'Item' type. It can thereby be used to control the creation of
+ * 'ELEM' nodes by responding to specific node types while ignoring unrelated
+ * nodes.
  *
  * The 'matches' method returns true if the concrete element instance matches
- * the given XML node. It is used to correlate existing 'ELEM' objects with
- * new versions of XML nodes to update the 'ELEM' objects.
+ * the given node. It is used to correlate existing 'ELEM' objects with new
+ * versions of nodes to update the 'ELEM' objects.
  *
  * The functor arguments 'create_fn', 'destroy_fn', and 'update_fn' for the
- * 'update_from_xml' method define how objects are created, destructed, and
- * updated. E.g.,
+ * 'update' method define how objects are created, destructed, and updated.
+ * E.g.,
  *
- * ! _list_model.update_from_xml(node,
+ * ! _list_model.update_from_node(node,
  * !
- * !   [&] (Xml_node const &node) -> Item & {
+ * !   [&] (Node const &node) -> Item & {
  * !     return *new (alloc) Item(node); },
  * !
  * !   [&] (Item &item) { destroy(alloc, &item); },
  * !
- * !   [&] (Item &item, Xml_node const &node) { item.update(node); }
+ * !   [&] (Item &item, Node const &node) { item.update(node); }
  * ! );
  *
- * The elements are ordered according to the order of XML nodes.
+ * The elements are ordered according to the order of sub nodes.
  *
  * The list model is a container owning the elements. Before destructing a
- * list model, its elements must be removed by calling 'update_from_xml'
- * with an 'Xml_node("<empty/>")' as argument, which results in the call
- * of 'destroy_fn' for each element.
+ * list model, its elements must be removed by calling 'update' with an emtpy
+ * 'Node()' as argument, which results in the call of 'destroy_fn' for each
+ * element.
  */
 
 /*
@@ -59,9 +59,9 @@
 
 /* Genode includes */
 #include <util/noncopyable.h>
-#include <util/xml_node.h>
 #include <util/list.h>
 #include <base/log.h>
+#include <base/node.h>
 
 namespace Genode { template <typename> class List_model; }
 
@@ -81,7 +81,7 @@ class Genode::List_model : Noncopyable
 		{
 			private:
 
-				/* used by 'List_model::update_from_xml' only */
+				/* used by 'List_model::update_from_node' only */
 				friend class List_model;
 				friend class List<ELEM>;
 
@@ -112,12 +112,20 @@ class Genode::List_model : Noncopyable
 		}
 
 		/**
-		 * Update data model according to the given XML node
+		 * Update data model according to the given node
 		 */
-		inline void update_from_xml(Xml_node const &,
-		                            auto const &create_fn,
-		                            auto const &destroy_fn,
-		                            auto const &update_fn);
+		inline void update_from_node(auto const &node,
+		                             auto const &create_fn,
+		                             auto const &destroy_fn,
+		                             auto const &update_fn);
+
+		/**
+		 * API-compatibility wrapper for 'update_from_node'
+		 *
+		 * \noapi
+		 * \deprecated
+		 */
+		inline void update_from_xml(auto &&... args) { update_from_node(args...); }
 
 		/**
 		 * Call functor 'fn' for each const element
@@ -157,18 +165,18 @@ class Genode::List_model : Noncopyable
 
 
 template <typename ELEM>
-void Genode::List_model<ELEM>::update_from_xml(Xml_node const &node,
-                                               auto const &create_fn,
-                                               auto const &destroy_fn,
-                                               auto const &update_fn)
+void Genode::List_model<ELEM>::update_from_node(auto const &node,
+                                                auto const &create_fn,
+                                                auto const &destroy_fn,
+                                                auto const &update_fn)
 {
 	List<ELEM> updated_list;
 
 	ELEM *last_updated = nullptr; /* used for appending to 'updated_list' */
 
-	node.for_each_sub_node([&] (Xml_node const &sub_node) {
+	node.for_each_sub_node([&] (auto const &sub_node) {
 
-		/* skip XML nodes that are unrelated to the data model */
+		/* skip nodes that are unrelated to the data model */
 		if (!ELEM::type_matches(sub_node))
 			return;
 

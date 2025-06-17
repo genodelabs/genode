@@ -15,7 +15,7 @@
 #define _INCLUDE__BASE__ATTACHED_ROM_DATASPACE_H_
 
 #include <util/reconstructible.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <base/attached_dataspace.h>
 #include <rom_session/connection.h>
 
@@ -136,6 +136,22 @@ class Genode::Attached_rom_dataspace
 
 			return Xml_node("<empty/>");
 		}
+
+		/**
+		 * Return dataspace content as node
+		 *
+		 * This method always returns a valid node. If the dataspace is invalid
+		 * or does not contain properly formatted data, the returned node has
+		 * the type 'empty'.
+		 */
+		Node node() const
+		{
+			if (valid() && local_addr<void const>())
+				return { Const_byte_range_ptr(local_addr<char>(), size()) };
+
+			return Node();
+		}
+
 };
 
 #endif /* _INCLUDE__BASE__ATTACHED_ROM_DATASPACE_H_ */
