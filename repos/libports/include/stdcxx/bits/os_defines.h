@@ -32,4 +32,7 @@
  */
 #define _GTHREAD_USE_MUTEX_INIT_FUNC 1
 
+/* no support for referencing weak symbols without a definition */
+#define _GLIBCXX_USE_WEAK_REF 0
+
 #endif /* _INCLUDE__STDCXX__BITS__OS_DEFINES_H_ */
