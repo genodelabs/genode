@@ -191,15 +191,37 @@ class Platform::Session_component : public Rpc_object<Session>,
 		 * track DMA memory allocations so we can free them at session
 		 * destruction
 		 */
-		struct Buffer : Dma_buffer, Registry<Buffer>::Element
+		struct Buffer : Registry<Buffer>::Element
 		{
+			Platform::Connection &platform;
+
+			Ram_dataspace_capability cap { };
+
 			Buffer(Registry<Buffer> &registry,
 			       Connection       &platform,
 			       size_t            size,
 			       Cache             cache)
 			:
-				Dma_buffer(platform, size, cache),
-				Registry<Buffer>::Element(registry, *this) {}
+				Registry<Buffer>::Element(registry, *this),
+				platform(platform)
+			{
+				/*
+				 * Invoke directly on session so that Out_of ram/cap are
+				 * forwarded directly to the client, e.g. w/o attempts
+				 * by this driver to upgrade the session from its own
+				 * quota.
+				 */
+				Platform::Client session_wo_retry(platform.cap());
+				cap = session_wo_retry.alloc_dma_buffer(size, cache);
+			}
+
+			~Buffer()
+			{
+				if (cap.valid())
+					platform.free_dma_buffer(cap);
+			}
+
+			addr_t dma_addr() const { return platform.dma_addr(cap); }
 		};
 		Registry<Buffer> _dma_registry { };
 
@@ -264,7 +286,8 @@ class Platform::Session_component : public Rpc_object<Session>,
 		{
 			Buffer &db = *(new (_heap)
 				Buffer(_dma_registry, _platform, size, cache));
-			return static_cap_cast<Ram_dataspace>(db.cap());
+
+			return db.cap;
 		}
 
 		void free_dma_buffer(Ram_dataspace_capability cap) override
@@ -272,7 +295,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 			if (!cap.valid()) return;
 
 			_dma_registry.for_each([&](Buffer &db) {
-				if ((db.cap() == cap) == false) return;
+				if ((db.cap == cap) == false) return;
 				destroy(_heap, &db);
 			});
 		}
@@ -281,7 +304,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 		{
 			addr_t ret = 0UL;
 			_dma_registry.for_each([&](Buffer &db) {
-				if ((db.cap() == cap) == false) return;
+				if ((db.cap == cap) == false) return;
 				ret = db.dma_addr();
 			});
 			return ret;
