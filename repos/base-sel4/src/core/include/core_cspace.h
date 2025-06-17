@@ -25,10 +25,10 @@ class Core::Core_cspace
 
 		/* CNode dimensions */
 		enum {
-			NUM_TOP_SEL_LOG2  = 12UL,
+			NUM_TOP_SEL_LOG2  = 11UL,
 			/* CONFIG_ROOT_CNODE_SIZE_BITS from seL4 autoconf.h */
 			NUM_CORE_SEL_LOG2 = CONFIG_ROOT_CNODE_SIZE_BITS,
-			NUM_PHYS_SEL_LOG2 = 20UL,
+			NUM_PHYS_SEL_LOG2 = 21UL,
 
 			NUM_CORE_PAD_SEL_LOG2 = 32UL - NUM_TOP_SEL_LOG2 - NUM_CORE_SEL_LOG2,
 		};
@@ -47,11 +47,9 @@ class Core::Core_cspace
 		enum Top_cnode_idx {
 			TOP_CNODE_CORE_IDX    = 0,
 
-			/* XXX mark last index usable for PDs */
-
-			TOP_CNODE_UNTYPED_16K = 0xffd, /* untyped objects 16K  */
-			TOP_CNODE_UNTYPED_4K  = 0xffe, /* untyped objects  4K  */
-			TOP_CNODE_PHYS_IDX    = 0xfff  /* physical page frames */
+			TOP_CNODE_UNTYPED_16K = 0x7fd, /* untyped objects 16K  */
+			TOP_CNODE_UNTYPED_4K  = 0x7fe, /* untyped objects  4K  */
+			TOP_CNODE_PHYS_IDX    = 0x7ff  /* physical page frames */
 		};
 
 		enum { CORE_VM_ID = 1 };

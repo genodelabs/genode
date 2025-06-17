@@ -60,7 +60,8 @@ struct Core::Untyped_memory
 	                                      addr_t size_log2 = get_page_size_log2())
 	{
 		unsigned const upper_bits = top_idx << Core_cspace::NUM_PHYS_SEL_LOG2;
-		unsigned const lower_bits = (unsigned)(phys_addr >> size_log2);
+		unsigned const mask       = (1ul << Core_cspace::NUM_PHYS_SEL_LOG2) - 1;
+		unsigned const lower_bits = unsigned(phys_addr >> size_log2) & mask;
 
 		return Cap_sel(upper_bits | lower_bits);
 	}

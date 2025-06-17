@@ -177,6 +177,7 @@ class Core::Initial_untyped_pool
 		 */
 		void turn_into_untyped_object(addr_t  const node_index,
 		                              auto    const &fn,
+		                              auto    const &fn_revert,
 		                              size_t  const size_log2 = get_page_size_log2(),
 		                              addr_t  max_memory = 0UL - 0x1000UL)
 		{
@@ -215,8 +216,8 @@ class Core::Initial_untyped_pool
 					addr_t       const node_offset = phys_addr >> size_log2;
 					addr_t       const num_objects = num_pages;
 
-					/* XXX skip memory because of limited untyped cnode range */
-					if (node_offset >= (1UL << (32 - get_page_size_log2()))) {
+					/* skip memory because of limited untyped phys cnode range */
+					if (node_offset >= (1UL << (Core_cspace::NUM_PHYS_SEL_LOG2))) {
 						warning(range.device ? "device" : "      ", " memory in range ",
 						        Hex_range<addr_t>(range.phys, range.size),
 						        " is unavailable (due to limited untyped cnode range)");
@@ -240,8 +241,11 @@ class Core::Initial_untyped_pool
 					                                     num_objects);
 
 					if (ret != 0) {
-						error(__func__, ": seL4_Untyped_Retype (untyped) "
-						      "returned ", ret);
+						error("turn_into_untyped_object : "
+						      "seL4_Untyped_Retype (untyped) returned ", ret);
+
+						fn_revert(phys_addr, num_pages << size_log2,
+						          range.device);
 						return;
 					}
 

@@ -91,11 +91,27 @@ void Platform::_init_core_page_table_registry()
 			if (device_memory)
 				return false;
 
-			if (phys_alloc_16k()  .add_range   (phys, size).failed()
-			 || _unused_phys_alloc.remove_range(phys, size).failed())
+			if (_unused_phys_alloc.remove_range(phys, size).failed()) {
 				warning("unable to register range as RAM: ", Hex_range(phys, size));
+				return false;
+			}
+
+			if (phys_alloc_16k().add_range(phys, size).failed()) {
+				if (_unused_phys_alloc.add_range(phys, size).failed())
+					warning("unable to remove range as RAM: ", Hex_range(phys, size));
+				warning("unable to register range as RAM: ", Hex_range(phys, size));
+				return false;
+			}
 
 			return true;
+		},
+		[&] (addr_t const phys, addr_t const size, bool const device_memory) {
+			if (device_memory)
+				return;
+
+			if (phys_alloc_16k()  .remove_range(phys, size).failed() ||
+			    _unused_phys_alloc.add_range   (phys, size).failed())
+				warning("unable to re-add phys RAM: ", Hex_range(phys, size));
 		},
 		Vcpu_kobj::SIZE_LOG2, max_pd_mem);
 

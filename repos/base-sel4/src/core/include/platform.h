@@ -119,7 +119,7 @@ class Core::Platform : public Platform_generic
 
 		/*
 		 * Until this point, no interaction with the seL4 kernel was needed.
-		 * However, the next steps involve the invokation of system calls and
+		 * However, the next steps involve the invocation of system calls and
 		 * the use of kernel services. To use the kernel bindings, we first
 		 * need to initialize the TLS mechanism that is used to find the IPC
 		 * buffer for the calling thread.
@@ -196,7 +196,7 @@ class Core::Platform : public Platform_generic
 		void       _switch_to_core_cspace();
 		bool const _switch_to_core_cspace_done;
 
-		Static_allocator<sizeof(void *) * 12> _core_page_table_registry_alloc { };
+		Static_allocator<sizeof(void *) * 48> _core_page_table_registry_alloc { };
 		Page_table_registry _core_page_table_registry;
 
 		/**
