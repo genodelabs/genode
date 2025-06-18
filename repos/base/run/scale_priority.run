@@ -4,6 +4,7 @@ set start_at_zero "yes"
 set inverse "yes"
 if {[have_spec hw]} {            # hw has priorities 3..0
 	set prio_levels_log2 2
+	set inverse "no"
 } elseif {[have_spec nova]} {    # nova has priorities 64..1
 	set prio_levels_log2 6
 	set start_at_zero "no"

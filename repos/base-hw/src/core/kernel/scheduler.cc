@@ -1,6 +1,7 @@
 /*
  * \brief   Schedules execution times of a CPU
  * \author  Stefan Kalkowski
+ * \author  Johannes Schlatow
  * \date    2014-10-09
  */
 
@@ -53,8 +54,10 @@ void Scheduler::Group::insert_orderly(Context &c)
 {
 	using List_element = Genode::List_element<Context>;
 
+	time_t const l = _warp_limit;
+
 	if (!_contexts.first() ||
-	    _contexts.first()->object()->vtime() >= c.vtime()) {
+	    _contexts.first()->object()->vtime(_warp, l) >= c.vtime(_warp, l)) {
 		_contexts.insert(&c._group_le);
 		return;
 	}
@@ -62,7 +65,7 @@ void Scheduler::Group::insert_orderly(Context &c)
 	for (List_element * le = _contexts.first(); le;
 	     le = le->next())
 		if (!le->next() ||
-		    le->next()->object()->vtime() >= c.vtime()) {
+		    le->next()->object()->vtime(_warp, l) >= c.vtime(_warp, l)) {
 			_contexts.insert(&c._group_le, le);
 			return;
 		}
@@ -84,14 +87,22 @@ void Scheduler::Timeout::timeout_triggered()
 
 bool Scheduler::_earlier(Context const &first, Context const &second) const
 {
-	if (first.equal_group(second))
-		return first._vtime <= second._vtime;
-
 	bool ret = false;
+	if (first.equal_group(second)) {
+		_with_group(first, [&] (Group const &g) {
+			ret = first. vtime(g._warp, g._warp_limit) <=
+			      second.vtime(g._warp, g._warp_limit);
+		});
+		return ret;
+	}
+
 	_with_group(first, [&] (Group const &g1) {
 		ret = true;
 		_with_group(second, [&] (Group const &g2) {
-			ret = g1.earlier(g2); });
+			ret =    first .with_warp(g1._warp, g1._warp_limit, [&] (vtime_t w1) {
+				return second.with_warp(g2._warp, g2._warp_limit, [&] (vtime_t w2) {
+					return (g1._vtime + w2) <= (g2._vtime + w1); }); });
+		});
 	});
 
 	return ret;
@@ -109,6 +120,35 @@ bool Scheduler::_ready(Group const &group) const
 	_with_group(current(), [&] (Group const &cg) {
 		if (&cg == &group) ready = true; });
 	return ready;
+}
+
+
+void Scheduler::_fast_forward(Group &group)
+{
+	/* skip if group was ready on last update() or its vtime not below min_vtime */
+	if (group._last_ready || group._vtime >= _min_vtime)
+		return;
+
+	/*
+	 * When the group was unready for a relatively short time, e.g. waiting for
+	 * cross-core IPC, it should not be penalized by fast-forwarding its vtime
+	 * to min_vtime and letting the group wait for every group with a larger warp
+	 * value. To cirumvent his, we assume the group had been scheduled
+	 * the entire time instead of being unready. If the notional vtime is still
+	 * smaller than min_vtime, we let the group continue with this vtime.
+	 * This mechanism, however, is only effective when the group's waiting time
+	 * was at most MIN_SCHEDULE_US. Otherwise, a group with a large weight would
+	 * receive additional CPU time after waiting for a long time while another
+	 * low weight group was executing.
+	 */
+	time_t const duration = _last_time - group._last_state_change;
+	if (duration <= _min_timeout) {
+		group.add_ticks(duration);
+		group._vtime = min(group._vtime, _min_vtime);
+		return;
+	}
+
+	group._vtime = _min_vtime;
 }
 
 
@@ -152,13 +192,16 @@ void Scheduler::_check_ready_contexts()
 
 		_with_group(c, [&] (Group &group) {
 
-			/* If group has a vtime in the past, use minimum vtime */
-			if (!_ready(group) && (_min_vtime > group._vtime))
-				group._vtime = _min_vtime;
+			/* fast-forward the group's vtime if it became ready */
+			if (!_ready(group))
+				_fast_forward(group);
 
 			/* if context has a vtime in the past, use groups' minimum time */
 			if (group._min_vtime > c._vtime)
 				c._vtime = group._min_vtime;
+
+			/* remember execution time when context got ready */
+			c._ready_execution_time = c._execution_time;
 
 			if (_earlier(c, current()) ||
 			    _ticks_distant_to_current(c) < _timer.ticks_left(_timeout))
@@ -177,11 +220,19 @@ time_t Scheduler::_ticks_distant_to_current(Context const &context) const
 
 	_with_group(current(), [&] (Group const &cur) {
 		_with_group(context, [&] (Group const &oth) {
+			vtime_t const w1 = cur._warp;
+			vtime_t const w2 = oth._warp;
+			time_t  const l1 = cur._warp_limit;
+			time_t  const l2 = oth._warp_limit;
+
 			if (&cur == &oth)
-				time = (context._vtime - current()._vtime) + _min_timeout;
-			else
-				time = ((oth._vtime+cur._warp)
-				        - (cur._vtime+oth._warp)) * cur._weight + _min_timeout;
+				time = (context.vtime(w2, l2) - current().vtime(w1, l2)) + _min_timeout;
+			else {
+				time = current().with_warp(w1, l1, [&] (vtime_t curw) {
+					return context.with_warp(w2, l2, [&] (vtime_t othw) {
+						return ((oth._vtime+curw)
+						        - (cur._vtime+othw)) * cur._weight + _min_timeout; }); });
+			}
 		});
 	});
 
@@ -195,6 +246,14 @@ void Scheduler::update()
 
 	/* move contexts from _ready_contexts into groups */
 	_check_ready_contexts();
+
+	/* remember group ready state and timestamp of any state change */
+	_for_each_group([&] (Group &group) {
+		bool const ready = _ready(group);
+		if (group._last_ready != ready)
+			group._last_state_change = _last_time;
+		group._last_ready = ready;
+	});
 
 	if (_up_to_date())
 		return;

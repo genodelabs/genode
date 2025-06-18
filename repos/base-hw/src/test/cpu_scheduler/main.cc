@@ -91,6 +91,7 @@ struct Scheduler_test::Main
 		scheduler._for_each_group([&] (Scheduler::Group &group) {
 			log("Group ", i++, " (weight=", group._weight,
 			    ", warp=", group._warp,
+				", limit=", group._warp_limit,
 			    ") has vtime: ", group._vtime,
 			    " and min_vtime: ", group._min_vtime);
 
@@ -100,15 +101,17 @@ struct Scheduler_test::Main
 			for (List_element * le = group._contexts.first(); le;
 			     le = le->next()) {
 			Scheduler::Context &c = *le->object();
-				log("    ", label(c), " has vtime: ", c.vtime(),
+				log("    ", label(c), " has vtime: ", c._vtime,
 				    " and real execution time: ", c.execution_time());
 			}
 		});
 
 		log("Current context: ", current().label(),
 		    " (group=", current()._id.value,
-		    ") has vtime: ", current().vtime(),
-		    " and real execution time: ", current().execution_time());
+		    ") has vtime: ", current()._vtime,
+			" ready execution time: ", current()._ready_execution_time);
+		log("                 and real execution time: ",
+		    current().execution_time());
 	}
 
 	void update_and_check(time_t   const consumed_abs_time,
@@ -148,10 +151,10 @@ struct Scheduler_test::Main
 		 * the algorithm logic gets tested here instead
 		 */
 		scheduler._min_timeout = 500;
-		construct_at<Scheduler::Group>(&scheduler._groups[Gids::DRIVER], 2, 400);
-		construct_at<Scheduler::Group>(&scheduler._groups[Gids::MULTIMEDIA], 3, 200);
-		construct_at<Scheduler::Group>(&scheduler._groups[Gids::APP], 2, 100);
-		construct_at<Scheduler::Group>(&scheduler._groups[Gids::BACKGROUND], 1, 0);
+		construct_at<Scheduler::Group>(&scheduler._groups[Gids::DRIVER], 2, 400, 2900);
+		construct_at<Scheduler::Group>(&scheduler._groups[Gids::MULTIMEDIA], 3, 200, 2900);
+		construct_at<Scheduler::Group>(&scheduler._groups[Gids::APP], 2, 100, 2900);
+		construct_at<Scheduler::Group>(&scheduler._groups[Gids::BACKGROUND], 1, 0, 0);
 	}
 };
 
@@ -192,18 +195,27 @@ void Scheduler_test::Main::test_one_per_group()
 	scheduler.ready(contexts[MUL1]);
 
 	/* params:       time, curr, timeout, line */
-	update_and_check(    0, DRV1,    1400, __LINE__);
-	update_and_check( 1400, MUL1,    3200, __LINE__);
-	update_and_check( 3200, APP1,    4400, __LINE__);
-	update_and_check( 4400, BCK1,    5200, __LINE__);
-	update_and_check( 5200, DRV1,    6400, __LINE__);
-	update_and_check( 6400, MUL1,    8200, __LINE__);
-	update_and_check( 8200, APP1,    9800, __LINE__);
-	update_and_check( 9800, BCK1,   10400, __LINE__);
-	update_and_check(10400, DRV1,   11600, __LINE__);
-	update_and_check(11600, MUL1,   14000, __LINE__);
-	update_and_check(14000, APP1,   15200, __LINE__);
-	update_and_check(15200, BCK1,   15800, __LINE__);
+	update_and_check(    0, DRV1,     900, __LINE__);
+	update_and_check(  900, MUL1,    1700, __LINE__);
+	update_and_check( 1700, APP1,    2400, __LINE__);
+	update_and_check( 2400, BCK1,    2950, __LINE__);
+	update_and_check( 3000, DRV1,    3532, __LINE__);
+	update_and_check( 3600, MUL1,    4652, __LINE__);
+	update_and_check( 4700, APP1,    5400, __LINE__);
+	update_and_check( 5500, DRV1,    6164, __LINE__);
+	update_and_check( 6200, MUL1,    7204, __LINE__);
+	/* MUL1 warp limit reached */
+	update_and_check( 7300, BCK1,    7850, __LINE__);
+	update_and_check( 7900, APP1,    8500, __LINE__);
+	update_and_check( 8500, DRV1,    9500, __LINE__);
+	/* DRV1 warp limit reached */
+	update_and_check( 9500, APP1,   10096, __LINE__);
+	update_and_check(10100, MUL1,   11206, __LINE__);
+	update_and_check(11300, BCK1,   11850, __LINE__);
+	update_and_check(11900, APP1,   12696, __LINE__);
+	/* APP1 warp limit reached */
+	update_and_check(12700, MUL1,   13806, __LINE__);
+	update_and_check(13900, DRV1,   14700, __LINE__);
 }
 
 
@@ -215,24 +227,24 @@ void Scheduler_test::Main::test_io_signal()
 	scheduler.ready(contexts[APP1]);
 
 	/* params:       time, curr, timeout, line */
-	update_and_check(   0, APP1,    1200, __LINE__);
-	update_and_check(1200, BCK1,    1700, __LINE__);
-	update_and_check(1700, BCK2,    2200, __LINE__);
-	update_and_check(2200, APP1,    4200, __LINE__);
+	update_and_check(   0, APP1,     700, __LINE__);
+	update_and_check( 700, BCK1,    1200, __LINE__);
+	update_and_check(1200, APP1,    2200, __LINE__);
+	update_and_check(2200, BCK2,    2700, __LINE__);
 	scheduler.ready(contexts[DRV1]); /* irq occurred */
-	update_and_check(3000, DRV1,    4600, __LINE__);
-	timer.set_time(3200);
+	update_and_check(2500, DRV1,    3700, __LINE__);
+	timer.set_time(2700);
 	scheduler.ready(contexts[MUL1]); /* signal occurred */
 	scheduler.unready(contexts[DRV1]);
-	update_and_check(3200, MUL1,    5000, __LINE__);
-	timer.set_time(3500);
+	update_and_check(2700, MUL1,    3650, __LINE__);
+	timer.set_time(3000);
 	scheduler.ready(contexts[APP2]); /* signal occurred */
 	scheduler.unready(contexts[MUL1]);
 	update_and_check(3500, APP2,    4000, __LINE__);
-	timer.set_time(3600);
+	timer.set_time(3700);
 	scheduler.unready(contexts[APP2]);
-	update_and_check(3600, APP1,    4700, __LINE__);
-	update_and_check(4700, BCK3,    5700, __LINE__);
+	update_and_check(3700, BCK3,    4250, __LINE__);
+	update_and_check(4700, APP1,    7100, __LINE__);
 }
 
 
@@ -258,25 +270,25 @@ void Scheduler_test::Main::test_all_and_yield()
 	update_and_check(1500, APP1,    2000, __LINE__);
 	update_and_check(2000, MUL2,    2500, __LINE__);
 	update_and_check(2500, BCK1,    3000, __LINE__);
-	update_and_check(3000, DRV3,    4000, __LINE__);
-	update_and_check(4000, MUL3,    5000, __LINE__);
-	update_and_check(5000, APP2,    5500, __LINE__);
-	update_and_check(5500, APP3,    6500, __LINE__);
-	update_and_check(6500, MUL2,    7000, __LINE__);
-	update_and_check(7000, BCK2,    7500, __LINE__);
-	timer.set_time(7100);
+	update_and_check(3000, DRV3,    3564, __LINE__);
+	update_and_check(3600, MUL3,    4154, __LINE__);
+	update_and_check(4200, APP2,    4700, __LINE__);
+	update_and_check(4700, MUL2,    5200, __LINE__);
+	update_and_check(5200, APP3,    5700, __LINE__);
+	update_and_check(5700, DRV2,    6200, __LINE__);
+	timer.set_time(5800);
 	scheduler.yield();
-	update_and_check(7100, BCK3,    7600, __LINE__);
-	timer.set_time(7200);
+	update_and_check(5800, DRV1,    6396, __LINE__);
+	timer.set_time(5900);
 	scheduler.yield();
-	update_and_check(7200, DRV2,    7700, __LINE__);
-	update_and_check(7700, MUL1,    8700, __LINE__);
-	update_and_check(8700, BCK1,    9300, __LINE__);
-	update_and_check(9300, DRV1,   10300, __LINE__);
-	timer.set_time(10000);
+	update_and_check(5900, MUL1,    6406, __LINE__);
+	update_and_check(6500, BCK2,    7000, __LINE__);
+	update_and_check(7000, DRV3,    7800, __LINE__);
+	update_and_check(7800, APP3,    8300, __LINE__);
+	timer.set_time(8000);
 	scheduler.yield();
-	update_and_check(10000, APP2,  10500, __LINE__);
-	update_and_check(10500, MUL2,  11000, __LINE__);
+	update_and_check(8000, MUL3,    8656, __LINE__);
+	update_and_check(8700, APP2,    9200, __LINE__);
 }
 
 void Component::construct(Env &env)
