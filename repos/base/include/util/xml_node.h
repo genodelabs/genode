@@ -863,12 +863,13 @@ class Genode::Xml_node
 		 * The functor is called with the sub node as argument.
 		 * If no matching sub node exists, the functor 'missing_fn' is called.
 		 */
-		void with_sub_node(char const *type, auto const &fn, auto const &missing_fn) const
+		auto with_sub_node(char const *type, auto const &fn,
+		                   auto const &missing_fn) const -> decltype(missing_fn())
 		{
 			if (has_sub_node(type))
-				fn(sub_node(type));
+				return fn(sub_node(type));
 			else
-				missing_fn();
+				return missing_fn();
 		}
 
 		/**
