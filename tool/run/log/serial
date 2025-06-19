@@ -28,7 +28,8 @@ proc log_serial_filter { } {
 proc run_log { wait_for_re timeout_value } {
 	global output_spawn_id
 
-	set kernel_msg [run_boot_string]
+	set kernel_msg     [run_boot_string]
+	set bootloader_msg [run_bootloader_string]
 
 	#
 	# Certain devices send garbage through the serial connection that may
@@ -47,14 +48,33 @@ proc run_log { wait_for_re timeout_value } {
 		set serial_cmd_chain "$serial_cmd_chain | [log_serial_filter]"
 	}
 
-	#
 	# XXX the initial timeout was estimated by testing and is merely enough
 	#     to load large scenarios via TFTP.
 	#
-	set timeout 210
 
 	spawn /bin/sh -c "$serial_cmd_chain"
 	set output_spawn_id $spawn_id
+
+	if {$bootloader_msg ne ""} {
+		set timeout 15
+
+		expect {
+			-i $output_spawn_id $bootloader_msg { }
+			eof         {
+				puts stderr "Aborting, received EOF during wait for bootloder"
+				return false
+			}
+			timeout     {
+				puts stderr "Boot process timed out during wait for bootlaoder"
+				close
+				return false
+			}
+		}
+
+		set timeout 195
+	} else {
+		set timeout 210
+	}
 
 	expect {
 		-i $output_spawn_id $kernel_msg { }
@@ -71,4 +91,15 @@ proc run_log { wait_for_re timeout_value } {
 
 	wait_for_output $wait_for_re $timeout_value $output_spawn_id
 	return true
+}
+
+
+proc run_bootloader_string { } {
+	if {[have_spec arm] && [have_include "image/uboot"] && [have_include "load/tftp"]} {
+		if {[have_board imx6q_sabrelite]} {
+			# uboot output before loading per TFTP file
+			return "Filename '"
+		}
+	}
+	return ""
 }
