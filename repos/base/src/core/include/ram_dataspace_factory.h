@@ -46,6 +46,7 @@ class Core::Ram_dataspace_factory : public Dataspace_owner
 		Range_allocator &_phys_alloc;
 		Phys_range const _phys_range;
 
+		Mutex _mutex { };
 
 		/*
 		 * Statically allocated initial slab block for '_ds_slab', needed to

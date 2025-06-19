@@ -39,6 +39,8 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 	 */
 	Range_allocator::Alloc_result allocated_range = Alloc_error::DENIED;
 
+	Mutex::Guard guard(_mutex);
+
 	/* apply constraints */
 	if (_phys_range.start != 0 || _phys_range.end != ~0UL) {
 		for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
@@ -144,6 +146,8 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 
 void Ram_dataspace_factory::free_ram(Ram_dataspace_capability ds_cap)
 {
+	Mutex::Guard guard(_mutex);
+
 	Dataspace_component *ds = nullptr;
 	_ep.apply(ds_cap, [&] (Dataspace_component *c)
 	{
