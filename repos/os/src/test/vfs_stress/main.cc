@@ -524,7 +524,12 @@ void Component::construct(Genode::Env &env)
 	Attached_rom_dataspace config_rom(env, "config");
 	Xml_node const config_xml = config_rom.xml();
 
-	Vfs::Simple_env vfs_env { env, heap, config_xml.sub_node("vfs") };
+	Vfs::Simple_env vfs_env = config_rom.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Vfs::Simple_env {
+			return { env, heap, config }; },
+		[&] () -> Vfs::Simple_env {
+			error("VFS not configured");
+			return { env, heap, Xml_node("<empty/>") }; });
 
 	Vfs::File_system &vfs_root = vfs_env.root_dir();
 

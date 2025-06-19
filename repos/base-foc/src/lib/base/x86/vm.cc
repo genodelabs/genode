@@ -1370,18 +1370,20 @@ struct Foc_vcpu : Thread, Noncopyable
 
 static enum Virt virt_type(Env &env)
 {
-	try {
-		Attached_rom_dataspace const info(env, "platform_info");
-		Xml_node const features = info.xml().sub_node("hardware").sub_node("features");
+	Virt result = Virt::UNKNOWN;
 
-		if (features.attribute_value("svm", false))
-			return Virt::SVM;
+	Attached_rom_dataspace(env, "platform_info").xml().with_optional_sub_node("hardware",
+		[&] (Xml_node const &hardware) {
+			hardware.with_optional_sub_node("features",
+				[&] (Xml_node const &features) {
+					if (features.attribute_value("svm", false))
+						result = Virt::SVM;
 
-		if (features.attribute_value("vmx", false))
-			return Virt::VMX;
-	} catch (...) { }
-
-	return Virt::UNKNOWN;
+					if (features.attribute_value("vmx", false))
+						result = Virt::VMX;
+				});
+		});
+	return result;
 }
 
 

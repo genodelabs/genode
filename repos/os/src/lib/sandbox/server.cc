@@ -90,27 +90,26 @@ Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 	try {
 		Session_policy policy(label, _service_node->xml);
 
-		if (!policy.has_sub_node("child"))
-			throw Service_denied();
+		return policy.with_sub_node("child", [&] (Xml_node const &target_node) {
 
-		Xml_node target_node = policy.sub_node("child");
+			Child_policy::Name const child_name =
+				target_node.attribute_value("name", Child_policy::Name());
 
-		Child_policy::Name const child_name =
-			target_node.attribute_value("name", Child_policy::Name());
+			using Label = String<Session_label::capacity()>;
+			Label const target_label =
+				target_node.attribute_value("label", Label(label.string()));
 
-		using Label = String<Session_label::capacity()>;
-		Label const target_label =
-			target_node.attribute_value("label", Label(label.string()));
+			Routed_service *match = nullptr;
+			_child_services.for_each([&] (Routed_service &service) {
+				if (service.child_name() == child_name && service.name() == name())
+					match = &service; });
 
-		Routed_service *match = nullptr;
-		_child_services.for_each([&] (Routed_service &service) {
-			if (service.child_name() == child_name && service.name() == name())
-				match = &service; });
+			if (!match || match->abandoned())
+				throw Service_not_present();
 
-		if (!match || match->abandoned())
-			throw Service_not_present();
+			return Route { *match, target_label };
 
-		return Route { *match, target_label };
+		}, [&] () -> Route { throw Service_denied(); });
 	}
 	catch (Session_policy::No_policy_defined) {
 		throw Service_denied(); }
@@ -222,7 +221,9 @@ void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
 		return;
 
 	using Args = Session_state::Args;
-	Args const args = request.sub_node("args").decoded_content<Args>();
+	Args const args = request.with_sub_node("args",
+		[] (Xml_node const &node) { return node.decoded_content<Args>(); },
+		[]                        { return Args(); });
 
 	Service::Name const name = request.attribute_value("service", Service::Name());
 

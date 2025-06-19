@@ -47,9 +47,21 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 		void _process()
 		{
 			_parent_rom.update();
-			Xml_node requests = _parent_rom.xml();
+			Xml_node const &requests = _parent_rom.xml();
 
-			auto const create_fn = [&] (Xml_node request)
+			using Args = Session_state::Args;
+
+			auto args_from_request = [] (Xml_node const &request)
+			{
+				return request.with_sub_node("args",
+					[] (Xml_node const &node) { return node.decoded_content<Args>(); },
+					[&] {
+						Genode::error("failed to parse request ", request);
+						return Args();
+					});
+			};
+
+			auto const create_fn = [&] (Xml_node const &request)
 			{
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };
@@ -57,16 +69,10 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 				using Name = Session_state::Name;
 				using Args = Session_state::Args;
 
-				Name name { };
-				Args args { };
-
-				try {
-					name = request.attribute_value("service", Name());
-					args = request.sub_node("args").decoded_content<Args>();
-				} catch (...) {
-					Genode::error("failed to parse request ", request);
+				Name const name = request.attribute_value("service", Name());
+				Args const args = args_from_request(request);
+				if (args.length() <= 1)
 					return;
-				}
 
 				try { _requests_handler.handle_session_create(name, id, args); }
 				catch (Service_denied) {
@@ -82,23 +88,17 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 				}
 			};
 
-			auto const upgrade_fn = [&] (Xml_node request)
+			auto const upgrade_fn = [&] (Xml_node const &request)
 			{
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };
 
-				using Args = Session_state::Args;
-				Args args { };
-				try { args = request.sub_node("args").decoded_content<Args>(); }
-				catch (...) {
-					Genode::error("failed to parse request ", request);
-					return;
-				}
-
-				_requests_handler.handle_session_upgrade(id, args);
+				Args const args = args_from_request(request);
+				if (args.length() > 1)
+					_requests_handler.handle_session_upgrade(id, args);
 			};
 
-			auto const close_fn = [&] (Xml_node request)
+			auto const close_fn = [&] (Xml_node const &request)
 			{
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };

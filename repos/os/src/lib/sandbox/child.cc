@@ -88,14 +88,13 @@ Sandbox::Child::apply_config(Xml_node const &start_node)
 		if (!config_was_present && config_is_present)
 			config_update = CONFIG_APPEARED;
 
-		if (config_was_present && config_is_present) {
-
-			Xml_node const old_config = _start_node->xml.sub_node(tag);
-			Xml_node const new_config = start_node.sub_node(tag);
-
-			if (new_config.differs_from(old_config))
-				config_update = CONFIG_CHANGED;
-		}
+		if (config_was_present && config_is_present)
+			_start_node->xml.with_optional_sub_node(tag,
+				[&] (Xml_node const &old_config) {
+					start_node.with_optional_sub_node(tag,
+						[&] (Xml_node const &new_config) {
+							if (new_config.differs_from(old_config))
+								config_update = CONFIG_CHANGED; }); });
 
 		/*
 		 * Import updated <provides> node

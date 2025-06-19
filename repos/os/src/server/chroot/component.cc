@@ -215,7 +215,9 @@ void Chroot::Main::handle_session_request(Xml_node const &request)
 			return;
 
 		using Args = Session_state::Args;
-		Args const args = request.sub_node("args").decoded_content<Args>();
+		Args const args = request.with_sub_node("args",
+			[] (Xml_node const &node) { return node.decoded_content<Args>(); },
+			[]                        { return Args(); });
 
 		Session *session = nullptr;
 		try {

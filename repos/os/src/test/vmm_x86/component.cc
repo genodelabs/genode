@@ -221,13 +221,13 @@ class Vmm::Vm
 		/* lookup which hardware assisted feature the CPU supports */
 		static bool _vm_feature(Env &env, char const *name)
 		{
-			try {
-				Attached_rom_dataspace info { env, "platform_info"};
+			Attached_rom_dataspace info { env, "platform_info"};
 
-				return info.xml().sub_node("hardware").sub_node("features").attribute_value(name, false);
-			} catch (...) { }
-
-			return false;
+			bool result = false;
+			info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &node) {
+				node.with_optional_sub_node("features", [&] (Xml_node const &node) {
+					result = node.attribute_value(name, false); }); });
+			return result;
 		}
 
 	public:

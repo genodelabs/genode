@@ -36,17 +36,12 @@ struct Test::Main
 
 	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Genode::Xml_node vfs_config()
-	{
-		try { return _config_rom.xml().sub_node("vfs"); }
-		catch (...) {
-			Genode::error("VFS not configured");
-			_env.parent().exit(~0);
-			throw;
-		}
-	}
-
-	Vfs::Simple_env _vfs_env { _env, _heap, vfs_config() };
+	Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Vfs::Simple_env {
+			return { _env, _heap, config }; },
+		[&] () -> Vfs::Simple_env {
+			error("VFS not configured");
+			return { _env, _heap, Xml_node("<empty/>") }; });
 
 	Constructible<Expanding_reporter> _devices_reporter { };
 	Constructible<Expanding_reporter> _focus_reporter   { };

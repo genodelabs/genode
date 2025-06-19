@@ -203,10 +203,9 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		static Binary_name _binary_from_xml(Xml_node const &start_node,
 		                                    Name const &unique_name)
 		{
-			if (!start_node.has_sub_node("binary"))
-				return unique_name;
-
-			return start_node.sub_node("binary").attribute_value("name", Name());
+			return start_node.with_sub_node("binary",
+				[]  (Xml_node const &node) { return node.attribute_value("name", Name()); },
+				[&]                        { return unique_name; });
 		}
 
 		/* updated on configuration update */
@@ -346,17 +345,10 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			 */
 			Result produce_content(Byte_range_ptr const &dst) override
 			{
-				Xml_node config = _child._start_node->xml.has_sub_node("config")
-				                ? _child._start_node->xml.sub_node("config")
-				                : Xml_node("<config/>");
+				Result result = Buffer_error::EXCEEDED;
 
-				size_t const config_len = config.size();
-
-				if (config_len + 1 /* null termination */ >= dst.num_bytes)
-					return Buffer_error::EXCEEDED;
-
-				config.with_raw_node([&] (char const *start, size_t length) {
-
+				auto try_copy = [&] (char const *start, size_t length)
+				{
 					/*
 					 * The 'length' is the number of bytes of the config-node
 					 * content, which is not null-terminated. Since
@@ -366,9 +358,24 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 					 * thereby include the last actual config-content character
 					 * in the result.
 					 */
+					if (length + 1 /* null termination */ >= dst.num_bytes)
+						return; /* EXCEEDED */
+
 					copy_cstring(dst.start, start, length + 1);
-				});
-				return Ok();
+					result = Ok();
+				};
+
+				_child._start_node->xml.with_sub_node("config",
+					[&] (Xml_node const &config) {
+						config.with_raw_node([&] (char const *start, size_t length) {
+							try_copy(start, length); });
+					},
+					[&] {
+						char const *start = "<config/>";
+						try_copy(start, strlen(start));
+					});
+
+				return result;
 			}
 
 			void trigger_update() { _session.trigger_update(); }

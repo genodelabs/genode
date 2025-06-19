@@ -306,8 +306,12 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 	Heap                    _heap       { _env.ram(), _env.rm() };
 	Attached_rom_dataspace  _config_rom { _env, "config" };
 
-	Vfs::Simple_env _vfs_env { _env, _heap,
-		_config_rom.xml().sub_node("vfs"), *this };
+	Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Vfs::Simple_env {
+			return { _env, _heap, config, *this }; },
+		[&] () -> Vfs::Simple_env {
+			error("VFS not configured");
+			return { _env, _heap, Xml_node("<empty/>") }; });
 
 	Constructible<Attached_ram_dataspace>  _block_ds { };
 	Constructible<Vfs_block::File>         _block_file { };

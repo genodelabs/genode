@@ -42,7 +42,11 @@ struct Test::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Root_directory _root_dir { _env, _heap, _config.xml().sub_node("vfs") };
+	Root_directory _root_dir = _config.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Root_directory {
+			return { _env, _heap, config }; },
+		[&] () -> Root_directory {
+			return { _env, _heap, Xml_node("<empty/>") }; });
 
 	static Gui::Area _area_from_xml(Xml_node const &node, Gui::Area default_area)
 	{

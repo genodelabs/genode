@@ -295,8 +295,12 @@ void test_pat(Genode::Env &env)
 
 	/* read out the tsc frequenzy once */
 	Attached_rom_dataspace const platform_info (env, "platform_info");
-	Xml_node const hardware = platform_info.xml().sub_node("hardware");
-	uint64_t const tsc_freq = hardware.sub_node("tsc").attribute_value("freq_khz", 1ULL);
+	uint64_t const tsc_freq = platform_info.xml().with_sub_node("hardware",
+		[] (Xml_node const &hardware) {
+			return hardware.with_sub_node("tsc",
+				[] (Xml_node const &tsc) { return tsc.attribute_value("freq_khz", 1ULL); },
+				[]                       { return 1ULL; }); },
+		[] { return 1ULL; });
 
 	enum { DS_ORDER = 12, PAGE_4K = 12, DS_SIZE = 1ul << (DS_ORDER + PAGE_4K) };
 

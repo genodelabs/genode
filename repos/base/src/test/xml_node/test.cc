@@ -281,13 +281,11 @@ struct Formatted_xml_node
 		print_xml_attr_info(output, _node, _indent + 2);
 
 		/* print information of sub nodes */
-		for (unsigned i = 0; i < _node.num_sub_nodes(); i++) {
-			try {
-				print(output, Formatted_xml_node(_node.sub_node(i), _indent + 2));
-			} catch (Xml_node::Invalid_syntax) {
-				print(output, "invalid syntax of sub node ", i, "\n");
-			}
-		}
+		unsigned i = 0;
+		_node.for_each_sub_node([&] (Xml_node const &sub_node) {
+			print(output, Formatted_xml_node(sub_node, _indent + 2));
+			i++;
+		});
 	}
 };
 
@@ -399,10 +397,11 @@ void Component::construct(Genode::Env &env)
 	log_xml_info(xml_test_unfinished_string);
 
 	log("-- Test node access by key --");
-	Xml_node prg(Xml_node(xml_test_valid).sub_node(0U));
-	log_key(prg, "filename");
-	log_key(prg, "quota");
-	log_key(prg, "info");
+	Xml_node(Const_byte_range_ptr(xml_test_valid, strlen(xml_test_valid)))
+		.with_optional_sub_node("program", [&] (Xml_node const &prg) {
+			log_key(prg, "filename");
+			log_key(prg, "quota");
+			log_key(prg, "info"); });
 
 	log("-- Test access to XML attributes --");
 	log_xml_info(xml_test_attributes);

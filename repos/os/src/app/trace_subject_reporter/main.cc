@@ -165,9 +165,9 @@ struct App::Main
 
 	bool _config_report_attribute_enabled(char const *attr) const
 	{
-		try {
-			return _config.xml().sub_node("report").attribute_value(attr, false);
-		} catch (...) { return false; }
+		return _config.xml().with_sub_node("report",
+			[&] (Xml_node const &node) { return node.attribute_value(attr, false); },
+			[]                         { return false; });
 	}
 
 	Timer::Connection _timer { _env };

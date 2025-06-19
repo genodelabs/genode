@@ -43,8 +43,6 @@ struct Local::Bad_args_nic : Connection<Nic::Session>
 
 struct Local::Construct_destruct_test
 {
-	enum { DEFAULT_NR_OF_ROUNDS  = 10 };
-	enum { DEFAULT_NR_OF_SESSIONS = 10 };
 	enum { PKT_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
 	enum { BUF_SIZE = 100 * PKT_SIZE };
 
@@ -55,22 +53,17 @@ struct Local::Construct_destruct_test
 	Signal_context_capability    _completed_sigh;
 	Xml_node              const &_config;
 	Nic::Packet_allocator        _pkt_alloc     { &_alloc };
-	bool                  const  _config_exists { _config.has_sub_node("construct_destruct") };
 	Constructible<Bad_args_nic>  _bad_args_nic  { };
 
-	unsigned long const _nr_of_rounds {
-		_config_exists ?
-			_config.sub_node("construct_destruct").
-				attribute_value("nr_of_rounds",
-				                (unsigned long)DEFAULT_NR_OF_ROUNDS) :
-			(unsigned long)DEFAULT_NR_OF_ROUNDS };
+	unsigned long _attr_value(auto const &attr, auto const default_value) const
+	{
+		return _config.with_sub_node("construct_destruct",
+			[&] (Xml_node const &node) { return node.attribute_value(attr, default_value); },
+			[&]                        { return default_value; });
+	}
 
-	unsigned long const _nr_of_sessions {
-		_config_exists ?
-			_config.sub_node("construct_destruct").
-				attribute_value("nr_of_sessions",
-				                (unsigned long)DEFAULT_NR_OF_SESSIONS) :
-				(unsigned long)DEFAULT_NR_OF_SESSIONS };
+	unsigned long const _nr_of_rounds   = _attr_value("nr_of_rounds",   10);
+	unsigned long const _nr_of_sessions = _attr_value("nr_of_sessions", 10);
 
 	void construct_all(Nic_slot *const nic,
 	                   unsigned  const round)

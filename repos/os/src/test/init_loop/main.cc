@@ -173,8 +173,10 @@ struct Test::Main
 
 	static Number_of_bytes _init_ram(Xml_node const &state)
 	{
-		/* \throw Nonexistent_sub_node */
-		return state.sub_node("ram").attribute_value("quota", Number_of_bytes());
+		return state.with_sub_node("ram",
+			[&] (Xml_node const &ram) {
+				return ram.attribute_value("quota", Number_of_bytes()); },
+			[&] { return Number_of_bytes(); });
 	}
 
 	using Name = String<32>;
@@ -226,11 +228,12 @@ struct Test::Main
 				_cnt++;
 				log("iteration ", _cnt);
 
-				if (state.has_sub_node("ram"))
-					_init_ram_tracker.update(state.sub_node("ram"));
+				state.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
+					_init_ram_tracker.update(ram); });
 
 				_apply_child(state, "server", [&] (Xml_node const &child) {
-					_server_ram_tracker.update(child.sub_node("ram")); });
+					child.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
+						_server_ram_tracker.update(ram); }); });
 
 				_client_starting = true;
 

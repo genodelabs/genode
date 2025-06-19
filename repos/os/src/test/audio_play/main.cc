@@ -35,7 +35,14 @@ struct Audio_play::Main
 	Attached_rom_dataspace _config { _env, "config" };
 
 	Vfs::Global_file_system_factory _fs_factory { _heap };
-	Vfs::Simple_env _vfs_env { _env, _heap, _config.xml().sub_node("vfs") };
+
+	Vfs::Simple_env _vfs_env = _config.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Vfs::Simple_env {
+			return { _env, _heap, config }; },
+		[&] () -> Vfs::Simple_env {
+			error("VFS not configured");
+			return { _env, _heap, Xml_node("<empty/>") }; });
+
 	Directory _root_dir { _vfs_env };
 
 	Directory::Path const _sample_path =

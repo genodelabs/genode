@@ -864,8 +864,7 @@ class Vfs::Dir_file_system : public File_system
 			using namespace Genode;
 
 			File_system *curr = _first_file_system;
-			for (unsigned i = 0; i < node.num_sub_nodes(); i++, curr = curr->next) {
-				Xml_node const &sub_node = node.sub_node(i);
+			node.for_each_sub_node([&] (Xml_node const &sub_node) {
 
 				if (!curr) {
 					error("VFS config update missed file system for ", sub_node);
@@ -879,8 +878,9 @@ class Vfs::Dir_file_system : public File_system
 					return;
 				}
 
-				curr->apply_config(node.sub_node(i));
-			}
+				curr->apply_config(sub_node);
+			 	curr = curr->next;
+			});
 		}
 
 

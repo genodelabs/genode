@@ -150,17 +150,21 @@ class Test::Subsystem
 
 		/**
 		 * Return currently present imported text
-		 *
-		 * \throw Xml_node::Nonexistent_sub_node
 		 */
-		Xml_node _imported_text() const
+		auto _with_imported_text(auto const &fn, auto const &missing_fn) const
+		-> decltype(missing_fn())
 		{
 			if (!_import_content)
-				throw Xml_node::Nonexistent_sub_node();
+				return missing_fn();
 
-			Xml_node clipboard(_import_content, _import_rom.size());
-
-			return clipboard.sub_node("text");
+			try {
+				Xml_node const clipboard(_import_content, _import_rom.size());
+				return clipboard.with_sub_node("text",
+					[&] (Xml_node const &text) { return fn(text); },
+					[&]                        { return missing_fn(); });
+			}
+			catch (Xml_node::Invalid_syntax) {
+				return missing_fn(); }
 		}
 
 	public:
@@ -195,25 +199,22 @@ class Test::Subsystem
 		bool has_content(char const *str) const
 		{
 			using namespace Genode;
-			try {
-				using String = String<100>;
+			return _with_imported_text(
+				[&] (Xml_node const &text) {
 
-				String const expected(str);
-				String const imported = _imported_text().decoded_content<String>();
+					using String = String<100>;
+					String const expected(str);
+					String const imported = text.decoded_content<String>();
 
-				return expected == imported;
-			}
-			catch (...) { }
-			return false;
+					return expected == imported;
+				},
+				[&] { return false; });
 		}
 
 		bool cleared() const
 		{
-			try {
-				_imported_text();
-				return false;
-			} catch (...) { }
-			return true;
+			return _with_imported_text([] (Xml_node const &) { return false; },
+			                           []                    { return true; });
 		}
 
 		/**

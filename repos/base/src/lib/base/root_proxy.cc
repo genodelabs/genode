@@ -167,7 +167,9 @@ void Root_proxy::_handle_session_request(Xml_node const &request, char const *ty
 			return;
 
 		using Args = Session_state::Args;
-		Args const args = request.sub_node("args").decoded_content<Args>();
+		Args const args = request.with_sub_node("args",
+			[] (Xml_node const &node) { return node.decoded_content<Args>(); },
+			[]                        { return Args(); });
 
 		/* construct session */
 		Service::Name const name = request.attribute_value("service", Service::Name());

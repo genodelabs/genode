@@ -27,12 +27,12 @@ struct Main
 	void handle_config()
 	{
 		config.update();
-		try {
-			Xml_node const counter = config.xml().sub_node("counter");
-			counter.with_raw_content([&] (char const *start, size_t length) {
-				log("obtained counter value ", Cstring(start, length), " from config"); });
-		}
-		catch (...) { error("could not parse configuration"); }
+		config.xml().with_sub_node("counter",
+			[&] (Xml_node const &counter) {
+				counter.with_raw_content([&] (char const *start, size_t length) {
+					log("obtained counter value ", Cstring(start, length), " from config"); });
+			},
+			[&] { error("could not parse configuration"); });
 	}
 
 	Main(Env &env) : env(env)

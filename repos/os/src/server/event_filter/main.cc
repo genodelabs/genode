@@ -437,8 +437,8 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 		_event_root.apply_config(config);
 
 		try {
-			if (config.has_sub_node("output"))
-				_output.construct(config.sub_node("output"), *this);
+			config.with_optional_sub_node("output", [&] (Xml_node const &output) {
+				_output.construct(output, *this); });
 		}
 		catch (Source::Invalid_config) {
 			warning("invalid <output> configuration"); }

@@ -764,16 +764,6 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 
 		Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
-		Genode::Xml_node vfs_config()
-		{
-			try { return _config_rom.xml().sub_node("vfs"); }
-			catch (...) {
-				Genode::error("VFS not configured");
-				_env.parent().exit(~0);
-				throw;
-			}
-		}
-
 		Genode::Signal_handler<Root> _reactivate_handler {
 			_env.ep(), *this, &Root::handle_io_progress };
 
@@ -798,8 +788,14 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 		 * The VFS uses an internal heap that
 		 * subtracts from the component quota
 		 */
-		Genode::Heap    _vfs_heap { &_env.ram(), &_env.rm() };
-		Vfs::Simple_env _vfs_env  { _env, _vfs_heap, vfs_config() };
+		Genode::Heap _vfs_heap { &_env.ram(), &_env.rm() };
+
+		Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
+			[&] (Xml_node const &config) -> Vfs::Simple_env {
+				return { _env, _vfs_heap, config }; },
+			[&] () -> Vfs::Simple_env {
+				Genode::error("VFS not configured");
+				return { _env, _vfs_heap, Xml_node("<empty/>") }; });
 
 		/* sessions with active jobs */
 		Session_queue _active_sessions { };

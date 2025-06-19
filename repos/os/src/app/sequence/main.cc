@@ -272,11 +272,23 @@ void Sequence::Main::start_next_child()
 			finished = true;
 			break;
 		}
-		Xml_node sub_node = config_xml.sub_node(next_xml_index++);
-		if (sub_node.type() != "start")
-			continue;
-		child.construct(env, sub_node, exit_handler);
-		break;
+
+		auto with_sub_node_at = [] (Xml_node const &node, unsigned at, auto const &fn)
+		{
+			unsigned i = 0;
+			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+				if (i++ == at)
+					fn(sub_node); });
+		};
+
+		bool child_reconstructed = false;
+		with_sub_node_at(config_xml, next_xml_index++, [&] (Xml_node const &sub_node) {
+			if (sub_node.type() == "start") {
+				child.construct(env, sub_node, exit_handler);
+				child_reconstructed = true; } });
+
+		if (child_reconstructed)
+			break;
 	}
 
 	if (finished) {

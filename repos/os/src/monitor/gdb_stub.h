@@ -159,7 +159,9 @@ struct Monitor::Gdb::State : Noncopyable
 
 	struct Max_response { size_t num_bytes; };
 
-	Max_response max_response;
+	Number_of_bytes const _default_max_response { 2048 };
+
+	Max_response const max_response;
 
 	/**
 	 * Try to notify GDB about a vanished inferior
@@ -308,8 +310,11 @@ struct Monitor::Gdb::State : Noncopyable
 	      Xml_node const &config)
 	:
 		inferiors(inferiors), _memory_accessor(memory_accessor),
-		max_response(config.sub_node("monitor").attribute_value("max_response",
-		                                                        Number_of_bytes(2048)))
+		max_response(config.with_sub_node("monitor",
+			[&] (Xml_node const &node) {
+				return node.attribute_value("max_response", _default_max_response); },
+			[&] {
+				return _default_max_response; }))
 	{ }
 };
 

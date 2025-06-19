@@ -232,17 +232,14 @@ struct Tar_rom::Main
 
 	using Name = String<64>;
 
-	/**
-	 * Read name of tar archive from config
-	 */
 	Name _tar_name()
 	{
-		try {
-			return _config.xml().sub_node("archive").attribute_value("name", Name());
-		} catch (...) {
-			error("could not read archive name argument from config");
-			throw;
-		}
+		return _config.xml().with_sub_node("archive",
+			[&] (Xml_node const &node) { return node.attribute_value("name", Name()); },
+			[&] () -> Name {
+				error("could not read archive name argument from config");
+				sleep_forever();
+			});
 	}
 
 	Attached_rom_dataspace _tar_ds { _env, _tar_name().string() };

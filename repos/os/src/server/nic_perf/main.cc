@@ -82,8 +82,9 @@ struct Nic_perf::Main
 		if (_nic_client.constructed())
 			_nic_client.destruct();
 
-		if (_config.xml().has_sub_node("nic-client"))
-			_nic_client.construct(_env, _heap, _config.xml().sub_node("nic-client"), _registry, _timer);
+		_config.xml().with_optional_sub_node("nic-client",
+			[&] (Xml_node const &node) {
+				_nic_client.construct(_env, _heap, node, _registry, _timer); });
 
 		_period_ms = _config.xml().attribute_value("period_ms", _period_ms);
 		_count     = _config.xml().attribute_value("count",     _count);

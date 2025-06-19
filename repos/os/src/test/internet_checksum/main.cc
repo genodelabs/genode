@@ -109,7 +109,11 @@ struct Main
 	Env &env;
 	Heap heap { env.ram(), env.rm() };
 	Attached_rom_dataspace config_rom { env, "config" };
-	Root_directory  root { env, heap, config_rom.xml().sub_node("vfs") };
+	Root_directory root = config_rom.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Root_directory {
+			return { env, heap, config }; },
+		[&] () -> Root_directory {
+			return { env, heap, Xml_node("<empty/>") }; });
 	Reconstructible<Append_file> pcap_file { root, "/output.pcap" };
 	Attached_rom_dataspace pcap_rom { env, "input.pcap" };
 	Parser pcap_parser { pcap_rom.local_addr<char>(), pcap_rom.size() };
