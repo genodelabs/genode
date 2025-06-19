@@ -39,19 +39,28 @@ void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &ds)
 
 void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 {
+	static Mutex protect_region_alloc { };
+
 	size_t const page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
 
 	/* allocate one page in core's virtual address space */
 	auto alloc_one_virt_page = [&] () -> void *
 	{
+		Mutex::Guard guard(protect_region_alloc);
+
 		return platform().region_alloc().try_alloc(get_page_size()).convert<void *>(
 			[&] (Range_allocator::Allocation &a) {
 				a.deallocate = false; return a.ptr; },
 			[&] (Alloc_error) -> void * {
-				ASSERT_NEVER_CALLED; });
+				ASSERT_NEVER_CALLED;
+				return nullptr;
+			});
 	};
 
-	addr_t const virt_addr = (addr_t)alloc_one_virt_page();
+	addr_t const virt_addr = addr_t(alloc_one_virt_page());
+
+	if (!virt_addr)
+		return;
 
 	/* map each page of dataspace one at a time and clear it */
 	for (addr_t offset = 0; offset < page_rounded_size; offset += get_page_size())
@@ -62,6 +71,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 		/* map one physical page to the core-local address */
 		if (!map_local(phys_addr, virt_addr, ONE_PAGE)) {
 			ASSERT(!"could not map 4k inside core");
+			break;
 		}
 
 		/* clear one page */
@@ -72,6 +82,8 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 		/* unmap cleared page from core */
 		unmap_local(virt_addr, ONE_PAGE, nullptr, ds.cacheability() != CACHED);
 	}
+
+	Mutex::Guard guard(protect_region_alloc);
 
 	/* free core's virtual address space */
 	platform().region_alloc().free((void *)virt_addr, get_page_size());
