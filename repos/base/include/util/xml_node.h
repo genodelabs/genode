@@ -632,6 +632,29 @@ class Genode::Xml_node
 		 */
 		char const *_content_base() const { return _tags.start.next_token().start(); }
 
+		inline Xml_node _sub_node(unsigned idx) const;
+
+		Xml_node _sub_node(char const *type) const
+		{
+			struct Guard {
+				bool ok = false;
+				~Guard() { if (!ok) raise(Unexpected_error::NONEXISTENT_SUB_NODE); }
+			} guard { };
+
+			if (_tags.num_sub_nodes > 0) {
+
+				/* search for sub node of specified type */
+				Xml_node curr_node = _node_at(_content_base());
+				for ( ; true; curr_node = curr_node.next()) {
+					if (!type || curr_node.has_type(type)) {
+						guard.ok = true;
+						return curr_node;
+					}
+				}
+			}
+			raise(Unexpected_error::NONEXISTENT_SUB_NODE);
+		}
+
 	public:
 
 		/**
@@ -815,7 +838,10 @@ class Genode::Xml_node
 		 * \deprecated
 		 * \noapi
 		 */
-		inline Xml_node sub_node(unsigned idx = 0U) const;
+		inline Xml_node sub_node(unsigned idx = 0U) const __attribute__((deprecated))
+		{
+			return _sub_node(idx);
+		}
 
 		/**
 		 * Return first sub node that matches the specified type
@@ -824,25 +850,9 @@ class Genode::Xml_node
 		 * \deprecated
 		 * \noapi
 		 */
-		Xml_node sub_node(char const *type) const
+		Xml_node sub_node(char const *type) const __attribute__((deprecated))
 		{
-			struct Guard {
-				bool ok = false;
-				~Guard() { if (!ok) raise(Unexpected_error::NONEXISTENT_SUB_NODE); }
-			} guard { };
-
-			if (_tags.num_sub_nodes > 0) {
-
-				/* search for sub node of specified type */
-				Xml_node curr_node = _node_at(_content_base());
-				for ( ; true; curr_node = curr_node.next()) {
-					if (!type || curr_node.has_type(type)) {
-						guard.ok = true;
-						return curr_node;
-					}
-				}
-			}
-			raise(Unexpected_error::NONEXISTENT_SUB_NODE);
+			return _sub_node(type);
 		}
 
 		/**
@@ -854,7 +864,7 @@ class Genode::Xml_node
 		void with_optional_sub_node(char const *type, auto const &fn) const
 		{
 			if (has_sub_node(type))
-				fn(sub_node(type));
+				fn(_sub_node(type));
 		}
 
 		/**
@@ -867,7 +877,7 @@ class Genode::Xml_node
 		                   auto const &missing_fn) const -> decltype(missing_fn())
 		{
 			if (has_sub_node(type))
-				return fn(sub_node(type));
+				return fn(_sub_node(type));
 			else
 				return missing_fn();
 		}
@@ -880,7 +890,7 @@ class Genode::Xml_node
 			if (!has_sub_node(type))
 				return;
 
-			for (Xml_node node = sub_node(type); ; node = node.next()) {
+			for (Xml_node node = _sub_node(type); ; node = node.next()) {
 				if (!type || node.has_type(type))
 					fn(node);
 
@@ -1040,7 +1050,7 @@ Genode::Xml_node Genode::Xml_node::next() const
 		raise(Unexpected_error::NONEXISTENT_SUB_NODE); }
 }
 
-Genode::Xml_node Genode::Xml_node::sub_node(unsigned idx) const
+Genode::Xml_node Genode::Xml_node::_sub_node(unsigned idx) const
 {
 	if (_tags.num_sub_nodes > 0) {
 		try {
@@ -1067,7 +1077,7 @@ Genode::Xml_node Genode::Xml_node::next() const
 	attempt_to_use_xml_node_without_exceptions();
 }
 
-Genode::Xml_node Genode::Xml_node::sub_node(unsigned) const
+Genode::Xml_node Genode::Xml_node::_sub_node(unsigned) const
 {
 	attempt_to_use_xml_node_without_exceptions();
 }
