@@ -56,7 +56,9 @@ namespace {
 			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
 
 			return { Session_label("core"), _thread.name,
-			         Genode::Trace::Execution_time(thread_time, 0), _thread.affinity() };
+			         Genode::Trace::Execution_time(thread_time, 0, 10000,
+			                                       CONFIG_NUM_PRIORITIES - 1),
+			         _thread.affinity() };
 		}
 
 		Core_trace_source(Core::Trace::Source_registry &registry, Thread &t)
