@@ -1,8 +1,6 @@
 assert {[have_spec hw] || [have_spec nova] || [have_spec sel4]}
 
 set build_components {
-	core init timer
-	driver/platform
 	driver/acpi
 	server/event_dump
 	app/pci_decode
@@ -13,13 +11,16 @@ build $build_components
 
 create_boot_directory
 
-import_from_depot [depot_user]/src/dynamic_rom \
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/acpi_event \
+                  [depot_user]/src/dynamic_rom \
                   [depot_user]/src/event_filter \
+                  [depot_user]/src/init \
                   [depot_user]/src/pc_usb_host \
+                  [depot_user]/src/platform \
                   [depot_user]/src/ps2 \
                   [depot_user]/src/report_rom \
-                  [depot_user]/src/usb_hid \
-                  [depot_user]/src/acpi_event
+                  [depot_user]/src/usb_hid
 
 set config {
 	<config>
