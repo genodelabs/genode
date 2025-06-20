@@ -30,14 +30,19 @@ using namespace Core;
 
 void Vm_session_component::Vcpu::_free_up()
 {
-	if (_notification.value()) {
-		int ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
-	                                _notification.value(), 32);
-		if (ret == seL4_NoError)
+	if (!_notification.value())
+		return;
+
+	auto ret = seL4_CNode_Revoke(seL4_CapInitThreadCNode, _notification.value(), 32);
+	if (ret == seL4_NoError) {
+		ret = seL4_CNode_Delete(seL4_CapInitThreadCNode, _notification.value(), 32);
+		if (ret == seL4_NoError) {
 			platform_specific().core_sel_alloc().free(_notification);
-		else
-			error(__func__, " cnode delete error ", ret);
+			return;
+		}
 	}
+
+	error(__func__, " failed - leaking id");
 }
 
 
@@ -210,7 +215,27 @@ Vm_session_component::~Vm_session_component()
 		detach_at(out_addr);
 	}
 
-	if (_vm_page_table.value())
+	if (_notifications._service)
+		Untyped_memory::free_page(platform().ram_alloc(), _notifications._phys);
+
+	int ret = seL4_NoError;
+
+	if (_ept._service) {
+		ret = seL4_CNode_Revoke(seL4_CapInitThreadCNode,
+		                        _vm_page_table.value(), 32);
+		if (ret == seL4_NoError) {
+			ret = seL4_CNode_Delete(seL4_CapInitThreadCNode,
+			                        _vm_page_table.value(), 32);
+			if (ret == seL4_NoError)
+				Untyped_memory::free_page(platform().ram_alloc(), _ept._phys);
+		}
+
+		if (ret != seL4_NoError)
+			error(__func__, ": could not free ASID entry, "
+			      "leaking physical memory ", ret);
+	}
+
+	if (_vm_page_table.value() && ret == seL4_NoError)
 		platform_specific().core_sel_alloc().free(_vm_page_table);
 
 	if (_pd_id)
@@ -269,12 +294,12 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const guest_phys,
                                              Attach_attr const attribute)
 {
-	Vm_space::Map_attr const attr_noflush {
+	Vm_space::Map_attr const attr_flush {
 		.cached         = (dsc.cacheability() == CACHED),
 		.write_combined = (dsc.cacheability() == WRITE_COMBINED),
 		.writeable      = dsc.writeable() && attribute.writeable,
 		.executable     = attribute.executable,
-		.flush_support  = false };
+		.flush_support  = true };
 
 	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
 	                       guest_phys, attribute.size, guest_phys);
@@ -296,7 +321,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 
 		auto result_map = _vm_space->map_guest(page.addr, page.hotspot,
 		                                       (1 << page.log2_order) / 4096,
-		                                       attr_noflush);
+		                                       attr_flush);
 
 		result_map.with_result([](auto ok) {
 			if (!ok) throw Invalid_dataspace();
