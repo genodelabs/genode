@@ -51,6 +51,13 @@ abs T
 accept T
 accept4 T
 access T
+aio_cancel T
+aio_fsync T
+aio_error T
+aio_read T
+aio_return T
+aio_suspend T
+aio_write T
 alarm T
 alphasort T
 arc4random T
@@ -428,6 +435,7 @@ ldexp T
 ldiv T
 lfind T
 link W
+lio_listio T
 listen T
 llabs T
 lldiv T

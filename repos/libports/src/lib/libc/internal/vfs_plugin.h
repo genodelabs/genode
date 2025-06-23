@@ -201,6 +201,7 @@ class Libc::Vfs_plugin final : public Plugin
 		bool supports_symlink(const char *, const char *)      override { return true; }
 		bool supports_unlink(const char *)                     override { return true; }
 		bool supports_mmap()                                   override { return true; }
+		bool supports_aio()                                    override { return true; }
 
 		/* kernel-specific API without monitor */
 		File_descriptor *open_from_kernel(const char *, int, int libc_fd);
@@ -234,6 +235,9 @@ class Libc::Vfs_plugin final : public Plugin
 		ssize_t write(File_descriptor *, const void *, ::size_t ) override;
 		void   *mmap(void *, ::size_t, int, int, File_descriptor *, ::off_t) override;
 		int     munmap(void *, ::size_t) override;
+
+		int enqueue_aiocb(File_descriptor *, const struct aiocb *);
+		int wait_aio(File_descriptor *, int timeout_ms);
 };
 
 #endif /* _LIBC__INTERNAL__VFS_PLUGIN_H_ */

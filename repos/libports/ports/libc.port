@@ -130,7 +130,7 @@ DIR_CONTENT(include/libc/sys) := \
                 _cpuset.h _bitset.h bitset.h _stdarg.h _uio.h auxv.h random.h \
                 _sockaddr_storage.h termios.h _termios.h _umtx.h kerneldump.h \
                 conf.h disk_zone.h counter.h soundcard.h pciio.h timex.h \
-                cdio.h sched.h thr.h)
+                cdio.h sched.h thr.h aio.h)
 
 DIRS += include/libc/sys/disk
 DIR_CONTENT(include/libc/sys/disk) := $(D)/sys/sys/disk/*h
@@ -279,3 +279,4 @@ default: create_symlinks
 create_symlinks: _dirs
 	@$(MSG_PREFIX)create symlinks
 	$(VERBOSE)ln -sf sys/poll.h include/libc/poll.h
+	$(VERBOSE)ln -sf sys/aio.h include/libc/aio.h

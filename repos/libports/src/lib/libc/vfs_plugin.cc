@@ -2550,3 +2550,292 @@ int Libc::Vfs_plugin::poll(Pollfd fds[], int nfds)
 
 	return nready;
 }
+
+
+static bool _handle_aio_read(Libc::File_descriptor          *fd,
+                             Libc::File_descriptor::Aio_job &aio_job)
+{
+	using Aio_job    = Libc::File_descriptor::Aio_job;
+	using Aio_handle = Libc::File_descriptor::Aio_handle;
+	using Vfs_handle = Vfs::Vfs_handle;
+	using Result     = Vfs::File_io_service::Read_result;
+
+	bool progress = false;
+
+	aio_job.with_aio_handle([&] (Aio_handle &aio_handle) {
+		aio_handle.with_vfs_handle([&] (Vfs_handle &vfs_handle) {
+
+			switch (aio_handle.state) {
+			case Aio_handle::State::INVALID:
+			{
+				if ((fd->flags & O_ACCMODE) == O_WRONLY) {
+					aio_job.result = -1;
+					aio_job.error  = EBADF;
+					aio_job.state = Aio_job::State::COMPLETE;
+					break;
+				}
+
+				vfs_handle.seek(aio_job.iocb->aio_offset);
+
+				if (!vfs_handle.fs().queue_read(&vfs_handle,
+				                                 aio_job.iocb->aio_nbytes))
+					break;
+
+				aio_handle.state = Aio_handle::State::QUEUED;
+				progress = true;
+				break;
+			}
+			case Aio_handle::State::QUEUED:
+			{
+				Genode::Byte_range_ptr const dst {
+					(char *)aio_job.iocb->aio_buf, aio_job.iocb->aio_nbytes };
+				::size_t out_count = 0;
+				Result const out_result =
+					vfs_handle.fs().complete_read(&vfs_handle, dst, out_count);
+				if (out_result != Result::READ_QUEUED) {
+
+					aio_job.result = -1;
+
+					switch (out_result) {
+					case Result::READ_ERR_WOULD_BLOCK:
+						aio_job.error  = EWOULDBLOCK;
+						break;
+					case Result::READ_ERR_INVALID:
+						aio_job.error  = EINVAL;
+						break;
+					case Result::READ_ERR_IO:
+						aio_job.error  = EIO;
+						break;
+					case Result::READ_OK:
+						aio_job.result = out_count;
+						aio_job.error  = 0;
+						break;
+					case Result::READ_QUEUED: /* never reached */ break;
+					}
+					aio_handle.state = Aio_handle::State::COMPLETE;
+					progress = true;
+				}
+				break;
+			}
+			case Aio_handle::State::COMPLETE:
+				aio_job.state = Aio_job::State::COMPLETE;
+				++fd->lio_list_completed;
+				break;
+			}
+		});
+	});
+
+	if (aio_job.state == Aio_job::State::COMPLETE)
+		aio_job.release_handle();
+
+	return progress;
+}
+
+
+static bool _handle_aio_write(Libc::File_descriptor          *fd,
+                              Libc::File_descriptor::Aio_job &aio_job)
+{
+	using Aio_job    = Libc::File_descriptor::Aio_job;
+	using Aio_handle = Libc::File_descriptor::Aio_handle;
+	using Vfs_handle = Vfs::Vfs_handle;
+	using Result     = Vfs::File_io_service::Write_result;
+
+	bool progress = false;
+
+	aio_job.with_aio_handle([&] (Aio_handle &aio_handle) {
+		aio_handle.with_vfs_handle([&] (Vfs_handle &vfs_handle) {
+
+			switch (aio_handle.state) {
+			case Aio_handle::State::INVALID:
+			{
+				if ((fd->flags & O_ACCMODE) == O_RDONLY) {
+					aio_job.result = -1;
+					aio_job.error  = EBADF;
+					aio_job.state = Aio_job::State::COMPLETE;
+					break;
+				}
+
+				aio_job.result = 0;
+				aio_job.error  = 0;
+
+				vfs_handle.seek(aio_job.iocb->aio_offset);
+
+				aio_handle.count = aio_job.iocb->aio_nbytes;
+				aio_handle.offset = 0;
+
+				aio_handle.state = Aio_handle::State::QUEUED;
+				progress = true;
+				break;
+			}
+			case Aio_handle::State::QUEUED:
+			{
+				Genode::Const_byte_range_ptr const src {
+					(char *)aio_job.iocb->aio_buf + aio_handle.offset, aio_handle.count };
+				::size_t out_count = 0;
+				Result const out_result =
+					vfs_handle.fs().write(&vfs_handle, src, out_count);
+
+				if (out_result == Result::WRITE_OK) {
+					aio_handle.count  -= out_count;
+					aio_handle.offset += out_count;
+
+					aio_job.result += out_count;
+
+					vfs_handle.advance_seek(out_count);
+
+					if (!aio_handle.count)
+						aio_handle.state = Aio_handle::State::COMPLETE;
+
+					progress = true;
+					break;
+				}
+
+				if (out_result != Result::WRITE_ERR_WOULD_BLOCK) {
+					switch (out_result) {
+					case Result::WRITE_ERR_INVALID:
+						aio_job.result = -1;
+						aio_job.error  = EINVAL;
+						break;
+					case Result::WRITE_ERR_IO:
+						aio_job.result = -1;
+						aio_job.error  = EIO;
+						break;
+					case Result::WRITE_ERR_WOULD_BLOCK: /* never reached */ break;
+					case Result::WRITE_OK:              /* never reached */ break;
+					}
+					aio_handle.state = Aio_handle::State::COMPLETE;
+					progress = true;
+				}
+				break;
+			}
+			case Aio_handle::State::COMPLETE:
+				fd->modified = true;
+
+				aio_job.state = Aio_job::State::COMPLETE;
+				++fd->lio_list_completed;
+				break;
+			}
+		});
+	});
+
+	if (aio_job.state == Aio_job::State::COMPLETE)
+		aio_job.release_handle();
+
+	return progress;
+}
+
+
+static bool _handle_aio_nop(Libc::File_descriptor          *fd,
+                            Libc::File_descriptor::Aio_job &aio_job)
+{
+	using Aio_job = Libc::File_descriptor::Aio_job;
+
+	aio_job.result = 0;
+	aio_job.error  = 0 ;
+	aio_job.state = Aio_job::State::COMPLETE;
+	aio_job.release_handle();
+
+	++fd->lio_list_completed;
+
+	return false;
+}
+
+int Libc::Vfs_plugin::wait_aio(Libc::File_descriptor *fd, int /*timeout_ms*/)
+{
+	if (fd->lio_list_completed && fd->lio_list_queued == 0)
+		return 0;
+
+	if (fd->lio_list_queued == 0)
+		return Errno(EINVAL);
+
+	using Aio_job    = Libc::File_descriptor::Aio_job;
+	using Aio_handle = Libc::File_descriptor::Aio_handle;
+	using Vfs_handle = Vfs::Vfs_handle;
+
+	fd->for_each_aio_job(Aio_job::State::PENDING, [&] (Aio_job &aio_job) {
+		fd->any_unused_aio_handle([&] (Aio_handle &aio_handle) {
+
+			if (aio_handle.vfs_handle == nullptr) {
+
+				auto open_vfs_handle = [&] (char const *path) -> Vfs_handle* {
+					Vfs_handle *vfs_handle = nullptr;
+
+					/*
+					 * We could already open the path once as otherwise we
+					 * would not be here.
+					 */
+					using Result = Vfs::Directory_service::Open_result;
+					Result const open_result = _root_fs.open(path, fd->flags,
+					                                         &vfs_handle, _alloc);
+					return open_result == Result::OPEN_OK ? vfs_handle
+					                                      : nullptr;
+				};
+				monitor().monitor([&] {
+					aio_handle.vfs_handle = open_vfs_handle(fd->fd_path);
+					return Fn::COMPLETE;
+				});
+
+				/*
+				 * This should not happen and at this point we bail
+				 * alltogether for now.
+				 */
+				if (aio_handle.vfs_handle == nullptr) {
+					aio_job.result = -1;
+					aio_job.error = EIO;
+					aio_job.state = Aio_job::State::COMPLETE;
+					return;
+				}
+			}
+
+			switch (aio_job.iocb->aio_lio_opcode) {
+			case LIO_READ: [[fallthrough]];
+			case LIO_WRITE:
+			case LIO_NOP:
+				aio_job.acquire_handle(aio_handle);
+				aio_job.state = Aio_job::State::IN_PROGRESS;
+
+				--fd->lio_list_queued;
+				break;
+			}
+		});
+	});
+
+	unsigned count_in_progress = 0;
+	fd->for_each_aio_job(Aio_job::State::IN_PROGRESS, [&] (Aio_job &aio_job) {
+		++count_in_progress; });
+
+	monitor().monitor([&] {
+		fd->for_each_aio_job(Aio_job::State::IN_PROGRESS, [&] (Aio_job &aio_job) {
+
+			/*
+			 * Try one aio_job as long as some progress is made and move
+			 * on to the next one in case the operation stalled (i.e.
+			 * was queued).
+			 */
+			bool progress = false;
+			do {
+				switch (aio_job.iocb->aio_lio_opcode) {
+				case LIO_READ:  progress = _handle_aio_read(fd, aio_job);  break;
+				case LIO_WRITE: progress = _handle_aio_write(fd, aio_job); break;
+				case LIO_NOP:   progress = _handle_aio_nop(fd, aio_job);   break;
+				}
+			} while (progress);
+		});
+		return (fd->lio_list_completed >= count_in_progress) ? Fn::COMPLETE
+		                                                     : Fn::INCOMPLETE;
+	});
+
+	return 0;
+}
+
+
+int Libc::Vfs_plugin::enqueue_aiocb(Libc::File_descriptor *fd, const struct aiocb * iocb)
+{
+	using Aio_job = Libc::File_descriptor::Aio_job;
+
+	return fd->any_free_aio_job([&] (Aio_job &aio_job) {
+		aio_job.iocb  = iocb;
+		aio_job.state = Aio_job::State::PENDING;
+		++fd->lio_list_queued;
+	}) ? 0 : Errno(EAGAIN);
+}

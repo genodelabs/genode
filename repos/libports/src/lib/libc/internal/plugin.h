@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <sys/mount.h>  /* for 'struct statfs' */
 #include <sys/poll.h>   /* for 'struct pollfd' */
+#include <aio.h>    /* for 'struct aiocb' */
 
 namespace Genode { class Env; }
 
@@ -77,6 +78,7 @@ namespace Libc {
 			virtual bool supports_symlink(const char *oldpath, const char *newpath);
 			virtual bool supports_unlink(const char *path);
 			virtual bool supports_mmap();
+			virtual bool supports_aio();
 
 			/*
 			 * Should be overwritten for plugins that require the Genode environment
@@ -145,6 +147,9 @@ namespace Libc {
 			virtual int symlink(const char *oldpath, const char *newpath);
 			virtual int unlink(const char *path);
 			virtual ssize_t write(File_descriptor *, const void *buf, ::size_t count);
+
+			virtual int enqueue_aiocb(File_descriptor *, const struct aiocb * aiocb);
+			virtual int wait_aio(File_descriptor *, int timeout_ms);
 	};
 }
 

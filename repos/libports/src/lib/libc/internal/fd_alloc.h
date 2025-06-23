@@ -22,6 +22,7 @@
 #include <base/allocator.h>
 #include <base/id_space.h>
 #include <util/bit_allocator.h>
+#include <vfs/vfs_handle.h>
 
 /* libc includes */
 #include <stdlib.h>
@@ -61,6 +62,127 @@ struct Libc::File_descriptor
 	Plugin         *plugin;
 	Plugin_context *context;
 
+	struct Aio_handle
+	{
+		enum class State { INVALID, QUEUED, COMPLETE };
+
+		Vfs::Vfs_handle *vfs_handle = nullptr;
+		State            state      = State::INVALID;
+
+		bool used = false;
+
+		::size_t count  = 0;
+		::off_t  offset = 0;
+
+		void with_vfs_handle(auto const &vfs_handle_fn)
+		{
+			if (vfs_handle)
+				vfs_handle_fn(*vfs_handle);
+		}
+
+		void reset()
+		{
+			used   = false;
+			count  = 0;
+			offset = 0;
+			state  = State::INVALID;
+		}
+	};
+
+	static constexpr unsigned MAX_VFS_HANDLES_PER_FD = 64;
+	Aio_handle _aio_handles[MAX_VFS_HANDLES_PER_FD] { };
+
+	void any_unused_aio_handle(auto const &fn)
+	{
+		for (unsigned i = 0; i < MAX_VFS_HANDLES_PER_FD; i++)
+			if (!_aio_handles[i].used) {
+				fn(_aio_handles[i]);
+				break;
+			}
+	}
+
+	void _close_aio_handles()
+	{
+		for (auto & handle : _aio_handles)
+			if (handle.vfs_handle) {
+				handle.vfs_handle->close();
+				handle.vfs_handle = nullptr;
+			}
+	}
+
+	struct Aio_job
+	{
+		enum class State { FREE, PENDING, IN_PROGRESS, COMPLETE };
+
+		const struct aiocb *iocb = nullptr;
+
+		Aio_handle *handle = nullptr;
+		ssize_t     result = -1;
+		int         error  = 0;
+		State       state  = State::FREE;
+
+		void acquire_handle(Aio_handle &aio_handle)
+		{
+			handle       = &aio_handle;
+			handle->used = true;
+		}
+
+		void release_handle()
+		{
+			if (!handle)
+				return;
+
+			handle->reset();
+			handle = nullptr;
+		}
+
+		void with_aio_handle(auto const &handle_fn)
+		{
+			if (handle)
+				handle_fn(*handle);
+		}
+
+		void free()
+		{
+			handle = nullptr;
+			iocb   = nullptr;
+			error  = 0;
+			result = -1;
+			state  = State::FREE;
+		}
+	};
+
+	static constexpr unsigned MAX_AIOCB_PER_FD = MAX_VFS_HANDLES_PER_FD;
+	Aio_job _aio_jobs[MAX_AIOCB_PER_FD] { };
+
+	void for_each_aio_job(Aio_job::State state, auto const &fn)
+	{
+		for (unsigned i = 0; i < MAX_AIOCB_PER_FD; i++)
+			if (_aio_jobs[i].state == state)
+				fn(_aio_jobs[i]);
+	}
+
+	bool any_free_aio_job(auto const &fn)
+	{
+		for (unsigned i = 0; i < MAX_AIOCB_PER_FD; i++)
+			if (_aio_jobs[i].state == Aio_job::State::FREE) {
+				fn(_aio_jobs[i]);
+				return true;
+			}
+
+		return false;
+	}
+
+	void apply_lio(struct aiocb const *iocb, auto const &fn)
+	{
+		for (unsigned i = 0; i < MAX_AIOCB_PER_FD; i++)
+			if (iocb == _aio_jobs[i].iocb)
+				fn(_aio_jobs[i]);
+	}
+
+	unsigned lio_list_completed = 0;
+	unsigned lio_list_queued    = 0;
+
 	int  flags    = 0;  /* for 'fcntl' */
 	bool cloexec  = 0;  /* for 'fcntl' */
 	bool modified = false;
@@ -68,6 +190,11 @@ struct Libc::File_descriptor
 	File_descriptor(Id_space &id_space, Plugin &plugin, Plugin_context &context,
 	                Id_space::Id id)
 	: _elem(*this, id_space, id), plugin(&plugin), context(&context) { }
+
+	~File_descriptor()
+	{
+		_close_aio_handles();
+	}
 
 	void path(char const *newpath);
 };
@@ -134,5 +261,6 @@ class Libc::File_descriptor_allocator
 
 		void generate_info(Genode::Generator &);
 };
+
 
 #endif /* _LIBC_PLUGIN__FD_ALLOC_H_ */

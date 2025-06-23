@@ -802,3 +802,169 @@ extern "C" int __getcwd(char *dst, ::size_t dst_size)
 	copy_cstring(dst, cwd().base(), dst_size);
 	return 0;
 }
+
+
+extern "C" int aio_fsync(int op, struct aiocb *iocb)
+{
+	/* not supported for now */
+	return Errno(EINVAL);
+}
+
+
+extern "C" int aio_cancel(int fildes, struct aiocb *iocb)
+{
+	/* not supported for now */
+	return Errno(EBADF);
+}
+
+
+extern "C" ssize_t aio_return(struct aiocb *iocb)
+{
+	File_descriptor *fd = libc_fd_to_fd(iocb->aio_fildes, "aio_return");
+	if (!fd)
+		return Errno(EBADF);
+
+	int error = EINVAL;
+	ssize_t result = 0;
+	fd->apply_lio(iocb, [&] (File_descriptor::Aio_job &aio_job) {
+		using State = File_descriptor::Aio_job::State;
+
+		switch (aio_job.state) {
+		case State::COMPLETE:
+			error  = aio_job.error;
+			result = aio_job.result;
+			break;
+		case State::FREE:        error = EINVAL; break;
+		case State::IN_PROGRESS: error = EINVAL; break;
+		case State::PENDING:     error = EINVAL; break;
+		}
+
+		aio_job.free();
+
+		--fd->lio_list_completed;
+	});
+
+	return !error ? result : Errno(error);
+}
+
+
+extern "C" int aio_error(const struct aiocb *iocb)
+{
+	File_descriptor *fd = libc_fd_to_fd(iocb->aio_fildes, "aio_error");
+	if (!fd)
+		return Errno(EBADF);
+
+	int error = EINVAL;
+	fd->apply_lio(iocb, [&] (File_descriptor::Aio_job &aio_job) {
+		using State = File_descriptor::Aio_job::State;
+
+		switch (aio_job.state) {
+		case State::COMPLETE:    error = aio_job.error;  break;
+		case State::FREE:        error = EINVAL;      break;
+		case State::IN_PROGRESS: error = EINPROGRESS; break;
+		case State::PENDING:     error = EINPROGRESS; break;
+		}
+	});
+
+	if (!error)
+		return 0;
+
+	return Errno(error);
+}
+
+
+extern "C" int aio_suspend(const struct aiocb * const iocbs[], int niocb,
+                           const struct timespec *timeout)
+{
+	int const timeout_ms =
+		timeout ? (timeout->tv_sec * 1000 + timeout->tv_nsec * 1'000'000)
+	            : 0;
+
+	bool at_least_one_okay = false;
+	int result = -1;
+	for (int i = 0; i < niocb; i++) {
+		if (iocbs[i] == NULL)
+			continue;
+
+		int const libc_fd = iocbs[i]->aio_fildes;
+
+		File_descriptor *fd = libc_fd_to_fd(libc_fd, "aio_suspend");
+		if (!fd || !fd->plugin)
+			return Errno(EBADF);
+
+		result = fd->plugin->wait_aio(fd, timeout_ms);
+		at_least_one_okay |= result == 0;
+		if (result != 0)
+			break;
+	}
+
+	return at_least_one_okay ? 0 : result;
+}
+
+
+extern "C" int aio_read(struct aiocb *iocb)
+{
+	int const libc_fd = iocb->aio_fildes;
+
+	File_descriptor *fd = libc_fd_to_fd(libc_fd, "aio_read");
+	if (!fd || !fd->plugin)
+		return Errno(EBADF);
+
+	if (fd->lio_list_queued >= File_descriptor::MAX_AIOCB_PER_FD)
+		return Errno(EAGAIN);
+
+	iocb->aio_lio_opcode = LIO_READ;
+
+	return fd->plugin->enqueue_aiocb(fd, iocb);
+}
+
+
+extern "C" int aio_write(struct aiocb *iocb)
+{
+	int const libc_fd = iocb->aio_fildes;
+
+	File_descriptor *fd = libc_fd_to_fd(libc_fd, "aio_write");
+	if (!fd || !fd->plugin)
+		return Errno(EBADF);
+
+	if (fd->lio_list_queued >= File_descriptor::MAX_AIOCB_PER_FD)
+		return Errno(EAGAIN);
+
+	iocb->aio_lio_opcode = LIO_WRITE;
+
+	return fd->plugin->enqueue_aiocb(fd, iocb);
+}
+
+
+extern "C" int lio_listio(int mode, struct aiocb * const list[], int nent,
+                          struct sigevent *sig)
+{
+	if (sig != NULL)
+		return Errno(EINVAL);
+
+	if (mode != LIO_NOWAIT)
+		return Errno(EINVAL);
+
+	int result = 0;
+
+	for (int i = 0; i < nent; i++) {
+		if (list[i] == NULL)
+			continue;
+
+		struct aiocb const *iocb = list[i];
+
+		int const libc_fd = iocb->aio_fildes;
+
+		File_descriptor *fd = libc_fd_to_fd(libc_fd, "lio_listio");
+		if (!fd || !fd->plugin)
+			return Errno(EBADF);
+
+		if (fd->lio_list_queued >= File_descriptor::MAX_AIOCB_PER_FD)
+			return Errno(EAGAIN);
+
+		 result = fd->plugin->enqueue_aiocb(fd, iocb);
+		 if (result != 0)
+			 break;
+	}
+	return result;
+}

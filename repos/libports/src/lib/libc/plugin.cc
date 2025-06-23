@@ -140,6 +140,12 @@ bool Plugin::supports_mmap()
 }
 
 
+bool Plugin::supports_aio()
+{
+	return false;
+}
+
+
 /**
  * Generate dummy member function of Plugin class
  */
@@ -187,6 +193,8 @@ DUMMY(ssize_t, -1, sendto,        (File_descriptor *, const void *, ::size_t, in
 DUMMY(int,     -1, setsockopt,    (File_descriptor *, int, int, const void *, socklen_t));
 DUMMY(int,     -1, shutdown,      (File_descriptor *, int));
 DUMMY(ssize_t, -1, write,         (File_descriptor *, const void *, ::size_t));
+DUMMY(int,     -1, enqueue_aiocb, (File_descriptor *, const struct aiocb *));
+DUMMY(int,     -1, wait_aio,      (File_descriptor *, int));
 
 
 /*
