@@ -417,26 +417,26 @@ ACPI_PHYSICAL_ADDRESS AcpiOsGetRootPointer (void)
 	Genode::Env &env = Acpica::env();
 
 	/* try platform_info ROM provided by core */
-	try {
-		Genode::Attached_rom_dataspace info(env, "platform_info");
-		Genode::Xml_node acpi_node = info.xml().sub_node("acpi");
+	Genode::Attached_rom_dataspace info(env, "platform_info");
 
-		using Genode::memcpy;
+	using Genode::memcpy;
 
-		ACPI_MAKE_RSDP_SIG(faked_rsdp.Signature);
-		memcpy(faked_rsdp.OemId, "Faked", 6);
-		faked_rsdp.Checksum = 0;
-		faked_rsdp.Revision = acpi_node.attribute_value("revision", 0U);
+	ACPI_MAKE_RSDP_SIG(faked_rsdp.Signature);
+	memcpy(faked_rsdp.OemId, "Faked", 6);
+	faked_rsdp.Checksum = 0;
+	info.xml().with_optional_sub_node("acpi", [&] (Genode::Xml_node const &acpi_node) {
+		faked_rsdp.Revision            = acpi_node.attribute_value("revision", 0U);
 		faked_rsdp.RsdtPhysicalAddress = acpi_node.attribute_value("rsdt", 0UL);
-		faked_rsdp.Length = sizeof(ACPI_TABLE_RSDP);
+		faked_rsdp.Length              = sizeof(ACPI_TABLE_RSDP);
 		faked_rsdp.XsdtPhysicalAddress = acpi_node.attribute_value("xsdt", 0UL);
 
 		/* update checksum */
-		faked_rsdp.Checksum = (UINT8) -AcpiTbChecksum((UINT8 *)&faked_rsdp, ACPI_RSDP_CHECKSUM_LENGTH);
+		faked_rsdp.Checksum = (UINT8) -AcpiTbChecksum((UINT8 *)&faked_rsdp,
+		                                              ACPI_RSDP_CHECKSUM_LENGTH);
+	});
 
-		if (faked_rsdp.XsdtPhysicalAddress || faked_rsdp.RsdtPhysicalAddress)
-			return FAKED_PHYS_RSDP_ADDR;
-	} catch (...) { }
+	if (faked_rsdp.XsdtPhysicalAddress || faked_rsdp.RsdtPhysicalAddress)
+		return FAKED_PHYS_RSDP_ADDR;
 
 	/* legacy way - search and grep for the pointer */
 	Acpica::Rsdp acpi_table;

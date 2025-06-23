@@ -44,11 +44,11 @@ struct Test::Driver
 	{
 		Lx_kit::initialize(env, _signal_handler);
 
-		try {
-			Attached_rom_dataspace info(env, "platform_info");
-			tsc_freq_khz = info.xml().sub_node("hardware").sub_node("tsc")
-			                   .attribute_value("freq_khz", 0ULL);
-		} catch (...) { };
+		tsc_freq_khz = 0ULL;
+		Attached_rom_dataspace info(env, "platform_info");
+		info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &hardware) {
+			hardware.with_optional_sub_node("tsc", [&] (Xml_node const tsc) {
+				tsc_freq_khz = tsc.attribute_value("freq_khz", 0ULL); }); });
 	}
 
 	void start()

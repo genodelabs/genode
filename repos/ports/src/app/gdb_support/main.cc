@@ -32,7 +32,12 @@ struct Main
 
 	Session_label _base_archive { };
 
-	Root_directory _root_dir { _env, _heap, _config.xml().sub_node("vfs") };
+	Root_directory _root_dir = _config.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Root_directory {
+			return { _env, _heap, config }; },
+		[&] () -> Root_directory {
+			error("VFS not configured");
+			return { _env, _heap, Xml_node("<empty/>") }; });
 
 	static constexpr char const *_runtime_config_path { "/config/managed/runtime" };
 

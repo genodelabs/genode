@@ -144,30 +144,37 @@ void Component::construct(Genode::Env &env)
 		return;
 	}
 
-	Attached_rom_dataspace const platform_info { env, "platform_info" };
-
 	log("CPU family:model:stepping [patch]");
 
-	try {
-		Xml_node const cpus = platform_info.xml().sub_node("hardware").sub_node("cpus");
-		cpus.for_each_sub_node("cpu", [&] (Xml_node cpu) {
+	auto for_each_cpu = [&] (auto const &fn)
+	{
+		Attached_rom_dataspace const info { env, "platform_info" };
+		info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &hardware) {
+			hardware.with_optional_sub_node("cpus", [&] (Xml_node const &cpus) {
+				cpus.for_each_sub_node("cpu", fn); }); });
+	};
 
-			unsigned const id       = cpu_attribute_value(cpu, "id");
-			uint8_t  const family   = cpu_attribute_value(cpu, "family");
-			uint8_t  const model    = cpu_attribute_value(cpu, "model");
-			uint8_t  const stepping = cpu_attribute_value(cpu, "stepping");
-			uint8_t  const platform = cpu_attribute_value(cpu, "platform");
-			unsigned const patch    = cpu_attribute_value(cpu, "patch");
+	bool ok = false;
+	for_each_cpu([&] (Xml_node const &cpu) {
 
-			String<9> name(Hex(family, Hex::OMIT_PREFIX, Hex::PAD), "-",
-			               Hex(model, Hex::OMIT_PREFIX, Hex::PAD), "-",
-			               Hex(stepping, Hex::OMIT_PREFIX, Hex::PAD));
+		unsigned const id       = cpu_attribute_value(cpu, "id");
+		uint8_t  const family   = cpu_attribute_value(cpu, "family");
+		uint8_t  const model    = cpu_attribute_value(cpu, "model");
+		uint8_t  const stepping = cpu_attribute_value(cpu, "stepping");
+		uint8_t  const platform = cpu_attribute_value(cpu, "platform");
+		unsigned const patch    = cpu_attribute_value(cpu, "patch");
 
-			read_micro_code_rom(env, name, id, family, model, stepping,
-			                    platform, patch);
-		});
-	} catch (...) {
-		error("could not parse CPU data from platform_info");
-	}
+		String<9> name(Hex(family, Hex::OMIT_PREFIX, Hex::PAD), "-",
+		               Hex(model, Hex::OMIT_PREFIX, Hex::PAD), "-",
+		               Hex(stepping, Hex::OMIT_PREFIX, Hex::PAD));
+
+		read_micro_code_rom(env, name, id, family, model, stepping,
+		                    platform, patch);
+		ok = true;
+	});
+
+	if (!ok)
+		warning("could not obtain CPU data from platform_info");
+
 	log("microcode check done");
 }
