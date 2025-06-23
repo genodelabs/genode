@@ -612,7 +612,10 @@ Packet_result Interface::_adapt_eth(Ethernet_frame          &eth,
 				result = packet_postponed();
 			};
 			remote_domain.foreign_arp_waiters().find_by_ip(hop_ip,
-				[&] (Arp_waiter &waiter) { waiter.add_packet(packet_le); },
+				[&] (Arp_waiter &waiter) {
+					waiter.add_packet(packet_le);
+					result = packet_postponed();
+				},
 				[&] {
 					retry_once<Out_of_ram, Out_of_caps>(
 						create_new_arp_waiter,
