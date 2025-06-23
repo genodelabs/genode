@@ -84,6 +84,7 @@ install_config {
 				     icmp-ids="16384"/>
 
 				<tcp-forward port="80" domain="downlink" to="10.0.3.2"/>
+				<tcp-forward port="443" domain="downlink" to="10.0.3.2"/>
 
 			</domain>
 
