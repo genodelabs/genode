@@ -87,8 +87,8 @@ class Window_layouter::Layout_rules : Noncopyable
 
 			_config_rules.destruct();
 
-			if (config.has_sub_node(Rom_rules::node_type()))
-				_config_rules.construct(_alloc, config.sub_node(Rom_rules::node_type()));
+			config.with_optional_sub_node(Rom_rules::node_type(),
+				[&] (Xml_node const &node) { _config_rules.construct(_alloc, node); });
 
 			_action.layout_rules_changed();
 		}

@@ -160,7 +160,11 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	Timer::Connection timer { env };
 	Attached_rom_dataspace config_rom { env, "config" };
 	bool jent_avail { config_rom.xml().attribute_value("jitterentropy_available", true) };
-	Root_directory vfs { env, heap, config_rom.xml().sub_node("vfs") };
+	Root_directory vfs = config_rom.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Root_directory {
+			return { env, heap, config }; },
+		[&] () -> Root_directory {
+			return { env, heap, Xml_node("<empty/>") }; });
 	Registry<Child_state> children { };
 	Child_state mke2fs { children, "mke2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 300 } };
 	Child_state resize2fs { children, "resize2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 300 } };

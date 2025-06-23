@@ -123,11 +123,12 @@ struct Margins_from_metadata : Decorator::Theme::Margins
 	:
 		Decorator::Theme::Margins()
 	{
-		Genode::Xml_node aura = metadata(alloc).sub_node(sub_node);
-		top    = aura.attribute_value("top",    0U);
-		bottom = aura.attribute_value("bottom", 0U);
-		left   = aura.attribute_value("left",   0U);
-		right  = aura.attribute_value("right",  0U);
+		metadata(alloc).with_optional_sub_node(sub_node, [&] (Genode::Xml_node const &aura) {
+			top    = aura.attribute_value("top",    0U);
+			bottom = aura.attribute_value("bottom", 0U);
+			left   = aura.attribute_value("left",   0U);
+			right  = aura.attribute_value("right",  0U);
+		});
 	}
 };
 
@@ -149,9 +150,9 @@ Decorator::Theme::Margins Decorator::Theme::decor_margins() const
 Decorator::Rect Decorator::Theme::title_geometry() const
 {
 	static Genode::Xml_node node = metadata(_alloc);
-	static Rect rect = node.has_sub_node("title")
-	                 ? Rect::from_xml(node.sub_node("title"))
-	                 : Rect(Point(0, 0), Area(0, 0));
+	static Rect const rect = node.with_sub_node("title",
+		[&] (Genode::Xml_node const &node) { return Rect::from_xml(node); },
+		[&]                                { return Rect { }; });
 	return rect;
 }
 
@@ -163,15 +164,15 @@ element_geometry(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 {
 	using Rect  = Decorator::Rect;
 	using Point = Decorator::Point;
-	using Area  = Decorator::Area;
 
 	static Genode::Xml_node const node = metadata(alloc);
 
-	if (!node.has_sub_node(sub_node_type))
-		return Rect(Point(0, 0), Area(0, 0));
-
-	return Rect(Point::from_xml(node.sub_node(sub_node_type)),
-	            texture_by_id(ram, rm, alloc, texture_id).size());
+	return node.with_sub_node(sub_node_type,
+		[&] (Genode::Xml_node const &sub_node) {
+			return Rect(Point::from_xml(sub_node),
+			            texture_by_id(ram, rm, alloc, texture_id).size()); },
+		[&] {
+			return Rect { }; });
 }
 
 

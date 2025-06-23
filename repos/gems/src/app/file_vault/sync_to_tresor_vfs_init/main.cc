@@ -23,7 +23,12 @@ struct Main : Vfs::Env::User
 	Env &env;
 	Heap heap { env.ram(), env.rm() };
 	Attached_rom_dataspace config_rom { env, "config" };
-	Vfs::Simple_env vfs_env { env, heap, config_rom.xml().sub_node("vfs"), *this };
+	Vfs::Simple_env vfs_env = config_rom.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Vfs::Simple_env {
+			return { env, heap, config, *this }; },
+		[&] () -> Vfs::Simple_env {
+			error("VFS not configured");
+			return { env, heap, Xml_node("<empty/>") }; });
 	Directory root { vfs_env };
 
 	void wakeup_vfs_user() override { }

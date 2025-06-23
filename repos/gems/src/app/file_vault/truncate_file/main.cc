@@ -23,7 +23,11 @@ struct Main
 	Env &env;
 	Heap heap { env.ram(), env.rm() };
 	Attached_rom_dataspace config { env, "config" };
-	Root_directory vfs { env, heap, config.xml().sub_node("vfs") };
+	Root_directory vfs = config.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Root_directory {
+			return { env, heap, config }; },
+		[&] () -> Root_directory {
+			return { env, heap, Xml_node("<empty/>") }; });
 	Vfs::File_system &fs { vfs.root_dir() };
 	Directory::Path path { config.xml().attribute_value("path", Directory::Path { }) };
 	Number_of_bytes size { config.xml().attribute_value("size", Number_of_bytes { }) };

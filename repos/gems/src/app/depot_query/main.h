@@ -286,7 +286,12 @@ struct Depot_query::Main
 
 	Constructible<Attached_rom_dataspace> _query_rom { };
 
-	Root_directory _root { _env, _heap, _config.xml().sub_node("vfs") };
+	Root_directory _root = _config.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Root_directory {
+			return { _env, _heap, config }; },
+		[&] () -> Root_directory {
+			error("VFS not configured");
+			return { _env, _heap, Xml_node("<empty/>") }; });
 
 	Directory _depot_dir { _root, "depot" };
 
@@ -434,7 +439,8 @@ struct Depot_query::Main
 		construct_reporter_if_needed(_image_reporter,        "image");
 		construct_reporter_if_needed(_image_index_reporter,  "image_index");
 
-		_root.apply_config(config.sub_node("vfs"));
+		config.with_optional_sub_node("vfs", [&] (Xml_node const &node) {
+			_root.apply_config(node); });
 
 		/* ignore incomplete queries that may occur at the startup */
 		if (query.has_type("empty"))

@@ -155,11 +155,13 @@ struct Sculpt::Child_state : Noncopyable
 				}
 			};
 
-			if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested"))
-				upgrade("RAM",  _ram_quota, _attr.max.ram,  _warned_once.ram);
+			child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+				if (node.has_attribute("requested"))
+					upgrade("RAM",  _ram_quota, _attr.max.ram,  _warned_once.ram); });
 
-			if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested"))
-				upgrade("caps", _cap_quota, _attr.max.caps, _warned_once.caps);
+			child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+				if (node.has_attribute("requested"))
+					upgrade("caps", _cap_quota, _attr.max.caps, _warned_once.caps); });
 
 			bool const responsive = (child.attribute_value("skipped_heartbeats", 0U) <= 4);
 			if (!responsive) {

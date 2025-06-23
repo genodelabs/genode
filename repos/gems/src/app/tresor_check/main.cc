@@ -40,10 +40,23 @@ class Tresor_check::Main : private Vfs::Env::User
 		Env  &_env;
 		Heap  _heap { _env.ram(), _env.rm() };
 		Attached_rom_dataspace _config_rom { _env, "config" };
-		Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
+		Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
+			[&] (Xml_node const &config) -> Vfs::Simple_env {
+				return { _env, _heap, config, *this }; },
+			[&] () -> Vfs::Simple_env {
+				error("VFS not configured");
+				return { _env, _heap, Xml_node("<empty/>") }; });
 		Signal_handler<Main> _sigh { _env.ep(), *this, &Main::_handle_signal };
-		Tresor::Path const _block_io_path { _config_rom.xml().sub_node("block-io").attribute_value("path", Tresor::Path()) };
-		Tresor::Path const _trust_anchor_path { _config_rom.xml().sub_node("trust-anchor").attribute_value("path", Tresor::Path()) };
+
+		Tresor::Path _path_from_config(auto const &node_name) const
+		{
+			return _config_rom.xml().with_sub_node(node_name,
+				[&] (Xml_node const &node) { return node.attribute_value("path", Tresor::Path()); },
+				[&]                        { return Tresor::Path(); });
+		}
+
+		Tresor::Path const _block_io_path     = _path_from_config("block-io");
+		Tresor::Path const _trust_anchor_path = _path_from_config("trust-anchor");
 		Vfs::Vfs_handle &_block_io_file { open_file(_vfs_env, _block_io_path, Vfs::Directory_service::OPEN_MODE_RDWR) };
 		Vfs::Vfs_handle &_ta_decrypt_file { open_file(_vfs_env, { _trust_anchor_path, "/decrypt" }, Vfs::Directory_service::OPEN_MODE_RDWR) };
 		Vfs::Vfs_handle &_ta_encrypt_file { open_file(_vfs_env, { _trust_anchor_path, "/encrypt" }, Vfs::Directory_service::OPEN_MODE_RDWR) };

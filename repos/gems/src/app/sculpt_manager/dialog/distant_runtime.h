@@ -104,15 +104,15 @@ class Dialog::Distant_runtime : Noncopyable
 			if (child.attribute_value("name", Start_name()) != _start_name)
 				return false;
 
-			if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-				_ram.value = min(2*_ram.value, 128*1024*1024u);
-				result = true;
-			}
+			child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+				if (node.has_attribute("requested")) {
+					_ram.value = min(2*_ram.value, 128*1024*1024u);
+					result = true; } });
 
-			if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
-				_caps.value = min(_caps.value + 100, 2000u);
-				result = true;
-			}
+			child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+				if (node.has_attribute("requested")) {
+					_caps.value = min(_caps.value + 100, 2000u);
+					result = true; } });
 
 			if (child.attribute_value("skipped_heartbeats", 0U) > 2) {
 				_version++;

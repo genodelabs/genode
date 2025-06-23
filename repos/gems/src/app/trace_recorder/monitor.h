@@ -60,8 +60,13 @@ class Trace_recorder::Monitor
 				                Allocator       &alloc,
 				                Xml_node  const &config,
 				                Rtc::Connection &rtc)
-				: _root(env, alloc, config.sub_node("vfs")),
-				  _path(Directory::join(root_from_config(config), rtc.current_time()))
+				:
+					_root(config.with_sub_node("vfs",
+						[&] (Xml_node const &vfs_config) -> Root_directory {
+							return { env, alloc, vfs_config }; },
+						[&] () -> Root_directory {
+							return { env, alloc, Xml_node("<empty/>") }; })),
+					_path(Directory::join(root_from_config(config), rtc.current_time()))
 				{ };
 
 				Directory       &root()        { return _root; }

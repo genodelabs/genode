@@ -462,14 +462,11 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		bool shim_reroute = false;
 
 		/* lookup if PD/CPU service is configured and use shim in such cases */
-		if (start_xml.has_sub_node("route")) {
-			Xml_node const route = start_xml.sub_node("route");
-
+		start_xml.with_optional_sub_node("route", [&] (Xml_node const &route) {
 			route.for_each_sub_node("service", [&] (Xml_node const &service) {
 				if (service.attribute_value("name", Name()) == "PD" ||
 				    service.attribute_value("name", Name()) == "CPU")
-					shim_reroute = true; });
-		}
+					shim_reroute = true; }); });
 
 		Binary_name const binary = shim_reroute ? Binary_name("shim")
 		                                        : _binary_name;
@@ -525,82 +522,83 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		}
 
 		/* runtime handling */
-		Xml_node const runtime = _pkg_xml->xml.sub_node("runtime");
+		_pkg_xml->xml.with_optional_sub_node("runtime", [&] (Xml_node const &runtime) {
 
-		/*
-		 * Insert inline '<heartbeat>' node if provided by the start node.
-		 */
-		if (start_xml.has_sub_node("heartbeat"))
-			_gen_copy_of_sub_node(xml, start_xml, "heartbeat");
+			/*
+			 * Insert inline '<heartbeat>' node if provided by the start node.
+			 */
+			if (start_xml.has_sub_node("heartbeat"))
+				_gen_copy_of_sub_node(xml, start_xml, "heartbeat");
 
-		/*
-		 * Insert inline '<config>' node if provided by the start node,
-		 * the launcher definition (if a launcher is used), or the
-		 * blueprint. The former is preferred over the latter.
-		 */
-		bool config_defined = false;
-		if (start_xml.has_sub_node("config")) {
-			_gen_copy_of_sub_node(xml, start_xml, "config");
-			config_defined = true; }
-
-		if (!config_defined)
-			_with_launcher_xml([&] (Xml_node const &launcher_xml) {
-				if (launcher_xml.has_sub_node("config")) {
-					_gen_copy_of_sub_node(xml, launcher_xml, "config");
-					config_defined = true; } });
-
-		if (!config_defined)
-			if (runtime.has_sub_node("config")) {
-				_gen_copy_of_sub_node(xml, runtime, "config");
+			/*
+			 * Insert inline '<config>' node if provided by the start node,
+			 * the launcher definition (if a launcher is used), or the
+			 * blueprint. The former is preferred over the latter.
+			 */
+			bool config_defined = false;
+			if (start_xml.has_sub_node("config")) {
+				_gen_copy_of_sub_node(xml, start_xml, "config");
 				config_defined = true; }
 
-		/*
-		 * Declare services provided by the subsystem.
-		 */
-		if (runtime.has_sub_node("provides")) {
-			xml.node("provides", [&] {
-				runtime.sub_node("provides").for_each_sub_node([&] (Xml_node const &service) {
-					_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
-					_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
-					_gen_provides_sub_node(xml, service, "block",       "Block");
-					_gen_provides_sub_node(xml, service, "file_system", "File_system");
-					_gen_provides_sub_node(xml, service, "framebuffer", "Framebuffer");
-					_gen_provides_sub_node(xml, service, "input",       "Input");
-					_gen_provides_sub_node(xml, service, "event",       "Event");
-					_gen_provides_sub_node(xml, service, "log",         "LOG");
-					_gen_provides_sub_node(xml, service, "nic",         "Nic");
-					_gen_provides_sub_node(xml, service, "uplink",      "Uplink");
-					_gen_provides_sub_node(xml, service, "gui",         "Gui");
-					_gen_provides_sub_node(xml, service, "gpu",         "Gpu");
-					_gen_provides_sub_node(xml, service, "usb",         "Usb");
-					_gen_provides_sub_node(xml, service, "report",      "Report");
-					_gen_provides_sub_node(xml, service, "rom",         "ROM");
-					_gen_provides_sub_node(xml, service, "terminal",    "Terminal");
-					_gen_provides_sub_node(xml, service, "timer",       "Timer");
-					_gen_provides_sub_node(xml, service, "pd",          "PD");
-					_gen_provides_sub_node(xml, service, "cpu",         "CPU");
-					_gen_provides_sub_node(xml, service, "rtc",         "Rtc");
-					_gen_provides_sub_node(xml, service, "capture",     "Capture");
-					_gen_provides_sub_node(xml, service, "play",        "Play");
-					_gen_provides_sub_node(xml, service, "record",      "Record");
+			if (!config_defined)
+				_with_launcher_xml([&] (Xml_node const &launcher_xml) {
+					if (launcher_xml.has_sub_node("config")) {
+						_gen_copy_of_sub_node(xml, launcher_xml, "config");
+						config_defined = true; } });
+
+			if (!config_defined)
+				if (runtime.has_sub_node("config")) {
+					_gen_copy_of_sub_node(xml, runtime, "config");
+					config_defined = true; }
+
+			/*
+			 * Declare services provided by the subsystem.
+			 */
+			runtime.with_optional_sub_node("provides", [&] (Xml_node const &provides) {
+				xml.node("provides", [&] {
+					provides.for_each_sub_node([&] (Xml_node const &service) {
+						_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
+						_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
+						_gen_provides_sub_node(xml, service, "block",       "Block");
+						_gen_provides_sub_node(xml, service, "file_system", "File_system");
+						_gen_provides_sub_node(xml, service, "framebuffer", "Framebuffer");
+						_gen_provides_sub_node(xml, service, "input",       "Input");
+						_gen_provides_sub_node(xml, service, "event",       "Event");
+						_gen_provides_sub_node(xml, service, "log",         "LOG");
+						_gen_provides_sub_node(xml, service, "nic",         "Nic");
+						_gen_provides_sub_node(xml, service, "uplink",      "Uplink");
+						_gen_provides_sub_node(xml, service, "gui",         "Gui");
+						_gen_provides_sub_node(xml, service, "gpu",         "Gpu");
+						_gen_provides_sub_node(xml, service, "usb",         "Usb");
+						_gen_provides_sub_node(xml, service, "report",      "Report");
+						_gen_provides_sub_node(xml, service, "rom",         "ROM");
+						_gen_provides_sub_node(xml, service, "terminal",    "Terminal");
+						_gen_provides_sub_node(xml, service, "timer",       "Timer");
+						_gen_provides_sub_node(xml, service, "pd",          "PD");
+						_gen_provides_sub_node(xml, service, "cpu",         "CPU");
+						_gen_provides_sub_node(xml, service, "rtc",         "Rtc");
+						_gen_provides_sub_node(xml, service, "capture",     "Capture");
+						_gen_provides_sub_node(xml, service, "play",        "Play");
+						_gen_provides_sub_node(xml, service, "record",      "Record");
+					});
 				});
 			});
-		}
 
-		xml.node("route", [&] {
+			xml.node("route", [&] {
 
-			if (start_xml.has_sub_node("monitor")) {
-				xml.node("service", [&] {
-					xml.attribute("name", "PD");
-					xml.node("local");
-				});
-				xml.node("service", [&] {
-					xml.attribute("name", "CPU");
-					xml.node("local");
-				});
-			}
+				if (start_xml.has_sub_node("monitor")) {
+					xml.node("service", [&] {
+						xml.attribute("name", "PD");
+						xml.node("local");
+					});
+					xml.node("service", [&] {
+						xml.attribute("name", "CPU");
+						xml.node("local");
+					});
+				}
 
-			_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom);
+				_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom);
+			});
 		});
 	});
 }

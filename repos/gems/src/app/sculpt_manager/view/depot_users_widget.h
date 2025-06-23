@@ -51,22 +51,23 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 		Url _url(Xml_node const &user) const
 		{
-			if (!user.has_sub_node("url"))
-				return { };
+			return user.with_sub_node("url", [&] (Xml_node const &node) {
 
-			Url const url = user.sub_node("url").decoded_content<Url>();
+				Url const url = node.decoded_content<Url>();
 
-			/*
-			 * Ensure that the URL does not contain any '"' character because
-			 * it will be taken as an XML attribute value.
-			 */
-			for (char const *s = url.string(); *s; s++)
-				if (*s == '"')
-					return { };
+				/*
+				 * Ensure that the URL does not contain any '"' character because
+				 * it will be taken as an XML attribute value.
+				 */
+				for (char const *s = url.string(); *s; s++)
+					if (*s == '"')
+						return Url { };
 
-			User const name = user.attribute_value("name", User());
+				User const name = user.attribute_value("name", User());
 
-			return Url(url, "/", name);
+				return Url(url, "/", name);
+
+			}, [&] { return Url(); });
 		}
 
 		static inline char const *_add_id() { return "/add"; }

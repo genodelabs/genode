@@ -114,20 +114,15 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 
 		using Rom_name = String<128>;
 
-		if (node.has_sub_node("configfile")) {
-
-			Rom_name const name =
-				node.sub_node("configfile").attribute_value("name", Rom_name());
+		node.with_optional_sub_node("configfile", [&] (Xml_node const &node) {
+			Rom_name const name = node.attribute_value("name", Rom_name());
 
 			Rom_connection &config_rom = *new (_heap) Rom_connection(_env, name.string());
 
 			config_ds = config_rom.dataspace();
-		}
+		});
 
-		if (node.has_sub_node("config")) {
-
-			Xml_node config_node = node.sub_node("config");
-
+		node.with_optional_sub_node("config", [&] (Xml_node const &config_node) {
 			config_node.with_raw_node([&] (char const *start, size_t length) {
 
 				/* allocate dataspace for config */
@@ -137,7 +132,7 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 				Attached_dataspace attached(_env.rm(), config_ds);
 				memcpy(attached.local_addr<char>(), start, length);
 			});
-		}
+		});
 
 		/* add launchpad entry */
 		add_launcher(*name, cap_quota, default_ram_quota, config_ds);

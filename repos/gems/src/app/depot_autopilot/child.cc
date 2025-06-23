@@ -348,36 +348,17 @@ void Child::gen_start_node(Xml_generator          &xml,
 		return; }
 
 	uint64_t max_timeout_sec = 0;
-	try {
-		Xml_node const runtime = _pkg_xml->xml.sub_node("runtime");
+	_pkg_xml->xml.with_optional_sub_node("runtime", [&] (Xml_node const &runtime) {
 
 		/*
 		 * The check for the <events> node is made only for compatibility with
 		 * the old (< Genode 23.08) success-criterion syntax and can be removed
 		 * after an appropriate transition period.
 		 */
-		if (runtime.has_sub_node("events")) {
+		runtime.with_sub_node("events",
+			[&] (Xml_node const &events) {
 
-			Xml_node const events = runtime.sub_node("events");
-			events.for_each_sub_node("timeout", [&] (Xml_node const &event) {
-				try {
-					Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
-					if (timeout.sec() > max_timeout_sec) {
-						max_timeout_sec = timeout.sec();
-					}
-					_timeout_events.insert(&timeout);
-				}
-				catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
-			});
-			events.for_each_sub_node("log", [&] (Xml_node const &event) {
-				_log_events.insert(new (_alloc) Log_event(_alloc, event));
-			});
-
-		} else {
-
-			runtime.for_each_sub_node("succeed", [&] (Xml_node const &event) {
-
-				if (event.has_attribute("after_seconds")) {
+				events.for_each_sub_node("timeout", [&] (Xml_node const &event) {
 					try {
 						Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
 						if (timeout.sec() > max_timeout_sec) {
@@ -386,30 +367,47 @@ void Child::gen_start_node(Xml_generator          &xml,
 						_timeout_events.insert(&timeout);
 					}
 					catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
-				}
-				event.with_raw_content([&] (char const *, size_t) {
+				});
+				events.for_each_sub_node("log", [&] (Xml_node const &event) {
 					_log_events.insert(new (_alloc) Log_event(_alloc, event));
 				});
-			});
-			runtime.for_each_sub_node("fail", [&] (Xml_node const &event) {
+			},
+			[&] /* no 'events' sub node */ {
 
-				if (event.has_attribute("after_seconds")) {
-					try {
-						Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
-						if (timeout.sec() > max_timeout_sec) {
-							max_timeout_sec = timeout.sec();
+				runtime.for_each_sub_node("succeed", [&] (Xml_node const &event) {
+
+					if (event.has_attribute("after_seconds")) {
+						try {
+							Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
+							if (timeout.sec() > max_timeout_sec) {
+								max_timeout_sec = timeout.sec();
+							}
+							_timeout_events.insert(&timeout);
 						}
-						_timeout_events.insert(&timeout);
+						catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
 					}
-					catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
-				}
-				event.with_raw_content([&] (char const *, size_t) {
-					_log_events.insert(new (_alloc) Log_event(_alloc, event));
+					event.with_raw_content([&] (char const *, size_t) {
+						_log_events.insert(new (_alloc) Log_event(_alloc, event));
+					});
+				});
+				runtime.for_each_sub_node("fail", [&] (Xml_node const &event) {
+
+					if (event.has_attribute("after_seconds")) {
+						try {
+							Timeout_event &timeout = *new (_alloc) Timeout_event(_timer, *this, event);
+							if (timeout.sec() > max_timeout_sec) {
+								max_timeout_sec = timeout.sec();
+							}
+							_timeout_events.insert(&timeout);
+						}
+						catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
+					}
+					event.with_raw_content([&] (char const *, size_t) {
+						_log_events.insert(new (_alloc) Log_event(_alloc, event));
+					});
 				});
 			});
-		}
-	}
-	catch (...) { }
+	});
 	log("");
 	log("--- Run \"", _name, "\" (max ", max_timeout_sec, " sec) ---");
 	log("");
@@ -434,20 +432,17 @@ void Child::_gen_routes(Xml_generator          &xml,
 	/*
 	 * Add routes given in the start node.
 	 */
-	if (_start_xml->xml.has_sub_node("route")) {
-		Xml_node const route = _start_xml->xml.sub_node("route");
+	_start_xml->xml.with_optional_sub_node("route", [&] (Xml_node const &route) {
 		route.with_raw_content([&] (char const *start, size_t length) {
-			xml.append(start, length); });
-	}
+			xml.append(start, length); }); });
 
 	/*
 	 * Add routes given in the launcher definition.
 	 */
-	if (_launcher_xml.constructed() && _launcher_xml->xml.has_sub_node("route")) {
-		Xml_node const route = _launcher_xml->xml.sub_node("route");
-		route.with_raw_content([&] (char const *start, size_t length) {
-			xml.append(start, length); });
-	}
+	if (_launcher_xml.constructed())
+		_launcher_xml->xml.with_optional_sub_node("route", [&] (Xml_node const &route) {
+			route.with_raw_content([&] (char const *start, size_t length) {
+				xml.append(start, length); }); });
 
 	/**
 	 * Return name of depot-ROM server used for obtaining the 'path'
@@ -596,12 +591,10 @@ void Child::_gen_copy_of_sub_node(Xml_generator        &xml,
                                   Xml_node       const &from_node,
                                   Xml_node::Type const &sub_node_type)
 {
-	if (!from_node.has_sub_node(sub_node_type.string()))
-		return;
-
-	Xml_node const sub_node = from_node.sub_node(sub_node_type.string());
-	sub_node.with_raw_node([&] (char const *start, size_t length) {
-		xml.append(start, length); });
+	from_node.with_optional_sub_node(sub_node_type.string(),
+		[&] (Xml_node const &sub_node) {
+			sub_node.with_raw_node([&] (char const *start, size_t length) {
+				xml.append(start, length); }); });
 }
 
 
@@ -709,8 +702,7 @@ void Child::apply_blueprint(Xml_node const &pkg)
 	if (pkg.attribute_value("path", Archive::Path()) != _blueprint_pkg_path)
 		return;
 
-	try {
-		Xml_node const runtime = pkg.sub_node("runtime");
+	pkg.with_sub_node("runtime", [&] (Xml_node const &runtime) {
 
 		/* package was missing but is installed now */
 		_pkg_incomplete = false;
@@ -723,10 +715,8 @@ void Child::apply_blueprint(Xml_node const &pkg)
 
 		/* keep copy of the blueprint info */
 		_pkg_xml.construct(_alloc, pkg);
-	}
-	catch (Xml_node::Nonexistent_sub_node) {
-		error("missing runtime subnode in packege blueprint");
-	}
+
+	}, [] { error("missing runtime subnode in packege blueprint"); });
 }
 
 

@@ -219,7 +219,12 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 		Signal_transmitter(_config_handler).submit();
 	}
 
-	Vfs::Simple_env _vfs_env { _env, _heap, _config.xml().sub_node("vfs") };
+	Vfs::Simple_env _vfs_env = _config.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Vfs::Simple_env {
+			return { _env, _heap, config }; },
+		[&] () -> Vfs::Simple_env {
+			error("VFS not configured");
+			return { _env, _heap, Xml_node("<empty/>") }; });
 
 	Directory _root_dir { _vfs_env };
 
@@ -247,7 +252,8 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 
 		Xml_node const config = _config.xml();
 
-		_vfs_env.root_dir().apply_config(config.sub_node("vfs"));
+		config.with_optional_sub_node("vfs", [&] (Xml_node const &vfs_config) {
+			_vfs_env.root_dir().apply_config(vfs_config); });
 
 		_dirs.for_each([&] (Registered<Watched_directory> &dir) {
 			destroy(_heap, &dir); });

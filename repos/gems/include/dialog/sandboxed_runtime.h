@@ -133,15 +133,15 @@ class Dialog::Sandboxed_runtime : Noncopyable
 				if (child.attribute_value("name", Start_name()) != name)
 					return false;
 
-				if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-					ram.value *= 2;
-					result = true;
-				}
+				child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+					if (node.has_attribute("requested")) {
+						ram.value *= 2;
+						result = true; } });
 
-				if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
-					caps.value += 100;
-					result = true;
-				}
+				child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+					if (node.has_attribute("requested")) {
+						caps.value += 100;
+						result = true; } });
 
 				return result;
 			}

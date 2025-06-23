@@ -47,7 +47,12 @@ struct Fs_tool::Main
 
 	Vfs::Global_file_system_factory _fs_factory { _heap };
 
-	Vfs::Simple_env _vfs_env { _env, _heap, _config.xml().sub_node("vfs") };
+	Vfs::Simple_env _vfs_env = _config.xml().with_sub_node("vfs",
+		[&] (Xml_node const &config) -> Vfs::Simple_env {
+			return { _env, _heap, config }; },
+		[&] () -> Vfs::Simple_env {
+			error("VFS not configured");
+			return { _env, _heap, Xml_node("<empty/>") }; });
 
 	Directory _root_dir { _vfs_env };
 
@@ -72,7 +77,8 @@ struct Fs_tool::Main
 
 		_verbose = config.attribute_value("verbose", false);
 
-		_vfs_env.root_dir().apply_config(config.sub_node("vfs"));
+		config.with_optional_sub_node("vfs", [&] (Xml_node const &node) {
+			_vfs_env.root_dir().apply_config(node); });
 
 		config.for_each_sub_node([&] (Xml_node operation) {
 

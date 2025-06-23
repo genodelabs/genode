@@ -139,26 +139,26 @@ struct Depot_deploy::Main
 				warning("config lacks 'arch' attribute");
 
 			/* generate init config containing all configured start nodes */
-			bool finished;
+			bool finished = false;
 			_init_config_reporter.generate([&] (Xml_generator &xml) {
-				Xml_node const &static_config = config.sub_node("static");
-				static_config.with_raw_content([&] (char const *start, size_t length) {
-					xml.append(start, length); });
-				Child::Depot_rom_server const parent { };
-				finished = _children.gen_start_nodes(xml, config.sub_node("common_routes"),
-				                                     parent, parent);
+				config.with_optional_sub_node("static", [&] (Xml_node const &static_config) {
+					static_config.with_raw_content([&] (char const *start, size_t length) {
+						xml.append(start, length); });
+					Child::Depot_rom_server const parent { };
+					config.with_optional_sub_node("common_routes", [&] (Xml_node const &node) {
+						finished = _children.gen_start_nodes(xml, node, parent, parent); });
+				});
 			});
 			if (finished) {
 
 				Result result;
 				Genode::uint64_t previous_time_sec { 0 };
-				if (config.has_sub_node("previous-results")) {
-					Xml_node const previous_results = config.sub_node("previous-results");
-					previous_time_sec += previous_results.attribute_value("time_sec", (Genode::uint64_t)0);
-					result.succeeded  += previous_results.attribute_value("succeeded", 0UL);
-					result.failed     += previous_results.attribute_value("failed", 0UL);
-					result.skipped    += previous_results.attribute_value("skipped", 0UL);
-				}
+				config.with_optional_sub_node("previous-results", [&] (Xml_node const &node) {
+					previous_time_sec += node.attribute_value("time_sec", (Genode::uint64_t)0);
+					result.succeeded  += node.attribute_value("succeeded", 0UL);
+					result.failed     += node.attribute_value("failed",    0UL);
+					result.skipped    += node.attribute_value("skipped",   0UL);
+				});
 				Genode::uint64_t const time_us  { _timer.curr_time().trunc_to_plain_us().value };
 				Genode::uint64_t       time_ms  { time_us / 1000 };
 				Genode::uint64_t const time_sec { time_ms / 1000 };
@@ -183,12 +183,11 @@ struct Depot_deploy::Main
 				} else {
 
 					log("\n--- Finished after ", time_sec + previous_time_sec, ".", time_ms < 10 ? "00" : time_ms < 100 ? "0" : "", time_ms, " sec ---\n");
-					if (config.has_sub_node("previous-results")) {
-						Xml_node const previous_results = config.sub_node("previous-results");
-						previous_results.with_raw_content([&] (char const *start, size_t length) {
+					config.with_optional_sub_node("previous-results", [&] (Xml_node const &node) {
+						node.with_raw_content([&] (char const *start, size_t length) {
 							if (length)
-								log(Cstring(start, length)); });
-					}
+								log(Cstring(start, length)); }); });
+
 					_children.print_conclusion();
 					log("");
 					log(result);

@@ -264,9 +264,16 @@ struct Depot_remove::Main
 			return;
 		}
 
-		Directory::Path depot_path     { "depot" };
-		Root_directory  root_directory { _env, _heap, config.sub_node("vfs") };
-		Directory       depot          { root_directory, depot_path };
+		Directory::Path depot_path { "depot" };
+
+		Root_directory root_directory = _config_rom.xml().with_sub_node("vfs",
+			[&] (Xml_node const &config) -> Root_directory {
+				return { _env, _heap, config }; },
+			[&] () -> Root_directory {
+				error("VFS not configured");
+				return { _env, _heap, Xml_node("<empty/>") }; });
+
+		Directory depot { root_directory, depot_path };
 
 		try {
 			Archive_remover archive_cleaner { _heap, depot, config };

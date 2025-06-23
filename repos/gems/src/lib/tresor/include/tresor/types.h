@@ -646,7 +646,14 @@ struct Tresor::Superblock_configuration
 	: vbd(vbd), free_tree(free_tree) { }
 
 	Superblock_configuration(Xml_node const &node)
-	: vbd(node.sub_node("virtual-block-device")), free_tree(node.sub_node("free-tree")) { }
+	:
+		vbd(node.with_sub_node("virtual-block-device",
+			[&] (Xml_node const &node) -> Tree_configuration { return { node }; },
+			[&] ()                     -> Tree_configuration { return Xml_node("<empty/>"); })),
+		free_tree(node.with_sub_node("free-tree",
+			[&] (Xml_node const &node) -> Tree_configuration { return { node }; },
+			[&] ()                     -> Tree_configuration { return Xml_node("<empty/>"); }))
+	{ }
 
 	void generate_xml(Xml_generator &xml)
 	{

@@ -201,11 +201,8 @@ class Decorator::Config
 
 			_reset_window_controls();
 
-			/*
-			 * Parse configuration of window controls
-			 */
-			auto lambda = [&] (Xml_node node) {
-
+			auto configure_window_control = [&] (Xml_node const &node)
+			{
 				if (_num_window_controls >= MAX_WINDOW_CONTROLS) {
 					Genode::warning("number of configured window controls exceeds maximum");
 					return;
@@ -227,8 +224,9 @@ class Decorator::Config
 					new (_alloc) Window_control(type, align);
 			};
 
-			try { config.sub_node("controls").for_each_sub_node(lambda); }
-			catch (Xml_node::Nonexistent_sub_node) { }
+			config.with_optional_sub_node("controls", [&] (Xml_node const &controls) {
+				controls.for_each_sub_node([&] (Xml_node const &node) {
+					configure_window_control(node); }); });
 		}
 };
 

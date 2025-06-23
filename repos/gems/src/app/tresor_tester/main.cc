@@ -414,11 +414,25 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 		Genode::Env &_env;
 		Attached_rom_dataspace _config_rom { _env, "config" };
 		Heap _heap { _env.ram(), _env.rm() };
-		Vfs::Simple_env _vfs_env { _env, _heap, _config_rom.xml().sub_node("vfs"), *this };
+		Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
+			[&] (Xml_node const &config) -> Vfs::Simple_env {
+				return { _env, _heap, config, *this }; },
+			[&] () -> Vfs::Simple_env {
+				error("VFS not configured");
+				return { _env, _heap, Xml_node("<empty/>") }; });
 		Signal_handler<Main> _signal_handler { _env.ep(), *this, &Main::_handle_signal };
-		Tresor::Path const _crypto_path { _config_rom.xml().sub_node("crypto").attribute_value("path", Tresor::Path()) };
-		Tresor::Path const _block_io_path { _config_rom.xml().sub_node("block-io").attribute_value("path", Tresor::Path()) };
-		Tresor::Path const _trust_anchor_path { _config_rom.xml().sub_node("trust-anchor").attribute_value("path", Tresor::Path()) };
+
+		Tresor::Path _path_from_config(auto const &node_name) const
+		{
+			return _config_rom.xml().with_sub_node(node_name,
+				[&] (Xml_node const &node) { return node.attribute_value("path", Tresor::Path()); },
+				[&]                        { return Tresor::Path(); });
+		}
+
+		Tresor::Path const _crypto_path       = _path_from_config("crypto");
+		Tresor::Path const _block_io_path     = _path_from_config("block-io");
+		Tresor::Path const _trust_anchor_path = _path_from_config("trust-anchor");
+
 		Vfs::Vfs_handle &_block_io_file { open_file(_vfs_env, _block_io_path, Vfs::Directory_service::OPEN_MODE_RDWR) };
 		Vfs::Vfs_handle &_crypto_add_key_file { open_file(_vfs_env, { _crypto_path, "/add_key" }, Vfs::Directory_service::OPEN_MODE_WRONLY) };
 		Vfs::Vfs_handle &_crypto_remove_key_file { open_file(_vfs_env, { _crypto_path, "/remove_key" }, Vfs::Directory_service::OPEN_MODE_WRONLY) };
@@ -1014,10 +1028,13 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 		Main(Genode::Env &env) : _env(env)
 		{
 			Command::Id command_id { 0 };
-			_config_rom.xml().sub_node("commands").for_each_sub_node([&] (Xml_node const &node) {
-				Command *cmd_ptr = new (_heap) Command(node, command_id++);
-				_command_tree.insert(cmd_ptr);
-				_command_schedule.add_tail(*cmd_ptr);
+			_config_rom.xml().with_optional_sub_node("commands",
+				[&] (Xml_node const &commands) {
+					commands.for_each_sub_node([&] (Xml_node const &node) {
+						Command *cmd_ptr = new (_heap) Command(node, command_id++);
+						_command_tree.insert(cmd_ptr);
+						_command_schedule.add_tail(*cmd_ptr);
+				});
 			});
 			_handle_signal();
 		}

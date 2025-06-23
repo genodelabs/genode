@@ -73,18 +73,16 @@ class File_vault::Child_state : Noncopyable
 			if (child.attribute_value("name", Child_name()) != _start_name)
 				return false;
 
-			if (child.has_sub_node("ram") &&
-			    child.sub_node("ram").has_attribute("requested"))
-			{
-				_ram_quota.value *= 2;
-				result = true;
-			}
-			if (child.has_sub_node("caps") &&
-			    child.sub_node("caps").has_attribute("requested"))
-			{
-				_cap_quota.value += 100;
-				result = true;
-			}
+			child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+				if (node.has_attribute("requested")) {
+					_ram_quota.value *= 2;
+					result = true; } });
+
+			child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+				if (node.has_attribute("requested")) {
+					_cap_quota.value += 100;
+					result = true; } });
+
 			return result;
 		}
 

@@ -174,18 +174,24 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 			if (config.valid())
 				xml.attribute("config", config);
 
-			Xml_node const env_xml = _config.xml().has_sub_node("env")
-			                       ? _config.xml().sub_node("env") : "<env/>";
+			auto with_env_node = [&] (auto const &fn)
+			{
+				_config.xml().with_sub_node("env",
+					[&] (Xml_node const &env) { fn(env); },
+					[&]                       { fn(Xml_node("<empty/>")); });
+			};
 
-			_gen_rom_path_nodes(xml, env_xml, pkg_path, node);
+			with_env_node([&] (Xml_node const &env_node) {
+				_gen_rom_path_nodes(xml, env_node, pkg_path, node);
 
-			_gen_inherited_rom_path_nodes(xml, env_xml, pkg_path, Recursion_limit{8});
+				_gen_inherited_rom_path_nodes(xml, env_node, pkg_path, Recursion_limit{8});
 
-			String<160> comment("\n\n<!-- content of '", pkg_path, "/runtime' -->\n");
-			xml.append(comment.string());
-			node.with_raw_node([&] (char const *start, size_t length) {
-				xml.append(start, length); });
-			xml.append("\n");
+				String<160> comment("\n\n<!-- content of '", pkg_path, "/runtime' -->\n");
+				xml.append(comment.string());
+				node.with_raw_node([&] (char const *start, size_t length) {
+					xml.append(start, length); });
+				xml.append("\n");
+			});
 		});
 	});
 }

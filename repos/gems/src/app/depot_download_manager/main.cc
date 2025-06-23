@@ -329,10 +329,9 @@ struct Depot_download_manager::Main
 Depot_download_manager::Url
 Depot_download_manager::Main::_current_user_url() const
 {
-	if (!_current_user.xml().has_sub_node("url"))
-		throw Invalid_download_url();
-
-	Url const url = _current_user.xml().sub_node("url").decoded_content<Url>();
+	Url const url = _current_user.xml().with_sub_node("url",
+		[&] (Xml_node const &node) { return node.decoded_content<Url>(); },
+		[&] () -> Url              { throw Invalid_download_url(); });
 
 	/*
 	 * Ensure that the URL does not contain any '"' character because it will

@@ -85,8 +85,8 @@ class Terminal::Color_palette
 		void apply_config(Xml_node const &config)
 		{
 			_apply_palette(_default);
-			if (config.has_sub_node("palette"))
-				_apply_palette(config.sub_node("palette"));
+			config.with_optional_sub_node("palette", [&] (Xml_node const &palette) {
+				_apply_palette(palette); });
 		}
 
 		Color foreground(Index index, Highlighted highlighted) const

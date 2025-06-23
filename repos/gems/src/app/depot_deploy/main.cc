@@ -83,9 +83,9 @@ struct Depot_deploy::Main
 
 		Xml_node const config = _config.xml();
 
-		bool const report_state =
-			config.has_sub_node("report") &&
-			config.sub_node("report").attribute_value("state", false);
+		bool const report_state = config.with_sub_node("report",
+			[] (Xml_node const &node) { return node.attribute_value("state", false); },
+			[]                        { return false; });
 
 		_state_reporter.conditional(report_state, _env, "state", "state");
 

@@ -63,18 +63,21 @@ class Trace_recorder::Timestamp_calibrator
 			using namespace Genode;
 
 			/* try getting tsc frequency from platform info, measure if failed */
-			try {
-				Attached_rom_dataspace const platform_info (env, "platform_info");
-				Xml_node const hardware  = platform_info.xml().sub_node("hardware");
-				uint64_t const tsc_freq  = hardware.sub_node("tsc").attribute_value("freq_khz", 0ULL);
-				bool     const invariant = hardware.sub_node("tsc").attribute_value("invariant", true);
+			uint64_t result = 0;
+			Attached_rom_dataspace const platform_info (env, "platform_info");
+			platform_info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &hardware) {
+				hardware.with_optional_sub_node("tsc", [&] (Xml_node const &tsc) {
+					uint64_t const tsc_freq  = tsc.attribute_value("freq_khz", 0ULL);
+					bool     const invariant = tsc.attribute_value("invariant", true);
 
-				if (!invariant)
-					error("No invariant TSC available");
+					if (!invariant)
+						error("No invariant TSC available");
 
-				if (tsc_freq)
-					return tsc_freq * 1000ULL;
-			} catch (...) { }
+					result = tsc_freq * 1000ULL;
+				});
+			});
+			if (result)
+				return result;
 
 			warning("Falling back to measured timestamp frequency");
 			/* measure frequency using timer */

@@ -553,16 +553,21 @@ class Decorator::Window : public Window_base, public Animator::Item
 				}
 			});
 
-			Xml_node const highlight = window_node.has_sub_node("highlight")
-			                         ? window_node.sub_node("highlight")
-			                         : Xml_node("<highlight/>");
+			auto with_highlight = [&] (auto const &fn)
+			{
+				window_node.with_sub_node("highlight",
+					[&] (Xml_node const &node) { fn(node); },
+					[&]                        { fn(Xml_node("<highlight/>")); });
+			};
 
-			_for_each_element([&] (Element &element) {
-				bool const highlighted = highlight.has_sub_node(element.attr);
-				if (highlighted != element.highlighted()) {
-					element.highlighted(highlighted);
-					trigger_animation = true;
-				}
+			with_highlight([&] (Xml_node const &highlight) {
+				_for_each_element([&] (Element &element) {
+					bool const highlighted = highlight.has_sub_node(element.attr);
+					if (highlighted != element.highlighted()) {
+						element.highlighted(highlighted);
+						trigger_animation = true;
+					}
+				});
 			});
 
 			if (trigger_animation) {
