@@ -15,10 +15,18 @@
 
 #if defined(__x86_64__) || defined(__i386__)
 #include <asm/processor.h>
+
 unsigned long __end_init_task[0];
 
 #include <asm/current.h>
+
 DEFINE_PER_CPU(struct pcpu_hot, pcpu_hot);
+/* const alias to pcpu_hot */
+extern __attribute((alias("pcpu_hot"))) struct pcpu_hot const const_pcpu_hot;
+#endif
+
+#ifdef CONFIG_X86_64
+unsigned long __top_init_kernel_stack[1];
 #endif
 
 
@@ -126,6 +134,14 @@ void rcu_sched_clock_irq(int user)
 }
 
 
+#include <linux/sched.h>
+
+void sched_tick(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
 #include <linux/sched/signal.h>
 
 void ignore_signals(struct task_struct * t)
@@ -153,5 +169,27 @@ void synchronize_srcu(struct srcu_struct * ssp)
 #endif
 
 
+#ifdef CONFIG_ARM64
+#include <asm/memory.h>
+
+u64 read_tcr(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+#endif
+
+
+#include <linux/async.h>
+
+void async_init(void) { }
+
+
 extern void __init maple_tree_init(void);
 void __init maple_tree_init(void) { }
+
+
+/* kernel/sched/sched.h */
+void __dl_server_attach_root(struct sched_dl_entity *dl_se, struct rq *rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}

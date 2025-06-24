@@ -2,6 +2,12 @@
 # Linux generic kernel configuration
 #
 
+#
+# Set NR_CPUS option, (values > 256 (512 is the default on arm_v8 now) will
+# select CONFIG_CPUMASK_OFFSTACK)
+#
+LX_NR_CPUS = 64
+
 # kernel fundamentals
 LX_ENABLE += TTY MMU SERIAL_EARLYCON SERIAL_OF_PLATFORM PRINTK HAS_IOMEM SMP
 

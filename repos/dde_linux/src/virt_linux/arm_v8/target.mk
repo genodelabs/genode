@@ -3,7 +3,7 @@ REQUIRES := arm_v8
 
 CUSTOM_TARGET_DEPS := kernel_build.phony
 
-LX_DIR := $(call select_from_ports,legacy_linux)/src/linux
+LX_DIR := $(call select_from_ports,linux)/src/linux
 PWD    := $(shell pwd)
 
 # options for Linux kernel build to not depend on current time, user and host
@@ -28,6 +28,7 @@ kernel_config.tag:
 	$(VERBOSE)$(MAKE) -C $(LX_DIR) O=$(PWD) $(LX_MK_ARGS) tinyconfig $(BUILD_OUTPUT_FILTER)
 	$(VERBOSE)$(LX_DIR)/scripts/config --file $(PWD)/.config $(addprefix --enable ,$(LX_ENABLE))
 	$(VERBOSE)$(LX_DIR)/scripts/config --file $(PWD)/.config $(addprefix --disable ,$(LX_DISABLE))
+	$(VERBOSE)$(LX_DIR)/scripts/config --file $(PWD)/.config $(addprefix --set-val NR_CPUS ,$(LX_NR_CPUS))
 	$(VERBOSE)$(MAKE) $(LX_MK_ARGS) olddefconfig $(BUILD_OUTPUT_FILTER)
 	$(VERBOSE)$(MAKE) $(LX_MK_ARGS) prepare      $(BUILD_OUTPUT_FILTER)
 	$(VERBOSE)touch $@
