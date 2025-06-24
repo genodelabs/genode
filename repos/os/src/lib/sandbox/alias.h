@@ -35,7 +35,7 @@ struct Sandbox::Alias : List<Alias>::Element, Noncopyable
 	/*
 	 * \throw Child_attribute_missing
 	 */
-	void update(Xml_node const &alias)
+	void update(Node const &alias)
 	{
 		if (!alias.has_attribute("child"))
 			warning("alias node \"", name, "\" lacks child attribute");

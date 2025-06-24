@@ -54,14 +54,14 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 		bool stop;  /* stop execution when GDB connects */
 		bool wx;    /* make text segments writeable */
 
-		static Policy from_xml(Xml_node const &policy)
+		static Policy from_node(Node const &policy)
 		{
 			return { .wait = policy.attribute_value("wait", false),
 			         .stop = policy.attribute_value("stop", true),
 			         .wx   = policy.attribute_value("wx",   false) };
 		}
 
-		static Policy default_policy() { return from_xml("<empty/>"); }
+		static Policy default_policy() { return from_node(Node()); }
 	};
 
 	Policy _policy = Policy::default_policy();
@@ -150,11 +150,11 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 			destroy(_alloc, &thread); }));
 	}
 
-	void apply_monitor_config(Xml_node const &monitor)
+	void apply_monitor_config(Node const &monitor)
 	{
 		with_matching_policy(_name, monitor,
-			[&] (Xml_node const &policy) { _policy = Policy::from_xml(policy); },
-			[&]                          { _policy = Policy::default_policy(); });
+			[&] (Node const &policy) { _policy = Policy::from_node(policy); },
+			[&]                      { _policy = Policy::default_policy(); });
 
 		if (_policy.wx) {
 			_address_space.writeable_text_segments(_alloc, _wx_ram, _local_rm);

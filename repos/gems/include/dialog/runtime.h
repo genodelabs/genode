@@ -62,7 +62,8 @@ class Dialog::Runtime : private Sandbox::State_handler
 			Buffered_xml const config { _alloc, "config", [&] (Xml_generator &xml) {
 				_generate_sandbox_config(xml); } };
 
-			_sandbox.apply_config(config.xml);
+			config.xml.with_raw_node([&] (char const *start, size_t num_bytes) {
+				_sandbox.apply_config(Node(Const_byte_range_ptr(start, num_bytes))); });
 		}
 
 		/**

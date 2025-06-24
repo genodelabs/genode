@@ -306,12 +306,11 @@ struct Monitor::Gdb::State : Noncopyable
 		return true;
 	}
 
-	State(Inferiors &inferiors, Memory_accessor &memory_accessor,
-	      Xml_node const &config)
+	State(Inferiors &inferiors, Memory_accessor &memory_accessor, Node const &config)
 	:
 		inferiors(inferiors), _memory_accessor(memory_accessor),
 		max_response(config.with_sub_node("monitor",
-			[&] (Xml_node const &node) {
+			[&] (Node const &node) {
 				return node.attribute_value("max_response", _default_max_response); },
 			[&] {
 				return _default_max_response; }))

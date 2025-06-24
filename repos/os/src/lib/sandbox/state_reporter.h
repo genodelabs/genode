@@ -112,7 +112,7 @@ class Sandbox::State_reporter : public Report_update_trigger
 				_producer.produce_state_report(xml, *_report_detail);
 		}
 
-		void apply_config(Version const &version, Xml_node const &report)
+		void apply_config(Version const &version, Node const &report)
 		{
 			if (report.type() == "report") {
 				_report_detail.construct(report);

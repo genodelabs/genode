@@ -27,7 +27,7 @@ void Sandbox::Child::destroy_services()
 
 
 Sandbox::Child::Apply_config_result
-Sandbox::Child::apply_config(Xml_node const &start_node)
+Sandbox::Child::apply_config(Node const &start_node)
 {
 	if (abandoned() || stuck() || restart_scheduled() || _exited)
 		return NO_SIDE_EFFECTS;
@@ -60,14 +60,14 @@ Sandbox::Child::apply_config(Xml_node const &start_node)
 	/*
 	 * Import new start node if it differs
 	 */
-	if (start_node.differs_from(_start_node->xml)) {
+	if (start_node.differs_from(*_start_node)) {
 
 		/*
 		 * The <route> node may affect the availability or unavailability
 		 * of dependencies.
 		 */
-		start_node.with_optional_sub_node("route", [&] (Xml_node const &route) {
-			_start_node->xml.with_optional_sub_node("route", [&] (Xml_node const &orig) {
+		start_node.with_optional_sub_node("route", [&] (Node const &route) {
+			_start_node->with_optional_sub_node("route", [&] (Node const &orig) {
 				if (route.differs_from(orig)) {
 					_construct_route_model_from_start_node(start_node);
 					_uncertain_dependencies = true; } }); });
@@ -76,7 +76,7 @@ Sandbox::Child::apply_config(Xml_node const &start_node)
 		 * Determine how the inline config is affected.
 		 */
 		char const * const tag = "config";
-		bool const config_was_present = _start_node->xml.has_sub_node(tag);
+		bool const config_was_present = _start_node->has_sub_node(tag);
 		bool const config_is_present  = start_node.has_sub_node(tag);
 
 		if (config_was_present != config_is_present)
@@ -89,10 +89,10 @@ Sandbox::Child::apply_config(Xml_node const &start_node)
 			config_update = CONFIG_APPEARED;
 
 		if (config_was_present && config_is_present)
-			_start_node->xml.with_optional_sub_node(tag,
-				[&] (Xml_node const &old_config) {
+			_start_node->with_optional_sub_node(tag,
+				[&] (Node const &old_config) {
 					start_node.with_optional_sub_node(tag,
-						[&] (Xml_node const &new_config) {
+						[&] (Node const &new_config) {
 							if (new_config.differs_from(old_config))
 								config_update = CONFIG_CHANGED; }); });
 
@@ -111,8 +111,8 @@ Sandbox::Child::apply_config(Xml_node const &start_node)
 			Name const name = service.name();
 
 			bool still_provided = false;
-			_with_provides_sub_node(start_node, [&] (Xml_node const &provides) {
-				provides.for_each_sub_node("service", [&] (Xml_node const &node) {
+			_with_provides_sub_node(start_node, [&] (Node const &provides) {
+				provides.for_each_sub_node("service", [&] (Node const &node) {
 					if (name == node.attribute_value("name", Name()))
 						still_provided = true; }); });
 
@@ -122,8 +122,8 @@ Sandbox::Child::apply_config(Xml_node const &start_node)
 			}
 		});
 
-		_with_provides_sub_node(start_node, [&] (Xml_node const &provides) {
-			provides.for_each_sub_node("service", [&] (Xml_node const &node) {
+		_with_provides_sub_node(start_node, [&] (Node const &provides) {
+			provides.for_each_sub_node("service", [&] (Node const &node) {
 				if (_service_exists(node))
 					return;
 
@@ -138,7 +138,7 @@ Sandbox::Child::apply_config(Xml_node const &start_node)
 		 * child.
 		 */
 		Binary_name const orig_binary_name = _binary_name;
-		_binary_name = _binary_from_xml(start_node, _unique_name);
+		_binary_name = _binary_from_node(start_node, _unique_name);
 		if (orig_binary_name != _binary_name)
 			_uncertain_dependencies = true;
 
@@ -196,13 +196,13 @@ void Sandbox::Child::evaluate_dependencies()
 
 Sandbox::Ram_quota Sandbox::Child::_configured_ram_quota() const
 {
-	Xml_node const &xml = _start_node->xml;
+	Node const &node = *_start_node;
 
 	Number_of_bytes const default_ram { _default_quota_accessor.default_ram().value };
 
-	size_t assigned = xml.attribute_value("ram", default_ram);
+	size_t assigned = node.attribute_value("ram", default_ram);
 
-	xml.for_each_sub_node("resource", [&] (Xml_node resource) {
+	node.for_each_sub_node("resource", [&] (Node const &resource) {
 		if (resource.attribute_value("name", String<8>()) == "RAM") {
 			if (assigned)
 				warning(name(), ": ambigious RAM-quota definition");
@@ -218,7 +218,7 @@ Sandbox::Cap_quota Sandbox::Child::_configured_cap_quota() const
 {
 	size_t const default_caps = _default_quota_accessor.default_caps().value;
 
-	return Cap_quota { _start_node->xml.attribute_value("caps", default_caps) };
+	return Cap_quota { _start_node->attribute_value("caps", default_caps) };
 }
 
 
@@ -570,7 +570,7 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 		return;
 	}
 
-	auto resolve_at_target = [&] (Xml_node const &target) -> Route
+	auto resolve_at_target = [&] (Node const &target) -> Route
 	{
 		/*
 		 * Determine session label to be provided to the server
@@ -785,7 +785,7 @@ Sandbox::Child::Child(Env                      &env,
                       Verbose            const &verbose,
                       Id                        id,
                       Report_update_trigger    &report_update_trigger,
-                      Xml_node           const &start_node,
+                      Node               const &start_node,
                       Default_route_accessor   &default_route_accessor,
                       Default_quota_accessor   &default_quota_accessor,
                       Name_registry            &name_registry,
@@ -834,8 +834,8 @@ Sandbox::Child::Child(Env                      &env,
 	/*
 	 * Determine services provided by the child
 	 */
-	_with_provides_sub_node(start_node, [&] (Xml_node const &provides) {
-		provides.for_each_sub_node("service", [&] (Xml_node const &node) {
+	_with_provides_sub_node(start_node, [&] (Node const &provides) {
+		provides.for_each_sub_node("service", [&] (Node const &node) {
 			_add_service(node); }); });
 
 	/*

@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
-#include <os/buffered_xml.h>
 
 /* local includes */
 #include <types.h>
@@ -81,11 +80,11 @@ class Sandbox::Server : Session_state::Ready_callback,
 		Route _resolve_session_request(Genode::Service::Name const &,
 		                               Session_label const &);
 
-		void _handle_create_session_request (Xml_node const &, Parent::Client::Id);
-		void _handle_upgrade_session_request(Xml_node const &, Parent::Client::Id);
-		void _handle_close_session_request  (Xml_node const &, Parent::Client::Id);
+		void _handle_create_session_request (Node const &, Parent::Client::Id);
+		void _handle_upgrade_session_request(Node const &, Parent::Client::Id);
+		void _handle_close_session_request  (Node const &, Parent::Client::Id);
 
-		void _handle_session_request(Xml_node const &);
+		void _handle_session_request(Node const &);
 		void _handle_session_requests();
 
 		void _close_session(Session_state &, Parent::Session_response response);
@@ -105,7 +104,7 @@ class Sandbox::Server : Session_state::Ready_callback,
 		/**
 		 * Constructor
 		 *
-		 * \param alloc  allocator used for buffering XML config data and
+		 * \param alloc  allocator used for buffering config data and
 		 *               for allocating per-service meta data
 		 */
 		Server(Env &env, Allocator &alloc, Registry<Routed_service> &services,
@@ -120,7 +119,7 @@ class Sandbox::Server : Session_state::Ready_callback,
 		/**
 		 * Service_model::Factory
 		 */
-		Service_model &create_service(Xml_node const &) override;
+		Service_model &create_service(Node const &) override;
 
 		/**
 		 * Service_model::Factory

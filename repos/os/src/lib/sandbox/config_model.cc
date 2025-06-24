@@ -1,5 +1,5 @@
 /*
- * \brief  Internal model of the XML configuration
+ * \brief  Internal model of the configuration
  * \author Norman Feske
  * \date   2021-04-02
  */
@@ -22,13 +22,13 @@ struct Config_model::Config_node : Noncopyable, Interface,
 	friend class List_model<Config_node>;
 	friend class List<Config_node>;
 
-	static bool type_matches(Xml_node const &xml);
+	static bool type_matches(Node const &node);
 
-	virtual bool matches(Xml_node const &) const = 0;
+	virtual bool matches(Node const &) const = 0;
 
-	virtual void update(Xml_node const &) = 0;
+	virtual void update(Node const &) = 0;
 
-	virtual void apply_child_restart(Xml_node const &) { /* only implemented by 'Start_node' */ }
+	virtual void apply_child_restart(Node const &) { /* only implemented by 'Start_node' */ }
 
 	virtual void trigger_start_child() { /* only implemented by 'Start_node' */ }
 };
@@ -36,9 +36,9 @@ struct Config_model::Config_node : Noncopyable, Interface,
 
 struct Config_model::Parent_provides_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("parent-provides");
+		return node.has_type("parent-provides");
 	}
 
 	Parent_provides_model _model;
@@ -49,42 +49,42 @@ struct Config_model::Parent_provides_node : Config_node
 		_model(alloc, verbose, factory)
 	{ }
 
-	bool matches(Xml_node const &xml) const override { return type_matches(xml); }
+	bool matches(Node const &node) const override { return type_matches(node); }
 
-	void update(Xml_node const &xml) override { _model.update_from_xml(xml); }
+	void update(Node const &node) override { _model.update_from_node(node); }
 };
 
 
 struct Config_model::Default_route_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("default-route");
+		return node.has_type("default-route");
 	}
 
-	Allocator                   &_alloc;
-	Constructible<Buffered_xml> &_default_route;
+	Allocator                    &_alloc;
+	Constructible<Buffered_node> &_default_route;
 
-	Default_route_node(Allocator &alloc, Constructible<Buffered_xml> &default_route)
+	Default_route_node(Allocator &alloc, Constructible<Buffered_node> &default_route)
 	: _alloc(alloc), _default_route(default_route) { }
 
 	~Default_route_node() { _default_route.destruct(); }
 
-	bool matches(Xml_node const &xml) const override { return type_matches(xml); }
+	bool matches(Node const &node) const override { return type_matches(node); }
 
-	void update(Xml_node const &xml) override
+	void update(Node const &node) override
 	{
-		if (!_default_route.constructed() || _default_route->xml.differs_from(xml))
-			_default_route.construct(_alloc, xml);
+		if (!_default_route.constructed() || _default_route->differs_from(node))
+			_default_route.construct(_alloc, node);
 	}
 };
 
 
 struct Config_model::Default_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("default");
+		return node.has_type("default");
 	}
 
 	Cap_quota &_default_caps;
@@ -93,21 +93,21 @@ struct Config_model::Default_node : Config_node
 	Default_node(Cap_quota &default_caps, Ram_quota &default_ram)
 	: _default_caps(default_caps), _default_ram(default_ram) { }
 
-	bool matches(Xml_node const &xml) const override { return type_matches(xml); }
+	bool matches(Node const &node) const override { return type_matches(node); }
 
-	void update(Xml_node const &xml) override
+	void update(Node const &node) override
 	{
-		_default_caps = Cap_quota { xml.attribute_value("caps", 0UL) };
-		_default_ram  = Ram_quota { xml.attribute_value("ram", Number_of_bytes()) };
+		_default_caps = Cap_quota { node.attribute_value("caps", 0UL) };
+		_default_ram  = Ram_quota { node.attribute_value("ram", Number_of_bytes()) };
 	}
 };
 
 
 struct Config_model::Affinity_space_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("affinity-space");
+		return node.has_type("affinity-space");
 	}
 
 	Constructible<Affinity::Space> &_affinity_space;
@@ -117,21 +117,21 @@ struct Config_model::Affinity_space_node : Config_node
 
 	~Affinity_space_node() { _affinity_space.destruct(); }
 
-	bool matches(Xml_node const &xml) const override { return type_matches(xml); }
+	bool matches(Node const &node) const override { return type_matches(node); }
 
-	void update(Xml_node const &xml) override
+	void update(Node const &node) override
 	{
-		_affinity_space.construct(xml.attribute_value("width",  1u),
-		                          xml.attribute_value("height", 1u));
+		_affinity_space.construct(node.attribute_value("width",  1u),
+		                          node.attribute_value("height", 1u));
 	}
 };
 
 
 struct Config_model::Start_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("start") || xml.has_type("alias");
+		return node.has_type("start") || node.has_type("alias");
 	}
 
 	Start_model _model;
@@ -139,22 +139,22 @@ struct Config_model::Start_node : Config_node
 	/*
 	 * \throw Start_model::Factory::Creation_failed
 	 */
-	Start_node(Start_model::Factory &factory, Xml_node const &xml)
-	: _model(factory, xml) { }
+	Start_node(Start_model::Factory &factory, Node const &node)
+	: _model(factory, node) { }
 
-	bool matches(Xml_node const &xml) const override
+	bool matches(Node const &node) const override
 	{
-		return type_matches(xml) && _model.matches(xml);
+		return type_matches(node) && _model.matches(node);
 	}
 
-	void update(Xml_node const &xml) override
+	void update(Node const &node) override
 	{
-		_model.update_from_xml(xml);
+		_model.update_from_node(node);
 	}
 
-	void apply_child_restart(Xml_node const &xml) override
+	void apply_child_restart(Node const &node) override
 	{
-		_model.apply_child_restart(xml);
+		_model.apply_child_restart(node);
 	}
 
 	void trigger_start_child() override
@@ -166,9 +166,9 @@ struct Config_model::Start_node : Config_node
 
 struct Config_model::Report_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("report");
+		return node.has_type("report");
 	}
 
 	Version  const &_version;
@@ -179,33 +179,33 @@ struct Config_model::Report_node : Config_node
 
 	~Report_node()
 	{
-		_state_reporter.apply_config(_version, Xml_node("<empty/>"));
+		_state_reporter.apply_config(_version, Node());
 	}
 
-	bool matches(Xml_node const &xml) const override { return type_matches(xml); }
+	bool matches(Node const &node) const override { return type_matches(node); }
 
-	void update(Xml_node const &xml) override
+	void update(Node const &node) override
 	{
-		_state_reporter.apply_config(_version, xml);
+		_state_reporter.apply_config(_version, node);
 	}
 };
 
 
 struct Config_model::Resource_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("resource");
+		return node.has_type("resource");
 	}
 
 	enum class Category { RAM, CAP } const _category;
 
 	class Unknown_resource_name : Exception { };
 
-	static Category _category_from_xml(Xml_node const &xml)
+	static Category _category_from_node(Node const &node)
 	{
 		using Name = String<16>;
-		Name const name = xml.attribute_value("name", Name());
+		Name const name = node.attribute_value("name", Name());
 
 		if (name == "RAM") return Category::RAM;
 		if (name == "CAP") return Category::CAP;
@@ -218,9 +218,9 @@ struct Config_model::Resource_node : Config_node
 	/*
 	 * \throw Unknown_resource_name
 	 */
-	Resource_node(Preservation &keep, Xml_node const &xml)
+	Resource_node(Preservation &keep, Node const &node)
 	:
-		_category(_category_from_xml(xml)), _keep(keep)
+		_category(_category_from_node(node)), _keep(keep)
 	{ }
 
 	~Resource_node()
@@ -231,26 +231,26 @@ struct Config_model::Resource_node : Config_node
 		}
 	}
 
-	bool matches(Xml_node const &xml) const override
+	bool matches(Node const &node) const override
 	{
-		return type_matches(xml) && _category == _category_from_xml(xml);
+		return type_matches(node) && _category == _category_from_node(node);
 	}
 
-	void update(Xml_node const &xml) override
+	void update(Node const &node) override
 	{
 		switch (_category) {
 
 		case Category::RAM:
 			{
 				Number_of_bytes keep { Preservation::default_ram().value };
-				_keep.ram = { xml.attribute_value("preserve", keep) };
+				_keep.ram = { node.attribute_value("preserve", keep) };
 				break;
 			}
 
 		case Category::CAP:
 			{
 				size_t keep = Preservation::default_caps().value;
-				_keep.caps = { xml.attribute_value("preserve", keep) };
+				_keep.caps = { node.attribute_value("preserve", keep) };
 				break;
 			}
 		}
@@ -260,9 +260,9 @@ struct Config_model::Resource_node : Config_node
 
 struct Config_model::Heartbeat_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("heartbeat");
+		return node.has_type("heartbeat");
 	}
 
 	Heartbeat &_heartbeat;
@@ -274,123 +274,126 @@ struct Config_model::Heartbeat_node : Config_node
 		_heartbeat.disable();
 	}
 
-	bool matches(Xml_node const &xml) const override { return type_matches(xml); }
+	bool matches(Node const &node) const override { return type_matches(node); }
 
-	void update(Xml_node const &xml) override
+	void update(Node const &node) override
 	{
-		_heartbeat.apply_config(xml);
+		_heartbeat.apply_config(node);
 	}
 };
 
 
 struct Config_model::Service_node : Config_node
 {
-	static bool type_matches(Xml_node const &xml)
+	static bool type_matches(Node const &node)
 	{
-		return xml.has_type("service");
+		return node.has_type("service");
 	}
 
 	Service_model::Factory &_factory;
 
 	Service_model &_model;
 
-	Service_node(Service_model::Factory &factory, Xml_node const &xml)
-	: _factory(factory), _model(factory.create_service(xml)) { }
+	Service_node(Service_model::Factory &factory, Node const &node)
+	: _factory(factory), _model(factory.create_service(node)) { }
 
 	~Service_node() { _factory.destroy_service(_model); }
 
-	bool matches(Xml_node const &xml) const override
+	bool matches(Node const &node) const override
 	{
-		return type_matches(xml) && _model.matches(xml);
+		return type_matches(node) && _model.matches(node);
 	}
 
-	void update(Xml_node const &xml) override { _model.update_from_xml(xml); }
+	void update(Node const &node) override { _model.update_from_node(node); }
 };
 
 
-bool Config_model::Config_node::type_matches(Xml_node const &xml)
+bool Config_model::Config_node::type_matches(Node const &node)
 {
-	return Parent_provides_node::type_matches(xml)
-	    || Default_route_node  ::type_matches(xml)
-	    || Default_node        ::type_matches(xml)
-	    || Start_node          ::type_matches(xml)
-	    || Affinity_space_node ::type_matches(xml)
-	    || Report_node         ::type_matches(xml)
-	    || Resource_node       ::type_matches(xml)
-	    || Heartbeat_node      ::type_matches(xml)
-	    || Service_node        ::type_matches(xml);
+	return Parent_provides_node::type_matches(node)
+	    || Default_route_node  ::type_matches(node)
+	    || Default_node        ::type_matches(node)
+	    || Start_node          ::type_matches(node)
+	    || Affinity_space_node ::type_matches(node)
+	    || Report_node         ::type_matches(node)
+	    || Resource_node       ::type_matches(node)
+	    || Heartbeat_node      ::type_matches(node)
+	    || Service_node        ::type_matches(node);
 }
 
 
-void Config_model::update_from_xml(Xml_node                 const &xml,
-                                   Allocator                      &alloc,
-                                   Reconstructible<Verbose>       &verbose,
-                                   Version                        &version,
-                                   Preservation                   &preservation,
-                                   Constructible<Buffered_xml>    &default_route,
-                                   Cap_quota                      &default_caps,
-                                   Ram_quota                      &default_ram,
-                                   Prio_levels                    &prio_levels,
-                                   Constructible<Affinity::Space> &affinity_space,
-                                   Start_model::Factory           &child_factory,
-                                   Parent_provides_model::Factory &parent_service_factory,
-                                   Service_model::Factory         &service_factory,
-                                   State_reporter                 &state_reporter,
-                                   Heartbeat                      &heartbeat)
+void Config_model::update_from_node(Node                     const &node,
+                                    Allocator                      &alloc,
+                                    Reconstructible<Verbose>       &verbose,
+                                    Version                        &version,
+                                    Preservation                   &preservation,
+                                    Constructible<Buffered_node>   &default_route,
+                                    Cap_quota                      &default_caps,
+                                    Ram_quota                      &default_ram,
+                                    Prio_levels                    &prio_levels,
+                                    Constructible<Affinity::Space> &affinity_space,
+                                    Start_model::Factory           &child_factory,
+                                    Parent_provides_model::Factory &parent_service_factory,
+                                    Service_model::Factory         &service_factory,
+                                    State_reporter                 &state_reporter,
+                                    Heartbeat                      &heartbeat)
 {
 	/* config version to be reflected in state reports */
-	version = xml.attribute_value("version", Version());
+	version = node.attribute_value("version", Version());
 
 	preservation.reset();
 
-	prio_levels = ::Sandbox::prio_levels_from_xml(xml);
+	prio_levels = ::Sandbox::prio_levels_from_node(node);
 
 	affinity_space.destruct();
 
-	verbose.construct(xml);
+	verbose.construct(node);
 
 	class Unknown_element_type : Exception { };
 
 	auto destroy = [&] (Config_node &node) { Genode::destroy(alloc, &node); };
 
-	auto create = [&] (Xml_node const &xml) -> Config_node &
+	auto create = [&] (Node const &node) -> Config_node &
 	{
-		if (Parent_provides_node::type_matches(xml))
+		if (Parent_provides_node::type_matches(node))
 			return *new (alloc)
 				Parent_provides_node(alloc, *verbose, parent_service_factory);
 
-		if (Default_route_node::type_matches(xml))
+		if (Default_route_node::type_matches(node))
 			return *new (alloc) Default_route_node(alloc, default_route);
 
-		if (Default_node::type_matches(xml))
+		if (Default_node::type_matches(node))
 			return *new (alloc) Default_node(default_caps, default_ram);
 
-		if (Start_node::type_matches(xml))
-			return *new (alloc) Start_node(child_factory, xml);
+		if (Start_node::type_matches(node))
+			return *new (alloc) Start_node(child_factory, node);
 
-		if (Affinity_space_node::type_matches(xml))
+		if (Affinity_space_node::type_matches(node))
 			return *new (alloc) Affinity_space_node(affinity_space);
 
-		if (Report_node::type_matches(xml))
+		if (Report_node::type_matches(node))
 			return *new (alloc) Report_node(version, state_reporter);
 
-		if (Resource_node::type_matches(xml))
-			return *new (alloc) Resource_node(preservation, xml);
+		if (Resource_node::type_matches(node))
+			return *new (alloc) Resource_node(preservation, node);
 
-		if (Heartbeat_node::type_matches(xml))
+		if (Heartbeat_node::type_matches(node))
 			return *new (alloc) Heartbeat_node(heartbeat);
 
-		if (Service_node::type_matches(xml))
-			return *new (alloc) Service_node(service_factory, xml);
+		if (Service_node::type_matches(node))
+			return *new (alloc) Service_node(service_factory, node);
 
-		error("unknown config element type <", xml.type(), ">");
+		error("unknown config element type <", node.type(), ">");
 		throw Unknown_element_type();
 	};
 
-	auto update = [&] (Config_node &node, Xml_node const &xml) { node.update(xml); };
+	auto update = [&] (Config_node &config_node, Node const &node)
+	{
+		config_node.update(node);
+	};
 
 	try {
-		_model.update_from_xml(xml, create, destroy, update);
+		_model.update_from_node(node, create, destroy, update);
 	}
 	catch (Unknown_element_type) {
 		error("unable to apply complete configuration"); }
@@ -399,18 +402,18 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
 }
 
 
-void Config_model::apply_children_restart(Xml_node const &xml)
+void Config_model::apply_children_restart(Node const &node)
 {
 	class Unexpected : Exception { };
 	auto destroy = [&] (Config_node &) { };
-	auto create  = [&] (Xml_node const &) -> Config_node & { throw Unexpected(); };
-	auto update  = [&] (Config_node &node, Xml_node const &xml)
+	auto create  = [&] (Node const &) -> Config_node & { throw Unexpected(); };
+	auto update  = [&] (Config_node &config_node, Node const &node)
 	{
-		node.apply_child_restart(xml);
+		config_node.apply_child_restart(node);
 	};
 
 	try {
-		_model.update_from_xml(xml, create, destroy, update);
+		_model.update_from_node(node, create, destroy, update);
 	}
 	catch (...) { };
 }

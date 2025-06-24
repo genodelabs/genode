@@ -1,5 +1,5 @@
 /*
- * \brief  Internal model of the XML configuration
+ * \brief  Internal model of the configuration
  * \author Norman Feske
  * \date   2021-04-01
  */
@@ -58,11 +58,11 @@ struct Sandbox::Parent_provides_model : Noncopyable
 			service.abandon();
 		}
 
-		static bool type_matches(Xml_node const &) { return true; }
+		static bool type_matches(Node const &) { return true; }
 
-		bool matches(Xml_node const &xml) const
+		bool matches(Node const &node) const
 		{
-			return xml.attribute_value("name", Service::Name()) == service.name();
+			return node.attribute_value("name", Service::Name()) == service.name();
 		};
 	};
 
@@ -75,16 +75,16 @@ struct Sandbox::Parent_provides_model : Noncopyable
 
 	~Parent_provides_model()
 	{
-		update_from_xml(Xml_node("<empty/>"));
+		update_from_node(Node());
 	}
 
-	void update_from_xml(Xml_node const &xml)
+	void update_from_node(Node const &node)
 	{
 		bool first_log = true;
 
-		auto create = [&] (Xml_node const &xml) -> Service_node &
+		auto create = [&] (Node const &node) -> Service_node &
 		{
-			Service::Name const name = xml.attribute_value("name", Service::Name());
+			Service::Name const name = node.attribute_value("name", Service::Name());
 
 			if (_verbose.enabled()) {
 				if (first_log)
@@ -99,10 +99,10 @@ struct Sandbox::Parent_provides_model : Noncopyable
 
 		auto destroy = [&] (Service_node &node) { Genode::destroy(_alloc, &node); };
 
-		auto update = [&] (Service_node &, Xml_node const &) { };
+		auto update = [&] (Service_node &, Node const &) { };
 
 		try {
-			_model.update_from_xml(xml, create, destroy, update);
+			_model.update_from_node(node, create, destroy, update);
 		} catch (...) {
 			error("unable to apply complete configuration");
 		}
@@ -132,9 +132,9 @@ struct Sandbox::Start_model : Noncopyable
 		/*
 		 * \throw Creation_failed
 		 */
-		virtual Child &create_child(Xml_node const &start) = 0;
+		virtual Child &create_child(Node const &start) = 0;
 
-		virtual void update_child(Child &child, Xml_node const &start) = 0;
+		virtual void update_child(Child &child, Node const &start) = 0;
 
 		/*
 		 * \throw Creation_failed
@@ -163,27 +163,27 @@ struct Sandbox::Start_model : Noncopyable
 		_alias_ptr = nullptr;
 	}
 
-	bool matches(Xml_node const &xml) const
+	bool matches(Node const &node) const
 	{
-		return _name    == xml.attribute_value("name",    Name())
-		    && _version == xml.attribute_value("version", Version());
+		return _name    == node.attribute_value("name",    Name())
+		    && _version == node.attribute_value("version", Version());
 	}
 
-	Start_model(Factory &factory, Xml_node const &xml)
+	Start_model(Factory &factory, Node const &node)
 	:
-		_name(xml.attribute_value("name", Name())),
-		_version(xml.attribute_value("version", Version())),
+		_name(node.attribute_value("name", Name())),
+		_version(node.attribute_value("version", Version())),
 		_factory(factory)
 	{ }
 
 	~Start_model() { _reset(); }
 
-	void update_from_xml(Xml_node const &xml)
+	void update_from_node(Node const &node)
 	{
 		/* handle case where the node keeps the name but changes the type */
 
 		bool const orig_alias = _alias;
-		_alias = xml.has_type("alias");
+		_alias = node.has_type("alias");
 		if (orig_alias != _alias)
 			_reset();
 
@@ -197,19 +197,19 @@ struct Sandbox::Start_model : Noncopyable
 		} else {
 
 			if (!_child_ptr && _factory.ready_to_create_child(_name, _version))
-				_child_ptr = &_factory.create_child(xml);
+				_child_ptr = &_factory.create_child(node);
 		}
 
 		/* update */
 
 		if (_alias_ptr)
-			_alias_ptr->update(xml);
+			_alias_ptr->update(node);
 
 		if (_child_ptr)
-			_factory.update_child(*_child_ptr, xml);
+			_factory.update_child(*_child_ptr, node);
 	}
 
-	void apply_child_restart(Xml_node const &xml)
+	void apply_child_restart(Node const &node)
 	{
 		if (_child_ptr && _child_ptr->restart_scheduled()) {
 
@@ -218,7 +218,7 @@ struct Sandbox::Start_model : Noncopyable
 			_child_ptr = nullptr;
 
 			/* respawn */
-			update_from_xml(xml);
+			update_from_node(node);
 		}
 	}
 
@@ -234,13 +234,13 @@ struct Sandbox::Service_model : Interface, Noncopyable
 {
 	struct Factory : Interface, Noncopyable
 	{
-		virtual Service_model &create_service(Xml_node const &) = 0;
+		virtual Service_model &create_service(Node const &) = 0;
 		virtual void destroy_service(Service_model &) = 0;
 	};
 
-	virtual void update_from_xml(Xml_node const &) = 0;
+	virtual void update_from_node(Node const &) = 0;
 
-	virtual bool matches(Xml_node const &) = 0;
+	virtual bool matches(Node const &) = 0;
 };
 
 
@@ -266,23 +266,23 @@ class Sandbox::Config_model : Noncopyable
 
 		using Version = State_reporter::Version;
 
-		void update_from_xml(Xml_node                 const &,
-		                     Allocator                      &,
-		                     Reconstructible<Verbose>       &,
-		                     Version                        &,
-		                     Preservation                   &,
-		                     Constructible<Buffered_xml>    &,
-		                     Cap_quota                      &,
-		                     Ram_quota                      &,
-		                     Prio_levels                    &,
-		                     Constructible<Affinity::Space> &,
-		                     Start_model::Factory           &,
-		                     Parent_provides_model::Factory &,
-		                     Service_model::Factory         &,
-		                     State_reporter                 &,
-		                     Heartbeat                      &);
+		void update_from_node(Node                     const &,
+		                      Allocator                      &,
+		                      Reconstructible<Verbose>       &,
+		                      Version                        &,
+		                      Preservation                   &,
+		                      Constructible<Buffered_node>   &,
+		                      Cap_quota                      &,
+		                      Ram_quota                      &,
+		                      Prio_levels                    &,
+		                      Constructible<Affinity::Space> &,
+		                      Start_model::Factory           &,
+		                      Parent_provides_model::Factory &,
+		                      Service_model::Factory         &,
+		                      State_reporter                 &,
+		                      Heartbeat                      &);
 
-		void apply_children_restart(Xml_node const &);
+		void apply_children_restart(Node const &);
 
 		/*
 		 * Call 'Child::try_start' for each child in start-node order

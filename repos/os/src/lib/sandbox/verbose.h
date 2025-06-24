@@ -14,10 +14,6 @@
 #ifndef _LIB__SANDBOX__VERBOSE_H_
 #define _LIB__SANDBOX__VERBOSE_H_
 
-/* Genode includes */
-#include <util/noncopyable.h>
-#include <util/xml_node.h>
-
 /* local includes */
 #include <types.h>
 
@@ -34,7 +30,7 @@ class Sandbox::Verbose : Genode::Noncopyable
 
 		Verbose() { }
 
-		Verbose(Xml_node const &config)
+		Verbose(Node const &config)
 		: _enabled(config.attribute_value("verbose", false)) { }
 
 		bool enabled() const { return _enabled; }

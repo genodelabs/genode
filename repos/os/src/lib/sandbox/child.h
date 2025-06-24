@@ -19,7 +19,6 @@
 #include <base/child.h>
 #include <os/session_requester.h>
 #include <os/session_policy.h>
-#include <os/buffered_xml.h>
 #include <sandbox/sandbox.h>
 
 /* local includes */
@@ -50,15 +49,15 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 */
 		struct Id { unsigned value; };
 
-		using With_xml = Callable<void, Xml_node const &>;
+		using With_node = Callable<void, Node const &>;
 
 		struct Default_route_accessor : Interface
 		{
-			virtual void _with_default_route(With_xml::Ft const &) = 0;
+			virtual void _with_default_route(With_node::Ft const &) = 0;
 
 			void with_default_route(auto const &fn)
 			{
-				_with_default_route(With_xml::Fn { fn });
+				_with_default_route(With_node::Fn { fn });
 			}
 		};
 
@@ -144,19 +143,19 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		List_element<Child> _list_element;
 
-		Reconstructible<Buffered_xml> _start_node;
+		Reconstructible<Buffered_node> _start_node;
 
 		Constructible<Route_model> _route_model { };
 
-		void _construct_route_model_from_start_node(Xml_node const &start)
+		void _construct_route_model_from_start_node(Node const &start)
 		{
 			_route_model.destruct();
 
 			start.with_sub_node("route",
-				[&] (Xml_node const &route) {
+				[&] (Node const &route) {
 					_route_model.construct(_alloc, route); },
 				[&] {
-					_default_route_accessor.with_default_route([&] (Xml_node const &node) {
+					_default_route_accessor.with_default_route([&] (Node const &node) {
 						_route_model.construct(_alloc, node); });
 				});
 		}
@@ -164,14 +163,14 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		/*
 		 * Version attribute of the start node, used to force child restarts.
 		 */
-		Version _version { _start_node->xml.attribute_value("version", Version()) };
+		Version _version { _start_node->attribute_value("version", Version()) };
 
 		bool _uncertain_dependencies = false;
 
 		/*
 		 * True if the binary is loaded with ld.lib.so
 		 */
-		bool const _use_ld = _start_node->xml.attribute_value("ld", true);
+		bool const _use_ld = _start_node->attribute_value("ld", true);
 
 		Default_route_accessor &_default_route_accessor;
 		Default_quota_accessor &_default_quota_accessor;
@@ -183,11 +182,11 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		Name_registry &_name_registry;
 
 		/**
-		 * Read name from XML and check for name confict with other children
+		 * Read name from node and check for name confict with other children
 		 *
 		 * \throw Missing_name_attribute
 		 */
-		static Name _name_from_xml(Xml_node const &start_node)
+		static Name _name_from_node(Node const &start_node)
 		{
 			Name const name = start_node.attribute_value("name", Name());
 			if (name.valid())
@@ -198,18 +197,18 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		}
 
 		using Name = String<64>;
-		Name const _unique_name { _name_from_xml(_start_node->xml) };
+		Name const _unique_name { _name_from_node(*_start_node) };
 
-		static Binary_name _binary_from_xml(Xml_node const &start_node,
-		                                    Name const &unique_name)
+		static Binary_name _binary_from_node(Node const &start_node,
+		                                     Name const &unique_name)
 		{
 			return start_node.with_sub_node("binary",
-				[]  (Xml_node const &node) { return node.attribute_value("name", Name()); },
-				[&]                        { return unique_name; });
+				[]  (Node const &node) { return node.attribute_value("name", Name()); },
+				[&]                    { return unique_name; });
 		}
 
 		/* updated on configuration update */
-		Binary_name _binary_name { _binary_from_xml(_start_node->xml, _unique_name) };
+		Binary_name _binary_name { _binary_from_node(*_start_node, _unique_name) };
 
 		/* initialized in constructor, updated by 'apply_config' */
 		bool _heartbeat_enabled;
@@ -256,7 +255,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				enum {
 					STATIC_COSTS = 1  /* possible heap backing-store
 					                     allocation for session object */
-					             + 1  /* buffered XML start node */
+					             + 1  /* buffered start node */
 					             + 2  /* dynamic ROM for config */
 					             + 2  /* dynamic ROM for session requester */
 				};
@@ -269,7 +268,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		};
 
 		static
-		Resources _resources_from_start_node(Xml_node const &start_node, Prio_levels prio_levels,
+		Resources _resources_from_start_node(Node const &start_node, Prio_levels prio_levels,
 		                                     Affinity::Space const &affinity_space,
 		                                     Cap_quota default_cap_quota,
 		                                     Ram_quota default_ram_quota)
@@ -282,7 +281,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			unsigned cpu_percent = 0;
 
-			start_node.for_each_sub_node("resource", [&] (Xml_node const &rsc) {
+			start_node.for_each_sub_node("resource", [&] (Node const &rsc) {
 
 				using Name = String<8>;
 				Name const name = rsc.attribute_value("name", Name());
@@ -293,9 +292,9 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			});
 
 			return Resources { log2(prio_levels.value),
-			                   priority_from_xml(start_node, prio_levels),
+			                   priority_from_node(start_node, prio_levels),
 			                   Affinity(affinity_space,
-			                            affinity_location_from_xml(affinity_space, start_node)),
+			                            affinity_location_from_node(affinity_space, start_node)),
 			                   Ram_quota { ram },
 			                   Cap_quota { caps },
 			                   Cpu_quota { cpu_percent } };
@@ -365,8 +364,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 					result = Ok();
 				};
 
-				_child._start_node->xml.with_sub_node("config",
-					[&] (Xml_node const &config) {
+				_child._start_node->with_sub_node("config",
+					[&] (Node const &config) {
 						config.with_raw_node([&] (char const *start, size_t length) {
 							try_copy(start, length); });
 					},
@@ -402,7 +401,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 * e.g., constrain physical RAM allocations.
 		 */
 		bool const _managing_system {
-			_start_node->xml.attribute_value("managing_system", false) };
+			_start_node->attribute_value("managing_system", false) };
 
 		/**
 		 * Resource request initiated by the child
@@ -476,10 +475,10 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			return result;
 		}
 
-		static void _with_provides_sub_node(Xml_node const &start_node, auto const &fn)
+		static void _with_provides_sub_node(Node const &start_node, auto const &fn)
 		{
-			start_node.with_sub_node("provides", [&] (Xml_node const &node) { fn(node); },
-			                                     [&] { fn(Xml_node("<provides/>")); });
+			start_node.with_sub_node("provides", [&] (Node const &node) { fn(node); },
+			                                     [&] { fn(Node()); });
 		}
 
 		/**
@@ -493,7 +492,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		/**
 		 * Return true if service of specified <provides> sub node is known
 		 */
-		bool _service_exists(Xml_node const &node) const
+		bool _service_exists(Node const &node) const
 		{
 			bool exists = false;
 			_child_services.for_each([&] (Routed_service const &service) {
@@ -504,7 +503,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			return exists && !abandoned() && !restart_scheduled();
 		}
 
-		void _add_service(Xml_node const &service)
+		void _add_service(Node const &service)
 		{
 			Service::Name const name =
 				service.attribute_value("name", Service::Name());
@@ -584,14 +583,14 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 *                            RAM, used for dynamic RAM balancing at
 		 *                            runtime.
 		 *
-		 * \throw Allocator::Out_of_memory  could not buffer the XML start node
+		 * \throw Allocator::Out_of_memory  could not buffer the start node
 		 */
 		Child(Env                      &env,
 		      Allocator                &alloc,
 		      Verbose            const &verbose,
 		      Id                        id,
 		      Report_update_trigger    &report_update_trigger,
-		      Xml_node           const &start_node,
+		      Node               const &start_node,
 		      Default_route_accessor   &default_route_accessor,
 		      Default_quota_accessor   &default_quota_accessor,
 		      Name_registry            &name_registry,
@@ -675,7 +674,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 * \throw Allocator::Out_of_memory  unable to allocate buffer for new
 		 *                                  config
 		 */
-		Apply_config_result apply_config(Xml_node const &start_node);
+		Apply_config_result apply_config(Node const &start_node);
 
 		bool uncertain_dependencies() const { return _uncertain_dependencies; }
 
@@ -756,7 +755,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		void exit(int exit_value) override
 		{
 			bool propagate = false;
-			_start_node->xml.with_optional_sub_node("exit", [&] (Xml_node const &node) {
+			_start_node->with_optional_sub_node("exit", [&] (Node const &node) {
 				propagate = node.attribute_value("propagate", false); });
 
 			if (propagate) {

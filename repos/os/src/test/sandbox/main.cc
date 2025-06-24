@@ -130,7 +130,8 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 
 		log("generated config: ", config.xml);
 
-		_sandbox.apply_config(config.xml);
+		config.xml.with_raw_node([&] (char const *start, size_t num_bytes) {
+			_sandbox.apply_config(Node(Const_byte_range_ptr(start, num_bytes))); });
 	}
 
 	/**

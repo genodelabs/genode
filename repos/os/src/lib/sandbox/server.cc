@@ -35,7 +35,7 @@ struct Sandbox::Server::Service : Service_model
 
 	Registry<Routed_service> &_child_services;
 
-	Constructible<Buffered_xml> _service_node { };
+	Constructible<Buffered_node> _service_node { };
 
 	/**
 	 * Constructor
@@ -44,7 +44,7 @@ struct Sandbox::Server::Service : Service_model
 	 */
 	Service(Registry<Service>        &services,
 	        Allocator                &alloc,
-	        Xml_node           const &service_node,
+	        Node               const &service_node,
 	        Registry<Routed_service> &child_services)
 	:
 		_name(service_node.attribute_value("name", Name())),
@@ -56,7 +56,7 @@ struct Sandbox::Server::Service : Service_model
 	/**
 	 * Service_model interface
 	 */
-	void update_from_xml(Xml_node const &service_node) override
+	void update_from_node(Node const &service_node) override
 	{
 		_service_node.construct(_alloc, service_node);
 	}
@@ -64,7 +64,7 @@ struct Sandbox::Server::Service : Service_model
 	/**
 	 * Service_model interface
 	 */
-	bool matches(Xml_node const &service_node) override
+	bool matches(Node const &service_node) override
 	{
 		return _name == service_node.attribute_value("name", Name());
 	}
@@ -94,8 +94,8 @@ Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 
 	Label target_label { };
 
-	with_matching_policy(label, _service_node->xml, [&] (Xml_node const &policy) {
-		policy.with_optional_sub_node("child", [&] (Xml_node const &target) {
+	with_matching_policy(label, *_service_node, [&] (Node const &policy) {
+		policy.with_optional_sub_node("child", [&] (Node const &target) {
 
 			Name const child_name = target.attribute_value("name", Name());
 
@@ -205,7 +205,7 @@ void Sandbox::Server::session_closed(Session_state &session)
 }
 
 
-void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
+void Sandbox::Server::_handle_create_session_request(Node const &request,
                                                      Parent::Client::Id id)
 {
 	/*
@@ -223,8 +223,8 @@ void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
 
 	using Args = Session_state::Args;
 	Args const args = request.with_sub_node("args",
-		[] (Xml_node const &node) { return node.decoded_content<Args>(); },
-		[]                        { return Args(); });
+		[] (Node const &node) { return node.decoded_content<Args>(); },
+		[]                    { return Args(); });
 
 	Service::Name const name = request.attribute_value("service", Service::Name());
 
@@ -258,7 +258,7 @@ void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
 		Session_state *session_ptr = nullptr;
 		route.service.create_session(route.service.factory(),
 		                             _client_id_space, id, route.label,
-		                             diag, argbuf, Affinity::from_xml(request))
+		                             diag, argbuf, Affinity::from_node(request))
 			.with_result(
 				[&] (Session_state &s) {
 
@@ -339,7 +339,7 @@ void Sandbox::Server::_handle_create_session_request(Xml_node const &request,
 }
 
 
-void Sandbox::Server::_handle_upgrade_session_request(Xml_node const &request,
+void Sandbox::Server::_handle_upgrade_session_request(Node const &request,
                                                       Parent::Client::Id id)
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
@@ -376,14 +376,14 @@ void Sandbox::Server::_handle_upgrade_session_request(Xml_node const &request,
 }
 
 
-void Sandbox::Server::_handle_close_session_request(Xml_node const &, Parent::Client::Id id)
+void Sandbox::Server::_handle_close_session_request(Node const &, Parent::Client::Id id)
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 		close_session(session); });
 }
 
 
-void Sandbox::Server::_handle_session_request(Xml_node const &request)
+void Sandbox::Server::_handle_session_request(Node const &request)
 {
 	if (!request.has_attribute("id"))
 		return;
@@ -409,16 +409,16 @@ void Sandbox::Server::_handle_session_requests()
 {
 	_session_requests->update();
 
-	Xml_node const requests = _session_requests->xml();
+	Node const &requests = _session_requests->node();
 
-	requests.for_each_sub_node([&] (Xml_node const &request) {
+	requests.for_each_sub_node([&] (Node const &request) {
 		_handle_session_request(request); });
 
 	_report_update_trigger.trigger_report_update();
 }
 
 
-Sandbox::Service_model &Sandbox::Server::create_service(Xml_node const &node)
+Sandbox::Service_model &Sandbox::Server::create_service(Node const &node)
 {
 	return *new (_alloc) Service(_services, _alloc, node, _child_services);
 }

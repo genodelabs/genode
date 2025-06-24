@@ -91,7 +91,7 @@ class Sandbox::Route_model : Noncopyable
 
 				Allocator &_alloc;
 
-				Buffered_xml const _node;
+				Buffered_node const _node;
 
 				struct Selector
 				{
@@ -112,7 +112,7 @@ class Sandbox::Route_model : Noncopyable
 
 					Checksum label_checksum { "" };
 
-					Selector(Xml_node const &node)
+					Selector(Node const &node)
 					{
 						bool const complicated =
 							node.has_attribute("label_prefix") ||
@@ -135,16 +135,16 @@ class Sandbox::Route_model : Noncopyable
 
 				Selector const _selector;
 				Checksum const _service_checksum;
-				bool     const _specific_service { _node.xml.has_type("service") };
+				bool     const _specific_service { _node.has_type("service") };
 
 				struct Target : Noncopyable, private List<Target>::Element
 				{
 					friend class List<Target>;
 					friend class Rule;
 
-					Buffered_xml const node;
+					Buffered_node const node;
 
-					Target(Allocator &alloc, Xml_node const &node) : node(alloc, node) { }
+					Target(Allocator &alloc, Node const &node) : node(alloc, node) { }
 				};
 
 				List<Target> _targets { };
@@ -152,13 +152,13 @@ class Sandbox::Route_model : Noncopyable
 				/**
 				 * Constructor is private to 'Route_model'
 				 */
-				Rule(Allocator &alloc, Xml_node const &node)
+				Rule(Allocator &alloc, Node const &node)
 				:
 					_alloc(alloc), _node(alloc, node), _selector(node),
 					_service_checksum(node.attribute_value("name", Service::Name()))
 				{
 					Target const *at_ptr = nullptr;
-					node.for_each_sub_node([&] (Xml_node sub_node) {
+					node.for_each_sub_node([&] (Node const &sub_node) {
 						Target &target = *new (_alloc) Target(alloc, sub_node);
 						_targets.insert(&target, at_ptr);
 						at_ptr = &target;
@@ -200,7 +200,7 @@ class Sandbox::Route_model : Noncopyable
 					if (_mismatches(query))
 						return false;
 
-					return service_node_matches(_node.xml,
+					return service_node_matches(_node,
 					                            query.label,
 					                            query.child,
 					                            query.service);
@@ -210,7 +210,7 @@ class Sandbox::Route_model : Noncopyable
 				Child_policy::Route resolve(FN const &fn) const
 				{
 					for (Target const *t = _targets.first(); t; t = t->next()) {
-						try { return fn(t->node.xml); }
+						try { return fn(t->node); }
 						catch (Service_denied) { /* try next target */ }
 					}
 
@@ -223,18 +223,18 @@ class Sandbox::Route_model : Noncopyable
 
 		Allocator &_alloc;
 
-		Buffered_xml const _route_node;
+		Buffered_node const _route_node;
 
 		List<Rule> _rules { };
 
 	public:
 
-		Route_model(Allocator &alloc, Xml_node const &route)
+		Route_model(Allocator &alloc, Node const &route)
 		:
 			_alloc(alloc), _route_node(_alloc, route)
 		{
 			Rule const *at_ptr = nullptr;
-			_route_node.xml.for_each_sub_node([&] (Xml_node const &node) {
+			_route_node.for_each_sub_node([&] (Node const &node) {
 				Rule &rule = *new (_alloc) Rule(_alloc, node);
 				_rules.insert(&rule, at_ptr); /* append */
 				at_ptr = &rule;

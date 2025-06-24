@@ -50,13 +50,13 @@ namespace Sandbox {
 
 
 	/**
-	 * Return true if service XML node matches service request
+	 * Return true if service node matches service request
 	 *
 	 * \param args          session arguments, inspected for the session label
 	 * \param child_name    name of the originator of the session request
 	 * \param service_name  name of the requested service
 	 */
-	inline bool service_node_matches(Xml_node           const &service_node,
+	inline bool service_node_matches(Node               const &service_node,
 	                                 Session_label      const &label,
 	                                 Child_policy::Name const &child_name,
 	                                 Service::Name      const &service_name)
@@ -106,7 +106,7 @@ namespace Sandbox {
 
 		Session_label const session_label(scoped_label);
 
-		return !Xml_node_label_score(service_node, session_label).conflict();
+		return !Node_label_score(service_node, session_label).conflict();
 	}
 
 
@@ -165,7 +165,7 @@ namespace Sandbox {
 	/**
 	 * Read priority-levels declaration from config
 	 */
-	inline Prio_levels prio_levels_from_xml(Xml_node const &config)
+	inline Prio_levels prio_levels_from_node(Node const &config)
 	{
 		long const prio_levels = config.attribute_value("prio_levels", 0L);
 
@@ -178,7 +178,7 @@ namespace Sandbox {
 	}
 
 
-	inline long priority_from_xml(Xml_node const &start_node, Prio_levels prio_levels)
+	inline long priority_from_node(Node const &start_node, Prio_levels prio_levels)
 	{
 		long const default_priority = Cpu_session::DEFAULT_PRIORITY;
 
@@ -207,15 +207,15 @@ namespace Sandbox {
 
 
 	inline Affinity::Location
-	affinity_location_from_xml(Affinity::Space const &space, Xml_node const &start_node)
+	affinity_location_from_node(Affinity::Space const &space, Node const &start_node)
 	{
 		using Location = Affinity::Location;
 
 		Location result = Location(0, 0, space.width(), space.height());
 
-		start_node.with_optional_sub_node("affinity", [&] (Xml_node node) {
+		start_node.with_optional_sub_node("affinity", [&] (Node const &node) {
 
-			Location const location = Location::from_xml(space, node);
+			Location const location = Location::from_node(space, node);
 
 			if (!location.within(space)) {
 				Service::Name const name = start_node.attribute_value("name", Service::Name());

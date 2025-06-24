@@ -66,7 +66,7 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	 */
 	Reconstructible<Verbose>       _verbose        { };
 	Config_model::Version          _version        { };
-	Constructible<Buffered_xml>    _default_route  { };
+	Constructible<Buffered_node>   _default_route  { };
 	Cap_quota                      _default_caps   { 0 };
 	Ram_quota                      _default_ram    { 0 };
 	Prio_levels                    _prio_levels    { };
@@ -84,7 +84,7 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	Heartbeat _heartbeat { _env, _children, _state_reporter };
 
 	/*
-	 * Internal representation of the XML configuration
+	 * Internal representation of the configuration
 	 */
 	Config_model _config_model { };
 
@@ -190,10 +190,10 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	/**
 	 * Default_route_accessor interface
 	 */
-	void _with_default_route(Child::With_xml::Ft const &fn) override
+	void _with_default_route(Child::With_node::Ft const &fn) override
 	{
 		if (_default_route.constructed())
-			fn(_default_route->xml);
+			fn(*_default_route);
 	}
 
 	/**
@@ -202,9 +202,9 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	Cap_quota default_caps() override { return _default_caps; }
 	Ram_quota default_ram()  override { return _default_ram;  }
 
-	void _update_aliases_from_config(Xml_node const &);
-	void _update_parent_services_from_config(Xml_node const &);
-	void _update_children_config(Xml_node const &);
+	void _update_aliases_from_config(Node const &);
+	void _update_parent_services_from_config(Node const &);
+	void _update_children_config(Node const &);
 	void _destroy_abandoned_parent_services();
 	void _destroy_abandoned_children();
 
@@ -213,12 +213,12 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	/**
 	 * Sandbox::Start_model::Factory
 	 */
-	Child &create_child(Xml_node const &) override;
+	Child &create_child(Node const &) override;
 
 	/**
 	 * Sandbox::Start_model::Factory
 	 */
-	void update_child(Child &, Xml_node const &) override;
+	void update_child(Child &, Node const &) override;
 
 	/**
 	 * Sandbox::Start_model::Factory
@@ -293,7 +293,7 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 		Library(env, heap, local_services, state_handler, _default_pd_intrinsics)
 	{ }
 
-	void apply_config(Xml_node const &);
+	void apply_config(Node const &);
 
 	void generate_state_report(Xml_generator &xml) const
 	{
@@ -367,7 +367,7 @@ bool Genode::Sandbox::Library::ready_to_create_child(Start_model::Name    const 
 }
 
 
-::Sandbox::Child &Genode::Sandbox::Library::create_child(Xml_node const &start_node)
+::Sandbox::Child &Genode::Sandbox::Library::create_child(Node const &start_node)
 {
 	if (!_affinity_space.constructed() && start_node.has_sub_node("affinity"))
 		warning("affinity-space configuration missing, "
@@ -415,7 +415,7 @@ bool Genode::Sandbox::Library::ready_to_create_child(Start_model::Name    const 
 }
 
 
-void Genode::Sandbox::Library::update_child(Child &child, Xml_node const &start)
+void Genode::Sandbox::Library::update_child(Child &child, Node const &start)
 {
 	if (child.abandoned())
 		return;
@@ -432,24 +432,24 @@ void Genode::Sandbox::Library::update_child(Child &child, Xml_node const &start)
 }
 
 
-void Genode::Sandbox::Library::apply_config(Xml_node const &config)
+void Genode::Sandbox::Library::apply_config(Node const &config)
 {
 	_server_appeared_or_disappeared = false;
 	_state_report_outdated          = false;
 
-	_config_model.update_from_xml(config,
-	                              _heap,
-	                              _verbose,
-	                              _version,
-	                              _preservation,
-	                              _default_route,
-	                              _default_caps,
-	                              _default_ram,
-	                              _prio_levels,
-	                              _affinity_space,
-	                              *this, *this, _server,
-	                              _state_reporter,
-	                              _heartbeat);
+	_config_model.update_from_node(config,
+	                               _heap,
+	                               _verbose,
+	                               _version,
+	                               _preservation,
+	                               _default_route,
+	                               _default_caps,
+	                               _default_ram,
+	                               _prio_levels,
+	                               _affinity_space,
+	                               *this, *this, _server,
+	                               _state_reporter,
+	                               _heartbeat);
 
 	/*
 	 * After importing the new configuration, servers may have disappeared
@@ -653,7 +653,7 @@ Genode::Sandbox::Local_service_base::Local_service_base(Sandbox    &sandbox,
  ** Sandbox **
  *************/
 
-void Genode::Sandbox::apply_config(Xml_node const &config)
+void Genode::Sandbox::apply_config(Node const &config)
 {
 	_library.apply_config(config);
 }

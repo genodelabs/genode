@@ -14,10 +14,6 @@
 #ifndef _LIB__SANDBOX__REPORT_H_
 #define _LIB__SANDBOX__REPORT_H_
 
-/* Genode includes */
-#include <util/noncopyable.h>
-#include <util/xml_node.h>
-
 /* local includes */
 #include <types.h>
 
@@ -45,7 +41,7 @@ class Sandbox::Report_detail : Genode::Noncopyable
 
 		Report_detail() { }
 
-		Report_detail(Genode::Xml_node const &report)
+		Report_detail(Node const &report)
 		{
 			_children     = true;
 			_ids          = report.attribute_value("ids",          false);

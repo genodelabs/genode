@@ -96,7 +96,7 @@ struct Monitor::Main : Sandbox::State_handler,
 
 		Inferior_cpu::Kernel result = Inferior_cpu::Kernel::GENERIC;
 
-		info.xml().with_optional_sub_node("kernel", [&] (Xml_node const &kernel) {
+		info.node().with_optional_sub_node("kernel", [&] (Node const &kernel) {
 			if (kernel.attribute_value("name", String<10>()) == "nova")
 				result = Inferior_cpu::Kernel::NOVA; });
 
@@ -198,7 +198,7 @@ struct Monitor::Main : Sandbox::State_handler,
 			}
 		}
 
-		Gdb_stub(Env &env, Inferiors &inferiors, Xml_node const &config)
+		Gdb_stub(Env &env, Inferiors &inferiors, Node const &config)
 		:
 			_env(env), _state(inferiors, _memory_accessor, config)
 		{
@@ -310,23 +310,23 @@ struct Monitor::Main : Sandbox::State_handler,
 
 	void _apply_monitor_config_to_inferiors()
 	{
-		_config.xml().with_sub_node("monitor",
-			[&] (Xml_node const monitor) {
+		_config.node().with_sub_node("monitor",
+			[&] (Node const monitor) {
 				_inferiors.for_each<Inferior_pd>([&] (Inferior_pd &pd) {
 					pd.apply_monitor_config(monitor); }); },
 			[&] {
 				_inferiors.for_each<Inferior_pd>([&] (Inferior_pd &pd) {
-					pd.apply_monitor_config("<monitor/>"); }); });
+					pd.apply_monitor_config(Node()); }); });
 	}
 
 	void _handle_config()
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		bool reporter_enabled = false;
-		config.with_optional_sub_node("report", [&] (Xml_node report) {
+		config.with_optional_sub_node("report", [&] (Node const &report) {
 
 			reporter_enabled = true;
 

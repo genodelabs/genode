@@ -14,9 +14,8 @@
 #ifndef _INCLUDE__SANDBOX__SANDBOX_H_
 #define _INCLUDE__SANDBOX__SANDBOX_H_
 
-#include <util/xml_node.h>
 #include <util/callable.h>
-#include <util/noncopyable.h>
+#include <base/node.h>
 #include <base/registry.h>
 #include <base/service.h>
 #include <base/heap.h>
@@ -100,7 +99,7 @@ class Genode::Sandbox : Noncopyable
 		 */
 		Sandbox(Env &, State_handler &, Pd_intrinsics &);
 
-		void apply_config(Xml_node const &);
+		void apply_config(Node const &);
 
 		/**
 		 * Generate state report as configured by the <report> config node

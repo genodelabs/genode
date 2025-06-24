@@ -254,7 +254,8 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	void update_sandbox_config()
 	{
 		Buffered_xml config { heap, "config", [&] (Xml_generator &xml) { generate_sandbox_config(xml); } };
-		sandbox.apply_config(config.xml);
+		config.xml.with_raw_node([&] (char const *start, size_t num_bytes) {
+			sandbox.apply_config(Node(Const_byte_range_ptr(start, num_bytes))); });
 	}
 
 	void generate_ui_report()

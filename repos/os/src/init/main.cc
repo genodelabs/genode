@@ -46,10 +46,10 @@ struct Init::Main : Sandbox::State_handler
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		bool reporter_enabled = false;
-		config.with_optional_sub_node("report", [&] (Xml_node report) {
+		config.with_optional_sub_node("report", [&] (Node const &report) {
 
 			reporter_enabled = true;
 
