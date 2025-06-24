@@ -1,0 +1,25 @@
+LICENSE   := GPLv2
+VERSION   := 6.12.40
+DOWNLOADS := linux.archive
+
+URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(VERSION).tar.xz
+SHA(linux) := 4811af1317f98d2cccea3c7695969a2c03a27cb02fd2d5327032dd5341842933
+DIR(linux) := src/linux
+
+#
+# Patches
+#
+PATCH_FILES := i915_ggtt.patch \
+               iwlwifi_break_busy_loop.patch \
+               iwlwifi_enable_irq_before_pnvm.patch \
+               iwlwifi_limit_rx_bufs.patch \
+               kernel_types.patch \
+               lxip_checksum_32.patch \
+               lxip_ip_config.patch \
+               r8169_disable_irq_coalescing.patch \
+               usb_net_cdc_ncm.patch \
+               usb_net_pinephone.patch \
+               usb_net_smsc95xx.patch \
+               workqueue_deadlock.patch
+
+PATCHES += $(addprefix patches/,$(PATCH_FILES))

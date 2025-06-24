@@ -15,6 +15,7 @@
 #include <linux/clocksource.h>
 #include <linux/timecounter.h>
 #include <linux/sched_clock.h>
+#include <linux/sched/clock.h>
 #include <linux/smp.h>
 #include <linux/of_clk.h>
 #include <linux/tick.h>
@@ -158,6 +159,8 @@ void lx_emul_time_update_jiffies_cpu_relax()
 		jiffies_64 += ticks;
 
 		tick_next_period = ktime_add_ns(tick_next_period, incr * ticks);
+
+		sched_clock_tick();
 
 		update_wall_time();
 	}

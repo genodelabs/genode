@@ -121,6 +121,7 @@ drivers/gpu/drm/i915/display/intel_dpio_phy.c
 drivers/gpu/drm/i915/display/intel_dpll.c
 drivers/gpu/drm/i915/display/intel_dpll_mgr.c
 drivers/gpu/drm/i915/display/intel_dpt.c
+drivers/gpu/drm/i915/display/intel_dpt_common.c
 drivers/gpu/drm/i915/display/intel_drrs.c
 drivers/gpu/drm/i915/display/intel_dsi.c
 drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.c
