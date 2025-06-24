@@ -2,10 +2,10 @@ CONFIG_X86_USE_PPRO_CHECKSUM is a 'def_bool y' and gets re-enabled by
 'make olddefconfig'. The PPRO version contains text relocations which we cannot
 have in binaries (e.g., 'lea 45f(%ebx ...).').
 
-diff --git a/arch/x86/lib/checksum_32.S b/arch/x86/lib/checksum_32.S
-index 23318c3..0eba848 100644
---- a/arch/x86/lib/checksum_32.S
-+++ b/arch/x86/lib/checksum_32.S
+diff --git src/linux/arch/x86/lib/checksum_32.S src/linux/arch/x86/lib/checksum_32.S
+index 23318c338..0eba84857 100644
+--- src/linux/arch/x86/lib/checksum_32.S
++++ src/linux/arch/x86/lib/checksum_32.S
 @@ -36,8 +36,9 @@ unsigned int csum_partial(const unsigned char * buff, int len, unsigned int sum)
   */
  		

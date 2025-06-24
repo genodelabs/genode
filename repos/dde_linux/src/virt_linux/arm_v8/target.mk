@@ -3,7 +3,7 @@ REQUIRES := arm_v8
 
 CUSTOM_TARGET_DEPS := kernel_build.phony
 
-LX_DIR := $(call select_from_ports,linux)/src/linux
+LX_DIR := $(call select_from_ports,legacy_linux)/src/linux
 PWD    := $(shell pwd)
 
 # options for Linux kernel build to not depend on current time, user and host

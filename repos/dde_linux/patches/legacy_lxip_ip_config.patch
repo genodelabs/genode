@@ -1,9 +1,9 @@
 This patch makes the boot DHCP re-connectable.
 
-diff --git a/net/ipv4/ipconfig.c b/net/ipv4/ipconfig.c
-index e90bc0a..490da72 100644
---- a/net/ipv4/ipconfig.c
-+++ b/net/ipv4/ipconfig.c
+diff --git src/linux/net/ipv4/ipconfig.c src/linux/net/ipv4/ipconfig.c
+index c56b6fe6f..cdb9cd83e 100644
+--- src/linux/net/ipv4/ipconfig.c
++++ src/linux/net/ipv4/ipconfig.c
 @@ -130,7 +130,7 @@ int ic_proto_enabled __initdata = 0
  static int ic_host_name_set __initdata;	/* Host name set by us? */
  
@@ -56,7 +56,7 @@ index e90bc0a..490da72 100644
  /*
   *	Fill in default values for all missing parameters.
   */
-@@ -1719,6 +1746,14 @@ static int __init ip_auto_config_setup(char *addrs)
+@@ -1725,6 +1752,14 @@ static int __init ip_auto_config_setup(char *addrs)
  	ic_set_manually = 1;
  	ic_enable = 1;
  

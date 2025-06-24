@@ -25,11 +25,11 @@ diff --git a/drivers/net/wireless/intel/iwlwifi/mvm/fw.c b/drivers/net/wireless/
 index f041e77af059..ec982ddce196 100644
 --- src/linux/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
 +++ src/linux/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
-@@ -404,6 +404,15 @@ static int iwl_mvm_load_ucode_wait_alive(struct iwl_mvm *mvm,
- 		return -EIO;
- 	}
+@@ -423,6 +423,15 @@ static int iwl_mvm_load_ucode_wait_alive(struct iwl_mvm *mvm,
+ 	/* if reached this point, Alive notification was received */
+ 	iwl_mei_alive_notif(true);
  
-+	/* 
++	/*
 +	 * re-enable interrupts so we can get a response from
 +	 * the card when kicking the doorbell during pnvm load.
 +	 * This is only needed in the non-msix case. FW is
@@ -38,9 +38,6 @@ index f041e77af059..ec982ddce196 100644
 +	 */
 +	iwl_trans_interrupts(mvm->trans, true);
 +
- 	ret = iwl_pnvm_load(mvm->trans, &mvm->notif_wait);
+ 	ret = iwl_pnvm_load(mvm->trans, &mvm->notif_wait,
+ 			    &mvm->fw->ucode_capa);
  	if (ret) {
- 		IWL_ERR(mvm, "Timeout waiting for PNVM load!\n");
--- 
-2.35.3
-
