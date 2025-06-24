@@ -23,10 +23,12 @@
 
 namespace Genode {
 
-	struct Xml_node_label_score;
+	struct Node_label_score;
+
+	using Xml_node_label_score = Node_label_score;
 
 	template <size_t N>
-	void with_matching_policy(String<N> const &, Xml_node const &,
+	void with_matching_policy(String<N> const &, auto const &,
 	                          auto const &, auto const &);
 
 	class  Session_policy;
@@ -34,12 +36,12 @@ namespace Genode {
 
 
 /**
- * Score for matching an Xml_node against a label
+ * Score for matching an node against a label
  *
  * The score is based on the attributes 'label', 'label_prefix', and
  * 'label_suffix'.
  */
-struct Genode::Xml_node_label_score
+struct Genode::Node_label_score
 {
 	bool  label_present = true;
 	bool prefix_present = true;
@@ -55,10 +57,10 @@ struct Genode::Xml_node_label_score
 	size_t prefix_match = CONFLICT;
 	size_t suffix_match = CONFLICT;
 
-	Xml_node_label_score() { }
+	Node_label_score() { }
 
 	template <size_t N>
-	Xml_node_label_score(Xml_node const &node, String<N> const &label)
+	Node_label_score(auto const &node, String<N> const &label)
 	:
 		label_present (node.has_attribute("label")),
 		prefix_present(node.has_attribute("label_prefix")),
@@ -98,7 +100,7 @@ struct Genode::Xml_node_label_score
 	/**
 	 * Return true if this node's score is higher than 'other'
 	 */
-	bool stronger(Xml_node_label_score const &other) const
+	bool stronger(Node_label_score const &other) const
 	{
 		/* something must match */
 		if (!(label_present || prefix_present || suffix_present))
@@ -172,19 +174,19 @@ struct Genode::Xml_node_label_score
  */
 template <Genode::size_t N>
 void Genode::with_matching_policy(String<N> const &label,
-                                  Xml_node  const &policies,
+                                  auto      const &policies,
                                   auto      const &match_fn,
                                   auto      const &no_match_fn)
 {
 	static unsigned const NO_MATCH = ~0U;
 
-	struct Best { unsigned index; Xml_node_label_score score; };
+	struct Best { unsigned index; Node_label_score score; };
 
 	Best best { NO_MATCH, { } };
 
 	unsigned i = 0;
-	policies.for_each_sub_node("policy", [&] (Xml_node const &policy) {
-		Xml_node_label_score const score(policy, label);
+	policies.for_each_sub_node("policy", [&] (auto const &policy) {
+		Node_label_score const score(policy, label);
 		if (score.stronger(best.score))
 			best = { i, score };
 		i++;
@@ -193,13 +195,13 @@ void Genode::with_matching_policy(String<N> const &label,
 	/* fall back to default policy if no match exists */
 	if (best.index == NO_MATCH) {
 		policies.with_sub_node("default-policy",
-			[&] (Xml_node const &policy) { match_fn(policy); },
-			[&]                          { no_match_fn(); });
+			[&] (auto const &policy) { match_fn(policy); },
+			[&]                      { no_match_fn(); });
 		return;
 	}
 
 	i = 0;
-	policies.for_each_sub_node("policy", [&] (Xml_node const &policy) {
+	policies.for_each_sub_node("policy", [&] (auto const &policy) {
 		if (i++ == best.index)
 			match_fn(policy); });
 }
