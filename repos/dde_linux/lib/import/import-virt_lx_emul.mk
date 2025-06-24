@@ -1,6 +1,6 @@
 LIBS += virt_linux_generated
 
-LX_SRC_DIR := $(call select_from_ports,legacy_linux)/src/linux
+LX_SRC_DIR := $(call select_from_ports,linux)/src/linux
 ifeq ($(wildcard $(LX_SRC_DIR)),)
 LX_SRC_DIR := $(call select_from_repositories,src/linux)
 endif
