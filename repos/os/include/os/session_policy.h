@@ -176,34 +176,32 @@ void Genode::with_matching_policy(String<N> const &label,
                                   auto      const &match_fn,
                                   auto      const &no_match_fn)
 {
-	/*
-	 * Find policy node that matches best
-	 */
-	Constructible<Xml_node> best_match { };
-	Xml_node_label_score    best_score;
+	static unsigned const NO_MATCH = ~0U;
 
+	struct Best { unsigned index; Xml_node_label_score score; };
+
+	Best best { NO_MATCH, { } };
+
+	unsigned i = 0;
 	policies.for_each_sub_node("policy", [&] (Xml_node const &policy) {
-
 		Xml_node_label_score const score(policy, label);
-
-		if (score.stronger(best_score))
-			policy.with_raw_node([&] (char const *ptr, size_t len) {
-				best_match.construct(ptr, len);
-				best_score = score; });
+		if (score.stronger(best.score))
+			best = { i, score };
+		i++;
 	});
 
 	/* fall back to default policy if no match exists */
-	if (!best_match.constructed())
-		policies.with_optional_sub_node("default-policy", [&] (Xml_node const &policy) {
-			policy.with_raw_node([&] (char const *ptr, size_t len) {
-				best_match.construct(ptr, len); }); });
-
-	if (best_match.constructed()) {
-		Xml_node const &node = *best_match;
-		match_fn(node);
-	} else {
-		no_match_fn();
+	if (best.index == NO_MATCH) {
+		policies.with_sub_node("default-policy",
+			[&] (Xml_node const &policy) { match_fn(policy); },
+			[&]                          { no_match_fn(); });
+		return;
 	}
+
+	i = 0;
+	policies.for_each_sub_node("policy", [&] (Xml_node const &policy) {
+		if (i++ == best.index)
+			match_fn(policy); });
 }
 
 
