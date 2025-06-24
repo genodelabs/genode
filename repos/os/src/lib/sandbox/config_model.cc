@@ -16,10 +16,11 @@
 using namespace Sandbox;
 
 
-struct Config_model::Node : Noncopyable, Interface, private List_model<Node>::Element
+struct Config_model::Config_node : Noncopyable, Interface,
+                                   private List_model<Config_node>::Element
 {
-	friend class List_model<Node>;
-	friend class List<Node>;
+	friend class List_model<Config_node>;
+	friend class List<Config_node>;
 
 	static bool type_matches(Xml_node const &xml);
 
@@ -33,7 +34,7 @@ struct Config_model::Node : Noncopyable, Interface, private List_model<Node>::El
 };
 
 
-struct Config_model::Parent_provides_node : Node
+struct Config_model::Parent_provides_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -54,7 +55,7 @@ struct Config_model::Parent_provides_node : Node
 };
 
 
-struct Config_model::Default_route_node : Node
+struct Config_model::Default_route_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -79,7 +80,7 @@ struct Config_model::Default_route_node : Node
 };
 
 
-struct Config_model::Default_node : Node
+struct Config_model::Default_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -102,7 +103,7 @@ struct Config_model::Default_node : Node
 };
 
 
-struct Config_model::Affinity_space_node : Node
+struct Config_model::Affinity_space_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -126,7 +127,7 @@ struct Config_model::Affinity_space_node : Node
 };
 
 
-struct Config_model::Start_node : Node
+struct Config_model::Start_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -163,7 +164,7 @@ struct Config_model::Start_node : Node
 };
 
 
-struct Config_model::Report_node : Node
+struct Config_model::Report_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -190,7 +191,7 @@ struct Config_model::Report_node : Node
 };
 
 
-struct Config_model::Resource_node : Node
+struct Config_model::Resource_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -257,7 +258,7 @@ struct Config_model::Resource_node : Node
 };
 
 
-struct Config_model::Heartbeat_node : Node
+struct Config_model::Heartbeat_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -282,7 +283,7 @@ struct Config_model::Heartbeat_node : Node
 };
 
 
-struct Config_model::Service_node : Node
+struct Config_model::Service_node : Config_node
 {
 	static bool type_matches(Xml_node const &xml)
 	{
@@ -307,7 +308,7 @@ struct Config_model::Service_node : Node
 };
 
 
-bool Config_model::Node::type_matches(Xml_node const &xml)
+bool Config_model::Config_node::type_matches(Xml_node const &xml)
 {
 	return Parent_provides_node::type_matches(xml)
 	    || Default_route_node  ::type_matches(xml)
@@ -350,9 +351,9 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
 
 	class Unknown_element_type : Exception { };
 
-	auto destroy = [&] (Node &node) { Genode::destroy(alloc, &node); };
+	auto destroy = [&] (Config_node &node) { Genode::destroy(alloc, &node); };
 
-	auto create = [&] (Xml_node const &xml) -> Node &
+	auto create = [&] (Xml_node const &xml) -> Config_node &
 	{
 		if (Parent_provides_node::type_matches(xml))
 			return *new (alloc)
@@ -386,7 +387,7 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
 		throw Unknown_element_type();
 	};
 
-	auto update = [&] (Node &node, Xml_node const &xml) { node.update(xml); };
+	auto update = [&] (Config_node &node, Xml_node const &xml) { node.update(xml); };
 
 	try {
 		_model.update_from_xml(xml, create, destroy, update);
@@ -401,9 +402,9 @@ void Config_model::update_from_xml(Xml_node                 const &xml,
 void Config_model::apply_children_restart(Xml_node const &xml)
 {
 	class Unexpected : Exception { };
-	auto destroy = [&] (Node &) { };
-	auto create  = [&] (Xml_node const &) -> Node & { throw Unexpected(); };
-	auto update  = [&] (Node &node, Xml_node const &xml)
+	auto destroy = [&] (Config_node &) { };
+	auto create  = [&] (Xml_node const &) -> Config_node & { throw Unexpected(); };
+	auto update  = [&] (Config_node &node, Xml_node const &xml)
 	{
 		node.apply_child_restart(xml);
 	};
@@ -417,6 +418,6 @@ void Config_model::apply_children_restart(Xml_node const &xml)
 
 void Config_model::trigger_start_children()
 {
-	_model.for_each([&] (Node &node) {
+	_model.for_each([&] (Config_node &node) {
 		node.trigger_start_child(); });
 }

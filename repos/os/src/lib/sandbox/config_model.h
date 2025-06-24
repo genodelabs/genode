@@ -40,16 +40,16 @@ struct Sandbox::Parent_provides_model : Noncopyable
 	Verbose const &_verbose;
 	Factory       &_factory;
 
-	struct Node : Noncopyable, List_model<Node>::Element
+	struct Service_node : Noncopyable, List_model<Service_node>::Element
 	{
 		Parent_service &service;
 
-		Node(Factory &factory, Service::Name const &name)
+		Service_node(Factory &factory, Service::Name const &name)
 		:
 			service(factory.create_parent_service(name))
 		{ }
 
-		~Node()
+		~Service_node()
 		{
 			/*
 			 * The destruction of the 'Parent_service' is deferred to the
@@ -66,7 +66,7 @@ struct Sandbox::Parent_provides_model : Noncopyable
 		};
 	};
 
-	List_model<Node> _model { };
+	List_model<Service_node> _model { };
 
 	Parent_provides_model(Allocator &alloc, Verbose const &verbose, Factory &factory)
 	:
@@ -82,7 +82,7 @@ struct Sandbox::Parent_provides_model : Noncopyable
 	{
 		bool first_log = true;
 
-		auto create = [&] (Xml_node const &xml) -> Node &
+		auto create = [&] (Xml_node const &xml) -> Service_node &
 		{
 			Service::Name const name = xml.attribute_value("name", Service::Name());
 
@@ -94,12 +94,12 @@ struct Sandbox::Parent_provides_model : Noncopyable
 				first_log = false;
 			}
 
-			return *new (_alloc) Node(_factory, name);
+			return *new (_alloc) Service_node(_factory, name);
 		};
 
-		auto destroy = [&] (Node &node) { Genode::destroy(_alloc, &node); };
+		auto destroy = [&] (Service_node &node) { Genode::destroy(_alloc, &node); };
 
-		auto update = [&] (Node &, Xml_node const &) { };
+		auto update = [&] (Service_node &, Xml_node const &) { };
 
 		try {
 			_model.update_from_xml(xml, create, destroy, update);
@@ -248,9 +248,9 @@ class Sandbox::Config_model : Noncopyable
 {
 	private:
 
-		struct Node;
+		struct Config_node;
 
-		List_model<Node> _model { };
+		List_model<Config_node> _model { };
 
 		struct Parent_provides_node;
 		struct Default_route_node;
