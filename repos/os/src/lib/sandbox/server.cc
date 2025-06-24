@@ -87,32 +87,33 @@ Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 	if (!_service_node.constructed())
 		throw Service_denied();
 
-	try {
-		Session_policy policy(label, _service_node->xml);
+	using Label = String<Session_label::capacity()>;
+	using Name  = Child_policy::Name;
 
-		return policy.with_sub_node("child", [&] (Xml_node const &target_node) {
+	Routed_service *match = nullptr;
 
-			Child_policy::Name const child_name =
-				target_node.attribute_value("name", Child_policy::Name());
+	Label target_label { };
 
-			using Label = String<Session_label::capacity()>;
-			Label const target_label =
-				target_node.attribute_value("label", Label(label.string()));
+	with_matching_policy(label, _service_node->xml, [&] (Xml_node const &policy) {
+		policy.with_optional_sub_node("child", [&] (Xml_node const &target) {
 
-			Routed_service *match = nullptr;
+			Name const child_name = target.attribute_value("name", Name());
+
+			target_label = target.attribute_value("label", Label(label.string()));
+
 			_child_services.for_each([&] (Routed_service &service) {
 				if (service.child_name() == child_name && service.name() == name())
 					match = &service; });
 
 			if (!match || match->abandoned())
 				throw Service_not_present();
+		});
+	}, [&] { });
 
-			return Route { *match, target_label };
+	if (!match)
+		throw Service_denied();
 
-		}, [&] () -> Route { throw Service_denied(); });
-	}
-	catch (Session_policy::No_policy_defined) {
-		throw Service_denied(); }
+	return Route { *match, target_label };
 }
 
 
