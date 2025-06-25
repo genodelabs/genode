@@ -26,13 +26,14 @@
 #include <asm/fpu/api.h>
 #endif
 
+#define __swp_entry_to_pte(swp) ((pte_t) { (swp).val })
+#define __swp_entry(type, offset) ( \
+	(typeof(type))type, \
+	lx_emul_trace_and_stop(__func__),\
+	(swp_entry_t) { 0 } )
+
 #ifndef pgprot_noncached
 #define pgprot_noncached(prot)	(prot)
-
-static inline unsigned long pte_pfn(pte_t pte)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 static inline unsigned long pmd_pfn(pmd_t pmd)
 {
@@ -48,6 +49,36 @@ static inline pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma) {
 #else
 static inline pte_t pte_mkwrite(pte_t pte) { return pte; }
 #endif
+
+static inline unsigned long pte_pfn(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline pte_t pte_wrprotect(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline int pte_present(pte_t a)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline int pte_dirty(pte_t a)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline int pte_write(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline int pte_swp_soft_dirty(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 static inline bool __pkru_allows_pkey(u16 pkey, bool write)
 {

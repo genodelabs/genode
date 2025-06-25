@@ -110,9 +110,15 @@ static struct page * lx_alloc_pages(unsigned const nr_pages)
 }
 
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
 unsigned long __alloc_pages_bulk(gfp_t gfp,int preferred_nid,
                                  nodemask_t * nodemask, int nr_pages,
                                  struct list_head * page_list, struct page ** page_array)
+#else
+unsigned long alloc_pages_bulk_noprof(gfp_t gfp,int preferred_nid,
+                                      nodemask_t * nodemask, int nr_pages,
+                                      struct list_head * page_list, struct page ** page_array)
+#endif
 {
 	unsigned long allocated_pages = 0;
 	int i;
@@ -143,9 +149,12 @@ unsigned long __alloc_pages_bulk(gfp_t gfp,int preferred_nid,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,13,0)
 struct page * __alloc_pages_nodemask(gfp_t gfp, unsigned int order, int preferred_nid,
                                      nodemask_t * nodemask)
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
 struct page * __alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
                             nodemask_t * nodemask)
+#else
+struct page * __alloc_pages_noprof(gfp_t gfp, unsigned int order, int preferred_nid,
+                                   nodemask_t * nodemask)
 #endif
 {
 	struct page *page = lx_alloc_pages(1u << order);
@@ -159,7 +168,11 @@ struct page * __alloc_pages(gfp_t gfp, unsigned int order, int preferred_nid,
 }
 
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
 unsigned long __get_free_pages(gfp_t gfp, unsigned int order)
+#else
+unsigned long get_free_pages_noprof(gfp_t gfp, unsigned int order)
+#endif
 {
 	struct page *page = lx_alloc_pages(1u << order);
 
@@ -192,7 +205,11 @@ void free_pages_exact(void *virt_addr, size_t size)
 }
 
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
 void *alloc_pages_exact(size_t size, gfp_t gfp_mask)
+#else
+void *alloc_pages_exact_noprof(size_t size, gfp_t gfp_mask)
+#endif
 {
 	size_t const nr_pages = DIV_ROUND_UP(size, PAGE_SIZE);
 	struct page *page = lx_alloc_pages(nr_pages);

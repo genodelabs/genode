@@ -24,6 +24,7 @@
 #include <lx_emul/page_virt.h>
 
 #define PCI_IO_SIZE  SZ_16M
+#define SEGMENT_ALIGN SZ_64K
 
 extern u64 vabits_actual;
 
@@ -34,6 +35,7 @@ extern u64 vabits_actual;
 #define VA_BITS_MIN (VA_BITS)
 
 #define PAGE_OFFSET (0)
+
 
 #define THREAD_SHIFT PAGE_SHIFT
 #define THREAD_SIZE  (UL(1) << THREAD_SHIFT)
@@ -59,6 +61,8 @@ static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_
 #define page_to_pfn(page) ( page_to_phys(page) >> PAGE_SHIFT )
 
 #define PCI_IO_START 0
+
+u64 read_tcr(void);
 
 #endif /* __ASSEMBLY__ */
 

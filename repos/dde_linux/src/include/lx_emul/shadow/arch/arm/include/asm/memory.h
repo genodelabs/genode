@@ -29,7 +29,7 @@
 #define TASK_SIZE_26       (UL(1) << 26)
 #define TASK_UNMAPPED_BASE ALIGN(TASK_SIZE / 3, SZ_16M)
 
-#define __va(x) ( lx_emul_trace_and_stop("__va"), (void *)0 )
+#define __va(x) ((void*)lx_emul_mem_virt_addr((void*)(x)))
 #define __pa(v) lx_emul_mem_dma_addr((void *)(v))
 
 #define virt_addr_valid(kaddr) (kaddr != NULL)

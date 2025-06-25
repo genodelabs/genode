@@ -42,6 +42,11 @@ __attribute__((aligned(PAGE_SIZE)));
 void lx_emul_setup_arch(void *dtb)
 {
 	/* calls from setup_arch of arch/arm64/kernel/setup.c */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,12,2)
+	early_init_dt_scan(dtb, 0);
+#else
 	early_init_dt_scan(dtb);
+#endif
+
 	unflatten_device_tree();
 }

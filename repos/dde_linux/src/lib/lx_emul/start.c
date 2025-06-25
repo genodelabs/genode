@@ -17,6 +17,7 @@
 #include <lx_user/init.h>
 
 #include <asm/irq_regs.h>
+#include <linux/async.h>
 #include <linux/cpu.h>
 #include <linux/delay.h>
 #include <linux/init_task.h>
@@ -60,6 +61,11 @@ static int kernel_init(void * args)
 	wait_for_completion(&kthreadd_done);
 
 	workqueue_init();
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,7,0)
+	/* required when including kernel/async.c */
+	async_init();
+#endif
 
 	/* the following calls are from driver_init() of drivers/base/init.c */
 	devices_init();

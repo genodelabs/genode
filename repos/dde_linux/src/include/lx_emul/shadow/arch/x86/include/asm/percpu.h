@@ -25,5 +25,11 @@
 #undef __percpu_prefix
 #define __percpu_prefix ""
 
+/*
+ * Undef gs/fs for CONFIG_CC_HAS_NAMED_AS case
+ */
+#undef __percpu_seg_override
+#define __percpu_seg_override
+
 #endif /* _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__PERCPU_H_ */
 

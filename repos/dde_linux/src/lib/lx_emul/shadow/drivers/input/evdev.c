@@ -675,8 +675,8 @@ static void evdev_event_generator(struct genode_event_generator_ctx *ctx,
 }
 
 
-static void evdev_events(struct input_handle *handle,
-                         struct input_value const *values, unsigned int count)
+static unsigned evdev_events(struct input_handle *handle,
+                             struct input_value *values, unsigned int count)
 {
 	struct evdev *evdev = handle->private;
 
@@ -684,15 +684,8 @@ static void evdev_events(struct input_handle *handle,
 		.evdev = evdev, .values = values, .count = count };
 
 	genode_event_generate(evdev->event, &evdev_event_generator, &ctx);
-}
 
-
-static void evdev_event(struct input_handle *handle,
-                        unsigned int type, unsigned int code, int value)
-{
-	struct input_value vals[] = { { type, code, value } };
-
-	evdev_events(handle, vals, 1);
+	return count;
 }
 
 
@@ -819,7 +812,7 @@ static const struct input_device_id evdev_ids[] = {
 MODULE_DEVICE_TABLE(input, evdev_ids);
 
 static struct input_handler evdev_handler = {
-	.event      = evdev_event,
+	/* .event      = we cannot define both .event and .events */
 	.events     = evdev_events,
 	.connect    = evdev_connect,
 	.disconnect = evdev_disconnect,

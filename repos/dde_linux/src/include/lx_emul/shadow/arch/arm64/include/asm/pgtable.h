@@ -59,9 +59,14 @@ int pte_swp_soft_dirty(pte_t pte);
 int pte_dirty(pte_t ptr);
 int pte_write(pte_t ptr);
 
+int pgd_none(pgd_t);
+
 extern pgd_t reserved_pg_dir[PTRS_PER_PGD];
 extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
+
+int p4d_none(p4d_t pgdp);
+p4d_t *p4d_offset(pgd_t *pgdp, unsigned long addr);
 
 #define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
 swp_entry_t __pmd_to_swp_entry(pmd_t pmd);
@@ -69,7 +74,10 @@ swp_entry_t __pmd_to_swp_entry(pmd_t pmd);
 #define __swp_type(x)   ( lx_emul_trace_and_stop(__func__), 0 )
 #define __swp_offset(x) ( lx_emul_trace_and_stop(__func__), 0 )
 
-#define __swp_entry(type, offset) ( lx_emul_trace_and_stop(__func__), (swp_entry_t) { 0 } )
+#define __swp_entry(type, offset) ( \
+       (typeof(type))type, \
+       lx_emul_trace_and_stop(__func__),\
+       (swp_entry_t) { 0 } )
 
 #define __swp_entry_to_pte(swp)	((pte_t) { (swp).val })
 pmd_t __swp_entry_to_pmd(swp_entry_t swp);
@@ -95,6 +103,8 @@ static inline bool pud_sect_supported(void) { return 1; }
 
 #define VMALLOC_START 0UL
 #define VMALLOC_END   0xffffffffUL
+
+bool por_el0_allows_pkey(u8 pkey, bool write, bool execute);
 
 #endif /* __ASSEMBLY__ */
 

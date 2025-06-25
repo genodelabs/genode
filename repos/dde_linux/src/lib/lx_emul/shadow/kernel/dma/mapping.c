@@ -161,9 +161,13 @@ void dma_unmap_page_attrs(struct device * dev,
 		lx_emul_mem_cache_invalidate((void *)virt_addr, size);
 }
 
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
 void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
                              size_t size, enum dma_data_direction dir)
+#else
+void __dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
+                               size_t size, enum dma_data_direction dir)
+#endif
 {
 	unsigned long const virt_addr = lx_emul_mem_virt_addr((void*)addr);
 
@@ -174,8 +178,13 @@ void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
 }
 
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
 void dma_sync_single_for_device(struct device *dev, dma_addr_t addr,
                                 size_t size, enum dma_data_direction dir)
+#else
+void __dma_sync_single_for_device(struct device *dev, dma_addr_t addr,
+                                  size_t size, enum dma_data_direction dir)
+#endif
 {
 	unsigned long const virt_addr = lx_emul_mem_virt_addr((void*)addr);
 

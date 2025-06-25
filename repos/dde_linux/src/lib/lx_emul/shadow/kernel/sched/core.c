@@ -12,6 +12,7 @@
  */
 
 #define CREATE_TRACE_POINTS
+struct folio;
 #include <trace/events/sched.h>
 #undef CREATE_TRACE_POINTS
 
@@ -28,6 +29,7 @@
 #include <lx_emul/task.h>
 #include <lx_emul/time.h>
 
+#include <linux/mmu_context.h>
 #include <linux/sched/cputime.h>
 #include <linux/sched/clock.h>
 #include <linux/sched/wake_q.h>

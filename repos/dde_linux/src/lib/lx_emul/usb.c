@@ -543,7 +543,7 @@ static void interface_string(genode_buffer_t string, void * data)
 {
 	struct usb_host_interface *uiface = (struct usb_host_interface*) data;
 	if (uiface->string)
-		strlcpy(string.addr, uiface->string, string.size);
+		strscpy(string.addr, uiface->string, string.size);
 	else
 		*(char *)string.addr = 0;
 }
@@ -586,7 +586,7 @@ static void manufacturer_string(genode_buffer_t string, void * data)
 {
 	struct usb_device *udev = (struct usb_device*) data;
 	if (udev->manufacturer)
-		strlcpy(string.addr, udev->manufacturer, string.size);
+		strscpy(string.addr, udev->manufacturer, string.size);
 	else
 		*(char *)string.addr = 0;
 }
@@ -596,7 +596,7 @@ static void product_string(genode_buffer_t string, void * data)
 {
 	struct usb_device *udev = (struct usb_device*) data;
 	if (udev->product)
-		strlcpy(string.addr, udev->product, string.size);
+		strscpy(string.addr, udev->product, string.size);
 	else
 		*(char *)string.addr = 0;
 }

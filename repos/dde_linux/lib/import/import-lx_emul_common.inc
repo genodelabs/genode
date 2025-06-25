@@ -157,7 +157,7 @@ CC_C_OPT += -Wno-restrict -Wno-maybe-uninitialized -Werror=date-time
 CC_C_OPT += -Wno-alloc-size-larger-than -Wimplicit-fallthrough=5 -Werror=date-time
 CC_C_OPT += -Werror=incompatible-pointer-types -Werror=designated-init
 CC_C_OPT += -Wno-packed-not-aligned -Wno-unused-but-set-variable
-CC_C_OPT += -Wno-discarded-qualifiers -Wno-unused-function
+CC_C_OPT += -Wno-discarded-qualifiers -Wno-unused-function -Wno-declaration-after-statement
 
 # avoid build errors because with CC_OLEVEL = -O0/-Og - not supported by Linux
 override CC_OLEVEL := -O2

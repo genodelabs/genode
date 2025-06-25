@@ -13,8 +13,13 @@
 
 #include <lx_emul.h>
 #include <linux/of_fdt.h>
+#include <linux/version.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,12,2)
+bool __init early_init_dt_scan(void *dt_virt, phys_addr_t dt_phys)
+#else
 bool __init early_init_dt_scan(void * params)
+#endif
 {
 	lx_emul_trace(__func__);
 	return false;

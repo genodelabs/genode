@@ -42,8 +42,15 @@ struct block_device *bdev_alloc(struct gendisk *disk, u8 partno)
 	mutex_init(&bdev->bd_fsfreeze_mutex);
 	spin_lock_init(&bdev->bd_size_lock);
 	bdev->bd_disk = disk;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,9,0)
+	atomic_set(&bdev->__bd_flags, partno);
+	bdev->bd_mapping = &inode->i_data;
+#else
 	bdev->bd_partno = partno;
 	bdev->bd_inode = inode;
+#endif
+
 	bdev->bd_queue = disk->queue;
 
 	bdev->bd_stats = alloc_percpu(struct disk_stats);
@@ -69,11 +76,29 @@ void bdev_add(struct block_device * bdev, dev_t dev)
 }
 
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,9,0)
+
+struct bdev_inode {
+	struct block_device bdev;
+	struct inode vfs_inode;
+};
+
+static inline struct inode *BD_INODE(struct block_device *bdev)
+{
+	return &container_of(bdev, struct bdev_inode, bdev)->vfs_inode;
+}
+#endif
+
+
 extern void bdev_set_nr_sectors(struct block_device * bdev,sector_t sectors);
 void bdev_set_nr_sectors(struct block_device * bdev,sector_t sectors)
 {
 	spin_lock(&bdev->bd_size_lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,9,0)
+	i_size_write(BD_INODE(bdev), (loff_t)sectors << SECTOR_SHIFT);
+#else
 	i_size_write(bdev->bd_inode, (loff_t)sectors << SECTOR_SHIFT);
+#endif
 	bdev->bd_nr_sectors = sectors;
 	spin_unlock(&bdev->bd_size_lock);
 }
@@ -166,9 +191,9 @@ static inline void block_request(struct block_device         * const bdev,
 	bio->bi_opf            = write ? REQ_OP_WRITE : REQ_OP_READ;
 	bio->bi_private        = request;
 
-	bio_add_page(bio, page, request->blk_cnt * 512,
-	             (unsigned long)request->addr & (PAGE_SIZE-1));
-	submit_bio(bio);
+	if (bio_add_page(bio, page, request->blk_cnt * 512,
+	                 (unsigned long)request->addr & (PAGE_SIZE-1)))
+		submit_bio(bio);
 }
 
 
