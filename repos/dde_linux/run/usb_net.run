@@ -111,7 +111,11 @@ append_if [have_board rpi] config {
 		<device vendor_id="0x0424" product_id="0xec00"/> </policy>}
 append_if [have_spec x86] config {
 	<policy label_prefix="usb_net">
-		<device vendor_id="0x0b95" product_id="0x1790"/> </policy> }
+		<!-- AX88179A -->
+		<device vendor_id="0x0b95" product_id="0x1790"/>
+		<!-- RTL8156 -->
+		<device vendor_id="0x0bda" product_id="0x8156"/>
+	</policy>}
 append config {</config>}
 set fd [open [run_dir]/genode/usb_host.config w]
 puts $fd $config

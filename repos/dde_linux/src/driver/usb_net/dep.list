@@ -1,3 +1,4 @@
+net/ethtool/netlink.h
 arch/arm64/include/asm/alternative-macros.h
 arch/arm64/include/asm/alternative.h
 arch/arm64/include/asm/arch_timer.h
@@ -329,7 +330,6 @@ include/asm-generic/div64.h
 include/asm-generic/early_ioremap.h
 include/asm-generic/emergency-restart.h
 include/asm-generic/error-injection.h
-include/asm-generic/export.h
 include/asm-generic/fixmap.h
 include/asm-generic/getorder.h
 include/asm-generic/hardirq.h
@@ -371,7 +371,6 @@ include/asm-generic/switch_to.h
 include/asm-generic/timex.h
 include/asm-generic/topology.h
 include/asm-generic/trace_clock.h
-include/asm-generic/unaligned.h
 include/asm-generic/user.h
 include/clocksource/arm_arch_timer.h
 include/crypto/sha1.h
@@ -505,7 +504,6 @@ include/linux/filter.h
 include/linux/find.h
 include/linux/firmware.h
 include/linux/flex_proportions.h
-include/linux/freelist.h
 include/linux/freezer.h
 include/linux/fs.h
 include/linux/fs_api.h
@@ -856,7 +854,6 @@ include/linux/sizes.h
 include/linux/skb_array.h
 include/linux/skbuff.h
 include/linux/slab.h
-include/linux/slub_def.h
 include/linux/smp.h
 include/linux/smp_types.h
 include/linux/smpboot.h
@@ -939,7 +936,6 @@ include/linux/usb/cdc_ncm.h
 include/linux/usb/ch9.h
 include/linux/usb/hcd.h
 include/linux/usb/of.h
-include/linux/usb/onboard_hub.h
 include/linux/usb/otg.h
 include/linux/usb/phy.h
 include/linux/usb/quirks.h

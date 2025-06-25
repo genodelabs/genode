@@ -48,7 +48,7 @@ int register_pernet_device(struct pernet_operations *ops)
 
 #include <linux/gfp.h>
 
-unsigned long get_zeroed_page(gfp_t gfp_mask)
+unsigned long get_zeroed_page_noprof(gfp_t gfp_mask)
 {
 	return (unsigned long)kzalloc(PAGE_SIZE, GFP_KERNEL);
 }
@@ -56,8 +56,8 @@ unsigned long get_zeroed_page(gfp_t gfp_mask)
 
 #include <linux/gfp.h>
 
-void * page_frag_alloc_align(struct page_frag_cache * nc, unsigned int fragsz,
-                             gfp_t gfp_mask, unsigned int align_mask)
+void * __page_frag_alloc_align(struct page_frag_cache * nc, unsigned int fragsz,
+                               gfp_t gfp_mask, unsigned int align_mask)
 {
 	if (align_mask != ~0U) {
 		printk("page_frag_alloc_align: unsupported align_mask=%x\n", align_mask);

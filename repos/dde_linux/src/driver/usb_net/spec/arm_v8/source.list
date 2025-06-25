@@ -44,8 +44,8 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
-kernel/time/tick-broadcast.c
 kernel/time/tick-broadcast-hrtimer.c
+kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
 kernel/time/tick-sched.c
@@ -55,6 +55,7 @@ kernel/time/timecounter.c
 kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
+kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/bitmap.c
 lib/crc16.c
@@ -85,6 +86,7 @@ mm/slub.c
 mm/util.c
 net/core/dev.c
 net/core/dev_addr_lists.c
+net/core/hotdata.c
 net/core/link_watch.c
 net/core/skbuff.c
 net/core/xdp.c

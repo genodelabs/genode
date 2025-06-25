@@ -49,6 +49,7 @@ kernel/time/timecounter.c
 kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
+kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/bitmap.c
 lib/crc16.c
@@ -78,6 +79,7 @@ mm/slub.c
 mm/util.c
 net/core/dev.c
 net/core/dev_addr_lists.c
+net/core/hotdata.c
 net/core/link_watch.c
 net/core/skbuff.c
 net/core/xdp.c

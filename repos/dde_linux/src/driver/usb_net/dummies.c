@@ -339,6 +339,13 @@ unsigned int irq_create_mapping_affinity(struct irq_domain * domain,irq_hw_numbe
 }
 
 
+struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
+{
+	lx_emul_trace(__func__);
+	return (struct irq_domain *)0x1;
+}
+
+
 #include <linux/irq.h>
 
 void irq_set_chip_and_handler_name(unsigned int irq,const struct irq_chip * chip,irq_flow_handler_t handle,const char * name)

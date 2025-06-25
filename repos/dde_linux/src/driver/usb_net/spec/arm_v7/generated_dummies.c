@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -23,11 +23,6 @@ const char * __clk_get_name(const struct clk * clk)
 }
 
 
-#include <linux/cpumask.h>
-
-struct cpumask __cpu_active_mask;
-
-
 #include <net/ipv6.h>
 
 int __ipv6_addr_type(const struct in6_addr * addr)
@@ -46,23 +41,23 @@ struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number
 
 #include <linux/printk.h>
 
+void __printk_deferred_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_deferred_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
 int __printk_ratelimit(const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_enter(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -70,7 +65,7 @@ void __printk_safe_exit(void)
 
 #include <linux/skbuff.h>
 
-void __skb_get_hash(struct sk_buff * skb)
+void __skb_get_hash_net(const struct net * net,struct sk_buff * skb)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -111,6 +106,14 @@ async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
 #include <linux/async.h>
 
 void async_synchronize_full(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -211,7 +214,7 @@ u32 ethtool_op_get_link(struct net_device * dev)
 
 #include <linux/ethtool.h>
 
-int ethtool_op_get_ts_info(struct net_device * dev,struct ethtool_ts_info * info)
+int ethtool_op_get_ts_info(struct net_device * dev,struct kernel_ethtool_ts_info * info)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -241,7 +244,7 @@ int genphy_resume(struct phy_device * phydev)
 }
 
 
-#include <linux/kernel.h>
+#include <linux/string.h>
 
 int get_option(char ** str,int * pint)
 {
@@ -257,7 +260,7 @@ bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
 }
 
 
-#include <linux/netdevice.h>
+#include <net/gro.h>
 
 struct packet_offload * gro_find_complete_by_type(__be16 type)
 {
@@ -265,7 +268,7 @@ struct packet_offload * gro_find_complete_by_type(__be16 type)
 }
 
 
-#include <linux/netdevice.h>
+#include <net/gro.h>
 
 struct packet_offload * gro_find_receive_by_type(__be16 type)
 {
@@ -773,6 +776,20 @@ struct device_node * usb_of_get_device_node(struct usb_device * hub,int port1)
 #include <linux/usb/of.h>
 
 struct device_node * usb_of_get_interface_node(struct usb_device * udev,u8 config,u8 ifnum)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port)
 {
 	lx_emul_trace_and_stop(__func__);
 }
