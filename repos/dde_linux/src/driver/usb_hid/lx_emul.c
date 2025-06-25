@@ -34,3 +34,9 @@ DEFINE_PER_CPU(unsigned long, cpu_scale);
 const struct attribute_group *usb_device_groups[] = { };
 
 void lx_emul_usb_client_device_unregister_callback(struct usb_device *udev) { }
+
+
+#ifdef __i386__
+#include <asm/fixmap.h>
+unsigned long __FIXADDR_TOP = 0xfffff000;
+#endif

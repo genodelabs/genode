@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-26
  */
 
 #include <lx_emul.h>
@@ -22,23 +22,23 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/printk.h>
 
+void __printk_deferred_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_deferred_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
 int __printk_ratelimit(const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_enter(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -86,6 +86,14 @@ async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
 #include <linux/async.h>
 
 void async_synchronize_full(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -195,7 +203,7 @@ void finish_rcuwait(struct rcuwait * w)
 }
 
 
-#include <linux/kernel.h>
+#include <linux/string.h>
 
 int get_option(char ** str,int * pint)
 {
@@ -214,6 +222,11 @@ bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
 #include <linux/uuid.h>
 
 const u8 guid_index[16] = {};
+
+
+#include <linux/mm.h>
+
+void * high_memory;
 
 
 #include <linux/sched.h>
@@ -321,6 +334,14 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -354,6 +375,22 @@ void led_trigger_event(struct led_trigger * trig,enum led_brightness brightness)
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
+
+
+#include <linux/preempt.h>
+
+void migrate_disable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/preempt.h>
+
+void migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/panic.h>
@@ -453,6 +490,14 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 }
 
 
+#include <linux/smp.h>
+
+int smp_call_function_single_async(int cpu,call_single_data_t * csd)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
@@ -528,6 +573,20 @@ void usb_hub_remove_port_device(struct usb_hub * hub,int port1)
 
 extern void usb_major_cleanup(void);
 void usb_major_cleanup(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port)
 {
 	lx_emul_trace_and_stop(__func__);
 }

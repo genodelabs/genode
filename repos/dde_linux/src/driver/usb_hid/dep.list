@@ -65,7 +65,6 @@ arch/arm/include/asm/user.h
 arch/arm/include/asm/vdso/cp15.h
 arch/arm/include/asm/vdso/gettimeofday.h
 arch/arm/include/asm/vdso/processor.h
-arch/arm/include/asm/vdso_datapage.h
 arch/arm/include/asm/vmalloc.h
 arch/arm/include/asm/word-at-a-time.h
 arch/arm/include/uapi/asm/auxvec.h
@@ -343,6 +342,7 @@ drivers/base/physical_location.h
 drivers/base/power/power.h
 drivers/base/trace.h
 drivers/hid/hid-ids.h
+drivers/hid/usbhid/hid-pidff.h
 drivers/hid/usbhid/usbhid.h
 drivers/hid/wacom.h
 drivers/hid/wacom_wac.h
@@ -351,6 +351,7 @@ drivers/input/input-core-private.h
 drivers/input/input-poller.h
 drivers/usb/core/hub.h
 drivers/usb/core/otg_productlist.h
+drivers/usb/core/phy.h
 drivers/usb/core/usb.h
 include/acpi/acbuffer.h
 include/acpi/acconfig.h
@@ -410,7 +411,6 @@ include/asm-generic/early_ioremap.h
 include/asm-generic/emergency-restart.h
 include/asm-generic/error-injection.h
 include/asm-generic/exec.h
-include/asm-generic/export.h
 include/asm-generic/extable.h
 include/asm-generic/fixmap.h
 include/asm-generic/getorder.h
@@ -454,7 +454,6 @@ include/asm-generic/switch_to.h
 include/asm-generic/timex.h
 include/asm-generic/topology.h
 include/asm-generic/trace_clock.h
-include/asm-generic/unaligned.h
 include/asm-generic/user.h
 include/clocksource/arm_arch_timer.h
 include/dt-bindings/leds/common.h
@@ -566,7 +565,6 @@ include/linux/fcntl.h
 include/linux/file.h
 include/linux/find.h
 include/linux/flex_proportions.h
-include/linux/freelist.h
 include/linux/freezer.h
 include/linux/fs.h
 include/linux/fs_api.h
@@ -583,6 +581,7 @@ include/linux/hashtable.h
 include/linux/hashtable_api.h
 include/linux/hid-debug.h
 include/linux/hid.h
+include/linux/hid_bpf.h
 include/linux/hiddev.h
 include/linux/hidraw.h
 include/linux/highmem-internal.h
@@ -887,7 +886,6 @@ include/linux/siphash.h
 include/linux/sizes.h
 include/linux/skbuff.h
 include/linux/slab.h
-include/linux/slub_def.h
 include/linux/smp.h
 include/linux/smp_types.h
 include/linux/smpboot.h
@@ -968,10 +966,11 @@ include/linux/usb/ch9.h
 include/linux/usb/hcd.h
 include/linux/usb/input.h
 include/linux/usb/of.h
-include/linux/usb/onboard_hub.h
+include/linux/usb/onboard_dev.h
 include/linux/usb/otg.h
 include/linux/usb/phy.h
 include/linux/usb/quirks.h
+include/linux/usb/typec.h
 include/linux/usbdevice_fs.h
 include/linux/user_namespace.h
 include/linux/userfaultfd_k.h
@@ -1192,6 +1191,7 @@ include/uapi/linux/utsname.h
 include/uapi/linux/uuid.h
 include/uapi/linux/wait.h
 include/uapi/linux/xfrm.h
+include/uapi/regulator/regulator.h
 include/uapi/video/edid.h
 include/vdso/bits.h
 include/vdso/clocksource.h
@@ -1241,4 +1241,3 @@ lib/kstrtox.h
 mm/internal.h
 mm/slab.h
 mm/swap.h
-include/linux/hid_bpf.h

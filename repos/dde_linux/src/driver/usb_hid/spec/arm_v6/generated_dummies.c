@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -30,14 +30,6 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/irqdomain.h>
 
-struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,unsigned int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irqdomain.h>
-
 struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number_t hwirq,unsigned int * irq)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -51,23 +43,23 @@ unsigned long __per_cpu_offset[NR_CPUS] = {};
 
 #include <linux/printk.h>
 
+void __printk_deferred_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_deferred_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
 int __printk_ratelimit(const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_enter(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -100,6 +92,14 @@ async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
 #include <linux/async.h>
 
 void async_synchronize_full(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -222,7 +222,7 @@ void finish_rcuwait(struct rcuwait * w)
 }
 
 
-#include <linux/kernel.h>
+#include <linux/string.h>
 
 int get_option(char ** str,int * pint)
 {
@@ -351,6 +351,14 @@ void irq_domain_free_irqs_common(struct irq_domain * domain,unsigned int virq,un
 
 #include <linux/irqdomain.h>
 
+struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqdomain.h>
+
 void irq_domain_set_info(struct irq_domain * domain,unsigned int virq,irq_hw_number_t hwirq,const struct irq_chip * chip,void * chip_data,irq_flow_handler_t handler,void * handler_data,const char * handler_name)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -384,6 +392,14 @@ void irq_set_default_host(struct irq_domain * domain)
 #include <linux/irqnr.h>
 
 struct irq_desc * irq_to_desc(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+bool irq_work_queue_on(struct irq_work * work,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -661,6 +677,20 @@ struct device_node * usb_of_get_interface_node(struct usb_device * udev,u8 confi
 }
 
 
+extern int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/usb/ch9.h>
 
 const char * usb_speed_string(enum usb_device_speed speed)
@@ -679,3 +709,4 @@ int usb_update_wireless_status_attr(struct usb_interface * intf)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
+

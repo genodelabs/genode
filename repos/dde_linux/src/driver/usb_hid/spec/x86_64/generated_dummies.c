@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-25
  */
 
 #include <lx_emul.h>
@@ -22,23 +22,23 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/printk.h>
 
+void __printk_deferred_enter(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void __printk_deferred_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
 int __printk_ratelimit(const char * func)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_enter(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/printk.h>
-
-void __printk_safe_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -75,6 +75,13 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 }
 
 
+extern unsigned long arch_scale_cpu_capacity(int cpu);
+unsigned long arch_scale_cpu_capacity(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/async.h>
 
 async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
@@ -86,6 +93,14 @@ async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
 #include <linux/async.h>
 
 void async_synchronize_full(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -163,7 +178,7 @@ void finish_rcuwait(struct rcuwait * w)
 }
 
 
-#include <linux/kernel.h>
+#include <linux/string.h>
 
 int get_option(char ** str,int * pint)
 {
@@ -284,6 +299,14 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -317,6 +340,22 @@ void led_trigger_event(struct led_trigger * trig,enum led_brightness brightness)
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
+
+
+#include <linux/preempt.h>
+
+void migrate_disable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/preempt.h>
+
+void migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/panic.h>
@@ -416,6 +455,14 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 }
 
 
+#include <linux/smp.h>
+
+int smp_call_function_single_async(int cpu,call_single_data_t * csd)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
@@ -496,6 +543,20 @@ void usb_major_cleanup(void)
 }
 
 
+extern int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port);
+int usb_phy_roothub_notify_disconnect(struct usb_phy_roothub * phy_roothub,int port)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/usb/ch9.h>
 
 const char * usb_speed_string(enum usb_device_speed speed)
@@ -514,3 +575,4 @@ int usb_update_wireless_status_attr(struct usb_interface * intf)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
+
