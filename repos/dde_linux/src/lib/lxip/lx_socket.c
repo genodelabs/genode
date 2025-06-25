@@ -245,10 +245,12 @@ enum Errno lx_socket_accept(struct socket *sock, struct socket *new_sock,
 	struct sockaddr linux_addr;
 	int err;
 
+	struct proto_accept_arg arg = { .flags = O_NONBLOCK, .kern = true };
+
 	new_sock->type = sock->type;
 	new_sock->ops  = sock->ops;
 
-	err = sock->ops->accept(sock, new_sock, O_NONBLOCK, true);
+	err = sock->ops->accept(sock, new_sock, &arg);
 
 	if (err == 0) {
 		err = sock->ops->getname(new_sock, &linux_addr, 0);
@@ -305,7 +307,8 @@ enum Errno lx_socket_getsockopt(struct socket *sock, enum Sock_level level,
 		return GENODE_EFAULT;
 
 	if (level == GENODE_SOL_SOCKET)
-		err = sock_getsockopt(sock, SOL_SOCKET, name, optval, optlen);
+		err =  sk_getsockopt(sock->sk, SOL_SOCKET, name,
+		                     KERNEL_SOCKPTR(optval), KERNEL_SOCKPTR(optlen));
 	/* we might need this later
 	else {
 		err = sock->ops->getsockopt(sock, SOL_SOCKET, name, optval, optlen);

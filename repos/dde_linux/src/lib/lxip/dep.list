@@ -70,7 +70,6 @@ arch/arm/include/asm/user.h
 arch/arm/include/asm/vdso/cp15.h
 arch/arm/include/asm/vdso/gettimeofday.h
 arch/arm/include/asm/vdso/processor.h
-arch/arm/include/asm/vdso_datapage.h
 arch/arm/include/asm/vmalloc.h
 arch/arm/include/asm/word-at-a-time.h
 arch/arm/include/uapi/asm/auxvec.h
@@ -413,7 +412,6 @@ include/asm-generic/early_ioremap.h
 include/asm-generic/emergency-restart.h
 include/asm-generic/error-injection.h
 include/asm-generic/exec.h
-include/asm-generic/export.h
 include/asm-generic/extable.h
 include/asm-generic/fixmap.h
 include/asm-generic/getorder.h
@@ -459,7 +457,6 @@ include/asm-generic/switch_to.h
 include/asm-generic/timex.h
 include/asm-generic/topology.h
 include/asm-generic/trace_clock.h
-include/asm-generic/unaligned.h
 include/asm-generic/user.h
 include/clocksource/arm_arch_timer.h
 include/crypto/aead.h
@@ -500,7 +497,6 @@ include/linux/bpf_local_storage.h
 include/linux/bpf_mem_alloc.h
 include/linux/bpf_trace.h
 include/linux/bpf_verifier.h
-include/linux/bpfilter.h
 include/linux/bpfptr.h
 include/linux/btf.h
 include/linux/btf_ids.h
@@ -515,6 +511,7 @@ include/linux/cacheflush.h
 include/linux/capability.h
 include/linux/cc_platform.h
 include/linux/cdev.h
+include/linux/cfi.h
 include/linux/cgroup-defs.h
 include/linux/cgroup.h
 include/linux/cgroup_api.h
@@ -556,6 +553,7 @@ include/linux/debug_locks.h
 include/linux/debugfs.h
 include/linux/debugobjects.h
 include/linux/delay.h
+include/linux/delayacct.h
 include/linux/delayed_call.h
 include/linux/dev_printk.h
 include/linux/device.h
@@ -595,7 +593,6 @@ include/linux/filter.h
 include/linux/find.h
 include/linux/firmware.h
 include/linux/flex_proportions.h
-include/linux/freelist.h
 include/linux/freezer.h
 include/linux/fs.h
 include/linux/fs_api.h
@@ -603,7 +600,6 @@ include/linux/fs_types.h
 include/linux/ftrace.h
 include/linux/ftrace_irq.h
 include/linux/fwnode.h
-include/linux/genetlink.h
 include/linux/gfp.h
 include/linux/gfp_types.h
 include/linux/gpio/consumer.h
@@ -964,6 +960,7 @@ include/linux/siphash.h
 include/linux/sizes.h
 include/linux/skb_array.h
 include/linux/skbuff.h
+include/linux/skbuff_ref.h
 include/linux/skmsg.h
 include/linux/slab.h
 include/linux/smp.h
@@ -1076,6 +1073,7 @@ include/linux/ww_mutex.h
 include/linux/xarray.h
 include/net/act_api.h
 include/net/addrconf.h
+include/net/af_unix.h
 include/net/arp.h
 include/net/ax25.h
 include/net/bpf_sk_storage.h
@@ -1093,6 +1091,7 @@ include/net/dst.h
 include/net/dst_cache.h
 include/net/dst_metadata.h
 include/net/dst_ops.h
+include/net/eee.h
 include/net/erspan.h
 include/net/failover.h
 include/net/fib_notifier.h
@@ -1106,6 +1105,7 @@ include/net/geneve.h
 include/net/gre.h
 include/net/gro.h
 include/net/gro_cells.h
+include/net/hotdata.h
 include/net/icmp.h
 include/net/if_inet6.h
 include/net/inet6_hashtables.h
@@ -1146,8 +1146,10 @@ include/net/netfilter/ipv6/nf_conntrack_ipv6.h
 include/net/netfilter/nf_conntrack.h
 include/net/netfilter/nf_conntrack_bpf.h
 include/net/netfilter/nf_conntrack_tuple.h
+include/net/netkit.h
 include/net/netlabel.h
 include/net/netlink.h
+include/net/netmem.h
 include/net/netns/bpf.h
 include/net/netns/can.h
 include/net/netns/core.h
@@ -1176,10 +1178,13 @@ include/net/ping.h
 include/net/pkt_cls.h
 include/net/pkt_sched.h
 include/net/pptp.h
+include/net/proto_memory.h
 include/net/protocol.h
 include/net/raw.h
 include/net/request_sock.h
 include/net/route.h
+include/net/rps.h
+include/net/rstreason.h
 include/net/rtnetlink.h
 include/net/rtnh.h
 include/net/sch_generic.h
@@ -1194,6 +1199,7 @@ include/net/sock_reuseport.h
 include/net/strparser.h
 include/net/switchdev.h
 include/net/tcp.h
+include/net/tcp_ao.h
 include/net/tcp_states.h
 include/net/timewait_sock.h
 include/net/tipc.h
@@ -1214,6 +1220,7 @@ include/net/xsk_buff_pool.h
 include/scsi/fc/fc_fcoe.h
 include/trace/define_trace.h
 include/trace/events/fib.h
+include/trace/events/icmp.h
 include/trace/events/irq.h
 include/trace/events/lock.h
 include/trace/events/napi.h
@@ -1275,7 +1282,6 @@ include/uapi/linux/blkzoned.h
 include/uapi/linux/bpf.h
 include/uapi/linux/bpf_common.h
 include/uapi/linux/bpf_perf_event.h
-include/uapi/linux/bpfilter.h
 include/uapi/linux/btf.h
 include/uapi/linux/byteorder/little_endian.h
 include/uapi/linux/capability.h
@@ -1340,6 +1346,7 @@ include/uapi/linux/kvm_para.h
 include/uapi/linux/l2tp.h
 include/uapi/linux/libc-compat.h
 include/uapi/linux/limits.h
+include/uapi/linux/lsm.h
 include/uapi/linux/lwtunnel.h
 include/uapi/linux/magic.h
 include/uapi/linux/major.h
@@ -1350,6 +1357,8 @@ include/uapi/linux/mempolicy.h
 include/uapi/linux/mii.h
 include/uapi/linux/mman.h
 include/uapi/linux/mpls.h
+include/uapi/linux/mptcp.h
+include/uapi/linux/mptcp_pm.h
 include/uapi/linux/mroute.h
 include/uapi/linux/mroute6.h
 include/uapi/linux/neighbour.h
@@ -1432,6 +1441,7 @@ include/uapi/linux/time_types.h
 include/uapi/linux/times.h
 include/uapi/linux/timex.h
 include/uapi/linux/tls.h
+include/uapi/linux/trace_mmap.h
 include/uapi/linux/types.h
 include/uapi/linux/udp.h
 include/uapi/linux/uio.h
@@ -1493,8 +1503,11 @@ mm/internal.h
 mm/slab.h
 mm/swap.h
 net/core/dev.h
+net/core/devmem.h
 net/core/net-sysfs.h
+net/core/netmem_priv.h
 net/core/sock_destructor.h
 net/ipv4/fib_lookup.h
 net/ipv4/udp_impl.h
 net/netlink/af_netlink.h
+net/netlink/genetlink.h

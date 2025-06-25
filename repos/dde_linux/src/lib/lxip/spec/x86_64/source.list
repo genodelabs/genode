@@ -28,6 +28,7 @@ kernel/time/timecounter.c
 kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
+kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/bitmap.c
 lib/ctype.c
@@ -74,6 +75,7 @@ net/core/gen_stats.c
 net/core/gro.c
 net/core/gro_cells.c
 net/core/gso.c
+net/core/hotdata.c
 net/core/link_watch.c
 net/core/neighbour.c
 net/core/net_namespace.c

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -36,19 +36,6 @@ const char * __clk_get_name(const struct clk * clk)
 }
 
 
-#include <linux/cpumask.h>
-
-struct cpumask __cpu_active_mask;
-
-
-#include <linux/irqdomain.h>
-
-struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,unsigned int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/irqdomain.h>
 
 struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number_t hwirq,unsigned int * irq)
@@ -59,7 +46,7 @@ struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -67,7 +54,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -76,14 +63,6 @@ void __printk_safe_exit(void)
 #include <linux/cred.h>
 
 void __put_cred(struct cred * cred)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/file.h>
-
-int __receive_fd(struct file * file,int __user * ufd,unsigned int o_flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -113,7 +92,7 @@ void __sock_tx_timestamp(__u16 tsflags,__u8 * tx_flags)
 }
 
 
-#include <linux/sched.h>
+#include <linux/pid.h>
 
 pid_t __task_pid_nr_ns(struct task_struct * task,enum pid_type type,struct pid_namespace * ns)
 {
@@ -123,7 +102,7 @@ pid_t __task_pid_nr_ns(struct task_struct * task,enum pid_type type,struct pid_n
 
 #include <linux/vmalloc.h>
 
-void * __vmalloc(unsigned long size,gfp_t gfp_mask)
+void * __vmalloc_noprof(unsigned long size,gfp_t gfp_mask)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -140,14 +119,6 @@ int _printk_deferred(const char * fmt,...)
 #include <linux/mm.h>
 
 atomic_long_t _totalram_pages;
-
-
-#include <linux/filter.h>
-
-void * bpf_internal_load_pointer_neg_helper(const struct sk_buff * skb,int k,unsigned int size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/filter.h>
@@ -240,7 +211,7 @@ int ethtool_get_phc_vclocks(struct net_device * dev,int ** vclock_index)
 
 #include <linux/ethtool.h>
 
-int ethtool_op_get_ts_info(struct net_device * dev,struct ethtool_ts_info * info)
+int ethtool_op_get_ts_info(struct net_device * dev,struct kernel_ethtool_ts_info * info)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -342,9 +313,9 @@ struct fwnode_handle * fwnode_get_nth_parent(struct fwnode_handle * fwnode,unsig
 }
 
 
-#include <linux/property.h>
+#include <linux/string.h>
 
-void fwnode_handle_put(struct fwnode_handle * fwnode)
+int get_option(char ** str,int * pint)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -416,6 +387,14 @@ int io_schedule_prepare(void)
 #include <linux/sched.h>
 
 long __sched io_schedule_timeout(long timeout)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqdomain.h>
+
+struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -548,6 +527,14 @@ int put_user_ifreq(struct ifreq * ifr,void __user * arg)
 }
 
 
+#include <linux/file.h>
+
+int receive_fd(struct file * file,int __user * ufd,unsigned int o_flags)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/refcount.h>
 
 bool refcount_dec_if_one(refcount_t * r)
@@ -566,7 +553,7 @@ void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
 
 #include <linux/fs.h>
 
-int send_sigurg(struct fown_struct * fown)
+int send_sigurg(struct file * file)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -646,14 +633,6 @@ struct page * vmalloc_to_page(const void * vmalloc_addr)
 #include <linux/device/driver.h>
 
 void __init wait_for_init_devices_probe(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched.h>
-
-void __sched yield(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-25
  */
 
 #include <lx_emul.h>
@@ -35,7 +35,7 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -43,7 +43,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -52,14 +52,6 @@ void __printk_safe_exit(void)
 #include <linux/cred.h>
 
 void __put_cred(struct cred * cred)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/file.h>
-
-int __receive_fd(struct file * file,int __user * ufd,unsigned int o_flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -89,7 +81,7 @@ void __sock_tx_timestamp(__u16 tsflags,__u8 * tx_flags)
 }
 
 
-#include <linux/sched.h>
+#include <linux/pid.h>
 
 pid_t __task_pid_nr_ns(struct task_struct * task,enum pid_type type,struct pid_namespace * ns)
 {
@@ -99,7 +91,7 @@ pid_t __task_pid_nr_ns(struct task_struct * task,enum pid_type type,struct pid_n
 
 #include <linux/vmalloc.h>
 
-void * __vmalloc(unsigned long size,gfp_t gfp_mask)
+void * __vmalloc_noprof(unsigned long size,gfp_t gfp_mask)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -125,9 +117,19 @@ void ack_bad_irq(unsigned int irq)
 }
 
 
-#include <linux/bpf.h>
+extern unsigned long arch_scale_cpu_capacity(int cpu);
+unsigned long arch_scale_cpu_capacity(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
-const struct bpf_func_proto bpf_get_current_pid_tgid_proto;
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/bpf.h>
@@ -138,14 +140,6 @@ const struct bpf_func_proto bpf_get_current_uid_gid_proto;
 #include <linux/bpf.h>
 
 const struct bpf_func_proto bpf_get_smp_processor_id_proto;
-
-
-#include <linux/filter.h>
-
-void * bpf_internal_load_pointer_neg_helper(const struct sk_buff * skb,int k,unsigned int size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/bpf.h>
@@ -196,13 +190,6 @@ void bpf_user_rnd_init_once(void)
 #include <linux/uaccess.h>
 
 int check_zeroed_user(const void __user * from,size_t size)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern unsigned long __must_check copy_mc_to_kernel(void * dst,const void * src,unsigned len);
-unsigned long __must_check copy_mc_to_kernel(void * dst,const void * src,unsigned len)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -272,6 +259,14 @@ int device_rename(struct device * dev,const char * new_name)
 }
 
 
+#include <net/sock.h>
+
+int do_sock_getsockopt(struct socket * sock,bool compat,int level,int optname,sockptr_t optval,sockptr_t optlen)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack(void)
@@ -290,7 +285,7 @@ int ethtool_get_phc_vclocks(struct net_device * dev,int ** vclock_index)
 
 #include <linux/ethtool.h>
 
-int ethtool_op_get_ts_info(struct net_device * dev,struct ethtool_ts_info * info)
+int ethtool_op_get_ts_info(struct net_device * dev,struct kernel_ethtool_ts_info * info)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -392,9 +387,9 @@ struct fwnode_handle * fwnode_get_nth_parent(struct fwnode_handle * fwnode,unsig
 }
 
 
-#include <linux/property.h>
+#include <linux/string.h>
 
-void fwnode_handle_put(struct fwnode_handle * fwnode)
+int get_option(char ** str,int * pint)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -487,9 +482,25 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 }
 
 
+#include <linux/irq_work.h>
+
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/mm.h>
 
 int is_vmalloc_or_module_addr(const void * x)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rcutree.h>
+
+void kvfree_rcu_barrier(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -620,6 +631,14 @@ void raw_spin_rq_unlock(struct rq * rq)
 }
 
 
+#include <linux/file.h>
+
+int receive_fd(struct file * file,int __user * ufd,unsigned int o_flags)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/refcount.h>
 
 bool refcount_dec_if_one(refcount_t * r)
@@ -638,7 +657,7 @@ void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
 
 #include <linux/fs.h>
 
-int send_sigurg(struct fown_struct * fown)
+int send_sigurg(struct file * file)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -681,7 +700,7 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 
 #include <linux/smp.h>
 
-int smp_call_function_single_async(int cpu,struct __call_single_data * csd)
+int smp_call_function_single_async(int cpu,call_single_data_t * csd)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -771,14 +790,6 @@ struct page * vmalloc_to_page(const void * vmalloc_addr)
 #include <linux/device/driver.h>
 
 void __init wait_for_init_devices_probe(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/sched.h>
-
-void __sched yield(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
