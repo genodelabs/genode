@@ -87,7 +87,7 @@ class Genode::Memory::Constrained_obj_allocator : Noncopyable
 
 		using Error      = Alloc_error;
 		using Allocation = Genode::Allocation<Constrained_obj_allocator>;
-		using Result     = Allocation::Attempt;
+		using Result     = typename Allocation::Attempt;
 
 		Constrained_obj_allocator(Constrained_allocator &alloc) : _alloc(alloc) { }
 
