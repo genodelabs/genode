@@ -30,22 +30,22 @@
 /* Genode includes */
 #include <base/exception.h>
 #include <gpio/driver.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 namespace Gpio {
 
 	class Invalid_mode : Genode::Exception {};
 
-	static void process_config(Genode::Xml_node const &config, Gpio::Driver &driver);
+	static void process_config(Genode::Node const &config, Gpio::Driver &driver);
 }
 
 
-void Gpio::process_config(Genode::Xml_node const &config, Gpio::Driver &driver)
+void Gpio::process_config(Genode::Node const &config, Gpio::Driver &driver)
 {
 	if (!config.has_sub_node("gpio"))
 		Genode::warning("no GPIO config");
 
-	config.for_each_sub_node("gpio", [&] (Genode::Xml_node const &gpio_node) {
+	config.for_each_sub_node("gpio", [&] (Genode::Node const &gpio_node) {
 
 		unsigned const num = gpio_node.attribute_value("num", 0U);
 		Pin gpio { num };

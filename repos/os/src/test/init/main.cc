@@ -30,8 +30,8 @@ namespace Test {
 
 	using namespace Genode;
 
-	static bool xml_attribute_matches(Xml_node const &, Xml_node const &);
-	static bool xml_matches(Xml_node const &, Xml_node const &);
+	static bool node_attribute_matches(Node const &, Node const &);
+	static bool node_matches(Node const &, Node const &);
 }
 
 
@@ -39,8 +39,8 @@ namespace Test {
  ** Utilities **
  ***************/
 
-static inline bool Test::xml_attribute_matches(Xml_node const &condition,
-                                               Xml_node const &node)
+static inline bool Test::node_attribute_matches(Node const &condition,
+                                                Node const &node)
 {
 	using Name  = String<32>;
 	using Value = String<64>;
@@ -70,15 +70,15 @@ static inline bool Test::xml_attribute_matches(Xml_node const &condition,
 /**
  * Return true if 'node' has expected content
  *
- * \expected  description of the XML content expected in 'node'
+ * \expected  description of the node content expected in 'node'
  */
-static inline bool Test::xml_matches(Xml_node const &expected, Xml_node const &node)
+static inline bool Test::node_matches(Node const &expected, Node const &node)
 {
 	bool matches = true;
-	expected.for_each_sub_node([&] (Xml_node const &condition) {
+	expected.for_each_sub_node([&] (Node const &condition) {
 
 		if (condition.type() == "attribute")
-			matches = matches && xml_attribute_matches(condition, node);
+			matches = matches && node_attribute_matches(condition, node);
 
 		if (condition.type() == "node") {
 
@@ -86,15 +86,15 @@ static inline bool Test::xml_matches(Xml_node const &expected, Xml_node const &n
 			Name const name = condition.attribute_value("name", Name());
 
 			bool at_least_one_sub_node_matches = false;
-			node.for_each_sub_node(name.string(), [&] (Xml_node const &sub_node) {
-				if (xml_matches(condition, sub_node))
+			node.for_each_sub_node(name.string(), [&] (Node const &sub_node) {
+				if (node_matches(condition, sub_node))
 					at_least_one_sub_node_matches = true; });
 
 			matches = matches && at_least_one_sub_node_matches;
 		}
 
 		if (condition.type() == "not")
-			matches = matches && !xml_matches(condition, node);
+			matches = matches && !node_matches(condition, node);
 	});
 	return matches;
 }
@@ -192,7 +192,7 @@ struct Test::Main : Log_message_handler
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	void _publish_report(Reporter &reporter, Xml_node const &node)
+	void _publish_report(Reporter &reporter, Node const &node)
 	{
 		using Version = String<64>;
 		Version const version = node.attribute_value("version", Version());
@@ -202,20 +202,16 @@ struct Test::Main : Log_message_handler
 			if (version.valid())
 				xml.attribute("version", version);
 
-			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+			node.for_each_sub_node([&] (Node const &sub_node) {
 				(void)xml.append_node(sub_node, { 20 }); }); });
 	}
 
-	unsigned const _num_steps = (unsigned)_config.xml().num_sub_nodes();
+	unsigned const _num_steps = (unsigned)_config.node().num_sub_nodes();
 	unsigned       _curr_step = 0;
 
-	void _with_curr_step_xml(auto const &fn) const
+	void _with_curr_step_node(auto const &fn) const
 	{
-		unsigned const curr_step = _curr_step;
-		unsigned i = 0;
-		_config.xml().for_each_sub_node([&] (Xml_node const &sub_node) {
-			if (i++ == curr_step) {
-				fn(sub_node); } });
+		_config.node().with_sub_node(_curr_step, fn, [] { });
 	}
 
 	/*
@@ -247,7 +243,7 @@ struct Test::Main : Log_message_handler
 	{
 		enum Result { CONTINUE, RETURN };
 
-		auto execute_step = [&] (Xml_node const &step)
+		auto execute_step = [&] (Node const &step)
 		{
 			log("step ", _curr_step, " (", step.type(), ")");
 
@@ -267,11 +263,11 @@ struct Test::Main : Log_message_handler
 			}
 
 			if (step.type() == "expect_init_state") {
-				if (xml_matches(step, _init_state.xml())) {
+				if (node_matches(step, _init_state.node())) {
 					_advance_step();
 					return CONTINUE;
 				} else {
-					warning("init state does not match: ", _init_state.xml());
+					warning("init state does not match: ", _init_state.node());
 					warning("expected condition: ", step);
 				}
 				return RETURN;
@@ -311,7 +307,7 @@ struct Test::Main : Log_message_handler
 
 		for (Result result = CONTINUE; result == CONTINUE; ) {
 			result = RETURN;
-			_with_curr_step_xml([&] (Xml_node const &step) {
+			_with_curr_step_node([&] (Node const &step) {
 				result = execute_step(step); });
 		}
 	}
@@ -340,7 +336,7 @@ struct Test::Main : Log_message_handler
 
 	void _handle_timer()
 	{
-		_with_curr_step_xml([&] (Xml_node const &step) {
+		_with_curr_step_node([&] (Node const &step) {
 			if (step.type() != "sleep") {
 				error("got spurious timeout signal");
 				throw Exception();

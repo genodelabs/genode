@@ -773,8 +773,9 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 		void _config_update()
 		{
 			_config_rom.update();
-			_config_rom.xml().with_optional_sub_node("vfs", [&] (Xml_node const &config) {
-				_vfs_env.root_dir().apply_config(config); });
+			_config_rom.node().with_optional_sub_node("vfs",
+				[&] (Genode::Node const &config) {
+					_vfs_env.root_dir().apply_config(config); });
 
 			/*
 			 * The VFS configuration change may result in watch notifications
@@ -790,12 +791,12 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 		 */
 		Genode::Heap _vfs_heap { &_env.ram(), &_env.rm() };
 
-		Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
-			[&] (Xml_node const &config) -> Vfs::Simple_env {
+		Vfs::Simple_env _vfs_env = _config_rom.node().with_sub_node("vfs",
+			[&] (Genode::Node const &config) -> Vfs::Simple_env {
 				return { _env, _vfs_heap, config }; },
 			[&] () -> Vfs::Simple_env {
 				Genode::error("VFS not configured");
-				return { _env, _vfs_heap, Xml_node("<empty/>") }; });
+				return { _env, _vfs_heap, Genode::Node() }; });
 
 		/* sessions with active jobs */
 		Session_queue _active_sessions { };
@@ -859,7 +860,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			_vfs_env.io().commit();
 		}
 
-		Create_result _create_session(const char *args, Xml_node const &policy)
+		Create_result _create_session(const char *args, Genode::Node const &policy)
 		{
 			using namespace Genode;
 
@@ -967,9 +968,9 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			/* pull in policy changes */
 			_config_rom.update();
 
-			return with_matching_policy(Genode::label_from_args(args), _config_rom.xml(),
-				[&] (Xml_node const &policy) { return _create_session(args, policy); },
-				[]  () -> Create_result      { return Create_error::DENIED; });
+			return with_matching_policy(Genode::label_from_args(args), _config_rom.node(),
+				[&] (Genode::Node const &policy) { return _create_session(args, policy); },
+				[]  () -> Create_result          { return Create_error::DENIED; });
 		}
 
 		/**

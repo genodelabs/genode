@@ -34,12 +34,12 @@ struct Rom_to_file::Main
 
 	Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Root_directory _root_dir = _config_rom.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Root_directory {
+	Root_directory _root_dir = _config_rom.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Root_directory {
 			return { _env, _heap, config }; },
 		[&] () -> Root_directory {
 			error("VFS not configured");
-			return { _env, _heap, Xml_node("<empty/>") }; });
+			return { _env, _heap, Node() }; });
 
 	Constructible<Attached_rom_dataspace> _rom_ds { };
 
@@ -73,7 +73,7 @@ void Rom_to_file::Main::_handle_update()
 {
 	_config_rom.update();
 
-	Xml_node config = _config_rom.xml();
+	Node const &config = _config_rom.node();
 
 	/*
 	 * Query name of ROM module from config

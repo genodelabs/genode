@@ -21,11 +21,7 @@
 /* Genode includes */
 #include <util/avl_tree.h>
 
-namespace Genode {
-
-	class Output;
-	class Xml_node;
-}
+namespace Genode { class Output; }
 
 namespace Net {
 

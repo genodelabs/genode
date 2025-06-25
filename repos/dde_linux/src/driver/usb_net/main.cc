@@ -82,14 +82,14 @@ struct Main
 	void handle_config()
 	{
 		config_rom.update();
-		genode_mac_address_reporter_config(config_rom.xml());
+		genode_mac_address_reporter_config(config_rom.node());
 
 		/* read USB configuration setting */
-		usb_config = config_rom.xml().attribute_value("configuration", 0ul);
+		usb_config = config_rom.node().attribute_value("configuration", 0ul);
 
 		/* retrieve possible MAC */
-		if (config_rom.xml().has_attribute("mac")) {
-			auto const mac = config_rom.xml().attribute_value("mac", Nic::Mac_address{});
+		if (config_rom.node().has_attribute("mac")) {
+			auto const mac = config_rom.node().attribute_value("mac", Nic::Mac_address{});
 			log("Trying to use configured mac: ", mac);
 			lx_emul_nic_set_mac_address(mac.addr, sizeof(mac.addr));
 		}

@@ -555,7 +555,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		Genode::Io_signal_handler<Fs_file_system> _signal_handler {
 			_env.env().ep(), *this, &Fs_file_system::_handle_ack };
 
-		static size_t buffer_size(Genode::Xml_node const &config)
+		static size_t buffer_size(Node const &config)
 		{
 			Genode::Number_of_bytes fs_default { ::File_system::DEFAULT_TX_BUF_SIZE };
 			return config.attribute_value("buffer_size", fs_default);
@@ -563,7 +563,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 	public:
 
-		Fs_file_system(Vfs::Env &env, Genode::Xml_node const &config)
+		Fs_file_system(Vfs::Env &env, Node const &config)
 		:
 			_env(env),
 			_label(config.attribute_value("label", Label_string("/"))),

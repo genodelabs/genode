@@ -212,7 +212,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		Genode::Attached_rom_dataspace const &_config;
 		bool                           const &_verbose;
 
-		Create_result _create_session(const char *args, Genode::Xml_node const &policy)
+		Create_result _create_session(const char *args, Genode::Node const &policy)
 		{
 			using namespace Genode;
 
@@ -245,9 +245,9 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		{
 			using namespace Genode;
 
-			return with_matching_policy(label_from_args(args), _config.xml(),
-				[&] (Xml_node const &policy) { return _create_session(args, policy); },
-				[&] () -> Create_result      { return Create_error::DENIED; });
+			return with_matching_policy(label_from_args(args), _config.node(),
+				[&] (Node const &policy) { return _create_session(args, policy); },
+				[&] () -> Create_result  { return Create_error::DENIED; });
 		}
 
 		void _destroy_session(Session_component &s) override

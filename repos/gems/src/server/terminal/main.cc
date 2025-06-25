@@ -50,12 +50,12 @@ struct Terminal::Main : Character_consumer
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Root_directory _root_dir = _config.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Root_directory {
+	Root_directory _root_dir = _config.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Root_directory {
 			return { _env, _heap, config }; },
 		[&] () -> Root_directory {
 			error("VFS not configured");
-			return { _env, _heap, Xml_node("<empty/>") }; });
+			return { _env, _heap, Node() }; });
 
 	Cached_font::Limit _font_cache_limit { 0 };
 
@@ -272,7 +272,7 @@ void Terminal::Main::_handle_config()
 
 	_font.destruct();
 
-	config.with_optional_sub_node("vfs", [&] (Xml_node const &vfs_config) {
+	_config.node().with_optional_sub_node("vfs", [&] (Node const &vfs_config) {
 		_root_dir.apply_config(vfs_config); });
 
 	Cached_font::Limit const cache_limit {

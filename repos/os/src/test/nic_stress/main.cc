@@ -51,15 +51,15 @@ struct Local::Construct_destruct_test
 	Env                         &_env;
 	Allocator                   &_alloc;
 	Signal_context_capability    _completed_sigh;
-	Xml_node              const &_config;
+	Node                  const &_config;
 	Nic::Packet_allocator        _pkt_alloc     { &_alloc };
 	Constructible<Bad_args_nic>  _bad_args_nic  { };
 
 	unsigned long _attr_value(auto const &attr, auto const default_value) const
 	{
 		return _config.with_sub_node("construct_destruct",
-			[&] (Xml_node const &node) { return node.attribute_value(attr, default_value); },
-			[&]                        { return default_value; });
+			[&] (Node const &node) { return node.attribute_value(attr, default_value); },
+			[&]                    { return default_value; });
 	}
 
 	unsigned long const _nr_of_rounds   = _attr_value("nr_of_rounds",   10);
@@ -95,7 +95,7 @@ struct Local::Construct_destruct_test
 	Construct_destruct_test(Env                       &env,
 	                        Allocator                 &alloc,
 	                        Signal_context_capability  completed_sigh,
-	                        Xml_node            const &config)
+	                        Node                const &config)
 	:
 		_env            { env },
 		_alloc          { alloc },
@@ -127,7 +127,7 @@ struct Local::Main
 	Env                                    &_env;
 	Heap                                    _heap       { &_env.ram(), &_env.rm() };
 	Attached_rom_dataspace                  _config_rom { _env, "config" };
-	Xml_node                          const _config     { _config_rom.xml() };
+	Node                              const _config     { _config_rom.node() };
 	Constructible<Construct_destruct_test>  _test_1     { };
 
 	bool const _exit_support {

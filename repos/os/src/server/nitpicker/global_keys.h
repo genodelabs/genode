@@ -53,7 +53,7 @@ class Nitpicker::Global_keys
 		Gui_session *global_receiver(Input::Keycode key) {
 			return _valid(key) ? _policies[key]._session : 0; }
 
-		void apply_config(Xml_node const &config, Session_list &session_list);
+		void apply_config(Node const &config, Session_list &session_list);
 };
 
 #endif /* _GLOBAL_KEYS_H_ */

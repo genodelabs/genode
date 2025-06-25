@@ -57,7 +57,7 @@ struct Main
 
 	Constructible<Expanding_reporter> _reporter { };
 
-	void _test_update(Xml_node const &config)
+	void _test_update(Node const &config)
 	{
 		try {
 			_reporter.construct(_env, "set_rtc");
@@ -115,9 +115,9 @@ struct Main
 		/* test setting the RTC */
 		log("test RTC setting");
 		Attached_rom_dataspace config_rom { env, "config" };
-		bool const test_update = config_rom.xml().attribute_value("set_rtc", false);
+		bool const test_update = config_rom.node().attribute_value("set_rtc", false);
 		if (test_update) {
-			_test_update(config_rom.xml());
+			_test_update(config_rom.node());
 			return;
 		}
 

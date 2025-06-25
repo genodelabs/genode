@@ -48,7 +48,7 @@ struct Irq_override : List_model<Irq_override>::Element
 	             Flags::access_t flags)
 	: from(from), to(to), flags(flags) {}
 
-	void generate(Xml_generator & generator, irq_line_t & irq)
+	void generate(Xml_generator &generator, irq_line_t &irq)
 	{
 		if (irq != from)
 			return;
@@ -72,12 +72,12 @@ struct Irq_override : List_model<Irq_override>::Element
 			generator.attribute("mode", "level");
 	}
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		return (from == node.attribute_value("irq", ~0U));
 	}
 
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return node.has_type("irq_override");
 	}
@@ -99,10 +99,10 @@ struct Irq_routing : List_model<Irq_routing>::Element
 		bridge_bdf(bridge_bdf),
 		dev(dev), pin(pin), to(to) {}
 
-	void route(Bridge     & bridge,
-	           dev_t        device,
-	           irq_pin_t    p,
-	           irq_line_t & irq)
+	void route(Bridge     &bridge,
+	           dev_t       device,
+	           irq_pin_t   p,
+	           irq_line_t &irq)
 	{
 		if (!(bridge_bdf == bridge.bdf && dev == device && pin == p))
 			return;
@@ -110,7 +110,7 @@ struct Irq_routing : List_model<Irq_routing>::Element
 		irq = to;
 	}
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		rid_t const bdf = node.attribute_value<rid_t>("bridge_bdf", 0xff);
 		return bridge_bdf == Bdf::bdf(bdf) &&
@@ -118,7 +118,7 @@ struct Irq_routing : List_model<Irq_routing>::Element
 		       pin == node.attribute_value<uint8_t>("device_pin", 0xff);
 	}
 
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return node.has_type("routing");
 	}

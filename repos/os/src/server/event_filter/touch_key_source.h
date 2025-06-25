@@ -49,7 +49,7 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 
 			Input::Keycode const code;
 
-			static Input::Keycode code_from_xml(Xml_node const &node)
+			static Input::Keycode code_from_node(Node const &node)
 			{
 				try {
 					return key_code_by_name(node.attribute_value("key", Key_name()));
@@ -59,8 +59,8 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 				return Input::KEY_UNKNOWN;
 			}
 
-			Tap(Xml_node const &node)
-			: rect(Rect::from_xml(node)), code(code_from_xml(node)) { }
+			Tap(Node const &node)
+			: rect(Rect::from_node(node)), code(code_from_node(node)) { }
 		};
 
 		Registry<Registered<Tap>> _tap_rules { };
@@ -101,7 +101,7 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 
 		static char const *name() { return "touch-key"; }
 
-		Touch_key_source(Owner &owner, Xml_node const &config,
+		Touch_key_source(Owner &owner, Node const &config,
 		                 Source::Factory &factory, Allocator &alloc)
 		:
 			Source(owner),
@@ -109,7 +109,7 @@ class Event_filter::Touch_key_source : public Source, Source::Filter
 			_source(factory.create_source_for_sub_node(_owner, config)),
 			_alloc(alloc)
 		{
-			config.for_each_sub_node("tap", [&] (Xml_node const &node) {
+			config.for_each_sub_node("tap", [&] (Node const &node) {
 				new (_alloc) Registered<Tap>(_tap_rules, node); });
 		}
 

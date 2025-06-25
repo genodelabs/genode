@@ -205,17 +205,17 @@ struct Test_tracing
 	Test_thread::Name      _thread_name { "test-thread" };
 	Test_thread            _thread      { _env, _thread_name };
 
-	static String _trace_policy_attr(Xml_node const &config, auto const &attr_name)
+	static String _trace_policy_attr(Node const &config, auto const &attr_name)
 	{
 		String result { };
-		config.with_optional_sub_node("trace_policy", [&] (Xml_node const &policy) {
+		config.with_optional_sub_node("trace_policy", [&] (Node const &policy) {
 			result = policy.attribute_value(attr_name,  String()); });
 		return result;
 	}
 
-	String const _policy_label  = _trace_policy_attr(_config.xml(), "label");
-	String const _policy_module = _trace_policy_attr(_config.xml(), "module");
-	String const _policy_thread = _trace_policy_attr(_config.xml(), "thread");
+	String const _policy_label  = _trace_policy_attr(_config.node(), "label");
+	String const _policy_module = _trace_policy_attr(_config.node(), "module");
+	String const _policy_thread = _trace_policy_attr(_config.node(), "thread");
 
 	Policy_id _init_policy()
 	{

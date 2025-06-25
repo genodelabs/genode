@@ -17,7 +17,7 @@
 #include <configuration.h>
 
 /* Genode includes */
-#include <util/xml_node.h>
+#include <base/node.h>
 
 using namespace Net;
 using namespace Genode;
@@ -59,19 +59,18 @@ void Dns_domain_name::set_to(Dns_domain_name const &name)
 }
 
 
-void Dns_domain_name::set_to(Xml_attribute const &name_attr)
+void Dns_domain_name::set_to(Node::Attribute const &name)
 {
-	name_attr.with_raw_value([&] (char const *base, size_t size) {
-		if (size < STRING_CAPACITY) {
-			if (_string_ptr) {
-				*_string_ptr = Cstring { base, size };
-			} else {
-				_string_ptr = new (_alloc) String { Cstring { base, size } };
-			}
+	if (name.value.num_bytes < STRING_CAPACITY) {
+		if (_string_ptr) {
+			*_string_ptr = Cstring { name.value.start, name.value.num_bytes };
 		} else {
-			set_invalid();
+			_string_ptr = new (_alloc)
+				String { Cstring { name.value.start, name.value.num_bytes } };
 		}
-	});
+	} else {
+		set_invalid();
+	}
 }
 
 

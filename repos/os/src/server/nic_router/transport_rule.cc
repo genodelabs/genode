@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <base/allocator.h>
 #include <base/log.h>
 
@@ -33,14 +32,14 @@ Transport_rule::Transport_rule(Ipv4_address_prefix const &dst,
 
 
 bool Transport_rule::finish_construction(Domain_dict    &domains,
-                                         Xml_node const &node,
+                                         Node     const &node,
                                          Cstring  const &protocol,
                                          Configuration  &config,
                                          Domain   const &local_domain)
 {
 	/* try to find a permit-any rule first */
 	bool error = false;
-	node.with_optional_sub_node("permit-any", [&] (Xml_node const &permit_any_node) {
+	node.with_optional_sub_node("permit-any", [&] (Node const &permit_any_node) {
 		domains.find_by_domain_attr(permit_any_node,
 			[&] (Domain &remote_domain) { _permit_any_rule_ptr = new (_alloc) Permit_any_rule(remote_domain); },
 			[&] { error = true; });
@@ -57,7 +56,7 @@ bool Transport_rule::finish_construction(Domain_dict    &domains,
 		return true;
 	}
 	/* read specific permit rules */
-	node.for_each_sub_node("permit", [&] (Xml_node const &permit_node) {
+	node.for_each_sub_node("permit", [&] (Node const &permit_node) {
 		if (error)
 			return;
 

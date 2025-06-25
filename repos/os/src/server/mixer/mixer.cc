@@ -29,7 +29,7 @@
 #include <root/component.h>
 #include <util/retry.h>
 #include <util/string.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <audio_out_session/connection.h>
 #include <audio_out_session/rpc_object.h>
 #include <timer_session/connection.h>
@@ -147,14 +147,14 @@ class Audio_out::Mixer
 			bool const sessions;
 			bool const changes;
 
-			Verbose(Genode::Xml_node const &config)
+			Verbose(Genode::Node const &config)
 			:
 				sessions(config.attribute_value("verbose_sessions", false)),
 				changes(config.attribute_value("verbose_changes", false))
 			{ }
 		};
 
-		Genode::Reconstructible<Verbose> _verbose { _config_rom.xml() };
+		Genode::Reconstructible<Verbose> _verbose { _config_rom.node() };
 
 		/*
 		 * Mixer output Audio_out connection
@@ -428,7 +428,7 @@ class Audio_out::Mixer
 		/**
 		 * Set default values for various options
 		 */
-		void _set_default_config(Genode::Xml_node const &node)
+		void _set_default_config(Genode::Node const &node)
 		{
 			using namespace Genode;
 
@@ -437,7 +437,7 @@ class Audio_out::Mixer
 			_default_muted      = false;
 
 			node.with_optional_sub_node("default",
-				[&] (Xml_node const &default_node) {
+				[&] (Node const &default_node) {
 
 					long v = 0;
 
@@ -468,7 +468,7 @@ class Audio_out::Mixer
 
 			_config_rom.update();
 
-			Xml_node config_node = _config_rom.xml();
+			Node config_node = _config_rom.node();
 			_verbose.construct(config_node);
 
 			_set_default_config(config_node);
@@ -478,9 +478,9 @@ class Audio_out::Mixer
 			_out_volume[RIGHT] = _default_out_volume;
 
 			config_node.with_optional_sub_node("channel_list",
-				[&] (Xml_node const &channel_list_node) {
+				[&] (Node const &channel_list_node) {
 
-					channel_list_node.for_each_sub_node([&] (Xml_node const &node) {
+					channel_list_node.for_each_sub_node([&] (Node const &node) {
 						Channel ch(node);
 
 						if (ch.type == Channel::Type::INPUT) {

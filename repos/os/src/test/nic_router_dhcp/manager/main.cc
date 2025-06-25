@@ -23,7 +23,7 @@
 
 /* NIC router includes */
 #include <dns.h>
-#include <xml_node.h>
+#include <node.h>
 
 using namespace Net;
 using namespace Genode;
@@ -73,9 +73,9 @@ void Test::Main::_handle_router_state()
 	 * see whether we have to re-configure the router.
 	 */
 	bool domain_found { false };
-	_router_state_rom.xml().for_each_sub_node(
+	_router_state_rom.node().for_each_sub_node(
 		"domain",
-		[&] (Xml_node const &domain_node)
+		[&] (Node const &domain_node)
 	{
 		/*
 		 * If we already found the uplink domain, refrain from inspecting
@@ -106,7 +106,7 @@ void Test::Main::_handle_router_state()
 			Dns_server_list dns_servers { };
 			domain_node.for_each_sub_node(
 				"dns",
-				[&] (Xml_node const &dns_node)
+				[&] (Node const &dns_node)
 				{
 					Dns_server::construct(
 						_heap, dns_node.attribute_value("ip", Ipv4_address { }),
@@ -143,8 +143,8 @@ void Test::Main::_handle_router_state()
 
 			/* read out new DNS domain name */
 			Dns_domain_name dns_domain_name { _heap };
-			domain_node.with_optional_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
-				xml_node_with_attribute(sub_node, "name", [&] (Xml_attribute const &attr) {
+			domain_node.with_optional_sub_node("dns-domain", [&] (Node const &sub_node) {
+				with_attribute(sub_node, "name", [&] (auto const &attr) {
 					dns_domain_name.set_to(attr);
 				});
 			});

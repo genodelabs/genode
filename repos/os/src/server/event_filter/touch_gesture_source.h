@@ -22,7 +22,6 @@
 #include <util/geometry.h>
 #include <base/allocator.h>
 #include <base/duration.h>
-#include <os/buffered_xml.h>
 
 /* local includes */
 #include <source.h>
@@ -195,7 +194,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 
 		struct Gesture : Interface, private Registry<Gesture>::Element
 		{
-			Buffered_xml _xml;
+			Buffered_node _node;
 
 			State _state { State::IDLE };
 
@@ -219,11 +218,11 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 			 */
 			virtual void cancel() = 0;
 
-			static void _emit_from_xml(Source::Sink   &destination,
-			                           Xml_node const &node,
-			                           bool            release)
+			static void _emit_from_node(Source::Sink &destination,
+			                            Node   const &node,
+			                            bool          release)
 			{
-				node.for_each_sub_node("key", [&] (Xml_node const &key) {
+				node.for_each_sub_node("key", [&] (Node const &key) {
 					Input::Keycode code { Input::KEY_UNKNOWN };
 					try {
 						code = key_code_by_name(key.attribute_value("name", Key_name()));
@@ -232,7 +231,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 					if (!release)
 						destination.submit(Input::Press   { code });
 
-					_emit_from_xml(destination, key, release);
+					_emit_from_node(destination, key, release);
 
 					bool const hold = key.attribute_value("hold", false);
 					if (release == hold)
@@ -240,8 +239,8 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				});
 			}
 
-			Gesture(Registry<Gesture> & registry, Allocator & alloc, Xml_node const &xml)
-			: Registry<Gesture>::Element(registry, *this), _xml(alloc, xml) { }
+			Gesture(Registry<Gesture> & registry, Allocator & alloc, Node const &node)
+			: Registry<Gesture>::Element(registry, *this), _node(alloc, node) { }
 		};
 
 		/*
@@ -268,7 +267,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				Microseconds duration;
 				unsigned     fingers;
 
-				static Direction _direction_from_xml(Xml_node const & node)
+				static Direction _direction_from_node(Node const & node)
 				{
 					String<8> value { "" };
 					value = node.attribute_value("direction", value);
@@ -281,19 +280,19 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 					return Direction::ANY;
 				}
 
-				static Microseconds _duration_from_xml(Xml_node const & node)
+				static Microseconds _duration_from_node(Node const & node)
 				{
 					return Microseconds {
 						node.attribute_value("duration_ms", 1000U)*1000 };
 				}
 
-				static Attr from_xml(Xml_node const &node)
+				static Attr from_node(Node const &node)
 				{
 					return {
-						.rect      = Rect::from_xml(node),
+						.rect      = Rect::from_node(node),
 						.distance  = node.attribute_value("distance", 100U),
-						.direction = _direction_from_xml(node),
-						.duration  = _duration_from_xml(node),
+						.direction = _direction_from_node(node),
+						.duration  = _duration_from_node(node),
 						.fingers   = node.attribute_value("fingers", 1U)
 					};
 				}
@@ -357,7 +356,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 								_state = State::TRIGGERED;
 								_timeout.discard();
 
-								_emit_from_xml(destination, _xml.xml, false);
+								_emit_from_node(destination, _node, false);
 							}
 
 							break;
@@ -374,7 +373,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 					if (_multitouch.fingers_present() == 0) {
 						/* emit release events if gesture had been triggered */
 						if (_state == TRIGGERED)
-							_emit_from_xml(destination, _xml.xml, true);
+							_emit_from_node(destination, _node, true);
 						cancel();
 					}
 				});
@@ -392,9 +391,9 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 			      Timer::Connection &timer,
 			      Allocator         &alloc,
 			      Multitouch const  &multitouch,
-			      Xml_node const    &node)
+			      Node       const  &node)
 			: Gesture(registry, alloc, node), _timer(timer),
-			  _attr(Attr::from_xml(node)),
+			  _attr(Attr::from_node(node)),
 			  _multitouch(multitouch)
 			{
 				if (_attr.fingers > Multitouch::MAX_FINGERS)
@@ -423,17 +422,17 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				Microseconds delay;
 				unsigned     fingers;
 
-				static Microseconds _delay_from_xml(Xml_node const &node)
+				static Microseconds _delay_from_node(Node const &node)
 				{
 					return Microseconds {
 						node.attribute_value("delay_ms", 1000U)*1000 };
 				}
 
-				static Attr from_xml(Xml_node const &node)
+				static Attr from_node(Node const &node)
 				{
 					Attr attr {
-						.area    = Area::from_xml(node),
-						.delay   = _delay_from_xml(node),
+						.area    = Area::from_node(node),
+						.delay   = _delay_from_node(node),
 						.fingers = node.attribute_value("fingers", 1U)
 					};
 
@@ -513,7 +512,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 
 						/* emit release events if gesture had been triggered */
 						if (_state == TRIGGERED)
-							_emit_from_xml(destination, _xml.xml, true);
+							_emit_from_node(destination, _node, true);
 
 						cancel();
 					}
@@ -528,7 +527,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				/* emit absolute motion to trigger focus handling */
 				destination.submit(Input::Absolute_motion { _start_pos.x, _start_pos.y });
 
-				_emit_from_xml(destination, _xml.xml, false);
+				_emit_from_node(destination, _node, false);
 				buffer.clear();
 				_emitted = true;
 			}
@@ -538,9 +537,9 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 			     Source::Trigger  &trigger,
 			     Allocator        &alloc,
 			     Multitouch const &multitouch,
-			     Xml_node const   &node)
+			     Node       const &node)
 			: Gesture(registry, alloc, node), _timer(timer), _trigger(trigger),
-			  _attr(Attr::from_xml(node)),
+			  _attr(Attr::from_node(node)),
 			  _multitouch(multitouch)
 			{
 				if (_attr.fingers > Multitouch::MAX_FINGERS)
@@ -633,7 +632,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 
 		static char const *name() { return "touch-gesture"; }
 
-		Touch_gesture_source(Owner &owner, Xml_node const &config,
+		Touch_gesture_source(Owner &owner, Node const &config,
 		                     Source::Factory &factory,
 		                     Timer_accessor  &timer_accessor,
 		                     Source::Trigger &trigger,
@@ -644,12 +643,12 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 			_source(factory.create_source_for_sub_node(_owner, config)),
 			_alloc(alloc)
 		{
-			config.for_each_sub_node("hold", [&] (Xml_node const &node) {
+			config.for_each_sub_node("hold", [&] (Node const &node) {
 				new (_alloc) Hold(_gestures, timer_accessor.timer(), trigger,
 				                  _alloc, _multitouch, node);
 			});
 
-			config.for_each_sub_node("swipe", [&] (Xml_node const &node) {
+			config.for_each_sub_node("swipe", [&] (Node const &node) {
 				new (_alloc) Swipe(_gestures, timer_accessor.timer(),
 				                   _alloc, _multitouch, node);
 			});

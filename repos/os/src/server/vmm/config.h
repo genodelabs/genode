@@ -17,10 +17,9 @@
 #include <board.h>
 #include <base/allocator_avl.h>
 #include <base/heap.h>
+#include <base/node.h>
 #include <util/bit_allocator.h>
 #include <util/list_model.h>
-#include <util/string.h>
-#include <util/xml_node.h>
 
 namespace Vmm {
 	class Config;
@@ -63,7 +62,7 @@ class Vmm::Config
 				size_t   const mmio_size;
 				unsigned const irq;
 
-				static Type type_from_xml(Xml_node const &node)
+				static Type type_from_node(Node const &node)
 				{
 					Config::Name const type = node.attribute_value("type", Config::Name());
 
@@ -76,13 +75,13 @@ class Vmm::Config
 					return INVALID;
 				}
 
-				bool matches(Xml_node const &node) const
+				bool matches(Node const &node) const
 				{
 					return (name == node.attribute_value("name", Config::Name()))
-					    && (type == type_from_xml(node));
+					    && (type == type_from_node(node));
 				}
 
-				static bool type_matches(Xml_node const &node)
+				static bool type_matches(Node const &node)
 				{
 					return node.has_type("virtio_device");
 				}
@@ -147,7 +146,7 @@ class Vmm::Config
 		void for_each_virtio_device(FN const & fn) const {
 			_model.for_each(fn); }
 
-		void update(Xml_node);
+		void update(Node const &);
 };
 
 #endif /* _SRC__SERVER__VMM__CONFIG_H_ */

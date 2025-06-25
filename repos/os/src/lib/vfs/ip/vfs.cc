@@ -23,7 +23,6 @@
 #include <genode_c_api/socket.h>
 #include <net/ipv4.h>
 #include <util/string.h>
-#include <util/xml_node.h>
 #include <vfs/directory_service.h>
 #include <vfs/file_io_service.h>
 #include <vfs/file_system_factory.h>
@@ -128,8 +127,9 @@ namespace Ip {
 }
 
 
-namespace Vfs {
+namespace Vfs_ip {
 
+	using namespace Vfs;
 	using namespace Genode;
 
 	struct Node;
@@ -166,7 +166,7 @@ namespace Vfs {
  ** Vfs nodes **
  ***************/
 
-struct Vfs::Node
+struct Vfs_ip::Node
 {
 	char const *_name;
 
@@ -183,7 +183,7 @@ struct Vfs::Node
 };
 
 
-struct Vfs::File : Vfs::Node
+struct Vfs_ip::File : Vfs_ip::Node
 {
 	Ip_vfs_file_handles handles { };
 
@@ -221,13 +221,13 @@ struct Vfs::File : Vfs::Node
 };
 
 
-struct Vfs::Directory : Vfs::Node
+struct Vfs_ip::Directory : Vfs_ip::Node
 {
 	Directory(char const *name) : Node(name) { }
 
 	virtual ~Directory() { };
 
-	virtual Vfs::Node *child(char const *)                        = 0;
+	virtual Vfs_ip::Node *child(char const *)                     = 0;
 	virtual file_size num_dirent()                                = 0;
 
 	using Open_result = Vfs::Directory_service::Open_result;
@@ -239,7 +239,7 @@ struct Vfs::Directory : Vfs::Node
 };
 
 
-struct Ip::Protocol_dir : Vfs::Directory
+struct Ip::Protocol_dir : Vfs_ip::Directory
 {
 	enum Type { TYPE_STREAM, TYPE_DGRAM };
 
@@ -249,11 +249,11 @@ struct Ip::Protocol_dir : Vfs::Directory
 	virtual bool     lookup_port(long) = 0;
 	virtual void release(unsigned id) = 0;
 
-	Protocol_dir(char const *name) : Vfs::Directory(name) { }
+	Protocol_dir(char const *name) : Vfs_ip::Directory(name) { }
 };
 
 
-struct Ip::Socket_dir : Vfs::Directory
+struct Ip::Socket_dir : Vfs_ip::Directory
 {
 	using Open_result = Vfs::Directory_service::Open_result;
 
@@ -268,11 +268,11 @@ struct Ip::Socket_dir : Vfs::Directory
 	virtual void     close() override = 0;
 	virtual bool     closed() const = 0;
 
-	Socket_dir(char const *name) : Vfs::Directory(name) { }
+	Socket_dir(char const *name) : Vfs_ip::Directory(name) { }
 };
 
 
-struct Vfs::Ip_vfs_handle : Vfs::Vfs_handle
+struct Vfs_ip::Ip_vfs_handle : Vfs::Vfs_handle
 {
 	using Read_result  = File_io_service:: Read_result;
 	using Write_result = File_io_service::Write_result;
@@ -295,12 +295,12 @@ struct Vfs::Ip_vfs_handle : Vfs::Vfs_handle
 };
 
 
-struct Vfs::Ip_vfs_file_handle final : Vfs::Ip_vfs_handle
+struct Vfs_ip::Ip_vfs_file_handle final : Vfs_ip::Ip_vfs_handle
 {
 	Ip_vfs_file_handle(Ip_vfs_file_handle const &);
 	Ip_vfs_file_handle &operator = (Ip_vfs_file_handle const &);
 
-	Vfs::File *file;
+	Vfs_ip::File *file;
 
 	/* file association element */
 	List_element<Ip_vfs_file_handle> file_le { this };
@@ -314,7 +314,7 @@ struct Vfs::Ip_vfs_file_handle final : Vfs::Ip_vfs_handle
 	char content_buffer[Ip::MAX_DATA_LEN];
 
 	Ip_vfs_file_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
-	                     Vfs::File *file)
+	                   Vfs_ip::File *file)
 	: Ip_vfs_handle(fs, alloc, status_flags), file(file)
 	{
 		if (file)
@@ -367,13 +367,13 @@ struct Vfs::Ip_vfs_file_handle final : Vfs::Ip_vfs_handle
 };
 
 
-struct Vfs::Ip_vfs_dir_handle final : Vfs::Ip_vfs_handle
+struct Vfs_ip::Ip_vfs_dir_handle final : Vfs_ip::Ip_vfs_handle
 {
-	Vfs::Directory &dir;
+	Vfs_ip::Directory &dir;
 
 	Ip_vfs_dir_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
-	                    Vfs::Directory &dir)
-	: Vfs::Ip_vfs_handle(fs, alloc, status_flags),
+	                  Vfs_ip::Directory &dir)
+	: Vfs_ip::Ip_vfs_handle(fs, alloc, status_flags),
 	  dir(dir) { }
 
 	bool read_ready() const override { return true; }
@@ -391,13 +391,13 @@ struct Vfs::Ip_vfs_dir_handle final : Vfs::Ip_vfs_handle
 };
 
 
-static Vfs::Ip_vfs_file_handle::Fifo *_read_ready_waiters_ptr;
+static Vfs_ip::Ip_vfs_file_handle::Fifo *_read_ready_waiters_ptr;
 
 static void poll_all()
 {
 	_read_ready_waiters_ptr->for_each(
-			[&] (Vfs::Ip_vfs_file_handle::Fifo_element &elem) {
-		Vfs::Ip_vfs_file_handle &handle = elem.object();
+			[&] (Vfs_ip::Ip_vfs_file_handle::Fifo_element &elem) {
+		Vfs_ip::Ip_vfs_file_handle &handle = elem.object();
 		if (handle.file) {
 			if (handle.file->read_ready()) {
 				/* do not notify again until notify_read_ready */
@@ -413,7 +413,7 @@ static void poll_all()
  ** Ip vfs specific nodes **
  *****************************/
 
-class Vfs::Ip_file : public Vfs::File
+class Vfs_ip::Ip_file : public Vfs_ip::File
 {
 	protected:
 
@@ -425,7 +425,7 @@ class Vfs::Ip_file : public Vfs::File
 	public:
 
 		Ip_file(Ip::Socket_dir &p, genode_socket_handle &s, char const *name)
-		: Vfs::File(name), _parent(p), _sock(s) { }
+		: Vfs_ip::File(name), _parent(p), _sock(s) { }
 
 		virtual ~Ip_file() { }
 
@@ -434,9 +434,9 @@ class Vfs::Ip_file : public Vfs::File
 		 */
 		void dissolve_handles()
 		{
-			Genode::List_element<Vfs::Ip_vfs_file_handle> *le = handles.first();
+			Genode::List_element<Vfs_ip::Ip_vfs_file_handle> *le = handles.first();
 			while (le) {
-				Vfs::Ip_vfs_file_handle *h = le->object();
+				Vfs_ip::Ip_vfs_file_handle *h = le->object();
 				handles.remove(&h->file_le);
 				h->file = nullptr;
 				le = handles.first();
@@ -452,7 +452,7 @@ class Vfs::Ip_file : public Vfs::File
 };
 
 
-class Vfs::Ip_data_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_data_file final : public Vfs_ip::Ip_file
 {
 	public:
 
@@ -509,7 +509,7 @@ class Vfs::Ip_data_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_peek_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_peek_file final : public Vfs_ip::Ip_file
 {
 	public:
 
@@ -547,7 +547,7 @@ class Vfs::Ip_peek_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_bind_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_bind_file final : public Vfs_ip::Ip_file
 {
 	private:
 
@@ -609,7 +609,7 @@ class Vfs::Ip_bind_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_listen_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_listen_file final : public Vfs_ip::Ip_file
 {
 	private:
 
@@ -658,7 +658,7 @@ class Vfs::Ip_listen_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_connect_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_connect_file final : public Vfs_ip::Ip_file
 {
 	private:
 
@@ -765,7 +765,7 @@ class Vfs::Ip_connect_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_local_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_local_file final : public Vfs_ip::Ip_file
 {
 	public:
 
@@ -795,7 +795,7 @@ class Vfs::Ip_local_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_remote_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_remote_file final : public Vfs_ip::Ip_file
 {
 	public:
 
@@ -875,7 +875,7 @@ class Vfs::Ip_remote_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_accept_file final : public Vfs::Ip_file
+class Vfs_ip::Ip_accept_file final : public Vfs_ip::Ip_file
 {
 	public:
 
@@ -907,7 +907,7 @@ class Vfs::Ip_accept_file final : public Vfs::Ip_file
 };
 
 
-class Vfs::Ip_socket_dir final : public Ip::Socket_dir
+class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 {
 	public:
 
@@ -925,14 +925,14 @@ class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 		Ip::Protocol_dir       &_parent;
 		genode_socket_handle     &_sock;
 
-		Vfs::File *_files[MAX_FILES];
+		Vfs_ip::File *_files[MAX_FILES];
 
 		genode_sockaddr _remote_addr { };
 
 		unsigned _num_nodes()
 		{
 			unsigned num = 0;
-			for (Vfs::File *n : _files) num += (n != nullptr);
+			for (Vfs_ip::File *n : _files) num += (n != nullptr);
 			return num;
 		}
 
@@ -945,9 +945,9 @@ class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 		Ip_local_file   _local_file   { *this, _sock };
 		Ip_remote_file  _remote_file  { *this, _sock };
 
-		struct Accept_socket_file : Vfs::File
+		struct Accept_socket_file : Vfs_ip::File
 		{
-			Accept_socket_file() : Vfs::File("accept_socket") { }
+			Accept_socket_file() : Vfs_ip::File("accept_socket") { }
 
 		} _accept_socket_file { };
 
@@ -972,7 +972,7 @@ class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 		{
 			Format::snprintf(_name, sizeof(_name), "%u", id);
 
-			for (Vfs::File * &file : _files) file = nullptr;
+			for (Vfs_ip::File * &file : _files) file = nullptr;
 
 			_files[ACCEPT_NODE]  = &_accept_file;
 			_files[BIND_NODE]    = &_bind_file;
@@ -1020,10 +1020,10 @@ class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 			if (strcmp(path, "accept_socket") == 0)
 				return _accept_new_socket(fs, alloc, out_handle);
 
-			for (Vfs::File *f : _files) {
+			for (Vfs_ip::File *f : _files) {
 				if (f && Genode::strcmp(f->name(), path) == 0) {
-					Vfs::Ip_vfs_file_handle *handle = new (alloc)
-						Vfs::Ip_vfs_file_handle(fs, alloc, mode, f);
+					Vfs_ip::Ip_vfs_file_handle *handle = new (alloc)
+						Vfs_ip::Ip_vfs_file_handle(fs, alloc, mode, f);
 					*out_handle = handle;
 					return Open_result::OPEN_OK;
 				}
@@ -1056,9 +1056,9 @@ class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 		 ** Directory interface **
 		 *************************/
 
-		Vfs::Node *child(char const *name) override
+		Vfs_ip::Node *child(char const *name) override
 		{
-			for (Vfs::File *n : _files)
+			for (Vfs_ip::File *n : _files)
 				if (n && Genode::strcmp(n->name(), name) == 0)
 					return n;
 
@@ -1079,8 +1079,8 @@ class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 
 			Dirent &out = *(Dirent*)dst.start;
 
-			Vfs::Node *node = nullptr;
-			for (Vfs::File *n : _files) {
+			Vfs_ip::Node *node = nullptr;
+			for (Vfs_ip::File *n : _files) {
 				if (n) {
 					if (index == 0) {
 						node = n;
@@ -1113,14 +1113,14 @@ class Vfs::Ip_socket_dir final : public Ip::Socket_dir
 };
 
 
-struct Vfs::Ip_socket_handle final : Vfs::Ip_vfs_handle
+struct Vfs_ip::Ip_socket_handle final : Vfs_ip::Ip_vfs_handle
 {
 		Ip_socket_dir socket_dir;
 
 		Ip_socket_handle(Vfs::File_system &fs,
-		                   Genode::Allocator &alloc,
-		                   Ip::Protocol_dir &parent,
-		                   genode_socket_handle &sock)
+		                 Genode::Allocator &alloc,
+		                 Ip::Protocol_dir &parent,
+		                 genode_socket_handle &sock)
 		:
 			Ip_vfs_handle(fs, alloc, 0),
 			socket_dir(alloc, parent, sock)
@@ -1141,9 +1141,9 @@ struct Vfs::Ip_socket_handle final : Vfs::Ip_vfs_handle
 
 
 Vfs::Directory_service::Open_result
-Vfs::Ip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
-                                         Genode::Allocator &alloc,
-                                         Vfs::Vfs_handle **out_handle)
+Vfs_ip::Ip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
+                                          Genode::Allocator &alloc,
+                                          Vfs::Vfs_handle **out_handle)
 {
 	Open_result res = Open_result::OPEN_ERR_UNACCESSIBLE;
 	if (!_files[ACCEPT_SOCKET_NODE]) return res;
@@ -1156,8 +1156,8 @@ Vfs::Ip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
 	}
 
 	try {
-		Vfs::Ip_socket_handle *handle = new (alloc)
-			Vfs::Ip_socket_handle(fs, alloc, _parent, *new_sock);
+		Vfs_ip::Ip_socket_handle *handle = new (alloc)
+			Vfs_ip::Ip_socket_handle(fs, alloc, _parent, *new_sock);
 		*out_handle = handle;
 		return Vfs::Directory_service::Open_result::OPEN_OK;
 	}
@@ -1178,9 +1178,9 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 		Genode::Allocator        &_alloc;
 		Vfs::File_system         &_parent;
 
-		struct New_socket_file : Vfs::File
+		struct New_socket_file : Vfs_ip::File
 		{
-			New_socket_file() : Vfs::File("new_socket") { }
+			New_socket_file() : Vfs_ip::File("new_socket") { }
 		} _new_socket_file { };
 
 		Type const _type;
@@ -1190,7 +1190,7 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 		 **************************/
 
 		enum { MAX_NODES = Ip::MAX_SOCKETS + 1 };
-		Vfs::Node *_nodes[MAX_NODES];
+		Vfs_ip::Node *_nodes[MAX_NODES];
 
 		unsigned _num_nodes()
 		{
@@ -1200,14 +1200,14 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			return n;
 		}
 
-		Vfs::Node **_unused_node()
+		Vfs_ip::Node **_unused_node()
 		{
 			for (Genode::size_t i = 0; i < MAX_NODES; i++)
 				if (_nodes[i] == nullptr) return &_nodes[i];
 			throw -1;
 		}
 
-		void _free_node(Vfs::Node *node)
+		void _free_node(Vfs_ip::Node *node)
 		{
 			for (Genode::size_t i = 0; i < MAX_NODES; i++)
 				if (_nodes[i] == node) {
@@ -1244,8 +1244,8 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			}
 
 			try {
-				Vfs::Ip_socket_handle *handle = new (alloc)
-					Vfs::Ip_socket_handle(fs, alloc, *this, *sock);
+				Vfs_ip::Ip_socket_handle *handle = new (alloc)
+					Vfs_ip::Ip_socket_handle(fs, alloc, *this, *sock);
 				*out_handle = handle;
 				return Vfs::Directory_service::Open_result::OPEN_OK;
 			}
@@ -1279,7 +1279,7 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 
 		~Protocol_dir_impl() { }
 
-		Vfs::Node *lookup(char const *path)
+		Vfs_ip::Node *lookup(char const *path)
 		{
 			if (*path == '/') path++;
 			if (*path == '\0') return this;
@@ -1291,7 +1291,7 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 				if (!_nodes[i]) continue;
 
 				if (Genode::strcmp(_nodes[i]->name(), path, (p - path)) == 0) {
-					Vfs::Directory *dir = dynamic_cast<Directory *>(_nodes[i]);
+					Vfs_ip::Directory *dir = dynamic_cast<Directory *>(_nodes[i]);
 					if (!dir) return _nodes[i];
 
 					Socket_dir *socket = dynamic_cast<Socket_dir *>(_nodes[i]);
@@ -1306,12 +1306,12 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			return nullptr;
 		}
 
-		Vfs::Directory_service::Unlink_result unlink(char const *path)
+		Vfs_ip::Directory_service::Unlink_result unlink(char const *path)
 		{
-			Vfs::Node *node = lookup(path);
+			Vfs_ip::Node *node = lookup(path);
 			if (!node) return Vfs::Directory_service::UNLINK_ERR_NO_ENTRY;
 
-			Vfs::Directory *dir = dynamic_cast<Vfs::Directory*>(node);
+			Vfs_ip::Directory *dir = dynamic_cast<Vfs_ip::Directory*>(node);
 			if (!dir) return Vfs::Directory_service::UNLINK_ERR_NO_ENTRY;
 
 			_free_node(node);
@@ -1346,7 +1346,7 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			for (Genode::size_t i = 1; i < MAX_NODES; i++) {
 				if (!_nodes[i]) continue;
 				if (Genode::strcmp(_nodes[i]->name(), path, (p - path)) == 0) {
-					Vfs::Directory *dir = dynamic_cast<Directory *>(_nodes[i]);
+					Vfs_ip::Directory *dir = dynamic_cast<Directory *>(_nodes[i]);
 					if (dir) {
 						path += (p - path);
 						return dir->open(fs, alloc, path, mode, out_handle);
@@ -1359,7 +1359,7 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 
 		unsigned adopt_socket(Ip::Socket_dir &dir) override
 		{
-			Vfs::Node **node = _unused_node();
+			Vfs_ip::Node **node = _unused_node();
 			if (!node) throw -1;
 
 			unsigned long const id = ((unsigned char*)node - (unsigned char*)_nodes)/sizeof(*_nodes);
@@ -1392,7 +1392,7 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 		Vfs::file_size num_dirent() override { return _num_nodes(); }
 
 		long read(Vfs::Byte_range_ptr const &dst,
-		                   Vfs::file_size seek_offset) override
+		          Vfs::file_size seek_offset) override
 		{
 			using Dirent = Vfs::Directory_service::Dirent;
 
@@ -1403,8 +1403,8 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 
 			Dirent &out = *(Dirent*)dst.start;
 
-			Vfs::Node *node = nullptr;
-			for (Vfs::Node *n : _nodes) {
+			Vfs_ip::Node *node = nullptr;
+			for (Vfs_ip::Node *n : _nodes) {
 				if (n) {
 					if (index == 0) {
 						node = n;
@@ -1426,9 +1426,9 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			using Dirent_type = Vfs::Directory_service::Dirent_type;
 
 			Dirent_type const type =
-				dynamic_cast<Vfs::Directory*>(node) ? Dirent_type::DIRECTORY :
-				dynamic_cast<Vfs::File     *>(node) ? Dirent_type::TRANSACTIONAL_FILE
-				                                    : Dirent_type::END;
+				dynamic_cast<Vfs_ip::Directory*>(node) ? Dirent_type::DIRECTORY :
+				dynamic_cast<Vfs_ip::File     *>(node) ? Dirent_type::TRANSACTIONAL_FILE
+				                                       : Dirent_type::END;
 
 			Vfs::Node_rwx const rwx = (type == Dirent_type::DIRECTORY)
 			                        ? Vfs::Node_rwx::rwx()
@@ -1443,14 +1443,14 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			return sizeof(Dirent);
 		}
 
-		Vfs::Node *child(char const *) override { return nullptr; }
+		Vfs_ip::Node *child(char const *) override { return nullptr; }
 
 		Protocol_dir_impl(const Protocol_dir_impl&) = delete;
 		Protocol_dir_impl operator=(const Protocol_dir_impl&) = delete;
 };
 
 
-struct Vfs::Ip_address_info
+struct Vfs_ip::Ip_address_info
 {
 	genode_socket_info _info { };
 
@@ -1458,7 +1458,7 @@ struct Vfs::Ip_address_info
 };
 
 
-class Vfs::Ip_address_file final : public Vfs::File
+class Vfs_ip::Ip_address_file final : public Vfs_ip::File
 {
 	private:
 
@@ -1470,7 +1470,7 @@ class Vfs::Ip_address_file final : public Vfs::File
 		Ip_address_file(char const *name,
 		                  unsigned &numeric_address,
 		                  Ip_address_info &info)
-		: Vfs::File(name),
+		: Vfs_ip::File(name),
 		  _numeric_address(numeric_address), _info(info) { }
 
 		long read(Ip_vfs_file_handle &,
@@ -1497,7 +1497,7 @@ class Vfs::Ip_address_file final : public Vfs::File
 };
 
 
-class Vfs::Ip_link_state_file final : public Vfs::File
+class Vfs_ip::Ip_link_state_file final : public Vfs_ip::File
 {
 	private:
 
@@ -1509,7 +1509,7 @@ class Vfs::Ip_link_state_file final : public Vfs::File
 		Ip_link_state_file(char const *name,
 		                     bool &numeric_link_state,
 		                     Ip_address_info &info)
-		: Vfs::File(name),
+		: Vfs_ip::File(name),
 		  _numeric_link_state(numeric_link_state), _info(info) { }
 
 		long read(Ip_vfs_file_handle &,
@@ -1540,10 +1540,10 @@ class Vfs::Ip_link_state_file final : public Vfs::File
  ** Filesystem implementation **
  *******************************/
 
-class Vfs::Ip_file_system : public  Vfs::File_system,
-                              public  Vfs::Directory,
-                              private Vfs::Ip_address_info,
-                              private Vfs::Remote_io
+class Vfs_ip::Ip_file_system : public  Vfs::File_system,
+                               public  Vfs_ip::Directory,
+                               private Vfs_ip::Ip_address_info,
+                               private Vfs::Remote_io
 {
 	private:
 
@@ -1565,7 +1565,7 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 		Ip_address_file    _nameserver { "nameserver", _info.nameserver, *this };
 		Ip_link_state_file _link_state { "link_state", _info.link_state, *this };
 
-		Vfs::Node *_lookup(char const *path)
+		Vfs_ip::Node *_lookup(char const *path)
 		{
 			if (*path == '/') path++;
 			if (*path == '\0') return this;
@@ -1607,8 +1607,8 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 		Read_result _read(Vfs::Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
 		                  size_t &out_count)
 		{
-			Vfs::Ip_vfs_handle *handle =
-				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
+			Vfs_ip::Ip_vfs_handle *handle =
+				static_cast<Vfs_ip::Ip_vfs_handle*>(vfs_handle);
 
 			return handle->read(dst, out_count);
 		}
@@ -1635,7 +1635,7 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 
 	public:
 
-		Ip_file_system(Vfs::Env &env, Genode::Xml_node const &config)
+		Ip_file_system(Vfs::Env &env, Genode::Node const &config)
 		:
 			Directory(""),
 			_ep(env.env().ep()), _alloc(env.alloc()), _vfs_user(env.user()),
@@ -1651,13 +1651,13 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 
 		~Ip_file_system() { }
 
-		char const *type() override { return Vfs::ip_stack().string(); }
+		char const *type() override { return Vfs_ip::ip_stack().string(); }
 
 		/***************************
 		 ** File_system interface **
 		 ***************************/
 
-		void apply_config(Genode::Xml_node const &config) override
+		void apply_config(Genode::Node const &config) override
 		{
 			using Addr = String<16>;
 
@@ -1709,11 +1709,12 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 
 		file_size num_dirent() override { return 7; }
 
-		Vfs::Directory::Open_result
-		open(Vfs::File_system &,
-	         Genode::Allocator &,
-	         char const*, unsigned, Vfs::Vfs_handle**) override {
-			return Vfs::Directory::Open_result::OPEN_ERR_UNACCESSIBLE; }
+		Directory::Open_result
+		open(Vfs::File_system &, Genode::Allocator &,
+		         char const*, unsigned, Vfs::Vfs_handle**) override
+		{
+			return Directory::Open_result::OPEN_ERR_UNACCESSIBLE;
+		}
 
 		long read(Byte_range_ptr const &dst, file_size seek_offset) override
 		{
@@ -1755,7 +1756,7 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 			return sizeof(Dirent);
 		}
 
-		Vfs::Node *child(char const *) override { return nullptr; }
+		Vfs_ip::Node *child(char const *) override { return nullptr; }
 
 		/*********************************
 		 ** Directory-service interface **
@@ -1773,7 +1774,7 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 
 			out = { };
 
-			if (dynamic_cast<Vfs::Directory*>(node)) {
+			if (dynamic_cast<Directory*>(node)) {
 				out.type = Node_type::DIRECTORY;
 				out.rwx  = Node_rwx::rwx();
 				out.size = 1;
@@ -1794,7 +1795,7 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 				return STAT_OK;
 			}
 
-			if (dynamic_cast<Vfs::File*>(node)) {
+			if (dynamic_cast<Vfs_ip::File*>(node)) {
 				out.type = Node_type::TRANSACTIONAL_FILE;
 				out.rwx  = Node_rwx::rw();
 				out.size = 0x1000;  /* there may be something to read */
@@ -1808,10 +1809,10 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 		{
 			if (_is_root(path)) return num_dirent();
 
-			Vfs::Node *node = _lookup(path);
+			Vfs_ip::Node *node = _lookup(path);
 			if (!node) return 0;
 
-			Vfs::Directory *dir = dynamic_cast<Vfs::Directory*>(node);
+			Vfs_ip::Directory *dir = dynamic_cast<Vfs_ip::Directory*>(node);
 			if (!dir) return 0;
 
 			return dir->num_dirent();
@@ -1819,13 +1820,13 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 
 		bool directory(char const *path) override
 		{
-			Vfs::Node *node = _lookup(path);
-			return node ? dynamic_cast<Vfs::Directory *>(node) : 0;
+			Vfs_ip::Node *node = _lookup(path);
+			return node ? dynamic_cast<Vfs_ip::Directory *>(node) : 0;
 		}
 
 		char const *leaf_path(char const *path) override
 		{
-			Vfs::Node *node = _lookup(path);
+			Vfs_ip::Node *node = _lookup(path);
 			return node ? path : nullptr;
 		}
 
@@ -1844,13 +1845,13 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 					return _udp_dir.open(*this, alloc,
 					                     &path[4], mode, out_handle);
 
-				Vfs::Node *node = _lookup(path);
+				Vfs_ip::Node *node = _lookup(path);
 				if (!node) return OPEN_ERR_UNACCESSIBLE;
 
-				Vfs::File *file = dynamic_cast<Vfs::File*>(node);
+				Vfs_ip::File *file = dynamic_cast<Vfs_ip::File*>(node);
 				if (file) {
 					Ip_vfs_file_handle *handle =
-						new (alloc) Vfs::Ip_vfs_file_handle(*this, alloc, 0, file);
+						new (alloc) Vfs_ip::Ip_vfs_file_handle(*this, alloc, 0, file);
 					*out_handle = handle;
 					return OPEN_OK;
 				}
@@ -1864,14 +1865,14 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 		Opendir_result opendir(char const *path, bool /* create */,
 		                       Vfs_handle **out_handle, Allocator &alloc) override
 		{
-			Vfs::Node *node = _lookup(path);
+			Vfs_ip::Node *node = _lookup(path);
 
 			if (!node) return OPENDIR_ERR_LOOKUP_FAILED;
 
-			Vfs::Directory *dir = dynamic_cast<Vfs::Directory*>(node);
+			Vfs_ip::Directory *dir = dynamic_cast<Vfs_ip::Directory*>(node);
 			if (dir) {
 				Ip_vfs_dir_handle *handle =
-					new (alloc) Vfs::Ip_vfs_dir_handle(*this, alloc, 0, *dir);
+					new (alloc) Vfs_ip::Ip_vfs_dir_handle(*this, alloc, 0, *dir);
 				*out_handle = handle;
 
 				return OPENDIR_OK;
@@ -1883,10 +1884,10 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 		void close(Vfs_handle *vfs_handle) override
 		{
 			Ip_vfs_handle *handle =
-				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
+				static_cast<Vfs_ip::Ip_vfs_handle*>(vfs_handle);
 
 			Ip_vfs_file_handle *file_handle =
-				dynamic_cast<Vfs::Ip_vfs_file_handle*>(handle);
+				dynamic_cast<Vfs_ip::Ip_vfs_file_handle*>(handle);
 
 			if (file_handle)
 				_read_ready_waiters_ptr->remove(file_handle->read_ready_elem);
@@ -1916,8 +1917,8 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 		                   Vfs::Const_byte_range_ptr const &src,
 		                   size_t &out_count) override
 		{
-			Vfs::Ip_vfs_handle *handle =
-				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
+			Vfs_ip::Ip_vfs_handle *handle =
+				static_cast<Vfs_ip::Ip_vfs_handle*>(vfs_handle);
 
 			try { return handle->write(src, out_count); }
 			catch (File::Would_block) { return WRITE_ERR_WOULD_BLOCK; }
@@ -1941,7 +1942,7 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 		bool notify_read_ready(Vfs_handle *vfs_handle) override
 		{
 			Ip_vfs_file_handle *handle =
-				dynamic_cast<Vfs::Ip_vfs_file_handle *>(vfs_handle);
+				dynamic_cast<Vfs_ip::Ip_vfs_file_handle *>(vfs_handle);
 
 			if (handle) {
 				if (!handle->read_ready_elem.enqueued())
@@ -1971,8 +1972,8 @@ class Vfs::Ip_file_system : public  Vfs::File_system,
 
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
-			Vfs::Ip_vfs_handle *handle =
-				static_cast<Vfs::Ip_vfs_handle*>(vfs_handle);
+			Vfs_ip::Ip_vfs_handle *handle =
+				static_cast<Vfs_ip::Ip_vfs_handle*>(vfs_handle);
 			return handle->sync();
 		}
 };
@@ -1991,7 +1992,7 @@ struct Ip_factory : Vfs::File_system_factory
 
 	struct genode_socket_io_progress io_progress { };
 
-	Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
+	Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
 	{
 		io_progress.data = &env;
 		io_progress.callback = socket_progress;
@@ -2000,7 +2001,7 @@ struct Ip_factory : Vfs::File_system_factory
 
 		if (genode_socket_init(genode_env_ptr(env.env()), &io_progress,
 		                       config.attribute_value("label", Label("")).string()))
-			return new (env.alloc()) Vfs::Ip_file_system(env, config);
+			return new (env.alloc()) Vfs_ip::Ip_file_system(env, config);
 
 		struct Socket_init_failed { };
 		throw Socket_init_failed();
@@ -2010,7 +2011,7 @@ struct Ip_factory : Vfs::File_system_factory
 
 extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	static Vfs::Ip_vfs_file_handle::Fifo read_ready_waiters;
+	static Vfs_ip::Ip_vfs_file_handle::Fifo read_ready_waiters;
 
 	_read_ready_waiters_ptr = &read_ready_waiters;
 

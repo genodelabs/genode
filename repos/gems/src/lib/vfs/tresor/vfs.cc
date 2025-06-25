@@ -788,7 +788,7 @@ class Vfs_tresor::Plugin : private Noncopyable, private Client_data_interface, p
 
 	public:
 
-		Plugin(Vfs::Env &vfs_env, Xml_node const &config)
+		Plugin(Vfs::Env &vfs_env, Node const &config)
 		:
 			_vfs_env(vfs_env),
 			_verbose(config.attribute_value("verbose", false)),
@@ -971,7 +971,7 @@ class Vfs_tresor::Data_file_system : private Noncopyable, public Single_file_sys
 
 		Data_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::CONTINUOUS_FILE, type_name(), Node_rwx::rw(), Xml_node("<data/>")),
+			Single_file_system(Node_type::CONTINUOUS_FILE, type_name(), Node_rwx::rw(), Node()),
 			_plugin(plugin)
 		{ }
 
@@ -1119,7 +1119,7 @@ class Vfs_tresor::Extend_file_system : private Noncopyable, public Single_file_s
 
 		Extend_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<extend/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Node()),
 			_plugin(plugin)
 		{
 			_plugin.manage_extend_file_system(*this);
@@ -1276,7 +1276,7 @@ class Vfs_tresor::Rekey_file_system : private Noncopyable, public Single_file_sy
 
 		Rekey_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<rekey/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Node()),
 			_plugin(plugin)
 		{
 			_plugin.manage_rekey_file_system(*this);
@@ -1432,7 +1432,7 @@ class Vfs_tresor::Deinitialize_file_system : private Noncopyable, public Single_
 
 		Deinitialize_file_system(Plugin &plugin)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<deinitialize/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Node()),
 			_plugin(plugin)
 		{
 			_plugin.manage_deinit_file_system(*this);
@@ -1504,7 +1504,7 @@ class Vfs_tresor::Current_local_factory : private Noncopyable, public File_syste
 		 ** File_system_factory **
 		 *************************/
 
-		Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+		Vfs::File_system *create(Vfs::Env&, Node const &node) override
 		{
 			if (node.has_type(Data_file_system::type_name()))
 				return &_data_fs;
@@ -1542,7 +1542,7 @@ class Vfs_tresor::Current_file_system : private Current_local_factory, public Di
 		Current_file_system(Vfs::Env &vfs_env, Plugin &plugin)
 		:
 			Current_local_factory(vfs_env, plugin),
-			Dir_file_system(vfs_env, Xml_node(_config().string()), *this)
+			Dir_file_system(vfs_env, Node(_config()), *this)
 		{ }
 
 		static char const *type_name() { return "current"; }
@@ -1566,7 +1566,7 @@ class Vfs_tresor::Control_local_factory : private Noncopyable, public File_syste
 
 	public:
 
-		Control_local_factory(Vfs::Env &, Xml_node const &, Plugin &plugin)
+		Control_local_factory(Vfs::Env &, Node const &, Plugin &plugin)
 		:
 			_plugin(plugin), _rekey_fs(plugin), _deinitialize_fs(plugin), _extend_fs(plugin)
 		{ }
@@ -1582,7 +1582,7 @@ class Vfs_tresor::Control_local_factory : private Noncopyable, public File_syste
 		 ** File_system_factory **
 		 *************************/
 
-		Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+		Vfs::File_system *create(Vfs::Env&, Node const &node) override
 		{
 			if (node.has_type(Rekey_file_system::type_name()))
 				return &_rekey_fs;
@@ -1620,10 +1620,10 @@ class Vfs_tresor::Control_file_system : private Control_local_factory, public Di
 
 	public:
 
-		Control_file_system(Vfs::Env &vfs_env, Xml_node const &node, Plugin &plugin)
+		Control_file_system(Vfs::Env &vfs_env, Node const &node, Plugin &plugin)
 		:
 			Control_local_factory(vfs_env, node, plugin),
-			Dir_file_system(vfs_env, Xml_node(_config().string()), *this)
+			Dir_file_system(vfs_env, Node(_config()), *this)
 		{ }
 
 		static char const *type_name() { return "control"; }
@@ -1646,7 +1646,7 @@ class Vfs_tresor::Local_factory : private Noncopyable, public File_system_factor
 
 	public:
 
-		Local_factory(Vfs::Env &vfs_env, Xml_node const &config, Plugin &plugin)
+		Local_factory(Vfs::Env &vfs_env, Node const &config, Plugin &plugin)
 		:
 			_plugin(plugin), _current_fs(vfs_env, plugin), _control_fs(vfs_env, config, plugin)
 		{ }
@@ -1655,7 +1655,7 @@ class Vfs_tresor::Local_factory : private Noncopyable, public File_system_factor
 		 ** File_system_factory **
 		 *************************/
 
-		Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+		Vfs::File_system *create(Vfs::Env&, Node const &node) override
 		{
 			if (node.has_type(Current_file_system::type_name()))
 				return &_current_fs;
@@ -1676,7 +1676,7 @@ class Vfs_tresor::File_system : private Local_factory, public Dir_file_system
 
 		Plugin &_plugin;
 
-		static Config _config(Xml_node const &node)
+		static Config _config(Node const &node)
 		{
 			char buf[Config::capacity()] { };
 			Xml_generator::generate({ buf, sizeof(buf) }, "dir", [&] (Xml_generator &xml) {
@@ -1691,10 +1691,10 @@ class Vfs_tresor::File_system : private Local_factory, public Dir_file_system
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Xml_node const &node, Plugin &plugin)
+		File_system(Vfs::Env &vfs_env, Node const &node, Plugin &plugin)
 		:
 			Local_factory(vfs_env, node, plugin),
-			Dir_file_system(vfs_env, Xml_node(_config(node).string()), *this),
+			Dir_file_system(vfs_env, Node(_config(node)), *this),
 			_plugin(plugin)
 		{ }
 };
@@ -1919,7 +1919,7 @@ extern "C" File_system_factory *vfs_file_system_factory(void)
 			 ** File_system_factory **
 			 *************************/
 
-			Vfs::File_system *create(Vfs::Env &vfs_env, Xml_node const &node) override
+			Vfs::File_system *create(Vfs::Env &vfs_env, Node const &node) override
 			{
 				try {
 					if (!_plugin_ptr) {

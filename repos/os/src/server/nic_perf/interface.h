@@ -79,7 +79,7 @@ class Nic_perf::Interface
 
 		Interface(Interface_registry  &registry,
 		          Session_label const &label,
-		          Xml_node      const &policy,
+		          Node          const &policy,
 		          bool                 mac_from_policy,
 		          Mac_address          mac,
 		          Source              &source,
@@ -96,7 +96,7 @@ class Nic_perf::Interface
 		  _timer(timer)
 		{ apply_config(policy); }
 
-		void apply_config(Xml_node const &config)
+		void apply_config(Node const &config)
 		{
 			_generator.apply_config(config);
 
@@ -108,7 +108,7 @@ class Nic_perf::Interface
 			_dhcp_client.destruct();
 
 			config.with_sub_node("interface",
-				[&] (Xml_node node) {
+				[&] (Node const &node) {
 					_ip             = node.attribute_value("ip", _ip);
 					_dhcp_client_ip = node.attribute_value("dhcp_client_ip", _dhcp_client_ip);
 

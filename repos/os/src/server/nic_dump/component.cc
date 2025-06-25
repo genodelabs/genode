@@ -63,7 +63,7 @@ Net::Session_component::Session_component(Ram_quota   const  ram_quota,
                                           Cap_quota   const  cap_quota,
                                           size_t      const  tx_buf_size,
                                           size_t      const  rx_buf_size,
-                                          Xml_node    const &config,
+                                          Node        const &config,
                                           Timer::Connection &timer,
                                           Duration          &curr_time,
                                           Env               &env)
@@ -112,7 +112,7 @@ void Session_component::_handle_link_state()
 
 Net::Root::Root(Env               &env,
                 Allocator         &alloc,
-                Xml_node    const &config,
+                Node        const &config,
                 Timer::Connection &timer,
                 Duration          &curr_time)
 :
@@ -143,7 +143,7 @@ Net::Root::Create_result Net::Root::_create_session(char const *args)
 		}
 		return *new (md_alloc())
 			Session_component(Ram_quota{ram_quota.value},
-			                  cap_quota, tx_buf_size, rx_buf_size, _config.xml, _timer,
+			                  cap_quota, tx_buf_size, rx_buf_size, _config, _timer,
 			                  _curr_time, _env);
 	}
 	catch (...) { throw Service_denied(); }

@@ -234,8 +234,8 @@ struct Tar_rom::Main
 
 	Name _tar_name()
 	{
-		return _config.xml().with_sub_node("archive",
-			[&] (Xml_node const &node) { return node.attribute_value("name", Name()); },
+		return _config.node().with_sub_node("archive",
+			[&] (Node const &node) { return node.attribute_value("name", Name()); },
 			[&] () -> Name {
 				error("could not read archive name argument from config");
 				sleep_forever();

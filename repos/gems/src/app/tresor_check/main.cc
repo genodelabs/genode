@@ -40,12 +40,12 @@ class Tresor_check::Main : private Vfs::Env::User
 		Env  &_env;
 		Heap  _heap { _env.ram(), _env.rm() };
 		Attached_rom_dataspace _config_rom { _env, "config" };
-		Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
-			[&] (Xml_node const &config) -> Vfs::Simple_env {
+		Vfs::Simple_env _vfs_env = _config_rom.node().with_sub_node("vfs",
+			[&] (Node const &config) -> Vfs::Simple_env {
 				return { _env, _heap, config, *this }; },
 			[&] () -> Vfs::Simple_env {
 				error("VFS not configured");
-				return { _env, _heap, Xml_node("<empty/>") }; });
+				return { _env, _heap, Node() }; });
 		Signal_handler<Main> _sigh { _env.ep(), *this, &Main::_handle_signal };
 
 		Tresor::Path _path_from_config(auto const &node_name) const

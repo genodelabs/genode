@@ -153,29 +153,20 @@ struct Main
 
 void Main::handle_config()
 {
-	try {
-		config.xml().for_each_sub_node("filename",
-		                               [this] (Xml_node const & node)
-		{
-			if (!(track_count < MAX_FILES)) {
-				warning("test supports max ", (int)MAX_FILES,
-				        " files. Skipping...");
-				return;
-			}
+	config.node().for_each_sub_node("filename", [this] (Node const & node) {
 
-			node.for_each_quoted_line([&] (auto const &line) {
-				filenames[track_count] = { line }; });
+		if (!(track_count < MAX_FILES)) {
+			warning("test supports max ", (int)MAX_FILES,
+			        " files. Skipping...");
+			return;
+		}
 
-			if (filenames[track_count].length() > 1)
-				track_count++;
-		});
-	}
-	catch (...) {
-		warning("couldn't get input files, failing back to defaults");
-		filenames[0] = Filename("1.raw");
-		filenames[1] = Filename("2.raw");
-		track_count  = 2;
-	}
+		node.for_each_quoted_line([&] (auto const &line) {
+			filenames[track_count] = { line }; });
+
+		if (filenames[track_count].length() > 1)
+			track_count++;
+	});
 }
 
 

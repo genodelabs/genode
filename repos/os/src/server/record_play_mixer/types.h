@@ -129,7 +129,7 @@ namespace Mixer {
 	{
 		float value;
 
-		static Volume from_xml(Xml_node const &node)
+		static Volume from_node(Node const &node)
 		{
 			return { float(node.attribute_value("volume", 1.0)) };
 		}
@@ -183,7 +183,7 @@ namespace Mixer {
 		}
 	}
 
-	unsigned us_from_ms_attr(Xml_node const &node, auto const &attr, double default_value)
+	unsigned us_from_ms_attr(Node const &node, auto const &attr, double default_value)
 	{
 		return unsigned(1000*node.attribute_value(attr, default_value));
 	}

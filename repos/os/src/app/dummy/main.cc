@@ -148,7 +148,7 @@ struct Dummy::Log_connections
 
 	Registry<Connection> _connections { };
 
-	Log_connections(Env &env, Xml_node const &node) : _env(env)
+	Log_connections(Env &env, Node const &node) : _env(env)
 	{
 		unsigned const count = node.attribute_value("count", 0U);
 
@@ -312,7 +312,7 @@ struct Dummy::Main
 	{
 		_config.update();
 
-		Version const version = _config.xml().attribute_value("version", Version());
+		Version const version = _config.node().attribute_value("version", Version());
 		if (_config_cnt > 0 && version == _config_version)
 			return;
 
@@ -322,7 +322,7 @@ struct Dummy::Main
 		if (_config_version.valid())
 			log("config ", _config_cnt, ": ", _config_version);
 
-		_config.xml().for_each_sub_node([&] (Xml_node node) {
+		_config.node().for_each_sub_node([&] (Node const &node) {
 
 			if (node.type() == "create_log_connections")
 				_log_connections.construct(_env, node);

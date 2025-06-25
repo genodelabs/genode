@@ -14,8 +14,7 @@
 #ifndef _DRIVERS__INPUT__SPEC__LED_STATE_H_
 #define _DRIVERS__INPUT__SPEC__LED_STATE_H_
 
-#include <util/xml_node.h>
-#include <util/reconstructible.h>
+#include <base/node.h>
 #include <base/component.h>
 
 namespace Ps2 { struct Led_state; }
@@ -35,7 +34,7 @@ struct Ps2::Led_state
 
 	Led_state(Genode::Env &env, Name const &name) : _env(env), _name(name) { }
 
-	void update(Genode::Xml_node const &config, Genode::Signal_context_capability sigh)
+	void update(Genode::Node const &config, Genode::Signal_context_capability sigh)
 	{
 		using Attr  = Genode::String<32>;
 		using Value = Genode::String<16>;
@@ -56,7 +55,7 @@ struct Ps2::Led_state
 		if (_rom.constructed())
 			_rom->update();
 
-		_enabled = _rom.constructed() ? _rom->xml().attribute_value("enabled", false)
+		_enabled = _rom.constructed() ? _rom->node().attribute_value("enabled", false)
 		                              : config.attribute_value(attr.string(), false);
 	}
 

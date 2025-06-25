@@ -14,7 +14,6 @@
 #include <init/child_policy.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/child_policy_dynamic_rom.h>
-#include <os/buffered_xml.h>
 #include <base/sleep.h>
 #include <base/child.h>
 #include <base/component.h>
@@ -33,10 +32,10 @@ struct Sequence::Child : Genode::Child_policy
 
 	Heap _services_heap { _env.ram(), _env.rm() };
 
-	static Binary_name _start_binary(Name const &name, Xml_node const &start_node)
+	static Binary_name _start_binary(Name const &name, Node const &start_node)
 	{
 		Binary_name binary_name = name;
-		start_node.with_optional_sub_node("binary", [&] (Xml_node const &binary) {
+		start_node.with_optional_sub_node("binary", [&] (Node const &binary) {
 			binary_name = binary.attribute_value("name", name); });
 		return binary_name;
 	}
@@ -74,8 +73,7 @@ struct Sequence::Child : Genode::Child_policy
 
 	int _exit_value = -1;
 
-	Child(Genode::Env &env,
-	      Xml_node const &start_node,
+	Child(Genode::Env &env, Node const &start_node,
 	      Signal_context_capability exit_handler)
 	:
 		_env(env),
@@ -85,7 +83,7 @@ struct Sequence::Child : Genode::Child_policy
 		_exit_transmitter(exit_handler)
 	{
 		start_node.with_optional_sub_node("config",
-			[&] (Xml_node const &config_node) {
+			[&] (Node const &config_node) {
 				config_node.with_raw_node([&] (char const *start, size_t length) {
 					_config_policy.load(start, length); }); });
 	}
@@ -217,75 +215,67 @@ struct Sequence::Child : Genode::Child_policy
 
 struct Sequence::Main
 {
-	Genode::Env &env;
+	Genode::Env &_env;
 
-	Constructible<Sequence::Child> child { };
+	Constructible<Sequence::Child> _child { };
 
-	Attached_rom_dataspace config_rom { env, "config" };
+	Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Xml_node const config_xml = config_rom.xml();
+	Node const _config = _config_rom.node();
 
-	unsigned next_xml_index = 0;
+	unsigned _next_node_index = 0;
 
-	void start_next_child();
+	void _start_next_child();
 
-	Signal_handler<Main> exit_handler {
-		env.ep(), *this, &Main::start_next_child };
+	Signal_handler<Main> _exit_handler {
+		_env.ep(), *this, &Main::_start_next_child };
 
-	Main(Genode::Env &e) : env(e) {
-		start_next_child(); }
+	Main(Genode::Env &e) : _env(e) { _start_next_child(); }
 };
 
 
-void Sequence::Main::start_next_child()
+void Sequence::Main::_start_next_child()
 {
-	bool const constructed = child.constructed();
+	bool const constructed = _child.constructed();
 
 	/*
 	 * In case the child exited with an error check if we
 	 * still should keep-going and when doing so if the
 	 * sequence should be restarted.
 	 */
-	if (constructed && child->exit_value()) {
-		bool const keep_going = config_xml.attribute_value("keep_going", false);
-		bool const restart    = config_xml.attribute_value("restart", false);
+	if (constructed && _child->exit_value()) {
+		bool const keep_going = _config.attribute_value("keep_going", false);
+		bool const restart    = _config.attribute_value("restart", false);
 
-		warning("child \"", child->name(), "\" exited with exit value ",
-		        child->exit_value());
+		warning("child \"", _child->name(), "\" exited with exit value ",
+		        _child->exit_value());
 
 		if (!keep_going) {
-			env.parent().exit(child->exit_value());
+			_env.parent().exit(_child->exit_value());
 			sleep_forever();
 		}
 
 		warning("keep-going", restart ? " starting from the beginning" : "");
 		if (restart)
-			next_xml_index = 0;
+			_next_node_index = 0;
 	}
 
 	if (constructed)
-		child.destruct();
+		_child.destruct();
 
 	bool finished = false;
 	while (true) {
-		if (next_xml_index >= config_xml.num_sub_nodes()) {
+		if (_next_node_index >= _config.num_sub_nodes()) {
 			finished = true;
 			break;
 		}
 
-		auto with_sub_node_at = [] (Xml_node const &node, unsigned at, auto const &fn)
-		{
-			unsigned i = 0;
-			node.for_each_sub_node([&] (Xml_node const &sub_node) {
-				if (i++ == at)
-					fn(sub_node); });
-		};
-
 		bool child_reconstructed = false;
-		with_sub_node_at(config_xml, next_xml_index++, [&] (Xml_node const &sub_node) {
+		_config.with_sub_node(_next_node_index++, [&] (Node const &sub_node) {
 			if (sub_node.type() == "start") {
-				child.construct(env, sub_node, exit_handler);
-				child_reconstructed = true; } });
+				_child.construct(_env, sub_node, _exit_handler);
+				child_reconstructed = true; }
+		}, [] { });
 
 		if (child_reconstructed)
 			break;
@@ -293,12 +283,12 @@ void Sequence::Main::start_next_child()
 
 	if (finished) {
 
-		if (config_xml.attribute_value("repeat", false)) {
-			next_xml_index = 0;
-			Signal_transmitter(exit_handler).submit();
+		if (_config.attribute_value("repeat", false)) {
+			_next_node_index = 0;
+			Signal_transmitter(_exit_handler).submit();
 
 		} else {
-			env.parent().exit(0);
+			_env.parent().exit(0);
 		}
 	}
 }

@@ -44,7 +44,7 @@ struct Test::Config
 	bool stop_on_error, log, report, calculate;
 	size_t scratch_buffer_size;
 
-	static Config from_xml(Xml_node const &node)
+	static Config from_node(Node const &node)
 	{
 		return {
 			.stop_on_error = node.attribute_value("stop_on_error", true),
@@ -405,7 +405,7 @@ struct Test::Main
 
 	Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Config const _config = Config::from_xml(_config_rom.xml());
+	Config const _config = Config::from_node(_config_rom.node());
 
 	Fifo<Scenario> _scenarios { };
 
@@ -505,9 +505,9 @@ struct Test::Main
 
 	Scratch_buffer _scratch_buffer { _heap, _config.scratch_buffer_size };
 
-	void _construct_scenarios(Xml_node const &config)
+	void _construct_scenarios(Node const &config)
 	{
-		auto create = [&] (Xml_node const &node) -> Scenario *
+		auto create = [&] (Node const &node) -> Scenario *
 		{
 			if (node.has_type("ping_pong"))  return new (&_heap) Ping_pong (_heap, node);
 			if (node.has_type("random"))     return new (&_heap) Random    (_heap, node);
@@ -518,8 +518,8 @@ struct Test::Main
 
 		try {
 			config.with_sub_node("tests",
-				[&] (Xml_node const &tests) {
-					tests.for_each_sub_node([&] (Xml_node const &node) {
+				[&] (Node const &tests) {
+					tests.for_each_sub_node([&] (Node const &node) {
 						Scenario *ptr = create(node);
 						if (ptr)
 							_scenarios.enqueue(*ptr); });
@@ -535,7 +535,7 @@ struct Test::Main
 		_result_reporter.conditional(_config.report, env, "results");
 
 		try {
-			_construct_scenarios(_config_rom.xml());
+			_construct_scenarios(_config_rom.node());
 		} catch (...) { throw; }
 
 		log("--- start tests ---");

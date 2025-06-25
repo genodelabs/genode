@@ -1363,7 +1363,7 @@ class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_sys
 
 		Hashsum_file_system(Trust_anchor &ta)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::ro(), Xml_node("<hash/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::ro(), Node()),
 			_trust_anchor(ta)
 		{ }
 
@@ -1467,7 +1467,7 @@ class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_fil
 
 		Generate_key_file_system(Trust_anchor &ta)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::ro(), Xml_node("<generate_key/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::ro(), Node()),
 			_trust_anchor(ta)
 		{ }
 
@@ -1591,7 +1591,7 @@ class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_sys
 
 		Encrypt_file_system(Trust_anchor &ta)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<encrypt/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Node()),
 			_trust_anchor(ta)
 		{ }
 
@@ -1714,7 +1714,7 @@ class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_sys
 
 		Decrypt_file_system(Trust_anchor &ta)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<decrypt/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Node()),
 			_trust_anchor(ta)
 		{ }
 
@@ -1853,7 +1853,7 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 
 		Initialize_file_system(Trust_anchor &ta)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Xml_node("<initialize/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type_name(), Node_rwx::rw(), Node()),
 			_trust_anchor(ta)
 		{ }
 
@@ -1911,7 +1911,7 @@ struct Vfs_tresor_trust_anchor::Local_factory : File_system_factory
 	Initialize_file_system   _init_fs;
 
 	using Storage_path = String<256>;
-	static Storage_path _storage_path(Xml_node const &node)
+	static Storage_path _storage_path(Node const &node)
 	{
 		if (!node.has_attribute("storage_dir")) {
 			error("mandatory 'storage_dir' attribute missing");
@@ -1921,14 +1921,14 @@ struct Vfs_tresor_trust_anchor::Local_factory : File_system_factory
 		return node.attribute_value("storage_dir", Storage_path());
 	}
 
-	Local_factory(Vfs::Env &vfs_env, Xml_node const &config)
+	Local_factory(Vfs::Env &vfs_env, Node const &config)
 	:
 		_trust_anchor(vfs_env, _storage_path(config).string()),
 		_decrypt_fs(_trust_anchor), _encrypt_fs(_trust_anchor),
 		_gen_key_fs(_trust_anchor), _hash_fs(_trust_anchor), _init_fs(_trust_anchor)
 	{ }
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
 		if (node.has_type(Decrypt_file_system::type_name())) {
 			return &_decrypt_fs;
@@ -1962,7 +1962,7 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 
 		using Config = String<128>;
 
-		static Config _config(Xml_node const &node)
+		static Config _config(Node const &node)
 		{
 			char buf[Config::capacity()] { };
 
@@ -1985,9 +1985,9 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
+		File_system(Vfs::Env &vfs_env, Genode::Node const &node)
 		:
-			Local_factory(vfs_env, node), Vfs::Dir_file_system(vfs_env, Xml_node(_config(node).string()), *this)
+			Local_factory(vfs_env, node), Vfs::Dir_file_system(vfs_env, Node(_config(node)), *this)
 		{ }
 
 		~File_system() { }
@@ -2002,8 +2002,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &vfs_env,
-		                         Genode::Xml_node const &node) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
 		{
 			try {
 				return new (vfs_env.alloc())

@@ -15,7 +15,7 @@
 #define _INCLUDE__MIXER__CHANNEL_H_
 
 #include <util/string.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 namespace Mixer {
 	struct Channel;
@@ -39,7 +39,7 @@ struct Mixer::Channel
 	bool   active { false };
 	bool   muted  { false };
 
-	Channel(Genode::Xml_node const &node)
+	Channel(Genode::Node const &node)
 	{
 		using Type = Genode::String<8>;
 		Type const type_name = node.attribute_value("type", Type());

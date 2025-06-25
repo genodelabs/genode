@@ -40,7 +40,7 @@ class Net::Main
 		Genode::Heap                    _heap                { &_env.ram(), &_env.rm() };
 		Signal_handler<Main>            _report_handler      { _env.ep(), *this, &Main::_handle_report };
 		Genode::Attached_rom_dataspace  _config_rom          { _env, "config" };
-		Configuration                  *_config_ptr          { new (_heap) Configuration { _config_rom.xml(), _heap } };
+		Configuration                  *_config_ptr          { new (_heap) Configuration { _config_rom.node(), _heap } };
 		Signal_handler<Main>            _config_handler      { _env.ep(), *this, &Main::_handle_config };
 		Nic_session_root                _nic_session_root    { _env, _timer, _heap, *_config_ptr, _shared_quota, _interfaces };
 		Uplink_session_root             _uplink_session_root { _env, _timer, _heap, *_config_ptr, _shared_quota, _interfaces };
@@ -94,7 +94,7 @@ void Net::Main::_handle_config()
 	Configuration &old_config = *_config_ptr;
 	Configuration &new_config = *new (_heap)
 		Configuration {
-			_env, _config_rom.xml(), _heap, _report_handler, _timer,
+			_env, _config_rom.node(), _heap, _report_handler, _timer,
 			old_config, _shared_quota, _interfaces };
 
 	_nic_session_root.handle_config(new_config);

@@ -26,7 +26,7 @@ struct Decorator::Window_factory_base : Interface
 {
 	using Win_ref = Window_base::Ref;
 
-	virtual Win_ref &create_ref(Xml_node const &) = 0;
+	virtual Win_ref &create_ref(Node const &) = 0;
 
 	virtual void destroy_ref(Win_ref &) = 0;
 

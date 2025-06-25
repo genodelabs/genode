@@ -271,12 +271,12 @@ Gui_session::child_view(View_id const id, View_id const parent, View_attr const 
 }
 
 
-void Gui_session::apply_session_policy(Xml_node        const &config,
+void Gui_session::apply_session_policy(Node            const &config,
                                        Domain_registry const &domain_registry)
 {
 	reset_domain();
 
-	with_matching_policy(_label, config, [&] (Xml_node const &policy) {
+	with_matching_policy(_label, config, [&] (Node const &policy) {
 
 		/* read domain attribute */
 		if (!policy.has_attribute("domain")) {

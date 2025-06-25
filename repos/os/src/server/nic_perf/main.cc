@@ -69,12 +69,12 @@ struct Nic_perf::Main
 		_config.update();
 
 		_registry.for_each([&] (Interface &interface) {
-			with_matching_policy(interface.label(), _config.xml(),
-				[&] (Xml_node const &policy) {
+			with_matching_policy(interface.label(), _config.node(),
+				[&] (Node const &policy) {
 					interface.apply_config(policy);
 				},
 				[&] () { /* no matches */
-					interface.apply_config(Xml_node("<config/>"));
+					interface.apply_config(Node());
 				}
 			);
 		});
@@ -82,12 +82,12 @@ struct Nic_perf::Main
 		if (_nic_client.constructed())
 			_nic_client.destruct();
 
-		_config.xml().with_optional_sub_node("nic-client",
-			[&] (Xml_node const &node) {
+		_config.node().with_optional_sub_node("nic-client",
+			[&] (Node const &node) {
 				_nic_client.construct(_env, _heap, node, _registry, _timer); });
 
-		_period_ms = _config.xml().attribute_value("period_ms", _period_ms);
-		_count     = _config.xml().attribute_value("count",     _count);
+		_period_ms = _config.node().attribute_value("period_ms", _period_ms);
+		_count     = _config.node().attribute_value("count",     _count);
 
 		_timeout.conditional(_count && _period_ms,
 		                     _timer, *this, &Main::_handle_timeout, Microseconds(_period_ms*1000));

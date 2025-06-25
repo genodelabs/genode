@@ -24,7 +24,7 @@ SRC_CC += \
 	dhcp_client.cc \
 	dhcp_server.cc \
 	report.cc \
-	xml_node.cc \
+	node.cc \
 	uplink_session_root.cc \
 	communication_buffer.cc \
 

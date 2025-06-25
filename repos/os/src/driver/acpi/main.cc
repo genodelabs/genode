@@ -37,10 +37,10 @@ struct Acpi::Main
 
 	struct Acpi_reporter
 	{
-		Acpi_reporter(Env &env, Heap &heap, Xml_node const &config_xml)
+		Acpi_reporter(Env &env, Heap &heap, Node const &config)
 		{
 			try {
-				Acpi::generate_report(env, heap, config_xml);
+				Acpi::generate_report(env, heap, config);
 			} catch (...) {
 				error("Unknown exception occured - failure");
 				throw;
@@ -48,7 +48,7 @@ struct Acpi::Main
 		}
 	};
 
-	Acpi_reporter         _acpi_reporter { _env, _heap, _config.xml() };
+	Acpi_reporter         _acpi_reporter { _env, _heap, _config.node() };
 	Smbios_table_reporter _smbt_reporter { _env, _heap };
 
 	Main(Env &env) : _env(env) { }

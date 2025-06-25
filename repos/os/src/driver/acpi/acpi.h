@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/allocator.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 
 namespace Acpi
@@ -25,7 +25,7 @@ namespace Acpi
 	/**
 	 * Generate report rom
 	 */
-	void generate_report(Genode::Env&, Genode::Allocator&, Genode::Xml_node const&);
+	void generate_report(Genode::Env&, Genode::Allocator&, Genode::Node const&);
 }
 
 #endif /* _ACPI_H_ */

@@ -103,8 +103,8 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	void _handle_config()
 	{
 		_config.update();
-		_verbose      = _config.xml().attribute_value("verbose",      false);
-		_match_labels = _config.xml().attribute_value("match_labels", false);
+		_verbose      = _config.node().attribute_value("verbose",      false);
+		_match_labels = _config.node().attribute_value("match_labels", false);
 	}
 
 	/**
@@ -119,7 +119,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		_focused_domain = Domain();
 		_focused_label  = Label();
 
-		Genode::Xml_node const focus = _focus_ds.xml();
+		Genode::Node const focus = _focus_ds.node();
 
 		if (focus.attribute_value("active", false)) {
 			_focused_domain = focus.attribute_value("domain", Domain());
@@ -133,8 +133,8 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	{
 		using namespace Genode;
 
-		return with_matching_policy(label, _config.xml(),
-			[&] (Xml_node const &policy) {
+		return with_matching_policy(label, _config.node(),
+			[&] (Node const &policy) {
 				return policy.attribute_value("domain", Domain()); },
 			[&] {
 				return Domain(); });
@@ -176,16 +176,13 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		 * attributes.
 		 */
 		bool result = false;
-		try {
 
-			auto match_flow = [&] (Genode::Xml_node flow) {
-				if (flow.attribute_value("from", Domain()) == from
-				 && flow.attribute_value("to",   Domain()) == to)
-					result = true; };
+		auto match_flow = [&] (Genode::Node flow) {
+			if (flow.attribute_value("from", Domain()) == from
+			 && flow.attribute_value("to",   Domain()) == to)
+				result = true; };
 
-			_config.xml().for_each_sub_node("flow", match_flow);
-
-		} catch (Genode::Xml_node::Nonexistent_sub_node) { }
+		_config.node().for_each_sub_node("flow", match_flow);
 
 		return result;
 	}

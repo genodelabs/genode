@@ -37,7 +37,7 @@ struct Test::Ping_pong : Scenario
 
 	Block::Operation::Type const _op_type;
 
-	Ping_pong(Allocator &, Xml_node const &node)
+	Ping_pong(Allocator &, Node const &node)
 	:
 		Scenario(node),
 		_start  (node.attribute_value("start",  0u)),

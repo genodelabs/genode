@@ -27,8 +27,8 @@ struct Main
 	void handle_config()
 	{
 		config.update();
-		config.xml().with_sub_node("counter",
-			[&] (Xml_node const &counter) {
+		config.node().with_sub_node("counter",
+			[&] (Node const &counter) {
 				counter.for_each_quoted_line([&] (auto const &line) {
 					log("obtained counter value ", line, " from config"); });
 			},

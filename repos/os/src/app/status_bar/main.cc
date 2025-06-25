@@ -11,8 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <util/reconstructible.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <util/color.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
@@ -222,15 +221,11 @@ void Status_bar::Main::_handle_focus()
 	_color       = Color::black();
 
 	/* read new focus information from nitpicker's focus report */
-	try {
-		Xml_node node(_focus_ds.local_addr<char>());
+	Node const &node = _focus_ds.node();
 
-		_label       = node.attribute_value("label",  Label());
-		_domain_name = node.attribute_value("domain", Domain_name());
-		_color       = node.attribute_value("color",  Color::black());
-	}
-	catch (...) {
-		warning("could not parse focus report"); }
+	_label       = node.attribute_value("label",  Label());
+	_domain_name = node.attribute_value("domain", Domain_name());
+	_color       = node.attribute_value("color",  Color::black());
 
 	_draw_status_bar();
 }

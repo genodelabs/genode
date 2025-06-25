@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <os/session_policy.h>
-#include <os/buffered_xml.h>
 #include <util/color.h>
 
 /* decorator includes */
@@ -34,15 +33,15 @@ class Decorator::Config
 {
 	private:
 
-		Genode::Buffered_xml const _config;
+		Genode::Buffered_node const _config;
 
 		template <typename T>
 		T _policy_attribute(Window_title const &title, char const *attr,
 		                       T default_value) const
 		{
 			T result = default_value;
-			with_matching_policy(title, _config.xml,
-				[&] (Xml_node const &policy) {
+			with_matching_policy(title, _config,
+				[&] (Node const &policy) {
 					result = policy.attribute_value(attr, result); },
 				[&] { }
 			);
@@ -51,7 +50,7 @@ class Decorator::Config
 
 	public:
 
-		Config(Genode::Allocator &alloc, Genode::Xml_node const &node)
+		Config(Genode::Allocator &alloc, Genode::Node const &node)
 		:
 			_config(alloc, node)
 		{ }
@@ -72,8 +71,8 @@ class Decorator::Config
 		Color base_color(Window_title const &title) const
 		{
 			Color result = Color::black();
-			with_matching_policy(title, _config.xml,
-				[&] (Xml_node const &policy) {
+			with_matching_policy(title, _config,
+				[&] (Node const &policy) {
 					result = policy.attribute_value("color", result); },
 				[&] { }
 			);

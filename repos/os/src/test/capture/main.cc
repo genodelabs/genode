@@ -40,7 +40,7 @@ struct Test::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	static Gui::Area _area_from_xml(Xml_node const &node, Gui::Area default_area)
+	static Gui::Area _area_from_node(Node const &node, Gui::Area default_area)
 	{
 		return Gui::Area(node.attribute_value("width",  default_area.w),
 		                 node.attribute_value("height", default_area.h));
@@ -72,18 +72,18 @@ struct Test::Main
 
 		Registry<Registered<Gui::Top_level_view>> _views { };
 
-		Output(Env &env, Allocator &alloc, Xml_node const &config)
+		Output(Env &env, Allocator &alloc, Node const &config)
 		:
 			_env(env), _alloc(alloc),
-			_mode({ .area = _area_from_xml(config, Area { }), .alpha = false })
+			_mode({ .area = _area_from_node(config, Area { }), .alpha = false })
 		{
-			auto view_rect = [&] (Xml_node const &node)
+			auto view_rect = [&] (Node const &node)
 			{
-				return Gui::Rect(Gui::Point::from_xml(node),
-				                 _area_from_xml(node, _mode.area));
+				return Gui::Rect(Gui::Point::from_node(node),
+				                 _area_from_node(node, _mode.area));
 			};
 
-			config.for_each_sub_node("view", [&] (Xml_node const &node) {
+			config.for_each_sub_node("view", [&] (Node const &node) {
 				new (_alloc)
 					Registered<Gui::Top_level_view>(_views, _gui, view_rect(node)); });
 		}
@@ -124,9 +124,9 @@ struct Test::Main
 
 		Gui::Point _at { };
 
-		Capture_input(Env &env, Gui::Area area, Xml_node const &config)
+		Capture_input(Env &env, Gui::Area area, Node const &config)
 		:
-			_env(env), _area(area), _at(Gui::Point::from_xml(config))
+			_env(env), _area(area), _at(Gui::Point::from_node(config))
 		{ }
 
 		Affected_rects capture() { return _capture.capture_at(_at); }
@@ -177,7 +177,7 @@ struct Test::Main
 	{
 		_config.update();
 
-		Xml_node const &config = _config.xml();
+		Node const &config = _config.node();
 
 		_output.construct(_env, _heap, config);
 		_capture_input.construct(_env, _output->_mode.area, config);

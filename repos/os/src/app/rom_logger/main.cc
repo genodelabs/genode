@@ -67,7 +67,7 @@ void Rom_logger::Main::_handle_update()
 	/*
 	 * Query name of ROM module from config
 	 */
-	Genode::Xml_node const config = _config_rom.xml();
+	Genode::Node const config = _config_rom.node();
 
 	if (!config.has_attribute("rom")) {
 		Genode::warning("could not determine ROM name from config");
@@ -116,7 +116,7 @@ void Rom_logger::Main::_handle_update()
 			             " ",mkhex(data[i+4])," ",mkhex(data[i+5]),
 			             " ",mkhex(data[i+6])," ",mkhex(data[i+7]));
 	} else {
-		error("unknown format specified by '", _config_rom.xml(),"'");
+		error("unknown format specified by '", _config_rom.node(),"'");
 	}
 }
 

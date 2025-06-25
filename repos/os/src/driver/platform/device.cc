@@ -184,7 +184,7 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 }
 
 
-void Driver::Device::update(Allocator &alloc, Xml_node const &node,
+void Driver::Device::update(Allocator &alloc, Node const &node,
                             Reserved_memory_handler & reserved_mem_handler)
 {
 	using Bar = Device::Pci_bar;
@@ -192,7 +192,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 	_irq_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Irq &
+		[&] (Node const &node) -> Irq &
 		{
 			unsigned number = node.attribute_value<unsigned>("number", 0);
 
@@ -218,13 +218,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Irq &irq) { destroy(alloc, &irq); },
 
 		/* update */
-		[&] (Irq &, Xml_node const &) { }
+		[&] (Irq &, Node const &) { }
 	);
 
 	_io_mem_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Io_mem &
+		[&] (Node const &node) -> Io_mem &
 		{
 			using Range = Io_mem::Range;
 
@@ -240,13 +240,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Io_mem &io_mem) { destroy(alloc, &io_mem); },
 
 		/* update */
-		[&] (Io_mem &, Xml_node const &) { }
+		[&] (Io_mem &, Node const &) { }
 	);
 
 	_io_port_range_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Io_port_range &
+		[&] (Node const &node) -> Io_port_range &
 		{
 			using Range = Io_port_range::Range;
 
@@ -261,13 +261,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Io_port_range &ipr) { destroy(alloc, &ipr); },
 
 		/* update */
-		[&] (Io_port_range &, Xml_node const &) { }
+		[&] (Io_port_range &, Node const &) { }
 	);
 
 	_property_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Property &
+		[&] (Node const &node) -> Property &
 		{
 			return *new (alloc)
 				Property(node.attribute_value("name",  Property::Name()),
@@ -278,13 +278,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Property &property) { destroy(alloc, &property); },
 
 		/* update */
-		[&] (Property &, Xml_node const &) { }
+		[&] (Property &, Node const &) { }
 	);
 
 	_clock_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Clock &
+		[&] (Node const &node) -> Clock &
 		{
 			return *new (alloc)
 				Clock(node.attribute_value("name",        Clock::Name()),
@@ -297,13 +297,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Clock &clock) { destroy(alloc, &clock); },
 
 		/* update */
-		[&] (Clock &, Xml_node const &) { }
+		[&] (Clock &, Node const &) { }
 	);
 
 	_power_domain_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Power_domain &
+		[&] (Node const &node) -> Power_domain &
 		{
 			return *new (alloc)
 				Power_domain(node.attribute_value("name", Power_domain::Name()));
@@ -313,13 +313,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Power_domain &power) { destroy(alloc, &power); },
 
 		/* update */
-		[&] (Power_domain &, Xml_node const &) { }
+		[&] (Power_domain &, Node const &) { }
 	);
 
 	_reset_domain_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Reset_domain &
+		[&] (Node const &node) -> Reset_domain &
 		{
 			return *new (alloc)
 				Reset_domain(node.attribute_value("name", Reset_domain::Name()));
@@ -329,13 +329,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Reset_domain &reset) { destroy(alloc, &reset); },
 
 		/* update */
-		[&] (Reset_domain &, Xml_node const &) { }
+		[&] (Reset_domain &, Node const &) { }
 	);
 
 	_pci_config_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Pci_config &
+		[&] (Node const &node) -> Pci_config &
 		{
 			using namespace Pci;
 
@@ -381,13 +381,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Pci_config &pci) { destroy(alloc, &pci); },
 
 		/* update */
-		[&] (Pci_config &, Xml_node const &) { }
+		[&] (Pci_config &, Node const &) { }
 	);
 
 	_reserved_mem_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Reserved_memory &
+		[&] (Node const &node) -> Reserved_memory &
 		{
 			addr_t addr = node.attribute_value("address", 0UL);
 			size_t size = node.attribute_value("size",    0UL);
@@ -403,13 +403,13 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		},
 
 		/* update */
-		[&] (Reserved_memory &, Xml_node const &) { }
+		[&] (Reserved_memory &, Node const &) { }
 	);
 
 	_io_mmu_list.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Io_mmu &
+		[&] (Node const &node) -> Io_mmu &
 		{
 			return *new (alloc)
 				Io_mmu(node.attribute_value("name", Io_mmu::Name()));
@@ -419,7 +419,7 @@ void Driver::Device::update(Allocator &alloc, Xml_node const &node,
 		[&] (Io_mmu &io_mmu) { destroy(alloc, &io_mmu); },
 
 		/* update */
-		[&] (Io_mmu &, Xml_node const &) { }
+		[&] (Io_mmu &, Node const &) { }
 	);
 }
 
@@ -451,13 +451,13 @@ void Driver::Device_model::generate(Xml_generator & xml) const
 }
 
 
-void Driver::Device_model::update(Xml_node const & node,
+void Driver::Device_model::update(Node const & node,
                                   Reserved_memory_handler & reserved_mem_handler)
 {
 	_model.update_from_xml(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Device &
+		[&] (Node const &node) -> Device &
 		{
 			Device::Name name = node.attribute_value("name", Device::Name());
 			Device::Type type = node.attribute_value("type", Device::Type());
@@ -468,13 +468,13 @@ void Driver::Device_model::update(Xml_node const & node,
 		/* destroy */
 		[&] (Device &device)
 		{
-			device.update(_heap, Xml_node("<empty/>"), reserved_mem_handler);
+			device.update(_heap, Node(), reserved_mem_handler);
 			device.release(_owner);
 			destroy(_heap, &device);
 		},
 
 		/* update */
-		[&] (Device &device, Xml_node const &node)
+		[&] (Device &device, Node const &node)
 		{
 			device.update(_heap, node, reserved_mem_handler);
 		}

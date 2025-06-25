@@ -198,12 +198,12 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 
 		Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
-		Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
-			[&] (Xml_node const &config) -> Vfs::Simple_env {
+		Vfs::Simple_env _vfs_env = _config_rom.node().with_sub_node("vfs",
+			[&] (Node const &config) -> Vfs::Simple_env {
 				return { _env, _heap, config }; },
 			[&] () -> Vfs::Simple_env {
 				error("VFS not configured");
-				return { _env, _heap, Xml_node("<empty/>") }; });
+				return { _env, _heap, Node() }; });
 
 		Genode::Signal_handler<Root> _config_dispatcher {
 			_env.ep(), *this, &Root::_config_update };
@@ -212,7 +212,7 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 		{
 			_config_rom.update();
 
-			_config_rom.xml().with_optional_sub_node("vfs", [&] (Xml_node const &node) {
+			_config_rom.node().with_optional_sub_node("vfs", [&] (Node const &node) {
 				_vfs_env.root_dir().apply_config(node); });
 		}
 

@@ -82,7 +82,7 @@ class Event_filter::Log_source : public Source, Source::Filter
 			destination.submit(event);
 		}
 
-		void _apply_config(Xml_node const &config)
+		void _apply_config(Node const &config)
 		{
 			_prefix = config.attribute_value("prefix", Prefix());
 			_motion = config.attribute_value("motion", false);
@@ -92,7 +92,7 @@ class Event_filter::Log_source : public Source, Source::Filter
 
 		static char const *name() { return "log"; }
 
-		Log_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
+		Log_source(Owner &owner, Node const &config, Source::Factory &factory)
 		:
 			Source(owner),
 			_owner(factory),

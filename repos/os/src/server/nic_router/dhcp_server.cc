@@ -16,7 +16,7 @@
 #include <interface.h>
 #include <domain.h>
 #include <configuration.h>
-#include <xml_node.h>
+#include <node.h>
 
 using namespace Net;
 using namespace Genode;
@@ -29,10 +29,10 @@ using namespace Genode;
 Dhcp_server_base::Dhcp_server_base(Allocator &alloc) : _alloc { alloc } { }
 
 
-bool Dhcp_server_base::finish_construction(Xml_node const &node, Domain const &domain)
+bool Dhcp_server_base::finish_construction(Node const &node, Domain const &domain)
 {
 	bool result = true;
-	node.for_each_sub_node("dns-server", [&] (Xml_node const &sub_node) {
+	node.for_each_sub_node("dns-server", [&] (Node const &sub_node) {
 		if (!result)
 			return;
 
@@ -51,8 +51,8 @@ bool Dhcp_server_base::finish_construction(Xml_node const &node, Domain const &d
 	if (!result)
 		return result;
 
-	node.with_optional_sub_node("dns-domain", [&] (Xml_node const &sub_node) {
-		xml_node_with_attribute(sub_node, "name", [&] (Xml_attribute const &attr) {
+	node.with_optional_sub_node("dns-domain", [&] (Node const &sub_node) {
+		with_attribute(sub_node, "name", [&] (Node::Attribute const &attr) {
 			_dns_domain_name.set_to(attr);
 
 			if (domain.config().verbose() &&
@@ -95,7 +95,7 @@ bool Dhcp_server::dns_servers_empty() const
 }
 
 
-Dhcp_server::Dhcp_server(Xml_node const &node, Allocator &alloc)
+Dhcp_server::Dhcp_server(Node const &node, Allocator &alloc)
 :
 	Dhcp_server_base(alloc),
 	_ip_lease_time  (_init_ip_lease_time(node)),
@@ -107,7 +107,7 @@ Dhcp_server::Dhcp_server(Xml_node const &node, Allocator &alloc)
 { }
 
 
-bool Dhcp_server::finish_construction(Xml_node const &node,
+bool Dhcp_server::finish_construction(Node const &node,
                                       Domain_dict &domains,
                                       Domain &domain,
                                       Ipv4_address_prefix const &interface)
@@ -139,7 +139,7 @@ bool Dhcp_server::finish_construction(Xml_node const &node,
 }
 
 
-Microseconds Dhcp_server::_init_ip_lease_time(Xml_node const &node)
+Microseconds Dhcp_server::_init_ip_lease_time(Node const &node)
 {
 	uint64_t ip_lease_time_sec =
 		node.attribute_value("ip_lease_time_sec", (uint64_t)0);

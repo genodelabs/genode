@@ -522,14 +522,13 @@ void Component::construct(Genode::Env &env)
 	Genode::Heap heap(env.ram(), env.rm());
 
 	Attached_rom_dataspace config_rom(env, "config");
-	Xml_node const config_xml = config_rom.xml();
 
-	Vfs::Simple_env vfs_env = config_rom.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Vfs::Simple_env {
+	Vfs::Simple_env vfs_env = config_rom.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Vfs::Simple_env {
 			return { env, heap, config }; },
 		[&] () -> Vfs::Simple_env {
 			error("VFS not configured");
-			return { env, heap, Xml_node("<empty/>") }; });
+			return { env, heap, Node() }; });
 
 	Vfs::File_system &vfs_root = vfs_env.root_dir();
 
@@ -548,7 +547,7 @@ void Component::construct(Genode::Env &env)
 
 	String<Vfs::MAX_PATH_LEN> path { };
 
-	MAX_DEPTH = config_xml.attribute_value("depth", 16U);
+	MAX_DEPTH = config_rom.node().attribute_value("depth", 16U);
 
 	uint64_t elapsed_ms;
 	Timer::Connection timer(env);
@@ -614,7 +613,7 @@ void Component::construct(Genode::Env &env)
 	 ** Write files **
 	 *****************/
 
-	if (!config_xml.attribute_value("write", true)) {
+	if (!config_rom.node().attribute_value("write", true)) {
 		elapsed_ms = timer.elapsed_ms();
 		log("total: ",elapsed_ms,"ms, ",env.pd().used_ram().value/1024,"K consumed");
 		return die(env, 0);
@@ -649,7 +648,7 @@ void Component::construct(Genode::Env &env)
 	 ** Read files **
 	 *****************/
 
-	if (!config_xml.attribute_value("read", true)) {
+	if (!config_rom.node().attribute_value("read", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
 		log("total: ",elapsed_ms,"ms, ",env.pd().used_ram().value/1024,"KiB consumed");
@@ -684,7 +683,7 @@ void Component::construct(Genode::Env &env)
 	 ** Unlink files **
 	 ******************/
 
-	if (!config_xml.attribute_value("unlink", true)) {
+	if (!config_rom.node().attribute_value("unlink", true)) {
 		elapsed_ms = timer.elapsed_ms();
 		log("total: ",elapsed_ms,"ms, ",env.pd().used_ram().value/1024,"KiB consumed");
 		return die(env, 0);

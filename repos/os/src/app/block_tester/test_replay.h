@@ -41,9 +41,9 @@ struct Test::Replay : Scenario
 
 	Id_space<Step> _steps { };
 
-	Replay(Allocator &alloc, Xml_node const &node) : Scenario(node), _alloc(alloc)
+	Replay(Allocator &alloc, Node const &node) : Scenario(node), _alloc(alloc)
 	{
-		node.for_each_sub_node("request", [&] (Xml_node const &request) {
+		node.for_each_sub_node("request", [&] (Node const &request) {
 
 			struct Invalid { };
 

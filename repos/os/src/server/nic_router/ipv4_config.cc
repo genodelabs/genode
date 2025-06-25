@@ -31,8 +31,7 @@ Ipv4_config::Ipv4_config(Allocator &alloc)
 { }
 
 
-Ipv4_config::Ipv4_config(Xml_node const &domain_node,
-                         Allocator      &alloc)
+Ipv4_config::Ipv4_config(Node const &domain_node, Allocator &alloc)
 :
 	_alloc      { alloc },
 	_interface  { domain_node.attribute_value("interface",  Ipv4_address_prefix()) },

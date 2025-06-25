@@ -39,7 +39,7 @@ struct Driver::Main
 void Driver::Main::_handle_config()
 {
 	_config_rom.update();
-	_common.handle_config(_config_rom.xml());
+	_common.handle_config(_config_rom.node());
 }
 
 

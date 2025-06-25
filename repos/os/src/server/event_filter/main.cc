@@ -206,14 +206,14 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 			bool has_name(Name const &name) const { return _name == name; }
 
-			void with_xml(Include_accessor::Type const &type,
-			              auto const &fn, auto const &missing_fn) const
+			void with_node(Include_accessor::Type const &type,
+			               auto const &fn, auto const &missing_fn) const
 			{
 				_attached.with_result(
 					[&] (Env::Local_rm::Attachment const &a) {
 						Const_byte_range_ptr bytes { (char const *)a.ptr, a.num_bytes };
 						try {
-							Xml_node node(bytes);
+							Node node(bytes);
 							if (node.type() == type) {
 								fn(node);
 								return;
@@ -273,13 +273,13 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 					Rom &rom = *new (_alloc) Rom(_registry, _env, name, _sigh);
 
 					/* \throw Include_unavailable on mismatching top-level node type */
-					rom.with_xml(type, [] (Xml_node const &) { },
-					                   [] { throw Include_unavailable(); });
+					rom.with_node(type, [] (Node const &) { },
+					                    [] { throw Include_unavailable(); });
 				}
 				catch (...) { throw Include_unavailable(); }
 			}
 
-			/* call 'fn' with the XML content of the named include */
+			/* call 'fn' with the node content of the named include */
 			Rom const *matching_rom = nullptr;
 			_registry.for_each([&] (Rom const &rom) {
 				if (rom.has_name(name))
@@ -289,8 +289,8 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 			if (!matching_rom)
 				throw Include_unavailable();
 
-			matching_rom->with_xml(type,
-				[&] (Xml_node const &node) { fn.apply(node); },
+			matching_rom->with_node(type,
+				[&] (Node const &node) { fn.apply(node); },
 				[&] { throw Include_unavailable(); });
 		}
 	};
@@ -305,7 +305,7 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 	 *
 	 * \throw Source::Invalid_config
 	 */
-	Source &create_source(Source::Owner &owner, Xml_node const &node) override
+	Source &create_source(Source::Owner &owner, Node const &node) override
 	{
 		/*
 		 * Guard for the protection against too deep recursions while
@@ -397,7 +397,7 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 		 * \throw Source::Invalid_config
 		 * \throw Genode::Out_of_memory
 		 */
-		Output(Xml_node const &output, Source::Factory &factory)
+		Output(Node const &output, Source::Factory &factory)
 		:
 			_owner(factory),
 			_top_level(factory.create_source_for_sub_node(_owner, output))
@@ -415,7 +415,7 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 	{
 		_config.update();
 
-		bool const force = _config.xml().attribute_value("force", false);
+		bool const force = _config.node().attribute_value("force", false);
 		bool const idle  = _event_root.all_sessions_idle();
 
 		/* defer reconfiguration until all sources are idle */
@@ -432,12 +432,12 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 	void _apply_config()
 	{
-		Xml_node const &config = _config.xml();
+		Node const &config = _config.node();
 
 		_event_root.apply_config(config);
 
 		try {
-			config.with_optional_sub_node("output", [&] (Xml_node const &output) {
+			config.with_optional_sub_node("output", [&] (Node const &output) {
 				_output.construct(output, *this); });
 		}
 		catch (Source::Invalid_config) {

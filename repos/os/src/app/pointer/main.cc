@@ -64,7 +64,7 @@ class Pointer::Main : public Rom::Reader
 
 		Genode::Attached_rom_dataspace _config { _env, "config" };
 
-		bool _verbose = _config.xml().attribute_value("verbose", false);
+		bool _verbose = _config.node().attribute_value("verbose", false);
 
 		Gui::Connection _gui { _env };
 
@@ -82,7 +82,7 @@ class Pointer::Main : public Rom::Reader
 
 		/* custom shape support */
 
-		bool _shapes_enabled = _config.xml().attribute_value("shapes", false);
+		bool _shapes_enabled = _config.node().attribute_value("shapes", false);
 
 		bool _xray = false;
 
@@ -280,10 +280,8 @@ void Pointer::Main::_handle_hover()
 
 	/* read new hover information from nitpicker's hover report */
 	try {
-		Genode::Xml_node node(_hover_ds->local_addr<char>());
-
 		Genode::Session_label hovered_label {
-			node.attribute_value("label", String()) };
+			_hover_ds->node().attribute_value("label", String()) };
 
 		hovered_label = hovered_label.prefix();
 
@@ -309,9 +307,7 @@ void Pointer::Main::_handle_xray()
 		return;
 
 	try {
-		Genode::Xml_node node(_xray_ds->local_addr<char>());
-
-		bool xray = node.attribute_value("enabled", false);
+		bool xray = _xray_ds->node().attribute_value("enabled", false);
 
 		/* update pointer if xray status changed */
 		if (xray != _xray) {

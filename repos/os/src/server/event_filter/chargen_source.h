@@ -51,7 +51,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 			Input::Keycode const _code;
 
-			static Id id(Xml_node const &mod_node)
+			static Id id(Node const &mod_node)
 			{
 				if (mod_node.type() == "mod1") return MOD1;
 				if (mod_node.type() == "mod2") return MOD2;
@@ -92,7 +92,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 			{
 				try {
 					include_accessor.apply_include(name, "capslock",
-						[&] (Xml_node const &node) {
+						[&] (Node const &node) {
 							_enabled = node.attribute_value("enabled", false); }); }
 
 				catch (Include_accessor::Include_unavailable) {
@@ -242,11 +242,11 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 		struct Missing_character_definition { };
 
 		/**
-		 * Return Unicode codepoint defined in XML node attributes
+		 * Return Unicode codepoint defined in node attributes
 		 *
 		 * \throw Missing_character_definition
 		 */
-		static Codepoint _codepoint_from_xml_node(Xml_node const &node)
+		static Codepoint _codepoint_from_node(Node const &node)
 		{
 			if (node.has_attribute("ascii"))
 				return Codepoint { node.attribute_value<uint32_t>("ascii", 0) };
@@ -316,10 +316,10 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 				};
 
 				/**
-				 * Obtain modifier condition from map XML node
+				 * Obtain modifier condition from map node
 				 */
 				static Key::Rule::Conditions::Modifier::Constraint
-				_map_mod_cond(Xml_node const &map, Modifier::Name const &mod_name)
+				_map_mod_cond(Node const &map, Modifier::Name const &mod_name)
 				{
 					if (!map.has_attribute(mod_name.string()))
 						return Key::Rule::Conditions::Modifier::DONT_CARE;
@@ -330,7 +330,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 					               : Key::Rule::Conditions::Modifier::RELEASED;
 				}
 
-				void import_map(Xml_node const &map)
+				void import_map(Node const &map)
 				{
 					/* obtain modifier conditions from map attributes */
 					Key::Rule::Conditions cond;
@@ -340,14 +340,14 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 					cond.modifiers[Modifier::MOD4].constraint = _map_mod_cond(map, "mod4");
 
 					/* add a rule for each <key> sub node */
-					map.for_each_sub_node("key", [&] (Xml_node const &key_node) {
+					map.for_each_sub_node("key", [&] (Node const &key_node) {
 
 						Key_name const name = key_node.attribute_value("name", Key_name());
 
 						Input::Keycode const code = key_code_by_name(name);
 
 						new (_alloc) Key::Rule(key(code).rules, cond,
-						                       _codepoint_from_xml_node(key_node));
+						                       _codepoint_from_node(key_node));
 					});
 				}
 
@@ -453,7 +453,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 						destroy(_alloc, &rule); });
 				}
 
-				void import_sequence(Xml_node const &node)
+				void import_sequence(Node const &node)
 				{
 					unsigned const invalid { Codepoint::INVALID };
 
@@ -463,7 +463,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 						Codepoint { node.attribute_value("third",  invalid) },
 						Codepoint { node.attribute_value("fourth", invalid) } };
 
-					new (_alloc) Rule(_rules, sequence, _codepoint_from_xml_node(node));
+					new (_alloc) Rule(_rules, sequence, _codepoint_from_node(node));
 				}
 
 				Codepoint process(Codepoint codepoint)
@@ -556,7 +556,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 			Timer::One_shot_timeout<Char_repeater> _timeout {
 				_timer, *this, &Char_repeater::_handle_timeout };
 
-			Char_repeater(Timer::Connection &timer, Xml_node const &node,
+			Char_repeater(Timer::Connection &timer, Node const &node,
 			              Source::Trigger &trigger)
 			:
 				_timer(timer), _trigger(trigger),
@@ -628,13 +628,13 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 
 		Source::Trigger &_trigger;
 
-		void _apply_config(Xml_node const &config, unsigned const max_recursion = 4)
+		void _apply_config(Node const &config, unsigned const max_recursion = 4)
 		{
-			config.for_each_sub_node([&] (Xml_node const &node) {
+			config.for_each_sub_node([&] (Node const &node) {
 				_apply_sub_node(node, max_recursion); });
 		}
 
-		void _apply_sub_node(Xml_node const &node, unsigned const max_recursion)
+		void _apply_sub_node(Node const &node, unsigned const max_recursion)
 		{
 			if (max_recursion == 0) {
 				warning("too deeply nested includes");
@@ -649,7 +649,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 					Include_accessor::Name const rom =
 						node.attribute_value("rom", Include_accessor::Name());
 
-					_include_accessor.apply_include(rom, name(), [&] (Xml_node const &inc) {
+					_include_accessor.apply_include(rom, name(), [&] (Node const &inc) {
 						_apply_config(inc, max_recursion - 1); });
 					return;
 				}
@@ -696,7 +696,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 			if (id == Modifier::UNDEFINED)
 				return;
 
-			node.for_each_sub_node("key", [&] (Xml_node const &key_node) {
+			node.for_each_sub_node("key", [&] (Node const &key_node) {
 
 				Key_name const name = key_node.attribute_value("name", Key_name());
 				Input::Keycode const key = key_code_by_name(name);
@@ -704,7 +704,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 				new (_alloc) Modifier(_modifiers, id, key);
 			});
 
-			node.for_each_sub_node("rom", [&] (Xml_node const &rom_node) {
+			node.for_each_sub_node("rom", [&] (Node const &rom_node) {
 
 				using Rom_name = Modifier_rom::Name;
 				Rom_name const rom_name = rom_node.attribute_value("name", Rom_name());
@@ -720,7 +720,7 @@ class Event_filter::Chargen_source : public Source, Source::Filter
 		static char const *name() { return "chargen"; }
 
 		Chargen_source(Owner            &owner,
-		               Xml_node   const &config,
+		               Node       const &config,
 		               Source::Factory  &factory,
 		               Allocator        &alloc,
 		               Timer_accessor   &timer_accessor,

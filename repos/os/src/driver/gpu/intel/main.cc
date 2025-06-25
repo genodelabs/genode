@@ -33,7 +33,6 @@
 #include <util/fifo.h>
 #include <util/mmio.h>
 #include <util/retry.h>
-#include <util/xml_node.h>
 
 /* local includes */
 #include <mmio.h>
@@ -160,13 +159,13 @@ struct Igd::Device
 
 
 	bool _supported(Igd::Mmio       & mmio,
-	                Xml_node  const & supported,
+	                Node      const & supported,
 	                uint16_t  const   dev_id,
 	                uint8_t   const   rev_id)
 	{
 		bool found = false;
 
-		supported.for_each_sub_node("device", [&] (Xml_node const &node) {
+		supported.for_each_sub_node("device", [&] (Node const &node) {
 			if (found)
 				return;
 
@@ -1278,7 +1277,7 @@ struct Igd::Device
 	       Platform::Connection   & platform,
 	       Platform::Resources    & res,
 	       Rm_connection          & rm,
-	       Genode::Xml_node       & supported,
+	       Genode::Node           & supported,
 	       uint16_t                 device_id,
 	       uint8_t                  revision,
 	       uint8_t                  gmch_ctl)
@@ -2479,9 +2478,9 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 			plat_con.update();
 
-			plat_con.with_xml([&] (Xml_node const &node) {
-				node.with_optional_sub_node("device", [&] (Xml_node const &node) {
-					node.with_optional_sub_node("pci-config", [&] (Xml_node const &node) {
+			plat_con.with_node([&] (Node const &node) {
+				node.with_optional_sub_node("device", [&] (Node const &node) {
+					node.with_optional_sub_node("pci-config", [&] (Node const &node) {
 						device_id = node.attribute_value("device_id", 0U);
 						revision  = node.attribute_value("revision",  0U);
 						gmch_ctl  = node.attribute_value("intel_gmch_control",  0U);
@@ -2496,7 +2495,7 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 			try {
 				_igd_device.construct(_env, _md_alloc, plat_con, _dev, _rm,
-				                      _config_rom.xml(), device_id,
+				                      _config_rom.node(), device_id,
 				                      revision, gmch_ctl);
 				_gpu_root.manage(*_igd_device);
 				_env.parent().announce(_env.ep().manage(_gpu_root));
@@ -2514,7 +2513,7 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 		if (!_config_rom.valid()) { return; }
 
-		bool const use_system_rom = _config_rom.xml().attribute_value("system", false);
+		bool const use_system_rom = _config_rom.node().attribute_value("system", false);
 
 		if (use_system_rom) {
 			_system_rom.construct(_env, "system");
@@ -2544,7 +2543,7 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 		auto const previous_system_state = _system_state;
 
-		_system_state = _system_rom->xml().attribute_value("state", _system_state);
+		_system_state = _system_rom->node().attribute_value("state", _system_state);
 
 		bool const same_state    = _system_state == previous_system_state;
 		bool const resume_driver = !same_state && _system_state == "";

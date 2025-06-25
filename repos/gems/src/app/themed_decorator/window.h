@@ -476,7 +476,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_motion          = _config.motion(_title);
 		}
 
-		bool update(Xml_node const &window_node) override
+		bool update(Node const &window_node) override
 		{
 			bool updated = false;
 
@@ -494,7 +494,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_motion          = _config.motion(_title);
 
 			Rect const old_geometry = geometry();
-			Rect const new_geometry = Rect::from_xml(window_node);
+			Rect const new_geometry = Rect::from_node(window_node);
 
 			geometry(new_geometry);
 
@@ -556,11 +556,11 @@ class Decorator::Window : public Window_base, public Animator::Item
 			auto with_highlight = [&] (auto const &fn)
 			{
 				window_node.with_sub_node("highlight",
-					[&] (Xml_node const &node) { fn(node); },
-					[&]                        { fn(Xml_node("<highlight/>")); });
+					[&] (Node const &node) { fn(node); },
+					[&]                    { fn(Node()); });
 			};
 
-			with_highlight([&] (Xml_node const &highlight) {
+			with_highlight([&] (Node const &highlight) {
 				_for_each_element([&] (Element &element) {
 					bool const highlighted = highlight.has_sub_node(element.attr);
 					if (highlighted != element.highlighted()) {

@@ -36,12 +36,12 @@ struct Test::Main
 
 	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Vfs::Simple_env {
+	Vfs::Simple_env _vfs_env = _config_rom.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Vfs::Simple_env {
 			return { _env, _heap, config }; },
 		[&] () -> Vfs::Simple_env {
 			error("VFS not configured");
-			return { _env, _heap, Xml_node("<empty/>") }; });
+			return { _env, _heap, Node() }; });
 
 	Constructible<Expanding_reporter> _devices_reporter { };
 	Constructible<Expanding_reporter> _focus_reporter   { };
@@ -72,7 +72,7 @@ struct Test::Main
 	{
 		log("(1) check initial content of \"devices\" ROM");
 		_devices_rom.construct(_env, "devices");
-		if (_devices_rom->xml().attribute_value("version", Version()) != "initial") {
+		if (_devices_rom->node().attribute_value("version", Version()) != "initial") {
 			error("ROM does not contain expected initial conent");
 			throw Exception();
 		}
@@ -98,7 +98,7 @@ struct Test::Main
 		log("(5) received ROM update as expected");
 
 		_devices_rom->update();
-		if (_devices_rom->xml().attribute_value("version", Version()) != "version 2") {
+		if (_devices_rom->node().attribute_value("version", Version()) != "version 2") {
 			error("(6) unexpected content of \"devices\" ROM after update");
 			throw Exception();
 		}
@@ -124,7 +124,7 @@ struct Test::Main
 	{
 		_focus_rom->update();
 
-		if (_focus_rom->xml().attribute_value("version", Version()) != "focus version 1") {
+		if (_focus_rom->node().attribute_value("version", Version()) != "focus version 1") {
 			error("(9) unexpected content of \"focus\" ROM");
 			throw Exception();
 		}
@@ -146,7 +146,7 @@ struct Test::Main
 	{
 		_focus_rom->update();
 
-		if (!_focus_rom->xml().has_type("empty")) {
+		if (!_focus_rom->node().has_type("empty")) {
 			error("(11) unexpected content of \"focus\" ROM");
 			throw Exception();
 		}

@@ -149,7 +149,7 @@ class Vfs::Log_file_system : public Single_file_system
 
 	public:
 
-		Log_file_system(Vfs::Env &env, Genode::Xml_node const &config)
+		Log_file_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::wo(), config),

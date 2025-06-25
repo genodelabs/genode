@@ -215,7 +215,7 @@ class Lwip::Nic_netif
 				_wakeup_scheduler.schedule_nic_server_wakeup();
 		}
 
-		void configure(Genode::Xml_node const &config)
+		void configure(Genode::Node const &config)
 		{
 			_dhcp = config.attribute_value("dhcp", false);
 
@@ -273,7 +273,7 @@ class Lwip::Nic_netif
 
 		Nic_netif(Genode::Env &env,
 		          Genode::Allocator &alloc,
-		          Genode::Xml_node const &config,
+		          Genode::Node const &config,
 		          Wakeup_scheduler &wakeup_scheduler)
 		:
 			_ep(env.ep()),

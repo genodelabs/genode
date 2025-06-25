@@ -212,10 +212,10 @@ struct Main
 	{
 		platform->update();
 
-		platform->with_xml([&] (Xml_node & xml)
+		platform->with_node([&] (Node const &node)
 		{
-			if (state == xml.attribute_value("version", 0U)) {
-				log(xml);
+			if (state == node.attribute_value("version", 0U)) {
+				log(node);
 				step();
 			}
 		});

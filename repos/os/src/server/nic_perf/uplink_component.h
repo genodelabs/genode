@@ -101,7 +101,7 @@ class Nic_perf::Uplink_session_component : private Uplink_session_base,
 		                         Allocator           &alloc,
 		                         Env                 &env,
 		                         Session_label const &label,
-		                         Xml_node      const &policy,
+		                         Node          const &policy,
 		                         Interface_registry  &registry,
 		                         Mac_address          mac,
 		                         Timer::Connection   &timer)
@@ -170,9 +170,9 @@ class Nic_perf::Uplink_root : public Root_component<Uplink_session_component>
 
 			Session_label const label = label_from_args(args);
 
-			return with_matching_policy(label, _config.xml(),
+			return with_matching_policy(label, _config.node(),
 
-				[&] (Xml_node const &policy) {
+				[&] (Node const &policy) {
 					return _alloc_obj(tx_buf_size, rx_buf_size,
 					                  *md_alloc(), _env, label, policy,
 					                  _registry, mac, _timer); },

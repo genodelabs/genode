@@ -72,14 +72,13 @@ class Driver::Common : Device_reporter,
 		Io_mmu_devices & io_mmu_devices() {
 			return _io_mmu_devices; }
 
-		Xml_node platform_info() {
-			return _platform_info.xml(); }
+		Node platform_info() { return _platform_info.node(); }
 
 		Registry<Irq_controller_factory> & irq_controller_factories() {
 			return _irq_controller_factories; }
 
 		void announce_service();
-		void handle_config(Xml_node config);
+		void handle_config(Node const &);
 		void acquire_io_mmu_devices();
 		void acquire_irq_controller();
 
@@ -190,7 +189,7 @@ void Driver::Common::acquire_irq_controller()
 void Driver::Common::_handle_devices()
 {
 	_devices_rom.update();
-	_devices.update(_devices_rom.xml(), _root);
+	_devices.update(_devices_rom.node(), _root);
 	acquire_io_mmu_devices();
 	acquire_irq_controller();
 	update_report();
@@ -201,8 +200,8 @@ void Driver::Common::_handle_devices()
 bool Driver::Common::_iommu()
 {
 	bool iommu = false;
-	_platform_info.xml().with_optional_sub_node("kernel", [&] (Xml_node xml) {
-		iommu = xml.attribute_value("iommu", false); });
+	_platform_info.node().with_optional_sub_node("kernel", [&] (Node const &node) {
+		iommu = node.attribute_value("iommu", false); });
 
 	return iommu;
 }
@@ -240,9 +239,9 @@ void Driver::Common::disable_device(Device const & device)
 }
 
 
-void Driver::Common::handle_config(Xml_node config)
+void Driver::Common::handle_config(Node const &config)
 {
-	config.for_each_sub_node("report", [&] (Xml_node const node) {
+	config.for_each_sub_node("report", [&] (Node const node) {
 		_dev_reporter.conditional(node.attribute_value("devices", false),
 		                          _env, "devices", "devices");
 		_cfg_reporter.conditional(node.attribute_value("config", false),
@@ -270,8 +269,8 @@ Driver::Common::Common(Genode::Env                  & env,
                        Attached_rom_dataspace const & config_rom)
 :
 	_env(env),
-	_rom_name(config_rom.xml().attribute_value("devices_rom",
-	                                           String<64>("devices"))),
+	_rom_name(config_rom.node().attribute_value("devices_rom",
+	                                            String<64>("devices"))),
 	_root(_env, _sliced_heap, config_rom, _devices, _io_mmu_devices,
 	      _irq_controller_registry, _iommu())
 {

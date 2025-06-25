@@ -29,7 +29,7 @@ struct Rmrr : List_model<Rmrr>::Element
 	Rmrr(Bdf bdf, addr_t addr, size_t size)
 	: bdf(bdf), addr(addr), size(size) {}
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		addr_t start = node.attribute_value("start", 0UL);
 		addr_t end   = node.attribute_value("end", 0UL);
@@ -37,7 +37,7 @@ struct Rmrr : List_model<Rmrr>::Element
 		       size == (end-start+1);
 	}
 
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return node.has_type("rmrr");
 	}

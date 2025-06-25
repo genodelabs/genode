@@ -21,7 +21,6 @@
 
 /* decorator includes */
 #include <decorator/window_stack.h>
-#include <decorator/xml_utils.h>
 
 /* local includes */
 #include "window.h"
@@ -117,7 +116,7 @@ struct Decorator::Main : Window_factory_base
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	Config _decorator_config { _heap, _config.xml() };
+	Config _decorator_config { _heap, _config.node() };
 
 	void _handle_config();
 
@@ -175,7 +174,7 @@ struct Decorator::Main : Window_factory_base
 	/**
 	 * Window_factory_base interface
 	 */
-	Window_base::Ref &create_ref(Xml_node const &window_node) override
+	Window_base::Ref &create_ref(Node const &window_node) override
 	{
 		Windows::Id const id { window_node.attribute_value("id", 0U) };
 
@@ -221,18 +220,18 @@ void Decorator::Main::_handle_config()
 }
 
 
-static Decorator::Window_base::Hover find_hover(Genode::Xml_node const &pointer_node,
+static Decorator::Window_base::Hover find_hover(Genode::Node const &pointer_node,
                                                 Decorator::Window_stack &window_stack)
 {
 	if (!pointer_node.has_attribute("xpos")
 	 || !pointer_node.has_attribute("ypos"))
 		return Decorator::Window_base::Hover();
 
-	return window_stack.hover(Decorator::Point::from_xml(pointer_node));
+	return window_stack.hover(Decorator::Point::from_node(pointer_node));
 }
 
 
-static void update_hover_report(Genode::Xml_node pointer_node,
+static void update_hover_report(Genode::Node pointer_node,
                                 Decorator::Window_stack &window_stack,
                                 Decorator::Window_base::Hover &hover,
                                 Genode::Expanding_reporter &hover_reporter)
@@ -292,7 +291,7 @@ void Decorator::Main::_handle_gui_sync()
 
 	if (_window_layout_update_needed) {
 
-		_window_stack.update_model(_window_layout.xml(), flush_window_stack_changes);
+		_window_stack.update_model(_window_layout.node(), flush_window_stack_changes);
 
 		model_updated = true;
 
@@ -301,7 +300,7 @@ void Decorator::Main::_handle_gui_sync()
 		 * the pointer.
 		 */
 		if (_pointer.constructed())
-			update_hover_report(_pointer->xml(), _window_stack, _hover, _hover_reporter);
+			update_hover_report(_pointer->node(), _window_stack, _hover, _hover_reporter);
 
 		_window_layout_update_needed = false;
 	}
@@ -342,7 +341,7 @@ void Decorator::Main::_handle_pointer_update()
 
 	_pointer->update();
 
-	update_hover_report(_pointer->xml(), _window_stack, _hover, _hover_reporter);
+	update_hover_report(_pointer->node(), _window_stack, _hover, _hover_reporter);
 }
 
 

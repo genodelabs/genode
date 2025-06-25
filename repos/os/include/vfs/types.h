@@ -16,8 +16,8 @@
 
 #include <util/list.h>
 #include <util/misc_math.h>
-#include <util/xml_node.h>
 #include <util/string.h>
+#include <base/node.h>
 #include <base/env.h>
 #include <base/signal.h>
 #include <base/allocator.h>
@@ -41,7 +41,7 @@ namespace Vfs {
 	using Genode::memset;
 	using file_size = unsigned long long;
 	using Genode::List;
-	using Genode::Xml_node;
+	using Genode::Node;
 	using Genode::Signal_context_capability;
 	using Genode::static_cap_cast;
 	using Genode::Interface;

@@ -37,8 +37,9 @@ namespace Genode {
 	}
 	template <typename>
 	class  Watch_handler;
-	void with_raw_file_content(Readonly_file const &, Byte_range_ptr const &, auto const &);
-	void with_xml_file_content(Readonly_file const &, Byte_range_ptr const &, auto const &);
+	void with_raw_file_content (Readonly_file const &, Byte_range_ptr const &, auto const &);
+	void with_xml_file_content (Readonly_file const &, Byte_range_ptr const &, auto const &);
+	void with_node_file_content(Readonly_file const &, Byte_range_ptr const &, auto const &);
 }
 
 
@@ -438,12 +439,12 @@ struct Genode::Directory : Noncopyable, Interface
 struct Genode::Root_directory : public Vfs::Simple_env,
                                 public Directory
 {
-	Root_directory(Genode::Env &env, Allocator &alloc, Xml_node const &config)
+	Root_directory(Genode::Env &env, Allocator &alloc, Node const &config)
 	:
 		Vfs::Simple_env(env, alloc, config), Directory((Vfs::Simple_env&)*this)
 	{ }
 
-	void apply_config(Xml_node const &config) { root_dir().apply_config(config); }
+	void apply_config(Node const &config) { root_dir().apply_config(config); }
 };
 
 
@@ -637,6 +638,14 @@ void Genode::with_xml_file_content(Readonly_file const &file,
 }
 
 
+void Genode::with_node_file_content(Readonly_file const &file,
+                                    Byte_range_ptr const &range, auto const &fn)
+{
+	with_raw_file_content(file, range, [&] (char const *ptr, size_t num_bytes) {
+		fn(Node(Const_byte_range_ptr(ptr, num_bytes))); });
+}
+
+
 class Genode::File_content
 {
 	public:
@@ -715,6 +724,11 @@ class Genode::File_content
 			catch (Xml_node::Invalid_syntax) { }
 
 			fn(Xml_node("<empty/>"));
+		}
+
+		void node(auto const &fn) const
+		{
+			fn(Node(Const_byte_range_ptr(_buffer.ptr, _buffer.size)));
 		}
 
 		/**

@@ -18,10 +18,7 @@
 #include <domain.h>
 #include <report.h>
 #include <nic_client.h>
-
-/* Genode includes */
-#include <base/duration.h>
-#include <os/buffered_xml.h>
+#include <node.h>
 
 namespace Genode { class Allocator; }
 
@@ -55,7 +52,7 @@ class Net::Configuration
 		Genode::Reporter              *_reporter_ptr { };
 		Domain_dict                    _domains { };
 		Nic_client_dict                _nic_clients { };
-		Genode::Buffered_xml    const  _node;
+		Genode::Buffered_node   const  _node;
 
 		/*
 		 * Noncopyable
@@ -64,18 +61,18 @@ class Net::Configuration
 		Configuration &operator = (Configuration const &);
 
 		Icmp_packet::Code
-		_init_icmp_type_3_code_on_fragm_ipv4(Genode::Xml_node const &node) const;
+		_init_icmp_type_3_code_on_fragm_ipv4(Genode::Node const &node) const;
 
 		void _invalid_domain(Domain     &domain,
 		                     char const *reason);
 
 	public:
 
-		Configuration(Genode::Xml_node  const &node,
-		              Genode::Allocator       &alloc);
+		Configuration(Genode::Node  const &node,
+		              Genode::Allocator   &alloc);
 
 		Configuration(Genode::Env                             &env,
-		              Genode::Xml_node                  const &node,
+		              Genode::Node                      const &node,
 		              Genode::Allocator                       &alloc,
 		              Genode::Signal_context_capability const &report_signal_cap,
 		              Cached_timer                            &timer,
@@ -110,7 +107,7 @@ class Net::Configuration
 		Genode::Microseconds  arp_request_timeout()            const { return _arp_request_timeout; }
 		Domain_dict          &domains()                              { return _domains; }
 
-		void with_node(auto const &fn) const { fn(_node.xml); }
+		void with_node(auto const &fn) const { fn(_node); }
 };
 
 #endif /* _CONFIGURATION_H_ */

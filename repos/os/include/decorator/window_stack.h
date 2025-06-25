@@ -23,7 +23,6 @@
 #include <decorator/types.h>
 #include <decorator/window.h>
 #include <decorator/window_factory.h>
-#include <decorator/xml_utils.h>
 
 namespace Decorator { class Window_stack; }
 
@@ -56,13 +55,13 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			void update(Window_factory_base &factory,
 			            Abandoned_windows   &abandoned_windows,
 			            Dirty_rect          &dirty_rect,
-			            Xml_node      const &boundary)
+			            Node          const &boundary)
 			{
-				rect = Rect::from_xml(boundary);
+				rect = Rect::from_node(boundary);
 
-				win_refs.update_from_xml(boundary,
+				win_refs.update_from_node(boundary,
 
-					[&] (Xml_node const &node) -> Win_ref & {
+					[&] (Node const &node) -> Win_ref & {
 						return factory.create_ref(node); },
 
 					[&] (Win_ref &ref) {
@@ -72,7 +71,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 							window.consider_as_abandoned(abandoned_windows);
 					},
 
-					[&] (Win_ref &ref, Xml_node const &node) {
+					[&] (Win_ref &ref, Node const &node) {
 						Rect const orig_geometry = ref.window.outer_geometry();
 						if (ref.window.update(node)) {
 							dirty_rect.mark_as_dirty(orig_geometry);
@@ -87,7 +86,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 				_abandoned.construct(registry, *this);
 			}
 
-			static Name name(Xml_node const &node)
+			static Name name(Node const &node)
 			{
 				return node.attribute_value("name", Name());
 			}
@@ -95,7 +94,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			/**
 			 * List_model::Element
 			 */
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return _name == name(node);
 			}
@@ -103,7 +102,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			/**
 			 * List_model::Element
 			 */
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("boundary");
 			}
@@ -131,11 +130,11 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 		                      Rect rect) const;
 
 		static inline
-		void _with_window_xml(Genode::Xml_node const &node, unsigned id,
+		void _with_window_node(Genode::Node const &node, unsigned id,
 		                      auto const &fn, auto const &missing_fn)
 		{
 			bool found = false;
-			node.for_each_sub_node("window", [&] (Xml_node const &window) {
+			node.for_each_sub_node("window", [&] (Node const &window) {
 				if (!found && node.attribute_value("id", 0UL) == id) {
 					found = true;
 					fn(window);
@@ -181,7 +180,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			return result;
 		}
 
-		inline void update_model(Xml_node const &root_node, auto const &flush_fn);
+		inline void update_model(Node const &root_node, auto const &flush_fn);
 
 		bool schedule_animated_windows()
 		{
@@ -274,24 +273,23 @@ void Decorator::Window_stack::_draw_rec(Canvas_base &canvas,
 }
 
 
-void Decorator::Window_stack::update_model(Genode::Xml_node const &root_node,
+void Decorator::Window_stack::update_model(Genode::Node const &root_node,
                                            auto const &flush_window_stack_changes_fn)
 {
 	Abandoned_boundaries abandoned_boundaries { };
 	Abandoned_windows    abandoned_windows    { };
 
-	_boundaries.update_from_xml(root_node,
+	_boundaries.update_from_node(root_node,
 
-		[&] (Xml_node const &node) -> Boundary & {
+		[&] (Node const &node) -> Boundary & {
 			return *new (_alloc) Boundary(Boundary::name(node)); },
 
 		[&] (Boundary &boundary) {
-			boundary.update(_window_factory, abandoned_windows, _dirty_rect,
-			                Xml_node("<empty/>"));
+			boundary.update(_window_factory, abandoned_windows, _dirty_rect, Node());
 			boundary.abandon(abandoned_boundaries);
 		},
 
-		[&] (Boundary &boundary, Xml_node const &node) {
+		[&] (Boundary &boundary, Node const &node) {
 			boundary.update(_window_factory, abandoned_windows, _dirty_rect, node); }
 	);
 

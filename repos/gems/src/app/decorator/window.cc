@@ -195,14 +195,14 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas, Ref const &win_ref,
 }
 
 
-bool Decorator::Window::update(Genode::Xml_node const &window_node)
+bool Decorator::Window::update(Genode::Node const &window_node)
 {
 	bool updated = false;
 
 	/*
 	 * Detect geometry changes
 	 */
-	Rect new_geometry = Rect::from_xml(window_node);
+	Rect new_geometry = Rect::from_node(window_node);
 	if (new_geometry.p1() != geometry().p1()
 	 || new_geometry.p2() != geometry().p2()) {
 
@@ -264,11 +264,11 @@ bool Decorator::Window::update(Genode::Xml_node const &window_node)
 	auto with_highlight = [&] (auto const &fn)
 	{
 		window_node.with_sub_node("highlight",
-			[&] (Xml_node const &highlight) { fn(highlight); },
-			[&] { fn(Xml_node("<highlight/>")); });
+			[&] (Node const &highlight) { fn(highlight); },
+			[&] { fn(Node()); });
 	};
 
-	with_highlight([&] (Xml_node const &highlight) {
+	with_highlight([&] (Node const &highlight) {
 
 		for (unsigned i = 0; i < num_elements(); i++) {
 
@@ -280,7 +280,7 @@ bool Decorator::Window::update(Genode::Xml_node const &window_node)
 			state.pressed     = false;
 			state.focused     = _focused;
 
-			highlight.for_each_sub_node([&] (Xml_node const &node) {
+			highlight.for_each_sub_node([&] (Node const &node) {
 
 				if (node.type() == element.type_name()) {
 					state.highlighted = true;

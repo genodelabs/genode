@@ -27,12 +27,12 @@ Global_keys::Policy *Global_keys::_lookup_policy(char const *key_name)
 }
 
 
-void Global_keys::apply_config(Xml_node const &config, Session_list &session_list)
+void Global_keys::apply_config(Node const &config, Session_list &session_list)
 {
 	for (unsigned i = 0; i < NUM_POLICIES; i++)
 		_policies[i] = Policy();
 
-	config.for_each_sub_node("global-key", [&] (Xml_node const &node) {
+	config.for_each_sub_node("global-key", [&] (Node const &node) {
 
 		if (!node.has_attribute("name")) {
 			warning("attribute 'name' missing in <global-key> config node");

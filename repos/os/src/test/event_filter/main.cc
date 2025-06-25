@@ -213,7 +213,7 @@ class Test::Input_to_filter
 
 		Input_to_filter(Env &env) : _env(env) { }
 
-		void apply_driver(Xml_node const &driver)
+		void apply_driver(Node const &driver)
 		{
 			using Name = String<100>;
 			Name const name = driver.attribute_value("name", Name());
@@ -224,7 +224,7 @@ class Test::Input_to_filter
 			if (name == "usb") _usb.conditional(connected, _env, "usb");
 		}
 
-		void submit_events(Xml_node const &step)
+		void submit_events(Node const &step)
 		{
 			if (step.type() != "usb" && step.type() != "ps2") {
 				error("unexpected argument to Input_to_filter::submit");
@@ -235,7 +235,7 @@ class Test::Input_to_filter
 
 			dst.with_batch([&] (Event::Session_client::Batch &batch) {
 
-				step.for_each_sub_node([&] (Xml_node const &node) {
+				step.for_each_sub_node([&] (Node const &node) {
 
 					bool const press   = node.has_type("press"),
 					           release = node.has_type("release");
@@ -291,10 +291,10 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	void _publish_report(Expanding_reporter &reporter, Xml_node const &node)
+	void _publish_report(Expanding_reporter &reporter, Node const &node)
 	{
 		reporter.generate([&] (Xml_generator &xml) {
-			node.for_each_sub_node([&] (Xml_node const &content) {
+			node.for_each_sub_node([&] (Node const &content) {
 				(void)xml.append_node(content, { 20 }); }); });
 	}
 
@@ -307,7 +307,7 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 	}
 
-	void _deep_filter_config(Expanding_reporter &reporter, Xml_node const &node)
+	void _deep_filter_config(Expanding_reporter &reporter, Node const &node)
 	{
 		unsigned const depth = node.attribute_value("depth", 0U);
 
@@ -317,18 +317,14 @@ struct Test::Main : Input_from_filter::Event_handler
 		});
 	}
 
-	unsigned const _num_steps = (unsigned)_config.xml().num_sub_nodes();
+	unsigned const _num_steps = (unsigned)_config.node().num_sub_nodes();
 	unsigned       _curr_step = 0;
 
 	uint64_t _went_to_sleep_time = 0;
 
-	void _with_curr_step_xml(auto const &fn) const
+	void _with_curr_step_node(auto const &fn) const
 	{
-		unsigned i = 0;
-		unsigned const index = _curr_step;
-		_config.xml().for_each_sub_node([&] (Xml_node const &sub_node) {
-			if (i++ == index)
-				fn(sub_node); });
+		_config.node().with_sub_node(_curr_step, fn, [] { });
 	}
 
 	void _advance_step()
@@ -344,7 +340,7 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	enum class Exec_result { PROCEED, EXPECT_IO, UNEXPECTED };
 
-	Exec_result _execute_step(Xml_node const &step)
+	Exec_result _execute_step(Node const &step)
 	{
 		log("step ", _curr_step, " (", step.type(), ")");
 
@@ -437,7 +433,7 @@ struct Test::Main : Input_from_filter::Event_handler
 	{
 		for (;;) {
 			Exec_result exec_result { };
-			_with_curr_step_xml([&] (Xml_node const &step) {
+			_with_curr_step_node([&] (Node const &step) {
 				exec_result = _execute_step(step);
 
 				if (exec_result == Exec_result::UNEXPECTED) {
@@ -454,7 +450,7 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 	}
 
-	void _handle_event_from_filter(Xml_node const &step, Input::Event const &ev)
+	void _handle_event_from_filter(Node const &step, Input::Event const &ev)
 	{
 		using Value = Genode::String<20>;
 
@@ -463,7 +459,7 @@ struct Test::Main : Input_from_filter::Event_handler
 
 		ev.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
 
-			auto codepoint_of_step = [] (Xml_node const &step) {
+			auto codepoint_of_step = [] (Node const &step) {
 				if (step.has_attribute("codepoint"))
 					return Codepoint { step.attribute_value("codepoint", 0U) };
 				return Utf8_ptr(step.attribute_value("char", Value()).string()).codepoint();
@@ -547,11 +543,11 @@ struct Test::Main : Input_from_filter::Event_handler
 	 */
 	void handle_event_from_filter(Input::Event const &ev) override
 	{
-		_with_curr_step_xml([&] (Xml_node const &step) {
+		_with_curr_step_node([&] (Node const &step) {
 			_handle_event_from_filter(step, ev); });
 	}
 
-	void _handle_timer(Xml_node const &curr_step)
+	void _handle_timer(Node const &curr_step)
 	{
 		if (curr_step.type() != "sleep") {
 			error("got spurious timeout signal");
@@ -577,7 +573,7 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	void _handle_timer()
 	{
-		_with_curr_step_xml([&] (Xml_node const &step) { _handle_timer(step); });
+		_with_curr_step_node([&] (Node const &step) { _handle_timer(step); });
 	}
 
 	Signal_handler<Main> _timer_handler {

@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/arg_string.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <rom_session/rom_session.h>
 #include <root/component.h>
 #include <report_rom/rom_registry.h>
@@ -26,7 +26,7 @@ namespace Rom {
 	class Module_name_fn;
 	class Root;
 
-	using Genode::Xml_node;
+	using Genode::Node;
 }
 
 

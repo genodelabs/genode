@@ -174,7 +174,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 
 	size_t _xml_output_len = 0;
 
-	void _evaluate_node(Xml_node const &node, Xml_generator &xml);
+	void _evaluate_node(Node const &node, Xml_generator &xml);
 	void _evaluate();
 
 	Root _root = { _env, *this, _sliced_heap };
@@ -190,14 +190,14 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 	{
 		_config.update();
 
-		_verbose = _config.xml().attribute_value("verbose", false);
+		_verbose = _config.node().attribute_value("verbose", false);
 
 		/*
 		 * Create buffer for generated XML data
 		 */
 		Genode::Number_of_bytes xml_ds_size = 4096;
 
-		xml_ds_size = _config.xml().attribute_value("buffer", xml_ds_size);
+		xml_ds_size = _config.node().attribute_value("buffer", xml_ds_size);
 
 		if (!_xml_ds.constructed() || xml_ds_size != _xml_ds->size())
 			_xml_ds.construct(_env.ram(), _env.rm(), xml_ds_size);
@@ -205,7 +205,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 		/*
 		 * Obtain inputs
 		 */
-		_input_rom_registry.update_config(_config.xml());
+		_input_rom_registry.update_config(_config.node());
 
 		/*
 		 * Generate output
@@ -247,9 +247,9 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 };
 
 
-void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
+void Rom_filter::Main::_evaluate_node(Node const &node, Xml_generator &xml)
 {
-	auto process_output_sub_node = [&] (Xml_node const &node) {
+	auto process_output_sub_node = [&] (Node const &node) {
 
 		if (node.has_type("if")) {
 
@@ -258,7 +258,7 @@ void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
 			 */
 			bool condition_satisfied = false;
 
-			node.with_optional_sub_node("has_value", [&] (Xml_node const &has_value_node) {
+			node.with_optional_sub_node("has_value", [&] (Node const &has_value_node) {
 
 				Input_name const input_name =
 					has_value_node.attribute_value("input", Input_name());
@@ -266,7 +266,7 @@ void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
 				Input_value const expected_input_value =
 					has_value_node.attribute_value("value", Input_value());
 
-				_input_rom_registry.query_value(_config.xml(), input_name).with_result(
+				_input_rom_registry.query_value(_config.node(), input_name).with_result(
 					[&] (Input_value const &value) {
 						if (value == expected_input_value)
 							condition_satisfied = true; },
@@ -277,10 +277,10 @@ void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
 			});
 
 			if (condition_satisfied) {
-				node.with_optional_sub_node("then", [&] (Xml_node const &then_node) {
+				node.with_optional_sub_node("then", [&] (Node const &then_node) {
 					_evaluate_node(then_node, xml); });
 			} else {
-				node.with_optional_sub_node("else", [&] (Xml_node const &else_node) {
+				node.with_optional_sub_node("else", [&] (Node const &else_node) {
 					_evaluate_node(else_node, xml); });
 			}
 		}
@@ -294,7 +294,7 @@ void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
 				Input_name const input_name =
 					node.attribute_value("input", Input_name());
 
-				_input_rom_registry.query_value(_config.xml(), input_name).with_result(
+				_input_rom_registry.query_value(_config.node(), input_name).with_result(
 					[&] (Input_value const value) {
 						xml.attribute(node.attribute_value("name", String()).string(),
 						              value); },
@@ -337,7 +337,7 @@ void Rom_filter::Main::_evaluate()
 {
 	using namespace Genode;
 
-	_config.xml().with_optional_sub_node("output", [&] (Xml_node const &output) {
+	_config.node().with_optional_sub_node("output", [&] (Node const &output) {
 
 		if (!output.has_attribute("node")) {
 			error("missing 'node' attribute in '<output>' node");

@@ -35,11 +35,9 @@ struct Text_area::Main : Text_area_widget::Action
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	Root_directory _vfs = _config.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Root_directory {
-			return { _env, _heap, config }; },
-		[&] () -> Root_directory {
-			return { _env, _heap, Xml_node("<empty/>") }; });
+	Root_directory _vfs = _config.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Root_directory { return { _env, _heap, config }; },
+		[&] ()                   -> Root_directory { return { _env, _heap, Node() }; });
 
 	Runtime _runtime { _env, _heap };
 

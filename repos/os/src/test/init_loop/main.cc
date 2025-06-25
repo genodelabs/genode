@@ -146,7 +146,7 @@ struct Test::Main
 
 		size_t total_loss = 0;
 
-		void update(Xml_node const &ram)
+		void update(Node const &ram)
 		{
 			size_t const current = ram.attribute_value("quota", Number_of_bytes());
 
@@ -171,10 +171,10 @@ struct Test::Main
 	Ram_tracker _init_ram_tracker   { "init" };
 	Ram_tracker _server_ram_tracker { "server" };
 
-	static Number_of_bytes _init_ram(Xml_node const &state)
+	static Number_of_bytes _init_ram(Node const &state)
 	{
 		return state.with_sub_node("ram",
-			[&] (Xml_node const &ram) {
+			[&] (Node const &ram) {
 				return ram.attribute_value("quota", Number_of_bytes()); },
 			[&] { return Number_of_bytes(); });
 	}
@@ -182,9 +182,9 @@ struct Test::Main
 	using Name = String<32>;
 
 	template <typename FN>
-	void _apply_child(Xml_node const &state, Name const &name, FN const &fn)
+	void _apply_child(Node const &state, Name const &name, FN const &fn)
 	{
-		state.for_each_sub_node("child", [&] (Xml_node const &child) {
+		state.for_each_sub_node("child", [&] (Node const &child) {
 			if (child.attribute_value("name", Name()) == name)
 				fn(child); });
 	}
@@ -193,7 +193,7 @@ struct Test::Main
 	{
 		_init_state.update();
 
-		Xml_node const &state = _init_state.xml();
+		Node const &state = _init_state.node();
 
 		/*
 		 * Detect state where the client is running and has established a
@@ -201,17 +201,17 @@ struct Test::Main
 		 */
 		bool client_present  = false;
 		bool client_complete = false;
-		_apply_child(state, "client", [&] (Xml_node const &child) {
+		_apply_child(state, "client", [&] (Node const &child) {
 			client_present = true;
-			child.for_each_sub_node("requested", [&] (Xml_node const &requested) {
-				requested.for_each_sub_node("session", [&] (Xml_node const &session) {
+			child.for_each_sub_node("requested", [&] (Node const &requested) {
+				requested.for_each_sub_node("session", [&] (Node const &session) {
 					if (session.attribute_value("service", String<16>()) == "LOG"
 					 && session.attribute_value("state", String<16>()) == "CAP_HANDED_OUT")
 						client_complete = true; }); }); });
 
 		bool client_connected = false;
-		_apply_child(state, "server", [&] (Xml_node const &child) {
-			child.for_each_sub_node("provided", [&] (Xml_node const &provided) {
+		_apply_child(state, "server", [&] (Node const &child) {
+			child.for_each_sub_node("provided", [&] (Node const &provided) {
 				client_connected |= (provided.num_sub_nodes() > 0); }); });
 
 		if (_client_starting) {
@@ -228,11 +228,11 @@ struct Test::Main
 				_cnt++;
 				log("iteration ", _cnt);
 
-				state.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
+				state.with_optional_sub_node("ram", [&] (Node const &ram) {
 					_init_ram_tracker.update(ram); });
 
-				_apply_child(state, "server", [&] (Xml_node const &child) {
-					child.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
+				_apply_child(state, "server", [&] (Node const &child) {
+					child.with_optional_sub_node("ram", [&] (Node const &ram) {
 						_server_ram_tracker.update(ram); }); });
 
 				_client_starting = true;

@@ -30,7 +30,7 @@ struct Mixer::Mix_signal : Audio_signal
 	{
 		Volume volume;
 
-		Input(Xml_node const &node) : volume(Volume::from_xml(node)) { }
+		Input(Node const &node) : volume(Volume::from_node(node)) { }
 	};
 
 	struct Named_signal_input : Input
@@ -41,7 +41,7 @@ struct Mixer::Mix_signal : Audio_signal
 
 		struct { Sample_producer *_sample_producer_ptr = nullptr; };
 
-		Named_signal_input(Xml_node const &node)
+		Named_signal_input(Node const &node)
 		:
 			Input(node), name(node.attribute_value("name", Name()))
 		{ }
@@ -70,7 +70,7 @@ struct Mixer::Mix_signal : Audio_signal
 
 		Registry<Registered_sample_producer_ptr> _sample_producer_ptrs { };
 
-		Play_session_input(Xml_node const &node, Allocator &alloc)
+		Play_session_input(Node const &node, Allocator &alloc)
 		:
 			Input(node), _alloc(alloc),
 			label (node.attribute_value("label", Label())),
@@ -141,7 +141,7 @@ struct Mixer::Mix_signal : Audio_signal
 		~Used_guard() { _used = false; }
 	};
 
-	Mix_signal(Xml_node const &node, Allocator &alloc)
+	Mix_signal(Node const &node, Allocator &alloc)
 	:
 		Audio_signal(node.attribute_value("name", Name())),
 		_alloc(alloc)
@@ -150,9 +150,9 @@ struct Mixer::Mix_signal : Audio_signal
 	/**
 	 * Audio_signal interface
 	 */
-	void update(Xml_node const &node) override
+	void update(Node const &node) override
 	{
-		_volume = Volume::from_xml(node);
+		_volume = Volume::from_node(node);
 
 		_named_signal_inputs.for_each([&] (Registered<Named_signal_input> &input) {
 			destroy(_alloc, &input); });
@@ -160,7 +160,7 @@ struct Mixer::Mix_signal : Audio_signal
 		_play_session_inputs.for_each([&] (Registered<Play_session_input> &input) {
 			destroy(_alloc, &input); });
 
-		node.for_each_sub_node([&] (Xml_node const &input_node) {
+		node.for_each_sub_node([&] (Node const &input_node) {
 
 			if (input_node.has_type("signal"))
 				new (_alloc) Registered<Named_signal_input>(_named_signal_inputs, input_node);

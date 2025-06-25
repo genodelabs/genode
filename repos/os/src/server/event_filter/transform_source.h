@@ -35,9 +35,9 @@ class Event_filter::Transform_source : public Source, Source::Filter
 
 		Transform::Matrix _transform = Transform::Matrix::identity();
 
-		void _apply_config(Xml_node const &config)
+		void _apply_config(Node const &config)
 		{
-			config.for_each_sub_node([&] (Xml_node const &node) {
+			config.for_each_sub_node([&] (Node const &node) {
 				if (node.has_type("translate")) {
 					_transform = _transform.translate(
 						float(node.attribute_value("x", 0.0)),
@@ -123,7 +123,7 @@ class Event_filter::Transform_source : public Source, Source::Filter
 
 		static char const *name() { return "transform"; }
 
-		Transform_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
+		Transform_source(Owner &owner, Node const &config, Source::Factory &factory)
 		:
 			Source(owner),
 			_owner(factory),

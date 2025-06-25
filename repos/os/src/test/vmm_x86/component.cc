@@ -224,8 +224,8 @@ class Vmm::Vm
 			Attached_rom_dataspace info { env, "platform_info"};
 
 			bool result = false;
-			info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &node) {
-				node.with_optional_sub_node("features", [&] (Xml_node const &node) {
+			info.node().with_optional_sub_node("hardware", [&] (Node const &node) {
+				node.with_optional_sub_node("features", [&] (Node const &node) {
 					result = node.attribute_value(name, false); }); });
 			return result;
 		}

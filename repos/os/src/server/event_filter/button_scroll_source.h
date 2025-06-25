@@ -39,12 +39,12 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 				 */
 				int factor;
 
-				static Key_name _button_attribute(Xml_node const &node)
+				static Key_name _button_attribute(Node const &node)
 				{
 					return node.attribute_value("button", Key_name("BTN_MIDDLE"));
 				}
 
-				static Attr from_xml(Xml_node const &node)
+				static Attr from_node(Node const &node)
 				{
 					return {
 						.button = key_code_by_name(_button_attribute(node).string()),
@@ -209,11 +209,11 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 			destination.submit(event);
 		}
 
-		static Wheel::Attr _attr_for_sub_node(Xml_node const &node, char const *type)
+		static Wheel::Attr _attr_for_sub_node(Node const &node, char const *type)
 		{
 			Wheel::Attr result { };
-			node.with_optional_sub_node(type, [&] (Xml_node const &sub_node) {
-				result = Wheel::Attr::from_xml(sub_node); });
+			node.with_optional_sub_node(type, [&] (Node const &sub_node) {
+				result = Wheel::Attr::from_node(sub_node); });
 			return result;
 		}
 
@@ -221,7 +221,7 @@ class Event_filter::Button_scroll_source : public Source, Source::Filter
 
 		static char const *name() { return "button-scroll"; }
 
-		Button_scroll_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
+		Button_scroll_source(Owner &owner, Node const &config, Source::Factory &factory)
 		:
 			Source(owner),
 			_vertical_wheel  (_attr_for_sub_node(config, "vertical")),

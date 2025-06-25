@@ -47,21 +47,21 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 		void _process()
 		{
 			_parent_rom.update();
-			Xml_node const &requests = _parent_rom.xml();
+			Node const &requests = _parent_rom.node();
 
 			using Args = Session_state::Args;
 
-			auto args_from_request = [] (Xml_node const &request)
+			auto args_from_request = [] (Node const &request)
 			{
 				return request.with_sub_node("args",
-					[] (Xml_node const &node) { return node.decoded_content<Args>(); },
+					[] (Node const &node) { return node.decoded_content<Args>(); },
 					[&] {
 						Genode::error("failed to parse request ", request);
 						return Args();
 					});
 			};
 
-			auto const create_fn = [&] (Xml_node const &request)
+			auto const create_fn = [&] (Node const &request)
 			{
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };
@@ -88,7 +88,7 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 				}
 			};
 
-			auto const upgrade_fn = [&] (Xml_node const &request)
+			auto const upgrade_fn = [&] (Node const &request)
 			{
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };
@@ -98,7 +98,7 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 					_requests_handler.handle_session_upgrade(id, args);
 			};
 
-			auto const close_fn = [&] (Xml_node const &request)
+			auto const close_fn = [&] (Node const &request)
 			{
 				Parent::Server::Id const id {
 					request.attribute_value("id", ~0UL) };

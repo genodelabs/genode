@@ -62,9 +62,9 @@ Net::Nic_session_component::Interface_policy::determine_domain_name() const
 {
 	Domain_name domain_name { };
 
-	_config_ptr->with_node([&] (Xml_node const &node) {
+	_config_ptr->with_node([&] (Node const &node) {
 		with_matching_policy(_label, node,
-			[&] (Xml_node const &policy) {
+			[&] (Node const &policy) {
 				domain_name = policy.attribute_value("domain", Domain_name());
 				if (domain_name == Domain_name() && _config_ptr->verbose())
 					log("[?] no domain attribute in policy for downlink label \"", _label, "\"");

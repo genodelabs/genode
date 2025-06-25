@@ -99,8 +99,8 @@ void Session_component::_free_dma_buffer(Dma_buffer & buf)
 
 bool Session_component::matches(Device const & dev) const
 {
-	return with_matching_policy(label(), _config.xml(),
-		[&] (Xml_node const &policy) {
+	return with_matching_policy(label(), _config.node(),
+		[&] (Node const &policy) {
 
 			/* check PCI devices */
 			if (pci_device_matches(policy, dev))
@@ -108,7 +108,7 @@ bool Session_component::matches(Device const & dev) const
 
 			/* check for dedicated device name */
 			bool ret = false;
-			policy.for_each_sub_node("device", [&] (Xml_node node) {
+			policy.for_each_sub_node("device", [&] (Node const &node) {
 				if (dev.name() == node.attribute_value("name", Device::Name()))
 					ret = true;
 			});

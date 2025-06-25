@@ -59,7 +59,7 @@ struct Test::Scenario : Interface, private Fifo<Scenario>::Element
 		bool     copy;
 		bool     verbose;
 
-		static Attr from_xml(Xml_node const &node)
+		static Attr from_node(Node const &node)
 		{
 			return {
 				.io_buffer         = node.attribute_value("io_buffer", Number_of_bytes(4*1024*1024)),
@@ -73,7 +73,7 @@ struct Test::Scenario : Interface, private Fifo<Scenario>::Element
 
 	Attr const attr;
 
-	Scenario(Xml_node const &node) : attr(Attr::from_xml(node)) { }
+	Scenario(Node const &node) : attr(Attr::from_node(node)) { }
 
 	struct Init_attr
 	{

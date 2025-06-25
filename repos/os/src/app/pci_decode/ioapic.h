@@ -30,12 +30,12 @@ struct Ioapic : List_model<Ioapic>::Element
 
 	Ioapic_name name() const { return Ioapic_name("ioapic", id); }
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		return id == node.attribute_value("id", 0UL);
 	}
 
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return node.has_type("ioapic");
 	}

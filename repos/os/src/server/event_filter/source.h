@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/registry.h>
-#include <util/xml_node.h>
 #include <input/event.h>
 
 /* local includes */
@@ -39,7 +38,7 @@ class Event_filter::Source
 
 		virtual ~Source() { }
 
-		static bool input_node(Xml_node const &node)
+		static bool input_node(Node const &node)
 		{
 			return node.type() == "input"
 			    || node.type() == "remap"
@@ -56,11 +55,11 @@ class Event_filter::Source
 			return false;
 		}
 
-		static void with_input_sub_node(Xml_node const &node,
+		static void with_input_sub_node(Node const &node,
 		                                auto const &fn, auto const &missing_fn)
 		{
 			bool found = false;
-			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+			node.for_each_sub_node([&] (Node const &sub_node) {
 				if (!found && input_node(sub_node)) {
 					fn(sub_node);
 					found = true;
@@ -118,13 +117,13 @@ class Event_filter::Source
 			/*
 			 * \throw Invalid_config
 			 */
-			virtual Source &create_source(Owner &, Xml_node const &) = 0;
+			virtual Source &create_source(Owner &, Node const &) = 0;
 
-			Source &create_source_for_sub_node(Owner &owner, Xml_node const &node)
+			Source &create_source_for_sub_node(Owner &owner, Node const &node)
 			{
 				Source *ptr = nullptr;
 				with_input_sub_node(node,
-					[&] (Xml_node const &sub_node) {
+					[&] (Node const &sub_node) {
 						ptr = &create_source(owner, sub_node); },
 					[&] { /* no valid input sub node */ });
 

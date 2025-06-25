@@ -32,7 +32,7 @@ struct Vfs::File_system_factory : Interface
 	 * \param env         Env of VFS root
 	 * \param config      file-system configuration
 	 */
-	virtual File_system *create(Vfs::Env &env, Xml_node const &config) = 0;
+	virtual File_system *create(Vfs::Env &env, Node const &config) = 0;
 };
 
 
@@ -60,7 +60,7 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		template <typename FILE_SYSTEM>
 		void _add_builtin_fs();
 
-		Vfs::File_system *_try_create(Vfs::Env &env, Genode::Xml_node const &config);
+		Vfs::File_system *_try_create(Vfs::Env &env, Node const &config);
 
 		/**
 		 * Return name of factory provided by the shared library
@@ -86,7 +86,7 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		/**
 		 * Try to load external File_system_factory provider
 		 */
-		bool _probe_external_factory(Vfs::Env &env, Genode::Xml_node const &node);
+		bool _probe_external_factory(Vfs::Env &env, Node const &node);
 
 	public:
 
@@ -100,7 +100,7 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		/**
 		 * File_system_factory interface
 		 */
-		File_system *create(Vfs::Env&, Genode::Xml_node const &) override;
+		File_system *create(Vfs::Env&, Node const &) override;
 
 		/**
 		 * Register an additional factory for new file-system type

@@ -30,11 +30,11 @@ class Event_filter::Merge_source : public Source
 
 		static char const *name() { return "merge"; }
 
-		Merge_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
+		Merge_source(Owner &owner, Node const &config, Source::Factory &factory)
 		:
 			Source(owner), _owner(factory)
 		{
-			config.for_each_sub_node([&] (Xml_node const &node) {
+			config.for_each_sub_node([&] (Node const &node) {
 				if (input_node(node))
 					factory.create_source(_owner, node); });
 		}

@@ -31,7 +31,7 @@ using namespace Pci;
 
 struct Main
 {
-	Env                  & env;
+	Env                   &env;
 	Heap                   heap            { env.ram(), env.rm()       };
 	Attached_rom_dataspace platform_info   { env, "platform_info"      };
 	Expanding_reporter     pci_reporter    { env, "devices", "devices", { 32*1024 } };
@@ -55,25 +55,25 @@ struct Main
 
 	Constructible<Attached_io_mem_dataspace> pci_config_ds {};
 
-	bus_t parse_pci_function(Bdf bdf, Config & cfg,
+	bus_t parse_pci_function(Bdf, Config &,
 	                         addr_t cfg_phys_base,
-	                         Xml_generator & generator, unsigned & msi);
-	bus_t parse_pci_bus(bus_t bus, Byte_range_ptr const & range, addr_t phys_base,
-	                    Xml_generator & generator, unsigned & msi);
+	                         Xml_generator &, unsigned &msi);
+	bus_t parse_pci_bus(bus_t bus, Byte_range_ptr const &, addr_t phys_base,
+	                    Xml_generator &, unsigned &msi);
 
-	void parse_irq_override_rules(Xml_node & xml);
-	void parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator);
-	void parse_acpi_device_info(Xml_node const &xml, Xml_generator & generator);
-	void parse_tpm2_table(Xml_node const &xml, Xml_generator & gen);
+	void parse_irq_override_rules(Node const &);
+	void parse_pci_config_spaces (Node const &, Xml_generator &);
+	void parse_acpi_device_info  (Node const &, Xml_generator &);
+	void parse_tpm2_table        (Node const &, Xml_generator &);
 
 	template <typename FN>
-	void for_bridge(Pci::bus_t bus, FN const & fn)
+	void for_bridge(Pci::bus_t bus, FN const &fn)
 	{
-		bridge_registry.for_each([&] (Bridge & b) {
+		bridge_registry.for_each([&] (Bridge &b) {
 			if (b.behind(bus)) b.find_bridge(bus, fn); });
 	}
 
-	Main(Env & env);
+	Main(Env &env);
 };
 
 
@@ -109,11 +109,11 @@ static uint64_t fixup_bar_base_address(Bdf bdf, unsigned bar, uint64_t addr, uin
  * reached downstream of a bridge).
  */
 
-bus_t Main::parse_pci_function(Bdf             bdf,
-                               Config        & cfg,
-                               addr_t          cfg_phys_base,
-                               Xml_generator & gen,
-                               unsigned      & msi_number)
+bus_t Main::parse_pci_function(Bdf            bdf,
+                               Config        &cfg,
+                               addr_t         cfg_phys_base,
+                               Xml_generator &gen,
+                               unsigned      &msi_number)
 {
 	cfg.scan();
 
@@ -121,7 +121,7 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 
 	/* check for bridges */
 	if (cfg.read<Config::Header_type::Type>()) {
-		for_bridge(bdf.bus, [&] (Bridge & parent) {
+		for_bridge(bdf.bus, [&] (Bridge &parent) {
 			Config_type1 bcfg(cfg.range());
 			new (heap) Bridge(parent.sub_bridges, bdf,
 			                  bcfg.secondary_bus_number(),
@@ -276,18 +276,18 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 
 				irq_line_t irq = cfg.read<Config::Irq_line>();
 
-				for_bridge(bdf.bus, [&] (Bridge & b) {
-					irq_routing_list.for_each([&] (Irq_routing & ir) {
+				for_bridge(bdf.bus, [&] (Bridge &b) {
+					irq_routing_list.for_each([&] (Irq_routing &ir) {
 						ir.route(b, bdf.dev, irq_pin-1, irq); });
 				});
 
-				irq_override_list.for_each([&] (Irq_override & io) {
+				irq_override_list.for_each([&] (Irq_override &io) {
 					io.generate(gen, irq); });
 
 				gen.attribute("number", irq);
 			});
 
-		reserved_memory_list.for_each([&] (Rmrr & rmrr) {
+		reserved_memory_list.for_each([&] (Rmrr &rmrr) {
 			if (rmrr.bdf == bdf)
 				gen.node("reserved_memory", [&]
 				{
@@ -303,11 +303,11 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 		 */
 
 		bool drhd_device_found = false;
-		drhd_list.for_each([&] (Drhd const & drhd) {
+		drhd_list.for_each([&] (Drhd const &drhd) {
 			if (drhd_device_found) return;
 
 			bool device_match = false;
-			drhd.devices.for_each([&] (Drhd::Device const & device) {
+			drhd.devices.for_each([&] (Drhd::Device const &device) {
 				if (device.bdf == bdf)
 					device_match = true;
 			});
@@ -319,7 +319,7 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 		});
 
 		if (!drhd_device_found) {
-			drhd_list.for_each([&] (Drhd const & drhd) {
+			drhd_list.for_each([&] (Drhd const &drhd) {
 				if (drhd.scope == Drhd::Scope::INCLUDE_PCI_ALL)
 					gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
 			});
@@ -330,15 +330,15 @@ bus_t Main::parse_pci_function(Bdf             bdf,
 }
 
 
-bus_t Main::parse_pci_bus(bus_t                  bus,
-                          Byte_range_ptr const & range,
-                          addr_t                 phys_base,
-                          Xml_generator        & generator,
-                          unsigned             & msi_number)
+bus_t Main::parse_pci_bus(bus_t                 bus,
+                          Byte_range_ptr const &range,
+                          addr_t                phys_base,
+                          Xml_generator        &generator,
+                          unsigned             &msi_number)
 {
 	bus_t max_subordinate_bus = bus;
 
-	auto per_function = [&] (Byte_range_ptr const & config_range, addr_t config_phys_base,
+	auto per_function = [&] (Byte_range_ptr const &config_range, addr_t config_phys_base,
 	                         dev_t dev, func_t fn) {
 		Config cfg(config_range);
 		if (!cfg.valid())
@@ -368,15 +368,15 @@ bus_t Main::parse_pci_bus(bus_t                  bus,
 }
 
 
-static void parse_acpica_info(Xml_node const &xml, Xml_generator &gen)
+static void parse_acpica_info(Node const &node, Xml_generator &gen)
 {
 	gen.node("device", [&] {
 		gen.attribute("name", "acpi");
 		gen.attribute("type", "acpi");
 
-		xml.with_optional_sub_node("sci_int", [&] (Xml_node xml) {
+		node.with_optional_sub_node("sci_int", [&] (Node const &node) {
 			gen.node("irq", [&] {
-				gen.attribute("number", xml.attribute_value("irq", 0xff));
+				gen.attribute("number", node.attribute_value("irq", 0xff));
 			});
 		});
 	});
@@ -389,7 +389,7 @@ static void parse_acpica_info(Xml_node const &xml, Xml_generator &gen)
  * See the following document for further information:
  * https://trustedcomputinggroup.org/wp-content/uploads/TCG_ACPIGeneralSpec_v1p3_r8_pub.pdf
  */
-void Main::parse_tpm2_table(Xml_node const &xml, Xml_generator & gen)
+void Main::parse_tpm2_table(Node const &node, Xml_generator &gen)
 {
 	enum {
 		TPM2_TABLE_CRB_ADDRESS_OFFSET = 40,
@@ -400,8 +400,8 @@ void Main::parse_tpm2_table(Xml_node const &xml, Xml_generator & gen)
 		TPM2_DEVICE_IO_MEM_SIZE = 0x1000U,
 	};
 
-	addr_t const addr = xml.attribute_value("addr",   0UL);
-	size_t const size = xml.attribute_value("size",  0UL);
+	addr_t const addr = node.attribute_value("addr",   0UL);
+	size_t const size = node.attribute_value("size",  0UL);
 
 	if ((addr < 1UL) || (size < TPM2_TABLE_MIN_SIZE)) {
 		error("TPM2 table info invalid");
@@ -443,11 +443,11 @@ void Main::parse_tpm2_table(Xml_node const &xml, Xml_generator & gen)
  * we assume to be found in this function. In the future, this function
  * shall interpret ACPI tables information.
  */
-void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
+void Main::parse_acpi_device_info(Node const &node, Xml_generator &gen)
 {
 	using Table_name = String<5>;
 
-	xml.for_each_sub_node("table", [&] (Xml_node &table) {
+	node.for_each_sub_node("table", [&] (Node const &table) {
 		Table_name name = table.attribute_value("name", Table_name());
 		/* only the TPM2 table is supported at this time */
 		if (name == "TPM2") {
@@ -492,17 +492,17 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 	/*
 	 * ACPI device (if applicable)
 	 */
-	if (xml.has_sub_node("sci_int"))
-		parse_acpica_info(xml, gen);
+	if (node.has_sub_node("sci_int"))
+		parse_acpica_info(node, gen);
 
 	/*
 	 * IOAPIC devices
 	 */
 	bool intr_remap = false;
-	xml.with_optional_sub_node("dmar", [&] (Xml_node const & node) {
+	node.with_optional_sub_node("dmar", [&] (Node const &node) {
 		intr_remap = node.attribute_value("intr_remap", intr_remap); });
 
-	ioapic_list.for_each([&] (Ioapic const & ioapic) {
+	ioapic_list.for_each([&] (Ioapic const &ioapic) {
 		gen.node("device", [&]
 		{
 			gen.attribute("name", ioapic.name());
@@ -514,8 +514,8 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 			});
 
 			/* find corresponding drhd and add <io_mmu/> node and Routing_id property */
-			drhd_list.for_each([&] (Drhd const & drhd) {
-				drhd.devices.for_each([&] (Drhd::Device const & device) {
+			drhd_list.for_each([&] (Drhd const &drhd) {
+				drhd.devices.for_each([&] (Drhd::Device const &device) {
 					if (device.type == Drhd::Device::IOAPIC && device.id == ioapic.id) {
 						gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
 						gen.node("property", [&]
@@ -545,7 +545,7 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 	});
 
 	/* Intel DMA-remapping hardware units */
-	drhd_list.for_each([&] (Drhd const & drhd) {
+	drhd_list.for_each([&] (Drhd const &drhd) {
 		gen.node("device", [&]
 		{
 			gen.attribute("name", drhd.name());
@@ -600,16 +600,16 @@ void Main::parse_acpi_device_info(Xml_node const &xml, Xml_generator & gen)
 }
 
 
-void Main::parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator)
+void Main::parse_pci_config_spaces(Node const &node, Xml_generator &generator)
 {
 	unsigned msi_number      = msi_start;
 	unsigned host_bridge_num = 0;
 
-	xml.for_each_sub_node("bdf", [&] (Xml_node & xml)
+	node.for_each_sub_node("bdf", [&] (Node const &node)
 	{
-		addr_t const start = xml.attribute_value("start",  0UL);
-		addr_t const base  = xml.attribute_value("base",   0UL);
-		size_t const count = xml.attribute_value("count",  0UL);
+		addr_t const start = node.attribute_value("start",  0UL);
+		addr_t const base  = node.attribute_value("base",   0UL);
+		size_t const count = node.attribute_value("count",  0UL);
 
 		bus_t const bus_off  = (bus_t) (start / FUNCTION_PER_BUS_MAX);
 		bus_t const last_bus = (bus_t)
@@ -643,12 +643,12 @@ void Main::parse_pci_config_spaces(Xml_node & xml, Xml_generator & generator)
 }
 
 
-Main::Main(Env & env) : env(env)
+Main::Main(Env &env) : env(env)
 {
-	platform_info.xml().with_optional_sub_node("kernel", [&] (Xml_node xml)
+	platform_info.node().with_optional_sub_node("kernel", [&] (Node const &node)
 	{
-		apic_capable = xml.attribute_value("acpi", false);
-		msi_capable  = xml.attribute_value("msi",  false);
+		apic_capable = node.attribute_value("acpi", false);
+		msi_capable  = node.attribute_value("msi",  false);
 	});
 
 	Attached_rom_dataspace sys_rom(env, "system");
@@ -667,14 +667,14 @@ Main::Main(Env & env) : env(env)
 		}
 	}
 
-	Xml_node xml = sys_rom.xml();
+	Node const &node = sys_rom.node();
 
 	if (apic_capable) {
 
-		irq_override_list.update_from_xml(xml,
+		irq_override_list.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Irq_override &
+			[&] (Node const &node) -> Irq_override &
 			{
 				return *new (heap)
 					Irq_override(node.attribute_value<uint8_t>("irq",   0xff),
@@ -686,13 +686,13 @@ Main::Main(Env & env) : env(env)
 			[&] (Irq_override &irq_override) { destroy(heap, &irq_override); },
 
 			/* update */
-			[&] (Irq_override &, Xml_node const &) { }
+			[&] (Irq_override &, Node const &) { }
 		);
 
-		irq_routing_list.update_from_xml(xml,
+		irq_routing_list.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Irq_routing &
+			[&] (Node const &node) -> Irq_routing &
 			{
 				rid_t bridge_bdf = node.attribute_value<rid_t>("bridge_bdf", 0xff);
 				return *new (heap)
@@ -706,14 +706,14 @@ Main::Main(Env & env) : env(env)
 			[&] (Irq_routing &irq_routing) { destroy(heap, &irq_routing); },
 
 			/* update */
-			[&] (Irq_routing &, Xml_node const &) { }
+			[&] (Irq_routing &, Node const &) { }
 		);
 	}
 
-	reserved_memory_list.update_from_xml(xml,
+	reserved_memory_list.update_from_node(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Rmrr &
+		[&] (Node const &node) -> Rmrr &
 		{
 			bus_t  bus = 0;
 			dev_t  dev = 0;
@@ -721,9 +721,9 @@ Main::Main(Env & env) : env(env)
 			addr_t start = node.attribute_value("start", 0UL);
 			addr_t end   = node.attribute_value("end", 0UL);
 
-			node.with_optional_sub_node("scope", [&] (Xml_node node) {
+			node.with_optional_sub_node("scope", [&] (Node const &node) {
 				bus = node.attribute_value<uint8_t>("bus_start", 0U);
-				node.with_optional_sub_node("path", [&] (Xml_node node) {
+				node.with_optional_sub_node("path", [&] (Node const &node) {
 					dev = node.attribute_value<uint8_t>("dev", 0);
 					fn  = node.attribute_value<uint8_t>("func", 0);
 				});
@@ -736,13 +736,13 @@ Main::Main(Env & env) : env(env)
 		[&] (Rmrr &rmrr) { destroy(heap, &rmrr); },
 
 		/* update */
-		[&] (Rmrr &, Xml_node const &) { }
+		[&] (Rmrr &, Node const &) { }
 	);
 
-	ioapic_list.update_from_xml(xml,
+	ioapic_list.update_from_node(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Ioapic &
+		[&] (Node const &node) -> Ioapic &
 		{
 			uint8_t  id   = node.attribute_value("id", (uint8_t)0U);
 			addr_t   addr = node.attribute_value("addr", 0U);
@@ -755,14 +755,14 @@ Main::Main(Env & env) : env(env)
 		[&] (Ioapic &ioapic) { destroy(heap, &ioapic); },
 
 		/* update */
-		[&] (Ioapic &, Xml_node const &) { }
+		[&] (Ioapic &, Node const &) { }
 	);
 
 	unsigned nbr { 0 };
-	drhd_list.update_from_xml(xml,
+	drhd_list.update_from_node(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Drhd &
+		[&] (Node const &node) -> Drhd &
 		{
 			addr_t   addr  = node.attribute_value("phys", 0UL);
 			size_t   size  = node.attribute_value("size", 0UL);
@@ -784,11 +784,11 @@ Main::Main(Env & env) : env(env)
 			uint8_t type = 0;
 			uint8_t id   = 0;
 
-			node.for_each_sub_node("scope", [&] (Xml_node node) {
+			node.for_each_sub_node("scope", [&] (Node const &node) {
 				bus  = node.attribute_value<uint8_t>("bus_start", 0U);
 				type = node.attribute_value<uint8_t>("type", 0U);
 				id   = node.attribute_value<uint8_t>("id", 0U);
-				node.with_optional_sub_node("path", [&] (Xml_node node) {
+				node.with_optional_sub_node("path", [&] (Node const &node) {
 					dev = node.attribute_value<uint8_t>("dev", 0);
 					fn  = node.attribute_value<uint8_t>("func", 0);
 				});
@@ -802,20 +802,20 @@ Main::Main(Env & env) : env(env)
 		/* destroy */
 		[&] (Drhd &drhd)
 		{
-			drhd.devices.for_each([&] (Drhd::Device & device) {
+			drhd.devices.for_each([&] (Drhd::Device &device) {
 				destroy(heap, &device); });
 			destroy(heap, &drhd);
 		},
 
 		/* update */
-		[&] (Drhd &, Xml_node const &) { }
+		[&] (Drhd &, Node const &) { }
 
 	);
 
-	pci_reporter.generate([&] (Xml_generator & generator)
+	pci_reporter.generate([&] (Xml_generator &generator)
 	{
-		parse_acpi_device_info(xml, generator);
-		parse_pci_config_spaces(xml, generator);
+		parse_acpi_device_info(node, generator);
+		parse_pci_config_spaces(node, generator);
 	});
 }
 

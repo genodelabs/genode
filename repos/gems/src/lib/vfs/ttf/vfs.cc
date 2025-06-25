@@ -74,7 +74,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 		float              size;
 		Cached_font::Limit cache_limit;
 
-		Font_config(Xml_node const &config)
+		Font_config(Node const &config)
 		:
 			path(config.attribute_value("path", Directory::Path())),
 			size((float)config.attribute_value("size_px", 16.0d)),
@@ -117,7 +117,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 		_max_height_fs.value(_font->font.font().bounding_box().h);
 	}
 
-	Local_factory(Vfs::Env &env, Xml_node const &config)
+	Local_factory(Vfs::Env &env, Node const &config)
 	:
 		_env(env),
 		_font_config(config),
@@ -127,7 +127,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 		_update_attributes();
 	}
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
 		if (node.has_type(Glyphs_file_system::type_name()))
 			return &_glyphs_fs;
@@ -142,7 +142,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 		return nullptr;
 	}
 
-	void apply_config(Xml_node const &config)
+	void apply_config(Node const &config)
 	{
 		_font_config = Font_config(config);
 		_font.construct(_env, _font_config);
@@ -165,7 +165,7 @@ class Vfs_ttf::File_system : private Local_factory,
 	private:
 
 		using Config = String<200>;
-		static Config _config(Xml_node const &node)
+		static Config _config(Node const &node)
 		{
 			char buf[Config::capacity()] { };
 
@@ -185,17 +185,15 @@ class Vfs_ttf::File_system : private Local_factory,
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
+		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory(vfs_env, node),
-			Vfs::Dir_file_system(vfs_env,
-			                     Xml_node(_config(node).string()),
-			                     *this)
+			Vfs::Dir_file_system(vfs_env, Node(_config(node)), *this)
 		{ }
 
 		char const *type() override { return "ttf"; }
 
-		void apply_config(Xml_node const &node) override
+		void apply_config(Node const &node) override
 		{
 			Local_factory::apply_config(node);
 		}
@@ -211,7 +209,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 	struct Factory : Vfs::File_system_factory
 	{
 		Vfs::File_system *create(Vfs::Env &vfs_env,
-		                         Genode::Xml_node const &node) override
+		                         Genode::Node const &node) override
 		{
 			try { return new (vfs_env.alloc())
 				Vfs_ttf::File_system(vfs_env, node); }

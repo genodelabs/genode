@@ -4,7 +4,7 @@ LIBS += base
 
 NIC_ROUTER_DIR := $(call select_from_repositories,src/server/nic_router)
 
-SRC_CC += main.cc dns.cc xml_node.cc
+SRC_CC += main.cc dns.cc
 
 INC_DIR += $(PRG_DIR) $(NIC_ROUTER_DIR)
 

@@ -15,7 +15,7 @@
 #define _PACKET_GENERATOR_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <net/mac_address.h>
 #include <net/ipv4.h>
 #include <net/arp.h>
@@ -64,7 +64,7 @@ class Nic_perf::Packet_generator
 		  _interface(interface)
 		{ }
 
-		void apply_config(Xml_node const &config)
+		void apply_config(Node const &config)
 		{
 			Ipv4_address old_ip = _dst_ip;
 
@@ -74,7 +74,7 @@ class Nic_perf::Packet_generator
 			_enable   = false;
 			_state    = MUTED;
 
-			config.with_optional_sub_node("tx", [&] (Xml_node node) {
+			config.with_optional_sub_node("tx", [&] (Node const &node) {
 				_mtu      = node.attribute_value("mtu",      _mtu);
 				_dst_ip   = node.attribute_value("to",       _dst_ip);
 				_dst_port = node.attribute_value("udp_port", _dst_port);

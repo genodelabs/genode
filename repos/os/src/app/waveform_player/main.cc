@@ -129,7 +129,7 @@ struct Waveform_player::Main
 		using Label = String<20>;
 		Label const label;
 
-		static Label _label_from_xml(Xml_node const &node)
+		static Label _label_from_node(Node const &node)
 		{
 			return node.attribute_value("label", Label());
 		}
@@ -140,9 +140,9 @@ struct Waveform_player::Main
 			double   wave_hz;
 			Wave     wave;
 
-			static Attr from_xml(Xml_node const &node, Attr const defaults)
+			static Attr from_node(Node const &node, Attr const defaults)
 			{
-				auto wave_from_xml = [] (Xml_node const &node)
+				auto wave_from_node = [] (Node const &node)
 				{
 					auto const attr = node.attribute_value("wave", String<16>());
 
@@ -157,7 +157,7 @@ struct Waveform_player::Main
 				return Attr {
 					.sample_rate_hz = node.attribute_value("sample_rate_hz", defaults.sample_rate_hz),
 					.wave_hz        = node.attribute_value("hz",             defaults.wave_hz),
-					.wave           = wave_from_xml(node)
+					.wave           = wave_from_node(node)
 				};
 			}
 
@@ -188,9 +188,9 @@ struct Waveform_player::Main
 			}
 		}
 
-		Channel(Env &env, Xml_node const &node)
+		Channel(Env &env, Node const &node)
 		:
-			label(_label_from_xml(node)), _play(env, label)
+			label(_label_from_node(node)), _play(env, label)
 		{ }
 
 		virtual ~Channel() { };
@@ -222,22 +222,22 @@ struct Waveform_player::Main
 
 		void stop() { _play.stop(); }
 
-		void update(Xml_node const &node, Attr const defaults)
+		void update(Node const &node, Attr const defaults)
 		{
-			_attr = Attr::from_xml(node, defaults);
+			_attr = Attr::from_node(node, defaults);
 		};
 
 		/*
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("play");
 		}
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
-			return _label_from_xml(node) == label;
+			return _label_from_node(node) == label;
 		}
 	};
 
@@ -251,11 +251,11 @@ struct Waveform_player::Main
 
 		Channel::Attr channel_defaults;
 
-		static Config from_xml(Xml_node const &config)
+		static Config from_node(Node const &config)
 		{
 			return {
 				.period_ms = config.attribute_value("period_ms", 10u),
-				.channel_defaults = Channel::Attr::from_xml(config, {
+				.channel_defaults = Channel::Attr::from_node(config, {
 					.sample_rate_hz = 44100u,
 					.wave_hz        = 1000.0,
 					.wave           = Wave::SINE
@@ -300,17 +300,17 @@ struct Waveform_player::Main
 	void _handle_config()
 	{
 		_config_ds.update();
-		Xml_node const &config = _config_ds.xml();
+		Node const &config = _config_ds.node();
 
-		_config = Config::from_xml(config);
+		_config = Config::from_node(config);
 
-		_channels.update_from_xml(config,
-			[&] (Xml_node const &node) -> Registered<Channel> & {
+		_channels.update_from_node(config,
+			[&] (Node const &node) -> Registered<Channel> & {
 				return *new (_heap)
 					Registered<Channel>(_channel_registry, _env, node); },
 			[&] (Registered<Channel> &channel) {
 				destroy(_heap, &channel); },
-			[&] (Channel &channel, Xml_node const &node) {
+			[&] (Channel &channel, Node const &node) {
 				channel.update(node, _config.channel_defaults); }
 		);
 

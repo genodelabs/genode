@@ -32,7 +32,7 @@ struct Virtio_mmio_input::Main
 	Virtio::Device          virtio_device   { platform_device };
 	Attached_rom_dataspace  config          { env, "config" };
 	Virtio_input::Driver    driver          { env, platform, virtio_device,
-	                                          config.xml() };
+	                                          config.node() };
 
 	Main(Env &env)
 	try : env(env) { log("--- VirtIO MMIO input driver started ---"); }

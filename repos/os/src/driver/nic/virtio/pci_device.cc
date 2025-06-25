@@ -35,7 +35,7 @@ struct Virtio_pci_nic::Main
 	Virtio::Device            virtio_device   { env, pci              };
 	Attached_rom_dataspace    config_rom      { env, "config"         };
 	Virtio_nic::Uplink_client uplink_client   { env, heap, virtio_device,
-	                                            pci, config_rom.xml() };
+	                                            pci, config_rom.node() };
 
 	Main(Env &env) : env(env) {
 		log("--- VirtIO PCI driver started ---"); }

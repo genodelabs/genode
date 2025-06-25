@@ -43,7 +43,7 @@ class Main
 Main::Main(Env &env)
 :
 	_config(env, "config"), _timer(env), _heap(&env.ram(), &env.rm()),
-	_root(env, _heap, _config.xml(), _timer, _curr_time)
+	_root(env, _heap, _config.node(), _timer, _curr_time)
 {
 	env.parent().announce(env.ep().manage(_root));
 }

@@ -16,7 +16,7 @@
 
 #include <base/exception.h>
 #include <base/rpc.h>
-#include <base/rpc.h>
+#include <base/node.h>
 #include <os/packet_allocator.h>
 #include <packet_stream_tx/client.h>
 #include <usb_session/types.h>
@@ -672,12 +672,12 @@ inline Usb::Interface::Interface(Device &device, Index idx, size_t buffer_size)
 {
 	static constexpr uint16_t INVALID = 256;
 
-	device._for_each_iface([&] (Xml_node node) {
+	device._for_each_iface([&] (Node const &node) {
 		if (node.attribute_value<uint16_t>("number", INVALID) != idx.number)
 			return;
 		if (node.attribute_value<uint16_t>("alt_setting", INVALID) != idx.alt_setting)
 			return;
-		node.for_each_sub_node("endpoint", [&] (Xml_node node) {
+		node.for_each_sub_node("endpoint", [&] (Node const &node) {
 			Endpoint ep { node.attribute_value<uint8_t>("address", 0),
 			              node.attribute_value<uint8_t>("attributes", 0) };
 			if (!_eps[ep.direction()][ep.number()].valid())
@@ -711,8 +711,8 @@ Usb::Device::_interface_cap(uint8_t num, size_t buf_size)
 inline Usb::Device::Name Usb::Device::_first_device_name()
 {
 	Name ret;
-	_session.with_xml([&] (Xml_node & xml) {
-		xml.with_optional_sub_node("device", [&] (Xml_node node) {
+	_session.with_node([&] (Node const &node) {
+		node.with_optional_sub_node("device", [&] (Node const &node) {
 			ret = node.attribute_value("name", Name()); });
 	});
 	return ret;
@@ -721,10 +721,10 @@ inline Usb::Device::Name Usb::Device::_first_device_name()
 
 void Usb::Device::_for_each_iface(auto const & fn)
 {
-	_session.with_xml([&] (Xml_node & xml) {
-		xml.for_each_sub_node("device", [&] (Xml_node node) {
+	_session.with_node([&] (Node const &node) {
+		node.for_each_sub_node("device", [&] (Node const &node) {
 			if (node.attribute_value("name", Name()) == _name)
-				node.for_each_sub_node("config", [&] (Xml_node node) {
+				node.for_each_sub_node("config", [&] (Node const &node) {
 					if (node.attribute_value("active", false))
 						node.for_each_sub_node("interface", fn);
 				});
@@ -740,7 +740,7 @@ Usb::Device::_interface_index(Interface::Type t)
 
 	uint16_t num = INVALID, alt = INVALID;
 
-	_for_each_iface([&] (Xml_node node) {
+	_for_each_iface([&] (Node const &node) {
 		uint16_t c = node.attribute_value("class",    INVALID);
 		uint16_t s = node.attribute_value("subclass", INVALID);
 		uint16_t p = node.attribute_value("protocol", INVALID);

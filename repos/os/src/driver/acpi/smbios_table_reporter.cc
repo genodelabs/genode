@@ -147,8 +147,8 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 
 	addr_t efi_sys_tab_phy = 0;
 	Attached_rom_dataspace info(env, "platform_info");
-	info.xml().with_optional_sub_node("efi-system-table",
-		[&] (Xml_node const &acpi_node) {
+	info.node().with_optional_sub_node("efi-system-table",
+		[&] (Node const &acpi_node) {
 			efi_sys_tab_phy = acpi_node.attribute_value("address", 0UL); });
 
 	if (!efi_sys_tab_phy) {

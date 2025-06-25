@@ -49,7 +49,7 @@ class Nic_perf::Nic_client
 
 		Nic_client(Env                 &env,
 		           Genode::Allocator   &alloc,
-		           Xml_node      const &policy,
+		           Node          const &policy,
 		           Interface_registry  &registry,
 		           Timer::Connection   &timer)
 		:

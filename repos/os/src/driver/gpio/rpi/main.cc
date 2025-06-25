@@ -44,7 +44,7 @@ struct Main
 		using namespace Genode;
 		log("--- Raspberry Pi GPIO driver ---");
 
-		Xml_node const config = config_rom.xml();
+		Node const config = config_rom.node();
 
 		/*
 		 * Check configuration for async events detect
@@ -63,7 +63,7 @@ struct Main
 		if (!config.has_sub_node("gpio"))
 			warning("no GPIO config");
 
-		config_rom.xml().for_each_sub_node("gpio", [&] (Xml_node const &gpio_node) {
+		config_rom.node().for_each_sub_node("gpio", [&] (Node const &gpio_node) {
 
 			unsigned const num      = gpio_node.attribute_value("num",      0U);
 			unsigned const function = gpio_node.attribute_value("function", 0U);

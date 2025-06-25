@@ -15,7 +15,6 @@
 #define _INPUT_ROM_REGISTRY_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/allocator.h>
 
@@ -31,7 +30,7 @@ namespace Rom_filter {
 
 	using Genode::Signal_context_capability;
 	using Genode::Signal_handler;
-	using Genode::Xml_node;
+	using Genode::Node;
 	using Genode::Interface;
 }
 
@@ -79,10 +78,10 @@ class Rom_filter::Input_rom_registry
 				Genode::Signal_handler<Entry> _rom_changed_handler =
 					{ _env.ep(), *this, &Entry::_handle_rom_changed };
 
-				static void _with_any_sub_node(Xml_node const &node, auto const &fn)
+				static void _with_any_sub_node(Node const &node, auto const &fn)
 				{
 					bool first = true;
-					node.for_each_sub_node([&] (Xml_node const &sub_node) {
+					node.for_each_sub_node([&] (Node const &sub_node) {
 						if (first)
 							fn(sub_node);
 						first = false;
@@ -90,8 +89,8 @@ class Rom_filter::Input_rom_registry
 				}
 
 				static void _with_matching_sub_node(Node_type_name type,
-				                                    Xml_node const &path,
-				                                    Xml_node const &content,
+				                                    Node const &path,
+				                                    Node const &content,
 				                                    auto const &fn,
 				                                    auto const &missing_fn)
 				{
@@ -104,7 +103,7 @@ class Rom_filter::Input_rom_registry
 						path.attribute_value("value", Attribute_value());
 
 					bool found = false;
-					content.for_each_sub_node(type.string(), [&] (Xml_node const &sub_node) {
+					content.for_each_sub_node(type.string(), [&] (Node const &sub_node) {
 						if (found)
 							return;
 
@@ -129,7 +128,7 @@ class Rom_filter::Input_rom_registry
 						};
 
 						if (match())
-							_with_any_sub_node(path, [&] (Xml_node const &sub_path) {
+							_with_any_sub_node(path, [&] (Node const &sub_path) {
 								found = true;
 								fn(sub_node, sub_path);
 							});
@@ -139,13 +138,13 @@ class Rom_filter::Input_rom_registry
 				}
 
 				/**
-				 * Query value from XML-structured ROM content
+				 * Query value from structured ROM content
 				 *
-				 * \param path     XML node that defines the path to the value
-				 * \param content  XML-structured content, to which the path
+				 * \param path     node that defines the path to the value
+				 * \param content  structured content, to which the path
 				 *                 is applied
 				 */
-				Query_result _query_value(Xml_node const &path, Xml_node const &content,
+				Query_result _query_value(Node const &path, Node const &content,
 				                          unsigned const max_depth = 10) const
 				{
 					if (max_depth == 0)
@@ -176,7 +175,7 @@ class Rom_filter::Input_rom_registry
 
 						Query_result result = Missing();
 						_with_matching_sub_node(sub_node_type, path, content,
-							[&] (Xml_node const &sub_content, Xml_node const &sub_path) {
+							[&] (Node const &sub_content, Node const &sub_path) {
 								result = _query_value(sub_path, sub_content, max_depth - 1);
 							},
 							[&] { }
@@ -187,9 +186,9 @@ class Rom_filter::Input_rom_registry
 				}
 
 				/**
-				 * Return the expected top-level XML node type of a given input
+				 * Return the expected top-level node type of a given input
 				 */
-				static Node_type_name _top_level_node_type(Xml_node const &input_node)
+				static Node_type_name _top_level_node_type(Node const &input_node)
 				{
 					Node_type_name const undefined("");
 
@@ -218,12 +217,12 @@ class Rom_filter::Input_rom_registry
 				/**
 				 * Query input value from ROM modules
 				 *
-				 * \param input_node  XML that describes the path to the
+				 * \param input_node  that describes the path to the
 				 *                    input value
 				 */
-				Query_result query_value(Xml_node const &input_node) const
+				Query_result query_value(Node const &input_node) const
 				{
-					Xml_node const &content_node = _rom_ds.xml();
+					Node const &content_node = _rom_ds.node();
 
 					/*
 					 * Check type of top-level node, query value of the
@@ -232,7 +231,7 @@ class Rom_filter::Input_rom_registry
 					Node_type_name expected = _top_level_node_type(input_node);
 					if (content_node.has_type(expected.string())) {
 						Query_result result = Missing();
-						_with_any_sub_node(input_node, [&] (Xml_node const &sub_node) {
+						_with_any_sub_node(input_node, [&] (Node const &sub_node) {
 							result = _query_value(sub_node, content_node); });
 						if (result.ok())
 							return result;
@@ -246,7 +245,7 @@ class Rom_filter::Input_rom_registry
 
 				void with_node(auto const &fn, auto const &missing_fn) const
 				{
-					Xml_node const &node = _rom_ds.xml();
+					Node const &node = _rom_ds.node();
 					if (node.type() == "empty")
 						missing_fn();
 					else
@@ -285,9 +284,9 @@ class Rom_filter::Input_rom_registry
 		}
 
 		/**
-		 * Return ROM name of specified XML node
+		 * Return ROM name of specified node
 		 */
-		static inline Input_rom_name _input_rom_name(Xml_node const &input)
+		static inline Input_rom_name _input_rom_name(Node const &input)
 		{
 			if (input.has_attribute("rom"))
 				return input.attribute_value("rom", Input_rom_name(""));
@@ -315,12 +314,12 @@ class Rom_filter::Input_rom_registry
 			return result;
 		}
 
-		static bool _config_uses_input_rom(Xml_node const &config,
+		static bool _config_uses_input_rom(Node const &config,
 		                                   Input_rom_name const &name)
 		{
 			bool result = false;
 
-			config.for_each_sub_node("input", [&] (Xml_node const &input) {
+			config.for_each_sub_node("input", [&] (Node const &input) {
 
 				if (_input_rom_name(input) == name)
 					result = true;
@@ -340,7 +339,7 @@ class Rom_filter::Input_rom_registry
 			});
 		}
 
-		Query_result _query_value_in_roms(Xml_node const &input_node) const
+		Query_result _query_value_in_roms(Node const &input_node) const
 		{
 			Query_result result = Missing();
 			_with_entry_by_name(_input_rom_name(input_node), [&] (Entry const &entry) {
@@ -362,7 +361,7 @@ class Rom_filter::Input_rom_registry
 			_alloc(alloc), _env(env), _input_rom_changed_fn(input_rom_changed_fn)
 		{ }
 
-		void update_config(Xml_node const &config)
+		void update_config(Node const &config)
 		{
 			/*
 			 * Remove ROMs that are no longer present in the configuration.
@@ -380,7 +379,7 @@ class Rom_filter::Input_rom_registry
 			/*
 			 * Add new appearing ROMs.
 			 */
-			auto add_new_entry = [&] (Xml_node const &input) {
+			auto add_new_entry = [&] (Node const &input) {
 
 				Input_rom_name name = _input_rom_name(input);
 
@@ -398,10 +397,10 @@ class Rom_filter::Input_rom_registry
 		/**
 		 * Lookup value of input with specified name
 		 */
-		Query_result query_value(Xml_node const &config, Input_name const &input_name) const
+		Query_result query_value(Node const &config, Input_name const &input_name) const
 		{
 			Query_result result = Missing();
-			config.for_each_sub_node("input", [&] (Xml_node const &input_node) {
+			config.for_each_sub_node("input", [&] (Node const &input_node) {
 				if (input_node.attribute_value("name", Input_name("")) == input_name)
 					result = _query_value_in_roms(input_node); });
 			return result;
@@ -414,7 +413,7 @@ class Rom_filter::Input_rom_registry
 		{
 			_with_entry_by_name(input_name, [&] (Entry const &entry) {
 				entry.with_node(
-					[&] (Xml_node const &node) {
+					[&] (Node const &node) {
 						Genode::Xml_generator::Max_depth const max_depth { 20 };
 						bool const ok = skip_toplevel
 						              ? xml.append_node_content(node, max_depth)

@@ -24,7 +24,6 @@
 #include <file_system_session/rpc_object.h>
 #include <os/session_policy.h>
 #include <root/component.h>
-#include <util/xml_node.h>
 
 /* local includes */
 #include "directory.h"
@@ -552,7 +551,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 			return { Arg_string::find_arg(args, "writeable").bool_value(true) };
 		}
 
-		Create_result _create_session(const char *args, Xml_node const &policy)
+		Create_result _create_session(const char *args, Genode::Node const &policy)
 		{
 			/*
 			 * Determine client-specific policy defined implicitly by
@@ -654,9 +653,9 @@ class Lx_fs::Root : public Root_component<Session_component>
 
 		Create_result _create_session(const char *args) override
 		{
-			return with_matching_policy(label_from_args(args), _config.xml(),
-				[&] (Xml_node const &policy) { return _create_session(args, policy); },
-				[&] () -> Create_result      { return Create_error::DENIED; });
+			return with_matching_policy(label_from_args(args), _config.node(),
+				[&] (Genode::Node const &policy) { return _create_session(args, policy); },
+				[&] () -> Create_result          { return Create_error::DENIED; });
 		}
 
 		void _destroy_session(Session_component &s) override

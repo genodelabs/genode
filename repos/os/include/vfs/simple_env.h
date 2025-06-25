@@ -40,21 +40,20 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io, private Vfs::Env:
 
 	public:
 
-		Simple_env(Genode::Env            &env,
-		           Genode::Allocator      &alloc,
-		           Genode::Xml_node const &config,
-		           Vfs::Env::User         &user)
+		Simple_env(Genode::Env       &env,
+		           Genode::Allocator &alloc,
+		           Node        const &config,
+		           Vfs::Env::User    &user)
 		:
 			_env(env), _alloc(alloc), _user(user), _root_dir(*this, config, _fs_factory)
 		{ }
 
-		Simple_env(Genode::Env &env, Genode::Allocator &alloc,
-		           Genode::Xml_node const &config)
+		Simple_env(Genode::Env &env, Genode::Allocator &alloc, Node const &config)
 		:
 			Simple_env(env, alloc, config, *this)
 		{ }
 
-		void apply_config(Genode::Xml_node const &config)
+		void apply_config(Node const &config)
 		{
 			_root_dir.apply_config(config);
 		}

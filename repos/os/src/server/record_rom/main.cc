@@ -84,7 +84,7 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 		using Label = String<20>;
 		Label const label;
 
-		static Label _label_from_xml(Xml_node const &node)
+		static Label _label_from_node(Node const &node)
 		{
 			return node.attribute_value("label", Label());
 		}
@@ -93,7 +93,7 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 		{
 			unsigned sample_rate_hz;
 
-			static Attr from_xml(Xml_node const &node, Attr const defaults)
+			static Attr from_node(Node const &node, Attr const defaults)
 			{
 				return Attr {
 					.sample_rate_hz = node.attribute_value("sample_rate_hz", defaults.sample_rate_hz),
@@ -107,18 +107,18 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 
 		Captured_audio _capture { };
 
-		Channel(Env &env, Xml_node const &node, Signal_context_capability wakeup_sigh)
+		Channel(Env &env, Node const &node, Signal_context_capability wakeup_sigh)
 		:
-			label(_label_from_xml(node)), _record(env, label)
+			label(_label_from_node(node)), _record(env, label)
 		{
 			_record.wakeup_sigh(wakeup_sigh);
 		}
 
 		virtual ~Channel() { };
 
-		void update(Xml_node const &node, Attr const defaults)
+		void update(Node const &node, Attr const defaults)
 		{
-			_attr = Attr::from_xml(node, defaults);
+			_attr = Attr::from_node(node, defaults);
 		}
 
 		void generate(Xml_generator &xml) const
@@ -167,14 +167,14 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 		/*
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("record");
 		}
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
-			return _label_from_xml(node) == label;
+			return _label_from_node(node) == label;
 		}
 	};
 
@@ -191,22 +191,22 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		_period_ms = config.attribute_value("period_ms",  20u);
 
 		/* channel defaults obtained from top-level config node */
-		Channel::Attr const channel_defaults = Channel::Attr::from_xml(config, {
+		Channel::Attr const channel_defaults = Channel::Attr::from_node(config, {
 			.sample_rate_hz = 44100u, });
 
-		_channels.update_from_xml(config,
-			[&] (Xml_node const &node) -> Registered<Channel> & {
+		_channels.update_from_node(config,
+			[&] (Node const &node) -> Registered<Channel> & {
 				return *new (_heap)
 					Registered<Channel>(_channel_registry, _env, node,
 					                    _wakeup_handler); },
 			[&] (Registered<Channel> &channel) {
 				destroy(_heap, &channel); },
-			[&] (Channel &channel, Xml_node const &node) {
+			[&] (Channel &channel, Node const &node) {
 				channel.update(node, channel_defaults); }
 		);
 

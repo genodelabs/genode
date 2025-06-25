@@ -71,14 +71,14 @@ struct Fb_sdl::Sdl : Noncopyable
 		Rotate   rotate;
 		Flip     flip;
 
-		static Attr from_xml(Xml_node const &node)
+		static Attr from_node(Node const &node)
 		{
 			return {
 				.initial_size = { .w = node.attribute_value("width",  1024u),
 				                  .h = node.attribute_value("height",  768u) },
 				.fps    = node.attribute_value("fps", 60.0),
 				.idle   = node.attribute_value("idle", 3U),
-				.rotate = Capture::Connection::rotate_from_xml(node),
+				.rotate = Capture::Connection::rotate_from_node(node),
 				.flip   = { .enabled = node.attribute_value("flip", false) },
 			};
 		}
@@ -513,7 +513,7 @@ struct Fb_sdl::Main
 	Signal_handler<Main> _capture_wakeup_handler {
 		_env.ep(), *this, &Main::_handle_capture_wakeup };
 
-	Sdl _sdl { _event, _capture, _env.rm(), Sdl::Attr::from_xml(_config.xml()) };
+	Sdl _sdl { _event, _capture, _env.rm(), Sdl::Attr::from_node(_config.node()) };
 
 	Main(Env &env) : _env(env)
 	{

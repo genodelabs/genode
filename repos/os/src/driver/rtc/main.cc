@@ -104,16 +104,18 @@ struct Rtc::Main
 
 	Attached_rom_dataspace _config_rom { env, "config" };
 	bool const _set_rtc {
-		_config_rom.xml().attribute_value("allow_setting_rtc", false) };
+		_config_rom.node().attribute_value("allow_setting_rtc", false) };
 
 	bool const _verbose {
-		_config_rom.xml().attribute_value("verbose", false) };
+		_config_rom.node().attribute_value("verbose", false) };
 
 	Constructible<Attached_rom_dataspace> _update_rom { };
 
-	struct Invalid_timestamp_xml : Exception {};
+	enum class Parse_error { INCOMPLETE, INVALID };
+	using      Parse_result = Attempt<Timestamp, Parse_error>;
 
-	Timestamp _parse_xml(Xml_node const &);
+	Parse_result _parse(Node const &);
+
 	void _handle_update();
 
 	Signal_handler<Main> _update_sigh {
@@ -126,21 +128,19 @@ struct Rtc::Main
 			_update_rom->sigh(_update_sigh);
 		}
 
-		try {
-			Timestamp ts = _parse_xml(_config_rom.xml());
-
+		_parse(_config_rom.node()).with_result([&] (Timestamp ts) {
 			if (_verbose)
 				Genode::log("set time to ", ts);
 
 			Rtc::set_time(env, ts);
-		} catch (Invalid_timestamp_xml &) {}
+		}, [] (Parse_error) { });
 
 		env.parent().announce(env.ep().manage(root));
 	}
 };
 
 
-Rtc::Timestamp Rtc::Main::_parse_xml(Xml_node const &node)
+Rtc::Main::Parse_result Rtc::Main::_parse(Node const &node)
 {
 	bool const complete = node.has_attribute("year")
 	                   && node.has_attribute("month")
@@ -149,38 +149,39 @@ Rtc::Timestamp Rtc::Main::_parse_xml(Xml_node const &node)
 	                   && node.has_attribute("minute")
 	                   && node.has_attribute("second");
 
-	if (!complete) { throw Invalid_timestamp_xml(); }
+	if (!complete)
+		return Parse_error::INCOMPLETE;
 
 	Timestamp ts { };
 
 	ts.second = node.attribute_value("second", 0u);
 	if (ts.second > 59) {
 		Genode::error("set_rtc: second invalid");
-		throw Invalid_timestamp_xml();
+		return Parse_error::INVALID;
 	}
 
 	ts.minute = node.attribute_value("minute", 0u);
 	if (ts.minute > 59) {
 		Genode::error("set_rtc: minute invalid");
-		throw Invalid_timestamp_xml();
+		return Parse_error::INVALID;
 	}
 
 	ts.hour = node.attribute_value("hour", 0u);
 	if (ts.hour > 23) {
 		Genode::error("set_rtc: hour invalid");
-		throw Invalid_timestamp_xml();
+		return Parse_error::INVALID;
 	}
 
 	ts.day = node.attribute_value("day", 1u);
 	if (ts.day > 31 || ts.day == 0) {
 		Genode::error("set_rtc: day invalid");
-		throw Invalid_timestamp_xml();
+		return Parse_error::INVALID;
 	}
 
 	ts.month = node.attribute_value("month", 1u);
 	if (ts.month > 12 || ts.month == 0) {
 		Genode::error("set_rtc: month invalid");
-		throw Invalid_timestamp_xml();
+		return Parse_error::INVALID;
 	}
 
 	ts.year = node.attribute_value("year", 2019u);
@@ -194,18 +195,17 @@ void Rtc::Main::_handle_update()
 
 	if (!_update_rom->valid()) { return; }
 
-	Genode::Xml_node const &node = _update_rom->xml();
+	_parse(_update_rom->node()).with_result(
+		[&] (Timestamp ts) {
+			if (_verbose)
+				Genode::log("set time to ", ts);
 
-	try {
-		Timestamp ts = _parse_xml(node);
-
-		if (_verbose)
-			Genode::log("set time to ", ts);
-
-		Rtc::set_time(env, ts);
-		root.notify_clients();
-	} catch (Invalid_timestamp_xml &) {
-		Genode::warning("set_rtc: ignoring incomplete RTC update"); }
+			Rtc::set_time(env, ts);
+			root.notify_clients();
+		},
+		[&] (Parse_error) {
+			Genode::warning("set_rtc: ignoring incomplete RTC update");
+		});
 }
 
 

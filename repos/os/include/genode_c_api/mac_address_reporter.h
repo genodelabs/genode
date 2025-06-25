@@ -19,11 +19,11 @@
 
 #ifdef __cplusplus
 
-#include <util/xml_node.h>
+#include <base/node.h>
 
 void genode_mac_address_reporter_init(Genode::Env &, Genode::Allocator &);
 
-void genode_mac_address_reporter_config(Genode::Xml_node const &);
+void genode_mac_address_reporter_config(Genode::Node const &);
 
 #endif
 

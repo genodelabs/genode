@@ -134,7 +134,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 		Value_file_system(Name const &name, Buffer const &initial_value)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type(),
-			                   Node_rwx::rw(), Xml_node(_config(name).string())),
+			                   Node_rwx::rw(), Node(_config(name))),
 			_file_name(name)
 		{
 			value(initial_value);
@@ -159,7 +159,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 
 		Buffer buffer() const  { return _buffer; }
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return node.has_type(type_name()) &&
 			       node.attribute_value("name", Name()) == _file_name;

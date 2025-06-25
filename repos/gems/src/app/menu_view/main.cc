@@ -173,7 +173,7 @@ void Menu_view::Main::_handle_config()
 		_hover_reporter.conditional(report.attribute_value("hover", false),
 		                            _env, "hover", "hover"); });
 
-	config.with_optional_sub_node("vfs", [&] (Xml_node const &vfs_node) {
+	_config.node().with_optional_sub_node("vfs", [&] (Node const &vfs_node) {
 		_vfs_env.root_dir().apply_config(vfs_node); });
 
 	_dialogs.update_from_xml(config,

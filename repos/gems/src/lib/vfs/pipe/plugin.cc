@@ -798,11 +798,11 @@ class Vfs_pipe::Fifo_file_system : public Vfs_pipe::File_system
 
 	public:
 
-		Fifo_file_system(Vfs::Env &env, Genode::Xml_node const &config)
+		Fifo_file_system(Vfs::Env &env, Node const &config)
 		:
 			File_system(env)
 		{
-			config.for_each_sub_node("fifo", [&env, this] (Xml_node const &fifo) {
+			config.for_each_sub_node("fifo", [&env, this] (Node const &fifo) {
 				Path const path { fifo.attribute_value("name", String<MAX_PATH_LEN>()) };
 
 				Pipe &pipe = *new (env.alloc())
@@ -841,7 +841,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &node) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &node) override
 		{
 			if (node.has_sub_node("fifo")) {
 				return new (env.alloc()) Vfs_pipe::Fifo_file_system(env, node);

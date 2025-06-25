@@ -13,7 +13,7 @@
 
 /* local includes */
 #include <configuration.h>
-#include <xml_node.h>
+#include <node.h>
 
 /* Genode includes */
 #include <base/allocator.h>
@@ -27,8 +27,7 @@ using namespace Genode;
  ** Configuration **
  *******************/
 
-Configuration::Configuration(Xml_node const &node,
-                             Allocator      &alloc)
+Configuration::Configuration(Node const &node, Allocator &alloc)
 :
 	_alloc                          { alloc },
 	_max_packets_per_signal         { 0 },
@@ -62,7 +61,7 @@ void Configuration::_invalid_domain(Domain     &domain,
 
 
 Icmp_packet::Code
-Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Xml_node const &node) const
+Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Node const &node) const
 {
 	using Attribute_string = String<16>;
 	Icmp_packet::Code result = Icmp_packet::Code::INVALID;
@@ -82,7 +81,7 @@ Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Xml_node const &node) const
 
 
 Configuration::Configuration(Env                             &env,
-                             Xml_node                  const &node,
+                             Node                      const &node,
                              Allocator                       &alloc,
                              Signal_context_capability const &report_signal_cap,
                              Cached_timer                    &timer,
@@ -110,7 +109,7 @@ Configuration::Configuration(Env                             &env,
 	_node                           { alloc, node }
 {
 	/* do parts of domain initialization that do not lookup other domains */
-	node.for_each_sub_node("domain", [&] (Xml_node const node) {
+	node.for_each_sub_node("domain", [&] (Node const node) {
 		Domain_name const name {
 			node.attribute_value("name", Domain_name { }) };
 
@@ -163,7 +162,7 @@ Configuration::Configuration(Env                             &env,
 				log("[", domain, "] deinitiated domain"); }
 		});
 	}
-	node.with_optional_sub_node("report", [&] (Xml_node const &report_node) {
+	node.with_optional_sub_node("report", [&] (Node const &report_node) {
 		if (old_config._reporter_ptr) {
 			/* re-use existing reporter */
 			_reporter_ptr = old_config._reporter_ptr;
@@ -178,7 +177,7 @@ Configuration::Configuration(Env                             &env,
 			*_reporter_ptr, report_signal_cap);
 	});
 	/* initialize NIC clients */
-	_node.xml.for_each_sub_node("nic-client", [&] (Xml_node const &node) {
+	_node.for_each_sub_node("nic-client", [&] (Node const &node) {
 		Session_label const label {
 			node.attribute_value("label",  Session_label::String { }) };
 

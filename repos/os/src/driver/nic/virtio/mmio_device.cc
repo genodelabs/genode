@@ -37,7 +37,7 @@ struct Virtio_mmio_nic::Main
 	Virtio::Device            device          { platform_device     };
 	Attached_rom_dataspace    config_rom      { env, "config"       };
 	Virtio_nic::Uplink_client uplink_client   { env, heap, device,
-	                                            platform, config_rom.xml() };
+	                                            platform, config_rom.node() };
 
 	Main(Env & env) : env(env) {
 		log("--- VirtIO MMIO NIC driver started ---"); }

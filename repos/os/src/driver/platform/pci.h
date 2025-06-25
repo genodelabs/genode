@@ -35,7 +35,7 @@ namespace Driver {
 	void pci_msi_enable(Genode::Env & env, Device_component & dc,
 	                    addr_t cfg_space, Genode::Irq_session::Info const info,
 	                    Irq_session::Type type);
-	bool pci_device_matches(Genode::Xml_node const & policy,
+	bool pci_device_matches(Genode::Node const & policy,
 	                        Device const & dev);
 	void pci_device_specific_info(Device const  & dev,
 	                              Env           & env,

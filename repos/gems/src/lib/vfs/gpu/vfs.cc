@@ -92,7 +92,7 @@ struct Vfs_gpu::File_system : Single_file_system
 	Id_space<Gpu_vfs_handle>     _handle_space { };
 	Id_space<Gpu_vfs_handle>::Id _last_id { .value = ~0ul };
 
-	File_system(Vfs::Env &env, Xml_node const &config)
+	File_system(Vfs::Env &env, Node const &config)
 	:
 	  Single_file_system(Node_type::CONTINUOUS_FILE,
 	                     type_name(),
@@ -178,8 +178,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &vfs_env,
-		                         Genode::Xml_node const &node) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
 		{
 			_env = &vfs_env;
 			try {

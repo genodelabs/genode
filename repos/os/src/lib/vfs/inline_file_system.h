@@ -17,7 +17,6 @@
 #ifndef _INCLUDE__VFS__INLINE_FILE_SYSTEM_H_
 #define _INCLUDE__VFS__INLINE_FILE_SYSTEM_H_
 
-#include <os/buffered_xml.h>
 #include <vfs/file_system.h>
 
 namespace Vfs { class Inline_file_system; }
@@ -92,7 +91,7 @@ class Vfs::Inline_file_system : public Single_file_system
 				}, [&] () -> size_t { /* checked above */ return 0ul; });
 			}
 
-			static size_t _copy_from_node(Allocated &allocated, Xml_node const &node)
+			static size_t _copy_from_node(Allocated &allocated, Node const &node)
 			{
 				return allocated.convert<size_t>([&] (Genode::Memory::Allocation &a) {
 					return unquoted_content({ (char *)a.ptr, a.num_bytes }, node);
@@ -111,10 +110,10 @@ class Vfs::Inline_file_system : public Single_file_system
 			}
 
 			Buffered_data(Genode::Memory::Constrained_allocator &alloc,
-			              Xml_node const &node)
+			              Node const &node)
 			:
 				/* use node size as upper approximation of data size */
-				allocated(alloc.try_alloc(node.size())),
+				allocated(alloc.try_alloc(node.num_bytes())),
 				num_bytes(_copy_from_node(allocated, node))
 			{ }
 		};
@@ -155,11 +154,11 @@ class Vfs::Inline_file_system : public Single_file_system
 		/**
 		 * Constructor
 		 *
-		 * The 'config' XML node (that points to its content) is stored within
+		 * The 'config' node (that points to its content) is stored within
 		 * the object after construction time. The underlying backing store
 		 * must be kept in tact during the lifefile of the object.
 		 */
-		Inline_file_system(Vfs::Env &env, Genode::Xml_node const &config)
+		Inline_file_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::rx(), config),
@@ -207,7 +206,7 @@ Vfs::Inline_file_system::Handle::read(Byte_range_ptr const &dst, size_t &out_cou
 
 	_fs._data.with_bytes([&] (char const *start, size_t const len) {
 
-		/* file read limit is the size of the XML-node content */
+		/* file read limit is the size of the node content */
 		size_t const max_size = len;
 
 		/* current read offset */
@@ -216,7 +215,7 @@ Vfs::Inline_file_system::Handle::read(Byte_range_ptr const &dst, size_t &out_cou
 		/* maximum read offset, clamped to dataspace size */
 		size_t const end_offset = min(dst.num_bytes + read_offset, max_size);
 
-		/* source address within the XML content */
+		/* source address within the content */
 		char const * const src = start + read_offset;
 
 		/* check if end of file is reached */

@@ -35,7 +35,7 @@ namespace Vfs_block {
 
 	using File_path = String<Vfs::MAX_PATH_LEN>;
 	struct File_info;
-	File_info file_info_from_policy(Xml_node const &);
+	File_info file_info_from_policy(Node const &);
 	class File;
 
 } /* namespace Vfs_block */
@@ -49,7 +49,7 @@ struct Vfs_block::File_info
 };
 
 
-Vfs_block::File_info Vfs_block::file_info_from_policy(Xml_node const &policy)
+Vfs_block::File_info Vfs_block::file_info_from_policy(Node const &policy)
 {
 	File_path const file_path =
 		policy.attribute_value("file", File_path());
@@ -306,12 +306,12 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 	Heap                    _heap       { _env.ram(), _env.rm() };
 	Attached_rom_dataspace  _config_rom { _env, "config" };
 
-	Vfs::Simple_env _vfs_env = _config_rom.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Vfs::Simple_env {
+	Vfs::Simple_env _vfs_env = _config_rom.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Vfs::Simple_env {
 			return { _env, _heap, config, *this }; },
 		[&] () -> Vfs::Simple_env {
 			error("VFS not configured");
-			return { _env, _heap, Xml_node("<empty/>") }; });
+			return { _env, _heap, Node() }; });
 
 	Constructible<Attached_ram_dataspace>  _block_ds { };
 	Constructible<Vfs_block::File>         _block_file { };
@@ -358,9 +358,9 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 		/* make sure policy is up-to-date */
 		_config_rom.update();
 
-		return with_matching_policy(label_from_args(args.string()), _config_rom.xml(),
+		return with_matching_policy(label_from_args(args.string()), _config_rom.node(),
 
-			[&] (Xml_node const &policy) -> Root::Result {
+			[&] (Node const &policy) -> Root::Result {
 
 				if (!policy.has_attribute("file")) {
 					error("policy lacks 'file' attribute");

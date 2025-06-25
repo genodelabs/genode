@@ -69,24 +69,22 @@ struct Libc::Config
 
 namespace Libc {
 
-	static inline void with_vfs_config(Xml_node const &config, auto const &fn)
+	static inline void with_vfs_config(Node const &config, auto const &fn)
 	{
-		static Xml_node const empty_vfs { "<vfs/>" };
-
 		config.with_sub_node("vfs",
-			[&] (Xml_node const &vfs_config) { fn(vfs_config); },
+			[&] (Node const &vfs_config) { fn(vfs_config); },
 			[&] {
 				config.with_sub_node("libc",
-					[&] (Xml_node const &libc) {
+					[&] (Node const &libc) {
 						libc.with_sub_node("vfs",
-							[&] (Xml_node const &vfs_config) {
+							[&] (Node const &vfs_config) {
 								warning("'<config> <libc> <vfs/>' is deprecated, "
 								        "please move to '<config> <vfs/>'");
 								fn(vfs_config);
 							},
-							[&] { fn(empty_vfs); });
+							[&] { fn(Node()); });
 					},
-					[&] { fn(empty_vfs); });
+					[&] { fn(Node()); });
 			});
 	}
 }

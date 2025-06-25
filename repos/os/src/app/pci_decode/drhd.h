@@ -40,7 +40,7 @@ struct Drhd : List_model<Drhd>::Element
 		uint8_t type;
 		uint8_t id;
 
-		Device(Registry<Device> & registry, Bdf bdf, uint8_t type, uint8_t id)
+		Device(Registry<Device> &registry, Bdf bdf, uint8_t type, uint8_t id)
 		: Registry<Device>::Element(registry, *this), bdf(bdf), type(type), id(id)
 		{ }
 	};
@@ -53,12 +53,12 @@ struct Drhd : List_model<Drhd>::Element
 
 	Drhd_name name() const { return Drhd_name("drhd", number); }
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		return addr == node.attribute_value("phys", 0UL);
 	}
 
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return node.has_type("drhd");
 	}

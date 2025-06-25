@@ -340,9 +340,9 @@ void App::Main::_handle_config()
 {
 	_config.update();
 
-	_period_ms = _config.xml().attribute_value("period_ms", _default_period_ms());
+	_period_ms = _config.node().attribute_value("period_ms", _default_period_ms());
 
-	String<8> ec_sc(_config.xml().attribute_value("sort_time", String<8>("ec")));
+	String<8> ec_sc(_config.node().attribute_value("sort_time", String<8>("ec")));
 	if (ec_sc == "ec")
 		_sort = EC_TIME;
 	else

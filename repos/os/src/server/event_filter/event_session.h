@@ -92,10 +92,10 @@ class Event_filter::Event_session : public Session_object<Event::Session, Event_
 		/**
 		 * (Re-)assign input name to session according to session policy
 		 */
-		void assign_input_name(Xml_node const &config)
+		void assign_input_name(Node const &config)
 		{
 			_input_name = with_matching_policy(_label, config,
-				[&] (Xml_node const &policy) {
+				[&] (Node const &policy) {
 					return policy.attribute_value("input", Input_name()); },
 				[&] {
 					return Input_name(); });
@@ -156,7 +156,7 @@ class Event_filter::Event_root : public Root_component<Event_session>
 				                          session_diag_from_args(args),
 				                          _trigger);
 
-			session.assign_input_name(_config.xml());
+			session.assign_input_name(_config.node());
 
 			return session;
 		}
@@ -205,7 +205,7 @@ class Event_filter::Event_root : public Root_component<Event_session>
 			return idle;
 		}
 
-		void apply_config(Xml_node const &config)
+		void apply_config(Node const &config)
 		{
 			_sessions.for_each([&] (Event_session &session) {
 				session.assign_input_name(config); });

@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/node.h>
 #include <gpio_session/connection.h>
 #include <irq_session/client.h>
 #include <timer_session/connection.h>
@@ -29,10 +30,10 @@ struct Main
 	Signal_receiver         sig_rec      { };
 	Signal_context          sig_ctx      { };
 	Timer::Connection       timer        { env };
-	unsigned                gpio_pin     { config.xml().attribute_value("gpio_pin", (unsigned)16) };
-	unsigned                gpio_pin_in  { config.xml().attribute_value("gpio_pin_in", (unsigned)17) };
-	unsigned                gpio_pin_out { config.xml().attribute_value("gpio_pin_out", (unsigned)18) };
-	bool                    state        { config.xml().attribute_value("state", (unsigned)0) > 0 };
+	unsigned                gpio_pin     { config.node().attribute_value("gpio_pin", (unsigned)16) };
+	unsigned                gpio_pin_in  { config.node().attribute_value("gpio_pin_in", (unsigned)17) };
+	unsigned                gpio_pin_out { config.node().attribute_value("gpio_pin_out", (unsigned)18) };
+	bool                    state        { config.node().attribute_value("state", (unsigned)0) > 0 };
 
 	Main(Env &env);
 };

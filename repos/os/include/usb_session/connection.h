@@ -95,6 +95,15 @@ class Usb::Connection : public Genode::Connection<Session>, public Usb::Client
 				warning("Devices rom has invalid XML syntax"); }
 		}
 
+		void with_node(auto const & fn)
+		{
+			update();
+			if (_ds.constructed() && _ds->local_addr<void const>()) {
+				Node node(Const_byte_range_ptr(_ds->local_addr<char>(), _ds->size()));
+				fn(node);
+			}
+		}
+
 		Device_capability acquire_device(Device_name const &name) override
 		{
 			Ram_quota ram_quota(Device_session::TX_BUFFER_SIZE + 4096);

@@ -109,10 +109,8 @@ struct Monitor
 
 		Genode::addr_t period_ms = 1000;
 
-		try {
-			Genode::Attached_rom_dataspace config { env, "config" };
-			period_ms = config.xml().attribute_value("period_ms", 1000UL);
-		} catch (...) { }
+		Genode::Attached_rom_dataspace config { env, "config" };
+		period_ms = config.node().attribute_value("period_ms", 1000UL);
 
 		timer.trigger_periodic((Genode::uint64_t)1000 * period_ms);
 	}

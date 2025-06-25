@@ -15,9 +15,9 @@
 #define _TYPES_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <util/xml_generator.h>
 #include <util/color.h>
+#include <base/node.h>
 #include <base/allocator.h>
 #include <gui_session/gui_session.h>
 

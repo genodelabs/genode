@@ -16,11 +16,11 @@
 
 #include "config.h"
 
-void Cpu::Config::apply(Xml_node const &start, Child_list &sessions)
+void Cpu::Config::apply(Node const &start, Child_list &sessions)
 {
 	using Label = String<Session_label::capacity()>;
 
-	start.for_each_sub_node("component", [&](Xml_node const &node) {
+	start.for_each_sub_node("component", [&](Node const &node) {
 		if (!node.has_attribute("label"))
 			return;
 
@@ -35,7 +35,7 @@ void Cpu::Config::apply(Xml_node const &start, Child_list &sessions)
 				session.default_policy(policy);
 			}
 
-			node.for_each_sub_node("thread", [&](Xml_node const &thread) {
+			node.for_each_sub_node("thread", [&](Node const &thread) {
 				if (!thread.has_attribute("name") || !thread.has_attribute("policy"))
 					return;
 
@@ -57,12 +57,12 @@ void Cpu::Config::apply(Xml_node const &start, Child_list &sessions)
 	});
 }
 
-void Cpu::Config::apply_for_thread(Xml_node const &start, Cpu::Session &session,
+void Cpu::Config::apply_for_thread(Node const &start, Cpu::Session &session,
                                    Thread::Name const &target_thread)
 {
 	using Label = String<Session_label::capacity()>;
 
-	start.for_each_sub_node("component", [&](Xml_node const &node) {
+	start.for_each_sub_node("component", [&](Node const &node) {
 		if (!node.has_attribute("label"))
 			return;
 
@@ -71,7 +71,7 @@ void Cpu::Config::apply_for_thread(Xml_node const &start, Cpu::Session &session,
 		if (!session.match(label))
 			return;
 
-		node.for_each_sub_node("thread", [&](Xml_node const &thread) {
+		node.for_each_sub_node("thread", [&](Node const &thread) {
 			if (!thread.has_attribute("name") || !thread.has_attribute("policy"))
 				return;
 

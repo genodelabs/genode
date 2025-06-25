@@ -56,8 +56,7 @@ struct Vfs::Global_file_system_factory::Entry_base : Vfs::File_system_factory,
 
 	Entry_base(Fs_type_name const &name) : name(name) { }
 
-	bool matches(Genode::Xml_node const &node) const {
-		return node.has_type(name.string()); }
+	bool matches(Node const &node) const { return node.has_type(name.string()); }
 };
 
 
@@ -66,7 +65,7 @@ struct Vfs::Builtin_entry : Vfs::Global_file_system_factory::Entry_base
 {
 	Builtin_entry() : Entry_base(FILE_SYSTEM::name()) { }
 
-	Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &node) override {
+	Vfs::File_system *create(Vfs::Env &env, Node const &node) override {
 		return new (env.alloc()) FILE_SYSTEM(env, node); }
 };
 
@@ -80,7 +79,7 @@ struct Vfs::External_entry : Vfs::Global_file_system_factory::Entry_base
 	:
 		Entry_base(name), _fs_factory(fs_factory) { }
 
-	File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
+	File_system *create(Vfs::Env &env, Node const &config) override
 	{
 		return _fs_factory.create(env, config);
 	}
@@ -101,8 +100,7 @@ void Vfs::Global_file_system_factory::_add_builtin_fs()
  * Lookup and create File_system instance
  */
 Vfs::File_system*
-Vfs::Global_file_system_factory::_try_create(Vfs::Env &env,
-		                                     Genode::Xml_node const &config)
+Vfs::Global_file_system_factory::_try_create(Vfs::Env &env, Node const &config)
 {
 	for (Entry_base *e = _list.first(); e; e = e->next())
 		if (e->matches(config)) return e->create(env, config);
@@ -158,7 +156,7 @@ Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Vfs::En
  * Try to load external File_system_factory provider
  */
 bool Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env &env,
-                                                              Genode::Xml_node const &node)
+                                                              Node const &node)
 {
 	Library_name const lib_name = _library_name(node.type());
 
@@ -175,7 +173,7 @@ bool Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env &env,
  * Create and return a new file-system
  */
 Vfs::File_system *Vfs::Global_file_system_factory::create(Vfs::Env &env,
-                                                          Genode::Xml_node const &node)
+                                                          Node const &node)
 {
 	try {
 		/* try if type is handled by the currently registered fs types */

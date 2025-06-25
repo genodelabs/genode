@@ -22,8 +22,6 @@
 #include <net/ipv4.h>
 #include <net/port.h>
 
-namespace Genode { class Xml_node; }
-
 namespace Net {
 
 	class Domain;

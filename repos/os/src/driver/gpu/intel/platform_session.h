@@ -308,16 +308,17 @@ class Platform::Session_component : public Rpc_object<Session>,
 			if (!rom.size())
 				return;
 
-			Xml_node const rom_xml(rom.local_addr<char>());
+			Node const rom_node(Const_byte_range_ptr(rom.local_addr<char>(),
+			                                         rom.size()));
 
-			copy_attributes(xml, rom_xml);
+			copy_attributes(xml, rom_node);
 
-			rom_xml.for_each_sub_node("device", [&](auto const &dev) {
+			rom_node.for_each_sub_node("device", [&](auto const &dev) {
 
 				bool intel_dev   = false;
 				bool graphic_dev = false;
 
-				dev.with_optional_sub_node("pci-config", [&] (Xml_node const &node) {
+				dev.with_optional_sub_node("pci-config", [&] (Node const &node) {
 					  intel_dev = node.attribute_value("vendor_id", 0u) == 0x8086;
 					graphic_dev = node.attribute_value("class",     0u) == 0x30000;
 				});
@@ -333,7 +334,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 				xml.node("device", [&]() {
 					copy_attributes(xml, dev);
 
-					dev.for_each_sub_node([&] (Xml_node const &node) {
+					dev.for_each_sub_node([&] (Node const &node) {
 						if (!node.has_type("io_mem")) {
 							copy_node(xml, node);
 							return;
@@ -343,17 +344,17 @@ class Platform::Session_component : public Rpc_object<Session>,
 
 						xml.node("io_mem", [&]() {
 							node.for_each_attribute([&](auto const &attr){
-								String<16> value { };
-								attr.value(value);
+								String<16> value { Cstring(attr.value.start,
+								                           attr.value.num_bytes) };
 
-								if (pci_bar == 2 && attr.has_type("size")) {
+								if (pci_bar == 2 && (attr.name == "size")) {
 									Range r = { };
 									_device_component.io_mem(1, r);
 
 									value = String<16>(Hex(r.size));
 								}
 
-								xml.attribute(attr.name().string(),
+								xml.attribute(attr.name.string(),
 								              value.string());
 							});
 						});
@@ -362,27 +363,26 @@ class Platform::Session_component : public Rpc_object<Session>,
 			});
 		}
 
-		void copy_attributes(Xml_generator &xml, Xml_node const &from)
+		void copy_attributes(Xml_generator &xml, Node const &from)
 		{
 			using Value = String<64>;
-			from.for_each_attribute([&] (Xml_attribute const &attr) {
-				Value value { };
-				attr.value(value);
-				xml.attribute(attr.name().string(), value);
+			from.for_each_attribute([&] (Node::Attribute const &attr) {
+				Value value { Cstring(attr.value.start, attr.value.num_bytes) };
+				xml.attribute(attr.name.string(), value);
 			});
 		}
 
-		struct Xml_max_depth { unsigned value; };
+		struct Node_max_depth { unsigned value; };
 
-		void copy_node(Xml_generator &xml, Xml_node const &from,
-		               Xml_max_depth max_depth = { 5 })
+		void copy_node(Xml_generator &xml, Node const &from,
+		               Node_max_depth max_depth = { 5 })
 		{
 			if (!max_depth.value)
 				return;
 
 			xml.node(from.type().string(), [&] {
 				copy_attributes(xml, from);
-				from.for_each_sub_node([&] (Xml_node const &sub_node) {
+				from.for_each_sub_node([&] (Node const &sub_node) {
 					copy_node(xml, sub_node, { max_depth.value - 1 }); });
 			});
 		}
@@ -495,14 +495,14 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 		{
 			auto apert_size = DISPLAY_MIN_APERTURE;
 
-			_platform.with_xml([&](auto const &node) {
-				node.for_each_sub_node("device", [&] (Xml_node const &dev) {
-					dev.for_each_sub_node("pci-config", [&] (Xml_node const &cfg) {
+			_platform.with_node([&](auto const &node) {
+				node.for_each_sub_node("device", [&] (Node const &dev) {
+					dev.for_each_sub_node("pci-config", [&] (Node const &cfg) {
 
 						if (cfg.attribute_value("vendor_id", 0) != 0x8086)
 							return;
 
-						dev.for_each_sub_node("io_mem", [&] (Xml_node const &mem) {
+						dev.for_each_sub_node("io_mem", [&] (Node const &mem) {
 							if (mem.attribute_value("pci_bar", ~0u) != 2)
 								return;
 

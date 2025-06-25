@@ -1670,7 +1670,7 @@ class Nvme::Driver : Genode::Noncopyable
 
 			if (!_config_rom.valid()) { return; }
 
-			Genode::Xml_node config = _config_rom.xml();
+			Genode::Node config = _config_rom.node();
 			_verbose_checks   = config.attribute_value("verbose_checks",   _verbose_checks);
 			_verbose_identify = config.attribute_value("verbose_identify", _verbose_identify);
 			_verbose_io       = config.attribute_value("verbose_io",       _verbose_io);
@@ -1911,8 +1911,8 @@ class Nvme::Driver : Genode::Noncopyable
 			    "I/O entries: ", ctrlr.max_io_entries());
 
 			/* generate Report if requested */
-			_config_rom.xml().with_optional_sub_node("report",
-				[&] (Xml_node const &report) {
+			_config_rom.node().with_optional_sub_node("report",
+				[&] (Node const &report) {
 					if (report.attribute_value("namespaces", false)) {
 						_namespace_reporter.enabled(true);
 						_report_namespaces(ctrlr);
@@ -1943,8 +1943,8 @@ class Nvme::Driver : Genode::Noncopyable
 			if (!_system_rom->valid())
 				return;
 
-			auto state = _system_rom->xml().attribute_value("state",
-			                                                String<32>(""));
+			auto state = _system_rom->node().attribute_value("state",
+			                                                 String<32>(""));
 
 			bool const resume_driver =  _stop_processing && state == "";
 			bool const stop_driver   = !_stop_processing && state != "";
@@ -2408,9 +2408,9 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
-		return with_matching_policy(label, _config_rom.xml(),
+		return with_matching_policy(label, _config_rom.node(),
 
-			[&] (Xml_node const &policy) -> Root::Result {
+			[&] (Node const &policy) -> Root::Result {
 				bool const writeable = policy.attribute_value("writeable", false);
 				_driver.writeable(writeable);
 

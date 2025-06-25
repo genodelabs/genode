@@ -124,16 +124,18 @@ static Shape const shape[] = {
 };
 
 
-static Shape const &select_shape(Genode::Xml_node config)
+static void with_selected_shape(Genode::Node const &config, auto const &fn)
 {
 	Shape::Id const id = config.attribute_value("shape", Shape::Id("arrow"));
 
 	for (Shape const &s : shape)
-		if (s.id == id)
-			return s;
+		if (s.id == id) {
+			fn(s);
+			return;
+		}
 
 	/* not found -> use first as default */
-	return shape[0];
+	fn(shape[0]);
 }
 
 
@@ -156,25 +158,26 @@ struct Main
 	{
 		_config.update();
 
-		Shape const &shape = select_shape(_config.xml());
+		with_selected_shape(_config.node(), [&] (Shape const &shape) {
 
-		_shape_report.visible = shape.visible;
-		_shape_report.x_hot   = shape.x_hot;
-		_shape_report.y_hot   = shape.y_hot;
-		_shape_report.width   = shape.width;
-		_shape_report.height  = shape.height;
+			_shape_report.visible = shape.visible;
+			_shape_report.x_hot   = shape.x_hot;
+			_shape_report.y_hot   = shape.y_hot;
+			_shape_report.width   = shape.width;
+			_shape_report.height  = shape.height;
 
-		unsigned const w = shape.width;
-		unsigned const h = shape.height;
+			unsigned const w = shape.width;
+			unsigned const h = shape.height;
 
-		for (unsigned y = 0; y < h; ++y) {
-			for (unsigned x = 0; x < w; ++x) {
-				_shape_report.shape[(y*w + x)*4 + 0] = 0xff;
-				_shape_report.shape[(y*w + x)*4 + 1] = 0xf2;
-				_shape_report.shape[(y*w + x)*4 + 2] = 0xac;
-				_shape_report.shape[(y*w + x)*4 + 3] = shape.map[y*w + x] ? 0xe0 : 0;
+			for (unsigned y = 0; y < h; ++y) {
+				for (unsigned x = 0; x < w; ++x) {
+					_shape_report.shape[(y*w + x)*4 + 0] = 0xff;
+					_shape_report.shape[(y*w + x)*4 + 1] = 0xf2;
+					_shape_report.shape[(y*w + x)*4 + 2] = 0xac;
+					_shape_report.shape[(y*w + x)*4 + 3] = shape.map[y*w + x] ? 0xe0 : 0;
+				}
 			}
-		}
+		});
 
 		Genode::Const_byte_range_ptr const
 			bytes ((char const *)&_shape_report, sizeof(Pointer::Shape_report));

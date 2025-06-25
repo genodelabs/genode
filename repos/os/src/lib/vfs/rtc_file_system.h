@@ -124,7 +124,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 	public:
 
-		Rtc_file_system(Vfs::Env &env, Genode::Xml_node const &config)
+		Rtc_file_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, name(),
 			                   Node_rwx::ro(), config),

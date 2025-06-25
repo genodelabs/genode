@@ -112,7 +112,7 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 
 		void release_sample_producer() { _sample_producer_ptr = nullptr; }
 
-		void apply_config(Xml_node const &config, Scheduler::Config global)
+		void apply_config(Node const &config, Scheduler::Config global)
 		{
 			_volume = float(config.attribute_value("volume", 1.0));
 

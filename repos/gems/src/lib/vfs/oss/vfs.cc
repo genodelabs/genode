@@ -735,7 +735,7 @@ struct Vfs::Oss_file_system::Audio
 				);
 			}
 
-			static Config from_xml(Xml_node const &);
+			static Config from_node(Node const &);
 		};
 
 		Config const _config;
@@ -745,12 +745,12 @@ struct Vfs::Oss_file_system::Audio
 		Audio(Vfs::Env                              &env,
 		      Info                                  &info,
 		      Readonly_value_file_system<Info, 512> &info_fs,
-		      Xml_node                        const &config)
+		      Node                            const &config)
 		:
 			_vfs_env { env },
 			_info    { info },
 			_info_fs { info_fs },
-			_config  { Config::from_xml(config) }
+			_config  { Config::from_node(config) }
 		{
 			log("OSS: ", _config);
 
@@ -1005,20 +1005,20 @@ struct Vfs::Oss_file_system::Audio
 
 
 Vfs::Oss_file_system::Audio::Config
-Vfs::Oss_file_system::Audio::Config::from_xml(Xml_node const &config)
+Vfs::Oss_file_system::Audio::Config::from_node(Node const &config)
 {
-	auto default_size = [&] (Xml_node     const &config,
+	auto default_size = [&] (Node         const &config,
 	                         char const * const  attr,
 	                         unsigned     const  value) {
 			return config.attribute_value(attr, value); };
 
-	auto cap_max = [&] (Xml_node     const &config,
+	auto cap_max = [&] (Node         const &config,
 	                    char const * const  attr,
 	                    unsigned     const  default_value) {
 		return min(default_size(config, attr, default_value),
 		           default_value); };
 
-	auto cap_min = [&] (Xml_node     const &config,
+	auto cap_min = [&] (Node         const &config,
 	                    char const * const  attr,
 	                    unsigned     const  default_value) {
 		return max(default_size(config, attr, default_value),
@@ -1144,7 +1144,7 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 		                 Name         const &name)
 		:
 			Single_file_system { Node_type::CONTINUOUS_FILE, name.string(),
-			                     Node_rwx::ro(), Genode::Xml_node("<data/>") },
+			                     Node_rwx::ro(), Node() },
 
 			_ep       { ep },
 			_vfs_user { vfs_user },
@@ -1426,14 +1426,14 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 			log("Sample rate changed to ", _info.sample_rate);
 	}
 
-	static Name name(Xml_node const &config)
+	static Name name(Node const &config)
 	{
 		return config.attribute_value("name", Name("oss"));
 	}
 
 	Data_file_system _data_fs;
 
-	Local_factory(Vfs::Env &env, Xml_node const &config)
+	Local_factory(Vfs::Env &env, Node const &config)
 	:
 		_label   { config.attribute_value("label", Label("")) },
 		_name    { name(config) },
@@ -1442,7 +1442,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		_data_fs { _env.env().ep(), env.user(), _audio, name(config) }
 	{ }
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
 		if (node.has_type("data")) return &_data_fs;
 		if (node.has_type("info")) return &_info_fs;
@@ -1586,11 +1586,11 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
+		Compound_file_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory { vfs_env, node },
 			Vfs::Dir_file_system { vfs_env,
-			                       Xml_node(_config(Local_factory::name(node)).string()),
+			                       Node(_config(Local_factory::name(node))),
 			                       *this }
 		{ }
 
@@ -1604,7 +1604,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
 		{
 			return new (env.alloc())
 				Vfs::Oss_file_system::Compound_file_system(env, config);

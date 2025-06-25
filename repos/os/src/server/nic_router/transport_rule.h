@@ -17,6 +17,7 @@
 /* local includes */
 #include <direct_rule.h>
 #include <permit_rule.h>
+#include <node.h>
 
 namespace Genode { class Allocator; }
 
@@ -37,9 +38,9 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 		Permit_single_rule_tree  _permit_single_rules { };
 
 		static Permit_any_rule *
-		_read_permit_any_rule(Domain_dict            &domains,
-		                      Genode::Xml_node const &node,
-		                      Genode::Allocator      &alloc);
+		_read_permit_any_rule(Domain_dict        &domains,
+		                      Genode::Node const &node,
+		                      Genode::Allocator  &alloc);
 
 		/*
 		 * Noncopyable
@@ -68,7 +69,7 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 		}
 
 		[[nodiscard]] bool finish_construction(Domain_dict            &domains,
-		                                       Genode::Xml_node const &node,
+		                                       Genode::Node     const &node,
 		                                       Genode::Cstring  const &protocol,
 		                                       Configuration          &config,
 		                                       Domain           const &domain);

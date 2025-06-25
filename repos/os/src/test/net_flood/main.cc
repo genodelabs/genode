@@ -49,7 +49,7 @@ class Main : public Nic_handler,
 
 		Env                            &_env;
 		Attached_rom_dataspace          _config_rom  { _env, "config" };
-		Xml_node                        _config      { _config_rom.xml() };
+		Node                            _config      { _config_rom.node() };
 		Timer::Connection               _timer       { _env };
 		Microseconds                    _period_us   { 1 };
 		Constructible<Periodic_timeout> _period      { };

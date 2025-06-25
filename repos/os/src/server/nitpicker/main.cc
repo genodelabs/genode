@@ -127,9 +127,9 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 				            _builtin_background, provides_default_bg,
 				            _focus_reporter);
 
-			session.apply_session_policy(_config.xml(), _domain_registry);
+			session.apply_session_policy(_config.node(), _domain_registry);
 			_session_list.insert(&session);
-			_global_keys.apply_config(_config.xml(), _session_list);
+			_global_keys.apply_config(_config.node(), _session_list);
 			_focus_updater.update_focus();
 			_hover_updater.update_hover();
 
@@ -149,7 +149,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 				s->forget(session);
 
 			_session_list.remove(&session);
-			_global_keys.apply_config(_config.xml(), _session_list);
+			_global_keys.apply_config(_config.node(), _session_list);
 
 			session.destroy_all_views();
 			User_state::Handle_forget_result result = _user_state.forget(session);
@@ -277,11 +277,18 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 			_env(env), _action(action), _view_stack(view_stack), _handler(handler)
 		{ }
 
-		void apply_config(Xml_node const &config)
+		void apply_config(Node const &config)
 		{
 			using Policy = Capture_session::Policy;
 
-			if (config.num_sub_nodes() == 0) {
+			auto num_sub_nodes = [&]
+			{
+				unsigned count = 0;
+				config.for_each_sub_node([&] (Node const &) { count++; });
+				return count;
+			};
+
+			if (num_sub_nodes() == 0) {
 
 				/* if no policies are defined, mirror with no constraints */
 				_sessions.for_each([&] (Capture_session &session) {
@@ -292,8 +299,8 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				/* apply constraits per session */
 				_sessions.for_each([&] (Capture_session &session) {
 					with_matching_policy(session.label(), config,
-						[&] (Xml_node const &policy) {
-							session.apply_policy(Policy::from_xml(policy));
+						[&] (Node const &policy) {
+							session.apply_policy(Policy::from_node(policy));
 						},
 						[&] { session.apply_policy(Policy::blocked()); }); });
 			}
@@ -613,7 +620,7 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	Heap _domain_registry_heap { _env.ram(), _env.rm() };
 
 	Reconstructible<Domain_registry> _domain_registry {
-		_domain_registry_heap, Xml_node("<config/>") };
+		_domain_registry_heap, Node() };
 
 	Tff_font::Static_glyph_buffer<4096> _glyph_buffer { };
 
@@ -926,10 +933,10 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 		_env.parent().announce(_env.ep().manage(_gui_root));
 
-		if (_config_rom.xml().has_sub_node("capture"))
+		if (_config_rom.node().has_sub_node("capture"))
 			_env.parent().announce(_env.ep().manage(_capture_root));
 
-		if (_config_rom.xml().has_sub_node("event"))
+		if (_config_rom.node().has_sub_node("event"))
 			_env.parent().announce(_env.ep().manage(_event_root));
 
 		_update_motion_and_focus_activity_reports();
@@ -1027,10 +1034,10 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 /**
  * Helper function for 'handle_config'
  */
-static void configure_reporter(Genode::Xml_node const &config, Genode::Reporter &reporter)
+static void configure_reporter(Genode::Node const &config, Genode::Reporter &reporter)
 {
 	config.with_sub_node("report",
-		[&] (Genode::Xml_node const &node) {
+		[&] (Genode::Node const &node) {
 			reporter.enabled(node.attribute_value(reporter.name().string(), false));
 		},
 		[&] {
@@ -1047,7 +1054,7 @@ void Nitpicker::Main::_handle_focus()
 	_focus_rom->update();
 
 	using Label = String<160>;
-	Label const label = _focus_rom->xml().attribute_value("label", Label());
+	Label const label = _focus_rom->node().attribute_value("label", Label());
 
 	/*
 	 * Determine session that matches the label found in the focus ROM
@@ -1067,8 +1074,8 @@ void Nitpicker::Main::_handle_focus()
 void Nitpicker::Main::_apply_capture_config()
 {
 	/* propagate capture policies */
-	_config_rom.xml().with_optional_sub_node("capture",
-		[&] (Xml_node const &capture) {
+	_config_rom.node().with_optional_sub_node("capture",
+		[&] (Node const &capture) {
 			_capture_root.apply_config(capture); });
 }
 
@@ -1077,14 +1084,14 @@ void Nitpicker::Main::_handle_config()
 {
 	_config_rom.update();
 
-	Xml_node const &config = _config_rom.xml();
+	Node const &config = _config_rom.node();
 
 	/* update global keys policy */
 	_global_keys.apply_config(config, _session_list);
 
 	/* update background color */
 	config.with_sub_node("background",
-		[&] (Xml_node const &node) {
+		[&] (Node const &node) {
 			_builtin_background.color =
 				node.attribute_value("color", Background::default_color()); },
 		[&] {

@@ -365,7 +365,7 @@ class Vfs::Dir_file_system : public File_system
 
 	public:
 
-		Dir_file_system(Vfs::Env &env, Genode::Xml_node const &node,
+		Dir_file_system(Vfs::Env &env, Node const &node,
 		                File_system_factory &fs_factory)
 		:
 			_env(env),
@@ -374,7 +374,7 @@ class Vfs::Dir_file_system : public File_system
 		{
 			using namespace Genode;
 
-			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+			node.for_each_sub_node([&] (Node const &sub_node) {
 
 				/* traverse into <dir> nodes */
 				if (sub_node.has_type("dir")) {
@@ -859,19 +859,19 @@ class Vfs::Dir_file_system : public File_system
 		char const *name() const    { return "dir"; }
 		char const *type() override { return "dir"; }
 
-		void apply_config(Genode::Xml_node const &node) override
+		void apply_config(Node const &node) override
 		{
 			using namespace Genode;
 
 			File_system *curr = _first_file_system;
-			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+			node.for_each_sub_node([&] (Node const &sub_node) {
 
 				if (!curr) {
 					error("VFS config update missed file system for ", sub_node);
 					return;
 				}
 
-				/* check if type of XML node matches current file-system type */
+				/* check if type of node matches current file-system type */
 				if (!curr || sub_node.has_type(curr->type()) == false) {
 					error("VFS config update failed (node type '",
 					      sub_node.type(), "' != fs type '", curr->type(),"')");

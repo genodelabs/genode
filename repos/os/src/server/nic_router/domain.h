@@ -27,8 +27,7 @@
 #include <dictionary.h>
 
 /* Genode includes */
-#include <util/reconstructible.h>
-#include <os/buffered_xml.h>
+#include <base/node.h>
 
 namespace Genode {
 
@@ -76,7 +75,7 @@ class Net::Domain_dict : public Dictionary<Domain, Domain_name>
 {
 	public:
 
-		void find_by_domain_attr(Genode::Xml_node const &node, auto const &ok_fn, auto const &failed_fn)
+		void find_by_domain_attr(Genode::Node const &node, auto const &ok_fn, auto const &failed_fn)
 		{
 			with_element(node.attribute_value("domain", Domain_name()),
 				[&] (Domain &domain) { ok_fn(domain); }, [&] { failed_fn(); });
@@ -91,7 +90,7 @@ class Net::Domain : public List<Domain>::Element,
 	private:
 
 		Configuration                        &_config;
-		Genode::Buffered_xml            const _node;
+		Genode::Buffered_node           const _node;
 		Genode::Allocator                    &_alloc;
 		Ip_rule_list                          _ip_rules             { };
 		Forward_rule_tree                     _tcp_forward_rules    { };
@@ -131,13 +130,13 @@ class Net::Domain : public List<Domain>::Element,
 
 		[[nodiscard]] bool _read_forward_rules(Genode::Cstring  const &protocol,
 		                                       Domain_dict            &domains,
-		                                       Genode::Xml_node const &node,
+		                                       Genode::Node     const &node,
 		                                       char             const *type,
 		                                       Forward_rule_tree      &rules);
 
 		[[nodiscard]] bool _read_transport_rules(Genode::Cstring  const &protocol,
 		                                         Domain_dict            &domains,
-		                                         Genode::Xml_node const &node,
+		                                         Genode::Node     const &node,
 		                                         char             const *type,
 		                                         Transport_rule_list    &rules);
 
@@ -168,11 +167,11 @@ class Net::Domain : public List<Domain>::Element,
 
 		struct Invalid : Genode::Exception { };
 
-		Domain(Configuration          &config,
-		       Genode::Xml_node const &node,
-		       Domain_name      const &name,
-		       Genode::Allocator      &alloc,
-		       Domain_dict            &domain_dict);
+		Domain(Configuration      &config,
+		       Genode::Node const &node,
+		       Domain_name  const &name,
+		       Genode::Allocator  &alloc,
+		       Domain_dict        &domain_dict);
 
 		~Domain();
 

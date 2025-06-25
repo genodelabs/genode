@@ -121,8 +121,8 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 
 			_config_rom.update();
 
-			return with_matching_policy(rom_label, _config_rom.xml(),
-				[&] (Xml_node const &policy) {
+			return with_matching_policy(rom_label, _config_rom.node(),
+				[&] (Node const &policy) {
 					return policy.attribute_value("report", Module::Name());
 				},
 				[&] () -> Module::Name {

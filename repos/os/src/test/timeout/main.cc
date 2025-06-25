@@ -29,7 +29,7 @@ using namespace Genode;
  * replaced in the near future by a solution that is part of the base lib and
  * thus can be implemented the clean way in platform specific files.
  */
-static bool precise_time(Xml_node config)
+static bool precise_time(Node const &config)
 {
 	String<32> attr = config.attribute_value("precise_time", String<32>("false"));
 	if (attr == "true") { return true; }
@@ -317,7 +317,7 @@ struct Mixed_timeouts : Test
 
 	Duration init_time    { Microseconds(0) };
 	unsigned event_id     { 0 };
-	uint64_t max_error_us { config.xml().attribute_value("precise_timeouts", true) ?
+	uint64_t max_error_us { config.node().attribute_value("precise_timeouts", true) ?
 	                        (uint64_t)50000 : (uint64_t)200000 };
 
 	Timer::Periodic_timeout<Mixed_timeouts> pt1 { timer, *this, &Mixed_timeouts::handle_pt1, timeouts[0].us };
@@ -439,13 +439,13 @@ struct Fast_polling : Test
 	                                    timer_2_us - timer_us :
 	                                    timer_us - timer_2_us };
 
-	size_t const  buf_size        { config.xml().attribute_value("fast_polling_buf_size", (size_t)80000000) };
+	size_t const  buf_size        { config.node().attribute_value("fast_polling_buf_size", (size_t)80000000) };
 	size_t const  max_nr_of_polls { buf_size / sizeof(uint64_t) };
 	Result_buffer local_us_1_buf  { env, buf_size };
 	Result_buffer local_us_2_buf  { env, buf_size };
 	Result_buffer remote_us_buf   { env, buf_size };
 
-	uint64_t max_avg_time_err_us { config.xml().attribute_value("precise_ref_time", true) ?
+	uint64_t max_avg_time_err_us { config.node().attribute_value("precise_ref_time", true) ?
 	                               (uint64_t)1000 : (uint64_t)2000 };
 
 	unsigned const delay_loops_per_poll[NR_OF_ROUNDS] {      1,
@@ -774,7 +774,7 @@ struct Fast_polling : Test
 		main_ep(env, STACK_SIZE, "fast_polling_ep", Affinity::Location()),
 		main_handler(main_ep, *this, &Fast_polling::main)
 	{
-		if (precise_time(config.xml())) {
+		if (precise_time(config.node())) {
 			Signal_transmitter(main_handler).submit();
 		} else {
 			log("... skip test, requires the platform to support precise time");

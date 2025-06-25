@@ -83,14 +83,14 @@ class Driver::Device : private List_model<Device>::Element
 			Io_mem(Pci_bar bar, Range range, bool pf)
 			: bar(bar), range(range), prefetchable(pf) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				Range r { node.attribute_value<Genode::addr_t>("address", 0),
 				          node.attribute_value<Genode::size_t>("size",    0) };
 				return (r.start == range.start) && (r.size == range.size);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("io_mem");
 			}
@@ -106,12 +106,12 @@ class Driver::Device : private List_model<Device>::Element
 
 			Irq(unsigned number) : number(number) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value<unsigned>("number", 0u) == number);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("irq");
 			}
@@ -127,13 +127,13 @@ class Driver::Device : private List_model<Device>::Element
 			Io_port_range(Pci_bar bar, Range range)
 			: bar(bar), range(range) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value<uint16_t>("address", 0) == range.addr)
 				    && (node.attribute_value<uint16_t>("size",    0) == range.size);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("io_port_range");
 			}
@@ -150,13 +150,13 @@ class Driver::Device : private List_model<Device>::Element
 			Property(Name name, Value value)
 			: name(name), value(value) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value("name",  Name())  == name)
 				    && (node.attribute_value("value", Value()) == value);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("property");
 			}
@@ -178,13 +178,13 @@ class Driver::Device : private List_model<Device>::Element
 			: name(name), parent(parent),
 			  driver_name(driver_name), rate(rate) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value("name",        Name()) == name)
 				    && (node.attribute_value("driver_name", Name()) == driver_name);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("clock");
 			}
@@ -198,12 +198,12 @@ class Driver::Device : private List_model<Device>::Element
 
 			Power_domain(Name name) : name(name) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value("name", Name()) == name);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("power-domain");
 			}
@@ -217,12 +217,12 @@ class Driver::Device : private List_model<Device>::Element
 
 			Reset_domain(Name name) : name(name) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value("name", Name()) == name);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("reset-domain");
 			}
@@ -296,12 +296,12 @@ class Driver::Device : private List_model<Device>::Element
 				expansion_rom_base(expansion_rom_base)
 			{ }
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value("address", ~0UL) == addr);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("pci-config");
 			}
@@ -315,13 +315,13 @@ class Driver::Device : private List_model<Device>::Element
 
 			Reserved_memory(Range range) : range(range) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value("address", 0UL) == range.start)
 				    && (node.attribute_value("size",    0UL) == range.size);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("reserved_memory");
 			}
@@ -335,12 +335,12 @@ class Driver::Device : private List_model<Device>::Element
 
 			Io_mmu(Name name) : name(name) {}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return (node.attribute_value("name", Name()) == name);
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("io_mmu");
 			}
@@ -434,12 +434,12 @@ class Driver::Device : private List_model<Device>::Element
 
 		void generate(Xml_generator &, bool) const;
 
-		void update(Allocator &, Xml_node const &, Reserved_memory_handler &);
+		void update(Allocator &, Node const &, Reserved_memory_handler &);
 
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return name() == node.attribute_value("name", Device::Name()) &&
 			       type() == node.attribute_value("type", Device::Type());
@@ -448,7 +448,7 @@ class Driver::Device : private List_model<Device>::Element
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("device");
 		}
@@ -509,7 +509,7 @@ class Driver::Device_model
 	public:
 
 		void generate(Xml_generator & xml) const;
-		void update(Xml_node const & node, Reserved_memory_handler &);
+		void update(Node const & node, Reserved_memory_handler &);
 		void device_status_changed();
 
 		Device_model(Env             & env,
@@ -521,7 +521,7 @@ class Driver::Device_model
 		~Device_model()
 		{
 			Reserved_memory_handler dummy { };
-			update(Xml_node("<empty/>"), dummy);
+			update(Node(), dummy);
 		}
 
 		template <typename FN>

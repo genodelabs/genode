@@ -223,8 +223,8 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 		Constructible<Expanding_reporter> _reporter { };
 
 		Number_of_bytes const _io_buffer_size =
-			_config.xml().attribute_value("io_buffer",
-			                              Number_of_bytes(4*1024*1024));
+			_config.node().attribute_value("io_buffer",
+			                               Number_of_bytes(4*1024*1024));
 
 		Allocator_avl           _block_alloc { &_heap };
 		Block_connection        _block    { _env, &_block_alloc, _io_buffer_size };
@@ -319,8 +319,8 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			bool writeable = false;
 
 			Session_label const label = label_from_args(args.string());
-			with_matching_policy(label, _config.xml(),
-				[&] (Xml_node const &policy) {
+			with_matching_policy(label, _config.node(),
+				[&] (Node const &policy) {
 
 					/* read partition attribute */
 					num = policy.attribute_value("partition", -1L);
@@ -501,7 +501,7 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 
 Block::Partition_table & Block::Main::_table()
 {
-	Xml_node const config = _config.xml();
+	Node const config = _config.node();
 
 	bool const ignore_gpt = config.attribute_value("ignore_gpt", false);
 	bool const ignore_mbr = config.attribute_value("ignore_mbr", false);
@@ -517,7 +517,7 @@ Block::Partition_table & Block::Main::_table()
 		throw Invalid_config();
 	}
 
-	config.with_optional_sub_node("report", [&] (Xml_node const &node) {
+	config.with_optional_sub_node("report", [&] (Node const &node) {
 		report = node.attribute_value("partitions", false); });
 
 	try {

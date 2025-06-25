@@ -32,7 +32,7 @@ using namespace Net;
 using namespace Genode;
 
 
-Microseconds read_sec_attr(Xml_node const &node,
+Microseconds read_sec_attr(Node     const &node,
                            char     const *name,
                            uint64_t const  default_sec)
 {
@@ -61,7 +61,7 @@ class Main : public Nic_handler,
 
 		Env                              &_env;
 		Attached_rom_dataspace            _config_rom    { _env, "config" };
-		Xml_node                          _config        { _config_rom.xml() };
+		Node                              _config        { _config_rom.node() };
 		Timer::Connection                 _timer         { _env };
 		Microseconds                      _send_time     { 0 };
 		Microseconds                      _period_us     { read_sec_attr(_config, "period_sec", (uint64_t)DEFAULT_PERIOD_SEC) };

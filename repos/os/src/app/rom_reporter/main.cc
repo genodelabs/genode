@@ -80,7 +80,7 @@ struct Rom_reporter::Main
 
 	Main(Genode::Env &env) : _env(env)
 	{
-		_config.xml().for_each_sub_node("rom", [&] (Xml_node const &rom) {
+		_config.node().for_each_sub_node("rom", [&] (Node const &rom) {
 			new (_heap)
 				Rom_module(_env, rom.attribute_value("label",
 				                                     Rom_module::Label()));

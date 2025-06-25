@@ -107,7 +107,7 @@ struct Test::Random : Scenario
 		return r;
 	}
 
-	Random(Allocator &, Xml_node const &node)
+	Random(Allocator &, Node const &node)
 	:
 		Scenario(node),
 		_random(node.attribute_value("seed",   42UL)),

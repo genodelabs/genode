@@ -22,7 +22,7 @@
 
 namespace Genode {
 
-	class Xml_node;
+	class Node;
 	class Env;
 }
 
@@ -66,7 +66,7 @@ class Net::Report
 	public:
 
 		Report(bool                              const &verbose,
-		       Genode::Xml_node                  const &node,
+		       Genode::Node                      const &node,
 		       Cached_timer                            &timer,
 		       Domain_dict                             &domains,
 		       Quota                             const &shared_quota,

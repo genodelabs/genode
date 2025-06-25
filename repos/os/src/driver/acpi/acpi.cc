@@ -1579,8 +1579,8 @@ class Acpi_table
 			/* try platform_info ROM provided by core */
 			try {
 				Attached_rom_dataspace(_env, "platform_info")
-					.xml().with_optional_sub_node("acpi",
-						[&] (Xml_node const &acpi_node) {
+					.node().with_optional_sub_node("acpi",
+						[&] (Node const &acpi_node) {
 							acpi_revision = acpi_node.attribute_value("revision", 0U);
 							rsdt = acpi_node.attribute_value("rsdt", 0UL);
 							xsdt = acpi_node.attribute_value("xsdt", 0UL);
@@ -1699,7 +1699,7 @@ static void attribute_hex(Xml_generator &xml, char const *name,
 
 
 void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
-                           Xml_node const &config_xml)
+                           Node const &config)
 {
 	/* parse table */
 	Acpi_table acpi_table(env, alloc);
@@ -1761,7 +1761,7 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 			});
 		};
 
-		bool ignore_drhd = config_xml.attribute_value("ignore_drhd", false);
+		bool ignore_drhd = config.attribute_value("ignore_drhd", false);
 		for (Dmar_entry *entry = Dmar_entry::list()->first();
 		     entry; entry = entry->next()) {
 

@@ -21,11 +21,7 @@
 #include <util/reconstructible.h>
 #include <net/ipv4.h>
 #include <net/dhcp.h>
-
-namespace Genode {
-
-	class Xml_attribute;
-}
+#include <base/node.h>
 
 namespace Net {
 
@@ -96,7 +92,7 @@ class Net::Dns_domain_name : private Genode::Noncopyable
 
 		void set_to(Dns_domain_name const &name);
 
-		void set_to(Genode::Xml_attribute const &name_attr);
+		void set_to(Genode::Node::Attribute const &name);
 
 		void set_to(Dhcp_packet::Domain_name const &name_option);
 

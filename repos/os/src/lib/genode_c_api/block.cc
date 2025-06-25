@@ -12,9 +12,9 @@
  */
 
 #include <base/env.h>
+#include <base/node.h>
 #include <block/request_stream.h>
 #include <root/component.h>
-#include <os/buffered_xml.h>
 #include <os/reporter.h>
 #include <os/session_policy.h>
 
@@ -105,9 +105,11 @@ class Block_root : public Root_component<genode_block_session>
 			: name(name), info(info) {}
 		};
 
+		using Buffered_node = Genode::Buffered_node;
+
 		Env                         & _env;
 		Signal_context_capability     _sigh_cap;
-		Constructible<Buffered_xml>   _config   { };
+		Constructible<Buffered_node>  _config   { };
 		Expanding_reporter            _reporter { _env, "block_devices" };
 		Constructible<Session_info>   _sessions[MAX_BLOCK_DEVICES];
 		bool                          _announced     { false };
@@ -140,7 +142,7 @@ class Block_root : public Root_component<genode_block_session>
 		void discontinue_device(const char * name);
 		genode_block_session * session(const char * name);
 		void notify_peers();
-		void apply_config(Xml_node const &);
+		void apply_config(Node const &);
 };
 
 
@@ -239,8 +241,8 @@ Block_root::Create_result Block_root::_create_session(const char * args,
 		throw Service_denied();
 
 	Session_label const label = label_from_args(args);
-	return with_matching_policy(label, _config->xml,
-		[&] (Xml_node const &policy) -> Create_result {
+	return with_matching_policy(label, *_config,
+		[&] (Node const &policy) -> Create_result {
 
 			Session_info::Name const device =
 				policy.attribute_value("device", Session_info::Name());
@@ -358,7 +360,7 @@ void Block_root::notify_peers()
 }
 
 
-void Block_root::apply_config(Xml_node const & config)
+void Block_root::apply_config(Node const & config)
 {
 	_config.construct(*md_alloc(), config);
 	_report_needed = config.attribute_value("report", false);
@@ -439,7 +441,7 @@ extern "C" void genode_block_notify_peers()
 }
 
 
-void genode_block_apply_config(Xml_node const & config)
+void genode_block_apply_config(Node const & config)
 {
 	if (_block_root) _block_root->apply_config(config);
 }

@@ -14,23 +14,22 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#include <util/xml_node.h>
+#include <base/node.h>
 
 #include "session.h"
 
 namespace Cpu {
 	class Config;
 
-	using Genode::Xml_node;
+	using Genode::Node;
 }
 
 class Cpu::Config {
 
 	public:
 
-		static void apply(Xml_node const &, Child_list &);
-		static void apply_for_thread(Xml_node const &, Cpu::Session &,
-                                   Thread::Name const &);
+		static void apply(Node const &, Child_list &);
+		static void apply_for_thread(Node const &, Cpu::Session &, Thread::Name const &);
 };
 
 #endif /* _CONFIG_H_ */

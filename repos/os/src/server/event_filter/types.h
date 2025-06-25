@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/string.h>
 #include <base/session_label.h>
+#include <base/node.h>
 
 namespace Event_filter { using namespace Genode; }
 

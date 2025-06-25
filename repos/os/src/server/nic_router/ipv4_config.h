@@ -19,9 +19,6 @@
 #include <dhcp.h>
 #include <dns.h>
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 namespace Net {
 
 	class Domain;
@@ -53,11 +50,9 @@ class Net::Ipv4_config
 		            Genode::Allocator &alloc,
 		            Domain      const &domain);
 
-		Ipv4_config(Genode::Xml_node const &domain_node,
-		            Genode::Allocator      &alloc);
+		Ipv4_config(Genode::Node const &domain_node, Genode::Allocator  &alloc);
 
-		Ipv4_config(Ipv4_config const &ip_config,
-		            Genode::Allocator &alloc);
+		Ipv4_config(Ipv4_config const &ip_config, Genode::Allocator &alloc);
 
 		Ipv4_config(Ipv4_config const &ip_config);
 

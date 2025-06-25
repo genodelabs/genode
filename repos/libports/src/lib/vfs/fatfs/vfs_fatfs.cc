@@ -306,7 +306,7 @@ class Fatfs::File_system : public Vfs::File_system
 
 	public:
 
-		File_system(Vfs::Env &env, Genode::Xml_node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		: _vfs_env(env)
 		{
 			{
@@ -806,7 +806,7 @@ class Fatfs::File_system : public Vfs::File_system
 
 struct Fatfs_factory : Vfs::File_system_factory
 {
-	Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
 	{
 		Fatfs::block_init(vfs_env.env(), vfs_env.alloc());
 		return new (vfs_env.alloc()) Fatfs::File_system(vfs_env, node);

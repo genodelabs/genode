@@ -150,7 +150,7 @@ class Usb::Block_driver
 				warning("Could not report block device");
 		}
 
-		Interface& _construct_interface(Xml_node const &cfg)
+		Interface& _construct_interface(Node const &cfg)
 		{
 			using Type  = Interface::Type;
 			using Index = Interface::Index;
@@ -599,7 +599,7 @@ class Usb::Block_driver
 			};
 		}
 
-		void apply_config(Xml_node const &node)
+		void apply_config(Node const &node)
 		{
 			_writeable    = node.attribute_value("writeable",    false);
 			_active_lun   = node.attribute_value<uint8_t>("lun",     0);
@@ -636,7 +636,7 @@ class Usb::Block_driver
 		bool device_ready() { return _state == READY; }
 
 		Block_driver(Env &env, Allocator &alloc, Signal_context_capability sigh,
-		             Xml_node const &config)
+		             Node const &config)
 		:
 			_env(env), _ep(env.ep()), _alloc(alloc),
 			_interface(_construct_interface(config))
@@ -760,14 +760,14 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 	                                      &Main::update_config };
 	Signal_handler<Main> io_handler     { env.ep(), *this, &Main::handle};
 
-	Block_driver driver { env, heap, io_handler, config.xml() };
+	Block_driver driver { env, heap, io_handler, config.node() };
 
 	enum State { INIT, ANNOUNCED } state { INIT };
 
 	void update_config()
 	{
 		config.update();
-		driver.apply_config(config.xml());
+		driver.apply_config(config.node());
 	}
 
 	void handle()

@@ -14,7 +14,7 @@
 #ifndef _DRIVERS__INPUT__SPEC__PS2__VERBOSE_H_
 #define _DRIVERS__INPUT__SPEC__PS2__VERBOSE_H_
 
-#include <util/xml_node.h>
+#include <base/node.h>
 
 namespace Ps2 { struct Verbose; }
 
@@ -25,7 +25,7 @@ struct Ps2::Verbose
 	bool const scancodes;
 	bool const mouse;
 
-	Verbose(Genode::Xml_node const &config)
+	Verbose(Genode::Node const &config)
 	:
 		keyboard (config.attribute_value("verbose_keyboard",  false)),
 		scancodes(config.attribute_value("verbose_scancodes", false)),

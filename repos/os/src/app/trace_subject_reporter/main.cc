@@ -165,9 +165,9 @@ struct App::Main
 
 	bool _config_report_attribute_enabled(char const *attr) const
 	{
-		return _config.xml().with_sub_node("report",
-			[&] (Xml_node const &node) { return node.attribute_value(attr, false); },
-			[]                         { return false; });
+		return _config.node().with_sub_node("report",
+			[&] (Node const &node) { return node.attribute_value(attr, false); },
+			[]                     { return false; });
 	}
 
 	Timer::Connection _timer { _env };
@@ -200,7 +200,7 @@ void App::Main::_handle_config()
 {
 	_config.update();
 
-	_period_ms = _config.xml().attribute_value("period_ms", _default_period_ms());
+	_period_ms = _config.node().attribute_value("period_ms", _default_period_ms());
 
 	_report_affinity = _config_report_attribute_enabled("affinity");
 	_report_activity = _config_report_attribute_enabled("activity");

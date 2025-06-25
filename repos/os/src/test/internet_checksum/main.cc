@@ -109,11 +109,9 @@ struct Main
 	Env &env;
 	Heap heap { env.ram(), env.rm() };
 	Attached_rom_dataspace config_rom { env, "config" };
-	Root_directory root = config_rom.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Root_directory {
-			return { env, heap, config }; },
-		[&] () -> Root_directory {
-			return { env, heap, Xml_node("<empty/>") }; });
+	Root_directory root = config_rom.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Root_directory { return { env, heap, config }; },
+		[&] ()                   -> Root_directory { return { env, heap, Node() }; });
 	Reconstructible<Append_file> pcap_file { root, "/output.pcap" };
 	Attached_rom_dataspace pcap_rom { env, "input.pcap" };
 	Parser pcap_parser { pcap_rom.local_addr<char>(), pcap_rom.size() };
@@ -123,7 +121,7 @@ struct Main
 	unsigned long num_udp_checksums = 0;
 	unsigned long num_tcp_checksums = 0;
 	unsigned long num_icmp_checksums = 0;
-	Pseudo_random_number_generator prng { config_rom.xml().attribute_value("seed", 0ULL) };
+	Pseudo_random_number_generator prng { config_rom.node().attribute_value("seed", 0ULL) };
 
 	Main(Env &env);
 

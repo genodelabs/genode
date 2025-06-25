@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 /* local includes */
 #include <interface.h>
@@ -44,11 +44,11 @@ class Net::Uplink : public Nic::Packet_allocator,
 
 	public:
 
-		Uplink(Genode::Env            &env,
-		       Genode::Xml_node const &config,
-		       Timer::Connection      &timer,
-		       Genode::Duration       &curr_time,
-		       Genode::Allocator      &alloc);
+		Uplink(Genode::Env        &env,
+		       Genode::Node const &config,
+		       Timer::Connection  &timer,
+		       Genode::Duration   &curr_time,
+		       Genode::Allocator  &alloc);
 };
 
 #endif /* _UPLINK_H_ */

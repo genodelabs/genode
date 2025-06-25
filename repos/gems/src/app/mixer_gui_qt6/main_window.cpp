@@ -377,14 +377,14 @@ void Main_window::_update_config()
 }
 
 
-void Main_window::_update_clients(Genode::Xml_node &channels)
+void Main_window::_update_clients(Genode::Node &channels)
 {
 	for (Client_widget *c = client_registry()->first(); c; c = c->next())
 		_layout->removeWidget(c);
 
 	client_registry()->invalidate_all();
 
-	channels.for_each_sub_node("channel", [&] (Genode::Xml_node const &node) {
+	channels.for_each_sub_node("channel", [&] (Genode::Node const &node) {
 		try {
 			Channel ch(node);
 
@@ -420,7 +420,7 @@ void Main_window::_update_clients(Genode::Xml_node &channels)
 void Main_window::report_changed(void *l, void const *p)
 {
 	Genode::Blockade &blockade = *reinterpret_cast<Genode::Blockade*>(l);
-	Genode::Xml_node &node = *((Genode::Xml_node*)p);
+	Genode::Node &node = *((Genode::Node*)p);
 
 	if (node.has_type("channel_list"))
 		_update_clients(node);
@@ -442,8 +442,8 @@ Main_window::Main_window(Genode::Env &env)
 
 	Attached_rom_dataspace const config(env, "config");
 	_verbose = config.xml().attribute_value("verbose", false);
-	config.xml().with_sub_node("default",
-		[&] (Xml_node const &node) {
+	config.node().with_sub_node("default",
+		[&] (Node const &node) {
 			_default_out_volume = node.attribute_value("out_volume", 0L);
 			_default_volume     = node.attribute_value("volume", 0L);
 			_default_muted      = node.attribute_value("muted", 1L);

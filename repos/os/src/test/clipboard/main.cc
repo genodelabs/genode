@@ -17,7 +17,6 @@
 #include <report_session/connection.h>
 #include <os/reporter.h>
 #include <util/xml_generator.h>
-#include <util/xml_node.h>
 #include <timer_session/connection.h>
 
 namespace Test {
@@ -157,14 +156,10 @@ class Test::Subsystem
 			if (!_import_content)
 				return missing_fn();
 
-			try {
-				Xml_node const clipboard(_import_content, _import_rom.size());
-				return clipboard.with_sub_node("text",
-					[&] (Xml_node const &text) { return fn(text); },
-					[&]                        { return missing_fn(); });
-			}
-			catch (Xml_node::Invalid_syntax) {
-				return missing_fn(); }
+			Node const clipboard(Const_byte_range_ptr(_import_content, _import_rom.size()));
+			return clipboard.with_sub_node("text",
+				[&] (Node const &text) { return fn(text); },
+				[&]                    { return missing_fn(); });
 		}
 
 	public:
@@ -200,7 +195,7 @@ class Test::Subsystem
 		{
 			using namespace Genode;
 			return _with_imported_text(
-				[&] (Xml_node const &text) {
+				[&] (Node const &text) {
 
 					using String = String<100>;
 					String const expected(str);
@@ -213,8 +208,8 @@ class Test::Subsystem
 
 		bool cleared() const
 		{
-			return _with_imported_text([] (Xml_node const &) { return false; },
-			                           []                    { return true; });
+			return _with_imported_text([] (Node const &) { return false; },
+			                           []                { return true; });
 		}
 
 		/**

@@ -325,14 +325,14 @@ void Cpu::Balancer::handle_config()
 	uint64_t time_us = timer_us;
 
 	if (config.valid()) {
-		use_trace   = config.xml().attribute_value("trace", use_trace);
-		use_report  = config.xml().attribute_value("report", use_report);
-		time_us     = config.xml().attribute_value("interval_us", timer_us);
-		verbose     = config.xml().attribute_value("verbose", verbose);
-		use_sleeper = config.xml().attribute_value("sleeper", use_sleeper);
+		use_trace   = config.node().attribute_value("trace", use_trace);
+		use_report  = config.node().attribute_value("report", use_report);
+		time_us     = config.node().attribute_value("interval_us", timer_us);
+		verbose     = config.node().attribute_value("verbose", verbose);
+		use_sleeper = config.node().attribute_value("sleeper", use_sleeper);
 
 		/* read in components configuration */
-		Cpu::Config::apply(config.xml(), list);
+		Cpu::Config::apply(config.node(), list);
 	}
 
 	if (verbose)
@@ -391,7 +391,7 @@ void Cpu::Balancer::handle_timeout()
 
 		for (unsigned i = 0; ; i++) {
 
-			Reporter::Result const result = 
+			Reporter::Result const result =
 				reporter->generate([&] (Xml_generator &xml) {
 					list.for_each([&](auto &session) {
 						reset_report |= session.report_state(xml); }); });

@@ -17,11 +17,11 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <base/registry.h>
+#include <base/node.h>
 #include <os/session_policy.h>
 #include <timer_session/connection.h>
 #include <util/construct_at.h>
 #include <util/formatted_output.h>
-#include <util/xml_node.h>
 
 /* local includes */
 #include <policy.h>
@@ -50,9 +50,9 @@ class Main
 			size_t       default_buf_sz;
 			Policy_name  default_policy_name;
 
-			static Config from_xml(Xml_node const &);
+			static Config from_node(Node const &);
 
-		} const _config { Config::from_xml(_config_rom.xml()) };
+		} const _config { Config::from_node(_config_rom.node()) };
 
 		Trace::Connection _trace { _env,
 		                           _config.session_ram,
@@ -108,9 +108,9 @@ class Main
 					if (info.state() == Trace::Subject_info::DEAD)
 						return;
 
-					with_matching_policy(info.session_label(), _config_rom.xml(),
+					with_matching_policy(info.session_label(), _config_rom.node(),
 
-						[&] (Xml_node const &policy) {
+						[&] (Node const &policy) {
 
 							if (policy.has_attribute("thread"))
 								if (policy.attribute_value("thread", Thread_name()) != info.thread_name())
@@ -126,7 +126,7 @@ class Main
 			/* create monitors for new subject IDs */
 			for_each_captured_subject([&] (Trace::Subject_id   const  id,
 			                               Trace::Subject_info const &,
-			                               Xml_node            const &policy) {
+			                               Node                const &policy) {
 				try {
 					Monitor &monitor = old_monitors.find_by_subject_id(id);
 
@@ -148,7 +148,7 @@ class Main
 			/* update monitors (with up-to-date trace state of new monitors) */
 			for_each_captured_subject([&] (Trace::Subject_id   const  id,
 			                               Trace::Subject_info const &info,
-			                               Xml_node            const &) {
+			                               Node                const &) {
 				try {
 					new_monitors.find_by_subject_id(id).update_info(info); }
 				catch (Monitor_tree::No_match) {
@@ -169,7 +169,7 @@ class Main
 
 		void _new_monitor(Monitor_tree            &monitors,
 		                  Trace::Subject_id const  id,
-		                  Xml_node          const &session_policy)
+		                  Node              const &session_policy)
 		{
 			Trace::Buffer_size const buffer_size {
 				session_policy.attribute_value("buffer", Number_of_bytes(_config.default_buf_sz)) };
@@ -225,7 +225,7 @@ class Main
 };
 
 
-Main::Config Main::Config::from_xml(Xml_node const &config)
+Main::Config Main::Config::from_node(Node const &config)
 {
 	return {
 		.session_ram         = config.attribute_value("session_ram",

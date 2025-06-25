@@ -19,8 +19,8 @@ void Driver::Root::update_policy()
 {
 	_sessions.for_each([&] (Session_component & sc)
 	{
-		with_matching_policy(sc._label, _config.xml(),
-			[&] (Xml_node const &policy) {
+		with_matching_policy(sc._label, _config.node(),
+			[&] (Node const &policy) {
 				sc.update_policy(policy.attribute_value("info", false),
 				                 policy.attribute_value("version", Version())); },
 			[&] {
@@ -34,9 +34,9 @@ void Driver::Root::update_policy()
 
 Driver::Root::Create_result Driver::Root::_create_session(const char *args)
 {
-	return with_matching_policy(label_from_args(args), _config.xml(),
+	return with_matching_policy(label_from_args(args), _config.node(),
 
-		[&] (Xml_node const &policy) {
+		[&] (Node const &policy) {
 			return _alloc_obj(_env, _config, _devices, _sessions, _io_mmu_devices,
 			                  _irq_controller_registry,
 			                  label_from_args(args),

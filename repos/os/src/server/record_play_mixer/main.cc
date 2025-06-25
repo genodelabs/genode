@@ -79,8 +79,8 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 			record_session.release_sample_producer();
 
 			using Name = Audio_signal::Name;
-			with_matching_policy(record_session.label(), _config.xml(),
-				[&] (Xml_node const &policy) {
+			with_matching_policy(record_session.label(), _config.node(),
+				[&] (Node const &policy) {
 					record_session.apply_config(policy, _global_record_config);
 					Name const name = policy.attribute_value("record", Name());
 					_audio_signals.for_each([&] (Audio_signal &audio_signal) {
@@ -162,7 +162,7 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 	void _handle_config()
 	{
 		_config.update();
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		unsigned const orig_warning_rate_ms = _warning_rate_ms;
 		_warning_rate_ms = config.attribute_value("warning_rate_ms", 0u);
@@ -182,10 +182,10 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 		if (config.has_attribute("clock_value"))
 			_clock_from_config.construct(config.attribute_value("clock_value", 0u));
 
-		_audio_signals.update_from_xml(config,
+		_audio_signals.update_from_node(config,
 
 			/* create */
-			[&] (Xml_node const &node) -> Audio_signal & {
+			[&] (Node const &node) -> Audio_signal & {
 
 				if (node.has_type(Audio_signal::mix_type_name))
 					return *new (_heap) Mix_signal(node, _heap);
@@ -199,7 +199,7 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 				destroy(_heap, &audio_signal); },
 
 			/* update */
-			[&] (Audio_signal &audio_signal, Xml_node const &node) {
+			[&] (Audio_signal &audio_signal, Node const &node) {
 				audio_signal.update(node); }
 		);
 

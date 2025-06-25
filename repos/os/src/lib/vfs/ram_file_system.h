@@ -500,24 +500,22 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 		Vfs_ram::Node *lookup(char const *path, bool return_parent = false)
 		{
-			using namespace Vfs_ram;
-
 			if (*path ==  '/') ++path;
 			if (*path == '\0') return &_root;
 
 			char buf[Vfs::MAX_PATH_LEN];
 			copy_cstring(buf, path, Vfs::MAX_PATH_LEN);
-			Directory *dir = &_root;
+			Vfs_ram::Directory *dir = &_root;
 
 			char *name = &buf[0];
 			for (size_t i = 0; i < MAX_PATH_LEN; ++i) {
 				if (buf[i] == '/') {
 					buf[i] = '\0';
 
-					Node * const node = dir->child(name);
+					Vfs_ram::Node * const node = dir->child(name);
 					if (!node) return nullptr;
 
-					dir = dynamic_cast<Directory *>(node);
+					dir = dynamic_cast<Vfs_ram::Directory *>(node);
 					if (!dir) return nullptr;
 
 					/* set the current name aside */
@@ -534,11 +532,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 		Vfs_ram::Directory *lookup_parent(char const *path)
 		{
-			using namespace Vfs_ram;
-
-			Node * const node = lookup(path, true);
+			Vfs_ram::Node * const node = lookup(path, true);
 			if (node)
-				return dynamic_cast<Directory *>(node);
+				return dynamic_cast<Vfs_ram::Directory *>(node);
 			return nullptr;
 		}
 
@@ -572,7 +568,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 	public:
 
-		Ram_file_system(Vfs::Env &env, Genode::Xml_node const &) : _env(env) { }
+		Ram_file_system(Vfs::Env &env, Node const &) : _env(env) { }
 
 		~Ram_file_system() { _root.empty(_env.alloc()); }
 
@@ -583,9 +579,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 		file_size num_dirent(char const *path) override
 		{
-			using namespace Vfs_ram;
+			using Directory = Vfs_ram::Directory;
 
-			if (Node * const node = lookup(path))
+			if (Vfs_ram::Node * const node = lookup(path))
 				if (Directory * const dir = dynamic_cast<Directory *>(node))
 					return dir->length();
 
@@ -594,11 +590,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 		bool directory(char const * const path) override
 		{
-			using namespace Vfs_ram;
-
-			Node * const node = lookup(path);
+			Vfs_ram::Node * const node = lookup(path);
 			return node
-				? (dynamic_cast<Directory *>(node) != nullptr)
+				? (dynamic_cast<Vfs_ram::Directory *>(node) != nullptr)
 				: false;
 		}
 
@@ -631,7 +625,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				parent->adopt(file);
 				parent->notify();
 			} else {
-				Node * const node = lookup(path);
+				Vfs_ram::Node * const node = lookup(path);
 				if (!node) return OPEN_ERR_UNACCESSIBLE;
 
 				file = dynamic_cast<File *>(node);
@@ -689,7 +683,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				parent->notify();
 			} else {
 
-				Node * const node = lookup(path);
+				Vfs_ram::Node * const node = lookup(path);
 				if (!node) return OPENDIR_ERR_LOOKUP_FAILED;
 
 				dir = dynamic_cast<Directory *>(node);
@@ -730,7 +724,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			Symlink *link;
 
-			Node * const node = parent->child(name);
+			Vfs_ram::Node * const node = parent->child(name);
 
 			if (create) {
 
@@ -798,11 +792,11 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		{
 			using namespace Vfs_ram;
 
-			Node * const node_ptr = lookup(path);
+			Vfs_ram::Node * const node_ptr = lookup(path);
 			if (!node_ptr)
 				return STAT_ERR_NO_ENTRY;
 
-			Node &node = *node_ptr;
+			Vfs_ram::Node &node = *node_ptr;
 
 			auto node_type = [&] ()
 			{
@@ -843,11 +837,11 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (!to_dir)
 				return RENAME_ERR_NO_ENTRY;
 
-			Node * const from_node = from_dir->child(basename(from));
+			Vfs_ram::Node * const from_node = from_dir->child(basename(from));
 			if (!from_node)
 				return RENAME_ERR_NO_ENTRY;
 
-			Node * const to_node = to_dir->child(new_name);
+			Vfs_ram::Node * const to_node = to_dir->child(new_name);
 			if (to_node) {
 
 				if (Directory * const dir = dynamic_cast<Directory*>(to_node))
@@ -882,7 +876,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (!parent)
 				return UNLINK_ERR_NO_ENTRY;
 
-			Node * const node = parent->child(basename(path));
+			Vfs_ram::Node * const node = parent->child(basename(path));
 			if (!node)
 				return UNLINK_ERR_NO_ENTRY;
 
@@ -898,7 +892,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		{
 			using namespace Vfs_ram;
 
-			Node * const node = lookup(path);
+			Vfs_ram::Node * const node = lookup(path);
 			if (!node)
 				return { };
 
@@ -937,9 +931,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 		Watch_result watch(char const * const path, Vfs_watch_handle **handle,
 		                   Allocator &alloc) override
 		{
-			using namespace Vfs_ram;
-
-			Node * const node = lookup(path);
+			Vfs_ram::Node * const node = lookup(path);
 			if (!node)
 				return WATCH_ERR_UNACCESSIBLE;
 

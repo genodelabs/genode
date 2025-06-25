@@ -149,7 +149,7 @@ class Vfs::Single_file_system : public File_system
 		Single_file_system(Node_type   node_type,
 		                   char const *type_name,
 		                   Node_rwx    rwx,
-		                   Xml_node const &config)
+		                   Node const &config)
 		:
 			_type(node_type), _rwx(rwx),
 			_filename(config.attribute_value("name", Filename(type_name)))

@@ -23,7 +23,7 @@
 #include <util/string.h>
 #include <timer_session/connection.h>
 
-namespace Genode { class Xml_node; }
+namespace Genode { class Node; }
 
 namespace Net {
 
@@ -79,12 +79,12 @@ class Net::Interface
 
 	public:
 
-		Interface(Genode::Entrypoint     &ep,
-		          Interface_label         label,
-		          Timer::Connection      &timer,
-		          Genode::Duration       &curr_time,
-		          bool                    log_time,
-		          Genode::Xml_node const &config);
+		Interface(Genode::Entrypoint &ep,
+		          Interface_label     label,
+		          Timer::Connection  &timer,
+		          Genode::Duration   &curr_time,
+		          bool                log_time,
+		          Genode::Node const &config);
 
 		virtual ~Interface() { }
 

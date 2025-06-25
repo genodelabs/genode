@@ -276,7 +276,7 @@ struct Wlan
 			 * once by 'genode_mac_address_register()'.
 			 */
 			Attached_rom_dataspace _config_rom { _env, "config" };
-			genode_mac_address_reporter_config(_config_rom.xml());
+			genode_mac_address_reporter_config(_config_rom.node());
 		}
 
 		genode_uplink_init(genode_env_ptr(_env),

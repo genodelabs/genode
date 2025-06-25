@@ -134,7 +134,7 @@ class Vfs::Rom_file_system : public Single_file_system
 
 	public:
 
-		Rom_file_system(Vfs::Env &env, Genode::Xml_node const &config)
+		Rom_file_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::ro(), config),

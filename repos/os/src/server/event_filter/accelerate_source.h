@@ -99,7 +99,7 @@ class Event_filter::Accelerate_source : public Source, Source::Filter
 
 		static char const *name() { return "accelerate"; }
 
-		Accelerate_source(Owner &owner, Xml_node const &config, Source::Factory &factory)
+		Accelerate_source(Owner &owner, Node const &config, Source::Factory &factory)
 		:
 			Source(owner),
 			_owner(factory),

@@ -53,19 +53,19 @@ class Trace_recorder::Monitor
 
 			public:
 
-				static Directory::Path root_from_config(Xml_node const &config) {
+				static Directory::Path root_from_config(Node const &config) {
 					return config.attribute_value("target_root", Directory::Path("/")); }
 
 				Trace_directory(Env             &env,
 				                Allocator       &alloc,
-				                Xml_node  const &config,
+				                Node      const &config,
 				                Rtc::Connection &rtc)
 				:
 					_root(config.with_sub_node("vfs",
-						[&] (Xml_node const &vfs_config) -> Root_directory {
+						[&] (Node const &vfs_config) -> Root_directory {
 							return { env, alloc, vfs_config }; },
 						[&] () -> Root_directory {
-							return { env, alloc, Xml_node("<empty/>") }; })),
+							return { env, alloc, Node() }; })),
 					_path(Directory::join(root_from_config(config), rtc.current_time()))
 				{ };
 
@@ -125,7 +125,7 @@ class Trace_recorder::Monitor
 			size_t session_arg_buffer;
 			size_t default_buf_sz;
 
-			static Config from_xml(Xml_node const &);
+			static Config from_node(Node const &);
 		};
 
 		Constructible<Trace::Connection> _trace          { };
@@ -141,7 +141,7 @@ class Trace_recorder::Monitor
 		Pcapng::Backend                _pcapng_backend   { _alloc, _ts_calibrator, _backends };
 
 		/* methods */
-		void _with_session_policy(Trace::Subject_info const &, Xml_node const &,
+		void _with_session_policy(Trace::Subject_info const &, Node const &,
                                   auto const &fn, auto const &missing_fn);
 		void _handle_timeout();
 
@@ -154,7 +154,7 @@ class Trace_recorder::Monitor
 			_timer.sigh(_timeout_handler);
 		}
 
-		void start(Xml_node const &config);
+		void start(Node const &config);
 		void stop();
 };
 

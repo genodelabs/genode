@@ -122,7 +122,7 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 		Glyphs_file_system(Font const &font)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type(),
-			                   Node_rwx::ro(), Xml_node("<glyphs/>")),
+			                   Node_rwx::ro(), Node()),
 			_font(font)
 		{ }
 

@@ -32,17 +32,16 @@ class Main : public Nic_handler,
 {
 	private:
 
-		Env                            &_env;
-		Attached_rom_dataspace          _config_rom         { _env, "config" };
-		Xml_node                        _config             { _config_rom.xml() };
-		Timer::Connection               _timer              { _env };
-		Heap                            _heap               { &_env.ram(), &_env.rm() };
-		bool                     const  _verbose            { _config.attribute_value("verbose", false) };
-		Net::Nic                        _nic                { _env, _heap, *this, _verbose };
-		Constructible<Dhcp_client>      _dhcp_client        { };
-		bool                            _link_state         { false };
-		Reconstructible<Ipv4_config>    _ip_config          { };
-		Timer::One_shot_timeout<Main>   _initial_delay      { _timer, *this, &Main::_handle_initial_delay };
+		Env                          &_env;
+		Attached_rom_dataspace        _config        { _env, "config" };
+		Timer::Connection             _timer         { _env };
+		Heap                          _heap          { &_env.ram(), &_env.rm() };
+		bool                    const _verbose       { _config.node().attribute_value("verbose", false) };
+		Net::Nic                      _nic           { _env, _heap, *this, _verbose };
+		Constructible<Dhcp_client>    _dhcp_client   { };
+		bool                          _link_state    { false };
+		Reconstructible<Ipv4_config>  _ip_config     { };
+		Timer::One_shot_timeout<Main> _initial_delay { _timer, *this, &Main::_handle_initial_delay };
 
 		void _handle_initial_delay(Duration);
 

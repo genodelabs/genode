@@ -24,7 +24,7 @@
 /* Genode includes */
 #include <net/mac_address.h>
 #include <util/noncopyable.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <timer_session/connection.h>
 
 namespace Net {
@@ -58,8 +58,8 @@ class Net::Dhcp_server_base
 
 		Dhcp_server_base(Genode::Allocator &alloc);
 
-		[[nodiscard]] bool finish_construction(Genode::Xml_node const &node,
-		                                       Domain           const &domain);
+		[[nodiscard]] bool finish_construction(Genode::Node const &node,
+		                                       Domain       const &domain);
 
 		~Dhcp_server_base();
 };
@@ -78,7 +78,7 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 		Genode::uint32_t     const    _ip_count;
 		Genode::Bit_allocator_dynamic _ip_alloc;
 
-		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const &node);
+		Genode::Microseconds _init_ip_lease_time(Genode::Node const &node);
 
 		Ipv4_config const &_resolve_dns_config_from() const;
 
@@ -94,10 +94,10 @@ class Net::Dhcp_server : private Genode::Noncopyable,
 
 		struct Invalid : Genode::Exception { };
 
-		Dhcp_server(Genode::Xml_node const &node,
-		            Genode::Allocator      &alloc);
+		Dhcp_server(Genode::Node const &node,
+		            Genode::Allocator  &alloc);
 
-		[[nodiscard]] bool finish_construction(Genode::Xml_node    const &node,
+		[[nodiscard]] bool finish_construction(Genode::Node        const &node,
 		                                       Domain_dict               &domains,
 		                                       Domain                    &domain,
 		                                       Ipv4_address_prefix const &interface);

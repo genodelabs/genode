@@ -133,9 +133,8 @@ class Main
 	private:
 
 		Env                    &_env;
-		Attached_rom_dataspace  _config_ds     { _env, "config" };
-		Xml_node                _config        { _config_ds.xml() };
-		bool             const  _verbose       { _config.attribute_value("verbose", false) };
+		Attached_rom_dataspace  _config        { _env, "config" };
+		bool             const  _verbose       { _config.node().attribute_value("verbose", false) };
 		Expanding_reporter      _reporter      { _env, "result", "result" };
 		Attached_rom_dataspace  _table_ds      { _env, "smbios_table" };
 		Signal_handler<Main>    _table_ds_sigh { _env.ep(), *this, &Main::_handle_table_ds };

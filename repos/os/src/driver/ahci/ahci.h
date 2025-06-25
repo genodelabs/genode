@@ -260,9 +260,9 @@ struct Ahci::Resources
 
 			platform.update();
 
-			platform.with_xml([&] (Xml_node const & xml) {
-				xml.with_optional_sub_node("device", [&] (Xml_node const &xml) {
-					xml.for_each_sub_node("io_mem", [&] (Xml_node const &node) {
+			platform.with_node([&] (Node const &node) {
+				node.with_optional_sub_node("device", [&] (Node const &node) {
+					node.for_each_sub_node("io_mem", [&] (Node const &node) {
 						unsigned bar = node.attribute_value("pci_bar", ~0u);
 						if (bar == 5) bar5 = index;
 						index++;

@@ -62,7 +62,7 @@ class Mac_address_registry
 		Mac_address_registry(Env &env, Allocator &alloc)
 		: _env(env), _alloc(alloc) { }
 
-		void apply_config(Xml_node const &config);
+		void apply_config(Node const &config);
 
 		void register_address(Mac_name const &name, Net::Mac_address const &addr);
 };
@@ -97,10 +97,10 @@ void Mac_address_registry::register_address(Mac_name const &name,
 }
 
 
-void Mac_address_registry::apply_config(Xml_node const &config)
+void Mac_address_registry::apply_config(Node const &config)
 {
-	config.with_optional_sub_node("report", [&] (Xml_node const &xml) {
-		if (xml.attribute_value("mac_address", false))
+	config.with_optional_sub_node("report", [&] (Node const &node) {
+		if (node.attribute_value("mac_address", false))
 			_reporter.construct(_env, "devices", "devices");
 	});
 
@@ -118,7 +118,7 @@ void genode_mac_address_reporter_init(Env &env, Allocator &alloc)
 }
 
 
-void genode_mac_address_reporter_config(Xml_node const &config)
+void genode_mac_address_reporter_config(Node const &config)
 {
 	if (_mac_registry)
 		_mac_registry->apply_config(config);

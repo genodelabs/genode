@@ -47,7 +47,7 @@ struct Report_handler
 
 	void _report(char const *data, size_t size)
 	{
-		Genode::Xml_node node(data, size);
+		Genode::Node node(Genode::Const_byte_range_ptr(data, size));
 		proxy->report_changed(&_report_blockade, &node);
 
 		/* wait until the report was handled */

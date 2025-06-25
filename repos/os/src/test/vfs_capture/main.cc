@@ -42,13 +42,11 @@ struct Test::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Root_directory _root_dir = _config.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Root_directory {
-			return { _env, _heap, config }; },
-		[&] () -> Root_directory {
-			return { _env, _heap, Xml_node("<empty/>") }; });
+	Root_directory _root_dir = _config.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Root_directory { return { _env, _heap, config }; },
+		[&] ()                   -> Root_directory { return { _env, _heap, Node() }; });
 
-	static Gui::Area _area_from_xml(Xml_node const &node, Gui::Area default_area)
+	static Gui::Area _area_from_node(Node const &node, Gui::Area default_area)
 	{
 		return Gui::Area(node.attribute_value("width",  default_area.w),
 		                 node.attribute_value("height", default_area.h));
@@ -80,18 +78,18 @@ struct Test::Main
 
 		Registry<Registered<Gui::Top_level_view>> _views { };
 
-		Output(Env &env, Allocator &alloc, Xml_node const &config)
+		Output(Env &env, Allocator &alloc, Node const &config)
 		:
 			_env(env), _alloc(alloc),
-			_mode({ .area = _area_from_xml(config, Area { }), .alpha = false })
+			_mode({ .area = _area_from_node(config, Area { }), .alpha = false })
 		{
-			auto view_rect = [&] (Xml_node const &node)
+			auto view_rect = [&] (Node const &node)
 			{
-				return Gui::Rect(Gui::Point::from_xml(node),
-				                 _area_from_xml(node, _mode.area));
+				return Gui::Rect(Gui::Point::from_node(node),
+				                 _area_from_node(node, _mode.area));
 			};
 
-			config.for_each_sub_node("view", [&] (Xml_node const &node) {
+			config.for_each_sub_node("view", [&] (Node const &node) {
 				new (_alloc)
 					Registered<Gui::Top_level_view>(_views, _gui, view_rect(node)); });
 		}
@@ -133,10 +131,10 @@ struct Test::Main
 		Gui::Point _at { };
 
 		Capture_input(Env &env, Root_directory &root_dir, Gui::Area area,
-		              Xml_node const &config)
+		              Node const &config)
 		:
 			_env(env), _root_dir(root_dir), _area(area),
-			_at(Gui::Point::from_xml(config))
+			_at(Gui::Point::from_node(config))
 		{ }
 
 		Affected_rects capture() {
@@ -193,7 +191,7 @@ struct Test::Main
 	{
 		_config.update();
 
-		Xml_node const &config = _config.xml();
+		Node const &config = _config.node();
 
 		_output.construct(_env, _heap, config);
 		_capture_input.construct(_env, _root_dir, _output->_mode.area, config);

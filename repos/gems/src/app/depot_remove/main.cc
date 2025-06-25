@@ -266,12 +266,12 @@ struct Depot_remove::Main
 
 		Directory::Path depot_path { "depot" };
 
-		Root_directory root_directory = _config_rom.xml().with_sub_node("vfs",
-			[&] (Xml_node const &config) -> Root_directory {
+		Root_directory root_directory = _config_rom.node().with_sub_node("vfs",
+			[&] (Node const &config) -> Root_directory {
 				return { _env, _heap, config }; },
 			[&] () -> Root_directory {
 				error("VFS not configured");
-				return { _env, _heap, Xml_node("<empty/>") }; });
+				return { _env, _heap, Node() }; });
 
 		Directory depot { root_directory, depot_path };
 

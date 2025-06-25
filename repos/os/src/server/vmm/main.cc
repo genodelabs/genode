@@ -34,7 +34,7 @@ struct Main
 	void update()
 	{
 		config_rom.update();
-		config.update(config_rom.xml());
+		config.update(config_rom.node());
 		vm.construct(env, heap, config);
 	}
 

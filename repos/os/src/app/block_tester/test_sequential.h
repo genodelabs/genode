@@ -37,7 +37,7 @@ struct Test::Sequential : Scenario
 	Operation_size _op_size          { };   /* assigned by init() */
 	size_t         _length_in_blocks { };
 
-	Sequential(Allocator &, Xml_node const &node)
+	Sequential(Allocator &, Node const &node)
 	:
 		Scenario(node),
 		_start  (node.attribute_value("start",  0u)),

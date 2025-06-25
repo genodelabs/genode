@@ -230,7 +230,7 @@ class Virtio_input::Driver
 		}
 
 
-		static Product _match_product(Xml_node const &config)
+		static Product _match_product(Node const &config)
 		{
 			auto product_string = config.attribute_value("match_product", String<10>("any"));
 
@@ -259,7 +259,7 @@ class Virtio_input::Driver
 
 
 		static Abs_config _read_abs_config(Virtio::Device  &device,
-		                                   Xml_node const &config)
+		                                   Node const &config)
 		{
 			Abs_config cfg { {0, ~0U}, {0, ~0U}, 0, 0};
 
@@ -372,7 +372,7 @@ class Virtio_input::Driver
 		}
 
 
-		void _init_driver(Xml_node const &config)
+		void _init_driver(Node const &config)
 		{
 			using Status = Virtio::Device::Status;
 
@@ -443,7 +443,7 @@ class Virtio_input::Driver
 		Driver(Env                  & env,
 		       Platform::Connection & plat,
 		       Virtio::Device       & device,
-		       Xml_node const       & config)
+		       Node const           & config)
 		:
 			_env(env), _plat(plat), _device(device)
 		{

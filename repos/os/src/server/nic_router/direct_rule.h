@@ -20,9 +20,6 @@
 
 /* Genode includes */
 #include <util/list.h>
-#include <util/xml_node.h>
-
-namespace Genode { class Xml_node; }
 
 namespace Net {
 

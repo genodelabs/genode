@@ -101,7 +101,7 @@ class Vfs_capture::Data_file_system : public Single_file_system
 		                 Genode::Env       &env)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, name.string(),
-			                   Node_rwx::rw(), Genode::Xml_node("<data/>")),
+			                   Node_rwx::rw(), Node()),
 			_name(name), _label(label), _env(env)
 		{ }
 
@@ -185,19 +185,19 @@ struct Vfs_capture::Local_factory : File_system_factory
 
 	Data_file_system _data_fs { _name, _label, _env };
 
-	static Name name(Xml_node const &config)
+	static Name name(Node const &config)
 	{
 		return config.attribute_value("name", Name("capture"));
 	}
 
-	Local_factory(Vfs::Env &env, Xml_node const &config)
+	Local_factory(Vfs::Env &env, Node const &config)
 	:
 		_label(config.attribute_value("label", Label(""))),
 		_name(name(config)),
 		_env(env.env())
 	{ }
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
 		return node.has_type("data") ? &_data_fs : nullptr;
 	}
@@ -234,11 +234,11 @@ class Vfs_capture::File_system : private Local_factory,
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
+		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory(vfs_env, node),
 			Vfs::Dir_file_system(vfs_env,
-			                     Xml_node(_config(Local_factory::name(node)).string()),
+			                     Node(_config(Local_factory::name(node))),
 			                     *this)
 		{ }
 
@@ -252,7 +252,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &node) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &node) override
 		{
 			return new (env.alloc()) Vfs_capture::File_system(env, node);
 		}

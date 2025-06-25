@@ -517,7 +517,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 			Single_file_system { Node_type::CONTINUOUS_FILE, name.string(),
 			                     block.info().writeable ? Node_rwx::rw()
 			                                            : Node_rwx::ro(),
-			                     Genode::Xml_node("<data/>") },
+			                     Node() },
 			_env   { env },
 			_block { block }
 		{
@@ -616,16 +616,16 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 	Readonly_value_file_system<Genode::uint64_t> _block_count_fs { "block_count", 0 };
 	Readonly_value_file_system<size_t>           _block_size_fs  { "block_size",  0 };
 
-	static Name name(Xml_node const &config) {
+	static Name name(Node const &config) {
 		return config.attribute_value("name", Name("block")); }
 
 	static constexpr size_t DEFAULT_IO_BUFFER_SIZE = (4u << 20);
 
 	/* payload size, a fixed-amount for meta-data is added below */
-	static size_t io_buffer(Xml_node const &config) {
+	static size_t io_buffer(Node const &config) {
 		return config.attribute_value("io_buffer", DEFAULT_IO_BUFFER_SIZE); }
 
-	Local_factory(Vfs::Env &env, Xml_node const &config)
+	Local_factory(Vfs::Env &env, Node const &config)
 	:
 		_label   { config.attribute_value("label", Label("")) },
 		_name    { name(config) },
@@ -643,7 +643,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		_block_size_fs .value(_block.info().block_size);
 	}
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
 		if (node.has_type("data"))        return &_data_fs;
 		if (node.has_type("info"))        return &_info_fs;
@@ -692,11 +692,11 @@ class Vfs::Block_file_system::Compound_file_system : private Local_factory,
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
+		Compound_file_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory { vfs_env, node },
 			Vfs::Dir_file_system { vfs_env,
-			                       Xml_node(_config(Local_factory::name(node)).string()),
+			                       Node(_config(Local_factory::name(node))),
 			                       *this }
 		{ }
 

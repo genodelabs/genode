@@ -289,7 +289,7 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 
 		bool set { false };
 
-		Initial_size(Xml_node const &config)
+		Initial_size(Node const &config)
 		:
 			_width (config.attribute_value("initial_width",  0L)),
 			_height(config.attribute_value("initial_height", 0L))
@@ -311,7 +311,7 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 
 		bool valid() const { return _width != 0 && _height != 0; }
 
-	} _initial_size { _config_rom.xml() };
+	} _initial_size { _config_rom.node() };
 
 	Framebuffer::Mode _initial_mode()
 	{
@@ -393,7 +393,7 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 	/**
 	 * Return screen-coordinate origin, depening on the config and screen mode
 	 */
-	static Point _coordinate_origin(Gui::Area gui_area, Xml_node const &config)
+	static Point _coordinate_origin(Gui::Area gui_area, Node const &config)
 	{
 		char const * const attr = "origin";
 
@@ -414,11 +414,11 @@ struct Gui_fb::Main : View_updater, Input::Session_component::Action
 
 	void _update_size()
 	{
-		Xml_node const &config = _config_rom.xml();
+		Node const &config = _config_rom.node();
 
 		Gui::Area const gui_area = _gui_window().area;
 
-		_position = _coordinate_origin(gui_area, config) + Point::from_xml(config);
+		_position = _coordinate_origin(gui_area, config) + Point::from_node(config);
 
 		bool const attr = config.has_attribute("width") ||
 		                  config.has_attribute("height");

@@ -48,7 +48,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 
 				Attr(T value) : _defined(true), _value(value) { }
 
-				Attr(Xml_node const &node, auto const &attr)
+				Attr(Node const &node, auto const &attr)
 				{
 					if (node.has_attribute(attr)) {
 						_value   = node.attribute_value(attr, T { });
@@ -66,7 +66,7 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 			Attr<unsigned> w, h;       /* capture contraints */
 			Attr<unsigned> w_mm, h_mm; /* physical size overrides */
 
-			static Policy from_xml(Xml_node const &policy)
+			static Policy from_node(Node const &policy)
 			{
 				return { .x    = { policy, "xpos"      },
 				         .y    = { policy, "ypos"      },

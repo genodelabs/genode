@@ -17,8 +17,8 @@
 /* Genode includes */
 #include <util/reconstructible.h>
 #include <os/session_policy.h>
-#include <os/buffered_xml.h>
 #include <util/color.h>
+#include <base/allocator.h>
 
 /* decorator includes */
 #include <decorator/types.h>
@@ -90,7 +90,7 @@ class Decorator::Config
 
 		Genode::Allocator &_alloc;
 
-		Reconstructible<Genode::Buffered_xml> _buffered_config;
+		Reconstructible<Genode::Buffered_node> _buffered_config;
 
 		/**
 		 * Maximum number of configured window controls
@@ -117,7 +117,7 @@ class Decorator::Config
 
 	public:
 
-		Config(Genode::Allocator &alloc, Xml_node config)
+		Config(Genode::Allocator &alloc, Node const &config)
 		:
 			_alloc(alloc), _buffered_config(_alloc, config)
 		{
@@ -165,8 +165,8 @@ class Decorator::Config
 		Color base_color(Window_title const &title) const
 		{
 			Color const default_color = Color::rgb(68, 75, 95);
-			return with_matching_policy(title, _buffered_config->xml,
-				[&] (Xml_node const &policy) {
+			return with_matching_policy(title, *_buffered_config,
+				[&] (Node const &policy) {
 					return policy.attribute_value("color", default_color); },
 				[&] {
 					return default_color;
@@ -179,10 +179,10 @@ class Decorator::Config
 		unsigned gradient_percent(Window_title const &title) const
 		{
 			unsigned const default_gradient =
-				_buffered_config->xml.attribute_value("gradient", 32U);
+				_buffered_config->attribute_value("gradient", 32U);
 
-			return with_matching_policy(title, _buffered_config->xml,
-				[&] (Xml_node const &policy) {
+			return with_matching_policy(title, *_buffered_config,
+				[&] (Node const &policy) {
 					return policy.attribute_value("gradient", default_gradient); },
 				[&] {
 					return default_gradient;
@@ -192,13 +192,13 @@ class Decorator::Config
 		/**
 		 * Update the internally cached configuration state
 		 */
-		void update(Xml_node config)
+		void update(Node const &config)
 		{
 			_buffered_config.construct(_alloc, config);
 
 			_reset_window_controls();
 
-			auto configure_window_control = [&] (Xml_node const &node)
+			auto configure_window_control = [&] (Node const &node)
 			{
 				if (_num_window_controls >= MAX_WINDOW_CONTROLS) {
 					Genode::warning("number of configured window controls exceeds maximum");
@@ -221,8 +221,8 @@ class Decorator::Config
 					new (_alloc) Window_control(type, align);
 			};
 
-			config.with_optional_sub_node("controls", [&] (Xml_node const &controls) {
-				controls.for_each_sub_node([&] (Xml_node const &node) {
+			config.with_optional_sub_node("controls", [&] (Node const &controls) {
+				controls.for_each_sub_node([&] (Node const &node) {
 					configure_window_control(node); }); });
 		}
 };

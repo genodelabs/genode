@@ -19,6 +19,7 @@
 #include <monitor/gdb_packet.h>
 #include <monitor/output.h>
 #include <monitor/string.h>
+#include <base/node.h>
 
 namespace Monitor {
 
@@ -151,7 +152,7 @@ class Monitor::Controller : Noncopyable
 			unsigned pid;  /* inferior ID */
 			unsigned tid;  /* thread ID */
 
-			static Thread_info from_xml(Xml_node const &node)
+			static Thread_info from_node(Node const &node)
 			{
 				using Id = String<16>;
 				Id const id = node.attribute_value("id", Id());
@@ -179,9 +180,9 @@ class Monitor::Controller : Noncopyable
 
 			_with_response([&] (Const_byte_range_ptr const &response) {
 				with_skipped_prefix(response, "l", [&] (Const_byte_range_ptr const &payload) {
-					Xml_node node(payload.start, payload.num_bytes);
-					node.for_each_sub_node("thread", [&] (Xml_node const &thread) {
-						fn(Thread_info::from_xml(thread)); }); }); });
+					Node node(payload);
+					node.for_each_sub_node("thread", [&] (Node const &thread) {
+						fn(Thread_info::from_node(thread)); }); }); });
 		}
 
 		/**

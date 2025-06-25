@@ -60,7 +60,7 @@ void Trace_recorder::Main::_handle_config()
 
 	bool old_enabled { _enabled };
 
-	_enabled = _config_rom.xml().attribute_value("enable", false);
+	_enabled = _config_rom.node().attribute_value("enable", false);
 
 	if (old_enabled == _enabled) {
 		warning("Config update postponed. Need to toggle 'enable' attribute.");
@@ -68,7 +68,7 @@ void Trace_recorder::Main::_handle_config()
 	}
 
 	if (_enabled)
-		_monitor.start(_config_rom.xml());
+		_monitor.start(_config_rom.node());
 	else
 		_monitor.stop();
 }

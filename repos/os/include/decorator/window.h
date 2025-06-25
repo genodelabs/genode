@@ -25,7 +25,6 @@
 
 /* decorator includes */
 #include <decorator/types.h>
-#include <decorator/xml_utils.h>
 
 
 namespace Decorator {
@@ -67,12 +66,12 @@ class Decorator::Window_base : private Windows::Element
 			/**
 			 * List_model::Element
 			 */
-			inline bool matches(Xml_node const &) const;
+			inline bool matches(Node const &) const;
 
 			/**
 			 * List_model::Element
 			 */
-			static bool type_matches(Xml_node const &) { return true; }
+			static bool type_matches(Node const &) { return true; }
 		};
 
 		struct Border
@@ -227,7 +226,7 @@ class Decorator::Window_base : private Windows::Element
 		 * decorations haven't been redrawn already. If we updated the
 		 * GUI views at this point, we would reveal not-yet-drawn pixels.
 		 */
-		virtual bool update(Xml_node const &window_node) = 0;
+		virtual bool update(Node const &window_node) = 0;
 
 		struct Clip : Rect { };
 
@@ -249,7 +248,7 @@ class Decorator::Window_base : private Windows::Element
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return id() == Windows::Id { node.attribute_value("id", ~0UL) };
 		}
@@ -257,7 +256,7 @@ class Decorator::Window_base : private Windows::Element
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &) { return true; }
+		static bool type_matches(Node const &) { return true; }
 };
 
 
@@ -267,7 +266,7 @@ Decorator::Window_base::Ref::Ref(Window_base &window)
 { }
 
 
-bool Decorator::Window_base::Ref::matches(Xml_node const &node) const
+bool Decorator::Window_base::Ref::matches(Node const &node) const
 {
 	return window.id() == Windows::Id { node.attribute_value("id", ~0UL) };
 }

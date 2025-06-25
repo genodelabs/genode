@@ -53,7 +53,7 @@ struct Ps2::Main
 	Event::Connection        _event   { _env };
 	Timer::Connection        _timer   { _env };
 	Attached_rom_dataspace   _config  { _env, "config" };
-	Reconstructible<Verbose> _verbose { _config.xml()  };
+	Reconstructible<Verbose> _verbose { _config.node()  };
 
 	Mouse    _mouse    { _pl050.aux_interface(), _timer, *_verbose };
 	Keyboard _keyboard { _pl050.kbd_interface(), false, *_verbose };
@@ -83,7 +83,7 @@ struct Ps2::Main
 	{
 		_config.update();
 
-		Xml_node config = _config.xml();
+		Node config = _config.node();
 
 		_verbose.construct(config);
 

@@ -36,7 +36,7 @@ class Vfs::Uplink_file_system : public Vfs::Single_file_system
 
 		Uplink_file_system(char const *name)
 		: Single_file_system(Node_type::TRANSACTIONAL_FILE, name,
-		                     Node_rwx::rw(), Genode::Xml_node("<data/>"))
+		                     Node_rwx::rw(), Node())
 		{ }
 };
 

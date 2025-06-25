@@ -22,7 +22,7 @@ struct genode_block_session; /* definition is private to the implementation */
 
 #ifdef __cplusplus
 
-void genode_block_apply_config(Genode::Xml_node const & config);
+void genode_block_apply_config(Genode::Node const &config);
 
 extern "C" {
 #endif /* __cplusplus */

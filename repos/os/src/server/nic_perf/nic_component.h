@@ -54,7 +54,7 @@ class Nic_perf::Nic_session_component : public Nic::Session_component
 		                      Allocator           &rx_block_md_alloc,
 		                      Env                 &env,
 		                      Session_label const &label,
-		                      Xml_node      const &policy,
+		                      Node          const &policy,
 		                      Interface_registry  &registry,
 		                      Timer::Connection   &timer)
 		:
@@ -116,9 +116,9 @@ class Nic_perf::Nic_root : public Root_component<Nic_session_component>
 
 			Session_label const label = label_from_args(args);
 
-			return with_matching_policy(label, _config.xml(),
+			return with_matching_policy(label, _config.node(),
 
-				[&] (Xml_node const &policy) {
+				[&] (Node const &policy) {
 					return _alloc_obj(tx_buf_size, rx_buf_size, *md_alloc(),
 					                  _env, label, policy, _registry, _timer); },
 

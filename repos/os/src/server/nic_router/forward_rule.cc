@@ -15,9 +15,6 @@
 #include <forward_rule.h>
 #include <domain.h>
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 using namespace Net;
 using namespace Genode;
 

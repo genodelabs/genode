@@ -190,7 +190,7 @@ class Virtio_nic::Device : Noncopyable
 			return mac;
 		}
 
-		Hardware_features _init_hw_features(Xml_node const &xml)
+		Hardware_features _init_hw_features(Node const &node)
 		{
 			_init_virtio_device();
 
@@ -215,7 +215,7 @@ class Virtio_nic::Device : Noncopyable
 				hw_features.mac = _read_mac_address(_device);
 			}
 
-			hw_features.mac = xml.attribute_value("mac", hw_features.mac);
+			hw_features.mac = node.attribute_value("mac", hw_features.mac);
 
 			if (hw_features.mac == Nic::Mac_address()) {
 				error("HW mac address missing and not provided via config!");
@@ -239,7 +239,7 @@ class Virtio_nic::Device : Noncopyable
 			return hw_features;
 		}
 
-		Genode::uint16_t _vq_size(Vq_id vq, Xml_node const &xml, char const *cfg_attr)
+		Genode::uint16_t _vq_size(Vq_id vq, Node const &node, char const *cfg_attr)
 		{
 			const uint16_t max_vq_size = _device.get_max_queue_size(vq);
 
@@ -248,7 +248,7 @@ class Virtio_nic::Device : Noncopyable
 				throw Queue_init_failed();
 			}
 
-			const uint16_t vq_size = Genode::min(xml.attribute_value(cfg_attr, DEFAULT_VQ_SIZE),
+			const uint16_t vq_size = Genode::min(node.attribute_value(cfg_attr, DEFAULT_VQ_SIZE),
 			                                     max_vq_size);
 
 			if (_verbose)
@@ -257,9 +257,9 @@ class Virtio_nic::Device : Noncopyable
 			return vq_size;
 		}
 
-		uint16_t _buf_size(Vq_id vq, Xml_node const &xml, char const *cfg_attr)
+		uint16_t _buf_size(Vq_id vq, Node const &node, char const *cfg_attr)
 		{
-			const uint16_t vq_buf_size = xml.attribute_value(cfg_attr, DEFAULT_VQ_BUF_SIZE );
+			const uint16_t vq_buf_size = node.attribute_value(cfg_attr, DEFAULT_VQ_BUF_SIZE );
 			if (_verbose)
 				log("VirtIO queue ", (int)vq, " buffer size: ", Number_of_bytes(vq_buf_size), "b");
 			return vq_buf_size;
@@ -287,19 +287,19 @@ class Virtio_nic::Device : Noncopyable
 
 	public:
 
-		Device(Virtio::Device          &device,
-		       Platform::Connection    &plat,
-		       Genode::Xml_node  const &xml)
+		Device(Virtio::Device       &device,
+		       Platform::Connection &plat,
+		       Genode::Node   const &node)
 		try :
-			_verbose     { xml.attribute_value("verbose", false) },
+			_verbose     { node.attribute_value("verbose", false) },
 			_device      { device },
-			_hw_features { _init_hw_features(xml) },
+			_hw_features { _init_hw_features(node) },
 			_rx_vq       { plat,
-			               _vq_size(RX_VQ, xml, "rx_queue_size"),
-			               _buf_size(RX_VQ, xml, "rx_buffer_size") },
+			               _vq_size(RX_VQ, node, "rx_queue_size"),
+			               _buf_size(RX_VQ, node, "rx_buffer_size") },
 			_tx_vq       { plat,
-			               _vq_size(TX_VQ, xml, "tx_queue_size"),
-			               _buf_size(TX_VQ, xml, "tx_buffer_size") }
+			               _vq_size(TX_VQ, node, "tx_queue_size"),
+			               _buf_size(TX_VQ, node, "tx_buffer_size") }
 		{ }
 		catch (Tx_queue_type::Invalid_buffer_size)
 		{
@@ -488,13 +488,13 @@ class Virtio_nic::Uplink_client : public Virtio_nic::Device,
 
 	public:
 
-		Uplink_client(Env                         &env,
-		              Allocator                   &alloc,
-		              Virtio::Device              &device,
-		              Platform::Connection        &plat,
-		              Genode::Xml_node      const &xml)
+		Uplink_client(Env                  &env,
+		              Allocator            &alloc,
+		              Virtio::Device       &device,
+		              Platform::Connection &plat,
+		              Genode::Node   const &node)
 		:
-			Device             { device, plat, xml },
+			Device             { device, plat, node },
 			Uplink_client_base { env, alloc, read_mac_address() },
 			_irq_handler       { env.ep(), *this, &Uplink_client::_handle_irq }
 		{

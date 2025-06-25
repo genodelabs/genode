@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 /* Qt includes */
 #include <QEvent>
@@ -55,7 +55,7 @@ class Main_window : public Compound_widget<QWidget, QHBoxLayout>
 
 		bool _verbose;
 
-		void _update_clients(Genode::Xml_node &);
+		void _update_clients(Genode::Node &);
 
 	private Q_SLOTS:
 

@@ -371,7 +371,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		 * Select the policy that matches the label. If multiple policies
 		 * match, select the one with the largest number of characters.
 		 */
-		void apply_session_policy(Xml_node const &config, Domain_registry const &);
+		void apply_session_policy(Node const &config, Domain_registry const &);
 
 		void destroy_all_views();
 

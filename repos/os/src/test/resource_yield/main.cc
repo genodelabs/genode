@@ -89,7 +89,7 @@ class Test::Child
 
 	public:
 
-		Child(Env &, Xml_node);
+		Child(Env &, Node const &);
 		void main();
 };
 
@@ -159,7 +159,7 @@ void Test::Child::_handle_yield()
 }
 
 
-Test::Child::Child(Env &env, Xml_node config)
+Test::Child::Child(Env &env, Node const &config)
 :
 	_env(env),
 	_expand(config.attribute_value("expand", false)),
@@ -402,11 +402,11 @@ void Component::construct(Genode::Env &env)
 	 * the child or the parent role.
 	 */
 	static Attached_rom_dataspace config(env, "config");
-	bool const is_child = config.xml().attribute_value("child", false);
+	bool const is_child = config.node().attribute_value("child", false);
 
 	if (is_child) {
 		log("--- test-resource_yield child role started ---");
-		static Test::Child child(env, config.xml());
+		static Test::Child child(env, config.node());
 	} else {
 		log("--- test-resource_yield parent role started ---");
 		static Test::Parent parent(env);

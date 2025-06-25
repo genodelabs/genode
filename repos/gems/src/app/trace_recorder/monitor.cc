@@ -27,7 +27,7 @@ Directory::Path Trace_recorder::Monitor::Trace_directory::subject_path(::Subject
 }
 
 
-Trace_recorder::Monitor::Config Trace_recorder::Monitor::Config::from_xml(Xml_node const &config)
+Trace_recorder::Monitor::Config Trace_recorder::Monitor::Config::from_node(Node const &config)
 {
 	return {
 		.session_ram =
@@ -70,12 +70,12 @@ void Trace_recorder::Monitor::Attached_buffer::process_events(Trace_directory &t
 
 
 void Trace_recorder::Monitor::_with_session_policy(Trace::Subject_info const &info,
-                                                   Xml_node const &config,
+                                                   Node const &config,
                                                    auto const &fn, auto const &missing_fn)
 {
 	bool found = false;
 	with_matching_policy(info.session_label(), config,
-		[&] (Xml_node const &policy) {
+		[&] (Node const &policy) {
 
 			/* must have policy attribute */
 			if (!policy.has_attribute("policy"))
@@ -104,7 +104,7 @@ void Trace_recorder::Monitor::_handle_timeout()
 }
 
 
-void Trace_recorder::Monitor::start(Xml_node const &config)
+void Trace_recorder::Monitor::start(Node const &config)
 {
 	stop();
 
@@ -112,7 +112,7 @@ void Trace_recorder::Monitor::start(Xml_node const &config)
 	_trace_directory.construct(_env, _alloc, config, _rtc);
 
 	using TM = Trace_recorder::Monitor;
-	TM::Config const trace_config = TM::Config::from_xml(config);
+	TM::Config const trace_config = TM::Config::from_node(config);
 
 	_trace.construct(_env, trace_config.session_ram,
 	                       trace_config.session_arg_buffer);
@@ -122,8 +122,8 @@ void Trace_recorder::Monitor::start(Xml_node const &config)
 	SC::For_each_subject_info_result const info_result =
 		_trace->for_each_subject_info([&] (Trace::Subject_id   const &id,
 		                                   Trace::Subject_info const &info) {
-		/* check if there is a matching policy in the XML config */
-		_with_session_policy(info, config, [&] (Xml_node const &session_policy) {
+		/* check if there is a matching policy in the config */
+		_with_session_policy(info, config, [&] (Node const &session_policy) {
 
 			/* skip dead subjects */
 			if (info.state() == Trace::Subject_info::DEAD)
@@ -173,7 +173,7 @@ void Trace_recorder::Monitor::start(Xml_node const &config)
 			                                                        id);
 
 			/* create and register writers at trace buffer */
-			session_policy.for_each_sub_node([&] (Xml_node const &node) {
+			session_policy.for_each_sub_node([&] (Node const &node) {
 				bool const present =
 					_backends.with_element(node.type(),
 						[&] /* match */ (Backend_base &backend) {
@@ -202,7 +202,7 @@ void Trace_recorder::Monitor::start(Xml_node const &config)
 	/* register timeout */
 	unsigned period_ms { 0 };
 	if (!config.has_attribute("period_ms"))
-		error("missing XML attribute 'period_ms'");
+		error("missing node attribute 'period_ms'");
 	else
 		period_ms = config.attribute_value("period_ms", period_ms);
 

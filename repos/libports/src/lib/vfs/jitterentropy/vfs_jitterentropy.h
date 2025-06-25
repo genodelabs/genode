@@ -15,7 +15,6 @@
 #define _JITTERENTROPY_FILE_SYSTEM_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <vfs/single_file_system.h>
 
 /* jitterentropy includes */
@@ -99,7 +98,7 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 	public:
 
 		Jitterentropy_file_system(Genode::Allocator &alloc,
-		                          Genode::Xml_node const &config)
+		                          Genode::Node const &config)
 		:
 			Single_file_system(Vfs::Node_type::CONTINUOUS_FILE, name(),
 			                   Vfs::Node_rwx::ro(), config),

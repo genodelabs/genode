@@ -53,7 +53,7 @@ struct Ps2::Main
 
 	Constructible<Attached_rom_dataspace> _system { };
 
-	Reconstructible<Verbose> _verbose { _config.xml() };
+	Reconstructible<Verbose> _verbose { _config.node() };
 
 	Keyboard _keyboard { _i8042.kbd_interface(), _i8042.kbd_xlate(), *_verbose };
 
@@ -70,7 +70,7 @@ struct Ps2::Main
 	{
 		_config.update();
 
-		Xml_node const &config = _config.xml();
+		Node const &config = _config.node();
 
 		bool const system_was_constructed = _system.constructed();
 
@@ -82,7 +82,7 @@ struct Ps2::Main
 		if (_system.constructed()) {
 			_system->update();
 
-			if (_system->xml().attribute_value("state", String<16>()) == "reset") {
+			if (_system->node().attribute_value("state", String<16>()) == "reset") {
 				log("trying to perform system reset via PS/2 port 0x64");
 				_i8042.cpu_reset();
 			}

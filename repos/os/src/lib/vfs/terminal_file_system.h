@@ -220,7 +220,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 		                 bool                  raw)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, name.string(),
-			                   Node_rwx::rw(), Genode::Xml_node("<data/>")),
+			                   Node_rwx::rw(), Node()),
 			_name(name), _ep(ep), _vfs_user(vfs_user), _terminal(terminal),
 			_interrupt_handler(interrupt_handler),
 			_raw(raw)
@@ -329,12 +329,12 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 		_interrupts_fs.value(_interrupts);
 	}
 
-	static Name name(Xml_node const &config)
+	static Name name(Node const &config)
 	{
 		return config.attribute_value("name", Name("terminal"));
 	}
 
-	Local_factory(Vfs::Env &env, Xml_node const &config)
+	Local_factory(Vfs::Env &env, Node const &config)
 	:
 		_label(config.attribute_value("label", Label(""))),
 		_name(name(config)),
@@ -346,7 +346,7 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 		_handle_size_changed();
 	}
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
 		if (node.has_type("data"))       return &_data_fs;
 		if (node.has_type("info"))       return &_info_fs;
@@ -399,11 +399,11 @@ class Vfs::Terminal_file_system::Compound_file_system : private Local_factory,
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
+		Compound_file_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory(vfs_env, node),
 			Vfs::Dir_file_system(vfs_env,
-			                     Xml_node(_config(Local_factory::name(node)).string()),
+			                     Node(_config(Local_factory::name(node))),
 			                     *this)
 		{ }
 

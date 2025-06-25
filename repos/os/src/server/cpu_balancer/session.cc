@@ -39,7 +39,7 @@ Cpu::Session::create_thread(Pd_session_capability const  pd,
 	}
 
 	/* read in potential existing policy for thread */
-	Cpu::Config::apply_for_thread(_config.xml(), *this, name);
+	Cpu::Config::apply_for_thread(_config.node(), *this, name);
 
 	lookup(name, [&](Thread_capability &store_cap,
 	                 Cpu::Policy &policy)

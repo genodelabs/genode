@@ -285,7 +285,7 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 	 ** Factory interface **
 	 ***********************/
 
-	Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
+	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
 		if (node.has_type("data"))      return &_data_fs;
 		if (node.has_type("info"))      return &_info_fs;
@@ -299,12 +299,12 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 	 ** Constructor, etc. **
 	 ***********************/
 
-	static Name name(Xml_node const &config)
+	static Name name(Node const &config)
 	{
 		return config.attribute_value("name", Name("tap"));
 	}
 
-	Local_factory(Vfs::Env &env, Xml_node const &config)
+	Local_factory(Vfs::Env &env, Node const &config)
 	:
 		_name       (name(config)),
 		_label      (config.attribute_value("label", Label(""))),
@@ -354,11 +354,11 @@ class Vfs::Tap_file_system::Compound_file_system : private Local_factory<FS>,
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
+		Compound_file_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory<FS>(vfs_env, node),
 			Vfs::Dir_file_system(vfs_env,
-			                     Xml_node(_config(Local_factory<FS>::name(node)).string()),
+			                     Node(_config(Local_factory<FS>::name(node))),
 			                     *this)
 		{ }
 
@@ -372,7 +372,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node const &config) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
 		{
 			if (config.attribute_value("mode", Vfs::Uplink_mode::NIC_CLIENT) == Vfs::Uplink_mode::NIC_CLIENT)
 				return new (env.alloc())

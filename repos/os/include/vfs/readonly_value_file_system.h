@@ -97,7 +97,7 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 		Readonly_value_file_system(Name const &name, T const &initial_value)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type(),
-			                   Node_rwx::ro(), Xml_node(_config(name).string())),
+			                   Node_rwx::ro(), Node(_config(name))),
 			_file_name(name)
 		{
 			value(initial_value);
@@ -115,7 +115,7 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 				handle.watch_response(); });
 		}
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return node.has_type(type_name()) &&
 			       node.attribute_value("name", Name()) == _file_name;

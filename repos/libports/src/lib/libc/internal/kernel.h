@@ -193,7 +193,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		Constructible<Vfs::Simple_env> _vfs_env { };
 
 		bool const _vfs_env_initialized = (
-			with_vfs_config(_config_rom.xml(), [&] (Xml_node const &vfs_config) {
+			with_vfs_config(_config_rom.node(), [&] (Node const &vfs_config) {
 				_vfs_env.construct(_env, _heap, vfs_config, _vfs_user); }), true );
 
 		Env_implementation _libc_env { _env, *_vfs_env, _config_rom };

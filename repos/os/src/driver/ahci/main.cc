@@ -18,7 +18,6 @@
 #include <block/request_stream.h>
 #include <os/session_policy.h>
 #include <timer_session/connection.h>
-#include <util/xml_node.h>
 #include <os/reporter.h>
 #include <root/root.h>
 
@@ -127,8 +126,8 @@ class Ahci::Driver : Noncopyable
 			if (!_system_rom->valid())
 				return;
 
-			auto state = _system_rom->xml().attribute_value("state",
-			                                                String<32>(""));
+			auto state = _system_rom->node().attribute_value("state",
+			                                                 String<32>(""));
 
 			bool const resume_driver =  _schedule_stop && state == "";
 			bool const stop_driver   = !_schedule_stop && state != "";
@@ -229,7 +228,7 @@ class Ahci::Driver : Noncopyable
 			_resources.release_device();
 		}
 
-		Port &port(Session_label const &label, Xml_node const &policy)
+		Port &port(Session_label const &label, Node const &policy)
 		{
 			/* try read device port number attribute */
 			long device = policy.attribute_value("device", -1L);
@@ -400,8 +399,8 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 	Main(Env &env) : env(env)
 	{
 		log("--- Starting AHCI driver ---");
-		bool support_atapi  = config.xml().attribute_value("atapi", false);
-		bool use_system_rom = config.xml().attribute_value("system", false);
+		bool support_atapi  = config.node().attribute_value("atapi", false);
+		bool use_system_rom = config.node().attribute_value("system", false);
 		try {
 			driver.construct(env, *this, support_atapi, use_system_rom);
 			report_ports();
@@ -439,8 +438,8 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
-		return with_matching_policy(label, config.xml(),
-			[&] (Xml_node const &policy) -> Root::Result {
+		return with_matching_policy(label, config.node(),
+			[&] (Node const &policy) -> Root::Result {
 				try {
 					Port &port = driver->port(label, policy);
 
@@ -473,7 +472,7 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 
 	void report_ports()
 	{
-		config.xml().with_optional_sub_node("report", [&](auto const &report) {
+		config.node().with_optional_sub_node("report", [&](auto const &report) {
 			if (report.attribute_value("ports", false)) {
 				reporter.construct(env, "ports");
 				reporter->enabled(true);

@@ -36,17 +36,17 @@ struct Audio_play::Main
 
 	Vfs::Global_file_system_factory _fs_factory { _heap };
 
-	Vfs::Simple_env _vfs_env = _config.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Vfs::Simple_env {
+	Vfs::Simple_env _vfs_env = _config.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Vfs::Simple_env {
 			return { _env, _heap, config }; },
 		[&] () -> Vfs::Simple_env {
 			error("VFS not configured");
-			return { _env, _heap, Xml_node("<empty/>") }; });
+			return { _env, _heap, Node() }; });
 
 	Directory _root_dir { _vfs_env };
 
 	Directory::Path const _sample_path =
-		_config.xml().attribute_value("sample_path", Directory::Path());
+		_config.node().attribute_value("sample_path", Directory::Path());
 
 	File_content const _sample_data {
 		_heap, _root_dir, _sample_path, { _env.pd().avail_ram().value } };

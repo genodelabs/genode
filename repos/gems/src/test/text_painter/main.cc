@@ -76,12 +76,9 @@ struct Test::Main
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	Root_directory _root = _config.xml().with_sub_node("vfs",
-		[&] (Xml_node const &config) -> Root_directory {
-			return { _env, _heap, config }; },
-		[&] () -> Root_directory {
-			error("VFS not configured");
-			return { _env, _heap, Xml_node("<empty/>") }; });
+	Root_directory _root = _config.node().with_sub_node("vfs",
+		[&] (Node const &config) -> Root_directory { return { _env, _heap, config }; },
+		[&] ()                   -> Root_directory { return { _env, _heap, Node() }; });
 
 	Vfs_font _font_4 { _heap, _root, "fonts/regular" };
 

@@ -16,7 +16,7 @@
 
 #include <vfs/directory_service.h>
 #include <vfs/file_io_service.h>
-#include <util/xml_node.h>
+#include <vfs/types.h>
 
 namespace Vfs { class File_system; }
 
@@ -43,7 +43,7 @@ class Vfs::File_system : public Directory_service, public File_io_service
 		/**
 		 * Adjust to configuration changes
 		 */
-		virtual void apply_config(Genode::Xml_node const &) { }
+		virtual void apply_config(Node const &) { }
 
 		/**
 		 * Return the file-system type

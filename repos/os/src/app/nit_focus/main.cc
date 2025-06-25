@@ -38,9 +38,9 @@ struct Nit_focus::Main
 		_config_rom.update();
 
 		using Label = String<160>;
-		Label const label = _clicked_rom.xml().attribute_value("label", Label());
+		Label const label = _clicked_rom.node().attribute_value("label", Label());
 
-		with_matching_policy(label, _config_rom.xml(), [&] (Xml_node const &policy) {
+		with_matching_policy(label, _config_rom.node(), [&] (Node const &policy) {
 			if (policy.attribute_value("focus", true)) {
 				_focus_reporter.generate([&] (Xml_generator &xml) {
 					xml.attribute("label", label); });

@@ -33,7 +33,7 @@ struct Terminal_crosslink::Main
 	Number_of_bytes const DEFAULT_BUFFER_SIZE { 4096 };
 
 	size_t const _buffer_size {
-		_config.xml().attribute_value("buffer", DEFAULT_BUFFER_SIZE) };
+		_config.node().attribute_value("buffer", DEFAULT_BUFFER_SIZE) };
 
 	Root _terminal_root { _env, _heap, _buffer_size };
 

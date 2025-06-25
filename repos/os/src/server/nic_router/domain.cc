@@ -167,12 +167,12 @@ void Domain::try_reuse_ip_config(Domain const &domain)
 
 bool Domain::_read_forward_rules(Cstring  const    &protocol,
                                  Domain_dict       &domains,
-                                 Xml_node const    &node,
+                                 Node     const    &node,
                                  char     const    *type,
                                  Forward_rule_tree &rules)
 {
 	bool result = true;
-	node.for_each_sub_node(type, [&] (Xml_node const &node) {
+	node.for_each_sub_node(type, [&] (Node const &node) {
 		if (!result)
 			return;
 
@@ -209,12 +209,12 @@ bool Domain::_invalid(char const *reason) const
 
 bool Domain::_read_transport_rules(Cstring  const      &protocol,
                                    Domain_dict         &domains,
-                                   Xml_node const      &node,
+                                   Node     const      &node,
                                    char     const      *type,
                                    Transport_rule_list &rules)
 {
 	bool result = true;
-	node.for_each_sub_node(type, [&] (Xml_node const &node) {
+	node.for_each_sub_node(type, [&] (Node const &node) {
 		if (!result)
 			return;
 
@@ -247,7 +247,7 @@ void Domain::print(Output &output) const
 
 
 Domain::Domain(Configuration     &config,
-               Xml_node    const &node,
+               Node        const &node,
                Domain_name const &name,
                Allocator         &alloc,
                Domain_dict       &domains)
@@ -306,7 +306,7 @@ bool Domain::init(Domain_dict &domains)
 {
 	/* read DHCP server configuration */
 	bool result = true;
-	_node.xml.with_optional_sub_node("dhcp-server", [&] (Xml_node const &dhcp_server_node) {
+	_node.with_optional_sub_node("dhcp-server", [&] (Node const &dhcp_server_node) {
 		if (_ip_config_dynamic) {
 			result = _invalid("DHCP server and client at once");
 			return;
@@ -327,14 +327,14 @@ bool Domain::init(Domain_dict &domains)
 		return result;
 
 	/* read forward and transport rules */
-	if (!_read_forward_rules(tcp_name(), domains, _node.xml, "tcp-forward", _tcp_forward_rules) ||
-	    !_read_forward_rules(udp_name(), domains, _node.xml, "udp-forward", _udp_forward_rules) ||
-	    !_read_transport_rules(tcp_name(),  domains, _node.xml, "tcp",  _tcp_rules) ||
-	    !_read_transport_rules(udp_name(),  domains, _node.xml, "udp",  _udp_rules))
+	if (!_read_forward_rules(tcp_name(), domains, _node, "tcp-forward", _tcp_forward_rules) ||
+	    !_read_forward_rules(udp_name(), domains, _node, "udp-forward", _udp_forward_rules) ||
+	    !_read_transport_rules(tcp_name(),  domains, _node, "tcp",  _tcp_rules) ||
+	    !_read_transport_rules(udp_name(),  domains, _node, "udp",  _udp_rules))
 		return false;
 
 	/* read NAT rules */
-	_node.xml.for_each_sub_node("nat", [&] (Xml_node const &node) {
+	_node.for_each_sub_node("nat", [&] (Node const &node) {
 		if (!result)
 			return;
 
@@ -352,7 +352,7 @@ bool Domain::init(Domain_dict &domains)
 		return result;
 
 	/* read ICMP rules */
-	_node.xml.for_each_sub_node("icmp", [&] (Xml_node const &node) {
+	_node.for_each_sub_node("icmp", [&] (Node const &node) {
 		if (!result)
 			return;
 
@@ -366,7 +366,7 @@ bool Domain::init(Domain_dict &domains)
 			[&] { result = _invalid("invalid ICMP rule"); });
 	});
 	/* read IP rules */
-	_node.xml.for_each_sub_node("ip", [&] (Xml_node const &node) {
+	_node.for_each_sub_node("ip", [&] (Node const &node) {
 		if (!result)
 			return;
 

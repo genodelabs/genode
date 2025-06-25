@@ -1,5 +1,5 @@
 /*
- * \brief  Genode XML nodes plus local utilities
+ * \brief  Genode Node plus local utilities
  * \author Martin Stein
  * \date   2016-08-19
  */
@@ -12,12 +12,12 @@
  */
 
 /* local includes */
-#include <xml_node.h>
+#include <node.h>
 
 using namespace Genode;
 
 
-Microseconds Genode::read_sec_attr(Xml_node const &node,
+Microseconds Genode::read_sec_attr(Node     const &node,
                                    char     const *name,
                                    uint64_t const  default_sec)
 {

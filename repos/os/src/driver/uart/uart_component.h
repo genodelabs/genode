@@ -219,9 +219,9 @@ class Uart::Root : public Uart::Root_component
 
 		Create_result _create_session(const char *args) override
 		{
-			return with_matching_policy(label_from_args(args), _config.xml(),
+			return with_matching_policy(label_from_args(args), _config.node(),
 
-				[&] (Xml_node const &policy) {
+				[&] (Node const &policy) {
 
 					unsigned const index       = policy.attribute_value("uart",        0U);
 					unsigned const baudrate    = policy.attribute_value("baudrate",    0U);
