@@ -126,6 +126,7 @@ arch/x86/include/asm/cmpxchg.h
 arch/x86/include/asm/cmpxchg_64.h
 arch/x86/include/asm/compat.h
 arch/x86/include/asm/cpu.h
+arch/x86/include/asm/cpu_device_id.h
 arch/x86/include/asm/cpu_entry_area.h
 arch/x86/include/asm/cpufeature.h
 arch/x86/include/asm/cpufeatures.h
@@ -254,6 +255,7 @@ arch/x86/include/uapi/asm/unistd.h
 arch/x86/include/uapi/asm/vsyscall.h
 crypto/hash.h
 crypto/internal.h
+crypto/skcipher.h
 drivers/net/wireguard/allowedips.h
 drivers/net/wireguard/cookie.h
 drivers/net/wireguard/device.h
@@ -323,7 +325,6 @@ include/asm-generic/div64.h
 include/asm-generic/early_ioremap.h
 include/asm-generic/emergency-restart.h
 include/asm-generic/error-injection.h
-include/asm-generic/export.h
 include/asm-generic/fixmap.h
 include/asm-generic/getorder.h
 include/asm-generic/hardirq.h
@@ -363,7 +364,6 @@ include/asm-generic/switch_to.h
 include/asm-generic/timex.h
 include/asm-generic/topology.h
 include/asm-generic/trace_clock.h
-include/asm-generic/unaligned.h
 include/asm-generic/user.h
 include/clocksource/arm_arch_timer.h
 include/crypto/aead.h
@@ -507,7 +507,6 @@ include/linux/find.h
 include/linux/fips.h
 include/linux/firmware.h
 include/linux/flex_proportions.h
-include/linux/freelist.h
 include/linux/freezer.h
 include/linux/fs.h
 include/linux/fs_api.h
@@ -515,7 +514,6 @@ include/linux/fs_types.h
 include/linux/ftrace.h
 include/linux/ftrace_irq.h
 include/linux/fwnode.h
-include/linux/genetlink.h
 include/linux/gfp.h
 include/linux/gfp_types.h
 include/linux/gpio/consumer.h
@@ -840,7 +838,6 @@ include/linux/sizes.h
 include/linux/skb_array.h
 include/linux/skbuff.h
 include/linux/slab.h
-include/linux/slub_def.h
 include/linux/smp.h
 include/linux/smp_types.h
 include/linux/smpboot.h

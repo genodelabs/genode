@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-08-14
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -22,7 +22,7 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -30,7 +30,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -47,13 +47,6 @@ struct sk_buff * __skb_gso_segment(struct sk_buff * skb,netdev_features_t featur
 #include <linux/uaccess.h>
 
 unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p);
-noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -88,6 +81,21 @@ atomic_long_t _totalram_pages;
 
 extern void ack_bad_irq(unsigned int irq);
 void ack_bad_irq(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern unsigned long arch_scale_cpu_capacity(int cpu);
+unsigned long arch_scale_cpu_capacity(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -136,14 +144,6 @@ noinstr void ct_irq_exit(void)
 #include <linux/netdevice.h>
 
 struct net_device * dev_get_by_index(struct net * net,int ifindex)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/netdevice.h>
-
-void dev_get_tstats64(struct net_device * dev,struct rtnl_link_stats64 * s)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -200,14 +200,6 @@ const char * fwnode_get_name_prefix(const struct fwnode_handle * fwnode)
 #include <linux/property.h>
 
 struct fwnode_handle * fwnode_get_nth_parent(struct fwnode_handle * fwnode,unsigned int depth)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/property.h>
-
-void fwnode_handle_put(struct fwnode_handle * fwnode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -301,6 +293,14 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -337,6 +337,14 @@ noinline int kstrtoll(const char * s,unsigned int base,long long * res)
 }
 
 
+#include <linux/rcutree.h>
+
+void kvfree_rcu_barrier(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
@@ -356,6 +364,11 @@ void migrate_enable(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <net/hotdata.h>
+
+struct net_hotdata net_hotdata;
 
 
 #include <linux/netdevice.h>
@@ -414,7 +427,7 @@ bool rcuref_get_slowpath(rcuref_t * ref)
 
 #include <linux/rcuref.h>
 
-bool rcuref_put_slowpath(rcuref_t * ref)
+bool rcuref_put_slowpath(rcuref_t * ref,unsigned int cnt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -487,6 +500,14 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 }
 
 
+#include <linux/smp.h>
+
+int smp_call_function_single_async(int cpu,call_single_data_t * csd)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <net/sock.h>
 
 void sock_edemux(struct sk_buff * skb)
@@ -550,3 +571,4 @@ void update_group_capacity(struct sched_domain * sd,int cpu)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
+

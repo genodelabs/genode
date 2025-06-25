@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -30,14 +30,6 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/irqdomain.h>
 
-struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,unsigned int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irqdomain.h>
-
 struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number_t hwirq,unsigned int * irq)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -51,7 +43,7 @@ unsigned long __per_cpu_offset[NR_CPUS] = {};
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -59,7 +51,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -68,13 +60,6 @@ void __printk_safe_exit(void)
 #include <net/gso.h>
 
 struct sk_buff * __skb_gso_segment(struct sk_buff * skb,netdev_features_t features,bool tx_path)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p);
-noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -93,6 +78,14 @@ int _printk_deferred(const char * fmt,...)
 atomic_long_t _totalram_pages;
 
 
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/cpumask.h>
 
 unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
@@ -104,6 +97,13 @@ unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struc
 #include <linux/sched/topology.h>
 
 bool cpus_share_cache(int this_cpu,int that_cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+struct crypto_tfm;
+extern int crypto_init_lskcipher_ops_sg(struct crypto_tfm * tfm);
+int crypto_init_lskcipher_ops_sg(struct crypto_tfm * tfm)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -128,14 +128,6 @@ noinstr void ct_irq_exit(void)
 #include <linux/netdevice.h>
 
 struct net_device * dev_get_by_index(struct net * net,int ifindex)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/netdevice.h>
-
-void dev_get_tstats64(struct net_device * dev,struct rtnl_link_stats64 * s)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -200,14 +192,6 @@ const char * fwnode_get_name_prefix(const struct fwnode_handle * fwnode)
 #include <linux/property.h>
 
 struct fwnode_handle * fwnode_get_nth_parent(struct fwnode_handle * fwnode,unsigned int depth)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/property.h>
-
-void fwnode_handle_put(struct fwnode_handle * fwnode)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -312,6 +296,14 @@ void irq_domain_free_irqs_common(struct irq_domain * domain,unsigned int virq,un
 
 #include <linux/irqdomain.h>
 
+struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqdomain.h>
+
 void irq_domain_set_info(struct irq_domain * domain,unsigned int virq,irq_hw_number_t hwirq,const struct irq_chip * chip,void * chip_data,irq_flow_handler_t handler,void * handler_data,const char * handler_name)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -352,6 +344,14 @@ struct irq_desc * irq_to_desc(unsigned int irq)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -369,6 +369,14 @@ noinline int kstrtoint(const char * s,unsigned int base,int * res)
 #include <linux/kstrtox.h>
 
 noinline int kstrtoll(const char * s,unsigned int base,long long * res)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rcutree.h>
+
+void kvfree_rcu_barrier(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -398,6 +406,11 @@ void migrate_enable(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <net/hotdata.h>
+
+struct net_hotdata net_hotdata;
 
 
 #include <linux/netdevice.h>
@@ -501,7 +514,7 @@ bool rcuref_get_slowpath(rcuref_t * ref)
 
 #include <linux/rcuref.h>
 
-bool rcuref_put_slowpath(rcuref_t * ref)
+bool rcuref_put_slowpath(rcuref_t * ref,unsigned int cnt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -632,3 +645,4 @@ void update_group_capacity(struct sched_domain * sd,int cpu)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
+

@@ -71,7 +71,7 @@ const struct ipv6_stub *ipv6_stub = NULL;
 
 #include <linux/netdevice.h>
 
-int register_netdevice(struct net_device * dev)
+int dev_set_threaded(struct net_device * dev,bool threaded)
 {
 	lx_emul_trace(__func__);
 	return 0;
