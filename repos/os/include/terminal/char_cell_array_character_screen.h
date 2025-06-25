@@ -17,10 +17,17 @@
 /* terminal includes */
 #include <terminal/cell_array.h>
 #include <terminal/font_face.h>
+#include <terminal/types.h>
 
-struct Char_cell
+namespace Terminal {
+	struct Char_cell;
+	class  Char_cell_array_character_screen;
+}
+
+
+struct Terminal::Char_cell
 {
-	Genode::uint16_t value { 0 };
+	uint16_t value { 0 };
 
 	unsigned char attr;
 	unsigned char color;
@@ -34,7 +41,7 @@ struct Char_cell
 
 	Char_cell() : attr(0), color(0) { }
 
-	Char_cell(Terminal::Character c, Font_face f,
+	Char_cell(Character c, Font_face f,
 	          int colidx, bool inv, bool highlight)
 	:
 		value(c.value),
@@ -58,12 +65,11 @@ struct Char_cell
 
 	bool has_cursor() const { return attr & ATTR_CURSOR; }
 
-	Terminal::Codepoint codepoint() const {
-		return Terminal::Codepoint { value }; }
+	Codepoint codepoint() const { return Codepoint { value }; }
 };
 
 
-class Char_cell_array_character_screen : public Terminal::Character_screen
+class Terminal::Char_cell_array_character_screen : public Character_screen
 {
 	private:
 
@@ -74,9 +80,10 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		enum Irm { REPLACE, INSERT };
 
 		Cell_array<Char_cell> &_char_cell_array;
-		Terminal::Boundary     _boundary;
-		Terminal::Position     _cursor_store { };
-		Terminal::Position     _cursor_pos   { };
+
+		Boundary _boundary;
+		Position _cursor_store { };
+		Position _cursor_pos   { };
 
 		/**
 		 * Color index contains the fg color in the first 3 bits
@@ -102,7 +109,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		{
 			Char_cell_array_character_screen &cs;
 
-			Terminal::Position old_cursor_pos;
+			Position old_cursor_pos;
 
 			Cursor_guard(Char_cell_array_character_screen &cs)
 			:
@@ -118,8 +125,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				cs._char_cell_array.cursor(old_cursor_pos, true);
 
 				/* if cursor position changed, move cursor */
-				Terminal::Position       &new_cursor_pos = cs._cursor_pos;
-				Terminal::Boundary const &boundary       = cs._boundary;
+				Position       &new_cursor_pos = cs._cursor_pos;
+				Boundary const &boundary       = cs._boundary;
 				if (old_cursor_pos != new_cursor_pos) {
 					cs._overflowed = (new_cursor_pos.x >= boundary.width);
 
@@ -135,12 +142,12 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		static void _missing(char const *method_name)
 		{
-			Genode::warning(method_name, " not implemented");
+			warning(method_name, " not implemented");
 		}
 
 		static void _missing(char const *method_name, int arg)
 		{
-			Genode::warning(method_name, " not implemented for ", arg);
+			warning(method_name, " not implemented for ", arg);
 		}
 
 		void _new_line()
@@ -183,16 +190,16 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		 ** Character_screen interface **
 		 ********************************/
 
-		Terminal::Position cursor_pos() const { return _cursor_pos; }
+		Position cursor_pos() const { return _cursor_pos; }
 
-		void cursor_pos(Terminal::Position pos)
+		void cursor_pos(Position pos)
 		{
 			Cursor_guard guard(*this);
 
 			_cursor_pos = pos;
 		}
 
-		void output(Terminal::Character c) override
+		void output(Character c) override
 		{
 			if (_irm == INSERT)
 				_missing("insert mode");
@@ -275,11 +282,11 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			start--;
 			end--;
 
-			_region_start = Genode::max(start, 0);
-			_region_end   = Genode::min(end, _boundary.height - 1);
+			_region_start = max(start, 0);
+			_region_end   = min(end, _boundary.height - 1);
 
 			/* preserve invariant of region size >= 0 */
-			_region_end = Genode::max(_region_end, _region_start);
+			_region_end = max(_region_end, _region_start);
 		}
 
 		void cub(int dx) override
@@ -311,7 +318,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			x--;
 			y--;
 
-			_cursor_pos = Terminal::Position(x, y);
+			_cursor_pos = Position(x, y);
 		}
 
 		void cuu(int dy) override
@@ -325,7 +332,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void dch(int pn) override
 		{
-			pn = Genode::min(_boundary.width - _cursor_pos.x, pn);
+			pn = min(_boundary.width - _cursor_pos.x, pn);
 			for (int x = _cursor_pos.x; x < _boundary.width; ++x) {
 				_char_cell_array.set_cell(x, _cursor_pos.y,
 					_char_cell_array.get_cell(x+pn, _cursor_pos.y));
@@ -385,7 +392,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				return;
 
 			default:
-				Genode::warning(__func__, " not implemented for ", ps);
+				warning(__func__, " not implemented for ", ps);
 				break;
 			}
 		}
@@ -428,7 +435,6 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void ich(int pn) override
 		{
-			using namespace Genode;
 			pn = max(0, min(_boundary.width - _cursor_pos.x, pn));
 
 			for (int x = _boundary.width-1; _cursor_pos.x+pn < x; --x) {

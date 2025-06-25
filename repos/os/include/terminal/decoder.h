@@ -89,7 +89,7 @@ class Terminal::Decoder
 					int type  = INVALID;
 					int value = 0;
 
-					void print(Genode::Output &out, State state) const
+					void print(Output &out, State state) const
 					{
 						if (type == NUMBER) {
 							Genode::print(out, value);
@@ -100,7 +100,7 @@ class Terminal::Decoder
 						}
 					}
 
-					void print(Genode::Output &out) const
+					void print(Output &out) const
 					{
 						print(out, STATE_ESC_VT100);
 					}
@@ -150,7 +150,7 @@ class Terminal::Decoder
 				void push(Entry const &entry)
 				{
 					if (_index == MAX_ENTRIES - 1) {
-						Genode::error("escape stack overflow");
+						error("escape stack overflow");
 						_dump(STATE_ESC_VT100);
 						_dump_log.flush_error();
 						reset();
@@ -367,10 +367,8 @@ class Terminal::Decoder
 
 				for (int i = 0; i < 2; i++)
 					if (!_sgr(p[i]))
-						Genode::warning("Number ", p[i],
-						                " in sequence '[",
-						                p[0], ";",
-						                p[1], "m' is not implemented");
+						warning("Number ", p[i], " in sequence '[",
+						        p[0], ";", p[1], "m' is not implemented");
 
 				return true;
 
@@ -424,11 +422,8 @@ class Terminal::Decoder
 
 				for (int i = 0; i < 3; i++)
 					if (!_sgr(p[i]))
-						Genode::warning("Number ", p[i],
-						                " in sequence '[",
-						                p[0], ";",
-						                p[1], ";",
-						                p[2], "m' is not implemented");
+						warning("Number ", p[i], " in sequence '[",
+						        p[0], ";", p[1], ";", p[2], "m' is not implemented");
 
 				return true;
 
@@ -508,7 +503,7 @@ class Terminal::Decoder
 						_enter_state_esc_ecma();
 						break;
 					}
-					Genode::error("unknown CSI ESC", Ascii((unsigned char)c));
+					error("unknown CSI ESC", Ascii((unsigned char)c));
 					_enter_state_idle();
 				}
 

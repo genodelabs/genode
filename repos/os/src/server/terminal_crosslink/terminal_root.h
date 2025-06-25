@@ -22,58 +22,56 @@
 #include "terminal_session_component.h"
 
 
-namespace Terminal_crosslink {
+namespace Terminal_crosslink { class Root; }
 
-	using namespace Genode;
 
-	class Root : public Root_component<Session_component>
-	{
-		private:
+class Terminal_crosslink::Root : public Root_component<Session_component>
+{
+	private:
 
-			Session_component _session_component1, _session_component2;
+		Session_component _session_component1, _session_component2;
 
-			enum Session_state {
-				FIRST_SESSION_OPEN  = 1 << 0,
-				SECOND_SESSION_OPEN = 1 << 1
-			};
+		enum Session_state {
+			FIRST_SESSION_OPEN  = 1 << 0,
+			SECOND_SESSION_OPEN = 1 << 1
+		};
 
-			int _session_state;
+		int _session_state { };
 
-		public:
+	public:
 
-			Genode::Root::Result session(Session_args const &, Affinity const &) override
-			{
-				if (!(_session_state & FIRST_SESSION_OPEN)) {
-					_session_state |= FIRST_SESSION_OPEN;
-					return _session_component1.cap();
-				} else if (!(_session_state & SECOND_SESSION_OPEN)) {
-					_session_state |= SECOND_SESSION_OPEN;
-					return _session_component2.cap();
-				}
-
-				return Session_capability();
+		Genode::Root::Result session(Session_args const &, Affinity const &) override
+		{
+			if (!(_session_state & FIRST_SESSION_OPEN)) {
+				_session_state |= FIRST_SESSION_OPEN;
+				return _session_component1.cap();
+			} else if (!(_session_state & SECOND_SESSION_OPEN)) {
+				_session_state |= SECOND_SESSION_OPEN;
+				return _session_component2.cap();
 			}
 
-			void upgrade(Genode::Session_capability, Root::Upgrade_args const &) override { }
+			return Session_capability();
+		}
 
-			void close(Genode::Session_capability session) override
-			{
-				if (_session_component1.belongs_to(session))
-					_session_state &= ~FIRST_SESSION_OPEN;
-				else
-					_session_state &= ~SECOND_SESSION_OPEN;
-			}
+		void upgrade(Session_capability, Root::Upgrade_args const &) override { }
 
-			/**
-			 * Constructor
-			 */
-			Root(Env &env, Allocator &alloc, size_t buffer_size)
-			: Root_component(&env.ep().rpc_ep(), &alloc),
-			  _session_component1(env, _session_component2, buffer_size),
-			  _session_component2(env, _session_component1, buffer_size),
-			  _session_state(0)
-			{ }
-	};
-}
+		void close(Session_capability session) override
+		{
+			if (_session_component1.belongs_to(session))
+				_session_state &= ~FIRST_SESSION_OPEN;
+			else
+				_session_state &= ~SECOND_SESSION_OPEN;
+		}
+
+		/**
+		 * Constructor
+		 */
+		Root(Env &env, Allocator &alloc, size_t buffer_size)
+		:
+			Root_component(&env.ep().rpc_ep(), &alloc),
+			_session_component1(env, _session_component2, buffer_size),
+			_session_component2(env, _session_component1, buffer_size)
+		{ }
+};
 
 #endif /* _TERMINAL_ROOT_H_ */

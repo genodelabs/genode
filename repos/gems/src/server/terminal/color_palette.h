@@ -22,9 +22,7 @@
 /* local includes */
 #include "types.h"
 
-namespace Terminal {
-	class Color_palette;
-}
+namespace Terminal { class Color_palette; }
 
 
 class Terminal::Color_palette
@@ -61,7 +59,7 @@ class Terminal::Color_palette
 			" <color index=\"15\" value=\"#F5F5F5\"/>" /* bright white */
 			"</palette>" };
 
-		Genode::Xml_node const _default { _default_palette };
+		Xml_node const _default { _default_palette };
 
 		void _apply_palette(Xml_node const &palette)
 		{

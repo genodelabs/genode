@@ -168,7 +168,7 @@ struct Terminal::Main : Character_consumer
 	 * update of the pixels. By delaying the update, multiple intermediate
 	 * changes result in only one rendering step.
 	 */
-	Genode::uint64_t const _flush_delay = 5;
+	uint64_t const _flush_delay = 5;
 
 	bool _flush_scheduled = false;
 
@@ -205,7 +205,7 @@ struct Terminal::Main : Character_consumer
 	void _schedule_flush()
 	{
 		if (!_flush_scheduled) {
-			_timer.trigger_once((Genode::uint64_t)1000*_flush_delay);
+			_timer.trigger_once((uint64_t)1000*_flush_delay);
 			_flush_scheduled = true;
 		}
 	}
@@ -326,8 +326,8 @@ void Terminal::Main::_handle_config()
 
 			if (!preserve_content)
 				warning("not enough spare RAM to preserve content (",
-				        "need ", Genode::Number_of_bytes(needed_bytes), ", "
-				        "have ", Genode::Number_of_bytes(avail_bytes), ")");
+				        "need ", Number_of_bytes(needed_bytes), ", "
+				        "have ", Number_of_bytes(avail_bytes), ")");
 
 			if (preserve_content && _text_screen_surface.constructed())
 				snapshot.construct(_heap, *_text_screen_surface);

@@ -14,7 +14,10 @@
 #ifndef _TERMINAL__FONT_FACE_H_
 #define _TERMINAL__FONT_FACE_H_
 
-class Font_face
+namespace Terminal { class Font_face; }
+
+
+class Terminal::Font_face
 {
 	public:
 

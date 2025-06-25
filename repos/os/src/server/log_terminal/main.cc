@@ -39,8 +39,6 @@ class Terminal::Buffered_output
 
 		enum { SIZE = Genode::Log_session::String::MAX_SIZE };
 
-		using size_t = Genode::size_t;
-
 		char _buf[SIZE + 1 /* room for null-termination */ ];
 
 		/* index of next character within '_buf' to write */
@@ -52,7 +50,7 @@ class Terminal::Buffered_output
 			_buf[_index] = 0;
 
 			/* flush buffered characters to LOG */
-			Genode::log(Genode::Cstring(_buf));
+			log(Cstring(_buf));
 
 			/* reset */
 			_index = 0;
@@ -64,8 +62,7 @@ class Terminal::Buffered_output
 
 		size_t write(char const *src, size_t num_bytes)
 		{
-			size_t const consume_bytes = Genode::min(num_bytes,
-			                                         _remaining_capacity());
+			size_t const consume_bytes = min(num_bytes, _remaining_capacity());
 
 			for (unsigned i = 0; i < consume_bytes; i++) {
 				char const c = src[i];
@@ -118,10 +115,10 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 		size_t _read(size_t) { return 0; }
 
-		size_t _write(Genode::size_t num_bytes)
+		size_t _write(size_t num_bytes)
 		{
 			/* sanitize argument */
-			num_bytes = Genode::min(num_bytes, _io_buffer.size());
+			num_bytes = min(num_bytes, _io_buffer.size());
 
 			char const *src = _io_buffer.local_addr<char>();
 

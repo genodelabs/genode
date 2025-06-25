@@ -19,7 +19,7 @@
 #include <util/interface.h>
 
 namespace Terminal {
-	using Genode::Codepoint;
+	using namespace Genode;
 	struct Character;
 	struct Boundary;
 	struct Offset;
@@ -31,7 +31,7 @@ namespace Terminal {
 
 struct Terminal::Character
 {
-	using value_t = Genode::uint16_t;
+	using value_t = uint16_t;
 
 	value_t value = 0;
 
@@ -111,12 +111,11 @@ struct Terminal::Position
 		y = max(0, min(boundary.height - 1, y));
 	}
 
-	void print(Genode::Output &out) const {
-		Genode::print(out, y, ",", x); }
+	void print(Output &out) const { Genode::print(out, y, ",", x); }
 };
 
 
-struct Terminal::Character_array : Genode::Interface
+struct Terminal::Character_array : Interface
 {
 	/**
 	 * Assign character to specified position

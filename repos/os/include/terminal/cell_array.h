@@ -16,6 +16,9 @@
 
 /* Genode includes */
 #include <base/allocator.h>
+#include <terminal/types.h>
+
+namespace Terminal { template <typename> class Cell_array; }
 
 
 /**
@@ -26,7 +29,7 @@
  * methods 'set_cursor()' and 'clear_cursor'.
  */
 template <typename CELL>
-class Cell_array
+class Terminal::Cell_array
 {
 	private:
 
@@ -36,11 +39,11 @@ class Cell_array
 		Cell_array(Cell_array const &);
 		Cell_array &operator = (Cell_array const &);
 
-		unsigned           _num_cols;
-		unsigned           _num_lines;
-		Genode::Allocator &_alloc;
-		CELL             **_array      = nullptr;
-		bool              *_line_dirty = nullptr;
+		unsigned   _num_cols;
+		unsigned   _num_lines;
+		Allocator &_alloc;
+		CELL     **_array      = nullptr;
+		bool      *_line_dirty = nullptr;
 
 		using Char_cell_line = CELL *;
 
@@ -78,8 +81,7 @@ class Cell_array
 
 	public:
 
-		Cell_array(unsigned num_cols, unsigned num_lines,
-		           Genode::Allocator &alloc)
+		Cell_array(unsigned num_cols, unsigned num_lines, Allocator &alloc)
 		:
 			_num_cols(num_cols),
 			_num_lines(num_lines),
@@ -94,7 +96,7 @@ class Cell_array
 				_array[i] = new (alloc) CELL[num_cols];
 		}
 
-		static Genode::size_t bytes_needed(unsigned num_cols, unsigned num_lines)
+		static size_t bytes_needed(unsigned num_cols, unsigned num_lines)
 		{
 			return sizeof(Char_cell_line[num_lines])
 			     + sizeof(bool[num_lines])
@@ -104,10 +106,10 @@ class Cell_array
 		~Cell_array()
 		{
 			for (unsigned i = 0; i < _num_lines; i++)
-				Genode::destroy(_alloc, _array[i]);
+				destroy(_alloc, _array[i]);
 
-			Genode::destroy(_alloc, _line_dirty);
-			Genode::destroy(_alloc, _array);
+			destroy(_alloc, _line_dirty);
+			destroy(_alloc, _array);
 		}
 
 		void mark_all_lines_as_dirty()
@@ -129,8 +131,8 @@ class Cell_array
 
 		void import_from(Cell_array const &other)
 		{
-			unsigned const num_cols  = Genode::min(_num_cols,  other._num_cols),
-			               num_lines = Genode::min(_num_lines, other._num_lines);
+			unsigned const num_cols  = min(_num_cols,  other._num_cols),
+			               num_lines = min(_num_lines, other._num_lines);
 
 			for (unsigned line = 0; line < num_lines; line++)
 				for (unsigned column = 0; column < num_cols; column++)

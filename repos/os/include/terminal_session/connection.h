@@ -27,10 +27,8 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \noapi
 	 */
-	static void wait_for_connection(Genode::Capability<Session> cap)
+	static void wait_for_connection(Capability<Session> cap)
 	{
-		using namespace Genode;
-
 		/* create signal receiver, just for the single signal */
 		Signal_context            sig_ctx;
 		Signal_receiver           sig_rec;
@@ -44,7 +42,7 @@ struct Terminal::Connection : Genode::Connection<Session>, Session_client
 		sig_rec.dissolve(sig_ctx);
 	}
 
-	Connection(Genode::Env &env, Label const &label = Label())
+	Connection(Env &env, Label const &label = Label())
 	:
 		Genode::Connection<Session>(env, label, Ram_quota { 10*1024 }, Args()),
 		Session_client(env.rm(), cap())

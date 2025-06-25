@@ -22,7 +22,7 @@ namespace Terminal { struct Character_screen; }
 /**
  * Character-screen interface called by input-stream decoder
  */
-struct Terminal::Character_screen : Genode::Interface
+struct Terminal::Character_screen : Interface
 {
 	virtual void output(Character c) = 0;
 

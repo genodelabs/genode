@@ -36,7 +36,7 @@ class Terminal::Text_screen_surface
 {
 	public:
 
-		class Invalid_framebuffer_size : Genode::Exception { };
+		class Invalid_framebuffer_size : Exception { };
 
 		using Font            = Text_painter::Font;
 		using Fixpoint_number = Glyph_painter::Fixpoint_number;
@@ -59,7 +59,7 @@ class Terminal::Text_screen_surface
 				return max(value, 2U*BORDER) - 2U*BORDER;
 			}
 
-			class Invalid : Genode::Exception { };
+			class Invalid : Exception { };
 
 			Geometry(Font const &font, Area initial_fb_size)
 			:

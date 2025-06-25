@@ -19,12 +19,8 @@
 /* local includes */
 #include "terminal_root.h"
 
-namespace Terminal_crosslink {
+namespace Terminal_crosslink { struct Main; }
 
-	using namespace Genode;
-
-	struct Main;
-}
 
 struct Terminal_crosslink::Main
 {
@@ -46,6 +42,7 @@ struct Terminal_crosslink::Main
 		env.parent().announce(env.ep().manage(_terminal_root));
 	}
 };
+
 
 void Component::construct(Genode::Env &env)
 {

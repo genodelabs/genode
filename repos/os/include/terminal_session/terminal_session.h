@@ -19,7 +19,11 @@
 #include <base/rpc.h>
 #include <dataspace/capability.h>
 
-namespace Terminal { struct Session; }
+namespace Terminal {
+
+	using namespace Genode;
+	struct Session;
+}
 
 
 struct Terminal::Session : Genode::Session
@@ -66,12 +70,12 @@ struct Terminal::Session : Genode::Session
 	/**
 	 * Read characters from terminal
 	 */
-	virtual Genode::size_t read(void *buf, Genode::size_t buf_size) = 0;
+	virtual size_t read(void *buf, size_t buf_size) = 0;
 
 	/**
 	 * Write characters to terminal
 	 */
-	virtual Genode::size_t write(void const *buf, Genode::size_t num_bytes) = 0;
+	virtual size_t write(void const *buf, size_t num_bytes) = 0;
 
 	/**
 	 * Register signal handler to be informed about the established connection
@@ -86,17 +90,17 @@ struct Terminal::Session : Genode::Session
 	 * to the client emitted when the session becomes ready to use. The
 	 * Terminal::Connection waits for this signal at construction time.
 	 */
-	virtual void connected_sigh(Genode::Signal_context_capability cap) = 0;
+	virtual void connected_sigh(Signal_context_capability cap) = 0;
 
 	/**
 	 * Register signal handler to be informed about ready-to-read characters
 	 */
-	virtual void read_avail_sigh(Genode::Signal_context_capability cap) = 0;
+	virtual void read_avail_sigh(Signal_context_capability cap) = 0;
 
 	/**
 	 * Register signal handler to be notified on terminal-size changes
 	 */
-	virtual void size_changed_sigh(Genode::Signal_context_capability cap) = 0;
+	virtual void size_changed_sigh(Signal_context_capability cap) = 0;
 
 
 	/*******************
@@ -105,12 +109,12 @@ struct Terminal::Session : Genode::Session
 
 	GENODE_RPC(Rpc_size, Size, size);
 	GENODE_RPC(Rpc_avail, bool, avail);
-	GENODE_RPC(Rpc_read, Genode::size_t, _read, Genode::size_t);
-	GENODE_RPC(Rpc_write, Genode::size_t, _write, Genode::size_t);
-	GENODE_RPC(Rpc_connected_sigh, void, connected_sigh, Genode::Signal_context_capability);
-	GENODE_RPC(Rpc_read_avail_sigh, void, read_avail_sigh, Genode::Signal_context_capability);
-	GENODE_RPC(Rpc_size_changed_sigh, void, size_changed_sigh, Genode::Signal_context_capability);
-	GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, _dataspace);
+	GENODE_RPC(Rpc_read, size_t, _read, size_t);
+	GENODE_RPC(Rpc_write, size_t, _write, size_t);
+	GENODE_RPC(Rpc_connected_sigh, void, connected_sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_read_avail_sigh, void, read_avail_sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_size_changed_sigh, void, size_changed_sigh, Signal_context_capability);
+	GENODE_RPC(Rpc_dataspace, Dataspace_capability, _dataspace);
 
 	GENODE_RPC_INTERFACE(Rpc_size, Rpc_avail, Rpc_read, Rpc_write,
 	                     Rpc_connected_sigh, Rpc_read_avail_sigh,

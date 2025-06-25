@@ -27,41 +27,41 @@ namespace Terminal {
 }
 
 
-class Terminal::Read_buffer : public Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>
+class Terminal::Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE>
 {
 	private:
 
-		Genode::Signal_context_capability _sigh_cap { };
+		Signal_context_capability _sigh_cap { };
 
 	public:
 
 		/**
 		 * Register signal handler for read-avail signals
 		 */
-		void sigh(Genode::Signal_context_capability cap) { _sigh_cap = cap; }
+		void sigh(Signal_context_capability cap) { _sigh_cap = cap; }
 
 		/**
 		 * Add element into read buffer and emit signal
 		 */
 		void add(unsigned char c)
 		{
-			Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
+			Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
 
 			if (_sigh_cap.valid())
-				Genode::Signal_transmitter(_sigh_cap).submit();
+				Signal_transmitter(_sigh_cap).submit();
 		}
 
 		void add(Codepoint code)
 		{
 			/* send Unicode in a burst of UTF-8 */
-			Genode::String<5> utf8(code);
+			String<5> utf8(code);
 			char const *str = utf8.string();
 
 			while (*str)
-				Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(*str++);
+				Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(*str++);
 
 			if (_sigh_cap.valid())
-				Genode::Signal_transmitter(_sigh_cap).submit();
+				Signal_transmitter(_sigh_cap).submit();
 		}
 
 		void add(char const *str)

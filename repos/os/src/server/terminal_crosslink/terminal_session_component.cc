@@ -125,7 +125,7 @@ void Terminal_crosslink::Session_component::connected_sigh(Signal_context_capabi
 	 * client because the session is ready to use immediately after
 	 * creation.
 	 */
-	Genode::Signal_transmitter(sigh).submit();
+	Signal_transmitter(sigh).submit();
 }
 
 
