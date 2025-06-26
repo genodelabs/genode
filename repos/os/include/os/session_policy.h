@@ -28,8 +28,8 @@ namespace Genode {
 	using Xml_node_label_score = Node_label_score;
 
 	template <size_t N>
-	void with_matching_policy(String<N> const &, auto const &,
-	                          auto const &, auto const &);
+	auto with_matching_policy(String<N> const &, auto const &, auto const &,
+	                          auto const &no_match_fn) -> decltype(no_match_fn());
 
 	class  Session_policy;
 }
@@ -173,10 +173,10 @@ struct Genode::Node_label_score
  * \param no_match_fn  functor called if no matching policy exists
  */
 template <Genode::size_t N>
-void Genode::with_matching_policy(String<N> const &label,
+auto Genode::with_matching_policy(String<N> const &label,
                                   auto      const &policies,
                                   auto      const &match_fn,
-                                  auto      const &no_match_fn)
+                                  auto      const &no_match_fn) -> decltype(no_match_fn())
 {
 	static unsigned const NO_MATCH = ~0U;
 
@@ -185,25 +185,24 @@ void Genode::with_matching_policy(String<N> const &label,
 	Best best { NO_MATCH, { } };
 
 	unsigned i = 0;
-	policies.for_each_sub_node("policy", [&] (auto const &policy) {
-		Node_label_score const score(policy, label);
-		if (score.stronger(best.score))
-			best = { i, score };
+	policies.for_each_sub_node([&] (auto const &policy) {
+		if (policy.has_type("policy")) {
+			Node_label_score const score(policy, label);
+			if (score.stronger(best.score))
+				best = { i, score };
+		}
 		i++;
 	});
 
 	/* fall back to default policy if no match exists */
-	if (best.index == NO_MATCH) {
-		policies.with_sub_node("default-policy",
-			[&] (auto const &policy) { match_fn(policy); },
-			[&]                      { no_match_fn(); });
-		return;
-	}
+	if (best.index == NO_MATCH)
+		return policies.with_sub_node("default-policy",
+			[&] (auto const &policy) { return match_fn(policy); },
+			[&]                      { return no_match_fn(); });
 
-	i = 0;
-	policies.for_each_sub_node("policy", [&] (auto const &policy) {
-		if (i++ == best.index)
-			match_fn(policy); });
+	return policies.with_sub_node(best.index,
+		[&] (auto const &policy) { return match_fn(policy); },
+		[&]                      { return no_match_fn(); });
 }
 
 
