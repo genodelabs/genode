@@ -1,5 +1,14 @@
 assert {[have_spec hw] || [have_spec nova] || [have_spec sel4]}
 
+assert {[have_spec x86]}
+
+if { [have_cmd_switch --autopilot] } {
+
+	# Test mimic of sending power down request works solely with Qemu
+	assert {[have_include power_on/qemu]} \
+		"Autopilot mode is not supported on this platform."
+}
+
 set build_components {
 	driver/acpi
 	server/event_dump
@@ -42,7 +51,7 @@ set config {
 			<provides><service name="Timer"/></provides>
 		</start>
 
-		<start name="drivers_reports" caps="100" ram="1M">
+		<start name="drivers_reports" caps="100" ram="2M">
 			<binary name="report_rom"/>
 			<provides>
 				<service name="Report"/>
@@ -117,7 +126,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="event_filter" caps="100" ram="1M">
+		<start name="event_filter" caps="100" ram="2M">
 			<provides> <service name="Event" /> </provides>
 			<config>
 				<output>
@@ -175,7 +184,7 @@ set config {
 			</route>
 		</start>
 
-		<start name="acpi_event" caps="100" ram="1M">
+		<start name="acpi_event" caps="100" ram="2M">
 			<config>
 				<!-- example mapping - adapt to your target notebook !!! -->
 				<!-- as="PRESS_RELEASE" is default if nothing specified -->
