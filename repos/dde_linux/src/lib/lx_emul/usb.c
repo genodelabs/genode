@@ -519,9 +519,8 @@ void lx_emul_usb_release_device(genode_usb_bus_num_t bus,
 {
 	struct usb_device * udev = find_usb_device(bus, dev);
 	struct usb_per_dev_data * data = udev ? dev_get_drvdata(&udev->dev) : NULL;
-	bool acquired = genode_usb_device_acquired(bus, dev);
 
-	if (acquired || !data)
+	if (!data)
 		return;
 
 	data->kill_task = true;
