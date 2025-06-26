@@ -371,11 +371,18 @@ class Acpica::Io_mem
 					Genode::addr_t virt = reinterpret_cast<Genode::addr_t>(io2._virt);
 
 					Acpica::env().rm().detach(virt);
-					if (Acpica::env().rm().attach(io_ds, {
+
+					Acpica::env().rm().attach(io_ds, {
 						.size       = io2._size,  .offset    = off_phys,
 						.use_at     = true,       .at        = virt,
 						.executable = { },        .writeable = true
-					}).failed()) Genode::error("re-attach io2 failed");
+					}).with_result(
+						[&] (auto &a) { a.deallocate = false; },
+						[&] (auto) {
+							Genode::error("re-attach io2 failed");
+							FAIL();
+						}
+					);
 				});
 
 				if (io_mem._virt)
