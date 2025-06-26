@@ -18,9 +18,9 @@
 #include <base/connection.h>
 #include <base/env.h>
 #include <base/signal.h>
+#include <base/node.h>
 #include <platform_session/client.h>
 #include <rom_session/client.h>
-#include <util/xml_node.h>
 
 namespace Platform {
 
@@ -125,6 +125,14 @@ class Platform::Connection : public Genode::Connection<Session>,
 				}
 			}  catch (Xml_node::Invalid_syntax) {
 				warning("Devices rom has invalid XML syntax"); }
+		}
+
+		void with_node(auto const &fn)
+		{
+			if (_ds.constructed() && _ds->local_addr<void const>()) {
+				Node node(Const_byte_range_ptr(_ds->local_addr<char>(), _ds->size()));
+				fn(node);
+			}
 		}
 
 		Capability<Device_interface> device_by_type(char const * type)
