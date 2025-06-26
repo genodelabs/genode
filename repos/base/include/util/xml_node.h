@@ -883,6 +883,18 @@ class Genode::Xml_node
 		}
 
 		/**
+		 * Apply functor 'fn' to the Nth sub node
+		 */
+		auto with_sub_node(unsigned n, auto const &fn,
+		                   auto const &missing_fn) const -> decltype(missing_fn())
+		{
+			if (n < num_sub_nodes())
+				return fn(_sub_node(n));
+			else
+				return missing_fn();
+		}
+
+		/**
 		 * Execute functor 'fn' for each sub node of specified type
 		 */
 		void for_each_sub_node(char const *type, auto const &fn) const
