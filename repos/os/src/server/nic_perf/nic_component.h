@@ -101,7 +101,7 @@ class Nic_perf::Nic_root : public Root_component<Nic_session_component>
 			/* deplete ram quota by the memory needed for the session structure */
 			size_t session_size = max(4096UL, (size_t)sizeof(Nic_session_component));
 			if (ram_quota < session_size)
-				throw Insufficient_ram_quota();
+				return Create_error::INSUFFICIENT_RAM;
 
 			/*
 			 * Check if donated ram quota suffices for both communication
@@ -111,16 +111,18 @@ class Nic_perf::Nic_root : public Root_component<Nic_session_component>
 			    tx_buf_size + rx_buf_size > ram_quota - session_size) {
 				error("insufficient 'ram_quota', got ", ram_quota, ", "
 				      "need ", tx_buf_size + rx_buf_size + session_size);
-				throw Insufficient_ram_quota();
+				return Create_error::INSUFFICIENT_RAM;
 			}
 
-			Session_label label = label_from_args(args);
+			Session_label const label = label_from_args(args);
 
-			Session_policy policy(label, _config.xml());
+			return with_matching_policy(label, _config.xml(),
 
-			return *new (md_alloc())
-				Nic_session_component(tx_buf_size, rx_buf_size, *md_alloc(),
-				                      _env, label, policy, _registry, _timer);
+				[&] (Xml_node const &policy) {
+					return _alloc_obj(tx_buf_size, rx_buf_size, *md_alloc(),
+					                  _env, label, policy, _registry, _timer); },
+
+				[] () -> Create_result { return Create_error::DENIED; });
 		}
 
 	public:

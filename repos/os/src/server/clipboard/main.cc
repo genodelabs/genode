@@ -133,11 +133,11 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	{
 		using namespace Genode;
 
-		try {
-			return Session_policy(label, _config.xml()).attribute_value("domain", Domain());
-		} catch (Session_policy::No_policy_defined) { }
-
-		return Domain();
+		return with_matching_policy(label, _config.xml(),
+			[&] (Xml_node const &policy) {
+				return policy.attribute_value("domain", Domain()); },
+			[&] {
+				return Domain(); });
 	}
 
 	Label _label(Rom::Reader const &reader) const

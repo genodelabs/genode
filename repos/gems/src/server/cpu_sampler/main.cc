@@ -132,29 +132,22 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 
 		auto insert_lambda = [&] (Thread_element *cpu_thread_element) {
 
-			Cpu_thread_component *cpu_thread = cpu_thread_element->object();
+			Cpu_thread_component &thread = *cpu_thread_element->object();
 
 			if (verbose)
-				Genode::log("evaluating thread ", cpu_thread->label().string());
+				Genode::log("evaluating thread ", thread.label());
 
-			try {
-
-				Session_policy policy(cpu_thread->label(), config.xml());
-				cpu_thread->reset();
-				selected_thread_list.insert(new (&alloc)
-				                            Thread_element(cpu_thread));
-
-				if (verbose)
-					Genode::log("added thread ",
-					            cpu_thread->label().string(),
-					            " to selection");
-
-			} catch (Session_policy::No_policy_defined) {
-
-				if (verbose)
-					Genode::log("no session policy defined for thread ",
-					            cpu_thread->label().string());
-			}
+			with_matching_policy(thread.label(), config.xml(),
+				[&] (Xml_node const &policy) {
+					thread.reset();
+					selected_thread_list.insert(new (&alloc) Thread_element(&thread));
+					if (verbose)
+						Genode::log("added thread ", thread.label(), " to selection");
+				},
+				[&] {
+					if (verbose)
+						Genode::log("no session policy defined for thread ", thread.label());
+				});
 		};
 
 		for_each_thread(thread_list, insert_lambda);

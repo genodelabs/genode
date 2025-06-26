@@ -246,25 +246,18 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 		Create_result _create_session(const char *args) override
 		{
-			using namespace Genode;
-
-			Session_label  const label = label_from_args(args);
-			Session_policy const policy(label, _config_rom.xml());
-
-			if (!policy.has_attribute("filename")) {
-				error("missing \"filename\" attribute in policy definition");
-				throw Service_denied();
-			}
-
-			using File_name = String<256>;
-			File_name const file_name =
-				policy.attribute_value("filename", File_name());
-
-			size_t const io_buffer_size =
-				policy.attribute_value("io_buffer_size", 4096UL);
-
-			return *new (md_alloc())
-			       Session_component(_env, io_buffer_size, file_name.string());
+			return with_matching_policy(label_from_args(args), _config_rom.xml(),
+				[&] (Xml_node const &policy) -> Create_result {
+					if (!policy.has_attribute("filename")) {
+						error("missing \"filename\" attribute in policy definition");
+						return Create_error::DENIED;
+					}
+					using File_name = String<256>;
+					return _alloc_obj(_env,
+					                  policy.attribute_value("io_buffer_size", 4096UL),
+					                  policy.attribute_value("filename", File_name()).string());
+				},
+				[&] () -> Create_result { return Create_error::DENIED; });
 		}
 
 	public:

@@ -2393,8 +2393,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 			return Session_error::DENIED;
 		}
 
-		Session_label  const label  { label_from_args(args.string()) };
-		Session_policy const policy { label, _config_rom.xml() };
+		Session_label const label { label_from_args(args.string()) };
 
 		size_t const min_tx_buf_size = 128 * 1024;
 		size_t const tx_buf_size =
@@ -2409,12 +2408,17 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
-		bool const writeable = policy.attribute_value("writeable", false);
-		_driver.writeable(writeable);
+		return with_matching_policy(label, _config_rom.xml(),
 
-		_block_session.construct(_env, _driver.dma_buffer_construct(tx_buf_size),
-		                         _request_handler, _driver.info());
-		return { _block_session->cap() };
+			[&] (Xml_node const &policy) -> Root::Result {
+				bool const writeable = policy.attribute_value("writeable", false);
+				_driver.writeable(writeable);
+
+				_block_session.construct(_env, _driver.dma_buffer_construct(tx_buf_size),
+				                         _request_handler, _driver.info());
+				return { _block_session->cap() };
+			},
+			[&] () -> Root::Result { return Session_error::DENIED; });
 	}
 
 	void upgrade(Capability<Session>, Root::Upgrade_args const&) override { }

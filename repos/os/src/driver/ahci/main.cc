@@ -229,7 +229,7 @@ class Ahci::Driver : Noncopyable
 			_resources.release_device();
 		}
 
-		Port &port(Session_label const &label, Session_policy const &policy)
+		Port &port(Session_label const &label, Xml_node const &policy)
 		{
 			/* try read device port number attribute */
 			long device = policy.attribute_value("device", -1L);
@@ -425,7 +425,6 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 	Root::Result session(Root::Session_args const &args, Affinity const &) override
 	{
 		Session_label const label = label_from_args(args.string());
-		Session_policy const policy(label, config.xml());
 
 		Ram_quota const ram_quota = ram_quota_from_args(args.string());
 		size_t const tx_buf_size =
@@ -440,19 +439,24 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
-		try {
-			Port &port = driver->port(label, policy);
+		return with_matching_policy(label, config.xml(),
+			[&] (Xml_node const &policy) -> Root::Result {
+				try {
+					Port &port = driver->port(label, policy);
 
-			if (block_session[port.index].constructed()) {
-				error("Device with number=", port.index, " is already in use");
-				return Session_error::DENIED;
-			}
+					if (block_session[port.index].constructed()) {
+						error("Device with number=", port.index, " is already in use");
+						return Session_error::DENIED;
+					}
 
-			port.writeable(policy.attribute_value("writeable", false));
-			block_session[port.index].construct(env, port, tx_buf_size);
-			return { block_session[port.index]->cap() };
+					port.writeable(policy.attribute_value("writeable", false));
+					block_session[port.index].construct(env, port, tx_buf_size);
+					return { block_session[port.index]->cap() };
 
-		} catch (...) { return Session_error::DENIED; }
+				} catch (...) { return Session_error::DENIED; }
+			},
+			[&] () -> Root::Result { return Session_error::DENIED; });
+
 	}
 
 	void upgrade(Session_capability, Root::Upgrade_args const&) override { }

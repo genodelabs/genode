@@ -99,23 +99,22 @@ void Session_component::_free_dma_buffer(Dma_buffer & buf)
 
 bool Session_component::matches(Device const & dev) const
 {
-	bool ret = false;
+	return with_matching_policy(label(), _config.xml(),
+		[&] (Xml_node const &policy) {
 
-	try {
-		Session_policy const policy { label(), _config.xml() };
+			/* check PCI devices */
+			if (pci_device_matches(policy, dev))
+				return true;
 
-		/* check PCI devices */
-		if (pci_device_matches(policy, dev))
-			return true;
+			/* check for dedicated device name */
+			bool ret = false;
+			policy.for_each_sub_node("device", [&] (Xml_node node) {
+				if (dev.name() == node.attribute_value("name", Device::Name()))
+					ret = true;
+			});
+			return ret;
 
-		/* check for dedicated device name */
-		policy.for_each_sub_node("device", [&] (Xml_node node) {
-			if (dev.name() == node.attribute_value("name", Device::Name()))
-				ret = true;
-		});
-	} catch (Session_policy::No_policy_defined) { }
-
-	return ret;
+		}, [] { return false; });
 };
 
 

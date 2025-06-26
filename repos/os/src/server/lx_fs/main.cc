@@ -552,9 +552,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 			return { Arg_string::find_arg(args, "writeable").bool_value(true) };
 		}
 
-	protected:
-
-		Create_result _create_session(const char *args) override
+		Create_result _create_session(const char *args, Xml_node const &policy)
 		{
 			/*
 			 * Determine client-specific policy defined implicitly by
@@ -564,12 +562,11 @@ class Lx_fs::Root : public Root_component<Session_component>
 			char const *root_dir  = ".";
 			bool        writeable = false;
 
-			Session_label  const label = label_from_args(args);
-			Session_policy const policy(label, _config.xml());
+			Session_label const label = label_from_args(args);
 
 			if (!policy.has_attribute("root")) {
 				Genode::error("missing \"root\" attribute in policy definition");
-				throw Service_denied();
+				return Create_error::DENIED;
 			}
 
 			/*
@@ -586,7 +583,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 			 */
 			if (root.string()[0] != '/') {
 				Genode::error("Root directory must start with / but is \"", root, "\"");
-				throw Service_denied();
+				return Create_error::DENIED;
 			}
 
 			for (root_dir = root.string(); *root_dir == '/'; ++root_dir) ;
@@ -609,7 +606,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 
 			if (!tx_buf_size) {
 				Genode::error(label, " requested a session with a zero length transmission buffer");
-				throw Genode::Service_denied();
+				return Create_error::DENIED;
 			}
 
 			/*
@@ -618,7 +615,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 			if (tx_buf_size > ram_quota) {
 				Genode::error("insufficient 'ram_quota', "
 				              "got ", ram_quota, ", need ", tx_buf_size);
-				throw Insufficient_ram_quota();
+				return Create_error::INSUFFICIENT_RAM;
 			}
 
 			try {
@@ -649,8 +646,17 @@ class Lx_fs::Root : public Root_component<Session_component>
 			catch (Lookup_failed) {
 				Genode::error("session root directory \"", root, "\" "
 				              "does not exist");
-				throw Service_denied();
+				return Create_error::DENIED;
 			}
+		}
+
+	protected:
+
+		Create_result _create_session(const char *args) override
+		{
+			return with_matching_policy(label_from_args(args), _config.xml(),
+				[&] (Xml_node const &policy) { return _create_session(args, policy); },
+				[&] () -> Create_result      { return Create_error::DENIED; });
 		}
 
 		void _destroy_session(Session_component &s) override

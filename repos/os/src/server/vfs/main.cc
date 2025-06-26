@@ -859,9 +859,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			_vfs_env.io().commit();
 		}
 
-	protected:
-
-		Create_result _create_session(const char *args) override
+		Create_result _create_session(const char *args, Xml_node const &policy)
 		{
 			using namespace Genode;
 
@@ -896,12 +894,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			 ** Apply session policy **
 			 **************************/
 
-			/* pull in policy changes */
-			_config_rom.update();
-
 			using Root_path = String<MAX_PATH_LEN>;
-
-			Session_policy policy(label, _config_rom.xml());
 
 			/* check and apply session root offset */
 			if (!policy.has_attribute("root")) {
@@ -967,6 +960,16 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			}
 
 			return *session;
+		}
+
+		Create_result _create_session(const char *args) override
+		{
+			/* pull in policy changes */
+			_config_rom.update();
+
+			return with_matching_policy(Genode::label_from_args(args), _config_rom.xml(),
+				[&] (Xml_node const &policy) { return _create_session(args, policy); },
+				[]  () -> Create_result      { return Create_error::DENIED; });
 		}
 
 		/**

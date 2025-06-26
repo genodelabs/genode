@@ -105,14 +105,14 @@ struct Chroot::Main
 
 	Session_capability request_session(Parent::Client::Id  const &id,
 	                                   Session_state::Args const &args,
-	                                   Affinity            const  affinity)
+	                                   Affinity            const  affinity,
+	                                   Xml_node            const &policy)
 	{
 		using Prefix = String<PATH_MAX_LEN>;
 
 		Path root_path;
 
 		Session_label const label = label_from_args(args.string());
-		Session_policy const policy(label, config_rom.xml());
 
 		if (policy.has_attribute("path_prefix")) {
 			/* Use a chroot path from policy and label sub-directories */
@@ -216,29 +216,23 @@ void Chroot::Main::handle_session_request(Xml_node const &request)
 
 		using Args = Session_state::Args;
 		Args const args = request.with_sub_node("args",
-			[] (Xml_node const &node) { return node.decoded_content<Args>(); },
-			[]                        { return Args(); });
 
-		Session *session = nullptr;
-		try {
-			session = new (heap)
-				Session(env.id_space(), server_id_space, server_id);
-			Session_capability cap = request_session(session->client_id.id(), args,
-			                                         Affinity::from_xml(request));
+		[] (Xml_node const &node) { return node.decoded_content<Args>(); },
+		[]                        { return Args(); });
 
-			env.parent().deliver_session_cap(server_id, cap);
-		}
-
-		catch (Session_policy::No_policy_defined) {
-			Genode::error("no policy defined for '", label_from_args(args.string()), "'");
-			env.parent().session_response(server_id, Parent::Session_response::DENIED);
-		}
-
-		catch (...) {
-			if (session)
-				destroy(heap, session);
-			env.parent().session_response(server_id, Parent::Session_response::DENIED);
-		}
+		with_matching_policy(label_from_args(args.string()), config_rom.xml(),
+			[&] (Xml_node const &policy) {
+				Session &session = *new (heap)
+					Session(env.id_space(), server_id_space, server_id);
+				Session_capability cap =
+					request_session(session.client_id.id(), args,
+					                Affinity::from_xml(request), policy);
+				env.parent().deliver_session_cap(server_id, cap);
+			},
+			[&] {
+				Genode::error("no policy defined for '", label_from_args(args.string()), "'");
+				env.parent().session_response(server_id, Parent::Session_response::DENIED);
+			});
 	}
 
 	if (request.has_type("upgrade")) {

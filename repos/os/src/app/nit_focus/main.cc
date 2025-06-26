@@ -40,14 +40,12 @@ struct Nit_focus::Main
 		using Label = String<160>;
 		Label const label = _clicked_rom.xml().attribute_value("label", Label());
 
-		try {
-			Session_policy const policy(label, _config_rom.xml());
+		with_matching_policy(label, _config_rom.xml(), [&] (Xml_node const &policy) {
 			if (policy.attribute_value("focus", true)) {
 				_focus_reporter.generate([&] (Xml_generator &xml) {
 					xml.attribute("label", label); });
 			}
-		}
-		catch (...) { /* don't change focus on policy mismatch */ }
+		}, [&] { /* don't change focus on policy mismatch */ });
 	}
 
 	Signal_handler<Main> _update_handler {

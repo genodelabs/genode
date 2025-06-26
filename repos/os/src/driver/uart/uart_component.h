@@ -219,16 +219,18 @@ class Uart::Root : public Uart::Root_component
 
 		Create_result _create_session(const char *args) override
 		{
-			Session_label  const label = label_from_args(args);
-			Session_policy const policy(label, _config.xml());
+			return with_matching_policy(label_from_args(args), _config.xml(),
 
-			unsigned const index       = policy.attribute_value("uart",        0U);
-			unsigned const baudrate    = policy.attribute_value("baudrate",    0U);
-			bool     const detect_size = policy.attribute_value("detect_size", false);
+				[&] (Xml_node const &policy) {
 
-			return *new (md_alloc())
-				Session_component(_env, _driver_factory, index,
-				                  baudrate, detect_size);
+					unsigned const index       = policy.attribute_value("uart",        0U);
+					unsigned const baudrate    = policy.attribute_value("baudrate",    0U);
+					bool     const detect_size = policy.attribute_value("detect_size", false);
+
+					return _alloc_obj(_env, _driver_factory, index,
+						              baudrate, detect_size);
+				},
+				[&] () -> Create_result { return Create_error::DENIED; });
 		}
 
 	public:

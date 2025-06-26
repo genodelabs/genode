@@ -319,33 +319,31 @@ class Block::Main : Rpc_object<Typed_root<Session>>,
 			bool writeable = false;
 
 			Session_label const label = label_from_args(args.string());
-			try {
-				Session_policy policy(label, _config.xml());
+			with_matching_policy(label, _config.xml(),
+				[&] (Xml_node const &policy) {
 
-				/* read partition attribute */
-				num = policy.attribute_value("partition", -1L);
+					/* read partition attribute */
+					num = policy.attribute_value("partition", -1L);
 
-				/* sessions are not writeable by default */
-				writeable = policy.attribute_value("writeable", false);
-
-			} catch (Session_policy::No_policy_defined) {
-				error("rejecting session request, no matching policy for '",
-				      label, "'");
-				return Session_error::DENIED;
-			}
+					/* sessions are not writeable by default */
+					writeable = policy.attribute_value("writeable", false);
+				},
+				[&] {
+					error("no matching policy for '", label, "'");
+				});
 
 			if (num == -1) {
-				error("policy does not define partition number for for '", label, "'");
+				error("partition number not defined for '", label, "'");
 				return Session_error::DENIED;
 			}
 
 			if (!_partition_table.partition_valid(num)) {
-				error("Partition ", num, " unavailable for '", label, "'");
+				error("partition ", num, " unavailable for '", label, "'");
 				return Session_error::DENIED;
 			}
 
 			if (num >= MAX_SESSIONS || _sessions[num]) {
-				error("Partition ", num, " already in use or session limit reached for '",
+				error("partition ", num, " already in use or session limit reached for '",
 				      label, "'");
 				return Session_error::DENIED;
 			}

@@ -1127,8 +1127,7 @@ void Session_component::_device_policy(genode_usb_device const &d,
 {
 	using Label = genode_usb_device::Label;
 
-	try {
-		Session_policy const policy(label(), _config.xml());
+	with_matching_policy(label(), _config.xml(), [&] (Xml_node const &policy) {
 
 		policy.for_each_sub_node("device", [&] (Xml_node const &node) {
 			uint16_t vendor  = node.attribute_value<uint16_t>("vendor_id", 0);
@@ -1158,7 +1157,7 @@ void Session_component::_device_policy(genode_usb_device const &d,
 
 			if (match) fn(node);
 		});
-	} catch(Session_policy::No_policy_defined) {}
+	}, [&] { });
 }
 
 

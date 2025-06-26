@@ -59,18 +59,20 @@ Domain_name
 Net::Uplink_session_component::Interface_policy::determine_domain_name() const
 {
 	Domain_name domain_name;
-	try {
-		_config_ptr->with_node([&] (Xml_node const &node) {
-			Session_policy policy(_label, node);
-			domain_name = policy.attribute_value("domain", Domain_name());
-			if (domain_name == Domain_name() && _config_ptr->verbose())
-				log("[?] no domain attribute in policy for downlink label \"", _label, "\"");
-		});
-	}
-	catch (Session_policy::No_policy_defined) {
-		if (_config_ptr->verbose()) {
-			log("[?] no policy for downlink label \"", _label, "\""); }
-	}
+
+	_config_ptr->with_node([&] (Xml_node const &node) {
+		with_matching_policy(_label, node,
+			[&] (Xml_node const &policy) {
+				domain_name = policy.attribute_value("domain", Domain_name());
+				if (domain_name == Domain_name() && _config_ptr->verbose())
+					log("[?] no domain attribute in policy for uplink label \"", _label, "\"");
+			},
+			[&] {
+				if (_config_ptr->verbose())
+					log("[?] no policy for uplink label \"", _label, "\"");
+			});
+	});
+
 	return domain_name;
 }
 

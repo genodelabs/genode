@@ -276,8 +276,7 @@ void Gui_session::apply_session_policy(Xml_node        const &config,
 {
 	reset_domain();
 
-	try {
-		Session_policy policy(_label, config);
+	with_matching_policy(_label, config, [&] (Xml_node const &policy) {
 
 		/* read domain attribute */
 		if (!policy.has_attribute("domain")) {
@@ -295,8 +294,7 @@ void Gui_session::apply_session_policy(Xml_node        const &config,
 			error("policy for label \"", _label,
 			      "\" specifies nonexistent domain \"", name, "\"");
 
-	} catch (...) {
-		error("no policy matching label \"", _label, "\""); }
+	}, [&] { error("no policy matching label \"", _label, "\""); });
 }
 
 

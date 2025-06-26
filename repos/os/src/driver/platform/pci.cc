@@ -267,8 +267,8 @@ pci_class_code_alias(uint32_t class_code)
 }
 
 
-bool Driver::pci_device_matches(Session_policy const & policy,
-                                Device         const & dev)
+bool Driver::pci_device_matches(Xml_node const & policy,
+                                Device   const & dev)
 {
 	bool ret = false;
 

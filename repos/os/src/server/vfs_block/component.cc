@@ -35,7 +35,7 @@ namespace Vfs_block {
 
 	using File_path = String<Vfs::MAX_PATH_LEN>;
 	struct File_info;
-	File_info file_info_from_policy(Session_policy const &);
+	File_info file_info_from_policy(Xml_node const &);
 	class File;
 
 } /* namespace Vfs_block */
@@ -49,7 +49,7 @@ struct Vfs_block::File_info
 };
 
 
-Vfs_block::File_info Vfs_block::file_info_from_policy(Session_policy const &policy)
+Vfs_block::File_info Vfs_block::file_info_from_policy(Xml_node const &policy)
 {
 	File_path const file_path =
 		policy.attribute_value("file", File_path());
@@ -358,29 +358,31 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 		/* make sure policy is up-to-date */
 		_config_rom.update();
 
-		Session_label  const label  { label_from_args(args.string()) };
-		Session_policy const policy { label, _config_rom.xml() };
+		return with_matching_policy(label_from_args(args.string()), _config_rom.xml(),
 
-		if (!policy.has_attribute("file")) {
-			error("policy lacks 'file' attribute");
-			return Session_error::DENIED;
-		}
+			[&] (Xml_node const &policy) -> Root::Result {
 
-		Vfs_block::File_info const file_info =
-			Vfs_block::file_info_from_policy(policy);
+				if (!policy.has_attribute("file")) {
+					error("policy lacks 'file' attribute");
+					return Session_error::DENIED;
+				}
 
-		try {
-			_block_ds.construct(_env.ram(), _env.rm(), tx_buf_size);
-			_block_file.construct(_heap, _vfs_env.root_dir(), file_info);
-			_block_session.construct(_env.rm(), _env.ep(),
-			                         _block_ds->cap(),
-			                         _request_handler, *_block_file,
-			                         _vfs_env.io());
+				Vfs_block::File_info const file_info =
+					Vfs_block::file_info_from_policy(policy);
 
-			return { _block_session->cap() };
-		} catch (...) {
-			return Session_error::DENIED;
-		}
+				try {
+					_block_ds.construct(_env.ram(), _env.rm(), tx_buf_size);
+					_block_file.construct(_heap, _vfs_env.root_dir(), file_info);
+					_block_session.construct(_env.rm(), _env.ep(),
+					                         _block_ds->cap(),
+					                         _request_handler, *_block_file,
+					                         _vfs_env.io());
+
+					return { _block_session->cap() };
+
+				} catch (...) { return Session_error::DENIED; }
+			},
+			[&] () -> Root::Result { return Session_error::DENIED; });
 	}
 
 	void upgrade(Capability<Session>, Root::Upgrade_args const &) override { }

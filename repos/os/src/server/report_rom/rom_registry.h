@@ -113,7 +113,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 		/**
 		 * Return report name that corresponds to the given ROM session label
 		 *
-		 * \throw Registry_for_reader::Lookup_failed
+		 * \throw Service_denied
 		 */
 		Module::Name _report_name(Module::Name const &rom_label) const
 		{
@@ -121,14 +121,14 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 
 			_config_rom.update();
 
-			try {
-				Session_policy policy(rom_label, _config_rom.xml());
-				return policy.attribute_value("report", Module::Name());
-			}
-			catch (Session_policy::No_policy_defined) { }
-
-			warning("no valid policy for ROM request '", rom_label, "'");
-			throw Service_denied();
+			return with_matching_policy(rom_label, _config_rom.xml(),
+				[&] (Xml_node const &policy) {
+					return policy.attribute_value("report", Module::Name());
+				},
+				[&] () -> Module::Name {
+					warning("no valid policy for ROM request '", rom_label, "'");
+					throw Service_denied();
+				});
 		}
 
 	public:

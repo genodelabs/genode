@@ -238,36 +238,41 @@ Block_root::Create_result Block_root::_create_session(const char * args,
 	if (!_config.constructed())
 		throw Service_denied();
 
-	Session_label      const label = label_from_args(args);
-	Session_policy     const policy(label, _config->xml);
-	Session_info::Name const device =
-		policy.attribute_value("device", Session_info::Name());
+	Session_label const label = label_from_args(args);
+	return with_matching_policy(label, _config->xml,
+		[&] (Xml_node const &policy) -> Create_result {
 
-	Ram_quota const ram_quota = ram_quota_from_args(args);
-	size_t const tx_buf_size =
-		Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+			Session_info::Name const device =
+				policy.attribute_value("device", Session_info::Name());
 
-	if (!tx_buf_size)
-		throw Service_denied();
+			Ram_quota const ram_quota = ram_quota_from_args(args);
+			size_t const tx_buf_size =
+				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
 
-	if (tx_buf_size > ram_quota.value) {
-		error("insufficient 'ram_quota' from '", label, "',"
-		      " got ", ram_quota, ", need ", tx_buf_size);
-		throw Insufficient_ram_quota();
-	}
+			if (!tx_buf_size)
+				return Create_error::DENIED;
 
-	genode_block_session * ret = nullptr;
+			if (tx_buf_size > ram_quota.value) {
+				error("insufficient 'ram_quota' from '", label, "',"
+				      " got ", ram_quota, ", need ", tx_buf_size);
+				return Create_error::INSUFFICIENT_RAM;
+			}
 
-	_for_each_session_info([&] (Session_info & si) {
-		if (si.block_session || si.name != device)
-			return;
-		ret = new (md_alloc())
-			genode_block_session(_env, si.info, _sigh_cap, tx_buf_size);
-		si.block_session = ret;
-	});
+			genode_block_session * ret = nullptr;
 
-	if (!ret) throw Service_denied();
-	return *ret;
+			_for_each_session_info([&] (Session_info & si) {
+				if (si.block_session || si.name != device)
+					return;
+				ret = new (md_alloc())
+					genode_block_session(_env, si.info, _sigh_cap, tx_buf_size);
+				si.block_session = ret;
+			});
+
+			if (!ret) return Create_error::DENIED;
+
+			return *ret;
+		},
+		[] () -> Create_result { return Create_error::DENIED; });
 }
 
 

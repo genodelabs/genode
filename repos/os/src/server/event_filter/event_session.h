@@ -94,14 +94,11 @@ class Event_filter::Event_session : public Session_object<Event::Session, Event_
 		 */
 		void assign_input_name(Xml_node const &config)
 		{
-			_input_name = Input_name();
-
-			try {
-				Session_policy policy(_label, config);
-
-				_input_name = policy.attribute_value("input", Input_name());
-
-			} catch (Service_denied) { }
+			_input_name = with_matching_policy(_label, config,
+				[&] (Xml_node const &policy) {
+					return policy.attribute_value("input", Input_name()); },
+				[&] {
+					return Input_name(); });
 		}
 
 

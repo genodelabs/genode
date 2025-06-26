@@ -212,15 +212,11 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		Genode::Attached_rom_dataspace const &_config;
 		bool                           const &_verbose;
 
-	protected:
-
-		Create_result _create_session(const char *args) override
+		Create_result _create_session(const char *args, Genode::Xml_node const &policy)
 		{
 			using namespace Genode;
 
-			Session_label  const label  { label_from_args(args) };
-			Session_policy const policy { label, _config.xml() };
-			Mac_address          mac    { policy.attribute_value("mac", Mac_address()) };
+			Mac_address mac { policy.attribute_value("mac", Mac_address()) };
 
 			if (mac == Mac_address()) {
 				try { mac = _mac_alloc.alloc(); }
@@ -239,11 +235,21 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 				                  cap_quota_from_args(args),
 				                  Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
 				                  Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
-				                  mac, _nic, _verbose, label,
+				                  mac, _nic, _verbose, label_from_args(args),
 				                  policy.attribute_value("ip_addr", Session_component::Ip_addr()));
 		}
 
-		
+	protected:
+
+		Create_result _create_session(const char *args) override
+		{
+			using namespace Genode;
+
+			return with_matching_policy(label_from_args(args), _config.xml(),
+				[&] (Xml_node const &policy) { return _create_session(args, policy); },
+				[&] () -> Create_result      { return Create_error::DENIED; });
+		}
+
 		void _destroy_session(Session_component &s) override
 		{
 			_mac_alloc.free(s.vmac());

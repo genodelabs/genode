@@ -164,15 +164,13 @@ class Decorator::Config
 		 */
 		Color base_color(Window_title const &title) const
 		{
-			Color result = Color::rgb(68, 75, 95);
-
-			try {
-				Genode::Session_policy policy(title, _buffered_config->xml);
-				result = policy.attribute_value("color", result);
-
-			} catch (Genode::Session_policy::No_policy_defined) { }
-
-			return result;
+			Color const default_color = Color::rgb(68, 75, 95);
+			return with_matching_policy(title, _buffered_config->xml,
+				[&] (Xml_node const &policy) {
+					return policy.attribute_value("color", default_color); },
+				[&] {
+					return default_color;
+				});
 		}
 
 		/**
@@ -180,16 +178,15 @@ class Decorator::Config
 		 */
 		unsigned gradient_percent(Window_title const &title) const
 		{
-			unsigned result =
+			unsigned const default_gradient =
 				_buffered_config->xml.attribute_value("gradient", 32U);
 
-			try {
-				Genode::Session_policy policy(title, _buffered_config->xml);
-				result = policy.attribute_value("gradient", result);
-
-			} catch (Genode::Session_policy::No_policy_defined) { }
-
-			return result;
+			return with_matching_policy(title, _buffered_config->xml,
+				[&] (Xml_node const &policy) {
+					return policy.attribute_value("gradient", default_gradient); },
+				[&] {
+					return default_gradient;
+				});
 		}
 
 		/**

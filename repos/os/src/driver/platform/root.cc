@@ -19,47 +19,38 @@ void Driver::Root::update_policy()
 {
 	_sessions.for_each([&] (Session_component & sc)
 	{
-		try {
-			Session_policy const policy { sc._label, _config.xml() };
-			sc.update_policy(policy.attribute_value("info", false),
-			                 policy.attribute_value("version", Version()));
-		}
-		catch (Session_policy::No_policy_defined) {
-			error("No matching policy for '", sc._label.string(),
-			      "' anymore, will close the session!");
-			close(sc.cap());
-		}
+		with_matching_policy(sc._label, _config.xml(),
+			[&] (Xml_node const &policy) {
+				sc.update_policy(policy.attribute_value("info", false),
+				                 policy.attribute_value("version", Version())); },
+			[&] {
+				error("No matching policy for '", sc._label.string(),
+				      "' anymore, will close the session!");
+				close(sc.cap());
+			});
 	});
 }
 
 
 Driver::Root::Create_result Driver::Root::_create_session(const char *args)
 {
-	Session_component * sc = nullptr;
+	return with_matching_policy(label_from_args(args), _config.xml(),
 
-	try {
-		Session::Label const label  { session_label_from_args(args) };
-		Session_policy const policy { label, _config.xml()      };
-
-		sc = new (md_alloc())
-			Session_component(_env, _config, _devices, _sessions, _io_mmu_devices,
+		[&] (Xml_node const &policy) {
+			return _alloc_obj(_env, _config, _devices, _sessions, _io_mmu_devices,
 			                  _irq_controller_registry,
-			                  label,
+			                  label_from_args(args),
 			                  session_resources_from_args(args),
 			                  session_diag_from_args(args),
 			                  policy.attribute_value("info", false),
 			                  policy.attribute_value("version", Version()),
 			                  _io_mmu_present || _kernel_iommu, _kernel_iommu);
-	} catch (Session_policy::No_policy_defined) {
-		error("Invalid session request, no matching policy for ",
-		      "'", label_from_args(args).string(), "'");
-		throw Service_denied();
-	} catch (...) {
-		if (sc) { Genode::destroy(md_alloc(), sc); }
-		throw;
-	}
-
-	return *sc;
+		},
+		[&] () -> Create_result {
+			error("Invalid session request, no matching policy for ",
+			      "'", label_from_args(args), "'");
+			return Create_error::DENIED;
+		});
 }
 
 
