@@ -17,6 +17,7 @@
 #include <capture_session/capture_session.h>
 #include <base/connection.h>
 #include <base/attached_dataspace.h>
+#include <base/node.h>
 #include <os/texture.h>
 #include <blit/painter.h>
 
@@ -35,7 +36,7 @@ class Capture::Connection : private Genode::Connection<Session>
 		using Rotate = Blit::Rotate;
 		using Flip   = Blit::Flip;
 
-		static Rotate rotate_from_xml(Xml_node const &node)
+		static Rotate rotate_from_node(auto const &node)
 		{
 			unsigned const v = node.attribute_value("rotate", 0u);
 			return (v ==  90) ? Rotate::R90  :
@@ -43,6 +44,8 @@ class Capture::Connection : private Genode::Connection<Session>
 			       (v == 270) ? Rotate::R270 :
 			                    Rotate::R0;
 		}
+
+		static Rotate rotate_from_xml(Xml_node const &n) { return rotate_from_node(n); }
 
 		/**
 		 * Constructor
