@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -14,7 +14,7 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -22,7 +22,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -31,13 +31,6 @@ void __printk_safe_exit(void)
 #include <linux/uaccess.h>
 
 unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p);
-noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -67,6 +60,21 @@ int _printk_deferred(const char * fmt,...)
 
 extern void ack_bad_irq(unsigned int irq);
 void ack_bad_irq(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern unsigned long arch_scale_cpu_capacity(int cpu);
+unsigned long arch_scale_cpu_capacity(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -160,15 +168,7 @@ struct fwnode_handle * fwnode_get_nth_parent(struct fwnode_handle * fwnode,unsig
 }
 
 
-#include <linux/property.h>
-
-void fwnode_handle_put(struct fwnode_handle * fwnode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernel.h>
+#include <linux/string.h>
 
 int get_option(char ** str,int * pint)
 {
@@ -239,6 +239,14 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -264,6 +272,22 @@ noinline int kstrtoll(const char * s,unsigned int base,long long * res)
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
+
+
+#include <linux/preempt.h>
+
+void migrate_disable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/preempt.h>
+
+void migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/panic.h>
@@ -326,6 +350,14 @@ void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,voi
 #include <linux/smp.h>
 
 int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+int smp_call_function_single_async(int cpu,call_single_data_t * csd)
 {
 	lx_emul_trace_and_stop(__func__);
 }

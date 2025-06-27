@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-07-30
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -22,14 +22,6 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/irqdomain.h>
 
-struct irq_domain * __irq_domain_add(struct fwnode_handle * fwnode,unsigned int size,irq_hw_number_t hwirq_max,int direct_max,const struct irq_domain_ops * ops,void * host_data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/irqdomain.h>
-
 struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number_t hwirq,unsigned int * irq)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -43,7 +35,7 @@ unsigned long __per_cpu_offset[NR_CPUS] = {};
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -51,14 +43,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p);
-noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned long long * p)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -67,6 +52,14 @@ noinline unsigned int _parse_integer(const char * s,unsigned int base,unsigned l
 #include <linux/printk.h>
 
 int _printk_deferred(const char * fmt,...)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -160,15 +153,7 @@ struct fwnode_handle * fwnode_get_nth_parent(struct fwnode_handle * fwnode,unsig
 }
 
 
-#include <linux/property.h>
-
-void fwnode_handle_put(struct fwnode_handle * fwnode)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernel.h>
+#include <linux/string.h>
 
 int get_option(char ** str,int * pint)
 {
@@ -247,6 +232,14 @@ void irq_domain_free_irqs_common(struct irq_domain * domain,unsigned int virq,un
 
 #include <linux/irqdomain.h>
 
+struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqdomain.h>
+
 void irq_domain_set_info(struct irq_domain * domain,unsigned int virq,irq_hw_number_t hwirq,const struct irq_chip * chip,void * chip_data,irq_flow_handler_t handler,void * handler_data,const char * handler_name)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -280,6 +273,14 @@ void irq_set_default_host(struct irq_domain * domain)
 #include <linux/irqnr.h>
 
 struct irq_desc * irq_to_desc(unsigned int irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+bool irq_work_queue_on(struct irq_work * work,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
