@@ -15,13 +15,15 @@ if { [have_cmd_switch --autopilot] } {
 	assert {![have_include power_on/qemu]} \
 		"Autopilot mode is not supported on this platform."
 
-	assert {[have_spec nova]}
+	assert {[have_spec x86]}
+
+	assert {[have_spec hw] || [have_spec nova] || [have_spec sel4] || [have_spec foc]}
 
 	# set specifically for our nightly test hardware */
 	if {[have_spec x86_64]} {
+		set init_ram 512
 		set cpus     8
 	}
-	set children 3
 }
 
 create_boot_directory
@@ -34,7 +36,7 @@ proc per_cpu_start_node { i } {
 			<start name="init_} $i {" caps="1100" ram="} ${init_ram}M {">
 				<affinity xpos="} $i {" width="1"/>
 				<binary name="init"/>
-				<config verbose="yes">
+				<config verbose="yes" prio_levels="2">
 					<parent-provides>
 						<service name="ROM"/>
 						<service name="PD"/>
@@ -82,6 +84,8 @@ install_config {
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
 	</parent-provides>
 	<default-route><any-service><parent/><any-child/></any-service></default-route>
 	<default caps="100"/>
