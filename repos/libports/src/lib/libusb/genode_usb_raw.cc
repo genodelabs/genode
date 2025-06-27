@@ -60,6 +60,7 @@ struct Usb_device
 		Usb_device &_device;
 
 		Interface(Usb_device &device, uint8_t idx, uint8_t alt = 0);
+		~Interface();
 
 		void handle_events();
 	};
@@ -99,6 +100,7 @@ struct Usb_device
 
 		_device.sigh(_handler_cap);
 	}
+	~Usb_device();
 
 	void close() { _open--; }
 	void open()  { _open++; }
@@ -217,6 +219,14 @@ void Usb_device::Interface::handle_events()
 }
 
 
+Usb_device::Interface::~Interface()
+{
+	dissolve_all_urbs<Urb>([this] (Urb &urb) {
+		complete_urb(urb, Usb::Tagged_packet::NO_DEVICE,
+		             _device._open, _device._iface_slab); });
+}
+
+
 void Usb_device::_wait_for_urb(Urb &urb)
 {
 	while (!urb.completed()) {
@@ -256,6 +266,16 @@ void Usb_device::handle_events()
 		/* complete USB request */
 		[this] (Urb &urb, Usb::Tagged_packet::Return_value v) {
 			complete_urb(urb, v, _open, _alloc); });
+}
+
+
+Usb_device::~Usb_device()
+{
+	_interfaces.for_each([&] (Usb_device::Interface &iface) {
+		destroy(_alloc, &iface); });
+
+	_device.dissolve_all_urbs<Urb>([this] (Urb &urb) {
+		complete_urb(urb, Usb::Tagged_packet::NO_DEVICE, _open, _alloc); });
 }
 
 
