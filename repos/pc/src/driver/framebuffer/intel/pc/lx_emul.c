@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2021-2024 Genode Labs GmbH
+ * Copyright (C) 2021-2025 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -20,6 +20,7 @@
 #include <linux/dma-fence.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
+#include <linux/skbuff.h>
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
 
@@ -83,116 +84,6 @@ pgprot_t pgprot_writecombine(pgprot_t prot)
 }
 
 
-int intel_root_gt_init_early(struct drm_i915_private * i915)
-{
-	struct intel_gt *gt = to_gt(i915);
-
-	gt->i915 = i915;
-	gt->uncore = &i915->uncore;
-	gt->irq_lock = drmm_kzalloc(&i915->drm, sizeof(*gt->irq_lock), GFP_KERNEL);
-	if (!gt->irq_lock)
-		return -ENOMEM;
-
-	spin_lock_init(gt->irq_lock);
-
-	INIT_LIST_HEAD(&gt->closed_vma);
-	spin_lock_init(&gt->closed_lock);
-
-	init_llist_head(&gt->watchdog.list);
-
-	mutex_init(&gt->tlb.invalidate_lock);
-	seqcount_mutex_init(&gt->tlb.seqno, &gt->tlb.invalidate_lock);
-
-	intel_uc_init_early(&gt->uc);
-
-	/*
-	 * Tells driver that IOMMU, e.g. VT-d, is on, so that scratch page
-	 * workaround is applied by Intel display driver:
-	 *
-	 * drivers/gpu/drm/i915/gt/intel_ggtt.c
-	 *  -> gen8_gmch_probe() -> intel_scanout_needs_vtd_wa(i915)
-	 *  ->    return DISPLAY_VER(i915) >= 6 && i915_vtd_active(i915);
-	 *
-	 * i915_vtd_active() uses
-	 *   if (device_iommu_mapped(i915->drm.dev))
-	 *     return true;
-	 *
-	 *   which checks for dev->iommu_group != NULL
-	 *
-	 * The struct iommu_group is solely defined within iommu/iommu.c and
-	 * not public available. iommu/iommu.c is not used by our port, so adding
-	 * a dummy valid pointer is sufficient to get i915_vtd_active working.
-	 */
-	i915->drm.dev->iommu_group = kzalloc(4096, 0);
-	if (!i915_vtd_active(i915))
-		printk("i915_vtd_active is off, which may cause random runtime"
-		       "IOMMU faults on kernels with enabled IOMMUs\n");
-
-	return 0;
-}
-
-
-int intel_gt_probe_all(struct drm_i915_private * i915)
-{
-	struct pci_dev *pdev = to_pci_dev(i915->drm.dev);
-	struct intel_gt *gt = &i915->gt0;
-	phys_addr_t phys_addr;
-	unsigned int mmio_bar;
-	int ret;
-
-	mmio_bar = intel_mmio_bar(GRAPHICS_VER(i915));
-	phys_addr = pci_resource_start(pdev, mmio_bar);
-
-	/*
-	 * We always have at least one primary GT on any device
-	 * and it has been already initialized early during probe
-	 * in i915_driver_probe()
-	 */
-	gt->i915 = i915;
-	gt->name = "Primary GT";
-	gt->info.engine_mask = INTEL_INFO(i915)->platform_engine_mask;
-
-	/*  intel_gt_tile_setup() emulation - start */
-	intel_uncore_init_early(gt->uncore, gt);
-
-	ret = intel_uncore_setup_mmio(gt->uncore, phys_addr);
-	if (ret)
-		return ret;
-
-	gt->phys_addr = phys_addr;
-	/*  intel_gt_tile_setup() emulation - end */
-
-	i915->gt[0] = gt;
-
-	return 0;
-}
-
-
-int intel_gt_assign_ggtt(struct intel_gt * gt)
-{
-	gt->ggtt = drmm_kzalloc(&gt->i915->drm, sizeof(*gt->ggtt), GFP_KERNEL);
-
-	return gt->ggtt ? 0 : -ENOMEM;
-}
-
-
-enum i915_map_type intel_gt_coherent_map_type(struct intel_gt *gt,
-					      struct drm_i915_gem_object *obj,
-					      bool always_coherent)
-{
-	/*
-	 * Wa_22016122933: always return I915_MAP_WC for Media
-	 * version 13.0 when the object is on the Media GT
-	 */
-	if (i915_gem_object_is_lmem(obj) || intel_gt_needs_wa_22016122933(gt))
-		return I915_MAP_WC;
-	if (HAS_LLC(gt->i915) || always_coherent)
-		return I915_MAP_WB;
-	else
-		return I915_MAP_WC;
-}
-
-
 void __iomem * ioremap_wc(resource_size_t phys_addr, unsigned long size)
 {
 	lx_emul_trace(__func__);
@@ -243,9 +134,6 @@ size_t dma_max_mapping_size(struct device * dev)
 	lx_emul_trace(__func__);
 	return PAGE_SIZE * 512; /* 2 MB */
 }
-
-
-unsigned long __FIXADDR_TOP = 0xfffff000;
 
 
 #include <linux/uaccess.h>
@@ -317,7 +205,7 @@ void free_unref_page(struct page *page, unsigned int order)
 
 
 /*
- * see linux/src/linux/mm/page_alloc.c - mostly original code, beside __folio_put
+ * see 6.6.47 linux/src/linux/mm/page_alloc.c - mostly original code, beside __folio_put
  */
 void destroy_large_folio(struct folio *folio)
 {
@@ -334,9 +222,8 @@ void destroy_large_folio(struct folio *folio)
 	__folio_put(folio);
 }
 
-
 /*
- * see linux/src/linux/mm/swap.c - this is a very shorten version of it
+ * see 6.6.47 linux/src/linux/mm/swap.c - this is a very shorten version of it
  */
 static void __page_cache_release(struct folio *folio)
 {
@@ -351,7 +238,7 @@ static void __page_cache_release(struct folio *folio)
 
 
 /*
- * see linux/src/linux/mm/swap.c - original code
+ * see 6.6.47 linux/src/linux/mm/swap.c - original code
  */
 static void __folio_put_large(struct folio *folio)
 {
@@ -368,7 +255,7 @@ static void __folio_put_large(struct folio *folio)
 
 
 /*
- * see linux/src/linux/mm/swap.c - this is a very shorten version of it
+ * see 6.6.47 linux/src/linux/mm/swap.c - this is a very shorten version of it
  */
 void release_pages(release_pages_arg arg, int nr)
 {
@@ -381,7 +268,7 @@ void release_pages(release_pages_arg arg, int nr)
 		/* Turn any of the argument types into a folio */
 		folio = page_folio(encoded_page_ptr(encoded[i]));
 
-		if (is_huge_zero_page(&folio->page))
+		if (is_huge_zero_folio(folio))
 			continue;
 
 		if (folio_is_zone_device(folio))
@@ -411,4 +298,17 @@ void __folio_batch_release(struct folio_batch *fbatch)
 
 	release_pages(fbatch->folios, folio_batch_count(fbatch));
 	folio_batch_reinit(fbatch);
+}
+
+
+void __fix_address
+sk_skb_reason_drop(struct sock *sk, struct sk_buff *skb, enum skb_drop_reason reason)
+{
+	if (!skb)
+		return;
+
+	if (unlikely(!skb_unref(skb)))
+		return;
+
+	printk("%s ---- LEAKING skb\n", __func__);
 }

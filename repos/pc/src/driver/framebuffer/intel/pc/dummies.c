@@ -54,7 +54,19 @@ void iomap_free(resource_size_t base, unsigned long size)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+unsigned long __FIXADDR_TOP = 0xfffff000;
 #endif
+
+
+#ifdef __x86_64__
+extern unsigned long arch_scale_cpu_capacity(int cpu);
+unsigned long arch_scale_cpu_capacity(int cpu)
+{
+       lx_emul_trace_and_stop(__func__);
+}
+#endif
+
 
 void register_syscore_ops(struct syscore_ops * ops)
 {
@@ -295,6 +307,19 @@ int __intel_gt_reset(struct intel_gt * gt, intel_engine_mask_t engine_mask)
 }
 
 
+int intel_gt_reset_all_engines(struct intel_gt * gt)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void i915_gpu_error_sysfs_setup(struct drm_i915_private * i915)
+{
+	lx_emul_trace(__func__);
+}
+
+
 extern u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_mcr_reg_t reg);
 u32 intel_gt_mcr_read_any(struct intel_gt * gt,i915_mcr_reg_t reg)
 {
@@ -461,12 +486,6 @@ bool dev_add_physical_location(struct device * dev)
 {
 	lx_emul_trace(__func__);
 	return false;
-}
-
-
-void __fix_address kfree_skb_reason(struct sk_buff * skb,enum skb_drop_reason reason)
-{
-	lx_emul_trace(__func__);
 }
 
 

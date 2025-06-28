@@ -17,6 +17,7 @@ SRC_C   += lx_emul.c
 SRC_C   += $(notdir $(wildcard $(REL_PRG_DIR)/generated_dummies.c))
 SRC_C   += lx_user.c
 SRC_C   += gem.c
+SRC_C   += intel_gt.c
 SRC_C   += lx_emul/common_dummies.c
 SRC_C   += lx_emul/shadow/mm/page_alloc.c
 SRC_C   += lx_emul/shadow/drivers/char/random.c
@@ -34,6 +35,13 @@ endif
 ifeq ($(wildcard $(LX_SRC_DIR)),)
 fail
 endif
+
+#
+# Defined by contrib/linux/src/linux/drivers/gpu/drm/i915/Makefile via
+#   subdir-ccflags-y += -DI915
+#
+# Switch to compile/reuse files for i915 and xe
+CC_C_OPT += -DI915
 
 INC_DIR    += $(LX_SRC_DIR)/drivers/gpu/drm/i915
 INC_DIR    += $(LX_SRC_DIR)/drivers/gpu/drm

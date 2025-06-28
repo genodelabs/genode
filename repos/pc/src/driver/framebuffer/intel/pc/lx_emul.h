@@ -23,6 +23,8 @@ extern "C" {
 #include <linux/sched/debug.h>
 
 struct intel_dsb;
+struct intel_dp;
+enum intel_dsb_id { DUMMYXXX };
 
 void * intel_io_mem_map(unsigned long offset, unsigned long size);
 

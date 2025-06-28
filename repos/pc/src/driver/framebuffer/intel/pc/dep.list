@@ -10,7 +10,6 @@ drivers/gpu/drm/display/drm_dp_mst_topology_internal.h
 drivers/gpu/drm/drm_crtc_helper_internal.h
 drivers/gpu/drm/drm_crtc_internal.h
 drivers/gpu/drm/drm_internal.h
-drivers/gpu/drm/drm_legacy.h
 drivers/gpu/drm/drm_trace.h
 drivers/gpu/drm/i915/display/g4x_dp.h
 drivers/gpu/drm/i915/display/g4x_hdmi.h
@@ -209,7 +208,6 @@ drivers/gpu/drm/i915/i915_driver.h
 drivers/gpu/drm/i915/i915_drm_client.h
 drivers/gpu/drm/i915/i915_drv.h
 drivers/gpu/drm/i915/i915_file_private.h
-drivers/gpu/drm/i915/i915_fixed.h
 drivers/gpu/drm/i915/i915_gem.h
 drivers/gpu/drm/i915/i915_gem_evict.h
 drivers/gpu/drm/i915/i915_gem_gtt.h
@@ -306,7 +304,6 @@ include/drm/drm_damage_helper.h
 include/drm/drm_debugfs.h
 include/drm/drm_debugfs_crc.h
 include/drm/drm_device.h
-include/drm/drm_displayid.h
 include/drm/drm_drv.h
 include/drm/drm_edid.h
 include/drm/drm_encoder.h
@@ -318,7 +315,6 @@ include/drm/drm_gem.h
 include/drm/drm_gem_atomic_helper.h
 include/drm/drm_ioctl.h
 include/drm/drm_lease.h
-include/drm/drm_legacy.h
 include/drm/drm_managed.h
 include/drm/drm_mipi_dsi.h
 include/drm/drm_mm.h
@@ -348,11 +344,11 @@ include/drm/drm_vblank.h
 include/drm/drm_vblank_work.h
 include/drm/drm_vma_manager.h
 include/drm/drm_writeback.h
-include/drm/i915_component.h
-include/drm/i915_drm.h
-include/drm/i915_pciids.h
-include/drm/intel-gtt.h
-include/drm/intel_lpe_audio.h
+include/drm/intel/i915_component.h
+include/drm/intel/i915_drm.h
+include/drm/intel/i915_pciids.h
+include/drm/intel/intel-gtt.h
+include/drm/intel/intel_lpe_audio.h
 include/drm/ttm/ttm_caching.h
 include/drm/ttm/ttm_device.h
 include/drm/ttm/ttm_kmap_iter.h

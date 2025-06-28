@@ -1,0 +1,11 @@
+--- src/linux/drivers/gpu/drm/i915/display/intel_fb.c
++++ src/linux/drivers/gpu/drm/i915/display/intel_fb.c
+@@ -1553,7 +1553,7 @@
+ 	       fb->base.modifier == I915_FORMAT_MOD_Yf_TILED;
+ }
+ 
+-static unsigned int intel_fb_min_alignment(const struct drm_framebuffer *fb)
++unsigned int intel_fb_min_alignment(const struct drm_framebuffer *fb)
+ {
+ 	struct drm_i915_private *i915 = to_i915(fb->dev);
+ 	struct intel_plane *plane;

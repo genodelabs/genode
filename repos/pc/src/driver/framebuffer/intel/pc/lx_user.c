@@ -5,12 +5,15 @@
  */
 
 /*
- * Copyright (C) 2022-2024 Genode Labs GmbH
+ * Copyright (C) 2022-2025 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
  */
 
+#define KBUILD_MODNAME "genode_i915_user_driver"
+
+#include <linux/backlight.h>
 #include <linux/fb.h> /* struct fb_info */
 #include <linux/sched/task.h>
 
@@ -25,6 +28,7 @@
 
 #include "lx_emul.h"
 
+extern unsigned int intel_fb_min_alignment(const struct drm_framebuffer *fb);
 
 enum { MAX_BRIGHTNESS  = 100, INVALID_BRIGHTNESS   = MAX_BRIGHTNESS + 1 };
 enum { MAX_CONNECTORS  =  32, CONNECTOR_ID_MIRROR  = MAX_CONNECTORS - 1 };
@@ -304,7 +308,7 @@ static void destroy_fb_and_capture(struct drm_client_dev       * const dev,
 	kernel_register_fb(&info, 0, 0, 0, false);
 
 	if (state->vma) {
-		intel_unpin_fb_vma(state->vma,
+		intel_fb_unpin_vma(state->vma,
 		                   state->vma_flags);
 
 		state->vma       = NULL;
@@ -1257,7 +1261,7 @@ static int user_register_fb(struct drm_client_dev const * const dev,
 	}
 
 	if (*vma) {
-		intel_unpin_fb_vma(*vma, *vma_flags);
+		intel_fb_unpin_vma(*vma, *vma_flags);
 
 		*vma       = NULL;
 		*vma_flags = 0;
@@ -1269,9 +1273,9 @@ static int user_register_fb(struct drm_client_dev const * const dev,
 	 * This also validates that any existing fb inherited from the
 	 * BIOS is suitable for own access.
 	 */
-	*vma = intel_pin_and_fence_fb_obj(   fb, false /* phys_cursor */,
-	                                  &view, false /* use fences */,
-	                                   vma_flags);
+	unsigned min_alignment = intel_fb_min_alignment(fb);
+
+	*vma = intel_fb_pin_to_ggtt(fb, &view, min_alignment, 0, false, vma_flags);
 
 	if (IS_ERR(*vma)) {
 		intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
@@ -1290,7 +1294,7 @@ static int user_register_fb(struct drm_client_dev const * const dev,
 		printk("%s: framebuffer not mappable in aperture -> destroying framebuffer\n",
 		       (info && info->par) ? (char *)info->par : "unknown");
 
-		intel_unpin_fb_vma(*vma, *vma_flags);
+		intel_fb_unpin_vma(*vma, *vma_flags);
 
 		*vma       = NULL;
 		*vma_flags = 0;
@@ -1306,7 +1310,7 @@ static int user_register_fb(struct drm_client_dev const * const dev,
 		result = PTR_ERR(vaddr);
 		printk("%s:%u error pin iomap %d\n", __func__, __LINE__, result);
 
-		intel_unpin_fb_vma(*vma, *vma_flags);
+		intel_fb_unpin_vma(*vma, *vma_flags);
 
 		*vma       = NULL;
 		*vma_flags = 0;
@@ -1399,14 +1403,14 @@ static int check_resize_fb(struct drm_client_dev       * const dev,
 }
 
 
-int intel_fbdev_init(struct drm_device *dev)
+void intel_fbdev_setup(struct drm_i915_private *i915)
 {
-	struct drm_i915_private *dev_priv = to_i915(dev);
+	struct drm_device *dev = &i915->drm;
 
-	if (drm_WARN_ON(dev, !HAS_DISPLAY(dev_priv)))
-		return -ENODEV;
+	if (drm_WARN_ON(dev, !HAS_DISPLAY(i915)))
+		return;
 
-	return register_drm_client(dev);
+	register_drm_client(dev);
 }
 
 

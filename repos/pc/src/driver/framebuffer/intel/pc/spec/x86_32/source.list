@@ -46,6 +46,8 @@ drivers/gpu/drm/drm_file.c
 drivers/gpu/drm/drm_fourcc.c
 drivers/gpu/drm/drm_framebuffer.c
 drivers/gpu/drm/drm_gem.c
+drivers/gpu/drm/drm_gem_atomic_helper.c
+drivers/gpu/drm/drm_gem_framebuffer_helper.c
 drivers/gpu/drm/drm_lease.c
 drivers/gpu/drm/drm_managed.c
 drivers/gpu/drm/drm_mipi_dsi.c
@@ -80,6 +82,7 @@ drivers/gpu/drm/i915/display/i9xx_plane.c
 drivers/gpu/drm/i915/display/i9xx_wm.c
 drivers/gpu/drm/i915/display/icl_dsi.c
 drivers/gpu/drm/i915/display/intel_acpi.c
+drivers/gpu/drm/i915/display/intel_alpm.c
 drivers/gpu/drm/i915/display/intel_atomic.c
 drivers/gpu/drm/i915/display/intel_atomic_plane.c
 drivers/gpu/drm/i915/display/intel_audio.c
@@ -101,13 +104,16 @@ drivers/gpu/drm/i915/display/intel_display.c
 drivers/gpu/drm/i915/display/intel_display_device.c
 drivers/gpu/drm/i915/display/intel_display_driver.c
 drivers/gpu/drm/i915/display/intel_display_irq.c
+drivers/gpu/drm/i915/display/intel_display_params.c
 drivers/gpu/drm/i915/display/intel_display_power.c
 drivers/gpu/drm/i915/display/intel_display_power_map.c
 drivers/gpu/drm/i915/display/intel_display_power_well.c
 drivers/gpu/drm/i915/display/intel_display_rps.c
 drivers/gpu/drm/i915/display/intel_display_trace.c
+drivers/gpu/drm/i915/display/intel_display_wa.c
 drivers/gpu/drm/i915/display/intel_dkl_phy.c
 drivers/gpu/drm/i915/display/intel_dmc.c
+drivers/gpu/drm/i915/display/intel_dmc_wl.c
 drivers/gpu/drm/i915/display/intel_dp.c
 drivers/gpu/drm/i915/display/intel_dp_aux.c
 drivers/gpu/drm/i915/display/intel_dp_aux_backlight.c
@@ -124,7 +130,9 @@ drivers/gpu/drm/i915/display/intel_dsi.c
 drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.c
 drivers/gpu/drm/i915/display/intel_dsi_vbt.c
 drivers/gpu/drm/i915/display/intel_dvo.c
+drivers/gpu/drm/i915/display/intel_encoder.c
 drivers/gpu/drm/i915/display/intel_fb.c
+drivers/gpu/drm/i915/display/intel_fb_bo.c
 drivers/gpu/drm/i915/display/intel_fb_pin.c
 drivers/gpu/drm/i915/display/intel_fbc.c
 drivers/gpu/drm/i915/display/intel_fdi.c
@@ -137,6 +145,7 @@ drivers/gpu/drm/i915/display/intel_hdmi.c
 drivers/gpu/drm/i915/display/intel_hotplug.c
 drivers/gpu/drm/i915/display/intel_hotplug_irq.c
 drivers/gpu/drm/i915/display/intel_hti.c
+drivers/gpu/drm/i915/display/intel_link_bw.c
 drivers/gpu/drm/i915/display/intel_lpe_audio.c
 drivers/gpu/drm/i915/display/intel_lspcon.c
 drivers/gpu/drm/i915/display/intel_lvds.c
@@ -278,6 +287,7 @@ kernel/time/timecounter.c
 kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
+kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/bitmap.c
 lib/crc32.c
@@ -303,6 +313,7 @@ lib/radix-tree.c
 lib/rbtree.c
 lib/refcount.c
 lib/scatterlist.c
+lib/seq_buf.c
 lib/siphash.c
 lib/sort.c
 lib/string.c
@@ -313,6 +324,7 @@ lib/vsprintf.c
 lib/xarray.c
 mm/memblock.c
 mm/mempool.c
+mm/shrinker.c
 mm/slab_common.c
 mm/slub.c
 mm/util.c

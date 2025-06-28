@@ -227,15 +227,6 @@ new_vma:
 	return vma;
 }
 
-static inline int i915_gem_init_userptr(struct drm_i915_private *dev_priv)
-{
-#ifdef CONFIG_MMU_NOTIFIER
-	rwlock_init(&dev_priv->mm.notifier_lock);
-#endif
-
-	return 0;
-}
-
 int i915_gem_init(struct drm_i915_private *dev_priv)
 {
 	struct intel_gt *gt;
@@ -260,10 +251,6 @@ int i915_gem_init(struct drm_i915_private *dev_priv)
 	if (intel_vgpu_active(dev_priv) && !intel_vgpu_has_huge_gtt(dev_priv))
 		RUNTIME_INFO(dev_priv)->page_sizes = I915_GTT_PAGE_SIZE_4K;
 */
-
-	ret = i915_gem_init_userptr(dev_priv);
-	if (ret)
-		return ret;
 
 	for_each_gt(gt, dev_priv, i) {
 		intel_uc_fetch_firmwares(&gt->uc);

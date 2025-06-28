@@ -57,7 +57,7 @@ struct file *shmem_file_setup(char const *name, loff_t size,
 		goto err_private_data;
 	}
 
-	mapping->private_data = private_data;
+	mapping->i_private_data = private_data;
 	mapping->nrpages = nrpages;
 
 	inode->i_mapping = mapping;
@@ -91,7 +91,7 @@ static void _free_file(struct file *file)
 	inode        = file->f_inode;
 
 	if (mapping) {
-		private_data = mapping->private_data;
+		private_data = mapping->i_private_data;
 
 		if (private_data->folio) {
 			/* freed by indirect call of __folio_batch_release in lx_emul.c */
@@ -122,16 +122,25 @@ void fput(struct file *file)
 /*
  * Identical to original from mm/page_alloc.c
  */
-struct folio *__folio_alloc(gfp_t gfp, unsigned int order, int preferred_nid,
-		nodemask_t *nodemask)
+static inline struct folio *page_rmappable_folio(struct page *page)
 {
-	struct page *page = __alloc_pages(gfp | __GFP_COMP, order,
-			preferred_nid, nodemask);
 	struct folio *folio = (struct folio *)page;
 
-	if (folio && order > 1)
-		folio_prep_large_rmappable(folio);
+	if (folio && folio_test_large(folio))
+		folio_set_large_rmappable(folio);
 	return folio;
+}
+
+
+/*
+ * Identical to original from mm/page_alloc.c
+ */
+struct folio *__folio_alloc_noprof(gfp_t gfp, unsigned int order, int preferred_nid,
+		nodemask_t *nodemask)
+{
+	struct page *page = __alloc_pages_noprof(gfp | __GFP_COMP, order,
+					preferred_nid, nodemask);
+	return page_rmappable_folio(page);
 }
 
 
@@ -143,7 +152,7 @@ struct folio *shmem_read_folio_gfp(struct address_space *mapping,
 	if (index > mapping->nrpages)
 		return NULL;
 
-	private_data = mapping->private_data;
+	private_data = mapping->i_private_data;
 
 	if (index != 0) {
 		printk("%s unsupported case - fail\n", __func__);
