@@ -235,7 +235,7 @@ int task_work_add(struct task_struct * task,struct callback_head * work,enum tas
 #include <linux/gfp.h>
 #include <linux/slab.h>
 
-unsigned long get_zeroed_page(gfp_t gfp_mask)
+unsigned long get_zeroed_page_noprof(gfp_t gfp_mask)
 {
 	return (unsigned long)__alloc_pages(GFP_KERNEL, 0, 0, NULL)->virtual;
 }
@@ -367,9 +367,15 @@ u32 prandom_u32(void)
 #include <linux/version.h>
 #include <linux/gfp.h>
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)
 void *page_frag_alloc_align(struct page_frag_cache *nc,
                             unsigned int fragsz, gfp_t gfp_mask,
                             unsigned int align_mask)
+#else
+void *__page_frag_alloc_align(struct page_frag_cache *nc,
+                            unsigned int fragsz, gfp_t gfp_mask,
+                            unsigned int align_mask)
+#endif
 {
 	unsigned int const order = fragsz / PAGE_SIZE;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(5,12,0)

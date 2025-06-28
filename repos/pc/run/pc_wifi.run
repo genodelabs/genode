@@ -123,7 +123,7 @@ append config {
 			<service name="LOG">     <parent/> </service>
 		</route>
 		<config>
-			<policy label_prefix="wifi" info="yes">
+			<policy label_prefix="wifi" msix="false" info="yes">
 				<pci class="WIFI"/>
 			</policy>
 		</config>

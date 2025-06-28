@@ -92,9 +92,11 @@ drivers/net/wireless/intel/iwlwifi/cfg/8000.c
 drivers/net/wireless/intel/iwlwifi/cfg/9000.c
 drivers/net/wireless/intel/iwlwifi/cfg/ax210.c
 drivers/net/wireless/intel/iwlwifi/cfg/bz.c
+drivers/net/wireless/intel/iwlwifi/cfg/dr.c
 drivers/net/wireless/intel/iwlwifi/cfg/sc.c
 drivers/net/wireless/intel/iwlwifi/dvm/calib.c
 drivers/net/wireless/intel/iwlwifi/dvm/devices.c
+drivers/net/wireless/intel/iwlwifi/dvm/eeprom.c
 drivers/net/wireless/intel/iwlwifi/dvm/lib.c
 drivers/net/wireless/intel/iwlwifi/dvm/mac80211.c
 drivers/net/wireless/intel/iwlwifi/dvm/main.c
@@ -120,10 +122,9 @@ drivers/net/wireless/intel/iwlwifi/fw/smem.c
 drivers/net/wireless/intel/iwlwifi/iwl-dbg-tlv.c
 drivers/net/wireless/intel/iwlwifi/iwl-debug.c
 drivers/net/wireless/intel/iwlwifi/iwl-drv.c
-drivers/net/wireless/intel/iwlwifi/iwl-eeprom-parse.c
-drivers/net/wireless/intel/iwlwifi/iwl-eeprom-read.c
 drivers/net/wireless/intel/iwlwifi/iwl-io.c
 drivers/net/wireless/intel/iwlwifi/iwl-nvm-parse.c
+drivers/net/wireless/intel/iwlwifi/iwl-nvm-utils.c
 drivers/net/wireless/intel/iwlwifi/iwl-phy-db.c
 drivers/net/wireless/intel/iwlwifi/iwl-trans.c
 drivers/net/wireless/intel/iwlwifi/mvm/binding.c
@@ -167,7 +168,6 @@ drivers/net/wireless/intel/iwlwifi/pcie/trans-gen2.c
 drivers/net/wireless/intel/iwlwifi/pcie/trans.c
 drivers/net/wireless/intel/iwlwifi/pcie/tx-gen2.c
 drivers/net/wireless/intel/iwlwifi/pcie/tx.c
-drivers/net/wireless/intel/iwlwifi/queue/tx.c
 drivers/net/wireless/realtek/rtlwifi/base.c
 drivers/net/wireless/realtek/rtlwifi/cam.c
 drivers/net/wireless/realtek/rtlwifi/core.c
@@ -234,6 +234,7 @@ kernel/time/timecounter.c
 kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
+kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/asn1_decoder.c
 lib/bitmap.c
@@ -279,6 +280,7 @@ net/core/datagram.c
 net/core/dev.c
 net/core/dev_addr_lists.c
 net/core/gro.c
+net/core/hotdata.c
 net/core/link_watch.c
 net/core/net-sysfs.c
 net/core/net_namespace.c
@@ -311,6 +313,7 @@ net/mac80211/michael.c
 net/mac80211/mlme.c
 net/mac80211/ocb.c
 net/mac80211/offchannel.c
+net/mac80211/parse.c
 net/mac80211/rate.c
 net/mac80211/rc80211_minstrel_ht.c
 net/mac80211/rx.c

@@ -1,6 +1,7 @@
 crypto/compress.h
 crypto/hash.h
 crypto/internal.h
+crypto/skcipher.h
 drivers/net/wireless/ath/ath.h
 drivers/net/wireless/ath/ath9k/ani.h
 drivers/net/wireless/ath/ath9k/ar5008_initvals.h
@@ -109,6 +110,7 @@ drivers/net/wireless/intel/iwlwifi/fw/file.h
 drivers/net/wireless/intel/iwlwifi/fw/img.h
 drivers/net/wireless/intel/iwlwifi/fw/notif-wait.h
 drivers/net/wireless/intel/iwlwifi/fw/pnvm.h
+drivers/net/wireless/intel/iwlwifi/fw/regulatory.h
 drivers/net/wireless/intel/iwlwifi/fw/runtime.h
 drivers/net/wireless/intel/iwlwifi/fw/uefi.h
 drivers/net/wireless/intel/iwlwifi/iwl-agn-hw.h
@@ -125,12 +127,11 @@ drivers/net/wireless/intel/iwlwifi/iwl-devtrace-msg.h
 drivers/net/wireless/intel/iwlwifi/iwl-devtrace-ucode.h
 drivers/net/wireless/intel/iwlwifi/iwl-devtrace.h
 drivers/net/wireless/intel/iwlwifi/iwl-drv.h
-drivers/net/wireless/intel/iwlwifi/iwl-eeprom-parse.h
-drivers/net/wireless/intel/iwlwifi/iwl-eeprom-read.h
 drivers/net/wireless/intel/iwlwifi/iwl-fh.h
 drivers/net/wireless/intel/iwlwifi/iwl-io.h
 drivers/net/wireless/intel/iwlwifi/iwl-modparams.h
 drivers/net/wireless/intel/iwlwifi/iwl-nvm-parse.h
+drivers/net/wireless/intel/iwlwifi/iwl-nvm-utils.h
 drivers/net/wireless/intel/iwlwifi/iwl-op-mode.h
 drivers/net/wireless/intel/iwlwifi/iwl-phy-db.h
 drivers/net/wireless/intel/iwlwifi/iwl-prph.h
@@ -147,7 +148,6 @@ drivers/net/wireless/intel/iwlwifi/mvm/testmode.h
 drivers/net/wireless/intel/iwlwifi/mvm/time-event.h
 drivers/net/wireless/intel/iwlwifi/mvm/time-sync.h
 drivers/net/wireless/intel/iwlwifi/pcie/internal.h
-drivers/net/wireless/intel/iwlwifi/queue/tx.h
 drivers/net/wireless/realtek/rtlwifi/base.h
 drivers/net/wireless/realtek/rtlwifi/btcoexist/halbt_precomp.h
 drivers/net/wireless/realtek/rtlwifi/btcoexist/halbtc8192e2ant.h
@@ -226,6 +226,7 @@ include/crypto/rng.h
 include/crypto/scatterwalk.h
 include/crypto/sha1.h
 include/crypto/sha2.h
+include/crypto/sha3.h
 include/crypto/sha256_base.h
 include/crypto/skcipher.h
 include/crypto/streebog.h
@@ -253,6 +254,7 @@ include/linux/crash_dump.h
 include/linux/crypto.h
 include/linux/devcoredump.h
 include/linux/dmaengine.h
+include/linux/dpll.h
 include/linux/errqueue.h
 include/linux/etherdevice.h
 include/linux/ethtool_netlink.h
@@ -260,7 +262,6 @@ include/linux/filter.h
 include/linux/fips.h
 include/linux/firmware.h
 include/linux/gcd.h
-include/linux/genetlink.h
 include/linux/gpio.h
 include/linux/hw_random.h
 include/linux/icmpv6.h
@@ -277,6 +278,7 @@ include/linux/inet.h
 include/linux/inetdevice.h
 include/linux/interval_tree.h
 include/linux/io_uring.h
+include/linux/io_uring/net.h
 include/linux/ip.h
 include/linux/ipv6_route.h
 include/linux/kcov.h
@@ -401,6 +403,7 @@ include/uapi/linux/bpf_common.h
 include/uapi/linux/btf.h
 include/uapi/linux/cryptouser.h
 include/uapi/linux/devlink.h
+include/uapi/linux/dpll.h
 include/uapi/linux/errqueue.h
 include/uapi/linux/ethtool_netlink.h
 include/uapi/linux/fanotify.h
@@ -481,6 +484,7 @@ net/mac80211/wep.h
 net/mac80211/wme.h
 net/mac80211/wpa.h
 net/netlink/af_netlink.h
+net/netlink/genetlink.h
 net/packet/internal.h
 net/rfkill/rfkill.h
 net/wireless/core.h

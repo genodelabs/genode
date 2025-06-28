@@ -14,6 +14,30 @@
 #include <lx_emul.h>
 
 
+#include <lx_emul/task.h>
+
+void yield(void)
+{
+	lx_emul_task_schedule(0 /* no block */);
+}
+
+
+#include <linux/once.h>
+
+void __do_once_done(bool * done,struct static_key_true * once_key,unsigned long * flags,struct module * mod)
+{
+	*done = true;
+}
+
+
+#include <linux/once.h>
+
+bool __do_once_start(bool * done,unsigned long * flags)
+{
+	return !*done;
+}
+
+
 #include <linux/syscore_ops.h>
 
 void register_syscore_ops(struct syscore_ops * ops)
@@ -28,7 +52,6 @@ const unsigned long system_certificate_list_size = sizeof (system_certificate_li
 
 const u8 shipped_regdb_certs[] = { };
 unsigned int shipped_regdb_certs_len = sizeof (shipped_regdb_certs);
-
 
 
 #include <linux/filter.h>
@@ -48,6 +71,15 @@ asmlinkage __wsum csum_partial(const void * buff,int len,__wsum sum)
 	lx_emul_trace_and_stop(__func__);
 }
 #endif /* CONFIG_X86_32 */
+
+
+#ifdef CONFIG_X86_64
+extern unsigned long arch_scale_cpu_capacity(int cpu);
+unsigned long arch_scale_cpu_capacity(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+#endif /* CONFIG_X86_64 */
 
 
 #include <linux/proc_ns.h>
@@ -166,7 +198,7 @@ void synchronize_rcu(void)
 
 #include <linux/skbuff.h>
 
-void __skb_get_hash(struct sk_buff * skb)
+void __skb_get_hash_net(const struct net * net,struct sk_buff * skb)
 {
 	lx_emul_trace(__func__);
 }
@@ -572,14 +604,110 @@ void iwl_uefi_get_step_table(struct iwl_trans * trans)
 
 int iwl_uefi_handle_tlv_mem_desc(struct iwl_trans * trans,const u8 * data,u32 tlv_len,struct iwl_pnvm_image * pnvm_data)
 {
-	return -EINVAL;;
+	return -EINVAL;
 }
 
 
 int iwl_uefi_reduce_power_parse(struct iwl_trans * trans,const u8 * data,size_t len,struct iwl_pnvm_image * pnvm_data)
 {
-	return -ENOENT;;
+	return -ENOENT;
 }
+
+#include <fw/regulatory.h>
+
+int iwl_bios_get_dsm(struct iwl_fw_runtime * fwrt,enum iwl_dsm_funcs func,u32 * value) { return -ENOENT; }
+int iwl_bios_get_eckv(struct iwl_fw_runtime *fwrt, u32 * data) { return -ENOENT; }
+int iwl_bios_get_mcc(struct iwl_fw_runtime *fwrt, char * data) { return -ENOENT; }
+int iwl_bios_get_pwr_limit(struct iwl_fw_runtime *fwrt, u64 * data) { return -ENOENT; }
+int iwl_bios_get_tas_table(struct iwl_fw_runtime *fwrt, struct iwl_tas_data * data) { return -ENOENT; }
+int iwl_bios_get_wbem(struct iwl_fw_runtime *fwrt, u32 * data) { return -ENOENT; }
+int iwl_bios_get_ewrd_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
+int iwl_bios_get_ppag_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
+int iwl_bios_get_wgds_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
+int iwl_bios_get_wrds_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
+
+
+extern int iwl_fill_lari_config(struct iwl_fw_runtime * fwrt,struct iwl_lari_config_change_cmd * cmd,size_t * cmd_size);
+int iwl_fill_lari_config(struct iwl_fw_runtime * fwrt,struct iwl_lari_config_change_cmd * cmd,size_t * cmd_size)
+{
+	lx_emul_trace(__func__);
+	return 1;
+}
+
+
+extern int iwl_fill_ppag_table(struct iwl_fw_runtime * fwrt,union iwl_ppag_table_cmd * cmd,int * cmd_size);
+int iwl_fill_ppag_table(struct iwl_fw_runtime * fwrt,union iwl_ppag_table_cmd * cmd,int * cmd_size)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}
+
+extern bool iwl_is_ppag_approved(struct iwl_fw_runtime * fwrt);
+bool iwl_is_ppag_approved(struct iwl_fw_runtime * fwrt)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+extern bool iwl_is_tas_approved(void);
+bool iwl_is_tas_approved(void)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+extern int iwl_sar_fill_profile(struct iwl_fw_runtime * fwrt,__le16 * per_chain,u32 n_tables,u32 n_subbands,int prof_a,int prof_b);
+int iwl_sar_fill_profile(struct iwl_fw_runtime * fwrt,__le16 * per_chain,u32 n_tables,u32 n_subbands,int prof_a,int prof_b)
+{
+	lx_emul_trace(__func__);
+	/* means profil is disabled */
+	return 1;
+}
+
+
+extern int iwl_sar_geo_fill_table(struct iwl_fw_runtime * fwrt,struct iwl_per_chain_offset * table,u32 n_bands,u32 n_profiles);
+int iwl_sar_geo_fill_table(struct iwl_fw_runtime * fwrt,struct iwl_per_chain_offset * table,u32 n_bands,u32 n_profiles)
+{
+	lx_emul_trace_and_stop(__func__);
+	/* means not supported */
+	return 1;
+}
+
+
+extern bool iwl_sar_geo_support(struct iwl_fw_runtime * fwrt);
+bool iwl_sar_geo_support(struct iwl_fw_runtime * fwrt)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+extern int iwl_uefi_get_puncturing(struct iwl_fw_runtime * fwrt);
+int iwl_uefi_get_puncturing(struct iwl_fw_runtime * fwrt)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern bool iwl_puncturing_is_allowed_in_bios(u32 puncturing,u16 mcc);
+bool iwl_puncturing_is_allowed_in_bios(u32 puncturing,u16 mcc)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+extern int iwl_uefi_get_uats_table(struct iwl_trans * trans,struct iwl_fw_runtime * fwrt);
+int iwl_uefi_get_uats_table(struct iwl_trans * trans,struct iwl_fw_runtime * fwrt)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}
+
+
 
 #include <linux/property.h>
 
@@ -769,7 +897,14 @@ struct mnt_idmap nop_mnt_idmap;
 
 #include <linux/thermal.h>
 
-struct thermal_zone_device * thermal_zone_device_register_with_trips(const char * type,struct thermal_trip * trips,int num_trips,int mask,void * devdata,struct thermal_zone_device_ops * ops,const struct thermal_zone_params * tzp,int passive_delay,int polling_delay)
+struct thermal_zone_device *thermal_zone_device_register_with_trips(
+	const char *type,
+	const struct thermal_trip *trips,
+	int num_trips, void *devdata,
+	const struct thermal_zone_device_ops *ops,
+	const struct thermal_zone_params *tzp,
+	unsigned int passive_delay,
+	unsigned int polling_delay)
 {
 	lx_emul_trace(__func__);
 	return ERR_PTR(-EINVAL);
@@ -782,4 +917,117 @@ int ___ratelimit(struct ratelimit_state * rs,const char * func)
 {
 	lx_emul_trace(__func__);
 	return 0;
+}
+
+#include <linux/async.h>
+
+void __init async_init(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/rcutree.h>
+
+void kvfree_rcu_barrier(void)
+{
+	/*
+	 * The way kvfree_call_rcu is currently implemented should make
+	 * this function just being a NOP workable (until it does not...).
+	 */
+	lx_emul_trace(__func__);
+}
+
+
+/*
+ * Disable WBRF support at the stack layer because we do not
+ * currently do not have a way to call ACPI.
+ */
+
+#include <net/cfg80211.h>
+
+extern void ieee80211_check_wbrf_support(struct ieee80211_local * local);
+void ieee80211_check_wbrf_support(struct ieee80211_local * local)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void ieee80211_add_wbrf(struct ieee80211_local * local,struct cfg80211_chan_def * chandef);
+void ieee80211_add_wbrf(struct ieee80211_local * local,struct cfg80211_chan_def * chandef)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void ieee80211_remove_wbrf(struct ieee80211_local * local,struct cfg80211_chan_def * chandef);
+void ieee80211_remove_wbrf(struct ieee80211_local * local,struct cfg80211_chan_def * chandef)
+{
+	lx_emul_trace(__func__);
+}
+
+
+/*
+ * The dummies below trigger when the proper firmware ucode
+ * could not be loaded and the driver gets shut down. They
+ * are solely there for preventing 'not implemented yet!' messages
+ * in this case.
+ */
+
+extern void unregister_handler_proc(unsigned int irq,struct irqaction * action);
+void unregister_handler_proc(unsigned int irq,struct irqaction * action)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/task_work.h>
+
+struct callback_head * task_work_cancel_func(struct task_struct * task,task_work_func_t func)
+{
+	lx_emul_trace(__func__);
+	return NULL;
+}
+
+
+#include <linux/rcuwait.h>
+
+void finish_rcuwait(struct rcuwait * w)
+{
+	lx_emul_trace(__func__);
+}
+
+
+/*
+ * The dummies below were moved from the generated dummies
+ * file to provide the proper forward declarations and
+ * thus still feature 'lx_emul_trace_and_stop'.
+ */
+
+#include <crypto/skcipher.h>
+
+int crypto_lskcipher_setkey(struct crypto_lskcipher * tfm,const u8 * key,unsigned int keylen)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int crypto_init_lskcipher_ops_sg(struct crypto_tfm * tfm);
+int crypto_init_lskcipher_ops_sg(struct crypto_tfm * tfm)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int crypto_lskcipher_decrypt_sg(struct skcipher_request * req);
+int crypto_lskcipher_decrypt_sg(struct skcipher_request * req)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern int crypto_lskcipher_encrypt_sg(struct skcipher_request * req);
+int crypto_lskcipher_encrypt_sg(struct skcipher_request * req)
+{
+	lx_emul_trace_and_stop(__func__);
 }
