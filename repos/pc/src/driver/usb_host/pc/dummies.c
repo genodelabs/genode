@@ -17,6 +17,7 @@ const struct attribute_group pci_dev_acpi_attr_group;
 
 
 #include <asm/preempt.h>
+#include <linux/thread_info.h>
 #include <asm/smp.h>
 
 struct smp_ops smp_ops = { };
@@ -323,3 +324,12 @@ void kernfs_notify(struct kernfs_node * kn)
 {
 	lx_emul_trace(__func__);
 }
+
+
+#ifdef CONFIG_X86_64
+extern unsigned long arch_scale_cpu_capacity(int cpu);
+unsigned long arch_scale_cpu_capacity(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+#endif

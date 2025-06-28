@@ -91,7 +91,7 @@ int pci_alloc_irq_vectors_affinity(struct pci_dev *dev, unsigned int min_vecs,
                                    unsigned int max_vecs, unsigned int flags,
                                    struct irq_affinity *aff_desc)
 {
-	if ((flags & PCI_IRQ_LEGACY) && min_vecs == 1 && dev->irq)
+	if ((flags & PCI_IRQ_INTX) && min_vecs == 1 && dev->irq)
 		return 1;
 	return -ENOSPC;
 }
@@ -133,7 +133,7 @@ unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 int pci_alloc_irq_vectors(struct pci_dev * dev, unsigned int min_vecs,
                           unsigned int max_vecs,unsigned int flags)
 {
-	if ((flags & PCI_IRQ_LEGACY) && min_vecs == 1 && dev->irq)
+	if ((flags & PCI_IRQ_INTX) && min_vecs == 1 && dev->irq)
 		return 1;
 	return -ENOSPC;
 }

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-08-20
+ * \date   2025-06-27
  */
 
 #include <lx_emul.h>
@@ -22,7 +22,7 @@ struct cpumask __cpu_active_mask;
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -30,7 +30,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -85,6 +85,22 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 
 extern void arch_trigger_cpumask_backtrace(const cpumask_t * mask,int exclude_cpu);
 void arch_trigger_cpumask_backtrace(const cpumask_t * mask,int exclude_cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parse(const char * start,unsigned int buflen,unsigned long * maskp,int nmaskbits)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -310,6 +326,14 @@ void iommu_device_unuse_default_domain(struct device * dev)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -339,7 +363,7 @@ int kill_pid_usb_asyncio(int sig,int errno,sigval_t addr,struct pid * pid,const 
 
 #include <linux/kmsg_dump.h>
 
-void kmsg_dump(enum kmsg_dump_reason reason)
+void kmsg_dump_desc(enum kmsg_dump_reason reason,const char * desc)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -353,9 +377,41 @@ int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 }
 
 
+#include <linux/rcutree.h>
+
+void kvfree_rcu_barrier(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
+
+
+#include <linux/preempt.h>
+
+void migrate_disable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/preempt.h>
+
+void migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/printk.h>
+
+void nbcon_atomic_flush_unsafe(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/irq.h>
@@ -432,9 +488,9 @@ int pci_write_config_dword(const struct pci_dev * dev,int where,u32 val)
 }
 
 
-#include <linux/sysctl.h>
+#include <linux/printk.h>
 
-int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+void printk_legacy_allow_panic_sync(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -442,7 +498,15 @@ int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t
 
 #include <linux/sysctl.h>
 
-int proc_douintvec(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+int proc_douintvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -529,6 +593,14 @@ void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,voi
 #include <linux/smp.h>
 
 int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/smp.h>
+
+int smp_call_function_single_async(int cpu,call_single_data_t * csd)
 {
 	lx_emul_trace_and_stop(__func__);
 }
