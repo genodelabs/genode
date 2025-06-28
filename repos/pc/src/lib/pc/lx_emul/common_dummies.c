@@ -80,11 +80,23 @@ unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)];
 bool sched_smp_initialized = true;
 
 
+#ifdef CONFIG_X86_64
+unsigned long __top_init_kernel_stack[1];
+#endif
+
 /*
  * Generate_dummies.c will otherwise pull in <linux/rcutree.h>
  * that clashes with rcutiny.h.
  */
 void rcu_barrier(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/sched.h>
+
+void sched_tick(void)
 {
 	lx_emul_trace(__func__);
 }
@@ -314,6 +326,18 @@ int pci_disable_link_state(struct pci_dev * pdev,int state)
 }
 
 
+int pcibios_alloc_irq(struct pci_dev *dev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+void pcibios_free_irq(struct pci_dev *dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
 extern int pci_dev_specific_acs_enabled(struct pci_dev * dev,u16 acs_flags);
 int pci_dev_specific_acs_enabled(struct pci_dev * dev,u16 acs_flags)
 {
@@ -475,3 +499,9 @@ struct ctl_table_header *register_sysctl_sz(const char *path, struct ctl_table *
 	return NULL;
 }
 
+
+/* kernel/sched/sched.h */
+void __dl_server_attach_root(struct sched_dl_entity *dl_se, struct rq *rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}

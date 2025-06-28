@@ -76,7 +76,7 @@ LX_FILES += Kbuild \
             kernel/configs/tiny.config \
             scripts/Kbuild.include \
             scripts/Makefile \
-            scripts/Makefile.asm-generic \
+            scripts/Makefile.asm-headers \
             scripts/Makefile.build \
             scripts/Makefile.compiler \
             scripts/Makefile.extrawarn \
@@ -95,7 +95,6 @@ LX_FILES += Kbuild \
             scripts/mkcompile_h \
             scripts/min-tool-version.sh \
             scripts/mod \
-            scripts/pahole-flags.sh \
             scripts/pahole-version.sh \
             scripts/remove-stale-files \
             scripts/setlocalversion \
