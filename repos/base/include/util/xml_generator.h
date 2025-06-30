@@ -271,10 +271,10 @@ class Genode::Xml_generator
 
 			public:
 
-				Result insert_attribute(char const *name, char const *value)
+				Result insert_attribute(char const *name, char const *value, size_t val_len)
 				{
 					/* ' ' + name + '=' + '"' + value + '"' */
-					size_t const gap = 1 + strlen(name) + 1 + 1 + strlen(value) + 1;
+					size_t const gap = 1 + strlen(name) + 1 + 1 + val_len + 1;
 
 					Out_buffer dst = _out_buffer.insert_gap(_attr_offset, gap);
 
@@ -283,7 +283,7 @@ class Genode::Xml_generator
 						          || dst.append(' ')  .exceeded
 						          || dst.append(name) .exceeded
 						          || dst.append("=\"").exceeded
-						          || dst.append(value, strlen(value)).exceeded
+						          || dst.append(value, val_len).exceeded
 						          || dst.append("\"") .exceeded
 					};
 
@@ -368,26 +368,30 @@ class Genode::Xml_generator
 
 		void node(char const *name) { node(name, [] { }); }
 
+		void attribute(char const *name, char const *str, size_t str_len)
+		{
+			_exceeded |= _curr_node->insert_attribute(name, str, str_len).exceeded;
+		}
+
 		void attribute(char const *name, char const *str)
 		{
-			_exceeded |= _curr_node->insert_attribute(name, str).exceeded;
+			attribute(name, str, strlen(str));
 		}
 
 		template <size_t N>
 		void attribute(char const *name, String<N> const &str)
 		{
-			_exceeded |= _curr_node->insert_attribute(name, str.string()).exceeded;
+			attribute(name, str.string());
 		}
 
 		void attribute(char const *name, bool value)
 		{
-			char const *text = value ? "true" : "false";
-			_exceeded |= _curr_node->insert_attribute(name, text).exceeded;
+			attribute(name, value ? "true" : "false");
 		}
 
 		void attribute(char const *name, long long value)
 		{
-			_exceeded |= _curr_node->insert_attribute(name, String<64>(value).string()).exceeded;
+			attribute(name, String<64>(value));
 		}
 
 		void attribute(char const *name, long value)
@@ -402,7 +406,7 @@ class Genode::Xml_generator
 
 		void attribute(char const *name, unsigned long long value)
 		{
-			_exceeded |= _curr_node->insert_attribute(name, String<64>(value).string()).exceeded;
+			attribute(name, String<64>(value));
 		}
 
 		void attribute(char const *name, unsigned long value)
@@ -417,8 +421,7 @@ class Genode::Xml_generator
 
 		void attribute(char const *name, double value)
 		{
-			String<64> buf(value);
-			_exceeded |= _curr_node->insert_attribute(name, buf.string()).exceeded;
+			attribute(name, String<64>(value));
 		}
 
 		/**
@@ -468,6 +471,29 @@ class Genode::Xml_generator
 			Output::out_args(output, args...);
 
 			_exceeded |= output.exceeded;
+		}
+
+		struct Max_depth { unsigned value; };
+
+		/**
+		 * Append structured 'node'
+		 */
+		void append_node(auto const &node, Max_depth max_depth = { 10 })
+		{
+			if (!max_depth.value)
+				return;
+
+			auto copy_attributes = [] (Xml_generator &xml, auto const &node)
+			{
+				node.for_each_attribute([&] (auto const &attr) {
+					xml.attribute(attr.name.string(),
+					              attr.value.start, attr.value.num_bytes); });
+			};
+
+			this->node(node.type().string(), [&] {
+				copy_attributes(*this, node);
+				node.for_each_sub_node([&] (auto const &sub_node) {
+					append_node(sub_node, { max_depth.value - 1 }); }); });
 		}
 };
 
