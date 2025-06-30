@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2024-08-20
+ * \date   2025-06-30
  */
 
 #include <lx_emul.h>
@@ -46,7 +46,7 @@ struct nlmsghdr * __nlmsg_put(struct sk_buff * skb,u32 portid,u32 seq,int type,i
 
 #include <linux/printk.h>
 
-void __printk_safe_enter(void)
+void __printk_deferred_enter(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -54,7 +54,7 @@ void __printk_safe_enter(void)
 
 #include <linux/printk.h>
 
-void __printk_safe_exit(void)
+void __printk_deferred_exit(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -70,7 +70,7 @@ void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
 
 #include <linux/skbuff.h>
 
-void __skb_get_hash(struct sk_buff * skb)
+void __skb_get_hash_net(const struct net * net,struct sk_buff * skb)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -134,6 +134,30 @@ async_cookie_t async_schedule_node(async_func_t func,void * data,int node)
 #include <linux/async.h>
 
 void async_synchronize_full(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parse(const char * start,unsigned int buflen,unsigned long * maskp,int nmaskbits)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/bitmap-str.h>
+
+int bitmap_print_to_pagebuf(bool list,char * buf,const unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -306,7 +330,7 @@ u32 ethtool_op_get_link(struct net_device * dev)
 
 #include <linux/ethtool.h>
 
-int ethtool_op_get_ts_info(struct net_device * dev,struct ethtool_ts_info * info)
+int ethtool_op_get_ts_info(struct net_device * dev,struct kernel_ethtool_ts_info * info)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -476,6 +500,14 @@ long __sched io_schedule_timeout(long timeout)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 void irq_work_tick(void)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -497,7 +529,7 @@ void kill_anon_super(struct super_block * sb)
 
 #include <linux/kmsg_dump.h>
 
-void kmsg_dump(enum kmsg_dump_reason reason)
+void kmsg_dump_desc(enum kmsg_dump_reason reason,const char * desc)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -585,6 +617,14 @@ int mii_nway_restart(struct mii_if_info * mii)
 }
 
 
+#include <linux/printk.h>
+
+void nbcon_atomic_flush_unsafe(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/netlink.h>
 
 bool netlink_strict_get_check(struct sk_buff * skb)
@@ -635,6 +675,14 @@ void pci_clear_mwi(struct pci_dev * dev)
 #include <linux/pci.h>
 
 int pci_prepare_to_sleep(struct pci_dev * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+int pci_read_config_byte(const struct pci_dev * dev,int where,u8 * val)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -704,9 +752,33 @@ int pcix_set_mmrbc(struct pci_dev * dev,int mmrbc)
 }
 
 
+#include <linux/phy_link_topology.h>
+
+int phy_link_topo_add_phy(struct net_device * dev,struct phy_device * phy,enum phy_upstream upt,void * upstream)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/phy_link_topology.h>
+
+void phy_link_topo_del_phy(struct net_device * dev,struct phy_device * phy)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/phylib_stubs.h>
 
 const struct phylib_stubs *phylib_stubs;
+
+
+#include <linux/printk.h>
+
+void printk_legacy_allow_panic_sync(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/interrupt.h>
@@ -727,7 +799,7 @@ unsigned long probe_irq_on(void)
 
 #include <linux/sysctl.h>
 
-int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -735,7 +807,7 @@ int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t
 
 #include <linux/sysctl.h>
 
-int proc_douintvec(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+int proc_douintvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -909,7 +981,7 @@ int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
 
 #include <linux/smp.h>
 
-int smp_call_function_single_async(int cpu,struct __call_single_data * csd)
+int smp_call_function_single_async(int cpu,call_single_data_t * csd)
 {
 	lx_emul_trace_and_stop(__func__);
 }

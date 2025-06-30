@@ -75,6 +75,7 @@ include/linux/if_tunnel.h
 include/linux/if_vlan.h
 include/linux/inet.h
 include/linux/inetdevice.h
+include/linux/iov_iter.h
 include/linux/ip.h
 include/linux/ipv6_route.h
 include/linux/irqchip/chained_irq.h
@@ -91,6 +92,7 @@ include/linux/of_mdio.h
 include/linux/of_net.h
 include/linux/phy_fixed.h
 include/linux/phy_led_triggers.h
+include/linux/phy_link_topology.h
 include/linux/phylib_stubs.h
 include/linux/phylink.h
 include/linux/pinctrl/pinconf-generic.h
@@ -107,6 +109,7 @@ include/linux/sctp.h
 include/linux/set_memory.h
 include/linux/sfp.h
 include/linux/skb_array.h
+include/linux/skbuff_ref.h
 include/linux/sock_diag.h
 include/linux/wireless.h
 include/net/act_api.h
@@ -122,6 +125,7 @@ include/net/gen_stats.h
 include/net/gro.h
 include/net/gro_cells.h
 include/net/gso.h
+include/net/hotdata.h
 include/net/inet_ecn.h
 include/net/inet_hashtables.h
 include/net/inetpeer.h
@@ -145,12 +149,15 @@ include/net/page_pool/helpers.h
 include/net/page_pool/types.h
 include/net/pkt_cls.h
 include/net/pkt_sched.h
+include/net/proto_memory.h
 include/net/protocol.h
 include/net/route.h
+include/net/rps.h
 include/net/sch_generic.h
 include/net/sock_reuseport.h
 include/net/switchdev.h
 include/net/tcp.h
+include/net/tcp_ao.h
 include/net/tcx.h
 include/net/udp.h
 include/net/udp_tunnel.h
@@ -205,6 +212,9 @@ include/uapi/linux/sock_diag.h
 include/uapi/linux/vmcore.h
 include/uapi/linux/wireless.h
 net/core/dev.h
+net/core/devmem.h
 net/core/net-sysfs.h
+net/core/netmem_priv.h
 net/core/sock_destructor.h
 net/ethtool/common.h
+net/ethtool/netlink.h

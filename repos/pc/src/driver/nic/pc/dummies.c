@@ -13,6 +13,8 @@
 
 #include <lx_emul.h>
 
+#include <linux/thread_info.h>
+
 #include <asm/preempt.h>
 #include <asm/smp.h>
 
@@ -393,3 +395,6 @@ int pinctrl_init_done(struct device * dev)
 	return 0;
 }
 
+#include <linux/async.h>
+
+void async_init(void) { }

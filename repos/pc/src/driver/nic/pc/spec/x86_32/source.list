@@ -73,6 +73,7 @@ kernel/time/timecounter.c
 kernel/time/timekeeping.c
 kernel/time/timer.c
 kernel/time/timer_list.c
+kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/atomic64.c
 lib/bitmap.c
@@ -117,6 +118,7 @@ net/core/datagram.c
 net/core/dev.c
 net/core/dev_addr_lists.c
 net/core/gro.c
+net/core/hotdata.c
 net/core/link_watch.c
 net/core/net-sysfs.c
 net/core/net-traces.c
