@@ -439,6 +439,18 @@ void Component::construct(Genode::Env &env)
 	}
 	log("");
 
+	log("-- Test for_each_quoted_line ---");
+	{
+		unsigned i = 0;
+		Xml_node("<lines>first\nsecond\nthird\nlast</lines>")
+			.for_each_quoted_line([&] (Xml_node::Quoted_line const &line) {
+				log("line ", i++, ": '", line, "' last=", line.last); });
+		Xml_node("<lines>\n\t <xml/> </lines>")
+			.for_each_quoted_line([&] (Xml_node::Quoted_line const &) {
+				log("should not appear because content is no CDATA"); });
+	}
+	log("");
+
 	log("--- End of XML-parser test ---");
 	env.parent().exit(0);
 }

@@ -110,6 +110,12 @@
 			[init -> test-xml_node] 
 			[init -> test-xml_node] -- Test iterating over invalid node --
 			[init -> test-xml_node] 
+			[init -> test-xml_node] -- Test for_each_quoted_line ---
+			[init -> test-xml_node] line 0: 'first' last=0
+			[init -> test-xml_node] line 1: 'second' last=0
+			[init -> test-xml_node] line 2: 'third' last=0
+			[init -> test-xml_node] line 3: 'last' last=1
+			[init -> test-xml_node] 
 			[init -> test-xml_node] --- End of XML-parser test ---*
 			[init] child "test-xml_node" exited with exit value 0
 	</succeed>

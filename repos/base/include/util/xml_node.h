@@ -737,6 +737,73 @@ class Genode::Xml_node
 			fn(_content_base(), content_size());
 		}
 
+		static void print_quoted_line(Output &out, Const_byte_range_ptr const &bytes)
+		{
+			char const *src     = bytes.start;
+			size_t      src_len = bytes.num_bytes;
+			while (src_len) {
+				Decoded_character const decoded(src, src_len);
+				Genode::print(out, Char(decoded.character));
+				src     += decoded.encoded_len;
+				src_len -= decoded.encoded_len;
+			}
+		}
+
+		struct Quoted_line
+		{
+			Const_byte_range_ptr bytes;
+			bool const last;
+			void print(Output &out) const { print_quoted_line(out, bytes); }
+		};
+
+		/**
+		 * Call 'fn' with 'Quoted_line const &' for each CDATA content line
+		 *
+		 * The 'fn' functor is only called, if the content is CDATA, not XML.
+		 * Both cases are distiguised by the presence of a leading '<'
+		 * character. Mixing of XML content and CDATA within one node is not
+		 * supported.
+		 */
+		void for_each_quoted_line(auto const &fn) const
+		{
+			using Span = Const_byte_range_ptr;
+			auto with_split = [] (Span const &bytes, char match, auto const &fn)
+			{
+				unsigned n = 0;
+				while (n < bytes.num_bytes && (bytes.start[n] != match))
+					n++;
+
+				if (n < bytes.num_bytes)
+					fn(Span(bytes.start, n),
+					   Span(bytes.start + n + 1, bytes.num_bytes - n - 1));
+				else
+					fn(bytes, Span(nullptr, 0));
+			};
+
+			with_raw_content([&] (char const *start, size_t num_bytes) {
+				bool quoted = false;
+				for (size_t i = 0; i < num_bytes; i++)
+					if (!is_whitespace(start[i])) {
+						quoted = (start[i] != '<');
+						break;
+					}
+				if (!quoted)
+					return;
+
+				while (num_bytes) {
+					with_split({ start, num_bytes }, '\n',
+						[&] (Span const &line, Span const &remain) {
+							fn(Quoted_line {
+								.bytes = { line.start, line.num_bytes },
+								.last  = (remain.num_bytes == 0)
+							});
+							start     = remain.start;
+							num_bytes = remain.num_bytes;
+						});
+				}
+			});
+		}
+
 		/**
 		 * Export decoded node content from XML node
 		 *

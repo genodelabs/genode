@@ -46,6 +46,12 @@ class Genode::Node : Noncopyable
 			return n && *s == '<';
 		}
 
+		void _print_quoted_line(Output &out, Const_byte_range_ptr const &bytes) const
+		{
+			_with([&] (Xml_node const &) { Xml_node::print_quoted_line(out, bytes); },
+			      [&] { });
+		}
+
 	public:
 
 		Node() { /* empty */ };
@@ -196,6 +202,36 @@ class Genode::Node : Noncopyable
 						[&] (Xml_node const &) { return true; },
 						[]                     { return false; });
 			});
+		}
+
+		class Quoted_line
+		{
+			private:
+
+				Node const &_node;
+				Const_byte_range_ptr _bytes;
+
+				friend class Node;
+
+				Quoted_line(Node const &node, char const *start, size_t len, bool last)
+				: _node(node), _bytes(start, len), last(last) { }
+
+			public:
+
+				bool const last;
+
+				void print(Output &out) const { _node._print_quoted_line(out, _bytes); }
+		};
+
+		void for_each_quoted_line(auto const &fn) const
+		{
+			_with(
+				[&] (Xml_node const &xml) {
+					xml.for_each_quoted_line([&] (Xml_node::Quoted_line const &l) {
+						fn(Quoted_line { *this, l.bytes.start, l.bytes.num_bytes, l.last });
+					});
+				},
+				[&] { });
 		}
 
 		template <typename STRING>
