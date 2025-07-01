@@ -88,3 +88,13 @@ Xml_generator::Node::Node(Xml_generator &xml, char const *name, bool,
 
 	_exceeded |= _out_buffer.append('\0').exceeded;
 }
+
+
+#include <util/xml_node.h>
+
+void Xml_generator::node_attributes(Xml_node const &node)
+{
+	node.for_each_attribute([&] (auto const &attr) {
+		attr.with_raw_value([&] (char const *start, size_t num_bytes) {
+			attribute(attr.name().string(), start, num_bytes); }); });
+}

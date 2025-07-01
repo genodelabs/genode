@@ -19,6 +19,7 @@
 #include <util/attempt.h>
 #include <util/print_lines.h>
 
+namespace Genode { class Xml_node; /* forward declaration */ }
 namespace Genode { class Xml_generator; }
 
 
@@ -473,27 +474,68 @@ class Genode::Xml_generator
 			_exceeded |= output.exceeded;
 		}
 
+		/**
+		 * Copy all attributes from the given node
+		 */
+		void node_attributes(auto const &node)
+		{
+			node.for_each_attribute([&] (auto const &attr) {
+				attribute(attr.name.string(),
+				          attr.value.start, attr.value.num_bytes); });
+		}
+
+		/**
+		 * Compatibility helper for the transition from Xml_node to Node
+		 *
+		 * As the interface of 'Xml_attribute' differs from 'Attribute', the
+		 * 'node_attributes' template above cannot be used for 'Xml_node'.
+		 */
+		void node_attributes(Xml_node const &node);
+
 		struct Max_depth { unsigned value; };
 
 		/**
-		 * Append structured 'node'
+		 * Append content of node
+		 *
+		 * The content can either be quoted content or sub nodes but not a mix
+		 * of both.
+		 *
+		 * \return false if node structure exceeds 'max_depth'
 		 */
-		void append_node(auto const &node, Max_depth max_depth = { 10 })
+		[[nodiscard]] bool append_node_content(auto const &node, Max_depth max_depth)
 		{
 			if (!max_depth.value)
-				return;
+				return false;
 
-			auto copy_attributes = [] (Xml_generator &xml, auto const &node)
-			{
-				node.for_each_attribute([&] (auto const &attr) {
-					xml.attribute(attr.name.string(),
-					              attr.value.start, attr.value.num_bytes); });
-			};
+			bool quoted = false;
+			node.for_each_quoted_line([&] (auto const &line) {
+				quoted = true;
+				append_content(line);
+				if (!line.last) append_sanitized("\n");
+			});
+			if (quoted)
+				return true;
 
+			bool ok = true;
+			node.for_each_sub_node([&] (auto const &sub_node) {
+				if (ok)
+					ok = append_node(sub_node, { max_depth.value - 1 }); });
+			return ok;
+		}
+
+		/**
+		 * Append a copy of node
+		 *
+		 * \return false if node structure exceeds 'max_depth'
+		 */
+		[[nodiscard]] bool append_node(auto const &node, Max_depth max_depth)
+		{
+			bool result = true;
 			this->node(node.type().string(), [&] {
-				copy_attributes(*this, node);
-				node.for_each_sub_node([&] (auto const &sub_node) {
-					append_node(sub_node, { max_depth.value - 1 }); }); });
+				node_attributes(node);
+				result = append_node_content(node, max_depth);
+			});
+			return result;
 		}
 };
 
