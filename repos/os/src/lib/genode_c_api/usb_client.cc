@@ -216,6 +216,8 @@ class Interface : public List_model<::Interface>::Element
 
 		void delete_all_urbs(genode_usb_client_complete_t complete)
 		{
+			if (!_iface.constructed()) return;
+
 			_iface->dissolve_all_urbs<Urb>([&] (Urb &urb) {
 				complete(urb._driver_data.data, NO_DEVICE);
 				destroy(_slab, &urb);
