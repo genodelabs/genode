@@ -670,6 +670,15 @@ void Main::_handle_fb_mode()
 				return;
 			}
 
+			/**
+			 * The UI buffer was adjusted/changed by m.fb->update_mode() above
+			 * and we may have lost the content, if the UI server could not
+			 * copy the previous content to the new buffer, because of memory
+			 * pressure. So, request a full update of the screen to avoid
+			 * blank or partial screen content.
+			 */
+			_idisplay->InvalidateAndUpdateScreen(m.id);
+
 			/*
 			 * XXX May changeOrigin and originX/originY be used to hint guest
 			 * about panorama config?
