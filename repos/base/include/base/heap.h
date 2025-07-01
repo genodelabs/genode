@@ -16,7 +16,7 @@
 
 #include <util/list.h>
 #include <util/reconstructible.h>
-#include <base/ram_allocator.h>
+#include <base/ram.h>
 #include <base/local.h>
 #include <base/allocator_avl.h>
 #include <base/mutex.h>
@@ -40,6 +40,7 @@ class Genode::Heap : public Allocator
 	private:
 
 		using Local_rm = Local::Constrained_region_map;
+		using Ram_allocator = Ram::Constrained_allocator;
 
 		class Dataspace : public List<Dataspace>::Element
 		{
@@ -185,6 +186,7 @@ class Genode::Sliced_heap : public Allocator
 	private:
 
 		using Local_rm = Local::Constrained_region_map;
+		using Ram_allocator = Ram::Constrained_allocator;
 
 		/**
 		 * Meta-data header placed in front of each allocated block
