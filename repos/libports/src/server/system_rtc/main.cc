@@ -118,7 +118,7 @@ struct Rtc::Time
 
 	Attached_rom_dataspace _config_rom { _env, "config" };
 	bool const _set_rtc {
-		_config_rom.xml().attribute_value("allow_setting_rtc", false) };
+		_config_rom.node().attribute_value("allow_setting_rtc", false) };
 
 	Constructible<Attached_rom_dataspace> _set_rtc_rom { };
 
@@ -131,7 +131,7 @@ struct Rtc::Time
 
 		if (!_set_rtc_rom->valid()) { return; }
 
-		Genode::Xml_node node = _set_rtc_rom->xml();
+		Genode::Node const &node = _set_rtc_rom->node();
 
 		bool const complete = node.has_attribute("year")
 			&& node.has_attribute("month")

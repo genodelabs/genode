@@ -15,7 +15,7 @@
 #include <capture_session/connection.h>
 #include <gui_session/gui_session.h>
 #include <os/reporter.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 #include <libyuv/libyuv.h>
 #include <libyuv/convert_from_argb.h>
@@ -245,7 +245,7 @@ static void free_libyuv(void *ptr)
  * Do not use type_init macro because of name mangling
  */
 extern "C" void _type_init_host_webcam_register_types(Env &env,
-                                                      Xml_node const &webcam)
+                                                      Node const &webcam)
 {
 	/* initialize capture session */
 	capture.construct(env, Gui::Area(webcam.attribute_value("width",  640u),

@@ -48,7 +48,7 @@ struct Main
 		*this, &Main::_handle_runtime_config_update };
 
 
-	void _remove_outdated_debug_directories(Xml_node const &monitor)
+	void _remove_outdated_debug_directories(Node const &monitor)
 	{
 		bool dir_removed = false;
 
@@ -67,7 +67,7 @@ struct Main
 
 				bool found_in_config = false;
 
-				monitor.for_each_sub_node("policy", [&] (Xml_node const &policy) {
+				monitor.for_each_sub_node("policy", [&] (Node const &policy) {
 					Session_label policy_label {
 						policy.attribute_value("label",
 								               Session_label::String()) };
@@ -88,9 +88,9 @@ struct Main
 	}
 
 
-	void _process_monitor_config(Xml_node const &config, Xml_node const &monitor)
+	void _process_monitor_config(Node const &config, Node const &monitor)
 	{
-		monitor.for_each_sub_node("policy", [&] (Xml_node const &policy) {
+		monitor.for_each_sub_node("policy", [&] (Node const &policy) {
 
 			Session_label policy_label {
 				policy.attribute_value("label", Session_label::String()) };
@@ -102,15 +102,15 @@ struct Main
 
 			Directory component_dir { _debug_dir, policy_label };
 
-			config.for_each_sub_node("start", [&] (Xml_node const &start) {
+			config.for_each_sub_node("start", [&] (Node const &start) {
 
 				if (start.attribute_value("name", Session_label::String()) !=
 				    policy_label)
 					return;
 
-				start.with_sub_node("route", [&] (Xml_node const &route) {
+				start.with_sub_node("route", [&] (Node const &route) {
 
-					route.for_each_sub_node("service", [&] (Xml_node const &service) {
+					route.for_each_sub_node("service", [&] (Node const &service) {
 
 						if (service.attribute_value("name", String<8>()) != "ROM")
 							return;
@@ -127,7 +127,7 @@ struct Main
 
 						} else {
 
-							service.with_sub_node("child", [&] (Xml_node const &child) {
+							service.with_sub_node("child", [&] (Node const &child) {
 
 								if (child.attribute_value("name", String<16>()) !=
 								    "depot_rom")
@@ -137,7 +137,7 @@ struct Main
 									child.attribute_value("label", Session_label::String());
 
 							}, [&] () {
-								Genode::warning("<child> XML node not found");
+								Genode::warning("<child> node not found");
 								return;
 							});
 						}
@@ -183,7 +183,7 @@ struct Main
 						component_dir.create_symlink(debug_file_path, depot_dbg_path);
 					});
 				}, [&] () {
-					Genode::error("<route> XML node not found");
+					Genode::error("<route> node not found");
 				});
 			});
 		});
@@ -200,11 +200,11 @@ struct Main
 				File_content::Limit(512*1024)
 			};
 
-			runtime_config.xml([&] (Xml_node const config) {
-				config.with_sub_node("monitor", [&] (Xml_node const &monitor) {
+			runtime_config.node([&] (Node const config) {
+				config.with_sub_node("monitor", [&] (Node const &monitor) {
 					_process_monitor_config(config, monitor);
 				}, [&] () {
-					Genode::error("<monitor> XML node not found");
+					Genode::error("<monitor> node not found");
 				});
 			});
 		} catch (File_content::Truncated_during_read) {
@@ -216,8 +216,8 @@ struct Main
 	Main(Genode::Env &env)
 	: _env(env)
 	{
-		_base_archive = _build_info.xml().attribute_value("base",
-		                                                  Session_label::String());
+		_base_archive = _build_info.node().attribute_value("base",
+		                                                   Session_label::String());
 		_handle_runtime_config_update();
 	}
 };

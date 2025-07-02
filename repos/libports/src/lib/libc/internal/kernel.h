@@ -171,21 +171,21 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 
 		Attached_rom_dataspace _config_rom { _env, "config" };
 
-		Config const _config = Config::from_xml(_config_rom.xml());
+		Config const _config = Config::from_node(_config_rom.node());
 
 		void _with_libc_config(auto const &fn) const
 		{
-			_config_rom.xml().with_sub_node("libc",
-				[&] (Xml_node const &libc) { fn(libc); },
-				[&] { fn( Xml_node { "<libc/>" } ); });
+			_config_rom.node().with_sub_node("libc",
+				[&] (Node const &libc) { fn(libc); },
+				[&] { fn( Node() ); });
 		}
 
 		void _with_libc_sub_config(char const *tag, auto const &fn) const
 		{
-			_with_libc_config([&] (Xml_node const &libc) {
+			_with_libc_config([&] (Node const &libc) {
 				libc.with_sub_node(tag,
-					[&] (Xml_node const pthread) { fn(pthread); },
-					[&] { fn(Xml_node(String<64>("<", tag, "/>").string())); }); });
+					[&] (Node const pthread) { fn(pthread); },
+					[&] { fn(Node()); }); });
 		};
 
 		Vfs_user _vfs_user { _io_progressed };

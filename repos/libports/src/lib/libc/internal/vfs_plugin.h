@@ -159,8 +159,8 @@ class Libc::Vfs_plugin final : public Plugin
 		/**
 		 * Call functor 'fn' with ioctl info for the given file descriptor 'fd'
 		 *
-		 * The functor is called with an 'Xml_node' of the ioctl information
-		 * as argument.
+		 * The functor is called with an 'Node' of the ioctl information as
+		 * argument.
 		 *
 		 * If no ioctl info is available, 'fn' is not called.
 		 */

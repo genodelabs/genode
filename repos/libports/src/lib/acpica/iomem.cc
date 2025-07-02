@@ -431,7 +431,7 @@ ACPI_PHYSICAL_ADDRESS AcpiOsGetRootPointer (void)
 	ACPI_MAKE_RSDP_SIG(faked_rsdp.Signature);
 	memcpy(faked_rsdp.OemId, "Faked", 6);
 	faked_rsdp.Checksum = 0;
-	info.xml().with_optional_sub_node("acpi", [&] (Genode::Xml_node const &acpi_node) {
+	info.node().with_optional_sub_node("acpi", [&] (Genode::Node const &acpi_node) {
 		faked_rsdp.Revision            = acpi_node.attribute_value("revision", 0U);
 		faked_rsdp.RsdtPhysicalAddress = acpi_node.attribute_value("rsdt", 0UL);
 		faked_rsdp.Length              = sizeof(ACPI_TABLE_RSDP);

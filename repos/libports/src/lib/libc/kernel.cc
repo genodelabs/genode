@@ -71,7 +71,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		Diag_guard(Kernel &kernel) : kernel(kernel) { }
 
-		~Diag_guard() { if (show) log(kernel._config_rom.xml()); }
+		~Diag_guard() { if (show) log(kernel._config_rom.node()); }
 
 	} diag_guard { *this };
 
@@ -179,7 +179,7 @@ void Libc::Kernel::_init_file_descriptors()
 		} catch (Path_base::Path_too_long) { return Absolute_path_resolve_error(); }
 	};
 
-	auto init_fd = [&] (Xml_node const &node, char const *attr,
+	auto init_fd = [&] (Node const &node, char const *attr,
 	                    int libc_fd, unsigned flags)
 	{
 		if (!node.has_attribute(attr))
@@ -239,7 +239,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 	if (_vfs.root_dir_has_dirents()) {
 
-		_config_rom.xml().with_optional_sub_node("libc", [&] (Xml_node const &node) {
+		_config_rom.node().with_optional_sub_node("libc", [&] (Node const &node) {
 
 			using Path = String<Vfs::MAX_PATH_LEN>;
 
@@ -250,7 +250,7 @@ void Libc::Kernel::_init_file_descriptors()
 			init_fd(node, "stdout", 1, O_WRONLY);
 			init_fd(node, "stderr", 2, O_WRONLY);
 
-			node.for_each_sub_node("fd", [&] (Xml_node fd) {
+			node.for_each_sub_node("fd", [&] (Node const &fd) {
 
 				unsigned const id = fd.attribute_value("id", 0U);
 
@@ -333,7 +333,7 @@ void Libc::Kernel::_clone_state_from_parent()
 {
 	using Range = Region_map::Range;
 
-	auto range_attr = [&] (Xml_node const &node)
+	auto range_attr = [&] (Node const &node)
 	{
 		return Range {
 			.start     = node.attribute_value("at",   0UL),
@@ -349,8 +349,8 @@ void Libc::Kernel::_clone_state_from_parent()
 	 * the shared-memory buffer of the clone session may otherwise potentially
 	 * interfere with such a heap region.
 	 */
-	_with_libc_config([&] (Xml_node const &libc) {
-		libc.for_each_sub_node("heap", [&] (Xml_node const &node) {
+	_with_libc_config([&] (Node const &libc) {
+		libc.for_each_sub_node("heap", [&] (Node const &node) {
 			Range const range = range_attr(node);
 			new (_heap)
 				Registered<Cloned_malloc_heap_range>(_cloned_heap_ranges,
@@ -377,8 +377,8 @@ void Libc::Kernel::_clone_state_from_parent()
 		_clone_connection->memory_content((void *)range.start, range.num_bytes);
 	};
 
-	_with_libc_config([&] (Xml_node const &libc) {
-		libc.for_each_sub_node([&] (Xml_node const &node) {
+	_with_libc_config([&] (Node const &libc) {
+		libc.for_each_sub_node([&] (Node const &node) {
 
 			/* clone application stack */
 			if (node.type() == "stack")
@@ -487,7 +487,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_semaphore_support(_timer_accessor);
 	init_pthread_support(*this, _timer_accessor);
 
-	_with_libc_sub_config("pthread", [&] (Xml_node const &pthread_config) {
+	_with_libc_sub_config("pthread", [&] (Node const &pthread_config) {
 		init_pthread_support(env.cpu(), pthread_config, _heap); });
 
 	_env.ep().register_io_progress_handler(*this);
@@ -515,7 +515,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_socket_fs(*this, _fd_alloc, _config);
 	init_socket_operations(_fd_alloc, _config);
 
-	_with_libc_sub_config("passwd", [&] (Xml_node const &passwd_config) {
+	_with_libc_sub_config("passwd", [&] (Node const &passwd_config) {
 		init_passwd(passwd_config); });
 
 	init_signal(_signal);

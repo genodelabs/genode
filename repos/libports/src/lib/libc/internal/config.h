@@ -15,7 +15,7 @@
 #define _LIBC__INTERNAL__CONFIG_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <base/component.h>
 
 /* libc includes */
@@ -34,13 +34,13 @@ struct Libc::Config
 	Path   rtc, rng, pipe, socket, nameserver;
 	size_t stack_size;
 
-	static Config _from_libc_xml(Xml_node const &libc)
+	static Config _from_libc_node(Node const &libc)
 	{
 		Path const socket = libc.attribute_value("socket", Path());
 		Path const default_nameserver { socket, "/nameserver" };
 
 		size_t stack_size = Component::stack_size();
-		libc.with_optional_sub_node("stack", [&] (Xml_node stack) {
+		libc.with_optional_sub_node("stack", [&] (Node const &stack) {
 			stack_size = stack.attribute_value("size", Number_of_bytes(0)); });
 
 		return {
@@ -57,11 +57,11 @@ struct Libc::Config
 		};
 	}
 
-	static Config from_xml(Xml_node const &config)
+	static Config from_node(Node const &config)
 	{
 		Config result { };
-		config.with_optional_sub_node("libc", [&] (Xml_node const &libc) {
-			result = _from_libc_xml(libc); });
+		config.with_optional_sub_node("libc", [&] (Node const &libc) {
+			result = _from_libc_node(libc); });
 		return result;
 	}
 };

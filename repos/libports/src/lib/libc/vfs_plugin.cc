@@ -185,7 +185,7 @@ void Libc::Vfs_plugin::_with_info(File_descriptor &fd, FN const &fn)
 		                     min((size_t)(_root_dir.file_size(path.string())),
 		                         sizeof(buffer)));
 
-		with_xml_file_content(file, range, [&] (Xml_node const &node) { fn(node); });
+		with_node_file_content(file, range, [&] (Node const &node) { fn(node); });
 	});
 }
 
@@ -1036,7 +1036,7 @@ Libc::Vfs_plugin::_ioctl_tio(File_descriptor *fd, unsigned long request, char *a
 	if (request == TIOCGWINSZ) {
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() == "terminal") {
 					::winsize *winsize = (::winsize *)argp;
 					winsize->ws_row = info.attribute_value("rows",    25U);
@@ -1097,7 +1097,7 @@ Libc::Vfs_plugin::_ioctl_dio(File_descriptor *fd, unsigned long request, char *a
 	if (request == DIOCGMEDIASIZE) {
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() == "block") {
 
 					size_t const size =
@@ -1160,7 +1160,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") {
 					return;
 				}
@@ -1196,7 +1196,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 
 				if (info.type() != "oss") {
 					return;
@@ -1228,7 +1228,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		int play_underruns = 0;
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") {
 					return;
 				}
@@ -1275,7 +1275,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") {
 					return;
 				}
@@ -1300,7 +1300,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") {
 					return;
 				}
@@ -1362,7 +1362,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") {
 					return;
 				}
@@ -1475,7 +1475,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		if (!argp) return { true, EINVAL };
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") {
 					return;
 				}
@@ -1538,7 +1538,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 			monitor().monitor([&] {
 
-				_with_info(*fd, [&] (Xml_node const &info) {
+				_with_info(*fd, [&] (Node const &info) {
 					if (info.type() != "oss") {
 						return;
 					}
@@ -1591,7 +1591,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 			monitor().monitor([&] {
 
-				_with_info(*fd, [&] (Xml_node const &info) {
+				_with_info(*fd, [&] (Node const &info) {
 					if (info.type() != "oss") {
 						return;
 					}
@@ -1681,7 +1681,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		bool legacy_oss = false;
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") return;
 
 				/* assume legacy if version is not set, current is 2 */
@@ -1707,7 +1707,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		}
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() != "oss") {
 					return;
 				}
@@ -1746,7 +1746,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 
 			auto result = Fn::INCOMPLETE;
 
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 
 				if (info.type() != "oss") return;
 
@@ -1796,7 +1796,7 @@ Libc::Vfs_plugin::_ioctl_tapctl(File_descriptor *fd, unsigned long request, char
 		ifreq *ifr = reinterpret_cast<ifreq*>(argp);
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() == "tap") {
 					String<IFNAMSIZ> name = info.attribute_value("name", String<IFNAMSIZ> { });
 					copy_cstring(ifr->ifr_name, name.string(), IFNAMSIZ);
@@ -1812,7 +1812,7 @@ Libc::Vfs_plugin::_ioctl_tapctl(File_descriptor *fd, unsigned long request, char
 			return { true, EINVAL };
 
 		monitor().monitor([&] {
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() == "tap") {
 					Net::Mac_address mac = info.attribute_value("mac_addr", Net::Mac_address { });
 					mac.copy(argp);
@@ -1841,7 +1841,7 @@ Libc::Vfs_plugin::_ioctl_tapctl(File_descriptor *fd, unsigned long request, char
 
 		monitor().monitor([&] {
 			/* check whether mac address changed, return ENOTSUP if not */
-			_with_info(*fd, [&] (Xml_node const &info) {
+			_with_info(*fd, [&] (Node const &info) {
 				if (info.type() == "tap") {
 					if (!info.has_attribute("mac_addr"))
 						result = ENOTSUP;

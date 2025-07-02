@@ -12,7 +12,6 @@
 #include <base/registry.h>
 #include <usb_session/device.h>
 #include <util/list_model.h>
-#include <util/xml_node.h>
 #include <os/backtrace.h>
 
 #include <extern_c_begin.h>
@@ -134,7 +133,7 @@ class Endpoint : public List_model<Endpoint>::Element
 
 	public:
 
-		Endpoint(Xml_node const &n, Allocator &alloc, ::Interface &iface)
+		Endpoint(Node const &n, Allocator &alloc, ::Interface &iface)
 		:
 			_address(n.attribute_value<uint8_t>("address", 0xff)),
 			_attributes(n.attribute_value<uint8_t>("attributes", 0xff)),
@@ -148,10 +147,10 @@ class Endpoint : public List_model<Endpoint>::Element
 		uint8_t attributes()      const { return _attributes; }
 		uint8_t max_packet_size() const { return _max_packet_size; }
 
-		bool matches(Xml_node const &node) const {
+		bool matches(Node const &node) const {
 			return address() == node.attribute_value<uint8_t>("address", 0xff); }
 
-		static bool type_matches(Xml_node const &node) {
+		static bool type_matches(Node const &node) {
 			return node.has_type("endpoint"); }
 
 		bool in() const { return address() & (1<<7); }
@@ -191,7 +190,7 @@ class Interface : public List_model<::Interface>::Element
 
 	public:
 
-		Interface(Device &device, Xml_node const &n)
+		Interface(Device &device, Node const &n)
 		:
 			_device(device),
 			_number(n.attribute_value<uint8_t>("number", 0xff)),
@@ -204,23 +203,23 @@ class Interface : public List_model<::Interface>::Element
 		uint8_t alt_setting() const { return _alt_setting; };
 		bool    active()      const { return _active; }
 
-		bool matches(Xml_node const &n) const
+		bool matches(Node const &n) const
 		{
 			uint8_t nr  = n.attribute_value<uint8_t>("number", 0xff);
 			uint8_t alt = n.attribute_value<uint8_t>("alt_setting", 0xff);
 			return _number == nr && _alt_setting == alt;
 		}
 
-		static bool type_matches(Xml_node const &node) {
+		static bool type_matches(Node const &node) {
 			return node.has_type("interface"); }
 
-		void update(Allocator &alloc, Xml_node const &node)
+		void update(Allocator &alloc, Node const &node)
 		{
 			_active = node.attribute_value("active", false);
-			_endpoints.update_from_xml(node,
+			_endpoints.update_from_node(node,
 
 				/* create */
-				[&] (Xml_node const &node) -> Endpoint & {
+				[&] (Node const &node) -> Endpoint & {
 					return *new (alloc) Endpoint(node, alloc, *this); },
 
 				/* destroy */
@@ -228,7 +227,7 @@ class Interface : public List_model<::Interface>::Element
 					destroy(alloc, &endp); },
 
 				/* update */
-				[&] (Endpoint &, Xml_node const &) { }
+				[&] (Endpoint &, Node const &) { }
 			);
 		}
 
@@ -345,18 +344,18 @@ class Device : public List_model<Device>::Element
 		void  qemu_device(USBHostDevice *dev) { _qemu_device = dev;  }
 		USBHostDevice* qemu_device() { return _qemu_device; }
 
-		bool matches(Xml_node const &node) const {
+		bool matches(Node const &node) const {
 			return _name == node.attribute_value("name", Name()); }
 
-		static bool type_matches(Xml_node const &node) {
+		static bool type_matches(Node const &node) {
 			return node.has_type("device"); }
 
-		void update(Allocator &alloc, Xml_node const &node)
+		void update(Allocator &alloc, Node const &node)
 		{
-			auto with_active_config = [] (Xml_node const &node, auto const &fn)
+			auto with_active_config = [] (Node const &node, auto const &fn)
 			{
 				bool found = false;
-				node.for_each_sub_node("config", [&] (Xml_node const &config) {
+				node.for_each_sub_node("config", [&] (Node const &config) {
 					if (!found && config.attribute_value("active", false)) {
 						fn(config);
 						found = true;
@@ -366,22 +365,22 @@ class Device : public List_model<Device>::Element
 					fn(node);
 			};
 
-			with_active_config(node, [&] (Xml_node const &active_config) {
-				_ifaces.update_from_xml(active_config,
+			with_active_config(node, [&] (Node const &active_config) {
+				_ifaces.update_from_node(active_config,
 
 					/* create */
-					[&] (Xml_node const &node) -> ::Interface & {
+					[&] (Node const &node) -> ::Interface & {
 						return *new (alloc) ::Interface(*this, node); },
 
 					/* destroy */
 					[&] (::Interface &iface) {
 						/* first clean up urbs before isoc-caches get destroyed */
 						iface.destroy_all_urbs();
-						iface.update(alloc, Xml_node("<empty/>"));
+						iface.update(alloc, Node());
 						destroy(alloc, &iface); },
 
 					/* update */
-					[&] (::Interface &iface, Xml_node const &node) {
+					[&] (::Interface &iface, Node const &node) {
 						iface.update(alloc, node); }
 				);
 			});
@@ -424,11 +423,11 @@ struct Session
 
 	void update()
 	{
-		_usb.with_xml([&] (Xml_node const &node) {
-			_model.update_from_xml(node,
+		_usb.with_node([&] (Node const &node) {
+			_model.update_from_node(node,
 
 				/* create */
-				[&] (Xml_node const &node) -> Device &
+				[&] (Node const &node) -> Device &
 				{
 					Device::Name name =
 						node.attribute_value("name", Device::Name());
@@ -445,12 +444,12 @@ struct Session
 				{
 					if (dev.qemu_device())
 						remove_usbdevice(dev.qemu_device());
-					dev.update(_alloc, Xml_node("<empty/>"));
+					dev.update(_alloc, Node());
 					destroy(_alloc, &dev);
 				},
 
 				/* update */
-				[&] (Device &dev, Xml_node const &node)
+				[&] (Device &dev, Node const &node)
 				{
 					dev.update(_alloc, node);
 				}

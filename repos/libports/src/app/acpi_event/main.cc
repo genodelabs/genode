@@ -131,7 +131,7 @@ struct Transform::Main
 
 	Main(Env &env) : _env(env)
 	{
-		_config.xml().for_each_sub_node("map", [&] (Xml_node const &map_node) {
+		_config.node().for_each_sub_node("map", [&] (Node const &map_node) {
 
 			auto const acpi_type    = map_node.attribute_value("acpi",   String<8>());
 			auto const to_key       = map_node.attribute_value("to_key", Input::Key_name());
@@ -223,8 +223,8 @@ struct Transform::Main
 	                 char const * const name)
 	{
 		rom.update();
-		rom.xml().for_each_sub_node(name, [&] (Xml_node const &node) {
-			node.for_each_sub_node("data", [&] (Xml_node const &data_node) {
+		rom.node().for_each_sub_node(name, [&] (Node const &node) {
+			node.for_each_sub_node("data", [&] (Node const &data_node) {
 				uint64_t const value = data_node.attribute_value("value", 0ULL);
 				uint64_t const count = data_node.attribute_value("count", 0ULL);
 
@@ -235,10 +235,10 @@ struct Transform::Main
 		});
 	}
 
-	void _check_acpi(Xml_node const &xml_node, const char * const sub_name,
+	void _check_acpi(Node const &node, const char * const sub_name,
 	                 unsigned const state_o, unsigned const state_c)
 	{
-		xml_node.for_each_sub_node(sub_name, [&] (Xml_node const &node) {
+		node.for_each_sub_node(sub_name, [&] (Node const &node) {
 			uint64_t const value = node.attribute_value("value", 0ULL);
 			uint64_t const count = node.attribute_value("count", 0ULL);
 
@@ -263,7 +263,7 @@ struct Transform::Main
 	{
 		_acpi_fixed.update();
 		Keys::with_key(_map_special, ACPI_POWER_BUTTON, [&] (Keys &key) {
-			_acpi_fixed.xml().for_each_sub_node("power_button", [&] (Xml_node const &pw) {
+			_acpi_fixed.node().for_each_sub_node("power_button", [&] (Node const &pw) {
 				bool     const pressed = pw.attribute_value("value", false);
 				uint64_t const count   = pw.attribute_value("count", 0UL);
 
@@ -283,13 +283,13 @@ struct Transform::Main
 	void _handle_acpi_ac()
 	{
 		_acpi_ac.update();
-		_check_acpi(_acpi_ac.xml(), "ac", ACPI_AC_ONLINE, ACPI_AC_OFFLINE);
+		_check_acpi(_acpi_ac.node(), "ac", ACPI_AC_ONLINE, ACPI_AC_OFFLINE);
 	}
 
 	void _handle_acpi_lid()
 	{
 		_acpi_lid.update();
-		_check_acpi(_acpi_lid.xml(), "lid", ACPI_LID_OPEN, ACPI_LID_CLOSED);
+		_check_acpi(_acpi_lid.node(), "lid", ACPI_LID_OPEN, ACPI_LID_CLOSED);
 	}
 };
 

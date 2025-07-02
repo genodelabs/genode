@@ -17,9 +17,6 @@
 #include <base/log.h>
 #include <libc/component.h>
 #include <os/reporter.h>
-#include <util/string.h>
-#include <util/xml_node.h>
-
 
 /* libc includes */
 #include <errno.h>
@@ -165,8 +162,8 @@ class Test_fifo_pipe::Test
 
 		void _write_init_config(Attached_rom_dataspace& rom, unsigned iteration)
 		{
-			_init_config.generate([&rom, iteration] (Xml_generator& xml) {
-				rom.xml().for_each_sub_node([&xml, iteration] (const Xml_node& node) {
+			_init_config.generate([&rom, iteration] (Xml_generator &xml) {
+				rom.node().for_each_sub_node([&xml, iteration] (Node const &node) {
 					Xml_generator::Max_depth const max_depth { 20 };
 					if (node.type() != "start") {
 						(void)xml.append_node(node, max_depth);
@@ -298,14 +295,14 @@ class Test_fifo_pipe::Main
 		Main(Env &env) : _env(env)
 		{
 			/* the type attribute describes whether we are running as test or as echo */
-			auto type = _config.xml().attribute_value("type", Genode::String<64> { });
+			auto type = _config.node().attribute_value("type", Genode::String<64> { });
 			if (type == "echo") {
 				log("echo started");
 				Echo echo;
 				echo.run();
 			} else {
 				Test test(_env);
-				auto max_iterations { _config.xml().attribute_value("iterations", 1u) };
+				auto max_iterations { _config.node().attribute_value("iterations", 1u) };
 				log("test started with ", max_iterations, " iterations");
 				for (unsigned i = 0; i < max_iterations; ++i) {
 					log("--- test iteration ", i, " started ---");

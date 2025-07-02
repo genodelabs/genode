@@ -120,7 +120,7 @@ static void inline cpuid(unsigned *eax, unsigned *ebx, unsigned *ecx, unsigned *
   asm volatile ("cpuid" : "+a" (*eax), "+d" (*edx), "+b" (*ebx), "+c"(*ecx) :: "memory");
 }
 
-static unsigned cpu_attribute_value(Genode::Xml_node const &cpu, char const *attribute)
+static unsigned cpu_attribute_value(Genode::Node const &cpu, char const *attribute)
 {
 	if (!cpu.has_attribute(attribute)) {
 		Genode::error("missing cpu attribute ", attribute);
@@ -149,13 +149,13 @@ void Component::construct(Genode::Env &env)
 	auto for_each_cpu = [&] (auto const &fn)
 	{
 		Attached_rom_dataspace const info { env, "platform_info" };
-		info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &hardware) {
-			hardware.with_optional_sub_node("cpus", [&] (Xml_node const &cpus) {
+		info.node().with_optional_sub_node("hardware", [&] (Node const &hardware) {
+			hardware.with_optional_sub_node("cpus", [&] (Node const &cpus) {
 				cpus.for_each_sub_node("cpu", fn); }); });
 	};
 
 	bool ok = false;
-	for_each_cpu([&] (Xml_node const &cpu) {
+	for_each_cpu([&] (Node const &cpu) {
 
 		unsigned const id       = cpu_attribute_value(cpu, "id");
 		uint8_t  const family   = cpu_attribute_value(cpu, "family");

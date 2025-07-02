@@ -12,8 +12,7 @@
  */
 
 /* Genode includes */
-#include <util/string.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 /* libc includes */
 #include <sys/types.h>
@@ -86,7 +85,7 @@ static passwd passwd_from_fields(Passwd_fields &fields)
 }
 
 
-void Libc::init_passwd(Xml_node const &config)
+void Libc::init_passwd(Node const &config)
 {
 	static Passwd_fields fields {
 		.name   =         config.attribute_value("name",   Passwd_string("root")),

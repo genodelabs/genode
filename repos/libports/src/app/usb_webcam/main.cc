@@ -262,7 +262,7 @@ class Main
 				return;
 			}
 
-			Xml_node config = _config_rom.xml();
+			Node const config = _config_rom.node();
 			unsigned  width   = config.attribute_value("width", 640u);
 			unsigned  height  = config.attribute_value("height", 480u);
 			unsigned  fps     = config.attribute_value("fps", 0u);

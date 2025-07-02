@@ -68,7 +68,7 @@ struct Netty::Test
 
 		Libc::Env                      &_env;
 		Genode::Attached_rom_dataspace  _config_rom { _env, "config" };
-		Genode::Xml_node                _config     { _config_rom.xml() };
+		Genode::Node                    _config     { _config_rom.node() };
 
 		void _server();
 		void _client();

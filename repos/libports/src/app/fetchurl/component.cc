@@ -162,14 +162,14 @@ struct Fetchurl::Main
 
 	void _report(Duration) { _report(); }
 
-	void parse_config(Xml_node const &config_node)
+	void parse_config(Node const &config_node)
 	{
 		using namespace Genode;
 
 		enum { DEFAULT_DELAY_MS = 100UL };
 
 		config_node.with_optional_sub_node("report",
-			[&] (Xml_node const &report_node) {
+			[&] (Node const &report_node) {
 				if (report_node.attribute_value("progress", false)) {
 					Milliseconds delay_ms { 0 };
 					delay_ms.value = report_node.attribute_value(
@@ -186,10 +186,10 @@ struct Fetchurl::Main
 		_progress_timeout.value = config_node.attribute_value("progress_timeout",
 		                                                      _progress_timeout.value);
 
-		auto const parse_fn = [&] (Xml_node node) {
+		auto const parse_fn = [&] (Node const &node) {
 
 			if (!node.has_attribute("url") || !node.has_attribute("path")) {
-				error("error reading 'fetch' XML node");
+				error("error reading 'fetch' config node");
 				return;
 			}
 
@@ -214,7 +214,7 @@ struct Fetchurl::Main
 
 	Main(Libc::Env &e) : _env(e)
 	{
-		_env.with_config([&] (Xml_node const &config) {
+		_env.with_config([&] (Node const &config) {
 			parse_config(config);
 		});
 	}

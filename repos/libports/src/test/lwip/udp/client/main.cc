@@ -44,7 +44,7 @@ static void test(Libc::Env &env)
 		}
 		/* read server IP address and port */
 		Attached_rom_dataspace config(env, "config");
-		Xml_node config_node = config.xml();
+		Node const config_node = config.node();
 
 		auto check_attr = [&] (char const *attr)
 		{

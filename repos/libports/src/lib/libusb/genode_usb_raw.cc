@@ -86,8 +86,8 @@ struct Usb_device
 		_env(env), _alloc(alloc), _handler_cap(cap)
 	{
 		String<32> speed;
-		_session.with_xml([&] (Xml_node const &xml) {
-			xml.with_optional_sub_node("device", [&] (Xml_node const &node) {
+		_session.with_node([&] (Node const &node) {
+			node.with_optional_sub_node("device", [&] (Node const &node) {
 				speed = node.attribute_value("speed", String<32>()); });
 		});
 

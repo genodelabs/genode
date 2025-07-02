@@ -101,7 +101,7 @@ struct Main : Event_handler
 
 		com::Utf8Str const utf8 { _path.string() };
 
-		Vbox_file_path(Xml_node config)
+		Vbox_file_path(Node const &config)
 		:
 			_path(config.attribute_value("vbox_file", Path()))
 		{
@@ -110,7 +110,7 @@ struct Main : Event_handler
 				throw Fatal();
 			}
 		}
-	} _vbox_file_path { _config.xml() };
+	} _vbox_file_path { _config.node() };
 
 	/*
 	 * Create VirtualBox object
@@ -242,7 +242,7 @@ struct Main : Event_handler
 
 		Constructible<Attached_rom_dataspace> _rom;
 
-		Capslock(Env &env, Xml_node config, Signal_context_capability sigh)
+		Capslock(Env &env, Node const &config, Signal_context_capability sigh)
 		:
 			mode(config.attribute_value("capslock", String<4>()) == "rom"
 			   ? Mode::ROM : Mode::RAW)
@@ -264,7 +264,7 @@ struct Main : Event_handler
 
 			_rom->update();
 
-			bool const rom = _rom->xml().attribute_value("enabled", _guest);
+			bool const rom = _rom->node().attribute_value("enabled", _guest);
 
 			bool trigger = false;
 
@@ -281,7 +281,7 @@ struct Main : Event_handler
 
 			return trigger;
 		}
-	} _capslock { _env, _config.xml(), _capslock_handler };
+	} _capslock { _env, _config.node(), _capslock_handler };
 
 	Mouse_shape _mouse_shape { _env };
 
@@ -505,7 +505,7 @@ Main::Monitor::~Monitor()
 /* must be called in Libc::with_libc() context */
 void Main::_update_monitors()
 {
-	if (!_config.xml().has_sub_node("monitor"))
+	if (!_config.node().has_sub_node("monitor"))
 		warning("no <monitor label=\"...\"/> config node found - running headless");
 
 	unsigned const max_id = _machine.monitor_count().value - 1;
@@ -513,12 +513,12 @@ void Main::_update_monitors()
 	unsigned id = 0;
 
 	/* handle new and updated monitors */
-	_config.xml().for_each_sub_node("monitor", [&] (Xml_node const &xml) {
+	_config.node().for_each_sub_node("monitor", [&] (Node const &node) {
 
-		Monitor::Label label = xml.attribute_value("label", Monitor::Label(""));
+		Monitor::Label label = node.attribute_value("label", Monitor::Label(""));
 
 		if (id > max_id) {
-			warning("ignoring ", xml, " for monitor id=", id, " max=", max_id,
+			warning("ignoring ", node, " for monitor id=", id, " max=", max_id,
 			        " (monitorCount in vbox file!)");
 			return;
 		}

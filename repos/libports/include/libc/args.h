@@ -16,29 +16,28 @@
 
 /* Genode includes */
 #include <libc/component.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 /* libc includes */
 #include <stdlib.h> /* 'malloc' */
 
 static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char **&envp)
 {
-	using Genode::Xml_node;
-	using Genode::Xml_attribute;
+	using Genode::Node;
 
-	auto with_raw_attr = [] (Xml_node const &node, auto const attr_name, auto const &fn)
+	auto with_raw_attr = [] (Node const &node, auto const attr_name, auto const &fn)
 	{
-		node.for_each_attribute([&] (Xml_attribute const &attr) {
-			if (attr.has_type(attr_name))
-				attr.with_raw_value(fn); });
+		node.for_each_attribute([&] (Node::Attribute const &attr) {
+			if (attr.name == attr_name)
+				fn(attr.value.start, attr.value.num_bytes); });
 	};
 
-	env.with_config([&] (Xml_node const &node) {
+	env.with_config([&] (Node const &node) {
 
 		int envc = 0;
 
 		/* count the number of arguments and environment variables */
-		node.for_each_sub_node([&] (Xml_node const &node) {
+		node.for_each_sub_node([&] (Node const &node) {
 			/* check if the 'value' attribute exists */
 			if (node.has_type("arg") && node.has_attribute("value"))
 				++argc;
@@ -65,7 +64,7 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 		/* read the arguments */
 		int arg_i = 0;
 		int env_i = 0;
-		node.for_each_sub_node([&] (Xml_node const &node) {
+		node.for_each_sub_node([&] (Node const &node) {
 
 			/* insert an argument */
 			if (node.has_type("arg")) {
@@ -82,9 +81,9 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 			else
 
 			/* insert an environment variable */
-			if (node.has_type("env")) try {
+			if (node.has_type("env")) {
 
-				auto check_attr = [] (Xml_node const &node, auto key) {
+				auto check_attr = [] (Node const &node, auto key) {
 					if (!node.has_attribute(key))
 						Genode::warning("<env> node lacks '", key, "' attribute"); };
 
@@ -129,7 +128,6 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 				++env_i;
 
 			}
-			catch (Xml_node::Nonexistent_sub_node)  { }
 		});
 
 		/* argv and envp are both NULL terminated */

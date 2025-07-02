@@ -56,7 +56,7 @@ static void test(Libc::Env &env)
 
 	/* read component configuration */
 	Attached_rom_dataspace  config_rom  { env, "config" };
-	Xml_node                config_node { config_rom.xml() };
+	Node                    config_node { config_rom.node() };
 	Ipv4_string       const srv_ip      { config_node.attribute_value("server_ip", Ipv4_string("0.0.0.0")) };
 	uint16_t          const srv_port    { config_node.attribute_value("server_port", (uint16_t)0) };
 

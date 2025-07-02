@@ -245,17 +245,15 @@ struct Extract::Main
 
 	bool _process_config()
 	{
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
-		_verbose = config.attribute_value("verbose", false);
-
+		_verbose         = config.attribute_value("verbose",         false);
 		_ignore_failures = config.attribute_value("ignore_failures", false);
-
 		_stop_on_failure = config.attribute_value("stop_on_failure", true);
 
 		bool success = true;
 
-		config.for_each_sub_node("extract", [&] (Xml_node node) {
+		config.for_each_sub_node("extract", [&] (Node const &node) {
 
 			/* ignore any following archives after one has failed */
 			if (!success && _stop_on_failure)

@@ -92,15 +92,14 @@ struct Libc::Child_config
 
 	pid_t const _pid;
 
-	void _generate(Xml_generator &xml, Xml_node const &config,
-	               File_descriptor_allocator &);
+	void _generate(Xml_generator &, Node const &config, File_descriptor_allocator &);
 
 	Child_config(Genode::Env &env, Config_accessor const &config_accessor,
 	             File_descriptor_allocator &fd_alloc, pid_t pid)
 	:
 		_env(env), _pid(pid)
 	{
-		config_accessor.with_config([&] (Xml_node const &config) {
+		config_accessor.with_config([&] (Node const &config) {
 
 			for (size_t buffer_size = 4096; ; buffer_size += 4096) {
 
@@ -125,7 +124,7 @@ struct Libc::Child_config
 };
 
 
-void Libc::Child_config::_generate(Xml_generator &xml, Xml_node const &config,
+void Libc::Child_config::_generate(Xml_generator &xml, Node const &config,
                                    File_descriptor_allocator &fd_alloc)
 {
 	using Addr = String<30>;
@@ -143,7 +142,7 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node const &config,
 		xml.attribute("pid", _pid);
 
 		using Path = String<Vfs::MAX_PATH_LEN>;
-		config.with_optional_sub_node("libc", [&] (Xml_node node) {
+		config.with_optional_sub_node("libc", [&] (Node const &node) {
 			if (node.has_attribute("rtc"))
 				xml.attribute("rtc", node.attribute_value("rtc", Path()));
 			if (node.has_attribute("pipe"))
@@ -184,7 +183,7 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node const &config,
 	xml.append("\n");
 
 	/* copy non-libc config as is */
-	config.for_each_sub_node([&] (Xml_node const &node) {
+	config.for_each_sub_node([&] (Node const &node) {
 		if (node.type() != "libc")
 			if (!xml.append_node(node, Xml_generator::Max_depth { 20 }))
 				warning("fork: config too deeply nested"); });

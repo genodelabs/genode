@@ -80,7 +80,7 @@ extern "C" void _type_init_xhci_register_types();
 extern "C" void _type_init_xhci_pci_register_types();
 
 extern "C" void _type_init_host_webcam_register_types(Genode::Env &,
-                                                      Genode::Xml_node const &);
+                                                      Genode::Node const &);
 
 extern Genode::Mutex _mutex;
 
@@ -96,7 +96,7 @@ Qemu::Controller *Qemu::usb_init(Timer_queue &tq, Pci_device &pci,
                                  Genode::Entrypoint &ep,
                                  Genode::Allocator &alloc,
                                  Genode::Env &env,
-                                 Genode::Xml_node const &config)
+                                 Genode::Node const &config)
 {
 	_heap = &alloc;
 	_timer_queue = &tq;
@@ -107,7 +107,7 @@ Qemu::Controller *Qemu::usb_init(Timer_queue &tq, Pci_device &pci,
 	_type_init_xhci_pci_register_types();
 	_type_init_usb_host_register_types(&ep, &alloc, &env);
 
-	config.with_optional_sub_node("webcam", [&] (Genode::Xml_node const &node) {
+	config.with_optional_sub_node("webcam", [&] (Genode::Node const &node) {
 		_type_init_host_webcam_register_types(env, node);
 	});
 

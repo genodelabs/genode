@@ -22,9 +22,6 @@
 #include <platform_session/device.h>
 #include <timer_session/connection.h>
 
-#include <util/reconstructible.h>
-#include <util/xml_node.h>
-
 #include <acpica/acpica.h>
 
 
@@ -135,8 +132,8 @@ struct Acpica::Statechange
 
 		if (!_system_state.valid()) return;
 
-		Xml_node system(_system_state.local_addr<char>(),
-		                _system_state.size());
+		Node const system(Const_byte_range_ptr(_system_state.local_addr<char>(),
+		                                       _system_state.size()));
 
 		using State = String<32>;
 		State const state = system.attribute_value("state", State());
@@ -204,14 +201,14 @@ struct Acpica::Main
 	:
 		env(env),
 		sci_irq(env.ep(), *this, &Main::acpi_irq),
-		unchanged_state_max(config.xml().attribute_value("update_unchanged", 10U))
+		unchanged_state_max(config.node().attribute_value("update_unchanged", 10U))
 	{
-		bool const enable_sleep    = config.xml().attribute_value("sleep", false);
-		bool const enable_reset    = config.xml().attribute_value("reset", false);
-		bool const enable_poweroff = config.xml().attribute_value("poweroff", false);
-		bool const enable_report   = config.xml().attribute_value("report", false);
-		bool const verbose         = config.xml().attribute_value("verbose", false);
-		auto const periodic_ms     = config.xml().attribute_value("report_period_ms", 0ULL);
+		bool const enable_sleep    = config.node().attribute_value("sleep", false);
+		bool const enable_reset    = config.node().attribute_value("reset", false);
+		bool const enable_poweroff = config.node().attribute_value("poweroff", false);
+		bool const enable_report   = config.node().attribute_value("report", false);
+		bool const verbose         = config.node().attribute_value("verbose", false);
+		auto const periodic_ms     = config.node().attribute_value("report_period_ms", 0ULL);
 
 		if (enable_report)
 			report = new (heap) Acpica::Reportstate(env);
@@ -219,7 +216,7 @@ struct Acpica::Main
 		if (verbose)
 			init_printf(env);
 
-		init_acpica(config.xml().attribute_value("use_gpe", true));
+		init_acpica(config.node().attribute_value("use_gpe", true));
 
 		if (enable_reset || enable_poweroff || enable_sleep)
 			new (heap) Acpica::Statechange(env, enable_reset, enable_poweroff,
@@ -428,8 +425,8 @@ void Acpica::Main::init_acpica(bool const use_gpe)
 	}
 
 	/* report S0-S5 support and the SLP_TYPa/b values to be used by kernel(s) */
-	report_sleep_states.generate([&] (auto &xml) {
-		Acpica::generate_suspend_report(xml, "S0");
+	report_sleep_states.generate([&] (auto &node) {
+		Acpica::generate_suspend_report(node, "S0");
 	});
 
 	/* use dbg level to steer error reporting in pci.cc */

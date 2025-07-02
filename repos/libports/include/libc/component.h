@@ -25,18 +25,18 @@
 #include <util/callable.h>
 #include <base/env.h>
 #include <base/stdint.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 namespace Libc { class Config_accessor; }
 
 struct Libc::Config_accessor : Genode::Interface, Genode::Noncopyable
 {
-	using With_config = Genode::Callable<void, Genode::Xml_node const &>;
+	using With_config = Genode::Callable<void, Genode::Node const &>;
 
 	virtual void _with_config(With_config::Ft const &) const = 0;
 
 	/**
-	 * Call 'fn' with the 'Xml_node const &' of the component configuration
+	 * Call 'fn' with the 'Node const &' of the component configuration
 	 */
 	void with_config(auto const &fn) const
 	{

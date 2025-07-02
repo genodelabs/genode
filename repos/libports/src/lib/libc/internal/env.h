@@ -53,7 +53,7 @@ class Libc::Env_implementation : public Libc::Env
 
 		void _with_config(With_config::Ft const &fn) const override
 		{
-			fn(_config_rom.xml());
+			fn(_config_rom.node());
 		}
 
 		Vfs::Env &vfs_env() override { return _vfs_env; }

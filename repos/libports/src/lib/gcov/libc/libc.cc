@@ -19,8 +19,6 @@
 #include <base/sleep.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
-#include <util/string.h>
-#include <util/xml_node.h>
 #include <format/snprintf.h>
 
 extern "C" {
@@ -262,10 +260,10 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 	 * file in the same directory as the '.gcda' file.
 	 */
 
-	Xml_node config(gcov_env->config.local_addr<char>(),
-	                gcov_env->config.size());
+	Node const config(Const_byte_range_ptr(gcov_env->config.local_addr<char>(),
+	                                       gcov_env->config.size()));
 
-	config.with_optional_sub_node("libgcov", [&] (Xml_node const &libgcov_node) {
+	config.with_optional_sub_node("libgcov", [&] (Node const &libgcov_node) {
 
 		Absolute_path annotate_file_name { file_name };
 		annotate_file_name.remove_trailing('a');
@@ -278,7 +276,7 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 
 		File_system::seek_off_t seek_offset = 0;
 
-		libgcov_node.for_each_sub_node("annotate", [&] (Xml_node const &annotate_node) {
+		libgcov_node.for_each_sub_node("annotate", [&] (Node const &annotate_node) {
 
 			using Source = String<File_system::MAX_PATH_LEN>;
 			Source const source = annotate_node.attribute_value("source", Source());

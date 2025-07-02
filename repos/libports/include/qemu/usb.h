@@ -18,6 +18,7 @@
 #include <base/stdint.h>
 #include <base/signal.h>
 #include <base/allocator.h>
+#include <base/node.h>
 
 namespace Qemu {
 
@@ -120,7 +121,7 @@ namespace Qemu {
 	Controller *usb_init(Timer_queue &tq, Pci_device &pd,
 	                     Genode::Entrypoint &ep,
 	                     Genode::Allocator &, Genode::Env &,
-	                     Genode::Xml_node const &);
+	                     Genode::Node const &);
 
 	/**
 	 * Reset USB libray

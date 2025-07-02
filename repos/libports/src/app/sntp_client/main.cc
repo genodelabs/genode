@@ -34,7 +34,7 @@ using namespace Net;
 using namespace Genode;
 
 
-Microseconds read_min_attr(Xml_node const &node,
+Microseconds read_min_attr(Node     const &node,
                            char     const *name,
                            uint64_t const  default_sec)
 {
@@ -64,7 +64,7 @@ class Main : public Nic_handler,
 
 		Env                            &_env;
 		Attached_rom_dataspace          _config_rom    { _env, "config" };
-		Xml_node                        _config        { _config_rom.xml() };
+		Node                            _config        { _config_rom.node() };
 		Timer::Connection               _timer         { _env };
 		Microseconds                    _period_us     { read_min_attr(_config, "period_min", (uint64_t)DEFAULT_PERIOD_MIN) };
 		Constructible<Periodic_timeout> _period        { };

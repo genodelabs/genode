@@ -41,13 +41,13 @@ struct Test_failed : Genode::Exception { };
 	}
 
 
-static void test_write_read(Genode::Xml_node const &config)
+static void test_write_read(Genode::Node const &config)
 {
 	size_t rounds      = 4u;
 	size_t size        = 4*1024*1024;
 	size_t buffer_size = 32*1024;
 
-	config.with_optional_sub_node("write-read", [&] (Genode::Xml_node const &node) {
+	config.with_optional_sub_node("write-read", [&] (Genode::Node const &node) {
 		using Num_bytes = Genode::Number_of_bytes;
 		rounds      = node.attribute_value("rounds",      rounds);
 		size        = node.attribute_value("size",        Num_bytes{size});
@@ -83,7 +83,7 @@ static void test_write_read(Genode::Xml_node const &config)
 }
 
 
-static void test(Genode::Xml_node node)
+static void test(Genode::Node const &node)
 {
 	int ret, fd;
 	ssize_t count;
@@ -103,7 +103,7 @@ static void test(Genode::Xml_node node)
 
 	unsigned int iterations = 1;
 
-	node.with_optional_sub_node("iterations", [&] (Genode::Xml_node const &iter) {
+	node.with_optional_sub_node("iterations", [&] (Genode::Node const &iter) {
 		iterations = iter.attribute_value("value", iterations); });
 
 	for (unsigned int i = 0; i < iterations; i++) {
@@ -311,8 +311,8 @@ struct Main
 
 		Libc::with_libc([&] () {
 
-			test(config_rom.xml());
-			test_write_read(config_rom.xml());
+			test(config_rom.node());
+			test_write_read(config_rom.node());
 
 			printf("test finished\n");
 		});

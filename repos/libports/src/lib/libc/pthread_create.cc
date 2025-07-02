@@ -102,7 +102,7 @@ Placement_policy &placement_policy()
 
 
 void Libc::init_pthread_support(Cpu_session &cpu_session,
-                                Xml_node const &node,
+                                Node const &node,
                                 Genode::Allocator &alloc)
 {
 	_cpu_session = &cpu_session;
@@ -113,7 +113,7 @@ void Libc::init_pthread_support(Cpu_session &cpu_session,
 	                                                    String<32>("all-cpus"));
 	placement_policy().policy(policy_name);
 
-	node.for_each_sub_node("thread", [&](Xml_node &policy) {
+	node.for_each_sub_node("thread", [&] (Node const &policy) {
 
 		if (policy.has_attribute("id") && policy.has_attribute("cpu")) {
 			unsigned const id  = policy.attribute_value("id", 0U);

@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/heap.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <util/callable.h>
 #include <vfs/types.h>  /* for 'MAX_PATH_LEN' */
 
@@ -90,7 +90,7 @@ namespace Libc {
 	/**
 	 * Support for getpwent
 	 */
-	void init_passwd(Xml_node const &);
+	void init_passwd(Node const &);
 
 	/**
 	 * Malloc allocator
@@ -118,7 +118,7 @@ namespace Libc {
 	 * Pthread/semaphore support
 	 */
 	void init_pthread_support(Monitor &, Timer_accessor &);
-	void init_pthread_support(Genode::Cpu_session &, Xml_node const &,
+	void init_pthread_support(Genode::Cpu_session &, Node const &,
 	                          Genode::Allocator &);
 	void init_semaphore_support(Timer_accessor &);
 

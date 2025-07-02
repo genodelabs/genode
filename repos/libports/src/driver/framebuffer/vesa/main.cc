@@ -53,7 +53,7 @@ struct Vesa_driver::Main
 	Area _phys_size { 1, 1 };
 
 	void _handle_config();
-	Area _configured_size(Xml_node const &);
+	Area _configured_size(Node const &);
 
 	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
 
@@ -107,7 +107,7 @@ void Vesa_driver::Main::_handle_timer()
 }
 
 
-Capture::Area Vesa_driver::Main::_configured_size(Xml_node const & config)
+Capture::Area Vesa_driver::Main::_configured_size(Node const & config)
 {
 	Area area { config.attribute_value( "width", 0U),
 	            config.attribute_value("height", 0U) };
@@ -148,7 +148,7 @@ void Vesa_driver::Main::_handle_config()
 	if (!_config.valid())
 		return;
 
-	auto const & config          = _config.xml();
+	auto const & config          = _config.node();
 	auto const   period_ms       = config.attribute_value("period_ms", 20UL);
 	Area const   configured_size = _configured_size(config);
 
