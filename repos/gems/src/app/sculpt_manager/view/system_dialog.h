@@ -79,7 +79,7 @@ struct Sculpt::System_dialog : Top_level_dialog
 					s.widget(_presets_widget, _presets);
 					break;
 				case Tab::UPDATE:
-					_image_index.with_xml([&] (Xml_node const &index) {
+					_image_index.with_node([&] (Node const &index) {
 						s.widget(_update_widget, index); });
 					s.widget(_version_widget, _build_info);
 					break;

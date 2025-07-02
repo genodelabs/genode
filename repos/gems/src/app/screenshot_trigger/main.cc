@@ -128,10 +128,10 @@ struct Screenshot_trigger::Main
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		_size     = config.attribute_value("size", 50u);
-		_position = Point::from_xml(config);
+		_position = Point::from_node(config);
 		_area     = Area(_size, _size);
 
 		_gui_buffer.construct(_gui, _area, _env.ram(), _env.rm());

@@ -71,7 +71,7 @@ struct Sculpt::Dir_query : Noncopyable
 
 		Rom_handler<State> _listing_handler;
 
-		void _handle_listing(Xml_node const &) { _action.queried_dir_response(); }
+		void _handle_listing(Node const &) { _action.queried_dir_response(); }
 
 		State(Env &env, Action &action, Registry<Child_state> &children)
 		:
@@ -108,7 +108,7 @@ struct Sculpt::Dir_query : Noncopyable
 		});
 	}
 
-	void _handle_fs_query_config(Xml_node const &)
+	void _handle_fs_query_config(Node const &)
 	{
 		_gen_fs_query_config();
 	}
@@ -201,13 +201,13 @@ struct Sculpt::Dir_query : Noncopyable
 		if (query != _query || !_state.constructed())
 			return;
 
-		_state->_listing_handler.with_xml([&] (Xml_node const &listing) {
+		_state->_listing_handler.with_node([&] (Node const &listing) {
 			unsigned index = 0;
-			listing.for_each_sub_node("dir", [&] (Xml_node const &dir_response) {
+			listing.for_each_sub_node("dir", [&] (Node const &dir_response) {
 				if (dir_response.attribute_value("path", Path()) != query.vfs_path())
 					return;
 
-				dir_response.for_each_sub_node("dir", [&] (Xml_node const &dir) {
+				dir_response.for_each_sub_node("dir", [&] (Node const &dir) {
 					fn(Entry { .index = index++,
 					           .name = dir.attribute_value("name", Entry::Name()),
 					           .num_dirs = dir.attribute_value("num_dirs", 0u) });

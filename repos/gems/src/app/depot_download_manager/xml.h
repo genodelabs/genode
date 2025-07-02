@@ -83,7 +83,7 @@ namespace Depot_download_manager {
 	}
 
 	void gen_depot_query_start_content(Xml_generator &,
-	                                   Xml_node const &installation,
+	                                   Node const &installation,
 	                                   Archive::User const &,
 	                                   Depot_query_version,
 	                                   List_model<Job> const &);

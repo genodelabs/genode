@@ -65,7 +65,7 @@ struct Fs_query::Watched_file
 
 		bool content_is_xml = false;
 
-		content.xml([&] (Xml_node const &node) {
+		content.node([&] (Node const &node) {
 			if (!node.has_type("empty")) {
 				xml.attribute("xml", "yes");
 				if (!xml.append_node(node, Xml_generator::Max_depth { 20 }))
@@ -80,7 +80,7 @@ struct Fs_query::Watched_file
 		}
 	}
 
-	void gen_query_response(Xml_generator &xml, Xml_node const &query,
+	void gen_query_response(Xml_generator &xml, Node const &query,
 	                        Allocator &alloc, Directory const &dir) const
 	{
 		try {
@@ -180,7 +180,7 @@ struct Fs_query::Watched_directory
 		}
 	};
 
-	void gen_query_response(Xml_generator &xml, Xml_node const &query) const
+	void gen_query_response(Xml_generator &xml, Node const &query) const
 	{
 		bool const count_enabled = query.attribute_value("count", false);
 
@@ -234,9 +234,9 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 
 	Registry<Registered<Watched_directory> > _dirs { };
 
-	void _gen_listing(Xml_generator &xml, Xml_node const &config) const
+	void _gen_listing(Xml_generator &xml, Node const &config) const
 	{
-		config.for_each_sub_node("query", [&] (Xml_node const &query) {
+		config.for_each_sub_node("query", [&] (Node const &query) {
 			Directory::Path const path = query.attribute_value("path", Directory::Path());
 			_dirs.for_each([&] (Watched_directory const &dir) {
 				if (dir.has_name(path))
@@ -249,7 +249,7 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		_config.node().with_optional_sub_node("vfs", [&] (Node const &vfs_config) {
 			_vfs_env.root_dir().apply_config(vfs_config); });
@@ -257,7 +257,7 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 		_dirs.for_each([&] (Registered<Watched_directory> &dir) {
 			destroy(_heap, &dir); });
 
-		config.for_each_sub_node("query", [&] (Xml_node const &query) {
+		config.for_each_sub_node("query", [&] (Node const &query) {
 			Directory::Path const path = query.attribute_value("path", Directory::Path());
 			try {
 				new (_heap)

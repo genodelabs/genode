@@ -593,9 +593,9 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 			Session_component *session_ptr = nullptr;
 
-			with_matching_policy(label_from_args(args), _config_rom.xml(),
+			with_matching_policy(label_from_args(args), _config_rom.node(),
 
-				[&] (Xml_node const &policy) {
+				[&] (Node const &policy) {
 
 					if (!policy.has_attribute("port")) {
 						error("Missing \"port\" attribute in policy definition");

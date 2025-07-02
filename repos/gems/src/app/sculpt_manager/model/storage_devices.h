@@ -38,15 +38,15 @@ struct Sculpt::Storage_devices : Noncopyable
 
 	unsigned num_usb_devices = 0;
 
-	Progress update_ahci(Env &env, Allocator &alloc, Xml_node const &node)
+	Progress update_ahci(Env &env, Allocator &alloc, Node const &node)
 	{
 		_discovered.ahci |= (!node.has_type("empty"));
 
 		bool progress = false;
-		ahci_devices.update_from_xml(node,
+		ahci_devices.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Ahci_device & {
+			[&] (Node const &node) -> Ahci_device & {
 				progress = true;
 				return *new (alloc) Ahci_device(env, alloc, node, _action);
 			},
@@ -58,22 +58,22 @@ struct Sculpt::Storage_devices : Noncopyable
 			},
 
 			/* update */
-			[&] (Ahci_device &, Xml_node const &) { }
+			[&] (Ahci_device &, Node const &) { }
 		);
 		return { progress };
 	}
 
-	Progress update_nvme(Env &env, Allocator &alloc, Xml_node const &node)
+	Progress update_nvme(Env &env, Allocator &alloc, Node const &node)
 	{
 		_discovered.nvme |= !node.has_type("empty");
 
 		auto const model = node.attribute_value("model", Nvme_device::Model());
 
 		bool progress = false;
-		nvme_devices.update_from_xml(node,
+		nvme_devices.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Nvme_device & {
+			[&] (Node const &node) -> Nvme_device & {
 				progress = true;
 				return *new (alloc) Nvme_device(env, alloc, model, node, _action);
 			},
@@ -85,20 +85,20 @@ struct Sculpt::Storage_devices : Noncopyable
 			},
 
 			/* update */
-			[&] (Nvme_device &, Xml_node const &) { }
+			[&] (Nvme_device &, Node const &) { }
 		);
 		return { progress };
 	}
 
-	Progress update_mmc(Env &env, Allocator &alloc, Xml_node const &node)
+	Progress update_mmc(Env &env, Allocator &alloc, Node const &node)
 	{
 		_discovered.mmc |= !node.has_type("empty");
 
 		bool progress = false;
-		mmc_devices.update_from_xml(node,
+		mmc_devices.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Mmc_device & {
+			[&] (Node const &node) -> Mmc_device & {
 				progress = true;
 				return *new (alloc) Mmc_device(env, alloc, node, _action);
 			},
@@ -110,7 +110,7 @@ struct Sculpt::Storage_devices : Noncopyable
 			},
 
 			/* update */
-			[&] (Mmc_device &, Xml_node const &) { }
+			[&] (Mmc_device &, Node const &) { }
 		);
 		return { progress };
 	}
@@ -120,15 +120,15 @@ struct Sculpt::Storage_devices : Noncopyable
 	 *
 	 * \return true if USB storage device was added or vanished
 	 */
-	Progress update_usb(Env &env, Allocator &alloc, Xml_node const &node)
+	Progress update_usb(Env &env, Allocator &alloc, Node const &node)
 	{
 		_discovered.usb |= !node.has_type("empty");
 
 		bool progress = false;
-		usb_storage_devices.update_from_xml(node,
+		usb_storage_devices.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Usb_storage_device &
+			[&] (Node const &node) -> Usb_storage_device &
 			{
 				progress = true;
 				return *new (alloc) Usb_storage_device(env, alloc, node, _action);
@@ -142,7 +142,7 @@ struct Sculpt::Storage_devices : Noncopyable
 			},
 
 			/* update */
-			[&] (Usb_storage_device &, Xml_node const &) { }
+			[&] (Usb_storage_device &, Node const &) { }
 		);
 
 		num_usb_devices = 0;

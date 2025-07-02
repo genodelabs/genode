@@ -45,12 +45,12 @@ class Sculpt::Launchers : public Noncopyable
 
 		struct Launcher : Dict::Element, List_model<Launcher>::Element
 		{
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return node.attribute_value("name", Path()) == name;
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("file");
 			}
@@ -66,12 +66,12 @@ class Sculpt::Launchers : public Noncopyable
 
 		Launchers(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node const &launchers)
+		void update_from_node(Node const &launchers)
 		{
-			_launchers.update_from_xml(launchers,
+			_launchers.update_from_node(launchers,
 
 				/* create */
-				[&] (Xml_node const &node) -> Launcher & {
+				[&] (Node const &node) -> Launcher & {
 					return *new (_alloc)
 						Launcher(_sorted,
 						         node.attribute_value("name", Path())); },
@@ -80,7 +80,7 @@ class Sculpt::Launchers : public Noncopyable
 				[&] (Launcher &e) { destroy(_alloc, &e); },
 
 				/* update */
-				[&] (Launcher &, Xml_node const &) { }
+				[&] (Launcher &, Node const &) { }
 			);
 		}
 

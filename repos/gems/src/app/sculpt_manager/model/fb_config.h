@@ -54,10 +54,10 @@ struct Sculpt::Fb_config
 			         .orientation = connector.orientation };
 		}
 
-		static Entry from_manual_xml(Xml_node const &node)
+		static Entry from_manual_xml(Node const &node)
 		{
 			auto mode_id   = node.attribute_value("mode", Mode_id());
-			auto mode_attr = Mode_attr::from_xml(node);
+			auto mode_attr = Mode_attr::from_node(node);
 
 			if (!node.attribute_value("enabled", true)) {
 				mode_id   = { };
@@ -69,8 +69,8 @@ struct Sculpt::Fb_config
 			         .name        = node.attribute_value("name", Name()),
 			         .mode_id     = mode_id,
 			         .mode_attr   = mode_attr,
-			         .brightness  = Brightness::from_xml(node),
-			         .orientation = Orientation::from_xml(node) };
+			         .brightness  = Brightness::from_node(node),
+			         .orientation = Orientation::from_node(node) };
 		}
 
 		void generate(Xml_generator &xml) const
@@ -111,11 +111,11 @@ struct Sculpt::Fb_config
 		Area max_px;   /* upper bound of framebuffer allocation */
 		Area px;       /* for vesa_fb */
 
-		static Manual_attr from_xml(Xml_node const &node)
+		static Manual_attr from_node(Node const &node)
 		{
 			return { .max_px = { .w = node.attribute_value("max_width", 0u),
 			                     .h = node.attribute_value("max_height", 0u) },
-			         .px     = Area::from_xml(node) };
+			         .px     = Area::from_node(node) };
 		}
 
 		void generate(Xml_generator &xml) const
@@ -181,15 +181,15 @@ struct Sculpt::Fb_config
 		_insert_at(at, new_entry);
 	}
 
-	void import_manual_config(Xml_node const &config)
+	void import_manual_config(Node const &config)
 	{
-		_manual_attr = Manual_attr::from_xml(config);
+		_manual_attr = Manual_attr::from_node(config);
 
 		unsigned count = 0;
 
-		auto add_connectors = [&] (Xml_node const &node)
+		auto add_connectors = [&] (Node const &node)
 		{
-			node.for_each_sub_node("connector", [&] (Xml_node const &node) {
+			node.for_each_sub_node("connector", [&] (Node const &node) {
 				Entry const e = Entry::from_manual_xml(node);
 				if (!_known(e.name) && count < MAX_ENTRIES) {
 					_entries[count] = e;
@@ -199,7 +199,7 @@ struct Sculpt::Fb_config
 		};
 
 		/* import merged nodes */
-		config.with_optional_sub_node("merge", [&] (Xml_node const &merge) {
+		config.with_optional_sub_node("merge", [&] (Node const &merge) {
 			add_connectors(merge); });
 
 		_num_merged = count;

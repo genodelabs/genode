@@ -26,8 +26,6 @@ class Anchor
 
 	private:
 
-		using Xml_node = Genode::Xml_node;
-
 		struct Value
 		{
 			char const *value;
@@ -47,7 +45,7 @@ class Anchor
 
 	public:
 
-		Anchor(Xml_node const &node)
+		Anchor(auto const &node)
 		{
 			char const * const attr = "anchor";
 

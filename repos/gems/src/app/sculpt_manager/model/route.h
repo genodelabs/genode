@@ -99,7 +99,7 @@ struct Sculpt::Route : List_model<Route>::Element
 		return "<undefined>";
 	}
 
-	static Service::Type _required(Xml_node const &node)
+	static Service::Type _required(Node const &node)
 	{
 		for (unsigned i = 0; i < (unsigned)Service::Type::UNDEFINED; i++) {
 			Service::Type const s = (Service::Type)i;
@@ -158,7 +158,7 @@ struct Sculpt::Route : List_model<Route>::Element
 	 *
 	 * \param required  sub node of a runtime's <requires> node
 	 */
-	Route(Xml_node const &node)
+	Route(Node const &node)
 	:
 		required(_required(node)),
 		required_label(node.attribute_value("label", Label()))
@@ -204,13 +204,13 @@ struct Sculpt::Route : List_model<Route>::Element
 		});
 	}
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		return required == _required(node)
 		    && required_label == node.attribute_value("label", Label());
 	}
 
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return _required(node) != Service::Type::UNDEFINED;
 	}

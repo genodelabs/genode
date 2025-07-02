@@ -128,7 +128,7 @@ class Cpu_load_display::Cpu : public List<Cpu>::Element
 		Affinity const _pos;
 		List<Timeline> _timelines { };
 
-		void _with_timeline(Xml_node const &subject, auto const &fn)
+		void _with_timeline(Node const &subject, auto const &fn)
 		{
 			Subject_id const subject_id { subject.attribute_value("id", 0U) };
 
@@ -146,10 +146,10 @@ class Cpu_load_display::Cpu : public List<Cpu>::Element
 			fn(t);
 		}
 
-		Activity _activity(Xml_node const &subject)
+		Activity _activity(Node const &subject)
 		{
 			Activity result { };
-			subject.with_optional_sub_node("activity", [&] (Xml_node const &activity) {
+			subject.with_optional_sub_node("activity", [&] (Node const &activity) {
 				result = { activity.attribute_value("recent", 0U) }; });
 
 			return result;
@@ -161,7 +161,7 @@ class Cpu_load_display::Cpu : public List<Cpu>::Element
 
 		bool has_pos(Affinity const pos) const { return pos == _pos; }
 
-		void import_trace_subject(Xml_node const &subject, unsigned now)
+		void import_trace_subject(Node const &subject, unsigned now)
 		{
 			Activity const activity = _activity(subject);
 
@@ -213,16 +213,16 @@ class Cpu_load_display::Cpu_registry
 
 		List<Cpu> _cpus { };
 
-		static Cpu::Affinity _cpu_pos(Xml_node const &subject)
+		static Cpu::Affinity _cpu_pos(Node const &subject)
 		{
 			Cpu::Affinity result { 0, 0 };
-			subject.with_optional_sub_node("affinity", [&] (Xml_node const &affinity) {
-				result = Cpu::Affinity::from_xml(affinity); });
+			subject.with_optional_sub_node("affinity", [&] (Node const &affinity) {
+				result = Cpu::Affinity::from_node(affinity); });
 
 			return result;
 		}
 
-		void _with_cpu(Xml_node const &subject, auto const &fn)
+		void _with_cpu(Node const &subject, auto const &fn)
 		{
 			/* find CPU that matches the affinity of the subject */
 			Cpu::Affinity const cpu_pos = _cpu_pos(subject);
@@ -237,7 +237,7 @@ class Cpu_load_display::Cpu_registry
 			fn(cpu);
 		}
 
-		void _import_trace_subject(Xml_node const &subject, unsigned now)
+		void _import_trace_subject(Node const &subject, unsigned now)
 		{
 			_with_cpu(subject, [&] (Cpu &cpu) {
 				cpu.import_trace_subject(subject, now); });
@@ -247,9 +247,9 @@ class Cpu_load_display::Cpu_registry
 
 		Cpu_registry(Allocator &heap) : _heap(heap) { }
 
-		void import_trace_subjects(Xml_node const &node, unsigned now)
+		void import_trace_subjects(Node const &node, unsigned now)
 		{
-			node.for_each_sub_node("subject", [&] (Xml_node const &subject) {
+			node.for_each_sub_node("subject", [&] (Node const &subject) {
 				_import_trace_subject(subject, now); });
 		}
 
@@ -299,7 +299,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 			_cpu_registry.advance(++_now);
 
-			_cpu_registry.import_trace_subjects(_trace_subjects.xml(), _now);
+			_cpu_registry.import_trace_subjects(_trace_subjects.node(), _now);
 		}
 
 		Signal_handler<Scene> _trace_subjects_handler;

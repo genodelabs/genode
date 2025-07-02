@@ -21,7 +21,6 @@
 #include <os/reporter.h>
 #include <os/vfs.h>
 #include <util/reconstructible.h>
-#include <util/xml_node.h>
 #include <util/xml_generator.h>
 
 
@@ -40,7 +39,7 @@ class Depot_remove::Archive_remover
 	public:
 
 		using Archive_path    = Depot::Archive::Path;
-		using Registered_path = Genode::Registered_no_delete<Archive_path>;
+		using Registered_path = Registered_no_delete<Archive_path>;
 		using Path            = Directory::Path;
 
 
@@ -115,7 +114,7 @@ class Depot_remove::Archive_remover
 					new (_alloc) Registered_path(_archive_to_delete, dependency_path); });
 				_remove_directory(depot, pkg_version_path);
 				/* try to delete the parent if it is empty, if not empty the operation fails */
-				_remove_directory(depot, Genode::Directory::join(pkg_version_path, ".."));
+				_remove_directory(depot, Directory::join(pkg_version_path, ".."));
 				new (_alloc) Registered_path(_deleted_archives, pkg_version_path); });
 
 			/* keep archive dependencies that are still referenced by another PKG */
@@ -149,7 +148,7 @@ class Depot_remove::Archive_remover
 				_remove_directory(depot, Directory::join(archive, "..")); });
 		}
 
-		static bool _config_node_match_pkg(Genode::Xml_node const &node, Path pkg)
+		static bool _config_node_match_pkg(Node const &node, Path pkg)
 		{
 			if (!node.has_attribute("user"))
 				return false;
@@ -172,20 +171,20 @@ class Depot_remove::Archive_remover
 			return true;
 		};
 
-		void _configure_remove_pkgs(Directory &depot, Xml_node const &config)
+		void _configure_remove_pkgs(Directory &depot, Node const &config)
 		{
 			_for_each_pkg(depot, [&] (Path const &pkg_path) {
-				config.for_each_sub_node("remove", [&](Xml_node const &node) {
+				config.for_each_sub_node("remove", [&](Node const &node) {
 					if (_config_node_match_pkg(node, pkg_path))
 						new (_alloc) Registered_path(_pkg_to_delete, pkg_path); }); });
 		}
 
-		void _configure_remove_all_pkgs(Directory &depot, Xml_node const &config)
+		void _configure_remove_all_pkgs(Directory &depot, Node const &config)
 		{
 			_for_each_pkg(depot, [&] (Path const &pkg_path) {
 				bool keep = false;
-				config.for_each_sub_node("remove-all", [&](Xml_node const &remove_all_node) {
-					remove_all_node.for_each_sub_node("keep", [&](Xml_node const &node) {
+				config.for_each_sub_node("remove-all", [&](Node const &remove_all_node) {
+					remove_all_node.for_each_sub_node("keep", [&](Node const &node) {
 						if (_config_node_match_pkg(node, pkg_path))
 							keep = true; }); });
 				if (!keep)
@@ -203,9 +202,7 @@ class Depot_remove::Archive_remover
 						xml.attribute("path", path); }); }); });
 		}
 
-		Archive_remover(Allocator      &alloc,
-		                Directory      &depot,
-		                Xml_node const &config)
+		Archive_remover(Allocator &alloc, Directory &depot, Node const &config)
 		:
 			_alloc { alloc },
 			_arch  { config.attribute_value("arch", String<32>()) }
@@ -252,7 +249,7 @@ struct Depot_remove::Main
 	void _handle_config()
 	{
 		_config_rom.update();
-		Xml_node const &config { _config_rom.xml() };
+		Node const &config { _config_rom.node() };
 
 		if (!config.has_attribute("arch")) {
 			warning("missing arch attribute");

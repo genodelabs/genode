@@ -89,9 +89,9 @@ struct Sculpt::Deploy
 	Rom_handler<Deploy> _managed_deploy_rom {
 		_env, "config -> managed/deploy", *this, &Deploy::_handle_managed_deploy };
 
-	Constructible<Buffered_xml> _template { };
+	Constructible<Buffered_node> _template { };
 
-	void use_as_deploy_template(Xml_node const &deploy)
+	void use_as_deploy_template(Node const &deploy)
 	{
 		_template.construct(_alloc, deploy);
 	}
@@ -101,7 +101,7 @@ struct Sculpt::Deploy
 		if (!_template.constructed())
 			return;
 
-		Xml_node const &deploy = _template->xml;
+		Node const &deploy = *_template;
 
 		if (deploy.type() == "empty")
 			return;
@@ -109,7 +109,7 @@ struct Sculpt::Deploy
 		_update_managed_deploy_config(deploy);
 	}
 
-	void _update_managed_deploy_config(Xml_node const &deploy)
+	void _update_managed_deploy_config(Node const &deploy)
 	{
 		/*
 		 * Ignore intermediate states that may occur when manually updating
@@ -127,14 +127,14 @@ struct Sculpt::Deploy
 				xml.attribute("arch", arch);
 
 			/* copy <common_routes> from manual deploy config */
-			deploy.for_each_sub_node("common_routes", [&] (Xml_node const &node) {
+			deploy.for_each_sub_node("common_routes", [&] (Node const &node) {
 				(void)xml.append_node(node, Xml_generator::Max_depth { 10 }); });
 
 			/*
 			 * Copy the <start> node from manual deploy config, unless the
 			 * component was interactively killed by the user.
 			 */
-			deploy.for_each_sub_node("start", [&] (Xml_node const &node) {
+			deploy.for_each_sub_node("start", [&] (Node const &node) {
 				Start_name const name = node.attribute_value("name", Start_name());
 				if (_runtime_info.abandoned_by_user(name))
 					return;
@@ -189,7 +189,7 @@ struct Sculpt::Deploy
 	Managed_config<Deploy> _installation {
 		_env, "installation", "installation", *this, &Deploy::_handle_installation };
 
-	void _handle_installation(Xml_node const &manual_config)
+	void _handle_installation(Node const &manual_config)
 	{
 		_manual_installation_scheduled = manual_config.has_sub_node("archive");
 		handle_deploy();
@@ -203,22 +203,22 @@ struct Sculpt::Deploy
 		    || _download_queue.any_active_download();
 	}
 
-	void _handle_managed_deploy(Xml_node const &);
+	void _handle_managed_deploy(Node const &);
 
 	void handle_deploy()
 	{
-		_managed_deploy_rom.with_xml([&] (Xml_node const &managed_deploy) {
+		_managed_deploy_rom.with_node([&] (Node const &managed_deploy) {
 			_handle_managed_deploy(managed_deploy); });
 	}
 
 	/**
 	 * Call 'fn' for each unsatisfied dependency of the child's 'start' node
 	 */
-	void _for_each_missing_server(Xml_node const &start, auto const &fn) const
+	void _for_each_missing_server(Node const &start, auto const &fn) const
 	{
-		start.for_each_sub_node("route", [&] (Xml_node const &route) {
-			route.for_each_sub_node("service", [&] (Xml_node const &service) {
-				service.for_each_sub_node("child", [&] (Xml_node const &child) {
+		start.for_each_sub_node("route", [&] (Node const &route) {
+			route.for_each_sub_node("service", [&] (Node const &service) {
+				service.for_each_sub_node("child", [&] (Node const &child) {
 					Start_name const name = child.attribute_value("name", Start_name());
 
 					/*
@@ -248,7 +248,7 @@ struct Sculpt::Deploy
 	{
 		bool all_satisfied = true;
 		_children.for_each_unsatisfied_child(
-			[&] (Xml_node const &, Xml_node const &, Start_name const &) {
+			[&] (Node const &, Node const &, Start_name const &) {
 				all_satisfied = false; });
 		return !all_satisfied;
 	}
@@ -265,7 +265,7 @@ struct Sculpt::Deploy
 		/* ignore stale query results */
 		_depot_query.trigger_depot_query();
 
-		_children.apply_config(Xml_node("<config/>"));
+		_children.apply_config(Node());
 	}
 
 	void reattempt_after_installation()

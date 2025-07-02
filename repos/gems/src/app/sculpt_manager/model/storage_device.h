@@ -72,19 +72,19 @@ struct Sculpt::Storage_device
 
 	unsigned _part_block_version = 0;
 
-	void _update_partitions_from_xml(Xml_node const &node)
+	void _update_partitions_from_node(Node const &node)
 	{
-		partitions.update_from_xml(node,
+		partitions.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Partition & {
-				return *new (_alloc) Partition(Partition::Args::from_xml(node)); },
+			[&] (Node const &node) -> Partition & {
+				return *new (_alloc) Partition(Partition::Args::from_node(node)); },
 
 			/* destroy */
 			[&] (Partition &p) { destroy(_alloc, &p); },
 
 			/* update */
-			[&] (Partition &, Xml_node const &) { }
+			[&] (Partition &, Node const &) { }
 		);
 	}
 
@@ -97,21 +97,21 @@ struct Sculpt::Storage_device
 		state = UNKNOWN;
 		_part_block_version++;
 
-		_update_partitions_from_xml(Xml_node("<partitions/>"));
+		_update_partitions_from_node(Node());
 	}
 
-	void _handle_partitions(Xml_node const &) { _action.storage_device_discovered(); }
+	void _handle_partitions(Node const &) { _action.storage_device_discovered(); }
 
 	void process_partitions()
 	{
-		_partitions.with_xml([&] (Xml_node const &report) {
+		_partitions.with_node([&] (Node const &report) {
 
 			if (!report.has_type("partitions"))
 				return;
 
 			whole_device = (report.attribute_value("type", String<16>()) == "disk");
 
-			_update_partitions_from_xml(report);
+			_update_partitions_from_node(report);
 
 			/*
 			 * Import whole-device partition information.
@@ -122,9 +122,9 @@ struct Sculpt::Storage_device
 			 */
 			if (!whole_device_partition.constructed() || whole_device_partition->idle()) {
 				whole_device_partition.construct(Partition::Args::whole_device(capacity));
-				report.for_each_sub_node("partition", [&] (Xml_node const &partition) {
+				report.for_each_sub_node("partition", [&] (Node const &partition) {
 					if (partition.attribute_value("number", Partition::Number()) == "0")
-						whole_device_partition.construct(Partition::Args::from_xml(partition)); });
+						whole_device_partition.construct(Partition::Args::from_node(partition)); });
 			}
 
 			/* finish initial discovery phase */

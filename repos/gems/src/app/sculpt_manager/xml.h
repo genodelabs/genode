@@ -117,18 +117,17 @@ namespace Sculpt {
 	}
 
 	template <typename T>
-	static T _attribute_value(Xml_node const &node, char const *attr_name)
+	static T _attribute_value(Node const &node, char const *attr_name)
 	{
 		return node.attribute_value(attr_name, T{});
 	}
 
 	template <typename T>
-	static T _attribute_value(Xml_node const &node, char const *sub_node_type, auto &&... args)
+	static T _attribute_value(Node const &node, char const *sub_node_type, auto &&... args)
 	{
-		if (!node.has_sub_node(sub_node_type))
-			return T{};
-
-		return _attribute_value<T>(node.sub_node(sub_node_type), args...);
+		return node.with_sub_node(sub_node_type,
+			[&] (Node const &n) { return _attribute_value<T>(n, args...); },
+			[&]                 { return T{}; });
 	}
 
 	/**
@@ -138,46 +137,24 @@ namespace Sculpt {
 	 * XML structure. The last argument denotes the queried attribute name.
 	 */
 	template <typename T>
-	static T query_attribute(Xml_node const &node, auto &&... args)
+	static T query_attribute(Node const &node, auto &&... args)
 	{
 		return _attribute_value<T>(node, args...);
-	}
-
-	static inline void copy_attributes(Xml_generator &xml, Xml_node const &from)
-	{
-		using Value = String<64>;
-		from.for_each_attribute([&] (Xml_attribute const &attr) {
-			Value value { };
-			attr.value(value);
-			xml.attribute(attr.name().string(), value);
-		});
-	}
-
-	struct Xml_max_depth { unsigned value; };
-
-	static inline void copy_node(Xml_generator &xml, Xml_node const &from,
-	                             Xml_max_depth max_depth = { 5 })
-	{
-		if (max_depth.value)
-			xml.node(from.type().string(), [&] {
-				copy_attributes(xml, from);
-				from.for_each_sub_node([&] (Xml_node const &sub_node) {
-					copy_node(xml, sub_node, { max_depth.value - 1 }); }); });
 	}
 
 	struct Rom_data : Noncopyable, Interface
 	{
 		protected:
 
-			using With_xml = Callable<void, Xml_node const &>;
+			using With_node = Callable<void, Node const &>;
 
-			virtual void _with_xml(With_xml::Ft const &) const = 0;
+			virtual void _with_node(With_node::Ft const &) const = 0;
 
 		public:
 
 			virtual bool valid() const = 0;
 
-			void with_xml(auto const &fn) const { _with_xml( With_xml::Fn { fn } ); }
+			void with_node(auto const &fn) const { _with_node( With_node::Fn { fn } ); }
 	};
 
 	template <typename T>
@@ -189,22 +166,22 @@ namespace Sculpt {
 
 			T &_obj;
 
-			void (T::*_member) (Xml_node const &);
+			void (T::*_member) (Node const &);
 
 			Signal_handler<Rom_handler> _handler;
 
 			void _handle()
 			{
 				_rom.update();
-				(_obj.*_member)(_rom.xml());
+				(_obj.*_member)(_rom.node());
 			}
 
-			void _with_xml(With_xml::Ft const &fn) const override { fn(_rom.xml()); }
+			void _with_node(With_node::Ft const &fn) const override { fn(_rom.node()); }
 
 		public:
 
 			Rom_handler(Env &env, Session_label const &label,
-			            T &obj, void (T::*member)(Xml_node const &))
+			            T &obj, void (T::*member)(Node const &))
 			:
 				_rom(env, label.string()), _obj(obj), _member(member),
 				_handler(env.ep(), *this, &Rom_handler::_handle)
@@ -213,7 +190,7 @@ namespace Sculpt {
 				_handler.local_submit();
 			}
 
-			bool valid() const override { return !_rom.xml().has_type("empty"); }
+			bool valid() const override { return !_rom.node().has_type("empty"); }
 	};
 }
 

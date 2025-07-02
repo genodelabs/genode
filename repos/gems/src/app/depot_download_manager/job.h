@@ -36,12 +36,12 @@ struct Depot_download_manager::Job : List_model<Job>::Element
 
 	Job(Archive::Path const &path) : path(path) { }
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		return node.attribute_value("path", Archive::Path()) == path;
 	}
 
-	static bool type_matches(Xml_node const &) { return true; }
+	static bool type_matches(Node const &) { return true; }
 };
 
 #endif /* _JOB_H_ */

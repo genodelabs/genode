@@ -123,9 +123,9 @@ struct Sculpt::Index_update_queue : Noncopyable
 				fn(update); });
 	}
 
-	void apply_update_state(Xml_node const &state)
+	void apply_update_state(Node const &state)
 	{
-		state.for_each_sub_node([&] (Xml_node const &elem) {
+		state.for_each_sub_node([&] (Node const &elem) {
 
 			Path const path = elem.attribute_value("path", Path());
 			_updates.for_each([&] (Update &update) {

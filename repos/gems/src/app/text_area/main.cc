@@ -130,7 +130,7 @@ struct Text_area::Main : Text_area_widget::Action
 
 	Directory::Path _path() const
 	{
-		return _config.xml().attribute_value("path", Directory::Path());
+		return _config.node().attribute_value("path", Directory::Path());
 	}
 
 	void _watch(bool enabled)
@@ -202,9 +202,6 @@ struct Text_area::Main : Text_area_widget::Action
 
 	Constructible<Attached_rom_dataspace> _clipboard_rom { };
 
-	enum { PASTE_BUFFER_SIZE = 64*1024 };
-	struct Paste_buffer { char buffer[PASTE_BUFFER_SIZE]; } _paste_buffer { };
-
 	/**
 	 * Text_area::Dialog::Action interface
 	 */
@@ -218,20 +215,14 @@ struct Text_area::Main : Text_area_widget::Action
 
 		_clipboard_rom->update();
 
-		_paste_buffer = { };
-
-		/* leave last byte as zero-termination in tact */
-		size_t const max_len = sizeof(_paste_buffer.buffer) - 1;
-		size_t const len =
-			_clipboard_rom->xml().decoded_content(_paste_buffer.buffer, max_len);
-
-		if (len == max_len) {
-			warning("clipboard content exceeds paste buffer");
-			return;
-		}
-
-		for (Utf8_ptr utf8(_paste_buffer.buffer); utf8.complete(); utf8 = utf8.next())
-			_dialog.text.insert_at_cursor_position(utf8.codepoint());
+		_clipboard_rom->node().for_each_quoted_line([&] (auto const &line) {
+			using Line = String<1000>;
+			Line const unquoted { line };
+			for (Utf8_ptr utf8(unquoted.string()); utf8.complete(); utf8 = utf8.next())
+				_dialog.text.insert_at_cursor_position(utf8.codepoint());
+			if (!line.last)
+				_dialog.text.insert_at_cursor_position(Codepoint { '\n' });
+		 });
 
 		_view.refresh();
 	}
@@ -292,7 +283,7 @@ struct Text_area::Main : Text_area_widget::Action
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		bool const copy_enabled  = config.attribute_value("copy",  false);
 		bool const paste_enabled = config.attribute_value("paste", false);
@@ -309,7 +300,7 @@ struct Text_area::Main : Text_area_widget::Action
 		if (_editable()) {
 			bool const orig_saved_reporter_enabled = _saved_reporter.constructed();
 
-			config.with_optional_sub_node("report", [&] (Xml_node const &node) {
+			config.with_optional_sub_node("report", [&] (Node const &node) {
 				_saved_reporter.conditional(node.attribute_value("saved", false),
 				                            _env, "saved", "saved"); });
 
@@ -318,7 +309,7 @@ struct Text_area::Main : Text_area_widget::Action
 
 			Saved_version const orig_saved_version = _saved_version;
 
-			config.with_optional_sub_node("save", [&] (Xml_node const &node) {
+			config.with_optional_sub_node("save", [&] (Node const &node) {
 				_saved_version.value =
 					node.attribute_value("version", _saved_version.value); });
 

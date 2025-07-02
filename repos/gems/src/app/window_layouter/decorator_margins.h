@@ -24,7 +24,7 @@ struct Window_layouter::Decorator_margins
 {
 	unsigned top, bottom, left, right;
 
-	static Decorator_margins from_xml(Xml_node const &node)
+	static Decorator_margins from_node(Node const &node)
 	{
 		return { .top    = node.attribute_value("top",    0U),
 		         .bottom = node.attribute_value("bottom", 0U),

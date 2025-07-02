@@ -17,16 +17,14 @@
 using namespace Sculpt;
 
 
-Progress Storage::update(Xml_node const &config,
-                         Xml_node const &usb,  Xml_node const &ahci,
-                         Xml_node const &nvme, Xml_node const &mmc)
+Progress Storage::update(Node const &config, Drivers::Storage_devices const &devices)
 {
 	bool progress = false;
 
-	progress |= _storage_devices.update_ahci(_env, _alloc, ahci).progress;
-	progress |= _storage_devices.update_nvme(_env, _alloc, nvme).progress;
-	progress |= _storage_devices.update_mmc (_env, _alloc, mmc) .progress;
-	progress |= _storage_devices.update_usb (_env, _alloc, usb) .progress;
+	progress |= _storage_devices.update_ahci(_env, _alloc, devices.ahci.report).progress;
+	progress |= _storage_devices.update_nvme(_env, _alloc, devices.nvme.report).progress;
+	progress |= _storage_devices.update_mmc (_env, _alloc, devices.mmc .report).progress;
+	progress |= _storage_devices.update_usb (_env, _alloc, devices.usb .report).progress;
 
 	_storage_devices.for_each([&] (Storage_device &dev) {
 		Storage_device::State const orig_state = dev.state;
@@ -41,8 +39,8 @@ Progress Storage::update(Xml_node const &config,
 	Storage_target const orig_configured_target = _configured_target;
 
 	config.with_sub_node("target",
-		[&] (Xml_node const &target) {
-			Storage_target const configured_target = Storage_target::from_xml(target);
+		[&] (Node const &target) {
+			Storage_target const configured_target = Storage_target::from_node(target);
 			if (configured_target != _configured_target) {
 				_configured_target = configured_target;
 				_malconfiguration = false; } },
@@ -53,18 +51,14 @@ Progress Storage::update(Xml_node const &config,
 		_selected_target = { };
 
 	if (!_selected_target.valid()) {
-
-		bool const all_devices_enumerated = !usb .has_type("empty")
-		                                 && !ahci.has_type("empty")
-		                                 && !nvme.has_type("empty")
-		                                 && !mmc .has_type("empty");
-		if (all_devices_enumerated) {
+		if (devices.all_enumerated()) {
 			if (_configured_target.valid())
 				_selected_target = _malconfiguration ? Storage_target { } : _configured_target;
 			else
 				_selected_target = _discovery_state.detect_default_target(_storage_devices);
 		}
 	}
+
 
 	/*
 	 * Detect the removal of a USB stick that is currently in "use". Reset

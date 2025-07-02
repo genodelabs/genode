@@ -53,8 +53,8 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 
 	void _handle_mode()
 	{
-		_focus_gui_session.with_info([&] (Xml_node const &info) {
-			_screen_area = Area::from_xml(info); });
+		_focus_gui_session.with_info_node([&] (Node const &info) {
+			_screen_area = Area::from_node(info); });
 		_gui_root.propagate_mode_change();
 	}
 
@@ -69,7 +69,7 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 
 	Gui::Root _gui_root { _env, *this, _window_registry, *this, _focus_gui_session };
 
-	static void _with_win_id_from_xml(Xml_node const &window, auto const &fn)
+	static void _with_win_id_from_node(Node const &window, auto const &fn)
 	{
 		if (window.has_attribute("id"))
 			fn(Window_registry::Id { window.attribute_value("id", 0u) });
@@ -80,8 +80,8 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 		_gui_root.revoke_exclusive_input();
 		_focus_rom.update();
 		bool defined = false;
-		_focus_rom.xml().with_optional_sub_node("window", [&] (Xml_node const &window) {
-			_with_win_id_from_xml(window, [&] (Window_registry::Id id) {
+		_focus_rom.node().with_optional_sub_node("window", [&] (Node const &window) {
+			_with_win_id_from_node(window, [&] (Window_registry::Id id) {
 				_gui_root.with_gui_session(id, [&] (Capability<Gui::Session> cap) {
 					_focus_gui_session.focus(cap);
 					defined = true; }); }); });
@@ -95,9 +95,9 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 	void _handle_resize_request_update()
 	{
 		_resize_request_rom.update();
-		_resize_request_rom.xml().for_each_sub_node("window", [&] (Xml_node const &window) {
-			_with_win_id_from_xml(window, [&] (Window_registry::Id id) {
-				_gui_root.request_resize(id, Area::from_xml(window)); }); });
+		_resize_request_rom.node().for_each_sub_node("window", [&] (Node const &window) {
+			_with_win_id_from_node(window, [&] (Window_registry::Id id) {
+				_gui_root.request_resize(id, Area::from_node(window)); }); });
 	}
 
 	Signal_handler<Main> _resize_request_handler {

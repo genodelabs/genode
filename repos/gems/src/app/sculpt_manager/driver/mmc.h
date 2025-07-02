@@ -32,7 +32,7 @@ struct Sculpt::Mmc_driver : private Noncopyable
 	Rom_handler<Mmc_driver> _devices {
 		_env, "report -> runtime/mmc/block_devices", *this, &Mmc_driver::_handle_devices };
 
-	void _handle_devices(Xml_node const &) { _action.handle_mmc_discovered(); }
+	void _handle_devices(Node const &) { _action.handle_mmc_discovered(); }
 
 	Mmc_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
@@ -74,9 +74,8 @@ struct Sculpt::Mmc_driver : private Noncopyable
 
 	void with_devices(auto const &fn) const
 	{
-		static Xml_node const none { "<none/>" };
-		_devices.with_xml([&] (Xml_node const &devices) {
-			fn(_mmc.constructed() ? devices : none); });
+		_devices.with_node([&] (Node const &devices) {
+			fn({ .present = _mmc.constructed(), .report = devices }); });
 	}
 };
 

@@ -29,7 +29,7 @@ struct Sculpt::System_state : private Noncopyable
 
 	State state { RUNNING };
 
-	static State _state_from_xml(Xml_node const &node)
+	static State _state_from_node(Node const &node)
 	{
 		auto value = node.attribute_value("state", String<64>());
 
@@ -59,10 +59,10 @@ struct Sculpt::System_state : private Noncopyable
 		return "";
 	}
 
-	Progress apply_config(Xml_node const &node)
+	Progress apply_config(Node const &node)
 	{
 		State const orig = state;
-		state = _state_from_xml(node);
+		state = _state_from_node(node);
 		return { orig != state };
 	}
 
@@ -75,19 +75,19 @@ struct Sculpt::System_state : private Noncopyable
 	bool acpi_suspending()  const { return state == State::ACPI_SUSPENDING;  }
 	bool acpi_resuming()    const { return state == State::ACPI_RESUMING;    }
 
-	bool _acpi_completed(State const expected, Xml_node const &sleep_states) const
+	bool _acpi_completed(State const expected, Node const &sleep_states) const
 	{
 		auto const complete = sleep_states.attribute_value("complete", String<16>());
 
 		return (state == expected) && (complete == _state_name(expected));
 	}
 
-	bool ready_for_suspended(Xml_node const &acpi_sleep_states) const
+	bool ready_for_suspended(Node const &acpi_sleep_states) const
 	{
 		return _acpi_completed(ACPI_SUSPENDING, acpi_sleep_states);
 	}
 
-	bool ready_for_restarting_drivers(Xml_node const &acpi_sleep_states) const
+	bool ready_for_restarting_drivers(Node const &acpi_sleep_states) const
 	{
 		return _acpi_completed(ACPI_RESUMING, acpi_sleep_states);
 	}

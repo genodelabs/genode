@@ -19,7 +19,7 @@
 bool Sculpt::Deploy::update_child_conditions()
 {
 	/* return true if any condition changed */
-	return _children.apply_condition([&] (Xml_node const &start, Xml_node const &launcher) {
+	return _children.apply_condition([&] (Node const &start, Node const &launcher) {
 
 		/* the child cannot run as long as any dependency is missing */
 		bool condition = true;
@@ -42,7 +42,7 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 	using Registered_message = Registered_no_delete<Message>;
 	Registry<Registered_message> messages { };
 
-	auto gen_missing_dependencies = [&] (Xml_node const &start, Start_name const &name)
+	auto gen_missing_dependencies = [&] (Node const &start, Start_name const &name)
 	{
 		_for_each_missing_server(start, [&] (Start_name const &server) {
 
@@ -58,8 +58,8 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 		});
 	};
 
-	_children.for_each_unsatisfied_child([&] (Xml_node   const &start,
-	                                          Xml_node   const &launcher,
+	_children.for_each_unsatisfied_child([&] (Node       const &start,
+	                                          Node       const &launcher,
 	                                          Start_name const &name) {
 		gen_missing_dependencies(start,    name);
 		gen_missing_dependencies(launcher, name);
@@ -75,7 +75,7 @@ void Sculpt::Deploy::view_diag(Scope<> &s) const
 }
 
 
-void Sculpt::Deploy::_handle_managed_deploy(Xml_node const &managed_deploy)
+void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 {
 	/* determine CPU architecture of deployment */
 	Arch const orig_arch = _arch;
@@ -99,8 +99,8 @@ void Sculpt::Deploy::_handle_managed_deploy(Xml_node const &managed_deploy)
 	{
 		bool any_child_affected = false;
 
-		_launcher_listing_rom.with_xml([&] (Xml_node const &listing) {
-			listing.for_each_sub_node("dir", [&] (Xml_node const &dir) {
+		_launcher_listing_rom.with_node([&] (Node const &listing) {
+			listing.for_each_sub_node("dir", [&] (Node const &dir) {
 
 				using Path = String<20>;
 				Path const path = dir.attribute_value("path", Path());
@@ -108,7 +108,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Xml_node const &managed_deploy)
 				if (path != "/launcher")
 					return;
 
-				dir.for_each_sub_node("file", [&] (Xml_node const &file) {
+				dir.for_each_sub_node("file", [&] (Node const &file) {
 
 					if (file.attribute_value("xml", false) == false)
 						return;
@@ -116,7 +116,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Xml_node const &managed_deploy)
 					using Name = Depot_deploy::Child::Launcher_name;
 					Name const name = file.attribute_value("name", Name());
 
-					file.for_each_sub_node("launcher", [&] (Xml_node const &launcher) {
+					file.for_each_sub_node("launcher", [&] (Node const &launcher) {
 						if (_children.apply_launcher(name, launcher))
 							any_child_affected = true; });
 				});
@@ -131,7 +131,7 @@ void Sculpt::Deploy::_handle_managed_deploy(Xml_node const &managed_deploy)
 	{
 		bool progress = false;
 		try {
-			_blueprint_rom.with_xml([&] (Xml_node const &blueprint) {
+			_blueprint_rom.with_node([&] (Node const &blueprint) {
 
 			/* apply blueprint, except when stale */
 				using Version = String<32>;
@@ -186,16 +186,16 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator  &xml,
 	xml.node("start", [&] {
 		gen_depot_query_start_content(xml); });
 
-	_managed_deploy_rom.with_xml([&] (Xml_node const &managed_deploy) {
+	_managed_deploy_rom.with_node([&] (Node const &managed_deploy) {
 
 		/* insert content of '<static>' node as is */
 		managed_deploy.with_optional_sub_node("static",
-			[&] (Xml_node const &static_config) {
+			[&] (Node const &static_config) {
 				(void)xml.append_node_content(static_config, { 20 }); });
 
 		/* generate start nodes for deployed packages */
 		managed_deploy.with_optional_sub_node("common_routes",
-			[&] (Xml_node const &common_routes) {
+			[&] (Node const &common_routes) {
 				_children.gen_start_nodes(xml, common_routes,
 				                          prio_levels, affinity_space,
 				                          "depot_rom", "dynamic_depot_rom");

@@ -33,16 +33,16 @@ class Window_layouter::Assign_list : Noncopyable
 
 		Assign_list(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node const &node)
+		void update_from_node(Node const &node)
 		{
-			_assignments.update_from_xml(node,
+			_assignments.update_from_node(node,
 
-				[&] (Xml_node const &node) -> Assign & {
+				[&] (Node const &node) -> Assign & {
 					return *new (_alloc) Assign(node); },
 
 				[&] (Assign &assign) { destroy(_alloc, &assign); },
 
-				[&] (Assign &assign, Xml_node const &node) { assign.update(node); }
+				[&] (Assign &assign, Node const &node) { assign.update(node); }
 			);
 		}
 

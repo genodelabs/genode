@@ -41,14 +41,14 @@ class Depot_deploy::Children
 		/*
 		 * \return true if config had any effect
 		 */
-		bool apply_config(Xml_node const &config)
+		bool apply_config(Node const &config)
 		{
 			bool progress = false;
 
-			_children.update_from_xml(config,
+			_children.update_from_node(config,
 
 				/* create */
-				[&] (Xml_node const &node) -> Child & {
+				[&] (Node const &node) -> Child & {
 					progress = true;
 					return *new (_alloc) Child(_alloc, node); },
 
@@ -58,7 +58,7 @@ class Depot_deploy::Children
 					destroy(_alloc, &child); },
 
 				/* update */
-				[&] (Child &child, Xml_node const &node) {
+				[&] (Child &child, Node const &node) {
 					if (child.apply_config(node))
 						progress = true; }
 			);
@@ -69,7 +69,7 @@ class Depot_deploy::Children
 		/*
 		 * \return true if launcher had any effect
 		 */
-		bool apply_launcher(Child::Launcher_name const &name, Xml_node const &launcher)
+		bool apply_launcher(Child::Launcher_name const &name, Node const &launcher)
 		{
 			bool any_child_changed = false;
 
@@ -83,16 +83,16 @@ class Depot_deploy::Children
 		/*
 		 * \return true if blueprint had an effect on any child
 		 */
-		bool apply_blueprint(Xml_node const &blueprint)
+		bool apply_blueprint(Node const &blueprint)
 		{
 			bool any_child_changed = false;
 
-			blueprint.for_each_sub_node("pkg", [&] (Xml_node const &pkg) {
+			blueprint.for_each_sub_node("pkg", [&] (Node const &pkg) {
 				_children.for_each([&] (Child &child) {
 					if (child.apply_blueprint(pkg))
 						any_child_changed = true; }); });
 
-			blueprint.for_each_sub_node("missing", [&] (Xml_node const &missing) {
+			blueprint.for_each_sub_node("missing", [&] (Node const &missing) {
 				_children.for_each([&] (Child &child) {
 					if (child.mark_as_incomplete(missing))
 						any_child_changed = true; }); });
@@ -112,7 +112,7 @@ class Depot_deploy::Children
 		}
 
 		/**
-		 * Call 'fn' with start 'Xml_node' of each child that has an
+		 * Call 'fn' with start 'Node' of each child that has an
 		 * unsatisfied start condition.
 		 */
 		void for_each_unsatisfied_child(auto const &fn) const
@@ -127,7 +127,7 @@ class Depot_deploy::Children
 				child.reset_incomplete(); });
 		}
 
-		void gen_start_nodes(Xml_generator &xml, Xml_node const &common,
+		void gen_start_nodes(Xml_generator &xml, Node const &common,
 		                     Child::Prio_levels prio_levels,
 		                     Affinity::Space affinity_space,
 		                     Child::Depot_rom_server const &cached_depot_rom,

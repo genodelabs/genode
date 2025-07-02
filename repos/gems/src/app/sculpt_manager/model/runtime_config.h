@@ -46,16 +46,16 @@ class Sculpt::Runtime_config
 		 * - 'info' reveals system information
 		 * - 'GUI' connects to the nitpicker GUI server
 		 */
-		static Start_name _to_name(Xml_node const &node)
+		static Start_name _to_name(Node const &node)
 		{
 			Start_name result { };
-			node.with_optional_sub_node("child", [&] (Xml_node const &child) {
+			node.with_optional_sub_node("child", [&] (Node const &child) {
 				result = child.attribute_value("name", Start_name()); });
 
 			if (result.valid())
 				return result;
 
-			node.with_optional_sub_node("parent", [&] (Xml_node const &parent) {
+			node.with_optional_sub_node("parent", [&] (Node const &parent) {
 
 				Service::Type_name const service =
 					node.attribute_value("name", Service::Type_name());
@@ -137,11 +137,11 @@ class Sculpt::Runtime_config
 		/**
 		 * Return component name targeted by the first route of the start node
 		 */
-		static Start_name _primary_dependency(Xml_node const &start)
+		static Start_name _primary_dependency(Node const &start)
 		{
 			Start_name result { };
-			start.with_optional_sub_node("route", [&] (Xml_node const &route) {
-				route.with_optional_sub_node("service", [&] (Xml_node const &service) {
+			start.with_optional_sub_node("route", [&] (Node const &route) {
+				route.with_optional_sub_node("service", [&] (Node const &service) {
 					result = _to_name(service); }); });
 
 			return result;
@@ -149,7 +149,7 @@ class Sculpt::Runtime_config
 
 		struct Child_service : Service, List_model<Child_service>::Element
 		{
-			static Service::Type type_from_xml(Xml_node const &service)
+			static Service::Type type_from_node(Node const &service)
 			{
 				auto const name = service.attribute_value("name", Service::Type_name());
 				for (unsigned i = 0; i < (unsigned)Type::UNDEFINED; i++) {
@@ -161,17 +161,17 @@ class Sculpt::Runtime_config
 				return Type::UNDEFINED;
 			}
 
-			Child_service(Start_name server, Xml_node const &provides)
-			: Service(server, type_from_xml(provides), { }) { }
+			Child_service(Start_name server, Node const &provides)
+			: Service(server, type_from_node(provides), { }) { }
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
-				return type_from_xml(node) != Service::Type::UNDEFINED;
+				return type_from_node(node) != Service::Type::UNDEFINED;
 			}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
-				return type_from_xml(node) == type;
+				return type_from_node(node) == type;
 			}
 		};
 
@@ -210,12 +210,12 @@ class Sculpt::Runtime_config
 
 				Dep(Start_name to_name) : to_name(to_name) { }
 
-				bool matches(Xml_node const &node) const
+				bool matches(Node const &node) const
 				{
 					return _to_name(node) == to_name;
 				}
 
-				static bool type_matches(Xml_node const &node)
+				static bool type_matches(Node const &node)
 				{
 					return _to_name(node).valid();
 				}
@@ -243,50 +243,56 @@ class Sculpt::Runtime_config
 				_child_services.for_each(fn);
 			}
 
-			void update_from_xml(Allocator &alloc, Xml_node const &node)
+			void update_route_from_node(Allocator &alloc, Node const &route)
+			{
+				deps.update_from_node(route,
+
+					/* create */
+					[&] (Node const &node) -> Dep & {
+						return *new (alloc) Dep(_to_name(node)); },
+
+					/* destroy */
+					[&] (Dep &e) { destroy(alloc, &e); },
+
+					/* update */
+					[&] (Dep &, Node const &) { }
+				);
+			}
+
+			void update_provides_from_node(Allocator &alloc, Node const &provides)
+			{
+				_child_services.update_from_node(provides,
+
+					/* create */
+					[&] (Node const &node) -> Child_service & {
+						return *new (alloc)
+							Child_service(name, node); },
+
+					/* destroy */
+					[&] (Child_service &e) { destroy(alloc, &e); },
+
+					/* update */
+					[&] (Child_service &, Node const &) { }
+				);
+			}
+
+			void update_from_node(Allocator &alloc, Node const &node)
 			{
 				primary_dependency = _primary_dependency(node);
 
-				node.with_optional_sub_node("route", [&] (Xml_node const &route) {
+				node.with_optional_sub_node("route", [&] (Node const &route) {
+					update_route_from_node(alloc, route); });
 
-					deps.update_from_xml(route,
-
-						/* create */
-						[&] (Xml_node const &node) -> Dep & {
-							return *new (alloc) Dep(_to_name(node)); },
-
-						/* destroy */
-						[&] (Dep &e) { destroy(alloc, &e); },
-
-						/* update */
-						[&] (Dep &, Xml_node const &) { }
-					);
-				});
-
-				node.with_optional_sub_node("provides", [&] (Xml_node const &provides) {
-
-					_child_services.update_from_xml(provides,
-
-						/* create */
-						[&] (Xml_node const &node) -> Child_service & {
-							return *new (alloc)
-								Child_service(name, node); },
-
-						/* destroy */
-						[&] (Child_service &e) { destroy(alloc, &e); },
-
-						/* update */
-						[&] (Child_service &, Xml_node const &) { }
-					);
-				});
+				node.with_optional_sub_node("provides", [&] (Node const &provides) {
+					update_provides_from_node(alloc, provides); });
 			}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return node.attribute_value("name", Start_name()) == name;
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("start");
 			}
@@ -355,12 +361,12 @@ class Sculpt::Runtime_config
 
 		Runtime_config(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node const &config)
+		void update_from_node(Node const &config)
 		{
-			_components.update_from_xml(config,
+			_components.update_from_node(config,
 
 				/* create */
-				[&] (Xml_node const &node) -> Component & {
+				[&] (Node const &node) -> Component & {
 					return *new (_alloc)
 						Component(node.attribute_value("name", Start_name()),
 						          _graph_ids,
@@ -371,14 +377,15 @@ class Sculpt::Runtime_config
 				[&] (Component &e) {
 
 					/* flush list models */
-					e.update_from_xml(_alloc, Xml_node("<start> <route/> <provides/> </start>"));
+					e.update_route_from_node   (_alloc, Node());
+					e.update_provides_from_node(_alloc, Node());
 
 					destroy(_alloc, &e);
 				},
 
 				/* update */
-				[&] (Component &e, Xml_node const &node) {
-					e.update_from_xml(_alloc, node); }
+				[&] (Component &e, Node const &node) {
+					e.update_from_node(_alloc, node); }
 			);
 		}
 

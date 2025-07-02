@@ -81,11 +81,11 @@ struct Depot_deploy::Main
 
 		Attributes const orig_attributes = curr_attributes();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		bool const report_state = config.with_sub_node("report",
-			[] (Xml_node const &node) { return node.attribute_value("state", false); },
-			[]                        { return false; });
+			[] (Node const &node) { return node.attribute_value("state", false); },
+			[]                    { return false; });
 
 		_state_reporter.conditional(report_state, _env, "state", "state");
 
@@ -93,7 +93,7 @@ struct Depot_deploy::Main
 		_arch        = config.attribute_value("arch", Arch());
 
 		bool const config_affected_child    = _children.apply_config(config);
-		bool const blueprint_affected_child = _children.apply_blueprint(_blueprint.xml());
+		bool const blueprint_affected_child = _children.apply_blueprint(_blueprint.node());
 
 		bool const progress = (curr_attributes() != orig_attributes)
 		                   || config_affected_child
@@ -102,7 +102,7 @@ struct Depot_deploy::Main
 			return;
 
 		if (_state_reporter.constructed())
-			_state_reporter->generate([&] (Xml_generator xml) {
+			_state_reporter->generate([&] (Xml_generator &xml) {
 				xml.attribute("running", true); });
 
 		if (!_arch.valid())
@@ -125,25 +125,25 @@ struct Depot_deploy::Main
 		 && !_children.any_blueprint_needed()
 		 && _state_reporter.constructed()) {
 
-			_state_reporter->generate([&] (Xml_generator xml) {
+			_state_reporter->generate([&] (Xml_generator &xml) {
 				xml.attribute("running", false);
 				xml.attribute("count", _children.count());
 			});
 		}
 	}
 
-	void _gen_init_config(Xml_generator &xml, Xml_node const &config) const
+	void _gen_init_config(Xml_generator &xml, Node const &config) const
 	{
 		if (_prio_levels.value)
 			xml.attribute("prio_levels", _prio_levels.value);
 
 		config.with_sub_node("static",
-			[&] (Xml_node const &static_config) {
+			[&] (Node const &static_config) {
 				if (!xml.append_node_content(static_config, MAX_NODE_DEPTH))
 					warning("config too deeply nested: ", static_config); },
 			[&] { warning("config lacks <static> node"); });
 
-		config.with_optional_sub_node("report", [&] (Xml_node const &report) {
+		config.with_optional_sub_node("report", [&] (Node const &report) {
 
 			auto copy_bool_attribute = [&] (auto const name)
 			{
@@ -177,7 +177,7 @@ struct Depot_deploy::Main
 			});
 		});
 
-		config.with_optional_sub_node("heartbeat", [&] (Xml_node const &heartbeat) {
+		config.with_optional_sub_node("heartbeat", [&] (Node const &heartbeat) {
 			size_t const rate_ms = heartbeat.attribute_value("rate_ms", 2000UL);
 			xml.node("heartbeat", [&] {
 				xml.attribute("rate_ms", rate_ms);
@@ -185,7 +185,7 @@ struct Depot_deploy::Main
 		});
 
 		config.with_sub_node("common_routes",
-			[&] (Xml_node node) {
+			[&] (Node const &node) {
 				Child::Depot_rom_server const parent { };
 				_children.gen_start_nodes(xml, node,
 				                          _prio_levels, Affinity::Space(1, 1),

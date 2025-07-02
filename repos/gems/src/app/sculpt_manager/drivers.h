@@ -43,7 +43,21 @@ class Sculpt::Drivers : Noncopyable
 		/**
 		 * Argument type for 'with_storage_devices'
 		 */
-		struct Storage_devices { Xml_node const &usb, &ahci, &nvme, &mmc; };
+		struct Storage_devices
+		{
+			struct Driver
+			{
+				bool const  present;
+				Node const &report;
+
+				bool enumerated() const { return !present || !report.has_type("empty"); }
+			};
+
+			Driver const &usb, &ahci, &nvme, &mmc;
+
+			bool all_enumerated() const { return usb.enumerated() && ahci.enumerated()
+			                                 && nvme.enumerated() &&  mmc.enumerated(); }
+		};
 
 	private:
 
@@ -55,12 +69,12 @@ class Sculpt::Drivers : Noncopyable
 
 		using With_storage_devices = Callable<void, Storage_devices const &>;
 		using With_board_info      = Callable<void, Board_info const &>;
-		using With_xml             = Callable<void, Xml_node   const &>;
+		using With_node            = Callable<void, Node const &>;
 
-		void _with(With_storage_devices::Ft   const &) const;
-		void _with(With_board_info::Ft        const &) const;
-		void _with_platform_info(With_xml::Ft const &) const;
-		void _with_fb_connectors(With_xml::Ft const &) const;
+		void _with(With_storage_devices::Ft    const &) const;
+		void _with(With_board_info::Ft         const &) const;
+		void _with_platform_info(With_node::Ft const &) const;
+		void _with_fb_connectors(With_node::Ft const &) const;
 
 	public:
 
@@ -74,8 +88,8 @@ class Sculpt::Drivers : Noncopyable
 
 		void with_storage_devices(auto const &fn) const { _with(With_storage_devices::Fn   { fn }); }
 		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn        { fn }); }
-		void with_platform_info  (auto const &fn) const { _with_platform_info(With_xml::Fn { fn }); }
-		void with_fb_connectors  (auto const &fn) const { _with_fb_connectors(With_xml::Fn { fn }); }
+		void with_platform_info  (auto const &fn) const { _with_platform_info(With_node::Fn { fn }); }
+		void with_fb_connectors  (auto const &fn) const { _with_fb_connectors(With_node::Fn { fn }); }
 
 		/* true if hardware is suspend/resume capable */
 		bool suspend_supported() const;

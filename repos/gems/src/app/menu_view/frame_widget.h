@@ -31,14 +31,14 @@ struct Menu_view::Frame_widget : Widget
 		            margin.vertical()   + padding.vertical());
 	}
 
-	Frame_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
+	Frame_widget(Widget_factory &factory, Widget::Attr const &attr)
 	:
-		Widget(factory, node, unique_id)
+		Widget(factory, attr)
 	{
 		margin = { 4, 4, 4, 4 };
 	}
 
-	void update(Xml_node const &node) override
+	void update(Node const &node) override
 	{
 		texture = _factory.styles.texture(node, "background");
 

@@ -125,7 +125,7 @@ struct Sculpt::Modem_state
 		    || other._pin_remaining_attempts != _pin_remaining_attempts;
 	}
 
-	static Modem_state from_xml(Xml_node const &node)
+	static Modem_state from_node(Node const &node)
 	{
 		auto power = [&]
 		{
@@ -157,7 +157,7 @@ struct Sculpt::Modem_state
 		auto number = [&]
 		{
 			Number result { };
-			node.with_optional_sub_node("call", [&] (Xml_node const &call) {
+			node.with_optional_sub_node("call", [&] (Node const &call) {
 				result = call.attribute_value("number", Number()); });
 			return result;
 		};
@@ -166,7 +166,7 @@ struct Sculpt::Modem_state
 		{
 			Call_state result = Call_state::NONE;
 
-			node.with_optional_sub_node("call", [&] (Xml_node const &call) {
+			node.with_optional_sub_node("call", [&] (Node const &call) {
 
 				auto const type = call.attribute_value("state", String<20>());
 

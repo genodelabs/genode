@@ -22,10 +22,9 @@ namespace Menu_view { struct Root_widget; }
 
 struct Menu_view::Root_widget : Widget
 {
-	Root_widget(Name const &name, Unique_id const &id,
-	            Widget_factory &factory, Xml_node const &node)
+	Root_widget(Widget_factory &factory, Widget::Attr const &attr)
 	:
-		Widget(name, id, factory, node)
+		Widget(factory, attr)
 	{ }
 
 	Area animated_size() const
@@ -38,7 +37,7 @@ struct Menu_view::Root_widget : Widget
 		return result;
 	}
 
-	void update(Xml_node const &node) override
+	void update(Node const &node) override
 	{
 		char const *dialog_tag = "dialog";
 

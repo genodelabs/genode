@@ -100,7 +100,7 @@ class Window_layouter::Key_sequence_tracker
 
 		Stack _stack { };
 
-		void _with_matching_sub_node(Xml_node const &curr, Stack::Entry entry,
+		void _with_matching_sub_node(Node const &curr, Stack::Entry entry,
 		                             auto const &fn, auto const &no_match_fn) const
 		{
 			auto const node_type = entry.press ? "press" : "release";
@@ -109,7 +109,7 @@ class Window_layouter::Key_sequence_tracker
 			Key_name const key(Input::key_name(entry.key));
 
 			bool done = false; /* process the first match only */
-			curr.for_each_sub_node(node_type, [&] (Xml_node const &node) {
+			curr.for_each_sub_node(node_type, [&] (Node const &node) {
 				if (node.attribute_value("key", Key_name()) == key) {
 					fn(node);
 					done = true; } });
@@ -119,7 +119,7 @@ class Window_layouter::Key_sequence_tracker
 		}
 
 		void _with_match_rec(unsigned const pos, unsigned const max_pos,
-		                     Xml_node const &node, auto const &fn) const
+		                     Node const &node, auto const &fn) const
 		{
 			if (pos == max_pos) {
 				fn(node);
@@ -128,7 +128,7 @@ class Window_layouter::Key_sequence_tracker
 
 			/* recursion is bounded by Stack::MAX_ENTRIES */
 			_with_matching_sub_node(node, _stack.entries[pos],
-				[&] (Xml_node const &sub_node) {
+				[&] (Node const &sub_node) {
 					if (pos < _stack.pos)
 						_with_match_rec(pos + 1, max_pos, sub_node, fn); },
 				[&] { });
@@ -141,12 +141,12 @@ class Window_layouter::Key_sequence_tracker
 		 * configuration according to the history of events of the current
 		 * sequence.
 		 */
-		void _with_xml_by_path(Xml_node const &config, auto const &fn) const
+		void _with_node_by_path(Node const &config, auto const &fn) const
 		{
 			_with_match_rec(0, _stack.pos, config, fn);
 		}
 
-		void _with_xml_at_press(Xml_node const &config, Input::Keycode key, auto const &fn) const
+		void _with_node_at_press(Node const &config, Input::Keycode key, auto const &fn) const
 		{
 			for (unsigned i = 0; i < _stack.pos; i++)
 				if (_stack.entries[i].press && _stack.entries[i].key == key) {
@@ -157,10 +157,10 @@ class Window_layouter::Key_sequence_tracker
 		/**
 		 * Execute command denoted in the specific XML node
 		 */
-		void _execute_command(Xml_node const &node, auto const &fn)
+		void _execute_command(Node const &node, auto const &fn)
 		{
 			if (node.has_attribute("action"))
-				fn(Command::from_xml(node));
+				fn(Command::from_node(node));
 		}
 
 	public:
@@ -178,7 +178,7 @@ class Window_layouter::Key_sequence_tracker
 		 *            equipped with an 'action' attribute. The functor is
 		 *            called with an 'Action' as argument.
 		 */
-		void apply(Input::Event const &ev, Xml_node const &config, auto const &fn)
+		void apply(Input::Event const &ev, Node const &config, auto const &fn)
 		{
 			/*
 			 * If the sequence contains a press-release combination for
@@ -193,12 +193,12 @@ class Window_layouter::Key_sequence_tracker
 
 			Constructible<Stack::Entry> new_entry { };
 
-			_with_xml_by_path(config, [&] (Xml_node const &curr_node) {
+			_with_node_by_path(config, [&] (Node const &curr_node) {
 
 				ev.handle_press([&] (Input::Keycode key, Codepoint) {
 					Stack::Entry const press { .press = true, .key = key };
 					_with_matching_sub_node(curr_node, press,
-						[&] (Xml_node const &node) {
+						[&] (Node const &node) {
 							_execute_command(node, fn); },
 						[&] { });
 
@@ -215,7 +215,7 @@ class Window_layouter::Key_sequence_tracker
 					 */
 					Stack::Entry const release { .press = false, .key = key };
 					_with_matching_sub_node(curr_node, release,
-						[&] (Xml_node const &next_node) {
+						[&] (Node const &next_node) {
 							_execute_command(next_node, fn);
 							if (next_node.num_sub_nodes())
 								new_entry.construct(release);
@@ -235,9 +235,9 @@ class Window_layouter::Key_sequence_tracker
 			 * inside the corresponding <press> node.
 			 */
 			ev.handle_release([&] (Input::Keycode key) {
-				_with_xml_at_press(config, key, [&] (Xml_node const &press_node) {
+				_with_node_at_press(config, key, [&] (Node const &press_node) {
 					_with_matching_sub_node(press_node, { .press = false, .key = key },
-						[&] (Xml_node const &next_node) {
+						[&] (Node const &next_node) {
 							_execute_command(next_node, fn); },
 						[&] { }); });
 

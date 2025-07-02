@@ -17,6 +17,7 @@
 /* local includes */
 #include <model/discovery_state.h>
 #include <runtime.h>
+#include <drivers.h>
 
 namespace Sculpt { struct Storage; }
 
@@ -40,9 +41,7 @@ struct Sculpt::Storage : Noncopyable
 
 	Inspect_view_version _inspect_view_version { 0 };
 
-	Progress update(Xml_node const &config,
-	                Xml_node const &usb_devices,     Xml_node const &ahci_ports,
-	                Xml_node const &nvme_namespaces, Xml_node const &mmc_devices);
+	Progress update(Node const &config, Drivers::Storage_devices const &);
 
 	/*
 	 * Determine whether showing the file-system browser or not

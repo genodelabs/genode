@@ -19,7 +19,7 @@
 namespace Dialog {
 
 	template <typename AT, typename FN>
-	static void with_narrowed_xml(AT const &, char const *xml_type, FN const &fn);
+	static void with_narrowed_node(AT const &, char const *node_type, FN const &fn);
 
 	struct Vbox;
 	struct Hbox;
@@ -33,9 +33,9 @@ namespace Dialog {
 
 
 template <typename AT, typename FN>
-static inline void Dialog::with_narrowed_xml(AT const &at, char const *xml_type, FN const &fn)
+static inline void Dialog::with_narrowed_node(AT const &at, char const *node_type, FN const &fn)
 {
-	at._location.with_optional_sub_node(xml_type, [&] (Xml_node const &node) {
+	at._location.with_optional_sub_node(node_type, [&] (Node const &node) {
 		AT const narrowed_at { at.seq_number, node };
 		fn(narrowed_at);
 	});
@@ -52,7 +52,7 @@ struct Dialog::Vbox : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "vbox", fn); }
+		with_narrowed_node(at, "vbox", fn); }
 };
 
 
@@ -69,7 +69,7 @@ struct Dialog::Hbox : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "hbox", fn); }
+		with_narrowed_node(at, "hbox", fn); }
 };
 
 
@@ -83,7 +83,7 @@ struct Dialog::Frame : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "frame", fn); }
+		with_narrowed_node(at, "frame", fn); }
 };
 
 
@@ -97,7 +97,7 @@ struct Dialog::Float : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "float", fn); }
+		with_narrowed_node(at, "float", fn); }
 };
 
 
@@ -112,7 +112,7 @@ struct Dialog::Button : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "button", fn); }
+		with_narrowed_node(at, "button", fn); }
 };
 
 
@@ -136,7 +136,7 @@ struct Dialog::Label : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "label", fn); }
+		with_narrowed_node(at, "label", fn); }
 };
 
 
@@ -151,7 +151,7 @@ struct Dialog::Min_ex : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "label", fn); }
+		with_narrowed_node(at, "label", fn); }
 };
 
 
@@ -165,7 +165,7 @@ struct Dialog::Depgraph : Sub_scope
 
 	template <typename AT, typename FN>
 	static void with_narrowed_at(AT const &at, FN const &fn) {
-		with_narrowed_xml(at, "depgraph", fn); }
+		with_narrowed_node(at, "depgraph", fn); }
 };
 
 #endif /* _INCLUDE__DIALOG__SUB_SCOPES_H_ */

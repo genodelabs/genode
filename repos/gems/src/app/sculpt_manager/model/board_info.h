@@ -31,23 +31,23 @@ struct Sculpt::Board_info
 
 	enum class Pci_vendor : unsigned { INTEL = 0x8086U, };
 
-	static bool _matches_class(Xml_node const &pci, Pci_class value)
+	static bool _matches_class(Node const &pci, Pci_class value)
 	{
 		return pci.attribute_value("class", 0U) == unsigned(value);
 	};
 
-	static bool _matches_vendor(Xml_node const &pci, Pci_vendor value)
+	static bool _matches_vendor(Node const &pci, Pci_vendor value)
 	{
 		return pci.attribute_value("vendor_id", 0U) == unsigned(value);
 	};
 
-	static bool _matches_usb(Xml_node const &pci)
+	static bool _matches_usb(Node const &pci)
 	{
 		return _matches_class(pci, Pci_class::UHCI) || _matches_class(pci, Pci_class::OHCI)
 			|| _matches_class(pci, Pci_class::EHCI) || _matches_class(pci, Pci_class::XHCI);
 	}
 
-	static bool _matches_ahci(Xml_node const &pci)
+	static bool _matches_ahci(Node const &pci)
 	{
 		return _matches_class(pci, Pci_class::AHCI) && _matches_vendor(pci, Pci_vendor::INTEL);
 	}
@@ -67,7 +67,7 @@ struct Sculpt::Board_info
 			                  " ahci=",      ahci,      " usb=",       usb);
 		}
 
-		static inline Detected from_xml(Xml_node const &devices, Xml_node const &platform);
+		static inline Detected from_node(Node const &devices, Node const &platform);
 
 	} detected;
 
@@ -82,7 +82,7 @@ struct Sculpt::Board_info
 			                  " ahci=",      ahci,      " usb=",  usb);
 		}
 
-		static inline Used from_xml(Xml_node const &devices);
+		static inline Used from_node(Node const &devices);
 
 		bool any() const { return wifi || nic || intel_gfx || nvme || usb || ahci; }
 
@@ -141,19 +141,19 @@ struct Sculpt::Board_info
 
 
 Sculpt::Board_info::Detected
-Sculpt::Board_info::Detected::from_xml(Xml_node const &devices, Xml_node const &platform)
+Sculpt::Board_info::Detected::from_node(Node const &devices, Node const &platform)
 {
 	Detected detected { };
 
 	Boot_fb::with_mode(platform, [&] (Boot_fb::Mode mode) {
 		detected.boot_fb = mode.valid(); });
 
-	devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+	devices.for_each_sub_node("device", [&] (Node const &device) {
 
 		if (device.attribute_value("name", String<16>()) == "ps2")
 			detected.ps2 = true;
 
-		device.with_optional_sub_node("pci-config", [&] (Xml_node const &pci) {
+		device.with_optional_sub_node("pci-config", [&] (Node const &pci) {
 
 			if (_matches_class(pci, Pci_class::WIFI)) detected.wifi = true;
 			if (_matches_class(pci, Pci_class::NIC))  detected.nic  = true;
@@ -174,16 +174,16 @@ Sculpt::Board_info::Detected::from_xml(Xml_node const &devices, Xml_node const &
 
 
 Sculpt::Board_info::Used
-Sculpt::Board_info::Used::from_xml(Xml_node const &devices)
+Sculpt::Board_info::Used::from_node(Node const &devices)
 {
 	Used used { };
 
-	devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+	devices.for_each_sub_node("device", [&] (Node const &device) {
 
 		if (!device.attribute_value("used", false))
 			return;
 
-		device.with_optional_sub_node("pci-config", [&] (Xml_node const &pci) {
+		device.with_optional_sub_node("pci-config", [&] (Node const &pci) {
 
 			if (_matches_class(pci, Pci_class::WIFI)) used.wifi = true;
 			if (_matches_class(pci, Pci_class::NIC))  used.nic  = true;

@@ -34,9 +34,9 @@ struct Sculpt::Child_exit_state
 
 	Version version { };
 
-	Child_exit_state(Xml_node const &init_state, Name const &name)
+	Child_exit_state(Node const &init_state, Name const &name)
 	{
-		init_state.for_each_sub_node("child", [&] (Xml_node const &child) {
+		init_state.for_each_sub_node("child", [&] (Node const &child) {
 			if (child.attribute_value("name", Name()) == name) {
 				exists = true;
 				version = child.attribute_value("version", Version());

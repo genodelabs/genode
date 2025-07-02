@@ -85,26 +85,26 @@ class Sculpt::Runtime_state : public Runtime_info
 
 			Child(Start_name const &name) : name(name) { }
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return node.attribute_value("name", Start_name()) == name;
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("child");
 			}
 
-			Progress update_from_xml(Xml_node const &node)
+			Progress update_from_node(Node const &node)
 			{
 				Info const orig_info = info;
-				node.with_optional_sub_node("ram", [&] (Xml_node const &ram) {
+				node.with_optional_sub_node("ram", [&] (Node const &ram) {
 					info.assigned_ram = max(ram.attribute_value("assigned", Number_of_bytes()),
 					                        ram.attribute_value("quota",    Number_of_bytes()));
 					info.avail_ram    =     ram.attribute_value("avail",    Number_of_bytes());
 				});
 
-				node.with_optional_sub_node("caps", [&] (Xml_node const &caps) {
+				node.with_optional_sub_node("caps", [&] (Node const &caps) {
 					info.assigned_caps = max(caps.attribute_value("assigned", 0UL),
 					                         caps.attribute_value("quota",    0UL));
 					info.avail_caps    =     caps.attribute_value("avail",    0UL);
@@ -240,13 +240,13 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		~Runtime_state() { reset_abandoned_and_launched_children(); }
 
-		Progress update_from_state_report(Xml_node const &state)
+		Progress update_from_state_report(Node const &state)
 		{
 			Progress result { };
-			_children.update_from_xml(state,
+			_children.update_from_node(state,
 
 				/* create */
-				[&] (Xml_node const &node) -> Child & {
+				[&] (Node const &node) -> Child & {
 					result.progress = true;
 					return *new (_alloc)
 						Child(node.attribute_value("name", Start_name())); },
@@ -257,8 +257,8 @@ class Sculpt::Runtime_state : public Runtime_info
 					destroy(_alloc, &child); },
 
 				/* update */
-				[&] (Child &child, Xml_node const &node) {
-					if (child.update_from_xml(node).progress)
+				[&] (Child &child, Node const &node) {
+					if (child.update_from_node(node).progress)
 						result.progress = true; }
 			);
 			return result;

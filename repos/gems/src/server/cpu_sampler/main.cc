@@ -88,10 +88,10 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 		sample_index = 0;
 
 		Genode::uint64_t sample_interval_ms =
-			config.xml().attribute_value<Genode::uint64_t>("sample_interval_ms", 1000);
+			config.node().attribute_value<Genode::uint64_t>("sample_interval_ms", 1000);
 
 		Genode::uint64_t sample_duration_s =
-			config.xml().attribute_value<Genode::uint64_t>("sample_duration_s", 10);
+			config.node().attribute_value<Genode::uint64_t>("sample_duration_s", 10);
 
 		max_sample_index = ((sample_duration_s * 1000) / sample_interval_ms) - 1;
 
@@ -137,8 +137,8 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 			if (verbose)
 				Genode::log("evaluating thread ", thread.label());
 
-			with_matching_policy(thread.label(), config.xml(),
-				[&] (Xml_node const &policy) {
+			with_matching_policy(thread.label(), config.node(),
+				[&] (Node const &policy) {
 					thread.reset();
 					selected_thread_list.insert(new (&alloc) Thread_element(&thread));
 					if (verbose)

@@ -42,20 +42,20 @@ struct Window_layouter::Panorama
 		/**
 		 * List_model::Element
 		 */
-		void update(Xml_node const &node) { rect = Rect::from_xml(node); }
+		void update(Node const &node) { rect = Rect::from_node(node); }
 
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
-			return name_from_xml(node) == name;
+			return name_from_node(node) == name;
 		}
 
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("capture");
 		}
@@ -63,20 +63,20 @@ struct Window_layouter::Panorama
 
 	Panorama(Allocator &alloc) : _alloc(alloc) { }
 
-	~Panorama() { update_from_xml("<empty/>"); }
+	~Panorama() { update_from_node(Node()); }
 
-	void update_from_xml(Xml_node const &gui_info)
+	void update_from_node(Node const &gui_info)
 	{
-		rect = Rect::from_xml(gui_info);
+		rect = Rect::from_node(gui_info);
 
-		_captures.update_from_xml(gui_info,
+		_captures.update_from_node(gui_info,
 
-			[&] (Xml_node const &node) -> Capture & {
-				return *new (_alloc) Capture(name_from_xml(node)); },
+			[&] (Node const &node) -> Capture & {
+				return *new (_alloc) Capture(name_from_node(node)); },
 
 			[&] (Capture &capture) { destroy(_alloc, &capture); },
 
-			[&] (Capture &capture, Xml_node const &node) { capture.update(node); }
+			[&] (Capture &capture, Node const &node) { capture.update(node); }
 		);
 	}
 
@@ -94,11 +94,11 @@ struct Window_layouter::Panorama
 			fn(rect);
 	};
 
-	void with_matching_capture_rect(Xml_node const &policy, auto const &fn) const
+	void with_matching_capture_rect(Node const &policy, auto const &fn) const
 	{
 		Rect rect { };
 		_captures.for_each([&] (Capture const &capture) {
-			if (!rect.valid() && !Xml_node_label_score(policy, capture.name).conflict())
+			if (!rect.valid() && !!Node_label_score(policy, capture.name).conflict())
 				rect = capture.rect; });
 		if (rect.valid())
 			fn(rect);

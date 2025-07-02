@@ -39,7 +39,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		Vendor   const vendor;
 		Product  const product;
 
-		Driver_info(Xml_node const &device)
+		Driver_info(Node const &device)
 		:
 			vendor (device.attribute_value("vendor",  Vendor())),
 			product(device.attribute_value("product", Product()))
@@ -55,12 +55,12 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		_env, String<80>("report -> runtime/", driver, "/devices").string(),
 		*this, &Usb_storage_device::_handle_report };
 
-	void _handle_report(Xml_node const &) { _action.storage_device_discovered(); }
+	void _handle_report(Node const &) { _action.storage_device_discovered(); }
 
 	void process_report()
 	{
-		_report.with_xml([&] (Xml_node const &report) {
-			report.with_optional_sub_node("device", [&] (Xml_node const &device) {
+		_report.with_node([&] (Node const &report) {
+			report.with_optional_sub_node("device", [&] (Node const &device) {
 
 				capacity = Capacity { device.attribute_value("block_count", 0ULL)
 				                    * device.attribute_value("block_size",  0ULL) };
@@ -104,12 +104,12 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 
 	bool discarded() const { return Storage_device::state == FAILED; }
 
-	static Driver _driver(Xml_node const &node)
+	static Driver _driver(Node const &node)
 	{
 		return node.attribute_value("name", Driver());
 	}
 
-	Usb_storage_device(Env &env, Allocator &alloc, Xml_node const &node,
+	Usb_storage_device(Env &env, Allocator &alloc, Node const &node,
 	                   Storage_device::Action &action)
 	:
 		Storage_device(env, alloc, _driver(node), Port { }, Capacity{0}, action),
@@ -126,18 +126,18 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 				xml.attribute("name", driver); }); });
 	}
 
-	static bool type_matches(Xml_node const &device)
+	static bool type_matches(Node const &device)
 	{
 		bool storage_device = false;
-		device.for_each_sub_node("config", [&] (Xml_node const &config) {
-			config.for_each_sub_node("interface", [&] (Xml_node const &interface) {
+		device.for_each_sub_node("config", [&] (Node const &config) {
+			config.for_each_sub_node("interface", [&] (Node const &interface) {
 				if (interface.attribute_value("class", 0u) == 0x8)
 					storage_device = true; }); });
 
 		return storage_device;
 	}
 
-	bool matches(Xml_node const &node) const { return _driver(node) == driver; }
+	bool matches(Node const &node) const { return _driver(node) == driver; }
 };
 
 

@@ -136,7 +136,7 @@ struct Sculpt::Child_state : Noncopyable
 		 * \return true if runtime must be reconfigured so that the changes
 		 *         can take effect
 		 */
-		bool apply_child_state_report(Xml_node const &child)
+		bool apply_child_state_report(Node const &child)
 		{
 			bool result = false;
 
@@ -155,11 +155,11 @@ struct Sculpt::Child_state : Noncopyable
 				}
 			};
 
-			child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+			child.with_optional_sub_node("ram", [&] (Node const &node) {
 				if (node.has_attribute("requested"))
 					upgrade("RAM",  _ram_quota, _attr.max.ram,  _warned_once.ram); });
 
-			child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+			child.with_optional_sub_node("caps", [&] (Node const &node) {
 				if (node.has_attribute("requested"))
 					upgrade("caps", _cap_quota, _attr.max.caps, _warned_once.caps); });
 

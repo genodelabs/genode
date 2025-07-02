@@ -14,8 +14,8 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-#include <util/string.h>
 #include <base/exception.h>
+#include <base/node.h>
 #include <depot/archive.h>
 
 namespace Depot_download_manager {
@@ -42,7 +42,7 @@ struct Depot_download_manager::Require_verify
 {
 	bool value;
 
-	static Require_verify from_xml(Xml_node const &node)
+	static Require_verify from_node(Node const &node)
 	{
 		return Require_verify { node.attribute_value("require_verify", true) };
 	}

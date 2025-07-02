@@ -151,7 +151,7 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 
 	struct Changelog : Widget<Float>
 	{
-		void view(Scope<Float> &s, Xml_node const &image) const
+		void view(Scope<Float> &s, Node const &image) const
 		{
 			using Text = String<80>;
 
@@ -159,7 +159,7 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 
 			s.sub_scope<Vbox>([&] (Scope<Float, Vbox> &s) {
 				s.sub_scope<Small_vgap>();
-				image.for_each_sub_node("info", [&] (Xml_node const &info) {
+				image.for_each_sub_node("info", [&] (Node const &info) {
 					if (++line < 9)
 						s.sub_scope<Left_annotation>(info.attribute_value("text", Text()));
 				});
@@ -171,7 +171,7 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 	/* used accross images */
 	Hosted<Vbox, Frame, Vbox, Image_main> const _hosted_image_main { Id { "main" } };
 
-	void _view_image_entry(Scope<Vbox> &s, Xml_node const &image) const
+	void _view_image_entry(Scope<Vbox> &s, Node const &image) const
 	{
 		Version const version = image.attribute_value("version", Version());
 		Path    const path    = _image_path(version);
@@ -216,7 +216,7 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 		_users(Id { "users" }, depot_users, _build_info.depot_user)
 	{ }
 
-	void view(Scope<Vbox> &s, Xml_node const &image_index) const
+	void view(Scope<Vbox> &s, Node const &image_index) const
 	{
 		/* use empty ID to not interfere with matching the version in 'click'*/
 		s.sub_scope<Frame>(Id { }, [&] (Scope<Vbox, Frame> &s) {
@@ -243,9 +243,9 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 			});
 		});
 
-		image_index.for_each_sub_node("user", [&] (Xml_node const &user) {
+		image_index.for_each_sub_node("user", [&] (Node const &user) {
 			if (user.attribute_value("name", User()) == _users.selected())
-				user.for_each_sub_node("image", [&] (Xml_node const &image) {
+				user.for_each_sub_node("image", [&] (Node const &image) {
 					_view_image_entry(s, image); }); });
 	}
 

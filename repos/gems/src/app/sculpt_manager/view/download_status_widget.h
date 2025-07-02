@@ -23,7 +23,7 @@ namespace Sculpt { struct Download_status_widget; }
 
 struct Sculpt::Download_status_widget : Titled_frame
 {
-	void view(Scope<Frame> &s, Xml_node const &state, Download_queue const &download_queue) const
+	void view(Scope<Frame> &s, Node const &state, Download_queue const &download_queue) const
 	{
 		Titled_frame::view(s, [&] {
 
@@ -38,7 +38,7 @@ struct Sculpt::Download_status_widget : Titled_frame
 			bool const download_in_progress = state.attribute_value("progress", false);
 
 			if (download_in_progress) {
-				state.for_each_sub_node("archive", [&] (Xml_node const &archive) {
+				state.for_each_sub_node("archive", [&] (Node const &archive) {
 
 					Path   const path  = archive.attribute_value("path",  Path());
 					Info         info  = archive.attribute_value("state", Info());

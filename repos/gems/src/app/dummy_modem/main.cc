@@ -185,7 +185,7 @@ struct Dummy_modem::Main
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 		log("_handle_config: ", config);
 
 		auto power_from_config = [&]

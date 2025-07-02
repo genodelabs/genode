@@ -44,12 +44,12 @@ struct Sculpt::Access_point : List_model<Access_point>::Element
 	bool unprotected()   const { return protection == UNPROTECTED; }
 	bool wpa_protected() const { return protection == WPA_PSK; }
 
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
 		return node.attribute_value("ssid", Access_point::Ssid()) == ssid;
 	}
 
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return node.has_type("accesspoint");
 	}

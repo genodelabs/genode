@@ -194,7 +194,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 		Entry(unsigned index) : index(index) { }
 
 		void view(Scope<Hbox> &s, File_browser_state const &state,
-		          Xml_node const &node, auto const &style,
+		          Node const &node, auto const &style,
 		          Entry_buttons const &buttons) const
 		{
 			Name const name     = node.attribute_value("name", Name());
@@ -239,7 +239,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 			});
 		}
 
-		void click(Clicked_at const &at, Xml_node const &node,
+		void click(Clicked_at const &at, Node const &node,
 		           Entry_buttons &buttons, Action &action)
 		{
 			Name const name = node.attribute_value("name", Name());
@@ -294,18 +294,18 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 				if (selected) {
 					unsigned count = 0;
 
-					_state.with_query_result([&] (Xml_node const &node) {
-						node.with_optional_sub_node("dir", [&] (Xml_node const &listing) {
+					_state.with_query_result([&] (Node const &node) {
+						node.with_optional_sub_node("dir", [&] (Node const &listing) {
 
 							if (_state.path != "/")
 								s.widget(_nav_entry, _state.path, !_state.modified);
 
-							listing.for_each_sub_node("dir", [&] (Xml_node const &dir) {
+							listing.for_each_sub_node("dir", [&] (Node const &dir) {
 								unsigned const index = count++;
 								Hosted_entry entry { Id { { index } }, index };
 								s.widget(entry, _state, dir, "enter", _entry_buttons); });
 
-							listing.for_each_sub_node("file", [&] (Xml_node const &file) {
+							listing.for_each_sub_node("file", [&] (Node const &file) {
 								unsigned const index = count++;
 								Hosted_entry entry { Id { { index } }, index };
 								s.widget(entry, _state, file, "radio", _entry_buttons); });
@@ -345,7 +345,7 @@ struct Sculpt::File_browser_dialog : Top_level_dialog
 			_nav_entry.propagate(at, _state.path, _action);
 
 		_with_matching_entry(at, [&] (Hosted_entry &entry) {
-			_state.with_entry_at_index(entry.index, [&] (Xml_node const &node) {
+			_state.with_entry_at_index(entry.index, [&] (Node const &node) {
 				entry.propagate(at, node, _entry_buttons, _action); }); });
 	}
 

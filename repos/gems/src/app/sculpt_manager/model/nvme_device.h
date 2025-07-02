@@ -30,27 +30,27 @@ struct Sculpt::Nvme_device : List_model<Nvme_device>::Element, Storage_device
 
 	Model const model;
 
-	static Port _port(Xml_node const &node)
+	static Port _port(Node const &node)
 	{
 		return node.attribute_value("id", Port());
 	}
 
-	static Capacity _capacity(Xml_node const &node)
+	static Capacity _capacity(Node const &node)
 	{
 		return { node.attribute_value("block_size",  0ULL)
 		       * node.attribute_value("block_count", 0ULL) };
 	}
 
-	Nvme_device(Env &env, Allocator &alloc, Model const &model, Xml_node const &node,
+	Nvme_device(Env &env, Allocator &alloc, Model const &model, Node const &node,
 	            Storage_device::Action &action)
 	:
 		Storage_device(env, alloc, "nvme", _port(node), _capacity(node), action),
 		model(model)
 	{ }
 
-	bool matches(Xml_node const &node) const { return _port(node) == port; }
+	bool matches(Node const &node) const { return _port(node) == port; }
 
-	static bool type_matches(Xml_node const &) { return true; }
+	static bool type_matches(Node const &) { return true; }
 };
 
 #endif /* _MODEL__NVME_DEVICE_H_ */

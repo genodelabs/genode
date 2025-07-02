@@ -31,7 +31,7 @@ struct Sculpt::Power_state
 
 		unsigned remaining_capacity;
 
-		static Battery from_xml(Xml_node const &battery)
+		static Battery from_node(Node const &battery)
 		{
 			return Battery {
 				.charge_current     = battery.attribute_value("charge_current", 0.0),
@@ -49,15 +49,15 @@ struct Sculpt::Power_state
 
 	unsigned brightness;
 
-	static Power_state from_xml(Xml_node const &node)
+	static Power_state from_node(Node const &node)
 	{
 		Battery battery { };
 
-		node.with_optional_sub_node("battery", [&] (Xml_node const &node) {
-			battery = Battery::from_xml(node);
+		node.with_optional_sub_node("battery", [&] (Node const &node) {
+			battery = Battery::from_node(node);
 		});
 
-		auto profile_from_xml = [] (Xml_node const &node)
+		auto profile_from_node = [] (Node const &node)
 		{
 			auto value = node.attribute_value("power_profile", String<64>());
 
@@ -73,7 +73,7 @@ struct Sculpt::Power_state
 			.charging        = node.attribute_value("charging", false),
 			.voltage         = node.attribute_value("voltage", 0.0),
 			.battery         = battery,
-			.profile         = profile_from_xml(node),
+			.profile         = profile_from_node(node),
 			.brightness      = node.attribute_value("brightness", 0u),
 		};
 	}

@@ -75,7 +75,7 @@ void App_bar::_handle_apps()
 
 	Panel_button *visible_app_button = nullptr;
 
-	_apps.xml().for_each_sub_node("app", [&] (Genode::Xml_node node) {
+	_apps.node().for_each_sub_node("app", [&] (Genode::Node const &node) {
 		QString const name    { node.attribute_value("name", Name("no name")).string() };
 		bool    const visible { node.attribute_value("visible", false) };
 		Panel_button *button  { new Panel_button(name) };

@@ -92,7 +92,7 @@ class Sculpt::Screensaver : Noncopyable
 			void _handle()
 			{
 				_rom.update();
-				if (_rom.xml().attribute_value("active", false))
+				if (_rom.node().attribute_value("active", false))
 					_screensaver._keep_display_enabled_for_some_time();
 			}
 		};
@@ -125,7 +125,7 @@ class Sculpt::Screensaver : Noncopyable
 			{
 				_rom.update();
 
-				uint64_t seq_number = _rom.xml().attribute_value("seq_number", 0ul);
+				uint64_t seq_number = _rom.node().attribute_value("seq_number", 0ul);
 				if (!seq_number) return;
 
 				if (seq_number > _seq_number) {

@@ -44,25 +44,25 @@ struct Sculpt::Index_menu
 		}
 	}
 
-	void _for_each_item(Xml_node const &index, auto const &fn, unsigned level) const
+	void _for_each_item(Node const &index, auto const &fn, unsigned level) const
 	{
 		if (level == _level) {
 			index.for_each_sub_node(fn);
 			return;
 		}
 
-		index.for_each_sub_node("index", [&] (Xml_node const &index) {
+		index.for_each_sub_node("index", [&] (Node const &index) {
 			if (index.attribute_value("name", Name()) == _selected[level])
 				_for_each_item(index, fn, level + 1); });
 	}
 
-	void for_each_item(Xml_node const &index, User const &user, auto const &fn) const
+	void for_each_item(Node const &index, User const &user, auto const &fn) const
 	{
 		/*
 		 * The index may contain duplicates, evaluate only the first match.
 		 */
 		bool first = true;
-		index.for_each_sub_node("index", [&] (Xml_node const &index) {
+		index.for_each_sub_node("index", [&] (Node const &index) {
 
 			if (index.attribute_value("user", User()) != user)
 				return;

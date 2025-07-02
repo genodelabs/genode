@@ -124,8 +124,8 @@ struct Dialog::Left_floating_hbox : Sub_scope
 
 	static void with_narrowed_at(auto const &at, auto const &fn)
 	{
-		with_narrowed_xml(at, "float", [&] (auto const &at) {
-			with_narrowed_xml(at, "hbox", fn); });
+		with_narrowed_node(at, "float", [&] (auto const &at) {
+			with_narrowed_node(at, "hbox", fn); });
 	}
 };
 
@@ -143,8 +143,8 @@ struct Dialog::Top_left_floating_hbox : Sub_scope
 
 	static void with_narrowed_at(auto const &at, auto const &fn)
 	{
-		with_narrowed_xml(at, "float", [&] (auto const &at) {
-			with_narrowed_xml(at, "hbox", fn); });
+		with_narrowed_node(at, "float", [&] (auto const &at) {
+			with_narrowed_node(at, "hbox", fn); });
 	}
 };
 
@@ -161,8 +161,8 @@ struct Dialog::Right_floating_hbox : Sub_scope
 
 	static void with_narrowed_at(auto const &at, auto const &fn)
 	{
-		with_narrowed_xml(at, "float", [&] (auto const &at) {
-			with_narrowed_xml(at, "hbox", fn); });
+		with_narrowed_node(at, "float", [&] (auto const &at) {
+			with_narrowed_node(at, "hbox", fn); });
 	}
 };
 
@@ -233,9 +233,9 @@ struct Dialog::Centered_dialog_vbox : Sub_scope
 
 	static void with_narrowed_at(auto const &at, auto const &fn)
 	{
-		with_narrowed_xml(at, "float", [&] (auto const &at) {
-			with_narrowed_xml(at, "frame", [&] (auto const &at) {
-				with_narrowed_xml(at, "vbox", fn); }); });
+		with_narrowed_node(at, "float", [&] (auto const &at) {
+			with_narrowed_node(at, "frame", [&] (auto const &at) {
+				with_narrowed_node(at, "vbox", fn); }); });
 	}
 };
 
@@ -264,8 +264,8 @@ struct Dialog::Icon : Sub_scope
 
 	static void with_narrowed_at(auto const &at, auto const &fn)
 	{
-		with_narrowed_xml(at, "float", [&] (auto const &at) {
-			with_narrowed_xml(at, "button", fn); });
+		with_narrowed_node(at, "float", [&] (auto const &at) {
+			with_narrowed_node(at, "button", fn); });
 	}
 };
 

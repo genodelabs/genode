@@ -100,12 +100,12 @@ class Menu_view::Widget : List_model<Widget>::Element
 			}
 		};
 
-		static Name node_name(Xml_node const &node)
+		static Name node_name(Node const &node)
 		{
 			return node.attribute_value("name", Name(node.type()));
 		}
 
-		static Version node_version(Xml_node const &node)
+		static Version node_version(Node const &node)
 		{
 			return node.attribute_value("version", Version());
 		}
@@ -124,12 +124,12 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		List_model<Widget> _children { };
 
-		inline void _update_children(Xml_node const &node)
+		inline void _update_children(Node const &node)
 		{
-			_children.update_from_xml(node,
+			_children.update_from_node(node,
 
 				/* create */
-				[&] (Xml_node const &node) -> Widget & {
+				[&] (Node const &node) -> Widget & {
 					return _factory.create(node); },
 
 				/* destroy */
@@ -137,7 +137,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 					_factory.destroy(&w); },
 
 				/* update */
-				[&] (Widget &w, Xml_node const &node) {
+				[&] (Widget &w, Node const &node) {
 					w.update(node); }
 			);
 		}
@@ -203,26 +203,28 @@ class Menu_view::Widget : List_model<Widget>::Element
 			                      Point(r.x2() - margin.right, r.y2() - margin.bottom));
 		}
 
-		Widget(Name const &name, Unique_id const id,
-		       Widget_factory &factory, Xml_node const &node)
-		:
-			_type_name(node.type()), _name(name), _version(node_version(node)),
-			_unique_id(id), _factory(factory)
-		{ }
+		struct Attr
+		{
+			Type_name const &type;
+			Name      const &name;
+			Version   const &version;
+			Unique_id const &id;
+		};
 
-		Widget(Widget_factory &factory, Xml_node const &node, Unique_id const id)
+		Widget(Widget_factory &factory, Attr const &attr)
 		:
-			Widget(node_name(node), id, factory, node)
+			_type_name(attr.type), _name(attr.name), _version(attr.version),
+			_unique_id(attr.id), _factory(factory)
 		{ }
 
 		virtual ~Widget()
 		{
-			_update_children(Xml_node("<empty/>"));
+			_update_children(Node());
 		}
 
 		bool has_name(Name const &name) const { return name == _name; }
 
-		virtual void update(Xml_node const &node) = 0;
+		virtual void update(Node const &node) = 0;
 
 		virtual Area min_size() const = 0;
 
@@ -311,7 +313,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return node.has_type(_type_name.string())
 			    && Widget::node_name(node) == _name
@@ -321,7 +323,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return Widget_factory::node_type_known(node);
 		}

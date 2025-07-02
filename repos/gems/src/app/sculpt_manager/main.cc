@@ -89,7 +89,7 @@ struct Sculpt::Main : Input_event_handler,
 	Sculpt_version const _sculpt_version { _env };
 
 	Build_info const _build_info =
-		Build_info::from_xml(Attached_rom_dataspace(_env, "build_info").xml());
+		Build_info::from_node(Attached_rom_dataspace(_env, "build_info").node());
 
 	bool const _mnt_reform = (_build_info.board == "mnt_reform2");
 	bool const _mnt_pocket = (_build_info.board == "mnt_pocket");
@@ -143,7 +143,7 @@ struct Sculpt::Main : Input_event_handler,
 			_system_state.generate(xml); });
 	}
 
-	void _handle_system_config(Xml_node const &state)
+	void _handle_system_config(Node const &state)
 	{
 		if (_system_state.apply_config(state).progress)
 			_broadcast_system_state();
@@ -157,7 +157,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _leitzentrale_rom {
 		_env, "leitzentrale", *this, &Main::_handle_leitzentrale };
 
-	void _handle_leitzentrale(Xml_node const &leitzentrale)
+	void _handle_leitzentrale(Node const &leitzentrale)
 	{
 		bool const orig_leitzentrale_visibile = _leitzentrale_visible;
 		_leitzentrale_visible = leitzentrale.attribute_value("enabled", false);
@@ -168,7 +168,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Rom_handler<Main> _config { _env, "config", *this, &Main::_handle_config };
 
-	void _handle_config(Xml_node const &config)
+	void _handle_config(Node const &config)
 	{
 		Board_info::Options const orig_options = _driver_options;
 		_driver_options.suppress.ps2       = !config.attribute_value("ps2",       true);
@@ -221,18 +221,18 @@ struct Sculpt::Main : Input_event_handler,
 	Managed_config<Main> _fonts_config {
 		_env, "config", "fonts", *this, &Main::_handle_fonts_config };
 
-	void _handle_fonts_config(Xml_node const &config)
+	void _handle_fonts_config(Node const &config)
 	{
 		/*
 		 * Obtain font size from manually maintained fonts configuration
 		 * so that we can adjust the GUI layout accordingly.
 		 */
-		config.for_each_sub_node("vfs", [&] (Xml_node const &vfs) {
-			vfs.for_each_sub_node("dir", [&] (Xml_node const &dir) {
+		config.for_each_sub_node("vfs", [&] (Node const &vfs) {
+			vfs.for_each_sub_node("dir", [&] (Node const &dir) {
 				if (dir.attribute_value("name", String<16>()) == "fonts") {
-					dir.for_each_sub_node("dir", [&] (Xml_node const &type) {
+					dir.for_each_sub_node("dir", [&] (Node const &type) {
 						if (type.attribute_value("name", String<16>()) == "text") {
-							type.for_each_sub_node("ttf", [&] (Xml_node const &ttf) {
+							type.for_each_sub_node("ttf", [&] (Node const &ttf) {
 								double const px = ttf.attribute_value("size_px", 0.0);
 								if (px > 0.0)
 									_font_size_px = px; }); } }); } }); });
@@ -253,7 +253,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _generate_event_filter_config(Xml_generator &);
 
-	void _handle_event_filter_config(Xml_node const &)
+	void _handle_event_filter_config(Node const &)
 	{
 		_update_event_filter_config();
 	}
@@ -352,7 +352,7 @@ struct Sculpt::Main : Input_event_handler,
 		_env, "report -> runtime/acpi_support/sleep_states",
 		*this, &Main::_handle_acpi_sleep_states };
 
-	void _handle_acpi_sleep_states(Xml_node const &node)
+	void _handle_acpi_sleep_states(Node const &node)
 	{
 		auto const orig_state = _system_state.state;
 
@@ -403,10 +403,8 @@ struct Sculpt::Main : Input_event_handler,
 		for (bool progress = true; progress; total_progress |= progress) {
 			progress = false;
 			_drivers.with_storage_devices([&] (Drivers::Storage_devices const &devices) {
-				_config.with_xml([&] (Xml_node const &config) {
-					progress = _storage.update(config,
-					                           devices.usb,  devices.ahci,
-					                           devices.nvme, devices.mmc).progress; }); });
+				_config.with_node([&] (Node const &config) {
+					progress = _storage.update(config, devices).progress; }); });
 
 			/* update USB policies for storage devices */
 			_drivers.update_usb();
@@ -524,7 +522,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _update_state_rom {
 		_env, "report -> runtime/update/state", *this, &Main::_handle_update_state };
 
-	void _handle_update_state(Xml_node const &);
+	void _handle_update_state(Node const &);
 
 	/**
 	 * Condition for spawning the update subsystem
@@ -639,7 +637,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _index_rom {
 		_env, "report -> runtime/depot_query/index", *this, &Main::_handle_index };
 
-	void _handle_index(Xml_node const &)
+	void _handle_index(Node const &)
 	{
 		if (_popup_dialog.watches_depot())
 			_popup_dialog.refresh();
@@ -662,7 +660,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _blueprint_rom {
 		_env, "report -> runtime/depot_query/blueprint", *this, &Main::_handle_blueprint };
 
-	void _handle_blueprint(Xml_node const &blueprint)
+	void _handle_blueprint(Node const &blueprint)
 	{
 		/*
 		 * Drop intermediate results that will be superseded by a newer query.
@@ -691,7 +689,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _scan_rom {
 		_env, "report -> runtime/depot_query/scan", *this, &Main::_handle_scan };
 
-	void _handle_scan(Xml_node const &)
+	void _handle_scan(Node const &)
 	{
 		_system_dialog.sanitize_user_selection();
 		_popup_dialog.sanitize_user_selection();
@@ -701,7 +699,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _image_index_rom {
 		_env, "report -> runtime/depot_query/image_index", *this, &Main::_handle_image_index };
 
-	void _handle_image_index(Xml_node const &) { _system_dialog.refresh(); }
+	void _handle_image_index(Node const &) { _system_dialog.refresh(); }
 
 	Launchers _launchers { _heap };
 	Presets   _presets   { _heap };
@@ -710,17 +708,17 @@ struct Sculpt::Main : Input_event_handler,
 		_env, "report -> /runtime/launcher_query/listing", *this,
 		&Main::_handle_launcher_and_preset_listing };
 
-	void _handle_launcher_and_preset_listing(Xml_node const &listing)
+	void _handle_launcher_and_preset_listing(Node const &listing)
 	{
-		listing.for_each_sub_node("dir", [&] (Xml_node const &dir) {
+		listing.for_each_sub_node("dir", [&] (Node const &dir) {
 
 			Path const dir_path = dir.attribute_value("path", Path());
 
 			if (dir_path == "/launcher")
-				_launchers.update_from_xml(dir); /* iterate over <file> nodes */
+				_launchers.update_from_node(dir); /* iterate over <file> nodes */
 
 			if (dir_path == "/presets")
-				_presets.update_from_xml(dir);   /* iterate over <file> nodes */
+				_presets.update_from_node(dir);   /* iterate over <file> nodes */
 		});
 
 		_popup_dialog.refresh();
@@ -738,7 +736,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _manual_deploy_rom {
 		_env, "config -> deploy", *this, &Main::_handle_manual_deploy };
 
-	void _handle_manual_deploy(Xml_node const &manual_deploy)
+	void _handle_manual_deploy(Node const &manual_deploy)
 	{
 		_runtime_state.reset_abandoned_and_launched_children();
 		_deploy.use_as_deploy_template(manual_deploy);
@@ -776,7 +774,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Fb_connectors::Name _hovered_display { };
 
-	static bool _matches_popup_dialog(Xml_node const &node)
+	static bool _matches_popup_dialog(Node const &node)
 	{
 		using Label = String<128>;
 
@@ -795,13 +793,13 @@ struct Sculpt::Main : Input_event_handler,
 	 * The seq-number check ensures the freshness of the _popup_touched and
 	 * _popup_hovered information.
 	 */
-	static bool _seq_number_attr_matches(Xml_node const &node, Input::Seq_number seq)
+	static bool _seq_number_attr_matches(Node const &node, Input::Seq_number seq)
 	{
 		return node.has_attribute("seq_number")
 		    && (node.attribute_value("seq_number", 0U) == seq.value);
 	}
 
-	void _handle_touch_report(Xml_node const &touch)
+	void _handle_touch_report(Node const &touch)
 	{
 		if (!_seq_number_attr_matches(touch, _emitted_touch_seq_number))
 			_popup_touched = Popup_touched::MAYBE;
@@ -811,7 +809,7 @@ struct Sculpt::Main : Input_event_handler,
 		_try_handle_popup_close();
 	}
 
-	void _handle_click_report(Xml_node const &click)
+	void _handle_click_report(Node const &click)
 	{
 		if (!_seq_number_attr_matches(click, _emitted_click_seq_number))
 			_popup_clicked = Popup_clicked::MAYBE;
@@ -821,10 +819,10 @@ struct Sculpt::Main : Input_event_handler,
 		_try_handle_popup_close();
 	}
 
-	void _handle_nitpicker_hover(Xml_node const &hover)
+	void _handle_nitpicker_hover(Node const &hover)
 	{
 		if (hover.has_attribute("xpos"))
-			_pointer_pos.construct(Gui::Point::from_xml(hover));
+			_pointer_pos.construct(Gui::Point::from_node(hover));
 
 		/* place leitzentrale at the display under the pointer */
 		_handle_gui_mode();
@@ -895,7 +893,7 @@ struct Sculpt::Main : Input_event_handler,
 					});
 				}
 
-				_main._update_state_rom.with_xml([&] (Xml_node const &state) {
+				_main._update_state_rom.with_node([&] (Node const &state) {
 
 					bool const download_in_progress =
 						_main._update_running() && state.attribute_value("progress", false);
@@ -925,7 +923,7 @@ struct Sculpt::Main : Input_event_handler,
 	Rom_handler<Main> _runtime_state_rom {
 		_env, "report -> runtime/state", *this, &Main::_handle_runtime_state };
 
-	void _handle_runtime_state(Xml_node const &);
+	void _handle_runtime_state(Node const &);
 
 	Runtime_state _runtime_state { _heap, _storage._selected_target };
 
@@ -934,7 +932,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	bool _manually_managed_runtime = false;
 
-	void _handle_runtime(Xml_node const &config)
+	void _handle_runtime(Node const &config)
 	{
 		_manually_managed_runtime = !config.has_type("empty");
 		generate_runtime_config();
@@ -968,9 +966,9 @@ struct Sculpt::Main : Input_event_handler,
 
 	Runtime_config _cached_runtime_config { _heap };
 
-	void _handle_runtime_config(Xml_node const &runtime_config)
+	void _handle_runtime_config(Node const &runtime_config)
 	{
-		_cached_runtime_config.update_from_xml(runtime_config);
+		_cached_runtime_config.update_from_node(runtime_config);
 
 		if (_dir_query.update(_heap, _cached_runtime_config).runtime_reconfig_needed)
 			generate_runtime_config();
@@ -1412,12 +1410,12 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_download_queue.remove_inactive_downloads();
 
-		_launcher_listing_rom.with_xml([&] (Xml_node const &listing) {
-			listing.for_each_sub_node("dir", [&] (Xml_node const &dir) {
+		_launcher_listing_rom.with_node([&] (Node const &listing) {
+			listing.for_each_sub_node("dir", [&] (Node const &dir) {
 				if (dir.attribute_value("path", Path()) == "/presets") {
-					dir.for_each_sub_node("file", [&] (Xml_node const &file) {
+					dir.for_each_sub_node("file", [&] (Node const &file) {
 						if (file.attribute_value("name", Presets::Info::Name()) == name) {
-							file.with_optional_sub_node("config", [&] (Xml_node const &config) {
+							file.with_optional_sub_node("config", [&] (Node const &config) {
 								_runtime_state.reset_abandoned_and_launched_children();
 								_deploy.use_as_deploy_template(config);
 								_deploy.update_managed_deploy_config(); }); } }); } }); });
@@ -1498,7 +1496,7 @@ struct Sculpt::Main : Input_event_handler,
 		_file_browser_dialog.refresh();
 	}
 
-	void _handle_editor_saved(Xml_node const &saved)
+	void _handle_editor_saved(Node const &saved)
 	{
 		bool const orig_modified = _file_browser_state.modified;
 
@@ -1715,16 +1713,16 @@ struct Sculpt::Main : Input_event_handler,
 	                                                        _cached_runtime_config,
 	                                                        _file_browser_state, *this };
 
-	void _update_window_layout(Xml_node const &, Xml_node const &);
+	void _update_window_layout(Node const &, Node const &);
 
 	void _update_window_layout()
 	{
-		_decorator_margins.with_xml([&] (Xml_node const &decorator_margins) {
-			_window_list.with_xml([&] (Xml_node const &window_list) {
+		_decorator_margins.with_node([&] (Node const &decorator_margins) {
+			_window_list.with_node([&] (Node const &window_list) {
 				_update_window_layout(decorator_margins, window_list); }); });
 	}
 
-	void _handle_window_layout_or_decorator_margins(Xml_node const &)
+	void _handle_window_layout_or_decorator_margins(Node const &)
 	{
 		_update_window_layout();
 	}
@@ -1740,9 +1738,9 @@ struct Sculpt::Main : Input_event_handler,
 	Expanding_reporter _resize_request { _env, "resize_request", "resize_request" };
 
 	template <size_t N>
-	void _with_window(Xml_node const &window_list, String<N> const &match, auto const &fn)
+	void _with_window(Node const &window_list, String<N> const &match, auto const &fn)
 	{
-		window_list.for_each_sub_node("window", [&] (Xml_node const &win) {
+		window_list.for_each_sub_node("window", [&] (Node const &win) {
 			if (win.attribute_value("label", String<N>()) == match)
 				fn(win); });
 	}
@@ -1766,11 +1764,11 @@ struct Sculpt::Main : Input_event_handler,
 	Managed_config<Main> _nitpicker_config {
 		_env, "config", "nitpicker", *this, &Main::_handle_nitpicker_config };
 
-	void _handle_nitpicker_config(Xml_node const &node)
+	void _handle_nitpicker_config(Node const &node)
 	{
 		_nitpicker_config.generate([&] (Xml_generator &xml) {
-			copy_attributes(xml, node);
-			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+			xml.node_attributes(node);
+			node.for_each_sub_node([&] (Node const &sub_node) {
 				if (sub_node.has_type("capture") && sub_node.num_sub_nodes() == 0) {
 					xml.node("capture", [&] {
 
@@ -1781,7 +1779,7 @@ struct Sculpt::Main : Input_event_handler,
 						xml.node("default-policy", [&] { });
 					});
 				} else {
-					copy_node(xml, sub_node, { 5 });
+					(void)xml.append_node(sub_node, Xml_generator::Max_depth { 5 });
 				}
 			});
 		});
@@ -1809,7 +1807,7 @@ struct Sculpt::Main : Input_event_handler,
 			_nitpicker_config.trigger_update();
 	}
 
-	void _handle_manual_fb(Xml_node const &node)
+	void _handle_manual_fb(Node const &node)
 	{
 		_fb_config = { };
 		_fb_config.import_manual_config(node);
@@ -1823,7 +1821,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void fb_connectors_changed() override
 	{
-		_drivers.with_fb_connectors([&] (Xml_node const &node) {
+		_drivers.with_fb_connectors([&] (Node const &node) {
 			if (_fb_connectors.update(_heap, node).progress) {
 				_fb_config.apply_connectors(_fb_connectors);
 				_generate_fb_config();
@@ -1936,8 +1934,8 @@ struct Sculpt::Main : Input_event_handler,
 		/*
 		 * Read static platform information
 		 */
-		_drivers.with_platform_info([&] (Xml_node const &platform) {
-			platform.with_optional_sub_node("affinity-space", [&] (Xml_node const &node) {
+		_drivers.with_platform_info([&] (Node const &platform) {
+			platform.with_optional_sub_node("affinity-space", [&] (Node const &node) {
 				_affinity_space = Affinity::Space(node.attribute_value("width",  1U),
 				                                  node.attribute_value("height", 1U)); }); });
 
@@ -1964,8 +1962,8 @@ struct Sculpt::Main : Input_event_handler,
 };
 
 
-void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
-                                         Xml_node const &window_list)
+void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
+                                         Node const &window_list)
 {
 	/* skip window-layout handling (and decorator activity) while booting */
 	if (!_gui_mode_ready())
@@ -1975,9 +1973,9 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 	{
 		unsigned top = 0, bottom = 0, left = 0, right = 0;
 
-		Decorator_margins(Xml_node const &node)
+		Decorator_margins(Node const &node)
 		{
-			node.with_optional_sub_node("floating", [&] (Xml_node const &floating) {
+			node.with_optional_sub_node("floating", [&] (Node const &floating) {
 				top    = floating.attribute_value("top",    0U);
 				bottom = floating.attribute_value("bottom", 0U);
 				left   = floating.attribute_value("left",   0U);
@@ -2004,10 +2002,10 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		editor_view_label      ("runtime -> leitzentrale -> editor"),
 		logo_label             ("logo");
 
-	auto win_size = [&] (Xml_node const &win) { return Area::from_xml(win); };
+	auto win_size = [&] (Node const &win) { return Area::from_node(win); };
 
 	unsigned panel_height = 0;
-	_with_window(window_list, panel_view_label, [&] (Xml_node const &win) {
+	_with_window(window_list, panel_view_label, [&] (Node const &win) {
 		panel_height = win_size(win).h; });
 
 	/* suppress intermediate states during the restart of the panel */
@@ -2051,7 +2049,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 	generate_within_screen_boundary([&] (Xml_generator &xml, Xml_generator &resize_xml) {
 
-		auto gen_window = [&] (Xml_node const &win, Rect rect) {
+		auto gen_window = [&] (Node const &win, Rect rect) {
 			if (rect.valid())
 				xml.node("window", [&] {
 					xml.attribute("id",     win.attribute_value("id", 0UL));
@@ -2063,7 +2061,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 				});
 		};
 
-		auto gen_resize = [&] (Xml_node const &win, Area area) {
+		auto gen_resize = [&] (Node const &win, Area area) {
 			if (area.valid())
 				resize_xml.node("window", [&] {
 					resize_xml.attribute("id",     win.attribute_value("id", 0UL));
@@ -2073,7 +2071,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		};
 
 		/* window size limited to space unobstructed by the menu and log */
-		auto constrained_win_size = [&] (Xml_node const &win) {
+		auto constrained_win_size = [&] (Node const &win) {
 
 			unsigned const inspect_w = inspect_p2.x - inspect_p1.x,
 			               inspect_h = inspect_p2.y - inspect_p1.y;
@@ -2082,10 +2080,10 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			return Area(min(inspect_w, size.w), min(inspect_h, size.h));
 		};
 
-		_with_window(window_list, panel_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, panel_view_label, [&] (Node const &win) {
 			gen_window(win, panel); });
 
-		_with_window(window_list, Label("log"), [&] (Xml_node const &win) {
+		_with_window(window_list, Label("log"), [&] (Node const &win) {
 			Rect const rect = Rect::compound(log_p1, log_p2);
 			gen_window(win, rect);
 			gen_resize(win, rect.area);
@@ -2093,7 +2091,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 
 		int system_right_xpos = 0;
 		if (system_available()) {
-			_with_window(window_list, system_view_label, [&] (Xml_node const &win) {
+			_with_window(window_list, system_view_label, [&] (Node const &win) {
 				Area  const size = win_size(win);
 				Point const pos  = _system_visible
 				                 ? Point(0, avail.y1())
@@ -2105,7 +2103,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			});
 		}
 
-		_with_window(window_list, settings_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, settings_view_label, [&] (Node const &win) {
 			Area  const size = win_size(win);
 			Point const pos  = _settings_visible
 			                 ? Point(system_right_xpos, avail.y1())
@@ -2115,7 +2113,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 				gen_window(win, Rect(pos, size));
 		});
 
-		_with_window(window_list, network_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, network_view_label, [&] (Node const &win) {
 			Area  const size = win_size(win);
 			Point const pos  = _network_visible
 			                 ? Point(log_p1.x - size.w, avail.y1())
@@ -2123,7 +2121,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			gen_window(win, Rect(pos, size));
 		});
 
-		_with_window(window_list, file_browser_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, file_browser_view_label, [&] (Node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::FILES) {
 
 				Area  const size = constrained_win_size(win);
@@ -2137,7 +2135,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			}
 		});
 
-		_with_window(window_list, editor_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, editor_view_label, [&] (Node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::FILES) {
 				Area  const size = constrained_win_size(win);
 				Point const pos  = Rect::compound(inspect_p1 + Point(400, 0), inspect_p2).center(size);
@@ -2150,7 +2148,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			}
 		});
 
-		_with_window(window_list, diag_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, diag_view_label, [&] (Node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::COMPONENTS) {
 				Area  const size = win_size(win);
 				Point const pos(0, avail.y2() - size.h);
@@ -2174,7 +2172,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		 * area.
 		 */
 		Point runtime_view_pos { };
-		_with_window(window_list, runtime_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, runtime_view_label, [&] (Node const &win) {
 			Area const size = win_size(win);
 			Rect const inspect = Rect::compound(inspect_p1, inspect_p2);
 
@@ -2189,7 +2187,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		});
 
 		if (_popup.state == Popup::VISIBLE) {
-			_with_window(window_list, popup_view_label, [&] (Xml_node const &win) {
+			_with_window(window_list, popup_view_label, [&] (Node const &win) {
 				Area const size = win_size(win);
 				Rect const inspect = Rect::compound(inspect_p1, inspect_p2);
 
@@ -2211,7 +2209,7 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 			});
 		}
 
-		_with_window(window_list, inspect_label, [&] (Xml_node const &win) {
+		_with_window(window_list, inspect_label, [&] (Node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::INSPECT) {
 				Rect const rect = Rect::compound(inspect_p1, inspect_p2);
 				gen_window(win, rect);
@@ -2223,11 +2221,11 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 		 * Position runtime view centered within the inspect area, but allow
 		 * the overlapping of the log area. (use the menu view's 'win_size').
 		 */
-		_with_window(window_list, runtime_view_label, [&] (Xml_node const &win) {
+		_with_window(window_list, runtime_view_label, [&] (Node const &win) {
 			if (_selected_tab == Panel_dialog::Tab::COMPONENTS)
 				gen_window(win, Rect(runtime_view_pos, win_size(win))); });
 
-		_with_window(window_list, logo_label, [&] (Xml_node const &win) {
+		_with_window(window_list, logo_label, [&] (Node const &win) {
 			Area  const size = win_size(win);
 			Point const pos(_screen_size.w - size.w, _screen_size.h - size.h);
 			gen_window(win, Rect(pos, size));
@@ -2237,8 +2235,8 @@ void Sculpt::Main::_update_window_layout(Xml_node const &decorator_margins,
 	/* define window-manager focus */
 	_wm_focus.generate([&] (Xml_generator &xml) {
 
-		_window_list.with_xml([&] (Xml_node const &list) {
-			list.for_each_sub_node("window", [&] (Xml_node const &win) {
+		_window_list.with_node([&] (Node const &list) {
+			list.for_each_sub_node("window", [&] (Node const &win) {
 				Label const label = win.attribute_value("label", Label());
 
 				if (label == inspect_label && _selected_tab == Panel_dialog::Tab::INSPECT)
@@ -2264,16 +2262,16 @@ void Sculpt::Main::_handle_gui_mode()
 	{
 		Rect rect { };
 
-		_gui.with_info([&] (Xml_node const &info) {
-			rect = Rect::from_xml(info); /* entire panorama */
+		_gui.with_info_node([&] (Node const &info) {
+			rect = Rect::from_node(info); /* entire panorama */
 
 			if (!_pointer_pos.constructed())
 				return;
 
 			Gui::Point const at = *_pointer_pos;
 
-			info.for_each_sub_node("capture", [&] (Xml_node const &capture) {
-				Rect const display = Rect::from_xml(capture);
+			info.for_each_sub_node("capture", [&] (Node const &capture) {
+				Rect const display = Rect::from_node(capture);
 				if (display.contains(at)) {
 					rect = display;
 					Session_label label { capture.attribute_value("name", String<64>()) };
@@ -2381,7 +2379,7 @@ void Sculpt::Main::_handle_gui_mode()
 }
 
 
-void Sculpt::Main::_handle_update_state(Xml_node const &update_state)
+void Sculpt::Main::_handle_update_state(Node const &update_state)
 {
 	_download_queue.apply_update_state(update_state);
 	bool const any_completed_download = _download_queue.any_completed_download();
@@ -2394,7 +2392,7 @@ void Sculpt::Main::_handle_update_state(Xml_node const &update_state)
 
 	if (installation_complete) {
 
-		_blueprint_rom.with_xml([&] (Xml_node const &blueprint) {
+		_blueprint_rom.with_node([&] (Node const &blueprint) {
 			bool const new_depot_query_needed = blueprint_any_missing(blueprint)
 			                                 || blueprint_any_rom_missing(blueprint)
 			                                 || any_completed_download;
@@ -2409,7 +2407,7 @@ void Sculpt::Main::_handle_update_state(Xml_node const &update_state)
 }
 
 
-void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
+void Sculpt::Main::_handle_runtime_state(Node const &state)
 {
 	bool reconfigure_runtime = false;
 	bool regenerate_dialog   = false;
@@ -2580,7 +2578,7 @@ void Sculpt::Main::_handle_runtime_state(Xml_node const &state)
 	}
 
 	/* upgrade RAM and cap quota on demand */
-	state.for_each_sub_node("child", [&] (Xml_node const &child) {
+	state.for_each_sub_node("child", [&] (Node const &child) {
 
 		bool reconfiguration_needed = false;
 		_child_states.for_each([&] (Child_state &child_state) {

@@ -44,7 +44,7 @@ namespace Gui_fader {
 
 	using Genode::size_t;
 	using Genode::uint8_t;
-	using Genode::Xml_node;
+	using Genode::Node;
 	using Genode::Dataspace_capability;
 	using Genode::Attached_ram_dataspace;
 	using Genode::Texture;
@@ -481,7 +481,7 @@ struct Gui_fader::Main
 {
 	Genode::Env &env;
 
-	Genode::Attached_rom_dataspace config { env, "config" };
+	Genode::Attached_rom_dataspace _config { env, "config" };
 
 	Timer::Connection timer { env };
 
@@ -530,7 +530,7 @@ struct Gui_fader::Main
 
 	Main(Genode::Env &env) : env(env)
 	{
-		config.sigh(config_handler);
+		_config.sigh(config_handler);
 
 		timer.sigh(timer_handler);
 
@@ -544,15 +544,15 @@ struct Gui_fader::Main
 
 void Gui_fader::Main::handle_config_update()
 {
-	config.update();
+	_config.update();
 
-	Genode::Xml_node const config_xml = config.xml();
+	Node const config = _config.node();
 
-	unsigned const new_alpha = config_xml.attribute_value("alpha", 255u);
+	unsigned const new_alpha = config.attribute_value("alpha", 255u);
 
-	fade_in_steps         = config_xml.attribute_value("fade_in_steps",  20U);
-	fade_out_steps        = config_xml.attribute_value("fade_out_steps", 50U);
-	initial_fade_in_steps = config_xml.attribute_value("initial_fade_in_steps", fade_in_steps);
+	fade_in_steps         = config.attribute_value("fade_in_steps",  20U);
+	fade_out_steps        = config.attribute_value("fade_out_steps", 50U);
+	initial_fade_in_steps = config.attribute_value("initial_fade_in_steps", fade_in_steps);
 
 	/* respond to state change */
 	if (new_alpha != alpha) {

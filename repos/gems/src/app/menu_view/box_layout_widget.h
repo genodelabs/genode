@@ -111,13 +111,12 @@ struct Menu_view::Box_layout_widget : Widget
 		});
 	}
 
-	Box_layout_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
+	Box_layout_widget(Widget_factory &factory, Attr const &attr, Direction dir)
 	:
-		Widget(factory, node, unique_id),
-		       _direction(node.has_type("vbox") ? VERTICAL : HORIZONTAL)
+		Widget(factory, attr), _direction(dir)
 	{ }
 
-	void update(Xml_node const &node) override
+	void update(Node const &node) override
 	{
 		_update_children(node);
 
@@ -126,7 +125,6 @@ struct Menu_view::Box_layout_widget : Widget
 		 */
 
 		_stack_and_count_child_widgets();
-
 	}
 
 	Area min_size() const override

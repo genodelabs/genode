@@ -44,13 +44,13 @@ struct Sculpt::Usb_driver : private Noncopyable
 		bool hid, net;
 		bool storage_aquired;
 
-		static Detected from_xml(Xml_node const &devices)
+		static Detected from_node(Node const &devices)
 		{
 			Detected result { };
-			devices.for_each_sub_node("device", [&] (Xml_node const &device) {
+			devices.for_each_sub_node("device", [&] (Node const &device) {
 				bool const acquired = device.attribute_value("acquired", false);
-				device.for_each_sub_node("config", [&] (Xml_node const &config) {
-					config.for_each_sub_node("interface", [&] (Xml_node const &interface) {
+				device.for_each_sub_node("config", [&] (Node const &config) {
+					config.for_each_sub_node("interface", [&] (Node const &interface) {
 						unsigned const class_id = interface.attribute_value("class", 0u);
 						result.hid             |= (class_id == CLASS_HID);
 						result.net             |= (class_id == CLASS_NET);
@@ -66,19 +66,19 @@ struct Sculpt::Usb_driver : private Noncopyable
 	Rom_handler<Usb_driver> _devices {
 		_env, "report -> runtime/usb/devices", *this, &Usb_driver::_handle_devices };
 
-	void _handle_devices(Xml_node const &devices)
+	void _handle_devices(Node const &devices)
 	{
-		_detected = Detected::from_xml(devices);
+		_detected = Detected::from_node(devices);
 		_action.handle_usb_plug_unplug();
 	}
 
 	Managed_config<Usb_driver> _usb_config {
 		_env, "config", "usb", *this, &Usb_driver::_handle_usb_config };
 
-	void _handle_usb_config(Xml_node const &config)
+	void _handle_usb_config(Node const &config)
 	{
 		_usb_config.generate([&] (Xml_generator &xml) {
-			copy_attributes(xml, config);
+			xml.node_attributes(config);
 
 			xml.node("report", [&] {
 				xml.attribute("devices", "yes"); });
@@ -89,8 +89,8 @@ struct Sculpt::Usb_driver : private Noncopyable
 					xml.attribute("class", CLASS_HID); }); });
 
 			/* copy user-provided rules */
-			config.for_each_sub_node("policy", [&] (Xml_node const &policy) {
-				copy_node(xml, policy); });
+			config.for_each_sub_node("policy", [&] (Node const &policy) {
+				(void)xml.append_node(policy, Xml_generator::Max_depth { 5 }); });
 
 			/* wildcard for USB clients with no policy yet */
 			xml.node("default-policy", [&] { });
@@ -186,9 +186,8 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	void with_devices(auto const &fn) const
 	{
-		static Xml_node const none { "<none/>" };
-		_devices.with_xml([&] (Xml_node const &devices) {
-			fn(_hcd.constructed() ? devices : none); });
+		_devices.with_node([&] (Node const &devices) {
+			fn({ .present = _hcd.constructed(), .report = devices }); });
 	}
 
 	bool suspend_supported() const { return !_detected.storage_aquired; }

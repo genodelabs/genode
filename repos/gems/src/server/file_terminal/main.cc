@@ -246,8 +246,8 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 		Create_result _create_session(const char *args) override
 		{
-			return with_matching_policy(label_from_args(args), _config_rom.xml(),
-				[&] (Xml_node const &policy) -> Create_result {
+			return with_matching_policy(label_from_args(args), _config_rom.node(),
+				[&] (Node const &policy) -> Create_result {
 					if (!policy.has_attribute("filename")) {
 						error("missing \"filename\" attribute in policy definition");
 						return Create_error::DENIED;

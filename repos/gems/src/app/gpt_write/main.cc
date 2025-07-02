@@ -66,7 +66,7 @@ struct Gpt::Writer
 
 	Util::Number_of_bytes _entry_alignment { 4096u };
 
-	void _handle_config(Genode::Xml_node const &config)
+	void _handle_config(Genode::Node const &config)
 	{
 		_verbose         = config.attribute_value("verbose",         false);
 		_initialize      = config.attribute_value("initialize",      false);
@@ -403,7 +403,7 @@ struct Gpt::Writer
 	 *
 	 * \return pointer to entry if found, otherwise a nullptr is returned
 	 */
-	Gpt::Entry *_lookup_entry(Genode::Xml_node const &node)
+	Gpt::Entry *_lookup_entry(Genode::Node const &node)
 	{
 		Gpt::Label const label = node.attribute_value("label", Gpt::Label());
 		uint32_t   const entry =
@@ -440,7 +440,7 @@ struct Gpt::Writer
 	 *
 	 * \return true if entry was successfully added, otherwise false
 	 */
-	bool _do_add(Genode::Xml_node const &node)
+	bool _do_add(Genode::Node const &node)
 	{
 		bool       const add   = node.has_attribute("entry");
 		Gpt::Label const label = node.attribute_value("label", Gpt::Label());
@@ -554,7 +554,7 @@ struct Gpt::Writer
 	 *
 	 * \return true if entry was successfully added, otherwise false
 	 */
-	bool _do_delete(Genode::Xml_node const &node)
+	bool _do_delete(Genode::Node const &node)
 	{
 		Gpt::Entry *e = _lookup_entry(node);
 		if (!e) { return false; }
@@ -579,7 +579,7 @@ struct Gpt::Writer
 	 *
 	 * \return true if entry was successfully added, otherwise false
 	 */
-	bool _do_modify(Genode::Xml_node const &node)
+	bool _do_modify(Genode::Node const &node)
 	{
 		using namespace Genode;
 
@@ -648,12 +648,9 @@ struct Gpt::Writer
 	/**
 	 * Constructor
 	 *
-	 * \param block   reference to underlying Block::Connection
-	 * \param config  copy of config Xml_node
-	 *
 	 * \throw Io_error
 	 */
-	Writer(Block::Connection<> &block, Entrypoint &ep, Genode::Xml_node const &config)
+	Writer(Block::Connection<> &block, Entrypoint &ep, Genode::Node const &config)
 	: _block(block), _ep(ep)
 	{
 		if (!_info.writeable) {
@@ -696,14 +693,14 @@ struct Gpt::Writer
 	 * \return  true if actions were executed successfully, otherwise
 	 *          false
 	 */
-	bool execute_actions(Genode::Xml_node const &actions)
+	bool execute_actions(Genode::Node const &actions)
 	{
 		if (_wipe) { return _wipe_tables(); }
 
 		if (_initialize) { _initialize_tables(); }
 
 		try {
-			actions.for_each_sub_node([&] (Genode::Xml_node const &node) {
+			actions.for_each_sub_node([&] (Genode::Node const &node) {
 				bool result = false;
 
 				if        (node.has_type("add")) {
@@ -752,7 +749,7 @@ struct Main
 
 		Util::init_random(_heap);
 
-		Genode::Xml_node const &config = _config_rom.xml();
+		Genode::Node const &config = _config_rom.node();
 
 		try {
 			_writer.construct(_block, _env.ep(), config);
@@ -762,7 +759,7 @@ struct Main
 		}
 
 		bool success = false;
-		config.with_optional_sub_node("actions", [&] (Genode::Xml_node const &actions) {
+		config.with_optional_sub_node("actions", [&] (Genode::Node const &actions) {
 			success = _writer->execute_actions(actions); });
 
 		_env.parent().exit(success ? 0 : 1);

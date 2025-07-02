@@ -25,7 +25,7 @@ struct Sculpt::Boot_fb
 	{
 		unsigned pitch, height;
 
-		static Mode from_xml(Xml_node const &framebuffer)
+		static Mode from_node(Node const &framebuffer)
 		{
 			static constexpr unsigned TYPE_RGB_COLOR = 1;
 
@@ -43,11 +43,11 @@ struct Sculpt::Boot_fb
 		bool valid() const { return pitch*height != 0; }
 	};
 
-	static void with_mode(Xml_node const &platform, auto const &fn)
+	static void with_mode(Node const &platform, auto const &fn)
 	{
-		platform.with_optional_sub_node("boot", [&] (Xml_node const &boot) {
-			boot.with_optional_sub_node("framebuffer", [&] (Xml_node const &framebuffer) {
-				fn(Mode::from_xml(framebuffer)); }); });
+		platform.with_optional_sub_node("boot", [&] (Node const &boot) {
+			boot.with_optional_sub_node("framebuffer", [&] (Node const &framebuffer) {
+				fn(Mode::from_node(framebuffer)); }); });
 	}
 };
 

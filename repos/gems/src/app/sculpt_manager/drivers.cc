@@ -60,11 +60,11 @@ class Sculpt::Drivers::Instance : Noncopyable,
 		Rom_handler<Instance> _devices {
 			_env, "report -> drivers/devices", *this, &Instance::_handle_devices };
 
-		void _handle_devices(Xml_node const &devices)
+		void _handle_devices(Node const &devices)
 		{
-			_board_info.detected = Board_info::Detected::from_xml(devices,
-			                                                      _platform.xml());
-			_board_info.used = Board_info::Used::from_xml(devices);
+			_board_info.detected = Board_info::Detected::from_node(devices,
+			                                                       _platform.node());
+			_board_info.used = Board_info::Used::from_node(devices);
 
 			_resumed = { devices.attribute_value("resumed", 0u) };
 
@@ -79,7 +79,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 			 * the decision.
 			 */
 			if (!devices.has_type("empty") || _board_info.soc.fb)
-				_fb_driver.update(_children, _board_info, _platform.xml());
+				_fb_driver.update(_children, _board_info, _platform.node());
 
 			_ps2_driver  .update(_children, _board_info);
 			_touch_driver.update(_children, _board_info);
@@ -94,7 +94,7 @@ class Sculpt::Drivers::Instance : Noncopyable,
 
 		void _handle_devices()
 		{
-			_devices.with_xml([&] (Xml_node const &devices) {
+			_devices.with_node([&] (Node const &devices) {
 				_handle_devices(devices); });
 		}
 
@@ -157,19 +157,19 @@ class Sculpt::Drivers::Instance : Noncopyable,
 
 		void with(With_storage_devices::Ft const &fn) const
 		{
-			_usb_driver.with_devices([&] (Xml_node const &usb_devices) {
-				_ahci_driver.with_ports([&] (Xml_node const &ahci_ports) {
-					_nvme_driver.with_namespaces([&] (Xml_node const &nvme_namespaces) {
-						_mmc_driver.with_devices([&] (Xml_node const &mmc_devices) {
-							fn( { .usb  = usb_devices,
-							      .ahci = ahci_ports,
-							      .nvme = nvme_namespaces,
-							      .mmc  = mmc_devices }); }); }); }); });
+			_usb_driver.with_devices([&] (Storage_devices::Driver const &usb) {
+				_ahci_driver.with_ports([&] (Storage_devices::Driver const &ahci) {
+					_nvme_driver.with_namespaces([&] (Storage_devices::Driver const &nvme) {
+						_mmc_driver.with_devices([&] (Storage_devices::Driver const &mmc) {
+							fn( { .usb  = usb,
+							      .ahci = ahci,
+							      .nvme = nvme,
+							      .mmc  = mmc }); }); }); }); });
 		}
 
-		void with(With_board_info::Ft        const &fn) const { fn(_board_info); }
-		void with_platform_info(With_xml::Ft const &fn) const { fn(_platform.xml()); }
-		void with_fb_connectors(With_xml::Ft const &fn) const { _fb_driver.with_connectors(fn); }
+		void with(With_board_info::Ft         const &fn) const { fn(_board_info); }
+		void with_platform_info(With_node::Ft const &fn) const { fn(_platform.node()); }
+		void with_fb_connectors(With_node::Ft const &fn) const { _fb_driver.with_connectors(fn); }
 
 		bool suspend_supported() const
 		{
@@ -203,10 +203,10 @@ Sculpt::Drivers::Drivers(Env &env, Children &children, Info const &info, Action 
 	_instance(_construct_instance(env, children, info, action))
 { }
 
-void Drivers::_with(With_storage_devices::Ft   const &fn) const { _instance.with(fn); }
-void Drivers::_with(With_board_info::Ft        const &fn) const { _instance.with(fn); }
-void Drivers::_with_platform_info(With_xml::Ft const &fn) const { _instance.with_platform_info(fn); }
-void Drivers::_with_fb_connectors(With_xml::Ft const &fn) const { _instance.with_fb_connectors(fn); }
+void Drivers::_with(With_storage_devices::Ft    const &fn) const { _instance.with(fn); }
+void Drivers::_with(With_board_info::Ft         const &fn) const { _instance.with(fn); }
+void Drivers::_with_platform_info(With_node::Ft const &fn) const { _instance.with_platform_info(fn); }
+void Drivers::_with_fb_connectors(With_node::Ft const &fn) const { _instance.with_fb_connectors(fn); }
 
 void Drivers::update_usb    ()                        { _instance.update_usb(); }
 void Drivers::update_soc    (Board_info::Soc     soc) { _instance.update_soc(soc); }

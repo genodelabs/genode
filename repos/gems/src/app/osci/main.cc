@@ -103,9 +103,9 @@ struct Osci::Main
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
-		_size       = Area::from_xml(config);
+		_size       = Area::from_node(config);
 		_background = config.attribute_value("background", Color::black());
 		_color      = config.attribute_value("color",      Color::rgb(255, 255, 255));
 		_v_scale    = config.attribute_value("v_scale",    3000);
@@ -113,7 +113,7 @@ struct Osci::Main
 		_gui_buffer.construct(_gui, _size, _env.ram(), _env.rm(),
 		                      Gui_buffer::Alpha::OPAQUE, _background);
 
-		_view.construct(_gui, Rect { Point::from_xml(config), _size });
+		_view.construct(_gui, Rect { Point::from_node(config), _size });
 
 		_timer.trigger_periodic(1000*config.attribute_value("period_ms",  20));
 	}

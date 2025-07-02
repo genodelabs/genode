@@ -52,13 +52,13 @@ class Tresor_init::Main : private Vfs::Env::User, private Crypto_key_files_inter
 				error("VFS not configured");
 				return { _env, _heap, Node() }; });
 		Signal_handler<Main> _sigh { _env.ep(), *this, &Main::_handle_signal };
-		Superblock_configuration _sb_config { _config_rom.xml() };
+		Superblock_configuration _sb_config { _config_rom.node() };
 
 		Tresor::Path _path_from_config(auto const &node_name) const
 		{
-			return _config_rom.xml().with_sub_node(node_name,
-				[&] (Xml_node const &node) { return node.attribute_value("path", Tresor::Path()); },
-				[&]                        { return Tresor::Path(); });
+			return _config_rom.node().with_sub_node(node_name,
+				[&] (Node const &node) { return node.attribute_value("path", Tresor::Path()); },
+				[&]                    { return Tresor::Path(); });
 		}
 
 		Tresor::Path const _crypto_path       = _path_from_config("crypto");

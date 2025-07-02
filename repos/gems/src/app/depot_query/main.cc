@@ -76,13 +76,13 @@ Depot_query::Main::_find_rom_in_pkg(File_content    const &archives,
 
 
 void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
-                                            Xml_node      const &env_xml,
+                                            Node          const &env_xml,
                                             Archive::Path const &pkg_path,
-                                            Xml_node      const &runtime)
+                                            Node          const &runtime)
 {
 	_with_file_content(pkg_path, "archives", [&] (File_content const &archives) {
-		runtime.for_each_sub_node("content", [&] (Xml_node content) {
-			content.for_each_sub_node([&] (Xml_node node) {
+		runtime.for_each_sub_node("content", [&] (Node const &content) {
+			content.for_each_sub_node([&] (Node const &node) {
 
 				/* skip non-rom nodes */
 				if (!node.has_type("rom"))
@@ -93,7 +93,7 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
 
 				/* skip ROM that is provided by the environment */
 				bool provided_by_env = false;
-				env_xml.for_each_sub_node("rom", [&] (Xml_node node) {
+				env_xml.for_each_sub_node("rom", [&] (Node const &node) {
 					if (node.attribute_value("label", Rom_label()) == label)
 						provided_by_env = true; });
 
@@ -133,7 +133,7 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
 
 
 void Depot_query::Main::_gen_inherited_rom_path_nodes(Xml_generator       &xml,
-                                                      Xml_node      const &env_xml,
+                                                      Node          const &env_xml,
                                                       Archive::Path const &pkg_path,
                                                       Recursion_limit      recursion_limit)
 {
@@ -148,7 +148,7 @@ void Depot_query::Main::_gen_inherited_rom_path_nodes(Xml_generator       &xml,
 			catch (Archive::Unknown_archive_type) { return; }
 
 			_with_file_content(archive_path, "runtime" , [&] (File_content const &runtime) {
-				runtime.xml([&] (Xml_node node) {
+				runtime.node([&] (Node const &node) {
 					_gen_rom_path_nodes(xml, env_xml, pkg_path, node); }); });
 
 			_gen_inherited_rom_path_nodes(xml, env_xml, archive_path, recursion_limit);
@@ -163,7 +163,7 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 
 	File_content runtime(_heap, pkg_dir, "runtime", File_content::Limit{16*1024});
 
-	runtime.xml([&] (Xml_node const &node) {
+	runtime.node([&] (Node const &node) {
 
 		xml.node("pkg", [&] () {
 
@@ -176,12 +176,12 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 
 			auto with_env_node = [&] (auto const &fn)
 			{
-				_config.xml().with_sub_node("env",
-					[&] (Xml_node const &env) { fn(env); },
-					[&]                       { fn(Xml_node("<empty/>")); });
+				_config.node().with_sub_node("env",
+					[&] (Node const &env) { fn(env); },
+					[&]                   { fn(Node()); });
 			};
 
-			with_env_node([&] (Xml_node const &env_node) {
+			with_env_node([&] (Node const &env_node) {
 				_gen_rom_path_nodes(xml, env_node, pkg_path, node);
 
 				_gen_inherited_rom_path_nodes(xml, env_node, pkg_path, Recursion_limit{8});
@@ -329,8 +329,7 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 }
 
 
-void Depot_query::Main::_gen_index_node_rec(Xml_generator  &xml,
-                                            Xml_node const &node,
+void Depot_query::Main::_gen_index_node_rec(Xml_generator &xml, Node const &node,
                                             unsigned max_depth) const
 {
 	if (max_depth == 0) {
@@ -338,7 +337,7 @@ void Depot_query::Main::_gen_index_node_rec(Xml_generator  &xml,
 		return;
 	}
 
-	node.for_each_sub_node([&] (Xml_node const &node) {
+	node.for_each_sub_node([&] (Node const &node) {
 
 		/* check if single index entry is compatible with architecture */
 		bool const arch_compatible =
@@ -366,11 +365,11 @@ void Depot_query::Main::_gen_index_node_rec(Xml_generator  &xml,
 
 
 void Depot_query::Main::_gen_index_for_arch(Xml_generator &xml,
-                                            Xml_node const &node) const
+                                            Node const &node) const
 {
 	/* check of architecture is supported by the index */
 	bool supports_arch = false;
-	node.for_each_sub_node("supports", [&] (Xml_node const &supports) {
+	node.for_each_sub_node("supports", [&] (Node const &supports) {
 		if (supports.attribute_value("arch", Architecture()) == _architecture)
 			supports_arch = true; });
 
@@ -407,7 +406,7 @@ void Depot_query::Main::_query_index(Archive::User    const &user,
 				File_content const
 					file(_heap, _root, index_path, File_content::Limit{16*1024});
 
-				file.xml([&] (Xml_node node) {
+				file.node([&] (Node const &node) {
 					_gen_index_for_arch(xml, node); });
 
 			} catch (Directory::Nonexistent_file) { }

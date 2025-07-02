@@ -442,14 +442,12 @@ struct Menu_view::Depgraph_widget : Widget
 		fn(_root_node);
 	}
 
-	Depgraph_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
-	:
-		Widget(factory, node, unique_id)
-	{ }
+	Depgraph_widget(Widget_factory &factory, Widget::Attr const &attr)
+	: Widget(factory, attr) { }
 
-	~Depgraph_widget() { _update_children(Xml_node("<empty/>")); }
+	~Depgraph_widget() { _update_children(Genode::Node()); }
 
-	void update(Xml_node const &node) override
+	void update(Genode::Node const &node) override
 	{
 		/* update depth direction */
 		{
@@ -465,14 +463,14 @@ struct Menu_view::Depgraph_widget : Widget
 		_update_children(node);
 	}
 
-	void _update_children(Xml_node const &node)
+	void _update_children(Genode::Node const &node)
 	{
 		Allocator &alloc = _factory.alloc;
 
-		_children.update_from_xml(node,
+		_children.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Widget &
+			[&] (Genode::Node const &node) -> Widget &
 			{
 				Widget &w = _factory.create(node);
 				new (alloc) Registered_node(_nodes, alloc, w, _factory.animator);
@@ -503,7 +501,7 @@ struct Menu_view::Depgraph_widget : Widget
 			},
 
 			/* update */
-			[&] (Widget &w, Xml_node const &node) { w.update(node); }
+			[&] (Widget &w, Genode::Node const &node) { w.update(node); }
 		);
 
 		/*
@@ -512,7 +510,7 @@ struct Menu_view::Depgraph_widget : Widget
 		_nodes.for_each([&] (Node &node) {
 			node.mark_deps_as_out_of_date(); });
 
-		node.for_each_sub_node([&] (Xml_node const &node) {
+		node.for_each_sub_node([&] (Genode::Node const &node) {
 
 			bool const primary = !node.has_type("dep");
 

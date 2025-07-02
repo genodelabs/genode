@@ -76,7 +76,7 @@ class Menu_view::Style_database
 				try {
 					File_content const content(alloc, styles_dir, path,
 					                           File_content::Limit{1024});
-					content.xml([&] (Xml_node const &node) {
+					content.node([&] (Node const &node) {
 						result.color = node.attribute_value("color", result.color);
 					});
 				} catch (...) { }
@@ -196,7 +196,7 @@ class Menu_view::Style_database
 		/*
 		 * Assemble path name 'styles/<widget>/<style>/<name>.png'
 		 */
-		static Path _construct_png_path(Xml_node const &node, char const *name)
+		static Path _construct_png_path(Node const &node, char const *name)
 		{
 			using Style = String<64>;
 			Style const style = node.attribute_value("style", Style("default"));
@@ -207,7 +207,7 @@ class Menu_view::Style_database
 		/*
 		 * Assemble path of style file relative to the styles directory
 		 */
-		static Path _widget_style_path(Xml_node const &node)
+		static Path _widget_style_path(Node const &node)
 		{
 			using Style = String<64>;
 			Style const style = node.attribute_value("style", Style("default"));
@@ -215,7 +215,7 @@ class Menu_view::Style_database
 			return Path(node.type(), "/", style, "/", "style");
 		}
 
-		Label_style const &_label_style(Xml_node const &node) const
+		Label_style const &_label_style(Node const &node) const
 		{
 			Path const path = _widget_style_path(node);
 
@@ -244,7 +244,7 @@ class Menu_view::Style_database
 			_style_changed_sigh(style_changed_sigh)
 		{ }
 
-		Texture<Pixel_rgb888> const *texture(Xml_node const &node, char const *png_name) const
+		Texture<Pixel_rgb888> const *texture(Node const &node, char const *png_name) const
 		{
 			Path const path = _construct_png_path(node, png_name);
 
@@ -269,7 +269,7 @@ class Menu_view::Style_database
 			return nullptr;
 		}
 
-		Text_painter::Font const *font(Xml_node const &node) const
+		Text_painter::Font const *font(Node const &node) const
 		{
 			Path const path = node.attribute_value("font", Path("text/regular"));
 			if (Font_entry const *e = _lookup(_fonts, path.string()))
@@ -295,7 +295,7 @@ class Menu_view::Style_database
 		}
 
 		template <typename FN>
-		void with_label_style(Xml_node const &node, FN const &fn) const
+		void with_label_style(Node const &node, FN const &fn) const
 		{
 			fn(_label_style(node));
 		}

@@ -49,9 +49,9 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 		bool _selected_user_exists = false;
 
-		Url _url(Xml_node const &user) const
+		Url _url(Node const &user) const
 		{
-			return user.with_sub_node("url", [&] (Xml_node const &node) {
+			return user.with_sub_node("url", [&] (Node const &node) {
 
 				Url const url = node.decoded_content<Url>();
 
@@ -126,14 +126,14 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 			Url_edit_field _url_edit_field { _orig_edit_url };
 
-			Depot_url depot_url(Xml_node const &depot_users) const
+			Depot_url depot_url(Node const &depot_users) const
 			{
 				Depot_url const result =
 					Depot_url::from_string(Depot_url::Url { _url_edit_field });
 
 				/* check for duplicated user name */
 				bool unique = true;
-				depot_users.for_each_sub_node("user", [&] (Xml_node const &user) {
+				depot_users.for_each_sub_node("user", [&] (Node const &user) {
 					User const name = user.attribute_value("name", User());
 					if (name == result.user)
 						unique = false; });
@@ -144,12 +144,12 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 			Hosted<Hbox, Hbox, Float, Conditional_button> _add  { Id { "Add" } };
 			Hosted<Hbox, Hbox, Float, Action_button>      _edit { Id { "Edit" } };
 
-			bool _ready_to_add(Xml_node const &depot_users) const
+			bool _ready_to_add(Node const &depot_users) const
 			{
 				return depot_url(depot_users).valid();
 			}
 
-			void view(Scope<Hbox> &s, bool selected, Xml_node const &depot_users) const
+			void view(Scope<Hbox> &s, bool selected, Node const &depot_users) const
 			{
 				bool const hovered = s.hovered() && !s.dragged() && !selected;
 
@@ -195,7 +195,7 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 				_url_edit_field.apply(c);
 			}
 
-			void click(Clicked_at const &, Xml_node const &depot_users, auto const add_fn)
+			void click(Clicked_at const &, Node const &depot_users, auto const add_fn)
 			{
 				if (_ready_to_add(depot_users))
 					add_fn();
@@ -217,13 +217,13 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 			return (_selected == _add_id()) ? User() : _selected;
 		}
 
-		void _view(Scope<Vbox> &s, Xml_node const &depot_users) const
+		void _view(Scope<Vbox> &s, Node const &depot_users) const
 		{
 			bool known_pubkey = false;
 
 			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
 				s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
-					depot_users.for_each_sub_node("user", [&] (Xml_node const &user) {
+					depot_users.for_each_sub_node("user", [&] (Node const &user) {
 
 						if (_selected == user.attribute_value("name", User()))
 							known_pubkey = user.attribute_value("known_pubkey", false);
@@ -257,7 +257,7 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 		void view(Scope<Vbox> &s) const
 		{
-			_depot_users.with_xml([&] (Xml_node const &depot_users) {
+			_depot_users.with_node([&] (Node const &depot_users) {
 				_view(s, depot_users); });
 		}
 
@@ -273,8 +273,8 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 		User_properties selected_user_properties() const
 		{
 			User_properties result { };
-			_depot_users.with_xml([&] (Xml_node const &users) {
-				users.for_each_sub_node([&] (Xml_node const &user) {
+			_depot_users.with_node([&] (Node const &users) {
+				users.for_each_sub_node([&] (Node const &user) {
 					if (_selected == user.attribute_value("name", User())) {
 						result = {
 							.exists       = true,
@@ -297,7 +297,7 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 
 		void _add_and_select_new_depot_user(Action &action)
 		{
-			_depot_users.with_xml([&] (Xml_node const &users) {
+			_depot_users.with_node([&] (Node const &users) {
 				Depot_url const depot_url = _edit_item.depot_url(users);
 				if (depot_url.valid()) {
 					action.add_depot_url(depot_url);
@@ -325,7 +325,7 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 				}
 			}
 
-			_depot_users.with_xml([&] (Xml_node const &users) {
+			_depot_users.with_node([&] (Node const &users) {
 				_edit_item.propagate(at, users, [&] {
 					_add_and_select_new_depot_user(action); }); });
 		}
@@ -349,8 +349,8 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 			 */
 			_selected_user_exists = false;
 
-			_depot_users.with_xml([&] (Xml_node const &users) {
-				users.for_each_sub_node([&] (Xml_node const &user) {
+			_depot_users.with_node([&] (Node const &users) {
+				users.for_each_sub_node([&] (Node const &user) {
 					if (_selected == user.attribute_value("name", User()))
 						_selected_user_exists = true; }); });
 		}

@@ -15,7 +15,6 @@
 #define _IMPORT_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <util/xml_generator.h>
 #include <util/list_model.h>
 #include <base/registry.h>
@@ -40,7 +39,7 @@ class Depot_download_manager::Import
 				uint64_t total_bytes;
 				uint64_t downloaded_bytes;
 
-				static Progress from_xml(Xml_node const &node)
+				static Progress from_node(Node const &node)
 				{
 					return { .total_bytes      = node.attribute_value("total", 0ULL),
 					         .downloaded_bytes = node.attribute_value("now",   0ULL) };
@@ -69,25 +68,25 @@ class Depot_download_manager::Import
 
 			Download(Url const &url) : url(url) { };
 
-			static Url url_from_xml(Xml_node const &node)
+			static Url url_from_node(Node const &node)
 			{
 				return node.attribute_value("url", Url());
 			}
 
-			void update(Xml_node const &node)
+			void update(Node const &node)
 			{
-				progress = Progress::from_xml(node);
+				progress = Progress::from_node(node);
 				complete = node.attribute_value("finished", false);
 			}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
-				return url_from_xml(node) == url;
+				return url_from_node(node) == url;
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
-				return node.has_type("fetch") && url_from_xml(node).valid();
+				return node.has_type("fetch") && url_from_node(node).valid();
 			}
 		};
 
@@ -172,67 +171,67 @@ class Depot_download_manager::Import
 			return result;
 		}
 
-		static Archive::Path _depdendency_path(Xml_node const &item)
+		static Archive::Path _depdendency_path(Node const &item)
 		{
 			return item.attribute_value("path", Archive::Path());
 		}
 
-		static Archive::Path _index_path(Xml_node const &item)
+		static Archive::Path _index_path(Node const &item)
 		{
 			return Path(item.attribute_value("user",    Archive::User()), "/index/",
 			            item.attribute_value("version", Archive::Version()));
 		}
 
-		static Archive::Path _image_path(Xml_node const &item)
+		static Archive::Path _image_path(Node const &item)
 		{
 			return Path(item.attribute_value("user", Archive::User()), "/image/",
 			            item.attribute_value("name", Archive::Name()));
 		}
 
-		static Archive::Path _image_index_path(Xml_node const &item)
+		static Archive::Path _image_index_path(Node const &item)
 		{
 			return Path(item.attribute_value("user", Archive::User()), "/image/index");
 		}
 
 		template <typename FN>
-		static void _for_each_missing_depot_path(Xml_node const &dependencies,
-		                                         Xml_node const &index,
-		                                         Xml_node const &image,
-		                                         Xml_node const &image_index,
+		static void _for_each_missing_depot_path(Node const &dependencies,
+		                                         Node const &index,
+		                                         Node const &image,
+		                                         Node const &image_index,
 		                                         FN const &fn)
 		{
-			dependencies.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_depdendency_path(item), Require_verify::from_xml(item)); });
+			dependencies.for_each_sub_node("missing", [&] (Node const &item) {
+				fn(_depdendency_path(item), Require_verify::from_node(item)); });
 
-			index.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_index_path(item), Require_verify::from_xml(item)); });
+			index.for_each_sub_node("missing", [&] (Node const &item) {
+				fn(_index_path(item), Require_verify::from_node(item)); });
 
-			image.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_image_path(item), Require_verify::from_xml(item)); });
+			image.for_each_sub_node("missing", [&] (Node const &item) {
+				fn(_image_path(item), Require_verify::from_node(item)); });
 
-			image_index.for_each_sub_node("missing", [&] (Xml_node const &item) {
-				fn(_image_index_path(item), Require_verify::from_xml(item)); });
+			image_index.for_each_sub_node("missing", [&] (Node const &item) {
+				fn(_image_index_path(item), Require_verify::from_node(item)); });
 		}
 
 	public:
 
 		template <typename FN>
-		static void for_each_present_depot_path(Xml_node const &dependencies,
-		                                        Xml_node const &index,
-		                                        Xml_node const &image,
-		                                        Xml_node const &image_index,
+		static void for_each_present_depot_path(Node const &dependencies,
+		                                        Node const &index,
+		                                        Node const &image,
+		                                        Node const &image_index,
 		                                        FN const &fn)
 		{
-			dependencies.for_each_sub_node("present", [&] (Xml_node const &item) {
+			dependencies.for_each_sub_node("present", [&] (Node const &item) {
 				fn(_depdendency_path(item)); });
 
-			index.for_each_sub_node("index", [&] (Xml_node const &item) {
+			index.for_each_sub_node("index", [&] (Node const &item) {
 				fn(_index_path(item)); });
 
-			image.for_each_sub_node("image", [&] (Xml_node const &item) {
+			image.for_each_sub_node("image", [&] (Node const &item) {
 				fn(_image_path(item)); });
 
-			image_index.for_each_sub_node("present", [&] (Xml_node const &item) {
+			image_index.for_each_sub_node("present", [&] (Node const &item) {
 				fn(_image_index_path(item)); });
 		}
 
@@ -250,10 +249,10 @@ class Depot_download_manager::Import
 		Import(Allocator           &alloc,
 		       Archive::User const &user,
 		       Pubkey_known  const pubkey_known,
-		       Xml_node      const &dependencies,
-		       Xml_node      const &index,
-		       Xml_node      const &image,
-		       Xml_node      const &image_index)
+		       Node          const &dependencies,
+		       Node          const &index,
+		       Node          const &image,
+		       Node          const &image_index)
 		:
 			_alloc(alloc), _pubkey_known(pubkey_known.value)
 		{

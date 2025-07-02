@@ -67,21 +67,21 @@ struct Sculpt::Component : Noncopyable
 	Blueprint_info blueprint_info { };
 
 	List_model<Route> routes   { };
-	Route             pd_route { "<pd/>" };
+	Route             pd_route { String<10>("<pd/>") };
 
-	void _update_routes_from_xml(Xml_node const &node)
+	void _update_routes_from_node(Node const &node)
 	{
-		routes.update_from_xml(node,
+		routes.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &route) -> Route & {
+			[&] (Node const &route) -> Route & {
 				return *new (_alloc) Route(route); },
 
 			/* destroy */
 			[&] (Route &e) { destroy(_alloc, &e); },
 
 			/* update */
-			[&] (Route &, Xml_node const &) { }
+			[&] (Route &, Node const &) { }
 		);
 	}
 
@@ -137,14 +137,14 @@ struct Sculpt::Component : Noncopyable
 
 	~Component()
 	{
-		_update_routes_from_xml(Xml_node("<empty/>"));
+		_update_routes_from_node(Node());
 	}
 
-	void try_apply_blueprint(Xml_node const &blueprint)
+	void try_apply_blueprint(Node const &blueprint)
 	{
 		blueprint_info = { };
 
-		blueprint.for_each_sub_node([&] (Xml_node const &pkg) {
+		blueprint.for_each_sub_node([&] (Node const &pkg) {
 
 			if (path != pkg.attribute_value("path", Path()))
 				return;
@@ -154,13 +154,13 @@ struct Sculpt::Component : Noncopyable
 				return;
 			}
 
-			pkg.with_optional_sub_node("runtime", [&] (Xml_node const &runtime) {
+			pkg.with_optional_sub_node("runtime", [&] (Node const &runtime) {
 
 				ram  = runtime.attribute_value("ram", Number_of_bytes());
 				caps = runtime.attribute_value("caps", 0UL);
 
-				runtime.with_optional_sub_node("requires", [&] (Xml_node const &req) {
-					_update_routes_from_xml(req); });
+				runtime.with_optional_sub_node("requires", [&] (Node const &req) {
+					_update_routes_from_node(req); });
 			});
 
 			blueprint_info = {

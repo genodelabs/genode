@@ -40,19 +40,19 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	List_model<Cursor>         _cursors    { };
 	List_model<Text_selection> _selections { };
 
-	Label_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
+	Label_widget(Widget_factory &factory, Widget::Attr const &attr)
 	:
-		Widget(factory, node, unique_id), _color(factory.animator)
+		Widget(factory, attr), _color(factory.animator)
 	{ }
 
-	~Label_widget() { _update_children(Xml_node("<empty/>")); }
+	~Label_widget() { _update_children(Node()); }
 
-	void _update_children(Xml_node const &node)
+	void _update_children(Node const &node)
 	{
-		_cursors.update_from_xml(node,
+		_cursors.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Cursor & {
+			[&] (Node const &node) -> Cursor & {
 				return *new (_factory.alloc)
 					Cursor(node, _factory.animator, *this, _factory.styles); },
 
@@ -60,14 +60,14 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 			[&] (Cursor &cursor) { destroy(_factory.alloc, &cursor); },
 
 			/* update */
-			[&] (Cursor &cursor, Xml_node const &node) {
+			[&] (Cursor &cursor, Node const &node) {
 				cursor.update(node); }
 		);
 
-		_selections.update_from_xml(node,
+		_selections.update_from_node(node,
 
 			/* create */
-			[&] (Xml_node const &node) -> Text_selection & {
+			[&] (Node const &node) -> Text_selection & {
 				return *new (_factory.alloc)
 					Text_selection(node, *this); },
 
@@ -75,12 +75,12 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 			[&] (Text_selection &t) { destroy(_factory.alloc, &t); },
 
 			/* update */
-			[&] (Text_selection &t, Xml_node const &node) {
+			[&] (Text_selection &t, Node const &node) {
 				t.update(node); }
 		);
 	}
 
-	void update(Xml_node const &node) override
+	void update(Node const &node) override
 	{
 		_font       = _factory.styles.font(node);
 		_text       = Text("");

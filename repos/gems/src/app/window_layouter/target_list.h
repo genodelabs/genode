@@ -33,14 +33,14 @@ class Window_layouter::Target_list
 		 * Keep information of the rules internally to reproduce this
 		 * information in 'gen_screens'.
 		 */
-		Constructible<Buffered_xml> _rules { };
+		Constructible<Buffered_node> _rules { };
 
 		/**
 		 * Calculate layout and populate '_targets'
 		 *
 		 * \param row  true of 'node' is a row, false if 'node' is a column
 		 */
-		void _process_rec(Xml_node const &node, Rect avail, bool row,
+		void _process_rec(Node const &node, Rect avail, bool row,
 		                  Target::Visible visible)
 		{
 			unsigned const avail_px = row ? avail.w() : avail.h();
@@ -61,11 +61,11 @@ class Window_layouter::Target_list
 			unsigned num_weighted     = 0;
 
 			/* ignore weight if pixel size is provided */
-			auto weight_attr_value = [&] (Xml_node const &node) {
+			auto weight_attr_value = [&] (Node const &node) {
 				return node.has_attribute(px_size_attr)
 				     ? 0 : node.attribute_value("weight", default_weight); };
 
-			node.for_each_sub_node(sub_node_type, [&] (Xml_node const &child) {
+			node.for_each_sub_node(sub_node_type, [&] (Node const &child) {
 				preserved_pixels += child.attribute_value(px_size_attr, 0U);
 				total_weight     += weight_attr_value(child);
 				num_weighted     += child.has_attribute(px_size_attr) ? 0 : 1;
@@ -84,7 +84,7 @@ class Window_layouter::Target_list
 			 */
 			unsigned count_weighted = 0;
 			unsigned used_weighted  = 0;
-			node.for_each_sub_node(sub_node_type, [&] (Xml_node const &child) {
+			node.for_each_sub_node(sub_node_type, [&] (Node const &child) {
 
 				auto calc_px_size = [&] () {
 
@@ -195,7 +195,7 @@ class Window_layouter::Target_list
 		 * <column> node may contain any number of <row> nodes, which, in turn,
 		 * can contain <column> nodes.
 		 */
-		void update_from_xml(Xml_node const &rules, Display_list &display_list)
+		void update_from_node(Node const &rules, Display_list &display_list)
 		{
 			_targets.for_each([&] (Registered<Target> &target) {
 				destroy(_alloc, &target); });
@@ -203,7 +203,7 @@ class Window_layouter::Target_list
 			_rules.construct(_alloc, rules);
 
 			display_list.reset_occupied_flags();
-			rules.for_each_sub_node("screen", [&] (Xml_node const &screen) {
+			rules.for_each_sub_node("screen", [&] (Node const &screen) {
 
 				using Attr = Display::Attr;
 				Name const display = screen.attribute_value("display", Name());
@@ -256,7 +256,7 @@ class Window_layouter::Target_list
 				return;
 
 			xml.append("\n");
-			_rules->xml.for_each_sub_node("screen", [&] (Xml_node const &screen) {
+			_rules->for_each_sub_node("screen", [&] (Node const &screen) {
 				if (screen_name.valid()) {
 					Target::Name const name =
 						screen.attribute_value("name", Target::Name());
@@ -270,7 +270,7 @@ class Window_layouter::Target_list
 			if (!screen_name.valid())
 				return;
 
-			_rules->xml.for_each_sub_node("screen", [&] (Xml_node const &screen) {
+			_rules->for_each_sub_node("screen", [&] (Node const &screen) {
 				Target::Name const name = screen.attribute_value("name", Target::Name());
 				if (screen_name == name)
 					return;

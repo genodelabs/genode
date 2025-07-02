@@ -65,22 +65,22 @@ struct Fs_tool::Main
 
 	void _copy_file(Path const &from, Path const &to, Byte_range_ptr const &);
 
-	void _remove_file    (Xml_node const &);
-	void _new_file       (Xml_node const &);
-	void _copy_all_files (Xml_node const &);
+	void _remove_file    (Node const &);
+	void _new_file       (Node const &);
+	void _copy_all_files (Node const &);
 
 	void _handle_config()
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		_verbose = config.attribute_value("verbose", false);
 
 		_config.node().with_optional_sub_node("vfs", [&] (Node const &node) {
 			_vfs_env.root_dir().apply_config(node); });
 
-		config.for_each_sub_node([&] (Xml_node operation) {
+		config.for_each_sub_node([&] (Node const &operation) {
 
 			if (operation.has_type("remove-file"))
 				_remove_file(operation);
@@ -106,7 +106,7 @@ struct Fs_tool::Main
 };
 
 
-void Fs_tool::Main::_remove_file(Xml_node const &operation)
+void Fs_tool::Main::_remove_file(Node const &operation)
 {
 	Path const path = operation.attribute_value("path", Path());
 
@@ -131,7 +131,7 @@ void Fs_tool::Main::_remove_file(Xml_node const &operation)
 }
 
 
-void Fs_tool::Main::_new_file(Xml_node const &operation)
+void Fs_tool::Main::_new_file(Node const &operation)
 {
 	Path const path { operation.attribute_value("path", Path()) };
 
@@ -191,7 +191,7 @@ void Fs_tool::Main::_copy_file(Path const &from, Path const &to,
 }
 
 
-void Fs_tool::Main::_copy_all_files(Xml_node const &operation)
+void Fs_tool::Main::_copy_all_files(Node const &operation)
 {
 	Number_of_bytes const default_buffer { 1024*1024 };
 	Byte_buffer buffer(_heap, operation.attribute_value("buffer", default_buffer));

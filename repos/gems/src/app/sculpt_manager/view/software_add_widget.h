@@ -247,7 +247,7 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 
 			_menu.propagate(at, _users.selected(),
 
-				[&] /* enter pkg */ (Xml_node const &item) {
+				[&] /* enter pkg */ (Node const &item) {
 
 					auto path = item.attribute_value("path", Component::Path());
 					auto info = item.attribute_value("info", Component::Info());

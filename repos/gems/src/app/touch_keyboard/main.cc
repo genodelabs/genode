@@ -78,7 +78,7 @@ struct Touch_keyboard::Main : Top_level_dialog
 		_config.update();
 		_layout.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
 		_view.xpos = (int)config.attribute_value("xpos", 0L);
 		_view.ypos = (int)config.attribute_value("ypos", 0L);
@@ -89,7 +89,7 @@ struct Touch_keyboard::Main : Top_level_dialog
 		_view.opaque     = config.attribute_value("opaque", false);
 		_view.background = config.attribute_value("background", Color(127, 127, 127, 255));
 
-		_keyboard.configure(_layout.xml());
+		_keyboard.configure(_layout.node());
 
 		_runtime.update_view_config();
 	}

@@ -183,11 +183,11 @@ Sandboxed_runtime::Sandboxed_runtime(Env &env, Allocator &alloc, Sandbox &sandbo
 { }
 
 
-bool Sandboxed_runtime::apply_sandbox_state(Xml_node const &state)
+bool Sandboxed_runtime::apply_sandbox_state(Node const &state)
 {
 	bool reconfiguration_needed = false;
 
-	state.for_each_sub_node("child", [&] (Xml_node const &child) {
+	state.for_each_sub_node("child", [&] (Node const &child) {
 		if (_menu_view_state.apply_child_state_report(child))
 			reconfiguration_needed = true; });
 
@@ -416,11 +416,11 @@ void Sandboxed_runtime::_handle_hover()
 	using Name = Top_level_dialog::Name;
 	Name const orig_hovered_dialog = _hovered_dialog;
 
-	_hover_report_session->with_xml([&] (Xml_node const &hover) {
+	_hover_report_session->with_node([&] (Node const &hover) {
 		_hover_seq_number = { hover.attribute_value("seq_number", 0U) };
 
 		hover.with_sub_node("dialog",
-			[&] (Xml_node const &dialog) {
+			[&] (Node const &dialog) {
 				_hovered_dialog = dialog.attribute_value("name", Name()); },
 			[&] { _hovered_dialog = { }; });
 	});
@@ -442,7 +442,7 @@ void Sandboxed_runtime::View::_handle_hover()
 	_dialog_hovered = true;
 
 	if (_click_delivered && _click_seq_number.constructed()) {
-		_with_dialog_hover([&] (Xml_node const &hover) {
+		_with_dialog_hover([&] (Node const &hover) {
 			Dragged_at at(*_click_seq_number, hover);
 			_dialog.drag(at);
 		});
@@ -466,7 +466,7 @@ void Sandboxed_runtime::View::_try_handle_click_and_clack()
 	                                 &clack = _clack_seq_number;
 
 	if (!_click_delivered && click.constructed() && *click == _runtime._hover_seq_number) {
-		_with_dialog_hover([&] (Xml_node const &hover) {
+		_with_dialog_hover([&] (Node const &hover) {
 			Clicked_at at(*click, hover);
 			_dialog.click(at);
 			_click_delivered = true;
@@ -474,7 +474,7 @@ void Sandboxed_runtime::View::_try_handle_click_and_clack()
 	}
 
 	if (click.constructed() && clack.constructed() && *clack == _runtime._hover_seq_number) {
-		_with_dialog_hover([&] (Xml_node const &hover) {
+		_with_dialog_hover([&] (Node const &hover) {
 			/* use click seq number for to associate clack with click */
 			Clacked_at at(*click, hover);
 			_dialog.clack(at);

@@ -1,5 +1,5 @@
 /*
- * \brief  Interface for creating widgets out of their XML description
+ * \brief  Interface for creating widgets out of their node description
  * \author Norman Feske
  * \date   2009-09-11
  */
@@ -44,11 +44,11 @@ class Menu_view::Widget_factory
 			alloc(alloc), styles(styles), animator(animator)
 		{ }
 
-		Widget &create(Xml_node const &);
+		Widget &create(Node const &);
 
 		void destroy(Widget *widget) { Genode::destroy(alloc, widget); }
 
-		static bool node_type_known(Xml_node const &);
+		static bool node_type_known(Node const &);
 };
 
 #endif /* _WIDGET_FACTORY_H_ */

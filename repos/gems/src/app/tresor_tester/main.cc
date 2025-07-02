@@ -176,7 +176,7 @@ struct Tresor_tester::Start_benchmark_node : Noncopyable
 {
 	Benchmark::Label const label;
 
-	Start_benchmark_node(Xml_node const &node) : label(node.attribute_value("label", Benchmark::Label())) { }
+	Start_benchmark_node(Node const &node) : label(node.attribute_value("label", Benchmark::Label())) { }
 };
 
 struct Tresor_tester::Log_node : Noncopyable
@@ -185,14 +185,14 @@ struct Tresor_tester::Log_node : Noncopyable
 
 	String const string;
 
-	Log_node(Xml_node const &node) : string(node.attribute_value("string", String())) { }
+	Log_node(Node const &node) : string(node.attribute_value("string", String())) { }
 };
 
 struct Tresor_tester::Initialize_trust_anchor_node : Noncopyable
 {
 	Passphrase const passphrase;
 
-	Initialize_trust_anchor_node(Xml_node const &node)
+	Initialize_trust_anchor_node(Node const &node)
 	:
 		passphrase(node.attribute_value("passphrase", Passphrase()))
 	{ }
@@ -213,7 +213,7 @@ struct Tresor_tester::Request_node : Noncopyable
 	Snapshot_id const snap_id;
 	bool const uninitialized_data;
 
-	Operation read_op_attr(Xml_node const &node)
+	Operation read_op_attr(Node const &node)
 	{
 		ASSERT(node.has_attribute("op"));
 		auto const value = node.attribute_value("op", String<32>());
@@ -229,7 +229,7 @@ struct Tresor_tester::Request_node : Noncopyable
 		ASSERT_NEVER_REACHED;
 	}
 
-	Request_node(Xml_node const &node)
+	Request_node(Node const &node)
 	:
 		op(read_op_attr(node)),
 		vba(node.attribute_value("vba", (Virtual_block_address)0)),
@@ -319,9 +319,9 @@ struct Tresor_tester::Command : Avl_node<Command>, Schedule<Command>::Item
 		ASSERT_NEVER_REACHED;
 	}
 
-	static Type type_from_node(Xml_node const &node)
+	static Type type_from_node(Node const &node)
 	{
-		Xml_node::Type const nt = node.type();
+		Node::Type const nt = node.type();
 		if (nt == "initialize") { return INITIALIZE; }
 		if (nt == "request") { return REQUEST; }
 		if (nt == "initialize-trust-anchor") { return INIT_TRUST_ANCHOR; }
@@ -337,7 +337,7 @@ struct Tresor_tester::Command : Avl_node<Command>, Schedule<Command>::Item
 
 	bool higher(Command *other_ptr) { return other_ptr->id > id; }
 
-	Command(Xml_node const &node, Id id) : type(type_from_node(node)), id(id)
+	Command(Node const &node, Id id) : type(type_from_node(node)), id(id)
 	{
 		switch (type) {
 		case INITIALIZE: sb_config.construct(node); break;
@@ -424,9 +424,9 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 
 		Tresor::Path _path_from_config(auto const &node_name) const
 		{
-			return _config_rom.xml().with_sub_node(node_name,
-				[&] (Xml_node const &node) { return node.attribute_value("path", Tresor::Path()); },
-				[&]                        { return Tresor::Path(); });
+			return _config_rom.node().with_sub_node(node_name,
+				[&] (Node const &node) { return node.attribute_value("path", Tresor::Path()); },
+				[&]                    { return Tresor::Path(); });
 		}
 
 		Tresor::Path const _crypto_path       = _path_from_config("crypto");
@@ -1028,9 +1028,9 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 		Main(Genode::Env &env) : _env(env)
 		{
 			Command::Id command_id { 0 };
-			_config_rom.xml().with_optional_sub_node("commands",
-				[&] (Xml_node const &commands) {
-					commands.for_each_sub_node([&] (Xml_node const &node) {
+			_config_rom.node().with_optional_sub_node("commands",
+				[&] (Node const &commands) {
+					commands.for_each_sub_node([&] (Node const &node) {
 						Command *cmd_ptr = new (_heap) Command(node, command_id++);
 						_command_tree.insert(cmd_ptr);
 						_command_schedule.add_tail(*cmd_ptr);

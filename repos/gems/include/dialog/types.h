@@ -15,7 +15,7 @@
 #define _INCLUDE__DIALOG__TYPES_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <util/xml_generator.h>
 #include <base/log.h>
 #include <input/event.h>
@@ -78,7 +78,7 @@ struct Dialog::Id
 
 	void print(Output &out) const { Genode::print(out, value); }
 
-	static Id from_xml(Xml_node const &node)
+	static Id from_node(Node const &node)
 	{
 		return Id { node.attribute_value("name", Value()) };
 	}
@@ -124,11 +124,11 @@ struct Dialog::At : Noncopyable
 {
 	Event::Seq_number const seq_number;
 
-	Xml_node const &_location; /* widget hierarchy as found in hover reports */
+	Node const &_location; /* widget hierarchy as found in hover reports */
 
 	bool const _valid = _location.has_attribute("name");
 
-	At(Event::Seq_number const seq_number, Xml_node const &location)
+	At(Event::Seq_number const seq_number, Node const &location)
 	: seq_number(seq_number), _location(location) { }
 
 	/*
@@ -162,7 +162,7 @@ struct Dialog::At : Noncopyable
 		struct Ignored { };
 		Id result { };
 		Narrowed<ARGS..., Ignored>::with_at(*this, [&] (At const &at) {
-			result = Id::from_xml(at._location); });
+			result = Id::from_node(at._location); });
 		return result;
 	}
 
@@ -177,7 +177,7 @@ struct Dialog::At : Noncopyable
 		return s.value == seq_number.value;
 	}
 
-	Id id() const { return Id::from_xml(_location); }
+	Id id() const { return Id::from_node(_location); }
 
 	void print(Output &out) const { Genode::print(out, _location); }
 };
@@ -237,7 +237,7 @@ struct Dialog::Scope : Noncopyable
 
 		/* narrow hover information according to sub-scope type */
 		T::with_narrowed_at(hover, [&] (At const &narrowed_hover) {
-			if (id == Id::from_xml(narrowed_hover._location)) {
+			if (id == Id::from_node(narrowed_hover._location)) {
 				Sub_scope sub_scope { xml, narrowed_hover, _dragged, id };
 				T::view_sub_scope(sub_scope, args...);
 				generated = true;
@@ -246,8 +246,8 @@ struct Dialog::Scope : Noncopyable
 		if (generated)
 			return;
 
-		static Xml_node unhovered_xml { "<hover/>" };
-		At const unhovered_at { hover.seq_number, unhovered_xml };
+		static Node unhovered_node { };
+		At const unhovered_at { hover.seq_number, unhovered_node };
 		Sub_scope sub_scope { xml, unhovered_at, _dragged, id };
 		T::view_sub_scope(sub_scope, args...);
 	}

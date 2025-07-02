@@ -29,15 +29,14 @@ struct Sculpt::Managed_config
 {
 	Env &_env;
 
-	using Xml_node_name = String<20>;
-	using Rom_name      = String<32>;
-	using Label         = Session_label;
+	using Rom_name = String<32>;
+	using Label    = Session_label;
 
 	enum Mode { MANAGED, MANUAL } _mode { MANAGED };
 
 	HANDLER &_obj;
 
-	void (HANDLER::*_handle) (Xml_node const &);
+	void (HANDLER::*_handle) (Node const &);
 
 	/*
 	 * Configuration supplied by the user
@@ -59,19 +58,19 @@ struct Sculpt::Managed_config
 	{
 		_manual_config_rom.update();
 
-		_mode = _manual_config_rom.xml().has_type("empty") ? MANAGED : MANUAL;
+		_mode = _manual_config_rom.node().has_type("empty") ? MANAGED : MANUAL;
 	}
 
 	void _handle_manual_config()
 	{
 		_update_manual_config_rom();
 
-		(_obj.*_handle)(_manual_config_rom.xml());
+		(_obj.*_handle)(_manual_config_rom.node());
 	}
 
 	void with_manual_config(auto const &fn) const
 	{
-		fn(_manual_config_rom.xml());
+		fn(_manual_config_rom.node());
 	}
 
 	/**
@@ -87,7 +86,7 @@ struct Sculpt::Managed_config
 		 * content to the effective config at 'config/managed/'.
 		 */
 		_config.generate([&] (Xml_generator &xml) {
-			Xml_node const &node = _manual_config_rom.xml();
+			Node const &node = _manual_config_rom.node();
 			xml.node_attributes(node);
 			if (!xml.append_node_content(node, { 20 }))
 				warning("manual config is too deeply nested: ", node);
@@ -100,9 +99,9 @@ struct Sculpt::Managed_config
 		_config.generate([&] (Xml_generator &xml) { fn(xml); });
 	}
 
-	Managed_config(Env &env, Xml_node_name const &xml_node_name,
+	Managed_config(Env &env, Node::Type const &xml_node_name,
 	               Rom_name const &rom_name,
-	               HANDLER &obj, void (HANDLER::*handle) (Xml_node const &))
+	               HANDLER &obj, void (HANDLER::*handle) (Node const &))
 	:
 		_env(env), _obj(obj), _handle(handle),
 		_manual_config_rom(_env, Label("config -> ", rom_name).string()),

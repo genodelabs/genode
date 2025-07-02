@@ -48,10 +48,10 @@ static bool clack(Input::Event const &event)
 }
 
 
-bool Distant_runtime::apply_runtime_state(Xml_node const &state)
+bool Distant_runtime::apply_runtime_state(Node const &state)
 {
 	bool reconfiguration_needed = false;
-	state.for_each_sub_node("child", [&] (Xml_node const &child) {
+	state.for_each_sub_node("child", [&] (Node const &child) {
 		if (_apply_child_state_report(child))
 			reconfiguration_needed = true;
 	});
@@ -83,7 +83,7 @@ void Distant_runtime::route_input_event(Event::Seq_number seq_number, Input::Eve
 }
 
 
-void Distant_runtime::_handle_hover(Xml_node const &hover)
+void Distant_runtime::_handle_hover(Node const &hover)
 {
 	using Name = Top_level_dialog::Name;
 	Name const orig_hovered_dialog = _hovered_dialog;
@@ -91,7 +91,7 @@ void Distant_runtime::_handle_hover(Xml_node const &hover)
 	_hover_seq_number = { hover.attribute_value("seq_number", 0U) };
 
 	hover.with_sub_node("dialog",
-		[&] (Xml_node const &dialog) {
+		[&] (Node const &dialog) {
 			_hovered_dialog = dialog.attribute_value("name", Name()); },
 		[&] { _hovered_dialog = { }; });
 
@@ -122,7 +122,7 @@ void Distant_runtime::_try_handle_click_and_clack()
 
 	if (!_click_delivered && click.constructed()) {
 		with_hovered_view(*click, [&] (View &view) {
-			view._with_dialog_hover([&] (Xml_node const &hover) {
+			view._with_dialog_hover([&] (Node const &hover) {
 				Clicked_at at(*click, hover);
 				view._dialog.click(at);
 				_click_delivered = true;
@@ -133,7 +133,7 @@ void Distant_runtime::_try_handle_click_and_clack()
 
 	if (click.constructed() && clack.constructed()) {
 		with_hovered_view(*clack, [&] (View &view) {
-			view._with_dialog_hover([&] (Xml_node const &hover) {
+			view._with_dialog_hover([&] (Node const &hover) {
 
 				/*
 				 * Deliver stale click if the hover report for the clack

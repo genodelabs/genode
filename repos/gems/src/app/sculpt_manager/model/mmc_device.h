@@ -30,27 +30,27 @@ struct Sculpt::Mmc_device : List_model<Mmc_device>::Element, Storage_device
 
 	Model const model;
 
-	static Port _port(Xml_node const &node)
+	static Port _port(Node const &node)
 	{
 		return node.attribute_value("label", Port());
 	}
 
-	static Capacity _capacity(Xml_node const &node)
+	static Capacity _capacity(Node const &node)
 	{
 		return { node.attribute_value("block_size",  0ULL)
 		       * node.attribute_value("block_count", 0ULL) };
 	}
 
-	Mmc_device(Env &env, Allocator &alloc, Xml_node const &node,
+	Mmc_device(Env &env, Allocator &alloc, Node const &node,
 	           Storage_device::Action &action)
 	:
 		Storage_device(env, alloc, "mmc", _port(node), _capacity(node), action),
 		model(node.attribute_value("model", Model()))
 	{ }
 
-	bool matches(Xml_node const &node) const { return _port(node) == port; }
+	bool matches(Node const &node) const { return _port(node) == port; }
 
-	static bool type_matches(Xml_node const &) { return true; }
+	static bool type_matches(Node const &) { return true; }
 };
 
 #endif /* _MODEL__MMC_DEVICE_H_ */

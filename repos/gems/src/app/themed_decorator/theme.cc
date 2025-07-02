@@ -14,8 +14,7 @@
 /* Genode includes */
 #include <os/texture_rgb888.h>
 #include <nitpicker_gfx/tff_font.h>
-#include <util/xml_node.h>
-#include <decorator/xml_utils.h>
+#include <base/node.h>
 
 /* gems includes */
 #include <gems/file.h>
@@ -97,11 +96,11 @@ static Text_painter::Font const &title_font(Genode::Allocator &alloc)
 }
 
 
-static Genode::Xml_node metadata(Genode::Allocator &alloc)
+static Genode::Node metadata(Genode::Allocator &alloc)
 {
 	static File file("theme/metadata", alloc);
 
-	return Genode::Xml_node(file.data<char>(), file.size());
+	return Genode::Node(Genode::Const_byte_range_ptr(file.data<char>(), file.size()));
 }
 
 
@@ -123,7 +122,7 @@ struct Margins_from_metadata : Decorator::Theme::Margins
 	:
 		Decorator::Theme::Margins()
 	{
-		metadata(alloc).with_optional_sub_node(sub_node, [&] (Genode::Xml_node const &aura) {
+		metadata(alloc).with_optional_sub_node(sub_node, [&] (Genode::Node const &aura) {
 			top    = aura.attribute_value("top",    0U);
 			bottom = aura.attribute_value("bottom", 0U);
 			left   = aura.attribute_value("left",   0U);
@@ -149,10 +148,10 @@ Decorator::Theme::Margins Decorator::Theme::decor_margins() const
 
 Decorator::Rect Decorator::Theme::title_geometry() const
 {
-	static Genode::Xml_node node = metadata(_alloc);
+	static Genode::Node node = metadata(_alloc);
 	static Rect const rect = node.with_sub_node("title",
-		[&] (Genode::Xml_node const &node) { return Rect::from_xml(node); },
-		[&]                                { return Rect { }; });
+		[&] (Genode::Node const &node) { return Rect::from_node(node); },
+		[&]                            { return Rect { }; });
 	return rect;
 }
 
@@ -165,11 +164,11 @@ element_geometry(Genode::Ram_allocator &ram, Genode::Env::Local_rm &rm,
 	using Rect  = Decorator::Rect;
 	using Point = Decorator::Point;
 
-	static Genode::Xml_node const node = metadata(alloc);
+	static Genode::Node const node = metadata(alloc);
 
 	return node.with_sub_node(sub_node_type,
-		[&] (Genode::Xml_node const &sub_node) {
-			return Rect(Point::from_xml(sub_node),
+		[&] (Genode::Node const &sub_node) {
+			return Rect(Point::from_node(sub_node),
 			            texture_by_id(ram, rm, alloc, texture_id).size()); },
 		[&] {
 			return Rect { }; });

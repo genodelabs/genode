@@ -134,8 +134,8 @@ struct Backdrop::Main
 	template <typename PT>
 	void _paint_texture(Surface<PT> &, Texture<PT> const &, Surface_base::Point, bool);
 
-	void _apply_image(Xml_node const &);
-	void _apply_fill (Xml_node const &);
+	void _apply_image(Node const &);
+	void _apply_fill (Node const &);
 
 	Main(Genode::Env &env) : _env(env)
 	{
@@ -152,7 +152,7 @@ struct Backdrop::Main
 /**
  * Calculate designated image size with proportional scaling applied
  */
-static Surface_base::Area calc_scaled_size(Xml_node const &operation,
+static Surface_base::Area calc_scaled_size(Node const &operation,
                                            Surface_base::Area image_size,
                                            Surface_base::Area mode_size)
 {
@@ -216,7 +216,7 @@ void Backdrop::Main::_paint_texture(Surface<PT> &surface, Texture<PT> const &tex
 }
 
 
-void Backdrop::Main::_apply_image(Xml_node const &operation)
+void Backdrop::Main::_apply_image(Node const &operation)
 {
 	using Point = Surface_base::Point;
 	using Area  = Surface_base::Area;
@@ -253,7 +253,7 @@ void Backdrop::Main::_apply_image(Xml_node const &operation)
 	                        : anchor.vertical == Anchor::HIGH   ? v_gap
 	                        : 0;
 
-	Point const offset = Point::from_xml(operation);
+	Point const offset = Point::from_node(operation);
 
 	Point const pos = Point(anchored_xpos, anchored_ypos) + offset;
 
@@ -286,7 +286,7 @@ void Backdrop::Main::_apply_image(Xml_node const &operation)
 }
 
 
-void Backdrop::Main::_apply_fill(Xml_node const &operation)
+void Backdrop::Main::_apply_fill(Node const &operation)
 {
 	/*
 	 * Code specific for the screen mode's pixel format
@@ -312,18 +312,18 @@ void Backdrop::Main::_handle_config()
 		[&] (Gui::Rect rect) { return rect; },
 		[&] (Gui::Undefined) { return Gui::Rect { { }, { 640, 480 } }; });
 
-	_gui_win.area = { _config.xml().attribute_value("width",  _gui_win.w()),
-	                  _config.xml().attribute_value("height", _gui_win.h()) };
+	_gui_win.area = { _config.node().attribute_value("width",  _gui_win.w()),
+	                  _config.node().attribute_value("height", _gui_win.h()) };
 
 	Framebuffer::Mode const mode { .area = _gui_win.area, .alpha = false };
 
 	_buffer.construct(_env, _gui, mode);
 
 	/* clear surface */
-	_apply_fill(Xml_node("<fill color=\"#000000\"/>"));
+	_apply_fill(Node(String<100>("<fill color=\"#000000\"/>")));
 
 	/* apply graphics primitives defined in the config */
-	_config.xml().for_each_sub_node([&] (Xml_node const &operation) {
+	_config.node().for_each_sub_node([&] (Node const &operation) {
 		try {
 			if (operation.has_type("image"))
 				_apply_image(operation);

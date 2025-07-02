@@ -126,19 +126,19 @@ class Dialog::Sandboxed_runtime : Noncopyable
 			 * \return true if runtime must be reconfigured so that the changes
 			 *         can take effect
 			 */
-			bool apply_child_state_report(Xml_node const &child)
+			bool apply_child_state_report(Node const &child)
 			{
 				bool result = false;
 
 				if (child.attribute_value("name", Start_name()) != name)
 					return false;
 
-				child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+				child.with_optional_sub_node("ram", [&] (Node const &node) {
 					if (node.has_attribute("requested")) {
 						ram.value *= 2;
 						result = true; } });
 
-				child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+				child.with_optional_sub_node("caps", [&] (Node const &node) {
 					if (node.has_attribute("requested")) {
 						caps.value += 100;
 						result = true; } });
@@ -164,7 +164,7 @@ class Dialog::Sandboxed_runtime : Noncopyable
 				Attached_ram_dataspace _client_ds;
 				Attached_ram_dataspace _local_ds;
 
-				Constructible<Xml_node> _xml { }; /* points inside _local_ds */
+				Constructible<Node> _node { }; /* points inside _local_ds */
 
 				Handler &_handler;
 
@@ -182,10 +182,10 @@ class Dialog::Sandboxed_runtime : Noncopyable
 					memcpy(_local_ds.local_addr<char>(), _client_ds.local_addr<char>(),
 					       num_bytes);
 
-					_xml.destruct();
+					_node.destruct();
 
-					try { _xml.construct(_local_ds.local_addr<char>(), num_bytes); }
-					catch (...) { }
+					_node.construct(Const_byte_range_ptr(_local_ds.local_addr<char>(),
+					                                     num_bytes));
 
 					_handler.handle_report();
 				}
@@ -208,12 +208,12 @@ class Dialog::Sandboxed_runtime : Noncopyable
 				{ }
 
 				template <typename FN>
-				void with_xml(FN const &fn) const
+				void with_node(FN const &fn) const
 				{
-					if (_xml.constructed())
-						fn(*_xml);
+					if (_node.constructed())
+						fn(*_node);
 					else
-						fn(Xml_node("<empty/>"));
+						fn(Node());
 				}
 		};
 
@@ -255,7 +255,7 @@ class Dialog::Sandboxed_runtime : Noncopyable
 		 *
 		 * \return true  if the sandbox configuration needs to be updated
 		 */
-		bool apply_sandbox_state(Xml_node const &);
+		bool apply_sandbox_state(Node const &);
 
 		void gen_start_nodes(Xml_generator &) const;
 };
@@ -299,13 +299,13 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 			bool done = false;
 
 			if (_runtime._hover_report_session.constructed())
-				_runtime._hover_report_session->with_xml([&] (Xml_node const &hover) {
-					hover.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
+				_runtime._hover_report_session->with_node([&] (Node const &hover) {
+					hover.with_optional_sub_node("dialog", [&] (Node const &dialog) {
 						fn(dialog);
 						done = true; }); });
 
 			if (!done)
-				fn(Xml_node("<empty/>"));
+				fn(Node());
 		}
 
 		struct Rom_producer : Dynamic_rom_session::Xml_producer
@@ -320,14 +320,14 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 
 			void produce_xml(Xml_generator &xml) override
 			{
-				_view._with_dialog_hover([&] (Xml_node const &hover) {
+				_view._with_dialog_hover([&] (Node const &hover) {
 
 					Event::Dragged const dragged { _view._dragged() };
 
 					bool const supply_hover = _view._hover_observable_without_click
 					                       || dragged.value;
 
-					static Xml_node omitted_hover("<hover/>");
+					static Node omitted_hover { };
 
 					At const at { _view._runtime._global_seq_number,
 					              supply_hover ? hover : omitted_hover };
@@ -376,7 +376,7 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 		{
 			bool result = false;
 			if (_dialog_hovered)
-				_with_dialog_hover([&] (Xml_node const &location) {
+				_with_dialog_hover([&] (Node const &location) {
 					result = fn(Hovered_at { Event::Seq_number { }, location }); });
 			return result;
 		}

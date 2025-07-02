@@ -106,7 +106,7 @@ struct Osci::Main
 
 		Captured_channel() { };
 
-		Captured_channel(Xml_node const &channel)
+		Captured_channel(Node const &channel)
 		{
 			auto insert = [&] (float value)
 			{
@@ -143,7 +143,7 @@ struct Osci::Main
 		using Label = String<20>;
 		Label const label;
 
-		static Label _label_from_xml(Xml_node const &node)
+		static Label _label_from_node(Node const &node)
 		{
 			return node.attribute_value("label", Label());
 		}
@@ -153,7 +153,7 @@ struct Osci::Main
 			double   v_pos, v_scale;
 			Color    color;
 
-			static Attr from_xml(Xml_node const &node, Attr const defaults)
+			static Attr from_node(Node const &node, Attr const defaults)
 			{
 				return Attr {
 					.v_pos   = node.attribute_value("v_pos",   defaults.v_pos),
@@ -167,16 +167,16 @@ struct Osci::Main
 
 		Line_painter const _line_painter { };
 
-		Channel(Xml_node const &node) : label(_label_from_xml(node)) { }
+		Channel(Node const &node) : label(_label_from_node(node)) { }
 
 		virtual ~Channel() { };
 
-		void update(Xml_node const &node, Attr const defaults)
+		void update(Node const &node, Attr const defaults)
 		{
-			_attr = Attr::from_xml(node, defaults);
+			_attr = Attr::from_node(node, defaults);
 		}
 
-		void capture(Xml_node const &node) { _capture = Captured_channel(node); }
+		void capture(Node const &node) { _capture = Captured_channel(node); }
 
 		Phase_lock phase_lock(unsigned start, float const threshold, unsigned const max) const
 		{
@@ -234,14 +234,14 @@ struct Osci::Main
 		/*
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("channel");
 		}
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
-			return _label_from_xml(node) == label;
+			return _label_from_node(node) == label;
 		}
 	};
 
@@ -253,9 +253,9 @@ struct Osci::Main
 	{
 		_config.update();
 
-		Xml_node const config = _config.xml();
+		Node const config = _config.node();
 
-		_size       = Area::from_xml(config);
+		_size       = Area::from_node(config);
 		_background = config.attribute_value("background", Color::black());
 		_fps        = config.attribute_value("fps",        50u);
 		_phase_lock = config.attribute_value("phase_lock", false);
@@ -263,7 +263,7 @@ struct Osci::Main
 		_fps = max(_fps, 1u);
 
 		/* channel defaults obtained from top-level config node */
-		Channel::Attr const channel_defaults = Channel::Attr::from_xml(config, {
+		Channel::Attr const channel_defaults = Channel::Attr::from_node(config, {
 			.v_pos   = 0.5,
 			.v_scale = 0.6,
 			.color   = Color::rgb(255, 255, 255),
@@ -272,14 +272,14 @@ struct Osci::Main
 		_gui_buffer.construct(_gui, _size, _env.ram(), _env.rm(),
 		                      Gui_buffer::Alpha::OPAQUE, _background);
 
-		_view.construct(_gui, Rect { Point::from_xml(config), _size });
+		_view.construct(_gui, Rect { Point::from_node(config), _size });
 
-		_channels.update_from_xml(config,
-			[&] (Xml_node const &node) -> Registered<Channel> & {
+		_channels.update_from_node(config,
+			[&] (Node const &node) -> Registered<Channel> & {
 				return *new (_heap) Registered<Channel>(_channel_registry, node); },
 			[&] (Registered<Channel> &channel) {
 				destroy(_heap, &channel); },
-			[&] (Channel &channel, Xml_node const &node) {
+			[&] (Channel &channel, Node const &node) {
 				channel.update(node, channel_defaults); }
 		);
 
@@ -290,7 +290,7 @@ struct Osci::Main
 	{
 		/* import recorded samples */
 		_recording.update();
-		_recording.xml().for_each_sub_node("channel", [&] (Xml_node const &node) {
+		_recording.node().for_each_sub_node("channel", [&] (Node const &node) {
 			Channel::Label const label = node.attribute_value("label", Channel::Label());
 			_channel_registry.for_each([&] (Registered<Channel> &channel) {
 				if (channel.label == label)

@@ -28,7 +28,7 @@ struct Window_layouter::Command
 	Type         type;
 	Target::Name target;
 
-	static Command from_xml(Xml_node const &node)
+	static Command from_node(Node const &node)
 	{
 		auto from_string = [] (auto const &string) -> Type
 		{

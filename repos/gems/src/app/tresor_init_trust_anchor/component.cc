@@ -54,7 +54,7 @@ class Main : Vfs::Env::User
 
 		using String_path = Genode::String<256>;
 
-		static String_path _config_ta_dir(Xml_node const &node)
+		static String_path _config_ta_dir(Node const &node)
 		{
 			String_path const path =
 				node.attribute_value("trust_anchor_dir", String_path());
@@ -213,7 +213,7 @@ class Main : Vfs::Env::User
 
 		Main(Env &env) : _env(env)
 		{
-			Xml_node const &config { _config_rom.xml() };
+			Node const &config { _config_rom.node() };
 
 			Tresor::Passphrase const passphrase =
 				config.attribute_value("passphrase", Tresor::Passphrase());
@@ -223,7 +223,7 @@ class Main : Vfs::Env::User
 				throw Missing_config_attribute();
 			}
 
-			String_path ta_dir = _config_ta_dir(_config_rom.xml());
+			String_path ta_dir = _config_ta_dir(_config_rom.node());
 
 			_init_file.construct(ta_dir.string(), "initialize",
 			                     _vfs, _vfs_env.alloc());

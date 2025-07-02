@@ -28,7 +28,7 @@ struct Sculpt::Storage_target
 	Storage_device::Port   port;
 	Partition::Number      partition;
 
-	static Storage_target from_xml(Xml_node const &target)
+	static Storage_target from_node(Node const &target)
 	{
 		return {
 			.driver    = target.attribute_value("driver",    Storage_device::Driver()),

@@ -50,9 +50,9 @@ class Tresor_check::Main : private Vfs::Env::User
 
 		Tresor::Path _path_from_config(auto const &node_name) const
 		{
-			return _config_rom.xml().with_sub_node(node_name,
-				[&] (Xml_node const &node) { return node.attribute_value("path", Tresor::Path()); },
-				[&]                        { return Tresor::Path(); });
+			return _config_rom.node().with_sub_node(node_name,
+				[&] (Node const &node) { return node.attribute_value("path", Tresor::Path()); },
+				[&]                    { return Tresor::Path(); });
 		}
 
 		Tresor::Path const _block_io_path     = _path_from_config("block-io");

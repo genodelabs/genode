@@ -11,14 +11,11 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <os/buffered_xml.h>
-
 /* local includes */
 #include <main.h>
 
 
-void Depot_query::Main::_query_image_index(Xml_node const &index_query,
+void Depot_query::Main::_query_image_index(Node const &index_query,
                                            Require_verify require_verify,
                                            Xml_generator &xml)
 {
@@ -47,7 +44,7 @@ void Depot_query::Main::_query_image_index(Xml_node const &index_query,
 
 	struct Image_info : Image_dict::Element
 	{
-		Constructible<Buffered_xml> from_index { };
+		Constructible<Buffered_node> from_index { };
 
 		enum Presence { PRESENT, ABSENT } const presence;
 
@@ -65,7 +62,7 @@ void Depot_query::Main::_query_image_index(Xml_node const &index_query,
 				if (!from_index.constructed())
 					return;
 
-				from_index->xml.for_each_sub_node("info", [&] (Xml_node const &info) {
+				from_index->for_each_sub_node("info", [&] (Node const &info) {
 					using Text = String<160>;
 					Text const text = info.attribute_value("text", Text());
 					if (text.valid())
@@ -116,9 +113,9 @@ void Depot_query::Main::_query_image_index(Xml_node const &index_query,
 			File_content const
 				file(_heap, _root, index_path, File_content::Limit{16*1024});
 
-			file.xml([&] (Xml_node node) {
+			file.node([&] (Node const &node) {
 
-				node.for_each_sub_node("image", [&] (Xml_node const &image) {
+				node.for_each_sub_node("image", [&] (Node const &image) {
 
 					bool const os_and_board_match =
 						(image.attribute_value("os",    Os())    == os) &&

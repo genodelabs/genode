@@ -33,7 +33,7 @@ struct Sculpt::Wifi_connection
 	/**
 	 * Create 'Wifi_connection' object from 'state' report
 	 */
-	static Wifi_connection from_xml(Xml_node const &node)
+	static Wifi_connection from_node(Node const &node)
 	{
 		Wifi_connection result { };
 
@@ -41,7 +41,7 @@ struct Sculpt::Wifi_connection
 		bool connecting  = false;
 		bool auth_failed = false;
 
-		node.with_optional_sub_node("accesspoint", [&] (Xml_node const &ap) {
+		node.with_optional_sub_node("accesspoint", [&] (Node const &ap) {
 			connected   = (ap.attribute_value("state", String<32>()) == "connected");
 			connecting  = (ap.attribute_value("state", String<32>()) == "connecting");
 			auth_failed =  ap.attribute_value("auth_failed", false);

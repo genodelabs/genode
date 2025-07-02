@@ -92,10 +92,10 @@ struct Window_layouter::Main : User_state::Action,
 	{
 		_window_list.dissolve_windows_from_assignments();
 
-		_layout_rules.with_rules([&] (Xml_node const &rules) {
-			_display_list.update_from_xml(_panorama, rules);
-			_assign_list.update_from_xml(rules);
-			_target_list.update_from_xml(rules, _display_list);
+		_layout_rules.with_rules([&] (Node const &rules) {
+			_display_list.update_from_node(_panorama, rules);
+			_assign_list.update_from_node(rules);
+			_target_list.update_from_node(rules, _display_list);
 		});
 
 		_assign_list.assign_windows(_window_list);
@@ -160,9 +160,9 @@ struct Window_layouter::Main : User_state::Action,
 	{
 		_config.update();
 
-		Xml_node const &config = _config.xml();
+		Node const &config = _config.node();
 
-		config.with_optional_sub_node("report", [&] (Xml_node const &report) {
+		config.with_optional_sub_node("report", [&] (Node const &report) {
 			_rules_reporter.conditional(report.attribute_value("rules", false),
 			                            _env, "rules", "rules"); });
 
@@ -487,9 +487,9 @@ struct Window_layouter::Main : User_state::Action,
 	{
 		_decorator_margins_rom.update();
 
-		Xml_node const &margins = _decorator_margins_rom.xml();
-		margins.with_optional_sub_node("floating", [&] (Xml_node const &floating) {
-			_decorator_margins = Decorator_margins::from_xml(floating); });
+		Node const &margins = _decorator_margins_rom.node();
+		margins.with_optional_sub_node("floating", [&] (Node const &floating) {
+			_decorator_margins = Decorator_margins::from_node(floating); });
 
 		/* respond to change by adapting the maximized window geometry */
 		_handle_mode_change();
@@ -502,7 +502,7 @@ struct Window_layouter::Main : User_state::Action,
 	{
 		while (_gui.input.pending())
 			_user_state.handle_input(_input_ds.local_addr<Input::Event>(),
-			                         _gui.input.flush(), _config.xml());
+			                         _gui.input.flush(), _config.node());
 	}
 
 	Signal_handler<Main> _input_handler {
@@ -514,8 +514,8 @@ struct Window_layouter::Main : User_state::Action,
 
 	void _handle_mode_change()
 	{
-		_gui.with_info([&] (Xml_node const &node) {
-			_panorama.update_from_xml(node); });
+		_gui.with_info_node([&] (Node const &node) {
+			_panorama.update_from_node(node); });
 
 		_update_window_layout();
 	}
@@ -541,7 +541,7 @@ struct Window_layouter::Main : User_state::Action,
 		return result;
 	}
 
-	void _import_window_list(Xml_node const &);
+	void _import_window_list(Node const &);
 	void _gen_window_layout();
 	void _gen_resize_request();
 	void _gen_focus();
@@ -693,11 +693,11 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 
 	_rules_reporter->generate([&] (Xml_generator &xml) {
 
-		_layout_rules.with_rules([&] (Xml_node const &rules) {
+		_layout_rules.with_rules([&] (Node const &rules) {
 			bool display_declared = false;
-			rules.for_each_sub_node("display", [&] (Xml_node const &display) {
+			rules.for_each_sub_node("display", [&] (Node const &display) {
 				display_declared = true;
-				copy_node(xml, display); });
+				(void)xml.append_node(display, { 5 }); });
 			if (display_declared)
 				xml.append("\n");
 		});
@@ -751,10 +751,10 @@ void Window_layouter::Main::_handle_hover()
 
 	User_state::Hover_state const orig_hover_state = _user_state.hover_state();
 
-	_hover.xml().with_sub_node("window",
-		[&] (Xml_node const &hover) {
+	_hover.node().with_sub_node("window",
+		[&] (Node const &hover) {
 			_user_state.hover({ hover.attribute_value("id", 0U) },
-			                  Window::Element::from_xml(hover));
+			                  Window::Element::from_node(hover));
 		},
 		[&] /* the hover model lacks a window */ {
 			_user_state.reset_hover();
@@ -776,7 +776,7 @@ void Window_layouter::Main::_handle_focus_request()
 {
 	_focus_request.update();
 
-	int const id = _focus_request.xml().attribute_value("id", 0);
+	int const id = _focus_request.node().attribute_value("id", 0);
 
 	/* don't apply the same focus request twice */
 	if (id == _handled_focus_request_id)
@@ -785,7 +785,7 @@ void Window_layouter::Main::_handle_focus_request()
 	_handled_focus_request_id = id;
 
 	Window::Label const prefix =
-		_focus_request.xml().attribute_value("label", Window::Label(""));
+		_focus_request.node().attribute_value("label", Window::Label(""));
 
 	unsigned const next_to_front_cnt = _to_front_cnt + 1;
 

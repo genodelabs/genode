@@ -65,7 +65,7 @@ class Dialog::Distant_runtime : Noncopyable
 		Sculpt::Rom_handler<Distant_runtime> _hover_rom {
 			_env, "menu_hover", *this, &Distant_runtime::_handle_hover };
 
-		void _handle_hover(Xml_node const &);
+		void _handle_hover(Node const &);
 
 		Event::Seq_number _hover_seq_number { };
 
@@ -97,19 +97,19 @@ class Dialog::Distant_runtime : Noncopyable
 		 * \return true if runtime must be reconfigured so that the changes
 		 *         can take effect
 		 */
-		bool _apply_child_state_report(Xml_node const &child)
+		bool _apply_child_state_report(Node const &child)
 		{
 			bool result = false;
 
 			if (child.attribute_value("name", Start_name()) != _start_name)
 				return false;
 
-			child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+			child.with_optional_sub_node("ram", [&] (Node const &node) {
 				if (node.has_attribute("requested")) {
 					_ram.value = min(2*_ram.value, 128*1024*1024u);
 					result = true; } });
 
-			child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+			child.with_optional_sub_node("caps", [&] (Node const &node) {
 				if (node.has_attribute("requested")) {
 					_caps.value = min(_caps.value + 100, 2000u);
 					result = true; } });
@@ -138,7 +138,7 @@ class Dialog::Distant_runtime : Noncopyable
 		 *
 		 * \return true  if the runtime-init configuration needs to be updated
 		 */
-		bool apply_runtime_state(Xml_node const &);
+		bool apply_runtime_state(Node const &);
 
 		void gen_start_nodes(Xml_generator &) const;
 };
@@ -169,14 +169,14 @@ class Dialog::Distant_runtime::View : private Views::Element
 		void _generate_dialog()
 		{
 			_dialog_reporter.generate([&] (Xml_generator &xml) {
-				_with_dialog_hover([&] (Xml_node const &hover) {
+				_with_dialog_hover([&] (Node const &hover) {
 
 					Event::Dragged const dragged { _runtime._dragged() };
 
 					bool const supply_hover = _runtime._hover_observable_without_click
 					                       || dragged.value;
 
-					static Xml_node omitted_hover("<hover/>");
+					static Node omitted_hover { };
 
 					At const at { _runtime._global_seq_number,
 					              supply_hover ? hover : omitted_hover };
@@ -191,8 +191,8 @@ class Dialog::Distant_runtime::View : private Views::Element
 		{
 			bool done = false;
 
-			_runtime._hover_rom.with_xml([&] (Xml_node const &hover) {
-				hover.with_optional_sub_node("dialog", [&] (Xml_node const &dialog) {
+			_runtime._hover_rom.with_node([&] (Node const &hover) {
+				hover.with_optional_sub_node("dialog", [&] (Node const &dialog) {
 					if (dialog.attribute_value("name", Top_level_dialog::Name()) == name) {
 						fn(dialog);
 						done = true;
@@ -201,7 +201,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 			});
 
 			if (!done)
-				fn(Xml_node("<empty/>"));
+				fn(Node());
 		}
 
 		void _handle_hover()
@@ -209,7 +209,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 			_dialog_hovered = true;
 
 			if (_runtime._dragged()) {
-				_with_dialog_hover([&] (Xml_node const &hover) {
+				_with_dialog_hover([&] (Node const &hover) {
 					Dragged_at at(*_runtime._click_seq_number, hover);
 					_dialog.drag(at);
 				});
@@ -261,7 +261,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 		{
 			bool result = false;
 			if (_dialog_hovered)
-				_with_dialog_hover([&] (Xml_node const &location) {
+				_with_dialog_hover([&] (Node const &location) {
 					result = fn(Hovered_at { Event::Seq_number { }, location }); });
 			return result;
 		}

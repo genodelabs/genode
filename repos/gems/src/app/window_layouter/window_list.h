@@ -50,13 +50,13 @@ class Window_layouter::Window_list
 			_rom.update();
 
 			/* import window-list changes */
-			_list.update_from_xml(_rom.xml(),
+			_list.update_from_node(_rom.node(),
 
-				[&] (Xml_node const &node) -> Window &
+				[&] (Node const &node) -> Window &
 				{
 					Window_id const id { node.attribute_value("id", 0U) };
 
-					Area const initial_size = Area::from_xml(node);
+					Area const initial_size = Area::from_node(node);
 
 					Window::Label const label =
 						node.attribute_value("label", Window::Label());
@@ -68,9 +68,9 @@ class Window_layouter::Window_list
 
 				[&] (Window &window) { destroy(_alloc, &window); },
 
-				[&] (Window &w, Xml_node const &node)
+				[&] (Window &w, Node const &node)
 				{
-					w.client_size(Area::from_xml(node));
+					w.client_size(Area::from_node(node));
 					w.title      (node.attribute_value("title", Window::Title("")));
 					w.has_alpha  (node.attribute_value("has_alpha",  false));
 					w.hidden     (node.attribute_value("hidden",     false));

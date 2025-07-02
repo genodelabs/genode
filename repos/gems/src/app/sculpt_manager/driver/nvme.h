@@ -32,7 +32,7 @@ struct Sculpt::Nvme_driver : private Noncopyable
 	Rom_handler<Nvme_driver> _namespaces {
 		_env, "report -> runtime/nvme/controller", *this, &Nvme_driver::_handle_namespaces };
 
-	void _handle_namespaces(Xml_node const &) { _action.handle_nvme_discovered(); }
+	void _handle_namespaces(Node const &) { _action.handle_nvme_discovered(); }
 
 	Nvme_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
@@ -71,9 +71,8 @@ struct Sculpt::Nvme_driver : private Noncopyable
 
 	void with_namespaces(auto const &fn) const
 	{
-		static Xml_node const none { "<none/>" };
-		_namespaces.with_xml([&] (Xml_node const &namespaces) {
-			fn(_nvme.constructed() ? namespaces : none); });
+		_namespaces.with_node([&] (Node const &namespaces) {
+			fn({ .present = _nvme.constructed(), .report = namespaces }); });
 	}
 };
 

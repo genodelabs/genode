@@ -36,7 +36,7 @@ struct Sculpt::Build_info
 		return Version("Genode ", genode_source);
 	}
 
-	static Build_info from_xml(Xml_node const &info)
+	static Build_info from_node(Node const &info)
 	{
 		return Build_info {
 			.genode_source = info.attribute_value("genode_version", Value()),

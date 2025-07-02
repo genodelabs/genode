@@ -65,8 +65,8 @@ class Trace_recorder::Timestamp_calibrator
 			/* try getting tsc frequency from platform info, measure if failed */
 			uint64_t result = 0;
 			Attached_rom_dataspace const platform_info (env, "platform_info");
-			platform_info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &hardware) {
-				hardware.with_optional_sub_node("tsc", [&] (Xml_node const &tsc) {
+			platform_info.node().with_optional_sub_node("hardware", [&] (Node const &hardware) {
+				hardware.with_optional_sub_node("tsc", [&] (Node const &tsc) {
 					uint64_t const tsc_freq  = tsc.attribute_value("freq_khz", 0ULL);
 					bool     const invariant = tsc.attribute_value("invariant", true);
 

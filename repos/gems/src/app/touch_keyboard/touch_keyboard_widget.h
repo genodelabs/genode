@@ -35,7 +35,7 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 
 		Default_key_min_ex _default_key_min_ex { 0 };
 
-		static Id _id_attr(Xml_node const &node)
+		static Id _id_attr(Node const &node)
 		{
 			return { node.attribute_value("id", Id::Value { }) };
 		}
@@ -58,13 +58,13 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 
 			Key(Id id) : _id(id) { }
 
-			bool matches(Xml_node const &node) const { return _id == _id_attr(node); }
+			bool matches(Node const &node) const { return _id == _id_attr(node); }
 
-			static bool type_matches(Xml_node const &node) { return node.type() == "key"; }
+			static bool type_matches(Node const &node) { return node.type() == "key"; }
 
 			Hosted<Vbox, Action_button> _button { Id { } };
 
-			void update(Xml_node const &key) {
+			void update(Node const &key) {
 
 				text   = { };
 				emit   = { };
@@ -113,16 +113,16 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 
 			Row(Allocator &alloc, Id const id) : _alloc(alloc), _id(id) { }
 
-			bool matches(Xml_node const &node) const { return _id == _id_attr(node); }
+			bool matches(Node const &node) const { return _id == _id_attr(node); }
 
-			static bool type_matches(Xml_node const &node) { return node.type() == "row"; }
+			static bool type_matches(Node const &node) { return node.type() == "row"; }
 
-			void update(Xml_node const &row)
+			void update(Node const &row)
 			{
-				keys.update_from_xml(row,
+				keys.update_from_node(row,
 
 					/* create */
-					[&] (Xml_node const &node) -> Hosted_key & {
+					[&] (Node const &node) -> Hosted_key & {
 						Id const id = _id_attr(node);
 						return *new (_alloc) Hosted_key { id, id }; },
 
@@ -130,7 +130,7 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 					[&] (Hosted_key &key) { destroy(_alloc, &key); },
 
 					/* update */
-					[&] (Hosted_key &key, Xml_node const &node) { key.update(node); });
+					[&] (Hosted_key &key, Node const &node) { key.update(node); });
 			}
 
 			struct Attr { Default_key_min_ex default_key_min_ex; };
@@ -151,7 +151,7 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 			using Name = String<16>;
 			Name const name;
 
-			static Name name_attr(Xml_node const &node) {
+			static Name name_attr(Node const &node) {
 				return node.attribute_value("name", Name()); }
 
 			struct Hosted_row : List_model<Hosted_row>::Element, Hosted<Vbox, Row>
@@ -163,16 +163,16 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 
 			Map(Allocator &alloc, Name name) : _alloc(alloc), name(name) { }
 
-			bool matches(Xml_node const &node) const { return name == name_attr(node); }
+			bool matches(Node const &node) const { return name == name_attr(node); }
 
-			static bool type_matches(Xml_node const &node) { return node.type() == "map"; }
+			static bool type_matches(Node const &node) { return node.type() == "map"; }
 
-			void update(Xml_node const &map)
+			void update(Node const &map)
 			{
-				rows.update_from_xml(map,
+				rows.update_from_node(map,
 
 					/* create */
-					[&] (Xml_node const &node) -> Hosted_row & {
+					[&] (Node const &node) -> Hosted_row & {
 						Id const id = _id_attr(node);
 						return *new (_alloc) Hosted_row { id, _alloc, id }; },
 
@@ -180,7 +180,7 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 					[&] (Hosted_row &row) { destroy(_alloc, &row); },
 
 					/* update */
-					[&] (Hosted_row &row, Xml_node const &node) { row.update(node); });
+					[&] (Hosted_row &row, Node const &node) { row.update(node); });
 			}
 		};
 
@@ -201,21 +201,21 @@ struct Dialog::Touch_keyboard_widget : Widget<Vbox>
 
 		Touch_keyboard_widget(Allocator &alloc) : _alloc(alloc) { }
 
-		void configure(Xml_node const &config)
+		void configure(Node const &config)
 		{
 			_default_key_min_ex = { config.attribute_value("key_min_ex", 0U) };
 
-			_maps.update_from_xml(config,
+			_maps.update_from_node(config,
 
 				/* create */
-				[&] (Xml_node const &node) -> Map & {
+				[&] (Node const &node) -> Map & {
 					return *new (_alloc) Map(_alloc, Map::name_attr(node)); },
 
 				/* destroy */
 				[&] (Map &map) { destroy(_alloc, &map); },
 
 				/* update */
-				[&] (Map &map, Xml_node const &node) { map.update(node); });
+				[&] (Map &map, Node const &node) { map.update(node); });
 		}
 
 		void view(Scope<Vbox> &s) const;

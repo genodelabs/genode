@@ -111,7 +111,7 @@ class Window_layouter::User_state
 		 */
 		bool _key(Input::Event const &ev) const { return ev.press() || ev.release(); }
 
-		inline void _handle_event(Input::Event const &, Xml_node const &);
+		inline void _handle_event(Input::Event const &, Node const &);
 
 		void _initiate_drag(Window_id       hovered_window_id,
 		                    Window::Element hovered_element)
@@ -177,7 +177,7 @@ class Window_layouter::User_state
 		{ }
 
 		void handle_input(Input::Event const events[], unsigned num_events,
-		                  Xml_node const &config)
+		                  Node const &config)
 		{
 			Point const pointer_last = _pointer_curr;
 
@@ -255,7 +255,7 @@ class Window_layouter::User_state
 
 
 void Window_layouter::User_state::_handle_event(Input::Event const &e,
-                                                Xml_node const &config)
+                                                Node const &config)
 {
 	Point const orig_pointer_curr = _pointer_curr;
 	bool  const orig_free_arrange = _free_arrange;

@@ -155,8 +155,6 @@ struct Terminal::Main : Character_consumer
 
 	bool _selecting = false;
 
-	struct Paste_buffer { char buffer[READ_BUFFER_SIZE]; } _paste_buffer { };
-
 	using PT = Pixel_rgb888;
 
 	Constructible<Text_screen_surface<PT>> _text_screen_surface { };
@@ -247,7 +245,7 @@ struct Terminal::Main : Character_consumer
 		_gui.info_sigh(_mode_change_handler);
 
 		/* apply initial size from config, if provided */
-		_config.xml().with_optional_sub_node("initial", [&] (Xml_node const &initial) {
+		_config.node().with_optional_sub_node("initial", [&] (Node const &initial) {
 			_initial_mode = { initial.attribute_value("width",  _win_rect.w()),
 			                  initial.attribute_value("height", _win_rect.h()) };
 		});
@@ -266,7 +264,7 @@ void Terminal::Main::_handle_config()
 {
 	_config.update();
 
-	Xml_node const config = _config.xml();
+	Node const config = _config.node();
 
 	_color_palette.apply_config(config);
 
@@ -513,33 +511,26 @@ void Terminal::Main::_paste_clipboard_content()
 
 	_clipboard_rom->update();
 
-	_paste_buffer = { };
-
-	/* leave last byte as zero-termination in tact */
-	size_t const max_len = sizeof(_paste_buffer.buffer) - 1;
-	size_t const len =
-		_clipboard_rom->xml().decoded_content(_paste_buffer.buffer, max_len);
-
-	if (len == max_len) {
-		warning("clipboard content exceeds paste buffer");
-		return;
-	}
-
-	if (len >= (size_t)_read_buffer.avail_capacity()) {
+	if (_clipboard_rom->node().num_bytes() >= (size_t)_read_buffer.avail_capacity()) {
 		warning("clipboard content exceeds read-buffer capacity");
 		return;
 	}
 
-	for (Utf8_ptr utf8(_paste_buffer.buffer); utf8.complete(); utf8 = utf8.next()) {
+	_clipboard_rom->node().for_each_quoted_line([&] (auto const &line) {
+		using Line = String<1000>;
+		Line const unquoted { line };
+		for (Utf8_ptr utf8(unquoted.string()); utf8.complete(); utf8 = utf8.next()) {
+			Codepoint const c = utf8.codepoint();
 
-		Codepoint const c = utf8.codepoint();
+			/* filter out control characters */
+			if (c.value < 32 && c.value != 10)
+				continue;
 
-		/* filter out control characters */
-		if (c.value < 32 && c.value != 10)
-			continue;
-
-		_read_buffer.add(c);
-	}
+			_read_buffer.add(c);
+		}
+		if (!line.last)
+			_read_buffer.add('\n');
+	});
 }
 
 

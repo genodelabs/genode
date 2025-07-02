@@ -156,7 +156,7 @@ void Sculpt::Network::_generate_nic_router_config()
 }
 
 
-void Sculpt::Network::_handle_wlan_accesspoints(Xml_node const &accesspoints)
+void Sculpt::Network::_handle_wlan_accesspoints(Node const &accesspoints)
 {
 	bool const initial_scan = !accesspoints.has_sub_node("accesspoint");
 
@@ -164,10 +164,10 @@ void Sculpt::Network::_handle_wlan_accesspoints(Xml_node const &accesspoints)
 	if (!initial_scan && _info.ap_list_hovered())
 		return;
 
-	_access_points.update_from_xml(accesspoints,
+	_access_points.update_from_node(accesspoints,
 
 		/* create */
-		[&] (Xml_node const &node) -> Access_point &
+		[&] (Node const &node) -> Access_point &
 		{
 			auto const protection = node.attribute_value("protection", String<16>());
 			bool const use_protection = protection == "WPA"  ||
@@ -185,7 +185,7 @@ void Sculpt::Network::_handle_wlan_accesspoints(Xml_node const &accesspoints)
 		[&] (Access_point &ap) { destroy(_alloc, &ap); },
 
 		/* update */
-		[&] (Access_point &ap, Xml_node const &node)
+		[&] (Access_point &ap, Node const &node)
 		{
 			ap.quality = node.attribute_value("quality", 0U);
 		}
@@ -195,17 +195,17 @@ void Sculpt::Network::_handle_wlan_accesspoints(Xml_node const &accesspoints)
 }
 
 
-void Sculpt::Network::_handle_wlan_state(Xml_node const &state)
+void Sculpt::Network::_handle_wlan_state(Node const &state)
 {
-	_wifi_connection = Wifi_connection::from_xml(state);
+	_wifi_connection = Wifi_connection::from_node(state);
 	_action.network_config_changed();
 }
 
 
-void Sculpt::Network::_handle_nic_router_state(Xml_node const &state)
+void Sculpt::Network::_handle_nic_router_state(Node const &state)
 {
 	Nic_state const old_nic_state = _nic_state;
-	_nic_state = Nic_state::from_xml(state);
+	_nic_state = Nic_state::from_node(state);
 
 	if (_nic_state.ipv4 != old_nic_state.ipv4)
 		_action.network_config_changed();
@@ -216,20 +216,20 @@ void Sculpt::Network::_handle_nic_router_state(Xml_node const &state)
 }
 
 
-void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
+void Sculpt::Network::_update_nic_target_from_config(Node const &config)
 {
 	_nic_target.policy = config.has_type("empty")
 	                   ? Nic_target::MANAGED : Nic_target::MANUAL;
 
 	/* obtain uplink information from configuration */
-	auto nic_target_from_config = [] (Xml_node const &config)
+	auto nic_target_from_config = [] (Node const &config)
 	{
 		if (!config.has_sub_node("domain"))
 			return Nic_target::OFF;
 
 		Nic_target::Type result = Nic_target::DISCONNECTED;
 
-		config.for_each_sub_node("policy", [&] (Xml_node const &uplink) {
+		config.for_each_sub_node("policy", [&] (Node const &uplink) {
 
 			/* skip uplinks not assigned to a domain called "uplink" */
 			if (uplink.attribute_value("domain", String<16>()) != "uplink")
@@ -253,7 +253,7 @@ void Sculpt::Network::_update_nic_target_from_config(Xml_node const &config)
 
 
 
-void Sculpt::Network::_handle_nic_router_config(Xml_node const &config)
+void Sculpt::Network::_handle_nic_router_config(Node const &config)
 {
 	_update_nic_target_from_config(config);
 	_generate_nic_router_config();

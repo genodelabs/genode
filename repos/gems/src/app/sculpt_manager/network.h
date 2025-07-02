@@ -84,10 +84,10 @@ struct Sculpt::Network : Noncopyable
 
 	void handle_key_press(Codepoint);
 
-	void _handle_wlan_accesspoints(Xml_node const &);
-	void _handle_wlan_state(Xml_node const &);
-	void _handle_nic_router_state(Xml_node const &);
-	void _handle_nic_router_config(Xml_node const &);
+	void _handle_wlan_accesspoints(Node const &);
+	void _handle_wlan_state(Node const &);
+	void _handle_nic_router_state(Node const &);
+	void _handle_nic_router_config(Node const &);
 
 	Managed_config<Network> _nic_router_config {
 		_env, "config", "nic_router", *this, &Network::_handle_nic_router_config };
@@ -101,7 +101,7 @@ struct Sculpt::Network : Noncopyable
 	Managed_config<Network> _wlan_config {
 		_env, "config", "wifi", *this, &Network::_handle_wlan_config };
 
-	void _handle_wlan_config(Xml_node const &)
+	void _handle_wlan_config(Node const &)
 	{
 		if (_wlan_config.try_generate_manually_managed()) {
 			_wlan_config_policy = Wlan_config_policy::MANUAL;
@@ -117,7 +117,7 @@ struct Sculpt::Network : Noncopyable
 			wifi_disconnect();
 	}
 
-	void _update_nic_target_from_config(Xml_node const &);
+	void _update_nic_target_from_config(Node const &);
 
 	void nic_target(Nic_target::Type const type)
 	{
@@ -192,7 +192,7 @@ struct Sculpt::Network : Noncopyable
 		/*
 		 * Evaluate and forward initial manually managed config
 		 */
-		_nic_router_config.with_manual_config([&] (Xml_node const &config) {
+		_nic_router_config.with_manual_config([&] (Node const &config) {
 			_update_nic_target_from_config(config); });
 
 		if (_nic_target.manual())

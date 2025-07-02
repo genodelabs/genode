@@ -37,7 +37,7 @@ struct Sculpt::Fb_connectors : private Noncopyable
 			return defined != other.defined || percent != other.percent;
 		}
 
-		static Brightness from_xml(Xml_node const &node)
+		static Brightness from_node(Node const &node)
 		{
 			return { .defined = node.has_attribute("brightness"),
 			         .percent = node.attribute_value("brightness", 0u) };
@@ -61,7 +61,7 @@ struct Sculpt::Fb_connectors : private Noncopyable
 			return rotate != other.rotate || flip != other.flip;
 		}
 
-		static Orientation from_xml(Xml_node const &node)
+		static Orientation from_node(Node const &node)
 		{
 			unsigned const rotate = node.attribute_value("rotate", ~0u);
 			bool     const flip   = node.attribute_value("flip",   false);
@@ -142,7 +142,7 @@ struct Sculpt::Fb_connectors : private Noncopyable
 					    || hz        != other.hz;
 				}
 
-				static Attr from_xml(Xml_node const &node)
+				static Attr from_node(Node const &node)
 				{
 					return {
 						.name      = node.attribute_value("name",      Name()),
@@ -160,17 +160,17 @@ struct Sculpt::Fb_connectors : private Noncopyable
 
 			Mode(Id id) : id(id) { };
 
-			static Id id_from_xml(Xml_node const &node)
+			static Id id_from_node(Node const &node)
 			{
 				return node.attribute_value("id", Mode::Id());
 			}
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
-				return id_from_xml(node) == id;
+				return id_from_node(node) == id;
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("mode");
 			}
@@ -233,7 +233,7 @@ struct Sculpt::Fb_connectors : private Noncopyable
 					matched = true; });
 		}
 
-		bool update(Allocator &alloc, Xml_node const &node)
+		bool update(Allocator &alloc, Node const &node)
 		{
 			Area        const orig_mm = mm;
 			Brightness  const orig_brightness  = brightness;
@@ -241,25 +241,25 @@ struct Sculpt::Fb_connectors : private Noncopyable
 
 			mm.w        = node.attribute_value("width_mm",  0u);
 			mm.h        = node.attribute_value("height_mm", 0u);
-			brightness  = Brightness::from_xml(node);
-			orientation = Orientation::from_xml(node);
+			brightness  = Brightness::from_node(node);
+			orientation = Orientation::from_node(node);
 
 			bool progress = orig_mm          != mm
 			             || orig_brightness  != brightness
 			             || orig_orientation != orientation;
 
-			_modes.update_from_xml(node,
-				[&] (Xml_node const &node) -> Mode & {
+			_modes.update_from_node(node,
+				[&] (Node const &node) -> Mode & {
 					progress = true;
-					return *new (alloc) Mode(Mode::id_from_xml(node));
+					return *new (alloc) Mode(Mode::id_from_node(node));
 				},
 				[&] (Mode &mode) {
 					progress = true;
 					destroy(alloc, &mode);
 				},
-				[&] (Mode &mode, Xml_node const &node) {
+				[&] (Mode &mode, Node const &node) {
 					Mode::Attr const orig_attr = mode.attr;
-					mode.attr = Mode::Attr::from_xml(node);
+					mode.attr = Mode::Attr::from_node(node);
 					progress |= (orig_attr != mode.attr);
 				}
 			);
@@ -267,12 +267,12 @@ struct Sculpt::Fb_connectors : private Noncopyable
 			return progress;
 		}
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return node.attribute_value("name", Name()) == name;
 		}
 
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("connector")
 			    && node.attribute_value("connected", false)
@@ -283,23 +283,23 @@ struct Sculpt::Fb_connectors : private Noncopyable
 	Connectors _merged   { };
 	Connectors _discrete { };
 
-	[[nodiscard]] Progress update(Allocator &alloc, Xml_node const &connectors)
+	[[nodiscard]] Progress update(Allocator &alloc, Node const &connectors)
 	{
 		bool progress = false;
 
-		auto update = [&] (Connectors &model, Xml_node const &node)
+		auto update = [&] (Connectors &model, Node const &node)
 		{
-			model.update_from_xml(node,
-				[&] (Xml_node const &node) -> Connector & {
+			model.update_from_node(node,
+				[&] (Node const &node) -> Connector & {
 					progress = true;
 					return *new (alloc) Connector(node.attribute_value("name", Name()));
 				},
 				[&] (Connector &conn) {
 					progress = true;
-					conn.update(alloc, Xml_node("<empty/>"));
+					conn.update(alloc, Node());
 					destroy(alloc, &conn);
 				},
-				[&] (Connector &conn, Xml_node const &node) {
+				[&] (Connector &conn, Node const &node) {
 					progress |= conn.update(alloc, node);
 				});
 		};
@@ -307,8 +307,8 @@ struct Sculpt::Fb_connectors : private Noncopyable
 		update(_discrete, connectors);
 
 		connectors.with_sub_node("merge",
-			[&] (Xml_node const &merge) { update(_merged, merge); },
-			[&]                         { update(_merged, Xml_node("<merge/>")); });
+			[&] (Node const &merge) { update(_merged, merge); },
+			[&]                     { update(_merged, Node()); });
 
 		return { progress };
 	}

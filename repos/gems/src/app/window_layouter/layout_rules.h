@@ -14,9 +14,6 @@
 #ifndef _LAYOUT_RULES_H_
 #define _LAYOUT_RULES_H_
 
-/* Genode includes */
-#include <os/buffered_xml.h>
-
 /* local includes */
 #include <types.h>
 #include <window.h>
@@ -41,7 +38,7 @@ class Window_layouter::Layout_rules : Noncopyable
 
 		Action &_action;
 
-		Constructible<Buffered_xml> _config_rules { };
+		Constructible<Buffered_node> _config_rules { };
 
 		struct Rom_rules
 		{
@@ -78,7 +75,7 @@ class Window_layouter::Layout_rules : Noncopyable
 			_env(env), _alloc(alloc), _action(action)
 		{ }
 
-		void update_config(Xml_node const &config)
+		void update_config(Node const &config)
 		{
 			bool const use_rules_from_rom =
 				(config.attribute_value(Rom_rules::node_type(), String<10>()) == "rom");
@@ -88,7 +85,7 @@ class Window_layouter::Layout_rules : Noncopyable
 			_config_rules.destruct();
 
 			config.with_optional_sub_node(Rom_rules::node_type(),
-				[&] (Xml_node const &node) { _config_rules.construct(_alloc, node); });
+				[&] (Node const &node) { _config_rules.construct(_alloc, node); });
 
 			_action.layout_rules_changed();
 		}
@@ -105,7 +102,7 @@ class Window_layouter::Layout_rules : Noncopyable
 		void with_rules(auto const &fn) const
 		{
 			if (_rom_rules.constructed()) {
-				Xml_node const &rules = _rom_rules->rom.xml();
+				Node const &rules = _rom_rules->rom.node();
 				if (rules.type() == Rom_rules::node_type()) {
 					fn(rules);
 					return;
@@ -113,11 +110,11 @@ class Window_layouter::Layout_rules : Noncopyable
 			}
 
 			if (_config_rules.constructed()) {
-				fn(_config_rules->xml);
+				fn(*_config_rules);
 				return;
 			}
 
-			fn(Xml_node("<rules/>"));
+			fn(Node());
 		}
 };
 

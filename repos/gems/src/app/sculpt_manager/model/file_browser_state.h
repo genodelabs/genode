@@ -57,15 +57,15 @@ struct Sculpt::File_browser_state : Noncopyable
 	void with_query_result(auto const &fn) const
 	{
 		if (query_result.constructed())
-			fn(query_result->xml());
+			fn(query_result->node());
 	}
 
 	void with_entry_at_index(unsigned const index, auto const &fn) const
 	{
 		unsigned count = 0;
-		with_query_result([&] (Xml_node const &node) {
-			node.with_optional_sub_node("dir", [&] (Xml_node const &listing) {
-				listing.for_each_sub_node([&] (Xml_node const &entry) {
+		with_query_result([&] (Node const &node) {
+			node.with_optional_sub_node("dir", [&] (Node const &listing) {
+				listing.for_each_sub_node([&] (Node const &entry) {
 					if (count++ == index)
 						fn(entry); }); }); });
 	}

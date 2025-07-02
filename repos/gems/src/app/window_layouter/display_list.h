@@ -36,13 +36,13 @@ struct Window_layouter::Display : List_model<Display>::Element
 	/**
 	 * List_model::Element
 	 */
-	void update(Panorama const &panorama, Xml_node const &node)
+	void update(Panorama const &panorama, Node const &node)
 	{
 		/* import explicitly configured panorama position */
-		attr.rect = Rect::from_xml(node);
+		attr.rect = Rect::from_node(node);
 
 		/* assign panorama rect according to matching display <capture> policy */
-		node.for_each_sub_node("capture", [&] (Xml_node const &policy) {
+		node.for_each_sub_node("capture", [&] (Node const &policy) {
 			if (!attr.rect.valid())
 				panorama.with_matching_capture_rect(policy, [&] (Rect r) {
 					attr.rect = r; }); });
@@ -51,15 +51,15 @@ struct Window_layouter::Display : List_model<Display>::Element
 	/**
 	 * List_model::Element
 	 */
-	bool matches(Xml_node const &node) const
+	bool matches(Node const &node) const
 	{
-		return name_from_xml(node) == name;
+		return name_from_node(node) == name;
 	}
 
 	/**
 	 * List_model::Element
 	 */
-	static bool type_matches(Xml_node const &node)
+	static bool type_matches(Node const &node)
 	{
 		return node.has_type("display");
 	}
@@ -80,12 +80,12 @@ class Window_layouter::Display_list : Noncopyable
 
 		Display::Attr _panorama_attr { }; /* fallback used if no display declared */
 
-		void _update_from_xml(Xml_node const &node, auto const &update_fn)
+		void _update_from_node(Node const &node, auto const &update_fn)
 		{
-			_displays.update_from_xml(node,
+			_displays.update_from_node(node,
 
-				[&] (Xml_node const &node) -> Display & {
-					return *new (_alloc) Display(name_from_xml(node)); },
+				[&] (Node const &node) -> Display & {
+					return *new (_alloc) Display(name_from_node(node)); },
 
 				[&] (Display &display) { destroy(_alloc, &display); },
 
@@ -99,15 +99,15 @@ class Window_layouter::Display_list : Noncopyable
 
 		~Display_list()
 		{
-			_update_from_xml(Xml_node("<empty/>"), [&] (auto &, auto &) { });
+			_update_from_node(Node(), [&] (auto &, auto &) { });
 		}
 
-		void update_from_xml(Panorama const &panorama, Xml_node const &node)
+		void update_from_node(Panorama const &panorama, Node const &node)
 		{
 			_panorama_attr.rect = panorama.rect;
 
 			/* import display definitions and their panoramic positions */
-			_update_from_xml(node, [&] (Display &display, Xml_node const &node) {
+			_update_from_node(node, [&] (Display &display, Node const &node) {
 				display.update(panorama, node); });
 
 			/* assign remaining unpositioned displays from left to right */

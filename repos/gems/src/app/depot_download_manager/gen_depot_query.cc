@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for the depot-query tool
+ * \brief  Configuration for the depot-query tool
  * \author Norman Feske
  * \date   2017-12-08
  */
@@ -14,7 +14,7 @@
 #include "xml.h"
 
 void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
-                                                           Xml_node const &installation,
+                                                           Node const &installation,
                                                            Archive::User const &next_user,
                                                            Depot_query_version version,
                                                            List_model<Job> const &jobs)
@@ -39,7 +39,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 		 * The inclusion of those parts may otherwise result in an infinite
 		 * loop if the installation is downloaded from a mix of depot users.
 		 */
-		auto job_failed = [&] (Xml_node const &node)
+		auto job_failed = [&] (Node const &node)
 		{
 			Archive::Path const path = node.attribute_value("path", Archive::Path());
 
@@ -53,18 +53,18 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 
 		auto for_each_install_sub_node = [&] (auto node_type, auto const &fn)
 		{
-			installation.for_each_sub_node(node_type, [&] (Xml_node const &node) {
+			installation.for_each_sub_node(node_type, [&] (Node const &node) {
 				if (!job_failed(node))
 					fn(node); });
 		};
 
-		auto propagate_verify_attr = [&] (Xml_generator &xml, Xml_node const &node)
+		auto propagate_verify_attr = [&] (Xml_generator &xml, Node const &node)
 		{
 			if (node.attribute_value("verify", true) == false)
 				xml.attribute("require_verify", "no");
 		};
 
-		for_each_install_sub_node("archive", [&] (Xml_node const &archive) {
+		for_each_install_sub_node("archive", [&] (Node const &archive) {
 			xml.node("dependencies", [&] () {
 				xml.attribute("path", archive.attribute_value("path", Archive::Path()));
 				xml.attribute("source", archive.attribute_value("source", true));
@@ -73,7 +73,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 			});
 		});
 
-		for_each_install_sub_node("index", [&] (Xml_node const &index) {
+		for_each_install_sub_node("index", [&] (Node const &index) {
 			Archive::Path const path = index.attribute_value("path", Archive::Path());
 			if (!Archive::index(path)) {
 				warning("malformed index path '", path, "'");
@@ -86,7 +86,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 			});
 		});
 
-		for_each_install_sub_node("image", [&] (Xml_node const &image) {
+		for_each_install_sub_node("image", [&] (Node const &image) {
 			Archive::Path const path = image.attribute_value("path", Archive::Path());
 			if (!Archive::image(path)) {
 				warning("malformed image path '", path, "'");
@@ -99,7 +99,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 			});
 		});
 
-		for_each_install_sub_node("image_index", [&] (Xml_node const &image_index) {
+		for_each_install_sub_node("image_index", [&] (Node const &image_index) {
 			Archive::Path const path = image_index.attribute_value("path", Archive::Path());
 			if (!Archive::index(path) && Archive::name(path) != "index") {
 				warning("malformed image-index path '", path, "'");

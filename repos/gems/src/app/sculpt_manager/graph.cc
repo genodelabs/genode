@@ -245,14 +245,14 @@ void Graph::click(Clicked_at const &at, Action &action)
 
 	_plus.propagate(at, [&] {
 
-		auto popup_anchor = [] (Xml_node const &dialog)
+		auto popup_anchor = [] (Node const &dialog)
 		{
 			Rect result { };
-			dialog.with_optional_sub_node("depgraph", [&] (Xml_node const &depgraph) {
-				depgraph.with_optional_sub_node("button", [&] (Xml_node const &button) {
-					result = Rect(Point::from_xml(dialog) + Point::from_xml(depgraph) +
-					              Point::from_xml(button),
-					              Area::from_xml(button)); });
+			dialog.with_optional_sub_node("depgraph", [&] (Node const &depgraph) {
+				depgraph.with_optional_sub_node("button", [&] (Node const &button) {
+					result = Rect(Point::from_node(dialog) + Point::from_node(depgraph) +
+					              Point::from_node(button),
+					              Area::from_node(button)); });
 			});
 			return result;
 		};

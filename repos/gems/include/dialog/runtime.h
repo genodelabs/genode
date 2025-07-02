@@ -77,8 +77,10 @@ class Dialog::Runtime : private Sandbox::State_handler
 
 			bool reconfiguration_needed = false;
 
-			if (_runtime.apply_sandbox_state(state.xml))
-				reconfiguration_needed = true;
+			state.xml.with_raw_node([&] (char const *start, size_t num_bytes) {
+				Node const node(Const_byte_range_ptr(start, num_bytes));
+				if (_runtime.apply_sandbox_state(node))
+					reconfiguration_needed = true; });
 
 			if (reconfiguration_needed)
 				_update_sandbox_config();

@@ -1471,9 +1471,9 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 			/*
 			 * Determine session policy
 			 */
-			with_matching_policy(label, _config.xml(),
+			with_matching_policy(label, _config.node(),
 
-				[&] (Xml_node const &policy) {
+				[&] (Node const &policy) {
 
 					auto const value = policy.attribute_value("role", String<16>());
 

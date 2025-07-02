@@ -16,7 +16,7 @@
 #define _TRESOR__TYPES_H_
 
 /* base includes */
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <util/xml_generator.h>
 #include <util/reconstructible.h>
 
@@ -628,7 +628,7 @@ struct Tresor::Tree_configuration
 	Tree_configuration(Tree_level_index max_lvl, Tree_degree degree, Number_of_leaves num_leaves)
 	: max_lvl(max_lvl), degree(degree), num_leaves(num_leaves) { assert_valid(); }
 
-	Tree_configuration(Xml_node const &node)
+	Tree_configuration(Node const &node)
 	:
 		max_lvl(node.attribute_value("max_lvl", (Tree_level_index)0)),
 		degree(node.attribute_value("degree", (Tree_degree)0)),
@@ -645,14 +645,14 @@ struct Tresor::Superblock_configuration
 	Superblock_configuration(Tree_configuration const &vbd, Tree_configuration const &free_tree)
 	: vbd(vbd), free_tree(free_tree) { }
 
-	Superblock_configuration(Xml_node const &node)
+	Superblock_configuration(Node const &node)
 	:
 		vbd(node.with_sub_node("virtual-block-device",
-			[&] (Xml_node const &node) -> Tree_configuration { return { node }; },
-			[&] ()                     -> Tree_configuration { return Xml_node("<empty/>"); })),
+			[&] (Node const &node) -> Tree_configuration { return { node }; },
+			[&] ()                 -> Tree_configuration { return Node(); })),
 		free_tree(node.with_sub_node("free-tree",
-			[&] (Xml_node const &node) -> Tree_configuration { return { node }; },
-			[&] ()                     -> Tree_configuration { return Xml_node("<empty/>"); }))
+			[&] (Node const &node) -> Tree_configuration { return { node }; },
+			[&] ()                 -> Tree_configuration { return Node(); }))
 	{ }
 
 	void generate_xml(Xml_generator &xml)

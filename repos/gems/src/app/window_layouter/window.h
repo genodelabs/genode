@@ -58,7 +58,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 				return "";
 			}
 
-			static Element from_xml(Xml_node const &hover)
+			static Element from_node(Node const &hover)
 			{
 				bool const left   = hover.has_sub_node("left_sizer"),
 				           right  = hover.has_sub_node("right_sizer"),
@@ -528,7 +528,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return node.attribute_value("id", 0U) == id.value;
 		}
@@ -536,7 +536,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &) { return true; }
+		static bool type_matches(Node const &) { return true; }
 };
 
 #endif /* _WINDOW_H_ */

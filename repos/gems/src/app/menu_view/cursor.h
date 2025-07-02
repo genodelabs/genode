@@ -58,12 +58,12 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 
 		int _xpos() const { return _position.p1().x; }
 
-		static Name _node_name(Xml_node const &node)
+		static Name _node_name(Node const &node)
 		{
 			return node.attribute_value("name", Name(node.type()));
 		}
 
-		int _position_from_xml_node(Xml_node const &node)
+		int _position_from_node(Node const &node)
 		{
 			return _glyph_position.xpos_of_glyph(node.attribute_value("at", 0U));
 		}
@@ -81,7 +81,7 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 
 	public:
 
-		Cursor(Xml_node const &node, Animator &animator, Glyph_position &glyph_position,
+		Cursor(Node const &node, Animator &animator, Glyph_position &glyph_position,
 		       Style_database &styles)
 		:
 			_texture(styles.texture(node, "cursor")),
@@ -89,7 +89,7 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 			_name(_node_name(node)),
 			_position(animator)
 		{
-			_move_to(_position_from_xml_node(node), Steps{0});
+			_move_to(_position_from_node(node), Steps{0});
 		}
 
 		void draw(Surface<Pixel_rgb888> &pixel_surface,
@@ -110,19 +110,19 @@ class Menu_view::Cursor : List_model<Cursor>::Element
 			}
 		}
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return _node_name(node) == _name;
 		}
 
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("cursor");
 		}
 
-		void update(Xml_node const &node)
+		void update(Node const &node)
 		{
-			_move_to(_position_from_xml_node(node), Steps{6});
+			_move_to(_position_from_node(node), Steps{6});
 		}
 };
 

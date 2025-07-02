@@ -63,7 +63,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 
 		void _for_each_menu_item(User const &user, auto const &fn) const
 		{
-			_index.with_xml([&] (Xml_node const &index) {
+			_index.with_node([&] (Node const &index) {
 				_menu.for_each_item(index, user, fn); });
 		}
 
@@ -77,7 +77,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 				s.widget(_back, Name { _menu });
 
 			unsigned count = 0;
-			_for_each_menu_item(user, [&] (Xml_node const &item) {
+			_for_each_menu_item(user, [&] (Node const &item) {
 
 				Id const id { { count } };
 
@@ -116,7 +116,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 				Id const clicked = at.matching_id<Vbox, Menu_entry>();
 
 				unsigned count = 0;
-				_for_each_menu_item(user, [&] (Xml_node const &item) {
+				_for_each_menu_item(user, [&] (Node const &item) {
 
 					if (clicked == Id { { count } }) {
 
@@ -174,7 +174,7 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 				return true;
 
 			bool at_least_one_item_exists = false;
-			_for_each_menu_item(user, [&] (Xml_node const &) {
+			_for_each_menu_item(user, [&] (Node const &) {
 				at_least_one_item_exists = true; });
 
 			return at_least_one_item_exists;

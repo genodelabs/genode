@@ -32,7 +32,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 	Rom_handler<Ahci_driver> _ports {
 		_env, "report -> runtime/ahci/ports", *this, &Ahci_driver::_handle_ports };
 
-	void _handle_ports(Xml_node const &) { _action.handle_ahci_discovered(); }
+	void _handle_ports(Node const &) { _action.handle_ahci_discovered(); }
 
 	Ahci_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
@@ -72,9 +72,8 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 	void with_ports(auto const &fn) const
 	{
-		static Xml_node const none { "<none/>" };
-		_ports.with_xml([&] (Xml_node const &ports) {
-			fn(_ahci.constructed() ? ports : none); });
+		_ports.with_node([&] (Node const &ports) {
+			fn({ .present = _ahci.constructed(), .report = ports }); });
 	}
 };
 

@@ -51,12 +51,12 @@ class Menu_view::Text_selection : List_model<Text_selection>::Element
 
 		Range _range { 0, 0 };
 
-		static Name _node_name(Xml_node const &node)
+		static Name _node_name(Node const &node)
 		{
 			return node.attribute_value("name", Name(node.type()));
 		}
 
-		Range _range_from_xml_node(Xml_node const &node)
+		Range _range_from_node(Node const &node)
 		{
 			unsigned const at     = node.attribute_value("at",     0u),
 			               length = node.attribute_value("length", 0u);
@@ -71,7 +71,7 @@ class Menu_view::Text_selection : List_model<Text_selection>::Element
 
 	public:
 
-		Text_selection(Xml_node const &node, Glyph_position &glyph_position)
+		Text_selection(Node const &node, Glyph_position &glyph_position)
 		:
 			_glyph_position(glyph_position), _name(_node_name(node))
 		{ }
@@ -87,19 +87,19 @@ class Menu_view::Text_selection : List_model<Text_selection>::Element
 			                   color);
 		}
 
-		bool matches(Xml_node const &node) const
+		bool matches(Node const &node) const
 		{
 			return _node_name(node) == _name;
 		}
 
-		static bool type_matches(Xml_node const &node)
+		static bool type_matches(Node const &node)
 		{
 			return node.has_type("selection");
 		}
 
-		void update(Xml_node const &node)
+		void update(Node const &node)
 		{
-			_range = _range_from_xml_node(node);
+			_range = _range_from_node(node);
 		}
 };
 

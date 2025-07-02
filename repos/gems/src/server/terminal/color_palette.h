@@ -39,31 +39,34 @@ class Terminal::Color_palette
 
 		Color _colors[NUM_COLORS];
 
-		static constexpr char const * _default_palette {
-			"<palette>"
-			" <color index=\"0\"  value=\"#000000\"/>" /* black */
-			" <color index=\"1\"  value=\"#AC4142\"/>" /* red */
-			" <color index=\"2\"  value=\"#90A959\"/>" /* green */
-			" <color index=\"3\"  value=\"#F4BF75\"/>" /* yellow */
-			" <color index=\"4\"  value=\"#7686BD\"/>" /* blue */
-			" <color index=\"5\"  value=\"#AA759F\"/>" /* magenta */
-			" <color index=\"6\"  value=\"#75B5AA\"/>" /* cyan */
-			" <color index=\"7\"  value=\"#D0D0D0\"/>" /* white */
-			" <color index=\"8\"  value=\"#101010\"/>" /* bright black */
-			" <color index=\"9\"  value=\"#AC4142\"/>" /* bright red */
-			" <color index=\"10\" value=\"#90A959\"/>" /* bright green */
-			" <color index=\"11\" value=\"#F4BF75\"/>" /* bright yellow */
-			" <color index=\"12\" value=\"#6A9FB5\"/>" /* bright blue */
-			" <color index=\"13\" value=\"#AA759F\"/>" /* bright magenta */
-			" <color index=\"14\" value=\"#75B5AA\"/>" /* bright cyan */
-			" <color index=\"15\" value=\"#F5F5F5\"/>" /* bright white */
-			"</palette>" };
+		static constexpr char const * _default_palette[NUM_COLORS] {
+			"#000000", /*  0  black          */
+			"#AC4142", /*  1  red            */
+			"#90A959", /*  2  green          */
+			"#F4BF75", /*  3  yellow         */
+			"#7686BD", /*  4  blue           */
+			"#AA759F", /*  5  magenta        */
+			"#75B5AA", /*  6  cyan           */
+			"#D0D0D0", /*  7  white          */
+			"#101010", /*  8  bright black   */
+			"#AC4142", /*  9  bright red     */
+			"#90A959", /* 10  bright green   */
+			"#F4BF75", /* 11  bright yellow  */
+			"#6A9FB5", /* 12  bright blue    */
+			"#AA759F", /* 13  bright magenta */
+			"#75B5AA", /* 14  bright cyan    */
+			"#F5F5F5", /* 15  bright white   */
+		};
 
-		Xml_node const _default { _default_palette };
-
-		void _apply_palette(Xml_node const &palette)
+		void _apply_default()
 		{
-			palette.for_each_sub_node("color", [&] (Xml_node const &node) {
+			for (unsigned i = 0; i < NUM_COLORS; i++)
+				ascii_to(_default_palette[i], _colors[i]);
+		}
+
+		void _apply_palette(Node const &palette)
+		{
+			palette.for_each_sub_node("color", [&] (Node const &node) {
 				if (!node.has_attribute("index")) return;
 				if (!node.has_attribute("value")) return;
 
@@ -77,13 +80,13 @@ class Terminal::Color_palette
 
 		Color_palette()
 		{
-			_apply_palette(_default);
+			_apply_default();
 		}
 
-		void apply_config(Xml_node const &config)
+		void apply_config(Node const &config)
 		{
-			_apply_palette(_default);
-			config.with_optional_sub_node("palette", [&] (Xml_node const &palette) {
+			_apply_default();
+			config.with_optional_sub_node("palette", [&] (Node const &palette) {
 				_apply_palette(palette); });
 		}
 

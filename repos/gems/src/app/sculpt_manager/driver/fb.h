@@ -15,6 +15,10 @@
 #define _DRIVER__FB_H_
 
 #include <i2c_session/i2c_session.h>
+#include <capture_session/capture_session.h>
+#include <gpu_session/gpu_session.h>
+#include <platform_session/platform_session.h>
+#include <pin_control_session/pin_control_session.h>
 
 namespace Sculpt { struct Fb_driver; }
 
@@ -39,7 +43,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 	Constructible<Rom_handler<Fb_driver>> _connectors { };
 
-	void _handle_connectors(Xml_node const &) { _action.fb_connectors_changed(); }
+	void _handle_connectors(Node const &) { _action.fb_connectors_changed(); }
 
 	Fb_name _fb_name() const
 	{
@@ -138,7 +142,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 	};
 
 	void update(Registry<Child_state> &registry, Board_info const &board_info,
-	            Xml_node const &platform)
+	            Node const &platform)
 	{
 		bool const suspending  = board_info.options.suspending;
 
@@ -203,7 +207,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 	void with_connectors(auto const &fn) const
 	{
 		if (_connectors.constructed())
-			_connectors->with_xml(fn);
+			_connectors->with_node(fn);
 	}
 };
 

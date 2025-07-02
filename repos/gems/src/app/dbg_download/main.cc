@@ -48,24 +48,24 @@ struct Main
 	Expanding_reporter _installation { _env, "installation", "installation" };
 
 
-	void _process_monitor_config(Xml_node const &config, Xml_node const &monitor)
+	void _process_monitor_config(Node const &config, Node const &monitor)
 	{
 		_installation.generate([&] (Xml_generator &xml) {
 
-			monitor.for_each_sub_node("policy", [&] (Xml_node const &policy) {
+			monitor.for_each_sub_node("policy", [&] (Node const &policy) {
 
 				Session_label policy_label {
 					policy.attribute_value("label", Session_label::String()) };
 
-				config.for_each_sub_node("start", [&] (Xml_node const &start) {
+				config.for_each_sub_node("start", [&] (Node const &start) {
 
 					if (start.attribute_value("name", Session_label::String()) !=
 					    policy_label)
 						return;
 
-					start.with_sub_node("route", [&] (Xml_node const &route) {
+					start.with_sub_node("route", [&] (Node const &route) {
 
-						route.for_each_sub_node("service", [&] (Xml_node const &service) {
+						route.for_each_sub_node("service", [&] (Node const &service) {
 
 							if (service.attribute_value("name", String<8>()) != "ROM")
 								return;
@@ -82,7 +82,7 @@ struct Main
 
 							} else {
 
-								service.with_sub_node("child", [&] (Xml_node const &child) {
+								service.with_sub_node("child", [&] (Node const &child) {
 
 									if (child.attribute_value("name", String<16>()) !=
 									    "depot_rom")
@@ -135,7 +135,7 @@ struct Main
 							});
 						});
 					}, [&] () {
-						Genode::error("<route> XML node not found");
+						Genode::error("<route> node not found");
 					});
 				});
 			});
@@ -151,11 +151,11 @@ struct Main
 				File_content::Limit(512*1024)
 			};
 
-			runtime_config.xml([&] (Xml_node const config) {
-				config.with_sub_node("monitor", [&] (Xml_node const &monitor) {
+			runtime_config.node([&] (Node const config) {
+				config.with_sub_node("monitor", [&] (Node const &monitor) {
 					_process_monitor_config(config, monitor);
 				}, [&] () {
-					Genode::error("<monitor> XML node not found");
+					Genode::error("<monitor> node not found");
 				});
 			});
 		} catch (File_content::Truncated_during_read) {
@@ -167,8 +167,8 @@ struct Main
 	Main(Genode::Env &env)
 	: _env(env)
 	{
-		_base_archive = _build_info.xml().attribute_value("base",
-		                                                  Session_label::String());
+		_base_archive = _build_info.node().attribute_value("base",
+		                                                   Session_label::String());
 		_handle_runtime_config_update();
 	}
 };

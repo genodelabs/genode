@@ -43,19 +43,19 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		            margin.vertical()   + _padding.vertical());
 	}
 
-	static bool _enabled(Xml_node const &node, char const *attr)
+	static bool _enabled(Node const &node, char const *attr)
 	{
 		return node.attribute_value(attr, false);
 	}
 
-	Button_widget(Widget_factory &factory, Xml_node const &node, Unique_id unique_id)
+	Button_widget(Widget_factory &factory, Widget::Attr const &attr)
 	:
-		Widget(factory, node, unique_id), Animator::Item(factory.animator)
+		Widget(factory, attr), Animator::Item(factory.animator)
 	{
 		margin = { 4, 4, 4, 4 };
 	}
 
-	void update(Xml_node const &node) override
+	void update(Node const &node) override
 	{
 		bool const new_hovered  = _enabled(node, "hovered");
 		bool const new_selected = _enabled(node, "selected");

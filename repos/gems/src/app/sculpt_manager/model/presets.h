@@ -36,15 +36,15 @@ class Sculpt::Presets : public Noncopyable
 			Name const name;
 			Text const text;
 
-			static Text _info_text(Xml_node const &node)
+			static Text _info_text(Node const &node)
 			{
 				Text result { };
-				node.with_optional_sub_node("config", [&] (Xml_node const &config) {
+				node.with_optional_sub_node("config", [&] (Node const &config) {
 					result = config.attribute_value("info", Text()); });
 				return result;
 			}
 
-			Info(Xml_node const &node)
+			Info(Node const &node)
 			:
 				name(node.attribute_value("name", Path())),
 				text(_info_text(node))
@@ -65,17 +65,17 @@ class Sculpt::Presets : public Noncopyable
 		{
 			Info const info;
 
-			bool matches(Xml_node const &node) const
+			bool matches(Node const &node) const
 			{
 				return node.attribute_value("name", Path()) == name;
 			}
 
-			static bool type_matches(Xml_node const &node)
+			static bool type_matches(Node const &node)
 			{
 				return node.has_type("file");
 			}
 
-			Preset(Dict &dict, Xml_node const &node)
+			Preset(Dict &dict, Node const &node)
 			:
 				Dict::Element(dict, node.attribute_value("name", Path())),
 				info(node)
@@ -90,19 +90,19 @@ class Sculpt::Presets : public Noncopyable
 
 		Presets(Allocator &alloc) : _alloc(alloc) { }
 
-		void update_from_xml(Xml_node const &presets)
+		void update_from_node(Node const &presets)
 		{
-			_presets.update_from_xml(presets,
+			_presets.update_from_node(presets,
 
 				/* create */
-				[&] (Xml_node const &node) -> Preset & {
+				[&] (Node const &node) -> Preset & {
 					return *new (_alloc) Preset(_sorted, node); },
 
 				/* destroy */
 				[&] (Preset &e) { destroy(_alloc, &e); },
 
 				/* update */
-				[&] (Preset &, Xml_node const &) { }
+				[&] (Preset &, Node const &) { }
 			);
 
 			_count = 0;

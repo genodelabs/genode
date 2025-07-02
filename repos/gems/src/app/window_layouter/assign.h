@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/registry.h>
-#include <os/buffered_xml.h>
 
 /* local includes */
 #include <types.h>
@@ -54,7 +53,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 			Value exact, prefix, suffix;
 
-			static Label from_xml(Xml_node const &node)
+			static Label from_node(Node const &node)
 			{
 				return { .exact  = node.attribute_value("label",        Value()),
 				         .prefix = node.attribute_value("label_prefix", Value()),
@@ -112,9 +111,9 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 
 	public:
 
-		Assign(Xml_node const &assign) : _label(Label::from_xml(assign)) { }
+		Assign(Node const &assign) : _label(Label::from_node(assign)) { }
 
-		void update(Xml_node const &assign)
+		void update(Node const &assign)
 		{
 			target_name   = assign.attribute_value("target", Target::Name());
 			_pos_defined  = assign.has_attribute("xpos")  && assign.has_attribute("ypos");
@@ -123,19 +122,19 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			_visible      = assign.attribute_value("visible", true);
 			_xpos_any     = assign.attribute_value("xpos", String<20>()) == "any";
 			_ypos_any     = assign.attribute_value("ypos", String<20>()) == "any";
-			_pos          = Point::from_xml(assign);
-			_size         = Area::from_xml(assign);
+			_pos          = Point::from_node(assign);
+			_size         = Area::from_node(assign);
 		}
 
 		/**
 		 * List_model::Element
 		 */
-		bool matches(Xml_node const &node) const { return Label::from_xml(node) == _label; }
+		bool matches(Node const &node) const { return Label::from_node(node) == _label; }
 
 		/**
 		 * List_model::Element
 		 */
-		static bool type_matches(Xml_node const &node) { return node.has_type("assign");
+		static bool type_matches(Node const &node) { return node.has_type("assign");
 		}
 
 		/**
