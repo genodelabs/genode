@@ -22,7 +22,11 @@
 #include <depot/archive.h>
 
 namespace Depot_deploy {
+
 	using namespace Depot;
+
+	static constexpr Xml_generator::Max_depth MAX_NODE_DEPTH = { 20 };
+
 	struct Child;
 }
 
@@ -151,9 +155,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		{
 			from_node.with_optional_sub_node(sub_node_type.string(),
 				[&] (Xml_node const &sub_node) {
-					sub_node.with_raw_node([&] (char const *start, size_t length) {
-						xml.append("\n\t\t");
-						xml.append(start, length); }); });
+					if (!xml.append_node(sub_node, MAX_NODE_DEPTH))
+						warning("sub node exceeds max depth: ", from_node); });
 		}
 
 	public:
@@ -656,10 +659,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node const &common
 				});
 			}
 
-			service.with_raw_node([&] (char const *start, size_t length) {
-				xml.append("\n\t\t\t");
-				xml.append(start, length);
-			});
+			(void)xml.append_node(service, MAX_NODE_DEPTH);
 		});
 	});
 
@@ -678,8 +678,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node const &common
 	 */
 	_with_launcher_xml([&] (Xml_node const &launcher) {
 		launcher.with_optional_sub_node("route", [&] (Xml_node const &route) {
-			route.with_raw_content([&] (char const *start, size_t length) {
-				xml.append(start, length); }); }); });
+			(void)xml.append_node_content(route, MAX_NODE_DEPTH); }); });
 
 	/**
 	 * Return name of depot-ROM server used for obtaining the 'path'
@@ -729,8 +728,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node const &common
 	/*
 	 * Add common routes as defined in our config.
 	 */
-	common.with_raw_content([&] (char const *start, size_t length) {
-		xml.append(start, length); });
+	(void)xml.append_node_content(common, MAX_NODE_DEPTH);
 
 	/*
 	 * Add ROM routing rule with the label rewritten to the path within the

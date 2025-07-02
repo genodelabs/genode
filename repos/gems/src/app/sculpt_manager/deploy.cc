@@ -191,8 +191,7 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator  &xml,
 		/* insert content of '<static>' node as is */
 		managed_deploy.with_optional_sub_node("static",
 			[&] (Xml_node const &static_config) {
-				static_config.with_raw_content([&] (char const *start, size_t length) {
-					xml.append(start, length); }); });
+				(void)xml.append_node_content(static_config, { 20 }); });
 
 		/* generate start nodes for deployed packages */
 		managed_deploy.with_optional_sub_node("common_routes",

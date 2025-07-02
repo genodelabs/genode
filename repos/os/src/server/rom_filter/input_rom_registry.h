@@ -415,12 +415,12 @@ class Rom_filter::Input_rom_registry
 			_with_entry_by_name(input_name, [&] (Entry const &entry) {
 				entry.with_node(
 					[&] (Xml_node const &node) {
-						if (skip_toplevel)
-							node.with_raw_content([&] (char const *start, Genode::size_t length) {
-								xml.append(start, length); });
-						else
-							node.with_raw_node([&] (char const *start, Genode::size_t length) {
-								xml.append(start, length); });
+						Genode::Xml_generator::Max_depth const max_depth { 20 };
+						bool const ok = skip_toplevel
+						              ? xml.append_node_content(node, max_depth)
+						              : xml.append_node        (node, max_depth);
+						if (!ok)
+							warning("node too deeply nested: ", node);
 					},
 					[&] { }
 				);

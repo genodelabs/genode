@@ -264,10 +264,7 @@ class Window_layouter::Target_list
 					if (screen_name != name)
 						return;
 				}
-				xml.append("\t");
-				screen.with_raw_node([&] (char const *start, size_t length) {
-					xml.append(start, length); });
-				xml.append("\n");
+				(void)xml.append_node(screen, Xml_generator::Max_depth { 20 });
 			});
 
 			if (!screen_name.valid())
@@ -278,10 +275,7 @@ class Window_layouter::Target_list
 				if (screen_name == name)
 					return;
 
-				xml.append("\t");
-				screen.with_raw_node([&] (char const *start, size_t length) {
-					xml.append(start, length); });
-				xml.append("\n");
+				(void)xml.append_node(screen, Xml_generator::Max_depth { 20 });
 			});
 		}
 

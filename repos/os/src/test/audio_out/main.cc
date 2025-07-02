@@ -163,8 +163,11 @@ void Main::handle_config()
 				return;
 			}
 
-			node.with_raw_content([&] (char const *start, size_t length) {
-				filenames[track_count++] = Filename(Cstring(start, length)); });
+			node.for_each_quoted_line([&] (auto const &line) {
+				filenames[track_count] = { line }; });
+
+			if (filenames[track_count].length() > 1)
+				track_count++;
 		});
 	}
 	catch (...) {

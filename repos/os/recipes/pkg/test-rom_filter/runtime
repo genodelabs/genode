@@ -5,13 +5,13 @@
 	<fail after_seconds="20"/>
 	<succeed>
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config color="yellow">&lt;!-- xray enabled -->&lt;/config>*
+			[init -> rom_logger]   &lt;config color="yellow">*&lt;xray_enabled/>*&lt;/config>*
 			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config message="system locked" color="transparent">&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger]   &lt;config message="system locked" color="transparent">*&lt;fallback/>*&lt;/config>*
 			[init -> dynamic_rom] xray: change (finished)
 	</succeed>
 	<fail>Error: </fail>
@@ -99,10 +99,10 @@
 					<if>
 						<has_value input="xray_enabled" value="yes"/>
 						<then>
-							<inline><!-- xray enabled --></inline>
+							<inline><xray_enabled/></inline>
 						</then>
 						<else>
-							<inline><!-- ... fallback ... --></inline>
+							<inline><fallback/></inline>
 						</else>
 					</if>
 				</output>
@@ -121,5 +121,6 @@
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>
+
 	</config>
 </runtime>

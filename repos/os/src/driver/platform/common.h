@@ -255,10 +255,8 @@ void Driver::Common::handle_config(Xml_node config)
 
 	if (_cfg_reporter.constructed())
 		_cfg_reporter->generate([&] (Xml_generator & xml) {
-			config.with_raw_content([&] (char const *src, size_t len) {
-				xml.append(src, len);
-			});
-		});
+			xml.node_attributes(config);
+			(void)xml.append_node_content(config, Xml_generator::Max_depth { 20 }); });
 }
 
 

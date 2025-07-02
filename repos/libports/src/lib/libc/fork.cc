@@ -184,15 +184,10 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node const &config,
 	xml.append("\n");
 
 	/* copy non-libc config as is */
-	config.for_each_sub_node([&] (Xml_node node) {
-		if (node.type() != "libc") {
-			node.with_raw_node([&] (char const *start, size_t len) {
-				xml.append("\t");
-				xml.append(start, len);
-			});
-			xml.append("\n");
-		}
-	});
+	config.for_each_sub_node([&] (Xml_node const &node) {
+		if (node.type() != "libc")
+			if (!xml.append_node(node, Xml_generator::Max_depth { 20 }))
+				warning("fork: config too deeply nested"); });
 }
 
 

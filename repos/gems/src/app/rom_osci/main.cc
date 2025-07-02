@@ -114,7 +114,10 @@ struct Osci::Main
 				_samples[_pos] = value;
 			};
 
-			channel.with_raw_content([&] (char const *start, size_t len) {
+			channel.for_each_quoted_line([&] (auto const &line) {
+				String<100> const unquoted { line };
+				char const *start = unquoted.string();
+				size_t      len   = unquoted.length() - 1;
 				while (len > 0) {
 					Const_byte_range_ptr bytes { start, len };
 					with_parsed_value<double>(bytes, [&] (double v, Const_byte_range_ptr const &remaining) {

@@ -68,9 +68,8 @@ struct Fs_query::Watched_file
 		content.xml([&] (Xml_node const &node) {
 			if (!node.has_type("empty")) {
 				xml.attribute("xml", "yes");
-				xml.append("\n");
-				node.with_raw_node([&] (char const *start, size_t length) {
-					xml.append(start, length); });
+				if (!xml.append_node(node, Xml_generator::Max_depth { 20 }))
+					warning("content of '", _name, "' is too deeply nested");
 				content_is_xml = true;
 			}
 		});

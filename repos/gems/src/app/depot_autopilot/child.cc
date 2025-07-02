@@ -435,16 +435,14 @@ void Child::_gen_routes(Xml_generator          &xml,
 	 * Add routes given in the start node.
 	 */
 	_start_xml->xml.with_optional_sub_node("route", [&] (Xml_node const &route) {
-		route.with_raw_content([&] (char const *start, size_t length) {
-			xml.append(start, length); }); });
+		(void)xml.append_node_content(route, MAX_NODE_DEPTH); });
 
 	/*
 	 * Add routes given in the launcher definition.
 	 */
 	if (_launcher_xml.constructed())
 		_launcher_xml->xml.with_optional_sub_node("route", [&] (Xml_node const &route) {
-			route.with_raw_content([&] (char const *start, size_t length) {
-				xml.append(start, length); }); });
+			(void)xml.append_node_content(route, MAX_NODE_DEPTH); });
 
 	/**
 	 * Return name of depot-ROM server used for obtaining the 'path'
@@ -494,8 +492,7 @@ void Child::_gen_routes(Xml_generator          &xml,
 	/*
 	 * Add common routes as defined in our config.
 	 */
-	common.with_raw_content([&] (char const *start, size_t length) {
-		xml.append(start, length); });
+	(void)xml.append_node_content(common, MAX_NODE_DEPTH);
 
 	/*
 	 * Add ROM routing rule with the label rewritten to the path within the
@@ -595,8 +592,7 @@ void Child::_gen_copy_of_sub_node(Xml_generator        &xml,
 {
 	from_node.with_optional_sub_node(sub_node_type.string(),
 		[&] (Xml_node const &sub_node) {
-			sub_node.with_raw_node([&] (char const *start, size_t length) {
-				xml.append(start, length); }); });
+			(void)xml.append_node(sub_node, MAX_NODE_DEPTH); });
 }
 
 

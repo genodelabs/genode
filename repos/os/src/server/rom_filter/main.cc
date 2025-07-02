@@ -283,9 +283,8 @@ void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
 				node.with_optional_sub_node("else", [&] (Xml_node const &else_node) {
 					_evaluate_node(else_node, xml); });
 			}
-		} else
-
-		if (node.has_type("attribute")) {
+		}
+		else if (node.has_type("attribute")) {
 
 			using String = Genode::String<128>;
 
@@ -304,46 +303,21 @@ void Rom_filter::Main::_evaluate_node(Xml_node const &node, Xml_generator &xml)
 							Genode::warning("could not obtain input value for input ", input_name);
 					}
 				);
-			}
-
-			/* assign fixed attribute value */
-			else {
+			} else {
+				/* assign fixed attribute value */
 				xml.attribute(node.attribute_value("name",  String()).string(),
 				              node.attribute_value("value", String()).string());
 			}
-		} else
-
-		if (node.has_type("node")) {
+		}
+		else if (node.has_type("node")) {
 			xml.node(node.attribute_value("type", Genode::String<128>()).string(), [&]() {
-				_evaluate_node(node, xml);
-			});
-		} else
-
-		if (node.has_type("inline")) {
-
-			node.with_raw_content([&] (char const *src, size_t len) {
-
-				/*
-				 * The 'Xml_generator::append' method puts the content at a
-				 * fresh line, and also adds a newline before the closing tag.
-				 * We strip eventual newlines from the '<inline>' node content
-				 * to avoid double newlines in the output.
-				 */
-
-				/* remove leading newline */
-				if (len > 0 && src[0] == '\n') {
-					src++;
-					len--;
-				}
-
-				/* remove trailing whilespace including newlines */
-				for (; len > 0 && Genode::is_whitespace(src[len - 1]); len--);
-
-				xml.append(src, len);
-			});
-		} else
-
-		if (node.has_type("input")) {
+				_evaluate_node(node, xml); });
+		}
+		else if (node.has_type("inline")) {
+			if (!xml.append_node_content(node, Genode::Xml_generator::Max_depth { 20 }))
+				warning("node is too deeply nested: ", node);
+		}
+		else if (node.has_type("input")) {
 
 			Input_name const input_name =
 				node.attribute_value("name", Input_name());

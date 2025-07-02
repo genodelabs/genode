@@ -138,10 +138,9 @@ struct Depot_deploy::Main
 			xml.attribute("prio_levels", _prio_levels.value);
 
 		config.with_sub_node("static",
-			[&] (Xml_node static_config) {
-				static_config.with_raw_content([&] (char const *start, size_t length) {
-					xml.append(start, length); });
-			},
+			[&] (Xml_node const &static_config) {
+				if (!xml.append_node_content(static_config, MAX_NODE_DEPTH))
+					warning("config too deeply nested: ", static_config); },
 			[&] { warning("config lacks <static> node"); });
 
 		config.with_optional_sub_node("report", [&] (Xml_node const &report) {

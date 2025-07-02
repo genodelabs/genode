@@ -1606,10 +1606,8 @@ void Usb_root::_config_update()
 	 */
 	if (_config_reporter.constructed())
 		_config_reporter->generate([&] (Xml_generator &xml) {
-			xml.attribute("bios_handoff",
-			              _config.xml().attribute_value("bios_handoff", true));
-			_config.xml().with_raw_content([&] (char const *start, size_t len) {
-				xml.append(start, len); });
+			xml.node_attributes(_config.xml());
+			(void)xml.append_node_content(_config.xml(), { 20 });
 		});
 
 	_announce_service();

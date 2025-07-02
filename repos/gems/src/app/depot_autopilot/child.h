@@ -47,6 +47,8 @@ namespace Depot_deploy {
 
 	using Log_prefix = String<256>;
 
+	static constexpr Xml_generator::Max_depth MAX_NODE_DEPTH = { 20 };
+
 	class Child;
 	class Event;
 	class Timeout_event;

@@ -344,37 +344,17 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			 */
 			Result produce_content(Byte_range_ptr const &dst) override
 			{
-				Result result = Buffer_error::EXCEEDED;
-
-				auto try_copy = [&] (char const *start, size_t length)
-				{
-					/*
-					 * The 'length' is the number of bytes of the config-node
-					 * content, which is not null-terminated. Since
-					 * 'Genode::copy_cstring' always null-terminates the
-					 * result, the last byte of the source string is not
-					 * copied. Hence, it is safe to add '1' to 'length' and
-					 * thereby include the last actual config-content character
-					 * in the result.
-					 */
-					if (length + 1 /* null termination */ >= dst.num_bytes)
-						return; /* EXCEEDED */
-
-					copy_cstring(dst.start, start, length + 1);
-					result = Ok();
-				};
-
-				_child._start_node->with_sub_node("config",
-					[&] (Node const &config) {
-						config.with_raw_node([&] (char const *start, size_t length) {
-							try_copy(start, length); });
-					},
-					[&] {
-						char const *start = "<config/>";
-						try_copy(start, strlen(start));
-					});
-
-				return result;
+				return Xml_generator::generate(dst, "config", [&] (Xml_generator &xml) {
+					_child._start_node->with_optional_sub_node("config",
+						[&] (Node const &config) {
+							xml.node_attributes(config);
+							Xml_generator::Max_depth const max_depth { 20 };
+							if (!xml.append_node_content(config, max_depth))
+								warning(_child.name(), ": config structure exceeds max depth");
+						});
+					return Ok();
+				}).convert<Result>([&] (size_t)         { return Ok(); },
+				                   [&] (Buffer_error e) { return e; });
 			}
 
 			void trigger_update() { _session.trigger_update(); }

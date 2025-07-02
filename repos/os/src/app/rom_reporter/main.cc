@@ -29,24 +29,42 @@ struct Rom_reporter::Rom_module
 	Env &_env;
 
 	using Label = String<160>;
+	using Type  = Xml_node::Type;
+
 	Label const _label;
 
-	Attached_rom_dataspace _rom_ds { _env, _label.string() };
+	Attached_rom_dataspace _rom { _env, _label.string() };
 
-	Expanding_reporter _reporter { _env, "", _label };
+	struct Reporter : Expanding_reporter
+	{
+		Type const type;
+		Reporter(Env &env, Type const &type, Label const &label)
+		: Expanding_reporter(env, type, label), type(type) { }
+	};
+
+	Constructible<Reporter> _reporter { };
 
 	Signal_handler<Rom_module> _rom_update_handler {
 		_env.ep(), *this, &Rom_module::_handle_rom_update };
 
 	void _handle_rom_update()
 	{
-		_rom_ds.update();
-		_reporter.generate(_rom_ds.xml());
+		_rom.update();
+		Xml_node const &node = _rom.xml();
+
+		if (!_reporter.constructed() || _reporter->type != node.type())
+			_reporter.construct(_env, node.type(), _label);
+
+		_reporter->generate([&] (Xml_generator &xml) {
+			xml.node_attributes(node);
+			if (!xml.append_node_content(node, Xml_generator::Max_depth { 20 }))
+				warning("ROM '", _label, "' is too deeply nested");
+		});
 	}
 
 	Rom_module(Env &env, Label const &label) : _env(env), _label(label)
 	{
-		_rom_ds.sigh(_rom_update_handler);
+		_rom.sigh(_rom_update_handler);
 		_handle_rom_update();
 	}
 };

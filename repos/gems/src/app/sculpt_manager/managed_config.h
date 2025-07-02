@@ -86,7 +86,12 @@ struct Sculpt::Managed_config
 		 * If a manually managed config at 'config/' is provided, copy its
 		 * content to the effective config at 'config/managed/'.
 		 */
-		_config.generate(_manual_config_rom.xml());
+		_config.generate([&] (Xml_generator &xml) {
+			Xml_node const &node = _manual_config_rom.xml();
+			xml.node_attributes(node);
+			if (!xml.append_node_content(node, { 20 }))
+				warning("manual config is too deeply nested: ", node);
+		});
 		return true;
 	}
 

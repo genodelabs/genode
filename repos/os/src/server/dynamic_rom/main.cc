@@ -177,11 +177,25 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 
 			/* replace dataspace by new one */
 			_ram_ds.construct(_env.ram(), _env.rm(), _rom_node.xml.size());
+			Byte_range_ptr dst { _ram_ds->local_addr<char>(), _ram_ds->size() };
 
 			/* fill with content of current step */
 			_with_step(_last_content_idx, [&] (Xml_node const &step_node) {
-				step_node.with_raw_content([&] (char const *start, size_t size) {
-					memcpy(_ram_ds->local_addr<char>(), start, size); }); });
+				if (step_node.num_sub_nodes() > 1) {
+					warning("exactly one sub node expected: ", step_node);
+					return;
+				}
+				step_node.with_sub_node(0u, [&] (Xml_node const &content) {
+					auto const r = Xml_generator::generate(dst, content.type(),
+						[&] (Xml_generator &xml) {
+							xml.node_attributes(content);
+							if (!xml.append_node_content(content, { 20 }))
+								warning("step is too deeply nested: ", step_node);
+						});
+					if (r.failed())
+						warning("failed to generate data for step: ", step_node);
+				}, [&] { });
+			});
 
 			/* cast RAM into ROM dataspace capability */
 			Dataspace_capability ds_cap = static_cap_cast<Dataspace>(_ram_ds->cap());

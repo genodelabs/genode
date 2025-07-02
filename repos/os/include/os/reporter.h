@@ -202,14 +202,6 @@ class Genode::Expanding_reporter
 			while (_reporter->generate(fn) == Buffer_error::EXCEEDED)
 				_increase_report_buffer();
 		}
-
-		void generate(Xml_node const &node)
-		{
-			for (bool done = false; !done; _increase_report_buffer()) {
-				node.with_raw_node([&] (char const *start, size_t length) {
-					done = _reporter->generate({ start, length }).ok(); });
-			}
-		}
 };
 
 #endif /* _INCLUDE__OS__REPORTER_H_ */

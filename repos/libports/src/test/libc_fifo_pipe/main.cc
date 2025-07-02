@@ -167,21 +167,17 @@ class Test_fifo_pipe::Test
 		{
 			_init_config.generate([&rom, iteration] (Xml_generator& xml) {
 				rom.xml().for_each_sub_node([&xml, iteration] (const Xml_node& node) {
+					Xml_generator::Max_depth const max_depth { 20 };
 					if (node.type() != "start") {
-						node.with_raw_node([&xml] (char const *addr, const size_t size) {
-						xml.append(addr, size);
-					});
+						(void)xml.append_node(node, max_depth);
 					} else {
 						auto const name { node.attribute_value("name", Genode::String<128> { }) };
 						auto const ram  { node.attribute_value("ram",  Genode::String<128> { }) };
-						xml.node("start", [&xml, &node, &name, &ram, iteration] ( ) {
+						xml.node("start", [&] ( ) {
 							xml.attribute("name", name);
 							xml.attribute("ram",  ram);
 							xml.attribute("version", iteration);
-
-							node.with_raw_content([&xml] (char const *addr, size_t const size) {
-								xml.append(addr, size);
-							});
+							(void)xml.append_node_content(node, max_depth);
 						});
 					}
 				});

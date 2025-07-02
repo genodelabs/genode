@@ -126,16 +126,9 @@ struct Sculpt::Deploy
 			if (arch.valid())
 				xml.attribute("arch", arch);
 
-			auto append_xml_node = [&] (Xml_node const &node) {
-				xml.append("\t");
-				node.with_raw_node([&] (char const *start, size_t length) {
-					xml.append(start, length); });
-				xml.append("\n");
-			};
-
 			/* copy <common_routes> from manual deploy config */
 			deploy.for_each_sub_node("common_routes", [&] (Xml_node const &node) {
-				append_xml_node(node); });
+				(void)xml.append_node(node, Xml_generator::Max_depth { 10 }); });
 
 			/*
 			 * Copy the <start> node from manual deploy config, unless the
@@ -179,8 +172,8 @@ struct Sculpt::Deploy
 					copy_attribute("managing_system");
 
 					/* copy start-node content */
-					node.with_raw_content([&] (char const *start, size_t length) {
-						xml.append(start, length); });
+					if (!xml.append_node_content(node, Xml_generator::Max_depth { 20 }))
+						warning("start node too deeply nested: ", node);
 				});
 			});
 

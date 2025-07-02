@@ -163,7 +163,7 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 
 	File_content runtime(_heap, pkg_dir, "runtime", File_content::Limit{16*1024});
 
-	runtime.xml([&] (Xml_node node) {
+	runtime.xml([&] (Xml_node const &node) {
 
 		xml.node("pkg", [&] () {
 
@@ -188,9 +188,8 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 
 				String<160> comment("\n\n<!-- content of '", pkg_path, "/runtime' -->\n");
 				xml.append(comment.string());
-				node.with_raw_node([&] (char const *start, size_t length) {
-					xml.append(start, length); });
-				xml.append("\n");
+				if (!xml.append_node(node, Xml_generator::Max_depth { 20 }))
+					warning("pkg runtime of '", pkg_path, "' too deeply nested");
 			});
 		});
 	});

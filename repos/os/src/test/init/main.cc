@@ -202,8 +202,8 @@ struct Test::Main : Log_message_handler
 			if (version.valid())
 				xml.attribute("version", version);
 
-			node.with_raw_content([&] (char const *start, size_t length) {
-				xml.append(start, length); }); });
+			node.for_each_sub_node([&] (Xml_node const &sub_node) {
+				(void)xml.append_node(sub_node, { 20 }); }); });
 	}
 
 	unsigned const _num_steps = (unsigned)_config.xml().num_sub_nodes();
