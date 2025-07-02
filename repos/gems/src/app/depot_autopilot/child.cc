@@ -99,15 +99,17 @@ struct Filters
 };
 
 
-static Filters<6> pattern_filters
+static Filters<8> pattern_filters
 {
 	{
 		{ "\x9", "" },
 		{ "\xa", "" },
 		{ "&lt;", "<" },
+		{ "&gt;", ">" },
 		{ "&amp;", "&" },
 		{ "&#42;", "*" },
-		{ "&quot;", "\"" }
+		{ "&quot;", "\"" },
+		{ "&apos;", "'" }
 	}
 };
 
