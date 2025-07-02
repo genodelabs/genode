@@ -27,7 +27,99 @@ class Vfs::Inline_file_system : public Single_file_system
 {
 	private:
 
-		Genode::Buffered_xml const _node;
+		struct Buffered_data
+		{
+			using Allocated = Genode::Memory::Constrained_allocator::Result;
+
+			Allocated allocated;
+
+			size_t num_bytes = 0;  /* unquoted data size */
+
+			static size_t unquoted_content(Byte_range_ptr const &dst, auto const &node)
+			{
+				struct Output : Genode::Output, Genode::Noncopyable
+				{
+					struct {
+						char  *dst;
+						size_t capacity; /* remaining capacity in bytes */
+					};
+
+					void out_char(char c) override
+					{
+						if (capacity) { *dst++ = c; capacity--; }
+					}
+
+					void out_string(char const *s, size_t n) override
+					{
+						while (n-- && capacity) out_char(*s++);
+					}
+
+					Output(char *dst, size_t n) : dst(dst), capacity(n) { }
+
+				} output { dst.start, dst.num_bytes };
+
+				bool quoted = false;
+				node.for_each_quoted_line([&] (auto const &line) {
+					quoted = true;
+					line.print(output);
+					if (!line.last) output.out_char('\n');
+				});
+				if (quoted) {
+					if (output.capacity)
+						return dst.num_bytes - output.capacity;
+
+					Genode::warning("unquoted content exceeded buffer: ", node);
+					return 0ul;
+				}
+
+				if (node.num_sub_nodes() != 1) {
+					warning("exactly one sub node expected: ", node);
+					return 0ul;
+				}
+
+				return node.with_sub_node(0u, [&] (auto const &content) {
+					return Genode::Xml_generator::generate(dst, content.type(),
+						[&] (Genode::Xml_generator &xml) {
+							xml.node_attributes(content);
+							if (!xml.append_node_content(content, { 20 }))
+								warning("inline fs too deeply nested: ", content);
+						}).template convert<size_t>(
+							[&] (size_t n) { return n; },
+							[&] (Genode::Buffer_error) {
+								warning("failed to copy node content: ", node);
+								return 0ul;
+							});
+				}, [&] () -> size_t { /* checked above */ return 0ul; });
+			}
+
+			static size_t _copy_from_node(Allocated &allocated, Xml_node const &node)
+			{
+				return allocated.convert<size_t>([&] (Genode::Memory::Allocation &a) {
+					return unquoted_content({ (char *)a.ptr, a.num_bytes }, node);
+				},
+				[&] (Genode::Alloc_error) {
+					Genode::warning("inline VFS allocation failed");
+					return 0ul;
+				});
+			}
+
+			void with_bytes(auto const &fn) const
+			{
+				if (num_bytes)
+					allocated.with_result([&] (Genode::Memory::Allocation const &a) {
+						fn((char const *)a.ptr, num_bytes); }, [&] (auto) { });
+			}
+
+			Buffered_data(Genode::Memory::Constrained_allocator &alloc,
+			              Xml_node const &node)
+			:
+				/* use node size as upper approximation of data size */
+				allocated(alloc.try_alloc(node.size())),
+				num_bytes(_copy_from_node(allocated, node))
+			{ }
+		};
+
+		Buffered_data const _data;
 
 		class Handle : public Single_vfs_handle
 		{
@@ -71,7 +163,7 @@ class Vfs::Inline_file_system : public Single_file_system
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::rx(), config),
-			_node(env.alloc(), config)
+			_data(env.alloc(), config)
 		{ }
 
 		static char const *name()   { return "inline"; }
@@ -101,8 +193,7 @@ class Vfs::Inline_file_system : public Single_file_system
 		{
 			Stat_result const result = Single_file_system::stat(path, out);
 
-			_node.xml.with_raw_content([&] (char const *, size_t size) {
-				out.size = size; });
+			out.size = _data.num_bytes;
 
 			return result;
 		}
@@ -112,7 +203,9 @@ class Vfs::Inline_file_system : public Single_file_system
 Vfs::File_io_service::Read_result
 Vfs::Inline_file_system::Handle::read(Byte_range_ptr const &dst, size_t &out_count)
 {
-	_fs._node.xml.with_raw_content([&] (char const *start, size_t const len) {
+	out_count = 0;
+
+	_fs._data.with_bytes([&] (char const *start, size_t const len) {
 
 		/* file read limit is the size of the XML-node content */
 		size_t const max_size = len;
@@ -127,10 +220,8 @@ Vfs::Inline_file_system::Handle::read(Byte_range_ptr const &dst, size_t &out_cou
 		char const * const src = start + read_offset;
 
 		/* check if end of file is reached */
-		if (read_offset >= end_offset) {
-			out_count = 0;
+		if (read_offset >= end_offset)
 			return;
-		}
 
 		/* copy-out bytes from ROM dataspace */
 		size_t const num_bytes = end_offset - read_offset;
