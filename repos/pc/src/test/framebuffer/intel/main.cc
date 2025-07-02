@@ -18,7 +18,6 @@
 #include <os/vfs.h>
 #include <base/attached_rom_dataspace.h>
 #include <util/xml_generator.h>
-#include <util/xml_node.h>
 #include <timer_session/connection.h>
 
 using namespace Genode;
@@ -37,7 +36,7 @@ struct Framebuffer_controller
 	Attached_rom_dataspace _config { _env, "config" };
 
 	uint64_t const _period_ms =
-		_config.xml().attribute_value("artifical_update_ms", (uint64_t)0);
+		_config.node().attribute_value("artifical_update_ms", (uint64_t)0);
 
 	Root_directory _root_dir = _config.node().with_sub_node("vfs",
 		[&] (Node const &config) -> Root_directory {
@@ -50,8 +49,8 @@ struct Framebuffer_controller
 	Signal_handler<Framebuffer_controller> _timer_handler {
 		_env.ep(), *this, &Framebuffer_controller::_handle_timer };
 
-	void _update_connector_config(Xml_generator & xml, Xml_node & node);
-	void _update_fb_config(Xml_node const &report);
+	void _update_connector_config(Xml_generator &, Node const &);
+	void _update_fb_config(Node const &report);
 	void _handle_connectors();
 	void _handle_timer();
 
@@ -68,8 +67,8 @@ struct Framebuffer_controller
 };
 
 
-void Framebuffer_controller::_update_connector_config(Xml_generator & xml,
-                                                      Xml_node & node)
+void Framebuffer_controller::_update_connector_config(Xml_generator &xml,
+                                                      Node const &node)
 {
 	xml.node("connector", [&] {
 
@@ -79,7 +78,7 @@ void Framebuffer_controller::_update_connector_config(Xml_generator & xml,
 		xml.attribute("enabled", connected ? "true" : "false");
 
 		unsigned long width = 0, height = 0, hz = 0;
-		node.for_each_sub_node("mode", [&] (Xml_node &mode) {
+		node.for_each_sub_node("mode", [&] (Node const &mode) {
 			unsigned long w, h, z;
 			w = mode.attribute_value<unsigned long>("width", 0);
 			h = mode.attribute_value<unsigned long>("height", 0);
@@ -102,7 +101,7 @@ void Framebuffer_controller::_update_connector_config(Xml_generator & xml,
 }
 
 
-void Framebuffer_controller::_update_fb_config(Xml_node const &report)
+void Framebuffer_controller::_update_fb_config(Node const &report)
 {
 	static char buf[4096];
 
@@ -112,7 +111,7 @@ void Framebuffer_controller::_update_fb_config(Xml_node const &report)
 			xml.attribute("connectors", "yes");
 		});
 
-		report.for_each_sub_node("connector", [&] (Xml_node &node) {
+		report.for_each_sub_node("connector", [&] (Node const &node) {
 		                         _update_connector_config(xml, node); });
 	}).with_result(
 		[&] (size_t used) {
@@ -131,14 +130,14 @@ void Framebuffer_controller::_handle_connectors()
 {
 	_connectors.update();
 
-	_update_fb_config(_connectors.xml());
+	_update_fb_config(_connectors.node());
 }
 
 
 void Framebuffer_controller::_handle_timer()
 {
 	/* artificial update */
-	_update_fb_config(_connectors.xml());
+	_update_fb_config(_connectors.node());
 }
 
 

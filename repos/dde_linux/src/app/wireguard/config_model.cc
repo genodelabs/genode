@@ -20,9 +20,9 @@ using namespace Wireguard;
 
 
 void Config_model::update(genode_wg_config_callbacks &callbacks,
-                          Xml_node const &node)
+                          Node const &node)
 {
-	Config const config = Config::from_xml(node);
+	Config const config = Config::from_node(node);
 
 	if (_config.constructed()) {
 
@@ -46,10 +46,10 @@ void Config_model::update(genode_wg_config_callbacks &callbacks,
 		callbacks.add_device(_config->listen_port, private_key);
 	}
 
-	_peers.update_from_xml(node,
+	_peers.update_from_node(node,
 
 		/* create */
-		[&] (Xml_node const &node) -> Peer &
+		[&] (Node const &node) -> Peer &
 		{
 			Ipv4_address        endpoint_ip    { node.attribute_value("endpoint_ip", Ipv4_address { }) };
 			uint16_t            endpoint_port  { node.attribute_value("endpoint_port", (uint16_t)0U ) };
@@ -91,6 +91,6 @@ void Config_model::update(genode_wg_config_callbacks &callbacks,
 		},
 
 		/* update */
-		[&] (Peer &, Xml_node const &) { }
+		[&] (Peer &, Node const &) { }
 	);
 }

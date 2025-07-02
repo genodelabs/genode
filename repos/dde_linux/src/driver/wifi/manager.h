@@ -24,12 +24,12 @@
 #include <base/log.h>
 #include <base/registry.h>
 #include <base/sleep.h>
+#include <base/node.h>
 #include <os/reporter.h>
 #include <timer_session/connection.h>
 #include <util/attempt.h>
 #include <util/list_model.h>
 #include <util/interface.h>
-#include <util/xml_node.h>
 
 /* rep includes */
 #include <wifi/ctrl.h>
@@ -161,7 +161,7 @@ struct Accesspoint : Interface
 	Pass     pass    { };
 	unsigned quality { 0 };
 
-	static Accesspoint from_xml(Xml_node const &node)
+	static Accesspoint from_node(Node const &node)
 	{
 		Accesspoint ap { };
 
@@ -254,10 +254,10 @@ struct Network : List_model<Network>::Element
 	 ** List_model interface **
 	 **************************/
 
-	static bool type_matches(Xml_node const &node) {
+	static bool type_matches(Node const &node) {
 		return node.has_type("network"); }
 
-	bool matches(Xml_node const &node) {
+	bool matches(Node const &node) {
 		return _accesspoint.ssid == node.attribute_value("ssid", Accesspoint::Ssid()); }
 };
 
@@ -285,10 +285,10 @@ struct Explicit_scan : List_model<Explicit_scan>::Element
 	 ** List_model interface **
 	 **************************/
 
-	static bool type_matches(Xml_node const &node) {
+	static bool type_matches(Node const &node) {
 		return node.has_type("explicit_scan"); }
 
-	bool matches(Xml_node const &node) {
+	bool matches(Node const &node) {
 		return _ssid == node.attribute_value("ssid", Accesspoint::Ssid()); }
 };
 
@@ -1432,7 +1432,7 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 		bool bgscan_set() const {
 			return bgscan.length() >= 1; }
 
-		static Config from_xml(Xml_node const &node)
+		static Config from_node(Node const &node)
 		{
 			bool const verbose       = node.attribute_value("verbose",
 			                                                (bool)DEFAULT_VERBOSE);
@@ -1478,11 +1478,11 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 		if (!_config_rom.valid())
 			return;
 
-		Xml_node const config_node = _config_rom.xml();
+		Node const config_node = _config_rom.node();
 
 		Config const old_config = _config;
 
-		_config = Config::from_xml(config_node);
+		_config = Config::from_node(config_node);
 
 		if (_config.intervals_changed(old_config) || initial_config)
 			_try_arming_any_timer();
@@ -1512,11 +1512,11 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 						              Set_cmd::Value(_config.bgscan)),
 						_config.verbose);
 
-		_network_list.update_from_xml(config_node,
+		_network_list.update_from_node(config_node,
 
-			[&] (Genode::Xml_node const &node) -> Network & {
+			[&] (Genode::Node const &node) -> Network & {
 
-				Accesspoint const ap = Accesspoint::from_xml(node);
+				Accesspoint const ap = Accesspoint::from_node(node);
 
 				/*
 				 * Only make the supplicant acquainted with the network
@@ -1554,8 +1554,8 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 
 				Genode::destroy(_network_allocator, &network);
 			},
-			[&] (Network &network, Genode::Xml_node const &node) {
-				Accesspoint const updated_ap = Accesspoint::from_xml(node);
+			[&] (Network &network, Genode::Node const &node) {
+				Accesspoint const updated_ap = Accesspoint::from_node(node);
 
 				network.with_accesspoint([&] (Accesspoint &ap) {
 
@@ -1570,9 +1570,9 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 				});
 			});
 
-		_explicit_scan_list.update_from_xml(config_node,
+		_explicit_scan_list.update_from_node(config_node,
 
-			[&] (Genode::Xml_node const &node) -> Explicit_scan & {
+			[&] (Genode::Node const &node) -> Explicit_scan & {
 				Accesspoint::Ssid const ssid =
 					node.attribute_value("ssid", Accesspoint::Ssid());
 
@@ -1587,7 +1587,7 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 				Genode::destroy(_explicit_scan_allocator,
 				                &explicit_scan);
 			},
-			[&] (Explicit_scan &explicit_scan, Genode::Xml_node const &node) {
+			[&] (Explicit_scan &explicit_scan, Genode::Node const &node) {
 				/*
 				 * Intentionally left empty as we never have to update the
 				 * object as it only contains the SSID that also serves as

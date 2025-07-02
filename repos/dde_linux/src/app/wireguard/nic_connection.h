@@ -168,7 +168,7 @@ class Wireguard::Nic_connection
 		Nic_connection(Genode::Env                       &env,
 		               Genode::Allocator                 &heap,
 		               Genode::Signal_context_capability  pkt_stream_sigh,
-		               Genode::Xml_node const            &config_node,
+		               Genode::Node                const &config,
 		               Timer::Connection                 &timer,
 		               Nic_connection_notifier           &notifier);
 

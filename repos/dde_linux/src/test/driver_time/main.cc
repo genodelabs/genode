@@ -46,8 +46,8 @@ struct Test::Driver
 
 		tsc_freq_khz = 0ULL;
 		Attached_rom_dataspace info(env, "platform_info");
-		info.xml().with_optional_sub_node("hardware", [&] (Xml_node const &hardware) {
-			hardware.with_optional_sub_node("tsc", [&] (Xml_node const tsc) {
+		info.node().with_optional_sub_node("hardware", [&] (Node const &hardware) {
+			hardware.with_optional_sub_node("tsc", [&] (Node const &tsc) {
 				tsc_freq_khz = tsc.attribute_value("freq_khz", 0ULL); }); });
 	}
 

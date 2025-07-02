@@ -319,15 +319,15 @@ struct Framebuffer::Driver
 		bool apply_config = true;
 
 		if (config.valid())
-			apply_config = config.xml().attribute_value("apply_on_hotplug", apply_config);
+			apply_config = config.node().attribute_value("apply_on_hotplug", apply_config);
 
 		return apply_config;
 	}
 
 	void with_max_enforcement(auto const &fn) const
 	{
-		unsigned max_width  = config.xml().attribute_value("max_width", 0u);
-		unsigned max_height = config.xml().attribute_value("max_height",0u);
+		unsigned max_width  = config.node().attribute_value("max_width", 0u);
+		unsigned max_height = config.node().attribute_value("max_height",0u);
 
 		if (max_width && max_height)
 			fn(max_width, max_height);
@@ -366,8 +366,8 @@ struct Framebuffer::Driver
 		auto framebuffer_memory = Number_of_bytes(DEFAULT_FB_MEMORY);
 		if (config.valid())
 			framebuffer_memory =
-				config.xml().attribute_value("max_framebuffer_memory",
-				                             framebuffer_memory);
+				config.node().attribute_value("max_framebuffer_memory",
+				                              framebuffer_memory);
 
 		if (framebuffer_memory < DEFAULT_FB_MEMORY) {
 			warning("configured framebuffer memory too small, use default of ",
@@ -415,7 +415,7 @@ void Framebuffer::Driver::config_read()
 	if (!config.valid())
 		return;
 
-	config.xml().with_optional_sub_node("merge", [&](auto const &node) {
+	config.node().with_optional_sub_node("merge", [&](auto const &node) {
 		auto const merge_label_before = merge_label;
 
 		merge_label = node.attribute_value("name", String<160>("mirror"));
@@ -423,7 +423,7 @@ void Framebuffer::Driver::config_read()
 		merge_label_changed = merge_label_before != merge_label;
 	});
 
-	if (config.xml().attribute_value("system", false)) {
+	if (config.node().attribute_value("system", false)) {
 		system.construct(Lx_kit::env().env, "system");
 		system->sigh(system_handler);
 	} else
@@ -439,7 +439,7 @@ void Framebuffer::Driver::system_update()
 	system->update();
 
 	if (system->valid())
-		disable_all = system->xml().attribute_value("state", String<9>(""))
+		disable_all = system->node().attribute_value("state", String<9>(""))
 		              == "blanking";
 
 	if (disable_all)
@@ -462,7 +462,7 @@ void Framebuffer::Driver::generate_report()
 	}
 
 	/* check for report configuration option */
-	config.xml().with_optional_sub_node("report", [&](auto const &node) {
+	config.node().with_optional_sub_node("report", [&](auto const &node) {
 
 		if (!node.attribute_value("connectors", false))
 			return;
@@ -536,18 +536,18 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 	};
 
 	/* lookup config of discrete connectors */
-	config.xml().for_each_sub_node("connector", [&] (Xml_node const &conn) {
+	config.node().for_each_sub_node("connector", [&] (Node const &conn) {
 		for_each_node(conn, false);
 	});
 
 	/* lookup config of mirrored connectors */
-	config.xml().for_each_sub_node("merge", [&] (Xml_node const &merge) {
+	config.node().for_each_sub_node("merge", [&] (Node const &merge) {
 		if (mirror_node) {
 			error("only one mirror node supported");
 			return;
 		}
 
-		merge.for_each_sub_node("connector", [&] (Xml_node const &conn) {
+		merge.for_each_sub_node("connector", [&] (Node const &conn) {
 			for_each_node(conn, true);
 		});
 

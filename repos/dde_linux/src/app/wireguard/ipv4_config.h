@@ -19,7 +19,7 @@
 #include <dhcp.h>
 
 /* Genode includes */
-#include <util/xml_node.h>
+#include <base/node.h>
 
 namespace Wireguard {
 
@@ -38,7 +38,7 @@ class Wireguard::Ipv4_config
 
 		Ipv4_config(Net::Dhcp_packet &dhcp_ack);
 
-		Ipv4_config(Genode::Xml_node const &config_node);
+		Ipv4_config(Genode::Node const &config_node);
 
 		Ipv4_config();
 

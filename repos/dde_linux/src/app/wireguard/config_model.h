@@ -48,7 +48,7 @@ class Wireguard::Config_model
 			uint16_t            listen_port;
 			Ipv4_address_prefix interface;
 
-			static Config from_xml(Genode::Xml_node const &node)
+			static Config from_node(Genode::Node const &node)
 			{
 				return {
 					.private_key_b64 = node.attribute_value("private_key", Key_base64 { }),
@@ -73,8 +73,7 @@ class Wireguard::Config_model
 
 		Config_model(Genode::Allocator &alloc) : _alloc(alloc) { }
 
-		void update(genode_wg_config_callbacks &callbacks,
-		            Genode::Xml_node     const &config_node);
+		void update(genode_wg_config_callbacks &, Genode::Node const &config);
 };
 
 
@@ -94,14 +93,14 @@ struct Wireguard::Config_model::Peer : Genode::List_model<Peer>::Element
 			endpoint_port(endpoint_port), allowed_ip(allowed_ip)
 		{ }
 
-		bool matches(Genode::Xml_node const &node) const
+		bool matches(Genode::Node const &node) const
 		{
 			return (endpoint_ip    == node.attribute_value("endpoint_ip",   Ipv4_address { }))
 			    && (endpoint_port  == node.attribute_value("endpoint_port", (uint16_t)0U ))
 			    && (public_key_b64 == node.attribute_value("public_key",    Key_base64 { }));
 		}
 
-		static bool type_matches(Genode::Xml_node const &node)
+		static bool type_matches(Genode::Node const &node)
 		{
 			return node.has_type("peer");
 		}

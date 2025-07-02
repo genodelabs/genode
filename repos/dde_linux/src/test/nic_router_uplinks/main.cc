@@ -42,7 +42,7 @@ struct Result
 		return INVALID;
 	}
 
-	Result(Xml_node const &node)
+	Result(Node const &node)
 	:
 		id(node.attribute_value("id", (unsigned)INVALID_ID)),
 		type(string_to_type(node.attribute_value("type", Type_string())))
@@ -77,7 +77,7 @@ struct Main
 			return;
 		}
 		result_rom.update();
-		Result result(result_rom.xml());
+		Result result(result_rom.node());
 		if (result.id != last_result_id) {
 			if (result.type == goal->result_type) {
 				ASSERT(goal->count);

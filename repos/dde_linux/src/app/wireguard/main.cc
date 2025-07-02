@@ -58,7 +58,7 @@ class Wireguard::Main : private Entrypoint::Io_progress_handler,
 		Signal_handler<Main>              _signal_handler        { _env.ep(), *this, &Main::_handle_signal };
 		Config_model                      _config_model          { _heap };
 		Signal_handler<Main>              _nic_ip_config_handler { _env.ep(), *this, &Main::_handle_nic_ip_config };
-		Nic_connection                    _nic_connection        { _env, _heap, _signal_handler, _config_rom.xml(), _timer, *this };
+		Nic_connection                    _nic_connection        { _env, _heap, _signal_handler, _config_rom.node(), _timer, *this };
 		Constructible<Uplink_connection>  _uplink_connection     { };
 
 		void _handle_signal()
@@ -114,7 +114,7 @@ class Wireguard::Main : private Entrypoint::Io_progress_handler,
 
 		void update(genode_wg_config_callbacks & callbacks)
 		{
-			_config_model.update(callbacks, _config_rom.xml());
+			_config_model.update(callbacks, _config_rom.node());
 		}
 
 		void net_receive(genode_wg_uplink_connection_receive_t uplink_rcv_callback,

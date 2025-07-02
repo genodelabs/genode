@@ -25,9 +25,9 @@ unsigned short emul_intel_gmch_control_reg()
 	using namespace Genode;
 
 	unsigned short ret = 0;
-	Lx_kit::env().devices.with_xml([&] (Xml_node const &node) {
-		node.for_each_sub_node("device", [&] (Xml_node const &node) {
-			node.for_each_sub_node("pci-config", [&] (Xml_node const &node) {
+	Lx_kit::env().devices.with_node([&] (Node const &node) {
+		node.for_each_sub_node("device", [&] (Node const &node) {
+			node.for_each_sub_node("pci-config", [&] (Node const &node) {
 				unsigned short gmch =
 					node.attribute_value<unsigned short>("intel_gmch_control", 0U);
 				if (gmch) ret = gmch;

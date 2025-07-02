@@ -347,12 +347,12 @@ void Device::enable()
 	_pdev.construct(_platform, _name);
 
 	_platform.update();
-	_platform.with_xml([&] (Xml_node & xml) {
-		xml.for_each_sub_node("device", [&] (Xml_node node) {
+	_platform.with_node([&] (Node const &node) {
+		node.for_each_sub_node("device", [&] (Node const &node) {
 			if (_name != node.attribute_value("name", Device::Name()))
 				return;
 
-			node.for_each_sub_node("clock", [&] (Xml_node node) {
+			node.for_each_sub_node("clock", [&] (Node const &node) {
 				clk * c = clock(node.attribute_value("name", Device::Name()).string());
 				if (!c)
 					return;
@@ -365,15 +365,15 @@ void Device::enable()
 
 Device::Device(Entrypoint           & ep,
                Platform::Connection & plat,
-               Xml_node             & xml,
+               Node           const & node,
                Heap                 & heap)
 :
 	_platform(plat),
-	_name(xml.attribute_value("name", Device::Name())),
-	_type{xml.attribute_value("type", Device::Name())}
+	_name(node.attribute_value("name", Device::Name())),
+	_type{node.attribute_value("type", Device::Name())}
 {
 	unsigned i = 0;
-	xml.for_each_sub_node("io_mem", [&] (Xml_node node) {
+	node.for_each_sub_node("io_mem", [&] (Node const &node) {
 		addr_t   addr = node.attribute_value("phys_addr", 0UL);
 		size_t   size = node.attribute_value("size",      0UL);
 		unsigned bar  = node.attribute_value("pci_bar",   0U);
@@ -381,7 +381,7 @@ Device::Device(Entrypoint           & ep,
 	});
 
 	i = 0;
-	xml.for_each_sub_node("io_port_range", [&] (Xml_node node) {
+	node.for_each_sub_node("io_port_range", [&] (Node const &node) {
 		uint16_t addr = node.attribute_value<uint16_t>("phys_addr", 0U);
 		uint16_t size = node.attribute_value<uint16_t>("size",      0U);
 		unsigned bar  = node.attribute_value("pci_bar",             0U);
@@ -389,17 +389,17 @@ Device::Device(Entrypoint           & ep,
 	});
 
 	i = 0;
-	xml.for_each_sub_node("irq", [&] (Xml_node node) {
+	node.for_each_sub_node("irq", [&] (Node const &node) {
 		_irqs.insert(new (heap) Irq(ep, i++, node.attribute_value("number", 0U)));
 	});
 
 	i = 0;
-	xml.for_each_sub_node("clock", [&] (Xml_node node) {
+	node.for_each_sub_node("clock", [&] (Node const &node) {
 		Device::Name name = node.attribute_value("name", Device::Name());
 		_clocks.insert(new (heap) Device::Clock(i++, name));
 	});
 
-	xml.for_each_sub_node("pci-config",  [&] (Xml_node node) {
+	node.for_each_sub_node("pci-config",  [&] (Node const &node) {
 		using namespace Pci;
 		_pci_config.construct(Pci_config{
 			node.attribute_value<vendor_t>("vendor_id", 0xffff),
@@ -427,8 +427,8 @@ Device_list::Device_list(Entrypoint           & ep,
 
 	while (!initialized) {
 		_platform.update();
-		_platform.with_xml([&] (Xml_node & xml) {
-			if (!xml.num_sub_nodes()) {
+		_platform.with_node([&] (Node const &node) {
+			if (!node.num_sub_nodes()) {
 				if (!handler.constructed()) {
 					handler.construct(ep, *this, &Device_list::_handle_signal);
 					_platform.sigh(*handler);
@@ -437,7 +437,7 @@ Device_list::Device_list(Entrypoint           & ep,
 			} else {
 				_platform.sigh(Signal_context_capability());
 				handler.destruct();
-				xml.for_each_sub_node("device", [&] (Xml_node node) {
+				node.for_each_sub_node("device", [&] (Node const &node) {
 					insert(new (heap) Device(ep, _platform, node, heap));
 				});
 				initialized = true;

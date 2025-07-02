@@ -16,12 +16,12 @@
 
 #include <base/env.h>
 #include <base/heap.h>
+#include <base/node.h>
 #include <irq_session/client.h>
 #include <io_mem_session/client.h>
 #include <platform_session/device.h>
 #include <pci/types.h>
 #include <util/list.h>
-#include <util/xml_node.h>
 
 
 namespace Lx_kit {
@@ -123,10 +123,7 @@ class Lx_kit::Device : List<Device>::Element
 		friend class Device_list;
 		friend class List<Device>;
 
-		Device(Entrypoint           & ep,
-		       Platform::Connection & plat,
-		       Xml_node             & xml,
-		       Heap                 & heap);
+		Device(Entrypoint &, Platform::Connection &, Node const &, Heap &);
 
 		Platform::Connection          & _platform;
 		Name                      const _name;
@@ -208,19 +205,24 @@ class Lx_kit::Device_list : List<Device>
 	public:
 
 		template <typename FN>
-		void for_each(FN const & fn) {
+		void for_each(FN const &fn) {
 			for (Device * d = first(); d; d = d->next()) fn(*d); }
 
 		template <typename FN>
-		void with_xml(FN const & fn)
+		void with_xml(FN const &fn)
 		{
 			_platform.update();
-			_platform.with_xml([&] (Xml_node & xml) { fn(xml); });
+			_platform.with_xml(fn);
 		}
 
-		Device_list(Entrypoint           & ep,
-		            Heap                 & heap,
-		            Platform::Connection & platform);
+		template <typename FN>
+		void with_node(FN const &fn)
+		{
+			_platform.update();
+			_platform.with_node(fn);
+		}
+
+		Device_list(Entrypoint &, Heap &, Platform::Connection &);
 
 		void insert(Device const *device) { List<Device>::insert(device); }
 };

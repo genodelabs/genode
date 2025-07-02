@@ -178,14 +178,14 @@ Nic_connection::_handle_arp_reply(Arp_packet &arp)
 Nic_connection::Nic_connection(Env                       &env,
                                Allocator                 &alloc,
                                Signal_context_capability  pkt_stream_sigh,
-                               Xml_node const            &config_node,
+                               Node                const &config,
                                Timer::Connection         &timer,
                                Nic_connection_notifier   &notifier)
 :
 	_alloc              { alloc },
 	_notifier           { notifier },
 	_dhcp_client        { timer, *this },
-	_ip_config          { config_node },
+	_ip_config          { config },
 	_connection         { env, &_packet_alloc, BUF_SIZE, BUF_SIZE,
 	                      "nic_session" },
 	_link_state_handler { env.ep(), *this, &Nic_connection::_handle_link_state }

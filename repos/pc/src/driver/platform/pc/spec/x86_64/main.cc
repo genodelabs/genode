@@ -75,7 +75,7 @@ void Driver::Main::_reset()
 	if (!_acpi_rom.valid())
 		return;
 
-	_acpi_rom.xml().with_optional_sub_node("reset", [&] (Xml_node reset)
+	_acpi_rom.node().with_optional_sub_node("reset", [&] (Node const &reset)
 	{
 		uint16_t const io_port = reset.attribute_value<uint16_t>("io_port", 0);
 		uint8_t  const value   = reset.attribute_value<uint8_t>("value",    0);
@@ -98,7 +98,7 @@ void Driver::Main::_system_update()
 	if (!_system_rom.valid())
 		return;
 
-	auto const state = _system_rom.xml().attribute_value("state", String<16>());
+	auto const state = _system_rom.node().attribute_value("state", String<16>());
 
 	if (state == "reset")
 		_reset();
@@ -140,7 +140,7 @@ void Driver::Main::_suspend(String<8> suspend_mode)
 			return call<Rpc_system_control>(state); }
 	} system_control { _env.pd().system_control_cap(Affinity::Location()) };
 
-	_sleep_rom.xml().with_sub_node(suspend_mode.string(), [&] (auto const &node) {
+	_sleep_rom.node().with_sub_node(suspend_mode.string(), [&] (auto const &node) {
 
 		auto const typea = "SLP_TYPa";
 		auto const typeb = "SLP_TYPb";

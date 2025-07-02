@@ -49,14 +49,14 @@ struct Driver::Main
 void Driver::Main::_handle_config()
 {
 	_config_rom.update();
-	_common.handle_config(_config_rom.xml());
+	_common.handle_config(_config_rom.node());
 }
 
 
 void Driver::Main::_reset()
 {
 	_acpi_rom.update();
-	_acpi_rom.xml().with_optional_sub_node("reset", [&] (Xml_node reset)
+	_acpi_rom.node().with_optional_sub_node("reset", [&] (Node const &reset)
 	{
 		uint16_t const io_port = reset.attribute_value<uint16_t>("io_port", 0);
 		uint8_t  const value   = reset.attribute_value<uint8_t>("value",    0);
@@ -75,7 +75,7 @@ void Driver::Main::_reset()
 void Driver::Main::_system_update()
 {
 	_system_rom.update();
-	if (_system_rom.xml().attribute_value("state", String<16>()) == "reset")
+	if (_system_rom.node().attribute_value("state", String<16>()) == "reset")
 		_reset();
 }
 

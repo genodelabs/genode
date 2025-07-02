@@ -25,9 +25,9 @@ Ipv4_config::Ipv4_config()
 { }
 
 
-Ipv4_config::Ipv4_config(Xml_node const &config_node)
+Ipv4_config::Ipv4_config(Node const &config)
 :
-	_interface { config_node.attribute_value("interface",  Ipv4_address_prefix()) }
+	_interface { config.attribute_value("interface",  Ipv4_address_prefix()) }
 { }
 
 
