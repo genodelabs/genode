@@ -147,8 +147,10 @@ void Fs_tool::Main::_new_file(Xml_node const &operation)
 		};
 		Buffered_output<128, decltype(write)> output(write);
 
-		operation.with_raw_content([&] (char const *start, size_t size) {
-			print(output, Cstring(start, size)); });
+		operation.for_each_quoted_line([&] (auto const &line) {
+			line.print(output);
+			if (!line.last) output.out_char('\n');
+		});
 	}
 	catch (New_file::Create_failed) {
 		create_error = true; }
