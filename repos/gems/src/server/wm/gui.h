@@ -1492,7 +1492,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 				                        + 8*1024;
 
 				if (resources.ram_quota.value < needed_ram)
-					throw Insufficient_ram_quota();
+					return Session_error::INSUFFICIENT_RAM;
+
 				resources.ram_quota.value -= needed_ram;
 
 				static constexpr unsigned needed_caps =
@@ -1506,7 +1507,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 					1;   /* Content-view capability                          */
 
 				if (resources.cap_quota.value < needed_caps)
-					throw Insufficient_cap_quota();
+					return Session_error::INSUFFICIENT_CAPS;
+
 				/* preserve caps for content_view and command buffer ds */
 				resources.cap_quota.value -= needed_caps - 2;
 			}
