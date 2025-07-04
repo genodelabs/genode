@@ -24,7 +24,7 @@ using namespace Genode;
 
 struct Main
 {
-	Env                  & env;
+	Env                   &env;
 	Heap                   heap       { env.ram(), env.rm()            };
 	Attached_rom_dataspace config_rom { env, "config"                  };
 	Signal_handler<Main>   handler    { env.ep(), *this, &Main::update };
@@ -38,7 +38,7 @@ struct Main
 		vm.construct(env, heap, config);
 	}
 
-	Main(Env & env) : env(env)
+	Main(Env &env) : env(env)
 	{
 		config_rom.sigh(handler);
 		update();
@@ -47,4 +47,4 @@ struct Main
 };
 
 
-void Component::construct(Env & env) { static Main m(env); }
+void Component::construct(Env &env) { static Main m(env); }

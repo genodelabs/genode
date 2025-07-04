@@ -30,9 +30,9 @@ struct Buffer
 {
 	struct Write_fn
 	{
-		Serial & serial;
+		Serial &serial;
 
-		Write_fn(Serial & serial) : serial(serial) {}
+		Write_fn(Serial &serial) : serial(serial) {}
 
 		void operator () (char const *s)
 		{

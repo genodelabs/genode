@@ -16,7 +16,7 @@
 
 using namespace Driver;
 
-static void attribute_hex(Genode::Xml_generator & xml, char const * name,
+static void attribute_hex(Genode::Xml_generator &xml, char const * name,
                           unsigned long long value)
 {
 	xml.attribute(name, Genode::String<32>(Genode::Hex(value)));
@@ -25,7 +25,7 @@ static void attribute_hex(Genode::Xml_generator & xml, char const * name,
 
 template <typename TABLE>
 void Intel::Io_mmu::Domain<TABLE>::enable_pci_device(Io_mem_dataspace_capability const,
-                                                     Pci::Bdf const & bdf)
+                                                     Pci::Bdf const &bdf)
 {
 	Domain_id cur_domain =
 		_intel_iommu.root_table().insert_context<TABLE::address_width()>(
@@ -52,7 +52,7 @@ void Intel::Io_mmu::Domain<TABLE>::enable_pci_device(Io_mem_dataspace_capability
 
 
 template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const & bdf)
+void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const &bdf)
 {
 	_intel_iommu.root_table().remove_context(bdf, _translation_table_phys);
 
@@ -64,7 +64,7 @@ void Intel::Io_mmu::Domain<TABLE>::disable_pci_device(Pci::Bdf const & bdf)
 
 
 template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::add_range(Range const & range,
+void Intel::Io_mmu::Domain<TABLE>::add_range(Range const &range,
                                              addr_t const paddr,
                                              Dataspace_capability const)
 {
@@ -91,7 +91,7 @@ void Intel::Io_mmu::Domain<TABLE>::add_range(Range const & range,
 
 
 template <typename TABLE>
-void Intel::Io_mmu::Domain<TABLE>::remove_range(Range const & range)
+void Intel::Io_mmu::Domain<TABLE>::remove_range(Range const &range)
 {
 	_translation_table.remove_translation(range.start, range.size,
 	                                      _table_allocator,
@@ -197,7 +197,7 @@ bool Intel::Io_mmu::iq_error()
 }
 
 
-void Intel::Io_mmu::generate(Xml_generator & xml)
+void Intel::Io_mmu::generate(Xml_generator &xml)
 {
 	xml.node("intel", [&] () {
 		xml.attribute("name", name());
@@ -285,14 +285,14 @@ void Intel::Io_mmu::generate(Xml_generator & xml)
 
 		/* dump root table, context table, and page tables */
 		_report_helper.with_table<Root_table>(rt_addr,
-			[&] (Root_table & root_table) {
+			[&] (Root_table &root_table) {
 				root_table.generate(xml, _report_helper);
 			});
 	});
 }
 
 
-void Intel::Io_mmu::add_default_range(Range const & range, addr_t paddr)
+void Intel::Io_mmu::add_default_range(Range const &range, addr_t paddr)
 {
 	addr_t const             vaddr   { range.start };
 	size_t const             size    { range.size };
@@ -435,12 +435,12 @@ void Intel::Io_mmu::_init()
 }
 
 
-Intel::Io_mmu::Io_mmu(Env                      & env,
-                      Io_mmu_devices           & io_mmu_devices,
-                      Device::Name       const & name,
-                      Device::Io_mem::Range      range,
-                      Context_table_allocator  & table_allocator,
-                      unsigned                   irq_number)
+Intel::Io_mmu::Io_mmu(Env                      &env,
+                      Io_mmu_devices           &io_mmu_devices,
+                      Device::Name       const &name,
+                      Device::Io_mem::Range     range,
+                      Context_table_allocator  &table_allocator,
+                      unsigned                  irq_number)
 : Attached_mmio(env, {(char *)range.start, range.size}),
   Driver::Io_mmu(io_mmu_devices, name),
   _env(env),

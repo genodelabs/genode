@@ -107,20 +107,19 @@ class Core::Cpu : public Arm_v7_cpu
 				}
 		};
 
-		static void mmu_fault_status(Fsr::access_t fsr,
-		                             Kernel::Thread_fault & fault);
+		static void mmu_fault_status(Fsr::access_t fsr, Kernel::Thread_fault &);
 
 		/**
 		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
 
-		bool active(Mmu_context & mmu_context)
+		bool active(Mmu_context &mmu_context)
 		{
 			return (Ttbr0_64bit::read() == mmu_context.ttbr0);
 		}
 
-		void switch_to(Mmu_context & mmu_context)
+		void switch_to(Mmu_context &mmu_context)
 		{
 			Ttbr0_64bit::write(mmu_context.ttbr0);
 		}

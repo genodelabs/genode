@@ -25,7 +25,7 @@ using Vmm::Vm;
 
 enum { LOG2_2MB = 21 };
 
-Genode::Entrypoint & Vm::Cpu_entry::ep(unsigned i, Vm & vm)
+Genode::Entrypoint & Vm::Cpu_entry::ep(unsigned i, Vm &vm)
 {
 	if (i == 0)
 		return vm._env.ep();
@@ -36,7 +36,7 @@ Genode::Entrypoint & Vm::Cpu_entry::ep(unsigned i, Vm & vm)
 }
 
 
-Vm::Cpu_entry::Cpu_entry(unsigned i, Vm & vm)
+Vm::Cpu_entry::Cpu_entry(unsigned i, Vm &vm)
 :
 	cpu(vm, vm._vm, vm._bus, vm._gic, vm._env, vm._heap, ep(i, vm), i) { }
 
@@ -100,7 +100,7 @@ Vmm::Cpu & Vm::boot_cpu()
 }
 
 
-Vm::Vm(Genode::Env & env, Heap & heap, Config & config)
+Vm::Vm(Genode::Env &env, Heap &heap, Config &config)
 :
 	_env(env),
 	_heap(heap),
@@ -116,7 +116,7 @@ Vm::Vm(Genode::Env & env, Heap & heap, Config & config)
 	                                             .executable = true,
 	                                             .writeable  = true });
 
-	_config.for_each_virtio_device([&] (Config::Virtio_device const & dev) {
+	_config.for_each_virtio_device([&] (Config::Virtio_device const &dev) {
 		switch (dev.type) {
 		case Config::Virtio_device::CONSOLE:
 			new (_heap)

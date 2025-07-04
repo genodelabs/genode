@@ -22,7 +22,7 @@ using Driver::Session_component;
 
 
 Genode::Capability<Platform::Device_interface>
-Session_component::_acquire(Device & device)
+Session_component::_acquire(Device &device)
 {
 	/**
 	 * add IOMMU domains if they don't exist yet
@@ -30,11 +30,11 @@ Session_component::_acquire(Device & device)
 	 * note: must be done before device.acquire and Device_component construction
 	 *       because both may access the domain registry
 	 */
-	device.for_each_io_mmu([&] (Device::Io_mmu const & io_mmu) {
+	device.for_each_io_mmu([&] (Device::Io_mmu const &io_mmu) {
 		_domain_registry.with_domain(io_mmu.name,
 			[&] (Io_mmu::Domain &) { },
 			[&] () {
-				_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+				_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
 					if (io_mmu_dev.name() == io_mmu.name) {
 						if (io_mmu_dev.mpu() && _dma_allocator.remapping())
 							error("Unable to create domain for MPU device ",
@@ -64,31 +64,31 @@ Session_component::_acquire(Device & device)
 };
 
 
-void Session_component::_release_device(Device_component & dc)
+void Session_component::_release_device(Device_component &dc)
 {
 	_env.ep().rpc_ep().dissolve(&dc);
 
 	/* release device (calls disable_device()) before destroying device component */
 	Device::Name name = dc.device();
-	_devices.for_each([&] (Device & dev) {
+	_devices.for_each([&] (Device &dev) {
 		if (name == dev.name()) dev.release(*this); });
 
 	/* destroy device component */
 	destroy(heap(), &dc);
 
 	/* destroy unused domains */
-	_domain_registry.for_each([&] (Io_mmu_domain & wrapper) {
+	_domain_registry.for_each([&] (Io_mmu_domain &wrapper) {
 		if (wrapper.domain.devices() == 0)
 			destroy(heap(), &wrapper);
 	});
 }
 
 
-void Session_component::_free_dma_buffer(Dma_buffer & buf)
+void Session_component::_free_dma_buffer(Dma_buffer &buf)
 {
 	Ram_dataspace_capability cap = buf.cap;
 
-	_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {
+	_domain_registry.for_each_domain([&] (Io_mmu::Domain &domain) {
 		domain.remove_range({ buf.dma_addr, buf.size });
 	});
 
@@ -97,7 +97,7 @@ void Session_component::_free_dma_buffer(Dma_buffer & buf)
 }
 
 
-bool Session_component::matches(Device const & dev) const
+bool Session_component::matches(Device const &dev) const
 {
 	return with_matching_policy(label(), _config.node(),
 		[&] (Node const &policy) {
@@ -120,11 +120,11 @@ bool Session_component::matches(Device const & dev) const
 
 void Session_component::update_io_mmu_devices()
 {
-	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
 
 		/* determine whether IOMMU is used by any owned/acquire device */
 		bool used_by_owned_device = false;
-		_devices.for_each([&] (Device const & dev) {
+		_devices.for_each([&] (Device const &dev) {
 			if (!(dev.owner() == _owner_id))
 				return;
 
@@ -137,7 +137,7 @@ void Session_component::update_io_mmu_devices()
 
 		/* synchronise with IOMMU domains */
 		bool domain_exists = false;
-		_domain_registry.for_each([&] (Io_mmu_domain & wrapper) {
+		_domain_registry.for_each([&] (Io_mmu_domain &wrapper) {
 			if (io_mmu_dev.domain_owner(wrapper.domain)) {
 				domain_exists = true;
 
@@ -174,9 +174,9 @@ void Session_component::update_policy(bool info, Policy_version version)
 
 	enum Device_state { AWAY, CHANGED, UNCHANGED };
 
-	_device_registry.for_each([&] (Device_component & dc) {
+	_device_registry.for_each([&] (Device_component &dc) {
 		Device_state state = AWAY;
-		_devices.for_each([&] (Device const & dev) {
+		_devices.for_each([&] (Device const &dev) {
 			if (dev.name() != dc.device())
 				return;
 			state = (dev.owner() == _owner_id && matches(dev)) ? UNCHANGED : CHANGED;
@@ -203,7 +203,7 @@ void Session_component::produce_xml(Xml_generator &xml)
 	if (_version.valid())
 		xml.attribute("version", _version);
 
-	_devices.for_each([&] (Device const & dev) {
+	_devices.for_each([&] (Device const &dev) {
 		if (matches(dev)) dev.generate(xml, _info); });
 }
 
@@ -229,10 +229,10 @@ void Session_component::update_devices_rom()
 }
 
 
-void Session_component::enable_device(Device const & device)
+void Session_component::enable_device(Device const &device)
 {
-	auto fn = [&] (Driver::Io_mmu::Domain & domain) {
-		device.for_pci_config([&] (Device::Pci_config const & cfg) {
+	auto fn = [&] (Driver::Io_mmu::Domain &domain) {
+		device.for_pci_config([&] (Device::Pci_config const &cfg) {
 			Attached_io_mem_dataspace io_mem { _env, cfg.addr, 0x1000 };
 			domain.enable_pci_device(io_mem.cap(),
 			                         {cfg.bus_num, cfg.dev_num, cfg.func_num});
@@ -244,7 +244,7 @@ void Session_component::enable_device(Device const & device)
 
 	device.for_each_io_mmu(
 		/* non-empty list fn */
-		[&] (Device::Io_mmu const & io_mmu) {
+		[&] (Device::Io_mmu const &io_mmu) {
 			_domain_registry.with_domain(io_mmu.name, fn, default_domain_fn);
 		},
 
@@ -256,12 +256,12 @@ void Session_component::enable_device(Device const & device)
 }
 
 
-void Session_component::disable_device(Device const & device)
+void Session_component::disable_device(Device const &device)
 {
 	pci_disable(_env, device);
 
-	auto fn = [&] (Driver::Io_mmu::Domain & domain) {
-		device.for_pci_config([&] (Device::Pci_config const & cfg) {
+	auto fn = [&] (Driver::Io_mmu::Domain &domain) {
+		device.for_pci_config([&] (Device::Pci_config const &cfg) {
 			domain.disable_pci_device({cfg.bus_num, cfg.dev_num, cfg.func_num});
 		});
 		domain.disable_device();
@@ -271,7 +271,7 @@ void Session_component::disable_device(Device const & device)
 
 	device.for_each_io_mmu(
 		/* non-empty list fn */
-		[&] (Device::Io_mmu const & io_mmu) {
+		[&] (Device::Io_mmu const &io_mmu) {
 			_domain_registry.with_domain(io_mmu.name, fn, default_domain_fn); },
 
 		/* empty list fn */
@@ -289,7 +289,7 @@ Session_component::acquire_device(Platform::Session::Device_name const &name)
 {
 	Capability<Platform::Device_interface> cap;
 
-	_devices.for_each([&] (Device & dev)
+	_devices.for_each([&] (Device &dev)
 	{
 		if (dev.name() != name || !matches(dev))
 			return;
@@ -308,7 +308,7 @@ Session_component::acquire_single_device()
 {
 	Capability<Platform::Device_interface> cap;
 
-	_devices.for_each([&] (Device & dev) {
+	_devices.for_each([&] (Device &dev) {
 		if (!cap.valid() && matches(dev) && !dev.owner().valid())
 			cap = _acquire(dev); });
 
@@ -321,7 +321,7 @@ void Session_component::release_device(Capability<Platform::Device_interface> de
 	if (!device_cap.valid())
 		return;
 
-	_device_registry.for_each([&] (Device_component & dc) {
+	_device_registry.for_each([&] (Device_component &dc) {
 		if (device_cap.local_name() == dc.cap().local_name())
 			_release_device(dc); });
 }
@@ -356,7 +356,7 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 		{
 			if (_cleanup && buf) {
 				/* make sure to remove buffer range from all domains */
-				_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {
+				_domain_registry.for_each_domain([&] (Io_mmu::Domain &domain) {
 					domain.remove_range({ buf->dma_addr, buf->size });
 				});
 				destroy(_heap, buf);
@@ -388,12 +388,12 @@ Session_component::alloc_dma_buffer(size_t const size, Cache cache)
 
 
 	try {
-		Dma_buffer & buf = _dma_allocator.alloc_buffer(guard.ram_cap,
-		                                               _env.pd().dma_addr(guard.ram_cap),
-		                                               _env.pd().ram_size(guard.ram_cap));
+		Dma_buffer &buf = _dma_allocator.alloc_buffer(guard.ram_cap,
+		                                              _env.pd().dma_addr(guard.ram_cap),
+		                                              _env.pd().ram_size(guard.ram_cap));
 		guard.buf = &buf;
 
-		_domain_registry.for_each_domain([&] (Io_mmu::Domain & domain) {
+		_domain_registry.for_each_domain([&] (Io_mmu::Domain &domain) {
 			domain.add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap);
 		});
 	} catch (Dma_allocator::Out_of_virtual_memory) { }
@@ -407,7 +407,7 @@ void Session_component::free_dma_buffer(Ram_dataspace_capability ram_cap)
 {
 	if (!ram_cap.valid()) { return; }
 
-	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer & buf) {
+	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer &buf) {
 		if (buf.cap.local_name() == ram_cap.local_name())
 			_free_dma_buffer(buf); });
 }
@@ -420,7 +420,7 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 	if (!ram_cap.valid())
 		return ret;
 
-	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer const & buf) {
+	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer const &buf) {
 		if (buf.cap.local_name() == ram_cap.local_name())
 			ret = buf.dma_addr; });
 
@@ -428,19 +428,19 @@ Genode::addr_t Session_component::dma_addr(Ram_dataspace_capability ram_cap)
 }
 
 
-Session_component::Session_component(Env                          & env,
-                                     Attached_rom_dataspace const & config,
-                                     Device_model                 & devices,
-                                     Session_registry             & registry,
-                                     Io_mmu_devices               & io_mmu_devices,
-                                     Registry<Irq_controller>     & irq_controller_registry,
-                                     Label          const         & label,
-                                     Resources      const         & resources,
-                                     Diag           const         & diag,
-                                     bool           const           info,
-                                     Policy_version const           version,
-                                     bool           const           dma_remapping,
-                                     bool           const           kernel_iommu)
+Session_component::Session_component(Env                          &env,
+                                     Attached_rom_dataspace const &config,
+                                     Device_model                 &devices,
+                                     Session_registry             &registry,
+                                     Io_mmu_devices               &io_mmu_devices,
+                                     Registry<Irq_controller>     &irq_controller_registry,
+                                     Label          const         &label,
+                                     Resources      const         &resources,
+                                     Diag           const         &diag,
+                                     bool           const          info,
+                                     Policy_version const          version,
+                                     bool           const          dma_remapping,
+                                     bool           const          kernel_iommu)
 :
 	Session_object<Platform::Session>(env.ep(), resources, label, diag),
 	Session_registry::Element(registry, *this),
@@ -472,7 +472,7 @@ Session_component::Session_component(Env                          & env,
 	 * construction.
 	 */
 	if (kernel_iommu)
-		_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+		_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
 			if (io_mmu_dev.name() == "kernel_iommu") {
 				_domain_registry.default_domain(io_mmu_dev,
 				                                heap(),
@@ -487,7 +487,7 @@ Session_component::Session_component(Env                          & env,
 	 * Iterate matching devices and reserve reserved memory regions at DMA
 	 * allocator.
 	 */
-	_devices.for_each([&] (Device const & dev) {
+	_devices.for_each([&] (Device const &dev) {
 		if (!matches(dev)) return;
 
 		dev.for_each_reserved_memory([&] (unsigned, Io_mmu::Range range) {
@@ -498,14 +498,14 @@ Session_component::Session_component(Env                          & env,
 
 Session_component::~Session_component()
 {
-	_device_registry.for_each([&] (Device_component & dc) {
+	_device_registry.for_each([&] (Device_component &dc) {
 		_release_device(dc); });
 
-	_domain_registry.for_each([&] (Io_mmu_domain & wrapper) {
+	_domain_registry.for_each([&] (Io_mmu_domain &wrapper) {
 		destroy(heap(), &wrapper); });
 
 	/* free up dma buffers */
-	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer & buf) {
+	_dma_allocator.buffer_registry().for_each([&] (Dma_buffer &buf) {
 		_free_dma_buffer(buf); });
 
 	/* replenish quota for rom sessions, see constructor for explanation */

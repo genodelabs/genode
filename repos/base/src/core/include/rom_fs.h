@@ -50,7 +50,7 @@ struct Core::Rom_module : Dictionary<Rom_module, Rom_name>::Element
 
 struct Core::Rom_fs : Dictionary<Rom_module, Rom_name>
 {
-	void print(Output & out) const
+	void print(Output &out) const
 	{
 		Genode::print(out, "ROM modules:\n");
 		for_each([&] (Rom_module const &rom) {

@@ -73,7 +73,7 @@ struct Main
 	                          trace_ram_quota,
 	                          arg_buffer_ram };
 
-	static unsigned _prio_levels_from_node(Node const &node, Env & env)
+	static unsigned _prio_levels_from_node(Node const &node, Env &env)
 	{
 		unsigned levels = node.attribute_value("prio_levels_log2", 0U);
 		if (levels == 0) {
@@ -87,8 +87,7 @@ struct Main
 	Main(Env &);
 };
 
-Main::Main(Env & env)
-: env(env)
+Main::Main(Env &env) : env(env)
 {
 	bool const start_at_zero = config.node().attribute_value("start_at_zero", true);
 	bool const inverse       = config.node().attribute_value("inverse", true);

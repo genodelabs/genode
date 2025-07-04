@@ -21,7 +21,7 @@
 /* local includes */
 #include <intel/irq_remap_table.h>
 
-Intel::Irq_remap::Hi::access_t Intel::Irq_remap::hi_val(Pci::Bdf const & bdf)
+Intel::Irq_remap::Hi::access_t Intel::Irq_remap::hi_val(Pci::Bdf const &bdf)
 {
 	return Hi::Svt::bits(Hi::Svt::SOURCE_ID) |
 	       Hi::Sq::bits(Hi::Sq::ALL_BITS) |
@@ -29,8 +29,8 @@ Intel::Irq_remap::Hi::access_t Intel::Irq_remap::hi_val(Pci::Bdf const & bdf)
 }
 
 
-Intel::Irq_remap::Lo::access_t Intel::Irq_remap::lo_val(Irq_session::Info                  const & info,
-                                                        Driver::Irq_controller::Irq_config const & config)
+Intel::Irq_remap::Lo::access_t Intel::Irq_remap::lo_val(Irq_session::Info                  const &info,
+                                                        Driver::Irq_controller::Irq_config const &config)
 {
 	using Irq_config = Driver::Irq_controller::Irq_config;
 

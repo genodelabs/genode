@@ -663,7 +663,7 @@ static void usb_host_update_ep(USBDevice *udev)
 
 	usb_ep_reset(udev);
 	_usb_session()->_space.apply<Device>({ handle },
-	                                     [&] (Device & device) {
+	                                     [&] (Device &device) {
 		device.with_active_interfaces([&] (::Interface &iface) {
 			iface.for_each_endpoint([&] (Endpoint &endp) {
 				int     const pid   = (endp.address() & USB_DIR_IN)
@@ -860,7 +860,7 @@ extern "C" void usb_host_update_device_transfers()
 	if (!_usb_session().constructed())
 		return;
 
-	_usb_session()->_model.for_each([&] (Device & device) {
+	_usb_session()->_model.for_each([&] (Device &device) {
 		device.update_urbs(); });
 }
 
@@ -889,7 +889,7 @@ static void usb_host_handle_data(USBDevice *udev, USBPacket *p)
 	uint8_t type = usb_ep_get_type(udev, p->pid, p->ep->nr);
 	uint8_t ep   = p->ep->nr | ((p->pid == USB_TOKEN_IN) ? USB_DIR_IN : 0);
 
-	_usb_session()->_space.apply<Device>({ handle }, [&] (Device & device) {
+	_usb_session()->_space.apply<Device>({ handle }, [&] (Device &device) {
 		device.with_active_interfaces([&] (::Interface &iface) {
 			iface.with_endpoint(ep, [&] (Endpoint &endp) {
 
@@ -938,7 +938,7 @@ static void usb_host_handle_control(USBDevice *udev, USBPacket *p,
 	}
 
 	_usb_session()->_space.apply<Device>({ handle },
-	                                     [&] (Device & device) {
+	                                     [&] (Device &device) {
 		p->status = USB_RET_ASYNC;
 		new (_usb_session()->_alloc)
 			Device::Urb(device, request & 0xff, (request >> 8) & 0xff,
@@ -954,7 +954,7 @@ static void usb_host_ep_stopped(USBDevice *udev, USBEndpoint *usb_ep)
 	handle_t handle = (handle_t)d->data;
 	uint8_t ep = usb_ep->nr | ((usb_ep->pid == USB_TOKEN_IN) ? USB_DIR_IN : 0);
 
-	_usb_session()->_space.apply<Device>({ handle }, [&] (Device & device) {
+	_usb_session()->_space.apply<Device>({ handle }, [&] (Device &device) {
 		device.with_active_interfaces([&] (::Interface &iface) {
 			iface.with_endpoint(ep, [&] (Endpoint &endp) {
 				endp.flush();

@@ -17,7 +17,7 @@
 
 using namespace Vmm;
 
-Mmio_register::Register Mmio_register::read(Address_range & access, Cpu &)
+Mmio_register::Register Mmio_register::read(Address_range &access, Cpu &)
 {
 	if (_type == WO)
 		throw Exception("Invalid read access to register ",
@@ -35,7 +35,7 @@ Mmio_register::Register Mmio_register::read(Address_range & access, Cpu &)
 }
 
 
-void Mmio_register::write(Address_range & access, Cpu &, Register value)
+void Mmio_register::write(Address_range &access, Cpu &, Register value)
 {
 	if (_type == RO)
 		throw Exception("Invalid write access to register ",
@@ -61,23 +61,23 @@ Mmio_register::Register Mmio_register::value() const { return _value; }
 void Mmio_register::set(Register value) { _value = value; }
 
 
-Mmio_device::Register Mmio_device::read(Address_range & access, Cpu & cpu)
+Mmio_device::Register Mmio_device::read(Address_range &access, Cpu &cpu)
 {
-	Mmio_register & reg = _registers.get<Mmio_register>(access);
+	Mmio_register &reg = _registers.get<Mmio_register>(access);
 	Address_range ar(access.start() - reg.start(), access.size());
 	return reg.read(ar, cpu);
 }
 
 
-void Mmio_device::write(Address_range & access, Cpu & cpu, Register value)
+void Mmio_device::write(Address_range &access, Cpu &cpu, Register value)
 {
-	Mmio_register & reg = _registers.get<Mmio_register>(access);
+	Mmio_register &reg = _registers.get<Mmio_register>(access);
 	Address_range ar(access.start() - reg.start(), access.size());
 	reg.write(ar, cpu, value);
 }
 
 
-void Mmio_device::add(Mmio_register & reg) { _registers.add(reg); }
+void Mmio_device::add(Mmio_register &reg) { _registers.add(reg); }
 
 
 void Vmm::Mmio_bus::handle_memory_access(Vcpu_state &state, Vmm::Cpu &cpu)
@@ -113,7 +113,7 @@ void Vmm::Mmio_bus::handle_memory_access(Vcpu_state &state, Vmm::Cpu &cpu)
 
 	try {
 		Address_range bus_range(ipa, width);
-		Mmio_device & dev = get<Mmio_device>(bus_range);
+		Mmio_device &dev = get<Mmio_device>(bus_range);
 		Address_range dev_range(ipa - dev.start(), width);
 		if (wr) {
 			dev.write(dev_range, cpu, state.reg(idx));
@@ -121,7 +121,7 @@ void Vmm::Mmio_bus::handle_memory_access(Vcpu_state &state, Vmm::Cpu &cpu)
 			/* on 32-bit ARM we do not support 64-bit data access */
 			state.reg(idx, (addr_t)dev.read(dev_range, cpu));
 		}
-	} catch(Exception & e) {
+	} catch(Exception &e) {
 		Genode::warning(e);
 		Genode::warning("Will ignore invalid bus access (IPA=",
 		                Genode::Hex(ipa), ")");

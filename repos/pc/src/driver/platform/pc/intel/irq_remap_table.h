@@ -141,10 +141,10 @@ class Intel::Irq_remap_table
 			return Irq_remap::Hi::Source_id::get(_entries[_hi_index(idx)]); }
 
 		template <typename FN>
-		Irq_info map(Irq_allocator    & irq_alloc,
-		             Pci::Bdf   const & bdf,
-		             Irq_info   const & info,
-		             Irq_config const & config,
+		Irq_info map(Irq_allocator    &irq_alloc,
+		             Pci::Bdf   const &bdf,
+		             Irq_info   const &info,
+		             Irq_config const &config,
 		             FN && fn)
 		{
 			using Format = Irq_remap::Irq_address::Format;
@@ -186,7 +186,7 @@ class Intel::Irq_remap_table
 				});
 		}
 
-		bool unmap(Irq_allocator & irq_alloc, Pci::Bdf const & bdf, unsigned idx)
+		bool unmap(Irq_allocator &irq_alloc, Pci::Bdf const &bdf, unsigned idx)
 		{
 			Pci::rid_t rid = Pci::Bdf::rid(bdf);
 
@@ -201,9 +201,9 @@ class Intel::Irq_remap_table
 			return false;
 		}
 
-		void generate(Xml_generator & xml)
+		void generate(Xml_generator &xml)
 		{
-			auto attribute_hex = [&] (Xml_generator & xml,
+			auto attribute_hex = [&] (Xml_generator &xml,
 			                          char const * name,
 			                          unsigned long long value)
 			{

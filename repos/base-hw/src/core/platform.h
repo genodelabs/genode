@@ -57,7 +57,7 @@ class Core::Platform : public Platform_generic
 		Rom_fs             _rom_fs         { }; /* ROM file system        */
 
 		static Hw::Boot_info<Board::Boot_info> const &_boot_info();
-		static Hw::Memory_region_array const & _core_virt_regions();
+		static Hw::Memory_region_array const &_core_virt_regions();
 
 		/**
 		 * Initialize I/O port allocator
@@ -127,8 +127,8 @@ class Core::Platform : public Platform_generic
 
 		static addr_t core_phys_addr(addr_t virt);
 
-		static addr_t                      core_page_table();
-		static Hw::Page_table::Allocator & core_page_table_allocator();
+		static addr_t                     core_page_table();
+		static Hw::Page_table::Allocator &core_page_table_allocator();
 
 		/**
 		 * Determine size of a core local mapping required for a

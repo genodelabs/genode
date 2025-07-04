@@ -103,7 +103,7 @@ Vm_session_component::~Vm_session_component()
 		if (!_vcpus[i].constructed())
 			continue;
 
-		Vcpu & vcpu = *_vcpus[i];
+		Vcpu &vcpu = *_vcpus[i];
 		if (vcpu.state().valid())
 			_local_rm.detach(vcpu.ds_addr);
 	}

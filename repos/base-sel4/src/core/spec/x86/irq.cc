@@ -12,7 +12,7 @@
 using namespace Core;
 
 
-long Irq_object::_associate(Irq_args const & args)
+long Irq_object::_associate(Irq_args const &args)
 {
 	enum { IRQ_EDGE = 0, IRQ_LEVEL = 1 };
 	enum { IRQ_HIGH = 0, IRQ_LOW = 1 };

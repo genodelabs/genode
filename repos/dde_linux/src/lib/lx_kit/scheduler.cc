@@ -55,7 +55,7 @@ bool Scheduler::active() const
 }
 
 
-void Scheduler::add(Task & task)
+void Scheduler::add(Task &task)
 {
 	Task * prev = nullptr;
 	Task * next = _present_list.first();
@@ -68,7 +68,7 @@ void Scheduler::add(Task & task)
 }
 
 
-void Scheduler::remove(Task & task)
+void Scheduler::remove(Task &task)
 {
 	_present_list.remove(&task);
 }

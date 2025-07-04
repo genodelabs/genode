@@ -47,7 +47,7 @@ static inline uint32_t to_phys(uint32_t addr)
 }
 
 
-static void for_each_mode(mb_vbe_ctrl_t const & ctrl_info, auto const & fn)
+static void for_each_mode(mb_vbe_ctrl_t const &ctrl_info, auto const &fn)
 {
 	/*
 	 * The virtual address of the ctrl_info mapping may change on x86_cmd
@@ -65,9 +65,9 @@ static void for_each_mode(mb_vbe_ctrl_t const & ctrl_info, auto const & fn)
 }
 
 
-static uint16_t get_vesa_mode(mb_vbe_ctrl_t const & ctrl_info,
-                              mb_vbe_mode_t const & mode_info,
-                              Capture::Area & phys, Capture::Area & virt,
+static uint16_t get_vesa_mode(mb_vbe_ctrl_t const &ctrl_info,
+                              mb_vbe_mode_t const &mode_info,
+                              Capture::Area &phys, Capture::Area &virt,
                               unsigned const depth, bool const verbose)
 {
 	bool choose_highest_resolution_mode = !virt.valid();
@@ -77,7 +77,7 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t const & ctrl_info,
 	if (verbose)
 		log("Supported mode list");
 
-	auto const & fn = [&](auto const & mode) {
+	auto const &fn = [&](auto const &mode) {
 
 		enum { DIRECT_COLOR = 0x06 };
 		if (mode_info.memory_model != DIRECT_COLOR)
@@ -135,11 +135,11 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t const & ctrl_info,
 }
 
 
-static void generate_report(Xml_generator       & xml,
-                            mb_vbe_ctrl_t const & ctrl_info,
-                            mb_vbe_mode_t const & mode_info,
-                            unsigned      const   depth,
-                            uint16_t      const   vesa_mode)
+static void generate_report(Xml_generator       &xml,
+                            mb_vbe_ctrl_t const &ctrl_info,
+                            mb_vbe_mode_t const &mode_info,
+                            unsigned      const  depth,
+                            uint16_t      const  vesa_mode)
 {
 	xml.node("merge", [&]() {
 		xml.attribute("name", "mirror");
@@ -148,7 +148,7 @@ static void generate_report(Xml_generator       & xml,
 			xml.attribute("connected", true);
 			xml.attribute("name", "VESA");
 
-			for_each_mode(ctrl_info, [&](auto const & mode) {
+			for_each_mode(ctrl_info, [&](auto const &mode) {
 
 				enum { DIRECT_COLOR = 0x06 };
 				if (mode_info.memory_model != DIRECT_COLOR)
@@ -221,15 +221,15 @@ int Framebuffer::map_io_mem(addr_t base, size_t size, bool write_combined,
 }
 
 
-int Framebuffer::set_mode(Expanding_reporter & reporter,
-                          Capture::Area & phys, Capture::Area & virt,
+int Framebuffer::set_mode(Expanding_reporter &reporter,
+                          Capture::Area &phys, Capture::Area &virt,
                           unsigned const depth)
 {
 	/* set location of data types */
-	auto & ctrl_info = *reinterpret_cast<mb_vbe_ctrl_t*>(X86emu::x86_mem.data_addr()
-	                                                     + VESA_CTRL_OFFS);
-	auto & mode_info = *reinterpret_cast<mb_vbe_mode_t*>(X86emu::x86_mem.data_addr()
-	                                                     + VESA_MODE_OFFS);
+	auto &ctrl_info = *reinterpret_cast<mb_vbe_ctrl_t*>(X86emu::x86_mem.data_addr()
+	                                                    + VESA_CTRL_OFFS);
+	auto &mode_info = *reinterpret_cast<mb_vbe_mode_t*>(X86emu::x86_mem.data_addr()
+	                                                    + VESA_MODE_OFFS);
 
 	/* request VBE 2.0 information */
 	memcpy(ctrl_info.signature, "VBE2", 4);
@@ -296,7 +296,7 @@ int Framebuffer::set_mode(Expanding_reporter & reporter,
 	if (verbose)
 		X86emu::print_regions();
 
-	reporter.generate([&] (auto & xml) {
+	reporter.generate([&] (auto &xml) {
 		generate_report(xml, ctrl_info, mode_info, depth, vesa_mode); });
 
 	return 0;

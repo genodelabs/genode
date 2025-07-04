@@ -269,7 +269,7 @@ static inline void parse_multi_boot_2(::Board::Boot_info      &info,
 {
 	Multiboot2_info mbi2(__initial_bx);
 
-	mbi2.for_each_tag([&] (Multiboot2_info::Memory const & m) {
+	mbi2.for_each_tag([&] (Multiboot2_info::Memory const &m) {
 		uint32_t const type = m.read<Multiboot2_info::Memory::Type>();
 
 		if (type != Multiboot2_info::Memory::Type::MEMORY)
@@ -298,7 +298,7 @@ static inline void parse_multi_boot_2(::Board::Boot_info      &info,
 }
 
 
-static inline void acpi_system_description_table(Hw::Acpi_rsdp & acpi_rsdp,
+static inline void acpi_system_description_table(Hw::Acpi_rsdp &acpi_rsdp,
                                                  auto const &per_table)
 {
 	if (!acpi_rsdp.valid())
@@ -323,7 +323,7 @@ static inline void acpi_system_description_table(Hw::Acpi_rsdp & acpi_rsdp,
 }
 
 
-static inline void for_each_cpu(Hw::Acpi_rsdp & acpi_rsdp,
+static inline void for_each_cpu(Hw::Acpi_rsdp &acpi_rsdp,
                                 auto const &per_cpu_fn)
 {
 	auto lambda = [&] (Hw::Acpi_generic &table, uint64_t) {

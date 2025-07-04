@@ -107,8 +107,8 @@ namespace Mp_server_test {
 		return cap;
 	}
 	
-	static void execute(Genode::Env & env, Genode::Heap & heap,
-	                    Genode::Affinity::Space & cpus)
+	static void execute(Genode::Env &env, Genode::Heap &heap,
+	                    Genode::Affinity::Space &cpus)
 	{
 		using namespace Genode;
 
@@ -177,8 +177,8 @@ namespace Affinity_test {
 			start(); }
 	};
 
-	void execute(Genode::Env &env, Genode::Heap & heap,
-	             Genode::Affinity::Space & cpus)
+	void execute(Genode::Env &env, Genode::Heap &heap,
+	             Genode::Affinity::Space &cpus)
 	{
 		using namespace Genode;
 
@@ -299,8 +299,8 @@ namespace Tlb_shootdown_test {
 		Thread &operator = (Thread const &);
 	};
 
-	void execute(Genode::Env &env, Genode::Heap & heap,
-	             Genode::Affinity::Space & cpus)
+	void execute(Genode::Env &env, Genode::Heap &heap,
+	             Genode::Affinity::Space &cpus)
 	{
 		using namespace Genode;
 
@@ -521,7 +521,7 @@ namespace Tsc_test {
 	}
 }
 
-void Component::construct(Genode::Env & env)
+void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
 

@@ -73,7 +73,7 @@ Bit_allocator<64> &msi_allocator()
 }
 
 
-bool Platform::alloc_msi_vector(addr_t & address, addr_t & value)
+bool Platform::alloc_msi_vector(addr_t &address, addr_t &value)
 {
 	return msi_allocator().alloc().convert<bool>(
 		[&] (addr_t const v) {

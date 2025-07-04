@@ -39,7 +39,7 @@ class Platform::Connection : public Genode::Connection<Session>,
 		friend class Device;
 		friend class Dma_buffer;
 
-		Env                             & _env;
+		Env                              &_env;
 		Rom_session_client                _rom     { devices_rom() };
 		Constructible<Attached_dataspace> _ds      {};
 		Io_signal_handler<Connection>     _handler { _env.ep(), *this,

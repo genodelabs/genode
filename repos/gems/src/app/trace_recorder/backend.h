@@ -39,7 +39,7 @@ class Trace_recorder::Backend_base : Backends::Element
 		using Name = Backend_name;
 		using Backends::Element::name;
 
-		Backend_base(Backends & backends, Name const &name)
+		Backend_base(Backends &backends, Name const &name)
 		: Backends::Element(backends, name)
 		{ }
 

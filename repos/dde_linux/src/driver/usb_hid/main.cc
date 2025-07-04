@@ -93,4 +93,4 @@ struct Main
 };
 
 
-void Component::construct(Env & env) { static Main main(env); }
+void Component::construct(Env &env) { static Main main(env); }

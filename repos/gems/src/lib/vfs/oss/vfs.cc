@@ -323,7 +323,7 @@ struct Vfs::Oss_file_system::Audio
 
 			void _for_each_session(auto const &fn)
 			{
-				for (auto & session : _session)
+				for (auto &session : _session)
 					if (session.constructed())
 						fn(*session);
 			}
@@ -367,7 +367,7 @@ struct Vfs::Oss_file_system::Audio
 					_create_sessions(_env);
 
 				unsigned buffer_idx = 0;
-				_for_each_session([&] (Play::Connection & session) {
+				_for_each_session([&] (Play::Connection &session) {
 					if (first) {
 						_time_window = session.schedule_and_enqueue(_time_window, _duration,
 							[&] (auto &submit) {
@@ -401,13 +401,13 @@ struct Vfs::Oss_file_system::Audio
 			{
 				_timer.stop();
 
-				_for_each_session([&] (Play::Connection & session) {
+				_for_each_session([&] (Play::Connection &session) {
 					session.stop();
 				});
 
 				_destroy_sessions();
 
-				for (auto & buffer : _session_buffer)
+				for (auto &buffer : _session_buffer)
 					buffer.reset();
 
 				_time_window = Play::Time_window { };
@@ -525,7 +525,7 @@ struct Vfs::Oss_file_system::Audio
 
 			void _for_each_record_session(auto const &fn)
 			{
-				for (auto & session : _session)
+				for (auto &session : _session)
 					if (session.constructed())
 						fn(*session);
 			}
@@ -563,7 +563,7 @@ struct Vfs::Oss_file_system::Audio
 			{
 				_timer.stop();
 
-				for (auto & buffer : _session_buffer)
+				for (auto &buffer : _session_buffer)
 					buffer.reset();
 
 				_destroy_sessions();

@@ -181,7 +181,7 @@ Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 
 
 template <unsigned A, unsigned B, typename C>
-void Capability_space_sel4<A, B, C>::_cleanup_last_ref(Native_capability::Data & data)
+void Capability_space_sel4<A, B, C>::_cleanup_last_ref(Native_capability::Data &data)
 {
 	Cap_sel const sel(local_capability_space().sel(data));
 

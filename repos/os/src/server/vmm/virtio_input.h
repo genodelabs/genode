@@ -51,9 +51,9 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 {
 	private:
 
-		Env                      & _env;
-		Heap                     & _heap;
-		Input::Session_client    & _input;
+		Env                       &_env;
+		Heap                      &_heap;
+		Input::Session_client     &_input;
 		Attached_dataspace         _input_ds { _env.rm(), _input.dataspace() };
 		Input::Event const * const _events   {
 			_input_ds.local_addr<Input::Event>() };
@@ -78,7 +78,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 
 		struct Configuration_area : Mmio_register
 		{
-			Virtio_input_device & dev;
+			Virtio_input_device &dev;
 
 			struct Abs_info
 			{
@@ -175,7 +175,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 				return 0;
 			}
 
-			Register read(Address_range & range,  Cpu&) override
+			Register read(Address_range &range, Cpu &) override
 			{
 				if (range.start() == SIZE)
 					return _size();
@@ -188,7 +188,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 				return 0;
 			}
 
-			void write(Address_range & range,  Cpu&, Register v) override
+			void write(Address_range &range, Cpu &, Register v) override
 			{
 				switch (range.start()) {
 				case SELECT:     _select     = (uint8_t)v; return;
@@ -199,7 +199,7 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 				}
 			}
 
-			Configuration_area(Virtio_input_device & device)
+			Configuration_area(Virtio_input_device &device)
 			:
 				Mmio_register("Input config area", Mmio_register::RO,
 				              0x100, 0xa4, device.registers()),
@@ -292,17 +292,17 @@ class Vmm::Virtio_input_device : public Virtio_device<Virtio_split_queue, 2>
 
 	public:
 
-		Virtio_input_device(const char * const      name,
-		                    const uint64_t          addr,
-		                    const uint64_t          size,
-		                    unsigned                irq,
-		                    Cpu                   & cpu,
-		                    Mmio_bus              & bus,
-		                    Ram                   & ram,
-		                    Virtio_device_list    & list,
-		                    Env                   & env,
-		                    Heap                  & heap,
-		                    Input::Session_client & input)
+		Virtio_input_device(const char * const     name,
+		                    const uint64_t         addr,
+		                    const uint64_t         size,
+		                    unsigned               irq,
+		                    Cpu                   &cpu,
+		                    Mmio_bus              &bus,
+		                    Ram                   &ram,
+		                    Virtio_device_list    &list,
+		                    Env                   &env,
+		                    Heap                  &heap,
+		                    Input::Session_client &input)
 		:
 			Virtio_device<Virtio_split_queue, 2>(name, addr, size, irq,
 			                                     cpu, bus, ram, list, INPUT),

@@ -75,7 +75,7 @@ struct Libc::Pthread_pool
 			p->blockade.wakeup();
 	}
 
-	uint64_t suspend_myself(Suspend_functor & check, uint64_t timeout_ms)
+	uint64_t suspend_myself(Suspend_functor &check, uint64_t timeout_ms)
 	{
 		Pthread myself { timer_accessor, timeout_ms };
 		{

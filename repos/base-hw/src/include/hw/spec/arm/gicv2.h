@@ -187,7 +187,7 @@ class Hw::Gicv2
 		 *
 		 * \param irq  contains kernel name of taken IRQ on success
 		 */
-		bool take_request(unsigned & irq)
+		bool take_request(unsigned &irq)
 		{
 			_last_iar = _cpui.read<Cpu_interface::Iar>();
 			irq = Cpu_interface::Iar::Irq_id::get(_last_iar);

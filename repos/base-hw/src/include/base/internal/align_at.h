@@ -28,7 +28,7 @@ class Genode::Align_at
 		static constexpr Genode::size_t ALIGN = alignof(T);
 
 		char _space[sizeof(T) + ALIGN - 1];
-		T &  _obj;
+		T   &_obj;
 
 		void * _start_addr()
 		{

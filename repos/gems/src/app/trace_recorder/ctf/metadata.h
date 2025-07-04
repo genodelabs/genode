@@ -65,12 +65,12 @@ class Ctf::Metadata
 
 	public:
 
-		Metadata(Attached_rom_dataspace & metadata_rom, uint64_t freq)
+		Metadata(Attached_rom_dataspace &metadata_rom, uint64_t freq)
 		: _metadata_rom(metadata_rom),
 		  _timestamp_freq(freq)
 		{ }
 
-		void write_file(Genode::New_file & dst) const
+		void write_file(Genode::New_file &dst) const
 		{
 			using namespace Genode;
 

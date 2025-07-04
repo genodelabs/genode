@@ -29,13 +29,13 @@ class Driver::Root : public Root_component<Session_component>,
 {
 	public:
 
-		Root(Env                          & env,
-		     Sliced_heap                  & sliced_heap,
-		     Attached_rom_dataspace const & config,
-		     Device_model                 & devices,
-		     Io_mmu_devices               & io_mmu_devices,
-		     Registry<Irq_controller>     & irq_controller_registry,
-		     bool const                     kernel_iommu);
+		Root(Env                          &env,
+		     Sliced_heap                  &sliced_heap,
+		     Attached_rom_dataspace const &config,
+		     Device_model                 &devices,
+		     Io_mmu_devices               &io_mmu_devices,
+		     Registry<Irq_controller>     &irq_controller_registry,
+		     bool const                    kernel_iommu);
 
 		void update_policy();
 
@@ -48,7 +48,7 @@ class Driver::Root : public Root_component<Session_component>,
 			 * created. We therefore need to propagate this to the already
 			 * created sessions.
 			 */
-			_sessions.for_each([&] (Session_component & sess) {
+			_sessions.for_each([&] (Session_component &sess) {
 			        sess.enable_dma_remapping();
 			});
 		}
@@ -66,14 +66,14 @@ class Driver::Root : public Root_component<Session_component>,
 
 		void _upgrade_session(Session_component &, const char *) override;
 
-		Env                          & _env;
-		Attached_rom_dataspace const & _config;
-		Device_model                 & _devices;
-		Io_mmu_devices               & _io_mmu_devices;
-		Registry<Irq_controller>     & _irq_controller_registry;
-		bool                           _io_mmu_present { false };
-		bool const                     _kernel_iommu;
-		Registry<Session_component>    _sessions {};
+		Env                          &_env;
+		Attached_rom_dataspace const &_config;
+		Device_model                 &_devices;
+		Io_mmu_devices               &_io_mmu_devices;
+		Registry<Irq_controller>     &_irq_controller_registry;
+		bool                          _io_mmu_present { false };
+		bool const                    _kernel_iommu;
+		Registry<Session_component>   _sessions {};
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__ROOT_H_ */

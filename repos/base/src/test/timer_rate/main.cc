@@ -176,7 +176,7 @@ class Main
 		}
 };
 
-void Component::construct(Env & env)
+void Component::construct(Env &env)
 {
 	static Main main { env };
 }

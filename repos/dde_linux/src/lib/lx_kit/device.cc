@@ -100,7 +100,7 @@ void Device::Irq::unmask(Platform::Device &dev)
 }
 
 
-Device::Irq::Irq(Entrypoint & ep, unsigned idx, unsigned number)
+Device::Irq::Irq(Entrypoint &ep, unsigned idx, unsigned number)
 :
 	idx{idx},
 	number(number),
@@ -127,7 +127,7 @@ Device::Name Device::name()
 clk * Device::clock(const char * name)
 {
 	clk * ret = nullptr;
-	_for_each_clock([&] (Clock & c) {
+	_for_each_clock([&] (Clock &c) {
 		if (c.name == name) {
 			enable();
 			ret = &c.lx_clock;
@@ -140,7 +140,7 @@ clk * Device::clock(const char * name)
 clk * Device::clock(unsigned idx)
 {
 	clk * ret = nullptr;
-	_for_each_clock([&] (Clock & c) {
+	_for_each_clock([&] (Clock &c) {
 		if (c.idx == idx) {
 			enable();
 			ret = &c.lx_clock;
@@ -153,7 +153,7 @@ clk * Device::clock(unsigned idx)
 bool Device::io_mem(addr_t phys_addr, size_t size)
 {
 	bool ret = false;
-	for_each_io_mem([&] (Io_mem & io) {
+	for_each_io_mem([&] (Io_mem &io) {
 		if (io.match(phys_addr, size))
 			ret = true;
 	});
@@ -164,7 +164,7 @@ bool Device::io_mem(addr_t phys_addr, size_t size)
 void * Device::io_mem_local_addr(addr_t phys_addr, size_t size)
 {
 	void * ret = nullptr;
-	for_each_io_mem([&] (Io_mem & io) {
+	for_each_io_mem([&] (Io_mem &io) {
 		if (!io.match(phys_addr, size))
 			return;
 
@@ -186,7 +186,7 @@ int Device::pending_irq()
 
 	int result = -1;
 
-	for_each_irq([&] (Irq & irq) {
+	for_each_irq([&] (Irq &irq) {
 		if (result == -1 && irq.state == Irq::PENDING)
 			result = irq.number;
 	});
@@ -199,7 +199,7 @@ bool Device::irq_unmask(unsigned number)
 {
 	bool ret = false;
 
-	for_each_irq([&] (Irq & irq) {
+	for_each_irq([&] (Irq &irq) {
 		if (irq.number != number)
 			return;
 
@@ -217,7 +217,7 @@ void Device::irq_mask(unsigned number)
 	if (!_pdev.constructed())
 		return;
 
-	for_each_irq([&] (Irq & irq) {
+	for_each_irq([&] (Irq &irq) {
 		if (irq.number == number) irq.mask(); });
 }
 
@@ -227,7 +227,7 @@ void Device::irq_ack(unsigned number)
 	if (!_pdev.constructed())
 		return;
 
-	for_each_irq([&] (Irq & irq) {
+	for_each_irq([&] (Irq &irq) {
 		if (irq.number != number)
 			return;
 		irq.ack();
@@ -238,7 +238,7 @@ void Device::irq_ack(unsigned number)
 bool Device::io_port(uint16_t addr)
 {
 	bool ret = false;
-	for_each_io_port([&] (Io_port & io) {
+	for_each_io_port([&] (Io_port &io) {
 		if (io.match(addr))
 			ret = true;
 	});
@@ -249,7 +249,7 @@ bool Device::io_port(uint16_t addr)
 uint8_t Device::io_port_inb(uint16_t addr)
 {
 	uint8_t ret = 0;
-	for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port &io) {
 		if (!io.match(addr))
 			return;
 
@@ -266,7 +266,7 @@ uint8_t Device::io_port_inb(uint16_t addr)
 uint16_t Device::io_port_inw(uint16_t addr)
 {
 	uint16_t ret = 0;
-	for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port &io) {
 		if (!io.match(addr))
 			return;
 
@@ -283,7 +283,7 @@ uint16_t Device::io_port_inw(uint16_t addr)
 uint32_t Device::io_port_inl(uint16_t addr)
 {
 	uint32_t ret = 0;
-	for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port &io) {
 		if (!io.match(addr))
 			return;
 
@@ -299,7 +299,7 @@ uint32_t Device::io_port_inl(uint16_t addr)
 
 void Device::io_port_outb(uint16_t addr, uint8_t val)
 {
-	for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port &io) {
 		if (!io.match(addr))
 			return;
 
@@ -313,7 +313,7 @@ void Device::io_port_outb(uint16_t addr, uint8_t val)
 
 void Device::io_port_outw(uint16_t addr, uint16_t val)
 {
-	for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port &io) {
 		if (!io.match(addr))
 			return;
 
@@ -327,7 +327,7 @@ void Device::io_port_outw(uint16_t addr, uint16_t val)
 
 void Device::io_port_outl(uint16_t addr, uint32_t val)
 {
-	for_each_io_port([&] (Device::Io_port & io) {
+	for_each_io_port([&] (Device::Io_port &io) {
 		if (!io.match(addr))
 			return;
 
@@ -363,10 +363,10 @@ void Device::enable()
 }
 
 
-Device::Device(Entrypoint           & ep,
-               Platform::Connection & plat,
-               Node           const & node,
-               Heap                 & heap)
+Device::Device(Entrypoint           &ep,
+               Platform::Connection &plat,
+               Node           const &node,
+               Heap                 &heap)
 :
 	_platform(plat),
 	_name(node.attribute_value("name", Device::Name())),
@@ -416,9 +416,9 @@ Device::Device(Entrypoint           & ep,
  ** Device_list **
  *****************/
 
-Device_list::Device_list(Entrypoint           & ep,
-                         Heap                 & heap,
-                         Platform::Connection & platform)
+Device_list::Device_list(Entrypoint           &ep,
+                         Heap                 &heap,
+                         Platform::Connection &platform)
 :
 	_platform(platform)
 {

@@ -155,13 +155,13 @@ bool Task::destroy() const
 }
 
 
-Task::Task(int       (* func)(void*),
-           void       * arg,
-           void       * lx_task,
-           int          pid,
-           char const * name,
-           Scheduler  & scheduler,
-           Type         type)
+Task::Task(int       (*func)(void*),
+           void       *arg,
+           void       *lx_task,
+           int         pid,
+           char const *name,
+           Scheduler  &scheduler,
+           Type        type)
 : _type(type),
   _scheduler(scheduler),
   _lx_task(lx_task),

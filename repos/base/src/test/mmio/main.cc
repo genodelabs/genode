@@ -52,7 +52,7 @@ struct Cpu_state : Register<16>
 
 	inline static access_t read() { return cpu_state; }
 
-	inline static void write(access_t & v) { cpu_state = v; }
+	inline static void write(access_t &v) { cpu_state = v; }
 };
 
 /**

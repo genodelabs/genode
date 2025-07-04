@@ -62,13 +62,13 @@ struct Hypervisor::Host_context
 } vt_host_context;
 
 
-static Hypervisor::Host_context & host_context(Cpu & cpu)
+static Hypervisor::Host_context & host_context(Cpu &cpu)
 {
 	static Genode::Constructible<Hypervisor::Host_context>
 		host_context[Board::NR_OF_CPUS];
 	if (!host_context[cpu.id()].constructed()) {
 		host_context[cpu.id()].construct();
-		Hypervisor::Host_context & c = *host_context[cpu.id()];
+		Hypervisor::Host_context &c = *host_context[cpu.id()];
 		c.sp     = cpu.stack_start();
 		c.ttbr0  = Cpu::Ttbr0_64bit::read();
 		c.ttbr1  = Cpu::Ttbr1_64bit::read();
@@ -88,7 +88,7 @@ static Hypervisor::Host_context & host_context(Cpu & cpu)
 }
 
 
-Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
+Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu &cpu)
 :
 	Kernel::Irq { irq, cpu.irq_pool(), cpu.pic() },
 	_cpu        { cpu }
@@ -107,7 +107,7 @@ void Board::Vcpu_context::Vm_irq::occurred()
 }
 
 
-Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu & cpu)
+Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu &cpu)
 :
 	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
 {
@@ -116,7 +116,7 @@ Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu & cpu)
 }
 
 
-Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu & cpu)
+Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu &cpu)
 :
 	irq(Board::VT_TIMER_IRQ, cpu)
 { }

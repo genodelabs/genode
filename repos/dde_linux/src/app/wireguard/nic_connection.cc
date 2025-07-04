@@ -213,7 +213,7 @@ void Nic_connection::_handle_link_state()
 
 void Nic_connection::for_each_rx_packet(Handle_packet_func handle_packet)
 {
-	typename Nic::Connection::Rx::Sink & rx_sink = *_connection.rx();
+	typename Nic::Connection::Rx::Sink &rx_sink = *_connection.rx();
 
 	for (;;) {
 

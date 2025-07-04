@@ -68,9 +68,9 @@ bool Device_pd::Region_map_client::upgrade_caps()
 }
 
 
-void Device_pd::add_range(Io_mmu::Range        const & range,
+void Device_pd::add_range(Io_mmu::Range        const &range,
                           addr_t               const,
-                          Dataspace_capability const   cap)
+                          Dataspace_capability const cap)
 {
 	using namespace Genode;
 
@@ -108,14 +108,14 @@ void Device_pd::add_range(Io_mmu::Range        const & range,
 }
 
 
-void Device_pd::remove_range(Io_mmu::Range const & range)
+void Device_pd::remove_range(Io_mmu::Range const &range)
 {
 	_address_space.detach(range.start);
 }
 
 
 void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
-                                  Pci::Bdf                    const & bdf)
+                                  Pci::Bdf                    const &bdf)
 {
 	_address_space.attach(io_mem_cap, {
 		.size       = 0x1000,  .offset    = { },
@@ -147,12 +147,12 @@ void Device_pd::disable_pci_device(Pci::Bdf const &)
 
 
 
-Device_pd::Device_pd(Env                        & env,
-                     Ram_quota_guard            & ram_guard,
-                     Cap_quota_guard            & cap_guard,
-                     Kernel_iommu               & io_mmu,
-                     Allocator                  & md_alloc,
-                     Registry<Dma_buffer> const & buffer_registry)
+Device_pd::Device_pd(Env                        &env,
+                     Ram_quota_guard            &ram_guard,
+                     Cap_quota_guard            &cap_guard,
+                     Kernel_iommu               &io_mmu,
+                     Allocator                  &md_alloc,
+                     Registry<Dma_buffer> const &buffer_registry)
 
 :
 	Io_mmu::Domain(io_mmu, md_alloc),
@@ -161,6 +161,6 @@ Device_pd::Device_pd(Env                        & env,
 {
 	_pd.ref_account(env.pd_session_cap());
 
-	buffer_registry.for_each([&] (Dma_buffer const & buf) {
+	buffer_registry.for_each([&] (Dma_buffer const &buf) {
 		add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap); });
 }

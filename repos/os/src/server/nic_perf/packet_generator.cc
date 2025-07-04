@@ -24,7 +24,7 @@ void Nic_perf::Packet_generator::_handle_timeout(Genode::Duration)
 	_interface.handle_packet_stream();
 }
 
-void Nic_perf::Packet_generator::handle_arp_reply(Arp_packet const & arp)
+void Nic_perf::Packet_generator::handle_arp_reply(Arp_packet const &arp)
 {
 	if (arp.src_ip() != _dst_ip)
 		return;
@@ -39,10 +39,10 @@ void Nic_perf::Packet_generator::handle_arp_reply(Arp_packet const & arp)
 }
 
 
-void Nic_perf::Packet_generator::_generate_arp_request(void               * pkt_base,
-                                                       Size_guard         & size_guard,
-                                                       Mac_address  const & from_mac,
-                                                       Ipv4_address const & from_ip)
+void Nic_perf::Packet_generator::_generate_arp_request(void               *pkt_base,
+                                                       Size_guard         &size_guard,
+                                                       Mac_address  const &from_mac,
+                                                       Ipv4_address const &from_ip)
 {
 	if (from_ip == Ipv4_address()) {
 		error("Ip address not set");
@@ -67,10 +67,10 @@ void Nic_perf::Packet_generator::_generate_arp_request(void               * pkt_
 }
 
 
-void Nic_perf::Packet_generator::_generate_test_packet(void               * pkt_base,
-                                                       Size_guard         & size_guard,
-                                                       Mac_address  const & from_mac,
-                                                       Ipv4_address const & from_ip)
+void Nic_perf::Packet_generator::_generate_test_packet(void               *pkt_base,
+                                                       Size_guard         &size_guard,
+                                                       Mac_address  const &from_mac,
+                                                       Ipv4_address const &from_ip)
 {
 	if (from_ip == Ipv4_address()) {
 		error("Ip address not set");
@@ -112,10 +112,10 @@ void Nic_perf::Packet_generator::_generate_test_packet(void               * pkt_
 }
 
 
-void Nic_perf::Packet_generator::generate(void               * pkt_base,
-                                          Size_guard         & size_guard,
-                                          Mac_address  const & from_mac,
-                                          Ipv4_address const & from_ip)
+void Nic_perf::Packet_generator::generate(void               *pkt_base,
+                                          Size_guard         &size_guard,
+                                          Mac_address  const &from_mac,
+                                          Ipv4_address const &from_ip)
 {
 	switch (_state) {
 		case READY:

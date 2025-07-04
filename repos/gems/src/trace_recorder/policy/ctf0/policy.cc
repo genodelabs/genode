@@ -73,7 +73,7 @@ size_t signal_submit(char *dst, unsigned const num)
 	return sizeof(Signal_submit);
 }
 
-size_t signal_receive(char *dst, Signal_context const & context, unsigned num)
+size_t signal_receive(char *dst, Signal_context const &context, unsigned num)
 {
 	new (dst) Signal_receive(num, (void*)&context);
 	return 0;

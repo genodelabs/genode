@@ -508,7 +508,7 @@ class Usb::Device
 		Name _first_device_name();
 
 		template <typename FN>
-		void _for_each_iface(FN const & fn);
+		void _for_each_iface(FN const &fn);
 
 		Interface::Index _interface_index(Interface::Type);
 
@@ -719,7 +719,7 @@ inline Usb::Device::Name Usb::Device::_first_device_name()
 }
 
 
-void Usb::Device::_for_each_iface(auto const & fn)
+void Usb::Device::_for_each_iface(auto const &fn)
 {
 	_session.with_node([&] (Node const &node) {
 		node.for_each_sub_node("device", [&] (Node const &node) {

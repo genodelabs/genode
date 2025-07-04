@@ -14,10 +14,10 @@
 /* local includes */
 #include <intel/managed_root_table.h>
 
-void Intel::Managed_root_table::remove_context(Pci::Bdf const & bdf,
-                                               addr_t           phys_addr)
+void Intel::Managed_root_table::remove_context(Pci::Bdf const &bdf,
+                                               addr_t          phys_addr)
 {
-	_with_context_table(bdf.bus, [&] (Context_table & ctx) {
+	_with_context_table(bdf.bus, [&] (Context_table &ctx) {
 		Pci::rid_t      rid = Pci::Bdf::rid(bdf);
 
 		if (ctx.stage2_pointer(rid) != phys_addr)
@@ -31,7 +31,7 @@ void Intel::Managed_root_table::remove_context(Pci::Bdf const & bdf,
 void Intel::Managed_root_table::remove_context(addr_t phys_addr)
 {
 	Root_table::for_each([&] (uint8_t bus) {
-		_with_context_table(bus, [&] (Context_table & ctx) {
+		_with_context_table(bus, [&] (Context_table &ctx) {
 			Context_table::for_each(0, [&] (Pci::rid_t id) {
 				if (!ctx.present(id))
 					return;
@@ -55,7 +55,7 @@ Intel::Managed_root_table::~Managed_root_table()
 
 	/* destruct context tables */
 	_table_allocator.with_table<Root_table>(_root_table_phys,
-		[&] (Root_table & root_table) {
+		[&] (Root_table &root_table) {
 			Root_table::for_each([&] (uint8_t bus) {
 				if (root_table.present(bus)) {
 					addr_t phys_addr = root_table.address(bus);

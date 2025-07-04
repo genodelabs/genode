@@ -258,7 +258,7 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              Attach_attr const attribute)
 {
 	using Nova::Utcb;
-	Utcb & utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 	addr_t const src_pd = platform_specific().core_pd_sel();
 
 	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,

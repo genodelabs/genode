@@ -49,10 +49,10 @@ class Click
 			PERIOD_FSIZE = CHANNELS * PERIOD_CSIZE, /* size of period in file (bytes) */
 		};
 
-		Env & _env;
+		Env &_env;
 		Constructible<Audio_out::Connection> _audio_out[CHANNELS];
 
-		Filename const & _name;
+		Filename const &_name;
 
 		Attached_rom_dataspace _sample_ds { _env, _name.string() };
 		char     const * const _base = _sample_ds.local_addr<char const>();
@@ -60,7 +60,7 @@ class Click
 
 	public:
 
-		Click(Env & env, Filename const & name)
+		Click(Env &env, Filename const &name)
 		: _env(env), _name(name)
 		{
 			for (int i = 0; i < CHANNELS; ++i) {
@@ -124,7 +124,7 @@ class Click
 
 struct Main
 {
-	Env &                _env;
+	Env                 &_env;
 	Signal_handler<Main> _handler { _env.ep(), *this, &Main::_handle };
 	Input::Connection    _input   { _env };
 	Attached_dataspace   _ev_ds   { _env.rm(), _input.dataspace() };
@@ -138,7 +138,7 @@ struct Main
 				_click.play(); });
 	}
 
-	Main(Env & env) : _env(env)
+	Main(Env &env) : _env(env)
 	{
 		log("--- Audio_out click test ---");
 
@@ -147,4 +147,4 @@ struct Main
 };
 
 
-void Component::construct(Env & env) { static Main main(env); }
+void Component::construct(Env &env) { static Main main(env); }

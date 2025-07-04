@@ -32,16 +32,15 @@ class Lx_kit::Timeout
 
 		using One_shot = Timer::One_shot_timeout<Timeout>;
 
-		Scheduler         & _scheduler;
-		One_shot            _timeout;
+		Scheduler         &_scheduler;
+		One_shot           _timeout;
 
 	public:
 
 		void start(unsigned long us);
 		void stop();
 
-		Timeout(Timer::Connection & timer,
-		        Scheduler & scheduler);
+		Timeout(Timer::Connection &timer, Scheduler &scheduler);
 };
 
 #endif /* _LX_KIT__TIMEOUT_H_ */

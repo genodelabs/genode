@@ -15,7 +15,7 @@
 #include <virtio_gpu.h>
 
 
-void Vmm::Virtio_gpu_queue::notify(Virtio_gpu_device & dev)
+void Vmm::Virtio_gpu_queue::notify(Virtio_gpu_device &dev)
 {
 	memory_barrier();
 	bool inform = false;
@@ -26,7 +26,7 @@ void Vmm::Virtio_gpu_queue::notify(Virtio_gpu_device & dev)
 			Virtio_gpu_control_request
 				request(idx, _descriptors, _ram, dev);
 			_used.add(_cur_idx.idx(), idx, request.size());
-		} catch (Exception & e) {
+		} catch (Exception &e) {
 			error(e);
 		}
 		inform = true;
@@ -96,11 +96,11 @@ void Vmm::Virtio_gpu_control_request::_resource_delete()
 	response.write<Control_header::Type>(Control_header::Type::ERR_INVALID_RESOURCE_ID);
 	uint32_t id = rur.read<Resource_unref::Resource_id>();
 
-	_device._resources.for_each([&] (Resource & res) {
+	_device._resources.for_each([&] (Resource &res) {
 		if (res.id != id)
 			return;
 
-		res.scanouts.for_each([&] (Scanout & sc) {
+		res.scanouts.for_each([&] (Scanout &sc) {
 			destroy(_device._heap, &sc); });
 		destroy(_device._heap, &res);
 		response.write<Control_header::Type>(Control_header::Type::OK_NO_DATA);
@@ -121,7 +121,7 @@ void Vmm::Virtio_gpu_control_request::_resource_attach_backing()
 	uint32_t id = rab.read<Resource_attach_backing::Resource_id>();
 	unsigned nr = rab.read<Resource_attach_backing::Nr_entries>();
 
-	_device._resources.for_each([&] (Resource & res) {
+	_device._resources.for_each([&] (Resource &res) {
 		if (res.id != id)
 			return;
 
@@ -154,9 +154,9 @@ void Vmm::Virtio_gpu_control_request::_set_scanout()
 
 	using Resource = Virtio_gpu_device::Resource;
 	using Scanout  = Resource::Scanout;
-	_device._resources.for_each([&] (Resource & res) {
+	_device._resources.for_each([&] (Resource &res) {
 		if (!id || id == res.id)
-			res.scanouts.for_each([&] (Scanout & sc) {
+			res.scanouts.for_each([&] (Scanout &sc) {
 				if (sc.id == sid) destroy(_device._heap, &sc); });
 
 		if (res.id != id)
@@ -188,7 +188,7 @@ void Vmm::Virtio_gpu_control_request::_resource_flush()
 		return;
 
 	using Resource = Virtio_gpu_device::Resource;
-	_device._resources.for_each([&] (Resource & res) {
+	_device._resources.for_each([&] (Resource &res) {
 		if (res.id != id)
 			return;
 
@@ -239,7 +239,7 @@ void Vmm::Virtio_gpu_control_request::_transfer_to_host_2d()
 	enum { BYTES_PER_PIXEL = Virtio_gpu_device::BYTES_PER_PIXEL };
 
 	using Resource = Virtio_gpu_device::Resource;
-	_device._resources.for_each([&] (Resource & res)
+	_device._resources.for_each([&] (Resource &res)
 	{
 		if (res.id != id)
 			return;

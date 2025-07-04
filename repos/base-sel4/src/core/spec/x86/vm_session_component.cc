@@ -130,7 +130,7 @@ try
 
 	auto ept_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	ept_phys.with_result([&](auto & result) {
+	ept_phys.with_result([&](auto &result) {
 		result.deallocate = false;
 
 		auto ept_phys    = addr_t(result.ptr);
@@ -153,7 +153,7 @@ try
 
 	auto notify_phys = Untyped_memory::alloc_page(phys_alloc);
 
-	notify_phys.with_result([&](auto & result) {
+	notify_phys.with_result([&](auto &result) {
 		result.deallocate = false;
 
 		_notifications._phys = addr_t(result.ptr);

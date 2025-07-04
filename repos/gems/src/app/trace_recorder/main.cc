@@ -44,7 +44,7 @@ class Trace_recorder::Main
 
 	public:
 
-		Main(Env & env)
+		Main(Env &env)
 		: _env(env)
 		{
 			_config_rom.sigh(_config_handler);

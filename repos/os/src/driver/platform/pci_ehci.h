@@ -20,10 +20,10 @@ namespace Driver {
 }
 
 
-void Driver::pci_ehci_quirks(Env                      & env,
-                             Device             const & dev,
-                             Device::Pci_config const & cfg,
-                             Pci::Config        const & pci_config)
+void Driver::pci_ehci_quirks(Env                      &env,
+                             Device             const &dev,
+                             Device::Pci_config const &cfg,
+                             Pci::Config        const &pci_config)
 {
 	enum { EHCI_CLASS_CODE = 0xc0320 };
 

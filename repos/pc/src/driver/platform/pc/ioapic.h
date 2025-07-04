@@ -36,9 +36,9 @@ class Driver::Ioapic : private Attached_mmio<0x1000>,
 {
 	private:
 
-		Env          & _env;
-		unsigned       _irq_start;
-		unsigned       _max_entries;
+		Env          &_env;
+		unsigned      _irq_start;
+		unsigned      _max_entries;
 
 		/**
 		 * Registers
@@ -86,13 +86,13 @@ class Driver::Ioapic : private Attached_mmio<0x1000>,
 		 * Constructor/Destructor
 		 */
 
-		Ioapic(Env                      & env,
-		       Registry<Irq_controller> & irq_controller_registry,
-		       Device::Name       const & name,
-		       Device::Name       const & iommu_name,
-		       Pci::Bdf           const & bdf,
-		       Device::Io_mem::Range      range,
-		       unsigned                   irq_start)
+		Ioapic(Env                      &env,
+		       Registry<Irq_controller> &irq_controller_registry,
+		       Device::Name       const &name,
+		       Device::Name       const &iommu_name,
+		       Pci::Bdf           const &bdf,
+		       Device::Io_mem::Range     range,
+		       unsigned                  irq_start)
 		: Attached_mmio(env, {(char *)range.start, range.size}),
 		  Driver::Irq_controller(irq_controller_registry, name, iommu_name, bdf),
 		  _env(env), _irq_start(irq_start), _max_entries(_read_max_entries())
@@ -104,16 +104,17 @@ class Driver::Ioapic_factory : public Driver::Irq_controller_factory
 {
 	private:
 
-		Genode::Env  & _env;
+		Genode::Env  &_env;
 
 	public:
 
-		Ioapic_factory(Genode::Env & env, Registry<Irq_controller_factory> & registry)
+		Ioapic_factory(Genode::Env &env, Registry<Irq_controller_factory> &registry)
 		: Driver::Irq_controller_factory(registry, Device::Type { "ioapic" }),
 		  _env(env)
 		{ }
 
-		void create(Allocator & alloc, Registry<Irq_controller> & irq_controller_registry, Device const & device) override
+		void create(Allocator &alloc, Registry<Irq_controller> &irq_controller_registry,
+		            Device const &device) override
 		{
 			using Range    = Device::Io_mem::Range;
 			using Property = Device::Property;
@@ -122,7 +123,7 @@ class Driver::Ioapic_factory : public Driver::Irq_controller_factory
 			bool       remap     { false };
 			unsigned   irq_start { 0 };
 			Pci::rid_t rid       { 0 };
-			device.for_each_property([&] (Property::Name const & name, Property::Value const & value) {
+			device.for_each_property([&] (Property::Name const &name, Property::Value const &value) {
 				if (name == "remapping")
 					ascii_to(value.string(), remap);
 				else if (name == "irq_start")
@@ -136,7 +137,7 @@ class Driver::Ioapic_factory : public Driver::Irq_controller_factory
 				return;
 
 			unsigned iommu_idx = 0;
-			device.for_each_io_mmu([&] (Device::Io_mmu const & iommu) {
+			device.for_each_io_mmu([&] (Device::Io_mmu const &iommu) {
 				if (iommu_idx++) return;
 
 				device.for_each_io_mem([&] (unsigned idx, Range range, Device::Pci_bar, bool)

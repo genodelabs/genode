@@ -524,8 +524,8 @@ class Lx_fs::Session_component : private Session_resources,
 				open_node.node().truncate(size); });
 		}
 
-		void move(Dir_handle dir_from, Name const & name_from,
-		          Dir_handle dir_to,   Name const & name_to) override
+		void move(Dir_handle dir_from, Name const &name_from,
+		          Dir_handle dir_to,   Name const &name_to) override
 		{
 			Directory *to = 0;
 

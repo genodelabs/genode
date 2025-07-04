@@ -72,7 +72,7 @@ namespace Kernel {
 	/**
 	 * Invalidate TLB entries for the `pd` in region `addr`, `sz`
 	 */
-	inline void invalidate_tlb(Pd & pd, addr_t const addr,
+	inline void invalidate_tlb(Pd &pd, addr_t const addr,
 	                           size_t const sz)
 	{
 		call(call_id_invalidate_tlb(), (Call_arg)&pd, (Call_arg)addr,
@@ -86,7 +86,7 @@ namespace Kernel {
 	 * \param thread  kernel object of the targeted thread
 	 * \param quota   new CPU quota value
 	 */
-	inline void thread_quota(Kernel::Thread & thread, size_t const quota)
+	inline void thread_quota(Kernel::Thread &thread, size_t const quota)
 	{
 		call(call_id_thread_quota(), (Call_arg)&thread, (Call_arg)quota);
 	}
@@ -111,7 +111,7 @@ namespace Kernel {
 	 * continue the execution of a thread no matter what state the thread is
 	 * in.
 	 */
-	inline void pause_thread(Thread & thread)
+	inline void pause_thread(Thread &thread)
 	{
 		call(call_id_pause_thread(), (Call_arg)&thread);
 	}
@@ -122,7 +122,7 @@ namespace Kernel {
 	 *
 	 * \param thread  pointer to thread kernel object
 	 */
-	inline void resume_thread(Thread & thread)
+	inline void resume_thread(Thread &thread)
 	{
 		call(call_id_resume_thread(), (Call_arg)&thread);
 	}
@@ -139,7 +139,7 @@ namespace Kernel {
 	 * \retval   0  suceeded
 	 * \retval !=0  failed
 	 */
-	inline int start_thread(Thread & thread, Pd & pd, Native_utcb & utcb)
+	inline int start_thread(Thread &thread, Pd &pd, Native_utcb &utcb)
 	{
 		return (int)call(call_id_start_thread(), (Call_arg)&thread,
 		                 (Call_arg)&pd, (Call_arg)&utcb);
@@ -167,7 +167,7 @@ namespace Kernel {
 	 *
 	 * \param irq  pointer to interrupt kernel object
 	 */
-	inline void ack_irq(User_irq & irq)
+	inline void ack_irq(User_irq &irq)
 	{
 		call(call_id_ack_irq(), (Call_arg) &irq);
 	}
@@ -179,7 +179,7 @@ namespace Kernel {
 	 * \param thread        pointer to thread kernel object
 	 * \param thread_state  pointer to result CPU state object
 	 */
-	inline void get_cpu_state(Thread & thread, Cpu_state & cpu_state)
+	inline void get_cpu_state(Thread &thread, Cpu_state &cpu_state)
 	{
 		call(call_id_get_cpu_state(), (Call_arg)&thread, (Call_arg)&cpu_state);
 	}
@@ -191,7 +191,7 @@ namespace Kernel {
 	 * \param thread        pointer to thread kernel object
 	 * \param thread_state  pointer to CPU state object
 	 */
-	inline void set_cpu_state(Thread & thread, Cpu_state & cpu_state)
+	inline void set_cpu_state(Thread &thread, Cpu_state &cpu_state)
 	{
 		call(call_id_set_cpu_state(), (Call_arg)&thread, (Call_arg)&cpu_state);
 	}
@@ -203,7 +203,7 @@ namespace Kernel {
 	 * \param thread  pointer to thread kernel object
 	 * \param on      enable or disable
 	 */
-	inline void single_step(Thread & thread, bool & on)
+	inline void single_step(Thread &thread, bool &on)
 	{
 		call(call_id_single_step(), (Call_arg)&thread, (Call_arg)&on);
 	}

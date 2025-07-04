@@ -207,12 +207,12 @@ class Core::Platform_thread : Interface
 		 ** Fiasco.OC-specific Accessors **
 		 **********************************/
 
-		Cap_mapping const & thread()      const { return _thread;      }
-		Cap_mapping       & gate()              { return _gate;        }
-		Name                name()        const { return _name;        }
-		bool                core_thread() const { return _core_thread; }
-		addr_t              utcb()        const { return _utcb;        }
-		unsigned            prio()        const { return _prio;        }
+		Cap_mapping const &thread()      const { return _thread;      }
+		Cap_mapping       &gate()              { return _gate;        }
+		Name               name()        const { return _name;        }
+		bool               core_thread() const { return _core_thread; }
+		addr_t             utcb()        const { return _utcb;        }
+		unsigned           prio()        const { return _prio;        }
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

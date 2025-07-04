@@ -343,7 +343,7 @@ class Usb::Block_driver
 
 			Constructible<Urb> urb { };
 
-			Scsi_command(Block_driver & drv,
+			Scsi_command(Block_driver &drv,
 			             void (Block_driver::*cmd)(Byte_range_ptr&),
 			             void (Block_driver::*read)(Const_byte_range_ptr const&),
 			             void (Block_driver::*write)(Byte_range_ptr&),

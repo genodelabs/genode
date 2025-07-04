@@ -27,7 +27,7 @@ Pic::Gich::Gich()
 { }
 
 
-bool Pic::ack_virtual_irq(Pic::Virtual_context & c)
+bool Pic::ack_virtual_irq(Pic::Virtual_context &c)
 {
 	c.misr   = _gich.read<Gich::Gich_misr  >();
 	c.vmcr   = _gich.read<Gich::Gich_vmcr  >();
@@ -49,7 +49,7 @@ bool Pic::ack_virtual_irq(Pic::Virtual_context & c)
 }
 
 
-void Pic::insert_virtual_irq(Pic::Virtual_context & c, unsigned irq)
+void Pic::insert_virtual_irq(Pic::Virtual_context &c, unsigned irq)
 {
 	enum { SPURIOUS = 1023 };
 

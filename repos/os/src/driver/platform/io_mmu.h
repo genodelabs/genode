@@ -54,10 +54,10 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 				friend class Io_mmu;
 
-				Io_mmu     & _io_mmu;
-				Allocator  & _md_alloc;
+				Io_mmu     &_io_mmu;
+				Allocator  &_md_alloc;
 
-				unsigned     _active_devices { 0 };
+				unsigned    _active_devices { 0 };
 
 			public:
 
@@ -96,8 +96,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 				                       Dataspace_capability const) = 0;
 				virtual void remove_range(Range const &) = 0;
 
-				Domain(Io_mmu                     & io_mmu,
-				       Allocator                  & md_alloc)
+				Domain(Io_mmu &io_mmu, Allocator &md_alloc)
 				: Registry<Domain>::Element(io_mmu._domains, *this),
 				  _io_mmu(io_mmu), _md_alloc(md_alloc)
 				{ }
@@ -136,7 +135,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 		void _destroy_domains()
 		{
-			_domains.for_each([&] (Domain & domain) {
+			_domains.for_each([&] (Domain &domain) {
 				destroy(domain.md_alloc(), &domain); });
 		}
 
@@ -157,12 +156,12 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 		/* interface for mapping/unmapping interrupts */
 		virtual void     unmap_irq(Pci::Bdf const &, unsigned) { }
-		virtual Irq_info map_irq(Pci::Bdf const &, Irq_info const & info, Irq_config const &) {
+		virtual Irq_info map_irq(Pci::Bdf const &, Irq_info const &info, Irq_config const &) {
 			return info; }
 
 		Device::Name const & name() const { return _name; }
 
-		bool domain_owner(Domain const & domain) const {
+		bool domain_owner(Domain const &domain) const {
 			return &domain._io_mmu == this; }
 
 		/* Return true if device requires physical addressing */
@@ -177,8 +176,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 		virtual void generate(Xml_generator &) { }
 
-		Io_mmu(Io_mmu_devices      & io_mmu_devices,
-		       Device::Name  const & name)
+		Io_mmu(Io_mmu_devices &io_mmu_devices, Device::Name const &name)
 		: Io_mmu_devices::Element(io_mmu_devices, *this),
 			_name(name)
 		{ }
@@ -203,16 +201,14 @@ class Driver::Io_mmu_factory : private Genode::Registry<Io_mmu_factory>::Element
 
 	public:
 
-		Io_mmu_factory(Registry<Io_mmu_factory> & registry,
-		              Device::Type      const & type)
+		Io_mmu_factory(Registry<Io_mmu_factory> &registry, Device::Type const &type)
 		: Registry<Io_mmu_factory>::Element(registry, *this),
 		  _type(type)
 		{ }
 
 		virtual ~Io_mmu_factory() { }
 
-		bool matches(Device const & dev) {
-			return dev.type() == _type; }
+		bool matches(Device const &dev) { return dev.type() == _type; }
 
 		virtual void create(Allocator &,
 		                    Io_mmu_devices &,

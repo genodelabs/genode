@@ -32,10 +32,10 @@ struct Driver::Dma_buffer : Registry<Dma_buffer>::Element
 	addr_t                         dma_addr;
 	addr_t                         phys_addr;
 	size_t                         size;
-	Dma_allocator                & dma_alloc;
+	Dma_allocator                 &dma_alloc;
 
-	Dma_buffer(Registry<Dma_buffer>         & registry,
-	           Dma_allocator                & dma_alloc,
+	Dma_buffer(Registry<Dma_buffer>          &registry,
+	           Dma_allocator                 &dma_alloc,
 	           Ram_dataspace_capability const cap,
 	           addr_t                         dma_addr,
 	           size_t                         size,
@@ -59,7 +59,7 @@ class Driver::Dma_allocator
 
 		friend class Dma_buffer;
 
-		Allocator          & _md_alloc;
+		Allocator           &_md_alloc;
 		bool                 _remapping;
 		bool const           _use_guard_page { true };
 		Allocator_avl        _dma_alloc { &_md_alloc };
@@ -81,7 +81,7 @@ class Driver::Dma_allocator
 		Registry<Dma_buffer>       & buffer_registry()       { return _registry; }
 		Registry<Dma_buffer> const & buffer_registry() const { return _registry; }
 
-		Dma_allocator(Allocator & md_alloc, bool const remapping);
+		Dma_allocator(Allocator &md_alloc, bool const remapping);
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__DMA_ALLOCATOR_H */

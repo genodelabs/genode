@@ -15,7 +15,7 @@
 #include <util/string.h>
 #include <base/allocator_avl.h>
 
-void Genode::Allocator_avl_base::print(Genode::Output & out) const
+void Genode::Allocator_avl_base::print(Genode::Output &out) const
 {
 	using Genode::print;
 	unsigned long mem_size  = 0;
@@ -23,7 +23,7 @@ void Genode::Allocator_avl_base::print(Genode::Output & out) const
 
 	print(out, "Allocator ", this, " dump:\n");
 
-	_addr_tree.for_each([&] (Block const & b)
+	_addr_tree.for_each([&] (Block const &b)
 	{
 		print(out, " Block: ", Hex_range<addr_t>(b.addr(), b.size()), " "
 		      "size=",      Number_of_bytes(b.size()), " "

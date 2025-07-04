@@ -21,7 +21,7 @@
 namespace Lx_kit {
 	using namespace Genode;
 
-	void initialize(Env & env, Genode::Signal_context & sig_ctx);
+	void initialize(Env &env, Genode::Signal_context &sig_ctx);
 	class Initcalls;
 
 	class Pci_fixup_calls;
@@ -42,7 +42,7 @@ class Lx_kit::Initcalls
 			: prio(p), call(fn), name(name) {}
 		};
 
-		Heap  & _heap;
+		Heap   &_heap;
 		List<E> _call_list {};
 
 	public:
@@ -51,7 +51,7 @@ class Lx_kit::Initcalls
 		void execute_in_order();
 		void execute(char const *name);
 
-		Initcalls(Heap & heap) : _heap(heap) {}
+		Initcalls(Heap &heap) : _heap(heap) {}
 };
 
 struct pci_dev;
@@ -67,7 +67,7 @@ class Lx_kit::Pci_fixup_calls
 			E(void (*fn)(struct pci_dev *)) : call { fn } { }
 		};
 
-		Heap  & _heap;
+		Heap   &_heap;
 		List<E> _call_list {};
 
 	public:
@@ -75,7 +75,7 @@ class Lx_kit::Pci_fixup_calls
 		void add(void (*fn)(struct pci_dev*));
 		void execute(struct pci_dev *);
 
-		Pci_fixup_calls(Heap & heap) : _heap(heap) { }
+		Pci_fixup_calls(Heap &heap) : _heap(heap) { }
 };
 
 #endif /* _LX_KIT__INIT_H_ */

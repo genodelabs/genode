@@ -311,7 +311,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		template <typename T>
 		void _call_new(auto &&... args)
 		{
-			Core::Kernel_object<T> & kobj = *(Core::Kernel_object<T>*)user_arg_1();
+			Core::Kernel_object<T> &kobj = *(Core::Kernel_object<T>*)user_arg_1();
 			kobj.construct(_core_pd, args...);
 			user_arg_0(kobj->core_capid());
 		}
@@ -319,7 +319,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		template <typename T>
 		void _call_delete()
 		{
-			Core::Kernel_object<T> & kobj = *(Core::Kernel_object<T>*)user_arg_1();
+			Core::Kernel_object<T> &kobj = *(Core::Kernel_object<T>*)user_arg_1();
 			kobj.destruct();
 		}
 

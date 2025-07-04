@@ -283,7 +283,7 @@ class I8042
 		/**
 		 * Constructor
 		 */
-		I8042(Platform::Device & device)
+		I8042(Platform::Device &device)
 		:
 			_data_port(device, {0}),
 			_stat_port(device, {1}),

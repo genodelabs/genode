@@ -39,8 +39,8 @@ class Local_fault_handler : public Entrypoint
 {
 	private:
 
-		Env &                               _env;
-		Region_map &                        _region_map;
+		Env                                &_env;
+		Region_map                         &_region_map;
 		Signal_handler<Local_fault_handler> _handler;
 		volatile unsigned                   _fault_cnt { 0 };
 
@@ -72,7 +72,7 @@ class Local_fault_handler : public Entrypoint
 
 	public:
 
-		Local_fault_handler(Genode::Env & env, Region_map &region_map)
+		Local_fault_handler(Genode::Env &env, Region_map &region_map)
 		: Entrypoint(env, sizeof(addr_t)*2048, "local_fault_handler",
 		             Affinity::Location()),
 		  _env(env),
@@ -236,7 +236,7 @@ void nested_regions(Genode::Env &env)
 }
 
 
-void Component::construct(Genode::Env & env)
+void Component::construct(Genode::Env &env)
 {
 	log("--- nested region map test ---");
 

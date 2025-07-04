@@ -139,7 +139,7 @@ Capability<Parent> Platform::_obtain_parent_cap()
 }
 
 
-void Genode::init_parent_resource_requests(Genode::Env & env)
+void Genode::init_parent_resource_requests(Genode::Env &env)
 {
 	using Parent = Expanding_parent_client;
 	static_cast<Parent*>(&env.parent())->init_fallback_signal_handling();

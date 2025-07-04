@@ -204,7 +204,7 @@ class Core::Pager_object : private Kernel_object<Kernel::Signal_context>
 		 * \retval   0  succeeded
 		 * \retval !=0  fault can't be received directly
 		 */
-		virtual Pager_result pager(Ipc_pager & p) = 0;
+		virtual Pager_result pager(Ipc_pager &p) = 0;
 
 
 		/***************

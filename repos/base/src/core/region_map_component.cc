@@ -286,7 +286,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 }
 
 
-addr_t Region_map_component::_core_local_addr(Rm_region & region)
+addr_t Region_map_component::_core_local_addr(Rm_region &region)
 {
 	addr_t result = 0;
 

@@ -43,10 +43,10 @@ void Generic_timer::_handle_timeout(Genode::Duration)
 }
 
 
-Generic_timer::Generic_timer(Genode::Env        & env,
-                             Genode::Entrypoint & ep,
-                             Gic::Irq           & irq,
-                             Cpu_base           & cpu)
+Generic_timer::Generic_timer(Genode::Env        &env,
+                             Genode::Entrypoint &ep,
+                             Gic::Irq           &irq,
+                             Cpu_base           &cpu)
 : _timer(env, ep),
   _timeout(_timer, *this, &Generic_timer::_handle_timeout),
   _irq(irq),

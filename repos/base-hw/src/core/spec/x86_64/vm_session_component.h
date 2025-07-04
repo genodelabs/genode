@@ -120,7 +120,7 @@ class Core::Vm_session_component
 	public:
 
 		Vm_session_component(Registry<Revoke> &registry,
-		                     Vmid_allocator & vmid_alloc,
+		                     Vmid_allocator &vmid_alloc,
 		                     Rpc_entrypoint &ds_ep,
 		                     Resources resources,
 		                     Label const &label,

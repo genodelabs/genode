@@ -89,7 +89,7 @@ struct Ata::String
 {
 	char buf[DEVICE_STRING::ITEMS + 1];
 
-	String(Identity & info)
+	String(Identity &info)
 	{
 		long j = 0;
 		for (unsigned long i = 0; i < DEVICE_STRING::ITEMS; i++) {

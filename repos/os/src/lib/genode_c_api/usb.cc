@@ -94,7 +94,7 @@ struct Reg_list
 	public:
 
 		template <typename FN>
-		void for_each(FN const & fn)
+		void for_each(FN const &fn)
 		{
 			Element *e = _elements.first(), *next = nullptr;
 			for ( ; e; e = next) {
@@ -104,7 +104,7 @@ struct Reg_list
 		}
 
 		template <typename FN>
-		void for_each(FN const & fn) const
+		void for_each(FN const &fn) const
 		{
 			Element const *e = _elements.first(), *next = nullptr;
 			for ( ; e; e = next) {
@@ -113,7 +113,7 @@ struct Reg_list
 			}
 		}
 
-		void apply(auto const &condition, auto const & fn)
+		void apply(auto const &condition, auto const &fn)
 		{
 			for (Element *e = _elements.first(); e; e = e->next())
 				if (condition(e->_object)) {
@@ -217,7 +217,7 @@ struct genode_usb_device : Reg_list<genode_usb_device>::Element
 		return "full";
 	}
 
-	void generate(Xml_generator & xml, bool acquired) const;
+	void generate(Xml_generator &xml, bool acquired) const;
 };
 
 
@@ -281,7 +281,7 @@ class Packet_handler
 		}
 
 		template <typename FN>
-		void _for_each_packet(FN const & fn)
+		void _for_each_packet(FN const &fn)
 		{
 			while (true) {
 				size_t idx = ~0UL;
@@ -309,7 +309,7 @@ class Packet_handler
 			    (addr_t)handle > ((addr_t)&_packets + sizeof(_packets)))
 				return NO_PACKET;
 
-			Constructible<Packet_descriptor> & cp =
+			Constructible<Packet_descriptor> &cp =
 				*reinterpret_cast<Constructible<Packet_descriptor>*>(handle);
 			if (!cp.constructed())
 				return NO_PACKET;
@@ -549,9 +549,9 @@ class Session_component
 		Session_component & operator=(const Session_component&);
 
 		template <typename FN>
-		void _device_policy(genode_usb_device const & d, FN const &fn);
+		void _device_policy(genode_usb_device const &d, FN const &fn);
 
-		bool _matches(genode_usb_device const & device);
+		bool _matches(genode_usb_device const &device);
 
 		Device_capability _acquire(genode_usb_device::Label const &device,
 		                           bool const controls);
@@ -574,8 +574,8 @@ class Session_component
 
 		~Session_component();
 
-		void announce_device(genode_usb_device const & device);
-		void discontinue_device(genode_usb_device const & device);
+		void announce_device(genode_usb_device const &device);
+		void discontinue_device(genode_usb_device const &device);
 		void update_policy();
 		void update_devices_rom();
 
@@ -741,11 +741,11 @@ class Usb_root : Sliced_heap, public Root_component<Session_component>
 static Usb_root * _usb_root  = nullptr;
 
 
-void genode_usb_device::generate(Xml_generator & xml, bool acquired) const
+void genode_usb_device::generate(Xml_generator &xml, bool acquired) const
 {
 	using Value = String<64>;
 
-	auto per_endp = [&] (genode_usb_endpoint const & endp)
+	auto per_endp = [&] (genode_usb_endpoint const &endp)
 	{
 		xml.node("endpoint", [&] {
 			xml.attribute("address",    Value(Hex(endp.desc.address)));
@@ -755,7 +755,7 @@ void genode_usb_device::generate(Xml_generator & xml, bool acquired) const
 		});
 	};
 
-	auto per_iface = [&] (genode_usb_interface const & iface)
+	auto per_iface = [&] (genode_usb_interface const &iface)
 	{
 		xml.node("interface", [&] {
 			xml.attribute("active",      iface.active);
@@ -769,7 +769,7 @@ void genode_usb_device::generate(Xml_generator & xml, bool acquired) const
 		});
 	};
 
-	auto per_config = [&] (genode_usb_configuration const & cfg)
+	auto per_config = [&] (genode_usb_configuration const &cfg)
 	{
 		xml.node("config", [&] {
 			xml.attribute("active", cfg.active);
@@ -818,7 +818,7 @@ Interface_component::_handle_request(Constructible<Packet_descriptor> &cpd,
 		break;
 	case Packet_descriptor::ISOC:
 		{
-			genode_usb_isoc_transfer_header & hdr =
+			genode_usb_isoc_transfer_header &hdr =
 				*reinterpret_cast<genode_usb_isoc_transfer_header*>(payload.addr);
 
 			size_t const header_size = sizeof(genode_usb_isoc_transfer_header) +
@@ -863,7 +863,7 @@ Interface_component::handle_response(genode_usb_request_handle_t handle,
 			if ((value == OK) &&
 			    (p.type == Packet_descriptor::ISOC)) {
 				void * data = _tx.sink()->packet_content(p);
-				genode_usb_isoc_transfer_header & hdr =
+				genode_usb_isoc_transfer_header &hdr =
 					*reinterpret_cast<genode_usb_isoc_transfer_header*>(data);
 				for (size_t i = 0; i < hdr.number_of_packets; i++)
 					hdr.packets[i].actual_size = actual_sizes[i+1];
@@ -926,7 +926,7 @@ Device_component::_handle_request(Constructible<Packet_descriptor> &cpd,
 		break;
 	case P::SET_INTERFACE:
 		_interfaces.apply(
-			[&] (Interface_component & ic) {
+			[&] (Interface_component &ic) {
 				return ic._iface_idx == cpd->index;
 			},
 			[&] (Interface_component &) { granted = true; });
@@ -985,9 +985,9 @@ void Device_component::release_interface(Interface_capability cap)
 		return;
 
 	_interfaces.apply(
-		[&] (Interface_component & ic) {
+		[&] (Interface_component &ic) {
 			return cap.local_name() == ic.cap().local_name(); },
-		[&] (Interface_component & ic) {
+		[&] (Interface_component &ic) {
 			destroy(_heap, &ic); });
 }
 
@@ -998,7 +998,7 @@ bool Device_component::request(genode_usb_req_callback_t const callback,
 	bool ret = false;
 
 	_interfaces.apply(
-		[&] (Interface_component & ic) {
+		[&] (Interface_component &ic) {
 			return ic.request(callback, opaque_data); },
 		[&] (Interface_component &) { ret = true; });
 
@@ -1045,7 +1045,7 @@ Device_component::handle_response(genode_usb_request_handle_t handle,
 
 	if (!ret)
 		_interfaces.apply(
-			[&] (Interface_component & ic) {
+			[&] (Interface_component &ic) {
 				return ic.handle_response(handle, value, actual_sizes); },
 			[&] (Interface_component &) {
 				ret = true; });
@@ -1058,7 +1058,7 @@ void Device_component::disconnect()
 {
 	Base::disconnect();
 
-	_interfaces.for_each([&] (Interface_component & ic) {
+	_interfaces.for_each([&] (Interface_component &ic) {
 		ic.disconnect(); });
 }
 
@@ -1067,7 +1067,7 @@ void Device_component::handle_disconnected()
 {
 	Base::handle_disconnected();
 
-	_interfaces.for_each([&] (Interface_component & ic) {
+	_interfaces.for_each([&] (Interface_component &ic) {
 		ic.handle_disconnected(); });
 }
 
@@ -1076,7 +1076,7 @@ void Device_component::wakeup()
 {
 	Base::wakeup();
 
-	_interfaces.for_each([&] (Interface_component & ic) {
+	_interfaces.for_each([&] (Interface_component &ic) {
 		ic.wakeup(); });
 }
 
@@ -1116,7 +1116,7 @@ Device_component::Device_component(Env                            &env,
 
 Device_component::~Device_component()
 {
-	_interfaces.for_each([&] (Interface_component & ic) {
+	_interfaces.for_each([&] (Interface_component &ic) {
 		destroy(_heap, &ic); });
 }
 
@@ -1161,7 +1161,7 @@ void Session_component::_device_policy(genode_usb_device const &d,
 }
 
 
-bool Session_component::_matches(genode_usb_device const & d)
+bool Session_component::_matches(genode_usb_device const &d)
 {
 	bool ret = false;
 	_device_policy(d, [&] (Node const &) { ret = true; });

@@ -48,18 +48,18 @@ class Vmm::Address_range : private Genode::Avl_node<Address_range>
 		uint64_t size()  const { return _size;          }
 		uint64_t end()   const { return _start + _size; }
 
-		bool match(Address_range & other) const {
+		bool match(Address_range &other) const {
 			return other._start >= _start && other.end() <= end(); }
 
-		Address_range & find(Address_range & bus_addr);
+		Address_range & find(Address_range &bus_addr);
 
 		struct Not_found : Exception
 		{
-			Not_found(Address_range & access)
+			Not_found(Address_range &access)
 			: Exception("Could not find ", access) {}
 		};
 
-		void print(Genode::Output & out) const
+		void print(Genode::Output &out) const
 		{
 			Genode::print(out, "address=", Hex(_start),
 			              " width=", Hex(_size));
@@ -83,14 +83,14 @@ class Vmm::Address_space
 	public:
 
 		template <typename T>
-		T & get(Address_range & bus_addr)
+		T & get(Address_range &bus_addr)
 		{
 			if (!_tree.first()) throw Address_range::Not_found(bus_addr);
 
 			return *static_cast<T*>(&_tree.first()->find(bus_addr));
 		}
 
-		void add(Address_range & ar) { _tree.insert(&ar); }
+		void add(Address_range &ar) { _tree.insert(&ar); }
 };
 
 

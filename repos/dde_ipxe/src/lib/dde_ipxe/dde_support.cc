@@ -155,7 +155,7 @@ struct Pci_driver
 {
 	enum { BACKING_STORE_SIZE = 1024 * 1024 };
 
-	Env                  & _env;
+	Env                   &_env;
 	Heap                   _heap    { _env.ram(), _env.rm() };
 	Platform::Connection   _pci     { _env };
 	Platform::Device       _dev     { _pci };
@@ -245,7 +245,7 @@ struct Pci_driver
 	}
 
 	template <typename FN>
-	void with_io_port(FN const & fn) {
+	void with_io_port(FN const &fn) {
 		if (_io_port.constructed()) fn(*_io_port); }
 };
 
@@ -348,33 +348,33 @@ extern "C" dde_addr_t dde_dma_get_physaddr(void *virt) {
 extern "C" dde_uint8_t dde_inb(dde_addr_t port)
 {
 	dde_uint8_t v { };
-	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inb(port); });
+	pci_drv().with_io_port([&] (Io_port &iop) { v = iop.inb(port); });
 	return v;
 }
 
 extern "C" dde_uint16_t dde_inw(dde_addr_t port)
 {
 	dde_uint16_t v { };
-	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inw(port); });
+	pci_drv().with_io_port([&] (Io_port &iop) { v = iop.inw(port); });
 	return v;
 }
 
 extern "C" dde_uint32_t dde_inl(dde_addr_t port)
 {
 	dde_uint32_t v { };
-	pci_drv().with_io_port([&] (Io_port & iop) { v = iop.inl(port); });
+	pci_drv().with_io_port([&] (Io_port &iop) { v = iop.inl(port); });
 	return v;
 }
 
 
 extern "C" void dde_outb(dde_addr_t port, dde_uint8_t data) {
-	pci_drv().with_io_port([&] (Io_port & iop) { iop.outb(port, data); }); }
+	pci_drv().with_io_port([&] (Io_port &iop) { iop.outb(port, data); }); }
 
 extern "C" void dde_outw(dde_addr_t port, dde_uint16_t data) {
-	pci_drv().with_io_port([&] (Io_port & iop) { iop.outw(port, data); }); }
+	pci_drv().with_io_port([&] (Io_port &iop) { iop.outw(port, data); }); }
 
 extern "C" void dde_outl(dde_addr_t port, dde_uint32_t data) {
-	pci_drv().with_io_port([&] (Io_port & iop) { iop.outl(port, data); }); }
+	pci_drv().with_io_port([&] (Io_port &iop) { iop.outl(port, data); }); }
 
 
 /**********************

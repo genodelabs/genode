@@ -29,7 +29,7 @@ struct Virtio_mmio_nic::Main
 {
 	struct Device_not_found : Genode::Exception { };
 
-	Env                     & env;
+	Env                      &env;
 	Heap                      heap            { env.ram(), env.rm() };
 	Platform::Connection      platform        { env                 };
 	Platform::Device          platform_device { platform,
@@ -39,7 +39,7 @@ struct Virtio_mmio_nic::Main
 	Virtio_nic::Uplink_client uplink_client   { env, heap, device,
 	                                            platform, config_rom.node() };
 
-	Main(Env & env) : env(env) {
+	Main(Env &env) : env(env) {
 		log("--- VirtIO MMIO NIC driver started ---"); }
 };
 

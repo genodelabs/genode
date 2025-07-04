@@ -21,10 +21,10 @@ namespace Driver {
 }
 
 
-void Driver::pci_virtio_info(Device             const & dev,
-                             Device::Pci_config const & cfg,
-                             Env                      & env,
-                             Xml_generator            & xml)
+void Driver::pci_virtio_info(Device             const &dev,
+                             Device::Pci_config const &cfg,
+                             Env                      &env,
+                             Xml_generator            &xml)
 {
 	enum { VENDOR_RED_HAT = 0x1af4 };
 
@@ -71,9 +71,9 @@ void Driver::pci_virtio_info(Device             const & dev,
 
 		using Pci::Config::Config;
 
-		void capability(Capability           & cap,
-		                Driver::Device const & dev,
-		                Xml_generator        & xml)
+		void capability(Capability           &cap,
+		                Driver::Device const &dev,
+		                Xml_generator        &xml)
 		{
 			unsigned idx = ~0U;
 			dev.for_each_io_mem([&] (unsigned i,
@@ -92,8 +92,8 @@ void Driver::pci_virtio_info(Device             const & dev,
 			});
 		}
 
-		void for_each_capability(Driver::Device const & dev,
-		                         Xml_generator        & xml)
+		void for_each_capability(Driver::Device const &dev,
+		                         Xml_generator        &xml)
 		{
 			if (!read<Status::Capabilities>())
 				return;

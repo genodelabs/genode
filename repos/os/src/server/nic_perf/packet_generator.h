@@ -108,7 +108,7 @@ class Nic_perf::Packet_generator
 			return 0;
 		}
 
-		void handle_arp_reply(Arp_packet const & arp);
+		void handle_arp_reply(Arp_packet const &arp);
 
 		void generate(void *, Size_guard &, Mac_address const &, Ipv4_address const &);
 };

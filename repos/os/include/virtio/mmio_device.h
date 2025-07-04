@@ -100,7 +100,7 @@ class Virtio::Device : Platform::Device::Mmio<0x200>
 
 	public:
 
-		Device(Platform::Device & device)
+		Device(Platform::Device &device)
 		:
 			Platform::Device::Mmio<SIZE>(device), _irq(device, {0})
 		{

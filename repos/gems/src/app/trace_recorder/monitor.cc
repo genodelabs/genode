@@ -149,7 +149,7 @@ void Trace_recorder::Monitor::start(Node const &config)
 			/* find and assign policy; create/insert if not present */
 			bool const create =
 				_policies.with_element(policy_name,
-					[&] /* match */ (Policy & policy) {
+					[&] /* match */ (Policy &policy) {
 						trace(policy);
 						return false;
 					},

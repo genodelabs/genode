@@ -107,7 +107,7 @@ void Vesa_driver::Main::_handle_timer()
 }
 
 
-Capture::Area Vesa_driver::Main::_configured_size(Node const & config)
+Capture::Area Vesa_driver::Main::_configured_size(Node const &config)
 {
 	Area area { config.attribute_value( "width", 0U),
 	            config.attribute_value("height", 0U) };
@@ -131,8 +131,8 @@ Capture::Area Vesa_driver::Main::_configured_size(Node const & config)
 	});
 
 	/* lookup config of mirrored connectors */
-	config.with_optional_sub_node("merge", [&] (auto const & merge) {
-		merge.for_each_sub_node("connector", [&] (auto const & conn) {
+	config.with_optional_sub_node("merge", [&] (auto const &merge) {
+		merge.for_each_sub_node("connector", [&] (auto const &conn) {
 			with_connector(conn);
 		});
 	});
@@ -148,9 +148,9 @@ void Vesa_driver::Main::_handle_config()
 	if (!_config.valid())
 		return;
 
-	auto const & config          = _config.node();
-	auto const   period_ms       = config.attribute_value("period_ms", 20UL);
-	Area const   configured_size = _configured_size(config);
+	auto const &config          = _config.node();
+	auto const  period_ms       = config.attribute_value("period_ms", 20UL);
+	Area const  configured_size = _configured_size(config);
 
 	if (configured_size == _virt_size)
 		return;

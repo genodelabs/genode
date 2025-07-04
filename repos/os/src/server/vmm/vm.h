@@ -44,15 +44,15 @@ class Vmm::Vm
 
 			Constructible<Entrypoint> _ep {};
 
-			Entrypoint & ep(unsigned i, Vm & vm);
+			Entrypoint & ep(unsigned i, Vm &);
 			Cpu          cpu;
 
-			Cpu_entry(unsigned idx, Vm & vm);
+			Cpu_entry(unsigned idx, Vm &);
 		};
 
-		Env                    & _env;
-		Heap                   & _heap;
-		Config                 & _config;
+		Env                     &_env;
+		Heap                    &_heap;
+		Config                  &_config;
 		Vm_connection            _vm         { _env           };
 		Attached_rom_dataspace   _kernel_rom { _env, _config.kernel_name() };
 		Attached_ram_dataspace   _vm_ram     { _env.ram(), _env.rm(),
@@ -77,7 +77,7 @@ class Vmm::Vm
 
 	public:
 
-		Vm(Env & env, Heap & heap, Config & config);
+		Vm(Env &env, Heap &heap, Config &config);
 		~Vm();
 
 		Mmio_bus & bus() { return _bus; }

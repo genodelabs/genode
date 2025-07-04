@@ -34,15 +34,16 @@ namespace Driver
 
 struct Driver::Io_mmu_domain_wrapper
 {
-	Io_mmu::Domain & domain;
+	Io_mmu::Domain &domain;
 
-	Io_mmu_domain_wrapper(Io_mmu                                & io_mmu,
-	                      Allocator                             & md_alloc,
-	                      Ram_allocator                         & ram_alloc,
-	                      Registry<Dma_buffer>            const & dma_buffers,
-	                      Ram_quota_guard                       & ram_guard,
-	                      Cap_quota_guard                       & cap_guard)
-	: domain(io_mmu.create_domain(md_alloc, ram_alloc, dma_buffers, ram_guard, cap_guard))
+	Io_mmu_domain_wrapper(Io_mmu                     &io_mmu,
+	                      Allocator                  &md_alloc,
+	                      Ram_allocator              &ram_alloc,
+	                      Registry<Dma_buffer> const &dma_buffers,
+	                      Ram_quota_guard            &ram_guard,
+	                      Cap_quota_guard            &cap_guard)
+	:
+		domain(io_mmu.create_domain(md_alloc, ram_alloc, dma_buffers, ram_guard, cap_guard))
 	{ }
 
 	~Io_mmu_domain_wrapper() { destroy(domain.md_alloc(), &domain); }
@@ -52,15 +53,16 @@ struct Driver::Io_mmu_domain_wrapper
 struct Driver::Io_mmu_domain : private Registry<Io_mmu_domain>::Element,
                                public  Io_mmu_domain_wrapper
 {
-	Io_mmu_domain(Registry<Io_mmu_domain>       & registry,
-	              Io_mmu                        & io_mmu,
-	              Allocator                     & md_alloc,
-	              Ram_allocator                 & ram_alloc,
-	              Registry<Dma_buffer>    const & dma_buffers,
-	              Ram_quota_guard               & ram_guard,
-	              Cap_quota_guard               & cap_guard)
-	: Registry<Io_mmu_domain>::Element(registry, *this),
-	  Io_mmu_domain_wrapper(io_mmu, md_alloc, ram_alloc, dma_buffers, ram_guard, cap_guard)
+	Io_mmu_domain(Registry<Io_mmu_domain>       &registry,
+	              Io_mmu                        &io_mmu,
+	              Allocator                     &md_alloc,
+	              Ram_allocator                 &ram_alloc,
+	              Registry<Dma_buffer>    const &dma_buffers,
+	              Ram_quota_guard               &ram_guard,
+	              Cap_quota_guard               &cap_guard)
+	:
+		Registry<Io_mmu_domain>::Element(registry, *this),
+		Io_mmu_domain_wrapper(io_mmu, md_alloc, ram_alloc, dma_buffers, ram_guard, cap_guard)
 	{ }
 };
 
@@ -73,12 +75,12 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 
 	public:
 
-		void default_domain(Io_mmu                     & io_mmu,
-		                    Allocator                  & md_alloc,
-		                    Ram_allocator              & ram_alloc,
-		                    Registry<Dma_buffer> const & dma_buffers,
-		                    Ram_quota_guard            & ram_quota_guard,
-		                    Cap_quota_guard            & cap_quota_guard)
+		void default_domain(Io_mmu                     &io_mmu,
+		                    Allocator                  &md_alloc,
+		                    Ram_allocator              &ram_alloc,
+		                    Registry<Dma_buffer> const &dma_buffers,
+		                    Ram_quota_guard            &ram_quota_guard,
+		                    Cap_quota_guard            &cap_quota_guard)
 		{
 			_default_domain.construct(io_mmu, md_alloc, ram_alloc, dma_buffers,
 			                          ram_quota_guard, cap_quota_guard);
@@ -88,7 +90,7 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 		void for_each_domain(FN && fn)
 		{
 			bool use_default { true };
-			for_each([&] (Io_mmu_domain & wrapper) {
+			for_each([&] (Io_mmu_domain &wrapper) {
 				fn(wrapper.domain);
 				use_default = false;
 			});
@@ -98,13 +100,13 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 		}
 
 		template <typename MATCH_FN, typename NONMATCH_FN>
-		void with_domain(Device::Name const &  name,
-		                 MATCH_FN           && match_fn,
-		                 NONMATCH_FN        && nonmatch_fn)
+		void with_domain(Device::Name const &name,
+		                 MATCH_FN     const &match_fn,
+		                 NONMATCH_FN  const &nonmatch_fn)
 		{
 			bool exists = false;
 
-			for_each_domain([&] (Io_mmu::Domain & domain) {
+			for_each_domain([&] (Io_mmu::Domain &domain) {
 				if (domain.device_name() == name) {
 					match_fn(domain);
 					exists = true;

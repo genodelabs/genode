@@ -96,7 +96,7 @@ class Vmm::Vcpu
 		unsigned _pause_at_timer { 0 };
 
 		void _handle_vcpu_exit();
-		void _cpu_init(Vcpu_state & state);
+		void _cpu_init(Vcpu_state &state);
 
 	public:
 
@@ -113,12 +113,12 @@ class Vmm::Vcpu
 
 		unsigned id() const { return _id; }
 
-		void skip_instruction(Vcpu_state & state, unsigned bytes)
+		void skip_instruction(Vcpu_state &state, unsigned bytes)
 		{
 			state.ip.charge(state.ip.value() + bytes);
 		}
 
-		void force_fpu_state_transfer(Vcpu_state & state)
+		void force_fpu_state_transfer(Vcpu_state &state)
 		{
 			/* force FPU-state transfer on next entry */
 			state.fpu.charge([] (Vcpu_state::Fpu::State &state) {
@@ -158,7 +158,7 @@ class Vmm::Vcpu
 		}
 
 		template<typename FN>
-		void with_state(FN const & fn)
+		void with_state(FN const &fn)
 		{
 			_vcpu.with_state(fn);
 		}
@@ -333,7 +333,7 @@ void Vmm::Vm::_handle_timer()
 	if (_vcpu1.paused_1st()) {
 		log(Thread::myself()->name, "     : request resume (A) of vcpu ", _vcpu1.id());
 
-		_vcpu1.with_state([this](Vcpu_state & state) {
+		_vcpu1.with_state([this](Vcpu_state &state) {
 			state.discharge();
 			_vcpu1.force_fpu_state_transfer(state);
 
@@ -343,7 +343,7 @@ void Vmm::Vm::_handle_timer()
 	} else if (_vcpu1.paused_2nd()) {
 		log(Thread::myself()->name, "     : request resume (B) of vcpu ", _vcpu1.id());
 
-		_vcpu1.with_state([this](Vcpu_state & state) {
+		_vcpu1.with_state([this](Vcpu_state &state) {
 			state.discharge();
 			/* skip over next 2 hlt instructions after second paused state */
 			_vcpu1.skip_instruction(state, 2*1 /* 2x hlt instruction size */);
@@ -360,7 +360,7 @@ void Vmm::Vm::_handle_timer()
 	} else if (_vcpu1.paused_3rd()) {
 		log(Thread::myself()->name, "     : request resume (C) of vcpu ", _vcpu1.id());
 
-		_vcpu1.with_state([this](Vcpu_state & state) {
+		_vcpu1.with_state([this](Vcpu_state &state) {
 			state.discharge();
 			_vcpu1.skip_instruction(state, 1*2 /* 1x jmp endless loop size */);
 			return true;
@@ -382,7 +382,7 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 {
 	using namespace Genode;
 
-	_vcpu.with_state([this](Vcpu_state & state) {
+	_vcpu.with_state([this](Vcpu_state &state) {
 
 	Exit const exit { state.exit_reason };
 
@@ -510,7 +510,7 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 	});
 }
 
-void Vmm::Vcpu::_cpu_init(Vcpu_state & state)
+void Vmm::Vcpu::_cpu_init(Vcpu_state &state)
 {
 	enum { INTEL_CTRL_PRIMARY_HLT = 1 << 7 };
 	enum {
@@ -591,4 +591,4 @@ class Vmm::Main
 		}
 };
 
-void Component::construct(Genode::Env & env) { static Vmm::Main main(env); }
+void Component::construct(Genode::Env &env) { static Vmm::Main main(env); }

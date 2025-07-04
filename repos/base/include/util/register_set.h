@@ -372,7 +372,7 @@ class Genode::Register_set : public Register_set_base
 			 *                access destination
 			 * \param index   index of the targeted array item
 			 */
-			static inline void simple_dst(off_t & offset,
+			static inline void simple_dst(off_t &offset,
 			                              unsigned long const index)
 			{
 				offset  = (index << ITEM_WIDTH_LOG2) >> BYTE_WIDTH_LOG2;

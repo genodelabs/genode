@@ -46,7 +46,7 @@ class Hw::Mapping
 		Mapping(addr_t phys, addr_t virt, size_t size, Page_flags flags)
 		: _phys(phys, size), _virt(virt), _flags(flags) { }
 
-		void print(Genode::Output & out) const
+		void print(Genode::Output &out) const
 		{
 			Genode::print(out, "physical region(", _phys, ")",
 			              " => virtual address=", (void*) _virt,

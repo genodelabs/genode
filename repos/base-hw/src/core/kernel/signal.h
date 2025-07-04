@@ -125,7 +125,7 @@ class Kernel::Signal_context
 		Kernel::Object          _kernel_object { *this };
 		Fifo_element            _deliver_fe    { *this };
 		Fifo_element            _contexts_fe   { *this };
-		Signal_receiver &       _receiver;
+		Signal_receiver        &_receiver;
 		addr_t const            _imprint;
 		Signal_context_killer * _killer        { nullptr };
 		unsigned                _submits       { 0       };

@@ -268,7 +268,7 @@ class Core::Platform_thread : Noncopyable
 		 *
 		 * \param location  targeted location in affinity space
 		 */
-		void affinity(Affinity::Location const & location);
+		void affinity(Affinity::Location const &location);
 
 		/**
 		 * Get the executing CPU for this thread

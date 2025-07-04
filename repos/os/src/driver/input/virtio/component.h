@@ -440,10 +440,10 @@ class Virtio_input::Driver
 
 	public:
 
-		Driver(Env                  & env,
-		       Platform::Connection & plat,
-		       Virtio::Device       & device,
-		       Node const           & config)
+		Driver(Env                  &env,
+		       Platform::Connection &plat,
+		       Virtio::Device       &device,
+		       Node const           &config)
 		:
 			_env(env), _plat(plat), _device(device)
 		{

@@ -168,7 +168,7 @@ class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
 
 		Irq::Pool &irq_pool() { return *this; }
 
-		Inter_processor_work_list & work_list() {
+		Inter_processor_work_list &work_list() {
 			return _local_work_list; }
 
 		/**

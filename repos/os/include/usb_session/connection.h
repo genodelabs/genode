@@ -26,7 +26,7 @@ class Usb::Connection : public Genode::Connection<Session>, public Usb::Client
 {
 	private:
 
-		Env                             & _env;
+		Env                              &_env;
 		Rom_session_client                _rom     { devices_rom() };
 		Constructible<Attached_dataspace> _ds      {};
 		Io_signal_handler<Connection>     _handler { _env.ep(), *this,
@@ -42,7 +42,7 @@ class Usb::Connection : public Genode::Connection<Session>, public Usb::Client
 
 		void _handle_io() { }
 
-		Device_capability _wait_for_device(auto const & fn)
+		Device_capability _wait_for_device(auto const &fn)
 		{
 			for (;;) {
 				/* repeatedly check for availability of device */
@@ -83,7 +83,7 @@ class Usb::Connection : public Genode::Connection<Session>, public Usb::Client
 
 		void sigh(Signal_context_capability sigh) { _rom.sigh(sigh); }
 
-		void with_xml(auto const & fn)
+		void with_xml(auto const &fn)
 		{
 			update();
 			try {
@@ -95,7 +95,7 @@ class Usb::Connection : public Genode::Connection<Session>, public Usb::Client
 				warning("Devices rom has invalid XML syntax"); }
 		}
 
-		void with_node(auto const & fn)
+		void with_node(auto const &fn)
 		{
 			update();
 			if (_ds.constructed() && _ds->local_addr<void const>()) {

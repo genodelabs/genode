@@ -17,7 +17,7 @@ using Version = Driver::Session_component::Policy_version;
 
 void Driver::Root::update_policy()
 {
-	_sessions.for_each([&] (Session_component & sc)
+	_sessions.for_each([&] (Session_component &sc)
 	{
 		with_matching_policy(sc._label, _config.node(),
 			[&] (Node const &policy) {
@@ -61,19 +61,19 @@ void Driver::Root::_upgrade_session(Session_component &sc, const char * args)
 }
 
 
-void Driver::Root::add_range(Device const & dev, Range const & range)
+void Driver::Root::add_range(Device const &dev, Range const &range)
 {
-	_sessions.for_each([&] (Session_component & sc) {
+	_sessions.for_each([&] (Session_component &sc) {
 		if (!sc.matches(dev)) return;
 		sc._dma_allocator.reserve(range.start, range.size);
 	});
 
 	/* add default mapping and enable for corresponding pci device */
-	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
 		dev.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
 
 			io_mmu_dev.add_default_range(range, range.start);
-			dev.for_pci_config([&] (Device::Pci_config const & cfg) {
+			dev.for_pci_config([&] (Device::Pci_config const &cfg) {
 				io_mmu_dev.enable_default_mappings(
 					{cfg.bus_num, cfg.dev_num, cfg.func_num});
 			});
@@ -83,9 +83,9 @@ void Driver::Root::add_range(Device const & dev, Range const & range)
 }
 
 
-void Driver::Root::remove_range(Device const & dev, Range const & range)
+void Driver::Root::remove_range(Device const &dev, Range const &range)
 {
-	_sessions.for_each([&] (Session_component & sc) {
+	_sessions.for_each([&] (Session_component &sc) {
 		if (!sc.matches(dev)) return;
 		sc._dma_allocator.unreserve(range.start, range.size);
 	});
@@ -98,13 +98,13 @@ void Driver::Root::remove_range(Device const & dev, Range const & range)
 }
 
 
-Driver::Root::Root(Env                          & env,
-                   Sliced_heap                  & sliced_heap,
-                   Attached_rom_dataspace const & config,
-                   Device_model                 & devices,
-                   Io_mmu_devices               & io_mmu_devices,
-                   Registry<Irq_controller>     & irq_controller_registry,
-                   bool const                     kernel_iommu)
+Driver::Root::Root(Env                          &env,
+                   Sliced_heap                  &sliced_heap,
+                   Attached_rom_dataspace const &config,
+                   Device_model                 &devices,
+                   Io_mmu_devices               &io_mmu_devices,
+                   Registry<Irq_controller>     &irq_controller_registry,
+                   bool const                    kernel_iommu)
 : Root_component<Session_component>(env.ep(), sliced_heap),
   _env(env), _config(config), _devices(devices),
   _io_mmu_devices(io_mmu_devices),

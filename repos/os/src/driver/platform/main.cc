@@ -18,7 +18,7 @@ namespace Driver { struct Main; };
 
 struct Driver::Main
 {
-	Env                  & _env;
+	Env                   &_env;
 	Attached_rom_dataspace _config_rom     { _env, "config"        };
 	Common                 _common         { _env, _config_rom     };
 	Signal_handler<Main>   _config_handler { _env.ep(), *this,
@@ -26,8 +26,7 @@ struct Driver::Main
 
 	void _handle_config();
 
-	Main(Genode::Env & e)
-	: _env(e)
+	Main(Genode::Env &env) : _env(env)
 	{
 		_config_rom.sigh(_config_handler);
 		_handle_config();

@@ -49,7 +49,7 @@ class Lx_kit::Mem_allocator
 		struct Buffer_info
 		{
 			struct Key { addr_t addr; } key;
-			Buffer & buffer;
+			Buffer &buffer;
 
 			size_t size() const { return buffer.size(); }
 
@@ -63,7 +63,7 @@ class Lx_kit::Mem_allocator
 				addr_t addr;
 				size_t size;
 
-				bool matches(Buffer_info const & bi) const
+				bool matches(Buffer_info const &bi) const
 				{
 					Lx_kit::Byte_range buf_range { bi.key.addr, bi.size() };
 					Lx_kit::Byte_range range     { addr, size };
@@ -81,22 +81,22 @@ class Lx_kit::Mem_allocator
 			};
 		};
 
-		Env                  & _env;
-		Heap                 & _heap;
-		Platform::Connection & _platform;
-		Cache                  _cache_attr;
-		Allocator_avl          _mem         { &_heap };
-		Map<Buffer_info>       _virt_to_dma {  _heap };
-		Map<Buffer_info>       _dma_to_virt {  _heap };
+		Env                  &_env;
+		Heap                 &_heap;
+		Platform::Connection &_platform;
+		Cache                 _cache_attr;
+		Allocator_avl         _mem         { &_heap };
+		Map<Buffer_info>      _virt_to_dma {  _heap };
+		Map<Buffer_info>      _dma_to_virt {  _heap };
 
 	public:
 
-		Mem_allocator(Env                  & env,
-		              Heap                 & heap,
-		              Platform::Connection & platform,
-		              Cache                  cache_attr);
+		Mem_allocator(Env                  &env,
+		              Heap                 &heap,
+		              Platform::Connection &platform,
+		              Cache                 cache_attr);
 
-		Buffer             & alloc_buffer(size_t size);
+		Buffer              &alloc_buffer(size_t size);
 		void                 free_buffer(void *addr);
 		Dataspace_capability attached_dataspace_cap(void *addr);
 

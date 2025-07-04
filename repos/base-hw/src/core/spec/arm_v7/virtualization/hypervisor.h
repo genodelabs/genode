@@ -44,8 +44,8 @@ namespace Hypervisor {
 	}
 
 
-	inline void switch_world(Core::Vcpu_state & vcpu_state,
-	                         Host_context     & host_state)
+	inline void switch_world(Core::Vcpu_state &vcpu_state,
+	                         Host_context     &host_state)
 	{
 		hypervisor_call(WORLD_SWITCH,
 		                (Call_arg)&vcpu_state,

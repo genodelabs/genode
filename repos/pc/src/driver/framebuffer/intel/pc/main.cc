@@ -288,7 +288,7 @@ struct Framebuffer::Driver
 		 * Device announcement is handled later inside the lx_kit for unknown
 		 * reasons.
 		 */
-		Lx_kit::env().devices.for_each([](auto & device) {
+		Lx_kit::env().devices.for_each([](auto &device) {
 			/*
 			 * Only iterate over intel devices, other rendering devices might
 			 * be visibale depending on the policy filtering rule of
@@ -447,7 +447,7 @@ void Framebuffer::Driver::system_update()
 }
 
 
-static Framebuffer::Driver & driver(Genode::Env & env)
+static Framebuffer::Driver & driver(Genode::Env &env)
 {
 	static Framebuffer::Driver driver(env);
 	return driver;
@@ -656,7 +656,7 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 
 void lx_emul_i915_hotplug_connector()
 {
-	auto & drv = driver(Lx_kit::env().env);
+	auto &drv = driver(Lx_kit::env().env);
 
 	drv.add_action(Action::ACTION_HOTPLUG, true);
 
@@ -666,7 +666,7 @@ void lx_emul_i915_hotplug_connector()
 
 int lx_emul_i915_action_to_process(int const action_failed)
 {
-	auto & env = Lx_kit::env().env;
+	auto &env = Lx_kit::env().env;
 
 	while (true) {
 

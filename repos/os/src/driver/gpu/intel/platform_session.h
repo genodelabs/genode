@@ -57,12 +57,12 @@ class Platform::Irq_session_component : public Rpc_object<Irq_session>
 {
 	private:
 
-		Irq_ack_handler         & _ack_handler;
+		Irq_ack_handler          &_ack_handler;
 		Signal_context_capability _sigh { };
 
 	public:
 
-		Irq_session_component(Irq_ack_handler & ack_handler)
+		Irq_session_component(Irq_ack_handler &ack_handler)
 		: _ack_handler(ack_handler) { }
 
 		void ack_irq() override { _ack_handler.ack_irq(); }
@@ -105,7 +105,7 @@ class Platform::Device_component : public Rpc_object<Device_interface,
 {
 	private:
 
-		Env                    & _env;
+		Env                     &_env;
 		Io_mem_session_component _gttmmadr_io;
 		Range                    _gttmmadr_range;
 		Io_mem_session_component _gmadr_io;
@@ -114,12 +114,12 @@ class Platform::Device_component : public Rpc_object<Device_interface,
 
 	public:
 
-		Device_component(Env                  & env,
-		                 Irq_ack_handler      & ack_handler,
-		                 Dataspace_capability   gttmmadr_ds_cap,
-		                 Range                  gttmmadr_range,
-		                 Dataspace_capability   gmadr_ds_cap,
-		                 Range                  gmadr_range)
+		Device_component(Env                  &env,
+		                 Irq_ack_handler      &ack_handler,
+		                 Dataspace_capability  gttmmadr_ds_cap,
+		                 Range                 gttmmadr_range,
+		                 Dataspace_capability  gmadr_ds_cap,
+		                 Range                 gmadr_range)
 		:
 		  _env(env),
 		  _gttmmadr_io(gttmmadr_ds_cap),
@@ -145,7 +145,7 @@ class Platform::Device_component : public Rpc_object<Device_interface,
 			return _irq.cap();
 		}
 
-		Io_mem_session_capability io_mem(unsigned idx, Range & range)
+		Io_mem_session_capability io_mem(unsigned idx, Range &range)
 		{
 			range.start = 0;
 
@@ -177,15 +177,15 @@ class Platform::Session_component : public Rpc_object<Session>,
 {
 	private:
 
-		Env                & _env;
-		Connection         & _platform;
-		Hw_ready_state     & _hw_ready;
-		Gpu_reset_handler  & _reset_handler;
-		Heap                 _heap { _env.ram(), _env.rm() };
-		Device_component     _device_component;
-		Dynamic_rom_session  _rom_session { _env.ep(), _env.ram(),
-		                                    _env.rm(), *this    };
-		bool                 _acquired { false };
+		Env                &_env;
+		Connection         &_platform;
+		Hw_ready_state     &_hw_ready;
+		Gpu_reset_handler  &_reset_handler;
+		Heap                _heap { _env.ram(), _env.rm() };
+		Device_component    _device_component;
+		Dynamic_rom_session _rom_session { _env.ep(), _env.ram(),
+		                                   _env.rm(), *this    };
+		bool                _acquired { false };
 
 		/*
 		 * track DMA memory allocations so we can free them at session
@@ -193,10 +193,10 @@ class Platform::Session_component : public Rpc_object<Session>,
 		 */
 		struct Buffer : Dma_buffer, Registry<Buffer>::Element
 		{
-			Buffer(Registry<Buffer> & registry,
-			       Connection       & platform,
-			       size_t             size,
-			       Cache              cache)
+			Buffer(Registry<Buffer> &registry,
+			       Connection       &platform,
+			       size_t            size,
+			       Cache             cache)
 			:
 				Dma_buffer(platform, size, cache),
 				Registry<Buffer>::Element(registry, *this) {}
@@ -207,11 +207,11 @@ class Platform::Session_component : public Rpc_object<Session>,
 
 		using Device_capability = Capability<Platform::Device_interface>;
 
-		Session_component(Env                & env,
-		                  Connection         & platform,
-		                  Irq_ack_handler    & ack_handler,
-		                  Gpu_reset_handler  & reset_handler,
-		                  Hw_ready_state     & hw_ready,
+		Session_component(Env                 &env,
+		                  Connection          &platform,
+		                  Irq_ack_handler     &ack_handler,
+		                  Gpu_reset_handler   &reset_handler,
+		                  Hw_ready_state      &hw_ready,
 		                  Dataspace_capability gttmmadr_ds_cap,
 		                  Range                gttmmadr_range,
 		                  Dataspace_capability gmadr_ds_cap,
@@ -236,7 +236,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 			_reset_handler.reset();
 
 			/* free DMA allocations */
-			_dma_registry.for_each([&](Buffer & dma) {
+			_dma_registry.for_each([&](Buffer &dma) {
 				destroy(_heap, &dma);
 			});
 		}
@@ -262,7 +262,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size, Cache cache) override
 		{
-			Buffer & db = *(new (_heap)
+			Buffer &db = *(new (_heap)
 				Buffer(_dma_registry, _platform, size, cache));
 			return static_cap_cast<Ram_dataspace>(db.cap());
 		}
@@ -271,7 +271,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 		{
 			if (!cap.valid()) return;
 
-			_dma_registry.for_each([&](Buffer & db) {
+			_dma_registry.for_each([&](Buffer &db) {
 				if ((db.cap() == cap) == false) return;
 				destroy(_heap, &db);
 			});
@@ -280,7 +280,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 		addr_t dma_addr(Ram_dataspace_capability cap) override
 		{
 			addr_t ret = 0UL;
-			_dma_registry.for_each([&](Buffer & db) {
+			_dma_registry.for_each([&](Buffer &db) {
 				if ((db.cap() == cap) == false) return;
 				ret = db.dma_addr();
 			});
@@ -393,7 +393,7 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 {
 	private:
 
-		Env                                       & _env;
+		Env                                        &_env;
 		Signal_context_capability const             _irq_cap;
 
 		Platform::Connection                        _platform  { _env           };
@@ -690,20 +690,20 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 {
 	private:
 
-		Env               & _env;
-		Resources         & _resources;
-		Irq_ack_handler   & _ack_handler;
-		Gpu_reset_handler & _reset_handler;
+		Env               &_env;
+		Resources         &_resources;
+		Irq_ack_handler   &_ack_handler;
+		Gpu_reset_handler &_reset_handler;
 
 		Constructible<Session_component> _session { };
 
 	public:
 
-		Root(Env                & env,
-		     Allocator          & md_alloc,
-		     Resources          & resources,
-		     Irq_ack_handler    & ack_handler,
-		     Gpu_reset_handler  & reset_handler)
+		Root(Env                &env,
+		     Allocator          &md_alloc,
+		     Resources          &resources,
+		     Irq_ack_handler    &ack_handler,
+		     Gpu_reset_handler  &reset_handler)
 		:
 			Root_component<Session_component,
 			               Genode::Single_client>(&env.ep().rpc_ep(), &md_alloc),

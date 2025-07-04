@@ -66,7 +66,7 @@ class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 
 		struct Config_area : Reg
 		{
-			Register read(Address_range & range,  Cpu&) override
+			Register read(Address_range &range, Cpu &) override
 			{
 				switch (range.start()) {
 				case 4:   return 1; /* maximum ports */
@@ -77,21 +77,21 @@ class Vmm::Virtio_console : public Virtio_device<Virtio_split_queue, 2>
 
 			void write(Address_range &,  Cpu &, Register) override {}
 
-			Config_area(Virtio_console & console)
+			Config_area(Virtio_console &console)
 			: Reg(console, "ConfigArea", Mmio_register::RW, 0x100, 12) { }
 		} _config_area { *this };
 
 	public:
 
-		Virtio_console(const char * const   name,
-		               const uint64_t       addr,
-		               const uint64_t       size,
-		               unsigned             irq,
-		               Cpu                & cpu,
-		               Mmio_bus           & bus,
-		               Ram                & ram,
-		               Virtio_device_list & list,
-		               Genode::Env        & env)
+		Virtio_console(const char * const  name,
+		               const uint64_t      addr,
+		               const uint64_t      size,
+		               unsigned            irq,
+		               Cpu                &cpu,
+		               Mmio_bus           &bus,
+		               Ram                &ram,
+		               Virtio_device_list &list,
+		               Genode::Env        &env)
 		:
 			Virtio_device<Virtio_split_queue, 2>(name, addr, size, irq,
 			                                     cpu, bus, ram, list, CONSOLE),

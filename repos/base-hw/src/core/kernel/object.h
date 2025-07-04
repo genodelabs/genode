@@ -132,7 +132,7 @@ class Kernel::Object_identity : public Object_identity_list::Element,
 
 	public:
 
-		Object_identity(Object & object);
+		Object_identity(Object &object);
 		~Object_identity();
 
 		template <typename KOBJECT>
@@ -248,11 +248,11 @@ class Kernel::Core_object_identity : public Object_identity,
 
 		capid_t core_capid() { return capid(); }
 
-		static capid_t syscall_create(Genode::Constructible<Core_object_identity<T>> & t,
+		static capid_t syscall_create(Genode::Constructible<Core_object_identity<T>> &t,
 		                              capid_t const cap) {
 			return (capid_t)call(call_id_new_obj(), (Call_arg)&t, (Call_arg)cap); }
 
-		static void syscall_destroy(Genode::Constructible<Core_object_identity<T>> & t) {
+		static void syscall_destroy(Genode::Constructible<Core_object_identity<T>> &t) {
 			call(call_id_delete_obj(), (Call_arg)&t); }
 };
 

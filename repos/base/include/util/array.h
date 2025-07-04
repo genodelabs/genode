@@ -114,7 +114,7 @@ class Genode::Array
 		void for_each(auto const &fn) const
 		{
 			for (unsigned idx = 0; idx < _count; idx++) {
-				T const & obj = _objs[idx];
+				T const &obj = _objs[idx];
 				fn(idx, obj);
 			}
 		}

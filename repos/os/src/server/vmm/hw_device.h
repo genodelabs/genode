@@ -37,8 +37,8 @@ class Vmm::Hw_device
 
 				using Session = Genode::Constructible<Genode::Irq_connection>;
 
-				Gic::Irq               & _irq;
-				Genode::Env            & _env;
+				Gic::Irq                &_irq;
+				Genode::Env             &_env;
 				Session                  _session;
 				Cpu::Signal_handler<Irq> _handler;
 
@@ -72,7 +72,7 @@ class Vmm::Hw_device
 					if (_session.constructed()) _session->ack_irq();
 				}
 
-				Irq(Gic::Irq & irq, Cpu & cpu, Genode::Env & env)
+				Irq(Gic::Irq &irq, Cpu &cpu, Genode::Env &env)
 				: _irq(irq),
 				  _env(env),
 				  _handler(cpu, env.ep(), *this, &Irq::_assert)
@@ -81,9 +81,9 @@ class Vmm::Hw_device
 				}
 		};
 
-		Genode::Env           & _env;
-		Genode::Vm_connection & _vm;
-		Cpu                   & _cpu;
+		Genode::Env           &_env;
+		Genode::Vm_connection &_vm;
+		Cpu                   &_cpu;
 
 		Genode::Constructible<Genode::Attached_io_mem_dataspace> _ds[MMIO_COUNT];
 		Genode::Constructible<Irq> _irqs[IRQ_COUNT];
@@ -95,7 +95,7 @@ class Vmm::Hw_device
 
 		Hw_device(Genode::Env &env,
 		          Genode::Vm_connection &vm,
-		          Cpu & cpu)
+		          Cpu &cpu)
 		: _env(env), _vm(vm), _cpu(cpu) { };
 
 		template <typename... ARGS>

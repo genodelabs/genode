@@ -25,8 +25,8 @@ using Genode::error;
 
 struct Array_of_slab_elements
 {
-	Genode::Slab      & slab;
-	Genode::Allocator & alloc;
+	Genode::Slab      &slab;
+	Genode::Allocator &alloc;
 
 	size_t const num_elem;
 	size_t const slab_size;
@@ -41,7 +41,7 @@ struct Array_of_slab_elements
 	struct Alloc_failed { };
 
 	Array_of_slab_elements(Genode::Slab &slab, size_t num_elem, size_t slab_size,
-	                       Genode::Allocator & alloc)
+	                       Genode::Allocator &alloc)
 	: slab(slab), alloc(alloc), num_elem(num_elem), slab_size(slab_size),
 	  elem((void**) alloc.alloc(_elem_array_size()))
 	{
@@ -78,7 +78,7 @@ struct Array_of_slab_elements
 };
 
 
-void Component::construct(Genode::Env & env)
+void Component::construct(Genode::Env &env)
 {
 	static Genode::Heap heap(env.ram(), env.rm());
 

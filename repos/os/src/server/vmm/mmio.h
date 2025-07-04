@@ -36,8 +36,8 @@ class Vmm::Mmio_register : public Vmm::Address_range
 		using Register = uint64_t;
 		using Space    = Address_space;
 
-		virtual Register read(Address_range  & access, Cpu&);
-		virtual void     write(Address_range & access, Cpu&, Register value);
+		virtual Register read(Address_range  &access, Cpu&);
+		virtual void     write(Address_range &access, Cpu&, Register value);
 		virtual void     set(Register value);
 		virtual Register value() const;
 
@@ -45,7 +45,7 @@ class Vmm::Mmio_register : public Vmm::Address_range
 		              Type     type,
 		              uint64_t start,
 		              uint64_t size,
-		              Space  & device,
+		              Space   &device,
 		              Register reset_value = 0)
 		: Address_range(start, size),
 		  _name(name),
@@ -61,7 +61,7 @@ class Vmm::Mmio_register : public Vmm::Address_range
 		Type const _type;
 		Register   _value;
 
-		bool _unaligned(Address_range & access);
+		bool _unaligned(Address_range &access);
 };
 
 
@@ -82,15 +82,15 @@ class Vmm::Mmio_device : public Vmm::Address_range
 
 		Space & registers() { return _registers; }
 
-		virtual Register read(Address_range  & access, Cpu&);
-		virtual void     write(Address_range & access, Cpu&, Register value);
+		virtual Register read(Address_range  &access, Cpu&);
+		virtual void     write(Address_range &access, Cpu&, Register value);
 
-		void add(Mmio_register & reg);
+		void add(Mmio_register &reg);
 
 		Mmio_device(Name     name,
 		            uint64_t start,
 		            uint64_t size,
-		            Space  & bus)
+		            Space   &bus)
 		: Address_range(start, size), _name(name)
 		{
 			bus.add(*this);

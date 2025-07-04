@@ -104,7 +104,7 @@ class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
 			return true;
 		}
 
-		void mac_address(Net::Mac_address const & mac)
+		void mac_address(Net::Mac_address const &mac)
 		{
 			if (_drv_mac_addr_used) {
 				_drv_handle_link_state(false);

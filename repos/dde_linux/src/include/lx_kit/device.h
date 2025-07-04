@@ -72,7 +72,7 @@ class Lx_kit::Device : List<Device>::Element
 
 			Constructible<Platform::Device::Irq> session {};
 
-			Irq(Entrypoint & ep, unsigned idx, unsigned number);
+			Irq(Entrypoint &ep, unsigned idx, unsigned number);
 
 			void _handle();
 			void mask();
@@ -125,7 +125,7 @@ class Lx_kit::Device : List<Device>::Element
 
 		Device(Entrypoint &, Platform::Connection &, Node const &, Heap &);
 
-		Platform::Connection          & _platform;
+		Platform::Connection           &_platform;
 		Name                      const _name;
 		Type                      const _type;
 		List<Io_mem>                    _io_mems    {};
@@ -136,7 +136,7 @@ class Lx_kit::Device : List<Device>::Element
 		Constructible<Platform::Device> _pdev       {};
 
 		template <typename FN>
-		void _for_each_clock(FN const & fn) {
+		void _for_each_clock(FN const &fn) {
 			for (Clock * c = _clocks.first(); c; c = c->next()) fn(*c); }
 
 	protected:
@@ -155,19 +155,19 @@ class Lx_kit::Device : List<Device>::Element
 		Name name();
 
 		template <typename FN>
-		void for_each_io_mem(FN const & fn) {
+		void for_each_io_mem(FN const &fn) {
 			for (Io_mem * i = _io_mems.first(); i; i = i->next()) fn(*i); }
 
 		template <typename FN>
-		void for_each_io_port(FN const & fn) {
+		void for_each_io_port(FN const &fn) {
 			for (Io_port * i = _io_ports.first(); i; i = i->next()) fn(*i); }
 
 		template <typename FN>
-		void for_each_irq(FN const & fn) {
+		void for_each_irq(FN const &fn) {
 			for (Irq * i = _irqs.first(); i; i = i->next()) fn(*i); }
 
 		template <typename FN>
-		void for_pci_config(FN const & fn) {
+		void for_pci_config(FN const &fn) {
 			if (_pci_config.constructed()) fn(*_pci_config); }
 
 		void   enable();
@@ -198,7 +198,7 @@ class Lx_kit::Device_list : List<Device>
 {
 	private:
 
-		Platform::Connection & _platform;
+		Platform::Connection &_platform;
 
 		void _handle_signal() {}
 

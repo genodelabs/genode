@@ -22,24 +22,24 @@ using Driver::Device_component;
 
 void Driver::Device_component::_release_resources()
 {
-	_io_mem_registry.for_each([&] (Io_mem & iomem) {
+	_io_mem_registry.for_each([&] (Io_mem &iomem) {
 		destroy(_session.heap(), &iomem); });
 
-	_irq_registry.for_each([&] (Irq & irq) {
+	_irq_registry.for_each([&] (Irq &irq) {
 
 		/* unmap IRQ from corresponding remapping table */
 		if (irq.type == Irq_session::TYPE_LEGACY) {
-			_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+			_session.irq_controller_registry().for_each([&] (Irq_controller &controller) {
 				if (!controller.handles_irq(irq.number)) return;
 
-				_session.with_io_mmu(controller.iommu(), [&] (Driver::Io_mmu & io_mmu_dev) {
+				_session.with_io_mmu(controller.iommu(), [&] (Driver::Io_mmu &io_mmu_dev) {
 					io_mmu_dev.unmap_irq(controller.bdf(), irq.remapped_nbr);
 				});
 			});
 		} else {
-			_io_mmu_registry.for_each([&] (Io_mmu & io_mmu) {
+			_io_mmu_registry.for_each([&] (Io_mmu &io_mmu) {
 				if (_pci_config.constructed())
-					_session.with_io_mmu(io_mmu.name, [&] (Driver::Io_mmu & io_mmu_dev) {
+					_session.with_io_mmu(io_mmu.name, [&] (Driver::Io_mmu &io_mmu_dev) {
 						io_mmu_dev.unmap_irq(_pci_config->bdf, irq.remapped_nbr); });
 			});
 		}
@@ -47,7 +47,7 @@ void Driver::Device_component::_release_resources()
 		destroy(_session.heap(), &irq);
 	});
 
-	_io_port_range_registry.for_each([&] (Io_port_range & iop) {
+	_io_port_range_registry.for_each([&] (Io_port_range &iop) {
 		destroy(_session.heap(), &iop); });
 
 	/**
@@ -55,12 +55,12 @@ void Driver::Device_component::_release_resources()
 	 * note: default domain must keep added ranges since device PD never gets
 	 *       disabled
 	 */
-	_io_mmu_registry.for_each([&] (Io_mmu & io_mmu) {
+	_io_mmu_registry.for_each([&] (Io_mmu &io_mmu) {
 		_session.domain_registry().with_domain(io_mmu.name,
-			[&] (Driver::Io_mmu::Domain & domain) {
+			[&] (Driver::Io_mmu::Domain &domain) {
 
 				/* remove reserved memory ranges from IOMMU domains */
-				_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
+				_reserved_mem_registry.for_each([&] (Io_mem &iomem) {
 					domain.remove_range(iomem.range); });
 
 			},
@@ -70,7 +70,7 @@ void Driver::Device_component::_release_resources()
 		destroy(_session.heap(), &io_mmu);
 	});
 
-	_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
+	_reserved_mem_registry.for_each([&] (Io_mem &iomem) {
 		destroy(_session.heap(), &iomem); });
 
 	if (_pci_config.constructed()) _pci_config.destruct();
@@ -89,7 +89,7 @@ Driver::Session_component & Device_component::session() { return _session; }
 unsigned Device_component::io_mem_index(Device::Pci_bar bar)
 {
 	unsigned ret = ~0U;
-	_io_mem_registry.for_each([&] (Io_mem & iomem) {
+	_io_mem_registry.for_each([&] (Io_mem &iomem) {
 		if (iomem.bar.number == bar.number) ret = iomem.idx; });
 	return ret;
 }
@@ -100,7 +100,7 @@ Device_component::io_mem(unsigned idx, Range &range)
 {
 	Io_mem_session_capability cap;
 
-	_io_mem_registry.for_each([&] (Io_mem & iomem)
+	_io_mem_registry.for_each([&] (Io_mem &iomem)
 	{
 		if (iomem.idx != idx)
 			return;
@@ -128,17 +128,17 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 
 	Irq_session_capability cap;
 
-	auto remapped_irq = [&] (Device::Name      const & iommu_name,
-	                         Pci::Bdf          const & bdf,
-	                         Irq                     & irq,
-	                         Irq_session::Info const & info,
-	                         Irq_config        const & config)
+	auto remapped_irq = [&] (Device::Name      const &iommu_name,
+	                         Pci::Bdf          const &bdf,
+	                         Irq                     &irq,
+	                         Irq_session::Info const &info,
+	                         Irq_config        const &config)
 	{
 		using Irq_info = Driver::Io_mmu::Irq_info;
 		Irq_info remapped_irq { Irq_info::DIRECT, info, irq.number };
 
-		auto map_fn = [&] (Device::Name const & name) {
-			_session.with_io_mmu(name, [&] (Driver::Io_mmu & io_mmu) {
+		auto map_fn = [&] (Device::Name const &name) {
+			_session.with_io_mmu(name, [&] (Driver::Io_mmu &io_mmu) {
 				remapped_irq = io_mmu.map_irq(bdf, remapped_irq, config);
 			});
 		};
@@ -147,7 +147,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 		if (iommu_name != "")
 			map_fn(iommu_name);
 		else
-			_io_mmu_registry.for_each([&] (Io_mmu const & io_mmu) {
+			_io_mmu_registry.for_each([&] (Io_mmu const &io_mmu) {
 				map_fn(io_mmu.name);
 			});
 
@@ -158,7 +158,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 	};
 
 	try {
-		_irq_registry.for_each([&] (Irq & irq)
+		_irq_registry.for_each([&] (Irq &irq)
 		{
 			if (irq.idx != idx)
 				return;
@@ -190,7 +190,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 					               remapped_irq("", bdf, irq, info, Irq_config::Invalid()).session_info,
 					               irq.type);
 				else
-					_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+					_session.irq_controller_registry().for_each([&] (Irq_controller &controller) {
 						if (!controller.handles_irq(irq.number)) return;
 
 						remapped_irq(controller.iommu(), controller.bdf(), irq, info,
@@ -201,11 +201,11 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 
 			if (irq.shared && !irq.sirq.constructed())
 				_device_model.with_shared_irq(irq.number,
-				                              [&] (Shared_interrupt & sirq) {
+				                              [&] (Shared_interrupt &sirq) {
 					irq.sirq.construct(_env.ep().rpc_ep(), sirq,
 					                   irq.mode, irq.polarity);
 
-					_session.irq_controller_registry().for_each([&] (Irq_controller & controller) {
+					_session.irq_controller_registry().for_each([&] (Irq_controller &controller) {
 						if (!controller.handles_irq(irq.number)) return;
 
 						remapped_irq(controller.iommu(), controller.bdf(), irq,
@@ -227,7 +227,7 @@ Genode::Io_port_session_capability Device_component::io_port_range(unsigned idx)
 {
 	Io_port_session_capability cap;
 
-	_io_port_range_registry.for_each([&] (Io_port_range & ipr)
+	_io_port_range_registry.for_each([&] (Io_port_range &ipr)
 	{
 		if (ipr.idx != idx)
 			return;
@@ -266,11 +266,11 @@ void Device_component::_with_reserved_quota_for_session(Driver::Session_componen
 }
 
 
-Device_component::Device_component(Registry<Device_component> & registry,
-                                   Env                        & env,
-                                   Driver::Session_component  & session,
-                                   Driver::Device_model       & model,
-                                   Driver::Device             & device)
+Device_component::Device_component(Registry<Device_component> &registry,
+                                   Env                        &env,
+                                   Driver::Session_component  &session,
+                                   Driver::Device_model       &model,
+                                   Driver::Device             &device)
 :
 	_env(env),
 	_session(session),
@@ -323,7 +323,7 @@ Device_component::Device_component(Registry<Device_component> & registry,
 					Io_port_range(_io_port_range_registry, idx, range); });
 		});
 
-		device.for_pci_config([&] (Device::Pci_config const & cfg)
+		device.for_pci_config([&] (Device::Pci_config const &cfg)
 		{
 			_with_reserved_quota_for_session<Io_mem_session>(session, [&] {
 				Pci::Bdf bdf { cfg.bus_num, cfg.dev_num, cfg.func_num };
@@ -333,15 +333,15 @@ Device_component::Device_component(Registry<Device_component> & registry,
 		device.for_each_reserved_memory([&] (unsigned idx, Range range)
 		{
 			_with_reserved_quota_for_session<Io_mem_session>(session, [&] {
-				Io_mem & iomem = *(new (session.heap())
+				Io_mem &iomem = *(new (session.heap())
 					Io_mem(_reserved_mem_registry, {0}, idx, range, false));
 				iomem.io_mem.construct(_env, iomem.range.start,
 				                       iomem.range.size, false);
 			});
 		});
 
-		auto add_range_fn = [&] (Driver::Io_mmu::Domain & domain) {
-			_reserved_mem_registry.for_each([&] (Io_mem & iomem) {
+		auto add_range_fn = [&] (Driver::Io_mmu::Domain &domain) {
+			_reserved_mem_registry.for_each([&] (Io_mem &iomem) {
 				domain.add_range(iomem.range, iomem.range.start,
 				                 iomem.io_mem->dataspace());
 			});

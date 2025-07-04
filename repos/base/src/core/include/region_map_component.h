@@ -497,7 +497,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		/*
 		 * Returns the core-local address behind region 'r'
 		 */
-		addr_t _core_local_addr(Rm_region & r);
+		addr_t _core_local_addr(Rm_region &r);
 
 		struct Attach_attr
 		{

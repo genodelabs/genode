@@ -28,7 +28,7 @@ Cpu_base::System_register::System_register(unsigned         op0,
                                            const char     * name,
                                            bool             writeable,
                                            Genode::addr_t   v,
-                                           Genode::Avl_tree<System_register> & tree)
+                                           Genode::Avl_tree<System_register> &tree)
 : _encoding(Iss::value(op0, crn, op1, crm, op2)),
   _name(name),
   _writeable(writeable),
@@ -38,7 +38,7 @@ Cpu_base::System_register::System_register(unsigned         op0,
 }
 
 
-bool Cpu_base::_handle_sys_reg(Vcpu_state & state)
+bool Cpu_base::_handle_sys_reg(Vcpu_state &state)
 {
 	using Iss = System_register::Iss;
 
@@ -157,8 +157,8 @@ void Cpu_base::_handle_hyper_call(Vcpu_state &state)
 			return;
 		case Psci::CPU_ON_32: [[fallthrough]];
 		case Psci::CPU_ON:
-			_vm.cpu((unsigned)state.reg(1), [&] (Cpu & cpu) {
-				Vcpu_state & local_state = cpu.state();
+			_vm.cpu((unsigned)state.reg(1), [&] (Cpu &cpu) {
+				Vcpu_state &local_state = cpu.state();
 				cpu.initialize_boot(local_state, state.reg(2), state.reg(3));
 				cpu.set_ready();
 			});
@@ -197,14 +197,14 @@ void Cpu_base::recall()
 };
 
 
-Cpu_base::Cpu_base(Vm                      & vm,
-                   Genode::Vm_connection   & vm_session,
-                   Mmio_bus                & bus,
-                   Gic                     & gic,
-                   Genode::Env             & env,
-                   Genode::Heap            & heap,
-                   Genode::Entrypoint      & ep,
-                   unsigned                  id)
+Cpu_base::Cpu_base(Vm                    &vm,
+                   Genode::Vm_connection &vm_session,
+                   Mmio_bus              &bus,
+                   Gic                   &gic,
+                   Genode::Env           &env,
+                   Genode::Heap          &heap,
+                   Genode::Entrypoint    &ep,
+                   unsigned               id)
 : _vcpu_id(id),
   _vm(vm),
   _vm_session(vm_session),

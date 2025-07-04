@@ -107,7 +107,7 @@ class Hw::Address_space : public Core::Address_space
 		 *
 		 * \param pd    reference to platform pd object
 		 */
-		Address_space(Platform_pd & pd);
+		Address_space(Platform_pd &pd);
 
 		~Address_space();
 
@@ -122,7 +122,7 @@ class Hw::Address_space : public Core::Address_space
 		bool insert_translation(addr_t virt, addr_t phys,
 		                        size_t size, Page_flags flags);
 
-		bool lookup_rw_translation(addr_t const virt, addr_t & phys);
+		bool lookup_rw_translation(addr_t const virt, addr_t &phys);
 
 
 		/*****************************

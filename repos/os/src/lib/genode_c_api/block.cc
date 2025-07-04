@@ -45,7 +45,7 @@ class genode_block_session : public Rpc_object<Block::Session>
 		Request                   _requests[MAX_REQUESTS];
 
 		template <typename FUNC>
-		void _first_request(Request::State state, FUNC const & fn)
+		void _first_request(Request::State state, FUNC const &fn)
 		{
 			for (unsigned idx = 0; idx < MAX_REQUESTS; idx++) {
 				if (_requests[idx].state == state) {
@@ -56,7 +56,7 @@ class genode_block_session : public Rpc_object<Block::Session>
 		}
 
 		template <typename FUNC>
-		void _for_each_request(Request::State state, FUNC const & fn)
+		void _for_each_request(Request::State state, FUNC const &fn)
 		{
 			for (unsigned idx = 0; idx < MAX_REQUESTS; idx++) {
 				if (_requests[idx].state == state)
@@ -72,7 +72,7 @@ class genode_block_session : public Rpc_object<Block::Session>
 
 	public:
 
-		genode_block_session(Env                     & env,
+		genode_block_session(Env                      &env,
 		                     Block::Session::Info      info,
 		                     Signal_context_capability cap,
 		                     size_t                    buffer_size);
@@ -107,7 +107,7 @@ class Block_root : public Root_component<genode_block_session>
 
 		using Buffered_node = Genode::Buffered_node;
 
-		Env                         & _env;
+		Env                          &_env;
 		Signal_context_capability     _sigh_cap;
 		Constructible<Buffered_node>  _config   { };
 		Expanding_reporter            _reporter { _env, "block_devices" };
@@ -123,7 +123,7 @@ class Block_root : public Root_component<genode_block_session>
 		void _destroy_session(genode_block_session &) override;
 
 		template <typename FUNC>
-		void _for_each_session_info(FUNC const & fn)
+		void _for_each_session_info(FUNC const &fn)
 		{
 			for (unsigned idx = 0; idx < MAX_BLOCK_DEVICES; idx++)
 				if (_sessions[idx].constructed())
@@ -171,7 +171,7 @@ genode_block_request * genode_block_session::request()
 
 		Response response = Response::RETRY;
 
-		_first_request(Request::FREE, [&] (Request & r) {
+		_first_request(Request::FREE, [&] (Request &r) {
 
 			r.state    = Request::IN_FLY;
 			r.peer_req = request;
@@ -209,14 +209,14 @@ genode_block_request * genode_block_session::request()
 
 void genode_block_session::ack(genode_block_request * req, bool success)
 {
-	_for_each_request(Request::IN_FLY, [&] (Request & r) {
+	_for_each_request(Request::IN_FLY, [&] (Request &r) {
 		if (&r.dev_req == req)
 			r.state = Request::DONE;
 	});
 
 	/* Acknowledge any pending packets */
-	_rs.try_acknowledge([&](Block::Request_stream::Ack & ack) {
-		_first_request(Request::DONE, [&] (Request & r) {
+	_rs.try_acknowledge([&](Block::Request_stream::Ack &ack) {
+		_first_request(Request::DONE, [&] (Request &r) {
 			r.state = Request::FREE;
 			r.peer_req.success = success;
 			ack.submit(r.peer_req);
@@ -225,7 +225,7 @@ void genode_block_session::ack(genode_block_request * req, bool success)
 }
 
 
-genode_block_session::genode_block_session(Env                     & env,
+genode_block_session::genode_block_session(Env                      &env,
                                            Block::Session::Info      info,
                                            Signal_context_capability cap,
                                            size_t                    buffer_size)
@@ -262,7 +262,7 @@ Block_root::Create_result Block_root::_create_session(const char * args,
 
 			genode_block_session * ret = nullptr;
 
-			_for_each_session_info([&] (Session_info & si) {
+			_for_each_session_info([&] (Session_info &si) {
 				if (si.block_session || si.name != device)
 					return;
 				ret = new (md_alloc())
@@ -280,7 +280,7 @@ Block_root::Create_result Block_root::_create_session(const char * args,
 
 void Block_root::_destroy_session(genode_block_session &session)
 {
-	_for_each_session_info([&] (Session_info & si) {
+	_for_each_session_info([&] (Session_info &si) {
 		if (si.block_session == &session)
 			si.block_session = nullptr;
 	});
@@ -297,7 +297,7 @@ void Block_root::_report()
 		return;
 
 	_reporter.generate([&] (Xml_generator &xml) {
-		_for_each_session_info([&] (Session_info & si) {
+		_for_each_session_info([&] (Session_info &si) {
 			xml.node("device", [&] {
 				xml.attribute("label",       si.name);
 				xml.attribute("block_size",  si.info.block_size);
@@ -343,7 +343,7 @@ void Block_root::discontinue_device(const char * name)
 genode_block_session * Block_root::session(const char * name)
 {
 	genode_block_session * ret = nullptr;
-	_for_each_session_info([&] (Session_info & si) {
+	_for_each_session_info([&] (Session_info &si) {
 		if (si.name == name)
 			ret = si.block_session;
 	});
@@ -353,21 +353,21 @@ genode_block_session * Block_root::session(const char * name)
 
 void Block_root::notify_peers()
 {
-	_for_each_session_info([&] (Session_info & si) {
+	_for_each_session_info([&] (Session_info &si) {
 		if (si.block_session)
 			si.block_session->notify_peers();
 	});
 }
 
 
-void Block_root::apply_config(Node const & config)
+void Block_root::apply_config(Node const &config)
 {
 	_config.construct(*md_alloc(), config);
 	_report_needed = config.attribute_value("report", false);
 }
 
 
-Block_root::Block_root(Env & env, Allocator & alloc, Signal_context_capability cap)
+Block_root::Block_root(Env &env, Allocator &alloc, Signal_context_capability cap)
 :
 	Root_component<genode_block_session>(env.ep(), alloc),
 	_env(env), _sigh_cap(cap) { }
@@ -441,7 +441,7 @@ extern "C" void genode_block_notify_peers()
 }
 
 
-void genode_block_apply_config(Node const & config)
+void genode_block_apply_config(Node const &config)
 {
 	if (_block_root) _block_root->apply_config(config);
 }

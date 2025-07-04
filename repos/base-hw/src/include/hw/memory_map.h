@@ -45,7 +45,7 @@ struct Hw::Mmio_space : Hw::Memory_region_array
 	void for_each_mapping(auto const &fn) const
 	{
 		addr_t virt_base = Mm::core_mmio().base;
-		auto lambda = [&] (unsigned, Memory_region const & r) {
+		auto lambda = [&] (unsigned, Memory_region const &r) {
 			fn(Mapping { r.base, virt_base, r.size, Genode::PAGE_FLAGS_KERN_IO });
 			virt_base += r.size + get_page_size();
 		};
@@ -59,7 +59,7 @@ struct Hw::Mmio_space : Hw::Memory_region_array
 		 * where no exceptions can be used
 		 */
 		addr_t ret = 0;
-		for_each_mapping([&] (Mapping const & m)
+		for_each_mapping([&] (Mapping const &m)
 		{
 			if (phys_addr >= m.phys() && phys_addr < (m.phys()+m.size()))
 				ret = m.virt() + (phys_addr-m.phys());

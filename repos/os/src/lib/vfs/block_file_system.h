@@ -85,7 +85,7 @@ struct Vfs::Block_file_system
 		 ** Block::Connection::Update_jobs_policy interface **
 		 *****************************************************/
 
-		void produce_write_content(Block_job & job, off_t offset,
+		void produce_write_content(Block_job &job, off_t offset,
 		                           char *dst, size_t length)
 		{
 			size_t sz = min(length, job.bytes_remaining());
@@ -98,7 +98,7 @@ struct Vfs::Block_file_system
 			job.bytes_handled += sz;
 		}
 
-		void consume_read_result(Block_job & job, off_t offset,
+		void consume_read_result(Block_job &job, off_t offset,
 		                         char const *src, size_t length)
 		{
 			size_t sz = min(length, job.bytes_remaining());

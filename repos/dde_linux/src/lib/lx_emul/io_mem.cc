@@ -21,7 +21,7 @@ void * lx_emul_io_mem_map(unsigned long phys_addr,
 	using namespace Genode;
 
 	void * ret = nullptr;
-	env().devices.for_each([&] (Device & d) {
+	env().devices.for_each([&] (Device &d) {
 		if (d.io_mem(phys_addr, size))
 			ret = d.io_mem_local_addr(phys_addr, size);
 	});

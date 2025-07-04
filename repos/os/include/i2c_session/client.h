@@ -28,7 +28,7 @@ struct I2c::Session_client : Rpc_client<I2c::Session>
 		Rpc_client<I2c::Session>(session)
 	{ }
 
-	void transmit(Transaction & transaction) override
+	void transmit(Transaction &transaction) override
 	{
 		call<Rpc_transmit>(transaction);
 	}

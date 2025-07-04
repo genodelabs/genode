@@ -20,7 +20,7 @@ Address_range::Address_range(Genode::uint64_t start,
 : _start(start), _size(size) { }
 
 
-Address_range & Address_range::find(Address_range & bus_addr)
+Address_range & Address_range::find(Address_range &bus_addr)
 {
 	if (match(bus_addr))
 		return *this;

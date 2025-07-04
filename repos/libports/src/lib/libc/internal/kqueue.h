@@ -27,11 +27,11 @@ class Libc::Kqueue_plugin : public Libc::Plugin
 {
 	private:
 
-		Genode::Allocator & _alloc;
+		Genode::Allocator &_alloc;
 
 	public:
 
-		Kqueue_plugin(Genode::Allocator & alloc) : _alloc(alloc) { }
+		Kqueue_plugin(Genode::Allocator &alloc) : _alloc(alloc) { }
 
 		int create_kqueue();
 		int close(File_descriptor *) override;

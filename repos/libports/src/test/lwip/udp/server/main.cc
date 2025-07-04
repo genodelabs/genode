@@ -31,7 +31,7 @@ struct Receive_failed    : Genode::Exception { };
 struct Bind_failed       : Genode::Exception { };
 
 
-static void test(Libc::Env & env)
+static void test(Libc::Env &env)
 {
 	/* create socket */
 	int s = socket(AF_INET, SOCK_DGRAM, 0 );

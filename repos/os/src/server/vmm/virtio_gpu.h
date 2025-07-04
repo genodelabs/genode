@@ -199,10 +199,10 @@ class Vmm::Virtio_gpu_control_request
 			using Control_header_tpl::Control_header_tpl;
 		};
 
-		Descriptor_array  & _array;
-		Ram               & _ram;
-		Virtio_gpu_device & _device;
-		Index               _idx;
+		Descriptor_array  &_array;
+		Ram               &_ram;
+		Virtio_gpu_device &_device;
+		Index              _idx;
 
 		Index _next(Descriptor desc)
 		{
@@ -240,11 +240,12 @@ class Vmm::Virtio_gpu_control_request
 
 	public:
 
-		Virtio_gpu_control_request(Index               id,
-		                           Descriptor_array  & array,
-		                           Ram               & ram,
-		                           Virtio_gpu_device & device)
-		: _array(array), _ram(ram), _device(device), _idx(id)
+		Virtio_gpu_control_request(Index              id,
+		                           Descriptor_array  &array,
+		                           Ram               &ram,
+		                           Virtio_gpu_device &device)
+		:
+			_array(array), _ram(ram), _device(device), _idx(id)
 		{
 			switch (_ctrl_hdr.read<Control_header::Type>()) {
 			case Control_header::Type::GET_DISPLAY_INFO:
@@ -290,10 +291,10 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 		friend class Virtio_gpu_control_request;
 
-		Env                                  & _env;
-		Heap                                 & _heap;
-		Attached_ram_dataspace               & _ram_ds;
-		Gui::Connection                      & _gui;
+		Env                                   &_env;
+		Heap                                  &_heap;
+		Attached_ram_dataspace                &_ram_ds;
+		Gui::Connection                       &_gui;
 		Cpu::Signal_handler<Virtio_gpu_device> _handler;
 		Constructible<Attached_dataspace>      _fb_ds { };
 
@@ -318,7 +319,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			{
 				uint32_t id;
 
-				Scanout(Registry<Scanout> & registry,
+				Scanout(Registry<Scanout> &registry,
 				        uint32_t id,
 				        uint32_t x, uint32_t y,
 				        uint32_t w, uint32_t h)
@@ -330,9 +331,9 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 				using Rect::Rect;
 			};
 
-			Virtio_gpu_device & device;
-			uint32_t            id;
-			Area                area;
+			Virtio_gpu_device &device;
+			uint32_t           id;
+			Area               area;
 
 			size_t _size() const {
 				return align_addr(area.w * area.h * BYTES_PER_PIXEL, 12); }
@@ -346,10 +347,10 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 			                                    device._env.rm(), _size() };
 			Registry<Scanout>      scanouts {};
 
-			Resource(Virtio_gpu_device & dev,
-			         uint32_t            id,
-			         uint32_t            w,
-			         uint32_t            h)
+			Resource(Virtio_gpu_device &dev,
+			         uint32_t           id,
+			         uint32_t           w,
+			         uint32_t           h)
 			:
 				Registry<Resource>::Element(dev._resources, *this),
 				device(dev),
@@ -390,7 +391,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 		struct Configuration_area : Mmio_register
 		{
-			Virtio_gpu_device & dev;
+			Virtio_gpu_device &dev;
 
 			enum {
 				EVENTS_READ  = 0,
@@ -401,7 +402,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 			enum Events { NONE = 0, DISPLAY = 1 };
 
-			Register read(Address_range & range,  Cpu&) override
+			Register read(Address_range &range, Cpu &) override
 			{
 				if (range.start() == EVENTS_READ)
 					return DISPLAY;
@@ -415,7 +416,7 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 			void write(Address_range &, Cpu&, Register) override {}
 
-			Configuration_area(Virtio_gpu_device & device)
+			Configuration_area(Virtio_gpu_device &device)
 			:
 				Mmio_register("GPU config area", Mmio_register::RO,
 				              0x100, 16, device.registers()),
@@ -438,18 +439,18 @@ class Vmm::Virtio_gpu_device : public Virtio_device<Virtio_gpu_queue, 2>
 
 	public:
 
-		Virtio_gpu_device(const char * const       name,
-		                  const uint64_t           addr,
-		                  const uint64_t           size,
-		                  unsigned                 irq,
-		                  Cpu                    & cpu,
-		                  Space                  & bus,
-		                  Ram                    & ram,
-		                  Virtio_device_list     & list,
-		                  Env                    & env,
-		                  Heap                   & heap,
-		                  Attached_ram_dataspace & ram_ds,
-		                  Gui::Connection        & gui)
+		Virtio_gpu_device(const char * const      name,
+		                  const uint64_t          addr,
+		                  const uint64_t          size,
+		                  unsigned                irq,
+		                  Cpu                    &cpu,
+		                  Space                  &bus,
+		                  Ram                    &ram,
+		                  Virtio_device_list     &list,
+		                  Env                    &env,
+		                  Heap                   &heap,
+		                  Attached_ram_dataspace &ram_ds,
+		                  Gui::Connection        &gui)
 		:
 			Virtio_device<Virtio_gpu_queue, 2>(name, addr, size,
 			                                   irq, cpu, bus, ram, list, GPU),

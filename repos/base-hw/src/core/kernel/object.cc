@@ -140,7 +140,7 @@ void Object_identity::invalidate()
 }
 
 
-Object_identity::Object_identity(Object & object)
+Object_identity::Object_identity(Object &object)
 :
 	_object(&object)
 {
@@ -187,8 +187,8 @@ Object_identity_reference::find(capid_t capid)
 }
 
 
-Object_identity_reference * Object_identity_reference::factory(void * dst,
-                                                               Pd   & pd)
+Object_identity_reference * Object_identity_reference::factory(void *dst,
+                                                               Pd   &pd)
 {
 	using namespace Genode;
 	return !_identity ?

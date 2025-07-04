@@ -43,7 +43,7 @@ class Vfs::Mac_file_system : public Value_file_system<Net::Mac_address>
 {
 	public:
 
-		Mac_file_system(Name const & name, Net::Mac_address const & mac)
+		Mac_file_system(Name const &name, Net::Mac_address const &mac)
 		: Value_file_system(name, mac)
 		{ }
 
@@ -130,12 +130,12 @@ class Vfs::Tap_file_system::Data_file_system : public FS
 
 	public:
 
-		Data_file_system(Genode::Env            & env,
-		                 Vfs::Env::User         & vfs_user,
-		                 Name             const & name,
-		                 Label            const & label,
-		                 Net::Mac_address const & mac,
-		                 Device_update_handler  & handler)
+		Data_file_system(Genode::Env            &env,
+		                 Vfs::Env::User         &vfs_user,
+		                 Name             const &name,
+		                 Label            const &label,
+		                 Net::Mac_address const &mac,
+		                 Device_update_handler  &handler)
 		:
 			FS(name.string()),
 			_name(name), _label(label), _default_mac(mac), _env(env),
@@ -216,8 +216,8 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 		Name        const &_name;
 		Mac_addr_fs const &_mac_addr_fs;
 
-		Info(Name        const & name,
-		     Mac_addr_fs const & mac_addr_fs)
+		Info(Name        const &name,
+		     Mac_addr_fs const &mac_addr_fs)
 		: _name(name),
 		  _mac_addr_fs(mac_addr_fs)
 		{ }

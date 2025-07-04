@@ -54,8 +54,8 @@ class Board::Pic : public Hw::Gicv2
 			uint32_t elrsr { 0xffffffff };
 		};
 
-		bool ack_virtual_irq(Virtual_context & c);
-		void insert_virtual_irq(Virtual_context & c, unsigned irq);
+		bool ack_virtual_irq(Virtual_context &c);
+		void insert_virtual_irq(Virtual_context &c, unsigned irq);
 
 		Pic(Global_interrupt_controller &) { }
 };

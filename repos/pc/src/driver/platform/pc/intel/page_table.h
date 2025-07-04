@@ -112,9 +112,9 @@ struct Intel::Level_1_descriptor : Common_descriptor
 			| Pa::masked(pa);
 	}
 
-	static void generate_page(unsigned long           index,
-	                          access_t                entry,
-	                          Genode::Xml_generator & xml)
+	static void generate_page(unsigned long          index,
+	                          access_t               entry,
+	                          Genode::Xml_generator &xml)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
@@ -152,10 +152,10 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
 	}
 
 	template <typename ENTRY>
-	static void generate(unsigned long           index,
-	                     access_t                entry,
-	                     Genode::Xml_generator & xml,
-	                     Report_helper         & report_helper)
+	static void generate(unsigned long          index,
+	                     access_t               entry,
+	                     Genode::Xml_generator &xml,
+	                     Report_helper         &report_helper)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
@@ -166,7 +166,7 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
 			xml.attribute("value",   Hex_str(Hex(entry)));
 			xml.attribute("address", Hex_str(Hex(pd_addr)));
 
-			report_helper.with_table<ENTRY>(pd_addr, [&] (ENTRY & pd) {
+			report_helper.with_table<ENTRY>(pd_addr, [&] (ENTRY &pd) {
 				pd.generate(xml, report_helper); });
 		});
 	}
@@ -196,9 +196,9 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Page
 		     | Pa::masked(pa);
 	}
 
-	static void generate_page(unsigned long           index,
-	                          access_t                entry,
-	                          Genode::Xml_generator & xml)
+	static void generate_page(unsigned long          index,
+	                          access_t               entry,
+	                          Genode::Xml_generator &xml)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
@@ -233,10 +233,10 @@ struct Intel::Level_4_descriptor : Common_descriptor
 	}
 
 	template <typename ENTRY>
-	static void generate(unsigned long           index,
-	                     access_t                entry,
-	                     Genode::Xml_generator & xml,
-	                     Report_helper         & report_helper)
+	static void generate(unsigned long          index,
+	                     access_t               entry,
+	                     Genode::Xml_generator &xml,
+	                     Report_helper         &report_helper)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
@@ -247,7 +247,7 @@ struct Intel::Level_4_descriptor : Common_descriptor
 			xml.attribute("value",   Hex_str(Hex(entry)));
 			xml.attribute("address", Hex_str(Hex(level3_addr)));
 
-			report_helper.with_table<ENTRY>(level3_addr, [&] (ENTRY & level3_table) {
+			report_helper.with_table<ENTRY>(level3_addr, [&] (ENTRY &level3_table) {
 				level3_table.generate(xml, report_helper); });
 		});
 	}

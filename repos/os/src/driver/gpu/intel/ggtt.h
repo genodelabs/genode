@@ -152,7 +152,7 @@ class Igd::Ggtt
 		 * \param scratch_page   physical address of the scratch page
 		 * \param fb_size        size of the framebuffer region in the GTT in bytes
 		 */
-		Ggtt(Platform::Connection & platform, Igd::Mmio &mmio,
+		Ggtt(Platform::Connection &platform, Igd::Mmio &mmio,
 		     addr_t base, size_t size, size_t aperture_size, size_t fb_size)
 		:
 			_base(base),

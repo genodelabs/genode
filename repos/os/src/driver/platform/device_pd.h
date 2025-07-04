@@ -51,15 +51,15 @@ class Driver::Device_pd : public Io_mmu::Domain
 		 */
 		struct Region_map_client : Genode::Region_map_client
 		{
-			Env             & _env;
-			Pd_connection   & _pd;
-			Ram_quota_guard & _ram_guard;
-			Cap_quota_guard & _cap_guard;
+			Env             &_env;
+			Pd_connection   &_pd;
+			Ram_quota_guard &_ram_guard;
+			Cap_quota_guard &_cap_guard;
 
-			Region_map_client(Env             & env,
-			                  Pd_connection   & pd,
-			                  Ram_quota_guard & ram_guard,
-			                  Cap_quota_guard & cap_guard)
+			Region_map_client(Env             &env,
+			                  Pd_connection   &pd,
+			                  Ram_quota_guard &ram_guard,
+			                  Cap_quota_guard &cap_guard)
 			:
 				Genode::Region_map_client(pd.address_space()),
 				_env(env), _pd(pd),
@@ -74,12 +74,12 @@ class Driver::Device_pd : public Io_mmu::Domain
 
 	public:
 
-		Device_pd(Env                        & env,
-		          Ram_quota_guard            & ram_guard,
-		          Cap_quota_guard            & cap_guard,
-		          Kernel_iommu               & iommu,
-		          Allocator                  & md_alloc,
-		          Registry<Dma_buffer> const & buffer_registry);
+		Device_pd(Env                        &env,
+		          Ram_quota_guard            &ram_guard,
+		          Cap_quota_guard            &cap_guard,
+		          Kernel_iommu               &iommu,
+		          Allocator                  &md_alloc,
+		          Registry<Dma_buffer> const &buffer_registry);
 
 		void add_range(Io_mmu::Range const &,
 		               addr_t const,
@@ -96,7 +96,7 @@ class Driver::Kernel_iommu : public Io_mmu
 {
 	private:
 
-		Env & _env;
+		Env &_env;
 
 	public:
 
@@ -105,11 +105,11 @@ class Driver::Kernel_iommu : public Io_mmu
 		 */
 
 		Driver::Io_mmu::Domain & create_domain(
-			Allocator                  & md_alloc,
+			Allocator                  &md_alloc,
 			Ram_allocator              &,
-			Registry<Dma_buffer> const & buffer_registry,
-			Ram_quota_guard            & ram_guard,
-			Cap_quota_guard            & cap_guard) override
+			Registry<Dma_buffer> const &buffer_registry,
+			Ram_quota_guard            &ram_guard,
+			Cap_quota_guard            &cap_guard) override
 		{
 			return *new (md_alloc) Device_pd(_env,
 			                                 ram_guard,
@@ -120,9 +120,9 @@ class Driver::Kernel_iommu : public Io_mmu
 		}
 
 
-		Kernel_iommu(Env                      & env,
-		             Io_mmu_devices           & io_mmu_devices,
-		             Device::Name       const & name)
+		Kernel_iommu(Env                      &env,
+		             Io_mmu_devices           &io_mmu_devices,
+		             Device::Name       const &name)
 		: Io_mmu(io_mmu_devices, name),
 		  _env(env)
 		{ };

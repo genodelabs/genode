@@ -40,7 +40,7 @@ struct Hw::Memory_region
 
 	Genode::addr_t end() const { return base + size; }
 
-	void print(Genode::Output & out) const
+	void print(Genode::Output &out) const
 	{
 		Genode::print(out, "base=", (void*)base, " size=",
 		              Genode::Hex(size, Genode::Hex::PREFIX));

@@ -57,13 +57,13 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 
 		enum Scheduler_state { ACTIVE, INACTIVE };
 
-		Irq::Pool                 & _user_irq_pool;
-		Object                      _kernel_object { *this };
-		Vcpu_state                & _state;
-		Signal_context            & _context;
-		Identity const              _id;
-		Scheduler_state             _scheduled = INACTIVE;
-		Board::Vcpu_context         _vcpu_context;
+		Irq::Pool          &_user_irq_pool;
+		Object              _kernel_object { *this };
+		Vcpu_state         &_state;
+		Signal_context     &_context;
+		Identity const      _id;
+		Scheduler_state     _scheduled = INACTIVE;
+		Board::Vcpu_context _vcpu_context;
 
 		void _pause_vcpu()
 		{
@@ -127,7 +127,7 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 		 *
 		 * \retval 0 when successful, otherwise !=0
 		 */
-		static void syscall_destroy(Core::Kernel_object<Vcpu> & vcpu) {
+		static void syscall_destroy(Core::Kernel_object<Vcpu> &vcpu) {
 			call(call_id_delete_vcpu(), (Call_arg) &vcpu); }
 
 		Object &kernel_object() { return _kernel_object; }

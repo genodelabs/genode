@@ -80,7 +80,7 @@ struct I2c::Session : public Genode::Session
 	 *
 	 * \throw I2c::Session::Bus_error An error occured while performing an operation on the bus
 	 */
-	virtual void transmit(Transaction & transaction) = 0;
+	virtual void transmit(Transaction &transaction) = 0;
 
 	GENODE_RPC_THROW(Rpc_transmit, void, transmit,
 	                 GENODE_TYPE_LIST(Bus_error), Transaction &);

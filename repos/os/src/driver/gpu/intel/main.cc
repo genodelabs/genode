@@ -67,12 +67,12 @@ struct Igd::Device
 	/* 300 ms */
 	enum { WATCHDOG_TIMEOUT = 300*1000 };
 
-	Env                    & _env;
-	Allocator              & _md_alloc;
-	Platform::Resources    & _resources;
-	Rm_connection          & _rm;
-	Timer::Connection        _timer { _env };
-	Constructible<Rc6>       _rc6 { };
+	Env                    &_env;
+	Allocator              &_md_alloc;
+	Platform::Resources    &_resources;
+	Rm_connection          &_rm;
+	Timer::Connection       _timer { _env };
+	Constructible<Rc6>      _rc6 { };
 
 	/*********
 	 ** PCI **
@@ -158,10 +158,10 @@ struct Igd::Device
 	Gpu::Info_intel::Clock_frequency _clock_frequency { };
 
 
-	bool _supported(Igd::Mmio       & mmio,
-	                Node      const & supported,
-	                uint16_t  const   dev_id,
-	                uint8_t   const   rev_id)
+	bool _supported(Igd::Mmio       &mmio,
+	                Node      const &supported,
+	                uint16_t  const  dev_id,
+	                uint8_t   const  rev_id)
 	{
 		bool found = false;
 
@@ -412,9 +412,9 @@ struct Igd::Device
 			Allocator     &alloc;
 			Ggtt::Mapping &map;
 
-			Mapping_guard(Device          & device,
-			              Ggtt_map_memory & gmm,
-			              Allocator       & alloc)
+			Mapping_guard(Device          &device,
+			              Ggtt_map_memory &gmm,
+			              Allocator       &alloc)
 			:
 				device(device),
 				alloc(alloc),
@@ -1130,7 +1130,7 @@ struct Igd::Device
 		return mmio.find_free_fence();
 	}
 
-	uint32_t _update_fence(Igd::Mmio    & mmio,
+	uint32_t _update_fence(Igd::Mmio     &mmio,
 	                       uint32_t const id,
 	                       addr_t   const lower,
 	                       addr_t   const upper,
@@ -1182,7 +1182,7 @@ struct Igd::Device
 				_active_vgpu->rcs.with_context_ring([&](auto &context, auto &ring) {
 					context.dump();
 
-					with_hw_status_page([&](auto & hw_status) {
+					with_hw_status_page([&](auto &hw_status) {
 						hw_status.dump(); });
 
 					ring.update_head(context.head_offset());
@@ -1272,15 +1272,15 @@ struct Igd::Device
 	/**
 	 * Constructor
 	 */
-	Device(Genode::Env            & env,
-	       Genode::Allocator      & alloc,
-	       Platform::Connection   & platform,
-	       Platform::Resources    & res,
-	       Rm_connection          & rm,
-	       Genode::Node           & supported,
-	       uint16_t                 device_id,
-	       uint8_t                  revision,
-	       uint8_t                  gmch_ctl)
+	Device(Genode::Env            &env,
+	       Genode::Allocator      &alloc,
+	       Platform::Connection   &platform,
+	       Platform::Resources    &res,
+	       Rm_connection          &rm,
+	       Genode::Node           &supported,
+	       uint16_t                device_id,
+	       uint8_t                 revision,
+	       uint8_t                 gmch_ctl)
 	:
 		_env(env), _md_alloc(alloc), _resources(res), _rm(rm),
 		_pci_backend_alloc(_env, platform)
@@ -1589,7 +1589,7 @@ struct Igd::Device
 	 */
 	void hw_status_page_pause_ring(bool pause)
 	{
-		with_hw_status_page([&](auto & hw_status) {
+		with_hw_status_page([&](auto &hw_status) {
 			hw_status.semaphore(pause ? 1 : 0); });
 	}
 
@@ -1597,7 +1597,7 @@ struct Igd::Device
 	{
 		uint64_t seq = 0;
 
-		with_hw_status_page([&](auto & hw_status) {
+		with_hw_status_page([&](auto &hw_status) {
 			seq = hw_status.sequence_number(); });
 
 		return seq;
@@ -2440,7 +2440,7 @@ struct Initialization_failed : Genode::Exception { };
 
 struct Main : Irq_ack_handler, Gpu_reset_handler
 {
-	Env                   & _env;
+	Env                    &_env;
 	Sliced_heap             _root_heap      { _env.ram(), _env.rm()         };
 	Gpu::Root               _gpu_root       { _env, _root_heap              };
 	Attached_rom_dataspace  _config_rom     { _env, "config"                };

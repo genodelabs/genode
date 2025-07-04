@@ -48,7 +48,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			Constructible<Irq_connection>           irq {};
 			Constructible<Shared_interrupt_session> sirq {};
 
-			Irq(Registry<Irq>       & registry,
+			Irq(Registry<Irq>        &registry,
 			    unsigned              idx,
 			    unsigned              number,
 			    Irq_session::Type     type,
@@ -71,7 +71,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			bool                             prefetchable;
 			Constructible<Io_mem_connection> io_mem {};
 
-			Io_mem(Registry<Io_mem> & registry,
+			Io_mem(Registry<Io_mem>  &registry,
 			       Pci_bar            bar,
 			       unsigned           idx,
 			       Range              range,
@@ -89,9 +89,9 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			Range                             range;
 			Constructible<Io_port_connection> io_port_range {};
 
-			Io_port_range(Registry<Io_port_range> & registry,
-			              unsigned                  idx,
-			              Range                     range)
+			Io_port_range(Registry<Io_port_range> &registry,
+			              unsigned                 idx,
+			              Range                    range)
 			:
 				Registry<Io_port_range>::Element(registry, *this),
 				idx(idx), range(range) {}
@@ -101,7 +101,7 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		{
 			Device::Name name;
 
-			Io_mmu(Registry<Io_mmu> & registry, Device::Name const & name)
+			Io_mmu(Registry<Io_mmu> &registry, Device::Name const &name)
 			:
 				Registry<Io_mmu>::Element(registry, *this),
 				name(name) {}
@@ -115,15 +115,15 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			Pci_config(addr_t addr, Pci::Bdf bdf) : addr(addr), bdf(bdf) {}
 		};
 
-		Device_component(Registry<Device_component> & registry,
-		                 Env                        & env,
-		                 Session_component          & session,
-		                 Device_model               & model,
-		                 Driver::Device             & device);
+		Device_component(Registry<Device_component> &registry,
+		                 Env                        &env,
+		                 Session_component          &session,
+		                 Device_model               &model,
+		                 Driver::Device             &device);
 		~Device_component();
 
 		Driver::Device::Name device() const;
-		Session_component  & session();
+		Session_component  &session();
 		unsigned io_mem_index(Device::Pci_bar bar);
 
 
@@ -137,9 +137,9 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 	private:
 
-		Env                               & _env;
-		Session_component                 & _session;
-		Device_model                      & _device_model;
+		Env                                &_env;
+		Session_component                  &_session;
+		Device_model                       &_device_model;
 		Driver::Device::Name const          _device;
 		size_t                              _cap_quota { 0 };
 		size_t                              _ram_quota { 0 };

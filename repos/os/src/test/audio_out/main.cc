@@ -48,10 +48,10 @@ class Track : public Thread
 			PERIOD_FSIZE = CHN_CNT * PERIOD_CSIZE, /* size of period in file (bytes) */
 		};
 
-		Env & _env;
+		Env &_env;
 		Constructible<Audio_out::Connection> _audio_out[CHN_CNT];
 
-		Filename const & _name;
+		Filename const &_name;
 
 		Attached_rom_dataspace _sample_ds { _env, _name.string() };
 		char     const * const _base = _sample_ds.local_addr<char const>();
@@ -59,7 +59,7 @@ class Track : public Thread
 
 	public:
 
-		Track(Env & env, Filename const & name)
+		Track(Env &env, Filename const &name)
 		: Thread(env, "track", sizeof(size_t)*2048), _env(env), _name(name)
 		{
 			/* allocation signal for first channel only */
@@ -139,7 +139,7 @@ struct Main
 {
 	enum { MAX_FILES = 16 };
 
-	Env &                  env;
+	Env                   &env;
 	Heap                   heap { env.ram(), env.rm() };
 	Attached_rom_dataspace config { env, "config" };
 	Filename               filenames[MAX_FILES];
@@ -147,13 +147,13 @@ struct Main
 
 	void handle_config();
 
-	Main(Env & env);
+	Main(Env &env);
 };
 
 
 void Main::handle_config()
 {
-	config.node().for_each_sub_node("filename", [this] (Node const & node) {
+	config.node().for_each_sub_node("filename", [this] (Node const &node) {
 
 		if (!(track_count < MAX_FILES)) {
 			warning("test supports max ", (int)MAX_FILES,
@@ -170,7 +170,7 @@ void Main::handle_config()
 }
 
 
-Main::Main(Env & env) : env(env)
+Main::Main(Env &env) : env(env)
 {
 	log("--- Audio_out test ---");
 
@@ -181,4 +181,4 @@ Main::Main(Env & env) : env(env)
 }
 
 
-void Component::construct(Env & env) { static Main main(env); }
+void Component::construct(Env &env) { static Main main(env); }

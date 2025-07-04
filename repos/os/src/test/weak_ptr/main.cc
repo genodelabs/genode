@@ -92,7 +92,7 @@ struct Object : Genode::Weak_object<Object>
 };
 
 
-static void test_weak_pointer_tracking(Genode::Heap & heap)
+static void test_weak_pointer_tracking(Genode::Heap &heap)
 {
 	using namespace Genode;
 
@@ -163,7 +163,7 @@ template <typename O>
 struct Destruct_thread : Genode::Thread
 {
 	O &obj;
-	Genode::Heap & heap;
+	Genode::Heap &heap;
 
 	void entry() override
 	{
@@ -173,7 +173,7 @@ struct Destruct_thread : Genode::Thread
 		log("thread: destruction completed, job done");
 	}
 
-	Destruct_thread(O *obj, Genode::Env & env, Genode::Heap & heap)
+	Destruct_thread(O *obj, Genode::Env &env, Genode::Heap &heap)
 	: Thread(env, "object_destructor", 16*1024), obj(*obj), heap(heap) { }
 };
 
@@ -189,7 +189,7 @@ static void assert_constructed(bool expect_constructed)
 }
 
 
-static void test_deferred_destruction(Genode::Env & env, Genode::Heap &heap)
+static void test_deferred_destruction(Genode::Env &env, Genode::Heap &heap)
 {
 	using namespace Genode;
 
@@ -237,7 +237,7 @@ static void test_deferred_destruction(Genode::Env & env, Genode::Heap &heap)
  ** Test the failed aquisition of a destructed object **
  *******************************************************/
 
-static void test_acquisition_failure(Genode::Heap & heap)
+static void test_acquisition_failure(Genode::Heap &heap)
 {
 	using namespace Genode;
 
@@ -281,7 +281,7 @@ struct Object_with_delayed_destruction
 {
 	Timer::Connection timer;
 
-	Object_with_delayed_destruction(Genode::Env & env) : timer(env)	{
+	Object_with_delayed_destruction(Genode::Env &env) : timer(env)	{
 		object_constructed = true; }
 
 	~Object_with_delayed_destruction()
@@ -293,8 +293,8 @@ struct Object_with_delayed_destruction
 };
 
 
-static void test_acquisition_during_destruction(Genode::Env & env,
-                                                Genode::Heap & heap)
+static void test_acquisition_during_destruction(Genode::Env &env,
+                                                Genode::Heap &heap)
 {
 	using namespace Genode;
 	using Destruct_thread = Destruct_thread<Object_with_delayed_destruction>;
@@ -332,7 +332,7 @@ static void test_acquisition_during_destruction(Genode::Env & env,
  ** Main program **
  ******************/
 
-void Component::construct(Genode::Env & env)
+void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
 

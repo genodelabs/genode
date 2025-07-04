@@ -140,7 +140,7 @@ Signal_context::~Signal_context()
 }
 
 
-Signal_context::Signal_context(Signal_receiver & r, addr_t const imprint)
+Signal_context::Signal_context(Signal_receiver &r, addr_t const imprint)
 :
 	_receiver(r),
 	_imprint(imprint)

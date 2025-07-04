@@ -31,7 +31,7 @@ struct Genode::Irq_session_client : Rpc_client<Irq_session>
 	 *
 	 * \param session  pointer to the session backend
 	 */
-	explicit Irq_session_client(Irq_session_capability const & session)
+	explicit Irq_session_client(Irq_session_capability const &session)
 	:
 		Rpc_client<Irq_session>(session)
 	{ }

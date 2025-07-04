@@ -32,8 +32,7 @@ void Lx_kit::Timeout::_handle(Genode::Duration)
 }
 
 
-Lx_kit::Timeout::Timeout(Timer::Connection & timer,
-                         Scheduler & scheduler)
+Lx_kit::Timeout::Timeout(Timer::Connection &timer, Scheduler &scheduler)
 :
 	_scheduler(scheduler),
 	_timeout(timer, *this, &Timeout::_handle) { }

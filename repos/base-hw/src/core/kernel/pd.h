@@ -87,14 +87,14 @@ class Kernel::Pd
 			                     (Call_arg)&tt, (Call_arg)&pd);
 		}
 
-		static void syscall_destroy(Core::Kernel_object<Pd> & p) {
+		static void syscall_destroy(Core::Kernel_object<Pd> &p) {
 			call(call_id_delete_pd(), (Call_arg)&p); }
 
 		/**
 		 * Check whether the given 'cpu' needs to do some maintainance
 		 * work, after this pd has had changes in its page-tables
 		 */
-		bool invalidate_tlb(Cpu & cpu, addr_t addr, size_t size);
+		bool invalidate_tlb(Cpu &cpu, addr_t addr, size_t size);
 
 
 		/***************

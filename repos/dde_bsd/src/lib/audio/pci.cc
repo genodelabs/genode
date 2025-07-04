@@ -44,7 +44,7 @@ class Pci_driver
 
 		enum { DMA_SIZE = 256 * 1024 };
 
-		Genode::Env          & _env;
+		Genode::Env           &_env;
 		Platform::Connection   _pci    { _env };
 		Platform::Dma_buffer   _buffer { _pci, DMA_SIZE, Genode::CACHED };
 		Genode::Allocator_avl  _alloc;
@@ -123,7 +123,7 @@ class Pci_driver
 
 	public:
 
-		Pci_driver(Genode::Env &env, Genode::Allocator & alloc)
+		Pci_driver(Genode::Env &env, Genode::Allocator &alloc)
 		:
 			_env(env), _alloc(&alloc)
 		{
@@ -265,7 +265,7 @@ extern "C" void *pci_intr_establish(pci_chipset_tag_t pc, pci_intr_handle_t ih,
 
 static void run_irq(void *args)
 {
-	Pci_driver & pci_drv = *(Pci_driver*)args;
+	Pci_driver &pci_drv = *(Pci_driver*)args;
 
 	while (true) {
 		Bsd::scheduler().current()->block_and_schedule();

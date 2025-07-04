@@ -47,7 +47,7 @@ void Nic_perf::Interface::_handle_eth(void * pkt_base, size_t size)
 }
 
 
-void Nic_perf::Interface::_handle_arp(Ethernet_frame & eth, Size_guard & size_guard)
+void Nic_perf::Interface::_handle_arp(Ethernet_frame &eth, Size_guard &size_guard)
 {
 	Arp_packet &arp = eth.data<Arp_packet>(size_guard);
 	if (!arp.ethernet_ipv4())
@@ -75,7 +75,7 @@ void Nic_perf::Interface::_handle_arp(Ethernet_frame & eth, Size_guard & size_gu
 		eth.dst(arp.dst_mac());
 		eth.src(_mac);
 
-		send(size_guard.total_size(), [&] (void * pkt_base, Size_guard & size_guard) {
+		send(size_guard.total_size(), [&] (void * pkt_base, Size_guard &size_guard) {
 			memcpy(pkt_base, (void*)&eth, size_guard.total_size());
 		});
 		break;
@@ -86,7 +86,7 @@ void Nic_perf::Interface::_handle_arp(Ethernet_frame & eth, Size_guard & size_gu
 }
 
 
-void Nic_perf::Interface::_handle_ip(Ethernet_frame & eth, Size_guard & size_guard)
+void Nic_perf::Interface::_handle_ip(Ethernet_frame &eth, Size_guard &size_guard)
 {
 	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
 	if (ip.protocol() == Ipv4_packet::Protocol::UDP) {
@@ -109,7 +109,7 @@ void Nic_perf::Interface::_handle_ip(Ethernet_frame & eth, Size_guard & size_gua
 }
 
 
-void Nic_perf::Interface::_handle_dhcp_request(Ethernet_frame & eth, Dhcp_packet & dhcp)
+void Nic_perf::Interface::_handle_dhcp_request(Ethernet_frame &eth, Dhcp_packet &dhcp)
 {
 	Dhcp_packet::Message_type const msg_type =
 		dhcp.option<Dhcp_packet::Message_type_option>().value();
@@ -127,9 +127,9 @@ void Nic_perf::Interface::_handle_dhcp_request(Ethernet_frame & eth, Dhcp_packet
 }
 
 
-void Nic_perf::Interface::_send_dhcp_reply(Ethernet_frame      const & eth_req,
-                                           Dhcp_packet         const & dhcp_req,
-                                           Dhcp_packet::Message_type   msg_type)
+void Nic_perf::Interface::_send_dhcp_reply(Ethernet_frame      const &eth_req,
+                                           Dhcp_packet         const &dhcp_req,
+                                           Dhcp_packet::Message_type  msg_type)
 {
 	if (_ip == Ipv4_address())
 		return;
@@ -241,7 +241,7 @@ void Nic_perf::Interface::handle_packet_stream()
 			break;
 
 		bool okay =
-			send(_generator.size(), [&] (void * pkt_base, Size_guard & size_guard) {
+			send(_generator.size(), [&] (void * pkt_base, Size_guard &size_guard) {
 				_generator.generate(pkt_base, size_guard, _mac, _ip);
 			});
 

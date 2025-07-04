@@ -71,7 +71,7 @@ void Uplink_connection::notify_peer()
 
 void Uplink_connection::for_each_rx_packet(Handle_packet_func handle_packet)
 {
-	typename Uplink::Connection::Rx::Sink & rx_sink = *_connection.rx();
+	typename Uplink::Connection::Rx::Sink &rx_sink = *_connection.rx();
 
 	for (;;) {
 

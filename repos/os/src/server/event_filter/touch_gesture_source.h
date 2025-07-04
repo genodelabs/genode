@@ -77,7 +77,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 
 			void clear() override { _count = 0; }
 
-			void submit(Source::Sink & destination) override
+			void submit(Source::Sink &destination) override
 			{
 				for (unsigned i = 0; i < _count; i++)
 					destination.submit(_events[i]);
@@ -150,7 +150,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 					if (id.value >= MAX_FINGERS)
 						return;
 
-					Constructible<Finger> & finger { _fingers[id.value] };
+					Constructible<Finger> &finger { _fingers[id.value] };
 
 					Point p { (int)x, (int)y };
 
@@ -239,7 +239,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				});
 			}
 
-			Gesture(Registry<Gesture> & registry, Allocator & alloc, Node const &node)
+			Gesture(Registry<Gesture> &registry, Allocator &alloc, Node const &node)
 			: Registry<Gesture>::Element(registry, *this), _node(alloc, node) { }
 		};
 
@@ -267,7 +267,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				Microseconds duration;
 				unsigned     fingers;
 
-				static Direction _direction_from_node(Node const & node)
+				static Direction _direction_from_node(Node const &node)
 				{
 					String<8> value { "" };
 					value = node.attribute_value("direction", value);
@@ -280,7 +280,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 					return Direction::ANY;
 				}
 
-				static Microseconds _duration_from_node(Node const & node)
+				static Microseconds _duration_from_node(Node const &node)
 				{
 					return Microseconds {
 						node.attribute_value("duration_ms", 1000U)*1000 };
@@ -300,7 +300,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 
 			Attr const _attr;
 
-			Multitouch const & _multitouch;
+			Multitouch const &_multitouch;
 
 			void _handle_timeout(Duration) { cancel(); }
 
@@ -379,7 +379,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				});
 			}
 
-			void generate(Source::Sink &, Buffer_action & buffer) override
+			void generate(Source::Sink &, Buffer_action &buffer) override
 			{
 				if (_state != State::TRIGGERED)
 					return;
@@ -618,7 +618,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 				if (_multitouch.fingers_present() == 0) {
 					_state = State::IDLE;
 					
-					_gestures.for_each([&] (Gesture & gesture) {
+					_gestures.for_each([&] (Gesture &gesture) {
 						gesture.cancel(); });
 
 					_buffer.submit(destination);
@@ -664,7 +664,7 @@ class Event_filter::Touch_gesture_source : public Source, Source::Filter
 		{
 			if (_state == DETECT) {
 				bool handled { false };
-				_gestures.for_each([&] (Gesture & gesture) {
+				_gestures.for_each([&] (Gesture &gesture) {
 					if (handled || gesture.state() != TRIGGERED)
 						return;
 

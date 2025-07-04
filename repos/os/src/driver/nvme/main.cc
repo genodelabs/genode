@@ -527,9 +527,9 @@ struct Nvme::Queue : Util::Dma_buffer
 	size_t   len;
 	uint32_t max_entries;
 
-	Queue(Platform::Connection & platform,
-	      uint32_t               max_entries,
-	      size_t                 len)
+	Queue(Platform::Connection &platform,
+	      uint32_t              max_entries,
+	      size_t                len)
 	:
 		Dma_buffer(platform, len * max_entries),
 		len(len), max_entries(max_entries) {};

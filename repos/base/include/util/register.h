@@ -191,12 +191,12 @@ struct Genode::Register
 		/**
 		 * Get register value 'reg' with this bitfield set to zero
 		 */
-		static inline void clear(access_t & reg) { reg = reg & clear_mask(); }
+		static inline void clear(access_t &reg) { reg = reg & clear_mask(); }
 
 		/**
 		 * Get register value 'reg' with this bitfield set to 'value'
 		 */
-		static inline void set(access_t & reg, access_t const value = ~0)
+		static inline void set(access_t &reg, access_t const value = ~0)
 		{
 			clear(reg);
 			reg = reg | (access_t)((value & mask()) << SHIFT);
@@ -247,7 +247,7 @@ struct Genode::Bitset_2
 	 * \param value  new bitset value
 	 */
 	template <typename T>
-	static inline void set(T & reg, access_t const value)
+	static inline void set(T &reg, access_t const value)
 	{
 		Bits_0::clear(reg);
 		Bits_1::clear(reg);
@@ -317,7 +317,7 @@ struct Genode::Bitset_3
 	 * \param value  new bitset value
 	 */
 	template <typename T>
-	static inline void set(T & reg, access_t const value)
+	static inline void set(T &reg, access_t const value)
 	{
 		Bits_0::clear(reg);
 		Bits_1::clear(reg);

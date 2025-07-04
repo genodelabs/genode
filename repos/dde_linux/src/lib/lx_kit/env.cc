@@ -17,8 +17,7 @@
 static Lx_kit::Env *_env_ptr;
 
 
-void Lx_kit::Env::initialize(Genode::Env & env,
-                             Genode::Signal_context & sig_ctx)
+void Lx_kit::Env::initialize(Genode::Env &env, Genode::Signal_context &sig_ctx)
 {
 	static Lx_kit::Env environment(env, sig_ctx);
 	_env_ptr = &environment;

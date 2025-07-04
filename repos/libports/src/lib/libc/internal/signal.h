@@ -70,8 +70,8 @@ struct Libc::Signal : Noncopyable
 
 		struct Signal_arguments
 		{
-			Signal  & signal;
-			Pending & pending;
+			Signal  &signal;
+			Pending &pending;
 
 			Signal_arguments(Signal &signal, Pending &pending)
 			: signal(signal), pending(pending) { }

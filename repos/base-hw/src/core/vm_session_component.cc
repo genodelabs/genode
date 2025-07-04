@@ -73,7 +73,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 		return { };
 
 	_vcpus[_vcpu_id_alloc].construct(_ram, _id, _ep);
-	Vcpu & vcpu = *_vcpus[_vcpu_id_alloc];
+	Vcpu &vcpu = *_vcpus[_vcpu_id_alloc];
 
 	vcpu.ds.with_error([&] (Ram::Error e) { throw_exception(e); });
 

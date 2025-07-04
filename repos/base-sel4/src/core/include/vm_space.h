@@ -507,7 +507,7 @@ class Core::Vm_space
 			_vm_pad_cnode.with_cnode([&](auto &vm_pad_cnode) {
 				_revert_cnodes_l3([&](auto l3, auto &cnode_3rd, auto &leafs) {
 					for (int l4 = NUM_LEAF_CNODES - 1; l4 >= 0; l4--) {
-						cnode_3rd.with_cnode([&](auto & cnode) {
+						cnode_3rd.with_cnode([&](auto &cnode) {
 							cnode.remove(Cnode_index(l4));
 							leafs[l4].destruct(_cap_sel_alloc, _phys_alloc);
 						});

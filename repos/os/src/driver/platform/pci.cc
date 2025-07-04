@@ -32,7 +32,7 @@ using namespace Genode;
 using namespace Pci;
 
 
-static Config::Delayer & delayer(Env & env)
+static Config::Delayer & delayer(Env &env)
 {
 	struct Delayer : Config::Delayer, Timer::Connection
 	{
@@ -48,18 +48,18 @@ static Config::Delayer & delayer(Env & env)
 
 struct Config_helper
 {
-	Env                              & _env;
-	Driver::Device             const & _dev;
-	Driver::Device::Pci_config const & _cfg;
+	Env                              &_env;
+	Driver::Device             const &_dev;
+	Driver::Device::Pci_config const &_cfg;
 
 	static constexpr size_t IO_MEM_SIZE = 0x1000;
 
 	Attached_io_mem_dataspace _io_mem { _env, _cfg.addr, IO_MEM_SIZE };
 	Config                    _config { {_io_mem.local_addr<char>(), IO_MEM_SIZE} };
 
-	Config_helper(Env                              & env,
-	              Driver::Device             const & dev,
-	              Driver::Device::Pci_config const & cfg)
+	Config_helper(Env                              &env,
+	              Driver::Device             const &dev,
+	              Driver::Device::Pci_config const &cfg)
 	: _env(env), _dev(dev), _cfg(cfg) { _config.scan(); }
 
 	void enable()
@@ -144,31 +144,29 @@ struct Config_helper
 };
 
 
-void Driver::pci_enable(Env                            & env,
-                        Device const                   & dev)
+void Driver::pci_enable(Env &env, Device const &dev)
 {
-	dev.for_pci_config([&] (Device::Pci_config const & pc) {
+	dev.for_pci_config([&] (Device::Pci_config const &pc) {
 		Config_helper(env, dev, pc).enable(); });
 }
 
 
-void Driver::pci_disable(Env                            & env,
-                         Device const                   & dev)
+void Driver::pci_disable(Env &env, Device const &dev)
 {
-	dev.for_pci_config([&] (Device::Pci_config const & pc) {
+	dev.for_pci_config([&] (Device::Pci_config const &pc) {
 		Config_helper(env, dev, pc).disable(); });
 }
 
 
-void Driver::pci_apply_quirks(Env & env, Device const & dev)
+void Driver::pci_apply_quirks(Env &env, Device const &dev)
 {
-	dev.for_pci_config([&] (Device::Pci_config const & pc) {
+	dev.for_pci_config([&] (Device::Pci_config const &pc) {
 		Config_helper(env, dev, pc).apply_quirks(); });
 }
 
 
-void Driver::pci_msi_enable(Env                   & env,
-                            Device_component      & dc,
+void Driver::pci_msi_enable(Env                    &env,
+                            Device_component       &dc,
                             addr_t                  cfg_space,
                             Irq_session::Info const info,
                             Irq_session::Type       type)
@@ -280,7 +278,7 @@ bool Driver::pci_device_matches(Node const &policy, Device const &dev)
 		vendor_t   vendor_id  = node.attribute_value<vendor_t>("vendor_id", 0);
 		device_t   device_id  = node.attribute_value<device_t>("device_id", 0);
 
-		dev.for_pci_config([&] (Device::Pci_config const & cfg)
+		dev.for_pci_config([&] (Device::Pci_config const &cfg)
 		{
 			if ((pci_class_code_alias(cfg.class_code) == class_code) ||
 			    (vendor_id == cfg.vendor_id && device_id == cfg.device_id))
@@ -292,12 +290,12 @@ bool Driver::pci_device_matches(Node const &policy, Device const &dev)
 }
 
 
-void Driver::pci_device_specific_info(Device const  & dev,
-                                      Env           & env,
-                                      Device_model  & model,
-                                      Xml_generator & xml)
+void Driver::pci_device_specific_info(Device const  &dev,
+                                      Env           &env,
+                                      Device_model  &model,
+                                      Xml_generator &xml)
 {
-	dev.for_pci_config([&] (Device::Pci_config const & cfg)
+	dev.for_pci_config([&] (Device::Pci_config const &cfg)
 	{
 		Driver::pci_intel_graphics_info(cfg, env, model, xml);
 		Driver::pci_virtio_info(dev, cfg, env, xml);
@@ -305,10 +303,10 @@ void Driver::pci_device_specific_info(Device const  & dev,
 }
 
 
-void Driver::pci_resume_bridges(Env & env, Device_model & devices)
+void Driver::pci_resume_bridges(Env &env, Device_model &devices)
 {
-	devices.for_each([&](Device & device) {
-		device.for_pci_config([&](Device::Pci_config const & pc) {
+	devices.for_each([&](Device &device) {
+		device.for_pci_config([&](Device::Pci_config const &pc) {
 
 			if (!pc.bridge)
 				return;

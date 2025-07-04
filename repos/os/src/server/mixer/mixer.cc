@@ -116,7 +116,7 @@ struct Audio_out::Session_elem : Audio_out::Session_rpc_object,
 	float           volume { 0.f };
 	bool            muted  { true };
 
-	Session_elem(Genode::Env & env,
+	Session_elem(Genode::Env &env,
 	             char const *label, Genode::Signal_context_capability data_cap)
 	: Session_rpc_object(env, data_cap), label(label) { }
 

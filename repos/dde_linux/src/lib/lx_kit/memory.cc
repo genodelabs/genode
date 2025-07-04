@@ -26,7 +26,7 @@ void Lx_kit::Mem_allocator::free_buffer(void * addr)
 	Buffer * buffer = nullptr;
 
 	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
-	                   [&] (Buffer_info const & info) {
+	                   [&] (Buffer_info const &info) {
 		buffer = &info.buffer;
 	});
 
@@ -50,7 +50,7 @@ Genode::Dataspace_capability Lx_kit::Mem_allocator::attached_dataspace_cap(void 
 	Genode::Dataspace_capability ret { };
 
 	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
-	                   [&] (Buffer_info const & info) {
+	                   [&] (Buffer_info const &info) {
 		ret = info.buffer.cap();
 	});
 
@@ -92,7 +92,7 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 			 * and physical addresses of a multi-page allocation are always
 			 * contiguous.
 			 */
-			Buffer & buffer = alloc_buffer(max(size + 1, min_buffer_size));
+			Buffer &buffer = alloc_buffer(max(size + 1, min_buffer_size));
 
 			if (_mem.add_range(buffer.virt_addr(), buffer.size() - 1).failed())
 				warning("Lx_kit::Mem_allocator unable to extend virtual allocator");
@@ -123,7 +123,7 @@ Genode::addr_t Lx_kit::Mem_allocator::dma_addr(void * addr)
 	addr_t ret = 0UL;
 
 	_virt_to_dma.apply(Buffer_info::Query_addr(addr),
-	                   [&] (Buffer_info const & info) {
+	                   [&] (Buffer_info const &info) {
 		addr_t const offset = (addr_t)addr - info.buffer.virt_addr();
 		ret = info.buffer.dma_addr() + offset;
 	});
@@ -137,7 +137,7 @@ Genode::addr_t Lx_kit::Mem_allocator::virt_addr(void * dma_addr)
 	addr_t ret = 0UL;
 
 	_dma_to_virt.apply(Buffer_info::Query_addr(dma_addr),
-	                   [&] (Buffer_info const & info) {
+	                   [&] (Buffer_info const &info) {
 		addr_t const offset = (addr_t)dma_addr - info.buffer.dma_addr();
 		ret = info.buffer.virt_addr() + offset;
 	});
@@ -151,7 +151,7 @@ Genode::addr_t Lx_kit::Mem_allocator::virt_region_start(void * virt_addr)
 	addr_t ret = 0UL;
 
 	_virt_to_dma.apply(Buffer_info::Query_addr(virt_addr),
-	                   [&] (Buffer_info const & info) {
+	                   [&] (Buffer_info const &info) {
 		ret = info.buffer.virt_addr();
 	});
 
@@ -185,8 +185,8 @@ Genode::size_t Lx_kit::Mem_allocator::size(const void * ptr)
 }
 
 
-Lx_kit::Mem_allocator::Mem_allocator(Genode::Env          & env,
-                                     Heap                 & heap,
-                                     Platform::Connection & platform,
-                                     Cache                  cache_attr)
+Lx_kit::Mem_allocator::Mem_allocator(Genode::Env          &env,
+                                     Heap                 &heap,
+                                     Platform::Connection &platform,
+                                     Cache                 cache_attr)
 : _env(env), _heap(heap), _platform(platform), _cache_attr(cache_attr) {}

@@ -19,7 +19,7 @@ using namespace Kernel;
 void Cpu::Ipi::occurred()
 {
 	/* lambda to iterate over a work-list and execute all work items */
-	auto iterate = [&] (Genode::List<Genode::List_element<Inter_processor_work>> & li) {
+	auto iterate = [&] (Genode::List<Genode::List_element<Inter_processor_work>> &li) {
 		Genode::List_element<Inter_processor_work> const *e = li.first();
 		Genode::List_element<Inter_processor_work> const *next = nullptr;
 		for ( ; e; e = next) {
@@ -48,7 +48,7 @@ void Cpu::trigger_ip_interrupt()
 }
 
 
-Cpu::Ipi::Ipi(Cpu & cpu)
+Cpu::Ipi::Ipi(Cpu &cpu)
 :
 	Irq(Board::Pic::IPI, cpu, cpu.pic()), cpu(cpu)
 {

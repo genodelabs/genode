@@ -50,7 +50,7 @@ class Board::Pic
 
 		Pic(Global_interrupt_controller &);
 
-		bool take_request(unsigned & irq)
+		bool take_request(unsigned &irq)
 		{
 			irq = _plic.read<Plic::Id>();
 			if (irq == 0) return false;

@@ -23,14 +23,14 @@ class Vmm::Cpu : public Vmm::Cpu_base
 {
 	public:
 
-		Cpu(Vm                      & vm,
-		    Genode::Vm_connection   & vm_session,
-		    Mmio_bus                & bus,
-		    Gic                     & gic,
-		    Genode::Env             & env,
-		    Genode::Heap            & heap,
-		    Genode::Entrypoint      & ep,
-		    unsigned                  cpu_id);
+		Cpu(Vm                    &vm,
+		    Genode::Vm_connection &vm_session,
+		    Mmio_bus              &bus,
+		    Gic                   &gic,
+		    Genode::Env           &env,
+		    Genode::Heap          &heap,
+		    Genode::Entrypoint    &ep,
+		    unsigned               cpu_id);
 
 		enum Exception_type {
 			NO_EXCEPTION,
@@ -44,16 +44,16 @@ class Vmm::Cpu : public Vmm::Cpu_base
 			TRAP,
 		};
 
-		void setup_state(Vcpu_state & state) override;
+		void setup_state(Vcpu_state &state) override;
 
 	private:
 
 		struct Ccsidr : System_register
 		{
-			System_register & csselr;
+			System_register &csselr;
 
 			Ccsidr(System_register &csselr,
-			       Genode::Avl_tree<System_register> & tree)
+			       Genode::Avl_tree<System_register> &tree)
 			: System_register(0, 1, 0, 0, "CCSIDR", false, 0x0, tree),
 			  csselr(csselr) {}
 

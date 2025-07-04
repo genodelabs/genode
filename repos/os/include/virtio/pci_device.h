@@ -91,10 +91,10 @@ class Virtio::Device
 			MMIO_MAX             = 6U
 		};
 
-		Env                  & _env;
-		Platform::Connection & _plat;
-		Platform::Device       _device { _plat };
-		Platform::Device::Irq  _irq    { _device, { 0 } };
+		Env                  &_env;
+		Platform::Connection &_plat;
+		Platform::Device      _device { _plat };
+		Platform::Device::Irq _irq    { _device, { 0 } };
 
 		Constructible<Platform::Device::Mmio<0> > _mmio[MMIO_MAX] { };
 
@@ -141,8 +141,8 @@ class Virtio::Device
 
 	public:
 
-		Device(Genode::Env          & env,
-		       Platform::Connection & plat)
+		Device(Genode::Env          &env,
+		       Platform::Connection &plat)
 		: _env(env), _plat(plat)
 		{
 			with_virtio_range("notify", [&] (Node const &node) {

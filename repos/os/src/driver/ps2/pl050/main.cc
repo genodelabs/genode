@@ -34,7 +34,7 @@ namespace Ps2 {
 
 struct Ps2::Main
 {
-	Env & _env;
+	Env &_env;
 
 	Platform::Connection _platform { _env };
 

@@ -63,9 +63,9 @@ class Driver::Device : private List_model<Device>::Element
 			void * obj_id;
 
 			Owner() : obj_id(nullptr) {}
-			Owner(Device_owner & owner);
+			Owner(Device_owner &owner);
 
-			bool operator == (Owner const & o) const {
+			bool operator == (Owner const &o) const {
 				return obj_id == o.obj_id; }
 
 			bool valid() const {
@@ -346,7 +346,7 @@ class Driver::Device : private List_model<Device>::Element
 			}
 		};
 
-		Device(Env & env, Device_model & model, Name name, Type type,
+		Device(Env &env, Device_model &model, Name name, Type type,
 		       bool leave_operational);
 		virtual ~Device();
 
@@ -357,42 +357,42 @@ class Driver::Device : private List_model<Device>::Element
 		virtual void acquire(Device_owner &);
 		virtual void release(Device_owner &);
 
-		template <typename FN> void for_each_irq(FN const & fn) const
+		template <typename FN> void for_each_irq(FN const &fn) const
 		{
 			unsigned idx = 0;
-			_irq_list.for_each([&] (Irq const & irq) {
+			_irq_list.for_each([&] (Irq const &irq) {
 				fn(idx++, irq.number, irq.type, irq.polarity,
 				   irq.mode, irq.shared); });
 		}
 
-		template <typename FN> void for_each_io_mem(FN const & fn) const
+		template <typename FN> void for_each_io_mem(FN const &fn) const
 		{
 			unsigned idx = 0;
-			_io_mem_list.for_each([&] (Io_mem const & iomem) {
+			_io_mem_list.for_each([&] (Io_mem const &iomem) {
 				fn(idx++, iomem.range, iomem.bar, iomem.prefetchable); });
 		}
 
-		template <typename FN> void for_each_io_port_range(FN const & fn) const
+		template <typename FN> void for_each_io_port_range(FN const &fn) const
 		{
 			unsigned idx = 0;
-			_io_port_range_list.for_each([&] (Io_port_range const & ipr) {
+			_io_port_range_list.for_each([&] (Io_port_range const &ipr) {
 				fn(idx++, ipr.range, ipr.bar); });
 		}
 
-		template <typename FN> void for_each_property(FN const & fn) const
+		template <typename FN> void for_each_property(FN const &fn) const
 		{
-			_property_list.for_each([&] (Property const & p) {
+			_property_list.for_each([&] (Property const &p) {
 				fn(p.name, p.value); });
 		}
 
-		template <typename FN> void for_pci_config(FN const & fn) const
+		template <typename FN> void for_pci_config(FN const &fn) const
 		{
 			/*
 			 * we allow only one PCI config per device,
 			 * even if more were declared
 			 */
 			bool found = false;
-			_pci_config_list.for_each([&] (Pci_config const & cfg) {
+			_pci_config_list.for_each([&] (Pci_config const &cfg) {
 				if (found) {
 					warning("Only one pci-config is supported per device!");
 					return;
@@ -403,18 +403,18 @@ class Driver::Device : private List_model<Device>::Element
 		}
 
 		template <typename FN>
-		void for_each_reserved_memory(FN const & fn) const
+		void for_each_reserved_memory(FN const &fn) const
 		{
 			unsigned idx = 0;
-			_reserved_mem_list.for_each([&] (Reserved_memory const & mem) {
+			_reserved_mem_list.for_each([&] (Reserved_memory const &mem) {
 				fn(idx++, mem.range); });
 		}
 
 		template <typename FN, typename EMPTY_FN>
-		void for_each_io_mmu(FN const & fn, EMPTY_FN const & empty_fn) const
+		void for_each_io_mmu(FN const &fn, EMPTY_FN const &empty_fn) const
 		{
 			bool empty = true;
-			_io_mmu_list.for_each([&] (Io_mmu const & io_mmu) {
+			_io_mmu_list.for_each([&] (Io_mmu const &io_mmu) {
 				empty = false;
 				fn(io_mmu);
 			});
@@ -424,9 +424,9 @@ class Driver::Device : private List_model<Device>::Element
 		}
 
 		template <typename FN>
-		void with_optional_io_mmu(Io_mmu::Name const & name, FN && fn) const
+		void with_optional_io_mmu(Io_mmu::Name const &name, FN && fn) const
 		{
-			_io_mmu_list.for_each([&] (Io_mmu const & io_mmu) {
+			_io_mmu_list.for_each([&] (Io_mmu const &io_mmu) {
 				if (io_mmu.name == name)
 					fn();
 			});
@@ -459,8 +459,8 @@ class Driver::Device : private List_model<Device>::Element
 		friend class List_model<Device>;
 		friend class List<Device>;
 
-		Env                       & _env;
-		Device_model              & _model;
+		Env                        &_env;
+		Device_model               &_model;
 		Name                  const _name;
 		Type                  const _type;
 		bool                  const _leave_operational;
@@ -496,10 +496,10 @@ class Driver::Device_model
 {
 	private:
 
-		Env                      & _env;
-		Heap                     & _heap;
-		Device_reporter          & _reporter;
-		Device_owner             & _owner;
+		Env                       &_env;
+		Heap                      &_heap;
+		Device_reporter           &_reporter;
+		Device_owner              &_owner;
 		List_model<Device>         _model  { };
 		Registry<Shared_interrupt> _shared_irqs { };
 		Clocks                     _clocks { };
@@ -508,14 +508,14 @@ class Driver::Device_model
 
 	public:
 
-		void generate(Xml_generator & xml) const;
-		void update(Node const & node, Reserved_memory_handler &);
+		void generate(Xml_generator &xml) const;
+		void update(Node const &node, Reserved_memory_handler &);
 		void device_status_changed();
 
-		Device_model(Env             & env,
-		             Heap            & heap,
-		             Device_reporter & reporter,
-		             Device_owner    & owner)
+		Device_model(Env             &env,
+		             Heap            &heap,
+		             Device_reporter &reporter,
+		             Device_owner    &owner)
 		: _env(env), _heap(heap), _reporter(reporter), _owner(owner) { }
 
 		~Device_model()
@@ -525,15 +525,15 @@ class Driver::Device_model
 		}
 
 		template <typename FN>
-		void for_each(FN const & fn) { _model.for_each(fn); }
+		void for_each(FN const &fn) { _model.for_each(fn); }
 
 		template <typename FN>
-		void for_each(FN const & fn) const { _model.for_each(fn); }
+		void for_each(FN const &fn) const { _model.for_each(fn); }
 
 		template <typename FN>
-		void with_shared_irq(unsigned number, FN const & fn)
+		void with_shared_irq(unsigned number, FN const &fn)
 		{
-			_shared_irqs.for_each([&] (Shared_interrupt & sirq) {
+			_shared_irqs.for_each([&] (Shared_interrupt &sirq) {
 				if (sirq.number() == number) fn(sirq); });
 		}
 

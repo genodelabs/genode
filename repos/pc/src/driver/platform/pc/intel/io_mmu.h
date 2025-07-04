@@ -73,29 +73,29 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 				using Table_allocator   = Expanding_page_table_allocator<4096>;
 
-				Intel::Io_mmu              & _intel_iommu;
-				Env                        & _env;
-				Ram_allocator              & _ram_alloc;
-				Registry<Dma_buffer> const & _buffer_registry;
+				Intel::Io_mmu              &_intel_iommu;
+				Env                        &_env;
+				Ram_allocator              &_ram_alloc;
+				Registry<Dma_buffer> const &_buffer_registry;
 
-				Table_allocator    _table_allocator;
-				Domain_allocator & _domain_allocator;
-				Domain_id          _domain_id         { _domain_allocator.alloc() };
-				bool               _skip_invalidation { false };
-				Irq_allocator    & _irq_allocator;
+				Table_allocator   _table_allocator;
+				Domain_allocator &_domain_allocator;
+				Domain_id         _domain_id         { _domain_allocator.alloc() };
+				bool              _skip_invalidation { false };
+				Irq_allocator    &_irq_allocator;
 
-				addr_t             _translation_table_phys {
+				addr_t            _translation_table_phys {
 					_table_allocator.construct<TABLE>() };
 
-				TABLE            & _translation_table {
+				TABLE            &_translation_table {
 					*(TABLE*)virt_addr(_translation_table_phys) };
 
 				struct Invalidation_guard
 				{
-					Domain<TABLE> & _domain;
-					bool            _requires_invalidation;
+					Domain<TABLE> &_domain;
+					bool           _requires_invalidation;
 
-					Invalidation_guard(Domain<TABLE> & domain, bool required=true)
+					Invalidation_guard(Domain<TABLE> &domain, bool required=true)
 					: _domain(domain),
 					  _requires_invalidation(required)
 					{
@@ -132,19 +132,19 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 					addr_t va { 0 };
 
 					_table_allocator.with_table<TABLE>(phys_addr,
-						[&] (TABLE & t) { va = (addr_t)&t; },
-						[&] ()          { va = 0; });
+						[&] (TABLE &t) { va = (addr_t)&t; },
+						[&] ()         { va = 0; });
 
 					return va;
 				}
 
-				Domain(Intel::Io_mmu              & intel_iommu,
-				       Allocator                  & md_alloc,
-				       Registry<Dma_buffer> const & buffer_registry,
-				       Env                        & env,
-				       Ram_allocator              & ram_alloc,
-				       Domain_allocator           & domain_allocator,
-				       Irq_allocator              & irq_allocator)
+				Domain(Intel::Io_mmu              &intel_iommu,
+				       Allocator                  &md_alloc,
+				       Registry<Dma_buffer> const &buffer_registry,
+				       Env                        &env,
+				       Ram_allocator              &ram_alloc,
+				       Domain_allocator           &domain_allocator,
+				       Irq_allocator              &irq_allocator)
 				: Driver::Io_mmu::Domain(intel_iommu, md_alloc),
 				  Registered_translation_table(intel_iommu),
 				  _intel_iommu(intel_iommu),
@@ -157,7 +157,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				{
 					Invalidation_guard guard { *this, _intel_iommu.caching_mode() };
 
-					_buffer_registry.for_each([&] (Dma_buffer const & buf) {
+					_buffer_registry.for_each([&] (Dma_buffer const &buf) {
 						add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap); });
 				}
 
@@ -168,7 +168,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 						_intel_iommu.root_table().remove_context(_translation_table_phys);
 
-						_buffer_registry.for_each([&] (Dma_buffer const & buf) {
+						_buffer_registry.for_each([&] (Dma_buffer const &buf) {
 							remove_range({ buf.dma_addr, buf.size });
 						});
 
@@ -183,13 +183,13 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 	private:
 
 		static
-		Irq_table & _irq_table_virt(Context_table_allocator & alloc, addr_t phys)
+		Irq_table & _irq_table_virt(Context_table_allocator &alloc, addr_t phys)
 		{
 			addr_t va { 0 };
 
 			alloc.with_table<Irq_table>(phys,
-				[&] (Irq_table & t) { va = (addr_t)&t; },
-				[&] ()              { /* never reached */ });
+				[&] (Irq_table &t) { va = (addr_t)&t; },
+				[&] ()             { /* never reached */ });
 
 				/**
 				 * Dereferencing is save because _irq_table_phys is never 0
@@ -200,21 +200,21 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		}
 
 
-		Env                     & _env;
-		bool                      _verbose          { false };
-		Context_table_allocator & _table_allocator;
+		Env                     &_env;
+		bool                     _verbose          { false };
+		Context_table_allocator &_table_allocator;
 
-		const addr_t              _irq_table_phys   {
+		const addr_t             _irq_table_phys   {
 			_table_allocator.construct<Irq_table>() };
 
-		Irq_table               & _irq_table        {
+		Irq_table               &_irq_table        {
 			_irq_table_virt(_table_allocator, _irq_table_phys) };
 
-		Irq_allocator             _irq_allocator    { };
+		Irq_allocator            _irq_allocator    { };
 
-		Report_helper             _report_helper    { *this };
-		Domain_allocator          _domain_allocator;
-		Domain_id                 _default_domain   { _domain_allocator.alloc() };
+		Report_helper            _report_helper    { *this };
+		Domain_allocator         _domain_allocator;
+		Domain_id                _default_domain   { _domain_allocator.alloc() };
 
 		/**
 		 * For a start, we keep a distinct root table for every hardware unit.
@@ -585,16 +585,16 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		 */
 		void add_default_range(Range const &, addr_t) override;
 		void default_mappings_complete() override;
-		void enable_default_mappings(Pci::Bdf const & bdf) override {
+		void enable_default_mappings(Pci::Bdf const &bdf) override {
 			_default_mappings.enable_device(bdf, _default_domain); }
 
-		void apply_default_mappings(Pci::Bdf const & bdf) {
+		void apply_default_mappings(Pci::Bdf const &bdf) {
 			_default_mappings.copy_stage2(_managed_root_table, bdf); }
 
 		/**
 		 * Io_mmu interface for IRQ remapping
 		 */
-		void unmap_irq(Pci::Bdf const & bdf, unsigned idx) override
+		void unmap_irq(Pci::Bdf const &bdf, unsigned idx) override
 		{
 			if (!_remap_irqs)
 				return;
@@ -603,9 +603,9 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				invalidator().invalidate_irq(idx, false);
 		}
 
-		Irq_info map_irq(Pci::Bdf   const & bdf,
-		                 Irq_info   const & info,
-		                 Irq_config const & config) override
+		Irq_info map_irq(Pci::Bdf   const &bdf,
+		                 Irq_info   const &info,
+		                 Irq_config const &config) override
 		{
 			if (!_remap_irqs)
 				return info;
@@ -622,9 +622,9 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		 * Io_mmu interface
 		 */
 
-		Driver::Io_mmu::Domain & create_domain(Allocator     & md_alloc,
-		                                       Ram_allocator & ram_alloc,
-		                                       Registry<Dma_buffer> const & buffer_registry,
+		Driver::Io_mmu::Domain & create_domain(Allocator     &md_alloc,
+		                                       Ram_allocator &ram_alloc,
+		                                       Registry<Dma_buffer> const &buffer_registry,
 		                                       Ram_quota_guard &,
 		                                       Cap_quota_guard &) override
 		{
@@ -655,12 +655,12 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 		 * Constructor/Destructor
 		 */
 
-		Io_mmu(Env                      & env,
-		       Io_mmu_devices           & io_mmu_devices,
-		       Device::Name       const & name,
-		       Device::Io_mem::Range      range,
-		       Context_table_allocator  & table_allocator,
-		       unsigned                   irq_number);
+		Io_mmu(Env                      &env,
+		       Io_mmu_devices           &io_mmu_devices,
+		       Device::Name       const &name,
+		       Device::Io_mem::Range     range,
+		       Context_table_allocator  &table_allocator,
+		       unsigned                  irq_number);
 
 		~Io_mmu()
 		{
@@ -677,7 +677,7 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 
 		using Table_array     = Context_table_allocator::Array<510>;
 
-		Genode::Env  & _env;
+		Genode::Env  &_env;
 
 		/* Allocate 2MB RAM for root table and 256 context tables */
 		Attached_ram_dataspace    _allocator_ds    { _env.ram(),
@@ -686,23 +686,23 @@ class Intel::Io_mmu_factory : public Driver::Io_mmu_factory
 		                                             Cache::CACHED };
 
 		/* add page-table allocator array at _allocator_ds.local_addr() */
-		Table_array             & _table_array     { *Genode::construct_at<Table_array>(
+		Table_array             &_table_array     { *Genode::construct_at<Table_array>(
 			_allocator_ds.local_addr<void>(),
 			[&] (void *) {
 				return _env.pd().dma_addr(_allocator_ds.cap());
 			})};
 
 		/* We use a single allocator for context tables for all IOMMU devices */
-		Context_table_allocator & _table_allocator { _table_array.alloc() };
+		Context_table_allocator &_table_allocator { _table_array.alloc() };
 
 	public:
 
-		Io_mmu_factory(Genode::Env & env, Registry<Driver::Io_mmu_factory> & registry)
+		Io_mmu_factory(Genode::Env &env, Registry<Driver::Io_mmu_factory> &registry)
 		: Driver::Io_mmu_factory(registry, Device::Type { "intel_iommu" }),
 		  _env(env)
 		{ }
 
-		void create(Allocator & alloc, Io_mmu_devices & io_mmu_devices, Device const & device) override
+		void create(Allocator &alloc, Io_mmu_devices &io_mmu_devices, Device const &device) override
 		{
 			using Range = Device::Io_mem::Range;
 

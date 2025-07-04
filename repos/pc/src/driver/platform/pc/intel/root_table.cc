@@ -16,15 +16,15 @@
 #include <intel/context_table.h>
 #include <intel/report_helper.h>
 
-static void attribute_hex(Genode::Xml_generator & xml, char const * name,
+static void attribute_hex(Genode::Xml_generator &xml, char const * name,
                           unsigned long long value)
 {
 	xml.attribute(name, Genode::String<32>(Genode::Hex(value)));
 }
 
 
-void Intel::Root_table::generate(Xml_generator & xml,
-                                 Report_helper & report_helper)
+void Intel::Root_table::generate(Xml_generator &xml,
+                                 Report_helper &report_helper)
 {
 	for_each([&] (uint8_t bus) {
 		if (!present(bus))
@@ -36,7 +36,7 @@ void Intel::Root_table::generate(Xml_generator & xml,
 			xml.attribute("bus", bus);
 			attribute_hex(xml, "context_table", ctx_addr);
 
-			auto fn = [&] (Context_table & context) {
+			auto fn = [&] (Context_table &context) {
 				context.generate(xml, report_helper);
 			};
 

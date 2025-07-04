@@ -39,7 +39,7 @@ class Vmm::Fdt_generator
 				using String<64>::String;
 
 				template <typename T>
-					void write(uint32_t off, T & buf) const {
+					void write(uint32_t off, T &buf) const {
 						buf.write(off, string(), length()); }
 			};
 
@@ -49,15 +49,15 @@ class Vmm::Fdt_generator
 				{
 					uint32_t const offset;
 
-					String(Dictionary<String, Name> & dict,
-					       Name const               & name,
-					       uint32_t                   offset)
+					String(Dictionary<String, Name> &dict,
+					       Name const               &name,
+					       uint32_t                  offset)
 					:
 						Dictionary<String, Name>::Element(dict, name),
 						offset(offset) {}
 				};
 
-				Heap                   & _heap;
+				Heap                    &_heap;
 				uint32_t                 _offset { 0U };
 				Dictionary<String, Name> _dict {};
 
@@ -65,17 +65,17 @@ class Vmm::Fdt_generator
 
 				struct Not_found {};
 
-				Fdt_dictionary(Heap & heap) : _heap(heap) { }
+				Fdt_dictionary(Heap &heap) : _heap(heap) { }
 
 				~Fdt_dictionary()
 				{
 					for (;;)
-						if (!_dict.with_any_element([&] (String & str) {
+						if (!_dict.with_any_element([&] (String &str) {
 							destroy(_heap, &str); }))
 							break;
 				}
 
-				void add(Name const & name)
+				void add(Name const &name)
 				{
 					_dict.with_element(name, [&] (String const &) {}, [&] ()
 					{
@@ -84,9 +84,9 @@ class Vmm::Fdt_generator
 					});
 				}
 
-				uint32_t offset(Name const & name) const
+				uint32_t offset(Name const &name) const
 				{
-					return _dict.with_element(name, [&] (String const & str)
+					return _dict.with_element(name, [&] (String const &str)
 					{
 						return str.offset;
 					}, [&] ()
@@ -97,9 +97,9 @@ class Vmm::Fdt_generator
 				}
 
 				template <typename WRITE_FN>
-				void write(WRITE_FN const & write_fn) const
+				void write(WRITE_FN const &write_fn) const
 				{
-					_dict.for_each([&] (String const & str)
+					_dict.for_each([&] (String const &str)
 					{
 						write_fn(str.offset, str.name.string(), str.name.length());
 					});
@@ -129,20 +129,20 @@ class Vmm::Fdt_generator
 			}
 		};
 
-		Env          & _env;
-		Heap         & _heap;
+		Env           &_env;
+		Heap          &_heap;
 		Buffer         _buffer;
 		Fdt_dictionary _dict { _heap };
 
-		void _generate_tree(uint32_t & off, Config const & config,
+		void _generate_tree(uint32_t &off, Config const &config,
                             void * initrd_start, size_t initrd_size);
 
 	public:
 
-		Fdt_generator(Env & env, Heap & heap, addr_t dtb_addr, size_t max_size)
+		Fdt_generator(Env &env, Heap &heap, addr_t dtb_addr, size_t max_size)
 		: _env(env), _heap(heap), _buffer(dtb_addr, max_size) { }
 
-		void generate(Config const & config, void * initrd_start,
+		void generate(Config const &config, void * initrd_start,
 		              size_t initrd_size);
 };
 

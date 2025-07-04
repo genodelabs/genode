@@ -175,10 +175,10 @@ struct Value
 {
 	uint32_t value;
 
-	Value(uint32_t const & v) : value(v) {};
+	Value(uint32_t const &v) : value(v) {};
 	Value() : value(0) {};
 
-	Value &operator= (uint32_t const & v)
+	Value &operator= (uint32_t const &v)
 	{
 		value = v;
 		return *this;
@@ -187,7 +187,7 @@ struct Value
 	size_t length() const { return sizeof(value); }
 
 	template <typename T>
-	void write(uint32_t off, T & buf) const
+	void write(uint32_t off, T &buf) const
 	{
 		uint32_t v = host_to_big_endian(value);
 		buf.write(off, &v, length());
@@ -203,14 +203,14 @@ struct Array : Genode::Array<T, MAX>
 	size_t length() const
 	{
 		size_t ret = 0;
-		this->for_each([&] (unsigned, T const & v) { ret += v.length(); });
+		this->for_each([&] (unsigned, T const &v) { ret += v.length(); });
 		return ret;
 	}
 
 	template <typename BUF>
-	void write(uint32_t off, BUF & buf) const
+	void write(uint32_t off, BUF &buf) const
 	{
-		this->for_each([&] (unsigned, T const & v) {
+		this->for_each([&] (unsigned, T const &v) {
 			v.write(off, buf);
 			off += (uint32_t)v.length();
 		});
@@ -218,12 +218,12 @@ struct Array : Genode::Array<T, MAX>
 };
 
 
-void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
+void Vmm::Fdt_generator::_generate_tree(uint32_t &off, Config const &config,
                                         void * initrd_start, size_t initrd_size)
 {
 	using Name = Fdt_dictionary::Name;
 
-	auto node = [&] (auto const & name, auto const & fn)
+	auto node = [&] (auto const &name, auto const &fn)
 	{
 		Fdt_token start({(char *)_buffer.addr+off, _buffer.size-off}, FDT_BEGIN_NODE);
 		off += Fdt_token::SIZE;
@@ -235,7 +235,7 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 		off += Fdt_token::SIZE;
 	};
 
-	auto property = [&] (auto const & name, auto const & val)
+	auto property = [&] (auto const &name, auto const &val)
 	{
 		_dict.add(name);
 		Fdt_prop prop({(char *)_buffer.addr+off, _buffer.size-off}, (uint32_t)val.length(),
@@ -356,7 +356,7 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 			property(Name("linux,initrd-end"),   Value(start+(uint32_t)initrd_size));
 		});
 
-		config.for_each_virtio_device([&] (Config::Virtio_device const & dev) {
+		config.for_each_virtio_device([&] (Config::Virtio_device const &dev) {
 			node(Name("virtio@", dev.mmio_start), [&] ()
 			{
 				property(Name("interrupts"),
@@ -376,7 +376,7 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t & off, Config const & config,
 }
 
 
-void Vmm::Fdt_generator::generate(Config const & config,
+void Vmm::Fdt_generator::generate(Config const &config,
                                   void * initrd_start, size_t initrd_size)
 {
 	Fdt_header header({(char *)_buffer.addr, _buffer.size});

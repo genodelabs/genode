@@ -92,22 +92,22 @@ class Vmm::Virtio_block_request
 
 		enum Status { OK, IO_ERROR, UNSUPPORTED };
 
-		Index _next(Descriptor & desc) {
+		Index _next(Descriptor &desc) {
 			if (!Descriptor::Flags::Next::get(desc.flags())) {
 				throw Invalid_request(); }
 			return desc.next();
 		}
 
-		Descriptor_array & _array;
-		Ram              & _ram;
+		Descriptor_array &_array;
+		Ram              &_ram;
 
 		template <typename T>
-		T * _desc_addr(Descriptor const & desc) const {
+		T * _desc_addr(Descriptor const &desc) const {
 			return (T*) _ram.to_local_range({(char *)desc.address(), desc.length()}).start; }
 
 		Index              _request_idx;
 		Descriptor         _request    { _array.get(_request_idx)       };
-		Request          & _vbr        { *_desc_addr<Request>(_request) };
+		Request           &_vbr        { *_desc_addr<Request>(_request) };
 		Index              _data_idx   { _next(_request)                };
 		Descriptor         _data       { _array.get(_data_idx)          };
 		Index              _status_idx { _next(_data)                   };
@@ -118,9 +118,9 @@ class Vmm::Virtio_block_request
 
 	public:
 
-		Virtio_block_request(Index              id,
-		                     Descriptor_array & array,
-		                     Ram              & ram)
+		Virtio_block_request(Index             id,
+		                     Descriptor_array &array,
+		                     Ram              &ram)
 		: _array(array), _ram(ram), _request_idx(id)
 		{
 			if (_request.length() != sizeof(Request) ||
@@ -128,7 +128,7 @@ class Vmm::Virtio_block_request
 				throw Invalid_request(); }
 		}
 
-		Block::Operation const operation(Block::Session::Info & info) const
+		Block::Operation const operation(Block::Session::Info &info) const
 		{
 			if (_vbr.type != Request::READ && _vbr.type != Request::WRITE) {
 				throw Invalid_request(); }
@@ -148,7 +148,7 @@ class Vmm::Virtio_block_request
 		size_t size()    const  { return _data.length();          }
 		void   written_to_descriptor(size_t sz) { _written = sz;  }
 
-		void done(Virtio_block_queue & queue)
+		void done(Virtio_block_queue &queue)
 		{
 			*_desc_addr<uint8_t>(_status) = OK;
 			queue.ack(_request_idx, _written);
@@ -171,16 +171,16 @@ class Vmm::Virtio_block_device
 		struct Job : Virtio_block_request,
 		             Block::Connection<Job>::Job
 		{
-			Job(Block::Connection<Job>                & con,
-			    Block::Session::Info                  & info,
-			    Virtio_block_device::Index              id,
-			    Virtio_block_device::Descriptor_array & array,
-			    Ram                                   & ram)
+			Job(Block::Connection<Job>                &con,
+			    Block::Session::Info                  &info,
+			    Virtio_block_device::Index             id,
+			    Virtio_block_device::Descriptor_array &array,
+			    Ram                                   &ram)
 			: Virtio_block_request(id, array, ram),
 			  Block::Connection<Job>::Job(con, Virtio_block_request::operation(info)) {}
 		};
 
-		Heap                                   & _heap;
+		Heap                                    &_heap;
 		Allocator_avl                            _block_alloc { &_heap };
 		Block::Connection<Job>                   _block;
 		Block::Session::Info                     _block_info { _block.info() };
@@ -194,9 +194,9 @@ class Vmm::Virtio_block_device
 
 		void _notify(unsigned) override
 		{
-			auto lambda = [&] (Index              id,
-			                   Descriptor_array & array,
-			                   Ram              & ram)
+			auto lambda = [&] (Index             id,
+			                   Descriptor_array &array,
+			                   Ram              &ram)
 			{
 				try {
 					new (_heap) Job(_block, _block_info, id, array, ram);
@@ -228,7 +228,7 @@ class Vmm::Virtio_block_device
 				                range);
 			}
 
-			Configuration_area(Virtio_block_device & device, uint64_t capacity)
+			Configuration_area(Virtio_block_device &device, uint64_t capacity)
 			:
 				Mmio_register("Configuration_area", Mmio_register::RO,
 				              0x100, 8, device.registers()),
@@ -238,16 +238,16 @@ class Vmm::Virtio_block_device
 
 	public:
 
-		Virtio_block_device(const char * const   name,
-		                    const uint64_t       addr,
-		                    const uint64_t       size,
-		                    unsigned             irq,
-		                    Cpu                & cpu,
-		                    Mmio_bus           & bus,
-		                    Ram                & ram,
-		                    Virtio_device_list & list,
-		                    Env                & env,
-		                    Heap               & heap)
+		Virtio_block_device(const char * const  name,
+		                    const uint64_t      addr,
+		                    const uint64_t      size,
+		                    unsigned            irq,
+		                    Cpu                &cpu,
+		                    Mmio_bus           &bus,
+		                    Ram                &ram,
+		                    Virtio_device_list &list,
+		                    Env                &env,
+		                    Heap               &heap)
 		: Virtio_device<Virtio_block_queue,1>(name, addr, size, irq,
 		                                      cpu, bus, ram, list, BLOCK),
 		  _heap(heap),
@@ -260,7 +260,7 @@ class Vmm::Virtio_block_device
 		 ** Block::Connection::Update_jobs_policy interface **
 		 *****************************************************/
 
-		void produce_write_content(Job & job, off_t offset,
+		void produce_write_content(Job &job, off_t offset,
 		                           char *dst, size_t length)
 		{
 			size_t sz = Genode::min(length,job.size());
@@ -268,7 +268,7 @@ class Vmm::Virtio_block_device
 			job.written_to_descriptor(sz);
 		}
 
-		void consume_read_result(Job & job, off_t offset,
+		void consume_read_result(Job &job, off_t offset,
 		                         char const *src, size_t length)
 		{
 			size_t sz = Genode::min(length,job.size());

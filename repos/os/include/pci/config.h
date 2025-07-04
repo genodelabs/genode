@@ -253,7 +253,7 @@ struct Pci::Config : Genode::Mmio<0x45>
 
 		using Pci_capability::Pci_capability;
 
-		bool power_on(Delayer & delayer)
+		bool power_on(Delayer &delayer)
 		{
 			using Reg = Control_status::Power_state;
 			if (read<Reg>() == Reg::D0)
@@ -472,7 +472,7 @@ struct Pci::Config : Genode::Mmio<0x45>
 			write<Link_control::Lbm_irq_enable>(1);
 		}
 
-		void reset(Delayer & delayer)
+		void reset(Delayer &delayer)
 		{
 			if (!read<Device_capabilities::Function_level_reset>())
 				return;
@@ -652,7 +652,7 @@ struct Pci::Config : Genode::Mmio<0x45>
 		bar.set(addr);
 	}
 
-	void power_on(Delayer & delayer)
+	void power_on(Delayer &delayer)
 	{
 		if (!power_cap.constructed() || !power_cap->power_on(delayer))
 			return;

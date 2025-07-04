@@ -23,7 +23,7 @@ T _io_port_in(unsigned short addr)
 
 	unsigned ret = 0;
 	bool valid_ret = false;
-	env().devices.for_each([&] (Device & d) {
+	env().devices.for_each([&] (Device &d) {
 		if (d.io_port(addr)) {
 			valid_ret = true;
 			switch (sizeof (T)) {
@@ -66,7 +66,7 @@ void _io_port_out(unsigned short addr, T value)
 	using namespace Genode;
 
 	bool valid_ret = false;
-	env().devices.for_each([&] (Device & d) {
+	env().devices.for_each([&] (Device &d) {
 		if (d.io_port(addr)) {
 			valid_ret = true;
 			switch (sizeof (T)) {

@@ -51,19 +51,19 @@ class Vmm::Cpu_base
 			};
 		};
 
-		Cpu_base(Vm                      & vm,
-		         Genode::Vm_connection   & vm_session,
-		         Mmio_bus                & bus,
-		         Gic                     & gic,
-		         Genode::Env             & env,
-		         Genode::Heap            & heap,
-		         Genode::Entrypoint      & ep,
-		         unsigned                  cpu_id);
+		Cpu_base(Vm                      &vm,
+		         Genode::Vm_connection   &vm_session,
+		         Mmio_bus                &bus,
+		         Gic                     &gic,
+		         Genode::Env             &env,
+		         Genode::Heap            &heap,
+		         Genode::Entrypoint      &ep,
+		         unsigned                 cpu_id);
 
 		unsigned           cpu_id() const;
 		bool               active() const;
 		Gic::Gicd_banked & gic();
-		void               dump(Vcpu_state & state);
+		void               dump(Vcpu_state &state);
 		void               handle_exception(Vcpu_state &state);
 		void               recall();
 		void               initialize_boot(Vcpu_state &state,
@@ -73,12 +73,12 @@ class Vmm::Cpu_base
 
 		virtual ~Cpu_base() = default;
 
-		Vcpu_state & state() {
+		Vcpu_state &state() {
 			return _state->ref;
 		}
 
 		template<typename FN>
-		void with_state(FN const & fn)
+		void with_state(FN const &fn)
 		{
 			_vm_vcpu.with_state(fn);
 		}
@@ -91,7 +91,7 @@ class Vmm::Cpu_base
 		void handle_signal(FUNC handler)
 		{
 			_vm_vcpu.with_state([this, handler](Genode::Vcpu_state &vmstate) {
-				Vmm::Vcpu_state & state = static_cast<Vmm::Vcpu_state &>(vmstate);
+				Vmm::Vcpu_state &state = static_cast<Vmm::Vcpu_state &>(vmstate);
 				_state.construct(state);
 
 				try {
@@ -117,8 +117,8 @@ class Vmm::Cpu_base
 		{
 			using Base = Genode::Vcpu_handler<Signal_handler<T>>;
 
-			Cpu_base & cpu;
-			T        & obj;
+			Cpu_base &cpu;
+			T        &obj;
 			void (T::*member)();
 
 			void handle()
@@ -126,10 +126,10 @@ class Vmm::Cpu_base
 				cpu.handle_signal([this] (Vcpu_state &) { (obj.*member)(); });
 			}
 
-			Signal_handler(Cpu_base           & cpu,
-			               Genode::Entrypoint & ep,
-			               T                  & o,
-			               void                 (T::*f)())
+			Signal_handler(Cpu_base           &cpu,
+			               Genode::Entrypoint &ep,
+			               T                  &o,
+			               void                (T::*f)())
 			: Base(ep, *this, &Signal_handler::handle),
 			  cpu(cpu), obj(o), member(f) {}
 		};
@@ -183,7 +183,7 @@ class Vmm::Cpu_base
 				                const char     * name,
 				                bool             writeable,
 				                Genode::addr_t   v,
-				                Genode::Avl_tree<System_register> & tree);
+				                Genode::Avl_tree<System_register> &tree);
 
 				System_register(unsigned         crn,
 				                unsigned         op1,
@@ -192,7 +192,7 @@ class Vmm::Cpu_base
 				                const char     * name,
 				                bool             writeable,
 				                Genode::addr_t   v,
-				                Genode::Avl_tree<System_register> & tree)
+				                Genode::Avl_tree<System_register> &tree)
 				: System_register(0, crn, op1, crm, op2,
 				                  name, writeable, v, tree) {}
 
@@ -229,9 +229,9 @@ class Vmm::Cpu_base
 
 		unsigned                               _vcpu_id;
 		bool                                   _active { true };
-		Vm                                   & _vm;
-		Genode::Vm_connection                & _vm_session;
-		Genode::Heap                         & _heap;
+		Vm                                    &_vm;
+		Genode::Vm_connection                 &_vm_session;
+		Genode::Heap                          &_heap;
 		Signal_handler<Cpu_base>               _vm_handler;
 		Genode::Vm_connection::Exit_config     _exit_config { };
 		Genode::Vm_connection::Vcpu            _vm_vcpu;

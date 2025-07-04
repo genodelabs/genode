@@ -56,8 +56,8 @@ class Ahci::Driver : Noncopyable
 			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
 		};
 
-		Env                   & _env;
-		Dispatch              & _dispatch;
+		Env                    &_env;
+		Dispatch               &_dispatch;
 		Timer_delayer           _delayer   { _env };
 		Signal_handler<Driver>  _handler   { _env.ep(), *this, &Driver::handle_irq };
 		Resources               _resources { _env, _handler };
@@ -390,7 +390,7 @@ struct Ahci::Block_session_component : Rpc_object<Block::Session>,
 
 struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 {
-	Env                                  & env;
+	Env                                   &env;
 	Attached_rom_dataspace                 config   { env, "config" };
 	Constructible<Ahci::Driver>            driver   { };
 	Constructible<Reporter>                reporter { };

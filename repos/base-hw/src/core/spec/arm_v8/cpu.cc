@@ -44,19 +44,19 @@ Cpu::Context::Context(bool privileged)
 }
 
 
-bool Cpu::active(Mmu_context & mmu_context)
+bool Cpu::active(Mmu_context &mmu_context)
 {
 	return (mmu_context.id() == Ttbr::Asid::get(Ttbr0_el1::read()));
 }
 
 
-void Cpu::switch_to(Mmu_context & mmu_context)
+void Cpu::switch_to(Mmu_context &mmu_context)
 {
 	Ttbr0_el1::write(mmu_context.ttbr);
 }
 
 
-void Cpu::mmu_fault(Cpu::Context &, Kernel::Thread_fault & fault)
+void Cpu::mmu_fault(Cpu::Context &, Kernel::Thread_fault &fault)
 {
 	Esr::access_t esr = Esr_el1::read();
 

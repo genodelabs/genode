@@ -24,10 +24,10 @@ struct Bridge : Registry<Bridge>::Element
 
 	Registry<Bridge> sub_bridges {};
 
-	Bridge(Registry<Bridge> & registry,
-		   Pci::Bdf           bdf,
-	       Pci::bus_t         from,
-	       Pci::bus_t         to)
+	Bridge(Registry<Bridge> &registry,
+	       Pci::Bdf          bdf,
+	       Pci::bus_t        from,
+	       Pci::bus_t        to)
 	:
 		Registry<Bridge>::Element(registry, *this),
 		bdf(bdf), from(from), to(to) { }
@@ -36,12 +36,12 @@ struct Bridge : Registry<Bridge>::Element
 		return from <= bus && bus <= to; }
 
 	template <typename FN>
-	void find_bridge(Pci::bus_t bus, FN const & fn) {
+	void find_bridge(Pci::bus_t bus, FN const &fn) {
 		if (!behind(bus))
 			return;
 
 		bool found = false;
-		sub_bridges.for_each([&] (Bridge & b) {
+		sub_bridges.for_each([&] (Bridge &b) {
 			if (!b.behind(bus))
 				return;
 			b.find_bridge(bus, fn);

@@ -1243,7 +1243,7 @@ class Igd::Mmio : public Platform::Device::Mmio<MMIO_SIZE>
 		struct Timer_delayer : Genode::Mmio<MMIO_SIZE>::Delayer
 		{
 			Timer::Connection _timer;
-			Timer_delayer(Genode::Env & env) : _timer(env) { }
+			Timer_delayer(Genode::Env &env) : _timer(env) { }
 
 			void usleep(uint64_t us) override { _timer.usleep(us); }
 		} _delayer;
@@ -1761,7 +1761,7 @@ class Igd::Mmio : public Platform::Device::Mmio<MMIO_SIZE>
 
 	public:
 
-		Mmio(Platform::Device & device, Genode::Env & env)
+		Mmio(Platform::Device &device, Genode::Env &env)
 		: Platform::Device::Mmio<MMIO_SIZE>(device, {0}), _delayer(env) { }
 
 		Delayer &delayer() { return _delayer; }

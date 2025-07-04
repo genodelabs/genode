@@ -80,8 +80,8 @@ class Virtio::Queue
 		Queue(Queue const &) = delete;
 		Queue &operator = (Queue const &) = delete;
 
-		static addr_t _dma_addr(Platform::Connection & p,
-		                        Dataspace_capability   c) {
+		static addr_t _dma_addr(Platform::Connection &p,
+		                        Dataspace_capability  c) {
 			return p.dma_addr(static_cap_cast<Ram_dataspace>(c)); }
 
 	protected:
@@ -154,9 +154,9 @@ class Virtio::Queue
 					uint16_t  size;
 				};
 
-				Buffer_pool(Platform::Connection & plat,
-				            uint16_t         const buffer_count,
-				            uint16_t         const buffer_size)
+				Buffer_pool(Platform::Connection &plat,
+				            uint16_t        const buffer_count,
+				            uint16_t        const buffer_size)
 				:
 					_ds(plat, buffer_count * align_natural(buffer_size),
 					    CACHED),
@@ -561,9 +561,9 @@ class Virtio::Queue
 			print(output, _queue_size);
 		}
 
-		Queue(Platform::Connection & plat,
-		      uint16_t               queue_size,
-		      uint16_t               buffer_size)
+		Queue(Platform::Connection &plat,
+		      uint16_t              queue_size,
+		      uint16_t              buffer_size)
 		: _queue_size(queue_size),
 		  _ds(plat, _ds_size(queue_size), UNCACHED),
 		  _buffers(plat, queue_size, _check_buffer_size(buffer_size)),

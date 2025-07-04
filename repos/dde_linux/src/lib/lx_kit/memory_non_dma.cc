@@ -47,7 +47,7 @@ Lx_kit::Mem_allocator::alloc_buffer(size_t size)
 {
 	size = align_addr(size, 12);
 
-	Buffer & buffer = *static_cast<Buffer*>(new (_heap)
+	Buffer &buffer = *static_cast<Buffer*>(new (_heap)
 		Non_dma_buffer(_env.ram(), _env.rm(), size, _cache_attr));
 
 	/* map eager by touching all pages once */

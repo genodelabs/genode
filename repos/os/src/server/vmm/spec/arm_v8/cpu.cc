@@ -60,7 +60,7 @@ Cpu_base::System_register::Iss::mask_encoding(access_t v)
 }
 
 
-void Cpu_base::_handle_brk(Vcpu_state & state)
+void Cpu_base::_handle_brk(Vcpu_state &state)
 {
 	addr_t offset = 0x0;
 	if (!(state.pstate & 0b100)) {
@@ -129,7 +129,7 @@ void Cpu_base::dump(Vcpu_state &state)
 
 addr_t Cpu::Ccsidr::read() const
 {
-	Vcpu_state & state = cpu.state();
+	Vcpu_state &state = cpu.state();
 
 	struct Clidr : Genode::Register<32>
 	{
@@ -225,14 +225,14 @@ void Cpu::setup_state(Vcpu_state &state)
 }
 
 
-Cpu::Cpu(Vm              & vm,
-         Vm_connection   & vm_session,
-         Mmio_bus        & bus,
-         Gic             & gic,
-         Env             & env,
-         Heap            & heap,
-         Entrypoint      & ep,
-         unsigned                  id)
+Cpu::Cpu(Vm              &vm,
+         Vm_connection   &vm_session,
+         Mmio_bus        &bus,
+         Gic             &gic,
+         Env             &env,
+         Heap            &heap,
+         Entrypoint      &ep,
+         unsigned         id)
 : Cpu_base(vm, vm_session, bus, gic, env, heap, ep, id),
   _sr_id_aa64afr0_el1 (3, 0, 0, 5, 4, "ID_AA64AFR0_EL1",  false, 0x0, _reg_tree),
   _sr_id_aa64afr1_el1 (3, 0, 0, 5, 5, "ID_AA64AFR1_EL1",  false, 0x0, _reg_tree),

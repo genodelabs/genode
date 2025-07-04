@@ -40,9 +40,9 @@ class Intel::Managed_root_table : public Registered_translation_table
 
 	private:
 
-		Env         & _env;
+		Env          &_env;
 
-		Allocator   & _table_allocator;
+		Allocator    &_table_allocator;
 
 		addr_t        _root_table_phys  { _table_allocator.construct<Root_table>() };
 
@@ -54,7 +54,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 			auto no_match_fn = [&] () { };
 
 			_table_allocator.with_table<Root_table>(_root_table_phys,
-				[&] (Root_table & root_table) {
+				[&] (Root_table &root_table) {
 
 					/* allocate table if not present */
 					bool new_table { false };
@@ -68,7 +68,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 					}
 
 					_table_allocator.with_table<Context_table>(root_table.address(bus),
-						[&] (Context_table & ctx) {
+						[&] (Context_table &ctx) {
 							if (_force_flush && new_table)
 								ctx.flush_all();
 
@@ -86,7 +86,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 		void for_each_stage2_pointer(FN && fn)
 		{
 			Root_table::for_each([&] (uint8_t bus) {
-				_with_context_table(bus, [&] (Context_table & ctx) {
+				_with_context_table(bus, [&] (Context_table &ctx) {
 					Pci::rid_t start_rid = Pci::Bdf::rid(Pci::Bdf { bus, 0, 0 });
 
 					Context_table::for_each(start_rid, [&] (Pci::rid_t rid) {
@@ -100,9 +100,9 @@ class Intel::Managed_root_table : public Registered_translation_table
 		}
 
 		template <typename FN>
-		void with_stage2_pointer(Pci::Bdf const & bdf, FN && fn)
+		void with_stage2_pointer(Pci::Bdf const &bdf, FN && fn)
 		{
-			_with_context_table(bdf.bus, [&] (Context_table & ctx) {
+			_with_context_table(bdf.bus, [&] (Context_table &ctx) {
 				Pci::rid_t rid = Pci::Bdf::rid(bdf);
 
 				if (ctx.present(rid))
@@ -112,11 +112,11 @@ class Intel::Managed_root_table : public Registered_translation_table
 
 		/* add second-stage table */
 		template <unsigned ADDRESS_WIDTH>
-		Domain_id insert_context(Pci::Bdf const & bdf, addr_t phys_addr, Domain_id domain)
+		Domain_id insert_context(Pci::Bdf const &bdf, addr_t phys_addr, Domain_id domain)
 		{
 			Domain_id cur_domain { };
 
-			_with_context_table(bdf.bus, [&] (Context_table & ctx) {
+			_with_context_table(bdf.bus, [&] (Context_table &ctx) {
 				Pci::rid_t      rid = Pci::Bdf::rid(bdf);
 
 				if (ctx.present(rid))
@@ -139,15 +139,15 @@ class Intel::Managed_root_table : public Registered_translation_table
 		{
 			addr_t va { 0 };
 			_table_allocator.with_table<Context_table>(pa,
-				[&] (Context_table & table) { va = (addr_t)&table; },
-				[&] ()                      { va = 0; });
+				[&] (Context_table &table) { va = (addr_t)&table; },
+				[&] ()                     { va = 0; });
 
 			return va;
 		}
 
-		Managed_root_table(Env & env,
-		                   Allocator & table_allocator,
-		                   Translation_table_registry & registry,
+		Managed_root_table(Env &env,
+		                   Allocator &table_allocator,
+		                   Translation_table_registry &registry,
 		                   bool force_flush)
 		: Registered_translation_table(registry),
 		  _env(env),

@@ -45,25 +45,25 @@ class Lx_kit::Task : public Genode::List<Lx_kit::Task>::Element
 		State         _state    { INIT };
 		int           _priority { 120  }; /* initial value of swapper task  */
 		Type          _type;
-		Scheduler   & _scheduler;
+		Scheduler    &_scheduler;
 		void * const  _lx_task;        /* pointer of Linux task struct      */
 		int const     _pid;            /* Linux process identifier          */
 		Name          _name;           /* name of task                      */
-		void        * _stack;          /* stack pointer                     */
+		void         *_stack;          /* stack pointer                     */
 		jmp_buf       _env;            /* execution state                   */
 		jmp_buf       _saved_env;      /* saved state of thread calling run */
-		int        (* _func) (void *); /* function to call                  */
-		void        * _arg;            /* argument for function             */
+		int         (*_func) (void *); /* function to call                  */
+		void         *_arg;            /* argument for function             */
 
 	public:
 
-		Task(int        (* func) (void*),
-		     void        * arg,
-		     void        * task,
-		     int           pid,
-		     char const  * name,
-		     Scheduler   & scheduler,
-		     Type          type);
+		Task(int        (*func) (void*),
+		     void        *arg,
+		     void        *task,
+		     int          pid,
+		     char const  *name,
+		     Scheduler   &scheduler,
+		     Type         type);
 
 		~Task();
 

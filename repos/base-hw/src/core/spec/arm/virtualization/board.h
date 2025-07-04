@@ -80,7 +80,7 @@ struct Board::Vcpu_context
 		void disable();
 	};
 
-	Vcpu_context(Kernel::Cpu & cpu)
+	Vcpu_context(Kernel::Cpu &cpu)
 	: pic_irq(cpu), vtimer_irq(cpu) {}
 
 	Pic::Virtual_context pic {};

@@ -80,8 +80,8 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
 		auto rpc_obj_sel = Cap_sel(unsigned(result));
 
 		/* create Genode capability */
-		auto & data = local_capability_space().create_capability(rpc_obj_sel,
-		                                                         rpc_obj_key);
+		auto &data = local_capability_space().create_capability(rpc_obj_sel,
+		                                                        rpc_obj_key);
 
 		Cap_sel const ep_sel(local_capability_space().sel(*ep_cap.data()));
 
@@ -121,7 +121,7 @@ void Capability_space::destroy_rpc_obj_cap(Native_capability &cap)
 
 
 template <unsigned A, unsigned B, typename C>
-void Capability_space_sel4<A, B, C>::_cleanup_last_ref(Native_capability::Data & data)
+void Capability_space_sel4<A, B, C>::_cleanup_last_ref(Native_capability::Data &data)
 {
 	Cap_sel const sel(local_capability_space().sel(data));
 

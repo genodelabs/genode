@@ -77,7 +77,7 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 }
 
 
-bool Hw::Address_space::lookup_rw_translation(addr_t const virt, addr_t & phys)
+bool Hw::Address_space::lookup_rw_translation(addr_t const virt, addr_t &phys)
 {
 	/** FIXME: for the time-being we use it without lock,
 	 * because it is used directly by the kernel when cache_coherent_region
@@ -116,7 +116,7 @@ Address_space(Page_table                        &tt,
 { }
 
 
-Hw::Address_space::Address_space(Platform_pd & pd)
+Hw::Address_space::Address_space(Platform_pd &pd)
 :
 	_tt(*construct_at<Page_table>(_table_alloc(), *((Page_table*)Hw::Mm::core_page_tables().base))),
 	_tt_phys((addr_t)_cma().phys_addr(&_tt)),

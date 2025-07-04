@@ -19,7 +19,7 @@ namespace Driver { struct Main; };
 
 struct Driver::Main
 {
-	Env                  & _env;
+	Env                   &_env;
 	Attached_rom_dataspace _config_rom     { _env, "config"        };
 	Attached_rom_dataspace _acpi_rom       { _env, "acpi"          };
 	Attached_rom_dataspace _system_rom     { _env, "system"        };
@@ -33,8 +33,8 @@ struct Driver::Main
 	void _reset();
 	void _system_update();
 
-	Main(Genode::Env & e)
-	: _env(e)
+	Main(Genode::Env &env)
+	: _env(env)
 	{
 		_config_rom.sigh(_config_handler);
 		_acpi_rom.sigh(_system_handler);

@@ -36,7 +36,7 @@ class Intel::Default_mappings
 
 	private:
 
-		Allocator          & _table_allocator;
+		Allocator           &_table_allocator;
 
 		Managed_root_table   _root_table;
 
@@ -46,8 +46,8 @@ class Intel::Default_mappings
 
 		addr_t               _default_table_phys;
 
-		static addr_t _construct_default_table(Allocator          & alloc,
-		                                       Translation_levels   levels)
+		static addr_t _construct_default_table(Allocator          &alloc,
+		                                       Translation_levels  levels)
 		{
 			switch (levels) {
 				case Translation_levels::LEVEL3:
@@ -70,11 +70,11 @@ class Intel::Default_mappings
 		void copy_stage2(Managed_root_table &, Pci::Bdf const &);
 		void copy_stage2(Managed_root_table &);
 
-		Default_mappings(Env                        & env,
-		                 Allocator                  & table_allocator,
-		                 Translation_table_registry & registry,
-		                 bool                         force_flush,
-		                 Translation_levels           levels)
+		Default_mappings(Env                        &env,
+		                 Allocator                  &table_allocator,
+		                 Translation_table_registry &registry,
+		                 bool                        force_flush,
+		                 Translation_levels          levels)
 		: _table_allocator(table_allocator),
 		  _root_table(env, table_allocator, registry, force_flush),
 		  _force_flush(force_flush),

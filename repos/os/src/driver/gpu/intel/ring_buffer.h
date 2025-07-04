@@ -39,7 +39,7 @@ class Igd::Ring_buffer
 
 	private:
 
-		MEMORY      & _memory;
+		MEMORY       &_memory;
 		Index const   _max;
 		Index         _tail { };
 		Index         _head { };
@@ -52,7 +52,7 @@ class Igd::Ring_buffer
 
 	public:
 
-		Ring_buffer(MEMORY & memory, size_t const size)
+		Ring_buffer(MEMORY &memory, size_t const size)
 		: _memory(memory),  _max(size / sizeof (uint32_t)) { }
 
 		/**

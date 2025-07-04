@@ -48,30 +48,30 @@ class Driver::Session_component
 		using Session_registry = Registry<Session_component>;
 		using Policy_version   = String<64>;
 
-		Session_component(Env                          & env,
-		                  Attached_rom_dataspace const & config,
-		                  Device_model                 & devices,
-		                  Session_registry             & registry,
-		                  Io_mmu_devices               & io_mmu_devices,
-		                  Registry<Irq_controller>     & irq_controller_registry,
-		                  Label            const       & label,
-		                  Resources        const       & resources,
-		                  Diag             const       & diag,
-		                  bool             const         info,
-		                  Policy_version   const         version,
-		                  bool             const         dma_remapping,
-		                  bool             const         kernel_iommu);
+		Session_component(Env                          &env,
+		                  Attached_rom_dataspace const &config,
+		                  Device_model                 &devices,
+		                  Session_registry             &registry,
+		                  Io_mmu_devices               &io_mmu_devices,
+		                  Registry<Irq_controller>     &irq_controller_registry,
+		                  Label            const       &label,
+		                  Resources        const       &resources,
+		                  Diag             const       &diag,
+		                  bool             const        info,
+		                  Policy_version   const        version,
+		                  bool             const        dma_remapping,
+		                  bool             const        kernel_iommu);
 
 		~Session_component();
 
-		Heap                     & heap();
-		Io_mmu_domain_registry   & domain_registry();
-		Registry<Irq_controller> & irq_controller_registry();
+		Heap                     &heap();
+		Io_mmu_domain_registry   &domain_registry();
+		Registry<Irq_controller> &irq_controller_registry();
 
 		template <typename FN>
-		void with_io_mmu(Device::Name const & name, FN && fn)
+		void with_io_mmu(Device::Name const &name, FN && fn)
 		{
-			_io_mmu_devices.for_each([&] (Io_mmu & io_mmu) {
+			_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
 				if (io_mmu.name() == name)
 					fn(io_mmu);
 			});
@@ -114,28 +114,28 @@ class Driver::Session_component
 
 		friend class Root;
 
-		Env                          & _env;
-		Attached_rom_dataspace const & _config;
-		Device_model                 & _devices;
+		Env                          &_env;
+		Attached_rom_dataspace const &_config;
+		Device_model                 &_devices;
 
-		Io_mmu_devices               & _io_mmu_devices;
-		Registry<Irq_controller>     & _irq_controller_registry;
-		Device::Owner                  _owner_id    { *this };
-		Accounted_ram_allocator        _env_ram     { _env.ram(),
-		                                              _ram_quota_guard(),
-		                                              _cap_quota_guard()  };
-		Heap                           _md_alloc    { _env_ram, _env.rm() };
-		Registry<Device_component>     _device_registry { };
-		Io_mmu_domain_registry         _domain_registry { };
-		Dynamic_rom_session            _rom_session { _env.ep(), _env.ram(),
-		                                              _env.rm(), *this    };
-		bool                           _info;
-		Policy_version                 _version;
-		Dma_allocator                  _dma_allocator;
+		Io_mmu_devices               &_io_mmu_devices;
+		Registry<Irq_controller>     &_irq_controller_registry;
+		Device::Owner                 _owner_id    { *this };
+		Accounted_ram_allocator       _env_ram     { _env.ram(),
+		                                             _ram_quota_guard(),
+		                                             _cap_quota_guard()  };
+		Heap                          _md_alloc    { _env_ram, _env.rm() };
+		Registry<Device_component>    _device_registry { };
+		Io_mmu_domain_registry        _domain_registry { };
+		Dynamic_rom_session           _rom_session { _env.ep(), _env.ram(),
+		                                             _env.rm(), *this    };
+		bool                          _info;
+		Policy_version                _version;
+		Dma_allocator                 _dma_allocator;
 
-		Device_capability _acquire(Device & device);
-		void              _release_device(Device_component & dc);
-		void              _free_dma_buffer(Dma_buffer & buf);
+		Device_capability _acquire(Device &device);
+		void              _release_device(Device_component &dc);
+		void              _free_dma_buffer(Dma_buffer &buf);
 
 		/*
 		 * Noncopyable

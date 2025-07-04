@@ -94,7 +94,7 @@ class Kernel::Timer
 
 	public:
 
-		Timer(Cpu & cpu);
+		Timer(Cpu &cpu);
 
 		void set_timeout(Timeout &timeout, time_t const duration);
 

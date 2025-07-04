@@ -115,7 +115,7 @@ struct Libc::Kqueue
 
 	struct Kqueue_element : kevent, public Avl_node<Kqueue_element>
 	{
-		Kqueue_element *find_by_kevent(struct kevent const & k)
+		Kqueue_element *find_by_kevent(struct kevent const &k)
 		{
 			if (*this == k) return this;
 			Kqueue_element *ele = this->child(k > *this);
@@ -160,7 +160,7 @@ struct Libc::Kqueue
 		}
 
 		template <typename FN>
-		auto with_element(struct kevent const & k, FN const &match_fn, auto const &no_match_fn)
+		auto with_element(struct kevent const &k, FN const &match_fn, auto const &no_match_fn)
 		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
 		{
 			Kqueue_element *ele = (this->first()) ?
@@ -193,8 +193,8 @@ struct Libc::Kqueue
 	 */
 	struct Kqueue_element_container : Fifo<Kqueue_element_container>::Element
 	{
-		Kqueue_element const & ele;
-		Kqueue_element_container(Kqueue_element const & e) : ele(e)
+		Kqueue_element const &ele;
+		Kqueue_element_container(Kqueue_element const &e) : ele(e)
 		{ }
 	};
 
@@ -245,7 +245,7 @@ struct Libc::Kqueue
 	{
 		Mutex::Guard guard(_requests_mutex);
 
-		auto match_fn = [&](Kqueue_element & ele) {
+		auto match_fn = [&](Kqueue_element &ele) {
 			/* Since we know we won't match another element, we can safely remove the element here. */
 			_requests.remove(&ele);
 			destroy(_alloc, &ele);
@@ -263,7 +263,7 @@ struct Libc::Kqueue
 
 	int _enable_event(struct kevent const& k)
 	{
-		auto match_fn = [&](Kqueue_element & ele) {
+		auto match_fn = [&](Kqueue_element &ele) {
 			Kqueue_flags::Disable::clear((Kqueue_flags::access_t &)ele.flags);
 			Kqueue_flags::Enable::set((Kqueue_flags::access_t &)ele.flags);
 			return 0;
@@ -279,7 +279,7 @@ struct Libc::Kqueue
 
 	int _disable_event(struct kevent const& k)
 	{
-		auto match_fn = [&](Kqueue_element & ele) {
+		auto match_fn = [&](Kqueue_element &ele) {
 			Kqueue_flags::Enable::clear((Kqueue_flags::access_t &)ele.flags);
 			Kqueue_flags::Disable::set((Kqueue_flags::access_t &)ele.flags);
 			return 0;
@@ -293,7 +293,7 @@ struct Libc::Kqueue
 		return _requests.with_element(k, match_fn, no_match_fn);
 	}
 
-	Kqueue(Genode::Allocator & alloc) : _alloc(alloc)
+	Kqueue(Genode::Allocator &alloc) : _alloc(alloc)
 	{ }
 
 	~Kqueue()

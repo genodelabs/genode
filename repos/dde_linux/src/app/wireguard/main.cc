@@ -112,7 +112,7 @@ class Wireguard::Main : private Entrypoint::Io_progress_handler,
 			_nic_connection.notify_peer();
 		}
 
-		void update(genode_wg_config_callbacks & callbacks)
+		void update(genode_wg_config_callbacks &callbacks)
 		{
 			_config_model.update(callbacks, _config_rom.node());
 		}
@@ -233,7 +233,7 @@ void Wireguard::Main::send_ip_at_uplink_connection(
 }
 
 
-static Wireguard::Main & main_object(Genode::Env & env)
+static Wireguard::Main & main_object(Genode::Env &env)
 {
 	static Wireguard::Main main { env };
 	return main;

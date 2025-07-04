@@ -46,9 +46,9 @@ extern "C" int inhibit_pci_fixup(char const *name)
 
 struct Main
 {
-	Env                  & env;
-	Signal_handler<Main>   signal_handler { env.ep(), *this,
-	                                        &Main::handle_signal };
+	Env                  &env;
+	Signal_handler<Main>  signal_handler { env.ep(), *this,
+	                                       &Main::handle_signal };
 
 	void handle_signal()
 	{
@@ -58,7 +58,7 @@ struct Main
 		genode_usb_notify_peers();
 	}
 
-	Main(Env & env) : env(env)
+	Main(Env &env) : env(env)
 	{
 		{
 			Lx_kit::Initial_config config { env };
@@ -77,7 +77,7 @@ struct Main
 };
 
 
-void Component::construct(Env & env)
+void Component::construct(Env &env)
 {
 	static Main main(env);
 }

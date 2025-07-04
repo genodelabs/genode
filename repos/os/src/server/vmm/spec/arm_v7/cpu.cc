@@ -70,7 +70,7 @@ void Cpu_base::_handle_brk(Vcpu_state &)
 }
 
 
-void Cpu_base::handle_exception(Vcpu_state & state)
+void Cpu_base::handle_exception(Vcpu_state &state)
 {
 	/* check exception reason */
 	switch (state.cpu_exception) {
@@ -164,14 +164,14 @@ void Cpu::setup_state(Vcpu_state &state)
 }
 
 
-Cpu::Cpu(Vm              & vm,
-         Vm_connection   & vm_session,
-         Mmio_bus        & bus,
-         Gic             & gic,
-         Env             & env,
-         Heap            & heap,
-         Entrypoint      & ep,
-         unsigned          id)
+Cpu::Cpu(Vm              &vm,
+         Vm_connection   &vm_session,
+         Mmio_bus        &bus,
+         Gic             &gic,
+         Env             &env,
+         Heap            &heap,
+         Entrypoint      &ep,
+         unsigned         id)
 : Cpu_base(vm, vm_session, bus, gic, env, heap, ep, id),
   _sr_midr   (0, 0, 0, 0, "MIDR",   false, 0x412fc0f1,     _reg_tree),
   _sr_mpidr  (0, 0, 0, 5, "MPIDR",  false, 1<<31|cpu_id(), _reg_tree),

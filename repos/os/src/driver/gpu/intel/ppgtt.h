@@ -588,7 +588,7 @@ class Genode::Page_directory
 		 * \param alloc  second level translation table allocator
 		 */
 		void insert_translation(Gpu::addr_t vo, Gpu::addr_t pa, size_t size,
-		                        Page_flags const & flags,
+		                        Page_flags const &flags,
 		                        Translation_table_allocator *alloc,
 		                        Scratch::Page               *scratch)
 		{
@@ -763,7 +763,7 @@ class Genode::Pml4_table
 		 * \param alloc  second level translation table allocator
 		 */
 		void insert_translation(Gpu::addr_t vo, Gpu::addr_t pa, size_t size,
-		                        Page_flags const & flags,
+		                        Page_flags const &flags,
 		                        Translation_table_allocator *alloc,
 		                        Scratch::Page *scratch)
 		{

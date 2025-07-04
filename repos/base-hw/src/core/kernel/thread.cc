@@ -409,7 +409,7 @@ void Thread::_call_yield_thread()
 
 void Thread::_call_delete_thread()
 {
-	Core::Kernel_object<Thread> & to_delete =
+	Core::Kernel_object<Thread> &to_delete =
 		*(Core::Kernel_object<Thread>*)user_arg_1();
 
 	/**
@@ -432,7 +432,7 @@ void Thread::_call_delete_thread()
 
 void Thread::_call_delete_pd()
 {
-	Core::Kernel_object<Pd> & pd =
+	Core::Kernel_object<Pd> &pd =
 		*(Core::Kernel_object<Pd>*)user_arg_1();
 
 	if (_cpu().active(pd->mmu_regs))
@@ -468,7 +468,7 @@ void Thread::_call_await_request_msg()
 
 void Thread::_call_timeout()
 {
-	Timer & t = _cpu().timer();
+	Timer &t = _cpu().timer();
 	_timeout_sigid = (Kernel::capid_t)user_arg_2();
 	t.set_timeout(*this, t.us_to_ticks(user_arg_1()));
 }
@@ -482,7 +482,7 @@ void Thread::_call_timeout_max_us()
 
 void Thread::_call_time()
 {
-	Timer & t = _cpu().timer();
+	Timer &t = _cpu().timer();
 	user_ret_time(t.ticks_to_us(t.time()));
 }
 
@@ -662,7 +662,7 @@ void Thread::_call_new_obj()
 	}
 
 	using Thread_identity = Genode::Constructible<Core_object_identity<Thread>>;
-	Thread_identity & coi = *(Thread_identity*)user_arg_1();
+	Thread_identity &coi = *(Thread_identity*)user_arg_1();
 	coi.construct(_core_pd, *thread);
 	user_arg_0(coi->core_capid());
 }
@@ -671,7 +671,7 @@ void Thread::_call_new_obj()
 void Thread::_call_delete_obj()
 {
 	using Thread_identity = Genode::Constructible<Core_object_identity<Thread>>;
-	Thread_identity & coi = *(Thread_identity*)user_arg_1();
+	Thread_identity &coi = *(Thread_identity*)user_arg_1();
 	coi.destruct();
 }
 
@@ -701,7 +701,7 @@ void Kernel::Thread::_call_invalidate_tlb()
 	size_t size   = (size_t) user_arg_3();
 	unsigned cnt = 0;
 
-	_cpu_pool.for_each_cpu([&] (Cpu & cpu) {
+	_cpu_pool.for_each_cpu([&] (Cpu &cpu) {
 		/* if a cpu needs to update increase the counter */
 		if (pd->invalidate_tlb(cpu, addr, size)) cnt++; });
 

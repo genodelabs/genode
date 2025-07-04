@@ -45,14 +45,14 @@ void * Platform::Ram_allocator::alloc(size_t size, Align align)
 }
 
 
-void Platform::Ram_allocator::add(Memory_region const & region)
+void Platform::Ram_allocator::add(Memory_region const &region)
 {
 	if (add_range(region.base, region.size).failed())
 		Genode::warning("bootstrap failed to register RAM: ", region);
 }
 
 
-void Platform::Ram_allocator::remove(Memory_region const & region)
+void Platform::Ram_allocator::remove(Memory_region const &region)
 {
 	if (remove_range(region.base, region.size).failed())
 		Genode::warning("bootstrap unable to exclude RAM: ", region);
@@ -63,7 +63,7 @@ void Platform::Ram_allocator::remove(Memory_region const & region)
  ** Platform::Pd **
  ******************/
 
-Platform::Pd::Pd(Platform::Ram_allocator & alloc)
+Platform::Pd::Pd(Platform::Ram_allocator &alloc)
 :
 	table_base(alloc.alloc(sizeof(Table),       { Table::ALIGNM_LOG2 })),
 	array_base(alloc.alloc(sizeof(Table_array), { Table::ALIGNM_LOG2 })),
@@ -109,7 +109,7 @@ Mapping Platform::_load_elf()
 	using namespace Hw;
 
 	Mapping ret;
-	auto lambda = [&] (Genode::Elf_segment & segment) {
+	auto lambda = [&] (Genode::Elf_segment &segment) {
 		void * phys       = (void*)(core_elf_addr + segment.file_offset());
 		size_t const size = round_page(segment.mem_size());
 
@@ -208,7 +208,7 @@ Platform::Platform()
 	using namespace Genode;
 
 	/* prepare the ram allocator */
-	board.early_ram_regions.for_each([this] (unsigned, Memory_region const & region) {
+	board.early_ram_regions.for_each([this] (unsigned, Memory_region const &region) {
 		ram_alloc.add(region); });
 	ram_alloc.remove(bootstrap_region);
 
@@ -223,7 +223,7 @@ Platform::Platform()
 	board.cpus = _prepare_cpu_memory_area();
 
 	/* map memory-mapped I/O for core */
-	board.core_mmio.for_each_mapping([&] (Mapping const & m) {
+	board.core_mmio.for_each_mapping([&] (Mapping const &m) {
 		core_pd->map_insert(m); });
 
 	/* load ELF */
@@ -233,16 +233,16 @@ Platform::Platform()
 	void * bi_base = ram_alloc.alloc(sizeof(Boot_info), { });
 	core_pd->map_insert(Mapping((addr_t)bi_base, Hw::Mm::boot_info().base,
 	                            sizeof(Boot_info), Genode::PAGE_FLAGS_KERN_TEXT));
-	Boot_info & bootinfo =
+	Boot_info &bootinfo =
 		*construct_at<Boot_info>(bi_base, (addr_t)&core_pd->table,
 		                         (addr_t)&core_pd->array,
 		                         core_pd->mappings, boot_modules,
 		                         board.core_mmio, board.cpus, board.info);
 
 	/* add all left RAM to bootinfo */
-	ram_alloc.for_each_free_region([&] (Memory_region const & r) {
+	ram_alloc.for_each_free_region([&] (Memory_region const &r) {
 		bootinfo.ram_regions.add(r); });
-	board.late_ram_regions.for_each([&] (unsigned, Memory_region const & r) {
+	board.late_ram_regions.for_each([&] (unsigned, Memory_region const &r) {
 		/* is zero initialized on some platforms */
 		if (r.size) bootinfo.ram_regions.add(r); });
 }

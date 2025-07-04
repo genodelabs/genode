@@ -104,7 +104,7 @@ void Platform::Singleton_revoke::revoke_signal_context(Signal_context_capability
 addr_t Platform::core_phys_addr(addr_t virt)
 {
 	addr_t ret = 0;
-	_boot_info().elf_mappings.for_each([&] (unsigned, Hw::Mapping const & m)
+	_boot_info().elf_mappings.for_each([&] (unsigned, Hw::Mapping const &m)
 	{
 		if (virt >= m.virt() && virt < (m.virt() + m.size()))
 			ret = (virt - m.virt()) + m.phys();
@@ -198,15 +198,15 @@ Platform::Platform()
 	                                           Hw::Mm::core_heap().size).failed())
 		warning("unable to initialize core virtual-memory allocator");
 
-	_core_virt_regions().for_each([this] (unsigned, Hw::Memory_region const & r) {
+	_core_virt_regions().for_each([this] (unsigned, Hw::Memory_region const &r) {
 		if (_core_mem_alloc.virt_alloc().remove_range(r.base, r.size).failed())
 			warning("unable to exclude core from core's virtual memory"); });
 
-	_boot_info().elf_mappings.for_each([this] (unsigned, Hw::Mapping const & m) {
+	_boot_info().elf_mappings.for_each([this] (unsigned, Hw::Mapping const &m) {
 		if (_core_mem_alloc.virt_alloc().remove_range(m.virt(), m.size()).failed())
 			warning("unable to exclude ELF mapping from core's virtual memory"); });
 
-	_boot_info().ram_regions.for_each([this] (unsigned, Hw::Memory_region const & region) {
+	_boot_info().ram_regions.for_each([this] (unsigned, Hw::Memory_region const &region) {
 		if (_core_mem_alloc.phys_alloc().add_range(region.base, region.size).failed())
 			warning("unable to register RAM region ", region); });
 

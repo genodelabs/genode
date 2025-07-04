@@ -17,7 +17,7 @@ using namespace Genode;
 using namespace Vmm;
 
 
-Config::Virtio_device::Virtio_device(Name & name, Type type, Config & config)
+Config::Virtio_device::Virtio_device(Name &name, Type type, Config &config)
 :
 	_config(config),
 	name(name),

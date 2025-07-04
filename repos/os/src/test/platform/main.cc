@@ -36,7 +36,7 @@ struct Main
 		Constructible<Platform::Device::Mmio<0> > mmio {};
 		Constructible<Platform::Device::Irq>      irq {};
 
-		Device(Platform::Connection & plat, Platform::Device::Name name)
+		Device(Platform::Connection &plat, Platform::Device::Name name)
 		{
 			device.construct(plat, name);
 			if (!device->_cap.valid()) {

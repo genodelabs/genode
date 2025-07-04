@@ -21,7 +21,7 @@ extern "C" void lx_emul_pci_enable(const char * const name)
 {
 	using namespace Lx_kit;
 
-	env().devices.for_each([&] (Device & d) {
+	env().devices.for_each([&] (Device &d) {
 		if (d.name() == name) d.enable(); });
 };
 
@@ -34,15 +34,15 @@ lx_emul_pci_for_each_resource(const char * const name, void * dev,
 	using namespace Genode;
 	using namespace Pci;
 
-	env().devices.for_each([&] (Device & d) {
+	env().devices.for_each([&] (Device &d) {
 		if (d.name() != name)
 			return;
 
-		d.for_each_io_mem([&] (Device::Io_mem & io_mem) {
+		d.for_each_io_mem([&] (Device::Io_mem &io_mem) {
 			fn(dev, io_mem.pci_bar, io_mem.addr, io_mem.size, 0);
 		});
 
-		d.for_each_io_port([&] (Device::Io_port & io_port) {
+		d.for_each_io_port([&] (Device::Io_port &io_port) {
 			fn(dev, io_port.pci_bar, io_port.addr, io_port.size, 1);
 		});
 	});
@@ -57,12 +57,12 @@ lx_emul_pci_for_each_device(void * bus, lx_emul_add_device_callback_t fn)
 	using namespace Pci;
 
 	unsigned num = 0;
-	env().devices.for_each([&] (Device & d) {
+	env().devices.for_each([&] (Device &d) {
 		unsigned irq = 0;
-		d.for_each_irq([&] (Device::Irq & i) {
+		d.for_each_irq([&] (Device::Irq &i) {
 			if (!irq) irq = i.number; });
 
-		d.for_pci_config([&] (Device::Pci_config & cfg) {
+		d.for_pci_config([&] (Device::Pci_config &cfg) {
 			fn(bus, num++, d.name().string(), cfg.vendor_id, cfg.device_id,
 			   cfg.sub_v_id, cfg.sub_d_id, cfg.class_code, cfg.rev, irq);
 		});

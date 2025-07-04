@@ -48,12 +48,12 @@ class Lx_kit::Scheduler
 
 		Task & current();
 
-		void idle(Task & idle) { _idle = &idle; }
+		void idle(Task &idle) { _idle = &idle; }
 
 		bool active() const;
 
-		void add(Task & task);
-		void remove(Task & task);
+		void add(Task &);
+		void remove(Task &);
 
 		void schedule();
 
@@ -65,14 +65,14 @@ class Lx_kit::Scheduler
 		Task & task(void * t);
 
 		template <typename FN>
-		void for_each_task(FN const & fn);
+		void for_each_task(FN const &);
 
 		Scheduler(Genode::Entrypoint &ep) : _ep { ep } { }
 };
 
 
 template <typename FN>
-void Lx_kit::Scheduler::for_each_task(FN const & fn)
+void Lx_kit::Scheduler::for_each_task(FN const &fn)
 {
 	for (Task * t = _present_list.first(); t; t = t->next())
 		fn(*t);

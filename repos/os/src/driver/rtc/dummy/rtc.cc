@@ -25,6 +25,6 @@ Rtc::Timestamp Rtc::get_time(Env &) { return current_ts(); }
 
 void Rtc::set_time(Env &, Timestamp ts)
 {
-	Timestamp & cur = current_ts();
+	Timestamp &cur = current_ts();
 	cur = ts;
 }

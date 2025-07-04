@@ -19,7 +19,7 @@
 #include <device_component.h>
 
 
-Driver::Device::Owner::Owner(Device_owner & owner)
+Driver::Device::Owner::Owner(Device_owner &owner)
 : obj_id(reinterpret_cast<void*>(&owner)) {}
 
 
@@ -32,11 +32,11 @@ Driver::Device::Type Driver::Device::type() const { return _type; }
 Driver::Device::Owner Driver::Device::owner() const { return _owner; }
 
 
-void Driver::Device::acquire(Device_owner & owner)
+void Driver::Device::acquire(Device_owner &owner)
 {
 	if (!_owner.valid()) _owner = owner;
 
-	_power_domain_list.for_each([&] (Power_domain & p) {
+	_power_domain_list.for_each([&] (Power_domain &p) {
 
 		bool ok = false;
 		_model.powers().apply(p.name, [&] (Driver::Power &power) {
@@ -48,7 +48,7 @@ void Driver::Device::acquire(Device_owner & owner)
 			warning("power domain ", p.name, " is unknown");
 	});
 
-	_reset_domain_list.for_each([&] (Reset_domain & r) {
+	_reset_domain_list.for_each([&] (Reset_domain &r) {
 
 		bool ok = false;
 		_model.resets().apply(r.name, [&] (Driver::Reset &reset) {
@@ -88,7 +88,7 @@ void Driver::Device::acquire(Device_owner & owner)
 }
 
 
-void Driver::Device::release(Device_owner & owner)
+void Driver::Device::release(Device_owner &owner)
 {
 	if (!(_owner == owner))
 		return;
@@ -96,19 +96,19 @@ void Driver::Device::release(Device_owner & owner)
 	if (!_leave_operational) {
 		owner.disable_device(*this);
 
-		_reset_domain_list.for_each([&] (Reset_domain & r)
+		_reset_domain_list.for_each([&] (Reset_domain &r)
 		{
 			_model.resets().apply(r.name, [&] (Driver::Reset &reset) {
 				reset.assert(); });
 		});
 
-		_power_domain_list.for_each([&] (Power_domain & p)
+		_power_domain_list.for_each([&] (Power_domain &p)
 		{
 			_model.powers().apply(p.name, [&] (Driver::Power &power) {
 				power.off(); });
 		});
 
-		_clock_list.for_each([&] (Clock & c)
+		_clock_list.for_each([&] (Clock &c)
 		{
 			_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
 				clock.disable(); });
@@ -121,13 +121,13 @@ void Driver::Device::release(Device_owner & owner)
 }
 
 
-void Driver::Device::generate(Xml_generator & xml, bool info) const
+void Driver::Device::generate(Xml_generator &xml, bool info) const
 {
 	xml.node("device", [&] () {
 		xml.attribute("name", name());
 		xml.attribute("type", type());
 		xml.attribute("used", _owner.valid());
-		_io_mem_list.for_each([&] (Io_mem const & io_mem) {
+		_io_mem_list.for_each([&] (Io_mem const &io_mem) {
 			xml.node("io_mem", [&] () {
 				if (io_mem.bar.valid())
 					xml.attribute("pci_bar", io_mem.bar.number);
@@ -137,7 +137,7 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				xml.attribute("size",      String<16>(Hex(io_mem.range.size)));
 			});
 		});
-		_irq_list.for_each([&] (Irq const & irq) {
+		_irq_list.for_each([&] (Irq const &irq) {
 			xml.node("irq", [&] () {
 				if (!info)
 					return;
@@ -145,7 +145,7 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				if (irq.shared) xml.attribute("shared", true);
 			});
 		});
-		_io_port_range_list.for_each([&] (Io_port_range const & iop) {
+		_io_port_range_list.for_each([&] (Io_port_range const &iop) {
 			xml.node("io_port_range", [&] () {
 				if (iop.bar.valid())
 					xml.attribute("pci_bar", iop.bar.number);
@@ -155,13 +155,13 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				xml.attribute("size",      String<16>(Hex(iop.range.size)));
 			});
 		});
-		_property_list.for_each([&] (Property const & p) {
+		_property_list.for_each([&] (Property const &p) {
 			xml.node("property", [&] () {
 				xml.attribute("name",  p.name);
 				xml.attribute("value", p.value);
 			});
 		});
-		_clock_list.for_each([&] (Clock const & c) {
+		_clock_list.for_each([&] (Clock const &c) {
 			_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
 				xml.node("clock", [&] () {
 					xml.attribute("rate", clock.rate().value);
@@ -169,7 +169,7 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 				});
 			});
 		});
-		_pci_config_list.for_each([&] (Pci_config const & pci) {
+		_pci_config_list.for_each([&] (Pci_config const &pci) {
 			xml.node("pci-config", [&] () {
 				xml.attribute("vendor_id", String<16>(Hex(pci.vendor_id)));
 				xml.attribute("device_id", String<16>(Hex(pci.device_id)));
@@ -185,7 +185,7 @@ void Driver::Device::generate(Xml_generator & xml, bool info) const
 
 
 void Driver::Device::update(Allocator &alloc, Node const &node,
-                            Reserved_memory_handler & reserved_mem_handler)
+                            Reserved_memory_handler &reserved_mem_handler)
 {
 	using Bar = Device::Pci_bar;
 
@@ -424,7 +424,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 }
 
 
-Driver::Device::Device(Env & env, Device_model & model, Name name, Type type,
+Driver::Device::Device(Env &env, Device_model &model, Name name, Type type,
                        bool leave_operational)
 :
 	_env(env), _model(model), _name(name), _type(type),
@@ -444,15 +444,15 @@ void Driver::Device_model::device_status_changed()
 };
 
 
-void Driver::Device_model::generate(Xml_generator & xml) const
+void Driver::Device_model::generate(Xml_generator &xml) const
 {
-	for_each([&] (Device const & device) {
+	for_each([&] (Device const &device) {
 		device.generate(xml, true); });
 }
 
 
-void Driver::Device_model::update(Node const & node,
-                                  Reserved_memory_handler & reserved_mem_handler)
+void Driver::Device_model::update(Node const &node,
+                                  Reserved_memory_handler &reserved_mem_handler)
 {
 	_model.update_from_xml(node,
 
@@ -493,8 +493,8 @@ void Driver::Device_model::update(Node const & node,
 			[&] (auto &)      { return false; });
 	};
 
-	for_each([&] (Device const & device) {
-		device._irq_list.for_each([&] (Device::Irq const & irq) {
+	for_each([&] (Device const &device) {
+		device._irq_list.for_each([&] (Device::Irq const &irq) {
 
 			if (irq.type != Irq_session::TYPE_LEGACY)
 				return;
@@ -513,8 +513,8 @@ void Driver::Device_model::update(Node const & node,
 	/*
 	 * Mark all shared interrupts in the devices
 	 */
-	for_each([&] (Device & device) {
-		device._irq_list.for_each([&] (Device::Irq & irq) {
+	for_each([&] (Device &device) {
+		device._irq_list.for_each([&] (Device::Irq &irq) {
 
 			if (irq.type != Irq_session::TYPE_LEGACY)
 				return;
@@ -531,7 +531,7 @@ void Driver::Device_model::update(Node const & node,
 		if (!shared_irq(i))
 			continue;
 		bool found = false;
-		_shared_irqs.for_each([&] (Shared_interrupt & sirq) {
+		_shared_irqs.for_each([&] (Shared_interrupt &sirq) {
 			if (sirq.number() == i) found = true; });
 		if (!found)
 			new (_heap) Shared_interrupt(_shared_irqs, _env, i);
@@ -540,7 +540,7 @@ void Driver::Device_model::update(Node const & node,
 	/*
 	 * Iterate over all devices and apply PCI quirks if necessary
 	 */
-	for_each([&] (Device const & device) {
+	for_each([&] (Device const &device) {
 		pci_apply_quirks(_env, device);
 	});
 }

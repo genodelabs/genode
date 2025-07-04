@@ -29,7 +29,7 @@ struct Virtio_pci_nic::Main
 {
 	struct Device_not_found : Genode::Exception { };
 
-	Genode::Env             & env;
+	Genode::Env              &env;
 	Genode::Heap              heap            { env.ram(), env.rm()   };
 	Platform::Connection      pci             { env                   };
 	Virtio::Device            virtio_device   { env, pci              };

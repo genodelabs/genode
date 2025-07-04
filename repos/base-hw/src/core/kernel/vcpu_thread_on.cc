@@ -33,7 +33,7 @@ void Kernel::Thread::_call_new_vcpu()
 
 void Kernel::Thread::_call_delete_vcpu()
 {
-	Core::Kernel_object<Vcpu> & to_delete =
+	Core::Kernel_object<Vcpu> &to_delete =
 		*(Core::Kernel_object<Vcpu>*)user_arg_1();
 
 	/**

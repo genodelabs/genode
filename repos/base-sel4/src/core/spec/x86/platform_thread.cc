@@ -41,7 +41,7 @@ bool Thread_info::init_vcpu(Platform &platform, Cap_sel ept)
 	if (phys_result.failed())
 		return false;
 
-	phys_result.with_result([&](auto & result) {
+	phys_result.with_result([&](auto &result) {
 		result.deallocate = false;
 		this->vcpu_state_phys = addr_t(result.ptr);
 	}, [](auto) { /* handled before by explicit failed() check */ });

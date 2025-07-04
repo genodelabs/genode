@@ -65,7 +65,7 @@ class Vmm::Virtio_split_queue
 
 				uint16_t idx() const { return _idx; }
 
-				bool operator != (Index const & o) const {
+				bool operator != (Index const &o) const {
 					return _idx != o._idx; }
 		};
 
@@ -162,7 +162,7 @@ class Vmm::Virtio_split_queue
 			Byte_range_ptr const guest_range;
 			Byte_range_ptr const local_range;
 
-			Descriptor_array(Ram & ram, addr_t base, unsigned const max)
+			Descriptor_array(Ram &ram, addr_t base, unsigned const max)
 			:
 				max(max),
 				guest_range((char *)base, max * elem_size),
@@ -179,7 +179,7 @@ class Vmm::Virtio_split_queue
 		} _descriptors;
 
 
-		Ram      & _ram;
+		Ram       &_ram;
 		Ring_index _cur_idx {};
 
 	public:
@@ -188,7 +188,7 @@ class Vmm::Virtio_split_queue
 		                   addr_t   const device_area,
 		                   addr_t   const driver_area,
 		                   uint16_t const queue_num,
-		                   Ram          & ram)
+		                   Ram           &ram)
 		:
 			_avail(ram.to_local_range({(char *)driver_area, 6+2*(size_t)queue_num}), queue_num),
 			_used(ram.to_local_range({(char *)device_area, 6+8*(size_t)queue_num}), queue_num),
@@ -238,8 +238,8 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 {
 	protected:
 
-		Gic::Irq                   & _irq;
-		Ram                        & _ram;
+		Gic::Irq                    &_irq;
+		Ram                         &_ram;
 		Genode::Mutex                _mutex {};
 		Genode::Constructible<QUEUE> _queue[NUM] {};
 
@@ -254,11 +254,11 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 		{
 			private:
 
-				Virtio_device & _dev;
+				Virtio_device &_dev;
 
 			public:
 
-				Reg(Virtio_device     & dev,
+				Reg(Virtio_device      &dev,
 				    Mmio_register::Name name,
 				    Mmio_register::Type type,
 				    Genode::uint64_t    start,
@@ -275,13 +275,13 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 		{
 			private:
 
-				Reg                  & _selector;
+				Reg                   &_selector;
 				typename Reg::Register _regs[32] { 0 };
 
 			public:
 
-				Set(Virtio_device & device,
-				    Reg           & selector,
+				Set(Virtio_device &device,
+				    Reg           &selector,
 				    Mmio_register::Name name,
 				    Mmio_register::Type type,
 				    Genode::uint64_t    start)
@@ -396,7 +396,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 			void write(Address_range&, Cpu&, Register reg) override {
 				if (reg == 1) { Reg::device()._construct_queue(); } }
 
-			Queue_ready(Virtio_device & device)
+			Queue_ready(Virtio_device &device)
 			: Reg(device, "QueueReady", Reg::RW, 0x44) {}
 		} _queue_ready { *this };
 
@@ -420,7 +420,7 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 				Reg::device()._notify((unsigned)reg);
 			}
 
-			Queue_notify(Virtio_device & device)
+			Queue_notify(Virtio_device &device)
 			: Reg(device, "QueueNotify", Mmio_register::WO, 0x50) { }
 		} _queue_notify { *this };
 
@@ -443,10 +443,10 @@ class Vmm::Virtio_device : public Vmm::Mmio_device, private Virtio_device_base
 		              const Genode::uint64_t addr,
 		              const Genode::uint64_t size,
 		              unsigned               irq,
-		              Cpu                  & cpu,
-		              Space                & bus,
-		              Ram                  & ram,
-		              Virtio_device_list   & dev_list,
+		              Cpu                   &cpu,
+		              Space                 &bus,
+		              Ram                   &ram,
+		              Virtio_device_list    &dev_list,
 		              uint32_t               dev_id)
 		:
 			Mmio_device(name, addr, size, bus),

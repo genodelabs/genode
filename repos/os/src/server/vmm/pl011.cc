@@ -75,13 +75,13 @@ void Pl011::_read()
 }
 
 
-Pl011::Pl011(const char * const       name,
-             const Genode::uint64_t   addr,
-             const Genode::uint64_t   size,
-             unsigned                 irq,
-             Cpu                    & cpu,
-             Space                  & bus,
-             Genode::Env            & env)
+Pl011::Pl011(const char * const      name,
+             const Genode::uint64_t  addr,
+             const Genode::uint64_t  size,
+             unsigned                irq,
+             Cpu                    &cpu,
+             Space                  &bus,
+             Genode::Env            &env)
 : Mmio_device(name, addr, size, bus),
   _terminal(env, "earlycon"),
   _handler(cpu, env.ep(), *this, &Pl011::_read),

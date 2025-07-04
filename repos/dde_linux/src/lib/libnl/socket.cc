@@ -84,7 +84,7 @@ class Socket_registry
 		static unsigned _sockets;
 
 		template <typename FUNC>
-		static void _for_each_socket_fd(FUNC const & func)
+		static void _for_each_socket_fd(FUNC const &func)
 		{
 			for (int i = 0; i < MAX_SOCKETS; i++) {
 				if (func(_socket_fd[i])) { break; }

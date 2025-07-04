@@ -238,7 +238,7 @@ class Device : public List_model<Device>::Element
 
 			struct Driver_data { void * const data; } _driver_data;
 
-			Urb(Device & device,
+			Urb(Device  &device,
 			    uint8_t  request,
 			    uint8_t  request_type,
 			    uint16_t value,
@@ -580,7 +580,7 @@ genode_usb_client_device_control(genode_usb_client_dev_handle_t handle,
 			return NO_DEVICE;
 
 		return _usb_session->_space.apply<Device>({ handle },
-		                                          [&] (Device & device) {
+		                                          [&] (Device &device) {
 			new (device.slab())
 				Device::Urb(device, request, request_type,
 				            value, index, size, timeout, opaque_data);
@@ -605,7 +605,7 @@ genode_usb_client_device_update(genode_usb_client_produce_out_t      out,
 	try {
 		if (!_usb_session)
 			return;
-		_usb_session->_model.for_each([&] (Device & device) {
+		_usb_session->_model.for_each([&] (Device &device) {
 			device.update(out, in, out_isoc, in_isoc, complete); });
 
 	} catch(...) { }
@@ -627,7 +627,7 @@ genode_usb_client_iface_transfer(genode_usb_client_dev_handle_t handle,
 		genode_usb_client_ret_val_t ret = NO_DEVICE;
 
 		_usb_session->_space.apply<Device>({ handle },
-		                                   [&] (Device & device) {
+		                                   [&] (Device &device) {
 			device.with_active_interfaces([&] (::Interface &iface) {
 				iface.with_endpoint(index, [&] (Endpoint &endp) {
 					new (iface.slab())

@@ -39,7 +39,7 @@ class Nic_perf::Packet_stats
 
 	public:
 
-		Packet_stats(Session_label const & label)
+		Packet_stats(Session_label const &label)
 		: _label(label)
 		{ }
 

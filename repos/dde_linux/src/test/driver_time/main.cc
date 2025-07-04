@@ -60,7 +60,7 @@ struct Test::Driver
 };
 
 
-static Test::Driver &driver(Genode::Env & env)
+static Test::Driver &driver(Genode::Env &env)
 {
 	static Test::Driver driver(env);
 	return driver;

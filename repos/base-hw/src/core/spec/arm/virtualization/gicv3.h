@@ -40,7 +40,7 @@ class Board::Pic : public Hw::Pic
 			uint32_t elrsr { 0xffffffff };
 		};
 
-		bool ack_virtual_irq(Virtual_context & c)
+		bool ack_virtual_irq(Virtual_context &c)
 		{
 			if (!(c.eisr & 1)) return false;
 
@@ -51,7 +51,7 @@ class Board::Pic : public Hw::Pic
 			return true;
 		}
 
-		void insert_virtual_irq(Virtual_context & c, unsigned irq)
+		void insert_virtual_irq(Virtual_context &c, unsigned irq)
 		{
 			enum { SPURIOUS = 1023 };
 

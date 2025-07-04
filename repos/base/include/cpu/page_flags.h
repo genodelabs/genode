@@ -38,7 +38,7 @@ struct Genode::Page_flags
 	Type          type;
 	Genode::Cache cacheable;
 
-	void print(Genode::Output & out) const
+	void print(Genode::Output &out) const
 	{
 		using Genode::print;
 		using namespace Genode;

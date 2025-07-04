@@ -30,7 +30,7 @@ class Driver::Common : Device_reporter,
 {
 	private:
 
-		Env                    & _env;
+		Env                     &_env;
 		String<64>               _rom_name;
 		Attached_rom_dataspace   _devices_rom   { _env, _rom_name.string() };
 		Attached_rom_dataspace   _platform_info { _env, "platform_info"    };
@@ -60,8 +60,8 @@ class Driver::Common : Device_reporter,
 
 	public:
 
-		Common(Genode::Env                  & env,
-		       Attached_rom_dataspace const & config_rom);
+		Common(Genode::Env                  &env,
+		       Attached_rom_dataspace const &config_rom);
 
 		Heap         & heap()    { return _heap;    }
 		Device_model & devices() { return _devices; }
@@ -94,14 +94,14 @@ class Driver::Common : Device_reporter,
 		 ** Device_owner **
 		 ******************/
 
-		void disable_device(Device const & device) override;
+		void disable_device(Device const &device) override;
 };
 
 
 void Driver::Common::acquire_io_mmu_devices()
 {
-	auto init_default_mappings = [&] (Io_mmu & io_mmu_dev) {
-		_devices.for_each([&] (Device const & device) {
+	auto init_default_mappings = [&] (Io_mmu &io_mmu_dev) {
+		_devices.for_each([&] (Device const &device) {
 			device.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
 				bool has_reserved_mem = false;
 				device.for_each_reserved_memory([&] (unsigned,
@@ -114,7 +114,7 @@ void Driver::Common::acquire_io_mmu_devices()
 					return;
 
 				/* enable default mappings for corresponding pci devices */
-				device.for_pci_config([&] (Device::Pci_config const & cfg) {
+				device.for_pci_config([&] (Device::Pci_config const &cfg) {
 					io_mmu_dev.enable_default_mappings(
 						{cfg.bus_num, cfg.dev_num, cfg.func_num});
 				});
@@ -122,9 +122,9 @@ void Driver::Common::acquire_io_mmu_devices()
 		});
 	};
 
-	_io_mmu_factories.for_each([&] (Io_mmu_factory & factory) {
+	_io_mmu_factories.for_each([&] (Io_mmu_factory &factory) {
 
-		_devices.for_each([&] (Device & dev) {
+		_devices.for_each([&] (Device &dev) {
 			if (dev.owner().valid())
 				return;
 
@@ -132,7 +132,7 @@ void Driver::Common::acquire_io_mmu_devices()
 				dev.acquire(*this);
 				factory.create(_heap, _io_mmu_devices, dev);
 
-				_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+				_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
 					if (io_mmu_dev.name() == dev.name())
 						init_default_mappings(io_mmu_dev);
 				});
@@ -144,7 +144,7 @@ void Driver::Common::acquire_io_mmu_devices()
 	/* iterate IOMMU devices and determine address translation mode */
 	bool mpu_present    { false };
 	bool device_present { false };
-	_io_mmu_devices.for_each([&] (Io_mmu const & io_mmu) {
+	_io_mmu_devices.for_each([&] (Io_mmu const &io_mmu) {
 		if (io_mmu.mpu())
 			mpu_present = true;
 		else
@@ -155,7 +155,7 @@ void Driver::Common::acquire_io_mmu_devices()
 		_root.enable_dma_remapping();
 
 	bool kernel_iommu_present { false };
-	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu_dev) {
+	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
 		io_mmu_dev.default_mappings_complete();
 
 		if (io_mmu_dev.name() == "kernel_iommu")
@@ -170,9 +170,9 @@ void Driver::Common::acquire_io_mmu_devices()
 
 void Driver::Common::acquire_irq_controller()
 {
-	_irq_controller_factories.for_each([&] (Irq_controller_factory & factory) {
+	_irq_controller_factories.for_each([&] (Irq_controller_factory &factory) {
 
-		_devices.for_each([&] (Device & dev) {
+		_devices.for_each([&] (Device &dev) {
 			if (dev.owner().valid())
 				return;
 
@@ -210,12 +210,12 @@ bool Driver::Common::_iommu()
 void Driver::Common::update_report()
 {
 	if (_dev_reporter.constructed())
-		_dev_reporter->generate([&] (Xml_generator & xml) {
+		_dev_reporter->generate([&] (Xml_generator &xml) {
 			xml.attribute("resumed", _resume_counter);
 			_devices.generate(xml); });
 	if (_iommu_reporter.constructed())
-		_iommu_reporter->generate([&] (Xml_generator & xml) {
-			_io_mmu_devices.for_each([&] (Io_mmu & io_mmu) {
+		_iommu_reporter->generate([&] (Xml_generator &xml) {
+			_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
 				io_mmu.generate(xml); }); });
 }
 
@@ -226,13 +226,13 @@ void Driver::Common::report_resume()
 	update_report();
 }
 
-void Driver::Common::disable_device(Device const & device)
+void Driver::Common::disable_device(Device const &device)
 {
-	_io_mmu_devices.for_each([&] (Io_mmu & io_mmu) {
+	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
 		if (io_mmu.name() == device.name())
 			destroy(_heap, &io_mmu);
 	});
-	_irq_controller_registry.for_each([&] (Irq_controller & irq_controller) {
+	_irq_controller_registry.for_each([&] (Irq_controller &irq_controller) {
 		if (irq_controller.name() == device.name())
 			destroy(_heap, &irq_controller);
 	});
@@ -253,7 +253,7 @@ void Driver::Common::handle_config(Node const &config)
 	_root.update_policy();
 
 	if (_cfg_reporter.constructed())
-		_cfg_reporter->generate([&] (Xml_generator & xml) {
+		_cfg_reporter->generate([&] (Xml_generator &xml) {
 			xml.node_attributes(config);
 			(void)xml.append_node_content(config, Xml_generator::Max_depth { 20 }); });
 }
@@ -265,8 +265,8 @@ void Driver::Common::announce_service()
 }
 
 
-Driver::Common::Common(Genode::Env                  & env,
-                       Attached_rom_dataspace const & config_rom)
+Driver::Common::Common(Genode::Env                  &env,
+                       Attached_rom_dataspace const &config_rom)
 :
 	_env(env),
 	_rom_name(config_rom.node().attribute_value("devices_rom",

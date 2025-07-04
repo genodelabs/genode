@@ -15,10 +15,10 @@
 /* local includes */
 #include <intel/default_mappings.h>
 
-void Intel::Default_mappings::_insert_context(Managed_root_table & root,
-                                              Pci::Bdf const &     bdf,
-                                              addr_t               paddr,
-                                              Domain_id            domain_id)
+void Intel::Default_mappings::_insert_context(Managed_root_table &root,
+                                              Pci::Bdf const     &bdf,
+                                              addr_t              paddr,
+                                              Domain_id           domain_id)
 {
 	using L3_table = Level_3_translation_table;
 	using L4_table = Level_4_translation_table;
@@ -44,14 +44,14 @@ void Intel::Default_mappings::insert_translation(addr_t va, addr_t pa,
 	{
 		case Translation_levels::LEVEL3:
 			_table_allocator.with_table<L3_table>(_default_table_phys,
-				[&] (L3_table & t) {
+				[&] (L3_table &t) {
 					t.insert_translation(va, pa, size, flags, _table_allocator,
 					                     _force_flush, page_sizes);
 				}, [&] () {});
 			break;
 		case Translation_levels::LEVEL4:
 			_table_allocator.with_table<L4_table>(_default_table_phys,
-				[&] (L4_table & t) {
+				[&] (L4_table &t) {
 					t.insert_translation(va, pa, size, flags, _table_allocator,
 					                     _force_flush, page_sizes);
 				}, [&] () {});
@@ -60,25 +60,25 @@ void Intel::Default_mappings::insert_translation(addr_t va, addr_t pa,
 }
 
 
-void Intel::Default_mappings::enable_device(Pci::Bdf const & bdf,
-                                            Domain_id        domain_id)
+void Intel::Default_mappings::enable_device(Pci::Bdf const &bdf,
+                                            Domain_id       domain_id)
 {
 	_insert_context(_root_table, bdf, _default_table_phys, domain_id);
 }
 
 
-void Intel::Default_mappings::copy_stage2(Managed_root_table & dst_root,
-                                          Pci::Bdf const &     bdf)
+void Intel::Default_mappings::copy_stage2(Managed_root_table &dst_root,
+                                          Pci::Bdf const     &bdf)
 {
 	_root_table.with_stage2_pointer(bdf, [&] (addr_t phys_addr, Domain_id domain) {
 		_insert_context(dst_root, bdf, phys_addr, domain); });
 }
 
 
-void Intel::Default_mappings::copy_stage2(Managed_root_table & dst_root)
+void Intel::Default_mappings::copy_stage2(Managed_root_table &dst_root)
 {
 	_root_table.for_each_stage2_pointer(
-		[&] (Pci::Bdf const & bdf, addr_t phys_addr, Domain_id domain) {
+		[&] (Pci::Bdf const &bdf, addr_t phys_addr, Domain_id domain) {
 			_insert_context(dst_root, bdf, phys_addr, domain); });
 }
 

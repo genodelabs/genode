@@ -19,7 +19,7 @@ using Driver::Shared_interrupt_session;
 
 void Shared_interrupt::_handle()
 {
-	_sessions.for_each([&] (Shared_interrupt_session & session) {
+	_sessions.for_each([&] (Shared_interrupt_session &session) {
 		session.signal(); });
 }
 
@@ -49,7 +49,7 @@ void Shared_interrupt::disable()
 void Shared_interrupt::ack()
 {
 	unsigned outstanding = 0;
-	_sessions.for_each([&] (Shared_interrupt_session & session) {
+	_sessions.for_each([&] (Shared_interrupt_session &session) {
 		if (session.outstanding()) outstanding++; });
 	if (!outstanding) _irq->ack_irq();
 }

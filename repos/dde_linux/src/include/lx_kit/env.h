@@ -38,7 +38,7 @@ namespace Lx_kit {
 
 struct Lx_kit::Env
 {
-	Genode::Env            & env;
+	Genode::Env            &env;
 	Genode::Signal_context &_signal_dispatcher;
 
 	Genode::Heap         heap            { env.ram(), env.rm() };
@@ -53,9 +53,9 @@ struct Lx_kit::Env
 	Device_list          devices         { env.ep(), heap, platform };
 	Lx_kit::Timeout      timeout         { timer, scheduler };
 
-	static void initialize(Genode::Env & env, Genode::Signal_context & sig_ctx);
+	static void initialize(Genode::Env &env, Genode::Signal_context &sig_ctx);
 
-	Env(Genode::Env & env, Genode::Signal_context & sig_ctx)
+	Env(Genode::Env &env, Genode::Signal_context &sig_ctx)
 	: env(env), _signal_dispatcher(sig_ctx) { }
 
 	void submit_signal();

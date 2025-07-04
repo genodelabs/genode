@@ -30,14 +30,14 @@ using Kernel::Cpu;
 using Kernel::Vcpu;
 
 
-static Genode::Vcpu_state & host_context(Cpu & cpu)
+static Genode::Vcpu_state & host_context(Cpu &cpu)
 {
 	static Genode::Constructible<Genode::Vcpu_state>
 		host_context[Board::NR_OF_CPUS];
 
 	if (!host_context[cpu.id()].constructed()) {
 		host_context[cpu.id()].construct();
-		Genode::Vcpu_state & c = *host_context[cpu.id()];
+		Genode::Vcpu_state &c = *host_context[cpu.id()];
 		c.sp_el1    = cpu.stack_start();
 		c.ip        = (addr_t)&Kernel::main_handle_kernel_entry;
 		c.pstate    = 0;
@@ -63,7 +63,7 @@ static Genode::Vcpu_state & host_context(Cpu & cpu)
 }
 
 
-Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
+Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu &cpu)
 :
 	Kernel::Irq { irq, cpu.irq_pool(), cpu.pic() },
 	_cpu        { cpu }
@@ -82,7 +82,7 @@ void Board::Vcpu_context::Vm_irq::occurred()
 }
 
 
-Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu & cpu)
+Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu &cpu)
 :
 	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
 {
@@ -91,7 +91,7 @@ Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu & cpu)
 }
 
 
-Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu & cpu)
+Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu &cpu)
 :
 	irq(Board::VT_TIMER_IRQ, cpu)
 { }

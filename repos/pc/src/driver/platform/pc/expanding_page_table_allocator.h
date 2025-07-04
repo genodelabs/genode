@@ -50,7 +50,7 @@ class Driver::Expanding_page_table_allocator
 				{
 					private:
 
-						Range_allocator        & _range_alloc;
+						Range_allocator         &_range_alloc;
 						Attached_ram_dataspace   _dataspace;
 						addr_t                   _virt_addr;
 						addr_t                   _phys_addr;
@@ -65,11 +65,11 @@ class Driver::Expanding_page_table_allocator
 
 					public:
 
-						Element(Range_allocator   & range_alloc,
-						        Ram_allocator     & ram_alloc,
-						        Env::Local_rm     & rm,
-						        Pd_session        & pd,
-						        size_t              size)
+						Element(Range_allocator   &range_alloc,
+						        Ram_allocator     &ram_alloc,
+						        Env::Local_rm     &rm,
+						        Pd_session        &pd,
+						        size_t             size)
 						: _range_alloc(range_alloc),
 						  _dataspace(ram_alloc, rm, size, Genode::CACHED),
 						  _virt_addr((addr_t)_dataspace.local_addr<void>()),
@@ -99,20 +99,20 @@ class Driver::Expanding_page_table_allocator
 
 			private:
 
-				Avl_tree<Element>  _tree { };
-				Env              & _env;
-				Allocator        & _md_alloc;
-				Ram_allocator    & _ram_alloc;
-				Range_allocator  & _range_alloc;
-				size_t             _chunk_size;
+				Avl_tree<Element> _tree { };
+				Env              &_env;
+				Allocator        &_md_alloc;
+				Ram_allocator    &_ram_alloc;
+				Range_allocator  &_range_alloc;
+				size_t            _chunk_size;
 
 			public:
 
-				Backing_store(Env             & env,
-				              Allocator       & md_alloc,
-				              Ram_allocator   & ram_alloc,
-				              Range_allocator & range_alloc,
-				              size_t            start_size)
+				Backing_store(Env             &env,
+				              Allocator       &md_alloc,
+				              Ram_allocator   &ram_alloc,
+				              Range_allocator &range_alloc,
+				              size_t           start_size)
 				: _env(env), _md_alloc(md_alloc), _ram_alloc(ram_alloc),
 				  _range_alloc(range_alloc), _chunk_size(start_size)
 				{ }
@@ -149,10 +149,10 @@ class Driver::Expanding_page_table_allocator
 
 	public:
 
-		Expanding_page_table_allocator(Genode::Env   & env,
-		                               Allocator     & md_alloc,
-		                               Ram_allocator & ram_alloc,
-		                               size_t          start_count)
+		Expanding_page_table_allocator(Genode::Env   &env,
+		                               Allocator     &md_alloc,
+		                               Ram_allocator &ram_alloc,
+		                               size_t         start_count)
 		: _allocator(&md_alloc),
 		  _backing_store(env, md_alloc, ram_alloc, _allocator, start_count*TABLE_SIZE)
 		{ }
@@ -186,7 +186,7 @@ class Driver::Expanding_page_table_allocator
 			static_assert((sizeof(TABLE) == TABLE_SIZE), "unexpected size");
 
 			with_table<TABLE>(phys_addr,
-				[&] (TABLE & table) {
+				[&] (TABLE &table) {
 					table.~TABLE();
 					_allocator.free((void*)phys_addr);
 				},

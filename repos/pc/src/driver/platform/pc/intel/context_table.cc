@@ -16,15 +16,15 @@
 #include <intel/report_helper.h>
 #include <intel/page_table.h>
 
-static void attribute_hex(Genode::Xml_generator & xml, char const * name,
+static void attribute_hex(Genode::Xml_generator &xml, char const * name,
                           unsigned long long value)
 {
 	xml.attribute(name, Genode::String<32>(Genode::Hex(value)));
 }
 
 
-void Intel::Context_table::generate(Xml_generator & xml,
-                                    Report_helper & report_helper)
+void Intel::Context_table::generate(Xml_generator &xml,
+                                    Report_helper &report_helper)
 {
 	for_each(0, [&] (Pci::rid_t id) {
 		if (!present(id))
@@ -49,7 +49,7 @@ void Intel::Context_table::generate(Xml_generator & xml,
 
 					/* dump stage2 table */
 					report_helper.with_table<Table3>(stage2_addr,
-						[&] (Table3 & stage2_table) {
+						[&] (Table3 &stage2_table) {
 							stage2_table.generate(xml, report_helper); });
 					break;
 				case Hi::Address_width::AGAW_4_LEVEL:
@@ -57,7 +57,7 @@ void Intel::Context_table::generate(Xml_generator & xml,
 
 					/* dump stage2 table */
 					report_helper.with_table<Table4>(stage2_addr,
-						[&] (Table4 & stage2_table) {
+						[&] (Table4 &stage2_table) {
 							stage2_table.generate(xml, report_helper); });
 					break;
 				default:

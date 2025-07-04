@@ -129,11 +129,11 @@ void Gic::Irq::priority(Genode::uint8_t p)
 void Gic::Irq::handler(Gic::Irq::Irq_handler & handler) { _handler = &handler; }
 
 
-Gic::Irq::Irq(unsigned num, Type t, Irq::List & l)
+Gic::Irq::Irq(unsigned num, Type t, Irq::List &l)
 : _type(t), _num(num), _pending_list(l) {}
 
 
-void Gic::Irq::List::insert(Irq & irq)
+void Gic::Irq::List::insert(Irq &irq)
 {
 	Irq * i = first();
 	while (i && i->priority() <= irq.priority() && i->next()) i = i->next();
@@ -193,7 +193,7 @@ bool Gic::Gicd_banked::pending_irq(Vcpu_state &state)
 }
 
 
-Gic::Gicd_banked::Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus)
+Gic::Gicd_banked::Gicd_banked(Cpu_base &cpu, Gic &gic, Mmio_bus &bus)
 : _cpu(cpu), _gic(gic)
 {
 	for (unsigned i = 0; i < MAX_SGI; i++)
@@ -218,7 +218,7 @@ void Gic::Gicd_banked::setup_state(Vcpu_state &state)
 }
 
 
-Register Gic::Irq_reg::read(Address_range & access, Cpu & cpu)
+Register Gic::Irq_reg::read(Address_range &access, Cpu &cpu)
 {
 	Genode::Mutex::Guard guard(big_gic_lock());
 
@@ -231,7 +231,7 @@ Register Gic::Irq_reg::read(Address_range & access, Cpu & cpu)
 }
 
 
-void Gic::Irq_reg::write(Address_range & access, Cpu & cpu, Register value)
+void Gic::Irq_reg::write(Address_range &access, Cpu &cpu, Register value)
 {
 	Genode::Mutex::Guard guard(big_gic_lock());
 
@@ -245,7 +245,7 @@ void Gic::Irq_reg::write(Address_range & access, Cpu & cpu, Register value)
 unsigned Gic::version() { return _version; }
 
 
-void Gic::Gicd_sgir::write(Address_range &, Cpu & cpu,
+void Gic::Gicd_sgir::write(Address_range &, Cpu &cpu,
                            Mmio_register::Register value)
 {
 	using Target_filter = Reg::Target_filter;
@@ -255,7 +255,7 @@ void Gic::Gicd_sgir::write(Address_range &, Cpu & cpu,
 	unsigned target_list = Reg::Target_list::get((Reg::access_t)value);
 	unsigned irq = Reg::Int_id::get((Reg::access_t)value);
 
-	cpu.vm().for_each_cpu([&] (Cpu & c) {
+	cpu.vm().for_each_cpu([&] (Cpu &c) {
 		switch (type) {
 		case Target_filter::MYSELF:
 			if (c.cpu_id() != cpu.cpu_id())
@@ -279,26 +279,26 @@ void Gic::Gicd_sgir::write(Address_range &, Cpu & cpu,
 }
 
 
-Register Gic::Gicd_itargetr::read(Address_range & access, Cpu & cpu)
+Register Gic::Gicd_itargetr::read(Address_range &access, Cpu &cpu)
 {
 	if (access.start() < 0x20) { return (1 << cpu.cpu_id()) << 8; }
 	return Irq_reg::read(access, cpu);
 }
 
 
-void Gic::Gicd_itargetr::write(Address_range & access, Cpu & cpu, Register value)
+void Gic::Gicd_itargetr::write(Address_range &access, Cpu &cpu, Register value)
 {
 	if (access.start() >= 0x20) { Irq_reg::write(access, cpu, value); }
 }
 
 
-Gic::Gic(const char * const      name,
-         const Genode::uint64_t  addr,
-         const Genode::uint64_t  size,
-         unsigned                cpus,
-         unsigned                version,
-         Genode::Vm_connection & vm,
-         Space                 & bus,
+Gic::Gic(const char * const     name,
+         const Genode::uint64_t addr,
+         const Genode::uint64_t size,
+         unsigned               cpus,
+         unsigned               version,
+         Genode::Vm_connection &vm,
+         Space                 &bus,
          Genode::Env           &)
 :
 	Mmio_device(name, addr, size, bus),

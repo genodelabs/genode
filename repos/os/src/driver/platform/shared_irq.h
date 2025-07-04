@@ -31,7 +31,7 @@ class Driver::Shared_interrupt :
 {
 	private:
 
-		Env                               & _env;
+		Env                                &_env;
 		unsigned                            _number;
 		Io_signal_handler<Shared_interrupt> _handler;
 		Constructible<Irq_connection>       _irq {};
@@ -43,9 +43,9 @@ class Driver::Shared_interrupt :
 
 	public:
 
-		Shared_interrupt(Registry<Shared_interrupt> & registry,
-		                 Env                        & env,
-		                 unsigned                     number)
+		Shared_interrupt(Registry<Shared_interrupt> &registry,
+		                 Env                        &env,
+		                 unsigned                    number)
 		:
 			Registry<Shared_interrupt>::Element(registry, *this),
 			_env(env),
@@ -67,8 +67,8 @@ class Driver::Shared_interrupt_session :
 {
 	private:
 
-		Rpc_entrypoint          & _ep;
-		Shared_interrupt        & _sirq;
+		Rpc_entrypoint           &_ep;
+		Shared_interrupt         &_sirq;
 		Signal_context_capability _cap {};
 		bool                      _outstanding { true };
 

@@ -35,8 +35,8 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 
 		Timer::Connection                      _timer;
 		Timer::One_shot_timeout<Generic_timer> _timeout;
-		Gic::Irq                             & _irq;
-		Cpu_base                             & _cpu;
+		Gic::Irq                              &_irq;
+		Cpu_base                              &_cpu;
 
 		struct Ctrl : Genode::Register<32>
 		{
@@ -56,10 +56,10 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 
 	public:
 
-		Generic_timer(Genode::Env        & env,
-		              Genode::Entrypoint & ep,
-		              Gic::Irq           & irq,
-		              Cpu_base           & cpu);
+		Generic_timer(Genode::Env        &env,
+		              Genode::Entrypoint &ep,
+		              Gic::Irq           &irq,
+		              Cpu_base           &cpu);
 
 		void schedule_timeout(Vcpu_state &state);
 		void cancel_timeout();

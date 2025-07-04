@@ -23,14 +23,14 @@ class Vmm::Cpu : public Vmm::Cpu_base
 {
 	public:
 
-		Cpu(Vm                      & vm,
-		    Genode::Vm_connection   & vm_session,
-		    Mmio_bus                & bus,
-		    Gic                     & gic,
-		    Genode::Env             & env,
-		    Genode::Heap            & heap,
-		    Genode::Entrypoint      & ep,
-		    unsigned                  cpu_id);
+		Cpu(Vm                      &vm,
+		    Genode::Vm_connection   &vm_session,
+		    Mmio_bus                &bus,
+		    Gic                     &gic,
+		    Genode::Env             &env,
+		    Genode::Heap            &heap,
+		    Genode::Entrypoint      &ep,
+		    unsigned                 cpu_id);
 
 		enum Exception_type {
 			AARCH64_SYNC   = 0x400,
@@ -44,7 +44,7 @@ class Vmm::Cpu : public Vmm::Cpu_base
 			NO_EXCEPTION   = 0xffff,
 		};
 
-		void setup_state(Vcpu_state & state) override;
+		void setup_state(Vcpu_state &state) override;
 
 	private:
 
@@ -74,19 +74,19 @@ class Vmm::Cpu : public Vmm::Cpu_base
 				}
 
 				Id_aa64pfr0(Genode::uint64_t id_aa64pfr0,
-				            Genode::Avl_tree<System_register> & tree)
+				            Genode::Avl_tree<System_register> &tree)
 				: System_register(3, 0, 0, 4, 0, "ID_AA64PFR0_EL1", false,
 				                  reset_value(id_aa64pfr0), tree) {}
 		};
 
 		struct Ccsidr : System_register
 		{
-			System_register & csselr;
-			Cpu             & cpu;
+			System_register &csselr;
+			Cpu             &cpu;
 
 			Ccsidr(System_register &csselr,
-			       Cpu & cpu,
-			       Genode::Avl_tree<System_register> & tree)
+			       Cpu &cpu,
+			       Genode::Avl_tree<System_register> &tree)
 			: System_register(3, 0, 1, 0, 0, "CCSIDR_EL1", false, 0x0, tree),
 			  csselr(csselr), cpu(cpu) {}
 
@@ -95,7 +95,7 @@ class Vmm::Cpu : public Vmm::Cpu_base
 
 		struct Ctr_el0 : System_register
 		{
-			Ctr_el0(Genode::Avl_tree<System_register> & tree)
+			Ctr_el0(Genode::Avl_tree<System_register> &tree)
 			: System_register(3, 0, 3, 0, 1, "CTR_EL0", false, 0x0, tree) {}
 
 			virtual Genode::addr_t read() const override;
@@ -103,9 +103,9 @@ class Vmm::Cpu : public Vmm::Cpu_base
 
 		struct Icc_sgi1r_el1 : System_register
 		{
-			Vm & vm;
+			Vm &vm;
 
-			Icc_sgi1r_el1(Genode::Avl_tree<System_register> & tree, Vm & vm)
+			Icc_sgi1r_el1(Genode::Avl_tree<System_register> &tree, Vm &vm)
 			: System_register(3, 12, 0, 11, 5, "SGI1R_EL1", true, 0x0, tree),
 			  vm(vm) {}
 

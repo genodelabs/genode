@@ -51,7 +51,7 @@ extern "C" void lx_emul_task_priority(struct task_struct * t, int prio)
 
 extern "C" void lx_emul_task_schedule(int block)
 {
-	Lx_kit::Task & task = Lx_kit::env().scheduler.current();
+	Lx_kit::Task &task = Lx_kit::env().scheduler.current();
 	if (block) task.block();
 	task.schedule();
 }
@@ -61,7 +61,7 @@ extern "C" struct task_struct * lx_emul_task_get(int pid)
 {
 	void * ret = nullptr;
 
-	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task & task) {
+	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task &task) {
 		if (pid == task.pid())
 			ret = task.lx_task();
 	});
@@ -74,7 +74,7 @@ extern "C" int lx_emul_task_pid(struct task_struct * t)
 {
 	int ret = -1;
 
-	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task & task) {
+	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task &task) {
 		if (t == task.lx_task())
 			ret = task.pid();
 	});
@@ -93,7 +93,7 @@ extern "C" void * lx_emul_task_stack(struct task_struct const * t)
 {
 	void * ret = nullptr;
 
-	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task const & task) {
+	Lx_kit::env().scheduler.for_each_task([&] (Lx_kit::Task const &task) {
 		if (t == task.lx_task())
 			ret = task.stack();
 	});

@@ -33,7 +33,7 @@ static void Genode::for_each_subdir_name(Allocator &alloc, Directory const &dir,
 
 	struct Dirname : Dictionary<Dirname, Name>::Element
 	{
-		Dirname(Dictionary<Dirname, Name> & dict, Name const & name)
+		Dirname(Dictionary<Dirname, Name> &dict, Name const &name)
 		: Dictionary<Dirname, Name>::Element(dict, name)
 		{ }
 	};

@@ -39,7 +39,7 @@ class Vmm::Config
 		{
 			private:
 
-				Config & _config;
+				Config &_config;
 
 				/**
 				 * Noncopyable
@@ -53,7 +53,7 @@ class Vmm::Config
 
 				enum { MMIO_SIZE = 0x200 };
 
-				Virtio_device(Name & name, Type type, Config & config);
+				Virtio_device(Name &name, Type type, Config &config);
 				~Virtio_device();
 
 				Name     const name;
@@ -110,7 +110,7 @@ class Vmm::Config
 				(void)_alloc.free(VIRTIO_IRQ_START+irq); }
 		};
 
-		Heap        & _heap;
+		Heap         &_heap;
 		Allocator_avl _mmio_alloc  { &_heap };
 		Irq_allocator _irq_alloc   {   };
 		Name          _kernel_name {   };
@@ -125,7 +125,7 @@ class Vmm::Config
 
 	public:
 
-		Config(Heap & heap) : _heap(heap)
+		Config(Heap &heap) : _heap(heap)
 		{
 			if (_mmio_alloc.add_range(VIRTIO_MMIO_START, VIRTIO_MMIO_SIZE).failed())
 				warning("failed to add virtio MMIO range");
@@ -143,7 +143,7 @@ class Vmm::Config
 		unsigned  gic_version() const { return _gic_version; }
 
 		template <typename FN>
-		void for_each_virtio_device(FN const & fn) const {
+		void for_each_virtio_device(FN const &fn) const {
 			_model.for_each(fn); }
 
 		void update(Node const &);

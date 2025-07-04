@@ -85,7 +85,7 @@ Core::Arm_cpu::Mmu_context::~Mmu_context()
 
 using Thread_fault = Kernel::Thread_fault;
 
-void Arm_cpu::mmu_fault(Context & c, Thread_fault & fault)
+void Arm_cpu::mmu_fault(Context &c, Thread_fault &fault)
 {
 	bool prefetch     = c.cpu_exception == Context::PREFETCH_ABORT;
 	fault.addr        = prefetch ? Ifar::read() : Dfar::read();
@@ -100,7 +100,7 @@ void Arm_cpu::mmu_fault(Context & c, Thread_fault & fault)
 }
 
 
-void Arm_cpu::mmu_fault_status(Fsr::access_t fsr, Thread_fault & fault)
+void Arm_cpu::mmu_fault_status(Fsr::access_t fsr, Thread_fault &fault)
 {
 	enum {
 		FAULT_MASK  = 0b11101,
@@ -116,13 +116,13 @@ void Arm_cpu::mmu_fault_status(Fsr::access_t fsr, Thread_fault & fault)
 }
 
 
-bool Arm_cpu::active(Arm_cpu::Mmu_context & ctx)
+bool Arm_cpu::active(Arm_cpu::Mmu_context &ctx)
 {
 	return (Cidr::read() == ctx.cidr);
 }
 
 
-void Arm_cpu::switch_to(Arm_cpu::Mmu_context & ctx)
+void Arm_cpu::switch_to(Arm_cpu::Mmu_context &ctx)
 {
 	/**
 	 * First switch to global mappings only to prevent

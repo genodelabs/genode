@@ -33,7 +33,7 @@ class Intel::Registered_translation_table : private Translation_table_registry::
 
 		virtual addr_t virt_addr(addr_t) = 0;
 
-		Registered_translation_table(Translation_table_registry & registry)
+		Registered_translation_table(Translation_table_registry &registry)
 		: Translation_table_registry::Element(registry, *this)
 		{ }
 
@@ -45,7 +45,7 @@ class Intel::Report_helper
 {
 	private:
 
-		Translation_table_registry & _registry;
+		Translation_table_registry &_registry;
 
 	public:
 
@@ -53,7 +53,7 @@ class Intel::Report_helper
 		void with_table(addr_t phys_addr, FN && fn)
 		{
 			addr_t va { 0 };
-			_registry.for_each([&] (Registered_translation_table & table) {
+			_registry.for_each([&] (Registered_translation_table &table) {
 				if (!va)
 					va = table.virt_addr(phys_addr);
 			});
@@ -62,7 +62,7 @@ class Intel::Report_helper
 				fn(*reinterpret_cast<TABLE*>(va));
 		}
 
-		Report_helper(Translation_table_registry & registry)
+		Report_helper(Translation_table_registry &registry)
 		: _registry(registry)
 		{ }
 
