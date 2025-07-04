@@ -68,6 +68,16 @@ static Shared_object *to_object(void *handle)
 
 void *dlopen(const char *name, int mode)
 {
+	if (name) {
+		/* check if the file name ends with ".lib.so" */
+
+		if (strlen(name) <= strlen(".lib.so"))
+			return nullptr;
+
+		if (strcmp(name + strlen(name) - strlen(".lib.so"), ".lib.so") != 0)
+			return nullptr;
+	}
+
 	if (mode & RTLD_GLOBAL)
 		warning("ignoring unsupported RTLD_GLOBAL in dlopen()");
 
