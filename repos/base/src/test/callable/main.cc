@@ -13,6 +13,7 @@
 
 #include <base/log.h>
 #include <base/component.h>
+#include <base/node.h>
 #include <util/callable.h>
 
 using namespace Genode;
@@ -31,13 +32,13 @@ struct Action : Interface
 
 
 	/*
-	 * A functor argument taking an Xml_node const &, without return value
+	 * A functor argument taking an Node const &, without return value
 	 */
-	using With_xml_node = Callable<void, Xml_node const &>;
+	using With_node = Callable<void, Node const &>;
 
-	virtual void _with_xml(With_xml_node::Ft const &) = 0;
+	virtual void _with_node(With_node::Ft const &) = 0;
 
-	void with_xml(auto const &fn) { _with_xml( With_xml_node::Fn { fn } ); }
+	void with_node(auto const &fn) { _with_node( With_node::Fn { fn } ); }
 };
 
 
@@ -48,8 +49,8 @@ static void test(Action &action)
 
 	log("result of action.compute: ", result);
 
-	action.with_xml([&] (Xml_node const &node) {
-		log("accessing XML node, state=",
+	action.with_node([&] (Node const &node) {
+		log("accessing node, state=",
 		    node.attribute_value("state", String<16>())); });
 }
 
@@ -65,10 +66,9 @@ void Component::construct(Env &)
 			return fn(10, 11, 13);
 		}
 
-		void _with_xml(With_xml_node::Ft const &fn) override
+		void _with_node(With_node::Ft const &fn) override
 		{
-			Xml_node const node { "<power state=\"reset\"/>" };
-			fn(node);
+			fn(Node { String<50>("<power state=\"reset\"/>") });
 		}
 	} action { };
 

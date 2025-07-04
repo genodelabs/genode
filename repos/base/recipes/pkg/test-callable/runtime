@@ -3,7 +3,7 @@
 	<fail after_seconds="20"/>
 	<succeed>
 		[init] result of action.compute: 34
-		[init] accessing XML node, state=reset
+		[init] accessing node, state=reset
 		[init] --- finished callable test ---
 	</succeed>
 

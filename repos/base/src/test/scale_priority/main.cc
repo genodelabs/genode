@@ -16,7 +16,6 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/thread.h>
-#include <util/xml_node.h>
 #include <cpu_session/connection.h>
 #include <trace_session/connection.h>
 
@@ -49,7 +48,7 @@ struct Main
 	Env                    &env;
 	Attached_rom_dataspace  config { env, "config" };
 
-	unsigned const prio_levels_log2   { _prio_levels_from_xml(config.xml(), env) };
+	unsigned const prio_levels_log2   { _prio_levels_from_node(config.node(), env) };
 	long const     prio_max           { (1 << prio_levels_log2) - 1 };
 
 	long const     platform_prio_size { Cpu_session::PRIORITY_LIMIT >> prio_levels_log2 };
@@ -74,9 +73,9 @@ struct Main
 	                          trace_ram_quota,
 	                          arg_buffer_ram };
 
-	static unsigned _prio_levels_from_xml(Xml_node const &xml, Env & env)
+	static unsigned _prio_levels_from_node(Node const &node, Env & env)
 	{
-		unsigned levels = xml.attribute_value("prio_levels_log2", 0U);
+		unsigned levels = node.attribute_value("prio_levels_log2", 0U);
 		if (levels == 0) {
 			error("Missing or invalid config attribute 'prio_levels_log2'.");
 			env.parent().exit(1);
@@ -91,8 +90,8 @@ struct Main
 Main::Main(Env & env)
 : env(env)
 {
-	bool const start_at_zero = config.xml().attribute_value("start_at_zero", true);
-	bool const inverse       = config.xml().attribute_value("inverse", true);
+	bool const start_at_zero = config.node().attribute_value("start_at_zero", true);
+	bool const inverse       = config.node().attribute_value("inverse", true);
 	unsigned const offset    = start_at_zero ? 0 : 1;
 
 	thread_low.start();

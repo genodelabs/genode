@@ -58,11 +58,11 @@ struct Timer::Tsc_rate
 {
 	unsigned long khz;
 
-	static Tsc_rate from_xml(Xml_node const &node)
+	static Tsc_rate from_node(Node const &node)
 	{
 		unsigned long khz = 0;
-		node.with_optional_sub_node("hardware", [&] (Xml_node const &hardware) {
-			hardware.with_optional_sub_node("tsc", [&] (Xml_node const &tsc) {
+		node.with_optional_sub_node("hardware", [&] (Node const &hardware) {
+			hardware.with_optional_sub_node("tsc", [&] (Node const &tsc) {
 				khz = tsc.attribute_value("freq_khz", 0UL); }); });
 		return { khz };
 	}
@@ -378,7 +378,7 @@ struct Timer::Main : Device::Wakeup_dispatcher
 
 	Attached_rom_dataspace _platform_info { _env, "platform_info" };
 
-	Tsc_rate const _tsc_rate = Tsc_rate::from_xml(_platform_info.xml());
+	Tsc_rate const _tsc_rate = Tsc_rate::from_node(_platform_info.node());
 
 	Device _device { _env, _tsc_rate, *this };
 

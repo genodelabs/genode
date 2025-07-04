@@ -1372,10 +1372,10 @@ static enum Virt virt_type(Env &env)
 {
 	Virt result = Virt::UNKNOWN;
 
-	Attached_rom_dataspace(env, "platform_info").xml().with_optional_sub_node("hardware",
-		[&] (Xml_node const &hardware) {
+	Attached_rom_dataspace(env, "platform_info").node().with_optional_sub_node("hardware",
+		[&] (Node const &hardware) {
 			hardware.with_optional_sub_node("features",
-				[&] (Xml_node const &features) {
+				[&] (Node const &features) {
 					if (features.attribute_value("svm", false))
 						result = Virt::SVM;
 

@@ -26,11 +26,11 @@ class Linker::Config : Noncopyable
 
 		Attached_rom_dataspace const _config;
 
-		Bind const _bind = _config.xml().attribute_value("ld_bind_now", false)
+		Bind const _bind = _config.node().attribute_value("ld_bind_now", false)
 		                 ? BIND_NOW : BIND_LAZY;
 
-		bool const _verbose     = _config.xml().attribute_value("ld_verbose",     false);
-		bool const _check_ctors = _config.xml().attribute_value("ld_check_ctors", true);
+		bool const _verbose     = _config.node().attribute_value("ld_verbose",     false);
+		bool const _check_ctors = _config.node().attribute_value("ld_check_ctors", true);
 
 	public:
 
@@ -49,9 +49,9 @@ class Linker::Config : Noncopyable
 		 */
 		void for_each_library(auto const &fn) const
 		{
-			_config.xml().with_optional_sub_node("ld", [&] (Xml_node ld) {
+			_config.node().with_optional_sub_node("ld", [&] (Node const &ld) {
 
-				ld.for_each_sub_node("library", [&] (Xml_node lib) {
+				ld.for_each_sub_node("library", [&] (Node const &lib) {
 
 					Rom_name const rom = lib.attribute_value("rom", Rom_name());
 
