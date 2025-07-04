@@ -99,8 +99,8 @@ Identifiers
   'valid()', not 'is_valid()'.
 
 
-Indentation
-===========
+Indentation and alignment
+=========================
 
 * Use one tab per indentation step. *Do not mix tabs and spaces!*
 * Use no tabs except at the beginning of a line.
@@ -137,6 +137,38 @@ and spaces visible.
   surrounding scope).
   ! if (early_return_possible)
   !     return;
+
+
+Variable declarations
+~~~~~~~~~~~~~~~~~~~~~
+
+* When declaring a reference or a pointer, don't leave a space between the
+  the '&' or '*' characters and the variable name. In C++, the role as a
+  reference or pointer belongs to the variable, not the type. The following
+  (exaggerated) formatting is misleading because it suggests a symmetry
+  between 'x' and 'y'.
+
+  ! int     i = 0;
+  ! int &   x = i,
+  !         y = i;
+  ! i++;
+
+  After incrementing, *x is 1* but *y is *0* still.
+
+  The following formatting leaves less room for wrong interpretations.
+
+  ! int     i = 0;
+  ! int    &x = i,
+  !         y = i;
+
+* As a general rule in C++, qualifiers like 'const', 'volatile', and 'mutable'
+  refer to the preceding text. E.g, 'char * const' is an immutable pointer
+  that points to a mutable buffer. In contrast, 'char const *' is a mutable
+  pointer that points to an immutable buffer.
+
+  Only in the special case where 'const' is the first word,
+  it refers to the word after it. Don't use this special case. Consistently
+  put qualifiers to the right: 'const char *' should be 'char const *'.
 
 
 Switch statements
