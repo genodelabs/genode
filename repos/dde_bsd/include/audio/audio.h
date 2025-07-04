@@ -20,7 +20,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 
 
 /*****************************
@@ -41,9 +41,9 @@ namespace Audio_in {
 
 namespace Audio {
 
-	void update_config(Genode::Env &, Genode::Xml_node const &);
+	void update_config(Genode::Env &, Genode::Node const &);
 
-	void init_driver(Genode::Env &, Genode::Allocator &, Genode::Xml_node const &,
+	void init_driver(Genode::Env &, Genode::Allocator &, Genode::Node const &,
 	                 Genode::Signal_context_capability);
 
 	void play_sigh(Genode::Signal_context_capability cap);

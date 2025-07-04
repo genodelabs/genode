@@ -625,7 +625,7 @@ struct Main
 	void _handle_config_update()
 	{
 		_config.update();
-		Audio::update_config(_env, _config.xml());
+		Audio::update_config(_env, _config.node());
 	}
 
 	bool const _record_play = _config.xml().attribute_value("record_play", false);
@@ -669,7 +669,7 @@ struct Main
 	{
 		_config.sigh(_config_update_handler);
 
-		Audio::init_driver(_env, _heap, _config.xml(), _announce_session_handler);
+		Audio::init_driver(_env, _heap, _config.node(), _announce_session_handler);
 	}
 };
 

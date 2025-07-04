@@ -143,9 +143,9 @@ struct Main
 
 		_uplink.construct(_env, _heap);
 
-		_config_rom.xml().with_optional_sub_node("report", [&] (Xml_node const &xml) {
+		_config_rom.node().with_optional_sub_node("report", [&] (Node const &node) {
 			bool const report_mac_address =
-				xml.attribute_value("mac_address", false);
+				node.attribute_value("mac_address", false);
 
 			if (!report_mac_address)
 				return;

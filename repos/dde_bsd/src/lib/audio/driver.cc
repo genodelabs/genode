@@ -388,7 +388,7 @@ static void report_mixer_state(Mixer &mixer, Genode::Env *env = nullptr)
 }
 
 
-static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node const &config)
+static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Node const &config)
 {
 	using namespace Genode;
 
@@ -397,7 +397,7 @@ static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node con
 	Mic_mode mode = config.attribute_value("mic_priority", Mic_mode("external"));
 	mic_priority_external = (mode == "internal") ? false : true;
 
-	config.for_each_sub_node("mixer", [&] (Xml_node const &node) {
+	config.for_each_sub_node("mixer", [&] (Node const &node) {
 
 		typedef String<32> Field;
 		typedef String<16> Value;
@@ -413,7 +413,7 @@ static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node con
 }
 
 
-static bool configure_audio_device(Genode::Env &env, dev_t dev, Genode::Xml_node const &config)
+static bool configure_audio_device(Genode::Env &env, dev_t dev, Genode::Node const &config)
 {
 	struct audio_swpar ap;
 
@@ -479,11 +479,11 @@ namespace {
 	{
 		Genode::Env       &env;
 		Genode::Allocator &alloc;
-		Genode::Buffered_xml const config;
+		Genode::Buffered_node const config;
 		Genode::Signal_context_capability announce_sigh;
 
 		Task_args(Genode::Env &env, Genode::Allocator &alloc,
-		          Genode::Xml_node const &config,
+		          Genode::Node const &config,
 		          Genode::Signal_context_capability announce_sigh)
 		:
 			env(env), alloc(alloc), config(alloc, config),
@@ -517,7 +517,7 @@ namespace {
 
 		template <typename... ARGS>
 		Task(Genode::Env &env, Genode::Allocator &alloc,
-		     Genode::Xml_node const &config,
+		     Genode::Node const &config,
 		     Genode::Signal_context_capability announce_sigh)
 		:
 			_args { env, alloc, config, announce_sigh },
@@ -572,7 +572,7 @@ void run_bsd(void *p)
 	}
 
 	adev_usuable = configure_audio_device(task->_args.env, adev,
-	                                      task->_args.config.xml);
+	                                      task->_args.config);
 
 	if (adev_usuable && task->_args.announce_sigh.valid()) {
 		Genode::Signal_transmitter(task->_args.announce_sigh).submit();
@@ -634,7 +634,7 @@ extern "C" void notify_hp_sense(int const sense)
  ** private Audio namespace **
  *****************************/
 
-void Audio::update_config(Genode::Env &env, Genode::Xml_node const &config)
+void Audio::update_config(Genode::Env &env, Genode::Node const &config)
 {
 	if (mixer.info == nullptr) { return; }
 
@@ -648,7 +648,7 @@ static Task *_bsd_task;
 
 
 void Audio::init_driver(Genode::Env &env, Genode::Allocator &alloc,
-                        Genode::Xml_node const &config,
+                        Genode::Node const &config,
                         Genode::Signal_context_capability announce_sigh)
 {
 	Bsd::mem_init(env, alloc);
