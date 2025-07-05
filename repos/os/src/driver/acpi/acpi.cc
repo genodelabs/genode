@@ -646,6 +646,8 @@ class Table_wrapper
 		 */
 		bool is_dmar() { return _cmp("DMAR"); }
 
+		bool is_hpet() { return _cmp("HPET"); }
+
 		/**
 		 * Parse MADT/APIC table
 		 */
@@ -1400,6 +1402,20 @@ class Element : private List<Element>::Element
 };
 
 
+struct Hpet : Genode::Mmio<0x38>
+{
+	struct Hw_rev_id  : Register<0x24,  8> { };
+	struct Vendor_id  : Register<0x26, 16> { };
+	struct Space_id   : Register<0x28,  8> { };
+	struct Address    : Register<0x2c, 64> { };
+	struct Hpet_id    : Register<0x34,  8> { };
+
+	static constexpr unsigned min_size() { return 0x38; }
+
+	Hpet(Byte_range_ptr const &range) : Mmio(range) { }
+};
+
+
 /**
  * Locate and parse ACPI tables we are looking for
  */
@@ -1543,6 +1559,23 @@ class Acpi_table
 						_dmar_info.construct(
 							Dmar_info { (bool)(head.flags & Dmar_struct_header::INTR_REMAP_MASK),
 							            (uint8_t)(head.width + 1) });
+					}
+
+					if (table.is_hpet()) {
+						Hpet hpet({(char *)table->signature, table->size});
+
+						auto hw_id   = hpet.read<Hpet::Hw_rev_id>();
+						auto vendor  = hpet.read<Hpet::Vendor_id>();
+						auto space   = hpet.read<Hpet::Space_id>();
+						auto addr    = hpet.read<Hpet::Address>();
+						auto hpet_id = hpet.read<Hpet::Hpet_id>();
+
+						Genode::log("Found HPET"
+						            " hw_id=", Hex(hw_id), " ",
+						            " vendor_id=", Hex(vendor),
+						            " space_id=", Hex(space),
+						            " addr=", Hex(addr),
+						            " hpet_id=", Hex(hpet_id));
 					}
 				} catch (Acpi::Memory::Unsupported_range &) { }
 
