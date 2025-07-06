@@ -5,7 +5,7 @@ proc binary_name_core_a    { } { return "core-sel4.a" }
 proc binary_name_timer     { } {
 	if {[have_board imx6q_sabrelite]} { return "imx6_timer" }
 	if {[have_board imx7d_sabre]}     { return "imx7_timer" }
-	if {[have_board pc]}              { return "pit_timer"  }
+	if {[have_board pc]}              { return "hpet_timer" }
 	puts "unknown platform - no timer driver"
 	exit -1
 }

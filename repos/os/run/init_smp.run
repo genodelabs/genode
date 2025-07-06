@@ -85,6 +85,7 @@ install_config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
 		<service name="IRQ"/>
 	</parent-provides>
 	<default-route><any-service><parent/><any-child/></any-service></default-route>

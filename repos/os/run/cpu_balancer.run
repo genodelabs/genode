@@ -45,6 +45,7 @@ install_config {
 		<service name="CPU"/>
 		<service name="ROM"/>
 		<service name="PD"/>
+		<service name="IO_MEM"/>  <!-- timer on some kernels -->
 		<service name="IO_PORT"/> <!-- timer on some kernels -->
 		<service name="IRQ"/>     <!-- timer on some kernels -->
 		<service name="TRACE"/>

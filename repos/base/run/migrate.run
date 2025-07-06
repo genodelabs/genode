@@ -18,6 +18,7 @@ append config {
 			<service name="CPU"/>
 			<service name="ROM"/>
 			<service name="PD"/>
+			<service name="IO_MEM"/>  <!-- on some kernels for timer -->
 			<service name="IO_PORT"/> <!-- on some kernels for timer -->
 			<service name="IRQ"/>     <!-- on some kernels for timer -->
 			<service name="TRACE"/>   <!-- used by migration test -->
