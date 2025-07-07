@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2013-2024 Genode Labs GmbH
+ * Copyright (C) 2013-2025 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -34,10 +34,10 @@ class Genodefb :
 {
 	private:
 
-		Genode::Env        &_env;
-		Gui::Connection    &_gui;
-		Gui::Top_level_view _view { _gui };
-		Gui::Rect           _gui_win { { }, { 1024, 768 } };
+		Genode::Env         &_env;
+		Gui::Connection     &_gui;
+		Gui::Top_level_view &_view;
+		Gui::Rect            _gui_win { { }, { 1024, 768 } };
 
 		/*
 		 * The mode currently used by the VM. Can be smaller than the
@@ -92,10 +92,11 @@ class Genodefb :
 
 		NS_DECL_ISUPPORTS
 
-		Genodefb(Genode::Env &env, Gui::Connection &gui, ComPtr<IDisplay> const &display, unsigned id)
+		Genodefb(Genode::Env &env, Gui::Connection &gui,
+		         ComPtr<IDisplay> const &display, unsigned id,
+		         Gui::Top_level_view &view)
 		:
-			_env(env),
-			_gui(gui),
+			_env(env), _gui(gui), _view(view),
 			_virtual_fb_area(_initial_setup()),
 			_display(display), _id(id)
 		{

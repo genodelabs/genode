@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2013-2024 Genode Labs GmbH
+ * Copyright (C) 2013-2025 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -88,6 +88,10 @@ struct Main : Event_handler
 	void _handle_config()
 	{
 		_config.update();
+
+		if (!_config.valid())
+			return;
+
 		Libc::with_libc([&] { _update_monitors(); });
 	}
 
@@ -299,7 +303,8 @@ struct Main : Event_handler
 
 			Bstr guid { };
 
-			Fb(Env &, Gui::Connection &, ComPtr<IDisplay> const &, unsigned id);
+			Fb(Env &, Gui::Connection &, ComPtr<IDisplay> const &,
+			   unsigned id, Gui::Top_level_view &view);
 			~Fb();
 
 			int w() const { return fb->w(); }
@@ -317,8 +322,9 @@ struct Main : Event_handler
 
 		Label label { };
 
-		Constructible<Gui::Connection> gui;
-		Constructible<Fb>              fb;
+		Constructible<Gui::Connection>     gui;
+		Constructible<Gui::Top_level_view> gui_view;
+		Constructible<Fb>                  fb;
 
 		Gui::Rect rect { };
 
@@ -329,6 +335,35 @@ struct Main : Event_handler
 		~Monitor();
 
 		void update(Label const &label);
+
+		/*
+		 * Synchronize with pthreads, e.g. EMT-0...X, "VMSVGA FIFO" etc
+		 * in Genodefb object. There Lock/Unlock is used during
+		 * accessing fb.gui which is constructed/destructed when fn executes.
+		 */
+		void synchronize(auto const &fn)
+		{
+			if (!fb.constructed()) {
+				fn();
+				return;
+			}
+
+			/*
+			 * Take extra reference, so that ComPtr<Genodefb> in struct Fb
+			 * is not freed by fn() before we can unlock
+			 */
+			ComPtr<Genodefb> c_fb = fb->fb;
+
+			c_fb->Lock();
+
+			try {
+				fn();
+				c_fb->Unlock();
+			} catch (...) {
+				c_fb->Unlock();
+				throw;
+			}
+		}
 	};
 
 	Registry<Monitor> _monitors { };
@@ -445,9 +480,10 @@ struct Main : Event_handler
 
 
 Main::Monitor::Fb::Fb(Env &env, Gui::Connection &gui,
-                      ComPtr<IDisplay> const &display, unsigned id)
+                      ComPtr<IDisplay> const &display, unsigned id,
+                      Gui::Top_level_view &view)
 :
-	id(id), display(display), fb(new Genodefb(env, gui, display, id))
+	id(id), display(display), fb(new Genodefb(env, gui, display, id, view))
 {
 	display->AttachFramebuffer(id, fb, guid.asOutParam());
 }
@@ -465,13 +501,19 @@ void Main::Monitor::update(Label const &new_label)
 
 	label = new_label;
 
-	fb.destruct();
+	synchronize([&]() {
 
-	gui.construct(env, label);
-	gui->input.sigh(input_sigh);
-	gui->info_sigh(mode_sigh);
+		fb.destruct();
+		gui_view.destruct();
+		gui.destruct();
 
-	fb.construct(env, *gui, display, id);
+		gui.construct(env, label);
+		gui_view.construct(*gui);
+		gui->input.sigh(input_sigh);
+		gui->info_sigh(mode_sigh);
+
+		fb.construct(env, *gui, display, id, *gui_view);
+	});
 
 	int                  origin_x, origin_y;
 	unsigned             w, h, bpp;
