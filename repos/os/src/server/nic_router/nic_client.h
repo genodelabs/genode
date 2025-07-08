@@ -102,7 +102,7 @@ class Net::Nic_client_interface_base : public Interface_policy
 		void handle_domain_ready_state(bool state) override;
 		bool interface_link_state() const override;
 		bool report_empty() const override { return true; };
-		void report(Genode::Xml_generator &) const override { };
+		void report(Genode::Generator &) const override { };
 
 	public:
 

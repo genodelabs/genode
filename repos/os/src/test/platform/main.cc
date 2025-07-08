@@ -74,7 +74,7 @@ struct Main
 	{
 		state++;
 
-		device_reporter.generate([&] (Xml_generator &devs) {
+		device_reporter.generate([&] (Generator &devs) {
 
 			for (unsigned idx = 0; idx < total; idx++) {
 				devs.node("device", [&]
@@ -95,7 +95,7 @@ struct Main
 			}
 		});
 
-		config_reporter.generate([&] (Xml_generator &cfg) {
+		config_reporter.generate([&] (Generator &cfg) {
 
 			cfg.node("report", [&]
 			{
@@ -197,8 +197,8 @@ struct Main
 			{
 				Platform::Device dev (*platform, Platform::Device::Type({"dummy-device"}));
 				if (dev._cap.valid()) log("Found next valid device of dummy type");
-				config_reporter.generate([&] (Xml_generator &xml) {
-					xml.node("default-policy", [&] { }); });
+				config_reporter.generate([&] (Generator &g) {
+					g.node("default-policy", [&] { }); });
 				break;
 			}
 		default:

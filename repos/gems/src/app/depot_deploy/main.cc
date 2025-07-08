@@ -102,21 +102,21 @@ struct Depot_deploy::Main
 			return;
 
 		if (_state_reporter.constructed())
-			_state_reporter->generate([&] (Xml_generator &xml) {
-				xml.attribute("running", true); });
+			_state_reporter->generate([&] (Generator &g) {
+				g.attribute("running", true); });
 
 		if (!_arch.valid())
 			warning("config lacks 'arch' attribute");
 
 		/* generate init config containing all configured start nodes */
-		_init_config_reporter.generate([&] (Xml_generator &xml) {
-			_gen_init_config(xml, config); });
+		_init_config_reporter.generate([&] (Generator &g) {
+			_gen_init_config(g, config); });
 
 		/* update query for blueprints of all unconfigured start nodes */
 		if (_arch.valid()) {
-			_query_reporter.generate([&] (Xml_generator &xml) {
-				xml.attribute("arch", _arch);
-				_children.gen_queries(xml);
+			_query_reporter.generate([&] (Generator &g) {
+				g.attribute("arch", _arch);
+				_children.gen_queries(g);
 			});
 		}
 
@@ -125,21 +125,21 @@ struct Depot_deploy::Main
 		 && !_children.any_blueprint_needed()
 		 && _state_reporter.constructed()) {
 
-			_state_reporter->generate([&] (Xml_generator &xml) {
-				xml.attribute("running", false);
-				xml.attribute("count", _children.count());
+			_state_reporter->generate([&] (Generator &g) {
+				g.attribute("running", false);
+				g.attribute("count", _children.count());
 			});
 		}
 	}
 
-	void _gen_init_config(Xml_generator &xml, Node const &config) const
+	void _gen_init_config(Generator &g, Node const &config) const
 	{
 		if (_prio_levels.value)
-			xml.attribute("prio_levels", _prio_levels.value);
+			g.attribute("prio_levels", _prio_levels.value);
 
 		config.with_sub_node("static",
 			[&] (Node const &static_config) {
-				if (!xml.append_node_content(static_config, MAX_NODE_DEPTH))
+				if (!g.append_node_content(static_config, MAX_NODE_DEPTH))
 					warning("config too deeply nested: ", static_config); },
 			[&] { warning("config lacks <static> node"); });
 
@@ -148,19 +148,19 @@ struct Depot_deploy::Main
 			auto copy_bool_attribute = [&] (auto const name)
 			{
 				if (report.has_attribute(name))
-					xml.attribute(name, report.attribute_value(name, false));
+					g.attribute(name, report.attribute_value(name, false));
 			};
 
 			auto copy_buffer_size_attribute = [&]
 			{
 				auto const name = "buffer";
 				if (report.has_attribute(name))
-					xml.attribute(name, report.attribute_value(name, Number_of_bytes(4096)));
+					g.attribute(name, report.attribute_value(name, Number_of_bytes(4096)));
 			};
 
 			size_t const delay_ms = report.attribute_value("delay_ms", 1000UL);
-			xml.node("report", [&] {
-				xml.attribute("delay_ms", delay_ms);
+			g.node("report", [&] {
+				g.attribute("delay_ms", delay_ms);
 
 				/* attributes according to repos/os/src/lib/sandbox/report.h */
 				copy_bool_attribute("ids");
@@ -179,15 +179,15 @@ struct Depot_deploy::Main
 
 		config.with_optional_sub_node("heartbeat", [&] (Node const &heartbeat) {
 			size_t const rate_ms = heartbeat.attribute_value("rate_ms", 2000UL);
-			xml.node("heartbeat", [&] {
-				xml.attribute("rate_ms", rate_ms);
+			g.node("heartbeat", [&] {
+				g.attribute("rate_ms", rate_ms);
 			});
 		});
 
 		config.with_sub_node("common_routes",
 			[&] (Node const &node) {
 				Child::Depot_rom_server const parent { };
-				_children.gen_start_nodes(xml, node,
+				_children.gen_start_nodes(g, node,
 				                          _prio_levels, Affinity::Space(1, 1),
 				                          parent, parent);
 			},

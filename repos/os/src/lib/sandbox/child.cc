@@ -360,57 +360,57 @@ void Sandbox::Child::apply_downgrade()
 }
 
 
-void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detail) const
+void Sandbox::Child::report_state(Generator &g, Report_detail const &detail) const
 {
 	if (abandoned())
 		return;
 
-	xml.node("child", [&] () {
+	g.node("child", [&] () {
 
-		xml.attribute("name",   _unique_name);
-		xml.attribute("binary", _binary_name);
+		g.attribute("name",   _unique_name);
+		g.attribute("binary", _binary_name);
 
 		if (_version.valid())
-			xml.attribute("version", _version);
+			g.attribute("version", _version);
 
 		if (detail.ids())
-			xml.attribute("id", _id.value);
+			g.attribute("id", _id.value);
 
 		if (stuck() || _state == State::RAM_INITIALIZED)
-			xml.attribute("state", "incomplete");
+			g.attribute("state", "incomplete");
 
 		if (_exited)
-			xml.attribute("exited", _exit_value);
+			g.attribute("exited", _exit_value);
 
 		if (_heartbeat_enabled && _child.skipped_heartbeats())
-			xml.attribute("skipped_heartbeats", _child.skipped_heartbeats());
+			g.attribute("skipped_heartbeats", _child.skipped_heartbeats());
 
 		if (detail.child_ram() && _child.pd_session_cap().valid()) {
-			xml.node("ram", [&] () {
+			g.node("ram", [&] () {
 
-				xml.attribute("assigned", String<32> {
+				g.attribute("assigned", String<32> {
 					Number_of_bytes(_resources.assigned_ram_quota.value) });
 
 				if (_pd_alive())
 					_child.with_pd([&] (Pd_session const &pd) {
-						Ram_info::from_pd(pd).generate(xml); }, [&] { });
+						Ram_info::from_pd(pd).generate(g); }, [&] { });
 
 				if (_requested_resources.constructed() && _requested_resources->ram.value)
-					xml.attribute("requested", String<32>(_requested_resources->ram));
+					g.attribute("requested", String<32>(_requested_resources->ram));
 			});
 		}
 
 		if (detail.child_caps() && _child.pd_session_cap().valid()) {
-			xml.node("caps", [&] () {
+			g.node("caps", [&] () {
 
-				xml.attribute("assigned", String<32>(_resources.assigned_cap_quota));
+				g.attribute("assigned", String<32>(_resources.assigned_cap_quota));
 
 				if (_pd_alive())
 					_child.with_pd([&] (Pd_session const &pd) {
-						Cap_info::from_pd(pd).generate(xml); }, [&] { });
+						Cap_info::from_pd(pd).generate(g); }, [&] { });
 
 				if (_requested_resources.constructed() && _requested_resources->caps.value)
-					xml.attribute("requested", String<32>(_requested_resources->caps));
+					g.attribute("requested", String<32>(_requested_resources->caps));
 			});
 		}
 
@@ -419,18 +419,18 @@ void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detai
 			                                       : Session_state::Detail::NO_ARGS};
 
 		if (detail.requested()) {
-			xml.node("requested", [&] () {
+			g.node("requested", [&] () {
 				_child.for_each_session([&] (Session_state const &session) {
-					xml.node("session", [&] () {
-						session.generate_client_side_info(xml, session_detail); }); }); });
+					g.node("session", [&] () {
+						session.generate_client_side_info(g, session_detail); }); }); });
 		}
 
 		if (detail.provided()) {
-			xml.node("provided", [&] () {
+			g.node("provided", [&] () {
 
 				auto fn = [&] (Session_state const &session) {
-					xml.node("session", [&] () {
-						session.generate_server_side_info(xml, session_detail); }); };
+					g.node("session", [&] () {
+						session.generate_server_side_info(g, session_detail); }); };
 
 				_session_requester.id_space().for_each<Session_state const>(fn);
 			});

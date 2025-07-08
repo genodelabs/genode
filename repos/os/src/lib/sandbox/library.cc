@@ -167,16 +167,16 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	/**
 	 * State_reporter::Producer interface
 	 */
-	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const override
+	void produce_state_report(Generator &g, Report_detail const &detail) const override
 	{
 		if (detail.init_ram())
-			xml.node("ram",  [&] () { Ram_info::from_pd(_env.pd()).generate(xml); });
+			g.node("ram",  [&] () { Ram_info::from_pd(_env.pd()).generate(g); });
 
 		if (detail.init_caps())
-			xml.node("caps", [&] () { Cap_info::from_pd(_env.pd()).generate(xml); });
+			g.node("caps", [&] () { Cap_info::from_pd(_env.pd()).generate(g); });
 
 		if (detail.children())
-			_children.report_state(xml, detail);
+			_children.report_state(g, detail);
 	}
 
 	/**
@@ -295,9 +295,9 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 
 	void apply_config(Node const &);
 
-	void generate_state_report(Xml_generator &xml) const
+	void generate_state_report(Generator &g) const
 	{
-		_state_reporter.generate(xml);
+		_state_reporter.generate(g);
 	}
 };
 
@@ -659,9 +659,9 @@ void Genode::Sandbox::apply_config(Node const &config)
 }
 
 
-void Genode::Sandbox::generate_state_report(Xml_generator &xml) const
+void Genode::Sandbox::generate_state_report(Generator &g) const
 {
-	_library.generate_state_report(xml);
+	_library.generate_state_report(g);
 }
 
 

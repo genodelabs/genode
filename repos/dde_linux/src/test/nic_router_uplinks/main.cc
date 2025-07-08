@@ -99,36 +99,36 @@ struct Main
 
 	void update_router_config()
 	{
-		router_config_reporter.generate([&] (Xml_generator &xml) {
-			xml.attribute("dhcp_discover_timeout_sec", "1");
-			xml.node("policy", [&] {
-				xml.attribute("label_prefix", "ping");
-				xml.attribute("domain", "downlink"); });
-			xml.node("policy", [&] {
-				xml.attribute("label_prefix", "dhcp");
-				xml.attribute("domain", "uplink"); });
+		router_config_reporter.generate([&] (Generator &g) {
+			g.attribute("dhcp_discover_timeout_sec", "1");
+			g.node("policy", [&] {
+				g.attribute("label_prefix", "ping");
+				g.attribute("domain", "downlink"); });
+			g.node("policy", [&] {
+				g.attribute("label_prefix", "dhcp");
+				g.attribute("domain", "uplink"); });
 
 			if (driver.constructed()) {
-				xml.node("policy", [&] {
-					xml.attribute("label_prefix", *driver);
-					xml.attribute("domain", "uplink"); });
-				xml.node("domain", [&] {
-					xml.attribute("name", "uplink");
-					xml.node("nat", [&] {
-						xml.attribute("domain", "downlink");
-						xml.attribute("icmp-ids", "999"); }); });
+				g.node("policy", [&] {
+					g.attribute("label_prefix", *driver);
+					g.attribute("domain", "uplink"); });
+				g.node("domain", [&] {
+					g.attribute("name", "uplink");
+					g.node("nat", [&] {
+						g.attribute("domain", "downlink");
+						g.attribute("icmp-ids", "999"); }); });
 			}
-			xml.node("domain", [&] {
-				xml.attribute("name", "downlink");
-				xml.attribute("interface", "10.0.1.79/24");
-				xml.node("dhcp-server", [&] {
-					xml.attribute("ip_first", "10.0.1.80");
-					xml.attribute("ip_last", "10.0.1.100"); });
+			g.node("domain", [&] {
+				g.attribute("name", "downlink");
+				g.attribute("interface", "10.0.1.79/24");
+				g.node("dhcp-server", [&] {
+					g.attribute("ip_first", "10.0.1.80");
+					g.attribute("ip_last", "10.0.1.100"); });
 
 				if (driver.constructed())
-					xml.node("icmp", [&] {
-						xml.attribute("dst", "0.0.0.0/0");
-						xml.attribute("domain", "uplink"); }); }); });
+					g.node("icmp", [&] {
+						g.attribute("dst", "0.0.0.0/0");
+						g.attribute("domain", "uplink"); }); }); });
 	}
 
 	void start_step(unsigned step_arg, Driver driver_arg = Driver())

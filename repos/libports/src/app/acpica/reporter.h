@@ -1,5 +1,5 @@
 /*
- * \brief  Generate xml reports of various ACPI devices, e.g.
+ * \brief  Generate reports of various ACPI devices, e.g.
  *         Lid, Embedded Controller (EC), AC Adapter,
  *         Smart Battery (SB) and ACPI fixed events (power, sleep button)
  * \author Alexander Boettcher
@@ -29,7 +29,7 @@ class Acpica::Reporter : public Genode::List<Acpica::Reporter >::Element
 
 		Reporter() { }
 
-		virtual void generate(Genode::Xml_generator &) = 0;
+		virtual void generate(Genode::Generator &) = 0;
 		virtual ~Reporter() { }
 };
 
@@ -93,45 +93,45 @@ class Acpica::Reportstate {
 			if (_changed_lid || force) {
 				_changed_lid = false;
 				if (_lid)
-					_reporter_lid.generate([&] (Xml_generator &xml) {
-						_lid->generate(xml); });
+					_reporter_lid.generate([&] (Generator &g) {
+						_lid->generate(g); });
 			}
 
 			if (_changed_ac || force) {
 				_changed_ac = false;
-				_reporter_ac.generate([&] (Xml_generator &xml) {
+				_reporter_ac.generate([&] (Generator &g) {
 					for (Callback<Ac> * ac = _list_ac.first(); ac; ac = ac->next())
-						xml.node("ac", [&] { ac->generate(xml); }); });
+						g.node("ac", [&] { ac->generate(g); }); });
 			}
 
 			if (_changed_ec || force) {
 				_changed_ec = false;
-				_reporter_ec.generate([&] (Xml_generator &xml) {
+				_reporter_ec.generate([&] (Generator &g) {
 					for (Callback<Ec> * ec = _list_ec.first(); ec; ec = ec->next())
-						xml.node("ec", [&] { ec->generate(xml); }); });
+						g.node("ec", [&] { ec->generate(g); }); });
 			}
 
 			if (_changed_sb || force) {
 				_changed_sb = false;
-				_reporter_sb.generate([&] (Xml_generator &xml) {
+				_reporter_sb.generate([&] (Generator &g) {
 					for (Callback<Battery> * sb = _list_sb.first(); sb; sb = sb->next())
-						xml.node("sb", [&] { sb->generate(xml); }); });
+						g.node("sb", [&] { sb->generate(g); }); });
 			}
 
 			if (_changed_fixed || force) {
 				_changed_fixed = false;
 				if (_fixed)
-					_reporter_fix.generate([&] (Xml_generator &xml) {
-						_fixed->generate(xml); });
+					_reporter_fix.generate([&] (Generator &g) {
+						_fixed->generate(g); });
 			}
 
 			if (_changed_hid || force) {
 				_changed_hid = false;
 
 				if (_list_hid.first())
-					_reporter_hid.generate([&] (Xml_generator &xml) {
+					_reporter_hid.generate([&] (Generator &g) {
 						for (auto * hid = _list_hid.first(); hid; hid = hid->next())
-							hid->generate(xml); });
+							hid->generate(g); });
 			}
 
 			return changed;

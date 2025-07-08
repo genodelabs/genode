@@ -36,29 +36,29 @@ struct Sculpt::Ahci_driver : private Noncopyable
 
 	Ahci_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_node(Xml_generator &xml) const
+	void gen_start_node(Generator &g) const
 	{
 		if (!_ahci.constructed())
 			return;
 
-		xml.node("start", [&] {
-			_ahci->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "ahci");
-			gen_provides<Block::Session>(xml);
-			xml.node("config", [&] {
-				xml.attribute("system", "yes");
-				xml.node("report", [&] { xml.attribute("ports", "yes"); });
+		g.node("start", [&] {
+			_ahci->gen_start_node_content(g);
+			gen_named_node(g, "binary", "ahci");
+			gen_provides<Block::Session>(g);
+			g.node("config", [&] {
+				g.attribute("system", "yes");
+				g.node("report", [&] { g.attribute("ports", "yes"); });
 				for (unsigned i = 0; i < 6; i++)
-					xml.node("policy", [&] {
-						xml.attribute("label",  i);
-						xml.attribute("device", i);
-						xml.attribute("writeable", "yes"); });
+					g.node("policy", [&] {
+						g.attribute("label",  i);
+						g.attribute("device", i);
+						g.attribute("writeable", "yes"); });
 			});
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "ahci");
-				gen_parent_rom_route(xml, "system",   "config -> managed/system");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>(g);
+				gen_parent_rom_route(g, "ahci");
+				gen_parent_rom_route(g, "system",   "config -> managed/system");
+				gen_common_routes(g);
 			});
 		});
 	};

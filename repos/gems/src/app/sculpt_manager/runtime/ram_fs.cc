@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for RAM file system
+ * \brief  Configuration for RAM file system
  * \author Norman Feske
  * \date   2018-05-15
  */
@@ -13,23 +13,22 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_ram_fs_start_content(Xml_generator &xml,
-                                      Ram_fs_state const &state)
+void Sculpt::gen_ram_fs_start_content(Generator &g, Ram_fs_state const &state)
 {
-	state.gen_start_node_content(xml);
+	state.gen_start_node_content(g);
 
-	xml.node("binary", [&] { xml.attribute("name", "vfs"); });
+	g.node("binary", [&] { g.attribute("name", "vfs"); });
 
-	gen_provides<::File_system::Session>(xml);
+	gen_provides<::File_system::Session>(g);
 
-	xml.node("route", [&] {
-		gen_parent_rom_route(xml, "vfs");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
-		gen_parent_route<Cpu_session> (xml);
-		gen_parent_route<Pd_session>  (xml);
-		gen_parent_route<Log_session> (xml);
-		gen_parent_rom_route(xml, "config", "config -> ram_fs");
-		gen_parent_route<Rom_session> (xml);
+	g.node("route", [&] {
+		gen_parent_rom_route(g, "vfs");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
+		gen_parent_route<Cpu_session> (g);
+		gen_parent_route<Pd_session>  (g);
+		gen_parent_route<Log_session> (g);
+		gen_parent_rom_route(g, "config", "config -> ram_fs");
+		gen_parent_route<Rom_session> (g);
 	});
 }

@@ -17,8 +17,6 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <os/reporter.h>
-#include <os/buffered_xml.h>
-#include <util/xml_node.h>
 
 /* format-string includes */
 #include <format/snprintf.h>
@@ -362,7 +360,7 @@ static void report_mixer_state(Mixer &mixer, Genode::Env *env = nullptr)
 	if (!mixer_reporter.constructed())
 		return;
 
-	mixer_reporter->generate([&] (Xml_generator &xml) {
+	mixer_reporter->generate([&] (Generator &g) {
 
 		for (unsigned i = 0; i < mixer.num; i++) {
 			if (mixer.info[i].type == AUDIO_MIXER_CLASS)
@@ -374,13 +372,13 @@ static void report_mixer_state(Mixer &mixer, Genode::Env *env = nullptr)
 			char const * const value      = get_mixer_value(&mixer.info[i]);
 
 			if (value) {
-				xml.node("mixer", [&]() {
+				g.node("mixer", [&]() {
 					char tmp[64];
 					Format::snprintf(tmp, sizeof(tmp), "%s.%s",
 					                 class_name, name);
 
-					xml.attribute("field", tmp);
-					xml.attribute("value", value);
+					g.attribute("field", tmp);
+					g.attribute("value", value);
 				});
 			}
 		}

@@ -14,9 +14,6 @@
 #ifndef _MODEL__RAM_FS_STATE_H_
 #define _MODEL__RAM_FS_STATE_H_
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 /* local includes */
 #include <types.h>
 #include <model/child_state.h>

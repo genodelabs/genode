@@ -42,8 +42,8 @@ struct Nit_focus::Main
 
 		with_matching_policy(label, _config_rom.node(), [&] (Node const &policy) {
 			if (policy.attribute_value("focus", true)) {
-				_focus_reporter.generate([&] (Xml_generator &xml) {
-					xml.attribute("label", label); });
+				_focus_reporter.generate([&] (Generator &g) {
+					g.attribute("label", label); });
 			}
 		}, [&] { /* don't change focus on policy mismatch */ });
 	}

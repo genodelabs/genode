@@ -91,8 +91,8 @@ struct Acpica::Statechange
 			Genode::error("AcpiEnterSleepStatePrep failed ",
 			              res, " ", AcpiFormatException(res));
 
-		_report_sleep_states.generate([&] (auto &xml) {
-			Acpica::generate_suspend_report(xml, state);
+		_report_sleep_states.generate([&] (Generator &g) {
+			Acpica::generate_suspend_report(g, state);
 		});
 	}
 
@@ -121,8 +121,8 @@ struct Acpica::Statechange
 			Genode::error("AcpiLeaveSleepState failed ",
 			              res, " ", AcpiFormatException(res));
 
-		_report_sleep_states.generate([&] (auto &xml) {
-			Acpica::generate_suspend_report(xml, state);
+		_report_sleep_states.generate([&] (Generator &g) {
+			Acpica::generate_suspend_report(g, state);
 		});
 	}
 

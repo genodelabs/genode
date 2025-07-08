@@ -141,20 +141,20 @@ struct Fetchurl::Main
 		if (!_reporter.constructed())
 			return;
 
-		_reporter->generate([&] (Xml_generator &xml) {
+		_reporter->generate([&] (Generator &g) {
 			for (Fetch *f = _fetches.first(); f; f = f->next()) {
-				xml.node("fetch", [&] {
-					xml.attribute("url",   f->url);
-					xml.attribute("total", f->dltotal);
-					xml.attribute("now",   f->dlnow);
+				g.node("fetch", [&] {
+					g.attribute("url",   f->url);
+					g.attribute("total", f->dltotal);
+					g.attribute("now",   f->dlnow);
 					if (f->timeout) {
-						xml.attribute("timeout", true);
+						g.attribute("timeout", true);
 					}
 
-					xml.attribute("finished", f->finished);
+					g.attribute("finished", f->finished);
 					if (f->finished)
-						xml.attribute("result", f->successful ? "success"
-						                                      : "failed");
+						g.attribute("result", f->successful ? "success"
+						                                    : "failed");
 				});
 			}
 		});

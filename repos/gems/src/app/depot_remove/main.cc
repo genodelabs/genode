@@ -21,7 +21,6 @@
 #include <os/reporter.h>
 #include <os/vfs.h>
 #include <util/reconstructible.h>
-#include <util/xml_generator.h>
 
 
 namespace Depot_remove {
@@ -196,10 +195,10 @@ class Depot_remove::Archive_remover
 
 		void generate_report(Expanding_reporter &reporter) const
 		{
-			reporter.generate([&](Xml_generator &xml) {
+			reporter.generate([&](Generator &g) {
 				_deleted_archives.for_each([&] (auto &path) {
-					xml.node("removed", [&]() {
-						xml.attribute("path", path); }); }); });
+					g.node("removed", [&]() {
+						g.attribute("path", path); }); }); });
 		}
 
 		Archive_remover(Allocator &alloc, Directory &depot, Node const &config)

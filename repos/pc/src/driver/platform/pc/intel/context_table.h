@@ -19,8 +19,8 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/node.h>
 #include <util/register.h>
-#include <util/xml_generator.h>
 #include <pci/types.h>
 #include <cpu/clflush.h>
 
@@ -149,7 +149,7 @@ class Intel::Context_table
 				clflush(&_entries[_lo_index(rid)]);
 		}
 
-		void generate(Xml_generator &, Intel::Report_helper &);
+		void generate(Generator &, Intel::Report_helper &);
 
 		void flush_all()
 		{

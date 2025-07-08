@@ -330,16 +330,16 @@ void Main_window::_update_config()
 {
 	char buf[2048];
 
-	Genode::Xml_generator::generate({ buf, sizeof(buf) }, "config",
-		[&] (Genode::Xml_generator &xml) {
+	Genode::Generator::generate({ buf, sizeof(buf) }, "config",
+		[&] (Genode::Generator &g) {
 
-			xml.node("default", [&] {
-				xml.attribute("out_volume", _default_out_volume);
-				xml.attribute("volume",     _default_volume);
-				xml.attribute("muted",      _default_muted);
+			g.node("default", [&] {
+				g.attribute("out_volume", _default_out_volume);
+				g.attribute("volume",     _default_volume);
+				g.attribute("muted",      _default_muted);
 			});
 
-			xml.node("channel_list", [&] {
+			g.node("channel_list", [&] {
 				for (Client_widget const *c = client_registry()->first(); c; c = c->next()) {
 					bool const combined = c->combined_control();
 
@@ -353,13 +353,13 @@ void Main_window::_update_config()
 
 					for (Channel_widget const *w = c->first_channel(); w; w = w->next()) {
 						Channel::Number const nr = w->number();
-						xml.node("channel", [&] {
-							xml.attribute("type",   type_to_string(w->type()));
-							xml.attribute("label",  c->label().string());
-							xml.attribute("name",   channel_string_from_number(nr));
-							xml.attribute("number", nr);
-							xml.attribute("volume", combined ? vol   : w->volume());
-							xml.attribute("muted",  combined ? muted : w->muted());
+						g.node("channel", [&] {
+							g.attribute("type",   type_to_string(w->type()));
+							g.attribute("label",  c->label().string());
+							g.attribute("name",   channel_string_from_number(nr));
+							g.attribute("number", nr);
+							g.attribute("volume", combined ? vol   : w->volume());
+							g.attribute("muted",  combined ? muted : w->muted());
 						});
 
 						if (_verbose)
@@ -441,7 +441,7 @@ Main_window::Main_window(Genode::Env &env)
 	using namespace Genode;
 
 	Attached_rom_dataspace const config(env, "config");
-	_verbose = config.xml().attribute_value("verbose", false);
+	_verbose = config.node().attribute_value("verbose", false);
 	config.node().with_sub_node("default",
 		[&] (Node const &node) {
 			_default_out_volume = node.attribute_value("out_volume", 0L);

@@ -154,21 +154,21 @@ void Platform::_init_platform_info()
 		return;
 	}
 
-	Xml_generator::generate({ reinterpret_cast<char *>(virt_addr), rom_size },
-	                        rom_name, [&] (Xml_generator &xml)
+	Generator::generate({ reinterpret_cast<char *>(virt_addr), rom_size },
+	                    rom_name, [&] (Generator &g)
 	{
-		xml.node("kernel", [&] {
-			xml.attribute("name", "hw");
-			xml.attribute("acpi", true);
-			xml.attribute("msi",  true);
+		g.node("kernel", [&] {
+			g.attribute("name", "hw");
+			g.attribute("acpi", true);
+			g.attribute("msi",  true);
 		});
-		xml.node("board", [&] {
-			xml.attribute("name", BOARD_NAME);
+		g.node("board", [&] {
+			g.attribute("name", BOARD_NAME);
 		});
-		_init_additional_platform_info(xml);
-		xml.node("affinity-space", [&] {
-			xml.attribute("width", affinity_space().width());
-			xml.attribute("height", affinity_space().height());
+		_init_additional_platform_info(g);
+		g.node("affinity-space", [&] {
+			g.attribute("width",  affinity_space().width());
+			g.attribute("height", affinity_space().height());
 		});
 	}).with_error([] (Buffer_error) {
 		warning("platform info exceeds maximum buffer size"); });

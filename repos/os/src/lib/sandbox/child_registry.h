@@ -81,14 +81,14 @@ class Sandbox::Child_registry : public Name_registry, Child_list
 			}
 		}
 
-		void report_state(Xml_generator &xml, Report_detail const &detail) const
+		void report_state(Generator &g, Report_detail const &detail) const
 		{
-			for_each_child([&] (Child &child) { child.report_state(xml, detail); });
+			for_each_child([&] (Child &child) { child.report_state(g, detail); });
 
 			for (Alias const *a = _aliases.first(); a; a = a->next()) {
-				xml.node("alias", [&] () {
-					xml.attribute("name", a->name);
-					xml.attribute("child", a->child);
+				g.node("alias", [&] () {
+					g.attribute("name", a->name);
+					g.attribute("child", a->child);
 				});
 			}
 		}

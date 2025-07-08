@@ -16,7 +16,6 @@
 #include <vfs/dir_file_system.h>
 #include <vfs/single_file_system.h>
 #include <util/arg_string.h>
-#include <util/xml_generator.h>
 
 /* OpenSSL includes */
 #include <openssl/sha.h>
@@ -1966,15 +1965,15 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 		{
 			char buf[Config::capacity()] { };
 
-			Xml_generator::generate({ buf, sizeof(buf) }, "dir", [&] (Xml_generator &xml) {
+			Generator::generate({ buf, sizeof(buf) }, "dir", [&] (Generator &g) {
 
-				xml.attribute("name", node.attribute_value("name", String<32>("")));
+				g.attribute("name", node.attribute_value("name", String<32>("")));
 
-				xml.node("decrypt");
-				xml.node("encrypt");
-				xml.node("generate_key");
-				xml.node("hash");
-				xml.node("initialize");
+				g.node("decrypt");
+				g.node("encrypt");
+				g.node("generate_key");
+				g.node("hash");
+				g.node("initialize");
 
 			}).with_error([] (Genode::Buffer_error) {
 				Genode::warning("VFS-tresor_trust_anchor config exceeds maximum buffer size");

@@ -835,7 +835,7 @@ struct Scan_results_cmd : Action
 			return;
 
 		try {
-			_reporter.generate([&] (Xml_generator &xml) {
+			_reporter.generate([&] (Generator &g) {
 
 				for_each_result_line(msg, [&] (Accesspoint const &ap) {
 
@@ -843,12 +843,12 @@ struct Scan_results_cmd : Action
 					if (ap.ssid == "")
 						return;
 
-					xml.node("accesspoint", [&]() {
-						xml.attribute("ssid",    ap.ssid);
-						xml.attribute("bssid",   ap.bssid);
-						xml.attribute("freq",    ap.freq);
-						xml.attribute("quality", ap.quality);
-						if (ap.wpa()) { xml.attribute("protection", ap.prot); }
+					g.node("accesspoint", [&]() {
+						g.attribute("ssid",    ap.ssid);
+						g.attribute("bssid",   ap.bssid);
+						g.attribute("freq",    ap.freq);
+						g.attribute("quality", ap.quality);
+						if (ap.wpa()) { g.attribute("protection", ap.prot); }
 					});
 				});
 			});
@@ -1828,25 +1828,25 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 			 && ap.freq    == old.ap.freq)
 				return;
 
-			reporter.generate([&] (Xml_generator &xml) {
-				xml.node("accesspoint", [&] () {
-					xml.attribute("ssid",  ap.ssid);
-					xml.attribute("bssid", ap.bssid);
-					xml.attribute("freq",  ap.freq);
+			reporter.generate([&] (Generator &g) {
+				g.node("accesspoint", [&] () {
+					g.attribute("ssid",  ap.ssid);
+					g.attribute("bssid", ap.bssid);
+					g.attribute("freq",  ap.freq);
 
 					if (state == Join_state::State::CONNECTED)
-						xml.attribute("state", "connected");
+						g.attribute("state", "connected");
 					else
 
 					if (state == Join_state::State::DISCONNECTED) {
-						xml.attribute("state", "disconnected");
-						xml.attribute("rfkilled",     rfkilled);
-						xml.attribute("auth_failure", auth_failure);
-						xml.attribute("not_found",    not_found);
+						g.attribute("state", "disconnected");
+						g.attribute("rfkilled",     rfkilled);
+						g.attribute("auth_failure", auth_failure);
+						g.attribute("not_found",    not_found);
 					} else
 
 					if (state == Join_state::State::CONNECTING)
-						xml.attribute("state", "connecting");
+						g.attribute("state", "connecting");
 
 					/*
 					 * Only add the attribute when we have something
@@ -1854,7 +1854,7 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 					 * may take appropriate actions.
 					 */
 					if (ap.quality)
-						xml.attribute("quality", ap.quality);
+						g.attribute("quality", ap.quality);
 				});
 			});
 		}
@@ -2158,14 +2158,14 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 		 */
 		{
 			_ap_reporter.construct(env, "accesspoints", "accesspoints");
-			_ap_reporter->generate([&] (Genode::Xml_generator &) { });
+			_ap_reporter->generate([&] (Genode::Generator &) { });
 		}
 
 		{
 			_state_reporter.construct(env, "state", "state");
-			_state_reporter->generate([&] (Genode::Xml_generator &xml) {
-				xml.node("accesspoint", [&] () {
-					xml.attribute("state", "disconnected");
+			_state_reporter->generate([&] (Genode::Generator &g) {
+				g.node("accesspoint", [&] () {
+					g.attribute("state", "disconnected");
 				});
 			});
 		}

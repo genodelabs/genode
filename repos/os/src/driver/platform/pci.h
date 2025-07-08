@@ -35,10 +35,10 @@ namespace Driver {
 	                    Irq_session::Type type);
 	bool pci_device_matches(Genode::Node const &policy,
 	                        Device const &);
-	void pci_device_specific_info(Device const  &,
-	                              Env           &,
-	                              Device_model  &,
-	                              Xml_generator &);
+	void pci_device_specific_info(Device const &,
+	                              Env          &,
+	                              Device_model &,
+	                              Generator    &);
 	void pci_resume_bridges(Env &, Device_model &);
 }
 

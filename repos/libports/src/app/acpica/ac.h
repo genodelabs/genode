@@ -70,16 +70,16 @@ class Ac : Acpica::Callback<Ac> {
 			return AE_OK;
 		}
 
-		void generate(Genode::Xml_generator &xml)
+		void generate(Genode::Generator &g)
 		{
-			xml.attribute("value", _ac_state);
-			xml.attribute("count", _ac_count);
+			g.attribute("value", _ac_state);
+			g.attribute("count", _ac_count);
 
 			if (_ac_state == 0)
-				xml.append("offline");
+				g.append_quoted("offline");
 			else if (_ac_state == 1)
-				xml.append("online");
+				g.append_quoted("online");
 			else
-				xml.append("unknown");
+				g.append_quoted("unknown");
 		}
 };

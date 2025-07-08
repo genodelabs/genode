@@ -16,10 +16,10 @@
 #include <device.h>
 
 namespace Driver {
-	void pci_intel_graphics_info(Device::Pci_config const &cfg,
-	                             Env                      &env,
-	                             Device_model             &model,
-	                             Xml_generator            &xml);
+	void pci_intel_graphics_info(Device::Pci_config const &,
+	                             Env                      &,
+	                             Device_model             &,
+	                             Generator                &);
 }
 
 
@@ -78,7 +78,7 @@ static inline unsigned pci_intel_graphics_generation(Pci::device_t id)
 void Driver::pci_intel_graphics_info(Device::Pci_config const &cfg,
                                      Env                      &env,
                                      Device_model             &model,
-                                     Xml_generator            &xml)
+                                     Generator                &g)
 {
 	enum {
 		GPU_CLASS_MASK = 0xff0000,
@@ -117,7 +117,7 @@ void Driver::pci_intel_graphics_info(Device::Pci_config const &cfg,
 			else
 				gmch = config.read<Host_bridge::Gen_gmch_control>();
 
-			xml.attribute("intel_gmch_control", String<16>(Hex(gmch)));
+			g.attribute("intel_gmch_control", String<16>(Hex(gmch)));
 		});
 	});
 }

@@ -28,7 +28,7 @@ namespace Record_rom {
 }
 
 
-struct Record_rom::Main : Dynamic_rom_session::Xml_producer
+struct Record_rom::Main : Dynamic_rom_session::Producer
 {
 	Env &_env;
 
@@ -121,11 +121,11 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 			_attr = Attr::from_node(node, defaults);
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
 			unsigned const num_values = min(_capture.count(), 1000u);
 			for (unsigned i = 0; i < num_values; i++)
-				xml.append_content(_capture.past_value(num_values - i), "\n");
+				g.append_quoted(String<160>(_capture.past_value(num_values - i), "\n").string());
 		}
 
 		Record::Num_samples num_samples(unsigned period_ms) const
@@ -234,15 +234,15 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 	}
 
 	/**
-	 * Dynamic_rom_session::Xml_producer
+	 * Dynamic_rom_session::Producer
 	 */
-	void produce_xml(Xml_generator &xml) override
+	void generate(Generator &g) override
 	{
 		_channels.for_each([&] (Channel const &channel) {
-			xml.node("channel", [&] {
-				xml.attribute("label",   channel.label);
-				xml.attribute("rate_hz", channel._attr.sample_rate_hz);
-				channel.generate(xml);
+			g.node("channel", [&] {
+				g.attribute("label",   channel.label);
+				g.attribute("rate_hz", channel._attr.sample_rate_hz);
+				channel.generate(g);
 			});
 		});
 	}
@@ -273,7 +273,7 @@ struct Record_rom::Main : Dynamic_rom_session::Xml_producer
 
 	} _rom_root { _env, _heap, *this };
 
-	Main(Env &env) : Xml_producer("recording"), _env(env)
+	Main(Env &env) : Producer("recording"), _env(env)
 	{
 		_timer.sigh(_timer_handler);
 		_config.sigh(_config_handler);

@@ -32,77 +32,77 @@ struct Test::Main
 
 	Expanding_reporter _init_config_reporter { _env, "config",  "init.config" };
 
-	void _gen_log_server_start_content(Xml_generator &xml) const
+	void _gen_log_server_start_content(Generator &g) const
 	{
-		xml.attribute("name", "server");
-		xml.attribute("caps", "100");
-		xml.node("resource", [&] () {
-			xml.attribute("name", "RAM");
-			xml.attribute("quantum", "1M"); });
+		g.attribute("name", "server");
+		g.attribute("caps", "100");
+		g.node("resource", [&] () {
+			g.attribute("name", "RAM");
+			g.attribute("quantum", "1M"); });
 
-		xml.node("binary", [&] () {
-			xml.attribute("name", "dummy"); });
+		g.node("binary", [&] () {
+			g.attribute("name", "dummy"); });
 
-		xml.node("config", [&] () {
-			xml.node("log_service", [&] () {}); });
+		g.node("config", [&] () {
+			g.node("log_service", [&] () {}); });
 
-		xml.node("provides", [&] () {
-			xml.node("service", [&] () {
-				xml.attribute("name", Log_session::service_name()); }); });
+		g.node("provides", [&] () {
+			g.node("service", [&] () {
+				g.attribute("name", Log_session::service_name()); }); });
 
-		xml.node("route", [&] () {
-			xml.node("any-service", [&] () {
-				xml.node("parent", [&] () {}); }); });
+		g.node("route", [&] () {
+			g.node("any-service", [&] () {
+				g.node("parent", [&] () {}); }); });
 	}
 
-	void _gen_log_client_start_content(Xml_generator &xml) const
+	void _gen_log_client_start_content(Generator &g) const
 	{
-		xml.attribute("name", "client");
-		xml.attribute("caps", "200");
-		xml.node("resource", [&] () {
-			xml.attribute("name", "RAM");
-			xml.attribute("quantum", "1M"); });
+		g.attribute("name", "client");
+		g.attribute("caps", "200");
+		g.node("resource", [&] () {
+			g.attribute("name", "RAM");
+			g.attribute("quantum", "1M"); });
 
-		xml.node("binary", [&] () {
-			xml.attribute("name", "dummy"); });
+		g.node("binary", [&] () {
+			g.attribute("name", "dummy"); });
 
-		xml.node("config", [&] () {
-			xml.node("create_log_connections", [&] () {
-				xml.attribute("count", 1);
-				xml.attribute("ram_upgrade", "64K");
+		g.node("config", [&] () {
+			g.node("create_log_connections", [&] () {
+				g.attribute("count", 1);
+				g.attribute("ram_upgrade", "64K");
 			});
-			xml.node("log", [&] () {
-				xml.attribute("string", "client started"); }); });
+			g.node("log", [&] () {
+				g.attribute("string", "client started"); }); });
 
-		xml.node("route", [&] () {
+		g.node("route", [&] () {
 
-			xml.node("service", [&] () {
-				xml.attribute("name", Log_session::service_name());
-				xml.node("child", [&] () {
-					xml.attribute("name", "server"); });
+			g.node("service", [&] () {
+				g.attribute("name", Log_session::service_name());
+				g.node("child", [&] () {
+					g.attribute("name", "server"); });
 			});
 
-			xml.node("any-service", [&] () {
-				xml.node("parent", [&] () {}); });
+			g.node("any-service", [&] () {
+				g.node("parent", [&] () {}); });
 		});
 	}
 
-	void _gen_init_config(Xml_generator &xml) const
+	void _gen_init_config(Generator &g) const
 	{
-		xml.node("report", [&] () {
-			xml.attribute("requested",  "yes");
-			xml.attribute("provided",   "yes");
-			xml.attribute("init_ram",   "yes");
-			xml.attribute("init_caps",  "yes");
-			xml.attribute("child_ram",  "yes");
-			xml.attribute("child_caps", "yes");
-			xml.attribute("delay_ms",    100);
+		g.node("report", [&] () {
+			g.attribute("requested",  "yes");
+			g.attribute("provided",   "yes");
+			g.attribute("init_ram",   "yes");
+			g.attribute("init_caps",  "yes");
+			g.attribute("child_ram",  "yes");
+			g.attribute("child_caps", "yes");
+			g.attribute("delay_ms",    100);
 		});
 
 		auto gen_service = [&] (char const *name) {
-			xml.node("service", [&] () { xml.attribute("name", name); }); };
+			g.node("service", [&] () { g.attribute("name", name); }); };
 
-		xml.node("parent-provides", [&] () {
+		g.node("parent-provides", [&] () {
 			gen_service("ROM");
 			gen_service("CPU");
 			gen_service("PD");
@@ -110,18 +110,18 @@ struct Test::Main
 			gen_service("LOG");
 		});
 
-		xml.node("start", [&] () {
-			_gen_log_server_start_content(xml); });
+		g.node("start", [&] () {
+			_gen_log_server_start_content(g); });
 
 		if (_client_starting)
-			xml.node("start", [&] () {
-				_gen_log_client_start_content(xml); });
+			g.node("start", [&] () {
+				_gen_log_client_start_content(g); });
 	}
 
 	void generate_init_config()
 	{
-		_init_config_reporter.generate([&] (Xml_generator &xml) {
-			_gen_init_config(xml); });
+		_init_config_reporter.generate([&] (Generator &g) {
+			_gen_init_config(g); });
 	}
 
 	/*

@@ -21,8 +21,6 @@
 #include <platform_session/device.h>
 #include <util/list.h>
 #include <util/list_model.h>
-#include <util/reconstructible.h>
-#include <util/xml_generator.h>
 
 #include <shared_irq.h>
 #include <clock.h>
@@ -432,7 +430,7 @@ class Driver::Device : private List_model<Device>::Element
 			});
 		}
 
-		void generate(Xml_generator &, bool) const;
+		void generate(Generator &, bool) const;
 
 		void update(Allocator &, Node const &, Reserved_memory_handler &);
 
@@ -508,7 +506,7 @@ class Driver::Device_model
 
 	public:
 
-		void generate(Xml_generator &xml) const;
+		void generate(Generator &) const;
 		void update(Node const &node, Reserved_memory_handler &);
 		void device_status_changed();
 

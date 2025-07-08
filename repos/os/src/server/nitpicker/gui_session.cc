@@ -458,11 +458,11 @@ Dataspace_capability Gui_session::realloc_buffer(Framebuffer::Mode mode)
 }
 
 
-void Gui_session::produce_xml(Xml_generator &xml)
+void Gui_session::generate(Generator &g)
 {
 	Rect const domain_panorama =
 		_domain ? _domain->screen_rect(_view_stack.bounding_box())
 		        : Rect { };
 
-	_action.gen_capture_info(xml, domain_panorama);
+	_action.gen_capture_info(g, domain_panorama);
 }

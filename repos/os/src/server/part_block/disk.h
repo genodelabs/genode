@@ -51,18 +51,18 @@ class Block::Disk : public Partition_table
 			return partition_valid(num) ? _part.sectors : 0;
 		}
 
-		void generate_report(Xml_generator &xml) const override
+		void generate_report(Generator &g) const override
 		{
-			xml.attribute("type", "disk");
+			g.attribute("type", "disk");
 
-			xml.node("partition", [&] {
-				xml.attribute("number",     0);
-				xml.attribute("start",      _part.lba);
-				xml.attribute("length",     _part.sectors);
-				xml.attribute("block_size", _info.block_size);
+			g.node("partition", [&] {
+				g.attribute("number",     0);
+				g.attribute("start",      _part.lba);
+				g.attribute("length",     _part.sectors);
+				g.attribute("block_size", _info.block_size);
 
 				if (_part.fs_type.valid())
-					xml.attribute("file_system", _part.fs_type);
+					g.attribute("file_system", _part.fs_type);
 			});
 		}
 };

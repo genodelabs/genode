@@ -162,19 +162,19 @@ struct Sculpt::Main : Input_event_handler,
 			};
 		}
 
-		void generate(Xml_generator &xml, Screensaver const &screensaver) const
+		void generate(Generator &g, Screensaver const &screensaver) const
 		{
 			if (state.length() > 1)
-				xml.attribute("state", state);
+				g.attribute("state", state);
 
 			if (power_profile.length() > 1) {
 				if (power_profile == "performance" && !screensaver.display_enabled())
-					xml.attribute("power_profile", "economic");
+					g.attribute("power_profile", "economic");
 				else
-					xml.attribute("power_profile", power_profile);
+					g.attribute("power_profile", power_profile);
 			}
 
-			xml.attribute("brightness", brightness);
+			g.attribute("brightness", brightness);
 		}
 
 		bool operator != (System const &other) const
@@ -189,8 +189,8 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _update_managed_system_config()
 	{
-		_system_config.generate([&] (Xml_generator &xml) {
-			_system.generate(xml, _screensaver); }); }
+		_system_config.generate([&] (Generator &g) {
+			_system.generate(g, _screensaver); }); }
 
 	void _handle_system_config(Node const &node)
 	{
@@ -232,9 +232,9 @@ struct Sculpt::Main : Input_event_handler,
 	/**
 	 * Drivers::Info
 	 */
-	void gen_usb_storage_policies(Xml_generator &xml) const override
+	void gen_usb_storage_policies(Generator &g) const override
 	{
-		_storage.gen_usb_storage_policies(xml);
+		_storage.gen_usb_storage_policies(g);
 	}
 
 	void _enter_second_driver_stage()
@@ -480,34 +480,34 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		if (_deploy._arch.valid()) {
 			_query_version.value++;
-			_depot_query_reporter.generate([&] (Xml_generator &xml) {
-				xml.attribute("arch",    _deploy._arch);
-				xml.attribute("version", _query_version.value);
+			_depot_query_reporter.generate([&] (Generator &g) {
+				g.attribute("arch",    _deploy._arch);
+				g.attribute("version", _query_version.value);
 
 				if (_software_tab_watches_depot() || !_scan_rom.valid())
-					xml.node("scan", [&] {
-						xml.attribute("users", "yes"); });
+					g.node("scan", [&] {
+						g.attribute("users", "yes"); });
 
 				if (_software_tab_watches_depot() || !_image_index_rom.valid())
-					xml.node("index", [&] {
-						xml.attribute("user",    _index_user);
-						xml.attribute("version", _sculpt_version);
-						xml.attribute("content", "yes");
+					g.node("index", [&] {
+						g.attribute("user",    _index_user);
+						g.attribute("version", _sculpt_version);
+						g.attribute("content", "yes");
 					});
 
 				if (_software_tab_watches_depot() || !_image_index_rom.valid())
-					xml.node("image_index", [&] {
-						xml.attribute("os",    "sculpt");
-						xml.attribute("board", _build_info.board);
-						xml.attribute("user",  _image_index_user);
+					g.node("image_index", [&] {
+						g.attribute("os",    "sculpt");
+						g.attribute("board", _build_info.board);
+						g.attribute("user",  _image_index_user);
 					});
 
 				_runtime_state.with_construction([&] (Component const &component) {
-					xml.node("blueprint", [&] {
-						xml.attribute("pkg", component.path); }); });
+					g.node("blueprint", [&] {
+						g.attribute("pkg", component.path); }); });
 
 				/* update query for blueprints of all unconfigured start nodes */
-				_deploy.gen_depot_query(xml);
+				_deploy.gen_depot_query(g);
 			});
 		}
 	}
@@ -1056,7 +1056,7 @@ struct Sculpt::Main : Input_event_handler,
 		_generate_dialog();
 	}
 
-	void _generate_runtime_config(Xml_generator &) const;
+	void _generate_runtime_config(Generator &) const;
 
 	/**
 	 * Runtime_config_generator interface
@@ -1064,8 +1064,8 @@ struct Sculpt::Main : Input_event_handler,
 	void generate_runtime_config() override
 	{
 		if (!_runtime_config.try_generate_manually_managed())
-			_runtime_config.generate([&] (Xml_generator &xml) {
-				_generate_runtime_config(xml); });
+			_runtime_config.generate([&] (Generator &g) {
+				_generate_runtime_config(g); });
 	}
 
 
@@ -1090,10 +1090,10 @@ struct Sculpt::Main : Input_event_handler,
 
 		Touch_keyboard(Touch_keyboard_attr attr) : attr(attr) { };
 
-		void gen_start_node(Xml_generator &xml) const
+		void gen_start_node(Generator &g) const
 		{
 			if (started)
-				gen_touch_keyboard(xml, attr);
+				gen_touch_keyboard(g, attr);
 		}
 	};
 
@@ -1620,19 +1620,19 @@ struct Sculpt::Main : Input_event_handler,
 			    || (audio_volume.value != other.audio_volume.value);
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
-			xml.node("earpiece", [&] {
-				xml.attribute("volume", earpiece ? 100 : 0);
+			g.node("earpiece", [&] {
+				g.attribute("volume", earpiece ? 100 : 0);
 			});
-			xml.node("speaker", [&] {
-				xml.attribute("volume", speaker  ? audio_volume.value : 0);
+			g.node("speaker", [&] {
+				g.attribute("volume", speaker  ? audio_volume.value : 0);
 			});
-			xml.node("mic", [&] {
-				xml.attribute("volume", mic ? 80 : 0);
+			g.node("mic", [&] {
+				g.attribute("volume", mic ? 80 : 0);
 			});
-			xml.node("codec", [&]() {
-				xml.attribute("target", modem ? "modem" : "soc");
+			g.node("codec", [&]() {
+				g.attribute("target", modem ? "modem" : "soc");
 			});
 		}
 	};
@@ -1669,8 +1669,8 @@ struct Sculpt::Main : Input_event_handler,
 
 		if (new_config != _curr_audio_config) {
 			_curr_audio_config = new_config;
-			_audio_config.generate([&] (Xml_generator &xml) {
-				_curr_audio_config.generate(xml); });
+			_audio_config.generate([&] (Generator &g) {
+				_curr_audio_config.generate(g); });
 		}
 	}
 
@@ -1814,11 +1814,11 @@ struct Sculpt::Main : Input_event_handler,
 			    || (current_call != other.current_call);
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
 			switch (modem_power) {
-			case Modem_config_power::OFF: xml.attribute("power", "off"); break;
-			case Modem_config_power::ON:  xml.attribute("power", "on");  break;
+			case Modem_config_power::OFF: g.attribute("power", "off"); break;
+			case Modem_config_power::ON:  g.attribute("power", "on");  break;
 			case Modem_config_power::ANY: break;
 			}
 
@@ -1826,12 +1826,12 @@ struct Sculpt::Main : Input_event_handler,
 			                     && sim_pin.suitable_for_unlock()
 			                     && sim_pin.confirmed;
 			if (supply_pin)
-				xml.attribute("pin", String<10>(sim_pin));
+				g.attribute("pin", String<10>(sim_pin));
 
-			xml.node("ring", [&] {
-				xml.append_content("AT+QLDTMF=5,\"4,3,6,#,D,3\",1"); });
+			g.node("ring", [&] {
+				g.append_quoted("AT+QLDTMF=5,\"4,3,6,#,D,3\",1"); });
 
-			current_call.gen_modem_config(xml);
+			current_call.gen_modem_config(g);
 		}
 	};
 
@@ -1887,12 +1887,12 @@ struct Sculpt::Main : Input_event_handler,
 
 			_curr_modem_config = new_config;
 
-			_modem_config.generate([&] (Xml_generator &xml) {
+			_modem_config.generate([&] (Generator &g) {
 
 				if (_verbose_modem)
-					xml.attribute("verbose", "yes");
+					g.attribute("verbose", "yes");
 
-				_curr_modem_config.generate(xml);
+				_curr_modem_config.generate(g);
 			});
 		}
 
@@ -2134,25 +2134,25 @@ void Sculpt::Main::_update_window_layout(Node const &decorator_margins,
 
 	auto generate_within_screen_boundary = [&] (auto const &fn)
 	{
-		_resize_request.generate([&] (Xml_generator &resize_xml) {
-			_window_layout.generate([&] (Xml_generator &xml) {
-				xml.node("boundary", [&] {
-					xml.attribute("width",  _screen_size.w);
-					xml.attribute("height", _screen_size.h);
-					fn(xml, resize_xml); }); }); });
+		_resize_request.generate([&] (Generator &resize_generator) {
+			_window_layout.generate([&] (Generator &g) {
+				g.node("boundary", [&] {
+					g.attribute("width",  _screen_size.w);
+					g.attribute("height", _screen_size.h);
+					fn(g, resize_generator); }); }); });
 	};
 
-	generate_within_screen_boundary([&] (Xml_generator &xml, Xml_generator &) {
+	generate_within_screen_boundary([&] (Generator &g, Generator &) {
 
 		auto gen_window = [&] (Node const &win, Rect rect) {
 			if (rect.valid()) {
-				xml.node("window", [&] {
-					xml.attribute("id",     win.attribute_value("id", 0UL));
-					xml.attribute("xpos",   rect.x1());
-					xml.attribute("ypos",   rect.y1());
-					xml.attribute("width",  rect.w());
-					xml.attribute("height", rect.h());
-					xml.attribute("title",  win.attribute_value("label", Label()));
+				g.node("window", [&] {
+					g.attribute("id",     win.attribute_value("id", 0UL));
+					g.attribute("xpos",   rect.x1());
+					g.attribute("ypos",   rect.y1());
+					g.attribute("width",  rect.w());
+					g.attribute("height", rect.h());
+					g.attribute("title",  win.attribute_value("label", Label()));
 				});
 			}
 		};
@@ -2412,69 +2412,69 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 }
 
 
-void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
+void Sculpt::Main::_generate_runtime_config(Generator &g) const
 {
-	xml.attribute("verbose", "yes");
+	g.attribute("verbose", "yes");
 
-	xml.attribute("prio_levels", _prio_levels.value);
+	g.attribute("prio_levels", _prio_levels.value);
 
-	xml.node("report", [&] {
-		xml.attribute("init_ram",   "yes");
-		xml.attribute("init_caps",  "yes");
-		xml.attribute("child_ram",  "yes");
-		xml.attribute("child_caps", "yes");
-		xml.attribute("delay_ms",   4*500);
-		xml.attribute("buffer",     "1M");
+	g.node("report", [&] {
+		g.attribute("init_ram",   "yes");
+		g.attribute("init_caps",  "yes");
+		g.attribute("child_ram",  "yes");
+		g.attribute("child_caps", "yes");
+		g.attribute("delay_ms",   4*500);
+		g.attribute("buffer",     "1M");
 	});
 
-	xml.node("heartbeat", [&] { xml.attribute("rate_ms", 2000); });
+	g.node("heartbeat", [&] { g.attribute("rate_ms", 2000); });
 
-	xml.node("parent-provides", [&] {
-		gen_parent_service<Rom_session>(xml);
-		gen_parent_service<Cpu_session>(xml);
-		gen_parent_service<Pd_session>(xml);
-		gen_parent_service<Rm_session>(xml);
-		gen_parent_service<Log_session>(xml);
-		gen_parent_service<Vm_session>(xml);
-		gen_parent_service<Timer::Session>(xml);
-		gen_parent_service<Report::Session>(xml);
-		gen_parent_service<Platform::Session>(xml);
-		gen_parent_service<Block::Session>(xml);
-		gen_parent_service<Usb::Session>(xml);
-		gen_parent_service<::File_system::Session>(xml);
-		gen_parent_service<Gui::Session>(xml);
-		gen_parent_service<Rtc::Session>(xml);
-		gen_parent_service<Trace::Session>(xml);
-		gen_parent_service<Io_mem_session>(xml);
-		gen_parent_service<Io_port_session>(xml);
-		gen_parent_service<Irq_session>(xml);
-		gen_parent_service<Event::Session>(xml);
-		gen_parent_service<Capture::Session>(xml);
-		gen_parent_service<Gpu::Session>(xml);
-		gen_parent_service<Pin_state::Session>(xml);
-		gen_parent_service<Pin_control::Session>(xml);
+	g.node("parent-provides", [&] {
+		gen_parent_service<Rom_session>(g);
+		gen_parent_service<Cpu_session>(g);
+		gen_parent_service<Pd_session>(g);
+		gen_parent_service<Rm_session>(g);
+		gen_parent_service<Log_session>(g);
+		gen_parent_service<Vm_session>(g);
+		gen_parent_service<Timer::Session>(g);
+		gen_parent_service<Report::Session>(g);
+		gen_parent_service<Platform::Session>(g);
+		gen_parent_service<Block::Session>(g);
+		gen_parent_service<Usb::Session>(g);
+		gen_parent_service<::File_system::Session>(g);
+		gen_parent_service<Gui::Session>(g);
+		gen_parent_service<Rtc::Session>(g);
+		gen_parent_service<Trace::Session>(g);
+		gen_parent_service<Io_mem_session>(g);
+		gen_parent_service<Io_port_session>(g);
+		gen_parent_service<Irq_session>(g);
+		gen_parent_service<Event::Session>(g);
+		gen_parent_service<Capture::Session>(g);
+		gen_parent_service<Gpu::Session>(g);
+		gen_parent_service<Pin_state::Session>(g);
+		gen_parent_service<Pin_control::Session>(g);
 	});
 
-	xml.node("affinity-space", [&] {
-		xml.attribute("width",  _affinity_space.width());
-		xml.attribute("height", _affinity_space.height());
+	g.node("affinity-space", [&] {
+		g.attribute("width",  _affinity_space.width());
+		g.attribute("height", _affinity_space.height());
 	});
 
-	_drivers.gen_start_nodes(xml);
+	_drivers.gen_start_nodes(g);
 
-	_dialog_runtime.gen_start_nodes(xml);
-	_storage.gen_runtime_start_nodes(xml);
-	_dir_query.gen_start_nodes(xml);
+	_dialog_runtime.gen_start_nodes(g);
+	_storage.gen_runtime_start_nodes(g);
+	_dir_query.gen_start_nodes(g);
 
 	if (_system.storage_stage) /* touch keyboard not needed at earliest boot stage */
-		_touch_keyboard.gen_start_node(xml);
+		_touch_keyboard.gen_start_node(g);
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition
 	 */
 	if (_storage._selected_target.valid() && _prepare_in_progress())
-		xml.node("start", [&] {
-			gen_prepare_start_content(xml, _prepare_version); });
+		g.node("start", [&] {
+			gen_prepare_start_content(g, _prepare_version); });
 
 	/*
 	 * Spawn chroot instances for accessing '/depot' and '/public'. The
@@ -2483,8 +2483,8 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	if (_storage._selected_target.valid()) {
 
 		auto chroot = [&] (Start_name const &name, Path const &path, Writeable w) {
-			xml.node("start", [&] {
-				gen_chroot_start_content(xml, name, path, w); }); };
+			g.node("start", [&] {
+				gen_chroot_start_content(g, name, path, w); }); };
 
 		if (_update_running()) {
 			chroot("depot_rw",  "/depot",  WRITEABLE);
@@ -2497,21 +2497,21 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	/* execute file operations */
 	if (_storage._selected_target.valid())
 		if (_file_operation_queue.any_operation_in_progress())
-			xml.node("start", [&] {
-				gen_fs_tool_start_content(xml, _fs_tool_version,
+			g.node("start", [&] {
+				gen_fs_tool_start_content(g, _fs_tool_version,
 				                          _file_operation_queue); });
 
-	_network.gen_runtime_start_nodes(xml);
+	_network.gen_runtime_start_nodes(g);
 
 	if (_update_running())
-		xml.node("start", [&] {
-			gen_update_start_content(xml); });
+		g.node("start", [&] {
+			gen_update_start_content(g); });
 
 	if (_storage._selected_target.valid() && !_prepare_in_progress()) {
-		xml.node("start", [&] {
-			gen_launcher_query_start_content(xml); });
+		g.node("start", [&] {
+			gen_launcher_query_start_content(g); });
 
-		_deploy.gen_runtime_start_nodes(xml, _prio_levels, _affinity_space);
+		_deploy.gen_runtime_start_nodes(g, _prio_levels, _affinity_space);
 	}
 }
 

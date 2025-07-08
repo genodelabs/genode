@@ -47,7 +47,7 @@ namespace Depot_deploy {
 
 	using Log_prefix = String<256>;
 
-	static constexpr Xml_generator::Max_depth MAX_NODE_DEPTH = { 20 };
+	static constexpr Generator::Max_depth MAX_NODE_DEPTH = { 20 };
 
 	class Child;
 	class Event;
@@ -291,17 +291,17 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		bool _configured() const;
 
-		void _gen_routes(Xml_generator          &,
+		void _gen_routes(Generator              &,
 		                 Xml_node         const &,
 		                 Depot_rom_server const &,
 		                 Depot_rom_server const &) const;
 
-		static void _gen_provides_sub_node(Xml_generator        &xml,
+		static void _gen_provides_sub_node(Generator            &,
 		                                   Xml_node       const &service,
 		                                   Xml_node::Type const &node_type,
 		                                   Service::Name  const &service_name);
 
-		static void _gen_copy_of_sub_node(Xml_generator        &xml,
+		static void _gen_copy_of_sub_node(Generator            &,
 		                                  Xml_node const       &from_node,
 		                                  Xml_node::Type const &sub_node_type);
 
@@ -346,7 +346,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		void reset_incomplete();
 
-		bool gen_query(Xml_generator &xml) const;
+		bool gen_query(Generator &) const;
 
 		/**
 		 * Generate start node of init configuration
@@ -361,7 +361,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 *                            the content of the depot user "local", which
 		 *                            is assumed to be mutable
 		 */
-		void gen_start_node(Xml_generator          &,
+		void gen_start_node(Generator              &,
 		                    Xml_node         const &common,
 		                    Depot_rom_server const &cached_depot_rom,
 		                    Depot_rom_server const &uncached_depot_rom);
@@ -369,7 +369,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/**
 		 * Generate installation entry needed for the completion of the child
 		 */
-		void gen_installation_entry(Xml_generator &xml) const;
+		void gen_installation_entry(Generator &) const;
 
 		template <typename FN>
 		void apply_if_unsatisfied(FN const &fn) const

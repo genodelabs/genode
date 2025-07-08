@@ -34,11 +34,11 @@ struct Mac_address : Registry<Mac_address>::Element
 		name(name), addr(addr)
 	{ }
 
-	void report(Xml_generator &report) const
+	void report(Generator &g) const
 	{
-		report.node("nic", [&] () {
-			report.attribute("name", name);
-			report.attribute("mac_address", String<20>(addr));
+		g.node("nic", [&] () {
+			g.attribute("name", name);
+			g.attribute("mac_address", String<20>(addr));
 		});
 	}
 };
@@ -73,9 +73,9 @@ void Mac_address_registry::_report()
 	if (!_reporter.constructed())
 		return;
 
-	_reporter->generate([&] (Xml_generator &report) {
+	_reporter->generate([&] (Generator &g) {
 		_registry.for_each([&] (Mac_address const &e) {
-			e.report(report);
+			e.report(g);
 		});
 	});
 }

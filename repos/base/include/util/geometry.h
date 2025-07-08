@@ -15,7 +15,7 @@
 #define _INCLUDE__UTIL__GEOMETRY_H_
 
 #include <util/misc_math.h>
-#include <util/xml_node.h>
+#include <base/node.h>
 #include <base/stdint.h>
 #include <base/output.h>
 

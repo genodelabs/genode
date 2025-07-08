@@ -18,8 +18,6 @@
 #ifndef _USER_STATE_H_
 #define _USER_STATE_H_
 
-#include <util/xml_generator.h>
-
 #include <focus.h>
 #include <view_stack.h>
 #include <global_keys.h>
@@ -169,12 +167,12 @@ class Nitpicker::User_state
 				return (key <= Input::KEY_MAX) && _states[key].pressed;
 			}
 
-			void report_state(Xml_generator &xml) const
+			void report_state(Generator &g) const
 			{
 				for (unsigned i = 0; i <= Input::KEY_MAX; i++)
 					if (_states[i].pressed)
-						xml.node("pressed", [&] () {
-							xml.attribute("key", Input::key_name((Input::Keycode)i)); });
+						g.node("pressed", [&] () {
+							g.attribute("key", Input::key_name((Input::Keycode)i)); });
 			}
 
 		} _key_array { };
@@ -290,12 +288,12 @@ class Nitpicker::User_state
 
 		Update_hover_result update_hover();
 
-		void report_keystate(Xml_generator &) const;
-		void report_pointer_position(Xml_generator &) const;
-		void report_hovered_view_owner(Xml_generator &, bool motion_active) const;
-		void report_focused_view_owner(Xml_generator &, bool button_active) const;
-		void report_touched_view_owner(Xml_generator &, bool touch_active)  const;
-		void report_last_clicked_view_owner(Xml_generator &) const;
+		void report_keystate(Generator &) const;
+		void report_pointer_position(Generator &) const;
+		void report_hovered_view_owner(Generator &, bool motion_active) const;
+		void report_focused_view_owner(Generator &, bool button_active) const;
+		void report_touched_view_owner(Generator &, bool touch_active)  const;
+		void report_last_clicked_view_owner(Generator &) const;
 
 		/**
 		 * Enable/disable direct focus changes by clicking on a client

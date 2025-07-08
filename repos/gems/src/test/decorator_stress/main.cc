@@ -51,23 +51,23 @@ void report_window_layout(Param param, Genode::Expanding_reporter &reporter)
 	float w = 1024;
 	float h = 768;
 
-	reporter.generate([&] (Genode::Xml_generator &xml) {
+	reporter.generate([&] (Genode::Generator &g) {
 
-		xml.node("boundary", [&] {
-			xml.attribute("width",  unsigned(w));
-			xml.attribute("height", unsigned(h));
+		g.node("boundary", [&] {
+			g.attribute("width",  unsigned(w));
+			g.attribute("height", unsigned(h));
 
 			for (unsigned i = 1; i <= 10; i++) {
 
-				xml.node("window", [&] {
-					xml.attribute("id", i);
-					xml.attribute("xpos",   (long)(w * (0.25 + sin(param.angle[0])/5)));
-					xml.attribute("ypos",   (long)(h * (0.25 + sin(param.angle[1])/5)));
-					xml.attribute("width",  (long)(w * (0.25 + sin(param.angle[2])/5)));
-					xml.attribute("height", (long)(h * (0.25 + sin(param.angle[3])/5)));
+				g.node("window", [&] {
+					g.attribute("id", i);
+					g.attribute("xpos",   (long)(w * (0.25 + sin(param.angle[0])/5)));
+					g.attribute("ypos",   (long)(h * (0.25 + sin(param.angle[1])/5)));
+					g.attribute("width",  (long)(w * (0.25 + sin(param.angle[2])/5)));
+					g.attribute("height", (long)(h * (0.25 + sin(param.angle[3])/5)));
 
 					if (i == 2)
-						xml.attribute("focused", "yes");
+						g.attribute("focused", "yes");
 				});
 
 				param = param + Param(2.2, 3.3, 4.4, 5.5);

@@ -72,48 +72,48 @@ struct Sculpt::File_browser_state : Noncopyable
 
 	bool any_browsed_fs() const { return browsed_fs.length() > 0; }
 
-	void gen_start_nodes(Xml_generator &xml) const
+	void gen_start_nodes(Generator &g) const
 	{
 		if (!fs_query.constructed() || !any_browsed_fs())
 			return;
 
-		xml.node("start", [&] {
-			fs_query->gen_start_node_content(xml);
+		g.node("start", [&] {
+			fs_query->gen_start_node_content(g);
 
-			gen_named_node(xml, "binary", "fs_query");
+			gen_named_node(g, "binary", "fs_query");
 
-			xml.node("config", [&] {
-				xml.node("vfs", [&] {
-					xml.node("fs", [&] {}); });
+			g.node("config", [&] {
+				g.node("vfs", [&] {
+					g.node("fs", [&] {}); });
 
-				xml.node("query", [&] {
-					xml.attribute("path", path);
+				g.node("query", [&] {
+					g.attribute("path", path);
 				});
 			});
 
-			xml.node("route", [&] {
-				gen_parent_rom_route(xml, "fs_query");
-				gen_parent_rom_route(xml, "ld.lib.so");
-				gen_parent_rom_route(xml, "vfs.lib.so");
+			g.node("route", [&] {
+				gen_parent_rom_route(g, "fs_query");
+				gen_parent_rom_route(g, "ld.lib.so");
+				gen_parent_rom_route(g, "vfs.lib.so");
 
-				gen_parent_route<Cpu_session>     (xml);
-				gen_parent_route<Pd_session>      (xml);
-				gen_parent_route<Log_session>     (xml);
-				gen_parent_route<Report::Session> (xml);
+				gen_parent_route<Cpu_session>     (g);
+				gen_parent_route<Pd_session>      (g);
+				gen_parent_route<Log_session>     (g);
+				gen_parent_route<Report::Session> (g);
 
-				gen_service_node<::File_system::Session>(xml, [&] {
+				gen_service_node<::File_system::Session>(g, [&] {
 
 					if (browsed_fs == "config") {
-						xml.node("parent", [&] {
-							xml.attribute("identity", "config"); });
+						g.node("parent", [&] {
+							g.attribute("identity", "config"); });
 					}
 					else if (browsed_fs == "report") {
-						xml.node("parent", [&] {
-							xml.attribute("identity", "report"); });
+						g.node("parent", [&] {
+							g.attribute("identity", "report"); });
 					}
 					else {
-						xml.node("child", [&] {
-							xml.attribute("name", browsed_fs); });
+						g.node("child", [&] {
+							g.attribute("name", browsed_fs); });
 					}
 				});
 			});
@@ -122,82 +122,82 @@ struct Sculpt::File_browser_state : Noncopyable
 		if (edited_file.length() <= 1 || !text_area.constructed())
 			return;
 
-		xml.node("start", [&] {
-			text_area->gen_start_node_content(xml);
+		g.node("start", [&] {
+			text_area->gen_start_node_content(g);
 
-			gen_named_node(xml, "binary", "text_area");
+			gen_named_node(g, "binary", "text_area");
 
-			xml.node("config", [&] {
+			g.node("config", [&] {
 				Path const file_path = (path == "/")
 				                     ? Path("/", edited_file)
 				                     : Path(path, "/", edited_file);
-				xml.attribute("path", file_path);
-				xml.attribute("max_lines", 40);
-				xml.attribute("min_width", 600);
-				xml.attribute("copy", "yes");
+				g.attribute("path", file_path);
+				g.attribute("max_lines", 40);
+				g.attribute("min_width", 600);
+				g.attribute("copy", "yes");
 
 				if (edit)
-					xml.attribute("paste", "yes");
+					g.attribute("paste", "yes");
 				else
-					xml.attribute("watch", "yes");
+					g.attribute("watch", "yes");
 
 				if (edit) {
-					xml.node("save", [&] {
-						xml.attribute("version", save_version); });
+					g.node("save", [&] {
+						g.attribute("version", save_version); });
 
-					xml.node("report", [&] {
-						xml.attribute("saved", "yes"); });
+					g.node("report", [&] {
+						g.attribute("saved", "yes"); });
 				}
 
-				xml.node("vfs", [&] {
-					xml.node("fs", [&] {}); });
+				g.node("vfs", [&] {
+					g.node("fs", [&] {}); });
 			});
 
-			xml.node("route", [&] {
-				gen_parent_rom_route(xml, "text_area");
-				gen_parent_rom_route(xml, "ld.lib.so");
-				gen_parent_rom_route(xml, "vfs.lib.so");
-				gen_parent_rom_route(xml, "sandbox.lib.so");
-				gen_parent_rom_route(xml, "dialog.lib.so");
-				gen_parent_rom_route(xml, "menu_view");
-				gen_parent_rom_route(xml, "libc.lib.so");
-				gen_parent_rom_route(xml, "libm.lib.so");
-				gen_parent_rom_route(xml, "libpng.lib.so");
-				gen_parent_rom_route(xml, "zlib.lib.so");
-				gen_parent_rom_route(xml, "menu_view_styles.tar");
+			g.node("route", [&] {
+				gen_parent_rom_route(g, "text_area");
+				gen_parent_rom_route(g, "ld.lib.so");
+				gen_parent_rom_route(g, "vfs.lib.so");
+				gen_parent_rom_route(g, "sandbox.lib.so");
+				gen_parent_rom_route(g, "dialog.lib.so");
+				gen_parent_rom_route(g, "menu_view");
+				gen_parent_rom_route(g, "libc.lib.so");
+				gen_parent_rom_route(g, "libm.lib.so");
+				gen_parent_rom_route(g, "libpng.lib.so");
+				gen_parent_rom_route(g, "zlib.lib.so");
+				gen_parent_rom_route(g, "menu_view_styles.tar");
 
-				gen_parent_route<Cpu_session>     (xml);
-				gen_parent_route<Pd_session>      (xml);
-				gen_parent_route<Log_session>     (xml);
-				gen_parent_route<Report::Session> (xml);
-				gen_parent_route<Timer::Session>  (xml);
+				gen_parent_route<Cpu_session>     (g);
+				gen_parent_route<Pd_session>      (g);
+				gen_parent_route<Log_session>     (g);
+				gen_parent_route<Report::Session> (g);
+				gen_parent_route<Timer::Session>  (g);
 
-				gen_service_node<Rom_session>(xml, [&] {
-					xml.attribute("label", "clipboard");
-					xml.node("parent", [&] { }); });
+				gen_service_node<Rom_session>(g, [&] {
+					g.attribute("label", "clipboard");
+					g.node("parent", [&] { }); });
 
-				gen_service_node<Gui::Session>(xml, [&] {
-					xml.node("parent", [&] {
-						xml.attribute("label", "leitzentrale -> editor"); }); });
+				gen_service_node<Gui::Session>(g, [&] {
+					g.node("parent", [&] {
+						g.attribute("label", "leitzentrale -> editor"); }); });
 
-				gen_service_node<::File_system::Session>(xml, [&] {
-					xml.attribute("label_prefix", "fonts ->");
-					xml.node("parent", [&] {
-						xml.attribute("identity", "leitzentrale -> fonts"); }); });
+				gen_service_node<::File_system::Session>(g, [&] {
+					g.attribute("label_prefix", "fonts ->");
+					g.node("parent", [&] {
+						g.attribute("identity", "leitzentrale -> fonts"); }); });
 
-				gen_service_node<::File_system::Session>(xml, [&] {
+				gen_service_node<::File_system::Session>(g, [&] {
 
 					if (browsed_fs == "config") {
-						xml.node("parent", [&] {
-							xml.attribute("identity", "config"); });
+						g.node("parent", [&] {
+							g.attribute("identity", "config"); });
 					}
 					else if (browsed_fs == "report") {
-						xml.node("parent", [&] {
-							xml.attribute("identity", "report"); });
+						g.node("parent", [&] {
+							g.attribute("identity", "report"); });
 					}
 					else {
-						xml.node("child", [&] {
-							xml.attribute("name", browsed_fs); });
+						g.node("child", [&] {
+							g.attribute("name", browsed_fs); });
 					}
 				});
 			});

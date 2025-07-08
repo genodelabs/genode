@@ -15,7 +15,6 @@
 #define _MODEL__RUNTIME_STATE_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <util/list_model.h>
 
 /* local includes */
@@ -180,38 +179,38 @@ class Sculpt::Runtime_state : public Runtime_info
 				construction.construct(alloc, name, pkg_path, verify, info, space);
 			}
 
-			void gen_deploy_start_node(Xml_generator &xml, Runtime_state const &state) const
+			void gen_deploy_start_node(Generator &g, Runtime_state const &state) const
 			{
 				if (!launched)
 					return;
 
-				gen_named_node(xml, "start", name, [&] {
+				gen_named_node(g, "start", name, [&] {
 
 					Version const version = state.restarted_version(name);
 
 					if (version.value > 0)
-						xml.attribute("version", version.value);
+						g.attribute("version", version.value);
 
 					/* interactively constructed */
 					if (construction.constructed()) {
-						xml.attribute("pkg", construction->path);
+						g.attribute("pkg", construction->path);
 
-						construction->gen_priority(xml);
-						construction->gen_system_control(xml);
-						construction->gen_affinity(xml);
-						construction->gen_monitor(xml);
+						construction->gen_priority(g);
+						construction->gen_system_control(g);
+						construction->gen_affinity(g);
+						construction->gen_monitor(g);
 
-						xml.node("route", [&] {
-							construction->gen_pd_cpu_route(xml);
+						g.node("route", [&] {
+							construction->gen_pd_cpu_route(g);
 
 							construction->routes.for_each([&] (Route const &route) {
-								route.gen_xml(xml); }); });
+								route.generate(g); }); });
 					}
 
 					/* created via launcher */
 					else {
 						if (name != launcher)
-							xml.attribute("launcher", launcher);
+							g.attribute("launcher", launcher);
 					}
 				});
 			}
@@ -316,10 +315,10 @@ class Sculpt::Runtime_state : public Runtime_info
 		/**
 		 * Runtime_info interface
 		 */
-		void gen_launched_deploy_start_nodes(Xml_generator &xml) const override
+		void gen_launched_deploy_start_nodes(Generator &g) const override
 		{
 			_launched_children.for_each([&] (Launched_child const &child) {
-				child.gen_deploy_start_node(xml, *this); });
+				child.gen_deploy_start_node(g, *this); });
 		}
 
 		Info info(Start_name const &name) const

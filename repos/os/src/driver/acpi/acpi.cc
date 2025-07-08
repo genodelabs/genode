@@ -1659,42 +1659,42 @@ class Acpi_table
 			});
 		}
 
-		void generate_info(Xml_generator &xml) const
+		void generate_info(Generator &g) const
 		{
 			if (_sci_int_valid)
-				xml.node("sci_int", [&] () { xml.attribute("irq", _sci_int); });
+				g.node("sci_int", [&] () { g.attribute("irq", _sci_int); });
 
 			if (_dmar_info.constructed())
-				xml.node("dmar", [&] () {
-					xml.attribute("intr_remap",         _dmar_info->intr_remap);
-					xml.attribute("host_address_width", _dmar_info->host_address_width);
+				g.node("dmar", [&] () {
+					g.attribute("intr_remap",         _dmar_info->intr_remap);
+					g.attribute("host_address_width", _dmar_info->host_address_width);
 				});
 
 
 			if (!_reset_info.constructed())
 				return;
 
-			xml.node("reset", [&] () {
-				xml.attribute("io_port", String<32>(Hex(_reset_info->io_port)));
-				xml.attribute("value",   _reset_info->value);
+			g.node("reset", [&] () {
+				g.attribute("io_port", String<32>(Hex(_reset_info->io_port)));
+				g.attribute("value",   _reset_info->value);
 			});
 
 			Registry<Table_wrapper::Info> const &reg = _table_registry;
 			reg.for_each([&] (Table_wrapper::Info const &info) {
-				xml.node("table", [&] {
-					xml.attribute("name", info.name);
-					xml.attribute("addr", String<20>(Hex(info.addr)));
-					xml.attribute("size", info.size);
+				g.node("table", [&] {
+					g.attribute("name", info.name);
+					g.attribute("addr", String<20>(Hex(info.addr)));
+					g.attribute("size", info.size);
 				});
 			});
 		}
 };
 
 
-static void attribute_hex(Xml_generator &xml, char const *name,
+static void attribute_hex(Generator &g, char const *name,
                           unsigned long long value)
 {
-	xml.attribute(name, String<32>(Hex(value)));
+	g.attribute(name, String<32>(Hex(value)));
 }
 
 
@@ -1706,56 +1706,56 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 
 	static Expanding_reporter acpi(env, "acpi", "acpi");
 
-	acpi.generate([&] (Genode::Xml_generator &xml) {
+	acpi.generate([&] (Genode::Generator &g) {
 
-		acpi_table.generate_info(xml);
+		acpi_table.generate_info(g);
 
 		if (root_bridge_bdf != INVALID_ROOT_BRIDGE) {
-			xml.node("root_bridge", [&] () {
-				attribute_hex(xml, "bdf", root_bridge_bdf);
+			g.node("root_bridge", [&] () {
+				attribute_hex(g, "bdf", root_bridge_bdf);
 			});
 		}
 
 		for (Pci_config_space *e = Pci_config_space::list()->first(); e;
 		     e = e->next())
 		{
-			xml.node("bdf", [&] () {
-				xml.attribute("start", e->_bdf_start);
-				xml.attribute("count", e->_func_count);
-				attribute_hex(xml, "base", e->_base);
+			g.node("bdf", [&] () {
+				g.attribute("start", e->_bdf_start);
+				g.attribute("count", e->_func_count);
+				attribute_hex(g, "base", e->_base);
 			});
 		}
 
 		for (Irq_override *i = Irq_override::list()->first(); i; i = i->next())
 		{
-			xml.node("irq_override", [&] () {
-				xml.attribute("irq", i->irq());
-				xml.attribute("gsi", i->gsi());
-				attribute_hex(xml, "flags", i->flags());
+			g.node("irq_override", [&] () {
+				g.attribute("irq", i->irq());
+				g.attribute("gsi", i->gsi());
+				attribute_hex(g, "flags", i->flags());
 			});
 		}
 
 		for (Ioapic *i = Ioapic::list()->first(); i; i = i->next())
 		{
-			xml.node("ioapic", [&] () {
-				xml.attribute("id",        i->id());
-				xml.attribute("base_irq",  i->base_irq());
-				attribute_hex(xml, "addr", i->addr());
+			g.node("ioapic", [&] () {
+				g.attribute("id",        i->id());
+				g.attribute("base_irq",  i->base_irq());
+				attribute_hex(g, "addr", i->addr());
 			});
 		}
 
 		/* lambda definition for scope evaluation in rmrr */
 		auto func_scope = [&] (Device_scope const &scope)
 		{
-			xml.node("scope", [&] () {
-				xml.attribute("bus_start", scope.read<Device_scope::Bus>());
-				xml.attribute("id",   scope.read<Device_scope::Id>());
-				xml.attribute("type", scope.read<Device_scope::Type>());
+			g.node("scope", [&] () {
+				g.attribute("bus_start", scope.read<Device_scope::Bus>());
+				g.attribute("id",   scope.read<Device_scope::Id>());
+				g.attribute("type", scope.read<Device_scope::Type>());
 
 				scope.for_each_path([&](auto const &path) {
-					xml.node("path", [&] () {
-						attribute_hex(xml, "dev" , path.dev());
-						attribute_hex(xml, "func", path.func());
+					g.node("path", [&] () {
+						attribute_hex(g, "dev" , path.dev());
+						attribute_hex(g, "func", path.func());
 					});
 				});
 			});
@@ -1773,11 +1773,11 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 
 					size_t size_log2 = drhd.read<Dmar_drhd::Size::Num_pages>() + 12;
 
-					xml.node("drhd", [&] () {
-						attribute_hex(xml, "phys", drhd.read<Dmar_drhd::Phys>());
-						attribute_hex(xml, "flags", drhd.read<Dmar_drhd::Flags>());
-						attribute_hex(xml, "segment", drhd.read<Dmar_drhd::Segment>());
-						attribute_hex(xml, "size", 1 << size_log2);
+					g.node("drhd", [&] () {
+						attribute_hex(g, "phys", drhd.read<Dmar_drhd::Phys>());
+						attribute_hex(g, "flags", drhd.read<Dmar_drhd::Flags>());
+						attribute_hex(g, "segment", drhd.read<Dmar_drhd::Segment>());
+						attribute_hex(g, "size", 1 << size_log2);
 						drhd.apply(func_scope);
 					});
 				}
@@ -1787,9 +1787,9 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 
 				Dmar_rmrr rmrr(dmar.range());
 
-				xml.node("rmrr", [&] () {
-					attribute_hex(xml, "start", rmrr.read<Dmar_rmrr::Base>());
-					attribute_hex(xml, "end", rmrr.read<Dmar_rmrr::Limit>());
+				g.node("rmrr", [&] () {
+					attribute_hex(g, "start", rmrr.read<Dmar_rmrr::Base>());
+					attribute_hex(g, "end", rmrr.read<Dmar_rmrr::Limit>());
 
 					rmrr.apply(func_scope);
 				});
@@ -1797,8 +1797,8 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 		}
 
 		Ivdb_entry::for_each([&](auto entry) {
-			xml.node("ivdb", [&] () {
-				xml.attribute("type", entry.type);
+			g.node("ivdb", [&] () {
+				g.attribute("type", entry.type);
 			});
 		});
 
@@ -1811,11 +1811,11 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc,
 
 				Pci_routing *r = e->pci_list().first();
 				for (; r; r = r->next()) {
-					xml.node("routing", [&] () {
-						attribute_hex(xml, "gsi", r->gsi());
-						attribute_hex(xml, "bridge_bdf", e->bdf());
-						attribute_hex(xml, "device", r->device());
-						attribute_hex(xml, "device_pin", r->pin());
+					g.node("routing", [&] () {
+						attribute_hex(g, "gsi", r->gsi());
+						attribute_hex(g, "bridge_bdf", e->bdf());
+						attribute_hex(g, "device", r->device());
+						attribute_hex(g, "device_pin", r->pin());
 					});
 				}
 			}

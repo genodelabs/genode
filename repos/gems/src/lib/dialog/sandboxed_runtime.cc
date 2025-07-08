@@ -256,83 +256,83 @@ void Sandboxed_runtime::_handle_gui_service()
 }
 
 
-void Sandboxed_runtime::gen_start_nodes(Xml_generator &xml) const
+void Sandboxed_runtime::gen_start_nodes(Generator &g) const
 {
-	_menu_view_state.gen_start_node(xml, _views);
+	_menu_view_state.gen_start_node(g, _views);
 }
 
 
-void Sandboxed_runtime::Menu_view_state::gen_start_node(Xml_generator &xml, Views const &views) const
+void Sandboxed_runtime::Menu_view_state::gen_start_node(Generator &g, Views const &views) const
 {
-	xml.node("start", [&] () {
+	g.node("start", [&] () {
 
-		xml.attribute("name",    name);
-		xml.attribute("version", version);
-		xml.attribute("caps",    caps.value);
+		g.attribute("name",    name);
+		g.attribute("version", version);
+		g.attribute("caps",    caps.value);
 
-		xml.node("resource", [&] () {
-			xml.attribute("name", "RAM");
+		g.node("resource", [&] () {
+			g.attribute("name", "RAM");
 			Number_of_bytes const bytes(ram.value);
-			xml.attribute("quantum", String<64>(bytes)); });
+			g.attribute("quantum", String<64>(bytes)); });
 
-		xml.node("binary", [&] () {
-			xml.attribute("name", "menu_view"); });
+		g.node("binary", [&] () {
+			g.attribute("name", "menu_view"); });
 
-		xml.node("config", [&] () {
+		g.node("config", [&] () {
 
-			xml.node("report", [&] () {
-				xml.attribute("hover", "yes"); });
+			g.node("report", [&] () {
+				g.attribute("hover", "yes"); });
 
-			xml.node("libc", [&] () {
-				xml.attribute("stderr", "/dev/log"); });
+			g.node("libc", [&] () {
+				g.attribute("stderr", "/dev/log"); });
 
-			xml.node("vfs", [&] () {
-				xml.node("tar", [&] () {
-					xml.attribute("name", "menu_view_styles.tar"); });
-				xml.node("dir", [&] () {
-					xml.attribute("name", "dev");
-					xml.node("log", [&] () { });
+			g.node("vfs", [&] () {
+				g.node("tar", [&] () {
+					g.attribute("name", "menu_view_styles.tar"); });
+				g.node("dir", [&] () {
+					g.attribute("name", "dev");
+					g.node("log", [&] () { });
 				});
-				xml.node("dir", [&] () {
-					xml.attribute("name", "fonts");
-					xml.node("fs", [&] () {
-						xml.attribute("label", "fonts -> /");
+				g.node("dir", [&] () {
+					g.attribute("name", "fonts");
+					g.node("fs", [&] () {
+						g.attribute("label", "fonts -> /");
 					});
 				});
 			});
 
 			views.for_each([&] (View const &view) {
-				view._gen_menu_view_dialog(xml); });
+				view._gen_menu_view_dialog(g); });
 		});
 
-		xml.node("route", [&] () {
+		g.node("route", [&] () {
 
 			views.for_each([&] (View const &view) {
-				view._gen_menu_view_routes(xml); });
+				view._gen_menu_view_routes(g); });
 
-			xml.node("service", [&] () {
-				xml.attribute("name", "Report");
-				xml.attribute("label", "hover");
-				xml.node("local", [&] () { });
+			g.node("service", [&] () {
+				g.attribute("name", "Report");
+				g.attribute("label", "hover");
+				g.node("local", [&] () { });
 			});
 
-			xml.node("service", [&] () {
-				xml.attribute("name", "Gui");
-				xml.node("local", [&] () { });
+			g.node("service", [&] () {
+				g.attribute("name", "Gui");
+				g.node("local", [&] () { });
 			});
 
-			xml.node("service", [&] () {
-				xml.attribute("name", "File_system");
-				xml.attribute("label_prefix", "fonts ->");
-				xml.node("parent", [&] () {
-					xml.attribute("identity", "fonts"); });
+			g.node("service", [&] () {
+				g.attribute("name", "File_system");
+				g.attribute("label_prefix", "fonts ->");
+				g.node("parent", [&] () {
+					g.attribute("identity", "fonts"); });
 			});
 
 			auto parent_route = [&] (auto const &service)
 			{
-				xml.node("service", [&] {
-					xml.attribute("name", service);
-					xml.node("parent", [&] { }); });
+				g.node("service", [&] {
+					g.attribute("name", service);
+					g.node("parent", [&] { }); });
 			};
 
 			parent_route("PD");
@@ -342,10 +342,10 @@ void Sandboxed_runtime::Menu_view_state::gen_start_node(Xml_generator &xml, View
 
 			auto parent_rom_route = [&] (auto const &name)
 			{
-				xml.node("service", [&] () {
-					xml.attribute("name", "ROM");
-					xml.attribute("label_last", name);
-					xml.node("parent", [&] { }); });
+				g.node("service", [&] () {
+					g.attribute("name", "ROM");
+					g.attribute("label_last", name);
+					g.node("parent", [&] { }); });
 			};
 
 			parent_rom_route("menu_view");
@@ -361,28 +361,28 @@ void Sandboxed_runtime::Menu_view_state::gen_start_node(Xml_generator &xml, View
 }
 
 
-void Sandboxed_runtime::View::_gen_menu_view_dialog(Xml_generator &xml) const
+void Sandboxed_runtime::View::_gen_menu_view_dialog(Generator &g) const
 {
-	xml.node("dialog", [&] {
-		xml.attribute("name", name);
+	g.node("dialog", [&] {
+		g.attribute("name", name);
 
-		if (xpos)       xml.attribute("xpos",   xpos);
-		if (ypos)       xml.attribute("ypos",   ypos);
-		if (min_width)  xml.attribute("width",  min_width);
-		if (min_height) xml.attribute("height", min_height);
-		if (opaque)     xml.attribute("opaque", "yes");
+		if (xpos)       g.attribute("xpos",   xpos);
+		if (ypos)       g.attribute("ypos",   ypos);
+		if (min_width)  g.attribute("width",  min_width);
+		if (min_height) g.attribute("height", min_height);
+		if (opaque)     g.attribute("opaque", "yes");
 
-		xml.attribute("background", String<20>(background));
+		g.attribute("background", String<20>(background));
 	});
 }
 
 
-void Sandboxed_runtime::View::_gen_menu_view_routes(Xml_generator &xml) const
+void Sandboxed_runtime::View::_gen_menu_view_routes(Generator &g) const
 {
-	xml.node("service", [&] {
-		xml.attribute("name", "ROM");
-		xml.attribute("label", name);
-		xml.node("local", [&] { });
+	g.node("service", [&] {
+		g.attribute("name", "ROM");
+		g.attribute("label", name);
+		g.node("local", [&] { });
 	});
 }
 

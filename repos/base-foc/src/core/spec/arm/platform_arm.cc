@@ -22,5 +22,4 @@ void Platform::_setup_io_port_alloc() { }
 void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
 
 
-void Platform::_setup_platform_info(Xml_generator &,
-                                    Foc::l4_kernel_info_t &) { }
+void Platform::_setup_platform_info(Generator &, Foc::l4_kernel_info_t &) { }

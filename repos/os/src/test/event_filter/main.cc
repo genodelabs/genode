@@ -293,17 +293,17 @@ struct Test::Main : Input_from_filter::Event_handler
 
 	void _publish_report(Expanding_reporter &reporter, Node const &node)
 	{
-		reporter.generate([&] (Xml_generator &xml) {
+		reporter.generate([&] (Generator &g) {
 			node.for_each_sub_node([&] (Node const &content) {
-				(void)xml.append_node(content, { 20 }); }); });
+				(void)g.append_node(content, { 20 }); }); });
 	}
 
-	void _gen_chargen_rec(Xml_generator &xml, unsigned depth)
+	void _gen_chargen_rec(Generator &g, unsigned depth)
 	{
 		if (depth > 0) {
-			xml.node("chargen", [&] () { _gen_chargen_rec(xml, depth - 1); });
+			g.node("chargen", [&] () { _gen_chargen_rec(g, depth - 1); });
 		} else {
-			xml.node("input", [&] () { xml.attribute("name", "usb"); });
+			g.node("input", [&] () { g.attribute("name", "usb"); });
 		}
 	}
 
@@ -311,9 +311,9 @@ struct Test::Main : Input_from_filter::Event_handler
 	{
 		unsigned const depth = node.attribute_value("depth", 0U);
 
-		reporter.generate([&] (Xml_generator &xml) {
-			xml.node("input",  [&] () { xml.attribute("label", "usb"); });
-			xml.node("output", [&] () { _gen_chargen_rec(xml, depth); });
+		reporter.generate([&] (Generator &g) {
+			g.node("input",  [&] () { g.attribute("label", "usb"); });
+			g.node("output", [&] () { _gen_chargen_rec(g, depth); });
 		});
 	}
 
@@ -385,8 +385,8 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 
 		if (step.type() == "capslock") {
-			_capslock_reporter.generate([&] (Xml_generator &xml) {
-				xml.attribute("enabled", step.attribute_value("enabled", false)); });
+			_capslock_reporter.generate([&] (Generator &g) {
+				g.attribute("enabled", step.attribute_value("enabled", false)); });
 			_advance_step();
 			return Exec_result::PROCEED;
 		}

@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for fs_tool
+ * \brief  Configuration for fs_tool
  * \author Norman Feske
  * \date   2018-05-08
  */
@@ -14,54 +14,54 @@
 #include <model/file_operation_queue.h>
 #include <runtime.h>
 
-void Sculpt::gen_fs_tool_start_content(Xml_generator &xml, Fs_tool_version version,
+void Sculpt::gen_fs_tool_start_content(Generator &g, Fs_tool_version version,
                                        File_operation_queue const &operations)
 {
-	xml.attribute("version", version.value);
+	g.attribute("version", version.value);
 
-	gen_common_start_content(xml, "fs_tool", Cap_quota{200}, Ram_quota{5*1024*1024},
+	gen_common_start_content(g, "fs_tool", Cap_quota{200}, Ram_quota{5*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "fs_tool");
+	gen_named_node(g, "binary", "fs_tool");
 
-	xml.node("config", [&] {
+	g.node("config", [&] {
 
-		xml.attribute("exit",    "yes");
-		xml.attribute("verbose", "yes");
+		g.attribute("exit",    "yes");
+		g.attribute("verbose", "yes");
 
-		xml.node("vfs", [&] {
+		g.node("vfs", [&] {
 
 			auto gen_fs = [&] (auto name, auto label, auto buffer_size)
 			{
-				gen_named_node(xml, "dir", name, [&] {
-					xml.node("fs",  [&] {
-						xml.attribute("label",       label);
-						xml.attribute("buffer_size", buffer_size); }); });
+				gen_named_node(g, "dir", name, [&] {
+					g.node("fs",  [&] {
+						g.attribute("label",       label);
+						g.attribute("buffer_size", buffer_size); }); });
 			};
 
 			gen_fs("rw",     "target -> /", "1M");
 			gen_fs("config", "config -> /", "128K");
 		});
 
-		operations.gen_fs_tool_config(xml);
+		operations.gen_fs_tool_config(g);
 	});
 
-	xml.node("route", [&] {
+	g.node("route", [&] {
 
-		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label_prefix", "target ->");
-			gen_named_node(xml, "child", "default_fs_rw"); });
+		gen_service_node<::File_system::Session>(g, [&] {
+			g.attribute("label_prefix", "target ->");
+			gen_named_node(g, "child", "default_fs_rw"); });
 
-		gen_parent_rom_route(xml, "fs_tool");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
-		gen_parent_route<Cpu_session> (xml);
-		gen_parent_route<Pd_session>  (xml);
-		gen_parent_route<Log_session> (xml);
-		gen_parent_route<Rom_session> (xml);
+		gen_parent_rom_route(g, "fs_tool");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
+		gen_parent_route<Cpu_session> (g);
+		gen_parent_route<Pd_session>  (g);
+		gen_parent_route<Log_session> (g);
+		gen_parent_route<Rom_session> (g);
 
-		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.attribute("label_prefix", "config ->");
-			xml.node("parent", [&] { xml.attribute("identity", "config"); }); });
+		gen_service_node<::File_system::Session>(g, [&] {
+			g.attribute("label_prefix", "config ->");
+			g.node("parent", [&] { g.attribute("identity", "config"); }); });
 	});
 }

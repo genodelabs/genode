@@ -354,7 +354,7 @@ class Cpu::Session : public Rpc_object<Cpu_session>
 
 		void update_threads();
 		void update_threads(Trace &, Session_label const &);
-		bool report_state(Xml_generator &);
+		bool report_state(Generator &);
 		void reset_report_state() { _report = false; }
 		bool report_update() const { return _report; }
 

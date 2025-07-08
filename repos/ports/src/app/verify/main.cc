@@ -49,7 +49,7 @@ struct Verify::Main
 		return Message();
 	}
 
-	void _process_verify_node(Node const &, Xml_generator &);
+	void _process_verify_node(Node const &, Generator &);
 	void _handle_config_with_libc();
 	void _handle_config() { Libc::with_libc([&] () { _handle_config_with_libc(); }); }
 
@@ -63,7 +63,7 @@ struct Verify::Main
 };
 
 
-void Verify::Main::_process_verify_node(Node const &node, Xml_generator &xml)
+void Verify::Main::_process_verify_node(Node const &node, Generator &g)
 {
 	Path const data_path   = node.attribute_value("path",   Path());
 	Path const pubkey_path = node.attribute_value("pubkey", Path());
@@ -76,10 +76,10 @@ void Verify::Main::_process_verify_node(Node const &node, Xml_generator &xml)
 		log(data_path, ": ", _message(result));
 
 	bool const success = (result == GNUPG_VERIFY_OK);
-	xml.node(success ? "good" : "bad", [&] () {
-		xml.attribute("path", data_path);
+	g.node(success ? "good" : "bad", [&] () {
+		g.attribute("path", data_path);
 		if (!success)
-			xml.attribute("reason", _message(result));
+			g.attribute("reason", _message(result));
 	});
 }
 
@@ -94,9 +94,9 @@ void Verify::Main::_handle_config_with_libc()
 		_reporter.construct(_env, "result", "result");
 	}
 
-	_reporter->generate([&] (Xml_generator &xml) {
+	_reporter->generate([&] (Generator &g) {
 		config.for_each_sub_node("verify", [&] (Node const &node) {
-			_process_verify_node(node, xml); }); });
+			_process_verify_node(node, g); }); });
 }
 
 

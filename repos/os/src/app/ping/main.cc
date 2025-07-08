@@ -289,14 +289,14 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
 	    " time=", time_ms, ".", time_us ," ms");
 
 	if (_report)
-		_reporter->generate([&] (Xml_generator &xml) {
-			xml.attribute("id", _report_id++);
-			xml.attribute("type", "reply");
-			xml.attribute("bytes", ICMP_DATA_SIZE + sizeof(Icmp_packet));
-			xml.attribute("from", String<32>(ip.src()));
-			xml.attribute("ttl", (uint64_t)IPV4_TIME_TO_LIVE);
-			xml.attribute("time_ms", String<32>(time_ms, ".", time_us));
-			xml.attribute("icmp_seq", icmp_seq); });
+		_reporter->generate([&] (Generator &g) {
+			g.attribute("id", _report_id++);
+			g.attribute("type", "reply");
+			g.attribute("bytes", ICMP_DATA_SIZE + sizeof(Icmp_packet));
+			g.attribute("from", String<32>(ip.src()));
+			g.attribute("ttl", (uint64_t)IPV4_TIME_TO_LIVE);
+			g.attribute("time_ms", String<32>(time_ms, ".", time_us));
+			g.attribute("icmp_seq", icmp_seq); });
 
 	/* raise ICMP sequence number and check exit condition */
 	_icmp_seq++;
@@ -343,11 +343,11 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 			}
 			log("From ", ip.src(), " icmp_seq=", embed_icmp_seq, " Destination Unreachable");
 			if (_report)
-				_reporter->generate([&] (Xml_generator &xml) {
-					xml.attribute("id", _report_id++);
-					xml.attribute("type", "destination_unreachable");
-					xml.attribute("from", String<32>(ip.src()));
-					xml.attribute("icmp_seq", embed_icmp_seq); });
+				_reporter->generate([&] (Generator &g) {
+					g.attribute("id", _report_id++);
+					g.attribute("type", "destination_unreachable");
+					g.attribute("from", String<32>(ip.src()));
+					g.attribute("icmp_seq", embed_icmp_seq); });
 			break;
 		}
 	case Protocol::UDP:
@@ -373,10 +373,10 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 			}
 			log("From ", ip.src(), " Destination Unreachable");
 			if (_report)
-				_reporter->generate([&] (Xml_generator &xml) {
-					xml.attribute("id", _report_id++);
-					xml.attribute("type", "destination_unreachable");
-					xml.attribute("from", String<32>(ip.src())); });
+				_reporter->generate([&] (Generator &g) {
+					g.attribute("id", _report_id++);
+					g.attribute("type", "destination_unreachable");
+					g.attribute("from", String<32>(ip.src())); });
 			break;
 		}
 	}
@@ -443,13 +443,13 @@ void Main::_handle_udp(Ipv4_packet &ip,
 	    " time=", time_ms, ".", time_us ," ms");
 
 	if (_report)
-		_reporter->generate([&] (Xml_generator &xml) {
-			xml.attribute("id", _report_id++);
-			xml.attribute("type", "reply");
-			xml.attribute("bytes", udp.length());
-			xml.attribute("from", String<32>(ip.src()));
-			xml.attribute("ttl", (uint64_t)IPV4_TIME_TO_LIVE);
-			xml.attribute("time_ms", String<32>(time_ms, ".", time_us)); });
+		_reporter->generate([&] (Generator &g) {
+			g.attribute("id", _report_id++);
+			g.attribute("type", "reply");
+			g.attribute("bytes", udp.length());
+			g.attribute("from", String<32>(ip.src()));
+			g.attribute("ttl", (uint64_t)IPV4_TIME_TO_LIVE);
+			g.attribute("time_ms", String<32>(time_ms, ".", time_us)); });
 
 	/* check exit condition */
 	_count--;

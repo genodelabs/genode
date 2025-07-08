@@ -92,13 +92,13 @@ struct Sculpt::Fb_connectors : private Noncopyable
 			return 0;
 		}
 
-		void gen_attr(Xml_generator &xml) const
+		void gen_attr(Generator &g) const
 		{
 			if (rotate != Rotate::UNSUPPORTED)
-				xml.attribute("rotate", angle());
+				g.attribute("rotate", angle());
 
 			if (flip != Flip::UNSUPPORTED)
-				xml.attribute("flip", flip == Flip::YES ? "yes" : "no");
+				g.attribute("flip", flip == Flip::YES ? "yes" : "no");
 		}
 
 		bool rotate_supported() const { return rotate != Rotate::UNSUPPORTED; }

@@ -139,31 +139,31 @@ int File_descriptor_allocator::any_open_fd()
 }
 
 
-void File_descriptor_allocator::generate_info(Xml_generator &xml)
+void File_descriptor_allocator::generate_info(Generator &g)
 {
 	Mutex::Guard guard(_mutex);
 
 	_id_space.for_each<File_descriptor>([&] (File_descriptor &fd) {
-		xml.node("fd", [&] () {
+		g.node("fd", [&] () {
 
-			xml.attribute("id", fd.libc_fd);
+			g.attribute("id", fd.libc_fd);
 
 			if (fd.fd_path)
-				xml.attribute("path", fd.fd_path);
+				g.attribute("path", fd.fd_path);
 
 			if (fd.cloexec)
-				xml.attribute("cloexec", "yes");
+				g.attribute("cloexec", "yes");
 
 			if (((fd.flags & O_ACCMODE) != O_WRONLY))
-				xml.attribute("readable", "yes");
+				g.attribute("readable", "yes");
 
 			if (((fd.flags & O_ACCMODE) != O_RDONLY))
-				xml.attribute("writeable", "yes");
+				g.attribute("writeable", "yes");
 
 			if (fd.plugin) {
 				::off_t const seek = fd.plugin->lseek(&fd, 0, SEEK_CUR);
 				if (seek)
-					xml.attribute("seek", seek);
+					g.attribute("seek", seek);
 			}
 		});
 	});

@@ -60,25 +60,25 @@ class Fixed : Acpica::Callback<Fixed> {
 			return AE_OK;
 		}
 
-		void generate(Genode::Xml_generator &xml)
+		void generate(Genode::Generator &g)
 		{
 			if (_power_button_count)
-				xml.node("power_button", [&] {
-					xml.attribute("value", _power_button_pressed);
-					xml.attribute("count", _power_button_count);
+				g.node("power_button", [&] {
+					g.attribute("value", _power_button_pressed);
+					g.attribute("count", _power_button_count);
 					if (_power_button_pressed) {
 						_power_button_pressed = false;
-						xml.append("pressed");
+						g.append_quoted("pressed");
 					}
 				});
 
 			if (_sleep_button_count)
-				xml.node("sleep_button", [&] {
-					xml.attribute("value", _sleep_button_pressed);
-					xml.attribute("count", _sleep_button_count);
+				g.node("sleep_button", [&] {
+					g.attribute("value", _sleep_button_pressed);
+					g.attribute("count", _sleep_button_count);
 					if (_sleep_button_pressed) {
 						_sleep_button_pressed = false;
-						xml.append("pressed");
+						g.append_quoted("pressed");
 					}
 				});
 		}

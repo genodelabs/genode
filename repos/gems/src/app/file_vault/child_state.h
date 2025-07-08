@@ -16,9 +16,6 @@
 #define _CHILD_STATE_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
-#include <util/noncopyable.h>
-#include <util/string.h>
 #include <base/registry.h>
 #include <base/quota_guard.h>
 
@@ -54,31 +51,31 @@ class File_vault::Child_state : Noncopyable
 		Child_state(Registry<Child_state> &registry, Child_name const &name, Ram_quota ram_quota, Cap_quota cap_quota)
 		: Child_state(registry, name, name, ram_quota, cap_quota) { }
 
-		void gen_start_node(Xml_generator &xml, auto const &gen_content) const
+		void gen_start_node(Generator &g, auto const &gen_content) const
 		{
-			gen_named_node(xml, "start", _start_name, [&] {
-				xml.attribute("caps", _cap_quota.value);
+			gen_named_node(g, "start", _start_name, [&] {
+				g.attribute("caps", _cap_quota.value);
 				if (_start_name != _binary_name)
-					gen_named_node(xml, "binary", _binary_name, [] { });
+					gen_named_node(g, "binary", _binary_name, [] { });
 
-				gen_named_node(xml, "resource", "RAM", [&] {
-					xml.attribute("quantum", Number_of_bytes(_ram_quota.value)); });
+				gen_named_node(g, "resource", "RAM", [&] {
+					g.attribute("quantum", Number_of_bytes(_ram_quota.value)); });
 				gen_content();
 			});
 		}
 
-		bool apply_child_state_report(Xml_node const &child)
+		bool apply_child_state_report(Node const &child)
 		{
 			bool result = false;
 			if (child.attribute_value("name", Child_name()) != _start_name)
 				return false;
 
-			child.with_optional_sub_node("ram", [&] (Xml_node const &node) {
+			child.with_optional_sub_node("ram", [&] (Node const &node) {
 				if (node.has_attribute("requested")) {
 					_ram_quota.value *= 2;
 					result = true; } });
 
-			child.with_optional_sub_node("caps", [&] (Xml_node const &node) {
+			child.with_optional_sub_node("caps", [&] (Node const &node) {
 				if (node.has_attribute("requested")) {
 					_cap_quota.value += 100;
 					result = true; } });

@@ -20,7 +20,6 @@
 #include <base/sleep.h>
 #include <os/reporter.h>
 #include <timer_session/connection.h>
-#include <util/xml_node.h>
 
 /* wifi library includes */
 #include <wifi/firmware.h>

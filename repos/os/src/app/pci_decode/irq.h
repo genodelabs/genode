@@ -43,12 +43,10 @@ struct Irq_override : List_model<Irq_override>::Element
 
 	Flags::access_t flags;
 
-	Irq_override(irq_line_t      from,
-	             irq_line_t      to,
-	             Flags::access_t flags)
+	Irq_override(irq_line_t from, irq_line_t to, Flags::access_t flags)
 	: from(from), to(to), flags(flags) {}
 
-	void generate(Xml_generator &generator, irq_line_t &irq)
+	void generate(Generator &g, irq_line_t &irq)
 	{
 		if (irq != from)
 			return;
@@ -59,17 +57,17 @@ struct Irq_override : List_model<Irq_override>::Element
 		Flags::access_t polarity = Polarity::get(flags);
 
 		if (polarity == Polarity::HIGH)
-			generator.attribute("polarity", "high");
+			g.attribute("polarity", "high");
 		if (polarity == Polarity::LOW)
-			generator.attribute("polarity", "low");
+			g.attribute("polarity", "low");
 
 		using Mode = Irq_override::Flags::Mode;
 		Flags::access_t mode = Mode::get(flags);
 
 		if (mode == Mode::EDGE)
-			generator.attribute("mode", "edge");
+			g.attribute("mode", "edge");
 		if (mode == Mode::LEVEL)
-			generator.attribute("mode", "level");
+			g.attribute("mode", "level");
 	}
 
 	bool matches(Node const &node) const

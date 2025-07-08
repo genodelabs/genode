@@ -19,7 +19,6 @@
 #include <os/attached_mmio.h>
 #include <rom_session/rom_session.h>
 #include <root/component.h>
-#include <util/xml_generator.h>
 
 /* local includes */
 #include "platform_config.h"
@@ -132,7 +131,7 @@ struct Virtdev_rom::Main
 	{
 		Attached_dataspace ds(_env.rm(), _ds);
 
-		Xml_generator::generate(ds.bytes(), "devices", [&] (Xml_generator &xml) {
+		Generator::generate(ds.bytes(), "devices", [&] (Generator &g) {
 
 			uint8_t device_type_idx[Device::Id::MAX_VAL] = { 0 };
 
@@ -149,18 +148,17 @@ struct Virtdev_rom::Main
 				if (id == Device::Id::INVALID)
 					continue;
 
-				xml.node("device", [&] ()
-				{
+				g.node("device", [&] {
 					using Name = String<DEVICE_NAME_LEN>;
 
-					xml.attribute("name", Name(_name_for_id(id), device_type_idx[id - 1]++));
-					xml.attribute("type", _name_for_id(id));
-					xml.node("io_mem", [&] () {
-						xml.attribute("address", addr);
-						xml.attribute("size", DEVICE_SIZE);
+					g.attribute("name", Name(_name_for_id(id), device_type_idx[id - 1]++));
+					g.attribute("type", _name_for_id(id));
+					g.node("io_mem", [&] () {
+						g.attribute("address", addr);
+						g.attribute("size", DEVICE_SIZE);
 					});
-					xml.node("irq", [&] () {
-						xml.attribute("number", IRQ_BASE + idx);
+					g.node("irq", [&] () {
+						g.attribute("number", IRQ_BASE + idx);
 					});
 				});
 			}

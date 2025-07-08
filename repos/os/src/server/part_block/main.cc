@@ -595,8 +595,8 @@ Block::Partition_table & Block::Main::_table()
 
 	/* generate appropriate report */
 	if (_reporter.constructed()) {
-		_reporter->generate([&] (Xml_generator &xml) {
-			table.generate_report(xml);
+		_reporter->generate([&] (Generator &g) {
+			table.generate_report(g);
 		});
 	}
 

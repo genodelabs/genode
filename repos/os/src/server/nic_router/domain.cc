@@ -17,9 +17,8 @@
 #include <interface.h>
 
 /* Genode includes */
-#include <util/xml_generator.h>
-#include <util/xml_node.h>
 #include <base/allocator.h>
+#include <base/node.h>
 #include <base/log.h>
 
 using namespace Net;
@@ -450,36 +449,36 @@ bool Domain::report_empty(Report const &report_cfg) const
 }
 
 
-void Domain::report(Xml_generator &xml, Report const &report_cfg) const
+void Domain::report(Generator &g, Report const &report_cfg) const
 {
-	xml.attribute("name", name());
+	g.attribute("name", name());
 	if (report_cfg.bytes()) {
-		xml.attribute("rx_bytes", _tx_bytes);
-		xml.attribute("tx_bytes", _rx_bytes);
+		g.attribute("rx_bytes", _tx_bytes);
+		g.attribute("tx_bytes", _rx_bytes);
 	}
 	if (report_cfg.config()) {
-		xml.attribute("ipv4", String<19>(ip_config().interface()));
-		xml.attribute("gw",   String<16>(ip_config().gateway()));
+		g.attribute("ipv4", String<19>(ip_config().interface()));
+		g.attribute("gw",   String<16>(ip_config().gateway()));
 		ip_config().for_each_dns_server([&] (Dns_server const &dns_server) {
-			xml.node("dns", [&] () {
-				xml.attribute("ip", String<16>(dns_server.ip())); }); });
+			g.node("dns", [&] () {
+				g.attribute("ip", String<16>(dns_server.ip())); }); });
 		ip_config().dns_domain_name().with_string([&] (Dns_domain_name::String const &str) {
-			xml.node("dns-domain", [&] () {
-				xml.attribute("name", str); }); });
+			g.node("dns-domain", [&] () {
+				g.attribute("name", str); }); });
 	}
 	if (report_cfg.stats()) {
-		if (!_tcp_stats.report_empty())  xml.node("tcp-links",        [&] { _tcp_stats.report(xml);  });
-		if (!_udp_stats.report_empty())  xml.node("udp-links",        [&] { _udp_stats.report(xml);  });
-		if (!_icmp_stats.report_empty()) xml.node("icmp-links",       [&] { _icmp_stats.report(xml); });
-		if (!_arp_stats.report_empty())  xml.node("arp-waiters",      [&] { _arp_stats.report(xml);  });
-		if (!_dhcp_stats.report_empty()) xml.node("dhcp-allocations", [&] { _dhcp_stats.report(xml); });
+		if (!_tcp_stats.report_empty())  g.node("tcp-links",        [&] { _tcp_stats.report(g);  });
+		if (!_udp_stats.report_empty())  g.node("udp-links",        [&] { _udp_stats.report(g);  });
+		if (!_icmp_stats.report_empty()) g.node("icmp-links",       [&] { _icmp_stats.report(g); });
+		if (!_arp_stats.report_empty())  g.node("arp-waiters",      [&] { _arp_stats.report(g);  });
+		if (!_dhcp_stats.report_empty()) g.node("dhcp-allocations", [&] { _dhcp_stats.report(g); });
 	}
 	if (report_cfg.dropped_fragm_ipv4() && _dropped_fragm_ipv4)
-		xml.node("dropped-fragm-ipv4", [&] () {
-			xml.attribute("value", _dropped_fragm_ipv4); });
+		g.node("dropped-fragm-ipv4", [&] () {
+			g.attribute("value", _dropped_fragm_ipv4); });
 	_interfaces.for_each([&] (Interface const &interface) {
 		if (!interface.report_empty(report_cfg))
-			xml.node("interface", [&] { interface.report(xml, report_cfg); });
+			g.node("interface", [&] { interface.report(g, report_cfg); });
 	});
 }
 
@@ -506,11 +505,11 @@ Domain_link_stats::dissolve_interface(Interface_link_stats const &stats)
 bool Domain_link_stats::report_empty() const { return !refused_for_ram && !refused_for_ports && !destroyed; }
 
 
-void Domain_link_stats::report(Genode::Xml_generator &xml) const
+void Domain_link_stats::report(Genode::Generator &g) const
 {
-	if (refused_for_ram)   xml.node("refused_for_ram",   [&] { xml.attribute("value", refused_for_ram); });
-	if (refused_for_ports) xml.node("refused_for_ports", [&] { xml.attribute("value", refused_for_ports); });
-	if (destroyed)         xml.node("destroyed",         [&] { xml.attribute("value", destroyed); });
+	if (refused_for_ram)   g.node("refused_for_ram",   [&] { g.attribute("value", refused_for_ram); });
+	if (refused_for_ports) g.node("refused_for_ports", [&] { g.attribute("value", refused_for_ports); });
+	if (destroyed)         g.node("destroyed",         [&] { g.attribute("value", destroyed); });
 }
 
 
@@ -528,7 +527,7 @@ Domain_object_stats::dissolve_interface(Interface_object_stats const &stats)
 bool Domain_object_stats::report_empty() const { return !destroyed; }
 
 
-void Domain_object_stats::report(Genode::Xml_generator &xml) const
+void Domain_object_stats::report(Genode::Generator &g) const
 {
-	if (destroyed) xml.node("destroyed", [&] { xml.attribute("value", destroyed); });
+	if (destroyed) g.node("destroyed", [&] { g.attribute("value", destroyed); });
 }

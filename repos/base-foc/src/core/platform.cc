@@ -15,11 +15,11 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
+#include <base/node.h>
 #include <dataspace/capability.h>
 #include <trace/source_registry.h>
 #include <util/misc_math.h>
 #include <util/mmio.h>
-#include <util/xml_generator.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -370,7 +370,7 @@ struct Acpi_rsdp : public Genode::Mmio<32>
 } __attribute__((packed));
 
 
-static void add_acpi_rsdp(auto &region_alloc, auto &xml)
+static void add_acpi_rsdp(auto &region_alloc, Generator &g)
 {
 	using namespace Foc;
 	using Foc::L4::Kip::Mem_desc;
@@ -402,12 +402,12 @@ static void add_acpi_rsdp(auto &region_alloc, auto &xml)
 				if (!rsdp.valid())
 					return;
 
-				xml.node("acpi", [&] {
-					xml.attribute("revision", rsdp.read<Acpi_rsdp::Revision>());
+				g.node("acpi", [&] {
+					g.attribute("revision", rsdp.read<Acpi_rsdp::Revision>());
 					if (rsdp.read<Acpi_rsdp::Rsdt>())
-						xml.attribute("rsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Rsdt>())));
+						g.attribute("rsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Rsdt>())));
 					if (rsdp.read<Acpi_rsdp::Xsdt>())
-						xml.attribute("xsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Xsdt>())));
+						g.attribute("xsdt", String<32>(Hex(rsdp.read<Acpi_rsdp::Xsdt>())));
 				});
 
 				unmap_local(addr_t(core_local.ptr), pages);
@@ -589,20 +589,20 @@ Core::Platform::Platform()
 
 	export_page_as_rom_module("platform_info", [&] (char *core_local_ptr, size_t size) {
 		Byte_range_ptr dst { reinterpret_cast<char *>(core_local_ptr), size };
-		Xml_generator::generate(dst, "platform_info", [&] (Xml_generator &xml) {
-			xml.node("kernel", [&] {
-				xml.attribute("name", "foc");
-				xml.attribute("acpi", true);
-				xml.attribute("msi" , true); });
+		Generator::generate(dst, "platform_info", [&] (Generator &g) {
+			g.node("kernel", [&] {
+				g.attribute("name", "foc");
+				g.attribute("acpi", true);
+				g.attribute("msi" , true); });
 
-			xml.node("hardware", [&] {
-				_setup_platform_info(xml, sigma0_map_kip()); });
+			g.node("hardware", [&] {
+				_setup_platform_info(g, sigma0_map_kip()); });
 
-			xml.node("affinity-space", [&] {
-				xml.attribute("width", affinity_space().width());
-				xml.attribute("height", affinity_space().height()); });
+			g.node("affinity-space", [&] {
+				g.attribute("width", affinity_space().width());
+				g.attribute("height", affinity_space().height()); });
 
-			add_acpi_rsdp(region_alloc(), xml);
+			add_acpi_rsdp(region_alloc(), g);
 		}).with_error([] (Buffer_error) {
 			error("platform_info exceeds maximum buffer size");
 		});

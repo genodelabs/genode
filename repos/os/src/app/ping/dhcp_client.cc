@@ -16,9 +16,6 @@
 #include <dhcp_client.h>
 #include <ipv4_config.h>
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 struct Send_buffer_too_small : Genode::Exception { };
 struct Bad_send_dhcp_args    : Genode::Exception { };
 

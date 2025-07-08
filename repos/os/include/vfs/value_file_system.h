@@ -16,7 +16,6 @@
 #define _VALUE_FILE_SYSTEM_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <vfs/single_file_system.h>
 
 namespace Vfs {
@@ -120,8 +119,8 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 		Config _config(Name const &name) const
 		{
 			char buf[Config::capacity()] { };
-			Genode::Xml_generator::generate({ buf, sizeof(buf) }, type_name(),
-				[&] (Genode::Xml_generator &xml) { xml.attribute("name", name); }
+			Genode::Generator::generate({ buf, sizeof(buf) }, type_name(),
+				[&] (Genode::Generator &g) { g.attribute("name", name); }
 			).with_error([&] (Genode::Buffer_error) {
 				Genode::warning("VFS value fs config failed (", _file_name, ")");
 			});

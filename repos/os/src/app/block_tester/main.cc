@@ -426,21 +426,21 @@ struct Test::Main
 		if (!_result_reporter.constructed())
 			return;
 
-		_result_reporter->generate([&] (Xml_generator &xml) {
+		_result_reporter->generate([&] (Generator &g) {
 			_results.for_each([&] (Test_result &tr) {
-				xml.node("result", [&] () {
-					xml.attribute("test",     tr.name);
-					xml.attribute("rx",       tr.result.rx.bytes);
-					xml.attribute("tx",       tr.result.tx.bytes);
-					xml.attribute("bytes",    tr.result.total.bytes);
-					xml.attribute("size",     tr.result.request_size);
-					xml.attribute("bsize",    tr.result.block_size);
-					xml.attribute("duration", tr.result.duration);
+				g.node("result", [&] () {
+					g.attribute("test",     tr.name);
+					g.attribute("rx",       tr.result.rx.bytes);
+					g.attribute("tx",       tr.result.tx.bytes);
+					g.attribute("bytes",    tr.result.total.bytes);
+					g.attribute("size",     tr.result.request_size);
+					g.attribute("bsize",    tr.result.block_size);
+					g.attribute("duration", tr.result.duration);
 
-					xml.attribute("mibs", (unsigned)(tr.result.mibs() * (1<<20u)));
-					xml.attribute("iops", (unsigned)(tr.result.iops() + 0.5f));
+					g.attribute("mibs", (unsigned)(tr.result.mibs() * (1<<20u)));
+					g.attribute("iops", (unsigned)(tr.result.iops() + 0.5f));
 
-					xml.attribute("result", tr.result.success ? 0 : 1);
+					g.attribute("result", tr.result.success ? 0 : 1);
 				});
 			});
 		});

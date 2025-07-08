@@ -217,7 +217,7 @@ static size_t sanitize_log_for_output(char                      *dst,
  ** Child **
  ***********/
 
-void Child::gen_start_node(Xml_generator          &xml,
+void Child::gen_start_node(Generator              &g,
                            Xml_node         const &common,
                            Depot_rom_server const &cached_depot_rom,
                            Depot_rom_server const &uncached_depot_rom)
@@ -274,32 +274,32 @@ void Child::gen_start_node(Xml_generator          &xml,
 		with_optional_runtime([&] (Xml_node const &runtime) {
 			runtime.with_optional_sub_node("provides", fn); }); };
 
-	xml.node("start", [&] () {
+	g.node("start", [&] () {
 
-		xml.attribute("name", _name);
+		g.attribute("name", _name);
 
 		unsigned long caps = _pkg_cap_quota;
 		if (_defined_by_launcher())
 			caps = _launcher_xml->xml.attribute_value("caps", caps);
 		caps = _start_xml->xml.attribute_value("caps", caps);
 
-		xml.attribute("caps", caps);
+		g.attribute("caps", caps);
 
 		using Version = String<64>;
 		Version const version = _start_xml->xml.attribute_value("version", Version());
 		if (version.valid())
-			xml.attribute("version", version);
+			g.attribute("version", version);
 
-		xml.node("binary", [&] () { xml.attribute("name", _binary_name); });
+		g.node("binary", [&] () { g.attribute("name", _binary_name); });
 
 		Number_of_bytes ram = _pkg_ram_quota;
 		if (_defined_by_launcher())
 			ram = _launcher_xml->xml.attribute_value("ram", ram);
 		ram = _start_xml->xml.attribute_value("ram", ram);
 
-		xml.node("resource", [&] () {
-			xml.attribute("name", "RAM");
-			xml.attribute("quantum", String<32>(ram));
+		g.node("resource", [&] () {
+			g.attribute("name", "RAM");
+			g.attribute("quantum", String<32>(ram));
 		});
 
 		/*
@@ -308,14 +308,14 @@ void Child::gen_start_node(Xml_generator          &xml,
 		 * blueprint. The former is preferred over the latter.
 		 */
 		if (_start_xml->xml.has_sub_node("config")) {
-			_gen_copy_of_sub_node(xml, _start_xml->xml, "config");
+			_gen_copy_of_sub_node(g, _start_xml->xml, "config");
 		} else {
 			if (_defined_by_launcher() && _launcher_xml->xml.has_sub_node("config")) {
-				_gen_copy_of_sub_node(xml, _launcher_xml->xml, "config");
+				_gen_copy_of_sub_node(g, _launcher_xml->xml, "config");
 			} else {
 				with_optional_runtime([&] (Xml_node const &runtime) {
 					if (runtime.has_sub_node("config"))
-						_gen_copy_of_sub_node(xml, runtime, "config"); });
+						_gen_copy_of_sub_node(g, runtime, "config"); });
 			}
 		}
 
@@ -323,28 +323,28 @@ void Child::gen_start_node(Xml_generator          &xml,
 		 * Declare services provided by the subsystem.
 		 */
 		with_optional_runtime_provides([&] (Xml_node const &provides) {
-			xml.node("provides", [&] () {
+			g.node("provides", [&] () {
 				provides.for_each_sub_node([&] (Xml_node service) {
-					_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
-					_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
-					_gen_provides_sub_node(xml, service, "block",       "Block");
-					_gen_provides_sub_node(xml, service, "file_system", "File_system");
-					_gen_provides_sub_node(xml, service, "framebuffer", "Framebuffer");
-					_gen_provides_sub_node(xml, service, "input",       "Input");
-					_gen_provides_sub_node(xml, service, "log",         "LOG");
-					_gen_provides_sub_node(xml, service, "nic",         "Nic");
-					_gen_provides_sub_node(xml, service, "gui",         "Gui");
-					_gen_provides_sub_node(xml, service, "gpu",         "Gpu");
-					_gen_provides_sub_node(xml, service, "report",      "Report");
-					_gen_provides_sub_node(xml, service, "rom",         "ROM");
-					_gen_provides_sub_node(xml, service, "terminal",    "Terminal");
-					_gen_provides_sub_node(xml, service, "timer",       "Timer");
+					_gen_provides_sub_node(g, service, "audio_in",    "Audio_in");
+					_gen_provides_sub_node(g, service, "audio_out",   "Audio_out");
+					_gen_provides_sub_node(g, service, "block",       "Block");
+					_gen_provides_sub_node(g, service, "file_system", "File_system");
+					_gen_provides_sub_node(g, service, "framebuffer", "Framebuffer");
+					_gen_provides_sub_node(g, service, "input",       "Input");
+					_gen_provides_sub_node(g, service, "log",         "LOG");
+					_gen_provides_sub_node(g, service, "nic",         "Nic");
+					_gen_provides_sub_node(g, service, "gui",         "Gui");
+					_gen_provides_sub_node(g, service, "gpu",         "Gpu");
+					_gen_provides_sub_node(g, service, "report",      "Report");
+					_gen_provides_sub_node(g, service, "rom",         "ROM");
+					_gen_provides_sub_node(g, service, "terminal",    "Terminal");
+					_gen_provides_sub_node(g, service, "timer",       "Timer");
 				});
 			});
 		});
 
-		xml.node("route", [&] () {
-			_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom); });
+		g.node("route", [&] () {
+			_gen_routes(g, common, cached_depot_rom, uncached_depot_rom); });
 	});
 	if (_running) {
 		return; }
@@ -418,7 +418,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 }
 
 
-void Child::_gen_routes(Xml_generator          &xml,
+void Child::_gen_routes(Generator              &g,
                         Xml_node         const &common,
                         Depot_rom_server const &cached_depot_rom,
                         Depot_rom_server const &uncached_depot_rom) const
@@ -435,14 +435,14 @@ void Child::_gen_routes(Xml_generator          &xml,
 	 * Add routes given in the start node.
 	 */
 	_start_xml->xml.with_optional_sub_node("route", [&] (Xml_node const &route) {
-		(void)xml.append_node_content(route, MAX_NODE_DEPTH); });
+		(void)g.append_node_content(route, MAX_NODE_DEPTH); });
 
 	/*
 	 * Add routes given in the launcher definition.
 	 */
 	if (_launcher_xml.constructed())
 		_launcher_xml->xml.with_optional_sub_node("route", [&] (Xml_node const &route) {
-			(void)xml.append_node_content(route, MAX_NODE_DEPTH); });
+			(void)g.append_node_content(route, MAX_NODE_DEPTH); });
 
 	/**
 	 * Return name of depot-ROM server used for obtaining the 'path'
@@ -472,19 +472,19 @@ void Child::_gen_routes(Xml_generator          &xml,
 				return;
 
 			/* we found the <rom> node for the config ROM */
-			xml.node("service", [&] () {
-				xml.attribute("name",  "ROM");
-				xml.attribute("label", "config");
+			g.node("service", [&] () {
+				g.attribute("name",  "ROM");
+				g.attribute("label", "config");
 				using Path = String<160>;
 				Path const path = rom.attribute_value("path", Path());
 
 				if (cached_depot_rom.valid())
-					xml.node("child", [&] () {
-						xml.attribute("name", rom_server(path));
-						xml.attribute("label", path); });
+					g.node("child", [&] () {
+						g.attribute("name", rom_server(path));
+						g.attribute("label", path); });
 				else
-					xml.node("parent", [&] () {
-						xml.attribute("label", path); });
+					g.node("parent", [&] () {
+						g.attribute("label", path); });
 			});
 		});
 	}
@@ -492,7 +492,7 @@ void Child::_gen_routes(Xml_generator          &xml,
 	/*
 	 * Add common routes as defined in our config.
 	 */
-	(void)xml.append_node_content(common, MAX_NODE_DEPTH);
+	(void)g.append_node_content(common, MAX_NODE_DEPTH);
 
 	/*
 	 * Add ROM routing rule with the label rewritten to the path within the
@@ -507,18 +507,18 @@ void Child::_gen_routes(Xml_generator          &xml,
 		Path  const path  = rom.attribute_value("path",  Path());
 		Label const label = rom.attribute_value("label", Label());
 
-		xml.node("service", [&] () {
-			xml.attribute("name", "ROM");
-			xml.attribute("label_last", label);
+		g.node("service", [&] () {
+			g.attribute("name", "ROM");
+			g.attribute("label_last", label);
 
 			if (cached_depot_rom.valid()) {
-				xml.node("child", [&] () {
-					xml.attribute("name",  rom_server(path));
-					xml.attribute("label", path);
+				g.node("child", [&] () {
+					g.attribute("name",  rom_server(path));
+					g.attribute("label", path);
 				});
 			} else {
-				xml.node("parent", [&] () {
-					xml.attribute("label", path); });
+				g.node("parent", [&] () {
+					g.attribute("label", path); });
 			}
 		});
 	});
@@ -575,24 +575,24 @@ bool Child::_configured() const
 }
 
 
-void Child::_gen_provides_sub_node(Xml_generator        &xml,
+void Child::_gen_provides_sub_node(Generator            &g,
                                    Xml_node       const &service,
                                    Xml_node::Type const &node_type,
                                    Service::Name  const &service_name)
 {
 	if (service.type() == node_type)
-		xml.node("service", [&] () {
-			xml.attribute("name", service_name); });
+		g.node("service", [&] () {
+			g.attribute("name", service_name); });
 }
 
 
-void Child::_gen_copy_of_sub_node(Xml_generator        &xml,
+void Child::_gen_copy_of_sub_node(Generator            &g,
                                   Xml_node       const &from_node,
                                   Xml_node::Type const &sub_node_type)
 {
 	from_node.with_optional_sub_node(sub_node_type.string(),
 		[&] (Xml_node const &sub_node) {
-			(void)xml.append_node(sub_node, MAX_NODE_DEPTH); });
+			(void)g.append_node(sub_node, MAX_NODE_DEPTH); });
 }
 
 
@@ -803,7 +803,7 @@ void Child::reset_incomplete()
 }
 
 
-bool Child::gen_query(Xml_generator &xml) const
+bool Child::gen_query(Generator &g) const
 {
 	if (_skip) {
 		return false; }
@@ -814,23 +814,23 @@ bool Child::gen_query(Xml_generator &xml) const
 	if (_defined_by_launcher() && !_launcher_xml.constructed())
 		return false;
 
-	xml.node("blueprint", [&] () {
-		xml.attribute("pkg", _blueprint_pkg_path); });
+	g.node("blueprint", [&] () {
+		g.attribute("pkg", _blueprint_pkg_path); });
 
 	return true;
 }
 
 
-void Child::gen_installation_entry(Xml_generator &xml) const
+void Child::gen_installation_entry(Generator &g) const
 {
 	if (_skip) {
 		return; }
 
 	if (!_pkg_incomplete) return;
 
-	xml.node("archive", [&] () {
-		xml.attribute("path", _config_pkg_path());
-		xml.attribute("source", "no");
+	g.node("archive", [&] () {
+		g.attribute("path", _config_pkg_path());
+		g.attribute("source", "no");
 	});
 }
 

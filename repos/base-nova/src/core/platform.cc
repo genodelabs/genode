@@ -16,10 +16,10 @@
 /* Genode includes */
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <base/node.h>
 #include <util/bit_array.h>
 #include <util/mmio.h>
 #include <util/string.h>
-#include <util/xml_generator.h>
 #include <trace/source_registry.h>
 #include <util/construct_at.h>
 
@@ -673,60 +673,60 @@ Core::Platform::Platform()
 	export_pages_as_rom_module("platform_info", 1 + (MAX_SUPPORTED_CPUS / 32),
 		[&] (char * const ptr, size_t const size) {
 
-			Xml_generator::generate( { ptr, size }, "platform_info",
-			                        [&] (Xml_generator &xml)
+			Generator::generate( { ptr, size }, "platform_info",
+			                    [&] (Generator &g)
 			{
-				xml.node("kernel", [&] {
-					xml.attribute("name", "nova");
-					xml.attribute("acpi", true);
-					xml.attribute("msi" , true);
-					xml.attribute("iommu", hip.has_feature_iommu());
+				g.node("kernel", [&] {
+					g.attribute("name", "nova");
+					g.attribute("acpi", true);
+					g.attribute("msi" , true);
+					g.attribute("iommu", hip.has_feature_iommu());
 				});
 				if (efi_sys_tab_phy) {
-					xml.node("efi-system-table", [&] {
-						xml.attribute("address", String<32>(Hex(efi_sys_tab_phy)));
+					g.node("efi-system-table", [&] {
+						g.attribute("address", String<32>(Hex(efi_sys_tab_phy)));
 					});
 				}
-				xml.node("acpi", [&] {
+				g.node("acpi", [&] {
 
-					xml.attribute("revision", 2); /* XXX */
+					g.attribute("revision", 2); /* XXX */
 
 					if (rsdt)
-						xml.attribute("rsdt", String<32>(Hex(rsdt)));
+						g.attribute("rsdt", String<32>(Hex(rsdt)));
 
 					if (xsdt)
-						xml.attribute("xsdt", String<32>(Hex(xsdt)));
+						g.attribute("xsdt", String<32>(Hex(xsdt)));
 				});
-				xml.node("affinity-space", [&] {
-					xml.attribute("width", _cpus.width());
-					xml.attribute("height", _cpus.height());
+				g.node("affinity-space", [&] {
+					g.attribute("width", _cpus.width());
+					g.attribute("height", _cpus.height());
 				});
-				xml.node("boot", [&] {
+				g.node("boot", [&] {
 					if (!boot_fb)
 						return;
 
 					if (!efi_boot && (Resolution::Type::get(boot_fb->size) != Resolution::Type::VGA_TEXT))
 						return;
 
-					xml.node("framebuffer", [&] {
-						xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
-						xml.attribute("width",  Resolution::Width::get(boot_fb->size));
-						xml.attribute("height", Resolution::Height::get(boot_fb->size));
-						xml.attribute("bpp",    Resolution::Bpp::get(boot_fb->size));
-						xml.attribute("type",   Resolution::Type::get(boot_fb->size));
-						xml.attribute("pitch",  boot_fb->aux);
+					g.node("framebuffer", [&] {
+						g.attribute("phys",   String<32>(Hex(boot_fb->addr)));
+						g.attribute("width",  Resolution::Width::get(boot_fb->size));
+						g.attribute("height", Resolution::Height::get(boot_fb->size));
+						g.attribute("bpp",    Resolution::Bpp::get(boot_fb->size));
+						g.attribute("type",   Resolution::Type::get(boot_fb->size));
+						g.attribute("pitch",  boot_fb->aux);
 					});
 				});
-				xml.node("hardware", [&] {
-					xml.node("features", [&] {
-						xml.attribute("svm", hip.has_feature_svm());
-						xml.attribute("vmx", hip.has_feature_vmx());
+				g.node("hardware", [&] {
+					g.node("features", [&] {
+						g.attribute("svm", hip.has_feature_svm());
+						g.attribute("vmx", hip.has_feature_vmx());
 					});
-					xml.node("tsc", [&] {
-						xml.attribute("invariant", cpuid_invariant_tsc());
-						xml.attribute("freq_khz" , hip.tsc_freq);
+					g.node("tsc", [&] {
+						g.attribute("invariant", cpuid_invariant_tsc());
+						g.attribute("freq_khz" , hip.tsc_freq);
 					});
-					xml.node("cpus", [&] {
+					g.node("cpus", [&] {
 						for_each_location([&](Affinity::Location &location) {
 							unsigned const kernel_cpu_id = Platform::kernel_cpu_id(location);
 							auto const cpu_ptr = hip.cpu_desc_of_cpu(kernel_cpu_id);
@@ -736,20 +736,20 @@ Core::Platform::Platform()
 
 							auto const &cpu = *cpu_ptr;
 
-							xml.node("cpu", [&] {
-								xml.attribute("xpos",     location.xpos());
-								xml.attribute("ypos",     location.ypos());
-								xml.attribute("id",       kernel_cpu_id);
-								xml.attribute("package",  cpu.package);
-								xml.attribute("core",     cpu.core);
-								xml.attribute("thread",   cpu.thread);
-								xml.attribute("family",   String<5>(Hex(cpu.family)));
-								xml.attribute("model",    String<5>(Hex(cpu.model)));
-								xml.attribute("stepping", String<5>(Hex(cpu.stepping)));
-								xml.attribute("platform", String<5>(Hex(cpu.platform)));
-								xml.attribute("patch",    String<12>(Hex(cpu.patch)));
-								if (cpu.p_core()) xml.attribute("cpu_type", "P");
-								if (cpu.e_core()) xml.attribute("cpu_type", "E");
+							g.node("cpu", [&] {
+								g.attribute("xpos",     location.xpos());
+								g.attribute("ypos",     location.ypos());
+								g.attribute("id",       kernel_cpu_id);
+								g.attribute("package",  cpu.package);
+								g.attribute("core",     cpu.core);
+								g.attribute("thread",   cpu.thread);
+								g.attribute("family",   String<5>(Hex(cpu.family)));
+								g.attribute("model",    String<5>(Hex(cpu.model)));
+								g.attribute("stepping", String<5>(Hex(cpu.stepping)));
+								g.attribute("platform", String<5>(Hex(cpu.platform)));
+								g.attribute("patch",    String<12>(Hex(cpu.patch)));
+								if (cpu.p_core()) g.attribute("cpu_type", "P");
+								if (cpu.e_core()) g.attribute("cpu_type", "E");
 							});
 						});
 					});

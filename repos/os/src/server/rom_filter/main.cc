@@ -12,13 +12,11 @@
  */
 
 /* Genode includes */
-#include <util/reconstructible.h>
 #include <util/arg_string.h>
-#include <util/xml_generator.h>
-#include <util/retry.h>
 #include <base/heap.h>
 #include <base/component.h>
 #include <base/attached_ram_dataspace.h>
+#include <base/node.h>
 #include <root/component.h>
 
 /* local includes */
@@ -29,7 +27,7 @@ namespace Rom_filter {
 	using Genode::Rpc_object;
 	using Genode::Sliced_heap;
 	using Genode::Constructible;
-	using Genode::Xml_generator;
+	using Genode::Generator;
 	using Genode::size_t;
 	using Genode::Interface;
 
@@ -170,11 +168,11 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 
 	Input_rom_registry _input_rom_registry { _env, _heap, *this };
 
-	Genode::Constructible<Genode::Attached_ram_dataspace> _xml_ds { };
+	Genode::Constructible<Genode::Attached_ram_dataspace> _output_ds { };
 
-	size_t _xml_output_len = 0;
+	size_t _output_len = 0;
 
-	void _evaluate_node(Node const &node, Xml_generator &xml);
+	void _evaluate_node(Node const &node, Generator &);
 	void _evaluate();
 
 	Root _root = { _env, *this, _sliced_heap };
@@ -195,12 +193,12 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 		/*
 		 * Create buffer for generated XML data
 		 */
-		Genode::Number_of_bytes xml_ds_size = 4096;
+		Genode::Number_of_bytes output_ds_size = 4096;
 
-		xml_ds_size = _config.node().attribute_value("buffer", xml_ds_size);
+		output_ds_size = _config.node().attribute_value("buffer", output_ds_size);
 
-		if (!_xml_ds.constructed() || xml_ds_size != _xml_ds->size())
-			_xml_ds.construct(_env.ram(), _env.rm(), xml_ds_size);
+		if (!_output_ds.constructed() || output_ds_size != _output_ds->size())
+			_output_ds.construct(_env.ram(), _env.rm(), output_ds_size);
 
 		/*
 		 * Obtain inputs
@@ -226,15 +224,15 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 	/**
 	 * Output_buffer interface
 	 */
-	size_t content_size() const override { return _xml_output_len; }
+	size_t content_size() const override { return _output_len; }
 
 	/**
 	 * Output_buffer interface
 	 */
 	size_t export_content(char *dst, size_t dst_len) const override
 	{
-		size_t const len = Genode::min(dst_len, _xml_output_len);
-		Genode::memcpy(dst, _xml_ds->local_addr<char>(), len);
+		size_t const len = Genode::min(dst_len, _output_len);
+		Genode::memcpy(dst, _output_ds->local_addr<char>(), len);
 		return len;
 	}
 
@@ -247,7 +245,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 };
 
 
-void Rom_filter::Main::_evaluate_node(Node const &node, Xml_generator &xml)
+void Rom_filter::Main::_evaluate_node(Node const &node, Generator &g)
 {
 	auto process_output_sub_node = [&] (Node const &node) {
 
@@ -278,10 +276,10 @@ void Rom_filter::Main::_evaluate_node(Node const &node, Xml_generator &xml)
 
 			if (condition_satisfied) {
 				node.with_optional_sub_node("then", [&] (Node const &then_node) {
-					_evaluate_node(then_node, xml); });
+					_evaluate_node(then_node, g); });
 			} else {
 				node.with_optional_sub_node("else", [&] (Node const &else_node) {
-					_evaluate_node(else_node, xml); });
+					_evaluate_node(else_node, g); });
 			}
 		}
 		else if (node.has_type("attribute")) {
@@ -296,8 +294,8 @@ void Rom_filter::Main::_evaluate_node(Node const &node, Xml_generator &xml)
 
 				_input_rom_registry.query_value(_config.node(), input_name).with_result(
 					[&] (Input_value const value) {
-						xml.attribute(node.attribute_value("name", String()).string(),
-						              value); },
+						g.attribute(node.attribute_value("name", String()).string(),
+						            value); },
 					[&] (Input_rom_registry::Missing) {
 						if (_verbose)
 							Genode::warning("could not obtain input value for input ", input_name);
@@ -305,16 +303,16 @@ void Rom_filter::Main::_evaluate_node(Node const &node, Xml_generator &xml)
 				);
 			} else {
 				/* assign fixed attribute value */
-				xml.attribute(node.attribute_value("name",  String()).string(),
-				              node.attribute_value("value", String()).string());
+				g.attribute(node.attribute_value("name",  String()).string(),
+				            node.attribute_value("value", String()).string());
 			}
 		}
 		else if (node.has_type("node")) {
-			xml.node(node.attribute_value("type", Genode::String<128>()).string(), [&]() {
-				_evaluate_node(node, xml); });
+			g.node(node.attribute_value("type", Genode::String<128>()).string(), [&]() {
+				_evaluate_node(node, g); });
 		}
 		else if (node.has_type("inline")) {
-			if (!xml.append_node_content(node, Genode::Xml_generator::Max_depth { 20 }))
+			if (!g.append_node_content(node, Genode::Generator::Max_depth { 20 }))
 				warning("node is too deeply nested: ", node);
 		}
 		else if (node.has_type("input")) {
@@ -325,7 +323,7 @@ void Rom_filter::Main::_evaluate_node(Node const &node, Xml_generator &xml)
 			bool const skip_toplevel =
 				node.attribute_value("skip_toplevel", false);
 
-			_input_rom_registry.gen_xml(input_name, xml, skip_toplevel);
+			_input_rom_registry.generate(input_name, g, skip_toplevel);
 		}
 	};
 
@@ -349,17 +347,17 @@ void Rom_filter::Main::_evaluate()
 
 		/* generate output, expand dataspace on demand */
 		for (;;) {
-			Xml_generator::Result const result =
-				Xml_generator::generate(_xml_ds->bytes(), node_type,
-					[&] (Xml_generator &xml) { _evaluate_node(output, xml); });
+			Generator::Result const result =
+				Generator::generate(_output_ds->bytes(), node_type,
+					[&] (Generator &g) { _evaluate_node(output, g); });
 
-			_xml_output_len =
+			_output_len =
 				result.convert<size_t>([&] (size_t used)  { return used; },
 				                       [&] (Buffer_error) { return 0ul; });
 			if (result.ok())
 				break;
 
-			_xml_ds.construct(_env.ram(), _env.rm(), _xml_ds->size() + 4096);
+			_output_ds.construct(_env.ram(), _env.rm(), _output_ds->size() + 4096);
 		}
 	});
 

@@ -49,7 +49,7 @@ struct Dummy_modem::Main
 
 	Pin _pin { };
 
-	void _generate_report(Xml_generator &xml) const
+	void _generate_report(Generator &g) const
 	{
 		auto power_value = [] (Power_state state)
 		{
@@ -63,13 +63,13 @@ struct Dummy_modem::Main
 			return "";
 		};
 
-		xml.attribute("power", power_value(_power_state));
+		g.attribute("power", power_value(_power_state));
 
 		if (_power_state == Power_state::STARTING_UP)
-			xml.attribute("startup_seconds", _startup_seconds);
+			g.attribute("startup_seconds", _startup_seconds);
 
 		if (_power_state == Power_state::SHUTTING_DOWN)
-			xml.attribute("shutdown_seconds", _shutdown_seconds);
+			g.attribute("shutdown_seconds", _shutdown_seconds);
 
 		auto pin_value = [] (Pin::State state)
 		{
@@ -83,10 +83,10 @@ struct Dummy_modem::Main
 		};
 
 		if (_power_state == Power_state::ON) {
-			xml.attribute("pin", pin_value(_pin.state));
+			g.attribute("pin", pin_value(_pin.state));
 
 			if (_pin.remaining_attempts != Pin::INITIAL_REMAINING_ATTEMPTS)
-				xml.attribute("pin_remaining_attempts", _pin.remaining_attempts);
+				g.attribute("pin_remaining_attempts", _pin.remaining_attempts);
 		}
 
 		if (_pin.state == Pin::State::OK) {
@@ -96,16 +96,16 @@ struct Dummy_modem::Main
 			Scenario scenario = INITIATED_CALL;
 
 			if (scenario == INCOMING_CALL) {
-				xml.node("call", [&] {
-					xml.attribute("number", "+49123456789");
-					xml.attribute("state",  "incoming");
+				g.node("call", [&] {
+					g.attribute("number", "+49123456789");
+					g.attribute("state",  "incoming");
 				});
 			}
 
 			if (scenario == INITIATED_CALL) {
-				xml.node("call", [&] {
-					xml.attribute("number", "+4911223344");
-					xml.attribute("state",  "outbound");
+				g.node("call", [&] {
+					g.attribute("number", "+4911223344");
+					g.attribute("state",  "outbound");
 				});
 			}
 		}
@@ -113,8 +113,8 @@ struct Dummy_modem::Main
 
 	void _update_state_report()
 	{
-		_reporter.generate([&] (Xml_generator &xml) {
-			_generate_report(xml); });
+		_reporter.generate([&] (Generator &g) {
+			_generate_report(g); });
 	}
 
 	Timer::Connection _timer { _env };

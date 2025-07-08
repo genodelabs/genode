@@ -553,7 +553,7 @@ struct Window_layouter::Main : User_state::Action,
 		_gen_rules_with_frontmost_screen(Target::Name());
 	}
 
-	void _gen_rules_assignments(Xml_generator &, auto const &);
+	void _gen_rules_assignments(Generator &, auto const &);
 
 	/**
 	 * Constructor
@@ -596,8 +596,8 @@ void Window_layouter::Main::_gen_window_layout()
 		                       : Window::Element { });
 	});
 
-	_window_layout_reporter.generate([&] (Xml_generator &xml) {
-		_target_list.gen_layout(xml, _assign_list, _drag); });
+	_window_layout_reporter.generate([&] (Generator &g) {
+		_target_list.gen_layout(g, _assign_list, _drag); });
 }
 
 
@@ -612,9 +612,9 @@ void Window_layouter::Main::_gen_resize_request()
 	if (!resize_needed)
 		return;
 
-	_resize_request_reporter.generate([&] (Xml_generator &xml) {
+	_resize_request_reporter.generate([&] (Generator &g) {
 		_window_list.for_each_window([&] (Window const &window) {
-			window.gen_resize_request(xml); }); });
+			window.gen_resize_request(g); }); });
 
 	/* prevent superfluous resize requests for the same size */
 	_window_list.for_each_window([&] (Window &window) {
@@ -624,21 +624,21 @@ void Window_layouter::Main::_gen_resize_request()
 
 void Window_layouter::Main::_gen_focus()
 {
-	_focus_reporter.generate([&] (Xml_generator &xml) {
-		xml.node("window", [&] () {
-			xml.attribute("id", _user_state.focused_window_id().value); }); });
+	_focus_reporter.generate([&] (Generator &g) {
+		g.node("window", [&] () {
+			g.attribute("id", _user_state.focused_window_id().value); }); });
 }
 
 
-void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, auto const &filter_fn)
+void Window_layouter::Main::_gen_rules_assignments(Generator &g, auto const &filter_fn)
 {
-	auto gen_window_geometry = [] (Xml_generator &xml,
+	auto gen_window_geometry = [] (Generator &g,
 	                               Assign const &assign, Window const &window) {
 		if (!assign.floating())
 			return;
 
-		assign.gen_geometry_attr(xml, { .geometry  = window.effective_inner_geometry(),
-		                                .maximized = window.maximized() });
+		assign.gen_geometry_attr(g, { .geometry  = window.effective_inner_geometry(),
+		                              .maximized = window.maximized() });
 	};
 
 	/* turn wildcard assignments into exact assignments */
@@ -647,10 +647,10 @@ void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, auto cons
 		if (!filter_fn(member.window))
 			return;
 
-		xml.node("assign", [&] () {
-			xml.attribute("label",  member.window.label);
-			xml.attribute("target", assign.target_name);
-			gen_window_geometry(xml, assign, member.window);
+		g.node("assign", [&] () {
+			g.attribute("label",  member.window.label);
+			g.attribute("target", assign.target_name);
+			gen_window_geometry(g, assign, member.window);
 		});
 	};
 	_assign_list.for_each_wildcard_member(fn);
@@ -676,9 +676,9 @@ void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, auto cons
 			if (geometry_generated || !filter_fn(member.window))
 				return;
 
-			xml.node("assign", [&] () {
-				assign.gen_assign_attr(xml);
-				gen_window_geometry(xml, assign, member.window);
+			g.node("assign", [&] () {
+				assign.gen_assign_attr(g);
+				gen_window_geometry(g, assign, member.window);
 			});
 			geometry_generated = true;
 		});
@@ -691,18 +691,18 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 	if (!_rules_reporter.constructed())
 		return;
 
-	_rules_reporter->generate([&] (Xml_generator &xml) {
+	_rules_reporter->generate([&] (Generator &g) {
 
 		_layout_rules.with_rules([&] (Node const &rules) {
 			bool display_declared = false;
 			rules.for_each_sub_node("display", [&] (Node const &display) {
 				display_declared = true;
-				(void)xml.append_node(display, { 5 }); });
+				(void)g.append_node(display, { 5 }); });
 			if (display_declared)
-				xml.append("\n");
+				g.append_quoted("\n");
 		});
 
-		_target_list.gen_screens(xml, screen);
+		_target_list.gen_screens(g, screen);
 
 		/*
 		 * Generate exact <assign> nodes for present windows.
@@ -717,8 +717,8 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 		auto behind_front = [&] (Window const &window) {
 			return !front_most(window); };
 
-		_gen_rules_assignments(xml, front_most);
-		_gen_rules_assignments(xml, behind_front);
+		_gen_rules_assignments(g, front_most);
+		_gen_rules_assignments(g, behind_front);
 
 		/* keep attributes of wildcards and (currently) unused assignments */
 		_assign_list.for_each([&] (Assign const &assign) {
@@ -733,11 +733,11 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 			 */
 			if (assign.wildcard() || no_window_assigned) {
 
-				xml.node("assign", [&] () {
-					assign.gen_assign_attr(xml);
+				g.node("assign", [&] () {
+					assign.gen_assign_attr(g);
 
 					if (assign.floating())
-						assign.gen_geometry_attr(xml);
+						assign.gen_geometry_attr(g);
 				});
 			}
 		});

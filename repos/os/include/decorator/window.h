@@ -15,10 +15,6 @@
 #define _INCLUDE__DECORATOR__WINDOW_H_
 
 /* Genode includes */
-#include <util/string.h>
-#include <util/xml_generator.h>
-#include <util/list_model.h>
-#include <util/reconstructible.h>
 #include <gui_session/client.h>
 #include <base/registry.h>
 #include <base/id_space.h>

@@ -27,7 +27,7 @@
 #include <net/dhcp.h>
 #include <net/icmp.h>
 
-namespace Genode { class Xml_generator; }
+namespace Genode { class Generator; }
 
 namespace Net {
 
@@ -69,7 +69,7 @@ struct Net::Interface_object_stats
 	Genode::size_t destroyed { 0 };
 
 	bool report_empty() const;
-	void report(Genode::Xml_generator &xml) const;
+	void report(Genode::Generator &) const;
 
 	~Interface_object_stats();
 };
@@ -91,7 +91,7 @@ struct Net::Interface_link_stats
 	Genode::size_t destroyed                 { 0 };
 
 	bool report_empty() const;
-	void report(Genode::Xml_generator &xml) const;
+	void report(Genode::Generator &) const;
 
 	~Interface_link_stats();
 };
@@ -111,7 +111,7 @@ struct Net::Interface_policy : Genode::Interface
 
 	virtual bool report_empty() const = 0;
 
-	virtual void report(Genode::Xml_generator &) const = 0;
+	virtual void report(Genode::Generator &) const = 0;
 
 	virtual ~Interface_policy() { }
 };
@@ -451,7 +451,7 @@ class Net::Interface : private Interface_list::Element
 
 		bool report_empty(Report const &report_cfg) const;
 
-		void report(Genode::Xml_generator &xml, Report const &report_cfg) const;
+		void report(Genode::Generator &, Report const &report_cfg) const;
 
 		void handle_domain_ready_state(bool state);
 

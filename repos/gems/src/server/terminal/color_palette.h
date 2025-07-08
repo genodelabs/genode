@@ -17,7 +17,6 @@
 
 /* Genode includes */
 #include <util/color.h>
-#include <util/xml_node.h>
 
 /* local includes */
 #include "types.h"

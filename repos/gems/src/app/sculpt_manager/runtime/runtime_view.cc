@@ -18,66 +18,66 @@
 #include <runtime.h>
 
 
-void Sculpt::gen_runtime_view_start_content(Xml_generator &xml,
+void Sculpt::gen_runtime_view_start_content(Generator &g,
                                             Child_state const &state,
                                             double font_size)
 {
-	state.gen_start_node_content(xml);
+	state.gen_start_node_content(g);
 
-	gen_named_node(xml, "resource", "CPU", [&] {
-		xml.attribute("quantum", 20); });
+	gen_named_node(g, "resource", "CPU", [&] {
+		g.attribute("quantum", 20); });
 
-	gen_named_node(xml, "binary", "menu_view");
+	gen_named_node(g, "binary", "menu_view");
 
-	xml.node("config", [&] {
-		xml.node("libc", [&] { xml.attribute("stderr", "/dev/log"); });
-		xml.node("report", [&] { xml.attribute("hover", "yes"); });
-		xml.node("vfs", [&] {
-			gen_named_node(xml, "tar", "menu_view_styles.tar");
-			gen_named_node(xml, "rom", "Vera.ttf");
-			gen_named_node(xml, "dir", "fonts", [&] {
-				gen_named_node(xml, "dir", "text", [&] {
-					gen_named_node(xml, "ttf", "regular", [&] {
-						xml.attribute("size_px", font_size);
-						xml.attribute("cache", "256K");
-						xml.attribute("path", "/Vera.ttf"); }); }); });
+	g.node("config", [&] {
+		g.node("libc", [&] { g.attribute("stderr", "/dev/log"); });
+		g.node("report", [&] { g.attribute("hover", "yes"); });
+		g.node("vfs", [&] {
+			gen_named_node(g, "tar", "menu_view_styles.tar");
+			gen_named_node(g, "rom", "Vera.ttf");
+			gen_named_node(g, "dir", "fonts", [&] {
+				gen_named_node(g, "dir", "text", [&] {
+					gen_named_node(g, "ttf", "regular", [&] {
+						g.attribute("size_px", font_size);
+						g.attribute("cache", "256K");
+						g.attribute("path", "/Vera.ttf"); }); }); });
 
-			gen_named_node(xml, "dir", "dev", [&] {
-				xml.node("log",  [&] { }); });
+			gen_named_node(g, "dir", "dev", [&] {
+				g.node("log",  [&] { }); });
 		});
 	});
 
-	xml.node("route", [&] {
+	g.node("route", [&] {
 
-		gen_service_node<Gui::Session>(xml, [&] {
-			xml.node("parent", [&] {
-				xml.attribute("label", "leitzentrale -> runtime_view"); }); });
+		gen_service_node<Gui::Session>(g, [&] {
+			g.node("parent", [&] {
+				g.attribute("label", "leitzentrale -> runtime_view"); }); });
 
-		gen_service_node<Rom_session>(xml, [&] {
-			xml.attribute("label", "dialog");
-			xml.node("parent", [&] {
-				xml.attribute("label", "leitzentrale -> runtime_view -> dialog"); }); });
+		gen_service_node<Rom_session>(g, [&] {
+			g.attribute("label", "dialog");
+			g.node("parent", [&] {
+				g.attribute("label", "leitzentrale -> runtime_view -> dialog"); }); });
 
-		gen_service_node<Report::Session>(xml, [&] {
-			xml.attribute("label", "hover");
-			xml.node("parent", [&] {
-				xml.attribute("label", "leitzentrale -> runtime_view -> hover"); }); });
+		gen_service_node<Report::Session>(g, [&] {
+			g.attribute("label", "hover");
+			g.node("parent", [&] {
+				g.attribute("label", "leitzentrale -> runtime_view -> hover"); }); });
 
-		gen_parent_rom_route(xml, "menu_view");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
-		gen_parent_rom_route(xml, "vfs_ttf.lib.so");
-		gen_parent_rom_route(xml, "libc.lib.so");
-		gen_parent_rom_route(xml, "libm.lib.so");
-		gen_parent_rom_route(xml, "libpng.lib.so");
-		gen_parent_rom_route(xml, "zlib.lib.so");
-		gen_parent_rom_route(xml, "menu_view_styles.tar");
-		gen_parent_rom_route(xml, "Vera.ttf");
-		gen_parent_rom_route(xml, "dialog");
-		gen_parent_route<Cpu_session>    (xml);
-		gen_parent_route<Pd_session>     (xml);
-		gen_parent_route<Log_session>    (xml);
-		gen_parent_route<Timer::Session> (xml);
+		gen_parent_rom_route(g, "menu_view");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
+		gen_parent_rom_route(g, "vfs_ttf.lib.so");
+		gen_parent_rom_route(g, "libc.lib.so");
+		gen_parent_rom_route(g, "libm.lib.so");
+		gen_parent_rom_route(g, "libpng.lib.so");
+		gen_parent_rom_route(g, "zlib.lib.so");
+		gen_parent_rom_route(g, "menu_view_styles.tar");
+		gen_parent_rom_route(g, "Vera.ttf");
+		gen_parent_rom_route(g, "dialog");
+		gen_parent_route<Cpu_session>    (g);
+		gen_parent_route<Pd_session>     (g);
+		gen_parent_route<Log_session>    (g);
+		gen_parent_route<Timer::Session> (g);
 	});
 }
 

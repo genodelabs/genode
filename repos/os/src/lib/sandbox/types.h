@@ -15,7 +15,7 @@
 #define _LIB__SANDBOX__TYPES_H_
 
 #include <util/list.h>
-#include <util/xml_generator.h>
+#include <base/node.h>
 #include <pd_session/pd_session.h>
 
 namespace Sandbox {
@@ -44,12 +44,12 @@ namespace Sandbox {
 
 		static Resource_info from_pd(Pd_session const &pd);
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
 			using Value = String<32>;
-			xml.attribute("quota", Value(quota));
-			xml.attribute("used",  Value(used));
-			xml.attribute("avail", Value(avail));
+			g.attribute("quota", Value(quota));
+			g.attribute("used",  Value(used));
+			g.attribute("avail", Value(avail));
 		}
 
 		bool operator != (Resource_info const &other) const

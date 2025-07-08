@@ -344,12 +344,12 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			 */
 			Result produce_content(Byte_range_ptr const &dst) override
 			{
-				return Xml_generator::generate(dst, "config", [&] (Xml_generator &xml) {
+				return Generator::generate(dst, "config", [&] (Generator &g) {
 					_child._start_node->with_optional_sub_node("config",
 						[&] (Node const &config) {
-							xml.node_attributes(config);
-							Xml_generator::Max_depth const max_depth { 20 };
-							if (!xml.append_node_content(config, max_depth))
+							g.node_attributes(config);
+							Generator::Max_depth const max_depth { 20 };
+							if (!g.append_node_content(config, max_depth))
 								warning(_child.name(), ": config structure exceeds max depth");
 						});
 					return Ok();
@@ -695,7 +695,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			return _heartbeat_expected() ? _child.skipped_heartbeats() : 0;
 		}
 
-		void report_state(Xml_generator &, Report_detail const &) const;
+		void report_state(Generator &, Report_detail const &) const;
 
 		Sample_state_result sample_state();
 

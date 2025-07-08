@@ -26,7 +26,7 @@
 /* gems includes */
 #include <gems/png_image.h>
 #include <gems/file.h>
-#include <gems/xml_anchor.h>
+#include <gems/anchor.h>
 #include <gems/texture_utils.h>
 
 /* libc includes */

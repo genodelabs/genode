@@ -35,7 +35,7 @@ class Sculpt::Drivers : Noncopyable
 
 		struct Info : Interface
 		{
-			virtual void gen_usb_storage_policies(Xml_generator &) const = 0;
+			virtual void gen_usb_storage_policies(Generator &) const = 0;
 		};
 
 		using Children = Registry<Child_state>;
@@ -84,7 +84,7 @@ class Sculpt::Drivers : Noncopyable
 		void update_soc(Board_info::Soc);
 		void update_options(Board_info::Options);
 
-		void gen_start_nodes(Xml_generator &) const;
+		void gen_start_nodes(Generator &) const;
 
 		void with_storage_devices(auto const &fn) const { _with(With_storage_devices::Fn   { fn }); }
 		void with_board_info     (auto const &fn) const { _with(With_board_info::Fn        { fn }); }

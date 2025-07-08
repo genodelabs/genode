@@ -21,32 +21,32 @@ struct Sculpt::Ps2_driver : private Noncopyable
 {
 	Constructible<Child_state> _ps2 { };
 
-	void gen_start_node(Xml_generator &xml) const
+	void gen_start_node(Generator &g) const
 	{
 		if (!_ps2.constructed())
 			return;
 
-		xml.node("start", [&] {
-			_ps2->gen_start_node_content(xml);
+		g.node("start", [&] {
+			_ps2->gen_start_node_content(g);
 
-			gen_named_node(xml, "binary", "ps2");
+			gen_named_node(g, "binary", "ps2");
 
-			xml.node("config", [&] {
-				xml.attribute("capslock_led", "rom");
-				xml.attribute("numlock_led",  "rom");
-				xml.attribute("system",       "yes");
+			g.node("config", [&] {
+				g.attribute("capslock_led", "rom");
+				g.attribute("numlock_led",  "rom");
+				g.attribute("system",       "yes");
 			});
 
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>(xml);
-				gen_common_routes(xml);
-				gen_parent_rom_route(xml, "capslock", "capslock");
-				gen_parent_rom_route(xml, "numlock",  "numlock");
-				gen_parent_rom_route(xml, "system",   "config -> managed/system");
-				gen_parent_route<Rom_session>   (xml);
-				gen_service_node<Event::Session>(xml, [&] {
-					xml.node("parent", [&] {
-						xml.attribute("label", "ps2"); }); });
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>(g);
+				gen_common_routes(g);
+				gen_parent_rom_route(g, "capslock", "capslock");
+				gen_parent_rom_route(g, "numlock",  "numlock");
+				gen_parent_rom_route(g, "system",   "config -> managed/system");
+				gen_parent_route<Rom_session>   (g);
+				gen_service_node<Event::Session>(g, [&] {
+					g.node("parent", [&] {
+						g.attribute("label", "ps2"); }); });
 			});
 		});
 	};

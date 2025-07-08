@@ -409,15 +409,15 @@ class Rom_filter::Input_rom_registry
 		/**
 		 * Generate content of the specifed input
 		 */
-		void gen_xml(Input_name const &input_name, Genode::Xml_generator &xml, bool skip_toplevel=false)
+		void generate(Input_name const &input_name, Genode::Generator &g, bool skip_toplevel=false)
 		{
 			_with_entry_by_name(input_name, [&] (Entry const &entry) {
 				entry.with_node(
 					[&] (Node const &node) {
-						Genode::Xml_generator::Max_depth const max_depth { 20 };
+						Genode::Generator::Max_depth const max_depth { 20 };
 						bool const ok = skip_toplevel
-						              ? xml.append_node_content(node, max_depth)
-						              : xml.append_node        (node, max_depth);
+						              ? g.append_node_content(node, max_depth)
+						              : g.append_node        (node, max_depth);
 						if (!ok)
 							warning("node too deeply nested: ", node);
 					},

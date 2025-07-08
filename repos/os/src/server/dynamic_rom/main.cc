@@ -184,10 +184,10 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 					return;
 				}
 				step_node.with_sub_node(0u, [&] (Node const &content) {
-					auto const r = Xml_generator::generate(dst, content.type(),
-						[&] (Xml_generator &xml) {
-							xml.node_attributes(content);
-							if (!xml.append_node_content(content, { 20 }))
+					auto const r = Generator::generate(dst, content.type(),
+						[&] (Generator &g) {
+							g.node_attributes(content);
+							if (!g.append_node_content(content, { 20 }))
 								warning("step is too deeply nested: ", step_node);
 						});
 					if (r.failed())

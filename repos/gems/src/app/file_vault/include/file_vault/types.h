@@ -37,10 +37,10 @@ namespace File_vault {
 	struct Number_of_clients { uint64_t value; };
 	struct Operation_id { uint64_t value; };
 
-	void gen_named_node(Xml_generator &xml, char const *type, auto name, auto const &fn)
+	void gen_named_node(Generator &g, char const *type, auto name, auto const &fn)
 	{
-		xml.node(type, [&] {
-			xml.attribute("name", name);
+		g.node(type, [&] {
+			g.attribute("name", name);
 			fn(); });
 	}
 
@@ -95,10 +95,10 @@ namespace File_vault {
 
 			Rekey(Operation_id id, bool finished) : id(id), finished(finished) { }
 
-			void generate(Xml_generator &xml)
+			void generate(Generator &g)
 			{
-				xml.attribute("id", id.value);
-				xml.attribute("finished", finished);
+				g.attribute("id", id.value);
+				g.attribute("finished", finished);
 			}
 		};
 
@@ -112,10 +112,10 @@ namespace File_vault {
 
 			Extend(Operation_id id, bool finished) : id(id), finished(finished) { }
 
-			void generate(Xml_generator &xml)
+			void generate(Generator &g)
 			{
-				xml.attribute("id", id.value);
-				xml.attribute("finished", finished);
+				g.attribute("id", id.value);
+				g.attribute("finished", finished);
 			}
 		};
 
@@ -139,16 +139,16 @@ namespace File_vault {
 			node.with_optional_sub_node("extend", [&] (Xml_node const &n) { extend.construct(n); });
 		}
 
-		void generate(Xml_generator &xml)
+		void generate(Generator &g)
 		{
-			xml.attribute("state", state_to_string(state));
-			xml.attribute("image_size", image_size);
-			xml.attribute("capacity", capacity);
-			xml.attribute("num_clients", num_clients.value);
+			g.attribute("state", state_to_string(state));
+			g.attribute("image_size", image_size);
+			g.attribute("capacity", capacity);
+			g.attribute("num_clients", num_clients.value);
 			if (rekey.constructed())
-				xml.node("rekey", [&] { rekey->generate(xml); });
+				g.node("rekey", [&] { rekey->generate(g); });
 			if (extend.constructed())
-				xml.node("extend", [&] { extend->generate(xml); });
+				g.node("extend", [&] { extend->generate(g); });
 		}
 	};
 
@@ -188,11 +188,11 @@ namespace File_vault {
 
 			Extend(Operation_id id, Tree tree, Number_of_bytes num_bytes) : id(id), tree(tree), num_bytes(num_bytes) { }
 
-			void generate(Xml_generator &xml)
+			void generate(Generator &g)
 			{
-				xml.attribute("id", id.value);
-				xml.attribute("tree", tree_to_string(tree));
-				xml.attribute("num_bytes", num_bytes);
+				g.attribute("id", id.value);
+				g.attribute("tree", tree_to_string(tree));
+				g.attribute("num_bytes", num_bytes);
 			}
 		};
 
@@ -204,7 +204,7 @@ namespace File_vault {
 
 			Rekey(Operation_id id) : id(id) { }
 
-			void generate(Xml_generator &xml) { xml.attribute("id", id.value); }
+			void generate(Generator &g) { g.attribute("id", id.value); }
 		};
 
 		Passphrase passphrase { };
@@ -225,15 +225,15 @@ namespace File_vault {
 
 		Ui_config() { }
 
-		void generate(Xml_generator &xml)
+		void generate(Generator &g)
 		{
-			xml.attribute("passphrase", passphrase);
-			xml.attribute("client_fs_size", client_fs_size);
-			xml.attribute("journaling_buf_size", journaling_buf_size);
+			g.attribute("passphrase", passphrase);
+			g.attribute("client_fs_size", client_fs_size);
+			g.attribute("journaling_buf_size", journaling_buf_size);
 			if (rekey.constructed())
-				xml.node("rekey", [&] { rekey->generate(xml); });
+				g.node("rekey", [&] { rekey->generate(g); });
 			if (extend.constructed())
-				xml.node("extend", [&] { extend->generate(xml); });
+				g.node("extend", [&] { extend->generate(g); });
 		}
 
 		bool passphrase_long_enough() const { return passphrase.length() >= MIN_PASSPHRASE_LENGTH + 1; }

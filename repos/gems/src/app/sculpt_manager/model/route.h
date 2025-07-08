@@ -27,7 +27,7 @@ struct Sculpt::Route : List_model<Route>::Element
 	using Info  = String<80>;
 	using Label = Service::Label;
 
-	static char const *xml_type(Service::Type type)
+	static char const *node_type(Service::Type type)
 	{
 		switch (type) {
 		case Service::Type::AUDIO_IN:    return "audio_in";
@@ -103,7 +103,7 @@ struct Sculpt::Route : List_model<Route>::Element
 	{
 		for (unsigned i = 0; i < (unsigned)Service::Type::UNDEFINED; i++) {
 			Service::Type const s = (Service::Type)i;
-			if (node.has_type(xml_type(s)))
+			if (node.has_type(node_type(s)))
 				return s;
 		}
 
@@ -171,36 +171,36 @@ struct Sculpt::Route : List_model<Route>::Element
 			Genode::print(out, " (", Pretty(required_label), ") ");
 	}
 
-	void gen_xml(Xml_generator &xml) const
+	void generate(Generator &g) const
 	{
 		if (!selected_service.constructed()) {
 			warning("no service assigned to route ", *this);
 			return;
 		}
 
-		gen_named_node(xml, "service", Service::name_attr(required), [&] {
+		gen_named_node(g, "service", Service::name_attr(required), [&] {
 
 			if (required_label.valid()) {
 
 				switch (selected_service->match_label) {
 				case Service::Match_label::LAST:
-					xml.attribute("label_last", required_label);
+					g.attribute("label_last", required_label);
 					break;
 				case Service::Match_label::FS:
-					xml.attribute("label_prefix", Label(required_label, " ->"));
+					g.attribute("label_prefix", Label(required_label, " ->"));
 					break;
 				case Service::Match_label::EXACT:
-					xml.attribute("label", required_label);
+					g.attribute("label", required_label);
 					break;
 				}
 			}
 
 			if (selected_service->type == Service::Type::FILE_SYSTEM)
-				selected_service->gen_xml(xml, [&] {
+				selected_service->generate(g, [&] {
 					if (selected_path.length() > 1)
-						xml.attribute("prepend_resource", selected_path); });
+						g.attribute("prepend_resource", selected_path); });
 			else
-				selected_service->gen_xml(xml);
+				selected_service->generate(g);
 		});
 	}
 

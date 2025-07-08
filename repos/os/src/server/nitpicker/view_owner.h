@@ -20,7 +20,6 @@
 #define _VIEW_OWNER_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <input/event.h>
 #include <gui_session/gui_session.h>
 #include <os/texture.h>
@@ -91,7 +90,7 @@ struct Nitpicker::View_owner : Interface
 	/**
 	 * Produce report with the owner's information
 	 */
-	virtual void report(Xml_generator &) const { }
+	virtual void report(Generator &) const { }
 
 	/**
 	 * Recipient of the focus whenever this view owner becomes focused

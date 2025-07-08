@@ -71,10 +71,10 @@ struct Menu_view::Main : Dialog::Action
 			_reported = false;
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
 			if (_curr.constructed())
-				xml.attribute("seq_number", _curr->value);
+				g.attribute("seq_number", _curr->value);
 		}
 
 		void mark_as_reported() { _reported = true; }
@@ -146,9 +146,9 @@ void Menu_view::Main::_update_hover_report()
 
 		if ((hovered != _reported_hovered) || _input_seq_number.changed()) {
 
-			_hover_reporter->generate([&] (Xml_generator &xml) {
-				_input_seq_number.generate(xml);
-				dialog.gen_hover(xml);
+			_hover_reporter->generate([&] (Generator &g) {
+				_input_seq_number.generate(g);
+				dialog.gen_hover(g);
 			});
 			_reported_hovered = hovered;
 			_input_seq_number.mark_as_reported();
@@ -156,7 +156,7 @@ void Menu_view::Main::_update_hover_report()
 	});
 
 	if (hovered_dialogs == 0)
-		_hover_reporter->generate([&] (Xml_generator &) { });
+		_hover_reporter->generate([&] (Generator &) { });
 
 	if (hovered_dialogs > 1)
 		warning("more than one dialog unexpectedly hovered at the same time");

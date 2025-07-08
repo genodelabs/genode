@@ -71,15 +71,15 @@ class Lid : Acpica::Callback<Lid> {
 			return AE_OK;
 		}
 
-		void generate(Genode::Xml_generator &xml)
+		void generate(Genode::Generator &g)
 		{
-			xml.node("lid", [&] {
-				xml.attribute("value", _lid_state);
-				xml.attribute("count", _lid_count);
+			g.node("lid", [&] {
+				g.attribute("value", _lid_state);
+				g.attribute("count", _lid_count);
 				if (_lid_state)
-					xml.append("open");
+					g.append_quoted("open");
 				else
-					xml.append("closed");
+					g.append_quoted("closed");
 			});
 		}
 };

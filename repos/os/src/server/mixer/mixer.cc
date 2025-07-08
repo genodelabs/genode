@@ -216,20 +216,20 @@ class Audio_out::Mixer
 		void _report_channels()
 		{
 			try {
-				_reporter.generate([&] (Genode::Xml_generator &xml) {
+				_reporter.generate([&] (Genode::Generator &g) {
 					/* output channels */
 					for_each_index(MAX_CHANNELS, [&] (int const i) {
 						Channel::Number const num = (Channel::Number)i;
 						char const * const   name = string_from_number(num);
 						int const             vol = (int)(MAX_VOLUME * _out_volume[i]);
 
-						xml.node("channel", [&] () {
-							xml.attribute("type",  "output");
-							xml.attribute("label", "master");
-							xml.attribute("name",   name);
-							xml.attribute("number", (int)num);
-							xml.attribute("volume", (int)vol);
-							xml.attribute("muted",  false);
+						g.node("channel", [&] () {
+							g.attribute("type",  "output");
+							g.attribute("label", "master");
+							g.attribute("name",   name);
+							g.attribute("number", (int)num);
+							g.attribute("volume", (int)vol);
+							g.attribute("muted",  false);
 						});
 					});
 
@@ -239,14 +239,14 @@ class Audio_out::Mixer
 							char const * const name = string_from_number(num);
 							int const           vol = (int)(MAX_VOLUME * session.volume);
 
-							xml.node("channel", [&] () {
-								xml.attribute("type",   "input");
-								xml.attribute("label",  session.label.string());
-								xml.attribute("name",   name);
-								xml.attribute("number", session.number);
-								xml.attribute("active", session.active());
-								xml.attribute("volume", (int)vol);
-								xml.attribute("muted",  session.muted);
+							g.node("channel", [&] () {
+								g.attribute("type",   "input");
+								g.attribute("label",  session.label.string());
+								g.attribute("name",   name);
+								g.attribute("number", session.number);
+								g.attribute("active", session.active());
+								g.attribute("volume", (int)vol);
+								g.attribute("muted",  session.muted);
 							});
 						});
 					});

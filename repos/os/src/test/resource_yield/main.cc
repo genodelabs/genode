@@ -303,8 +303,8 @@ class Test::Parent
 			{
 				Result produce_content(Byte_range_ptr const &dst) override
 				{
-					return Xml_generator::generate(dst, "config",
-						[&] (Xml_generator &xml) { xml.attribute("child", "yes"); }
+					return Generator::generate(dst, "config",
+						[&] (Generator &g) { g.attribute("child", "yes"); }
 
 					).convert<Result>([] (size_t)         { return Ok(); },
 					                  [] (Buffer_error e) { return e; });

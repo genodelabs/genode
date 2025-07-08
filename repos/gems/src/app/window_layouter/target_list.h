@@ -137,7 +137,7 @@ class Window_layouter::Target_list
 		 *
 		 * \return  layer that was processed by the method
 		 */
-		unsigned _gen_top_most_layer(Xml_generator &xml, unsigned min_layer,
+		unsigned _gen_top_most_layer(Generator &g, unsigned min_layer,
 		                             Assign_list const &assignments,
 		                             Drag const &drag) const
 		{
@@ -163,22 +163,22 @@ class Window_layouter::Target_list
 					return;
 
 				Rect const boundary = target.rect;
-				xml.node("boundary", [&] {
-					xml.attribute("name", target.name);
-					generate(xml, boundary);
+				g.node("boundary", [&] {
+					g.attribute("name", target.name);
+					generate(g, boundary);
 
 					/* in-flux window node for the currently dragged window */
 					if (drag.moving_at_target_rect(target.rect))
 						assignments.for_each([&] (Assign const &assign) {
 							assign.for_each_member([&] (Assign::Member const &member) {
 								if (drag.moving_window(member.window.id))
-									member.window.generate(xml, drag_origin_boundary); }); });
+									member.window.generate(g, drag_origin_boundary); }); });
 
 					/* visit all windows on the layer, except for the dragged one */
 					assignments.for_each_visible(target.name, [&] (Assign const &assign) {
 						assign.for_each_member([&] (Assign::Member const &member) {
 							if (!drag.moving_window(member.window.id))
-								member.window.generate(xml, boundary); }); });
+								member.window.generate(g, boundary); }); });
 				});
 			});
 
@@ -190,7 +190,7 @@ class Window_layouter::Target_list
 		Target_list(Allocator &alloc) : _alloc(alloc) { }
 
 		/*
-		 * The 'rules' XML node is expected to contain at least one <screen>
+		 * The 'rules' node is expected to contain at least one <screen>
 		 * node. A <screen> node may contain any number of <column> nodes. Each
 		 * <column> node may contain any number of <row> nodes, which, in turn,
 		 * can contain <column> nodes.
@@ -225,7 +225,7 @@ class Window_layouter::Target_list
 			});
 		}
 
-		void gen_layout(Xml_generator &xml, Assign_list const &assignments,
+		void gen_layout(Generator &g, Assign_list const &assignments,
 		                Drag const &drag) const
 		{
 			unsigned min_layer = 0;
@@ -234,7 +234,7 @@ class Window_layouter::Target_list
 			for (;;) {
 
 				unsigned const layer =
-					_gen_top_most_layer(xml, min_layer, assignments, drag);
+					_gen_top_most_layer(g, min_layer, assignments, drag);
 
 				if (layer == MAX_LAYER)
 					break;
@@ -250,12 +250,12 @@ class Window_layouter::Target_list
 		 * If a valid 'screen_name' is specified, move the referred screen in
 		 * front of all others.
 		 */
-		void gen_screens(Xml_generator &xml, Target::Name const &screen_name) const
+		void gen_screens(Generator &g, Target::Name const &screen_name) const
 		{
 			if (!_rules.constructed())
 				return;
 
-			xml.append("\n");
+			g.append_quoted("\n");
 			_rules->for_each_sub_node("screen", [&] (Node const &screen) {
 				if (screen_name.valid()) {
 					Target::Name const name =
@@ -264,7 +264,7 @@ class Window_layouter::Target_list
 					if (screen_name != name)
 						return;
 				}
-				(void)xml.append_node(screen, Xml_generator::Max_depth { 20 });
+				(void)g.append_node(screen, Generator::Max_depth { 20 });
 			});
 
 			if (!screen_name.valid())
@@ -275,7 +275,7 @@ class Window_layouter::Target_list
 				if (screen_name == name)
 					return;
 
-				(void)xml.append_node(screen, Xml_generator::Max_depth { 20 });
+				(void)g.append_node(screen, Generator::Max_depth { 20 });
 			});
 		}
 

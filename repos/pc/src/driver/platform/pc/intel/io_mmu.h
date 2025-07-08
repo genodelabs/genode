@@ -558,7 +558,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 		Managed_root_table & root_table() { return _managed_root_table; }
 
-		void generate(Xml_generator &) override;
+		void generate(Generator &) override;
 
 		Invalidator & invalidator();
 

@@ -13,24 +13,24 @@
 
 #include "xml.h"
 
-void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
+void Depot_download_manager::gen_depot_query_start_content(Generator &g,
                                                            Node const &installation,
                                                            Archive::User const &next_user,
                                                            Depot_query_version version,
                                                            List_model<Job> const &jobs)
 {
-	gen_common_start_content(xml, "depot_query",
+	gen_common_start_content(g, "depot_query",
 	                         Cap_quota{100}, Ram_quota{2*1024*1024});
 
-	xml.node("config", [&] () {
-		xml.attribute("version", version.value);
+	g.node("config", [&] () {
+		g.attribute("version", version.value);
 		using Arch = String<32>;
-		xml.attribute("arch", installation.attribute_value("arch", Arch()));
-		xml.node("vfs", [&] () {
-			xml.node("dir", [&] () {
-				xml.attribute("name", "depot");
-				xml.node("fs", [&] () {
-					xml.attribute("label", "depot -> /"); });
+		g.attribute("arch", installation.attribute_value("arch", Arch()));
+		g.node("vfs", [&] () {
+			g.node("dir", [&] () {
+				g.attribute("name", "depot");
+				g.node("fs", [&] () {
+					g.attribute("label", "depot -> /"); });
 			});
 		});
 
@@ -58,18 +58,18 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 					fn(node); });
 		};
 
-		auto propagate_verify_attr = [&] (Xml_generator &xml, Node const &node)
+		auto propagate_verify_attr = [&] (Generator &g, Node const &node)
 		{
 			if (node.attribute_value("verify", true) == false)
-				xml.attribute("require_verify", "no");
+				g.attribute("require_verify", "no");
 		};
 
 		for_each_install_sub_node("archive", [&] (Node const &archive) {
-			xml.node("dependencies", [&] () {
-				xml.attribute("path", archive.attribute_value("path", Archive::Path()));
-				xml.attribute("source", archive.attribute_value("source", true));
-				xml.attribute("binary", archive.attribute_value("binary", true));
-				propagate_verify_attr(xml, archive);
+			g.node("dependencies", [&] () {
+				g.attribute("path", archive.attribute_value("path", Archive::Path()));
+				g.attribute("source", archive.attribute_value("source", true));
+				g.attribute("binary", archive.attribute_value("binary", true));
+				propagate_verify_attr(g, archive);
 			});
 		});
 
@@ -79,10 +79,10 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 				warning("malformed index path '", path, "'");
 				return;
 			}
-			xml.node("index", [&] () {
-				xml.attribute("user",    Archive::user(path));
-				xml.attribute("version", Archive::_path_element<Archive::Version>(path, 2));
-				propagate_verify_attr(xml, index);
+			g.node("index", [&] () {
+				g.attribute("user",    Archive::user(path));
+				g.attribute("version", Archive::_path_element<Archive::Version>(path, 2));
+				propagate_verify_attr(g, index);
 			});
 		});
 
@@ -92,10 +92,10 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 				warning("malformed image path '", path, "'");
 				return;
 			}
-			xml.node("image", [&] () {
-				xml.attribute("user", Archive::user(path));
-				xml.attribute("name", Archive::name(path));
-				propagate_verify_attr(xml, image);
+			g.node("image", [&] () {
+				g.attribute("user", Archive::user(path));
+				g.attribute("name", Archive::name(path));
+				propagate_verify_attr(g, image);
 			});
 		});
 
@@ -105,28 +105,28 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 				warning("malformed image-index path '", path, "'");
 				return;
 			}
-			xml.node("image_index", [&] () {
-				xml.attribute("user", Archive::user(path));
-				propagate_verify_attr(xml, image_index);
+			g.node("image_index", [&] () {
+				g.attribute("user", Archive::user(path));
+				propagate_verify_attr(g, image_index);
 			});
 		});
 
 		if (next_user.valid())
-			xml.node("user", [&] () { xml.attribute("name", next_user); });
+			g.node("user", [&] () { g.attribute("name", next_user); });
 	});
 
-	xml.node("route", [&] () {
-		xml.node("service", [&] () {
-			xml.attribute("name", File_system::Session::service_name());
-			xml.node("parent", [&] () {
-				xml.attribute("identity", "depot"); });
+	g.node("route", [&] () {
+		g.node("service", [&] () {
+			g.attribute("name", File_system::Session::service_name());
+			g.node("parent", [&] () {
+				g.attribute("identity", "depot"); });
 		});
-		gen_parent_unscoped_rom_route(xml, "depot_query");
-		gen_parent_unscoped_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
-		gen_parent_route<Cpu_session>    (xml);
-		gen_parent_route<Pd_session>     (xml);
-		gen_parent_route<Log_session>    (xml);
-		gen_parent_route<Report::Session>(xml);
+		gen_parent_unscoped_rom_route(g, "depot_query");
+		gen_parent_unscoped_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
+		gen_parent_route<Cpu_session>    (g);
+		gen_parent_route<Pd_session>     (g);
+		gen_parent_route<Log_session>    (g);
+		gen_parent_route<Report::Session>(g);
 	});
 }

@@ -21,46 +21,46 @@
 using namespace Core;
 
 
-void Platform::_init_additional_platform_info(Xml_generator &xml)
+void Platform::_init_additional_platform_info(Generator &g)
 {
 	if (_boot_info().plat_info.efi_system_table != 0) {
-		xml.node("efi-system-table", [&] {
-			xml.attribute("address", String<32>(Hex(_boot_info().plat_info.efi_system_table)));
+		g.node("efi-system-table", [&] {
+			g.attribute("address", String<32>(Hex(_boot_info().plat_info.efi_system_table)));
 		});
 	}
-	xml.node("acpi", [&] {
+	g.node("acpi", [&] {
 		uint32_t const revision = _boot_info().plat_info.acpi_rsdp.revision;
 		uint32_t const rsdt     = _boot_info().plat_info.acpi_rsdp.rsdt;
 		uint64_t const xsdt     = _boot_info().plat_info.acpi_rsdp.xsdt;
 
 		if (revision && (rsdt || xsdt)) {
-			xml.attribute("revision", revision);
+			g.attribute("revision", revision);
 			if (rsdt)
-				xml.attribute("rsdt", String<32>(Hex(rsdt)));
+				g.attribute("rsdt", String<32>(Hex(rsdt)));
 
 			if (xsdt)
-				xml.attribute("xsdt", String<32>(Hex(xsdt)));
+				g.attribute("xsdt", String<32>(Hex(xsdt)));
 		}
 	});
-	xml.node("boot", [&] {
-		xml.node("framebuffer", [&] {
+	g.node("boot", [&] {
+		g.node("framebuffer", [&] {
 			Hw::Framebuffer const &boot_fb = _boot_info().plat_info.framebuffer;
-			xml.attribute("phys",   String<32>(Hex(boot_fb.addr)));
-			xml.attribute("width",  boot_fb.width);
-			xml.attribute("height", boot_fb.height);
-			xml.attribute("bpp",    boot_fb.bpp);
-			xml.attribute("type",   boot_fb.type);
-			xml.attribute("pitch",  boot_fb.pitch);
+			g.attribute("phys",   String<32>(Hex(boot_fb.addr)));
+			g.attribute("width",  boot_fb.width);
+			g.attribute("height", boot_fb.height);
+			g.attribute("bpp",    boot_fb.bpp);
+			g.attribute("type",   boot_fb.type);
+			g.attribute("pitch",  boot_fb.pitch);
 		});
 	});
-	xml.node("hardware", [&] {
-		xml.node("features", [&] {
-			xml.attribute("svm", Hw::Virtualization_support::has_svm());
-			xml.attribute("vmx", Hw::Virtualization_support::has_vmx());
+	g.node("hardware", [&] {
+		g.node("features", [&] {
+			g.attribute("svm", Hw::Virtualization_support::has_svm());
+			g.attribute("vmx", Hw::Virtualization_support::has_vmx());
 		});
-		xml.node("tsc", [&] {
-			xml.attribute("invariant", Hw::Tsc::invariant_tsc());
-			xml.attribute("freq_khz", _boot_info().plat_info.tsc_freq_khz);
+		g.node("tsc", [&] {
+			g.attribute("invariant", Hw::Tsc::invariant_tsc());
+			g.attribute("freq_khz", _boot_info().plat_info.tsc_freq_khz);
 		});
 	});
 }

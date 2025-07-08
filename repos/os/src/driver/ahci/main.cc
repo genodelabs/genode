@@ -267,19 +267,19 @@ class Ahci::Driver : Noncopyable
 
 		void report_ports(Reporter &reporter)
 		{
-			Reporter::Result const result = reporter.generate([&] (Xml_generator &xml) {
+			Reporter::Result const result = reporter.generate([&] (Generator &g) {
 
 				auto report = [&](Port const &port, unsigned index, bool atapi) {
 
 					Block::Session::Info info = port.info();
-					xml.node("port", [&] () {
-						xml.attribute("num", index);
-						xml.attribute("type", atapi ? "ATAPI" : "ATA");
-						xml.attribute("block_count", info.block_count);
-						xml.attribute("block_size", info.block_size);
+					g.node("port", [&] () {
+						g.attribute("num", index);
+						g.attribute("type", atapi ? "ATAPI" : "ATA");
+						g.attribute("block_count", info.block_count);
+						g.attribute("block_size", info.block_size);
 						if (!atapi) {
-							xml.attribute("model", _ata[index]->model->cstring());
-							xml.attribute("serial", _ata[index]->serial->cstring());
+							g.attribute("model", _ata[index]->model->cstring());
+							g.attribute("serial", _ata[index]->serial->cstring());
 						}
 					});
 				};

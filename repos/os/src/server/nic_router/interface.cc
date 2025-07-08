@@ -281,20 +281,20 @@ bool Interface_link_stats::report_empty() const
 }
 
 
-void Interface_link_stats::report(Genode::Xml_generator &xml) const
+void Interface_link_stats::report(Genode::Generator &g) const
 {
-	if (refused_for_ram)           xml.node("refused_for_ram",           [&] { xml.attribute("value", refused_for_ram); });
-	if (refused_for_ports)         xml.node("refused_for_ports",         [&] { xml.attribute("value", refused_for_ports); });
-	if (opening)                   xml.node("opening",                   [&] { xml.attribute("value", opening); });
-	if (open)                      xml.node("open",                      [&] { xml.attribute("value", open);    });
-	if (closing)                   xml.node("closing",                   [&] { xml.attribute("value", closing); });
-	if (closed)                    xml.node("closed",                    [&] { xml.attribute("value", closed);  });
-	if (dissolved_timeout_opening) xml.node("dissolved_timeout_opening", [&] { xml.attribute("value", dissolved_timeout_opening); });
-	if (dissolved_timeout_open)    xml.node("dissolved_timeout_open",    [&] { xml.attribute("value", dissolved_timeout_open);    });
-	if (dissolved_timeout_closing) xml.node("dissolved_timeout_closing", [&] { xml.attribute("value", dissolved_timeout_closing); });
-	if (dissolved_timeout_closed)  xml.node("dissolved_timeout_closed",  [&] { xml.attribute("value", dissolved_timeout_closed);  });
-	if (dissolved_no_timeout)      xml.node("dissolved_no_timeout",      [&] { xml.attribute("value", dissolved_no_timeout);      });
-	if (destroyed)                 xml.node("destroyed",                 [&] { xml.attribute("value", destroyed); });
+	if (refused_for_ram)           g.node("refused_for_ram",           [&] { g.attribute("value", refused_for_ram); });
+	if (refused_for_ports)         g.node("refused_for_ports",         [&] { g.attribute("value", refused_for_ports); });
+	if (opening)                   g.node("opening",                   [&] { g.attribute("value", opening); });
+	if (open)                      g.node("open",                      [&] { g.attribute("value", open);    });
+	if (closing)                   g.node("closing",                   [&] { g.attribute("value", closing); });
+	if (closed)                    g.node("closed",                    [&] { g.attribute("value", closed);  });
+	if (dissolved_timeout_opening) g.node("dissolved_timeout_opening", [&] { g.attribute("value", dissolved_timeout_opening); });
+	if (dissolved_timeout_open)    g.node("dissolved_timeout_open",    [&] { g.attribute("value", dissolved_timeout_open);    });
+	if (dissolved_timeout_closing) g.node("dissolved_timeout_closing", [&] { g.attribute("value", dissolved_timeout_closing); });
+	if (dissolved_timeout_closed)  g.node("dissolved_timeout_closed",  [&] { g.attribute("value", dissolved_timeout_closed);  });
+	if (dissolved_no_timeout)      g.node("dissolved_no_timeout",      [&] { g.attribute("value", dissolved_no_timeout);      });
+	if (destroyed)                 g.node("destroyed",                 [&] { g.attribute("value", destroyed); });
 }
 
 
@@ -305,10 +305,10 @@ void Interface_link_stats::report(Genode::Xml_generator &xml) const
 bool Interface_object_stats::report_empty() const { return !alive && !destroyed; }
 
 
-void Interface_object_stats::report(Genode::Xml_generator &xml) const
+void Interface_object_stats::report(Genode::Generator &g) const
 {
-	if (alive)     xml.node("alive",     [&] { xml.attribute("value", alive);     });
-	if (destroyed) xml.node("destroyed", [&] { xml.attribute("value", destroyed); });
+	if (alive)     g.node("alive",     [&] { g.attribute("value", alive);     });
+	if (destroyed) g.node("destroyed", [&] { g.attribute("value", destroyed); });
 }
 
 
@@ -2322,25 +2322,25 @@ bool Interface::report_empty(Report const &report_cfg) const
 }
 
 
-void Interface::report(Genode::Xml_generator &xml, Report const &report_cfg) const
+void Interface::report(Genode::Generator &g, Report const &report_cfg) const
 {
-	xml.attribute("label", _policy.label());
+	g.attribute("label", _policy.label());
 	if (report_cfg.link_state())
-		xml.attribute("link_state", link_state());
+		g.attribute("link_state", link_state());
 
 	if (report_cfg.quota())
-		_policy.report(xml);
+		_policy.report(g);
 
 	if (report_cfg.stats()) {
-		if (!_tcp_stats.report_empty())  xml.node("tcp-links",        [&] { _tcp_stats.report(xml);  });
-		if (!_udp_stats.report_empty())  xml.node("udp-links",        [&] { _udp_stats.report(xml);  });
-		if (!_icmp_stats.report_empty()) xml.node("icmp-links",       [&] { _icmp_stats.report(xml); });
-		if (!_arp_stats.report_empty())  xml.node("arp-waiters",      [&] { _arp_stats.report(xml);  });
-		if (!_dhcp_stats.report_empty()) xml.node("dhcp-allocations", [&] { _dhcp_stats.report(xml); });
+		if (!_tcp_stats.report_empty())  g.node("tcp-links",        [&] { _tcp_stats.report(g);  });
+		if (!_udp_stats.report_empty())  g.node("udp-links",        [&] { _udp_stats.report(g);  });
+		if (!_icmp_stats.report_empty()) g.node("icmp-links",       [&] { _icmp_stats.report(g); });
+		if (!_arp_stats.report_empty())  g.node("arp-waiters",      [&] { _arp_stats.report(g);  });
+		if (!_dhcp_stats.report_empty()) g.node("dhcp-allocations", [&] { _dhcp_stats.report(g); });
 	}
 	if (report_cfg.dropped_fragm_ipv4() && _dropped_fragm_ipv4)
-		xml.node("dropped-fragm-ipv4", [&] {
-			xml.attribute("value", _dropped_fragm_ipv4); });
+		g.node("dropped-fragm-ipv4", [&] {
+			g.attribute("value", _dropped_fragm_ipv4); });
 }
 
 

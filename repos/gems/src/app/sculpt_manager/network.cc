@@ -15,27 +15,27 @@
 #include <network.h>
 
 
-void Sculpt::Network::_generate_nic_router_uplink(Xml_generator &xml,
+void Sculpt::Network::_generate_nic_router_uplink(Generator &g,
                                                   char    const *label)
 {
-	xml.node("policy", [&] {
-		xml.attribute("label_prefix", label);
-		xml.attribute("domain", "uplink");
+	g.node("policy", [&] {
+		g.attribute("label_prefix", label);
+		g.attribute("domain", "uplink");
 	});
-	gen_named_node(xml, "domain", "uplink", [&] {
-		xml.node("nat", [&] {
-			xml.attribute("domain",    "default");
-			xml.attribute("tcp-ports", "1000");
-			xml.attribute("udp-ports", "1000");
-			xml.attribute("icmp-ids",  "1000");
+	gen_named_node(g, "domain", "uplink", [&] {
+		g.node("nat", [&] {
+			g.attribute("domain",    "default");
+			g.attribute("tcp-ports", "1000");
+			g.attribute("udp-ports", "1000");
+			g.attribute("icmp-ids",  "1000");
 		});
 
 		auto tcp_forward = [&] (uint16_t port, auto const &domain, auto const &to)
 		{
-			xml.node("tcp-forward", [&] {
-				xml.attribute("port",   port);
-				xml.attribute("domain", domain);
-				xml.attribute("to",     to); });
+			g.node("tcp-forward", [&] {
+				g.attribute("port",   port);
+				g.attribute("domain", domain);
+				g.attribute("to",     to); });
 		};
 
 		tcp_forward(80 /* HTTP */   , "http",   "10.0.80.2");
@@ -75,55 +75,55 @@ void Sculpt::Network::_generate_nic_router_config()
 		return;
 
 	if (!_nic_target.nic_router_needed()) {
-		_nic_router_config.generate([&] (Xml_generator &xml) {
-			xml.attribute("verbose_domain_state", "yes"); });
+		_nic_router_config.generate([&] (Generator &g) {
+			g.attribute("verbose_domain_state", "yes"); });
 		return;
 	}
 
-	_nic_router_config.generate([&] (Xml_generator &xml) {
-		xml.attribute("verbose_domain_state", "yes");
+	_nic_router_config.generate([&] (Generator &g) {
+		g.attribute("verbose_domain_state", "yes");
 
-		xml.node("report", [&] {
-			xml.attribute("interval_sec",    "5");
-			xml.attribute("bytes",           "yes");
-			xml.attribute("config",          "yes");
-			xml.attribute("config_triggers", "yes");
+		g.node("report", [&] {
+			g.attribute("interval_sec",    "5");
+			g.attribute("bytes",           "yes");
+			g.attribute("config",          "yes");
+			g.attribute("config_triggers", "yes");
 		});
 
-		xml.node("default-policy", [&] {
-			xml.attribute("domain", "default"); });
+		g.node("default-policy", [&] {
+			g.attribute("domain", "default"); });
 
 		bool uplink_exists = true;
 		switch (_nic_target.type()) {
-		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "nic -> ");     break;
-		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi -> ");    break;
-		case Nic_target::MODEM: _generate_nic_router_uplink(xml, "usb_net -> "); break;
+		case Nic_target::WIRED: _generate_nic_router_uplink(g, "nic -> ");     break;
+		case Nic_target::WIFI:  _generate_nic_router_uplink(g, "wifi -> ");    break;
+		case Nic_target::MODEM: _generate_nic_router_uplink(g, "usb_net -> "); break;
 		default: uplink_exists = false;
 		}
-		gen_named_node(xml, "domain", "default", [&] {
-			xml.attribute("interface", "10.0.1.1/24");
+		gen_named_node(g, "domain", "default", [&] {
+			g.attribute("interface", "10.0.1.1/24");
 
-			xml.node("dhcp-server", [&] {
-				xml.attribute("ip_first", "10.0.1.2");
-				xml.attribute("ip_last",  "10.0.1.200");
+			g.node("dhcp-server", [&] {
+				g.attribute("ip_first", "10.0.1.2");
+				g.attribute("ip_last",  "10.0.1.200");
 				if (_nic_target.type() != Nic_target::DISCONNECTED) {
-					xml.attribute("dns_config_from", "uplink"); }
+					g.attribute("dns_config_from", "uplink"); }
 			});
 
 			if (uplink_exists) {
-				xml.node("tcp", [&] {
-					xml.attribute("dst", "0.0.0.0/0");
-					xml.node("permit-any", [&] {
-						xml.attribute("domain", "uplink"); }); });
+				g.node("tcp", [&] {
+					g.attribute("dst", "0.0.0.0/0");
+					g.node("permit-any", [&] {
+						g.attribute("domain", "uplink"); }); });
 
-				xml.node("udp", [&] {
-					xml.attribute("dst", "0.0.0.0/0");
-					xml.node("permit-any", [&] {
-						xml.attribute("domain", "uplink"); }); });
+				g.node("udp", [&] {
+					g.attribute("dst", "0.0.0.0/0");
+					g.node("permit-any", [&] {
+						g.attribute("domain", "uplink"); }); });
 
-				xml.node("icmp", [&] {
-					xml.attribute("dst", "0.0.0.0/0");
-					xml.attribute("domain", "uplink"); });
+				g.node("icmp", [&] {
+					g.attribute("dst", "0.0.0.0/0");
+					g.attribute("domain", "uplink"); });
 			}
 		});
 
@@ -134,17 +134,17 @@ void Sculpt::Network::_generate_nic_router_config()
 			Ip const interface { ip_prefix, ".1/24" },
 			         dhcp_addr { ip_prefix, ".2" };
 
-			xml.node("policy", [&] {
-				xml.attribute("label",  name);
-				xml.attribute("domain", name); });
+			g.node("policy", [&] {
+				g.attribute("label",  name);
+				g.attribute("domain", name); });
 
-			gen_named_node(xml, "domain", name, [&] {
-				xml.attribute("interface", interface);
-				xml.node("dhcp-server", [&] {
-					xml.attribute("ip_first", dhcp_addr);
-					xml.attribute("ip_last",  dhcp_addr);
+			gen_named_node(g, "domain", name, [&] {
+				g.attribute("interface", interface);
+				g.node("dhcp-server", [&] {
+					g.attribute("ip_first", dhcp_addr);
+					g.attribute("ip_last",  dhcp_addr);
 					if (_nic_target.type() != Nic_target::DISCONNECTED) {
-						xml.attribute("dns_config_from", "uplink"); }
+						g.attribute("dns_config_from", "uplink"); }
 				});
 			});
 		};
@@ -262,11 +262,11 @@ void Sculpt::Network::_handle_nic_router_config(Node const &config)
 }
 
 
-void Sculpt::Network::gen_runtime_start_nodes(Xml_generator &xml) const
+void Sculpt::Network::gen_runtime_start_nodes(Generator &g) const
 {
 	bool const nic_router_needed = _nic_target.type() != Nic_target::OFF
 	                            && _nic_target.type() != Nic_target::UNDEFINED;
 
 	if (nic_router_needed)
-		xml.node("start", [&] { gen_nic_router_start_content(xml); });
+		g.node("start", [&] { gen_nic_router_start_content(g); });
 }

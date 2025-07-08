@@ -103,26 +103,26 @@ struct Sculpt::Service
 		type(type), label(label), info(info), match_label(match_label)
 	{ }
 
-	void gen_xml(Xml_generator &xml, auto const &attr_fn) const
+	void generate(Generator &g, auto const &attr_fn) const
 	{
 		bool const parent = !server.valid();
 
-		xml.node(parent ? "parent" : "child", [&] {
+		g.node(parent ? "parent" : "child", [&] {
 
 			if (!parent)
-				xml.attribute("name", server);
+				g.attribute("name", server);
 
 			if (label.valid() && match_label == Match_label::EXACT)
-				xml.attribute("label", label);
+				g.attribute("label", label);
 
 			if (label.valid() && match_label == Match_label::FS)
-				xml.attribute("identity", label);
+				g.attribute("identity", label);
 
 			attr_fn();
 		});
 	}
 
-	void gen_xml(Xml_generator &xml) const { gen_xml(xml, [] { }); }
+	void generate(Generator &g) const { generate(g, [] { }); }
 
 	/**
 	 * Return name of file-system service

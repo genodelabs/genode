@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <util/list_model.h>
-#include <util/xml_generator.h>
 #include <base/service.h>
 #include <depot/archive.h>
 
@@ -112,7 +111,7 @@ class Depot_deploy::Children
 				child.reset_incomplete(); });
 		}
 
-		bool gen_start_nodes(Xml_generator &xml, Xml_node const &common,
+		bool gen_start_nodes(Generator &g, Xml_node const &common,
 		                     Child::Depot_rom_server const &cached_depot_rom,
 		                     Child::Depot_rom_server const &uncached_depot_rom)
 		{
@@ -121,7 +120,7 @@ class Depot_deploy::Children
 			try {
 				_children.for_each([&] (Child &child) {
 
-					child.gen_start_node(xml, common, cached_depot_rom, uncached_depot_rom);
+					child.gen_start_node(g, common, cached_depot_rom, uncached_depot_rom);
 
 					if (!child.finished()) {
 						finished = false;
@@ -147,20 +146,20 @@ class Depot_deploy::Children
 			});
 		}
 
-		void gen_queries(Xml_generator &xml)
+		void gen_queries(Generator &g)
 		{
 			try {
 				Child const &child = _curr_child();
 				if (child.finished()) {
 					throw ::Local::Const_pointer<Child>::Invalid(); }
 
-				child.gen_query(xml);
+				child.gen_query(g);
 			}
 			catch (::Local::Const_pointer<Child>::Invalid) {
 				struct Break : Exception { };
 				try {
 					_children.for_each([&] (Child const &child) {
-						if (child.gen_query(xml)) {
+						if (child.gen_query(g)) {
 							_curr_child = child;
 							throw Break();
 						}
@@ -169,10 +168,10 @@ class Depot_deploy::Children
 			}
 		}
 
-		void gen_installation_entries(Xml_generator &xml) const
+		void gen_installation_entries(Generator &g) const
 		{
 			_children.for_each([&] (Child const &child) {
-				child.gen_installation_entry(xml); });
+				child.gen_installation_entry(g); });
 		}
 
 		bool any_incomplete() const {

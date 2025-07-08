@@ -135,18 +135,18 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t const &ctrl_info,
 }
 
 
-static void generate_report(Xml_generator       &xml,
+static void generate_report(Generator           &g,
                             mb_vbe_ctrl_t const &ctrl_info,
                             mb_vbe_mode_t const &mode_info,
                             unsigned      const  depth,
                             uint16_t      const  vesa_mode)
 {
-	xml.node("merge", [&]() {
-		xml.attribute("name", "mirror");
+	g.node("merge", [&]() {
+		g.attribute("name", "mirror");
 
-		xml.node("connector", [&] () {
-			xml.attribute("connected", true);
-			xml.attribute("name", "VESA");
+		g.node("connector", [&] () {
+			g.attribute("connected", true);
+			g.attribute("name", "VESA");
 
 			for_each_mode(ctrl_info, [&](auto const &mode) {
 
@@ -160,13 +160,13 @@ static void generate_report(Xml_generator       &xml,
 				auto name = String<32>(mode_info.x_resolution, "x",
 				                       mode_info.y_resolution);
 
-				xml.node("mode", [&] () {
-					xml.attribute(    "id", mode);
-					xml.attribute( "width", mode_info.x_resolution);
-					xml.attribute("height", mode_info.y_resolution);
-					xml.attribute(  "name", name);
+				g.node("mode", [&] () {
+					g.attribute(    "id", mode);
+					g.attribute( "width", mode_info.x_resolution);
+					g.attribute("height", mode_info.y_resolution);
+					g.attribute(  "name", name);
 					if (mode == vesa_mode)
-						xml.attribute("used", true);
+						g.attribute("used", true);
 				});
 			});
 		});
@@ -296,8 +296,8 @@ int Framebuffer::set_mode(Expanding_reporter &reporter,
 	if (verbose)
 		X86emu::print_regions();
 
-	reporter.generate([&] (auto &xml) {
-		generate_report(xml, ctrl_info, mode_info, depth, vesa_mode); });
+	reporter.generate([&] (Generator &g) {
+		generate_report(g, ctrl_info, mode_info, depth, vesa_mode); });
 
 	return 0;
 }

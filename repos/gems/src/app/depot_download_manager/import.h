@@ -15,7 +15,6 @@
 #define _IMPORT_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <util/list_model.h>
 #include <base/registry.h>
 #include <base/allocator.h>
@@ -45,10 +44,10 @@ class Depot_download_manager::Import
 					         .downloaded_bytes = node.attribute_value("now",   0ULL) };
 				}
 
-				void gen_attr(Xml_generator &xml) const
+				void gen_attr(Generator &g) const
 				{
-					xml.attribute("total", total_bytes);
-					xml.attribute("now",   downloaded_bytes);
+					g.attribute("total", total_bytes);
+					g.attribute("now",   downloaded_bytes);
 				}
 
 				unsigned percent() const
@@ -400,15 +399,15 @@ class Depot_download_manager::Import
 					item.state = Item::UNPACKED; });
 		}
 
-		void report(Xml_generator &xml) const
+		void report(Generator &g) const
 		{
 			_items.for_each([&] (Item const &item) {
-				xml.node("archive", [&] () {
-					xml.attribute("path",  item.path);
-					xml.attribute("state", item.state_text());
+				g.node("archive", [&] () {
+					g.attribute("path",  item.path);
+					g.attribute("state", item.state_text());
 
 					if (item.state == Item::DOWNLOAD_IN_PROGRESS)
-						item.progress.gen_attr(xml);
+						item.progress.gen_attr(g);
 				});
 			});
 		}

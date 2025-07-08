@@ -140,7 +140,7 @@ class Dialog::Distant_runtime : Noncopyable
 		 */
 		bool apply_runtime_state(Node const &);
 
-		void gen_start_nodes(Xml_generator &) const;
+		void gen_start_nodes(Generator &) const;
 };
 
 
@@ -168,7 +168,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 
 		void _generate_dialog()
 		{
-			_dialog_reporter.generate([&] (Xml_generator &xml) {
+			_dialog_reporter.generate([&] (Generator &g) {
 				_with_dialog_hover([&] (Node const &hover) {
 
 					Event::Dragged const dragged { _runtime._dragged() };
@@ -181,7 +181,7 @@ class Dialog::Distant_runtime::View : private Views::Element
 					At const at { _runtime._global_seq_number,
 					              supply_hover ? hover : omitted_hover };
 
-					Scope<> top_level_scope(xml, at, dragged, { _dialog.name });
+					Scope<> top_level_scope(g, at, dragged, { _dialog.name });
 					_dialog.view(top_level_scope);
 				});
 			});
@@ -227,8 +227,8 @@ class Dialog::Distant_runtime::View : private Views::Element
 		bool  const _opaque;
 		Color const _background;
 
-		void _gen_menu_view_dialog(Xml_generator &) const;
-		void _gen_menu_view_routes(Xml_generator &) const;
+		void _gen_menu_view_dialog(Generator &) const;
+		void _gen_menu_view_routes(Generator &) const;
 
 	public:
 

@@ -152,10 +152,10 @@ struct Sculpt::Storage_devices : Noncopyable
 		return { progress };
 	}
 
-	void gen_usb_storage_policies(Xml_generator &xml) const
+	void gen_usb_storage_policies(Generator &g) const
 	{
 		usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
-			device.gen_usb_policy(xml); });
+			device.gen_usb_policy(g); });
 	}
 
 	void for_each(auto const &fn) const

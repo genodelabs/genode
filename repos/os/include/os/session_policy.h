@@ -16,10 +16,8 @@
 
 #include <base/session_label.h>
 #include <base/log.h>
+#include <base/node.h>
 #include <session/session.h>
-#include <util/reconstructible.h>
-#include <util/arg_string.h>
-#include <util/xml_node.h>
 
 namespace Genode {
 

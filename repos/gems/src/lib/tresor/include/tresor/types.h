@@ -17,7 +17,6 @@
 
 /* base includes */
 #include <base/node.h>
-#include <util/xml_generator.h>
 #include <util/reconstructible.h>
 
 /* os includes */
@@ -655,17 +654,17 @@ struct Tresor::Superblock_configuration
 			[&] ()                 -> Tree_configuration { return Node(); }))
 	{ }
 
-	void generate_xml(Xml_generator &xml)
+	void generate(auto &g)
 	{
-		xml.node("virtual-block-device", [&] () {
-			xml.attribute("max_lvl", vbd.max_lvl);
-			xml.attribute("degree", vbd.degree);
-			xml.attribute("num_leaves", vbd.num_leaves);
+		g.node("virtual-block-device", [&] () {
+			g.attribute("max_lvl", vbd.max_lvl);
+			g.attribute("degree", vbd.degree);
+			g.attribute("num_leaves", vbd.num_leaves);
 		});
-		xml.node("free-tree", [&] () {
-			xml.attribute("max_lvl", free_tree.max_lvl);
-			xml.attribute("degree", free_tree.degree);
-			xml.attribute("num_leaves", free_tree.num_leaves);
+		g.node("free-tree", [&] () {
+			g.attribute("max_lvl", free_tree.max_lvl);
+			g.attribute("degree", free_tree.degree);
+			g.attribute("num_leaves", free_tree.num_leaves);
 		});
 	}
 };

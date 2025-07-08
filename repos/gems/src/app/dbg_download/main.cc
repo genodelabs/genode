@@ -50,7 +50,7 @@ struct Main
 
 	void _process_monitor_config(Node const &config, Node const &monitor)
 	{
-		_installation.generate([&] (Xml_generator &xml) {
+		_installation.generate([&] (Generator &g) {
 
 			monitor.for_each_sub_node("policy", [&] (Node const &policy) {
 
@@ -119,9 +119,9 @@ struct Main
 							bin_installation_path.append(depot_component_path.string());
 							bin_installation_path.strip_last_element();
 
-							xml.node("archive", [&] () {
-								xml.attribute("path", &bin_installation_path.string()[1]);
-								xml.attribute("source", "no");
+							g.node("archive", [&] () {
+								g.attribute("path", &bin_installation_path.string()[1]);
+								g.attribute("source", "no");
 							});
 
 							Vfs::Absolute_path dbg_installation_path { depot_user_path };
@@ -129,9 +129,9 @@ struct Main
 							dbg_installation_path.append(depot_component_path.string());
 							dbg_installation_path.strip_last_element();
 
-							xml.node("archive", [&] () {
-								xml.attribute("path", &dbg_installation_path.string()[1]);
-								xml.attribute("source", "no");
+							g.node("archive", [&] () {
+								g.attribute("path", &dbg_installation_path.string()[1]);
+								g.attribute("source", "no");
 							});
 						});
 					}, [&] () {

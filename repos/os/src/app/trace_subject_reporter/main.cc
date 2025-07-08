@@ -108,29 +108,29 @@ struct Trace_subject_registry
 			_sort_by_recent_execution_time();
 		}
 
-		void report(Genode::Xml_generator &xml,
+		void report(Genode::Generator &g,
 		            bool report_affinity, bool report_activity)
 		{
 			for (Entry const *e = _entries.first(); e; e = e->next()) {
-				xml.node("subject", [&] () {
-					xml.attribute("label", e->info.session_label().string());
-					xml.attribute("thread", e->info.thread_name().string());
-					xml.attribute("id", e->id.id);
+				g.node("subject", [&] () {
+					g.attribute("label", e->info.session_label().string());
+					g.attribute("thread", e->info.thread_name().string());
+					g.attribute("id", e->id.id);
 
 					using Subject_info = Genode::Trace::Subject_info;
 					Subject_info::State const state = e->info.state();
-					xml.attribute("state", Subject_info::state_name(state));
+					g.attribute("state", Subject_info::state_name(state));
 
 					if (report_activity)
-						xml.node("activity", [&] () {
-							xml.attribute("total", e->info.execution_time().thread_context);
-							xml.attribute("recent", e->recent_execution_time);
+						g.node("activity", [&] () {
+							g.attribute("total", e->info.execution_time().thread_context);
+							g.attribute("recent", e->recent_execution_time);
 						});
 
 					if (report_affinity)
-						xml.node("affinity", [&] () {
-							xml.attribute("xpos", e->info.affinity().xpos());
-							xml.attribute("ypos", e->info.affinity().ypos());
+						g.node("affinity", [&] () {
+							g.attribute("xpos", e->info.affinity().xpos());
+							g.attribute("ypos", e->info.affinity().ypos());
 						});
 				});
 			}
@@ -215,8 +215,8 @@ void App::Main::_handle_period()
 	_trace_subject_registry.update(_trace, _heap);
 
 	/* generate report */
-	_reporter.generate([&] (Xml_generator &xml) {
-		_trace_subject_registry.report(xml, _report_affinity, _report_activity);
+	_reporter.generate([&] (Generator &g) {
+		_trace_subject_registry.report(g, _report_affinity, _report_activity);
 	});
 }
 

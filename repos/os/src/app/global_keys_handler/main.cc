@@ -166,8 +166,8 @@ struct Global_keys_handler::Main
 
 		void _generate_report()
 		{
-			_reporter.generate([&] (Xml_generator &xml) {
-				xml.attribute("enabled", _curr_value ? "yes" : "no"); });
+			_reporter.generate([&] (Generator &g) {
+				g.attribute("enabled", _curr_value ? "yes" : "no"); });
 		}
 
 		/*

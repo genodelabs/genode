@@ -174,18 +174,18 @@ class Fuj02e3 : public Acpica::Reporter, Acpica::Callback<Fuj02e3>
 			return AE_OK;
 		}
 
-		void generate(Genode::Xml_generator &xml) override
+		void generate(Genode::Generator &g) override
 		{
-			xml.node("hid", [&] {
-				xml.attribute("device", "Fuj02e3");
+			g.node("hid", [&] {
+				g.attribute("device", "Fuj02e3");
 
 				for (unsigned i = 0; i < sizeof(_data) / sizeof(_data[0]); i++) {
 
-					xml.node("data", [&] {
-						xml.attribute("value", Genode::String<12>(Genode::Hex(_data[i].data)));
-						xml.attribute("count", _data[i].count);
+					g.node("data", [&] {
+						g.attribute("value", Genode::String<12>(Genode::Hex(_data[i].data)));
+						g.attribute("count", _data[i].count);
 						if (_data[i].triggered) {
-							xml.append("triggered");
+							g.append_quoted("triggered");
 							_data[i].triggered = false;
 						}
 					});

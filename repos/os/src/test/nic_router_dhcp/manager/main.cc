@@ -163,41 +163,41 @@ void Test::Main::_handle_router_state()
 	if (_router_config_outdated) {
 
 		log("Write config of nic_router_2");
-		_router_config_reporter.generate([&] (Xml_generator &xml) {
-			xml.node("report", [&] () {
-				xml.attribute("bytes", "no");
-				xml.attribute("stats", "no");
-				xml.attribute("quota", "no");
-				xml.attribute("config", "yes");
-				xml.attribute("config_triggers", "yes");
-				xml.attribute("interval_sec", "100");
+		_router_config_reporter.generate([&] (Generator &g) {
+			g.node("report", [&] () {
+				g.attribute("bytes", "no");
+				g.attribute("stats", "no");
+				g.attribute("quota", "no");
+				g.attribute("config", "yes");
+				g.attribute("config_triggers", "yes");
+				g.attribute("interval_sec", "100");
 			});
-			xml.node("policy", [&] () {
-				xml.attribute("label", "test_client -> ");
-				xml.attribute("domain", "downlink");
+			g.node("policy", [&] () {
+				g.attribute("label", "test_client -> ");
+				g.attribute("domain", "downlink");
 			});
-			xml.node("nic-client", [&] () {
-				xml.attribute("domain", "uplink");
+			g.node("nic-client", [&] () {
+				g.attribute("domain", "uplink");
 			});
-			xml.node("domain", [&] () {
-				xml.attribute("name", "uplink");
+			g.node("domain", [&] () {
+				g.attribute("name", "uplink");
 			});
-			xml.node("domain", [&] () {
-				xml.attribute("name", "downlink");
-				xml.attribute("interface", "10.0.3.1/24");
-				xml.node("dhcp-server", [&] () {
-					xml.attribute("ip_first", "10.0.3.2");
-					xml.attribute("ip_last", "10.0.3.2");
+			g.node("domain", [&] () {
+				g.attribute("name", "downlink");
+				g.attribute("interface", "10.0.3.1/24");
+				g.node("dhcp-server", [&] () {
+					g.attribute("ip_first", "10.0.3.2");
+					g.attribute("ip_last", "10.0.3.2");
 					_dns_servers.for_each([&] (Dns_server const &dns_server) {
-						xml.node("dns-server", [&] () {
-							xml.attribute("ip", String<16>(dns_server.ip()));
+						g.node("dns-server", [&] () {
+							g.attribute("ip", String<16>(dns_server.ip()));
 						});
 					});
 					_dns_domain_name.with_string(
 						[&] (Dns_domain_name::String const &str)
 					{
-						xml.node("dns-domain", [&] () {
-							xml.attribute("name", str);
+						g.node("dns-domain", [&] () {
+							g.attribute("name", str);
 						});
 					});
 				});

@@ -14,8 +14,8 @@
 /* Genode includes */
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <base/node.h>
 #include <trace/source_registry.h>
-#include <util/xml_generator.h>
 
 /* core includes */
 #include <boot_modules.h>
@@ -372,7 +372,7 @@ void Core::Platform::_init_rom_modules()
 			           dst_frame << get_page_size_log2(), header->size);
 	};
 
-	auto gen_platform_info = [&] (Xml_generator &xml)
+	auto gen_platform_info = [&] (Generator &g)
 	{
 		if (!bi.extraLen)
 			return;
@@ -399,26 +399,26 @@ void Core::Platform::_init_rom_modules()
 
 				tsc_freq const * boot_freq = reinterpret_cast<tsc_freq const *>(reinterpret_cast<addr_t>(element) + sizeof(* element));
 
-				xml.node("kernel", [&] {
-					xml.attribute("name", "sel4");
-					xml.attribute("acpi", true);
-					xml.attribute("msi" , true);
+				g.node("kernel", [&] {
+					g.attribute("name", "sel4");
+					g.attribute("acpi", true);
+					g.attribute("msi" , true);
 				});
-				xml.node("hardware", [&] {
-					xml.node("features", [&] {
+				g.node("hardware", [&] {
+					g.node("features", [&] {
 						#ifdef CONFIG_VTX
-						xml.attribute("vmx", true);
+						g.attribute("vmx", true);
 						#else
-						xml.attribute("vmx", false);
+						g.attribute("vmx", false);
 						#endif
 					});
-					xml.node("tsc", [&] {
-						xml.attribute("freq_khz" , boot_freq->freq_mhz * 1000UL);
+					g.node("tsc", [&] {
+						g.attribute("freq_khz" , boot_freq->freq_mhz * 1000UL);
 					});
 				});
-				xml.node("affinity-space", [&] {
-					xml.attribute("width", affinity_space().width());
-					xml.attribute("height", affinity_space().height());
+				g.node("affinity-space", [&] {
+					g.attribute("width", affinity_space().width());
+					g.attribute("height", affinity_space().height());
 				});
 			}
 
@@ -439,14 +439,14 @@ void Core::Platform::_init_rom_modules()
 
 				mbi2_framebuffer const * boot_fb = reinterpret_cast<mbi2_framebuffer const *>(reinterpret_cast<addr_t>(element) + sizeof(*element));
 
-				xml.node("boot", [&] {
-					xml.node("framebuffer", [&] {
-						xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
-						xml.attribute("width",  boot_fb->width);
-						xml.attribute("height", boot_fb->height);
-						xml.attribute("bpp",    boot_fb->bpp);
-						xml.attribute("type",   boot_fb->type);
-						xml.attribute("pitch",  boot_fb->pitch);
+				g.node("boot", [&] {
+					g.node("framebuffer", [&] {
+						g.attribute("phys",   String<32>(Hex(boot_fb->addr)));
+						g.attribute("width",  boot_fb->width);
+						g.attribute("height", boot_fb->height);
+						g.attribute("bpp",    boot_fb->bpp);
+						g.attribute("type",   boot_fb->type);
+						g.attribute("pitch",  boot_fb->pitch);
 					});
 				});
 			}
@@ -454,7 +454,7 @@ void Core::Platform::_init_rom_modules()
 			if (element->id != SEL4_BOOTINFO_HEADER_X86_ACPI_RSDP)
 				continue;
 
-			xml.node("acpi", [&] {
+			g.node("acpi", [&] {
 
 				struct Acpi_rsdp
 				{
@@ -476,12 +476,12 @@ void Core::Platform::_init_rom_modules()
 				Acpi_rsdp const * rsdp = reinterpret_cast<Acpi_rsdp const *>(reinterpret_cast<addr_t>(element) + sizeof(*element));
 
 				if (rsdp->valid() && (rsdp->rsdt || rsdp->xsdt)) {
-					xml.attribute("revision", rsdp->revision);
+					g.attribute("revision", rsdp->revision);
 					if (rsdp->rsdt)
-						xml.attribute("rsdt", String<32>(Hex(rsdp->rsdt)));
+						g.attribute("rsdt", String<32>(Hex(rsdp->rsdt)));
 
 					if (rsdp->xsdt)
-						xml.attribute("xsdt", String<32>(Hex(rsdp->xsdt)));
+						g.attribute("xsdt", String<32>(Hex(rsdp->xsdt)));
 				}
 			});
 		}
@@ -533,7 +533,7 @@ void Core::Platform::_init_rom_modules()
 	};
 
 	export_page_as_rom_module("platform_info", [&] (char *ptr, size_t size) {
-		Xml_generator::generate({ ptr, size }, "platform_info", gen_platform_info)
+		Generator::generate({ ptr, size }, "platform_info", gen_platform_info)
 			.with_error([] (Buffer_error) {
 				warning("platform info exceeds maximum buffer size"); }); });
 

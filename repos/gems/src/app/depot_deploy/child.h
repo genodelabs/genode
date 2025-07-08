@@ -25,7 +25,7 @@ namespace Depot_deploy {
 
 	using namespace Depot;
 
-	static constexpr Xml_generator::Max_depth MAX_NODE_DEPTH = { 20 };
+	static constexpr Generator::Max_depth MAX_NODE_DEPTH = { 20 };
 
 	struct Child;
 }
@@ -137,25 +137,25 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			   && (_config_pkg_path() == _blueprint_pkg_path);
 		}
 
-		inline void _gen_routes(Xml_generator &, Node const &,
+		inline void _gen_routes(Generator &, Node const &,
 		                        Depot_rom_server const &,
 		                        Depot_rom_server const &) const;
 
-		static void _gen_provides_sub_node(Xml_generator &xml, Node const &service,
+		static void _gen_provides_sub_node(Generator &g, Node const &service,
 		                                   Node::Type const &node_type,
 		                                   Service::Name  const &service_name)
 		{
 			if (service.type() == node_type)
-				xml.node("service", [&] {
-					xml.attribute("name", service_name); });
+				g.node("service", [&] {
+					g.attribute("name", service_name); });
 		}
 
-		static void _gen_copy_of_sub_node(Xml_generator &xml, Node const &from_node,
+		static void _gen_copy_of_sub_node(Generator &g, Node const &from_node,
 		                                  Node::Type const &sub_node_type)
 		{
 			from_node.with_optional_sub_node(sub_node_type.string(),
 				[&] (Node const &sub_node) {
-					if (!xml.append_node(sub_node, MAX_NODE_DEPTH))
+					if (!g.append_node(sub_node, MAX_NODE_DEPTH))
 						warning("sub node exceeds max depth: ", from_node); });
 		}
 
@@ -332,11 +332,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			return true;
 		}
 
-		void gen_query(Xml_generator &xml) const
+		void gen_query(Generator &g) const
 		{
 			if (blueprint_needed())
-				xml.node("blueprint", [&] {
-					xml.attribute("pkg", _blueprint_pkg_path); });
+				g.node("blueprint", [&] {
+					g.attribute("pkg", _blueprint_pkg_path); });
 		}
 
 		/**
@@ -352,14 +352,14 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 *                            the content of the depot user "local", which
 		 *                            is assumed to be mutable
 		 */
-		inline void gen_start_node(Xml_generator          &,
+		inline void gen_start_node(Generator              &,
 		                           Node             const &common,
 		                           Prio_levels             prio_levels,
 		                           Affinity::Space         affinity_space,
 		                           Depot_rom_server const &cached_depot_rom,
 		                           Depot_rom_server const &uncached_depot_rom) const;
 
-		inline void gen_monitor_policy_node(Xml_generator&) const;
+		inline void gen_monitor_policy_node(Generator &) const;
 
 		void with_missing_pkg_path(auto const &fn) const
 		{
@@ -370,12 +370,12 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/**
 		 * Generate installation entry needed for the completion of the child
 		 */
-		void gen_installation_entry(Xml_generator &xml) const
+		void gen_installation_entry(Generator &g) const
 		{
 			with_missing_pkg_path([&] (Archive::Path const &path) {
-				xml.node("archive", [&] {
-					xml.attribute("path", path);
-					xml.attribute("source", "no"); }); });
+				g.node("archive", [&] {
+					g.attribute("path", path);
+					g.attribute("source", "no"); }); });
 		}
 
 		bool incomplete() const { return _state == State::PKG_INCOMPLETE; }
@@ -398,7 +398,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 };
 
 
-void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
+void Depot_deploy::Child::gen_start_node(Generator              &g,
                                          Node             const &common,
                                          Prio_levels      const  prio_levels,
                                          Affinity::Space  const  affinity_space,
@@ -418,23 +418,23 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 
 	Node const &start_node = *_start_node;
 
-	xml.node("start", [&] {
+	g.node("start", [&] {
 
-		xml.attribute("name", _name);
+		g.attribute("name", _name);
 
 		{
 			unsigned long caps = _pkg_cap_quota;
 			_with_launcher_node([&] (Node const &launcher_node) {
 				caps = launcher_node.attribute_value("caps", caps); });
 			caps = start_node.attribute_value("caps", caps);
-			xml.attribute("caps", caps);
+			g.attribute("caps", caps);
 		}
 
 		{
 			using Version = String<64>;
 			Version const version = _start_node->attribute_value("version", Version());
 			if (version.valid())
-				xml.attribute("version", version);
+				g.attribute("version", version);
 		}
 
 		{
@@ -443,7 +443,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 				priority = launcher_node.attribute_value("priority", priority); });
 			priority = start_node.attribute_value("priority", priority);
 			if (priority)
-				xml.attribute("priority", priority);
+				g.attribute("priority", priority);
 		}
 
 		auto permit_managing_system = [&]
@@ -460,7 +460,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			return result;
 		};
 		if (permit_managing_system())
-			xml.attribute("managing_system", "yes");
+			g.attribute("managing_system", "yes");
 
 		bool shim_reroute = false;
 
@@ -474,16 +474,16 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 		Binary_name const binary = shim_reroute ? Binary_name("shim")
 		                                        : _binary_name;
 
-		xml.node("binary", [&] { xml.attribute("name", binary); });
+		g.node("binary", [&] { g.attribute("name", binary); });
 
 		Number_of_bytes ram = _pkg_ram_quota;
 		_with_launcher_node([&] (Node const &launcher_node) {
 			ram = launcher_node.attribute_value("ram", ram); });
 		ram = start_node.attribute_value("ram", ram);
 
-		xml.node("resource", [&] {
-			xml.attribute("name", "RAM");
-			xml.attribute("quantum", String<32>(ram));
+		g.node("resource", [&] {
+			g.attribute("name", "RAM");
+			g.attribute("quantum", String<32>(ram));
 		});
 
 		unsigned long cpu_quota = _pkg_cpu_quota;
@@ -491,9 +491,9 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			cpu_quota = launcher_node.attribute_value("cpu", cpu_quota); });
 		cpu_quota = start_node.attribute_value("cpu", cpu_quota);
 
-		xml.node("resource", [&] {
-			xml.attribute("name", "CPU");
-			xml.attribute("quantum", cpu_quota);
+		g.node("resource", [&] {
+			g.attribute("name", "CPU");
+			g.attribute("quantum", cpu_quota);
 		});
 
 		/* affinity-location handling */
@@ -510,17 +510,17 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			if (affinity_from_launcher)
 				_with_launcher_node([&] (Node const &launcher_node) {
 					launcher_node.with_optional_sub_node("affinity", [&] (Node const &node) {
-						location = Affinity::Location::from_xml(affinity_space, node); }); });
+						location = Affinity::Location::from_node(affinity_space, node); }); });
 
 			if (affinity_from_start)
 				start_node.with_optional_sub_node("affinity", [&] (Node const &node) {
-					location = Affinity::Location::from_xml(affinity_space, node); });
+					location = Affinity::Location::from_node(affinity_space, node); });
 
-			xml.node("affinity", [&] {
-				xml.attribute("xpos",   location.xpos());
-				xml.attribute("ypos",   location.ypos());
-				xml.attribute("width",  location.width());
-				xml.attribute("height", location.height());
+			g.node("affinity", [&] {
+				g.attribute("xpos",   location.xpos());
+				g.attribute("ypos",   location.ypos());
+				g.attribute("width",  location.width());
+				g.attribute("height", location.height());
 			});
 		}
 
@@ -531,7 +531,7 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			 * Insert inline '<heartbeat>' node if provided by the start node.
 			 */
 			if (start_node.has_sub_node("heartbeat"))
-				_gen_copy_of_sub_node(xml, start_node, "heartbeat");
+				_gen_copy_of_sub_node(g, start_node, "heartbeat");
 
 			/*
 			 * Insert inline '<config>' node if provided by the start node,
@@ -540,74 +540,74 @@ void Depot_deploy::Child::gen_start_node(Xml_generator          &xml,
 			 */
 			bool config_defined = false;
 			if (start_node.has_sub_node("config")) {
-				_gen_copy_of_sub_node(xml, start_node, "config");
+				_gen_copy_of_sub_node(g, start_node, "config");
 				config_defined = true; }
 
 			if (!config_defined)
 				_with_launcher_node([&] (Node const &launcher_node) {
 					if (launcher_node.has_sub_node("config")) {
-						_gen_copy_of_sub_node(xml, launcher_node, "config");
+						_gen_copy_of_sub_node(g, launcher_node, "config");
 						config_defined = true; } });
 
 			if (!config_defined)
 				if (runtime.has_sub_node("config")) {
-					_gen_copy_of_sub_node(xml, runtime, "config");
+					_gen_copy_of_sub_node(g, runtime, "config");
 					config_defined = true; }
 
 			/*
 			 * Declare services provided by the subsystem.
 			 */
 			runtime.with_optional_sub_node("provides", [&] (Node const &provides) {
-				xml.node("provides", [&] {
+				g.node("provides", [&] {
 					provides.for_each_sub_node([&] (Node const &service) {
-						_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
-						_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
-						_gen_provides_sub_node(xml, service, "block",       "Block");
-						_gen_provides_sub_node(xml, service, "file_system", "File_system");
-						_gen_provides_sub_node(xml, service, "framebuffer", "Framebuffer");
-						_gen_provides_sub_node(xml, service, "input",       "Input");
-						_gen_provides_sub_node(xml, service, "event",       "Event");
-						_gen_provides_sub_node(xml, service, "log",         "LOG");
-						_gen_provides_sub_node(xml, service, "nic",         "Nic");
-						_gen_provides_sub_node(xml, service, "uplink",      "Uplink");
-						_gen_provides_sub_node(xml, service, "gui",         "Gui");
-						_gen_provides_sub_node(xml, service, "gpu",         "Gpu");
-						_gen_provides_sub_node(xml, service, "usb",         "Usb");
-						_gen_provides_sub_node(xml, service, "report",      "Report");
-						_gen_provides_sub_node(xml, service, "rom",         "ROM");
-						_gen_provides_sub_node(xml, service, "terminal",    "Terminal");
-						_gen_provides_sub_node(xml, service, "timer",       "Timer");
-						_gen_provides_sub_node(xml, service, "pd",          "PD");
-						_gen_provides_sub_node(xml, service, "cpu",         "CPU");
-						_gen_provides_sub_node(xml, service, "rtc",         "Rtc");
-						_gen_provides_sub_node(xml, service, "capture",     "Capture");
-						_gen_provides_sub_node(xml, service, "play",        "Play");
-						_gen_provides_sub_node(xml, service, "record",      "Record");
+						_gen_provides_sub_node(g, service, "audio_in",    "Audio_in");
+						_gen_provides_sub_node(g, service, "audio_out",   "Audio_out");
+						_gen_provides_sub_node(g, service, "block",       "Block");
+						_gen_provides_sub_node(g, service, "file_system", "File_system");
+						_gen_provides_sub_node(g, service, "framebuffer", "Framebuffer");
+						_gen_provides_sub_node(g, service, "input",       "Input");
+						_gen_provides_sub_node(g, service, "event",       "Event");
+						_gen_provides_sub_node(g, service, "log",         "LOG");
+						_gen_provides_sub_node(g, service, "nic",         "Nic");
+						_gen_provides_sub_node(g, service, "uplink",      "Uplink");
+						_gen_provides_sub_node(g, service, "gui",         "Gui");
+						_gen_provides_sub_node(g, service, "gpu",         "Gpu");
+						_gen_provides_sub_node(g, service, "usb",         "Usb");
+						_gen_provides_sub_node(g, service, "report",      "Report");
+						_gen_provides_sub_node(g, service, "rom",         "ROM");
+						_gen_provides_sub_node(g, service, "terminal",    "Terminal");
+						_gen_provides_sub_node(g, service, "timer",       "Timer");
+						_gen_provides_sub_node(g, service, "pd",          "PD");
+						_gen_provides_sub_node(g, service, "cpu",         "CPU");
+						_gen_provides_sub_node(g, service, "rtc",         "Rtc");
+						_gen_provides_sub_node(g, service, "capture",     "Capture");
+						_gen_provides_sub_node(g, service, "play",        "Play");
+						_gen_provides_sub_node(g, service, "record",      "Record");
 					});
 				});
 			});
 
-			xml.node("route", [&] {
+			g.node("route", [&] {
 
 				if (start_node.has_sub_node("monitor")) {
-					xml.node("service", [&] {
-						xml.attribute("name", "PD");
-						xml.node("local");
+					g.node("service", [&] {
+						g.attribute("name", "PD");
+						g.node("local");
 					});
-					xml.node("service", [&] {
-						xml.attribute("name", "CPU");
-						xml.node("local");
+					g.node("service", [&] {
+						g.attribute("name", "CPU");
+						g.node("local");
 					});
 				}
 
-				_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom);
+				_gen_routes(g, common, cached_depot_rom, uncached_depot_rom);
 			});
 		});
 	});
 }
 
 
-void Depot_deploy::Child::gen_monitor_policy_node(Xml_generator &xml) const
+void Depot_deploy::Child::gen_monitor_policy_node(Generator &g) const
 {
 	if (!_configured() || _condition == UNSATISFIED)
 		return;
@@ -620,16 +620,16 @@ void Depot_deploy::Child::gen_monitor_policy_node(Xml_generator &xml) const
 	}
 
 	_start_node->with_optional_sub_node("monitor", [&] (Node const &monitor) {
-		xml.node("policy", [&] {
-			xml.attribute("label", _name);
-			xml.attribute("wait", monitor.attribute_value("wait", false));
-			xml.attribute("wx",   monitor.attribute_value("wx",   false));
+		g.node("policy", [&] {
+			g.attribute("label", _name);
+			g.attribute("wait", monitor.attribute_value("wait", false));
+			g.attribute("wx",   monitor.attribute_value("wx",   false));
 		});
 	});
 }
 
 
-void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Node const &common,
+void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
                                       Depot_rom_server const &cached_depot_rom,
                                       Depot_rom_server const &uncached_depot_rom) const
 {
@@ -652,14 +652,14 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Node const &common,
 			if (service_name == "PD" || service_name == "CPU") {
 				route_binary_to_shim = true;
 
-				xml.node("service", [&] {
-					xml.attribute("name", service_name);
-					xml.attribute("unscoped_label", _name);
-					xml.node("parent", [&] { });
+				g.node("service", [&] {
+					g.attribute("name", service_name);
+					g.attribute("unscoped_label", _name);
+					g.node("parent", [&] { });
 				});
 			}
 
-			(void)xml.append_node(service, MAX_NODE_DEPTH);
+			(void)g.append_node(service, MAX_NODE_DEPTH);
 		});
 	});
 
@@ -667,18 +667,18 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Node const &common,
 	 * If the subsystem is hosted under a shim, make the shim binary available
 	 */
 	if (route_binary_to_shim)
-		xml.node("service", [&] {
-			xml.attribute("name", "ROM");
-			xml.attribute("unscoped_label", "shim");
-			xml.node("parent", [&] {
-				xml.attribute("label", "shim"); }); });
+		g.node("service", [&] {
+			g.attribute("name", "ROM");
+			g.attribute("unscoped_label", "shim");
+			g.node("parent", [&] {
+				g.attribute("label", "shim"); }); });
 
 	/*
 	 * Add routes given in the launcher definition.
 	 */
 	_with_launcher_node([&] (Node const &launcher) {
 		launcher.with_optional_sub_node("route", [&] (Node const &route) {
-			(void)xml.append_node_content(route, MAX_NODE_DEPTH); }); });
+			(void)g.append_node_content(route, MAX_NODE_DEPTH); }); });
 
 	/**
 	 * Return name of depot-ROM server used for obtaining the 'path'
@@ -708,19 +708,19 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Node const &common,
 				return;
 
 			/* we found the <rom> node for the config ROM */
-			xml.node("service", [&] {
-				xml.attribute("name",  "ROM");
-				xml.attribute("label", "config");
+			g.node("service", [&] {
+				g.attribute("name",  "ROM");
+				g.attribute("label", "config");
 				using Path = String<160>;
 				Path const path = rom.attribute_value("path", Path());
 
 				if (cached_depot_rom.valid())
-					xml.node("child", [&] {
-						xml.attribute("name", rom_server(path));
-						xml.attribute("label", path); });
+					g.node("child", [&] {
+						g.attribute("name", rom_server(path));
+						g.attribute("label", path); });
 				else
-					xml.node("parent", [&] {
-						xml.attribute("label", path); });
+					g.node("parent", [&] {
+						g.attribute("label", path); });
 			});
 		});
 	}
@@ -728,7 +728,7 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Node const &common,
 	/*
 	 * Add common routes as defined in our config.
 	 */
-	(void)xml.append_node_content(common, MAX_NODE_DEPTH);
+	(void)g.append_node_content(common, MAX_NODE_DEPTH);
 
 	/*
 	 * Add ROM routing rule with the label rewritten to the path within the
@@ -744,22 +744,22 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Node const &common,
 		Label const label = rom.attribute_value("label", Label());
 		Label const as    = rom.attribute_value("as",    label);
 
-		xml.node("service", [&] {
-			xml.attribute("name", "ROM");
+		g.node("service", [&] {
+			g.attribute("name", "ROM");
 
 			if (route_binary_to_shim && label == _binary_name)
-				xml.attribute("label", "binary");
+				g.attribute("label", "binary");
 			else
-				xml.attribute("label_last", as);
+				g.attribute("label_last", as);
 
 			if (cached_depot_rom.valid()) {
-				xml.node("child", [&] {
-					xml.attribute("name",  rom_server(path));
-					xml.attribute("label", path);
+				g.node("child", [&] {
+					g.attribute("name",  rom_server(path));
+					g.attribute("label", path);
 				});
 			} else {
-				xml.node("parent", [&] {
-					xml.attribute("label", path); });
+				g.node("parent", [&] {
+					g.attribute("label", path); });
 			}
 		});
 	});

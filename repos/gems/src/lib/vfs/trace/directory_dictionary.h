@@ -82,19 +82,19 @@ class Vfs::Trace_node : public Dictionary::Element
 			);
 		}
 
-		void xml(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
 			_dict.for_each([&] (Trace_node const &node) {
 				if (node.id().id == 0)
-					xml.node("dir", [&] () {
-						xml.attribute("name", node.name);
-						node.xml(xml);
+					g.node("dir", [&] () {
+						g.attribute("name", node.name);
+						node.generate(g);
 					});
 				else
-					xml.node("trace_node", [&] () {
-						xml.attribute("name", node.name);
-						xml.attribute("id", node.id().id);
-						node.xml(xml);
+					g.node("trace_node", [&] () {
+						g.attribute("name", node.name);
+						g.attribute("id", node.id().id);
+						node.generate(g);
 					});
 			});
 		}
@@ -120,9 +120,9 @@ class Vfs::Trace_directory
 			_root.insert(info.session_label(), info.thread_name(), id);
 		}
 
-		void xml(Xml_generator &xml)
+		void generate(Generator &g)
 		{
-			_root.xml(xml);
+			_root.generate(g);
 		}
 };
 

@@ -152,9 +152,9 @@ struct Main
 
 			_reporter.construct(_env, "devices");
 
-			_reporter->generate([&] (Xml_generator &report) {
-				report.node("nic", [&] () {
-					report.attribute("mac_address", String<32>(_uplink->mac_address()));
+			_reporter->generate([&] (Generator &g) {
+				g.node("nic", [&] () {
+					g.attribute("mac_address", String<32>(_uplink->mac_address()));
 				});
 			});
 		});

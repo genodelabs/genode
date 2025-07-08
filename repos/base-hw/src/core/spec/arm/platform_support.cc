@@ -20,7 +20,7 @@ using namespace Core;
 void Platform::_init_io_port_alloc() { };
 
 
-void Platform::_init_additional_platform_info(Xml_generator&) { }
+void Platform::_init_additional_platform_info(Generator &) { }
 
 
 long Platform::irq(long const user_irq) { return user_irq; }

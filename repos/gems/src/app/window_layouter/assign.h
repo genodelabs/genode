@@ -89,11 +89,11 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 				    && (!suffix.valid() || suffix_matches);
 			}
 
-			void gen_attr(Xml_generator &xml) const
+			void gen_attr(Generator &g) const
 			{
-				if (exact .valid()) xml.attribute("label",        exact);
-				if (prefix.valid()) xml.attribute("label_prefix", prefix);
-				if (suffix.valid()) xml.attribute("label_suffix", suffix);
+				if (exact .valid()) g.attribute("label",        exact);
+				if (prefix.valid()) g.attribute("label_prefix", prefix);
+				if (suffix.valid()) g.attribute("label_suffix", suffix);
 			}
 		};
 
@@ -205,32 +205,32 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		/**
 		 * Generate <assign> node
 		 */
-		void gen_assign_attr(Xml_generator &xml) const
+		void gen_assign_attr(Generator &g) const
 		{
-			_label.gen_attr(xml);
-			xml.attribute("target", target_name);
+			_label.gen_attr(g);
+			g.attribute("target", target_name);
 		}
 
-		void gen_geometry_attr(Xml_generator &xml) const
+		void gen_geometry_attr(Generator &g) const
 		{
 			if (_pos_defined) {
-				if (_xpos_any) xml.attribute("xpos", "any");
-				else           xml.attribute("xpos", _pos.x);
+				if (_xpos_any) g.attribute("xpos", "any");
+				else           g.attribute("xpos", _pos.x);
 
-				if (_ypos_any) xml.attribute("ypos", "any");
-				else           xml.attribute("ypos", _pos.y);
+				if (_ypos_any) g.attribute("ypos", "any");
+				else           g.attribute("ypos", _pos.y);
 			}
 
 			if (_size_defined) {
-				xml.attribute("width",  _size.w);
-				xml.attribute("height", _size.h);
+				g.attribute("width",  _size.w);
+				g.attribute("height", _size.h);
 			}
 
 			if (_maximized)
-				xml.attribute("maximized", "yes");
+				g.attribute("maximized", "yes");
 
 			if (!_visible)
-				xml.attribute("visible", "no");
+				g.attribute("visible", "no");
 		}
 
 		struct Window_state
@@ -239,22 +239,22 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			bool maximized;
 		};
 
-		void gen_geometry_attr(Xml_generator &xml, Window_state const &window) const
+		void gen_geometry_attr(Generator &g, Window_state const &window) const
 		{
 			Rect const rect = window.maximized ? Rect(_pos, _size) : window.geometry;
 
 			if (_pos_defined) {
-				xml.attribute("xpos",   rect.x1());
-				xml.attribute("ypos",   rect.y1());
-				xml.attribute("width",  rect.w());
-				xml.attribute("height", rect.h());
+				g.attribute("xpos",   rect.x1());
+				g.attribute("ypos",   rect.y1());
+				g.attribute("width",  rect.w());
+				g.attribute("height", rect.h());
 			}
 
 			if (window.maximized)
-				xml.attribute("maximized", "yes");
+				g.attribute("maximized", "yes");
 
 			if (!_visible)
-				xml.attribute("visible", "no");
+				g.attribute("visible", "no");
 		}
 
 		void for_each_member(auto const &fn)       { _members.for_each(fn); }

@@ -44,7 +44,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
                                public  View_owner,
                                public  Buffer_provider,
                                private Session_list::Element,
-                               private Dynamic_rom_session::Xml_producer,
+                               private Dynamic_rom_session::Producer,
                                private Input::Session_component::Action
 {
 	public:
@@ -54,7 +54,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			/*
 			 * \param rect  domain-specific panorama rectangle
 			 */
-			virtual void gen_capture_info(Xml_generator &xml, Rect rect) const = 0;
+			virtual void gen_capture_info(Generator &, Rect) const = 0;
 
 			virtual void exclusive_input_changed() = 0;
 		};
@@ -203,9 +203,9 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		}
 
 		/**
-		 * Dynamic_rom_session::Xml_producer interface
+		 * Dynamic_rom_session::Producer interface
 		 */
-		void produce_xml(Xml_generator &) override;
+		void generate(Generator &) override;
 
 		bool _exclusive_input_requested = false;
 
@@ -236,7 +236,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		            Reporter              &focus_reporter)
 		:
 			Session_object(env.ep(), resources, label, diag),
-			Xml_producer("panorama"),
+			Producer("panorama"),
 			_env(env), _action(action),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_session_alloc(_ram, env.rm()),
@@ -342,13 +342,13 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 			return _exclusive_input_requested;
 		}
 
-		void report(Xml_generator &xml) const override
+		void report(Generator &g) const override
 		{
-			xml.attribute("label", _label);
-			xml.attribute("color", String<32>(color()));
+			g.attribute("label", _label);
+			g.attribute("color", String<32>(color()));
 
 			if (_domain)
-				xml.attribute("domain", _domain->name());
+				g.attribute("domain", _domain->name());
 		}
 
 		View_owner &forwarded_focus() override;

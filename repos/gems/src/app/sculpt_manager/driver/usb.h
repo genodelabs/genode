@@ -28,7 +28,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	struct Info : Interface
 	{
-		virtual void gen_usb_storage_policies(Xml_generator &) const = 0;
+		virtual void gen_usb_storage_policies(Generator &) const = 0;
 	};
 
 	Env        &_env;
@@ -77,25 +77,25 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 	void _handle_usb_config(Node const &config)
 	{
-		_usb_config.generate([&] (Xml_generator &xml) {
-			xml.node_attributes(config);
+		_usb_config.generate([&] (Generator &g) {
+			g.node_attributes(config);
 
-			xml.node("report", [&] {
-				xml.attribute("devices", "yes"); });
+			g.node("report", [&] {
+				g.attribute("devices", "yes"); });
 
-			xml.node("policy", [&] {
-				xml.attribute("label_prefix", "usb_hid");
-				xml.node("device", [&] {
-					xml.attribute("class", CLASS_HID); }); });
+			g.node("policy", [&] {
+				g.attribute("label_prefix", "usb_hid");
+				g.node("device", [&] {
+					g.attribute("class", CLASS_HID); }); });
 
 			/* copy user-provided rules */
 			config.for_each_sub_node("policy", [&] (Node const &policy) {
-				(void)xml.append_node(policy, Xml_generator::Max_depth { 5 }); });
+				(void)g.append_node(policy, Generator::Max_depth { 5 }); });
 
 			/* wildcard for USB clients with no policy yet */
-			xml.node("default-policy", [&] { });
+			g.node("default-policy", [&] { });
 
-			_info.gen_usb_storage_policies(xml);
+			_info.gen_usb_storage_policies(g);
 		});
 	}
 
@@ -106,59 +106,59 @@ struct Sculpt::Usb_driver : private Noncopyable
 		_usb_config.trigger_update();
 	}
 
-	void gen_start_nodes(Xml_generator &xml) const
+	void gen_start_nodes(Generator &g) const
 	{
 		auto start_node = [&] (auto const &driver, auto const &binary, auto const &fn)
 		{
 			if (driver.constructed())
-				xml.node("start", [&] {
-					driver->gen_start_node_content(xml);
-					gen_named_node(xml, "binary", binary);
+				g.node("start", [&] {
+					driver->gen_start_node_content(g);
+					gen_named_node(g, "binary", binary);
 					fn(); });
 		};
 
 		start_node(_hcd, "usb", [&] {
-			gen_provides<Usb::Session>(xml);
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "usb");
-				gen_parent_rom_route(xml, "config", "config -> managed/usb");
-				gen_parent_rom_route(xml, "dtb",    "usb.dtb");
-				gen_common_routes(xml);
+			gen_provides<Usb::Session>(g);
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>(g);
+				gen_parent_rom_route(g, "usb");
+				gen_parent_rom_route(g, "config", "config -> managed/usb");
+				gen_parent_rom_route(g, "dtb",    "usb.dtb");
+				gen_common_routes(g);
 			});
 		});
 
 		start_node(_hid, "usb_hid", [&] {
-			xml.node("config", [&] {
-				xml.attribute("capslock_led", "rom");
-				xml.attribute("numlock_led",  "rom");
+			g.node("config", [&] {
+				g.attribute("capslock_led", "rom");
+				g.attribute("numlock_led",  "rom");
 			});
-			xml.node("route", [&] {
-				gen_service_node<Usb::Session>(xml, [&] {
-					gen_named_node(xml, "child", "usb"); });
-				gen_parent_rom_route(xml, "usb_hid");
-				gen_parent_rom_route(xml, "capslock", "capslock");
-				gen_parent_rom_route(xml, "numlock",  "numlock");
-				gen_common_routes(xml);
-				gen_service_node<Event::Session>(xml, [&] {
-					xml.node("parent", [&] {
-						xml.attribute("label", "usb_hid"); }); });
+			g.node("route", [&] {
+				gen_service_node<Usb::Session>(g, [&] {
+					gen_named_node(g, "child", "usb"); });
+				gen_parent_rom_route(g, "usb_hid");
+				gen_parent_rom_route(g, "capslock", "capslock");
+				gen_parent_rom_route(g, "numlock",  "numlock");
+				gen_common_routes(g);
+				gen_service_node<Event::Session>(g, [&] {
+					g.node("parent", [&] {
+						g.attribute("label", "usb_hid"); }); });
 			});
 		});
 
 		start_node(_net, "usb_net", [&] {
-			xml.node("config", [&] {
-				xml.attribute("mac", "02:00:00:00:01:05");
+			g.node("config", [&] {
+				g.attribute("mac", "02:00:00:00:01:05");
 			});
-			xml.node("route", [&] {
-				gen_service_node<Usb::Session>(xml, [&] {
-					gen_named_node(xml, "child", "usb"); });
-				gen_parent_rom_route(xml, "usb_net");
-				gen_common_routes(xml);
-				gen_service_node<Uplink::Session>(xml, [&] {
-					xml.node("child", [&] {
-						xml.attribute("name", "nic_router");
-						xml.attribute("label", "usb_net -> ");
+			g.node("route", [&] {
+				gen_service_node<Usb::Session>(g, [&] {
+					gen_named_node(g, "child", "usb"); });
+				gen_parent_rom_route(g, "usb_net");
+				gen_common_routes(g);
+				gen_service_node<Uplink::Session>(g, [&] {
+					g.node("child", [&] {
+						g.attribute("name", "nic_router");
+						g.attribute("label", "usb_net -> ");
 					});
 				});
 			});

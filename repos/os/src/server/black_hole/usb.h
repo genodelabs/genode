@@ -32,7 +32,7 @@ namespace Black_hole {
 
 
 class Black_hole::Usb_session : public Session_object<Usb::Session>,
-                                private Dynamic_rom_session::Xml_producer
+                                private Dynamic_rom_session::Producer
 {
 	private:
 
@@ -49,7 +49,7 @@ class Black_hole::Usb_session : public Session_object<Usb::Session>,
 
 		:
 			Session_object<Usb::Session>(env.ep(), resources, label, diag),
-			Dynamic_rom_session::Xml_producer("devices"),
+			Dynamic_rom_session::Producer("devices"),
 			_env(env) { }
 
 		Rom_session_capability devices_rom() override {
@@ -64,11 +64,11 @@ class Black_hole::Usb_session : public Session_object<Usb::Session>,
 		void release_device(Device_capability) override {}
 
 
-		/*******************************************
-		 ** Dynamic_rom_session::Xml_producer API **
-		 *******************************************/
+		/***************************************
+		 ** Dynamic_rom_session::Producer API **
+		 ***************************************/
 
-		void produce_xml(Xml_generator &) override {}
+		void generate(Generator &) override {}
 };
 
 

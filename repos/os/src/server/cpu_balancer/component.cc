@@ -392,9 +392,9 @@ void Cpu::Balancer::handle_timeout()
 		for (unsigned i = 0; ; i++) {
 
 			Reporter::Result const result =
-				reporter->generate([&] (Xml_generator &xml) {
+				reporter->generate([&] (Generator &g) {
 					list.for_each([&](auto &session) {
-						reset_report |= session.report_state(xml); }); });
+						reset_report |= session.report_state(g); }); });
 
 			if (result.ok())
 				break;
@@ -404,7 +404,7 @@ void Cpu::Balancer::handle_timeout()
 				                "size, ram_avail=", env.pd().avail_ram());
 
 			if (env.pd().avail_ram().value < 8192) {
-				Genode::error("not enough memory for xml");
+				Genode::error("not enough memory for report");
 				break;
 			}
 

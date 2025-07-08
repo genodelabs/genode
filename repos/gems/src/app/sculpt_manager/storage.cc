@@ -96,10 +96,10 @@ Progress Storage::update(Node const &config, Drivers::Storage_devices const &dev
 }
 
 
-void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
+void Storage::gen_runtime_start_nodes(Generator &g) const
 {
-	xml.node("start", [&] {
-		gen_ram_fs_start_content(xml, _ram_fs_state); });
+	g.node("start", [&] {
+		gen_ram_fs_start_content(g, _ram_fs_state); });
 
 	auto contains_used_fs = [&] (Storage_device const &device)
 	{
@@ -113,8 +113,8 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &device) {
 
 		if (device.usb_block_needed() || contains_used_fs(device))
-			xml.node("start", [&] {
-				device.gen_usb_block_start_content(xml); });
+			g.node("start", [&] {
+				device.gen_usb_block_start_content(g); });
 	});
 
 	_storage_devices.for_each([&] (Storage_device const &device) {
@@ -126,8 +126,8 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 		                            || device.part_block_needed_for_access()
 		                            || device_contains_used_fs_in_partition;
 		if (part_block_needed)
-			xml.node("start", [&] {
-				device.gen_part_block_start_content(xml); });
+			g.node("start", [&] {
+				device.gen_part_block_start_content(g); });
 
 		device.for_each_partition([&] (Partition const &partition) {
 
@@ -136,21 +136,21 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 			                              .partition = partition.number };
 
 			if (partition.check_in_progress) {
-				xml.node("start", [&] {
-					gen_fsck_ext2_start_content(xml, target); }); }
+				g.node("start", [&] {
+					gen_fsck_ext2_start_content(g, target); }); }
 
 			if (partition.format_in_progress) {
-				xml.node("start", [&] {
-					gen_mkfs_ext2_start_content(xml, target); }); }
+				g.node("start", [&] {
+					gen_mkfs_ext2_start_content(g, target); }); }
 
 			if (partition.fs_resize_in_progress) {
-				xml.node("start", [&] {
-					gen_resize2fs_start_content(xml, target); }); }
+				g.node("start", [&] {
+					gen_resize2fs_start_content(g, target); }); }
 
 			if (partition.file_system.type != File_system::UNKNOWN) {
 				if (partition.file_system.inspected || target == _selected_target)
-					xml.node("start", [&] {
-						gen_fs_start_content(xml, target, partition.file_system.type); });
+					g.node("start", [&] {
+						gen_fs_start_content(g, target, partition.file_system.type); });
 
 				/*
 				 * Create alias so that the default file system can be referred
@@ -158,26 +158,26 @@ void Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 				 * underlying storage target.
 				 */
 				if (target == _selected_target)
-					gen_named_node(xml, "alias", "default_fs_rw", [&] {
-						xml.attribute("child", target.fs()); });
+					gen_named_node(g, "alias", "default_fs_rw", [&] {
+						g.attribute("child", target.fs()); });
 			}
 
 		}); /* for each partition */
 
 		/* relabel partitions if needed */
 		if (device.relabel_in_progress())
-			xml.node("start", [&] {
-				gen_gpt_relabel_start_content(xml, device); });
+			g.node("start", [&] {
+				gen_gpt_relabel_start_content(g, device); });
 
 		/* expand partitions if needed */
 		if (device.expand_in_progress())
-			xml.node("start", [&] {
-				gen_gpt_expand_start_content(xml, device); });
+			g.node("start", [&] {
+				gen_gpt_expand_start_content(g, device); });
 
 	}); /* for each device */
 
 	if (_selected_target.ram_fs())
-		gen_named_node(xml, "alias", "default_fs_rw", [&] {
-			xml.attribute("child", "ram_fs"); });
+		gen_named_node(g, "alias", "default_fs_rw", [&] {
+			g.attribute("child", "ram_fs"); });
 }
 

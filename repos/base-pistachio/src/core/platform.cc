@@ -15,8 +15,8 @@
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <base/capability.h>
+#include <base/node.h>
 #include <util/misc_math.h>
-#include <util/xml_generator.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -646,9 +646,9 @@ Core::Platform::Platform()
 	/* export platform specific infos */
 	export_page_as_rom_module("platform_info", [&] (void *core_local_ptr, size_t size) {
 		Byte_range_ptr dst { reinterpret_cast<char *>(core_local_ptr), size };
-		Xml_generator::generate(dst, "platform_info", [&] (Xml_generator &xml) {
-			xml.node("kernel", [&] {
-				xml.attribute("name", "pistachio"); }); }
+		Generator::generate(dst, "platform_info", [&] (Generator &g) {
+			g.node("kernel", [&] {
+				g.attribute("name", "pistachio"); }); }
 		).with_error([] (Buffer_error) {
 			error("platform_info exceeds maximum buffer size");
 		});

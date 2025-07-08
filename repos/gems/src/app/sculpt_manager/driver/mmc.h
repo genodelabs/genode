@@ -36,31 +36,31 @@ struct Sculpt::Mmc_driver : private Noncopyable
 
 	Mmc_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_node(Xml_generator &xml) const
+	void gen_start_node(Generator &g) const
 	{
 		if (!_mmc.constructed())
 			return;
 
-		xml.node("start", [&] {
-			_mmc->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "mmc");
-			gen_provides<Block::Session>(xml);
-			xml.node("config", [&] {
-				xml.attribute("report", "yes");
+		g.node("start", [&] {
+			_mmc->gen_start_node_content(g);
+			gen_named_node(g, "binary", "mmc");
+			gen_provides<Block::Session>(g);
+			g.node("config", [&] {
+				g.attribute("report", "yes");
 				for (unsigned i = 0; i < 4; i++) {
 					String<64> name("mmcblk", i);
-					xml.node("policy", [&] {
-						xml.attribute("label", name);
-						xml.attribute("device", name);
-						xml.attribute("writeable", "yes");
+					g.node("policy", [&] {
+						g.attribute("label", name);
+						g.attribute("device", name);
+						g.attribute("writeable", "yes");
 					});
 				}
 			});
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "dtb", "mmc.dtb");
-				gen_parent_rom_route(xml, "mmc");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>(g);
+				gen_parent_rom_route(g, "dtb", "mmc.dtb");
+				gen_parent_rom_route(g, "mmc");
+				gen_common_routes(g);
 			});
 		});
 	};

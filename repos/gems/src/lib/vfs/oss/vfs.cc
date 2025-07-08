@@ -18,7 +18,6 @@
 #include <play_session/connection.h>
 #include <record_session/connection.h>
 #include <timer_session/connection.h>
-#include <util/xml_generator.h>
 #include <vfs/dir_file_system.h>
 #include <vfs/readonly_value_file_system.h>
 #include <vfs/single_file_system.h>
@@ -150,23 +149,23 @@ struct Vfs::Oss_file_system::Audio
 			{
 				char buf[512] { };
 
-				Genode::Xml_generator::generate({ buf, sizeof(buf) }, "oss",
-					[&] (Genode::Xml_generator &xml) {
-						xml.attribute("plugin_version",    plugin_version);
-						xml.attribute("channels",          channels);
-						xml.attribute("format",            format);
-						xml.attribute("sample_rate",       sample_rate);
-						xml.attribute("ifrag_total",       ifrag_total);
-						xml.attribute("ifrag_size",        ifrag_size);
-						xml.attribute("ifrag_avail",       ifrag_avail);
-						xml.attribute("ifrag_bytes",       ifrag_bytes);
-						xml.attribute("ofrag_total",       ofrag_total);
-						xml.attribute("ofrag_size",        ofrag_size);
-						xml.attribute("ofrag_avail",       ofrag_avail);
-						xml.attribute("ofrag_bytes",       ofrag_bytes);
-						xml.attribute("optr_samples",      optr_samples);
-						xml.attribute("optr_fifo_samples", optr_fifo_samples);
-						xml.attribute("play_underruns",    play_underruns);
+				Genode::Generator::generate({ buf, sizeof(buf) }, "oss",
+					[&] (Genode::Generator &g) {
+						g.attribute("plugin_version",    plugin_version);
+						g.attribute("channels",          channels);
+						g.attribute("format",            format);
+						g.attribute("sample_rate",       sample_rate);
+						g.attribute("ifrag_total",       ifrag_total);
+						g.attribute("ifrag_size",        ifrag_size);
+						g.attribute("ifrag_avail",       ifrag_avail);
+						g.attribute("ifrag_bytes",       ifrag_bytes);
+						g.attribute("ofrag_total",       ofrag_total);
+						g.attribute("ofrag_size",        ofrag_size);
+						g.attribute("ofrag_avail",       ofrag_avail);
+						g.attribute("ofrag_bytes",       ofrag_bytes);
+						g.attribute("optr_samples",      optr_samples);
+						g.attribute("optr_fifo_samples", optr_fifo_samples);
+						g.attribute("play_underruns",    play_underruns);
 					}).with_error([&] (Genode::Buffer_error) {
 						Genode::warning("VFS-OSS info exceeds maximum buffer size");
 					});
@@ -1495,86 +1494,86 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Xml_generator::generate({ buf, sizeof(buf) }, "compound",
-			                                [&] (Genode::Xml_generator &xml) {
+			Genode::Generator::generate({ buf, sizeof(buf) }, "compound",
+			                            [&] (Genode::Generator &g) {
 
-				xml.node("data", [&] () {
-					xml.attribute("name", name); });
+				g.node("data", [&] () {
+					g.attribute("name", name); });
 
-				xml.node("dir", [&] () {
-					xml.attribute("name", Name(".", name));
-					xml.node("info", [&] () { });
+				g.node("dir", [&] () {
+					g.attribute("name", Name(".", name));
+					g.node("info", [&] () { });
 
-					xml.node("readonly_value", [&] {
-						xml.attribute("name", "channels");
+					g.node("readonly_value", [&] {
+						g.attribute("name", "channels");
 					});
 
-					xml.node("value", [&] {
-							 xml.attribute("name", "sample_rate");
+					g.node("value", [&] {
+						 g.attribute("name", "sample_rate");
 					});
 
-					xml.node("readonly_value", [&] {
-						xml.attribute("name", "format");
+					g.node("readonly_value", [&] {
+						g.attribute("name", "format");
 					});
 
-					xml.node("value", [&] {
-						xml.attribute("name", "enable_input");
+					g.node("value", [&] {
+						g.attribute("name", "enable_input");
 					});
 
-					xml.node("value", [&] {
-						xml.attribute("name", "enable_output");
+					g.node("value", [&] {
+						g.attribute("name", "enable_output");
 					});
 
-					xml.node("value", [&] {
-						xml.attribute("name", "halt_input");
+					g.node("value", [&] {
+						g.attribute("name", "halt_input");
 					});
 
-					xml.node("value", [&] {
-						xml.attribute("name", "halt_output");
+					g.node("value", [&] {
+						g.attribute("name", "halt_output");
 					});
 
-					xml.node("value", [&] {
-						xml.attribute("name", "ifrag_total");
+					g.node("value", [&] {
+						g.attribute("name", "ifrag_total");
 					});
 
-					xml.node("value", [&] {
-						 xml.attribute("name", "ifrag_size");
+					g.node("value", [&] {
+						 g.attribute("name", "ifrag_size");
 					});
 
-					xml.node("readonly_value", [&] {
-						 xml.attribute("name", "ifrag_avail");
+					g.node("readonly_value", [&] {
+						 g.attribute("name", "ifrag_avail");
 					});
 
-					xml.node("readonly_value", [&] {
-						 xml.attribute("name", "ifrag_bytes");
+					g.node("readonly_value", [&] {
+						 g.attribute("name", "ifrag_bytes");
 					});
 
-					xml.node("value", [&] {
-						xml.attribute("name", "ofrag_total");
+					g.node("value", [&] {
+						g.attribute("name", "ofrag_total");
 					});
 
-					xml.node("value", [&] {
-						 xml.attribute("name", "ofrag_size");
+					g.node("value", [&] {
+						 g.attribute("name", "ofrag_size");
 					});
 
-					xml.node("readonly_value", [&] {
-						 xml.attribute("name", "ofrag_avail");
+					g.node("readonly_value", [&] {
+						 g.attribute("name", "ofrag_avail");
 					});
 
-					xml.node("readonly_value", [&] {
-						 xml.attribute("name", "ofrag_bytes");
+					g.node("readonly_value", [&] {
+						 g.attribute("name", "ofrag_bytes");
 					});
 
-					xml.node("readonly_value", [&] {
-						 xml.attribute("name", "optr_samples");
+					g.node("readonly_value", [&] {
+						 g.attribute("name", "optr_samples");
 					});
 
-					xml.node("readonly_value", [&] {
-						 xml.attribute("name", "optr_fifo_samples");
+					g.node("readonly_value", [&] {
+						 g.attribute("name", "optr_fifo_samples");
 					});
 
-					xml.node("value", [&] {
-						 xml.attribute("name", "play_underruns");
+					g.node("value", [&] {
+						 g.attribute("name", "play_underruns");
 					});
 				});
 			}).with_error([] (Genode::Buffer_error) {

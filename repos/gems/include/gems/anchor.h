@@ -11,12 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__GEMS__XML_ANCHOR_H_
-#define _INCLUDE__GEMS__XML_ANCHOR_H_
+#ifndef _INCLUDE__GEMS__ANCHOR_H_
+#define _INCLUDE__GEMS__ANCHOR_H_
 
-#include <util/xml_node.h>
+#include <base/node.h>
 
-class Anchor
+namespace Genode { class Anchor; }
+
+
+class Genode::Anchor
 {
 	public:
 
@@ -62,8 +65,8 @@ class Anchor
 				}
 			}
 
-			Genode::warning("unsupported anchor attribute value");
+			warning("unsupported anchor attribute value");
 		}
 };
 
-#endif /* _INCLUDE__GEMS__XML_ANCHOR_H_ */
+#endif /* _INCLUDE__GEMS__ANCHOR_H_ */

@@ -17,14 +17,14 @@
 
 namespace Driver {
 	void pci_virtio_info(Device const &, Device::Pci_config const &, Env &,
-	                     Xml_generator &);
+	                     Generator &);
 }
 
 
 void Driver::pci_virtio_info(Device             const &dev,
                              Device::Pci_config const &cfg,
                              Env                      &env,
-                             Xml_generator            &xml)
+                             Generator                &g)
 {
 	enum { VENDOR_RED_HAT = 0x1af4 };
 
@@ -73,7 +73,7 @@ void Driver::pci_virtio_info(Device             const &dev,
 
 		void capability(Capability           &cap,
 		                Driver::Device const &dev,
-		                Xml_generator        &xml)
+		                Generator            &g)
 		{
 			unsigned idx = ~0U;
 			dev.for_each_io_mem([&] (unsigned i,
@@ -81,19 +81,17 @@ void Driver::pci_virtio_info(Device             const &dev,
 			                         Driver::Device::Pci_bar bar, bool) {
 				if (bar.number == cap.read<Capability::Bar>()) idx = i; });
 
-			xml.node("virtio_range", [&] () {
-				xml.attribute("type",   cap.name());
-				xml.attribute("index",  idx);
-				xml.attribute("offset", cap.read<Capability::Offset>());
-				xml.attribute("size",   cap.read<Capability::Length>());
+			g.node("virtio_range", [&] () {
+				g.attribute("type",   cap.name());
+				g.attribute("index",  idx);
+				g.attribute("offset", cap.read<Capability::Offset>());
+				g.attribute("size",   cap.read<Capability::Length>());
 				if (cap.read<Capability::Type>() == Capability::NOTIFY)
-					xml.attribute("factor",
-					              cap.read<Capability::Offset_factor>());
+					g.attribute("factor", cap.read<Capability::Offset_factor>());
 			});
 		}
 
-		void for_each_capability(Driver::Device const &dev,
-		                         Xml_generator        &xml)
+		void for_each_capability(Driver::Device const &dev, Generator &g)
 		{
 			if (!read<Status::Capabilities>())
 				return;
@@ -104,7 +102,7 @@ void Driver::pci_virtio_info(Device             const &dev,
 				if (cap.read<Capability::Id>() ==
 				    Capability::Id::VENDOR &&
 				    cap.valid())
-					capability(cap, dev, xml);
+					capability(cap, dev, g);
 				off = cap.read<Capability::Pointer>();
 			}
 		}
@@ -114,6 +112,6 @@ void Driver::pci_virtio_info(Device             const &dev,
 
 	Attached_io_mem_dataspace io_mem(env, cfg.addr, IO_MEM_SIZE);
 	Virtio                    config({io_mem.local_addr<char>(), IO_MEM_SIZE});
-	config.for_each_capability(dev, xml);
+	config.for_each_capability(dev, g);
 }
 

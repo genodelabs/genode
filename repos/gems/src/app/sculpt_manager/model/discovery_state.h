@@ -14,9 +14,6 @@
 #ifndef _MODEL__DISCOVERY_STATE_H_
 #define _MODEL__DISCOVERY_STATE_H_
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 /* local includes */
 #include <types.h>
 #include <model/storage_target.h>

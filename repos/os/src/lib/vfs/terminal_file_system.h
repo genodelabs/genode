@@ -20,7 +20,6 @@
 #include <vfs/single_file_system.h>
 #include <vfs/dir_file_system.h>
 #include <vfs/readonly_value_file_system.h>
-#include <util/xml_generator.h>
 #include <os/ring_buffer.h>
 
 
@@ -287,10 +286,10 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 		void print(Genode::Output &out) const
 		{
 			char buf[128] { };
-			Genode::Xml_generator::generate({ buf, sizeof(buf) }, "terminal",
-				[&] (Genode::Xml_generator &xml) {
-					xml.attribute("rows",    size.lines());
-					xml.attribute("columns", size.columns());
+			Genode::Generator::generate({ buf, sizeof(buf) }, "terminal",
+				[&] (Genode::Generator &g) {
+					g.attribute("rows",    size.lines());
+					g.attribute("columns", size.columns());
 			}).with_error([] (Genode::Buffer_error) {
 				Genode::warning("VFS-terminal info exceeds maximum buffer size");
 			});
@@ -376,18 +375,18 @@ class Vfs::Terminal_file_system::Compound_file_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Xml_generator::generate({ buf, sizeof(buf) }, "compound",
-				[&] (Genode::Xml_generator &xml) {
+			Genode::Generator::generate({ buf, sizeof(buf) }, "compound",
+				[&] (Genode::Generator &g) {
 
-					xml.node("data", [&] {
-						xml.attribute("name", name); });
+					g.node("data", [&] {
+						g.attribute("name", name); });
 
-					xml.node("dir", [&] {
-						xml.attribute("name", Name(".", name));
-						xml.node("info");
-						xml.node("rows");
-						xml.node("columns");
-						xml.node("interrupts");
+					g.node("dir", [&] {
+						g.attribute("name", Name(".", name));
+						g.node("info");
+						g.node("rows");
+						g.node("columns");
+						g.node("interrupts");
 					});
 
 			}).with_error([] (Genode::Buffer_error) {

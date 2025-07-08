@@ -70,7 +70,7 @@ class Block::Partition_table : Interface, Noncopyable
 		virtual block_number_t partition_lba(long num)     const = 0;
 		virtual block_number_t partition_sectors(long num) const = 0;
 
-		virtual void generate_report(Xml_generator &xml) const = 0;
+		virtual void generate_report(Generator &) const = 0;
 };
 
 #endif /* _PART_BLOCK__PARTITION_TABLE_H_ */

@@ -17,11 +17,11 @@
 /* Genode includes */
 #include <base/mutex.h>
 #include <base/log.h>
+#include <base/node.h>
 #include <os/path.h>
 #include <base/allocator.h>
 #include <base/id_space.h>
 #include <util/bit_allocator.h>
-#include <util/xml_generator.h>
 
 /* libc includes */
 #include <stdlib.h>
@@ -132,7 +132,7 @@ class Libc::File_descriptor_allocator
 		 */
 		int any_open_fd();
 
-		void generate_info(Genode::Xml_generator &);
+		void generate_info(Genode::Generator &);
 };
 
 #endif /* _LIBC_PLUGIN__FD_ALLOC_H_ */

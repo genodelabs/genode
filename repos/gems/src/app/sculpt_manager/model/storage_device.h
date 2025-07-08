@@ -169,7 +169,7 @@ struct Sculpt::Storage_device
 		return needed_for_access;
 	}
 
-	inline void gen_part_block_start_content(Xml_generator &) const;
+	inline void gen_part_block_start_content(Generator &) const;
 
 	void for_each_partition(auto const &fn) const
 	{
@@ -224,47 +224,47 @@ struct Sculpt::Storage_device
 };
 
 
-void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml) const
+void Sculpt::Storage_device::gen_part_block_start_content(Generator &g) const
 {
-	xml.attribute("version", _part_block_version);
+	g.attribute("version", _part_block_version);
 
-	gen_common_start_content(xml, part_block_start_name(),
+	gen_common_start_content(g, part_block_start_name(),
 	                         Cap_quota{100}, Ram_quota{8*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "part_block");
+	gen_named_node(g, "binary", "part_block");
 
-	xml.node("heartbeat", [&] { });
+	g.node("heartbeat", [&] { });
 
-	xml.node("config", [&] {
-		xml.node("report", [&] { xml.attribute("partitions", "yes"); });
+	g.node("config", [&] {
+		g.node("report", [&] { g.attribute("partitions", "yes"); });
 
 		for (unsigned i = 1; i < 10; i++) {
-			xml.node("policy", [&] {
-				xml.attribute("label",     i);
-				xml.attribute("partition", i);
-				xml.attribute("writeable", "yes");
+			g.node("policy", [&] {
+				g.attribute("label",     i);
+				g.attribute("partition", i);
+				g.attribute("writeable", "yes");
 			});
 		}
 	});
 
-	gen_provides<Block::Session>(xml);
+	gen_provides<Block::Session>(g);
 
-	xml.node("route", [&] {
+	g.node("route", [&] {
 
-		gen_service_node<Block::Session>(xml, [&] {
-			gen_named_node(xml, "child", driver, [&] {
-				xml.attribute("label", port); }); });
+		gen_service_node<Block::Session>(g, [&] {
+			gen_named_node(g, "child", driver, [&] {
+				g.attribute("label", port); }); });
 
-		gen_parent_rom_route(xml, "part_block");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session> (xml);
-		gen_parent_route<Pd_session>  (xml);
-		gen_parent_route<Log_session> (xml);
+		gen_parent_rom_route(g, "part_block");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_route<Cpu_session> (g);
+		gen_parent_route<Pd_session>  (g);
+		gen_parent_route<Log_session> (g);
 
-		gen_service_node<Report::Session>(xml, [&] {
-			xml.attribute("label", "partitions");
-			xml.node("parent", [&] { }); });
+		gen_service_node<Report::Session>(g, [&] {
+			g.attribute("label", "partitions");
+			g.node("parent", [&] { }); });
 	});
 }
 

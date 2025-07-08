@@ -77,10 +77,10 @@ class Vfs::Inline_file_system : public Single_file_system
 				}
 
 				return node.with_sub_node(0u, [&] (auto const &content) {
-					return Genode::Xml_generator::generate(dst, content.type(),
-						[&] (Genode::Xml_generator &xml) {
-							xml.node_attributes(content);
-							if (!xml.append_node_content(content, { 20 }))
+					return Genode::Generator::generate(dst, content.type(),
+						[&] (Genode::Generator &g) {
+							g.node_attributes(content);
+							if (!g.append_node_content(content, { 20 }))
 								warning("inline fs too deeply nested: ", content);
 						}).template convert<size_t>(
 							[&] (size_t n) { return n; },

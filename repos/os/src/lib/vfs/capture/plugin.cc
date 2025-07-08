@@ -15,7 +15,6 @@
 #include <vfs/single_file_system.h>
 #include <vfs/dir_file_system.h>
 #include <vfs/readonly_value_file_system.h>
-#include <util/xml_generator.h>
 
 
 namespace Vfs_capture
@@ -221,10 +220,10 @@ class Vfs_capture::File_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Xml_generator::generate({ buf, sizeof(buf) }, "compound",
-				[&] (Genode::Xml_generator &xml) {
-					xml.node("data", [&] { xml.attribute("name", name); });
-					xml.node("dir",  [&] { xml.attribute("name", Name(".", name)); });
+			Genode::Generator::generate({ buf, sizeof(buf) }, "compound",
+				[&] (Genode::Generator &g) {
+					g.node("data", [&] { g.attribute("name", name); });
+					g.node("dir",  [&] { g.attribute("name", Name(".", name)); });
 			}).with_error([] (Genode::Buffer_error) {
 				Genode::warning("VFS-capture compound exceeds maximum buffer size");
 			});

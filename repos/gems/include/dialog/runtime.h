@@ -15,7 +15,6 @@
 #define _INCLUDE__DIALOG__RUNTIME_H_
 
 #include <dialog/sandboxed_runtime.h>
-#include <os/buffered_xml.h>
 
 namespace Dialog { struct Runtime; }
 
@@ -31,18 +30,18 @@ class Dialog::Runtime : private Sandbox::State_handler
 
 		Sandboxed_runtime _runtime { _env, _alloc, _sandbox };
 
-		void _generate_sandbox_config(Xml_generator &xml) const
+		void _generate_sandbox_config(Generator &g) const
 		{
-			xml.node("report", [&] () {
-				xml.attribute("child_ram",  "yes");
-				xml.attribute("child_caps", "yes");
-				xml.attribute("delay_ms", 20*1000);
+			g.node("report", [&] () {
+				g.attribute("child_ram",  "yes");
+				g.attribute("child_caps", "yes");
+				g.attribute("delay_ms", 20*1000);
 			});
-			xml.node("parent-provides", [&] () {
+			g.node("parent-provides", [&] () {
 
 				auto service_node = [&] (char const *name) {
-					xml.node("service", [&] () {
-						xml.attribute("name", name); }); };
+					g.node("service", [&] () {
+						g.attribute("name", name); }); };
 
 				service_node("ROM");
 				service_node("CPU");
@@ -54,16 +53,17 @@ class Dialog::Runtime : private Sandbox::State_handler
 				service_node("File_system");
 			});
 
-			_runtime.gen_start_nodes(xml);
+			_runtime.gen_start_nodes(g);
 		}
 
 		void _update_sandbox_config()
 		{
-			Buffered_xml const config { _alloc, "config", [&] (Xml_generator &xml) {
-				_generate_sandbox_config(xml); } };
-
-			config.xml.with_raw_node([&] (char const *start, size_t num_bytes) {
-				_sandbox.apply_config(Node(Const_byte_range_ptr(start, num_bytes))); });
+			Generated_node { _alloc, { 4000 }, "config",
+				[&] (Generator &g) { _generate_sandbox_config(g); }
+			}.node.with_result(
+				[&] (Node const &node) { _sandbox.apply_config(node); },
+				[&] (Buffer_error) { warning("sandbox config unexpectedly large"); }
+			);
 		}
 
 		/**
@@ -72,15 +72,18 @@ class Dialog::Runtime : private Sandbox::State_handler
 		void handle_sandbox_state() override
 		{
 			/* obtain current sandbox state */
-			Buffered_xml state(_alloc, "state", [&] (Xml_generator &xml) {
-				_sandbox.generate_state_report(xml); });
+			Generated_node const state { _alloc, { 4000 }, "state", [&] (Generator &g) {
+				_sandbox.generate_state_report(g); } };
 
 			bool reconfiguration_needed = false;
 
-			state.xml.with_raw_node([&] (char const *start, size_t num_bytes) {
-				Node const node(Const_byte_range_ptr(start, num_bytes));
-				if (_runtime.apply_sandbox_state(node))
-					reconfiguration_needed = true; });
+			state.node.with_result(
+				[&] (Node const &node) {
+					if (_runtime.apply_sandbox_state(node))
+						reconfiguration_needed = true; },
+				[&] (Buffer_error) {
+					warning("sandbox state unexpectely large");
+				});
 
 			if (reconfiguration_needed)
 				_update_sandbox_config();

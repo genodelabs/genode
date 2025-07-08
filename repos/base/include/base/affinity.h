@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__BASE__AFFINITY_H_
 #define _INCLUDE__BASE__AFFINITY_H_
 
-#include <util/xml_node.h>
+#include <base/node.h>
 
 namespace Genode { class Affinity; }
 

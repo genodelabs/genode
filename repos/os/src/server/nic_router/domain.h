@@ -31,7 +31,6 @@
 
 namespace Genode {
 
-	class Xml_generator;
 	class Allocator;
 }
 
@@ -54,7 +53,7 @@ struct Net::Domain_object_stats
 	void dissolve_interface(Interface_object_stats const &stats);
 
 	bool report_empty() const;
-	void report(Genode::Xml_generator &xml) const;
+	void report(Genode::Generator &) const;
 };
 
 
@@ -67,7 +66,7 @@ struct Net::Domain_link_stats : Domain_object_stats
 	void dissolve_interface(Interface_link_stats const &stats);
 
 	bool report_empty() const;
-	void report(Genode::Xml_generator &xml) const;
+	void report(Genode::Generator &) const;
 };
 
 
@@ -211,7 +210,7 @@ class Net::Domain : public List<Domain>::Element,
 
 		bool report_empty(Report const &) const;
 
-		void report(Genode::Xml_generator &xml, Report const &) const;
+		void report(Genode::Generator &, Report const &) const;
 
 		void add_dropped_fragm_ipv4(unsigned long dropped_fragm_ipv4);
 

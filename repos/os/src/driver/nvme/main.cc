@@ -1698,18 +1698,18 @@ class Nvme::Driver : Genode::Noncopyable
 		void _report_namespaces(Nvme::Controller &ctrlr)
 		{
 			try {
-				(void)_namespace_reporter.generate([&] (Xml_generator &xml) {
+				(void)_namespace_reporter.generate([&] (Generator &g) {
 					Nvme::Controller::Info const &info = ctrlr.info();
 
-					xml.attribute("serial", info.sn);
-					xml.attribute("model",  info.mn);
+					g.attribute("serial", info.sn);
+					g.attribute("model",  info.mn);
 
 					Nvme::Controller::Nsinfo ns = ctrlr.nsinfo(Nvme::IO_NSID);
 
-					xml.node("namespace", [&]() {
-						xml.attribute("id",          (uint16_t)Nvme::IO_NSID);
-						xml.attribute("block_size",  ns.size);
-						xml.attribute("block_count", ns.count);
+					g.node("namespace", [&]() {
+						g.attribute("id",          (uint16_t)Nvme::IO_NSID);
+						g.attribute("block_size",  ns.size);
+						g.attribute("block_count", ns.count);
 					});
 				});
 			} catch (...) { }

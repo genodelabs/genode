@@ -21,26 +21,26 @@ struct Sculpt::Nic_driver : private Noncopyable
 {
 	Constructible<Child_state> _nic { };
 
-	void gen_start_node(Xml_generator &xml) const
+	void gen_start_node(Generator &g) const
 	{
 		if (!_nic.constructed())
 			return;
 
-		xml.node("start", [&] {
-			_nic->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "nic");
-			xml.node("config", [&] { });
-			xml.node("route", [&] {
-				gen_service_node<Platform::Session>(xml, [&] {
-					xml.node("parent", [&] {
-						xml.attribute("label", "nic"); }); });
-				gen_service_node<Uplink::Session>(xml, [&] {
-					xml.node("child", [&] {
-						xml.attribute("name", "nic_router"); }); });
-				gen_common_routes(xml);
-				gen_parent_rom_route(xml, "nic");
-				gen_parent_rom_route(xml, "nic.dtb");
-				gen_parent_route<Rm_session>(xml);
+		g.node("start", [&] {
+			_nic->gen_start_node_content(g);
+			gen_named_node(g, "binary", "nic");
+			g.node("config", [&] { });
+			g.node("route", [&] {
+				gen_service_node<Platform::Session>(g, [&] {
+					g.node("parent", [&] {
+						g.attribute("label", "nic"); }); });
+				gen_service_node<Uplink::Session>(g, [&] {
+					g.node("child", [&] {
+						g.attribute("name", "nic_router"); }); });
+				gen_common_routes(g);
+				gen_parent_rom_route(g, "nic");
+				gen_parent_rom_route(g, "nic.dtb");
+				gen_parent_route<Rm_session>(g);
 			});
 		});
 	};

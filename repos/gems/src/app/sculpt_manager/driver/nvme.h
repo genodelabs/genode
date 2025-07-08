@@ -36,28 +36,28 @@ struct Sculpt::Nvme_driver : private Noncopyable
 
 	Nvme_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_node(Xml_generator &xml) const
+	void gen_start_node(Generator &g) const
 	{
 		if (!_nvme.constructed())
 			return;
 
-		xml.node("start", [&] {
-			_nvme->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "nvme");
-			gen_provides<Block::Session>(xml);
-			xml.node("config", [&] {
-				xml.attribute("system", "yes");
-				xml.node("report", [&] { xml.attribute("namespaces", "yes"); });
-				xml.node("policy", [&] {
-					xml.attribute("label",     1);
-					xml.attribute("namespace", 1);
-					xml.attribute("writeable", "yes"); });
+		g.node("start", [&] {
+			_nvme->gen_start_node_content(g);
+			gen_named_node(g, "binary", "nvme");
+			gen_provides<Block::Session>(g);
+			g.node("config", [&] {
+				g.attribute("system", "yes");
+				g.node("report", [&] { g.attribute("namespaces", "yes"); });
+				g.node("policy", [&] {
+					g.attribute("label",     1);
+					g.attribute("namespace", 1);
+					g.attribute("writeable", "yes"); });
 			});
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "nvme");
-				gen_parent_rom_route(xml, "system",   "config -> managed/system");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>(g);
+				gen_parent_rom_route(g, "nvme");
+				gen_parent_rom_route(g, "system",   "config -> managed/system");
+				gen_common_routes(g);
 			});
 		});
 	};

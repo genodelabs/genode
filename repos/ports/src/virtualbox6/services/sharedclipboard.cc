@@ -88,8 +88,8 @@ class Clipboard
 		void report(char const *content)
 		{
 			try {
-				_report.generate([&] (Xml_generator &xml) {
-					xml.append_sanitized(content); });
+				_report.generate([&] (Generator &g) {
+					g.append_quoted(content); });
 			} catch (...) {
 				error("shared clipboard: could not report new content");
 			}

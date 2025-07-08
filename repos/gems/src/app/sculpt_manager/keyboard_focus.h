@@ -66,20 +66,20 @@ struct Sculpt::Keyboard_focus
 		if (orig_target == WPA_PASSPHRASE)
 			_wpa_passphrase = Wpa_passphrase { };
 
-		_focus_reporter.generate([&] (Xml_generator &xml) {
+		_focus_reporter.generate([&] (Generator &g) {
 			switch (target) {
 
 			case WPA_PASSPHRASE:
 			case SYSTEM_DIALOG:
 			case POPUP:
-				xml.attribute("label", "manager -> input");
+				g.attribute("label", "manager -> input");
 				break;
 
 			case UNDEFINED:
 				break;
 
 			case WM:
-				xml.attribute("label", "wm -> ");
+				g.attribute("label", "wm -> ");
 				break;
 			};
 		});

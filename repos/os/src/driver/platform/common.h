@@ -210,13 +210,13 @@ bool Driver::Common::_iommu()
 void Driver::Common::update_report()
 {
 	if (_dev_reporter.constructed())
-		_dev_reporter->generate([&] (Xml_generator &xml) {
-			xml.attribute("resumed", _resume_counter);
-			_devices.generate(xml); });
+		_dev_reporter->generate([&] (Generator &g) {
+			g.attribute("resumed", _resume_counter);
+			_devices.generate(g); });
 	if (_iommu_reporter.constructed())
-		_iommu_reporter->generate([&] (Xml_generator &xml) {
+		_iommu_reporter->generate([&] (Generator &g) {
 			_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
-				io_mmu.generate(xml); }); });
+				io_mmu.generate(g); }); });
 }
 
 
@@ -253,9 +253,9 @@ void Driver::Common::handle_config(Node const &config)
 	_root.update_policy();
 
 	if (_cfg_reporter.constructed())
-		_cfg_reporter->generate([&] (Xml_generator &xml) {
-			xml.node_attributes(config);
-			(void)xml.append_node_content(config, Xml_generator::Max_depth { 20 }); });
+		_cfg_reporter->generate([&] (Generator &g) {
+			g.node_attributes(config);
+			(void)g.append_node_content(config, Generator::Max_depth { 20 }); });
 }
 
 

@@ -15,7 +15,6 @@
 #define _TEXT_SELECTION_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <util/list_model.h>
 
 /* local includes */

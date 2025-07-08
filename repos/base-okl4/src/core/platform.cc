@@ -14,8 +14,8 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
+#include <base/node.h>
 #include <util/misc_math.h>
-#include <util/xml_generator.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -237,8 +237,8 @@ Core::Platform::Platform()
 						}
 
 						Byte_range_ptr dst { reinterpret_cast<char *>(core_local_addr), size };
-						Xml_generator::generate(dst, "platform_info", [&] (Xml_generator &xml) {
-							xml.node("kernel", [&] { xml.attribute("name", "okl4"); }); }
+						Generator::generate(dst, "platform_info", [&] (Generator &g) {
+							g.node("kernel", [&] { g.attribute("name", "okl4"); }); }
 						).with_error([] (Buffer_error) {
 							error("platform_info exceeds maximum buffer size");
 						});

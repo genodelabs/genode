@@ -15,7 +15,6 @@
 #define _GENERATE_XML_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <rom_session/rom_session.h>
 #include <cpu_session/cpu_session.h>
 #include <log_session/log_session.h>
@@ -32,70 +31,70 @@
 namespace Depot_download_manager {
 
 	template <typename SESSION>
-	static inline void gen_parent_service(Xml_generator &xml)
+	static inline void gen_parent_service(Generator &g)
 	{
-		xml.node("service", [&] () {
-			xml.attribute("name", SESSION::service_name()); });
+		g.node("service", [&] () {
+			g.attribute("name", SESSION::service_name()); });
 	};
 
 	template <typename SESSION>
-	static inline void gen_parent_route(Xml_generator &xml)
+	static inline void gen_parent_route(Generator &g)
 	{
-		xml.node("service", [&] () {
-			xml.attribute("name", SESSION::service_name());
-			xml.node("parent", [&] () { });
+		g.node("service", [&] () {
+			g.attribute("name", SESSION::service_name());
+			g.node("parent", [&] () { });
 		});
 	}
 
-	static inline void gen_parent_unscoped_rom_route(Xml_generator  &xml,
+	static inline void gen_parent_unscoped_rom_route(Generator      &g,
 	                                                 Rom_name const &name)
 	{
-		xml.node("service", [&] () {
-			xml.attribute("name", Rom_session::service_name());
-			xml.attribute("unscoped_label", name);
-			xml.node("parent", [&] () {
-				xml.attribute("label", name); });
+		g.node("service", [&] () {
+			g.attribute("name", Rom_session::service_name());
+			g.attribute("unscoped_label", name);
+			g.node("parent", [&] () {
+				g.attribute("label", name); });
 		});
 	}
 
-	static inline void gen_parent_rom_route(Xml_generator  &xml,
+	static inline void gen_parent_rom_route(Generator      &g,
 	                                        Rom_name const &name)
 	{
-		xml.node("service", [&] () {
-			xml.attribute("name", Rom_session::service_name());
-			xml.attribute("label", name);
-			xml.node("parent", [&] () {
-				xml.attribute("label", name); });
+		g.node("service", [&] () {
+			g.attribute("name", Rom_session::service_name());
+			g.attribute("label", name);
+			g.node("parent", [&] () {
+				g.attribute("label", name); });
 		});
 	}
 
-	static inline void gen_common_start_content(Xml_generator   &xml,
+	static inline void gen_common_start_content(Generator       &g,
 	                                            Rom_name  const &name,
 	                                            Cap_quota const  caps,
 	                                            Ram_quota const  ram)
 	{
-		xml.attribute("name", name);
-		xml.attribute("caps", caps.value);
-		xml.node("resource", [&] () {
-			xml.attribute("name", "RAM");
-			xml.attribute("quantum", String<64>(Number_of_bytes(ram.value)));
+		g.attribute("name", name);
+		g.attribute("caps", caps.value);
+		g.node("resource", [&] () {
+			g.attribute("name", "RAM");
+			g.attribute("quantum", String<64>(Number_of_bytes(ram.value)));
 		});
 	}
 
-	void gen_depot_query_start_content(Xml_generator &,
+	void gen_depot_query_start_content(Generator &,
 	                                   Node const &installation,
 	                                   Archive::User const &,
 	                                   Depot_query_version,
 	                                   List_model<Job> const &);
 
-	void gen_fetchurl_start_content(Xml_generator &, Import const &, Url const &,
+	void gen_fetchurl_start_content(Generator &, Import const &, Url const &,
 	                                Pubkey_known, Fetchurl_version);
 
-	void gen_verify_start_content(Xml_generator &, Import const &, Path const &);
+	void gen_verify_start_content(Generator &, Import const &, Path const &);
 
-	void gen_chroot_start_content(Xml_generator &, Archive::User const &);
+	void gen_chroot_start_content(Generator &, Archive::User const &);
 
-	void gen_extract_start_content(Xml_generator &, Import const &,
+	void gen_extract_start_content(Generator &, Import const &,
 	                               Path const &, Archive::User const &);
 }
 

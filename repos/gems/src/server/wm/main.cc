@@ -61,10 +61,10 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 	/**
 	 * Gui::Session_component::Action interface
 	 */
-	void gen_screen_area_info(Xml_generator &xml) const override
+	void gen_screen_area_info(Generator &g) const override
 	{
-		xml.attribute("width",  _screen_area.w);
-		xml.attribute("height", _screen_area.h);
+		g.attribute("width",  _screen_area.w);
+		g.attribute("height", _screen_area.h);
 	}
 
 	Gui::Root _gui_root { _env, *this, _window_registry, *this, _focus_gui_session };
@@ -113,10 +113,10 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 	{
 		Pointer::Position const pos = _gui_root.last_observed_pointer_pos();
 
-		_pointer_reporter.generate([&] (Xml_generator &xml) {
+		_pointer_reporter.generate([&] (Generator &g) {
 			if (pos.valid) {
-				xml.attribute("xpos", pos.value.x);
-				xml.attribute("ypos", pos.value.y);
+				g.attribute("xpos", pos.value.x);
+				g.attribute("ypos", pos.value.y);
 			}
 		});
 	}
@@ -139,7 +139,7 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 	Main(Env &env) : _env(env)
 	{
 		/* initially report an empty window list */
-		_window_list_reporter.generate([&] (Xml_generator &) { });
+		_window_list_reporter.generate([&] (Generator &) { });
 
 		_focus_rom.sigh(_focus_handler);
 		_resize_request_rom.sigh(_resize_request_handler);

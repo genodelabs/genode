@@ -16,7 +16,6 @@
 #include <base/attached_rom_dataspace.h>
 #include <report_session/connection.h>
 #include <os/reporter.h>
-#include <util/xml_generator.h>
 #include <timer_session/connection.h>
 
 namespace Test {
@@ -41,9 +40,9 @@ class Test::Nitpicker
 
 		void _focus(char const *domain, bool active)
 		{
-			_focus_reporter.generate([&] (Xml_generator &xml) {
-				xml.attribute("domain", domain);
-				xml.attribute("active", active ? "yes" : "no");
+			_focus_reporter.generate([&] (Generator &g) {
+				g.attribute("domain", domain);
+				g.attribute("active", active ? "yes" : "no");
 			});
 
 			/*
@@ -176,10 +175,10 @@ class Test::Subsystem
 
 		void copy(char const *str)
 		{
-			Xml_generator::generate(_export_report_ds.bytes(), "clipboard",
-				[&] (Xml_generator &xml) {
-					xml.attribute("origin", _name.string());
-					xml.node("text", [&] { xml.append(str, strlen(str));
+			Generator::generate(_export_report_ds.bytes(), "clipboard",
+				[&] (Generator &g) {
+					g.attribute("origin", _name.string());
+					g.node("text", [&] { g.append_quoted(str, strlen(str));
 				});
 			}).with_result(
 				[&] (size_t used)  {

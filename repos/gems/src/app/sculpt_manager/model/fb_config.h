@@ -54,7 +54,7 @@ struct Sculpt::Fb_config
 			         .orientation = connector.orientation };
 		}
 
-		static Entry from_manual_xml(Node const &node)
+		static Entry from_manual_node(Node const &node)
 		{
 			auto mode_id   = node.attribute_value("mode", Mode_id());
 			auto mode_attr = Mode_attr::from_node(node);
@@ -73,26 +73,26 @@ struct Sculpt::Fb_config
 			         .orientation = Orientation::from_node(node) };
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
 			if (!defined)
 				return;
 
-			xml.node("connector", [&] {
-				xml.attribute("name",   name);
+			g.node("connector", [&] {
+				g.attribute("name",   name);
 				if (mode_attr.px.valid()) {
-					xml.attribute("width",  mode_attr.px.w);
-					xml.attribute("height", mode_attr.px.h);
+					g.attribute("width",  mode_attr.px.w);
+					g.attribute("height", mode_attr.px.h);
 					if (mode_attr.hz)
-						xml.attribute("hz", mode_attr.hz);
+						g.attribute("hz", mode_attr.hz);
 					if (brightness.defined)
-						xml.attribute("brightness", brightness.percent);
+						g.attribute("brightness", brightness.percent);
 					if (mode_id.length() > 1)
-						xml.attribute("mode", mode_id);
+						g.attribute("mode", mode_id);
 
-					orientation.gen_attr(xml);
+					orientation.gen_attr(g);
 				} else {
-					xml.attribute("enabled", "no");
+					g.attribute("enabled", "no");
 				}
 			});
 		}
@@ -118,12 +118,12 @@ struct Sculpt::Fb_config
 			         .px     = Area::from_node(node) };
 		}
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
-			if (max_px.w) xml.attribute("max_width",  max_px.w);
-			if (max_px.h) xml.attribute("max_height", max_px.h);
-			if (px.w)     xml.attribute("width",      px.w);
-			if (px.h)     xml.attribute("height",     px.h);
+			if (max_px.w) g.attribute("max_width",  max_px.w);
+			if (max_px.h) g.attribute("max_height", max_px.h);
+			if (px.w)     g.attribute("width",      px.w);
+			if (px.h)     g.attribute("height",     px.h);
 		}
 	};
 
@@ -190,7 +190,7 @@ struct Sculpt::Fb_config
 		auto add_connectors = [&] (Node const &node)
 		{
 			node.for_each_sub_node("connector", [&] (Node const &node) {
-				Entry const e = Entry::from_manual_xml(node);
+				Entry const e = Entry::from_manual_node(node);
 				if (!_known(e.name) && count < MAX_ENTRIES) {
 					_entries[count] = e;
 					count++;
@@ -412,33 +412,33 @@ struct Sculpt::Fb_config
 		}
 	}
 
-	void _gen_merge_node(Xml_generator &xml) const
+	void _gen_merge_node(Generator &g) const
 	{
 		with_merge_info([&] (Merge_info const &info) {
-			xml.node("merge", [&] {
-				xml.attribute("width",  info.px.w);
-				xml.attribute("height", info.px.h);
-				xml.attribute("name",   info.name);
+			g.node("merge", [&] {
+				g.attribute("width",  info.px.w);
+				g.attribute("height", info.px.h);
+				g.attribute("name",   info.name);
 
 				for (unsigned i = 0; i < _num_merged; i++)
-					_entries[i].generate(xml);
+					_entries[i].generate(g);
 			});
 		});
 	}
 
-	void generate_managed_fb(Xml_generator &xml) const
+	void generate_managed_fb(Generator &g) const
 	{
-		_manual_attr.generate(xml);
+		_manual_attr.generate(g);
 
-		xml.attribute("system", "yes"); /* for screen blanking on suspend */
+		g.attribute("system", "yes"); /* for screen blanking on suspend */
 
-		xml.node("report", [&] { xml.attribute("connectors", "yes"); });
+		g.node("report", [&] { g.attribute("connectors", "yes"); });
 
-		_gen_merge_node(xml);
+		_gen_merge_node(g);
 
 		/* nodes for discrete connectors */
 		for (unsigned i = _num_merged; i < MAX_ENTRIES; i++)
-			_entries[i].generate(xml);
+			_entries[i].generate(g);
 	}
 
 	void for_each_present_connector(Fb_connectors const &connectors, auto const &fn) const

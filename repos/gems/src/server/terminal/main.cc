@@ -494,11 +494,11 @@ void Terminal::Main::_report_clipboard_selection()
 	if (!_text_screen_surface.constructed() || !_clipboard_reporter.constructed())
 		return;
 
-	_clipboard_reporter->generate([&] (Xml_generator &xml) {
+	_clipboard_reporter->generate([&] (Generator &g) {
 		_text_screen_surface->for_each_selected_character([&] (Codepoint c) {
 			String<10> const utf8(c);
 			if (utf8.valid())
-				xml.append_sanitized(utf8.string(), utf8.length() - 1);
+				g.append_quoted(utf8.string(), utf8.length() - 1);
 		});
 	});
 }

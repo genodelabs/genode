@@ -162,19 +162,19 @@ class Test_fifo_pipe::Test
 
 		void _write_init_config(Attached_rom_dataspace& rom, unsigned iteration)
 		{
-			_init_config.generate([&rom, iteration] (Xml_generator &xml) {
-				rom.node().for_each_sub_node([&xml, iteration] (Node const &node) {
-					Xml_generator::Max_depth const max_depth { 20 };
+			_init_config.generate([&rom, iteration] (Generator &g) {
+				rom.node().for_each_sub_node([&] (Node const &node) {
+					Generator::Max_depth const max_depth { 20 };
 					if (node.type() != "start") {
-						(void)xml.append_node(node, max_depth);
+						(void)g.append_node(node, max_depth);
 					} else {
 						auto const name { node.attribute_value("name", Genode::String<128> { }) };
 						auto const ram  { node.attribute_value("ram",  Genode::String<128> { }) };
-						xml.node("start", [&] ( ) {
-							xml.attribute("name", name);
-							xml.attribute("ram",  ram);
-							xml.attribute("version", iteration);
-							(void)xml.append_node_content(node, max_depth);
+						g.node("start", [&] ( ) {
+							g.attribute("name", name);
+							g.attribute("ram",  ram);
+							g.attribute("version", iteration);
+							(void)g.append_node_content(node, max_depth);
 						});
 					}
 				});

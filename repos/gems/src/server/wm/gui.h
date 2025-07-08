@@ -496,14 +496,14 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
                                    private List<Session_component>::Element,
                                    private Input_origin_changed_handler,
                                    private Upgradeable,
-                                   private Dynamic_rom_session::Xml_producer,
+                                   private Dynamic_rom_session::Producer,
                                    private Input::Session_component::Action
 {
 	public:
 
 		struct Action : Interface
 		{
-			virtual void gen_screen_area_info(Xml_generator &) const = 0;
+			virtual void gen_screen_area_info(Generator &) const = 0;
 		};
 
 	private:
@@ -792,14 +792,14 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		}
 
 		/**
-		 * Dynamic_rom_session::Xml_producer interface
+		 * Dynamic_rom_session::Producer interface
 		 */
-		void produce_xml(Xml_generator &xml) override
+		void generate(Generator &g) override
 		{
-			_action.gen_screen_area_info(xml);
+			_action.gen_screen_area_info(g);
 
 			if (_close_requested) {
-				xml.node("capture", [&] { xml.attribute("closed", "yes"); });
+				g.node("capture", [&] { g.attribute("closed", "yes"); });
 				return;
 			}
 
@@ -826,12 +826,12 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 			auto gen_attr = [&] (Area const area)
 			{
 				if (area.valid()) {
-					xml.attribute("width",  area.w);
-					xml.attribute("height", area.h);
+					g.attribute("width",  area.w);
+					g.attribute("height", area.h);
 				}
 			};
 
-			xml.node("capture", [&] { gen_attr(virtual_capture_area()); });
+			g.node("capture", [&] { gen_attr(virtual_capture_area()); });
 		}
 
 		/**
@@ -946,7 +946,7 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		                  Click_handler    &click_handler)
 		:
 			Session_object<Gui::Session>(env.ep(), resources, label, diag),
-			Xml_producer("panorama"),
+			Producer("panorama"),
 			_env(env), _action(action),
 			_window_registry(window_registry),
 			_click_handler(click_handler),

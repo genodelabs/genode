@@ -14,7 +14,7 @@
 
 /* Genode includes */
 #include <irq_session/irq_session.h>
-#include <util/xml_generator.h>
+#include <base/node.h>
 
 /* core includes */
 #include <platform.h>
@@ -100,14 +100,14 @@ static bool cpu_name(char const * name)
 	       ecx == *reinterpret_cast<uint32_t const *>(name + 8);
 }
 
-void Platform::_setup_platform_info(Xml_generator &xml,
+void Platform::_setup_platform_info(Generator &g,
                                     Foc::l4_kernel_info_t &kip)
 {
-	xml.node("features", [&] {
+	g.node("features", [&] {
 		/* XXX better detection required, best told us by kernel !? */
-		xml.attribute("svm", cpu_name("AuthenticAMD"));
-		xml.attribute("vmx", cpu_name("GenuineIntel")); });
+		g.attribute("svm", cpu_name("AuthenticAMD"));
+		g.attribute("vmx", cpu_name("GenuineIntel")); });
 
-	xml.node("tsc", [&] {
-		xml.attribute("freq_khz" , kip.frequency_cpu); });
+	g.node("tsc", [&] {
+		g.attribute("freq_khz" , kip.frequency_cpu); });
 }

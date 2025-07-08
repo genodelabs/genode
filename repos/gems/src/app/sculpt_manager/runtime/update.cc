@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for the depot-download subsystem
+ * \brief  Configuration for the depot-download subsystem
  * \author Norman Feske
  * \date   2018-05-08
  */
@@ -13,71 +13,71 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_update_start_content(Xml_generator &xml)
+void Sculpt::gen_update_start_content(Generator &g)
 {
-	gen_common_start_content(xml, "update",
+	gen_common_start_content(g, "update",
 	                         Cap_quota{2000}, Ram_quota{64*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "init");
+	gen_named_node(g, "binary", "init");
 
-	xml.node("route", [&] {
+	g.node("route", [&] {
 
 		using Label = String<32>;
 		auto gen_fs = [&] (Label const &label_prefix, Label const &server) {
-			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label_prefix", label_prefix);
-				gen_named_node(xml, "child", server); }); };
+			gen_service_node<::File_system::Session>(g, [&] {
+				g.attribute("label_prefix", label_prefix);
+				gen_named_node(g, "child", server); }); };
 
 		/* connect file-system sessions to chroot instances */
 		gen_fs("depot ->",  "depot_rw");
 		gen_fs("public ->", "public_rw");
 
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
-		gen_parent_rom_route(xml, "libc.lib.so");
-		gen_parent_rom_route(xml, "libm.lib.so");
-		gen_parent_rom_route(xml, "extract");
-		gen_parent_rom_route(xml, "verify");
-		gen_parent_rom_route(xml, "fetchurl");
-		gen_parent_rom_route(xml, "chroot");
-		gen_parent_rom_route(xml, "curl.lib.so");
-		gen_parent_rom_route(xml, "init");
-		gen_parent_rom_route(xml, "depot_query");
-		gen_parent_rom_route(xml, "depot_download_manager");
-		gen_parent_rom_route(xml, "report_rom");
-		gen_parent_rom_route(xml, "vfs");
-		gen_parent_rom_route(xml, "lxip.lib.so");
-		gen_parent_rom_route(xml, "vfs_lxip.lib.so");
-		gen_parent_rom_route(xml, "vfs_pipe.lib.so");
-		gen_parent_rom_route(xml, "posix.lib.so");
-		gen_parent_rom_route(xml, "libssh.lib.so");
-		gen_parent_rom_route(xml, "libssl.lib.so");
-		gen_parent_rom_route(xml, "libcrypto.lib.so");
-		gen_parent_rom_route(xml, "zlib.lib.so");
-		gen_parent_rom_route(xml, "libarchive.lib.so");
-		gen_parent_rom_route(xml, "liblzma.lib.so");
-		gen_parent_rom_route(xml, "config",       "depot_download.config");
-		gen_parent_rom_route(xml, "installation", "config -> managed/installation");
-		gen_parent_route<Cpu_session>    (xml);
-		gen_parent_route<Pd_session>     (xml);
-		gen_parent_route<Rm_session>     (xml);
-		gen_parent_route<Timer::Session> (xml);
-		gen_parent_route<Report::Session>(xml);
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
+		gen_parent_rom_route(g, "libc.lib.so");
+		gen_parent_rom_route(g, "libm.lib.so");
+		gen_parent_rom_route(g, "extract");
+		gen_parent_rom_route(g, "verify");
+		gen_parent_rom_route(g, "fetchurl");
+		gen_parent_rom_route(g, "chroot");
+		gen_parent_rom_route(g, "curl.lib.so");
+		gen_parent_rom_route(g, "init");
+		gen_parent_rom_route(g, "depot_query");
+		gen_parent_rom_route(g, "depot_download_manager");
+		gen_parent_rom_route(g, "report_rom");
+		gen_parent_rom_route(g, "vfs");
+		gen_parent_rom_route(g, "lxip.lib.so");
+		gen_parent_rom_route(g, "vfs_lxip.lib.so");
+		gen_parent_rom_route(g, "vfs_pipe.lib.so");
+		gen_parent_rom_route(g, "posix.lib.so");
+		gen_parent_rom_route(g, "libssh.lib.so");
+		gen_parent_rom_route(g, "libssl.lib.so");
+		gen_parent_rom_route(g, "libcrypto.lib.so");
+		gen_parent_rom_route(g, "zlib.lib.so");
+		gen_parent_rom_route(g, "libarchive.lib.so");
+		gen_parent_rom_route(g, "liblzma.lib.so");
+		gen_parent_rom_route(g, "config",       "depot_download.config");
+		gen_parent_rom_route(g, "installation", "config -> managed/installation");
+		gen_parent_route<Cpu_session>    (g);
+		gen_parent_route<Pd_session>     (g);
+		gen_parent_route<Rm_session>     (g);
+		gen_parent_route<Timer::Session> (g);
+		gen_parent_route<Report::Session>(g);
 
 		auto gen_relabeled_log = [&] (Label const &label, Label const &relabeled) {
-			gen_service_node<Log_session>(xml, [&] {
-				xml.attribute("label", label);
-				xml.node("parent", [&] {
-					xml.attribute("label", relabeled); }); }); };
+			gen_service_node<Log_session>(g, [&] {
+				g.attribute("label", label);
+				g.node("parent", [&] {
+					g.attribute("label", relabeled); }); }); };
 
 		/* shorten LOG-session labels to reduce the debug-output noise */
 		gen_relabeled_log("dynamic -> fetchurl", "fetchurl");
 		gen_relabeled_log("dynamic -> verify",   "verify");
 		gen_relabeled_log("dynamic -> extract",  "extract");
-		gen_parent_route<Log_session>(xml);
+		gen_parent_route<Log_session>(g);
 
-		gen_service_node<Nic::Session>(xml, [&] {
-			gen_named_node(xml, "child", "nic_router"); });
+		gen_service_node<Nic::Session>(g, [&] {
+			gen_named_node(g, "child", "nic_router"); });
 	});
 }

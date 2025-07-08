@@ -119,12 +119,12 @@ struct Depot_download_manager::Main
 
 	void _update_state_report()
 	{
-		_state_reporter.generate([&] (Xml_generator &xml) {
+		_state_reporter.generate([&] (Generator &g) {
 
 			/* produce detailed reports while the installation is in progress */
 			if (_import.constructed()) {
-				xml.attribute("progress", "yes");
-				_import->report(xml);
+				g.attribute("progress", "yes");
+				_import->report(g);
 			}
 
 			/* once all imports have settled, present the final results */
@@ -142,21 +142,21 @@ struct Depot_download_manager::Main
 						return "archive";
 					};
 
-					xml.node(type(job.path), [&] () {
-						xml.attribute("path",  job.path);
-						xml.attribute("state", job.failed ? "failed" : "done");
+					g.node(type(job.path), [&] () {
+						g.attribute("path",  job.path);
+						g.attribute("state", job.failed ? "failed" : "done");
 					});
 				});
 			}
 		});
 	}
 
-	void _generate_init_config(Xml_generator &);
+	void _generate_init_config(Generator &);
 
 	void _generate_init_config()
 	{
-		_init_config.generate([&] (Xml_generator &xml) {
-			_generate_init_config(xml); });
+		_init_config.generate([&] (Generator &g) {
+			_generate_init_config(g); });
 	}
 
 	void _handle_installation()
@@ -335,10 +335,10 @@ Depot_download_manager::Main::_current_user_url() const
 
 	/*
 	 * Ensure that the URL does not contain any '"' character because it will
-	 * be taken as an XML attribute value.
+	 * be taken as an attribute value.
 	 *
 	 * XXX This should better be addressed by sanitizing the argument of
-	 *     'Xml_generator::attribute' (issue #1757).
+	 *     'Generator::attribute' (issue #1757).
 	 */
 	for (char const *s = url.string(); *s; s++)
 		if (*s == '"')
@@ -348,32 +348,32 @@ Depot_download_manager::Main::_current_user_url() const
 }
 
 
-void Depot_download_manager::Main::_generate_init_config(Xml_generator &xml)
+void Depot_download_manager::Main::_generate_init_config(Generator &g)
 {
-	xml.node("report", [&] () {
-		xml.attribute("delay_ms", 500); });
+	g.node("report", [&] () {
+		g.attribute("delay_ms", 500); });
 
-	xml.node("parent-provides", [&] () {
-		gen_parent_service<Rom_session>(xml);
-		gen_parent_service<Cpu_session>(xml);
-		gen_parent_service<Pd_session>(xml);
-		gen_parent_service<Log_session>(xml);
-		gen_parent_service<Timer::Session>(xml);
-		gen_parent_service<Report::Session>(xml);
-		gen_parent_service<Nic::Session>(xml);
-		gen_parent_service<File_system::Session>(xml);
+	g.node("parent-provides", [&] () {
+		gen_parent_service<Rom_session>(g);
+		gen_parent_service<Cpu_session>(g);
+		gen_parent_service<Pd_session>(g);
+		gen_parent_service<Log_session>(g);
+		gen_parent_service<Timer::Session>(g);
+		gen_parent_service<Report::Session>(g);
+		gen_parent_service<Nic::Session>(g);
+		gen_parent_service<File_system::Session>(g);
 	});
 
-	xml.node("start", [&] () {
-		gen_depot_query_start_content(xml, _installation.node(),
+	g.node("start", [&] () {
+		gen_depot_query_start_content(g, _installation.node(),
 		                              _next_user, _depot_query_count, _jobs); });
 
 	bool const fetchurl_running = _import.constructed()
 	                           && _import->downloads_in_progress();
 	if (fetchurl_running) {
 		try {
-			xml.node("start", [&] () {
-				gen_fetchurl_start_content(xml, *_import,
+			g.node("start", [&] () {
+				gen_fetchurl_start_content(g, *_import,
 				                           _current_user_url(),
 				                           _current_user_has_pubkey(),
 				                           _fetchurl_count); });
@@ -384,16 +384,16 @@ void Depot_download_manager::Main::_generate_init_config(Xml_generator &xml)
 	}
 
 	if (_import.constructed() && _import->unverified_archives_available())
-		xml.node("start", [&] () {
-			gen_verify_start_content(xml, *_import, _current_user_path()); });
+		g.node("start", [&] () {
+			gen_verify_start_content(g, *_import, _current_user_path()); });
 
 	if (_import.constructed() && _import->verified_or_blessed_archives_available()) {
 
-		xml.node("start", [&] () {
-			gen_chroot_start_content(xml, _current_user_name());  });
+		g.node("start", [&] () {
+			gen_chroot_start_content(g, _current_user_name());  });
 
-		xml.node("start", [&] () {
-			gen_extract_start_content(xml, *_import, _current_user_path(),
+		g.node("start", [&] () {
+			gen_extract_start_content(g, *_import, _current_user_path(),
 			                          _current_user_name()); });
 	}
 
@@ -472,16 +472,16 @@ void Depot_download_manager::Main::_handle_query_result()
 	{
 		Archive::User user { };
 
-		auto assign_user_from_missing_xml_sub_node = [&] (Node const &node)
+		auto assign_user_from_missing_sub_node = [&] (Node const &node)
 		{
 			if (!user.valid())
 				node.with_optional_sub_node("missing", [&] (Node const &missing) {
 					user = missing.attribute_value("user", Archive::User()); });
 		};
 
-		assign_user_from_missing_xml_sub_node(index);
-		assign_user_from_missing_xml_sub_node(image);
-		assign_user_from_missing_xml_sub_node(image_index);
+		assign_user_from_missing_sub_node(index);
+		assign_user_from_missing_sub_node(image);
+		assign_user_from_missing_sub_node(image_index);
 
 		if (user.valid())
 			return user;

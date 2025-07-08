@@ -56,87 +56,87 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 	Fb_driver(Env &env, Action &action) : _env(env), _action(action) { }
 
-	void gen_start_nodes(Xml_generator &xml) const
+	void gen_start_nodes(Generator &g) const
 	{
-		auto gen_capture_route = [&] (Xml_generator &xml)
+		auto gen_capture_route = [&] (Generator &g)
 		{
-			gen_service_node<Capture::Session>(xml, [&] {
-				xml.node("parent", [] { }); });
+			gen_service_node<Capture::Session>(g, [&] {
+				g.node("parent", [] { }); });
 		};
 
 		auto start_node = [&] (auto const &driver, auto const &binary, auto const &fn)
 		{
 			if (driver.constructed())
-				xml.node("start", [&] {
-					driver->gen_start_node_content(xml);
-					gen_named_node(xml, "binary", binary);
+				g.node("start", [&] {
+					driver->gen_start_node_content(g);
+					gen_named_node(g, "binary", binary);
 					fn(); });
 		};
 
 		start_node(_intel_gpu, "intel_gpu", [&] {
-			xml.node("provides", [&] {
-				gen_service_node<Gpu::Session>     (xml, [&] { });
-				gen_service_node<Platform::Session>(xml, [&] { });
+			g.node("provides", [&] {
+				gen_service_node<Gpu::Session>     (g, [&] { });
+				gen_service_node<Platform::Session>(g, [&] { });
 			});
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>(xml);
-				gen_parent_rom_route(xml, "intel_gpu");
-				gen_parent_rom_route(xml, "config", "config -> gpu");
-				gen_parent_rom_route(xml, "system", "config -> managed/system");
-				gen_parent_route<Rm_session>(xml);
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>(g);
+				gen_parent_rom_route(g, "intel_gpu");
+				gen_parent_rom_route(g, "config", "config -> gpu");
+				gen_parent_rom_route(g, "system", "config -> managed/system");
+				gen_parent_route<Rm_session>(g);
+				gen_common_routes(g);
 			});
 		});
 
 		start_node(_intel_fb, "pc_intel_fb", [&] {
-			xml.node("heartbeat", [&] { });
-			xml.node("route", [&] {
-				gen_service_node<Platform::Session>(xml, [&] {
-					gen_named_node(xml, "child", "intel_gpu"); });
-				gen_capture_route(xml);
-				gen_parent_rom_route(xml, "pc_intel_fb");
-				gen_parent_rom_route(xml, "config", "config -> managed/fb");
-				gen_parent_rom_route(xml, "system", "config -> managed/system");
-				gen_parent_rom_route(xml, "intel_opregion", "report -> drivers/intel_opregion");
-				gen_parent_route<Rm_session>(xml);
-				gen_common_routes(xml);
+			g.node("heartbeat", [&] { });
+			g.node("route", [&] {
+				gen_service_node<Platform::Session>(g, [&] {
+					gen_named_node(g, "child", "intel_gpu"); });
+				gen_capture_route(g);
+				gen_parent_rom_route(g, "pc_intel_fb");
+				gen_parent_rom_route(g, "config", "config -> managed/fb");
+				gen_parent_rom_route(g, "system", "config -> managed/system");
+				gen_parent_rom_route(g, "intel_opregion", "report -> drivers/intel_opregion");
+				gen_parent_route<Rm_session>(g);
+				gen_common_routes(g);
 			});
 		});
 
 		start_node(_vesa_fb, "vesa_fb", [&] {
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>(xml);
-				gen_capture_route(xml);
-				gen_parent_rom_route(xml, "vesa_fb");
-				gen_parent_rom_route(xml, "config", "config -> managed/fb");
-				gen_parent_route<Io_mem_session>(xml);
-				gen_parent_route<Io_port_session>(xml);
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>(g);
+				gen_capture_route(g);
+				gen_parent_rom_route(g, "vesa_fb");
+				gen_parent_rom_route(g, "config", "config -> managed/fb");
+				gen_parent_route<Io_mem_session>(g);
+				gen_parent_route<Io_port_session>(g);
+				gen_common_routes(g);
 			});
 		});
 
 		start_node(_boot_fb, "boot_fb", [&] {
-			xml.node("route", [&] {
-				gen_parent_rom_route(xml, "config", "config -> fb");
-				gen_parent_rom_route(xml, "boot_fb");
-				gen_parent_rom_route(xml, "platform_info");
-				gen_parent_route<Io_mem_session>(xml);
-				gen_capture_route(xml);
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_rom_route(g, "config", "config -> fb");
+				gen_parent_rom_route(g, "boot_fb");
+				gen_parent_rom_route(g, "platform_info");
+				gen_parent_route<Io_mem_session>(g);
+				gen_capture_route(g);
+				gen_common_routes(g);
 			});
 		});
 
 		start_node(_soc_fb, "fb", [&] {
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>   (xml);
-				gen_parent_route<Pin_control::Session>(xml);
-				gen_parent_route<I2c::Session>(xml);
-				gen_capture_route(xml);
-				gen_parent_rom_route(xml, "fb");
-				gen_parent_rom_route(xml, "config", "config -> fb");
-				gen_parent_rom_route(xml, "dtb",    "fb.dtb");
-				gen_parent_route<Rm_session>(xml);
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>   (g);
+				gen_parent_route<Pin_control::Session>(g);
+				gen_parent_route<I2c::Session>(g);
+				gen_capture_route(g);
+				gen_parent_rom_route(g, "fb");
+				gen_parent_rom_route(g, "config", "config -> fb");
+				gen_parent_rom_route(g, "dtb",    "fb.dtb");
+				gen_parent_route<Rm_session>(g);
+				gen_common_routes(g);
 			});
 		});
 	};

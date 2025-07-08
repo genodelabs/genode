@@ -20,8 +20,8 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/node.h>
 #include <util/register.h>
-#include <util/xml_generator.h>
 #include <cpu/clflush.h>
 
 namespace Intel {
@@ -72,7 +72,7 @@ class Intel::Root_table
 				clflush(&_entries[bus*2]);
 		}
 
-		void generate(Xml_generator &, Report_helper &);
+		void generate(Generator &, Report_helper &);
 
 		Root_table()
 		{

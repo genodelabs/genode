@@ -20,458 +20,459 @@
 
 namespace File_vault {
 
-	void gen_arg(Xml_generator &xml, auto const &arg)
+	void gen_arg(Generator &g, auto const &arg)
 	{
-		xml.node("arg", [&] { xml.attribute("value", arg); });
+		g.node("arg", [&] { g.attribute("value", arg); });
 	}
 
-	void gen_common_start_content(Xml_generator &xml, char const *name, Cap_quota caps, Ram_quota ram)
+	void gen_common_start_content(Generator &g, char const *name, Cap_quota caps, Ram_quota ram)
 	{
-		xml.attribute("name", name);
-		xml.attribute("caps", caps.value);
-		gen_named_node(xml, "resource", "RAM", [&] {
-			xml.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
+		g.attribute("name", name);
+		g.attribute("caps", caps.value);
+		gen_named_node(g, "resource", "RAM", [&] {
+			g.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
 	}
 
-	void gen_route(Xml_generator &xml, char const *service, char const *label, auto const &fn)
+	void gen_route(Generator &g, char const *service, char const *label, auto const &fn)
 	{
-		gen_named_node(xml, "service", service, [&] {
+		gen_named_node(g, "service", service, [&] {
 			if (strcmp(label, ""))
-				xml.attribute("label", label);
+				g.attribute("label", label);
 			fn(); });
 	}
 
-	void gen_child_route(Xml_generator &xml, char const *child, char const *service, char const *label = "")
+	void gen_child_route(Generator &g, char const *child, char const *service, char const *label = "")
 	{
-		gen_route(xml, service, label, [&] { gen_named_node(xml, "child", child, [] { }); });
+		gen_route(g, service, label, [&] { gen_named_node(g, "child", child, [] { }); });
 	}
 
-	void gen_parent_route(Xml_generator &xml, char const *service, char const *src_label = "", char const *dst_label = "")
+	void gen_parent_route(Generator &g, char const *service, char const *src_label = "", char const *dst_label = "")
 	{
-		gen_route(xml, service, src_label, [&] {
-			xml.node("parent", [&] {
+		gen_route(g, service, src_label, [&] {
+			g.node("parent", [&] {
 				if (strcmp(dst_label, ""))
-					xml.attribute("label", dst_label); }); });
+					g.attribute("label", dst_label); }); });
 	};
 
-	void gen_local_route(Xml_generator &xml, char const *service, char const *label = "")
+	void gen_local_route(Generator &g, char const *service, char const *label = "")
 	{
-		gen_route(xml, service, label, [&] { xml.node("local", [] { }); });
+		gen_route(g, service, label, [&] { g.node("local", [] { }); });
 	};
 
-	void gen_service(Xml_generator &xml, char const *service)
+	void gen_service(Generator &g, char const *service)
 	{
-		gen_named_node(xml, "service", service, [] { });
+		gen_named_node(g, "service", service, [] { });
 	};
 
-	void gen_provides(Xml_generator &xml, char const *service)
+	void gen_provides(Generator &g, char const *service)
 	{
-		xml.node("provides", [&] { gen_service(xml, service); });
+		g.node("provides", [&] { gen_service(g, service); });
 	}
 
-	void gen_common_routes(Xml_generator &xml)
+	void gen_common_routes(Generator &g)
 	{
-		gen_parent_route(xml, "PD");
-		gen_parent_route(xml, "ROM");
-		gen_parent_route(xml, "CPU");
-		gen_parent_route(xml, "LOG");
+		gen_parent_route(g, "PD");
+		gen_parent_route(g, "ROM");
+		gen_parent_route(g, "CPU");
+		gen_parent_route(g, "LOG");
 	}
 
-	void gen_vfs_policy(Xml_generator &xml, char const *label_prefix,
+	void gen_vfs_policy(Generator &g, char const *label_prefix,
 	                    char const *root, bool writeable)
 	{
-		xml.node("policy", [&] {
-			xml.attribute("label_prefix ", label_prefix);
-			xml.attribute("root", root);
-			xml.attribute("writeable", writeable ? "yes" : "no");
+		g.node("policy", [&] {
+			g.attribute("label_prefix ", label_prefix);
+			g.attribute("root", root);
+			g.attribute("writeable", writeable ? "yes" : "no");
 		});
 	};
 
-	void gen_parent_provides_and_report_nodes(Xml_generator &xml)
+	void gen_parent_provides_and_report_nodes(Generator &g)
 	{
-		xml.node("report", [&] {
-			xml.attribute("provided", "yes");
-			xml.attribute("child_ram",  "yes");
-			xml.attribute("child_caps", "yes");
-			xml.attribute("delay_ms", 500);
+		g.node("report", [&] {
+			g.attribute("provided", "yes");
+			g.attribute("child_ram",  "yes");
+			g.attribute("child_caps", "yes");
+			g.attribute("delay_ms", 500);
 		});
-		xml.node("parent-provides", [&] {
-			gen_service(xml, "ROM");
-			gen_service(xml, "CPU");
-			gen_service(xml, "PD");
-			gen_service(xml, "LOG");
-			gen_service(xml, "RM");
-			gen_service(xml, "File_system");
-			gen_service(xml, "Gui");
-			gen_service(xml, "Timer");
-			gen_service(xml, "Report");
-		});
-	}
-
-	void gen_mke2fs_start_node(Xml_generator &xml, Child_state const &child)
-	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.node("libc", [&] {
-					xml.attribute("stdout", "/dev/log");
-					xml.attribute("stderr", "/dev/log");
-					xml.attribute("stdin", "/dev/null");
-					xml.attribute("rtc", "/dev/rtc");
-				});
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "dev", [&] {
-						gen_named_node(xml, "block", "block", [&] {
-							xml.attribute("label", "default");
-						});
-						gen_named_node(xml, "inline", "rtc", [&] {
-							xml.append("2018-01-01 00:01");
-						});
-						xml.node("null", [&] {});
-						xml.node("log", [&] {});
-					});
-				});
-				gen_arg(xml, "mkfs.ext2");
-				gen_arg(xml, "-F");
-				gen_arg(xml, "/dev/block");
-			});
-			xml.node("route", [&] {
-				gen_child_route(xml, "vfs_block", "Block");
-				gen_parent_route(xml, "Timer");
-				gen_common_routes(xml);
-			});
+		g.node("parent-provides", [&] {
+			gen_service(g, "ROM");
+			gen_service(g, "CPU");
+			gen_service(g, "PD");
+			gen_service(g, "LOG");
+			gen_service(g, "RM");
+			gen_service(g, "File_system");
+			gen_service(g, "Gui");
+			gen_service(g, "Timer");
+			gen_service(g, "Report");
 		});
 	}
 
-	void gen_resize2fs_start_node(Xml_generator &xml, Child_state const &child)
+	void gen_mke2fs_start_node(Generator &g, Child_state const &child)
 	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.node("libc", [&] {
-					xml.attribute("stdout", "/dev/log");
-					xml.attribute("stderr", "/dev/log");
-					xml.attribute("stdin", "/dev/null");
-					xml.attribute("rtc", "/dev/rtc");
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.node("libc", [&] {
+					g.attribute("stdout", "/dev/log");
+					g.attribute("stderr", "/dev/log");
+					g.attribute("stdin", "/dev/null");
+					g.attribute("rtc", "/dev/rtc");
 				});
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "dev", [&] {
-						gen_named_node(xml, "block", "block", [&] {
-							xml.attribute("label", "default");
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "dev", [&] {
+						gen_named_node(g, "block", "block", [&] {
+							g.attribute("label", "default");
 						});
-						gen_named_node(xml, "inline", "rtc", [&] {
-							xml.append("2018-01-01 00:01"); });
-						xml.node("null", [&] {});
-						xml.node("log", [&] {});
+						gen_named_node(g, "inline", "rtc", [&] {
+							g.append_quoted("2018-01-01 00:01");
+						});
+						g.node("null", [&] {});
+						g.node("log", [&] {});
 					});
 				});
-				gen_arg(xml, "resize2fs");
-				gen_arg(xml, "-f");
-				gen_arg(xml, "-p");
-				gen_arg(xml, "/dev/block");
+				gen_arg(g, "mkfs.ext2");
+				gen_arg(g, "-F");
+				gen_arg(g, "/dev/block");
 			});
-
-			xml.node("route", [&] {
-				gen_child_route(xml, "vfs_block", "Block");
-				gen_parent_route(xml, "Timer");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_child_route(g, "vfs_block", "Block");
+				gen_parent_route(g, "Timer");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_tresor_vfs_start_node(Xml_generator &xml, Child_state const &child, File_path const &image)
+	void gen_resize2fs_start_node(Generator &g, Child_state const &child)
 	{
-		child.gen_start_node(xml, [&] {
-			gen_provides(xml, "File_system");
-			xml.node("config", [&] {
-				xml.node("vfs", [&] {
-					xml.node("fs", [&] {
-						xml.attribute("buffer_size", "1M");
-						xml.attribute("label", "tresor_fs -> /");
-					});
-					gen_named_node(xml, "tresor_crypto_aes_cbc", "crypto", [] { });
-					gen_named_node(xml, "dir", "trust_anchor", [&] {
-						xml.node("fs", [&] {
-							xml.attribute("buffer_size", "1M");
-							xml.attribute("label", "trust_anchor -> /");
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.node("libc", [&] {
+					g.attribute("stdout", "/dev/log");
+					g.attribute("stderr", "/dev/log");
+					g.attribute("stdin", "/dev/null");
+					g.attribute("rtc", "/dev/rtc");
+				});
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "dev", [&] {
+						gen_named_node(g, "block", "block", [&] {
+							g.attribute("label", "default");
 						});
-					});
-					gen_named_node(xml, "dir", "dev", [&] {
-						gen_named_node(xml, "tresor", "tresor", [&] {
-							xml.attribute("block", File_path("/", image));
-							xml.attribute("crypto", "/crypto");
-							xml.attribute("trust_anchor", "/trust_anchor");
-						});
+						gen_named_node(g, "inline", "rtc", [&] {
+							g.append_quoted("2018-01-01 00:01"); });
+						g.node("null", [&] {});
+						g.node("log", [&] {});
 					});
 				});
-				gen_vfs_policy(xml, "extend_fs_tool -> ", "/dev", true);
-				gen_vfs_policy(xml, "rekey_fs_tool -> ", "/dev", true);
-				gen_vfs_policy(xml, "lock_fs_tool -> ", "/dev", true);
-				gen_vfs_policy(xml, "extend_fs_query -> ", "/dev", true);
-				gen_vfs_policy(xml, "rekey_fs_query -> ", "/dev", true);
-				gen_vfs_policy(xml, "lock_fs_query -> ", "/dev", true);
-				gen_vfs_policy(xml, "vfs_block -> ", "/dev/tresor/current", true);
-				gen_vfs_policy(xml, "client_fs_query -> ", "/dev/tresor/current", false);
-				gen_vfs_policy(xml, "sync_to_tresor_vfs_init -> ", "/dev", true);
+				gen_arg(g, "resize2fs");
+				gen_arg(g, "-f");
+				gen_arg(g, "-p");
+				gen_arg(g, "/dev/block");
 			});
-			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
-				gen_parent_route(xml, "File_system", "tresor_fs -> /");
-				gen_common_routes(xml);
+
+			g.node("route", [&] {
+				gen_child_route(g, "vfs_block", "Block");
+				gen_parent_route(g, "Timer");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_tresor_trust_anchor_vfs_start_node(Xml_generator &xml, Child_state const &child,
+	void gen_tresor_vfs_start_node(Generator &g, Child_state const &child, File_path const &image)
+	{
+		child.gen_start_node(g, [&] {
+			gen_provides(g, "File_system");
+			g.node("config", [&] {
+				g.node("vfs", [&] {
+					g.node("fs", [&] {
+						g.attribute("buffer_size", "1M");
+						g.attribute("label", "tresor_fs -> /");
+					});
+					gen_named_node(g, "tresor_crypto_aes_cbc", "crypto", [] { });
+					gen_named_node(g, "dir", "trust_anchor", [&] {
+						g.node("fs", [&] {
+							g.attribute("buffer_size", "1M");
+							g.attribute("label", "trust_anchor -> /");
+						});
+					});
+					gen_named_node(g, "dir", "dev", [&] {
+						gen_named_node(g, "tresor", "tresor", [&] {
+							g.attribute("block", File_path("/", image));
+							g.attribute("crypto", "/crypto");
+							g.attribute("trust_anchor", "/trust_anchor");
+						});
+					});
+				});
+				gen_vfs_policy(g, "extend_fs_tool -> ", "/dev", true);
+				gen_vfs_policy(g, "rekey_fs_tool -> ", "/dev", true);
+				gen_vfs_policy(g, "lock_fs_tool -> ", "/dev", true);
+				gen_vfs_policy(g, "extend_fs_query -> ", "/dev", true);
+				gen_vfs_policy(g, "rekey_fs_query -> ", "/dev", true);
+				gen_vfs_policy(g, "lock_fs_query -> ", "/dev", true);
+				gen_vfs_policy(g, "vfs_block -> ", "/dev/tresor/current", true);
+				gen_vfs_policy(g, "client_fs_query -> ", "/dev/tresor/current", false);
+				gen_vfs_policy(g, "sync_to_tresor_vfs_init -> ", "/dev", true);
+			});
+			g.node("route", [&] {
+				gen_child_route(g, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
+				gen_parent_route(g, "File_system", "tresor_fs -> /");
+				gen_common_routes(g);
+			});
+		});
+	}
+
+	void gen_tresor_trust_anchor_vfs_start_node(Generator &g, Child_state const &child,
 	                                            bool jent_avail)
 	{
-		child.gen_start_node(xml, [&] {
-			gen_provides(xml, "File_system");
-			xml.node("config", [&] {
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "storage_dir", [&] {
-						xml.node("fs", [&] {
-							xml.attribute("buffer_size", "1M");
-							xml.attribute("label", "storage_dir -> /");
+		child.gen_start_node(g, [&] {
+			gen_provides(g, "File_system");
+			g.node("config", [&] {
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "storage_dir", [&] {
+						g.node("fs", [&] {
+							g.attribute("buffer_size", "1M");
+							g.attribute("label", "storage_dir -> /");
 						});
 					});
-					gen_named_node(xml, "dir", "dev", [&] {
-						gen_named_node(xml, "tresor_trust_anchor", "tresor_trust_anchor", [&] {
-							xml.attribute("storage_dir", "/storage_dir"); });
+					gen_named_node(g, "dir", "dev", [&] {
+						gen_named_node(g, "tresor_trust_anchor", "tresor_trust_anchor", [&] {
+							g.attribute("storage_dir", "/storage_dir"); });
 						if (jent_avail)
-							gen_named_node(xml, "jitterentropy", "jitterentropy", [&] { });
+							gen_named_node(g, "jitterentropy", "jitterentropy", [&] { });
 						else {
 							warning("Insecure mode, no entropy source!");
-							gen_named_node(xml, "inline", "jitterentropy", [&] {
-								xml.append_content(String<33> { "0123456789abcdefghijklmnopqrstuv" }); });
+							gen_named_node(g, "inline", "jitterentropy", [&] {
+								g.append_quoted(String<33> { "0123456789abcdefghijklmnopqrstuv" }.string()); });
 						}
 					});
 				});
-				gen_vfs_policy(xml, "tresor_init_trust_anchor -> trust_anchor", "/dev/tresor_trust_anchor", true);
-				gen_vfs_policy(xml, "tresor_init -> trust_anchor", "/dev/tresor_trust_anchor", true);
-				gen_vfs_policy(xml, "tresor_vfs -> trust_anchor", "/dev/tresor_trust_anchor", true);
+				gen_vfs_policy(g, "tresor_init_trust_anchor -> trust_anchor", "/dev/tresor_trust_anchor", true);
+				gen_vfs_policy(g, "tresor_init -> trust_anchor", "/dev/tresor_trust_anchor", true);
+				gen_vfs_policy(g, "tresor_vfs -> trust_anchor", "/dev/tresor_trust_anchor", true);
 			});
-			xml.node("route", [&] {
-				gen_parent_route(xml, "File_system", "storage_dir -> /");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route(g, "File_system", "storage_dir -> /");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_rump_vfs_start_node(Xml_generator &xml, Child_state const &child)
+	void gen_rump_vfs_start_node(Generator &g, Child_state const &child)
 	{
-		child.gen_start_node(xml, [&] {
-			gen_provides(xml, "File_system");
-			xml.node("config", [&] {
-				xml.node("vfs", [&] {
-					xml.node("rump", [&] {
-						xml.attribute("fs", "ext2fs");
-						xml.attribute("ram", "20M");
+		child.gen_start_node(g, [&] {
+			gen_provides(g, "File_system");
+			g.node("config", [&] {
+				g.node("vfs", [&] {
+					g.node("rump", [&] {
+						g.attribute("fs", "ext2fs");
+						g.attribute("ram", "20M");
 					});
 				});
-				xml.node("default-policy", [&] {
-					xml.attribute("root", "/");
-					xml.attribute("writeable", "yes");
+				g.node("default-policy", [&] {
+					g.attribute("root", "/");
+					g.attribute("writeable", "yes");
 				});
 			});
-			xml.node("route", [&] {
-				gen_child_route(xml, "vfs_block", "Block");
-				gen_parent_route(xml, "Timer");
-				gen_parent_route(xml, "RM");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_child_route(g, "vfs_block", "Block");
+				gen_parent_route(g, "Timer");
+				gen_parent_route(g, "RM");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_truncate_file_start_node(Xml_generator &xml, Child_state const &child,
+	void gen_truncate_file_start_node(Generator &g, Child_state const &child,
 	                                  char const *path, uint64_t size)
 	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.attribute("size", size);
-				xml.attribute("path", path);
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "tresor", [&] {
-						xml.node("fs", [&] { xml.attribute("label", "tresor -> /"); }); }); });
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.attribute("size", size);
+				g.attribute("path", path);
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "tresor", [&] {
+						g.node("fs", [&] { g.attribute("label", "tresor -> /"); }); }); });
 			});
-			xml.node("route", [&] {
-				gen_parent_route(xml, "File_system");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_parent_route(g, "File_system");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_sync_to_tresor_vfs_init_start_node(Xml_generator &xml, Child_state const &child)
+	void gen_sync_to_tresor_vfs_init_start_node(Generator &g, Child_state const &child)
 	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.node("libc", [&] {
-					xml.attribute("stdin", "/dev/log");
-					xml.attribute("stdout", "/dev/log");
-					xml.attribute("stderr", "/dev/log");
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.node("libc", [&] {
+					g.attribute("stdin", "/dev/log");
+					g.attribute("stdout", "/dev/log");
+					g.attribute("stderr", "/dev/log");
 				});
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "dev", [&] {
-						xml.node("log", [] { }); });
-					gen_named_node(xml, "dir", "tresor", [&] {
-						xml.node("fs", [&] { xml.attribute("writeable", "yes"); }); });
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "dev", [&] {
+						g.node("log", [] { }); });
+					gen_named_node(g, "dir", "tresor", [&] {
+						g.node("fs", [&] { g.attribute("writeable", "yes"); }); });
 				});
 			});
-			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_vfs", "File_system");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_child_route(g, "tresor_vfs", "File_system");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_tresor_vfs_block_start_node(Xml_generator &xml, Child_state const &child)
+	void gen_tresor_vfs_block_start_node(Generator &g, Child_state const &child)
 	{
 		auto gen_policy = [&] (char const *label) {
-			xml.node("policy", [&] {
-				xml.attribute("label", label);
-				xml.attribute("block_size", "512");
-				xml.attribute("file", "/data");
-				xml.attribute("writeable", "yes");
+			g.node("policy", [&] {
+				g.attribute("label", label);
+				g.attribute("block_size", "512");
+				g.attribute("file", "/data");
+				g.attribute("writeable", "yes");
 			});
 		};
-		child.gen_start_node(xml, [&] {
-			gen_provides(xml, "Block");
-			xml.node("config", [&] {
-				xml.node("vfs", [&] {
-					xml.node("fs", [&] { xml.attribute("buffer_size", "1M"); }); });
+		child.gen_start_node(g, [&] {
+			gen_provides(g, "Block");
+			g.node("config", [&] {
+				g.node("vfs", [&] {
+					g.node("fs", [&] { g.attribute("buffer_size", "1M"); }); });
 				gen_policy("mke2fs -> default");
 				gen_policy("resize2fs -> default");
 				gen_policy("rump_vfs -> ");
 			});
-			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_vfs", "File_system");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_child_route(g, "tresor_vfs", "File_system");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_tresor_init_trust_anchor_start_node(Xml_generator &xml, Child_state const &child,
+	void gen_tresor_init_trust_anchor_start_node(Generator &g, Child_state const &child,
 	                                             Passphrase const &passphrase)
 	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.attribute("passphrase", passphrase);
-				xml.attribute("trust_anchor_dir", "/trust_anchor");
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "trust_anchor", [&] {
-						xml.node("fs", [&] { xml.attribute("label", "trust_anchor -> /"); }); }); });
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.attribute("passphrase", passphrase);
+				g.attribute("trust_anchor_dir", "/trust_anchor");
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "trust_anchor", [&] {
+						g.node("fs", [&] { g.attribute("label", "trust_anchor -> /"); }); }); });
 			});
-			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_child_route(g, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_tresor_init_start_node(Xml_generator &xml, Child_state const &child,
+	void gen_tresor_init_start_node(Generator &g, Child_state const &child,
 	                                Tresor::Superblock_configuration sb_config)
 	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.node("trust-anchor", [&] { xml.attribute("path", "/trust_anchor"); });
-				xml.node("block-io", [&] {
-					xml.attribute("type", "vfs");
-					xml.attribute("path", "/tresor.img");
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.node("trust-anchor", [&] { g.attribute("path", "/trust_anchor"); });
+				g.node("block-io", [&] {
+					g.attribute("type", "vfs");
+					g.attribute("path", "/tresor.img");
 				});
-				xml.node("crypto", [&] { xml.attribute("path", "/crypto"); });
-				xml.node("vfs", [&] {
-					xml.node("fs", [&] { xml.attribute("buffer_size", "1M"); });
-					gen_named_node(xml, "tresor_crypto_aes_cbc", "crypto", [] { });
-					gen_named_node(xml, "dir", "trust_anchor", [&] {
-						xml.node("fs", [&] { xml.attribute("label", "trust_anchor -> /"); }); });
+				g.node("crypto", [&] { g.attribute("path", "/crypto"); });
+				g.node("vfs", [&] {
+					g.node("fs", [&] { g.attribute("buffer_size", "1M"); });
+					gen_named_node(g, "tresor_crypto_aes_cbc", "crypto", [] { });
+					gen_named_node(g, "dir", "trust_anchor", [&] {
+						g.node("fs", [&] { g.attribute("label", "trust_anchor -> /"); }); });
 				});
-				sb_config.generate_xml(xml);
+				sb_config.generate(g);
 			});
-			xml.node("route", [&] {
-				gen_child_route(xml, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
-				gen_parent_route(xml, "File_system");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_child_route(g, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
+				gen_parent_route(g, "File_system");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_child_service_policy(Xml_generator &xml, char const *service, Child_state const &child)
+	void gen_child_service_policy(Generator &g, char const *service, Child_state const &child)
 	{
-		gen_named_node(xml, "service", service, [&] {
-			xml.node("default-policy", [&] {
-				gen_named_node(xml, "child", child.start_name(), [&] { }); }); });
+		gen_named_node(g, "service", service, [&] {
+			g.node("default-policy", [&] {
+				gen_named_node(g, "child", child.start_name(), [&] { }); }); });
 	}
 
-	void gen_fs_tool_start_node(Xml_generator &xml, Child_state const &child, char const *server,
-	                            char const *path, auto content)
+	void gen_fs_tool_start_node(Generator &g, Child_state const &child, char const *server,
+	                            char const *path, auto const &content)
 	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.attribute("exit", "yes");
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "root", [&] {
-						xml.node("fs", [&] { xml.attribute("writeable", "yes"); }); }); });
-				xml.node("new-file", [&] {
-					xml.attribute("path", String<64>("/root", path));
-					xml.append_content(content);
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.attribute("exit", "yes");
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "root", [&] {
+						g.node("fs", [&] { g.attribute("writeable", "yes"); }); }); });
+				g.node("new-file", [&] {
+					g.attribute("path", String<64>("/root", path));
+					g.append_quoted(content);
 				});
 			});
-			xml.node("route", [&] {
-				gen_child_route(xml, server, "File_system");
-				gen_common_routes(xml);
+			g.node("route", [&] {
+				gen_child_route(g, server, "File_system");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_fs_query_start_node(Xml_generator &xml, Child_state const &child, char const *server,
+	void gen_fs_query_start_node(Generator &g, Child_state const &child, char const *server,
 	                             char const *path, bool content)
 	{
-		child.gen_start_node(xml, [&] {
-			xml.node("config", [&] {
-				xml.node("vfs", [&] {
-					xml.node("fs", [&] { xml.attribute("writeable", "no"); }); });
-				xml.node("query", [&] {
-					xml.attribute("path", path);
-					xml.attribute("size", "yes");
-					xml.attribute("content", content ? "yes" : "no");
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.node("vfs", [&] {
+					g.node("fs", [&] { g.attribute("writeable", "no"); }); });
+				g.node("query", [&] {
+					g.attribute("path", path);
+					g.attribute("size", "yes");
+					g.attribute("content", content ? "yes" : "no");
 				});
 			});
-			xml.node("route", [&] {
-				gen_local_route(xml, "Report");
+			g.node("route", [&] {
+				gen_local_route(g, "Report");
 				if (!strcmp(server, "parent"))
-					gen_parent_route(xml, "File_system");
+					gen_parent_route(g, "File_system");
 				else
-					gen_child_route(xml, server, "File_system");
-				gen_common_routes(xml);
+					gen_child_route(g, server, "File_system");
+				gen_common_routes(g);
 			});
 		});
 	}
 
-	void gen_extend_fs_tool_start_node(Xml_generator &xml, Child_state const &child,
+	void gen_extend_fs_tool_start_node(Generator &g, Child_state const &child,
 	                                   char const *tree, Number_of_blocks num_blocks)
 	{
 		gen_fs_tool_start_node(
-			xml, child, "tresor_vfs", "/tresor/control/extend", String<64>("tree=", tree, ",blocks=", num_blocks));
+			g, child, "tresor_vfs", "/tresor/control/extend",
+			String<64>("tree=", tree, ",blocks=", num_blocks).string());
 	}
 
-	void gen_lock_fs_tool_start_node(Xml_generator &xml, Child_state const &child) {
-		gen_fs_tool_start_node(xml, child, "tresor_vfs", "/tresor/control/deinitialize", "true"); }
+	void gen_lock_fs_tool_start_node(Generator &g, Child_state const &child) {
+		gen_fs_tool_start_node(g, child, "tresor_vfs", "/tresor/control/deinitialize", "true"); }
 
-	void gen_rekey_fs_tool_start_node(Xml_generator &xml, Child_state const &child) {
-		gen_fs_tool_start_node(xml, child, "tresor_vfs", "/tresor/control/rekey", "true"); }
+	void gen_rekey_fs_tool_start_node(Generator &g, Child_state const &child) {
+		gen_fs_tool_start_node(g, child, "tresor_vfs", "/tresor/control/rekey", "true"); }
 
-	void gen_image_fs_query_start_node(Xml_generator &xml, Child_state const &child) {
-		gen_fs_query_start_node(xml, child, "parent", "/", false); }
+	void gen_image_fs_query_start_node(Generator &g, Child_state const &child) {
+		gen_fs_query_start_node(g, child, "parent", "/", false); }
 
-	void gen_client_fs_query_start_node(Xml_generator &xml, Child_state const &child) {
-		gen_fs_query_start_node(xml, child, "tresor_vfs", "/", false); }
+	void gen_client_fs_query_start_node(Generator &g, Child_state const &child) {
+		gen_fs_query_start_node(g, child, "tresor_vfs", "/", false); }
 
-	void gen_extend_fs_query_start_node(Xml_generator &xml, Child_state const &child) {
-		gen_fs_query_start_node(xml, child, "tresor_vfs", "/tresor/control", true); }
+	void gen_extend_fs_query_start_node(Generator &g, Child_state const &child) {
+		gen_fs_query_start_node(g, child, "tresor_vfs", "/tresor/control", true); }
 
-	void gen_lock_fs_query_start_node(Xml_generator &xml, Child_state const &child) {
-		gen_fs_query_start_node(xml, child, "tresor_vfs", "/tresor/control", true); }
+	void gen_lock_fs_query_start_node(Generator &g, Child_state const &child) {
+		gen_fs_query_start_node(g, child, "tresor_vfs", "/tresor/control", true); }
 
-	void gen_rekey_fs_query_start_node(Xml_generator &xml, Child_state const &child) {
-		gen_fs_query_start_node(xml, child, "tresor_vfs", "/tresor/control", true); }
+	void gen_rekey_fs_query_start_node(Generator &g, Child_state const &child) {
+		gen_fs_query_start_node(g, child, "tresor_vfs", "/tresor/control", true); }
 }
 
 #endif /*  SANDBOX_H_ */

@@ -473,75 +473,75 @@ User_state::handle_input_events(Input_batch batch)
 }
 
 
-void User_state::report_keystate(Xml_generator &xml) const
+void User_state::report_keystate(Generator &g) const
 {
-	xml.attribute("count", _key_cnt);
-	_key_array.report_state(xml);
+	g.attribute("count", _key_cnt);
+	_key_array.report_state(g);
 }
 
 
-void User_state::report_pointer_position(Xml_generator &xml) const
+void User_state::report_pointer_position(Generator &g) const
 {
 	_pointer.with_result(
 		[&] (Point p) {
-			xml.attribute("xpos", p.x);
-			xml.attribute("ypos", p.y); },
+			g.attribute("xpos", p.x);
+			g.attribute("ypos", p.y); },
 		[&] (Nowhere) { });
 }
 
 
-void User_state::report_hovered_view_owner(Xml_generator &xml, bool active) const
+void User_state::report_hovered_view_owner(Generator &g, bool active) const
 {
 	if (_hovered)
-		_hovered->report(xml);
+		_hovered->report(g);
 
-	if (active) xml.attribute("active", "yes");
+	if (active) g.attribute("active", "yes");
 
 	if (_last_seq_number.constructed())
-		xml.attribute("seq_number", _last_seq_number->value);
+		g.attribute("seq_number", _last_seq_number->value);
 }
 
 
-void User_state::report_focused_view_owner(Xml_generator &xml, bool active) const
+void User_state::report_focused_view_owner(Generator &g, bool active) const
 {
 	if (_focused) {
-		_focused->report(xml);
+		_focused->report(g);
 
-		if (active) xml.attribute("active", "yes");
+		if (active) g.attribute("active", "yes");
 	}
 }
 
 
-void User_state::report_touched_view_owner(Xml_generator &xml, bool active) const
+void User_state::report_touched_view_owner(Generator &g, bool active) const
 {
 	if (_touched)
-		_touched->report(xml);
+		_touched->report(g);
 
-	if (active) xml.attribute("active", "yes");
+	if (active) g.attribute("active", "yes");
 
 	_touched_position.with_result(
 		[&] (Point p) {
-			xml.attribute("xpos", p.x);
-			xml.attribute("ypos", p.y); },
+			g.attribute("xpos", p.x);
+			g.attribute("ypos", p.y); },
 		[&] (Nowhere) { });
 
 	if (_last_seq_number.constructed())
-		xml.attribute("seq_number", _last_seq_number->value);
+		g.attribute("seq_number", _last_seq_number->value);
 }
 
 
-void User_state::report_last_clicked_view_owner(Xml_generator &xml) const
+void User_state::report_last_clicked_view_owner(Generator &g) const
 {
 	if (_last_seq_number.constructed())
-		xml.attribute("seq", _last_seq_number->value);
+		g.attribute("seq", _last_seq_number->value);
 
 	if (_last_clicked)
-		_last_clicked->report(xml);
+		_last_clicked->report(g);
 
-	xml.attribute("version", _last_clicked_version);
+	g.attribute("version", _last_clicked_version);
 
 	if (_last_seq_number.constructed())
-		xml.attribute("seq_number", _last_seq_number->value);
+		g.attribute("seq_number", _last_seq_number->value);
 }
 
 

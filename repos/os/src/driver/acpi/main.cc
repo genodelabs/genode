@@ -16,7 +16,6 @@
 #include <base/heap.h>
 #include <base/log.h>
 #include <base/attached_rom_dataspace.h>
-#include <util/xml_generator.h>
 
 /* local includes */
 #include <acpi.h>

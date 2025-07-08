@@ -290,15 +290,15 @@ bool Driver::pci_device_matches(Node const &policy, Device const &dev)
 }
 
 
-void Driver::pci_device_specific_info(Device const  &dev,
-                                      Env           &env,
-                                      Device_model  &model,
-                                      Xml_generator &xml)
+void Driver::pci_device_specific_info(Device const &dev,
+                                      Env          &env,
+                                      Device_model &model,
+                                      Generator    &g)
 {
 	dev.for_pci_config([&] (Device::Pci_config const &cfg)
 	{
-		Driver::pci_intel_graphics_info(cfg, env, model, xml);
-		Driver::pci_virtio_info(dev, cfg, env, xml);
+		Driver::pci_intel_graphics_info(cfg, env, model, g);
+		Driver::pci_virtio_info(dev, cfg, env, g);
 	});
 }
 

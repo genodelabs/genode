@@ -21,25 +21,25 @@ struct Sculpt::Touch_driver : private Noncopyable
 {
 	Constructible<Child_state> _soc { };
 
-	void gen_start_node(Xml_generator &xml) const
+	void gen_start_node(Generator &g) const
 	{
 		if (!_soc.constructed())
 			return;
 
-		xml.node("start", [&] {
-			_soc->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "touch");
-			xml.node("config", [&] { });
-			xml.node("route", [&] {
-				gen_parent_route<Platform::Session>   (xml);
-				gen_parent_rom_route(xml, "dtb", "touch.dtb");
-				gen_parent_rom_route(xml, "touch");
-				gen_common_routes(xml);
-				gen_parent_route<Pin_control::Session>(xml);
-				gen_parent_route<Irq_session>         (xml);
-				gen_service_node<Event::Session>(xml, [&] {
-					xml.node("parent", [&] {
-						xml.attribute("label", "touch"); }); });
+		g.node("start", [&] {
+			_soc->gen_start_node_content(g);
+			gen_named_node(g, "binary", "touch");
+			g.node("config", [&] { });
+			g.node("route", [&] {
+				gen_parent_route<Platform::Session>   (g);
+				gen_parent_rom_route(g, "dtb", "touch.dtb");
+				gen_parent_rom_route(g, "touch");
+				gen_common_routes(g);
+				gen_parent_route<Pin_control::Session>(g);
+				gen_parent_route<Irq_session>         (g);
+				gen_service_node<Event::Session>(g, [&] {
+					g.node("parent", [&] {
+						g.attribute("label", "touch"); }); });
 			});
 		});
 	};

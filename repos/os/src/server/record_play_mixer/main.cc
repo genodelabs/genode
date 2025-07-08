@@ -135,27 +135,27 @@ struct Mixer::Main : Record_session::Operations, Play_session::Operations
 		});
 	}
 
-	void _generate_state_report(Xml_generator &xml) const
+	void _generate_state_report(Generator &g) const
 	{
 		if (_clock_from_config.constructed())
-			xml.attribute("clock_value", _clock_from_config->us());
+			g.attribute("clock_value", _clock_from_config->us());
 		_play_sessions.for_each([&] (Play_session const &play_session) {
-			xml.node("play", [&] {
-				xml.attribute("label", play_session.label()); });
+			g.node("play", [&] {
+				g.attribute("label", play_session.label()); });
 		});
 		_record_sessions.for_each([&] (Record_session const &record_session) {
-			xml.node("record", [&] {
-				xml.attribute("label", record_session.label()); });
+			g.node("record", [&] {
+				g.attribute("label", record_session.label()); });
 		});
 	}
 
 	void _update_state_report()
 	{
-		_state_reporter.generate([&] (Xml_generator &xml) {
+		_state_reporter.generate([&] (Generator &g) {
 			if (_version != "")
-				xml.attribute("version", _version);
+				g.attribute("version", _version);
 
-			_generate_state_report(xml);
+			_generate_state_report(g);
 		});
 	}
 

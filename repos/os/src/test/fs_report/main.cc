@@ -50,8 +50,8 @@ struct Test::Main
 
 	void _report(Expanding_reporter &reporter, Version const &version)
 	{
-		reporter.generate([&] (Xml_generator &xml) {
-			xml.attribute("version", version); });
+		reporter.generate([&] (Generator &g) {
+			g.attribute("version", version); });
 	}
 
 	Constructible<Attached_rom_dataspace> _devices_rom { };

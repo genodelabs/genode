@@ -78,16 +78,16 @@ struct Init::Main : Sandbox::State_handler
 	void handle_sandbox_state() override
 	{
 		Reporter::Result const result =
-			_reporter->generate([&] (Xml_generator &xml) {
-				_sandbox.generate_state_report(xml); });
+			_reporter->generate([&] (Generator &g) {
+				_sandbox.generate_state_report(g); });
 
 		if (result == Buffer_error::EXCEEDED) {
 
 			error("state report exceeds maximum size");
 
 			/* try to reflect the error condition as state report */
-			(void)_reporter->generate([&] (Xml_generator &xml) {
-				xml.attribute("error", "report buffer exceeded"); });
+			(void)_reporter->generate([&] (Generator &g) {
+				g.attribute("error", "report buffer exceeded"); });
 		}
 	}
 

@@ -15,7 +15,6 @@
 #define _MODEL__CHILD_STATE_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <base/registry.h>
 
 /* local includes */
@@ -94,35 +93,35 @@ struct Sculpt::Child_state : Noncopyable
 			_cap_quota = _attr.initial.caps;
 		}
 
-		void gen_start_node_version(Xml_generator &xml) const
+		void gen_start_node_version(Generator &g) const
 		{
 			if (_version.value)
-				xml.attribute("version", _version.value);
+				g.attribute("version", _version.value);
 		}
 
-		void gen_start_node_content(Xml_generator &xml) const
+		void gen_start_node_content(Generator &g) const
 		{
-			xml.attribute("name", _attr.name);
+			g.attribute("name", _attr.name);
 
-			gen_start_node_version(xml);
+			gen_start_node_version(g);
 
-			xml.attribute("caps", _cap_quota.value);
-			xml.attribute("priority", (int)_attr.priority);
+			g.attribute("caps", _cap_quota.value);
+			g.attribute("priority", (int)_attr.priority);
 
-			gen_named_node(xml, "resource", "RAM", [&] {
+			gen_named_node(g, "resource", "RAM", [&] {
 				Number_of_bytes const bytes(_ram_quota.value);
-				xml.attribute("quantum", String<64>(bytes)); });
+				g.attribute("quantum", String<64>(bytes)); });
 
 			if (_attr.cpu_quota)
-				gen_named_node(xml, "resource", "CPU", [&] {
-					xml.attribute("quantum", _attr.cpu_quota); });
+				gen_named_node(g, "resource", "CPU", [&] {
+					g.attribute("quantum", _attr.cpu_quota); });
 
 			if (_location_valid(_attr))
-				xml.node("affinity", [&] {
-					xml.attribute("xpos",   _attr.location.xpos());
-					xml.attribute("ypos",   _attr.location.ypos());
-					xml.attribute("width",  _attr.location.width());
-					xml.attribute("height", _attr.location.height());
+				g.node("affinity", [&] {
+					g.attribute("xpos",   _attr.location.xpos());
+					g.attribute("ypos",   _attr.location.ypos());
+					g.attribute("width",  _attr.location.width());
+					g.attribute("height", _attr.location.height());
 				});
 		}
 

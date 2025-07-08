@@ -45,9 +45,9 @@ class Battery : Acpica::Callback<Battery>
 			}
 		}
 
-		void _info(Genode::Xml_generator &xml)
+		void _info(Genode::Generator &g)
 		{
-			xml.node("name", [&] { xml.append(_battery_name.string()); });
+			g.node("name", [&] { g.append_quoted(_battery_name.string()); });
 
 			const char * node_name[] = {
 				"powerunit", "design_capacity", "last_full_capacity",
@@ -64,39 +64,39 @@ class Battery : Acpica::Callback<Battery>
 			for (unsigned i = 0; i < 9; i++) {
 				ACPI_OBJECT * v = &obj->Package.Elements[i];
 
-				xml.node(node_name[i], [&] {
+				g.node(node_name[i], [&] {
 					if (v->Type != ACPI_TYPE_INTEGER) {
-						xml.append("unknown");
+						g.append_quoted("unknown");
 						return;
 					}
 
-					xml.attribute("value", v->Integer.Value);
+					g.attribute("value", v->Integer.Value);
 
 					if (i == 0)
-						xml.append(v->Integer.Value == 0 ? "mW/mWh" :
-						           v->Integer.Value == 1 ? "mA/mAh" :
-						                                   "unknown");
+						g.append_quoted(v->Integer.Value == 0 ? "mW/mWh" :
+						                v->Integer.Value == 1 ? "mA/mAh" :
+						                                        "unknown");
 					if (i == 3)
-						xml.append(v->Integer.Value == 0 ? "primary" :
-						           v->Integer.Value == 1 ? "secondary" :
-						                                   "unknown");
+						g.append_quoted(v->Integer.Value == 0 ? "primary" :
+						                v->Integer.Value == 1 ? "secondary" :
+						                                        "unknown");
 				});
 			}
 
 			for (unsigned i = 9; i < obj->Package.Count; i++) {
 				ACPI_OBJECT * v = &obj->Package.Elements[i];
 
-				xml.node(node_name[i], [&] {
+				g.node(node_name[i], [&] {
 
 					if (v->Type != ACPI_TYPE_STRING)
 						return;
 
-					xml.append(v->String.Pointer);
+					g.append_quoted(v->String.Pointer);
 				});
 			}
 		}
 
-		void _status(Genode::Xml_generator &xml)
+		void _status(Genode::Generator &g)
 		{
 			/* 10.2.2.6 _BST (Battery Status) */
 			Acpica::Buffer<char [256]> dynamic;
@@ -114,13 +114,14 @@ class Battery : Acpica::Callback<Battery>
 			res = AcpiEvaluateObjectTyped(_sb, ACPI_STRING("_STA"), nullptr,
 			                              &sta, ACPI_TYPE_INTEGER);
 			if (ACPI_FAILURE(res)) {
-				xml.node("status", [&] { xml.append("unknown"); });
+				g.node("status", [&] { g.append_quoted("unknown"); });
 			} else
-				xml.node("status", [&] {
-					xml.attribute("value", sta.object.Integer.Value);
+				g.node("status", [&] {
+					unsigned long long const val = sta.object.Integer.Value;
+					g.attribute("value", val);
 					/* see "6.3.7 _STA" for more human readable decoding */
 					if (!(sta.object.Integer.Value & ACPI_STA_BATTERY_PRESENT))
-						xml.append("battery not present");
+						g.append_quoted("battery not present");
 				});
 
 			const char * node_name[] = {
@@ -134,20 +135,20 @@ class Battery : Acpica::Callback<Battery>
 			for (unsigned i = 0; i < obj->Package.Count; i++) {
 				ACPI_OBJECT * v = &obj->Package.Elements[i];
 
-				xml.node(node_name[i], [&] {
+				g.node(node_name[i], [&] {
 					if (v->Type != ACPI_TYPE_INTEGER) {
-						xml.append("unknown");
+						g.append_quoted("unknown");
 						return;
 					}
 
-					xml.attribute("value", v->Integer.Value);
+					g.attribute("value", v->Integer.Value);
 
 					if (i != 0)
 						return;
 
-					if (v->Integer.Value & 0x1) xml.append("discharging");
-					if (v->Integer.Value & 0x2) xml.append("charging");
-					if (v->Integer.Value & 0x4) xml.append("critical low");
+					if (v->Integer.Value & 0x1) g.append_quoted("discharging");
+					if (v->Integer.Value & 0x2) g.append_quoted("charging");
+					if (v->Integer.Value & 0x4) g.append_quoted("critical low");
 				});
 			}
 		}
@@ -247,9 +248,9 @@ class Battery : Acpica::Callback<Battery>
 				_report->battery_event();
 		}
 
-		void generate(Genode::Xml_generator &xml)
+		void generate(Genode::Generator &g)
 		{
-			_info(xml);
-			_status(xml);
+			_info(g);
+			_status(g);
 		}
 };

@@ -15,7 +15,6 @@
 #define _MODEL__RUNTIME_CONFIG_H_
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <util/list_model.h>
 #include <util/dictionary.h>
 #include <base/registry.h>

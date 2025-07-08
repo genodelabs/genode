@@ -168,9 +168,9 @@ struct Sculpt::Current_call
 			speaker = false;
 	}
 
-	void gen_modem_config(Xml_generator &xml) const
+	void gen_modem_config(Generator &g) const
 	{
-		xml.attribute("speaker", speaker ? "yes" : "no");
+		g.attribute("speaker", speaker ? "yes" : "no");
 
 		switch (state) {
 		case State::NONE:
@@ -178,18 +178,18 @@ struct Sculpt::Current_call
 			break;
 
 		case State::ACCEPTED:
-			xml.node("call", [&] {
-				xml.attribute("number", number);
-				xml.attribute("state", "accepted");
+			g.node("call", [&] {
+				g.attribute("number", number);
+				g.attribute("state", "accepted");
 			});
 			break;
 
 		case State::REJECTED:
 		case State::HUNG_UP:
 		case State::CANCELED:
-			xml.node("call", [&] {
-				xml.attribute("number", number);
-				xml.attribute("state", "rejected");
+			g.node("call", [&] {
+				g.attribute("number", number);
+				g.attribute("state", "rejected");
 			});
 			break;
 
@@ -197,8 +197,8 @@ struct Sculpt::Current_call
 		case State::OUTBOUND:
 		case State::ALERTING:
 		case State::ACTIVE:
-			xml.node("call", [&] {
-				xml.attribute("number", number);
+			g.node("call", [&] {
+				g.attribute("number", number);
 			});
 			break;
 		}

@@ -27,62 +27,62 @@ namespace Sculpt {
 		Color    background;
 	};
 
-	static inline void gen_touch_keyboard(Xml_generator &, Touch_keyboard_attr);
+	static inline void gen_touch_keyboard(Generator &, Touch_keyboard_attr);
 }
 
 
-void Sculpt::gen_touch_keyboard(Xml_generator &xml, Touch_keyboard_attr const attr)
+void Sculpt::gen_touch_keyboard(Generator &g, Touch_keyboard_attr const attr)
 {
-	xml.node("start", [&] {
+	g.node("start", [&] {
 
-		gen_common_start_content(xml, "manager_keyboard",
+		gen_common_start_content(g, "manager_keyboard",
 		                         Cap_quota{700}, Ram_quota{18*1024*1024},
 		                         Priority::LEITZENTRALE);
 
-		gen_named_node(xml, "binary", "touch_keyboard", [&] { });
+		gen_named_node(g, "binary", "touch_keyboard", [&] { });
 
-		xml.node("config", [&] {
-			xml.attribute("min_width",  attr.min_width);
-			xml.attribute("min_height", attr.min_height);
+		g.node("config", [&] {
+			g.attribute("min_width",  attr.min_width);
+			g.attribute("min_height", attr.min_height);
 
 			if (attr.alpha == Alpha::OPAQUE)
-				xml.attribute("opaque", "yes");
+				g.attribute("opaque", "yes");
 
-			xml.attribute("background", String<20>(attr.background));
+			g.attribute("background", String<20>(attr.background));
 		});
 
-		xml.node("route", [&] {
-			gen_parent_rom_route(xml, "ld.lib.so");
-			gen_parent_rom_route(xml, "touch_keyboard");
-			gen_parent_rom_route(xml, "layout", "touch_keyboard_layout.config");
-			gen_parent_rom_route(xml, "menu_view");
-			gen_parent_rom_route(xml, "ld.lib.so");
-			gen_parent_rom_route(xml, "vfs.lib.so");
-			gen_parent_rom_route(xml, "libc.lib.so");
-			gen_parent_rom_route(xml, "libm.lib.so");
-			gen_parent_rom_route(xml, "libpng.lib.so");
-			gen_parent_rom_route(xml, "zlib.lib.so");
-			gen_parent_rom_route(xml, "sandbox.lib.so");
-			gen_parent_rom_route(xml, "dialog.lib.so");
-			gen_parent_rom_route(xml, "menu_view_styles.tar");
+		g.node("route", [&] {
+			gen_parent_rom_route(g, "ld.lib.so");
+			gen_parent_rom_route(g, "touch_keyboard");
+			gen_parent_rom_route(g, "layout", "touch_keyboard_layout.config");
+			gen_parent_rom_route(g, "menu_view");
+			gen_parent_rom_route(g, "ld.lib.so");
+			gen_parent_rom_route(g, "vfs.lib.so");
+			gen_parent_rom_route(g, "libc.lib.so");
+			gen_parent_rom_route(g, "libm.lib.so");
+			gen_parent_rom_route(g, "libpng.lib.so");
+			gen_parent_rom_route(g, "zlib.lib.so");
+			gen_parent_rom_route(g, "sandbox.lib.so");
+			gen_parent_rom_route(g, "dialog.lib.so");
+			gen_parent_rom_route(g, "menu_view_styles.tar");
 
-			gen_parent_route<Cpu_session>    (xml);
-			gen_parent_route<Pd_session>     (xml);
-			gen_parent_route<Log_session>    (xml);
-			gen_parent_route<Timer::Session> (xml);
+			gen_parent_route<Cpu_session>    (g);
+			gen_parent_route<Pd_session>     (g);
+			gen_parent_route<Log_session>    (g);
+			gen_parent_route<Timer::Session> (g);
 
-			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label_prefix", "fonts ->");
-				xml.node("parent", [&] {
-					xml.attribute("identity", "leitzentrale -> fonts"); }); });
+			gen_service_node<::File_system::Session>(g, [&] {
+				g.attribute("label_prefix", "fonts ->");
+				g.node("parent", [&] {
+					g.attribute("identity", "leitzentrale -> fonts"); }); });
 
-			gen_service_node<Gui::Session>(xml, [&] {
-				xml.node("parent", [&] {
-					xml.attribute("label", "leitzentrale -> touch_keyboard"); }); });
+			gen_service_node<Gui::Session>(g, [&] {
+				g.node("parent", [&] {
+					g.attribute("label", "leitzentrale -> touch_keyboard"); }); });
 
-			gen_service_node<Event::Session>(xml, [&] {
-				xml.node("parent", [&] {
-					xml.attribute("label", "global"); }); });
+			gen_service_node<Event::Session>(g, [&] {
+				g.node("parent", [&] {
+					g.attribute("label", "global"); }); });
 		});
 	});
 }

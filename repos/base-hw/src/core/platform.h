@@ -18,8 +18,8 @@
 /* base includes */
 #include <base/synced_allocator.h>
 #include <base/allocator_avl.h>
+#include <base/node.h>
 #include <irq_session/irq_session.h>
-#include <util/xml_generator.h>
 
 /* base-hw internal includes */
 #include <hw/boot_info.h>
@@ -82,7 +82,7 @@ class Core::Platform : public Platform_generic
 		 /**
 		  * Add additional platform-specific information.
 		  */
-		void _init_additional_platform_info(Xml_generator &);
+		void _init_additional_platform_info(Generator &);
 
 		void _init_rom_modules();
 

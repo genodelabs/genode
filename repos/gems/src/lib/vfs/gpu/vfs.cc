@@ -18,7 +18,6 @@
 
 #include <gpu_session/connection.h>
 #include <os/vfs.h>
-#include <util/xml_generator.h>
 #include <vfs/single_file_system.h>
 
 #include "vfs_gpu.h"

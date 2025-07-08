@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for the chroot component
+ * \brief  Configuration for the chroot component
  * \author Norman Feske
  * \date   2017-12-08
  */
@@ -13,35 +13,35 @@
 
 #include "xml.h"
 
-void Depot_download_manager::gen_chroot_start_content(Xml_generator &xml,
+void Depot_download_manager::gen_chroot_start_content(Generator &g,
                                                       Archive::User const &user)
 {
-	gen_common_start_content(xml, Path("/depot/", user),
+	gen_common_start_content(g, Path("/depot/", user),
 	                         Cap_quota{100}, Ram_quota{2*1024*1024});
 
-	xml.node("binary", [&] () { xml.attribute("name", "chroot"); });
+	g.node("binary", [&] () { g.attribute("name", "chroot"); });
 
-	xml.node("config", [&] () {
-		xml.node("default-policy", [&] () {
-			xml.attribute("path", Path("/", user));
-			xml.attribute("writeable", "yes");
+	g.node("config", [&] () {
+		g.node("default-policy", [&] () {
+			g.attribute("path", Path("/", user));
+			g.attribute("writeable", "yes");
 		});
 	});
 
-	xml.node("provides", [&] () {
-		xml.node("service", [&] () {
-			xml.attribute("name", File_system::Session::service_name()); }); });
+	g.node("provides", [&] () {
+		g.node("service", [&] () {
+			g.attribute("name", File_system::Session::service_name()); }); });
 
-	xml.node("route", [&] () {
-		xml.node("service", [&] () {
-			xml.attribute("name", File_system::Session::service_name());
-			xml.node("parent", [&] () {
-				xml.attribute("identity", "depot_rw"); });
+	g.node("route", [&] () {
+		g.node("service", [&] () {
+			g.attribute("name", File_system::Session::service_name());
+			g.node("parent", [&] () {
+				g.attribute("identity", "depot_rw"); });
 		});
-		gen_parent_unscoped_rom_route(xml, "chroot");
-		gen_parent_unscoped_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session>(xml);
-		gen_parent_route<Pd_session> (xml);
-		gen_parent_route<Log_session>(xml);
+		gen_parent_unscoped_rom_route(g, "chroot");
+		gen_parent_unscoped_rom_route(g, "ld.lib.so");
+		gen_parent_route<Cpu_session>(g);
+		gen_parent_route<Pd_session> (g);
+		gen_parent_route<Log_session>(g);
 	});
 }

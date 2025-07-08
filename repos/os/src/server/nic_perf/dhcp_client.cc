@@ -15,9 +15,6 @@
 #include <dhcp_client.h>
 #include <interface.h>
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 enum { PKT_SIZE = 1024 };
 
 struct Send_buffer_too_small : Genode::Exception { };

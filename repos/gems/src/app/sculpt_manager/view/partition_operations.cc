@@ -73,7 +73,7 @@ void Partition_operations::view(Scope<Vbox> &s,
 				s.sub_scope<Label>("Check");
 
 				if (partition.check_in_progress)
-					s.xml.attribute("selected", "yes");
+					s.g.attribute("selected", "yes");
 			});
 			if (partition.check_in_progress)
 				s.sub_scope<Label>("Check in progress...");

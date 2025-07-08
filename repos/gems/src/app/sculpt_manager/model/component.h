@@ -171,18 +171,18 @@ struct Sculpt::Component : Noncopyable
 		});
 	}
 
-	void gen_priority(Xml_generator &xml) const
+	void gen_priority(Generator &g) const
 	{
-		xml.attribute("priority", (int)priority);
+		g.attribute("priority", (int)priority);
 	}
 
-	void gen_system_control(Xml_generator &xml) const
+	void gen_system_control(Generator &g) const
 	{
 		if (system_control)
-			xml.attribute("managing_system", "yes");
+			g.attribute("managing_system", "yes");
 	}
 
-	void gen_affinity(Xml_generator &xml) const
+	void gen_affinity(Generator &g) const
 	{
 		bool const all_cpus = affinity_space.width()  == affinity_location.width()
 		                   && affinity_space.height() == affinity_location.height();
@@ -191,24 +191,24 @@ struct Sculpt::Component : Noncopyable
 		if (all_cpus)
 			return;
 
-		xml.node("affinity", [&] {
-			xml.attribute("xpos",   affinity_location.xpos());
-			xml.attribute("ypos",   affinity_location.ypos());
-			xml.attribute("width",  affinity_location.width());
-			xml.attribute("height", affinity_location.height());
+		g.node("affinity", [&] {
+			g.attribute("xpos",   affinity_location.xpos());
+			g.attribute("ypos",   affinity_location.ypos());
+			g.attribute("width",  affinity_location.width());
+			g.attribute("height", affinity_location.height());
 		});
 	}
 
-	void gen_monitor(Xml_generator &xml) const
+	void gen_monitor(Generator &g) const
 	{
 		if (monitor)
-			xml.node("monitor", [&] {
-				xml.attribute("wait", wait ? "yes" : "no");
-				xml.attribute("wx", wx ? "yes" : "no");
+			g.node("monitor", [&] {
+				g.attribute("wait", wait ? "yes" : "no");
+				g.attribute("wx", wx ? "yes" : "no");
 			});
 	}
 
-	void gen_pd_cpu_route(Xml_generator &xml) const
+	void gen_pd_cpu_route(Generator &g) const
 	{
 		/* by default pd route goes to parent if nothing is specified */
 		if (!pd_route.selected_service.constructed())
@@ -218,10 +218,10 @@ struct Sculpt::Component : Noncopyable
 		 * Until PD & CPU gets merged, enforce on Sculpt that PD and CPU routes
 		 * go to the same server.
 		 */
-		gen_named_node(xml, "service", Sculpt::Service::name_attr(pd_route.required), [&] {
-			pd_route.selected_service->gen_xml(xml); });
-		gen_named_node(xml, "service", "CPU", [&] {
-			pd_route.selected_service->gen_xml(xml); });
+		gen_named_node(g, "service", Sculpt::Service::name_attr(pd_route.required), [&] {
+			pd_route.selected_service->generate(g); });
+		gen_named_node(g, "service", "CPU", [&] {
+			pd_route.selected_service->generate(g); });
 	}
 
 	bool all_routes_defined() const

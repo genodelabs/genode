@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for the depot-query tool
+ * \brief  Configuration for the depot-query tool
  * \author Norman Feske
  * \date   2018-05-09
  */
@@ -13,32 +13,32 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_depot_query_start_content(Xml_generator &xml)
+void Sculpt::gen_depot_query_start_content(Generator &g)
 {
-	gen_common_start_content(xml, "depot_query",
+	gen_common_start_content(g, "depot_query",
 	                         Cap_quota{200}, Ram_quota{2*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "depot_query");
+	gen_named_node(g, "binary", "depot_query");
 
-	xml.node("config", [&] {
-		xml.attribute("query", "rom");
-		xml.node("vfs", [&] {
-			gen_named_node(xml, "dir", "depot", [&] {
-				xml.node("fs", [&] {}); }); }); });
+	g.node("config", [&] {
+		g.attribute("query", "rom");
+		g.node("vfs", [&] {
+			gen_named_node(g, "dir", "depot", [&] {
+				g.node("fs", [&] {}); }); }); });
 
-	xml.node("route", [&] {
-		gen_service_node<::File_system::Session>(xml, [&] {
-			gen_named_node(xml, "child", "depot"); });
+	g.node("route", [&] {
+		gen_service_node<::File_system::Session>(g, [&] {
+			gen_named_node(g, "child", "depot"); });
 
-		gen_parent_rom_route(xml, "depot_query");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
-		gen_parent_rom_route(xml, "query", "config -> managed/depot_query");
+		gen_parent_rom_route(g, "depot_query");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
+		gen_parent_rom_route(g, "query", "config -> managed/depot_query");
 
-		gen_parent_route<Cpu_session>     (xml);
-		gen_parent_route<Pd_session>      (xml);
-		gen_parent_route<Log_session>     (xml);
-		gen_parent_route<Report::Session> (xml);
+		gen_parent_route<Cpu_session>     (g);
+		gen_parent_route<Pd_session>      (g);
+		gen_parent_route<Log_session>     (g);
+		gen_parent_route<Report::Session> (g);
 	});
 }

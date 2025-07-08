@@ -29,7 +29,7 @@ struct Rom_reporter::Rom_module
 	Env &_env;
 
 	using Label = String<160>;
-	using Type  = Xml_node::Type;
+	using Type  = Node::Type;
 
 	Label const _label;
 
@@ -50,14 +50,14 @@ struct Rom_reporter::Rom_module
 	void _handle_rom_update()
 	{
 		_rom.update();
-		Xml_node const &node = _rom.xml();
+		Node const &node = _rom.node();
 
 		if (!_reporter.constructed() || _reporter->type != node.type())
 			_reporter.construct(_env, node.type(), _label);
 
-		_reporter->generate([&] (Xml_generator &xml) {
-			xml.node_attributes(node);
-			if (!xml.append_node_content(node, Xml_generator::Max_depth { 20 }))
+		_reporter->generate([&] (Generator &g) {
+			g.node_attributes(node);
+			if (!g.append_node_content(node, Generator::Max_depth { 20 }))
 				warning("ROM '", _label, "' is too deeply nested");
 		});
 	}

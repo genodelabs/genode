@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <util/list_model.h>
-#include <util/xml_generator.h>
 #include <base/service.h>
 #include <depot/archive.h>
 
@@ -127,33 +126,33 @@ class Depot_deploy::Children
 				child.reset_incomplete(); });
 		}
 
-		void gen_start_nodes(Xml_generator &xml, Node const &common,
+		void gen_start_nodes(Generator &g, Node const &common,
 		                     Child::Prio_levels prio_levels,
 		                     Affinity::Space affinity_space,
 		                     Child::Depot_rom_server const &cached_depot_rom,
 		                     Child::Depot_rom_server const &uncached_depot_rom) const
 		{
 			_children.for_each([&] (Child const &child) {
-				child.gen_start_node(xml, common, prio_levels, affinity_space,
+				child.gen_start_node(g, common, prio_levels, affinity_space,
 				                     cached_depot_rom, uncached_depot_rom); });
 		}
 
-		void gen_monitor_policy_nodes(Xml_generator &xml) const
+		void gen_monitor_policy_nodes(Generator &g) const
 		{
 			_children.for_each([&] (Child const &child) {
-				child.gen_monitor_policy_node(xml); });
+				child.gen_monitor_policy_node(g); });
 		}
 
-		void gen_queries(Xml_generator &xml) const
+		void gen_queries(Generator &g) const
 		{
 			_children.for_each([&] (Child const &child) {
-				child.gen_query(xml); });
+				child.gen_query(g); });
 		}
 
-		void gen_installation_entries(Xml_generator &xml) const
+		void gen_installation_entries(Generator &g) const
 		{
 			_children.for_each([&] (Child const &child) {
-				child.gen_installation_entry(xml); });
+				child.gen_installation_entry(g); });
 		}
 
 		void for_each_missing_pkg_path(auto const &fn) const

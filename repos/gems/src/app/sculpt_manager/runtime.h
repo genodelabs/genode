@@ -41,52 +41,52 @@ namespace Sculpt {
 
 		virtual Version restarted_version(Start_name const &) const = 0;
 
-		virtual void gen_launched_deploy_start_nodes(Xml_generator &) const = 0;
+		virtual void gen_launched_deploy_start_nodes(Generator &) const = 0;
 	};
 
-	void gen_chroot_start_content(Xml_generator &, Start_name const &,
+	void gen_chroot_start_content(Generator &, Start_name const &,
 	                              Path const &, Writeable);
 
-	void gen_depot_query_start_content(Xml_generator &);
-	void gen_launcher_query_start_content(Xml_generator &);
+	void gen_depot_query_start_content(Generator &);
+	void gen_launcher_query_start_content(Generator &);
 
-	void gen_runtime_view_start_content(Xml_generator &, Child_state const &,
+	void gen_runtime_view_start_content(Generator &, Child_state const &,
 	                                    double font_size);
 
 	struct Inspect_view_version { unsigned value; };
-	void gen_inspect_view(Xml_generator &, Storage_devices const &,
+	void gen_inspect_view(Generator &, Storage_devices const &,
 	                      Ram_fs_state const &, Inspect_view_version);
 
-	void gen_runtime_view(Xml_generator &);
+	void gen_runtime_view(Generator &);
 
-	void gen_fs_start_content(Xml_generator &, Storage_target const &,
+	void gen_fs_start_content(Generator &, Storage_target const &,
 	                          File_system::Type);
 
-	void gen_fs_rom_start_content(Xml_generator &,
+	void gen_fs_rom_start_content(Generator &,
 	                              Start_name const &, Start_name const &,
 	                              Child_state const &);
 
-	void gen_gpt_relabel_start_content(Xml_generator &, Storage_device const &);
-	void gen_gpt_expand_start_content (Xml_generator &, Storage_device const &);
+	void gen_gpt_relabel_start_content(Generator &, Storage_device const &);
+	void gen_gpt_expand_start_content (Generator &, Storage_device const &);
 
-	void gen_nic_router_start_content(Xml_generator &);
-	void gen_nic_router_uplink(Xml_generator &, char const *);
+	void gen_nic_router_start_content(Generator &);
+	void gen_nic_router_uplink(Generator &, char const *);
 
 	struct Prepare_version { unsigned value; };
-	void gen_prepare_start_content(Xml_generator &, Prepare_version);
+	void gen_prepare_start_content(Generator &, Prepare_version);
 
 	struct Fs_tool_version { unsigned value; };
 	struct File_operation_queue;
-	void gen_fs_tool_start_content(Xml_generator &, Fs_tool_version,
+	void gen_fs_tool_start_content(Generator &, Fs_tool_version,
                                    File_operation_queue const &);
 
-	void gen_ram_fs_start_content(Xml_generator &, Ram_fs_state const &);
+	void gen_ram_fs_start_content(Generator &, Ram_fs_state const &);
 
-	void gen_update_start_content(Xml_generator &);
+	void gen_update_start_content(Generator &);
 
-	void gen_fsck_ext2_start_content(Xml_generator &, Storage_target const &);
-	void gen_mkfs_ext2_start_content(Xml_generator &, Storage_target const &);
-	void gen_resize2fs_start_content(Xml_generator &, Storage_target const &);
+	void gen_fsck_ext2_start_content(Generator &, Storage_target const &);
+	void gen_mkfs_ext2_start_content(Generator &, Storage_target const &);
+	void gen_resize2fs_start_content(Generator &, Storage_target const &);
 }
 
 #endif /* _RUNTIME_H_ */

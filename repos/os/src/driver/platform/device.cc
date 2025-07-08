@@ -121,63 +121,63 @@ void Driver::Device::release(Device_owner &owner)
 }
 
 
-void Driver::Device::generate(Xml_generator &xml, bool info) const
+void Driver::Device::generate(Generator &g, bool info) const
 {
-	xml.node("device", [&] () {
-		xml.attribute("name", name());
-		xml.attribute("type", type());
-		xml.attribute("used", _owner.valid());
+	g.node("device", [&] () {
+		g.attribute("name", name());
+		g.attribute("type", type());
+		g.attribute("used", _owner.valid());
 		_io_mem_list.for_each([&] (Io_mem const &io_mem) {
-			xml.node("io_mem", [&] () {
+			g.node("io_mem", [&] () {
 				if (io_mem.bar.valid())
-					xml.attribute("pci_bar", io_mem.bar.number);
+					g.attribute("pci_bar", io_mem.bar.number);
 				if (!info)
 					return;
-				xml.attribute("phys_addr", String<16>(Hex(io_mem.range.start)));
-				xml.attribute("size",      String<16>(Hex(io_mem.range.size)));
+				g.attribute("phys_addr", String<16>(Hex(io_mem.range.start)));
+				g.attribute("size",      String<16>(Hex(io_mem.range.size)));
 			});
 		});
 		_irq_list.for_each([&] (Irq const &irq) {
-			xml.node("irq", [&] () {
+			g.node("irq", [&] () {
 				if (!info)
 					return;
-				xml.attribute("number", irq.number);
-				if (irq.shared) xml.attribute("shared", true);
+				g.attribute("number", irq.number);
+				if (irq.shared) g.attribute("shared", true);
 			});
 		});
 		_io_port_range_list.for_each([&] (Io_port_range const &iop) {
-			xml.node("io_port_range", [&] () {
+			g.node("io_port_range", [&] () {
 				if (iop.bar.valid())
-					xml.attribute("pci_bar", iop.bar.number);
+					g.attribute("pci_bar", iop.bar.number);
 				if (!info)
 					return;
-				xml.attribute("phys_addr", String<16>(Hex(iop.range.addr)));
-				xml.attribute("size",      String<16>(Hex(iop.range.size)));
+				g.attribute("phys_addr", String<16>(Hex(iop.range.addr)));
+				g.attribute("size",      String<16>(Hex(iop.range.size)));
 			});
 		});
 		_property_list.for_each([&] (Property const &p) {
-			xml.node("property", [&] () {
-				xml.attribute("name",  p.name);
-				xml.attribute("value", p.value);
+			g.node("property", [&] () {
+				g.attribute("name",  p.name);
+				g.attribute("value", p.value);
 			});
 		});
 		_clock_list.for_each([&] (Clock const &c) {
 			_model.clocks().apply(c.name, [&] (Driver::Clock &clock) {
-				xml.node("clock", [&] () {
-					xml.attribute("rate", clock.rate().value);
-					xml.attribute("name", c.driver_name);
+				g.node("clock", [&] () {
+					g.attribute("rate", clock.rate().value);
+					g.attribute("name", c.driver_name);
 				});
 			});
 		});
 		_pci_config_list.for_each([&] (Pci_config const &pci) {
-			xml.node("pci-config", [&] () {
-				xml.attribute("vendor_id", String<16>(Hex(pci.vendor_id)));
-				xml.attribute("device_id", String<16>(Hex(pci.device_id)));
-				xml.attribute("class",     String<16>(Hex(pci.class_code)));
-				xml.attribute("revision",  String<16>(Hex(pci.revision)));
-				xml.attribute("sub_vendor_id", String<16>(Hex(pci.sub_vendor_id)));
-				xml.attribute("sub_device_id", String<16>(Hex(pci.sub_device_id)));
-				pci_device_specific_info(*this, _env, _model, xml);
+			g.node("pci-config", [&] () {
+				g.attribute("vendor_id", String<16>(Hex(pci.vendor_id)));
+				g.attribute("device_id", String<16>(Hex(pci.device_id)));
+				g.attribute("class",     String<16>(Hex(pci.class_code)));
+				g.attribute("revision",  String<16>(Hex(pci.revision)));
+				g.attribute("sub_vendor_id", String<16>(Hex(pci.sub_vendor_id)));
+				g.attribute("sub_device_id", String<16>(Hex(pci.sub_device_id)));
+				pci_device_specific_info(*this, _env, _model, g);
 			});
 		});
 	});
@@ -189,7 +189,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 {
 	using Bar = Device::Pci_bar;
 
-	_irq_list.update_from_xml(node,
+	_irq_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Irq &
@@ -221,7 +221,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Irq &, Node const &) { }
 	);
 
-	_io_mem_list.update_from_xml(node,
+	_io_mem_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Io_mem &
@@ -243,7 +243,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Io_mem &, Node const &) { }
 	);
 
-	_io_port_range_list.update_from_xml(node,
+	_io_port_range_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Io_port_range &
@@ -264,7 +264,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Io_port_range &, Node const &) { }
 	);
 
-	_property_list.update_from_xml(node,
+	_property_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Property &
@@ -281,7 +281,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Property &, Node const &) { }
 	);
 
-	_clock_list.update_from_xml(node,
+	_clock_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Clock &
@@ -300,7 +300,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Clock &, Node const &) { }
 	);
 
-	_power_domain_list.update_from_xml(node,
+	_power_domain_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Power_domain &
@@ -316,7 +316,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Power_domain &, Node const &) { }
 	);
 
-	_reset_domain_list.update_from_xml(node,
+	_reset_domain_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Reset_domain &
@@ -332,7 +332,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Reset_domain &, Node const &) { }
 	);
 
-	_pci_config_list.update_from_xml(node,
+	_pci_config_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Pci_config &
@@ -384,7 +384,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Pci_config &, Node const &) { }
 	);
 
-	_reserved_mem_list.update_from_xml(node,
+	_reserved_mem_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Reserved_memory &
@@ -406,7 +406,7 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 		[&] (Reserved_memory &, Node const &) { }
 	);
 
-	_io_mmu_list.update_from_xml(node,
+	_io_mmu_list.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Io_mmu &
@@ -444,17 +444,17 @@ void Driver::Device_model::device_status_changed()
 };
 
 
-void Driver::Device_model::generate(Xml_generator &xml) const
+void Driver::Device_model::generate(Generator &g) const
 {
 	for_each([&] (Device const &device) {
-		device.generate(xml, true); });
+		device.generate(g, true); });
 }
 
 
 void Driver::Device_model::update(Node const &node,
                                   Reserved_memory_handler &reserved_mem_handler)
 {
-	_model.update_from_xml(node,
+	_model.update_from_node(node,
 
 		/* create */
 		[&] (Node const &node) -> Device &

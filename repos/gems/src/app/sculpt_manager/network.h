@@ -72,13 +72,13 @@ struct Sculpt::Network : Noncopyable
 
 	void _generate_nic_router_config();
 
-	void _generate_nic_router_uplink(Xml_generator &xml, char const *label);
+	void _generate_nic_router_uplink(Generator &, char const *label);
 
 	Access_points _access_points { };
 
 	Wifi_connection _wifi_connection = Wifi_connection::disconnected_wifi_connection();
 
-	void gen_runtime_start_nodes(Xml_generator &xml) const;
+	void gen_runtime_start_nodes(Generator &) const;
 
 	bool ready() const { return _nic_target.ready() && _nic_state.ready(); }
 
@@ -139,22 +139,22 @@ struct Sculpt::Network : Noncopyable
 			_wifi_connection.bssid = ap.bssid;
 			_wifi_connection.state = Wifi_connection::CONNECTING;
 
-			_wlan_config.generate([&] (Xml_generator &xml) {
+			_wlan_config.generate([&] (Generator &g) {
 
-				xml.attribute("scan_interval", 10U);
-				xml.attribute("update_quality_interval", 30U);
+				g.attribute("scan_interval", 10U);
+				g.attribute("update_quality_interval", 30U);
 
-				xml.attribute("verbose", false);
-				xml.attribute("log_level", "error");
+				g.attribute("verbose", false);
+				g.attribute("log_level", "error");
 
-				xml.node("network", [&]() {
-					xml.attribute("ssid", ap.ssid);
+				g.node("network", [&]() {
+					g.attribute("ssid", ap.ssid);
 
 					/* for now always try to use WPA2 */
 					if (ap.protection == Access_point::WPA_PSK) {
-						xml.attribute("protection", "WPA2");
+						g.attribute("protection", "WPA2");
 						String<128> const psk(wpa_passphrase);
-						xml.attribute("passphrase", psk);
+						g.attribute("passphrase", psk);
 					}
 				});
 			});
@@ -169,13 +169,13 @@ struct Sculpt::Network : Noncopyable
 		 */
 		_wifi_connection = Wifi_connection::disconnected_wifi_connection();
 
-		_wlan_config.generate([&] (Xml_generator &xml) {
+		_wlan_config.generate([&] (Generator &g) {
 
-			xml.attribute("scan_interval", 10U);
-			xml.attribute("update_quality_interval", 30U);
+			g.attribute("scan_interval", 10U);
+			g.attribute("update_quality_interval", 30U);
 
-			xml.attribute("verbose", false);
-			xml.attribute("log_level", "error");
+			g.attribute("verbose", false);
+			g.attribute("log_level", "error");
 		});
 
 		_runtime_config_generator.generate_runtime_config();

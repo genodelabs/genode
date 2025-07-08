@@ -13,42 +13,42 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_launcher_query_start_content(Xml_generator &xml)
+void Sculpt::gen_launcher_query_start_content(Generator &g)
 {
-	gen_common_start_content(xml, "launcher_query",
+	gen_common_start_content(g, "launcher_query",
 	                         Cap_quota{200}, Ram_quota{2*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "fs_query");
+	gen_named_node(g, "binary", "fs_query");
 
-	xml.node("config", [&] {
-		xml.attribute("query", "rom");
-		xml.node("vfs", [&] {
-			xml.node("fs", [&] {}); });
+	g.node("config", [&] {
+		g.attribute("query", "rom");
+		g.node("vfs", [&] {
+			g.node("fs", [&] {}); });
 
-		xml.node("query", [&] {
-			xml.attribute("path", "/launcher");
-			xml.attribute("content", "yes");
+		g.node("query", [&] {
+			g.attribute("path", "/launcher");
+			g.attribute("content", "yes");
 		});
 
-		xml.node("query", [&] {
-			xml.attribute("path", "/presets");
-			xml.attribute("content", "yes");
+		g.node("query", [&] {
+			g.attribute("path", "/presets");
+			g.attribute("content", "yes");
 		});
 	});
 
-	xml.node("route", [&] {
-		gen_parent_rom_route(xml, "fs_query");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
+	g.node("route", [&] {
+		gen_parent_rom_route(g, "fs_query");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
 
-		gen_parent_route<Cpu_session>     (xml);
-		gen_parent_route<Pd_session>      (xml);
-		gen_parent_route<Log_session>     (xml);
-		gen_parent_route<Report::Session> (xml);
+		gen_parent_route<Cpu_session>     (g);
+		gen_parent_route<Pd_session>      (g);
+		gen_parent_route<Log_session>     (g);
+		gen_parent_route<Report::Session> (g);
 
-		gen_service_node<::File_system::Session>(xml, [&] {
-			xml.node("parent", [&] {
-				xml.attribute("identity", "config"); }); });
+		gen_service_node<::File_system::Session>(g, [&] {
+			g.node("parent", [&] {
+				g.attribute("identity", "config"); }); });
 	});
 }

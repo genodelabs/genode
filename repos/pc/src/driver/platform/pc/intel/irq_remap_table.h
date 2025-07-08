@@ -25,7 +25,7 @@
 #include <util/register.h>
 #include <util/bit_allocator.h>
 #include <irq_session/irq_session.h>
-#include <util/xml_generator.h>
+#include <base/node.h>
 #include <pci/types.h>
 
 /* platform-driver includes */
@@ -201,24 +201,24 @@ class Intel::Irq_remap_table
 			return false;
 		}
 
-		void generate(Xml_generator &xml)
+		void generate(Generator &g)
 		{
-			auto attribute_hex = [&] (Xml_generator &xml,
+			auto attribute_hex = [&] (Generator &g,
 			                          char const * name,
 			                          unsigned long long value)
 			{
-				xml.attribute(name, Genode::String<32>(Genode::Hex(value)));
+				g.attribute(name, Genode::String<32>(Genode::Hex(value)));
 			};
 
 			for (unsigned idx = 0; idx < ENTRIES; idx++) {
 				if (!present(idx))
 					continue;
 
-				xml.node("irt_entry", [&] () {
-					attribute_hex(xml, "index", idx);
-					attribute_hex(xml, "source_id", source_id(idx));
-					attribute_hex(xml, "hi", _entries[_hi_index(idx)]);
-					attribute_hex(xml, "lo", _entries[_lo_index(idx)]);
+				g.node("irt_entry", [&] () {
+					attribute_hex(g, "index", idx);
+					attribute_hex(g, "source_id", source_id(idx));
+					attribute_hex(g, "hi", _entries[_hi_index(idx)]);
+					attribute_hex(g, "lo", _entries[_lo_index(idx)]);
 				});
 			}
 		}

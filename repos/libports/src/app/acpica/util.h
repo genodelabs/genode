@@ -31,7 +31,7 @@ namespace Acpica {
 	template <typename H, typename S, typename F, typename FSIZE>
 	void for_each_element(H const head, S *, F const &fn, FSIZE const &fn_size);
 
-	void generate_suspend_report(Xml_generator &, String<32> const &);
+	void generate_suspend_report(Generator &, String<32> const &);
 
 	void init_printf(Env &);
 }
@@ -58,8 +58,8 @@ class Acpica::Callback : public Genode::List<Acpica::Callback<T> >::Element
 			reinterpret_cast<T *>(context)->handle(h, value);
 		}
 
-		void generate(Genode::Xml_generator &xml) {
-			reinterpret_cast<T *>(this)->generate(xml);
+		void generate(Genode::Generator &g) {
+			reinterpret_cast<T *>(this)->generate(g);
 		}
 };
 

@@ -14,14 +14,13 @@
 #ifndef _INCLUDE__BASE__SESSION_STATE_H_
 #define _INCLUDE__BASE__SESSION_STATE_H_
 
-#include <util/xml_generator.h>
 #include <util/list.h>
-#include <util/reconstructible.h>
 #include <session/capability.h>
 #include <base/slab.h>
 #include <base/id_space.h>
 #include <base/env.h>
 #include <base/log.h>
+#include <base/node.h>
 #include <base/session_label.h>
 
 namespace Genode {
@@ -183,12 +182,12 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 
 		Affinity const &affinity() const { return _affinity; }
 
-		void generate_session_request(Xml_generator &) const;
+		void generate_session_request(Generator &) const;
 
 		struct Detail { enum Args { NO_ARGS, ARGS } args; };
 
-		void generate_client_side_info(Xml_generator &, Detail detail) const;
-		void generate_server_side_info(Xml_generator &, Detail detail) const;
+		void generate_client_side_info(Generator &, Detail detail) const;
+		void generate_server_side_info(Generator &, Detail detail) const;
 
 		Ram_quota donated_ram_quota() const { return _donated_ram_quota; }
 		Cap_quota donated_cap_quota() const { return _donated_cap_quota; }

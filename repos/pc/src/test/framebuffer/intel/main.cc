@@ -17,7 +17,6 @@
 #include <base/log.h>
 #include <os/vfs.h>
 #include <base/attached_rom_dataspace.h>
-#include <util/xml_generator.h>
 #include <timer_session/connection.h>
 
 using namespace Genode;
@@ -49,7 +48,7 @@ struct Framebuffer_controller
 	Signal_handler<Framebuffer_controller> _timer_handler {
 		_env.ep(), *this, &Framebuffer_controller::_handle_timer };
 
-	void _update_connector_config(Xml_generator &, Node const &);
+	void _update_connector_config(Generator &, Node const &);
 	void _update_fb_config(Node const &report);
 	void _handle_connectors();
 	void _handle_timer();
@@ -67,15 +66,15 @@ struct Framebuffer_controller
 };
 
 
-void Framebuffer_controller::_update_connector_config(Xml_generator &xml,
+void Framebuffer_controller::_update_connector_config(Generator &g,
                                                       Node const &node)
 {
-	xml.node("connector", [&] {
+	g.node("connector", [&] {
 
-		xml.attribute("name", node.attribute_value("name", String<64>()));
+		g.attribute("name", node.attribute_value("name", String<64>()));
 
 		bool connected = node.attribute_value("connected", false);
-		xml.attribute("enabled", connected ? "true" : "false");
+		g.attribute("enabled", connected ? "true" : "false");
 
 		unsigned long width = 0, height = 0, hz = 0;
 		node.for_each_sub_node("mode", [&] (Node const &mode) {
@@ -92,10 +91,10 @@ void Framebuffer_controller::_update_connector_config(Xml_generator &xml,
 		});
 
 		if (width && height) {
-			xml.attribute("width", width);
-			xml.attribute("height", height);
-			xml.attribute("hz", hz);
-			xml.attribute("brightness", 73);
+			g.attribute("width", width);
+			g.attribute("height", height);
+			g.attribute("hz", hz);
+			g.attribute("brightness", 73);
 		}
 	});
 }
@@ -105,14 +104,14 @@ void Framebuffer_controller::_update_fb_config(Node const &report)
 {
 	static char buf[4096];
 
-	Xml_generator::generate({ buf, sizeof(buf) - 1 }, "config", [&] (Xml_generator &xml) {
-		xml.attribute("apply_on_hotplug", "no");
-		xml.node("report", [&] {
-			xml.attribute("connectors", "yes");
+	Generator::generate({ buf, sizeof(buf) - 1 }, "config", [&] (Generator &g) {
+		g.attribute("apply_on_hotplug", "no");
+		g.node("report", [&] {
+			g.attribute("connectors", "yes");
 		});
 
 		report.for_each_sub_node("connector", [&] (Node const &node) {
-		                         _update_connector_config(xml, node); });
+		                         _update_connector_config(g, node); });
 	}).with_result(
 		[&] (size_t used) {
 			buf[used] = 0;

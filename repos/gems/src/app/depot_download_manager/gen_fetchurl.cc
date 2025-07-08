@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for fetchurl
+ * \brief  Configuration for fetchurl
  * \author Norman Feske
  * \date   2017-12-08
  */
@@ -13,58 +13,58 @@
 
 #include "xml.h"
 
-void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
+void Depot_download_manager::gen_fetchurl_start_content(Generator &g,
                                                         Import const &import,
                                                         Url const &current_user_url,
                                                         Pubkey_known pubkey_known,
                                                         Fetchurl_version version)
 {
-	xml.attribute("version", version.value);
+	g.attribute("version", version.value);
 
-	gen_common_start_content(xml, "fetchurl",
+	gen_common_start_content(g, "fetchurl",
 	                         Cap_quota{500}, Ram_quota{8*1024*1024});
 
-	xml.node("config", [&] {
-		xml.node("libc", [&] {
-			xml.attribute("stdout", "/dev/log");
-			xml.attribute("stderr", "/dev/log");
-			xml.attribute("rtc",    "/dev/rtc");
-			xml.attribute("pipe",   "/pipe");
-			xml.attribute("socket", "/socket");
+	g.node("config", [&] {
+		g.node("libc", [&] {
+			g.attribute("stdout", "/dev/log");
+			g.attribute("stderr", "/dev/log");
+			g.attribute("rtc",    "/dev/rtc");
+			g.attribute("pipe",   "/pipe");
+			g.attribute("socket", "/socket");
 		});
-		xml.node("report", [&] {
-			xml.attribute("progress", "yes");
-			xml.attribute("delay_ms", 250);
+		g.node("report", [&] {
+			g.attribute("progress", "yes");
+			g.attribute("delay_ms", 250);
 		});
-		xml.node("vfs", [&] {
-			xml.node("dir", [&] {
-				xml.attribute("name", "download");
-				xml.node("fs", [&] {
-					xml.attribute("buffer_size", 144u << 10);
-					xml.attribute("label", "download -> /"); });
+		g.node("vfs", [&] {
+			g.node("dir", [&] {
+				g.attribute("name", "download");
+				g.node("fs", [&] {
+					g.attribute("buffer_size", 144u << 10);
+					g.attribute("label", "download -> /"); });
 			});
-			xml.node("dir", [&] {
-				xml.attribute("name", "dev");
-				xml.node("log",  [&] { });
-				xml.node("null", [&] { });
-				xml.node("inline", [&] {
-					xml.attribute("name", "rtc");
+			g.node("dir", [&] {
+				g.attribute("name", "dev");
+				g.node("log",  [&] { });
+				g.node("null", [&] { });
+				g.node("inline", [&] {
+					g.attribute("name", "rtc");
 					String<64> date("2000-01-01 00:00");
-					xml.append(date.string());
+					g.append_quoted(date.string());
 				});
-				xml.node("inline", [&] {
-					xml.attribute("name", "random");
+				g.node("inline", [&] {
+					g.attribute("name", "random");
 					String<64> entropy("01234567890123456789"
 					                   "01234567890123456789");
-					xml.append(entropy.string());
+					g.append_quoted(entropy.string());
 				});
 			});
-			xml.node("dir", [&] {
-				xml.attribute("name", "pipe");
-				xml.node("pipe", [&] { });
+			g.node("dir", [&] {
+				g.attribute("name", "pipe");
+				g.node("pipe", [&] { });
 			});
-			xml.node("fs", [&] {
-				xml.attribute("label", "tcpip -> /"); });
+			g.node("fs", [&] {
+				g.attribute("label", "tcpip -> /"); });
 		});
 
 		import.for_each_download([&] (Archive::Path const &path) {
@@ -76,49 +76,49 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			Remote    const remote (current_user_url, "/", file_path);
 			Local     const local  ("/download/", file_path);
 
-			xml.node("fetch", [&] {
-				xml.attribute("url", remote);
-				xml.attribute("path", local);
+			g.node("fetch", [&] {
+				g.attribute("url", remote);
+				g.attribute("path", local);
 			});
 
 			if (pubkey_known.value) {
-				xml.node("fetch", [&] {
-					xml.attribute("url",  Remote(remote, ".sig"));
-					xml.attribute("path", Local (local,  ".sig"));
+				g.node("fetch", [&] {
+					g.attribute("url",  Remote(remote, ".sig"));
+					g.attribute("path", Local (local,  ".sig"));
 				});
 			}
 		});
 	});
 
-	xml.node("route", [&] {
-		xml.node("service", [&] {
-			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label_prefix", "download ->");
-			xml.node("parent", [&] {
-				xml.attribute("identity", "public_rw"); });
+	g.node("route", [&] {
+		g.node("service", [&] {
+			g.attribute("name", File_system::Session::service_name());
+			g.attribute("label_prefix", "download ->");
+			g.node("parent", [&] {
+				g.attribute("identity", "public_rw"); });
 		});
-		xml.node("service", [&] {
-			xml.attribute("name", File_system::Session::service_name());
-			xml.attribute("label_prefix", "tcpip ->");
-			xml.node("parent", [&] {
-				xml.attribute("identity", "tcpip"); });
+		g.node("service", [&] {
+			g.attribute("name", File_system::Session::service_name());
+			g.attribute("label_prefix", "tcpip ->");
+			g.node("parent", [&] {
+				g.attribute("identity", "tcpip"); });
 		});
-		gen_parent_unscoped_rom_route(xml, "fetchurl");
-		gen_parent_unscoped_rom_route(xml, "ld.lib.so");
-		gen_parent_rom_route(xml, "libc.lib.so");
-		gen_parent_rom_route(xml, "libm.lib.so");
-		gen_parent_rom_route(xml, "curl.lib.so");
-		gen_parent_rom_route(xml, "libssh.lib.so");
-		gen_parent_rom_route(xml, "libssl.lib.so");
-		gen_parent_rom_route(xml, "libcrypto.lib.so");
-		gen_parent_rom_route(xml, "vfs.lib.so");
-		gen_parent_rom_route(xml, "vfs_pipe.lib.so");
-		gen_parent_rom_route(xml, "zlib.lib.so");
-		gen_parent_route<Cpu_session>    (xml);
-		gen_parent_route<Pd_session>     (xml);
-		gen_parent_route<Log_session>    (xml);
-		gen_parent_route<Timer::Session> (xml);
-		gen_parent_route<Nic::Session>   (xml);
-		gen_parent_route<Report::Session>(xml);
+		gen_parent_unscoped_rom_route(g, "fetchurl");
+		gen_parent_unscoped_rom_route(g, "ld.lib.so");
+		gen_parent_rom_route(g, "libc.lib.so");
+		gen_parent_rom_route(g, "libm.lib.so");
+		gen_parent_rom_route(g, "curl.lib.so");
+		gen_parent_rom_route(g, "libssh.lib.so");
+		gen_parent_rom_route(g, "libssl.lib.so");
+		gen_parent_rom_route(g, "libcrypto.lib.so");
+		gen_parent_rom_route(g, "vfs.lib.so");
+		gen_parent_rom_route(g, "vfs_pipe.lib.so");
+		gen_parent_rom_route(g, "zlib.lib.so");
+		gen_parent_route<Cpu_session>    (g);
+		gen_parent_route<Pd_session>     (g);
+		gen_parent_route<Log_session>    (g);
+		gen_parent_route<Timer::Session> (g);
+		gen_parent_route<Nic::Session>   (g);
+		gen_parent_route<Report::Session>(g);
 	});
 }

@@ -38,18 +38,18 @@ struct Sculpt::Download_queue : Noncopyable
 			path(path), verify(verify.value), state(State::DOWNLOADING)
 		{ }
 
-		void gen_installation_entry(Xml_generator &xml) const
+		void gen_installation_entry(Generator &g) const
 		{
 			if (state != State::DOWNLOADING)
 				return;
 
 			auto gen_verify_attr = [&] {
 				if (!verify)
-					xml.attribute("verify", "no"); };
+					g.attribute("verify", "no"); };
 
 			auto gen_install_node = [&] (auto type) {
-				xml.node(type, [&] {
-					xml.attribute("path", path);
+				g.node(type, [&] {
+					g.attribute("path", path);
 					gen_verify_attr(); }); };
 
 			if (Depot::Archive::index(path))
@@ -59,9 +59,9 @@ struct Sculpt::Download_queue : Noncopyable
 			else if (Depot::Archive::image(path))
 				gen_install_node("image");
 			else
-				xml.node("archive", [&] {
-					xml.attribute("path", path);
-					xml.attribute("source", "no");
+				g.node("archive", [&] {
+					g.attribute("path", path);
+					g.attribute("source", "no");
 					gen_verify_attr(); });
 		}
 	};
@@ -159,10 +159,10 @@ struct Sculpt::Download_queue : Noncopyable
 			destroy(_alloc, &download); });
 	}
 
-	void gen_installation_entries(Xml_generator &xml) const
+	void gen_installation_entries(Generator &g) const
 	{
 		_downloads.for_each([&] (Download const &download) {
-			download.gen_installation_entry(xml); });
+			download.gen_installation_entry(g); });
 	}
 
 	bool any_active_download()    const { return _state_present(Download::State::DOWNLOADING); }

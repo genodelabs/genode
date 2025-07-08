@@ -296,12 +296,12 @@ void Block_root::_report()
 	if (!_report_needed)
 		return;
 
-	_reporter.generate([&] (Xml_generator &xml) {
+	_reporter.generate([&] (Generator &g) {
 		_for_each_session_info([&] (Session_info &si) {
-			xml.node("device", [&] {
-				xml.attribute("label",       si.name);
-				xml.attribute("block_size",  si.info.block_size);
-				xml.attribute("block_count", si.info.block_count);
+			g.node("device", [&] {
+				g.attribute("label",       si.name);
+				g.attribute("block_size",  si.info.block_size);
+				g.attribute("block_count", si.info.block_count);
 			});
 		});
 	});

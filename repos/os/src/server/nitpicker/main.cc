@@ -160,13 +160,13 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 				_hover_updater.update_hover();
 
 			if (result.touch_changed)
-				(void)_touch_reporter.generate([&] (Xml_generator &xml) {
-					_user_state.report_touched_view_owner(xml, false); });
+				(void)_touch_reporter.generate([&] (Generator &g) {
+					_user_state.report_touched_view_owner(g, false); });
 
 			/* report focus changes */
 			if (_focus_reporter.enabled() && result.focus_changed)
-				(void)_focus_reporter.generate([&] (Xml_generator &xml) {
-					_user_state.report_focused_view_owner(xml, false); });
+				(void)_focus_reporter.generate([&] (Generator &g) {
+					_user_state.report_focused_view_owner(g, false); });
 		}
 
 	public:
@@ -384,11 +384,11 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				session.process_damage(); });
 		}
 
-		void report_panorama(Xml_generator &xml, Rect const domain_panorama) const
+		void report_panorama(Generator &g, Rect const domain_panorama) const
 		{
-			gen_attr(xml, domain_panorama);
+			gen_attr(g, domain_panorama);
 			_sessions.for_each([&] (Capture_session const &capture) {
-				xml.node("capture", [&] { capture.gen_capture_attr(xml, domain_panorama); }); });
+				g.node("capture", [&] { capture.gen_capture_attr(g, domain_panorama); }); });
 		}
 };
 
@@ -664,9 +664,9 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	/**
 	 * Gui_session::Action interface
 	 */
-	void gen_capture_info(Xml_generator &xml, Rect const domain_panorama) const override
+	void gen_capture_info(Generator &g, Rect const domain_panorama) const override
 	{
-		_capture_root.report_panorama(xml, domain_panorama);
+		_capture_root.report_panorama(g, domain_panorama);
 	}
 
 	Capture_root _capture_root { _env, *this, _sliced_heap, _view_stack, *this };
@@ -676,9 +676,9 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 	void _generate_hover_report()
 	{
 		if (_hover_reporter.enabled())
-			(void)_hover_reporter.generate([&] (Xml_generator &xml) {
-				_user_state.report_hovered_view_owner(xml, false);
-				_user_state.report_pointer_position(xml); });
+			(void)_hover_reporter.generate([&] (Generator &g) {
+				_user_state.report_hovered_view_owner(g, false);
+				_user_state.report_pointer_position(g); });
 	}
 
 	Signal_handler<Main> _damage_handler { _env.ep(), *this, &Main::_handle_damage };
@@ -962,16 +962,16 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 	 * is affected by the incoming events.
 	 */
 	if (_keystate_reporter.enabled() && result.key_state_affected)
-		(void)_keystate_reporter.generate([&] (Xml_generator &xml) {
-			_user_state.report_keystate(xml); });
+		(void)_keystate_reporter.generate([&] (Generator &g) {
+			_user_state.report_keystate(g); });
 
 	/*
 	 * Report whenever a non-focused view owner received a click. This report
 	 * can be consumed by a focus-managing component.
 	 */
 	if (_clicked_reporter.enabled() && result.last_clicked_changed)
-		(void)_clicked_reporter.generate([&] (Xml_generator &xml) {
-			_user_state.report_last_clicked_view_owner(xml); });
+		(void)_clicked_reporter.generate([&] (Generator &g) {
+			_user_state.report_last_clicked_view_owner(g); });
 
 	if (result.focus_changed) {
 		_focus_count++;
@@ -986,8 +986,8 @@ void Nitpicker::Main::handle_input_events(User_state::Input_batch batch)
 
 	/* report mouse-position updates */
 	if (_pointer_reporter.enabled() && result.motion_activity)
-		(void)_pointer_reporter.generate([&] (Xml_generator &xml) {
-			_user_state.report_pointer_position(xml); });
+		(void)_pointer_reporter.generate([&] (Generator &g) {
+			_user_state.report_pointer_position(g); });
 
 	/* update pointer position */
 	if (result.motion_activity)
@@ -1007,20 +1007,20 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 
 	bool const hover_changed = (_reported_hover_count != _hover_count);
 	if (hover_changed || (_reported_motion_activity != motion_activity))
-		(void)_hover_reporter.generate([&] (Xml_generator &xml) {
-			_user_state.report_hovered_view_owner(xml, motion_activity);
-			_user_state.report_pointer_position(xml);
+		(void)_hover_reporter.generate([&] (Generator &g) {
+			_user_state.report_hovered_view_owner(g, motion_activity);
+			_user_state.report_pointer_position(g);
 		});
 
 	bool const focus_changed = (_reported_focus_count != _focus_count);
 	if (focus_changed || (_reported_button_activity != button_activity))
-		(void)_focus_reporter.generate([&] (Xml_generator &xml) {
-			_user_state.report_focused_view_owner(xml, button_activity); });
+		(void)_focus_reporter.generate([&] (Generator &g) {
+			_user_state.report_focused_view_owner(g, button_activity); });
 
 	bool const touch_changed = (_reported_touch_count != _touch_count);
 	if (touch_changed || (_reported_touch_activity != touch_activity))
-		(void)_touch_reporter.generate([&] (Xml_generator &xml) {
-			_user_state.report_touched_view_owner(xml, touch_activity); });
+		(void)_touch_reporter.generate([&] (Generator &g) {
+			_user_state.report_touched_view_owner(g, touch_activity); });
 
 	_reported_motion_activity = motion_activity;
 	_reported_button_activity = button_activity;
@@ -1147,9 +1147,9 @@ void Nitpicker::Main::_handle_config()
 	_view_stack.update_all_views();
 
 	/* update focus report since the domain colors might have changed */
-	(void)_focus_reporter.generate([&] (Xml_generator &xml) {
+	(void)_focus_reporter.generate([&] (Generator &g) {
 		bool const button_activity = (_now().ms - _last_button_activity.ms < _activity_threshold.ms);
-		_user_state.report_focused_view_owner(xml, button_activity); });
+		_user_state.report_focused_view_owner(g, button_activity); });
 
 	/* update framebuffer output back end */
 	bool const request_framebuffer = config.attribute_value("request_framebuffer", false);
@@ -1174,11 +1174,11 @@ void Nitpicker::Main::_report_panorama()
 	if (!_panorama_reporter.enabled())
 		return;
 
-	(void)_panorama_reporter.generate([&] (Xml_generator &xml) {
+	(void)_panorama_reporter.generate([&] (Generator &g) {
 		if (_fb_screen.constructed())
-			xml.node("panorama", [&] { gen_attr(xml, _fb_screen->_rect); });
+			g.node("panorama", [&] { gen_attr(g, _fb_screen->_rect); });
 
-		_capture_root.report_panorama(xml, _view_stack.bounding_box());
+		_capture_root.report_panorama(g, _view_stack.bounding_box());
 	});
 }
 

@@ -33,7 +33,7 @@ class Sandbox::State_reporter : public Report_update_trigger
 
 		struct Producer : Interface
 		{
-			virtual void produce_state_report(Xml_generator &xml,
+			virtual void produce_state_report(Generator &,
 			                                  Report_detail const &) const = 0;
 
 			virtual Child::Sample_state_result sample_children_state() = 0;
@@ -103,13 +103,13 @@ class Sandbox::State_reporter : public Report_update_trigger
 			_state_handler(state_handler)
 		{ }
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
 			if (_version.valid())
-				xml.attribute("version", _version);
+				g.attribute("version", _version);
 
 			if (_report_detail.constructed())
-				_producer.produce_state_report(xml, *_report_detail);
+				_producer.produce_state_report(g, *_report_detail);
 		}
 
 		void apply_config(Version const &version, Node const &report)

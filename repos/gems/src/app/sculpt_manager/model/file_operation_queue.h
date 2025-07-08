@@ -15,7 +15,6 @@
 #define _MODEL__FILE_OPERATION_QUEUE_H_
 
 #include <base/registry.h>
-#include <util/xml_generator.h>
 #include <types.h>
 
 namespace Sculpt { struct File_operation_queue; }
@@ -52,7 +51,7 @@ struct Sculpt::File_operation_queue : Noncopyable
 		Operation(Path const &path, Content const &content)
 		: type(Type::NEW_SMALL_FILE), path(path), content(content) { }
 
-		void gen_fs_tool_config(Xml_generator &xml) const
+		void gen_fs_tool_config(Generator &g) const
 		{
 			if (state != State::IN_PROGRESS)
 				return;
@@ -60,20 +59,20 @@ struct Sculpt::File_operation_queue : Noncopyable
 			switch (type) {
 
 			case Type::REMOVE_FILE:
-				xml.node("remove-file", [&] {
-					xml.attribute("path", path); });
+				g.node("remove-file", [&] {
+					g.attribute("path", path); });
 				break;
 
 			case Type::COPY_ALL_FILES:
-				xml.node("copy-all-files", [&] {
-					xml.attribute("from", from);
-					xml.attribute("to",   path); });
+				g.node("copy-all-files", [&] {
+					g.attribute("from", from);
+					g.attribute("to",   path); });
 				break;
 
 			case Type::NEW_SMALL_FILE:
-				xml.node("new-file", [&] {
-					xml.attribute("path", path);
-					xml.append_sanitized(content.string.string()); });
+				g.node("new-file", [&] {
+					g.attribute("path", path);
+					g.append_quoted(content.string.string()); });
 				break;
 			}
 		}
@@ -159,10 +158,10 @@ struct Sculpt::File_operation_queue : Noncopyable
 		});
 	}
 
-	void gen_fs_tool_config(Xml_generator &xml) const
+	void gen_fs_tool_config(Generator &g) const
 	{
 		_operations.for_each([&] (Operation const &operation) {
-			operation.gen_fs_tool_config(xml); });
+			operation.gen_fs_tool_config(g); });
 	}
 };
 

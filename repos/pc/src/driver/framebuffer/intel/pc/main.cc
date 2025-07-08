@@ -467,25 +467,25 @@ void Framebuffer::Driver::generate_report()
 		if (!node.attribute_value("connectors", false))
 			return;
 
-		reporter.generate([&] (Genode::Xml_generator &xml) {
+		reporter.generate([&] (Genode::Generator &g) {
 			/* reflect force/max enforcement in report for user clarity */
 			with_max_enforcement([&](unsigned width, unsigned height) {
-				xml.attribute("max_width",  width);
-				xml.attribute("max_height", height);
+				g.attribute("max_width",  width);
+				g.attribute("max_height", height);
 			});
 
-			lx_emul_i915_report_discrete(&xml);
+			lx_emul_i915_report_discrete(&g);
 
-			xml.node("merge", [&] () {
-				xml.attribute("name", merge_label);
+			g.node("merge", [&] () {
+				g.attribute("name", merge_label);
 				node.with_optional_sub_node("merge", [&](auto const &merge) {
 					with_force(merge, [&](unsigned width, unsigned height) {
-						xml.attribute("width",  width);
-						xml.attribute("height", height);
+						g.attribute("width",  width);
+						g.attribute("height", height);
 					});
 				});
 
-				lx_emul_i915_report_non_discrete(&xml);
+				lx_emul_i915_report_non_discrete(&g);
 			});
 		});
 	});
@@ -717,7 +717,7 @@ int lx_emul_i915_action_to_process(int const action_failed)
 }
 
 
-void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
+void lx_emul_i915_report_connector(void * lx_data, void * genode_generator,
                                    char const *name, char const connected,
                                    char const /* fb_available */,
                                    unsigned brightness,
@@ -725,54 +725,54 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_xml,
                                    unsigned width_mm, unsigned height_mm,
                                    unsigned rotate, char flip)
 {
-	auto &xml = *reinterpret_cast<Genode::Xml_generator *>(genode_xml);
+	auto &g = *reinterpret_cast<Genode::Generator *>(genode_generator);
 
-	xml.node("connector", [&] ()
+	g.node("connector", [&] ()
 	{
-		xml.attribute("connected", !!connected);
-		xml.attribute("name", name);
+		g.attribute("connected", !!connected);
+		g.attribute("name", name);
 		if (display_name)
-			xml.attribute("display_name", display_name);
+			g.attribute("display_name", display_name);
 		if (width_mm)
-			xml.attribute("width_mm" , width_mm);
+			g.attribute("width_mm" , width_mm);
 		if (height_mm)
-			xml.attribute("height_mm", height_mm);
-		xml.attribute("rotate", rotate);
-		xml.attribute("flip", !!flip);
+			g.attribute("height_mm", height_mm);
+		g.attribute("rotate", rotate);
+		g.attribute("flip", !!flip);
 
 		/* insane values means no brightness support - we use percentage */
 		if (brightness <= MAX_BRIGHTNESS)
-			xml.attribute("brightness", brightness);
+			g.attribute("brightness", brightness);
 
-		lx_emul_i915_iterate_modes(lx_data, &xml);
+		lx_emul_i915_iterate_modes(lx_data, &g);
 	});
 }
 
 
-void lx_emul_i915_report_modes(void * genode_xml, struct genode_mode *mode)
+void lx_emul_i915_report_modes(void * genode_generator, struct genode_mode *mode)
 {
-	if (!genode_xml || !mode)
+	if (!genode_generator || !mode)
 		return;
 
-	auto &xml = *reinterpret_cast<Genode::Xml_generator *>(genode_xml);
+	auto &g = *reinterpret_cast<Genode::Generator *>(genode_generator);
 
-	xml.node("mode", [&] ()
+	g.node("mode", [&] ()
 	{
-		xml.attribute("width",  mode->width);
-		xml.attribute("height", mode->height);
-		xml.attribute("hz",     mode->hz);
-		xml.attribute("id",     mode->id);
-		xml.attribute("name",   mode->name);
+		g.attribute("width",  mode->width);
+		g.attribute("height", mode->height);
+		g.attribute("hz",     mode->hz);
+		g.attribute("id",     mode->id);
+		g.attribute("name",   mode->name);
 		if (mode->width_mm)
-			xml.attribute("width_mm",  mode->width_mm);
+			g.attribute("width_mm",  mode->width_mm);
 		if (mode->height_mm)
-			xml.attribute("height_mm", mode->height_mm);
+			g.attribute("height_mm", mode->height_mm);
 		if (!mode->enabled)
-			xml.attribute("usable", false);
+			g.attribute("usable", false);
 		if (mode->preferred)
-			xml.attribute("preferred", true);
+			g.attribute("preferred", true);
 		if (mode->inuse)
-			xml.attribute("used", true);
+			g.attribute("used", true);
 	});
 }
 

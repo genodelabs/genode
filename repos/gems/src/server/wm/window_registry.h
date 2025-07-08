@@ -60,16 +60,16 @@ class Wm::Window_registry
 						    && resizeable.value == other.resizeable.value;
 					}
 
-					void gen_window_attr(Xml_generator &xml) const
+					void gen_window_attr(Generator &g) const
 					{
-						xml.attribute("label",  label);
-						xml.attribute("title",  title);
-						xml.attribute("width",  area.w);
-						xml.attribute("height", area.h);
+						g.attribute("label",  label);
+						g.attribute("title",  title);
+						g.attribute("width",  area.w);
+						g.attribute("height", area.h);
 
-						if (alpha.value)      xml.attribute("has_alpha",  "yes");
-						if (hidden.value)     xml.attribute("hidden",     "yes");
-						if (resizeable.value) xml.attribute("resizeable", "yes");
+						if (alpha.value)      g.attribute("has_alpha",  "yes");
+						if (hidden.value)     g.attribute("hidden",     "yes");
+						if (resizeable.value) g.attribute("resizeable", "yes");
 					}
 				};
 
@@ -101,7 +101,7 @@ class Wm::Window_registry
 
 				bool flushed() const { return _attr == _flushed_attr; }
 
-				void generate_window_list_entry_xml(Xml_generator &xml) const
+				void generate_window_list_entry(Generator &g) const
 				{
 					/*
 					 * Skip windows that have no defined size, which may happen
@@ -112,9 +112,9 @@ class Wm::Window_registry
 					if (!_attr.area.valid())
 						return;
 
-					xml.node("window", [&] () {
-						xml.attribute("id", id().value);
-						_attr.gen_window_attr(xml);
+					g.node("window", [&] () {
+						g.attribute("id", id().value);
+						_attr.gen_window_attr(g);
 					});
 				}
 
@@ -149,9 +149,9 @@ class Wm::Window_registry
 
 		void _report_updated_window_list_model() const
 		{
-			_window_list_reporter.generate([&] (Xml_generator &xml) {
+			_window_list_reporter.generate([&] (Generator &g) {
 				_windows.for_each<Window>([&] (Window const &w) {
-					w.generate_window_list_entry_xml(xml);
+					w.generate_window_list_entry(g);
 					w.mark_as_flushed();
 				});
 			});

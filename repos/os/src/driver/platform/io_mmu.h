@@ -174,7 +174,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 		                               Ram_quota_guard &,
 		                               Cap_quota_guard &) = 0;
 
-		virtual void generate(Xml_generator &) { }
+		virtual void generate(Generator &) { }
 
 		Io_mmu(Io_mmu_devices &io_mmu_devices, Device::Name const &name)
 		: Io_mmu_devices::Element(io_mmu_devices, *this),

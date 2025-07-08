@@ -116,14 +116,14 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		_env(env)
 	{ }
 
-	inline void gen_usb_block_start_content(Xml_generator &xml) const;
+	inline void gen_usb_block_start_content(Generator &g) const;
 
-	void gen_usb_policy(Xml_generator &xml) const
+	void gen_usb_policy(Generator &g) const
 	{
-		xml.node("policy", [&] {
-			xml.attribute("label_prefix", driver);
-			xml.node("device", [&] {
-				xml.attribute("name", driver); }); });
+		g.node("policy", [&] {
+			g.attribute("label_prefix", driver);
+			g.node("device", [&] {
+				g.attribute("name", driver); }); });
 	}
 
 	static bool type_matches(Node const &device)
@@ -141,34 +141,34 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 };
 
 
-void Sculpt::Usb_storage_device::gen_usb_block_start_content(Xml_generator &xml) const
+void Sculpt::Usb_storage_device::gen_usb_block_start_content(Generator &g) const
 {
-	gen_common_start_content(xml, driver, Cap_quota{100}, Ram_quota{6*1024*1024},
+	gen_common_start_content(g, driver, Cap_quota{100}, Ram_quota{6*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "usb_block");
+	gen_named_node(g, "binary", "usb_block");
 
-	xml.node("config", [&] {
-		xml.attribute("report",    "yes");
-		xml.attribute("writeable", "yes");
+	g.node("config", [&] {
+		g.attribute("report",    "yes");
+		g.attribute("writeable", "yes");
 	});
 
-	gen_provides<Block::Session>(xml);
+	gen_provides<Block::Session>(g);
 
-	xml.node("route", [&] {
-		gen_service_node<Usb::Session>(xml, [&] {
-			xml.node("child", [&] {
-				xml.attribute("name", "usb"); }); });
+	g.node("route", [&] {
+		gen_service_node<Usb::Session>(g, [&] {
+			g.node("child", [&] {
+				g.attribute("name", "usb"); }); });
 
-		gen_parent_rom_route(xml, "usb_block");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session>    (xml);
-		gen_parent_route<Pd_session>     (xml);
-		gen_parent_route<Log_session>    (xml);
-		gen_parent_route<Timer::Session> (xml);
+		gen_parent_rom_route(g, "usb_block");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_route<Cpu_session>    (g);
+		gen_parent_route<Pd_session>     (g);
+		gen_parent_route<Log_session>    (g);
+		gen_parent_route<Timer::Session> (g);
 
-		gen_service_node<Report::Session>(xml, [&] {
-			xml.node("parent", [&] { }); });
+		gen_service_node<Report::Session>(g, [&] {
+			g.node("parent", [&] { }); });
 	});
 }
 

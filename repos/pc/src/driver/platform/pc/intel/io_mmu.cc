@@ -16,10 +16,10 @@
 
 using namespace Driver;
 
-static void attribute_hex(Genode::Xml_generator &xml, char const * name,
+static void attribute_hex(Genode::Generator &g, char const * name,
                           unsigned long long value)
 {
-	xml.attribute(name, Genode::String<32>(Genode::Hex(value)));
+	g.attribute(name, Genode::String<32>(Genode::Hex(value)));
 }
 
 
@@ -197,10 +197,10 @@ bool Intel::Io_mmu::iq_error()
 }
 
 
-void Intel::Io_mmu::generate(Xml_generator &xml)
+void Intel::Io_mmu::generate(Generator &g)
 {
-	xml.node("intel", [&] () {
-		xml.attribute("name", name());
+	g.node("intel", [&] () {
+		g.attribute("name", name());
 
 		const bool enabled = (bool)read<Global_status::Enabled>();
 		const bool rtps    = (bool)read<Global_status::Rtps>();
@@ -208,74 +208,74 @@ void Intel::Io_mmu::generate(Xml_generator &xml)
 		const bool irtps   = (bool)read<Global_status::Irtps>();
 		const bool cfis    = (bool)read<Global_status::Cfis>();
 
-		xml.attribute("dma_remapping", enabled && rtps);
-		xml.attribute("msi_remapping", ires && irtps);
-		xml.attribute("irq_remapping", ires && irtps && !cfis);
+		g.attribute("dma_remapping", enabled && rtps);
+		g.attribute("msi_remapping", ires && irtps);
+		g.attribute("irq_remapping", ires && irtps && !cfis);
 
 		/* dump registers */
-		xml.attribute("version", String<16>(read<Version::Major>(), ".",
-		                                    read<Version::Minor>()));
+		g.attribute("version", String<16>(read<Version::Major>(), ".",
+		                                  read<Version::Minor>()));
 
-		xml.node("register", [&] () {
-			xml.attribute("name", "Capability");
-			attribute_hex(xml, "value", read<Capability>());
-			xml.attribute("esrtps", (bool)read<Capability::Esrtps>());
-			xml.attribute("esirtps", (bool)read<Capability::Esirtps>());
-			xml.attribute("rwbf",   (bool)read<Capability::Rwbf>());
-			xml.attribute("nfr",     read<Capability::Nfr>());
-			xml.attribute("domains", read<Capability::Domains>());
-			xml.attribute("caching", (bool)read<Capability::Caching_mode>());
+		g.node("register", [&] () {
+			g.attribute("name", "Capability");
+			attribute_hex(g, "value", read<Capability>());
+			g.attribute("esrtps", (bool)read<Capability::Esrtps>());
+			g.attribute("esirtps", (bool)read<Capability::Esirtps>());
+			g.attribute("rwbf",   (bool)read<Capability::Rwbf>());
+			g.attribute("nfr",     read<Capability::Nfr>());
+			g.attribute("domains", read<Capability::Domains>());
+			g.attribute("caching", (bool)read<Capability::Caching_mode>());
 		});
 
-		xml.node("register", [&] () {
-			xml.attribute("name", "Extended Capability");
-			attribute_hex(xml, "value", read<Extended_capability>());
-			xml.attribute("interrupt_remapping",
-			              (bool)read<Extended_capability::Ir>());
-			xml.attribute("page_walk_coherency",
-			              (bool)read<Extended_capability::Page_walk_coherency>());
+		g.node("register", [&] () {
+			g.attribute("name", "Extended Capability");
+			attribute_hex(g, "value", read<Extended_capability>());
+			g.attribute("interrupt_remapping",
+			            (bool)read<Extended_capability::Ir>());
+			g.attribute("page_walk_coherency",
+			            (bool)read<Extended_capability::Page_walk_coherency>());
 		});
 
-		xml.node("register", [&] () {
-			xml.attribute("name", "Global Status");
-			attribute_hex(xml, "value", read<Global_status>());
-			xml.attribute("qies",    (bool)read<Global_status::Qies>());
-			xml.attribute("ires",    (bool)read<Global_status::Ires>());
-			xml.attribute("rtps",    (bool)read<Global_status::Rtps>());
-			xml.attribute("irtps",   (bool)read<Global_status::Irtps>());
-			xml.attribute("cfis",    (bool)read<Global_status::Cfis>());
-			xml.attribute("enabled", (bool)read<Global_status::Enabled>());
+		g.node("register", [&] () {
+			g.attribute("name", "Global Status");
+			attribute_hex(g, "value", read<Global_status>());
+			g.attribute("qies",    (bool)read<Global_status::Qies>());
+			g.attribute("ires",    (bool)read<Global_status::Ires>());
+			g.attribute("rtps",    (bool)read<Global_status::Rtps>());
+			g.attribute("irtps",   (bool)read<Global_status::Irtps>());
+			g.attribute("cfis",    (bool)read<Global_status::Cfis>());
+			g.attribute("enabled", (bool)read<Global_status::Enabled>());
 		});
 
 		if (!_verbose)
 			return;
 
-		xml.node("register", [&] () {
-			xml.attribute("name", "Fault Status");
-			attribute_hex(xml, "value", read<Fault_status>());
-			attribute_hex(xml, "fri",   read<Fault_status::Fri>());
-			xml.attribute("iqe", (bool)read<Fault_status::Iqe>());
-			xml.attribute("ppf", (bool)read<Fault_status::Pending>());
-			xml.attribute("pfo", (bool)read<Fault_status::Overflow>());
+		g.node("register", [&] () {
+			g.attribute("name", "Fault Status");
+			attribute_hex(g, "value", read<Fault_status>());
+			attribute_hex(g, "fri",   read<Fault_status::Fri>());
+			g.attribute("iqe", (bool)read<Fault_status::Iqe>());
+			g.attribute("ppf", (bool)read<Fault_status::Pending>());
+			g.attribute("pfo", (bool)read<Fault_status::Overflow>());
 		});
 
-		xml.node("register", [&] () {
-			xml.attribute("name", "Fault Event Control");
-			attribute_hex(xml, "value", read<Fault_event_control>());
-			xml.attribute("mask", (bool)read<Fault_event_control::Mask>());
+		g.node("register", [&] () {
+			g.attribute("name", "Fault Event Control");
+			attribute_hex(g, "value", read<Fault_event_control>());
+			g.attribute("mask", (bool)read<Fault_event_control::Mask>());
 		});
 
 		if (read<Global_status::Irtps>())
-			_irq_table.generate(xml);
+			_irq_table.generate(g);
 
 		if (!read<Global_status::Rtps>())
 			return;
 
 		addr_t rt_addr = Root_table_address::Address::masked(read<Root_table_address>());
 
-		xml.node("register", [&] () {
-			xml.attribute("name", "Root Table Address");
-			attribute_hex(xml, "value", rt_addr);
+		g.node("register", [&] () {
+			g.attribute("name", "Root Table Address");
+			attribute_hex(g, "value", rt_addr);
 		});
 
 		if (read<Root_table_address::Mode>() != Root_table_address::Mode::LEGACY) {
@@ -286,7 +286,7 @@ void Intel::Io_mmu::generate(Xml_generator &xml)
 		/* dump root table, context table, and page tables */
 		_report_helper.with_table<Root_table>(rt_addr,
 			[&] (Root_table &root_table) {
-				root_table.generate(xml, _report_helper);
+				root_table.generate(g, _report_helper);
 			});
 	});
 }

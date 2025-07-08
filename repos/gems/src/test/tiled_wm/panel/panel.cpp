@@ -54,8 +54,8 @@ void App_bar::_app_button(QAbstractButton *b, bool checked)
 	if (Panel_button *button = qobject_cast<Panel_button *>(b)) {
 		Name name { button->text().toUtf8().constData() };
 
-		_content_request.generate([&] (Genode::Xml_generator &xml) {
-			xml.attribute("name", name);
+		_content_request.generate([&] (Genode::Generator &g) {
+			g.attribute("name", name);
 		});
 	}
 }
@@ -113,8 +113,8 @@ App_bar::~App_bar() { }
 
 void Panel::_wifi_toggled(bool checked)
 {
-	_overlay_request.generate([&] (Genode::Xml_generator &xml) {
-		xml.attribute("visible", checked);
+	_overlay_request.generate([&] (Genode::Generator &g) {
+		g.attribute("visible", checked);
 	});
 }
 

@@ -104,7 +104,7 @@ class Genode::Sandbox : Noncopyable
 		/**
 		 * Generate state report as configured by the <report> config node
 		 */
-		void generate_state_report(Xml_generator &) const;
+		void generate_state_report(Generator &) const;
 };
 
 

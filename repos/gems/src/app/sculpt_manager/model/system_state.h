@@ -66,9 +66,9 @@ struct Sculpt::System_state : private Noncopyable
 		return { orig != state };
 	}
 
-	void generate(Xml_generator &xml) const
+	void generate(Generator &g) const
 	{
-		xml.attribute("state", _state_name(state));
+		g.attribute("state", _state_name(state));
 	}
 
 	bool drivers_stopping() const { return state == State::DRIVERS_STOPPING; }

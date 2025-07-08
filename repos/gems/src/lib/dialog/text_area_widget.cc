@@ -683,7 +683,7 @@ void Text_area_widget::insert_at_cursor_position(Codepoint c)
 }
 
 
-void Text_area_widget::gen_clipboard_content(Xml_generator &xml) const
+void Text_area_widget::gen_clipboard_content(Generator &g) const
 {
 	if (!_selection.defined())
 		return;
@@ -705,6 +705,6 @@ void Text_area_widget::gen_clipboard_content(Xml_generator &xml) const
 	for_each_selected_character([&] (Codepoint c) {
 		String<10> const utf8(c);
 		if (utf8.valid())
-			xml.append_sanitized(utf8.string(), utf8.length() - 1);
+			g.append_quoted(utf8.string(), utf8.length() - 1);
 	});
 }

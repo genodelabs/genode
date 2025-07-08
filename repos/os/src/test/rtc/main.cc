@@ -74,13 +74,13 @@ struct Main
 
 			_ts = ts;
 
-			_reporter->generate([&] (Xml_generator &xml) {
-				xml.attribute("year",   ts.year);
-				xml.attribute("month",  ts.month);
-				xml.attribute("day",    ts.day);
-				xml.attribute("hour",   ts.hour);
-				xml.attribute("minute", ts.minute);
-				xml.attribute("second", ts.second);
+			_reporter->generate([&] (Generator &g) {
+				g.attribute("year",   ts.year);
+				g.attribute("month",  ts.month);
+				g.attribute("day",    ts.day);
+				g.attribute("hour",   ts.hour);
+				g.attribute("minute", ts.minute);
+				g.attribute("second", ts.second);
 			});
 
 		} catch (...) {

@@ -121,10 +121,10 @@ struct Text_area::Main : Text_area_widget::Action
 		if (!_saved_reporter.constructed())
 			return;
 
-		_saved_reporter->generate([&] (Xml_generator &xml) {
-			xml.attribute("version", _saved_version.value);
+		_saved_reporter->generate([&] (Generator &g) {
+			g.attribute("version", _saved_version.value);
 			if (_modified())
-				xml.attribute("modified", "yes");
+				g.attribute("modified", "yes");
 		});
 	}
 
@@ -192,8 +192,8 @@ struct Text_area::Main : Text_area_widget::Action
 		if (!_clipboard_reporter.constructed())
 			return;
 
-		_clipboard_reporter->generate([&] (Xml_generator &xml) {
-			_dialog.text.gen_clipboard_content(xml); });
+		_clipboard_reporter->generate([&] (Generator &g) {
+			_dialog.text.gen_clipboard_content(g); });
 	}
 
 	/*

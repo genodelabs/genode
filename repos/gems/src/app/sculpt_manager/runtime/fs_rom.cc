@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for the fs-rom component
+ * \brief  Configuration for the fs-rom component
  * \author Norman Feske
  * \date   2018-05-09
  */
@@ -13,29 +13,29 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_fs_rom_start_content(Xml_generator &xml,
+void Sculpt::gen_fs_rom_start_content(Generator &g,
                                       Start_name const &binary,
                                       Start_name const &server,
                                       Child_state const &state)
 {
-	state.gen_start_node_content(xml);
+	state.gen_start_node_content(g);
 
-	gen_named_node(xml, "binary", binary);
+	gen_named_node(g, "binary", binary);
 
-	xml.node("config", [&] { });
+	g.node("config", [&] { });
 
-	gen_provides<Rom_session>(xml);
+	gen_provides<Rom_session>(g);
 
-	xml.node("route", [&] {
+	g.node("route", [&] {
 
-		gen_service_node<::File_system::Session>(xml, [&] {
-			gen_named_node(xml, "child", server); });
+		gen_service_node<::File_system::Session>(g, [&] {
+			gen_named_node(g, "child", server); });
 
-		gen_parent_rom_route(xml, binary);
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session>(xml);
-		gen_parent_route<Pd_session> (xml);
-		gen_parent_route<Log_session>(xml);
-		gen_parent_route<Rm_session> (xml);
+		gen_parent_rom_route(g, binary);
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_route<Cpu_session>(g);
+		gen_parent_route<Pd_session> (g);
+		gen_parent_route<Log_session>(g);
+		gen_parent_route<Rm_session> (g);
 	});
 }

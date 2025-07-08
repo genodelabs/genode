@@ -47,10 +47,10 @@ struct Depot_download_manager::Require_verify
 		return Require_verify { node.attribute_value("require_verify", true) };
 	}
 
-	void gen_attr(Xml_generator &xml) const
+	void gen_attr(Generator &g) const
 	{
 		if (!value)
-			xml.attribute("require_verify", "no");
+			g.attribute("require_verify", "no");
 	}
 };
 

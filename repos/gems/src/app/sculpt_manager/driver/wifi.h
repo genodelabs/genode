@@ -21,71 +21,71 @@ struct Sculpt::Wifi_driver : private Noncopyable
 {
 	Constructible<Child_state> _wifi { };
 
-	void gen_start_node(Xml_generator &xml) const
+	void gen_start_node(Generator &g) const
 	{
 		if (!_wifi.constructed())
 			return;
 
-		xml.node("start", [&] {
-			_wifi->gen_start_node_content(xml);
-			gen_named_node(xml, "binary", "wifi");
+		g.node("start", [&] {
+			_wifi->gen_start_node_content(g);
+			gen_named_node(g, "binary", "wifi");
 
-			xml.node("config", [&] {
-				xml.attribute("dtb", "wifi.dtb");
+			g.node("config", [&] {
+				g.attribute("dtb", "wifi.dtb");
 
-				xml.node("vfs", [&] {
-					gen_named_node(xml, "dir", "dev", [&] {
-						xml.node("null", [&] {});
-						xml.node("zero", [&] {});
-						xml.node("log",  [&] {});
-						xml.node("null", [&] {});
-						gen_named_node(xml, "jitterentropy", "random");
-						gen_named_node(xml, "jitterentropy", "urandom"); });
-						gen_named_node(xml, "inline", "rtc", [&] {
-							xml.append("2018-01-01 00:01");
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "dev", [&] {
+						g.node("null", [&] {});
+						g.node("zero", [&] {});
+						g.node("log",  [&] {});
+						g.node("null", [&] {});
+						gen_named_node(g, "jitterentropy", "random");
+						gen_named_node(g, "jitterentropy", "urandom"); });
+						gen_named_node(g, "inline", "rtc", [&] {
+							g.append_quoted("2018-01-01 00:01");
 						});
-					gen_named_node(xml, "dir", "firmware", [&] {
-						xml.node("tar", [&] {
-							xml.attribute("name", "wifi_firmware.tar");
+					gen_named_node(g, "dir", "firmware", [&] {
+						g.node("tar", [&] {
+							g.attribute("name", "wifi_firmware.tar");
 						});
 					});
 				});
 
-				xml.node("libc", [&] {
-					xml.attribute("stdout", "/dev/log");
-					xml.attribute("stderr", "/dev/null");
-					xml.attribute("rtc",    "/dev/rtc");
+				g.node("libc", [&] {
+					g.attribute("stdout", "/dev/log");
+					g.attribute("stderr", "/dev/null");
+					g.attribute("rtc",    "/dev/rtc");
 				});
 			});
 
-			xml.node("route", [&] {
-				gen_service_node<Platform::Session>(xml, [&] {
-					xml.node("parent", [&] {
-						xml.attribute("label", "wifi"); }); });
-				xml.node("service", [&] {
-					xml.attribute("name", "Uplink");
-					xml.node("child", [&] {
-						xml.attribute("name", "nic_router");
-						xml.attribute("label", "wifi -> "); }); });
-				gen_common_routes(xml);
-				gen_parent_rom_route(xml, "wifi");
-				gen_parent_rom_route(xml, "wifi.dtb");
-				gen_parent_rom_route(xml, "libcrypto.lib.so");
-				gen_parent_rom_route(xml, "vfs.lib.so");
-				gen_parent_rom_route(xml, "libc.lib.so");
-				gen_parent_rom_route(xml, "libm.lib.so");
-				gen_parent_rom_route(xml, "vfs_jitterentropy.lib.so");
-				gen_parent_rom_route(xml, "libssl.lib.so");
-				gen_parent_rom_route(xml, "wifi.lib.so");
-				gen_parent_rom_route(xml, "wifi_firmware.tar");
-				gen_parent_rom_route(xml, "wpa_driver_nl80211.lib.so");
-				gen_parent_rom_route(xml, "wpa_supplicant.lib.so");
-				gen_parent_route<Rm_session>   (xml);
-				gen_parent_route<Rtc::Session> (xml);
-				gen_service_node<Rom_session>(xml, [&] {
-					xml.attribute("label", "wifi_config");
-					xml.node("parent", [&] {
-						xml.attribute("label", "config -> managed/wifi"); }); });
+			g.node("route", [&] {
+				gen_service_node<Platform::Session>(g, [&] {
+					g.node("parent", [&] {
+						g.attribute("label", "wifi"); }); });
+				g.node("service", [&] {
+					g.attribute("name", "Uplink");
+					g.node("child", [&] {
+						g.attribute("name", "nic_router");
+						g.attribute("label", "wifi -> "); }); });
+				gen_common_routes(g);
+				gen_parent_rom_route(g, "wifi");
+				gen_parent_rom_route(g, "wifi.dtb");
+				gen_parent_rom_route(g, "libcrypto.lib.so");
+				gen_parent_rom_route(g, "vfs.lib.so");
+				gen_parent_rom_route(g, "libc.lib.so");
+				gen_parent_rom_route(g, "libm.lib.so");
+				gen_parent_rom_route(g, "vfs_jitterentropy.lib.so");
+				gen_parent_rom_route(g, "libssl.lib.so");
+				gen_parent_rom_route(g, "wifi.lib.so");
+				gen_parent_rom_route(g, "wifi_firmware.tar");
+				gen_parent_rom_route(g, "wpa_driver_nl80211.lib.so");
+				gen_parent_rom_route(g, "wpa_supplicant.lib.so");
+				gen_parent_route<Rm_session>   (g);
+				gen_parent_route<Rtc::Session> (g);
+				gen_service_node<Rom_session>(g, [&] {
+					g.attribute("label", "wifi_config");
+					g.node("parent", [&] {
+						g.attribute("label", "config -> managed/wifi"); }); });
 			});
 		});
 	};

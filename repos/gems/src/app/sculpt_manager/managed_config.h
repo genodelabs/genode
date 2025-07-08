@@ -85,10 +85,10 @@ struct Sculpt::Managed_config
 		 * If a manually managed config at 'config/' is provided, copy its
 		 * content to the effective config at 'config/managed/'.
 		 */
-		_config.generate([&] (Xml_generator &xml) {
+		_config.generate([&] (Generator &g) {
 			Node const &node = _manual_config_rom.node();
-			xml.node_attributes(node);
-			if (!xml.append_node_content(node, { 20 }))
+			g.node_attributes(node);
+			if (!g.append_node_content(node, { 20 }))
 				warning("manual config is too deeply nested: ", node);
 		});
 		return true;
@@ -96,16 +96,16 @@ struct Sculpt::Managed_config
 
 	void generate(auto const &fn)
 	{
-		_config.generate([&] (Xml_generator &xml) { fn(xml); });
+		_config.generate([&] (Generator &g) { fn(g); });
 	}
 
-	Managed_config(Env &env, Node::Type const &xml_node_name,
+	Managed_config(Env &env, Node::Type const &node_type,
 	               Rom_name const &rom_name,
 	               HANDLER &obj, void (HANDLER::*handle) (Node const &))
 	:
 		_env(env), _obj(obj), _handle(handle),
 		_manual_config_rom(_env, Label("config -> ", rom_name).string()),
-		_config(_env, xml_node_name.string(), Label(rom_name, "_config").string())
+		_config(_env, node_type.string(), Label(rom_name, "_config").string())
 	{
 		_manual_config_rom.sigh(_manual_config_handler);
 

@@ -40,8 +40,8 @@ struct Test::Main
 
 	void _report_brightness(int value)
 	{
-		_brightness_reporter->generate([&] (Xml_generator &xml) {
-			xml.attribute("value", value); });
+		_brightness_reporter->generate([&] (Generator &g) {
+			g.attribute("value", value); });
 	}
 
 	Constructible<Attached_rom_dataspace> _brightness_rom { };

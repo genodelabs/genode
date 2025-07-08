@@ -14,9 +14,6 @@
 #ifndef _MODEL__CHILD_EXIT_STATE_H_
 #define _MODEL__CHILD_EXIT_STATE_H_
 
-/* Genode includes */
-#include <util/xml_node.h>
-
 /* local includes */
 #include "types.h"
 

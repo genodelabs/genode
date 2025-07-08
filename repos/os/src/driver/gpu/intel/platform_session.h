@@ -173,7 +173,7 @@ class Platform::Device_component : public Rpc_object<Device_interface,
 
 
 class Platform::Session_component : public Rpc_object<Session>,
-                                    private Dynamic_rom_session::Xml_producer
+                                    private Dynamic_rom_session::Producer
 {
 	private:
 
@@ -217,7 +217,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 		                  Dataspace_capability gmadr_ds_cap,
 		                  Range                gmadr_range)
 		:
-		  Dynamic_rom_session::Xml_producer("devices"),
+		  Dynamic_rom_session::Producer("devices"),
 		  _env(env),
 		  _platform(platform),
 		  _hw_ready(hw_ready),
@@ -296,11 +296,11 @@ class Platform::Session_component : public Rpc_object<Session>,
 
 		bool handle_irq() { return _device_component.handle_irq(); }
 
-		/*******************************************
-		 ** Dynamic_rom_session::Xml_producer API **
-		 *******************************************/
+		/***************************************
+		 ** Dynamic_rom_session::Producer API **
+		 ***************************************/
 
-		void produce_xml(Xml_generator &xml) override
+		void generate(Genode::Generator &g) override
 		{
 			Rom_session_client rsc(_platform.devices_rom());
 			Attached_dataspace rom(_env.rm(), rsc.dataspace());
@@ -311,7 +311,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 			Node const rom_node(Const_byte_range_ptr(rom.local_addr<char>(),
 			                                         rom.size()));
 
-			copy_attributes(xml, rom_node);
+			copy_attributes(g, rom_node);
 
 			rom_node.for_each_sub_node("device", [&](auto const &dev) {
 
@@ -327,22 +327,22 @@ class Platform::Session_component : public Rpc_object<Session>,
 					return;
 
 				if (!graphic_dev) {
-					copy_node(xml, dev);
+					copy_node(g, dev);
 					return;
 				}
 
-				xml.node("device", [&]() {
-					copy_attributes(xml, dev);
+				g.node("device", [&]() {
+					copy_attributes(g, dev);
 
 					dev.for_each_sub_node([&] (Node const &node) {
 						if (!node.has_type("io_mem")) {
-							copy_node(xml, node);
+							copy_node(g, node);
 							return;
 						}
 
 						auto const pci_bar = node.attribute_value("pci_bar", ~0U);
 
-						xml.node("io_mem", [&]() {
+						g.node("io_mem", [&]() {
 							node.for_each_attribute([&](auto const &attr){
 								String<16> value { Cstring(attr.value.start,
 								                           attr.value.num_bytes) };
@@ -354,8 +354,7 @@ class Platform::Session_component : public Rpc_object<Session>,
 									value = String<16>(Hex(r.size));
 								}
 
-								xml.attribute(attr.name.string(),
-								              value.string());
+								g.attribute(attr.name.string(), value.string());
 							});
 						});
 					});
@@ -363,27 +362,27 @@ class Platform::Session_component : public Rpc_object<Session>,
 			});
 		}
 
-		void copy_attributes(Xml_generator &xml, Node const &from)
+		void copy_attributes(Generator &g, Node const &from)
 		{
 			using Value = String<64>;
 			from.for_each_attribute([&] (Node::Attribute const &attr) {
 				Value value { Cstring(attr.value.start, attr.value.num_bytes) };
-				xml.attribute(attr.name.string(), value);
+				g.attribute(attr.name.string(), value);
 			});
 		}
 
 		struct Node_max_depth { unsigned value; };
 
-		void copy_node(Xml_generator &xml, Node const &from,
+		void copy_node(Generator &g, Node const &from,
 		               Node_max_depth max_depth = { 5 })
 		{
 			if (!max_depth.value)
 				return;
 
-			xml.node(from.type().string(), [&] {
-				copy_attributes(xml, from);
+			g.node(from.type().string(), [&] {
+				copy_attributes(g, from);
 				from.for_each_sub_node([&] (Node const &sub_node) {
-					copy_node(xml, sub_node, { max_depth.value - 1 }); });
+					copy_node(g, sub_node, { max_depth.value - 1 }); });
 			});
 		}
 };

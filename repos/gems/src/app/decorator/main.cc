@@ -197,15 +197,15 @@ struct Decorator::Main : Window_factory_base
 		_window_layout.sigh(_window_layout_handler);
 		_pointer.sigh(_pointer_handler);
 
-		_decorator_margins_reporter.generate([&] (Xml_generator &xml) {
-			xml.node("floating", [&] () {
+		_decorator_margins_reporter.generate([&] (Generator &g) {
+			g.node("floating", [&] () {
 
 				Window::Border const border = Window::border_floating();
 
-				xml.attribute("top",    border.top);
-				xml.attribute("bottom", border.bottom);
-				xml.attribute("left",   border.left);
-				xml.attribute("right",  border.right);
+				g.attribute("top",    border.top);
+				g.attribute("bottom", border.bottom);
+				g.attribute("left",   border.left);
+				g.attribute("right",  border.right);
 			});
 		});
 
@@ -289,22 +289,22 @@ static void update_hover_report(Genode::Node pointer_node,
 
 		hover = new_hover;
 
-		hover_reporter.generate([&] (Genode::Xml_generator &xml) {
+		hover_reporter.generate([&] (Genode::Generator &g) {
 			if (hover.window_id.value > 0) {
 
-				xml.node("window", [&] () {
+				g.node("window", [&] () {
 
-					xml.attribute("id", hover.window_id.value);
+					g.attribute("id", hover.window_id.value);
 
-					if (hover.left_sizer)   xml.node("left_sizer");
-					if (hover.right_sizer)  xml.node("right_sizer");
-					if (hover.top_sizer)    xml.node("top_sizer");
-					if (hover.bottom_sizer) xml.node("bottom_sizer");
-					if (hover.title)        xml.node("title");
-					if (hover.closer)       xml.node("closer");
-					if (hover.minimizer)    xml.node("minimizer");
-					if (hover.maximizer)    xml.node("maximizer");
-					if (hover.unmaximizer)  xml.node("unmaximizer");
+					if (hover.left_sizer)   g.node("left_sizer");
+					if (hover.right_sizer)  g.node("right_sizer");
+					if (hover.top_sizer)    g.node("top_sizer");
+					if (hover.bottom_sizer) g.node("bottom_sizer");
+					if (hover.title)        g.node("title");
+					if (hover.closer)       g.node("closer");
+					if (hover.minimizer)    g.node("minimizer");
+					if (hover.maximizer)    g.node("maximizer");
+					if (hover.unmaximizer)  g.node("unmaximizer");
 				});
 			}
 		});

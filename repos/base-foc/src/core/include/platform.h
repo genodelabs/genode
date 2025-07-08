@@ -17,9 +17,9 @@
 #define _CORE__INCLUDE__PLATFORM_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <base/synced_allocator.h>
 #include <base/allocator_avl.h>
+#include <base/node.h>
 
 /* core includes */
 #include <pager.h>
@@ -99,8 +99,7 @@ class Core::Platform : public Platform_generic
 		/**
 		 * Setup content of platform_info ROM
 		 */
-		void _setup_platform_info(Xml_generator &,
-		                          Foc::l4_kernel_info_t &);
+		void _setup_platform_info(Generator &, Foc::l4_kernel_info_t &);
 
 		/**
 		 * Setup IRQ allocator

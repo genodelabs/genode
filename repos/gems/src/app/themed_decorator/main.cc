@@ -153,16 +153,16 @@ struct Decorator::Main : Window_factory_base
 
 		_trigger_gui_sync();
 
-		_decorator_margins_reporter.generate([&] (Xml_generator &xml) {
+		_decorator_margins_reporter.generate([&] (Generator &g) {
 
-			xml.node("floating", [&] () {
+			g.node("floating", [&] () {
 
 				Theme::Margins const margins = _theme.decor_margins();
 
-				xml.attribute("top",    margins.top);
-				xml.attribute("bottom", margins.bottom);
-				xml.attribute("left",   margins.left);
-				xml.attribute("right",  margins.right);
+				g.attribute("top",    margins.top);
+				g.attribute("bottom", margins.bottom);
+				g.attribute("left",   margins.left);
+				g.attribute("right",  margins.right);
 			});
 		});
 
@@ -244,23 +244,23 @@ static void update_hover_report(Genode::Node pointer_node,
 
 		hover = new_hover;
 
-		hover_reporter.generate([&] (Genode::Xml_generator &xml) {
+		hover_reporter.generate([&] (Genode::Generator &g) {
 
 			if (hover.window_id.value > 0) {
 
-				xml.node("window", [&] () {
+				g.node("window", [&] () {
 
-					xml.attribute("id", hover.window_id.value);
+					g.attribute("id", hover.window_id.value);
 
-					if (hover.left_sizer)   xml.node("left_sizer");
-					if (hover.right_sizer)  xml.node("right_sizer");
-					if (hover.top_sizer)    xml.node("top_sizer");
-					if (hover.bottom_sizer) xml.node("bottom_sizer");
-					if (hover.title)        xml.node("title");
-					if (hover.closer)       xml.node("closer");
-					if (hover.minimizer)    xml.node("minimizer");
-					if (hover.maximizer)    xml.node("maximizer");
-					if (hover.unmaximizer)  xml.node("unmaximizer");
+					if (hover.left_sizer)   g.node("left_sizer");
+					if (hover.right_sizer)  g.node("right_sizer");
+					if (hover.top_sizer)    g.node("top_sizer");
+					if (hover.bottom_sizer) g.node("bottom_sizer");
+					if (hover.title)        g.node("title");
+					if (hover.closer)       g.node("closer");
+					if (hover.minimizer)    g.node("minimizer");
+					if (hover.maximizer)    g.node("maximizer");
+					if (hover.unmaximizer)  g.node("unmaximizer");
 				});
 			}
 		});

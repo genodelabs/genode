@@ -16,7 +16,6 @@
 #include <vfs/dir_file_system.h>
 #include <vfs/single_file_system.h>
 #include <util/arg_string.h>
-#include <util/xml_generator.h>
 #include <trace/timestamp.h>
 
 /* tresor includes */
@@ -1527,9 +1526,9 @@ class Vfs_tresor::Current_file_system : private Current_local_factory, public Di
 		static Config _config()
 		{
 			char buf[Config::capacity()] { };
-			Xml_generator::generate({ buf, sizeof(buf) }, "dir", [&] (Xml_generator &xml) {
-				xml.attribute("name", String<16>("current"));
-				xml.node("data", [&] { xml.attribute("readonly", false); });
+			Generator::generate({ buf, sizeof(buf) }, "dir", [&] (Generator &g) {
+				g.attribute("name", String<16>("current"));
+				g.node("data", [&] { g.attribute("readonly", false); });
 			}).with_error([] (Genode::Buffer_error) {
 				Genode::warning("VFS-tresor current config exceeds maximum buffer size");
 			});
@@ -1607,11 +1606,11 @@ class Vfs_tresor::Control_file_system : private Control_local_factory, public Di
 		static Config _config()
 		{
 			char buf[Config::capacity()] { };
-			Xml_generator::generate({ buf, sizeof(buf) }, "dir", [&] (Xml_generator &xml) {
-				xml.attribute("name", "control");
-				xml.node("rekey", [&] () { });
-				xml.node("extend", [&] () { });
-				xml.node("deinitialize", [&] () { });
+			Generator::generate({ buf, sizeof(buf) }, "dir", [&] (Generator &g) {
+				g.attribute("name", "control");
+				g.node("rekey", [&] () { });
+				g.node("extend", [&] () { });
+				g.node("deinitialize", [&] () { });
 			}).with_error([&] (Genode::Buffer_error) {
 				Genode::warning("VFS-tresor control config exceeds maximum buffer size");
 			});
@@ -1679,10 +1678,10 @@ class Vfs_tresor::File_system : private Local_factory, public Dir_file_system
 		static Config _config(Node const &node)
 		{
 			char buf[Config::capacity()] { };
-			Xml_generator::generate({ buf, sizeof(buf) }, "dir", [&] (Xml_generator &xml) {
-				xml.attribute("name", node.attribute_value("name", String<64>("tresor")));
-				xml.node("control");
-				xml.node("current");
+			Generator::generate({ buf, sizeof(buf) }, "dir", [&] (Generator &g) {
+				g.attribute("name", node.attribute_value("name", String<64>("tresor")));
+				g.node("control");
+				g.node("current");
 			}).with_error([&] (Genode::Buffer_error) {
 				Genode::warning("VFS-tresor config exceeds maximum buffer size");
 			});

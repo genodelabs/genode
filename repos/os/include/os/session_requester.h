@@ -37,10 +37,10 @@ class Genode::Session_requester
 
 			Result produce_content(Byte_range_ptr const &dst) override
 			{
-				return Xml_generator::generate(dst, "session_requests",
-					[&] (Xml_generator &xml) {
+				return Generator::generate(dst, "session_requests",
+					[&] (Generator &g) {
 						_id_space.for_each<Session_state const>([&] (Session_state const &s) {
-							s.generate_session_request(xml); }); }
+							s.generate_session_request(g); }); }
 				).convert<Result>([&] (size_t)         { return Ok(); },
 				                  [&] (Buffer_error e) { return e; });
 			}

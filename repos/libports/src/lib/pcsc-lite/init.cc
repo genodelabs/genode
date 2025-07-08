@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <util/xml_node.h>
 
 /* libc includes */
 #include <fcntl.h>

@@ -15,8 +15,8 @@
 #define _SRC__DRIVERS__PLATFORM__PC__INTEL__PAGE_TABLE_H_
 
 #include <base/env.h>
+#include <base/node.h>
 #include <util/register.h>
-#include <util/xml_generator.h>
 
 #include <page_table/page_table_base.h>
 #include <intel/report_helper.h>
@@ -112,22 +112,22 @@ struct Intel::Level_1_descriptor : Common_descriptor
 			| Pa::masked(pa);
 	}
 
-	static void generate_page(unsigned long          index,
-	                          access_t               entry,
-	                          Genode::Xml_generator &xml)
+	static void generate_page(unsigned long      index,
+	                          access_t           entry,
+	                          Genode::Generator &g)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
 
-		xml.node("page", [&] () {
+		g.node("page", [&] () {
 			addr_t addr = Pa::masked(entry);
-			xml.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
-			xml.attribute("value",   Hex_str(Hex(entry)));
-			xml.attribute("address", Hex_str(Hex(addr)));
-			xml.attribute("accessed",(bool)A::get(entry));
-			xml.attribute("dirty",   (bool)D::get(entry));
-			xml.attribute("write",   (bool)W::get(entry));
-			xml.attribute("read",    (bool)R::get(entry));
+			g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
+			g.attribute("value",   Hex_str(Hex(entry)));
+			g.attribute("address", Hex_str(Hex(addr)));
+			g.attribute("accessed",(bool)A::get(entry));
+			g.attribute("dirty",   (bool)D::get(entry));
+			g.attribute("write",   (bool)W::get(entry));
+			g.attribute("read",    (bool)R::get(entry));
 		});
 	}
 };
@@ -152,22 +152,22 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
 	}
 
 	template <typename ENTRY>
-	static void generate(unsigned long          index,
-	                     access_t               entry,
-	                     Genode::Xml_generator &xml,
-	                     Report_helper         &report_helper)
+	static void generate(unsigned long      index,
+	                     access_t           entry,
+	                     Genode::Generator &g,
+	                     Report_helper      &report_helper)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
 
-		xml.node("page_directory", [&] () {
+		g.node("page_directory", [&] () {
 			addr_t pd_addr = Pa::masked(entry);
-			xml.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
-			xml.attribute("value",   Hex_str(Hex(entry)));
-			xml.attribute("address", Hex_str(Hex(pd_addr)));
+			g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
+			g.attribute("value",   Hex_str(Hex(entry)));
+			g.attribute("address", Hex_str(Hex(pd_addr)));
 
 			report_helper.with_table<ENTRY>(pd_addr, [&] (ENTRY &pd) {
-				pd.generate(xml, report_helper); });
+				pd.generate(g, report_helper); });
 		});
 	}
 };
@@ -196,22 +196,22 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Page
 		     | Pa::masked(pa);
 	}
 
-	static void generate_page(unsigned long          index,
-	                          access_t               entry,
-	                          Genode::Xml_generator &xml)
+	static void generate_page(unsigned long      index,
+	                          access_t           entry,
+	                          Genode::Generator &g)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
 
-		xml.node("page", [&] () {
+		g.node("page", [&] () {
 			addr_t addr = Pa::masked(entry);
-			xml.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
-			xml.attribute("value",   Hex_str(Hex(entry)));
-			xml.attribute("address", Hex_str(Hex(addr)));
-			xml.attribute("accessed",(bool)A::get(entry));
-			xml.attribute("dirty",   (bool)D::get(entry));
-			xml.attribute("write",   (bool)W::get(entry));
-			xml.attribute("read",    (bool)R::get(entry));
+			g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
+			g.attribute("value",   Hex_str(Hex(entry)));
+			g.attribute("address", Hex_str(Hex(addr)));
+			g.attribute("accessed",(bool)A::get(entry));
+			g.attribute("dirty",   (bool)D::get(entry));
+			g.attribute("write",   (bool)W::get(entry));
+			g.attribute("read",    (bool)R::get(entry));
 		});
 	}
 };
@@ -233,22 +233,22 @@ struct Intel::Level_4_descriptor : Common_descriptor
 	}
 
 	template <typename ENTRY>
-	static void generate(unsigned long          index,
-	                     access_t               entry,
-	                     Genode::Xml_generator &xml,
-	                     Report_helper         &report_helper)
+	static void generate(unsigned long      index,
+	                     access_t           entry,
+	                     Genode::Generator &g,
+	                     Report_helper     &report_helper)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
 
-		xml.node("level4_entry", [&] () {
+		g.node("level4_entry", [&] () {
 			addr_t level3_addr = Pa::masked(entry);
-			xml.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
-			xml.attribute("value",   Hex_str(Hex(entry)));
-			xml.attribute("address", Hex_str(Hex(level3_addr)));
+			g.attribute("index",   Hex_str(Hex(index << PAGE_SIZE_LOG2)));
+			g.attribute("value",   Hex_str(Hex(entry)));
+			g.attribute("address", Hex_str(Hex(level3_addr)));
 
 			report_helper.with_table<ENTRY>(level3_addr, [&] (ENTRY &level3_table) {
-				level3_table.generate(xml, report_helper); });
+				level3_table.generate(g, report_helper); });
 		});
 	}
 };
@@ -262,7 +262,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_2MB; }
 
-		void generate(Genode::Xml_generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_2_translation_table
@@ -272,7 +272,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_1GB; }
 
-		void generate(Genode::Xml_generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_3_translation_table
@@ -282,7 +282,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_512GB; }
 
-		void generate(Genode::Xml_generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_4_translation_table
@@ -292,7 +292,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_256TB; }
 
-		void generate(Genode::Xml_generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper &);
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 }

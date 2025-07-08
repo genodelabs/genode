@@ -54,12 +54,12 @@ namespace Window_layouter {
 		return node.attribute_value("name", Name());
 	}
 
-	static void generate(Xml_generator &xml, Rect const &rect)
+	static void generate(Generator &g, Rect const &rect)
 	{
-		xml.attribute("xpos",   rect.x1());
-		xml.attribute("ypos",   rect.y1());
-		xml.attribute("width",  rect.w());
-		xml.attribute("height", rect.h());
+		g.attribute("xpos",   rect.x1());
+		g.attribute("ypos",   rect.y1());
+		g.attribute("width",  rect.w());
+		g.attribute("height", rect.h());
 	}
 
 	struct Drag

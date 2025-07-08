@@ -169,38 +169,38 @@ void Sculpt::Deploy::_handle_managed_deploy(Node const &managed_deploy)
 }
 
 
-void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator  &xml,
+void Sculpt::Deploy::gen_runtime_start_nodes(Generator      &g,
                                              Prio_levels     prio_levels,
                                              Affinity::Space affinity_space) const
 {
 	/* depot-ROM instance for regular (immutable) depot content */
-	xml.node("start", [&] {
-		gen_fs_rom_start_content(xml, "cached_fs_rom", "depot",
+	g.node("start", [&] {
+		gen_fs_rom_start_content(g, "cached_fs_rom", "depot",
 		                         cached_depot_rom_state); });
 
 	/* depot-ROM instance for mutable content (/depot/local/) */
-	xml.node("start", [&] {
-		gen_fs_rom_start_content(xml, "fs_rom", "depot",
+	g.node("start", [&] {
+		gen_fs_rom_start_content(g, "fs_rom", "depot",
 		                         uncached_depot_rom_state); });
 
-	xml.node("start", [&] {
-		gen_depot_query_start_content(xml); });
+	g.node("start", [&] {
+		gen_depot_query_start_content(g); });
 
 	_managed_deploy_rom.with_node([&] (Node const &managed_deploy) {
 
 		/* insert content of '<static>' node as is */
 		managed_deploy.with_optional_sub_node("static",
 			[&] (Node const &static_config) {
-				(void)xml.append_node_content(static_config, { 20 }); });
+				(void)g.append_node_content(static_config, { 20 }); });
 
 		/* generate start nodes for deployed packages */
 		managed_deploy.with_optional_sub_node("common_routes",
 			[&] (Node const &common_routes) {
-				_children.gen_start_nodes(xml, common_routes,
+				_children.gen_start_nodes(g, common_routes,
 				                          prio_levels, affinity_space,
 				                          "depot_rom", "dynamic_depot_rom");
-				xml.node("monitor", [&] {
-					_children.gen_monitor_policy_nodes(xml);});
+				g.node("monitor", [&] {
+					_children.gen_monitor_policy_nodes(g);});
 			});
 	});
 }

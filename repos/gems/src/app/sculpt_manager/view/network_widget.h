@@ -86,7 +86,7 @@ struct Sculpt::Network_widget : Widget<Frame>
 
 	Hosted<Frame, Vbox, Frame, Vbox, Ap_selector_widget> _ap_selector;
 
-	void _gen_connected_ap(Xml_generator &, bool) const;
+	void _gen_connected_ap(Generator &, bool) const;
 
 	Network_widget(Nic_target           const &nic_target,
 	               Access_points        const &access_points,

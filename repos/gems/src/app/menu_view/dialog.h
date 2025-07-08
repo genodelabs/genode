@@ -160,10 +160,10 @@ struct Menu_view::Dialog : List_model<Dialog>::Element
 		return _root_widget.hovered(_hovered_position);
 	}
 
-	void gen_hover(Xml_generator &xml) const
+	void gen_hover(Generator &g) const
 	{
 		if (_hovered)
-			_root_widget.gen_hover_model(xml, _hovered_position);
+			_root_widget.gen_hover_model(g, _hovered_position);
 	}
 
 	void _redraw()

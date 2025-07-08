@@ -52,22 +52,22 @@ Net::Report::Report(bool                      const &verbose,
 
 void Net::Report::generate() const
 {
-	Reporter::Result const result = _reporter.generate([&] (Xml_generator &xml) {
+	Reporter::Result const result = _reporter.generate([&] (Generator &g) {
 		if (_quota) {
-			xml.node("ram", [&] {
-				xml.attribute("quota",  _pd.ram_quota().value);
-				xml.attribute("used",   _pd.used_ram().value);
-				xml.attribute("shared", _shared_quota.ram);
+			g.node("ram", [&] {
+				g.attribute("quota",  _pd.ram_quota().value);
+				g.attribute("used",   _pd.used_ram().value);
+				g.attribute("shared", _shared_quota.ram);
 			});
-			xml.node("cap", [&] {
-				xml.attribute("quota",  _pd.cap_quota().value);
-				xml.attribute("used",   _pd.used_caps().value);
-				xml.attribute("shared", _shared_quota.cap);
+			g.node("cap", [&] {
+				g.attribute("quota",  _pd.cap_quota().value);
+				g.attribute("used",   _pd.used_caps().value);
+				g.attribute("shared", _shared_quota.cap);
 			});
 		}
 		_domains.for_each([&] (Domain const &domain) {
 			if (!domain.report_empty(*this))
-				xml.node("domain", [&] { domain.report(xml, *this); }); });
+				g.node("domain", [&] { domain.report(g, *this); }); });
 	});
 
 	if (result == Buffer_error::EXCEEDED && _verbose)

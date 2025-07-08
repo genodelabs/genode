@@ -34,14 +34,14 @@ struct Sculpt::Panorama_config
 			return (name != other.name) || (rect != other.rect);
 		}
 
-		void gen_policy(Xml_generator &xml) const
+		void gen_policy(Generator &g) const
 		{
-			xml.node("policy", [&] {
-				xml.attribute("label_suffix", name);
-				xml.attribute("xpos",   rect.x1());
-				xml.attribute("ypos",   rect.y1());
-				xml.attribute("width",  rect.w());
-				xml.attribute("height", rect.h());
+			g.node("policy", [&] {
+				g.attribute("label_suffix", name);
+				g.attribute("xpos",   rect.x1());
+				g.attribute("ypos",   rect.y1());
+				g.attribute("width",  rect.w());
+				g.attribute("height", rect.h());
 			});
 		}
 	};
@@ -84,10 +84,10 @@ struct Sculpt::Panorama_config
 			append(entry.name, entry.mode_attr.px, entry.orientation); });
 	}
 
-	void gen_policy_entries(Xml_generator &xml) const
+	void gen_policy_entries(Generator &g) const
 	{
 		for (unsigned i = 0; i < _num_entries; i++)
-			_entries[i].gen_policy(xml);
+			_entries[i].gen_policy(g);
 	}
 
 	bool operator != (Panorama_config const &other) const

@@ -283,13 +283,13 @@ void Main::_handle_udp(Ipv4_packet &ip,
 	}
 
 	Rtc::Timestamp rtc_ts { _sntp_ts_to_rtc_ts(sntp.transmit_timestamp()) };
-	reporter.generate([&] (Xml_generator &xml) {
-		xml.attribute("year",   rtc_ts.year);
-		xml.attribute("month",  rtc_ts.month);
-		xml.attribute("day",    rtc_ts.day);
-		xml.attribute("hour",   rtc_ts.hour);
-		xml.attribute("minute", rtc_ts.minute);
-		xml.attribute("second", rtc_ts.second);
+	reporter.generate([&] (Generator &g) {
+		g.attribute("year",   rtc_ts.year);
+		g.attribute("month",  rtc_ts.month);
+		g.attribute("day",    rtc_ts.day);
+		g.attribute("hour",   rtc_ts.hour);
+		g.attribute("minute", rtc_ts.minute);
+		g.attribute("second", rtc_ts.second);
 	});
 	if (_dst_ns != Domain_name()) {
 		_dst_ip = Ipv4_address();

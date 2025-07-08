@@ -92,7 +92,7 @@ class Net::Uplink_session_component : private Uplink_session_component_base,
 				void handle_config(Configuration const &config) override { _config_ptr = &config; }
 				Genode::Session_label const &label() const override { return _label; }
 				bool report_empty() const override { return _session_env.report_empty(); };
-				void report(Genode::Xml_generator &xml) const override { _session_env.report(xml); };
+				void report(Genode::Generator &g) const override { _session_env.report(g); };
 				void handle_domain_ready_state(bool /* state */) override { }
 				bool interface_link_state() const override { return true; }
 		};

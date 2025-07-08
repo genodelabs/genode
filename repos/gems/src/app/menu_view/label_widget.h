@@ -176,15 +176,15 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		         .detail    = { _char_index_at_xpos(at.x) } };
 	}
 
-	void gen_hover_model(Xml_generator &xml, Point at) const override
+	void gen_hover_model(Generator &g, Point at) const override
 	{
 		if (_inner_geometry().contains(at)) {
 
-			xml.node(_type_name.string(), [&]() {
+			g.node(_type_name.string(), [&]() {
 
-				_gen_common_hover_attr(xml);
+				_gen_common_hover_attr(g);
 
-				xml.attribute("at", _char_index_at_xpos(at.x));
+				g.attribute("at", _char_index_at_xpos(at.x));
 			});
 		}
 	}

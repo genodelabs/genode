@@ -196,17 +196,17 @@ class Genode::Session_env : public Ram_allocator,
 
 		bool report_empty() const { return false; }
 
-		void report(Genode::Xml_generator &xml) const
+		void report(Genode::Generator &g) const
 		{
-			xml.node("ram-quota", [&] () {
-				xml.attribute("used",  _ram_guard.used().value);
-				xml.attribute("limit", _ram_guard.limit().value);
-				xml.attribute("avail", _ram_guard.avail().value);
+			g.node("ram-quota", [&] () {
+				g.attribute("used",  _ram_guard.used().value);
+				g.attribute("limit", _ram_guard.limit().value);
+				g.attribute("avail", _ram_guard.avail().value);
 			});
-			xml.node("cap-quota", [&] () {
-				xml.attribute("used",  _cap_guard.used().value);
-				xml.attribute("limit", _cap_guard.limit().value);
-				xml.attribute("avail", _cap_guard.avail().value);
+			g.node("cap-quota", [&] () {
+				g.attribute("used",  _cap_guard.used().value);
+				g.attribute("limit", _cap_guard.limit().value);
+				g.attribute("avail", _cap_guard.avail().value);
 			});
 		}
 

@@ -113,11 +113,11 @@ void Test::Manager::handle_overlay_request()
 
 void Test::Manager::report_apps()
 {
-	apps_report.generate([&] (Genode::Xml_generator &xml) {
+	apps_report.generate([&] (Genode::Generator &g) {
 		for (App &app : apps) {
-			xml.node("app", [&] () {
-				xml.attribute("name", app.name);
-				xml.attribute("visible", app.visible);
+			g.node("app", [&] () {
+				g.attribute("name", app.name);
+				g.attribute("visible", app.visible);
 			});
 		}
 	});
@@ -126,65 +126,65 @@ void Test::Manager::report_apps()
 
 void Test::Manager::report_overlay()
 {
-	overlay_report.generate([&] (Genode::Xml_generator &xml) {
-		xml.attribute("visible", overlay_visible);
+	overlay_report.generate([&] (Genode::Generator &g) {
+		g.attribute("visible", overlay_visible);
 	});
 }
 
 
 void Test::Manager::report_layout_rules()
 {
-	layout_rules_report.generate([&] (Genode::Xml_generator &xml) {
-		xml.node("screen", [&] () {
-			xml.node("column", [&] () {
-				xml.attribute("name",  "screen");
-				xml.attribute("layer", "1");
-				xml.node("row", [&] () {
-					xml.attribute("name",   "panel");
-					xml.attribute("layer",  "2");
-					xml.attribute("height", "24");
+	layout_rules_report.generate([&] (Genode::Generator &g) {
+		g.node("screen", [&] () {
+			g.node("column", [&] () {
+				g.attribute("name",  "screen");
+				g.attribute("layer", "1");
+				g.node("row", [&] () {
+					g.attribute("name",   "panel");
+					g.attribute("layer",  "2");
+					g.attribute("height", "24");
 				});
-				xml.node("row", [&] () {
-					xml.attribute("name", "content");
-					xml.attribute("layer", "4");
-					xml.node("column", [&] () {
-						xml.attribute("weight", "2");
+				g.node("row", [&] () {
+					g.attribute("name", "content");
+					g.attribute("layer", "4");
+					g.node("column", [&] () {
+						g.attribute("weight", "2");
 					});
-					xml.node("column", [&] () {
-						xml.attribute("name",   "overlay");
-						xml.attribute("layer",  "3");
-						xml.attribute("weight", "1");
+					g.node("column", [&] () {
+						g.attribute("name",   "overlay");
+						g.attribute("layer",  "3");
+						g.attribute("weight", "1");
 					});
 				});
 			});
 		});
-		xml.node("assign", [&] () {
-			xml.attribute("label_prefix", "test-tiled_wm-panel");
-			xml.attribute("target", "panel");
+		g.node("assign", [&] () {
+			g.attribute("label_prefix", "test-tiled_wm-panel");
+			g.attribute("target", "panel");
 		});
-		xml.node("assign", [&] () {
-			xml.attribute("label_prefix", "test-tiled_wm-overlay");
-			xml.attribute("target", "overlay");
+		g.node("assign", [&] () {
+			g.attribute("label_prefix", "test-tiled_wm-overlay");
+			g.attribute("target", "overlay");
 			if (!overlay_visible)
-				xml.attribute("visible", false);
+				g.attribute("visible", false);
 		});
 
 		/* debug */
 		if (false) {
-			xml.node("assign", [&] () {
-				xml.attribute("label_prefix", "");
-				xml.attribute("target", "screen");
-				xml.attribute("xpos", "any");
-				xml.attribute("ypos", "any");
+			g.node("assign", [&] () {
+				g.attribute("label_prefix", "");
+				g.attribute("target", "screen");
+				g.attribute("xpos", "any");
+				g.attribute("ypos", "any");
 			});
 		}
 
 		for (App &app : apps) {
-			xml.node("assign", [&] () {
-				xml.attribute("label_prefix", app.label);
-				xml.attribute("target", "content");
+			g.node("assign", [&] () {
+				g.attribute("label_prefix", app.label);
+				g.attribute("target", "content");
 				if (!app.visible)
-					xml.attribute("visible", "false");
+					g.attribute("visible", "false");
 			});
 		}
 	});

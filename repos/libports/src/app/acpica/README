@@ -19,11 +19,11 @@ sources:
 Whenever a state change is detected, a Genode report is generated, if a 
 config attribute "report" is set to "yes". The reports are named
 'acpi_lid', 'acpi_battery', 'acpi_fixed', 'acpi_ac' and 'acpi_ec'. See below
-for the xml syntax used so far. Please also look into the ACPI specification
+for the structure used so far. Please also look into the ACPI specification
 for detailed description of some of the fields and their possible values.
 
 If the config attributes 'reset' or 'poweroff' are set to yes, the application
-additionally looks for a ROM in XML format named 'system' and monitors
+additionally looks for a ROM in structured format named 'system' and monitors
 changes of the 'state' attribute:
 
 !<system state="something"/>

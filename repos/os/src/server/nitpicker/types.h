@@ -15,7 +15,6 @@
 #define _TYPES_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <util/color.h>
 #include <base/node.h>
 #include <base/allocator.h>
@@ -47,17 +46,17 @@ namespace Nitpicker {
 
 	using Pointer = Attempt<Point, Nowhere>;
 
-	static inline void gen_attr(Xml_generator &xml, Point const point)
+	static inline void gen_attr(Generator &g, Point const point)
 	{
-		if (point.x) xml.attribute("xpos", point.x);
-		if (point.y) xml.attribute("ypos", point.y);
+		if (point.x) g.attribute("xpos", point.x);
+		if (point.y) g.attribute("ypos", point.y);
 	}
 
-	static inline void gen_attr(Xml_generator &xml, Rect const rect)
+	static inline void gen_attr(Generator &g, Rect const rect)
 	{
-		gen_attr(xml, rect.at);
-		if (rect.w()) xml.attribute("width",  rect.w());
-		if (rect.h()) xml.attribute("height", rect.h());
+		gen_attr(g, rect.at);
+		if (rect.w()) g.attribute("width",  rect.w());
+		if (rect.h()) g.attribute("height", rect.h());
 	}
 }
 

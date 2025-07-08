@@ -15,7 +15,6 @@
 #define _CURSOR_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <util/list_model.h>
 #include <gems/animated_geometry.h>
 

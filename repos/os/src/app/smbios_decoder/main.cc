@@ -1,5 +1,5 @@
 /*
- * \brief  Decode information from SMBIOS table and report it as XML
+ * \brief  Decode information from SMBIOS table and report it
  * \author Martin Stein
  * \date   2019-07-04
  *
@@ -62,56 +62,48 @@ class Table
 
 		char const *_base_board_feature(uint8_t idx) const;
 
-		void _report_base_board_features(Xml_generator &xml, uint8_t code) const;
+		void _report_base_board_features(Generator &, uint8_t code) const;
 
-		void _report_base_board_handles(Xml_generator &xml,
-		                                uint8_t        count,
-		                                uint8_t const *data) const;
+		void _report_base_board_handles(Generator &,
+		                                uint8_t count, uint8_t const *data) const;
 
-		void _report_base_board(Xml_generator &xml,
-		                        Smbios_structure const &header) const;
+		void _report_base_board(Generator &, Smbios_structure const &) const;
 
-		void _report_bios_character_0(Xml_generator &xml, uint64_t code) const;
+		void _report_bios_character_0(Generator &, uint64_t code) const;
 
 		char const *_bios_character_1(uint8_t idx) const;
 
-		void _report_bios_character_1(Xml_generator &xml, uint8_t code) const;
+		void _report_bios_character_1(Generator &, uint8_t code) const;
 
 		char const *_bios_character_2(uint8_t idx) const;
 
-		void _report_bios_character_2(Xml_generator &xml, uint8_t code) const;
+		void _report_bios_character_2(Generator &, uint8_t code) const;
 
-		void _report_bios_rom_size(Xml_generator &xml,
-		                           uint8_t        code_1,
-		                           uint16_t       code_2) const;
+		void _report_bios_rom_size(Generator &,
+		                           uint8_t code_1, uint16_t code_2) const;
 
-		void _report_string(Xml_generator &xml,
+		void _report_string(Generator &,
 		                    char    const *type,
 		                    char    const *value) const;
 
-		void _report_string_set_item(Xml_generator           &xml,
+		void _report_string_set_item(Generator               &,
 		                             Smbios_structure  const &header,
 		                             char              const *type,
 		                             unsigned                 idx) const;
 
-		void _report_system_uuid(Xml_generator &xml, uint8_t const *data) const;
+		void _report_system_uuid(Generator &, uint8_t const *data) const;
 
-		void _report_system(Xml_generator &xml,
-		                    Smbios_structure  const &header) const;
+		void _report_system(Generator &, Smbios_structure  const &header) const;
 
-		void _report_bios(Xml_generator &xml,
-		                  Smbios_structure const &header) const;
+		void _report_bios(Generator &, Smbios_structure const &) const;
 
-		void _report_smbios_struct(Xml_generator &xml,
-		                           Smbios_structure const &smbios_struct) const;
+		void _report_smbios_struct(Generator &, Smbios_structure const &) const;
 
-		void _report_smbios_structs(Xml_generator &xml,
-		                            Dmi_entry_point const &smbios_ep) const;
+		void _report_smbios_structs(Generator &, Dmi_entry_point const &) const;
 
-		void _report_dmi_ep(Xml_generator &xml, Dmi_entry_point const &ep) const;
+		void _report_dmi_ep(Generator &, Dmi_entry_point const &) const;
 
-		void _report_smbios_ep(Xml_generator &xml,
-		                       Smbios_entry_point const &smbios_ep) const;
+		void _report_smbios_ep(Generator &, Smbios_entry_point const &) const;
 
 	public:
 
@@ -124,7 +116,7 @@ class Table
 			_verbose { verbose }
 		{ }
 
-		void report(Xml_generator &xml) const;
+		void report(Generator &) const;
 };
 
 
@@ -176,7 +168,7 @@ void Main::_handle_table_ds()
 		return;
 	}
 	_table.construct((addr_t)_table_ds.local_addr<int>(), _table_ds.size(), _verbose);
-	_reporter.generate([&] (Xml_generator &xml) { _table->report(xml); });
+	_reporter.generate([&] (Generator &g) { _table->report(g); });
 }
 
 
@@ -184,11 +176,11 @@ void Main::_handle_table_ds()
  ** Table **
  ***********/
 
-void Table::_report_string(Xml_generator &xml,
+void Table::_report_string(Generator &g,
                            char const *type,
                            char const *value) const
 {
-	xml.node(type, [&] () { xml.attribute("value", value); });
+	g.node(type, [&] { g.attribute("value", value); });
 }
 
 
@@ -316,25 +308,25 @@ char const *Table::_base_board_feature(uint8_t idx) const
 }
 
 
-void Table::_report_base_board_features(Xml_generator &xml, uint8_t code) const
+void Table::_report_base_board_features(Generator &g, uint8_t code) const
 {
 	if ((code & 0x1f) == 0) {
-		_report_string(xml, "feature", "[none]");
+		_report_string(g, "feature", "[none]");
 		return;
 	}
 	for (uint8_t idx = 0; idx < 5; idx++) {
 		if (code & (1 << idx)) {
-			_report_string(xml, "feature", _base_board_feature(idx));
+			_report_string(g, "feature", _base_board_feature(idx));
 		}
 	}
 }
 
 
-void Table::_report_bios_character_0(Xml_generator &xml, uint64_t code) const
+void Table::_report_bios_character_0(Generator &g, uint64_t code) const
 {
 	if (code & (1 << 3)) {
-		xml.node("characteristic", [&] () {
-			xml.attribute("value", "BIOS characteristics not supported");
+		g.node("characteristic", [&] {
+			g.attribute("value", "BIOS characteristics not supported");
 		});
 		return;
 	}
@@ -342,86 +334,86 @@ void Table::_report_bios_character_0(Xml_generator &xml, uint64_t code) const
 		if ((code & (1 << idx)) == 0) {
 			continue;
 		}
-		xml.node("characteristic", [&] () {
-			xml.attribute("value", _bios_character_0(idx));
+		g.node("characteristic", [&] {
+			g.attribute("value", _bios_character_0(idx));
 		});
 	}
 }
 
 
-void Table::_report_bios_character_1(Xml_generator &xml, uint8_t code) const
+void Table::_report_bios_character_1(Generator &g, uint8_t code) const
 {
 	for (uint8_t idx = 0; idx <= 7; idx++) {
 		if ((code & (1 << idx)) == 0) {
 			continue;
 		}
-		xml.node("characteristic", [&] () {
-			xml.attribute("value", _bios_character_1(idx));
+		g.node("characteristic", [&] {
+			g.attribute("value", _bios_character_1(idx));
 		});
 	}
 }
 
 
-void Table::_report_bios_character_2(Xml_generator &xml, uint8_t code) const
+void Table::_report_bios_character_2(Generator &g, uint8_t code) const
 {
 	for (uint8_t idx = 0; idx <= 4; idx++) {
 		if ((code & (1 << idx)) == 0) {
 			continue;
 		}
-		xml.node("characteristic", [&] () {
-			xml.attribute("value", _bios_character_2(idx));
+		g.node("characteristic", [&] {
+			g.attribute("value", _bios_character_2(idx));
 		});
 	}
 }
 
 
-void Table::_report_bios_rom_size(Xml_generator &xml,
+void Table::_report_bios_rom_size(Generator &g,
                                   uint8_t  code_1,
                                   uint16_t code_2) const
 {
-	xml.node("rom-size", [&] () {
+	g.node("rom-size", [&] {
 		if (code_1 != 0xff) {
-			xml.attribute("value", Size_string(((size_t)code_1 + 1) << 6, " KB"));
+			g.attribute("value", Size_string(((size_t)code_1 + 1) << 6, " KB"));
 			return;
 		}
 		switch (code_2 >> 14) {
-		case  0: xml.attribute("value", Size_string(code_2 & 0x3fff, " MB")); return;
-		case  1: xml.attribute("value", Size_string(code_2 & 0x3fff, " GB")); return;
-		default: xml.attribute("value", "[bad unit]");                       return;
+		case  0: g.attribute("value", Size_string(code_2 & 0x3fff, " MB")); return;
+		case  1: g.attribute("value", Size_string(code_2 & 0x3fff, " GB")); return;
+		default: g.attribute("value", "[bad unit]");                       return;
 		}
 	});
 }
 
 
-void Table::_report_string_set_item(Xml_generator           &xml,
+void Table::_report_string_set_item(Generator               &g,
                                     Smbios_structure  const &header,
                                     char              const *type,
                                     unsigned                 idx) const
 {
 	uint8_t const *data { (uint8_t *)&header };
-	_report_string(xml, type, _string_set_item(header, data[idx]));
+	_report_string(g, type, _string_set_item(header, data[idx]));
 }
 
 
-void Table::_report_bios(Xml_generator &xml, Smbios_structure const &header) const
+void Table::_report_bios(Generator &g, Smbios_structure const &header) const
 {
 	uint8_t const *data { (uint8_t *)&header };
-	xml.attribute("description", "BIOS Information");
+	g.attribute("description", "BIOS Information");
 	if (header.length < 18) {
 		_warn("SMBIOS BIOS structure has bad length");
 		return;
 	}
-	_report_string_set_item(xml, header, "vendor",       4);
-	_report_string_set_item(xml, header, "version",      5);
-	_report_string_set_item(xml, header, "release-date", 8);
+	_report_string_set_item(g, header, "vendor",       4);
+	_report_string_set_item(g, header, "version",      5);
+	_report_string_set_item(g, header, "release-date", 8);
 	{
 		addr_t const code { *(uint16_t const *)(data + 6) };
 		if (code) {
-			xml.node("address", [&] () {
-				xml.attribute("value", Addr_string(Hex(code << 4))); });
+			g.node("address", [&] {
+				g.attribute("value", Addr_string(Hex(code << 4))); });
 
-			xml.node("runtime-size", [&] () {
-				xml.attribute("value", (0x10000 - code) << 4); });
+			g.node("runtime-size", [&] {
+				g.attribute("value", (0x10000 - code) << 4); });
 		}
 	}
 	{
@@ -431,34 +423,34 @@ void Table::_report_bios(Xml_generator &xml, Smbios_structure const &header) con
 		} else {
 			code_2 = *(uint16_t const *)(data + 24);
 		}
-		_report_bios_rom_size(xml, data[9], code_2);
+		_report_bios_rom_size(g, data[9], code_2);
 	}
-	_report_bios_character_0(xml, *(uint64_t const *)(data + 10));
+	_report_bios_character_0(g, *(uint64_t const *)(data + 10));
 	if (header.length < 0x13) {
 		return; }
 
-	_report_bios_character_1(xml, data[0x12]);
+	_report_bios_character_1(g, data[0x12]);
 	if (header.length < 0x14) {
 		return; }
 
-	_report_bios_character_2(xml, data[0x13]);
+	_report_bios_character_2(g, data[0x13]);
 	if (header.length < 0x18) {
 		return; }
 
 	if (data[20] != 0xff && data[21] != 0xff) {
-		xml.node("bios-revision", [&] () {
-			xml.attribute("value", Version_2_string(data[20], ".", data[21]));
+		g.node("bios-revision", [&] {
+			g.attribute("value", Version_2_string(data[20], ".", data[21]));
 		});
 	}
 	if (data[22] != 0xff && data[23] != 0xff) {
-		xml.node("firmware-revision", [&] () {
-			xml.attribute("value", Version_2_string(data[22], ".", data[23]));
+		g.node("firmware-revision", [&] {
+			g.attribute("value", Version_2_string(data[22], ".", data[23]));
 		});
 	}
 }
 
 
-void Table::_report_system_uuid(Xml_generator &xml, uint8_t const *data) const
+void Table::_report_system_uuid(Generator &g, uint8_t const *data) const
 {
 	bool only_zeros { true };
 	bool only_ones  { true };
@@ -472,19 +464,19 @@ void Table::_report_system_uuid(Xml_generator &xml, uint8_t const *data) const
 		}
 	}
 
-	xml.node("uuid", [&] () {
+	g.node("uuid", [&] {
 		if (only_ones) {
-			xml.attribute("value", "[not present]");
+			g.attribute("value", "[not present]");
 			return;
 		}
 		if (only_zeros) {
-			xml.attribute("value", "[not settable]");
+			g.attribute("value", "[not settable]");
 			return;
 		}
 		if ( _version_major >  2 ||
 		    (_version_major == 2 && _version_minor >= 6))
 		{
-			xml.attribute("value", Uuid_string(
+			g.attribute("value", Uuid_string(
 				Uuid_hex(data[3]), Uuid_hex(data[2]),
 				Uuid_hex(data[1]), Uuid_hex(data[0]),
 				"-",
@@ -499,7 +491,7 @@ void Table::_report_system_uuid(Xml_generator &xml, uint8_t const *data) const
 				Uuid_hex(data[14]), Uuid_hex(data[15])));
 
 		} else {
-			xml.attribute("value", Uuid_string(
+			g.attribute("value", Uuid_string(
 				Uuid_hex(data[0]), Uuid_hex(data[1]),
 				Uuid_hex(data[2]), Uuid_hex(data[3]),
 				"-",
@@ -538,103 +530,101 @@ const char *Table::_base_board_type(uint8_t idx) const
 }
 
 
-void Table::_report_base_board_handles(Xml_generator &xml,
+void Table::_report_base_board_handles(Generator &g,
                                        uint8_t        count,
                                        uint8_t const *data) const
 {
 	for (uint8_t idx = 0; idx < count; idx++) {
-		xml.node("contained-object-handle", [&] () {
+		g.node("contained-object-handle", [&] {
 			uint8_t const *value { data + sizeof(uint16_t) * idx };
-			xml.attribute("value", Addr_string(*(uint16_t const *)value));
+			g.attribute("value", Addr_string(*(uint16_t const *)value));
 		});
 	}
 }
 
 
-void Table::_report_base_board(Xml_generator &xml,
-                               Smbios_structure const &header) const
+void Table::_report_base_board(Generator &g, Smbios_structure const &header) const
 {
-	xml.attribute("name", "Base Board Information");
+	g.attribute("name", "Base Board Information");
 	if (header.length < 8) {
 		return; }
 
-	_report_string_set_item(xml, header, "manufacturer",  4);
-	_report_string_set_item(xml, header, "product-name",  5);
-	_report_string_set_item(xml, header, "version",       6);
-	_report_string_set_item(xml, header, "serial-number", 7);
+	_report_string_set_item(g, header, "manufacturer",  4);
+	_report_string_set_item(g, header, "product-name",  5);
+	_report_string_set_item(g, header, "version",       6);
+	_report_string_set_item(g, header, "serial-number", 7);
 	if (header.length < 9) {
 		return; }
 
-	_report_string_set_item(xml, header, "asset-tag", 8);
+	_report_string_set_item(g, header, "asset-tag", 8);
 	if (header.length < 10) {
 		return; }
 
 	uint8_t const *data { (uint8_t *)&header };
-	_report_base_board_features(xml, data[9]);
+	_report_base_board_features(g, data[9]);
 	if (header.length < 14) {
 		return; }
 
-	_report_string_set_item(xml, header, "location-in-chassis", 10);
+	_report_string_set_item(g, header, "location-in-chassis", 10);
 
-	xml.node("chassis-handle", [&] () {
-		xml.attribute("value", *(uint16_t const *)(data + 11)); });
+	g.node("chassis-handle", [&] {
+		g.attribute("value", *(uint16_t const *)(data + 11)); });
 
-	_report_string(xml, "type", _base_board_type(data[13]));
+	_report_string(g, "type", _base_board_type(data[13]));
 	if (header.length < 15) {
 		return; }
 
 	if (header.length < 15 + data[14] * sizeof(uint16_t)) {
 		return; }
 
-	_report_base_board_handles(xml, data[14], data + 15);
+	_report_base_board_handles(g, data[14], data + 15);
 }
 
 
-void Table::_report_system(Xml_generator &xml,
-                           Smbios_structure  const &header) const
+void Table::_report_system(Generator &g, Smbios_structure  const &header) const
 {
 	uint8_t const *data { (uint8_t *)&header };
-	xml.attribute("description", "System Information");
+	g.attribute("description", "System Information");
 	if (header.length < 8) {
 		return; }
 
-	_report_string_set_item(xml, header, "manufacturer",  4);
-	_report_string_set_item(xml, header, "product-name",  5);
-	_report_string_set_item(xml, header, "version",       6);
-	_report_string_set_item(xml, header, "serial-number", 7);
+	_report_string_set_item(g, header, "manufacturer",  4);
+	_report_string_set_item(g, header, "product-name",  5);
+	_report_string_set_item(g, header, "version",       6);
+	_report_string_set_item(g, header, "serial-number", 7);
 	if (header.length < 25) {
 		return; }
 
-	_report_system_uuid(xml, data + 8);
-	_report_string(xml, "wake-up-type", _system_wake_up_type(data[24]));
+	_report_system_uuid(g, data + 8);
+	_report_string(g, "wake-up-type", _system_wake_up_type(data[24]));
 	if (header.length < 27) {
 		return; }
 
-	_report_string_set_item(xml, header, "sku-number", 25);
-	_report_string_set_item(xml, header, "family",     26);
+	_report_string_set_item(g, header, "sku-number", 25);
+	_report_string_set_item(g, header, "family",     26);
 }
 
 
-void Table::_report_smbios_struct(Xml_generator &xml,
+void Table::_report_smbios_struct(Generator &g,
                                   Smbios_structure  const &smbios_struct) const
 {
-	xml.node("structure", [&] () {
+	g.node("structure", [&] {
 
-		xml.attribute("type",   smbios_struct.type);
-		xml.attribute("length", smbios_struct.length);
-		xml.attribute("handle", smbios_struct.handle);
+		g.attribute("type",   smbios_struct.type);
+		g.attribute("length", smbios_struct.length);
+		g.attribute("handle", smbios_struct.handle);
 
 		switch (smbios_struct.type) {
-		case Smbios_structure::BIOS:       _report_bios      (xml, smbios_struct); break;
-		case Smbios_structure::SYSTEM:     _report_system    (xml, smbios_struct); break;
-		case Smbios_structure::BASE_BOARD: _report_base_board(xml, smbios_struct); break;
+		case Smbios_structure::BIOS:       _report_bios      (g, smbios_struct); break;
+		case Smbios_structure::SYSTEM:     _report_system    (g, smbios_struct); break;
+		case Smbios_structure::BASE_BOARD: _report_base_board(g, smbios_struct); break;
 		default: _warn("structure type not supported");                            break;
 		}
 	});
 }
 
 
-void Table::_report_smbios_structs(Xml_generator &xml,
+void Table::_report_smbios_structs(Generator &g,
                                    Dmi_entry_point   const &ep) const
 {
 	Smbios_structure *smbios_struct { (Smbios_structure *)(
@@ -649,7 +639,7 @@ void Table::_report_smbios_structs(Xml_generator &xml,
 			_warn("SMBIOS structure body exceeds ROM");
 			break;
 		}
-		_report_smbios_struct(xml, *smbios_struct);
+		_report_smbios_struct(g, *smbios_struct);
 
 		/* seek next SMBIOS structure */
 		bool           next_exceeds_rom { false };
@@ -676,7 +666,7 @@ void Table::_report_smbios_structs(Xml_generator &xml,
 }
 
 
-void Table::_report_smbios_ep(Xml_generator &xml,
+void Table::_report_smbios_ep(Generator &g,
                               Smbios_entry_point const &smbios_ep) const
 {
 	/* fix weird versions reported by some systems */
@@ -695,36 +685,36 @@ void Table::_report_smbios_ep(Xml_generator &xml,
 		_version_major = 2;
 		_version_minor = 6;
 	}
-	xml.node("smbios", [&] () {
-		xml.attribute("version",
+	g.node("smbios", [&] {
+		g.attribute("version",
 			Version_2_string(_version_major, ".", _version_minor));
 
-		xml.attribute("structures",      smbios_ep.nr_of_structs);
-		xml.attribute("structures-size", smbios_ep.struct_table_length);
+		g.attribute("structures",      smbios_ep.nr_of_structs);
+		g.attribute("structures-size", smbios_ep.struct_table_length);
 
-		_report_smbios_structs(xml, smbios_ep.dmi_ep());
+		_report_smbios_structs(g, smbios_ep.dmi_ep());
 	});
 }
 
 
-void Table::_report_dmi_ep(Xml_generator &xml, Dmi_entry_point const &ep) const
+void Table::_report_dmi_ep(Generator &g, Dmi_entry_point const &ep) const
 {
 	/* fix weird versions reported by some systems */
 	uint8_t ver_maj { (uint8_t)(ep.bcd_revision >> 4) };
 	uint8_t ver_min { (uint8_t)(ep.bcd_revision & 0xf) };
-	xml.node("dmi", [&] () {
-		xml.attribute("version",
+	g.node("dmi", [&] {
+		g.attribute("version",
 			Version_2_string(ver_maj, ".", ver_min));
 
-		xml.attribute("structures",      ep.nr_of_structs);
-		xml.attribute("structures-size", ep.struct_table_length);
+		g.attribute("structures",      ep.nr_of_structs);
+		g.attribute("structures-size", ep.struct_table_length);
 
-		_report_smbios_structs(xml, ep);
+		_report_smbios_structs(g, ep);
 	});
 }
 
 
-void Table::report(Xml_generator &xml) const
+void Table::report(Generator &g) const
 {
 
 	/* check if entry point is valid and of which type it is */
@@ -753,7 +743,7 @@ void Table::report(Xml_generator &xml) const
 		} else {
 
 			/* report information from SMBIOS entry point */
-			_report_smbios_ep(xml, smbios_ep);
+			_report_smbios_ep(g, smbios_ep);
 		}
 	} else if (String<6>(anchor_string) == "_SM3_") {
 		_warn("SMBIOS3 entry point found, not supported");
@@ -765,7 +755,7 @@ void Table::report(Xml_generator &xml) const
 		if (!ep.checksum_correct()) {
 			warning("DMI entry point has bad checksum");
 		} else {
-			_report_dmi_ep(xml, ep);
+			_report_dmi_ep(g, ep);
 		}
 	} else {
 		_warn("entry point has bad anchor string");

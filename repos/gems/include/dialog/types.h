@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/node.h>
-#include <util/xml_generator.h>
 #include <base/log.h>
 #include <input/event.h>
 #include <input/keycodes.h>
@@ -214,7 +213,7 @@ struct Dialog::Scope : Noncopyable
 
 	Id const id;
 
-	Xml_generator &xml;
+	Generator &g;
 
 	At const &hover;
 
@@ -222,8 +221,8 @@ struct Dialog::Scope : Noncopyable
 
 	unsigned _sub_scope_count = 0;
 
-	Scope(Xml_generator &xml, At const &hover, Event::Dragged const dragged, Id const id)
-	: id(id), xml(xml), hover(hover), _dragged(dragged) { }
+	Scope(Generator &g, At const &hover, Event::Dragged const dragged, Id const id)
+	: id(id), g(g), hover(hover), _dragged(dragged) { }
 
 	bool dragged() const { return _dragged.value; };
 
@@ -238,7 +237,7 @@ struct Dialog::Scope : Noncopyable
 		/* narrow hover information according to sub-scope type */
 		T::with_narrowed_at(hover, [&] (At const &narrowed_hover) {
 			if (id == Id::from_node(narrowed_hover._location)) {
-				Sub_scope sub_scope { xml, narrowed_hover, _dragged, id };
+				Sub_scope sub_scope { g, narrowed_hover, _dragged, id };
 				T::view_sub_scope(sub_scope, args...);
 				generated = true;
 			}
@@ -248,7 +247,7 @@ struct Dialog::Scope : Noncopyable
 
 		static Node unhovered_node { };
 		At const unhovered_at { hover.seq_number, unhovered_node };
-		Sub_scope sub_scope { xml, unhovered_at, _dragged, id };
+		Sub_scope sub_scope { g, unhovered_at, _dragged, id };
 		T::view_sub_scope(sub_scope, args...);
 	}
 
@@ -278,8 +277,8 @@ struct Dialog::Scope : Noncopyable
 	template <typename TYPE, typename FN>
 	void node(TYPE const &type, FN const &fn)
 	{
-		xml.node(type, [&] {
-			xml.attribute("name", id.value);
+		g.node(type, [&] {
+			g.attribute("name", id.value);
 			fn();
 		});
 	}
@@ -287,21 +286,21 @@ struct Dialog::Scope : Noncopyable
 	template <typename TYPE, typename FN>
 	void sub_node(TYPE const &type, FN const &fn)
 	{
-		xml.node(type, [&] { fn(); });
+		g.node(type, [&] { fn(); });
 	}
 
 	template <typename TYPE, typename NAME, typename FN>
 	void named_sub_node(TYPE const &type, NAME const &name, FN const &fn)
 	{
-		xml.node(type, [&] {
-			xml.attribute("name", name);
+		g.node(type, [&] {
+			g.attribute("name", name);
 			fn(); });
 	}
 
 	template <typename NAME, typename VALUE>
 	void attribute(NAME const &name, VALUE const &value)
 	{
-		xml.attribute(name, value);
+		g.attribute(name, value);
 	}
 
 	template <typename FN>

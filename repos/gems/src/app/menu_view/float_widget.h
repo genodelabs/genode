@@ -100,13 +100,13 @@ struct Menu_view::Float_widget : Widget
 		return { .unique_id = { }, .detail = { } };
 	}
 
-	void gen_hover_model(Xml_generator &xml, Point at) const override
+	void gen_hover_model(Generator &g, Point at) const override
 	{
 		/* omit ourself from hover model unless one of our children is hovered */
 		if (!_inner_geometry().contains(at))
 			return;
 
-		Widget::gen_hover_model(xml, at);
+		Widget::gen_hover_model(g, at);
 	}
 };
 

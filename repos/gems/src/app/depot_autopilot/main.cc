@@ -140,13 +140,12 @@ struct Depot_deploy::Main
 
 			/* generate init config containing all configured start nodes */
 			bool finished = false;
-			_init_config_reporter.generate([&] (Xml_generator &xml) {
+			_init_config_reporter.generate([&] (Generator &g) {
 				config.with_optional_sub_node("static", [&] (Xml_node const &static_config) {
-					static_config.with_raw_content([&] (char const *start, size_t length) {
-						xml.append(start, length); });
+					(void)g.append_node_content(static_config, Generator::Max_depth { 10 });
 					Child::Depot_rom_server const parent { };
 					config.with_optional_sub_node("common_routes", [&] (Xml_node const &node) {
-						finished = _children.gen_start_nodes(xml, node, parent, parent); });
+						finished = _children.gen_start_nodes(g, node, parent, parent); });
 				});
 			});
 			if (finished) {
@@ -175,8 +174,8 @@ struct Depot_deploy::Main
 					char const *empty_config_str = "<config/>";
 					Xml_node const empty_config(empty_config_str, 10);
 					_children.apply_config(empty_config);
-					_query_reporter.generate([&] (Xml_generator &xml) { xml.attribute("arch", arch); });
-					_init_config_reporter.generate([&] (Xml_generator &) { });
+					_query_reporter.generate([&] (Generator &g) { g.attribute("arch", arch); });
+					_init_config_reporter.generate([&] (Generator &) { });
 					_repeat_handler.submit();
 					return;
 
@@ -198,9 +197,9 @@ struct Depot_deploy::Main
 
 			/* update query for blueprints of all unconfigured start nodes */
 			if (arch.valid()) {
-				_query_reporter.generate([&] (Xml_generator &xml) {
-					xml.attribute("arch", arch);
-					_children.gen_queries(xml);
+				_query_reporter.generate([&] (Generator &g) {
+					g.attribute("arch", arch);
+					_children.gen_queries(g);
 				});
 			}
 		}

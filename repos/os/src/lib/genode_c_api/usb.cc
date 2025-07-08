@@ -217,7 +217,7 @@ struct genode_usb_device : Reg_list<genode_usb_device>::Element
 		return "full";
 	}
 
-	void generate(Xml_generator &xml, bool acquired) const;
+	void generate(Generator &, bool acquired) const;
 };
 
 
@@ -515,7 +515,7 @@ class Session_component
 	public  Dma_allocator,
 	public  Session_object<Usb::Session>,
 	private Reg_list<Session_component>::Element,
-	private Dynamic_rom_session::Xml_producer
+	private Dynamic_rom_session::Producer
 {
 	private:
 
@@ -642,11 +642,11 @@ class Session_component
 		void release_device(Device_capability) override;
 
 
-		/*******************************************
-		 ** Dynamic_rom_session::Xml_producer API **
-		 *******************************************/
+		/***************************************
+		 ** Dynamic_rom_session::Producer API **
+		 ***************************************/
 
-		void produce_xml(Xml_generator &xml) override;
+		void generate(Generator &) override;
 };
 
 
@@ -741,52 +741,51 @@ class Usb_root : Sliced_heap, public Root_component<Session_component>
 static Usb_root * _usb_root  = nullptr;
 
 
-void genode_usb_device::generate(Xml_generator &xml, bool acquired) const
+void genode_usb_device::generate(Generator &g, bool acquired) const
 {
 	using Value = String<64>;
 
 	auto per_endp = [&] (genode_usb_endpoint const &endp)
 	{
-		xml.node("endpoint", [&] {
-			xml.attribute("address",    Value(Hex(endp.desc.address)));
-			xml.attribute("attributes", Value(Hex(endp.desc.attributes)));
-			xml.attribute("max_packet_size",
-			              Value(Hex(endp.desc.max_packet_size)));
+		g.node("endpoint", [&] {
+			g.attribute("address",         Value(Hex(endp.desc.address)));
+			g.attribute("attributes",      Value(Hex(endp.desc.attributes)));
+			g.attribute("max_packet_size", Value(Hex(endp.desc.max_packet_size)));
 		});
 	};
 
 	auto per_iface = [&] (genode_usb_interface const &iface)
 	{
-		xml.node("interface", [&] {
-			xml.attribute("active",      iface.active);
-			xml.attribute("number",      Value(Hex(iface.desc.number)));
-			if (*iface.info.string()) xml.attribute("info", iface.info);
-			xml.attribute("alt_setting", Value(Hex(iface.desc.alt_settings)));
-			xml.attribute("class",       Value(Hex(iface.desc.iclass)));
-			xml.attribute("subclass",    Value(Hex(iface.desc.isubclass)));
-			xml.attribute("protocol",    Value(Hex(iface.desc.iprotocol)));
+		g.node("interface", [&] {
+			g.attribute("active",      iface.active);
+			g.attribute("number",      Value(Hex(iface.desc.number)));
+			if (*iface.info.string()) g.attribute("info", iface.info);
+			g.attribute("alt_setting", Value(Hex(iface.desc.alt_settings)));
+			g.attribute("class",       Value(Hex(iface.desc.iclass)));
+			g.attribute("subclass",    Value(Hex(iface.desc.isubclass)));
+			g.attribute("protocol",    Value(Hex(iface.desc.iprotocol)));
 			iface.endpoints.for_each(per_endp);
 		});
 	};
 
 	auto per_config = [&] (genode_usb_configuration const &cfg)
 	{
-		xml.node("config", [&] {
-			xml.attribute("active", cfg.active);
-			xml.attribute("value",  Value(Hex(cfg.desc.config_value)));
+		g.node("config", [&] {
+			g.attribute("active", cfg.active);
+			g.attribute("value",  Value(Hex(cfg.desc.config_value)));
 			cfg.interfaces.for_each(per_iface);
 		});
 	};
 
-	xml.node("device", [&] {
-		xml.attribute("name",       label());
-		xml.attribute("class",      Value(Hex(desc.dclass)));
-		if (*manufacturer.string()) xml.attribute("manufacturer", manufacturer);
-		if (*product.string())      xml.attribute("product", product);
-		xml.attribute("vendor_id",  Value(Hex(desc.vendor_id)));
-		xml.attribute("product_id", Value(Hex(desc.product_id)));
-		xml.attribute("speed",      speed_to_string());
-		if (acquired)               xml.attribute("acquired", true);
+	g.node("device", [&] {
+		g.attribute("name",       label());
+		g.attribute("class",      Value(Hex(desc.dclass)));
+		if (*manufacturer.string()) g.attribute("manufacturer", manufacturer);
+		if (*product.string())      g.attribute("product", product);
+		g.attribute("vendor_id",  Value(Hex(desc.vendor_id)));
+		g.attribute("product_id", Value(Hex(desc.product_id)));
+		g.attribute("speed",      speed_to_string());
+		if (acquired)               g.attribute("acquired", true);
 		configs.for_each(per_config);
 	});
 }
@@ -1479,9 +1478,9 @@ void Session_component::release_device(Device_capability cap)
 }
 
 
-void Session_component::produce_xml(Xml_generator &xml)
+void Session_component::generate(Generator &g)
 {
-	_devices.for_each([&] (genode_usb_device const & device) {
+	_devices.for_each([&] (genode_usb_device const &device) {
 		if (!_matches(device))
 			return;
 
@@ -1495,7 +1494,7 @@ void Session_component::produce_xml(Xml_generator &xml)
 		if (acquired_by_other_session)
 			return;
 
-		device.generate(xml, acquired(device));
+		device.generate(g, acquired(device));
 	});
 }
 
@@ -1521,7 +1520,7 @@ Session_component::Session_component(Env                                   &env,
 :
 	Session_object<Usb::Session>(env.ep(), resources, label, diag),
 	Reg_list<Session_component>::Element(registry, *this),
-	Dynamic_rom_session::Xml_producer("devices"),
+	Dynamic_rom_session::Producer("devices"),
 	_env(env),
 	_root(root),
 	_sessions(registry),
@@ -1566,7 +1565,7 @@ void Usb_root::report()
 	if (!_device_reporter.constructed())
 		return;
 
-	_device_reporter->generate([&] (Xml_generator &xml) {
+	_device_reporter->generate([&] (Generator &g) {
 		_devices.for_each([&] (genode_usb_device & d) {
 			bool acquired = false;
 			_sessions.apply(
@@ -1574,7 +1573,7 @@ void Usb_root::report()
 					return sc.acquired(d); },
 				[&] (Session_component &) {
 					acquired = true; });
-			d.generate(xml, acquired);
+			d.generate(g, acquired);
 		});
 	});
 }
@@ -1605,9 +1604,9 @@ void Usb_root::_config_update()
 	 * that we've consumed the configuration
 	 */
 	if (_config_reporter.constructed())
-		_config_reporter->generate([&] (Xml_generator &xml) {
-			xml.node_attributes(_config.node());
-			(void)xml.append_node_content(_config.node(), { 20 });
+		_config_reporter->generate([&] (Generator &g) {
+			g.node_attributes(_config.node());
+			(void)g.append_node_content(_config.node(), { 20 });
 		});
 
 	_announce_service();
@@ -1622,7 +1621,7 @@ void Usb_root::_announce_service()
 	if (_announced)
 		return;
 
-	if (_config.xml().type() == "config") {
+	if (_config.node().type() == "config") {
 		_env.parent().announce(_env.ep().manage(*this));
 		_announced = true;
 	}

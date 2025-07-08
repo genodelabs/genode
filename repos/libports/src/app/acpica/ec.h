@@ -281,15 +281,15 @@ class Ec : Acpica::Callback<Ec> {
 			return AE_OK;
 		}
 
-		void generate(Genode::Xml_generator &xml)
+		void generate(Genode::Generator &g)
 		{
 			Data * data_obj = _list_data.first();
 			for (; data_obj; data_obj = data_obj->next()) {
-				xml.node("data", [&] {
-					xml.attribute("value", data_obj->data);
-					xml.attribute("count", data_obj->count);
+				g.node("data", [&] {
+					g.attribute("value", data_obj->data);
+					g.attribute("count", data_obj->count);
 					if (data_obj->triggered) {
-						xml.append("triggered");
+						g.append_quoted("triggered");
 						data_obj->triggered = false;
 					}
 				});

@@ -136,13 +136,13 @@ class Usb::Block_driver
 				return;
 
 			Reporter::Result const result =
-				_reporter.generate([&] (Xml_generator &xml) {
-					xml.node("device", [&] () {
-						xml.attribute("vendor",      _vendor);
-						xml.attribute("product",     _product);
-						xml.attribute("block_count", _block_count);
-						xml.attribute("block_size",  _block_size);
-						xml.attribute("writeable",   _writeable);
+				_reporter.generate([&] (Generator &g) {
+					g.node("device", [&] () {
+						g.attribute("vendor",      _vendor);
+						g.attribute("product",     _product);
+						g.attribute("block_count", _block_count);
+						g.attribute("block_size",  _block_size);
+						g.attribute("writeable",   _writeable);
 					});
 				});
 

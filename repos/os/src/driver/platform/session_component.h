@@ -41,7 +41,7 @@ class Driver::Session_component
 	public  Session_object<Platform::Session>,
 	public  Device_owner,
 	private Registry<Driver::Session_component>::Element,
-	private Dynamic_rom_session::Xml_producer
+	private Dynamic_rom_session::Producer
 {
 	public:
 
@@ -143,11 +143,11 @@ class Driver::Session_component
 		Session_component(Session_component const &);
 		Session_component &operator = (Session_component const &);
 
-		/*******************************************
-		 ** Dynamic_rom_session::Xml_producer API **
-		 *******************************************/
+		/***************************************
+		 ** Dynamic_rom_session::Producer API **
+		 ***************************************/
 
-		void produce_xml(Xml_generator &xml) override;
+		void generate(Generator &) override;
 };
 
 #endif /* _SRC__DRIVERS__PLATFORM__SESSION_COMPONENT_H_ */

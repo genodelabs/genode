@@ -197,13 +197,13 @@ struct Test::Main : Log_message_handler
 		using Version = String<64>;
 		Version const version = node.attribute_value("version", Version());
 
-		(void)reporter.generate([&] (Xml_generator &xml) {
+		(void)reporter.generate([&] (Generator &g) {
 
 			if (version.valid())
-				xml.attribute("version", version);
+				g.attribute("version", version);
 
 			node.for_each_sub_node([&] (Node const &sub_node) {
-				(void)xml.append_node(sub_node, { 20 }); }); });
+				(void)g.append_node(sub_node, { 20 }); }); });
 	}
 
 	unsigned const _num_steps = (unsigned)_config.node().num_sub_nodes();

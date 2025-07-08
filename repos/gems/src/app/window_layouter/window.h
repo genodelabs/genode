@@ -375,29 +375,29 @@ class Window_layouter::Window : public List_model<Window>::Element
 		 */
 		void resize_request_updated() { _reported_resize_request = _requested_size(); }
 
-		void gen_resize_request(Xml_generator &xml) const
+		void gen_resize_request(Generator &g) const
 		{
 			Area const size = _requested_size();
 
 			if (size == _client_size)
 				return;
 
-			xml.node("window", [&] () {
-				xml.attribute("id",     id.value);
-				xml.attribute("width",  size.w);
-				xml.attribute("height", size.h);
+			g.node("window", [&] () {
+				g.attribute("id",     id.value);
+				g.attribute("width",  size.w);
+				g.attribute("height", size.h);
 			});
 		}
 
-		void generate(Xml_generator &xml, Rect const target_rect) const
+		void generate(Generator &g, Rect const target_rect) const
 		{
 			/* omit window from the layout if hidden */
 			if (_hidden)
 				return;
 
-			xml.node("window", [&]() {
+			g.node("window", [&]() {
 
-				xml.attribute("id", id.value);
+				g.attribute("id", id.value);
 
 				/* present concatenation of label and title in the window's title bar */
 				{
@@ -406,15 +406,15 @@ class Window_layouter::Window : public List_model<Window>::Element
 					String<Label::capacity()> const
 						title(label, (has_title ? " " : ""), _title);
 
-					xml.attribute("title",  title);
+					g.attribute("title",  title);
 				}
 
 				Rect const rect = _use_target_area()
 				                ? _decorator_margins.inner_geometry({ { }, _target_area })
 				                : effective_inner_geometry();
 
-				xml.attribute("xpos", rect.x1() + target_rect.x1());
-				xml.attribute("ypos", rect.y1() + target_rect.y1());
+				g.attribute("xpos", rect.x1() + target_rect.x1());
+				g.attribute("ypos", rect.y1() + target_rect.y1());
 
 				/*
 				 * Constrain size of non-floating windows
@@ -439,33 +439,33 @@ class Window_layouter::Window : public List_model<Window>::Element
 				                       min(rect.h(), _client_size.h))
 				                : _client_size;
 
-				xml.attribute("width",  size.w);
-				xml.attribute("height", size.h);
+				g.attribute("width",  size.w);
+				g.attribute("height", size.h);
 
 				if (_focused)
-					xml.attribute("focused", "yes");
+					g.attribute("focused", "yes");
 
 				if (_dragged) {
 
-					xml.node("highlight", [&] () {
-						xml.node(_dragged_element.name(), [&] () {
-							xml.attribute("pressed", "yes"); }); });
+					g.node("highlight", [&] () {
+						g.node(_dragged_element.name(), [&] () {
+							g.attribute("pressed", "yes"); }); });
 
 				} else {
 
 					bool const passive = (!_resizeable && _hovered.resize_handle())
 					                  || (_hovered.type == Element::UNDEFINED);
 					if (!passive)
-						xml.node("highlight", [&] () {
-							xml.node(_hovered.name()); });
+						g.node("highlight", [&] () {
+							g.node(_hovered.name()); });
 				}
 
 				if (_has_alpha)
-					xml.attribute("has_alpha", "yes");
+					g.attribute("has_alpha", "yes");
 
 				if (_resizeable) {
-					xml.attribute("maximizer", "yes");
-					xml.attribute("closer", "yes");
+					g.attribute("maximizer", "yes");
+					g.attribute("closer", "yes");
 				}
 			});
 		}

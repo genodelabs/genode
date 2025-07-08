@@ -18,7 +18,6 @@
 #include <gui_session/gui_session.h>
 #include <util/color.h>
 #include <util/geometry.h>
-#include <util/color.h>
 #include <util/dirty_rect.h>
 #include <util/list_model.h>
 #include <util/interface.h>

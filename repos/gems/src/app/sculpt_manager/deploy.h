@@ -120,15 +120,15 @@ struct Sculpt::Deploy
 		if (deploy.type() == "empty")
 			return;
 
-		_managed_deploy_config.generate([&] (Xml_generator &xml) {
+		_managed_deploy_config.generate([&] (Generator &g) {
 
 			Arch const arch = deploy.attribute_value("arch", Arch());
 			if (arch.valid())
-				xml.attribute("arch", arch);
+				g.attribute("arch", arch);
 
 			/* copy <common_routes> from manual deploy config */
 			deploy.for_each_sub_node("common_routes", [&] (Node const &node) {
-				(void)xml.append_node(node, Xml_generator::Max_depth { 10 }); });
+				(void)g.append_node(node, Generator::Max_depth { 10 }); });
 
 			/*
 			 * Copy the <start> node from manual deploy config, unless the
@@ -139,13 +139,13 @@ struct Sculpt::Deploy
 				if (_runtime_info.abandoned_by_user(name))
 					return;
 
-				xml.node("start", [&] {
+				g.node("start", [&] {
 
 					/*
 					 * Copy attributes
 					 */
 
-					xml.attribute("name", name);
+					g.attribute("name", name);
 
 					/* override version with restarted version, after restart */
 					using Version = Child_state::Version;
@@ -154,13 +154,13 @@ struct Sculpt::Deploy
 						version = Version { node.attribute_value("version", 0U) };
 
 					if (version.value > 0)
-						xml.attribute("version", version.value);
+						g.attribute("version", version.value);
 
 					auto copy_attribute = [&] (auto attr)
 					{
 						if (node.has_attribute(attr)) {
 							using Value = String<128>;
-							xml.attribute(attr, node.attribute_value(attr, Value()));
+							g.attribute(attr, node.attribute_value(attr, Value()));
 						}
 					};
 
@@ -172,7 +172,7 @@ struct Sculpt::Deploy
 					copy_attribute("managing_system");
 
 					/* copy start-node content */
-					if (!xml.append_node_content(node, Xml_generator::Max_depth { 20 }))
+					if (!g.append_node_content(node, Generator::Max_depth { 20 }))
 						warning("start node too deeply nested: ", node);
 				});
 			});
@@ -180,7 +180,7 @@ struct Sculpt::Deploy
 			/*
 			 * Add start nodes for interactively launched components.
 			 */
-			_runtime_info.gen_launched_deploy_start_nodes(xml);
+			_runtime_info.gen_launched_deploy_start_nodes(g);
 		});
 	}
 
@@ -255,7 +255,7 @@ struct Sculpt::Deploy
 
 	void view_diag(Scope<> &) const;
 
-	void gen_runtime_start_nodes(Xml_generator &, Prio_levels, Affinity::Space) const;
+	void gen_runtime_start_nodes(Generator &, Prio_levels, Affinity::Space) const;
 
 	void restart()
 	{
@@ -274,9 +274,9 @@ struct Sculpt::Deploy
 		handle_deploy();
 	}
 
-	void gen_depot_query(Xml_generator &xml) const
+	void gen_depot_query(Generator &g) const
 	{
-		_children.gen_queries(xml);
+		_children.gen_queries(g);
 	}
 
 	void update_installation()
@@ -288,9 +288,9 @@ struct Sculpt::Deploy
 		_children.for_each_missing_pkg_path([&] (Depot::Archive::Path const path) {
 			_download_queue.add(path, Verify { true }); });
 
-		_installation.generate([&] (Xml_generator &xml) {
-			xml.attribute("arch", _arch);
-			_download_queue.gen_installation_entries(xml);
+		_installation.generate([&] (Generator &g) {
+			g.attribute("arch", _arch);
+			_download_queue.gen_installation_entries(g);
 		});
 	}
 

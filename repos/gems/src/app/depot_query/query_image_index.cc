@@ -17,7 +17,7 @@
 
 void Depot_query::Main::_query_image_index(Node const &index_query,
                                            Require_verify require_verify,
-                                           Xml_generator &xml)
+                                           Generator &g)
 {
 	using User    = Archive::User;
 	using Version = String<16>;
@@ -51,13 +51,13 @@ void Depot_query::Main::_query_image_index(Node const &index_query,
 		Image_info(Image_dict &dict, Version_reverse const &version, Presence presence)
 		: Image_dict::Element(dict, version), presence(presence) { }
 
-		void generate(Xml_generator &xml) const
+		void generate(Generator &g) const
 		{
-			xml.node("image", [&] {
-				xml.attribute("version", name);
+			g.node("image", [&] {
+				g.attribute("version", name);
 
 				if (presence == PRESENT)
-					xml.attribute("present", "yes");
+					g.attribute("present", "yes");
 
 				if (!from_index.constructed())
 					return;
@@ -66,8 +66,8 @@ void Depot_query::Main::_query_image_index(Node const &index_query,
 					using Text = String<160>;
 					Text const text = info.attribute_value("text", Text());
 					if (text.valid())
-						xml.node("info", [&] {
-							xml.attribute("text", text); });
+						g.node("info", [&] {
+							g.attribute("text", text); });
 				});
 			});
 		}
@@ -147,22 +147,22 @@ void Depot_query::Main::_query_image_index(Node const &index_query,
 	 * Give feedback to depot_download_manager about the absence of the index
 	 * file.
 	 */
-	xml.node(index_exists ? "present" : "missing", [&] () {
-		xml.attribute("user", user);
-		require_verify.gen_attr(xml);
+	g.node(index_exists ? "present" : "missing", [&] () {
+		g.attribute("user", user);
+		require_verify.gen_attr(g);
 	});
 
 	/*
 	 * Report aggregated image information with the newest version first.
 	 */
-	xml.node("user", [&] () {
+	g.node("user", [&] () {
 
-		xml.attribute("name",  user);
-		xml.attribute("os",    os);
-		xml.attribute("board", board);
+		g.attribute("name",  user);
+		g.attribute("os",    os);
+		g.attribute("board", board);
 
 		images.for_each([&] (Image_info const &info) {
-			info.generate(xml); });
+			info.generate(g); });
 	});
 
 	auto destroy_image_info = [&] (Image_info &info) { destroy(_heap, &info); };

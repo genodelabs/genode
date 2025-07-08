@@ -16,7 +16,6 @@
 #include <vfs/dir_file_system.h>
 #include <vfs/single_file_system.h>
 #include <util/arg_string.h>
-#include <util/xml_generator.h>
 
 /* vfs tresor crypto includes */
 #include <interface.h>
@@ -336,13 +335,13 @@ class Vfs_tresor_crypto::Key_file_system : private Key_local_factory,
 		{
 			char buf[Config::capacity()] { };
 
-			Xml_generator::generate({ buf, sizeof(buf) }, "dir",
-				[&] (Xml_generator &xml) {
+			Generator::generate({ buf, sizeof(buf) }, "dir",
+				[&] (Generator &g) {
 
-					xml.attribute("name", String<16>(key_id));
+					g.attribute("name", String<16>(key_id));
 
-					xml.node("decrypt");
-					xml.node("encrypt");
+					g.node("decrypt");
+					g.node("encrypt");
 
 			}).with_error([] (Genode::Buffer_error) {
 				warning("VFS-tresor_crypto key compound exceeds maximum buffer size"); });
@@ -1106,14 +1105,14 @@ class Vfs_tresor_crypto::File_system : private Local_factory,
 			(void)node;
 			char buf[Config::capacity()] { };
 
-			Xml_generator::generate({ buf, sizeof(buf) }, "dir",
-				[&] (Xml_generator &xml) {
-					xml.attribute(
+			Generator::generate({ buf, sizeof(buf) }, "dir",
+				[&] (Generator &g) {
+					g.attribute(
 						"name", node.attribute_value("name", String<64>("")));
 
-					xml.node("add_key",    [&] () { });
-					xml.node("remove_key", [&] () { });
-					xml.node("keys",       [&] () { });
+					g.node("add_key",    [&] () { });
+					g.node("remove_key", [&] () { });
+					g.node("keys",       [&] () { });
 			}).with_error([] (Genode::Buffer_error) {
 				warning("VFS-tresor_crypto compound exceeds maximum buffer size"); });
 

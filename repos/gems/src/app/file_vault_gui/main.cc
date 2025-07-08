@@ -665,19 +665,19 @@ struct Main : Prompt::Action
 		ui_config.client_fs_size = setup_frame.capacity.as_num_bytes();
 		ui_config.journaling_buf_size = setup_frame.journal_buf.as_num_bytes();
 		ui_config.passphrase = setup_frame.passphrase.text;
-		ui_config_reporter.generate([&] (Xml_generator &xml) { ui_config.generate(xml); });
+		ui_config_reporter.generate([&] (Generator &g) { ui_config.generate(g); });
 	}
 
 	void unlock(Unlock_frame const &unlock_frame)
 	{
 		ui_config.passphrase = unlock_frame.passphrase.text;
-		ui_config_reporter.generate([&] (Xml_generator &xml) { ui_config.generate(xml); });
+		ui_config_reporter.generate([&] (Generator &g) { ui_config.generate(g); });
 	}
 
 	void lock()
 	{
 		ui_config.passphrase = "";
-		ui_config_reporter.generate([&] (Xml_generator &xml) { ui_config.generate(xml); });
+		ui_config_reporter.generate([&] (Generator &g) { ui_config.generate(g); });
 	}
 
 	bool ready_to_extend() const
@@ -706,7 +706,7 @@ struct Main : Prompt::Action
 	{
 		Operation_id id { ui_report->rekey.constructed() ? ui_report->rekey->id.value + 1 : 0 };
 		ui_config.rekey.construct(id);
-		ui_config_reporter.generate([&] (Xml_generator &xml) { ui_config.generate(xml); });
+		ui_config_reporter.generate([&] (Generator &g) { ui_config.generate(g); });
 	}
 
 	template <Ui_config::Extend::Tree TREE>
@@ -714,7 +714,7 @@ struct Main : Prompt::Action
 	{
 		Operation_id id { ui_report->extend.constructed() ? ui_report->extend->id.value + 1 : 0 };
 		ui_config.extend.construct(id, TREE, dimension_tab.num_bytes_prompt.as_num_bytes());
-		ui_config_reporter.generate([&] (Xml_generator &xml) { ui_config.generate(xml); });
+		ui_config_reporter.generate([&] (Generator &g) { ui_config.generate(g); });
 	}
 
 	void handle_signal()

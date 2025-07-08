@@ -15,7 +15,6 @@
 #define _WIDGET_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <util/list_model.h>
 #include <gems/animated_geometry.h>
 
@@ -175,13 +174,13 @@ class Menu_view::Widget : List_model<Widget>::Element
 				_animated_geometry.move_to(_geometry, motion_steps());
 		}
 
-		void _gen_common_hover_attr(Xml_generator &xml) const
+		void _gen_common_hover_attr(Generator &g) const
 		{
-			xml.attribute("name",   _name.string());
-			xml.attribute("xpos",   geometry().x1());
-			xml.attribute("ypos",   geometry().y1());
-			xml.attribute("width",  geometry().w());
-			xml.attribute("height", geometry().h());
+			g.attribute("name",   _name.string());
+			g.attribute("xpos",   geometry().x1());
+			g.attribute("ypos",   geometry().y1());
+			g.attribute("width",  geometry().w());
+			g.attribute("height", geometry().h());
 		}
 
 	public:
@@ -290,18 +289,18 @@ class Menu_view::Widget : List_model<Widget>::Element
 			return result;
 		}
 
-		virtual void gen_hover_model(Xml_generator &xml, Point at) const
+		virtual void gen_hover_model(Generator &g, Point at) const
 		{
 			if (!_inner_geometry().contains(at))
 				return;
 
-			xml.node(_type_name.string(), [&]() {
+			g.node(_type_name.string(), [&]() {
 
-				_gen_common_hover_attr(xml);
+				_gen_common_hover_attr(g);
 
 				_children.for_each([&] (Widget const &w) {
 					if (_child_hovered(at, w))
-						w.gen_hover_model(xml, _at_child(at, w)); });
+						w.gen_hover_model(g, _at_child(at, w)); });
 			});
 		}
 

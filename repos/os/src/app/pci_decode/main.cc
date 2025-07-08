@@ -57,14 +57,14 @@ struct Main
 
 	bus_t parse_pci_function(Bdf, Config &,
 	                         addr_t cfg_phys_base,
-	                         Xml_generator &, unsigned &msi);
+	                         Generator &, unsigned &msi);
 	bus_t parse_pci_bus(bus_t bus, Byte_range_ptr const &, addr_t phys_base,
-	                    Xml_generator &, unsigned &msi);
+	                    Generator &, unsigned &msi);
 
 	void parse_irq_override_rules(Node const &);
-	void parse_pci_config_spaces (Node const &, Xml_generator &);
-	void parse_acpi_device_info  (Node const &, Xml_generator &);
-	void parse_tpm2_table        (Node const &, Xml_generator &);
+	void parse_pci_config_spaces (Node const &, Generator &);
+	void parse_acpi_device_info  (Node const &, Generator &);
+	void parse_tpm2_table        (Node const &, Generator &);
 
 	template <typename FN>
 	void for_bridge(Pci::bus_t bus, FN const &fn)
@@ -109,11 +109,11 @@ static uint64_t fixup_bar_base_address(Bdf bdf, unsigned bar, uint64_t addr, uin
  * reached downstream of a bridge).
  */
 
-bus_t Main::parse_pci_function(Bdf            bdf,
-                               Config        &cfg,
-                               addr_t         cfg_phys_base,
-                               Xml_generator &gen,
-                               unsigned      &msi_number)
+bus_t Main::parse_pci_function(Bdf        bdf,
+                               Config    &cfg,
+                               addr_t     cfg_phys_base,
+                               Generator &g,
+                               unsigned  &msi_number)
 {
 	cfg.scan();
 
@@ -153,56 +153,56 @@ bus_t Main::parse_pci_function(Bdf            bdf,
 
 	/* XXX we might need to skip PCI-discoverable IOAPIC and IOMMU devices */
 
-	gen.node("device", [&]
+	g.node("device", [&]
 	{
 		auto string = [&] (uint64_t v) { return String<16>(Hex(v)); };
 
-		gen.attribute("name", Bdf::string(bdf));
-		gen.attribute("type", "pci");
+		g.attribute("name", Bdf::string(bdf));
+		g.attribute("type", "pci");
 
-		gen.node("pci-config", [&]
+		g.node("pci-config", [&]
 		{
 			using C  = Config;
 			using C0 = Config_type0;
 			using C1 = Config_type1;
 			using Cc = Config::Class_code_rev_id;
 
-			gen.attribute("address",       string(cfg_phys_base));
-			gen.attribute("bus",           string(bdf.bus));
-			gen.attribute("device",        string(bdf.dev));
-			gen.attribute("function",      string(bdf.fn));
-			gen.attribute("vendor_id",     string(cfg.read<C::Vendor>()));
-			gen.attribute("device_id",     string(cfg.read<C::Device>()));
-			gen.attribute("class",         string(cfg.read<Cc::Class_code>()));
-			gen.attribute("revision",      string(cfg.read<Cc::Revision>()));
-			gen.attribute("bridge",        cfg.bridge() ? "yes" : "no");
+			g.attribute("address",       string(cfg_phys_base));
+			g.attribute("bus",           string(bdf.bus));
+			g.attribute("device",        string(bdf.dev));
+			g.attribute("function",      string(bdf.fn));
+			g.attribute("vendor_id",     string(cfg.read<C::Vendor>()));
+			g.attribute("device_id",     string(cfg.read<C::Device>()));
+			g.attribute("class",         string(cfg.read<Cc::Class_code>()));
+			g.attribute("revision",      string(cfg.read<Cc::Revision>()));
+			g.attribute("bridge",        cfg.bridge() ? "yes" : "no");
 
 			if (cfg.bridge()) {
 				C1 cfg1(cfg.range());
-				gen.attribute("io_base_limit",
-				              string(cfg1.read<C1::Io_base_limit>()));
-				gen.attribute("memory_base",
-				              string(cfg1.read<C1::Memory_base>()));
-				gen.attribute("memory_limit",
-				              string(cfg1.read<C1::Memory_limit>()));
-				gen.attribute("prefetch_memory_base",
-				              string(cfg1.read<C1::Prefetchable_memory_base>()));
-				gen.attribute("prefetch_memory_base_upper",
-				              string(cfg1.read<C1::Prefetchable_memory_base_upper>()));
-				gen.attribute("prefetch_memory_limit_upper",
-				              string(cfg1.read<C1::Prefetchable_memory_limit_upper>()));
-				gen.attribute("io_base_limit_upper",
-				              string(cfg1.read<C1::Io_base_limit_upper>()));
-				gen.attribute("expansion_rom_base",
-				              string(cfg1.read<C1::Expansion_rom_base_addr>()));
-				gen.attribute("bridge_control",
-				              string(cfg1.read<C1::Bridge_control>()));
+				g.attribute("io_base_limit",
+				            string(cfg1.read<C1::Io_base_limit>()));
+				g.attribute("memory_base",
+				            string(cfg1.read<C1::Memory_base>()));
+				g.attribute("memory_limit",
+				            string(cfg1.read<C1::Memory_limit>()));
+				g.attribute("prefetch_memory_base",
+				            string(cfg1.read<C1::Prefetchable_memory_base>()));
+				g.attribute("prefetch_memory_base_upper",
+				            string(cfg1.read<C1::Prefetchable_memory_base_upper>()));
+				g.attribute("prefetch_memory_limit_upper",
+				            string(cfg1.read<C1::Prefetchable_memory_limit_upper>()));
+				g.attribute("io_base_limit_upper",
+				            string(cfg1.read<C1::Io_base_limit_upper>()));
+				g.attribute("expansion_rom_base",
+				            string(cfg1.read<C1::Expansion_rom_base_addr>()));
+				g.attribute("bridge_control",
+				            string(cfg1.read<C1::Bridge_control>()));
 			} else {
 				C0 cfg0(cfg.range());
-				gen.attribute("sub_vendor_id",
-				              string(cfg0.read<C0::Subsystem_vendor>()));
-				gen.attribute("sub_device_id",
-				              string(cfg0.read<C0::Subsystem_device>()));
+				g.attribute("sub_vendor_id",
+				            string(cfg0.read<C0::Subsystem_vendor>()));
+				g.attribute("sub_device_id",
+				            string(cfg0.read<C0::Subsystem_device>()));
 			}
 		});
 
@@ -213,21 +213,21 @@ bus_t Main::parse_pci_function(Bdf            bdf,
 			if (!addr)
 				warning(bdf, " MEM BAR", bar, " ", Hex_range(addr, (size_t)size),
 				        " has invalid base address - consider pci-fixup in parse_pci_function()");
-			gen.node("io_mem", [&]
+			g.node("io_mem", [&]
 			{
-				gen.attribute("pci_bar", bar);
-				gen.attribute("address", string(addr));
-				gen.attribute("size",    string(size));
-				if (pf) gen.attribute("prefetchable", true);
+				g.attribute("pci_bar", bar);
+				g.attribute("address", string(addr));
+				g.attribute("size",    string(size));
+				if (pf) g.attribute("prefetchable", true);
 			});
 		}, [&] (uint64_t addr, uint64_t size, unsigned bar) {
-			gen.node("io_port_range", [&]
+			g.node("io_port_range", [&]
 			{
-				gen.attribute("pci_bar", bar);
-				gen.attribute("address", string(addr));
+				g.attribute("pci_bar", bar);
+				g.attribute("address", string(addr));
 
 				/* on x86 I/O ports can be in range 0-64KB only */
-				gen.attribute("size", string(size & 0xffff));
+				g.attribute("size", string(size & 0xffff));
 			});
 		});
 
@@ -260,17 +260,17 @@ bus_t Main::parse_pci_function(Bdf            bdf,
 		bool const supports_msi = msi_capable && (msi_x || msi);
 
 		if (supports_irq || supports_msi)
-			gen.node("irq", [&]
+			g.node("irq", [&]
 			{
 				if (msi_capable && msi) {
-					gen.attribute("type", "msi");
-					gen.attribute("number", msi_number++);
+					g.attribute("type", "msi");
+					g.attribute("number", msi_number++);
 					return;
 				}
 
 				if (msi_capable && msi_x) {
-					gen.attribute("type", "msi-x");
-					gen.attribute("number", msi_number++);
+					g.attribute("type", "msi-x");
+					g.attribute("number", msi_number++);
 					return;
 				}
 
@@ -282,17 +282,17 @@ bus_t Main::parse_pci_function(Bdf            bdf,
 				});
 
 				irq_override_list.for_each([&] (Irq_override &io) {
-					io.generate(gen, irq); });
+					io.generate(g, irq); });
 
-				gen.attribute("number", irq);
+				g.attribute("number", irq);
 			});
 
 		reserved_memory_list.for_each([&] (Rmrr &rmrr) {
 			if (rmrr.bdf == bdf)
-				gen.node("reserved_memory", [&]
+				g.node("reserved_memory", [&]
 				{
-					gen.attribute("address", rmrr.addr);
-					gen.attribute("size",    rmrr.size);
+					g.attribute("address", rmrr.addr);
+					g.attribute("size",    rmrr.size);
 				});
 		});
 
@@ -314,14 +314,14 @@ bus_t Main::parse_pci_function(Bdf            bdf,
 
 			if (device_match) {
 				drhd_device_found = true;
-				gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
+				g.node("io_mmu", [&] { g.attribute("name", drhd.name()); });
 			}
 		});
 
 		if (!drhd_device_found) {
 			drhd_list.for_each([&] (Drhd const &drhd) {
 				if (drhd.scope == Drhd::Scope::INCLUDE_PCI_ALL)
-					gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
+					g.node("io_mmu", [&] { g.attribute("name", drhd.name()); });
 			});
 		}
 	});
@@ -333,7 +333,7 @@ bus_t Main::parse_pci_function(Bdf            bdf,
 bus_t Main::parse_pci_bus(bus_t                 bus,
                           Byte_range_ptr const &range,
                           addr_t                phys_base,
-                          Xml_generator        &generator,
+                          Generator            &g,
                           unsigned             &msi_number)
 {
 	bus_t max_subordinate_bus = bus;
@@ -346,7 +346,7 @@ bus_t Main::parse_pci_bus(bus_t                 bus,
 
 		bus_t const subordinate_bus =
 			parse_pci_function({(bus_t)bus, dev, fn}, cfg,
-			                   config_phys_base, generator, msi_number);
+			                   config_phys_base, g, msi_number);
 
 		max_subordinate_bus = max(max_subordinate_bus, subordinate_bus);
 
@@ -368,15 +368,15 @@ bus_t Main::parse_pci_bus(bus_t                 bus,
 }
 
 
-static void parse_acpica_info(Node const &node, Xml_generator &gen)
+static void parse_acpica_info(Node const &node, Generator &g)
 {
-	gen.node("device", [&] {
-		gen.attribute("name", "acpi");
-		gen.attribute("type", "acpi");
+	g.node("device", [&] {
+		g.attribute("name", "acpi");
+		g.attribute("type", "acpi");
 
 		node.with_optional_sub_node("sci_int", [&] (Node const &node) {
-			gen.node("irq", [&] {
-				gen.attribute("number", node.attribute_value("irq", 0xff));
+			g.node("irq", [&] {
+				g.attribute("number", node.attribute_value("irq", 0xff));
 			});
 		});
 	});
@@ -389,7 +389,7 @@ static void parse_acpica_info(Node const &node, Xml_generator &gen)
  * See the following document for further information:
  * https://trustedcomputinggroup.org/wp-content/uploads/TCG_ACPIGeneralSpec_v1p3_r8_pub.pdf
  */
-void Main::parse_tpm2_table(Node const &node, Xml_generator &gen)
+void Main::parse_tpm2_table(Node const &node, Generator &g)
 {
 	enum {
 		TPM2_TABLE_CRB_ADDRESS_OFFSET = 40,
@@ -427,12 +427,12 @@ void Main::parse_tpm2_table(Node const &node, Xml_generator &gen)
 		*(reinterpret_cast<addr_t*>(ptr + TPM2_TABLE_CRB_ADDRESS_OFFSET)) &
 		TPM2_TABLE_CRB_ADDRESS_MASK;
 
-	gen.node("device", [&]
+	g.node("device", [&]
 	{
-		gen.attribute("name", "tpm2");
-		gen.node("io_mem", [&] {
-			gen.attribute("address", crb_address);
-			gen.attribute("size", TPM2_DEVICE_IO_MEM_SIZE);
+		g.attribute("name", "tpm2");
+		g.node("io_mem", [&] {
+			g.attribute("address", crb_address);
+			g.attribute("size", TPM2_DEVICE_IO_MEM_SIZE);
 		});
 	});
 }
@@ -443,7 +443,7 @@ void Main::parse_tpm2_table(Node const &node, Xml_generator &gen)
  * we assume to be found in this function. In the future, this function
  * shall interpret ACPI tables information.
  */
-void Main::parse_acpi_device_info(Node const &node, Xml_generator &gen)
+void Main::parse_acpi_device_info(Node const &node, Generator &g)
 {
 	using Table_name = String<5>;
 
@@ -451,41 +451,41 @@ void Main::parse_acpi_device_info(Node const &node, Xml_generator &gen)
 		Table_name name = table.attribute_value("name", Table_name());
 		/* only the TPM2 table is supported at this time */
 		if (name == "TPM2") {
-			parse_tpm2_table(table, gen);
+			parse_tpm2_table(table, g);
 		}
 	});
 
 	/*
 	 * PS/2 device
 	 */
-	gen.node("device", [&]
+	g.node("device", [&]
 	{
-		gen.attribute("name", "ps2");
-		gen.node("irq", [&] { gen.attribute("number", 1U); });
-		gen.node("irq", [&] { gen.attribute("number", 12U); });
-		gen.node("io_port_range", [&]
+		g.attribute("name", "ps2");
+		g.node("irq", [&] { g.attribute("number", 1U); });
+		g.node("irq", [&] { g.attribute("number", 12U); });
+		g.node("io_port_range", [&]
 		{
-			gen.attribute("address", "0x60");
-			gen.attribute("size", 1U);
+			g.attribute("address", "0x60");
+			g.attribute("size", 1U);
 		});
-		gen.node("io_port_range", [&]
+		g.node("io_port_range", [&]
 		{
-			gen.attribute("address", "0x64");
-			gen.attribute("size", 1U);
+			g.attribute("address", "0x64");
+			g.attribute("size", 1U);
 		});
 	});
 
 	/*
 	 * PIT device
 	 */
-	gen.node("device", [&]
+	g.node("device", [&]
 	{
-		gen.attribute("name", "pit");
-		gen.node("irq", [&] { gen.attribute("number", 0U); });
-		gen.node("io_port_range", [&]
+		g.attribute("name", "pit");
+		g.node("irq", [&] { g.attribute("number", 0U); });
+		g.node("io_port_range", [&]
 		{
-			gen.attribute("address", "0x40");
-			gen.attribute("size", 4U);
+			g.attribute("address", "0x40");
+			g.attribute("size", 4U);
 		});
 	});
 
@@ -493,7 +493,7 @@ void Main::parse_acpi_device_info(Node const &node, Xml_generator &gen)
 	 * ACPI device (if applicable)
 	 */
 	if (node.has_sub_node("sci_int"))
-		parse_acpica_info(node, gen);
+		parse_acpica_info(node, g);
 
 	/*
 	 * IOAPIC devices
@@ -503,62 +503,62 @@ void Main::parse_acpi_device_info(Node const &node, Xml_generator &gen)
 		intr_remap = node.attribute_value("intr_remap", intr_remap); });
 
 	ioapic_list.for_each([&] (Ioapic const &ioapic) {
-		gen.node("device", [&]
+		g.node("device", [&]
 		{
-			gen.attribute("name", ioapic.name());
-			gen.attribute("type", "ioapic");
-			gen.node("io_mem", [&]
+			g.attribute("name", ioapic.name());
+			g.attribute("type", "ioapic");
+			g.node("io_mem", [&]
 			{
-				gen.attribute("address", String<20>(Hex(ioapic.addr)));
-				gen.attribute("size",    "0x1000");
+				g.attribute("address", String<20>(Hex(ioapic.addr)));
+				g.attribute("size",    "0x1000");
 			});
 
 			/* find corresponding drhd and add <io_mmu/> node and Routing_id property */
 			drhd_list.for_each([&] (Drhd const &drhd) {
 				drhd.devices.for_each([&] (Drhd::Device const &device) {
 					if (device.type == Drhd::Device::IOAPIC && device.id == ioapic.id) {
-						gen.node("io_mmu", [&] { gen.attribute("name", drhd.name()); });
-						gen.node("property", [&]
+						g.node("io_mmu", [&] { g.attribute("name", drhd.name()); });
+						g.node("property", [&]
 						{
-							gen.attribute("name", "routing_id");
-							gen.attribute("value", String<10>(Hex(Pci::Bdf::rid(device.bdf))));
+							g.attribute("name", "routing_id");
+							g.attribute("value", String<10>(Hex(Pci::Bdf::rid(device.bdf))));
 						});
 					}
 				});
 			});
 
-			gen.node("property", [&]
+			g.node("property", [&]
 			{
-				gen.attribute("name",  "irq_start");
-				gen.attribute("value", ioapic.base_irq);
+				g.attribute("name",  "irq_start");
+				g.attribute("value", ioapic.base_irq);
 			});
 
 			if (!intr_remap)
 				return;
 
-			gen.node("property", [&]
+			g.node("property", [&]
 			{
-				gen.attribute("name",  "remapping");
-				gen.attribute("value", "yes");
+				g.attribute("name",  "remapping");
+				g.attribute("value", "yes");
 			});
 		});
 	});
 
 	/* Intel DMA-remapping hardware units */
 	drhd_list.for_each([&] (Drhd const &drhd) {
-		gen.node("device", [&]
+		g.node("device", [&]
 		{
-			gen.attribute("name", drhd.name());
-			gen.attribute("type", "intel_iommu");
-			gen.node("io_mem", [&]
+			g.attribute("name", drhd.name());
+			g.attribute("type", "intel_iommu");
+			g.node("io_mem", [&]
 			{
-				gen.attribute("address", String<20>(Hex(drhd.addr)));
-				gen.attribute("size",    String<20>(Hex(drhd.size)));
+				g.attribute("address", String<20>(Hex(drhd.addr)));
+				g.attribute("size",    String<20>(Hex(drhd.size)));
 			});
-			gen.node("irq", [&]
+			g.node("irq", [&]
 			{
-				gen.attribute("type", "msi");
-				gen.attribute("number", msi_start++);
+				g.attribute("type", "msi");
+				g.attribute("number", msi_start++);
 			});
 		});
 	});
@@ -566,41 +566,41 @@ void Main::parse_acpi_device_info(Node const &node, Xml_generator &gen)
 	/*
 	 * Intel Tigerlake/Alderlake PCH Pinctrl/GPIO
 	 */
-	gen.node("device", [&]
+	g.node("device", [&]
 	{
-		gen.attribute("name", "INT34C5");
-		gen.attribute("type", "acpi");
-		gen.node("irq", [&]
+		g.attribute("name", "INT34C5");
+		g.attribute("type", "acpi");
+		g.node("irq", [&]
 		{
-			gen.attribute("number", 14U);
-			gen.attribute("mode", "level");
-			gen.attribute("polarity", "low");
+			g.attribute("number", 14U);
+			g.attribute("mode", "level");
+			g.attribute("polarity", "low");
 		});
-		gen.node("io_mem", [&]
+		g.node("io_mem", [&]
 		{
-			gen.attribute("address", "0xfd690000");
-			gen.attribute("size",    "0x1000");
+			g.attribute("address", "0xfd690000");
+			g.attribute("size",    "0x1000");
 		});
-		gen.node("io_mem", [&]
+		g.node("io_mem", [&]
 		{
-			gen.attribute("address", "0xfd6a0000");
-			gen.attribute("size",    "0x1000");
+			g.attribute("address", "0xfd6a0000");
+			g.attribute("size",    "0x1000");
 		});
-		gen.node("io_mem", [&]
+		g.node("io_mem", [&]
 		{
-			gen.attribute("address", "0xfd6d0000");
-			gen.attribute("size",    "0x1000");
+			g.attribute("address", "0xfd6d0000");
+			g.attribute("size",    "0x1000");
 		});
-		gen.node("io_mem", [&]
+		g.node("io_mem", [&]
 		{
-			gen.attribute("address", "0xfd6e0000");
-			gen.attribute("size",    "0x1000");
+			g.attribute("address", "0xfd6e0000");
+			g.attribute("size",    "0x1000");
 		});
 	});
 }
 
 
-void Main::parse_pci_config_spaces(Node const &node, Xml_generator &generator)
+void Main::parse_pci_config_spaces(Node const &node, Generator &g)
 {
 	unsigned msi_number      = msi_start;
 	unsigned host_bridge_num = 0;
@@ -633,7 +633,7 @@ void Main::parse_pci_config_spaces(Node const &node, Xml_generator &generator)
 			bus_t const subordinate_bus =
 				parse_pci_bus((bus_t)bus + bus_off,
 				              {pci_config_ds->local_addr<char>(), BUS_SIZE},
-				              offset, generator, msi_number);
+				              offset, g, msi_number);
 
 			max_subordinate_bus = max(max_subordinate_bus, subordinate_bus);
 		} while (bus++ < max_subordinate_bus);
@@ -812,10 +812,10 @@ Main::Main(Env &env) : env(env)
 
 	);
 
-	pci_reporter.generate([&] (Xml_generator &generator)
+	pci_reporter.generate([&] (Generator &g)
 	{
-		parse_acpi_device_info(node, generator);
-		parse_pci_config_spaces(node, generator);
+		parse_acpi_device_info(node, g);
+		parse_pci_config_spaces(node, g);
 	});
 }
 

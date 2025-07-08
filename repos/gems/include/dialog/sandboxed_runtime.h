@@ -146,7 +146,7 @@ class Dialog::Sandboxed_runtime : Noncopyable
 				return result;
 			}
 
-			void gen_start_node(Xml_generator &, Views const &) const;
+			void gen_start_node(Generator &, Views const &) const;
 
 		} _menu_view_state;
 
@@ -257,7 +257,7 @@ class Dialog::Sandboxed_runtime : Noncopyable
 		 */
 		bool apply_sandbox_state(Node const &);
 
-		void gen_start_nodes(Xml_generator &) const;
+		void gen_start_nodes(Generator &) const;
 };
 
 
@@ -308,17 +308,17 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 				fn(Node());
 		}
 
-		struct Rom_producer : Dynamic_rom_session::Xml_producer
+		struct Rom_producer : Dynamic_rom_session::Producer
 		{
 			View const &_view;
 
 			Rom_producer(View const &view)
 			:
-				Dynamic_rom_session::Xml_producer("dialog"),
+				Dynamic_rom_session::Producer("dialog"),
 				_view(view)
 			{ }
 
-			void produce_xml(Xml_generator &xml) override
+			void generate(Generator &g) override
 			{
 				_view._with_dialog_hover([&] (Node const &hover) {
 
@@ -332,7 +332,7 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 					At const at { _view._runtime._global_seq_number,
 					              supply_hover ? hover : omitted_hover };
 
-					Scope<> top_level_scope(xml, at, dragged, { _view._dialog.name });
+					Scope<> top_level_scope(g, at, dragged, { _view._dialog.name });
 
 					_view._dialog.view(top_level_scope);
 				});
@@ -342,8 +342,8 @@ class Dialog::Sandboxed_runtime::View : private Views::Element
 		Dynamic_rom_session _dialog_rom_session {
 			_env.ep(), _env.ram(), _env.rm(), _dialog_producer };
 
-		void _gen_menu_view_dialog(Xml_generator &) const;
-		void _gen_menu_view_routes(Xml_generator &) const;
+		void _gen_menu_view_dialog(Generator &) const;
+		void _gen_menu_view_routes(Generator &) const;
 
 		void _handle_input_event(Input::Event const &);
 

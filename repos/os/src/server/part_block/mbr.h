@@ -227,27 +227,27 @@ class Block::Mbr : public Partition_table
 			return partition_valid(num) ? _part_list[num - 1]->sectors : 0;
 		}
 
-		void generate_report(Xml_generator &xml) const override
+		void generate_report(Generator &g) const override
 		{
-			auto gen_partition_attr = [&] (Xml_generator &xml, unsigned i)
+			auto gen_partition_attr = [&] (Generator &g, unsigned i)
 			{
 				Mbr_partition const &part = *_part_list[i];
 
-				xml.attribute("number",     i + 1);
-				xml.attribute("start",      part.lba);
-				xml.attribute("length",     part.sectors);
-				xml.attribute("block_size", _info.block_size);
-				xml.attribute("type",       part.type);
+				g.attribute("number",     i + 1);
+				g.attribute("start",      part.lba);
+				g.attribute("length",     part.sectors);
+				g.attribute("block_size", _info.block_size);
+				g.attribute("type",       part.type);
 
 				if (part.fs_type.valid())
-					xml.attribute("file_system", part.fs_type);
+					g.attribute("file_system", part.fs_type);
 			};
 
-			xml.attribute("type", "mbr");
+			g.attribute("type", "mbr");
 
 			_for_each_valid_partition([&] (unsigned i) {
-				xml.node("partition", [&] {
-					gen_partition_attr(xml, i); }); });
+				g.node("partition", [&] {
+					gen_partition_attr(g, i); }); });
 		}
 };
 

@@ -198,13 +198,13 @@ void Session_component::update_policy(bool info, Policy_version version)
 };
 
 
-void Session_component::produce_xml(Xml_generator &xml)
+void Session_component::generate(Generator &g)
 {
 	if (_version.valid())
-		xml.attribute("version", _version);
+		g.attribute("version", _version);
 
 	_devices.for_each([&] (Device const &dev) {
-		if (matches(dev)) dev.generate(xml, _info); });
+		if (matches(dev)) dev.generate(g, _info); });
 }
 
 
@@ -444,7 +444,7 @@ Session_component::Session_component(Env                          &env,
 :
 	Session_object<Platform::Session>(env.ep(), resources, label, diag),
 	Session_registry::Element(registry, *this),
-	Dynamic_rom_session::Xml_producer("devices"),
+	Dynamic_rom_session::Producer("devices"),
 	_env(env), _config(config), _devices(devices),
 	_io_mmu_devices(io_mmu_devices),
 	_irq_controller_registry(irq_controller_registry),

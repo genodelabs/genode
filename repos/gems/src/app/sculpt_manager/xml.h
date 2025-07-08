@@ -1,5 +1,5 @@
 /*
- * \brief  Utilities for generating XML
+ * \brief  Utilities for generating structured data
  * \author Norman Feske
  * \date   2018-01-11
  */
@@ -15,7 +15,6 @@
 #define _XML_H_
 
 /* Genode includes */
-#include <util/xml_generator.h>
 #include <util/callable.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
@@ -25,95 +24,94 @@
 
 namespace Sculpt {
 
-	static inline void gen_named_node(Xml_generator &xml,
+	static inline void gen_named_node(Generator &g,
 	                                  char const *type, char const *name, auto const &fn)
 	{
-		xml.node(type, [&] {
-			xml.attribute("name", name);
+		g.node(type, [&] {
+			g.attribute("name", name);
 			fn();
 		});
 	}
 
-	static inline void gen_named_node(Xml_generator &xml, char const *type, char const *name)
+	static inline void gen_named_node(Generator &g, char const *type, char const *name)
 	{
-		xml.node(type, [&] { xml.attribute("name", name); });
+		g.node(type, [&] { g.attribute("name", name); });
 	}
 
-	static inline void gen_named_node(Xml_generator &xml,
+	static inline void gen_named_node(Generator &g,
 	                                  char const *type, auto const &name, auto const &fn)
 	{
-		gen_named_node(xml, type, name.string(), fn);
+		gen_named_node(g, type, name.string(), fn);
 	}
 
-	static inline void gen_named_node(Xml_generator &xml, char const *type, auto const &name)
+	static inline void gen_named_node(Generator &g, char const *type, auto const &name)
 	{
-		gen_named_node(xml, type, name.string());
-	}
-
-	template <typename SESSION>
-	static inline void gen_service_node(Xml_generator &xml, auto const &fn)
-	{
-		gen_named_node(xml, "service", SESSION::service_name(), fn);
+		gen_named_node(g, type, name.string());
 	}
 
 	template <typename SESSION>
-	static inline void gen_parent_service(Xml_generator &xml)
+	static inline void gen_service_node(Generator &g, auto const &fn)
 	{
-		gen_named_node(xml, "service", SESSION::service_name());
+		gen_named_node(g, "service", SESSION::service_name(), fn);
+	}
+
+	template <typename SESSION>
+	static inline void gen_parent_service(Generator &g)
+	{
+		gen_named_node(g, "service", SESSION::service_name());
 	};
 
 	template <typename SESSION>
-	static inline void gen_parent_route(Xml_generator &xml)
+	static inline void gen_parent_route(Generator &g)
 	{
-		gen_named_node(xml, "service", SESSION::service_name(), [&] {
-			xml.node("parent", [&] { }); });
+		gen_named_node(g, "service", SESSION::service_name(), [&] {
+			g.node("parent", [&] { }); });
 	}
 
-	static inline void gen_parent_rom_route(Xml_generator  &xml,
+	static inline void gen_parent_rom_route(Generator      &g,
 	                                        Rom_name const &name,
 	                                        auto     const &label)
 	{
-		gen_service_node<Rom_session>(xml, [&] {
-			xml.attribute("label_last", name);
-			xml.node("parent", [&] {
-				xml.attribute("label", label); });
+		gen_service_node<Rom_session>(g, [&] {
+			g.attribute("label_last", name);
+			g.node("parent", [&] {
+				g.attribute("label", label); });
 		});
 	}
 
-	static inline void gen_parent_rom_route(Xml_generator  &xml,
-	                                        Rom_name const &name)
+	static inline void gen_parent_rom_route(Generator &g, Rom_name const &name)
 	{
-		gen_parent_rom_route(xml, name, name);
+		gen_parent_rom_route(g, name, name);
 	}
 
 	template <typename SESSION>
-	static inline void gen_provides(Xml_generator &xml)
+	static inline void gen_provides(Generator &g)
 	{
-		xml.node("provides", [&] {
-			gen_named_node(xml, "service", SESSION::service_name()); });
+		g.node("provides", [&] {
+			gen_named_node(g, "service", SESSION::service_name()); });
 	}
 
-	static inline void gen_common_routes(Xml_generator &xml)
+	static inline void gen_common_routes(Generator &g)
 	{
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session>    (xml);
-		gen_parent_route<Pd_session>     (xml);
-		gen_parent_route<Log_session>    (xml);
-		gen_parent_route<Timer::Session> (xml);
-		gen_parent_route<Report::Session>(xml);
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_route<Cpu_session>    (g);
+		gen_parent_route<Pd_session>     (g);
+		gen_parent_route<Log_session>    (g);
+		gen_parent_route<Timer::Session> (g);
+		gen_parent_route<Report::Session>(g);
 	}
 
-	static inline void gen_common_start_content(Xml_generator   &xml,
+	static inline void gen_common_start_content(Generator       &g,
 	                                            Rom_name  const &name,
 	                                            Cap_quota const  caps,
 	                                            Ram_quota const  ram,
 	                                            Priority  const  priority)
 	{
-		xml.attribute("name", name);
-		xml.attribute("caps", caps.value);
-		xml.attribute("priority", (int)priority);
-		gen_named_node(xml, "resource", "RAM", [&] {
-			xml.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
+		g.attribute("name", name);
+		g.attribute("caps", caps.value);
+		g.attribute("priority", (int)priority);
+		gen_named_node(g, "resource", "RAM", [&] {
+			g.attribute("quantum", String<64>(Number_of_bytes(ram.value))); });
 	}
 
 	template <typename T>

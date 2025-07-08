@@ -50,35 +50,35 @@ struct Test::Monitor
 
 	unsigned _cnt = 0;
 
-	void _gen_service_xml(Xml_generator &xml, char const *name)
+	void _gen_service(Generator &g, char const *name)
 	{
-		xml.node("service", [&] () { xml.attribute("name", name); });
+		g.node("service", [&] () { g.attribute("name", name); });
 	};
 
 	void _generate_init_config()
 	{
-		_init_config.generate([&] (Xml_generator &xml) {
+		_init_config.generate([&] (Generator &g) {
 
-			xml.node("report", [&] () { xml.attribute("child_ram", true); });
+			g.node("report", [&] () { g.attribute("child_ram", true); });
 
-			xml.node("parent-provides", [&] () {
-				_gen_service_xml(xml, "ROM");
-				_gen_service_xml(xml, "CPU");
-				_gen_service_xml(xml, "PD");
-				_gen_service_xml(xml, "LOG");
-				_gen_service_xml(xml, "Timer");
+			g.node("parent-provides", [&] () {
+				_gen_service(g, "ROM");
+				_gen_service(g, "CPU");
+				_gen_service(g, "PD");
+				_gen_service(g, "LOG");
+				_gen_service(g, "Timer");
 			});
 
-			xml.node("start", [&] () {
-				xml.attribute("name", "test-resource_request");
-				xml.attribute("caps", 3000);
-				xml.node("resource", [&] () {
-					xml.attribute("name", "RAM");
-					xml.attribute("quantum", _ram_quota);
+			g.node("start", [&] () {
+				g.attribute("name", "test-resource_request");
+				g.attribute("caps", 3000);
+				g.node("resource", [&] () {
+					g.attribute("name", "RAM");
+					g.attribute("quantum", _ram_quota);
 				});
-				xml.node("route", [&] () {
-					xml.node("any-service", [&] () {
-						xml.node("parent", [&] () { }); }); });
+				g.node("route", [&] () {
+					g.node("any-service", [&] () {
+						g.node("parent", [&] () { }); }); });
 			});
 		});
 	}

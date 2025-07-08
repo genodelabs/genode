@@ -1,5 +1,5 @@
 /*
- * \brief  Generate XML report
+ * \brief  Generate report
  * \author Alexander Boettcher
  */
 
@@ -17,12 +17,12 @@
 
 using namespace Acpica;
 
-void Acpica::generate_suspend_report(Xml_generator &xml, String<32> const &state)
+void Acpica::generate_suspend_report(Generator &g, String<32> const &state)
 {
 	static unsigned version = 0;
 
-	xml.attribute("version"  , version++);
-	xml.attribute("complete" , state);
+	g.attribute("version"  , version++);
+	g.attribute("complete" , state);
 
 	for (unsigned sleep_state = 1; sleep_state < ACPI_S_STATE_COUNT; sleep_state ++) {
 		UINT8 slp_typa {};
@@ -33,11 +33,11 @@ void Acpica::generate_suspend_report(Xml_generator &xml, String<32> const &state
 		                                                 &slp_typb);
 
 		Genode::String<4> const state_name("S", sleep_state);
-		xml.node(state_name.string(), [&] () {
-			xml.attribute("supported", result == AE_OK);
+		g.node(state_name.string(), [&] () {
+			g.attribute("supported", result == AE_OK);
 			if (result == AE_OK) {
-				xml.attribute("SLP_TYPa", slp_typa);
-				xml.attribute("SLP_TYPb", slp_typb);
+				g.attribute("SLP_TYPa", slp_typa);
+				g.attribute("SLP_TYPb", slp_typb);
 			}
 		});
 	}

@@ -1,5 +1,5 @@
 /*
- * \brief  XML configuration for the chroot component
+ * \brief  Configuration for the chroot component
  * \author Norman Feske
  * \date   2018-05-18
  */
@@ -13,34 +13,34 @@
 
 #include <runtime.h>
 
-void Sculpt::gen_chroot_start_content(Xml_generator &xml, Start_name const &name,
+void Sculpt::gen_chroot_start_content(Generator &g, Start_name const &name,
                                       Path const &path, Writeable writeable)
 {
-	gen_common_start_content(xml, name,
+	gen_common_start_content(g, name,
 	                         Cap_quota{100}, Ram_quota{2*1024*1024},
 	                         Priority::STORAGE);
 
-	gen_named_node(xml, "binary", "chroot");
+	gen_named_node(g, "binary", "chroot");
 
-	xml.node("config", [&] {
-		xml.node("default-policy", [&] {
-			xml.attribute("path", path);
+	g.node("config", [&] {
+		g.node("default-policy", [&] {
+			g.attribute("path", path);
 			if (writeable == WRITEABLE)
-				xml.attribute("writeable", "yes");
+				g.attribute("writeable", "yes");
 		});
 	});
 
-	gen_provides<::File_system::Session>(xml);
+	gen_provides<::File_system::Session>(g);
 
-	xml.node("route", [&] {
+	g.node("route", [&] {
 
-	 	gen_service_node<::File_system::Session>(xml, [&] {
-			gen_named_node(xml, "child", "default_fs_rw"); });
+	 	gen_service_node<::File_system::Session>(g, [&] {
+			gen_named_node(g, "child", "default_fs_rw"); });
 
-		gen_parent_rom_route(xml, "chroot");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session>(xml);
-		gen_parent_route<Pd_session> (xml);
-		gen_parent_route<Log_session>(xml);
+		gen_parent_rom_route(g, "chroot");
+		gen_parent_rom_route(g, "ld.lib.so");
+		gen_parent_route<Cpu_session>(g);
+		gen_parent_route<Pd_session> (g);
+		gen_parent_route<Log_session>(g);
 	});
 }

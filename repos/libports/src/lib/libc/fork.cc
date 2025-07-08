@@ -92,7 +92,7 @@ struct Libc::Child_config
 
 	pid_t const _pid;
 
-	void _generate(Xml_generator &, Node const &config, File_descriptor_allocator &);
+	void _generate(Generator &, Node const &config, File_descriptor_allocator &);
 
 	Child_config(Genode::Env &env, Config_accessor const &config_accessor,
 	             File_descriptor_allocator &fd_alloc, pid_t pid)
@@ -105,10 +105,10 @@ struct Libc::Child_config
 
 				_ds.construct(env.ram(), env.rm(), buffer_size);
 
-				Xml_generator::Result const result =
-					Xml_generator::generate({ _ds->local_addr<char>(), buffer_size, },
-					                        "config", [&] (Xml_generator &xml) {
-						_generate(xml, config, fd_alloc); });
+				Generator::Result const result =
+					Generator::generate({ _ds->local_addr<char>(), buffer_size, },
+					                    "config", [&] (Generator &g) {
+						_generate(g, config, fd_alloc); });
 
 				if (result.ok())
 					break;
@@ -124,7 +124,7 @@ struct Libc::Child_config
 };
 
 
-void Libc::Child_config::_generate(Xml_generator &xml, Node const &config,
+void Libc::Child_config::_generate(Generator &g, Node const &config,
                                    File_descriptor_allocator &fd_alloc)
 {
 	using Addr = String<30>;
@@ -135,57 +135,55 @@ void Libc::Child_config::_generate(Xml_generator &xml, Node const &config,
 	 * because those constructors were executed by the parent
 	 * already.
 	 */
-	xml.attribute("ld_check_ctors", "no");
+	g.attribute("ld_check_ctors", "no");
 
-	xml.node("libc", [&] () {
+	g.node("libc", [&] () {
 
-		xml.attribute("pid", _pid);
+		g.attribute("pid", _pid);
 
 		using Path = String<Vfs::MAX_PATH_LEN>;
 		config.with_optional_sub_node("libc", [&] (Node const &node) {
 			if (node.has_attribute("rtc"))
-				xml.attribute("rtc", node.attribute_value("rtc", Path()));
+				g.attribute("rtc", node.attribute_value("rtc", Path()));
 			if (node.has_attribute("pipe"))
-				xml.attribute("pipe", node.attribute_value("pipe", Path()));
+				g.attribute("pipe", node.attribute_value("pipe", Path()));
 			if (node.has_attribute("socket"))
-				xml.attribute("socket", node.attribute_value("socket", Path()));
+				g.attribute("socket", node.attribute_value("socket", Path()));
 		});
 
 		{
 			char buf[Vfs::MAX_PATH_LEN] { };
 			if (getcwd(buf, sizeof(buf)))
-				xml.attribute("cwd", Path(Cstring(buf)));
+				g.attribute("cwd", Path(Cstring(buf)));
 		}
 
-		fd_alloc.generate_info(xml);
+		fd_alloc.generate_info(g);
 
 		auto gen_range_attr = [&] (auto at, auto size)
 		{
-			xml.attribute("at",   Addr(at));
-			xml.attribute("size", Addr(size));
+			g.attribute("at",   Addr(at));
+			g.attribute("size", Addr(size));
 		};
 
-		xml.attribute("cloned", "yes");
-		xml.node("stack", [&] () {
+		g.attribute("cloned", "yes");
+		g.node("stack", [&] () {
 			gen_range_attr(_user_stack_base_ptr, _user_stack_size); });
 
 		using Info = Dynamic_linker::Object_info;
 		Dynamic_linker::for_each_loaded_object(_env, [&] (Info const &info) {
-			xml.node("rw", [&] () {
-				xml.attribute("name", info.name);
+			g.node("rw", [&] () {
+				g.attribute("name", info.name);
 				gen_range_attr(info.rw_start, info.rw_size); }); });
 
 		_malloc_heap_ptr->for_each_region([&] (void *start, size_t size) {
-			xml.node("heap", [&] () {
+			g.node("heap", [&] () {
 				gen_range_attr(start, size); }); });
 	});
-
-	xml.append("\n");
 
 	/* copy non-libc config as is */
 	config.for_each_sub_node([&] (Node const &node) {
 		if (node.type() != "libc")
-			if (!xml.append_node(node, Xml_generator::Max_depth { 20 }))
+			if (!g.append_node(node, Generator::Max_depth { 20 }))
 				warning("fork: config too deeply nested"); });
 }
 

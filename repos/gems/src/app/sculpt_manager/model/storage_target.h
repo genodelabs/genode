@@ -66,25 +66,25 @@ struct Sculpt::Storage_target
 
 	Label fs() const { return ram_fs() ? label() : Label(label(), ".fs"); }
 
-	void gen_block_session_route(Xml_generator &xml) const
+	void gen_block_session_route(Generator &g) const
 	{
 		bool const whole_device = !partition.valid();
 
-		xml.node("service", [&] {
-			xml.attribute("name", Block::Session::service_name());
+		g.node("service", [&] {
+			g.attribute("name", Block::Session::service_name());
 
 			if (whole_device) {
-				xml.node("child", [&] {
-					xml.attribute("name",  driver);
+				g.node("child", [&] {
+					g.attribute("name",  driver);
 					if (port.valid())
-						xml.attribute("label", port); });
+						g.attribute("label", port); });
 			}
 
 			/* access partition */
 			else {
-				xml.node("child", [&] {
-					xml.attribute("name",  Label(driver_and_port(), ".part"));
-					xml.attribute("label", partition);
+				g.node("child", [&] {
+					g.attribute("name",  Label(driver_and_port(), ".part"));
+					g.attribute("label", partition);
 				});
 			}
 		});

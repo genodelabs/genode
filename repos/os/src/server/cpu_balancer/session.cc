@@ -201,29 +201,29 @@ Capability<Cpu_session::Native_cpu> Cpu::Session::native_cpu()
 	return _parent.native_cpu();
 }
 
-bool Cpu::Session::report_state(Xml_generator &xml)
+bool Cpu::Session::report_state(Generator &g)
 {
-	xml.node("component", [&] () {
-		xml.attribute("xpos",   _affinity.location().xpos());
-		xml.attribute("ypos",   _affinity.location().ypos());
-		xml.attribute("width",  _affinity.location().width());
-		xml.attribute("height", _affinity.location().height());
-		xml.attribute("label",  _label);
+	g.node("component", [&] () {
+		g.attribute("xpos",   _affinity.location().xpos());
+		g.attribute("ypos",   _affinity.location().ypos());
+		g.attribute("width",  _affinity.location().width());
+		g.attribute("height", _affinity.location().height());
+		g.attribute("label",  _label);
 
-		xml.attribute("default_policy", _default_policy);
+		g.attribute("default_policy", _default_policy);
 
 		apply([&](Thread_capability const &,
 		          Thread::Name const &name,
 		          Subject_id const &, Cpu::Policy const &policy,
 		          bool const enforced_policy)
 		{
-			xml.node("thread", [&] () {
-				xml.attribute("xpos", policy.location.xpos());
-				xml.attribute("ypos", policy.location.ypos());
-				xml.attribute("name", name);
-				xml.attribute("policy", policy.string());
+			g.node("thread", [&] () {
+				g.attribute("xpos", policy.location.xpos());
+				g.attribute("ypos", policy.location.ypos());
+				g.attribute("name", name);
+				g.attribute("policy", policy.string());
 				if (enforced_policy)
-					xml.attribute("enforced", enforced_policy);
+					g.attribute("enforced", enforced_policy);
 			});
 			return false;
 		});

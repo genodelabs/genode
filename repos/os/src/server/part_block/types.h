@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/registry.h>
 #include <base/log.h>
-#include <util/xml_generator.h>
+#include <base/node.h>
 #include <util/mmio.h>
 #include <util/misc_math.h>
 #include <util/utf8.h>

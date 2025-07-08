@@ -54,7 +54,7 @@ void Session_state::print(Output &out) const
 }
 
 
-void Session_state::generate_session_request(Xml_generator &xml) const
+void Session_state::generate_session_request(Generator &g) const
 {
 	if (!id_at_server.constructed())
 		warning(__func__, ": id_at_server not initialized");
@@ -63,23 +63,23 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 
 	case CREATE_REQUESTED:
 
-		xml.node("create", [&] {
-			xml.attribute("id", id_at_server->id().value);
-			xml.attribute("service", _service.name());
-			xml.attribute("label", _label);
-			xml.node("args", [&] {
-				xml.append_sanitized(Server_args(*this).string());
+		g.node("create", [&] {
+			g.attribute("id", id_at_server->id().value);
+			g.attribute("service", _service.name());
+			g.attribute("label", _label);
+			g.node("args", [&] {
+				g.append_quoted(Server_args(*this).string());
 			});
-			xml.node("affinity", [&] {
-				xml.node("space", [&] {
-					xml.attribute("width",  _affinity.space().width());
-					xml.attribute("height", _affinity.space().height());
+			g.node("affinity", [&] {
+				g.node("space", [&] {
+					g.attribute("width",  _affinity.space().width());
+					g.attribute("height", _affinity.space().height());
 				});
-				xml.node("location", [&] {
-					xml.attribute("xpos",   _affinity.location().xpos());
-					xml.attribute("ypos",   _affinity.location().ypos());
-					xml.attribute("width",  _affinity.location().width());
-					xml.attribute("height", _affinity.location().height());
+				g.node("location", [&] {
+					g.attribute("xpos",   _affinity.location().xpos());
+					g.attribute("ypos",   _affinity.location().ypos());
+					g.attribute("width",  _affinity.location().width());
+					g.attribute("height", _affinity.location().height());
 				});
 			});
 		});
@@ -87,17 +87,17 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 
 	case UPGRADE_REQUESTED:
 
-		xml.node("upgrade", [&] {
-			xml.attribute("id", id_at_server->id().value);
-			xml.attribute("ram_quota", ram_upgrade.value);
-			xml.attribute("cap_quota", cap_upgrade.value);
+		g.node("upgrade", [&] {
+			g.attribute("id", id_at_server->id().value);
+			g.attribute("ram_quota", ram_upgrade.value);
+			g.attribute("cap_quota", cap_upgrade.value);
 		});
 		break;
 
 	case CLOSE_REQUESTED:
 
-		xml.node("close", [&] {
-			xml.attribute("id", id_at_server->id().value); });
+		g.node("close", [&] {
+			g.attribute("id", id_at_server->id().value); });
 		break;
 
 	case SERVICE_DENIED:
@@ -111,22 +111,22 @@ void Session_state::generate_session_request(Xml_generator &xml) const
 }
 
 
-void Session_state::generate_client_side_info(Xml_generator &xml, Detail detail) const
+void Session_state::generate_client_side_info(Generator &g, Detail detail) const
 {
-	xml.attribute("service", _service.name());
-	xml.attribute("label", _label);
-	xml.attribute("state", String<32>(Formatted_phase(phase)));
-	xml.attribute("ram", String<32>(_donated_ram_quota));
-	xml.attribute("caps", String<32>(_donated_cap_quota));
+	g.attribute("service", _service.name());
+	g.attribute("label", _label);
+	g.attribute("state", String<32>(Formatted_phase(phase)));
+	g.attribute("ram", String<32>(_donated_ram_quota));
+	g.attribute("caps", String<32>(_donated_cap_quota));
 
 	if (detail.args == Detail::ARGS)
-		xml.node("args", [&] { xml.append_sanitized(_args.string()); });
+		g.node("args", [&] { g.append_quoted(_args.string()); });
 }
 
 
-void Session_state::generate_server_side_info(Xml_generator &xml, Detail detail) const
+void Session_state::generate_server_side_info(Generator &g, Detail detail) const
 {
-	generate_client_side_info(xml, detail);
+	generate_client_side_info(g, detail);
 }
 
 

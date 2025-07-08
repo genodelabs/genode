@@ -94,17 +94,17 @@ struct Sculpt::Dir_query : Noncopyable
 
 	void _gen_fs_query_config()
 	{
-		_fs_query_config.generate([&] (Xml_generator &xml) {
-			xml.node("vfs", [&] {
+		_fs_query_config.generate([&] (Generator &g) {
+			g.node("vfs", [&] {
 				_fs_dict.for_each([&] (Fs const &fs) {
 					if (_query.fs == "" || _query.fs == fs.name)
-						gen_named_node(xml, "dir", fs.name, [&] {
-							xml.node("fs", [&] {
-								xml.attribute("label", fs.name); }); }); }); });
+						gen_named_node(g, "dir", fs.name, [&] {
+							g.node("fs", [&] {
+								g.attribute("label", fs.name); }); }); }); });
 
-			xml.node("query", [&] {
-				xml.attribute("path", _query.vfs_path());
-				xml.attribute("count", "yes"); });
+			g.node("query", [&] {
+				g.attribute("path", _query.vfs_path());
+				g.attribute("count", "yes"); });
 		});
 	}
 
@@ -225,46 +225,46 @@ struct Sculpt::Dir_query : Noncopyable
 		return result;
 	}
 
-	void gen_start_nodes(Xml_generator &xml) const
+	void gen_start_nodes(Generator &g) const
 	{
 		if (!_state.constructed())
 			return;
 
-		auto gen_fs_route = [&] (Xml_generator &xml, Fs const &fs)
+		auto gen_fs_route = [&] (Generator &g, Fs const &fs)
 		{
-			gen_service_node<::File_system::Session>(xml, [&] {
-				xml.attribute("label", fs.name);
+			gen_service_node<::File_system::Session>(g, [&] {
+				g.attribute("label", fs.name);
 				if (fs.parent)
-					xml.node("parent", [&] {
-						xml.attribute("identity", fs.name);
-						xml.attribute("resource", "/"); });
+					g.node("parent", [&] {
+						g.attribute("identity", fs.name);
+						g.attribute("resource", "/"); });
 				else
-					xml.node("child", [&] {
-						xml.attribute("name",     fs.name);
-						xml.attribute("identity", _query.identity);
-						xml.attribute("resource", "/"); });
+					g.node("child", [&] {
+						g.attribute("name",     fs.name);
+						g.attribute("identity", _query.identity);
+						g.attribute("resource", "/"); });
 			});
 		};
 
-		xml.node("start", [&] {
-			_state->_fs_query.gen_start_node_content(xml);
+		g.node("start", [&] {
+			_state->_fs_query.gen_start_node_content(g);
 
-			gen_named_node(xml, "binary", "fs_query");
+			gen_named_node(g, "binary", "fs_query");
 
-			xml.node("route", [&] {
-				gen_parent_rom_route(xml, "fs_query");
-				gen_parent_rom_route(xml, "config", "config -> managed/dir_query");
-				gen_parent_rom_route(xml, "ld.lib.so");
-				gen_parent_rom_route(xml, "vfs.lib.so");
+			g.node("route", [&] {
+				gen_parent_rom_route(g, "fs_query");
+				gen_parent_rom_route(g, "config", "config -> managed/dir_query");
+				gen_parent_rom_route(g, "ld.lib.so");
+				gen_parent_rom_route(g, "vfs.lib.so");
 
-				gen_parent_route<Cpu_session>     (xml);
-				gen_parent_route<Pd_session>      (xml);
-				gen_parent_route<Log_session>     (xml);
-				gen_parent_route<Report::Session> (xml);
+				gen_parent_route<Cpu_session>     (g);
+				gen_parent_route<Pd_session>      (g);
+				gen_parent_route<Log_session>     (g);
+				gen_parent_route<Report::Session> (g);
 
 				_fs_dict.for_each([&] (Fs const &fs) {
 					if (_query.fs == "" || _query.fs == fs.name)
-						gen_fs_route(xml, fs); });
+						gen_fs_route(g, fs); });
 			});
 		});
 	}

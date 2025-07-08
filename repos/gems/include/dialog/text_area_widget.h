@@ -206,7 +206,7 @@ struct Dialog::Text_area_widget : Widget<Vbox>
 		/* insert character and advance cursor */
 		void insert_at_cursor_position(Codepoint);
 
-		void gen_clipboard_content(Xml_generator &xml) const;
+		void gen_clipboard_content(Generator &) const;
 
 		template <typename FN>
 		void for_each_character(FN const &fn) const

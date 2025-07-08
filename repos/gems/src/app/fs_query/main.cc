@@ -59,43 +59,43 @@ struct Fs_query::Watched_file
 
 	virtual ~Watched_file() { }
 
-	void _gen_content(Xml_generator &xml, Allocator &alloc, Directory const &dir) const
+	void _gen_content(Generator &g, Allocator &alloc, Directory const &dir) const
 	{
 		File_content content(alloc, dir, _name, File_content::Limit{64*1024});
 
-		bool content_is_xml = false;
+		bool content_is_sub_node = false;
 
 		content.node([&] (Node const &node) {
 			if (!node.has_type("empty")) {
-				xml.attribute("xml", "yes");
-				if (!xml.append_node(node, Xml_generator::Max_depth { 20 }))
+				g.attribute("xml", "yes");
+				if (!g.append_node(node, Generator::Max_depth { 20 }))
 					warning("content of '", _name, "' is too deeply nested");
-				content_is_xml = true;
+				content_is_sub_node = true;
 			}
 		});
 
-		if (!content_is_xml) {
+		if (!content_is_sub_node) {
 			content.bytes([&] (char const *base, size_t len) {
-				xml.append_sanitized(base, len); });
+				g.append_quoted(base, len); });
 		}
 	}
 
-	void gen_query_response(Xml_generator &xml, Node const &query,
+	void gen_query_response(Generator &g, Node const &query,
 	                        Allocator &alloc, Directory const &dir) const
 	{
 		try {
-			xml.node("file", [&] () {
-				xml.attribute("name", _name);
+			g.node("file", [&] () {
+				g.attribute("name", _name);
 
 				if (query.attribute_value("size", false))
-					xml.attribute("size", dir.file_size(_name));
+					g.attribute("size", dir.file_size(_name));
 
 				if (_rwx.writeable)
-					xml.attribute("writeable", "yes");
+					g.attribute("writeable", "yes");
 
 				if (_rwx.readable)
 					if (query.attribute_value("content", false))
-						_gen_content(xml, alloc, dir);
+						_gen_content(g, alloc, dir);
 			});
 		}
 		/*
@@ -156,11 +156,11 @@ struct Fs_query::Watched_directory
 	{
 		unsigned dirs, files, symlinks;
 
-		void gen_attr(Xml_generator &xml) const
+		void gen_attr(Generator &g) const
 		{
-			if (dirs)     xml.attribute("num_dirs",     dirs);
-			if (files)    xml.attribute("num_files",    files);
-			if (symlinks) xml.attribute("num_symlinks", symlinks);
+			if (dirs)     g.attribute("num_dirs",     dirs);
+			if (files)    g.attribute("num_files",    files);
+			if (symlinks) g.attribute("num_symlinks", symlinks);
 		}
 
 		static Count from_dir(Directory const &dir)
@@ -180,21 +180,21 @@ struct Fs_query::Watched_directory
 		}
 	};
 
-	void gen_query_response(Xml_generator &xml, Node const &query) const
+	void gen_query_response(Generator &g, Node const &query) const
 	{
 		bool const count_enabled = query.attribute_value("count", false);
 
-		xml.node("dir", [&] () {
-			xml.attribute("path", _rel_path);
+		g.node("dir", [&] () {
+			g.attribute("path", _rel_path);
 
 			for_each_subdir_name(_alloc, _dir, [&] (Directory::Entry::Name const &name) {
-				xml.node("dir", [&] () {
-					xml.attribute("name", name);
+				g.node("dir", [&] () {
+					g.attribute("name", name);
 					if (count_enabled)
-						Count::from_dir(Directory(_dir, name)).gen_attr(xml); }); });
+						Count::from_dir(Directory(_dir, name)).gen_attr(g); }); });
 
 			sorted_for_each(_alloc, _files, [&] (Watched_file const &file) {
-				file.gen_query_response(xml, query, _alloc, _dir); });
+				file.gen_query_response(g, query, _alloc, _dir); });
 		});
 	}
 };
@@ -234,13 +234,13 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 
 	Registry<Registered<Watched_directory> > _dirs { };
 
-	void _gen_listing(Xml_generator &xml, Node const &config) const
+	void _gen_listing(Generator &g, Node const &config) const
 	{
 		config.for_each_sub_node("query", [&] (Node const &query) {
 			Directory::Path const path = query.attribute_value("path", Directory::Path());
 			_dirs.for_each([&] (Watched_directory const &dir) {
 				if (dir.has_name(path))
-					dir.gen_query_response(xml, query);
+					dir.gen_query_response(g, query);
 			});
 		});
 	}
@@ -267,8 +267,8 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 			catch (Genode::Directory::Nonexistent_directory) { }
 		});
 
-		_reporter.generate([&] (Xml_generator &xml) {
-			_gen_listing(xml, config); });
+		_reporter.generate([&] (Generator &g) {
+			_gen_listing(g, config); });
 	}
 
 	Main(Env &env) : _env(env)

@@ -436,36 +436,36 @@ class Block::Gpt : public Block::Partition_table
 			return partition_valid(num) ? _part_list[num - 1]->sectors : 0;
 		}
 
-		void generate_report(Xml_generator &xml) const override
+		void generate_report(Generator &g) const override
 		{
-			xml.attribute("type", "gpt");
+			g.attribute("type", "gpt");
 
 			uint64_t const total_blocks = _info.block_count;
-			xml.attribute("total_blocks", total_blocks);
+			g.attribute("total_blocks", total_blocks);
 
-			xml.attribute("gpt_total", _gpt_total);
-			xml.attribute("gpt_used",  _gpt_used);
+			g.attribute("gpt_total", _gpt_total);
+			g.attribute("gpt_used",  _gpt_used);
 
 			_for_each_valid_partition([&] (unsigned i) {
 
 				Gpt_partition const &part = *_part_list[i];
 
-				xml.node("partition", [&] () {
-					xml.attribute("number",     i + 1);
-					xml.attribute("name",       part.name);
-					xml.attribute("type",       part.type);
-					xml.attribute("guid",       part.guid);
-					xml.attribute("start",      part.lba);
-					xml.attribute("length",     part.sectors);
-					xml.attribute("block_size", _info.block_size);
+				g.node("partition", [&] () {
+					g.attribute("number",     i + 1);
+					g.attribute("name",       part.name);
+					g.attribute("type",       part.type);
+					g.attribute("guid",       part.guid);
+					g.attribute("start",      part.lba);
+					g.attribute("length",     part.sectors);
+					g.attribute("block_size", _info.block_size);
 
 					uint64_t const gap =
 						_calculate_gap(i, total_blocks);
 					if (gap)
-						xml.attribute("expandable", gap);
+						g.attribute("expandable", gap);
 
 					if (part.fs_type.valid())
-						xml.attribute("file_system", part.fs_type);
+						g.attribute("file_system", part.fs_type);
 				});
 			});
 		}
