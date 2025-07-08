@@ -102,7 +102,7 @@ void Thread::_init_native_thread(Stack &stack, size_t, Type type)
 	if (type == NORMAL) {
 		_stack.with_result([&] (Stack &stack) {
 			stack.native_thread().platform_thread = new (platform().core_mem_alloc())
-				Platform_thread(name, stack.utcb());
+				Platform_thread(name, stack.utcb(), _affinity);
 		}, [&] (Stack_error) { });
 		return;
 	}

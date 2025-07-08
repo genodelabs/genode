@@ -167,8 +167,9 @@ class Core::Platform_thread : Noncopyable
 		 *
 		 * \param label       debugging label
 		 * \param utcb        virtual address of UTCB within core
+		 * \param location    targeted location in affinity space
 		 */
-		Platform_thread(Label const &label, Native_utcb &utcb);
+		Platform_thread(Label const &label, Native_utcb &utcb, Affinity::Location);
 
 		/**
 		 * Constructor for threads outside of core

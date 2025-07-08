@@ -95,14 +95,15 @@ void Platform_thread::quota(size_t const quota)
 }
 
 
-Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
+Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb,
+                                 Affinity::Location const location)
 :
 	_label(label),
 	_pd(_kernel_main_get_core_platform_pd()),
 	_pager(nullptr),
 	_utcb((addr_t)&utcb),
 	_main_thread(false),
-	_location(Affinity::Location()),
+	_location(location),
 	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(), _label.string())
 { }
 
