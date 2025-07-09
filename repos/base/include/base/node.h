@@ -17,6 +17,7 @@
 #include <util/reconstructible.h>
 #include <util/xml_node.h>
 #include <util/xml_generator.h>
+#include <util/hrd.h>
 #include <base/memory.h>
 
 namespace Genode {
@@ -32,14 +33,19 @@ class Genode::Node : Noncopyable
 	private:
 
 		using Xml = Xml_node;
+		using Hrd = Hrd_node;
 
+		Constructible<Hrd const &> _hrd_ref { };
+		Constructible<Hrd>         _hrd     { };
 		Constructible<Xml const &> _xml_ref { };
 		Constructible<Xml>         _xml     { };
 
-		auto _with(auto const &xml_fn,
+		auto _with(auto const &xml_fn, auto const &hrd_fn,
 		           auto const &empty_fn) const -> decltype(empty_fn())
 		{
+			if (_hrd_ref.constructed()) return hrd_fn(*_hrd_ref);
 			if (_xml_ref.constructed()) return xml_fn(*_xml_ref);
+			if (_hrd.constructed())     return hrd_fn(*_hrd);
 			if (_xml.constructed())     return xml_fn(*_xml);
 			return empty_fn();
 		}
@@ -47,12 +53,14 @@ class Genode::Node : Noncopyable
 		auto _process(auto const &empty_fn, auto const &fn) const -> decltype(empty_fn())
 		{
 			return _with([&] (Xml const &n) { return fn(n); },
+			             [&] (Hrd const &n) { return fn(n); },
 			             [&]                { return empty_fn(); });
 		}
 
 		void _process_if_valid(auto const &fn) const { _process([&] { }, fn); }
 
 		Node(Xml const &xml) { _xml_ref.construct(xml); }
+		Node(Hrd const &hrd) { _hrd_ref.construct(hrd); }
 
 		static void _with_skipped_whitespace(auto const &bytes, auto const &fn)
 		{
@@ -67,6 +75,7 @@ class Genode::Node : Noncopyable
 		void _print_quoted_line(Output &out, Const_byte_range_ptr const &bytes) const
 		{
 			_with([&] (Xml const &) { Xml::print_quoted_line(out, bytes); },
+			      [&] (Hrd const &) { Hrd::print_quoted_line(out, bytes); },
 			      [&] { });
 		}
 
@@ -79,6 +88,9 @@ class Genode::Node : Noncopyable
 			_with_skipped_whitespace(bytes, [&] (Const_byte_range_ptr const &bytes) {
 				if (bytes.start[0] == '<') {
 					try { _xml.construct(bytes); } catch (...) { }
+				} else {
+					_hrd.construct(bytes);
+					if (!_hrd->valid()) _hrd.destruct();
 				}
 			});
 		}
@@ -99,6 +111,7 @@ class Genode::Node : Noncopyable
 							memcpy(dst.start, start, num_bytes);
 							_xml.construct(dst.start, num_bytes); } });
 				},
+				[&] (Hrd const &node) { _hrd.construct(node, dst); },
 				[&]                   { });
 		}
 
@@ -164,6 +177,10 @@ class Genode::Node : Noncopyable
 					n.for_each_attribute([&] (Xml_attribute const &a) {
 						a.with_raw_value([&] (char const *start, size_t len) {
 							fn(Attribute { a.name(), { start, len } }); }); }); },
+				[&] (Hrd const &n) {
+					n.for_each_attribute([&] (Hrd_node::Attribute const &a) {
+						fn(Attribute { .name  = { Cstring(a.tag.start, a.tag.num_bytes) },
+						               .value = { a.value.start, a.value.num_bytes } }); }); },
 				[&] { });
 		}
 
@@ -204,6 +221,7 @@ class Genode::Node : Noncopyable
 		size_t num_bytes() const
 		{
 			return _with([&] (Xml const &n) { return n.size(); },
+			             [&] (Hrd const &n) { return n.num_bytes(); },
 			             [&] () -> size_t   { return 0; });
 		}
 
@@ -213,10 +231,17 @@ class Genode::Node : Noncopyable
 				[&] (Xml const &n) {
 					return other._with(
 						[&] (Xml const &other_n) { return n.differs_from(other_n); },
+						[&] (Hrd const &)        { return true; },
+						[]                       { return true; }); },
+				[&] (Hrd const &n) {
+					return other._with(
+						[&] (Xml const &)        { return true; },
+						[&] (Hrd const &other_n) { return n.differs_from(other_n); },
 						[]                       { return true; }); },
 				[&] {
 					return other._with(
 						[&] (Xml const &) { return true; },
+						[&] (Hrd const &) { return true; },
 						[]                { return false; });
 			});
 		}
@@ -300,9 +325,11 @@ class Genode::Generator : Noncopyable
 
 		struct {
 			Xml_generator *_xml_ptr = nullptr;
+			Hrd_generator *_hrd_ptr = nullptr;
 		};
 
 		Generator(Xml_generator &xml) : _xml_ptr(&xml) { }
+		Generator(Hrd_generator &hrd) : _hrd_ptr(&hrd) { }
 
 		static bool _generate_xml(); /* component-global config switch */
 
@@ -321,22 +348,28 @@ class Genode::Generator : Noncopyable
 				return Xml_generator::generate(buffer, type, [&] (Xml_generator &xml) {
 					Generator g(xml);
 					fn(g); });
-			return 0ul;
+			else
+				return Hrd_generator::generate(buffer, type, [&] (Hrd_generator &hrd) {
+					Generator g(hrd);
+					fn(g); });
 		}
 
 		void node(auto &&... args)
 		{
 			if (_xml_ptr) _xml_ptr->node(args...);
+			if (_hrd_ptr) _hrd_ptr->node(args...);
 		}
 
 		void attribute(auto &&... args)
 		{
 			if (_xml_ptr) _xml_ptr->attribute(args...);
+			if (_hrd_ptr) _hrd_ptr->attribute(args...);
 		}
 
 		void append_quoted(auto &&... args)
 		{
 			if (_xml_ptr) _xml_ptr->append_sanitized(args...);
+			if (_hrd_ptr) _hrd_ptr->append_quoted(args...);
 		}
 
 		struct Max_depth { unsigned value; };
@@ -344,11 +377,13 @@ class Genode::Generator : Noncopyable
 		void node_attributes(Node const &node)
 		{
 			if (_xml_ptr) _xml_ptr->node_attributes(node);
+			if (_hrd_ptr) _hrd_ptr->node_attributes(node);
 		}
 
 		[[nodiscard]] bool append_node(auto const &node, Max_depth const &max_depth)
 		{
 			if (_xml_ptr) return _xml_ptr->append_node(node, { max_depth.value });
+			if (_hrd_ptr) return _hrd_ptr->append_node(node, { max_depth.value });
 
 			return false;
 		}
@@ -356,6 +391,7 @@ class Genode::Generator : Noncopyable
 		[[nodiscard]] bool append_node_content(auto const &node, Max_depth const &max_depth)
 		{
 			if (_xml_ptr) return _xml_ptr->append_node_content(node, { max_depth.value });
+			if (_hrd_ptr) return _hrd_ptr->append_node_content(node, { max_depth.value });
 
 			return false;
 		}
