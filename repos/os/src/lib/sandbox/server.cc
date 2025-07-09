@@ -222,9 +222,10 @@ void Sandbox::Server::_handle_create_session_request(Node const &request,
 		return;
 
 	using Args = Session_state::Args;
+
 	Args const args = request.with_sub_node("args",
-		[] (Node const &node) { return node.decoded_content<Args>(); },
-		[]                    { return Args(); });
+		[&] (Node const &node) { return Args(Node::Quoted_content(node)); },
+		[]                     { return Args(); });
 
 	Service::Name const name = request.attribute_value("service", Service::Name());
 

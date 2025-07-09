@@ -54,7 +54,7 @@ class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 			auto args_from_request = [] (Node const &request)
 			{
 				return request.with_sub_node("args",
-					[] (Node const &node) { return node.decoded_content<Args>(); },
+					[] (Node const &node) { return Args(Node::Quoted_content(node)); },
 					[&] {
 						Genode::error("failed to parse request ", request);
 						return Args();

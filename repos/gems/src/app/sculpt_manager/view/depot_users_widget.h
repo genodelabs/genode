@@ -53,7 +53,7 @@ struct Sculpt::Depot_users_widget : Widget<Vbox>
 		{
 			return user.with_sub_node("url", [&] (Node const &node) {
 
-				Url const url = node.decoded_content<Url>();
+				Url const url { Node::Quoted_content(node) };
 
 				/*
 				 * Ensure that the URL does not contain any '"' character because

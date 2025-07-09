@@ -217,7 +217,7 @@ void Chroot::Main::handle_session_request(Node const &request)
 		using Args = Session_state::Args;
 		Args const args = request.with_sub_node("args",
 
-		[] (Node const &node) { return node.decoded_content<Args>(); },
+		[] (Node const &node) { return Args(Node::Quoted_content(node)); },
 		[]                    { return Args(); });
 
 		with_matching_policy(label_from_args(args.string()), config_rom.node(),

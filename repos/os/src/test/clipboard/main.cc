@@ -198,7 +198,7 @@ class Test::Subsystem
 
 					using String = String<100>;
 					String const expected(str);
-					String const imported = text.decoded_content<String>();
+					String const imported { Node::Quoted_content(text) };
 
 					return expected == imported;
 				},

@@ -330,7 +330,7 @@ Depot_download_manager::Url
 Depot_download_manager::Main::_current_user_url() const
 {
 	Url const url = _current_user.node().with_sub_node("url",
-		[&] (Node const &node) { return node.decoded_content<Url>(); },
+		[&] (Node const &node) { return Url(Node::Quoted_content(node)); },
 		[&] () -> Url          { throw Invalid_download_url(); });
 
 	/*

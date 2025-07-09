@@ -31,85 +31,108 @@ class Genode::Node : Noncopyable
 {
 	private:
 
-		Constructible<Xml_node const &> _xml_ref { };
-		Constructible<Xml_node>         _xml     { };
+		using Xml = Xml_node;
 
-		auto _with(auto const &xml_fn, auto const &empty_fn) const -> decltype(empty_fn())
+		Constructible<Xml const &> _xml_ref { };
+		Constructible<Xml>         _xml     { };
+
+		auto _with(auto const &xml_fn,
+		           auto const &empty_fn) const -> decltype(empty_fn())
 		{
 			if (_xml_ref.constructed()) return xml_fn(*_xml_ref);
 			if (_xml.constructed())     return xml_fn(*_xml);
 			return empty_fn();
 		}
 
-		Node(Xml_node const &xml) { _xml_ref.construct(xml); }
-
-		static bool _looks_like_xml(char const *s, size_t n)
+		auto _process(auto const &empty_fn, auto const &fn) const -> decltype(empty_fn())
 		{
+			return _with([&] (Xml const &n) { return fn(n); },
+			             [&]                { return empty_fn(); });
+		}
+
+		void _process_if_valid(auto const &fn) const { _process([&] { }, fn); }
+
+		Node(Xml const &xml) { _xml_ref.construct(xml); }
+
+		static void _with_skipped_whitespace(auto const &bytes, auto const &fn)
+		{
+			char const *s = bytes.start;
+			size_t      n = bytes.num_bytes;
+
 			for (; n && is_whitespace(*s); n--, s++);
-			return n && *s == '<';
+
+			if (n) fn(Const_byte_range_ptr(s, n));
 		}
 
 		void _print_quoted_line(Output &out, Const_byte_range_ptr const &bytes) const
 		{
-			_with([&] (Xml_node const &) { Xml_node::print_quoted_line(out, bytes); },
+			_with([&] (Xml const &) { Xml::print_quoted_line(out, bytes); },
 			      [&] { });
 		}
 
 	public:
 
-		Node() { /* empty */ };
+		Node() { /* type is "empty" */ };
 
 		Node(Const_byte_range_ptr const &bytes)
 		{
-			if (_looks_like_xml(bytes.start, bytes.num_bytes))
-				try { _xml.construct(bytes); } catch (...) { }
+			_with_skipped_whitespace(bytes, [&] (Const_byte_range_ptr const &bytes) {
+				if (bytes.start[0] == '<') {
+					try { _xml.construct(bytes); } catch (...) { }
+				}
+			});
 		}
 
 		template <size_t N>
 		Node(String<N> const &s)
 		: Node(Const_byte_range_ptr(s.string(), max(s.length(), 1ul) - 1ul)) { }
 
+		/**
+		 * Construct a copy of the node with the content located in 'dst'
+		 */
+		Node(Node const &other, Byte_range_ptr const &dst)
+		{
+			other._with(
+				[&] (Xml const &node) {
+					node.with_raw_node([&] (char const *start, size_t num_bytes) {
+						if (dst.num_bytes >= num_bytes) {
+							memcpy(dst.start, start, num_bytes);
+							_xml.construct(dst.start, num_bytes); } });
+				},
+				[&]                   { });
+		}
+
 		void for_each_sub_node(char const *type, auto const &fn) const
 		{
-			_with(
-				[&] (Xml_node const &xml) {
-					xml.for_each_sub_node([&] (Xml_node const &sub_node) {
-						if (sub_node.has_type(type))
-							fn(Node(sub_node)); }); },
-				[&] { });
+			_process_if_valid([&] (auto const &node) {
+				node.for_each_sub_node([&] (auto const &sub_node) {
+					if (sub_node.type() == type)
+						fn(Node(sub_node)); }); });
 		}
 
 		void for_each_sub_node(auto const &fn) const
 		{
-			_with(
-				[&] (Xml_node const &xml) {
-					xml.for_each_sub_node(
-						[&] (Xml_node const &sub_node) { fn(Node(sub_node)); }); },
-				[&] { });
+			_process_if_valid([&] (auto const &node) {
+				node.for_each_sub_node([&] (auto const &sub_node) {
+					fn(Node(sub_node)); }); });
 		}
 
 		auto with_sub_node(char const *type, auto const &fn, auto const &missing_fn) const
 		-> decltype(missing_fn())
 		{
-			return _with(
-				[&] (Xml_node const &xml) {
-					return xml.with_sub_node(type,
-						[&] (Xml_node const &sub_node) { return fn(Node(sub_node)); },
-						[&]                            { return missing_fn(); });
-				},
-				[&] { return missing_fn(); });
+			return _process(missing_fn, [&] (auto const &node) {
+				return node.with_sub_node(type,
+					[&] (auto const &sub_node) { return fn(Node(sub_node)); },
+					[&]                        { return missing_fn(); }); });
 		}
 
 		auto with_sub_node(unsigned n, auto const &fn, auto const &missing_fn) const
 		-> decltype(missing_fn())
 		{
-			return _with(
-				[&] (Xml_node const &xml) {
-					return xml.with_sub_node(n,
-						[&] (Xml_node const &sub_node) { return fn(Node(sub_node)); },
-						[&]                            { return missing_fn(); });
-				},
-				[&] { return missing_fn(); });
+			return _process(missing_fn, [&] (auto const &node) {
+				return node.with_sub_node(n,
+					[&] (auto const &sub_node) { return fn(Node(sub_node)); },
+					[&]                        { return missing_fn(); }); });
 		}
 
 		unsigned num_sub_nodes() const
@@ -121,12 +144,10 @@ class Genode::Node : Noncopyable
 
 		void with_optional_sub_node(char const *type, auto const &fn) const
 		{
-			_with(
-				[&] (Xml_node const &xml) {
-					xml.with_sub_node(type,
-						[&] (Xml_node const &sub_node) { fn(Node(sub_node)); },
-						[&] { }); },
-				[&] { });
+			_process_if_valid([&] (auto const &node) {
+				node.with_sub_node(type,
+					[&] (auto const &sub_node) { fn(Node(sub_node)); },
+					[&]                        { }); });
 		}
 
 		struct Attribute
@@ -139,8 +160,8 @@ class Genode::Node : Noncopyable
 		void for_each_attribute(auto const &fn) const
 		{
 			_with(
-				[&] (Xml_node const &xml) {
-					xml.for_each_attribute([&] (Xml_attribute const &a) {
+				[&] (Xml const &n) {
+					n.for_each_attribute([&] (Xml_attribute const &a) {
 						a.with_raw_value([&] (char const *start, size_t len) {
 							fn(Attribute { a.name(), { start, len } }); }); }); },
 				[&] { });
@@ -149,15 +170,14 @@ class Genode::Node : Noncopyable
 		template <typename T>
 		T attribute_value(char const *attr, T const default_value) const
 		{
-			return _with(
-				[&] (Xml_node const &xml) { return xml.attribute_value(attr, default_value); },
-				[&]                       { return default_value; });
+			return _process([&] { return default_value; }, [&] (auto const &node) {
+				return node.attribute_value(attr, default_value); });
 		}
 
 		bool has_type(char const *type) const
 		{
-			return _with([&] (Xml_node const &xml) { return xml.has_type(type); },
-			             [&]                       { return Type { "empty" } == type; });
+			return _process([&] { return Type { "empty" } == type; },
+			                [&] (auto const &node) { return node.has_type(type); });
 		}
 
 		bool has_sub_node(char const *type) const
@@ -167,43 +187,37 @@ class Genode::Node : Noncopyable
 			return result;
 		}
 
-		using Type = Xml_node::Type;
+		using Type = Xml::Type;
 
 		Type type() const
 		{
-			return _with([&] (Xml_node const &xml) { return xml.type(); },
-			             []                        { return Type { "empty" }; });
+			return _process([] { return Type { "empty" }; }, [&] (auto const &node) {
+				return node.type(); });
 		}
 
 		bool has_attribute(char const *attr) const
 		{
-			return _with([&] (Xml_node const &xml) { return xml.has_attribute(attr); },
-			             []                        { return false; });
-		}
-
-		void with_raw_node(auto const &fn) const
-		{
-			_with([&] (Xml_node const &xml) { xml.with_raw_node(fn); },
-			      [&] { });
+			return _process([] { return false; }, [&] (auto const &node) {
+				return node.has_attribute(attr); });
 		}
 
 		size_t num_bytes() const
 		{
-			return _with([&] (Xml_node const &xml) { return xml.size(); },
-			             [&] () -> size_t          { return 0; });
+			return _with([&] (Xml const &n) { return n.size(); },
+			             [&] () -> size_t   { return 0; });
 		}
 
 		bool differs_from(Node const &other) const
 		{
 			return _with(
-				[&] (Xml_node const &xml) {
+				[&] (Xml const &n) {
 					return other._with(
-						[&] (Xml_node const &other_xml) { return xml.differs_from(other_xml); },
-						[]                              { return true; }); },
+						[&] (Xml const &other_n) { return n.differs_from(other_n); },
+						[]                       { return true; }); },
 				[&] {
 					return other._with(
-						[&] (Xml_node const &) { return true; },
-						[]                     { return false; });
+						[&] (Xml const &) { return true; },
+						[]                { return false; });
 			});
 		}
 
@@ -228,55 +242,51 @@ class Genode::Node : Noncopyable
 
 		void for_each_quoted_line(auto const &fn) const
 		{
-			_with(
-				[&] (Xml_node const &xml) {
-					xml.for_each_quoted_line([&] (Xml_node::Quoted_line const &l) {
-						fn(Quoted_line { *this, l.bytes.start, l.bytes.num_bytes, l.last });
-					});
-				},
-				[&] { });
+			_process_if_valid([&] (auto const &node) {
+				node.for_each_quoted_line([&] (auto const &l) {
+					fn(Quoted_line { *this, l.bytes.start, l.bytes.num_bytes,
+					                        l.last }); }); });
 		}
 
-		template <typename STRING>
-		STRING decoded_content() const
+		/**
+		 * Utility for printing all quoted lines of a node
+		 */
+		struct Quoted_content
 		{
-			return _with([&] (Xml_node const &xml) { return xml.decoded_content<STRING>(); },
-			             [&]                       { return STRING(); });
-		}
+			Node const &_node;
+
+			void print(Output &out) const
+			{
+				_node.for_each_quoted_line([&] (auto const &line) {
+					line.print(out);
+					if (!line.last) out.out_char('\n'); });
+			}
+		};
 
 		void print(Output &out) const
 		{
-			_with([&] (Xml_node const &xml) { xml.print(out); },
-			      [&] { });
+			_process_if_valid([&] (auto const &node) { node.print(out); });
 		}
 };
 
 
 struct Genode::Buffered_node : private Memory::Allocation::Attempt, Node
 {
-	static Const_byte_range_ptr _copy(Memory::Constrained_allocator &alloc,
-	                                  Memory::Allocation::Attempt &a,
-	                                  Node const &node)
+	static Byte_range_ptr _allocated(Memory::Constrained_allocator &alloc,
+	                                 Memory::Allocation::Attempt &a, size_t num_bytes)
 	{
-		char const *node_start = nullptr;
-		size_t      node_num_bytes = 0;
-
-		node.with_raw_node([&] (char const *start, size_t num_bytes) {
-			a = alloc.try_alloc(num_bytes);
-			a.with_result([&] (Memory::Allocation &a) {
-				node_num_bytes = min(num_bytes, a.num_bytes);
-				node_start     = (char const *)a.ptr;
-				Genode::memcpy(a.ptr, start, node_num_bytes);
-			}, [&] (Memory::Allocation::Error) { });
-		});
-
-		return { node_start, node_num_bytes };
+		a = alloc.try_alloc(num_bytes);
+		return a.convert<Byte_range_ptr>(
+			[&] (Memory::Allocation &a) {
+				return Byte_range_ptr((char *)a.ptr, a.num_bytes); },
+			[&] (Alloc_error) {
+				return Byte_range_ptr(nullptr, 0); });
 	}
 
 	Buffered_node(Memory::Constrained_allocator &alloc, Node const &node)
 	:
 		Memory::Allocation::Attempt(Alloc_error::DENIED),
-		Node(_copy(alloc, *this, node))
+		Node(node, _allocated(alloc, *this, node.num_bytes()))
 	{ }
 };
 
