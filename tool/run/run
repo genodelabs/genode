@@ -159,13 +159,21 @@ proc check_xml_syntax {xml_file} {
 # Validate configuration file to match an XML schema using xmllint
 #
 # \param bin              binary name of the component behind the config
-# \param xml_file         configuration file
+# \param config_file      configuration file
 # \param xsd_file         configuration schema file
 # \param avail_xsd_files  list of xsd files that might be used for
 #                         configurations of children of the component
 # \param nesting_level    level of recursive calls of this procedure
 #
-proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
+proc check_config {bin config_file xsd_file label avail_xsd_files nesting_level} {
+
+	# skip check if config file does not start with XML tag (i.e., HRD format)
+	set fh [open $config_file]
+	set config_file_content [read $fh]
+	close $fh
+	if {![regexp {^\s*<} $config_file_content]} {
+		puts stderr "Warning: skip config syntax validation (no XML)"
+		return }
 
 	# check prerequisites if this is not a recursive call
 	if {$nesting_level == 0} {
@@ -180,9 +188,9 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
 
 	# check the given component configuration itself
 	puts "  CHECK $label"
-	if {[catch {exec xmllint --noout -schema $xsd_file $xml_file} result]} {
+	if {[catch {exec xmllint --noout -schema $xsd_file $config_file} result]} {
 
-		if {$result != "$xml_file validates"} {
+		if {$result != "$config_file validates"} {
 
 			puts stderr "$result"
 			puts stderr "Error: Invalid XML syntax"
@@ -218,7 +226,7 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
 			                      not(child::binary) and @name=\'$child_bin\'"
 
 			set xpath "string(/config/start\[$xpath_start_cond\]\[$child_instance\]/@name)"
-			set select_xpath "xmllint --xpath \"$xpath\" $xml_file"
+			set select_xpath "xmllint --xpath \"$xpath\" $config_file"
 			if {[catch {exec {*}$select_xpath} child_name]} {
 
 				#
@@ -233,7 +241,7 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
 			# call to this procedure.
 			#
 			set xpath "/config/start\[$xpath_start_cond\]\[$child_instance\]/config"
-			set select_xpath "xmllint --xpath \"$xpath\" $xml_file"
+			set select_xpath "xmllint --xpath \"$xpath\" $config_file"
 			if {[catch {exec {*}$select_xpath} child_xml]} {
 
 				# the child has no config
