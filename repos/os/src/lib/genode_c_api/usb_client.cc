@@ -29,15 +29,15 @@ struct Device;
 
 struct Endpoint : List_model<Endpoint>::Element
 {
-	uint8_t const address;
-	uint8_t const attributes;
-	uint8_t const max_packet_size;
+	uint8_t  const address;
+	uint8_t  const attributes;
+	uint16_t const max_packet_size;
 
 	Endpoint(Node const &n)
 	:
 		address(n.attribute_value<uint8_t>("address", 0xff)),
 		attributes(n.attribute_value<uint8_t>("attributes", 0xff)),
-		max_packet_size(n.attribute_value<uint8_t>("max_packet_size", 0)) {}
+		max_packet_size(n.attribute_value<uint16_t>("max_packet_size", 0)) {}
 
 	bool matches(Node const &node) const {
 		return address == node.attribute_value<uint8_t>("address", 0xff); }

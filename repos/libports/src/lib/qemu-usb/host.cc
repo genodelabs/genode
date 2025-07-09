@@ -128,7 +128,7 @@ class Endpoint : public List_model<Endpoint>::Element
 
 		uint8_t const             _address;
 		uint8_t const             _attributes;
-		uint8_t const             _max_packet_size;
+		uint16_t const            _max_packet_size_raw; /* incl. wMaxPacketSize[12:11] */
 		Constructible<Isoc_cache> _isoc_cache { };
 
 	public:
@@ -137,15 +137,17 @@ class Endpoint : public List_model<Endpoint>::Element
 		:
 			_address(n.attribute_value<uint8_t>("address", 0xff)),
 			_attributes(n.attribute_value<uint8_t>("attributes", 0xff)),
-			_max_packet_size(n.attribute_value<uint8_t>("max_packet_size", 0))
+			_max_packet_size_raw(n.attribute_value<uint16_t>("max_packet_size", 0))
 		{
 			if ((_attributes&0x3) == Usb::Endpoint::ISOC)
 				_isoc_cache.construct(iface, *this, alloc);
 		}
 
-		uint8_t address()         const { return _address; }
-		uint8_t attributes()      const { return _attributes; }
-		uint8_t max_packet_size() const { return _max_packet_size; }
+		uint8_t address()    const { return _address; }
+		uint8_t attributes() const { return _attributes; }
+
+		uint16_t max_packet_size_raw() const { return _max_packet_size_raw; }
+		uint16_t max_packet_size()     const { return _max_packet_size_raw & 0x7ff; }
 
 		bool matches(Node const &node) const {
 			return address() == node.attribute_value<uint8_t>("address", 0xff); }
@@ -670,7 +672,7 @@ static void usb_host_update_ep(USBDevice *udev)
 					? USB_TOKEN_IN : USB_TOKEN_OUT;
 				int     const ep    = (endp.address() & 0xf);
 				uint8_t const type  = (endp.attributes() & 0x3);
-				usb_ep_set_max_packet_size(udev, pid, ep, endp.max_packet_size());
+				usb_ep_set_max_packet_size(udev, pid, ep, endp.max_packet_size_raw());
 				usb_ep_set_type(udev, pid, ep, type);
 				usb_ep_set_ifnum(udev, pid, ep, iface.number());
 				usb_ep_set_halted(udev, pid, ep, 0);
