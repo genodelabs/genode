@@ -2,7 +2,8 @@ source ${genode_dir}/repos/libports/run/qt6_common.inc
 
 import_from_depot [depot_user]/src/qt6_component \
                   [depot_user]/src/qt6_textedit \
-                  [depot_user]/src/vfs
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/clipboard
 
 install_config {
 <config>
@@ -24,8 +25,20 @@ install_config {
 			<policy label_prefix="textedit2" root="/" writeable="yes" />
 		</config>
 	</start>
+	<start name="clipboard" ram="2M">
+		<provides>
+			<service name="ROM"/> <service name="Report"/>
+		</provides>
+		<config verbose="no" match_labels="no">
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="ROM" label="focus"> <child name="wm_report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
 	<start name="textedit" caps="350" ram="70M">
-		<config>
+		<config clipboard="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
@@ -41,6 +54,8 @@ install_config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard"> <child name="clipboard"/> </service>
+			<service name="ROM" label="clipboard"> <child name="clipboard"/> </service>
 			<service name="ROM" label="mesa_gpu.lib.so">
 				<parent label="mesa_gpu-softpipe.lib.so" />
 			</service>
@@ -49,7 +64,7 @@ install_config {
 	</start>
 	<start name="textedit2" caps="350" ram="70M">
 		<binary name="textedit" />
-		<config>
+		<config clipboard="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
@@ -65,6 +80,8 @@ install_config {
 		<route>
 			<service name="Gui"> <child name="wm"/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard"> <child name="clipboard"/> </service>
+			<service name="ROM" label="clipboard"> <child name="clipboard"/> </service>
 			<service name="ROM" label="mesa_gpu.lib.so">
 				<parent label="mesa_gpu-softpipe.lib.so" />
 			</service>
