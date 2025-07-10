@@ -437,6 +437,9 @@ extern "C" int execve(char const *filename,
 	/* remember name of new ROM module, to be used by next call of fork */
 	*_binary_name_ptr = Libc::Binary_name(resolved_path.string());
 
+	/* inform dynamic_linker.cc of name change */
+	Libc::update_dl_binary(*_binary_name_ptr);
+
 	destroy(_alloc_ptr, saved_env_vars);
 	destroy(_alloc_ptr, saved_args);
 

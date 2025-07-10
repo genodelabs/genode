@@ -161,6 +161,11 @@ namespace Libc {
 	 * Random-number support
 	 */
 	void init_random(Config const &);
+
+	/**
+	 * Set current binary name
+	 */
+	void update_dl_binary(Libc::Binary_name &);
 }
 
 #endif /* _LIBC__INTERNAL__INIT_H_ */
