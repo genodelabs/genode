@@ -16,11 +16,7 @@
 
 #include <util/string.h>
 
-namespace Genode {
-	struct Color;
-
-	inline size_t ascii_to(const char *, Color &);
-}
+namespace Genode { struct Color; }
 
 
 /**
@@ -92,42 +88,40 @@ struct Genode::Color
 		if (a != 255)
 			print(out, Hex(a, Hex::OMIT_PREFIX, Hex::PAD));
 	}
+
+	/**
+	 * Assign color from text
+	 *
+	 * The text 's' must have the format '#rrggbb' or '#rrggbbaa'.
+	 *
+	 * \return number of consumed characters, or 0 if the string contains
+	 *         no valid color
+	 */
+	size_t parse(Span const &s)
+	{
+		if (s.num_bytes < 7 || s.start[0] != '#') return 0;
+
+		bool const HEX = true;
+
+		auto is_digit = [&] (unsigned i) { return Genode::is_digit(s.start[i], HEX); };
+		auto digit    = [&] (unsigned i) { return Genode::digit(s.start[i], HEX); };
+
+		for (unsigned i = 0; i < 6; i++)
+			if (!is_digit(i + 1)) return 0;
+
+		uint8_t const r = uint8_t(16*digit(1) + digit(2)),
+		              g = uint8_t(16*digit(3) + digit(4)),
+		              b = uint8_t(16*digit(5) + digit(6));
+
+		bool const has_alpha = (s.num_bytes >= 9) && is_digit(7) && is_digit(8);
+
+		uint8_t const a = has_alpha ? uint8_t(16*digit(7) + digit(8)) : 255;
+
+		*this = { r, g, b, a };
+
+		return has_alpha ? 9 : 7;
+	}
 };
 
-
-/**
- * Convert ASCII string to Color
- *
- * The ASCII string must have the format '#rrggbb' or '#rrggbbaa'.
- *
- * \return number of consumed characters, or 0 if the string contains
- *         no valid color
- */
-inline Genode::size_t Genode::ascii_to(const char *s, Color &result)
-{
-	size_t const len = strlen(s);
-
-	if (len < 7 || *s != '#') return 0;
-
-	bool const HEX = true;
-
-	auto is_digit = [&] (unsigned i) { return Genode::is_digit(s[i], HEX); };
-	auto digit    = [&] (unsigned i) { return Genode::digit(s[i], HEX); };
-
-	for (unsigned i = 0; i < 6; i++)
-		if (!is_digit(i + 1)) return 0;
-
-	uint8_t const r = uint8_t(16*digit(1) + digit(2)),
-	              g = uint8_t(16*digit(3) + digit(4)),
-	              b = uint8_t(16*digit(5) + digit(6));
-
-	bool const has_alpha = (len >= 9) && is_digit(7) && is_digit(8);
-
-	uint8_t const a = has_alpha ? uint8_t(16*digit(7) + digit(8)) : 255;
-
-	result = Color { r, g, b, a };
-
-	return has_alpha ? 9 : 7;
-}
 
 #endif /* _INCLUDE__UTIL__COLOR_H_ */

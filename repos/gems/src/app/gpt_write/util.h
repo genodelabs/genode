@@ -83,20 +83,20 @@ namespace Util {
 		}
 	};
 
-	inline size_t ascii_to(const char *s, Number_of_bytes &result)
+	inline size_t parse(Span const &s, Number_of_bytes &result)
 	{
 		unsigned long res = 0;
 
 		/* convert numeric part of string */
-		int i = ascii_to_unsigned(s, res, 0);
+		size_t i = parse_unsigned(s, res);
 
 		/* handle suffixes */
-		if (i > 0)
-			switch (s[i]) {
-				case 'G': res *= 1024; [[fallthrough]];
-				case 'M': res *= 1024; [[fallthrough]];
-				case 'K': res *= 1024; i++;
-				default: break;
+		if (i > 0 && i < s.num_bytes)
+			switch (s.start[i]) {
+			case 'G': res *= 1024; [[fallthrough]];
+			case 'M': res *= 1024; [[fallthrough]];
+			case 'K': res *= 1024; i++;
+			default: break;
 			}
 
 		result = res;

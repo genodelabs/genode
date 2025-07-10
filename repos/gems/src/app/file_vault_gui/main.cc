@@ -243,10 +243,10 @@ struct Main : Prompt::Action
 
 		Number_of_bytes image_size() const
 		{
-			return (size_t)(BLOCK_SIZE * tresor_num_blocks(
+			return { (size_t)(BLOCK_SIZE * tresor_num_blocks(
 				NR_OF_SUPERBLOCK_SLOTS, TRESOR_VBD_MAX_LVL + 1, TRESOR_VBD_DEGREE,
 				tresor_tree_num_leaves(capacity.as_num_bytes()), TRESOR_FREE_TREE_MAX_LVL + 1,
-				TRESOR_FREE_TREE_DEGREE, tresor_tree_num_leaves(journal_buf.as_num_bytes())));
+				TRESOR_FREE_TREE_DEGREE, tresor_tree_num_leaves(journal_buf.as_num_bytes()))) };
 		}
 
 		void view(Scope<Frame> &s) const

@@ -23,53 +23,15 @@
 
 namespace Genode {
 
-	class Number_of_bytes;
-	class Byte_range_ptr;
-	class Const_byte_range_ptr;
+	struct Num_bytes;
+	struct Byte_range_ptr;
+	class Span;
 	class Cstring;
 	template <Genode::size_t> class String;
+
+	using Const_byte_range_ptr = Span;
+	using Number_of_bytes = Num_bytes; /* deprecated */
 }
-
-
-/**
- * Wrapper of 'size_t' for selecting the 'ascii_to' function to parse byte values
- */
-class Genode::Number_of_bytes
-{
-	size_t _n;
-
-	public:
-
-		/**
-		 * Default constructor
-		 */
-		Number_of_bytes() : _n(0) { }
-
-		/**
-		 * Constructor, to be used implicitly via assignment operator
-		 */
-		Number_of_bytes(size_t n) : _n(n) { }
-
-		/**
-		 * Convert number of bytes to 'size_t' value
-		 */
-		operator size_t() const { return _n; }
-
-		static void print(Output &output, auto const n)
-		{
-			using Genode::print;
-
-			enum { KB = 1024U, MB = KB*1024U, GB = MB*1024U };
-
-			if      (n      == 0) print(output, 0);
-			else if (n % GB == 0) print(output, n/GB, "G");
-			else if (n % MB == 0) print(output, n/MB, "M");
-			else if (n % KB == 0) print(output, n/KB, "K");
-			else                  print(output, n);
-		}
-
-		void print(Output &output) const { print(output, _n); }
-};
 
 
 /**
@@ -101,7 +63,7 @@ struct Genode::Byte_range_ptr : Noncopyable
 /**
  * Data structure for describing a constant byte buffer
  */
-struct Genode::Const_byte_range_ptr : Noncopyable
+struct Genode::Span : Noncopyable
 {
 	struct {
 		char const * const start;
@@ -110,7 +72,7 @@ struct Genode::Const_byte_range_ptr : Noncopyable
 
 	bool contains(char const *ptr) const
 	{
-		return (ptr >= start) && (ptr <= start + num_bytes - 1);
+		return (ptr >= start) && size_t(ptr - start) < num_bytes;
 	}
 
 	bool contains(void const *ptr) const
@@ -118,8 +80,7 @@ struct Genode::Const_byte_range_ptr : Noncopyable
 		return contains((char const *)ptr);
 	}
 
-	Const_byte_range_ptr(char const *start, size_t num_bytes)
-	: start(start), num_bytes(num_bytes) { }
+	Span(char const *start, size_t num_bytes) : start(start), num_bytes(num_bytes) { }
 };
 
 
@@ -377,9 +338,9 @@ namespace Genode {
 
 
 	/**
-	 * Read unsigned long value from string
+	 * Read unsigned long value from span
 	 *
-	 * \param s       source string
+	 * \param s       text buffer
 	 * \param result  destination variable
 	 * \param base    integer base
 	 * \return        number of consumed characters
@@ -389,18 +350,18 @@ namespace Genode {
 	 * a base of 16 is used, otherwise a base of 10.
 	 */
 	template <typename T>
-	inline size_t ascii_to_unsigned(const char *s, T &result, uint8_t base)
+	inline size_t parse_unsigned(Span const &s, T &result, uint8_t base = 0)
 	{
+		if (!s.num_bytes) return 0;
+
 		size_t i = 0;
 
-		if (!*s) return i;
-
 		/* autodetect hexadecimal base, default is a base of 10 */
-		if (base == 0) {
+		if (base == 0 && s.num_bytes > 2) {
 
 			/* read '0x' prefix */
-			if (*s == '0' && (s[1] == 'x' || s[1] == 'X')) {
-				s += 2; i += 2;
+			if (s.start[0] == '0' && (s.start[1] == 'x' || s.start[1] == 'X')) {
+				i += 2;
 				base = 16;
 			} else
 				base = 10;
@@ -408,18 +369,16 @@ namespace Genode {
 
 		/* read number */
 		T value = 0;
-		while (true) {
+		for (; i < s.num_bytes; i++) {
 
 			/* read digit, stop when hitting a non-digit character */
-			int const d = digit(*s, base == 16);
+			int const d = digit(s.start[i], base == 16);
 			if (d < 0)
 				break;
 
 			/* append digit to integer value */
 			uint8_t const valid_digit = (uint8_t)d;
 			value = (T)(value*base + valid_digit);
-
-			s++, i++;
 		}
 
 		result = value;
@@ -428,100 +387,24 @@ namespace Genode {
 
 
 	/**
-	 * Read boolean value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(char const *s, bool &result)
-	{
-		if (!strcmp(s, "yes",   3)) { result = true;  return 3; }
-		if (!strcmp(s, "true",  4)) { result = true;  return 4; }
-		if (!strcmp(s, "on",    2)) { result = true;  return 2; }
-		if (!strcmp(s, "no",    2)) { result = false; return 2; }
-		if (!strcmp(s, "false", 5)) { result = false; return 5; }
-		if (!strcmp(s, "off",   3)) { result = false; return 3; }
-
-		return 0;
-	}
-
-
-	/**
-	 * Read unsigned char value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, unsigned char &result)
-	{
-		return ascii_to_unsigned(s, result, 0);
-	}
-
-
-	/**
-	 * Read unsigned short value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, unsigned short &result)
-	{
-		return ascii_to_unsigned(s, result, 0);
-	}
-
-
-	/**
-	 * Read unsigned long value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, unsigned long &result)
-	{
-		return ascii_to_unsigned(s, result, 0);
-	}
-
-
-	/**
-	 * Read unsigned long long value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, unsigned long long &result)
-	{
-		return ascii_to_unsigned(s, result, 0ULL);
-	}
-
-
-
-	/**
-	 * Read unsigned int value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, unsigned int &result)
-	{
-		return ascii_to_unsigned(s, result, 0);
-	}
-
-
-	/**
-	 * Read signed value from string
+	 * Read signed value from span
 	 *
 	 * \return number of consumed characters
 	 */
 	template <typename T>
-	inline size_t ascii_to_signed(const char *s, T &result)
+	inline size_t parse_signed(Span const &s, T &result)
 	{
-		size_t i = 0;
+		if (!s.num_bytes) return 0;
 
 		/* read sign */
-		int sign = (*s == '-') ? -1 : 1;
-
-		if (*s == '-' || *s == '+') { s++; i++; }
+		int    const sign = (s.start[0] == '-') ? -1 : 1;
+		size_t const i    = (s.start[0] == '-' || s.start[0] == '+') ? 1 : 0;
 
 		T value = 0;
-
-		size_t const j = ascii_to_unsigned(s, value, 0);
+		size_t const j = parse_unsigned({ s.start + i, s.num_bytes - i }, value, 0);
 
 		if (!j)
-			return i;
+			return 0;
 
 		result = sign*value;
 		return i + j;
@@ -529,79 +412,60 @@ namespace Genode {
 
 
 	/**
-	 * Read signed long value from string
+	 * Read boolean value from span
 	 *
 	 * \return number of consumed characters
 	 */
-	inline size_t ascii_to(const char *s, long &result)
+	inline size_t parse(Span const &s, bool &result)
 	{
-		return ascii_to_signed<long>(s, result);
+		struct Pattern { char const *text; size_t len; bool value; };
+		static Pattern const patterns[6] { { "yes",  3, true }, { "no",    2, false },
+		                                   { "true", 4, true }, { "false", 5, false },
+		                                   { "on",   2, true }, { "off",   3, false } };
+		for (Pattern const &p : patterns)
+			if (p.len <= s.num_bytes && !memcmp(s.start, p.text, p.len)) {
+				result = p.value;
+				return p.len; }
+		return 0;
 	}
 
 
-	/**
-	 * Read signed integer value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, int &result)
-	{
-		return ascii_to_signed<int>(s, result);
-	}
+	inline size_t parse(Span const &s, unsigned char      &out) { return parse_unsigned(s, out); }
+	inline size_t parse(Span const &s, unsigned short     &out) { return parse_unsigned(s, out); }
+	inline size_t parse(Span const &s, unsigned long      &out) { return parse_unsigned(s, out); }
+	inline size_t parse(Span const &s, unsigned long long &out) { return parse_unsigned(s, out); }
+	inline size_t parse(Span const &s, unsigned int       &out) { return parse_unsigned(s, out); }
+	inline size_t parse(Span const &s, long               &out) { return parse_signed(s, out); }
+	inline size_t parse(Span const &s, int                &out) { return parse_signed(s, out); }
 
 
 	/**
-	 * Read 'Number_of_bytes' value from string and handle the size suffixes
-	 *
-	 * This function scales the resulting size value according to the suffixes
-	 * for G (2^30), M (2^20), and K (2^10) if present.
+	 * Read double float value from span
 	 *
 	 * \return number of consumed characters
 	 */
-	inline size_t ascii_to(const char *s, Number_of_bytes &result)
-	{
-		unsigned long res = 0;
-
-		/* convert numeric part of string */
-		size_t i = ascii_to_unsigned(s, res, 0);
-
-		/* handle suffixes */
-		if (i > 0)
-			switch (s[i]) {
-			case 'G': res *= 1024*1024*1024; i++; break;
-			case 'M': res *= 1024*1024;      i++; break;
-			case 'K': res *= 1024;           i++; break;
-			default: break;
-			}
-
-		result = res;
-		return i;
-	}
-
-
-	/**
-	 * Read double float value from string
-	 *
-	 * \return number of consumed characters
-	 */
-	inline size_t ascii_to(const char *s, double &result)
+	inline size_t parse(Span const &s, double &result)
 	{
 		double v = 0.0;    /* decimal part              */
 		double d = 0.1;    /* power of fractional digit */
 		bool neg = false;  /* sign                      */
-		int    i = 0;      /* character counter         */
+		size_t i = 0;      /* character counter         */
 
-		if (s[i] == '-') {
+		if (!s.num_bytes) return 0;
+
+		if (s.start[0] == '-') {
 			neg = true;
 			i++;
 		}
 
 		/* parse decimal part of number */
-		for (; s[i] && is_digit(s[i]); i++)
-			v = 10*v + digit(s[i], false);
+		for (; i < s.num_bytes && s.start[i] && is_digit(s.start[i]); i++)
+			v = 10*v + digit(s.start[i], false);
+
+		result = v;
 
 		/* if no fractional part exists, return current value */
-		if (s[i] != '.') {
+		if (i < s.num_bytes && s.start[i] != '.') {
 			result = neg ? -v : v;
 			return i;
 		}
@@ -610,12 +474,21 @@ namespace Genode {
 		i++;
 
 		/* parse fractional part of number */
-		for (; s[i] && is_digit(s[i]); i++, d *= 0.1)
-			v += d*digit(s[i], false);
+		for (; i < s.num_bytes && s.start[i] && is_digit(s.start[i]); i++, d *= 0.1)
+			v += d*digit(s.start[i], false);
 
 		result = neg ? -v : v;
 		return i;
 	}
+
+
+	/**
+	 * Assign parsed information to object 'obj'
+	 *
+	 * The object type must provide a 'parse(Span &)' method that applies
+	 * the interpreted text 's' to the object.
+	 */
+	static inline size_t parse(Span const &s, auto &obj) { return obj.parse(s); }
 
 
 	/**
@@ -653,7 +526,87 @@ namespace Genode {
 
 		return i;
 	}
+
+
+	/**
+	 * API compatibility helper
+	 *
+	 * \noapi
+	 * \deprecated
+	 */
+	inline size_t ascii_to_unsigned(const char *s, auto &out, uint8_t base)
+	{
+		return parse_unsigned(Span { s, ~0UL }, out, base);
+	}
+
+
+	/**
+	 * API compatibility helper
+	 *
+	 * \noapi
+	 * \deprecated
+	 */
+	inline size_t ascii_to(const char *s, auto &out)
+	{
+		return parse(Span { s, ~0UL }, out);
+	}
 }
+
+
+/**
+ * Helper for parsing and printing memory-sized amounts of bytes
+ */
+struct Genode::Num_bytes
+{
+	size_t _n;
+
+	operator size_t() const { return _n; }
+
+	static void print(Output &output, auto const n)
+	{
+		using Genode::print;
+
+		enum { KB = 1024U, MB = KB*1024U, GB = MB*1024U };
+
+		if      (n      == 0) print(output, 0);
+		else if (n % GB == 0) print(output, n/GB, "G");
+		else if (n % MB == 0) print(output, n/MB, "M");
+		else if (n % KB == 0) print(output, n/KB, "K");
+		else                  print(output, n);
+	}
+
+	void print(Output &output) const { print(output, _n); }
+
+	/**
+	 * Read 'Num_bytes' value from span and handle the size suffixes
+	 *
+	 * This function scales the resulting size value according to the suffixes
+	 * for G (2^30), M (2^20), and K (2^10) if present.
+	 *
+	 * \return number of consumed characters
+	 */
+	static size_t parse(Span const &s, auto &out)
+	{
+		unsigned long res = 0;
+
+		/* convert numeric part */
+		size_t i = parse_unsigned(s, res, 0);
+
+		/* handle suffixes */
+		if (i > 0 && i < s.num_bytes)
+			switch (s.start[i]) {
+			case 'G': res *= 1024*1024*1024; i++; break;
+			case 'M': res *= 1024*1024;      i++; break;
+			case 'K': res *= 1024;           i++; break;
+			default: break;
+			}
+
+		if (i) out = res;
+		return i;
+	}
+
+	size_t parse(Span const &s) { return parse(s, _n); }
+};
 
 
 /**

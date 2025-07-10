@@ -26,7 +26,7 @@ namespace Genode {
 
 		static char const *name() { return "bytes"; }
 
-		void print(Output &out) const { Genode::print(out, Number_of_bytes(value)); }
+		void print(Output &out) const { Genode::print(out, Num_bytes{value}); }
 	};
 
 	struct Cap_quota

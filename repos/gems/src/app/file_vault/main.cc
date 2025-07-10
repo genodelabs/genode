@@ -407,7 +407,7 @@ void Main::handle_client_fs_query_listing(Xml_node const &listing)
 	case UNLOCK_READ_FS_SIZE:
 
 		with_file(listing, "data", [&] (Xml_node const &file) {
-			ui_report.capacity = file.attribute_value("size", 0UL);
+			ui_report.capacity = { file.attribute_value("size", 0UL) };
 			ui_report_changed = true;
 			set_state(UNLOCKED);
 			Signal_transmitter(state_handler).submit();
@@ -423,7 +423,7 @@ void Main::handle_client_fs_query_listing(Xml_node const &listing)
 		with_file(listing, "data", [&] (Xml_node const &file) {
 			size_t const size { file.attribute_value("size", (size_t)0) };
 			if (ui_report.capacity != size) {
-				ui_report.capacity = size;
+				ui_report.capacity = { size };
 				ui_report_changed = true;
 				extend_state = Extend::RESIZE2FS;
 				Signal_transmitter(state_handler).submit();
@@ -465,7 +465,7 @@ void Main::handle_image_fs_query_listing(Xml_node const &listing)
 		size_t size { 0 };
 		with_file(listing, image_name, [&] (Xml_node const &file) { size = file.attribute_value("size", 0UL); });
 		if (ui_report.image_size != size) {
-			ui_report.image_size = size;
+			ui_report.image_size = { size };
 			ui_report_changed = true;
 		}
 		break;

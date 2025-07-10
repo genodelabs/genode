@@ -193,7 +193,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 		/*
 		 * Create buffer for generated XML data
 		 */
-		Genode::Number_of_bytes output_ds_size = 4096;
+		Genode::Number_of_bytes output_ds_size = { 4096 };
 
 		output_ds_size = _config.node().attribute_value("buffer", output_ds_size);
 
