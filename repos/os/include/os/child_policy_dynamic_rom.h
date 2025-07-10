@@ -102,6 +102,25 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 */
 		~Child_policy_dynamic_rom_file() { _ep.dissolve(this); }
 
+		void _with_reallocated(size_t num_bytes, auto const &fn)
+		{
+			Mutex::Guard guard(_mutex);
+
+			if (!_ram) {
+				Genode::error("no backing store for loading ROM data");
+				return;
+			}
+
+			/* let background buffer grow if needed */
+			if (_bg.size() < num_bytes)
+				_bg.realloc(_ram, num_bytes);
+
+			fn(Byte_range_ptr(_bg.local_addr<char>(), num_bytes));
+			_bg_has_pending_data = true;
+
+			if (_sigh_cap.valid()) Signal_transmitter(_sigh_cap).submit();
+		}
+
 		/**
 		 * Load new content into ROM module
 		 *
@@ -112,22 +131,21 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 */
 		void load(void const *data, size_t data_len)
 		{
-			Mutex::Guard guard(_mutex);
+			_with_reallocated(data_len, [&] (Byte_range_ptr const &dst) {
+				memcpy(dst.start, data, data_len); });
+		}
 
-			if (!_ram) {
-				Genode::error("no backing store for loading ROM data");
-				return;
-			}
-
-			/* let background buffer grow if needed */
-			if (_bg.size() < data_len)
-				_bg.realloc(_ram, data_len);
-
-			memcpy(_bg.local_addr<void>(), data, data_len);
-			_bg_has_pending_data = true;
-
-			if (_sigh_cap.valid())
-				Signal_transmitter(_sigh_cap).submit();
+		void load(Node const &node)
+		{
+			_with_reallocated(node.num_bytes(), [&] (Byte_range_ptr const &dst) {
+				Generator::generate(dst, node.type(), [&] (Generator &g) {
+					g.node_attributes(node);
+					if (!g.append_node_content(node, Generator::Max_depth { 20 }))
+						warning("unable to load deeply nested config node");
+				}).with_error([&] (Buffer_error) {
+					warning("unable to load config node");
+				});
+			});
 		}
 
 

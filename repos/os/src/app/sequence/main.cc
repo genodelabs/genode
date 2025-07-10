@@ -84,8 +84,7 @@ struct Sequence::Child : Genode::Child_policy
 	{
 		start_node.with_optional_sub_node("config",
 			[&] (Node const &config_node) {
-				config_node.with_raw_node([&] (char const *start, size_t length) {
-					_config_policy.load(start, length); }); });
+				_config_policy.load(config_node); });
 	}
 
 	~Child()
