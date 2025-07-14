@@ -35,8 +35,8 @@ class Genodefb :
 	private:
 
 		Genode::Env         &_env;
-		Gui::Connection     &_gui;
-		Gui::Top_level_view &_view;
+		Gui::Connection     *_gui;
+		Gui::Top_level_view *_view;
 		Gui::Rect            _gui_win { { }, { 1024, 768 } };
 
 		/*
@@ -47,7 +47,10 @@ class Genodefb :
 
 		void *_attach()
 		{
-			return _env.rm().attach(_gui.framebuffer.dataspace(), {
+			if (!_gui)
+				return nullptr;
+
+			return _env.rm().attach(_gui->framebuffer.dataspace(), {
 				.size = { },  .offset     = { },  .use_at     = { },
 				.at   = { },  .executable = { },  .writeable  = true
 			}).convert<void *>(
@@ -67,24 +70,28 @@ class Genodefb :
 
 		void _clear_screen()
 		{
-			if (!_fb_base) return;
+			if (!_fb_base || !_gui)
+				return;
 
 			size_t const max_h = Genode::min(_gui_win.area.h, _virtual_fb_area.h);
 			size_t const num_pixels = _gui_win.area.w * max_h;
 			memset(_fb_base, 0, num_pixels * sizeof(Genode::Pixel_rgb888));
-			_gui.framebuffer.refresh({ _gui_win.at, _virtual_fb_area });
+			_gui->framebuffer.refresh({ _gui_win.at, _virtual_fb_area });
 		}
 
 		void _adjust_buffer()
 		{
-			_gui.buffer({ .area = _gui_win.area, .alpha = false });
-			_view.area(_gui_win.area);
+			if (!_view || !_gui) return;
+
+			_gui->buffer({ .area = _gui_win.area, .alpha = false });
+			_view->area(_gui_win.area);
 		}
 
 		Gui::Area _initial_setup()
 		{
 			_adjust_buffer();
-			_view.front();
+			if (_view)
+				_view->front();
 			return _gui_win.area;
 		}
 
@@ -92,9 +99,9 @@ class Genodefb :
 
 		NS_DECL_ISUPPORTS
 
-		Genodefb(Genode::Env &env, Gui::Connection &gui,
+		Genodefb(Genode::Env &env, Gui::Connection *gui,
 		         ComPtr<IDisplay> const &display, unsigned id,
-		         Gui::Top_level_view &view)
+		         Gui::Top_level_view *view)
 		:
 			_env(env), _gui(gui), _view(view),
 			_virtual_fb_area(_initial_setup()),
@@ -125,6 +132,16 @@ class Genodefb :
 			Unlock();
 		}
 
+		void invalidate_gui()
+		{
+			Lock();
+
+			_gui  = nullptr;
+			_view = nullptr;
+
+			Unlock();
+		}
+
 		STDMETHODIMP Lock()
 		{
 			return Global::vboxStatusCodeToCOM(RTCritSectEnter(&_fb_lock));
@@ -140,11 +157,13 @@ class Genodefb :
 		{
 			HRESULT result = E_FAIL;
 
-
-			/* save the new bitmap reference */
-			_display->QuerySourceBitmap(screen, _display_bitmap.asOutParam());
+			ComPtr<IDisplaySourceBitmap> tmp { };
+			_display->QuerySourceBitmap(screen, tmp.asOutParam());
 
 			Lock();
+
+			/* save the new bitmap reference */
+			_display_bitmap = tmp;
 
 			bool const ok = (w <= (ULONG)_gui_win.area.w) &&
 			                (h <= (ULONG)_gui_win.area.h);
@@ -201,11 +220,15 @@ class Genodefb :
 
 		HRESULT NotifyUpdate(ULONG o_x, ULONG o_y, ULONG width, ULONG height) override
 		{
-			if (!_fb_base) return S_OK;
-
 			Lock();
 
-			if (_display_bitmap.isNull()) {
+			if (!_fb_base || !_gui)
+				return S_OK;
+
+			/* keep ComPtr on stack so that it stays valid during usage */
+			ComPtr<IDisplaySourceBitmap> display_bitmap = _display_bitmap;
+
+			if (display_bitmap.isNull()) {
 				_clear_screen();
 				Unlock();
 				return S_OK;
@@ -217,12 +240,12 @@ class Genodefb :
 			ULONG ulBitsPerPixel = 0;
 			ULONG ulBytesPerLine = 0;
 			BitmapFormat_T bitmapFormat = BitmapFormat_Opaque;
-			_display_bitmap->QueryBitmapInfo(&pAddress,
-			                                 &ulWidth,
-			                                 &ulHeight,
-			                                 &ulBitsPerPixel,
-			                                 &ulBytesPerLine,
-			                                 &bitmapFormat);
+			display_bitmap->QueryBitmapInfo(&pAddress,
+			                                &ulWidth,
+			                                &ulHeight,
+			                                &ulBitsPerPixel,
+			                                &ulBytesPerLine,
+			                                &bitmapFormat);
 
 			Gui::Area const area_fb = Gui::Area(_gui_win.area.w,
 			                                    _gui_win.area.h);
@@ -245,7 +268,7 @@ class Genodefb :
 			                       Texture_painter::SOLID,
 			                       false);
 
-			_gui.framebuffer.refresh(o_x, o_y, width, height);
+			_gui->framebuffer.refresh(o_x, o_y, width, height);
 
 			Unlock();
 
@@ -257,9 +280,10 @@ class Genodefb :
 		                               PRUint32 imageSize,
 		                               PRUint8 *image) override
 		{
-			if (!_fb_base) return S_OK;
-
 			Lock();
+
+			if (!_fb_base || !_gui)
+				return S_OK;
 
 			Gui::Area const area_fb = _gui_win.area;
 			Gui::Area const area_vm = Gui::Area(width, height);
@@ -279,7 +303,7 @@ class Genodefb :
 			                       Texture_painter::SOLID,
 			                       false);
 
-			_gui.framebuffer.refresh(o_x, o_y, area_vm.w, area_vm.h);
+			_gui->framebuffer.refresh(o_x, o_y, area_vm.w, area_vm.h);
 
 			Unlock();
 
