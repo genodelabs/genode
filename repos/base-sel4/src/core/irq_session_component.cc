@@ -102,7 +102,7 @@ void Irq_object::ack_irq()
 }
 
 
-Irq_object::Irq_object(unsigned irq)
+Irq_object::Irq_object(Allocator::Result const &irq)
 :
 	Thread(Weight::DEFAULT_WEIGHT, "irq", 4096 /* stack */, Type::NORMAL),
 	_irq(irq),
@@ -168,26 +168,36 @@ Irq_object::~Irq_object()
 }
 
 
-static unsigned irq_number(Irq_args const &args)
+static Allocator::Result allocate_irq(Range_allocator &irq_alloc,
+                                      Irq_args const  &args)
 {
-	return args.msi() ? unsigned(args.irq_number() + Irq_object::MSI_OFFSET)
-	                  : unsigned(args.irq_number());
+	if (!args.msi())
+		return irq_alloc.alloc_addr(1, args.irq_number());
+
+	/* see contrib include/plat/pc99/plat/machine.h - max user vector is 155 */
+	auto const range_msi = Range_allocator::Range(Irq_object::MSI_OFFSET, 155);
+
+	return irq_alloc.alloc_aligned(1 /* size */, 0 /* alignment */, range_msi);
 }
 
 
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(irq_alloc.alloc_addr(1, irq_number(Irq_args(args)))),
-	_irq_object(irq_number(Irq_args(args)))
+	_irq_number(allocate_irq(irq_alloc, Irq_args(args))),
+	_irq_object(_irq_number)
 {
+	Irq_args irq_args { args };
+
 	if (_irq_number.failed()) {
-		error("unavailable interrupt ", Irq_args(args).irq_number(), " requested");
+		error("unavailable ", irq_args.msi() ? "MSI" : "GSI",
+		      " requested - irq argument: ", irq_args.irq_number());
 		return;
 	}
 
-	if (!_irq_object.associate(Irq_args(args))) {
-		error("could not associate with IRQ ", Irq_args(args).irq_number());
+	if (!_irq_object.associate(irq_args)) {
+		error("could not associate with ", irq_args.msi() ? "MSI" : "GSI",
+		      " - irq argument: ", irq_args.irq_number());
 		return;
 	}
 
@@ -218,13 +228,12 @@ Irq_session::Info Irq_session_component::info()
 	if (!_irq_object.msi())
 		return { };
 
-	// see include/plat/pc99/plat/machine.h
-	enum { PIC_IRQ_LINES = 16, IRQ_INT_OFFSET = 0x20 };
-
 	return _irq_number.convert<Info>(
 		[&] (Range_allocator::Allocation const &a) -> Info {
 			return { .type    = Info::Type::MSI,
 			         .address = 0xfee00000ul,
-			         .value   = IRQ_INT_OFFSET + PIC_IRQ_LINES + addr_t(a.ptr) };
+			         .value   = Irq_object::PIC_IRQ_LINES  +
+			                    Irq_object::IRQ_INT_OFFSET +
+			                    addr_t(a.ptr) };
 		}, [&] (Alloc_error) { return Info { }; });
 }

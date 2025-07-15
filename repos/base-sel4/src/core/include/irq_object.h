@@ -36,7 +36,7 @@ class Core::Irq_object : public Thread {
 
 		Signal_context_capability _sig_cap { };
 		Blockade                  _sync_bootup { };
-		unsigned                  _irq;
+		Allocator::Result const  &_irq;
 		volatile bool             _stop { };
 
 		Cap_sel_alloc::Cap_sel_attempt _kernel_irq_sel;
@@ -51,9 +51,14 @@ class Core::Irq_object : public Thread {
 
 	public:
 
-		enum { MSI_OFFSET = 64 };
+		/* see contrib/sel4/src/kernel/include/plat/pc99/plat/machine.h */
+		enum {
+			PIC_IRQ_LINES  = 16,
+			IRQ_INT_OFFSET = 0x20,
+			MSI_OFFSET     = PIC_IRQ_LINES + IRQ_INT_OFFSET
+		};
 
-		Irq_object(unsigned irq);
+		Irq_object(Allocator::Result const &irq);
 		~Irq_object();
 
 		void sigh(Signal_context_capability cap) { _sig_cap = cap; }
@@ -63,9 +68,22 @@ class Core::Irq_object : public Thread {
 		Start_result start() override;
 		bool associate(Irq_args const &);
 
-		bool msi() const { return _irq >= MSI_OFFSET; }
+		bool msi() const
+		{
+			return with_irq<bool>([&](auto const irq) {
+				return irq >= MSI_OFFSET;
+			}, false);
+		}
 
 		void stop_thread();
+
+		template <typename T>
+		T with_irq(auto const &fn, T const fail_value) const
+		{
+			return _irq.convert<T>([&](auto const &a) -> T {
+				return fn(addr_t(a.ptr));
+			}, [&](auto) -> T { return fail_value; });
+		}
 };
 
 #endif /* _CORE__INCLUDE__IRQ_OBJECT_H_ */
