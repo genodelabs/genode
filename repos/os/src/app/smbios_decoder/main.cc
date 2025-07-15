@@ -19,7 +19,7 @@
 #include <base/component.h>
 
 using namespace Genode;
-
+using namespace Genode::Smbios;
 
 class Table
 {
@@ -43,138 +43,54 @@ class Table
 			Uuid_hex(char digit) : Hex(digit, Hex::OMIT_PREFIX, Hex::PAD) { }
 		};
 
-		addr_t  const _base;
-		addr_t  const _end;
-		addr_t  const _verbose;
-		uint8_t       _version_major { (uint8_t)~0 };
-		uint8_t       _version_minor { (uint8_t)~0 };
+		Span const _mem;
 
-		void _warn(char const *msg) const;
+		bool const _verbose;
 
-		const char *_string_set_item(Smbios_structure const &header,
-		                             uint8_t                 idx) const;
+		uint8_t _version_major { (uint8_t)~0 };
+		uint8_t _version_minor { (uint8_t)~0 };
 
-		char const *_bios_character_0(uint8_t idx) const;
+		void _warn(auto &&... args) const;
 
-		char const *_system_wake_up_type(uint8_t idx) const;
-
-		const char *_base_board_type(uint8_t idx) const;
-
-		char const *_base_board_feature(uint8_t idx) const;
+		char const * _base_board_feature(unsigned idx) const;
+		char const * _base_board_type(unsigned idx) const;
+		char const * _bios_character_0(unsigned idx) const;
+		char const * _bios_character_1(unsigned idx) const;
+		char const * _bios_character_2(unsigned idx) const;
+		char const * _string_set_item(Header const &, unsigned idx) const;
+		char const * _system_wake_up_type(unsigned idx) const;
 
 		void _report_base_board_features(Generator &, uint8_t code) const;
-
-		void _report_base_board_handles(Generator &,
-		                                uint8_t count, uint8_t const *data) const;
-
-		void _report_base_board(Generator &, Smbios_structure const &) const;
-
+		void _report_base_board_handles(Generator &, uint8_t count, uint8_t const *data) const;
+		void _report_base_board(Generator &, Header const &) const;
 		void _report_bios_character_0(Generator &, uint64_t code) const;
-
-		char const *_bios_character_1(uint8_t idx) const;
-
 		void _report_bios_character_1(Generator &, uint8_t code) const;
-
-		char const *_bios_character_2(uint8_t idx) const;
-
 		void _report_bios_character_2(Generator &, uint8_t code) const;
-
-		void _report_bios_rom_size(Generator &,
-		                           uint8_t code_1, uint16_t code_2) const;
-
-		void _report_string(Generator &,
-		                    char    const *type,
-		                    char    const *value) const;
-
-		void _report_string_set_item(Generator               &,
-		                             Smbios_structure  const &header,
-		                             char              const *type,
-		                             unsigned                 idx) const;
-
+		void _report_bios_rom_size(Generator &, uint8_t code_1, uint16_t code_2) const;
 		void _report_system_uuid(Generator &, uint8_t const *data) const;
+		void _report_string(Generator &, char const *type, char const *value) const;
 
-		void _report_system(Generator &, Smbios_structure  const &header) const;
+		void _report_string_set_item(Generator &, Header const &,
+		                             char const *type, unsigned idx) const;
 
-		void _report_bios(Generator &, Smbios_structure const &) const;
+		void _report_system(Generator &, Header const &) const;
+		void _report_bios(Generator &, Header const &) const;
+		void _report_one_struct(Generator &, Header const &) const;
+		void _report_structs(Generator &, Span const &) const;
 
-		void _report_smbios_struct(Generator &, Smbios_structure const &) const;
-
-		void _report_smbios_structs(Generator &, Dmi_entry_point const &) const;
-
-		void _report_dmi_ep(Generator &, Dmi_entry_point const &) const;
-
-		void _report_smbios_ep(Generator &, Smbios_entry_point const &) const;
+		void _report_dmi(Generator &, Dmi_entry_point const &);
+		void _report_v2(Generator &, V2_entry_point const &);
+		void _report_v3(Generator &, V3_entry_point const &);
 
 	public:
 
-		Table(addr_t base,
-		      size_t size,
-		      bool   verbose)
-		:
-			_base    { base },
-			_end     { base + size },
-			_verbose { verbose }
+		Table(char const *base, size_t size, bool verbose)
+		: _mem(base, size), _verbose(verbose)
 		{ }
 
-		void report(Generator &) const;
+		void report(Generator &);
 };
 
-
-class Main
-{
-	private:
-
-		Env                    &_env;
-		Attached_rom_dataspace  _config        { _env, "config" };
-		bool             const  _verbose       { _config.node().attribute_value("verbose", false) };
-		Expanding_reporter      _reporter      { _env, "result", "result" };
-		Attached_rom_dataspace  _table_ds      { _env, "smbios_table" };
-		Signal_handler<Main>    _table_ds_sigh { _env.ep(), *this, &Main::_handle_table_ds };
-		Constructible<Table>    _table         { };
-
-		void _handle_table_ds();
-
-	public:
-
-		Main(Env &env);
-};
-
-
-/***************
- ** Component **
- ***************/
-
-void Component::construct(Genode::Env &env)
-{
-	static Main main { env };
-}
-
-
-/**********
- ** Main **
- **********/
-
-Main::Main(Env &env) : _env { env }
-{
-	_table_ds.sigh(_table_ds_sigh);
-	_handle_table_ds();
-}
-
-
-void Main::_handle_table_ds()
-{
-	_table_ds.update();
-	if (!_table_ds.valid()) {
-		return;
-	}
-	_table.construct((addr_t)_table_ds.local_addr<int>(), _table_ds.size(), _verbose);
-	_reporter.generate([&] (Generator &g) { _table->report(g); });
-}
-
-
-/***********
- ** Table **
- ***********/
 
 void Table::_report_string(Generator &g,
                            char const *type,
@@ -184,12 +100,11 @@ void Table::_report_string(Generator &g,
 }
 
 
-const char *Table::_string_set_item(Smbios_structure const &header,
-                                    uint8_t                 idx) const
+const char *Table::_string_set_item(Header const &header, unsigned idx) const
 {
-	if (idx == 0) {
+	if (idx == 0)
 		return "[not specified]";
-	}
+
 	uint8_t const *data { (uint8_t *)&header };
 	char const *result = (char *)data + header.length;
 	while (idx > 1 && *result) {
@@ -197,23 +112,21 @@ const char *Table::_string_set_item(Smbios_structure const &header,
 		result++;
 		idx--;
 	}
-	if (!*result) {
+	if (!*result)
 		return "[bad index]";
-	}
+
 	return result;
 }
 
 
-void Table::_warn(char const *msg) const
+void Table::_warn(auto &&... args) const
 {
-	if (!_verbose) {
-		return;
-	}
-	warning(msg);
+	if (_verbose)
+		warning(args...);
 }
 
 
-char const *Table::_system_wake_up_type(uint8_t idx) const
+char const *Table::_system_wake_up_type(unsigned idx) const
 {
 	switch (idx) {
 	case 0:  return "Reserved";
@@ -230,7 +143,7 @@ char const *Table::_system_wake_up_type(uint8_t idx) const
 }
 
 
-char const *Table::_bios_character_0(uint8_t idx) const
+char const *Table::_bios_character_0(unsigned idx) const
 {
 	switch (idx) {
 	case  4: return "ISA is supported";
@@ -266,7 +179,7 @@ char const *Table::_bios_character_0(uint8_t idx) const
 }
 
 
-char const *Table::_bios_character_1(uint8_t idx) const
+char const *Table::_bios_character_1(unsigned idx) const
 {
 	switch (idx) {
 	case  0: return "ACPI is supported";
@@ -282,7 +195,7 @@ char const *Table::_bios_character_1(uint8_t idx) const
 }
 
 
-char const *Table::_bios_character_2(uint8_t idx) const
+char const *Table::_bios_character_2(unsigned idx) const
 {
 	switch (idx) {
 	case  0: return "BIOS boot specification is supported";
@@ -295,7 +208,7 @@ char const *Table::_bios_character_2(uint8_t idx) const
 }
 
 
-char const *Table::_base_board_feature(uint8_t idx) const
+char const *Table::_base_board_feature(unsigned idx) const
 {
 	switch (idx) {
 	case  0: return "Board is a hosting board";
@@ -314,7 +227,7 @@ void Table::_report_base_board_features(Generator &g, uint8_t code) const
 		_report_string(g, "feature", "[none]");
 		return;
 	}
-	for (uint8_t idx = 0; idx < 5; idx++) {
+	for (unsigned idx = 0; idx < 5; idx++) {
 		if (code & (1 << idx)) {
 			_report_string(g, "feature", _base_board_feature(idx));
 		}
@@ -330,7 +243,7 @@ void Table::_report_bios_character_0(Generator &g, uint64_t code) const
 		});
 		return;
 	}
-	for (uint8_t idx = 4; idx <= 31; idx++) {
+	for (unsigned idx = 4; idx <= 31; idx++) {
 		if ((code & (1 << idx)) == 0) {
 			continue;
 		}
@@ -343,7 +256,7 @@ void Table::_report_bios_character_0(Generator &g, uint64_t code) const
 
 void Table::_report_bios_character_1(Generator &g, uint8_t code) const
 {
-	for (uint8_t idx = 0; idx <= 7; idx++) {
+	for (unsigned idx = 0; idx <= 7; idx++) {
 		if ((code & (1 << idx)) == 0) {
 			continue;
 		}
@@ -356,7 +269,7 @@ void Table::_report_bios_character_1(Generator &g, uint8_t code) const
 
 void Table::_report_bios_character_2(Generator &g, uint8_t code) const
 {
-	for (uint8_t idx = 0; idx <= 4; idx++) {
+	for (unsigned idx = 0; idx <= 4; idx++) {
 		if ((code & (1 << idx)) == 0) {
 			continue;
 		}
@@ -385,17 +298,17 @@ void Table::_report_bios_rom_size(Generator &g,
 }
 
 
-void Table::_report_string_set_item(Generator               &g,
-                                    Smbios_structure  const &header,
-                                    char              const *type,
-                                    unsigned                 idx) const
+void Table::_report_string_set_item(Generator     &g,
+                                    Header  const &header,
+                                    char    const *type,
+                                    unsigned       idx) const
 {
 	uint8_t const *data { (uint8_t *)&header };
 	_report_string(g, type, _string_set_item(header, data[idx]));
 }
 
 
-void Table::_report_bios(Generator &g, Smbios_structure const &header) const
+void Table::_report_bios(Generator &g, Header const &header) const
 {
 	uint8_t const *data { (uint8_t *)&header };
 	g.attribute("description", "BIOS Information");
@@ -509,7 +422,7 @@ void Table::_report_system_uuid(Generator &g, uint8_t const *data) const
 }
 
 
-const char *Table::_base_board_type(uint8_t idx) const
+const char *Table::_base_board_type(unsigned idx) const
 {
 	switch (idx) {
 	case  1: return "Unknown";
@@ -534,7 +447,7 @@ void Table::_report_base_board_handles(Generator &g,
                                        uint8_t        count,
                                        uint8_t const *data) const
 {
-	for (uint8_t idx = 0; idx < count; idx++) {
+	for (unsigned idx = 0; idx < count; idx++) {
 		g.node("contained-object-handle", [&] {
 			uint8_t const *value { data + sizeof(uint16_t) * idx };
 			g.attribute("value", Addr_string(*(uint16_t const *)value));
@@ -543,7 +456,7 @@ void Table::_report_base_board_handles(Generator &g,
 }
 
 
-void Table::_report_base_board(Generator &g, Smbios_structure const &header) const
+void Table::_report_base_board(Generator &g, Header const &header) const
 {
 	g.attribute("name", "Base Board Information");
 	if (header.length < 8) {
@@ -581,7 +494,7 @@ void Table::_report_base_board(Generator &g, Smbios_structure const &header) con
 }
 
 
-void Table::_report_system(Generator &g, Smbios_structure  const &header) const
+void Table::_report_system(Generator &g, Header const &header) const
 {
 	uint8_t const *data { (uint8_t *)&header };
 	g.attribute("description", "System Information");
@@ -605,159 +518,173 @@ void Table::_report_system(Generator &g, Smbios_structure  const &header) const
 }
 
 
-void Table::_report_smbios_struct(Generator &g,
-                                  Smbios_structure  const &smbios_struct) const
+void Table::_report_one_struct(Generator &g, Header const &entry) const
 {
 	g.node("structure", [&] {
 
-		g.attribute("type",   smbios_struct.type);
-		g.attribute("length", smbios_struct.length);
-		g.attribute("handle", smbios_struct.handle);
+		g.attribute("type",   entry.type);
+		g.attribute("length", entry.length);
+		g.attribute("handle", entry.handle);
 
-		switch (smbios_struct.type) {
-		case Smbios_structure::BIOS:       _report_bios      (g, smbios_struct); break;
-		case Smbios_structure::SYSTEM:     _report_system    (g, smbios_struct); break;
-		case Smbios_structure::BASE_BOARD: _report_base_board(g, smbios_struct); break;
-		default: _warn("structure type not supported");                            break;
+		switch (entry.type) {
+		case Header::BIOS:       _report_bios      (g, entry); break;
+		case Header::SYSTEM:     _report_system    (g, entry); break;
+		case Header::BASE_BOARD: _report_base_board(g, entry); break;
+		default:
+			_warn("structure type ", entry.type, " not supported");
+			break;
 		}
 	});
 }
 
 
-void Table::_report_smbios_structs(Generator &g,
-                                   Dmi_entry_point   const &ep) const
+void Table::_report_structs(Generator &g, Span const &m) const
 {
-	Smbios_structure *smbios_struct { (Smbios_structure *)(
-		(addr_t)&ep + ep.LENGTH) };
+	Header const *entry = (Header const *)m.start;
 
-	for (uint16_t idx = 0; idx < ep.nr_of_structs; idx++) {
+	while (entry) {
+		if (!m.contains((char const *)(entry + 1) - 1)
+		 || !m.contains((char const *)entry + entry->length - 1))
+			break;
 
-		if ((addr_t)smbios_struct + sizeof(*smbios_struct) > _end) {
-			_warn("SMBIOS structure header exceeds ROM");
-			break;
-		} else if ((addr_t)smbios_struct + smbios_struct->length > _end) {
-			_warn("SMBIOS structure body exceeds ROM");
-			break;
-		}
-		_report_smbios_struct(g, *smbios_struct);
+		_report_one_struct(g, *entry);
 
 		/* seek next SMBIOS structure */
-		bool           next_exceeds_rom { false };
-		uint8_t const *next             { (uint8_t *)(
-			(addr_t)smbios_struct + smbios_struct->length) };
+		Header const *next = nullptr;
+		for (char const *n = (char const *)entry + entry->length;
+		     !next && m.contains(n + 1);
+		     ++n)
+			if (n[0] == 0 && n[1] == 0)
+				next = (Header const *)(n + 2);
 
-		while (1) {
-			if ((addr_t)next + 2 * sizeof(*next) > _end) {
-				next_exceeds_rom = true;
-				break;
-			}
-			if (next[0] == 0 && next[1] == 0) {
-				next += 2;
-				break;
-			}
-			next++;
-		}
-		if (next_exceeds_rom) {
-			_warn("SMBIOS structure string-set exceeds ROM");
-			break;
-		}
-		smbios_struct = (Smbios_structure *)next;
-	}
+		entry = next;
+	};
 }
 
 
-void Table::_report_smbios_ep(Generator &g,
-                              Smbios_entry_point const &smbios_ep) const
+void Table::_report_dmi(Generator &g, Dmi_entry_point const &ep)
 {
-	/* fix weird versions reported by some systems */
-	uint8_t _version_major = smbios_ep.version_major;
-	uint8_t _version_minor = smbios_ep.version_minor;
+	_version_major = (uint8_t)(ep.bcd_revision >> 4);
+	_version_minor = (uint8_t)(ep.bcd_revision & 0xf);
+
+	g.node("dmi", [&] {
+		g.attribute("version",
+			Version_2_string(_version_major, ".", _version_minor));
+
+		g.attribute("structures",      ep.nr_of_structs);
+		g.attribute("structures-addr", Addr_string(Hex(ep.struct_table_addr)));
+		g.attribute("structures-size", ep.struct_table_length);
+
+		_report_structs(g, Span { _mem.start + ep.LENGTH, ep.struct_table_length });
+	});
+}
+
+
+void Table::_report_v2(Generator &g, V2_entry_point const &ep)
+{
+	_version_major = ep.version_major;
+	_version_minor = ep.version_minor;
+
 	if ((_version_major == 2 && _version_minor == 31) ||
-	    (_version_major == 2 && _version_minor == 33))
-	{
+	    (_version_major == 2 && _version_minor == 33)) {
 		_warn("fixed weird SMBIOS version");
 		_version_major = 2;
 		_version_minor = 3;
-
 	} else if (_version_major == 2 && _version_minor == 51) {
 
 		_warn("fixed weird SMBIOS version");
 		_version_major = 2;
 		_version_minor = 6;
 	}
+
 	g.node("smbios", [&] {
 		g.attribute("version",
 			Version_2_string(_version_major, ".", _version_minor));
 
-		g.attribute("structures",      smbios_ep.nr_of_structs);
-		g.attribute("structures-size", smbios_ep.struct_table_length);
-
-		_report_smbios_structs(g, smbios_ep.dmi_ep());
-	});
-}
-
-
-void Table::_report_dmi_ep(Generator &g, Dmi_entry_point const &ep) const
-{
-	/* fix weird versions reported by some systems */
-	uint8_t ver_maj { (uint8_t)(ep.bcd_revision >> 4) };
-	uint8_t ver_min { (uint8_t)(ep.bcd_revision & 0xf) };
-	g.node("dmi", [&] {
-		g.attribute("version",
-			Version_2_string(ver_maj, ".", ver_min));
-
 		g.attribute("structures",      ep.nr_of_structs);
+		g.attribute("structures-addr", Addr_string(Hex(ep.struct_table_addr)));
 		g.attribute("structures-size", ep.struct_table_length);
 
-		_report_smbios_structs(g, ep);
+		_report_structs(g, Span { _mem.start + ep.length, ep.struct_table_length });
 	});
 }
 
 
-void Table::report(Generator &g) const
+void Table::_report_v3(Generator &g, V3_entry_point const &ep)
 {
+	_version_major = ep.version_major;
+	_version_minor = ep.version_minor;
 
-	/* check if entry point is valid and of which type it is */
-	char const *const anchor_string { (char *)_base };
-	if (((addr_t)anchor_string + 5 * sizeof(*anchor_string)) > _end) {
-		_warn("anchor string of entry point exceeds ROM");
-	} else if (String<5>(anchor_string) == "_SM_") {
+	g.node("smbios", [&] {
+		g.attribute("version",
+			Version_2_string(_version_major, ".", _version_minor));
 
-		/* it's an SMBIOS entry point */
-		Smbios_entry_point const &smbios_ep {
-			*(Smbios_entry_point *)anchor_string };
+		g.attribute("structures-addr", Addr_string(Hex(ep.struct_table_addr)));
+		g.attribute("structures-size", ep.struct_table_max_size);
 
-		/* check if SMBIOS entry point is valid */
-		if ((addr_t)&smbios_ep + sizeof(smbios_ep) > _end) {
-			_warn("SMBIOS entry point exceeds ROM");
-		} else if (!smbios_ep.length_valid()) {
-			_warn("SMBIOS entry point has bad length");
-		} else if (!smbios_ep.checksum_correct()) {
-			_warn("SMBIOS entry point has bad checksum");
-		} else if (String<6>((char const *)&smbios_ep.interm_anchor_string) !=
-		           "_DMI_")
-		{
-			_warn("SMBIOS entry point has bad intermediate anchor string");
-		} else if (!smbios_ep.interm_checksum_correct()) {
-			_warn("SMBIOS entry point has bad intermediate checksum");
-		} else {
-
-			/* report information from SMBIOS entry point */
-			_report_smbios_ep(g, smbios_ep);
-		}
-	} else if (String<6>(anchor_string) == "_SM3_") {
-		_warn("SMBIOS3 entry point found, not supported");
-
-	} else if (String<6>(anchor_string) == "_DMI_") {
-
-		Dmi_entry_point const &ep { *(Dmi_entry_point *)anchor_string };
-
-		if (!ep.checksum_correct()) {
-			warning("DMI entry point has bad checksum");
-		} else {
-			_report_dmi_ep(g, ep);
-		}
-	} else {
-		_warn("entry point has bad anchor string");
-	}
+		_report_structs(g, Span { _mem.start + ep.length, ep.struct_table_max_size });
+	});
 }
+
+
+void Table::report(Generator &g)
+{
+	/* check if entry point is valid */
+	if (!_mem.contains(_mem.start + 5)) {
+		_warn("anchor string of entry point exceeds ROM");
+		return;
+	}
+
+	/* used addresses are virtual resp. 1:1 */
+	auto mem_fn = [&] (addr_t base, size_t size, auto const &fn) {
+		return fn(Span { (char const *)base, size }); };
+
+	auto v3_fn  = [&] (V3_entry_point const &ep)  { _report_v3(g, ep); };
+	auto v2_fn  = [&] (V2_entry_point const &ep)  { _report_v2(g, ep); };
+	auto dmi_fn = [&] (Dmi_entry_point const &ep) { _report_dmi(g, ep); };
+
+	from_pointer((addr_t)_mem.start, mem_fn, v3_fn, v2_fn, dmi_fn);
+}
+
+
+class Main
+{
+	private:
+
+		Env                    &_env;
+		Attached_rom_dataspace  _config        { _env, "config" };
+		bool             const  _verbose       { _config.node().attribute_value("verbose", false) };
+		Attached_rom_dataspace  _table_ds      { _env, "smbios_table" };
+		Signal_handler<Main>    _table_ds_sigh { _env.ep(), *this, &Main::_handle_table_ds };
+		Constructible<Table>    _table         { };
+
+		Expanding_reporter _reporter {
+			_env, "result", "result", Expanding_reporter::Initial_buffer_size { 0x2000 } };
+
+		void _handle_table_ds();
+
+	public:
+
+		Main(Env &env);
+};
+
+
+Main::Main(Env &env) : _env (env)
+{
+	_table_ds.sigh(_table_ds_sigh);
+	_handle_table_ds();
+}
+
+
+void Main::_handle_table_ds()
+{
+	_table_ds.update();
+	if (!_table_ds.valid())
+		return;
+
+	_table.construct(_table_ds.local_addr<char const>(), _table_ds.size(), _verbose);
+	_reporter.generate([&] (Generator &g) { _table->report(g); });
+}
+
+
+void Component::construct(Genode::Env &env) { static Main main { env }; }

@@ -28,7 +28,6 @@ struct Genode::Efi_system_table
 		uint32_t header_size;
 		uint32_t crc32;
 		uint32_t reserved;
-
 	} __attribute__((packed));
 
 	struct Guid
@@ -37,14 +36,12 @@ struct Genode::Efi_system_table
 		uint16_t data_2;
 		uint16_t data_3;
 		uint8_t  data_4[8];
-
 	} __attribute__((packed));
 
 	struct Configuration_table
 	{
 		Guid     vendor_guid;
 		uint64_t vendor_table;
-
 	} __attribute__((packed));
 
 	Header   header;
@@ -62,25 +59,23 @@ struct Genode::Efi_system_table
 	uint64_t nr_of_table_entries;
 	uint64_t config_table;
 
-	template <typename PHY_MEM_FN,
-	          typename HANDLE_TABLE_FN>
-	void for_smbios_table(PHY_MEM_FN      const &phy_mem,
-	                      HANDLE_TABLE_FN const &handle_table) const
+	void for_smbios_table(auto const &phy_mem,
+	                      auto const &handle_table) const
 	{
 		Guid const guid { 0xeb9d2d31, 0x2d88, 0x11d3,
 		                  { 0x9a, 0x16, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d } };
 
-		Configuration_table const *cfg_table { (Configuration_table *)
-			phy_mem(config_table, nr_of_table_entries *
-			        sizeof(Configuration_table)) };
+		size_t const num_bytes = nr_of_table_entries * sizeof(Configuration_table);
 
-		for (unsigned long idx = 0; idx < nr_of_table_entries; idx++) {
-			if (memcmp(&guid, &cfg_table[idx].vendor_guid, sizeof(Guid)) == 0) {
-				handle_table((addr_t)cfg_table[idx].vendor_table);
-			}
-		}
+		phy_mem(config_table, num_bytes, [&] (Span const &m) {
+			Configuration_table const *cfg_table = (Configuration_table *)m.start;
+
+			for (auto *t = cfg_table; t < cfg_table + nr_of_table_entries; ++t)
+				if (memcmp(&guid, &t->vendor_guid, sizeof(Guid)) == 0
+				 && t->vendor_table < 1ull << 32)
+					handle_table((addr_t)t->vendor_table);
+		});
 	}
-
 } __attribute__((packed));
 
 #endif /* _EFI_SYSTEM_TABLE_H_ */

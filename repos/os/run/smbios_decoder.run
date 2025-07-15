@@ -1,5 +1,3 @@
-assert {[have_spec x86_64]}
-
 assert {[have_board pc]}
 assert {[have_spec nova] || [have_spec hw]}
 

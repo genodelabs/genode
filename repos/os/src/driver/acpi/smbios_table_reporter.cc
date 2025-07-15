@@ -61,7 +61,7 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 	Fifo<Fifo_element<Io_region> > io_regions;
 	addr_t const page_mask     { ~(addr_t)((1 << get_page_size_log2()) - 1) };
 	addr_t const page_off_mask { get_page_size() - 1 };
-	auto phy_mem = [&] (addr_t base, size_t size) {
+	auto phy_mem = [&] (addr_t const base, size_t const size, auto const &fn) {
 
 		addr_t const  end      { base + size };
 		Io_region    *reuse_io { nullptr };
@@ -75,12 +75,11 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 		});
 		if (reuse_io) {
 			addr_t const off { base - reuse_io->_base_page };
-			return (addr_t)reuse_io->_io_mem.local_addr<int>() + off;
+			return fn(Span { reuse_io->_io_mem.local_addr<char>() + off, size });
 		}
 		addr_t const base_page { base & page_mask };
 		addr_t const base_off  { base - base_page };
-		size += base_off;
-		size_t const size_pages { (size + page_off_mask) & page_mask };
+		size_t const size_pages { (size + base_off + page_off_mask) & page_mask };
 		addr_t       alloc_base { base_page };
 		addr_t       alloc_end  { base_page + size_pages };
 
@@ -111,35 +110,38 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 			new (alloc) Io_region(env, alloc_base, alloc_size, io_regions) };
 
 		addr_t const off { base - io->_base_page };
-		return (addr_t)io->_io_mem.local_addr<int>() + off;
+		return fn(Span { io->_io_mem.local_addr<char>() + off, size });
 	};
 	auto report_smbios = [&] (void  *ep_vir, size_t ep_size,
 	                          addr_t st_phy, size_t st_size)
 	{
-		addr_t const st_vir   { phy_mem(st_phy, st_size) };
-		size_t const ram_size { ep_size + st_size };
-		addr_t const ram_vir  { (addr_t)alloc.alloc(ram_size) };
+		phy_mem(st_phy, st_size, [&] (Span const &m) {
+			size_t  ram_size { ep_size + st_size };
+			char   *ram_vir  { (char *)alloc.alloc(ram_size) };
 
-		memcpy((void *)ram_vir, ep_vir, ep_size);
-		memcpy((void *)(ram_vir + ep_size), (void *)st_vir, st_size);
+			memcpy(ram_vir, ep_vir, ep_size);
 
-		_reporter.construct(env, "smbios_table", "smbios_table",
-		                    Expanding_reporter::Initial_buffer_size { ram_size });
-		_reporter->generate(Const_byte_range_ptr { (char *)ram_vir, ram_size });
+			/* put structures directly after the entry point */
+			memcpy((ram_vir + ep_size), m.start, st_size);
 
-		alloc.free((void *)ram_vir, ep_size + st_size);
+			_reporter.construct(env, "smbios_table", "smbios_table",
+			                    Expanding_reporter::Initial_buffer_size { ram_size });
+			_reporter->generate(Span { ram_vir, ram_size });
+
+			alloc.free(ram_vir, ep_size + st_size);
+		});
 	};
-	auto handle_smbios_3 = [&] (Smbios_3_entry_point const &ep)
+	auto handle_smbios_3 = [&] (Smbios::V3_entry_point const &ep)
 	{
 		report_smbios((void *)&ep, ep.length, ep.struct_table_addr,
 		              ep.struct_table_max_size);
 	};
-	auto handle_smbios = [&] (Smbios_entry_point const &ep)
+	auto handle_smbios = [&] (Smbios::V2_entry_point const &ep)
 	{
 		report_smbios((void *)&ep, ep.length, ep.struct_table_addr,
 		              ep.struct_table_length);
 	};
-	auto handle_dmi = [&] (Dmi_entry_point const &ep)
+	auto handle_dmi = [&] (Smbios::Dmi_entry_point const &ep)
 	{
 		report_smbios((void *)&ep, ep.LENGTH, ep.struct_table_addr,
 		              ep.struct_table_length);
@@ -152,15 +154,16 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 			efi_sys_tab_phy = acpi_node.attribute_value("address", 0UL); });
 
 	if (!efi_sys_tab_phy) {
-		Smbios_table::from_scan(phy_mem, handle_smbios_3,
-		                        handle_smbios, handle_dmi);
+		Smbios::from_scan(phy_mem, handle_smbios_3,
+		                  handle_smbios, handle_dmi);
 	} else {
-		Efi_system_table const &efi_sys_tab_vir { *(Efi_system_table *)
-			phy_mem(efi_sys_tab_phy, sizeof(Efi_system_table)) };
+		phy_mem(efi_sys_tab_phy, sizeof(Efi_system_table), [&] (Span const &m) {
+			Efi_system_table const &efi_sys_tab { *(Efi_system_table *)m.start };
 
-		efi_sys_tab_vir.for_smbios_table(phy_mem, [&] (addr_t table_phy) {
-			Smbios_table::from_pointer(table_phy, phy_mem, handle_smbios_3,
-			                           handle_smbios, handle_dmi);
+			efi_sys_tab.for_smbios_table(phy_mem, [&] (addr_t table_phy) {
+				Smbios::from_pointer(table_phy, phy_mem, handle_smbios_3,
+				                     handle_smbios, handle_dmi);
+			});
 		});
 	}
 	io_regions.for_each([&] (Fifo_element<Io_region> &elem) {
