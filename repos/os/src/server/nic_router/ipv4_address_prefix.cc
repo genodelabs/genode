@@ -63,7 +63,7 @@ bool Ipv4_address_prefix::prefix_matches(Ipv4_address const &ip) const
 	if (prefix_left == 0) {
 		return true; }
 
-	uint8_t const mask = ~(0xff >> prefix_left);
+	uint8_t const mask = uint8_t(~(0xff >> prefix_left));
 	return !((ip.addr[byte] ^ address.addr[byte]) & mask);
 }
 
@@ -73,7 +73,7 @@ Ipv4_address Ipv4_address_prefix::broadcast_address() const
 	Ipv4_address result = address;
 	Ipv4_address const mask = subnet_mask();
 	for (unsigned i = 0; i < 4; i++) {
-		result.addr[i] |= ~mask.addr[i];
+		result.addr[i] |= uint8_t(~mask.addr[i]);
 	}
 	return result;
 }

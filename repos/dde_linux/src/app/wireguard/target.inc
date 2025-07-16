@@ -6,10 +6,13 @@ DDE_LINUX_DIR := $(subst /src/include/lx_kit,,$(call select_from_repositories,sr
 
 MUSL_TM_DIR = $(call select_from_repositories,src/lib/musl_tm)
 
+NIC_ROUTER_DIR = $(call select_from_repositories,src/server/nic_router)
+
 INC_DIR += $(PRG_DIR)/../..
 INC_DIR += $(DDE_LINUX_DIR)/src/include/virt_linux
 INC_DIR += $(DDE_LINUX_DIR)/src/include
 INC_DIR += $(MUSL_TM_DIR)
+INC_DIR += $(NIC_ROUTER_DIR)
 
 SRC_C += tm_to_secs.c
 
@@ -28,5 +31,6 @@ SRC_CC += uplink_connection.cc
 vpath tm_to_secs.c $(MUSL_TM_DIR)
 vpath %.cc $(REP_DIR)/src/app/wireguard
 vpath %.cc $(DDE_LINUX_DIR)/src/lib
+vpath ipv4_address_prefix.cc $(NIC_ROUTER_DIR)
 
 CONFIG_XSD := ../../config.xsd
