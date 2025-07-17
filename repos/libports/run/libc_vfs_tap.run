@@ -4,7 +4,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_tap
 
 build {
-	core init timer lib/libc lib/vfs lib/posix
+	core init timer lib/libc lib/libm lib/vfs lib/posix
 	server/nic_router test/libc_vfs_tap
 }
 

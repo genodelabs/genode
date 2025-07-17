@@ -14,14 +14,10 @@
 #ifndef _IPV4_ADDRESS_PREFIX_H_
 #define _IPV4_ADDRESS_PREFIX_H_
 
-/* Genode includes */
 #include <net/ipv4.h>
+#include <util/string.h>
 
-namespace Net {
-	class Ipv4_address_prefix;
-
-	static inline Genode::size_t ascii_to(char const *, Net::Ipv4_address_prefix &);
-}
+namespace Net { class Ipv4_address_prefix; }
 
 
 struct Net::Ipv4_address_prefix
@@ -49,33 +45,36 @@ struct Net::Ipv4_address_prefix
 		return prefix  != other.prefix ||
 		       address != other.address;
 	}
+
+	inline Genode::size_t parse(Genode::Span const&);
 };
 
 
-Genode::size_t Net::ascii_to(char const *s, Ipv4_address_prefix &result)
+inline Genode::size_t Net::Ipv4_address_prefix::parse(Genode::Span const &span)
 {
 	using namespace Genode;
 
 	/* read the leading IPv4 address, fail if there's no address */
 	Net::Ipv4_address_prefix buf;
-	size_t read_len = ascii_to(s, buf.address);
-	if (!read_len) {
-		return 0; }
+	size_t read_len = buf.address.parse(span);
+	if (!read_len)
+		return 0;
 
-	/* check for the following slash */
-	s += read_len;
-	if (*s != '/') {
-		return 0; }
+	/* check for the following slash incl. at least 1 digit */
+	char const *s = span.start + read_len;
+	if (!span.contains(s + 1) || *s != '/')
+		return 0;
 	read_len++;
 	s++;
 
 	/* read the prefix, fail if there's no prefix */
-	size_t prefix_len = ascii_to_unsigned(s, buf.prefix, 10);
-	if (!prefix_len) {
-		return 0; }
+	size_t prefix_len = parse_unsigned(Span { s, span.num_bytes - read_len }, buf.prefix, 10);
+	if (!prefix_len)
+		return 0;
 
 	/* fill result and return read length */
-	result = buf;
+	address = buf.address;
+	prefix  = buf.prefix;
 	return read_len + prefix_len;
 }
 

@@ -14,17 +14,11 @@
 #ifndef _NET__NETADDRESS_H_
 #define _NET__NETADDRESS_H_
 
-/* Genode */
 #include <base/stdint.h>
 #include <util/string.h>
-#include <base/output.h>
 
 namespace Net {
 	template <unsigned, char, bool> class Network_address;
-
-	template <unsigned LEN, char DELIM, bool HEX>
-	static inline Genode::size_t ascii_to(char const *,
-	                                      Network_address<LEN, DELIM, HEX> &);
 }
 
 
@@ -36,38 +30,31 @@ struct Net::Network_address
 {
 	Genode::uint8_t addr[LEN];
 
-
-	/******************
-	 ** Constructors **
-	 ******************/
-
 	Network_address(Genode::uint8_t value = 0) {
 		Genode::memset(&addr, value, LEN); }
 
 	Network_address(void const *src) {
 		Genode::memcpy(&addr, src, LEN); }
 
-
-	/*********************
-	 ** Helper methods  **
-	 *********************/
-
 	void copy(void *dst) const { Genode::memcpy(dst, &addr[0], LEN); }
 
 	void print(Genode::Output &output) const
 	{
-		using namespace Genode;
+		using Genode::print;
+		using Genode::Hex;
+
 		for (unsigned i = 0; i < LEN; i++) {
-			if (!HEX) { Genode::print(output, (unsigned) addr[i]); }
-			else { Genode::print(output, Hex(addr[i], Hex::OMIT_PREFIX, Hex::PAD)); }
-			if (i < LEN - 1) output.out_char(DELIM);
+			if (HEX)
+				print(output, Hex(addr[i], Hex::OMIT_PREFIX, Hex::PAD));
+			else
+				print(output, unsigned(addr[i]));
+
+			if (i < LEN - 1)
+				output.out_char(DELIM);
 		}
 	}
 
-
-	/***************
-	 ** Operators **
-	 ***************/
+	inline Genode::size_t parse(Genode::Span const &s);
 
 	bool operator==(const Network_address &other) const {
 
@@ -91,38 +78,43 @@ __attribute__((packed));
 
 
 template <unsigned LEN, char DELIM, bool HEX>
-Genode::size_t Net::ascii_to(char const *str, Net::Network_address<LEN, DELIM, HEX> &result)
+inline Genode::size_t Net::Network_address<LEN, DELIM, HEX>::parse(Genode::Span const &s)
 {
 	using namespace Genode;
 
-	Net::Network_address<LEN, DELIM, HEX> result_buf;
-	size_t number_id = 0;
+	char const *str = s.start;
+
+	Genode::uint8_t result[LEN];
+
+	size_t i = 0;
 	size_t read_len  = 0;
 
 	while (1) {
+		if (!s.contains(str))
+			return 0;
 
 		/* read the current number */
 		size_t number_len =
-			ascii_to_unsigned(str, result_buf.addr[number_id],
-			                  HEX ? 16 : 10);
+			parse_unsigned(Span { str, s.num_bytes - read_len }, result[i], HEX ? 16 : 10);
 
 		/* fail if there's no number */
-		if (!number_len) {
-			return 0; }
+		if (!number_len)
+			return 0;
 
 		/* update read length and number index */
 		read_len += number_len;
-		number_id++;
+		i++;
 
-		/* if we have all numbers, fill result and return read length */
-		if (number_id == LEN) {
-			result = result_buf;
+		/* if we have all numbers, update object and return read length */
+		if (i == LEN) {
+			Genode::memcpy(addr, result, LEN);
 			return read_len;
 		}
+
 		/* there are numbers left, check for the delimiter */
 		str += number_len;
-		if (*str != DELIM) {
-			return 0; }
+		if (!s.contains(str) || *str != DELIM)
+			return 0;
 
 		/* seek to next number */
 		read_len++;

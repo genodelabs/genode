@@ -14,7 +14,6 @@
 #ifndef _IPV4_H_
 #define _IPV4_H_
 
-/* Genode */
 #include <base/exception.h>
 #include <util/string.h>
 #include <util/token.h>
@@ -24,8 +23,6 @@
 #include <net/netaddress.h>
 #include <net/size_guard.h>
 
-namespace Genode { class Output; }
-
 namespace Net {
 
 	enum { IPV4_ADDR_LEN = 4 };
@@ -33,8 +30,6 @@ namespace Net {
 	class Internet_checksum_diff;
 	class Ipv4_address;
 	class Ipv4_packet;
-
-	static inline Genode::size_t ascii_to(char const *, Net::Ipv4_address &);
 }
 
 
@@ -58,8 +53,7 @@ struct Net::Ipv4_address : Network_address<IPV4_ADDR_LEN, '.', false>
 	                 Ipv4_address const &last) const;
 
 	bool is_multicast() const;
-}
-__attribute__((packed));
+} __attribute__((packed));
 
 
 /**
@@ -257,39 +251,5 @@ class Net::Ipv4_packet
 		void print(Genode::Output &output) const;
 
 } __attribute__((packed));
-
-
-Genode::size_t Net::ascii_to(char const *s, Net::Ipv4_address &result)
-{
-	using namespace Genode;
-
-	Net::Ipv4_address buf;
-	size_t            number_idx = 0;
-	size_t            read_len   = 0;
-
-	while (1) {
-
-		/* read the current number, fail if there's no number */
-		size_t number_len = ascii_to_unsigned(s, buf.addr[number_idx], 10);
-		if (!number_len) {
-			return 0; }
-
-		/* update read length and number index */
-		read_len += number_len;
-		number_idx++;
-
-		/* if we have all numbers, fill result and return read length */
-		if (number_idx == sizeof(buf.addr) / sizeof(buf.addr[0])) {
-			result = buf;
-			return read_len;
-		}
-		/* as it was not the last number, check for the following dot */
-		s += number_len;
-		if (*s != '.') {
-			return 0; }
-		read_len++;
-		s++;
-	}
-}
 
 #endif /* _IPV4_H_ */

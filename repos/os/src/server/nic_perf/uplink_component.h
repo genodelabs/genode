@@ -164,7 +164,7 @@ class Nic_perf::Uplink_root : public Root_component<Uplink_session_component>
 
 			mac_arg.string(mac_str, MAC_STR_LENGTH, "");
 			Mac_address mac { };
-			ascii_to(mac_str, mac);
+			mac.parse(Span { mac_str, MAC_STR_LENGTH });
 			if (mac == Mac_address { })
 				throw Service_denied();
 

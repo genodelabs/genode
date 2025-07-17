@@ -40,19 +40,21 @@ void Dns_test::test_domain_name_format()
 
 	Net::Domain_name dn;
 
-	Net::ascii_to("pool.ntp.org", dn);
+	auto span = [] (char const *str) -> Span { return { str, strlen(str) + 1 }; };
+
+	dn.parse(span("pool.ntp.org"));
 	if (dn == Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("Valide domain name: ", dn); }
 
-	Net::ascii_to("genode-is.cool.org", dn);
+	dn.parse(span("genode-is.cool.org"));
 	if (dn == Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("Valide domain name: ", dn); }
 
-	Net::ascii_to("genode-is42.cool.org", dn);
+	dn.parse(span("genode-is42.cool.org"));
 	if (dn == Net::Domain_name()) {
 		throw Test_failure();
 	} else {
@@ -61,49 +63,49 @@ void Dns_test::test_domain_name_format()
 	/* clear dn var before proceeding with invalide domains tests */
 	dn = Net::Domain_name();
 
-	Net::ascii_to("wrong", dn);
+	dn.parse(span("wrong"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("wrong: is an invalide domain name"); }
 
-	Net::ascii_to("-.wrong", dn);
+	dn.parse(span("-.wrong"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("-.wrong: is an invalide domain name"); }
 
-	Net::ascii_to("-abc.wrong", dn);
+	dn.parse(span("-abc.wrong"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("-abc.wrong: is an invalide domain name"); }
 
-	Net::ascii_to("abc-.wrong", dn);
+	dn.parse(span("abc-.wrong"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("abc-.wrong: is an invalide domain name"); }
 
-	Net::ascii_to("6abc.wrong", dn);
+	dn.parse(span("6abc.wrong"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure(); }
 	else {
 		log("6abc.wrong: is an invalide domain name"); }
 
-	Net::ascii_to("test..wrong", dn);
+	dn.parse(span("test..wrong"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("test..wrong: is an invalide domain name"); }
 
-	Net::ascii_to("tooshort.a", dn);
+	dn.parse(span("tooshort.a"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure();
 	} else {
 		log("tooshort.a: is an invalide domain name"); }
 
-	Net::ascii_to("toolong.abcdefghijglmn", dn);
+	dn.parse(span("toolong.abcdefghijglmn"));
 	if (dn != Net::Domain_name()) {
 		throw Test_failure();
 	} else {
@@ -122,7 +124,6 @@ void Dns_test::test_dns_request()
 
 	uint8_t DATAGRAM[sizeof(CAPTURED_DATAGRAM)] = {};
 	Net::Size_guard size_guard { sizeof(DATAGRAM) };
-
 
 	Net::Domain_name dn { "pool.ntp.org" };
 

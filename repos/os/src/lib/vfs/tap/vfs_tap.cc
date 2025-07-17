@@ -28,7 +28,7 @@ namespace Vfs {
 		NIC_CLIENT,
 		UPLINK_CLIENT
 	};
-	static inline size_t ascii_to(char const *, Uplink_mode &);
+	static inline size_t parse(Span const &, Uplink_mode &);
 
 	/* overload Value_file_system to work with Net::Mac_address */
 	class Mac_file_system;
@@ -51,7 +51,7 @@ class Vfs::Mac_file_system : public Value_file_system<Net::Mac_address>
 		Net::Mac_address value()
 		{
 			Net::Mac_address val { };
-			Net::ascii_to(buffer().string(), val);
+			val.parse(Span { buffer().string(), buffer().length() });
 
 			return val;
 		}
@@ -59,7 +59,7 @@ class Vfs::Mac_file_system : public Value_file_system<Net::Mac_address>
 		Net::Mac_address value() const
 		{
 			Net::Mac_address val { };
-			Net::ascii_to(buffer().string(), val);
+			val.parse(Span { buffer().string(), buffer().length() });
 
 			return val;
 		}
@@ -83,14 +83,14 @@ struct Vfs::Tap_file_system
 };
 
 
-Genode::size_t Vfs::ascii_to(char const *s, Uplink_mode &mode)
+Genode::size_t Vfs::parse(Span const &s, Uplink_mode &mode)
 {
-
-	if (!strcmp(s, "uplink", 6))         { mode = Uplink_mode::UPLINK_CLIENT; return 6;  }
-	if (!strcmp(s, "uplink_client", 13)) { mode = Uplink_mode::UPLINK_CLIENT; return 13; }
+	auto fits = [&s] (size_t num) { return num <= s.num_bytes; };
+	if (fits(6)  && !strcmp(s.start, "uplink", 6))         { mode = Uplink_mode::UPLINK_CLIENT; return 6;  }
+	if (fits(13) && !strcmp(s.start, "uplink_client", 13)) { mode = Uplink_mode::UPLINK_CLIENT; return 13; }
 
 	mode = Uplink_mode::NIC_CLIENT;
-	return strlen(s);
+	return strlen(s.start);
 }
 
 

@@ -40,12 +40,12 @@ namespace Net {
 
 namespace Genode
 {
-	inline size_t ascii_to(char const *s, Net::Packet_log_style &result)
+	inline size_t parse(Span const &s, Net::Packet_log_style &result)
 	{
-		if (!strcmp(s, "no",      2)) { result = Net::Packet_log_style::NO;      return 2; }
-		if (!strcmp(s, "name",    4)) { result = Net::Packet_log_style::NAME;    return 4; }
-		if (!strcmp(s, "default", 7)) { result = Net::Packet_log_style::DEFAULT; return 7; }
-		if (!strcmp(s, "all",     3)) { result = Net::Packet_log_style::ALL;     return 3; }
+		if (!strcmp(s.start, "no",      s.num_bytes)) { result = Net::Packet_log_style::NO;      return 2; }
+		if (!strcmp(s.start, "name",    s.num_bytes)) { result = Net::Packet_log_style::NAME;    return 4; }
+		if (!strcmp(s.start, "default", s.num_bytes)) { result = Net::Packet_log_style::DEFAULT; return 7; }
+		if (!strcmp(s.start, "all",     s.num_bytes)) { result = Net::Packet_log_style::ALL;     return 3; }
 		return 0;
 	}
 }

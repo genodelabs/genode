@@ -79,8 +79,7 @@ struct Net::Link_side_id
 	bool operator != (Link_side_id const &id) const;
 
 	bool operator > (Link_side_id const &id) const;
-}
-__attribute__((__packed__));
+};
 
 
 class Net::Link_side : public Genode::Avl_node<Link_side>

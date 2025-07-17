@@ -607,7 +607,7 @@ Net::Uplink_session_root::_create_session(char const *args)
 				}
 				mac_arg.string(mac_str, MAC_STR_LENGTH, "");
 				Mac_address mac { };
-				ascii_to(mac_str, mac);
+				mac.parse(Span { mac_str, MAC_STR_LENGTH });
 				if (mac == Mac_address { }) {
 					log_if(_main.verbose(), "[uplink] malformed 'mac_address' arg");
 					throw Service_denied();

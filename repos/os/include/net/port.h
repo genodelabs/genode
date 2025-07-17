@@ -14,16 +14,11 @@
 #ifndef _NET__PORT_H_
 #define _NET__PORT_H_
 
-/* Genode includes */
 #include <base/stdint.h>
 #include <base/output.h>
 #include <util/string.h>
 
-namespace Net {
-	class Port;
-
-	static inline Genode::size_t ascii_to(const char *, Net::Port &);
-}
+namespace Net { class Port; }
 
 /**
  * This class makes it clear what the port integer-value means at an interface
@@ -40,23 +35,8 @@ struct Net::Port
 	bool operator != (Port const &other) const { return value != other.value; }
 
 	void print(Genode::Output &out) const { Genode::print(out, value); }
-}
-__attribute__((packed));
 
-
-/**
- * Read port value from string
- *
- * \return number of consumed characters
- */
-Genode::size_t Net::ascii_to(const char *s, Net::Port &result)
-{
-	using namespace Genode;
-
-	uint16_t value = 0;
-	size_t const consumed = ascii_to_unsigned(s, value, 0);
-	result = Net::Port(value);
-	return consumed;
-}
+	Genode::size_t parse(Genode::Span const &s) { return parse_unsigned(s, value); }
+};
 
 #endif /* _NET__PORT_H_ */

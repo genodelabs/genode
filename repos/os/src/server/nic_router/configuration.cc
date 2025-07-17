@@ -70,7 +70,7 @@ Configuration::_init_icmp_type_3_code_on_fragm_ipv4(Node const &node) const
 		return result;
 
 	uint8_t attr_u8 { };
-	if (Genode::ascii_to(attr_str.string(), attr_u8) == attr_str.length() - 1) {
+	if (Genode::parse(Span { attr_str.string(), attr_str.length() }, attr_u8) == attr_str.length() - 1) {
 		result = Icmp_packet::code_from_uint8(Icmp_packet::Type::DST_UNREACHABLE, attr_u8);
 		if (result != Icmp_packet::Code::INVALID)
 			return result;

@@ -24,14 +24,10 @@
 
 
 namespace Net {
-
 	using namespace Genode;
 
 	class Domain_name;
 	class Dns_packet;
-
-	static inline size_t ascii_to(char const *, Domain_name&);
-
 }
 
 
@@ -65,7 +61,7 @@ class Net::Domain_name
 
 	private:
 
-		String<NAME_MAX_LEN>  _name { };
+		String<NAME_MAX_LEN> _name { };
 
 		static char const *_next_label(char const *label)
 		{
@@ -78,7 +74,7 @@ class Net::Domain_name
 
 		Domain_name() = default;
 
-		Domain_name(char const *name) { ascii_to(name, *this); }
+		Domain_name(char const *name) { parse(Span { name, strlen(name) + 1}); }
 
 		bool operator==(Domain_name const &other) const {
 			return _name == other._name; }
@@ -110,16 +106,17 @@ class Net::Domain_name
 		}
 
 		size_t label_count() const
-		{ 
-			char const     *label = _name.string();
-			size_t  count { 0 };
+		{
+			char const *label = _name.string();
+			size_t count { 0 };
 
-			if (*label == 0) {
-				return 0; }
+			if (*label == 0)
+				return 0;
 
-			while(*label) {
+			while (*label) {
 				++count;
-				label = _next_label(label); }
+				label = _next_label(label);
+			}
 
 			return count;
 		}
@@ -140,11 +137,12 @@ class Net::Domain_name
 				label_length = static_cast<size_t>(*label);
 				output.out_char('.');
 				for (size_t idx = 0; idx < label_length; ++idx) {
-					output.out_char(static_cast<char>(*(label + 1 + idx))); } 
+					output.out_char(static_cast<char>(*(label + 1 + idx))); }
 				label = _next_label(label);
 			}
 		}
 
+		inline size_t parse(Span const &s);
 };
 
 
@@ -448,7 +446,6 @@ class Net::Dns_packet
 				rslot = rd->rdata + big_endian_to_host(rd->rdlength);
 			}
 		}
-
 } __attribute__((packed));
 
 
@@ -475,54 +472,62 @@ class Net::Dns_packet
  * Note that while upper and lower case letters are allowed in domain
  * names, no significance is attached to the case.  That is, two names with
  * the same spelling but different case are to be treated as if identical.
- * 
+ *
  * The labels must follow the rules for ARPANET host names.  They must
  * start with a letter, end with a letter or digit, and have as interior
  * characters only letters, digits, and hyphen.  There are also some
- * restrictions on the length.  Labels must be 63 characters or less.
+ * restrictions on the length.  Labels must be 63 (Domain_name::LABEL_MAX_LEN)
+ * characters or less.
  */
-Genode::size_t Net::ascii_to(char const *str, Net::Domain_name &result)
+Genode::size_t Net::Domain_name::parse(Span const &s)
 {
-	char const *label = str;
+	char const *str   = s.start;
+	char const *label = s.start;
 	size_t      label_length = 0;
 	Domain_name domain_name;
 
 	for (;;) {
+		if (!s.contains(label) || !s.contains(str))
+			return 0;
+
 		/* label must start by <letter>  */
-		if (label_length == 0 && !is_letter(*label)) {
-			return 0; }
+		if (label_length == 0 && !is_letter(*label))
+			return 0;
 
 		/* last label character is <let-dig> */
-		if (*(str + 1) == '.' || *(str + 1) == '\"' || *(str + 1) == '\0') {
-			if (!is_letter(*str) && !is_digit(*str)) {
-				return 0; } }
+		if (s.contains(str + 1) &&
+		   (*(str + 1) == '.' || *(str + 1) == '\"' || *(str + 1) == '\0'))
+			if (!is_letter(*str) && !is_digit(*str))
+				return 0;
 
 		/* label is <subdomain> */
 		if (*str == '.') {
 			if (label_length == 0) return 0;
-			if (label_length > 63) return 0;
+			if (label_length > Domain_name::LABEL_MAX_LEN) return 0;
 			domain_name.label(label_length, label);
 			label_length = 0;
 			++str;
-			label = str; }
+			label = str;
+		}
 
 		/* label is <domain> */
 		if (*str == '\"' || *str == '\0') {
 			if (label_length < Domain_name::MIN_ROOT_LABEL ||
-			    label_length > Domain_name::MAX_ROOT_LABEL) {
-				return 0; }
+			    label_length > Domain_name::MAX_ROOT_LABEL)
+				return 0;
 
-			if (domain_name.length() + label_length > Domain_name::NAME_MAX_LEN) {
-				return 0; }
+			if (domain_name.length() + label_length > Domain_name::NAME_MAX_LEN)
+				return 0;
 
 			domain_name.label(label_length, label);
 			if (domain_name.label_count() < 2) return 0;
-			result = domain_name; 
-			return result.length(); }
+			_name = domain_name._name;
+			return length();
+		}
 
 		/* label character is <let-dig-hyp> */
-		if (!is_letter(*str) && !is_digit(*str) && *str != '-') {
-			return 0; }
+		if (!is_letter(*str) && !is_digit(*str) && *str != '-')
+			return 0;
 
 		++label_length;
 		++str;
@@ -531,4 +536,3 @@ Genode::size_t Net::ascii_to(char const *str, Net::Domain_name &result)
 }
 
 #endif /* _NET__DNS_H_ */
-
