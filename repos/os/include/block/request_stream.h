@@ -140,7 +140,7 @@ class Block::Request_stream : Genode::Noncopyable
 		               Genode::Entrypoint               &ep,
 		               Genode::Signal_context_capability sigh,
 		               Block::Session::Info        const info,
-		               Block::Constrained_view     const view = { 0, 0, false })
+		               Block::Constrained_view     const view)
 		:
 			_info(_constrain_info(info, view)),
 			_view_offset(view.offset),
