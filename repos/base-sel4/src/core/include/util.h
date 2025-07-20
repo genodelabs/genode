@@ -27,7 +27,8 @@ namespace Core {
 	inline addr_t round_page(addr_t addr) { return trunc_page(addr + get_page_size() - 1); }
 
 	inline addr_t map_src_addr(addr_t, addr_t phys) { return phys; }
-	inline Log2 kernel_constrained_map_size(Log2) { return { get_page_size_log2() }; }
+	inline Log2 kernel_constrained_map_size(Log2 const size) {
+		return Log2(min(size.log2, uint8_t(seL4_LargePageBits))); }
 }
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */
