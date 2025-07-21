@@ -1,32 +1,30 @@
---- src/kernel/sel4/src/api/syscall.c
-+++ src/kernel/sel4/src/api/syscall.c
-@@ -210,15 +210,23 @@
-         ksLogIndex = 0;
+--- src/kernel/sel4/src/benchmark/benchmark.c
++++ src/kernel/sel4/src/benchmark/benchmark.c
+@@ -43,15 +43,21 @@
  #endif /* CONFIG_KERNEL_LOG_BUFFER */
- #ifdef CONFIG_BENCHMARK_TRACK_UTILISATION
--        NODE_STATE(benchmark_log_utilisation_enabled) = true;
--        benchmark_track_reset_utilisation(NODE_STATE(ksIdleThread));
-+
-+#ifdef ENABLE_SMP_SUPPORT
-+      for (int cpu_id = 0; cpu_id < CONFIG_MAX_NUM_NODES; cpu_id++) {
-+#endif /* ENABLE_SMP_SUPPORT */
-+
-+        NODE_STATE_ON_CORE(benchmark_log_utilisation_enabled, cpu_id) = true;
-+        benchmark_track_reset_utilisation(NODE_STATE_ON_CORE(ksIdleThread, cpu_id));
-         NODE_STATE(ksCurThread)->benchmark.schedule_start_time = ksEnter;
-         NODE_STATE(ksCurThread)->benchmark.number_schedules++;
  
--        NODE_STATE(benchmark_start_time) = ksEnter;
--        NODE_STATE(benchmark_kernel_time) = 0;
--        NODE_STATE(benchmark_kernel_number_entries) = 0;
--        NODE_STATE(benchmark_kernel_number_schedules) = 1;
-+        NODE_STATE_ON_CORE(benchmark_start_time,              cpu_id) = ksEnter;
-+        NODE_STATE_ON_CORE(benchmark_kernel_time,             cpu_id) = 0;
-+        NODE_STATE_ON_CORE(benchmark_kernel_number_entries,   cpu_id) = 0;
-+        NODE_STATE_ON_CORE(benchmark_kernel_number_schedules, cpu_id) = 1;
+ #ifdef CONFIG_BENCHMARK_TRACK_UTILISATION
+-    NODE_STATE(benchmark_log_utilisation_enabled) = true;
+-    benchmark_track_reset_utilisation(NODE_STATE(ksIdleThread));
 +#ifdef ENABLE_SMP_SUPPORT
-+      }
++    for (int cpu_id = 0; cpu_id < CONFIG_MAX_NUM_NODES; cpu_id++) {
 +#endif /* ENABLE_SMP_SUPPORT */
-         benchmark_arch_utilisation_reset();
++    NODE_STATE_ON_CORE(benchmark_log_utilisation_enabled, cpu_id) = true;
++    benchmark_track_reset_utilisation(NODE_STATE_ON_CORE(ksIdleThread, cpu_id));
+     NODE_STATE(ksCurThread)->benchmark.schedule_start_time = ksEnter;
+     NODE_STATE(ksCurThread)->benchmark.number_schedules++;
+-    NODE_STATE(benchmark_start_time) = ksEnter;
+-    NODE_STATE(benchmark_kernel_time) = 0;
+-    NODE_STATE(benchmark_kernel_number_entries) = 0;
+-    NODE_STATE(benchmark_kernel_number_schedules) = 1;
++    NODE_STATE_ON_CORE(benchmark_start_time,              cpu_id) = ksEnter;
++    NODE_STATE_ON_CORE(benchmark_kernel_time,             cpu_id) = 0;
++    NODE_STATE_ON_CORE(benchmark_kernel_number_entries,   cpu_id) = 0;
++    NODE_STATE_ON_CORE(benchmark_kernel_number_schedules, cpu_id) = 1;
+     benchmark_arch_utilisation_reset();
++#ifdef ENABLE_SMP_SUPPORT
++    }
++#endif /* ENABLE_SMP_SUPPORT */
  #endif /* CONFIG_BENCHMARK_TRACK_UTILISATION */
-         setRegister(NODE_STATE(ksCurThread), capRegister, seL4_NoError);
+ 
+     setRegister(NODE_STATE(ksCurThread), capRegister, seL4_NoError);

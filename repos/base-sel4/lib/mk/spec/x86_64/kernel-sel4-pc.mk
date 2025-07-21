@@ -24,19 +24,17 @@ configured_kernel:
 	&& echo -e "#define CONFIG_ENABLE_BENCHMARKS 1"           >>gen_config/kernel/gen_config.h \
 	&& echo -e "#define CONFIG_BENCHMARK_TRACK_UTILISATION 1" >>gen_config/kernel/gen_config.h \
 	&& echo -e "#define CONFIG_ARCH_X86_GENERIC 1"            >>gen_config/kernel/gen_config.h \
-	&& echo -e "#define CONFIG_FXSAVE           1"            >>gen_config/kernel/gen_config.h \
 	&& echo -e "#define CONFIG_SET_TLS_BASE_SELF 1"           >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_ENABLE_SMP_SUPPORT 1"          >>gen_config/kernel/gen_config.h \
 	\
-	&& sed -e "s/CONFIG_MAX_NUM_NODES 1/CONFIG_MAX_NUM_NODES 16/"                                   \
-	       -e "s/CONFIG_MAX_VPIDS 0/CONFIG_MAX_VPIDS 64/"                                           \
-	       -e "s/CONFIG_NUM_DOMAINS 16/CONFIG_NUM_DOMAINS 1/"                                       \
-	       -e "s/CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS 50/CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS 160/" \
-	       -e "s/CONFIG_FSGSBASE_INST 1/CONFIG_FSGSBASE_MSR 1/"                                     \
-	       -e "s/CONFIG_KERNEL_FSGS_BASE inst/CONFIG_KERNEL_FSGS_BASE msr/"                         \
-	       -e "/CONFIG_HUGE_PAGE/d"                                                                 \
-	       -e "/CONFIG_SUPPORT_PCID/d"                                                              \
-	       -e "/CONFIG_XSAVE 1/d"                                                                   \
-	       -e "/CONFIG_XSAVE_XSAVEOPT 1/d"                                                          \
+	&& sed -e "s/CONFIG_MAX_NUM_NODES  1/CONFIG_MAX_NUM_NODES  16/"                                   \
+	       -e "s/CONFIG_MAX_VPIDS  0/CONFIG_MAX_VPIDS  64/"                                           \
+	       -e "s/CONFIG_NUM_DOMAINS  16/CONFIG_NUM_DOMAINS  1/"                                       \
+	       -e "s/CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS  50/CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS  160/" \
+	       -e "s/CONFIG_FSGSBASE_INST  1/CONFIG_FSGSBASE_MSR  1/"                                     \
+	       -e "s/CONFIG_KERNEL_FSGS_BASE  inst/CONFIG_KERNEL_FSGS_BASE  msr/"                         \
+	       -e "/CONFIG_HUGE_PAGE/d"                                                                   \
+	       -e "/CONFIG_SUPPORT_PCID/d"                                                                \
 	       gen_config/kernel/gen_config.h   >gen_config/kernel/gen_config.tmp \
 	&& mv  gen_config/kernel/gen_config.tmp  gen_config/kernel/gen_config.h \
 	&& touch configured_kernel
