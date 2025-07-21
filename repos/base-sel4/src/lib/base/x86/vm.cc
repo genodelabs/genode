@@ -178,45 +178,16 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 				{
 					Mutex::Guard guard(_remote_mutex);
 
-					local_state     = _remote;
-					_remote          = NONE;
+					local_state = _remote;
+					_remote     = NONE;
 
-					if (local_state == PAUSE) {
-						_write_sel4_state(service, state);
-
-						seL4_Word badge = 0;
-						/* consume spurious notification - XXX better way ? */
-						seL4_SetMR(0, state.ip.value());
-						seL4_SetMR(1, _vmcs_ctrl0 | state.ctrl_primary.value());
-						seL4_SetMR(2, state.inj_info.value() & ~0x3000U);
-						if (seL4_VMEnter(&badge) == SEL4_VMENTER_RESULT_FAULT)
-							Genode::error("invalid state ahead ", badge);
-					}
+					/* consume all wake_up calls */
+					while (_wake_up.cnt()) _wake_up.down();
 				}
 
 				if (local_state == NONE) {
 					_wake_up.down();
 					continue;
-				}
-
-				if (local_state == PAUSE) {
-
-					state.discharge();
-
-					state.exit_reason = VMEXIT_RECALL;
-
-					_read_sel4_state(service, state);
-
-					_state_ready.up();
-
-					_exit_handler.ready_semaphore().down();
-
-					continue;
-				}
-
-				if (local_state != RUN) {
-					Genode::error("unknown vcpu state ", (int)local_state);
-					while (true) { _remote_mutex.acquire(); }
 				}
 
 				_write_sel4_state(service, state);
@@ -230,28 +201,20 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 
 				state.discharge();
 
+				if (res == SEL4_VMENTER_RESULT_FAULT)
+					state.exit_reason = (unsigned)seL4_GetMR(SEL4_VMENTER_FAULT_REASON_MR);
+				else
+					state.exit_reason = VMEXIT_RECALL;
+
 				/*
 				 * If a VMEXIT_RECALL is dispatched here, it comes from a
 				 * pause request sent by an already running asynchronous signal
 				 * handler.
 				 * In that case, don't dispatch an extra exit signal.
 				 */
-				bool skip_dispatch = false;
-
-				if (res != SEL4_VMENTER_RESULT_FAULT) {
-					state.exit_reason = VMEXIT_RECALL;
-					skip_dispatch = true;
-				}
-				else
-					state.exit_reason = (unsigned)seL4_GetMR(SEL4_VMENTER_FAULT_REASON_MR);
+				bool const skip_dispatch = state.exit_reason == VMEXIT_RECALL;
 
 				_read_sel4_state(service, state);
-
-				if (res != SEL4_VMENTER_RESULT_FAULT) {
-					Mutex::Guard guard(_remote_mutex);
-					if (_remote == PAUSE)
-						_remote = NONE;
-				}
 
 				/* notify vCPU handler EP that state is valid */
 				_state_ready.up();
@@ -806,12 +769,15 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 		const Sel4_vcpu& operator=(const Sel4_vcpu &) = delete;
 		Sel4_vcpu(const Sel4_vcpu&) = delete;
 
+		void stop()
+		{
+			Mutex::Guard guard(_remote_mutex);
+			_remote = NONE;
+		}
+
 		void resume()
 		{
 			Mutex::Guard guard(_remote_mutex);
-
-			if (_remote == RUN || _remote == PAUSE)
-				return;
 
 			_remote = RUN;
 			_wake_up.up();
@@ -819,32 +785,48 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 
 		void with_state(auto const &fn)
 		{
+			auto pause_vcpu_thread = [&] () {
+				Mutex::Guard guard(_remote_mutex);
+
+				/* request next state for vcpu thread */
+				_remote = PAUSE;
+
+				/* tell kernel to force an exit of the vCPU */
+				seL4_Signal(_recall);
+
+				/* wake vcpu_thread in case it fall asleep */
+				_wake_up.up();
+			};
+
 			if (_dispatching) {
+
+				/*
+				 * Unexpected state, but happens if in !_dispatching case the
+				 * event was already consumed. Trigger vcpu thread again.
+				 */
+				if (_state_ready.cnt() == 0)
+					pause_vcpu_thread();
 
 				/* wait for vCPU thread until it provides the state */
 				_state_ready.down();
 
 				if (fn(_state))
 					resume();
+				else
+					stop();
 
 				return;
 			}
 
-			{
-				Mutex::Guard guard(_remote_mutex);
-
-				/* Trigger pause exit */
-				_remote = PAUSE;
-
-				seL4_Signal(_recall);
-				_wake_up.up();
-			}
+			pause_vcpu_thread();
 
 			/* wait for vCPU thread until it provides the state */
 			_state_ready.down();
 
 			if (fn(_state))
 				resume();
+			else
+				stop();
 
 			/* notify vCPU thread that we are done handling the state. */
 			_exit_handler.ready_semaphore().up();
