@@ -23,6 +23,7 @@
 
 using namespace Core;
 using Hw::Page_table;
+using Hw::Page_table_allocator;
 
 
 /**************************************
@@ -35,7 +36,7 @@ Core_mem_allocator &Hw::Address_space::_cma()
 }
 
 
-void *Hw::Address_space::_table_alloc()
+void *Hw::Address_space::_alloc_table()
 {
 	unsigned const align = Page_table::ALIGNM_LOG2;
 
@@ -53,27 +54,39 @@ void *Hw::Address_space::_table_alloc()
 bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
                                            size_t size, Page_flags flags)
 {
-	try {
-		for (;;) {
-			try {
-				Mutex::Guard guard(_mutex);
-				_tt.insert_translation(virt, phys, size, flags, _tt_alloc);
-				return true;
-			} catch(Hw::Out_of_tables &) {
+	using Result = Hw::Page_table::Result;
 
-				/* core/kernel's page-tables should never get flushed */
-				if (_tt_phys == Platform::core_page_table()) {
-					error("core's page-table allocator is empty!");
-					return false;
-				}
+	Result result = Ok();
 
-				flush(platform().vm_start(), platform().vm_size());
-			}
+	for (;;) {
+		bool retry = false;
+
+		{
+			Mutex::Guard guard(_mutex);
+			result = _table.insert(virt, phys, size, flags, _table_alloc);
 		}
-	} catch(...) {
-		error("invalid mapping ", Hex(phys), " -> ", Hex(virt), " (", size, ")");
+
+		result.with_error([&] (Page_table_error e) {
+			if (e == Page_table_error::INVALID_RANGE)
+				return;
+
+			/* core/kernel's page-tables should never get flushed */
+			if (_table_phys == Platform::core_page_table()) {
+				error("core's page-table allocator is empty!");
+				return;
+			}
+
+			flush(platform().vm_start(), platform().vm_size());
+			retry = true;
+		});
+		if (!retry)
+			break;
 	}
-	return false;
+
+	return result.convert<bool>([&] (Ok) -> bool { return true; },
+	                            [&] (Page_table_error) -> bool {
+		error("invalid mapping ", Hex(phys), " -> ", Hex(virt), " (", size, ")");
+		return false; });
 }
 
 
@@ -84,7 +97,9 @@ bool Hw::Address_space::lookup_rw_translation(addr_t const virt, addr_t &phys)
 	 * gets called. In future it would be better that core provides an API
 	 * for it, and does the lookup with the hold lock
 	 */
-	return _tt.lookup_rw_translation(virt, phys, _tt_alloc);
+	return _table.lookup(virt, phys, _table_alloc).convert<bool>(
+		[] (Ok) -> bool { return true; },
+		[] (Page_table_error) -> bool { return false; });
 }
 
 
@@ -92,24 +107,20 @@ void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 {
 	Mutex::Guard guard(_mutex);
 
-	try {
-		_tt.remove_translation(virt, size, _tt_alloc);
-		Kernel::invalidate_tlb(*_kobj, virt, size);
-	} catch(...) {
-		error("tried to remove invalid region!");
-	}
+	_table.remove(virt, size, _table_alloc);
+	Kernel::invalidate_tlb(*_kobj, virt, size);
 }
 
 
 Hw::Address_space::
-Address_space(Page_table                        &tt,
-              Page_table::Allocator             &tt_alloc,
+Address_space(Page_table                        &table,
+              Page_table_allocator              &table_alloc,
               Platform_pd                       &pd,
               Board::Address_space_id_allocator &addr_space_id_alloc)
 :
-	_tt(tt),
-	_tt_phys(Platform::core_page_table()),
-	_tt_alloc(tt_alloc),
+	_table(table),
+	_table_phys(Platform::core_page_table()),
+	_table_alloc(table_alloc),
 	_kobj(_kobj.CALLED_FROM_KERNEL,
 	      *(Page_table*)translation_table_phys(),
 	      pd, addr_space_id_alloc)
@@ -118,11 +129,12 @@ Address_space(Page_table                        &tt,
 
 Hw::Address_space::Address_space(Platform_pd &pd)
 :
-	_tt(*construct_at<Page_table>(_table_alloc(), *((Page_table*)Hw::Mm::core_page_tables().base))),
-	_tt_phys((addr_t)_cma().phys_addr(&_tt)),
-	_tt_array(new (_cma()) Array([] (void * virt) {
+	_table(*construct_at<Page_table>(_alloc_table(),
+	                                 *((Page_table*)Hw::Mm::core_page_tables().base))),
+	_table_phys((addr_t)_cma().phys_addr(&_table)),
+	_table_array(new (_cma()) Table::Array([] (void * virt) {
 	                             return (addr_t)_cma().phys_addr(virt);})),
-	_tt_alloc(_tt_array->alloc()),
+	_table_alloc(_table_array->alloc()),
 	_kobj(_kobj.CALLED_FROM_CORE,
 	      *(Page_table*)translation_table_phys(),
 	      pd)
@@ -132,8 +144,8 @@ Hw::Address_space::Address_space(Platform_pd &pd)
 Hw::Address_space::~Address_space()
 {
 	flush(platform().vm_start(), platform().vm_size());
-	destroy(_cma(), _tt_array);
-	destroy(_cma(), &_tt);
+	destroy(_cma(), _table_array);
+	destroy(_cma(), &_table);
 }
 
 
@@ -168,7 +180,7 @@ void Platform_pd::assign_parent(Native_capability parent)
 
 Platform_pd::
 Platform_pd(Page_table                        &tt,
-            Page_table::Allocator             &alloc,
+            Page_table_allocator              &alloc,
             Board::Address_space_id_allocator &addr_space_id_alloc)
 :
 	Hw::Address_space(tt, alloc, *this, addr_space_id_alloc), _label("core")

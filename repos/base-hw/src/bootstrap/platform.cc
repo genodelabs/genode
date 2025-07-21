@@ -65,30 +65,31 @@ void Platform::Ram_allocator::remove(Memory_region const &region)
 
 Platform::Pd::Pd(Platform::Ram_allocator &alloc)
 :
-	table_base(alloc.alloc(sizeof(Table),       { Table::ALIGNM_LOG2 })),
-	array_base(alloc.alloc(sizeof(Table_array), { Table::ALIGNM_LOG2 })),
+	table_base(alloc.alloc(sizeof(Table),        { Table::ALIGNM_LOG2 })),
+	array_base(alloc.alloc(sizeof(Table::Array), { Table::ALIGNM_LOG2 })),
 	table(*Genode::construct_at<Table>(table_base)),
-	array(*Genode::construct_at<Table_array>(array_base))
+	array(*Genode::construct_at<Table::Array>(array_base))
 {
 	using namespace Genode;
 	addr_t const table_virt_base = Hw::Mm::core_page_tables().base;
 	map_insert(Mapping((addr_t)table_base, table_virt_base,
 	                   sizeof(Table),       Genode::PAGE_FLAGS_KERN_DATA));
 	map_insert(Mapping((addr_t)array_base, table_virt_base + sizeof(Table),
-	                   sizeof(Table_array), Genode::PAGE_FLAGS_KERN_DATA));
+	                   sizeof(Table::Array), Genode::PAGE_FLAGS_KERN_DATA));
 }
 
 
 void Platform::Pd::map(Mapping m)
 {
-	try {
-		table.insert_translation(m.virt(), m.phys(), m.size(), m.flags(),
-		                         array.alloc());
-	} catch (Hw::Out_of_tables &) {
-		Genode::error("translation table needs to much RAM");
-	} catch (...) {
-		Genode::error("invalid mapping ", m);
-	}
+	table.insert(m.virt(), m.phys(), m.size(), m.flags(),
+	             array.alloc()).with_error(
+		[&] (Hw::Page_table_error e) {
+			if (e == Hw::Page_table_error::INVALID_RANGE)
+				Genode::error("invalid mapping ", m);
+			else
+				Genode::error("translation table needs to much RAM");
+			while (true) ;
+	});
 }
 
 

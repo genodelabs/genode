@@ -127,8 +127,8 @@ class Core::Platform : public Platform_generic
 
 		static addr_t core_phys_addr(addr_t virt);
 
-		static addr_t                     core_page_table();
-		static Hw::Page_table::Allocator &core_page_table_allocator();
+		static addr_t                    core_page_table();
+		static Hw::Page_table_allocator &core_page_table_allocator();
 
 		/**
 		 * Determine size of a core local mapping required for a

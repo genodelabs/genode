@@ -17,13 +17,13 @@
 #include <hw/spec/arm/page_table.h>
 
 
-constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
+constexpr unsigned Hw::Page_table_descriptor::device_tex() {
 	return 2; }
 
 
-constexpr bool Hw::Page_table::Descriptor_base::_smp() { return false; }
+constexpr bool Hw::Page_table_descriptor::smp() { return false; }
 
 
-void Hw::Page_table::_table_changed(unsigned long, unsigned long) { }
+void Hw::Page_table::table_changed(unsigned long, unsigned long) { }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__ARM__CORTEX_A8_PAGE_TABLE_H_ */

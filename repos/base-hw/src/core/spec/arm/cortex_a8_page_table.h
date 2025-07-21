@@ -22,14 +22,14 @@
 #include <spec/arm/cpu_support.h>
 
 
-constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
+constexpr unsigned Hw::Page_table_descriptor::device_tex() {
 	return 2; }
 
 
-constexpr bool Hw::Page_table::Descriptor_base::_smp() { return false; }
+constexpr bool Hw::Page_table_descriptor::smp() { return false; }
 
 
-void Hw::Page_table::_table_changed(unsigned long addr, unsigned long size)
+void Hw::Page_table::table_changed(unsigned long addr, unsigned long size)
 {
 	/*
 	 * The Cortex-A8 CPU can't use the L1 cache on page-table

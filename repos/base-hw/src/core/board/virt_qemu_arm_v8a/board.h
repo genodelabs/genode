@@ -38,7 +38,8 @@ namespace Board {
 
 	using Vm_page_table = Hw::Level_1_stage_2_translation_table;
 	using Vm_page_table_array =
-		Vm_page_table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
+		Hw::Page_table_array<sizeof(Vm_page_table),
+		                     Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 
 	struct Vcpu_context;
 

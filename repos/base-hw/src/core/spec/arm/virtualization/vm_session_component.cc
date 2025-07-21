@@ -33,16 +33,14 @@ void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size
 
 	Page_flags pflags { RW, NO_EXEC, USER, NO_GLOBAL, RAM, CACHED };
 
-	try {
-		_table.insert_translation(vm_addr, phys_addr, size, pflags,
-		                          _table_array.alloc());
-		return;
-	} catch(Hw::Out_of_tables &) {
-		error("Translation table needs to much RAM");
-	} catch(...) {
-		error("Invalid mapping ", Hex(phys_addr), " -> ",
-		      Hex(vm_addr), " (", size, ")");
-	}
+	_table.insert(vm_addr, phys_addr, size,
+	              pflags, _table_array.alloc()).with_error(
+		[&] (Page_table_error e) {
+			if (e == Page_table_error::INVALID_RANGE)
+				error("Invalid mapping ", Hex(phys_addr), " -> ",
+				      Hex(vm_addr), " (", size, ")");
+			else error("Translation table needs to much RAM");
+		});
 }
 
 
@@ -63,7 +61,7 @@ void Vm_session_component::attach_pic(addr_t vm_addr)
 
 void Vm_session_component::_detach_vm_memory(addr_t vm_addr, size_t size)
 {
-	_table.remove_translation(vm_addr, size, _table_array.alloc());
+	_table.remove(vm_addr, size, _table_array.alloc());
 }
 
 

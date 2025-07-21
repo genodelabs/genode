@@ -1,11 +1,12 @@
 /*
  * \brief  x86_64 page table definitions
+ * \author Stefan Kalkowski
  * \author Adrian-Ken Rueegsegger
  * \date   2015-02-06
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,35 +16,14 @@
 #define _SRC__LIB__HW__SPEC__X86_64__PAGE_TABLE_H_
 
 #include <base/log.h>
-#include <hw/assert.h>
 #include <cpu/page_flags.h>
-#include <hw/page_table_allocator.h>
-#include <hw/util.h>
-#include <util/misc_math.h>
-#include <util/register.h>
+
+#include <hw/memory_consts.h>
+#include <hw/page_table.h>
 
 namespace Hw {
-	using namespace Genode;
-
-	/**
-	 * IA-32e paging translates 48-bit linear addresses to 52-bit physical
-	 * addresses. Translation structures are hierarchical and four levels
-	 * deep.
-	 *
-	 * For detailed information refer to Intel SDM Vol. 3A, section 4.5.
-	 */
-
-	enum {
-		SIZE_LOG2_4KB   = 12,
-		SIZE_LOG2_2MB   = 21,
-		SIZE_LOG2_1GB   = 30,
-		SIZE_LOG2_512GB = 39,
-		SIZE_LOG2_256TB = 48,
-	};
-
-	class Level_4_translation_table;
-	class Pml4_table;
-	class Page_table;
+	struct Page_table_4;
+	struct Page_table;
 
 	/**
 	 * IA-32e page directory template.
@@ -56,7 +36,14 @@ namespace Hw {
 	 * \param SIZE_LOG2       virtual address range size in log2 of whole table
 	 */
 	template <typename ENTRY, unsigned PAGE_SIZE_LOG2, unsigned SIZE_LOG2>
-	class Page_directory;
+	struct Page_directory;
+
+	using Page_table_3 =
+		Page_directory<Page_table_4, SIZE_LOG2_2MB, SIZE_LOG2_1GB>;
+
+	using Page_table_2 =
+		Page_directory<Page_table_3, SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
+
 
 	/**
 	 * IA-32e common descriptor.
@@ -98,608 +85,371 @@ namespace Hw {
 }
 
 
-class Hw::Level_4_translation_table
+/**
+ * IA-32e page table (Level 4)
+ *
+ * A page table consists of 512 entries that each maps a 4KB page
+ * frame. For further details refer to Intel SDM Vol. 3A, table 4-19.
+ */
+struct Hw::Page_table_4
+: Page_table_tpl<Common_descriptor, SIZE_LOG2_4KB, SIZE_LOG2_2MB>
 {
-	private:
+	struct Descriptor : Common_descriptor
+	{
+		using Common = Common_descriptor;
 
-		static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
-		static constexpr size_t SIZE_LOG2      = SIZE_LOG2_2MB;
-		static constexpr size_t MAX_ENTRIES    = 1UL << (SIZE_LOG2-PAGE_SIZE_LOG2);
-		static constexpr size_t PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2;
-		static constexpr size_t PAGE_MASK      = ~((1UL << PAGE_SIZE_LOG2) - 1);
+		struct Pat : Bitfield<7, 1> { };          /* page attribute table */
+		struct G   : Bitfield<8, 1> { };          /* global               */
+		struct Pa  : Bitfield<12, 36> { };        /* physical address     */
+		struct Mt  : Genode::Bitset_3<Pwt, Pcd, Pat> { }; /* memory type  */
 
-		class Misaligned {};
-		class Invalid_range {};
-		class Double_insertion {};
-
-		struct Descriptor : Common_descriptor
+		static access_t create(Page_flags const &flags, addr_t const pa)
 		{
-			using Common = Common_descriptor;
+			bool const wc = flags.cacheable == Cache::WRITE_COMBINED;
 
-			struct Pat : Bitfield<7, 1> { };          /* page attribute table */
-			struct G   : Bitfield<8, 1> { };          /* global               */
-			struct Pa  : Bitfield<12, 36> { };        /* physical address     */
-			struct Mt  : Genode::Bitset_3<Pwt, Pcd, Pat> { }; /* memory type          */
+			return Common::create(flags)
+				| G::bits(flags.global)
+				| Pa::masked(pa)
+				| Pwt::bits(wc ? 1 : 0);
+		}
+	};
 
-			static access_t create(Page_flags const &flags, addr_t const pa)
+	using Base = Page_table_tpl<Common_descriptor, SIZE_LOG2_4KB,
+	                            SIZE_LOG2_2MB>;
+	using Result = Page_table_insertion_result;
+
+
+	/**
+	 * Insert translations into this table
+	 *
+	 * \param vo     offset of the virtual region represented
+	 *               by the translation within the virtual
+	 *               region represented by this table
+	 * \param pa     base of the physical backing store
+	 * \param size   size of the translated region
+	 * \param flags  mapping flags
+	 * \param alloc  second level translation table allocator
+	 */
+	Result insert(addr_t vo, addr_t pa, size_t size,
+	              Page_flags const &flags, Page_table_allocator&)
+	{
+		using desc_t = typename Descriptor::access_t;
+
+		return Base::_for_range(vo, pa, size,
+			[&] (addr_t const vo, addr_t const pa,
+			     size_t const size, desc_t &desc) -> Result
 			{
-				bool const wc = flags.cacheable == Genode::Cache::WRITE_COMBINED;
+				if (!Base::_aligned_and_fits(vo, pa, size))
+					return Page_table_error::INVALID_RANGE;
 
-				return Common::create(flags)
-					| G::bits(flags.global)
-					| Pa::masked(pa)
-					| Pwt::bits(wc ? 1 : 0);
-			}
-		};
-
-		typename Descriptor::access_t _entries[MAX_ENTRIES];
-
-		struct Insert_func
-		{
-			Page_flags const    & flags;
-
-			Insert_func(Page_flags const & flags)
-			: flags(flags) { }
-
-			void operator () (addr_t const vo, addr_t const pa,
-			                  size_t const size,
-			                  Descriptor::access_t &desc) const
-			{
-				if ((vo & ~PAGE_MASK) || (pa & ~PAGE_MASK) ||
-				    size < PAGE_SIZE)
-				{
-					throw Invalid_range();
-				}
-				Descriptor::access_t table_entry =
-					Descriptor::create(flags, pa);
+				desc_t table_entry = Descriptor::create(flags, pa);
 
 				if (Descriptor::present(desc) &&
 				    Descriptor::clear_mmu_flags(desc) != table_entry)
-				{
-					throw Double_insertion();
-				}
+					return Page_table_error::INVALID_RANGE;
+
 				desc = table_entry;
-			}
-		};
+				return Ok();
+			});
+	}
 
-		struct Remove_func
-		{
-			void operator () (addr_t /* vo */, addr_t /* pa */, size_t /* size */,
-			                  Descriptor::access_t &desc) const
-			{ desc = 0; }
-		};
 
-		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
-		{
-			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
-			     i = vo >> PAGE_SIZE_LOG2) {
-				assert (i < MAX_ENTRIES);
-				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
-				size_t sz  = Genode::min(size, end-vo);
+	/**
+	 * Remove translations that overlap with a given virtual region
+	 *
+	 * \param vo    region offset within the tables virtual region
+	 * \param size  region size
+	 * \param alloc second level translation table allocator
+	 */
+	void remove(addr_t vo, size_t size, Page_table_allocator&)
+	{
+		using desc_t = typename Descriptor::access_t;
 
-				fn(vo, pa, sz, _entries[i]);
-
-				/* check whether we wrap */
-				if (end < vo) return;
-
-				size = size - sz;
-				vo  += sz;
-				pa  += sz;
-			}
-		}
-
-	public:
-
-		using Allocator = Page_table_allocator<1UL << SIZE_LOG2_4KB>;
-
-		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
-		static constexpr size_t ALIGNM_LOG2        = SIZE_LOG2_4KB;
-
-		/**
-		 * IA-32e page table (Level 4)
-		 *
-		 * A page table consists of 512 entries that each maps a 4KB page
-		 * frame. For further details refer to Intel SDM Vol. 3A, table 4-19.
-		 */
-		Level_4_translation_table()
-		{
-			if (!aligned(this, ALIGNM_LOG2)) throw Misaligned();
-			Genode::memset(&_entries, 0, sizeof(_entries));
-		}
-
-		/**
-		 * Returns True if table does not contain any page mappings.
-		 */
-		bool empty()
-		{
-			for (unsigned i = 0; i < MAX_ENTRIES; i++)
-				if (Descriptor::present(_entries[i]))
-					return false;
-			return true;
-		}
-
-		/**
-		 * Insert translations into this table
-		 *
-		 * \param vo     offset of the virtual region represented
-		 *               by the translation within the virtual
-		 *               region represented by this table
-		 * \param pa     base of the physical backing store
-		 * \param size   size of the translated region
-		 * \param flags  mapping flags
-		 * \param alloc  second level translation table allocator
-		 */
-		void insert_translation(addr_t vo, addr_t pa, size_t size,
-		                        Page_flags const & flags, Allocator &)
-		{
-			this->_range_op(vo, pa, size, Insert_func(flags));
-		}
-
-		/**
-		 * Remove translations that overlap with a given virtual region
-		 *
-		 * \param vo    region offset within the tables virtual region
-		 * \param size  region size
-		 * \param alloc second level translation table allocator
-		 */
-		void remove_translation(addr_t vo, size_t size, Allocator &)
-		{
-			this->_range_op(vo, 0, size, Remove_func());
-		}
-
-} __attribute__((aligned(1 << ALIGNM_LOG2)));
+		Base::_for_range(vo, size, [] (addr_t, size_t, desc_t &d) {
+			d = 0; });
+	}
+};
 
 
 template <typename ENTRY, unsigned PAGE_SIZE_LOG2, unsigned SIZE_LOG2>
-class Hw::Page_directory
+struct Hw::Page_directory
+: Page_table_tpl<Common_descriptor, PAGE_SIZE_LOG2, SIZE_LOG2>
 {
-	private:
+	struct Base_descriptor : Common_descriptor
+	{
+		using Common = Common_descriptor;
 
-		static constexpr size_t MAX_ENTRIES = 1UL << (SIZE_LOG2-PAGE_SIZE_LOG2);
-		static constexpr size_t PAGE_SIZE   = 1UL << PAGE_SIZE_LOG2;
-		static constexpr size_t PAGE_MASK   = ~((1UL << PAGE_SIZE_LOG2) - 1);
+		struct Ps : Common::template Bitfield<7, 1> { };  /* page size */
 
-		using Allocator = Page_table_allocator<1UL << SIZE_LOG2_4KB>;
+		static bool maps_page(access_t const v) { return Ps::get(v); }
+	};
 
-		class Misaligned {};
-		class Invalid_range {};
-		class Double_insertion {};
+	struct Page_descriptor : Base_descriptor
+	{
+		using Base = Base_descriptor;
 
-		struct Base_descriptor : Common_descriptor
+		/**
+		 * Global attribute
+		 */
+		struct G : Base::template Bitfield<8, 1> { };
+
+		/**
+		 * Page attribute table
+		 */
+		struct Pat : Base::template Bitfield<12, 1> { };
+
+		/**
+		 * Physical address
+		 */
+		struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
+		                                    48 - PAGE_SIZE_LOG2> { };
+
+		/**
+		 * Memory type
+		 */
+		struct Mt : Base::template Bitset_3<Base::Pwt,
+		                                    Base::Pcd, Pat> { };
+
+		static typename Base::access_t create(Page_flags const &flags,
+		                                      addr_t const pa)
 		{
-			using Common = Common_descriptor;
+			bool const wc =
+				flags.cacheable == Genode::Cache::WRITE_COMBINED;
 
-			struct Ps : Common::template Bitfield<7, 1> { };  /* page size */
+			return Base::create(flags)
+			     | Base::Ps::bits(1)
+			     | G::bits(flags.global)
+			     | Pa::masked(pa)
+			     | Base::Pwt::bits(wc ? 1 : 0);
+		}
+	};
 
-			static bool maps_page(access_t const v) { return Ps::get(v); }
-		};
+	struct Table_descriptor : Base_descriptor
+	{
+		using Base = Base_descriptor;
 
-		struct Page_descriptor : Base_descriptor
+		/**
+		 * Physical address
+		 */
+		struct Pa : Base::template Bitfield<12, 36> { };
+
+		/**
+		 * Memory types
+		 */
+		struct Mt : Base::template Bitset_2<Base::Pwt,
+		                                    Base::Pcd> { };
+
+		static typename Base::access_t create(addr_t const pa)
 		{
-			using Base = Base_descriptor;
+			/* XXX: Set memory type depending on active PAT */
+			static Page_flags flags { RW, EXEC, USER, NO_GLOBAL,
+			                          RAM, Genode::CACHED };
+			return Base::create(flags) | Pa::masked(pa);
+		}
+	};
 
-			/**
-			 * Global attribute
-			 */
-			struct G : Base::template Bitfield<8, 1> { };
+	using Base =
+		Page_table_tpl<Common_descriptor, PAGE_SIZE_LOG2, SIZE_LOG2>;
+	using Result = Page_table_insertion_result;
 
-			/**
-			 * Page attribute table
-			 */
-			struct Pat : Base::template Bitfield<12, 1> { };
+	/**
+	 * Insert translations into this table
+	 *
+	 * \param vo     offset of the virtual region represented
+	 *               by the translation within the virtual
+	 *               region represented by this table
+	 * \param pa     base of the physical backing store
+	 * \param size   size of the translated region
+	 * \param flags  mapping flags
+	 * \param alloc  second level translation table allocator
+	 */
+	Result insert(addr_t vo, addr_t pa, size_t size,
+	              Page_flags const &flags,
+	              Page_table_allocator &alloc)
+	{
+		using Descriptor = Base_descriptor;
+		using desc_t     = typename Descriptor::access_t;
+		using Td         = Table_descriptor;
 
-			/**
-			 * Physical address
-			 */
-			struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
-			                                     48 - PAGE_SIZE_LOG2> { };
-
-			/**
-			 * Memory type
-			 */
-			struct Mt : Base::template Bitset_3<Base::Pwt,
-			                                    Base::Pcd, Pat> { };
-
-			static typename Base::access_t create(Page_flags const &flags,
-			                                      addr_t const pa)
+		return Base::_for_range(vo, pa, size,
+			[&] (addr_t const vo, addr_t const pa,
+			     size_t const size, desc_t &desc) -> Result
 			{
-				bool const wc = flags.cacheable == Genode::Cache::WRITE_COMBINED;
-
-				return Base::create(flags)
-				     | Base::Ps::bits(1)
-				     | G::bits(flags.global)
-				     | Pa::masked(pa)
-				     | Base::Pwt::bits(wc ? 1 : 0);
-			}
-		};
-
-		struct Table_descriptor : Base_descriptor
-		{
-			using Base = Base_descriptor;
-
-			/**
-			 * Physical address
-			 */
-			struct Pa : Base::template Bitfield<12, 36> { };
-
-			/**
-			 * Memory types
-			 */
-			struct Mt : Base::template Bitset_2<Base::Pwt,
-			                                    Base::Pcd> { };
-
-			static typename Base::access_t create(addr_t const pa)
-			{
-				/* XXX: Set memory type depending on active PAT */
-				static Page_flags flags { RW, EXEC, USER, NO_GLOBAL,
-				                          RAM, Genode::CACHED };
-				return Base::create(flags) | Pa::masked(pa);
-			}
-		};
-
-		typename Base_descriptor::access_t _entries[MAX_ENTRIES];
-
-		struct Insert_func
-		{
-			using Descriptor = Base_descriptor;
-
-			Page_flags const & flags;
-			Allocator        & alloc;
-
-			Insert_func(Page_flags const & flags, Allocator & alloc)
-			: flags(flags), alloc(alloc) { }
-
-			void operator () (addr_t const vo, addr_t const pa,
-			                  size_t const size,
-			                  typename Descriptor::access_t &desc) const
-			{
-				using Td = Table_descriptor;
-				using access_t = typename Descriptor::access_t;
-
 				/* can we insert a large page mapping? */
-				if (!((vo & ~PAGE_MASK) || (pa & ~PAGE_MASK) ||
-				      size < PAGE_SIZE))
-				{
-					access_t table_entry = Page_descriptor::create(flags, pa);
+				if (Base::_aligned_and_fits(vo, pa, size)) {
+					desc_t table_entry =
+						Page_descriptor::create(flags, pa);
 
 					if (Descriptor::present(desc) &&
-					    Descriptor::clear_mmu_flags(desc) != table_entry) {
-						throw Double_insertion(); }
+					    Descriptor::clear_mmu_flags(desc) != table_entry)
+						return Page_table_error::INVALID_RANGE;
 
 					desc = table_entry;
-					return;
+					return Ok();
 				}
 
-				/* we need to use a next level table */
+				if (Descriptor::present(desc) &&
+				    Descriptor::maps_page(desc))
+					return Page_table_error::INVALID_RANGE;
+
+				/* do we need to create and link next level table? */
 				if (!Descriptor::present(desc)) {
-
-					/* create and link next level table */
-					ENTRY & table = alloc.construct<ENTRY>();
-					desc = (access_t) Td::create(alloc.phys_addr(table));
-
-				} else if (Descriptor::maps_page(desc)) {
-					throw Double_insertion();
+				    Result result = alloc.create<ENTRY, Td>(desc);
+					if (result.failed())
+						return result;
 				}
 
-				/* insert translation */
-				ENTRY & table = alloc.virt_addr<ENTRY>(Td::Pa::masked(desc));
-				table.insert_translation(vo - (vo & PAGE_MASK), pa, size,
-				                         flags, alloc);
-			}
-		};
+				return alloc.lookup<ENTRY>(Td::Pa::masked(desc),
+				                           [&] (ENTRY &table) {
+					return table.insert(vo-Base::_page_mask_high(vo),
+					                    pa, size, flags, alloc);
+				});
+			});
+	}
 
-		struct Remove_func
+	/**
+	 * Remove translations that overlap with a given virtual region
+	 *
+	 * \param vo    region offset within the tables virtual region
+	 * \param size  region size
+	 * \param alloc second level translation table allocator
+	 */
+	void remove(addr_t vo, size_t size, Page_table_allocator &alloc)
+	{
+		Base::_for_range(vo, size, [&] (addr_t const vo, size_t const size,
+		                          typename Base_descriptor::access_t &desc)
 		{
-			Allocator & alloc;
+			if (!Base_descriptor::present(desc))
+				return;
 
-			Remove_func(Allocator & alloc) : alloc(alloc) { }
+			if (Base_descriptor::maps_page(desc)) {
+				desc = 0;
+				return;
+			}
 
-			void operator () (addr_t const vo, addr_t /* pa */,
-			                  size_t const size,
-			                  typename Base_descriptor::access_t &desc) const
-			{
-				if (Base_descriptor::present(desc)) {
-					if (Base_descriptor::maps_page(desc)) {
-						desc = 0;
-					} else {
-						using Td = Table_descriptor;
+			using Td = Table_descriptor;
 
-						/* use allocator to retrieve virt address of table */
-						ENTRY & table = alloc.virt_addr<ENTRY>(Td::Pa::masked(desc));
-						addr_t const table_vo = vo - (vo & PAGE_MASK);
-						table.remove_translation(table_vo, size, alloc);
-						if (table.empty()) {
-							alloc.destruct<ENTRY>(table);
-							desc = 0;
-						}
-					}
+			alloc.lookup<ENTRY>(Td::Pa::masked(desc), [&] (ENTRY &table) {
+				table.remove(vo-Base::_page_mask_high(vo), size, alloc);
+				if (table.empty()) {
+					alloc.destroy<ENTRY>(table);
+					desc = 0;
 				}
-			}
-		};
-
-		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
-		{
-			for (size_t i = vo >> PAGE_SIZE_LOG2; size > 0;
-			     i = vo >> PAGE_SIZE_LOG2)
-			{
-				assert (i < MAX_ENTRIES);
-				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
-				size_t sz  = Genode::min(size, end-vo);
-
-				fn(vo, pa, sz, _entries[i]);
-
-				/* check whether we wrap */
-				if (end < vo) return;
-
-				size = size - sz;
-				vo  += sz;
-				pa  += sz;
-			}
-		}
-
-	public:
-
-		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
-		static constexpr size_t ALIGNM_LOG2        = SIZE_LOG2_4KB;
-
-		Page_directory()
-		{
-			if (!aligned(this, ALIGNM_LOG2)) throw Misaligned();
-			Genode::memset(&_entries, 0, sizeof(_entries));
-		}
-
-		/**
-		 * Returns True if table does not contain any page mappings.
-		 *
-		 * \return   false if an entry is present, True otherwise
-		 */
-		bool empty()
-		{
-			for (unsigned i = 0; i < MAX_ENTRIES; i++)
-				if (Base_descriptor::present(_entries[i]))
-					return false;
-			return true;
-		}
-
-		/**
-		 * Insert translations into this table
-		 *
-		 * \param vo     offset of the virtual region represented
-		 *               by the translation within the virtual
-		 *               region represented by this table
-		 * \param pa     base of the physical backing store
-		 * \param size   size of the translated region
-		 * \param flags  mapping flags
-		 * \param alloc  second level translation table allocator
-		 */
-		void insert_translation(addr_t vo, addr_t pa, size_t size,
-		                        Page_flags const & flags,
-		                        Allocator & alloc) {
-			_range_op(vo, pa, size, Insert_func(flags, alloc)); }
-
-		/**
-		 * Remove translations that overlap with a given virtual region
-		 *
-		 * \param vo    region offset within the tables virtual region
-		 * \param size  region size
-		 * \param alloc second level translation table allocator
-		 */
-		void remove_translation(addr_t vo, size_t size, Allocator & alloc) {
-			_range_op(vo, 0, size, Remove_func(alloc)); }
+				return Ok();
+			}).with_error([] (Page_table_error) {
+				/* ignore non-mapped entries */ });
+		});
+	}
 };
 
 
-namespace Hw {
-
-	struct Level_3_translation_table
-	:
-		Page_directory< Level_4_translation_table, SIZE_LOG2_2MB, SIZE_LOG2_1GB>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-	struct Level_2_translation_table
-	:
-		Page_directory<Level_3_translation_table, SIZE_LOG2_1GB, SIZE_LOG2_512GB>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-}
-
-
-class Hw::Pml4_table
+struct Hw::Page_table
+: Page_table_tpl<Common_descriptor, SIZE_LOG2_512GB, SIZE_LOG2_256TB>
 {
-	public:
+	struct Descriptor : Common_descriptor
+	{
+		struct Pa  : Bitfield<12, SIZE_LOG2_256TB> { }; /* physical address */
+		struct Mt  : Genode::Bitset_2<Pwt, Pcd> { }; /* memory type      */
 
-		using Allocator = Page_table_allocator<1UL << SIZE_LOG2_4KB>;
-
-	private:
-
-		static constexpr size_t PAGE_SIZE_LOG2 = SIZE_LOG2_512GB;
-		static constexpr size_t SIZE_LOG2      = SIZE_LOG2_256TB;
-		static constexpr size_t SIZE_MASK      = (1UL << SIZE_LOG2) - 1;
-		static constexpr size_t MAX_ENTRIES    = 512;
-		static constexpr size_t PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2;
-		static constexpr size_t PAGE_MASK      = ~((1UL << PAGE_SIZE_LOG2) - 1);
-
-		class Misaligned {};
-		class Invalid_range {};
-
-		struct Descriptor : Common_descriptor
+		static access_t create(addr_t const pa)
 		{
-			struct Pa  : Bitfield<12, SIZE_LOG2> { };    /* physical address */
-			struct Mt  : Genode::Bitset_2<Pwt, Pcd> { }; /* memory type      */
+			/* XXX: Set memory type depending on active PAT */
+			static Page_flags flags { RW, EXEC, USER, NO_GLOBAL,
+			                          RAM, Genode::CACHED };
+			return Common_descriptor::create(flags) | Pa::masked(pa);
+		}
+	};
 
-			static access_t create(addr_t const pa)
+	using ENTRY = Page_table_2;
+
+	static constexpr size_t ALIGNM_LOG2 = SIZE_LOG2_4KB;
+	static constexpr size_t SIZE_MASK   = (1UL << SIZE_LOG2_256TB) - 1;
+
+	using Base =
+		Page_table_tpl<Common_descriptor, SIZE_LOG2_512GB, SIZE_LOG2_256TB>;
+	using typename Base::Result;
+
+	using Base::Base;
+
+	explicit Page_table(Page_table &kernel_table) : Page_table()
+	{
+		static constexpr size_t KERNEL_START_IDX =
+			(Hw::Mm::KERNEL_START & SIZE_MASK) >> SIZE_LOG2_512GB;
+
+		/* copy kernel page directories to new table */
+		for (size_t i = KERNEL_START_IDX; i < Base::MAX_ENTRIES; i++)
+			_entries[i] = kernel_table._entries[i];
+	}
+
+	/**
+	 * Insert translations into this table
+	 *
+	 * \param vo     offset of the virtual region represented
+	 *               by the translation within the virtual
+	 *               region represented by this table
+	 * \param pa     base of the physical backing store
+	 * \param size   size of the translated region
+	 * \param flags  mapping flags
+	 * \param alloc  second level translation table allocator
+	 */
+	Result insert(addr_t vo, addr_t pa, size_t size,
+	              Page_flags const &flags, Page_table_allocator &alloc)
+	{
+		return Base::_for_range(vo, pa, size,
+			[&] (addr_t const vo, addr_t const pa, size_t const size,
+			     Descriptor::access_t &desc) -> Result
 			{
-				/* XXX: Set memory type depending on active PAT */
-				static Page_flags flags { RW, EXEC, USER, NO_GLOBAL,
-				                          RAM, Genode::CACHED };
-				return Common_descriptor::create(flags) | Pa::masked(pa);
-			}
-		};
-
-		typename Descriptor::access_t _entries[MAX_ENTRIES];
-
-		using ENTRY = Level_2_translation_table;
-
-		struct Insert_func
-		{
-			Page_flags const & flags;
-			Allocator        & alloc;
-
-			Insert_func(Page_flags const & flags,
-			            Allocator & alloc)
-			: flags(flags), alloc(alloc) { }
-
-			void operator () (addr_t const vo, addr_t const pa,
-			                  size_t const size,
-			                  Descriptor::access_t &desc) const
-			{
-				/* we need to use a next level table */
 				if (!Descriptor::present(desc)) {
-					/* create and link next level table */
-					ENTRY & table = alloc.construct<ENTRY>();
-					desc = Descriptor::create(alloc.phys_addr(table));
+					Result result = alloc.create<ENTRY, Descriptor>(desc);
+					if (result.failed())
+						return result;
 				}
 
-				/* insert translation */
-				ENTRY & table = alloc.virt_addr<ENTRY>(Descriptor::Pa::masked(desc));
-				addr_t const table_vo = vo - (vo & PAGE_MASK);
-				table.insert_translation(table_vo, pa, size, flags, alloc);
-			}
-		};
+				return alloc.lookup<ENTRY>(Descriptor::Pa::masked(desc),
+				                           [&] (ENTRY &table) {
+					addr_t const table_vo = vo-Base::_page_mask_high(vo);
+					return table.insert(table_vo, pa, size, flags, alloc);
+				});
+			});
+	}
 
-		struct Remove_func
-		{
-			Allocator & alloc;
+	/**
+	 * Remove translations that overlap with a given virtual region
+	 *
+	 * \param vo    region offset within the tables virtual region
+	 * \param size  region size
+	 * \param alloc second level translation table allocator
+	 */
+	void remove(addr_t vo, size_t size, Page_table_allocator &alloc)
+	{
+		Base::_for_range(vo, size, [&] (addr_t const vo, size_t const size,
+		                               Descriptor::access_t &desc) {
+			if (!Descriptor::present(desc))
+				return;
 
-			Remove_func(Allocator & alloc) : alloc(alloc) { }
-
-			void operator () (addr_t const vo, addr_t /* pa */,
-			                  size_t const size,
-			                  Descriptor::access_t &desc) const
-			{
-				if (Descriptor::present(desc)) {
-					/* use allocator to retrieve virt address of table */
-					ENTRY & table = alloc.virt_addr<ENTRY>(Descriptor::Pa::masked(desc));
-					addr_t const table_vo = vo - (vo & PAGE_MASK);
-					table.remove_translation(table_vo, size, alloc);
-					if (table.empty()) {
-						alloc.destruct<ENTRY>(table);
-						desc = 0;
-					}
+			alloc.lookup<ENTRY>(Descriptor::Pa::masked(desc),
+			                    [&] (ENTRY &table) {
+				table.remove(vo-Base::_page_mask_high(vo), size, alloc);
+				if (table.empty()) {
+					alloc.destroy<ENTRY>(table);
+					desc = 0;
 				}
-			}
-		};
+				return Ok();
+			}).with_error([&] (Page_table_error) {
+				/* Deleting non-existent page-table entry is okay */ });
+		});
+	}
 
-		void _range_op(addr_t vo, addr_t pa, size_t size, auto const &fn)
-		{
-			for (size_t i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2; size > 0;
-			     i = (vo & SIZE_MASK) >> PAGE_SIZE_LOG2) {
-				assert (i < MAX_ENTRIES);
-				addr_t end = (vo + PAGE_SIZE) & PAGE_MASK;
-				size_t sz  = Genode::min(size, end-vo);
+	Result lookup(addr_t const, addr_t&, Page_table_allocator&)
+	{
+		Genode::error(__func__, " not implemented yet");
+		return Page_table_error::INVALID_RANGE;
+	}
 
-				fn(vo, pa, sz, _entries[i]);
-
-				/* check whether we wrap */
-				if (end < vo) return;
-
-				size = size - sz;
-				vo  += sz;
-				pa  += sz;
-			}
-		}
-
-	protected:
-
-		/**
-		 * Return how many entries of an alignment fit into region
-		 */
-		static constexpr size_t _count(size_t region, size_t alignment)
-		{
-			return Genode::align_addr<size_t>(region, (int)alignment)
-			       / (1UL << alignment);
-		}
-
-	public:
-
-		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
-		static constexpr size_t ALIGNM_LOG2        = SIZE_LOG2_4KB;
-
-		Pml4_table()
-		{
-			if (!aligned(this, ALIGNM_LOG2)) throw Misaligned();
-			Genode::memset(&_entries, 0, sizeof(_entries));
-		}
-
-		explicit Pml4_table(Pml4_table & kernel_table) : Pml4_table()
-		{
-			static size_t first = (0xffffffc000000000 & SIZE_MASK) >> PAGE_SIZE_LOG2;
-			for (size_t i = first; i < MAX_ENTRIES; i++)
-				_entries[i] = kernel_table._entries[i];
-		}
-
-		/**
-		 * Returns True if table does not contain any page mappings.
-		 *
-		 * \return  false if an entry is present, True otherwise
-		 */
-		bool empty()
-		{
-			for (unsigned i = 0; i < MAX_ENTRIES; i++)
-				if (Descriptor::present(_entries[i]))
-					return false;
-			return true;
-		}
-
-		/**
-		 * Insert translations into this table
-		 *
-		 * \param vo     offset of the virtual region represented
-		 *               by the translation within the virtual
-		 *               region represented by this table
-		 * \param pa     base of the physical backing store
-		 * \param size   size of the translated region
-		 * \param flags  mapping flags
-		 * \param alloc  second level translation table allocator
-		 */
-		void insert_translation(addr_t vo, addr_t pa, size_t size,
-		                        Page_flags const & flags, Allocator & alloc) {
-			_range_op(vo, pa, size, Insert_func(flags, alloc)); }
-
-		/**
-		 * Remove translations that overlap with a given virtual region
-		 *
-		 * \param vo    region offset within the tables virtual region
-		 * \param size  region size
-		 * \param alloc second level translation table allocator
-		 */
-		void remove_translation(addr_t vo, size_t size, Allocator & alloc)
-		{
-			_range_op(vo, 0, size, Remove_func(alloc));
-		}
-
-		bool lookup_rw_translation(addr_t const, addr_t &, Allocator &)
-		{
-			Genode::raw(__func__, " not implemented yet");
-			return false;
-		}
+	using Array =
+		Page_table_array<sizeof(Page_table_2),
+	                     _table_count(_core_vm_size(), SIZE_LOG2_512GB,
+	                                  SIZE_LOG2_1GB, SIZE_LOG2_2MB)>;
 } __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-
-class Hw::Page_table : public Pml4_table
-{
-	public:
-
-		using Pml4_table::Pml4_table;
-
-		enum {
-			TABLE_LEVEL_X_SIZE_LOG2 = SIZE_LOG2_4KB,
-			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024,
-			CORE_TRANS_TABLE_COUNT  =
-			_count(CORE_VM_AREA_SIZE, SIZE_LOG2_512GB)
-			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_1GB)
-			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_2MB)
-		};
-};
 
 #endif /* _SRC__LIB__HW__SPEC__X86_64__PAGE_TABLE_H_ */

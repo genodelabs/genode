@@ -72,17 +72,16 @@ class Hw::Address_space : public Core::Address_space
 		friend class Core::Mapped_mem_allocator;
 
 		using Table = Hw::Page_table;
-		using Array = Table::Allocator::Array<DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Genode::Mutex     _mutex { };          /* table lock      */
-		Table            &_tt;                 /* table virt addr */
-		addr_t            _tt_phys;            /* table phys addr */
-		Array            *_tt_array = nullptr;
-		Table::Allocator &_tt_alloc;           /* table allocator */
+		Genode::Mutex         _mutex { };          /* table lock      */
+		Table                &_table;                 /* table virt addr */
+		addr_t                _table_phys;            /* table phys addr */
+		Table::Array         *_table_array = nullptr;
+		Page_table_allocator &_table_alloc;           /* table allocator */
 
 		static inline Core_mem_allocator &_cma();
 
-		static inline void *_table_alloc();
+		static inline void *_alloc_table();
 
 	protected:
 
@@ -96,7 +95,7 @@ class Hw::Address_space : public Core::Address_space
 		 * \param pd        reference to platform pd object
 		 */
 		Address_space(Hw::Page_table                    &tt,
-		              Hw::Page_table::Allocator         &tt_alloc,
+		              Hw::Page_table_allocator          &tt_alloc,
 		              Platform_pd                       &pd,
 		              Board::Address_space_id_allocator &addr_space_id_alloc);
 
@@ -138,9 +137,9 @@ class Hw::Address_space : public Core::Address_space
 		 ** Accessors **
 		 ***************/
 
-		Kernel::Pd     &kernel_pd()              { return *_kobj;   }
-		Hw::Page_table &translation_table()      { return _tt;      }
-		addr_t          translation_table_phys() { return _tt_phys; }
+		Kernel::Pd     &kernel_pd()              { return *_kobj;      }
+		Hw::Page_table &translation_table()      { return _table;      }
+		addr_t          translation_table_phys() { return _table_phys; }
 };
 
 
@@ -190,7 +189,7 @@ class Core::Platform_pd : public Hw::Address_space, private Cap_space
 		 * \param tt_alloc  translation table allocator
 		 */
 		Platform_pd(Hw::Page_table                    &tt,
-		            Hw::Page_table::Allocator         &tt_alloc,
+		            Hw::Page_table_allocator          &tt_alloc,
 		            Board::Address_space_id_allocator &addr_space_id_alloc);
 
 	public:
