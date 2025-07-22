@@ -118,16 +118,19 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 						                            _operation.count - _position) };
 				}
 
-				static void _with_offset_and_length(Job &job, auto const &fn)
+				static void _with_offset_and_length(Job &job, auto const &fn,
+				                                    block_count_t consumed_count = 0)
 				{
 					if (!Operation::has_payload(job._operation.type))
 						return;
 
 					Operation const operation  = job._curr_operation();
 					size_t    const block_size = job._connection._info.block_size;
+					size_t    const length     = block_size * (consumed_count ? consumed_count
+					                                                          : operation.count);
 
 					fn(job._position * block_size,
-					   Genode::min(job._payload.bytes, operation.count * block_size));
+					   Genode::min(job._payload.bytes, length));
 				}
 
 				void _submit(auto &policy, _JOB &job, Tx::Source &tx)
@@ -365,9 +368,11 @@ bool Block::Connection<JOB>::_try_process_ack(POLICY &policy, Tx::Source &tx)
 		_tags.template apply<_JOB>(id, [&] (_JOB &job) {
 
 			if (type == Operation::Type::READ)
-				Job::_with_offset_and_length(job, [&] (off_t offset, size_t length) {
-					policy.consume_read_result(job, offset,
-					                           tx.packet_content(p), length); });
+				Job::_with_offset_and_length(job,
+					[&] (off_t offset, size_t length) {
+						policy.consume_read_result(job, offset,
+						                           tx.packet_content(p), length);
+					}, p.block_count());
 
 			/* needed to access private members of 'Job' (friend) */
 			Job &job_base = job;
