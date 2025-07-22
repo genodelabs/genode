@@ -320,23 +320,6 @@ void Thread::_call_start_thread()
 		return;
 	}
 
-	/*
-	 * Sanity check core threads!
-	 *
-	 * Currently, the model assumes that there is only one core
-	 * entrypoint, which serves requests, and which can destroy
-	 * threads and pds. If this changes, we have to inform all
-	 * cpus about pd destructions to remove their page-tables
-	 * from the hardware in case that a core-thread running with
-	 * that same pd is currently active. Therefore, warn if the
-	 * semantic changes, and additional core threads are started
-	 * across cpu cores.
-	 */
-	if (thread._pd == &_core_pd &&
-	    thread._cpu().id() != _cpu_pool.primary_cpu().id())
-	        Genode::raw("Error: do not start core threads"
-	                    " on CPU cores different than boot cpu");
-
 	thread._become_active();
 }
 
