@@ -119,7 +119,10 @@ class Block::Session_component : public Rpc_object<Block::Session>,
 		Session_component(Env &env, long number, size_t buffer_size,
 		                  Session::Info info, Dispatch &dispatcher)
 		: Session_handler(env, buffer_size),
-		  Request_stream(env.rm(), ds.cap(), env.ep(), request_handler, info),
+		  Request_stream(env.rm(), ds.cap(), env.ep(), request_handler,
+		                 info, Block::Constrained_view { .offset = 0,
+		                                                 .num_blocks = 0,
+		                                                 .writeable = true }),
 		  _number(number), _dispatcher(dispatcher)
 		{
 			env.ep().manage(*this);
