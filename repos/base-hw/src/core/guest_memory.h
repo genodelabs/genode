@@ -27,9 +27,6 @@
 
 namespace Core { class Guest_memory; }
 
-using namespace Core;
-
-
 class Core::Guest_memory
 {
 	private:

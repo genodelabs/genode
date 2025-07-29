@@ -17,8 +17,8 @@
 #include <board.h>
 
 
-void Core::Cpu::cache_clean_invalidate_data_region(addr_t const base,
-                                                   size_t const size)
+void Board::Cpu::cache_clean_invalidate_data_region(addr_t const base,
+                                                    size_t const size)
 {
 	Arm_cpu::cache_clean_invalidate_data_region(base, size);
 	Board::l2_cache().clean_invalidate();

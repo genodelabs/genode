@@ -26,17 +26,17 @@ using Hw::Page_table;
 using Hw::Page_table_allocator;
 
 
-/**************************************
- ** Hw::Address_space implementation **
- **************************************/
+/*************************************
+ ** Hw_address_space implementation **
+ *************************************/
 
-Core_mem_allocator &Hw::Address_space::_cma()
+Core_mem_allocator &Hw_address_space::_cma()
 {
 	return static_cast<Core_mem_allocator &>(platform().core_mem_alloc());
 }
 
 
-void *Hw::Address_space::_alloc_table()
+void *Hw_address_space::_alloc_table()
 {
 	unsigned const align = Page_table::ALIGNM_LOG2;
 
@@ -51,8 +51,8 @@ void *Hw::Address_space::_alloc_table()
 }
 
 
-bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
-                                           size_t size, Page_flags flags)
+bool Hw_address_space::insert_translation(addr_t virt, addr_t phys,
+                                          size_t size, Page_flags flags)
 {
 	using Result = Hw::Page_table::Result;
 
@@ -66,8 +66,8 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 			result = _table.insert(virt, phys, size, flags, _table_alloc);
 		}
 
-		result.with_error([&] (Page_table_error e) {
-			if (e == Page_table_error::INVALID_RANGE)
+		result.with_error([&] (Hw::Page_table_error e) {
+			if (e == Hw::Page_table_error::INVALID_RANGE)
 				return;
 
 			/* core/kernel's page-tables should never get flushed */
@@ -84,13 +84,13 @@ bool Hw::Address_space::insert_translation(addr_t virt, addr_t phys,
 	}
 
 	return result.convert<bool>([&] (Ok) -> bool { return true; },
-	                            [&] (Page_table_error) -> bool {
+	                            [&] (Hw::Page_table_error) -> bool {
 		error("invalid mapping ", Hex(phys), " -> ", Hex(virt), " (", size, ")");
 		return false; });
 }
 
 
-bool Hw::Address_space::lookup_rw_translation(addr_t const virt, addr_t &phys)
+bool Hw_address_space::lookup_rw_translation(addr_t const virt, addr_t &phys)
 {
 	/** FIXME: for the time-being we use it without lock,
 	 * because it is used directly by the kernel when cache_coherent_region
@@ -99,11 +99,11 @@ bool Hw::Address_space::lookup_rw_translation(addr_t const virt, addr_t &phys)
 	 */
 	return _table.lookup(virt, phys, _table_alloc).convert<bool>(
 		[] (Ok) -> bool { return true; },
-		[] (Page_table_error) -> bool { return false; });
+		[] (Hw::Page_table_error) -> bool { return false; });
 }
 
 
-void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
+void Hw_address_space::flush(addr_t virt, size_t size, Core_local_addr)
 {
 	Mutex::Guard guard(_mutex);
 
@@ -112,11 +112,11 @@ void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 }
 
 
-Hw::Address_space::
-Address_space(Page_table                        &table,
-              Page_table_allocator              &table_alloc,
-              Platform_pd                       &pd,
-              Board::Address_space_id_allocator &addr_space_id_alloc)
+Hw_address_space::
+Hw_address_space(Page_table                        &table,
+                 Page_table_allocator              &table_alloc,
+                 Platform_pd                       &pd,
+                 Board::Address_space_id_allocator &addr_space_id_alloc)
 :
 	_table(table),
 	_table_phys(Platform::core_page_table()),
@@ -127,7 +127,7 @@ Address_space(Page_table                        &table,
 { }
 
 
-Hw::Address_space::Address_space(Platform_pd &pd)
+Hw_address_space::Hw_address_space(Platform_pd &pd)
 :
 	_table(*construct_at<Page_table>(_alloc_table(),
 	                                 *((Page_table*)Hw::Mm::core_page_tables().base))),
@@ -141,7 +141,7 @@ Hw::Address_space::Address_space(Platform_pd &pd)
 { }
 
 
-Hw::Address_space::~Address_space()
+Hw_address_space::~Hw_address_space()
 {
 	flush(platform().vm_start(), platform().vm_size());
 	destroy(_cma(), _table_array);
@@ -183,13 +183,13 @@ Platform_pd(Page_table                        &tt,
             Page_table_allocator              &alloc,
             Board::Address_space_id_allocator &addr_space_id_alloc)
 :
-	Hw::Address_space(tt, alloc, *this, addr_space_id_alloc), _label("core")
+	Hw_address_space(tt, alloc, *this, addr_space_id_alloc), _label("core")
 { }
 
 
 Platform_pd::Platform_pd(Allocator &, char const *label)
 :
-	Hw::Address_space(*this), _label(label)
+	Hw_address_space(*this), _label(label)
 {
 	if (!_kobj.cap().valid()) {
 		error("failed to create kernel object");
@@ -201,7 +201,7 @@ Platform_pd::Platform_pd(Allocator &, char const *label)
 Platform_pd::~Platform_pd()
 {
 	/* invalidate weak pointers to this object */
-	Address_space::lock_for_destruction();
+	Hw_address_space::lock_for_destruction();
 }
 
 

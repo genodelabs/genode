@@ -29,7 +29,7 @@ void Thread::_call_suspend() { }
 
 void Thread::exception(Genode::Cpu_state &state)
 {
-	Genode::memcpy(&*regs, &state, sizeof(Core::Cpu::Context));
+	Genode::memcpy(&*regs, &state, sizeof(Board::Cpu::Context));
 
 	switch (regs->exception_type) {
 	case Cpu::RESET:         return;
@@ -139,7 +139,7 @@ void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 		if (!_cpu().active(pd().mmu_regs) && type() != CORE)
 			_cpu().switch_to(pd().mmu_regs);
 
-		kernel_to_user_context_switch((static_cast<Core::Cpu::Context*>(&*regs)),
+		kernel_to_user_context_switch((static_cast<Board::Cpu::Context*>(&*regs)),
 	                                  (void*)_cpu().stack_start());
 }
 

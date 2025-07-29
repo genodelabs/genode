@@ -38,7 +38,7 @@ void Hw::Page_table::table_changed(unsigned long addr, unsigned long size)
 	 * page table entry is added. We only do this as core as the kernel
 	 * adds translations solely before MMU and caches are enabled.
 	 */
-	Core::Arm_cpu::cache_clean_data_region(addr, size);
+	Board::Arm_cpu::cache_clean_data_region(addr, size);
 }
 
 #endif /* _CORE__SPEC__CORTEX_A8__PAGE_TABLE_H_ */

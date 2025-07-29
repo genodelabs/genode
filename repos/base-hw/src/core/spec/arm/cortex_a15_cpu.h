@@ -19,10 +19,10 @@
 #include <spec/arm_v7/cpu_support.h>
 #include <hw/spec/arm/lpae.h>
 
-namespace Core { class Cpu; }
+namespace Board { class Cpu; }
 
 
-class Core::Cpu : public Arm_v7_cpu
+class Board::Cpu : public Arm_v7_cpu
 {
 	public:
 

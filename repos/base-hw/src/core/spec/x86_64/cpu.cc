@@ -19,7 +19,7 @@
 extern int __idt;
 extern int __idt_end;
 
-using namespace Core;
+using Cpu = Board::Cpu;
 
 
 /**

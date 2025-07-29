@@ -19,10 +19,10 @@
 #include <spec/arm_v7/cpu_support.h>
 #include <spec/arm/cortex_a9_page_table.h>
 
-namespace Core { struct Cpu; }
+namespace Board { struct Cpu; }
 
 
-struct Core::Cpu : Arm_v7_cpu
+struct Board::Cpu : Arm_v7_cpu
 {
 	/**
 	 * Clean and invalidate data-cache for virtual region

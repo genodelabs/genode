@@ -23,8 +23,8 @@
 
 using namespace Kernel;
 
-extern "C" void kernel_to_user_context_switch(Core::Cpu::Fpu_context*,
-                                              Core::Cpu::Context*, void*);
+extern "C" void kernel_to_user_context_switch(Board::Cpu::Fpu_context*,
+                                              Board::Cpu::Context*, void*);
 
 
 void Thread::_call_suspend() { }
@@ -32,7 +32,7 @@ void Thread::_call_suspend() { }
 
 void Thread::exception(Genode::Cpu_state &state)
 {
-	using Ctx = Core::Cpu::Context;
+	using Ctx = Board::Cpu::Context;
 
 	Genode::memcpy(&*regs, &state, sizeof(Ctx));
 
@@ -84,8 +84,8 @@ void Thread::proceed()
 	if (!_cpu().active(pd().mmu_regs) && type() != CORE)
 		_cpu().switch_to(pd().mmu_regs);
 
-	kernel_to_user_context_switch((static_cast<Core::Cpu::Fpu_context*>(&*regs)),
-	                              (static_cast<Core::Cpu::Context*>(&*regs)),
+	kernel_to_user_context_switch((static_cast<Board::Cpu::Fpu_context*>(&*regs)),
+	                              (static_cast<Board::Cpu::Context*>(&*regs)),
 	                              (void*)_cpu().stack_start());
 }
 

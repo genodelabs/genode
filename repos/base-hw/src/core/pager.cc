@@ -155,7 +155,7 @@ void Pager_entrypoint::Thread::entry()
 				continue;
 			}
 
-			Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
+			Hw_address_space * as = static_cast<Hw_address_space*>(&*locked_ptr);
 
 			Cache cacheable = Genode::CACHED;
 			if (!_mapping.cached)

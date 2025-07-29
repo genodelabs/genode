@@ -53,7 +53,7 @@ class Kernel::Pd
 
 	public:
 
-		Core::Cpu::Mmu_context mmu_regs;
+		Board::Cpu::Mmu_context mmu_regs;
 
 		/**
 		 * Constructor

@@ -16,7 +16,7 @@
 
 bool Kernel::Pd::invalidate_tlb(Kernel::Cpu&, addr_t, size_t)
 {
-	Core::Cpu::sfence();
+	Board::Cpu::sfence();
 	return false;
 }
 

@@ -21,6 +21,7 @@
 #include <util/noncopyable.h>
 
 /* core-local includes */
+#include <dataspace_component.h>
 #include <types.h>
 
 namespace Core {
@@ -28,19 +29,15 @@ namespace Core {
 	class Phys_allocated;
 }
 
-using namespace Core;
-
-
 template <typename T>
 class Core::Phys_allocated : Genode::Noncopyable
 {
 	private:
 
 		Rpc_entrypoint &_ep;
-		Ram_allocator  &_ram;
-		Local_rm       &_rm;
 
-		Attached_ram_dataspace _ds { _ram, _rm, sizeof(T) };
+		Attached_ram_dataspace _ds;
+
 	public:
 
 		T &obj = *_ds.local_addr<T>();
@@ -49,7 +46,7 @@ class Core::Phys_allocated : Genode::Noncopyable
 		               Ram_allocator  &ram,
 		               Local_rm       &rm)
 		:
-		_ep(ep), _ram(ram), _rm(rm)
+			_ep(ep), _ds{ram, rm, sizeof(T)}
 		{
 			construct_at<T>(&obj);
 		}
@@ -59,14 +56,15 @@ class Core::Phys_allocated : Genode::Noncopyable
 		               Local_rm       &rm,
 		               auto const     &construct_fn)
 		:
-		_ep(ep), _ram(ram), _rm(rm)
+			_ep(ep), _ds{ram, rm, sizeof(T)}
 		{
 			construct_fn(*this, &obj);
 		}
 
 		~Phys_allocated() { obj.~T(); }
 
-		addr_t phys_addr() {
+		addr_t phys_addr() const
+		{
 			addr_t phys_addr { };
 			 _ep.apply(_ds.cap(), [&](Dataspace_component *dsc) {
 				phys_addr = dsc->phys_addr();

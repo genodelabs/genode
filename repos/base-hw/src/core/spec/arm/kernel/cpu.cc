@@ -70,7 +70,7 @@ void Kernel::Cpu::_arch_init()
 	log("");
 	log("Backtrace:");
 
-	Core::Cpu::Context &context = static_cast<Core::Cpu::Context&>(state);
+	Board::Cpu::Context &context = static_cast<Board::Cpu::Context&>(state);
 	Const_byte_range_ptr const stack {
 		(char const*)stack_base(), Hw::Mm::KERNEL_STACK_SIZE };
 	context.for_each_return_address(stack, [&] (void **p) { log(*p); });

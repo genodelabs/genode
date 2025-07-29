@@ -36,7 +36,7 @@ namespace Kernel {
 }
 
 
-class Kernel::Cpu : public Core::Cpu, private Irq::Pool,
+class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
                     public Genode::List<Cpu>::Element
 {
 	public:

@@ -123,7 +123,7 @@ void Vcpu::proceed()
 void Vcpu::exception(Genode::Cpu_state &state)
 {
 	using namespace Board;
-	using Ctx = Core::Cpu::Context;
+	using Ctx = Board::Cpu::Context;
 
 	Genode::memcpy(&*_vcpu_context.regs, &state, sizeof(Ctx));
 

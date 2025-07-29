@@ -462,7 +462,7 @@ uint64_t Vmcb::handle_vm_exit()
 	return exitcode;
 }
 
-void Vmcb::switch_world(Core::Cpu::Context &regs, addr_t stack_start)
+void Vmcb::switch_world(Board::Cpu::Context &regs, addr_t stack_start)
 {
 	asm volatile(
 	    "pushq %[stack];"

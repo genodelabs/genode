@@ -27,7 +27,7 @@ void Kernel::Cpu::_arch_init()
 {
 	using namespace Genode;
 
-	Core::Cpu::Context &context = static_cast<Core::Cpu::Context&>(state);
+	Board::Cpu::Context &context = static_cast<Board::Cpu::Context&>(state);
 
 	const char *reason = "unknown";
 

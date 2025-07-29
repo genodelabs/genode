@@ -88,7 +88,7 @@ static Hypervisor::Host_context & host_context(Cpu &cpu)
 }
 
 
-Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu &cpu)
+Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Kernel::Cpu &cpu)
 :
 	Kernel::Irq { irq, cpu.irq_pool(), cpu.pic() },
 	_cpu        { cpu }
@@ -107,7 +107,7 @@ void Board::Vcpu_context::Vm_irq::occurred()
 }
 
 
-Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu &cpu)
+Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Kernel::Cpu &cpu)
 :
 	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
 {
@@ -116,7 +116,7 @@ Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu &cpu)
 }
 
 
-Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu &cpu)
+Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Kernel::Cpu &cpu)
 :
 	irq(Board::VT_TIMER_IRQ, cpu)
 { }

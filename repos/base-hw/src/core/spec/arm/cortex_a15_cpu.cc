@@ -15,7 +15,7 @@
 #include <kernel/thread.h>
 #include <spec/arm/cortex_a15_cpu.h>
 
-using namespace Core;
+using Cpu = Board::Cpu;
 
 
 Cpu::Mmu_context::Mmu_context(addr_t table,

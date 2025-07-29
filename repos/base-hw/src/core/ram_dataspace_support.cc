@@ -70,8 +70,8 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 		}
 
 		/* dependent on the architecture, cache maintainance might be necessary */
-		Cpu::clear_memory_region(virt_addr, chunk_size,
-		                         ds.cacheability() != CACHED);
+		Board::Cpu::clear_memory_region(virt_addr, chunk_size,
+		                                ds.cacheability() != CACHED);
 
 		/* unmap dataspace from core */
 		if (!unmap_local(virt_addr, num_pages))

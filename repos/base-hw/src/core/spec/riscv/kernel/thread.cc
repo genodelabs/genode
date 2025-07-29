@@ -30,8 +30,8 @@ void Cpu::Halt_job::proceed() { }
 
 void Thread::exception(Genode::Cpu_state&)
 {
-	using Context = Core::Cpu::Context;
-	using Stval   = Core::Cpu::Stval;
+	using Context = Board::Cpu::Context;
+	using Stval   = Board::Cpu::Stval;
 
 	if (regs->is_irq()) {
 		/* cpu-local timer interrupt */
@@ -89,7 +89,7 @@ void Thread::exception(Genode::Cpu_state&)
 	default:
 		Genode::raw(*this, ": unhandled exception ", regs->cpu_exception,
 		            " at ip=", (void*)regs->ip,
-		            " addr=", Genode::Hex(Core::Cpu::Stval::read()));
+		            " addr=", Genode::Hex(Board::Cpu::Stval::read()));
 		_die();
 	}
 }

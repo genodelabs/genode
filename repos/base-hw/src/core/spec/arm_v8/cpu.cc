@@ -19,7 +19,7 @@
 #include <board.h>
 #include <kernel/thread.h>
 
-using namespace Core;
+using namespace Board;
 
 
 void Cpu::Context::print(Output &output) const

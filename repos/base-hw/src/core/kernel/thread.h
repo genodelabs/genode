@@ -333,7 +333,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 
 	public:
 
-		Genode::Align_at<Core::Cpu::Context> regs;
+		Genode::Align_at<Board::Cpu::Context> regs;
 
 		/**
 		 * Constructor

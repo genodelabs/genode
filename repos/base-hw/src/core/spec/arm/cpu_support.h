@@ -32,13 +32,14 @@
 namespace Kernel { struct Thread_fault; }
 
 
-namespace Core {
+namespace Board {
+	using namespace Genode;
 	using sizet_arithm_t = uint64_t;
 	struct Arm_cpu;
 }
 
 
-struct Core::Arm_cpu : public Hw::Arm_cpu
+struct Board::Arm_cpu : public Hw::Arm_cpu
 {
 	struct Fpu_context
 	{

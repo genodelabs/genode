@@ -34,14 +34,10 @@
 namespace Kernel { struct Thread_fault; }
 
 
-namespace Board { class Address_space_id_allocator; }
+namespace Board {
+	using namespace Genode;
 
-
-namespace Core {
-
-	/**
-	 * CPU driver for core
-	 */
+	class Address_space_id_allocator;
 	class Cpu;
 }
 
@@ -49,7 +45,7 @@ namespace Core {
 namespace Kernel { class Pd; }
 
 
-class Core::Cpu : public Hw::Riscv_cpu
+class Board::Cpu : public Hw::Riscv_cpu
 {
 	public:
 
@@ -117,7 +113,7 @@ class Core::Cpu : public Hw::Riscv_cpu
 template <typename E, unsigned B, unsigned S>
 void Sv39::Level_x_page_table<E, B, S>::table_changed()
 {
-	Core::Cpu::sfence();
+	Board::Cpu::sfence();
 }
 
 

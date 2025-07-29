@@ -19,12 +19,12 @@
 #include <kernel/thread.h>
 #include <spec/arm/cpu_support.h>
 
-using namespace Core;
+using namespace Genode;
+using Arm_cpu = Board::Arm_cpu;
 
 
 void Arm_cpu::Context::print(Output &output) const
 {
-	using namespace Genode;
 	using Genode::print;
 
 	print(output, "\n");
@@ -75,7 +75,7 @@ Mmu_context(addr_t                             table,
 { }
 
 
-Core::Arm_cpu::Mmu_context::~Mmu_context()
+Arm_cpu::Mmu_context::~Mmu_context()
 {
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());

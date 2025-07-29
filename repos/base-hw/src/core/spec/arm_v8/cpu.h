@@ -32,17 +32,16 @@
 namespace Kernel { struct Thread_fault; }
 
 
-namespace Board { class Address_space_id_allocator; }
-
-
-namespace Core {
-
-	struct Cpu;
+namespace Board {
+	using namespace Genode;
 	using uint128_t = __uint128_t;
+
+	class Address_space_id_allocator;
+	struct Cpu;
 }
 
 
-struct Core::Cpu : Hw::Arm_64_cpu
+struct Board::Cpu : Hw::Arm_64_cpu
 {
 	enum Exception_entry {
 		SYNC_LEVEL_EL1          = 0x000,

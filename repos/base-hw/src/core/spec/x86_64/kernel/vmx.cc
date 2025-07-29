@@ -837,7 +837,7 @@ void Vmcs::load(Genode::Vcpu_state &state)
 	}
 }
 
-void Vmcs::switch_world(Core::Cpu::Context &regs, addr_t)
+void Vmcs::switch_world(Board::Cpu::Context &regs, addr_t)
 {
 	_load_pointer();
 

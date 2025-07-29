@@ -167,7 +167,7 @@ void Platform_thread::start(void * const ip, void * const sp)
 			error("unable to start thread in invalid address space");
 			return;
 		};
-		Hw::Address_space * as = static_cast<Hw::Address_space*>(&*locked_ptr);
+		Hw_address_space * as = static_cast<Hw_address_space*>(&*locked_ptr);
 		if (!as->insert_translation(user_utcb_main_thread(), _utcb.phys_addr,
 		                            sizeof(Native_utcb), Hw::PAGE_FLAGS_UTCB)) {
 			error("failed to attach UTCB");

@@ -53,7 +53,7 @@ struct Board::Vcpu_context
 	void load(Vcpu_state &state);
 	void store(Vcpu_state &state);
 
-	Genode::Align_at<Core::Cpu::Context> regs;
+	Genode::Align_at<Board::Cpu::Context> regs;
 
 	Virt_interface                      &virt;
 

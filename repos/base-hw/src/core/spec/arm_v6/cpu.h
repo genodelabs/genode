@@ -19,10 +19,10 @@
 #include <spec/arm/cpu_support.h>
 #include <spec/arm_v6/page_table.h>
 
-namespace Core { struct Cpu; }
+namespace Board { struct Cpu; }
 
 
-struct Core::Cpu : Arm_cpu
+struct Board::Cpu : Arm_cpu
 {
 	static inline void synchronization_barrier() {}
 

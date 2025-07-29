@@ -29,7 +29,7 @@ constexpr bool Hw::Page_table_descriptor::smp() { return false; }
 
 void Hw::Page_table::table_changed(unsigned long addr, unsigned long size)
 {
-	Core::Arm_cpu::cache_clean_data_region(addr, size);
+	Board::Arm_cpu::cache_clean_data_region(addr, size);
 }
 
 #endif /* _CORE__SPEC__ARM_V6__PAGE_TABLE_H_ */

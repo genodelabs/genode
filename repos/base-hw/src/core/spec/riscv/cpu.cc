@@ -20,9 +20,8 @@
 #include <kernel/cpu.h>
 #include <kernel/pd.h>
 
-using Mmu_context = Core::Cpu::Mmu_context;
-
-using namespace Core;
+using Cpu = Board::Cpu;
+using Mmu_context = Board::Cpu::Mmu_context;
 
 
 void Cpu::Context::print(Output &output) const

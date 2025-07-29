@@ -17,10 +17,10 @@
 /* core includes */
 #include <spec/arm/cpu_support.h>
 
-namespace Core { struct Arm_v7_cpu; }
+namespace Board { struct Arm_v7_cpu; }
 
 
-struct Core::Arm_v7_cpu : Arm_cpu
+struct Board::Arm_v7_cpu : Arm_cpu
 {
 	/**
 	 * Returns whether this cpu implements the multiprocessor extensions

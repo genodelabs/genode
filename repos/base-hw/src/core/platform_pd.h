@@ -26,19 +26,12 @@
 /* base-hw internal includes */
 #include <hw/page_table_allocator.h>
 
-namespace Hw {
-
-	using namespace Kernel;
-	using namespace Core;
+namespace Core {
 
 	/**
 	 * Memory virtualization interface of a protection domain
 	 */
-	class Address_space;
-}
-
-
-namespace Core {
+	class Hw_address_space;
 
 	class Platform_thread; /* forward declaration */
 
@@ -58,26 +51,30 @@ namespace Core {
 }
 
 
-class Hw::Address_space : public Core::Address_space
+class Core::Hw_address_space : public Core::Address_space
 {
-	private:
+	public:
+
+		using Id_allocator = Board::Address_space_id_allocator;
+		using Table = Hw::Page_table;
+		using Table_allocator = Hw::Page_table_allocator;
 
 		/*
 		 * Noncopyable
 		 */
-		Address_space(Address_space const &);
-		Address_space &operator = (Address_space const &);
+		Hw_address_space(Hw_address_space const &) = delete;
+		Hw_address_space &operator = (Hw_address_space const &) = delete;
+
+	private:
 
 		friend class Core::Platform;
 		friend class Core::Mapped_mem_allocator;
 
-		using Table = Hw::Page_table;
-
-		Genode::Mutex         _mutex { };          /* table lock      */
-		Table                &_table;                 /* table virt addr */
-		addr_t                _table_phys;            /* table phys addr */
-		Table::Array         *_table_array = nullptr;
-		Page_table_allocator &_table_alloc;           /* table allocator */
+		Genode::Mutex    _mutex { };             /* table lock      */
+		Table           &_table;                 /* table virt addr */
+		addr_t           _table_phys;            /* table phys addr */
+		Table::Array    *_table_array = nullptr;
+		Table_allocator &_table_alloc;           /* table allocator */
 
 		static inline Core_mem_allocator &_cma();
 
@@ -94,10 +91,10 @@ class Hw::Address_space : public Core::Address_space
 		 * \param tt_alloc  reference to translation table allocator
 		 * \param pd        reference to platform pd object
 		 */
-		Address_space(Hw::Page_table                    &tt,
-		              Hw::Page_table_allocator          &tt_alloc,
-		              Platform_pd                       &pd,
-		              Board::Address_space_id_allocator &addr_space_id_alloc);
+		Hw_address_space(Table           &tt,
+		                 Table_allocator &tt_alloc,
+		                 Platform_pd     &pd,
+		                 Id_allocator    &addr_space_id_alloc);
 
 	public:
 
@@ -106,9 +103,9 @@ class Hw::Address_space : public Core::Address_space
 		 *
 		 * \param pd    reference to platform pd object
 		 */
-		Address_space(Platform_pd &pd);
+		Hw_address_space(Platform_pd &pd);
 
-		~Address_space();
+		~Hw_address_space();
 
 		/**
 		 * Insert memory mapping into translation table of the address space
@@ -137,9 +134,9 @@ class Hw::Address_space : public Core::Address_space
 		 ** Accessors **
 		 ***************/
 
-		Kernel::Pd     &kernel_pd()              { return *_kobj;      }
-		Hw::Page_table &translation_table()      { return _table;      }
-		addr_t          translation_table_phys() { return _table_phys; }
+		Kernel::Pd &kernel_pd()         { return *_kobj;      }
+		Table &translation_table()      { return _table;      }
+		addr_t translation_table_phys() { return _table_phys; }
 };
 
 
@@ -166,7 +163,7 @@ class Core::Cap_space
 };
 
 
-class Core::Platform_pd : public Hw::Address_space, private Cap_space
+class Core::Platform_pd : public Hw_address_space, private Cap_space
 {
 	private:
 
@@ -188,9 +185,9 @@ class Core::Platform_pd : public Hw::Address_space, private Cap_space
 		 * \param tt        translation table address
 		 * \param tt_alloc  translation table allocator
 		 */
-		Platform_pd(Hw::Page_table                    &tt,
-		            Hw::Page_table_allocator          &tt_alloc,
-		            Board::Address_space_id_allocator &addr_space_id_alloc);
+		Platform_pd(Table           &tt,
+		            Table_allocator &tt_alloc,
+		            Id_allocator    &addr_space_id_alloc);
 
 	public:
 
@@ -234,7 +231,7 @@ class Core::Platform_pd : public Hw::Address_space, private Cap_space
 
 struct Core::Core_platform_pd : Platform_pd
 {
-	Core_platform_pd(Board::Address_space_id_allocator &addr_space_id_alloc);
+	Core_platform_pd(Id_allocator &id_alloc);
 };
 
 #endif /* _CORE__PLATFORM_PD_H_ */
