@@ -18,7 +18,6 @@
 #include <base/stdint.h>
 #include <cpu.h>
 #include <cpu/vcpu_state.h>
-#include <cpu/vcpu_state_virtualization.h>
 #include <spec/x86_64/virt_interface.h>
 #include <util/mmio.h>
 #include <util/string.h>
@@ -29,12 +28,9 @@ using Genode::uint8_t;
 using Genode::uint32_t;
 using Genode::uint64_t;
 using Genode::Mmio;
-using Genode::Vcpu_data;
 using Genode::Vcpu_state;
 using Genode::get_page_size;
 using Genode::memset;
-
-namespace Kernel { class Cpu; }
 
 namespace Board
 {
@@ -327,14 +323,14 @@ struct Board::Vmcb
 	Vmcb_buf       v;
 	addr_t root_vmcb_phys = { 0 };
 
-	Vmcb(Vcpu_data &vcpu_data, uint32_t id);
+	Vmcb(Board::Vcpu_state &state, uint32_t id);
 	static Vmcb_buf &host_vmcb(size_t cpu_id);
 	void enforce_intercepts(uint32_t desired_primary   = 0U,
 	                        uint32_t desired_secondary = 0U);
-	void initialize(Kernel::Cpu   &cpu,
+	void initialize(Board::Cpu &cpu,
 	                addr_t page_table_phys_addr) override;
-	void load(Vcpu_state &state) override;
-	void store(Vcpu_state &state) override;
+	void load(Genode::Vcpu_state &state) override;
+	void store(Genode::Vcpu_state &state) override;
 	void switch_world(Board::Cpu::Context &regs, addr_t) override;
 	Genode::uint64_t handle_vm_exit() override;
 

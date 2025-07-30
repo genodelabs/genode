@@ -34,24 +34,18 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
                    public Revoke
 {
 	private:
-		struct Data_pages {
-			uint8_t _[Vcpu_data::size()];
-		};
 
 		Kernel::Vcpu::Identity     &_id;
 		Rpc_entrypoint             &_ep;
-		Vcpu_data                   _vcpu_data { };
-		Signal_context_capability   _sigh_cap { };
-		Kernel_object<Kernel::Vcpu> _kobj { };
-		Accounted_ram_allocator    &_ram;
 		Ram_allocator::Result       _ds;
-		Local_rm                   &_local_rm;
+		Signal_context_capability   _sigh_cap { };
 		Affinity::Location          _location;
-		Phys_allocated<Data_pages>  _vcpu_data_pages;
+		Board::Vcpu_state           _state;
+		Kernel_object<Kernel::Vcpu> _kobj { };
 
-		constexpr size_t vcpu_state_size()
+		constexpr size_t _ds_size()
 		{
-			return align_addr(sizeof(Board::Vcpu_state),
+			return align_addr(sizeof(Genode::Vcpu_state),
 			                  get_page_size_log2());
 		}
 
@@ -65,37 +59,15 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
 		:
 			_id(id),
 			_ep(ep),
-			_ram(ram),
-			_ds( {_ram.try_alloc(vcpu_state_size(), Cache::UNCACHED)} ),
-			_local_rm(local_rm),
+			_ds( {ram.try_alloc(_ds_size(), Cache::UNCACHED)} ),
 			_location(location),
-			_vcpu_data_pages(ep, ram, local_rm)
+			_state(ep, ram, local_rm, _ds)
 		{
-			_ds.with_result([&] (Ram::Allocation &allocation) {
-				Region_map::Attr attr { };
-				attr.writeable = true;
-				_vcpu_data.vcpu_state = _local_rm.attach(allocation.cap, attr).convert<Vcpu_state *>(
-					[&] (Local_rm::Attachment &a) {
-						a.deallocate = false; return (Vcpu_state *)a.ptr; },
-					[&] (Local_rm::Error) -> Vcpu_state * {
-						error("failed to attach VCPU data within core");
-						return nullptr;
-					});
-
-				if (!_vcpu_data.vcpu_state)
-					throw Attached_dataspace::Region_conflict();
-
-				_vcpu_data.virt_area = &_vcpu_data_pages.obj;
-				_vcpu_data.phys_addr = _vcpu_data_pages.phys_addr();
-
-				ep.manage(this);
-			},
-			[&] (Ram::Error e) { throw_exception(e); });
+			ep.manage(this);
 		}
 
 		~Vcpu()
 		{
-			_local_rm.detach((addr_t)_vcpu_data.vcpu_state);
 			_ep.dissolve(this);
 		}
 
@@ -139,7 +111,7 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
 
 			unsigned const cpu = _location.xpos();
 
-			if (!_kobj.create(cpu, (void *)&_vcpu_data,
+			if (!_kobj.create(cpu, (void *)&_state,
 			                  Capability_space::capid(handler), _id))
 				warning("Cannot instantiate vcpu kernel object, invalid signal context?");
 		}

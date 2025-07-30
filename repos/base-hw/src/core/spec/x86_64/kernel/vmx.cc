@@ -75,14 +75,21 @@ Vmcs_buf::Vmcs_buf(Genode::uint32_t system_rev)
 	rev = system_rev;
 }
 
-Vmcs::Vmcs(Genode::Vcpu_data &vcpu_data)
+addr_t Vmcs::msr_phys_addr(Msr_store_area *msr_ptr)
+{
+	Genode::size_t offset =
+	    (Genode::size_t)msr_ptr - (Genode::size_t)this;
+	return vcpu_state.vmc_phys_addr() + offset;
+}
+
+Vmcs::Vmcs(Board::Vcpu_state &state)
 :
-	Board::Virt_interface(vcpu_data)
+	Board::Virt_interface(state)
 {
 	if (!system_rev)
 		setup_vmx_info();
 
-	Genode::construct_at<Vmcs_buf>((void *)(((addr_t) vcpu_data.virt_area)
+	Genode::construct_at<Vmcs_buf>((void *)(state.vmc_addr()
 	                                         + get_page_size()), system_rev);
 }
 
@@ -249,9 +256,11 @@ void Vmcs::setup_vmx_info()
 	cr4_mask   = ~cr4_fixed1 | cr4_fixed0;
 }
 
-void Vmcs::initialize(Kernel::Cpu &cpu, Genode::addr_t page_table_phys)
+void Vmcs::initialize(Board::Cpu &c, Genode::addr_t page_table_phys)
 {
 	using Cpu = Hw::X86_64_cpu;
+
+	Kernel::Cpu &cpu = static_cast<Kernel::Cpu&>(c);
 
 	/* Enable VMX */
 	Cpu::Ia32_feature_control::access_t feature_control =
@@ -275,15 +284,15 @@ void Vmcs::initialize(Kernel::Cpu &cpu, Genode::addr_t page_table_phys)
 	Cpu::Cr4::Vmxe::set(cr4);
 	Cpu::Cr4::write(cr4);
 
-	_cpu_id =  cpu.id();
+	_cpu_id = cpu.id();
 
 	construct_host_vmcs();
 
 	Genode::construct_at<Virtual_apic_state>(
-			(void *)(((addr_t) vcpu_data.virt_area) + 2 * get_page_size()));
+			(void *)(vcpu_state.vmc_addr() + 2 * get_page_size()));
 
 
-	vmclear(vcpu_data.phys_addr + get_page_size());
+	vmclear(vcpu_state.vmc_phys_addr() + get_page_size());
 	_load_pointer();
 
 	prepare_vmcs();
@@ -482,7 +491,8 @@ void Vmcs::prepare_vmcs()
 	write(E_VM_EXIT_MSR_LOAD_ADDRESS, msr_phys_addr(&host_msr_store_area));
 	write(E_VM_EXIT_MSR_LOAD_COUNT, Board::Msr_store_area::get_count());
 
-	write(E_VIRTUAL_APIC_ADDRESS, vcpu_data.phys_addr + 2 * get_page_size());
+	write(E_VIRTUAL_APIC_ADDRESS, vcpu_state.vmc_phys_addr() +
+	                              2 * get_page_size());
 
 	/*
 	 * For details, see Vol. 3C of the Intel SDM (September 2023):
@@ -633,7 +643,7 @@ void Vmcs::store(Genode::Vcpu_state &state)
 
 	Virtual_apic_state *virtual_apic_state =
 		reinterpret_cast<Virtual_apic_state *>(
-			((addr_t) vcpu_data.virt_area) + 2 * get_page_size());
+			vcpu_state.vmc_addr() + 2 * get_page_size());
 	state.tpr.charge(virtual_apic_state->get_vtpr());
 	state.tpr_threshold.charge(
 		static_cast<uint32_t>(read(E_TPR_THRESHOLD)));
@@ -828,7 +838,7 @@ void Vmcs::load(Genode::Vcpu_state &state)
 	}
 
 	Virtual_apic_state * virtual_apic_state =
-		reinterpret_cast<Virtual_apic_state *>(((addr_t) vcpu_data.virt_area)
+		reinterpret_cast<Virtual_apic_state *>(vcpu_state.vmc_addr()
 		                                       + 2 * get_page_size());
 
 	if (state.tpr.charged()) {
@@ -911,7 +921,7 @@ void Vmcs::_load_pointer()
 
 	current_vmcs[_cpu_id] = this;
 
-	vmptrld(vcpu_data.phys_addr + get_page_size());
+	vmptrld(vcpu_state.vmc_phys_addr() + get_page_size());
 }
 
 

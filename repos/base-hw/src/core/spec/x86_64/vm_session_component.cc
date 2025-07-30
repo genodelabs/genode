@@ -19,6 +19,48 @@ using namespace Genode;
 using namespace Core;
 
 
+/***********************
+ ** Board::Vcpu_state **
+ ***********************/
+
+Board::Vcpu_state::Vcpu_state(Rpc_entrypoint          &ep,
+                              Accounted_ram_allocator &ram,
+                              Local_rm                &local_rm,
+                              Ram_allocator::Result   &ds)
+:
+	_local_rm(local_rm),
+	_hw_context(ep, ram, local_rm)
+{
+	ds.with_result([&] (Ram::Allocation &allocation) {
+		using State = Genode::Vcpu_state;
+		Region_map::Attr attr { };
+		attr.writeable = true;
+		_state = _local_rm.attach(allocation.cap,
+		                          attr).convert<State *>(
+			[&] (Local_rm::Attachment &a) {
+				a.deallocate = false; return (State *)a.ptr; },
+			[&] (Local_rm::Error) -> State * {
+				error("failed to attach VCPU data within core");
+				return nullptr;
+			});
+
+		if (!_state)
+			throw Attached_dataspace::Region_conflict();
+	},
+	[&] (Ram::Error e) { throw_exception(e); });
+}
+
+
+Board::Vcpu_state::~Vcpu_state()
+{
+	_local_rm.detach((addr_t)_state);
+}
+
+
+/*******************
+ ** Core::Vm_root **
+ *******************/
+
 Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 {
 	Session::Resources resources = session_resources_from_args(args);

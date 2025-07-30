@@ -31,7 +31,6 @@ namespace Board {
 	struct Vcpu_context;
 
 	using Vcpu_state = Genode::Vcpu_state;
-	using Vcpu_data = Genode::Vcpu_state;
 };
 
 

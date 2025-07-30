@@ -11,7 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 #include <base/log.h>
-#include <cpu/vcpu_state_virtualization.h>
 #include <util/construct_at.h>
 #include <util/mmio.h>
 #include <cpu/string.h>
@@ -35,17 +34,17 @@ using Kernel::Vcpu;
 
 Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
            Cpu                    &cpu,
-           Vcpu_data              &data,
+           Board::Vcpu_state      &state,
            Kernel::Signal_context &context,
            Identity               &id)
 :
 	Kernel::Object { *this },
 	Cpu_context(cpu, Scheduler::Priority::min(), 0),
 	_user_irq_pool(user_irq_pool),
-	_state(*data.vcpu_state),
+	_state(state),
 	_context(context),
 	_id(id),
-	_vcpu_context(id.id, data) { }
+	_vcpu_context(id.id, state) { }
 
 
 Vcpu::~Vcpu()
@@ -70,7 +69,8 @@ void Vcpu::run()
 		_vcpu_context.init_state  = Board::Vcpu_context::Init_state::STARTED;
 	}
 
-	_vcpu_context.load(_state);
+	_state.with_state([&] (Genode::Vcpu_state &state) {
+		_vcpu_context.load(state); });
 
 	if (_scheduled != ACTIVE) Cpu_context::_activate();
 	_scheduled = ACTIVE;
@@ -94,7 +94,8 @@ void Vcpu::pause()
 
 	_pause_vcpu();
 
-	_vcpu_context.store(_state);
+	_state.with_state([&] (Genode::Vcpu_state &state) {
+		_vcpu_context.store(state); });
 
 	/*
 	 * Set exit code so that if _run() was not called after an exit, the
@@ -186,15 +187,31 @@ void Vcpu::exception(Genode::Cpu_state &state)
 }
 
 
-Board::Vcpu_context::Vcpu_context(unsigned id, Vcpu_data &vcpu_data)
+Board::Virt_interface&
+Board::Vcpu_context::detect_virtualization(Vcpu_state &state,
+                                           unsigned    id)
+{
+	if (Hw::Virtualization_support::has_svm())
+		return *Genode::construct_at<Vmcb>((void*)state.vmc_addr(),
+		                                   state, id);
+	else if (Hw::Virtualization_support::has_vmx()) {
+		return *Genode::construct_at<Vmcs>((void*)state.vmc_addr(), state);
+	} else {
+		Genode::error( "No virtualization support detected.");
+		throw Core::Service_denied();
+	}
+}
+
+
+Board::Vcpu_context::Vcpu_context(unsigned id, Board::Vcpu_state &state)
 :
 	regs(1),
-	virt(detect_virtualization(vcpu_data, id))
+	virt(detect_virtualization(state, id))
 {
 	regs->trapno = TRAP_VMEXIT;
 }
 
-void Board::Vcpu_context::load(Vcpu_state &state)
+void Board::Vcpu_context::load(Genode::Vcpu_state &state)
 {
 	virt.load(state);
 
@@ -226,20 +243,24 @@ void Board::Vcpu_context::load(Vcpu_state &state)
 		regs->r15 = state.r15.value();
 	}
 
+	using Fpu_state = Genode::Vcpu_state::Fpu::State;
+
 	if (state.fpu.charged()) {
 		state.fpu.with_state(
-		    [&](Vcpu_state::Fpu::State const &fpu) {
+		    [&](Fpu_state const &fpu) {
 			    memcpy(&regs->fpu_context(), &fpu, Cpu::Fpu_context::SIZE);
 		    });
 	}
 }
 
-void Board::Vcpu_context::store(Vcpu_state &state)
+void Board::Vcpu_context::store(Genode::Vcpu_state &state)
 {
+	using Fpu_state = Genode::Vcpu_state::Fpu::State;
+
 	state.discharge();
 	state.exit_reason = (unsigned) exit_reason;
 
-	state.fpu.charge([&](Vcpu_state::Fpu::State &fpu) {
+	state.fpu.charge([&](Fpu_state &fpu) {
 		memcpy(&fpu, &regs->fpu_context(), Cpu::Fpu_context::SIZE);
 		return Cpu::Fpu_context::SIZE;
 	});
@@ -273,7 +294,7 @@ void Board::Vcpu_context::store(Vcpu_state &state)
 }
 
 
-void Board::Vcpu_context::initialize(Kernel::Cpu &cpu, addr_t table_phys_addr)
+void Board::Vcpu_context::initialize(Board::Cpu &cpu, addr_t table_phys_addr)
 {
 	virt.initialize(cpu, table_phys_addr);
 }

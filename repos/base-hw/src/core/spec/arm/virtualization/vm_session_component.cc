@@ -82,12 +82,6 @@ void * Vm_session_component::_alloc_table()
 }
 
 
-Genode::addr_t Vm_session_component::_alloc_vcpu_data(Genode::addr_t ds_addr)
-{
-	return ds_addr;
-}
-
-
 Vm_session_component::Vm_session_component(Registry<Revoke> &registry,
                                            Vmid_allocator &vmid_alloc,
                                            Rpc_entrypoint &ds_ep,

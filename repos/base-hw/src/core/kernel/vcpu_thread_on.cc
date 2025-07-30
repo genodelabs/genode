@@ -26,7 +26,7 @@ void Kernel::Thread::_call_new_vcpu()
 	}
 
 	_call_new<Vcpu>(_user_irq_pool, _cpu_pool.cpu((unsigned)user_arg_2()),
-	              *(Board::Vcpu_data*)user_arg_3(),
+	              *(Board::Vcpu_state*)user_arg_3(),
 	              *context, *(Vcpu::Identity*)user_arg_4());
 }
 

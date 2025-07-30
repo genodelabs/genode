@@ -83,7 +83,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 		vcpu.ds_addr = _local_rm.attach(vcpu.state(), attr).convert<addr_t>(
 			[&] (Local_rm::Attachment &a) {
 				a.deallocate = false;
-				return _alloc_vcpu_data(addr_t(a.ptr));
+				return addr_t(a.ptr);
 			},
 			[&] (Local_rm::Error) -> addr_t {
 				error("failed to attach VCPU data within core");

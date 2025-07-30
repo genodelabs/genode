@@ -111,8 +111,6 @@ class Core::Vm_session_component
 		Kernel::Vcpu::Identity      _id;
 		unsigned                    _vcpu_id_alloc { 0 };
 
-		static size_t _alloc_vcpu_data(Genode::addr_t ds_addr);
-
 		void *_alloc_table();
 		void  _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
 

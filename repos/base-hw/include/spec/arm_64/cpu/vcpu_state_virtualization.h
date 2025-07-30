@@ -26,7 +26,6 @@ namespace Genode {
 	 * CPU context of a virtual machine
 	 */
 	struct Vcpu_state;
-	using Vcpu_data = Vcpu_state;
 
 	using uint128_t = __uint128_t;
 }

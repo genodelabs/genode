@@ -17,7 +17,6 @@
 #include <base/internal/page_size.h>
 #include <cpu.h>
 #include <cpu/vcpu_state.h>
-#include <cpu/vcpu_state_virtualization.h>
 #include <hw/assert.h>
 #include <hw/spec/x86_64/cpu.h>
 #include <spec/x86_64/virt_interface.h>
@@ -28,8 +27,6 @@ using Genode::addr_t;
 using Genode::uint16_t;
 using Genode::uint32_t;
 using Genode::uint64_t;
-
-namespace Kernel { class Cpu; }
 
 namespace Board
 {
@@ -144,12 +141,7 @@ Board::Vmcs
 
 	Genode::size_t _cpu_id { };
 
-	addr_t msr_phys_addr(Msr_store_area *msr_ptr)
-	{
-		Genode::size_t offset =
-		    (Genode::size_t)msr_ptr - (Genode::size_t)this;
-		return vcpu_data.phys_addr + offset;
-	}
+	addr_t msr_phys_addr(Msr_store_area *msr_ptr);
 
 	/*
 	 * VMCS field encodings
@@ -368,7 +360,7 @@ Board::Vmcs
 		assert(success && "vmwrite failed");
 	}
 
-	Vmcs(Genode::Vcpu_data &vcpu_data);
+	Vmcs(Board::Vcpu_state &vcpu_data);
 	Virt_type virt_type() override
 	{
 		return Virt_type::VMX;
@@ -382,7 +374,7 @@ Board::Vmcs
 		return ((ar >> 4) & 0x1F00) | (ar & 0xFF);
 	}
 
-	void initialize(Kernel::Cpu &cpu, addr_t page_table_phys) override;
+	void initialize(Board::Cpu &cpu, addr_t page_table_phys) override;
 	void load(Genode::Vcpu_state &state) override;
 	void store(Genode::Vcpu_state &state) override;
 	void switch_world(Board::Cpu::Context &regs, addr_t) override;

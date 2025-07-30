@@ -16,7 +16,6 @@
 
 namespace Genode {
 	struct Vcpu_state {};
-	struct Vcpu_data {};
 }
 
 namespace Kernel { class Cpu; }

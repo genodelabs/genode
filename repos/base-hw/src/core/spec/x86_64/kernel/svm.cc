@@ -46,10 +46,10 @@ Vmcb_buf::Vmcb_buf(addr_t vmcb_page_addr, uint32_t id)
 }
 
 
-Vmcb::Vmcb(Vcpu_data &vcpu_data, uint32_t id)
+Vmcb::Vmcb(Board::Vcpu_state &state, uint32_t id)
 :
-	Board::Virt_interface(vcpu_data),
-	v((addr_t) vcpu_data.virt_area + get_page_size(), id)
+	Board::Virt_interface(state),
+	v(state.vmc_addr() + get_page_size(), id)
 {
 }
 
@@ -68,9 +68,11 @@ Vmcb_buf &Vmcb::host_vmcb(size_t cpu_id)
 	return *host_vmcb[cpu_id];
 }
 
-void Vmcb::initialize(Kernel::Cpu &cpu, addr_t page_table_phys_addr)
+void Vmcb::initialize(Board::Cpu &c, addr_t page_table_phys_addr)
 {
 	using Cpu = Hw::X86_64_cpu;
+
+	Kernel::Cpu &cpu = static_cast<Kernel::Cpu&>(c);
 
 	Cpu::Ia32_efer::access_t ia32_efer_msr = Cpu::Ia32_efer::read();
 	Cpu::Ia32_efer::Svme::set(ia32_efer_msr, 1);
@@ -161,8 +163,10 @@ Board::Iopm::Iopm()
 }
 
 
-void Vmcb::store(Vcpu_state &state)
+void Vmcb::store(Genode::Vcpu_state &state)
 {
+	using Vcpu_state = Genode::Vcpu_state;
+
 	state.ax.charge(v.read<Vmcb_buf::Rax>());
 	state.ip.charge(v.read<Vmcb_buf::Rip>());
 	/*
@@ -286,7 +290,7 @@ void Vmcb::store(Vcpu_state &state)
 }
 
 
-void Vmcb::load(Vcpu_state &state)
+void Vmcb::load(Genode::Vcpu_state &state)
 {
 	if (state.ax.charged())    v.write<Vmcb_buf::Rax>(state.ax.value());
 	if (state.flags.charged()) v.write<Vmcb_buf::Rflags>(state.flags.value());
@@ -507,7 +511,7 @@ void Vmcb::switch_world(Board::Cpu::Context &regs, addr_t stack_start)
 	    :
 	    : [regs]         "r" (&regs.r8),
 	      [fpu_context]  "r" (&regs.fpu_context()),
-	      [guest_state]  "r" (vcpu_data.phys_addr + get_page_size()),
+	      [guest_state]  "r" (vcpu_state.vmc_phys_addr() + get_page_size()),
 	      [host_state]   "r" (root_vmcb_phys),
 	      [stack]        "r" (stack_start),
 	      [stack_offset] "i" (Hw::Mm::KERNEL_STACK_ERRCODE_OFFSET),

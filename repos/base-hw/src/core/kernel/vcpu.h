@@ -47,7 +47,7 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 
 	private:
 
-		using Vcpu_state = Genode::Vcpu_state;
+		using Vcpu_state = Board::Vcpu_state;
 
 		/*
 		 * Noncopyable
@@ -86,7 +86,7 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 		 */
 		Vcpu(Irq::Pool              &user_irq_pool,
 		     Cpu                    &cpu,
-		     Genode::Vcpu_data      &data,
+		     Vcpu_state             &state,
 		     Kernel::Signal_context &context,
 		     Identity               &id);
 

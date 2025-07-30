@@ -23,14 +23,14 @@ using namespace Kernel;
 
 Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
            Cpu                    &cpu,
-           Genode::Vcpu_data      &data,
+           Genode::Vcpu_state     &state,
            Kernel::Signal_context &context,
            Identity               &id)
 :
 	Kernel::Object { *this },
 	Cpu_context(cpu, Scheduler::Priority::min(), 0),
 	_user_irq_pool(user_irq_pool),
-	_state(data),
+	_state(state),
 	_context(context),
 	_id(id),
 	_vcpu_context(cpu)
