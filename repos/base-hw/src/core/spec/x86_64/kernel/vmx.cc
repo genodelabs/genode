@@ -292,7 +292,8 @@ void Vmcs::initialize(Board::Cpu &c, Genode::addr_t page_table_phys)
 			(void *)(vcpu_state.vmc_addr() + 2 * get_page_size()));
 
 
-	vmclear(vcpu_state.vmc_phys_addr() + get_page_size());
+	_clear();
+
 	_load_pointer();
 
 	prepare_vmcs();
@@ -922,6 +923,17 @@ void Vmcs::save_host_msrs()
 		Cpu::Ia32_kernel_gs_base::read());
 }
 
+
+void Vmcs::_clear()
+{
+	vmclear(vcpu_state.vmc_phys_addr() + get_page_size());
+
+	/*
+	 * vmclear invalidates the current VMCS pointer (if it is the same)
+	 * make sure to reflect this in our shadow state
+	 */
+	current_vmcs[_cpu_id] = (Board::Vmcs*)~0ULL;
+}
 
 void Vmcs::_load_pointer()
 {
