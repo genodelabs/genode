@@ -111,13 +111,6 @@ void Vcpu::proceed()
 	    (Cpu::Ia32_tsc_aux::access_t)_vcpu_context.tsc_aux_guest);
 
 	_vcpu_context.virt.switch_world(*_vcpu_context.regs, _cpu().stack_start());
-	/*
-	 * This will fall into an interrupt or otherwise jump into
-	 * _kernel_entry. If VMX encountered a severe error condition,
-	 * it will print an error message and regularly return from the world
-	 * switch. In this case, just remove the vCPU thread from the scheduler.
-	 */
-	_pause_vcpu();
 }
 
 
@@ -168,6 +161,9 @@ void Vcpu::exception(Genode::Cpu_state &state)
 			break;
 		case Cpu_state::INTERRUPTS_START ... Cpu_state::INTERRUPTS_END:
 			_interrupt(_user_irq_pool);
+			break;
+		case TRAP_VMDEAD:
+			_pause_vcpu();
 			break;
 		default:
 			error("Vcpu: triggered unknown exception ",

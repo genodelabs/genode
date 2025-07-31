@@ -847,6 +847,7 @@ void Vmcs::load(Genode::Vcpu_state &state)
 	}
 }
 
+__attribute__((optimize("omit-frame-pointer")))
 void Vmcs::switch_world(Board::Cpu::Context &regs, addr_t)
 {
 	_load_pointer();
@@ -858,28 +859,29 @@ void Vmcs::switch_world(Board::Cpu::Context &regs, addr_t)
 	regs.trapno = TRAP_VMEXIT;
 	asm volatile(
 	    "fxrstor (%[fpu_context]);"
-	    "mov  %[regs], %%rsp;"
-	    "popq %%r8;"
-	    "popq %%r9;"
-	    "popq %%r10;"
-	    "popq %%r11;"
-	    "popq %%r12;"
-	    "popq %%r13;"
-	    "popq %%r14;"
-	    "popq %%r15;"
-	    "popq %%rax;"
-	    "popq %%rbx;"
-	    "popq %%rcx;"
-	    "popq %%rdx;"
-	    "popq %%rdi;"
-	    "popq %%rsi;"
-	    "popq %%rbp;"
+	    "mov %[regs], %%rbx;"
+	    "mov     (%%rbx), %%r8;"
+	    "mov  0x8(%%rbx), %%r9;"
+	    "mov 0x10(%%rbx), %%r10;"
+	    "mov 0x18(%%rbx), %%r11;"
+	    "mov 0x20(%%rbx), %%r12;"
+	    "mov 0x28(%%rbx), %%r13;"
+	    "mov 0x30(%%rbx), %%r14;"
+	    "mov 0x38(%%rbx), %%r15;"
+	    "mov 0x40(%%rbx), %%rax;"
+	    "mov 0x50(%%rbx), %%rcx;"
+	    "mov 0x58(%%rbx), %%rdx;"
+	    "mov 0x60(%%rbx), %%rdi;"
+	    "mov 0x68(%%rbx), %%rsi;"
+	    "mov 0x70(%%rbx), %%rbp;"
+	    "mov 0x48(%%rbx), %%rbx;"
 	    "vmresume;"
 	    "vmlaunch;"
 	    :
-	    : [regs]           "r"(&regs.r8),
-	      [fpu_context]    "r"(&regs.fpu_context())
-	    : "memory");
+	    : [regs]           "a"(&regs.r8),
+	      [fpu_context]    "d"(&regs.fpu_context())
+	    : "memory", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
+	      "rbx", "rcx", "rdi", "rsi", "rbp");
 	/*
 	 * Usually when exiting guest mode, VMX will jump to the address
 	 * provided in E_HOST_RIP; in our case: _kernel_entry.
@@ -893,6 +895,13 @@ void Vmcs::switch_world(Board::Cpu::Context &regs, addr_t)
 	 * 31.4 Vm Instruction Error Numbers
 	 */
 	error("VM: execution error: ", Genode::Hex(read(Vmcs::E_VM_INSTRUCTION_ERROR)));
+
+	asm volatile(
+	      "pushq %[trap_val];"
+	      "jmp _kernel_entry;"
+	      :
+	      : [trap_val] "i"(Board::TRAP_VMDEAD)
+	      : "memory");
 }
 
 /*

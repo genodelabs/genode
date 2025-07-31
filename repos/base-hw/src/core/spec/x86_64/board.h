@@ -37,6 +37,7 @@ namespace Board {
 
 	enum Custom_trapnos : uint64_t {
 		TRAP_VMEXIT = 256,
+		TRAP_VMDEAD = 257,
 	};
 };
 
