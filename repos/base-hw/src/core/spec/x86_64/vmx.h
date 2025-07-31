@@ -17,7 +17,6 @@
 #include <base/internal/page_size.h>
 #include <cpu.h>
 #include <cpu/vcpu_state.h>
-#include <hw/assert.h>
 #include <hw/spec/x86_64/cpu.h>
 #include <spec/x86_64/virt_interface.h>
 #include <util/register.h>
@@ -309,7 +308,7 @@ Board::Vmcs
 			: "=@cca"(success)
 			: [vmcs] "m"(phys_addr)
 			: "cc");
-		assert(success && "vmxon failed");
+		if (!success) error("VMXON: ", Genode::Hex(phys_addr), " failed");
 	}
 
 	static void vmptrld(addr_t phys_addr)
@@ -321,7 +320,7 @@ Board::Vmcs
 			: "=@cca"(success)
 			: [vmcs] "m"(phys_addr)
 			: "cc");
-		assert(success && "vmptrld failed");
+		if (!success) error("VMPTRLD: ", Genode::Hex(phys_addr), " failed");
 	}
 
 	static uint64_t read(uint32_t enc)
@@ -344,12 +343,11 @@ Board::Vmcs
 			: "=@cca"(success)
 			: [vmcs] "m"(phys_addr)
 			: "cc");
-		assert(success && "vmclear failed");
+		if (!success) error("VMCLEAR: ", Genode::Hex(phys_addr), " failed");
 	}
 
 	static void write(uint32_t enc, uint64_t val)
 	{
-		/* Genode::raw("VMWRITE: ", Genode::Hex(enc), " val: ", Genode::Hex(val)); */
 		bool success = false;
 		asm volatile(
 			"vmwrite %[val], %[enc];"
@@ -357,7 +355,8 @@ Board::Vmcs
 			: "=@cca"(success)
 			: [enc]"rm"(static_cast<uint64_t>(enc)), [val] "r"(val)
 			: "cc");
-		assert(success && "vmwrite failed");
+		if (!success) error("VMWRITE: ", Genode::Hex(enc), " val: ",
+		                    Genode::Hex(val), " failed");
 	}
 
 	Vmcs(Board::Vcpu_state &vcpu_data);
