@@ -16,7 +16,6 @@
 #include <cpu/string.h>
 
 #include <map_local.h>
-#include <platform_pd.h>
 #include <platform.h>
 #include <kernel/cpu.h>
 #include <kernel/vcpu.h>

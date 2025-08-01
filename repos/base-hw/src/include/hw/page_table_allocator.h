@@ -24,6 +24,7 @@ namespace Hw {
 	enum class Page_table_error {
 		OUT_OF_RAM, OUT_OF_CAPS, DENIED, INVALID_RANGE };
 
+	class Page_table_translator;
 	class Page_table_allocator;
 
 	template <size_t TABLE_SIZE, unsigned COUNT>
@@ -31,7 +32,15 @@ namespace Hw {
 }
 
 
-class Hw::Page_table_allocator : protected Memory::Constrained_allocator
+/**
+ * The Page_table_translator is a separate interface to lookup
+ * physical addresses giving virtual ones and vice-versa of previously
+ * made allocations.
+ * Because the hw-kernel part needs to lookup page-table entries,
+ * but doesn't has to allocate/remove page-tables a separate interface
+ * is senseful for safety reasons.
+ */
+class Hw::Page_table_translator
 {
 	public:
 
@@ -47,6 +56,8 @@ class Hw::Page_table_allocator : protected Memory::Constrained_allocator
 
 	public:
 
+		virtual ~Page_table_translator() {}
+
 		template <typename TABLE>
 		Result lookup(addr_t phys_addr, auto const fn)
 		{
@@ -55,6 +66,20 @@ class Hw::Page_table_allocator : protected Memory::Constrained_allocator
 					return fn(*((TABLE*)virt_addr)); },
 				[&] (Lookup_error) -> Result { return Error::INVALID_RANGE; });
 		}
+};
+
+
+/**
+ * Generic interface of an allocator that allocates exactly one page-table,
+ * and writes its physical address into a given page-table descriptor
+ */
+class Hw::Page_table_allocator : public Page_table_translator,
+                                 protected Memory::Constrained_allocator
+{
+	public:
+
+		using Error  = Page_table_error;
+		using Result = Attempt<Ok, Error>;
 
 		template <typename TABLE, typename ENTRY>
 		Result create(typename ENTRY::access_t &descriptor)
@@ -94,6 +119,10 @@ class Hw::Page_table_allocator : protected Memory::Constrained_allocator
 };
 
 
+/**
+ * A statically sized array of page-tables that can be allocated/freed
+ * using the generic Page_table_allocator interface
+ */
 template <Genode::size_t TABLE_SIZE, unsigned COUNT>
 class Hw::Page_table_array
 {

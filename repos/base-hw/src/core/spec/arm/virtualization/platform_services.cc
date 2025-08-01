@@ -16,7 +16,6 @@
 
 /* core includes */
 #include <platform.h>
-#include <platform_pd.h>
 #include <platform_services.h>
 #include <core_service.h>
 #include <map_local.h>

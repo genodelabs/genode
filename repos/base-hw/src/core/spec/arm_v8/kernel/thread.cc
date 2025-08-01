@@ -11,8 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <platform_pd.h>
-
 #include <kernel/cpu.h>
 #include <kernel/pd.h>
 #include <kernel/thread.h>

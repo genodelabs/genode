@@ -17,12 +17,10 @@
 #include <kernel/cpu.h>
 #include <kernel/thread.h>
 #include <kernel/pd.h>
+#include <kernel/main.h>
+#include <platform.h>
 
 #include <hw/spec/x86_64/acpi.h>
-#include <platform_pd.h>
-
-#include <kernel/main.h>
-
 
 void Kernel::Thread::Tlb_invalidation::execute(Cpu &)
 {

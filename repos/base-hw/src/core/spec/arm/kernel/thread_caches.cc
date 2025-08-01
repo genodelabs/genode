@@ -19,10 +19,10 @@
 using namespace Kernel;
 
 
-static void for_cachelines(addr_t          base,
-                           size_t const    size,
-                           Kernel::Thread &thread,
-                           auto const     &fn)
+static void for_cachelines(addr_t                     base,
+                           size_t const               size,
+                           Kernel::Thread            &thread,
+                           auto const                &fn)
 {
 	/**
 	 * sanity check that only one small page is affected,
@@ -39,13 +39,16 @@ static void for_cachelines(addr_t          base,
 	 * Lookup whether the page is backed and writeable,
 	 * and if so make the memory coherent in between I-, and D-cache
 	 */
-	addr_t phys = 0;
-	if (thread.pd().platform_pd().lookup_rw_translation(base, phys)) {
-		fn(base, size);
-	} else {
-		Genode::raw(thread, " tried to do cache maintainance at ",
-					"unallowed address ", (void*)base);
-	}
+	thread.pd().with_table([&] (Hw::Page_table &tab,
+	                            Hw::Page_table_translator &ptt) {
+		addr_t phys = 0;
+		tab.lookup(base, phys, ptt).with_result(
+			[&] (Genode::Ok) { fn(base, size); },
+			[&] (Hw::Page_table_error) {
+			Genode::warning(thread, " tried to do cache maintainance at ",
+			                "unallowed address ", (void*)base);
+		});
+	});
 }
 
 

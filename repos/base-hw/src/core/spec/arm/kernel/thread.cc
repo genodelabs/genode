@@ -16,7 +16,6 @@
 #include <cpu/memory_barrier.h>
 
 /* base-hw core includes */
-#include <platform_pd.h>
 #include <kernel/cpu.h>
 #include <kernel/pd.h>
 #include <kernel/thread.h>

@@ -84,6 +84,8 @@ class Core::Hw_address_space : public Core::Address_space
 
 		Kernel_object<Kernel::Pd> _kobj;
 
+		Kernel::Pd::Core_pd_data _core_pd_data(Platform_pd &);
+
 		/**
 		 * Constructor used for the Core PD object
 		 *
@@ -142,21 +144,14 @@ class Core::Hw_address_space : public Core::Address_space
 
 class Core::Cap_space
 {
-	private:
+	protected:
 
-		enum { SLAB_SIZE = 2 * get_page_size() };
-
-		using Cap_slab = Tslab<Kernel::Object_identity_reference,
-		                       SLAB_SIZE>;
-
-		uint8_t    _initial_sb[SLAB_SIZE];
-		Cap_slab   _slab;
+		uint8_t _initial_sb[Kernel::CAP_SLAB_SIZE];
+		Kernel::Cap_slab _slab;
 
 	public:
 
 		Cap_space();
-
-		Cap_slab & capability_slab() { return _slab; }
 
 		void upgrade_slab(Allocator &alloc);
 		size_t avail_slab() { return _slab.avail_entries(); }
@@ -176,6 +171,8 @@ class Core::Platform_pd : public Hw_address_space, private Cap_space
 		Native_capability  _parent { };
 		bool               _thread_associated = false;
 		char const * const _label;
+
+		friend class Hw_address_space;
 
 	protected:
 
@@ -205,7 +202,6 @@ class Core::Platform_pd : public Hw_address_space, private Cap_space
 		 */
 		~Platform_pd();
 
-		using Cap_space::capability_slab;
 		using Cap_space::upgrade_slab;
 		using Cap_space::avail_slab;
 

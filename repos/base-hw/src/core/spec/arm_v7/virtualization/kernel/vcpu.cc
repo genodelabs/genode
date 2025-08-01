@@ -15,7 +15,6 @@
 #include <hw/assert.h>
 #include <cpu/vcpu_state_virtualization.h>
 
-#include <platform_pd.h>
 #include <kernel/cpu.h>
 #include <kernel/vcpu.h>
 #include <kernel/main.h>

@@ -15,6 +15,7 @@
 #define _CORE__KERNEL__OBJECT_H_
 
 /* Genode includes */
+#include <base/tslab.h>
 #include <util/avl_tree.h>
 #include <util/bit_allocator.h>
 #include <util/list.h>
@@ -78,6 +79,10 @@ namespace Kernel {
 	 * corresponding object identity reference for core
 	 */
 	template <typename T> class Core_object;
+
+	enum { CAP_SLAB_SIZE = 2 * Genode::get_page_size() };
+
+	using Cap_slab = Genode::Tslab<Object_identity_reference, CAP_SLAB_SIZE>;
 }
 
 

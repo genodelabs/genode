@@ -112,6 +112,13 @@ void Hw_address_space::flush(addr_t virt, size_t size, Core_local_addr)
 }
 
 
+Kernel::Pd::Core_pd_data Hw_address_space::_core_pd_data(Platform_pd &pd)
+{
+	return Kernel::Pd::Core_pd_data { _table_phys, &_table,
+	                                  _table_alloc, pd._slab, pd.label() };
+}
+
+
 Hw_address_space::
 Hw_address_space(Page_table                        &table,
                  Page_table_allocator              &table_alloc,
@@ -122,8 +129,7 @@ Hw_address_space(Page_table                        &table,
 	_table_phys(Platform::core_page_table()),
 	_table_alloc(table_alloc),
 	_kobj(_kobj.CALLED_FROM_KERNEL,
-	      *(Page_table*)translation_table_phys(),
-	      pd, addr_space_id_alloc)
+	      _core_pd_data(pd), addr_space_id_alloc)
 { }
 
 
@@ -135,9 +141,7 @@ Hw_address_space::Hw_address_space(Platform_pd &pd)
 	_table_array(new (_cma()) Table::Array([] (void * virt) {
 	                             return (addr_t)_cma().phys_addr(virt);})),
 	_table_alloc(_table_array->alloc()),
-	_kobj(_kobj.CALLED_FROM_CORE,
-	      *(Page_table*)translation_table_phys(),
-	      pd)
+	_kobj(_kobj.CALLED_FROM_CORE, _core_pd_data(pd))
 { }
 
 
@@ -158,7 +162,7 @@ Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 
 void Cap_space::upgrade_slab(Allocator &alloc)
 {
-	alloc.try_alloc(SLAB_SIZE).with_result(
+	alloc.try_alloc(Kernel::CAP_SLAB_SIZE).with_result(
 		[&] (Memory::Allocation &a) {
 			a.deallocate = false;
 			_slab.insert_sb(a.ptr);

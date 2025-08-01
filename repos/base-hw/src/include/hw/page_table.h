@@ -223,9 +223,9 @@ class Hw::Page_table_leaf
 		void remove(addr_t vo, size_t size, ALLOCATOR &alloc) {
 			remove(vo, size, alloc, [] (addr_t, size_t) {}); }
 
-		template <typename ALLOCATOR>
+		template <typename TRANSLATOR>
 		Result lookup(addr_t const virt, addr_t &phys,
-		              ALLOCATOR &)
+		              TRANSLATOR &)
 		{
 			return _for_range(virt, 0, 1,
 				[&] (addr_t, addr_t, size_t, desc_t &desc) -> Result
@@ -353,9 +353,9 @@ class Hw::Page_table_node
 		void remove(addr_t vo, size_t size, ALLOCATOR &alloc) {
 			remove(vo, size, alloc, [] (addr_t, size_t) {}); }
 
-		template <typename ALLOCATOR>
+		template <typename TRANSLATOR>
 		Result lookup(addr_t const virt, addr_t &phys,
-		              ALLOCATOR &alloc)
+		              TRANSLATOR &translator)
 		{
 			return _for_range(virt, 0, 1,
 				[&] (addr_t vo, addr_t, size_t, desc_t &desc) -> Result
@@ -367,10 +367,10 @@ class Hw::Page_table_node
 							return Ok();
 						return Page_table_error::INVALID_RANGE;
 					case Page_table_entry::TABLE:
-						return alloc.template lookup<ENTRY>(DESCRIPTOR::address(desc),
+						return translator.template lookup<ENTRY>(DESCRIPTOR::address(desc),
 							[&] (ENTRY &table) {
 							return table.lookup(vo-_page_mask_high(vo), phys,
-							                    alloc);
+							                    translator);
 						});
 					case Page_table_entry::INVALID: break;
 					};

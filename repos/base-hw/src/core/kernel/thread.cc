@@ -21,12 +21,13 @@
 
 /* core includes */
 #include <hw/assert.h>
+#include <hw/memory_map.h>
 #include <kernel/cpu.h>
 #include <kernel/thread.h>
 #include <kernel/irq.h>
 #include <kernel/log.h>
 #include <map_local.h>
-#include <platform_pd.h>
+#include <platform.h>
 
 extern "C" void _core_start(void);
 
@@ -35,17 +36,15 @@ using namespace Kernel;
 
 Thread::Ipc_alloc_result Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 {
-	using Allocator   = Genode::Allocator;
 	using Result      = Ipc_alloc_result;
 	using Alloc_error = Genode::Alloc_error;
 
-	Allocator &slab = pd().platform_pd().capability_slab();
 	for (unsigned i = 0; i < cap_count; i++) {
 		if (_obj_id_ref_ptr[i] != nullptr)
 			continue;
 
-		Result const result =
-			slab.try_alloc(sizeof(Object_identity_reference)).convert<Result>(
+		size_t size = sizeof(Object_identity_reference);
+		Result const result = pd().cap_slab().try_alloc(size).convert<Result>(
 
 			[&] (Genode::Memory::Allocation &a) {
 				_obj_id_ref_ptr[i] = a.ptr;
@@ -78,8 +77,8 @@ void Thread::_ipc_free_recv_caps()
 {
 	for (unsigned i = 0; i < _ipc_rcv_caps; i++) {
 		if (_obj_id_ref_ptr[i]) {
-			Genode::Allocator &slab = pd().platform_pd().capability_slab();
-			slab.free(_obj_id_ref_ptr[i], sizeof(Object_identity_reference));
+			pd().cap_slab().free(_obj_id_ref_ptr[i],
+			                     sizeof(Object_identity_reference));
 		}
 	}
 	_ipc_rcv_caps = 0;
@@ -655,7 +654,7 @@ void Thread::_call_delete_cap()
 
 	if (oir->in_utcb()) return;
 
-	destroy(pd().platform_pd().capability_slab(), oir);
+	destroy(pd().cap_slab(), oir);
 }
 
 
@@ -780,8 +779,7 @@ void Thread::_call()
 	case call_id_thread_pager():           _call_pager(); return;
 	case call_id_invalidate_tlb():         _call_invalidate_tlb(); return;
 	case call_id_new_pd():
-		_call_new<Pd>(*(Hw::Page_table *)    user_arg_2(),
-		              *(Core::Platform_pd *) user_arg_3(),
+		_call_new<Pd>(*(Kernel::Pd::Core_pd_data *) user_arg_2(),
 		              _addr_space_id_alloc);
 		return;
 	case call_id_delete_pd():              _call_delete_pd(); return;
@@ -907,7 +905,7 @@ Thread::~Thread() { _ipc_free_recv_caps(); }
 
 void Thread::print(Genode::Output &out) const
 {
-	Genode::print(out, _pd ? _pd->platform_pd().label() : "?");
+	Genode::print(out, _pd ? _pd->label() : "?");
 	Genode::print(out, " -> ");
 	Genode::print(out, label());
 }
