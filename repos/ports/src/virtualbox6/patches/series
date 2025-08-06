@@ -18,3 +18,4 @@ avx.patch
 rdrand.patch
 mousebuttons.patch
 gcc14.patch
+display.patch

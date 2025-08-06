@@ -466,6 +466,10 @@ struct Main : Event_handler
 
 	Main(Genode::Env &env) : _env(env)
 	{
+		/* hint all monitors as disabled */
+		for (unsigned id = 0; id < _machine.monitor_count().value; id++)
+			_idisplay->SetVideoModeHint(id, false, false, 0, 0, 0, 0, 0, true);
+
 		_config.sigh(_config_handler);
 		_handle_config();
 

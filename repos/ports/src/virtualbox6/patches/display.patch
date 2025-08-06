@@ -1,0 +1,40 @@
+With Linux guests using X11 and VMSVGA configured monitors get neither destroyed
+nor defined when a <monitor> node is added/removed from the VirtualBox
+configuration. This leads to Framebuffers not being enabled/disabled and results
+in wrong calcuations in i_getFramebufferDimensions leading to incorrect mouse
+position calculations within VirtualBox.
+
+--- a/src/virtualbox6/src/VBox/Main/src-client/DisplayImpl.cpp
++++ b/src/virtualbox6/src/VBox/Main/src-client/DisplayImpl.cpp
+@@ -760,7 +760,13 @@ int Display::i_handleDisplayResize(unsigned uScreenId, uint32_t bpp, void *pvVRA
+         pFBInfo->flags = flags;
+         pFBInfo->xOrigin = xOrigin;
+         pFBInfo->yOrigin = yOrigin;
+-        pFBInfo->fDisabled = RT_BOOL(flags & VBVA_SCREEN_F_DISABLED);
++
++        /*
++         * On Genode enable/disable framebuffer is handled externally by
++         * Display::setVideoModeHint, so we don't set it here
++         */
++        //pFBInfo->fDisabled = RT_BOOL(flags & VBVA_SCREEN_F_DISABLED);
++
+         pFBInfo->fVBVAForceResize = false;
+     }
+     else
+@@ -1679,6 +1685,16 @@ HRESULT Display::setVideoModeHint(ULONG aDisplay, BOOL aEnabled,
+     /* Remember the monitor information. */
+     maFramebuffers[aDisplay].monitorDesc = d;
+ 
++    /*
++     * Enable/disable framebuffer here so i_getFramebufferDimensions reports the
++     * correct dimensions. Because on Genode monitors are enabled/disabled
++     * externally usning DisplayWrap::SetVideoModeHint, we handle the
++     * framebuffer here and not during Display::i_handleDisplayResize when a
++     * monitor is changed by the guest.
++     */
++    maFramebuffers[aDisplay].fDisabled = !aEnabled;
++
++
+     CHECK_CONSOLE_DRV(mpDrv);
+ 
+     /*
