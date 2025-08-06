@@ -298,9 +298,13 @@ class Genode::Generator : Noncopyable
 {
 	private:
 
-		struct { Xml_generator *_xml_ptr = nullptr; };
+		struct {
+			Xml_generator *_xml_ptr = nullptr;
+		};
 
 		Generator(Xml_generator &xml) : _xml_ptr(&xml) { }
+
+		static bool _generate_xml(); /* component-global config switch */
 
 	public:
 
@@ -313,10 +317,11 @@ class Genode::Generator : Noncopyable
 		static Result generate(Byte_range_ptr const &buffer,
 		                       Type const &type, auto const &fn)
 		{
-			return Xml_generator::generate(buffer, type, [&] (Xml_generator &xml) {
-				Generator g(xml);
-				fn(g);
-			});
+			if (_generate_xml())
+				return Xml_generator::generate(buffer, type, [&] (Xml_generator &xml) {
+					Generator g(xml);
+					fn(g); });
+			return 0ul;
 		}
 
 		void node(auto &&... args)

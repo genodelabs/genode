@@ -355,7 +355,7 @@ struct Linker::Binary : private Root_object, public Elf_object
 		Root_object(md_alloc),
 		Elf_object(env, md_alloc, name,
 		           *new (md_alloc) Dependency(*this, this), DONT_KEEP),
-		_check_ctors(config.check_ctors())
+		_check_ctors(config.check_ctors)
 	{
 		/* create dep for binary and linker */
 		Dependency *binary = const_cast<Dependency *>(&dynamic().dep());
@@ -375,7 +375,7 @@ struct Linker::Binary : private Root_object, public Elf_object
 		binary->load_needed(env, md_alloc, deps(), DONT_KEEP);
 
 		/* relocate and call constructors */
-		Init::list()->initialize(config.bind(), STAGE_BINARY);
+		Init::list()->initialize(config.bind, STAGE_BINARY);
 	}
 
 	Elf::Addr lookup_symbol(char const *name)
@@ -769,14 +769,23 @@ void *Dynamic_linker::_respawn(Env &env, char const *binary, char const *entry_n
 	throw Dynamic_linker::Invalid_symbol();
 }
 
+
+static bool generate_xml;
+
+
+bool Genode::Generator::_generate_xml() { return generate_xml; }
+
+
 extern "C" void wait_for_continue();
+
 
 void Component::construct(Genode::Env &env)
 {
 	/* read configuration */
 	Config const config(env);
 
-	verbose = config.verbose();
+	verbose      = config.verbose;
+	generate_xml = config.generate_xml;
 
 	parent_ptr = &env.parent();
 

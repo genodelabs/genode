@@ -56,6 +56,9 @@ Core::Trace::Source_registry &Core::Trace::sources()
 namespace Genode { extern char const *version_string; }
 
 
+bool Genode::Generator::_generate_xml() { return true; }
+
+
 struct Genode::Platform { };
 
 

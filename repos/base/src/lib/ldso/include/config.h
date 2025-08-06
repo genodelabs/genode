@@ -26,19 +26,16 @@ class Linker::Config : Noncopyable
 
 		Attached_rom_dataspace const _config;
 
-		Bind const _bind = _config.node().attribute_value("ld_bind_now", false)
-		                 ? BIND_NOW : BIND_LAZY;
-
-		bool const _verbose     = _config.node().attribute_value("ld_verbose",     false);
-		bool const _check_ctors = _config.node().attribute_value("ld_check_ctors", true);
-
 	public:
 
-		Config(Env &env) : _config(env, "config") { }
+		Bind const bind = _config.node().attribute_value("ld_bind_now", false)
+		                ? BIND_NOW : BIND_LAZY;
 
-		Bind bind()        const { return _bind; }
-		bool verbose()     const { return _verbose; }
-		bool check_ctors() const { return _check_ctors; }
+		bool const verbose      = _config.node().attribute_value("ld_verbose",     false);
+		bool const check_ctors  = _config.node().attribute_value("ld_check_ctors", true);
+		bool const generate_xml = _config.node().attribute_value("generate_xml",   true);
+
+		Config(Env &env) : _config(env, "config") { }
 
 		using Rom_name = String<100>;
 

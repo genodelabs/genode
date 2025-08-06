@@ -43,6 +43,9 @@ int genode___cxa_atexit(void (*)(void*), void *, void *)
 }
 
 
+bool Genode::Generator::_generate_xml() { return true; }
+
+
 /*
  * Manually initialize the 'lx_environ' pointer. For non-hybrid programs, this
  * pointer is initialized by the startup code.
