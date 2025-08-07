@@ -814,57 +814,57 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 				}
 
 				/* ack and release possibly pending packet */
-				auto session_ack_fn = [&] (Block_session_component &block_session) {
-					if (!block_session.pending)
-						return;
+				auto ack_request_fn = [&] (Block_session_component &block_session,
+				                           Request_stream          &request_stream) {
+					request_stream.try_acknowledge([&] (Request_stream::Ack &ack) {
 
-					auto request_stream_ack_fn = [&] (Request_stream &request_stream) {
-						auto ack_fn = [&] (Request_stream::Ack &ack) {
-							auto completed_fn = [&] (Block::Request &request) {
+						driver.with_completed(block_session.session_id(),
+							[&] (Block::Request &request) {
 
 								ack.submit(request);
 								progress = true;
 
 								block_session.pending = false;
-							};
-							driver.with_completed(block_session.session_id(), completed_fn);
-						};
-						request_stream.try_acknowledge(ack_fn);
-						request_stream.wakeup_client_if_needed();
-					};
-					block_session.with_request_stream(request_stream_ack_fn);
+							}); });
+					request_stream.wakeup_client_if_needed();
 				};
-				_sessions.for_each<Block_session_component>(session_ack_fn);
+				_sessions.for_each<Block_session_component>(
+					[&] (Block_session_component &block_session) {
+						if (block_session.pending)
+							block_session.with_request_stream(
+								[&] (Request_stream &request_stream) {
+									ack_request_fn(block_session, request_stream);
+								}); });
 
-				auto index_fn = [&] (Session_map::Index index) {
-					Session_space::Id const session_id { .value = index.value };
-					auto block_session_submit_fn = [&] (Block_session_component &block_session) {
-						auto request_stream_submit_fn = [&] (Request_stream &request_stream) {
-							auto request_submit_fn = [&] (Request request) {
+				/* submit request */
+				auto submit_request_fn = [&] (Block_session_component &block_session,
+				                              Request_stream          &request_stream) {
+					request_stream.with_requests([&] (Request request) {
 
-								Response response = Response::RETRY;
-								auto payload_submit_fn = [&] (Request_stream::Payload const &payload) {
-									response = driver.submit(request, payload,
-									                         block_session.session_id());
-								};
-								request_stream.with_payload(payload_submit_fn);
-								if (response != Response::RETRY) {
-									progress = true;
-									block_session.pending = true;
-								}
+						Response response = Response::RETRY;
+						request_stream.with_payload(
+							[&] (Request_stream::Payload const &payload) {
+								response = driver.submit(request, payload,
+								                         block_session.session_id());
+							});
 
-								return response;
-							};
-							request_stream.with_requests(request_submit_fn);
-						};
-						block_session.with_request_stream(request_stream_submit_fn);
-					};
-					_sessions.apply<Block_session_component>(session_id,
-					                                         block_session_submit_fn);
+						if (response != Response::RETRY) {
+							progress = true;
+							block_session.pending = true;
+						}
+						return response;
+					});
 				};
-
 				if (!driver.request_pending())
-					_session_map.for_each_index(index_fn);
+					_session_map.for_each_index([&] (Session_map::Index index) {
+						Session_space::Id const session_id { .value = index.value };
+						_sessions.apply<Block_session_component>(session_id,
+							[&] (Block_session_component &block_session) {
+								block_session.with_request_stream(
+									[&] (Request_stream &request_stream) {
+										return submit_request_fn(block_session,
+										                         request_stream);
+									}); }); });
 
 				if (!progress)
 					break;
