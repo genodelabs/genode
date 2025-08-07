@@ -1191,15 +1191,10 @@ struct Ahci::Port : private Port_base
 		return _dma_buffer[id]->cap();
 	}
 
-	void free_buffer(unsigned long id, Dataspace_capability cap)
+	void free_buffer(unsigned long id)
 	{
 		if (id >= MAX_DMA_BUFFER || !_dma_buffer[id].constructed())
 			return;
-
-		if (!(_dma_buffer[id]->cap() == cap)) {
-			error("mismatching dataspace capability stored for ", id);
-			return;
-		}
 
 		_dma_buffer[id].destruct();
 	}

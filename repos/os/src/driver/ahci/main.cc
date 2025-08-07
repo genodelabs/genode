@@ -331,7 +331,7 @@ struct Ahci::Block_session_component : Rpc_object<Block::Session>
 	~Block_session_component()
 	{
 		_env.ep().dissolve(*this);
-		_port.free_buffer(_elem.id().value, _dma_cap);
+		_port.free_buffer(_elem.id().value);
 	}
 
 	Info info() const override { return _request_stream.info(); }
