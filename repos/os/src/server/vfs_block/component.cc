@@ -151,7 +151,7 @@ class Vfs_block::File
 
 		Block::Session::Info block_info() const { return _block_info; }
 
-		Block::Constrained_view const &view() const { return _view; }
+		Block::Constrained_view const view() const { return _view; }
 
 		bool execute()
 		{
