@@ -411,21 +411,13 @@ struct Main : Rpc_object<Typed_root<Block::Session>>,
 
 				bool const writeable_policy =
 					policy.attribute_value("writeable", false);
-				bool const writeable_arg    =
-					Arg_string::find_arg(args.string(), "writeable").bool_value(true);
 
 				Vfs_block::File_info const file_info =
 					Vfs_block::file_info_from_policy(policy);
 
-				Block::Constrained_view const view {
-					.offset     = Block::Constrained_view::Offset {
-						Arg_string::find_arg(args.string(), "offset")
-						                     .ulonglong_value(0) },
-					.num_blocks = Block::Constrained_view::Num_blocks {
-						Arg_string::find_arg(args.string(), "num_blocks")
-						                     .ulonglong_value(0) },
-					.writeable  = writeable_policy && writeable_arg
-				};
+				Block::Constrained_view view =
+					Block::Constrained_view::from_args(args.string());
+				view.writeable = writeable_policy && view.writeable;
 
 				try {
 					Block_session const &session =

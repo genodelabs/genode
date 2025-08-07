@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/output.h>
+#include <util/arg_string.h>
 
 namespace Block {
 
@@ -39,6 +40,21 @@ struct Block::Constrained_view
 	Offset     offset;
 	Num_blocks num_blocks;
 	bool       writeable;
+
+	static Constrained_view from_args(char const *args)
+	{
+		using AS = Genode::Arg_string;
+		return {
+			.offset     = Offset     { AS::find_arg(args, "offset")    .ulonglong_value(0) },
+			.num_blocks = Num_blocks { AS::find_arg(args, "num_blocks").ulonglong_value(0) },\
+			/*
+			 * Assume writeable by default to accommodate session requests without
+			 * contraining view because the policy's writeable setting always has
+			 * the last word anyway.
+			 */
+			.writeable  = AS::find_arg(args, "writeable").bool_value(true)
+		};
+	}
 };
 
 

@@ -333,16 +333,11 @@ Block_root::Create_result Block_root::_create_session(const char * args,
 					[&] (Session_map::Alloc_ok ok) { new_session_id = ok.index; },
 					[&] (Session_map::Alloc_error) { throw Service_denied(); });
 
-				bool const writeable_arg =
-					Arg_string::find_arg(args, "writeable").bool_value(true);
-
-				Block::Constrained_view const view {
-					.offset     = Block::Constrained_view::Offset {
-						Arg_string::find_arg(args, "offset") .ulonglong_value(0) },
-					.num_blocks = Block::Constrained_view::Num_blocks {
-						Arg_string::find_arg(args, "num_blocks") .ulonglong_value(0) },
-					.writeable  = di.info.writeable && writeable_policy && writeable_arg
-				};
+				Block::Constrained_view view =
+					Block::Constrained_view::from_args(args);
+				view.writeable = di.info.writeable
+				              && writeable_policy
+				              && view.writeable;
 
 				try {
 					ret = new (md_alloc())

@@ -895,19 +895,11 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
-		Session_label  const label  { label_from_args(args.string()) };
+		Session_label const label { label_from_args(args.string()) };
 
-		bool const writeable_arg =
-			Arg_string::find_arg(args.string(), "writeable")
-			                     .bool_value(true);
-
-		Block::Constrained_view const view {
-			.offset     = Block::Constrained_view::Offset {
-				Arg_string::find_arg(args.string(), "offset") .ulonglong_value(0) },
-			.num_blocks = Block::Constrained_view::Num_blocks {
-				Arg_string::find_arg(args.string(), "num_blocks") .ulonglong_value(0) },
-			.writeable  = driver.info().writeable && writeable_arg
-		};
+		Block::Constrained_view view =
+			Block::Constrained_view::from_args(args.string());
+		view.writeable = driver.info().writeable && view.writeable;
 
 		Session_map::Index new_session_id { 0u };
 

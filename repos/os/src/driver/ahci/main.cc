@@ -560,19 +560,9 @@ struct Ahci::Main : Rpc_object<Typed_root<Block::Session>>, Dispatch
 					bool const writeable_policy =
 						policy.attribute_value("writeable", false);
 
-					bool const writeable_arg =
-						Arg_string::find_arg(args.string(), "writeable")
-						                     .bool_value(true);
-
-					Block::Constrained_view const view {
-						.offset     = Block::Constrained_view::Offset {
-							Arg_string::find_arg(args.string(), "offset")
-							                     .ulonglong_value(0) },
-						.num_blocks = Block::Constrained_view::Num_blocks {
-							Arg_string::find_arg(args.string(), "num_blocks")
-							                     .ulonglong_value(0) },
-						.writeable  = writeable_policy && writeable_arg
-					};
+					Block::Constrained_view view =
+						Block::Constrained_view::from_args(args.string());
+					view.writeable = writeable_policy && view.writeable;
 
 					return port_dispatcher[port.index]->new_session(view, tx_buf_size);
 				} catch (...) { return Session_error::DENIED; }
