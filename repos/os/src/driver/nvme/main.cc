@@ -2109,8 +2109,6 @@ class Nvme::Driver : Genode::Noncopyable
 
 		Block::Session::Info info() const { return _info; }
 
-		void writeable(bool writeable) { _info.writeable = writeable; }
-
 		void device_release_if_stopped_and_idle()
 		{
 			if (_stop_processing && _submits_in_flight == 0) {
