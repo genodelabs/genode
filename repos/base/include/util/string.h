@@ -80,6 +80,36 @@ struct Genode::Span : Noncopyable
 		return contains((char const *)ptr);
 	}
 
+	/**
+	 * Call 'fn' with two spans preceeding and following the 'match' character
+	 */
+	void cut(char const match, auto const &fn) const
+	{
+		unsigned n = 0;
+		while (n < num_bytes && (start[n] != match))
+			n++;
+
+		if (n < num_bytes)
+			fn(Span(start, n), Span(start + n + 1, num_bytes - n - 1));
+		else
+			fn(*this, Span(nullptr, 0));
+	}
+
+	/**
+	 * Call 'fn' for each part of the 'Span' separated by 'sep'
+	 */
+	void split(char sep, auto const &fn) const
+	{
+		char const *s = start;
+		size_t      n = num_bytes;
+
+		while (n)
+			Span(s, n).cut(sep, [&] (Span const &head, Span const &tail) {
+				fn(head);
+				s = tail.start;
+				n = tail.num_bytes; });
+	}
+
 	Span(char const *start, size_t num_bytes) : start(start), num_bytes(num_bytes) { }
 };
 
