@@ -96,6 +96,10 @@ class Core::Vm_session_component
 		Vmid_allocator                     &_vmid_alloc;
 		uint8_t                             _remaining_print_count { 10 };
 
+		using Constructed = Attempt<Ok, Alloc_error>;
+		Constructed const constructed =
+			_table.constructed.ok() ? _table.constructed : _table_array.constructed;
+
 		Kernel::Vcpu::Identity _id {
 			_vmid_alloc.alloc().convert<unsigned>(
 				[] (addr_t const id)       -> unsigned { return unsigned(id); },
@@ -105,15 +109,24 @@ class Core::Vm_session_component
 
 		void _detach_at(addr_t addr)
 		{
-			_memory.detach_at(addr,
-				[&](addr_t vm_addr, size_t size) {
-				_table.obj.remove(vm_addr, size, _table_array.obj.alloc()); });
+			_memory.detach_at(addr, [&](addr_t vm_addr, size_t size) {
+				_table_array.obj([&] (Vm_page_table_array &array) {
+					_table.obj([&] (TABLE &table) {
+						table.remove(vm_addr, size, array.alloc());
+					});
+				});
+			});
 		}
 
 		void _reserve_and_flush(addr_t addr)
 		{
 			_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
-				_table.obj.remove(vm_addr, size, _table_array.obj.alloc()); });
+				_table_array.obj([&] (Vm_page_table_array &array) {
+					_table.obj([&] (TABLE &table) {
+						table.remove(vm_addr, size, array.alloc());
+					});
+				});
+			});
 		}
 
 	public:
@@ -143,7 +156,15 @@ class Core::Vm_session_component
 					}),
 			_memory(_accounted_ram_alloc, local_rm),
 			_vmid_alloc(vmid_alloc)
-		{ }
+		{
+			constructed.with_error([] (Alloc_error e) {
+				switch (e) {
+				case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+				case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+				case Alloc_error::DENIED:      throw Service_denied();
+				};
+			});
+		}
 
 		~Vm_session_component()
 		{
@@ -171,25 +192,18 @@ class Core::Vm_session_component
 
 			auto const &map_fn = [&](addr_t vm_addr, addr_t phys_addr, size_t size) {
 				Page_flags const pflags { RW, EXEC, USER, NO_GLOBAL, RAM, CACHED };
-
-				Hw::Page_table::Result result =
-					_table.obj.insert(vm_addr, phys_addr, size, pflags,
-					                  _table_array.obj.alloc());
-				result.with_error([&] (Hw::Page_table_error e) {
-					if (e == Hw::Page_table_error::INVALID_RANGE) {
-						invalid_mapping = true;
-						if (_remaining_print_count) {
-							Genode::error("Invalid mapping ", Genode::Hex(phys_addr), " -> ",
-							               Genode::Hex(vm_addr), " (", size, ")");
-							_remaining_print_count--;
-						}
-					} else {
-						out_of_tables = true;
-						if (_remaining_print_count) {
-							Genode::error("Translation table needs too much RAM");
-							_remaining_print_count--;
-						}
-					}
+				_table_array.obj([&] (Vm_page_table_array &array) {
+					_table.obj([&] (TABLE &table) {
+						Hw::Page_table::Result result =
+							table.insert(vm_addr, phys_addr, size, pflags,
+							             array.alloc());
+						result.with_error([&] (Hw::Page_table_error e) {
+							if (e == Hw::Page_table_error::INVALID_RANGE)
+								invalid_mapping = true;
+							else
+								out_of_tables = true;
+						});
+					});
 				});
 			};
 
@@ -206,11 +220,22 @@ class Core::Vm_session_component
 				Guest_memory::Attach_result result =
 					_memory.attach(_detach, dsc, guest_phys, attr, map_fn);
 
-				if (out_of_tables)
+				if (out_of_tables) {
+					if (_remaining_print_count) {
+						Genode::error("Translation table needs too much RAM");
+						_remaining_print_count--;
+					}
 					throw Out_of_ram();
+				}
 
-				if (invalid_mapping)
+				if (invalid_mapping) {
+					if (_remaining_print_count) {
+						Genode::error("Invalid mapping to guest physical ",
+						              Genode::Hex(guest_phys));
+						_remaining_print_count--;
+					}
 					throw Invalid_dataspace();
+				}
 
 				switch (result) {
 				case Guest_memory::Attach_result::OK             : break;
@@ -228,7 +253,11 @@ class Core::Vm_session_component
 		void detach(addr_t guest_phys, size_t size) override
 		{
 			_memory.detach(guest_phys, size, [&](addr_t vm_addr, size_t size) {
-				_table.obj.remove(vm_addr, size, _table_array.obj.alloc()); });
+				_table_array.obj([&] (Vm_page_table_array &array) {
+					_table.obj([&] (TABLE &table) {
+						table.remove(vm_addr, size, array.alloc()); });
+				});
+			});
 		}
 
 		Capability<Native_vcpu> create_vcpu(Thread_capability tcap) override
@@ -246,8 +275,16 @@ class Core::Vm_session_component
 						                 _accounted_ram_alloc,
 						                 _local_rm,
 						                 vcpu_location);
-
-			return vcpu.cap();
+			return vcpu.constructed.convert<Capability<Native_vcpu>>(
+				[&] (Ok) { return vcpu.cap(); },
+				[&] (Alloc_error e) {
+					destroy(_heap, &vcpu);
+					switch (e) {
+					case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
+					case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
+					case Alloc_error::DENIED:      break;
+					};
+					return Capability<Native_vcpu>(); });
 		}
 };
 

@@ -51,6 +51,9 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
 
 	public:
 
+		using Constructed = Attempt<Ok, Alloc_error>;
+		Constructed const constructed = _state.constructed;
+
 		Vcpu(Kernel::Vcpu::Identity  &id,
 		     Rpc_entrypoint          &ep,
 		     Accounted_ram_allocator &ram,

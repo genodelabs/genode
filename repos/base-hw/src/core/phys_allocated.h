@@ -1,6 +1,7 @@
 /*
  * \brief  Allocate an object with a physical address
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \author Benjamin Lamowski
  * \date   2024-12-02
  */
@@ -35,20 +36,44 @@ class Core::Phys_allocated : Genode::Noncopyable
 	private:
 
 		Rpc_entrypoint &_ep;
+		Ram_allocator  &_ram;
+		Local_rm       &_rm;
 
-		Attached_ram_dataspace _ds;
+		Ram_allocator::Result _ram_result { _ram.try_alloc(sizeof(T)) };
+
+		addr_t _phys_addr { 0 };
+
+		Local_rm::Result _mapped {
+			_ram_result.convert<Local_rm::Result>(
+				[&] (Ram_allocator::Allocation const &ram) {
+					_phys_addr = _ep.apply(ram.cap, [&](Dataspace_component *dsc) {
+						return dsc->phys_addr(); });
+					return _rm.attach(ram.cap, {
+						.size       = { }, .offset    = { },
+						.use_at     = { }, .at        = { },
+						.executable = { }, .writeable = true });
+				},
+				[&] (Alloc_error) { return Local_rm::Error::INVALID_DATASPACE; }
+			)};
 
 	public:
 
-		T &obj = *_ds.local_addr<T>();
+		using Constructed = Attempt<Ok, Alloc_error>;
+
+		Constructed const constructed = _mapped.convert<Constructed>(
+			[&] (Local_rm::Attachment const &) { return Ok(); },
+			[&] (Local_rm::Error) {
+				return _ram_result.convert<Alloc_error>(
+					[&] (Ram::Allocation const &) { return Alloc_error::DENIED; },
+					[&] (Alloc_error e) { return e; }); });
 
 		Phys_allocated(Rpc_entrypoint &ep,
 		               Ram_allocator  &ram,
 		               Local_rm       &rm)
 		:
-			_ep(ep), _ds{ram, rm, sizeof(T)}
+			_ep(ep), _ram(ram), _rm(rm)
 		{
-			construct_at<T>(&obj);
+			obj([&] (T &o) { construct_at<T>(&o); });
 		}
 
 		Phys_allocated(Rpc_entrypoint &ep,
@@ -56,21 +81,23 @@ class Core::Phys_allocated : Genode::Noncopyable
 		               Local_rm       &rm,
 		               auto const     &construct_fn)
 		:
-			_ep(ep), _ds{ram, rm, sizeof(T)}
+			_ep(ep), _ram(ram), _rm(rm)
 		{
-			construct_fn(*this, &obj);
+			obj([&] (T &o) { construct_fn(*this, &o); });
 		}
 
-		~Phys_allocated() { obj.~T(); }
-
-		addr_t phys_addr() const
+		~Phys_allocated()
 		{
-			addr_t phys_addr { };
-			 _ep.apply(_ds.cap(), [&](Dataspace_component *dsc) {
-				phys_addr = dsc->phys_addr();
-			 });
+			obj([&] (T &o) { o.~T(); });
+		}
 
-			 return phys_addr;
+		addr_t phys_addr() const { return _phys_addr; }
+
+		void obj(auto const fn)
+		{
+			_mapped.with_result(
+				[&] (Local_rm::Attachment const &a) { fn(*((T*)a.ptr)); },
+				[&] (Local_rm::Error) { });
 		}
 };
 

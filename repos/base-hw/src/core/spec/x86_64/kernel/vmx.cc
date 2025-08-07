@@ -89,6 +89,7 @@ Vmcs::Vmcs(Board::Vcpu_state &state)
 	if (!system_rev)
 		setup_vmx_info();
 
+
 	Genode::construct_at<Vmcs_buf>((void *)(state.vmc_addr()
 	                                         + get_page_size()), system_rev);
 }
