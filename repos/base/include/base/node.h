@@ -275,6 +275,9 @@ struct Genode::Buffered_node : private Memory::Allocation::Attempt, Node
 	static Byte_range_ptr _allocated(Memory::Constrained_allocator &alloc,
 	                                 Memory::Allocation::Attempt &a, size_t num_bytes)
 	{
+		if (!num_bytes)
+			return { nullptr, 0 };
+
 		a = alloc.try_alloc(num_bytes);
 		return a.convert<Byte_range_ptr>(
 			[&] (Memory::Allocation &a) {
