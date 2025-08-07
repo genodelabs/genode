@@ -2532,161 +2532,161 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 		if (!_force_sq) _handle_requests();
 		else            _handle_requests_sq();
 
-		_driver.with_controller([&] (auto & ctrlr) {
+		_driver.with_controller([&] (auto &ctrlr) {
 			ctrlr.ack_irq(); });
 	}
 
 	void _handle_requests_sq()
 	{
-		_driver.with_io_queue(Io_queue_space::Id{1u}, [&] (Io_queue &io_queue) {
+		_driver.with_controller([&] (auto &ctrlr) {
+
 			for (;;) {
 				bool progress = false;
 
 				/* acknowledge completed */
-				auto completed_job = [&] (uint16_t cid) {
-					Session_command_space::Id const id { .value = cid };
-					auto get_session = [&] (Session_command &session_command) {
-						auto get_block = [&] (Block_session_component &block_session) {
-							bool command_handled = false;
-							auto acknowledge_job = [&] (Block_session_component::Ack &ack) {
-								auto complete_fn = [&] (Block::Request &request) {
-									ack.submit(request);
-									progress = true;
-									command_handled = true;
-								};
-								io_queue.with_completed_request(cid, complete_fn);
-							};
-							block_session.try_acknowledge(acknowledge_job);
+				_driver.with_io_queue(Io_queue_space::Id{1u}, [&] (Io_queue &io_queue) {
+					_driver.with_any_completed_job(ctrlr, io_queue, [&] (uint16_t cid) {
 
-							if (!command_handled)
-								error("command: ", cid, " from session: ",
-								      block_session.session_id().value, " not acked");
-							else
-								destroy(_session_commands_slab, &session_command);
-						};
-						_sessions.apply<Block_session_component>(session_command.session_id,
-						                                         get_block);
-					};
-					_session_commands.apply<Session_command>(id, get_session);
-				};
-				_driver.with_controller([&] (auto & ctrlr) {
-					_driver.with_any_completed_job(ctrlr, io_queue, completed_job); });
+						Session_command_space::Id const id { .value = cid };
+						_session_commands.apply<Session_command>(id,
+							[&] (Session_command &cmd) {
 
-				/* deferred acknowledge on the controller */
-				_driver.with_controller([&] (auto & ctrlr) {
-					ctrlr.ack_io_completions(io_queue.queue_id()); });
+								_sessions.apply<Block_session_component>(cmd.session_id,
+									[&] (Block_session_component &block_session) {
 
-				_sessions.for_each<Block_session_component>([&] (Block_session_component &block_session) {
+										bool command_handled = false;
+										block_session.try_acknowledge(
+											[&] (Block_session_component::Ack &ack) {
+												io_queue.with_completed_request(cid,
+													[&] (Block::Request &request) {
+														ack.submit(request);
+														progress = true;
+														command_handled = true;
+													});
+											});
 
-					_driver.with_io_queue(block_session.queue_id(), [&] (Io_queue &block_io_queue) {
-
-						/* import new requests */
-						block_session.with_requests([&] (Block::Request request) {
-
-							Response response = Response::RETRY;
-
-							uint16_t cid;
-							_driver.with_controller([&] (auto & ctrlr) {
-								response = _driver.submit_sq(ctrlr, io_queue, block_io_queue,
-								                             request, cid); });
-
-							switch (response) {
-							case Response::ACCEPTED:
-							new (_session_commands_slab)
-								Session_command(_session_commands,
-								                block_session.session_id(), cid);
-							[[fallthrough]];
-							case Response::REJECTED:
-								progress = true;
-							[[fallthrough]];
-							case Response::RETRY:
-								break;
-							}
-
-							return response;
-						});
-
-						/* process I/O */
-						_driver.with_controller([&] (auto & ctrlr) {
-							progress |= _driver.commit_pending_submits(ctrlr, io_queue); });
-
-						block_session.wakeup_client_if_needed();
+										if (!command_handled)
+											error("command: ", cid, " from session: ",
+											      block_session.session_id().value, " not acked");
+										else
+											destroy(_session_commands_slab, &cmd);
+									});
+							});
 					});
-				});
 
-				_driver.device_release_if_stopped_and_idle();
+					/* deferred acknowledge on the controller */
+					ctrlr.ack_io_completions(io_queue.queue_id());
+
+					_sessions.for_each<Block_session_component>(
+						[&] (Block_session_component &block_session) {
+
+							_driver.with_io_queue(block_session.queue_id(),
+								[&] (Io_queue &block_io_queue) {
+
+									/* import new requests */
+									block_session.with_requests([&] (Block::Request request) {
+
+										uint16_t cid;
+										Response const response =
+											_driver.submit_sq(ctrlr, io_queue,
+											                  block_io_queue,
+											                  request, cid);
+
+										switch (response) {
+										case Response::ACCEPTED:
+										new (_session_commands_slab)
+											Session_command(_session_commands,
+											                block_session.session_id(), cid);
+										[[fallthrough]];
+										case Response::REJECTED:
+											progress = true;
+										[[fallthrough]];
+										case Response::RETRY:
+											break;
+										}
+
+										return response;
+									});
+
+									/* process I/O */
+									progress |= _driver.commit_pending_submits(ctrlr, io_queue);
+
+									block_session.wakeup_client_if_needed();
+								});
+						});
+				});
 
 				if (!progress) { break; }
 			}
 		});
+
+		_driver.device_release_if_stopped_and_idle();
 	}
 
 	void _handle_requests_mq()
 	{
-		_sessions.for_each<Block_session_component>([&] (Block_session_component &block_session) {
+		_driver.with_controller([&] (auto &ctrlr) {
+			_sessions.for_each<Block_session_component>(
+				[&] (Block_session_component &block_session) {
 
-			_driver.with_io_queue(block_session.queue_id(), [&] (Io_queue &io_queue) {
+					_driver.with_io_queue(block_session.queue_id(), [&] (Io_queue &io_queue) {
 
-				for (;;) {
-					bool progress = false;
+						for (;;) {
+							bool progress          = false;
+							bool completed_pending = false;
 
-					bool completed_pending = false;
+							/* acknowledge finished jobs */
+							auto ack_request_fn =
+								[&] (Block_session_component::Ack &ack,
+								     Io_queue &io_queue, uint16_t const cid) {
+									io_queue.with_completed_request(cid,
+										[&] (Block::Request &request) {
+											ack.submit(request);
+											progress = true;
+											completed_pending = true;
+										}); };
 
-					/* acknowledge finished jobs */
-					auto acknowledge_job = [&] (Block_session_component::Ack &ack) {
-						auto completed_job = [&] (uint16_t cid) {
-							auto complete_fn = [&] (Block::Request &request) {
-								ack.submit(request);
-								progress = true;
+							block_session.try_acknowledge(
+								[&] (Block_session_component::Ack &ack) {
+									_driver.with_any_completed_job(ctrlr, io_queue,
+										[&] (uint16_t const cid) {
+											ack_request_fn(ack, io_queue, cid); }); });
 
-								completed_pending = true;
-							};
-							io_queue.with_completed_request(cid, complete_fn);
-						};
+							/* deferred acknowledge on the controller */
+							if (completed_pending)
+								ctrlr.ack_io_completions(io_queue.queue_id());
 
-						_driver.with_controller([&] (auto & ctrlr) {
-							_driver.with_any_completed_job(ctrlr, io_queue, completed_job); });
-					};
-					block_session.try_acknowledge(acknowledge_job);
+							/* import new requests */
+							block_session.with_requests([&] (Block::Request request) {
 
-					/* deferred acknowledge on the controller */
-					if (completed_pending)
-						_driver.with_controller([&] (auto & ctrlr) {
-							ctrlr.ack_io_completions(io_queue.queue_id()); });
+								Response const response =
+									_driver.submit(ctrlr, io_queue, request);
 
-					/* import new requests */
-					block_session.with_requests([&] (Block::Request request) {
+								switch (response) {
+								case Response::ACCEPTED:
+								[[fallthrough]];
+								case Response::REJECTED:
+									progress = true;
+								[[fallthrough]];
+								case Response::RETRY:
+									break;
+								}
 
-						Response response = Response::RETRY;
+								return response;
+							});
 
-						_driver.with_controller([&] (auto & ctrlr) {
-							response = _driver.submit(ctrlr, io_queue, request); });
+							/* process I/O */
+							progress |= _driver.commit_pending_submits(ctrlr, io_queue);
 
-						switch (response) {
-						case Response::ACCEPTED:
-						[[fallthrough]];
-						case Response::REJECTED:
-							progress = true;
-						[[fallthrough]];
-						case Response::RETRY:
-							break;
+							if (!progress) { break; }
 						}
 
-						return response;
+						block_session.wakeup_client_if_needed();
 					});
-
-					/* process I/O */
-					_driver.with_controller([&] (auto & ctrlr) {
-						progress |= _driver.commit_pending_submits(ctrlr, io_queue); });
-
-					_driver.device_release_if_stopped_and_idle();
-
-					if (!progress) { break; }
-				}
-
-				block_session.wakeup_client_if_needed();
 			});
 		});
+
+		_driver.device_release_if_stopped_and_idle();
 	}
 
 	void _handle_requests()
@@ -2724,7 +2724,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 
 				Block_session_component *session = nullptr;
 
-				_driver.with_controller([&] (auto & ctrlr) {
+				_driver.with_controller([&] (auto &ctrlr) {
 					_driver.create_io_queue(ctrlr, tx_buf_size).with_result(
 						[&] (Io_queue_space::Id queue_id) {
 
@@ -2792,7 +2792,7 @@ struct Nvme::Main : Rpc_object<Typed_root<Block::Session>>
 					Session_map::Index::from_id(session_id.value);
 				_session_map.free(index);
 
-				_driver.with_controller([&] (auto & ctrlr) {
+				_driver.with_controller([&] (auto &ctrlr) {
 					_driver.free_io_queue(ctrlr, queue_id); });
 			});
 	}
