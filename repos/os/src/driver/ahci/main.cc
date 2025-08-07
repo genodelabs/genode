@@ -431,63 +431,51 @@ struct Ahci::Port_dispatcher
 			bool progress = false;
 
 			/* ack and release possibly pending packet */
-			auto session_ack_fn = [&] (Block_session_component &block_session) {
-				auto request_stream_ack_fn = [&] (Request_stream &request_stream) {
-					auto ack_fn = [&] (Request_stream::Ack &ack) {
-						auto completed_fn = [&] (Block::Request &request) {
-
-							if (!request.operation.valid())
-								return;
-
-							ack.submit(request);
-							progress = true;
-						};
-						_port.for_one_completed_request(block_session.session_id().value,
-						                                completed_fn);
-					};
-					request_stream.try_acknowledge(ack_fn);
-					request_stream.wakeup_client_if_needed();
-				};
-				block_session.with_request_stream(request_stream_ack_fn);
-			};
-			_sessions.for_each<Block_session_component>(session_ack_fn);
+			_sessions.for_each<Block_session_component>(
+				[&] (Block_session_component &block_session) {
+					block_session.with_request_stream([&] (Request_stream &request_stream) {
+						request_stream.try_acknowledge([&] (Request_stream::Ack &ack) {
+							_port.for_one_completed_request(block_session.session_id().value,
+							                                [&] (Block::Request &request) {
+								ack.submit(request);
+								progress = true;
+							});
+						});
+						request_stream.wakeup_client_if_needed();
+					});
+				});
 
 			/* all completed packets are handled, but no further processing */
 			if (_port.stop_processing)
 				break;
 
-			auto index_fn = [&] (Session_map::Index index) {
-				Session_space::Id const session_id { .value = index.value };
-				auto block_session_submit_fn = [&] (Block_session_component &block_session) {
-					auto request_stream_submit_fn = [&] (Request_stream &request_stream) {
-						auto request_submit_fn = [&] (Request request) {
+			auto submit_request_fn = [&] (Session_space::Id session_id,
+			                               Block::Request    request) {
+				/* ignored operations */
+				if (request.operation.type == Block::Operation::Type::TRIM
+				 || request.operation.type == Block::Operation::Type::INVALID) {
+					progress = true;
+					return Response::REJECTED;
+				}
 
-							Response response = Response::RETRY;
+				Response const response = _port.submit(session_id.value,
+				                                       request);
 
-							/* ignored operations */
+				if (response != Response::RETRY)
+					progress = true;
 
-							if (request.operation.type == Block::Operation::Type::TRIM
-							 || request.operation.type == Block::Operation::Type::INVALID) {
-								request.success = true;
-								progress = true;
-								return Response::REJECTED;
-							}
-
-							response = _port.submit(block_session.session_id().value, request);
-
-							if (response != Response::RETRY)
-								progress = true;
-
-							return response;
-						};
-						request_stream.with_requests(request_submit_fn);
-					};
-					block_session.with_request_stream(request_stream_submit_fn);
-				};
-				_sessions.apply<Block_session_component>(session_id,
-				                                         block_session_submit_fn);
+				return response;
 			};
-			_session_map.for_each_index(index_fn);
+
+			_session_map.for_each_index([&] (Session_map::Index index) {
+				Session_space::Id const session_id { .value = index.value };
+				_sessions.apply<Block_session_component>(session_id,
+					[&] (Block_session_component &block_session) {
+						block_session.with_request_stream([&] (Request_stream &request_stream) {
+							request_stream.with_requests([&] (Request request) {
+
+								return submit_request_fn(block_session.session_id(), request);
+							}); }); }); });
 
 			if (!progress)
 				break;
