@@ -57,6 +57,7 @@
 			</config>
 		</start>
 		<start name="test-report_rom" ram="2M">
+			<config generate_xml="yes"/>
 			<route>
 				<service name="ROM" label="brightness">
 					<child name="report_rom"/>

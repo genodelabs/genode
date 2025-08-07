@@ -112,7 +112,7 @@
 				</start>
 
 				<start name="fs_query">
-					<config>
+					<config generate_xml="yes">
 						<vfs> <dir name="fs"> <fs/> </dir> </vfs>
 						<query path="/fs/items" content="yes"/>
 						<query path="/fs/new/file/at/subdir" content="yes"/>

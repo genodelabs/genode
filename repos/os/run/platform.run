@@ -40,7 +40,7 @@ install_config {
 			<vfs>
 				<ram/>
 				<import>
-					<inline name="config"><config><default-policy/></config>
+					<inline name="config"><config generate_xml="yes"><default-policy/></config>
 					</inline>
 					<inline name="devices"><devices/>
 					</inline>

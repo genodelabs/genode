@@ -16,7 +16,7 @@ import_from_depot [depot_user]/src/[base_src] \
 build { app/sntp_client }
 
 install_config {
-<config>
+<config generate_xml="yes">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -88,7 +88,7 @@ install_config {
 	</start>
 
 	<start name="sntp_client" ram="8M">
-		<config verbose="no" dst_addr="pool.ntp.org" period_min="1"/>
+		<config verbose="no" dst_addr="pool.ntp.org" period_min="1" generate_xml="yes"/>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

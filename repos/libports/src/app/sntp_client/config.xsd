@@ -13,6 +13,8 @@
 			<xs:attribute name="interface"  type="Ipv4_address_prefix" />
 			<xs:attribute name="gateway"    type="Ipv4_address" />
 			<xs:attribute name="period_min" type="Minutes" />
+
+			<xs:attribute name="generate_xml" type="Boolean" /> <!-- transitionary -->
 		</xs:complexType>
 	</xs:element><!-- config -->
 

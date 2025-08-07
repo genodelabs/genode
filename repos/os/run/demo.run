@@ -20,7 +20,7 @@ import_from_depot [depot_user]/src/[base_src] \
 build { app/status_bar test/nitpicker }
 
 install_config {
-<config>
+<config generate_xml="yes">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -65,7 +65,7 @@ install_config {
 	<start name="nitpicker_config">
 		<binary name="rom_filter"/>
 		<provides> <service name="ROM"/> </provides>
-		<config>
+		<config generate_xml="yes">
 			<input name="xray_enabled" rom="xray" node="xray">
 				<attribute name="enabled" /> </input>
 

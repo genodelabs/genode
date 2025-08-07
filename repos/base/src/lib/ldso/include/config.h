@@ -33,7 +33,7 @@ class Linker::Config : Noncopyable
 
 		bool const verbose      = _config.node().attribute_value("ld_verbose",     false);
 		bool const check_ctors  = _config.node().attribute_value("ld_check_ctors", true);
-		bool const generate_xml = _config.node().attribute_value("generate_xml",   true);
+		bool const generate_xml = _config.node().attribute_value("generate_xml",   false);
 
 		Config(Env &env) : _config(env, "config") { }
 

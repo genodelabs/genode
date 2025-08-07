@@ -12,6 +12,6 @@
 		<rom label="dummy"/>
 	</content>
 
-	<config/>
+	<config generate_xml="yes"/>
 
 </runtime>

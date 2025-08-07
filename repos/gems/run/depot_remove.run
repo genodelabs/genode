@@ -233,7 +233,7 @@ puts "\n--------------- TEST 1 --- Delete nano3d"
 set context [mark_pkg_for_deletion [build_depot_context] "nano3d"]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes">
+<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
 	<remove user="} [depot_user] {" pkg="nano3d"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>}
@@ -251,7 +251,7 @@ puts "\n--------------- TEST 2 --- Delete non existing archive"
 set context [build_depot_context]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes">
+<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
 	<remove user="} [depot_user] {" pkg="nano3d"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>}
@@ -270,7 +270,7 @@ puts "\n--------------- TEST 3 --- Delete a PKG archive with deps to keep"
 set context [mark_pkg_for_deletion [build_depot_context] "fonts_fs"]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes">
+<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
 	<remove user="} [depot_user] {" pkg="fonts_fs"/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>}
@@ -291,7 +291,7 @@ set context [mark_pkg_to_keep $context "themed_decorator"]
 set context [mark_pkg_to_keep $context "chroot"]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes">
+<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
 	<remove-all>
 		<keep user="} [depot_user] {" pkg="themed_decorator"/>
 		<keep user="} [depot_user] {" pkg="chroot"/>
@@ -313,7 +313,7 @@ puts "\n--------------- TEST 5 --- Remove all --- SUCCESS"
 set context [mark_all_for_deletion [build_depot_context]]
 
 install_test_config {
-<config arch="} [depot_spec] {" report="yes">
+<config arch="} [depot_spec] {" report="yes" generate_xml="yes">
 	<remove-all/>
 	<vfs> <dir name="depot"> <fs/> </dir> </vfs>
 </config>}

@@ -27,7 +27,7 @@ install_config {
 	</start>
 
 	<start name="verify" caps="200" ram="12M">
-		<config verbose="yes">
+		<config verbose="yes" generate_xml="yes">
 			<libc stdout="/dev/log" stderr="/dev/null" rtc="/dev/null"/>
 			<vfs>
 				<rom name="pubkey"/>

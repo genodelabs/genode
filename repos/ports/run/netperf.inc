@@ -170,7 +170,7 @@ build { app/netperf }
 set lx_ip_addr "10.0.2.55"
 
 set config {
-<config verbose="yes" prio_levels="4">
+<config verbose="yes" prio_levels="4" generate_xml="yes">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>

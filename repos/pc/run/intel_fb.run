@@ -204,7 +204,7 @@ append config {
 						<ram/>
 						<import>
 							<inline name="fb.config">
-<config ld_verbose="yes" apply_on_hotplug="} $apply_on_hotplug {">
+<config ld_verbose="yes" apply_on_hotplug="} $apply_on_hotplug {" generate_xml="yes">
 	<report connectors="yes"/>
 	<merge name="mirror">
 		<!-- all connectors in merge node gets mirrored -->

@@ -88,7 +88,8 @@ install_config {
 		<config dhcp_discover_timeout_sec="1"
 		        verbose_packets="yes"
 		        verbose_packet_drop="yes"
-		        icmp_type_3_code_on_fragm_ipv4="4">
+		        icmp_type_3_code_on_fragm_ipv4="4"
+		        generate_xml="yes">
 
 			<policy label_prefix="drivers"              domain="uplink"/>
 			<policy label_prefix="test-lwip-udp-server" domain="downlink"/>
@@ -117,7 +118,7 @@ install_config {
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-		<config port="8000">
+		<config port="8000" generate_xml="yes">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
 				<dir name="socket">

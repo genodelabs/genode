@@ -72,7 +72,7 @@
 
 		<start name="rom_filter" ram="4M">
 			<provides><service name="ROM"/></provides>
-			<config verbose="no">
+			<config verbose="no" generate_xml="yes">
 
 				<input name="xray_enabled" rom="xray" node="xray">
 					<attribute name="enabled"/>

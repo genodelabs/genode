@@ -20,7 +20,7 @@ import_from_depot [depot_user]/src/[base_src] \
 build { test/lwip }
 
 install_config {
-<config>
+<config generate_xml="yes">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>

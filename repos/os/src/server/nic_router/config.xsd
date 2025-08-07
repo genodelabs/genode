@@ -196,6 +196,7 @@
 			<xs:attribute name="icmp_echo_server"               type="Boolean" />
 			<xs:attribute name="icmp_type_3_code_on_fragm_ipv4" type="Icmp_type_3_code_attribute" />
 			<xs:attribute name="ld_verbose"                     type="Boolean" />
+			<xs:attribute name="generate_xml"                   type="Boolean" />
 		</xs:complexType>
 	</xs:element><!-- config -->
 

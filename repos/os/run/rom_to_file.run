@@ -1,6 +1,6 @@
 assert {[have_spec linux]}
 
-build { core init timer lib/ld server/dynamic_rom app/rom_to_file server/lx_fs }
+build { core init timer lib/ld lib/vfs server/dynamic_rom app/rom_to_file server/lx_fs }
 
 create_boot_directory
 
@@ -22,9 +22,9 @@ install_config {
 	</start>
 	<start name="dynamic_rom" ram="4M">
 		<provides><service name="ROM"/></provides>
-		<config verbose="yes">
+		<config verbose="yes" generate_xml="yes">
 			<rom name="test">
-				<inline description="update"><test />
+				<inline description="update"><test/>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="finished"/>
@@ -59,6 +59,6 @@ run_genode_until "finished" 10
 
 set output [exec cat bin/fs_test/test]
 
-compare_output_to {<test />}
+compare_output_to {<test/>}
 
 exec rm -r bin/fs_test

@@ -115,7 +115,7 @@
 		</start>
 
 		<start name="file_vault" caps="1500" ram="180M">
-			<config>
+			<config generate_xml="yes">
 				<vfs>
 					<dir name="tresor">
 						<fs label="tresor -> /"/>

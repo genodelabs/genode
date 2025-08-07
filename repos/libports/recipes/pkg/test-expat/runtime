@@ -22,7 +22,7 @@
 		<rom label="test-expat"/>
 	</content>
 
-	<config>
+	<config generate_xml="yes">
 		<vfs>
 			<inline name="config"><config>
 					<test_tag test_attribute="test_value"/>

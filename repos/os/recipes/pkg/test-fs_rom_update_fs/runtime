@@ -55,7 +55,7 @@
 		</start>
 		<start name="dynamic_rom" ram="4M">
 			<provides><service name="ROM"/></provides>
-			<config verbose="yes">
+			<config verbose="yes" generate_xml="yes">
 				<rom name="dynamic_rom">
 					<inline description="iteration 1">
 						<config iteration="1"/>
