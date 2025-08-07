@@ -278,8 +278,8 @@ class Gui::Connection : private Genode::Connection<Session>
 		Panorama_result panorama()
 		{
 			Gui::Rect result { };
-			_with_info_xml([&] (Xml_node const &info) {
-				result = Rect::from_xml(info); });
+			_with_info_node([&] (Node const &info) {
+				result = Rect::from_node(info); });
 			return result.valid() ? Panorama_result { result }
 			                      : Panorama_result { Undefined { } };
 		}
@@ -301,15 +301,15 @@ class Gui::Connection : private Genode::Connection<Session>
 		{
 			Rect result { };
 			bool closed = false;
-			_with_info_xml([&] (Xml_node const &info) {
+			_with_info_node([&] (Node const &info) {
 				Rect bb { };  /* bounding box of all captured rects */
 				unsigned count = 0;
-				info.for_each_sub_node("capture", [&] (Xml_node const &capture) {
+				info.for_each_sub_node("capture", [&] (Node const &capture) {
 					closed |= (capture.attribute_value("closed", false));
-					bb = Rect::compound(bb, Rect::from_xml(capture));
+					bb = Rect::compound(bb, Rect::from_node(capture));
 					count++;
 				});
-				result = (count == 1) ? bb : Rect::from_xml(info);
+				result = (count == 1) ? bb : Rect::from_node(info);
 			});
 			if (closed)
 				return Rect { };
