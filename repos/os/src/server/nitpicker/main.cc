@@ -1049,16 +1049,24 @@ void Nitpicker::Main::_handle_focus()
 
 	_focus_rom->update();
 
-	using Label = String<160>;
-	Label const label = _focus_rom->node().attribute_value("label", Label());
-
 	/*
 	 * Determine session that matches the label found in the focus ROM
 	 */
+
+	auto with_trimmed = [&] (auto const &string, auto const &fn)
+	{
+		return string.with_span([&] (Span const &span) {
+			return span.trimmed([&] (Span const &trimmed) {
+				return fn(trimmed); }); });
+	};
+
 	View_owner *next_focus = nullptr;
-	for (Gui_session *s = _session_list.first(); s; s = s->next())
-		if (s->label() == label)
-			next_focus = s;
+	with_trimmed(_focus_rom->node().attribute_value("label", String<160>()),
+		[&] (Span const &trimmed_focus_label) {
+			for (Gui_session *s = _session_list.first(); s; s = s->next())
+				with_trimmed(s->label(), [&] (Span const &trimmed_session_label) {
+					if (trimmed_session_label.equals(trimmed_focus_label))
+						next_focus = s; }); });
 
 	if (next_focus)
 		_user_state.focus(next_focus->forwarded_focus());
