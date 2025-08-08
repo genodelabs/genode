@@ -654,6 +654,8 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 	Attached_rom_dataspace _config_rom { _env, "config" };
 
+	struct Announced { bool capture, event; } _announced { };
+
 	Constructible<Attached_rom_dataspace> _focus_rom { };
 
 	Gui_root _gui_root { _env, *this, _config_rom, _session_list, *_domain_registry,
@@ -933,12 +935,6 @@ struct Nitpicker::Main : Focus_updater, Hover_updater,
 
 		_env.parent().announce(_env.ep().manage(_gui_root));
 
-		if (_config_rom.node().has_sub_node("capture"))
-			_env.parent().announce(_env.ep().manage(_capture_root));
-
-		if (_config_rom.node().has_sub_node("event"))
-			_env.parent().announce(_env.ep().manage(_event_root));
-
 		_update_motion_and_focus_activity_reports();
 
 		_report_panorama();
@@ -1085,6 +1081,16 @@ void Nitpicker::Main::_handle_config()
 	_config_rom.update();
 
 	Node const &config = _config_rom.node();
+
+	if (!_announced.capture && config.has_sub_node("capture")) {
+		_env.parent().announce(_env.ep().manage(_capture_root));
+		_announced.capture = true;
+	}
+
+	if (!_announced.event && config.has_sub_node("event")) {
+		_env.parent().announce(_env.ep().manage(_event_root));
+		_announced.event = true;
+	}
 
 	/* update global keys policy */
 	_global_keys.apply_config(config, _session_list);
