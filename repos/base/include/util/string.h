@@ -31,6 +31,8 @@ namespace Genode {
 
 	using Const_byte_range_ptr = Span;
 	using Number_of_bytes = Num_bytes; /* deprecated */
+
+	int memcmp(void const *, void const *, size_t);
 }
 
 
@@ -78,6 +80,25 @@ struct Genode::Span : Noncopyable
 	bool contains(void const *ptr) const
 	{
 		return contains((char const *)ptr);
+	}
+
+	bool equals(Span const &other) const
+	{
+		return num_bytes == other.num_bytes
+		    && !memcmp(other.start, start, num_bytes);
+	}
+
+	bool starts_with(Span const &prefix) const
+	{
+		return num_bytes >= prefix.num_bytes
+		    && !memcmp(start, prefix.start, prefix.num_bytes);
+	}
+
+	bool ends_with(Span const &suffix) const
+	{
+		return num_bytes >= suffix.num_bytes
+		    && !memcmp(start + num_bytes - suffix.num_bytes,
+		               suffix.start, suffix.num_bytes);
 	}
 
 	/**
