@@ -18,6 +18,7 @@
 #include <base/stdint.h>
 #include <base/output.h>
 #include <util/misc_math.h>
+#include <util/meta.h>
 #include <util/noncopyable.h>
 #include <cpu/string.h>
 
@@ -129,6 +130,22 @@ struct Genode::Span : Noncopyable
 				fn(head);
 				s = tail.start;
 				n = tail.num_bytes; });
+	}
+
+	/**
+	 * Call 'fn' with the part of the span excluding leading/trailing spaces
+	 */
+	template <typename FN>
+	auto trimmed(FN const &fn) const
+	-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
+	{
+		auto space = [] (char c) { return c == ' '; };
+
+		char const *s = start; size_t n = num_bytes;
+		for (; n && space(s[0]); s++, n--);
+		for (; n && space(s[n - 1]); n--);
+
+		return fn(Span(s, n));
 	}
 
 	Span(char const *start, size_t num_bytes) : start(start), num_bytes(num_bytes) { }
@@ -832,6 +849,13 @@ class Genode::String
 			return (_len <= CAPACITY) && (_len != 0) && (_buf[_len - 1] == '\0'); }
 
 		char const *string() const { return valid() ? _buf : ""; }
+
+		template <typename FN>
+		auto with_span(FN const &fn) const
+		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
+		{
+			return fn(Span { string(), max(1ul, _len) - 1 });
+		}
 
 		bool operator == (char const *other) const
 		{
