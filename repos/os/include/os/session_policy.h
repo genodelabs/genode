@@ -51,7 +51,7 @@ struct Genode::Node_label_score
 	 * The match values contain the number of matching characters + 1.
 	 * If 0, there is a conflict. If 1, an empty string matched.
 	 */
-	enum { CONFLICT = 0 };
+	static constexpr size_t CONFLICT = 0;
 	size_t prefix_match = CONFLICT;
 	size_t suffix_match = CONFLICT;
 
@@ -64,28 +64,24 @@ struct Genode::Node_label_score
 		prefix_present(node.has_attribute("label_prefix")),
 		suffix_present(node.has_attribute("label_suffix"))
 	{
-		if (label_present)
-			label_match = node.attribute_value("label", String<N>()) == label;
+		label.with_span([&] (Span const &span) { span.trimmed([&] (Span const &label) {
 
-		if (prefix_present) {
-			using Prefix = String<N>;
-			Prefix const prefix = node.attribute_value("label_prefix", Prefix());
+			auto equals   = [&] (Span const &exact)  { return label.equals(exact); };
+			auto prefixed = [&] (Span const &prefix) { return label.starts_with(prefix); };
+			auto suffixed = [&] (Span const &suffix) { return label.ends_with(suffix); };
 
-			if (!strcmp(label.string(), prefix.string(), prefix.length() - 1))
-				prefix_match = prefix.length();
-		}
+			auto match = [&] (auto const &match_fn, char const *attr)
+			{
+				return node.attribute_value(attr, String<N>()).with_span([&] (Span const &span) {
+					return span.trimmed([&] (Span const &trimmed_value) {
+						return match_fn(trimmed_value)
+						     ? trimmed_value.num_bytes + 1 : CONFLICT; }); });
+			};
 
-		if (suffix_present) {
-			using Suffix = String<N>;
-			Suffix const suffix = node.attribute_value("label_suffix", Suffix());
-
-			if (label.length() >= suffix.length()) {
-				size_t const offset = label.length() - suffix.length();
-
-				if (!strcmp(label.string() + offset, suffix.string()))
-					suffix_match = suffix.length();
-			}
-		}
+			if (label_present)  label_match  = match(equals,   "label") != CONFLICT;
+			if (prefix_present) prefix_match = match(prefixed, "label_prefix");
+			if (suffix_present) suffix_match = match(suffixed, "label_suffix");
+		}); });
 	}
 
 	bool conflict() const
