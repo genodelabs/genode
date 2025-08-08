@@ -36,7 +36,7 @@ struct Report_rom::Main
 
 	Genode::Attached_rom_dataspace config_rom { env, "config" };
 
-	bool verbose = config_rom.xml().attribute_value("verbose", false);
+	bool verbose = config_rom.node().attribute_value("verbose", false);
 
 	Report::Root report_root { env, sliced_heap, rom_registry, verbose };
 	Rom   ::Root    rom_root { env, sliced_heap, rom_registry };
