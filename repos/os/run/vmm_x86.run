@@ -84,7 +84,7 @@ if { [have_include power_on/qemu] } {
 
 
 # ia32_tsc_aux with rdtscp
-set test_rdtscp [have_spec nova]
+set test_rdtscp [expr [have_spec nova] || [have_spec hw]]
 
 build { core init timer lib/ld test/vmm_x86 }
 

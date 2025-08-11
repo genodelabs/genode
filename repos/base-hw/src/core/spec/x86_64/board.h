@@ -100,7 +100,6 @@ struct Board::Vcpu_context
 
 	Virt_interface &virt;
 
-	uint64_t tsc_aux_host = 0U;
 	uint64_t tsc_aux_guest = 0U;
 	uint64_t exit_reason = EXIT_PAUSED;
 

@@ -64,7 +64,7 @@ void Vcpu::run()
 	if (_vcpu_context.init_state == Board::Vcpu_context::Init_state::CREATED) {
 		_vcpu_context.initialize(_cpu(),
 		    reinterpret_cast<addr_t>(_id.table));
-		_vcpu_context.tsc_aux_host = _cpu().id().value;
+		_vcpu_context.tsc_aux_guest = _cpu().id().value;
 		_vcpu_context.init_state  = Board::Vcpu_context::Init_state::STARTED;
 	}
 
@@ -246,6 +246,9 @@ void Board::Vcpu_context::load(Genode::Vcpu_state &state)
 			    memcpy(&regs->fpu_context(), &fpu, Cpu::Fpu_context::SIZE);
 		    });
 	}
+
+	if (state.tsc_aux.charged())
+		tsc_aux_guest = state.tsc_aux.value();
 }
 
 void Board::Vcpu_context::store(Genode::Vcpu_state &state)
@@ -280,10 +283,7 @@ void Board::Vcpu_context::store(Genode::Vcpu_state &state)
 	state.r15.charge(regs->r15);
 
 	state.tsc.charge(Hw::Tsc::rdtsc());
-
-	tsc_aux_guest = Cpu::Ia32_tsc_aux::read();
 	state.tsc_aux.charge(tsc_aux_guest);
-	Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t) tsc_aux_host);
 
 	virt.store(state);
 }
