@@ -455,7 +455,8 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 			uint32_t const tsc_aux_host = rdtscp();
 
 			log("vcpu ", _id, " : ", _exit_count, ". vm exit -  rdtscp cx"
-			    " guest=", Hex(state.cx.value()), " host=", Hex(tsc_aux_host));
+			    " guest=", Hex(state.cx.value()), " host=", Hex(tsc_aux_host),
+			    " dx ", Hex(state.dx.value()>>16));
 		}
 
 		_test_state = State::HALTED;
@@ -512,7 +513,10 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 
 void Vmm::Vcpu::_cpu_init(Vcpu_state &state)
 {
-	enum { INTEL_CTRL_PRIMARY_HLT = 1 << 7 };
+	enum {
+		INTEL_CTRL_PRIMARY_HLT = 1 << 7,
+		INTEL_CTRL_PRIMARY_TSC_OFF = 1 << 3
+	};
 	enum {
 		INTEL_CTRL_SECOND_UG = 1 << 7,
 		INTEL_CTRL_SECOND_RDTSCP_ENABLE = 1 << 3,
@@ -548,7 +552,8 @@ void Vmm::Vcpu::_cpu_init(Vcpu_state &state)
 	state.dr7.  charge(0x400);
 
 	if (_vmx) {
-		state.ctrl_primary.charge(INTEL_CTRL_PRIMARY_HLT);
+		state.ctrl_primary.charge(INTEL_CTRL_PRIMARY_HLT |
+		                          INTEL_CTRL_PRIMARY_TSC_OFF);
 		state.ctrl_secondary.charge(INTEL_CTRL_SECOND_UG | /* required for seL4 */
 				                    INTEL_CTRL_SECOND_RDTSCP_ENABLE);
 	}
@@ -561,6 +566,7 @@ void Vmm::Vcpu::_cpu_init(Vcpu_state &state)
 	 * magic number to check for testing purpuse
 	 */
 	state.tsc_aux.charge((0xaffeU << 16) | _id);
+	state.tsc_offset.charge(0xff00ULL << 48);
 }
 
 
