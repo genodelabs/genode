@@ -805,7 +805,7 @@ void Vmcs::load(Genode::Vcpu_state &state)
 
 	if (state.tsc_offset.charged()) {
 		/* state.tsc not used by SVM */
-		write(E_TSC_OFFSET, state.tsc_offset.value());
+		write(E_TSC_OFFSET, read(E_TSC_OFFSET) + state.tsc_offset.value());
 	}
 
 	if (state.efer.charged()) {
