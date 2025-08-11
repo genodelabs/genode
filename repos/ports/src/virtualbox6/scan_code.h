@@ -27,8 +27,8 @@ class Scan_code
 		{
 			public:
 
-				unsigned char scan_code     [Input::KEY_UNKNOWN];
-				unsigned char scan_code_ext [Input::KEY_UNKNOWN];
+				unsigned char scan_code     [Input::KEY_MAX];
+				unsigned char scan_code_ext [Input::KEY_MAX];
 
 			private:
 
@@ -58,6 +58,8 @@ class Scan_code
 						scan_code     [i] = _search_scan_code    ((Input::Keycode)i);
 						scan_code_ext [i] = _search_scan_code_ext((Input::Keycode)i);
 					}
+					scan_code    [Input::KEY_UNKNOWN] = 0;
+					scan_code_ext[Input::KEY_UNKNOWN] = 0;
 				}
 		};
 
