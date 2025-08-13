@@ -2,7 +2,7 @@ LICENSE   := GPLv3
 VERSION   := 1.14
 DOWNLOADS := libiconv.archive
 
-URL(libiconv) := http://ftp.gnu.org/pub/gnu/libiconv/libiconv-$(VERSION).tar.gz
+URL(libiconv) := https://ftpmirror.gnu.org/libiconv/libiconv-$(VERSION).tar.gz
 SHA(libiconv) := 72b24ded17d687193c3366d0ebe7cde1e6b18f0df8c55438ac95be39e8a30613
 SIG(libiconv) := ${URL(libiconv)}.sig
 KEY(libiconv) := GNU

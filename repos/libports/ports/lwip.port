@@ -2,7 +2,7 @@ LICENSE   := BSD
 VERSION   := 2.1.2
 DOWNLOADS := lwip.archive
 
-URL(lwip) := http://git.savannah.nongnu.org/cgit/lwip.git/snapshot/lwip-STABLE-2_1_2_RELEASE.tar.gz
+URL(lwip) := https://github.com/lwip-tcpip/lwip/archive/refs/tags/STABLE-2_1_2_RELEASE.tar.gz
 SHA(lwip) := da6a3e07944505e6add328f6efafea4ad670700731f36b1ba54bd43d4f35243e
 DIR(lwip) := src/lib/lwip
 

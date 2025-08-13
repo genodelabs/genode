@@ -2,7 +2,7 @@ LICENSE   := GPLv3
 VERSION   := 8.29
 DOWNLOADS := coreutils.archive
 
-URL(coreutils) := https://ftp.gnu.org/gnu/coreutils/coreutils-$(VERSION).tar.xz
+URL(coreutils) := https://ftpmirror.gnu.org/coreutils/coreutils-$(VERSION).tar.xz
 SHA(coreutils) := 92d0fa1c311cacefa89853bdb53c62f4110cdfda3820346b59cbd098f40f955e
 SIG(coreutils) := ${URL(coreutils)}.sig
 KEY(coreutils) := GNU

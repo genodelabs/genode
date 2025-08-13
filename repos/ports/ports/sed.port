@@ -2,7 +2,7 @@ LICENSE   := GPLv3
 VERSION   := 4.4
 DOWNLOADS := sed.archive
 
-URL(sed) := https://ftp.gnu.org/pub/gnu/sed/sed-$(VERSION).tar.xz
+URL(sed) := https://ftpmirror.gnu.org/sed/sed-$(VERSION).tar.xz
 SHA(sed) := cbd6ebc5aaf080ed60d0162d7f6aeae58211a1ee9ba9bb25623daa6cd942683b
 SIG(sed) := ${URL(sed)}
 KEY(sed) := GNU

@@ -4,7 +4,7 @@ LICENSE := GPLv3
 VERSION := 1.30
 DOWNLOADS := tar.archive
 
-URL(tar) := https://ftp.gnu.org/gnu/tar/tar-$(VERSION).tar.xz
+URL(tar) := https://ftpmirror.gnu.org/tar/tar-$(VERSION).tar.xz
 SHA(tar) := f1bf92dbb1e1ab27911a861ea8dde8208ee774866c46c0bb6ead41f4d1f4d2d3
 SIG(tar) := ${URL(tar)}.sig
 KEY(tar) := GNU

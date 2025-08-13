@@ -2,7 +2,7 @@ LICENSE   := GPLv3
 VERSION   := 4.2.1
 DOWNLOADS := make.archive
 
-URL(make) := http://ftp.gnu.org/pub/gnu/make/make-$(VERSION).tar.gz
+URL(make) := https://ftpmirror.gnu.org/make/make-$(VERSION).tar.gz
 SHA(make) := e40b8f018c1da64edd1cc9a6fce5fa63b2e707e404e20cad91fbae337c98a5b7
 SIG(make) := ${URL(make)}.sig
 KEY(make) := GNU
