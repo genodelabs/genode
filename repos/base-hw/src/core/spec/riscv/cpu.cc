@@ -126,3 +126,9 @@ void Cpu::clear_memory_region(addr_t const addr, size_t const size, bool)
 	/* FIXME: is this really necessary? */
 	Cpu::sfence();
 }
+
+
+void Hw::Page_table::table_changed()
+{
+	Board::Cpu::sfence();
+}

@@ -109,12 +109,4 @@ class Board::Cpu : public Hw::Riscv_cpu
 		                                bool changed_cache_properties);
 };
 
-
-template <typename E, unsigned B, unsigned S>
-void Sv39::Level_x_page_table<E, B, S>::table_changed()
-{
-	Board::Cpu::sfence();
-}
-
-
 #endif /* _CORE__SPEC__RISCV__CPU_H_ */

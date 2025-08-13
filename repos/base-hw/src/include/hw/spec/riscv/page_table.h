@@ -20,31 +20,26 @@
 #include <hw/memory_consts.h>
 #include <hw/page_table.h>
 
-namespace Sv39 {
+namespace Hw {
 
 	using namespace Genode;
-	using namespace Hw;
-
-	template <typename ENTRY, unsigned BLOCK_SIZE_LOG2, unsigned SIZE_LOG2>
-	struct Level_x_page_table;
-
-	struct Level_3_page_table;
-
-	using Level_2_page_table =
-		Level_x_page_table<Level_3_page_table, SIZE_LOG2_2MB, SIZE_LOG2_1GB>;
-
-	using Level_1_page_table =
-		Level_x_page_table<Level_2_page_table, SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
 
 	struct Descriptor;
-	struct Table_descriptor;
-	struct Block_descriptor;
+
+	using Level_3_page_table = Page_table_leaf<Descriptor, SIZE_LOG2_4KB,
+	                                           SIZE_LOG2_2MB>;
+	using Level_2_page_table = Page_table_node<Level_3_page_table, Descriptor,
+	                                           SIZE_LOG2_2MB, SIZE_LOG2_1GB>;
+	using Level_1_page_table = Page_table_node<Level_2_page_table, Descriptor,
+	                                           SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
+	struct Page_table;
 }
 
 
-struct Sv39::Descriptor : Register<64>
+struct Hw::Descriptor : Register<64>
 {
 	enum Descriptor_type { INVALID, TABLE, BLOCK };
+
 	struct V : Bitfield<0, 1> { }; /* present */
 	struct R : Bitfield<1, 1> { }; /* read */
 	struct W : Bitfield<2, 1> { }; /* write */
@@ -84,22 +79,26 @@ struct Sv39::Descriptor : Register<64>
 		return rights;
 	}
 
-	static Descriptor_type type(access_t const v)
+	static Page_table_entry type(access_t const v)
 	{
-		if (!V::get(v)) return INVALID;
+		if (!V::get(v)) return Page_table_entry::INVALID;
 		if (Type::get(v) == Type::POINTER)
-			return TABLE;
-
-		return BLOCK;
+			return Page_table_entry::TABLE;
+		return Page_table_entry::BLOCK;
 	}
 
-	static bool present(access_t const v) {
-		return V::get(v); }
-};
+	static bool present(access_t const desc) {
+		return V::get(desc); }
 
+	static bool conflicts(access_t const old, access_t const desc) {
+		return V::get(old) && old != desc; }
 
-struct Sv39::Table_descriptor : Descriptor
-{
+	static addr_t address(access_t const desc) {
+		return Base::bits(Ppn::get(desc)); }
+
+	/*
+	 * Creates a page-table pointer to next table entry
+	 */
 	static access_t create(addr_t pa)
 	{
 		access_t base = Base::get((access_t)pa);
@@ -111,11 +110,10 @@ struct Sv39::Table_descriptor : Descriptor
 
 		return desc;
 	}
-};
 
-
-struct Sv39::Block_descriptor : Descriptor
-{
+	/*
+	 * Creates a page-table block entry
+	 */
 	static access_t create(Genode::Page_flags const &f, addr_t const pa)
 	{
 		access_t base = Base::get(pa);
@@ -136,190 +134,21 @@ struct Sv39::Block_descriptor : Descriptor
 
 		return desc;
 	}
+
+	static bool writeable(access_t const desc) {
+		return present(desc) && W::get(desc); }
 };
 
 
-template <typename ENTRY, unsigned BLOCK_SIZE_LOG2, unsigned SIZE_LOG2>
-struct Sv39::Level_x_page_table
-: Hw::Page_table_tpl<Descriptor, BLOCK_SIZE_LOG2, SIZE_LOG2>
+struct Hw::Page_table : Level_1_page_table
 {
-	static constexpr size_t VM_MASK = (1UL<< SIZE_LOG2_512GB) - 1;
+	using Base = Level_1_page_table;
 
-	using Base = Page_table_tpl<Descriptor, BLOCK_SIZE_LOG2, SIZE_LOG2>;
-	using Result = Base::Result;
-
-	void table_changed();
-
-	static constexpr bool sanity_check(addr_t &addr)
-	{
-		/* sanity check vo bits 38 to 63 must be equal */
-		addr_t sanity = addr >> 38;
-		if (sanity != 0 && sanity != 0x3ffffff)
-			return false;
-
-		/* clear bits 39 - 63 */
-		addr &= VM_MASK;
-		return true;
-	}
-
-	using desc_t = typename Descriptor::access_t;
-
-	/**
-	 * Insert translations into this table
-	 *
-	 * \param vo     offset of the virtual region represented
-	 *               by the translation within the virtual
-	 *               region represented by this table
-	 * \param pa     base of the physical backing store
-	 * \param size   size of the translated region
-	 * \param flags  mapping flags
-	 * \param alloc  level allocator
-	 */
-	Result insert(addr_t vo, addr_t pa, size_t size,
-	              Page_flags const &flags, Page_table_allocator &alloc)
-	{
-		if (!sanity_check(vo))
-			return Page_table_error::INVALID_RANGE;
-
-		Result result = Base::_for_range(vo, pa, size,
-			[&] (addr_t vo, addr_t pa, size_t size, desc_t &desc) -> Result
-			{
-				using Td = Table_descriptor;
-
-				/* can we insert a whole block? */
-				if (Base::_aligned_and_fits(vo, pa, size)) {
-					desc_t blk_desc = Block_descriptor::create(flags, pa);
-
-					if (Descriptor::present(desc) && desc != blk_desc)
-						return Page_table_error::INVALID_RANGE;
-
-					desc = blk_desc;
-					return Ok();
-				}
-
-				/* we need to use a next level table */
-				switch (Descriptor::type(desc)) {
-
-				case Descriptor::INVALID: /* no entry */
-					{
-						/* create and link next level table */
-						Result r = alloc.create<ENTRY, Td>(desc);
-						if (r.failed())
-							return r;
-					}
-					[[fallthrough]];
-
-				case Descriptor::TABLE: /* table already available */
-					{
-						addr_t phys = Td::Base::bits(Td::Ppn::get(desc));
-						return alloc.lookup<ENTRY>(phys, [&] (ENTRY &e) {
-							return e.insert(vo-Base::_page_mask_high(vo),
-						 	                    pa, size, flags, alloc); });
-					}
-
-				case Descriptor::BLOCK: /* there is already a block */
-					break;
-				};
-
-				return Page_table_error::INVALID_RANGE;
-			});
-
-		table_changed();
-		return result;
-	}
-
-	/**
-	 * Remove translations that overlap with a given virtual region
-	 *
-	 * \param vo    region offset within the tables virtual region
-	 * \param size  region size
-	 * \param alloc level allocator
-	 */
-	void remove(addr_t vo, size_t size, Page_table_allocator &alloc)
-	{
-		if (!sanity_check(vo))
-			return;
-
-		Base::_for_range(vo, size,
-			[&] (addr_t vo, size_t size, desc_t &desc) {
-			using Td = Table_descriptor;
-
-			switch (Descriptor::type(desc)) {
-			case Descriptor::TABLE:
-				/* use allocator to retrieve virt address of table */
-				alloc.lookup<ENTRY>(Td::Base::bits(Td::Ppn::get(desc)),
-					[&] (ENTRY &table) {
-					table.remove(vo-Base::_page_mask_high(vo), size, alloc);
-					if (table.empty()) {
-						alloc.destroy<ENTRY>(table);
-						desc = 0;
-					}
-					return Ok();
-				}).with_error([] (Page_table_error) { /* ignore */ });
-				return;
-			case Descriptor::BLOCK: [[fallthrough]];
-			case Descriptor::INVALID:
-				desc = 0;
-			}
-		});
-
-		table_changed();
-	}
-
-	Result lookup(addr_t, addr_t&, Page_table_allocator&)
-	{
-		Genode::raw(__func__, " not implemented yet");
-		return Page_table_error::INVALID_RANGE;
-	}
-};
-
-
-struct Sv39::Level_3_page_table
-: Page_table_tpl<Descriptor, SIZE_LOG2_4KB, SIZE_LOG2_2MB>
-{
-	using Base = Page_table_tpl<Descriptor, SIZE_LOG2_4KB, SIZE_LOG2_2MB>;
-	using Result = Base::Result;
-	using desc_t = typename Descriptor::access_t;
-
-	Result insert(addr_t vo, addr_t pa, size_t size,
-	              Page_flags const &flags, Page_table_allocator&)
-	{
-		return Base::_for_range(vo, pa, size,
-			[&] (addr_t vo, addr_t pa, size_t size, desc_t &desc) -> Result
-			{
-				if (!_aligned_and_fits(vo, pa, size))
-					return Page_table_error::INVALID_RANGE;
-
-				desc_t blk_desc = Block_descriptor::create(flags, pa);
-
-				if (Descriptor::present(desc) && desc != blk_desc)
-					return Page_table_error::INVALID_RANGE;
-
-				desc = blk_desc;
-				return Ok();
-			});
-	}
-
-	void remove(addr_t vo, size_t size, Page_table_allocator &)
-	{
-		Base::_for_range(vo, size,
-		                 [&] (addr_t, size_t, desc_t &desc) { desc = 0; });
-	}
-};
-
-
-namespace Hw { struct Page_table; }
-
-
-struct Hw::Page_table : Sv39::Level_1_page_table
-{
 	static constexpr size_t ALIGNM_LOG2 = SIZE_LOG2_4KB;
 
-	using Sv39::Level_1_page_table::Level_1_page_table;
+	using Base::Base;
 
-	Page_table(Page_table &kernel_table)
-	:
-		Sv39::Level_1_page_table()
+	Page_table(Page_table &kernel_table) : Base()
 	{
 		static constexpr size_t KERNEL_START_IDX =
 			(Hw::Mm::KERNEL_START & VM_MASK) >> SIZE_LOG2_1GB;
@@ -328,10 +157,47 @@ struct Hw::Page_table : Sv39::Level_1_page_table
 			_entries[i] = kernel_table._entries[i];
 	}
 
-	using Array = Hw::Page_table_array<sizeof(Sv39::Level_2_page_table),
+	using Array = Hw::Page_table_array<sizeof(Level_2_page_table),
 	                                   _table_count(_core_vm_size(),
 	                                                SIZE_LOG2_1GB,
 	                                                SIZE_LOG2_2MB)>;
-} __attribute__((aligned(1 << ALIGNM_LOG2)));
+
+
+	static constexpr size_t VM_MASK = (1UL<< SIZE_LOG2_512GB) - 1;
+
+	static constexpr bool sanity_check(addr_t &addr)
+	{
+		/* sanity check vo bits 38 to 63 must be equal */
+		auto sanity = addr >> 38;
+		if (sanity != 0 && sanity != 0x3ffffff)
+			return false;
+
+		/* clear bits 39 - 63 */
+		addr &= VM_MASK;
+		return true;
+	}
+
+	static void table_changed();
+
+	template <typename ALLOCATOR>
+	Result insert(addr_t vo, addr_t pa, size_t size,
+	              Page_flags const &flags, ALLOCATOR &alloc)
+	{
+		if (!sanity_check(vo))
+			return Page_table_error::INVALID_RANGE;
+		auto result = Base::template insert(vo, pa, size, flags, alloc);
+		if (result.ok()) table_changed();
+		return result;
+	}
+
+	template <typename ALLOCATOR>
+	void remove(addr_t vo, size_t size, ALLOCATOR &alloc)
+	{
+		if (!sanity_check(vo))
+			return;
+		Base::template remove(vo, size, alloc);
+		table_changed();
+	}
+};
 
 #endif /* _SRC__LIB__HW__SPEC__RISCV__PAGE_TABLE_H_ */

@@ -45,3 +45,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	return 0;
 }
+
+
+void Hw::Page_table::table_changed() { }
+

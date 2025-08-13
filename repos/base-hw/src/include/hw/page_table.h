@@ -40,7 +40,11 @@ namespace Hw {
 
 	using Page_table_insertion_result = Attempt<Ok, Page_table_error>;
 
+	enum class Page_table_entry { INVALID, TABLE, BLOCK };
+
 	template <typename, size_t, size_t> class Page_table_tpl;
+	template <typename, size_t, size_t> class Page_table_leaf;
+	template <typename, typename, size_t, size_t> class Page_table_node;
 }
 
 
@@ -154,6 +158,224 @@ class Hw::Page_table_tpl
 				if (DESCRIPTOR::present(_entries[i]))
 					return false;
 			return true;
+		}
+};
+
+
+template <typename DESCRIPTOR,
+          Genode::size_t PAGE_SIZE_LOG2,
+          Genode::size_t SIZE_LOG2>
+class Hw::Page_table_leaf
+: public Hw::Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>
+{
+	public:
+
+		using Base = Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>;
+		using Result = Base::Result;
+		using desc_t = typename DESCRIPTOR::access_t;
+
+	protected:
+
+		using Base::_for_range;
+		using Base::_aligned_and_fits;
+		using Base::_page_mask_high;
+
+	public:
+
+		template <typename ALLOCATOR>
+		Result insert(addr_t vo, addr_t pa, size_t size,
+		              Page_flags const &flags, ALLOCATOR &,
+		              auto const &table_changed)
+		{
+			return _for_range(vo, pa, size,
+				[&] (addr_t vo, addr_t pa, size_t size, desc_t &desc) -> Result
+				{
+					if (!_aligned_and_fits(vo, pa, size))
+						return Page_table_error::INVALID_RANGE;
+
+					desc_t blk_desc = DESCRIPTOR::create(flags, pa);
+
+					if (DESCRIPTOR::conflicts(desc, blk_desc))
+						return Page_table_error::INVALID_RANGE;
+
+					desc = blk_desc;
+					table_changed((addr_t)&desc, sizeof(desc));
+					return Ok();
+				});
+		}
+
+		template <typename ALLOCATOR>
+		Result insert(addr_t vo, addr_t pa, size_t size,
+		              Page_flags const &flags, ALLOCATOR &alloc) {
+			return insert(vo, pa, size, flags, alloc, [] (addr_t, size_t) {}); }
+
+		template <typename ALLOCATOR>
+		void remove(addr_t vo, size_t size, ALLOCATOR&,
+		            auto const &table_changed)
+		{
+			_for_range(vo, size, [&] (addr_t, size_t, desc_t &desc) {
+				desc = 0;
+				table_changed((addr_t)&desc, sizeof(desc));
+			});
+		}
+
+		template <typename ALLOCATOR>
+		void remove(addr_t vo, size_t size, ALLOCATOR &alloc) {
+			remove(vo, size, alloc, [] (addr_t, size_t) {}); }
+
+		template <typename ALLOCATOR>
+		Result lookup(addr_t const virt, addr_t &phys,
+		              ALLOCATOR &)
+		{
+			return _for_range(virt, 0, 1,
+				[&] (addr_t, addr_t, size_t, desc_t &desc) -> Result
+				{
+					if (!DESCRIPTOR::present(desc))
+						return Page_table_error::INVALID_RANGE;
+
+					phys = DESCRIPTOR::address(desc);
+					if (DESCRIPTOR::writeable(desc))
+						return Ok();
+					return Page_table_error::INVALID_RANGE;
+				});
+		}
+};
+
+
+template <typename ENTRY, typename DESCRIPTOR,
+          Genode::size_t PAGE_SIZE_LOG2,
+          Genode::size_t SIZE_LOG2>
+class Hw::Page_table_node
+: public Hw::Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>
+{
+	public:
+
+		using Base = Page_table_tpl<DESCRIPTOR, PAGE_SIZE_LOG2, SIZE_LOG2>;
+		using Result = Base::Result;
+		using desc_t = typename DESCRIPTOR::access_t;
+
+	protected:
+
+		using Base::_for_range;
+		using Base::_aligned_and_fits;
+		using Base::_page_mask_high;
+
+	public:
+
+		template <typename ALLOCATOR>
+		Result insert(addr_t vo, addr_t pa, size_t size,
+		              Page_flags const &flags, ALLOCATOR &alloc,
+		              auto const &table_changed)
+		{
+			Result result = _for_range(vo, pa, size,
+				[&] (addr_t vo, addr_t pa, size_t size, desc_t &desc) -> Result
+				{
+					/* can we insert a whole block? */
+					if (_aligned_and_fits(vo, pa, size)) {
+						desc_t blk_desc = DESCRIPTOR::create(flags, pa);
+
+						if (DESCRIPTOR::conflicts(desc, blk_desc))
+							return Page_table_error::INVALID_RANGE;
+
+						desc = blk_desc;
+						table_changed((addr_t)&desc, sizeof(desc));
+						return Ok();
+					}
+
+					/* we need to use a next level table */
+					switch (DESCRIPTOR::type(desc)) {
+
+					case Page_table_entry::INVALID: /* no entry */
+						{
+							/* create and link next level table */
+							Result r = alloc.template create<ENTRY,
+							                                 DESCRIPTOR>(desc);
+							if (r.failed())
+								return r;
+							table_changed((addr_t)&desc, sizeof(desc));
+						}
+						[[fallthrough]];
+
+					case Page_table_entry::TABLE: /* table already available */
+						{
+							addr_t phys = DESCRIPTOR::address(desc);
+							return alloc.template lookup<ENTRY>(phys,
+							                                    [&] (ENTRY &e) {
+								return e.insert(vo-_page_mask_high(vo),
+								                pa, size, flags, alloc,
+								                table_changed); });
+						}
+
+					case Page_table_entry::BLOCK: /* there is already a block */
+						break;
+					};
+
+					return Page_table_error::INVALID_RANGE;
+				});
+			return result;
+		}
+
+		template <typename ALLOCATOR>
+		Result insert(addr_t vo, addr_t pa, size_t size,
+		              Page_flags const &flags, ALLOCATOR &alloc) {
+			return insert(vo, pa, size, flags, alloc, [] (addr_t, size_t) {}); }
+
+		template <typename ALLOCATOR>
+		void remove(addr_t vo, size_t size, ALLOCATOR &alloc,
+		            auto const &table_changed = [] (addr_t, size_t) {})
+		{
+			_for_range(vo, size,
+				[&] (addr_t vo, size_t size, desc_t &desc) {
+
+				switch (DESCRIPTOR::type(desc)) {
+				case Page_table_entry::TABLE:
+					/* use allocator to retrieve virt address of table */
+					alloc.template lookup<ENTRY>(DESCRIPTOR::address(desc),
+						[&] (ENTRY &table) {
+						table.remove(vo-_page_mask_high(vo), size, alloc,
+						             table_changed);
+						if (table.empty()) {
+							alloc.template destroy<ENTRY>(table);
+							desc = 0;
+							table_changed((addr_t)&desc, sizeof(desc));
+						}
+						return Ok();
+					}).with_error([] (Page_table_error) { /* ignore */ });
+					return;
+				case Page_table_entry::BLOCK: [[fallthrough]];
+				case Page_table_entry::INVALID:
+					desc = 0;
+				}
+			});
+		}
+
+		template <typename ALLOCATOR>
+		void remove(addr_t vo, size_t size, ALLOCATOR &alloc) {
+			remove(vo, size, alloc, [] (addr_t, size_t) {}); }
+
+		template <typename ALLOCATOR>
+		Result lookup(addr_t const virt, addr_t &phys,
+		              ALLOCATOR &alloc)
+		{
+			return _for_range(virt, 0, 1,
+				[&] (addr_t vo, addr_t, size_t, desc_t &desc) -> Result
+				{
+					switch (DESCRIPTOR::type(desc)) {
+					case Page_table_entry::BLOCK:
+						phys = DESCRIPTOR::address(desc);
+						if (DESCRIPTOR::writeable(desc))
+							return Ok();
+						return Page_table_error::INVALID_RANGE;
+					case Page_table_entry::TABLE:
+						return alloc.template lookup<ENTRY>(DESCRIPTOR::address(desc),
+							[&] (ENTRY &table) {
+							return table.lookup(vo-_page_mask_high(vo), phys,
+							                    alloc);
+						});
+					case Page_table_entry::INVALID: break;
+					};
+					return Page_table_error::INVALID_RANGE;
+				});
 		}
 };
 
