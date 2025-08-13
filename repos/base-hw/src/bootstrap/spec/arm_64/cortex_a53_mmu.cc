@@ -18,7 +18,7 @@ using Board::Cpu;
 
 extern "C" void * _crt0_start_secondary;
 
-static inline void prepare_non_secure_world()
+static inline void prepare_and_leave_el3()
 {
 	bool el2 = Cpu::Id_pfr0::El2::get(Cpu::Id_pfr0::read());
 
@@ -58,8 +58,8 @@ static inline void prepare_non_secure_world()
 }
 
 
-static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr,
-                                      unsigned cpu_id)
+static inline void prepare_and_leave_el2(Cpu::Ttbr::access_t const ttbr,
+                                         unsigned cpu_id)
 {
 	using namespace Hw::Mm;
 
@@ -148,13 +148,21 @@ unsigned Bootstrap::Platform::enable_mmu()
 	if (primary && ::Board::NR_OF_CPUS > 1)
 		Cpu::wake_up_all_cpus(&_crt0_start_secondary);
 
-	while (Cpu::current_privilege_level() > Cpu::Current_el::EL1) {
-		if (Cpu::current_privilege_level() == Cpu::Current_el::EL3) {
-			prepare_non_secure_world();
-		} else {
+	switch (Cpu::current_privilege_level()) {
+	case Cpu::Current_el::EL3:
+		{
+			prepare_and_leave_el3();
 			::Board::Pic pic __attribute__((unused)) {};
-			prepare_hypervisor(ttbr, cpu_id);
 		}
+		[[fallthrough]];
+	case Cpu::Current_el::EL2:
+		prepare_and_leave_el2(ttbr, cpu_id);
+		[[fallthrough]];
+	case Cpu::Current_el::EL1:
+		break;
+	case Cpu::Current_el::EL0:
+		Genode::error("cannot enable MMU in EL0");
+		return cpu_id;
 	}
 
 	/* enable performance counter for user-land */
