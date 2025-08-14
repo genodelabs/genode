@@ -183,7 +183,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100" ram="1M"/>
+	<default caps="200" ram="2M"/>
 
 	<start name="timer">
 		<resource name="CPU" quantum="10"/>
@@ -250,7 +250,7 @@ append  config { </wifi_config>
 		</route>
 	</start>
 
-	<start name="nic" caps="350" ram="32M" priority="-1">
+	<start name="nic" caps="450" ram="32M" priority="-1">
 		<binary name="wifi"/>
 		<config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>

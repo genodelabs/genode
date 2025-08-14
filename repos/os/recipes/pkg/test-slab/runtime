@@ -25,6 +25,6 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<start name="test-slab" caps="200" ram="64M"/>
+		<start name="test-slab" caps="800" ram="64M"/>
 	</config>
 </runtime>

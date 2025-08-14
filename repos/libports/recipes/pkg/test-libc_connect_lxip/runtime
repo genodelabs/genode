@@ -1,4 +1,4 @@
-<runtime ram="100M" caps="1000" binary="init">
+<runtime ram="100M" caps="1100" binary="init">
 
 	<requires> <timer/> </requires>
 
@@ -58,7 +58,7 @@
 			</config>
 		</start>
 
-		<start name="server" ram="10M">
+		<start name="server" ram="12M">
 			<binary name="test-netty_tcp"/>
 			<config port="80" read_write="yes" nonblock="false">
 				<vfs>
@@ -72,7 +72,7 @@
 			</config>
 		</start>
 
-		<start name="test-libc_connect" caps="200" ram="10M">
+		<start name="test-libc_connect" caps="300" ram="10M">
 			<config>
 				<vfs>
 					<dir name="dev"> <log/> </dir>

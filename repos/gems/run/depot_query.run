@@ -30,7 +30,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100" ram="1M"/>
+	<default caps="200" ram="2M"/>
 
 	<start name="timer">
 		<provides> <service name="Timer"/> </provides>
@@ -73,7 +73,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="fs_rom" ram="4M">
+	<start name="fs_rom" ram="5M">
 		<provides> <service name="ROM"/> </provides>
 	</start>
 

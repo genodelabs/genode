@@ -25,7 +25,6 @@
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<default caps="50"/>
-		<start name="test-tls" ram="10M"/>
+		<start name="test-tls" caps="200" ram="10M"/>
 	</config>
 </runtime>

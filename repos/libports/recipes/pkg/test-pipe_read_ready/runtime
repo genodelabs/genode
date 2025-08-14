@@ -31,7 +31,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<default caps="100"/>
+		<default caps="200"/>
 
 		<start name="vfs" ram="12M">
 			<provides> <service name="File_system"/> </provides>
@@ -52,7 +52,7 @@
 			</config>
 		</start>
 
-		<start name="counter" caps="120" ram="3M">
+		<start name="counter" ram="3M">
 			<binary name="test-pipe_read_ready_counter"/>
 			<config>
 				<vfs>

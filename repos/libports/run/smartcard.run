@@ -44,7 +44,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100" ram="1M"/>
+	<default caps="200" ram="2M"/>
 
 	<start name="timer">
 		<provides><service name="Timer"/></provides>
@@ -72,7 +72,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-smartcard" caps="150" ram="5M">
+	<start name="test-smartcard" caps="250" ram="5M">
 		<config>
 			<vfs>
 				<dir name="dev">

@@ -26,8 +26,7 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
-		<start name="vfs_stress" ram="80M">
+		<start name="vfs_stress" caps="800" ram="80M">
 			<config depth="16"> <vfs> <ram/> </vfs> </config>
 		</start>
 	</config>

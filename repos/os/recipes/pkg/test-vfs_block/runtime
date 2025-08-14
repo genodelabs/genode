@@ -33,9 +33,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<default caps="100"/>
-
-		<start name="vfs_block" caps="150" ram="38M">
+		<start name="vfs_block" caps="450" ram="38M">
 			<provides> <service name="Block"/> </provides>
 			<config>
 				<vfs>

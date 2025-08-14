@@ -34,7 +34,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100" ram="1M"/>
+	<default caps="200" ram="2M"/>
 
 	<start name="timer">
 		<provides><service name="Timer"/></provides>
@@ -58,7 +58,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="nic_bridge" caps="200" ram="24M">
+	<start name="nic_bridge" caps="300" ram="24M">
 		<provides><service name="Nic"/></provides>
 		<config verbose="yes" mac="02:02:02:02:42:00">
 			<policy label_prefix="client_1"/>
@@ -106,7 +106,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_1" caps="120" ram="32M">
+	<start name="client_1" caps="200" ram="32M">
 		<binary name="test-http_clnt"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -121,7 +121,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_2" caps="170" ram="32M">
+	<start name="client_2" caps="200" ram="32M">
 		<binary name="test-http_clnt"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -136,7 +136,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_3" caps="120" ram="32M">
+	<start name="client_3" caps="200" ram="32M">
 		<binary name="test-http_clnt"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>

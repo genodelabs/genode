@@ -58,7 +58,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100" ram="1M"/>
+	<default caps="200" ram="2M"/>
 	<start name="timer">
 		<provides> <service name="Timer"/> </provides>
 	</start>
@@ -81,7 +81,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="vfs_block" caps="300" ram="68M">
+	<start name="vfs_block" caps="700" ram="80M">
 		<provides><service name="Block"/></provides>
 		<config>
 			<vfs>
@@ -137,7 +137,7 @@ build_boot_image [list {*}[build_artifacts] test.hda]
 #
 append qemu_args " -nographic "
 
-run_genode_until ".*child \"test-libc_vfs\" exited with exit value 0.*" 90
+run_genode_until ".*child \"test-libc_vfs\" exited with exit value 0.*" 100
 
 exec rm -f $disk_image
 

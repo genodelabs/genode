@@ -32,10 +32,10 @@
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<start name="nic_loopback" caps="80" ram="1M">
+		<start name="nic_loopback" caps="200" ram="1M">
 			<provides> <service name="Nic"/> </provides>
 		</start>
-		<start name="nic_bridge" caps="100" ram="10M">
+		<start name="nic_bridge" caps="200" ram="10M">
 			<provides><service name="Nic"/></provides>
 			<config verbose="no">
 				<policy label_prefix="sequence -> local -> recv" ip_addr="192.168.1.1"/>

@@ -98,7 +98,7 @@ append_if $linux config {
 
 append config {
 
-	<start name="fetchurl" caps="300" ram="50M">
+	<start name="fetchurl" caps="400" ram="50M">
 		<config verbose="no">
 			<report progress="yes"/>
 			<vfs>
@@ -163,7 +163,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="nic_router" caps="200" ram="10M">
+	<start name="nic_router" caps="300" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -235,7 +235,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="lighttpd" caps="200" ram="50M">
+	<start name="lighttpd" caps="300" ram="50M">
 		<config>
 			<arg value="lighttpd" />
 			<arg value="-f" />
