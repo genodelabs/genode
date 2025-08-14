@@ -1,0 +1,6 @@
+LICENSE   := public domain
+VERSION   := 1
+DOWNLOADS := sticks_blue.file
+
+URL(sticks_blue) := https://genode.org/files/turmvilla/sticks_blue.png
+SHA(sticks_blue) := fc46bfa54b64f66acad4761a446fb9270a845114bde9e20f8ee31b153fd6591e

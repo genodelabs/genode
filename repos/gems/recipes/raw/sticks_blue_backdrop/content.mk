@@ -1,3 +1,5 @@
+PORT_DIR := $(call port_dir,$(REP_DIR)/ports/sticks_blue_backdrop)
+
 content: backdrop.config
 
 backdrop.config:
@@ -6,4 +8,4 @@ backdrop.config:
 content: sticks_blue.png
 
 sticks_blue.png:
-	wget --quiet https://genode.org/files/turmvilla/sticks_blue.png
+	cp $(PORT_DIR)/$@ $@
