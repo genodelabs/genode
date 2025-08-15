@@ -56,15 +56,28 @@ struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 		Hw_vcpu(Env &, Vm_connection &, Vcpu_handler_base &);
 
 		void with_state(auto const &);
+
+		void register_sig_cap(Vcpu_handler_base &);
 };
 
 
 Hw_vcpu::Hw_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler)
 :
 	Rpc_client<Native_vcpu>(_create_vcpu(vm, handler)),
-	_state(env.rm(), vm.with_upgrade([&] { return call<Rpc_state>(); }))
+	_state(env.rm(), vm.with_upgrade([&] { return call<Rpc_state>(); })),
+	_ep_handler(reinterpret_cast<Thread *>(&handler.rpc_ep()))
+{}
+
+
+void Hw_vcpu::register_sig_cap(Vcpu_handler_base &handler)
 {
-	_ep_handler = reinterpret_cast<Thread *>(&handler.rpc_ep());
+	/*
+	 * The signal handler for vcpu exits, needs to be registered outside
+	 * of the scope of Hw_vcpu construction to prevent handling routines
+	 * entering Hw_vcpu::with_state to early.
+	 * But the kernel's vcpu capability is valid not until a signal handler
+	 * got registered.
+	 */
 	call<Rpc_exception_handler>(handler.signal_cap());
 	_kernel_vcpu = call<Rpc_native_vcpu>();
 }
@@ -106,4 +119,6 @@ Vm_connection::Vcpu::Vcpu(Vm_connection &vm, Allocator &alloc,
                           Vcpu_handler_base &handler, Exit_config const &)
 :
 	_native_vcpu(*new (alloc) Hw_vcpu(vm._env, vm, handler))
-{ }
+{
+	static_cast<Hw_vcpu &>(_native_vcpu).register_sig_cap(handler);
+}
