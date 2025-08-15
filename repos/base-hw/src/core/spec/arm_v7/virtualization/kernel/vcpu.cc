@@ -148,7 +148,7 @@ Kernel::Vcpu::Vcpu(Irq::Pool          &user_irq_pool,
 	_vcpu_context(cpu)
 {
 	/* once constructed, exit with a startup exception */
-	pause();
+	_pause_vcpu();
 	_state.cpu_exception = Genode::VCPU_EXCEPTION_STARTUP;
 	_context.submit(1);
 }

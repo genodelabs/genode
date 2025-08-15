@@ -150,7 +150,7 @@ Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
 	}
 
 	/* once constructed, exit with a startup exception */
-	pause();
+	_pause_vcpu();
 	_state.exception_type = Genode::VCPU_EXCEPTION_STARTUP;
 	_context.submit(1);
 }
