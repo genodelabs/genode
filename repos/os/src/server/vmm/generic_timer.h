@@ -38,6 +38,8 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 		Gic::Irq                              &_irq;
 		Cpu_base                              &_cpu;
 
+		enum class State { MASKED, UNMASKED } _state { State::UNMASKED };
+
 		struct Ctrl : Genode::Register<32>
 		{
 			struct Enabled : Bitfield<0,1> {};
@@ -62,10 +64,9 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 		              Cpu_base           &cpu);
 
 		void schedule_timeout(Vcpu_state &state);
-		void cancel_timeout();
-		void handle_irq(Vcpu_state &state);
+		void handle_irq();
 		void dump(Vcpu_state &state);
-		static void setup_state(Vcpu_state &state);
+		void update_state(Vcpu_state &state);
 
 
 		/*****************

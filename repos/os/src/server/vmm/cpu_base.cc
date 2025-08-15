@@ -89,16 +89,22 @@ void Cpu_base::_handle_wfi(Vcpu_state &state)
 
 void Cpu_base::_handle_startup(Vcpu_state &state)
 {
-	Generic_timer::setup_state(state);
 	Gic::Gicd_banked::setup_state(state);
 
 	setup_state(state);
 
 	if (cpu_id() == 0) {
-		initialize_boot(state, _vm.kernel_addr(), _vm.dtb_addr());
+		_init_arg0 = _vm.kernel_addr();
+		_init_arg1 = _vm.dtb_addr();
 	} else {
 		_cpu_ready.down();
 	}
+
+	/*
+	 * Initialize the vcpu state here, after above semaphore sync point,
+	 * to guarantee that the initial arguments are set accordingly
+	 */
+	initialize_boot(state, _init_arg0, _init_arg1);
 	_active = true;
 }
 
@@ -135,7 +141,7 @@ void Cpu_base::_handle_irq(Vcpu_state &state)
 {
 	switch (state.irqs.last_irq) {
 	case VTIMER_IRQ:
-		_timer.handle_irq(state);
+		_timer.handle_irq();
 		break;
 	default:
 		_gic.handle_irq(state);
@@ -158,8 +164,8 @@ void Cpu_base::_handle_hyper_call(Vcpu_state &state)
 		case Psci::CPU_ON_32: [[fallthrough]];
 		case Psci::CPU_ON:
 			_vm.cpu((unsigned)state.reg(1), [&] (Cpu &cpu) {
-				Vcpu_state &local_state = cpu.state();
-				cpu.initialize_boot(local_state, state.reg(2), state.reg(3));
+				cpu._init_arg0 = state.reg(2);
+				cpu._init_arg1 = state.reg(3);
 				cpu.set_ready();
 			});
 			state.reg(0, Psci::SUCCESS);
@@ -183,7 +189,7 @@ void Cpu_base::_update_state(Vcpu_state &state)
 	if (!_gic.pending_irq(state)) return;
 
 	_active = true;
-	_timer.cancel_timeout();
+	_timer.update_state(state);
 }
 
 unsigned Cpu_base::cpu_id() const         { return _vcpu_id;  }

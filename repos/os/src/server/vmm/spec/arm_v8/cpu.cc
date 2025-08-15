@@ -129,8 +129,6 @@ void Cpu_base::dump(Vcpu_state &state)
 
 addr_t Cpu::Ccsidr::read() const
 {
-	Vcpu_state &state = cpu.state();
-
 	struct Clidr : Genode::Register<32>
 	{
 		enum Cache_entry {
@@ -161,7 +159,7 @@ addr_t Cpu::Ccsidr::read() const
 		return INVALID;
 	}
 
-	unsigned ce = Clidr::level(level, (Clidr::access_t)state.clidr_el1);
+	unsigned ce = Clidr::level(level, (Clidr::access_t)cpu._clidr_el1);
 
 	if (ce == Clidr::NO_CACHE ||
 	    (ce == Clidr::DATA_CACHE_ONLY && instr)) {
@@ -171,12 +169,12 @@ addr_t Cpu::Ccsidr::read() const
 
 	if (ce == Clidr::INSTRUCTION_CACHE_ONLY ||
 	    (ce == Clidr::SEPARATE_CACHE && instr)) {
-		log("Return Ccsidr instr value ", state.ccsidr_inst_el1[level]);
-		return state.ccsidr_inst_el1[level];
+		log("Return Ccsidr instr value ", cpu._ccsidr_inst_el1[level]);
+		return cpu._ccsidr_inst_el1[level];
 	}
 
-	log("Return Ccsidr value ", state.ccsidr_data_el1[level]);
-	return state.ccsidr_data_el1[level];
+	log("Return Ccsidr value ", cpu._ccsidr_data_el1[level]);
+	return cpu._ccsidr_data_el1[level];
 }
 
 
@@ -220,6 +218,11 @@ void Cpu::setup_state(Vcpu_state &state)
 	_sr_id_aa64pfr0_el1.write( _sr_id_aa64pfr0_el1.reset_value(
 	                          state.id_aa64pfr0_el1));
 	_sr_clidr_el1.write(state.clidr_el1);
+
+	memcpy(&_ccsidr_inst_el1, &state.ccsidr_inst_el1, sizeof(_ccsidr_inst_el1));
+	memcpy(&_ccsidr_data_el1, &state.ccsidr_data_el1, sizeof(_ccsidr_data_el1));
+	_clidr_el1 = state.clidr_el1;
+
 	state.pstate     = 0b1111000101; /* el1 mode and IRQs disabled */
 	state.vmpidr_el2 = cpu_id();
 }

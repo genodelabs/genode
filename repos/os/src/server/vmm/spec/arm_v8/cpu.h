@@ -163,6 +163,15 @@ class Vmm::Cpu : public Vmm::Cpu_base
 		 ***********************/
 
 		Icc_sgi1r_el1                     _sr_sgi1r_el1;
+
+
+		/*******************************************************
+		 ** Cached physical values of real CPU from hypervisor *
+		 *******************************************************/
+
+		uint32_t _ccsidr_inst_el1[7] { 0 };
+		uint32_t _ccsidr_data_el1[7] { 0 };
+		uint64_t _clidr_el1          { 0 };
 };
 
 #endif /* _SRC__SERVER__VMM__CPU_H_ */

@@ -60,40 +60,31 @@ class Vmm::Cpu_base
 		         Genode::Entrypoint      &ep,
 		         unsigned                 cpu_id);
 
-		unsigned           cpu_id() const;
-		bool               active() const;
+		unsigned cpu_id() const;
+		bool     active() const;
+
 		Gic::Gicd_banked & gic();
-		void               dump(Vcpu_state &state);
-		void               handle_exception(Vcpu_state &state);
-		void               recall();
-		void               initialize_boot(Vcpu_state &state,
-		                                   Genode::addr_t ip,
-		                                   Genode::addr_t dtb);
+
+		void dump(Vcpu_state &state);
+		void handle_exception(Vcpu_state &state);
+		void recall();
+		void initialize_boot(Vcpu_state &state, Genode::addr_t ip,
+		                     Genode::addr_t dtb);
+
 		virtual void setup_state(Vcpu_state &) { };
 
 		virtual ~Cpu_base() = default;
 
-		Vcpu_state &state() {
-			return _state->ref;
-		}
-
-		template<typename FN>
-		void with_state(FN const &fn)
-		{
-			_vm_vcpu.with_state(fn);
-		}
+		void with_state(auto const &fn) {
+			_vm_vcpu.with_state(fn); }
 
 		void set_ready() {
-			_cpu_ready.up();
-		}
+			_cpu_ready.up(); }
 
-		template <typename FUNC>
-		void handle_signal(FUNC handler)
+		void handle_signal(auto const &handler)
 		{
 			_vm_vcpu.with_state([this, handler](Genode::Vcpu_state &vmstate) {
 				Vmm::Vcpu_state &state = static_cast<Vmm::Vcpu_state &>(vmstate);
-				_state.construct(state);
-
 				try {
 					if (active()) {
 						handle_exception(state);
@@ -107,7 +98,6 @@ class Vmm::Cpu_base
 					return false;
 				}
 
-				_state.destruct();
 				return active();
 			});
 		}
@@ -225,28 +215,29 @@ class Vmm::Cpu_base
 					return (r->_encoding > _encoding); }
 		};
 
-		struct Vcpu_state_container { Vcpu_state &ref; };
+		unsigned _vcpu_id;
+		bool     _active { true };
 
-		unsigned                               _vcpu_id;
-		bool                                   _active { true };
-		Vm                                    &_vm;
-		Genode::Vm_connection                 &_vm_session;
-		Genode::Heap                          &_heap;
-		Signal_handler<Cpu_base>               _vm_handler;
-		Genode::Vm_connection::Exit_config     _exit_config { };
-		Genode::Vm_connection::Vcpu            _vm_vcpu;
-		Genode::Avl_tree<System_register>      _reg_tree {};
-		Genode::Constructible<Vcpu_state_container> _state {};
-		Semaphore                              _cpu_ready {};
+		Vm                    &_vm;
+		Genode::Vm_connection &_vm_session;
+		Genode::Heap          &_heap;
 
+		Signal_handler<Cpu_base>           _vm_handler;
+		Genode::Vm_connection::Exit_config _exit_config { };
+		Genode::Vm_connection::Vcpu        _vm_vcpu;
+		Genode::Avl_tree<System_register>  _reg_tree {};
+		Semaphore                          _cpu_ready {};
+
+		addr_t _init_arg0 { 0 };
+		addr_t _init_arg1 { 0 };
 
 
 		/***********************
 		 ** Local peripherals **
 		 ***********************/
 
-		Gic::Gicd_banked                  _gic;
-		Generic_timer                     _timer;
+		Gic::Gicd_banked _gic;
+		Generic_timer    _timer;
 
 		void _handle_nothing() {}
 		void _handle_startup(Vcpu_state &state);

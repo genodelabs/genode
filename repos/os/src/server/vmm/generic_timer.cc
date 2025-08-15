@@ -38,7 +38,7 @@ void Generic_timer::_handle_timeout(Genode::Duration)
 {
 	_cpu.handle_signal([this](Vcpu_state &state) {
 		if (_enabled(state) && !_masked(state))
-			handle_irq(state);
+			handle_irq();
 	});
 }
 
@@ -59,7 +59,7 @@ Generic_timer::Generic_timer(Genode::Env        &env,
 void Generic_timer::schedule_timeout(Vcpu_state &state)
 {
 	if (_pending(state)) {
-		handle_irq(state);
+		handle_irq();
 		return;
 	}
 
@@ -72,23 +72,23 @@ void Generic_timer::schedule_timeout(Vcpu_state &state)
 }
 
 
-void Generic_timer::cancel_timeout()
+void Generic_timer::update_state(Vcpu_state &state)
 {
 	if (_timeout.scheduled()) { _timeout.discard(); }
+	state.timer.irq = _state == State::UNMASKED ? true : false;
 }
 
 
-void Generic_timer::handle_irq(Vcpu_state &state)
+void Generic_timer::handle_irq()
 {
 	_irq.assert();
-	state.timer.irq = false;
+	_state = State::MASKED;
 }
 
 
 void Generic_timer::eoi()
 {
-	Genode::Vcpu_state &state = _cpu.state();
-	state.timer.irq         = false;
+	_state = State::UNMASKED;
 };
 
 
@@ -98,9 +98,4 @@ void Generic_timer::dump(Vcpu_state &state)
 
 	log("  timer.ctl  = ", Hex(state.timer.control, Hex::PREFIX, Hex::PAD));
 	log("  timer.cmp  = ", Hex(state.timer.compare, Hex::PREFIX, Hex::PAD));
-}
-
-void Generic_timer::setup_state(Vcpu_state &state)
-{
-	state.timer.irq = true;
 }
