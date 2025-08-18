@@ -245,6 +245,23 @@ namespace Genode {
 	{
 		Output::out_args(output, head, tail...);
 	}
+
+	static inline size_t num_printed_bytes(auto &&... printable_args)
+	{
+		struct Counted : Output
+		{
+			size_t num_bytes = 0;
+
+			void out_char  (char)                   override { num_bytes++; }
+			void out_string(char const *, size_t n) override { num_bytes += n; }
+		};
+
+		Counted counted { };
+
+		print(counted, printable_args...);
+
+		return counted.num_bytes;
+	}
 }
 
 
