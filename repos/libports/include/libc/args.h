@@ -23,7 +23,7 @@
 
 static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char **&envp)
 {
-	using Genode::Node;
+	using namespace Genode;
 
 	auto with_raw_attr = [] (Node const &node, auto const attr_name, auto const &fn)
 	{
@@ -32,18 +32,77 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 				fn(attr.value.start, attr.value.num_bytes); });
 	};
 
+	struct Out_buffer : Output
+	{
+		Byte_range_ptr _bytes;
+
+		size_t _used     = 0;
+		bool   _exceeded = false;
+
+		/*
+		 * Return true if 'len' chars fit into the buffer
+		 */
+		[[nodiscard]] bool _fits(size_t const len) const
+		{
+			return _used + len <= _bytes.num_bytes;
+		}
+
+		void _append_char(char c)
+		{
+			if (_fits(1))
+				_bytes.start[_used++] = c;
+			else
+				_exceeded = true;
+		}
+
+		Out_buffer(Byte_range_ptr const &bytes) : _bytes(bytes.start, bytes.num_bytes) { }
+
+		bool   exceeded() const { return _exceeded; }
+		size_t used()     const { return _used; }
+
+		void out_char(char c) override { _append_char(c); }
+
+		void out_string(char const *str, size_t n) override
+		{
+			for (unsigned i = 0; i < n && !_exceeded && str[i]; i++)
+				_append_char(str[i]);
+		}
+	};
+
+	auto with_legacy_arg = [] (Node const &node, auto const &fn)
+	{
+		if (node.has_type("arg") && node.has_attribute("value"))
+			fn(node);
+	};
+
+	auto with_arg = [] (Node const &node, auto const &fn)
+	{
+		if (node.has_type("arg") && !node.has_attribute("value"))
+			fn(node);
+	};
+
+	auto with_legacy_env = [] (Node const &node, auto const &fn)
+	{
+		if (node.has_type("env") && node.has_attribute("key") && node.has_attribute("value"))
+			fn(node);
+	};
+
+	auto with_env = [] (Node const &node, auto const &fn)
+	{
+		if (node.has_type("env") && node.has_attribute("name") && !node.has_attribute("key"))
+			fn(node);
+	};
+
 	env.with_config([&] (Node const &node) {
 
 		int envc = 0;
 
 		/* count the number of arguments and environment variables */
 		node.for_each_sub_node([&] (Node const &node) {
-			/* check if the 'value' attribute exists */
-			if (node.has_type("arg") && node.has_attribute("value"))
-				++argc;
-			else
-			if (node.has_type("env") && node.has_attribute("key") && node.has_attribute("value"))
-				++envc;
+			with_arg       (node, [&] (Node const &) { argc++; });
+			with_legacy_arg(node, [&] (Node const &) { argc++; });
+			with_env       (node, [&] (Node const &) { envc++; });
+			with_legacy_env(node, [&] (Node const &) { envc++; });
 		});
 
 		if (argc == 0 && envc == 0) {
@@ -66,8 +125,22 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 		int env_i = 0;
 		node.for_each_sub_node([&] (Node const &node) {
 
-			/* insert an argument */
-			if (node.has_type("arg")) {
+			with_arg(node, [&] (Node const &node) {
+
+				size_t const size = num_printed_bytes(Node::Quoted_content(node))
+				                  + 1; /* for null termination */
+
+				argv[arg_i] = (char *)malloc(size);
+
+				Out_buffer out { Byte_range_ptr(argv[arg_i], size - 1) };
+
+				print(out, Node::Quoted_content(node));
+
+				argv[arg_i][size - 1] = 0; /* terminate cstring */
+				++arg_i;
+			});
+
+			with_legacy_arg(node, [&] (Node const &node) {
 				with_raw_attr(node, "value", [&] (char const *start, size_t length) {
 
 					size_t const size = length + 1; /* for null termination */
@@ -77,11 +150,32 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 					Genode::copy_cstring(argv[arg_i], start, size);
 				});
 				++arg_i;
-			}
-			else
+			});
 
-			/* insert an environment variable */
-			if (node.has_type("env")) {
+			/*
+			 * An environment variable has the form <key>=<value>, followed
+			 * by a terminating zero.
+			 */
+			with_env(node, [&] (Node const &node) {
+
+				Node::Quoted_content const content(node);
+
+				with_raw_attr(node, "name", [&] (char const *name, size_t name_len) {
+
+					size_t const size = name_len + 1 + num_printed_bytes(content) + 1;
+
+					envp[env_i] = (char*)malloc(size);
+
+					Out_buffer out { Byte_range_ptr(envp[env_i], size - 1) };
+
+					print(out, Cstring(name, name_len), "=", content);
+
+					envp[env_i][size - 1] = 0; /* terminate cstring */
+				});
+				++env_i;
+			});
+
+			with_legacy_env(node, [&] (Node const &node) {
 
 				auto check_attr = [] (Node const &node, auto key) {
 					if (!node.has_attribute(key))
@@ -90,12 +184,6 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 				check_attr(node, "key");
 				check_attr(node, "value");
 
-				using namespace Genode;
-
-				/*
-				 * An environment variable has the form <key>=<value>, followed
-				 * by a terminating zero.
-				 */
 				size_t var_size = 1 + 1;
 				with_raw_attr(node, "key",   [&] (char const *, size_t l) { var_size += l; });
 				with_raw_attr(node, "value", [&] (char const *, size_t l) { var_size += l; });
@@ -126,8 +214,7 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 					append(start, length); });
 
 				++env_i;
-
-			}
+			});
 		});
 
 		/* argv and envp are both NULL terminated */

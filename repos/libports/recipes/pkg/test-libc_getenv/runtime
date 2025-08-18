@@ -4,7 +4,10 @@
 	<succeed>
 			[init -> test-libc_getenv] foo="bar"*
 			[init -> test-libc_getenv] bar="foo"*
-			[init -> test-libc_getenv] baz="(null)"*
+			[init -> test-libc_getenv] no env variable named 'baz'*
+			[init -> test-libc_getenv] fitz=" with leading space"*
+			[init -> test-libc_getenv] fatz="with trailing space "*
+			[init -> test-libc_getenv] no env variable named ' arg with surrounding spaces '*
 			[init] child "test-libc_getenv" exited with exit value 0
 	</succeed>
 
@@ -37,8 +40,13 @@
 				<arg value="foo"/>
 				<arg value="bar"/>
 				<arg value="baz"/>
+				<arg>fitz</arg>
+				<arg>fatz</arg>
+				<arg> arg with surrounding spaces </arg>
 				<env key="foo" value="bar"/>
 				<env key="bar" value="foo"/>
+				<env name="fitz"> with leading space</env>
+				<env name="fatz">with trailing space </env>
 			</config>
 		</start>
 	</config>

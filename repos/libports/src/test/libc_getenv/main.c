@@ -16,10 +16,12 @@
 
 int main(int argc, char **argv)
 {
-	int i;
-	for (i = 1; i < argc; ++i) {
+	for (int i = 1; i < argc; ++i) {
 		char const *key = argv[i];
-		printf("%s=\"%s\"\n", key, getenv(key));
+		if (getenv(key))
+			printf("%s=\"%s\"\n", key, getenv(key));
+		else
+			printf("no env variable named '%s'\n", key);
 	}
 
 	return 0;

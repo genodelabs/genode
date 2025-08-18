@@ -3,14 +3,14 @@
 	<fail after_seconds="30"/>
 	<succeed>
 			[init -> sequence -> test_1] foo="bar1"*
-			[init -> sequence -> test_1] bar1="(null)"*
-			[init -> sequence -> test_1] baz="(null)"*
+			[init -> sequence -> test_1] no env variable named 'bar1'*
+			[init -> sequence -> test_1] no env variable named 'baz'*
 			[init -> sequence -> test_2] foo="bar2"*
-			[init -> sequence -> test_2] bar2="(null)"*
-			[init -> sequence -> test_2] baz="(null)"*
+			[init -> sequence -> test_2] no env variable named 'bar2'*
+			[init -> sequence -> test_2] no env variable named 'baz'*
 			[init -> sequence -> test_3] foo="bar3"*
-			[init -> sequence -> test_3] bar3="(null)"*
-			[init -> sequence -> test_3] baz="(null)"*
+			[init -> sequence -> test_3] no env variable named 'bar3'*
+			[init -> sequence -> test_3] no env variable named 'baz'*
 			[init] child "sequence" exited with exit value 0
 	</succeed>
 	<fail>Error: </fail>
