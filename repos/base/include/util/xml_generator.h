@@ -447,6 +447,12 @@ class Genode::Xml_generator
 			_exceeded |= _curr_node->append_sanitized(str, num_bytes).exceeded;
 		}
 
+		template <size_t N>
+		void append_sanitized(String<N> const &s)
+		{
+			s.with_span([&] (Span const &s) { append_sanitized(s.start, s.num_bytes); });
+		}
+
 		/**
 		 * Append printable objects to XML node as sanitized content
 		 *
