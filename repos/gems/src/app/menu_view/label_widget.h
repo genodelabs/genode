@@ -91,11 +91,10 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		_factory.styles.with_label_style(node, [&] (Label_style style) {
 			_color.fade_to(style.color, Animated_color::Steps{40}); });
 
-		if (node.has_attribute("text")) {
-			_text       = node.attribute_value("text", _text);
-			_text       = Xml_unquoted(_text);
+		node.with_optional_sub_node("text", [&] (Node const &node) {
+			_text = Text(Node::Quoted_content(node));
 			_min_height = _font ? _font->height() : 0;
-		}
+		});
 
 		unsigned const min_ex = node.attribute_value("min_ex", 0U);
 		if (min_ex) {

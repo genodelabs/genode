@@ -44,7 +44,7 @@ struct Left_align : Sub_scope
 		s.node("float", [&] {
 			s.attribute("west", "yes");
 			s.named_sub_node("label", "label", [&] {
-				s.attribute("text", text); }); });
+				s.g.node("text", [&] { s.g.append_quoted(text); }); }); });
 	}
 
 	static void with_narrowed_at(auto const &, auto const &) { }
@@ -364,7 +364,7 @@ struct Main : Prompt::Action
 						s.attribute("west", "yes");
 						s.named_sub_node("label", "label", [&] {
 							s.attribute("font", "title/regular");
-							s.attribute("text", text); }); }); });
+							s.g.node("text", [&] { s.g.append_quoted(text); }); }); }); });
 			}
 
 			void click(Clicked_at const &at) { back_button.propagate(at, [&] { controls.visible_tab = HOME; }); }

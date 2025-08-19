@@ -122,14 +122,14 @@ struct Dialog::Label : Sub_scope
 	static void view_sub_scope(SCOPE &s, TEXT const &text)
 	{
 		s.node("label", [&] {
-			s.attribute("text", text); });
+			s.g.node("text", [&] { s.g.append_quoted(text); }); });
 	}
 
 	template <typename SCOPE, typename TEXT, typename FN>
 	static void view_sub_scope(SCOPE &s, TEXT const &text, FN const &fn)
 	{
 		s.node("label", [&] {
-			s.attribute("text", text);
+			s.g.node("text", [&] { s.g.append_quoted(text); });
 			fn(s);
 		});
 	}

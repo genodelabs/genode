@@ -31,11 +31,13 @@ struct Sculpt::Fs_route_widget : Widget<Vbox>
 		static void view_sub_scope(auto &s, auto const &title, auto const &annotation)
 		{
 			s.node("hbox", [&] {
-				s.sub_node("label", [&] { s.attribute("text", " "); });
+				s.sub_node("label", [&] {
+					s.g.node("text", [&] { s.g.append_quoted(" "); }); });
 				s.sub_node("vbox", [&] {
 					s.named_sub_node("float", "title", [&] {
 						s.attribute("west", "yes");
-						s.sub_node("label", [&] { s.attribute("text", title); }); });
+						s.sub_node("label", [&] {
+							s.g.node("text", [&] { s.g.append_quoted(title); }); }); });
 					if (annotation.length() > 1)
 						s.named_sub_node("float", "annotation", [&] {
 							s.attribute("west", "yes");

@@ -51,8 +51,8 @@ struct Dialog::Annotation : Sub_scope
 	static void sub_node(auto &scope, auto const &text)
 	{
 		scope.sub_node("label", [&] {
-			scope.attribute("text", text);
 			scope.attribute("font", "annotation/regular"); });
+			scope.g.node("text", [&] { scope.g.append_quoted(text); });
 	}
 
 	static void view_sub_scope(auto &scope, auto const &text)
@@ -104,8 +104,9 @@ struct Dialog::Left_floating_text : Sub_scope
 		s.node("float", [&] {
 			s.attribute("west", "yes");
 			s.named_sub_node("label", "label", [&] {
-				s.attribute("text", String<30>("  ", text));
-				s.attribute("min_ex", "15"); }); });
+				s.attribute("min_ex", "15");
+				s.g.node("text", [&] {
+					s.g.append_quoted(String<30>("  ", text)); }); }); });
 	}
 
 	static void with_narrowed_at(auto const &, auto const &) { }
@@ -171,7 +172,8 @@ struct Dialog::Vgap : Sub_scope
 {
 	static void view_sub_scope(auto &s)
 	{
-		s.node("label", [&] { s.attribute("text", " "); });
+		s.node("label", [&] {
+			s.g.node("text", [&] { s.g.append_quoted(" "); }); });
 	}
 
 	static void with_narrowed_at(auto const &, auto const &) { }
@@ -183,8 +185,8 @@ struct Dialog::Small_vgap : Sub_scope
 	static void view_sub_scope(auto &s)
 	{
 		s.node("label", [&] {
-			s.attribute("text", "");
-			s.attribute("font", "annotation/regular"); });
+			s.attribute("font", "annotation/regular");
+			s.g.node("text", [&] { s.g.append_quoted(" "); }); });
 	}
 
 	static void with_narrowed_at(auto const &, auto const &) { }
@@ -198,7 +200,8 @@ struct Dialog::Button_vgap : Sub_scope
 		/* inflate vertical space to button size */
 		s.node("button", [&] {
 			s.attribute("style", "invisible");
-			s.sub_node("label", [&] { s.attribute("text", ""); }); });
+			s.sub_node("label", [&] {
+				s.g.node("text", [&] { s.g.append_quoted(""); }); }); });
 	}
 
 	static void with_narrowed_at(auto const &, auto const &) { }
@@ -280,7 +283,8 @@ struct Dialog::Titled_frame : Widget<Frame>
 			if (attr.min_ex)
 				s.named_sub_node("label", "min_ex", [&] {
 					s.attribute("min_ex", attr.min_ex); });
-			s.sub_node("label", [&] { s.attribute("text", s.id.value); });
+			s.sub_node("label", [&] {
+				s.g.node("text", [&] { s.g.append_quoted(s.id.value); }); });
 			s.sub_node("float", [&] {
 				s.sub_node("vbox", [&] {
 					fn(); }); }); });

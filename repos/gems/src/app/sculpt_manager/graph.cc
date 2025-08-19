@@ -24,9 +24,8 @@ struct Dialog::Parent_node : Sub_scope
 {
 	static void view_sub_scope(auto &s, auto const &text)
 	{
-		s.node("frame", [&] {
-			s.sub_node("label", [&] {
-				s.attribute("text", Sculpt::Start_name(" ", text, " ")); }); });
+		s.node("frame", [&] { s.sub_node("label", [&] { s.g.node("text", [&] {
+			s.g.append_quoted(Sculpt::Start_name(" ", text, " ")); }); }); });
 	}
 
 	static void with_narrowed_at(auto const &, auto const &) { }

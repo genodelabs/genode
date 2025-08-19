@@ -140,36 +140,36 @@ install_config {
 				<inline description="dependency graph">
 					<dialog>
 						<depgraph>
-							<frame name="storage"> <label text="Storage"/>     </frame>
-							<frame name="gui">     <label text="GUI"/>         </frame>
-							<frame name="usbdev">  <label text="USB Devices"/> </frame>
+							<frame name="storage"> <label> <text>Storage</text>     </label> </frame>
+							<frame name="gui">     <label> <text>GUI</text>         </label> </frame>
+							<frame name="usbdev">  <label> <text>USB Devices</text> </label> </frame>
 
-							<button name="s.ahci1" dep="storage"> <label text="ahci1"/> </button>
-							<button name="s.usb1"  dep="storage"> <label text="usb1"/>  </button>
-							<button name="s.usb2"  dep="storage"> <label text="usb2"/>  </button>
-							<button name="s.usb3"  dep="storage"> <label text="usb3"/>  </button>
+							<button name="s.ahci1" dep="storage"> <label> <text>ahci1</text> </label> </button>
+							<button name="s.usb1"  dep="storage"> <label> <text>usb1</text>  </label> </button>
+							<button name="s.usb2"  dep="storage"> <label> <text>usb2</text>  </label> </button>
+							<button name="s.usb3"  dep="storage"> <label> <text>usb3</text>  </label> </button>
 
-							<frame  name="s.usb2.part"     dep="s.usb2">      <label text="Partition"/> </frame>
-							<button name="s.usb2.1"        dep="s.usb2.part"> <label text="1"/>         </button>
-							<frame  name="s.usb2.1.ext2fs" dep="s.usb2.1">    <label text="Ext2 FS"/>   </frame>
-							<button name="s.usb2.2"        dep="s.usb2.part"> <label text="2"/>         </button>
+							<frame  name="s.usb2.part"     dep="s.usb2">      <label> <text>Partition</text> </label> </frame>
+							<button name="s.usb2.1"        dep="s.usb2.part"> <label> <text>1</text>         </label> </button>
+							<frame  name="s.usb2.1.ext2fs" dep="s.usb2.1">    <label> <text>Ext2 FS</text>   </label> </frame>
+							<button name="s.usb2.2"        dep="s.usb2.part"> <label> <text>2</text>         </label> </button>
 
-							<frame name="s.usb2.1.ext2fs.subfs" dep="s.usb2.1.ext2fs"> <label text="Sub FS"/> </frame>
+							<frame name="s.usb2.1.ext2fs.subfs" dep="s.usb2.1.ext2fs"> <label> <text>Sub FS</text> </label> </frame>
 
-							<button name="g.pointer"    dep="gui"> <label text="pointer"/>    </button>
-							<button name="g.overlay"    dep="gui"> <label text="overlay"/>    </button>
-							<button name="g.primary"    dep="gui"> <label text="primary"/>    </button>
-							<button name="g.background" dep="gui"> <label text="background"/> </button>
+							<button name="g.pointer"    dep="gui"> <label> <text>pointer</text>    </label> </button>
+							<button name="g.overlay"    dep="gui"> <label> <text>overlay</text>    </label> </button>
+							<button name="g.primary"    dep="gui"> <label> <text>primary</text>    </label> </button>
+							<button name="g.background" dep="gui"> <label> <text>background</text> </label> </button>
 
-							<button name="g.pointer.new"    dep="g.pointer">    <label text="+"/> </button>
-							<button name="g.overlay.new"    dep="g.overlay">    <label text="+"/> </button>
-							<button name="g.background.new" dep="g.background"> <label text="+"/> </button>
+							<button name="g.pointer.new"    dep="g.pointer">    <label> <text>+</text> </label> </button>
+							<button name="g.overlay.new"    dep="g.overlay">    <label> <text>+</text> </label> </button>
+							<button name="g.background.new" dep="g.background"> <label> <text>+</text> </label> </button>
 
-							<button name="u.1-2" dep="usbdev"> <label text="1-2"/> </button>
-							<button name="u.1-3" dep="usbdev"> <label text="1-3"/> </button>
+							<button name="u.1-2" dep="usbdev"> <label> <text>1-2</text> </label> </button>
+							<button name="u.1-3" dep="usbdev"> <label> <text>1-3</text> </label> </button>
 
 							<frame name="vbox" dep="s.usb2.1.ext2fs.subfs">
-								<label text="VBox5"/>
+								<label> <text>VBox5</text> </label>
 							</frame>
 
 							<dep node="vbox" on="g.primary"/>
@@ -177,7 +177,7 @@ install_config {
 							<dep node="vbox" on="u.1-3"/>
 
 							<frame name="fs_view" dep="s.usb2.1.ext2fs.subfs">
-								<label text="FS View"/>
+								<label> <text>FS View</text> </label>
 							</frame>
 
 							<dep node="fs_view" from="g.primary"/>
@@ -191,25 +191,25 @@ install_config {
 				<inline description="dependency graph">
 					<dialog>
 						<depgraph>
-							<frame name="storage"> <label text="Storage"/>     </frame>
-							<frame name="gui">     <label text="GUI"/>         </frame>
-							<frame name="usbdev">  <label text="USB"/> </frame>
+							<frame name="storage"> <label> <text>Storage</text> </label> </frame>
+							<frame name="gui">     <label> <text>GUI</text>     </label> </frame>
+							<frame name="usbdev">  <label> <text>USB</text>     </label> </frame>
 
-							<button name="s.ahci1" dep="storage"> <label text="ahci1"/> </button>
-							<button name="s.usb1"  dep="storage"> <label text="usb1"/>  </button>
-							<button name="s.usb2"  dep="storage"> <label text="usb2"/>  </button>
-							<button name="s.usb3"  dep="storage"> <label text="usb3"/>  </button>
+							<button name="s.ahci1" dep="storage"> <label> <text>ahci1</text> </label> </button>
+							<button name="s.usb1"  dep="storage"> <label> <text>usb1</text>  </label> </button>
+							<button name="s.usb2"  dep="storage"> <label> <text>usb2</text>  </label> </button>
+							<button name="s.usb3"  dep="storage"> <label> <text>usb3</text>  </label> </button>
 
-							<frame  name="s.usb2.part" dep="s.usb2">      <label text="Partition"/> </frame>
-							<button name="s.usb2.2"    dep="s.usb2.part"> <label text="2"/>         </button>
+							<frame  name="s.usb2.part" dep="s.usb2">      <label> <text>Partition</text> </label> </frame>
+							<button name="s.usb2.2"    dep="s.usb2.part"> <label> <text>2</text>         </label> </button>
 
-							<button name="g.pointer"    dep="gui"> <label text="pointer"/>    </button>
-							<button name="g.overlay"    dep="gui"> <label text="overlay"/>    </button>
-							<button name="g.primary"    dep="gui"> <label text="primary"/>    </button>
-							<button name="g.background" dep="gui"> <label text="background"/> </button>
+							<button name="g.pointer"    dep="gui"> <label> <text>pointer</text>    </label> </button>
+							<button name="g.overlay"    dep="gui"> <label> <text>overlay</text>    </label> </button>
+							<button name="g.primary"    dep="gui"> <label> <text>primary</text>    </label> </button>
+							<button name="g.background" dep="gui"> <label> <text>background</text> </label> </button>
 
-							<button name="u.1-2" dep="usbdev"> <label text="1-2"/> </button>
-							<button name="u.1-3" dep="usbdev"> <label text="1-3"/> </button>
+							<button name="u.1-2" dep="usbdev"> <label> <text>1-2</text> </label> </button>
+							<button name="u.1-3" dep="usbdev"> <label> <text>1-3</text> </label> </button>
 
 						</depgraph>
 					</dialog>
@@ -223,37 +223,39 @@ install_config {
 							<hbox>
 								<vbox name="x">
 									<button name="virtualbox">
-										<label text="VirtualBox"/>
+										<label>
+											<text>VirtualBox</text> </label>
 									</button>
 									<button name="toolchain" hovered="yes">
-										<label text="Tool chain"
-										       font="monospace/regular"/>
+										<label font="monospace/regular">
+											<text>Tool chain</text> </label>
 									</button>
 									<button name="log" hovered="yes" selected="yes">
-										<label text="Log window"
-										       font="title/regular"/>
+										<label font="title/regular">
+											<text>Log window</text> </label>
 									</button>
 									<button name="config" selected="yes">
-										<label text="Configuration Configuration Configuration"
-										       font="annotation/regular"/>
+										<label font="annotation/regular">
+											<text>Configuration Configuration Configuration</text> </label>
 									</button>
 									<hbox>
-										<button name="x1"> <label text="x1"/> </button>
-										<button name="x2"> <label text="x2"/> </button>
-										<button name="x3"> <label text="x3"/> </button>
+										<button name="x1"> <label> <text>x1</text> </label> </button>
+										<button name="x2"> <label> <text>x2</text> </label> </button>
+										<button name="x3"> <label> <text>x3</text> </label> </button>
 									</hbox>
 									<frame>
-										<label text="A single line" font="annotation/regular"/>
+										<label font="annotation/regular">
+											<text>A single line</text> </label>
 									</frame>
 								</vbox>
 								<float north="yes">
 									<vbox>
 										<button name="virtualbox">
-											<label text="VirtualBox"/>
+											<label> <text>VirtualBox</text> </label>
 										</button>
 										<button name="toolchain" hovered="yes">
-											<label text="Tool chain"
-											       font="monospace/regular"/>
+											<label font="monospace/regular">
+												<text>Tool chain</text> </label>
 										</button>
 									</vbox>
 								</float>
@@ -269,10 +271,10 @@ install_config {
 						<frame>
 							<vbox>
 								<button name="virtualbox" hovered="yes">
-									<label text="VirtualBox"/>
+									<label> <text>VirtualBox</text> </label>
 								</button>
 								<button name="config" selected="yes" hovered="yes">
-									<label text="Configuration"/>
+									<label> <text>Configuration</text> </label>
 								</button>
 							</vbox>
 						</frame>
@@ -329,10 +331,10 @@ puts $fd {
 	<frame>
 		<vbox>
 			<button name="perf" hovered="yes">
-				<label text="Performance"/>
+				<label> <text>Performance</text> </label>
 			</button>
 			<button name="battery" selected="yes" hovered="yes">
-				<label text="Battery"/>
+				<label> <text>Battery</text> </label>
 			</button>
 		</vbox>
 	</frame>
