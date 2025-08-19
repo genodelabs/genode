@@ -197,6 +197,27 @@ struct Read_10 : Usb::Cbw, Scsi::Read_10
 };
 
 
+struct Synchronize_cache_10 : Usb::Cbw, Scsi::Synchronize_cache_10
+{
+	Synchronize_cache_10(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	                     uint32_t lba, uint16_t len, bool verbose)
+	:
+		Cbw(range, tag, 0,
+		    Usb::ENDPOINT_OUT, lun, Scsi::Synchronize_cache_10::LENGTH),
+		Scsi::Synchronize_cache_10(Cbw::range_at(15), lba, len)
+	{
+		if (verbose) dump();
+	}
+
+	void dump()
+	{
+		Genode::log("--- Dump SYNCHRONIZE_CACHE_10 command --");
+		Cbw::dump();
+		Scsi::Cmd_10::dump();
+	}
+};
+
+
 struct Write_10 : Usb::Cbw, Scsi::Write_10
 {
 	Write_10(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
@@ -254,6 +275,27 @@ struct Read_16 : Usb::Cbw, Scsi::Read_16
 	void dump()
 	{
 		Genode::log("--- Dump READ_16 command --");
+		Cbw::dump();
+		Scsi::Cmd_16::dump();
+	}
+};
+
+
+struct Synchronize_cache_16 : Usb::Cbw, Scsi::Synchronize_cache_16
+{
+	Synchronize_cache_16(Byte_range_ptr const &range, uint32_t tag, uint8_t lun,
+	                     uint32_t lba, uint16_t len, bool verbose)
+	:
+		Cbw(range, tag, 0,
+		    Usb::ENDPOINT_OUT, lun, Scsi::Synchronize_cache_16::LENGTH),
+		Scsi::Synchronize_cache_16(Cbw::range_at(15), lba, len)
+	{
+		if (verbose) dump();
+	}
+
+	void dump()
+	{
+		Genode::log("--- Dump SYNCHRONIZE_CACHE_16 command --");
 		Cbw::dump();
 		Scsi::Cmd_16::dump();
 	}

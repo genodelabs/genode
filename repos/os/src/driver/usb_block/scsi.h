@@ -43,16 +43,18 @@ namespace Scsi {
 	 ******************/
 
 	enum Opcode {
-		TEST_UNIT_READY  = 0x00,
-		REQUEST_SENSE    = 0x03,
-		INQUIRY          = 0x12,
-		START_STOP       = 0x1B,
-		READ_CAPACITY_10 = 0x25,
-		READ_10          = 0x28,
-		WRITE_10         = 0x2a,
-		READ_16          = 0x88,
-		WRITE_16         = 0x8a,
-		READ_CAPACITY_16 = 0x9e,
+		TEST_UNIT_READY      = 0x00,
+		REQUEST_SENSE        = 0x03,
+		INQUIRY              = 0x12,
+		START_STOP           = 0x1B,
+		READ_CAPACITY_10     = 0x25,
+		READ_10              = 0x28,
+		WRITE_10             = 0x2a,
+		SYNCHRONIZE_CACHE_10 = 0x35,
+		READ_16              = 0x88,
+		WRITE_16             = 0x8a,
+		SYNCHRONIZE_CACHE_16 = 0x91,
+		READ_CAPACITY_16     = 0x9e,
 	};
 
 	struct Inquiry_response;
@@ -71,12 +73,14 @@ namespace Scsi {
 	struct Read_capacity_10;
 	struct Io_10;
 	struct Read_10;
+	struct Synchronize_cache_10;
 	struct Write_10;
 
 	struct Cmd_16;
 	struct Read_capacity_16;
 	struct Io_16;
 	struct Read_16;
+	struct Synchronize_cache_16;
 	struct Write_16;
 }
 
@@ -359,6 +363,15 @@ struct Scsi::Read_10 : Io_10
 };
 
 
+struct Scsi::Synchronize_cache_10 : Io_10
+{
+	Synchronize_cache_10(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_10(range, lba, len)
+	{
+		write<Cmd_10::Op>(Opcode::SYNCHRONIZE_CACHE_10);
+	}
+};
+
+
 struct Scsi::Write_10 : Io_10
 {
 	Write_10(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_10(range, lba, len)
@@ -416,6 +429,15 @@ struct Scsi::Read_16 : Io_16
 	Read_16(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_16(range, lba, len)
 	{
 		write<Cmd_16::Op>(Opcode::READ_16);
+	}
+};
+
+
+struct Scsi::Synchronize_cache_16 : Io_16
+{
+	Synchronize_cache_16(Byte_range_ptr const &range, uint32_t lba, uint16_t len) : Io_16(range, lba, len)
+	{
+		write<Cmd_16::Op>(Opcode::SYNCHRONIZE_CACHE_16);
 	}
 };
 

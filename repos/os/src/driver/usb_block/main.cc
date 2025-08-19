@@ -303,20 +303,41 @@ class Usb::Block_driver
 			uint64_t  const  n  = (uint32_t) op.block_number;
 			uint16_t  const  c  = (uint16_t) op.count;
 
-			if (op.type == Operation::Type::READ) {
+			switch (op.type) {
+			case Operation::Type::READ:
+			{
 				if (_force_cmd_16)
 					Read_16 r(dst, _active_tag, _active_lun,
 					          n, c, _block_size, _verbose_scsi);
 				else
 					Read_10 r(dst, _active_tag, _active_lun,
 					          (uint32_t)n, c, _block_size, _verbose_scsi);
-			} else {
+				break;
+			}
+			case Operation::Type::WRITE:
+			{
 				if (_force_cmd_16)
 					Write_16 w(dst, _active_tag, _active_lun,
 					           n, c, _block_size, _verbose_scsi);
 				else
 					Write_10 w(dst, _active_tag, _active_lun,
 					           (uint32_t)n, c, _block_size, _verbose_scsi);
+				break;
+			}
+			case Operation::Type::SYNC:
+			{
+				/* ignore synchronize region and flush all logical blocks */
+				if (_force_cmd_16)
+					Synchronize_cache_16 s(dst, _active_tag, _active_lun,
+					                       0, 0, _verbose_scsi);
+				else
+					Synchronize_cache_10 s(dst, _active_tag, _active_lun,
+					                       0, 0, _verbose_scsi);
+				break;
+			}
+			default:
+				/* other operations are handled elsewhere */
+				break;
 			}
 		}
 
@@ -531,7 +552,9 @@ class Usb::Block_driver
 				block_request(request), address(addr), size(sz),
 				session_id(session_id)
 			{
-				if (!address && !size) cmd.state = Scsi_command::DONE;
+				if (!address && !size
+				    && request.operation.type != Block::Operation::Type::SYNC)
+					cmd.state = Scsi_command::DONE;
 			}
 
 			Block_command(const Block_command&)  = delete;
@@ -704,8 +727,7 @@ class Usb::Block_driver
 
 			/* operations currently handled as successful NOP */
 			if (_block_cmd.constructed() &&
-			    (block_request.operation.type == Type::TRIM ||
-			     block_request.operation.type == Type::SYNC)) {
+			    (block_request.operation.type == Type::TRIM)) {
 				_block_cmd->block_request.success = true;
 				return Response::ACCEPTED;
 			}
