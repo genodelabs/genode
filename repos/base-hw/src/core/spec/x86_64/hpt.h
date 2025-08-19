@@ -14,14 +14,13 @@
 #ifndef _CORE__SPEC__PC__VIRTUALIZATION__HPT_H_
 #define _CORE__SPEC__PC__VIRTUALIZATION__HPT_H_
 
-#include <cpu/page_table_allocator.h>
-#include <page_table/page_table_base.h>
+#include <hw/page_table.h>
 #include <util/register.h>
 
 namespace Hw {
 	using namespace Genode;
 
-	class Hpt;
+	struct Hpt;
 
 	/**
 	 * IA-32e common descriptor.
@@ -53,21 +52,27 @@ namespace Hw {
 		 * Return descriptor value with cleared accessed and dirty flags. These
 		 * flags can be set by the MMU.
 		 */
-		static access_t clear_mmu_flags(access_t value)
+		static access_t clear_mmu_flags(access_t const value)
 		{
-			A::clear(value);
-			D::clear(value);
-			return value;
+			access_t ret = value;
+			A::clear(ret);
+			D::clear(ret);
+			return ret;
 		}
+
+		static bool conflicts(access_t const old, access_t const desc) {
+			return present(old) && (clear_mmu_flags(old) != desc); }
 	};
 
-	template <unsigned _PAGE_SIZE_LOG2, unsigned _SIZE_LOG2>
 	struct Pml4_table_descriptor : Hpt_common_descriptor
 	{
-		static constexpr size_t SIZE_LOG2      = _SIZE_LOG2;
-		static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
+		struct Pa : Bitfield<12, 48> { }; /* physical address */
 
-		struct Pa  : Bitfield<12, SIZE_LOG2> { };    /* physical address */
+		static access_t create(Page_flags const &, addr_t const)
+		{
+			Genode::error("512GB block mapping is not supported!");
+			return 0;
+		}
 
 		static access_t create(addr_t const pa)
 		{
@@ -76,33 +81,85 @@ namespace Hw {
 				                  RAM, CACHED };
 			return Hpt_common_descriptor::create(flags) | Pa::masked(pa);
 		}
+
+		static Page_table_entry type(access_t const desc)
+		{
+			return present(desc) ? Page_table_entry::TABLE
+			                     : Page_table_entry::INVALID;
+		}
+
+		static addr_t address(access_t const desc) {
+			return Pa::masked(desc); }
 	};
 
-	struct Hpt_page_directory_base_descriptor : Hpt_common_descriptor
+	template <unsigned PAGE_SIZE_LOG2>
+	struct Hpt_page_directory_descriptor : Hpt_common_descriptor
 	{
-		using Common = Hpt_common_descriptor;
+		using Base = Hpt_common_descriptor;
 
-		struct Ps : Common::template Bitfield<7, 1> { };  /* page size */
+		struct Ps : Base::template Bitfield<7, 1> { };  /* page size */
 
-		static bool maps_page(access_t const v) { return Ps::get(v); }
+		/**
+		 * Physical address
+		 */
+		struct Table_pa : Base::template Bitfield<12, 36> { };
+
+		/**
+		 * Global attribute
+		 */
+		struct G : Base::template Bitfield<8, 1> { };
+
+		/**
+		 * Page attribute table
+		 */
+		struct Pat : Base::template Bitfield<12, 1> { };
+
+		/**
+		 * Physical address
+		 */
+		struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
+				                     48 - PAGE_SIZE_LOG2> { };
+
+		static Page_table_entry type(access_t const desc)
+		{
+			if (!present(desc)) return Page_table_entry::INVALID;
+			return Ps::get(desc) ? Page_table_entry::BLOCK
+			                     : Page_table_entry::TABLE;
+		}
+
+		/**
+		 * Creates next table entry
+		 */
+		static typename Base::access_t create(addr_t const pa)
+		{
+			/* XXX: Set memory type depending on active PAT */
+			static Page_flags flags { RW, EXEC, USER, NO_GLOBAL, RAM, CACHED };
+			return Base::create(flags) | Table_pa::masked(pa);
+		}
+
+		static typename Base::access_t create(Page_flags const &flags,
+		                                      addr_t const pa)
+		{
+			bool const wc = flags.cacheable == Cache::WRITE_COMBINED;
+
+			return Base::create(flags)
+			     | Ps::bits(1)
+			     | G::bits(flags.global)
+			     | Pa::masked(pa)
+			     | Base::Pwt::bits(wc ? 1 : 0);
+		}
+
+		static addr_t address(access_t const desc)
+		{
+			return (type(desc) == Page_table_entry::TABLE)
+				? Table_pa::masked(desc) : Pa::masked(desc);
+		}
 	};
 
-	template <unsigned _PAGE_SIZE_LOG2>
-	struct Hpt_page_directory_descriptor : Hpt_page_directory_base_descriptor
-	{
-		static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
 
-		struct Page;
-		struct Table;
-	};
-
-
-	template <unsigned _PAGE_SIZE_LOG2>
 	struct Page_table_entry_descriptor : Hpt_common_descriptor
 	{
 		using Common = Hpt_common_descriptor;
-
-		static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
 
 		struct Pat : Bitfield<7, 1> { };          /* page attribute table */
 		struct G   : Bitfield<8, 1> { };          /* global               */
@@ -117,113 +174,34 @@ namespace Hw {
 				| Pa::masked(pa)
 				| Pwt::bits(wc ? 1 : 0);
 		}
+
+		static addr_t address(access_t const desc) {
+			return Pa::masked(desc); }
 	};
 
-	struct Level1_translation_table
-	:
-		Genode::Final_table<Page_table_entry_descriptor<Genode::SIZE_LOG2_4KB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
 
-	struct Pd
-	:
-		Genode::Page_directory<Level1_translation_table,
-		Hpt_page_directory_descriptor<SIZE_LOG2_2MB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-	struct Pdpt
-	:
-		Genode::Page_directory<Pd,
-		Hpt_page_directory_descriptor<SIZE_LOG2_1GB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-	struct Pml4_adapted_table
-	:
-		Genode::Pml4_table<Pdpt,
-		Pml4_table_descriptor<SIZE_LOG2_512GB, Genode::SIZE_LOG2_256TB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
+	using Level1_translation_table =
+		Page_table_leaf<Page_table_entry_descriptor, SIZE_LOG2_4KB,
+		                SIZE_LOG2_2MB>;
+	using Pd = Page_table_node<Level1_translation_table,
+	                           Hpt_page_directory_descriptor<SIZE_LOG2_2MB>,
+	                           SIZE_LOG2_2MB, SIZE_LOG2_1GB>;
+	using Pdpt = Page_table_node<Pd,
+	                             Hpt_page_directory_descriptor<SIZE_LOG2_1GB>,
+	                             SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
 }
 
 
-template <unsigned _PAGE_SIZE_LOG2>
-struct Hw::Hpt_page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
-	: Hpt_page_directory_base_descriptor
+struct Hw::Hpt : Page_table_node<Pdpt, Pml4_table_descriptor,
+                                 SIZE_LOG2_512GB, SIZE_LOG2_256TB>
 {
-	using Base = Hpt_page_directory_base_descriptor;
-
-	/**
-	 * Physical address
-	 */
-	struct Pa : Base::template Bitfield<12, 36> { };
-
-	/**
-	 * Memory types
-	 */
-	static typename Base::access_t create(addr_t const pa)
-	{
-		/* XXX: Set memory type depending on active PAT */
-		static Page_flags flags { RW, EXEC, USER, NO_GLOBAL,
-				          RAM, CACHED };
-		return Base::create(flags) | Pa::masked(pa);
-	}
-};
-
-
-template <unsigned _PAGE_SIZE_LOG2>
-struct Hw::Hpt_page_directory_descriptor<_PAGE_SIZE_LOG2>::Page
-	: Hpt_page_directory_base_descriptor
-{
-	using Base = Hpt_page_directory_base_descriptor;
-
-	/**
-	 * Global attribute
-	 */
-	struct G : Base::template Bitfield<8, 1> { };
-
-	/**
-	 * Page attribute table
-	 */
-	struct Pat : Base::template Bitfield<12, 1> { };
-
-	/**
-	 * Physical address
-	 */
-	struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
-			                     48 - PAGE_SIZE_LOG2> { };
-
-	static typename Base::access_t create(Page_flags const &flags,
-			                      addr_t const pa)
-	{
-		bool const wc = flags.cacheable == Cache::WRITE_COMBINED;
-
-		return Base::create(flags)
-		     | Base::Ps::bits(1)
-		     | G::bits(flags.global)
-		     | Pa::masked(pa)
-		     | Base::Pwt::bits(wc ? 1 : 0);
-	}
-};
-
-
-class Hw::Hpt : public Pml4_adapted_table
-{
-	public:
-		using Allocator = Genode::Page_table_allocator<1UL << SIZE_LOG2_4KB>;
-		using Pml4_adapted_table::Pml4_adapted_table;
-
-		bool lookup_rw_translation(addr_t const, addr_t &, Allocator &)
-		{
-			raw(__func__, " not implemented yet");
-			return false;
-		}
-
-		enum {
-			TABLE_LEVEL_X_SIZE_LOG2 = SIZE_LOG2_4KB,
-			CORE_VM_AREA_SIZE       = 1024 * 1024 * 1024,
-			CORE_TRANS_TABLE_COUNT  =
-			_count(CORE_VM_AREA_SIZE, SIZE_LOG2_512GB)
-			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_1GB)
-			+ _count(CORE_VM_AREA_SIZE, SIZE_LOG2_2MB)
-		};
+	using Base = Page_table_node<Pdpt, Pml4_table_descriptor,
+	                             SIZE_LOG2_512GB, SIZE_LOG2_256TB>;
+	using Base::Base;
+	using Array =
+		Page_table_array<sizeof(Pd),
+	                     _table_count(_core_vm_size(), SIZE_LOG2_512GB,
+	                                  SIZE_LOG2_1GB, SIZE_LOG2_2MB)>;
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__HPT_H_ */

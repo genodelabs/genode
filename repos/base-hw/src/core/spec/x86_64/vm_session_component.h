@@ -51,8 +51,7 @@ class Core::Vm_session_component
 {
 	private:
 
-		using Vm_page_table_array =
-			typename TABLE::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
+		using Vm_page_table_array = typename TABLE::Array;
 
 
 		/*
@@ -108,13 +107,13 @@ class Core::Vm_session_component
 		{
 			_memory.detach_at(addr,
 				[&](addr_t vm_addr, size_t size) {
-				_table.obj.remove_translation(vm_addr, size, _table_array.obj.alloc()); });
+				_table.obj.remove(vm_addr, size, _table_array.obj.alloc()); });
 		}
 
 		void _reserve_and_flush(addr_t addr)
 		{
 			_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
-				_table.obj.remove_translation(vm_addr, size, _table_array.obj.alloc()); });
+				_table.obj.remove(vm_addr, size, _table_array.obj.alloc()); });
 		}
 
 	public:
@@ -173,21 +172,25 @@ class Core::Vm_session_component
 			auto const &map_fn = [&](addr_t vm_addr, addr_t phys_addr, size_t size) {
 				Page_flags const pflags { RW, EXEC, USER, NO_GLOBAL, RAM, CACHED };
 
-				try {
-					_table.obj.insert_translation(vm_addr, phys_addr, size, pflags, _table_array.obj.alloc());
-				} catch(Hw::Out_of_tables &) {
-					if (_remaining_print_count) {
-						Genode::error("Translation table needs too much RAM");
-						_remaining_print_count--;
+				Hw::Page_table::Result result =
+					_table.obj.insert(vm_addr, phys_addr, size, pflags,
+					                  _table_array.obj.alloc());
+				result.with_error([&] (Hw::Page_table_error e) {
+					if (e == Hw::Page_table_error::INVALID_RANGE) {
+						invalid_mapping = true;
+						if (_remaining_print_count) {
+							Genode::error("Invalid mapping ", Genode::Hex(phys_addr), " -> ",
+							               Genode::Hex(vm_addr), " (", size, ")");
+							_remaining_print_count--;
+						}
+					} else {
+						out_of_tables = true;
+						if (_remaining_print_count) {
+							Genode::error("Translation table needs too much RAM");
+							_remaining_print_count--;
+						}
 					}
-					out_of_tables = true;
-				} catch(...) {
-					if (_remaining_print_count) {
-						Genode::error("Invalid mapping ", Genode::Hex(phys_addr), " -> ",
-						               Genode::Hex(vm_addr), " (", size, ")");
-					}
-					invalid_mapping = true;
-				}
+				});
 			};
 
 			if (!cap.valid())
@@ -225,7 +228,7 @@ class Core::Vm_session_component
 		void detach(addr_t guest_phys, size_t size) override
 		{
 			_memory.detach(guest_phys, size, [&](addr_t vm_addr, size_t size) {
-				_table.obj.remove_translation(vm_addr, size, _table_array.obj.alloc()); });
+				_table.obj.remove(vm_addr, size, _table_array.obj.alloc()); });
 		}
 
 		Capability<Native_vcpu> create_vcpu(Thread_capability tcap) override

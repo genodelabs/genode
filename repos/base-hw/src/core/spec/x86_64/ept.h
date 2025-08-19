@@ -14,13 +14,13 @@
 #ifndef _CORE__SPEC__PC__VIRTUALIZATION__EPT_H_
 #define _CORE__SPEC__PC__VIRTUALIZATION__EPT_H_
 
-#include <cpu/page_table_allocator.h>
-#include <page_table/page_table_base.h>
+#include <hw/page_table.h>
 #include <util/register.h>
 
 namespace Hw {
-	class Ept;
 	using namespace Genode;
+
+	struct Ept;
 
 	/*
 	 * Common EPT Permissions
@@ -52,22 +52,28 @@ namespace Hw {
 		 * Return descriptor value with cleared accessed and dirty flags. These
 		 * flags can be set by the MMU.
 		 */
-		static access_t clear_mmu_flags(access_t value)
+		static access_t clear_mmu_flags(access_t const value)
 		{
-			A::clear(value);
-			D::clear(value);
-			return value;
+			access_t ret = value;
+			A::clear(ret);
+			D::clear(ret);
+			return ret;
 		}
+
+		static bool conflicts(access_t const old, access_t const desc) {
+			return present(old) && (clear_mmu_flags(old) != desc); }
 	};
 
 
-	template <unsigned _PAGE_SIZE_LOG2, unsigned _SIZE_LOG2>
 	struct Pml4e_table_descriptor : Ept_common_descriptor
 	{
-		static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
-		static constexpr size_t SIZE_LOG2      = _SIZE_LOG2;
+		struct Pa : Bitfield<12, 48> { }; /* Physical address */
 
-		struct Pa  : Bitfield<12, SIZE_LOG2> { };    /* Physical address */
+		static access_t create(Page_flags const &, addr_t const)
+		{
+			Genode::error("512GB block mapping is not supported!");
+			return 0;
+		}
 
 		static access_t create(addr_t const pa)
 		{
@@ -76,35 +82,75 @@ namespace Hw {
 				                  RAM, Genode::CACHED };
 			return Ept_common_descriptor::create(flags) | Pa::masked(pa);
 		}
+
+		static Page_table_entry type(access_t const desc)
+		{
+			return present(desc) ? Page_table_entry::TABLE
+			                     : Page_table_entry::INVALID;
+		}
+
+		static addr_t address(access_t const desc) {
+			return Pa::masked(desc); }
 	};
 
-	struct Ept_page_directory_base_descriptor : Ept_common_descriptor
+
+	template <unsigned PAGE_SIZE_LOG2>
+	struct Ept_page_directory_descriptor : Ept_common_descriptor
 	{
-		using Common = Ept_common_descriptor;
+		using Base = Ept_common_descriptor;
 
-		struct Ps : Common::template Bitfield<7, 1> { };  /* Page size */
+		struct Ps : Base::template Bitfield<7, 1> { };  /* Page size */
 
-		static bool maps_page(access_t const v) { return Ps::get(v); }
-	};
+		static Page_table_entry type(access_t const desc)
+		{
+			if (!present(desc)) return Page_table_entry::INVALID;
+			return Ps::get(desc) ? Page_table_entry::BLOCK
+			                     : Page_table_entry::TABLE;
+		}
 
+		/**
+		 * Physical address
+		 */
+		struct Table_pa : Base::template Bitfield<12, 36> { };
 
-	template <unsigned _PAGE_SIZE_LOG2>
-	struct Ept_page_directory_descriptor : Ept_page_directory_base_descriptor
-	{
-		static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
+		static typename Base::access_t create(addr_t const pa)
+		{
+			static Page_flags flags { RW, EXEC, USER, NO_GLOBAL,
+			                          RAM, Genode::CACHED };
+			return Base::create(flags) | Table_pa::masked(pa);
+		}
 
-		struct Page;
-		struct Table;
+		struct Type : Bitfield< 3,3> { }; /* Ept memory type, see Section 29.3.7 */
+		struct Pat  : Bitfield< 6,1> { }; /* Ignore PAT memory type, see 29.3.7 */
+
+		/**
+		 * Physical address
+		 */
+		struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
+		                                     48 - PAGE_SIZE_LOG2> { };
+
+		static typename Base::access_t create(Page_flags const &flags,
+		                                      addr_t const pa)
+		{
+			return Base::create(flags)
+			     | Ps::bits(1)
+			     | Pa::masked(pa)
+			     | Type::bits(6)
+			     | Pat::bits(1);
+		}
+
+		static addr_t address(access_t const desc)
+		{
+			return (type(desc) == Page_table_entry::TABLE)
+				? Table_pa::masked(desc) : Pa::masked(desc);
+		}
 	};
 
 
 	/* Table 29-7. Format of an EPT Page-Table Entry that Maps a 4-KByte Page */
-	template <unsigned _PAGE_SIZE_LOG2>
 	struct Ept_page_table_entry_descriptor : Ept_common_descriptor
 	{
 		using Common = Ept_common_descriptor;
-
-		static constexpr size_t PAGE_SIZE_LOG2 = _PAGE_SIZE_LOG2;
 
 		struct Type : Bitfield< 3, 3> { }; /* Ept memory type, see Section 29.3.7 */
 		struct Pat  : Bitfield< 6, 1> { }; /* Ignore PAT memory type, see 29.3.7 */
@@ -114,85 +160,33 @@ namespace Hw {
 		{
 			return Common::create(flags) | Pa::masked(pa) | Type::bits(6) | Pat::bits(1);
 		}
+
+		static addr_t address(access_t const desc) {
+			return Pa::masked(desc); }
 	};
 
-	struct Ept_page_table
-	:
-		Genode::Final_table<Ept_page_table_entry_descriptor<SIZE_LOG2_4KB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
+	using Ept_page_table = Page_table_leaf<Ept_page_table_entry_descriptor,
+	                                       SIZE_LOG2_4KB, SIZE_LOG2_2MB>;
+	using Ept_pd = Page_table_node<Ept_page_table,
+	                               Ept_page_directory_descriptor<SIZE_LOG2_2MB>,
+	                               SIZE_LOG2_2MB, SIZE_LOG2_1GB>;
+	using Ept_pdpt =
+		Page_table_node<Ept_pd, Ept_page_directory_descriptor<SIZE_LOG2_1GB>,
+		                SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
 
-	struct Ept_pd
-	:
-		Genode::Page_directory<Ept_page_table,
-		Ept_page_directory_descriptor<SIZE_LOG2_2MB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-	struct Ept_pdpt
-	:
-		Genode::Page_directory<Ept_pd,
-		Ept_page_directory_descriptor<SIZE_LOG2_1GB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-	struct Pml4e_table
-	:
-		Genode::Pml4_table<Ept_pdpt,
-		Pml4e_table_descriptor<SIZE_LOG2_512GB, SIZE_LOG2_256TB>>
-	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
 }
 
 
-template <unsigned _PAGE_SIZE_LOG2>
-struct Hw::Ept_page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
-	: Ept_page_directory_base_descriptor
+struct Hw::Ept : Page_table_node<Ept_pdpt, Pml4e_table_descriptor,
+                                 SIZE_LOG2_512GB, SIZE_LOG2_256TB>
 {
-	using Base = Ept_page_directory_base_descriptor;
-
-	/**
-	 * Physical address
-	 */
-	struct Pa : Base::template Bitfield<12, 36> { };
-
-	static typename Base::access_t create(addr_t const pa)
-	{
-		static Page_flags flags { RW, EXEC, USER, NO_GLOBAL,
-		                          RAM, Genode::CACHED };
-		return Base::create(flags) | Pa::masked(pa);
-	}
-};
-
-
-template <unsigned _PAGE_SIZE_LOG2>
-struct Hw::Ept_page_directory_descriptor<_PAGE_SIZE_LOG2>::Page
-	: Ept_page_directory_base_descriptor
-{
-	using Base = Ept_page_directory_base_descriptor;
-
-	struct Type : Bitfield< 3,3> { }; /* Ept memory type, see Section 29.3.7 */
-	struct Pat  : Bitfield< 6,1> { }; /* Ignore PAT memory type, see 29.3.7 */
-	/**
-	 * Physical address
-	 */
-	struct Pa : Base::template Bitfield<PAGE_SIZE_LOG2,
-	                                     48 - PAGE_SIZE_LOG2> { };
-
-
-	static typename Base::access_t create(Page_flags const &flags,
-	                                      addr_t const pa)
-	{
-		return Base::create(flags)
-		     | Base::Ps::bits(1)
-		     | Pa::masked(pa)
-		     | Type::bits(6)
-	             | Pat::bits(1);
-
-	}
-};
-
-class Hw::Ept : public Pml4e_table
-{
-	public:
-		using Allocator = Genode::Page_table_allocator<1UL << SIZE_LOG2_4KB>;
-		using Pml4e_table::Pml4e_table;
+	using Base = Page_table_node<Ept_pdpt, Pml4e_table_descriptor,
+                                 SIZE_LOG2_512GB, SIZE_LOG2_256TB>;
+	using Base::Base;
+	using Array =
+		Page_table_array<sizeof(Ept_pdpt),
+	                     _table_count(_core_vm_size(), SIZE_LOG2_512GB,
+	                                  SIZE_LOG2_1GB, SIZE_LOG2_2MB)>;
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__EPT_H_ */
