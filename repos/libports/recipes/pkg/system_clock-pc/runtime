@@ -1,4 +1,4 @@
-<runtime ram="4M" caps="300" binary="init">
+<runtime ram="6M" caps="400" binary="init">
 
 	<provides> <rtc/> </provides>
 
@@ -25,7 +25,7 @@
 			<service name="Timer"/>
 		</parent-provides>
 
-		<default caps="100" ram="1M"/>
+		<default caps="150" ram="2M"/>
 
 		<service name="Rtc">
 			<default-policy> <child name="system_rtc"/> </default-policy> </service>

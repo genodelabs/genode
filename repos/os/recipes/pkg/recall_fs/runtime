@@ -1,4 +1,4 @@
-<runtime ram="1M" caps="100" binary="chroot">
+<runtime ram="2M" caps="150" binary="chroot">
 
 	<requires> <file_system/> </requires>
 	<provides> <file_system/> </provides>

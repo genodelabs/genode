@@ -1,4 +1,4 @@
-<runtime ram="10M" caps="450" binary="init">
+<runtime ram="12M" caps="550" binary="init">
 
 	<requires>
 		<gui/>
@@ -27,7 +27,7 @@
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
-		<default caps="100" ram="1M"/>
+		<default caps="150" ram="2M"/>
 
 		<start name="fs_report">
 			<provides> <service name="Report"/> </provides>

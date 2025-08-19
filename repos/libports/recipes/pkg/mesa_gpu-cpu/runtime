@@ -1,4 +1,4 @@
-<runtime ram="16M" caps="300" binary="init">
+<runtime ram="20M" caps="300" binary="init">
 
 	<provides>
 		<rom/>
@@ -34,7 +34,7 @@
 
 		<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
 
-		<start name="vfs" caps="100" ram="1M">
+		<start name="vfs" caps="100" ram="5M">
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs>

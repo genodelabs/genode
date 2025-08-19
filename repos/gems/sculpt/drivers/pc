@@ -35,7 +35,7 @@
 		</config>
 	</start>
 
-	<start name="rom_reporter">
+	<start name="rom_reporter" ram="2M">
 		<config>
 			<rom label="acpi"/>
 			<rom label="devices"/>
