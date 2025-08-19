@@ -45,9 +45,7 @@ struct Dialog::Text_area_widget : Widget<Vbox>
 
 			void print(Output &out) const
 			{
-				if (value == '"')
-					Genode::print(out, "&quot;");
-				else if (value == 9)
+				if (value == 9)
 					Genode::print(out, " ");
 				else
 					Codepoint::print(out);
