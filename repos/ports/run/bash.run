@@ -121,8 +121,8 @@ install_config {
 			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs> <fs/> </vfs>
 			<arg value="bash"/>
-			<env key="TERM" value="screen"/>
-			<env key="PATH" value="/bin" />
+			<env name="TERM">screen</env>
+			<env name="PATH">/bin</env>
 		</config>
 		<route>
 			<service name="File_system"> <child name="vfs"/> </service>

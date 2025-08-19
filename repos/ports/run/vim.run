@@ -166,7 +166,7 @@ install_config {
 
 			<vfs> <fs/> </vfs>
 
-			<env key="TERM" value="screen" />
+			<env name="TERM">screen</env>
 
 			<arg value="/bin/vim" />
 

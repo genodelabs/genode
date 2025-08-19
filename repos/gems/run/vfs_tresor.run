@@ -230,9 +230,9 @@ append config {
 							</vfs>
 							<arg value="bash"/>
 							<arg value="--login"/>
-							<env key="TERM" value="screen"/>
-							<env key="HOME" value="/"/>
-							<env key="PATH" value="/bin"/>
+							<env name="TERM">screen</env>
+							<env name="HOME">/</env>
+							<env name="PATH">/bin</env>
 						</config>
 						<route>
 							<service name="File_system" label="shell"> <child name="vfs" label="/"/> </service>

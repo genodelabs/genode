@@ -214,10 +214,10 @@ install_config {
 				<fs buffer_size="2M"/>
 				<dir name="dev"> <null/> </dir>
 			</vfs>
-			<env key="HOME" value="/home"/>
-			<env key="PATH" value="/bin"/>
-			<arg value="/bin/bash"/>
-			<arg value="--login" />
+			<env name="HOME">/home</env>
+			<env name="PATH">/bin</env>
+			<arg>/bin/bash</arg>
+			<arg value="--login"/>
 		</config>
 		<route>
 			<service name="File_system"> <child name="vfs"/> </service>

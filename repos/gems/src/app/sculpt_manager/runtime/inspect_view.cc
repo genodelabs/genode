@@ -174,8 +174,8 @@ static void gen_bash_start(Generator &g)
 
 		auto gen_env = [&] (auto key, auto value) {
 			g.node("env", [&] {
-				g.attribute("key",   key);
-				g.attribute("value", value); }); };
+				g.attribute("name",   key);
+				g.append_quoted(value); }); };
 
 		gen_env("HOME", "/");
 		gen_env("TERM", "screen");

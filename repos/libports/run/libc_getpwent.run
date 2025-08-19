@@ -37,8 +37,8 @@ install_config {
 				<config>
 					<vfs> <fs/> </vfs>
 					<libc stdout="/log" stderr="/log"/>
-					<arg value="test-libc_getpwent"/>
-					<env key="HOME" value="/home-from-getenv"/>
+					<arg>test-libc_getpwent</arg>
+					<env name="HOME">/home-from-getenv</env>
 				</config>
 			</start>
 

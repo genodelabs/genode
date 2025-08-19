@@ -31,7 +31,7 @@
 				<log/> <inline name="rtc">2000-01-01 00:00</inline> <gpu/>
 			</dir>
 		</vfs>
-		<env key="GALLIUM_HUD" value="fps"/>
+		<env name="GALLIUM_HUD">fps</env>
 	</config>
 
 </runtime>

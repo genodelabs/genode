@@ -73,9 +73,9 @@
 				<vfs> <fs/> </vfs>
 				<arg value="bash"/>
 				<arg value="--login"/>
-				<env key="TERM" value="screen"/>
-				<env key="PATH" value="/bin" />
-				<env key="HOME" value="/" />
+				<env name="TERM">screen</env>
+				<env name="PATH">/bin</env>
+				<env name="HOME">/</env>
 			</config>
 			<route>
 				<service name="File_system"> <child name="vfs"/> </service>

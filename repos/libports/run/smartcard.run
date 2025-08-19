@@ -88,7 +88,7 @@ install_config {
 				</dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/pipe"/>
-			<env key="LIBUSB_DEBUG" value="1"/> <!-- log libusb errors -->
+			<env name="LIBUSB_DEBUG">1</env> <!-- log libusb errors -->
 		</config>
 	</start>
 </config>}

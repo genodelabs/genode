@@ -459,12 +459,12 @@ proc gpu_client { } {
 					</dir>
 				</vfs>
 				<libc stdout="/dev/log" stderr="/dev/log"/>
-				<arg value="glmark2"/>
+				<arg>glmark2</arg>
 				<!-- <arg value="\-\-debug"/> -->
-				<arg value="-b"/>
-				<arg value=":duration=10.0"/>
-				<arg value="--run-forever"/>
-				<env key="GALLIUM_HUD" value="fps"/>
+				<arg>-b</arg>
+				<arg>:duration=10.0</arg>
+				<arg>--run-forever</arg>
+				<env name="GALLIUM_HUD">fps</env>
 			</config>
 			<route>
 				<service name="Gpu">   <child name="gpu"/>   </service>

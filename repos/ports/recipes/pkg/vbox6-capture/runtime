@@ -39,14 +39,14 @@
 		</libc>
 		<monitor label="VBOX-1"/>
 		<webcam vertical_flip="true" fps="30" screen_size="false" width="640" height="480"/>
-		<arg value="virtualbox"/>
-		<env key="VBOX_USER_HOME" value="/"/>
-		<env key="VBOX_LOG_DEST"          value="file=/dev/log"/>
-		<env key="VBOX_LOG"               value="+dbgf+gim"/>
-		<env key="VBOX_LOG_FLAGS"         value="thread"/>
-		<env key="VBOX_RELEASE_LOG_DEST"  value="file=/dev/log"/>
-		<env key="VBOX_RELEASE_LOG"       value=""/>
-		<env key="VBOX_RELEASE_LOG_FLAGS" value="thread"/>
+		<arg>virtualbox</arg>
+		<env name="VBOX_USER_HOME">/</env>
+		<env name="VBOX_LOG_DEST">file=/dev/log</env>
+		<env name="VBOX_LOG">+dbgf+gim</env>
+		<env name="VBOX_LOG_FLAGS">thread</env>
+		<env name="VBOX_RELEASE_LOG_DEST">file=/dev/log</env>
+		<env name="VBOX_RELEASE_LOG"></env>
+		<env name="VBOX_RELEASE_LOG_FLAGS">thread</env>
 	</config>
 
 	<content>

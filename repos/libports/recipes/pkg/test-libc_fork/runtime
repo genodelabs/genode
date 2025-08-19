@@ -24,8 +24,8 @@
 		</parent-provides>
 		<start name="test-fork" caps="500" ram="1G">
 			<config>
-				<arg value="name_of_executeable"/>
-				<env key="WIZARD" value="gandalf"/>
+				<arg>name_of_executeable</arg>
+				<env name="WIZARD">gandalf</env>
 				<libc stdin="/null" stdout="/log" stderr="/log">
 					<fd id="3" path="/seek_test" readable="yes" seek="5"/>
 				</libc>
