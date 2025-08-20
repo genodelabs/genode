@@ -854,7 +854,7 @@ class Genode::String
 		auto with_span(FN const &fn) const
 		-> typename Trait::Functor<decltype(&FN::operator())>::Return_type
 		{
-			return fn(Span { string(), max(1ul, _len) - 1 });
+			return fn(Span { _buf, max(1ul, _len) - 1 });
 		}
 
 		bool operator == (char const *other) const
