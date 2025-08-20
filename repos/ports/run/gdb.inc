@@ -285,7 +285,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="gdb" caps="300" ram="42M">
+	<start name="gdb" caps="300" ram="46M">
 		<binary name="/bin/} [gdb_prefix] {gdb"/>
 		<config ld_verbose="yes">
 			<vfs>
