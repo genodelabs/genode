@@ -30,6 +30,34 @@ namespace Genode {
 
 class Genode::Node : Noncopyable
 {
+	public:
+
+		struct Attribute
+		{
+			using Name = String<64>;
+			Name const name;
+			Const_byte_range_ptr value;
+		};
+
+		class Quoted_line
+		{
+			private:
+
+				Node const &_node;
+				Const_byte_range_ptr _bytes;
+
+				friend class Node;
+
+				Quoted_line(Node const &node, char const *start, size_t len, bool last)
+				: _node(node), _bytes(start, len), last(last) { }
+
+			public:
+
+				bool const last;
+
+				void print(Output &out) const { _node._print_quoted_line(out, _bytes); }
+		};
+
 	private:
 
 		using Xml = Xml_node;
@@ -79,21 +107,25 @@ class Genode::Node : Noncopyable
 			      [&] { });
 		}
 
+		using With_node = Callable<void, Node const &>;
+
+		void _with_optional_sub_node(char const *, With_node::Ft const &) const;
+		void _for_each_sub_node(char const *, With_node::Ft const &) const;
+		void _for_each_sub_node(With_node::Ft const &) const;
+
+		using With_attribute = Callable<void, Attribute const &>;
+
+		void _for_each_attribute(With_attribute::Ft const &) const;
+
+		using With_quoted_line = Callable<void, Quoted_line const &>;
+
+		void _for_each_quoted_line(With_quoted_line::Ft const &) const;
+
 	public:
 
 		Node() { /* type is "empty" */ };
 
-		Node(Const_byte_range_ptr const &bytes)
-		{
-			_with_skipped_whitespace(bytes, [&] (Const_byte_range_ptr const &bytes) {
-				if (bytes.start[0] == '<') {
-					try { _xml.construct(bytes); } catch (...) { }
-				} else {
-					_hrd.construct(bytes);
-					if (!_hrd->valid()) _hrd.destruct();
-				}
-			});
-		}
+		Node(Const_byte_range_ptr const &bytes);
 
 		template <size_t N>
 		Node(String<N> const &s)
@@ -102,32 +134,16 @@ class Genode::Node : Noncopyable
 		/**
 		 * Construct a copy of the node with the content located in 'dst'
 		 */
-		Node(Node const &other, Byte_range_ptr const &dst)
-		{
-			other._with(
-				[&] (Xml const &node) {
-					node.with_raw_node([&] (char const *start, size_t num_bytes) {
-						if (dst.num_bytes >= num_bytes) {
-							memcpy(dst.start, start, num_bytes);
-							_xml.construct(dst.start, num_bytes); } });
-				},
-				[&] (Hrd const &node) { _hrd.construct(node, dst); },
-				[&]                   { });
-		}
+		Node(Node const &other, Byte_range_ptr const &dst);
 
 		void for_each_sub_node(char const *type, auto const &fn) const
 		{
-			_process_if_valid([&] (auto const &node) {
-				node.for_each_sub_node([&] (auto const &sub_node) {
-					if (sub_node.type() == type)
-						fn(Node(sub_node)); }); });
+			_for_each_sub_node(type, With_node::Fn { fn });
 		}
 
 		void for_each_sub_node(auto const &fn) const
 		{
-			_process_if_valid([&] (auto const &node) {
-				node.for_each_sub_node([&] (auto const &sub_node) {
-					fn(Node(sub_node)); }); });
+			_for_each_sub_node(With_node::Fn { fn });
 		}
 
 		auto with_sub_node(char const *type, auto const &fn, auto const &missing_fn) const
@@ -148,40 +164,16 @@ class Genode::Node : Noncopyable
 					[&]                        { return missing_fn(); }); });
 		}
 
-		unsigned num_sub_nodes() const
-		{
-			unsigned count = 0;
-			for_each_sub_node([&] (auto const &) { count++; });
-			return count;
-		}
+		unsigned num_sub_nodes() const;
 
 		void with_optional_sub_node(char const *type, auto const &fn) const
 		{
-			_process_if_valid([&] (auto const &node) {
-				node.with_sub_node(type,
-					[&] (auto const &sub_node) { fn(Node(sub_node)); },
-					[&]                        { }); });
+			_with_optional_sub_node(type, With_node::Fn { fn });
 		}
-
-		struct Attribute
-		{
-			using Name = String<64>;
-			Name const name;
-			Const_byte_range_ptr value;
-		};
 
 		void for_each_attribute(auto const &fn) const
 		{
-			_with(
-				[&] (Xml const &n) {
-					n.for_each_attribute([&] (Xml_attribute const &a) {
-						a.with_raw_value([&] (char const *start, size_t len) {
-							fn(Attribute { a.name(), { start, len } }); }); }); },
-				[&] (Hrd const &n) {
-					n.for_each_attribute([&] (Hrd_node::Attribute const &a) {
-						fn(Attribute { .name  = { Cstring(a.tag.start, a.tag.num_bytes) },
-						               .value = { a.value.start, a.value.num_bytes } }); }); },
-				[&] { });
+			_for_each_attribute(With_attribute::Fn { fn });
 		}
 
 		template <typename T>
@@ -191,86 +183,23 @@ class Genode::Node : Noncopyable
 				return node.attribute_value(attr, default_value); });
 		}
 
-		bool has_type(char const *type) const
-		{
-			return _process([&] { return Type { "empty" } == type; },
-			                [&] (auto const &node) { return node.has_type(type); });
-		}
+		bool has_type(char const *type) const;
 
-		bool has_sub_node(char const *type) const
-		{
-			bool result = false;
-			with_optional_sub_node(type, [&] (Node const &) { result = true; });
-			return result;
-		}
+		bool has_sub_node(char const *type) const;
 
 		using Type = Xml::Type;
 
-		Type type() const
-		{
-			return _process([] { return Type { "empty" }; }, [&] (auto const &node) {
-				return node.type(); });
-		}
+		Type type() const;
 
-		bool has_attribute(char const *attr) const
-		{
-			return _process([] { return false; }, [&] (auto const &node) {
-				return node.has_attribute(attr); });
-		}
+		bool has_attribute(char const *attr) const;
 
-		size_t num_bytes() const
-		{
-			return _with([&] (Xml const &n) { return n.size(); },
-			             [&] (Hrd const &n) { return n.num_bytes(); },
-			             [&] () -> size_t   { return 0; });
-		}
+		size_t num_bytes() const;
 
-		bool differs_from(Node const &other) const
-		{
-			return _with(
-				[&] (Xml const &n) {
-					return other._with(
-						[&] (Xml const &other_n) { return n.differs_from(other_n); },
-						[&] (Hrd const &)        { return true; },
-						[]                       { return true; }); },
-				[&] (Hrd const &n) {
-					return other._with(
-						[&] (Xml const &)        { return true; },
-						[&] (Hrd const &other_n) { return n.differs_from(other_n); },
-						[]                       { return true; }); },
-				[&] {
-					return other._with(
-						[&] (Xml const &) { return true; },
-						[&] (Hrd const &) { return true; },
-						[]                { return false; });
-			});
-		}
-
-		class Quoted_line
-		{
-			private:
-
-				Node const &_node;
-				Const_byte_range_ptr _bytes;
-
-				friend class Node;
-
-				Quoted_line(Node const &node, char const *start, size_t len, bool last)
-				: _node(node), _bytes(start, len), last(last) { }
-
-			public:
-
-				bool const last;
-
-				void print(Output &out) const { _node._print_quoted_line(out, _bytes); }
-		};
+		bool differs_from(Node const &other) const;
 
 		void for_each_quoted_line(auto const &fn) const
 		{
-			_process_if_valid([&] (auto const &node) {
-				node.for_each_quoted_line([&] (auto const &l) {
-					fn(Quoted_line { *this, l.bytes.start, l.bytes.num_bytes,
-					                        l.last }); }); });
+			_for_each_quoted_line(With_quoted_line::Fn { fn });
 		}
 
 		/**
@@ -280,18 +209,10 @@ class Genode::Node : Noncopyable
 		{
 			Node const &_node;
 
-			void print(Output &out) const
-			{
-				_node.for_each_quoted_line([&] (auto const &line) {
-					line.print(out);
-					if (!line.last) out.out_char('\n'); });
-			}
+			void print(Output &out) const;
 		};
 
-		void print(Output &out) const
-		{
-			_process_if_valid([&] (auto const &node) { node.print(out); });
-		}
+		void print(Output &out) const;
 };
 
 
@@ -333,6 +254,8 @@ class Genode::Generator : Noncopyable
 
 		static bool _generate_xml(); /* component-global config switch */
 
+		void _node(char const *name, Callable<void>::Ft const &);
+
 	public:
 
 		using Result = Attempt<size_t, Buffer_error>;
@@ -354,16 +277,44 @@ class Genode::Generator : Noncopyable
 					fn(g); });
 		}
 
-		void node(auto &&... args)
+		void node(char const *name, auto const &fn)
 		{
-			if (_xml_ptr) _xml_ptr->node(args...);
-			if (_hrd_ptr) _hrd_ptr->node(args...);
+			_node(name, Callable<void>::Fn { fn });
 		}
 
-		void attribute(auto &&... args)
+		void node(char const *name) { node(name, [] { }); }
+
+		void attribute(char const *name, char const *str, size_t str_len);
+		void attribute(char const *name, char const *str);
+		void attribute(char const *name, bool value);
+		void attribute(char const *name, long long value);
+		void attribute(char const *name, unsigned long long value);
+		void attribute(char const *name, double value);
+
+		template <size_t N>
+		void attribute(char const *name, String<N> const &str)
 		{
-			if (_xml_ptr) _xml_ptr->attribute(args...);
-			if (_hrd_ptr) _hrd_ptr->attribute(args...);
+			attribute(name, str.string());
+		}
+
+		void attribute(char const *name, long value)
+		{
+			attribute(name, static_cast<long long>(value));
+		}
+
+		void attribute(char const *name, int value)
+		{
+			attribute(name, static_cast<long long>(value));
+		}
+
+		void attribute(char const *name, unsigned long value)
+		{
+			attribute(name, static_cast<unsigned long long>(value));
+		}
+
+		void attribute(char const *name, unsigned value)
+		{
+			attribute(name, static_cast<unsigned long long>(value));
 		}
 
 		void append_quoted(auto &&... args)
@@ -374,11 +325,7 @@ class Genode::Generator : Noncopyable
 
 		struct Max_depth { unsigned value; };
 
-		void node_attributes(Node const &node)
-		{
-			if (_xml_ptr) _xml_ptr->node_attributes(node);
-			if (_hrd_ptr) _hrd_ptr->node_attributes(node);
-		}
+		void node_attributes(Node const &node);
 
 		[[nodiscard]] bool append_node(auto const &node, Max_depth const &max_depth)
 		{
