@@ -177,7 +177,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		 */
 		bool result = false;
 
-		auto match_flow = [&] (Genode::Node flow) {
+		auto match_flow = [&] (Genode::Node const &flow) {
 			if (flow.attribute_value("from", Domain()) == from
 			 && flow.attribute_value("to",   Domain()) == to)
 				result = true; };

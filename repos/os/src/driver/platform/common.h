@@ -242,7 +242,7 @@ void Driver::Common::disable_device(Device const &device)
 
 void Driver::Common::handle_config(Node const &config)
 {
-	config.for_each_sub_node("report", [&] (Node const node) {
+	config.for_each_sub_node("report", [&] (Node const &node) {
 		_dev_reporter.conditional(node.attribute_value("devices", false),
 		                          _env, "devices", "devices");
 		_cfg_reporter.conditional(node.attribute_value("config", false),

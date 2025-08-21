@@ -109,7 +109,7 @@ Configuration::Configuration(Env                             &env,
 	_node                           { alloc, node }
 {
 	/* do parts of domain initialization that do not lookup other domains */
-	node.for_each_sub_node("domain", [&] (Node const node) {
+	node.for_each_sub_node("domain", [&] (Node const &node) {
 		Domain_name const name {
 			node.attribute_value("name", Domain_name { }) };
 
