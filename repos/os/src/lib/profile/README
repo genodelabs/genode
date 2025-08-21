@@ -1,0 +1,72 @@
+
+                         Profiling library
+
+The _profile_ library applies GCC's '-finstruments-functions' option to
+instrument every function entry and exit (with a few exceptions). With this
+instrumentation, the library counts the number of calls for each function and
+the total amount of time spent it. The data is acquired on a per-thread basis
+using a dedicated allocator to allocate the _Function_info_ objects for each
+(enabled) thread.
+
+The acquired data is printed in periodic intervals. The output can be parsed
+using _/tool/backtrace_. Note that the printed time per function does NOT
+include the time spent in child functions.
+
+
+Limitations
+===========
+
+The _profile_ library only supports profiling of a single-stack application,
+i.e. applications using 'setjmp'/'longjmp' are going to trigger errors. However,
+by using 'Profile::enable_myself()' and 'Profile::disable_myself()' profiling
+can be disabled when switching to another call stack and re-enabled when
+switching back.
+
+
+Initialization
+==============
+
+Before using the library, it must be enabled by calling 'Profile::init()',
+which takes the number of timestamp ticks per millisecond as single
+argument. Furthermore, for each to-be-profiled thread, there must be a
+'Profile::Thread_info' object that identifies the thread by its name, holds a
+reference to the 'Function_info'-allocator and specifies the print interval.
+
+Example
+~~~~~~~
+
+! #include <base/slab.h>
+! #include <base/component.h>
+! #include <profile/profile.h>
+!
+! using namespace Genode;
+!
+! struct Main
+! {
+!   /* backing store for Slab allocator */
+!   uint8_t              backing_store[8*1024];
+!
+!   /* Slab allocator for Function_info objects */
+!   Slab                 slab { sizeof(Profile::Function_info),
+!                               sizeof(backing_store), backing_store };
+!
+!   /* Thread_info object for "ep" thread */
+!   Profile::Thread_info info { "ep",                          /* the thread's name */
+!                               slab,                          /* Function_info allocator */
+!                               Profile::Milliseconds { 5000 } /* print interval */
+!                             };
+!   Main()
+!   {
+!     /* initialize library and define ticks per millisecond */
+!     Profile::init(2'600'000);
+!
+!     /* enable profiling for "ep" thread */
+!     info.enable();
+!   }
+! };
+!
+! void Component::construct(Env &) { static Main main(); }
+
+A simple way to enable profiling for a particular thread is to define
+a 'Slab' with a sufficiently sized backing store and pass it to the
+'Thread_info'-constructor.

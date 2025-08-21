@@ -194,5 +194,11 @@ while {1} {
 
 		print_func 0x$addr
 
+	} elseif {[regexp {^\[.*]\s+(0x[0-9a-f]+)\s+([0-9]+)\s+calls\s+took\s+([0-9\.]+)\s+ms$} $line -> addr num ms]} {
+
+		# profile address
+
+		puts "$num calls took $ms ms"
+		print_func $addr
 	}
 }

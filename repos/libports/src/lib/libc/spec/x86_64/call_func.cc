@@ -18,7 +18,7 @@
 /**
  * Call function with a new stack
  */
-[[noreturn]] void call_func(void *sp, void *func, void *arg)
+[[noreturn,gnu::no_instrument_function]] void call_func(void *sp, void *func, void *arg)
 {
 	asm volatile ("movq %0,  %%rsp;"     /* load stack pointer */
 	              "movq %%rsp, %%rbp;"   /* caller stack frame (for GDB debugging) */
