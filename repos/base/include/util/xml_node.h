@@ -998,32 +998,7 @@ class Genode::Xml_node
 		 * default value.
 		 */
 		template <typename T>
-		T attribute_value(char const *type, T const default_value) const
-		{
-			T result = default_value;
-
-			if (!_tags.start.has_attribute())
-				return result;
-
-			for (Xml_attribute attr = _tags.start.attribute(); ; ) {
-
-				/* match */
-				if (attr.has_type(type)) {
-					attr.value(result);
-					return result;
-				}
-
-				/* end of attribute */
-				Token const next = attr._next_token();
-				if (!Xml_attribute::_valid(next))
-					break;
-
-				/* keep searching */
-				attr = Xml_attribute(next);
-			}
-
-			return result;
-		}
+		T attribute_value(char const *type, T const default_value) const;
 
 		/**
 		 * Return true if attribute of specified type exists
@@ -1108,6 +1083,35 @@ class Genode::Xml_node
 			return result;
 		}
 };
+
+
+template <typename T>
+T Genode::Xml_node::attribute_value(char const *type, T const default_value) const
+{
+	T result = default_value;
+
+	if (!_tags.start.has_attribute())
+		return result;
+
+	for (Xml_attribute attr = _tags.start.attribute(); ; ) {
+
+		/* match */
+		if (attr.has_type(type)) {
+			attr.value(result);
+			return result;
+		}
+
+		/* end of attribute */
+		Token const next = attr._next_token();
+		if (!Xml_attribute::_valid(next))
+			break;
+
+		/* keep searching */
+		attr = Xml_attribute(next);
+	}
+
+	return result;
+}
 
 
 /*
