@@ -1,0 +1,1119 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Tool for processing Human-Readable Data (HRD) syntax
+# \author Norman Feske
+# \date   2023-05-01
+#
+
+set total_parse_errors 0
+
+
+proc error { msg } {
+	puts stderr "\nError: $msg\n"
+	exit 1
+}
+
+
+#
+# HRD nodes and attributes are represented as lists
+#
+
+proc hrd_type       { hrd  } { return [lindex $hrd  0] }
+proc hrd_line       { hrd  } { return [lindex $hrd  1] }
+proc hrd_enabled    { hrd  } { return [lindex $hrd  2] }
+proc hrd_preface    { hrd  } { return [lindex $hrd  3] }
+proc hrd_attributes { hrd  } { return [lindex $hrd  4] }
+proc hrd_children   { hrd  } { return [lindex $hrd  5] }
+proc hrd_quoted     { hrd  } { return [lindex $hrd  6] }
+proc attr_line      { attr } { return [lindex $attr 0] }
+proc attr_tag       { attr } { return [lindex $attr 1] }
+proc attr_value     { attr } { return [lindex $attr 2] }
+
+
+proc hrd_leaf { hrd } {
+
+	return [expr {[llength [hrd_children $hrd]] == 0}]
+}
+
+
+proc hrd_anchor { hrd } {
+
+	if {[hrd_enabled $hrd]} { return "+" } else { return "x" }
+}
+
+
+proc node_stack_element_as_hrd { ctx_var i } {
+
+	upvar $ctx_var ctx
+
+	return [list $ctx($i,type)    $ctx($i,line)       $ctx($i,enabled) \
+	             $ctx($i,preface) $ctx($i,attributes) $ctx($i,children) \
+	             $ctx($i,quoted)]
+}
+
+
+proc stack_pos_for_xpos { ctx_var xpos } {
+
+	upvar $ctx_var ctx
+
+	set depth $ctx(depth)
+	set pos 0
+	for {set i 0} {$i < $depth} {incr i} {
+		if {[info exists ctx($i,type)]} {
+			if {$xpos > $ctx($i,xpos)} {
+				set pos $i } } }
+
+	return $pos;
+}
+
+
+proc pop_nodes { ctx_var xpos } {
+
+	upvar $ctx_var ctx
+
+	# find appropriate stack position for new node
+	set new_pos [expr [stack_pos_for_xpos ctx $xpos] + 1]
+	set depth $ctx(depth)
+
+	for {set i [expr $depth - 1]} { $i >= $new_pos } { incr i -1 } {
+		lappend ctx([expr $i - 1],children) \
+		        [node_stack_element_as_hrd ctx $i]
+		incr ctx(depth) -1
+	}
+}
+
+
+proc drop_misaligned_preface { ctx_var xpos } {
+
+	upvar $ctx_var ctx
+
+	if {$xpos != $ctx(preface,xpos)} {
+		foreach line $ctx(preface,lines) {
+			set n    [lindex $line 0]
+			set text [lindex $line 1]
+			puts stderr "Dropping commented-out line $n: $text"
+		}
+		set ctx(preface,xpos)  -1
+		set ctx(preface,lines) {}
+	}
+}
+
+
+proc add_node { ctx_var n xpos type enabled } {
+
+	upvar $ctx_var ctx
+
+	pop_nodes ctx $xpos
+
+	# validate consistency of preface xpos with node xpos
+	set anchor_xpos [expr max(0, $xpos - 2)]
+	drop_misaligned_preface ctx $anchor_xpos
+
+	# push new node
+	set pos $ctx(depth)
+	set ctx($pos,type)       $type
+	set ctx($pos,line)       $n
+	set ctx($pos,xpos)       $xpos
+	set ctx($pos,enabled)    $enabled
+	set ctx($pos,preface)    $ctx(preface,lines)
+	set ctx($pos,attributes) {}
+	set ctx($pos,children)   {}
+	set ctx($pos,quoted)     {}
+	set ctx(preface,lines)   {}
+	incr ctx(depth)
+}
+
+
+proc add_attribute { ctx_var xpos attr } {
+
+	upvar $ctx_var ctx
+
+	set pos [stack_pos_for_xpos ctx $xpos]
+	lappend ctx($pos,attributes) $attr
+}
+
+
+proc assign_quoted { ctx_var xpos content } {
+
+	upvar $ctx_var ctx
+
+	set pos [stack_pos_for_xpos ctx $xpos]
+	set ctx($pos,quoted) $content
+}
+
+
+proc capture_preface { ctx_var n xpos text } {
+
+	upvar $ctx_var ctx
+
+	drop_misaligned_preface ctx $xpos
+
+	set ctx(preface,xpos) $xpos
+	lappend ctx(preface,lines) [list $n $text]
+}
+
+
+##
+## Grammar for parsing an individual line
+##
+
+proc indent_pattern  { } { return {[| ]( |$)}        }
+proc id_pattern      { } { return {[a-z][a-z0-9_-]*} }
+proc space_pattern   { } { return { +}               }
+proc tag_pattern     { } { return " *[id_pattern]:"  }
+proc value_pattern   { } { return { *([^| ]| [^|])+} }
+proc anchor_pattern  { } { return { *[+x] }          }
+proc comment_pattern { } { return { *[.]( |$)}       }
+proc quoted_pattern  { } { return { *[:]( |$)}       }
+proc delim_pattern   { } { return { *[|] }           }
+proc eof_pattern     { } { return {-\s*$}            }
+proc empty_pattern   { } { return {\s*$}             }
+
+
+proc parse { pattern chars_var xpos_var match_var match_body } {
+
+	upvar $chars_var chars
+	upvar $xpos_var  xpos
+	upvar $match_var match
+
+	while {[regexp "^($pattern)" $chars match]} {
+		incr xpos [string length $match]
+		regsub "^($pattern)" $chars "" chars
+		uplevel 1 $match_body
+	}
+}
+
+
+proc parse_away { pattern chars_var xpos_var match_body } {
+
+	upvar $chars_var chars
+	upvar $xpos_var  xpos
+
+	while {[regexp "^($pattern)" $chars match]} {
+		incr xpos [string length $match]
+		regsub "^($pattern)" $chars "" chars
+		uplevel 1 $match_body
+	}
+}
+
+
+proc parse_space { chars_var xpos_var body } {
+
+	upvar $chars_var chars
+	upvar $xpos_var  xpos
+
+	parse_away [space_pattern] chars xpos { uplevel 1 $body }
+}
+
+
+proc parse_value { chars_var xpos_var value_var body } {
+
+	upvar $chars_var chars
+	upvar $xpos_var  xpos
+	upvar $value_var value
+
+	parse [value_pattern] chars xpos aligned_value {
+		set value [string trim $aligned_value]
+		uplevel 1 $body }
+}
+
+
+proc parse_attr { chars_var xpos_var tag_name_var value_var body } {
+
+	upvar $chars_var    chars
+	upvar $xpos_var     xpos
+	upvar $tag_name_var tag_name
+	upvar $value_var    value
+
+	parse [tag_pattern] chars xpos tag {
+		parse_away [space_pattern] tag ignored { }
+		parse      [id_pattern]    tag ignored tag_name {
+			parse_value chars xpos value {
+				uplevel 1 $body } } }
+}
+
+
+proc parse_property { n chars_var xpos_var ctx_var } {
+
+	upvar $chars_var chars
+	upvar $xpos_var  xpos
+	upvar $ctx_var   ctx
+
+	set property_xpos $xpos
+	parse_attr chars xpos tag value {
+		add_attribute ctx $property_xpos [list $n $tag $value] }
+
+	parse [anchor_pattern] chars xpos match {
+		set enabled [regexp {[+]} $match dummy]
+		parse_node $n chars xpos ctx $enabled }
+
+	parse_away [quoted_pattern] chars xpos {
+		add_node ctx $n [expr $property_xpos + 2] ":" 1
+		parse {.+$} chars xpos text {
+			assign_quoted ctx $xpos $text } }
+
+	parse_details $n chars xpos ctx
+}
+
+
+proc parse_details { n chars_var xpos_var ctx_var } {
+
+	upvar $chars_var chars
+	upvar $xpos_var  xpos
+	upvar $ctx_var   ctx
+
+	parse [delim_pattern] chars xpos match {
+		parse_property $n chars xpos ctx }
+}
+
+
+proc parse_node { n chars_var xpos_var ctx_var enabled } {
+
+	upvar $chars_var chars
+	upvar $xpos_var  xpos
+	upvar $ctx_var   ctx
+
+	set node_xpos $xpos
+	parse [id_pattern] chars xpos type {
+
+		add_node ctx $n $node_xpos $type $enabled
+
+		set attr_xpos $xpos
+
+		parse_attr chars xpos tag value {
+			add_attribute ctx $attr_xpos [list $n $tag $value] }
+
+		# optional name attribute
+		parse_value chars xpos name {
+			add_attribute ctx $attr_xpos [list $n name $name] }
+
+		parse_details $n chars xpos ctx
+	}
+}
+
+
+##
+## Parse line sequence and capture data in node stack
+##
+
+proc parse_line { n chars ctx_var } {
+
+	upvar $ctx_var ctx
+
+	set orig_chars $chars
+
+	set eof false
+	parse_away [eof_pattern] chars ignored {
+		set eof true }
+
+	if {$eof} {
+		pop_nodes ctx 0
+		return false }
+
+	parse_away [empty_pattern] chars ignored {
+		return true }
+
+	set xpos 0
+	parse_away [indent_pattern] chars xpos { }
+
+	# capture preface comment or drop commented-out line
+	parse_away [comment_pattern] chars ignored {
+		capture_preface ctx $n $xpos $chars
+		set chars "" }
+
+	parse_property $n chars xpos ctx
+
+	# top-level node
+	parse_node $n chars xpos ctx 1
+
+	# diagnostic feedback
+	if {[string length $chars] > 0} {
+		set at ""
+		if {$n} { set at " at line $n" }
+		if {[regexp {\s+$} $chars bad]} {
+			set bad_line "[string trim $orig_chars]$bad"
+			puts stderr "Error: trailing space$at: '$bad_line'"
+		} elseif {[regexp {^[| +x]*\t} $chars]} {
+			regsub {\t} $orig_chars "<TAB>" bad_line
+			set bad_line "[string trim $bad_line]"
+			puts stderr "Error: tab misused to indent$at: '$bad_line'"
+		} else {
+			puts stderr "Unable to parse$at: '$chars'"
+		}
+		global total_parse_errors
+		incr total_parse_errors
+	}
+	return true
+}
+
+
+proc import_hrd { data { multiple_lines true } } {
+
+	global total_parse_errors
+	set orig_total_parse_errors $total_parse_errors
+
+	# set up node stack in context 'ctx'
+	set ctx(depth)         0
+	set ctx(0,type)        ""
+	set ctx(0,line)        0
+	set ctx(0,enabled)     true
+	set ctx(0,preface)     {}
+	set ctx(0,attributes)  {}
+	set ctx(0,xpos)        0
+	set ctx(0,children)    {}
+	set ctx(preface,xpos)  -1
+	set ctx(preface,lines) {}
+
+	set lines [split $data "\n"]
+	set eof 0
+	set n [expr $multiple_lines ? 1 : 0]
+	foreach line $lines {
+		if {![parse_line $n $line ctx]} {
+			set eof true
+			break; }
+		incr n
+	}
+
+	pop_nodes ctx 0
+
+	set parse_errors [expr $total_parse_errors - $orig_total_parse_errors]
+	if {$parse_errors > 0} {
+		set suffix ""
+		if {$parse_errors > 1} { set suffix "s" }
+		error "$parse_errors line$suffix could not be parsed completely"
+		exit 1
+	}
+
+	if {$multiple_lines && !$eof} {
+		error "missing end-of-data mark '-'" }
+
+	return [node_stack_element_as_hrd ctx 0]
+}
+
+
+##
+## Query
+##
+
+proc hrd_query_nodes { query_hrd data_hrd } {
+
+	if {[hrd_type $query_hrd] != [hrd_type $data_hrd]} {
+		return {} }
+
+	# check for conflicting attributes
+	foreach query_attr [hrd_attributes $query_hrd] {
+		set attr_exists_in_data 0
+		foreach data_attr [hrd_attributes $data_hrd] {
+			if {[attr_tag $data_attr] == [attr_tag $query_attr]} {
+				set attr_exists_in_data 1
+				if {[attr_value $data_attr] != [attr_value $query_attr]} {
+					return {} } } }
+
+		if {!$attr_exists_in_data} {
+			return {} }
+	}
+
+	# stop searching when reaching the leaf of the query
+	if {[hrd_leaf $query_hrd]} {
+		return [list $data_hrd] }
+
+	# traverse into next level
+	set result_list {}
+	foreach sub_query_hrd [hrd_children $query_hrd] {
+		foreach sub_data_hrd [hrd_children $data_hrd] {
+			foreach hrd [hrd_query_nodes $sub_query_hrd $sub_data_hrd] {
+				lappend result_list $hrd } } }
+
+	return $result_list
+}
+
+
+##
+## Filter function used for remove/set/enable/disable commands
+##
+
+proc hrd_filter { ctx_var query_hrd data_hrd filtered_hrd_var match_body } {
+
+	upvar $filtered_hrd_var filtered_hrd
+	upvar $ctx_var ctx
+
+	if {[hrd_type $query_hrd] != [hrd_type $data_hrd]} {
+		return $data_hrd }
+
+	# check for conflicting attributes
+	foreach query_attr [hrd_attributes $query_hrd] {
+		set attr_exists_in_data 0
+		foreach data_attr [hrd_attributes $data_hrd] {
+			if {[attr_tag $data_attr] == [attr_tag $query_attr]} {
+				set attr_exists_in_data 1
+				if {[attr_value $data_attr] != [attr_value $query_attr]} {
+					return $data_hrd } } } }
+
+	# apply filter when matching the leaf of the query
+	if {[hrd_leaf $query_hrd]} {
+		set filtered_hrd $data_hrd
+		uplevel 1 $match_body
+		return $filtered_hrd
+	}
+
+	# traverse into next level
+	set filtered_children {}
+	foreach sub_query_hrd [hrd_children $query_hrd] {
+		foreach sub_data_hrd [hrd_children $data_hrd] {
+
+			set filter_result [hrd_filter ctx $sub_query_hrd $sub_data_hrd \
+			                              $filtered_hrd_var $match_body]
+
+			if {[llength $filter_result] > 0} {
+				lappend filtered_children $filter_result }
+		}
+	}
+	return [list [hrd_type       $data_hrd] [hrd_line    $data_hrd] \
+	             [hrd_enabled    $data_hrd] [hrd_preface $data_hrd] \
+	             [hrd_attributes $data_hrd] $filtered_children]
+}
+
+
+##
+## Output in HRD syntax
+##
+
+proc hrd_attr_value { hrd tag } {
+	foreach attr [hrd_attributes $hrd] {
+		if {[attr_tag $attr] == $tag} {
+			return [attr_value $attr] } }
+	return ""
+}
+
+
+proc hrd_foreach_non_name_attr { tag_var value_var hrd body } {
+
+	upvar $tag_var   tag
+	upvar $value_var value
+
+	foreach attr [hrd_attributes $hrd] {
+		if {[attr_tag $attr] != "name"} {
+			set tag   [lindex $attr 1]
+			set value [lindex $attr 2]
+			uplevel 1 $body } }
+}
+
+
+proc hrd_first_attr { hrd } {
+	set first ""
+	foreach attr [hrd_attributes $hrd] {
+		if {$first == ""} {
+			set first $attr }
+		if {[attr_tag $attr] == "name"} {
+			set first $attr }
+	}
+	return $first
+}
+
+
+proc hrd_foreach_non_first_attr { tag_var value_var hrd body } {
+
+	upvar $tag_var   tag
+	upvar $value_var value
+
+	set first_tag [lindex [hrd_first_attr $hrd] 1]
+
+	foreach attr [hrd_attributes $hrd] {
+		set tag [lindex $attr 1]
+		if {$tag != $first_tag} {
+			set value [lindex $attr 2]
+			uplevel 1 $body
+		}
+	}
+}
+
+
+proc hrd_num_quoted_lines { hrd } {
+	set count 0
+	foreach child $hrd {
+		if {[hrd_type $child] == ":"} { incr count } else { return 0 } }
+	return $count
+}
+
+
+proc print_hrd_node_recursively { indent hrd { last 0 } } {
+
+	# print comment above node
+	foreach preface_line [hrd_preface $hrd] {
+		regsub {. $|^$} $indent ". " comment_prefix
+		puts "$comment_prefix[lindex $preface_line 1]" }
+
+	set type [string trim [hrd_type $hrd]]
+
+	set node_branch_char "|"
+	if {$last} {
+		set node_branch_char " " }
+
+	if {[llength [hrd_attributes $hrd]] == 0} {
+		puts "$indent$type"
+		regsub {[+x] $} $indent "$node_branch_char " indent
+		regsub {^[|]} $indent " " indent
+	} else {
+
+		# max tag length used for tabular output of attribute values
+		set max_tag_len 0
+		hrd_foreach_non_name_attr tag value $hrd {
+			set max_tag_len [expr max($max_tag_len, [string length $tag])] }
+		set tag_column_size [expr $max_tag_len + 1]
+
+		set first_attr [hrd_first_attr $hrd]
+		if {[lindex $first_attr 1] == "name"} {
+			puts "$indent$type [lindex $first_attr 2]"
+		} else {
+			set padded_tag [format "%-${tag_column_size}s" "[lindex $first_attr 1]:"]
+			puts "$indent$type $padded_tag [lindex $first_attr 2]"
+		}
+
+		# node branch to next sibling
+		regsub {[+x] $} $indent "$node_branch_char " indent
+		regsub {^[|]} $indent " " indent
+		regsub -all {.} "$type" " " node_column
+
+		# branch besides the attributes to the first child node
+		if {![hrd_leaf $hrd]} {
+			regsub {^ } $node_column "|" node_column }
+
+		hrd_foreach_non_first_attr tag value $hrd {
+			set padded_tag [format "%-${tag_column_size}s" "$tag:"]
+			puts "$indent$node_column $padded_tag $value"
+		}
+	}
+
+	set num_children [llength [hrd_children $hrd]]
+	foreach child_hrd [hrd_children $hrd] {
+		incr num_children -1
+		set last [expr {$num_children < 1}]
+
+		# quoted content
+		if {[hrd_type $child_hrd] == ":"} {
+			if {[string length [hrd_quoted $child_hrd]] == 0} {
+				puts "$indent:"
+			} else {
+				puts "$indent: [hrd_quoted $child_hrd]"
+			}
+		} else {
+			set sub_node_indent "$indent[hrd_anchor $child_hrd] "
+			print_hrd_node_recursively $sub_node_indent $child_hrd $last
+		}
+	}
+}
+
+
+proc print_hrd_as_tree { hrd } {
+	print_hrd_node_recursively "" $hrd
+	puts "-"
+}
+
+
+##
+## XML support
+##
+
+proc _parse_xml { type pattern replace xml_var id_var info_var } {
+
+	upvar $xml_var  xml
+	upvar $id_var   id
+	upvar $info_var info
+
+	while {[regexp $pattern $xml dummy match]} {
+		set info($id,type) $type
+		set info($id,text) $match
+		regsub $pattern $xml [eval "string trim $replace"] xml
+		incr id
+	}
+}
+
+
+proc _xml_subst { } { return { { {\&} {\&amp;}  }
+                               { {>}  {\&gt;}   }
+                               { {<}  {\&lt;}   }
+                               { "\"" {\&quot;} }
+                               { {'}  {\&apos;} } } }
+
+
+proc _xml_decoded { text } {
+
+	foreach subst [_xml_subst] {
+		regsub -all [lindex $subst 1] $text [lindex $subst 0] text }
+
+	return $text
+}
+
+
+proc _xml_encoded { text } {
+
+	foreach subst [_xml_subst] {
+		regsub -all [lindex $subst 0] $text [lindex $subst 1] text }
+
+	return $text
+}
+
+
+proc _hrd_from_xml_rec { text info_var } {
+
+	upvar $info_var info
+
+	set result { }
+
+	while {1} {
+
+		set pattern {^<(\d+)>}
+		if {![regexp $pattern $text match id]} {
+			break }
+
+		regsub $pattern $text "" text
+
+		set child_type $info($id,type)
+		set child_text $info($id,text)
+
+		set hrd_type     ""
+		set hrd_attrs    {}
+		set hrd_children {}
+		set hrd_quoted   {}
+
+		if {$child_type == "quoted"} {
+
+			set trimmed [string trim $child_text]
+			if {[string length $trimmed] > 0} {
+				foreach line [split $child_text "\n"] {
+					set decoded [string trim [_xml_decoded $line]]
+					lappend result [list ":" 1 1 "" "" "" $decoded] } }
+		}
+
+		if {$child_type == "compound"} {
+
+			set start_pattern {^<(\w[^\s>]*)((\s+([0-9 ]*))?)>}
+			if {![regexp $start_pattern $child_text match hrd_type xml_attrs]} {
+				regsub {><.*$} $child_text ">" err_text
+				error "unable to interpret XML start tag: $err_text" }
+
+			regsub $start_pattern $child_text "" child_text
+
+			set end_pattern {</(\w[^\s]*)\s*>}
+			if {![regexp $end_pattern $child_text match end_tag]} {
+				error "XML node <$hrd_type> lacks end tag" }
+
+			if {$hrd_type != $end_tag} {
+				error "XML start tag <$hrd_type> mismatches end tag <$end_tag>" }
+
+			regsub $end_pattern $child_text "" child_text
+
+			set hrd_children [_hrd_from_xml_rec $child_text info]
+		}
+
+		if {$child_type == "leaf"} {
+
+			set leaf_pattern {<([^\s>]+)((\s+([0-9\s]*))?)/>}
+			if {![regexp $leaf_pattern $child_text match hrd_type xml_attrs]} {
+				regsub {><.*$} $child_text ">" err_text
+				error "unable to interpret XML tag: $err_text" }
+
+			regsub $leaf_pattern $child_text "" child_text
+		}
+
+		if {$child_type == "compound" || $child_type == "leaf"} {
+
+			foreach attr $xml_attrs {
+				if {![info exists info($attr,type)] || $info($attr,type) != "attr"} {
+					error "unable to parse XML attribute $attr" }
+
+				set attr_pattern {(\w+) *= *"([^"]*)"}
+				if {[regexp $attr_pattern $info($attr,text) match tag value]} {
+					lappend hrd_attrs [list 0 $tag $value] }
+			}
+
+			lappend result [list $hrd_type 1 1 "" $hrd_attrs $hrd_children ""]
+		}
+	}
+
+	if {[string length $text]} {
+		regsub -all {<[^>]*>} $text "" text
+		error "unable to parse input as XML: $text" }
+
+	return $result
+}
+
+
+proc import_hrd_from_xml { xml } {
+
+	set id 0
+
+	_parse_xml attr     {([\w0-9\-_]+ *= *"[^"]*")}   {$id}     xml id info
+	_parse_xml leaf     {(<\w[^>]*/>)}                {<$id>}   xml id info
+	_parse_xml quoted   {>([^<]+)<}                   {><$id><} xml id info
+	_parse_xml compound {(<\w[^>]*>[<>0-9]*</[^>]*>)} {<$id>}   xml id info
+
+	return [lindex [_hrd_from_xml_rec [string trim $xml] info] 0]
+}
+
+
+proc print_hrd_as_xml { hrd { indent 0 } } {
+
+	if {![hrd_enabled $hrd]} {
+		return }
+
+	set indent_tabs ""
+	for { set i 0 } { $i < $indent } { incr i } {
+		append indent_tabs "\t" }
+
+	set type     [hrd_type     $hrd]
+	set children [hrd_children $hrd]
+	set preface  [hrd_preface  $hrd]
+
+	# node-preface comments
+	if {[llength $preface] > 1} {
+		set texts {}
+		foreach line $preface {
+			lappend texts "  [lindex $line 1]" }
+		puts "$indent_tabs<!--  [join $texts "\n$indent_tabs"]-->"
+	} elseif {[llength $preface] == 1} {
+		puts "$indent_tabs<!-- [lindex [lindex $preface 0] 1] -->"
+	}
+
+	# quoted content
+	if {$type == ":"} {
+		puts "$indent_tabs[hrd_quoted $hrd]"
+		return
+	}
+
+	set xml_tag "<$type"
+	foreach attr [hrd_attributes $hrd] {
+		lappend xml_tag "[attr_tag $attr]=\"[attr_value $attr]\"" }
+	puts -nonewline "$indent_tabs[join $xml_tag { }]"
+
+	if {[hrd_leaf $hrd]} {
+		puts "/>"
+	} else {
+		# distinguish quoted content from sub-structured content
+		if {[hrd_num_quoted_lines $children] > 0} {
+			if {[hrd_num_quoted_lines $children] == 1} {
+				puts ">[_xml_encoded [hrd_quoted [lindex $children 0]]]</$type>"
+			} else {
+				puts ">"
+				foreach child $children {
+					puts "$indent_tabs\t[_xml_encoded [hrd_quoted $child]]" }
+				puts "$indent_tabs</$type>"
+			}
+		} else {
+			puts ">"
+			incr indent
+			foreach child $children {
+				print_hrd_as_xml $child $indent }
+			incr indent -1
+			puts "$indent_tabs</$type>"
+		}
+	}
+}
+
+
+##
+## User interface
+##
+
+proc file_content { path } {
+
+	if {$path == "-"} {
+		return [read stdin] }
+
+	set fh [open $path "RDONLY"]
+	set content [read $fh]
+	close $fh
+	return $content
+}
+
+set short_usage_msg {
+  usage: hrd [--import-xml] <command> [<options>] <hrd-file>}
+
+append help_hint_msg $short_usage_msg "\n" {
+  Use '--help' to get more information. }
+
+append help_msg $short_usage_msg {
+
+  available commands:
+
+    hrd format <hrd-file>
+
+      Print formatted HRD data. Alternatively to the HRD syntax used
+      by default, the output format can be defined via:
+
+      --output-tcl  Print HRD structure as Tcl list with each HRD node
+                    represented as a list of the following structure:
+
+                    { type line enabled preface attributes children }
+
+                    The 'children' element is a list of HRD nodes.
+                    The 'attributes' element is a list of attributes
+                    each represented as a list as follow:
+
+                    { line tag value }
+
+      --output-xml  Print HRD structure as XML
+
+    hrd subnodes <node-path> <hrd-file>
+
+      Query nodes from HRD structure. The <node-path> describes the
+      targeted sub trees within the hierarchy as a sequence of HRD
+      nodes separated by '| +'.
+
+      Each HRD node can be followed by optional attribute filters
+      in the form of '| <tag>: <value>', which are interpreted as
+      conditions for the match. If multiple attributes are specified,
+      each conditions must apply.
+
+      Example:
+
+      $ hrd subnodes 'config | + start terminal | + route' <hrd-file>
+
+      Prints the 'route' subnode of the 'start' node named 'terminal'.
+
+    hrd get <attr-path> <hrd-file>
+
+      Query attributes value from HRD structure. The <attr-path>
+      consists of a <node-path> followed by '| : <tag>' denoting the
+      tag to retrieve.
+
+      Example:
+
+      $ hrd get 'config | + start | : name' <hrd-file>
+
+      Prints the name of each 'start' node found in 'config'.
+
+    hrd set <attr-def> <hrd-file>
+
+      Sets the attribute values specified by <attr-def>, which is
+      a <node-path> followed by the delimiter '| :' followed by
+      one or more attribute definitions. Each definition has the
+      form '<tag>: <value>' and separated from the next one by '|'.
+
+      Example:
+
+      $ hrd set 'config | + start vfs | : caps: 100 | ram: 16M' <hrd-file>
+
+      Sets the attributes 'caps' and 'ram' of the 'start' node named
+      'vfs' to the values 100 and 16M respectively.
+
+    hrd remove <node-path>
+
+      Removes the node(s) specified by the <node-path>.
+
+      Example:
+
+      $ hrd remove 'config | + start | + route' <hrd-file>
+
+      Removes all 'route' sub nodes from each 'start' node hosted
+      at the 'config'.
+
+    hrd disable <node-path>
+
+      Marks nodes specified by <node-path> as disabled, which turns the
+      node anchor from '+' to 'x'.
+
+      Example:
+
+      $ hrd disable 'config | + start terminal' <hrd-file>
+
+      Turns the node anchor of the terminal's 'start' node to an 'x'.
+
+    hrd enable <node-path>
+
+      Reverts the enabled state of nodes addressed by the <node-path>.
+}
+
+
+##
+## Main program: process arguments and execute commands
+##
+
+##
+# Consume flag from global 'argv'
+#
+proc consume_flag_arg { flag body } {
+
+	global argv
+
+	set remaining_argv {}
+	foreach arg $argv {
+		if {$arg == $flag} {
+			uplevel 1 $body
+		} else {
+			lappend remaining_argv $arg }
+	}
+	set argv $remaining_argv
+}
+
+# define input and output format
+set import_hrd_fn import_hrd
+set print_hrd_fn  print_hrd_as_tree
+
+consume_flag_arg --import-xml {
+	set import_hrd_fn import_hrd_from_xml }
+
+consume_flag_arg --output-xml {
+	set print_hrd_fn print_hrd_as_xml }
+
+consume_flag_arg --output-tcl {
+	set print_hrd_fn puts }
+
+consume_flag_arg --help {
+	puts "$help_msg"
+	exit
+}
+
+if {[llength $argv] < 1} {
+	error "missing sub-command argument\n$help_hint_msg" }
+
+set command [lindex $argv 0]
+set path    [lindex $argv end]
+
+set command_info(min_args,format)   2
+set command_info(min_args,subnodes) 3
+set command_info(min_args,get)      3
+set command_info(min_args,remove)   3
+set command_info(min_args,set)      3
+set command_info(min_args,enable)   3
+set command_info(min_args,disable)  3
+
+if {![info exists command_info(min_args,$command)]} {
+	error "unknown command '$command'\n$help_hint_msg" }
+
+if {[llength $argv] < $command_info(min_args,$command)} {
+	error "missing $command argument\n$help_hint_msg" }
+
+set input_hrd [$import_hrd_fn [file_content $path]]
+
+
+#
+# Commands
+#
+
+proc with_command { expected body } {
+
+	global command
+
+	if {$command == $expected} {
+		uplevel 1 $body }
+}
+
+
+proc with_node_query { node_query_hrd_var body } {
+
+	upvar $node_query_hrd_var node_query_hrd
+
+	global argv
+	set node_query_hrd [import_hrd [lindex $argv 1] false]
+	uplevel 1 $body
+}
+
+
+##
+# Split query definition info node path and args
+#
+# The query uses HRD syntax with both parts separated by ' | : '.
+# Technically, the args are represented as quoted content of the
+# leaf node of the query.
+#
+proc with_node_query_and_args { node_query_hrd_var args_var body } {
+
+	upvar $node_query_hrd_var node_query_hrd
+	upvar $args_var           args
+
+	global argv
+	set query [lindex $argv 1]
+
+	set split_pattern "^(.*) [delim_pattern][quoted_pattern](.*)"
+	if {[regexp $split_pattern $query dummy node_query dummy args]} {
+
+		set node_query_hrd [import_hrd $node_query false]
+		uplevel 1 $body
+	}
+}
+
+
+with_command format {
+
+	$print_hrd_fn $input_hrd
+}
+
+
+with_command subnodes {
+
+	with_node_query query_hrd {
+		foreach hrd [hrd_query_nodes $query_hrd $input_hrd] {
+			$print_hrd_fn $hrd } }
+}
+
+
+with_command remove {
+
+	with_node_query query_hrd {
+		set filter_fn { set empty {} }
+		$print_hrd_fn [hrd_filter unused $query_hrd $input_hrd empty $filter_fn]
+	}
+}
+
+
+with_command enable {
+
+	with_node_query query_hrd {
+		$print_hrd_fn [hrd_filter unused $query_hrd $input_hrd enable_hrd {
+			set enable_hrd [lreplace $enable_hrd 2 2 1] }] }
+}
+
+
+with_command disable {
+
+	with_node_query query_hrd {
+		$print_hrd_fn [hrd_filter unused $query_hrd $input_hrd disable_hrd {
+			set disable_hrd [lreplace $disable_hrd 2 2 0] }] }
+}
+
+
+with_command get {
+
+	with_node_query_and_args query_hrd queried_tag {
+		foreach hrd [hrd_query_nodes $query_hrd $input_hrd ] {
+			foreach attr [hrd_attributes $hrd] {
+				if {[attr_tag $attr] == $queried_tag} {
+					puts [attr_value $attr] } } } }
+}
+
+
+with_command set {
+
+	with_node_query_and_args query_hrd new_attrs {
+
+		set ctx(new_attrs) [hrd_attributes [import_hrd $new_attrs false]]
+
+		$print_hrd_fn [hrd_filter ctx $query_hrd $input_hrd filtered_hrd {
+
+			set orig_attrs [hrd_attributes $filtered_hrd]
+			set new_attrs  $ctx(new_attrs)
+			set result_attrs {}
+
+			# apply changes to existing attributes
+			foreach attr $orig_attrs {
+				foreach new_attr $new_attrs {
+					if {[attr_tag $attr] == [attr_tag $new_attr]} {
+						set attr $new_attr } }
+				lappend result_attrs $attr
+			}
+
+			# supplement newly added attributes
+			foreach new_attr $new_attrs {
+				set present 0
+				foreach attr $result_attrs {
+					if {[attr_tag $attr] == [attr_tag $new_attr]} {
+						set present 1 } }
+				if {!$present} {
+					lappend result_attrs $new_attr }
+			}
+			set filtered_hrd [lreplace $filtered_hrd 4 4 $result_attrs]
+		}]
+	}
+}
