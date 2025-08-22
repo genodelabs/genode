@@ -25,7 +25,7 @@ Qemu can now be used directly on Genode (Section [Qemu on Genode]).
 This year's [https://genode.org/about/road-map - road map] emphasizes
 rigidity, clarity, and performance. So it is no surprise that the new version
 delivers on that front. We have cut down graphics-related performance
-bottlenecks by factor 3 by leveraging SIMD (Section [SIMD optimizations]),
+bottlenecks by a factor of 3 by leveraging SIMD (Section [SIMD optimizations]),
 made the page-fault handling of our custom base-hw microkernel more
 efficient, and lifted scalability limitations when using the seL4 and
 Fiasco.OC kernels (Section [Platforms]).
@@ -247,7 +247,7 @@ for cross-architecture emulation for whole operating systems. Its merits for
 efficient and rapid developments are unmatched for many system developers.
 It thereby plays a very important role in Genode development.
 
-We have longed for using Qemu natively on Genode for quite a time now - as
+We have longed for using Qemu natively on Genode for quite a while now - as
 documented by this [https://github.com/genodelabs/genode/issues/116 - GitHub issue],
 which dates back to 2012. Actually, in 2019 there was already an attempt (see
 the issue) to get Qemu up and running, which - well - succeeded to the degree
