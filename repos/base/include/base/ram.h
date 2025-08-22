@@ -95,8 +95,8 @@ struct Genode::Ram::Accounted_allocator : ALLOC
 									allocation.deallocate    = false;
 									reserved_ram.deallocate  = false;
 									reserved_caps.deallocate = false;
-									return { _alloc, { allocation.cap,
-									                   allocation.num_bytes } };
+									return { *this, { allocation.cap,
+									                  allocation.num_bytes } };
 								},
 								[&] (Error e) { return e; });
 					}, [&] (Cap_quota_guard::Error) { return Error::OUT_OF_CAPS; }
