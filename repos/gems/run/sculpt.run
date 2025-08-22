@@ -425,7 +425,7 @@ install_config {
 	} [log_core_start_node] {
 	} [log_kernel_start_node] {
 
-	<start name="fs_report" priority="-1">
+	<start name="fs_report" ram="2M" priority="-1">
 		<provides> <service name="Report"/> </provides>
 		<config> <vfs> <fs/> </vfs> </config>
 		<route>
