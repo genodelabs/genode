@@ -187,11 +187,31 @@ void Platform_thread::start(void *ip, void *sp, unsigned int)
 			return;
 		}
 
+		#ifdef CONFIG_DEBUG_BUILD
+		if (_pager)
+			_pager->with_name([&](auto const &pd_name, auto const &thread_name) {
+				String<64> pd_thread_name(pd_name, " ", thread_name);
+				seL4_DebugNameThread(_info.tcb_sel.value(), pd_thread_name.string());
+			});
+		else
+			seL4_DebugNameThread(_info.tcb_sel.value(), name());
+		#endif
+
 		if (!start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp),
 		                       _location.xpos(), _utcb.addr))
 			error("start_sel4_thread failed - thread is dead");
 	});
 }
+
+
+#ifdef CONFIG_DEBUG_BUILD
+/* required by include/sel4/sel4_arch/syscalls.h */
+extern char *strcpy(char *dest, const char *src)
+{
+	Genode::copy_cstring(dest, src, ~0UL);
+	return dest;
+}
+#endif
 
 
 void Platform_thread::pause()

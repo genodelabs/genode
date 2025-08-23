@@ -162,6 +162,9 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 			Genode::print(out, "pager_object: pd='", _pd_label,
 			                   "' thread='", _name, "'");
 		}
+
+		void with_name(auto const &fn) const {
+			fn(_pd_label, _name); }
 };
 
 
