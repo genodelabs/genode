@@ -77,7 +77,8 @@ void Pd_session_component::free_ram(Ram_dataspace_capability ds_cap)
 	_ram_ds_factory.free_ram(ds_cap);
 
 	/* physical memory */
-	_ram_account->replenish(Ram_quota{size});
+	if (_ram_account.constructed())
+		_ram_account->replenish(Ram_quota{size});
 
 	/* capability of the dataspace RPC object */
 	_released_cap(DS_CAP);
