@@ -162,7 +162,7 @@ struct Duration_test : Test
 	:
 		Test(env, error_cnt, done, id, brief)
 	{
-		log("tests with common duration values");
+		log("tests with common duration values (expect 3 overflow errors)");
 		enum : uint64_t { US_PER_HOUR = (uint64_t)1000 * 1000 * 60 * 60 };
 		enum : uint64_t { US_PER_MS   = (uint64_t)1000 };
 
@@ -833,14 +833,4 @@ struct Main
 };
 
 
-void Component::construct(Env &env) { 
-/*
-Timer::Connection timer { env};
-while (1) {
-log(__func__,__LINE__);
-timer.msleep(1000);
-log(__func__,__LINE__);
-}
-*/
-static Main main(env);
-}
+void Component::construct(Env &env) { static Main main(env); }
