@@ -4,6 +4,48 @@
                                ===========
 
 
+Genode OS Framework release 25.08 | 2025-08-28
+##############################################
+
+| Genode 25.08 introduces a new kernel scheduler for fairness and low latency,
+| explores an alternative to XML, optimizes the block-storage stack, and
+| updates all Linux-based PC drivers to kernel version 6.12. Furthermore,
+| the release unlocks further dynamic scenarios for the latest version 13.0
+| of the seL4 microkernel.
+
+At the peak of Genode's year of "rigidity, clarity, performance", we are
+delighted to unveil the outcome of three long-term working topics. First,
+the kernel scheduler of our custom kernel has been redesigned specifically
+for the requirements of Sculpt OS while taking years of experience with
+dynamic workloads on diverse kernels into account. The approach taken
+optimizes for fairness and latency while paying special attention to
+practical concerns, in particular regarding the scheduler parametrization
+in general-purpose settings.
+
+A second long-term development is the consideration of an alternative to XML
+as the framework's syntax for configuration and reporting. The release kicks
+off a practical evaluation phase by implementing the hybrid support for both
+formats along with inter-operability tooling.
+
+On an account of this year's performance ambitions, the holistic optimization
+of the framework's block-storage stack deserves attention. In addition to
+renovating time-tested components, we managed to remove the partition-handling
+component from the data path between block-storage client and driver,
+thereby facilitating zero-copy and the use of multi-queue hardware.
+
+Thanks to Genode's Linux-device driver environments, users of the framework
+are able to use individual Linux drivers as sandboxed components on any of the
+supported microkernels. Closely tracking Linux development, the release
+updates all PC drivers to kernel version 6.12. Among the framework's
+underlying microkernels, seL4 has received ongoing attention during the
+release cycle. We lifted long-standing limitations regarding dynamic scenarios
+such as Genode's pluggable drivers on this particular kernel and adopted its
+most recent release.
+
+For the entire story, please refer to the
+[https:/documentation/release-notes/25.08 - release documentation of version 25.08...]
+
+
 Revised Foundations and Applications books | 2025-06-06
 #######################################################
 
