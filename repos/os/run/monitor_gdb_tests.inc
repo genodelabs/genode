@@ -168,13 +168,9 @@ puts ""
 send "info mem\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
-if {![regexp {..*y.*0x0000000000004000 0x0000000000006000 rw nocache} $output] ||
-    ![regexp {..*y.*0x0000000000008000 0x0000000000010000 rw nocache} $output] ||
-    ![regexp {..*y.*0x0000000000010000 0x0000000000012000 rw nocache} $output] ||
-    ![regexp {..*y.*0x0000000000030000 0x00000000001..000 rw nocache} $output] ||
-    ![regexp {7.*y.*0x0000000001000000 0x000000000100.000 rw nocache} $output] ||
-    ![regexp {8.*y.*0x000000000100.000 0x000000000100.000 rw nocache} $output] ||
-    ![regexp {9.*y.*0x00000000400fb000 0x00000000400ff000 rw nocache} $output] ||
+if {![regexp {..*y.*0x0000000000002000 0x000000000000.000 rw nocache} $output] ||
+    ![regexp {..*y.*0x0000000001000000 0x000000000100.000 rw nocache} $output] ||
+    ![regexp {10.*y.*0x00000000400..000 0x00000000400..000 rw nocache} $output] ||
     ![regexp {1..*y.*0x00000000401ef000 0x00000000401ff000 rw nocache} $output] ||
     ![regexp {1..*y.*0x00000000402f.000 0x00000000402ff000 rw nocache} $output]} {
 	puts stderr "*** Error: memory map is not as expected"
@@ -213,11 +209,9 @@ send "info mem\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
 if {![regexp {..*y.*0x0000000000008000 0x0000000000010000 rw nocache} $output] ||
-    ![regexp {..*y.*0x0000000000010000 0x0000000000012000 rw nocache} $output] ||
-    ![regexp {..*y.*0x0000000000030000 0x00000000001..000 ro nocache} $output] ||
-    ![regexp {5.*y.*0x0000000001000000 0x000000000100.000 ro nocache} $output] ||
-    ![regexp {6.*y.*0x000000000100.000 0x000000000100.000 rw nocache} $output] ||
-    ![regexp {7.*y.*0x00000000400fb000 0x00000000400ff000 rw nocache} $output] ||
+    ![regexp {..*y.*0x0000000001000000 0x000000000100.000 ro nocache} $output] ||
+    ![regexp {..*y.*0x000000000100.000 0x000000000100.000 rw nocache} $output] ||
+    ![regexp {..*y.*0x00000000400fb000 0x00000000400ff000 rw nocache} $output] ||
     ![regexp {..*y.*0x00000000401ef000 0x00000000401ff000 rw nocache} $output]} {
 	puts stderr "*** Error: memory map of second inferior is not as expected"
 	exit -1
