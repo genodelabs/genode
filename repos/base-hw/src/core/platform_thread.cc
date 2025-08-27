@@ -117,8 +117,8 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 	_group_id(_scale_priority(virt_prio)),
 	_main_thread(!pd.has_any_thread),
 	_location(location),
-	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(),
-	      _group_id, _label.string())
+	_kobj(_kobj.CALLED_FROM_CORE, pd.kernel_pd(),
+	      _location.xpos(), _group_id, _label.string())
 {
 	_utcb.ds.with_result([&] (auto &) {
 		_address_space = pd.weak_ptr();
@@ -180,8 +180,7 @@ void Platform_thread::start(void * const ip, void * const sp)
 		utcb.cap_add(Capability_space::capid(_utcb.ds_cap()));
 	}
 
-	Kernel::start_thread(*_kobj, _pd.kernel_pd(),
-	                     *(Native_utcb*)_utcb.core_addr);
+	Kernel::start_thread(*_kobj, *(Native_utcb*)_utcb.core_addr);
 }
 
 

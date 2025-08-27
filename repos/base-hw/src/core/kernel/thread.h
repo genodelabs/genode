@@ -174,7 +174,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		capid_t                            _ipc_capid                { cap_id_invalid() };
 		size_t                             _ipc_rcv_caps             { 0 };
 		Genode::Native_utcb               *_utcb                     { nullptr };
-		Pd                                *_pd                       { nullptr };
+		Pd                                &_pd;
 
 		struct Fault_context
 		{
@@ -336,6 +336,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		       Cpu_pool                          &cpu_pool,
 		       Cpu                               &cpu,
 		       Pd                                &core_pd,
+		       Pd                                &pd,
 		       Scheduler::Group_id  const         group_id,
 		       char                 const *const  label,
 		       Type                        const  type);
@@ -348,7 +349,8 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		       char                 const *const  label)
 		:
 			Thread(addr_space_id_alloc, user_irq_pool, cpu_pool, cpu,
-			       core_pd, Scheduler::Group_id::BACKGROUND, label, CORE)
+			       core_pd, core_pd, Scheduler::Group_id::BACKGROUND,
+			       label, CORE)
 		{ }
 
 		~Thread();
@@ -384,13 +386,14 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 * \retval capability id of the new kernel object
 		 */
 		static capid_t syscall_create(Core::Kernel_object<Thread> &t,
+		                              Pd                          &pd,
 		                              unsigned const               cpu_id,
 		                              unsigned const               group_id,
 		                              char const * const           label)
 		{
 			return (capid_t)call(call_id_new_thread(), (Call_arg)&t,
-			                     (Call_arg)cpu_id, (Call_arg)group_id,
-			                     (Call_arg)label);
+			                     (Call_arg)&pd, (Call_arg)cpu_id,
+			                     (Call_arg)group_id, (Call_arg)label);
 		}
 
 		/**
@@ -467,14 +470,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		Genode::Native_utcb *utcb() { return _utcb; }
 		Type type() const { return _type; }
 		Exception_state exception_state() const { return _exception_state; }
-
-		Pd &pd() const
-		{
-			if (_pd)
-				return *_pd;
-
-			ASSERT_NEVER_CALLED;
-		}
 };
 
 

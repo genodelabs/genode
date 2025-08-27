@@ -19,7 +19,7 @@
 void Kernel::Thread::_call_new_vcpu()
 {
 	Signal_context * context =
-		pd().cap_tree().find<Signal_context>((capid_t)user_arg_5());
+		_pd.cap_tree().find<Signal_context>((capid_t)user_arg_5());
 	if (!context) {
 		user_arg_0(cap_id_invalid());
 		return;
@@ -56,7 +56,7 @@ void Kernel::Thread::_call_delete_vcpu()
 
 void Kernel::Thread::_call_run_vcpu()
 {
-	Object_identity_reference * ref = pd().cap_tree().find((capid_t)user_arg_1());
+	Object_identity_reference * ref = _pd.cap_tree().find((capid_t)user_arg_1());
 	Vcpu * vcpu = ref ? ref->object<Vcpu>() : nullptr;
 
 	if (!vcpu) {
@@ -72,7 +72,7 @@ void Kernel::Thread::_call_run_vcpu()
 
 void Kernel::Thread::_call_pause_vcpu()
 {
-	Object_identity_reference * ref = pd().cap_tree().find((capid_t)user_arg_1());
+	Object_identity_reference * ref = _pd.cap_tree().find((capid_t)user_arg_1());
 	Vcpu * vcpu = ref ? ref->object<Vcpu>() : nullptr;
 
 	if (!vcpu) {

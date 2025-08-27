@@ -133,16 +133,15 @@ namespace Kernel {
 	 *
 	 * \param thread  pointer to thread kernel object
 	 * \param cpu_id  kernel name of the targeted CPU
-	 * \param pd      pointer to pd kernel object
 	 * \param utcb    core local pointer to userland thread-context
 	 *
 	 * \retval   0  suceeded
 	 * \retval !=0  failed
 	 */
-	inline int start_thread(Thread &thread, Pd &pd, Native_utcb &utcb)
+	inline int start_thread(Thread &thread, Native_utcb &utcb)
 	{
 		return (int)call(call_id_start_thread(), (Call_arg)&thread,
-		                 (Call_arg)&pd, (Call_arg)&utcb);
+		                 (Call_arg)&utcb);
 	}
 
 

@@ -134,8 +134,8 @@ void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 	void Thread::proceed()
 	{
-		if (!_cpu().active(pd().mmu_regs) && type() != CORE)
-			_cpu().switch_to(pd().mmu_regs);
+		if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
+			_cpu().switch_to(_pd.mmu_regs);
 
 		kernel_to_user_context_switch((static_cast<Board::Cpu::Context*>(&*regs)),
 	                                  (void*)_cpu().stack_start());

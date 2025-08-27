@@ -94,10 +94,10 @@ Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_a
                               Pd                                &core_pd)
 :
 	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, cpu,
-	         core_pd, Scheduler::Group_id::INVALID, "idle", Thread::IDLE }
+	         core_pd, core_pd, Scheduler::Group_id::INVALID, "idle",
+	         Thread::IDLE }
 {
 	regs->ip = (addr_t)&idle_thread_main;
-	Thread::_pd = &core_pd;
 }
 
 

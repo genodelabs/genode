@@ -22,6 +22,7 @@ using namespace Kernel;
 static void for_cachelines(addr_t                     base,
                            size_t const               size,
                            Kernel::Thread            &thread,
+                           Kernel::Pd                &pd,
                            auto const                &fn)
 {
 	/**
@@ -39,8 +40,7 @@ static void for_cachelines(addr_t                     base,
 	 * Lookup whether the page is backed and writeable,
 	 * and if so make the memory coherent in between I-, and D-cache
 	 */
-	thread.pd().with_table([&] (Hw::Page_table &tab,
-	                            Hw::Page_table_translator &ptt) {
+	pd.with_table([&] (Hw::Page_table &tab, Hw::Page_table_translator &ptt) {
 		addr_t phys = 0;
 		tab.lookup(base, phys, ptt).with_result(
 			[&] (Genode::Ok) { fn(base, size); },
@@ -54,7 +54,7 @@ static void for_cachelines(addr_t                     base,
 
 void Kernel::Thread::_call_cache_coherent_region()
 {
-	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this,
+	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this, _pd,
 	               [] (addr_t addr, size_t size) {
 		Board::Cpu::cache_coherent_region(addr, size); });
 }
@@ -62,7 +62,7 @@ void Kernel::Thread::_call_cache_coherent_region()
 
 void Kernel::Thread::_call_cache_clean_invalidate_data_region()
 {
-	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this,
+	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this, _pd,
 	               [] (addr_t addr, size_t size) {
 		Board::Cpu::cache_clean_invalidate_data_region(addr, size); });
 }
@@ -70,7 +70,7 @@ void Kernel::Thread::_call_cache_clean_invalidate_data_region()
 
 void Kernel::Thread::_call_cache_invalidate_data_region()
 {
-	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this,
+	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this, _pd,
 	               [] (addr_t addr, size_t size) {
 		Board::Cpu::cache_invalidate_data_region(addr, size); });
 }

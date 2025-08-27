@@ -123,8 +123,8 @@ void Kernel::Thread::proceed()
 	Cpu::Sstatus::Spp::set(v, (type() == USER) ? 0 : 1);
 	Cpu::Sstatus::write(v);
 
-	if (!_cpu().active(pd().mmu_regs) && type() != CORE)
-		_cpu().switch_to(_pd->mmu_regs);
+	if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
+		_cpu().switch_to(_pd.mmu_regs);
 
 	asm volatile("csrw sscratch, %1                                \n"
 	             "mv   x31, %0                                     \n"

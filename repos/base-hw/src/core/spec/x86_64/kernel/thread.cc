@@ -215,8 +215,8 @@ void Kernel::Thread::exception(Genode::Cpu_state &state)
 
 void Kernel::Thread::proceed()
 {
-	if (!_cpu().active(pd().mmu_regs) && type() != CORE)
-		_cpu().switch_to(pd().mmu_regs);
+	if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
+		_cpu().switch_to(_pd.mmu_regs);
 
 	asm volatile("fxrstor (%1)    \n"
 	             "mov  %0, %%rsp  \n"

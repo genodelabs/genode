@@ -121,14 +121,7 @@ class Core::Platform_thread : Noncopyable
 		Utcb                     _utcb;
 		unsigned                 _group_id { 0 };
 
-		/*
-		 * Wether this thread is the main thread of a program.
-		 * This should be used only after 'join_pd' was called
-		 * or if this is a core thread. For core threads its save
-		 * also without 'join_pd' because '_main_thread' is initialized
-		 * with 0 wich is always true as cores main thread has no
-		 * 'Platform_thread'.
-		 */
+		/* wether this thread is the main thread of a program.  */
 		bool _main_thread;
 
 		Affinity::Location _location;
