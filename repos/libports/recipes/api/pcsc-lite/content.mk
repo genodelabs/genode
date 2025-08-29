@@ -1,4 +1,7 @@
-MIRROR_FROM_REP_DIR := lib/import/import-pcsc-lite.mk
+MIRROR_FROM_REP_DIR := \
+	lib/import/import-pcsc-lite.mk \
+	lib/symbols/pcsc-lite \
+	lib/symbols/ccid
 
 content: $(MIRROR_FROM_REP_DIR)
 
