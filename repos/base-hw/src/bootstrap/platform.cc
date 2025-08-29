@@ -176,12 +176,12 @@ void Platform::_prepare_cpu_memory_area(size_t cpu_id)
 	void * const stack_ram = ram_alloc.alloc(KERNEL_STACK_SIZE, { });
 	void * const cpu_ram   = ram_alloc.alloc(CPU_LOCAL_MEMORY_SLOT_OBJECT_SIZE, { });
 
-	core_pd->map_insert(Mapping((addr_t)stack_ram,
-	                            base+CPU_LOCAL_MEMORY_SLOT_STACK_OFFSET,
-	                            KERNEL_STACK_SIZE, flags));
-	core_pd->map_insert(Mapping((addr_t)cpu_ram,
-	                            base+CPU_LOCAL_MEMORY_SLOT_OBJECT_OFFSET,
-	                            CPU_LOCAL_MEMORY_SLOT_OBJECT_SIZE, flags));
+	core_pd->map(Mapping((addr_t)stack_ram,
+	                     base+CPU_LOCAL_MEMORY_SLOT_STACK_OFFSET,
+	                     KERNEL_STACK_SIZE, flags));
+	core_pd->map(Mapping((addr_t)cpu_ram,
+	                     base+CPU_LOCAL_MEMORY_SLOT_OBJECT_OFFSET,
+	                     CPU_LOCAL_MEMORY_SLOT_OBJECT_SIZE, flags));
 }
 
 
