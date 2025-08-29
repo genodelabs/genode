@@ -21,7 +21,7 @@ using Platform = Core::Platform;
 static inline Genode::addr_t redistributor_addr()
 {
 	return Platform::mmio_to_virt(Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE
-	                              + (Cpu::executing_id() * 0x20000));
+	                              + (Cpu::executing_id().value * 0x20000));
 };
 
 

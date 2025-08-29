@@ -133,7 +133,7 @@ Cpu::Context & Cpu::schedule_next_context()
 addr_t Cpu::stack_base()
 {
 	return Hw::Mm::cpu_local_memory().base +
-	       Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE*_id;
+	       Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE * _id.value;
 }
 
 
@@ -143,7 +143,7 @@ addr_t Cpu::stack_start()
 }
 
 
-Cpu::Cpu(unsigned                     const  id,
+Cpu::Cpu(Id                           const  id,
          Board::Address_space_id_allocator  &addr_space_id_alloc,
          Irq::Pool                          &user_irq_pool,
          Cpu_pool                           &cpu_pool,
@@ -179,10 +179,11 @@ Cpu::Cpu(unsigned                     const  id,
  **************/
 
 template <typename T>
-static inline T* cpu_object_by_id(unsigned const id)
+static inline T* cpu_object_by_id(Cpu::Id const id)
 {
 	using namespace Hw::Mm;
-	addr_t base = CPU_LOCAL_MEMORY_AREA_START + id*CPU_LOCAL_MEMORY_SLOT_SIZE;
+	addr_t base = CPU_LOCAL_MEMORY_AREA_START +
+	              id.value * CPU_LOCAL_MEMORY_SLOT_SIZE;
 	return (T*)(base + CPU_LOCAL_MEMORY_SLOT_OBJECT_OFFSET);
 }
 
@@ -194,14 +195,14 @@ initialize_executing_cpu(Board::Address_space_id_allocator  &addr_space_id_alloc
                          Pd                                 &core_pd,
                          Board::Global_interrupt_controller &global_irq_ctrl)
 {
-	unsigned id = Cpu::executing_id();
+	Cpu::Id id = Cpu::executing_id();
 	Genode::construct_at<Cpu>(cpu_object_by_id<void>(id), id,
 	                          addr_space_id_alloc, user_irq_pool,
 	                          *this, core_pd, global_irq_ctrl);
 }
 
 
-Cpu & Cpu_pool::cpu(unsigned const id)
+Cpu & Cpu_pool::cpu(Cpu::Id const id)
 {
 	return *cpu_object_by_id<Cpu>(id);
 }

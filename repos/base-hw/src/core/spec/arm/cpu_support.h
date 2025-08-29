@@ -132,7 +132,7 @@ struct Board::Arm_cpu : public Hw::Arm_cpu
 	/**
 	 * Return kernel name of the executing CPU
 	 */
-	static unsigned executing_id() { return 0; }
+	static Id executing_id() { return { 0 }; }
 
 	static void single_step(Context &, bool) { };
 };

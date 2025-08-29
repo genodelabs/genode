@@ -14,6 +14,7 @@
 #ifndef _SRC__LIB__HW__SPEC__RISCV__CPU_H_
 #define _SRC__LIB__HW__SPEC__RISCV__CPU_H_
 
+#include <hw/id.h>
 #include <hw/spec/riscv/register_macros.h>
 
 namespace Hw { struct Riscv_cpu; struct Suspend_type; }
@@ -24,6 +25,11 @@ struct Hw::Suspend_type { };
 
 struct Hw::Riscv_cpu
 {
+	/**
+	 * We don't support SMP on RISCV yet, so keep it CPU ID small
+	 */
+	using Id = Hw::Id<Genode::uint8_t>;
+
 	/**************************
 	 ** Supervisor registers **
 	 **************************/

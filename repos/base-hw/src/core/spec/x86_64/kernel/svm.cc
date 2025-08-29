@@ -84,7 +84,7 @@ void Vmcb::initialize(Board::Cpu &c, addr_t page_table_phys_addr)
 	Cpu::Amd_vm_syscvg::write(amd_vm_syscvg_msr);
 
 	root_vmcb_phys =
-	    Core::Platform::core_phys_addr(host_vmcb(cpu.id()).base());
+	    Core::Platform::core_phys_addr(host_vmcb(cpu.id().value).base());
 	asm volatile ("vmsave" : : "a" (root_vmcb_phys) : "memory");
 	Cpu::Amd_vm_hsavepa::write((Cpu::Amd_vm_hsavepa::access_t) root_vmcb_phys);
 

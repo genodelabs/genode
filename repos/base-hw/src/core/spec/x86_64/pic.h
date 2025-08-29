@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <util/mmio.h>
 #include <hw/spec/x86_64/apic.h>
+#include <hw/spec/x86_64/cpu.h>
 #include <hw/spec/x86_64/x86_64.h>
 
 namespace Board {
@@ -174,13 +175,13 @@ class Board::Local_interrupt_controller : private Hw::Local_apic
 
 		void finish_request();
 
-		void unmask(unsigned const i, unsigned);
+		void unmask(unsigned const i, Hw::X86_64_cpu::Id id);
 
 		void mask(unsigned const i);
 
 		void irq_mode(unsigned irq, unsigned trigger, unsigned polarity);
 
-		void send_ipi(unsigned const);
+		void send_ipi(Hw::X86_64_cpu::Id id);
 
 		void init();
 };

@@ -761,16 +761,16 @@ void Thread::_call()
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
 	case call_id_new_thread():
-		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
-		                  _cpu_pool.cpu((unsigned)user_arg_3()),
-		                  _core_pd, *((Pd*)user_arg_2()),
-		                  (unsigned) user_arg_4(),
-		                  (char const *) user_arg_5(), USER);
+		_cpu_pool.with_cpu(user_arg_3(), [&] (Cpu &cpu) {
+			_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
+			                  cpu, _core_pd, *((Pd*)user_arg_2()),
+			                  (unsigned) user_arg_4(),
+			                  (char const *) user_arg_5(), USER); });
 		return;
 	case call_id_new_core_thread():
-		_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
-		                  _cpu_pool.cpu((unsigned)user_arg_2()),
-		                  _core_pd, (char const *) user_arg_3());
+		_cpu_pool.with_cpu(user_arg_2(), [&] (Cpu &cpu) {
+			_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
+			                  cpu, _core_pd, (char const *) user_arg_3()); });
 		return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
 	case call_id_start_thread():           _call_start_thread(); return;

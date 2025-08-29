@@ -20,6 +20,8 @@
 #include <util/mmio.h>
 #include <plic.h>
 
+#include <hw/spec/riscv/cpu.h>
+
 namespace Board {
 
 	class Global_interrupt_controller { public: void init() {} };
@@ -63,7 +65,7 @@ class Board::Pic
 			_plic.write<Plic::Id>(_last_irq);
 		}
 
-		void unmask(unsigned irq, unsigned)
+		void unmask(unsigned irq, Hw::Riscv_cpu::Id)
 		{
 			if (irq > NR_OF_IRQ) return;
 			_plic.enable(1, irq);

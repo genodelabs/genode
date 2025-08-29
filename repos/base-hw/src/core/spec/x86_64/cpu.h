@@ -158,7 +158,7 @@ class Board::Cpu : public Hw::X86_64_cpu
 		/**
 		 * Return kernel name of the executing CPU
 		 */
-		static unsigned executing_id();
+		static Id executing_id();
 
 		bool active(Mmu_context &mmu_context);
 		void switch_to(Mmu_context &mmu_context);

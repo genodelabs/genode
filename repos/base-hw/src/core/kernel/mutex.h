@@ -14,6 +14,8 @@
 #ifndef _CORE__KERNEL__MUTEX_H_
 #define _CORE__KERNEL__MUTEX_H_
 
+#include <kernel/cpu.h>
+
 namespace Kernel { class Mutex; }
 
 
@@ -21,12 +23,13 @@ class Kernel::Mutex
 {
 	private:
 
-		enum { INVALID = ~0U };
-
 		enum State { UNLOCKED, LOCKED };
 
-		State volatile    _locked      { UNLOCKED };
-		unsigned volatile _current_cpu { INVALID  };
+		State volatile _locked { UNLOCKED };
+
+		static constexpr int INVALID_CPU_ID = (int)Cpu::Id::max()+1;
+
+		int volatile _current_cpu { INVALID_CPU_ID };
 
 		bool _lock();
 		void _unlock();

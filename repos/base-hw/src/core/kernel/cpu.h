@@ -96,13 +96,13 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 
 		enum State { RUN, HALT, SUSPEND };
 
-		State          _state { RUN };
-		unsigned const _id;
-		Board::Pic     _pic;
-		Timer          _timer;
-		Idle_thread    _idle;
-		Scheduler      _scheduler;
-		Ipi            _ipi_irq;
+		State       _state { RUN };
+		Id    const _id;
+		Board::Pic  _pic;
+		Timer       _timer;
+		Idle_thread _idle;
+		Scheduler   _scheduler;
+		Ipi         _ipi_irq;
 
 		Inter_processor_work_list &_global_work_list;
 		Inter_processor_work_list  _local_work_list {};
@@ -119,7 +119,7 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		/**
 		 * Construct object for CPU 'id'
 		 */
-		Cpu(unsigned                     const  id,
+		Cpu(Id                           const  id,
 		    Board::Address_space_id_allocator  &addr_space_id_alloc,
 		    Irq::Pool                          &user_irq_pool,
 		    Cpu_pool                           &cpu_pool,
@@ -161,7 +161,7 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		Context & current_context() {
 			return static_cast<Context&>(_scheduler.current().helping_destination()); }
 
-		unsigned id() const { return _id; }
+		Id id() const { return _id; }
 		Scheduler &scheduler() { return _scheduler; }
 
 		Irq::Pool &irq_pool() { return *this; }
@@ -201,7 +201,17 @@ class Kernel::Cpu_pool
 		                         Pd                                 &core_pd,
 		                         Board::Global_interrupt_controller &global_irq_ctrl);
 
-		Cpu & cpu(unsigned const id);
+		Cpu & cpu(Cpu::Id const id);
+
+		void with_cpu(Call_arg arg, auto const &fn)
+		{
+			int id = (int) arg;
+			Cpu * cpu = _cpus.first();
+			for (int idx = 0; cpu; idx++) {
+				if (id == idx) fn(*cpu);
+				cpu = cpu->next();
+			}
+		}
 
 		/**
 		 * Return object of primary CPU

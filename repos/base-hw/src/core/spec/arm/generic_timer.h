@@ -16,6 +16,7 @@
 
 /* base-hw includes */
 #include <kernel/types.h>
+#include <hw/spec/arm/cpu.h>
 
 namespace Board { class Timer; }
 
@@ -26,7 +27,7 @@ struct Board::Timer
 
 	unsigned const ticks_per_ms;
 
-	Timer(unsigned);
+	Timer(Hw::Arm_cpu::Id);
 
 	void init();
 };

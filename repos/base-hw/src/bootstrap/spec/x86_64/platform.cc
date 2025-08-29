@@ -442,7 +442,7 @@ void ipi_to_all(Hw::Local_apic &lapic, unsigned const boot_frame,
 }
 
 
-unsigned Bootstrap::Platform::enable_mmu()
+Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 {
 	using ::Board::Cpu;
 
@@ -459,7 +459,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
 
 	auto const cpu_id =
-		Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read());
+		Cpu_id(Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read()));
 
 	/* we like to use local APIC */
 	Cpu::IA32_apic_base::access_t lapic_msr = Cpu::IA32_apic_base::read();
@@ -478,13 +478,13 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	/* skip wakeup IPI for non SMP setups */
 	if (board.cpus <= 1)
-		return (unsigned)cpu_id;
+		return cpu_id;
 
 	if (!Cpu::IA32_apic_base::Bsp::get(lapic_msr)) {
 		/* AP - done */
 		/* enable serializing lfence on supported AMD processors. */
 		amd_enable_serializing_lfence();
-		return (unsigned)cpu_id;
+		return cpu_id;
 	}
 
 	/* BSP - we're primary CPU - wake now all other CPUs */
@@ -500,7 +500,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12,
 	           Hw::Local_apic::Icr_low::Delivery_mode::SIPI);
 
-	return (unsigned)cpu_id;
+	return cpu_id;
 }
 
 

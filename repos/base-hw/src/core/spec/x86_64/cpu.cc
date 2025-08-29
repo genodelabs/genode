@@ -141,9 +141,9 @@ void Cpu::switch_to(Mmu_context &mmu_context)
 }
 
 
-unsigned Cpu::executing_id()
+Cpu::Id Cpu::executing_id()
 {
-	return Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read());
+	return { Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read()) };
 }
 
 

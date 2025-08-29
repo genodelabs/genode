@@ -33,7 +33,7 @@ enum {
 };
 
 
-Board::Timer::Timer(unsigned cpu_id)
+Board::Timer::Timer(Hw::Arm_cpu::Id cpu_id)
 :
 	Mmio({(char *)Platform::mmio_to_virt(Board::Cpu_mmio::GLOBAL_TIMER_MMIO_BASE), Mmio::SIZE})
 {
@@ -43,7 +43,7 @@ Board::Timer::Timer(unsigned cpu_id)
 	              "Bad TICS_PER_US value");
 
 	/* primary CPU sets initial timer value */
-	if (cpu_id == 0) {
+	if (cpu_id.value == 0) {
 		write<Control::Timer_enable>(0);
 		write<Counter>(0, 0);
 		write<Counter>(0, 1);

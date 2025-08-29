@@ -22,18 +22,21 @@
 
 bool Kernel::Mutex::_lock()
 {
+	int current_id = (int)Cpu::executing_id().value;
+
 	while (!Genode::cmpxchg((volatile int*)&_locked, UNLOCKED, LOCKED))
-		if (_current_cpu == Cpu::executing_id())
+		if (Genode::cmpxchg(&_current_cpu, current_id, current_id))
 			return false;
 
-	_current_cpu = Cpu::executing_id();
+	_current_cpu = current_id;
 	return true;
 }
 
 
 void Kernel::Mutex::_unlock()
 {
-	_current_cpu = INVALID;
+	/* unset cpu id */
+	_current_cpu = INVALID_CPU_ID;
 
 	Genode::memory_barrier();
 	_locked = UNLOCKED;

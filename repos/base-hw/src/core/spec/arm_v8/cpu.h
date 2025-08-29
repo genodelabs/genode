@@ -121,7 +121,7 @@ struct Board::Cpu : Hw::Arm_64_cpu
 	/**
 	 * Return kernel name of the executing CPU
 	 */
-	static unsigned executing_id() { return Cpu::current_core_id(); }
+	static Id executing_id() { return Cpu::current_core_id(); }
 
 	static size_t cache_line_size();
 	static void clear_memory_region(addr_t const addr,

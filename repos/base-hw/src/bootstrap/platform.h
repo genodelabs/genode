@@ -142,10 +142,12 @@ class Bootstrap::Platform
 
 	public:
 
+		using Cpu_id = ::Board::Cpu::Id;
+
 		Platform();
 
-		unsigned enable_mmu();
-		void start_core(unsigned) __attribute__((noreturn));
+		Cpu_id enable_mmu();
+		void start_core(Cpu_id) __attribute__((noreturn));
 };
 
 #endif /* _SRC__BOOTSTRAP__PLATFORM_H_ */

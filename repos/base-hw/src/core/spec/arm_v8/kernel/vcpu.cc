@@ -34,9 +34,9 @@ static Genode::Vcpu_state & host_context(Cpu &cpu)
 	static Genode::Constructible<Genode::Vcpu_state>
 		host_context[Board::NR_OF_CPUS];
 
-	if (!host_context[cpu.id()].constructed()) {
-		host_context[cpu.id()].construct();
-		Genode::Vcpu_state &c = *host_context[cpu.id()];
+	if (!host_context[cpu.id().value].constructed()) {
+		host_context[cpu.id().value].construct();
+		Genode::Vcpu_state &c = *host_context[cpu.id().value];
 		c.sp_el1    = cpu.stack_start();
 		c.ip        = (addr_t)&Kernel::main_handle_kernel_entry;
 		c.pstate    = 0;
@@ -58,7 +58,7 @@ static Genode::Vcpu_state & host_context(Cpu &cpu)
 		c.mair_el1  = Cpu::Mair_el1::read();
 		c.amair_el1 = Cpu::Amair_el1::read();
 	}
-	return *host_context[cpu.id()];
+	return *host_context[cpu.id().value];
 }
 
 

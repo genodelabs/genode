@@ -20,6 +20,7 @@
 
 /* hw includes */
 #include <hw/spec/x86_64/apic.h>
+#include <hw/spec/x86_64/cpu.h>
 
 namespace Board { class Timer; }
 
@@ -32,7 +33,7 @@ struct Board::Timer: public Hw::Local_apic
 	Divide_configuration::access_t divider      = 0;
 	Genode::uint32_t               ticks_per_ms = 0;
 
-	Timer(unsigned);
+	Timer(Hw::X86_64_cpu::Id);
 
 	void init();
 };

@@ -64,7 +64,7 @@ void Vcpu::run()
 	if (_vcpu_context.init_state == Board::Vcpu_context::Init_state::CREATED) {
 		_vcpu_context.initialize(_cpu(),
 		    reinterpret_cast<addr_t>(_id.table));
-		_vcpu_context.tsc_aux_host = _cpu().id();
+		_vcpu_context.tsc_aux_host = _cpu().id().value;
 		_vcpu_context.init_state  = Board::Vcpu_context::Init_state::STARTED;
 	}
 

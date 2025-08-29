@@ -59,7 +59,7 @@ static inline void prepare_and_leave_el3()
 
 
 static inline void prepare_and_leave_el2(Cpu::Ttbr::access_t const ttbr,
-                                         unsigned cpu_id)
+                                         Bootstrap::Platform::Cpu_id cpu_id)
 {
 	using namespace Hw::Mm;
 
@@ -81,7 +81,7 @@ static inline void prepare_and_leave_el2(Cpu::Ttbr::access_t const ttbr,
 	/* set hypervisor exception vector */
 	Cpu::Vbar_el2::write(el2_addr(hypervisor_exception_vector().base));
 	Genode::addr_t const stack_el2 = el2_addr(hypervisor_stack().base +
-	                                          (cpu_id+1) * 0x1000);
+	                                          (cpu_id.value+1) * 0x1000);
 
 	/* set hypervisor's translation table */
 	Cpu::Ttbr0_el2::write(ttbr);
@@ -136,10 +136,10 @@ static inline void prepare_and_leave_el2(Cpu::Ttbr::access_t const ttbr,
 }
 
 
-unsigned Bootstrap::Platform::enable_mmu()
+Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 {
-	unsigned const cpu_id  { Cpu::current_core_id() };
-	bool     const primary { cpu_id == 0 };
+	Cpu::Id const cpu_id  { Cpu::current_core_id() };
+	bool    const primary { cpu_id.value == 0 };
 
 	Cpu::Ttbr::access_t ttbr =
 		Cpu::Ttbr::Baddr::masked((Genode::addr_t)core_pd->table_base);

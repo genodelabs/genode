@@ -65,9 +65,9 @@ static Hypervisor::Host_context & host_context(Cpu &cpu)
 {
 	static Genode::Constructible<Hypervisor::Host_context>
 		host_context[Board::NR_OF_CPUS];
-	if (!host_context[cpu.id()].constructed()) {
-		host_context[cpu.id()].construct();
-		Hypervisor::Host_context &c = *host_context[cpu.id()];
+	if (!host_context[cpu.id().value].constructed()) {
+		host_context[cpu.id().value].construct();
+		Hypervisor::Host_context &c = *host_context[cpu.id().value];
 		c.sp     = cpu.stack_start();
 		c.ttbr0  = Cpu::Ttbr0_64bit::read();
 		c.ttbr1  = Cpu::Ttbr1_64bit::read();
@@ -83,7 +83,7 @@ static Hypervisor::Host_context & host_context(Cpu &cpu)
 		c.cpacr  = 0xf00000;
 		c.spsr   = 0x1d3;
 	}
-	return *host_context[cpu.id()];
+	return *host_context[cpu.id().value];
 }
 
 

@@ -112,7 +112,7 @@ class Board::Cpu : public Arm_v7_cpu
 		/**
 		 * Return kernel name of the executing CPU
 		 */
-		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
+		static Id executing_id() { return { Mpidr::Aff_0::get(Mpidr::read()) }; }
 
 		bool active(Mmu_context &mmu_context)
 		{

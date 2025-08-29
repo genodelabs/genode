@@ -27,7 +27,7 @@ namespace Kernel {
 
 	void main_initialize_and_handle_kernel_entry();
 
-	time_t main_read_idle_thread_execution_time(unsigned cpu_idx);
+	time_t main_read_idle_thread_execution_time(Call_arg);
 
 	void main_print_char(char c);
 }

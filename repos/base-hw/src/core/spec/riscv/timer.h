@@ -20,6 +20,8 @@
 /* core includes */
 #include <kernel/types.h>
 
+#include <hw/spec/riscv/cpu.h>
+
 namespace Board { class Timer; }
 
 
@@ -35,7 +37,7 @@ struct Board::Timer
 
 	Kernel::time_t stime() const;
 
-	Timer(unsigned);
+	Timer(Hw::Riscv_cpu::Id);
 
 	void init();
 };

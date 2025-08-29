@@ -20,7 +20,7 @@ using namespace Genode;
 using namespace Kernel;
 
 
-Board::Timer::Timer(unsigned)
+Board::Timer::Timer(Hw::Riscv_cpu::Id)
 {
 	init();
 }

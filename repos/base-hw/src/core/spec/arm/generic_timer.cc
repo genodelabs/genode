@@ -24,7 +24,7 @@ unsigned Timer::interrupt_id() const { return Board::TIMER_IRQ; }
 unsigned long Board::Timer::_freq() { return Board::Cpu::Cntfrq::read(); }
 
 
-Board::Timer::Timer(unsigned) : ticks_per_ms((unsigned)(_freq() / 1000))
+Board::Timer::Timer(Hw::Arm_cpu::Id) : ticks_per_ms((unsigned)(_freq() / 1000))
 {
 	init();
 }

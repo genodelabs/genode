@@ -102,7 +102,7 @@ class Board::Cpu : public Hw::Riscv_cpu
 
 		static void single_step(Context &, bool) { };
 
-		static unsigned executing_id() { return 0; }
+		static Id executing_id() { return { 0 }; }
 
 		static void clear_memory_region(addr_t const addr,
 		                                size_t const size,

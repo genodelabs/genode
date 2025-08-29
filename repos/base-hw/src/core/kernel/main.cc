@@ -32,7 +32,7 @@ class Kernel::Main
 
 		friend void main_handle_kernel_entry(Genode::Cpu_state*);
 		friend void main_initialize_and_handle_kernel_entry();
-		friend time_t main_read_idle_thread_execution_time(unsigned cpu_idx);
+		friend time_t main_read_idle_thread_execution_time(Call_arg);
 		friend void main_print_char(char c);
 
 		enum { SERIAL_BAUD_RATE = 115200 };
@@ -210,9 +210,13 @@ void Kernel::main_print_char(char c)
 }
 
 
-Kernel::time_t Kernel::main_read_idle_thread_execution_time(unsigned cpu_idx)
+Kernel::time_t
+Kernel::main_read_idle_thread_execution_time(Call_arg arg)
 {
-	return Main::_instance->_cpu_pool.cpu(cpu_idx).idle_thread().execution_time();
+	Kernel::time_t ret = 0;
+	Main::_instance->_cpu_pool.with_cpu(arg, [&] (Cpu &cpu) {
+		ret = cpu.idle_thread().execution_time(); });
+	return ret;
 }
 
 

@@ -285,7 +285,7 @@ void Vmcs::initialize(Board::Cpu &c, Genode::addr_t page_table_phys)
 	Cpu::Cr4::Vmxe::set(cr4);
 	Cpu::Cr4::write(cr4);
 
-	_cpu_id = cpu.id();
+	_cpu_id = cpu.id().value;
 
 	construct_host_vmcs();
 

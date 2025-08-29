@@ -14,6 +14,7 @@
 #ifndef _SRC__LIB__HW__SPEC__ARM__CPU_H_
 #define _SRC__LIB__HW__SPEC__ARM__CPU_H_
 
+#include <hw/id.h>
 #include <hw/spec/arm/register_macros.h>
 
 namespace Hw { struct Arm_cpu; struct Suspend_type; }
@@ -24,6 +25,13 @@ struct Hw::Suspend_type { };
 
 struct Hw::Arm_cpu
 {
+	/**
+	 * We use the Mpidr::Aff_0 as CPU identifier,
+	 * which has size of one byte
+	 */
+	using Id = Hw::Id<Genode::uint8_t>;
+
+
 	/***************************************
 	 ** System Coprocessor 15 Definitions **
 	 ***************************************/
@@ -115,7 +123,7 @@ struct Hw::Arm_cpu
 		struct Irgn_0 : Bitfield<6,1> { };
 		struct Irgn : Genode::Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache mode */
 
-		static access_t init(Genode::addr_t table)
+		static access_t init(Genode::uint32_t table)
 		{
 			access_t v = Ttbr::Ba::masked(table);
 			Ttbr::Rgn::set(v, Ttbr::CACHEABLE);

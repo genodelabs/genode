@@ -95,7 +95,7 @@ void Local_interrupt_controller::finish_request()
 }
 
 
-void Local_interrupt_controller::unmask(unsigned const i, unsigned)
+void Local_interrupt_controller::unmask(unsigned const i, Hw::X86_64_cpu::Id)
 {
 	_global_irq_ctrl.toggle_mask(i, false);
 }
@@ -130,7 +130,7 @@ inline unsigned Local_interrupt_controller::get_lowest_bit()
 }
 
 
-void Local_interrupt_controller::send_ipi(unsigned const cpu_id)
+void Local_interrupt_controller::send_ipi(Hw::X86_64_cpu::Id cpu_id)
 {
 	while (read<Icr_low::Delivery_status>())
 		asm volatile("pause" : : : "memory");
@@ -138,7 +138,7 @@ void Local_interrupt_controller::send_ipi(unsigned const cpu_id)
 	Icr_high::access_t icr_high = 0;
 	Icr_low::access_t  icr_low  = 0;
 
-	Icr_high::Destination::set(icr_high, cpu_id);
+	Icr_high::Destination::set(icr_high, cpu_id.value);
 
 	Icr_low::Vector::set(icr_low, Local_interrupt_controller::IPI);
 	Icr_low::Level_assert::set(icr_low);

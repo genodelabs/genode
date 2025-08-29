@@ -23,7 +23,7 @@ Bootstrap::Platform::Board::Board()
 	core_mmio(Memory_region { PLIC_BASE, PLIC_SIZE })
 { }
 
-unsigned Bootstrap::Platform::enable_mmu()
+Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 {
 	using Satp = Hw::Riscv_cpu::Satp;
 	using Sstatus = Hw::Riscv_cpu::Sstatus;
@@ -43,7 +43,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	asm volatile ("sfence.vma" : : : "memory");
 
-	return 0;
+	return { 0 };
 }
 
 

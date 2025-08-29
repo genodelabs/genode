@@ -57,10 +57,10 @@ static inline void switch_to_supervisor_mode(unsigned cpu_id)
 }
 
 
-unsigned Bootstrap::Platform::enable_mmu()
+Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 {
 	static volatile bool primary_cpu = true;
-	unsigned cpu = Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
+	Genode::uint8_t cpu = Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
 
 	/* locally initialize interrupt controller */
 	::Board::Pic pic { };
@@ -80,7 +80,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	Cpu::enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
 
-	return cpu;
+	return { cpu };
 }
 
 

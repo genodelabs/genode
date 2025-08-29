@@ -22,7 +22,7 @@
 using namespace Core;
 using namespace Kernel;
 
-Board::Timer::Timer(unsigned)
+Board::Timer::Timer(Hw::X86_64_cpu::Id)
 :
 	Local_apic(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {

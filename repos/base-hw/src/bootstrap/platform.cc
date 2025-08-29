@@ -185,11 +185,11 @@ void Platform::_prepare_cpu_memory_area(size_t cpu_id)
 }
 
 
-void Platform::start_core(unsigned cpu_id)
+void Platform::start_core(Cpu_id cpu_id)
 {
 	typedef void (* Entry)(unsigned) __attribute__((noreturn));
 	Entry const entry = reinterpret_cast<Entry>(core_elf.entry());
-	entry(cpu_id);
+	entry(cpu_id.value);
 }
 
 

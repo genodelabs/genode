@@ -15,6 +15,7 @@
 #ifndef _SRC__LIB__HW__SPEC__X86_64__CPU_H_
 #define _SRC__LIB__HW__SPEC__X86_64__CPU_H_
 
+#include <hw/id.h>
 #include <hw/spec/x86_64/register_macros.h>
 
 namespace Hw { struct X86_64_cpu; struct Suspend_type; }
@@ -34,6 +35,12 @@ struct Hw::Suspend_type {
 
 struct Hw::X86_64_cpu
 {
+	/**
+	 * We use the Cpuid_1_ebx::Apic_id as identifier,
+	 * which has size of one byte
+	 */
+	using Id = Hw::Id<Genode::uint8_t>;
+
 	X86_64_CR_REGISTER(Cr0, cr0,
 		struct Pe : Bitfield< 0, 1> { }; /* Protection Enable   */
 		struct Mp : Bitfield< 1, 1> { }; /* Monitor Coprocessor */

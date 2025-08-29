@@ -14,6 +14,7 @@
 #ifndef _SRC__INCLUDE__HW__SPEC__ARM__GIC_V3_H_
 #define _SRC__INCLUDE__HW__SPEC__ARM__GIC_V3_H_
 
+#include <hw/spec/arm/cpu.h>
 #include <util/mmio.h>
 
 namespace Hw     { class Pic; }
@@ -233,7 +234,7 @@ class Hw::Pic
 			_last_iar = spurious_id;
 		}
 
-		void unmask(unsigned const irq_id, unsigned const /* cpu_id */)
+		void unmask(unsigned const irq_id, Hw::Arm_cpu::Id)
 		{
 			if (irq_id < min_spi) {
 				_redistr_sgi.write<Redistributor_sgi_ppi::Isenabler0>(1, irq_id);
@@ -253,9 +254,9 @@ class Hw::Pic
 
 		void irq_mode(unsigned, unsigned, unsigned) { }
 
-		void send_ipi(unsigned const cpu_id)
+		void send_ipi(Hw::Arm_cpu::Id cpu_id)
 		{
-			Cpu_interface::Icc_sgi1r_el1::write(1ULL << cpu_id);
+			Cpu_interface::Icc_sgi1r_el1::write(1ULL << cpu_id.value);
 		}
 };
 

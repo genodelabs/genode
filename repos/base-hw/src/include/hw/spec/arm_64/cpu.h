@@ -14,6 +14,8 @@
 #ifndef _SRC__LIB__HW__SPEC__ARM_64__CPU_H_
 #define _SRC__LIB__HW__SPEC__ARM_64__CPU_H_
 
+#include <hw/spec/arm/cpu.h>
+
 #define SYSTEM_REGISTER(sz, name, reg, ...) \
 	struct name : Genode::Register<sz> \
 	{ \
@@ -31,14 +33,13 @@
 	};
 
 
-namespace Hw { struct Arm_64_cpu; struct Suspend_type; }
-
-
-struct Hw::Suspend_type { };
+namespace Hw { struct Arm_64_cpu; }
 
 
 struct Hw::Arm_64_cpu
 {
+	using Id = Hw::Arm_cpu::Id;
+
 	SYSTEM_REGISTER(64, Actlr_el1, actlr_el1);
 	SYSTEM_REGISTER(64, Amair_el1, amair_el1);
 
@@ -273,12 +274,12 @@ struct Hw::Arm_64_cpu
 	using Cntpct    = Cntpct_el0;
 	using Cntp_tval = Cntp_tval_el0;
 
-	static inline unsigned current_core_id()
+	static Id current_core_id()
 	{
 		Mpidr::access_t mpidr = Mpidr::read();
 		if (Mpidr::MT::get(mpidr))
-			return (unsigned)Mpidr::Aff1::get(mpidr);
-		return (unsigned)Mpidr::Aff0::get(mpidr);
+			return { Mpidr::Aff1::get(mpidr) };
+		return { Mpidr::Aff0::get(mpidr) };
 	}
 
 	static inline void wait_for_xchg(volatile int * addr,

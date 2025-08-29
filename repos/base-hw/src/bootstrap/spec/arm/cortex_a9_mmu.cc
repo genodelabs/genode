@@ -101,7 +101,7 @@ struct Scu : Genode::Mmio<0x34>
  *
  * See ARM's Cortex-A9 MPCore TRM r2p0 in section 5.3.5 for more details
  */
-unsigned Bootstrap::Platform::enable_mmu()
+Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 {
 	using namespace Board;
 
@@ -184,5 +184,5 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	asm volatile("dsb sy\n"
 	             "isb sy\n" ::: "memory");
-	return Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
+	return { Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read()) };
 }

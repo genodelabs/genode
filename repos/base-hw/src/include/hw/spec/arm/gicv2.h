@@ -15,6 +15,7 @@
 #ifndef _SRC__LIB__HW__SPEC__ARM__GICv2_H_
 #define _SRC__LIB__HW__SPEC__ARM__GICv2_H_
 
+#include <hw/spec/arm/cpu.h>
 #include <util/mmio.h>
 
 namespace Hw { class Gicv2; }
@@ -207,11 +208,11 @@ class Hw::Gicv2
 		 * Unmask IRQ and assign it to one CPU
 		 *
 		 * \param irq_id  kernel name of targeted IRQ
-		 * \param cpu_id  kernel name of targeted CPU
+		 * \param cpu_id  ID of targeted CPU
 		 */
-		void unmask(unsigned const irq_id, unsigned const cpu_id)
+		void unmask(unsigned const irq_id, Hw::Arm_cpu::Id cpu_id)
 		{
-			unsigned const targets = 1 << cpu_id;
+			unsigned const targets = 1 << cpu_id.value;
 			_distr.write<Distributor::Itargetsr::Cpu_targets>(targets, irq_id);
 			_distr.write<Distributor::Isenabler::Set_enable>(1, irq_id);
 		}
@@ -228,14 +229,14 @@ class Hw::Gicv2
 		void irq_mode(unsigned, unsigned, unsigned) { }
 
 		/**
-		 * Raise inter-processor IRQ of the CPU with kernel name 'cpu_id'
+		 * Raise inter-processor IRQ of the CPU with ID 'cpu_id'
 		 */
-		void send_ipi(unsigned const cpu_id)
+		void send_ipi(Hw::Arm_cpu::Id cpu_id)
 		{
 			using Sgir = Distributor::Sgir;
 			Sgir::access_t sgir = 0;
 			Sgir::Sgi_int_id::set(sgir, IPI);
-			Sgir::Cpu_target_list::set(sgir, 1 << cpu_id);
+			Sgir::Cpu_target_list::set(sgir, 1 << cpu_id.value);
 			_distr.write<Sgir>(sgir);
 		}
 
