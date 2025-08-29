@@ -28,7 +28,7 @@ if {[info exists ::env(SEED)]} {
 	set seed $::env(SEED)
 } else {
 	# in some cases trafgen generates bad checksums in encapsulated packets
-	set bad_seeds [list 0 875727356 ]
+	set bad_seeds [list 0 875727356 153955626 ]
 	while {[lsearch -exact $bad_seeds $seed] != -1} {
 		set seed [gen_seed]
 	}
