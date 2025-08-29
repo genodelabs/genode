@@ -598,6 +598,7 @@ _ZNSt8ios_baseC2Ev T
 _ZNSt8ios_baseD0Ev T
 _ZNSt8ios_baseD1Ev T
 _ZNSt8ios_baseD2Ev T
+_ZNSt8time_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE2idE T
 _ZNSt9__cxx199815_List_node_base4hookEPS0_ T
 _ZNSt9__cxx199815_List_node_base4swapERS0_S1_ T
 _ZNSt9__cxx199815_List_node_base6unhookEv T
