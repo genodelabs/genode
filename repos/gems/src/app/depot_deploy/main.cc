@@ -137,6 +137,10 @@ struct Depot_deploy::Main
 		if (_prio_levels.value)
 			g.attribute("prio_levels", _prio_levels.value);
 
+		config.with_optional_sub_node("affinity-space", [&] (Node const &node) {
+			if (!g.append_node(node, MAX_NODE_DEPTH))
+				warning("config too deeply nested: ", node); });
+
 		config.with_sub_node("static",
 			[&] (Node const &static_config) {
 				if (!g.append_node_content(static_config, MAX_NODE_DEPTH))
