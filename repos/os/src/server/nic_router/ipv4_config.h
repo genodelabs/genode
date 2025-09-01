@@ -38,7 +38,7 @@ class Net::Ipv4_config
 		                                               _interface_valid &&
 		                                               _interface.prefix == 32 };
 		Dns_server_list              _dns_servers     { };
-		Dns_domain_name              _dns_domain_name { _alloc };
+		Dns_domain_name              _dns_domain_name { };
 		bool                  const  _valid           { _point_to_point ||
 		                                               (_interface_valid &&
 		                                                (!_gateway_valid ||

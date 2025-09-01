@@ -24,13 +24,6 @@ namespace Genode {
 	Microseconds read_sec_attr(Node     const &node,
 	                           char     const *name,
 	                           uint64_t const  default_sec);
-
-	void with_attribute(Node const &node, char const *name, auto const &fn)
-	{
-		node.for_each_attribute([&] (Node::Attribute const &attr) {
-			if (attr.name == name)
-				fn(attr); });
-	}
 }
 
 #endif /* _NODE_H_ */

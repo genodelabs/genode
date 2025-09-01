@@ -56,7 +56,7 @@ Ipv4_config::Ipv4_config(Ipv4_config const &ip_config,
 			[&] /* handle_failure */ () { }
 		);
 	});
-	_dns_domain_name.set_to(ip_config.dns_domain_name());
+	_dns_domain_name = ip_config.dns_domain_name();
 }
 
 
@@ -76,7 +76,7 @@ Ipv4_config::Ipv4_config(Ipv4_config const &ip_config)
 			[&] /* handle_failure */ () { }
 		);
 	});
-	_dns_domain_name.set_to(ip_config.dns_domain_name());
+	_dns_domain_name = ip_config.dns_domain_name();
 }
 
 

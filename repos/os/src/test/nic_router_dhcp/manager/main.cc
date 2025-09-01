@@ -43,7 +43,7 @@ class Test::Main
 		Expanding_reporter      _router_config_reporter { _env, "config",  "router_config" };
 		bool                    _router_config_outdated { true };
 		Dns_server_list         _dns_servers            { };
-		Dns_domain_name         _dns_domain_name        { _heap };
+		Dns_domain_name         _dns_domain_name        { };
 
 		void _handle_router_state();
 
@@ -142,15 +142,13 @@ void Test::Main::_handle_router_state()
 			dns_servers.destroy_each(_heap);
 
 			/* read out new DNS domain name */
-			Dns_domain_name dns_domain_name { _heap };
+			Dns_domain_name dns_domain_name { };
 			domain_node.with_optional_sub_node("dns-domain", [&] (Node const &sub_node) {
-				with_attribute(sub_node, "name", [&] (auto const &attr) {
-					dns_domain_name.set_to(attr);
-				});
+				dns_domain_name.set_to(sub_node.attribute_value("name", Dns_domain_name::String()));
 			});
 			/* update stored DNS domain name if necessary */
 			if (!_dns_domain_name.equal_to(dns_domain_name)) {
-				_dns_domain_name.set_to(dns_domain_name);
+				_dns_domain_name = dns_domain_name;
 				_router_config_outdated = true;
 			}
 		}

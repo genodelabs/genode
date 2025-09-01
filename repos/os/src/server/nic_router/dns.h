@@ -63,47 +63,34 @@ class Net::Dns_server : private Genode::Noncopyable,
 		Net::Ipv4_address const &ip() const { return _ip; }
 };
 
-class Net::Dns_domain_name : private Genode::Noncopyable
+class Net::Dns_domain_name
 {
-	private:
-
-		enum { STRING_CAPACITY = 160 };
-
 	public:
 
-		using String = Genode::String<STRING_CAPACITY>;
+		/* max. 253 ASCII characters + terminating 0 + oversize detection byte */
+		using String = Genode::String<253+1+1>;
 
 	private:
 
-		Genode::Allocator &_alloc;
-		String            *_string_ptr { };
+		String _string { };
 
-		/*
-		 * Noncopyable
-		 */
-		Dns_domain_name(Dns_domain_name const &);
-		Dns_domain_name &operator = (Dns_domain_name const &);
+		static bool _string_valid(String const &s)
+		{
+			return s.length() > 1 && s.length() < String::capacity();
+		}
 
 	public:
 
-		Dns_domain_name(Genode::Allocator &alloc);
-
-		~Dns_domain_name();
-
-		void set_to(Dns_domain_name const &name);
-
-		void set_to(Genode::Node::Attribute const &name);
+		void set_to(String const &name);
 
 		void set_to(Dhcp_packet::Domain_name const &name_option);
 
-		void set_invalid();
-
-		bool valid() const { return _string_ptr; }
+		bool valid() const { return _string_valid(_string); }
 
 		void with_string(auto const &func) const
 		{
-			if (_string_ptr)
-				func(*_string_ptr);
+			if (_string.valid())
+				func(_string);
 		}
 
 		bool equal_to(Dns_domain_name const &other) const;

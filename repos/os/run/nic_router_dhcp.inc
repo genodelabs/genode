@@ -105,7 +105,7 @@ append config {
 							             ip_last="10.2.4.2">
 
 								<dns-server ip="6.7.8.9"/>
-								<dns-domain name="this_is_a_way_to_long_dns_domain_name_that_should_be_rejected_by_the_router_and_cause_the_corresponding_dhcp_option_to_disappear_but_you_never_know_and_so_we_better_test_it"/>
+								<dns-domain name="this_is_a_way_to_long_dns_domain_name_that_should_be_rejected_by_the_router_and_cause_the_corresponding_dhcp_option_to_disappear_but_you_never_know_and_so_we_better_test_it................................................................................Xooooo"/>
 
 							</dhcp-server>
 

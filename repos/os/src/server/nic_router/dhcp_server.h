@@ -49,7 +49,7 @@ class Net::Dhcp_server_base
 
 		Genode::Allocator &_alloc;
 		Dns_server_list    _dns_servers     { };
-		Dns_domain_name    _dns_domain_name { _alloc };
+		Dns_domain_name    _dns_domain_name { };
 
 		[[nodiscard]] bool _invalid(Domain const &domain,
 		                            char   const *reason);

@@ -52,16 +52,10 @@ bool Dhcp_server_base::finish_construction(Node const &node, Domain const &domai
 		return result;
 
 	node.with_optional_sub_node("dns-domain", [&] (Node const &sub_node) {
-		with_attribute(sub_node, "name", [&] (Node::Attribute const &attr) {
-			_dns_domain_name.set_to(attr);
+		_dns_domain_name.set_to(sub_node.attribute_value("name", Dns_domain_name::String()));
 
-			if (domain.config().verbose() &&
-			    !_dns_domain_name.valid()) {
-
-				log("[", domain, "] rejecting oversized DNS "
-				    "domain name from DHCP server configuration");
-			}
-		});
+		if (domain.config().verbose() && !_dns_domain_name.valid())
+			log("[", domain, "] rejecting invalid <dns-domain> from DHCP server configuration");
 	});
 	return result;
 }
