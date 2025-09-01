@@ -34,8 +34,8 @@ configured_kernel:
 	&& echo -e "#define CONFIG_AARCH32_FPU_ENABLE_CONTEXT_SWITCH  1" >>gen_config/kernel/gen_config.h \
 	&& echo -e "#define CONFIG_FPU_MAX_RESTORES_SINCE_SWITCH  64"    >>gen_config/kernel/gen_config.h \
 	\
-	&& sed -e "s/CONFIG_NUM_DOMAINS 16/CONFIG_NUM_DOMAINS 1/"                    \
-	       -e "s/CONFIG_ROOT_CNODE_SIZE_BITS 12/CONFIG_ROOT_CNODE_SIZE_BITS 15/" \
+	&& sed -e "s/CONFIG_NUM_DOMAINS  16/CONFIG_NUM_DOMAINS  1/"                    \
+	       -e "s/CONFIG_ROOT_CNODE_SIZE_BITS  12/CONFIG_ROOT_CNODE_SIZE_BITS  15/" \
 	          gen_config/kernel/gen_config.h   >gen_config/kernel/gen_config.tmp \
 	&& mv     gen_config/kernel/gen_config.tmp  gen_config/kernel/gen_config.h   \
 	&& touch configured_kernel
