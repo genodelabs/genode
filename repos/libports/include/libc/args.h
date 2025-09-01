@@ -27,9 +27,13 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 	auto with_raw_attr = [] (Node const &node, auto const attr_name, auto const &fn)
 	{
+		bool found = false;
 		node.for_each_attribute([&] (Node::Attribute const &attr) {
-			if (attr.name == attr_name)
-				fn(attr.value.start, attr.value.num_bytes); });
+			if (!found && attr.name == attr_name) {
+				fn(attr.value.start, attr.value.num_bytes);
+				found = true;
+			}
+		});
 	};
 
 	struct Out_buffer : Output
