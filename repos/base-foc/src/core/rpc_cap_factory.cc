@@ -214,7 +214,7 @@ void Cap_id_allocator::free(id_t id)
 	Mutex::Guard lock_guard(_mutex);
 
 	if (id < CAP_ID_RANGE)
-		_id_alloc.free((void*)(addr_t(id & CAP_ID_MASK)), CAP_ID_OFFSET);
+		_id_alloc.free((void*)(addr_t(id)), CAP_ID_OFFSET);
 }
 
 
