@@ -93,12 +93,12 @@ class Kernel::Pd
 		static capid_t syscall_create(Core::Kernel_object<Pd> &p,
 		                              Core_pd_data            &core_data)
 		{
-			return (capid_t)call(call_id_new_pd(), (Call_arg)&p,
-			                     (Call_arg)&core_data);
+			return (capid_t)core_call(Core_call_id::PD_CREATE, (Call_arg)&p,
+			                          (Call_arg)&core_data);
 		}
 
 		static void syscall_destroy(Core::Kernel_object<Pd> &p) {
-			call(call_id_delete_pd(), (Call_arg)&p); }
+			core_call(Core_call_id::PD_DESTROY, (Call_arg)&p); }
 
 		/**
 		 * Check whether the given 'cpu' needs to do some maintainance

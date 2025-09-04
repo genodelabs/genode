@@ -186,8 +186,8 @@ class Kernel::User_irq : public Kernel::Irq
 		                              Genode::Irq_session::Polarity  polarity,
 		                              capid_t                        sig)
 		{
-			return (capid_t)call(call_id_new_irq(), (Call_arg)&irq, nr,
-			                     (trigger << 2) | polarity, sig);
+			return (capid_t)core_call(Core_call_id::IRQ_CREATE, (Call_arg)&irq,
+			                          nr, trigger, polarity, sig);
 		}
 
 		/**
@@ -196,7 +196,7 @@ class Kernel::User_irq : public Kernel::Irq
 		 * \param irq  reference to constructible object
 		 */
 		static void syscall_destroy(Core::Kernel_object<User_irq> &irq) {
-			call(call_id_delete_irq(), (Call_arg) &irq); }
+			core_call(Core_call_id::IRQ_DESTROY, (Call_arg) &irq); }
 
 		Object &kernel_object() { return _kernel_object; }
 };

@@ -116,8 +116,10 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 		                              capid_t const              signal_context_id,
 		                              Identity                  &id)
 		{
-			return (capid_t)call(call_id_new_vcpu(), (Call_arg)&vcpu, (Call_arg)cpu,
-			                     (Call_arg)data, (Call_arg)&id, signal_context_id);
+			return (capid_t)core_call(Core_call_id::VCPU_CREATE,
+			                          (Call_arg)&vcpu, (Call_arg)cpu,
+			                          (Call_arg)data, (Call_arg)&id,
+			                          signal_context_id);
 		}
 
 		/**
@@ -128,7 +130,7 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 		 * \retval 0 when successful, otherwise !=0
 		 */
 		static void syscall_destroy(Core::Kernel_object<Vcpu> &vcpu) {
-			call(call_id_delete_vcpu(), (Call_arg) &vcpu); }
+			core_call(Core_call_id::VCPU_DESTROY, (Call_arg) &vcpu); }
 
 		Object &kernel_object() { return _kernel_object; }
 

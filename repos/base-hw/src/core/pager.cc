@@ -111,7 +111,8 @@ void Pager_entrypoint::Thread::entry()
 	while (1) {
 
 		/* receive fault */
-		if (Kernel::await_signal(Capability_space::capid(_kobj.cap())))
+		if (Kernel::signal_wait(Capability_space::capid(_kobj.cap()))
+		    != Kernel::Signal_result::OK)
 			continue;
 
 		Pager_object *po = *(Pager_object**)Thread::myself()->utcb()->data();
@@ -124,7 +125,7 @@ void Pager_entrypoint::Thread::entry()
 		Platform_thread * const pt = (Platform_thread *)po->badge();
 		if (!pt) {
 			warning("failed to get platform thread of faulter");
-			Kernel::ack_signal(Capability_space::capid(cap));
+			Kernel::signal_ack(Capability_space::capid(cap));
 			continue;
 		}
 
@@ -192,7 +193,7 @@ Pager_entrypoint::Thread::Thread(Affinity::Location cpu)
 
 void Pager_entrypoint::dissolve(Pager_object &o)
 {
-	Kernel::kill_signal_context(Capability_space::capid(o.cap()));
+	Kernel::signal_kill(Capability_space::capid(o.cap()));
 }
 
 

@@ -52,32 +52,31 @@ static void for_cachelines(addr_t                     base,
 }
 
 
-void Kernel::Thread::_call_cache_coherent_region()
+void Kernel::Thread::_call_cache_coherent(addr_t const addr,
+                                          size_t const size)
 {
-	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this, _pd,
-	               [] (addr_t addr, size_t size) {
+	for_cachelines(addr, size, *this, _pd, [] (addr_t addr, size_t size) {
 		Board::Cpu::cache_coherent_region(addr, size); });
 }
 
 
-void Kernel::Thread::_call_cache_clean_invalidate_data_region()
+void Kernel::Thread::_call_cache_clean_invalidate(addr_t const addr,
+                                                  size_t const size)
 {
-	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this, _pd,
-	               [] (addr_t addr, size_t size) {
+	for_cachelines(addr, size, *this, _pd, [] (addr_t addr, size_t size) {
 		Board::Cpu::cache_clean_invalidate_data_region(addr, size); });
 }
 
 
-void Kernel::Thread::_call_cache_invalidate_data_region()
+void Kernel::Thread::_call_cache_invalidate(addr_t const addr,
+                                            size_t const size)
 {
-	for_cachelines((addr_t)user_arg_1(), (size_t)user_arg_2(), *this, _pd,
-	               [] (addr_t addr, size_t size) {
+	for_cachelines(addr, size, *this, _pd, [] (addr_t addr, size_t size) {
 		Board::Cpu::cache_invalidate_data_region(addr, size); });
 }
 
 
-void Kernel::Thread::_call_cache_line_size()
+size_t Kernel::Thread::_call_cache_line_size()
 {
-	size_t const cache_line_size = Board::Cpu::cache_line_size();
-	user_arg_0(cache_line_size);
+	return Board::Cpu::cache_line_size();
 }

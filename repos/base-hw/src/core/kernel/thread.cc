@@ -212,7 +212,6 @@ void Thread::signal_context_kill_pending()
 void Thread::signal_context_kill_done()
 {
 	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
-	user_arg_0(0);
 	_become_active();
 }
 
@@ -220,7 +219,6 @@ void Thread::signal_context_kill_done()
 void Thread::signal_context_kill_failed()
 {
 	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
-	user_arg_0(-1);
 	_become_active();
 }
 
@@ -242,9 +240,7 @@ void Thread::signal_receive_signal(void * const base, size_t const size)
 void Thread::ipc_send_request_succeeded()
 {
 	assert(_state == AWAITS_IPC);
-	user_arg_0(0);
-	_state = ACTIVE;
-	_activate();
+	_become_active();
 	helping_finished();
 }
 
@@ -252,9 +248,7 @@ void Thread::ipc_send_request_succeeded()
 void Thread::ipc_send_request_failed()
 {
 	assert(_state == AWAITS_IPC);
-	user_arg_0(-1);
-	_state = ACTIVE;
-	_activate();
+	_become_inactive(DEAD);
 	helping_finished();
 }
 
@@ -262,13 +256,15 @@ void Thread::ipc_send_request_failed()
 void Thread::ipc_await_request_succeeded()
 {
 	assert(_state == AWAITS_IPC);
-	user_arg_0(0);
 	_become_active();
 }
 
 
 void Thread::_become_active()
 {
+	if (_state == DEAD)
+		return;
+
 	if (_state != ACTIVE && !_paused) Cpu_context::_activate();
 	_state = ACTIVE;
 }
@@ -276,7 +272,11 @@ void Thread::_become_active()
 
 void Thread::_become_inactive(State const s)
 {
-	if (_state == ACTIVE && !_paused) Cpu_context::_deactivate();
+	if (_state == DEAD)
+		return;
+
+	if ((_state == ACTIVE && !_paused) || (s == DEAD))
+		Cpu_context::_deactivate();
 	_state = s;
 }
 
@@ -284,28 +284,24 @@ void Thread::_become_inactive(State const s)
 void Thread::_die() { _become_inactive(DEAD); }
 
 
-void Thread::_call_start_thread()
+Rpc_result Thread::_call_thread_start(Thread &thread, Native_utcb &utcb)
 {
-	user_arg_0(0);
-	Thread &thread = *(Thread*)user_arg_1();
-
 	assert(thread._state == AWAITS_START);
 
-	switch (thread._ipc_init(*(Native_utcb *)user_arg_2(), *this)) {
+	switch (thread._ipc_init(utcb, *this)) {
 	case Ipc_alloc_result::OK:
 		break;
 	case Ipc_alloc_result::EXHAUSTED:
-		user_arg_0(-2);
-		return;
+		return Rpc_result::OUT_OF_CAPS;
 	}
 
 	thread._become_active();
+	return Rpc_result::OK;
 }
 
 
-void Thread::_call_pause_thread()
+void Thread::_call_thread_pause(Thread &thread)
 {
-	Thread &thread = *reinterpret_cast<Thread*>(user_arg_1());
 	if (thread._state == ACTIVE && !thread._paused)
 		thread._deactivate();
 
@@ -313,9 +309,8 @@ void Thread::_call_pause_thread()
 }
 
 
-void Thread::_call_resume_thread()
+void Thread::_call_thread_resume(Thread &thread)
 {
-	Thread &thread = *reinterpret_cast<Thread*>(user_arg_1());
 	if (thread._state == ACTIVE && thread._paused)
 		thread._activate();
 
@@ -323,30 +318,32 @@ void Thread::_call_resume_thread()
 }
 
 
-void Thread::_call_stop_thread()
+void Thread::_call_thread_stop()
 {
 	assert(_state == ACTIVE);
 	_become_inactive(AWAITS_RESTART);
 }
 
 
-void Thread::_call_restart_thread()
+Thread_restart_result Thread::_call_thread_restart(capid_t const id)
 {
-	Thread *thread_ptr = _pd.cap_tree().find<Thread>((capid_t)user_arg_1());
+	Thread *thread_ptr = _pd.cap_tree().find<Thread>(id);
 
 	if (!thread_ptr)
-		return;
+		return Thread_restart_result::INVALID;
 
 	Thread &thread = *thread_ptr;
 
 	if (_type == USER && (&_pd != &thread._pd)) {
-		raw(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
+		raw(*this, ": failed to lookup thread ", (unsigned)id,
 		        " to restart it");
 		_die();
-		return;
+		return Thread_restart_result::INVALID;
 	}
 
-	user_arg_0(thread._restart());
+	return ((thread._restart())
+		? Thread_restart_result::RESTARTED
+		: Thread_restart_result::ALREADY_ACTIVE);
 }
 
 
@@ -363,24 +360,15 @@ bool Thread::_restart()
 }
 
 
-void Thread::_call_yield_thread()
+void Thread::_call_thread_destroy(Core::Kernel_object<Thread> &to_delete)
 {
-	Cpu_context::_yield();
-}
-
-
-void Thread::_call_delete_thread()
-{
-	Core::Kernel_object<Thread> &to_delete =
-		*(Core::Kernel_object<Thread>*)user_arg_1();
-
 	/**
 	 * Delete a thread immediately if it is assigned to this cpu,
 	 * or the assigned cpu did not scheduled it.
 	 */
 	if (to_delete->_cpu().id() == Cpu::executing_id() ||
 	    &to_delete->_cpu().current_context() != &*to_delete) {
-		_call_delete<Thread>();
+		to_delete.destruct();
 		return;
 	}
 
@@ -392,60 +380,41 @@ void Thread::_call_delete_thread()
 }
 
 
-void Thread::_call_delete_pd()
+void Thread::_call_pd_destroy(Core::Kernel_object<Pd> &pd)
 {
-	Core::Kernel_object<Pd> &pd =
-		*(Core::Kernel_object<Pd>*)user_arg_1();
-
 	if (_cpu().active(pd->mmu_regs))
 		_cpu().switch_to(_core_pd.mmu_regs);
 
-	_call_delete<Pd>();
+	pd.destruct();
 }
 
 
-void Thread::_call_await_request_msg()
+Rpc_result Thread::_call_rpc_wait(unsigned rcv_caps_cnt)
 {
-	if (_ipc_node.ready_to_wait()) {
-
-		switch (_ipc_alloc_recv_caps((unsigned)user_arg_1())) {
-		case Ipc_alloc_result::OK:
-			break;
-		case Ipc_alloc_result::EXHAUSTED:
-			user_arg_0(-2);
-			return;
-		}
-		_ipc_node.wait();
-		if (_ipc_node.waiting()) {
-			_become_inactive(AWAITS_IPC);
-		} else {
-			user_arg_0(0);
-		}
-	} else {
+	if (!_ipc_node.ready_to_wait()) {
 		Genode::raw("IPC await request: bad state, will block");
 		_become_inactive(DEAD);
 	}
+
+	switch (_ipc_alloc_recv_caps(rcv_caps_cnt)) {
+	case Ipc_alloc_result::OK:
+		break;
+	case Ipc_alloc_result::EXHAUSTED:
+		return Rpc_result::OUT_OF_CAPS;
+	}
+
+	_ipc_node.wait();
+	if (_ipc_node.waiting()) _become_inactive(AWAITS_IPC);
+
+	return Rpc_result::OK;
 }
 
 
-void Thread::_call_timeout()
+void Thread::_call_timeout(timeout_t const us, capid_t const sigid)
 {
 	Timer &t = _cpu().timer();
-	_timeout_sigid = (Kernel::capid_t)user_arg_2();
-	t.set_timeout(*this, t.us_to_ticks(user_arg_1()));
-}
-
-
-void Thread::_call_timeout_max_us()
-{
-	user_ret_time(_cpu().timer().timeout_max_us());
-}
-
-
-void Thread::_call_time()
-{
-	Timer &t = _cpu().timer();
-	user_ret_time(t.ticks_to_us(t.time()));
+	_timeout_sigid = sigid;
+	t.set_timeout(*this, t.us_to_ticks(us));
 }
 
 
@@ -458,266 +427,193 @@ void Thread::timeout_triggered()
 }
 
 
-void Thread::_call_send_request_msg()
+Rpc_result Thread::_call_rpc_call(capid_t const id, unsigned rcv_caps_cnt)
 {
-	Object_identity_reference * oir = _pd.cap_tree().find((capid_t)user_arg_1());
-	Thread * const dst = (oir) ? oir->object<Thread>() : nullptr;
-	if (!dst) {
-		Genode::raw(*this, ": cannot send to unknown recipient ",
-		                 (unsigned)user_arg_1());
+	auto *obj_ref = _pd.cap_tree().find(id);
+	auto *ptr = (obj_ref) ? obj_ref->object<Thread>() : nullptr;
+
+	if (!ptr) {
+		Genode::raw(*this, ": cannot send to unknown recipient ", id);
 		_become_inactive(DEAD);
-		return;
+		return Rpc_result::OK;
 	}
-	bool const help = Cpu_context::_helping_possible(*dst);
-	oir = oir->find(dst->_pd);
+
+	auto &dst = *ptr;
+	bool const help = Cpu_context::_helping_possible(dst);
+	obj_ref = obj_ref->find(dst._pd);
 
 	if (!_ipc_node.ready_to_send()) {
 		Genode::raw("IPC send request: bad state");
-	} else {
-		switch (_ipc_alloc_recv_caps((unsigned)user_arg_2())) {
-		case Ipc_alloc_result::OK:
-			break;
-		case Ipc_alloc_result::EXHAUSTED:
-			user_arg_0(-2);
-			return;
-		}
-		_ipc_capid = oir ? oir->capid() : cap_id_invalid();
-		_ipc_node.send(dst->_ipc_node);
+		_become_inactive(DEAD);
+		return Rpc_result::OK;
 	}
 
+	switch (_ipc_alloc_recv_caps(rcv_caps_cnt)) {
+	case Ipc_alloc_result::OK:
+		break;
+	case Ipc_alloc_result::EXHAUSTED:
+		return Rpc_result::OUT_OF_CAPS;
+	}
+
+	_ipc_capid = obj_ref ? obj_ref->capid() : cap_id_invalid();
+	_ipc_node.send(dst._ipc_node);
+	
 	_state = AWAITS_IPC;
-	if (help) Cpu_context::_help(*dst);
-	if (!help || !dst->ready()) _deactivate();
+	if (help) Cpu_context::_help(dst);
+	if (!help || !dst.ready()) _deactivate();
+
+	return Rpc_result::OK;
 }
 
 
-void Thread::_call_send_reply_msg()
+void Thread::_call_rpc_reply()
 {
 	_ipc_node.reply();
-	bool const await_request_msg = user_arg_2();
-	if (await_request_msg) { _call_await_request_msg(); }
-	else { user_arg_0(0); }
 }
 
 
-void Thread::_call_pager()
+Rpc_result Thread::_call_rpc_reply_and_wait(unsigned rcv_caps_cnt)
 {
-	/* override event route */
-	Thread &thread = *(Thread *)user_arg_1();
-	Thread &pager  = *(Thread *)user_arg_2();
-	Signal_context &sc = *_pd.cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_3());
+	_ipc_node.reply();
+	return _call_rpc_wait(rcv_caps_cnt);
+}
+
+
+void Thread::_call_thread_pager(Thread &thread, Thread &pager, capid_t id)
+{
+	auto &sc = *_pd.cap_tree().find<Signal_context>(id);
 	thread._fault_context.construct(pager, sc);
 }
 
 
-void Thread::_call_print_char() { Kernel::log((char)user_arg_1()); }
-
-
-void Thread::_call_await_signal()
+Signal_result Thread::_call_signal_wait(capid_t const id)
 {
-	/* lookup receiver */
-	Signal_receiver * const r = _pd.cap_tree().find<Signal_receiver>((Kernel::capid_t)user_arg_1());
-	if (!r) {
-		Genode::raw(*this, ": cannot await, unknown signal receiver ",
-		                (unsigned)user_arg_1());
-		user_arg_0(-1);
-		return;
-	}
-	/* register handler at the receiver */
-	if (!r->add_handler(_signal_handler)) {
-		Genode::raw("failed to register handler at signal receiver");
-		user_arg_0(-1);
-		return;
-	}
-	user_arg_0(0);
+	auto *receiver = _pd.cap_tree().find<Signal_receiver>(id);
+	if (!receiver)
+		return Signal_result::INVALID;
+
+	if (!receiver->add_handler(_signal_handler))
+		return Signal_result::INVALID;
+
+	return Signal_result::OK;
 }
 
 
-void Thread::_call_pending_signal()
+Signal_result Thread::_call_signal_pending(capid_t const id)
 {
-	/* lookup receiver */
-	Signal_receiver * const r = _pd.cap_tree().find<Signal_receiver>((Kernel::capid_t)user_arg_1());
-	if (!r) {
-		Genode::raw(*this, ": cannot await, unknown signal receiver ",
-		                (unsigned)user_arg_1());
-		user_arg_0(-1);
-		return;
-	}
+	auto *receiver = _pd.cap_tree().find<Signal_receiver>(id);
+	if (!receiver)
+		return Signal_result::INVALID;
 
-	/* register handler at the receiver */
-	if (!r->add_handler(_signal_handler)) {
-		user_arg_0(-1);
-		return;
-	}
+	if (!receiver->add_handler(_signal_handler))
+		return Signal_result::INVALID;
 
 	if (_state == AWAITS_SIGNAL) {
 		_signal_handler.cancel_waiting();
 		_become_active();
-		user_arg_0(-1);
-		return;
+		return Signal_result::INVALID;
 	}
 
-	user_arg_0(0);
+	return Signal_result::OK;
 }
 
 
-void Thread::_call_submit_signal()
+void Thread::_call_signal_submit(capid_t const id, unsigned count)
 {
-	/* lookup signal context */
-	Signal_context * const c = _pd.cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
-	if(c) c->submit((unsigned)user_arg_2());
+	auto *context = _pd.cap_tree().find<Signal_context>(id);
+	if (context) context->submit(count);
 }
 
 
-void Thread::_call_ack_signal()
+void Thread::_call_signal_ack(capid_t const id)
 {
-	/* lookup signal context */
-	Signal_context * const c = _pd.cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
-	if (c) c->ack();
-	else Genode::warning(*this, ": cannot ack unknown signal context");
+	auto *context = _pd.cap_tree().find<Signal_context>(id);
+	if (context) context->ack();
 }
 
 
-void Thread::_call_kill_signal_context()
+void Thread::_call_signal_kill(capid_t const id)
 {
-	/* lookup signal context */
-	Signal_context * const c = _pd.cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
-	if (c) c->kill(_signal_context_killer);
-	else Genode::warning(*this, ": cannot kill unknown signal context");
+	auto *context = _pd.cap_tree().find<Signal_context>(id);
+	if (context) context->kill(_signal_context_killer);
 }
 
 
-void Thread::_call_new_irq()
+capid_t Thread::_call_irq_create(Core::Kernel_object<User_irq> &kobj,
+                                 unsigned                       number,
+                                 Genode::Irq_session::Trigger   trigger,
+                                 Genode::Irq_session::Polarity  polarity,
+                                 capid_t id)
 {
-	Signal_context * const c = _pd.cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_4());
-	if (!c) {
+	auto *ctx = _pd.cap_tree().find<Signal_context>(id);
+	if (!ctx) {
 		Genode::raw(*this, ": invalid signal context for interrupt");
-		user_arg_0(-1);
-		return;
+		return cap_id_invalid();
 	}
 
-	Genode::Irq_session::Trigger  trigger  =
-		(Genode::Irq_session::Trigger)  ((user_arg_3() >> 2) & 0b11);
-	Genode::Irq_session::Polarity polarity =
-		(Genode::Irq_session::Polarity) (user_arg_3() & 0b11);
-
-	_call_new<User_irq>((unsigned)user_arg_2(), trigger, polarity, *c,
-	                    _cpu().pic(), _user_irq_pool);
+	kobj.construct(_core_pd, number, trigger, polarity, *ctx,
+	               _cpu().pic(), _user_irq_pool);
+	return kobj->core_capid();
 }
 
 
-void Thread::_call_ack_irq() {
-	reinterpret_cast<User_irq*>(user_arg_1())->enable(); }
-
-
-void Thread::_call_new_obj()
+capid_t Thread::_call_obj_create(Thread_identity &kobj, capid_t id)
 {
-	/* lookup thread */
-	Object_identity_reference * ref = _pd.cap_tree().find((Kernel::capid_t)user_arg_2());
-	Thread * thread = ref ? ref->object<Thread>() : nullptr;
+	auto *ref = _pd.cap_tree().find(id);
+	auto *thread = ref ? ref->object<Thread>() : nullptr;
 	if (!thread ||
-		(static_cast<Core_object<Thread>*>(thread)->capid() != ref->capid())) {
-		if (thread)
-			Genode::raw("faked thread", thread);
-		user_arg_0(cap_id_invalid());
-		return;
-	}
+		(static_cast<Core_object<Thread>*>(thread)->capid() != ref->capid()))
+		return cap_id_invalid();
 
-	using Thread_identity = Genode::Constructible<Core_object_identity<Thread>>;
-	Thread_identity &coi = *(Thread_identity*)user_arg_1();
-	coi.construct(_core_pd, *thread);
-	user_arg_0(coi->core_capid());
+	kobj.construct(_core_pd, *thread);
+	return kobj->core_capid();
 }
 
 
-void Thread::_call_delete_obj()
+void Thread::_call_cap_ack(capid_t const id)
 {
-	using Thread_identity = Genode::Constructible<Core_object_identity<Thread>>;
-	Thread_identity &coi = *(Thread_identity*)user_arg_1();
-	coi.destruct();
+	auto *obj_ref = _pd.cap_tree().find(id);
+	if (obj_ref) obj_ref->remove_from_utcb();
 }
 
 
-void Thread::_call_ack_cap()
+void Thread::_call_cap_destroy(capid_t const id)
 {
-	Object_identity_reference * oir = _pd.cap_tree().find((Kernel::capid_t)user_arg_1());
-	if (oir) oir->remove_from_utcb();
+	auto *obj_ref = _pd.cap_tree().find(id);
+
+	if (obj_ref || !obj_ref->in_utcb())
+		destroy(_pd.cap_slab(), obj_ref);
 }
 
 
-void Thread::_call_delete_cap()
+void Kernel::Thread::_call_pd_invalidate_tlb(Pd &pd, addr_t const addr,
+                                             size_t const size)
 {
-	Object_identity_reference * oir = _pd.cap_tree().find((Kernel::capid_t)user_arg_1());
-	if (!oir) return;
-
-	if (oir->in_utcb()) return;
-
-	destroy(_pd.cap_slab(), oir);
-}
-
-
-void Kernel::Thread::_call_invalidate_tlb()
-{
-	Pd * const pd = (Pd *) user_arg_1();
-	addr_t addr   = (addr_t) user_arg_2();
-	size_t size   = (size_t) user_arg_3();
 	unsigned cnt = 0;
 
 	_cpu_pool.for_each_cpu([&] (Cpu &cpu) {
 		/* if a cpu needs to update increase the counter */
-		if (pd->invalidate_tlb(cpu, addr, size)) cnt++; });
+		if (pd.invalidate_tlb(cpu, addr, size)) cnt++; });
 
 	/* insert the work item in the list if there are outstanding cpus */
 	if (cnt) {
 		_tlb_invalidation.construct(
-			_cpu_pool.work_list(), *this, *pd, addr, size, cnt);
+			_cpu_pool.work_list(), *this, pd, addr, size, cnt);
 	}
 }
 
 
-void Thread::_call_get_cpu_state() {
-	Thread &thread = *(Thread*)user_arg_1();
-	Cpu_state &cpu_state = *(Cpu_state*)user_arg_2();
-	cpu_state = *thread.regs;
-}
-
-
-void Thread::_call_set_cpu_state() {
-	Thread &thread = *(Thread*)user_arg_1();
-	Cpu_state &cpu_state = *(Cpu_state*)user_arg_2();
-	static_cast<Cpu_state&>(*thread.regs) = cpu_state;
-}
-
-
-void Thread::_call_exception_state() {
-	Thread &thread = *(Thread*)user_arg_1();
-	Exception_state &exception_state = *(Exception_state*)user_arg_2();
-	exception_state = thread.exception_state();
-}
-
-
-void Thread::_call_single_step() {
-	Thread &thread = *(Thread*)user_arg_1();
-	bool on = *(bool*)user_arg_2();
-	Cpu::single_step(*thread.regs, on);
-}
-
-
-void Thread::_call_ack_pager_signal()
+void Thread::_call_thread_pager_signal_ack(capid_t id, Thread &thread, bool resolved)
 {
-	Signal_context * const c = _pd.cap_tree().find<Signal_context>((Kernel::capid_t)user_arg_1());
-	if (!c)
-		Genode::raw(*this, ": cannot ack unknown signal context");
-	else
-		c->ack();
+	auto *c = _pd.cap_tree().find<Signal_context>(id);
+	if (c) c->ack();
 
-	Thread &thread = *(Thread*)user_arg_2();
 	thread.helping_finished();
 
-	bool resolved = user_arg_3() ||
-	                thread._exception_state == NO_EXCEPTION;
-	if (resolved) thread._restart();
-	else          thread._become_inactive(AWAITS_RESTART);
+	bool restart = resolved ||
+	               thread._exception_state == NO_EXCEPTION;
+	if (restart) thread._restart();
+	else         thread._become_inactive(AWAITS_RESTART);
 }
 
 
@@ -725,85 +621,307 @@ void Thread::_call_ack_pager_signal()
 void Thread::_call()
 {
 	/* switch over unrestricted kernel calls */
-	unsigned const call_id = (unsigned)user_arg_0();
-	switch (call_id) {
-	case call_id_cache_coherent_region():    _call_cache_coherent_region(); return;
-	case call_id_cache_clean_inv_region():   _call_cache_clean_invalidate_data_region(); return;
-	case call_id_cache_inv_region():         _call_cache_invalidate_data_region(); return;
-	case call_id_cache_line_size():          _call_cache_line_size(); return;
-	case call_id_stop_thread():              _call_stop_thread(); return;
-	case call_id_restart_thread():           _call_restart_thread(); return;
-	case call_id_yield_thread():             _call_yield_thread(); return;
-	case call_id_send_request_msg():         _call_send_request_msg(); return;
-	case call_id_send_reply_msg():           _call_send_reply_msg(); return;
-	case call_id_await_request_msg():        _call_await_request_msg(); return;
-	case call_id_kill_signal_context():      _call_kill_signal_context(); return;
-	case call_id_submit_signal():            _call_submit_signal(); return;
-	case call_id_await_signal():             _call_await_signal(); return;
-	case call_id_pending_signal():           _call_pending_signal(); return;
-	case call_id_ack_signal():               _call_ack_signal(); return;
-	case call_id_print_char():               _call_print_char(); return;
-	case call_id_ack_cap():                  _call_ack_cap(); return;
-	case call_id_delete_cap():               _call_delete_cap(); return;
-	case call_id_timeout():                  _call_timeout(); return;
-	case call_id_timeout_max_us():           _call_timeout_max_us(); return;
-	case call_id_time():                     _call_time(); return;
-	case call_id_run_vcpu():                 _call_run_vcpu(); return;
-	case call_id_pause_vcpu():               _call_pause_vcpu(); return;
+	switch (user_arg_0<Call_id>()) {
+	case Call_id::CACHE_CLEAN_INV:
+		{
+			_call_cache_clean_invalidate(user_arg_1<addr_t>(),
+			                             user_arg_2<size_t>());
+			return;
+		}
+	case Call_id::CACHE_COHERENT:
+		{
+			_call_cache_coherent(user_arg_1<addr_t>(),
+			                     user_arg_2<size_t>());
+			return;
+		}
+	case Call_id::CACHE_INV:
+		{
+			_call_cache_invalidate(user_arg_1<addr_t>(),
+			                       user_arg_2<size_t>());
+			return;
+		}
+	case Call_id::CACHE_SIZE:
+		{
+			user_ret(_call_cache_line_size());
+			return;
+		}
+	case Call_id::CAP_ACK:
+		{
+			_call_cap_ack(user_arg_1<capid_t>());
+			return;
+		}
+	case Call_id::CAP_DESTROY:
+		{
+			_call_cap_destroy(user_arg_1<capid_t>());
+			return;
+		}
+	case Call_id::PRINT:
+		{
+			Kernel::log(user_arg_1<char>());
+			return;
+		}
+	case Call_id::RPC_CALL:
+		{
+			user_ret(_call_rpc_call(user_arg_1<capid_t>(),
+			                        user_arg_2<unsigned>()));
+			return;
+		}
+	case Call_id::RPC_REPLY:
+		{
+			_call_rpc_reply();
+			return;
+		}
+	case Call_id::RPC_REPLY_AND_WAIT:
+		{
+			user_ret(_call_rpc_reply_and_wait(user_arg_1<unsigned>()));
+			return;
+		}
+	case Call_id::RPC_WAIT:
+		{
+			user_ret(_call_rpc_wait(user_arg_1<unsigned>()));
+			return;
+		}
+	case Call_id::SIG_ACK:
+		{
+			_call_signal_ack(user_arg_1<capid_t>());
+			return;
+		}
+	case Call_id::SIG_KILL:
+		{
+			_call_signal_kill(user_arg_1<capid_t>());
+			return;
+		}
+	case Call_id::SIG_PENDING:
+		{
+			user_ret(_call_signal_pending(user_arg_1<capid_t>()));
+			return;
+		}
+	case Call_id::SIG_SUBMIT:
+		{
+			_call_signal_submit(user_arg_1<capid_t>(),
+			                    user_arg_2<unsigned>());
+			return;
+		}
+	case Call_id::SIG_WAIT:
+		{
+			user_ret(_call_signal_wait(user_arg_1<capid_t>()));
+			return;
+		}
+	case Call_id::THREAD_RESTART:
+		{
+			user_ret(_call_thread_restart(user_arg_1<capid_t>()));
+			return;
+		}
+	case Call_id::THREAD_STOP:
+		{
+			_call_thread_stop();
+			return;
+		}
+	case Call_id::THREAD_YIELD:
+		{
+			Cpu_context::_yield();
+			return;
+		}
+	case Call_id::TIME:
+		{
+			user_ret_time(_cpu().timer().ticks_to_us(_cpu().timer().time()));
+			return;
+		}
+	case Call_id::TIMEOUT:
+		{
+			_call_timeout(user_arg_1<timeout_t>(), user_arg_2<capid_t>());
+			return;
+		}
+	case Call_id::TIMEOUT_MAX_US:
+		{
+			user_ret_time(_cpu().timer().timeout_max_us());
+			return;
+		}
+	case Call_id::VCPU_PAUSE:
+		{
+			_call_vcpu_pause(user_arg_1<capid_t>());
+			return;
+		}
+	case Call_id::VCPU_RUN:
+		{
+			_call_vcpu_run(user_arg_1<capid_t>());
+			return;
+		}
 	default:
 		/* check wether this is a core thread */
 		if (_type != CORE) {
-			Genode::raw(*this, ": not entitled to do kernel call");
+			Genode::raw(*this, ": invalid system call ", user_arg_0<unsigned>());
 			_die();
 			return;
 		}
 	}
+
 	/* switch over kernel calls that are restricted to core */
-	switch (call_id) {
-	case call_id_new_thread():
-		_cpu_pool.with_cpu(user_arg_3(), [&] (Cpu &cpu) {
-			_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
-			                  cpu, _core_pd, *((Pd*)user_arg_2()),
-			                  (unsigned) user_arg_4(),
-			                  (char const *) user_arg_5(), USER); });
-		return;
-	case call_id_new_core_thread():
-		_cpu_pool.with_cpu(user_arg_2(), [&] (Cpu &cpu) {
-			_call_new<Thread>(_addr_space_id_alloc, _user_irq_pool, _cpu_pool,
-			                  cpu, _core_pd, (char const *) user_arg_3()); });
-		return;
-	case call_id_delete_thread():          _call_delete_thread(); return;
-	case call_id_start_thread():           _call_start_thread(); return;
-	case call_id_resume_thread():          _call_resume_thread(); return;
-	case call_id_thread_pager():           _call_pager(); return;
-	case call_id_invalidate_tlb():         _call_invalidate_tlb(); return;
-	case call_id_new_pd():
-		_call_new<Pd>(*(Kernel::Pd::Core_pd_data *) user_arg_2(),
-		              _addr_space_id_alloc);
-		return;
-	case call_id_delete_pd():              _call_delete_pd(); return;
-	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;
-	case call_id_new_signal_context():
-		_call_new<Signal_context>(*(Signal_receiver*) user_arg_2(), user_arg_3());
-		return;
-	case call_id_delete_signal_context():  _call_delete<Signal_context>(); return;
-	case call_id_delete_signal_receiver(): _call_delete<Signal_receiver>(); return;
-	case call_id_new_vcpu():               _call_new_vcpu(); return;
-	case call_id_delete_vcpu():            _call_delete_vcpu(); return;
-	case call_id_pause_thread():           _call_pause_thread(); return;
-	case call_id_new_irq():                _call_new_irq(); return;
-	case call_id_delete_irq():             _call_delete<User_irq>(); return;
-	case call_id_ack_irq():                _call_ack_irq(); return;
-	case call_id_new_obj():                _call_new_obj(); return;
-	case call_id_delete_obj():             _call_delete_obj(); return;
-	case call_id_suspend():                _call_suspend(); return;
-	case call_id_get_cpu_state():          _call_get_cpu_state(); return;
-	case call_id_set_cpu_state():          _call_set_cpu_state(); return;
-	case call_id_exception_state():        _call_exception_state(); return;
-	case call_id_single_step():            _call_single_step(); return;
-	case call_id_ack_pager_signal():       _call_ack_pager_signal(); return;
+	switch (user_arg_0<Core_call_id>()) {
+	case Core_call_id::CPU_SUSPEND:
+		{
+			user_ret(_call_cpu_suspend(user_arg_1<unsigned>()));
+			return;
+		}
+	case Core_call_id::IRQ_ACK:
+		{
+			user_arg_1<User_irq*>()->enable();
+			return;
+		}
+	case Core_call_id::IRQ_CREATE:
+		{
+			user_ret(_call_irq_create(*user_arg_1<C_irq*>(),
+			                          user_arg_2<unsigned>(),
+			                          user_arg_3<Genode::Irq_session::Trigger>(),
+			                          user_arg_4<Genode::Irq_session::Polarity>(),
+			                          user_arg_5<capid_t>()));
+			return;
+		}
+	case Core_call_id::IRQ_DESTROY:
+		{
+			_call_destruct<User_irq>();
+			return;
+		}
+	case Core_call_id::OBJECT_CREATE:
+		{
+			user_ret(_call_obj_create(*user_arg_1<Thread_identity*>(),
+			                          user_arg_2<capid_t>()));
+			return;
+		}
+	case Core_call_id::OBJECT_DESTROY:
+		{
+			user_arg_1<Thread_identity*>()->destruct();
+			return;
+		}
+	case Core_call_id::PD_CREATE:
+		{
+			_call_create<Pd>(*user_arg_2<Pd::Core_pd_data*>(),
+			                 _addr_space_id_alloc);
+			return;
+		}
+	case Core_call_id::PD_DESTROY:
+		{
+			_call_destruct<Pd>();
+			return;
+		}
+	case Core_call_id::PD_INVALIDATE_TLB:
+		{
+			_call_pd_invalidate_tlb(*user_arg_1<Pd*>(), user_arg_2<addr_t>(),
+			                        user_arg_3<size_t>());
+			return;
+		}
+	case Core_call_id::SIGNAL_CONTEXT_CREATE:
+		{
+			_call_create<Signal_context>(*user_arg_2<Signal_receiver*>(),
+			                             user_arg_3<addr_t>());
+			return;
+		}
+	case Core_call_id::SIGNAL_CONTEXT_DESTROY:
+		{
+			_call_destruct<Signal_context>();
+			return;
+		}
+	case Core_call_id::SIGNAL_RECEIVER_CREATE:
+		{
+			_call_create<Signal_receiver>();
+			return;
+		}
+	case Core_call_id::SIGNAL_RECEIVER_DESTROY:
+		{
+			_call_destruct<Signal_receiver>();
+			return;
+		}
+	case Core_call_id::THREAD_CREATE:
+		{
+			_cpu_pool.with_cpu(user_arg_3<unsigned>(), [&] (Cpu &cpu) {
+				_call_create<Thread>(_addr_space_id_alloc, _user_irq_pool,
+				                     _cpu_pool, cpu, _core_pd,
+				                     *user_arg_2<Pd*>(),
+				                     Scheduler::Group_id(user_arg_4<unsigned>()),
+				                     user_arg_5<char const*>(), USER);
+			});
+			return;
+		}
+	case Core_call_id::THREAD_CORE_CREATE:
+		{
+			_cpu_pool.with_cpu(user_arg_2<unsigned>(), [&] (Cpu &cpu) {
+				_call_create<Thread>(_addr_space_id_alloc, _user_irq_pool,
+				                     _cpu_pool, cpu, _core_pd,
+				                     user_arg_3<char const*>());
+			});
+			return;
+		}
+	case Core_call_id::THREAD_CPU_STATE_GET:
+		{
+			*user_arg_2<Cpu_state*>() = *user_arg_1<Thread*>()->regs;
+			return;
+		}
+	case Core_call_id::THREAD_CPU_STATE_SET:
+		{
+			static_cast<Cpu_state&>(*user_arg_1<Thread*>()->regs) =
+				*user_arg_2<Cpu_state*>();
+			return;
+		}
+	case Core_call_id::THREAD_DESTROY:
+		{
+			_call_thread_destroy(*user_arg_1<C_thread*>());
+			return;
+		}
+	case Core_call_id::THREAD_EXC_STATE_GET:
+		{
+			*user_arg_2<Exception_state*>() =
+				user_arg_1<Thread*>()->exception_state();
+			return;
+		}
+	case Core_call_id::THREAD_PAGER_SET:
+		{
+			_call_thread_pager(*user_arg_1<Thread*>(), *user_arg_2<Thread*>(),
+			                   user_arg_3<capid_t>());
+			return;
+		}
+	case Core_call_id::THREAD_PAGER_SIGNAL_ACK:
+		{
+			_call_thread_pager_signal_ack(user_arg_1<capid_t>(),
+			                              *user_arg_2<Thread*>(),
+			                              user_arg_3<bool>());
+			return;
+		}
+	case Core_call_id::THREAD_PAUSE:
+		{
+			_call_thread_pause(*user_arg_1<Thread*>());
+			return;
+		}
+	case Core_call_id::THREAD_RESUME:
+		{
+			_call_thread_resume(*user_arg_1<Thread*>());
+			return;
+		}
+	case Core_call_id::THREAD_SINGLE_STEP:
+		{
+			Cpu::single_step(*user_arg_1<Thread*>()->regs, user_arg_2<bool>());
+			return;
+		}
+	case Core_call_id::THREAD_START:
+		{
+			user_ret(_call_thread_start(*user_arg_1<Thread*>(),
+			                            *user_arg_2<Native_utcb*>()));
+			return;
+		}
+	case Core_call_id::VCPU_CREATE:
+		{
+			user_ret(_call_vcpu_create(*user_arg_1<C_vcpu*>(), user_arg_2<unsigned>(),
+			                           *user_arg_3<Board::Vcpu_state*>(),
+			                           *user_arg_4<Vcpu::Identity*>(),
+			                           user_arg_5<capid_t>()));
+			return;
+		}
+	case Core_call_id::VCPU_DESTROY:
+		{
+			_call_destruct<Vcpu>();
+			return;
+		}
 	default:
-		Genode::raw(*this, ": unknown kernel call");
+		Genode::raw(*this, ": invalid system call ", user_arg_0<unsigned>());
 		_die();
 		return;
 	}

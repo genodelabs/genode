@@ -57,6 +57,15 @@ class Board::Cpu : public Hw::Riscv_cpu
 
 			void for_each_return_address(Const_byte_range_ptr const &,
 			                             auto const &) { }
+
+			void reg_0(uint64_t v) { a0 = v; }
+
+			uint64_t reg_0() const { return a0; }
+			uint64_t reg_1() const { return a1; }
+			uint64_t reg_2() const { return a2; }
+			uint64_t reg_3() const { return a3; }
+			uint64_t reg_4() const { return a4; }
+			uint64_t reg_5() const { return a5; }
 		};
 
 		class Mmu_context

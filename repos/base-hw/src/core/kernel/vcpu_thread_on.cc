@@ -16,35 +16,32 @@
 #include <kernel/vcpu.h>
 #include <kernel/cpu.h>
 
-void Kernel::Thread::_call_new_vcpu()
+Kernel::capid_t
+Kernel::Thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &kobj,
+                                  Call_arg cpuid, Board::Vcpu_state &state,
+                                  Vcpu::Identity &identity, capid_t sig_cap)
 {
-	Signal_context * context =
-		_pd.cap_tree().find<Signal_context>((capid_t)user_arg_5());
-	if (!context) {
-		user_arg_0(cap_id_invalid());
-		return;
-	}
+	Signal_context *context = _pd.cap_tree().find<Signal_context>(sig_cap);
+	if (!context)
+		return cap_id_invalid();
 
-	_cpu_pool.with_cpu(user_arg_2(), [&] (Cpu &cpu) {
-		_call_new<Vcpu>(_user_irq_pool, cpu,
-		              *(Board::Vcpu_state*)user_arg_3(),
-		              *context, *(Vcpu::Identity*)user_arg_4());
-	});
+	_cpu_pool.with_cpu(cpuid, [&] (Cpu &cpu) {
+		kobj.construct(_core_pd, _user_irq_pool, cpu, state,
+		               *context, identity); });
+
+	return (kobj.constructed()) ?  kobj->core_capid() : cap_id_invalid();
 }
 
 
-void Kernel::Thread::_call_delete_vcpu()
+void Kernel::Thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>& to_delete)
 {
-	Core::Kernel_object<Vcpu> &to_delete =
-		*(Core::Kernel_object<Vcpu>*)user_arg_1();
-
 	/**
 	 * Delete a vcpu immediately if it is assigned to this cpu,
 	 * or the assigned cpu did not scheduled it.
 	 */
 	if (to_delete->_cpu().id() == Cpu::executing_id() ||
 	    &to_delete->_cpu().current_context() != &*to_delete) {
-		_call_delete<Vcpu>();
+		to_delete.destruct();
 		return;
 	}
 
@@ -56,33 +53,18 @@ void Kernel::Thread::_call_delete_vcpu()
 }
 
 
-void Kernel::Thread::_call_run_vcpu()
+void Kernel::Thread::_call_vcpu_run(capid_t const id)
 {
-	Object_identity_reference * ref = _pd.cap_tree().find((capid_t)user_arg_1());
-	Vcpu * vcpu = ref ? ref->object<Vcpu>() : nullptr;
-
-	if (!vcpu) {
-		Genode::raw("Invalid Vcpu cap");
-		user_arg_0(-1);
-		return;
-	}
-
-	vcpu->run();
-	user_arg_0(0);
+	auto *obj_ref = _pd.cap_tree().find(id);
+	auto *vcpu = obj_ref ? obj_ref->object<Vcpu>() : nullptr;
+	if (vcpu) vcpu->run();
 }
 
 
-void Kernel::Thread::_call_pause_vcpu()
+void Kernel::Thread::_call_vcpu_pause(capid_t const id)
 {
-	Object_identity_reference * ref = _pd.cap_tree().find((capid_t)user_arg_1());
-	Vcpu * vcpu = ref ? ref->object<Vcpu>() : nullptr;
+	auto *obj_ref = _pd.cap_tree().find(id);
+	auto *vcpu = obj_ref ? obj_ref->object<Vcpu>() : nullptr;
 
-	if (!vcpu) {
-		Genode::raw("Invalid Vcpu cap");
-		user_arg_0(-1);
-		return;
-	}
-
-	vcpu->pause();
-	user_arg_0(0);
+	if (vcpu) vcpu->pause();
 }

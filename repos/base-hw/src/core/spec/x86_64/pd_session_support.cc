@@ -53,7 +53,8 @@ State System_control_component::system_control(State const &request)
 	unsigned const sleep_type_a = request.ip & 0xffu;
 	unsigned const sleep_type_b = request.sp & 0xffu;
 
-	respond.trapno = Kernel::suspend((sleep_type_b << 8) | sleep_type_a);
+	respond.trapno = (Kernel::cpu_suspend((sleep_type_b << 8) | sleep_type_a)
+	                  == Kernel::Cpu_suspend_result::OK) ? 1 : 0;
 
 	return respond;
 }

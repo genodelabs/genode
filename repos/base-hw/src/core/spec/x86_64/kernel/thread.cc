@@ -22,7 +22,9 @@
 
 #include <hw/spec/x86_64/acpi.h>
 
-void Kernel::Thread::Tlb_invalidation::execute(Cpu &)
+using namespace Kernel;
+
+void Thread::Tlb_invalidation::execute(Cpu &)
 {
 	/* invalidate cpu-local TLB */
 	Cpu::invalidate_tlb();
@@ -35,7 +37,7 @@ void Kernel::Thread::Tlb_invalidation::execute(Cpu &)
 }
 
 
-void Kernel::Thread::Flush_and_stop_cpu::execute(Cpu &cpu)
+void Thread::Flush_and_stop_cpu::execute(Cpu &cpu)
 {
 	if (--cpus_left == 0) {
 		/* last CPU triggers final ACPI suspend outside kernel lock */
@@ -53,7 +55,7 @@ void Kernel::Thread::Flush_and_stop_cpu::execute(Cpu &cpu)
 }
 
 
-void Kernel::Cpu::Halt_job::Halt_job::proceed()
+void Cpu::Halt_job::Halt_job::proceed()
 {
 	switch (_cpu().state()) {
 	case HALT:
@@ -97,7 +99,7 @@ void Kernel::Cpu::Halt_job::Halt_job::proceed()
 }
 
 
-void Kernel::Thread::_call_suspend()
+Cpu_suspend_result Thread::_call_cpu_suspend(unsigned sleep_type)
 {
 	using Genode::uint8_t;
 	using Core::Platform;
@@ -113,27 +115,22 @@ void Kernel::Thread::_call_suspend()
 		cpu_count = boot_info.cpus;
 	});
 
-	if (!acpi_fadt_table || !cpu_count) {
-		user_arg_0(0 /* fail */);
-		return;
-	}
+	if (!acpi_fadt_table || !cpu_count)
+		return Cpu_suspend_result::FAILED;
 
 	if (_stop_cpu.constructed()) {
 		if (_stop_cpu->cpus_left) {
 			Genode::raw("kernel: resume still ongoing");
-			user_arg_0(0 /* fail */);
-			return;
+			return Cpu_suspend_result::FAILED;
 		}
 
 		/* remove & destruct Flush_and_stop_cpu object */
 		_stop_cpu.destruct();
-		user_arg_0(1 /* success */);
-
-		return;
+		return Cpu_suspend_result::OK;
 	}
 
-	auto const sleep_typ_a = uint8_t(user_arg_1());
-	auto const sleep_typ_b = uint8_t(user_arg_1() >> 8);
+	auto const sleep_typ_a = uint8_t(sleep_type);
+	auto const sleep_typ_b = uint8_t(sleep_type >> 8);
 
 	_stop_cpu.construct(_cpu_pool.work_list(), cpu_count - 1,
 	                    Hw::Suspend_type { sleep_typ_a, sleep_typ_b });
@@ -142,7 +139,7 @@ void Kernel::Thread::_call_suspend()
 	if (cpu_count == 1) {
 		/* current CPU triggers final ACPI suspend outside kernel lock */
 		_cpu().next_state_suspend();
-		return;
+		return Cpu_suspend_result::OK;
 	}
 
 	/* trigger IPIs to all beside current CPU */
@@ -156,25 +153,27 @@ void Kernel::Thread::_call_suspend()
 
 		cpu.trigger_ip_interrupt();
 	});
+
+	return Cpu_suspend_result::OK;
 }
 
 
-void Kernel::Thread::_call_cache_coherent_region() { }
+void Thread::_call_cache_coherent(addr_t const, size_t const) { }
 
 
-void Kernel::Thread::_call_cache_clean_invalidate_data_region() { }
+void Thread::_call_cache_clean_invalidate(addr_t const, size_t const) { }
 
 
-void Kernel::Thread::_call_cache_invalidate_data_region() { }
+void Thread::_call_cache_invalidate(addr_t const, size_t const) { }
 
 
-void Kernel::Thread::_call_cache_line_size()
+size_t Thread::_call_cache_line_size()
 {
-	user_arg_0(0);
+	return 0;
 }
 
 
-void Kernel::Thread::exception(Genode::Cpu_state &state)
+void Thread::exception(Genode::Cpu_state &state)
 {
 	using Genode::Cpu_state;
 	using Ctx = Board::Cpu::Context;
@@ -213,7 +212,7 @@ void Kernel::Thread::exception(Genode::Cpu_state &state)
 }
 
 
-void Kernel::Thread::proceed()
+void Thread::proceed()
 {
 	if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
 		_cpu().switch_to(_pd.mmu_regs);
@@ -241,17 +240,4 @@ void Kernel::Thread::proceed()
 }
 
 
-void Kernel::Thread::user_ret_time(Kernel::time_t const t)  { regs->rdi = t;   }
-void Kernel::Thread::user_arg_0(Kernel::Call_arg const arg) { regs->rdi = arg; }
-void Kernel::Thread::user_arg_1(Kernel::Call_arg const arg) { regs->rsi = arg; }
-void Kernel::Thread::user_arg_2(Kernel::Call_arg const arg) { regs->rdx = arg; }
-void Kernel::Thread::user_arg_3(Kernel::Call_arg const arg) { regs->rcx = arg; }
-void Kernel::Thread::user_arg_4(Kernel::Call_arg const arg) { regs->r8 = arg; }
-void Kernel::Thread::user_arg_5(Kernel::Call_arg const arg) { regs->r9 = arg; }
-
-Kernel::Call_arg Kernel::Thread::user_arg_0() const { return regs->rdi; }
-Kernel::Call_arg Kernel::Thread::user_arg_1() const { return regs->rsi; }
-Kernel::Call_arg Kernel::Thread::user_arg_2() const { return regs->rdx; }
-Kernel::Call_arg Kernel::Thread::user_arg_3() const { return regs->rcx; }
-Kernel::Call_arg Kernel::Thread::user_arg_4() const { return regs->r8; }
-Kernel::Call_arg Kernel::Thread::user_arg_5() const { return regs->r9; }
+void Thread::user_ret_time(Kernel::time_t const t) { regs->rdi = t; }

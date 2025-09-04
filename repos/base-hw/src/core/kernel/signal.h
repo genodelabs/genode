@@ -194,8 +194,9 @@ class Kernel::Signal_context
 		                              Signal_receiver & receiver,
 		                              addr_t const imprint)
 		{
-			return (capid_t)call(call_id_new_signal_context(), (Call_arg)&c,
-			                     (Call_arg)&receiver, (Call_arg)imprint);
+			return (capid_t)core_call(Core_call_id::SIGNAL_CONTEXT_CREATE,
+			                          (Call_arg)&c, (Call_arg)&receiver,
+			                          (Call_arg)imprint);
 		}
 
 		/**
@@ -204,7 +205,7 @@ class Kernel::Signal_context
 		 * \param context  pointer to signal context kernel object
 		 */
 		static void syscall_destroy(Core::Kernel_object<Signal_context> &c) {
-			call(call_id_delete_signal_context(), (Call_arg)&c); }
+			core_call(Core_call_id::SIGNAL_CONTEXT_DESTROY, (Call_arg)&c); }
 
 		Object &kernel_object() { return _kernel_object; }
 };
@@ -272,8 +273,11 @@ class Kernel::Signal_receiver
 		 *
 		 * \retval capability id of the new kernel object
 		 */
-		static capid_t syscall_create(Core::Kernel_object<Signal_receiver> &r) {
-			return (capid_t)call(call_id_new_signal_receiver(), (Call_arg)&r); }
+		static capid_t syscall_create(Core::Kernel_object<Signal_receiver> &r)
+		{
+			return (capid_t)core_call(Core_call_id::SIGNAL_RECEIVER_CREATE,
+			                          (Call_arg)&r);
+		}
 
 		/**
 		 * Syscall to destruct a signal receiver
@@ -281,7 +285,7 @@ class Kernel::Signal_receiver
 		 * \param receiver  pointer to signal receiver kernel object
 		 */
 		static void syscall_destroy(Core::Kernel_object<Signal_receiver> &r) {
-			call(call_id_delete_signal_receiver(), (Call_arg)&r); }
+			core_call(Core_call_id::SIGNAL_RECEIVER_DESTROY, (Call_arg)&r); }
 
 		Object &kernel_object() { return _kernel_object; }
 };

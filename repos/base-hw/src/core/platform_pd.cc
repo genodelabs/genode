@@ -98,7 +98,7 @@ void Platform_pd::flush(addr_t virt, size_t size, Core_local_addr)
 	_table.obj([&] (Hw::Page_table &tab) {
 		tab.remove(virt, size, _table_alloc); });
 	if (_kobj.constructed())
-		Kernel::invalidate_tlb(*_kobj, virt, size);
+		Kernel::pd_invalidate_tlb(*_kobj, virt, size);
 }
 
 

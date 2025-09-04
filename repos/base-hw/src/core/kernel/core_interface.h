@@ -39,63 +39,59 @@ namespace Kernel {
 	template <typename T> class Core_object_identity;
 
 	/**
-	 * Kernel names of the kernel calls
+	 * Kernel core-only system call IDs
 	 */
-	constexpr Call_arg call_id_new_thread()             { return 100; }
-	constexpr Call_arg call_id_delete_thread()          { return 101; }
-	constexpr Call_arg call_id_start_thread()           { return 102; }
-	constexpr Call_arg call_id_pause_thread()           { return 103; }
-	constexpr Call_arg call_id_resume_thread()          { return 104; }
-	constexpr Call_arg call_id_thread_pager()           { return 105; }
-	constexpr Call_arg call_id_thread_quota()           { return 106; }
-	constexpr Call_arg call_id_invalidate_tlb()         { return 107; }
-	constexpr Call_arg call_id_new_pd()                 { return 108; }
-	constexpr Call_arg call_id_delete_pd()              { return 109; }
-	constexpr Call_arg call_id_new_signal_receiver()    { return 110; }
-	constexpr Call_arg call_id_new_signal_context()     { return 111; }
-	constexpr Call_arg call_id_delete_signal_context()  { return 112; }
-	constexpr Call_arg call_id_delete_signal_receiver() { return 113; }
-	constexpr Call_arg call_id_new_vcpu()               { return 114; }
-	constexpr Call_arg call_id_delete_vcpu()            { return 117; }
-	constexpr Call_arg call_id_new_irq()                { return 118; }
-	constexpr Call_arg call_id_delete_irq()             { return 119; }
-	constexpr Call_arg call_id_ack_irq()                { return 120; }
-	constexpr Call_arg call_id_new_obj()                { return 121; }
-	constexpr Call_arg call_id_delete_obj()             { return 122; }
-	constexpr Call_arg call_id_new_core_thread()        { return 123; }
-	constexpr Call_arg call_id_get_cpu_state()          { return 124; }
-	constexpr Call_arg call_id_set_cpu_state()          { return 125; }
-	constexpr Call_arg call_id_exception_state()        { return 126; }
-	constexpr Call_arg call_id_single_step()            { return 127; }
-	constexpr Call_arg call_id_ack_pager_signal()       { return 128; }
+	enum class Core_call_id : Call_arg {
+		FIRST_CALL = 100,
+		CPU_SUSPEND = FIRST_CALL,
+		IRQ_ACK,
+		IRQ_CREATE,
+		IRQ_DESTROY,
+		OBJECT_CREATE,
+		OBJECT_DESTROY,
+		PD_CREATE,
+		PD_DESTROY,
+		PD_INVALIDATE_TLB,
+		SIGNAL_CONTEXT_CREATE,
+		SIGNAL_CONTEXT_DESTROY,
+		SIGNAL_RECEIVER_CREATE,
+		SIGNAL_RECEIVER_DESTROY,
+		THREAD_CORE_CREATE,
+		THREAD_CPU_STATE_GET,
+		THREAD_CPU_STATE_SET,
+		THREAD_CREATE,
+		THREAD_DESTROY,
+		THREAD_EXC_STATE_GET,
+		THREAD_PAGER_SET,
+		THREAD_PAGER_SIGNAL_ACK,
+		THREAD_PAUSE,
+		THREAD_RESUME,
+		THREAD_SINGLE_STEP,
+		THREAD_START,
+		VCPU_CREATE,
+		VCPU_DESTROY,
+	};
+
+	auto core_call(Core_call_id id, auto &&... args)
+	{
+		return arch_call((Call_arg)id, args...);
+	}
 
 	/**
 	 * Invalidate TLB entries for the `pd` in region `addr`, `sz`
 	 */
-	inline void invalidate_tlb(Pd &pd, addr_t const addr,
-	                           size_t const sz)
+	inline void pd_invalidate_tlb(Pd &pd, addr_t const addr,
+	                              size_t const sz)
 	{
-		call(call_id_invalidate_tlb(), (Call_arg)&pd, (Call_arg)addr,
-		     (Call_arg)sz);
-	}
-
-
-	/**
-	 * Configure the CPU quota of a thread
-	 *
-	 * \param thread  kernel object of the targeted thread
-	 * \param quota   new CPU quota value
-	 */
-	inline void thread_quota(Kernel::Thread &thread, size_t const quota)
-	{
-		call(call_id_thread_quota(), (Call_arg)&thread, (Call_arg)quota);
+		core_call(Core_call_id::PD_INVALIDATE_TLB, (Call_arg)&pd,
+		          (Call_arg)addr, (Call_arg)sz);
 	}
 
 
 	/**
 	 * Pause execution of a thread until 'resume_thread' is called on it
 	 *
-	 * \param thread  pointer to thread kernel object
+	 * \param thread  reference to thread kernel object
 	 *
 	 * This doesn't affect the state of the thread (IPC, signalling, etc.) but
 	 * merely wether the thread is allowed for scheduling or not. The pause
@@ -111,9 +107,9 @@ namespace Kernel {
 	 * continue the execution of a thread no matter what state the thread is
 	 * in.
 	 */
-	inline void pause_thread(Thread &thread)
+	inline void thread_pause(Thread &thread)
 	{
-		call(call_id_pause_thread(), (Call_arg)&thread);
+		core_call(Core_call_id::THREAD_PAUSE, (Call_arg)&thread);
 	}
 
 
@@ -122,9 +118,9 @@ namespace Kernel {
 	 *
 	 * \param thread  pointer to thread kernel object
 	 */
-	inline void resume_thread(Thread &thread)
+	inline void thread_resume(Thread &thread)
 	{
-		call(call_id_resume_thread(), (Call_arg)&thread);
+		core_call(Core_call_id::THREAD_RESUME, (Call_arg)&thread);
 	}
 
 
@@ -138,10 +134,11 @@ namespace Kernel {
 	 * \retval   0  suceeded
 	 * \retval !=0  failed
 	 */
-	inline int start_thread(Thread &thread, Native_utcb &utcb)
+	inline Rpc_result thread_start(Thread &thread, Native_utcb &utcb)
 	{
-		return (int)call(call_id_start_thread(), (Call_arg)&thread,
-		                 (Call_arg)&utcb);
+		return (core_call(Core_call_id::THREAD_START, (Call_arg)&thread,
+		                  (Call_arg)&utcb) == (Call_ret)Rpc_result::OK)
+			 ? Rpc_result::OK : Rpc_result::OUT_OF_CAPS;
 	}
 
 
@@ -156,8 +153,8 @@ namespace Kernel {
 	                         Thread &pager,
 	                         capid_t const signal_context_id)
 	{
-		call(call_id_thread_pager(), (Call_arg)&thread, (Call_arg)&pager,
-		     signal_context_id);
+		core_call(Core_call_id::THREAD_PAGER_SET, (Call_arg)&thread,
+		          (Call_arg)&pager, signal_context_id);
 	}
 
 
@@ -166,9 +163,9 @@ namespace Kernel {
 	 *
 	 * \param irq  pointer to interrupt kernel object
 	 */
-	inline void ack_irq(User_irq &irq)
+	inline void irq_ack(User_irq &irq)
 	{
-		call(call_id_ack_irq(), (Call_arg) &irq);
+		core_call(Core_call_id::IRQ_ACK, (Call_arg) &irq);
 	}
 
 
@@ -178,9 +175,10 @@ namespace Kernel {
 	 * \param thread        pointer to thread kernel object
 	 * \param thread_state  pointer to result CPU state object
 	 */
-	inline void get_cpu_state(Thread &thread, Cpu_state &cpu_state)
+	inline void thread_cpu_state_get(Thread &thread, Cpu_state &cpu_state)
 	{
-		call(call_id_get_cpu_state(), (Call_arg)&thread, (Call_arg)&cpu_state);
+		core_call(Core_call_id::THREAD_CPU_STATE_GET, (Call_arg)&thread,
+		          (Call_arg)&cpu_state);
 	}
 
 
@@ -190,9 +188,10 @@ namespace Kernel {
 	 * \param thread        pointer to thread kernel object
 	 * \param thread_state  pointer to CPU state object
 	 */
-	inline void set_cpu_state(Thread &thread, Cpu_state &cpu_state)
+	inline void thread_cpu_state_set(Thread &thread, Cpu_state &cpu_state)
 	{
-		call(call_id_set_cpu_state(), (Call_arg)&thread, (Call_arg)&cpu_state);
+		core_call(Core_call_id::THREAD_CPU_STATE_SET, (Call_arg)&thread,
+		          (Call_arg)&cpu_state);
 	}
 
 
@@ -202,9 +201,10 @@ namespace Kernel {
 	 * \param thread  pointer to thread kernel object
 	 * \param on      enable or disable
 	 */
-	inline void single_step(Thread &thread, bool &on)
+	inline void thread_single_step(Thread &thread, bool on)
 	{
-		call(call_id_single_step(), (Call_arg)&thread, (Call_arg)&on);
+		core_call(Core_call_id::THREAD_SINGLE_STEP, (Call_arg)&thread,
+		          (Call_arg)on);
 	}
 
 	/**
@@ -214,9 +214,30 @@ namespace Kernel {
 	 * \param thread    reference to faulting thread kernel object
 	 * \param resolved  whether fault got resolved
 	 */
-	inline void ack_pager_signal(capid_t const context, Thread &thread, bool resolved)
+	inline void thread_pager_signal_ack(capid_t const context, Thread &thread,
+	                                    bool resolved)
 	{
-		call(call_id_ack_pager_signal(), context, (Call_arg)&thread, resolved);
+		core_call(Core_call_id::THREAD_PAGER_SIGNAL_ACK, context,
+		          (Call_arg)&thread, resolved);
+	}
+
+
+	enum class Cpu_suspend_result : Call_arg { OK, FAILED };
+
+	/**
+	 * Suspend hardware
+	 *
+	 * \param sleep_type  The intended sleep state S0 ... S5. The values are
+	 *                    read out by an ACPI AML component and are of type
+	 *                    TYP_SLPx as described in the ACPI specification,
+	 *                    e.g. TYP_SLPa and TYP_SLPb. The values differ
+	 *                    between different PC systems/boards.
+	 */
+	inline Cpu_suspend_result cpu_suspend(unsigned const sleep_type)
+	{
+		return (core_call(Core_call_id::CPU_SUSPEND, sleep_type)
+		        == (Call_ret)Cpu_suspend_result::OK) ? Cpu_suspend_result::OK
+		                                             : Cpu_suspend_result::FAILED;
 	}
 }
 

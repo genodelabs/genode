@@ -144,6 +144,15 @@ class Board::Cpu : public Hw::X86_64_cpu
 
 			Fpu_context& fpu_context() {
 				return static_cast<Fpu_context&>(*this); }
+
+			void reg_0(uint64_t const v) { rdi = v; }
+
+			uint64_t reg_0() const { return rdi; }
+			uint64_t reg_1() const { return rsi; }
+			uint64_t reg_2() const { return rdx; }
+			uint64_t reg_3() const { return rcx; }
+			uint64_t reg_4() const { return r8;  }
+			uint64_t reg_5() const { return r9;  }
 		} __attribute__((packed));
 
 

@@ -46,15 +46,15 @@ void Genode::prepare_init_main_thread()
 	 */
 	Native_utcb * utcb = Thread::myself()->utcb();
 	_parent_cap = Capability_space::import(utcb->cap_get(Native_utcb::PARENT));
-	Kernel::ack_cap(Capability_space::capid(_parent_cap));
+	Kernel::cap_ack(Capability_space::capid(_parent_cap));
 
 	Untyped_capability ds_cap =
 		Capability_space::import(utcb->cap_get(Native_utcb::UTCB_DATASPACE));
 	_main_thread_utcb_ds = reinterpret_cap_cast<Ram_dataspace>(ds_cap);
-	Kernel::ack_cap(Capability_space::capid(_main_thread_utcb_ds));
+	Kernel::cap_ack(Capability_space::capid(_main_thread_utcb_ds));
 
 	_main_thread_cap = Capability_space::import(utcb->cap_get(Native_utcb::THREAD_MYSELF));
-	Kernel::ack_cap(Capability_space::capid(_main_thread_cap));
+	Kernel::cap_ack(Capability_space::capid(_main_thread_cap));
 }
 
 
@@ -90,6 +90,6 @@ void Thread::_thread_bootstrap()
 		Kernel::capid_t capid = myself()->utcb()->cap_get(Native_utcb::THREAD_MYSELF);
 		nt.cap = Capability_space::import(capid);
 		if (nt.cap.valid())
-			Kernel::ack_cap(Capability_space::capid(nt.cap));
+			Kernel::cap_ack(Capability_space::capid(nt.cap));
 	});
 }

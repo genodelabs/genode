@@ -180,7 +180,7 @@ void Platform_thread::start(void * const ip, void * const sp)
 		utcb.cap_add(Capability_space::capid(_utcb.ds_cap()));
 	}
 
-	Kernel::start_thread(*_kobj, *(Native_utcb*)_utcb.core_addr);
+	Kernel::thread_start(*_kobj, *(Native_utcb*)_utcb.core_addr);
 }
 
 
@@ -207,7 +207,7 @@ Core::Pager_object &Platform_thread::pager()
 Thread_state Platform_thread::state()
 {
 	Cpu_state cpu { };
-	Kernel::get_cpu_state(*_kobj, cpu);
+	Kernel::thread_cpu_state_get(*_kobj, cpu);
 
 	auto state = [&] () -> Thread_state::State
 	{
@@ -229,17 +229,17 @@ Thread_state Platform_thread::state()
 
 void Platform_thread::state(Thread_state thread_state)
 {
-	Kernel::set_cpu_state(*_kobj, thread_state.cpu);
+	Kernel::thread_cpu_state_set(*_kobj, thread_state.cpu);
 }
 
 
 void Platform_thread::restart()
 {
-	Kernel::restart_thread(Capability_space::capid(_kobj.cap()));
+	Kernel::thread_restart(Capability_space::capid(_kobj.cap()));
 }
 
 
 void Platform_thread::fault_resolved(Untyped_capability cap, bool resolved)
 {
-	Kernel::ack_pager_signal(Capability_space::capid(cap), *_kobj, resolved);
+	Kernel::thread_pager_signal_ack(Capability_space::capid(cap), *_kobj, resolved);
 }

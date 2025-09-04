@@ -72,7 +72,7 @@ static inline void copy_utcb_to_msg(Native_utcb const &utcb, Msgbuf_base &rcv_ms
 	for (unsigned i = 0; i < num_caps; i++) {
 		rcv_msg.cap(i) = Capability_space::import(utcb.cap_get(i));
 		if (rcv_msg.cap(i).valid())
-			Kernel::ack_cap(Capability_space::capid(rcv_msg.cap(i)));
+			Kernel::cap_ack(Capability_space::capid(rcv_msg.cap(i)));
 	}
 
 	rcv_msg.used_caps(num_caps);
@@ -100,17 +100,15 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	/*
 	 * Issue IPC call, upgrade the PD's capability slab on demand.
 	 */
-	for (bool done = false; !done; ) {
+	for (;;) {
 
 		copy_msg_to_utcb(snd_msg, *Thread::myself()->utcb());
 
-		switch (Kernel::send_request_msg(Capability_space::capid(dst),
-		                                 (unsigned)rcv_caps)) {
+		if (Kernel::rpc_call(Capability_space::capid(dst), (unsigned)rcv_caps)
+		    == Kernel::Rpc_result::OK)
+			break;
 
-		case -1: sleep_forever();
-		case -2: upgrade_capability_slab(); break;
-		default: done = true; break;
-		}
+		upgrade_capability_slab();
 	}
 
 	copy_utcb_to_msg(utcb, rcv_msg);
@@ -130,7 +128,7 @@ void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
 	copy_msg_to_utcb(snd_msg, utcb);
 	utcb.exception_code(exc.value);
 	snd_msg.reset();
-	Kernel::send_reply_msg(0, false);
+	Kernel::rpc_reply();
 }
 
 
@@ -141,22 +139,22 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 {
 	Native_utcb &utcb = *Thread::myself()->utcb();
 
-	for (bool done = false; !done; ) {
+	for (;;) {
 
-		int ret = 0;
+		Kernel::Rpc_result ret = Kernel::Rpc_result::OK;
+
 		if (exc.value != Rpc_exception_code::INVALID_OBJECT) {
 			copy_msg_to_utcb(reply_msg, utcb);
 			utcb.exception_code(exc.value);
-			ret = Kernel::send_reply_msg(Msgbuf_base::MAX_CAPS_PER_MSG, true);
+			ret = Kernel::rpc_reply_and_wait(Msgbuf_base::MAX_CAPS_PER_MSG);
 		} else {
-			ret = Kernel::await_request_msg(Msgbuf_base::MAX_CAPS_PER_MSG);
+			ret = Kernel::rpc_wait(Msgbuf_base::MAX_CAPS_PER_MSG);
 		}
 
-		switch (ret) {
-		case -1: sleep_forever();
-		case -2: upgrade_capability_slab(); break;
-		default: done = true; break;
-		}
+		if (ret == Kernel::Rpc_result::OK)
+			break;
+
+		upgrade_capability_slab();
 	}
 
 	copy_utcb_to_msg(utcb, request_msg);

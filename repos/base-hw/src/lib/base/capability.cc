@@ -50,7 +50,7 @@ void Native_capability::_dec()
 	spinlock_lock(&spinlock);
 
 	if (!--ref_counter[(addr_t)_data])
-		Kernel::delete_cap((Kernel::capid_t)((addr_t)_data & 0xffff));
+		Kernel::cap_delete((Kernel::capid_t)((addr_t)_data & 0xffff));
 
 	spinlock_unlock(&spinlock);
 }

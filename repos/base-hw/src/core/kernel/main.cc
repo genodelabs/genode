@@ -253,6 +253,6 @@ bool Core::unmap_local(addr_t virt_addr, size_t num_pages)
 	Mutex::Guard guard(pd._mutex);
 	size_t size = num_pages * get_page_size();
 	pd._table.remove(virt_addr, size, pd._table_alloc);
-	Kernel::invalidate_tlb(*pd._kobj, virt_addr, size);
+	Kernel::pd_invalidate_tlb(*pd._kobj, virt_addr, size);
 	return true;
 }

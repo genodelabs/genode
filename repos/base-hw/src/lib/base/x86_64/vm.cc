@@ -87,7 +87,7 @@ Hw_vcpu::Hw_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler)
 
 void Hw_vcpu::run()
 {
-	Kernel::run_vcpu(Capability_space::capid(_kernel_vcpu));
+	Kernel::vcpu_run(Capability_space::capid(_kernel_vcpu));
 }
 
 
@@ -97,7 +97,7 @@ void Hw_vcpu::with_state(auto const &fn)
 		error("vCPU state requested outside of vcpu_handler EP");
 		sleep_forever();
 	}
-	Kernel::pause_vcpu(Capability_space::capid(_kernel_vcpu));
+	Kernel::vcpu_pause(Capability_space::capid(_kernel_vcpu));
 
 	if (fn(_local_state()))
 		run();

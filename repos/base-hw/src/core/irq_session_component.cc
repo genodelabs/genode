@@ -28,7 +28,7 @@ using namespace Core;
 
 void Irq_session_component::ack_irq()
 {
-	if (_kobj.constructed()) Kernel::ack_irq(*_kobj);
+	if (_kobj.constructed()) Kernel::irq_ack(*_kobj);
 }
 
 

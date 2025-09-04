@@ -26,7 +26,7 @@ namespace Hw { extern Genode::Untyped_capability _main_thread_cap; }
 /**
  * Yield execution time-slice of current thread
  */
-static inline void thread_yield() { Kernel::yield_thread(); }
+static inline void thread_yield() { Kernel::thread_yield(); }
 
 
 /**
@@ -50,7 +50,7 @@ static inline Kernel::capid_t native_thread_id(Genode::Thread *thread_ptr)
  */
 static inline void thread_switch_to(Genode::Thread *)
 {
-	Kernel::yield_thread();
+	Kernel::thread_yield();
 }
 
 
@@ -59,14 +59,19 @@ static inline void thread_switch_to(Genode::Thread *)
  */
 static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_ptr)
 {
-	return Kernel::restart_thread(native_thread_id(thread_ptr));
+	switch (Kernel::thread_restart(native_thread_id(thread_ptr))) {
+	case Kernel::Thread_restart_result::RESTARTED:      return true;
+	case Kernel::Thread_restart_result::ALREADY_ACTIVE: return false;
+	case Kernel::Thread_restart_result::INVALID:        break;
+	};
+	return true;
 }
 
 
 /**
  * Pause execution of current thread
  */
-static inline void thread_stop_myself(Genode::Thread *) { Kernel::stop_thread(); }
+static inline void thread_stop_myself(Genode::Thread *) { Kernel::thread_stop(); }
 
 
 #endif /* _INCLUDE__BASE__INTERNAL__LOCK_HELPER_H_ */

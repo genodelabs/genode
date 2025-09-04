@@ -15,7 +15,13 @@
 /* core includes */
 #include <kernel/thread.h>
 
-void Kernel::Thread::_call_new_vcpu()    { user_arg_0(-1); }
-void Kernel::Thread::_call_delete_vcpu() { user_arg_0(-1); }
-void Kernel::Thread::_call_run_vcpu()    { user_arg_0(-1); }
-void Kernel::Thread::_call_pause_vcpu()  { user_arg_0(-1); }
+using namespace Kernel;
+
+capid_t Thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &, Call_arg,
+                                  Board::Vcpu_state &, Vcpu::Identity &,
+                                  capid_t) {
+	return cap_id_invalid(); }
+
+void Thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>&) { }
+void Thread::_call_vcpu_run(capid_t const) { }
+void Thread::_call_vcpu_pause(capid_t const) { }

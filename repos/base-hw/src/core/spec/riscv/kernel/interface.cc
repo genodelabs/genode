@@ -86,7 +86,7 @@ extern Genode::addr_t _kernel_entry;
  ** Kernel calls **
  ******************/
 
-Call_ret_64 Kernel::call64(Call_arg arg_0)
+Call_ret_64 Kernel::arch_call_64(Call_arg arg_0)
 {
 	CALL_1_FILL_ARG_REGS
 	asm volatile(CALL_1_SWI : "ra");
@@ -94,7 +94,7 @@ Call_ret_64 Kernel::call64(Call_arg arg_0)
 }
 
 
-Call_ret Kernel::call(Call_arg arg_0)
+Call_ret Kernel::arch_call(Call_arg arg_0)
 {
 	CALL_1_FILL_ARG_REGS
 	asm volatile(CALL_1_SWI : "ra");
@@ -102,8 +102,8 @@ Call_ret Kernel::call(Call_arg arg_0)
 }
 
 
-Call_ret Kernel::call(Call_arg arg_0,
-                      Call_arg arg_1)
+Call_ret Kernel::arch_call(Call_arg arg_0,
+                           Call_arg arg_1)
 {
 	CALL_2_FILL_ARG_REGS
 	asm volatile(CALL_2_SWI: "ra");
@@ -111,9 +111,9 @@ Call_ret Kernel::call(Call_arg arg_0,
 }
 
 
-Call_ret Kernel::call(Call_arg arg_0,
-                      Call_arg arg_1,
-                      Call_arg arg_2)
+Call_ret Kernel::arch_call(Call_arg arg_0,
+                           Call_arg arg_1,
+                           Call_arg arg_2)
 {
 	CALL_3_FILL_ARG_REGS
 	asm volatile(CALL_3_SWI : "ra");
@@ -121,10 +121,10 @@ Call_ret Kernel::call(Call_arg arg_0,
 }
 
 
-Call_ret Kernel::call(Call_arg arg_0,
-                      Call_arg arg_1,
-                      Call_arg arg_2,
-                      Call_arg arg_3)
+Call_ret Kernel::arch_call(Call_arg arg_0,
+                           Call_arg arg_1,
+                           Call_arg arg_2,
+                           Call_arg arg_3)
 {
 	CALL_4_FILL_ARG_REGS
 	asm volatile(CALL_4_SWI : "ra");
@@ -132,11 +132,11 @@ Call_ret Kernel::call(Call_arg arg_0,
 }
 
 
-Call_ret Kernel::call(Call_arg arg_0,
-                      Call_arg arg_1,
-                      Call_arg arg_2,
-                      Call_arg arg_3,
-                      Call_arg arg_4)
+Call_ret Kernel::arch_call(Call_arg arg_0,
+                           Call_arg arg_1,
+                           Call_arg arg_2,
+                           Call_arg arg_3,
+                           Call_arg arg_4)
 {
 	CALL_5_FILL_ARG_REGS
 	asm volatile(CALL_5_SWI : "ra");
@@ -144,12 +144,12 @@ Call_ret Kernel::call(Call_arg arg_0,
 }
 
 
-Call_ret Kernel::call(Call_arg arg_0,
-                      Call_arg arg_1,
-                      Call_arg arg_2,
-                      Call_arg arg_3,
-                      Call_arg arg_4,
-                      Call_arg arg_5)
+Call_ret Kernel::arch_call(Call_arg arg_0,
+                           Call_arg arg_1,
+                           Call_arg arg_2,
+                           Call_arg arg_3,
+                           Call_arg arg_4,
+                           Call_arg arg_5)
 {
 	CALL_6_FILL_ARG_REGS
 	asm volatile(CALL_6_SWI : "ra");

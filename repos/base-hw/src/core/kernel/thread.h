@@ -200,23 +200,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		Genode::Constructible<Flush_and_stop_cpu> _stop_cpu {};
 
 		/**
-		 * Notice that another thread yielded the CPU to this thread
-		 */
-		void _receive_yielded_cpu();
-
-		/**
-		 * Attach or detach the handler of a thread-triggered event
-		 *
-		 * \param event_id           kernel name of the thread event
-		 * \param signal_context_id  kernel name signal context or 0 to detach
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
-		 */
-		int _route_event(unsigned         const event_id,
-		                 Signal_context * const signal_context_id);
-
-		/**
 		 * Switch from an inactive state to the active state
 		 */
 		void _become_active();
@@ -258,64 +241,74 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 ** Kernel-call back-ends, see kernel-interface headers **
 		 *********************************************************/
 
-		void _call_new_thread();
-		void _call_new_core_thread();
-		void _call_start_thread();
-		void _call_stop_thread();
-		void _call_pause_thread();
-		void _call_resume_thread();
-		void _call_restart_thread();
-		void _call_yield_thread();
-		void _call_delete_thread();
-		void _call_delete_pd();
-		void _call_await_request_msg();
-		void _call_send_request_msg();
-		void _call_send_reply_msg();
-		void _call_invalidate_tlb();
-		void _call_cache_coherent_region();
-		void _call_cache_clean_invalidate_data_region();
-		void _call_cache_invalidate_data_region();
-		void _call_cache_line_size();
-		void _call_print_char();
-		void _call_await_signal();
-		void _call_pending_signal();
-		void _call_submit_signal();
-		void _call_ack_signal();
-		void _call_kill_signal_context();
-		void _call_new_vcpu();
-		void _call_delete_vcpu();
-		void _call_run_vcpu();
-		void _call_pause_vcpu();
-		void _call_pager();
-		void _call_new_irq();
-		void _call_irq_mode();
-		void _call_ack_irq();
-		void _call_new_obj();
-		void _call_delete_obj();
-		void _call_ack_cap();
-		void _call_delete_cap();
-		void _call_timeout();
-		void _call_timeout_max_us();
-		void _call_time();
-		void _call_suspend();
-		void _call_get_cpu_state();
-		void _call_set_cpu_state();
-		void _call_exception_state();
-		void _call_single_step();
-		void _call_ack_pager_signal();
+		using C_thread = Core::Kernel_object<Thread>;
+		using C_pd     = Core::Kernel_object<Pd>;
+		using C_irq    = Core::Kernel_object<User_irq>;
+		using C_vcpu   = Core::Kernel_object<Vcpu>;
+
+		using Thread_identity =
+			Genode::Constructible<Core_object_identity<Thread>>;
+
+		Thread_restart_result _call_thread_restart(capid_t const);
+		Rpc_result            _call_thread_start(Thread&, Native_utcb&);
+		void _call_thread_stop();
+		void _call_thread_pause(Thread &);
+		void _call_thread_resume(Thread &);
+		void _call_thread_destroy(C_thread &);
+		void _call_thread_pager(Thread &, Thread &, capid_t);
+		void _call_thread_pager_signal_ack(capid_t, Thread &, bool);
+
+		void _call_pd_invalidate_tlb(Pd &, addr_t const, size_t const);
+		void _call_pd_destroy(C_pd &);
+
+		Rpc_result _call_rpc_wait(unsigned);
+		Rpc_result _call_rpc_call(capid_t const, unsigned);
+		Rpc_result _call_rpc_reply_and_wait(unsigned);
+		void       _call_rpc_reply();
+
+		void   _call_cache_coherent(addr_t const, size_t const);
+		void   _call_cache_clean_invalidate(addr_t const, size_t const);
+		void   _call_cache_invalidate(addr_t const, size_t const);
+		size_t _call_cache_line_size();
+
+		Signal_result _call_signal_wait(capid_t const);
+		Signal_result _call_signal_pending(capid_t const);
+		void          _call_signal_submit(capid_t const, unsigned);
+		void          _call_signal_ack(capid_t const);
+		void          _call_signal_kill(capid_t const);
+
+		capid_t _call_vcpu_create(C_vcpu &, Call_arg, Board::Vcpu_state &,
+		                          Vcpu::Identity &, capid_t sig_cap);
+		void _call_vcpu_destroy(C_vcpu &);
+		void _call_vcpu_pause(capid_t const);
+		void _call_vcpu_run(capid_t const);
+
+		capid_t _call_irq_create(C_irq &, unsigned,
+		                         Genode::Irq_session::Trigger,
+                                 Genode::Irq_session::Polarity, capid_t id);
+
+		capid_t _call_obj_create(Thread_identity &, capid_t);
+
+		void _call_cap_ack(capid_t const);
+		void _call_cap_destroy(capid_t const);
+
+		void _call_timeout(timeout_t const, capid_t const);
+		Cpu_suspend_result _call_cpu_suspend(unsigned const);
 
 		template <typename T>
-		void _call_new(auto &&... args)
+		void _call_create(auto &&... args)
 		{
-			Core::Kernel_object<T> &kobj = *(Core::Kernel_object<T>*)user_arg_1();
+			Core::Kernel_object<T> &kobj =
+				*user_arg_1<Core::Kernel_object<T>*>();
 			kobj.construct(_core_pd, args...);
-			user_arg_0(kobj->core_capid());
+			user_ret(kobj->core_capid());
 		}
 
 		template <typename T>
-		void _call_delete()
+		void _call_destruct()
 		{
-			Core::Kernel_object<T> &kobj = *(Core::Kernel_object<T>*)user_arg_1();
+			Core::Kernel_object<T> &kobj =
+				*user_arg_1<Core::Kernel_object<T>*>();
 			kobj.destruct();
 		}
 
@@ -362,19 +355,14 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 
 		void user_ret_time(Kernel::time_t const t);
 
-		void user_arg_0(Kernel::Call_arg const arg);
-		void user_arg_1(Kernel::Call_arg const arg);
-		void user_arg_2(Kernel::Call_arg const arg);
-		void user_arg_3(Kernel::Call_arg const arg);
-		void user_arg_4(Kernel::Call_arg const arg);
-		void user_arg_5(Kernel::Call_arg const arg);
+		void user_ret(auto const arg) { regs->reg_0((Call_arg)arg); }
 
-		Kernel::Call_arg user_arg_0() const;
-		Kernel::Call_arg user_arg_1() const;
-		Kernel::Call_arg user_arg_2() const;
-		Kernel::Call_arg user_arg_3() const;
-		Kernel::Call_arg user_arg_4() const;
-		Kernel::Call_arg user_arg_5() const;
+		template <typename T> T user_arg_0() const { return (T)regs->reg_0(); }
+		template <typename T> T user_arg_1() const { return (T)regs->reg_1(); }
+		template <typename T> T user_arg_2() const { return (T)regs->reg_2(); }
+		template <typename T> T user_arg_3() const { return (T)regs->reg_3(); }
+		template <typename T> T user_arg_4() const { return (T)regs->reg_4(); }
+		template <typename T> T user_arg_5() const { return (T)regs->reg_5(); }
 
 		/**
 		 * Syscall to create a thread
@@ -391,9 +379,10 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		                              unsigned const               group_id,
 		                              char const * const           label)
 		{
-			return (capid_t)call(call_id_new_thread(), (Call_arg)&t,
-			                     (Call_arg)&pd, (Call_arg)cpu_id,
-			                     (Call_arg)group_id, (Call_arg)label);
+			return (capid_t)core_call(Core_call_id::THREAD_CREATE,
+			                          (Call_arg)&t, (Call_arg)&pd,
+			                          (Call_arg)cpu_id, (Call_arg)group_id,
+			                          (Call_arg)label);
 		}
 
 		/**
@@ -408,8 +397,9 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		                              unsigned const               cpu_id,
 		                              char const * const           label)
 		{
-			return (capid_t)call(call_id_new_core_thread(), (Call_arg)&t,
-			                     (Call_arg)cpu_id, (Call_arg)label);
+			return (capid_t)core_call(Core_call_id::THREAD_CORE_CREATE,
+			                          (Call_arg)&t, (Call_arg)cpu_id,
+			                          (Call_arg)label);
 		}
 
 		/**
@@ -418,7 +408,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 * \param thread  pointer to thread kernel object
 		 */
 		static void syscall_destroy(Core::Kernel_object<Thread> &t) {
-			call(call_id_delete_thread(), (Call_arg)&t); }
+			core_call(Core_call_id::THREAD_DESTROY, (Call_arg)&t); }
 
 
 		void print(Genode::Output &out) const;

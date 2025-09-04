@@ -1,11 +1,12 @@
 /*
  * \brief  Interface between kernel and userland
+ * \author Stefan Kalkowski
  * \author Martin stein
  * \date   2011-11-30
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,71 +21,77 @@
 namespace Kernel {
 
 	/**
-	 * Kernel names of the kernel calls
+	 * Kernel system call IDs
 	 */
-	constexpr Call_arg call_id_stop_thread()              { return  0; }
-	constexpr Call_arg call_id_restart_thread()           { return  1; }
-	constexpr Call_arg call_id_yield_thread()             { return  2; }
-	constexpr Call_arg call_id_send_request_msg()         { return  3; }
-	constexpr Call_arg call_id_send_reply_msg()           { return  4; }
-	constexpr Call_arg call_id_await_request_msg()        { return  5; }
-	constexpr Call_arg call_id_kill_signal_context()      { return  6; }
-	constexpr Call_arg call_id_submit_signal()            { return  7; }
-	constexpr Call_arg call_id_await_signal()             { return  8; }
-	constexpr Call_arg call_id_pending_signal()           { return  9; }
-	constexpr Call_arg call_id_ack_signal()               { return 10; }
-	constexpr Call_arg call_id_print_char()               { return 11; }
-	constexpr Call_arg call_id_cache_coherent_region()    { return 12; }
-	constexpr Call_arg call_id_cache_clean_inv_region()   { return 13; }
-	constexpr Call_arg call_id_cache_inv_region()         { return 14; }
-	constexpr Call_arg call_id_cache_line_size()          { return 15; }
-	constexpr Call_arg call_id_ack_cap()                  { return 16; }
-	constexpr Call_arg call_id_delete_cap()               { return 17; }
-	constexpr Call_arg call_id_timeout()                  { return 18; }
-	constexpr Call_arg call_id_timeout_max_us()           { return 19; }
-	constexpr Call_arg call_id_time()                     { return 20; }
-	constexpr Call_arg call_id_run_vcpu()                 { return 21; }
-	constexpr Call_arg call_id_pause_vcpu()               { return 22; }
-	constexpr Call_arg call_id_suspend()                  { return 23; }
+	enum class Call_id : Call_arg {
+		CACHE_CLEAN_INV,
+		CACHE_COHERENT,
+		CACHE_INV,
+		CACHE_SIZE,
+		CAP_ACK,
+		CAP_DESTROY,
+		PRINT,
+		RPC_CALL,
+		RPC_REPLY,
+		RPC_REPLY_AND_WAIT,
+		RPC_WAIT,
+		SIG_ACK,
+		SIG_KILL,
+		SIG_PENDING,
+		SIG_SUBMIT,
+		SIG_WAIT,
+		THREAD_RESTART,
+		THREAD_STOP,
+		THREAD_YIELD,
+		TIME,
+		TIMEOUT,
+		TIMEOUT_MAX_US,
+		VCPU_PAUSE,
+		VCPU_RUN,
+	};
 
 
-	/*****************************************************************
-	 ** Kernel call with 1 to 6 arguments                           **
-	 **                                                             **
-	 ** These functions must not be inline to ensure that objects,  **
-	 ** wich are referenced by arguments, are tagged as "used" even **
-	 ** though only the pointer gets handled in here.               **
-	 *****************************************************************/
+	/******************************************************************
+	 ** Kernel call with 1 to 6 arguments                            **
+	 **                                                              **
+	 ** These functions must not be inline to ensure that objects,   **
+	 ** which are referenced by arguments, are tagged as "used" even **
+	 ** though only the pointer gets handled in here.                **
+	 ******************************************************************/
 
-	Call_ret call(Call_arg arg_0);
+	Call_ret arch_call(Call_arg arg_0);
 
-	Call_ret call(Call_arg arg_0,
-	              Call_arg arg_1);
+	Call_ret arch_call(Call_arg arg_0,
+	                   Call_arg arg_1);
 
-	Call_ret call(Call_arg arg_0,
-	              Call_arg arg_1,
-	              Call_arg arg_2);
+	Call_ret arch_call(Call_arg arg_0,
+	                   Call_arg arg_1,
+	                   Call_arg arg_2);
 
-	Call_ret call(Call_arg arg_0,
-	              Call_arg arg_1,
-	              Call_arg arg_2,
-	              Call_arg arg_3);
+	Call_ret arch_call(Call_arg arg_0,
+	                   Call_arg arg_1,
+	                   Call_arg arg_2,
+	                   Call_arg arg_3);
 
-	Call_ret call(Call_arg arg_0,
-	              Call_arg arg_1,
-	              Call_arg arg_2,
-	              Call_arg arg_3,
-	              Call_arg arg_4);
+	Call_ret arch_call(Call_arg arg_0,
+	                   Call_arg arg_1,
+	                   Call_arg arg_2,
+	                   Call_arg arg_3,
+	                   Call_arg arg_4);
 
-	Call_ret call(Call_arg arg_0,
-	              Call_arg arg_1,
-	              Call_arg arg_2,
-	              Call_arg arg_3,
-	              Call_arg arg_4,
-	              Call_arg arg_5);
+	Call_ret arch_call(Call_arg arg_0,
+	                   Call_arg arg_1,
+	                   Call_arg arg_2,
+	                   Call_arg arg_3,
+	                   Call_arg arg_4,
+	                   Call_arg arg_5);
 
-	Call_ret_64 call64(Call_arg arg_0);
+	Call_ret_64 arch_call_64(Call_arg arg_0);
 
+	inline auto call(Call_id id, auto &&... args)
+	{
+		return arch_call((Call_arg)id, args...);
+	}
 
 	/**
 	 * Install timeout for calling thread
@@ -94,9 +101,9 @@ namespace Kernel {
 	 *
 	 * This call overwrites the last timeout installed by the thread.
 	 */
-	inline int timeout(timeout_t const duration_us, capid_t const sigid)
+	inline void timeout(timeout_t const duration_us, capid_t const sigid)
 	{
-		return (int)call(call_id_timeout(), duration_us, sigid);
+		call(Call_id::TIMEOUT, duration_us, sigid);
 	}
 
 
@@ -108,7 +115,7 @@ namespace Kernel {
 	 */
 	inline time_t time()
 	{
-		return call64(call_id_time());
+		return arch_call_64((Call_arg)Call_id::TIME);
 	}
 
 
@@ -120,175 +127,164 @@ namespace Kernel {
 	 */
 	inline time_t timeout_max_us()
 	{
-		return call64(call_id_timeout_max_us());
+		return arch_call_64((Call_arg)Call_id::TIMEOUT_MAX_US);
 	}
 
 
 	/**
-	 * Wait for a user event signaled by a 'restart_thread' syscall
-	 *
-	 * The stop syscall always targets the calling thread that, therefore must
-	 * be in the 'active' thread state. The thread then switches to the
-	 * 'stopped' thread state, in which it waits for a restart. The restart
-	 * syscall can only be used on a thread in the 'stopped' or the 'active'
-	 * thread state. The thread then switches back to the 'active' thread
-	 * state and the syscall returns whether the thread was stopped. Both
-	 * syscalls are not core-restricted. In contrast to the 'stop' syscall,
-	 * 'restart' may target any thread in the same PD as the caller. Thread
-	 * state and UTCB content of a thread don't change while in the 'stopped'
-	 * state. The 'stop/restart' feature is used when an active thread wants
-	 * to wait for an event that is not known to the kernel. Actually, the
-	 * syscalls are used when waiting for locks and when doing infinite
-	 * waiting on thread exit.
+	 * Stops the calling thread, which becomes inactive until being activated
+	 * again, e.g., by the restart_thread syscall.
 	 */
-	inline void stop_thread()
+	inline void thread_stop()
 	{
-		call(call_id_stop_thread());
+		call(Call_id::THREAD_STOP);
 	}
 
+	enum class Thread_restart_result : Call_ret {
+		RESTARTED, ALREADY_ACTIVE, INVALID };
 
 	/**
-	 * End blocking of a stopped thread
+	 * Activate a thread
 	 *
 	 * \param thread_id  capability ID of the targeted thread
 	 *
-	 * \return  wether the thread was stopped beforehand
-	 *
-	 * For details see the 'stop_thread' syscall.
+	 * \return  wether the thread was inactive beforehand
 	 */
-	inline bool restart_thread(capid_t const thread_id)
+	inline Thread_restart_result thread_restart(capid_t const thread_id)
 	{
-		return call(call_id_restart_thread(), thread_id);
+		switch (call(Call_id::THREAD_RESTART, thread_id)) {
+		case (Call_ret)Thread_restart_result::RESTARTED:
+			return Thread_restart_result::RESTARTED;
+		case (Call_ret)Thread_restart_result::ALREADY_ACTIVE:
+			return Thread_restart_result::ALREADY_ACTIVE;
+		default: break;
+		};
+		return Thread_restart_result::INVALID;
 	}
 
 
 	/**
-	 * Yield the caller's remaining CPU time for this super period
-	 *
-	 * Tell the kernel to schedule the caller as little as possible in the
-	 * current scheduling super-period without touching the thread or pause
-	 * state of the thread. In the next superperiod, however, the thread is
-	 * scheduled 'normal' again. The syscall is not core-restricted and always
-	 * targets the caller. It is actually used in locks to help another thread
-	 * reach a desired point in execution by releasing pressure from the CPU.
+	 * Yield the calling thread's current cpu time to others.
+	 * It strongly depends on the current CPU's schedule what actually
+	 * will happen, and if the calling thread will be interrupted at all.
 	 */
-	inline void yield_thread()
+	inline void thread_yield()
 	{
-		call(call_id_yield_thread());
+		call(Call_id::THREAD_YIELD);
 	}
 
 	/**
-	 * Enforce coherent view (I-/D-Caches) on memory region
+	 * Enforce coherent view on memory region, on architectures with
+	 * split caches (instruction and data)
 	 *
-	 * \param base  base of the region within the current domain
+	 * \param base  base of the region within the active component
 	 * \param size  size of the region
 	 */
 	inline void cache_coherent_region(addr_t const base, size_t const size)
 	{
-		call(call_id_cache_coherent_region(), (Call_arg)base, (Call_arg)size);
+		call(Call_id::CACHE_COHERENT, base, size);
 	}
 
 
 	/**
-	 * Clean and invalidate D-Cache lines of the given memory region
+	 * Clean and invalidate cache lines of the given memory region
 	 *
-	 * \param base  base of the region within the current domain
+	 * \param base  base of the region within the active component
 	 * \param size  size of the region
 	 */
 	inline void cache_clean_invalidate_data_region(addr_t const base,
-	                                               size_t const size)
+	                                        size_t const size)
 	{
-		call(call_id_cache_clean_inv_region(), (Call_arg)base, (Call_arg)size);
+		call(Call_id::CACHE_CLEAN_INV, base, size);
 	}
 
 
 	/**
-	 * Invalidate D-Cache lines of the given memory region
+	 * Invalidate cache lines of the given memory region
 	 *
-	 * \param base  base of the region within the current domain
+	 * \param base  base of the region within the active component
 	 * \param size  size of the region
 	 */
 	inline void cache_invalidate_data_region(addr_t const base,
-	                                         size_t const size)
+	                                  size_t const size)
 	{
-		call(call_id_cache_inv_region(), (Call_arg)base, (Call_arg)size);
+		call(Call_id::CACHE_INV, base, size);
 	}
 
 
 	/**
-	 * Get cache line size
+	 * Return size of a cache line
 	 */
 	inline size_t cache_line_size()
 	{
-		return (size_t)call(call_id_cache_line_size());
+		return (size_t)call(Call_id::CACHE_SIZE);
 	}
 
 
+	enum class Rpc_result : Call_ret { OK, OUT_OF_CAPS };
+
 	/**
-	 * Send request message and await reception of corresponding reply message
+	 * Call another thread and wait for the answer
 	 *
 	 * \param thread_id  capability ID of targeted thread
+	 * \param rcv_caps   number of capabilities the caller expects to receive
 	 *
-	 * \retval  0  succeeded
-	 * \retval -1  failed
-	 * \retval -2  failed due to out-of-memory for capability reception
-	 *
-	 * If the call returns successful, the received message is located at the
-	 * base of the caller's userland thread-context.
+	 * \return Ok or Out_of_caps when not enough capabilities were left
 	 */
-	inline int send_request_msg(capid_t const thread_id, unsigned rcv_caps)
+	inline Rpc_result rpc_call(capid_t const thread_id, unsigned rcv_caps)
 	{
-		return (int)call(call_id_send_request_msg(), thread_id, rcv_caps);
+		return (call(Call_id::RPC_CALL, thread_id, rcv_caps) ==
+		        (Call_ret)Rpc_result::OK)
+			 ? Rpc_result::OK : Rpc_result::OUT_OF_CAPS;
 	}
 
 
 	/**
-	 * Await reception of request message
+	 * Wait for remote-procedure-calls of other threads
 	 *
 	 * \param rcv_caps number of capabilities willing to accept
 	 *
-	 * \retval  0  succeeded
-	 * \retval -1  canceled
-	 * \retval -2  failed due to out-of-memory for capability reception
-	 *
-	 * If the call returns successfully, the received message is located at the
-	 * base of the caller's userland thread-context.
+	 * \return Ok or Out_of_caps when not enough capabilities were left
 	 */
-	inline int await_request_msg(unsigned rcv_caps)
+	inline Rpc_result rpc_wait(unsigned rcv_caps)
 	{
-		return (int)call(call_id_await_request_msg(), rcv_caps);
+		return (call(Call_id::RPC_WAIT, rcv_caps) == (Call_ret)Rpc_result::OK)
+			? Rpc_result::OK : Rpc_result::OUT_OF_CAPS;
 	}
 
+
+	/**
+	 * Reply to previously received RPC
+	 */
+	inline void rpc_reply()
+	{
+		call(Call_id::RPC_REPLY);
+	}
 
 	/**
 	 * Reply to previously received request message
 	 *
-	 * \param rcv_caps number of capabilities to accept when awaiting again
-	 * \param await_request_msg  whether the call shall await a request message
+	 * \param rcv_caps number of capabilities to accept with the next RPC
 	 *
-	 * \retval  0  await_request_msg == 0 or request-message received
-	 * \retval -1  await_request_msg == 1 and request-message failed
-	 *
-	 * If the call returns successful and await_request_msg == 1, the received
-	 * message is located at the base of the caller's userland thread context.
+	 * \return Ok or Out_of_caps when not enough capabilities were left
 	 */
-	inline int send_reply_msg(unsigned rcv_caps, bool const await_request_msg)
+	inline Rpc_result rpc_reply_and_wait(unsigned rcv_caps)
 	{
-		return (int)call(call_id_send_reply_msg(), rcv_caps, await_request_msg);
+		return (call(Call_id::RPC_REPLY_AND_WAIT, rcv_caps) ==
+		        (Call_ret)Rpc_result::OK) ? Rpc_result::OK
+		                                  : Rpc_result::OUT_OF_CAPS;
 	}
 
-
 	/**
-	 * Print a char c to the kernel's serial ouput
-	 *
-	 * If 'c' is set to 0 the kernel prints a table of all threads and their
-	 * current activities to the serial output.
+	 * Print a character c to the kernel's debug message facility, e.g. serial line
 	 */
 	inline void print_char(char const c)
 	{
-		call(call_id_print_char(), c);
+		call(Call_id::PRINT, c);
 	}
 
+
+	enum class Signal_result : Call_ret { OK, INVALID };
 
 	/**
 	 * Await any context of a receiver and optionally ack a context before
@@ -308,9 +304,11 @@ namespace Kernel {
 	 * deliver again unless its last delivery has been acknowledged via
 	 * ack_signal.
 	 */
-	inline int await_signal(capid_t const receiver_id)
+	inline Signal_result signal_wait(capid_t const receiver_id)
 	{
-		return (int)call(call_id_await_signal(), receiver_id);
+		return (call(Call_id::SIG_WAIT, receiver_id) ==
+		        (Call_ret)Signal_result::OK)
+			? Signal_result::OK : Signal_result::INVALID;
 	}
 
 
@@ -326,9 +324,11 @@ namespace Kernel {
 	 * If this call returns 0, an instance of 'Signal::Data' is located at the
 	 * base of the callers UTCB.
 	 */
-	inline int pending_signal(capid_t const receiver_id)
+	inline Signal_result signal_pending(capid_t const receiver_id)
 	{
-		return (int)call(call_id_pending_signal(), receiver_id);
+		return (call(Call_id::SIG_PENDING, receiver_id) ==
+		        (Call_ret)Signal_result::OK)
+			? Signal_result::OK : Signal_result::INVALID;
 	}
 
 
@@ -337,13 +337,10 @@ namespace Kernel {
 	 *
 	 * \param context  capability ID of the targeted signal context
 	 * \param num      how often the context shall be triggered by this call
-	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
 	 */
-	inline int submit_signal(capid_t const context, unsigned const num)
+	inline void signal_submit(capid_t const context, unsigned const num)
 	{
-		return (int)call(call_id_submit_signal(), context, num);
+		call(Call_id::SIG_SUBMIT, context, num);
 	}
 
 
@@ -352,9 +349,9 @@ namespace Kernel {
 	 *
 	 * \param context  capability ID of the targeted signal context
 	 */
-	inline void ack_signal(capid_t const context)
+	inline void signal_ack(capid_t const context)
 	{
-		call(call_id_ack_signal(), context);
+		call(Call_id::SIG_ACK, context);
 	}
 
 
@@ -363,9 +360,9 @@ namespace Kernel {
 	 *
 	 * \param context  capability ID of the targeted signal context
 	 */
-	inline void kill_signal_context(capid_t const context)
+	inline void signal_kill(capid_t const context)
 	{
-		call(call_id_kill_signal_context(), context);
+		call(Call_id::SIG_KILL, context);
 	}
 
 	/**
@@ -373,9 +370,9 @@ namespace Kernel {
 	 *
 	 * \param cap  capability ID to acknowledge
 	 */
-	inline void ack_cap(capid_t const cap)
+	inline void cap_ack(capid_t const cap)
 	{
-		call(call_id_ack_cap(), cap);
+		call(Call_id::CAP_ACK, cap);
 	}
 
 	/**
@@ -383,9 +380,9 @@ namespace Kernel {
 	 *
 	 * \param cap  capability ID to delete
 	 */
-	inline void delete_cap(capid_t const cap)
+	inline void cap_delete(capid_t const cap)
 	{
-		call(call_id_delete_cap(), cap);
+		call(Call_id::CAP_DESTROY, cap);
 	}
 
 
@@ -394,9 +391,9 @@ namespace Kernel {
 	 *
 	 * \param vcpu  capability of vcpu kernel object
 	 */
-	inline void run_vcpu(capid_t const cap)
+	inline void vcpu_run(capid_t const cap)
 	{
-		call(call_id_run_vcpu(), cap);
+		call(Call_id::VCPU_RUN, cap);
 	}
 
 
@@ -405,24 +402,9 @@ namespace Kernel {
 	 *
 	 * \param vcpu  capability of vcpu kernel object
 	 */
-	inline void pause_vcpu(capid_t const cap)
+	inline void vcpu_pause(capid_t const cap)
 	{
-		call(call_id_pause_vcpu(), cap);
-	}
-
-
-	/**
-	 * Suspend hardware
-	 *
-	 * \param sleep_type  The intended sleep state S0 ... S5. The values are
-	 *                    read out by an ACPI AML component and are of type
-	 *                    TYP_SLPx as described in the ACPI specification,
-	 *                    e.g. TYP_SLPa and TYP_SLPb. The values differ
-	 *                    between different PC systems/boards.
-	 */
-	inline bool suspend(unsigned const sleep_type)
-	{
-		return bool(call(call_id_suspend(), sleep_type));
+		call(Call_id::VCPU_PAUSE, cap);
 	}
 }
 

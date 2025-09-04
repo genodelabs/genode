@@ -95,21 +95,22 @@ void Thread::exception(Genode::Cpu_state&)
 }
 
 
-void Thread::_call_suspend() { }
+Cpu_suspend_result Thread::_call_cpu_suspend(unsigned const) {
+	return Cpu_suspend_result::FAILED; }
 
 
-void Thread::_call_cache_coherent_region() { }
+void Thread::_call_cache_coherent(addr_t const, size_t const) { }
 
 
-void Kernel::Thread::_call_cache_clean_invalidate_data_region() { }
+void Kernel::Thread::_call_cache_clean_invalidate(addr_t const, size_t const) { }
 
 
-void Kernel::Thread::_call_cache_invalidate_data_region() { }
+void Kernel::Thread::_call_cache_invalidate(addr_t const, size_t const) { }
 
 
-void Kernel::Thread::_call_cache_line_size()
+size_t Kernel::Thread::_call_cache_line_size()
 {
-	user_arg_0(0);
+	return 0;
 }
 
 
@@ -140,16 +141,4 @@ void Kernel::Thread::proceed()
 }
 
 
-void Thread::user_ret_time(Kernel::time_t const t)  { regs->a0  = t;   }
-void Thread::user_arg_0(Kernel::Call_arg const arg) { regs->a0  = arg; }
-void Thread::user_arg_1(Kernel::Call_arg const arg) { regs->a1  = arg; }
-void Thread::user_arg_2(Kernel::Call_arg const arg) { regs->a2  = arg; }
-void Thread::user_arg_3(Kernel::Call_arg const arg) { regs->a3  = arg; }
-void Thread::user_arg_4(Kernel::Call_arg const arg) { regs->a4  = arg; }
-void Thread::user_arg_5(Kernel::Call_arg const arg) { regs->a5  = arg; }
-Kernel::Call_arg Thread::user_arg_0() const { return regs->a0; }
-Kernel::Call_arg Thread::user_arg_1() const { return regs->a1; }
-Kernel::Call_arg Thread::user_arg_2() const { return regs->a2; }
-Kernel::Call_arg Thread::user_arg_3() const { return regs->a3; }
-Kernel::Call_arg Thread::user_arg_4() const { return regs->a4; }
-Kernel::Call_arg Thread::user_arg_5() const { return regs->a5; }
+void Thread::user_ret_time(Kernel::time_t const t) { regs->a0  = t; }

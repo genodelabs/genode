@@ -100,7 +100,7 @@ void Signal_receiver::_platform_begin_dissolve(Signal_context &context)
 		context._pending     = true;
 		context._curr_signal = Signal::Data();
 	}
-	Kernel::kill_signal_context(Capability_space::capid(context._cap));
+	Kernel::signal_kill(Capability_space::capid(context._cap));
 }
 
 
@@ -162,7 +162,8 @@ Signal_context_capability Signal_receiver::manage(Signal_context &context)
 void Signal_receiver::block_for_signal()
 {
 	/* wait for a signal */
-	if (Kernel::await_signal(Capability_space::capid(_cap))) {
+	if (Kernel::signal_wait(Capability_space::capid(_cap))
+	    != Kernel::Signal_result::OK) {
 		/* canceled */
 		return;
 	}
@@ -185,7 +186,7 @@ void Signal_receiver::block_for_signal()
 	}
 
 	/* end kernel-aided life-time management */
-	Kernel::ack_signal(Capability_space::capid(data->context->_cap));
+	Kernel::signal_ack(Capability_space::capid(data->context->_cap));
 }
 
 
@@ -215,7 +216,8 @@ Signal Signal_receiver::pending_signal()
 	}
 
 	/* look for pending signals */
-	if (Kernel::pending_signal(Capability_space::capid(_cap)) != 0)
+	if (Kernel::signal_pending(Capability_space::capid(_cap))
+	    != Kernel::Signal_result::OK)
 		return Signal();
 
 	/* read signal data */
@@ -232,7 +234,7 @@ Signal Signal_receiver::pending_signal()
 	}
 
 	/* end kernel-aided life-time management */
-	Kernel::ack_signal(Capability_space::capid(data->context->_cap));
+	Kernel::signal_ack(Capability_space::capid(data->context->_cap));
 	return result;
 }
 

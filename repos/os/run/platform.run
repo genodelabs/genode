@@ -90,7 +90,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-platform">
+	<start name="test-platform" ram="2M">
 		<route>
 			<service name="Report" label="config">
 				<child name="fs_report" label="config"/> </service>

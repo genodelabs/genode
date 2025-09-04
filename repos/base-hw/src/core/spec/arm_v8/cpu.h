@@ -87,6 +87,15 @@ struct Board::Cpu : Hw::Arm_64_cpu
 				fp = (void **) fp[0];
 			}
 		}
+
+		void reg_0(uint64_t const v) { r[0] = v; }
+
+		uint64_t reg_0() const { return r[0]; }
+		uint64_t reg_1() const { return r[1]; }
+		uint64_t reg_2() const { return r[2]; }
+		uint64_t reg_3() const { return r[3]; }
+		uint64_t reg_4() const { return r[4]; }
+		uint64_t reg_5() const { return r[5]; }
 	};
 
 	class Mmu_context

@@ -190,10 +190,11 @@ class Core::Platform_thread : Noncopyable
 		 */
 		Kernel::Thread::Exception_state exception_state()
 		{
-			Kernel::Thread::Exception_state exception_state;
 			using namespace Kernel;
-			call(call_id_exception_state(), (Call_arg)&*_kobj,
-			                                (Call_arg)&exception_state);
+
+			Kernel::Thread::Exception_state exception_state;
+			core_call(Core_call_id::THREAD_EXC_STATE_GET, (Call_arg)&*_kobj,
+			          (Call_arg)&exception_state);
 			return exception_state;
 		}
 
@@ -217,12 +218,13 @@ class Core::Platform_thread : Noncopyable
 		/**
 		 * Pause this thread
 		 */
-		void pause() { Kernel::pause_thread(*_kobj); }
+		void pause() { Kernel::thread_pause(*_kobj); }
 
 		/**
 		 * Enable/disable single stepping
 		 */
-		void single_step(bool on) { Kernel::single_step(*_kobj, on); }
+		void single_step(bool on) {
+			Kernel::thread_single_step(*_kobj, on); }
 
 		/**
 		 * Resume this thread
@@ -233,7 +235,7 @@ class Core::Platform_thread : Noncopyable
 			    Kernel::Thread::Exception_state::NO_EXCEPTION)
 				restart();
 
-			Kernel::resume_thread(*_kobj);
+			Kernel::thread_resume(*_kobj);
 		}
 
 		/**

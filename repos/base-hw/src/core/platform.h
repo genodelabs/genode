@@ -162,7 +162,7 @@ class Core::Platform : public Platform_generic
 		Rom_fs          &rom_fs()         override { return _rom_fs; }
 
 		void wait_for_exit() override {
-			while (1) { Kernel::stop_thread(); } };
+			while (1) { Kernel::thread_stop(); } };
 
 		bool supports_direct_unmap() const override { return true; }
 		Address_space &core_pd() { ASSERT_NEVER_CALLED; }

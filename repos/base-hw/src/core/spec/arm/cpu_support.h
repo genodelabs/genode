@@ -62,6 +62,15 @@ struct Board::Arm_cpu : public Hw::Arm_cpu
 				fp = (void **) fp[-1];
 			}
 		}
+
+		void reg_0(uint32_t const v) { r0 = v; }
+
+		uint32_t reg_0() const { return r0; }
+		uint32_t reg_1() const { return r1; }
+		uint32_t reg_2() const { return r2; }
+		uint32_t reg_3() const { return r3; }
+		uint32_t reg_4() const { return r4; }
+		uint32_t reg_5() const { return r5; }
 	};
 
 	/**

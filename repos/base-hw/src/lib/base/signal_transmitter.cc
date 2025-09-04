@@ -32,7 +32,7 @@ void Signal_transmitter::submit(unsigned cnt)
 	{
 		Trace::Signal_submit trace_event(cnt);
 	}
-	Kernel::submit_signal(Capability_space::capid(_context), cnt);
+	Kernel::signal_submit(Capability_space::capid(_context), cnt);
 }
 
 
@@ -42,5 +42,5 @@ void Signal_transmitter::submit(unsigned cnt)
 
 void Signal_context::local_submit()
 {
-	Kernel::submit_signal(Capability_space::capid(_cap), 1);
+	Kernel::signal_submit(Capability_space::capid(_cap), 1);
 }

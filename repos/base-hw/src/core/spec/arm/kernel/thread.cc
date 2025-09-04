@@ -26,7 +26,8 @@ extern "C" void kernel_to_user_context_switch(Board::Cpu::Fpu_context*,
                                               Board::Cpu::Context*, void*);
 
 
-void Thread::_call_suspend() { }
+Cpu_suspend_result Thread::_call_cpu_suspend(unsigned const) {
+	return Cpu_suspend_result::FAILED; }
 
 
 void Thread::exception(Genode::Cpu_state &state)
@@ -95,17 +96,3 @@ void Thread::user_ret_time(Kernel::time_t const t)
 	regs->r0 = (addr_t) (t >> 32UL);
 	regs->r1 = t & ~0UL;
 }
-
-void Thread::user_arg_0(Kernel::Call_arg const arg) { regs->r0 = arg; }
-void Thread::user_arg_1(Kernel::Call_arg const arg) { regs->r1 = arg; }
-void Thread::user_arg_2(Kernel::Call_arg const arg) { regs->r2 = arg; }
-void Thread::user_arg_3(Kernel::Call_arg const arg) { regs->r3 = arg; }
-void Thread::user_arg_4(Kernel::Call_arg const arg) { regs->r4 = arg; }
-void Thread::user_arg_5(Kernel::Call_arg const arg) { regs->r5 = arg; }
-
-Kernel::Call_arg Thread::user_arg_0() const { return regs->r0; }
-Kernel::Call_arg Thread::user_arg_1() const { return regs->r1; }
-Kernel::Call_arg Thread::user_arg_2() const { return regs->r2; }
-Kernel::Call_arg Thread::user_arg_3() const { return regs->r3; }
-Kernel::Call_arg Thread::user_arg_4() const { return regs->r4; }
-Kernel::Call_arg Thread::user_arg_5() const { return regs->r5; }
