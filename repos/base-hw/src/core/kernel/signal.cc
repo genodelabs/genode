@@ -167,7 +167,7 @@ void Signal_receiver::_listen()
 	while (1)
 	{
 		/* check for deliverable signals and waiting handlers */
-		if (_deliver.empty() || _handlers.empty())
+		if (_deliver.empty() || !_handler)
 			return;
 
 		/* create a signal data-object */
@@ -181,11 +181,9 @@ void Signal_receiver::_listen()
 			Signal::Data data(imprint, context->_submits);
 
 			/* communicate signal data to handler */
-			_handlers.dequeue([&] (Signal_handler::Fifo_element &elem) {
-				auto const handler = &elem.object();
-				handler->_receiver = nullptr;
-				handler->_thread.signal_receive_signal(&data, sizeof(data));
-			});
+			_handler->_receiver = nullptr;
+			_handler->_thread.signal_receive_signal(&data, sizeof(data));
+			_handler = nullptr;
 			context->_delivered();
 		});
 	}
@@ -204,7 +202,7 @@ void Signal_receiver::_context_destructed(Signal_context &c)
 
 
 void Signal_receiver::_handler_cancelled(Signal_handler &h) {
-	_handlers.remove(h._handlers_fe); }
+	if (_handler == &h) _handler = nullptr; }
 
 
 void Signal_receiver::_add_context(Signal_context &c) {
@@ -214,10 +212,10 @@ void Signal_receiver::_add_context(Signal_context &c) {
 
 bool Signal_receiver::add_handler(Signal_handler &h)
 {
-	if (h._receiver)
+	if (h._receiver || _handler)
 		return false;
 
-	_handlers.enqueue(h._handlers_fe);
+	_handler = &h;
 	h._receiver = this;
 	h._thread.signal_wait_for_signal();
 	_listen();

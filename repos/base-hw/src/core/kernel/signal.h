@@ -63,7 +63,6 @@ class Kernel::Signal_handler
 		using Fifo_element = Genode::Fifo_element<Signal_handler>;
 
 		Thread          &_thread;
-		Fifo_element     _handlers_fe { *this   };
 		Signal_receiver *_receiver    { nullptr };
 
 	public:
@@ -223,7 +222,7 @@ class Kernel::Signal_receiver
 		template <typename T> class Fifo : public Genode::Fifo<T> { };
 
 		Kernel::Object                     _kernel_object { *this };
-		Fifo<Signal_handler::Fifo_element> _handlers      { };
+		Signal_handler                    *_handler       { nullptr };
 		Fifo<Signal_context::Fifo_element> _deliver       { };
 		Fifo<Signal_context::Fifo_element> _contexts      { };
 
