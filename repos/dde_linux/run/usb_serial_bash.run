@@ -1,0 +1,170 @@
+assert {![have_board linux]}
+
+if {[have_cmd_switch --autopilot]} {
+	assert {[have_include power_on/qemu] && [have_board pc]} \
+		"Autopilot mode is not supported on this platform."
+}
+
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host-[board] \
+                  [depot_user]/src/bash \
+                  [depot_user]/src/coreutils \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/ncurses \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/terminal_crosslink \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/vim \
+                  [depot_user]/src/usb_serial \
+
+# write default vimrc file
+set _fd [open [run_dir]/genode/vimrc w]
+puts $_fd {
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=}
+close $_fd
+
+build { driver/usb_serial }
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100" ram="1M"/>
+
+	<start name="timer">
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="report_rom" caps="120" ram="2M">
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<default-policy report="usb -> usb -> devices"/>
+		</config>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="terminal_crosslink">
+		<provides> <service name="Terminal"/> </provides>
+		<config buffer="32K"/>
+	</start>
+	<start name="usb" caps="1500" ram="32M" managing_system="yes">
+		<binary name="init"/>
+		<provides> <service name="Usb"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="usb_serial" caps="180" ram="11M">
+		<config/>
+		<route>
+			<service name="ROM" label="report"> <child name="report_rom"/> </service>
+			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
+			<service name="Usb">   <child name="usb"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="vfs" caps="120" ram="30M">
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs>
+				<tar name="coreutils.tar" />
+				<tar name="vim.tar" />
+				<tar name="bash.tar" />
+
+				<dir name="home"> <ram/> </dir>
+				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
+				<dir name="tmp"> <ram/> </dir>
+				<dir name="dev">
+					<zero/> <null/> <terminal/> <log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<dir name="pipe"> <pipe/> </dir>
+			</vfs>
+
+			<policy label_prefix="vfs_rom" root="/"/>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+		<route>
+			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="vfs_rom" ram="30M">
+		<binary name="fs_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="/bin/bash" caps="1000" ram="30M">
+		<config ld_verbose="yes">
+			<libc stdin="/dev/terminal" stdout="/dev/terminal"
+			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>
+			<vfs> <fs/> </vfs>
+			<arg>bash</arg>
+			<env name="TERM">screen</env>
+			<env name="PATH">/bin</env>
+		</config>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+			<service name="ROM" label_last="/bin/bash"> <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+#
+# Define USB host controller config
+#
+set fd [open [run_dir]/genode/usb_host.config w]
+puts $fd {
+<config bios_handoff="no">
+	<report devices="yes"/>
+	<policy label_prefix="usb_serial">
+		<device vendor_id="0x067b" product_id="0x2303"/> <!-- Prolific PL2303 -->
+		<device vendor_id="0x0557" product_id="0x2008"/> <!-- Prolific PL2303 -->
+		<device vendor_id="0x0403" product_id="0x6001"/> <!-- FTDI FT232 -->
+	</policy>
+</config>}
+close $fd
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic "
+append qemu_args " -device nec-usb-xhci,id=xhci"
+append qemu_args " -device usb-serial,chardev=serial0,bus=xhci.0"
+
+run_genode_until forever

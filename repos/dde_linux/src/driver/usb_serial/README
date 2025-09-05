@@ -1,0 +1,9 @@
+USB serial driver
+#################
+
+Supports the following USB serial adapters.
+
+* Prolific 2303 Single Port (PL2303)
+* FTDI Single Port (FT232, FT245)
+* Winchiphead CH341 Single Port
+* CP210x UART Bridge

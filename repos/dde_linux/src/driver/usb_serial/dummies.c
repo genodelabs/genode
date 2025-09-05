@@ -1,0 +1,364 @@
+/*
+ * \brief  Dummy definitions of Linux Kernel functions
+ * \author Christian Helmuth
+ * \date   2025-09-02
+ */
+
+/*
+ * Copyright (C) 2025 Genode Labs GmbH
+ *
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2 or later.
+ */
+
+#include <lx_emul.h>
+
+
+#include <linux/ratelimit_types.h>
+
+int ___ratelimit(struct ratelimit_state * rs,const char * func)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+const struct attribute_group input_poller_attribute_group;
+pteval_t __default_kernel_pte_mask __read_mostly = ~0;
+
+
+#include <linux/interrupt.h>
+
+DEFINE_STATIC_KEY_FALSE(force_irqthreads_key);
+
+/* driver/usb/core/usb.h */
+const struct class usbmisc_class = {
+	.name = "usbmisc",
+};
+
+
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_enter(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/context_tracking_irq.h>
+
+noinstr void ct_irq_exit(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/timekeeper_internal.h>
+void update_vsyscall(struct timekeeper * tk)
+{
+	lx_emul_trace(__func__);
+}
+
+
+DEFINE_PER_CPU_READ_MOSTLY(cpumask_var_t, cpu_sibling_map);
+EXPORT_PER_CPU_SYMBOL(cpu_sibling_map);
+
+
+#include <net/net_namespace.h>
+
+void net_ns_init(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/kobject.h>
+
+int kobject_uevent(struct kobject * kobj,enum kobject_action action)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/fs.h>
+
+int register_chrdev_region(dev_t from,unsigned count,const char * name)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/syscore_ops.h>
+
+void register_syscore_ops(struct syscore_ops * ops)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/usb/hcd.h>
+
+void __init usb_init_pool_max(void)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/usb/hcd.h>
+
+void usb_hcd_synchronize_unlinks(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/refcount.h>
+
+void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern int usb_major_init(void);
+int usb_major_init(void)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+/* drivers/usb/core/usb.h */
+extern int __init usb_devio_init(void);
+int __init usb_devio_init(void)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <linux/usb/hcd.h>
+
+struct usb_hcd * usb_get_hcd(struct usb_hcd * hcd)
+{
+	lx_emul_trace(__func__);
+	return hcd;
+}
+
+
+#include <linux/usb/hcd.h>
+
+void usb_put_hcd(struct usb_hcd * hcd)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/kernel.h>
+
+bool parse_option_str(const char * str,const char * option)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+
+
+#include <linux/skbuff.h>
+
+/* called by lx_emul_init_task_function() */
+void skb_init()
+{
+	lx_emul_trace(__func__);
+}
+
+
+/* kernel/sched/cpudeadline.h */
+struct cpudl;
+int  cpudl_init(struct cpudl *cp)
+{
+	lx_emul_trace_and_stop(__func__);
+	return -1;
+}
+
+
+void cpudl_cleanup(struct cpudl *cp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+/* kernel/sched/sched.h */
+bool sched_smp_initialized = true;
+
+struct dl_bw;
+void init_dl_bw(struct dl_bw *dl_b)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+struct irq_work;
+extern void rto_push_irq_work_func(struct irq_work *work);
+void rto_push_irq_work_func(struct irq_work *work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+/* include/linux/sched/topology.h */
+int arch_asym_cpu_priority(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+	return 0;
+}
+
+
+extern void software_node_notify(struct device * dev);
+void software_node_notify(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void software_node_notify_remove(struct device * dev);
+void software_node_notify_remove(struct device * dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern int usb_create_sysfs_dev_files(struct usb_device * udev);
+int usb_create_sysfs_dev_files(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern void usb_remove_sysfs_dev_files(struct usb_device * udev);
+void usb_remove_sysfs_dev_files(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void usb_create_sysfs_intf_files(struct usb_interface * intf);
+void usb_create_sysfs_intf_files(struct usb_interface * intf)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void usb_remove_sysfs_intf_files(struct usb_interface * intf);
+void usb_remove_sysfs_intf_files(struct usb_interface * intf)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern int usb_create_ep_devs(struct device * parent,struct usb_host_endpoint * endpoint,struct usb_device * udev);
+int usb_create_ep_devs(struct device * parent,struct usb_host_endpoint * endpoint,struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+extern void usb_remove_ep_devs(struct usb_host_endpoint * endpoint);
+void usb_remove_ep_devs(struct usb_host_endpoint * endpoint)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void usb_notify_add_device(struct usb_device * udev);
+void usb_notify_add_device(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern void usb_notify_remove_device(struct usb_device * udev);
+void usb_notify_remove_device(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+const struct attribute_group *usb_interface_groups[] = { NULL };
+
+
+#include <linux/random.h>
+
+void add_device_randomness(const void * buf,size_t len)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#include <linux/usb/hcd.h>
+
+int usb_hcd_alloc_bandwidth(struct usb_device * udev,struct usb_host_config * new_config,struct usb_host_interface * cur_alt,struct usb_host_interface * new_alt)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void usb_hcd_flush_endpoint(struct usb_device *udev,
+		struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void usb_hcd_disable_endpoint(struct usb_device *udev,
+		struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void usb_hcd_reset_endpoint(struct usb_device *udev,
+			    struct usb_host_endpoint *ep)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#ifdef CONFIG_SWIOTLB
+#include <linux/swiotlb.h>
+
+void swiotlb_dev_init(struct device *dev)
+{
+	lx_emul_trace(__func__);
+}
+
+
+bool is_swiotlb_allocated(void)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
+#endif
+
+
+#include <linux/pid.h>
+
+void put_pid(struct pid * pid)
+{
+	lx_emul_trace(__func__);
+}
+
+#include <linux/vt_kern.h>
+
+int fg_console;
+struct tty_driver *console_driver;
+
+int vty_init(const struct file_operations *console_fops)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}

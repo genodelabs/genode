@@ -1,0 +1,222 @@
+assert {![have_board linux]}
+
+if {[have_cmd_switch --autopilot]} {
+	assert {[have_include power_on/qemu] && [have_board pc]} \
+		"Autopilot mode is not supported on this platform."
+}
+
+# file following line disables low-level serial output
+#proc boot_output { } { return { } }
+
+if {[have_spec nova]} {
+	proc kernel_output { } { return "logmem" }
+
+	proc kernel_log { } { return {
+		<start name="kernel_log" ram="10M">
+			<binary name="log_core"/>
+			<config period_ms="2000"/>
+			<route>
+				<service name="LOG" label="log"> <child name="terminal_log" label="nova"/> </service>
+				<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>}
+	}
+} else {
+	proc kernel_log { } { return { } }
+}
+
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/test_usb_host-[board] \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/file_terminal \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/log_core \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/stdin2out \
+                  [depot_user]/src/terminal_crosslink \
+                  [depot_user]/src/terminal_log \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_import \
+                  [depot_user]/src/usb_serial \
+
+build { driver/usb_serial }
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100" ram="1M"/>
+
+	<start name="timer">
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<!-- 1) record log to RAM FS + terminal crosslink -->
+	<start name="ram_fs" ram="16M">
+		<binary name="vfs"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<ram/>
+				<import> <inline name="log">EMPTY</inline> </import>
+			</vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+	<start name="file_terminal" ram="2M">
+		<provides> <service name="Terminal"/> </provides>
+		<config>
+			<default-policy filename="log"/>
+			<vfs>
+				<fs/>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log"/>
+		</config>
+		<route>
+			<service name="File_system"> <child name="ram_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="terminal_log">
+		<provides> <service name="LOG"/> </provides>
+		<config/>
+		<route>
+			<service name="Terminal"> <child name="file_terminal"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="log_core" ram="10M">
+		<config period_ms="2000"/>
+		<route>
+			<service name="LOG" label="log"> <child name="terminal_log" label="core"/> </service>
+			<service name="ROM" label="log"> <parent label="core_log"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>} [kernel_log] {
+	<start name="report_rom" caps="120" ram="2M">
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<default-policy report="usb -> usb -> devices"/>
+		</config>
+		<route>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="terminal_crosslink">
+		<provides> <service name="Terminal"/> </provides>
+		<config buffer="32K"/>
+	</start>
+
+	<!-- 2) USB serial terminal at crosslink -->
+	<start name="usb" caps="1500" ram="32M" managing_system="yes">
+		<binary name="init"/>
+		<provides> <service name="Usb"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="drivers.config"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="usb_serial" caps="180" ram="11M">
+		<config/>
+		<route>
+			<service name="ROM" label="report"> <child name="report_rom"/> </service>
+			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
+			<service name="Usb">   <child name="usb"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<!-- 3) dump recorded log to crosslink (after a while) -->
+	<start name="dump_log_config">
+		<binary name="dynamic_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config>
+			<rom name="config">
+				<inline/>
+				<sleep milliseconds="4000"/>
+				<inline>
+					<config>
+						<parent-provides>
+							<service name="ROM"/>
+							<service name="PD"/>
+							<service name="RM"/>
+							<service name="CPU"/>
+							<service name="LOG"/>
+							<service name="File_system"/>
+							<service name="Terminal"/>
+							<service name="Timer"/>
+						</parent-provides>
+						<default-route>
+							<any-service> <parent/> </any-service>
+						</default-route>
+						<default caps="100" ram="2M"/>
+
+						<start name="stdin2out">
+							<config>
+								<vfs> <fs/> <terminal/> </vfs>
+								<libc stdin="/log" stdout="/terminal"/>
+							</config>
+						</start>
+					</config>
+				</inline>
+				<sleep milliseconds="3600000"/>
+			</rom>
+		</config>
+	</start>
+	<start name="dump_log" caps="1500" ram="8M">
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <child name="dump_log_config"/> </service>
+			<service name="File_system"> <child name="ram_fs"/> </service>
+			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+#
+# Define USB host controller config
+#
+set fd [open [run_dir]/genode/usb_host.config w]
+puts $fd {
+<config bios_handoff="no">
+	<report devices="yes"/>
+	<policy label_prefix="usb_serial">
+		<device vendor_id="0x067b" product_id="0x2303"/> <!-- Prolific PL2303 -->
+		<device vendor_id="0x0557" product_id="0x2008"/> <!-- Prolific PL2303 -->
+		<device vendor_id="0x0403" product_id="0x6001"/> <!-- FTDI FT232 -->
+	</policy>
+</config>}
+close $fd
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic "
+append qemu_args " -device nec-usb-xhci,id=xhci"
+append qemu_args " -device usb-serial,chardev=serial0,bus=xhci.0"
+
+run_genode_until forever
