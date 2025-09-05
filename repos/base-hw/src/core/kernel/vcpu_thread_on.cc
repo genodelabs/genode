@@ -21,13 +21,14 @@ Kernel::Thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &kobj,
                                   Call_arg cpuid, Board::Vcpu_state &state,
                                   Vcpu::Identity &identity, capid_t sig_cap)
 {
-	Signal_context *context = _pd.cap_tree().find<Signal_context>(sig_cap);
-	if (!context)
-		return cap_id_invalid();
-
-	_cpu_pool.with_cpu(cpuid, [&] (Cpu &cpu) {
-		kobj.construct(_core_pd, _user_irq_pool, cpu, state,
-		               *context, identity); });
+	_cpu_pool.with_cpu(cpuid,
+		[&] (Cpu &cpu) {
+			_pd.cap_tree().with<Signal_context>(sig_cap,
+				[&] (Signal_context &context) {
+					kobj.construct(_core_pd, _user_irq_pool, cpu, state,
+					               context, identity); },
+				[] { /* ignore failure */ });
+		});
 
 	return (kobj.constructed()) ?  kobj->core_capid() : cap_id_invalid();
 }
@@ -55,16 +56,15 @@ void Kernel::Thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>& to_delete)
 
 void Kernel::Thread::_call_vcpu_run(capid_t const id)
 {
-	auto *obj_ref = _pd.cap_tree().find(id);
-	auto *vcpu = obj_ref ? obj_ref->object<Vcpu>() : nullptr;
-	if (vcpu) vcpu->run();
+	_pd.cap_tree().with<Vcpu>(id,
+		[] (auto &vcpu) { vcpu.run(); },
+		[] () { /* ignore failure */ });
 }
 
 
 void Kernel::Thread::_call_vcpu_pause(capid_t const id)
 {
-	auto *obj_ref = _pd.cap_tree().find(id);
-	auto *vcpu = obj_ref ? obj_ref->object<Vcpu>() : nullptr;
-
-	if (vcpu) vcpu->pause();
+	_pd.cap_tree().with<Vcpu>(id,
+		[] (auto &vcpu) { vcpu.pause(); },
+		[] () { /* ignore failure */ });
 }

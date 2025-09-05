@@ -165,6 +165,16 @@ class Kernel::Object_identity_reference
 		unsigned short   _in_utcbs;
 		capid_t    const _capid;
 
+		friend class Object_identity_reference_tree;
+
+
+		/**********************
+		 ** Lookup functions **
+		 **********************/
+
+		Object_identity_reference * _find(Pd &pd);
+		Object_identity_reference * _find(capid_t capid);
+
 	public:
 
 		Object_identity_reference(Object_identity *oi, Pd &pd);
@@ -180,7 +190,13 @@ class Kernel::Object_identity_reference
 			return _identity ? _identity->object<KOBJECT>() : nullptr;
 		}
 
-		Object_identity_reference * factory(void * dst, Pd &pd);
+		void factory(void * dst, Pd &pd, auto const &fn)
+		{
+			if (!_identity)
+				return;
+			fn(*Genode::construct_at<Object_identity_reference>(dst, _identity,
+			                                                    pd));
+		}
 
 		Pd &    pd()     { return _pd;    }
 		capid_t capid()  { return _capid; }
@@ -191,6 +207,13 @@ class Kernel::Object_identity_reference
 
 		void invalidate();
 
+		auto with_in_pd(Pd &pd, auto const &found_fn, auto const &failed_fn)
+		{
+			auto *oir = _find(pd);
+			if (oir) found_fn(*oir);
+			else     failed_fn();
+
+		}
 
 		/************************
 		 ** Avl_node interface **
@@ -198,30 +221,41 @@ class Kernel::Object_identity_reference
 
 		bool higher(Object_identity_reference * oir) const {
 			return oir->_capid > _capid; }
-
-
-		/**********************
-		 ** Lookup functions **
-		 **********************/
-
-		Object_identity_reference * find(Pd &pd);
-		Object_identity_reference * find(capid_t capid);
 };
 
 
 class Kernel::Object_identity_reference_tree
 :
-	public Genode::Avl_tree<Kernel::Object_identity_reference>
+	private Genode::Avl_tree<Kernel::Object_identity_reference>
 {
+	private:
+
+		friend class Object_identity_reference;
+
+		Object_identity_reference * _find(capid_t id);
+
 	public:
 
-		Object_identity_reference * find(capid_t id);
+		~Object_identity_reference_tree()
+		{
+			while (Object_identity_reference *oir = first())
+				oir->~Object_identity_reference();
+		}
 
 		template <typename KOBJECT>
-		KOBJECT * find(capid_t id)
+		auto with(capid_t id, auto const &found_fn, auto const &failed_fn)
 		{
-			Object_identity_reference * oir = find(id);
-			return (oir) ? oir->object<KOBJECT>() : nullptr;
+			Object_identity_reference *oir = _find(id);
+			KOBJECT *kobj = (oir) ? oir->object<KOBJECT>() : nullptr;
+			if (kobj) return found_fn(*kobj);
+			else      return failed_fn();
+		}
+
+		auto with(capid_t id, auto const &found_fn, auto const &failed_fn)
+		{
+			Object_identity_reference *oir = _find(id);
+			if (oir) return found_fn(*oir);
+			else     return failed_fn();
 		}
 };
 

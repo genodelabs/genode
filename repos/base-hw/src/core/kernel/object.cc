@@ -156,7 +156,7 @@ Object_identity::~Object_identity() { invalidate(); }
  *******************************/
 
 Object_identity_reference *
-Object_identity_reference::find(Pd &pd)
+Object_identity_reference::_find(Pd &pd)
 {
 	if (!_identity)
 		return nullptr;
@@ -173,7 +173,7 @@ Object_identity_reference::find(Pd &pd)
 
 
 Object_identity_reference *
-Object_identity_reference::find(capid_t capid)
+Object_identity_reference::_find(capid_t capid)
 {
 	using Avl_node_base = Genode::Avl_node<Object_identity_reference>;
 
@@ -183,16 +183,7 @@ Object_identity_reference::find(capid_t capid)
 	Object_identity_reference * subtree =
 		Avl_node_base::child(capid > _capid);
 
-	return (subtree) ? subtree->find(capid) : nullptr;
-}
-
-
-Object_identity_reference * Object_identity_reference::factory(void *dst,
-                                                               Pd   &pd)
-{
-	using namespace Genode;
-	return !_identity ?
-		nullptr : construct_at<Object_identity_reference>(dst, _identity, pd);
+	return (subtree) ? subtree->_find(capid) : nullptr;
 }
 
 
@@ -228,7 +219,7 @@ Object_identity_reference::~Object_identity_reference()
 }
 
 
-Object_identity_reference * Object_identity_reference_tree::find(capid_t id)
+Object_identity_reference * Object_identity_reference_tree::_find(capid_t id)
 {
-	return (first()) ? first()->find(id) : nullptr;
+	return (first()) ? first()->_find(id) : nullptr;
 }

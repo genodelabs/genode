@@ -84,12 +84,6 @@ class Kernel::Pd
 			assert(_capid_alloc.alloc(cap_id_invalid()).ok());
 		}
 
-		~Pd()
-		{
-			while (Object_identity_reference *oir = _cap_tree.first())
-				oir->~Object_identity_reference();
-		}
-
 		static capid_t syscall_create(Core::Kernel_object<Pd> &p,
 		                              Core_pd_data            &core_data)
 		{

@@ -105,7 +105,6 @@ Thread::Ipc_alloc_result Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &st
 void Thread::ipc_copy_msg(Thread &sender)
 {
 	using namespace Genode;
-	using Reference = Object_identity_reference;
 
 	/* copy payload and set destination capability id */
 	*_utcb = *sender._utcb;
@@ -119,29 +118,32 @@ void Thread::ipc_copy_msg(Thread &sender)
 		/* if there is no capability to send, nothing to do */
 		if (i >= sender._utcb->cap_cnt()) { continue; }
 
+		capid_t to_add = cap_id_invalid();
+
 		/* lookup the capability id within the caller's cap space */
-		Reference *oir = (id == cap_id_invalid())
-			? nullptr : sender._pd.cap_tree().find(id);
+		sender._pd.cap_tree().with(id,
+			[&] (auto &oir) {
 
-		/* if the caller's capability is invalid, continue */
-		if (!oir) {
-			_utcb->cap_add(cap_id_invalid());
-			continue;
-		}
+				/* lookup the capability id within the callee's cap space */
+				oir.with_in_pd(_pd,
+					[&] (auto &dst_oir) {
+						dst_oir.add_to_utcb();
+						to_add = dst_oir.capid();
+					},
+					[&] () {
+						if (&_pd != &_core_pd) {
+							oir.factory(_obj_id_ref_ptr[i], _pd,
+								[&] (auto &new_oir) {
+								_obj_id_ref_ptr[i] = nullptr;
+								new_oir.add_to_utcb();
+								to_add = new_oir.capid();
+							});
+						}
+					});
+			},
+			[&] () { /* no cap in caller cap space, do nothing */});
 
-		/* lookup the capability id within the callee's cap space */
-		Reference *dst_oir = oir->find(_pd);
-
-		/* if it is not found, and the target is not core, create a reference */
-		if (!dst_oir && (&_pd != &_core_pd)) {
-			dst_oir = oir->factory(_obj_id_ref_ptr[i], _pd);
-			if (dst_oir) _obj_id_ref_ptr[i] = nullptr;
-		}
-
-		if (dst_oir) dst_oir->add_to_utcb();
-
-		/* add the translated capability id to the target buffer */
-		_utcb->cap_add(dst_oir ? dst_oir->capid() : cap_id_invalid());
+		_utcb->cap_add(to_add);
 	}
 }
 
@@ -327,23 +329,20 @@ void Thread::_call_thread_stop()
 
 Thread_restart_result Thread::_call_thread_restart(capid_t const id)
 {
-	Thread *thread_ptr = _pd.cap_tree().find<Thread>(id);
+	return _pd.cap_tree().with<Thread>(id,
+		[&] (auto &thread) {
 
-	if (!thread_ptr)
-		return Thread_restart_result::INVALID;
+			if (_type == USER && (&_pd != &thread._pd)) {
+				raw(*this, ": failed to lookup thread ", (unsigned)id,
+				        " to restart it");
+				_die();
+				return Thread_restart_result::INVALID;
+			}
 
-	Thread &thread = *thread_ptr;
-
-	if (_type == USER && (&_pd != &thread._pd)) {
-		raw(*this, ": failed to lookup thread ", (unsigned)id,
-		        " to restart it");
-		_die();
-		return Thread_restart_result::INVALID;
-	}
-
-	return ((thread._restart())
-		? Thread_restart_result::RESTARTED
-		: Thread_restart_result::ALREADY_ACTIVE);
+			return ((thread._restart())
+				? Thread_restart_result::RESTARTED
+				: Thread_restart_result::ALREADY_ACTIVE);
+		}, [] { return Thread_restart_result::INVALID; });
 }
 
 
@@ -392,16 +391,13 @@ void Thread::_call_pd_destroy(Core::Kernel_object<Pd> &pd)
 Rpc_result Thread::_call_rpc_wait(unsigned rcv_caps_cnt)
 {
 	if (!_ipc_node.ready_to_wait()) {
-		Genode::raw("IPC await request: bad state, will block");
-		_become_inactive(DEAD);
+		Genode::error("IPC await request: bad state, will block");
+		_die();
+		return Rpc_result::OK;
 	}
 
-	switch (_ipc_alloc_recv_caps(rcv_caps_cnt)) {
-	case Ipc_alloc_result::OK:
-		break;
-	case Ipc_alloc_result::EXHAUSTED:
+	if (_ipc_alloc_recv_caps(rcv_caps_cnt) == Ipc_alloc_result::EXHAUSTED)
 		return Rpc_result::OUT_OF_CAPS;
-	}
 
 	_ipc_node.wait();
 	if (_ipc_node.waiting()) _become_inactive(AWAITS_IPC);
@@ -420,49 +416,54 @@ void Thread::_call_timeout(timeout_t const us, capid_t const sigid)
 
 void Thread::timeout_triggered()
 {
-	Signal_context * const c =
-		_pd.cap_tree().find<Signal_context>(_timeout_sigid);
-	if (c) c->submit(1);
-	else Genode::warning(*this, ": failed to submit timeout signal");
+	_pd.cap_tree().with<Signal_context>(_timeout_sigid,
+		[] (Signal_context &sc) { sc.submit(1); },
+		[&] () {
+			Genode::warning(*this, ": failed to submit timeout signal"); });
 }
 
 
 Rpc_result Thread::_call_rpc_call(capid_t const id, unsigned rcv_caps_cnt)
 {
-	auto *obj_ref = _pd.cap_tree().find(id);
-	auto *ptr = (obj_ref) ? obj_ref->object<Thread>() : nullptr;
-
-	if (!ptr) {
-		Genode::raw(*this, ": cannot send to unknown recipient ", id);
-		_become_inactive(DEAD);
-		return Rpc_result::OK;
-	}
-
-	auto &dst = *ptr;
-	bool const help = Cpu_context::_helping_possible(dst);
-	obj_ref = obj_ref->find(dst._pd);
-
 	if (!_ipc_node.ready_to_send()) {
-		Genode::raw("IPC send request: bad state");
-		_become_inactive(DEAD);
+		Genode::error("IPC send request: bad state");
+		_die();
 		return Rpc_result::OK;
 	}
 
-	switch (_ipc_alloc_recv_caps(rcv_caps_cnt)) {
-	case Ipc_alloc_result::OK:
-		break;
-	case Ipc_alloc_result::EXHAUSTED:
-		return Rpc_result::OUT_OF_CAPS;
-	}
+	auto set_reply_cap = [&] (Thread &dst) {
+		_pd.cap_tree().with(id,
+			[&] (Object_identity_reference &oir) {
+				oir.with_in_pd(dst._pd,
+					[&] (auto &dst_oir) { _ipc_capid = dst_oir.capid(); },
+					[&] () { _ipc_capid = cap_id_invalid(); });
+			},
+			[&] () { _ipc_capid = cap_id_invalid(); });
+	};
 
-	_ipc_capid = obj_ref ? obj_ref->capid() : cap_id_invalid();
-	_ipc_node.send(dst._ipc_node);
-	
-	_state = AWAITS_IPC;
-	if (help) Cpu_context::_help(dst);
-	if (!help || !dst.ready()) _deactivate();
+	return _pd.cap_tree().with<Thread>(id,
+		[&] (Thread &dst) {
+			if (_ipc_alloc_recv_caps(rcv_caps_cnt) ==
+			    Ipc_alloc_result::EXHAUSTED)
+				return Rpc_result::OUT_OF_CAPS;
 
-	return Rpc_result::OK;
+			set_reply_cap(dst);
+
+			bool const help = Cpu_context::_helping_possible(dst);
+
+			_ipc_node.send(dst._ipc_node);
+
+			_state = AWAITS_IPC;
+
+			if (help) Cpu_context::_help(dst);
+			if (!help || !dst.ready()) _deactivate();
+			return Rpc_result::OK;
+		},
+		[&] () {
+			Genode::raw(*this, ": cannot send to unknown recipient ", id);
+			_die();
+			return Rpc_result::OK;
+		});
 }
 
 
@@ -481,61 +482,65 @@ Rpc_result Thread::_call_rpc_reply_and_wait(unsigned rcv_caps_cnt)
 
 void Thread::_call_thread_pager(Thread &thread, Thread &pager, capid_t id)
 {
-	auto &sc = *_pd.cap_tree().find<Signal_context>(id);
-	thread._fault_context.construct(pager, sc);
+	_pd.cap_tree().with<Signal_context>(id,
+		[&] (Signal_context &sc) {
+			thread._fault_context.construct(pager, sc); },
+		[&] () {
+			Genode::error("core failed to set thread's ", thread,
+			              "pager to cap ", id); });
 }
 
 
 Signal_result Thread::_call_signal_wait(capid_t const id)
 {
-	auto *receiver = _pd.cap_tree().find<Signal_receiver>(id);
-	if (!receiver)
-		return Signal_result::INVALID;
-
-	if (!receiver->add_handler(_signal_handler))
-		return Signal_result::INVALID;
-
-	return Signal_result::OK;
+	return _pd.cap_tree().with<Signal_receiver>(id,
+		[&] (Signal_receiver &receiver) {
+			return (receiver.add_handler(_signal_handler))
+				? Signal_result::OK : Signal_result::INVALID; },
+		[] () { return Signal_result::INVALID; });
 }
 
 
 Signal_result Thread::_call_signal_pending(capid_t const id)
 {
-	auto *receiver = _pd.cap_tree().find<Signal_receiver>(id);
-	if (!receiver)
-		return Signal_result::INVALID;
+	return _pd.cap_tree().with<Signal_receiver>(id,
+		[&] (auto &receiver) {
+			if (!receiver.add_handler(_signal_handler))
+				return Signal_result::INVALID;
 
-	if (!receiver->add_handler(_signal_handler))
-		return Signal_result::INVALID;
+			if (_state == AWAITS_SIGNAL) {
+				_signal_handler.cancel_waiting();
+				_become_active();
+				return Signal_result::INVALID;
+			}
 
-	if (_state == AWAITS_SIGNAL) {
-		_signal_handler.cancel_waiting();
-		_become_active();
-		return Signal_result::INVALID;
-	}
-
-	return Signal_result::OK;
+			return Signal_result::OK;
+		},
+		[] () { return Signal_result::INVALID; });
 }
 
 
 void Thread::_call_signal_submit(capid_t const id, unsigned count)
 {
-	auto *context = _pd.cap_tree().find<Signal_context>(id);
-	if (context) context->submit(count);
+	_pd.cap_tree().with<Signal_context>(id,
+		[&] (auto &context) { context.submit(count); },
+		[] () { /* ignore invalid signal */ });
 }
 
 
 void Thread::_call_signal_ack(capid_t const id)
 {
-	auto *context = _pd.cap_tree().find<Signal_context>(id);
-	if (context) context->ack();
+	_pd.cap_tree().with<Signal_context>(id,
+		[&] (auto &context) { context.ack(); },
+		[] () { /* ignore invalid signal */ });
 }
 
 
 void Thread::_call_signal_kill(capid_t const id)
 {
-	auto *context = _pd.cap_tree().find<Signal_context>(id);
-	if (context) context->kill(_signal_context_killer);
+	_pd.cap_tree().with<Signal_context>(id,
+		[&] (auto &context) { context.kill(_signal_context_killer); },
+		[] () { /* ignore invalid signal */ });
 }
 
 
@@ -545,44 +550,46 @@ capid_t Thread::_call_irq_create(Core::Kernel_object<User_irq> &kobj,
                                  Genode::Irq_session::Polarity  polarity,
                                  capid_t id)
 {
-	auto *ctx = _pd.cap_tree().find<Signal_context>(id);
-	if (!ctx) {
-		Genode::raw(*this, ": invalid signal context for interrupt");
-		return cap_id_invalid();
-	}
-
-	kobj.construct(_core_pd, number, trigger, polarity, *ctx,
-	               _cpu().pic(), _user_irq_pool);
-	return kobj->core_capid();
+	return _pd.cap_tree().with<Signal_context>(id,
+		[&] (auto &context) {
+			kobj.construct(_core_pd, number, trigger, polarity, context,
+			               _cpu().pic(), _user_irq_pool);
+			return kobj->core_capid(); },
+		[] () { return cap_id_invalid(); });
 }
 
 
 capid_t Thread::_call_obj_create(Thread_identity &kobj, capid_t id)
 {
-	auto *ref = _pd.cap_tree().find(id);
-	auto *thread = ref ? ref->object<Thread>() : nullptr;
-	if (!thread ||
-		(static_cast<Core_object<Thread>*>(thread)->capid() != ref->capid()))
-		return cap_id_invalid();
-
-	kobj.construct(_core_pd, *thread);
-	return kobj->core_capid();
+	return _pd.cap_tree().with<Thread>(id,
+		[&] (auto &thread) {
+			return _pd.cap_tree().with(id,
+				[&] (auto &oir) {
+					if (static_cast<Core_object<Thread>&>(thread).capid() != oir.capid())
+						return cap_id_invalid();
+					kobj.construct(_core_pd, thread);
+					return kobj->core_capid();
+				},
+				[] { return cap_id_invalid(); });
+		},
+		[] { return cap_id_invalid(); });
 }
 
 
 void Thread::_call_cap_ack(capid_t const id)
 {
-	auto *obj_ref = _pd.cap_tree().find(id);
-	if (obj_ref) obj_ref->remove_from_utcb();
+	_pd.cap_tree().with(id,
+		[&] (auto &oir) { oir.remove_from_utcb(); },
+		[] () { /* ignore invalid cap */ });
 }
 
 
 void Thread::_call_cap_destroy(capid_t const id)
 {
-	auto *obj_ref = _pd.cap_tree().find(id);
-
-	if (obj_ref || !obj_ref->in_utcb())
-		destroy(_pd.cap_slab(), obj_ref);
+	_pd.cap_tree().with(id,
+		[&] (auto &oir) {
+			if (!oir.in_utcb()) destroy(_pd.cap_slab(), &oir); },
+		[] () { /* ignore invalid cap */ });
 }
 
 
@@ -605,13 +612,13 @@ void Kernel::Thread::_call_pd_invalidate_tlb(Pd &pd, addr_t const addr,
 
 void Thread::_call_thread_pager_signal_ack(capid_t id, Thread &thread, bool resolved)
 {
-	auto *c = _pd.cap_tree().find<Signal_context>(id);
-	if (c) c->ack();
+	_pd.cap_tree().with<Signal_context>(id,
+		[&] (Signal_context &context) { context.ack(); },
+		[] () { /* ignore invalid pager signal */ });
 
 	thread.helping_finished();
 
-	bool restart = resolved ||
-	               thread._exception_state == NO_EXCEPTION;
+	bool restart = resolved || thread._exception_state == NO_EXCEPTION;
 	if (restart) thread._restart();
 	else         thread._become_inactive(AWAITS_RESTART);
 }
