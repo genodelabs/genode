@@ -33,7 +33,6 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		Rpc_entrypoint         &_ep;
 		Accounted_ram_allocator _ram_alloc;
 		Sliced_heap             _md_alloc;
-		Pager_entrypoint       &_pager_ep;
 
 		Mutex                      _region_maps_lock { };
 		List<Region_map_component> _region_maps      { };
@@ -52,14 +51,12 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		                     Label      const &label,
 		                     Diag       const &diag,
 		                     Ram_allocator    &ram_alloc,
-		                     Local_rm         &local_rm,
-		                     Pager_entrypoint &pager_ep)
+		                     Local_rm         &local_rm)
 		:
 			Session_object(ep, resources, label, diag),
 			_ep(ep),
 			_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-			_md_alloc(_ram_alloc, local_rm),
-			_pager_ep(pager_ep)
+			_md_alloc(_ram_alloc, local_rm)
 		{ }
 
 		~Rm_session_component()
@@ -81,7 +78,7 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		{
 			Mutex::Guard guard(_region_maps_lock);
 
-			return _rm_alloc.create(_ep, _md_alloc, _pager_ep, 0, size, Diag{false})
+			return _rm_alloc.create(_ep, _md_alloc, 0, size, Diag{false})
 				.convert<Create_result>(
 					[&] (Rm_alloc::Allocation &a) {
 						_region_maps.insert(&a.obj);

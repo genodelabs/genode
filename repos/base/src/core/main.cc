@@ -138,10 +138,10 @@ void Genode::bootstrap_component(Genode::Platform &)
 	static Core::System_control &system_control = init_system_control(sliced_heap, ep);
 
 	static Rom_root    rom_root    (ep, ep, rom_modules, sliced_heap);
-	static Rm_root     rm_root     (ep, sliced_heap, core_ram, local_rm, pager_ep);
+	static Rm_root     rm_root     (ep, sliced_heap, core_ram, local_rm);
 	static Cpu_root    cpu_root    (core_ram, local_rm, ep, ep, pager_ep,
 	                                sliced_heap, Core::Trace::sources());
-	static Pd_root     pd_root     (ep, signal_ep, pager_ep, ram_ranges, local_rm, sliced_heap,
+	static Pd_root     pd_root     (ep, signal_ep, ram_ranges, local_rm, sliced_heap,
 	                                platform_specific().core_mem_alloc(),
 	                                system_control);
 	static Log_root    log_root    (ep, sliced_heap);

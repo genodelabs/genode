@@ -28,13 +28,12 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 {
 	private:
 
-		Rpc_entrypoint   &_ep;
-		Rpc_entrypoint   &_signal_ep;
-		Pager_entrypoint &_pager_ep;
-		Range_allocator  &_phys_alloc;
-		Local_rm         &_local_rm;
-		Range_allocator  &_core_mem;
-		System_control   &_system_control;
+		Rpc_entrypoint  &_ep;
+		Rpc_entrypoint  &_signal_ep;
+		Range_allocator &_phys_alloc;
+		Local_rm        &_local_rm;
+		Range_allocator &_core_mem;
+		System_control  &_system_control;
 
 		/**
 		 * The RAM allocations of system management components are getting
@@ -90,7 +89,7 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 			                  _phys_range_from_args(args),
 			                  _virt_range_from_args(args),
 			                  _managing_system(args),
-			                  _local_rm, _pager_ep, args,
+			                  _local_rm, args,
 			                  _core_mem, _system_control);
 		}
 
@@ -107,7 +106,6 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 		 */
 		Pd_root(Rpc_entrypoint   &ep,
 		        Rpc_entrypoint   &signal_ep,
-		        Pager_entrypoint &pager_ep,
 		        Range_allocator  &phys_alloc,
 		        Local_rm         &local_rm,
 		        Allocator        &md_alloc,
@@ -115,7 +113,7 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 		        System_control   &system_control)
 		:
 			Root_component<Pd_session_component>(&ep, &md_alloc),
-			_ep(ep), _signal_ep(signal_ep), _pager_ep(pager_ep),
+			_ep(ep), _signal_ep(signal_ep),
 			_phys_alloc(phys_alloc), _local_rm(local_rm), _core_mem(core_mem),
 			_system_control(system_control)
 		{ }

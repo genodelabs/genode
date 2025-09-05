@@ -521,16 +521,14 @@ static Dataspace_capability
 _type_deduction_helper(Dataspace_capability cap) { return cap; }
 
 
-Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
-                                           Allocator        &md_alloc,
-                                           Pager_entrypoint &pager_ep,
-                                           addr_t            vm_start,
-                                           size_t            vm_size,
-                                           Session::Diag     diag)
+Region_map_component::Region_map_component(Rpc_entrypoint &ep,
+                                           Allocator      &md_alloc,
+                                           addr_t          vm_start,
+                                           size_t          vm_size,
+                                           Session::Diag   diag)
 :
 	_diag(diag), _ds_ep(ep), _thread_ep(ep), _session_ep(ep),
-	_md_alloc(md_alloc),
-	_map(&_md_alloc), _pager_ep(pager_ep),
+	_md_alloc(md_alloc), _map(&_md_alloc),
 	_ds(align_addr(vm_size, get_page_size_log2())),
 	_ds_cap(_type_deduction_helper(_ds_ep.manage(&_ds)))
 {

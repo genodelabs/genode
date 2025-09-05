@@ -141,7 +141,6 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		                     Virt_range        virt_range,
 		                     Managing_system   managing_system,
 		                     Local_rm         &local_rm,
-		                     Pager_entrypoint &pager_ep,
 		                     char const       *args,
 		                     Range_allocator  &core_mem,
 		                     Core::System_control &system_control)
@@ -159,10 +158,9 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
 			_pd(_sliced_heap, _label),
-			_address_space(ep, _sliced_heap, pager_ep,
-			               virt_range.start, virt_range.size, diag),
-			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size(), diag),
-			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE, diag),
+			_address_space(ep, _sliced_heap, virt_range.start, virt_range.size, diag),
+			_stack_area   (ep, _sliced_heap, 0, stack_area_virtual_size(), diag),
+			_linker_area  (ep, _sliced_heap, 0, LINKER_AREA_SIZE, diag),
 			_managing_system(managing_system)
 		{
 			_address_space.address_space(_pd);

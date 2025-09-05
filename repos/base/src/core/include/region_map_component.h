@@ -401,7 +401,6 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		                                                for fault resolution */
 		List<Rm_client>               _clients  { }; /* list of RM clients using this region map */
 		Mutex mutable                 _mutex    { }; /* mutex for map and list */
-		Pager_entrypoint             &_pager_ep;
 		Rm_dataspace_component        _ds;           /* dataspace representation of region map */
 		Dataspace_capability          _ds_cap;
 
@@ -534,12 +533,11 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		 *
 		 * The object calls 'ep.manage' for itself on construction.
 		 */
-		Region_map_component(Rpc_entrypoint   &ep,
-		                     Allocator        &md_alloc,
-		                     Pager_entrypoint &pager_ep,
-		                     addr_t            vm_start,
-		                     size_t            vm_size,
-		                     Session::Diag     diag);
+		Region_map_component(Rpc_entrypoint &ep,
+		                     Allocator      &md_alloc,
+		                     addr_t          vm_start,
+		                     size_t          vm_size,
+		                     Session::Diag   diag);
 
 		~Region_map_component();
 
