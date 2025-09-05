@@ -36,15 +36,15 @@ inline Nova::uint8_t retry_syscall(addr_t pd_sel, auto const &fn)
 
 bool Pd_session_component::assign_pci(addr_t pci_config_memory, uint16_t bdf)
 {
-	return retry_syscall(_pd->pd_sel(), [&] {
-		return Nova::assign_pci(_pd->pd_sel(), pci_config_memory, bdf);
+	return retry_syscall(_pd.pd_sel(), [&] {
+		return Nova::assign_pci(_pd.pd_sel(), pci_config_memory, bdf);
 	}) == Nova::NOVA_OK;
 }
 
 
 Pd_session::Map_result Pd_session_component::map(Pd_session::Virt_range const virt_range)
 {
-	Platform_pd &target_pd = *_pd;
+	Platform_pd &target_pd = _pd;
 	Nova::Utcb  &utcb      = *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 	addr_t const pd_core   = platform_specific().core_pd_sel();
 	addr_t const pd_dst    = target_pd.pd_sel();
@@ -52,7 +52,7 @@ Pd_session::Map_result Pd_session_component::map(Pd_session::Virt_range const vi
 	auto map_memory = [&] (Mapping const &mapping)
 	{
 		/* asynchronously map memory */
-		uint8_t err = retry_syscall(_pd->pd_sel(), [&] {
+		uint8_t err = retry_syscall(_pd.pd_sel(), [&] {
 			utcb.set_msg_word(0);
 
 			bool res = utcb.append_item(nova_src_crd(mapping), 0, true, false,

@@ -68,12 +68,10 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		Signal_broker           _signal_broker;
 		Rpc_cap_factory         _rpc_cap_factory;
 		Native_pd_component     _native_pd;
-
-		Constructible<Platform_pd> _pd { };
-
-		Region_map_component _address_space;
-		Region_map_component _stack_area;
-		Region_map_component _linker_area;
+		Platform_pd             _pd;
+		Region_map_component    _address_space;
+		Region_map_component    _stack_area;
+		Region_map_component    _linker_area;
 
 		Managing_system _managing_system;
 
@@ -160,16 +158,14 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
+			_pd(_sliced_heap, _label),
 			_address_space(ep, _sliced_heap, pager_ep,
 			               virt_range.start, virt_range.size, diag),
 			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size(), diag),
 			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE, diag),
 			_managing_system(managing_system)
 		{
-			if (platform().core_needs_platform_pd() || label != "core") {
-				_pd.construct(_sliced_heap, _label.string());
-				_address_space.address_space(&*_pd);
-			}
+			_address_space.address_space(_pd);
 		}
 
 		~Pd_session_component();
@@ -202,13 +198,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_ram_account.construct(_ram_quota_guard(), _label);
 		}
 
-		void with_platform_pd(auto const &fn)
-		{
-			if (_pd.constructed())
-				fn(*_pd);
-			else
-				error("unexpected call for 'with_platform_pd'");
-		}
+		void with_platform_pd(auto const &fn) { fn(_pd); }
 
 		void with_threads(auto const &fn) { fn(_threads); }
 
@@ -220,7 +210,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		void assign_parent(Capability<Parent> parent) override
 		{
 			_parent = parent;
-			_pd->assign_parent(parent);
+			_pd.assign_parent(parent);
 		}
 
 		bool assign_pci(addr_t, uint16_t) override;

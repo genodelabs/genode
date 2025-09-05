@@ -551,7 +551,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			return (this == static_cast<Region_map_component *>(other.obj()));
 		}
 
-		void address_space(Address_space *space) { _address_space = space; }
+		void address_space(Address_space &space) { _address_space = &space; }
 		Address_space *address_space() { return _address_space; }
 
 		/**
