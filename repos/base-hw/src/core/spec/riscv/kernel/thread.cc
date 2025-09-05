@@ -87,10 +87,9 @@ void Thread::exception(Genode::Cpu_state&)
 		_mmu_exception();
 		break;
 	default:
-		Genode::raw(*this, ": unhandled exception ", regs->cpu_exception,
-		            " at ip=", (void*)regs->ip,
-		            " addr=", Genode::Hex(Board::Cpu::Stval::read()));
-		_die();
+		_die("Unhandled exception=", regs->cpu_exception,
+		     " at ip=", (void*)regs->ip,
+		     " addr=", Genode::Hex(Board::Cpu::Stval::read()));
 	}
 }
 

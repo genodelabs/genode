@@ -212,7 +212,17 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		/**
 		 * Suspend unrecoverably from execution
 		 */
-		void _die();
+		void _die()
+		{
+			Genode::error("Will halt thread: ", *this);
+			_become_inactive(DEAD);
+		}
+
+		void _die(auto &&... args)
+		{
+			Genode::error(args...);
+			_die();
+		}
 
 		/**
 		 * In case of fault, signal to pager, and help or block

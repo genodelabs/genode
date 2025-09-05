@@ -49,16 +49,12 @@ void Thread::exception(Genode::Cpu_state &state)
 		_interrupt(_user_irq_pool);
 		return;
 	case Ctx::UNDEFINED_INSTRUCTION:
-		Genode::raw(*this, ": undefined instruction at ip=",
-		            Genode::Hex(regs->ip));
-		_die();
+		_die("Undefined instruction at ip=", Genode::Hex(regs->ip));
 		return;
 	case Ctx::RESET:
 		return;
 	default:
-		Genode::raw(*this, ": triggered an unknown exception ",
-		            regs->cpu_exception);
-		_die();
+		_die("Unknown exception triggered: ", regs->cpu_exception);
 		return;
 	}
 }

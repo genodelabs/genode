@@ -283,9 +283,6 @@ void Thread::_become_inactive(State const s)
 }
 
 
-void Thread::_die() { _become_inactive(DEAD); }
-
-
 Rpc_result Thread::_call_thread_start(Thread &thread, Native_utcb &utcb)
 {
 	assert(thread._state == AWAITS_START);
@@ -333,9 +330,7 @@ Thread_restart_result Thread::_call_thread_restart(capid_t const id)
 		[&] (auto &thread) {
 
 			if (_type == USER && (&_pd != &thread._pd)) {
-				raw(*this, ": failed to lookup thread ", (unsigned)id,
-				        " to restart it");
-				_die();
+				_die("Invalid  cap ", (unsigned)id, " to restart thread");
 				return Thread_restart_result::INVALID;
 			}
 
@@ -391,8 +386,7 @@ void Thread::_call_pd_destroy(Core::Kernel_object<Pd> &pd)
 Rpc_result Thread::_call_rpc_wait(unsigned rcv_caps_cnt)
 {
 	if (!_ipc_node.ready_to_wait()) {
-		Genode::error("IPC await request: bad state, will block");
-		_die();
+		_die("RPC wait called in bad state!");
 		return Rpc_result::OK;
 	}
 
@@ -426,8 +420,7 @@ void Thread::timeout_triggered()
 Rpc_result Thread::_call_rpc_call(capid_t const id, unsigned rcv_caps_cnt)
 {
 	if (!_ipc_node.ready_to_send()) {
-		Genode::error("IPC send request: bad state");
-		_die();
+		_die("RPC send called in bad state!");
 		return Rpc_result::OK;
 	}
 
@@ -460,8 +453,7 @@ Rpc_result Thread::_call_rpc_call(capid_t const id, unsigned rcv_caps_cnt)
 			return Rpc_result::OK;
 		},
 		[&] () {
-			Genode::raw(*this, ": cannot send to unknown recipient ", id);
-			_die();
+			_die("RPC call cannot send to unknown recipient ", id);
 			return Rpc_result::OK;
 		});
 }
@@ -757,8 +749,7 @@ void Thread::_call()
 	default:
 		/* check wether this is a core thread */
 		if (_type != CORE) {
-			Genode::raw(*this, ": invalid system call ", user_arg_0<unsigned>());
-			_die();
+			_die("Invalid system call ", user_arg_0<unsigned>());
 			return;
 		}
 	}
@@ -928,8 +919,7 @@ void Thread::_call()
 			return;
 		}
 	default:
-		Genode::raw(*this, ": invalid system call ", user_arg_0<unsigned>());
-		_die();
+		_die("CRITICAL: invalid system call ", user_arg_0<unsigned>());
 		return;
 	}
 }
@@ -938,8 +928,7 @@ void Thread::_call()
 void Thread::_signal_to_pager()
 {
 	if (!_fault_context.constructed()) {
-		Genode::warning(*this, " could not send signal to pager");
-		_die();
+		_die("Could not send signal to pager");
 		return;
 	}
 
@@ -964,14 +953,13 @@ void Thread::_mmu_exception()
 	_fault.ip = regs->ip;
 
 	if (_fault.type == Thread_fault::UNKNOWN) {
-		Genode::warning(*this, " raised unhandled MMU fault ", _fault);
-		_die();
+		_die("Unable to handle MMU fault: ", _fault);
 		return;
 	}
 
 	if (_type != USER) {
-		error(*this, " raised a fault, which should never happen ",
-		              _fault);
+		error("Core/kernel raised a fault, which should never happen ",
+		      _fault);
 		log("Register dump: ", *regs);
 		log("Backtrace:");
 
@@ -980,7 +968,7 @@ void Thread::_mmu_exception()
 			 Hw::Mm::core_stack_area().size };
 		regs->for_each_return_address(stack, [&] (void **p) {
 			log(*p); });
-		_die();
+		_die("Unable to resolve!");
 		return;
 	}
 
@@ -992,10 +980,8 @@ void Thread::_exception()
 {
 	_exception_state = EXCEPTION;
 
-	if (_type != USER) {
-		Genode::raw(*this, " raised an exception, which should never happen");
-		_die();
-	}
+	if (_type != USER)
+		_die("Core/kernel raised an exception, which should never happen");
 
 	_signal_to_pager();
 }

@@ -205,10 +205,9 @@ void Thread::exception(Genode::Cpu_state &state)
 		return;
 	}
 
-	Genode::raw(*this, ": triggered unknown exception ", regs->trapno,
-	            " with error code ", regs->errcode, " at ip=", (void*)regs->ip, " sp=", (void*)regs->sp);
-
-	_die();
+	_die("unknown exception triggered trapno: ", regs->trapno,
+	     " with error code=", regs->errcode,
+	     " at ip=", (void*)regs->ip, " sp=", (void*)regs->sp);
 }
 
 

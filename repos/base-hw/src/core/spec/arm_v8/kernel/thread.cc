@@ -68,8 +68,7 @@ void Thread::exception(Genode::Cpu_state &state)
 			 * component, mark it dead, and continue execution.
 			 */
 			if (regs->exception_type == Cpu::SYNC_LEVEL_EL0) {
-				Genode::raw("Will freeze thread ", *this);
-				_become_inactive(DEAD);
+				_die("Unhandled machine exception caused.");
 				return;
 			}
 			break;
