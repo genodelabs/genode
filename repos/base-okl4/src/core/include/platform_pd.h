@@ -167,11 +167,13 @@ class Core::Platform_pd : public Address_space
 
 	public:
 
+		using Name = String<160>;
+
 		/**
 		 * Constructors
 		 */
 		Platform_pd(bool core);
-		Platform_pd(Allocator &, char const *);
+		Platform_pd(Allocator &, Name const &);
 
 		/**
 		 * Destructor

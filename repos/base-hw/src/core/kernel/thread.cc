@@ -905,7 +905,7 @@ Thread::~Thread() { _ipc_free_recv_caps(); }
 
 void Thread::print(Genode::Output &out) const
 {
-	Genode::print(out, _pd ? _pd->label() : "?");
+	if (_pd) Genode::print(out, *_pd); else Genode::print(out, "?");
 	Genode::print(out, " -> ");
 	Genode::print(out, label());
 }

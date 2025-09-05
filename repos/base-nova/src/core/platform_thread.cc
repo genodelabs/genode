@@ -291,7 +291,10 @@ void Platform_thread::single_step(bool on)
 }
 
 
-const char * Platform_thread::pd_name() const { return _pd.name(); }
+void Platform_thread::print(Output &out) const
+{
+	Genode::print(out, "pd='", _pd.name, "' thread='", _name, "'");
+}
 
 
 Trace::Execution_time Platform_thread::execution_time() const

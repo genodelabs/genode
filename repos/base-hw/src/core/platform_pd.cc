@@ -115,7 +115,7 @@ void Hw_address_space::flush(addr_t virt, size_t size, Core_local_addr)
 Kernel::Pd::Core_pd_data Hw_address_space::_core_pd_data(Platform_pd &pd)
 {
 	return Kernel::Pd::Core_pd_data { _table_phys, &_table,
-	                                  _table_alloc, pd._slab, pd.label() };
+	                                  _table_alloc, pd._slab, pd.name };
 }
 
 
@@ -187,13 +187,13 @@ Platform_pd(Page_table                        &tt,
             Page_table_allocator              &alloc,
             Board::Address_space_id_allocator &addr_space_id_alloc)
 :
-	Hw_address_space(tt, alloc, *this, addr_space_id_alloc), _label("core")
+	Hw_address_space(tt, alloc, *this, addr_space_id_alloc), name("core")
 { }
 
 
-Platform_pd::Platform_pd(Allocator &, char const *label)
+Platform_pd::Platform_pd(Allocator &, Name const &name)
 :
-	Hw_address_space(*this), _label(label)
+	Hw_address_space(*this), name(name)
 {
 	if (!_kobj.cap().valid()) {
 		error("failed to create kernel object");

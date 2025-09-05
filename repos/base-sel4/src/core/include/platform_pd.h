@@ -72,10 +72,12 @@ class Core::Platform_pd : public Address_space
 
 	public:
 
+		using Name = Vm_space::Name;
+
 		/**
-		 * Constructors
+		 * Constructor
 		 */
-		Platform_pd(Allocator &md_alloc, char const *);
+		Platform_pd(Allocator &md_alloc, Name const &);
 
 		/**
 		 * Destructor

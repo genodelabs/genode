@@ -91,23 +91,21 @@ static void with_pager_thread(Affinity::Location location,
  */
 struct Page_fault_info
 {
-	char const * const pd;
-	char const * const thread;
+	Pager_object const &faulter;
 	unsigned const cpu;
 	addr_t const ip, addr, sp;
 	uint8_t const pf_type;
 
-	Page_fault_info(char const *pd, char const *thread, unsigned cpu,
+	Page_fault_info(Pager_object const &faulter, unsigned cpu,
 	                addr_t ip, addr_t addr, addr_t sp, unsigned type)
 	:
-		pd(pd), thread(thread), cpu(cpu), ip(ip), addr(addr),
+		faulter(faulter), cpu(cpu), ip(ip), addr(addr),
 		sp(sp), pf_type((uint8_t)type)
 	{ }
 
 	void print(Genode::Output &out) const
 	{
-		Genode::print(out, "pd='",     pd,      "' "
-		                   "thread='", thread,  "' "
+		Genode::print(out, faulter, " "
 		                   "cpu=",     cpu,     " "
 		                   "ip=",      Hex(ip), " "
 		                   "address=", Hex(addr), " "
@@ -178,12 +176,9 @@ void Pager_object::_page_fault_handler(Pager_object &obj)
 		ipc_pager.reply_and_wait_for_fault();
 	}
 
-	char const * const client_thread = obj.client_thread();
-	char const * const client_pd     = obj.client_pd();
-
 	unsigned const cpu_id = platform_specific().pager_index(myself.affinity());
 
-	Page_fault_info const fault_info(client_pd, client_thread, cpu_id,
+	Page_fault_info const fault_info(obj, cpu_id,
 	                                 ipc_pager.fault_ip(),
 	                                 ipc_pager.fault_addr(),
 	                                 ipc_pager.sp(),
@@ -223,9 +218,7 @@ void Pager_object::exception(uint8_t const exit_id)
 
 		unsigned const cpu_id = platform_specific().pager_index(myself.affinity());
 
-		warning("unresolvable exception ", exit_id,  ", "
-		        "pd '",     client_pd(),            "', "
-		        "thread '", client_thread(),        "', "
+		warning("unresolvable exception ", exit_id,  ", ", *this, " "
 		        "cpu ",     cpu_id,                  ", "
 		        "ip=",      Hex(fault_ip),            " "
 		        "sp=",      Hex(fault_sp),            " "
@@ -504,9 +497,9 @@ void Pager_object::cleanup_call()
 void Pager_object::print(Output &out) const
 {
 	Platform_thread const * const faulter = reinterpret_cast<Platform_thread *>(_badge);
-	Genode::print(out, "pager_object: pd='",
-			faulter ? faulter->pd_name() : "unknown", "' thread='",
-			faulter ? faulter->name() : "unknown", "'");
+
+	if (faulter) Genode::print(out, "pager_object: ", *faulter);
+	else         Genode::print(out, "pager_object: unknown");
 }
 
 
@@ -724,17 +717,17 @@ Pager_object::~Pager_object()
 
 
 uint8_t Pager_object::handle_oom(addr_t transfer_from,
-                                 char const * src_pd, char const * src_thread,
+                                 Src_info const &src,
                                  enum Pager_object::Policy policy)
 {
-	return handle_oom(transfer_from, pd_sel(), src_pd, src_thread, policy,
-	                  sel_sm_block_oom(), client_pd(), client_thread());
+	return handle_oom(transfer_from, pd_sel(), src, policy,
+	                  sel_sm_block_oom(), Dst_info { *this });
 }
 
 uint8_t Pager_object::handle_oom(addr_t pd_from, addr_t pd_to,
-                                 char const * src_pd, char const * src_thread,
+                                 Src_info const &src,
                                  Policy policy, addr_t sm_notify,
-                                 char const * dst_pd, char const * dst_thread)
+                                 Dst_info const &dst)
 {
 	addr_t const core_pd_sel = platform_specific().core_pd_sel();
 
@@ -752,10 +745,10 @@ uint8_t Pager_object::handle_oom(addr_t pd_from, addr_t pd_to,
 		/* request current kernel quota usage of source pd */
 		Nova::pd_ctrl_debug(pd_from, limit_source, usage_source);
 
-		log("oom - '", dst_pd, "':'", dst_thread, "' "
+		log("oom - '", dst, " "
 		    "(", usage_before, "/", limit_before, ") - "
 		    "transfer ", (long)QUOTA_TRANSFER_PAGES, " pages "
-		    "from '", src_pd, "':'", src_thread, "' "
+		    "from '", src, " "
 		    "(", usage_source, "/", limit_source, ")");
 	}
 
@@ -780,8 +773,8 @@ uint8_t Pager_object::handle_oom(addr_t pd_from, addr_t pd_to,
 	}
 
 	warning("kernel memory quota upgrade failed - trigger memory free up for "
-	        "causing '", dst_pd, "':'", dst_thread, "' - "
-	        "donator is '", src_pd, "':'", src_thread, "', "
+	        "causing ", dst, " - "
+	        "donator is ", src, ", "
 	        "policy=", (int)policy);
 
 	/* if nothing helps try to revoke memory */
@@ -861,8 +854,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		reply(my_stack_top(), obj_dst.sel_sm_block_pause());
 	}
 
-	char const * src_pd     = "core";
-	char const * src_thread = "pager";
+	Src_info src_info { "pd='core' thread='pager'" };
 
 	addr_t transfer_from = SRC_CORE_PD;
 
@@ -881,9 +873,9 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 
 		if (!(reason & SELF)) {
 			/* case that src thread != this thread in core */
-			src_thread = "unknown";
+			src_info = { "pd='core' thread=unknown" };
 			utcb.set_msg_word(0);
-        }
+		}
 
 		transfer_from = platform_specific().core_pd_sel();
 		break;
@@ -895,13 +887,12 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 			transfer_from = platform_specific().core_pd_sel();
 		else {
 			/* delegation of items between different PDs */
-			src_pd        = obj_src.client_pd();
-			src_thread    = obj_src.client_thread();
+			src_info = { obj_src };
 			transfer_from = obj_src.pd_sel();
 		}
 	}
 
-	uint8_t res = obj_dst.handle_oom(transfer_from, src_pd, src_thread, policy);
+	uint8_t res = obj_dst.handle_oom(transfer_from, src_info, policy);
 	if (res == Nova::NOVA_OK)
 		/* handling succeeded - continue with original IPC */
 		reply(my_stack_top());
@@ -941,19 +932,6 @@ addr_t Pager_object::create_oom_portal()
 	return 0;
 }
 
-
-const char * Pager_object::client_thread() const
-{
-	Platform_thread * client = reinterpret_cast<Platform_thread *>(_badge);
-	return client ? client->name() : "unknown";
-}
-
-
-const char * Pager_object::client_pd() const
-{
-	Platform_thread * client = reinterpret_cast<Platform_thread *>(_badge);
-	return client ? client->pd_name() : "unknown";
-}
 
 /**********************
  ** Pager entrypoint **

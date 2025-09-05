@@ -135,15 +135,17 @@ class Core::Platform_pd : public Address_space
 
 	public:
 
+		using Name = String<160>;
+
 		/**
 		 * Constructor
 		 */
-		Platform_pd(Allocator &md_alloc, char const *name);
+		Platform_pd(Allocator &md_alloc, Name const &);
 
 		/**
 		 * Constructor used for core's PD
 		 */
-		Platform_pd(char const *name, signed pd_id);
+		Platform_pd(signed pd_id);
 
 		/**
 		 * Destructor

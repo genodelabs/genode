@@ -68,6 +68,8 @@ class Core::Platform_pd : public Address_space
 
 	public:
 
+		using Name = String<160>;
+
 		class Threads_exhausted : Exception {};
 
 
@@ -79,7 +81,7 @@ class Core::Platform_pd : public Address_space
 		/**
 		 * Constructor for all tasks except core.
 		 */
-		Platform_pd(Allocator &, char const *label);
+		Platform_pd(Allocator &, Name const &);
 
 		/**
 		 * Destructor

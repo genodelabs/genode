@@ -60,7 +60,7 @@ static Nova::uint8_t map_async_caps(Nova::Obj_crd const src,
 static Nova::uint8_t kernel_quota_upgrade(addr_t const pd_target)
 {
 	return Pager_object::handle_oom(Pager_object::SRC_CORE_PD, pd_target,
-	                                "core", "ep",
+	                                "pd='core' thread='ep'",
 	                                Pager_object::Policy::UPGRADE_CORE_TO_DST);
 }
 

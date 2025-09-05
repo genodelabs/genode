@@ -28,9 +28,9 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(Allocator &, char const *label, signed, bool)
+Platform_pd::Platform_pd(Allocator &, Name const &name)
 :
-	_pd_sel(cap_map().insert()), _label(label)
+	_pd_sel(cap_map().insert()), name(name)
 {
 	if (_pd_sel == Native_thread::INVALID_INDEX) {
 		error("platform pd creation failed ");

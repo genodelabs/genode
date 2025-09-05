@@ -246,12 +246,9 @@ Platform_pd::Platform_pd(bool) : _l4_task_id(L4_MyGlobalId())
 }
 
 
-Platform_pd::Platform_pd(Allocator &, char const *, signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator &, Name const &)
 {
-	if (!create)
-		panic("create must be true.");
-
-	int const id = _alloc_pd(pd_id);
+	int const id = _alloc_pd(PD_INVALID);
 	if (id < 0) {
 		error("pd alloc failed");
 		return;
@@ -259,7 +256,7 @@ Platform_pd::Platform_pd(Allocator &, char const *, signed pd_id, bool create)
 
 	_pd_id = id;
 
-	_create_pd(create);
+	_create_pd(true);
 }
 
 

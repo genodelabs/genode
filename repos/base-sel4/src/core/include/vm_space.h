@@ -17,7 +17,6 @@
 /* Genode includes */
 #include <util/bit_allocator.h>
 #include <base/thread.h>
-#include <base/session_label.h>
 
 /* core includes */
 #include <base/internal/capability_space_sel4.h>
@@ -34,7 +33,6 @@ class Core::Vm_space
 {
 	private:
 
-		Session_label        _pd_label;
 		Cap_sel_alloc       &_cap_sel_alloc;
 		Page_table_registry &_pt_registry;
 		Range_allocator     &_phys_alloc;
@@ -158,6 +156,10 @@ class Core::Vm_space
 
 	public:
 
+		using Name = String<160>;
+
+		Name const name;
+
 		/**
 		 * Allocator for the selectors within '_cnodes'
 		 */
@@ -218,7 +220,7 @@ class Core::Vm_space
 			}
 
 			warning("flush page table entries - mapping cache full - PD: ",
-			        _pd_label.string(), " ", reason);
+			        name, " ", reason);
 
 			_pt_registry.flush_pages(fn);
 
@@ -417,15 +419,15 @@ class Core::Vm_space
 		         Cnode               &phys_cnode,
 		         unsigned             id,
 		         Page_table_registry &page_table_registry,
-		         const char *         label)
+		         Name          const &name)
 		:
-			_pd_label(label),
 			_cap_sel_alloc(cap_sel_alloc),
 			_pt_registry(page_table_registry),
 			_phys_alloc(phys_alloc),
 			_id(id), _pd_sel(pd_sel),
 			_top_level_cnode(top_level_cnode),
-			_phys_cnode(phys_cnode)
+			_phys_cnode(phys_cnode),
+			name(name)
 		{
 			static_assert(NUM_CNODE_3RD_LOG2 <= VM_2ND_CNODE_LOG2);
 
@@ -672,8 +674,6 @@ class Core::Vm_space
 			Mutex::Guard guard(_mutex);
 			return unsynchronized_alloc_guest_page_tables(start, size);
 		}
-
-		Session_label const & pd_label() const { return _pd_label; }
 
 		auto max_page_frames() { return 1ul << NUM_VM_SEL_LOG2; }
 };

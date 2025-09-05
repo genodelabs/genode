@@ -173,7 +173,7 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
 }
 
 
-Platform_pd::Platform_pd(Allocator &, char const *)
+Platform_pd::Platform_pd(Allocator &, Name const &)
 {
 	/* check correct init */
 	if (!_init)
@@ -188,7 +188,7 @@ Platform_pd::Platform_pd(Allocator &, char const *)
 }
 
 
-Platform_pd::Platform_pd(char const *, signed pd_id)
+Platform_pd::Platform_pd(signed pd_id)
 {
 	/* check correct init */
 	if (!_init)

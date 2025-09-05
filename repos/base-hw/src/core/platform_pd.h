@@ -170,7 +170,6 @@ class Core::Platform_pd : public Hw_address_space, private Cap_space
 
 		Native_capability  _parent { };
 		bool               _thread_associated = false;
-		char const * const _label;
 
 		friend class Hw_address_space;
 
@@ -188,14 +187,16 @@ class Core::Platform_pd : public Hw_address_space, private Cap_space
 
 	public:
 
+		using Name = Kernel::Pd::Core_pd_data::Name;
+
+		Name const name;
+
 		bool has_any_thread = false;
 
 		/**
 		 * Constructor used for objects other than the Core PD
-		 *
-		 * \param label  name of protection domain
 		 */
-		Platform_pd(Allocator &md_alloc, char const *label);
+		Platform_pd(Allocator &, Name const &);
 
 		/**
 		 * Destructor
@@ -215,12 +216,6 @@ class Core::Platform_pd : public Hw_address_space, private Cap_space
 		 */
 		void assign_parent(Native_capability parent);
 
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		char const *      label()  { return _label;  }
 		Native_capability parent() { return _parent; }
 };
 

@@ -139,7 +139,7 @@ bool Platform_pd::install_mapping(Mapping const &mapping,
 		return true;
 
 	warning("mapping failure for thread '", thread_name,
-	        "' in pd '", _vm_space->pd_label(), "'");
+	        "' in pd '", _vm_space->name, "'");
 	return false;
 }
 
@@ -153,7 +153,7 @@ void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 }
 
 
-Platform_pd::Platform_pd(Allocator &md_alloc, char const *label)
+Platform_pd::Platform_pd(Allocator &md_alloc, Name const &name)
 :
 	_page_table_registry(md_alloc)
 {
@@ -188,7 +188,7 @@ Platform_pd::Platform_pd(Allocator &md_alloc, char const *label)
 	                    platform_specific().phys_cnode(),
 	                    _id,
 	                    _page_table_registry,
-	                    label);
+	                    name);
 
 	if (!_vm_space->constructed())
 		return;

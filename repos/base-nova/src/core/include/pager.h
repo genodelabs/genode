@@ -345,6 +345,9 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 			NO_NOTIFICATION = 0
 		};
 
+		using Src_info = String<160>;
+		using Dst_info = String<160>;
+
 		/**
 		 * Implements policy on how to react on out of memory in kernel.
 		 *
@@ -360,16 +363,14 @@ class Core::Pager_object : public Object_pool<Pager_object>::Entry
 		 * /param thread  debug feature - string of EC (transfer_from)
 		 */
 		uint8_t handle_oom(addr_t pd_sel = SRC_CORE_PD,
-		                   const char * pd = "core",
-		                   const char * thread = "unknown",
+		                   Src_info const &src = "core",
 		                   Policy = Policy::UPGRADE_CORE_TO_DST);
+
 		static uint8_t handle_oom(addr_t pd_from, addr_t pd_to,
-		                           char const * src_pd,
-		                           char const * src_thread,
+		                           Src_info const &,
 		                           Policy policy,
 		                           addr_t sm_notify = NO_NOTIFICATION,
-		                           char const * dst_pd = "unknown",
-		                           char const * dst_thread = "unknown");
+		                           Dst_info const &dst = "unknown");
 
 		void print(Output &out) const;
 };

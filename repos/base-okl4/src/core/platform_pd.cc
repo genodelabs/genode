@@ -301,7 +301,7 @@ Platform_pd::Platform_pd(bool) : _space_pager(0)
 }
 
 
-Platform_pd::Platform_pd(Allocator &, char const *)
+Platform_pd::Platform_pd(Allocator &, Name const &)
 {
 	_init_threads();
 

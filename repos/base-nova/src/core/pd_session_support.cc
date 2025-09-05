@@ -28,7 +28,7 @@ inline Nova::uint8_t retry_syscall(addr_t pd_sel, auto const &fn)
 	} while (res == Nova::NOVA_PD_OOM &&
 	         Nova::NOVA_OK == Pager_object::handle_oom(Pager_object::SRC_CORE_PD,
 	                                                   pd_sel,
-	                                                   "core", "ep",
+	                                                   "pd='core', thread='ep'",
 	                                                   Pager_object::Policy::UPGRADE_CORE_TO_DST));
 
 	return res;

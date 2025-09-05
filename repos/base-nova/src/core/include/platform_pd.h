@@ -31,7 +31,6 @@ class Core::Platform_pd : public Address_space
 
 		Native_capability _parent { };
 		addr_t const      _pd_sel;
-		const char *      _label;
 
 		/*
 		 * Noncopyable
@@ -41,13 +40,16 @@ class Core::Platform_pd : public Address_space
 
 	public:
 
+		using Name = String<160>;
+
+		Name const name;
+
 		bool has_any_threads = false;
 
 		/**
-		 * Constructors
+		 * Constructor
 		 */
-		Platform_pd(Allocator &md_alloc, char const *,
-		            signed pd_id = -1, bool create = true);
+		Platform_pd(Allocator &md_alloc, Name const &);
 
 		/**
 		 * Destructor
@@ -71,12 +73,6 @@ class Core::Platform_pd : public Address_space
 		 */
 		addr_t pd_sel() const { return _pd_sel; }
 
-		/**
-		 * Label of this protection domain
-		 *
-		 * \return name of this protection domain
-		 */
-		const char * name() const { return _label; }
 
 		/*****************************
 		 ** Address-space interface **

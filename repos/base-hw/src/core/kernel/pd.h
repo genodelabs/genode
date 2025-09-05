@@ -46,12 +46,15 @@ class Kernel::Pd
 		 * few arguments the syscall low-level API supports.
 		 * Therefore, we use a compound object to transfer them.
 		 */
-		struct Core_pd_data {
+		struct Core_pd_data
+		{
+			using Name = Genode::String<160>;
+
 			addr_t                     table_phys_addr;
 			void                      *table;
 			Hw::Page_table_translator &table_translator;
 			Cap_slab                  &cap_slab;
-			const char * const         label;
+			Name                 const name;
 		};
 
 	private:
@@ -110,6 +113,8 @@ class Kernel::Pd
 				   _core_data.table_translator);
 		}
 
+		void print(Genode::Output &out) const { Genode::print(out, _core_data.name); }
+
 
 		/***************
 		 ** Accessors **
@@ -120,7 +125,6 @@ class Kernel::Pd
 		Object_identity_reference_tree &cap_tree() { return _cap_tree;      }
 
 		Cap_slab & cap_slab() { return _core_data.cap_slab; }
-		char const * label() const { return _core_data.label; }
 };
 
 #endif /* _CORE__KERNEL__PD_H_ */

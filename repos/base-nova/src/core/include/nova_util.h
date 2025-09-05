@@ -229,6 +229,7 @@ inline Nova::uint8_t syscall_retry(Core::Pager_object &pager, auto const &fn)
 	return res;
 }
 
+
 inline Nova::uint8_t async_map(Core::Pager_object &pager,
                                Genode::addr_t const source_pd,
                                Genode::addr_t const target_pd,

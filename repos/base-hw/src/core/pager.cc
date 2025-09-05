@@ -87,7 +87,7 @@ void Pager_object::print(Output &out) const
 {
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt)
-		Genode::print(out, "pager_object: pd='", pt->pd().label(),
+		Genode::print(out, "pager_object: pd='", pt->pd().name,
 		                   "' thread='", pt->label(), "'");
 }
 
@@ -132,8 +132,8 @@ void Pager_entrypoint::Thread::entry()
 		    Kernel::Thread::Exception_state::EXCEPTION) {
 			if (!po->submit_exception_signal())
 				warning("unresolvable exception: "
-				        "pd='",     pt->pd().label(), "', "
-				        "thread='", pt->label(),       "', "
+				        "pd='",     pt->pd().name, "', "
+				        "thread='", pt->label(),   "', "
 				        "ip=",      Hex(pt->state().cpu.ip));
 			pt->fault_resolved(cap, false);
 			continue;

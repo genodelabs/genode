@@ -30,7 +30,9 @@ namespace Core {
 
 struct Core::Platform_pd
 {
-	Platform_pd(Allocator &, char const *) { }
+	using Name = String<160>;
+
+	Platform_pd(Allocator &, Name const &) { }
 
 	void assign_parent(Capability<Parent>) { }
 };

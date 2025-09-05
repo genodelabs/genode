@@ -30,6 +30,8 @@
 
 namespace Core {
 
+	struct Pd_name;
+
 	class Platform_pd;
 	class Platform_thread;
 }
@@ -180,16 +182,6 @@ class Core::Platform_thread
 		Affinity::Location affinity() const { return _location; }
 
 		/**
-		 * Get thread name
-		 */
-		const char *name() const { return _name.string(); }
-
-		/**
-		 * Get pd name
-		 */
-		const char *pd_name() const;
-
-		/**
 		 * Set CPU quota of the thread to 'quota'
 		 */
 		void quota(size_t const) { /* not supported*/ }
@@ -198,6 +190,8 @@ class Core::Platform_thread
 		 * Return execution time consumed by the thread
 		 */
 		Trace::Execution_time execution_time() const;
+
+		void print(Output &) const;
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */
