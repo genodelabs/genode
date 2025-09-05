@@ -173,12 +173,14 @@ class Kernel::Signal_context
 		 */
 		void ack();
 
+		enum class Kill_result { IN_DELIVERY, DONE };
+
 		/**
 		 * Destruct context or prepare to do it as soon as delivery is done
 		 *
 		 * \param k  object that shall receive progress reports
 		 */
-		void kill(Signal_context_killer &k);
+		Kill_result kill(Signal_context_killer &k);
 
 		/**
 		 * Create a signal context and assign it to a signal receiver
@@ -212,10 +214,14 @@ class Kernel::Signal_context
 
 class Kernel::Signal_receiver
 {
-	friend class Signal_context;
-	friend class Signal_handler;
+	public:
+
+		enum class Result { DELIVERED, WAIT, INVALID };
 
 	private:
+
+		friend class Signal_context;
+		friend class Signal_handler;
 
 		using Signal = Genode::Signal;
 
@@ -234,7 +240,7 @@ class Kernel::Signal_receiver
 		/**
 		 * Deliver as much submits as possible
 		 */
-		void _listen();
+		Result _listen();
 
 		/**
 		 * Notice that a context of the receiver has been destructed
@@ -263,7 +269,7 @@ class Kernel::Signal_receiver
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		bool add_handler(Signal_handler &h);
+		Result add_handler(Signal_handler &h);
 
 		/**
 		 * Syscall to create a signal receiver

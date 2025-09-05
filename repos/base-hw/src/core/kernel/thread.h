@@ -438,10 +438,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 ** Signals **
 		 *************/
 
-		void signal_context_kill_pending();
-		void signal_context_kill_failed();
 		void signal_context_kill_done();
-		void signal_wait_for_signal();
 		void signal_receive_signal(void * const base, size_t const size);
 
 

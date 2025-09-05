@@ -204,13 +204,6 @@ void Thread_fault::print(Genode::Output &out) const
 }
 
 
-void Thread::signal_context_kill_pending()
-{
-	assert(_state == ACTIVE);
-	_become_inactive(AWAITS_SIGNAL_CONTEXT_KILL);
-}
-
-
 void Thread::signal_context_kill_done()
 {
 	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
@@ -218,22 +211,8 @@ void Thread::signal_context_kill_done()
 }
 
 
-void Thread::signal_context_kill_failed()
-{
-	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
-	_become_active();
-}
-
-
-void Thread::signal_wait_for_signal()
-{
-	_become_inactive(AWAITS_SIGNAL);
-}
-
-
 void Thread::signal_receive_signal(void * const base, size_t const size)
 {
-	assert(_state == AWAITS_SIGNAL);
 	Genode::memcpy(utcb()->data(), base, size);
 	_become_active();
 }
@@ -487,8 +466,16 @@ Signal_result Thread::_call_signal_wait(capid_t const id)
 {
 	return _pd.cap_tree().with<Signal_receiver>(id,
 		[&] (Signal_receiver &receiver) {
-			return (receiver.add_handler(_signal_handler))
-				? Signal_result::OK : Signal_result::INVALID; },
+			switch (receiver.add_handler(_signal_handler)) {
+			case Signal_receiver::Result::WAIT:
+				_become_inactive(AWAITS_SIGNAL);
+				[[fallthrough]];
+			case Signal_receiver::Result::DELIVERED:
+				return Signal_result::OK;
+			case Signal_receiver::Result::INVALID: break;
+			};
+			return Signal_result::INVALID;
+		},
 		[] () { return Signal_result::INVALID; });
 }
 
@@ -497,16 +484,15 @@ Signal_result Thread::_call_signal_pending(capid_t const id)
 {
 	return _pd.cap_tree().with<Signal_receiver>(id,
 		[&] (auto &receiver) {
-			if (!receiver.add_handler(_signal_handler))
-				return Signal_result::INVALID;
-
-			if (_state == AWAITS_SIGNAL) {
+			switch (receiver.add_handler(_signal_handler)) {
+			case Signal_receiver::Result::DELIVERED:
+				return Signal_result::OK;
+			case Signal_receiver::Result::WAIT:
 				_signal_handler.cancel_waiting();
-				_become_active();
-				return Signal_result::INVALID;
-			}
-
-			return Signal_result::OK;
+				[[fallthrough]];
+			case Signal_receiver::Result::INVALID: break;
+			};
+			return Signal_result::INVALID;
 		},
 		[] () { return Signal_result::INVALID; });
 }
@@ -531,7 +517,11 @@ void Thread::_call_signal_ack(capid_t const id)
 void Thread::_call_signal_kill(capid_t const id)
 {
 	_pd.cap_tree().with<Signal_context>(id,
-		[&] (auto &context) { context.kill(_signal_context_killer); },
+		[&] (auto &context) {
+			if (context.kill(_signal_context_killer) ==
+			    Signal_context::Kill_result::IN_DELIVERY)
+				_become_inactive(AWAITS_SIGNAL_CONTEXT_KILL);
+		},
 		[] () { /* ignore invalid signal */ });
 }
 

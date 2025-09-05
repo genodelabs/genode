@@ -111,30 +111,30 @@ void Signal_context::ack()
 }
 
 
-void Signal_context::kill(Signal_context_killer &k)
+Signal_context::Kill_result Signal_context::kill(Signal_context_killer &k)
 {
 	/* check if in a kill operation or already killed */
 	if (_killed)
-		return;
+		return Kill_result::DONE;
 
 	/* kill directly if there is no unacknowledged delivery */
 	if (_ack) {
 		_killed = true;
-		return;
+		return Kill_result::DONE;
 	}
 
 	/* wait for delivery acknowledgement */
 	_killer = &k;
 	_killed = true;
 	_killer->_context = this;
-	_killer->_thread.signal_context_kill_pending();
+	return Kill_result::IN_DELIVERY;
 }
 
 
 Signal_context::~Signal_context()
 {
 	if (_killer)
-		_killer->_thread.signal_context_kill_failed();
+		_killer->_thread.signal_context_kill_done();
 
 	_receiver._context_destructed(*this);
 }
@@ -162,31 +162,33 @@ void Signal_receiver::_add_deliverable(Signal_context &c)
 }
 
 
-void Signal_receiver::_listen()
+Signal_receiver::Result Signal_receiver::_listen()
 {
-	while (1)
-	{
-		/* check for deliverable signals and waiting handlers */
-		if (_deliver.empty() || !_handler)
-			return;
+	/* check for deliverable signals and waiting handlers */
+	if (_deliver.empty() || !_handler)
+		return Result::WAIT;
 
-		/* create a signal data-object */
-		using Signal_imprint = Genode::Signal_context *;
+	/* create a signal data-object */
+	using Signal_imprint = Genode::Signal_context *;
 
-		_deliver.dequeue([&] (Signal_context::Fifo_element &elem) {
-			auto const context = &elem.object();
+	Result ret = Result::WAIT;
 
-			Signal_imprint const imprint =
-				reinterpret_cast<Signal_imprint>(context->_imprint);
-			Signal::Data data(imprint, context->_submits);
+	_deliver.dequeue([&] (Signal_context::Fifo_element &elem) {
+		auto const context = &elem.object();
 
-			/* communicate signal data to handler */
-			_handler->_receiver = nullptr;
-			_handler->_thread.signal_receive_signal(&data, sizeof(data));
-			_handler = nullptr;
-			context->_delivered();
-		});
-	}
+		Signal_imprint const imprint =
+			reinterpret_cast<Signal_imprint>(context->_imprint);
+		Signal::Data data(imprint, context->_submits);
+
+		/* communicate signal data to handler */
+		_handler->_receiver = nullptr;
+		_handler->_thread.signal_receive_signal(&data, sizeof(data));
+		_handler = nullptr;
+		context->_delivered();
+		ret = Result::DELIVERED;
+	});
+
+	return ret;
 }
 
 
@@ -210,16 +212,14 @@ void Signal_receiver::_add_context(Signal_context &c) {
 
 
 
-bool Signal_receiver::add_handler(Signal_handler &h)
+Signal_receiver::Result Signal_receiver::add_handler(Signal_handler &h)
 {
 	if (h._receiver || _handler)
-		return false;
+		return Result::INVALID;
 
 	_handler = &h;
 	h._receiver = this;
-	h._thread.signal_wait_for_signal();
-	_listen();
-	return true;
+	return _listen();
 }
 
 
