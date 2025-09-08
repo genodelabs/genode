@@ -56,7 +56,6 @@ append config {
 		</parent-provides>
 
 		<start name="timer" caps="200" ram="1M">
-			<resource name="CPU" quantum="5"/>
 			<provides> <service name="Timer"/> </provides>
 			<route>
 				<service name="PD"> <parent/> </service>

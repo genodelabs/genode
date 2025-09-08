@@ -55,7 +55,7 @@ Irq_session::Info Irq_session_component::info()
 
 Irq_object::Irq_object(unsigned irq)
 :
-	Thread(Weight::DEFAULT_WEIGHT, "irq", 4096 /* stack */, Type::NORMAL),
+	Thread("irq", 4096 /* stack */, Type::NORMAL),
 	_sig_cap(Signal_context_capability()), _irq(irq), _fd(-1)
 { }
 

@@ -42,7 +42,7 @@ void Genode::prepare_init_main_thread() { }
 void Thread::_thread_bootstrap() { }
 
 
-void Thread::_init_native_thread(Stack &, size_t, Type type)
+void Thread::_init_native_thread(Stack &, Type type)
 {
 	if (type == NORMAL) return;
 

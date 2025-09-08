@@ -127,7 +127,7 @@ static bool with_trace_source(Stack &stack, auto const &fn)
 }
 
 
-void Thread::_init_native_thread(Stack &stack, size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	Native_thread &nt = stack.native_thread();
 

@@ -43,7 +43,6 @@ class Genode::Thread
 
 		using Location = Affinity::Location;
 		using Name     = Cpu_session::Name;
-		using Weight   = Cpu_session::Weight;
 
 		enum class Stack_error { STACK_AREA_EXHAUSTED, STACK_TOO_LARGE };
 
@@ -163,10 +162,9 @@ class Genode::Thread
 		/**
 		 * Hook for platform-specific constructor supplements
 		 *
-		 * \param weight  weighting regarding the CPU session quota
 		 * \param type    enables selection of special initialization
 		 */
-		void _init_native_thread(Stack &, size_t weight, Type type);
+		void _init_native_thread(Stack &, Type type);
 
 		void _init_cpu_session_and_trace_control();
 
@@ -179,15 +177,14 @@ class Genode::Thread
 		 *
 		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
-		Thread(size_t weight, const char *name, size_t stack_size,
-		       Type type, Affinity::Location affinity = Affinity::Location());
+		Thread(const char *name, size_t stack_size, Type type,
+		       Affinity::Location affinity = Affinity::Location());
 
 		/**
 		 * Constructor
 		 *
 		 * \noapi
 		 *
-		 * \param weight      weighting regarding the CPU session quota
 		 * \param name        thread name (for debugging)
 		 * \param stack_size  stack size
 		 *
@@ -198,9 +195,9 @@ class Genode::Thread
 		 *
 		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
-		Thread(size_t weight, const char *name, size_t stack_size,
+		Thread(const char *name, size_t stack_size,
 		       Affinity::Location affinity = Affinity::Location())
-		: Thread(weight, name, stack_size, NORMAL, affinity) { }
+		: Thread(name, stack_size, NORMAL, affinity) { }
 
 		/**
 		 * Constructor
@@ -211,7 +208,6 @@ class Genode::Thread
 		 * \noapi Using multiple CPU sessions within a single component is
 		 *        an experimental feature.
 		 *
-		 * \param weight      weighting regarding the CPU session quota
 		 * \param name        thread name (for debugging)
 		 * \param stack_size  stack size
 		 * \param type        enables selection of special construction
@@ -219,7 +215,7 @@ class Genode::Thread
 		 *
 		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
-		Thread(size_t weight, const char *name, size_t stack_size,
+		Thread(const char *name, size_t stack_size,
 		       Type type, Cpu_session *,
 		       Affinity::Location affinity = Affinity::Location());
 
@@ -231,8 +227,6 @@ class Genode::Thread
 		 * \param stack_size  stack size
 		 * \param location    CPU affinity relative to the CPU-session's
 		 *                    affinity space
-		 * \param weight      scheduling weight relative to the other threads
-		 *                    sharing the same CPU session
 		 * \param cpu_session CPU session used to create the thread. Normally
 		 *                    'env.cpu()' should be specified.
 		 *
@@ -242,14 +236,13 @@ class Genode::Thread
 		 * and policy.
 		 */
 		Thread(Env &env, Name const &name, size_t stack_size, Location location,
-		       Weight weight, Cpu_session &cpu);
+		       Cpu_session &cpu);
 
 		/**
 		 * Constructor
 		 *
 		 * This is a shortcut for the common case of creating a thread via
-		 * the environment's CPU session, at the default affinity location, and
-		 * with the default weight.
+		 * the environment's CPU session, at the default affinity location.
 		 */
 		Thread(Env &env, Name const &name, size_t stack_size);
 

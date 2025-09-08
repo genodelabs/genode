@@ -80,12 +80,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		using Cap_limit_accessor = Resource_limit_accessor<Cap_quota>;
 		using Cpu_limit_accessor = Resource_limit_accessor<Cpu_quota>;
 
-		struct Cpu_quota_transfer : Interface
-		{
-			virtual void transfer_cpu_quota(Capability<Pd_session>, Pd_session &,
-			                                Capability<Cpu_session>, Cpu_quota) = 0;
-		};
-
 		enum class Sample_state_result { CHANGED, UNCHANGED };
 
 		using Pd_intrinsics = Genode::Sandbox::Pd_intrinsics;
@@ -176,8 +170,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		Default_quota_accessor &_default_quota_accessor;
 		Ram_limit_accessor     &_ram_limit_accessor;
 		Cap_limit_accessor     &_cap_limit_accessor;
-		Cpu_limit_accessor     &_cpu_limit_accessor;
-		Cpu_quota_transfer     &_cpu_quota_transfer;
 
 		Name_registry &_name_registry;
 
@@ -238,7 +230,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			Affinity  affinity;
 			Ram_quota assigned_ram_quota;
 			Cap_quota assigned_cap_quota;
-			Cpu_quota assigned_cpu_quota;
 
 			Ram_quota effective_ram_quota() const
 			{
@@ -279,16 +270,13 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			size_t caps { start_node.attribute_value("caps", default_cap_quota.value) };
 
-			unsigned cpu_percent = 0;
-
 			start_node.for_each_sub_node("resource", [&] (Node const &rsc) {
 
 				using Name = String<8>;
 				Name const name = rsc.attribute_value("name", Name());
 
-				if (name == "RAM") ram         = rsc.attribute_value("quantum", ram);
-				if (name == "CPU") cpu_percent = rsc.attribute_value("quantum", 0U);
-				if (name == "CAP") caps        = rsc.attribute_value("quantum", 0UL);
+				if (name == "RAM") ram  = rsc.attribute_value("quantum", ram);
+				if (name == "CAP") caps = rsc.attribute_value("quantum", 0UL);
 			});
 
 			return Resources { log2(prio_levels.value),
@@ -296,8 +284,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			                   Affinity(affinity_space,
 			                            affinity_location_from_node(affinity_space, start_node)),
 			                   Ram_quota { ram },
-			                   Cap_quota { caps },
-			                   Cpu_quota { cpu_percent } };
+			                   Cap_quota { caps } };
 		}
 
 		Resources _resources;
@@ -371,10 +358,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		 */
 		long const _prio_levels_log2 { _resources.prio_levels_log2 };
 		long const _priority         { _resources.priority };
-
-		Cpu_quota const _effective_cpu_quota {
-			min(_cpu_limit_accessor.resource_limit(Cpu_quota{}).percent,
-			    _resources.assigned_cpu_quota.percent) };
 
 		/**
 		 * If set to true, the child is allowed to do system management,
@@ -576,8 +559,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		      Name_registry            &name_registry,
 		      Ram_limit_accessor       &ram_limit_accessor,
 		      Cap_limit_accessor       &cap_limit_accessor,
-		      Cpu_limit_accessor       &cpu_limit_accessor,
-		      Cpu_quota_transfer       &cpu_quota_transfer,
 		      Prio_levels               prio_levels,
 		      Affinity::Space const    &affinity_space,
 		      Registry<Parent_service> &parent_services,
@@ -596,7 +577,6 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		Ram_quota ram_quota() const { return _resources.assigned_ram_quota; }
 		Cap_quota cap_quota() const { return _resources.assigned_cap_quota; }
-		Cpu_quota cpu_quota() const { return _effective_cpu_quota; }
 
 		void try_start()
 		{
@@ -718,8 +698,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		Ram_allocator &session_md_ram() override { return _env.ram(); }
 
-		void init(Pd_session  &, Pd_session_capability)  override;
-		void init(Cpu_session &, Cpu_session_capability) override;
+		void init(Pd_session &, Pd_session_capability) override;
 
 		Id_space<Parent::Server> &server_id_space() override {
 			return _session_requester.id_space(); }

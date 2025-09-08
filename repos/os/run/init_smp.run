@@ -55,7 +55,6 @@ proc per_cpu_start_node { i } {
 
 					<start name="bomb-master" priority="-1" caps="100000" ram="2G">
 						<binary name="bomb"/>
-						<resource name="CPU" quantum="90"/>
 						<config rounds="} $rounds {" generations="} $generations {"
 						        children="} $children {" sleep="} $sleep {" demand="} $demand {"/>
 					</start>
@@ -95,7 +94,6 @@ install_config {
 	<resource name="CAP" preserve="100"/>
 
 	<start name="timer" ram="1M">
-		<resource name="CPU" quantum="10"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 

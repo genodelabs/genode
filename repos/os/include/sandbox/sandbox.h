@@ -55,8 +55,6 @@ class Genode::Sandbox : Noncopyable
 			{
 				Pd_session             &ref_pd;
 				Capability<Pd_session>  ref_pd_cap;
-				Cpu_session            &ref_cpu;
-				Capability<Cpu_session> ref_cpu_cap;
 				Region_map             &address_space;
 			};
 

@@ -252,7 +252,7 @@ size_t Thread::stack_area_virtual_size()
 }
 
 
-Thread::Thread(size_t weight, const char *name, size_t stack_size,
+Thread::Thread(const char *name, size_t stack_size,
                Type type, Cpu_session *cpu_session, Affinity::Location affinity)
 :
 	name(name),
@@ -264,7 +264,7 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 	_stack.with_result(
 		[&] (Stack &stack) {
 			_native_thread_ptr = &stack.native_thread();
-			_init_native_thread(stack, weight, type);
+			_init_native_thread(stack, type);
 		},
 		[&] (Stack_error) { /* error reflected by 'info()' */ });
 }
@@ -297,23 +297,23 @@ void Thread::_init_cpu_session_and_trace_control()
 }
 
 
-Thread::Thread(size_t weight, const char *name, size_t stack_size,
+Thread::Thread(const char *name, size_t stack_size,
                Type type, Affinity::Location affinity)
 :
-	Thread(weight, name, stack_size, type, cpu_session_ptr, affinity)
+	Thread(name, stack_size, type, cpu_session_ptr, affinity)
 { }
 
 
 Thread::Thread(Env &, Name const &name, size_t stack_size, Location location,
-               Weight weight, Cpu_session &cpu)
+               Cpu_session &cpu)
 :
-	Thread(weight.value, name.string(), stack_size, NORMAL, &cpu, location)
+	Thread(name.string(), stack_size, NORMAL, &cpu, location)
 { }
 
 
 Thread::Thread(Env &env, Name const &name, size_t stack_size)
 :
-	Thread(env, name, stack_size, Location(), Weight(), env.cpu())
+	Thread(env, name, stack_size, Location(), env.cpu())
 { }
 
 

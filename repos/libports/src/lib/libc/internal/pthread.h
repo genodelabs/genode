@@ -91,8 +91,6 @@ struct Libc::Pthread : Noncopyable
 
 			Pthread        *_pthread;
 
-			enum { WEIGHT = Cpu_session::Weight::DEFAULT_WEIGHT };
-
 			/* 'stack_addr_out' and 'stack_size_out' are written when the thread starts */
 			Thread_object(char const *name, size_t stack_size,
 			              Cpu_session *cpu,
@@ -101,7 +99,7 @@ struct Libc::Pthread : Noncopyable
 			              void *&stack_addr_out, size_t &stack_size_out,
 			              Pthread *pthread)
 			:
-				Thread(WEIGHT, name, stack_size, Type::NORMAL, cpu, location),
+				Thread(name, stack_size, Type::NORMAL, cpu, location),
 				_start_routine(start_routine), _arg(arg),
 				_stack_addr(stack_addr_out), _stack_size(stack_size_out),
 				_pthread(pthread)

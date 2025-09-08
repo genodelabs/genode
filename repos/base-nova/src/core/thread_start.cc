@@ -30,7 +30,7 @@
 using namespace Core;
 
 
-void Thread::_init_native_thread(Stack &stack, size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	Native_thread &nt = stack.native_thread();
 

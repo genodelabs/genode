@@ -19,7 +19,6 @@ install_config {
 	</default-route>
 	<default caps="100"/>
 	<start name="timer" priority="0" ram="1M">
-		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="test" priority="-1" ram="10M">

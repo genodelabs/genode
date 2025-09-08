@@ -72,7 +72,7 @@ class Core::Platform_thread
 		 * Constructor
 		 */
 		Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-		                Local_rm &, size_t, const char *name,
+		                Local_rm &, const char *name,
 		                unsigned prio, Affinity::Location, addr_t)
 		:
 			_pd(pd), _priority(prio)
@@ -175,11 +175,6 @@ class Core::Platform_thread
 		 * Request the affinity of this thread
 		 */
 		Affinity::Location affinity() const { return Affinity::Location(); }
-
-		/**
-		 * Set CPU quota of the thread
-		 */
-		void quota(size_t) { /* not supported */ }
 
 		/**
 		 * Return execution time consumed by the thread

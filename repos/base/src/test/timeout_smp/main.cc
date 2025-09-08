@@ -51,7 +51,6 @@ class Test_thread
 				STACK_SIZE,
 				affinity_space.location_of_index(
 					cpu_idx % affinity_space.total()),
-				Weight(),
 				env.cpu()
 			},
 			_object { object },

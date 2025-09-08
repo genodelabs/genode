@@ -171,8 +171,7 @@ namespace Affinity_test {
 		}
 
 		Spinning_thread(Genode::Env &env, Location location)
-		: Genode::Thread(env, Name("spinning_thread"), STACK_SIZE, location,
-		                 Weight(), env.cpu()),
+		: Genode::Thread(env, Name("spinning_thread"), STACK_SIZE, location, env.cpu()),
 		  location(location), cnt(0ULL) {
 			start(); }
 	};
@@ -287,8 +286,7 @@ namespace Tlb_shootdown_test {
 
 		Thread(Genode::Env &env, Location location, unsigned idx,
 		       volatile unsigned * values)
-		: Genode::Thread(env, Name("tlb_thread"), STACK_SIZE, location,
-		                 Weight(), env.cpu()),
+		: Genode::Thread(env, Name("tlb_thread"), STACK_SIZE, location, env.cpu()),
 		  cpu_idx(idx), values(values) {
 			  start(); }
 
@@ -376,7 +374,7 @@ namespace Tsc_test {
 
 		Tsc_thread(Genode::Env &env, Location location)
 		: Genode::Thread(env, Name("tsc_thread"), STACK_SIZE, location,
-		                 Weight(), env.cpu()), location(location)
+		                 env.cpu()), location(location)
 		{ }
 	};
 

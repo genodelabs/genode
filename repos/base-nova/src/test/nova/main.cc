@@ -492,7 +492,7 @@ class Pager : private Genode::Thread {
 
 		Pager(Genode::Env &env, Location location)
 		:
-			Thread(env, "pager", 0x1000, location, Weight(), env.cpu()),
+			Thread(env, "pager", 0x1000, location, env.cpu()),
 			_ds(env.ram(), env.rm(), 4096)
 		{
 			_ds_mem = addr_t(_ds.local_addr<void>());
@@ -546,7 +546,7 @@ class Cause_mapping : public Genode::Thread {
 		Cause_mapping(Genode::Env &env, Native_capability call_to_map,
 		              Genode::addr_t mem_st, Location location)
 		:
-			Thread(env, "mapper", 0x1000, location, Weight(), env.cpu()),
+			Thread(env, "mapper", 0x1000, location, env.cpu()),
 			_call_to_map(call_to_map),
 			_rm(env),
 			_sub_rm(_rm.create(0x2000)),

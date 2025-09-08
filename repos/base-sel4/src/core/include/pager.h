@@ -187,8 +187,7 @@ class Core::Pager_entrypoint : public Object_pool<Pager_object>, public Thread
 		 */
 		Pager_entrypoint(Rpc_cap_factory &cap_factory)
 		:
-			Thread(Weight::DEFAULT_WEIGHT, "pager_ep", PAGER_EP_STACK_SIZE,
-			       Type::NORMAL),
+			Thread("pager_ep", PAGER_EP_STACK_SIZE, Type::NORMAL),
 			_cap_factory(cap_factory)
 		{ start(); }
 

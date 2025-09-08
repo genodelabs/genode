@@ -61,15 +61,14 @@ void Thread::_deinit_native_thread(Stack &stack)
 }
 
 
-void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	_init_cpu_session_and_trace_control();
 
 	if (type == NORMAL) {
 
 		/* create thread at core */
-		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name,
-		                                          _affinity, Weight(weight));
+		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name, _affinity);
 		return;
 	}
 

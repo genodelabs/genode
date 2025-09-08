@@ -86,7 +86,7 @@ void Thread::_thread_bootstrap()
 }
 
 
-void Thread::_init_native_thread(Stack &stack, size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	if (type == NORMAL)
 		return;

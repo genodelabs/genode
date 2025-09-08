@@ -41,14 +41,13 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 	Create_thread_result create_thread(Capability<Pd_session> pd,
 	                                   Name const            &name,
 	                                   Affinity::Location     affinity,
-	                                   Weight                 weight,
 	                                   addr_t                 utcb = 0) override
 	{
 		Thread_capability result { };
 		bool denied = false;
 		while (!result.valid()) {
 			using Error = Cpu_session::Create_thread_error;
-			Cpu_session_client::create_thread(pd, name, affinity, weight, utcb).with_result(
+			Cpu_session_client::create_thread(pd, name, affinity, utcb).with_result(
 				[&] (Thread_capability cap) { result = cap; },
 				[&] (Error e) {
 					switch (e) {

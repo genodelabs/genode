@@ -186,7 +186,6 @@ set config {
 	<default caps="200" ram="2M"/>
 
 	<start name="timer">
-		<resource name="CPU" quantum="10"/>
 		<provides> <service name="Timer"/> </provides>
 	</start> }
 

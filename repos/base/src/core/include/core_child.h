@@ -34,9 +34,6 @@ class Core::Core_child : public Child_policy
 		Ram_allocator     &_core_ram;
 		Core_account      &_core_account;
 
-		Capability<Cpu_session> _core_cpu_cap;
-		Cpu_session            &_core_cpu;
-
 		Cap_quota const _cap_quota;
 		Ram_quota const _ram_quota;
 
@@ -48,13 +45,10 @@ class Core::Core_child : public Child_policy
 
 		Core_child(Registry<Service> &services, Rpc_entrypoint &ep,
 		           Local_rm &local_rm, Ram_allocator &core_ram,
-		           Core_account &core_account,
-		           Cpu_session &core_cpu, Capability<Cpu_session> core_cpu_cap,
-		           Cap_quota cap_quota, Ram_quota ram_quota)
+		           Core_account &core_account, Cap_quota cap_quota, Ram_quota ram_quota)
 		:
 			_services(services), _ep(ep), _local_rm(local_rm), _core_ram(core_ram),
 			_core_account(core_account),
-			_core_cpu_cap(core_cpu_cap), _core_cpu(core_cpu),
 			_cap_quota(Child::effective_quota(cap_quota)),
 			_ram_quota(Child::effective_quota(ram_quota))
 		{ }
@@ -94,12 +88,6 @@ class Core::Core_child : public Child_policy
 
 			_core_account.transfer_quota(cap, _cap_quota);
 			_core_account.transfer_quota(cap, _ram_quota);
-		}
-
-		void init(Cpu_session &session, Capability<Cpu_session> cap) override
-		{
-			session.ref_account(_core_cpu_cap);
-			_core_cpu.transfer_quota(cap, Cpu_session::quota_lim_upscale(100, 100));
 		}
 
 		Ram_allocator &session_md_ram() override { return _core_ram; }

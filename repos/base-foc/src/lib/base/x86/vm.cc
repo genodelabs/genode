@@ -1285,8 +1285,7 @@ struct Foc_vcpu : Thread, Noncopyable
 		Foc_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler,
 		         enum Virt type)
 		:
-			Thread(env, "vcpu_thread", STACK_SIZE, _location(handler),
-			       Weight(), env.cpu()),
+			Thread(env, "vcpu_thread", STACK_SIZE, _location(handler), env.cpu()),
 			_vcpu_handler(handler),
 			_exit_handler(handler.ep(), *this, &Foc_vcpu::_wrapper_dispatch),
 			_vm_type(type)

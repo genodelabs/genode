@@ -25,7 +25,6 @@ Cpu_session::Create_thread_result
 Cpu_sampler::Cpu_session_component::create_thread(Pd_session_capability  pd,
                                                   Name            const &name,
                                                   Affinity::Location     affinity,
-                                                  Weight                 weight,
                                                   addr_t                 utcb)
 {
 	Cpu_thread_component *cpu_thread = new (_md_alloc)
@@ -34,7 +33,6 @@ Cpu_sampler::Cpu_session_component::create_thread(Pd_session_capability  pd,
 		                     pd,
 		                     name,
 		                     affinity,
-		                     weight,
 		                     utcb,
 		                     name.string(),
 		                     _next_thread_id);
@@ -141,25 +139,6 @@ Cpu_sampler::Cpu_session_component::~Cpu_session_component()
 	for_each_thread(_thread_list, lambda);
 
 	_thread_list_change_handler.thread_list_changed();
-}
-
-
-int Cpu_sampler::Cpu_session_component::ref_account(Cpu_session_capability cap)
-{
-	return _parent_cpu_session.ref_account(cap);
-}
-
-
-int Cpu_sampler::Cpu_session_component::transfer_quota(Cpu_session_capability cap,
-                                                       size_t size)
-{
-	return _parent_cpu_session.transfer_quota(cap, size);
-}
-
-
-Cpu_session::Quota Cpu_sampler::Cpu_session_component::quota()
-{
-	return _parent_cpu_session.quota();
 }
 
 

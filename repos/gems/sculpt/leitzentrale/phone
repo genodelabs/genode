@@ -70,7 +70,6 @@
 
 			<start name="decorator" caps="350" ram="12M">
 				<binary name="themed_decorator"/>
-				<resource name="CPU" quantum="20"/>
 				<config>
 					<libc/>
 					<vfs>

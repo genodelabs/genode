@@ -38,37 +38,6 @@ struct Monitor::Monitored_cpu_session : Monitored_rpc_object<Cpu_session>
 		}
 		with_monitored<Monitored_cpu_session>(_ep, cpu_cap, monitored_fn, direct_fn);
 	}
-
-
-	/***************************
-	 ** Cpu_session interface **
-	 ***************************/
-
-	int ref_account(Cpu_session_capability cpu_cap) override
-	{
-		int result = 0;
-
-		_with_cpu_arg(cpu_cap,
-			[&] (Monitored_cpu_session &monitored_cpu) {
-				result = _real.call<Rpc_ref_account>(monitored_cpu._real); },
-			[&] {
-				result = _real.call<Rpc_ref_account>(cpu_cap); });
-
-		return result;
-	}
-
-	int transfer_quota(Cpu_session_capability cpu_cap, size_t amount) override
-	{
-		int result = 0;
-
-		_with_cpu_arg(cpu_cap,
-			[&] (Monitored_cpu_session &monitored_cpu) {
-				result = _real.call<Rpc_transfer_quota>(monitored_cpu._real, amount); },
-			[&] {
-				result = _real.call<Rpc_transfer_quota>(cpu_cap, amount); });
-
-		return result;
-	}
 };
 
 #endif /* _MONITORED_CPU_H_ */

@@ -19,7 +19,7 @@
 using namespace Genode;
 
 
-void Thread::_init_native_thread(Stack &stack, size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	/*
 	 * Reset to default values. The default values trigger initial allocations

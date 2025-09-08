@@ -74,7 +74,7 @@ class Core::Platform_thread : Noncopyable
 		 * Constructor
 		 */
 		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Local_rm &,
-		                size_t, auto const &name, auto...)
+		                auto const &name, auto...)
 		: _name(name) { }
 
 		const char *name() { return _name.string(); }
@@ -101,7 +101,6 @@ class Core::Platform_thread : Noncopyable
 		void           start(void *, void *)      { }
 		void           affinity(Location)         { }
 		Location       affinity() const           { return { }; }
-		void           quota(size_t)              { }
 		void           state(Thread_state)        { }
 		Execution_time execution_time() const     { return { 0, 0 }; }
 		unsigned long  pager_object_badge() const { return 0; }

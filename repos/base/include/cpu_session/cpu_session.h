@@ -49,27 +49,9 @@ struct Genode::Cpu_session : Session
 	using Client = Cpu_session_client;
 
 	enum { PRIORITY_LIMIT = 1 << 16 };
-	enum { QUOTA_LIMIT_LOG2 = 15 };
-	enum { QUOTA_LIMIT = 1 << QUOTA_LIMIT_LOG2 };
 	enum { DEFAULT_PRIORITY = 0 };
 
-	/**
-	 * Thread weight argument type for 'create_thread'
-	 */
-	struct Weight
-	{
-		static constexpr size_t DEFAULT_WEIGHT = 10;
-		size_t value = DEFAULT_WEIGHT;
-		Weight() { }
-		explicit Weight(size_t value) : value(value) { }
-	};
-
 	using Name = String<32>;
-
-	/**
-	 * Physical quota configuration
-	 */
-	struct Quota;
 
 	virtual ~Cpu_session() { }
 
@@ -83,14 +65,12 @@ struct Genode::Cpu_session : Session
 	 * \param name      name for the thread
 	 * \param affinity  CPU affinity, referring to the session-local
 	 *                  affinity space
-	 * \param weight    CPU quota that shall be granted to the thread
 	 * \param utcb      base of the UTCB that will be used by the thread
 	 * \return          capability representing the new thread
 	 */
 	virtual Create_thread_result create_thread(Capability<Pd_session> pd,
 	                                           Name const            &name,
 	                                           Affinity::Location     affinity,
-	                                           Weight                 weight,
 	                                           addr_t                 utcb = 0) = 0;
 
 	/**
@@ -157,51 +137,6 @@ struct Genode::Cpu_session : Session
 	 */
 	virtual Dataspace_capability trace_control() = 0;
 
-	/**
-	 * Define reference account for the CPU session
-	 *
-	 * \param   cpu_session    reference account
-	 *
-	 * \return  0 on success
-	 *
-	 * Each CPU session requires another CPU session as reference
-	 * account to transfer quota to and from. The reference account can
-	 * be defined only once.
-	 */
-	virtual int ref_account(Cpu_session_capability cpu_session) = 0;
-
-	/**
-	 * Transfer quota to another CPU session
-	 *
-	 * \param cpu_session  receiver of quota donation
-	 * \param amount       percentage of the session quota scaled up to
-	 *                     the 'QUOTA_LIMIT' space
-	 * \return             0 on success
-	 *
-	 * Quota can only be transfered if the specified CPU session is
-	 * either the reference account for this session or vice versa.
-	 */
-	virtual int transfer_quota(Cpu_session_capability cpu_session,
-	                           size_t amount) = 0;
-
-	/**
-	 * Return quota configuration of the session
-	 */
-	virtual Quota quota() = 0;
-
-	/**
-	 * Scale up 'value' from its space with 'limit' to the 'QUOTA_LIMIT' space
-	 */
-	template<typename T = size_t>
-	static size_t quota_lim_upscale(size_t const value, size_t const limit) {
-		return ((T)value << Cpu_session::QUOTA_LIMIT_LOG2) / limit; }
-
-	/**
-	 * Scale down 'value' from the 'QUOTA_LIMIT' space to a space with 'limit'
-	 */
-	static size_t quota_lim_downscale(size_t const value, size_t const limit) {
-		return (size_t)(((uint64_t)value * limit) >> Cpu_session::QUOTA_LIMIT_LOG2); }
-
 
 	/*****************************************
 	 ** Access to kernel-specific interface **
@@ -223,27 +158,15 @@ struct Genode::Cpu_session : Session
 	 *********************/
 
 	GENODE_RPC(Rpc_create_thread, Create_thread_result, create_thread,
-	           Capability<Pd_session>, Name const &, Affinity::Location,
-	           Weight, addr_t);
+	           Capability<Pd_session>, Name const &, Affinity::Location, addr_t);
 	GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
 	GENODE_RPC(Rpc_exception_sigh, void, exception_sigh, Signal_context_capability);
 	GENODE_RPC(Rpc_affinity_space, Affinity::Space, affinity_space);
 	GENODE_RPC(Rpc_trace_control, Dataspace_capability, trace_control);
-	GENODE_RPC(Rpc_ref_account, int, ref_account, Cpu_session_capability);
-	GENODE_RPC(Rpc_transfer_quota, int, transfer_quota, Cpu_session_capability, size_t);
-	GENODE_RPC(Rpc_quota, Quota, quota);
 	GENODE_RPC(Rpc_native_cpu, Capability<Native_cpu>, native_cpu);
 
 	GENODE_RPC_INTERFACE(Rpc_create_thread, Rpc_kill_thread, Rpc_exception_sigh,
-	                     Rpc_affinity_space, Rpc_trace_control, Rpc_ref_account,
-	                     Rpc_transfer_quota, Rpc_quota, Rpc_native_cpu);
-};
-
-
-struct Genode::Cpu_session::Quota
-{
-	size_t super_period_us;
-	size_t us;
+	                     Rpc_affinity_space, Rpc_trace_control, Rpc_native_cpu);
 };
 
 #endif /* _INCLUDE__CPU_SESSION__CPU_SESSION_H_ */

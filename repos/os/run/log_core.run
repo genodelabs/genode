@@ -60,7 +60,6 @@ install_config {
 	<default caps="100" ram="1M"/>
 
 	<start name="timer">
-		<resource name="CPU" quantum="10"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 

@@ -97,7 +97,7 @@ void Thread::_deinit_native_thread(Stack &stack)
 }
 
 
-void Thread::_init_native_thread(Stack &stack, size_t, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	if (type == NORMAL) {
 		_stack.with_result([&] (Stack &stack) {

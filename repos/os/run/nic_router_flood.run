@@ -38,7 +38,6 @@ install_config {
 		</parent-provides>
 
 		<start name="timer" caps="100" ram="1M" priority="0">
-			<resource name="CPU" quantum="10"/>
 			<provides><service name="Timer"/></provides>
 			<route>
 				<service name="PD"> <parent/> </service>
@@ -53,7 +52,6 @@ install_config {
 
 		<start name="drivers" caps="1200" ram="32M" managing_system="yes" priority="0">
 			<binary name="init"/>
-			<resource name="CPU" quantum="10"/>
 			<route>
 				<service name="Timer"> <child name="timer"/> </service>
 				<service name="Uplink"> <child name="nic_router"/> </service>
@@ -70,7 +68,6 @@ install_config {
 		</start>
 
 		<start name="nic_router" caps="200" ram="10M" priority="-1">
-			<resource name="CPU" quantum="10"/>
 			<provides>
 				<service name="Nic"/>
 				<service name="Uplink"/>
@@ -110,7 +107,6 @@ install_config {
 		</start>
 
 		<start name="report_rom" caps="100" ram="1M" priority="-1">
-			<resource name="CPU" quantum="10"/>
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="yes"/>
 			<route>
@@ -122,7 +118,6 @@ install_config {
 		</start>
 
 		<start name="dynamic_rom" caps="100" ram="4M" priority="-1">
-			<resource name="CPU" quantum="10"/>
 			<provides><service name="ROM"/> </provides>
 			<config>
 				<rom name="net_clients.config">
@@ -213,7 +208,6 @@ install_config {
 
 		<start name="net_clients" caps="1000" ram="200M" priority="-2">
 			<binary name="init"/>
-			<resource name="CPU" quantum="0"/>
 			<route>
 				<service name="ROM" label="config"> <child name="dynamic_rom" label="net_clients.config"/> </service>
 				<service name="Nic"> <child name="nic_router"/> </service>

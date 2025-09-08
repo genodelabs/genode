@@ -32,7 +32,7 @@ using namespace Core;
 void Thread::_deinit_native_thread(Stack &) { }
 
 
-void Thread::_init_native_thread(Stack &, size_t, Type) { }
+void Thread::_init_native_thread(Stack &, Type) { }
 
 
 namespace {

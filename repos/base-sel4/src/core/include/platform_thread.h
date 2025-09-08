@@ -93,7 +93,7 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 		 * Constructor
 		 */
 		Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-		                Local_rm &, size_t, const char *name, unsigned priority,
+		                Local_rm &, const char *name, unsigned priority,
 		                Affinity::Location, addr_t utcb);
 
 		/**
@@ -174,11 +174,6 @@ class Core::Platform_thread : public List<Platform_thread>::Element
 		 * Get the executing CPU for this thread
 		 */
 		Affinity::Location affinity() const { return _location; }
-
-		/**
-		 * Set CPU quota of the thread
-		 */
-		void quota(size_t) { /* not supported */ }
 
 		/**
 		 * Get thread name

@@ -101,15 +101,11 @@ class Cpu_sampler::Cpu_session_component : public Rpc_object<Cpu_session>
 		Create_thread_result create_thread(Pd_session_capability pd,
 		                                   Name const &,
 		                                   Affinity::Location,
-		                                   Weight,
 		                                   addr_t) override;
 		void kill_thread(Thread_capability) override;
 		void exception_sigh(Signal_context_capability handler) override;
 		Affinity::Space affinity_space() const override;
 		Dataspace_capability trace_control() override;
-		int ref_account(Cpu_session_capability c) override;
-		int transfer_quota(Cpu_session_capability c, size_t q) override;
-		Quota quota() override;
 		Capability<Cpu_session::Native_cpu> native_cpu() override;
 };
 

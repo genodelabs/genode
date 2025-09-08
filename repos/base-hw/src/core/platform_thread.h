@@ -174,13 +174,12 @@ class Core::Platform_thread : Noncopyable
 		/**
 		 * Constructor for threads outside of core
 		 *
-		 * \param quota      CPU quota that shall be granted to the thread
 		 * \param label      debugging label
 		 * \param virt_prio  unscaled processor-scheduling priority
 		 * \param utcb       core local pointer to userland stack
 		 */
 		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &,
-		                Local_rm &, size_t const quota, Label const &label,
+		                Local_rm &, Label const &label,
 		                unsigned const virt_prio, Affinity::Location,
 		                addr_t const utcb);
 
@@ -243,11 +242,6 @@ class Core::Platform_thread : Noncopyable
 
 			Kernel::resume_thread(*_kobj);
 		}
-
-		/**
-		 * Set CPU quota of the thread to 'quota'
-		 */
-		void quota(size_t const) { }
 
 		/**
 		 * Get raw thread state

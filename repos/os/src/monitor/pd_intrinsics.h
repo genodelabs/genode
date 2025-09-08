@@ -76,12 +76,11 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 
 		Create_thread_result
 		create_thread(Capability<Pd_session>, Cpu_session::Name const &,
-		              Affinity::Location, Weight, addr_t)     override { never_called(__func__); }
+		              Affinity::Location, addr_t)             override { never_called(__func__); }
 		void                   kill_thread(Thread_capability) override { never_called(__func__); }
 		void                   exception_sigh(Sig_ctx_cap)    override { never_called(__func__); }
 		Affinity::Space        affinity_space() const         override { never_called(__func__); }
 		Dataspace_capability   trace_control()                override { never_called(__func__); }
-		Quota                  quota()                        override { never_called(__func__); }
 		Capability<Native_cpu> native_cpu()                   override { never_called(__func__); }
 
 	} _monitored_ref_cpu { _env.ep(), _env.cpu_session_cap(), Session::Label { } };
@@ -109,8 +108,6 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 
 				Intrinsics intrinsics { .ref_pd        = _monitored_ref_pd,
 				                        .ref_pd_cap    = _monitored_ref_pd.cap(),
-				                        .ref_cpu       = _monitored_ref_cpu,
-				                        .ref_cpu_cap   = _monitored_ref_cpu.cap(),
 				                        .address_space = inferior_pd._address_space };
 				fn(intrinsics);
 			},
@@ -120,8 +117,6 @@ struct Monitor::Pd_intrinsics : Sandbox::Pd_intrinsics
 
 				Intrinsics intrinsics { .ref_pd        = _env.pd(),
 				                        .ref_pd_cap    = _env.pd_session_cap(),
-				                        .ref_cpu       = _env.cpu(),
-				                        .ref_cpu_cap   = _env.cpu_session_cap(),
 				                        .address_space = region_map };
 				fn(intrinsics);
 			}

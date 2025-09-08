@@ -88,7 +88,7 @@ Thread::Start_result Thread::start()
 		addr_t const utcb = addr_t(&stack.utcb());
 
 		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name, _affinity,
-		                                          Weight(), utcb);
+		                                          utcb);
 		return _thread_cap.convert<Start_result>(
 			[&] (Thread_capability cap) {
 

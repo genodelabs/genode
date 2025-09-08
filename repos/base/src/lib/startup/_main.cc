@@ -69,7 +69,7 @@ extern "C" void init_main_thread()
 	{
 		Main_thread()
 		:
-			Thread(Weight::DEFAULT_WEIGHT, "main", STACK_SIZE, Type::MAIN)
+			Thread("main", STACK_SIZE, Type::MAIN)
 		{ }
 
 		void entry() override { /* never executed */ }

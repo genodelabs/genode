@@ -273,7 +273,6 @@ append config {
 	<default caps="200" ram="1M"/>
 
 	<start name="timer" priority="0">
-		<resource name="CPU" quantum="5"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 

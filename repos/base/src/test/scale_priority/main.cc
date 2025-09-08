@@ -32,8 +32,7 @@ struct Cpu_helper : Thread
 
 	Cpu_helper(Env &env, Name const &name, Cpu_session &cpu)
 	:
-		Thread(env, name, 4096, Thread::Location(), Thread::Weight(), cpu),
-		_env(env)
+		Thread(env, name, 4096, Thread::Location(), cpu), _env(env)
 	{ }
 
 	void entry() override

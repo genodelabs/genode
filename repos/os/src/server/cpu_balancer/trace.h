@@ -174,7 +174,7 @@ struct Cpu::Sleeper : Genode::Thread
 	Sleeper(Genode::Env &env, Location const &location)
 	:
 		Genode::Thread(env, Name("sleep_", location.xpos(), "x", location.ypos()),
-		               2 * 4096, location, Weight(), env.cpu()),
+		               2 * 4096, location, env.cpu()),
 		_env(env)
 	{ }
 

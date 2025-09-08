@@ -29,12 +29,6 @@ void Cpu_thread_component::_update_exception_sigh()
 void Cpu_thread_component::destroy() { _cpu.kill_thread(cap()); }
 
 
-void Cpu_thread_component::quota(size_t quota)
-{
-	_platform_thread.quota(quota);
-}
-
-
 void Cpu_thread_component::session_exception_sigh(Signal_context_capability sigh)
 {
 	_session_sigh = sigh;

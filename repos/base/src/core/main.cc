@@ -176,21 +176,12 @@ void Genode::bootstrap_component(Genode::Platform &)
 	Ram_quota const init_ram_quota = core_account.ram_account.avail();
 	Cap_quota const init_cap_quota = core_account.cap_account.avail();
 
-	/* CPU session representing core */
-	static Cpu_session_component
-		core_cpu(ep,
-		         Session::Resources{{Cpu_session::RAM_QUOTA},
-		                            {Cpu_session::CAP_QUOTA}},
-		         "core", Session::Diag{false},
-		         core_ram, local_rm, ep, pager_ep, Core::Trace::sources(), "",
-		         Affinity::unrestricted(), Cpu_session::QUOTA_LIMIT);
-
 	log(init_ram_quota.value / (1024*1024), " MiB RAM and ",
 	    init_cap_quota, " caps assigned to init");
 
 	static Reconstructible<Core::Core_child>
 		init(services, ep, local_rm, core_ram, core_account,
-		     core_cpu, core_cpu.cap(), init_cap_quota, init_ram_quota);
+		     init_cap_quota, init_ram_quota);
 
 	Core::platform().wait_for_exit();
 

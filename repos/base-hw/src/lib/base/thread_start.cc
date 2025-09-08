@@ -51,7 +51,7 @@ static Thread_capability main_thread_cap(Thread_capability main_cap = { })
  ** Thread **
  ************/
 
-void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	_init_cpu_session_and_trace_control();
 
@@ -61,7 +61,7 @@ void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 		addr_t const utcb = addr_t(&stack.utcb());
 
 		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name, _affinity,
-		                                          Weight(weight), utcb);
+		                                          utcb);
 		return;
 	}
 	/* if we got reinitialized we have to get rid of the old UTCB */

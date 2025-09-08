@@ -53,7 +53,7 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 
 	Create_thread_result
 	create_thread(Capability<Pd_session> pd, Cpu_session::Name const &name,
-	              Affinity::Location affinity, Weight weight, addr_t utcb) override
+	              Affinity::Location affinity, addr_t utcb) override
 	{
 		Create_thread_result result = Create_thread_error::DENIED;
 
@@ -61,7 +61,7 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 
 			[&] (Inferior_pd &inferior_pd) {
 				_real.call<Rpc_create_thread>(inferior_pd._real, name, affinity,
-				                              weight, utcb).with_result(
+				                              utcb).with_result(
 
 					[&] (Thread_capability real_thread) {
 
@@ -80,7 +80,7 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 				);
 			},
 			[&] {
-				result = _real.call<Rpc_create_thread>(pd, name, affinity, weight, utcb);
+				result = _real.call<Rpc_create_thread>(pd, name, affinity, utcb);
 		});
 		return result;
 	}
@@ -104,8 +104,6 @@ struct Monitor::Inferior_cpu : Monitored_cpu_session
 
 	Dataspace_capability trace_control() override {
 		return _real.call<Rpc_trace_control>(); }
-
-	Quota quota() override { return _real.call<Rpc_quota>(); }
 
 	Capability<Native_cpu> native_cpu() override
 	{

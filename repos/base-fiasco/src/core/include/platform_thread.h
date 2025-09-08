@@ -68,7 +68,7 @@ class Core::Platform_thread : Interface
 		 * Constructor
 		 */
 		Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-		                Local_rm &, size_t, const char *name, unsigned,
+		                Local_rm &, const char *name, unsigned,
 		                Affinity::Location, addr_t)
 		: _name(name), _pd(pd) { }
 
@@ -151,11 +151,6 @@ class Core::Platform_thread : Interface
 		 */
 		unsigned long pager_object_badge() const {
 			return convert_native_thread_id_to_badge(native_thread_id()); }
-
-		/**
-		 * Set CPU quota of the thread to 'quota'
-		 */
-		void quota(size_t) { /* not supported*/ }
 
 		/**
 		 * Return execution time consumed by the thread

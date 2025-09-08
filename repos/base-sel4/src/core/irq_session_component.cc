@@ -104,7 +104,7 @@ void Irq_object::ack_irq()
 
 Irq_object::Irq_object(Allocator::Result const &irq)
 :
-	Thread(Weight::DEFAULT_WEIGHT, "irq", 4096 /* stack */, Type::NORMAL),
+	Thread("irq", 4096 /* stack */, Type::NORMAL),
 	_irq(irq),
 	_kernel_irq_sel(platform_specific().core_sel_alloc().alloc()),
 	_kernel_notify_sel(platform_specific().core_sel_alloc().alloc())

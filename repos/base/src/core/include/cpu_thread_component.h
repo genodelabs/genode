@@ -53,7 +53,6 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		Pager_entrypoint         &_pager_ep;
 		Cpu_session_component    &_cpu;
 		Region_map_component     &_address_space_region_map;
-		Cpu_session::Weight const _weight;
 		Session_label       const _session_label;
 		Thread_name         const _name;
 		Pd_threads::Element       _pd_element;
@@ -107,9 +106,6 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		 * \param pager_ep   pager entrypoint used for handling the page
 		 *                   faults of the thread
 		 * \param pd         PD session where the thread is executed
-		 * \param weight     scheduling weight relative to the other
-		 *                   threads of the same CPU session
-		 * \param quota      initial quota counter-value of the weight
 		 * \param labal      label of the threads session
 		 * \param name       name for the thread
 		 * \param priority   scheduling priority
@@ -126,8 +122,6 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		                     Pd_threads                &pd_threads,
 		                     Trace::Control_area       &trace_control_area,
 		                     Trace::Source_registry    &trace_sources,
-		                     Cpu_session::Weight        weight,
-		                     size_t                     quota,
 		                     Affinity::Location         location,
 		                     Session_label       const &label,
 		                     Thread_name         const &name,
@@ -136,10 +130,9 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		:
 			_ep(ep), _pager_ep(pager_ep), _cpu(cpu),
 			_address_space_region_map(pd.address_space_region_map()),
-			_weight(weight),
 			_session_label(label), _name(name),
 			_pd_element(pd_threads, *this),
-			_platform_thread(platform_pd, ep, cpu_ram, local_rm, quota,
+			_platform_thread(platform_pd, ep, cpu_ram, local_rm,
 			                 name.string(), priority, location, utcb),
 			_trace_control_slot(trace_control_area.alloc()),
 			_trace_sources(trace_sources),
@@ -201,14 +194,10 @@ class Core::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		 */
 		void session_exception_sigh(Signal_context_capability);
 
-		void quota(size_t);
-
 		/*
 		 * Called by platform-specific 'Native_cpu' operations
 		 */
 		Platform_thread &platform_thread() { return _platform_thread; }
-
-		size_t weight() const { return _weight.value; }
 
 
 		/**************************

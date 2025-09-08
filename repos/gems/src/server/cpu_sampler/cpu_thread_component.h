@@ -60,7 +60,6 @@ class Cpu_sampler::Cpu_thread_component : public Rpc_object<Cpu_thread>
 		                     Pd_session_capability    pd,
 		                     Cpu_session::Name const &name,
 		                     Affinity::Location       affinity,
-		                     Cpu_session::Weight      weight,
 		                     addr_t                   utcb,
 		                     char              const *thread_name,
 		                     unsigned int             thread_id);

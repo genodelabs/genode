@@ -30,8 +30,4 @@ Dataspace_capability Cpu_thread_component::utcb()
 }
 
 
-Cpu_session::Quota Cpu_session_component::quota() { return Quota(); }
-
-
-size_t Cpu_session_component::_utcb_quota_size() {
-	return sizeof(Native_utcb); }
+size_t Cpu_session_component::_utcb_quota_size() { return sizeof(Native_utcb); }

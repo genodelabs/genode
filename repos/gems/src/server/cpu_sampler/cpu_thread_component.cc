@@ -28,7 +28,6 @@ Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
                                 Pd_session_capability    pd,
                                 Cpu_session::Name const &name,
                                 Affinity::Location       affinity,
-                                Cpu_session::Weight      weight,
                                 addr_t                   utcb,
                                 char              const *thread_name,
                                 unsigned int             thread_id)
@@ -36,7 +35,7 @@ Cpu_sampler::Cpu_thread_component::Cpu_thread_component(
 	_cpu_session_component(cpu_session_component), _env(env), _md_alloc(md_alloc),
 	_parent_cpu_thread(
 		_cpu_session_component.parent_cpu_session()
-		                      .create_thread(pd, name, affinity, weight, utcb)),
+		                      .create_thread(pd, name, affinity, utcb)),
 	_label(_cpu_session_component.session_label().string(), " -> ", thread_name),
 	_log_session_label("samples -> ", _label, ".", thread_id)
 {

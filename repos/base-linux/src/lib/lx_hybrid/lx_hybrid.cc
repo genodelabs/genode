@@ -526,7 +526,7 @@ void Thread::join()
 }
 
 
-Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
+Thread::Thread(const char *name, size_t /* stack size */,
                Type, Cpu_session * cpu_sess, Affinity::Location)
 :
 	name(name), _cpu_session(cpu_sess), _affinity()
@@ -548,7 +548,7 @@ Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
 		nt.meta_data->wait_for_construction();
 
 		_thread_cap = _cpu_session->create_thread(_env_ptr->pd_session_cap(), name,
-		                                          Location(), Weight(weight));
+		                                          Location());
 		_thread_cap.with_result(
 			[&] (Thread_capability cap) {
 				Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
@@ -561,20 +561,18 @@ Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
 }
 
 
-Thread::Thread(size_t weight, const char *name, size_t stack_size,
-               Type type, Affinity::Location)
-: Thread(weight, name, stack_size, type, &_env_ptr->cpu()) { }
+Thread::Thread(const char *name, size_t stack_size, Type type, Affinity::Location)
+: Thread(name, stack_size, type, &_env_ptr->cpu()) { }
 
 
 Thread::Thread(Env &, Name const &name, size_t stack_size, Location location,
-               Weight weight, Cpu_session &cpu)
-: Thread(weight.value, name.string(), stack_size, NORMAL,
-         &cpu, location)
+               Cpu_session &cpu)
+: Thread(name.string(), stack_size, NORMAL, &cpu, location)
 { }
 
 
 Thread::Thread(Env &env, Name const &name, size_t stack_size)
-: Thread(env, name, stack_size, Location(), Weight(), env.cpu()) { }
+: Thread(env, name, stack_size, Location(), env.cpu()) { }
 
 
 Thread::~Thread()

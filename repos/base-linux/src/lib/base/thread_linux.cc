@@ -106,7 +106,7 @@ void Thread::_thread_start()
 }
 
 
-void Thread::_init_native_thread(Stack &stack, size_t /* weight */, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session) {
@@ -117,7 +117,7 @@ void Thread::_init_native_thread(Stack &stack, size_t /* weight */, Type type)
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
 		_cpu_session->create_thread(pd_session_cap(), stack.name(),
-		                            Affinity::Location(), Weight()).with_result(
+		                            Affinity::Location()).with_result(
 			[&] (Thread_capability cap) { _thread_cap = cap; },
 			[&] (Cpu_session::Create_thread_error) {
 				error("Thread::_init_platform_thread: create_thread failed");

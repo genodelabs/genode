@@ -46,7 +46,6 @@ proc record_play_start_nodes { } {
 
 	return {
 	<start name="mixer" ram="2M" priority="-1">
-		<resource name="CPU" quantum="20"/>
 		<binary name="record_play_mixer"/>
 		<provides> <service name="Record"/> <service name="Play"/> </provides>
 		<config jitter_ms="10">

@@ -82,7 +82,7 @@ class Core::Platform_thread : Interface
 		 * Constructor for non-core threads
 		 */
 		Platform_thread(Platform_pd &, Rpc_entrypoint &, Ram_allocator &, Local_rm &,
-		                size_t, const char *name, unsigned priority, Affinity::Location, addr_t);
+		                const char *name, unsigned priority, Affinity::Location, addr_t);
 
 		/**
 		 * Constructor for core main-thread
@@ -191,11 +191,6 @@ class Core::Platform_thread : Interface
 		{
 			return (unsigned long) _thread.local.data()->kcap();
 		}
-
-		/**
-		 * Set CPU quota of the thread to 'quota'
-		 */
-		void quota(size_t const) { /* not supported*/ }
 
 		/**
 		 * Return execution time consumed by the thread

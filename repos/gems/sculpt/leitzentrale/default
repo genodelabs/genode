@@ -45,7 +45,6 @@
 				<inline>
 					<start name="fader" ram="100M" priority="-1">
 						<binary name="gui_fader"/>
-						<resource name="CPU" quantum="20"/>
 						<provides> <service name="Gui"/> </provides>
 						<config initial_fade_in_steps="100" fade_in_steps="20" alpha="210"/>
 						<route>
@@ -59,7 +58,6 @@
 				<inline>
 					<start name="fader" ram="100M" priority="-1">
 						<binary name="gui_fader"/>
-						<resource name="CPU" quantum="20"/>
 						<provides> <service name="Gui"/> </provides>
 						<config fade_out_steps="30" alpha="0"/>
 						<route>
@@ -72,7 +70,6 @@
 		</if>
 		<inline>
 			<start name="gui_fb" ram="33M" priority="-1">
-				<resource name="CPU" quantum="20"/>
 				<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
 				<route>
 					<service name="ROM" label="config"> <child name="report_rom"/> </service>
@@ -82,7 +79,6 @@
 			</start>
 
 			<start name="nitpicker" caps="200" ram="14M" priority="-1">
-				<resource name="CPU" quantum="40"/>
 				<provides>
 					<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
 				</provides>
@@ -160,7 +156,6 @@
 
 			<start name="decorator" caps="580" ram="20M" priority="-1">
 				<binary name="themed_decorator"/>
-				<resource name="CPU" quantum="20"/>
 				<config>
 					<libc/>
 					<vfs>

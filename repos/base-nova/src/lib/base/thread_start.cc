@@ -81,7 +81,7 @@ void Thread::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
+void Thread::_init_native_thread(Stack &stack, Type type)
 {
 	Native_thread &nt = stack.native_thread();
 
@@ -123,8 +123,7 @@ void Thread::_init_native_thread(Stack &stack, size_t weight, Type type)
 	_init_cpu_session_and_trace_control();
 
 	/* create thread at core */
-	_cpu_session->create_thread(pd_session_cap(), name,
-	                            _affinity, Weight(weight)).with_result(
+	_cpu_session->create_thread(pd_session_cap(), name, _affinity).with_result(
 		[&] (Thread_capability cap) { _thread_cap = cap; },
 		[&] (Cpu_session::Create_thread_error) {
 			error("failed to create new thread for local PD"); });

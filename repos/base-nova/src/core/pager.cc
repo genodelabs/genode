@@ -52,7 +52,7 @@ void Core::init_page_fault_handling(Rpc_entrypoint &ep) { _core_ep_ptr = &ep; }
 struct Pager_thread: public Thread
 {
 	Pager_thread(Affinity::Location location)
-	: Thread(Cpu_session::Weight::DEFAULT_WEIGHT, "pager", 2 * 4096, location)
+	: Thread("pager", 2 * 4096, location)
 	{
 		/* creates local EC */
 		Thread::start();

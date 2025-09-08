@@ -204,7 +204,7 @@ struct Cpu_helper : Thread
 
 	Cpu_helper(Env &env, Name const &name, Cpu_session &cpu)
 	:
-		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(), cpu),
+		Thread(env, name, STACK_SIZE, Thread::Location(), cpu),
 		_env(env)
 	{ }
 
@@ -241,7 +241,7 @@ struct Pause_helper : Thread
 	volatile bool beep = false;
 
 	Pause_helper(Env &env, const char * name, Cpu_session &cpu)
-	: Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(), cpu) { }
+	: Thread(env, name, STACK_SIZE, Thread::Location(), cpu) { }
 
 	void entry() override
 	{
@@ -365,8 +365,7 @@ struct Lock_helper : Thread
 	Lock_helper(Env &env, const char * name, Cpu_session &cpu, Blockade &lock,
 	            bool &lock_is_free, bool unlock = false)
 	:
-		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(),
-		       cpu),
+		Thread(env, name, STACK_SIZE, Thread::Location(), cpu),
 		lock(lock), lock_is_free(lock_is_free), unlock(unlock)
 	{ }
 
@@ -461,8 +460,7 @@ struct Cxa_helper : Thread
 	Cxa_helper(Env &env, const char * name, Cpu_session &cpu, Blockade &cxa,
 	           Blockade &startup, int test, bool sync = false)
 	:
-		Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(),
-		       cpu),
+		Thread(env, name, STACK_SIZE, Thread::Location(), cpu),
 		in_cxa(cxa), sync_startup(startup), test(test), sync(sync)
 	{ }
 
@@ -702,8 +700,6 @@ static void test_destroy_dependent_cpu_sessions(Env &env)
 
 	Cpu_connection grandchild { env };
 	Cpu_connection child      { env };
-
-	grandchild.ref_account(child.rpc_cap());
 
 	/* when leaving the scope, 'child' is destructed before 'grandchild' */
 }

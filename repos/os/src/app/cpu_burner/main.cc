@@ -29,7 +29,7 @@ struct Cpu_burn : Thread
 	Cpu_burn(Env &env, Location const &location)
 	:
 		Thread(env, Name("burn_", location.xpos(), "x", location.ypos()),
-		       4 * 4096, location, Weight(), env.cpu()),
+		       4 * 4096, location, env.cpu()),
 		_env(env)
 	{ }
 

@@ -501,25 +501,6 @@ void Sandbox::Child::init(Pd_session &session, Pd_session_capability cap)
 }
 
 
-void Sandbox::Child::init(Cpu_session &session, Cpu_session_capability cap)
-{
-	Cpu_quota const assigned  = _resources.assigned_cpu_quota;
-	Cpu_quota const effective = _effective_cpu_quota;
-
-	if (assigned.percent > effective.percent)
-		warning(name(), ": configured CPU quota of ", assigned, " exceeds "
-		        "available quota, proceeding with a quota of ", effective);
-
-	_with_pd_intrinsics([&] (Pd_intrinsics::Intrinsics &intrinsics) {
-		session.ref_account(intrinsics.ref_cpu_cap); });
-
-	_child.with_pd([&] (Pd_session &pd) {
-		_cpu_quota_transfer.transfer_cpu_quota(_child.pd_session_cap(), pd,
-		                                       cap, effective);
-	}, [&] { });
-}
-
-
 void Sandbox::Child::_with_route(Service::Name     const &service_name,
                                  Session_label     const &label,
                                  Session::Diag     const  diag,
@@ -791,8 +772,6 @@ Sandbox::Child::Child(Env                      &env,
                       Name_registry            &name_registry,
                       Ram_limit_accessor       &ram_limit_accessor,
                       Cap_limit_accessor       &cap_limit_accessor,
-                      Cpu_limit_accessor       &cpu_limit_accessor,
-                      Cpu_quota_transfer       &cpu_quota_transfer,
                       Prio_levels               prio_levels,
                       Affinity::Space const    &affinity_space,
                       Registry<Parent_service> &parent_services,
@@ -808,8 +787,6 @@ Sandbox::Child::Child(Env                      &env,
 	_default_quota_accessor(default_quota_accessor),
 	_ram_limit_accessor(ram_limit_accessor),
 	_cap_limit_accessor(cap_limit_accessor),
-	_cpu_limit_accessor(cpu_limit_accessor),
-	_cpu_quota_transfer(cpu_quota_transfer),
 	_name_registry(name_registry),
 	_heartbeat_enabled(start_node.has_sub_node("heartbeat")),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,

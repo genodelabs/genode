@@ -154,8 +154,7 @@ struct Genode::Child_policy
 	/**
 	 * Initialize the child's CPU session
 	 *
-	 * The function may install an exception signal handler or assign CPU quota
-	 * to the child.
+	 * The function may install an exception signal handler.
 	 */
 	virtual void init(Cpu_session &, Capability<Cpu_session>) { }
 

@@ -67,7 +67,6 @@ install_config {
 	</default-route>
 	<default caps="200" ram="1M"/>
 	<start name="timer">
-		<resource name="CPU" quantum="20"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="test-libc_integration" caps="400" ram="256M" priority="-1">

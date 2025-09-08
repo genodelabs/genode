@@ -41,8 +41,7 @@ class Core::Interrupt_handler : public Thread
 
 		Interrupt_handler()
 		:
-			Thread(Weight::DEFAULT_WEIGHT, "irq_handler",
-			       2048 * sizeof(long) /* stack */, Type::NORMAL)
+			Thread("irq_handler", 2048 * sizeof(long) /* stack */, Type::NORMAL)
 		{ start(); }
 
 	public:

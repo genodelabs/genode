@@ -183,7 +183,7 @@ void Pager_entrypoint::Thread::entry()
 
 Pager_entrypoint::Thread::Thread(Affinity::Location cpu)
 :
-	Genode::Thread(Weight::DEFAULT_WEIGHT, "pager_ep", PAGER_EP_STACK_SIZE, cpu),
+	Genode::Thread("pager_ep", PAGER_EP_STACK_SIZE, cpu),
 	_kobj(_kobj.CALLED_FROM_CORE)
 {
 	start();

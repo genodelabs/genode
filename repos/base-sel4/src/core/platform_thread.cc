@@ -220,9 +220,8 @@ bool Platform_thread::install_mapping(Mapping const &mapping)
 
 
 Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-                                 Local_rm &, size_t, const char *name,
-                                 unsigned priority, Affinity::Location location,
-                                 addr_t utcb)
+                                 Local_rm &, const char *name, unsigned priority,
+                                 Affinity::Location location, addr_t utcb)
 :
 	_name(name),
 	_utcb(utcb ? utcb : addr_t(INITIAL_IPC_BUFFER_VIRT)),

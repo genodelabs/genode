@@ -40,13 +40,13 @@ struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_ses
 
 	Create_thread_result
 	create_thread(Pd_session_capability pd, Name const &name,
-	              Affinity::Location location, Weight weight, addr_t utcb) override
+	              Affinity::Location location, addr_t utcb) override
 	{
 		Thread_capability result { };
 		bool denied = false;
 		while (!result.valid()) {
 			using Error = Cpu_session::Create_thread_error;
-			Cpu_session_client::create_thread(pd, name, location, weight, utcb).with_result(
+			Cpu_session_client::create_thread(pd, name, location, utcb).with_result(
 				[&] (Thread_capability cap) { result = cap; },
 				[&] (Error e) {
 					switch (e) {

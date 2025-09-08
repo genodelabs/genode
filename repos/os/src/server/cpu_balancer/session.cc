@@ -21,7 +21,6 @@ Cpu_session::Create_thread_result
 Cpu::Session::create_thread(Pd_session_capability const  pd,
                             Name                  const &name_by_client,
                             Affinity::Location    const  location,
-                            Weight                const  weight,
                             addr_t                const  utcb)
 {
 	Create_thread_result result = Create_thread_error::DENIED;
@@ -47,7 +46,7 @@ Cpu::Session::create_thread(Pd_session_capability const  pd,
 		if (store_cap.valid())
 			return false;
 
-		result = _parent.create_thread(pd, name, location, weight, utcb);
+		result = _parent.create_thread(pd, name, location, utcb);
 		return result.convert<bool>(
 
 			[&] (Thread_capability cap) {
@@ -77,7 +76,7 @@ Cpu::Session::create_thread(Pd_session_capability const  pd,
 		return result;
 	}
 
-	result = _parent.create_thread(pd, name, location, weight, utcb);
+	result = _parent.create_thread(pd, name, location, utcb);
 	if (result.failed())
 		return result;
 
@@ -125,20 +124,24 @@ void Cpu::Session::kill_thread(Thread_capability const thread_cap)
 	});
 }
 
+
 void Cpu::Session::exception_sigh(Signal_context_capability const h)
 {
 	_parent.exception_sigh(h);
 }
+
 
 Affinity::Space Cpu::Session::affinity_space() const
 {
 	return _parent.affinity_space();
 }
 
+
 Dataspace_capability Cpu::Session::trace_control()
 {
 	return _parent.trace_control();
 }
+
 
 Cpu::Session::Session(Env &env, Affinity const &affinity, char const * args,
                       Child_list &list, Attached_rom_dataspace &config,
@@ -178,22 +181,6 @@ Cpu::Session::~Session()
 	_env.ep().rpc_ep().dissolve(this);
 
 	_env.close(_id.id());
-}
-
-int Cpu::Session::ref_account(Cpu_session_capability const cap)
-{
-	return _parent.ref_account(cap);
-}
-
-int Cpu::Session::transfer_quota(Cpu_session_capability const cap,
-                                 size_t const size)
-{
-	return _parent.transfer_quota(cap, size);
-}
-
-Cpu_session::Quota Cpu::Session::quota()
-{
-	return _parent.quota();
 }
 
 Capability<Cpu_session::Native_cpu> Cpu::Session::native_cpu()

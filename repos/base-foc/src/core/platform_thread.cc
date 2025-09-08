@@ -281,7 +281,7 @@ void Platform_thread::_finalize_construction()
 
 
 Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-                                 Local_rm &, size_t, const char *name, unsigned prio,
+                                 Local_rm &, const char *name, unsigned prio,
                                  Affinity::Location location, addr_t)
 :
 	_name(name),

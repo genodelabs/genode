@@ -344,8 +344,8 @@ void Platform_thread::thread_type(Cpu_session::Native_cpu::Thread_type thread_ty
 
 
 Platform_thread::Platform_thread(Platform_pd &pd, Rpc_entrypoint &, Ram_allocator &,
-                                 Local_rm &, size_t, const char *name,
-                                 unsigned prio, Affinity::Location affinity, addr_t)
+                                 Local_rm &, const char *name, unsigned prio,
+                                 Affinity::Location affinity, addr_t)
 :
 	_pd(pd), _pager(0), _id_base(cap_map().insert(2)),
 	_sel_exc_base(Native_thread::INVALID_INDEX),

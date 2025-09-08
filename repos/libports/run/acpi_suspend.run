@@ -604,7 +604,6 @@ append config {
 		</default-route>
 
 		<start name="timer" caps="100" ram="1M" } [priority_timer] {>
-			<resource name="CPU" quantum="10"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 

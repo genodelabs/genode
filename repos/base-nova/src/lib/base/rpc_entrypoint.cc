@@ -208,7 +208,7 @@ bool Rpc_entrypoint::is_myself() const
 Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                const char  *name, Affinity::Location location)
 :
-	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size, location),
+	Thread(name, stack_size, location),
 	_pd_session(*pd_session)
 {
 	/* set magic value evaluated by thread_nova.cc to start a local thread */

@@ -317,8 +317,7 @@ Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name,
 	_rpc_ep(&env.pd(), stack_size, name, location),
 	_signalling_initialized(true)
 {
-	_signal_proxy_thread.construct(env, *this, location,
-	                               Thread::Weight(), env.cpu());
+	_signal_proxy_thread.construct(env, *this, location, env.cpu());
 }
 
 Entrypoint::~Entrypoint()
