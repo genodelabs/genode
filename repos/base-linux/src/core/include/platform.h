@@ -23,6 +23,7 @@
 #include <platform_generic.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
+#include <mapped_ram.h>
 #include <synced_range_allocator.h>
 #include <assertion.h>
 
@@ -105,6 +106,8 @@ class Core::Platform : public Platform_generic
 		} _ram_alloc { };
 
 	public:
+
+		Mapped_ram_allocator mapped_ram { };
 
 		/**
 		 * Constructor

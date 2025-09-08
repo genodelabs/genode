@@ -81,12 +81,15 @@ void Genode::bootstrap_component(Genode::Platform &)
 {
 	using namespace Core;
 
+	using Mapped_ram = Mapped_ram_allocator;
+
 	Range_allocator &ram_ranges      = Core::platform().ram_alloc();
 	Rom_fs          &rom_modules     = Core::platform().rom_fs();
 	Range_allocator &io_mem_ranges   = Core::platform().io_mem_alloc();
 	Range_allocator &io_port_ranges  = Core::platform().io_port_alloc();
 	Range_allocator &irq_ranges      = Core::platform().irq_alloc();
 	Allocator       &core_alloc      = platform_specific().core_mem_alloc();
+	Mapped_ram      &mapped_ram      = platform_specific().mapped_ram;
 
 	Ram_quota const avail_ram  { ram_ranges.avail() };
 	Cap_quota const avail_caps { Core::platform().max_caps() };
@@ -142,7 +145,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 	static Cpu_root    cpu_root    (core_ram, local_rm, ep, ep, pager_ep,
 	                                sliced_heap, Core::Trace::sources());
 	static Pd_root     pd_root     (ep, signal_ep, ram_ranges, local_rm, sliced_heap,
-	                                platform_specific().core_mem_alloc(),
+	                                platform_specific().core_mem_alloc(), mapped_ram,
 	                                system_control);
 	static Log_root    log_root    (ep, sliced_heap);
 	static Io_mem_root io_mem_root (ep, ep, io_mem_ranges, ram_ranges, sliced_heap);

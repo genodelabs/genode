@@ -18,6 +18,7 @@
 /* core includes */
 #include <platform_generic.h>
 #include <core_mem_alloc.h>
+#include <core_ram.h>
 #include <address_space.h>
 
 namespace Core { class Platform; }
@@ -62,6 +63,9 @@ class Core::Platform : public Platform_generic
 		addr_t _rom_module_phys(addr_t virt);
 
 	public:
+
+		Mapped_ram_allocator mapped_ram { _core_mem_alloc.phys_alloc(),
+		                                  _core_mem_alloc.virt_alloc() };
 
 		/**
 		 * Constructor

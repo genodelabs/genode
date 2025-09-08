@@ -27,6 +27,7 @@
 #include <platform_generic.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
+#include <mapped_ram.h>
 #include <assertion.h>
 
 namespace Foc { struct l4_kernel_info_t; }
@@ -119,6 +120,8 @@ class Core::Platform : public Platform_generic
 		addr_t _rom_module_phys(addr_t virt) { return virt; }
 
 	public:
+
+		Mapped_ram_allocator mapped_ram { _ram_alloc, _region_alloc };
 
 		enum { VCPU_VIRT_EXT_START = 0x1000, VCPU_VIRT_EXT_END = 0x10000 };
 

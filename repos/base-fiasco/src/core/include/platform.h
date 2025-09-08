@@ -26,6 +26,7 @@
 #include <platform_generic.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
+#include <mapped_ram.h>
 #include <boot_modules.h>
 #include <assertion.h>
 
@@ -101,6 +102,8 @@ class Core::Platform : public Platform_generic
 		addr_t _rom_module_phys(addr_t virt) { return virt; }
 
 	public:
+
+		Mapped_ram_allocator mapped_ram { _ram_alloc, _region_alloc };
 
 		/**
 		 * Pager object representing the pager of core namely sigma0

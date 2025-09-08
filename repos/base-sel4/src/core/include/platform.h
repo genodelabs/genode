@@ -17,6 +17,7 @@
 /* local includes */
 #include <platform_generic.h>
 #include <core_mem_alloc.h>
+#include <mapped_ram.h>
 #include <vm_space.h>
 #include <core_cspace.h>
 #include <initial_untyped_pool.h>
@@ -236,6 +237,9 @@ class Core::Platform : public Platform_generic
 		void _init_io_ports();
 
 	public:
+
+		Mapped_ram_allocator mapped_ram { _core_mem_alloc.phys_alloc(),
+		                                  _core_mem_alloc.virt_alloc() };
 
 		/**
 		 * Constructor

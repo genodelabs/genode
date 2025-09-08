@@ -28,6 +28,7 @@
 
 /* core includes */
 #include <accounted_core_ram.h>
+#include <core_ram.h>
 #include <platform_pd.h>
 #include <signal_broker.h>
 #include <system_control.h>
@@ -57,11 +58,14 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		Constructible<Account<Cap_quota> > _cap_account { };
 		Constructible<Account<Ram_quota> > _ram_account { };
 
+		using Accounted_mapped_ram = Accounted_mapped_ram_allocator;
+
 		Rpc_entrypoint         &_ep;
 		Core::System_control   &_system_control;
 		Pd_ram_allocator        _pd_ram;
 		Accounted_ram_allocator _accounted_md_ram_alloc;
 		Accounted_core_ram      _accounted_core_ram_alloc;
+		Accounted_mapped_ram    _accounted_mapped_ram;
 		Sliced_heap             _sliced_heap;
 		Capability<Parent>      _parent { };
 		Ram_dataspace_factory   _ram_ds_factory;
@@ -143,6 +147,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		                     Local_rm         &local_rm,
 		                     char const       *args,
 		                     Range_allocator  &core_mem,
+		                     Mapped_ram_allocator &mapped_ram,
 		                     Core::System_control &system_control)
 		:
 			Session_object(ep, resources, label, diag),
@@ -151,6 +156,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_pd_ram(*this),
 			_accounted_md_ram_alloc(_pd_ram, _ram_quota_guard(), _cap_quota_guard()),
 			_accounted_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
+			_accounted_mapped_ram(mapped_ram, _ram_quota_guard()),
 			_sliced_heap(_accounted_md_ram_alloc, local_rm),
 			_ram_ds_factory(ep, phys_alloc, phys_range,
 			                _accounted_core_ram_alloc),

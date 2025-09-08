@@ -19,6 +19,7 @@
 #include <util/interface.h>
 #include <base/log.h>
 #include <base/local.h>
+#include <base/internal/page_size.h>
 
 namespace Core {
 

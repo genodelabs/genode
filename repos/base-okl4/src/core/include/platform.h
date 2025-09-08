@@ -22,6 +22,7 @@
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <core_local_rm.h>
+#include <mapped_ram.h>
 #include <core_mem_alloc.h>
 
 /* base-internal includes */
@@ -76,6 +77,9 @@ class Core::Platform : public Platform_generic
 		addr_t _rom_module_phys(addr_t virt) { return virt; }
 
 	public:
+
+		Mapped_ram_allocator mapped_ram { _core_mem_alloc.phys_alloc(),
+		                                  _core_mem_alloc.virt_alloc() };
 
 		/**
 		 * Constructor
