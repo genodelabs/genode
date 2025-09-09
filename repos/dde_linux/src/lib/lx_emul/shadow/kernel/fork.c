@@ -42,6 +42,7 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	struct cred * cred;
 	struct task_struct * task;
 	struct signal_struct *signal;
+	struct sighand_struct *sighand;
 	char const *thread_name = "kthread";
 
 	cred = kzalloc(sizeof (struct cred), GFP_KERNEL);
@@ -51,6 +52,9 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	signal = kzalloc(sizeof(struct signal_struct), GFP_KERNEL);
 	if (!signal)
 		goto err_signal;
+	sighand = kzalloc(sizeof(struct sighand_struct), GFP_KERNEL);
+	if (!sighand)
+		goto err_sighand;
 
 	task = kmalloc(sizeof(struct task_struct), GFP_KERNEL);
 	if (!task)
@@ -83,6 +87,7 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 		.signal = {{0}} },
 	.cred            = cred,
 	.signal          = signal,
+	.sighand         = sighand,
 	};
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
@@ -118,6 +123,8 @@ pid_t kernel_thread(int (* fn)(void *),void * arg,unsigned long flags)
 	return task->pid;
 
 err_task:
+	kfree(sighand);
+err_sighand:
 	kfree(signal);
 err_signal:
 	kfree(cred);
