@@ -24,6 +24,13 @@ LX_ENABLE += PCI PCI_MSI
 # IOMMU support (used by Intel fb to apply scanout scratch page workaround)
 LX_ENABLE += IOMMU_SUPPORT INTEL_IOMMU
 
+# needed on new intel hardware (e.g. framework 13 / Meteorlake)
+# that cpus will boot initially
+LX_ENABLE += IRQ_REMAP X86_X2APIC
+
+# to map scratch page for i915 on meteorlake, we need this
+LX_ENABLE += MTRR X86_PAT
+
 # ACPI support
 LX_ENABLE += ACPI
 
@@ -56,7 +63,7 @@ LX_ENABLE += USB_USBNET
 LX_ENABLE += USB_SUPPORT USB USB_ARCH_HAS_HCD USB_XHCI_HCD USB_EHCI_HCD USB_OHCI_HCD
 LX_ENABLE += USB_PCI USB_UHCI_HCD
 
-# Intel framebuffer
+# Intel i915 driver
 LX_ENABLE += DRM DRM_I915
 
 # required for GPIO irqchip on tigerlake
