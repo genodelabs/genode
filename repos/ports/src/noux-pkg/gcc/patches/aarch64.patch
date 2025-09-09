@@ -59,7 +59,7 @@ index 4fa1dfc79..dc4a3a4cd 100644
 +
 +#undef LINK_SPEC
 +#define LINK_SPEC \
-+  "%(shared:-shared) \
++  "%{shared:-shared} \
 +   %{!static:--eh-frame-hdr}"
 +
  #endif /* GCC_AARCH64_H */

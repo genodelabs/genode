@@ -224,7 +224,7 @@ index 7797e6731..1cfac7796 100644
 +#define LINK_SPEC " \
 +-melf" XLEN_SPEC "lriscv \
 +  %{mno-relax:--no-relax} \
-+  %(shared:-shared) \
++  %{shared:-shared} \
 +     %{!static:--eh-frame-hdr}"
 +
  #endif /* ! GCC_RISCV_H */
