@@ -163,7 +163,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
-			_pd(_sliced_heap, _label),
+			_pd(_accounted_mapped_ram, _sliced_heap, _label),
 			_address_space(ep, _sliced_heap, virt_range.start, virt_range.size, diag),
 			_stack_area   (ep, _sliced_heap, 0, stack_area_virtual_size(), diag),
 			_linker_area  (ep, _sliced_heap, 0, LINKER_AREA_SIZE, diag),

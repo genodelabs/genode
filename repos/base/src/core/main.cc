@@ -164,7 +164,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 
 	/* make platform-specific services known to service pool */
 	platform_add_local_services(ep, sliced_heap, services, Core::Trace::sources(),
-	                            core_ram, local_rm, io_port_ranges);
+	                            core_ram, mapped_ram, local_rm, io_port_ranges);
 
 	if (!core_account.ram_account.try_withdraw({ 224*1024 })) {
 		error("core preservation exceeds available RAM");

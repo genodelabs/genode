@@ -153,7 +153,8 @@ void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 }
 
 
-Platform_pd::Platform_pd(Allocator &md_alloc, Name const &name)
+Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &,
+                         Allocator &md_alloc, Name const &name)
 :
 	_page_table_registry(md_alloc)
 {

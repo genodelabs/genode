@@ -18,6 +18,7 @@
 #include <base/ram_allocator.h>
 
 /* core includes */
+#include <core_ram.h>
 #include <core_service.h>
 #include <trace/source_registry.h>
 
@@ -42,6 +43,7 @@ namespace Core {
 	                                 Registry<Service>      &reg,
 	                                 Trace::Source_registry &trace,
 	                                 Ram_allocator          &core_ram,
+	                                 Mapped_ram_allocator   &mapped_ram,
 	                                 Local_rm               &local_rm,
 	                                 Range_allocator        &io_port_ranges);
 }

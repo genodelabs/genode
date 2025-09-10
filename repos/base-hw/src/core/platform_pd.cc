@@ -191,7 +191,7 @@ Platform_pd(Page_table                        &tt,
 { }
 
 
-Platform_pd::Platform_pd(Allocator &, Name const &name)
+Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &, Allocator &, Name const &name)
 :
 	Hw_address_space(*this), name(name)
 {

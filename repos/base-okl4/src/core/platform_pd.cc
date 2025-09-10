@@ -301,7 +301,8 @@ Platform_pd::Platform_pd(bool) : _space_pager(0)
 }
 
 
-Platform_pd::Platform_pd(Allocator &, Name const &)
+Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &,
+                         Allocator &, Name const &)
 {
 	_init_threads();
 

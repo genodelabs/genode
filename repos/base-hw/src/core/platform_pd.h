@@ -196,7 +196,7 @@ class Core::Platform_pd : public Hw_address_space, private Cap_space
 		/**
 		 * Constructor used for objects other than the Core PD
 		 */
-		Platform_pd(Allocator &, Name const &);
+		Platform_pd(Accounted_mapped_ram_allocator &, Allocator &, Name const &);
 
 		/**
 		 * Destructor

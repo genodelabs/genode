@@ -246,7 +246,8 @@ Platform_pd::Platform_pd(bool) : _l4_task_id(L4_MyGlobalId())
 }
 
 
-Platform_pd::Platform_pd(Allocator &, Name const &)
+Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &,
+                         Allocator &, Name const &)
 {
 	int const id = _alloc_pd(PD_INVALID);
 	if (id < 0) {

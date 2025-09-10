@@ -28,7 +28,8 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(Allocator &, Name const &name)
+Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &,
+                         Allocator &, Name const &name)
 :
 	_pd_sel(cap_map().insert()), name(name)
 {

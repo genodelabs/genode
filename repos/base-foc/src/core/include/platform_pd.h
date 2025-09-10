@@ -27,6 +27,7 @@
 
 /* core includes */
 #include <cap_mapping.h>
+#include <core_ram.h>
 #include <address_space.h>
 
 /* base-internal includes */
@@ -81,7 +82,8 @@ class Core::Platform_pd : public Address_space
 		/**
 		 * Constructor for all tasks except core.
 		 */
-		Platform_pd(Allocator &, Name const &);
+		Platform_pd(Accounted_mapped_ram_allocator &,
+		            Allocator &, Name const &);
 
 		/**
 		 * Destructor

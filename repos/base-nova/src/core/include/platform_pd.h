@@ -17,6 +17,7 @@
 #include <base/allocator.h>
 #include <platform_thread.h>
 #include <address_space.h>
+#include <core_ram.h>
 
 namespace Core {
 
@@ -49,7 +50,8 @@ class Core::Platform_pd : public Address_space
 		/**
 		 * Constructor
 		 */
-		Platform_pd(Allocator &md_alloc, Name const &);
+		Platform_pd(Accounted_mapped_ram_allocator &,
+		            Allocator &md_alloc, Name const &);
 
 		/**
 		 * Destructor

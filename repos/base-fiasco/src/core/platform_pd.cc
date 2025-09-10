@@ -173,7 +173,8 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
 }
 
 
-Platform_pd::Platform_pd(Allocator &, Name const &)
+Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &,
+                         Allocator &, Name const &)
 {
 	/* check correct init */
 	if (!_init)

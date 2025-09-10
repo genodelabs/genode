@@ -134,7 +134,8 @@ Platform_pd::Platform_pd(Core_cap_index &ci)
 { }
 
 
-Platform_pd::Platform_pd(Allocator &, Name const &)
+Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &,
+                         Allocator &, Name const &)
 :
 	_task(true, TASK_CAP), _debug(debug_cap(), DEBUG_CAP)
 {

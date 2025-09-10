@@ -22,6 +22,7 @@
 
 /* core includes */
 #include <address_space.h>
+#include <core_ram.h>
 
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
@@ -140,7 +141,8 @@ class Core::Platform_pd : public Address_space
 		/**
 		 * Constructor
 		 */
-		Platform_pd(Allocator &md_alloc, Name const &);
+		Platform_pd(Accounted_mapped_ram_allocator &,
+		            Allocator &md_alloc, Name const &);
 
 		/**
 		 * Constructor used for core's PD

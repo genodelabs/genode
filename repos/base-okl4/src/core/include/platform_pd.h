@@ -19,6 +19,7 @@
 
 /* core includes */
 #include <address_space.h>
+#include <core_ram.h>
 
 /* base-internal includes */
 #include <base/internal/okl4.h>
@@ -173,7 +174,8 @@ class Core::Platform_pd : public Address_space
 		 * Constructors
 		 */
 		Platform_pd(bool core);
-		Platform_pd(Allocator &, Name const &);
+		Platform_pd(Accounted_mapped_ram_allocator &,
+		            Allocator &, Name const &);
 
 		/**
 		 * Destructor

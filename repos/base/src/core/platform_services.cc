@@ -19,6 +19,7 @@ void Core::platform_add_local_services(Rpc_entrypoint &, Sliced_heap &,
                                        Registry<Service>      &,
                                        Trace::Source_registry &,
                                        Ram_allocator          &,
+                                       Mapped_ram_allocator   &,
                                        Local_rm               &,
                                        Range_allocator        &)
 { }

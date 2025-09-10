@@ -23,6 +23,7 @@
 
 namespace Core {
 
+	class Accounted_mapped_ram_allocator;
 	struct Platform_pd;
 	struct Platform_thread;
 }
@@ -32,7 +33,8 @@ struct Core::Platform_pd
 {
 	using Name = String<160>;
 
-	Platform_pd(Allocator &, Name const &) { }
+	Platform_pd(Accounted_mapped_ram_allocator &,
+	            Allocator &, Name const &) { }
 
 	void assign_parent(Capability<Parent>) { }
 };
