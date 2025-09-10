@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2025-06-24
+ * \date   2025-09-10
  */
 
 #pragma once
@@ -165,6 +165,8 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_r8153_ecm_driver_init6",
 	"__initcall_net_failover_init6",
 	"__initcall_wdm_driver_init6",
+	"__initcall_usb_serial_init6",
+	"__initcall_usb_serial_module_init6",
 	"__initcall_input_leds_init6",
 	"__initcall_evdev_init6",
 	"__initcall_hid_init6",
