@@ -19,23 +19,17 @@
 #include <platform.h>
 #include <address_space.h>
 #include <object.h>
+#include <page_table_allocator.h>
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/pd.h>
 
-/* base-hw internal includes */
-#include <hw/page_table_allocator.h>
-
 namespace Core {
-
-	/**
-	 * Memory virtualization interface of a protection domain
-	 */
-	class Hw_address_space;
 
 	class Platform_thread; /* forward declaration */
 
 	class Cap_space;
+	class Platform_pd_interface;
 
 	/**
 	 * Platform specific part of a protection domain
@@ -49,97 +43,6 @@ namespace Core {
 
 	using Hw::Page_flags;
 }
-
-
-class Core::Hw_address_space : public Core::Address_space
-{
-	public:
-
-		using Id_allocator = Board::Address_space_id_allocator;
-		using Table = Hw::Page_table;
-		using Table_allocator = Hw::Page_table_allocator;
-
-		/*
-		 * Noncopyable
-		 */
-		Hw_address_space(Hw_address_space const &) = delete;
-		Hw_address_space &operator = (Hw_address_space const &) = delete;
-
-	private:
-
-		friend class Core::Platform;
-		friend class Core::Mapped_mem_allocator;
-
-		Genode::Mutex    _mutex { };             /* table lock      */
-		Table           &_table;                 /* table virt addr */
-		addr_t           _table_phys;            /* table phys addr */
-		Table::Array    *_table_array = nullptr;
-		Table_allocator &_table_alloc;           /* table allocator */
-
-		static inline Core_mem_allocator &_cma();
-
-		static inline void *_alloc_table();
-
-	protected:
-
-		Kernel_object<Kernel::Pd> _kobj;
-
-		Kernel::Pd::Core_pd_data _core_pd_data(Platform_pd &);
-
-		/**
-		 * Constructor used for the Core PD object
-		 *
-		 * \param tt        reference to translation table
-		 * \param tt_alloc  reference to translation table allocator
-		 * \param pd        reference to platform pd object
-		 */
-		Hw_address_space(Table           &tt,
-		                 Table_allocator &tt_alloc,
-		                 Platform_pd     &pd,
-		                 Id_allocator    &addr_space_id_alloc);
-
-	public:
-
-		/**
-		 * Constructor used for objects other than the Core PD
-		 *
-		 * \param pd    reference to platform pd object
-		 */
-		Hw_address_space(Platform_pd &pd);
-
-		~Hw_address_space();
-
-		/**
-		 * Insert memory mapping into translation table of the address space
-		 *
-		 * \param virt   virtual start address
-		 * \param phys   physical start address
-		 * \param size   size of memory region
-		 * \param flags  translation table flags (e.g. caching attributes)
-		 */
-		bool insert_translation(addr_t virt, addr_t phys,
-		                        size_t size, Page_flags flags);
-
-		bool lookup_rw_translation(addr_t const virt, addr_t &phys);
-
-
-		/*****************************
-		 ** Address-space interface **
-		 *****************************/
-
-		void flush(addr_t, size_t, Core_local_addr) override;
-		void flush(addr_t addr, size_t size) {
-			flush(addr, size, Core_local_addr{0}); }
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Kernel::Pd &kernel_pd()         { return *_kobj;      }
-		Table &translation_table()      { return _table;      }
-		addr_t translation_table_phys() { return _table_phys; }
-};
 
 
 class Core::Cap_space
@@ -158,71 +61,107 @@ class Core::Cap_space
 };
 
 
-class Core::Platform_pd : public Hw_address_space, private Cap_space
+struct Core::Platform_pd_interface : Genode::Interface
+{
+	using Name = Kernel::Pd::Core_pd_data::Name;
+
+	virtual Native_capability parent() const = 0;
+
+	virtual Name name() const = 0;
+
+	virtual Kernel::Pd & kernel_pd() = 0;
+};
+
+
+class Core::Platform_pd
+: public Address_space, public Platform_pd_interface, private Cap_space
 {
 	private:
+
+		using Page_table_array = Hw::Page_table_array<4096, 16>;
+
+		Name const _name;
+
+		Native_capability _parent {};
+
+		Genode::Mutex _mutex { }; /* table lock */
+
+		Phys_allocated<Hw::Page_table>   _table;
+		Page_table_allocator             _table_alloc;
+
+		Kernel_object<Kernel::Pd> _kobj;
+
+		Kernel::Pd::Core_pd_data _core_pd_data();
+
+		bool _thread_associated = false;
+
+		bool _warned_once_about_quota_depletion = false;
+
+		friend class Platform_thread;
+
+	public:
+
+		using Constructed = Attempt<Ok, Accounted_mapped_ram_allocator::Error>;
+		Constructed const constructed = _table.constructed;
 
 		/*
 		 * Noncopyable
 		 */
-		Platform_pd(Platform_pd const &);
-		Platform_pd &operator = (Platform_pd const &);
+		Platform_pd(Platform_pd const &) = delete;
+		Platform_pd &operator = (Platform_pd const &) = delete;
 
-		Native_capability  _parent { };
-		bool               _thread_associated = false;
+		Platform_pd(Accounted_mapped_ram_allocator &, Allocator &,
+		            Name const &);
 
-		friend class Hw_address_space;
+		~Platform_pd();
 
-	protected:
+		bool map(addr_t virt, addr_t phys,
+		         size_t size, Page_flags flags);
 
-		/**
-		 * Constructor used for the Core PD object
-		 *
-		 * \param tt        translation table address
-		 * \param tt_alloc  translation table allocator
-		 */
-		Platform_pd(Table           &tt,
-		            Table_allocator &tt_alloc,
-		            Id_allocator    &addr_space_id_alloc);
+		void flush(addr_t virt, size_t size, Core_local_addr) override;
+		void flush_all();
+
+		Native_capability parent() const override { return _parent; }
+
+		Name name() const override { return _name; }
+
+		Kernel::Pd & kernel_pd() override { return *_kobj; }
+
+		void assign_parent(Native_capability parent) {
+			if (!_parent.valid() && parent.valid()) _parent = parent; }
+
+		using Cap_space::upgrade_slab;
+		using Cap_space::avail_slab;
+};
+
+
+class Core::Core_platform_pd : public Platform_pd_interface, private Cap_space
+{
+	private:
+
+		Genode::Mutex             _mutex { };   /* table lock      */
+		Hw::Page_table           &_table;       /* table virt addr */
+		Hw::Page_table_allocator &_table_alloc; /* table allocator */
+		Kernel_object<Kernel::Pd> _kobj;
+
+		friend bool map_local(addr_t, addr_t, size_t, Page_flags);
+		friend bool unmap_local(addr_t, size_t);
 
 	public:
 
-		using Name = Kernel::Pd::Core_pd_data::Name;
+		using Id_allocator = Board::Address_space_id_allocator;
 
-		Name const name;
-
-		bool has_any_thread = false;
-
-		/**
-		 * Constructor used for objects other than the Core PD
-		 */
-		Platform_pd(Accounted_mapped_ram_allocator &, Allocator &, Name const &);
-
-		/**
-		 * Destructor
-		 */
-		~Platform_pd();
+		Core_platform_pd(Id_allocator &id_alloc);
 
 		using Cap_space::upgrade_slab;
 		using Cap_space::avail_slab;
 
-		/**
-		 * Bind thread to protection domain
-		 */
-		bool bind_thread(Platform_thread &);
+		Native_capability parent() const override {
+			return Native_capability(); }
 
-		/**
-		 * Assign parent interface to protection domain
-		 */
-		void assign_parent(Native_capability parent);
+		Name name() const override { return { "core" }; }
 
-		Native_capability parent() { return _parent; }
-};
-
-
-struct Core::Core_platform_pd : Platform_pd
-{
-	Core_platform_pd(Id_allocator &id_alloc);
+		Kernel::Pd & kernel_pd() override { return *_kobj; }
 };
 
 #endif /* _CORE__PLATFORM_PD_H_ */

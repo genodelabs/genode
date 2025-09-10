@@ -54,7 +54,7 @@ class Kernel::Main
 
 	public:
 
-		static Core::Platform_pd &core_platform_pd();
+		static Core::Core_platform_pd &core_platform_pd();
 };
 
 
@@ -198,7 +198,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 }
 
 
-Core::Platform_pd &Kernel::Main::core_platform_pd()
+Core::Core_platform_pd &Kernel::Main::core_platform_pd()
 {
 	return _instance->_core_platform_pd;
 }
@@ -220,7 +220,7 @@ Kernel::main_read_idle_thread_execution_time(Call_arg arg)
 }
 
 
-Core::Platform_pd &Core::Platform_thread::_kernel_main_get_core_platform_pd()
+Core::Platform_pd_interface &Core::Platform_thread::_core_platform_pd()
 {
 	return Kernel::Main::core_platform_pd();
 }
@@ -229,16 +229,30 @@ Core::Platform_pd &Core::Platform_thread::_kernel_main_get_core_platform_pd()
 bool Core::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
                      Page_flags flags)
 {
-	return
-		Kernel::Main::core_platform_pd().insert_translation(
-			to_virt, from_phys, num_pages * get_page_size(), flags);
+	Core_platform_pd &pd = Kernel::Main::core_platform_pd();
+
+	Mutex::Guard guard(pd._mutex);
+	size_t size = num_pages * get_page_size();
+	Hw::Page_table::Result result =
+		pd._table.insert(to_virt, from_phys, size, flags, pd._table_alloc);
+	return result.convert<bool>([&] (Ok) -> bool { return true; },
+	                            [&] (Hw::Page_table_error e) -> bool {
+		if (e == Hw::Page_table_error::INVALID_RANGE)
+			error("invalid mapping ", Hex(from_phys), " -> ",
+			      Hex(to_virt), " (", size, ")");
+		else error("core's page-table allocator is empty!");
+		return false;
+	});
 }
 
 
 bool Core::unmap_local(addr_t virt_addr, size_t num_pages)
 {
-	Kernel::Main::core_platform_pd().flush(
-		virt_addr, num_pages * get_page_size());
+	Core_platform_pd &pd = Kernel::Main::core_platform_pd();
 
+	Mutex::Guard guard(pd._mutex);
+	size_t size = num_pages * get_page_size();
+	pd._table.remove(virt_addr, size, pd._table_alloc);
+	Kernel::invalidate_tlb(*pd._kobj, virt_addr, size);
 	return true;
 }

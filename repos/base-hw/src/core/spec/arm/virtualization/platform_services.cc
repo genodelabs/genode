@@ -35,7 +35,7 @@ void Core::platform_add_local_services(Rpc_entrypoint         &ep,
                                        Registry<Service>      &services,
                                        Trace::Source_registry &trace_sources,
                                        Ram_allocator          &core_ram,
-                                       Mapped_ram_allocator   &,
+                                       Mapped_ram_allocator   &mapped_ram,
                                        Local_rm               &local_rm,
                                        Range_allocator        &)
 {
@@ -54,7 +54,7 @@ void Core::platform_add_local_services(Rpc_entrypoint         &ep,
 
 			stack.deallocate = false;
 
-			static Vm_root vm_root(ep, sh, core_ram, local_rm, trace_sources);
+			static Vm_root vm_root(ep, sh, core_ram, mapped_ram, local_rm, trace_sources);
 			static Core_service<Session_object<Vm_session>> vm_service(services, vm_root);
 		},
 		[&] (Alloc_error) {

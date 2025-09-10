@@ -51,20 +51,21 @@ class Core::Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
 
 	public:
 
-		using Constructed = Attempt<Ok, Alloc_error>;
+		using Constructed = Attempt<Ok, Accounted_mapped_ram_allocator::Error>;
 		Constructed const constructed = _state.constructed;
 
-		Vcpu(Kernel::Vcpu::Identity  &id,
-		     Rpc_entrypoint          &ep,
-		     Accounted_ram_allocator &ram,
-		     Local_rm                &local_rm,
-		     Affinity::Location       location)
+		Vcpu(Kernel::Vcpu::Identity         &id,
+		     Rpc_entrypoint                 &ep,
+		     Accounted_ram_allocator        &ram,
+		     Local_rm                       &local_rm,
+		     Accounted_mapped_ram_allocator &core_ram,
+		     Affinity::Location              location)
 		:
 			_id(id),
 			_ep(ep),
 			_ds( {ram.try_alloc(_ds_size(), Cache::UNCACHED)} ),
 			_location(location),
-			_state(ep, ram, local_rm, _ds)
+			_state(core_ram, local_rm, _ds)
 		{
 			ep.manage(this);
 		}

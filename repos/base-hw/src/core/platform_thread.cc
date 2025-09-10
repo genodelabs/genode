@@ -92,7 +92,7 @@ Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb,
                                  Affinity::Location const location)
 :
 	_label(label),
-	_pd(_kernel_main_get_core_platform_pd()),
+	_pd(_core_platform_pd()),
 	_pager(nullptr),
 	_utcb((addr_t)&utcb),
 	_main_thread(false),
@@ -115,14 +115,14 @@ Platform_thread::Platform_thread(Platform_pd              &pd,
 	_pager(nullptr),
 	_utcb(ep, ram, local_rm),
 	_group_id(_scale_priority(virt_prio)),
-	_main_thread(!pd.has_any_thread),
+	_main_thread(!pd._thread_associated),
 	_location(location),
 	_kobj(_kobj.CALLED_FROM_CORE, pd.kernel_pd(),
 	      _location.xpos(), _group_id, _label.string())
 {
 	_utcb.ds.with_result([&] (auto &) {
 		_address_space = pd.weak_ptr();
-		pd.has_any_thread = true;
+		pd._thread_associated = true;
 	}, [] (Alloc_error) { });
 }
 
@@ -158,9 +158,9 @@ void Platform_thread::start(void * const ip, void * const sp)
 			error("unable to start thread in invalid address space");
 			return;
 		};
-		Hw_address_space * as = static_cast<Hw_address_space*>(&*locked_ptr);
-		if (!as->insert_translation(user_utcb_main_thread(), _utcb.phys_addr,
-		                            sizeof(Native_utcb), Hw::PAGE_FLAGS_UTCB)) {
+		Platform_pd &pd = static_cast<Platform_pd&>(*locked_ptr);
+		if (!pd.map(user_utcb_main_thread(), _utcb.phys_addr,
+		            sizeof(Native_utcb), Hw::PAGE_FLAGS_UTCB)) {
 			error("failed to attach UTCB");
 			return;
 		}

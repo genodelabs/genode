@@ -17,12 +17,10 @@
 #define _CORE__PHYS_ALLOCATED_H_
 
 /* base includes */
-#include <base/allocator.h>
-#include <base/attached_ram_dataspace.h>
 #include <util/noncopyable.h>
 
 /* core-local includes */
-#include <dataspace_component.h>
+#include <core_ram.h>
 #include <types.h>
 
 namespace Core {
@@ -35,69 +33,35 @@ class Core::Phys_allocated : Genode::Noncopyable
 {
 	private:
 
-		Rpc_entrypoint &_ep;
-		Ram_allocator  &_ram;
-		Local_rm       &_rm;
+		Ram_obj_allocator<T>         _ram;
+		Ram_obj_allocator<T>::Result _result;
 
-		Ram_allocator::Result _ram_result { _ram.try_alloc(sizeof(T)) };
-
-		addr_t _phys_addr { 0 };
-
-		Local_rm::Result _mapped {
-			_ram_result.convert<Local_rm::Result>(
-				[&] (Ram_allocator::Allocation const &ram) {
-					_phys_addr = _ep.apply(ram.cap, [&](Dataspace_component *dsc) {
-						return dsc->phys_addr(); });
-					return _rm.attach(ram.cap, {
-						.size       = { }, .offset    = { },
-						.use_at     = { }, .at        = { },
-						.executable = { }, .writeable = true });
-				},
-				[&] (Alloc_error) { return Local_rm::Error::INVALID_DATASPACE; }
-			)};
+		using Allocation = Ram_obj_allocator<T>::Allocation;
+		using Error      = Ram_obj_allocator<T>::Error;
 
 	public:
 
-		using Constructed = Attempt<Ok, Alloc_error>;
+		using Constructed = Attempt<Ok, Error>;
 
-		Constructed const constructed = _mapped.convert<Constructed>(
-			[&] (Local_rm::Attachment const &) { return Ok(); },
-			[&] (Local_rm::Error) {
-				return _ram_result.convert<Alloc_error>(
-					[&] (Ram::Allocation const &) { return Alloc_error::DENIED; },
-					[&] (Alloc_error e) { return e; }); });
+		Constructed const constructed = _result.template convert<Constructed>(
+			[&] (Allocation const &) { return Ok(); },
+			[&] (Error e)            { return e;    });
 
-		Phys_allocated(Rpc_entrypoint &ep,
-		               Ram_allocator  &ram,
-		               Local_rm       &rm)
-		:
-			_ep(ep), _ram(ram), _rm(rm)
+		Phys_allocated(Accounted_mapped_ram_allocator &ram, auto &&... args)
+		: _ram(ram), _result(_ram.create(args...)) { }
+
+		addr_t phys_addr() const
 		{
-			obj([&] (T &o) { construct_at<T>(&o); });
+			return _result.template convert<addr_t>(
+				[&] (Allocation const &a) { return a._attr.phys; },
+				[&] (Error)               { return 0UL; });
 		}
-
-		Phys_allocated(Rpc_entrypoint &ep,
-		               Ram_allocator  &ram,
-		               Local_rm       &rm,
-		               auto const     &construct_fn)
-		:
-			_ep(ep), _ram(ram), _rm(rm)
-		{
-			obj([&] (T &o) { construct_fn(*this, &o); });
-		}
-
-		~Phys_allocated()
-		{
-			obj([&] (T &o) { o.~T(); });
-		}
-
-		addr_t phys_addr() const { return _phys_addr; }
 
 		void obj(auto const fn)
 		{
-			_mapped.with_result(
-				[&] (Local_rm::Attachment const &a) { fn(*((T*)a.ptr)); },
-				[&] (Local_rm::Error) { });
+			_result.template with_result(
+				[&] (Allocation const &a) { fn(a.obj); },
+				[&] (Error)               { });
 		}
 };
 

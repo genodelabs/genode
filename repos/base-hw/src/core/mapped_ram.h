@@ -40,7 +40,7 @@ class Core::Mapped_ram_allocator
 			addr_t virt;
 
 			size_t num_bytes() const { return num_pages*get_page_size(); }
-			void * ptr()             { return (void *)virt; }
+			void * ptr()       const { return (void *)virt; }
 		};
 
 		enum class Error { DENIED };

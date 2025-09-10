@@ -88,17 +88,18 @@ class Core::Vm_session_component
 		Registry<Revoke>::Element           _elem;
 		Rpc_entrypoint                     &_ep;
 		Accounted_ram_allocator             _accounted_ram_alloc;
+		Accounted_mapped_ram_allocator      _accounted_mapped_ram;
 		Local_rm                           &_local_rm;
 		Heap                                _heap;
 		Phys_allocated<TABLE>               _table;
-		Phys_allocated<Vm_page_table_array> _table_array;
+		Page_table_allocator                _table_alloc;
 		Guest_memory                        _memory;
 		Vmid_allocator                     &_vmid_alloc;
 		uint8_t                             _remaining_print_count { 10 };
 
-		using Constructed = Attempt<Ok, Alloc_error>;
-		Constructed const constructed =
-			_table.constructed.ok() ? _table.constructed : _table_array.constructed;
+		using Constructed = Attempt<Ok, Accounted_mapped_ram_allocator::Error>;
+
+		Constructed const constructed = _table.constructed;
 
 		Kernel::Vcpu::Identity _id {
 			_vmid_alloc.alloc().convert<unsigned>(
@@ -110,10 +111,8 @@ class Core::Vm_session_component
 		void _detach_at(addr_t addr)
 		{
 			_memory.detach_at(addr, [&](addr_t vm_addr, size_t size) {
-				_table_array.obj([&] (Vm_page_table_array &array) {
-					_table.obj([&] (TABLE &table) {
-						table.remove(vm_addr, size, array.alloc());
-					});
+				_table.obj([&] (TABLE &table) {
+					table.remove(vm_addr, size, _table_alloc);
 				});
 			});
 		}
@@ -121,10 +120,8 @@ class Core::Vm_session_component
 		void _reserve_and_flush(addr_t addr)
 		{
 			_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
-				_table_array.obj([&] (Vm_page_table_array &array) {
-					_table.obj([&] (TABLE &table) {
-						table.remove(vm_addr, size, array.alloc());
-					});
+				_table.obj([&] (TABLE &table) {
+					table.remove(vm_addr, size, _table_alloc);
 				});
 			});
 		}
@@ -138,6 +135,7 @@ class Core::Vm_session_component
 		                     Label const &label,
 		                     Diag diag,
 		                     Ram_allocator &ram_alloc,
+		                     Mapped_ram_allocator &mapped_ram,
 		                     Local_rm &local_rm,
 		                     Trace::Source_registry &)
 		:
@@ -145,23 +143,20 @@ class Core::Vm_session_component
 			_elem(registry, *this),
 			_ep(ds_ep),
 			_accounted_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
+			_accounted_mapped_ram(mapped_ram, _ram_quota_guard()),
 			_local_rm(local_rm),
 			_heap(_accounted_ram_alloc, local_rm),
-			_table(_ep, _accounted_ram_alloc, _local_rm),
-			_table_array(_ep, _accounted_ram_alloc, _local_rm,
-					[] (Phys_allocated<Vm_page_table_array> &table_array, auto *obj_ptr) {
-						construct_at<Vm_page_table_array>(obj_ptr, [&] (void *virt) {
-						return table_array.phys_addr() + ((addr_t) obj_ptr - (addr_t)virt);
-						});
-					}),
+			_table(_accounted_mapped_ram),
+			_table_alloc(_accounted_mapped_ram, _heap),
 			_memory(_accounted_ram_alloc, local_rm),
 			_vmid_alloc(vmid_alloc)
 		{
-			constructed.with_error([] (Alloc_error e) {
+			using Error = Accounted_mapped_ram_allocator::Error;
+
+			constructed.with_error([] (Error e) {
 				switch (e) {
-				case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-				case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-				case Alloc_error::DENIED:      throw Service_denied();
+				case Error::OUT_OF_RAM:  throw Out_of_ram();
+				case Error::DENIED:      throw Service_denied();
 				};
 			});
 		}
@@ -192,17 +187,15 @@ class Core::Vm_session_component
 
 			auto const &map_fn = [&](addr_t vm_addr, addr_t phys_addr, size_t size) {
 				Page_flags const pflags { RW, EXEC, USER, NO_GLOBAL, RAM, CACHED };
-				_table_array.obj([&] (Vm_page_table_array &array) {
-					_table.obj([&] (TABLE &table) {
-						Hw::Page_table::Result result =
-							table.insert(vm_addr, phys_addr, size, pflags,
-							             array.alloc());
-						result.with_error([&] (Hw::Page_table_error e) {
-							if (e == Hw::Page_table_error::INVALID_RANGE)
-								invalid_mapping = true;
-							else
-								out_of_tables = true;
-						});
+				_table.obj([&] (TABLE &table) {
+					Hw::Page_table::Result result =
+						table.insert(vm_addr, phys_addr, size, pflags,
+						             _table_alloc);
+					result.with_error([&] (Hw::Page_table_error e) {
+						if (e == Hw::Page_table_error::INVALID_RANGE)
+							invalid_mapping = true;
+						else
+							out_of_tables = true;
 					});
 				});
 			};
@@ -253,15 +246,15 @@ class Core::Vm_session_component
 		void detach(addr_t guest_phys, size_t size) override
 		{
 			_memory.detach(guest_phys, size, [&](addr_t vm_addr, size_t size) {
-				_table_array.obj([&] (Vm_page_table_array &array) {
-					_table.obj([&] (TABLE &table) {
-						table.remove(vm_addr, size, array.alloc()); });
-				});
+				_table.obj([&] (TABLE &table) {
+					table.remove(vm_addr, size, _table_alloc); });
 			});
 		}
 
 		Capability<Native_vcpu> create_vcpu(Thread_capability tcap) override
 		{
+			using Error = Accounted_mapped_ram_allocator::Error;
+
 			Affinity::Location vcpu_location;
 			_ep.apply(tcap, [&] (Cpu_thread_component *ptr) {
 				if (!ptr) return;
@@ -274,15 +267,15 @@ class Core::Vm_session_component
 						                 _ep,
 						                 _accounted_ram_alloc,
 						                 _local_rm,
+						                 _accounted_mapped_ram,
 						                 vcpu_location);
 			return vcpu.constructed.convert<Capability<Native_vcpu>>(
 				[&] (Ok) { return vcpu.cap(); },
-				[&] (Alloc_error e) {
+				[&] (Error e) {
 					destroy(_heap, &vcpu);
 					switch (e) {
-					case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-					case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-					case Alloc_error::DENIED:      break;
+					case Error::OUT_OF_RAM:  throw Out_of_ram();
+					case Error::DENIED:      break;
 					};
 					return Capability<Native_vcpu>(); });
 		}

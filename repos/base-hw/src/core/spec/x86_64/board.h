@@ -56,7 +56,7 @@ class Board::Vcpu_state
 
 	public:
 
-		using Constructed = Attempt<Ok, Alloc_error>;
+		using Constructed = Core::Phys_allocated<Vm_hw_context>::Constructed;
 		Constructed const constructed = _hw_context.constructed;
 
 		/*
@@ -65,10 +65,9 @@ class Board::Vcpu_state
 		Vcpu_state(Vcpu_state const &) = delete;
 		Vcpu_state &operator = (Vcpu_state const &) = delete;
 
-		Vcpu_state(Rpc_entrypoint          &ep,
-		           Accounted_ram_allocator &ram,
-		           Core::Local_rm          &local_rm,
-		           Ram_allocator::Result   &ds);
+		Vcpu_state(Core::Accounted_mapped_ram_allocator &,
+		           Core::Local_rm &,
+		           Ram_allocator::Result &);
 		~Vcpu_state();
 
 		addr_t vmc_addr()

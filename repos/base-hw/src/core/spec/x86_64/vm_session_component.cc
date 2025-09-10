@@ -23,13 +23,12 @@ using namespace Core;
  ** Board::Vcpu_state **
  ***********************/
 
-Board::Vcpu_state::Vcpu_state(Rpc_entrypoint          &ep,
-                              Accounted_ram_allocator &ram,
-                              Local_rm                &local_rm,
-                              Ram_allocator::Result   &ds)
+Board::Vcpu_state::Vcpu_state(Accounted_mapped_ram_allocator &ram,
+                              Local_rm                       &local_rm,
+                              Ram_allocator::Result          &ds)
 :
 	_local_rm(local_rm),
-	_hw_context(ep, ram, local_rm)
+	_hw_context(ram)
 {
 	ds.with_result([&] (Ram::Allocation &allocation) {
 		using State = Genode::Vcpu_state;
@@ -73,7 +72,7 @@ Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 			                      resources,
 			                      session_label_from_args(args),
 			                      session_diag_from_args(args),
-			                      _ram_allocator, _local_rm,
+			                      _ram_allocator, _mapped_ram, _local_rm,
 			                      _trace_sources);
 
 	if (Hw::Virtualization_support::has_vmx())
@@ -84,7 +83,7 @@ Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 			                      session_resources_from_args(args),
 			                      session_label_from_args(args),
 			                      session_diag_from_args(args),
-			                      _ram_allocator, _local_rm,
+			                      _ram_allocator, _mapped_ram, _local_rm,
 			                      _trace_sources);
 
 	Genode::error( "No virtualization support detected.");
