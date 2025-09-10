@@ -70,7 +70,8 @@ class Bsd::Task : public Bsd::List<Bsd::Task>::Element
 		void       (*_func)(void *);     /* function to call*/
 		void        *_arg;               /* argument for function */
 		char const  *_name;              /* name of task */
-		int const    _stack_size;        /* size of the stack of task */
+
+		unsigned const _stack_size;      /* size of the stack of task */
 
 	public:
 

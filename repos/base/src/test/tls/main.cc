@@ -20,7 +20,7 @@ struct Test_thread : Genode::Thread
 	int _y;
 
 	Test_thread(Genode::Env &env, int thread_id, int x, int y)
-	: Genode::Thread(env, "test_thread", 16*1024),
+	: Genode::Thread(env, "test_thread", Stack_size { 16*1024 }),
 	  _thread_id(thread_id), _x(x), _y(y)
 	{
 		start();

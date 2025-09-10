@@ -55,7 +55,7 @@ class Uplink_client : public Uplink_client_base
 			Blockade                  blockade { };
 
 			Rx_signal_thread(Env &env, int fd, Uplink_client &uplink)
-			: Thread(env, "rx_signal", 0x1000), fd(fd), uplink(uplink) { }
+			: Thread(env, "rx_signal", Stack_size { 0x1000 }), fd(fd), uplink(uplink) { }
 
 			void entry() override
 			{

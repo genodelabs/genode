@@ -42,9 +42,9 @@ struct Touch_keyboard::Main : Top_level_dialog
 
 	Event::Connection _event_connection { _env };
 
-	Runtime _runtime { _env, _heap };
+	Dialog::Runtime _runtime { _env, _heap };
 
-	Runtime::View _view { _runtime, *this };
+	Dialog::Runtime::View _view { _runtime, *this };
 
 	/*
 	 * Top_level_dialog interface

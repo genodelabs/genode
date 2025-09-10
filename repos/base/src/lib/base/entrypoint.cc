@@ -34,12 +34,6 @@ namespace Genode {
 }
 
 
-/**
- * Return thread name used for the component's initial entrypoint
- */
-static char const *initial_ep_name() { return "ep"; }
-
-
 void Entrypoint::Signal_proxy_component::signal()
 {
 	/* signal delivered successfully */
@@ -283,7 +277,8 @@ namespace {
 Entrypoint::Entrypoint(Env &env)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), Component::stack_size(), initial_ep_name(), Affinity::Location()),
+	_rpc_ep(env.runtime(), Thread::Name { "ep" },
+	        Thread::Stack_size { Component::stack_size() }, Thread::Location { }),
 
 	/* initialize signalling before creating the first signal receiver */
 	_signalling_initialized((init_signal_thread(env), true))
@@ -314,10 +309,10 @@ Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name,
                        Affinity::Location location)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), stack_size, name, location),
+	_rpc_ep(env.runtime(), name, Thread::Stack_size { stack_size }, location),
 	_signalling_initialized(true)
 {
-	_signal_proxy_thread.construct(env, *this, location, env.cpu());
+	_signal_proxy_thread.construct(env, *this, location);
 }
 
 Entrypoint::~Entrypoint()

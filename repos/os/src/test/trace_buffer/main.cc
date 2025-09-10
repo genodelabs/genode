@@ -168,7 +168,7 @@ struct Test_thread : Thread
 	}
 
 	Test_thread(Env &env, Trace::Buffer &buffer, unsigned delay)
-	: Thread(env, "producer", 8*1024),
+	: Thread(env, "producer", Stack_size { 8*1024 }),
 	  env(env),
 	  buffer(buffer),
 	  delay(delay)

@@ -56,28 +56,38 @@ Core::Trace::Source_registry &Core::Trace::sources()
 namespace Genode { extern char const *version_string; }
 
 
+/*
+ * Resolve symbols expected by trace points
+ */
+namespace Genode { bool inhibit_tracing = true; }
+bool Genode::Trace::Logger::_evaluate_control() { return false; }
+Genode::Trace::Logger * Genode::Thread::_logger() { return nullptr; }
+Genode::Trace::Logger::Logger() { }
+void Genode::Thread::_deinit_trace_control() { }
+
+
 bool Genode::Generator::_generate_xml() { return true; }
 
 
-struct Genode::Platform { };
+struct Genode::Runtime { };
 
 
 /*
  * Executed on the initial stack
  */
-Genode::Platform &Genode::init_platform()
+Genode::Runtime &Genode::init_runtime()
 {
 	init_stack_area();
 
-	static Platform platform { };
-	return platform;
+	static Runtime runtime { };
+	return runtime;
 }
 
 
 /*
  * Executed on a stack located within the stack area
  */
-void Genode::bootstrap_component(Genode::Platform &)
+void Genode::bootstrap_component(Runtime &runtime)
 {
 	using namespace Core;
 
@@ -94,9 +104,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 	Ram_quota const avail_ram  { ram_ranges.avail() };
 	Cap_quota const avail_caps { Core::platform().max_caps() };
 
-	static constexpr size_t STACK_SIZE = 20 * 1024;
-
-	static Rpc_entrypoint ep { nullptr, STACK_SIZE, "entrypoint", Affinity::Location() };
+	static Rpc_entrypoint ep { runtime, "entrypoint", Thread::Stack_size { 20*1024 }, { } };
 
 	static Core::Core_account core_account { ep, avail_ram, avail_caps };
 
@@ -107,7 +115,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 
 	static Core_local_rm local_rm { ep };
 
-	static Rpc_entrypoint &signal_ep = core_signal_ep(ep);
+	static Rpc_entrypoint &signal_ep = core_signal_ep(runtime, ep);
 
 	init_exception_handling(core_ram, local_rm);
 	init_core_signal_transmitter(signal_ep);
@@ -133,12 +141,12 @@ void Genode::bootstrap_component(Genode::Platform &)
 	 */
 	static Rpc_cap_factory rpc_cap_factory { sliced_heap };
 
-	static Pager_entrypoint pager_ep(rpc_cap_factory);
+	static Pager_entrypoint pager_ep(runtime, rpc_cap_factory);
 
 	using Trace_root              = Core::Trace::Root;
 	using Trace_session_component = Core::Trace::Session_component;
 
-	static Core::System_control &system_control = init_system_control(sliced_heap, ep);
+	static Core::System_control &system_control = init_system_control(runtime, sliced_heap, ep);
 
 	static Rom_root    rom_root    (ep, ep, rom_modules, sliced_heap);
 	static Rm_root     rm_root     (ep, sliced_heap, core_ram, local_rm);
@@ -149,7 +157,7 @@ void Genode::bootstrap_component(Genode::Platform &)
 	                                system_control);
 	static Log_root    log_root    (ep, sliced_heap);
 	static Io_mem_root io_mem_root (ep, ep, io_mem_ranges, ram_ranges, sliced_heap);
-	static Irq_root    irq_root    (irq_ranges, sliced_heap);
+	static Irq_root    irq_root    (runtime, irq_ranges, sliced_heap);
 	static Trace_root  trace_root  (core_ram, local_rm, ep, sliced_heap,
 	                                Core::Trace::sources(), trace_policies);
 
@@ -163,8 +171,9 @@ void Genode::bootstrap_component(Genode::Platform &)
 	static Core_service<Trace_session_component>  trace_service  (services, trace_root);
 
 	/* make platform-specific services known to service pool */
-	platform_add_local_services(ep, sliced_heap, services, Core::Trace::sources(),
-	                            core_ram, mapped_ram, local_rm, io_port_ranges);
+	platform_add_local_services(runtime, ep, sliced_heap, services,
+	                            Core::Trace::sources(), core_ram, mapped_ram,
+	                            local_rm, io_port_ranges);
 
 	if (!core_account.ram_account.try_withdraw({ 224*1024 })) {
 		error("core preservation exceeds available RAM");

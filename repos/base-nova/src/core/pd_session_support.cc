@@ -168,10 +168,9 @@ static System_control_impl &system_instance()
 }
 
 
-System_control & Core::init_system_control(Allocator &alloc, Rpc_entrypoint &)
+System_control & Core::init_system_control(Runtime &runtime,
+                                           Allocator &alloc, Rpc_entrypoint &)
 {
-	enum { ENTRYPOINT_STACK_SIZE = 20 * 1024 };
-
 	platform_specific().for_each_location([&](Affinity::Location const &location) {
 
 		unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(location);
@@ -179,8 +178,9 @@ System_control & Core::init_system_control(Allocator &alloc, Rpc_entrypoint &)
 		if (!kernel_hip().is_cpu_enabled(kernel_cpu_id))
 			return;
 
-		auto ep = new (alloc) Rpc_entrypoint (nullptr, ENTRYPOINT_STACK_SIZE,
-		                                      "system_control", location);
+		auto ep = new (alloc) Rpc_entrypoint (runtime, "system_control",
+		                                      Thread::Stack_size { 20*1024 },
+		                                      location);
 
 		system_instance().manage(*ep, location);
 	});

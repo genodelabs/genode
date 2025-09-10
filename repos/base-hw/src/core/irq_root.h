@@ -39,7 +39,6 @@ class Core::Irq_root : public Root_component<Irq_session_component>,
 		 * from the RAM service) would delay the response to time-critical
 		 * calls of the 'Irq_session::ack_irq' function.
 		 */
-		enum { STACK_SIZE = sizeof(long)*1024 };
 		Rpc_entrypoint _session_ep;
 
 		Range_allocator &_irq_alloc;    /* platform irq allocator */
@@ -61,10 +60,12 @@ class Core::Irq_root : public Root_component<Irq_session_component>,
 		 * \param irq_alloc    IRQ range that can be assigned to clients
 		 * \param md_alloc     meta-data allocator to be used by root component
 		 */
-		Irq_root(Range_allocator &irq_alloc, Allocator &md_alloc)
+		Irq_root(Runtime &runtime, Range_allocator &irq_alloc,
+		         Allocator &md_alloc)
 		:
 			Root_component<Irq_session_component>(&_session_ep, &md_alloc),
-			_session_ep(nullptr, STACK_SIZE, "irq", Affinity::Location()),
+			_session_ep(runtime, "irq", Thread::Stack_size { 8*1024 },
+			            Affinity::Location()),
 			_irq_alloc(irq_alloc)
 		{
 			platform_specific().revoke.irq_root = this;

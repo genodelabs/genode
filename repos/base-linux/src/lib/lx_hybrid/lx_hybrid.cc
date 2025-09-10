@@ -19,8 +19,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_thread.h>
-#include <base/internal/globals.h>
-#include <base/internal/platform.h>
+#include <base/internal/runtime.h>
 
 
 /**
@@ -135,7 +134,7 @@ int main()
 {
 	using namespace Genode;
 
-	bootstrap_component(init_platform());
+	bootstrap_component(init_runtime());
 
 	/* never reached */
 }
@@ -412,18 +411,6 @@ static void *thread_start(void *arg)
 }
 
 
-void Genode::init_thread(Cpu_session &, Env::Local_rm &)  { }
-void Genode::init_thread_start(Capability<Pd_session>) { }
-
-
-void Genode::init_thread_bootstrap(Cpu_session &cpu, Thread_capability main_cap)
-{
-	/* register TID and PID of the main thread at core */
-	Linux_native_cpu_client native_cpu(cpu.native_cpu());
-	native_cpu.thread_id(main_cap, lx_getpid(), lx_gettid());
-}
-
-
 Genode::Thread::Stack_info Genode::Thread::mystack()
 {
 	error("unsupported 'Thread::mystack' call by lx_hybrid component");
@@ -526,10 +513,9 @@ void Thread::join()
 }
 
 
-Thread::Thread(const char *name, size_t /* stack size */,
-               Type, Cpu_session * cpu_sess, Affinity::Location)
+Thread::Thread(Runtime &runtime, Name const &name, Stack_size, Affinity::Location)
 :
-	name(name), _cpu_session(cpu_sess), _affinity()
+	name(name), _runtime(runtime), _affinity()
 {
 	Native_thread::Meta_data *meta_data =
 		new (global_alloc()) Thread_meta_data_created(this);
@@ -547,11 +533,11 @@ Thread::Thread(const char *name, size_t /* stack size */,
 
 		nt.meta_data->wait_for_construction();
 
-		_thread_cap = _cpu_session->create_thread(_env_ptr->pd_session_cap(), name,
-		                                          Location());
+		_thread_cap = _runtime.cpu.create_thread(_env_ptr->pd_session_cap(), name,
+		                                         Location(), 0);
 		_thread_cap.with_result(
 			[&] (Thread_capability cap) {
-				Linux_native_cpu_client native_cpu(_cpu_session->native_cpu());
+				Linux_native_cpu_client native_cpu(_runtime.cpu.native_cpu());
 				native_cpu.thread_id(cap, nt.pid, nt.tid);
 			},
 			[&] (Cpu_session::Create_thread_error) {
@@ -561,18 +547,10 @@ Thread::Thread(const char *name, size_t /* stack size */,
 }
 
 
-Thread::Thread(const char *name, size_t stack_size, Type type, Affinity::Location)
-: Thread(name, stack_size, type, &_env_ptr->cpu()) { }
-
-
-Thread::Thread(Env &, Name const &name, size_t stack_size, Location location,
-               Cpu_session &cpu)
-: Thread(name.string(), stack_size, NORMAL, &cpu, location)
+Thread::Thread(Env &env, Name const &name, Stack_size size, Location location)
+:
+	Thread(env.runtime(), name, size, location)
 { }
-
-
-Thread::Thread(Env &env, Name const &name, size_t stack_size)
-: Thread(env, name, stack_size, Location(), env.cpu()) { }
 
 
 Thread::~Thread()
@@ -599,16 +577,16 @@ Thread::~Thread()
 
 	/* inform core about the killed thread */
 	_thread_cap.with_result(
-		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Thread_capability cap) { _runtime.cpu.kill_thread(cap); },
 		[&] (Cpu_session::Create_thread_error) { });
 }
 
 
-/**************
- ** Platform **
- **************/
+/*************
+ ** Runtime **
+ *************/
 
-void Platform::_attach_stack_area()
+void Runtime::_attach_stack_area()
 {
 	/*
 	 * Omit attaching the stack area to the local address space for hybrid

@@ -13,23 +13,14 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
 #include <base/internal/globals.h>
 
 
-/*****************************
- ** Startup library support **
- *****************************/
-
 void Genode::prepare_init_main_thread() { }
 
-
-/************
- ** Thread **
- ************/
 
 void Genode::Thread::_thread_bootstrap()
 {
@@ -45,6 +36,3 @@ void Genode::Thread::_thread_bootstrap()
 		[&] (Stack_error) { }
 	);
 }
-
-
-void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability) { }

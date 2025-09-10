@@ -15,14 +15,13 @@
 #include <errno.h>
 #include <stdlib.h>
 
-enum { STACK_SIZE = 4096 };
 
 struct Thread : Genode::Thread
 {
 	Genode::Blockade &_barrier;
 
 	Thread(Genode::Blockade &barrier, Genode::Env &env)
-	: Genode::Thread(env, "stat", STACK_SIZE), _barrier(barrier) { start(); }
+	: Genode::Thread(env, "stat", Stack_size { 4096 }), _barrier(barrier) { start(); }
 
 	void entry() override
 	{

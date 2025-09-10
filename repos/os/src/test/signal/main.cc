@@ -59,7 +59,7 @@ class Sender : Thread
 		       uint64_t                   interval_ms,
 		       bool                       verbose)
 		:
-			Thread(env, "sender", 16*1024), _timer(env),
+			Thread(env, "sender", Stack_size { 16*1024 }), _timer(env),
 			_transmitter(context), _interval_ms(interval_ms), _verbose(verbose)
 		{
 			Thread::start();
@@ -124,7 +124,7 @@ class Handler : Thread
 		        bool             verbose,
 		        unsigned         id)
 		:
-			Thread(env, "handler", 16*1024), _timer(env),
+			Thread(env, "handler", Stack_size { 16*1024 }), _timer(env),
 			_dispatch_ms(dispatch_ms), _id(id), _verbose(verbose),
 			_receiver(receiver)
 		{
@@ -342,7 +342,8 @@ struct Synchronized_destruction_test : private Signal_test, Thread
 	}
 
 	Synchronized_destruction_test(Env &env, int id)
-	: Signal_test(id, brief), Thread(env, "destroyer", 8*1024), env(env)
+	: Signal_test(id, brief),
+	  Thread(env, "destroyer", Stack_size { 8*1024 }), env(env)
 	{
 		transmitter.submit();
 		{
@@ -449,7 +450,7 @@ struct Nested_test : Signal_test
 
 		Sender_thread(Env &env, Nested_test &test)
 		:
-			Thread(env, "sender_thread", 8*1024),
+			Thread(env, "sender_thread", Stack_size { 8*1024 }),
 			test(test), timer(env)
 		{ }
 
@@ -548,7 +549,7 @@ struct Nested_stress_test : Signal_test
 		bool volatile      destruct { false };
 
 		Sender(Env &env, char const *name, Signal_context_capability cap)
-		: Thread(env, name, 8*1024), transmitter(cap) { }
+		: Thread(env, name, Stack_size { 8*1024 }), transmitter(cap) { }
 
 		void entry() override
 		{

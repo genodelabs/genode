@@ -28,7 +28,8 @@ extern int monitor_mode_exception_vector;
 /*
  * Add TrustZone specific vm service
  */
-void Core::platform_add_local_services(Rpc_entrypoint         &ep,
+void Core::platform_add_local_services(Runtime                &,
+                                       Rpc_entrypoint         &ep,
                                        Sliced_heap            &sliced_heap,
                                        Registry<Service>      &services,
                                        Trace::Source_registry &trace_sources,

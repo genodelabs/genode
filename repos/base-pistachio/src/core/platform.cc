@@ -21,6 +21,7 @@
 /* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
+#include <base/internal/stack.h>
 #include <base/internal/capability_space_tpl.h>
 #include <base/internal/globals.h>
 #include <base/internal/pistachio.h>
@@ -668,3 +669,31 @@ void Core::Platform::wait_for_exit()
 	sleep_forever();
 }
 
+
+/**********************
+ ** Thread bootstrap **
+ **********************/
+
+Pistachio::L4_ThreadId_t main_thread_tid;
+
+
+void Genode::prepare_init_main_thread()
+{
+	main_thread_tid = Pistachio::L4_Myself();
+}
+
+
+void Genode::Thread::_thread_bootstrap()
+{
+	with_native_thread([&] (Native_thread &nt) {
+		nt.l4id = Pistachio::L4_Myself(); });
+}
+
+
+void Genode::Thread::_init_native_thread(Stack &) { }
+
+
+void Genode::Thread::_init_native_main_thread(Stack &stack)
+{
+	stack.native_thread().l4id = main_thread_tid;
+}

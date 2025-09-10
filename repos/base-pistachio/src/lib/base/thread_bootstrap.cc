@@ -13,39 +13,21 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
-#include <base/internal/globals.h>
 #include <base/internal/pistachio.h>
-
-using namespace Genode;
+#include <base/internal/runtime.h>
 
 
 Pistachio::L4_ThreadId_t main_thread_tid;
 
-
-static Thread_capability main_thread_cap(Thread_capability main_cap = { })
-{
-	static Thread_capability cap = main_cap;
-	return cap;
-}
-
-
-/*****************************
- ** Startup library support **
- *****************************/
 
 void Genode::prepare_init_main_thread()
 {
 	main_thread_tid = Pistachio::L4_Myself();
 }
 
-
-/************
- ** Thread **
- ************/
 
 void Genode::Thread::_thread_bootstrap()
 {
@@ -54,18 +36,12 @@ void Genode::Thread::_thread_bootstrap()
 }
 
 
-void Genode::Thread::_init_native_thread(Stack &stack, Type type)
-{
-	if (type == NORMAL)
-		return;
+void Genode::Thread::_init_native_thread(Stack &) { }
 
+
+void Genode::Thread::_init_native_main_thread(Stack &stack)
+{
 	stack.native_thread().l4id = main_thread_tid;
 
-	_thread_cap = main_thread_cap();
-}
-
-
-void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
-{
-	main_thread_cap(main_cap);
+	_thread_cap = _runtime.parent.main_thread_cap();
 }

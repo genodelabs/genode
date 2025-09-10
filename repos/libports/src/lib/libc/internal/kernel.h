@@ -228,7 +228,7 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		addr_t _kernel_stack = Thread::mystack().top;
 
 		void *_user_stack =
-			_myself.alloc_secondary_stack(_myself.name, _config.stack_size)
+			_myself.alloc_secondary_stack(_myself.name, { _config.stack_size })
 				.convert<void *>([&] (void *sp)            { return sp; },
 				                 [&] (Thread::Stack_error) { return nullptr; });
 

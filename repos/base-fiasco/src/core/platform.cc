@@ -507,3 +507,12 @@ void Core::Platform::wait_for_exit()
 	sleep_forever();
 }
 
+
+/**********************
+ ** Thread bootstrap **
+ **********************/
+
+void Genode::prepare_init_main_thread() { }
+void Genode::Thread::_thread_bootstrap() { }
+void Genode::Thread::_init_native_thread(Stack &) { }
+void Genode::Thread::_init_native_main_thread(Stack &) { }

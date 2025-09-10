@@ -26,7 +26,7 @@ struct Dialog_test::Main
 	Env &_env;
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Runtime _runtime { _env, _heap };
+	Dialog::Runtime _runtime { _env, _heap };
 
 	struct Main_dialog : Top_level_dialog
 	{
@@ -113,10 +113,11 @@ struct Dialog_test::Main
 
 	} _main_dialog { "main" };
 
-	Runtime::View _main_view { _runtime, _main_dialog };
+	Dialog::Runtime::View _main_view { _runtime, _main_dialog };
 
 	/* handler used to respond to keyboard input */
-	Runtime::Event_handler<Main> _event_handler { _runtime, *this, &Main::_handle_event };
+	Dialog::Runtime::Event_handler<Main> _event_handler {
+		_runtime, *this, &Main::_handle_event };
 
 	void _handle_event(Dialog::Event const &event)
 	{

@@ -36,4 +36,23 @@ namespace Okl4 { extern "C" {
 #undef UTCB_SIZE
 } }
 
+#include <base/internal/native_utcb.h>
+
+namespace Okl4 {
+
+	/*
+	 * Read global thread ID from user-defined handle and store it
+	 * into a designated UTCB entry.
+	 */
+	static inline L4_Word_t copy_uregister_to_utcb()
+	{
+		using namespace Okl4;
+
+		L4_Word_t my_global_id = L4_UserDefinedHandle();
+		__L4_TCR_Set_ThreadWord(Genode::UTCB_TCR_THREAD_WORD_MYSELF,
+		                        my_global_id);
+		return my_global_id;
+	}
+}
+
 #endif /* _BASE__INTERNAL__OKL4_H_ */

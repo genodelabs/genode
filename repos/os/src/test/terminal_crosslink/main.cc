@@ -26,9 +26,8 @@ namespace Test_terminal_crosslink {
 	struct Main;
 
 	enum {
-		STACK_SIZE          = sizeof(addr_t)*1024,
-		TEST_DATA_SIZE      = 4097,
-		READ_BUFFER_SIZE    = 8192
+		TEST_DATA_SIZE   = 4097,
+		READ_BUFFER_SIZE = 8192
 	};
 
 	static const char *client_text = "Hello from client.";
@@ -78,7 +77,7 @@ class Test_terminal_crosslink::Partner : public Thread
 	public:
 
 		Partner(Env &env, char const *name)
-		: Thread(env, name, STACK_SIZE),
+		: Thread(env, name, Stack_size { 8*1024 }),
 		  _terminal(env)
 		{
 			_terminal.read_avail_sigh(_sig_rec.manage(_sig_ctx));

@@ -25,25 +25,12 @@
 #include <base/internal/stack.h>
 #include <base/internal/cap_map.h>
 #include <base/internal/globals.h>
+#include <base/internal/runtime.h>
 
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
 using namespace Genode;
-
-
-static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
-{
-	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
-	return cap;
-}
-
-
-static Thread_capability main_thread_cap(Thread_capability main_cap = { })
-{
-	static Thread_capability cap = main_cap; /* defined once by 'init_thread_bootstrap' */
-	return cap;
-}
 
 
 void Thread::_deinit_native_thread(Stack &stack)
@@ -56,25 +43,28 @@ void Thread::_deinit_native_thread(Stack &stack)
 	}
 
 	_thread_cap.with_result(
-		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Thread_capability cap) { _runtime.cpu.kill_thread(cap); },
 		[&] (Cpu_session::Create_thread_error) { });
 }
 
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_thread(Stack &)
 {
-	_init_cpu_session_and_trace_control();
+	_init_trace_control();
 
-	if (type == NORMAL) {
+	/* create thread at core */
+	_thread_cap = _runtime.cpu.create_thread(_runtime.pd.rpc_cap(),
+	                                         name, _affinity, 0);
+}
 
-		/* create thread at core */
-		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name, _affinity);
-		return;
-	}
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
+	_init_trace_control();
 
 	/* adjust values whose computation differs for a main thread */
 	stack.native_thread().kcap = Foc::MAIN_THREAD_CAP;
-	_thread_cap = main_thread_cap();
+	_thread_cap = _runtime.parent.main_thread_cap();
 
 	if (_thread_cap.failed()) {
 		error("failed to re-initialize main thread");
@@ -93,7 +83,7 @@ Thread::Start_result Thread::start()
 
 	return _thread_cap.convert<Start_result>(
 		[&] (Thread_capability cap) {
-			Foc_native_cpu_client native_cpu(_cpu_session->native_cpu());
+			Foc_native_cpu_client native_cpu(_runtime.cpu.native_cpu());
 
 			/* get gate-capability and badge of new thread */
 			Foc_thread_state state { };
@@ -122,16 +112,4 @@ Thread::Start_result Thread::start()
 		},
 		[&] (Cpu_session::Create_thread_error) { return Start_result::DENIED; }
 	);
-}
-
-
-void Genode::init_thread_start(Capability<Pd_session> pd_cap)
-{
-	pd_session_cap(pd_cap);
-}
-
-
-void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
-{
-	main_thread_cap(main_cap);
 }

@@ -15,14 +15,11 @@
 #include <base/internal/pistachio.h>
 
 /* core includes */
-#include <kip.h>
 #include <platform.h>
 #include <util.h>
 
-using namespace Core;
 
-
-void Platform::_setup_io_port_alloc()
+void Core::Platform::_setup_io_port_alloc()
 {
 	/* setup allocator */
 	enum { IO_PORT_RANGE_SIZE = 0x10000 };

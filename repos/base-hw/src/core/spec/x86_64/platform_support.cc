@@ -21,7 +21,7 @@
 using namespace Core;
 
 
-void Platform::_init_additional_platform_info(Generator &g)
+void Core::Platform::_init_additional_platform_info(Generator &g)
 {
 	if (_boot_info().plat_info.efi_system_table != 0) {
 		g.node("efi-system-table", [&] {
@@ -73,7 +73,7 @@ Bit_allocator<64> &msi_allocator()
 }
 
 
-bool Platform::alloc_msi_vector(addr_t &address, addr_t &value)
+bool Core::Platform::alloc_msi_vector(addr_t &address, addr_t &value)
 {
 	return msi_allocator().alloc().convert<bool>(
 		[&] (addr_t const v) {
@@ -85,7 +85,7 @@ bool Platform::alloc_msi_vector(addr_t &address, addr_t &value)
 }
 
 
-void Platform::free_msi_vector(addr_t, addr_t value)
+void Core::Platform::free_msi_vector(addr_t, addr_t value)
 {
 	msi_allocator().free(Board::Pic::IPI - 1 - value);
 }

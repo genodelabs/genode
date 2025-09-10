@@ -53,13 +53,14 @@ class Genode::Stack_allocator
 		/**
 		 * Allocate stack for specified thread
 		 *
-		 * \param thread       thread for which to allocate the new stack
-		 * \param main_thread  wether to alloc for the main thread
-		 *
-		 * \return  virtual address of new stack, or
-		 *          0 if the allocation failed
+		 * \return  virtual address of new stack, or 0 if the allocation failed
 		 */
-		Stack *alloc(Thread *thread, bool main_thread);
+		Stack *alloc(Thread *);
+
+		/**
+		 * Allocate stack for the main thread
+		 */
+		Stack *alloc_main(Thread *);
 
 		/**
 		 * Release stack

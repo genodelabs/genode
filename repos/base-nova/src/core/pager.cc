@@ -49,10 +49,11 @@ void Core::init_page_fault_handling(Rpc_entrypoint &ep) { _core_ep_ptr = &ep; }
 /**
  * Pager threads - one thread per CPU
  */
-struct Pager_thread: public Thread
+struct Pager_thread : Thread
 {
-	Pager_thread(Affinity::Location location)
-	: Thread("pager", 2 * 4096, location)
+	Pager_thread(Runtime &runtime, Affinity::Location location)
+	:
+		Thread(runtime, "pager", Stack_size { 2*4096 }, location)
 	{
 		/* creates local EC */
 		Thread::start();
@@ -62,6 +63,7 @@ struct Pager_thread: public Thread
 
 	void entry() override { }
 };
+
 
 enum { PAGER_CPUS = Core::Platform::MAX_SUPPORTED_CPUS };
 static Constructible<Pager_thread> pager_threads[PAGER_CPUS];
@@ -937,7 +939,7 @@ addr_t Pager_object::create_oom_portal()
  ** Pager entrypoint **
  **********************/
 
-Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
+Pager_entrypoint::Pager_entrypoint(Runtime &runtime, Rpc_cap_factory &)
 {
 	/* detect enabled CPUs and create per CPU a pager thread */
 	platform_specific().for_each_location([&](Affinity::Location &location) {
@@ -953,7 +955,7 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 			return;
 		}
 
-		pager_threads[pager_index].construct(location);
+		pager_threads[pager_index].construct(runtime, location);
 	});
 }
 

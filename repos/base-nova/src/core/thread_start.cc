@@ -30,7 +30,7 @@
 using namespace Core;
 
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_thread(Stack &stack)
 {
 	Native_thread &nt = stack.native_thread();
 
@@ -40,20 +40,6 @@ void Thread::_init_native_thread(Stack &stack, Type type)
 	 * context and a synchronization-helper semaphore needed for 'Lock'.
 	 */
 
-	if (type == MAIN) {
-
-		/* set EC selector according to NOVA spec */
-		nt.ec_sel = platform_specific().core_pd_sel() + 1;
-
-		/*
-		 * Exception base of first thread in core is 0. We have to set
-		 * it here so that Thread code finds the semaphore of the
-		 * main thread.
-		 */
-		nt.exc_pt_sel = 0;
-		return;
-	}
-
 	nt.ec_sel     = cap_map().insert(1);
 	nt.exc_pt_sel = cap_map().insert(Nova::NUM_INITIAL_PT_LOG2);
 
@@ -62,6 +48,22 @@ void Thread::_init_native_thread(Stack &stack, Type type)
 	uint8_t res = Nova::create_sm(rs_sel, platform_specific().core_pd_sel(), 0);
 	if (res != Nova::NOVA_OK)
 		error("Thread::_init_platform_thread: create_sm returned ", res);
+}
+
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
+	Native_thread &nt = stack.native_thread();
+
+	/* set EC selector according to NOVA spec */
+	nt.ec_sel = platform_specific().core_pd_sel() + 1;
+
+	/*
+	 * Exception base of first thread in core is 0. We have to set
+	 * it here so that Thread code finds the semaphore of the
+	 * main thread.
+	 */
+	nt.exc_pt_sel = 0;
 }
 
 

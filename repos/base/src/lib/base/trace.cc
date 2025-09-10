@@ -22,6 +22,7 @@
 
 /* local includes */
 #include <base/internal/trace_control.h>
+#include <base/internal/runtime.h>
 
 using namespace Genode;
 
@@ -237,7 +238,7 @@ Trace::Logger *Thread::_logger()
 			myself ? myself->_thread_cap
 			       : Create_result(_env().parent().main_thread_cap());
 
-		Cpu_session &cpu = myself ? *myself->_cpu_session : _env().cpu();
+		Cpu_session &cpu = myself ? myself->_runtime.cpu : _env().cpu();
 
 		if (!myself && !main_trace_control) {
 			Dataspace_capability ds = _env().cpu().trace_control();

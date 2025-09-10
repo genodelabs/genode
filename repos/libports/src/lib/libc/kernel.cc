@@ -488,7 +488,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_pthread_support(*this, _timer_accessor);
 
 	_with_libc_sub_config("pthread", [&] (Node const &pthread_config) {
-		init_pthread_support(env.cpu(), pthread_config, _heap); });
+		init_pthread_support(env, pthread_config, _heap); });
 
 	_env.ep().register_io_progress_handler(*this);
 

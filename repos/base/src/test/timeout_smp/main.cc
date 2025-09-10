@@ -27,8 +27,6 @@ class Test_thread
 {
 	private:
 
-		enum { STACK_SIZE = sizeof(unsigned long) * 4096 };
-
 		typedef void (TYPE::*Method)();
 
 		TYPE         &_object;
@@ -46,12 +44,9 @@ class Test_thread
 			Affinity::Space  affinity_space)
 		:
 			Thread {
-				env,
-				Name("test_thread"),
-				STACK_SIZE,
+				env, "test_thread", Stack_size { 32*1024 },
 				affinity_space.location_of_index(
-					cpu_idx % affinity_space.total()),
-				env.cpu()
+					cpu_idx % affinity_space.total())
 			},
 			_object { object },
 			_method  { method }

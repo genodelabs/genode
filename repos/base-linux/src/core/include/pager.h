@@ -54,7 +54,7 @@ struct Core::Pager_object
 
 struct Core::Pager_entrypoint
 {
-	Pager_entrypoint(Rpc_cap_factory &) { }
+	Pager_entrypoint(auto &&...) { }
 
 	auto apply(Pager_capability, auto const &fn) -> decltype(fn(nullptr)) {
 		return fn(nullptr); }

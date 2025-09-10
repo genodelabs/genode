@@ -77,15 +77,14 @@ namespace Mp_server_test {
 
 	struct Cpu_compound
 	{
-		enum { STACK_SIZE = 2*1024*sizeof(long) };
-
 		Genode::Rpc_entrypoint rpc;
 		Component              comp { };
 		Capability             cap  { rpc.manage(&comp) };
 		Client                 cli  { cap };
 
 		Cpu_compound(Genode::Affinity::Location l, Genode::Env &env)
-		: rpc(&env.pd(), STACK_SIZE, "rpc en", l) {}
+		: rpc(env.runtime(), "rpc_ep",
+		      Genode::Thread::Stack_size { 16*1024 }, l) { }
 		~Cpu_compound() { rpc.dissolve(&comp); }
 	};
 
@@ -151,7 +150,6 @@ namespace Mp_server_test {
 namespace Affinity_test {
 
 	enum {
-		STACK_SIZE = sizeof(long)*2048,
 		COUNT_VALUE = 10 * 1024 * 1024
 	};
 
@@ -171,7 +169,8 @@ namespace Affinity_test {
 		}
 
 		Spinning_thread(Genode::Env &env, Location location)
-		: Genode::Thread(env, Name("spinning_thread"), STACK_SIZE, location, env.cpu()),
+		: Genode::Thread(env, "spinning_thread",
+		                 Stack_size { 16*1024 }, location),
 		  location(location), cnt(0ULL) {
 			start(); }
 	};
@@ -267,8 +266,6 @@ namespace Tlb_shootdown_test {
 
 	struct Thread : Genode::Thread, Genode::Noncopyable
 	{
-		enum { STACK_SIZE = sizeof(long)*2048 };
-
 		unsigned            cpu_idx;
 		volatile unsigned * values;
 		Genode::Blockade    barrier { };
@@ -286,7 +283,8 @@ namespace Tlb_shootdown_test {
 
 		Thread(Genode::Env &env, Location location, unsigned idx,
 		       volatile unsigned * values)
-		: Genode::Thread(env, Name("tlb_thread"), STACK_SIZE, location, env.cpu()),
+		: Genode::Thread(env, "tlb_thread", Stack_size { 16*1024 },
+		                 location),
 		  cpu_idx(idx), values(values) {
 			  start(); }
 
@@ -343,8 +341,6 @@ namespace Tsc_test {
 
 	struct Tsc_thread : Genode::Thread
 	{
-		enum { STACK_SIZE = 4 * 4096 };
-
 		Genode::Affinity::Location  const    location;
 		Genode::Blockade                     barrier   { };
 		Genode::uint64_t            volatile cnt       { 0 };
@@ -373,8 +369,8 @@ namespace Tsc_test {
 		void measure() { tsc_value = Genode::Trace::timestamp(); }
 
 		Tsc_thread(Genode::Env &env, Location location)
-		: Genode::Thread(env, Name("tsc_thread"), STACK_SIZE, location,
-		                 env.cpu()), location(location)
+		: Genode::Thread(env, "tsc_thread", Stack_size { 4*4096 }, location),
+		  location(location)
 		{ }
 	};
 

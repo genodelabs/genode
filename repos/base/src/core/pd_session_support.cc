@@ -39,7 +39,7 @@ class System_control_dummy : public System_control
 };
 
 
-System_control & Core::init_system_control(Allocator &, Rpc_entrypoint &)
+System_control & Core::init_system_control(Runtime &, Allocator &, Rpc_entrypoint &)
 {
 	static System_control_dummy dummy { };
 	return dummy;

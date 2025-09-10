@@ -24,11 +24,6 @@
 #include <base/internal/globals.h>
 
 using namespace Genode;
-using Local_rm = Local::Constrained_region_map;
-
-
-static Local_rm    *local_rm_ptr;
-static Cpu_session *cpu_session_ptr;
 
 
 Stack::Size_result Stack::size(size_t const size)
@@ -89,20 +84,34 @@ Stack::Size_result Stack::size(size_t const size)
 
 
 Thread::Alloc_stack_result
-Thread::_alloc_stack(size_t stack_size, Name const &name, bool main_thread)
+Thread::_alloc_stack(Runtime &runtime, Name const &name, Stack_size size)
 {
-	/* allocate stack */
-	Stack *stack_ptr = Stack_allocator::stack_allocator().alloc(this, main_thread);
+	Stack *stack_ptr = Stack_allocator::stack_allocator().alloc(this);
 	if (!stack_ptr)
 		return Stack_error::STACK_AREA_EXHAUSTED;
 
-	Stack &stack = *stack_ptr;
+	return _alloc_stack(runtime, *stack_ptr, name, size);
+}
 
+
+Thread::Alloc_stack_result Thread::_alloc_main_stack(Runtime &runtime)
+{
+	Stack *stack_ptr = Stack_allocator::stack_allocator().alloc_main(this);
+	if (!stack_ptr)
+		return Stack_error::STACK_AREA_EXHAUSTED;
+
+	return _alloc_stack(runtime, *stack_ptr, "main", Stack_size { 16*1024 });
+}
+
+
+Thread::Alloc_stack_result
+Thread::_alloc_stack(Runtime &, Stack &stack, Name const &name, Stack_size stack_size)
+{
 	/* determine size of dataspace to allocate for the stack */
 	enum { PAGE_SIZE_LOG2 = 12 };
-	size_t ds_size = align_addr(stack_size, PAGE_SIZE_LOG2);
+	size_t ds_size = align_addr(stack_size.num_bytes, PAGE_SIZE_LOG2);
 
-	if (stack_size >= stack_virtual_size() -
+	if (stack_size.num_bytes >= stack_virtual_size() -
 	    sizeof(Native_utcb) - (1UL << PAGE_SIZE_LOG2))
 		return Stack_error::STACK_TOO_LARGE;
 
@@ -204,9 +213,13 @@ void Thread::join() { _join.block(); }
 
 
 Thread::Alloc_secondary_stack_result
-Thread::alloc_secondary_stack(Name const &name, size_t stack_size)
+Thread::alloc_secondary_stack(Name const &name, Stack_size size)
 {
-	return _alloc_stack(stack_size, name, false).convert<Alloc_secondary_stack_result>(
+	Stack *stack_ptr = Stack_allocator::stack_allocator().alloc(this);
+	if (!stack_ptr)
+		return Stack_error::STACK_AREA_EXHAUSTED;
+
+	return _alloc_stack(_runtime, *stack_ptr, name, size).convert<Alloc_secondary_stack_result>(
 		[&] (Stack const &stack) { return (void *)stack.top(); },
 		[&] (Stack_error e)      { return e; });
 }
@@ -252,69 +265,39 @@ size_t Thread::stack_area_virtual_size()
 }
 
 
-Thread::Thread(const char *name, size_t stack_size,
-               Type type, Cpu_session *cpu_session, Affinity::Location affinity)
+Thread::Thread(Env &env, Name const &name, Stack_size stack_size, Location location)
 :
-	name(name),
-	_cpu_session(cpu_session),
-	_affinity(affinity),
-	_trace_control(nullptr),
-	_stack(_alloc_stack(stack_size, name, type == MAIN))
+	Thread(env.runtime(), name, stack_size, location)
+{ }
+
+
+Thread::Thread(Runtime &runtime, Name const &name, Stack_size stack_size,
+               Affinity::Location affinity)
+:
+	name(name), _runtime(runtime), _affinity(affinity),
+	_stack(_alloc_stack(runtime, name, stack_size))
 {
 	_stack.with_result(
 		[&] (Stack &stack) {
 			_native_thread_ptr = &stack.native_thread();
-			_init_native_thread(stack, type);
+			_init_native_thread(stack);
 		},
 		[&] (Stack_error) { /* error reflected by 'info()' */ });
 }
 
 
-void Thread::_init_cpu_session_and_trace_control()
+Thread::Thread(Runtime &runtime)
+:
+	name("main"), _runtime(runtime), _affinity({ }),
+	_stack(_alloc_main_stack(runtime))
 {
-	if (!cpu_session_ptr || !local_rm_ptr) {
-		error("missing call of init_thread");
-		return;
-	}
-
-	/* if no CPU session is given, use it from the environment */
-	if (!_cpu_session) {
-		_cpu_session = cpu_session_ptr; }
-
-	/* initialize trace control now that the CPU session must be valid */
-	Dataspace_capability ds = _cpu_session->trace_control();
-	if (ds.valid()) {
-		Region_map::Attr attr { };
-		attr.writeable = true;
-		local_rm_ptr->attach(ds, attr).with_result(
-			[&] (Local_rm::Attachment &a) {
-				a.deallocate = false;
-				_trace_control = reinterpret_cast<Trace::Control *>(a.ptr); },
-			[&] (Region_map::Attach_error) {
-				error("failed to initialize trace control for new thread"); }
-		);
-	}
+	_stack.with_result(
+		[&] (Stack &stack) {
+			_native_thread_ptr = &stack.native_thread();
+			_init_native_main_thread(stack);
+		},
+		[&] (Stack_error) { /* error reflected by 'info()' */ });
 }
-
-
-Thread::Thread(const char *name, size_t stack_size,
-               Type type, Affinity::Location affinity)
-:
-	Thread(name, stack_size, type, cpu_session_ptr, affinity)
-{ }
-
-
-Thread::Thread(Env &, Name const &name, size_t stack_size, Location location,
-               Cpu_session &cpu)
-:
-	Thread(name.string(), stack_size, NORMAL, &cpu, location)
-{ }
-
-
-Thread::Thread(Env &env, Name const &name, size_t stack_size)
-:
-	Thread(env, name, stack_size, Location(), env.cpu())
-{ }
 
 
 Thread::~Thread()
@@ -336,16 +319,8 @@ Thread::~Thread()
 	/*
 	 * We have to detach the trace control dataspace last because
 	 * we cannot invalidate the pointer used by the Trace::Logger
-	 * from here and any following RPC call will stumple upon the
+	 * from here and any following RPC call will stumble upon the
 	 * detached trace control dataspace.
 	 */
-	if (_trace_control && local_rm_ptr)
-		local_rm_ptr->detach(addr_t(_trace_control));
-}
-
-
-void Genode::init_thread(Cpu_session &cpu_session, Local_rm &local_rm)
-{
-	local_rm_ptr    = &local_rm;
-	cpu_session_ptr = &cpu_session;
+	_deinit_trace_control();
 }

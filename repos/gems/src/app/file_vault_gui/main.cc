@@ -645,10 +645,10 @@ struct Main : Prompt::Action
 	Env &env;
 	Dialog_type active_dialog { NONE };
 	Heap heap { env.ram(), env.rm() };
-	Runtime runtime { env, heap };
+	Dialog::Runtime runtime { env, heap };
 	Main_dialog main_dialog { "main", *this };
-	Runtime::View main_view { runtime, main_dialog };
-	Runtime::Event_handler<Main> event_handler { runtime, *this, &Main::handle_event };
+	Dialog::Runtime::View main_view { runtime, main_dialog };
+	Dialog::Runtime::Event_handler<Main> event_handler { runtime, *this, &Main::handle_event };
 	Ui_config ui_config { };
 	Expanding_reporter ui_config_reporter { env, "ui_config", "ui_config" };
 	Attached_rom_dataspace ui_report_rom { env, "ui_report" };

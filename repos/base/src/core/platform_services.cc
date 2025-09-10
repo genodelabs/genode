@@ -15,7 +15,9 @@
 #include <platform_services.h>
 
 
-void Core::platform_add_local_services(Rpc_entrypoint &, Sliced_heap &,
+void Core::platform_add_local_services(Runtime                &,
+                                       Rpc_entrypoint         &,
+                                       Sliced_heap            &,
                                        Registry<Service>      &,
                                        Trace::Source_registry &,
                                        Ram_allocator          &,

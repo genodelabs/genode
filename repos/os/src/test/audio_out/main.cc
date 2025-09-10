@@ -60,7 +60,7 @@ class Track : public Thread
 	public:
 
 		Track(Env &env, Filename const &name)
-		: Thread(env, "track", sizeof(size_t)*2048), _env(env), _name(name)
+		: Thread(env, "track", Stack_size { 16*1024 }), _env(env), _name(name)
 		{
 			/* allocation signal for first channel only */
 			for (int i = 0; i < CHN_CNT; ++i)

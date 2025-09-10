@@ -48,7 +48,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 			Untyped_capability const ec_cap =
 				nt.ec_valid() ? Capability_space::import(nt.ec_sel) : Thread::cap();
 
-			return _alloc_rpc_cap(_pd_session, ec_cap,
+			return _alloc_rpc_cap(_runtime, ec_cap,
 			                      addr_t(&_activation_entry)).convert<Untyped_capability>(
 
 				[&] (Untyped_capability const obj_cap) {
@@ -106,7 +106,7 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 		return;
 
 	/* de-announce object from cap_session */
-	_free_rpc_cap(_pd_session, obj->cap());
+	_free_rpc_cap(_runtime, obj->cap());
 
 	/* avoid any incoming IPC */
 	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
@@ -205,11 +205,11 @@ bool Rpc_entrypoint::is_myself() const
 }
 
 
-Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
-                               const char  *name, Affinity::Location location)
+Rpc_entrypoint::Rpc_entrypoint(Runtime &runtime, Name const &name,
+                               Stack_size stack_size, Affinity::Location location)
 :
-	Thread(name, stack_size, location),
-	_pd_session(*pd_session)
+	Thread(runtime, name, stack_size, location),
+	_runtime(runtime)
 {
 	/* set magic value evaluated by thread_nova.cc to start a local thread */
 	with_native_thread([&] (Native_thread &nt) {
@@ -227,7 +227,7 @@ Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
 		[&] (Stack &stack) {
 
 			/* create cleanup portal */
-			_cap = _alloc_rpc_cap(_pd_session,
+			_cap = _alloc_rpc_cap(_runtime,
 			                      Capability_space::import(stack.native_thread().ec_sel),
 			                      addr_t(_activation_entry)).convert<Untyped_capability>(
 				[&] (Untyped_capability cap) { return cap; },
@@ -259,7 +259,7 @@ Rpc_entrypoint::~Rpc_entrypoint()
 			return;
 
 		/* de-announce object from cap_session */
-		_free_rpc_cap(_pd_session, obj->cap());
+		_free_rpc_cap(_runtime, obj->cap());
 
 		/* avoid any incoming IPC */
 		Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
@@ -270,5 +270,5 @@ Rpc_entrypoint::~Rpc_entrypoint()
 	if (!_cap.valid())
 		return;
 
-	_free_rpc_cap(_pd_session, _cap);
+	_free_rpc_cap(_runtime, _cap);
 }

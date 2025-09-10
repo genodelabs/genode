@@ -19,6 +19,7 @@
 /* base-internal includes */
 #include <base/internal/native_thread.h>
 #include <base/internal/globals.h>
+#include <base/internal/runtime.h>
 
 using namespace Genode;
 
@@ -38,16 +39,16 @@ void Genode::init_rpc_cap_alloc(Parent &parent) { _parent_ptr = &parent; }
 
 
 Rpc_entrypoint::Alloc_rpc_cap_result
-Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capability, addr_t)
+Rpc_entrypoint::_alloc_rpc_cap(Runtime &runtime, Native_capability, addr_t)
 {
 	/* first we allocate a cap from core, to allow accounting of caps. */
 	for (;;) {
 
-		Pd_session::Alloc_rpc_cap_result const result = pd.alloc_rpc_cap(_cap);
+		Pd_session::Alloc_rpc_cap_result const result = runtime.pd.alloc_rpc_cap(_cap);
 		if (result.ok())
 			break;
 
-		pd.alloc_rpc_cap(_cap).with_error([&] (Alloc_error e) {
+		result.with_error([&] (Alloc_error e) {
 
 			Ram_quota ram_upgrade { 0 };
 			Cap_quota cap_upgrade { 0 };
@@ -70,7 +71,7 @@ Rpc_entrypoint::_alloc_rpc_cap(Pd_session& pd, Native_capability, addr_t)
 }
 
 
-void Rpc_entrypoint::_free_rpc_cap(Pd_session& pd, Native_capability cap)
+void Rpc_entrypoint::_free_rpc_cap(Runtime &runtime, Native_capability cap)
 {
 	with_native_thread([&] (Native_thread &nt) {
 
@@ -85,7 +86,7 @@ void Rpc_entrypoint::_free_rpc_cap(Pd_session& pd, Native_capability cap)
 		 * Perform the accounting of the PDs cap quota at core, to remain
 		 * consistent with other kernel platforms.
 		 */
-		pd.free_rpc_cap(Native_capability());
+		runtime.pd.free_rpc_cap(Native_capability());
 
 		nt.epoll.free_rpc_cap(cap);
 	});

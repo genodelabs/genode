@@ -97,18 +97,17 @@ void Thread::_deinit_native_thread(Stack &stack)
 }
 
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_thread(Stack &stack)
 {
-	if (type == NORMAL) {
-		_stack.with_result([&] (Stack &stack) {
-			stack.native_thread().platform_thread = new (platform().core_mem_alloc())
-				Platform_thread(name, stack.utcb(), _affinity);
-		}, [&] (Stack_error) { });
-		return;
-	}
+	stack.native_thread().platform_thread = new (platform().core_mem_alloc())
+		Platform_thread(name, stack.utcb(), _affinity);
+}
 
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
 	/* remap initial main-thread UTCB according to stack-area spec */
-	map_local(Platform::core_main_thread_phys_utcb(),
+	map_local(Core::Platform::core_main_thread_phys_utcb(),
 	          (addr_t)&stack.utcb(),
 	          max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
 

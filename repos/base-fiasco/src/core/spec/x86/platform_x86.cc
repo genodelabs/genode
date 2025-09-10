@@ -1,7 +1,7 @@
 /*
  * \brief  Platform support specific to x86
  * \author Christian Helmuth
- * \date    2006-04-11
+ * \date   2006-04-11
  */
 
 /*
@@ -21,11 +21,10 @@
 /* L4/Fiasco includes */
 #include <fiasco/syscall.h>
 
-using namespace Core;
 using namespace Fiasco;
 
 
-void Platform::_setup_io_port_alloc()
+void Core::Platform::_setup_io_port_alloc()
 {
 	l4_fpage_t fp;
 	l4_umword_t dummy;

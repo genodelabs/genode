@@ -21,8 +21,6 @@
 using namespace Genode;
 
 
-enum { STACK_SIZE = 0x3000 };
-
 /************************************************
  ** Migrate thread over all available CPU test **
  ************************************************/
@@ -33,7 +31,7 @@ struct Migrate_thread : Thread
 	Env      &env;
 
 	Migrate_thread(Env &env)
-	: Thread(env, "migrate", STACK_SIZE), env(env)
+	: Thread(env, "migrate", Stack_size { 0x3000 }), env(env)
 	{ }
 
 	void entry() override

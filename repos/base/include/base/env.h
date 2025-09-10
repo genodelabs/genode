@@ -146,6 +146,19 @@ struct Genode::Env : Interface
 	                                   Parent::Client::Id,
 	                                   Parent::Session_args const &,
 	                                   Affinity             const &) = 0;
+
+	/**
+	 * Token for issuing operations with componenent-global side effects
+	 *
+	 * The type of the returned reference is private to the underlying
+	 * platform. The reference is a mere token for orderly passing the
+	 * ability for invoking global size effects to low-level API functions
+	 * like the 'Rpc_entrypoint' constructor..
+	 *
+	 * \noapi
+	 */
+	virtual Runtime &runtime() = 0;
+
 };
 
 #endif /* _INCLUDE__BASE__ENV_H_ */

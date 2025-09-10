@@ -36,6 +36,9 @@ namespace Okl4 { extern "C" {
 namespace Core { class Platform; }
 
 
+extern Okl4::L4_ThreadId_t main_thread_tid;
+
+
 class Core::Platform : public Platform_generic
 {
 	private:

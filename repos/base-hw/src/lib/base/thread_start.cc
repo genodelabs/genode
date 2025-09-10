@@ -24,6 +24,7 @@
 #include <base/internal/native_utcb.h>
 #include <base/internal/native_env.h>
 #include <base/internal/globals.h>
+#include <base/internal/runtime.h>
 
 using namespace Genode;
 
@@ -33,37 +34,14 @@ namespace Hw {
 }
 
 
-static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
-{
-	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
-	return cap;
-}
-
-
-static Thread_capability main_thread_cap(Thread_capability main_cap = { })
-{
-	static Thread_capability cap = main_cap;
-	return cap;
-}
-
-
 /************
  ** Thread **
  ************/
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_main_thread(Stack &stack)
 {
-	_init_cpu_session_and_trace_control();
+	_init_trace_control();
 
-	if (type == NORMAL) {
-
-		/* create server object */
-		addr_t const utcb = addr_t(&stack.utcb());
-
-		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name, _affinity,
-		                                          utcb);
-		return;
-	}
 	/* if we got reinitialized we have to get rid of the old UTCB */
 	size_t const utcb_size  = sizeof(Native_utcb);
 	addr_t const stack_area = stack_area_virtual_base();
@@ -82,19 +60,23 @@ void Thread::_init_native_thread(Stack &stack, Type type)
 
 	/* adjust initial object state in case of a main thread */
 	stack.native_thread().cap = Hw::_main_thread_cap;
-	_thread_cap = main_thread_cap();
+	_thread_cap = _runtime.parent.main_thread_cap();
+}
+
+
+void Thread::_init_native_thread(Stack &stack)
+{
+	_init_trace_control();
+
+	_thread_cap = _runtime.cpu.create_thread(_runtime.pd.rpc_cap(), name, _affinity,
+	                                         addr_t(&stack.utcb()));
 }
 
 
 void Thread::_deinit_native_thread(Stack &stack)
 {
-	if (!_cpu_session) {
-		error("Thread::_cpu_session unexpectedly not defined");
-		return;
-	}
-
 	_thread_cap.with_result(
-		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Thread_capability cap) { _runtime.cpu.kill_thread(cap); },
 		[&] (Cpu_session::Create_thread_error) { });
 
 	/* detach userland stack */
@@ -141,16 +123,4 @@ Thread::Start_result Thread::start()
 			[&] (Cpu_session::Create_thread_error) { return Start_result::DENIED; }
 		);
 	}, [&] (Stack_error) { return Start_result::DENIED; });
-}
-
-
-void Genode::init_thread_start(Capability<Pd_session> pd_cap)
-{
-	pd_session_cap(pd_cap);
-}
-
-
-void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
-{
-	main_thread_cap(main_cap);
 }

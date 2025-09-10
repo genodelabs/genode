@@ -23,9 +23,10 @@
 using namespace Core;
 
 
-Irq_session_component::Irq_session_component(Range_allocator &, const char *)
+Irq_session_component::Irq_session_component(Runtime &runtime,
+                                             Range_allocator &, const char *)
 :
-	_irq_number(0), _irq_object(_irq_number)
+	_irq_number(0), _irq_object(runtime, _irq_number)
 { }
 
 
@@ -44,9 +45,9 @@ Irq_session::Info Irq_session_component::info()
 }
 
 
-Irq_object::Irq_object(unsigned irq)
+Irq_object::Irq_object(Runtime &runtime, unsigned irq)
 :
-	Thread("irq", 4096 /* stack */, Type::NORMAL),
+	Thread(runtime, "irq", Stack_size { 4096 }, Thread::Location { }),
 	_sig_cap(Signal_context_capability()), _irq(irq), _fd(-1)
 { }
 

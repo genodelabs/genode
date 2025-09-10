@@ -36,6 +36,7 @@ class Core::Irq_object
 		Irq_object(Irq_object const &);
 		Irq_object &operator = (Irq_object const &);
 
+		Runtime               &_runtime;
 		Cap_index             *_cap;
 		Irq_session::Trigger   _trigger  = Irq_session::TRIGGER_UNCHANGED;
 		Irq_session::Polarity  _polarity = Irq_session::POLARITY_UNCHANGED;
@@ -51,7 +52,7 @@ class Core::Irq_object
 
 	public:
 
-		Irq_object();
+		Irq_object(Runtime &);
 		~Irq_object();
 
 		Irq_session::Trigger  trigger()  const { return _trigger; }

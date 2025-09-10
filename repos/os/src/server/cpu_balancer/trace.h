@@ -168,13 +168,13 @@ class Cpu::Trace
 
 struct Cpu::Sleeper : Genode::Thread
 {
-	Genode::Env                   &_env;
-	Genode::Blockade               _block { };
+	Genode::Env     &_env;
+	Genode::Blockade _block { };
 
 	Sleeper(Genode::Env &env, Location const &location)
 	:
 		Genode::Thread(env, Name("sleep_", location.xpos(), "x", location.ypos()),
-		               2 * 4096, location, env.cpu()),
+		               Stack_size { 2*4096 }, location),
 		_env(env)
 	{ }
 

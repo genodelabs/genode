@@ -15,17 +15,14 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/log.h>
 #include <base/sleep.h>
-#include <base/env.h>
-#include <base/rpc_client.h>
 #include <session/session.h>
 #include <cpu_thread/client.h>
 #include <nova_native_cpu/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
-#include <base/internal/globals.h>
+#include <base/internal/runtime.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -34,20 +31,6 @@
 #include <nova/capability_space.h>
 
 using namespace Genode;
-
-
-static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
-{
-	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
-	return cap;
-}
-
-
-static Thread_capability main_thread_cap(Thread_capability main_cap = { })
-{
-	static Thread_capability cap = main_cap;
-	return cap;
-}
 
 
 /**
@@ -81,7 +64,7 @@ void Thread::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_thread(Stack &stack)
 {
 	Native_thread &nt = stack.native_thread();
 
@@ -89,17 +72,6 @@ void Thread::_init_native_thread(Stack &stack, Type type)
 	 * Allocate capability selectors for the thread's execution context,
 	 * running semaphore and exception handler portals.
 	 */
-
-	/* for main threads the member initialization differs */
-	if (type == MAIN) {
-		_thread_cap = main_thread_cap();
-
-		nt.exc_pt_sel = 0;
-		nt.ec_sel     = Nova::EC_SEL_THREAD;
-
-		request_native_ec_cap(Nova::PT_SEL_PAGE_FAULT, nt.ec_sel);
-		return;
-	}
 
 	/*
 	 * Revoke possible left-over UTCB of a previously destroyed thread
@@ -120,13 +92,27 @@ void Thread::_init_native_thread(Stack &stack, Type type)
 		return;
 	}
 
-	_init_cpu_session_and_trace_control();
+	_init_trace_control();
 
 	/* create thread at core */
-	_cpu_session->create_thread(pd_session_cap(), name, _affinity).with_result(
+	_runtime.cpu.create_thread(_runtime.pd.rpc_cap(), name, _affinity, 0).with_result(
 		[&] (Thread_capability cap) { _thread_cap = cap; },
 		[&] (Cpu_session::Create_thread_error) {
 			error("failed to create new thread for local PD"); });
+}
+
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
+	Native_thread &nt = stack.native_thread();
+
+	_thread_cap = _runtime.parent.main_thread_cap();
+
+	nt.exc_pt_sel = 0;
+	nt.ec_sel     = Nova::EC_SEL_THREAD;
+
+	request_native_ec_cap(Nova::PT_SEL_PAGE_FAULT, nt.ec_sel);
+	return;
 }
 
 
@@ -139,7 +125,7 @@ void Thread::_deinit_native_thread(Stack &stack)
 
 	/* de-announce thread */
 	_thread_cap.with_result(
-		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Thread_capability cap) { _runtime.cpu.kill_thread(cap); },
 		[&] (Cpu_session::Create_thread_error) { });
 
 	cap_map().remove(nt.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
@@ -176,7 +162,7 @@ Thread::Start_result Thread::start()
 
 		Cpu_session::Native_cpu::Exception_base exception_base { nt.exc_pt_sel };
 
-		Nova_native_cpu_client native_cpu(_cpu_session->native_cpu());
+		Nova_native_cpu_client native_cpu(_runtime.cpu.native_cpu());
 		native_cpu.thread_type(cap(), thread_type, exception_base);
 
 		/* local thread have no start instruction pointer - set via portal entry */
@@ -207,16 +193,4 @@ Thread::Start_result Thread::start()
 		return Start_result::OK;
 
 	}, [&] (Stack_error) { return Start_result::DENIED; });
-}
-
-
-void Genode::init_thread_start(Capability<Pd_session> pd_cap)
-{
-	pd_session_cap(pd_cap);
-}
-
-
-void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
-{
-	main_thread_cap(main_cap);
 }

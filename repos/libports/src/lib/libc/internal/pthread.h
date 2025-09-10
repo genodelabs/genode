@@ -92,14 +92,13 @@ struct Libc::Pthread : Noncopyable
 			Pthread        *_pthread;
 
 			/* 'stack_addr_out' and 'stack_size_out' are written when the thread starts */
-			Thread_object(char const *name, size_t stack_size,
-			              Cpu_session *cpu,
+			Thread_object(Genode::Env &env, char const *name, size_t stack_size,
 			              Affinity::Location location,
 			              start_routine_t start_routine, void *arg,
 			              void *&stack_addr_out, size_t &stack_size_out,
 			              Pthread *pthread)
 			:
-				Thread(name, stack_size, Type::NORMAL, cpu, location),
+				Thread(env, name, { stack_size }, location),
 				_start_routine(start_routine), _arg(arg),
 				_stack_addr(stack_addr_out), _stack_size(stack_size_out),
 				_pthread(pthread)
@@ -187,11 +186,11 @@ struct Libc::Pthread : Noncopyable
 		/**
 		 * Constructor for threads created via 'pthread_create'
 		 */
-		Pthread(start_routine_t start_routine,
+		Pthread(Genode::Env &env, start_routine_t start_routine,
 		        void *arg, size_t stack_size, char const * name,
-		        Cpu_session * cpu, Affinity::Location location)
+		        Affinity::Location location)
 		:
-			_thread(_construct_thread_object(name, stack_size, cpu, location,
+			_thread(_construct_thread_object(env, name, stack_size, location,
 			                                 start_routine, arg,
 			                                 _stack_addr, _stack_size, this))
 		{

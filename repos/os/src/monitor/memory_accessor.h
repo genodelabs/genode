@@ -195,7 +195,7 @@ class Monitor::Memory_accessor : Noncopyable
 
 			Probe(Env &env, Probe_response_handler &probe_response_handler)
 			:
-				Thread(env, "probe", 16*1024),
+				Thread(env, "probe", Stack_size { 16*1024 }),
 				_probe_response_handler(probe_response_handler)
 			{
 				start();

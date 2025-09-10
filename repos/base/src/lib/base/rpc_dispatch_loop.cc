@@ -33,7 +33,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 		return obj->cap();
 	}
 
-	return _alloc_rpc_cap(_pd_session, _cap).convert<Untyped_capability>(
+	return _alloc_rpc_cap(_runtime, _cap).convert<Untyped_capability>(
 		[&] (Untyped_capability cap) {
 
 			/* add server object to object pool */

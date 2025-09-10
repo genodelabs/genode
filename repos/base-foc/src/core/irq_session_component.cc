@@ -39,18 +39,18 @@ class Core::Interrupt_handler : public Thread
 {
 	private:
 
-		Interrupt_handler()
+		Interrupt_handler(Runtime &runtime)
 		:
-			Thread("irq_handler", 2048 * sizeof(long) /* stack */, Type::NORMAL)
+			Thread(runtime, "irq_handler", Stack_size { 16*1024 }, { })
 		{ start(); }
 
 	public:
 
 		void entry() override;
 
-		static Foc::l4_cap_idx_t handler_cap()
+		static Foc::l4_cap_idx_t handler_cap(Runtime &runtime)
 		{
-			static Interrupt_handler handler;
+			static Interrupt_handler handler { runtime };
 			return handler.cap().data()->kcap();
 		}
 
@@ -113,7 +113,7 @@ bool Irq_object::associate(unsigned irq, bool msi,
 		return false;
 	}
 
-	if (l4_error(l4_rcv_ep_bind_thread(_capability(), Interrupt_handler::handler_cap(),
+	if (l4_error(l4_rcv_ep_bind_thread(_capability(), Interrupt_handler::handler_cap(_runtime),
 	                                   reinterpret_cast<l4_umword_t>(this)))) {
 		error("cannot attach to IRQ ", _irq);
 		return false;
@@ -153,9 +153,10 @@ void Irq_object::ack_irq()
 }
 
 
-Irq_object::Irq_object()
+Irq_object::Irq_object(Runtime &runtime)
 :
-	 _cap(cap_map().insert((Cap_index::id_t)platform_specific().cap_id_alloc().alloc()))
+	_runtime(runtime),
+	_cap(cap_map().insert((Cap_index::id_t)platform_specific().cap_id_alloc().alloc()))
 { }
 
 
@@ -194,10 +195,11 @@ static Range_allocator::Result allocate_legacy(Range_allocator &irq_alloc,
 	return irq_alloc.alloc_addr(1, args.irq_number());
 }
 
-Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
+Irq_session_component::Irq_session_component(Runtime         &runtime,
+                                             Range_allocator &irq_alloc,
                                              const char      *args)
 :
-	_irq_number(allocate_legacy(irq_alloc, Irq_args(args))), _irq_object()
+	_irq_number(allocate_legacy(irq_alloc, Irq_args(args))), _irq_object(runtime)
 {
 	Irq_args const irq_args(args);
 

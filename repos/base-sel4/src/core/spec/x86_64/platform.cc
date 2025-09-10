@@ -21,10 +21,9 @@
 #include <thread_sel4.h>
 #include "arch_kernel_object.h"
 
-using namespace Core;
+using Platform = Core::Platform;
 
-
-seL4_Word Untyped_memory::smallest_page_type() { return seL4_X86_4K; }
+seL4_Word Core::Untyped_memory::smallest_page_type() { return seL4_X86_4K; }
 
 
 void Platform::init_sel4_ipc_buffer()

@@ -1,7 +1,6 @@
 /*
  * \brief  Implementation of the Thread API via Linux threads
  * \author Norman Feske
- * \author Martin Stein
  * \date   2006-06-13
  */
 
@@ -13,16 +12,14 @@
  */
 
 /* Genode includes */
-#include <base/env.h>
 #include <base/thread.h>
 #include <base/sleep.h>
-#include <base/log.h>
 #include <linux_native_cpu/client.h>
 #include <cpu_thread/client.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
-#include <base/internal/globals.h>
+#include <base/internal/runtime.h>
 
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
@@ -34,20 +31,6 @@ extern int main_thread_futex_counter;
 
 
 static void empty_signal_handler(int) { }
-
-
-static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
-{
-	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
-	return cap;
-}
-
-
-static Thread_capability main_thread_cap(Thread_capability main_cap = { })
-{
-	static Thread_capability cap = main_cap; /* defined once by 'init_thread_bootstrap' */
-	return cap;
-}
 
 
 static Blockade &startup_lock()
@@ -90,7 +73,7 @@ void Thread::_thread_start()
 
 	/* inform core about the new thread and process ID of the new thread */
 	thread.with_native_thread([&] (Native_thread &nt) {
-		Linux_native_cpu_client native_cpu(thread._cpu_session->native_cpu());
+		Linux_native_cpu_client native_cpu(thread._runtime.cpu.native_cpu());
 		native_cpu.thread_id(thread.cap(), nt.pid, nt.tid);
 	});
 
@@ -106,27 +89,22 @@ void Thread::_thread_start()
 }
 
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_thread(Stack &stack)
 {
-	/* if no cpu session is given, use it from the environment */
-	if (!_cpu_session) {
-		error("Thread::_init_platform_thread: _cpu_session not initialized");
-		return;
-	}
+	_runtime.cpu.create_thread(_runtime.pd.rpc_cap(), stack.name(),
+	                           Affinity::Location(), 0).with_result(
+		[&] (Thread_capability cap) { _thread_cap = cap; },
+		[&] (Cpu_session::Create_thread_error) {
+			error("Thread::_init_native_thread: create_thread failed");
+		});
+}
 
-	/* for normal threads create an object at the CPU session */
-	if (type == NORMAL) {
-		_cpu_session->create_thread(pd_session_cap(), stack.name(),
-		                            Affinity::Location()).with_result(
-			[&] (Thread_capability cap) { _thread_cap = cap; },
-			[&] (Cpu_session::Create_thread_error) {
-				error("Thread::_init_platform_thread: create_thread failed");
-			});
-		return;
-	}
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
 	/* adjust initial object state for main threads */
 	stack.native_thread().futex_counter = main_thread_futex_counter;
-	_thread_cap = main_thread_cap();
+	_thread_cap = _runtime.parent.main_thread_cap();
 }
 
 
@@ -161,7 +139,7 @@ void Thread::_deinit_native_thread(Stack &stack)
 
 	/* inform core about the killed thread */
 	_thread_cap.with_result(
-		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Thread_capability cap) { _runtime.cpu.kill_thread(cap); },
 		[&] (Cpu_session::Create_thread_error) { });
 }
 
@@ -172,7 +150,7 @@ Thread::Start_result Thread::start()
 	static Mutex mutex;
 	Mutex::Guard guard(mutex);
 
-	_init_cpu_session_and_trace_control();
+	_init_trace_control();
 
 	/*
 	 * The first time we enter this code path, the 'start' function is
@@ -199,20 +177,4 @@ Thread::Start_result Thread::start()
 			return Start_result::OK;
 		},
 		[&] (Stack_error) { return Start_result::DENIED; });
-}
-
-
-void Genode::init_thread_start(Capability<Pd_session> pd_cap)
-{
-	pd_session_cap(pd_cap);
-}
-
-
-void Genode::init_thread_bootstrap(Cpu_session &cpu, Thread_capability main_cap)
-{
-	main_thread_cap(main_cap);
-
-	/* register TID and PID of the main thread at core */
-	Linux_native_cpu_client native_cpu(cpu.native_cpu());
-	native_cpu.thread_id(main_cap, lx_getpid(), lx_gettid());
 }

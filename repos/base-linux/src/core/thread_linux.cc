@@ -65,7 +65,7 @@ void Thread::_thread_start()
 }
 
 
-void Thread::_init_native_thread(Stack &, Type) { }
+void Thread::_init_native_main_thread(Stack &) { }
 
 
 void Thread::_deinit_native_thread(Stack &) { }

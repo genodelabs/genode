@@ -102,9 +102,9 @@ void Irq_object::ack_irq()
 }
 
 
-Irq_object::Irq_object(Allocator::Result const &irq)
+Irq_object::Irq_object(Runtime &runtime, Allocator::Result const &irq)
 :
-	Thread("irq", 4096 /* stack */, Type::NORMAL),
+	Thread(runtime, "irq", Stack_size { 4096 }, { }),
 	_irq(irq),
 	_kernel_irq_sel(platform_specific().core_sel_alloc().alloc()),
 	_kernel_notify_sel(platform_specific().core_sel_alloc().alloc())
@@ -181,11 +181,12 @@ static Allocator::Result allocate_irq(Range_allocator &irq_alloc,
 }
 
 
-Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
+Irq_session_component::Irq_session_component(Runtime         &runtime,
+                                             Range_allocator &irq_alloc,
                                              const char      *args)
 :
 	_irq_number(allocate_irq(irq_alloc, Irq_args(args))),
-	_irq_object(_irq_number)
+	_irq_object(runtime, _irq_number)
 {
 	Irq_args irq_args { args };
 

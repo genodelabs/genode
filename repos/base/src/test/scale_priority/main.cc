@@ -30,9 +30,9 @@ struct Cpu_helper : Thread
 {
 	Env &_env;
 
-	Cpu_helper(Env &env, Name const &name, Cpu_session &cpu)
+	Cpu_helper(Env &env, Name const &name)
 	:
-		Thread(env, name, 4096, Thread::Location(), cpu), _env(env)
+		Thread(env, name, Stack_size { 4096 }, { }), _env(env)
 	{ }
 
 	void entry() override
@@ -60,10 +60,10 @@ struct Main
 	Cpu_connection cpu_low   { env, "lowest",         lowest_prio_start };
 	Cpu_connection cpu_low2  { env, "second lowest",  lowest_prio_start-1 };
 
-	Cpu_helper     thread_high  { env, "highest",        cpu_high };
-	Cpu_helper     thread_high2 { env, "second highest", cpu_high2 };
-	Cpu_helper     thread_low   { env, "lowest",         cpu_low };
-	Cpu_helper     thread_low2  { env, "second lowest",  cpu_low2 };
+	Cpu_helper     thread_high  { env, "highest" };
+	Cpu_helper     thread_high2 { env, "second highest" };
+	Cpu_helper     thread_low   { env, "lowest" };
+	Cpu_helper     thread_low2  { env, "second lowest" };
 
 	size_t arg_buffer_ram  { 4096 };
 	size_t trace_ram_quota { arg_buffer_ram + 4 * 4096 };

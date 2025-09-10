@@ -24,7 +24,7 @@ using namespace Kernel;
 
 Board::Timer::Timer(Hw::X86_64_cpu::Id)
 :
-	Local_apic(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
+	Local_apic(Core::Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
 	init();
 }
@@ -44,10 +44,10 @@ void Board::Timer::init()
 		return;
 	}
 
-	Platform::apply_with_boot_info([&](auto const &boot_info) {
-			ticks_per_ms = boot_info.plat_info.lapic_freq_khz;
-			divider = boot_info.plat_info.lapic_div;
-		});
+	Core::Platform::apply_with_boot_info([&](auto const &boot_info) {
+		ticks_per_ms = boot_info.plat_info.lapic_freq_khz;
+		divider = boot_info.plat_info.lapic_div;
+	});
 }
 
 

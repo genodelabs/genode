@@ -53,8 +53,6 @@ class Signal_handler_thread : Thread, Blockade
 				error("failed to initialize signal-source interface"); });
 		}
 
-		static constexpr size_t STACK_SIZE = 4*1024*sizeof(addr_t);
-
 	public:
 
 		/**
@@ -62,7 +60,8 @@ class Signal_handler_thread : Thread, Blockade
 		 */
 		Signal_handler_thread(Env &env)
 		:
-			Thread(env, "signal handler", STACK_SIZE), _pd(env.pd()), _cpu(env.cpu())
+			Thread(env, "signal handler", Stack_size { 32*1024 }),
+			_pd(env.pd()), _cpu(env.cpu())
 		{
 			start();
 

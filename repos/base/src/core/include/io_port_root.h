@@ -14,10 +14,12 @@
 #ifndef _CORE__INCLUDE__IO_PORT_ROOT_H_
 #define _CORE__INCLUDE__IO_PORT_ROOT_H_
 
+#include <base/thread.h>
 #include <root/component.h>
 
 /* core includes */
 #include <io_port_session_component.h>
+#include <types.h>
 
 namespace Core {
 	class  Io_port_handler;
@@ -25,11 +27,13 @@ namespace Core {
 }
 
 
-struct Core::Io_port_handler
+struct Core::Io_port_handler : Rpc_entrypoint
 {
-	static constexpr size_t STACK_SIZE = 4096;
-
-	Rpc_entrypoint handler_ep { nullptr, STACK_SIZE, "ioport", Affinity::Location() };
+	Io_port_handler(Runtime &runtime)
+	:
+		Rpc_entrypoint(runtime, "ioport", Genode::Thread::Stack_size { 4096 },
+		               Genode::Thread::Location { })
+	{ }
 };
 
 
@@ -49,9 +53,10 @@ struct Core::Io_port_root : private Io_port_handler,
 	 * \param io_port_alloc  platform IO_PORT allocator
 	 * \param md_alloc       meta-data allocator to be used by root component
 	 */
-	Io_port_root(Range_allocator &io_port_alloc, Allocator &md_alloc)
+	Io_port_root(Runtime &runtime, Range_allocator &io_port_alloc, Allocator &md_alloc)
 	:
-		Root_component<Io_port_session_component>(&handler_ep, &md_alloc),
+		Io_port_handler(runtime),
+		Root_component<Io_port_session_component>(this, &md_alloc),
 		_io_port_alloc(io_port_alloc)
 	{ }
 };

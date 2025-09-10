@@ -67,7 +67,7 @@ static System_control_component &system_instance()
 }
 
 
-System_control & Core::init_system_control(Allocator &, Rpc_entrypoint &ep)
+System_control & Core::init_system_control(Runtime &, Allocator &, Rpc_entrypoint &ep)
 {
 	ep.manage(&system_instance());
 	return system_instance();

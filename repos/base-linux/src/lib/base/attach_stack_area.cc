@@ -16,12 +16,12 @@
  */
 
 /* base-internal includes */
-#include <base/internal/platform.h>
+#include <base/internal/runtime.h>
 
 using namespace Genode;
 
 
-void Platform::_attach_stack_area()
+void Runtime::_attach_stack_area()
 {
 	if (pd._address_space.attach(pd._stack_area.dataspace(), Region_map::Attr {
 		.size       = stack_area_virtual_size(),

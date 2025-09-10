@@ -39,7 +39,7 @@ class Core::Irq_object : public Thread
 
 	public:
 
-		Irq_object(unsigned irq);
+		Irq_object(Runtime &, unsigned irq);
 		void sigh(Signal_context_capability cap);
 		void ack_irq();
 

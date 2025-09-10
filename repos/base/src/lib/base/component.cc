@@ -22,7 +22,7 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
-#include <base/internal/platform.h>
+#include <base/internal/runtime.h>
 
 namespace Genode { struct Component_env; }
 
@@ -41,17 +41,17 @@ void Genode::exec_static_constructors() { }
 
 struct Genode::Component_env : Env
 {
-	Platform &_platform;
+	Runtime &_runtime;
 
 	using Local_rm = Local::Constrained_region_map;
 
-	Parent      &_parent   = _platform.parent;
-	Pd_session  &_pd       = _platform.pd;
-	Cpu_session &_cpu      = _platform.cpu;
-	Local_rm    &_local_rm = _platform.local_rm;
+	Parent      &_parent   = _runtime.parent;
+	Pd_session  &_pd       = _runtime.pd;
+	Cpu_session &_cpu      = _runtime.cpu;
+	Local_rm    &_local_rm = _runtime.local_rm;
 
-	Capability<Pd_session>  _pd_cap  = _platform.pd.rpc_cap();
-	Capability<Cpu_session> _cpu_cap = _platform.cpu.rpc_cap();
+	Capability<Pd_session>  _pd_cap  = _runtime.pd.rpc_cap();
+	Capability<Cpu_session> _cpu_cap = _runtime.cpu.rpc_cap();
 
 	Pd_ram_allocator _ram { _pd };
 
@@ -81,17 +81,18 @@ struct Genode::Component_env : Env
 
 	Constructible<Blockade> _session_blockade { };
 
-	Component_env(Platform &platform, Entrypoint &ep)
+	Component_env(Runtime &runtime, Entrypoint &ep)
 	:
-		_platform(platform), _ep(ep)
+		_runtime(runtime), _ep(ep)
 	{ }
 
-	Parent        &parent() override { return _parent; }
-	Cpu_session   &cpu()    override { return _cpu; }
-	Local_rm      &rm()     override { return _local_rm; }
-	Pd_session    &pd()     override { return _pd; }
-	Ram_allocator &ram()    override { return _ram; }
-	Entrypoint    &ep()     override { return _ep; }
+	Parent        &parent()  override { return _parent; }
+	Cpu_session   &cpu()     override { return _cpu; }
+	Local_rm      &rm()      override { return _local_rm; }
+	Pd_session    &pd()      override { return _pd; }
+	Ram_allocator &ram()     override { return _ram; }
+	Entrypoint    &ep()      override { return _ep; }
+	Runtime       &runtime() override { return _runtime; }
 
 	Cpu_session_capability cpu_session_cap() override { return _cpu_cap; }
 	Pd_session_capability  pd_session_cap()  override { return _pd_cap; }
@@ -285,13 +286,13 @@ struct Genode::Startup
 	 */
 	Entrypoint ep { env };
 
-	Startup(Platform &platform) : env(platform, ep) { }
+	Startup(Runtime &runtime) : env(runtime, ep) { }
 };
 
 
-void Genode::bootstrap_component(Platform &platform)
+void Genode::bootstrap_component(Runtime &runtime)
 {
-	static Startup startup { platform };
+	static Startup startup { runtime };
 
 	/* never reached */
 }

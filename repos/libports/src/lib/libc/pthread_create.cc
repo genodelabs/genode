@@ -90,8 +90,8 @@ struct Placement_policy
 };
 
 
-static Cpu_session      *_cpu_session { nullptr };
-static bool              _verbose     { false };
+static Genode::Env *_geneode_env { nullptr };
+static bool         _verbose     { false };
 
 
 Placement_policy &placement_policy()
@@ -101,11 +101,10 @@ Placement_policy &placement_policy()
 }
 
 
-void Libc::init_pthread_support(Cpu_session &cpu_session,
-                                Node const &node,
+void Libc::init_pthread_support(Genode::Env &env, Node const &node,
                                 Genode::Allocator &alloc)
 {
-	_cpu_session = &cpu_session;
+	_geneode_env = &env;
 
 	_verbose = node.attribute_value("verbose", false);
 
@@ -140,18 +139,16 @@ static unsigned pthread_id()
 }
 
 
-int Libc::pthread_create_from_session(pthread_t *thread,
-                                      void *(*start_routine) (void *),
-                                      void *arg,
-                                      size_t stack_size,
-                                      char const *name,
-                                      Cpu_session *cpu,
-                                      Affinity::Location location)
+static int pthread_create_from_env(Genode::Env &env, pthread_t *thread,
+                                   void *(*start_routine) (void *),
+                                   void *arg,
+                                   size_t stack_size,
+                                   char const *name,
+                                   Affinity::Location location)
 {
 	Libc::Allocator alloc { };
 	pthread_t thread_obj = new (alloc)
-	                       pthread(start_routine, arg,
-	                               stack_size, name, cpu, location);
+		pthread(env, start_routine, arg, stack_size, name, location);
 	if (!thread_obj)
 		return EAGAIN;
 
@@ -185,7 +182,7 @@ int Libc::pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                          void *(*start_routine) (void *), void *arg,
                          char const *name)
 {
-	if (!_cpu_session || !start_routine || !thread)
+	if (!_geneode_env || !start_routine || !thread)
 		return EINVAL;
 
 	size_t const stack_size = (attr && *attr && (*attr)->stack_size)
@@ -196,17 +193,17 @@ int Libc::pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	unsigned const cpu = placement_policy().placement(id);
 
 	String<32> const pthread_name { "pthread.", id };
-	Affinity::Space space { _cpu_session->affinity_space() };
+	Affinity::Space space { _geneode_env->cpu().affinity_space() };
 	Affinity::Location location { space.location_of_index(cpu) };
 
 	if (_verbose)
 		log("create ", pthread_name, " -> cpu ", cpu);
 
 	int result =
-		Libc::pthread_create_from_session(thread, start_routine, arg,
-	                                      stack_size,
-	                                      name ? : pthread_name.string(),
-	                                      _cpu_session, location);
+		pthread_create_from_env(*_geneode_env, thread, start_routine,
+		                        arg, stack_size,
+		                        name ? : pthread_name.string(),
+		                        location);
 
 	if ((result == 0) && attr && *attr &&
 	    ((*attr)->detach_state == PTHREAD_CREATE_DETACHED))

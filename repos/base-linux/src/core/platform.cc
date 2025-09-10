@@ -228,3 +228,10 @@ bool Region_map_mmap::_dataspace_writeable(Dataspace_capability ds_cap)
 		[&] (Linux_dataspace &ds) { return ds.writeable(); },
 		[&] /* missing */         { return false; });
 }
+
+
+/**********************
+ ** Thread bootstrap **
+ **********************/
+
+void Genode::Thread::_init_native_thread(Stack &) { }

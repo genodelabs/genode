@@ -20,6 +20,7 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
+#include <base/internal/runtime.h>
 
 /* NOVA-specific part of the PD session interface */
 #include <nova_native_pd/client.h>
@@ -42,10 +43,10 @@ void Genode::init_rpc_cap_alloc(Parent &parent) { _parent_ptr = &parent; }
 
 
 Rpc_entrypoint::Alloc_rpc_cap_result
-Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capability ep, addr_t entry)
+Rpc_entrypoint::_alloc_rpc_cap(Runtime &runtime, Native_capability ep, addr_t entry)
 {
 	if (!_native_pd_cap.valid())
-		_native_pd_cap = pd.native_pd();
+		_native_pd_cap = runtime.pd.native_pd();
 
 	Nova_native_pd_client native_pd(_native_pd_cap);
 
@@ -81,7 +82,7 @@ Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd, Native_capability ep, addr_t entr
 }
 
 
-void Rpc_entrypoint::_free_rpc_cap(Pd_session &pd, Native_capability cap)
+void Rpc_entrypoint::_free_rpc_cap(Runtime &runtime, Native_capability cap)
 {
-	return pd.free_rpc_cap(cap);
+	return runtime.pd.free_rpc_cap(cap);
 }

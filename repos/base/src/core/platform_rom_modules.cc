@@ -15,10 +15,8 @@
 #include <boot_modules.h>
 #include <platform.h>
 
-using namespace Core;
 
-
-void Platform::_init_rom_modules()
+void Core::Platform::_init_rom_modules()
 {
 	Boot_modules_header const *header_ptr = &_boot_modules_headers_begin;
 

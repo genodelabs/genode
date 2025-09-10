@@ -25,7 +25,8 @@
 using namespace Core;
 
 
-void Core::platform_add_local_services(Rpc_entrypoint         &,
+void Core::platform_add_local_services(Runtime                &runtime,
+                                       Rpc_entrypoint         &,
                                        Sliced_heap            &md,
                                        Registry<Service>      &services,
                                        Trace::Source_registry &,
@@ -35,7 +36,7 @@ void Core::platform_add_local_services(Rpc_entrypoint         &,
                                        Range_allocator        &io_port_ranges)
 {
 	if (!lx_iopl(3)) {
-		static Io_port_root io_port_root(io_port_ranges, md);
+		static Io_port_root io_port_root(runtime, io_port_ranges, md);
 
 		static Core_service<Io_port_session_component> io_port_ls(services, io_port_root);
 	}

@@ -27,6 +27,7 @@ namespace Genode {
 	struct Native_thread;
 	class Thread;
 	class Stack;
+	class Runtime;
 	class Env;
 }
 
@@ -51,18 +52,15 @@ class Genode::Thread
 
 		Name const name;
 
+		struct Stack_size { size_t num_bytes; };
+
 	private:
 
 		using Alloc_stack_result = Unique_attempt<Stack &, Stack_error>;
 
-		/**
-		 * Allocate and locally attach a new stack
-		 *
-		 * \param stack_size   size of this threads stack
-		 * \param main_thread  wether this is the main thread
-		 */
-		Alloc_stack_result _alloc_stack(size_t stack_size, Name const &name,
-		                                bool main_thread);
+		Alloc_stack_result _alloc_stack(Runtime &, Stack &, Name const &, Stack_size);
+		Alloc_stack_result _alloc_stack(Runtime &, Name const &, Stack_size);
+		Alloc_stack_result _alloc_main_stack(Runtime &);
 
 		/**
 		 * Detach and release stack of the thread
@@ -104,10 +102,7 @@ class Genode::Thread
 		Cpu_session::Create_thread_result _thread_cap =
 			Cpu_session::Create_thread_error::DENIED;
 
-		/**
-		 * Pointer to cpu session used for this thread
-		 */
-		Cpu_session *_cpu_session = nullptr;
+		Runtime &_runtime;
 
 		/**
 		 * Session-local thread affinity
@@ -135,12 +130,9 @@ class Genode::Thread
 		Blockade _join { };
 
 		/**
-		 * Thread type
-		 *
-		 * Some threads need special treatment at construction. This enum
-		 * is solely used to distinguish them at construction.
+		 * Type for selecting the constructor for the main thread
 		 */
-		enum Type { NORMAL, MAIN };
+		struct Main { };
 
 	private:
 
@@ -159,92 +151,42 @@ class Genode::Thread
 			if (ptr) fn(*ptr);
 		}
 
-		/**
-		 * Hook for platform-specific constructor supplements
-		 *
-		 * \param type    enables selection of special initialization
-		 */
-		void _init_native_thread(Stack &, Type type);
-
-		void _init_cpu_session_and_trace_control();
+		void _init_native_thread(Stack &);
+		void _init_native_main_thread(Stack &);
+		void _init_trace_control();
+		void _deinit_trace_control();
 
 	public:
 
 		/**
-		 * Constructor
+		 * Constructor usable for by the core component
 		 *
 		 * \noapi
-		 *
-		 * \deprecated  superseded by the 'Thread(Env &...' constructor
 		 */
-		Thread(const char *name, size_t stack_size, Type type,
-		       Affinity::Location affinity = Affinity::Location());
-
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 *
-		 * \param name        thread name (for debugging)
-		 * \param stack_size  stack size
-		 *
-		 * The stack for the new thread will be allocated from the RAM session
-		 * of the component environment. A small portion of the stack size is
-		 * internally used by the framework for storing thread-specific
-		 * information such as the thread's name.
-		 *
-		 * \deprecated  superseded by the 'Thread(Env &...' constructor
-		 */
-		Thread(const char *name, size_t stack_size,
-		       Affinity::Location affinity = Affinity::Location())
-		: Thread(name, stack_size, NORMAL, affinity) { }
-
-		/**
-		 * Constructor
-		 *
-		 * Variant of the constructor that allows the use of a different
-		 * CPU session.
-		 *
-		 * \noapi Using multiple CPU sessions within a single component is
-		 *        an experimental feature.
-		 *
-		 * \param name        thread name (for debugging)
-		 * \param stack_size  stack size
-		 * \param type        enables selection of special construction
-		 * \param cpu_session capability to cpu session used for construction
-		 *
-		 * \deprecated  superseded by the 'Thread(Env &...' constructor
-		 */
-		Thread(const char *name, size_t stack_size,
-		       Type type, Cpu_session *,
-		       Affinity::Location affinity = Affinity::Location());
+		Thread(Runtime &, Name const &, Stack_size, Location);
 
 		/**
 		 * Constructor
 		 *
 		 * \param env         component environment
 		 * \param name        thread name, used for debugging
-		 * \param stack_size  stack size
+		 * \param size        stack size
 		 * \param location    CPU affinity relative to the CPU-session's
 		 *                    affinity space
-		 * \param cpu_session CPU session used to create the thread. Normally
-		 *                    'env.cpu()' should be specified.
 		 *
 		 * The 'env' argument is needed because the thread creation procedure
 		 * needs to interact with the environment for attaching the thread's
 		 * stack, the trace-control dataspace, and the thread's trace buffer
 		 * and policy.
 		 */
-		Thread(Env &env, Name const &name, size_t stack_size, Location location,
-		       Cpu_session &cpu);
+		Thread(Env &env, Name const &name, Stack_size size, Location location = { });
 
 		/**
-		 * Constructor
+		 * Constructor for the main thread
 		 *
-		 * This is a shortcut for the common case of creating a thread via
-		 * the environment's CPU session, at the default affinity location.
+		 * \noapi
 		 */
-		Thread(Env &env, Name const &name, size_t stack_size);
+		Thread(Runtime &);
 
 		/**
 		 * Destructor
@@ -278,13 +220,12 @@ class Genode::Thread
 		 *
 		 * \return  pointer to the new stack's top
 		 */
-		Alloc_secondary_stack_result alloc_secondary_stack(Name const &name,
-		                                                   size_t stack_size);
+		Alloc_secondary_stack_result alloc_secondary_stack(Name const &, Stack_size);
 
 		/**
 		 * Remove a secondary stack from the thread
 		 */
-		void free_secondary_stack(void* stack_addr);
+		void free_secondary_stack(void *stack_addr);
 
 		/**
 		 * Request capability of thread

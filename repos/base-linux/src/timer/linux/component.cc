@@ -82,7 +82,7 @@ class Timer::Device
 
 			Waiter(Env &env, Wakeup_dispatcher &dispatcher, Device &device)
 			:
-				Thread(env, "waiter", 8*1024*sizeof(addr_t)),
+				Thread(env, "waiter", Stack_size { 64*1024 }),
 				_dispatcher(dispatcher),
 				_device(device)
 			{

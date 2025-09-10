@@ -1031,7 +1031,7 @@ Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
 {
 	using namespace Core;
 
-	map_local(Platform::core_phys_addr((addr_t)&_utcb_instance),
+	map_local(Core::Platform::core_phys_addr((addr_t)&_utcb_instance),
 	          (addr_t)utcb_main_thread(),
 	          sizeof(Native_utcb) / get_page_size());
 

@@ -14,13 +14,11 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/env.h>
 
 /* base-internal includes */
-#include <base/internal/native_utcb.h>
-#include <base/internal/globals.h>
 #include <base/internal/okl4.h>
 #include <base/internal/stack.h>
+#include <base/internal/runtime.h>
 
 using namespace Genode;
 
@@ -28,56 +26,12 @@ using namespace Genode;
 Okl4::L4_ThreadId_t main_thread_tid;
 
 
-static Thread_capability main_thread_cap(Thread_capability main_cap = { })
-{
-	static Thread_capability cap = main_cap;
-	return cap;
-}
-
-
-/*******************
- ** local helpers **
- *******************/
-
-namespace Okl4
-{
-	/*
-	 * Read global thread ID from user-defined handle and store it
-	 * into a designated UTCB entry.
-	 */
-	L4_Word_t copy_uregister_to_utcb()
-	{
-		using namespace Okl4;
-
-		L4_Word_t my_global_id = L4_UserDefinedHandle();
-		__L4_TCR_Set_ThreadWord(Genode::UTCB_TCR_THREAD_WORD_MYSELF,
-		                        my_global_id);
-		return my_global_id;
-	}
-}
-
-using namespace Genode;
-
-
-/*****************************
- ** Startup library support **
- *****************************/
-
 void Genode::prepare_init_main_thread()
 {
 	/* copy thread ID to utcb */
 	main_thread_tid.raw = Okl4::copy_uregister_to_utcb();
-
-	/* adjust main-thread ID if this is the main thread of core */
-	if (main_thread_tid.raw == 0) {
-		main_thread_tid.raw = Okl4::L4_rootserver.raw;
-	}
 }
 
-
-/************
- ** Thread **
- ************/
 
 void Thread::_thread_bootstrap()
 {
@@ -86,17 +40,11 @@ void Thread::_thread_bootstrap()
 }
 
 
-void Thread::_init_native_thread(Stack &stack, Type type)
-{
-	if (type == NORMAL)
-		return;
+void Thread::_init_native_thread(Stack &) { }
 
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
 	stack.native_thread().l4id.raw = main_thread_tid.raw;
-	_thread_cap = main_thread_cap();
-}
-
-
-void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
-{
-	main_thread_cap(main_cap);
+	_thread_cap = _runtime.parent.main_thread_cap();
 }

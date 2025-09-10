@@ -36,7 +36,7 @@ bool Task::runnable() const
 
 static inline void * _alloc_stack(const char * name)
 {
-	size_t const stack_size { 32*1024 };
+	Thread::Stack_size const stack_size { 32*1024 };
 	return Thread::myself()->alloc_secondary_stack(name, stack_size).convert<void *>(
 		[&] (void *sp) { return sp; },
 		[&] (Thread::Stack_error) {

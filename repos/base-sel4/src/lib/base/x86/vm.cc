@@ -91,8 +91,6 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 
 		addr_t const                _vmcs_ctrl0 = EXIT_ON_HLT;
 
-		enum { STACK_SIZE = 0x3000 };
-
 		enum State {
 			NONE = 0,
 			PAUSE = 1,
@@ -750,9 +748,9 @@ struct Sel4_vcpu : Genode::Thread, Noncopyable
 		Sel4_vcpu(Env &env, Vm_connection &vm,
 		          Vcpu_handler_base &handler, Exit_config const &)
 		:
-			Thread(env, "vcpu_thread", STACK_SIZE, _location(handler), env.cpu()),
+			Thread(env, "vcpu_thread", Stack_size { 0x3000 }, _location(handler)),
 			_vcpu_handler(handler),
-	 	 	_exit_handler(handler.ep(), *this, &Sel4_vcpu::_wrapper_dispatch)
+			_exit_handler(handler.ep(), *this, &Sel4_vcpu::_wrapper_dispatch)
 		{
 			Thread::start();
 

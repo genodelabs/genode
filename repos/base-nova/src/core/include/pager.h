@@ -393,7 +393,7 @@ class Core::Pager_entrypoint : public Object_pool<Pager_object>
 		 *                     for the pager objects managed by this
 		 *                     entry point
 		 */
-		Pager_entrypoint(Rpc_cap_factory &cap_factory);
+		Pager_entrypoint(Runtime &, Rpc_cap_factory &cap_factory);
 
 		/**
 		 * Associate Pager_object with the entry point

@@ -30,7 +30,8 @@ extern addr_t hypervisor_exception_vector;
 /*
  * Add ARM virtualization specific vm service
  */
-void Core::platform_add_local_services(Rpc_entrypoint         &ep,
+void Core::platform_add_local_services(Runtime                &,
+                                       Rpc_entrypoint         &ep,
                                        Sliced_heap            &sh,
                                        Registry<Service>      &services,
                                        Trace::Source_registry &trace_sources,

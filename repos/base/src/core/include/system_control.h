@@ -14,7 +14,6 @@
 #ifndef _CORE__INCLUDE__SYSTEM_CONTROL_H_
 #define _CORE__INCLUDE__SYSTEM_CONTROL_H_
 
-
 #include <base/rpc_server.h>
 
 
@@ -22,15 +21,13 @@ namespace Core {
 
 	class System_control;
 
-	System_control & init_system_control(Allocator &, Rpc_entrypoint &);
+	System_control & init_system_control(Runtime &, Allocator &, Rpc_entrypoint &);
 }
 
 
-class Core::System_control : Interface
+struct Core::System_control : Interface
 {
-	public:
-
-		virtual Capability<Pd_session::System_control> control_cap(Affinity::Location) const = 0;
+	virtual Capability<Pd_session::System_control> control_cap(Affinity::Location) const = 0;
 };
 
 #endif /* _CORE__INCLUDE__SYSTEM_CONTROL_H_ */

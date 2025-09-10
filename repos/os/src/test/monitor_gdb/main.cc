@@ -34,7 +34,7 @@ struct Test_thread : Thread
 		*(int *)0 = 42;
 	}
 
-	Test_thread(Genode::Env &env) : Thread(env, "thread", 8192) { }
+	Test_thread(Genode::Env &env) : Thread(env, "thread", Stack_size { 8192 }) { }
 
 	void entry() override
 	{

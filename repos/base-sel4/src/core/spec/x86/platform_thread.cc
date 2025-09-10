@@ -32,7 +32,7 @@ void Platform_thread::affinity(Affinity::Location const location)
 }
 
 
-bool Thread_info::init_vcpu(Platform &platform, Cap_sel ept)
+bool Thread_info::init_vcpu(Core::Platform &platform, Cap_sel ept)
 {
 	enum { PAGES_16K = (1UL << Vcpu_kobj::SIZE_LOG2) / 4096 };
 

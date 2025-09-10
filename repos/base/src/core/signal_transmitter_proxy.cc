@@ -46,10 +46,9 @@ void Signal_transmitter::submit(unsigned cnt)
 }
 
 
-Rpc_entrypoint &Core::core_signal_ep(Rpc_entrypoint &)
+Rpc_entrypoint &Core::core_signal_ep(Runtime &runtime, Rpc_entrypoint &)
 {
-	size_t const STACK_SIZE = 20 * 1024;
-	static Rpc_entrypoint ep(nullptr, STACK_SIZE,
-	                         "signal_entrypoint", Affinity::Location());
+	static Rpc_entrypoint ep(runtime, "signal_entrypoint",
+	                         Thread::Stack_size { 20*1024 }, Affinity::Location());
 	return ep;
 }

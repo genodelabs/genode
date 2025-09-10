@@ -136,7 +136,7 @@ static void test_stack_align(char const *fmt, ...)
 struct Test_stack_align_thread : Thread
 {
 	Test_stack_align_thread(Env &env)
-	: Thread(env, "test_stack_align", 0x2000) { }
+	: Thread(env, "test_stack_align", Stack_size { 0x2000 }) { }
 
 	void entry() { test_stack_align("%f\n%g\n", 3.142, 2.718); }
 };

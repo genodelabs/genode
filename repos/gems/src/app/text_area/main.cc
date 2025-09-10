@@ -39,7 +39,7 @@ struct Text_area::Main : Text_area_widget::Action
 		[&] (Node const &config) -> Root_directory { return { _env, _heap, config }; },
 		[&] ()                   -> Root_directory { return { _env, _heap, Node() }; });
 
-	Runtime _runtime { _env, _heap };
+	Dialog::Runtime _runtime { _env, _heap };
 
 	struct Main_dialog : Top_level_dialog
 	{
@@ -73,10 +73,11 @@ struct Text_area::Main : Text_area_widget::Action
 
 	} _dialog { *this };
 
-	Runtime::View _view { _runtime, _dialog };
+	Dialog::Runtime::View _view { _runtime, _dialog };
 
 	/* handler used to respond to keyboard input */
-	Runtime::Event_handler<Main> _event_handler { _runtime, *this, &Main::_handle_event };
+	Dialog::Runtime::Event_handler<Main> _event_handler {
+		_runtime, *this, &Main::_handle_event };
 
 	void _handle_event(::Dialog::Event const &event)
 	{

@@ -19,14 +19,18 @@
 using namespace Genode;
 
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_thread(Stack &stack)
 {
 	/*
 	 * Reset to default values. The default values trigger initial allocations
 	 * and associations the thread, like IPCbuffer in ipc.cc.
 	 */
 	stack.native_thread().attr = { };
+}
 
-	if (type == MAIN)
-		stack.native_thread().attr.lock_sel = INITIAL_SEL_LOCK;
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
+	_init_native_thread(stack);
+	stack.native_thread().attr.lock_sel = INITIAL_SEL_LOCK;
 }

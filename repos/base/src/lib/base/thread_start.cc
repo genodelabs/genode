@@ -21,15 +21,9 @@
 /* base-internal includes */
 #include <base/internal/stack.h>
 #include <base/internal/globals.h>
+#include <base/internal/runtime.h>
 
 using namespace Genode;
-
-
-static Capability<Pd_session> pd_session_cap(Capability<Pd_session> pd_cap = { })
-{
-	static Capability<Pd_session> cap = pd_cap; /* defined once by 'init_thread_start' */
-	return cap;
-}
 
 
 /**
@@ -67,28 +61,23 @@ void Thread::_thread_start()
 
 void Thread::_deinit_native_thread(Stack &)
 {
-	if (!_cpu_session) {
-		error("Thread::_cpu_session unexpectedly not defined");
-		return;
-	}
-
 	_thread_cap.with_result(
-		[&] (Thread_capability cap) { _cpu_session->kill_thread(cap); },
+		[&] (Thread_capability cap) { _runtime.cpu.kill_thread(cap); },
 		[&] (auto) { });
 }
 
 
 Thread::Start_result Thread::start()
 {
-	_init_cpu_session_and_trace_control();
+	_init_trace_control();
 
 	return _stack.convert<Start_result>([&] (Stack &stack) {
 
 		/* create thread at core */
 		addr_t const utcb = addr_t(&stack.utcb());
 
-		_thread_cap = _cpu_session->create_thread(pd_session_cap(), name, _affinity,
-		                                          utcb);
+		_thread_cap = _runtime.cpu.create_thread(_runtime.pd.rpc_cap(), name,
+		                                         _affinity, utcb);
 		return _thread_cap.convert<Start_result>(
 			[&] (Thread_capability cap) {
 
@@ -99,10 +88,4 @@ Thread::Start_result Thread::start()
 			[&] (Cpu_session::Create_thread_error) { return Start_result::DENIED; });
 
 	}, [&] (Stack_error) { return Start_result::DENIED; });
-}
-
-
-void Genode::init_thread_start(Capability<Pd_session> pd_cap)
-{
-	pd_session_cap(pd_cap);
 }

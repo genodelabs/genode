@@ -3,6 +3,9 @@ CORE_LIB ?= core.a
 
 BUILD_ARTIFACTS := $(CORE_LIB)
 
+# prevent include of base/internal/platform.h by core
+CC_OPT += -DUSED_BY_CORE
+
 $(TARGET):
 	@true
 

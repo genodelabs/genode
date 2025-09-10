@@ -19,7 +19,7 @@
 #include <linux_syscalls.h>
 
 /* base-internal includes */
-#include <base/internal/platform.h>
+#include <base/internal/runtime.h>
 #include <base/internal/native_thread.h>
 #include <base/internal/parent_socket_handle.h>
 #include <base/internal/capability_space_tpl.h>
@@ -101,9 +101,9 @@ Local_parent::Local_parent(Parent_capability parent_cap,
 { }
 
 
-/**************
- ** Platform **
- **************/
+/*************
+ ** Runtime **
+ *************/
 
 /**
  * List of Unix environment variables, initialized by the startup code
@@ -127,7 +127,7 @@ static unsigned long get_env_ulong(const char *key)
 }
 
 
-Capability<Parent> Platform::_obtain_parent_cap()
+Capability<Parent> Runtime::_obtain_parent_cap()
 {
 	long const local_name = get_env_ulong("parent_local_name");
 
@@ -146,20 +146,22 @@ void Genode::init_parent_resource_requests(Genode::Env &env)
 }
 
 
-Platform &Genode::init_platform()
+Runtime &Genode::init_runtime()
 {
-	static Genode::Platform platform;
+	static Genode::Runtime runtime;
 
-	init_log(platform.parent);
-	init_rpc_cap_alloc(platform.parent);
-	init_cap_slab(platform.pd, platform.parent);
-	init_thread(platform.cpu, platform.local_rm);
-	init_thread_start(platform.pd.rpc_cap());
-	init_thread_bootstrap(platform.cpu, platform.parent.main_thread_cap());
-	init_exception_handling(platform.ram, platform.local_rm);
-	init_signal_receiver(platform.pd, platform.parent);
+	init_log(runtime.parent);
+	init_rpc_cap_alloc(runtime.parent);
+	init_cap_slab(runtime.pd, runtime.parent);
 
-	return platform;
+	/* register TID and PID of the main thread at core */
+	Linux_native_cpu_client native_cpu(runtime.cpu.native_cpu());
+	native_cpu.thread_id(runtime.parent.main_thread_cap(), lx_getpid(), lx_gettid());
+
+	init_exception_handling(runtime.ram, runtime.local_rm);
+	init_signal_receiver(runtime.pd, runtime.parent);
+
+	return runtime;
 }
 
 

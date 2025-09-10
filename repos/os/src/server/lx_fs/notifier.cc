@@ -27,7 +27,6 @@
 namespace Lx_fs
 {
 	enum {
-		STACK_SIZE             = 8 * 1024,
 		EVENT_SIZE             = (sizeof (struct inotify_event)),
 		EVENT_BUF_LEN          = (1024 * (EVENT_SIZE + NAME_MAX + 1)),
 		PARALLEL_NOTIFICATIONS = 4,
@@ -212,7 +211,7 @@ void Lx_fs::Notifier::_process_notify()
 
 Lx_fs::Notifier::Notifier(Env &env)
 :
-	Thread { env, "inotify", STACK_SIZE },
+	Thread { env, "inotify", Stack_size { 8*1024 } },
 	_env   { env }
 {
 	_fd = inotify_init();

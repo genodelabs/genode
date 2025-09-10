@@ -12,7 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/internal/platform.h>
+#include <base/internal/runtime.h>
 
 using namespace Genode;
 
@@ -24,19 +24,16 @@ void Genode::init_parent_resource_requests(Genode::Env &env)
 }
 
 
-Platform &Genode::init_platform()
+Runtime &Genode::init_runtime()
 {
-	static Genode::Platform platform;
+	static Genode::Runtime runtime;
 
-	init_log(platform.parent);
-	init_rpc_cap_alloc(platform.parent);
-	init_cap_slab(platform.pd, platform.parent);
-	init_thread(platform.cpu, platform.local_rm);
-	init_thread_start(platform.pd.rpc_cap());
-	init_thread_bootstrap(platform.cpu, platform.parent.main_thread_cap());
-	init_signal_receiver(platform.pd, platform.parent);
+	init_log(runtime.parent);
+	init_rpc_cap_alloc(runtime.parent);
+	init_cap_slab(runtime.pd, runtime.parent);
+	init_signal_receiver(runtime.pd, runtime.parent);
 
-	return platform;
+	return runtime;
 }
 
 

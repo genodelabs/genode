@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__BASE__INTERNAL__PLATFORM_H_
-#define _INCLUDE__BASE__INTERNAL__PLATFORM_H_
+#ifndef _INCLUDE__BASE__INTERNAL__RUNTIME_H_
+#define _INCLUDE__BASE__INTERNAL__RUNTIME_H_
 
 /* Genode includes */
 #include <base/heap.h>
@@ -29,10 +29,10 @@
 #include <base/internal/local_pd_session.h>
 #include <base/internal/local_parent.h>
 
-namespace Genode { struct Platform; }
+namespace Genode { struct Runtime; }
 
 
-struct Genode::Platform
+struct Genode::Runtime
 {
 	Region_map_mmap mmap_rm { false };
 
@@ -59,7 +59,7 @@ struct Genode::Platform
 
 	Heap heap { ram, local_rm };
 
-	Platform() { _attach_stack_area(); }
+	Runtime() { _attach_stack_area(); }
 
 	/**
 	 * Attach stack area to local address space (for non-hybrid components)
@@ -67,4 +67,4 @@ struct Genode::Platform
 	void _attach_stack_area();
 };
 
-#endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__RUNTIME_H_ */

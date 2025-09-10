@@ -262,7 +262,6 @@ struct Foc_vcpu : Thread, Noncopyable
 		enum {
 			VMEXIT_STARTUP = 0xfe,
 			VMEXIT_PAUSED  = 0xff,
-			STACK_SIZE     = 0x3000,
 		};
 
 		enum State {
@@ -1285,7 +1284,7 @@ struct Foc_vcpu : Thread, Noncopyable
 		Foc_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler,
 		         enum Virt type)
 		:
-			Thread(env, "vcpu_thread", STACK_SIZE, _location(handler), env.cpu()),
+			Thread(env, "vcpu_thread", Stack_size { 0x3000 }, _location(handler)),
 			_vcpu_handler(handler),
 			_exit_handler(handler.ep(), *this, &Foc_vcpu::_wrapper_dispatch),
 			_vm_type(type)

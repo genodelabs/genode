@@ -13,44 +13,17 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/env.h>
 
 /* base-internal includes */
-#include <base/internal/globals.h>
-
-using namespace Genode;
+#include <base/internal/runtime.h>
 
 
-static Thread_capability main_thread_cap(Thread_capability main_cap = { })
+void Genode::prepare_init_main_thread()  { }
+void Genode::Thread::_thread_bootstrap() { }
+void Genode::Thread::_init_native_thread(Stack &) { }
+
+
+void Genode::Thread::_init_native_main_thread(Stack &)
 {
-	static Thread_capability cap = main_cap;
-	return cap;
-}
-
-
-/*****************************
- ** Startup library support **
- *****************************/
-
-void Genode::prepare_init_main_thread() { }
-
-
-/************
- ** Thread **
- ************/
-
-void Thread::_thread_bootstrap() { }
-
-
-void Thread::_init_native_thread(Stack &, Type type)
-{
-	if (type == NORMAL) return;
-
-	_thread_cap = main_thread_cap();
-}
-
-
-void Genode::init_thread_bootstrap(Cpu_session &, Thread_capability main_cap)
-{
-	main_thread_cap(main_cap);
+	_thread_cap = _runtime.parent.main_thread_cap();
 }

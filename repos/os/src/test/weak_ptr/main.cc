@@ -174,7 +174,7 @@ struct Destruct_thread : Genode::Thread
 	}
 
 	Destruct_thread(O *obj, Genode::Env &env, Genode::Heap &heap)
-	: Thread(env, "object_destructor", 16*1024), obj(*obj), heap(heap) { }
+	: Thread(env, "object_destructor", Stack_size { 16*1024 }), obj(*obj), heap(heap) { }
 };
 
 

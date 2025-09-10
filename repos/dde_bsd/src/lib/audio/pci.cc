@@ -127,7 +127,8 @@ class Pci_driver
 		:
 			_env(env), _alloc(&alloc)
 		{
-			_alloc.add_range(_buffer_base(), DMA_SIZE);
+			if (_alloc.add_range(_buffer_base(), DMA_SIZE).failed())
+				Genode::error("Pci_driver: failed to register DMA range");
 
 			/* will "block" until device list becomes available */
 			_wait_for_device_list(_env.ep(), _pci);

@@ -58,7 +58,7 @@ class Core::Irq_object : public Thread {
 			MSI_OFFSET     = PIC_IRQ_LINES + IRQ_INT_OFFSET
 		};
 
-		Irq_object(Allocator::Result const &irq);
+		Irq_object(Runtime &, Allocator::Result const &irq);
 		~Irq_object();
 
 		void sigh(Signal_context_capability cap) { _sig_cap = cap; }

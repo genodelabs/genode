@@ -44,18 +44,20 @@ addr_t Stack_allocator::idx_to_base(size_t idx)
 }
 
 
-Stack *
-Stack_allocator::alloc(Thread *, bool main_thread)
+Stack *Stack_allocator::alloc(Thread *)
 {
-	if (main_thread)
-		/* the main-thread stack is the first one */
-		return base_to_stack(stack_area_virtual_base());
-
 	Mutex::Guard guard(_threads_mutex);
 
 	return _alloc.alloc().convert<Stack *>(
 		[&] (addr_t i) { return base_to_stack(idx_to_base(i)); },
 		[&] (Stack_bit_allocator::Error) -> Stack * { return nullptr; });
+}
+
+
+Stack *Stack_allocator::alloc_main(Thread *)
+{
+	/* the main-thread stack is the first one */
+	return base_to_stack(stack_area_virtual_base());
 }
 
 

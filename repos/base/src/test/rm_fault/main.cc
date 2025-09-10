@@ -89,7 +89,9 @@ struct Exec_faulter : Thread
 	unsigned _fault_test;
 
 	Exec_faulter(Env &env, unsigned test)
-	: Thread(env, "exec_fault", 1024 * sizeof(addr_t)), _fault_test(test)
+	:
+		Thread(env, "exec_fault", Stack_size { 8*1024 }),
+		_fault_test(test)
 	{ }
 
 	void entry() override

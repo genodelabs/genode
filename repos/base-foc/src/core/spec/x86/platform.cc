@@ -23,7 +23,7 @@
 /* Fiasco.OC includes */
 #include <foc/syscall.h>
 
-using namespace Core;
+using Platform = Core::Platform;
 
 
 void Platform::_setup_io_port_alloc()
@@ -89,8 +89,11 @@ void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
 		error("setting mode for IRQ ", irq_number, " failed");
 }
 
+
 static bool cpu_name(char const * name)
 {
+	using namespace Core;
+
 	uint32_t cpuid = 0, edx = 0, ebx = 0, ecx = 0;
 
 	asm volatile ("cpuid" : "+a" (cpuid), "=d" (edx), "=b"(ebx), "=c"(ecx));

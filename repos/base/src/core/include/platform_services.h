@@ -38,7 +38,8 @@ namespace Core {
 	 * \param reg   registry where to add platform-specific services
 	 * \param trace registry where to add trace subjects
 	 */
-	void platform_add_local_services(Rpc_entrypoint         &ep,
+	void platform_add_local_services(Runtime                &,
+	                                 Rpc_entrypoint         &ep,
 	                                 Sliced_heap            &md,
 	                                 Registry<Service>      &reg,
 	                                 Trace::Source_registry &trace,

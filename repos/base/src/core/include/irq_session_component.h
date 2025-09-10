@@ -45,7 +45,8 @@ class Core::Irq_session_component : public  Rpc_object<Irq_session>,
 		 * \param irq_alloc    platform-dependent IRQ allocator
 		 * \param args         session construction arguments
 		 */
-		Irq_session_component(Range_allocator &irq_alloc, const char *args);
+		Irq_session_component(Runtime &, Range_allocator &irq_alloc,
+		                      const char *args);
 
 		/**
 		 * Destructor

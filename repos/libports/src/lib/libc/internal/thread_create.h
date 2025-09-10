@@ -27,14 +27,6 @@
 
 namespace Libc {
 
-	int pthread_create_from_session(pthread_t *thread,
-	                                void *(*start_routine) (void *),
-	                                void *arg,
-	                                size_t stack_size,
-	                                char const * name,
-	                                Cpu_session * cpu,
-	                                Affinity::Location location);
-
 	int pthread_create_from_thread(pthread_t *, Thread &, void *stack_address);
 
 	int pthread_create(pthread_t *thread, pthread_attr_t const *attr,

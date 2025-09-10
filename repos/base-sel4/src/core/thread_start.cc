@@ -127,19 +127,13 @@ static bool with_trace_source(Stack &stack, auto const &fn)
 }
 
 
-void Thread::_init_native_thread(Stack &stack, Type type)
+void Thread::_init_native_thread(Stack &stack)
 {
 	Native_thread &nt = stack.native_thread();
 
 	Utcb_virt const utcb_virt { addr_t(&stack.utcb()) };
 
-	if (type == MAIN) {
-		nt.attr.tcb_sel = seL4_CapInitThreadTCB;
-		nt.attr.lock_sel = INITIAL_SEL_LOCK;
-		return;
-	}
-
-	with_thread_info(stack, [&](auto &thread_info){
+	with_thread_info(stack, [&] (auto &thread_info) {
 
 		thread_info.init(utcb_virt, CONFIG_NUM_PRIORITIES - 1);
 
@@ -162,7 +156,7 @@ void Thread::_init_native_thread(Stack &stack, Type type)
 		nt.attr.ep_sel   = thread_info.ep_sel.value();
 		nt.attr.lock_sel = thread_info.lock_sel.value();
 
-		Platform &platform = platform_specific();
+		Core::Platform &platform = platform_specific();
 
 		seL4_CNode_CapData guard = seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - 32);
 		seL4_CNode_CapData no_cap_data = { { 0 } };
@@ -194,11 +188,20 @@ void Thread::_init_native_thread(Stack &stack, Type type)
 			thread_info.lock_sel_unminted = unbadged_sel;
 
 			return true;
-		}, [](auto) {
+		}, [] (auto) {
 			warning("core thread: selector allocation failed");
 			return false;
 		});
 	});
+}
+
+
+void Thread::_init_native_main_thread(Stack &stack)
+{
+	Native_thread &nt = stack.native_thread();
+
+	nt.attr.tcb_sel = seL4_CapInitThreadTCB;
+	nt.attr.lock_sel = INITIAL_SEL_LOCK;
 }
 
 

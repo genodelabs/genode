@@ -47,6 +47,7 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 	Pd_session &pd()                         override { return genode_env.pd(); }
 	Ram_allocator &ram()                     override { return genode_env.ram(); }
 	Entrypoint &ep()                         override { return local_ep; }
+	Runtime &runtime()                       override { return genode_env.runtime(); }
 	Cpu_session_capability cpu_session_cap() override { return genode_env.cpu_session_cap(); }
 	Pd_session_capability pd_session_cap()   override { return genode_env.pd_session_cap(); }
 	Id_space<Parent::Client> &id_space()     override { return genode_env.id_space(); }

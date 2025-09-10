@@ -1,5 +1,5 @@
 /*
- * \brief  Platform of Genode component
+ * \brief  Runtime of Genode component
  * \author Norman Feske
  * \author Christian Helmuth
  * \date   2006-07-28
@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__BASE__INTERNAL__PLATFORM_H_
-#define _INCLUDE__BASE__INTERNAL__PLATFORM_H_
+#ifndef _INCLUDE__BASE__INTERNAL__RUNTIME_H_
+#define _INCLUDE__BASE__INTERNAL__RUNTIME_H_
 
 /* base-internal includes */
 #include <base/internal/parent_cap.h>
@@ -24,10 +24,14 @@
 #include <base/internal/expanding_region_map_client.h>
 #include <base/internal/expanding_parent_client.h>
 
-namespace Genode { class Platform; }
+#ifdef USED_BY_CORE
+#error base/interal/platform.h must not be included by core
+#endif
+
+namespace Genode { class Runtime; }
 
 
-struct Genode::Platform : Noncopyable
+struct Genode::Runtime : Noncopyable
 {
 	Expanding_parent_client parent { Genode::parent_cap() };
 
@@ -52,11 +56,11 @@ struct Genode::Platform : Noncopyable
 
 	Attached_stack_area stack_area { parent, pd.rpc_cap() };
 
-	Platform()
+	Runtime()
 	{
 		env_stack_area_ram_allocator = &ram;
 		env_stack_area_region_map    = &stack_area;
 	}
 };
 
-#endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_H_ */
+#endif /* _INCLUDE__BASE__INTERNAL__RUNTIME_H_ */

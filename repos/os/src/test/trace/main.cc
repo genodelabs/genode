@@ -43,7 +43,8 @@ struct Test_thread : Thread
 	}
 
 	Test_thread(Env &env, Name const &name)
-	: Thread(env, name, 1024 * sizeof(addr_t)), _env(env) { start(); }
+	: Thread(env, name, Stack_size { 8*1024 }),
+	  _env(env) { start(); }
 
 	~Test_thread()
 	{
@@ -131,7 +132,7 @@ struct Test_out_of_metadata
 	struct Test_thread : Genode::Thread
 	{
 		Test_thread(Genode::Env &env, const char * name)
-		: Thread(env, Thread::Name(name), 4096) { start(); }
+		: Thread(env, Thread::Name(name), Stack_size { 4096 }) { start(); }
 
 		~Test_thread() { join(); }
 

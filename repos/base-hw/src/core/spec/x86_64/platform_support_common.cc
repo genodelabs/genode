@@ -17,17 +17,15 @@
 #include <board.h>
 #include <cpu.h>
 
-using namespace Core;
 
-
-void Platform::_init_io_port_alloc()
+void Core::Platform::_init_io_port_alloc()
 {
 	if (_io_port_alloc.add_range(0, 0x10000).failed())
 		warning("unable to register default I/O-port range");
 }
 
 
-long Platform::irq(long const user_irq)
+long Core::Platform::irq(long const user_irq)
 {
 	/* remap IRQ requests to fit I/O APIC configuration */
 	if (user_irq)

@@ -25,7 +25,6 @@ SRC_CC += sleep.cc
 SRC_CC += region_map_client.cc
 SRC_CC += rm_session_client.cc
 SRC_CC += stack_allocator.cc
-SRC_CC += trace.cc
 SRC_CC += trace_buffer.cc
 SRC_CC += env_session_id_space.cc
 SRC_CC += stack_protector.cc
@@ -34,6 +33,9 @@ SRC_CC += hrd.cc
 SRC_CC += node.cc
 
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
+
+# prevent include of base/internal/platform.h by core
+CC_OPT += -DUSED_BY_CORE
 
 vpath %.cc  $(REP_DIR)/src/lib/base
 vpath %.cc $(BASE_DIR)/src/lib/base

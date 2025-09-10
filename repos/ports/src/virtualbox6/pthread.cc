@@ -74,7 +74,8 @@ class Pthread::Entrypoint : public Pthread::Emt
 		/* members initialized by constructing thread */
 
 		Sup::Cpu_index const _cpu;
-		size_t         const _stack_size; /* stack size for EMT mode */
+
+		Genode::Thread::Stack_size const _stack_size; /* for EMT mode */
 
 		Genode::Entrypoint _ep;
 		Blockade           _construction_finalized { };

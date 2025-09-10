@@ -46,8 +46,6 @@ namespace Core {
 
 	using Pager_capability = Capability<Pager_object>;
 
-	enum { PAGER_EP_STACK_SIZE = sizeof(addr_t) * 2048 };
-
 	extern void init_page_fault_handling(Rpc_entrypoint &);
 }
 
@@ -183,9 +181,9 @@ class Core::Pager_entrypoint : public Object_pool<Pager_object>,
 		 *                     for the pager objects managed by this
 		 *                     entry point
 		 */
-		Pager_entrypoint(Rpc_cap_factory &cap_factory)
+		Pager_entrypoint(Runtime &runtime, Rpc_cap_factory &cap_factory)
 		:
-			Thread("pager_ep", PAGER_EP_STACK_SIZE, Type::NORMAL),
+			Thread(runtime, "pager_ep", Stack_size { 16*1024 }, { }),
 			_cap_factory(cap_factory)
 		{ start(); }
 

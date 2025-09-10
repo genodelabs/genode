@@ -36,13 +36,13 @@ static Core::Rpc_cap_factory &rpc_cap_factory()
 
 
 Rpc_entrypoint::Alloc_rpc_cap_result
-Rpc_entrypoint::_alloc_rpc_cap(Pd_session &, Native_capability ep, addr_t entry)
+Rpc_entrypoint::_alloc_rpc_cap(Runtime &, Native_capability ep, addr_t entry)
 {
 	return rpc_cap_factory().alloc(ep, entry, 0);
 }
 
 
-void Rpc_entrypoint::_free_rpc_cap(Pd_session &, Native_capability cap)
+void Rpc_entrypoint::_free_rpc_cap(Runtime &, Native_capability cap)
 {
 	rpc_cap_factory().free(cap);
 }

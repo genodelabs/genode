@@ -17,11 +17,13 @@
 /* core includes */
 #include <types.h>
 
-namespace Genode { class Rpc_entrypoint; }
+namespace Genode {
+	class Rpc_entrypoint;
+	class Runtime;
+}
 
 
 namespace Core {
-
 
 	/*
 	 * Initialize the emission of signals originating from the component
@@ -41,7 +43,7 @@ namespace Core {
 	void init_core_signal_transmitter(Rpc_entrypoint &ep);
 
 
-	Rpc_entrypoint &core_signal_ep(Rpc_entrypoint &core_ep);
+	Rpc_entrypoint &core_signal_ep(Runtime &, Rpc_entrypoint &core_ep);
 }
 
 #endif /* _CORE__INCLUDE__SIGNAL_TRANSMITTER_H_ */

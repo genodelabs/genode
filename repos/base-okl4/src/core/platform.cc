@@ -22,6 +22,7 @@
 #include <base/internal/stack_area.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/globals.h>
+#include <base/internal/stack.h>
 #include <base/internal/okl4.h>
 
 /* core includes */
@@ -88,6 +89,30 @@ int Core::Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 
 static char init_slab_block_rom[get_page_size()];
 static char init_slab_block_thread[get_page_size()];
+
+
+Okl4::L4_ThreadId_t main_thread_tid;
+
+void Genode::prepare_init_main_thread()
+{
+	main_thread_tid.raw = Okl4::L4_rootserver.raw;
+}
+
+
+void Genode::Thread::_thread_bootstrap()
+{
+	with_native_thread([&] (Native_thread &nt) {
+		nt.l4id.raw = Okl4::copy_uregister_to_utcb(); });
+}
+
+
+void Genode::Thread::_init_native_thread(Stack &) { }
+
+
+void Genode::Thread::_init_native_main_thread(Stack &stack)
+{
+	stack.native_thread().l4id.raw = main_thread_tid.raw;
+}
 
 
 Core::Platform::Platform()
