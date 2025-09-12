@@ -66,6 +66,19 @@ class Terminal::Session_client : public Rpc_client<Session>
 			return num_bytes;
 		}
 
+		template <typename FN>
+		void with_read_bytes(FN const &fn)
+		{
+			Mutex::Guard _guard(_mutex);
+
+			/* instruct server to fill the I/O buffer */
+			size_t num_bytes = call<Rpc_read>(_io_buffer.size());
+			if (!num_bytes)
+				return;
+
+			fn(Span { _io_buffer.local_addr<char const>(), num_bytes });
+		}
+
 		size_t write(void const *buf, size_t num_bytes) override
 		{
 			Mutex::Guard _guard(_mutex);
