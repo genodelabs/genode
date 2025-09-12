@@ -61,6 +61,7 @@ drivers/gpu/drm/i915/display/intel_dpll_mgr.h
 drivers/gpu/drm/i915/display/intel_dpt.h
 drivers/gpu/drm/i915/display/intel_drrs.h
 drivers/gpu/drm/i915/display/intel_dsb.h
+drivers/gpu/drm/i915/display/intel_dsb_buffer.h
 drivers/gpu/drm/i915/display/intel_dsi.h
 drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.h
 drivers/gpu/drm/i915/display/intel_dsi_vbt.h

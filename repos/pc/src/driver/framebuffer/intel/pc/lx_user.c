@@ -1291,15 +1291,18 @@ static int user_register_fb(struct drm_client_dev const * const dev,
 	}
 
 	if (!i915_vma_is_map_and_fenceable(*vma)) {
-		printk("%s: framebuffer not mappable in aperture -> destroying framebuffer\n",
-		       (info && info->par) ? (char *)info->par : "unknown");
+		/* on Meteorlake ignore the check, since mappable_end is not set.  */
+		if (i915_vm_to_ggtt((*vma)->vm)->mappable_end) {
+			printk("%s: framebuffer not mappable in aperture -> destroying\n",
+			       (info && info->par) ? (char *)info->par : "unknown");
 
-		intel_fb_unpin_vma(*vma, *vma_flags);
+			intel_fb_unpin_vma(*vma, *vma_flags);
 
-		*vma       = NULL;
-		*vma_flags = 0;
+			*vma       = NULL;
+			*vma_flags = 0;
 
-		return -ENOSPC;
+			return -ENOSPC;
+		}
 	}
 
 	vaddr = i915_vma_pin_iomap(*vma);

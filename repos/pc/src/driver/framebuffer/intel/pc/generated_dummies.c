@@ -121,14 +121,6 @@ void __unregister_chrdev(unsigned int major,unsigned int baseminor,unsigned int 
 }
 
 
-#include <linux/printk.h>
-
-int _printk_deferred(const char * fmt,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/mm.h>
 
 atomic_long_t _totalram_pages;
@@ -1146,34 +1138,6 @@ u64 intel_context_get_total_runtime_ns(struct intel_context * ce)
 }
 
 
-extern void intel_dsb_chain(struct intel_atomic_state * state,struct intel_dsb * dsb,struct intel_dsb * chained_dsb,bool wait_for_vblank);
-void intel_dsb_chain(struct intel_atomic_state * state,struct intel_dsb * dsb,struct intel_dsb * chained_dsb,bool wait_for_vblank)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void intel_dsb_finish(struct intel_dsb * dsb);
-void intel_dsb_finish(struct intel_dsb * dsb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void intel_dsb_irq_handler(struct intel_display * display,enum pipe pipe,enum intel_dsb_id dsb_id);
-void intel_dsb_irq_handler(struct intel_display * display,enum pipe pipe,enum intel_dsb_id dsb_id)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void intel_dsb_wait(struct intel_dsb * dsb);
-void intel_dsb_wait(struct intel_dsb * dsb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern int intel_engine_flush_barriers(struct intel_engine_cs * engine);
 int intel_engine_flush_barriers(struct intel_engine_cs * engine)
 {
@@ -1230,13 +1194,6 @@ void intel_gt_driver_late_release_all(struct drm_i915_private * i915)
 
 extern void intel_gt_driver_unregister(struct intel_gt * gt);
 void intel_gt_driver_unregister(struct intel_gt * gt)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern bool intel_gt_is_bind_context_ready(struct intel_gt * gt);
-bool intel_gt_is_bind_context_ready(struct intel_gt * gt)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1398,13 +1355,6 @@ bool intel_hdcp_gsc_check_status(struct drm_i915_private * i915)
 
 extern void intel_hdcp_gsc_fini(struct drm_i915_private * i915);
 void intel_hdcp_gsc_fini(struct drm_i915_private * i915)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern int intel_hdcp_gsc_init(struct drm_i915_private * i915);
-int intel_hdcp_gsc_init(struct drm_i915_private * i915)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -1856,12 +1806,6 @@ void pci_disable_device(struct pci_dev * dev)
 
 
 #include <asm-generic/pci_iomap.h>
-
-void __iomem * pci_iomap_range(struct pci_dev * dev,int bar,unsigned long offset,unsigned long maxlen)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
 
 #include <linux/pci.h>
 

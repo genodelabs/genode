@@ -207,3 +207,23 @@ bool intel_gt_needs_wa_22016122933(struct intel_gt *gt)
 {
 	return MEDIA_VER_FULL(gt->i915) == IP_VER(13, 0) && gt->type == GT_MEDIA;
 }
+
+
+/**
+ * intel_gt_is_bind_context_ready - Check if context binding is ready
+ *
+ * @gt: GT structure
+ *
+ * This function returns binder context's ready status.
+ */
+bool intel_gt_is_bind_context_ready(struct intel_gt *gt)
+{
+#if 0
+	struct intel_engine_cs *engine = gt->engine[BCS0];
+
+	if (engine)
+		return engine->bind_context_ready;
+#endif
+
+	return false;
+}

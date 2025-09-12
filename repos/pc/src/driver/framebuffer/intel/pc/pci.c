@@ -40,10 +40,11 @@ int pci_bus_alloc_resource(struct pci_bus *bus, struct resource *res,
 }
 
 
-void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+void __iomem * pci_iomap_range(struct pci_dev * dev,int bar,unsigned long offset,unsigned long maxlen)
 {
 	struct resource *r;
 	unsigned long phys_addr;
+	unsigned long phys_offset_addr;
 	unsigned long size;
 
 	if (!dev || bar > 5) {
@@ -59,10 +60,24 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
 	phys_addr = r->start;
 	size      = r->end - r->start;
 
+	if (offset >= size) {
+		printk("%s:%d: invalid offset for dev: %p bar: %d\n",
+		       __func__, __LINE__, dev, bar);
+		return NULL;
+	}
+
 	if (!phys_addr || !size)
 		return NULL;
 
-	return lx_emul_io_mem_map(phys_addr, size);
+	phys_offset_addr = (unsigned long)lx_emul_io_mem_map(phys_addr, size) + offset;
+
+	return (void *)phys_offset_addr;
+}
+
+
+void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+{
+	return pci_iomap_range(dev, bar, 0, maxlen);
 }
 
 

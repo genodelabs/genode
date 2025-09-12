@@ -114,18 +114,6 @@ int request_firmware_direct(const struct firmware ** firmware_p,const char * nam
 }
 
 
-int ___ratelimit(struct ratelimit_state * rs, const char * func)
-{
-	/*
-	 * from lib/ratelimit.c:
-	 * " 0 means callbacks will be suppressed.
-	 *   1 means go ahead and do it. "
-	 */
-	lx_emul_trace(__func__);
-	return 1;
-}
-
-
 int register_pernet_subsys(struct pernet_operations * ops)
 {
 	lx_emul_trace(__func__);
@@ -621,31 +609,6 @@ void net_ns_init(void)
 }
 
 
-void intel_dsb_prepare(struct intel_crtc_state *crtc_state)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_dsb_cleanup(struct intel_crtc_state *crtc_state)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_dsb_commit(const struct intel_crtc_state *crtc_state)
-{
-	lx_emul_trace(__func__);
-}
-
-
-void intel_dsb_reg_write(const struct intel_crtc_state *crtc_state,
-                         i915_reg_t reg, u32 val)
-{
-	lx_emul_trace(__func__);
-}
-
-
 void acpi_device_notify_remove(struct device * dev)
 {
 	lx_emul_trace(__func__);
@@ -719,9 +682,6 @@ void intel_gsc_uc_init_early(struct intel_gsc_uc * gsc)
 
 bool intel_hdcp_gsc_cs_required(struct drm_i915_private * i915)
 {
-	if (DISPLAY_VER(i915) >= 14)
-		printk("%s UNSUPPORTED - more linux code to incorporate ?!\n", __func__);
-
 	return DISPLAY_VER(i915) >= 14;
 }
 
@@ -786,4 +746,26 @@ void * vmap(struct page ** pages, unsigned int count, unsigned long flags, pgpro
 		       __func__, count);
 
 	return contiguous ? vmap_addr : 0;
+}
+
+
+int intel_hdcp_gsc_init(struct drm_i915_private * i915)
+{
+	lx_emul_trace(__func__);
+	return -EINVAL;
+}
+
+
+int _printk_deferred(const char * fmt,...)
+{
+	va_list args;
+	int r;
+
+	lx_emul_trace(__func__);
+
+	va_start(args, fmt);
+	r = vprintk(fmt, args);
+	va_end(args);
+
+	return r;
 }

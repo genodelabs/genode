@@ -126,6 +126,8 @@ drivers/gpu/drm/i915/display/intel_dpll_mgr.c
 drivers/gpu/drm/i915/display/intel_dpt.c
 drivers/gpu/drm/i915/display/intel_dpt_common.c
 drivers/gpu/drm/i915/display/intel_drrs.c
+drivers/gpu/drm/i915/display/intel_dsb.c
+drivers/gpu/drm/i915/display/intel_dsb_buffer.c
 drivers/gpu/drm/i915/display/intel_dsi.c
 drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.c
 drivers/gpu/drm/i915/display/intel_dsi_vbt.c
@@ -310,6 +312,7 @@ lib/maple_tree.c
 lib/math/div64.c
 lib/math/reciprocal_div.c
 lib/radix-tree.c
+lib/ratelimit.c
 lib/rbtree.c
 lib/refcount.c
 lib/scatterlist.c
