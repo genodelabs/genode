@@ -1405,26 +1405,28 @@ int Socket_fs::Plugin::close(File_descriptor *fd)
 }
 
 
-int Socket_fs::Plugin::ioctl(File_descriptor *, unsigned long request, char*)
+int Socket_fs::Plugin::ioctl(File_descriptor *fd, unsigned long request, char *buf)
 {
+	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!context) return Errno(EBADF);
+
 	if (request == FIONREAD) {
+		int *count = (int *)buf;
+
 		/*
-		 * This request occurs quite often when using the Arora web browser,
-		 * so print the error message only once.
+		 * XXX The socket-buffer fill level is currently unknown. Thus, we
+		 * just check for read-ready and pretend 64 KiB are readable.
 		 */
-		static bool print_fionread_error_message = true;
-		if (print_fionread_error_message) {
-			error(__func__, " request FIONREAD not supported on sockets"
-			      " (this message will not be shown again)");
-			print_fionread_error_message = false;
-		}
-		errno = EINVAL;
-		return -1;
+		if (context->read_ready())
+			*count = 64*1024;
+		else
+			*count = 0;
+
+		return 0;
 	}
 
 	error(__func__, " request ", request, " not supported on sockets");
-	errno = ENOTTY;
-	return -1;
+	return Errno(ENOTTY);
 }
 
 
