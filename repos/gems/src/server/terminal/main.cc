@@ -170,6 +170,8 @@ struct Terminal::Main : Character_consumer
 
 	bool _flush_scheduled = false;
 
+	bool _focused = false;
+
 	Gui::Rect _flushed_win_rect { };
 
 	void _handle_flush()
@@ -180,7 +182,8 @@ struct Terminal::Main : Character_consumer
 
 			Surface<PT> surface(_fb_ds->local_addr<PT>(), _win_rect.area);
 
-			Rect const dirty = _text_screen_surface->redraw(surface);
+			Rect const dirty =
+				_text_screen_surface->redraw(surface, { .focused = _focused });
 
 			_gui.framebuffer.refresh(dirty);
 		}
@@ -371,6 +374,16 @@ void Terminal::Main::_handle_input()
 		return;
 
 	_gui.input.for_each_event([&] (Input::Event const &event) {
+
+		bool const orig_focused = _focused;
+
+		if (event.focus_enter()) _focused = true;
+		if (event.focus_leave()) _focused = false;
+
+		if (orig_focused != _focused) {
+			_text_screen_surface->focus_changed();
+			_schedule_flush();
+		}
 
 		event.handle_absolute_motion([&] (int x, int y) {
 

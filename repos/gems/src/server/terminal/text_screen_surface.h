@@ -208,7 +208,14 @@ class Terminal::Text_screen_surface
 
 		void cursor_pos(Position pos) { _character_screen.cursor_pos(pos); }
 
-		Rect redraw(Surface<PT> &surface)
+		void focus_changed()
+		{
+			_cell_array.mark_line_as_dirty(cursor_pos().y);
+		}
+
+		struct Redraw_attr { bool focused; };
+
+		Rect redraw(Surface<PT> &surface, Redraw_attr attr)
 		{
 			unsigned const fg_alpha = 255;
 
@@ -276,8 +283,13 @@ class Terminal::Text_screen_surface
 							}
 
 							if (cell.has_cursor()) {
-								fg_color = Color::rgb( 63,  63,  63);
-								bg_color = Color::rgb(255, 255, 255);
+								if (attr.focused) {
+									fg_color = Color::rgb( 63,  63,  63);
+									bg_color = Color::rgb(255, 255, 255);
+								} else {
+									fg_color = Color::rgb( 31,  31,  31);
+									bg_color = Color::rgb(128, 128, 128);
+								}
 							}
 
 							PT const pixel(fg_color.r, fg_color.g, fg_color.b);
