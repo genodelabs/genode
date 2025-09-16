@@ -118,7 +118,11 @@ poll(struct pollfd pollfds[], nfds_t nfds, int timeout_ms)
 		plugins_pollfds[pollfd_index].revents = &pollfds[pollfd_index].revents;
 	}
 
-	int nready = poll_plugins(plugins_pollfds, nfds);
+	int nready = 0;
+	_monitor_ptr->monitor([&] {
+		nready = poll_plugins(plugins_pollfds, nfds);
+		return Monitor::Function_result::COMPLETE;
+	});
 
 	/* return if any descriptor is ready or an error occurred */
 	if (nready != 0)
