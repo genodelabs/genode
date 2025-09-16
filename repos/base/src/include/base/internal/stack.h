@@ -78,6 +78,48 @@ class Genode::Stack
 		using Size_result = Thread::Stack_size_result;
 		using Error       = Thread::Stack_error;
 
+		struct Mappings
+		{
+			struct Entry
+			{
+				/**
+				 * Virtual address of the start of the stack
+				 *
+				 * This address is pointing to the begin of the dataspace used
+				 * for backing the stack except for the UTCB (which is managed
+				 * by the kernel).
+				 */
+				addr_t base;
+
+				/**
+				 * Dataspace containing the backing store for the stack
+				 *
+				 * We keep the dataspace capability to be able to release the
+				 * backing store on thread destruction.
+				 */
+				Ram_dataspace_capability ds_cap;
+			};
+
+			static constexpr unsigned MAX = 4;
+
+			Entry _entries[MAX] { };
+
+			void for_each(auto const &fn)
+			{
+				for (Entry &e : _entries)
+					if (e.ds_cap.valid()) fn(e.base, e.ds_cap);
+			}
+
+			auto alloc(auto const &fn, auto const &exhausted_fn) -> decltype(exhausted_fn())
+			{
+				for (Entry &e : _entries)
+					if (!e.ds_cap.valid())
+						return fn(e);
+
+				return exhausted_fn();
+			}
+		};
+
 	private:
 
 		/**
@@ -103,21 +145,9 @@ class Genode::Stack
 		 */
 		Thread &_thread;
 
-		/**
-		 * Virtual address of the start of the stack
-		 *
-		 * This address is pointing to the begin of the dataspace used for backing
-		 * the stack except for the UTCB (which is managed by the kernel).
-		 */
-		addr_t _base = 0;
+		Mappings _mappings { };
 
-		/**
-		 * Dataspace containing the backing store for the stack
-		 *
-		 * We keep the dataspace capability to be able to release the
-		 * backing store on thread destruction.
-		 */
-		Ram_dataspace_capability _ds_cap;
+		addr_t _base;
 
 		/**
 		 * Kernel-specific thread meta data
@@ -141,11 +171,12 @@ class Genode::Stack
 		/**
 		 * Constructor
 		 */
-		Stack(Name const &name, Thread &thread, addr_t base,
-		      Ram_dataspace_capability ds_cap)
+		Stack(Name const &name, Thread &thread, Mappings::Entry mapping)
 		:
-			_name(name), _thread(thread), _base(base), _ds_cap(ds_cap)
-		{ }
+			_name(name), _thread(thread), _base(mapping.base)
+		{
+			_mappings._entries[0] = mapping;
+		}
 
 		/**
 		 * Top of stack
@@ -196,9 +227,9 @@ class Genode::Stack
 		Thread &thread() { return _thread; }
 
 		/**
-		 * Return dataspace used as the stack's backing storage
+		 * Return RAM mappings used as the stack's backing storage
 		 */
-		Ram_dataspace_capability ds_cap() const { return _ds_cap; }
+		Mappings mappings() { return _mappings; }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__STACK_H_ */

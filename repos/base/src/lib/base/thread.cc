@@ -50,36 +50,44 @@ Stack::Size_result Stack::size(size_t const size)
 	Ram_allocator &ram = *env_stack_area_ram_allocator;
 	Region_map    &rm  = *env_stack_area_region_map;
 
-	return ram.try_alloc(ds_size).convert<Size_result>(
-		[&] (Ram::Allocation &allocation) {
+	return _mappings.alloc([&] (Mappings::Entry &mapping) {
 
-			return rm.attach(allocation.cap, Region_map::Attr {
-				.size       = ds_size,
-				.offset     = 0,
-				.use_at     = true,
-				.at         = ds_addr,
-				.executable = { },
-				.writeable  = true,
-			}).convert<Size_result> (
+		return ram.try_alloc(ds_size).convert<Size_result>(
+			[&] (Ram::Allocation &allocation) {
 
-				[&] (Region_map::Range r) -> Size_result {
-					if (r.start != ds_addr)
-						return Error::STACK_AREA_EXHAUSTED;
+				return rm.attach(allocation.cap, Region_map::Attr {
+					.size       = ds_size,
+					.offset     = 0,
+					.use_at     = true,
+					.at         = ds_addr,
+					.executable = { },
+					.writeable  = true,
+				}).convert<Size_result> (
 
-					/* update stack information */
-					_base -= ds_size;
+					[&] (Region_map::Range r) -> Size_result {
+						if (r.start != ds_addr)
+							return Error::STACK_AREA_EXHAUSTED;
 
-					allocation.deallocate = false;
+						mapping.ds_cap = allocation.cap;
+						mapping.base   = ds_addr + stack_area_virtual_base();
 
-					return (addr_t)_stack - _base;
-				},
-				[&] (Region_map::Attach_error) {
-					return Error::STACK_AREA_EXHAUSTED; }
-			);
-		},
-		[&] (Ram_allocator::Alloc_error) {
-			return Error::STACK_AREA_EXHAUSTED; }
-	);
+						/* update stack information */
+						_base -= ds_size;
+
+						allocation.deallocate = false;
+
+						return (addr_t)_stack - _base;
+					},
+					[&] (Region_map::Attach_error) {
+						return Error::STACK_AREA_EXHAUSTED; }
+				);
+			},
+			[&] (Ram_allocator::Alloc_error) {
+				return Error::STACK_AREA_EXHAUSTED; }
+		);
+	},
+	[&] /* too many mappings */ () -> Size_result {
+		return Error::STACK_AREA_EXHAUSTED; });
 }
 
 
@@ -130,9 +138,7 @@ Thread::_alloc_stack(Runtime &, Stack &stack, Name const &name, Stack_size stack
 	Ram_allocator &ram = *env_stack_area_ram_allocator;
 
 	/* allocate and attach backing store for the stack */
-	return ram.try_alloc(ds_size).convert<Alloc_stack_result>(
-
-	 [&] (Ram::Allocation &allocation)
+	return ram.try_alloc(ds_size).convert<Alloc_stack_result>([&] (Ram::Allocation &allocation)
 	 {
 			addr_t const attach_addr = ds_addr - stack_area_virtual_base();
 
@@ -158,7 +164,8 @@ Thread::_alloc_stack(Runtime &, Stack &stack, Name const &name, Stack_size stack
 					 * cause trouble when the assignment operator of
 					 * Native_capability is used.
 					 */
-					construct_at<Stack>(&stack, name, *this, ds_addr, allocation.cap);
+					construct_at<Stack>(&stack, name, *this,
+					                    Stack::Mappings::Entry { ds_addr, allocation.cap });
 
 					Abi::init_stack(stack.top());
 					allocation.deallocate = false;
@@ -176,18 +183,19 @@ Thread::_alloc_stack(Runtime &, Stack &stack, Name const &name, Stack_size stack
 
 void Thread::_free_stack(Stack &stack)
 {
-	addr_t ds_addr = stack.base() - stack_area_virtual_base();
-	Ram_dataspace_capability ds_cap = stack.ds_cap();
+	Stack::Mappings mappings = stack.mappings();
 
 	/* call de-constructor explicitly before memory gets detached */
 	stack.~Stack();
 
-	Genode::env_stack_area_region_map->detach(ds_addr);
+	mappings.for_each([&] (addr_t at, Ram_dataspace_capability ds_cap) {
+		Genode::env_stack_area_region_map->detach(at - stack_area_virtual_base());
 
-	/* deallocate RAM block */
-	{
-		Ram::Allocation { *env_stack_area_ram_allocator, { ds_cap, 0 } };
-	}
+		/* deallocate RAM block */
+		{
+			Ram::Allocation { *env_stack_area_ram_allocator, { ds_cap, 0 } };
+		}
+	});
 
 	/* stack ready for reuse */
 	Stack_allocator::stack_allocator().free(stack);

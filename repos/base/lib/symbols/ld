@@ -274,6 +274,7 @@ _ZN6Genode6SignalC2ERKS0_ T
 _ZN6Genode6SignalD1Ev T
 _ZN6Genode6SignalD2Ev T
 _ZN6Genode6SignalaSERKS0_ T
+_ZN6Genode6Thread10stack_sizeEm T
 _ZN6Genode6Thread13native_threadEv T
 _ZN6Genode6Thread18stack_virtual_sizeEv T
 _ZN6Genode6Thread20free_secondary_stackEPv T

@@ -661,6 +661,45 @@ static void test_destroy_dependent_cpu_sessions(Env &env)
 }
 
 
+/************************************************
+ ** Test release of extended stack allocations **
+ ************************************************/
+
+static void test_free_expanded_stack(Env &env)
+{
+	struct Thread_with_expanded_stack : Thread
+	{
+		Thread_with_expanded_stack(Env &env)
+		: Thread(env, "expanded", Stack_size { 16*1024 })
+		{ start(); join(); }
+
+		void entry() override
+		{
+			for (unsigned i = 2; i < 7; i++) {
+				size_t const kb = i*16;
+				Stack_size_result const result = stack_size(kb*1024);
+				/* up to four stack mappings are supported */
+				if (i <= 4) {
+					if (result.failed()) {
+						error("stack expansion unexpectedly failed");
+						throw -35;
+					}
+				} else {
+					if (result.ok()) {
+						error("stack expansion unexpectedly succeeded");
+						throw -36;
+					}
+				}
+			}
+		}
+	};
+
+	for (unsigned i = 0; i < 20; i++) {
+		Thread_with_expanded_stack thread(env);
+	}
+}
+
+
 void Component::construct(Env &env)
 {
 	log("--- thread test started ---");
@@ -683,6 +722,8 @@ void Component::construct(Env &env)
 
 		test_create_as_many_threads(env);
 		test_successive_create_destroy_threads(env);
+		test_free_expanded_stack(env);
+
 	} catch (int error) {
 		Genode::error("error ", error);
 		throw;
