@@ -470,6 +470,7 @@ void Sandboxed_runtime::View::_try_handle_click_and_clack()
 			Clicked_at at(*click, hover);
 			_dialog.click(at);
 			_click_delivered = true;
+			refresh();
 		});
 	}
 
@@ -478,6 +479,7 @@ void Sandboxed_runtime::View::_try_handle_click_and_clack()
 			/* use click seq number for to associate clack with click */
 			Clacked_at at(*click, hover);
 			_dialog.clack(at);
+			refresh();
 		});
 
 		click.destruct();
