@@ -198,7 +198,10 @@ class Nitpicker::User_state
 				return;
 
 			if (_focused != _next_focused) {
-				_focused  = _next_focused;
+
+				if (_focused) _focused->submit_input_event(Input::Focus_leave());
+				_focused = _next_focused;
+				if (_focused) _focused->submit_input_event(Input::Focus_enter());
 
 				/*
 				 * Enforce the generation of a new "clicked" report for any click
