@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2025-09-16
  */
 
 #pragma once
@@ -123,6 +123,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_usb_init4",
 	"__initcall_serio_init4",
 	"__initcall_input_init4",
+	"__initcall_dw_i2c_init_driver4",
 	"__initcall_power_supply_class_init4",
 	"__initcall_intel_tcc_init4",
 	"__initcall_efisubsys_init4",
