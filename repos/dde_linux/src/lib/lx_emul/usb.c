@@ -145,7 +145,7 @@ handle_control_request(genode_usb_request_handle_t handle,
                        unsigned short              ctrl_value,
                        unsigned short              ctrl_index,
                        unsigned long               ctrl_timeout,
-                       genode_buffer_t             payload,
+                       struct genode_buffer        payload,
                        void                       *opaque_callback_data)
 {
 	struct usb_device *udev = (struct usb_device *) opaque_callback_data;
@@ -182,8 +182,8 @@ handle_control_request(genode_usb_request_handle_t handle,
 
 			usb_unlock_device(udev);
 			ret = usb_control_msg(udev, pipe, ctrl_request, ctrl_request_type,
-			                      ctrl_value, ctrl_index, payload.addr,
-			                      payload.size, ctrl_timeout);
+			                      ctrl_value, ctrl_index, payload.start,
+			                      payload.num_bytes, ctrl_timeout);
 			usb_lock_device(udev);
 	}
 
@@ -241,7 +241,7 @@ static void async_complete(struct urb *urb)
 static void
 handle_irq_request(genode_usb_request_handle_t handle,
                    unsigned char               ep_addr,
-                   genode_buffer_t             payload,
+                   struct genode_buffer        payload,
                    void                       *opaque_callback_data)
 {
 	struct usb_device        *udev = (struct usb_device *) opaque_callback_data;
@@ -251,7 +251,7 @@ handle_irq_request(genode_usb_request_handle_t handle,
 	struct usb_host_endpoint *ep = usb_pipe_endpoint(udev, pipe);
 	struct urb *urb;
 
-	if ((payload.size && !payload.addr) ||
+	if ((payload.num_bytes && !payload.start) ||
 	    !ep || !usb_endpoint_maxp(&ep->desc)) {
 		int ret = ep ? -EINVAL : -ENODEV;
 		genode_usb_ack_request(handle, handle_return_code(ret), NULL);
@@ -264,7 +264,7 @@ handle_irq_request(genode_usb_request_handle_t handle,
 		return;
 	}
 
-	usb_fill_int_urb(urb, udev, pipe, payload.addr, payload.size,
+	usb_fill_int_urb(urb, udev, pipe, payload.start, payload.num_bytes,
 	                 async_complete, handle, ep->desc.bInterval);
 	anchor_and_submit_urb(handle, urb, &data->submitted);
 }
@@ -273,7 +273,7 @@ handle_irq_request(genode_usb_request_handle_t handle,
 static void
 handle_bulk_request(genode_usb_request_handle_t handle,
                    unsigned char                ep_addr,
-                   genode_buffer_t              payload,
+                   struct genode_buffer         payload,
                    void                        *opaque_callback_data)
 {
 	struct usb_device       * udev = (struct usb_device *) opaque_callback_data;
@@ -283,7 +283,7 @@ handle_bulk_request(genode_usb_request_handle_t handle,
 	int pipe = (ep_addr & USB_DIR_IN) ? usb_rcvbulkpipe(udev, ep_addr & 0x7f)
 	                                  : usb_sndbulkpipe(udev, ep_addr & 0x7f);
 
-	if (!payload.addr || payload.size >= (INT_MAX - sizeof(struct urb))) {
+	if (!payload.start || payload.num_bytes >= (INT_MAX - sizeof(struct urb))) {
 		genode_usb_ack_request(handle, handle_return_code(-EINVAL), NULL);
 		return;
 	}
@@ -294,7 +294,7 @@ handle_bulk_request(genode_usb_request_handle_t handle,
 		return;
 	}
 
-	usb_fill_bulk_urb(urb, udev, pipe, payload.addr, payload.size,
+	usb_fill_bulk_urb(urb, udev, pipe, payload.start, payload.num_bytes,
 	                  async_complete, handle);
 	anchor_and_submit_urb(handle, urb, &data->submitted);
 }
@@ -305,7 +305,7 @@ handle_isoc_request(genode_usb_request_handle_t        handle,
                     unsigned char                      ep_addr,
                     u32                                number_of_packets,
                     struct genode_usb_isoc_descriptor *packets,
-                    genode_buffer_t                    payload,
+                    struct genode_buffer               payload,
                     void                              *opaque_callback_data)
 {
 	struct usb_device        *udev = (struct usb_device *) opaque_callback_data;
@@ -317,7 +317,7 @@ handle_isoc_request(genode_usb_request_handle_t        handle,
 	unsigned int i;
 	unsigned offset = 0;
 
-	if (!payload.addr           ||
+	if (!payload.start          ||
 	    number_of_packets > 128 ||
 	    number_of_packets < 1   ||
 	    !ep) {
@@ -336,8 +336,8 @@ handle_isoc_request(genode_usb_request_handle_t        handle,
 	urb->pipe                   = pipe;
 	urb->start_frame            = -1;
 	urb->stream_id              = 0;
-	urb->transfer_buffer        = payload.addr;
-	urb->transfer_buffer_length = payload.size;
+	urb->transfer_buffer        = payload.start;
+	urb->transfer_buffer_length = payload.num_bytes;
 	urb->number_of_packets      = number_of_packets;
 	urb->interval               = 1 << min(15, ep->desc.bInterval - 1);
 	urb->context                = handle;
@@ -539,13 +539,13 @@ static void add_endpoint_callback(struct genode_usb_interface * iface,
 }
 
 
-static void interface_string(genode_buffer_t string, void * data)
+static void interface_string(struct genode_buffer string, void * data)
 {
 	struct usb_host_interface *uiface = (struct usb_host_interface*) data;
 	if (uiface->string)
-		strscpy(string.addr, uiface->string, string.size);
+		strscpy(string.start, uiface->string, string.num_bytes);
 	else
-		*(char *)string.addr = 0;
+		*(char *)string.start = 0;
 }
 
 
@@ -582,23 +582,23 @@ static void add_configuration_callback(struct genode_usb_device * dev,
 }
 
 
-static void manufacturer_string(genode_buffer_t string, void * data)
+static void manufacturer_string(struct genode_buffer string, void * data)
 {
 	struct usb_device *udev = (struct usb_device*) data;
 	if (udev->manufacturer)
-		strscpy(string.addr, udev->manufacturer, string.size);
+		strscpy(string.start, udev->manufacturer, string.num_bytes);
 	else
-		*(char *)string.addr = 0;
+		*(char *)string.start = 0;
 }
 
 
-static void product_string(genode_buffer_t string, void * data)
+static void product_string(struct genode_buffer string, void * data)
 {
 	struct usb_device *udev = (struct usb_device*) data;
 	if (udev->product)
-		strscpy(string.addr, udev->product, string.size);
+		strscpy(string.start, udev->product, string.num_bytes);
 	else
-		*(char *)string.addr = 0;
+		*(char *)string.start = 0;
 }
 
 

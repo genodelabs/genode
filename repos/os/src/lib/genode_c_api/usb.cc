@@ -331,7 +331,7 @@ class Packet_handler
 
 		virtual void
 		_handle_request(Constructible<Packet_descriptor> &cp,
-		                genode_buffer_t                   payload,
+		                genode_buffer                     payload,
 		                genode_usb_req_callback_t const   callback,
 		                void                             *opaque_data) = 0;
 	public:
@@ -379,12 +379,11 @@ class Packet_handler
 		{
 			bool ret = false;
 			_for_each_packet([&] (Constructible<Packet_descriptor> &cp) {
-				void * addr = _tx.sink()->packet_content(*cp);
+				char *addr = _tx.sink()->packet_content(*cp);
 				if (addr)
-					addr = (void*)(genode_shared_dataspace_local_address(&_ds) +
-					               ((addr_t)addr -
-					                (addr_t)_tx.sink()->ds_local_base()));
-				genode_buffer_t buf { addr, addr ? cp->size() : 0 };
+					addr = (char *)genode_shared_dataspace_local_address(&_ds) +
+					       (addr_t)(addr - _tx.sink()->ds_local_base());
+				genode_buffer buf { addr, addr ? cp->size() : 0 };
 				_handle_request(cp, buf, callback, opaque_data);
 				ret = true;
 			});
@@ -423,7 +422,7 @@ class Interface_component
 
 		void
 		_handle_request(Constructible<Packet_descriptor> &cp,
-		                genode_buffer_t                   payload,
+		                genode_buffer                     payload,
 		                genode_usb_req_callback_t const   callback,
 		                void                             *opaque_data) override;
 
@@ -469,7 +468,7 @@ class Device_component
 
 		void
 		_handle_request(Constructible<Packet_descriptor> &cp,
-		                genode_buffer_t                   payload,
+		                genode_buffer                     payload,
 		                genode_usb_req_callback_t const   callback,
 		                void                             *opaque_data) override;
 
@@ -793,7 +792,7 @@ void genode_usb_device::generate(Generator &g, bool acquired) const
 
 void
 Interface_component::_handle_request(Constructible<Packet_descriptor> &cpd,
-                                     genode_buffer_t                   payload,
+                                     genode_buffer                     payload,
                                      genode_usb_req_callback_t const   cbs,
                                      void                             *opaque_data)
 {
@@ -818,15 +817,15 @@ Interface_component::_handle_request(Constructible<Packet_descriptor> &cpd,
 	case Packet_descriptor::ISOC:
 		{
 			genode_usb_isoc_transfer_header &hdr =
-				*reinterpret_cast<genode_usb_isoc_transfer_header*>(payload.addr);
+				*reinterpret_cast<genode_usb_isoc_transfer_header*>(payload.start);
 
 			size_t const header_size = sizeof(genode_usb_isoc_transfer_header) +
 			                           (hdr.number_of_packets *
 			                           sizeof(genode_usb_isoc_descriptor));
 
-			genode_buffer_t isoc_payload {
-				(void *)(addr_t(payload.addr) + header_size),
-				payload.size - header_size };
+			genode_buffer isoc_payload {
+				payload.start + header_size,
+				payload.num_bytes - header_size };
 
 			cbs->isoc_fn(handle, cpd->index, hdr.number_of_packets,
 			             hdr.packets, isoc_payload, opaque_data);
@@ -907,7 +906,7 @@ Interface_component::Interface_component(Env                           &env,
 
 void
 Device_component::_handle_request(Constructible<Packet_descriptor> &cpd,
-                                  genode_buffer_t                   payload,
+                                  genode_buffer                     payload,
                                   genode_usb_req_callback_t const   cbs,
                                   void                             *opaque_data)
 {

@@ -172,7 +172,7 @@ class Interface : public List_model<::Interface>::Element
 				/* consume in results */
 				[&] (Urb &urb, Const_byte_range_ptr &src) {
 					in(urb._driver_data.data,
-					   { (void*)src.start, src.num_bytes });
+					   { src.start, src.num_bytes });
 				},
 
 				/* produce out content */
@@ -184,7 +184,7 @@ class Interface : public List_model<::Interface>::Element
 				/* consume in results */
 				[&] (Urb &urb, uint32_t idx, Const_byte_range_ptr &src) {
 					in_isoc(urb._driver_data.data, idx,
-					        { (void*)src.start, src.num_bytes });
+					        { src.start, src.num_bytes });
 				},
 
 				/* complete USB request */
@@ -401,13 +401,13 @@ class Device : public List_model<Device>::Element
 
 				/* produce out content */
 				[&] (Urb &urb, Byte_range_ptr &dst) {
-					out(urb._driver_data.data, { (void*)dst.start,
+					out(urb._driver_data.data, { dst.start,
 					                             dst.num_bytes });
 				},
 
 				/* consume in results */
 				[&] (Urb &urb, Const_byte_range_ptr &src) {
-					in(urb._driver_data.data, { (void*)src.start,
+					in(urb._driver_data.data, { src.start,
 					                            src.num_bytes });
 				},
 

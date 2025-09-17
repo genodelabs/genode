@@ -62,25 +62,25 @@ typedef enum {
  * Callback to produce out content of an USB request
  */
 typedef void (*genode_usb_client_produce_out_t)
-	(void *opaque_data, genode_buffer_t buffer);
+	(void *opaque_data, struct genode_buffer buffer);
 
 /**
  * Callback to consume in result of an USB request
  */
 typedef void (*genode_usb_client_consume_in_t)
-	(void *opaque_data, genode_buffer_t buffer);
+	(void *opaque_data, struct genode_const_buffer buffer);
 
 /**
  * Callback to produce out content of isochronous packet i
  */
 typedef genode_uint32_t (*genode_usb_client_produce_out_isoc_t)
-	(void *opaque_data, genode_uint32_t i, genode_buffer_t buffer);
+	(void *opaque_data, genode_uint32_t i, struct genode_buffer buffer);
 
 /**
  * Callback to consume in result of isochronous packet i
  */
 typedef void (*genode_usb_client_consume_in_isoc_t)
-	(void *opaque_data, genode_uint32_t i, genode_buffer_t buffer);
+	(void *opaque_data, genode_uint32_t i, struct genode_const_buffer buffer);
 
 /**
  * Callback to complete an USB request

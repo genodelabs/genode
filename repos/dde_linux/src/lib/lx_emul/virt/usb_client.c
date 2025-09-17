@@ -134,24 +134,24 @@ static void * register_device(genode_usb_client_dev_handle_t handle,
 }
 
 
-static void urb_out(void * data, genode_buffer_t buf)
+static void urb_out(void * data, struct genode_buffer buf)
 {
 	struct urb *urb = (struct urb *) data;
-	memcpy(buf.addr, urb->transfer_buffer,
+	memcpy(buf.start, urb->transfer_buffer,
 	       urb->transfer_buffer_length);
 }
 
 
-static void urb_in(void * data, genode_buffer_t buf)
+static void urb_in(void * data, struct genode_const_buffer buf)
 {
 	struct urb *urb = (struct urb *) data;
-	memcpy(urb->transfer_buffer, buf.addr, buf.size);
-	urb->actual_length = buf.size;
+	memcpy(urb->transfer_buffer, buf.start, buf.num_bytes);
+	urb->actual_length = buf.num_bytes;
 }
 
 
 static genode_uint32_t isoc_urb_out(void * data, genode_uint32_t idx,
-                                    genode_buffer_t buf)
+                                    struct genode_buffer buf)
 {
 	printk("%s: not implemented yet, we had no isochronous Linux driver yet",
 	       __func__);
@@ -159,7 +159,7 @@ static genode_uint32_t isoc_urb_out(void * data, genode_uint32_t idx,
 }
 
 
-static void isoc_urb_in(void * data, genode_uint32_t idx, genode_buffer_t buf)
+static void isoc_urb_in(void * data, genode_uint32_t idx, struct genode_const_buffer buf)
 {
 	printk("%s: not implemented yet, we had no isochronous Linux driver yet",
 	       __func__);

@@ -57,7 +57,7 @@ typedef void (*genode_usb_dev_add_endp_t)
  * Callback to request string item of a device
  */
 typedef void (*genode_usb_dev_string_item_t)
-	(genode_buffer_t string, void *opaque_data);
+	(struct genode_buffer string, void *opaque_data);
 
 void
 genode_usb_device_add_endpoint(struct genode_usb_interface          *iface,
@@ -108,19 +108,19 @@ typedef void (*genode_usb_req_control_t)
 	 unsigned short              ctrl_value,
 	 unsigned short              ctrl_index,
 	 unsigned long               ctrl_timeout,
-	 genode_buffer_t             payload,
+	 struct genode_buffer        payload,
 	 void                       *opaque_data);
 
 typedef void (*genode_usb_req_irq_t)
 	(genode_usb_request_handle_t handle,
 	 unsigned char               ep,
-	 genode_buffer_t             payload,
+	 struct genode_buffer        payload,
 	 void                       *opaque_data);
 
 typedef void (*genode_usb_req_bulk_t)
 	(genode_usb_request_handle_t handle,
 	 unsigned char               ep,
-	 genode_buffer_t             payload,
+	 struct genode_buffer        payload,
 	 void                       *opaque_data);
 
 typedef void (*genode_usb_req_isoc_t)
@@ -128,7 +128,7 @@ typedef void (*genode_usb_req_isoc_t)
 	 unsigned char                      ep,
 	 genode_uint32_t                    number_of_packets,
 	 struct genode_usb_isoc_descriptor *packets,
-	 genode_buffer_t                    payload,
+	 struct genode_buffer               payload,
 	 void                              *opaque_data);
 
 typedef void (*genode_usb_req_flush_t)
