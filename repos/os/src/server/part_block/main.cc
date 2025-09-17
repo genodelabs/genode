@@ -162,7 +162,8 @@ class Block::Main
 		Request_result _request_session(Parent::Client::Id  const &id,
 		                                Session_state::Args const &args,
 		                                Affinity            const  affinity,
-		                                Partition_number    const  partition)
+		                                Partition_number    const  partition,
+		                                bool                const  writeable_policy)
 		{
 			size_t tx_buf_size =
 				Arg_string::find_arg(args.string(), "tx_buf_size").ulong_value(0);
@@ -191,13 +192,6 @@ class Block::Main
 				     tx_buf_size);
 				return Parent::Session_response::INSUFFICIENT_CAPS;
 			}
-
-			Session_label  const &label  = label_from_args(args.string());
-			Session_policy const &policy = Session_policy(label, _config.xml());
-
-			/* sessions are not writeable by default */
-			bool const writeable_policy =
-				policy.attribute_value("writeable", false);
 
 			/* accommodate clients not constraining writeability */
 			bool const writeable_arg =
@@ -286,6 +280,10 @@ void Block::Main::_handle_session_request(Node const &request)
 			Partition_number const partition =
 				Partition_number::from_xml(policy, _partition_table);
 
+			/* sessions are not writeable by default */
+			bool const writeable_policy =
+				policy.attribute_value("writeable", false);
+
 			if (!partition.valid() || _sessions[partition.value].constructed()) {
 				if (partition.valid()) error("partition ", partition.value, " already in use");
 				else                   error("requested partition invalid");
@@ -310,7 +308,8 @@ void Block::Main::_handle_session_request(Node const &request)
 			};
 
 			_request_session(session.client_id.id(), args,
-			                 affinity, partition).with_result(success_fn, error_fn);
+			                 affinity, partition,
+			                 writeable_policy).with_result(success_fn, error_fn);
 		};
 		auto no_match_fn = [&] {
 			error("no policy defined for '", label, "'");
