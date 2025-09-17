@@ -46,7 +46,7 @@ struct Lx_kit::Initial_config
 		rom.sigh(sigh);
 		_handle_signal();
 
-		while (rom.xml().type() != "config")
+		while (rom.node().type() != "config")
 			env.ep().wait_and_dispatch_one_io_signal();
 
 		rom.sigh(Signal_context_capability());
