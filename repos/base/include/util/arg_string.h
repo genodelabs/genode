@@ -350,8 +350,8 @@ class Genode::Arg_string
 
 			/* check if args string has enough capacity */
 			if ((type == Token::Type::STRING
-			  && old_len + strlen(key) + strlen(value) + 4 > args_len)
-			 || (old_len + strlen(key) + strlen(value) + 2 > args_len))
+			  && old_len + strlen(key) + strlen(value) + 5 > args_len)
+			 || (old_len + strlen(key) + strlen(value) + 3 > args_len))
 				return false;
 
 			args += old_len;
