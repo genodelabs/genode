@@ -1589,7 +1589,7 @@ in the display driver's configuration dialog as described in Section
 [Multi-monitor support].
 
 The window layout is captured in the file
-_/rw/recall/window_layouter/recall/24.12_ named after the version of the file
+_/rw/recall/window_layouter/recall/25.10_ named after the version of the file
 format. The file can be edited manually. When saved, the changes take
 immediate effect, which offers an alternative way for manipulating windows:
 * Changing the order to <assign> rules to change the window-stacking order.

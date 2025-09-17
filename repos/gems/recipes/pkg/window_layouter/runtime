@@ -52,7 +52,7 @@
 				<service name="ROM" label="config">
 					<parent label="window_layouter.config"/> </service>
 				<service name="ROM" label="rules">
-					<child name="fs_rom" label="24.12"/> </service>
+					<child name="fs_rom" label="25.10"/> </service>
 				<service name="ROM" label="window_list">
 					<parent label="window_list"/> </service>
 				<service name="ROM" label="focus_request">
@@ -62,7 +62,7 @@
 				<service name="ROM" label="decorator_margins">
 					<parent label="decorator_margins"/> </service>
 				<service name="Report" label="rules">
-					<child name="fs_report" label="24.12"/> </service>
+					<child name="fs_report" label="25.10"/> </service>
 				<service name="Report" label="window_layout">
 					<parent label="window_layout"/> </service>
 				<service name="Report" label="resize_request">
