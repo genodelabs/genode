@@ -40,6 +40,14 @@ struct Main
 	bool apic_capable { false };
 	bool msi_capable  { false };
 
+	struct Intel_opregion
+	{
+		addr_t start { 0 };
+		size_t size  { 0 };
+
+		bool valid() { return size != 0; }
+	} intel_opregion { };
+
 	/*
 	 * We count beginning from 1 not 0, because some clients (Linux drivers)
 	 * do not ignore the pseudo MSI number announced, but interpret zero as
@@ -65,6 +73,8 @@ struct Main
 	void parse_pci_config_spaces (Node const &, Generator &);
 	void parse_acpi_device_info  (Node const &, Generator &);
 	void parse_tpm2_table        (Node const &, Generator &);
+
+	Intel_opregion parse_intel_opregion(Pci::Config const &);
 
 	template <typename FN>
 	void for_bridge(Pci::bus_t bus, FN const &fn)
@@ -147,9 +157,18 @@ bus_t Main::parse_pci_function(Bdf        bdf,
 	bool      msi_x   = cfg.msi_x_cap.constructed();
 	irq_pin_t irq_pin = cfg.read<Config::Irq_pin>();
 
+	enum { VENDOR_INTEL = 0x8086, CLASS_DISPLAY = 3 };
+
+	bool intel_graphics_card =
+		(bdf == Bdf(0,2,0)) &&
+		(cfg.read<Config::Vendor>() == VENDOR_INTEL) &&
+		(cfg.read<Config::Base_class_code>() == CLASS_DISPLAY);
+
 	/* disable MSI/MSI-X by default */
 	if (msi) cfg.msi_cap->write<Pci::Config::Msi_capability::Control::Enable>(0);
 	if (msi_x) cfg.msi_x_cap->write<Pci::Config::Msi_x_capability::Control::Enable>(0);
+
+	if (intel_graphics_card) intel_opregion = parse_intel_opregion(cfg);
 
 	/* XXX we might need to skip PCI-discoverable IOAPIC and IOMMU devices */
 
@@ -241,13 +260,9 @@ bus_t Main::parse_pci_function(Bdf        bdf,
 				 * registers and the GTT. While the latter may be accessed
 				 * write-combined, MMIO registers must be mapped uncached.
 				 */
-				if (bar == 0 && bdf == Bdf(0,2,0)) {
-					auto const vendor_id = cfg.read<Config::Vendor>();
-					auto const class_id  = cfg.read<Config::Base_class_code>();
+				if (bar == 0 && intel_graphics_card)
+					wc = false;
 
-					if (vendor_id == 0x8086 && class_id == 3)
-						wc = false;
-				}
 				g.attribute("wc", wc);
 			});
 		}, [&] (uint64_t addr, uint64_t size, unsigned bar) {
@@ -260,6 +275,14 @@ bus_t Main::parse_pci_function(Bdf        bdf,
 				g.attribute("size", string(size & 0xffff));
 			});
 		});
+
+		if (intel_graphics_card && intel_opregion.valid())
+			g.node("io_mem", [&]
+			{
+				g.attribute("pci_bar", 6); /* take +1 max PCI BAR */
+				g.attribute("address", String<20>(Hex(intel_opregion.start)));
+				g.attribute("size",    intel_opregion.size);
+			});
 
 		{
 			/* Apply GSI/MSI/MSI-X quirks based on vendor/device */
@@ -398,11 +421,20 @@ bus_t Main::parse_pci_bus(bus_t                 bus,
 }
 
 
-static void parse_acpica_info(Node const &node, Generator &g)
+static void parse_acpica_info(Node const &node,
+                              Main::Intel_opregion intel_opregion,
+                              Generator &g)
 {
 	g.node("device", [&] {
 		g.attribute("name", "acpi");
 		g.attribute("type", "acpi");
+
+		if (intel_opregion.valid())
+			g.node("io_mem", [&]
+			{
+				g.attribute("address", String<20>(Hex(intel_opregion.start)));
+				g.attribute("size",    intel_opregion.size);
+			});
 
 		node.with_optional_sub_node("sci_int", [&] (Node const &node) {
 			g.node("irq", [&] {
@@ -523,7 +555,7 @@ void Main::parse_acpi_device_info(Node const &node, Generator &g)
 	 * ACPI device (if applicable)
 	 */
 	if (node.has_sub_node("sci_int"))
-		parse_acpica_info(node, g);
+		parse_acpica_info(node, intel_opregion, g);
 
 	/*
 	 * IOAPIC devices
@@ -627,6 +659,63 @@ void Main::parse_acpi_device_info(Node const &node, Generator &g)
 			g.attribute("size",    "0x1000");
 		});
 	});
+}
+
+
+Main::Intel_opregion Main::parse_intel_opregion(Pci::Config const &device)
+{
+	struct Opregion : Mmio<0x3c6>
+	{
+		struct Minor : Register<0x16, 8> { };
+		struct Major : Register<0x17, 8> { };
+		struct MBox  : Register<0x58, 32> {
+			struct Asle : Bitfield<2, 1> { };
+		};
+		struct Asle_ardy : Register<0x300, 32> { };
+		struct Asle_rvda : Register<0x3ba, 64> { };
+		struct Asle_rvds : Register<0x3c2, 32> { };
+
+		Opregion(Byte_range_ptr const &range) : Mmio(range) { }
+	};
+
+	addr_t const phys_asls = device.read<Mmio<0x100>::Register<0xfc, 32>>(); /* ASLS */
+	if (!phys_asls)
+		return { };
+
+	size_t asls_size = 2 * 4096 /* OPREGION_SIZE */;
+
+	try {
+		Attached_io_mem_dataspace map_asls(env, phys_asls, asls_size);
+
+		if (!map_asls.cap().valid())
+			return { };
+
+		Opregion opregion({map_asls.local_addr<char>(), asls_size});
+
+		auto const rvda = opregion.read<Opregion::Asle_rvda>();
+		auto const rvds = opregion.read<Opregion::Asle_rvds>();
+
+		if (opregion.read<Opregion::MBox::Asle>() &&
+		    opregion.read<Opregion::Major>() >= 2 && rvda && rvds) {
+
+			/* 2.0 rvda is physical, 2.1+ rvda is relative offset */
+			if (opregion.read<Opregion::Major>() > 2 ||
+			    opregion.read<Opregion::Minor>() >= 1) {
+
+				if (rvda > asls_size)
+					asls_size += size_t(rvda - asls_size);
+				asls_size += opregion.read<Opregion::Asle_rvds>();
+			} else {
+				warning("rvda/rvds unsupported case");
+			}
+		}
+
+		return { phys_asls, asls_size };
+	} catch (Attached_dataspace::Invalid_dataspace()) {
+	} catch (Attached_dataspace::Region_conflict()) {
+	} catch (Opregion::Range_violation) { }
+
+	return { };
 }
 
 
@@ -844,8 +933,14 @@ Main::Main(Env &env) : env(env)
 
 	pci_reporter.generate([&] (Generator &g)
 	{
-		parse_acpi_device_info(node, g);
 		parse_pci_config_spaces(node, g);
+
+		/*
+		 * Generate the ACPI device info after the PCI config space parsing,
+		 * because additional information is used from there, like Intel's
+		 * opregion information used by ACPICA
+		 */
+		parse_acpi_device_info(node, g);
 	});
 }
 
