@@ -159,26 +159,27 @@ struct Sculpt::Ap_selector_widget : Widget<Vbox>
 			if (connected_to_selected_ap)
 				return;
 
-			if (ap.protection == Access_point::WPA_PSK) {
-				s.sub_scope<Label>(_wifi_connection.auth_failure()
-				                   ? "Enter passphrase (auth failure):"
-				                   : "Enter passphrase:");
+			if (!ap.wpa_protected())
+				return;
 
-				s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
-					s.sub_scope<Float>([&] (Scope<Vbox, Frame, Float> &s) {
-						s.attribute("west", "yes");
-						String<3*64> const passphrase(" ", _wpa_passphrase);
-						s.sub_scope<Label>(passphrase, [&] (auto &s) {
-							s.attribute("font", "title/regular");
-							s.sub_node("cursor", [&] {
-								s.attribute("at", passphrase.length() - 1); });
-						});
+			s.sub_scope<Label>(_wifi_connection.auth_failure()
+			                   ? "Enter passphrase (auth failure):"
+			                   : "Enter passphrase:");
+
+			s.sub_scope<Frame>([&] (Scope<Vbox, Frame> &s) {
+				s.sub_scope<Float>([&] (Scope<Vbox, Frame, Float> &s) {
+					s.attribute("west", "yes");
+					String<3*64> const passphrase(" ", _wpa_passphrase);
+					s.sub_scope<Label>(passphrase, [&] (auto &s) {
+						s.attribute("font", "title/regular");
+						s.sub_node("cursor", [&] {
+							s.attribute("at", passphrase.length() - 1); });
 					});
 				});
+			});
 
-				if (_wpa_passphrase.suitable_for_connect())
-					s.widget(_connect);
-			}
+			if (_wpa_passphrase.suitable_for_connect())
+				s.widget(_connect);
 		});
 
 		/*

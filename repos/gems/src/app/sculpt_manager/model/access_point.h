@@ -30,7 +30,7 @@ struct Sculpt::Access_point : List_model<Access_point>::Element
 	using Bssid = String<32>;
 	using Ssid = String<32>;
 
-	enum Protection { UNKNOWN, UNPROTECTED, WPA_PSK };
+	enum Protection { UNKNOWN, UNPROTECTED, WPA_PSK, WPA3_PSK };
 
 	Bssid      const bssid;
 	Ssid       const ssid;
@@ -42,7 +42,10 @@ struct Sculpt::Access_point : List_model<Access_point>::Element
 	: bssid(bssid), ssid(ssid), protection(protection) { }
 
 	bool unprotected()   const { return protection == UNPROTECTED; }
-	bool wpa_protected() const { return protection == WPA_PSK; }
+	bool wpa_protected() const
+	{
+		return protection == WPA_PSK || protection == WPA3_PSK;
+	}
 
 	bool matches(Node const &node) const
 	{

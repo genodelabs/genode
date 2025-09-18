@@ -150,12 +150,15 @@ struct Sculpt::Network : Noncopyable
 				g.node("network", [&]() {
 					g.attribute("ssid", ap.ssid);
 
-					/* for now always try to use WPA2 */
-					if (ap.protection == Access_point::WPA_PSK) {
-						g.attribute("protection", "WPA2");
-						String<128> const psk(wpa_passphrase);
-						g.attribute("passphrase", psk);
-					}
+					if (!ap.wpa_protected())
+						return;
+
+					using P = Access_point::Protection;
+					bool const wpa3 = ap.protection == P::WPA3_PSK;
+
+					g.attribute("protection", wpa3 ? "WPA3" : "WPA2");
+					String<128> const psk(wpa_passphrase);
+					g.attribute("passphrase", psk);
 				});
 			});
 		});

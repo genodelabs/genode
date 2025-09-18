@@ -164,21 +164,27 @@ void Sculpt::Network::_handle_wlan_accesspoints(Node const &accesspoints)
 	if (!initial_scan && _info.ap_list_hovered())
 		return;
 
+	auto protection_from_node = [&] (Node const &node) {
+		auto const protection = node.attribute_value("protection", String<16>());
+
+		if (protection == "WPA" || protection == "WPA2")
+			return Access_point::Protection::WPA_PSK;
+
+		if (protection == "WPA3")
+			return Access_point::Protection::WPA3_PSK;
+
+		return Access_point::Protection::UNPROTECTED;
+	};
+
 	_access_points.update_from_node(accesspoints,
 
 		/* create */
 		[&] (Node const &node) -> Access_point &
 		{
-			auto const protection = node.attribute_value("protection", String<16>());
-			bool const use_protection = protection == "WPA"  ||
-			                            protection == "WPA2" ||
-			                            protection == "WPA3";
-
 			return *new (_alloc)
 				Access_point(node.attribute_value("bssid", Access_point::Bssid()),
 				             node.attribute_value("ssid",  Access_point::Ssid()),
-				             use_protection ? Access_point::Protection::WPA_PSK
-				                            : Access_point::Protection::UNPROTECTED);
+				             protection_from_node(node));
 		},
 
 		/* destroy */
