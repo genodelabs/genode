@@ -598,6 +598,10 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 						g.attribute("name", "CPU");
 						g.node("local");
 					});
+					g.node("service", [&] {
+						g.attribute("name", "VM");
+						g.node("local");
+					});
 				}
 
 				_gen_routes(g, common, cached_depot_rom, uncached_depot_rom);
