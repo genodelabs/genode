@@ -23,6 +23,7 @@ ieee754
 init_smp
 intel_fb
 internet_checksum
+kernel_time
 libc_integration
 libc_vfs_fs_ext2
 libc_vfs_fs_fat

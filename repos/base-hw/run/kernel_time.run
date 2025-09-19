@@ -1,0 +1,42 @@
+# Test requires SMP, hence exclude single-core platforms
+assert {![have_board rpi]}
+assert {![have_board imx53_qsb]}
+assert {![have_board imx53_qsb_tz]}
+if {[have_include "power_on/qemu"]} {
+	if {[have_board pbxa9]}           { return 0 }
+	if {[have_board pc]}              { return 0 }
+	if {[have_board zynq_qemu]}       { return 0 }
+	if {[have_board virt_qemu_riscv]} { return 0 }
+}
+
+build { core init lib/ld timer test/kernel_time }
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer" caps="100" ram="2M">
+			<provides> <service name="Timer"/> </provides>
+		</start>
+		<start name="test-kernel_time" caps="100" ram="2M"/>
+	</config>}
+
+build_boot_image [build_artifacts]
+
+append qemu_args " -nographic"
+
+run_genode_until "child .test-kernel_time. exited with exit value .*\n" 120
+
+grep_output {child .test-kernel_time. exited with exit value}
+
+compare_output_to { [init] child "test-kernel_time" exited with exit value 0 }
