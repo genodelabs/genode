@@ -63,7 +63,6 @@ namespace Genode { bool inhibit_tracing = true; }
 bool Genode::Trace::Logger::_evaluate_control() { return false; }
 Genode::Trace::Logger * Genode::Thread::_logger() { return nullptr; }
 Genode::Trace::Logger::Logger() { }
-void Genode::Thread::_deinit_trace_control() { }
 
 
 bool Genode::Generator::_generate_xml() { return true; }

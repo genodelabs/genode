@@ -323,12 +323,4 @@ Thread::~Thread()
 		[&] (Stack_error) { });
 
 	cxx_free_tls(this);
-
-	/*
-	 * We have to detach the trace control dataspace last because
-	 * we cannot invalidate the pointer used by the Trace::Logger
-	 * from here and any following RPC call will stumble upon the
-	 * detached trace control dataspace.
-	 */
-	_deinit_trace_control();
 }

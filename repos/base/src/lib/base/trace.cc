@@ -202,28 +202,18 @@ Trace::Logger::Logger() { }
  ** Thread **
  ************/
 
-/**
- * return logger instance for the main thread **
- */
-static Trace::Logger &main_trace_logger()
-{
-	static Trace::Logger logger;
-	return logger;
-}
-
-
-static Trace::Control *main_trace_control;
-
-
 Trace::Logger *Thread::_logger()
 {
 	if (inhibit_tracing)
 		return nullptr;
 
-	Thread * const myself = Thread::myself();
+	Thread * const myself_ptr = Thread::myself();
+	if (!myself_ptr)
+		return nullptr;
 
-	Trace::Logger &logger = myself ? myself->_trace_logger
-	                               : main_trace_logger();
+	Thread &myself = *myself_ptr;
+
+	Trace::Logger &logger = myself._trace_logger;
 
 	/* logger is already being initialized */
 	if (logger.init_pending())
@@ -233,31 +223,9 @@ Trace::Logger *Thread::_logger()
 	if (!logger.initialized()) {
 		logger.init_pending(true);
 
-		using Create_result = Cpu_session::Create_thread_result;
-		Create_result const thread_cap =
-			myself ? myself->_thread_cap
-			       : Create_result(_env().parent().main_thread_cap());
-
-		Cpu_session &cpu = myself ? myself->_runtime.cpu : _env().cpu();
-
-		if (!myself && !main_trace_control) {
-			Dataspace_capability ds = _env().cpu().trace_control();
-			if (ds.valid()) {
-				Region_map::Attr attr { };
-				attr.writeable = true;
-				_env().rm().attach(ds, attr).with_result(
-					[&] (Env::Local_rm::Attachment &a) {
-						a.deallocate = false;
-						main_trace_control = reinterpret_cast<Trace::Control *>(a.ptr); },
-					[&] (Region_map::Attach_error) {
-						error("failed to attach trace control"); });
-			}
-		}
-
-		thread_cap.with_result(
+		myself._thread_cap.with_result(
 			[&] (Thread_capability cap) {
-				logger.init(cap, &cpu, myself ? myself->_trace_control
-				                              : main_trace_control); },
+				logger.init(cap, &myself._runtime.cpu, myself._trace_control); },
 			[&] (Cpu_session::Create_thread_error) { });
 	}
 

@@ -59,6 +59,11 @@ struct Genode::Runtime
 
 	Heap heap { ram, local_rm };
 
+	Pd_local_rm::Result const trace_control =
+		local_rm.attach(cpu.trace_control(), Region_map::Attr { .size       = { }, .offset    = { },
+		                                       .use_at     = { }, .at        = { },
+		                                       .executable = { }, .writeable = true });
+
 	Runtime() { _attach_stack_area(); }
 
 	/**

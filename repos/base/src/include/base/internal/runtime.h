@@ -56,6 +56,11 @@ struct Genode::Runtime : Noncopyable
 
 	Attached_stack_area stack_area { parent, pd.rpc_cap() };
 
+	Pd_local_rm::Result const trace_control =
+		local_rm.attach(cpu.trace_control(), { .size       = { }, .offset    = { },
+		                                       .use_at     = { }, .at        = { },
+		                                       .executable = { }, .writeable = true });
+
 	Runtime()
 	{
 		env_stack_area_ram_allocator = &ram;

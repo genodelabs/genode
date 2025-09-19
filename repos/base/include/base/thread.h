@@ -154,7 +154,6 @@ class Genode::Thread
 		void _init_native_thread(Stack &);
 		void _init_native_main_thread(Stack &);
 		void _init_trace_control();
-		void _deinit_trace_control();
 
 	public:
 
