@@ -171,6 +171,15 @@ Duration Timer::Connection::curr_time()
 
 		/* interpolate time difference since the last real time update */
 		Timestamp const ts_current_cpu = _timestamp();
+		if (ts_current_cpu < ts) {
+			uint64_t const us_drift = _ts_to_us_ratio(ts - ts_current_cpu,
+			                                          us_to_ts_factor,
+			                                          us_to_ts_factor_shift);
+
+			if (us_drift > MAX_DRIFT_US)
+				warning("Timestamps are out-of-sync, current time drift is at least ", us_drift, "us.");
+		}
+
 		Timestamp const ts_diff = (ts_current_cpu < ts) ? 0 : ts_current_cpu - ts;
 		uint64_t  const us_diff = _ts_to_us_ratio(ts_diff, us_to_ts_factor,
 		                                          us_to_ts_factor_shift);

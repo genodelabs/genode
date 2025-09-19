@@ -206,6 +206,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		enum { MAX_REMOTE_TIME_TRIALS     = 5 };
 		enum { NR_OF_INITIAL_CALIBRATIONS = 3 * MAX_INTERPOLATION_QUALITY };
 		enum { MIN_FACTOR_LOG2            = 8 };
+		enum { MAX_DRIFT_US               = 1000 };
 
 		Io_signal_handler         _signal_handler;
 		Timeout_handler          *_handler               { nullptr };
