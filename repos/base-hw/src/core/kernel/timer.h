@@ -77,7 +77,6 @@ class Kernel::Timer
 		Board::Timer          _device;
 		Irq                   _irq;
 		time_t                _time = 0;
-		time_t                _last_timeout_duration;
 		Genode::List<Timeout> _timeout_list {};
 
 		void _start_one_shot(time_t const ticks);

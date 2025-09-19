@@ -45,9 +45,10 @@ void Board::Timer::init()
 	}
 
 	Core::Platform::apply_with_boot_info([&](auto const &boot_info) {
-		ticks_per_ms = boot_info.plat_info.lapic_freq_khz;
-		divider = boot_info.plat_info.lapic_div;
-	});
+			tsc_ticks_per_ms = boot_info.plat_info.tsc_freq_khz;
+			ticks_per_ms     = boot_info.plat_info.lapic_freq_khz;
+			divider          = boot_info.plat_info.lapic_div;
+		});
 }
 
 
@@ -68,7 +69,7 @@ time_t Timer::_max_value() const {
 
 
 time_t Timer::_duration() const {
-	return _last_timeout_duration - _device.read<Board::Timer::Tmr_current>(); }
+	return us_to_ticks(timer_ticks_to_us(Genode::Trace::timestamp(), _device.tsc_ticks_per_ms)) - _time; }
 
 
 unsigned Timer::interrupt_id() const {

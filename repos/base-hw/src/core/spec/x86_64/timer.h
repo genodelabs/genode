@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <trace/timestamp.h>
 
 /* hw includes */
 #include <hw/spec/x86_64/apic.h>
@@ -30,8 +31,9 @@ namespace Board { class Timer; }
  */
 struct Board::Timer: public Hw::Local_apic
 {
-	Divide_configuration::access_t divider      = 0;
-	Genode::uint32_t               ticks_per_ms = 0;
+	Divide_configuration::access_t divider          = 0;
+	Genode::uint32_t               ticks_per_ms     = 0;
+	Genode::Trace::Timestamp       tsc_ticks_per_ms = 0;
 
 	Timer(Hw::X86_64_cpu::Id);
 

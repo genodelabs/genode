@@ -74,8 +74,8 @@ void Timer::_schedule_timeout()
 
 	/* install timeout at timer hardware */
 	_time += _duration();
-	_last_timeout_duration = (end > _time) ? end - _time : 1;
-	_start_one_shot(_last_timeout_duration);
+	time_t timeout_duration = (end > _time) ? end - _time : 1;
+	_start_one_shot(timeout_duration);
 }
 
 
@@ -105,8 +105,7 @@ void Timer::_process_timeouts()
 
 Timer::Timer(Cpu &cpu)
 :
-	_device(cpu.id()), _irq(interrupt_id(), cpu),
-	_last_timeout_duration(_max_value())
+	_device(cpu.id()), _irq(interrupt_id(), cpu)
 {
 	/*
 	 * The timer frequency should allow a good accuracy on the smallest
