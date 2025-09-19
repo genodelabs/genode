@@ -1,0 +1,48 @@
+<runtime ram="64M" caps="500" binary="textedit" config="textedit.config">
+
+	<requires>
+		<file_system/>
+		<gui/>
+		<report label="shape"/>
+		<report label="clipboard"/>
+		<rom    label="clipboard"/>
+		<rom    label="mesa_gpu.lib.so"/>
+		<timer/>
+	</requires>
+
+	<content>
+
+		<!-- common for Qt GUI applications -->
+
+		<rom label="egl.lib.so"/>
+		<rom label="expat.lib.so"/>
+		<rom label="freetype.lib.so"/>
+		<rom label="glapi.lib.so"/>
+		<rom label="jpeg.lib.so"/>
+		<rom label="libQt6Core.lib.so"/>
+		<rom label="libQt6Gui.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libpng.lib.so"/>
+		<rom label="libqgenode.lib.so"/>
+		<rom label="mesa.lib.so"/>
+		<rom label="libdrm.lib.so"/>
+		<rom label="qt6_dejavusans.tar"/>
+		<rom label="qt6_libqgenode.tar"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_gpu.lib.so"/>
+		<rom label="vfs_pipe.lib.so"/>
+		<rom label="zlib.lib.so"/>
+
+		<!-- application -->
+
+		<rom label="qt6_component.lib.so"/>
+		<rom label="libQt6PrintSupport.lib.so"/>
+		<rom label="libQt6Widgets.lib.so"/>
+		<rom label="textedit"/>
+		<rom label="textedit.config"/>
+
+	</content>
+
+</runtime>
