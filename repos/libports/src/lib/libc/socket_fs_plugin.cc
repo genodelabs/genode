@@ -829,6 +829,19 @@ extern "C" int socket_fs_listen(int libc_fd, int backlog)
 }
 
 
+/*
+ * In case a non-blocking socket returns EAGAIN, make sure wakeup_remote_peers
+ * triggers in order send low-level packet-stream signals.  This is necessary in
+ * cases where, for example, a spinning non-blocking read waits for data that
+ * has not been sent because of deferred wakeup not being triggered yet.
+ */
+static void handle_wakeup_remote_peers(Socket_fs::Context &context)
+{
+	if (errno == EAGAIN && context.fd_flags() & O_NONBLOCK)
+		Libc::Kernel::kernel().wakeup_remote_peers();
+}
+
+
 static ssize_t do_recvfrom(File_descriptor *fd,
                            void *buf, ::size_t const len, int const flags,
                            struct sockaddr *src_addr, socklen_t *src_addrlen)
@@ -873,6 +886,8 @@ static ssize_t do_recvfrom(File_descriptor *fd,
 				    (context->fd_flags() & O_NONBLOCK) &&
 				    context->read_connect_status() == 0)
 						return Errno(EWOULDBLOCK);
+
+				if (result < 0) handle_wakeup_remote_peers(*context);
 
 				return result;
 			}
@@ -1019,9 +1034,10 @@ static ssize_t do_sendto(File_descriptor *fd,
 			/*
 			 * Non-blocking write stalled
 			 */
-			if ((out_len == -1) && (errno == EAGAIN))
+			if ((out_len == -1) && (errno == EAGAIN)) {
+				handle_wakeup_remote_peers(*context);
 				return Errno(EAGAIN);
-
+			}
 			/*
 			 * Write errors to TCP-data files are reflected as EPIPE, which
 			 * means the connection-mode socket is no longer connected. This
