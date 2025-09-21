@@ -107,7 +107,10 @@ enum Errno {
 };
 
 enum Sock_opt {
+	/* SOCKET level */
+
 	/* found in lxip and lwip */
+	GENODE_SO_INVALID = 0,
 	GENODE_SO_DEBUG = 1,
 	GENODE_SO_ACCEPTCONN = 2,
 	GENODE_SO_DONTROUTE = 3,
@@ -124,10 +127,22 @@ enum Sock_opt {
 	GENODE_SO_TYPE = 14,
 	GENODE_SO_BINDTODEVICE = 15,
 	GENODE_SO_BROADCAST = 16,
+	GENODE_SO_KEEPALIVE = 17,
+	GENODE_SO_REUSEADDR = 18,
+
+	/* TCP level */
+
+	/* close connection after X tries with no response */
+	GENODE_TCP_KEEPCNT = 128,
+	/* start keep alive after connection is Xs idle */
+	GENODE_TCP_KEEPIDLE = 129,
+	/* retransmit every Xs in case there is no response */
+	GENODE_TCP_KEEPINTVL = 130,
 };
 
 enum Sock_level {
 	GENODE_SOL_SOCKET = 1,
+	GENODE_IPPROTO_TCP = 2,
 };
 
 struct genode_socket_handle;
