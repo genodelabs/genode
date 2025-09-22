@@ -7,13 +7,14 @@
  */
 
 /*
- * Copyright (C) 2024 Genode Labs GmbH
+ * Copyright (C) 2024-2025 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2 or later.
  */
 
 #include <linux/net.h>
+#include <uapi/linux/tcp.h>
 #include <net/sock.h>
 
 #include "lx_socket.h"
@@ -120,12 +121,28 @@ static int sock_opts[] = {
 	SO_TYPE,
 	SO_BINDTODEVICE,
 	SO_BROADCAST,
+	SO_KEEPALIVE,
+	SO_REUSEADDR
 };
 
 
-static int _linux_sockopt(enum Sock_opt sockopt)
+static int tcp_opts[] = {
+	TCP_KEEPCNT,
+	TCP_KEEPIDLE,
+	TCP_KEEPINTVL,
+};
+
+
+static int _linux_sockopt(enum Sock_level level ,enum Sock_opt sockopt)
 {
-	return sock_opts[sockopt];
+	if (sockopt == 0) return 0;
+
+	if (level == GENODE_SOL_SOCKET)
+		return sock_opts[sockopt];
+	else if (level == GENODE_IPPROTO_TCP)
+		return tcp_opts[sockopt & 0x7f];
+
+	return 0;
 }
 
 
@@ -297,23 +314,24 @@ unsigned lx_socket_poll(struct socket *sock)
 enum Errno lx_socket_getsockopt(struct socket *sock, enum Sock_level level,
                                 enum Sock_opt opt, void *optval, unsigned *optlen)
 {
-	int name = _linux_sockopt(opt);
+	int name = _linux_sockopt(level, opt);
 	enum Errno errno;
 	int err;
-
-	if (level != GENODE_SOL_SOCKET) return GENODE_ENOPROTOOPT;
 
 	if (opt == GENODE_SO_ERROR && *optlen < sizeof(enum Sock_opt))
 		return GENODE_EFAULT;
 
-	if (level == GENODE_SOL_SOCKET)
+	switch (level) {
+	case GENODE_SOL_SOCKET:
 		err =  sk_getsockopt(sock->sk, SOL_SOCKET, name,
 		                     KERNEL_SOCKPTR(optval), KERNEL_SOCKPTR(optlen));
-	/* we might need this later
-	else {
-		err = sock->ops->getsockopt(sock, SOL_SOCKET, name, optval, optlen);
+		break;
+	case GENODE_IPPROTO_TCP:
+		err = sock->ops->getsockopt(sock, IPPROTO_TCP, name, optval, optlen);
+		break;
+	default:
+		return GENODE_ENOPROTOOPT;
 	}
-	*/
 
 	if (err) return _genode_errno(err);
 
@@ -330,20 +348,20 @@ enum Errno lx_socket_getsockopt(struct socket *sock, enum Sock_level level,
 enum Errno lx_socket_setsockopt(struct socket *sock, enum Sock_level level,
                                 enum Sock_opt opt, void const *optval, unsigned optlen)
 {
-	int name = _linux_sockopt(opt);
+	int name = _linux_sockopt(level, opt);
 	int err;
 
-	if (level != GENODE_SOL_SOCKET) return GENODE_ENOPROTOOPT;
-
-	if (level == GENODE_SOL_SOCKET) {
-		sockptr_t val = { .user = optval, .is_kernel = 0 };
-		err = sock_setsockopt(sock, SOL_SOCKET, name, val, optlen);
+	switch (level) {
+	case GENODE_SOL_SOCKET:
+		err = sock_setsockopt(sock, SOL_SOCKET, name, KERNEL_SOCKPTR(optval), optlen);
+		break;
+	case GENODE_IPPROTO_TCP:
+		err = sock->ops->setsockopt(sock, IPPROTO_TCP, name, KERNEL_SOCKPTR(optval),
+		                            optlen);
+		break;
+	default:
+		return GENODE_ENOPROTOOPT;
 	}
-	/* we might need this later
-	else {
-		err = sock->ops->getsockopt(sock, SOL_SOCKET, name, optval, optlen);
-	}
-	*/
 
 	if (err) return _genode_errno(err);
 
