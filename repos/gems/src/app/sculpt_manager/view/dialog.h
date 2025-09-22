@@ -51,8 +51,9 @@ struct Dialog::Annotation : Sub_scope
 	static void sub_node(auto &scope, auto const &text)
 	{
 		scope.sub_node("label", [&] {
-			scope.attribute("font", "annotation/regular"); });
+			scope.attribute("font", "annotation/regular");
 			scope.g.node("text", [&] { scope.g.append_quoted(text); });
+		});
 	}
 
 	static void view_sub_scope(auto &scope, auto const &text)
