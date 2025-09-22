@@ -917,8 +917,6 @@ struct Usb::Main : Rpc_object<Typed_root<Block::Session>>
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
-		Session_label const label { label_from_args(args.string()) };
-
 		Block::Constrained_view view =
 			Block::Constrained_view::from_args(args.string());
 		view.writeable = driver.info().writeable && view.writeable;

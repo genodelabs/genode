@@ -15,7 +15,7 @@ The following configuration snippets demonstrates how to use the driver:
 
 !<start name="usb_block" ram="4M">
 !  <provides> <service name="Block"/> </provides>
-!  <config label="usb_stick" report="yes" writeable="yes" interface="0"
+!  <config report="yes" writeable="yes" interface="0"
 !          alt_setting="0" lun="0" reset_device="no" verbose_scsi="no"/>
 !  <route>
 !   <service name="Usb"> <child name="usb"/> </service>
@@ -23,30 +23,22 @@ The following configuration snippets demonstrates how to use the driver:
 !  </route>
 !</start>
 
-The drivers 'config' node features a few attributes. First, there is the 'label'
-attribute. This attribute specifies the label used when opening the Usb session
-connection. A matching policy has to be configured at the USB host controller
-driver:
+A policy matching the block-driver instance has to be configured at the USB
+host controller driver.
 
 !<start name="usb" ram="12M">
 !  <provides><service name="Usb"/></provides>
 !  <config>
-!    <raw>
-!        <policy label="usb_block -> usb_stick" vendor_id="0x13fe" product_id="0x5200"/>
-!    </raw>
+!    <policy label="usb_block -> ">
+!      <device vendor_id="0x13fe" product_id="0x5200"/>
+!      <device name="usb-1-2"/>
+!    </policy>
 !  </config>
 !</start>
 
-For static configurations the 'label' value may be chosen freely or may even
-be ommitted entirely. On the other hand it is best for dynamic configurations
-to choose a unique label, e.g. 'usb-<bus>-<dev>', at run-time (this most likely
-involves other components that generate configurations for the 'usb_block'
-as well as the USB host driver.
-
-
-The second attribute is 'report'. If its value is 'yes' the driver
-will generate a 'devices' report that contains meta information about the
-USB device it is accessing and hence the Block session it is provding, e.g.:
+The 'report' attribute instructs the driver to generate a 'devices' report
+that contains meta information about the USB device it is accessing and
+hence the Block session it is providing.
 
 !<devices>
 !  <device vendor="QEMU" product="QEMU USB HARDDRIVE" block_size="512" block_count="8192" writeable="no"/>
@@ -58,19 +50,25 @@ Although the parent node is called 'devices' the driver is only able to access
 one and the same device and the report will therefore always contain one device
 only.
 
-In addition to other attributes that can be used to configure sepecific aspects
-of the driver. The 'writeable' attribute denotes the permission of the Block
-session client to write to the USB device. Independent thereof the driver will
-query the device and will set the Block session operations accordingly. The
-'interface' specifies the USB interface the driver should use and 'alt_setting'
-allows for selecting the appropriate alternate setting. If the device
-provides multiple SCSI devices the 'lun' attribute is used to select the right
-one. When 'reset_device' is enabled, a 'bulk-only mass storage reset' command
-is sent to the device at the beginning of the initialization step. This command
-caused problems on at least one device, so it is omitted by default. The
-'verbose_scsi' attribute can be useful for debugging.
+The following attributes can be used to configure specific aspects of the
+driver.
 
-The configuration of the USB block driver cannot be changed at run-time. The
-driver is either used in a static system configuration where it is configured
-once or in case of a dynamic system configuration a new driver instance with
-a proper configuration is created on demand.
+* The 'writeable' attribute denotes the permission of the Block session
+  client to write to the USB device. Independent thereof the driver will
+  query the device and will set the Block session operations accordingly.
+* The 'interface' attribute specifies the USB interface the driver should
+  use, while 'alt_setting' allows for selecting the appropriate alternate
+  setting.
+* If the device provides multiple SCSI devices the 'lun' attribute is used
+  to select the right one.
+* The 'reset_device' attribute instructs the driver to send a 'bulk-only
+  mass storage reset' command to the device at the beginning of the
+  initialization step. This command caused problems on at least one device,
+  so it is omitted by default.
+* The 'verbose_scsi' attribute can be useful for debugging.
+
+The configuration of the USB block driver is applied on startup only and,
+thus, cannot be changed at run-time. Therefore, the driver is either used in
+a static system configuration where it is configured once or, in case of a
+dynamic system configuration, a proper configuration is created on demand
+for each new driver instance.
