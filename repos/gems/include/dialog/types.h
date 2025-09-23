@@ -71,7 +71,7 @@ struct Dialog::Id
 
 	Value value;
 
-	bool operator == (Id const &other) const { return value == other.value; }
+	bool operator == (Id const &other) const;
 
 	bool valid() const { return value.length() > 1; }
 
