@@ -197,6 +197,7 @@ void Hrd_generator::_attribute(char const *tag, char const *value, size_t val_le
 
 void Hrd_generator::_node(char const *name, Node_fn::Ft const &fn)
 {
+	_quoted = false;
 	if (_node_state.indent.level == 0)
 		print(_out_buffer, name);
 	else
@@ -220,6 +221,7 @@ void Hrd_generator::_node(char const *name, Node_fn::Ft const &fn)
 			~Guard()
 			{
 				g._node_state = orig.node_state;
+				g._quoted = false;
 				if (!ok)
 					g._out_buffer.rewind(orig.used);
 			}

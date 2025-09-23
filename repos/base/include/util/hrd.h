@@ -476,6 +476,8 @@ class Genode::Hrd_generator : Noncopyable
 
 		Node_state _node_state { };
 
+		bool _quoted = false;
+
 		void _attribute(char const *, char const *, size_t);
 
 		Hrd_generator(Byte_range_ptr const &bytes, char const *name, auto const &fn)
@@ -578,9 +580,24 @@ class Genode::Hrd_generator : Noncopyable
 		 */
 		void append_quoted(char const *str, size_t str_len)
 		{
+			bool trailing_newline = false;
 			Span(str, str_len).split('\n', [&] (Span const &line) {
-				print(_out_buffer, "\n", _node_state.indent, ": ",
-				      Cstring(line.start, line.num_bytes)); });
+
+				if (_quoted) {
+
+					/* extend quoted line */
+					print(_out_buffer, Cstring(line.start, line.num_bytes));
+
+				} else {
+
+					/* start new quoted line */
+					print(_out_buffer, "\n", _node_state.indent, ": ",
+					      Cstring(line.start, line.num_bytes));
+				}
+				_quoted = false;
+				trailing_newline = (line.num_bytes == 0);
+			});
+			_quoted = !trailing_newline;  /* allow extension of last line */
 		}
 
 		void append_quoted(char const *str) { append_quoted(str, strlen(str)); }
