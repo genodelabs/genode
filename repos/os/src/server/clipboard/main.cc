@@ -213,11 +213,17 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		 * sessions, one for each window. The labels of all of those nitpicker
 		 * session share the first part with application's clipboard label.
 		 */
-		bool const focus_lies_in_client_subsystem =
-			!strcmp(_focused_label.string(), truncated_label.string(),
-			        truncated_label_len);
 
-		return focus_lies_in_client_subsystem;
+		auto with_trimmed = [] (auto const &s, auto const &fn)
+		{
+			return s.with_span([&] (Span const &s) {
+				return s.trimmed([&] (Span const &trimmed) {
+					return fn(trimmed); }); });
+		};
+
+		return with_trimmed(_focused_label, [&] (Span const &focused_label) {
+			return with_trimmed(truncated_label, [&] (Span const &truncated_label) {
+				return focused_label.starts_with(truncated_label); }); });
 	}
 
 	/**
