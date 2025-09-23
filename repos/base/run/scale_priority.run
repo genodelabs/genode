@@ -14,11 +14,13 @@ if {[have_spec hw]} {            # hw has priorities 3..0
 	set prio_levels_log2 8
 }
 
+set prio_levels [expr 1 << $prio_levels_log2]
+
 #
 # Build
 #
 
-build { core init lib/ld test/scale_priority }
+build { core init timer lib/ld test/scale_priority app/dummy }
 
 
 #
@@ -28,7 +30,7 @@ build { core init lib/ld test/scale_priority }
 create_boot_directory
 
 install_config {
-	<config>
+	<config prio_levels="} [set prio_levels] {">
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="IRQ"/>
@@ -42,10 +44,47 @@ install_config {
 		</parent-provides>
 
 		<default-route>
+			<service name="TRACE"> <parent label=""/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 
 		<default caps="1000" ram="10M"/>
+
+		<start name="timer">
+			<provides> <service name="Timer"/> </provides>
+		</start>
+
+		<start name="highest" priority="0">
+			<binary name="dummy"/>
+			<config>
+				<log/>
+				<sleep_forever/>
+			</config>
+		</start>
+
+		<start name="second highest" priority="-1">
+			<binary name="dummy"/>
+			<config>
+				<log/>
+				<sleep_forever/>
+			</config>
+		</start>
+
+		<start name="lowest" priority="-} [expr $prio_levels-1] {">
+			<binary name="dummy"/>
+			<config>
+				<log/>
+				<sleep_forever/>
+			</config>
+		</start>
+
+		<start name="second lowest" priority="-} [expr $prio_levels-2] {">
+			<binary name="dummy"/>
+			<config>
+				<log/>
+				<sleep_forever/>
+			</config>
+		</start>
 
 		<start name="test-scale_priority">
 			<config prio_levels_log2="} [set prio_levels_log2] {"
