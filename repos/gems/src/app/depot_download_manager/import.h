@@ -319,6 +319,13 @@ class Depot_download_manager::Import
 			_for_each_item(Item::VERIFICATION_FAILED, fn);
 		}
 
+		void skip_downloads()
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == Item::DOWNLOAD_IN_PROGRESS)
+					item.state =  Item::DOWNLOAD_COMPLETE; });
+		}
+
 		void all_downloads_completed()
 		{
 			_items.for_each([&] (Item &item) {

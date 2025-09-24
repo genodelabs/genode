@@ -509,6 +509,9 @@ void Depot_download_manager::Main::_handle_query_result()
 	_import.construct(_heap, _current_user_name(), _current_user_has_pubkey(),
 	                  dependencies, index, image, image_index);
 
+	if (_installation.node().attribute_value("download", true) == false)
+		_import->skip_downloads();
+
 	/* mark imported jobs as started */
 	_import->for_each_download([&] (Archive::Path const &path) {
 		_jobs.for_each([&] (Job &job) {
