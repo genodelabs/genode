@@ -3,6 +3,7 @@ MIRROR_FROM_REP_DIR := lib/mk/vfs_lwip.mk
 MIRROR_FROM_OS := src/lib/vfs/ip/vfs.cc \
                   src/lib/vfs/ip/vfs_lwip.cc \
                   src/lib/vfs/ip/vfs_ip.h \
+                  src/lib/vfs/ip/sockopt.h \
                   src/lib/vfs/ip/symbol.map
 
 content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_OS) LICENSE
