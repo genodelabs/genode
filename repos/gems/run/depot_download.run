@@ -13,6 +13,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_nic_pkg] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/fs_rom \
+                  [depot_user]/src/fs_tool \
                   [depot_user]/src/vfs \
                   [depot_user]/src/vfs_lxip \
                   [depot_user]/src/vfs_pipe \

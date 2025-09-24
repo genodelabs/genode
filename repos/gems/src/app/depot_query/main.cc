@@ -68,6 +68,7 @@ Depot_query::Main::_find_rom_in_pkg(File_content    const &archives,
 		case Archive::BIN:
 		case Archive::DBG:
 		case Archive::IMAGE:
+		case Archive::INDEX:
 			break;
 		}
 	});
@@ -234,6 +235,7 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 		break;
 	case Archive::RAW:
 	case Archive::IMAGE:
+	case Archive::INDEX:
 		break;
 	};
 }
@@ -275,6 +277,7 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
 		break;
 
 	case Archive::IMAGE:
+	case Archive::INDEX:
 		break;
 	};
 }

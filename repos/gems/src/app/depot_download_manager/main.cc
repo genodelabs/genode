@@ -393,8 +393,28 @@ void Depot_download_manager::Main::_generate_init_config(Generator &g)
 			gen_chroot_start_content(g, _current_user_name());  });
 
 		g.node("start", [&] () {
+			gen_stage_start_content(g, *_import, _current_user_path(),
+			                        _current_user_name()); });
+	}
+
+	if (_import.constructed() && _import->staged_archives_available()) {
+
+		g.node("start", [&] () {
+			gen_chroot_start_content(g, _current_user_name());  });
+
+		g.node("start", [&] () {
 			gen_extract_start_content(g, *_import, _current_user_path(),
 			                          _current_user_name()); });
+	}
+
+	if (_import.constructed() && _import->extracted_archives_available()) {
+
+		g.node("start", [&] () {
+			gen_chroot_start_content(g, _current_user_name());  });
+
+		g.node("start", [&] () {
+			gen_commit_start_content(g, *_import, _current_user_path(),
+			                         _current_user_name()); });
 	}
 
 	_fetchurl_watchdog.conditional(fetchurl_running, *this);
@@ -598,13 +618,45 @@ void Depot_download_manager::Main::_handle_init_state()
 
 	if (import.verified_or_blessed_archives_available()) {
 
+		Child_exit_state const fs_tool_state(_init_state.node(), "stage");
+
+		if (fs_tool_state.exited && fs_tool_state.code != 0)
+			error("staging archives failed with exit code ", fs_tool_state.code);
+
+		if (fs_tool_state.exited && fs_tool_state.code == 0) {
+			import.all_verified_or_blessed_archives_staged();
+			reconfigure_init = true;
+		}
+	}
+
+	if (import.staged_archives_available()) {
+
 		Child_exit_state const extract_state(_init_state.node(), "extract");
 
-		if (extract_state.exited && extract_state.code != 0)
+		if (extract_state.exited && extract_state.code != 0) {
 			error("extract failed with exit code ", extract_state.code);
+			import.all_staged_archives_malformed();
+		}
 
 		if (extract_state.exited && extract_state.code == 0)
-			import.all_verified_or_blessed_archives_extracted();
+			import.all_staged_archives_extracted();
+
+		if (extract_state.exited)
+			reconfigure_init = true;
+	}
+
+	if (import.extracted_archives_available()) {
+
+		Child_exit_state const fs_tool_state(_init_state.node(), "commit");
+
+		if (fs_tool_state.exited && fs_tool_state.code != 0)
+			error("committing archives failed with exit code ", fs_tool_state.code);
+
+		if (fs_tool_state.exited && fs_tool_state.code == 0) {
+			import.all_extracted_archives_committed();
+			reconfigure_init = true;
+		}
+
 	}
 
 	/* flag failed jobs to prevent re-attempts in subsequent import iterations */

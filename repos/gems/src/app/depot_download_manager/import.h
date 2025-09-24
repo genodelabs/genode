@@ -99,14 +99,19 @@ class Depot_download_manager::Import
 
 			bool const require_verify;
 
-			enum State { DOWNLOAD_IN_PROGRESS,
-			             DOWNLOAD_COMPLETE,
-			             DOWNLOAD_UNAVAILABLE,
-			             VERIFICATION_IN_PROGRESS,
-			             VERIFIED,
-			             VERIFICATION_FAILED,
-			             BLESSED, /* verification deliberately skipped */
-			             UNPACKED };
+			enum State {
+				DOWNLOAD_IN_PROGRESS,
+				DOWNLOAD_COMPLETE,
+				DOWNLOAD_UNAVAILABLE,
+				VERIFICATION_IN_PROGRESS,
+				VERIFICATION_FAILED,
+				VERIFIED,
+				BLESSED,   /* verification deliberately skipped */
+				STAGED,
+				EXTRACTED,
+				COMMITTED, /* renamed from extract/<version> to <version> */
+				MALFORMED  /* archive could not be extracted */
+			};
 
 			State state = DOWNLOAD_IN_PROGRESS;
 
@@ -118,7 +123,9 @@ class Depot_download_manager::Import
 				    || state == DOWNLOAD_COMPLETE
 				    || state == VERIFICATION_IN_PROGRESS
 				    || state == VERIFIED
-				    || state == BLESSED;
+				    || state == BLESSED
+				    || state == STAGED
+				    || state == EXTRACTED;
 			}
 
 			Item(Registry<Item> &registry, Archive::Path const &path,
@@ -135,10 +142,13 @@ class Depot_download_manager::Import
 				case DOWNLOAD_COMPLETE:        return "fetched";
 				case DOWNLOAD_UNAVAILABLE:     return "unavailable";
 				case VERIFICATION_IN_PROGRESS: return "verify";
-				case VERIFIED:                 return "extract";
 				case VERIFICATION_FAILED:      return "corrupted";
-				case BLESSED:                  return "extract";
-				case UNPACKED:                 return "done";
+				case VERIFIED:                 return "stage";
+				case BLESSED:                  return "stage";  /* prepare extraction */
+				case STAGED:                   return "extract";
+				case EXTRACTED:                return "finalize";
+				case COMMITTED:                return "committed";
+				case MALFORMED:                return "malformed";
 				};
 				return "";
 			}
@@ -287,6 +297,21 @@ class Depot_download_manager::Import
 			    || _item_state_exists(Item::BLESSED);
 		}
 
+		bool staged_archives_available() const
+		{
+			return _item_state_exists(Item::STAGED);
+		}
+
+		bool extracted_archives_available() const
+		{
+			return _item_state_exists(Item::EXTRACTED);
+		}
+
+		bool committed_archives_available() const
+		{
+			return _item_state_exists(Item::COMMITTED);
+		}
+
 		template <typename FN>
 		void for_each_download(FN const &fn) const
 		{
@@ -307,9 +332,15 @@ class Depot_download_manager::Import
 		}
 
 		template <typename FN>
-		void for_each_ready_archive(FN const &fn) const
+		void for_each_staged_archive(FN const &fn) const
 		{
-			_for_each_item(Item::UNPACKED, fn);
+			_for_each_item(Item::STAGED, fn);
+		}
+
+		template <typename FN>
+		void for_each_extracted_archive(FN const &fn) const
+		{
+			_for_each_item(Item::EXTRACTED, fn);
 		}
 
 		template <typename FN>
@@ -317,6 +348,7 @@ class Depot_download_manager::Import
 		{
 			_for_each_item(Item::DOWNLOAD_UNAVAILABLE, fn);
 			_for_each_item(Item::VERIFICATION_FAILED, fn);
+			_for_each_item(Item::MALFORMED, fn);
 		}
 
 		void skip_downloads()
@@ -399,11 +431,32 @@ class Depot_download_manager::Import
 						item.state = Item::VERIFICATION_FAILED; });
 		}
 
-		void all_verified_or_blessed_archives_extracted()
+		void all_verified_or_blessed_archives_staged()
 		{
 			_items.for_each([&] (Item &item) {
 				if (item.state == Item::VERIFIED || item.state == Item::BLESSED)
-					item.state = Item::UNPACKED; });
+					item.state = Item::STAGED; });
+		}
+
+		void all_staged_archives_extracted()
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == Item::STAGED)
+					item.state = Item::EXTRACTED; });
+		}
+
+		void all_staged_archives_malformed()
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == Item::STAGED)
+					item.state = Item::MALFORMED; });
+		}
+
+		void all_extracted_archives_committed()
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == Item::EXTRACTED)
+					item.state = Item::COMMITTED; });
 		}
 
 		void report(Generator &g) const

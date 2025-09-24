@@ -81,6 +81,41 @@ namespace Depot_download_manager {
 		});
 	}
 
+	/*
+	 * Common start-node content shared by 'stage' and 'commit' steps
+	 */
+	static inline void gen_fs_tool_start_content(Generator           &g,
+	                                             Path          const &user_path,
+	                                             Archive::User const &user,
+	                                             auto          const &config_fn)
+	{
+		g.node("binary", [&] { g.attribute("name", "fs_tool"); });
+
+		g.node("config", [&] {
+			g.attribute("verbose", "yes");
+			g.attribute("exit",    "yes");
+
+			g.node("vfs", [&] {
+				g.node("dir", [&] { g.attribute("name", user);
+					g.node("fs", [&] { g.attribute("label", "/"); }); }); });
+			config_fn();
+		});
+
+		g.node("route", [&] {
+			g.node("service", [&] {
+				g.attribute("name", File_system::Session::service_name());
+				g.node("child", [&] {
+					g.attribute("name", user_path); });
+			});
+			gen_parent_unscoped_rom_route(g, "fs_tool");
+			gen_parent_unscoped_rom_route(g, "ld.lib.so");
+			gen_parent_rom_route(g, "vfs.lib.so");
+			gen_parent_route<Cpu_session>(g);
+			gen_parent_route<Pd_session> (g);
+			gen_parent_route<Log_session>(g);
+		});
+	}
+
 	void gen_depot_query_start_content(Generator &,
 	                                   Node const &installation,
 	                                   Archive::User const &,
@@ -96,6 +131,12 @@ namespace Depot_download_manager {
 
 	void gen_extract_start_content(Generator &, Import const &,
 	                               Path const &, Archive::User const &);
+
+	void gen_stage_start_content(Generator &, Import const &,
+	                             Path const &, Archive::User const &);
+
+	void gen_commit_start_content(Generator &, Import const &,
+	                              Path const &, Archive::User const &);
 }
 
 #endif /* _GENERATE_XML_H_ */

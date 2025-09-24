@@ -4,6 +4,7 @@ _/src/verify
 _/src/extract
 _/src/report_rom
 _/src/fs_rom
+_/src/fs_tool
 _/src/fetchurl
 _/src/libc
 _/src/libssh

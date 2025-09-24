@@ -30,7 +30,7 @@ struct Depot::Archive
 	using Name    = String<80>;
 	using Version = String<40>;
 
-	enum Type { PKG, RAW, SRC, BIN, DBG, IMAGE };
+	enum Type { PKG, RAW, SRC, BIN, DBG, IMAGE, INDEX };
 
 	struct Unknown_archive_type : Exception { };
 
@@ -87,6 +87,7 @@ struct Depot::Archive
 		if (name == "bin")   return BIN;
 		if (name == "dbg")   return DBG;
 		if (name == "image") return IMAGE;
+		if (name == "index") return INDEX;
 
 		throw Unknown_archive_type();
 	}
@@ -127,6 +128,9 @@ struct Depot::Archive
 	{
 		if ((type(path) == BIN) || (type(path) == DBG))
 			return _path_element<Version>(path, 4);
+
+		if (type(path) == INDEX)
+			return _path_element<Version>(path, 2);
 
 		return _path_element<Version>(path, 3);
 	}
