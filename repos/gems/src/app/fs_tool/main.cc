@@ -66,8 +66,11 @@ struct Fs_tool::Main
 	void _copy_file(Path const &from, Path const &to, Byte_range_ptr const &);
 
 	void _remove_file    (Node const &);
+	void _remove_dir     (Node const &);
 	void _new_file       (Node const &);
 	void _copy_all_files (Node const &);
+	void _create_dir     (Node const &);
+	void _rename         (Node const &);
 
 	void _handle_config()
 	{
@@ -85,11 +88,20 @@ struct Fs_tool::Main
 			if (operation.has_type("remove-file"))
 				_remove_file(operation);
 
+			if (operation.has_type("remove-dir"))
+				_remove_dir(operation);
+
 			if (operation.has_type("new-file"))
 				_new_file(operation);
 
 			if (operation.has_type("copy-all-files"))
 				_copy_all_files(operation);
+
+			if (operation.has_type("create-dir"))
+				_create_dir(operation);
+
+			if (operation.has_type("rename"))
+				_rename(operation);
 		});
 
 		if (config.attribute_value("exit", false)) {
@@ -128,6 +140,36 @@ void Fs_tool::Main::_remove_file(Node const &operation)
 
 	if (_verbose && _root_dir.file_exists(path))
 		warning("failed to remove file ", path);
+}
+
+
+void Fs_tool::Main::_remove_dir(Node const &operation)
+{
+	Path const path = operation.attribute_value("path", Path());
+
+	if (!_root_dir.directory_exists(path)) {
+		if (_verbose)
+			warning("dir ", path, " cannot be removed because there is no such directory");
+		return;
+	}
+
+	bool const empty = Directory(_root_dir, path).with_first_entry(
+		[] (Directory::Entry const &) { return false; },
+		[] () -> bool                 { return true; });
+
+	if (_verbose && !empty)
+		warning("skip removal of non-empty dir ", path);
+
+	if (!empty)
+		return;
+
+	if (_verbose)
+		log("remove dir ", path);
+
+	_root_dir.unlink(path);
+
+	if (_verbose && _root_dir.directory_exists(path))
+		warning("failed to remove dir ", path);
 }
 
 
@@ -212,6 +254,19 @@ void Fs_tool::Main::_copy_all_files(Node const &operation)
 			           Path(to,   "/", entry.name()),
 			           buffer);
 	});
+}
+
+
+void Fs_tool::Main::_create_dir(Node const &operation)
+{
+	_root_dir.create_sub_directory(operation.attribute_value("path", Path()));
+}
+
+
+void Fs_tool::Main::_rename(Node const &operation)
+{
+	_root_dir.rename(operation.attribute_value("path", Path()),
+	                 operation.attribute_value("to",   Path()));
 }
 
 
