@@ -169,8 +169,7 @@ namespace Sandbox {
 	{
 		long const prio_levels = config.attribute_value("prio_levels", 0L);
 
-		if (prio_levels && ((prio_levels >= (long)sizeof(prio_levels)*8) ||
-		                    (prio_levels != (1L << log2(prio_levels))))) {
+		if (prio_levels && ((prio_levels != (1L << log2(prio_levels))))) {
 			warning("prio levels is not power of two, priorities are disabled");
 			return Prio_levels { 0 };
 		}
