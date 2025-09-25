@@ -47,6 +47,16 @@ class Core::Synced_range_allocator : public Range_allocator
 		ALLOC                          _alloc;
 		Synced_interface<ALLOC, Mutex> _synced_object;
 
+		Alloc_result _adopted(Alloc_result result)
+		{
+			return result.convert<Alloc_result>(
+					[&] (Allocation &allocation) -> Alloc_result {
+						allocation.deallocate = false;
+						return { *this, allocation };
+					},
+					[&] (auto e) { return e; });
+		}
+
 	public:
 
 		using Guard = typename Synced_interface<ALLOC, Mutex>::Guard;
@@ -68,7 +78,7 @@ class Core::Synced_range_allocator : public Range_allocator
 		 *********************************/
 
 		Alloc_result try_alloc(size_t size) override {
-			return _synced_object()->try_alloc(size); }
+			return _adopted(_synced_object()->try_alloc(size)); }
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
@@ -101,10 +111,10 @@ class Core::Synced_range_allocator : public Range_allocator
 			return _synced_object()->remove_range(base, size); }
 
 		Alloc_result alloc_aligned(size_t size, unsigned align, Range range) override {
-			return _synced_object()->alloc_aligned(size, align, range); }
+			return _adopted(_synced_object()->alloc_aligned(size, align, range)); }
 
 		Alloc_result alloc_addr(size_t size, addr_t addr) override {
-			return _synced_object()->alloc_addr(size, addr); }
+			return _adopted(_synced_object()->alloc_addr(size, addr)); }
 
 		void free(void *addr) override {
 			_synced_object()->free(addr); }
