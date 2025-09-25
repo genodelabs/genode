@@ -143,6 +143,8 @@ install_config {
 			<route>
 				<service name="File_system"> <child name="lx_fs"/> </service>
 				<service name="TRACE"> <parent label=""/> </service>
+				<!-- serve config ROM has platform_info merely to satisfy the ROM request -->
+				<service name="ROM" label="platform_info"> <parent label="config"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
