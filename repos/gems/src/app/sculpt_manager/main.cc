@@ -197,6 +197,8 @@ struct Sculpt::Main : Input_event_handler,
 	void trigger_suspend() override
 	{
 		_system_state.state = System_state::BLANKING;
+		_fb_config.suspend_connectors();
+		_generate_fb_config();
 		_broadcast_system_state();
 	}
 
@@ -363,6 +365,9 @@ struct Sculpt::Main : Input_event_handler,
 			_system_state.state = System_state::RUNNING;
 			_driver_options.suspending = false;
 			_drivers.update_options(_driver_options);
+
+			_fb_config.resume_connectors();
+			_generate_fb_config();
 		}
 
 		if (orig_state != _system_state.state)
@@ -2562,19 +2567,16 @@ void Sculpt::Main::_handle_runtime_state(Node const &state)
 		}
 	}
 
-	{
-		Child_exit_state exit_state(state, "intel_fb");
+	if (_system_state.state == System_state::BLANKING &&
+	    !_fb_config.any_connector_enabled()) {
 
-		if (exit_state.exited && _system_state.state == System_state::BLANKING) {
+		_system_state.state = System_state::DRIVERS_STOPPING;
+		_broadcast_system_state();
 
-			_system_state.state = System_state::DRIVERS_STOPPING;
-			_broadcast_system_state();
+		_driver_options.suspending = true;
+		_drivers.update_options(_driver_options);
 
-			_driver_options.suspending = true;
-			_drivers.update_options(_driver_options);
-
-			reconfigure_runtime = true;
-		}
+		reconfigure_runtime = true;
 	}
 
 	/* upgrade RAM and cap quota on demand */

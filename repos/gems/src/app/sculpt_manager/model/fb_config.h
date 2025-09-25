@@ -37,6 +37,9 @@ struct Sculpt::Fb_config
 		Brightness  brightness;
 		Orientation orientation;
 
+		Mode_id     mode_id_suspend;
+		Mode_attr   mode_attr_suspend;
+
 		static Entry from_connector(Fb_connectors::Connector const &connector)
 		{
 			Mode_attr mode_attr { };
@@ -51,7 +54,10 @@ struct Sculpt::Fb_config
 			         .mode_id     = mode_id,
 			         .mode_attr   = mode_attr,
 			         .brightness  = connector.brightness,
-			         .orientation = connector.orientation };
+			         .orientation = connector.orientation,
+			         .mode_id_suspend = mode_id,
+			         .mode_attr_suspend = mode_attr
+			       };
 		}
 
 		static Entry from_manual_node(Node const &node)
@@ -70,7 +76,10 @@ struct Sculpt::Fb_config
 			         .mode_id     = mode_id,
 			         .mode_attr   = mode_attr,
 			         .brightness  = Brightness::from_node(node),
-			         .orientation = Orientation::from_node(node) };
+			         .orientation = Orientation::from_node(node),
+			         .mode_id_suspend = mode_id,
+			         .mode_attr_suspend = mode_attr
+			       };
 		}
 
 		void generate(Generator &g) const
@@ -80,7 +89,7 @@ struct Sculpt::Fb_config
 
 			g.node("connector", [&] {
 				g.attribute("name",   name);
-				if (mode_attr.px.valid()) {
+				if (valid_mode()) {
 					g.attribute("width",  mode_attr.px.w);
 					g.attribute("height", mode_attr.px.h);
 					if (mode_attr.hz)
@@ -101,6 +110,9 @@ struct Sculpt::Fb_config
 		{
 			return mode_attr.px.count() < other.mode_attr.px.count();
 		}
+
+		bool valid_mode() const {
+			return mode_id.length() > 1 || mode_attr.px.valid(); }
 	};
 
 	static constexpr unsigned MAX_ENTRIES = 16;
@@ -462,6 +474,36 @@ struct Sculpt::Fb_config
 			if (_entries[i].defined && _entries[i].present)
 				count++;
 		return count;
+	}
+
+	void suspend_connectors()
+	{
+		for (Entry &entry : _entries) {
+			entry.mode_id_suspend   = entry.mode_id;
+			entry.mode_attr_suspend = entry.mode_attr;
+			entry.mode_id   = { };
+			entry.mode_attr = { };
+		}
+	}
+
+	void resume_connectors()
+	{
+		for (Entry &entry : _entries) {
+			entry.mode_id   = entry.mode_id_suspend;
+			entry.mode_attr = entry.mode_attr_suspend;
+		}
+	}
+
+	bool any_connector_enabled()
+	{
+		for (Entry const &entry : _entries) {
+			if (!entry.valid_mode())
+				continue;
+
+			return true;
+		}
+
+		return false;
 	}
 };
 
