@@ -18,6 +18,7 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <vfs/types.h>
+#include <util/dictionary.h>
 #include <util/string.h>
 #include <libc/allocator.h>
 
@@ -333,6 +334,51 @@ struct Libc::Socket_fs::Context : Plugin_context
 
 			error("socket_fs: unhandled connection state");
 			return Errno(ECONNREFUSED);
+		}
+
+		struct Sockopt;
+		using Sockopt_dict = Genode::Dictionary<Sockopt, int>;
+
+		struct Sockopt : Sockopt_dict::Element
+		{
+			char const *_file;
+
+			Sockopt(Sockopt_dict &dict, int opt, char const *file)
+			: Sockopt_dict::Element(dict, opt), _file(file) { }
+
+			char const *base() const { return _file; }
+		};
+
+		Sockopt_dict _sockopt_dict { };
+
+		Sockopt _keepalive { _sockopt_dict, SO_KEEPALIVE ,"so_keepalive" };
+		Sockopt _reuseaddr { _sockopt_dict, SO_REUSEADDR ,"so_reuseaddr" };
+
+		Sockopt _tcp_keepcnt   { _sockopt_dict, TCP_KEEPCNT,  "tcp_keepcnt"   };
+		Sockopt _tcp_keepidle  { _sockopt_dict, TCP_KEEPIDLE, "tcp_keepidle"  };
+		Sockopt _tcp_keepintvl { _sockopt_dict, TCP_KEEPINTVL,"tcp_keepintvl" };
+
+		template <typename FN>
+		int with_sockopt_fd(int optname, FN const &fn)
+		{
+			Absolute_path dir { "sockopts", _path.base() };
+
+			int err = ENOPROTOOPT;
+			_sockopt_dict.with_element(optname, [&](Sockopt &opt) {
+
+				Absolute_path file { opt.base(), dir.base() };
+
+				int fd = ::open(file.base(), O_RDWR);
+				if (fd < 0) return;
+
+				ssize_t n = fn(fd);
+
+				::close(fd);
+
+				if (n > 0) err = 0;
+			}, []{ });
+
+			return err;
 		}
 };
 
@@ -686,6 +732,10 @@ extern "C" int socket_fs_bind(int libc_fd, sockaddr const *addr, socklen_t addrl
 	try {
 		int const len = ::strlen(addr_string.base());
 		int const n   = write(context->bind_fd(), addr_string.base(), len);
+
+		/*
+		 * TODO: this should be replaced by actual SO_ERROR when support is enabled
+		 */
 		if (n != len) return Errno(EACCES);
 
 		/* sync to block for write completion */
@@ -1086,14 +1136,24 @@ extern "C" int socket_fs_getsockopt(int libc_fd, int level, int optname,
 	if (!context) return Errno(ENOTSOCK);
 
 	if (!optval) return Errno(EFAULT);
+	if (*optlen < sizeof(int) || *optlen > sizeof(long)) return Errno(EINVAL);
+
+	auto read_sockopt = [&]()
+	{
+		int err = context->with_sockopt_fd(optname, [&](int fd) {
+			ssize_t n =  ::read(fd, optval, *optlen);
+			*(unsigned *)optlen = n;
+			return n;
+		});
+
+		return err ? Errno(err) : 0;
+	};
 
 	switch (level) {
 	case SOL_SOCKET:
 		switch (optname) {
-		case SO_REUSEADDR:
-			/* not yet implemented - but return true */
-			*(int *)optval = 1;
-			return 0;
+
+		/* emulated opts */
 		case SO_ERROR:
 			if (context->state() == Context::CONNECTING) {
 
@@ -1119,6 +1179,25 @@ extern "C" int socket_fs_getsockopt(int libc_fd, int level, int optname,
 			case Socket_fs::Context::Proto::TCP: *(int *)optval = SOCK_STREAM; break;
 			}
 			return 0;
+
+		/* handled by VFS/IP-stack */
+		case SO_REUSEADDR:
+		case SO_KEEPALIVE:
+
+			return read_sockopt();
+
+		default: return Errno(ENOPROTOOPT);
+		}
+	case IPPROTO_TCP:
+		switch (optname) {
+
+		/* handled by VFS/IP-stack */
+		case TCP_KEEPCNT:
+		case TCP_KEEPIDLE:
+		case TCP_KEEPINTVL:
+
+			return read_sockopt();
+
 		default: return Errno(ENOPROTOOPT);
 		}
 
@@ -1135,28 +1214,53 @@ extern "C" int socket_fs_setsockopt(int libc_fd, int level, int optname,
 
 	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
 	if (!context) return Errno(ENOTSOCK);
+	if (!optval)  return Errno(EFAULT);
 
-	if (!optval) return Errno(EFAULT);
+	if (optlen < sizeof(int) || optlen > sizeof(long)) return Errno(EINVAL);
+
+	auto write_sockopt = [&]()
+	{
+		int err = context->with_sockopt_fd(optname, [&](int fd) {
+			return ::write(fd, optval, optlen); });
+
+		return err ? Errno(err) : 0;
+	};
 
 	switch (level) {
 	case SOL_SOCKET:
 		switch (optname) {
-		case SO_REUSEADDR:
-			/* not yet implemented - always return true */
-			return 0;
+
+		/* emulated */
 		case SO_LINGER:
 			{
 				linger *l = (linger *)optval;
 				if (l->l_onoff == 0)
 					return 0;
 			}
+
+		/* handled by VFS/IP-stack */
+		case SO_REUSEADDR:
+		case SO_KEEPALIVE:
+
+			return write_sockopt();
+
 		default: return Errno(ENOPROTOOPT);
 		}
 	case IPPROTO_TCP:
 		switch (optname) {
-			case TCP_NODELAY:
-				return 0;
-			default: return Errno(ENOPROTOOPT);
+
+		/* emulated */
+		case TCP_NODELAY:
+			return 0;
+
+		/* handled by VFS/IP-stack */
+		case TCP_KEEPCNT:
+		case TCP_KEEPIDLE:
+		case TCP_KEEPINTVL:
+
+			return write_sockopt();
+
+		default: return Errno(ENOPROTOOPT);
 		}
 
 	default: return Errno(EINVAL);
