@@ -148,6 +148,47 @@ struct Genode::Directory : Noncopyable, Interface
 			return _nonconst_fs().stat(join(_path, rel_path).string(), out);
 		}
 
+		auto _with_entry(unsigned i,
+		                 auto const &fn,
+		                 auto const &missing_fn) -> decltype(missing_fn())
+		{
+			Entry entry;
+
+			_handle->seek(i * sizeof(entry._dirent));
+
+			while (!_handle->fs().queue_read(_handle, sizeof(entry._dirent)))
+				_io.commit_and_wait();
+
+			Vfs::File_io_service::Read_result read_result;
+
+			size_t out_count = 0;
+
+			for (;;) {
+
+				Byte_range_ptr const dst { (char*)&entry._dirent,
+				                            sizeof(entry._dirent) };
+
+				read_result = _handle->fs().complete_read(_handle, dst,
+				                                          out_count);
+
+				if (read_result != Vfs::File_io_service::READ_QUEUED)
+					break;
+
+				_io.commit_and_wait();
+			}
+
+			if ((read_result != Vfs::File_io_service::READ_OK) ||
+			    (out_count < sizeof(entry._dirent))) {
+				error("could not access directory '", _path, "'");
+				return missing_fn();
+			}
+
+			if (entry._dirent.type == Vfs::Directory_service::Dirent_type::END)
+				return missing_fn();
+
+			return fn(static_cast<Entry const &>(entry));
+		}
+
 	public:
 
 		struct Nonexistent_file      : Exception { };
@@ -189,42 +230,19 @@ struct Genode::Directory : Noncopyable, Interface
 		{
 			for (unsigned i = 0;; i++) {
 
-				Entry entry;
+				bool const ok = _with_entry(i,
+					[&] (Entry const &e) { fn(e); return true; },
+					[&] () -> bool       {        return false; });
 
-				_handle->seek(i * sizeof(entry._dirent));
-
-				while (!_handle->fs().queue_read(_handle, sizeof(entry._dirent)))
-					_io.commit_and_wait();
-
-				Vfs::File_io_service::Read_result read_result;
-
-				size_t out_count = 0;
-
-				for (;;) {
-
-					Byte_range_ptr const dst { (char*)&entry._dirent,
-					                            sizeof(entry._dirent) };
-
-					read_result = _handle->fs().complete_read(_handle, dst,
-					                                          out_count);
-
-					if (read_result != Vfs::File_io_service::READ_QUEUED)
-						break;
-
-					_io.commit_and_wait();
-				}
-
-				if ((read_result != Vfs::File_io_service::READ_OK) ||
-				    (out_count < sizeof(entry._dirent))) {
-					error("could not access directory '", _path, "'");
-					throw Read_dir_failed();
-				}
-
-				if (entry._dirent.type == Vfs::Directory_service::Dirent_type::END)
-					return;
-
-				fn(entry);
+				if (!ok)
+					break;
 			}
+		}
+
+		auto with_first_entry(auto const &fn,
+		                      auto const &missing_fn) -> decltype(missing_fn())
+		{
+			return _with_entry(0, fn, missing_fn);
 		}
 
 		void for_each_entry(auto const &fn) const
@@ -395,6 +413,11 @@ struct Genode::Directory : Noncopyable, Interface
 		void unlink(Path const &rel_path)
 		{
 			_fs.unlink(join(_path, rel_path).string());
+		}
+
+		void rename(Path const &from, Path const &to)
+		{
+			_fs.rename(from.string(), to.string());
 		}
 
 		/**

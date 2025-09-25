@@ -56,7 +56,7 @@ struct Main
 
 			dir_removed = false;
 
-			_debug_dir.for_each_entry([&] (Directory::Entry &component_entry) {
+			_debug_dir.for_each_entry([&] (Directory::Entry const &component_entry) {
 
 				/*
 				 * 'for_each_entry()' must be restarted when a
@@ -77,7 +77,7 @@ struct Main
 
 				if (!found_in_config) {
 					Directory component_dir { _debug_dir, component_entry.name() };
-					component_dir.for_each_entry([&] (Directory::Entry &file_entry) {
+					component_dir.for_each_entry([&] (Directory::Entry const &file_entry) {
 						component_dir.unlink(file_entry.name()); });
 
 					_debug_dir.unlink(component_entry.name());
