@@ -19,10 +19,9 @@
 #include <timer_session/connection.h>
 
 /* local includes */
-#include "xml.h"
+#include "node.h"
 
 namespace Depot_download_manager {
-	using namespace Depot;
 	struct Child_exit_state;
 	struct Main;
 }
@@ -142,7 +141,7 @@ struct Depot_download_manager::Main
 						return "archive";
 					};
 
-					g.node(type(job.path), [&] () {
+					g.node(type(job.path), [&] {
 						g.attribute("path",  job.path);
 						g.attribute("state", job.failed ? "failed" : "done");
 					});
@@ -350,10 +349,10 @@ Depot_download_manager::Main::_current_user_url() const
 
 void Depot_download_manager::Main::_generate_init_config(Generator &g)
 {
-	g.node("report", [&] () {
+	g.node("report", [&] {
 		g.attribute("delay_ms", 500); });
 
-	g.node("parent-provides", [&] () {
+	g.node("parent-provides", [&] {
 		gen_parent_service<Rom_session>(g);
 		gen_parent_service<Cpu_session>(g);
 		gen_parent_service<Pd_session>(g);
@@ -364,7 +363,7 @@ void Depot_download_manager::Main::_generate_init_config(Generator &g)
 		gen_parent_service<File_system::Session>(g);
 	});
 
-	g.node("start", [&] () {
+	g.node("start", [&] {
 		gen_depot_query_start_content(g, _installation.node(),
 		                              _next_user, _depot_query_count, _jobs); });
 
@@ -372,7 +371,7 @@ void Depot_download_manager::Main::_generate_init_config(Generator &g)
 	                           && _import->downloads_in_progress();
 	if (fetchurl_running) {
 		try {
-			g.node("start", [&] () {
+			g.node("start", [&] {
 				gen_fetchurl_start_content(g, *_import,
 				                           _current_user_url(),
 				                           _current_user_has_pubkey(),
@@ -384,35 +383,35 @@ void Depot_download_manager::Main::_generate_init_config(Generator &g)
 	}
 
 	if (_import.constructed() && _import->unverified_archives_available())
-		g.node("start", [&] () {
+		g.node("start", [&] {
 			gen_verify_start_content(g, *_import, _current_user_path()); });
 
 	if (_import.constructed() && _import->verified_or_blessed_archives_available()) {
 
-		g.node("start", [&] () {
+		g.node("start", [&] {
 			gen_chroot_start_content(g, _current_user_name());  });
 
-		g.node("start", [&] () {
+		g.node("start", [&] {
 			gen_stage_start_content(g, *_import, _current_user_path(),
 			                        _current_user_name()); });
 	}
 
 	if (_import.constructed() && _import->staged_archives_available()) {
 
-		g.node("start", [&] () {
+		g.node("start", [&] {
 			gen_chroot_start_content(g, _current_user_name());  });
 
-		g.node("start", [&] () {
+		g.node("start", [&] {
 			gen_extract_start_content(g, *_import, _current_user_path(),
 			                          _current_user_name()); });
 	}
 
 	if (_import.constructed() && _import->extracted_archives_available()) {
 
-		g.node("start", [&] () {
+		g.node("start", [&] {
 			gen_chroot_start_content(g, _current_user_name());  });
 
-		g.node("start", [&] () {
+		g.node("start", [&] {
 			gen_commit_start_content(g, *_import, _current_user_path(),
 			                         _current_user_name()); });
 	}
@@ -488,7 +487,7 @@ void Depot_download_manager::Main::_handle_query_result()
 	 * Prefer the downloading of index files over archives because index files
 	 * are quick to download and important for interactivity.
 	 */
-	auto select_next_user = [&] ()
+	auto select_next_user = [&]
 	{
 		Archive::User user { };
 
@@ -530,7 +529,7 @@ void Depot_download_manager::Main::_handle_query_result()
 	                  dependencies, index, image, image_index);
 
 	if (_installation.node().attribute_value("download", true) == false)
-		_import->skip_downloads();
+		_import->all_downloads_completed();
 
 	/* mark imported jobs as started */
 	_import->for_each_download([&] (Archive::Path const &path) {

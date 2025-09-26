@@ -21,10 +21,7 @@
 
 #include "types.h"
 
-namespace Depot_download_manager {
-	using namespace Depot;
-	struct Import;
-}
+namespace Depot_download_manager { struct Import; }
 
 
 class Depot_download_manager::Import
@@ -160,8 +157,7 @@ class Depot_download_manager::Import
 
 		Registry<Item> _items { };
 
-		template <typename FN>
-		void _for_each_item(Item::State state, FN const &fn) const
+		void _for_each_item(Item::State state, auto const &fn) const
 		{
 			_items.for_each([&] (Item const &item) {
 				if (item.state == state)
@@ -202,12 +198,11 @@ class Depot_download_manager::Import
 			return Path(item.attribute_value("user", Archive::User()), "/image/index");
 		}
 
-		template <typename FN>
 		static void _for_each_missing_depot_path(Node const &dependencies,
 		                                         Node const &index,
 		                                         Node const &image,
 		                                         Node const &image_index,
-		                                         FN const &fn)
+		                                         auto const &fn)
 		{
 			dependencies.for_each_sub_node("missing", [&] (Node const &item) {
 				fn(_depdendency_path(item), Require_verify::from_node(item)); });
@@ -222,14 +217,39 @@ class Depot_download_manager::Import
 				fn(_image_index_path(item), Require_verify::from_node(item)); });
 		}
 
+		void _transition(Item::State from, Item::State to)
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == from)
+					item.state = to; });
+		}
+
+		void _transition(Archive::Path const &archive, Item::State from, Item::State to)
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == from && item.path == archive)
+					item.state = to; });
+		}
+
+		void _with_downloading_item(Url const &current_user_url, Url const &url, auto const &fn)
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state != Item::DOWNLOAD_IN_PROGRESS)
+					return;
+
+				Url const item_url(current_user_url, "/", Archive::download_file_path(item.path));
+				if (url == item_url)
+					fn(item);
+			});
+		}
+
 	public:
 
-		template <typename FN>
 		static void for_each_present_depot_path(Node const &dependencies,
 		                                        Node const &index,
 		                                        Node const &image,
 		                                        Node const &image_index,
-		                                        FN const &fn)
+		                                        auto const &fn)
 		{
 			dependencies.for_each_sub_node("present", [&] (Node const &item) {
 				fn(_depdendency_path(item)); });
@@ -312,57 +332,60 @@ class Depot_download_manager::Import
 			return _item_state_exists(Item::COMMITTED);
 		}
 
-		template <typename FN>
-		void for_each_download(FN const &fn) const
+		void for_each_download(auto const &fn) const
 		{
 			_for_each_item(Item::DOWNLOAD_IN_PROGRESS, fn);
 		}
 
-		template <typename FN>
-		void for_each_unverified_archive(FN const &fn) const
+		void for_each_unverified_archive(auto const &fn) const
 		{
 			_for_each_item(Item::VERIFICATION_IN_PROGRESS, fn);
 		}
 
-		template <typename FN>
-		void for_each_verified_or_blessed_archive(FN const &fn) const
+		void for_each_verified_or_blessed_archive(auto const &fn) const
 		{
 			_for_each_item(Item::VERIFIED, fn);
 			_for_each_item(Item::BLESSED,  fn);
 		}
 
-		template <typename FN>
-		void for_each_staged_archive(FN const &fn) const
+		void for_each_staged_archive(auto const &fn) const
 		{
 			_for_each_item(Item::STAGED, fn);
 		}
 
-		template <typename FN>
-		void for_each_extracted_archive(FN const &fn) const
+		void for_each_extracted_archive(auto const &fn) const
 		{
 			_for_each_item(Item::EXTRACTED, fn);
 		}
 
-		template <typename FN>
-		void for_each_failed_archive(FN const &fn) const
+		void for_each_failed_archive(auto const &fn) const
 		{
 			_for_each_item(Item::DOWNLOAD_UNAVAILABLE, fn);
 			_for_each_item(Item::VERIFICATION_FAILED, fn);
 			_for_each_item(Item::MALFORMED, fn);
 		}
 
-		void skip_downloads()
-		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::DOWNLOAD_IN_PROGRESS)
-					item.state =  Item::DOWNLOAD_COMPLETE; });
-		}
-
 		void all_downloads_completed()
 		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::DOWNLOAD_IN_PROGRESS)
-					item.state =  Item::DOWNLOAD_COMPLETE; });
+			_transition(Item::DOWNLOAD_IN_PROGRESS, Item::DOWNLOAD_COMPLETE);
+		}
+
+		void download_complete(Url const &current_user_url, Url const &url)
+		{
+			_with_downloading_item(current_user_url, url, [&] (Item &item) {
+				item.state = Item::DOWNLOAD_COMPLETE; });
+		}
+
+		void download_progress(Url const &current_user_url, Url const &url,
+		                       Download::Progress progress)
+		{
+			_with_downloading_item(current_user_url, url, [&] (Item &item) {
+				item.progress = progress; });
+		}
+
+		void all_remaining_downloads_unavailable()
+		{
+			_transition(Item::DOWNLOAD_IN_PROGRESS, Item::DOWNLOAD_UNAVAILABLE);
 		}
 
 		void verify_or_bless_all_downloaded_archives()
@@ -384,79 +407,35 @@ class Depot_download_manager::Import
 			});
 		}
 
-		void _with_downloading_item(Url const &current_user_url, Url const &url, auto const &fn)
-		{
-			_items.for_each([&] (Item &item) {
-				if (item.state != Item::DOWNLOAD_IN_PROGRESS)
-					return;
-
-				Url const item_url(current_user_url, "/", Archive::download_file_path(item.path));
-				if (url == item_url)
-					fn(item);
-			});
-		}
-
-		void download_complete(Url const &current_user_url, Url const &url)
-		{
-			_with_downloading_item(current_user_url, url, [&] (Item &item) {
-				item.state = Item::DOWNLOAD_COMPLETE; });
-		}
-
-		void download_progress(Url const &current_user_url, Url const &url, Download::Progress progress)
-		{
-			_with_downloading_item(current_user_url, url, [&] (Item &item) {
-				item.progress = progress; });
-		}
-
-		void all_remaining_downloads_unavailable()
-		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::DOWNLOAD_IN_PROGRESS)
-					item.state =  Item::DOWNLOAD_UNAVAILABLE; });
-		}
-
 		void archive_verified(Archive::Path const &archive)
 		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::VERIFICATION_IN_PROGRESS)
-					if (item.path == archive)
-						item.state = Item::VERIFIED; });
+			_transition(archive, Item::VERIFICATION_IN_PROGRESS, Item::VERIFIED);
 		}
 
 		void archive_verification_failed(Archive::Path const &archive)
 		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::VERIFICATION_IN_PROGRESS)
-					if (item.path == archive)
-						item.state = Item::VERIFICATION_FAILED; });
+			_transition(archive, Item::VERIFICATION_IN_PROGRESS, Item::VERIFICATION_FAILED);
 		}
 
 		void all_verified_or_blessed_archives_staged()
 		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::VERIFIED || item.state == Item::BLESSED)
-					item.state = Item::STAGED; });
+			_transition(Item::VERIFIED, Item::STAGED);
+			_transition(Item::BLESSED,  Item::STAGED);
 		}
 
 		void all_staged_archives_extracted()
 		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::STAGED)
-					item.state = Item::EXTRACTED; });
+			_transition(Item::STAGED, Item::EXTRACTED);
 		}
 
 		void all_staged_archives_malformed()
 		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::STAGED)
-					item.state = Item::MALFORMED; });
+			_transition(Item::STAGED, Item::MALFORMED);
 		}
 
 		void all_extracted_archives_committed()
 		{
-			_items.for_each([&] (Item &item) {
-				if (item.state == Item::EXTRACTED)
-					item.state = Item::COMMITTED; });
+			_transition(Item::EXTRACTED, Item::COMMITTED);
 		}
 
 		void report(Generator &g) const

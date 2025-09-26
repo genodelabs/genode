@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include "xml.h"
+#include "node.h"
 
 void Depot_download_manager::gen_chroot_start_content(Generator &g,
                                                       Archive::User const &user)
@@ -19,23 +19,21 @@ void Depot_download_manager::gen_chroot_start_content(Generator &g,
 	gen_common_start_content(g, Path("/depot/", user),
 	                         Cap_quota{100}, Ram_quota{2*1024*1024});
 
-	g.node("binary", [&] () { g.attribute("name", "chroot"); });
+	g.node("binary", [&] { g.attribute("name", "chroot"); });
 
-	g.node("config", [&] () {
-		g.node("default-policy", [&] () {
+	g.node("config", [&] {
+		g.node("default-policy", [&] {
 			g.attribute("path", Path("/", user));
-			g.attribute("writeable", "yes");
-		});
-	});
+			g.attribute("writeable", "yes"); }); });
 
-	g.node("provides", [&] () {
-		g.node("service", [&] () {
+	g.node("provides", [&] {
+		g.node("service", [&] {
 			g.attribute("name", File_system::Session::service_name()); }); });
 
-	g.node("route", [&] () {
-		g.node("service", [&] () {
+	g.node("route", [&] {
+		g.node("service", [&] {
 			g.attribute("name", File_system::Session::service_name());
-			g.node("parent", [&] () {
+			g.node("parent", [&] {
 				g.attribute("identity", "depot_rw"); });
 		});
 		gen_parent_unscoped_rom_route(g, "chroot");

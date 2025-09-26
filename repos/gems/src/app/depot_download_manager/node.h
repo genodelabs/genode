@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _GENERATE_XML_H_
-#define _GENERATE_XML_H_
+#ifndef _NODE_H_
+#define _NODE_H_
 
 /* Genode includes */
 #include <rom_session/rom_session.h>
@@ -33,26 +33,26 @@ namespace Depot_download_manager {
 	template <typename SESSION>
 	static inline void gen_parent_service(Generator &g)
 	{
-		g.node("service", [&] () {
+		g.node("service", [&] {
 			g.attribute("name", SESSION::service_name()); });
 	};
 
 	template <typename SESSION>
 	static inline void gen_parent_route(Generator &g)
 	{
-		g.node("service", [&] () {
+		g.node("service", [&] {
 			g.attribute("name", SESSION::service_name());
-			g.node("parent", [&] () { });
+			g.node("parent", [&] { });
 		});
 	}
 
 	static inline void gen_parent_unscoped_rom_route(Generator      &g,
 	                                                 Rom_name const &name)
 	{
-		g.node("service", [&] () {
+		g.node("service", [&] {
 			g.attribute("name", Rom_session::service_name());
 			g.attribute("unscoped_label", name);
-			g.node("parent", [&] () {
+			g.node("parent", [&] {
 				g.attribute("label", name); });
 		});
 	}
@@ -60,10 +60,10 @@ namespace Depot_download_manager {
 	static inline void gen_parent_rom_route(Generator      &g,
 	                                        Rom_name const &name)
 	{
-		g.node("service", [&] () {
+		g.node("service", [&] {
 			g.attribute("name", Rom_session::service_name());
 			g.attribute("label", name);
-			g.node("parent", [&] () {
+			g.node("parent", [&] {
 				g.attribute("label", name); });
 		});
 	}
@@ -75,7 +75,7 @@ namespace Depot_download_manager {
 	{
 		g.attribute("name", name);
 		g.attribute("caps", caps.value);
-		g.node("resource", [&] () {
+		g.node("resource", [&] {
 			g.attribute("name", "RAM");
 			g.attribute("quantum", String<64>(Number_of_bytes(ram.value)));
 		});
@@ -139,4 +139,4 @@ namespace Depot_download_manager {
 	                              Path const &, Archive::User const &);
 }
 
-#endif /* _GENERATE_XML_H_ */
+#endif /* _NODE_H_ */

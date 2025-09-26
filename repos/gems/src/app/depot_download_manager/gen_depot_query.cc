@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include "xml.h"
+#include "node.h"
 
 void Depot_download_manager::gen_depot_query_start_content(Generator &g,
                                                            Node const &installation,
@@ -22,14 +22,14 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 	gen_common_start_content(g, "depot_query",
 	                         Cap_quota{100}, Ram_quota{2*1024*1024});
 
-	g.node("config", [&] () {
+	g.node("config", [&] {
 		g.attribute("version", version.value);
 		using Arch = String<32>;
 		g.attribute("arch", installation.attribute_value("arch", Arch()));
-		g.node("vfs", [&] () {
-			g.node("dir", [&] () {
+		g.node("vfs", [&] {
+			g.node("dir", [&] {
 				g.attribute("name", "depot");
-				g.node("fs", [&] () {
+				g.node("fs", [&] {
 					g.attribute("label", "depot -> /"); });
 			});
 		});
@@ -65,7 +65,7 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 		};
 
 		for_each_install_sub_node("archive", [&] (Node const &archive) {
-			g.node("dependencies", [&] () {
+			g.node("dependencies", [&] {
 				g.attribute("path", archive.attribute_value("path", Archive::Path()));
 				g.attribute("source", archive.attribute_value("source", true));
 				g.attribute("binary", archive.attribute_value("binary", true));
@@ -79,7 +79,7 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 				warning("malformed index path '", path, "'");
 				return;
 			}
-			g.node("index", [&] () {
+			g.node("index", [&] {
 				g.attribute("user",    Archive::user(path));
 				g.attribute("version", Archive::_path_element<Archive::Version>(path, 2));
 				propagate_verify_attr(g, index);
@@ -92,7 +92,7 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 				warning("malformed image path '", path, "'");
 				return;
 			}
-			g.node("image", [&] () {
+			g.node("image", [&] {
 				g.attribute("user", Archive::user(path));
 				g.attribute("name", Archive::name(path));
 				propagate_verify_attr(g, image);
@@ -105,20 +105,20 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 				warning("malformed image-index path '", path, "'");
 				return;
 			}
-			g.node("image_index", [&] () {
+			g.node("image_index", [&] {
 				g.attribute("user", Archive::user(path));
 				propagate_verify_attr(g, image_index);
 			});
 		});
 
 		if (next_user.valid())
-			g.node("user", [&] () { g.attribute("name", next_user); });
+			g.node("user", [&] { g.attribute("name", next_user); });
 	});
 
-	g.node("route", [&] () {
-		g.node("service", [&] () {
+	g.node("route", [&] {
+		g.node("service", [&] {
 			g.attribute("name", File_system::Session::service_name());
-			g.node("parent", [&] () {
+			g.node("parent", [&] {
 				g.attribute("identity", "depot"); });
 		});
 		gen_parent_unscoped_rom_route(g, "depot_query");

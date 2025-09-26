@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include "xml.h"
+#include "node.h"
 
 
 /**
@@ -69,10 +69,10 @@ void Depot_download_manager::gen_extract_start_content(Generator           &g,
 	gen_common_start_content(g, "extract",
 	                         Cap_quota{200}, Ram_quota{12*1024*1024});
 
-	g.node("config", [&] () {
+	g.node("config", [&] {
 		g.attribute("verbose", "yes");
 
-		g.node("libc", [&] () {
+		g.node("libc", [&] {
 			g.attribute("stdout",       "/dev/log");
 			g.attribute("stderr",       "/dev/log");
 			g.attribute("rtc",          "/dev/null");
@@ -80,26 +80,26 @@ void Depot_download_manager::gen_extract_start_content(Generator           &g,
 			g.attribute("update_mtime", "no");
 		});
 
-		g.node("vfs", [&] () {
-			g.node("dir", [&] () {
+		g.node("vfs", [&] {
+			g.node("dir", [&] {
 				g.attribute("name", "public");
-				g.node("fs", [&] () {
+				g.node("fs", [&] {
 					g.attribute("buffer_size", 144u << 10);
 					g.attribute("label", "public -> /"); });
 			});
-			g.node("dir", [&] () {
+			g.node("dir", [&] {
 				g.attribute("name", "depot");
-				g.node("dir", [&] () {
+				g.node("dir", [&] {
 					g.attribute("name", user);
-					g.node("fs", [&] () {
+					g.node("fs", [&] {
 						g.attribute("buffer_size", 144u << 10);
 						g.attribute("label", Path(user_path, " -> /")); });
 				});
 			});
-			g.node("dir", [&] () {
+			g.node("dir", [&] {
 				g.attribute("name", "dev");
-				g.node("log",  [&] () { });
-				g.node("null", [&] () { });
+				g.node("log",  [&] { });
+				g.node("null", [&] { });
 			});
 		});
 
@@ -107,7 +107,7 @@ void Depot_download_manager::gen_extract_start_content(Generator           &g,
 
 			using Path = String<160>;
 
-			g.node("extract", [&] () {
+			g.node("extract", [&] {
 				g.attribute("archive", Path("/public/", Archive::download_file_path(path)));
 				g.attribute("to",      Path("/depot/",  staging_area_path(path)));
 
@@ -120,17 +120,17 @@ void Depot_download_manager::gen_extract_start_content(Generator           &g,
 		});
 	});
 
-	g.node("route", [&] () {
-		g.node("service", [&] () {
+	g.node("route", [&] {
+		g.node("service", [&] {
 			g.attribute("name", File_system::Session::service_name());
 			g.attribute("label_prefix", "public ->");
-			g.node("parent", [&] () {
+			g.node("parent", [&] {
 				g.attribute("identity", "public"); });
 		});
-		g.node("service", [&] () {
+		g.node("service", [&] {
 			g.attribute("name", File_system::Session::service_name());
 			g.attribute("label_prefix", Path(user_path, " ->"));
-			g.node("child", [&] () {
+			g.node("child", [&] {
 				g.attribute("name", user_path); });
 		});
 		gen_parent_unscoped_rom_route(g, "extract");

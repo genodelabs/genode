@@ -20,10 +20,7 @@
 
 #include "types.h"
 
-namespace Depot_download_manager {
-	using namespace Depot;
-	struct Job;
-}
+namespace Depot_download_manager { struct Job; }
 
 
 struct Depot_download_manager::Job : List_model<Job>::Element

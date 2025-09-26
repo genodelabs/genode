@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include "xml.h"
+#include "node.h"
 
 void Depot_download_manager::gen_fetchurl_start_content(Generator &g,
                                                         Import const &import,
