@@ -31,16 +31,28 @@ static void with_staging_path(Depot::Archive::Path const &path, auto const &fn)
 {
 	using Path = Genode::String<160>;
 
-	switch (Depot::Archive::type(path)) {
-	case Depot::Archive::SRC: case Depot::Archive::PKG: case Depot::Archive::RAW:
-	case Depot::Archive::BIN: case Depot::Archive::DBG: case Depot::Archive::INDEX:
-		fn(Path { staging_area_path(path), "/", Depot::Archive::version(path) });
-		return;
+	Depot::Archive::type(path).with_result([&] (Depot::Archive::Type type) {
+		switch (type) {
+		case Depot::Archive::API: case Depot::Archive::SRC: case Depot::Archive::PKG:
+		case Depot::Archive::RAW: case Depot::Archive::BIN: case Depot::Archive::DBG:
+		case Depot::Archive::INDEX:
+			Depot::Archive::version(path).with_result(
+				[&] (Depot::Archive::Version const &version) {
+					fn(Path { staging_area_path(path), "/", version }); },
+				[&] (Depot::Archive::Unknown) {
+					warning("missing version to stage extraction of ", path); });
+			return;
 
-	case Depot::Archive::IMAGE:
-		fn(Path { staging_area_path(path), "/", Depot::Archive::name(path) });
-		return;
-	}
+		case Depot::Archive::IMAGE:
+			Depot::Archive::name(path).with_result(
+				[&] (Depot::Archive::Name const &name) {
+					fn(Path { staging_area_path(path), "/", name }); },
+				[&] (Depot::Archive::Unknown) {
+					warning("missing image name to stage extraction of ", path); });
+			return;
+		}
+	},
+	[&] (Depot::Archive::Unknown) { error("unknown archive type: ", path); });
 }
 
 
@@ -112,7 +124,11 @@ void Depot_download_manager::gen_extract_start_content(Generator           &g,
 				g.attribute("to",      Path("/depot/",  staging_area_path(path)));
 
 				if (Archive::index(path))
-					g.attribute("name", Archive::index_version(path));
+					Archive::version(path).with_result(
+						[&] (Archive::Version const &version) {
+							g.attribute("name", version); },
+						[&] (Archive::Unknown) {
+							warning("index lacks version: ", path); });
 
 				if (Archive::image_index(path))
 					g.attribute("name", "index");

@@ -111,8 +111,11 @@ struct Sculpt::Software_add_widget : Widget_interface<Vbox>
 					if (component.path == pkg_path)
 						pkg_selected = true; });
 
-				label = { Pretty(label), " (", Depot::Archive::version(pkg_path), ")",
-				          pkg_installing ? " installing... " : "... " };
+				Depot::Archive::version(pkg_path).with_result(
+					[&] (Depot::Archive::Version const &version) {
+						label = { Pretty(label), " (", version, ")",
+						          pkg_installing ? " installing... " : "... " };
+					}, [] (Depot::Archive::Unknown) { });
 			}
 
 			s.widget(Hosted_entry { id }, pkg_selected, label);

@@ -79,11 +79,14 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 				warning("malformed index path '", path, "'");
 				return;
 			}
-			g.node("index", [&] {
-				g.attribute("user",    Archive::user(path));
-				g.attribute("version", Archive::_path_element<Archive::Version>(path, 2));
-				propagate_verify_attr(g, index);
-			});
+			Archive::user(path).with_result([&] (Archive::User const &user) {
+				Archive::version(path).with_result([&] (Archive::Version const &version) {
+					g.node("index", [&] {
+						g.attribute("user",    user);
+						g.attribute("version", version);
+						propagate_verify_attr(g, index); });
+				}, [&] (Archive::Unknown) { });
+			}, [&] (Archive::Unknown) { });
 		});
 
 		for_each_install_sub_node("image", [&] (Node const &image) {
@@ -92,11 +95,15 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 				warning("malformed image path '", path, "'");
 				return;
 			}
-			g.node("image", [&] {
-				g.attribute("user", Archive::user(path));
-				g.attribute("name", Archive::name(path));
-				propagate_verify_attr(g, image);
-			});
+			Archive::user(path).with_result([&] (Archive::User const &user) {
+				Archive::name(path).with_result([&] (Archive::Name const &name) {
+					g.node("image", [&] {
+						g.attribute("user", user);
+						g.attribute("name", name);
+						propagate_verify_attr(g, image);
+					});
+				}, [&] (Archive::Unknown) { });
+			}, [&] (Archive::Unknown) { });
 		});
 
 		for_each_install_sub_node("image_index", [&] (Node const &image_index) {
@@ -105,10 +112,12 @@ void Depot_download_manager::gen_depot_query_start_content(Generator &g,
 				warning("malformed image-index path '", path, "'");
 				return;
 			}
-			g.node("image_index", [&] {
-				g.attribute("user", Archive::user(path));
-				propagate_verify_attr(g, image_index);
-			});
+			Archive::user(path).with_result([&] (Archive::User const &user) {
+				g.node("image_index", [&] {
+					g.attribute("user", user);
+					propagate_verify_attr(g, image_index);
+				});
+			}, [&] (Archive::Unknown) { });
 		});
 
 		if (next_user.valid())

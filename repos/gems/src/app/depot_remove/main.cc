@@ -131,10 +131,10 @@ class Depot_remove::Archive_remover
 			_archive_to_delete.for_each([&](Archive_path &path) {
 				Path archive {};
 				if (Depot::Archive::type(path) == Depot::Archive::Type::SRC) {
-					archive = Directory::join(Depot::Archive::user(path), "bin");
-					archive = Directory::join(archive, _arch);
-					archive = Directory::join(archive, Depot::Archive::name(path));
-					archive = Directory::join(archive, Depot::Archive::version(path));
+					Depot::Archive::bin_path(path, _arch).with_result(
+						[&] (Depot::Archive::Path const &bin_path) {
+							archive = bin_path; },
+						[&] (Depot::Archive::Unknown) { });
 				} else {
 					archive = path;
 				}

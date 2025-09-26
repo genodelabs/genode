@@ -506,7 +506,11 @@ void Depot_download_manager::Main::_handle_query_result()
 			return user;
 
 		dependencies.with_optional_sub_node("missing", [&] (Node const &missing) {
-			user = Archive::user(missing.attribute_value("path", Archive::Path())); });
+			Archive::Path path = missing.attribute_value("path", Archive::Path());
+			Archive::user(path).with_result(
+				[&] (Archive::User const &u) { user = u; },
+				[&] (Archive::Unknown)       { });
+		});
 
 		if (!user.valid())
 			warning("unable to select depot user for next import");

@@ -466,17 +466,24 @@ class Sculpt::Runtime_state : public Runtime_info
 			/* allow only one construction at a time */
 			discard_construction();
 
-			/* determine unique name for new child */
-			Depot::Archive::Name const archive_name = Depot::Archive::name(pkg);
-			Start_name unique_name = archive_name;
-			unsigned cnt = 1;
-			while (present_in_runtime(unique_name))
-				unique_name = Start_name(archive_name, ".", ++cnt);
+			return Depot::Archive::name(pkg).convert<Start_name>(
+				[&] (Depot::Archive::Name const &archive_name) {
 
-			_currently_constructed = new (_alloc)
-				Registered<Launched_child>(_launched_children, _alloc,
-				                           unique_name, pkg, verify, info, space);
-			return unique_name;
+					/* determine unique name for new child */
+					Start_name unique_name = archive_name;
+					unsigned cnt = 1;
+					while (present_in_runtime(unique_name))
+						unique_name = Start_name(archive_name, ".", ++cnt);
+
+					_currently_constructed = new (_alloc)
+						Registered<Launched_child>(_launched_children, _alloc,
+						                           unique_name, pkg, verify, info, space);
+					return unique_name;
+				},
+				[&] (Depot::Archive::Unknown) {
+					warning("pkg has unkonwn name: ", pkg);
+					return Start_name { };
+				});
 		}
 
 		void discard_construction()

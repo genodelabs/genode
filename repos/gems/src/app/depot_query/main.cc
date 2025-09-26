@@ -23,54 +23,42 @@ Depot_query::Main::_find_rom_in_pkg(File_content    const &archives,
 	Archive::Path result;
 
 	archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
+		Archive::type(archive_path).with_result([&] (Archive::Type type) {
 
-		/*
-		 * \throw Archive::Unknown_archive_type
-		 */
-		switch (Archive::type(archive_path)) {
-		case Archive::SRC:
-			{
-				Archive::Path const
-					rom_path(Archive::user(archive_path), "/bin/",
-					         _architecture,               "/",
-					         Archive::name(archive_path), "/",
-					         Archive::version(archive_path));
+			switch (type) {
+			case Archive::SRC:
+				Archive::bin_path(archive_path, _architecture).with_result(
+					[&] (Archive::Path const &bin_path) {
+						if (_file_exists(bin_path, rom_label))
+							result = Archive::Path { bin_path, "/", rom_label }; },
+					[&] (Archive::Unknown) { });
+				break;
 
-				if (_file_exists(rom_path, rom_label))
-					result = Archive::Path(rom_path, "/", rom_label);
+			case Archive::RAW:
+				if (_file_exists(archive_path, rom_label))
+					result = Archive::Path(archive_path, "/", rom_label);
+				break;
+
+			case Archive::PKG:
+
+				_with_file_content(archive_path, "archives", [&] (File_content const &archives) {
+
+					Archive::Path const result_from_pkg =
+						_find_rom_in_pkg(archives, rom_label, recursion_limit);
+
+					if (result_from_pkg.valid())
+						result = result_from_pkg;
+				});
+				break;
+
+			case Archive::API:
+			case Archive::BIN:
+			case Archive::DBG:
+			case Archive::IMAGE:
+			case Archive::INDEX:
+				break;
 			}
-			break;
-
-		case Archive::RAW:
-			{
-				Archive::Path const
-					rom_path(Archive::user(archive_path), "/raw/",
-					         Archive::name(archive_path), "/",
-					         Archive::version(archive_path));
-
-				if (_file_exists(rom_path, rom_label))
-					result = Archive::Path(rom_path, "/", rom_label);
-			}
-			break;
-
-		case Archive::PKG:
-
-			_with_file_content(archive_path, "archives", [&] (File_content const &archives) {
-
-				Archive::Path const result_from_pkg =
-					_find_rom_in_pkg(archives, rom_label, recursion_limit);
-
-				if (result_from_pkg.valid())
-					result = result_from_pkg;
-			});
-			break;
-
-		case Archive::BIN:
-		case Archive::DBG:
-		case Archive::IMAGE:
-		case Archive::INDEX:
-			break;
-		}
+		}, [&] (Archive::Unknown) { warning("unknown archive type: ", archive_path); });
 	});
 	return result;
 }
@@ -142,11 +130,11 @@ void Depot_query::Main::_gen_inherited_rom_path_nodes(Generator           &g,
 		archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
 
 			/* early return if archive path is not a valid pkg path */
-			try {
-				if (Archive::type(archive_path) != Archive::PKG)
-					return;
-			}
-			catch (Archive::Unknown_archive_type) { return; }
+			bool const pkg = Archive::type(archive_path).convert<bool>(
+				[&] (Archive::Type type) { return type == Archive::PKG; },
+				[&] (Archive::Unknown)   { return false; });
+			if (!pkg)
+				return;
 
 			_with_file_content(archive_path, "runtime" , [&] (File_content const &runtime) {
 				runtime.node([&] (Node const &node) {
@@ -168,7 +156,10 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Genera
 
 		g.node("pkg", [&] () {
 
-			g.attribute("name", Archive::name(pkg_path));
+			Archive::name(pkg_path).with_result(
+				[&] (Archive::Name const &name) { g.attribute("name", name); },
+				[]  (Archive::Unknown)          { });
+
 			g.attribute("path", pkg_path);
 
 			Rom_label const config = node.attribute_value("config", Rom_label());
@@ -200,44 +191,48 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
                                                      Require_verify require_verify,
                                                      Recursion_limit recursion_limit)
 {
-	try { Archive::type(path); }
-	catch (Archive::Unknown_archive_type) {
-		warning("archive '", path, "' has unexpected type");
-		return;
-	}
+	Archive::type(path).with_result([&] (Archive::Type const type) {
 
-	dependencies.record(path, require_verify);
+		dependencies.record(path, require_verify);
 
-	switch (Archive::type(path)) {
+		switch (type) {
 
-	case Archive::PKG: {
-		_with_file_content(path, "archives", [&] (File_content const &archives) {
-			archives.for_each_line<Archive::Path>([&] (Archive::Path const &path) {
-				_collect_source_dependencies(path, dependencies, require_verify,
-				                             recursion_limit); }); });
-		break;
-	}
+		case Archive::PKG: {
+			_with_file_content(path, "archives", [&] (File_content const &archives) {
+				archives.for_each_line<Archive::Path>([&] (Archive::Path const &path) {
+					_collect_source_dependencies(path, dependencies, require_verify,
+					                             recursion_limit); }); });
+			break;
+		}
 
-	case Archive::SRC: {
-		using Api = String<160>;
-		_with_file_content(path, "used_apis", [&] (File_content const &used_apis) {
-			used_apis.for_each_line<Archive::Path>([&] (Api const &api) {
-				dependencies.record(Archive::Path(Archive::user(path), "/api/", api),
-				                    require_verify); }); });
-		break;
-	}
+		case Archive::SRC: {
+			using Api = String<160>;
+			_with_file_content(path, "used_apis", [&] (File_content const &used_apis) {
+				used_apis.for_each_line<Archive::Path>([&] (Api const &api) {
+					Archive::user(path).with_result([&] (Archive::User const &user) {
+						dependencies.record({ user, "/api/", api }, require_verify);
+					}, [&] (Archive::Unknown) { }); }); });
+			break;
+		}
 
-	case Archive::BIN:
-	case Archive::DBG:
-		dependencies.record(Archive::Path(Archive::user(path), "/src/",
-		                                  Archive::name(path), "/",
-		                                  Archive::version(path)), require_verify);
-		break;
-	case Archive::RAW:
-	case Archive::IMAGE:
-	case Archive::INDEX:
-		break;
-	};
+		case Archive::BIN:
+		case Archive::DBG:
+			Archive::user(path).with_result([&] (Archive::User const &user) {
+				Archive::name(path).with_result([&] (Archive::Name const &name) {
+					Archive::version(path).with_result([&] (Archive::Version const &version) {
+						dependencies.record({ user, "/src/", name, "/", version }, require_verify);
+					}, [&] (Archive::Unknown) { });
+				}, [&] (Archive::Unknown) { });
+			}, [&] (Archive::Unknown) { });
+			break;
+
+		case Archive::API:
+		case Archive::RAW:
+		case Archive::IMAGE:
+		case Archive::INDEX:
+			break;
+		}
+	}, [&] (Archive::Unknown) { warning("archive '", path, "' has unexpected type"); });
 }
 
 
@@ -246,40 +241,38 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
                                                      Require_verify require_verify,
                                                      Recursion_limit recursion_limit)
 {
-	try { Archive::type(path); }
-	catch (Archive::Unknown_archive_type) {
-		warning("archive '", path, "' has unexpected type");
-		return;
-	}
+	Archive::type(path).with_result([&] (Archive::Type const type) {
 
-	switch (Archive::type(path)) {
+		switch (type) {
 
-	case Archive::PKG:
-		dependencies.record(path, require_verify);
+		case Archive::PKG:
+			dependencies.record(path, require_verify);
 
-		_with_file_content(path, "archives", [&] (File_content const &archives) {
-			archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
-				_collect_binary_dependencies(archive_path, dependencies,
-				                             require_verify, recursion_limit); }); });
-		break;
+			_with_file_content(path, "archives", [&] (File_content const &archives) {
+				archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
+					_collect_binary_dependencies(archive_path, dependencies,
+					                             require_verify, recursion_limit); }); });
+			break;
 
-	case Archive::SRC:
-		dependencies.record(Archive::Path(Archive::user(path), "/bin/",
-		                                  _architecture,       "/",
-		                                  Archive::name(path), "/",
-		                                  Archive::version(path)), require_verify);
-		break;
+		case Archive::SRC:
+			Archive::bin_path(path, _architecture).with_result(
+				[&] (Archive::Path const &bin_path) {
+					dependencies.record(bin_path, require_verify); },
+				[&] (Archive::Unknown) { });
+			break;
 
-	case Archive::RAW:
-	case Archive::BIN:
-	case Archive::DBG:
-		dependencies.record(path, require_verify);
-		break;
+		case Archive::RAW:
+		case Archive::API:
+		case Archive::BIN:
+		case Archive::DBG:
+			dependencies.record(path, require_verify);
+			break;
 
-	case Archive::IMAGE:
-	case Archive::INDEX:
-		break;
-	};
+		case Archive::IMAGE:
+		case Archive::INDEX:
+			break;
+		}
+	}, [&] (Archive::Unknown) { warning("archive '", path, "' has unexpected type"); });
 }
 
 

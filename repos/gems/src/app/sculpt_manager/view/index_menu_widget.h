@@ -89,9 +89,11 @@ struct Sculpt::Index_menu_widget : Widget<Vbox>
 
 				if (item.has_type("pkg")) {
 					auto const path = item.attribute_value("path", Depot::Archive::Path());
-					auto const name = Depot::Archive::name(path);
 
-					view_item_fn(s, id, name, path);
+					Depot::Archive::name(path).with_result(
+						[&] (Depot::Archive::Name const &name) {
+							view_item_fn(s, id, name, path); },
+						[&] (Depot::Archive::Unknown) { });
 				}
 				count++;
 			});
