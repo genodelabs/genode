@@ -35,7 +35,9 @@ extern "C" {
 #define LWIP_SOCKET                 0  /* LwIP socket API */
 #define LWIP_NETIF_LOOPBACK         1  /* Looping back to same address? */
 #define LWIP_STATS                  0  /* disable stating */
+#define LWIP_TCP_KEEPALIVE          1
 #define LWIP_TCP_TIMESTAMPS         1
+#define SO_REUSE                    1
 #define TCP_LISTEN_BACKLOG          1
 #define TCP_MSS                     1460
 #define TCP_WND                     (80 * TCP_MSS)

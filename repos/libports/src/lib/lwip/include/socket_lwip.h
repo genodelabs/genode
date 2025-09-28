@@ -73,12 +73,26 @@ struct Socket::Protocol : private Noncopyable
 	virtual Errno     name(genode_sockaddr &addr) = 0;
 	virtual unsigned  poll() = 0;
 	virtual Errno     shutdown() = 0;
+	virtual Errno     getsockopt(Sock_level, Sock_opt, void *, unsigned *) = 0;
+	virtual Errno     setsockopt(Sock_level, Sock_opt, void const *, unsigned) = 0;
 
 	Errno so_error()
 	{
 		Errno ret = _so_error;
 		_so_error = GENODE_ENONE;
 		return ret;
+	}
+
+	Errno lwip_error(Errno err)
+	{
+		_so_error = err;
+		return err;
+	}
+
+	Errno lwip_error(Lwip::err_t err)
+	{
+		_so_error = genode_errno(err);
+		return _so_error;
 	}
 
 	template<typename F>

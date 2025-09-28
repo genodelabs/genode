@@ -131,12 +131,12 @@ class Socket::Udp : public Protocol
 			Lwip::ip_addr_t ip   = lwip_ip_addr(addr);
 			Lwip::u16_t     port = Lwip::ntohs(addr.in.port);
 
-			return genode_errno(Lwip::udp_bind(&_pcb, &ip, port));
+			return lwip_error(Lwip::udp_bind(&_pcb, &ip, port));
 		}
 
 		Errno listen(uint8_t backlog)
 		{
-			return GENODE_ENOTSUPP;
+			return lwip_error(GENODE_ENOTSUPP);
 		}
 
 		Protocol *accept(genode_sockaddr *, Errno &errno) override
@@ -149,13 +149,13 @@ class Socket::Udp : public Protocol
 		{
 			if (disconnect) {
 				Lwip::udp_disconnect(&_pcb);
-				return GENODE_ENONE;
+				return lwip_error(GENODE_ENONE);
 			}
 
 			Lwip::ip_addr_t ip   = lwip_ip_addr(addr);
 			Lwip::u16_t     port = Lwip::ntohs(addr.in.port);
 
-			return genode_errno(Lwip::udp_connect(&_pcb, &ip, port));
+			return lwip_error(Lwip::udp_connect(&_pcb, &ip, port));
 		}
 
 		Errno sendmsg(genode_msghdr &hdr, unsigned long &bytes_send) override
@@ -165,7 +165,7 @@ class Socket::Udp : public Protocol
 
 			if (hdr.name) {
 				if (hdr.name->family != AF_INET)
-					return GENODE_EOPNOTSUPP;
+					return lwip_error(GENODE_EOPNOTSUPP);
 
 				ip   = lwip_ip_addr(*hdr.name);
 				port = Lwip::lwip_ntohs(hdr.name->in.port);
@@ -206,7 +206,7 @@ class Socket::Udp : public Protocol
 				}
 			});
 
-			return error;
+			return lwip_error(error);
 		}
 
 		Errno recvmsg(genode_msghdr &msg, unsigned long &bytes_recv,
@@ -252,13 +252,13 @@ class Socket::Udp : public Protocol
 				});
 			});
 
-			return bytes_recv > 0 ? GENODE_ENONE : GENODE_EAGAIN;
+			return lwip_error(bytes_recv > 0 ? GENODE_ENONE : GENODE_EAGAIN);
 		}
 
 		Errno peername(genode_sockaddr &addr) override
 		{
 			Genode::error(__func__, " not implemented");
-			return GENODE_ENOTSUPP;
+			return lwip_error(GENODE_ENOTSUPP);
 		}
 
 		Errno name(genode_sockaddr &addr) override
@@ -266,7 +266,7 @@ class Socket::Udp : public Protocol
 			addr.in.addr = _pcb.local_ip.u_addr.ip4.addr;
 			addr.in.port = Lwip::htons(_pcb.local_port);
 
-			return GENODE_ENONE;
+			return lwip_error(GENODE_ENONE);
 		}
 
 		unsigned poll() override
@@ -282,7 +282,59 @@ class Socket::Udp : public Protocol
 		Errno shutdown() override
 		{
 			Genode::error(__func__, " not implemented");
-			return GENODE_ENOTSUPP;
+			return lwip_error(GENODE_ENOTSUPP);
+		}
+
+		Errno getsockopt(Sock_level level, Sock_opt opt,
+		                 void *optval, unsigned *optlen) override
+		{
+			if (!optval || *optlen < 1) return lwip_error(GENODE_EFAULT);
+
+			if (level == GENODE_SOL_SOCKET) {
+				unsigned   lwip_opt;
+				switch (opt) {
+				case GENODE_SO_REUSEADDR: lwip_opt = SOF_REUSEADDR; break;
+				default: return lwip_error(GENODE_ENOPROTOOPT);
+				}
+
+
+				/* ip_* are macros */
+				using namespace Lwip;
+				Lwip::u8_t *lwip_optval = (Lwip::u8_t*)optval;
+				*lwip_optval = !!ip_get_option(&_pcb, lwip_opt);
+
+				return lwip_error(GENODE_ENONE);
+			}
+
+			return lwip_error(GENODE_ENOPROTOOPT);
+		}
+
+		Errno setsockopt(Sock_level level, Sock_opt opt,
+		                 void const *optval, unsigned optlen) override
+		{
+			if (!optval) return lwip_error(GENODE_EFAULT);
+			if (optlen < sizeof(Lwip::u8_t)) return lwip_error(GENODE_EINVAL);
+
+			if (level == GENODE_SOL_SOCKET) {
+
+				unsigned   lwip_opt;
+				switch (opt) {
+				case GENODE_SO_REUSEADDR: lwip_opt = SOF_REUSEADDR; break;
+				default: return lwip_error(GENODE_ENOPROTOOPT);
+				}
+
+				/* ip_* are macros */
+				using namespace Lwip;
+				Lwip::u8_t lwip_optval = *(Lwip::u8_t*)optval;
+				if (lwip_optval)
+					ip_set_option(&_pcb, lwip_opt);
+				else
+					ip_reset_option(&_pcb, lwip_opt);
+
+				return lwip_error(GENODE_ENONE);
+			}
+
+			return lwip_error(GENODE_ENOPROTOOPT);
 		}
 };
 

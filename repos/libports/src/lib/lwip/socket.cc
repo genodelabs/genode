@@ -286,12 +286,11 @@ unsigned genode_socket_poll(struct genode_socket_handle *handle)
 }
 
 
-enum Errno genode_socket_setsockopt(struct genode_socket_handle *,
-                                    enum Sock_level, enum Sock_opt,
-                                    void const *,
-                                    unsigned)
+enum Errno genode_socket_setsockopt(struct genode_socket_handle *handle,
+                                    enum Sock_level level, enum Sock_opt opt,
+                                    void const *optval, unsigned optlen)
 {
-	return GENODE_ENOPROTOOPT;
+	return handle->protocol.setsockopt(level, opt, optval, optlen);
 }
 
 
@@ -304,15 +303,13 @@ enum Errno genode_socket_getsockopt(struct genode_socket_handle *handle,
 		return GENODE_ENOPROTOOPT;
 	}
 
-	switch (opt) {
-	case GENODE_SO_ERROR:
+	if (opt ==  GENODE_SO_ERROR) {
 		if (!optlen || *optlen < sizeof(Errno)) return GENODE_EFAULT;
 		*(unsigned *)optval = handle->protocol.so_error();
 		return GENODE_ENONE;
-	default:
-		Genode::warning("getsockopt: unsupported option (", (unsigned)opt, ")");
-		return GENODE_ENOPROTOOPT;
 	}
+
+	return handle->protocol.getsockopt(level, opt, optval, optlen);
 }
 
 

@@ -95,7 +95,7 @@ class Socket::Tcp : public Protocol
 				addr.in.addr = ip.u_addr.ip4.addr;
 				addr.in.port = Lwip::htons(port);
 			}
-			return genode_errno(err);
+			return lwip_error(err);
 		}
 
 		/*
@@ -257,7 +257,7 @@ class Socket::Tcp : public Protocol
 
 		Errno bind(genode_sockaddr const &addr) override
 		{
-			if (_state != NEW) return GENODE_EINVAL;
+			if (_state != NEW) return lwip_error(GENODE_EINVAL);
 
 			Lwip::ip_addr_t ip   = lwip_ip_addr(addr);
 			Lwip::u16_t     port = Lwip::lwip_ntohs(addr.in.port);
@@ -265,19 +265,19 @@ class Socket::Tcp : public Protocol
 
 			if (err == Lwip::ERR_OK) _state = BOUND;
 
-			return genode_errno(err);
+			return lwip_error(err);
 		}
 
 		Errno listen(uint8_t backlog) override
 		{
-			if (_state != BOUND) return GENODE_EOPNOTSUPP;
+			if (_state != BOUND) return lwip_error(GENODE_EOPNOTSUPP);
 
 			/*
 			 * tcp_listen deallocates the _pcb and returns a new one in order to save
 			 * memory + it can return null on memory exhaustion
 			 */
 			_pcb = Lwip::tcp_listen_with_backlog(_pcb, backlog);
-			if (!_pcb) return GENODE_ENOMEM;
+			if (!_pcb) return lwip_error(GENODE_ENOMEM);
 
 			Lwip::tcp_arg(_pcb, this);
 
@@ -288,7 +288,7 @@ class Socket::Tcp : public Protocol
 			Lwip::tcp_accept(_pcb, _tcp_accept_callback);
 			_state = LISTEN;
 
-			return GENODE_ENONE;
+			return lwip_error(GENODE_ENONE);
 		}
 
 		Protocol *accept(genode_sockaddr *addr, Errno &errno) override
@@ -317,7 +317,8 @@ class Socket::Tcp : public Protocol
 		{
 			using namespace Lwip;
 
-			if ((_state != NEW) && (_state != BOUND)) return GENODE_EISCONN;
+			if ((_state != NEW) && (_state != BOUND))
+				return lwip_error(GENODE_EISCONN);
 
 			_so_error = GENODE_ECONNREFUSED;
 
@@ -334,7 +335,7 @@ class Socket::Tcp : public Protocol
 			/* we are non-blocking */
 			if (err == Lwip::ERR_OK) {
 				_state = CONNECT;
-				return GENODE_EINPROGRESS;
+				return lwip_error(GENODE_EINPROGRESS);
 			}
 
 			return genode_errno(err);
@@ -345,8 +346,8 @@ class Socket::Tcp : public Protocol
 			bytes_send = 0;
 
 			/* socket is closed */
-			if (_pcb == NULL)    return GENODE_EPIPE;
-			if (_state != READY) return GENODE_EINVAL;
+			if (_pcb == NULL)    return lwip_error(GENODE_EPIPE);
+			if (_state != READY) return lwip_error(GENODE_EINVAL);
 
 			Lwip::err_t err = Lwip::ERR_OK;
 			for_each_iovec(hdr, [&](void * const base, unsigned long size,
@@ -372,7 +373,7 @@ class Socket::Tcp : public Protocol
 			if (bytes_send > 0 && (err = Lwip::tcp_output(_pcb) != Lwip::ERR_OK))
 				bytes_send = 0;
 
-			return genode_errno(err);
+			return lwip_error(err);
 		}
 
 		Errno recvmsg(genode_msghdr &msg, unsigned long &bytes_recv,
@@ -383,14 +384,14 @@ class Socket::Tcp : public Protocol
 			if (!_recv_pbuf) {
 				if (!_pcb || _pcb->state == Lwip::CLOSE_WAIT) {
 					shutdown();
-					return GENODE_ENONE;
+					return lwip_error(GENODE_ENONE);
 				}
 
 				/*
 				 * EAGAIN if the PCB is active and there is nothing to read, otherwise
 				 * return ENONE to indicate the connection is closed
 				 */
-				return (_state == READY) ? GENODE_EAGAIN : GENODE_ENONE;
+				return lwip_error(_state == READY ? GENODE_EAGAIN : GENODE_ENONE);
 			}
 
 			bool        done   = false;
@@ -426,7 +427,7 @@ class Socket::Tcp : public Protocol
 
 			if (_state == CLOSING) shutdown();
 
-			return bytes_recv == 0 ? GENODE_EAGAIN : GENODE_ENONE;
+			return lwip_error(bytes_recv == 0 ? GENODE_EAGAIN : GENODE_ENONE);
 		}
 
 		Errno peername(genode_sockaddr &addr) override {
@@ -465,7 +466,84 @@ class Socket::Tcp : public Protocol
 			_state = CLOSED;
 			_pcb = nullptr;
 
-			return genode_errno(err);
+			return lwip_error(err);
+		}
+
+		Errno getsockopt(Sock_level level, Sock_opt opt,
+		                 void *optval, unsigned *optlen) override
+		{
+			if (!_pcb || !optval || *optlen < 1) return GENODE_EFAULT;
+
+			if (level == GENODE_SOL_SOCKET) {
+				unsigned   lwip_opt;
+				switch (opt) {
+				case GENODE_SO_KEEPALIVE: lwip_opt = SOF_KEEPALIVE; break;
+				case GENODE_SO_REUSEADDR: lwip_opt = SOF_REUSEADDR; break;
+				default: return lwip_error(GENODE_ENOPROTOOPT);
+				}
+
+				/* ip_* are macros */
+				using namespace Lwip;
+				Lwip::u8_t *lwip_optval = (Lwip::u8_t*)optval;
+				*lwip_optval = !!ip_get_option(_pcb, lwip_opt);
+
+				return lwip_error(GENODE_ENONE);
+			}
+
+			if (level == GENODE_IPPROTO_TCP) {
+				unsigned *val = (unsigned *)optval;
+				*optlen = sizeof(unsigned);
+
+				switch(opt) {
+				case GENODE_TCP_KEEPCNT:   *val = _pcb->keep_cnt;          break;
+				case GENODE_TCP_KEEPIDLE:  *val = _pcb->keep_idle  / 1000; break;
+				case GENODE_TCP_KEEPINTVL: *val = _pcb->keep_intvl / 1000; break;
+				default: return lwip_error(GENODE_ENOPROTOOPT);
+				}
+
+				return lwip_error(GENODE_ENONE);
+			}
+
+			return GENODE_ENOPROTOOPT;
+		}
+
+		Errno setsockopt(Sock_level level, Sock_opt opt,
+		                 void const *optval, unsigned optlen) override
+		{
+			if (!_pcb || !optval) return lwip_error(GENODE_EFAULT);
+			if (optlen < sizeof(unsigned)) return lwip_error(GENODE_EINVAL);
+
+			if (level == GENODE_SOL_SOCKET) {
+				unsigned  lwip_opt;
+				switch (opt) {
+				case GENODE_SO_KEEPALIVE: lwip_opt = SOF_KEEPALIVE; break;
+				case GENODE_SO_REUSEADDR: lwip_opt = SOF_REUSEADDR; break;
+				default: return lwip_error(GENODE_ENOPROTOOPT);
+				}
+
+				using namespace Lwip;
+				Lwip::u8_t lwip_optval = *(Lwip::u8_t*)optval;
+				if (lwip_optval)
+					ip_set_option(_pcb, lwip_opt);
+				else
+					ip_reset_option(_pcb, lwip_opt);
+
+				return lwip_error(GENODE_ENONE);
+			}
+
+			if (level == GENODE_IPPROTO_TCP) {
+				unsigned val = *(unsigned *)optval;
+				switch(opt) {
+				case GENODE_TCP_KEEPCNT:   _pcb->keep_cnt   = val;        break;
+				case GENODE_TCP_KEEPIDLE:  _pcb->keep_idle  = 1000 * val; break;
+				case GENODE_TCP_KEEPINTVL: _pcb->keep_intvl = 1000 * val; break;
+				default: return lwip_error(GENODE_ENOPROTOOPT);
+				}
+
+				return lwip_error(GENODE_ENONE);
+			}
+
+			return lwip_error(GENODE_ENOPROTOOPT);
 		}
 };
 
