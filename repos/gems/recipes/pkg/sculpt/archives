@@ -22,6 +22,8 @@ _/src/ncurses
 _/src/bash-minimal
 _/src/vim-minimal
 _/src/coreutils-minimal
+_/src/tclsh
+_/raw/hrd
 _/src/vfs
 _/src/vfs_import
 _/src/vfs_lxip

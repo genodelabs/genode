@@ -2,6 +2,8 @@ _/raw/system_shell
 _/src/bash-minimal
 _/src/vim-minimal
 _/src/coreutils-minimal
+_/src/tclsh
+_/raw/hrd
 _/src/libc
 _/src/posix
 _/src/ncurses
