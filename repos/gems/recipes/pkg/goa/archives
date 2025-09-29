@@ -20,6 +20,7 @@ _/src/nitpicker
 _/src/openssl
 _/src/pcre
 _/src/posix
+_/src/profile
 _/src/qt5_svg
 _/src/report_rom
 _/src/rom_filter
