@@ -1,0 +1,25 @@
+Increase Designware adapter timeout to 1200 ms for better robustness under high
+system load.
+
++++ src/linux/drivers/i2c/busses/i2c-designware-master.c
+@@ -837,9 +837,11 @@
+ 	i2c_dw_xfer_init(dev);
+ 
+ 	/* Wait for tx to complete */
++	unsigned long t0 = jiffies;
+ 	ret = i2c_dw_wait_transfer(dev);
+ 	if (ret) {
+-		dev_err(dev->dev, "controller timed out\n");
++		dev_err(dev->dev, "controller timed out after %u ms (timeout %d ms)\n",
++		        jiffies_to_msecs(jiffies - t0), jiffies_to_msecs(dev->adapter.timeout));
+ 		/* i2c_dw_init_master() implicitly disables the adapter */
+ 		i2c_recover_bus(&dev->adapter);
+ 		i2c_dw_init_master(dev);
+@@ -1040,6 +1042,7 @@
+ 	adap->retries = 3;
+ 	adap->algo = &i2c_dw_algo;
+ 	adap->quirks = &i2c_dw_quirks;
++	adap->timeout = 300;
+ 	adap->dev.parent = dev->dev;
+ 	i2c_set_adapdata(adap, dev);
+ 
