@@ -474,11 +474,15 @@ class Genode::Hrd_generator : Noncopyable
 			Indent indent;
 			size_t attr_offset;
 			bool   has_attr;
+
+			struct Quote { bool started, line_used; } quote;
 		};
 
 		Node_state _node_state { };
 
-		bool _quoted = false;
+		struct Tabular;
+
+		struct { Tabular *_tabular_ptr = nullptr; };
 
 		void _attribute(char const *, char const *, size_t);
 
@@ -491,8 +495,11 @@ class Genode::Hrd_generator : Noncopyable
 
 		using Node_fn = Callable<void>;
 
+		void _print_node_type(Span const &);
 		void _node(char const *, Node_fn::Ft const &);
 		void _copy(Hrd_node const &);
+		void _start_quoted_line();
+		void _append_quoted(Span const &);
 
 		[[nodiscard]] bool _try_append_quoted(auto const &node)
 		{
@@ -503,6 +510,8 @@ class Genode::Hrd_generator : Noncopyable
 			});
 			return quoted;
 		}
+
+		void _tabular(Node_fn::Ft const &);
 
 	public:
 
@@ -529,6 +538,8 @@ class Genode::Hrd_generator : Noncopyable
 		}
 
 		void node(char const *name) { node(name, [] { }); }
+
+		void tabular(auto const &fn) { _tabular(Node_fn::Fn { fn }); }
 
 		void attribute(char const *name, char const *str, size_t str_len)
 		{
@@ -591,27 +602,7 @@ class Genode::Hrd_generator : Noncopyable
 		 *
 		 * This method must not be followed by calls of 'attribute'.
 		 */
-		void append_quoted(char const *str, size_t str_len)
-		{
-			bool trailing_newline = false;
-			Span(str, str_len).split('\n', [&] (Span const &line) {
-
-				if (_quoted) {
-
-					/* extend quoted line */
-					print(_out_buffer, Cstring(line.start, line.num_bytes));
-
-				} else {
-
-					/* start new quoted line */
-					print(_out_buffer, "\n", _node_state.indent, ": ",
-					      Cstring(line.start, line.num_bytes));
-				}
-				_quoted = false;
-				trailing_newline = (line.num_bytes == 0);
-			});
-			_quoted = !trailing_newline;  /* allow extension of last line */
-		}
+		void append_quoted(char const *s, size_t len) { _append_quoted({ s, len }); }
 
 		void append_quoted(char const *str) { append_quoted(str, strlen(str)); }
 

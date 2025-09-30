@@ -279,9 +279,20 @@ class Genode::Generator : Noncopyable
 					fn(g); });
 		}
 
+		void tabular(auto const &fn)
+		{
+			if (_xml_ptr) fn();
+			if (_hrd_ptr) _hrd_ptr->tabular(fn);
+		}
+
 		void node(char const *name, auto const &fn)
 		{
 			_node(name, Callable<void>::Fn { fn });
+		}
+
+		void tabular_node(char const *name, auto const &fn)
+		{
+			node(name, [&] { tabular(fn); });
 		}
 
 		void node(char const *name) { node(name, [] { }); }
