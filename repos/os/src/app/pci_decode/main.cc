@@ -218,7 +218,37 @@ bus_t Main::parse_pci_function(Bdf        bdf,
 				g.attribute("pci_bar", bar);
 				g.attribute("address", string(addr));
 				g.attribute("size",    string(size));
-				if (pf) g.attribute("prefetchable", true);
+				if (!pf) return;
+
+				g.attribute("prefetchable", true);
+
+				/*
+				 * According to the PCI spec: A PCI Express Function requesting
+				 * Memory Space through a BAR must set the BAR's Prefetchable
+				 * bit unless the range contains locations with read side
+				 * effects or locations in which the Function does
+				 * not tolerate write merging (a.k.a. write-combined access).
+				 *
+				 * Some devices (e.g., Intel Meteor Lake and later IGD) seem to
+				 * set the prefetchable bit for BARs containing MMIO registers
+				 * for unknown reasons. For those we report wc=false below to.
+				 * prohibit write combining for the BAR.
+				 */
+				bool wc = true;
+
+				/*
+				 * Intel integrated graphics device (IGD) BAR 0 contains MMIO
+				 * registers and the GTT. While the latter may be accessed
+				 * write-combined, MMIO registers must be mapped uncached.
+				 */
+				if (bar == 0 && bdf == Bdf(0,2,0)) {
+					auto const vendor_id = cfg.read<Config::Vendor>();
+					auto const class_id  = cfg.read<Config::Base_class_code>();
+
+					if (vendor_id == 0x8086 && class_id == 3)
+						wc = false;
+				}
+				g.attribute("wc", wc);
 			});
 		}, [&] (uint64_t addr, uint64_t size, unsigned bar) {
 			g.node("io_port_range", [&]
