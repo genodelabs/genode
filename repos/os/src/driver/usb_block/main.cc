@@ -60,7 +60,9 @@ class Usb::Block_driver
 			CHECK_MEDIUM,
 			READ_CAPACITY,
 			REPORT,
-			READY
+			READY,
+			SENSE_RECOVERY,
+			RECOVER_READY,
 		} _state { ALT_SETTING };
 
 		enum Usb_request : uint8_t {
@@ -121,6 +123,8 @@ class Usb::Block_driver
 		uint32_t _active_tag   { 0     };
 		bool     _reset_device { false };
 		bool     _verbose_scsi { false };
+
+		bool     _omit_synchronize_cache { false };
 
 		uint32_t _new_tag() { return ++_active_tag % 0xffffffu; }
 
@@ -251,8 +255,9 @@ class Usb::Block_driver
 				}
 				[[fallthrough]];
 			default:
-				error("Request_sense_response asc: ",
-				      Hex(asc), " asq: ", Hex(asq));
+				if (asc || asq)
+					error("Request_sense_response asc: ",
+					      Hex(asc), " asq: ", Hex(asq));
 			};
 		}
 
@@ -326,6 +331,10 @@ class Usb::Block_driver
 			}
 			case Operation::Type::SYNC:
 			{
+				/* ignore SYNC request as it already failed once */
+				if (_omit_synchronize_cache)
+					break;
+
 				/* ignore synchronize region and flush all logical blocks */
 				if (_force_cmd_16)
 					Synchronize_cache_16 s(dst, _active_tag, _active_lun,
@@ -537,6 +546,9 @@ class Usb::Block_driver
 			void * const address;
 			size_t       size;
 
+			bool finished = false;
+			bool failed   = false;
+
 			Session_space::Id session_id;
 
 			Block_command(Block_driver &drv, Request request,
@@ -562,8 +574,20 @@ class Usb::Block_driver
 
 			bool process(State next_state)
 			{
+				/*
+				 * The commando was already marked as finished from
+				 * the outside, so do not process it any further.
+				 */
+				if (finished)
+					return false;
+
 				bool ret = cmd.process(next_state);
-				if (cmd.done()) block_request.success = true;
+				if (cmd.done() || cmd.failure())
+					finished = true;
+
+				failed = cmd.failure();
+
+				block_request.success = cmd.done();
 				return ret;
 			}
 		};
@@ -588,6 +612,7 @@ class Usb::Block_driver
 		                                &Block_driver::_no_write, CAP_TAG,
 		                                Scsi::Capacity_response_16::LENGTH };
 
+		Constructible<Scsi_command> _sense_recovery { };
 		Constructible<Block_command> _block_cmd { };
 
 		bool _capacity(State next_state)
@@ -649,14 +674,40 @@ class Usb::Block_driver
 
 			switch (_state) {
 			case ALT_SETTING: [[fallthrough]];
-			case RESET:         return _device.update_urbs<Urb>(out, in, cpl);
-			case INQUIRY:       return _inquiry_cmd.process(CHECK_MEDIUM);
-			case CHECK_MEDIUM:  return _medium_state.process(READ_CAPACITY);
-			case READ_CAPACITY: return _capacity(REPORT);
+			case RESET:          return _device.update_urbs<Urb>(out, in, cpl);
+			case INQUIRY:        return _inquiry_cmd.process(CHECK_MEDIUM);
+			case CHECK_MEDIUM:   return _medium_state.process(READ_CAPACITY);
+			case READ_CAPACITY:  return _capacity(REPORT);
+			case SENSE_RECOVERY:
+				if (!_sense_recovery.constructed())
+					_sense_recovery.construct(*this,
+					              &Block_driver::_sense,
+					              &Block_driver::_sense_result,
+					              &Block_driver::_no_write, REQ_TAG,
+					              Scsi::Request_sense_response::LENGTH);
+
+				return _sense_recovery->process(RECOVER_READY);
+			case RECOVER_READY:
+				_sense_recovery.destruct();
+				/* reset failed state incase READY is processed again */
+				_block_cmd->failed = false;
+				_state = READY;
+				return true;
 			case REPORT: _report_device(); _state = READY; [[fallthrough]];
 			case READY:
-				if (_block_cmd.constructed())
-					return _block_cmd->process(READY);
+				if (_block_cmd.constructed()) {
+					bool const ret = _block_cmd->process(READY);
+					if (_block_cmd->failed) {
+						using Type = Block::Operation::Type;
+						_omit_synchronize_cache =
+							_block_cmd->block_request.operation.type == Type::SYNC;
+						_state = SENSE_RECOVERY;
+						/* force processing after the recovery detour */
+						_block_cmd->finished = true;
+						return true;
+					}
+					return ret;
+				}
 			};
 
 			return false;
@@ -701,8 +752,15 @@ class Usb::Block_driver
 
 			/*
 			 * Check if there is already a request pending and wait
-			 * until it has finished. We do this check here to implement
-			 * 'SYNC' as barrier that waits for out-standing requests.
+			 * until it has finished as we do not queue in this driver
+			 * and there should only be one CBW pending at a time.
+			 *
+			 * In case a finished CBW failed as denoted in the corresponding
+			 * CSW we issue REQUEST_SENSE as it seems to be expected by
+			 * devices.
+			 *
+			 * (Note PHASE_ERROR is currently not handled in this driver and
+			 * would warrant a bulk-reset.)
 			 */
 			if (_block_cmd.constructed())
 				return Response::RETRY;
@@ -725,10 +783,17 @@ class Usb::Block_driver
 
 			_block_cmd.construct(*this, block_request, addr, size, _new_tag(), session_id);
 
-			/* operations currently handled as successful NOP */
+			/*
+			 * These operations are currently handled as successful NOP:
+			 *
+			 * - TRIM is currently not supported
+			 * - SYNC is omitted if a previous attempt already failed
+			 */
 			if (_block_cmd.constructed() &&
-			    (block_request.operation.type == Type::TRIM)) {
+			    (block_request.operation.type == Type::TRIM
+			  || (block_request.operation.type == Type::SYNC && _omit_synchronize_cache))) {
 				_block_cmd->block_request.success = true;
+				_block_cmd->finished = true;
 				return Response::ACCEPTED;
 			}
 
@@ -740,7 +805,7 @@ class Usb::Block_driver
 		{
 			if (_block_cmd.constructed() &&
 			    _block_cmd->session_id == session_id &&
-			    _block_cmd->block_request.success) {
+			    _block_cmd->finished) {
 				fn(_block_cmd->block_request);
 				_block_cmd.destruct();
 			}
