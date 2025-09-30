@@ -1,6 +1,18 @@
-<launcher name="backdrop" pkg="sticks_blue_backdrop" priority="-3">
-	<route>
-		<service name="Gui"> <parent label="backdrop"/> </service>
-	</route>
-</launcher>
+launcher backdrop | pkg: sticks_blue_backdrop | priority: -3
++ config
+  .
+  . The graphics operations 'fill' and 'image' are applied in order.
+  .
+  + libc
+  + vfs
+  | + rom genode_logo.png
+  | + rom grid.png
+  | + rom sticks_blue.png
+  + fill | color: #223344
+  + image | png: sticks_blue.png | scale: zoom | anchor: bottom_left | alpha:  200
+  + image | png: grid.png        | tiled: yes | alpha: 200
+  + image | png: genode_logo.png | anchor: bottom_right | alpha: 150 | xpos: -20 | ypos: -20
++ route
+  + service Gui | + parent | label: backdrop
+-
 
