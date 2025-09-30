@@ -37,6 +37,7 @@ class Core::Guest_memory
 
 		Sliced_heap          _sliced_heap;
 		Avl_region           _map { &_sliced_heap };
+		Region_map_detach   &_detach;
 
 		uint8_t _remaining_print_count { 10 };
 
@@ -63,8 +64,7 @@ class Core::Guest_memory
 		};
 
 
-		Attach_result attach(Region_map_detach   &rm_detach,
-		                     Dataspace_component &dsc,
+		Attach_result attach(Dataspace_component &dsc,
 		                     addr_t const         guest_phys,
 		                     Attach_attr          attr,
 		                     auto const          &map_fn)
@@ -110,7 +110,7 @@ class Core::Guest_memory
 
 					/* store attachment info in meta data */
 					if (!_map.construct_metadata((void *)guest_phys,
-					                             dsc, rm_detach, region_attr)) {
+					                             dsc, _detach, region_attr)) {
 						if (_remaining_print_count) {
 							error("failed to store attachment info");
 							_remaining_print_count--;
@@ -211,9 +211,10 @@ class Core::Guest_memory
 		}
 
 
-		Guest_memory(Accounted_ram_allocator &ram, Local_rm &local_rm)
+		Guest_memory(Accounted_ram_allocator &ram, Local_rm &local_rm,
+		             Region_map_detach &detach)
 		:
-			_sliced_heap(ram, local_rm)
+			_sliced_heap(ram, local_rm), _detach(detach)
 		{
 			/* configure managed VM area */
 			if (_map.add_range(0UL, ~0UL).failed())
@@ -229,7 +230,7 @@ class Core::Guest_memory
 				if (!_map.any_block_addr(&out_addr))
 					break;
 
-				detach_at(out_addr, [](addr_t, size_t) { });
+				_detach.detach_at(out_addr);
 			}
 		}
 

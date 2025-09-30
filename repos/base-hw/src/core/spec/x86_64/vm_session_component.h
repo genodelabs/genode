@@ -47,7 +47,8 @@ template <typename TABLE>
 class Core::Vm_session_component
 :
 	public Session_object<Vm_session>,
-	public Revoke
+	public Revoke,
+	private Region_map_detach
 {
 	private:
 
@@ -59,29 +60,6 @@ class Core::Vm_session_component
 		 */
 		Vm_session_component(Vm_session_component const &);
 		Vm_session_component &operator = (Vm_session_component const &);
-
-		struct Detach : Region_map_detach
-		{
-			Vm_session_component &_session;
-
-			Detach(Vm_session_component &session) : _session(session)
-			{ }
-
-			void detach_at(addr_t at) override
-			{
-				_session._detach_at(at);
-			}
-
-			void reserve_and_flush(addr_t at) override
-			{
-				_session._reserve_and_flush(at);
-			}
-
-			void unmap_region(addr_t base, size_t size) override
-			{
-				Genode::error(__func__, " unimplemented ", base, " ", size);
-			}
-		} _detach { *this };
 
 		Registry<Registered<Vcpu>>          _vcpus { };
 
@@ -108,7 +86,7 @@ class Core::Vm_session_component
 			(void *)_table.phys_addr()
 		};
 
-		void _detach_at(addr_t addr)
+		void detach_at(addr_t addr) override
 		{
 			_memory.detach_at(addr, [&](addr_t vm_addr, size_t size) {
 				_table.obj([&] (TABLE &table) {
@@ -117,13 +95,18 @@ class Core::Vm_session_component
 			});
 		}
 
-		void _reserve_and_flush(addr_t addr)
+		void reserve_and_flush(addr_t addr) override
 		{
 			_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
 				_table.obj([&] (TABLE &table) {
 					table.remove(vm_addr, size, _table_alloc);
 				});
 			});
+		}
+
+		void unmap_region(addr_t base, size_t size) override
+		{
+			Genode::error(__func__, " unimplemented ", base, " ", size);
 		}
 
 	public:
@@ -148,7 +131,7 @@ class Core::Vm_session_component
 			_heap(_accounted_ram_alloc, local_rm),
 			_table(_accounted_mapped_ram),
 			_table_alloc(_accounted_mapped_ram, _heap),
-			_memory(_accounted_ram_alloc, local_rm),
+			_memory(_accounted_ram_alloc, local_rm, *this),
 			_vmid_alloc(vmid_alloc)
 		{
 			using Error = Accounted_mapped_ram_allocator::Error;
@@ -211,7 +194,7 @@ class Core::Vm_session_component
 				Dataspace_component &dsc = *ptr;
 
 				Guest_memory::Attach_result result =
-					_memory.attach(_detach, dsc, guest_phys, attr, map_fn);
+					_memory.attach(dsc, guest_phys, attr, map_fn);
 
 				if (out_of_tables) {
 					if (_remaining_print_count) {
