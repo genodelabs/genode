@@ -76,10 +76,10 @@ class Driver::Device : private List_model<Device>::Element
 
 			Pci_bar bar;
 			Range   range;
-			bool    prefetchable;
+			bool    write_combined;
 
-			Io_mem(Pci_bar bar, Range range, bool pf)
-			: bar(bar), range(range), prefetchable(pf) {}
+			Io_mem(Pci_bar bar, Range range, bool wc)
+			: bar(bar), range(range), write_combined(wc) {}
 
 			bool matches(Node const &node) const
 			{
@@ -367,7 +367,7 @@ class Driver::Device : private List_model<Device>::Element
 		{
 			unsigned idx = 0;
 			_io_mem_list.for_each([&] (Io_mem const &iomem) {
-				fn(idx++, iomem.range, iomem.bar, iomem.prefetchable); });
+				fn(idx++, iomem.range, iomem.bar, iomem.write_combined); });
 		}
 
 		template <typename FN> void for_each_io_port_range(FN const &fn) const

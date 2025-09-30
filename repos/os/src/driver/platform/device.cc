@@ -135,6 +135,8 @@ void Driver::Device::generate(Generator &g, bool info) const
 					return;
 				g.attribute("phys_addr", String<16>(Hex(io_mem.range.start)));
 				g.attribute("size",      String<16>(Hex(io_mem.range.size)));
+				if (io_mem.write_combined)
+					g.attribute("wc", true);
 			});
 		});
 		_irq_list.for_each([&] (Irq const &irq) {
@@ -231,9 +233,9 @@ void Driver::Device::update(Allocator &alloc, Node const &node,
 			Bar   bar   { node.attribute_value<uint8_t>("pci_bar", Bar::INVALID) };
 			Range range { node.attribute_value<addr_t>("address", 0),
 			              node.attribute_value<size_t>("size",    0) };
-			bool  pf    { node.attribute_value("prefetchable", false) };
+			bool  wc    { node.attribute_value("wc", false) };
 
-			return *new (alloc) Io_mem(bar, range, pf);
+			return *new (alloc) Io_mem(bar, range, wc);
 		},
 
 		/* destroy */

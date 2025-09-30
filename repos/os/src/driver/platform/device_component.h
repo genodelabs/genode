@@ -68,17 +68,17 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 			Pci_bar                          bar;
 			unsigned                         idx;
 			Range                            range;
-			bool                             prefetchable;
+			bool                             write_combined;
 			Constructible<Io_mem_connection> io_mem {};
 
 			Io_mem(Registry<Io_mem>  &registry,
 			       Pci_bar            bar,
 			       unsigned           idx,
 			       Range              range,
-			       bool               pf)
+			       bool               wc)
 			:
 				Registry<Io_mem>::Element(registry, *this),
-				bar(bar), idx(idx), range(range), prefetchable(pf) {}
+				bar(bar), idx(idx), range(range), write_combined(wc) {}
 		};
 
 		struct Io_port_range : Registry<Io_port_range>::Element

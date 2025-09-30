@@ -110,7 +110,7 @@ Device_component::io_mem(unsigned idx, Range &range)
 				iomem.io_mem.construct(_env,
 				                       iomem.range.start,
 				                       iomem.range.size,
-				                       iomem.prefetchable);
+				                       iomem.write_combined);
 
 			range = iomem.range;
 			range.start &= 0xfff;
@@ -308,11 +308,11 @@ Device_component::Device_component(Registry<Device_component> &registry,
 		});
 
 		device.for_each_io_mem([&] (unsigned idx, Range range,
-		                            Device::Pci_bar bar, bool pf)
+		                            Device::Pci_bar bar, bool wc)
 		{
 			_with_reserved_quota_for_session<Io_mem_session>(session, [&] {
 				new (session.heap())
-					Io_mem(_io_mem_registry, bar, idx, range, pf); });
+					Io_mem(_io_mem_registry, bar, idx, range, wc); });
 		});
 
 		device.for_each_io_port_range([&] (unsigned idx, Io_port_range::Range range,
