@@ -236,6 +236,34 @@ void Hrd_generator::_node(char const *name, Node_fn::Ft const &fn)
 }
 
 
+void Hrd_generator::_copy(Hrd_node const &node)
+{
+	auto with_stripped_indentation = [&] (Span const &line, auto const &fn)
+	{
+		size_t const skip = node._indent.value;
+		if (line.num_bytes >= skip)
+			fn(Span { line.start + skip, line.num_bytes - skip });
+		else
+			fn(Span { nullptr, 0 });
+	};
+
+	bool first = true;
+	node._bytes.split('\n', [&] (Span const &line) {
+		if (line.starts_with({ "-", 1 })) /* exclude end marker of top-level node */
+			return;
+
+		print(_out_buffer, "\n", _node_state.indent);
+		if (first)
+			print(_out_buffer, "+ ", Cstring(line.start, line.num_bytes));
+		else
+			with_stripped_indentation(line, [&] (Span const &line) {
+				print(_out_buffer, "  ", Cstring(line.start, line.num_bytes)); });
+
+		first = false;
+	});
+}
+
+
 void Hrd_generator::node_attributes(Xml_node const &node)
 {
 	node.for_each_attribute([&] (auto const &attr) {

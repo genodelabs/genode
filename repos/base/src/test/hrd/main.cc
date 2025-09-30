@@ -195,6 +195,40 @@ void Component::construct(Genode::Env &env)
 		if (i != '\n')
 			expect_invalid(String<100>("launcher i: ", i, " | tag: ", Char(i), " \n-").string());
 
+	/* verbatim copy (including comments) of an existing node into a generated node */
+	{
+		char const * const node_with_comments =
+		"launcher\n"
+		"+ config\n"
+		"  + vfs\n"
+		"    .\n"
+		"    . list of overlayed tar archives\n"
+		"    .\n"
+		"    + tar vim.tar\n"
+		"\n"
+		"    + dir dev\n"
+		"      .\n"
+		"      . pseudo devices used by libc\n"
+		"      .\n"
+		"      + log\n"
+		"      + rtc\n"
+		"-";
+		Hrd_node const node { { node_with_comments, strlen(node_with_comments) } };
+
+		char buf[4*1024] { };
+		Hrd_generator::generate({ buf, sizeof(buf)}, "compound", [&] (Hrd_generator &g) {
+			node.with_sub_node("config", [&] (Hrd_node const &node) {
+				node.with_sub_node("vfs", [&] (Hrd_node const &node) {
+					g.append_node(node);
+				}, [] { });
+			}, [] { });
+		}).with_result(
+			[&] (size_t num_bytes) {
+				log("compound with appended node:\n", Cstring(buf, num_bytes)); },
+			[&] (Buffer_error) { }
+		);
+	}
+
 	log("--- End of HRD-parser test ---");
 	env.parent().exit(0);
 }

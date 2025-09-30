@@ -212,6 +212,8 @@ class Genode::Hrd_node : Noncopyable
 
 		Indent const _indent { 0 };
 
+		friend class Hrd_generator;  /* for 'Hrd_generator::_copy' */
+
 		auto _with_sub_node(auto const &match_fn, auto const &fn,
 		                    auto const &missing_fn) const -> decltype(missing_fn())
 		{
@@ -490,6 +492,17 @@ class Genode::Hrd_generator : Noncopyable
 		using Node_fn = Callable<void>;
 
 		void _node(char const *, Node_fn::Ft const &);
+		void _copy(Hrd_node const &);
+
+		[[nodiscard]] bool _try_append_quoted(auto const &node)
+		{
+			bool quoted = false;
+			node.for_each_quoted_line([&] (auto const &line) {
+				quoted = true;
+				print(_out_buffer, "\n", _node_state.indent, ": ", line);
+			});
+			return quoted;
+		}
 
 	public:
 
@@ -641,12 +654,7 @@ class Genode::Hrd_generator : Noncopyable
 			if (!max_depth.value)
 				return false;
 
-			bool quoted = false;
-			node.for_each_quoted_line([&] (auto const &line) {
-				quoted = true;
-				print(_out_buffer, "\n", _node_state.indent, ": ", line);
-			});
-			if (quoted)
+			if (_try_append_quoted(node))
 				return true;
 
 			bool ok = true;
@@ -654,6 +662,21 @@ class Genode::Hrd_generator : Noncopyable
 				if (ok)
 					ok = append_node(sub_node, { max_depth.value - 1 }); });
 			return ok;
+		}
+
+		/**
+		 * Append content of HRD node
+		 *
+		 * The content can either be quoted content or sub nodes but not a mix
+		 * of both.
+		 */
+		void append_node_content(Hrd_node const &node)
+		{
+			if (_try_append_quoted(node))
+				return;
+
+			node.for_each_sub_node([&] (Hrd_node const &sub_node) {
+				append_node(sub_node); });
 		}
 
 		/**
@@ -670,6 +693,11 @@ class Genode::Hrd_generator : Noncopyable
 			});
 			return result;
 		}
+
+		/**
+		 * Append a verbatim copy of an HRD node
+		 */
+		void append_node(Hrd_node const &node) { _copy(node); }
 };
 
 #endif /* _INCLUDE__UTIL__HRD_H_ */
