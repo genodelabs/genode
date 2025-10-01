@@ -29,7 +29,7 @@ struct Main
 	Env &env;
 	genode_socket_io_progress *io_progress;
 
-	Signal_handler<Main> schedule_handler   { env.ep(), *this,
+	Io_signal_handler<Main> schedule_handler   { env.ep(), *this,
 		&Main::handle_schedule };
 
 	Io_signal_handler<Main> nic_client_handler { env.ep(), *this,
