@@ -51,6 +51,7 @@ struct Main
 	void _remove_outdated_debug_directories(Node const &monitor)
 	{
 		bool dir_removed = false;
+		Directory::Entry::Name last_removed_component_dir_name { };
 
 		do {
 
@@ -65,6 +66,11 @@ struct Main
 				if (dir_removed)
 					return;
 
+				if (component_entry.name() == last_removed_component_dir_name) {
+					Genode::error("could not remove ", component_entry.name());
+					return;
+				}
+
 				bool found_in_config = false;
 
 				monitor.for_each_sub_node("policy", [&] (Node const &policy) {
@@ -77,10 +83,21 @@ struct Main
 
 				if (!found_in_config) {
 					Directory component_dir { _debug_dir, component_entry.name() };
-					component_dir.for_each_entry([&] (Directory::Entry const &file_entry) {
-						component_dir.unlink(file_entry.name()); });
+					Directory::Entry::Name last_removed_component_file_name { };
+					while (component_dir.with_first_entry(
+						[&] (Directory::Entry const &file_entry) {
+							if (file_entry.name() == last_removed_component_file_name) {
+								Genode::error("Could not remove ", file_entry.name());
+								return false;
+							}
+							component_dir.unlink(file_entry.name());
+							last_removed_component_file_name = file_entry.name();
+							return true; },
+						[&] () { return false; }
+					)) { }
 
 					_debug_dir.unlink(component_entry.name());
+					last_removed_component_dir_name = component_entry.name();
 					dir_removed = true;
 				}
 			});
