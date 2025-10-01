@@ -59,6 +59,48 @@ void Vm_session_component::Vcpu::revoke_signal_context(Signal_context_capability
 }
 
 
+void Vm_session_component::attach(Dataspace_capability const cap,
+                                  addr_t const guest_phys,
+                                  Attach_attr attribute)
+{
+	Attach_result ret =
+		_memory.attach(cap, guest_phys, attribute,
+		               [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+		                    bool exec, bool write, Cache cacheable) {
+			return _attach_vm_memory(vm_addr, phys_addr, size, exec,
+			                         write, cacheable); });
+
+	switch(ret) {
+	case Attach_result::OK             : return;
+	case Attach_result::INVALID_DS     : throw Invalid_dataspace();
+	case Attach_result::OUT_OF_RAM     : throw Out_of_ram();
+	case Attach_result::OUT_OF_CAPS    : throw Out_of_caps();
+	case Attach_result::REGION_CONFLICT: throw Region_conflict();
+	};
+}
+
+
+void Vm_session_component::detach(addr_t guest_phys, size_t size)
+{
+	_memory.detach(guest_phys, size, [&](addr_t vm_addr, size_t size) {
+		_detach_vm_memory(vm_addr, size); });
+}
+
+
+void Vm_session_component::detach_at(addr_t const addr)
+{
+	_memory.detach_at(addr, [&](addr_t vm_addr, size_t size) {
+		_detach_vm_memory(vm_addr, size); });
+}
+
+
+void Vm_session_component::reserve_and_flush(addr_t const addr)
+{
+	_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
+		_detach_vm_memory(vm_addr, size); });
+}
+
+
 Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_capability const tcap)
 {
 	if (_vcpu_id_alloc == Board::VCPU_MAX) return { };

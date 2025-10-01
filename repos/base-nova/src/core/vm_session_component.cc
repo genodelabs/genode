@@ -253,46 +253,68 @@ Vm_session_component::Vcpu::~Vcpu()
  ** Vm_session_component **
  **************************/
 
-void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
-                                             addr_t const guest_phys,
-                                             Attach_attr const attribute)
+void Vm_session_component::attach(Dataspace_capability const cap,
+                                  addr_t const guest_phys,
+                                  Attach_attr attribute)
 {
-	using Nova::Utcb;
-	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
-	addr_t const src_pd = platform_specific().core_pd_sel();
+	using Attach_result = Guest_memory::Attach_result;
 
-	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
-	                       guest_phys, attribute.size, guest_phys);
+	auto map_fn = [&] (addr_t guest_phys, addr_t phys_addr, size_t size,
+	                   bool exec, bool write, Cache)
+	{
+		using Nova::Utcb;
+		Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+		addr_t const src_pd = platform_specific().core_pd_sel();
 
-	Flexpage page = flex.page();
-	while (page.valid()) {
-		Nova::Rights const map_rights (true,
-		                               dsc.writeable() && attribute.writeable,
-		                               attribute.executable);
-		Nova::Mem_crd const mem(page.addr >> 12, page.log2_order - 12,
-		                        map_rights);
+		Flexpage_iterator flex(phys_addr, size, guest_phys, size, guest_phys);
 
-		utcb.set_msg_word(0);
-		/* ignore return value as one item always fits into the utcb */
-		bool const ok = utcb.append_item(mem, 0, true, true);
-		(void)ok;
+		Flexpage page = flex.page();
+		while (page.valid()) {
+			Nova::Rights const map_rights (true, write, exec);
+			Nova::Mem_crd const mem(page.addr >> 12, page.log2_order - 12,
+			                        map_rights);
 
-		/* receive window in destination pd */
-		Nova::Mem_crd crd_mem(page.hotspot >> 12, page.log2_order - 12,
-		                      map_rights);
+			utcb.set_msg_word(0);
+			/* ignore return value as one item always fits into the utcb */
+			bool const ok = utcb.append_item(mem, 0, true, true);
+			(void)ok;
 
-		/* asynchronously map memory */
-		uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
-			return Nova::delegate(src_pd, _pd_sel, crd_mem); });
+			/* receive window in destination pd */
+			Nova::Mem_crd crd_mem(page.hotspot >> 12, page.log2_order - 12,
+			                      map_rights);
 
-		if (res != Nova::NOVA_OK)
-			error("could not map VM memory ", res);
+			/* asynchronously map memory */
+			uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
+				return Nova::delegate(src_pd, _pd_sel, crd_mem); });
 
-		page = flex.page();
-	}
+			if (res != Nova::NOVA_OK) {
+				error("could not map VM memory ", res);
+				return (res == Nova::NOVA_PD_OOM) ? Attach_result::OUT_OF_RAM
+				                                  : Attach_result::INVALID_DS;
+			}
+
+			page = flex.page();
+		}
+
+		return Attach_result::OK;
+	};
+
+	Attach_result ret =
+	_memory.attach(cap, guest_phys, attribute,
+	               [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+	                    bool exec, bool write, Cache cacheable) {
+		return map_fn(vm_addr, phys_addr, size, exec, write, cacheable); });
+
+	switch(ret) {
+	case Attach_result::OK             : return;
+	case Attach_result::INVALID_DS     : throw Invalid_dataspace();
+	case Attach_result::OUT_OF_RAM     : throw Out_of_ram();
+	case Attach_result::OUT_OF_CAPS    : throw Out_of_caps();
+	case Attach_result::REGION_CONFLICT: throw Region_conflict();
+	};
 }
 
-void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
+void Vm_session_component::_detach(addr_t guest_phys, size_t size)
 {
 	Nova::Rights const revoke_rwx(true, true, true);
 
@@ -305,6 +327,27 @@ void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 
 		page = flex.page();
 	}
+}
+
+
+void Vm_session_component::detach(addr_t guest_phys, size_t size)
+{
+	_memory.detach(guest_phys, size, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
+}
+
+
+void Vm_session_component::detach_at(addr_t const addr)
+{
+	_memory.detach_at(addr, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
+}
+
+
+void Vm_session_component::reserve_and_flush(addr_t const addr)
+{
+	_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
 }
 
 
@@ -376,6 +419,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	_trace_control_area(ram, local_rm), _trace_sources(trace_sources),
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_heap(_ram, local_rm),
+	_memory(ep, *this, _ram, local_rm),
 	_priority(scale_priority(priority, "VM session")),
 	_session_label(label)
 {
@@ -396,13 +440,6 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 		cap_map().remove(_pd_sel, 0, true);
 		throw Service_denied();
 	}
-
-	/*
-	 * Configure managed VM area. The two ranges work around the size
-	 * limitation to ULONG_MAX.
-	 */
-	(void)_map.add_range(0, 0UL - 0x1000);
-	(void)_map.add_range(0UL - 0x1000, 0x1000);
 }
 
 
@@ -410,16 +447,6 @@ Vm_session_component::~Vm_session_component()
 {
 	_vcpus.for_each([&] (Vcpu &vcpu) {
 		destroy(_heap, &vcpu); });
-
-	/* detach all regions */
-	while (true) {
-		addr_t out_addr = 0;
-
-		if (!_map.any_block_addr(&out_addr))
-			break;
-
-		detach_at(out_addr);
-	}
 
 	if (_pd_sel && _pd_sel != invalid_sel())
 		cap_map().remove(_pd_sel, 0, true);

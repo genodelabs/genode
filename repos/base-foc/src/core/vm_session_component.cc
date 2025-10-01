@@ -100,6 +100,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
+	_memory(ep, *this, _ram, local_rm),
 	_heap(_ram, local_rm)
 {
 	Cap_quota_guard::Result caps = _cap_quota_guard().reserve(Cap_quota{1});
@@ -114,10 +115,6 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 		throw Service_denied();
 	}
 
-	/* configure managed VM area */
-	(void)_map.add_range(0, 0UL - 0x1000);
-	(void)_map.add_range(0UL - 0x1000, 0x1000);
-
 	caps.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
 	                 [&] (Cap_quota_guard::Error) { /* handled at 'reserve' */ });
 }
@@ -127,16 +124,6 @@ Vm_session_component::~Vm_session_component()
 {
 	_vcpus.for_each([&] (Vcpu &vcpu) {
 		destroy(_heap, &vcpu); });
-
-	/* detach all regions */
-	while (true) {
-		addr_t out_addr = 0;
-
-		if (!_map.any_block_addr(&out_addr))
-			break;
-
-		detach_at(out_addr);
-	}
 }
 
 
@@ -169,42 +156,58 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 }
 
 
-void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
-                                             addr_t const guest_phys,
-                                             Attach_attr const attribute)
+void Vm_session_component::attach(Dataspace_capability const cap,
+                                  addr_t const guest_phys,
+                                  Attach_attr attribute)
 {
-	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
-	                       guest_phys, attribute.size, guest_phys);
+	using Attach_result = Guest_memory::Attach_result;
 
-	using namespace Foc;
+	auto map_fn = [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+	                   bool exec, bool write, Cache)
+	{
+		Flexpage_iterator flex(phys_addr, size, vm_addr, size, vm_addr);
 
-	uint8_t flags = L4_FPAGE_RO;
-	if (dsc.writeable() && attribute.writeable)
-		if (attribute.executable)
-			flags = L4_FPAGE_RWX;
-		else
-			flags = L4_FPAGE_RW;
-	else
-		if (attribute.executable)
-			flags = L4_FPAGE_RX;
+		using namespace Foc;
 
-	Flexpage page = flex.page();
-	while (page.valid()) {
-		l4_fpage_t fp = l4_fpage(page.addr, (unsigned)page.log2_order, flags);
-		l4_msgtag_t msg = l4_task_map(_task_vcpu.local.data()->kcap(),
-		                              L4_BASE_TASK_CAP, fp,
-		                              l4_map_obj_control(page.hotspot,
-		                                                 L4_MAP_ITEM_MAP));
+		uint8_t flags = write ? (exec ? L4_FPAGE_RWX : L4_FPAGE_RW)
+		                      : (exec ? L4_FPAGE_RX  : L4_FPAGE_RO);
 
-		if (l4_error(msg))
-			error("task map failed ", l4_error(msg));
+		Flexpage page = flex.page();
+		while (page.valid()) {
+			l4_fpage_t fp = l4_fpage(page.addr, (unsigned)page.log2_order, flags);
+			l4_msgtag_t msg = l4_task_map(_task_vcpu.local.data()->kcap(),
+			                              L4_BASE_TASK_CAP, fp,
+			                              l4_map_obj_control(page.hotspot,
+			                                                 L4_MAP_ITEM_MAP));
 
-		page = flex.page();
-	}
+			if (l4_error(msg)) {
+				error("task map failed ", l4_error(msg));
+				return Attach_result::INVALID_DS;
+			}
+			page = flex.page();
+		}
+
+		return Attach_result::OK;
+	};
+
+	Attach_result ret =
+		_memory.attach(cap, guest_phys, attribute,
+		               [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+		                    bool exec, bool write, Cache cacheable) {
+			return map_fn(vm_addr, phys_addr, size, exec,
+			                         write, cacheable); });
+
+	switch(ret) {
+	case Attach_result::OK             : return;
+	case Attach_result::INVALID_DS     : throw Invalid_dataspace();
+	case Attach_result::OUT_OF_RAM     : throw Out_of_ram();
+	case Attach_result::OUT_OF_CAPS    : throw Out_of_caps();
+	case Attach_result::REGION_CONFLICT: throw Region_conflict();
+	};
 }
 
 
-void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
+void Vm_session_component::_detach(addr_t guest_phys, size_t size)
 {
 	Flexpage_iterator flex(guest_phys, size, guest_phys, size, 0);
 	Flexpage page = flex.page();
@@ -218,4 +221,25 @@ void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 
 		page = flex.page();
 	}
+}
+
+
+void Vm_session_component::detach(addr_t guest_phys, size_t size)
+{
+	_memory.detach(guest_phys, size, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
+}
+
+
+void Vm_session_component::detach_at(addr_t const addr)
+{
+	_memory.detach_at(addr, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
+}
+
+
+void Vm_session_component::reserve_and_flush(addr_t const addr)
+{
+	_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
 }

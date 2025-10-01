@@ -54,7 +54,6 @@ class Core::Vm_session_component
 
 		using Vm_page_table_array = typename TABLE::Array;
 
-
 		/*
 		 * Noncopyable
 		 */
@@ -73,7 +72,17 @@ class Core::Vm_session_component
 		Page_table_allocator                _table_alloc;
 		Guest_memory                        _memory;
 		Vmid_allocator                     &_vmid_alloc;
-		uint8_t                             _remaining_print_count { 10 };
+
+		uint8_t _remaining_print_count { 10 };
+
+		void error(auto &&... args)
+		{
+			if (_remaining_print_count) {
+				Genode::error(args...);
+				_remaining_print_count--;
+			}
+		}
+
 
 		using Constructed = Attempt<Ok, Accounted_mapped_ram_allocator::Error>;
 
@@ -85,6 +94,11 @@ class Core::Vm_session_component
 				[] (Vmid_allocator::Error) -> unsigned { throw Service_denied(); }),
 			(void *)_table.phys_addr()
 		};
+
+
+		/*********************************
+		 ** Region_map_detach interface **
+		 *********************************/
 
 		void detach_at(addr_t addr) override
 		{
@@ -104,10 +118,7 @@ class Core::Vm_session_component
 			});
 		}
 
-		void unmap_region(addr_t base, size_t size) override
-		{
-			Genode::error(__func__, " unimplemented ", base, " ", size);
-		}
+		void unmap_region(addr_t, size_t) override { /* unused */ }
 
 	public:
 
@@ -131,7 +142,7 @@ class Core::Vm_session_component
 			_heap(_accounted_ram_alloc, local_rm),
 			_table(_accounted_mapped_ram),
 			_table_alloc(_accounted_mapped_ram, _heap),
-			_memory(_accounted_ram_alloc, local_rm, *this),
+			_memory(ds_ep, *this, _accounted_ram_alloc, local_rm),
 			_vmid_alloc(vmid_alloc)
 		{
 			using Error = Accounted_mapped_ram_allocator::Error;
@@ -163,64 +174,43 @@ class Core::Vm_session_component
 		 ** Vm session interface **
 		 **************************/
 
-		void attach(Dataspace_capability cap, addr_t guest_phys, Attach_attr attr) override
+		void attach(Dataspace_capability cap, addr_t guest_phys,
+		            Attach_attr attr) override
 		{
-			bool out_of_tables   = false;
-			bool invalid_mapping = false;
+			using Attach_result = Guest_memory::Attach_result;
 
-			auto const &map_fn = [&](addr_t vm_addr, addr_t phys_addr, size_t size) {
-				Page_flags const pflags { RW, EXEC, USER, NO_GLOBAL, RAM, CACHED };
+			auto const &map_fn = [&] (addr_t vm_addr, addr_t phys_addr,
+			                          size_t size, bool exec, bool write,
+			                          Cache cacheable) {
+				Attach_result ret = Attach_result::OK;
+
+				Page_flags const pflags { write ? RW : RO,
+				                          exec ? EXEC : NO_EXEC,
+				                          USER, NO_GLOBAL, RAM,
+				                          cacheable };
+
 				_table.obj([&] (TABLE &table) {
-					Hw::Page_table::Result result =
-						table.insert(vm_addr, phys_addr, size, pflags,
-						             _table_alloc);
-					result.with_error([&] (Hw::Page_table_error e) {
-						if (e == Hw::Page_table_error::INVALID_RANGE)
-							invalid_mapping = true;
-						else
-							out_of_tables = true;
+					table.insert(vm_addr, phys_addr, size, pflags,
+					             _table_alloc).with_error(
+						[&] (Hw::Page_table_error e) {
+							if (e == Hw::Page_table_error::INVALID_RANGE)
+								ret = Attach_result::INVALID_DS;
+							else {
+								ret = Attach_result::OUT_OF_RAM;
+								error("Translation table needs too much RAM");
+							}
 					});
 				});
+				return ret;
 			};
 
-			if (!cap.valid())
-				throw Invalid_dataspace();
-
-			/* check dataspace validity */
-			_ep.apply(cap, [&] (Dataspace_component *ptr) {
-				if (!ptr)
-					throw Invalid_dataspace();
-
-				Dataspace_component &dsc = *ptr;
-
-				Guest_memory::Attach_result result =
-					_memory.attach(dsc, guest_phys, attr, map_fn);
-
-				if (out_of_tables) {
-					if (_remaining_print_count) {
-						Genode::error("Translation table needs too much RAM");
-						_remaining_print_count--;
-					}
-					throw Out_of_ram();
-				}
-
-				if (invalid_mapping) {
-					if (_remaining_print_count) {
-						Genode::error("Invalid mapping to guest physical ",
-						              Genode::Hex(guest_phys));
-						_remaining_print_count--;
-					}
-					throw Invalid_dataspace();
-				}
-
-				switch (result) {
-				case Guest_memory::Attach_result::OK             : break;
-				case Guest_memory::Attach_result::INVALID_DS     : throw Invalid_dataspace(); break;
-				case Guest_memory::Attach_result::OUT_OF_RAM     : throw Out_of_ram(); break;
-				case Guest_memory::Attach_result::OUT_OF_CAPS    : throw Out_of_caps(); break;
-				case Guest_memory::Attach_result::REGION_CONFLICT: throw Region_conflict(); break;
-				}
-			});
+			switch(_memory.attach(cap, guest_phys, attr, map_fn)) {
+			case Attach_result::OK             : return;
+			case Attach_result::INVALID_DS     : throw Invalid_dataspace();
+			case Attach_result::OUT_OF_RAM     : throw Out_of_ram();
+			case Attach_result::OUT_OF_CAPS    : throw Out_of_caps();
+			case Attach_result::REGION_CONFLICT: throw Region_conflict();
+			}
 		}
 
 		void attach_pic(addr_t) override

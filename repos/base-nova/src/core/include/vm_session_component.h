@@ -24,6 +24,7 @@
 
 /* core includes */
 #include <types.h>
+#include <guest_memory.h>
 #include <pd_session_component.h>
 
 namespace Core { class Vm_session_component; }
@@ -107,7 +108,7 @@ class Core::Vm_session_component
 		Trace::Source_registry &_trace_sources;
 		Con_ram_allocator       _ram;
 		Sliced_heap             _heap;
-		Avl_region              _map { &_heap };
+		Guest_memory            _memory;
 		addr_t                  _pd_sel { 0 };
 		unsigned                _next_vcpu_id { 0 };
 		unsigned                _priority;
@@ -115,10 +116,7 @@ class Core::Vm_session_component
 
 		Registry<Registered<Vcpu>> _vcpus { };
 
-		/* helpers for vm_session_common.cc */
-		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
-		void _detach_vm_memory(addr_t, size_t);
-		void _with_region(addr_t, auto const &);
+		void _detach(addr_t, size_t);
 
 	protected:
 
@@ -142,8 +140,8 @@ class Core::Vm_session_component
 
 		/* used on destruction of attached dataspaces */
 		void detach_at(addr_t) override;
-		void unmap_region(addr_t, size_t) override;
 		void reserve_and_flush(addr_t) override;
+		void unmap_region(addr_t, size_t) override { /* unused */ }
 
 
 		/**************************

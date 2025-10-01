@@ -28,12 +28,10 @@ static Board::Vm_page_table_array & dummy_array()
 }
 
 
-void Vm_session_component::_attach(addr_t, addr_t, size_t) { }
-
-
-void Vm_session_component::_attach_vm_memory(Dataspace_component &,
-                                             addr_t const,
-                                             Attach_attr const) { }
+Vm_session_component::Attach_result
+Vm_session_component::_attach_vm_memory(addr_t, addr_t, size_t,
+                                        bool, bool, Cache) {
+	return Attach_result::OK; }
 
 
 void Vm_session_component::attach_pic(addr_t) { }
@@ -66,11 +64,11 @@ Vm_session_component::Vm_session_component(Registry<Revoke> &registry,
 	_elem(registry, *this),
 	_ep(ep),
 	_ram(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_ram, local_rm),
 	_local_rm(local_rm),
 	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
 	_table_array(dummy_array()),
 	_vmid_alloc(vmids),
+	_memory(ep, *this, _ram, local_rm),
 	_id({id_alloc++, nullptr})
 {
 	if (_id.id) {
@@ -82,16 +80,6 @@ Vm_session_component::Vm_session_component(Registry<Revoke> &registry,
 
 Vm_session_component::~Vm_session_component()
 {
-	/* detach all regions */
-	while (true) {
-		addr_t out_addr = 0;
-
-		if (!_map.any_block_addr(&out_addr))
-			break;
-
-		detach_at(out_addr);
-	}
-
 	/* free region in allocator */
 	for (unsigned i = 0; i < _vcpu_id_alloc; i++) {
 		if (!_vcpus[i].constructed())

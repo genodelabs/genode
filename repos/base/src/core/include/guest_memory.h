@@ -16,10 +16,10 @@
 #define _CORE__GUEST_MEMORY_H_
 
 /* base includes */
-#include <base/allocator.h>
 #include <base/allocator_avl.h>
-#include <vm_session/vm_session.h>
+#include <base/heap.h>
 #include <dataspace/capability.h>
+#include <vm_session/vm_session.h>
 
 /* core includes */
 #include <dataspace_component.h>
@@ -29,30 +29,6 @@ namespace Core { class Guest_memory; }
 
 class Core::Guest_memory
 {
-	private:
-
-		using Avl_region = Allocator_avl_tpl<Rm_region>;
-
-		using Attach_attr = Genode::Vm_session::Attach_attr;
-
-		Sliced_heap          _sliced_heap;
-		Avl_region           _map { &_sliced_heap };
-		Region_map_detach   &_detach;
-
-		uint8_t _remaining_print_count { 10 };
-
-		void _with_region(addr_t const addr, auto const &fn)
-		{
-			Rm_region *region = _map.metadata((void *)addr);
-			if (region)
-				fn(*region);
-			else
-				if (_remaining_print_count) {
-					error(__PRETTY_FUNCTION__, " unknown region");
-					_remaining_print_count--;
-				}
-		}
-
 	public:
 
 		enum class Attach_result {
@@ -63,11 +39,41 @@ class Core::Guest_memory
 			REGION_CONFLICT,
 		};
 
+	private:
 
-		Attach_result attach(Dataspace_component &dsc,
-		                     addr_t const         guest_phys,
-		                     Attach_attr          attr,
-		                     auto const          &map_fn)
+		using Avl_region = Allocator_avl_tpl<Rm_region>;
+
+		using Attach_attr = Genode::Vm_session::Attach_attr;
+
+		Rpc_entrypoint &_ep;
+
+		Region_map_detach &_detach;
+
+		Sliced_heap _sliced_heap;
+		Avl_region  _map { &_sliced_heap };
+
+		uint8_t _remaining_print_count { 10 };
+
+		void error(auto &&... args)
+		{
+			if (_remaining_print_count) {
+				Genode::error(args...);
+				_remaining_print_count--;
+			}
+		}
+
+		void _with_region(addr_t const addr, auto const &fn)
+		{
+			Rm_region *region = _map.metadata((void *)addr);
+			if (region)
+				fn(*region);
+			else
+				error("unknown region");
+		}
+
+		Attach_result _attach(Dataspace_component &dsc,
+		                      addr_t const         guest_phys,
+		                      Attach_attr         &attr)
 		{
 			/*
 			 * unsupported - deny otherwise arbitrary physical
@@ -76,8 +82,12 @@ class Core::Guest_memory
 			if (dsc.managed())
 				return Attach_result::INVALID_DS;
 
-			if (guest_phys & 0xffful || attr.offset & 0xffful ||
-			    attr.size & 0xffful)
+			auto page_aligned = [] (addr_t addr) {
+				return aligned(addr, get_page_size_log2()); };
+
+			if (!page_aligned(guest_phys) ||
+			    !page_aligned(attr.offset) ||
+			    !page_aligned(attr.size))
 				return Attach_result::INVALID_DS;
 
 			if (!attr.size) {
@@ -94,7 +104,7 @@ class Core::Guest_memory
 			    attr.offset > dsc.size() - attr.size)
 				return Attach_result::INVALID_DS;
 
-			Attach_result const retval = _map.alloc_addr(attr.size, guest_phys).convert<Attach_result>(
+			return _map.alloc_addr(attr.size, guest_phys).convert<Attach_result>(
 
 				[&] (Range_allocator::Allocation &allocation) {
 
@@ -111,10 +121,7 @@ class Core::Guest_memory
 					/* store attachment info in meta data */
 					if (!_map.construct_metadata((void *)guest_phys,
 					                             dsc, _detach, region_attr)) {
-						if (_remaining_print_count) {
-							error("failed to store attachment info");
-							_remaining_print_count--;
-						}
+						error("failed to store attachment info");
 						return Attach_result::INVALID_DS;
 					}
 
@@ -136,44 +143,61 @@ class Core::Guest_memory
 					case Alloc_error::OUT_OF_CAPS:
 						return Attach_result::OUT_OF_CAPS;
 					case Alloc_error::DENIED:
-						{
-							/*
-							 * Handle attach after partial detach
-							 */
-							Rm_region *region_ptr = _map.metadata((void *)guest_phys);
-							if (!region_ptr)
-								return Attach_result::REGION_CONFLICT;
-
-							Rm_region &region = *region_ptr;
-
-							bool conflict = false;
-							region.with_dataspace([&] (Dataspace_component &dataspace) {
-									(void)dataspace;
-									if (!(dsc.cap() == dataspace.cap()))
-										conflict = true;
-							});
-							if (conflict)
-								return Attach_result::REGION_CONFLICT;
-
-							if (guest_phys < region.base() ||
-							    guest_phys > region.base() + region.size() - 1)
-								return Attach_result::REGION_CONFLICT;
-						}
-
+						break;
 					};
+
+					/*
+					 * Handle attach after partial detach
+					 */
+					Rm_region *region_ptr = _map.metadata((void *)guest_phys);
+					if (!region_ptr)
+						return Attach_result::REGION_CONFLICT;
+
+					Rm_region &region = *region_ptr;
+
+					bool conflict = false;
+					region.with_dataspace([&] (Dataspace_component &ds) {
+						conflict = dsc.cap() != ds.cap(); });
+					if (conflict)
+						return Attach_result::REGION_CONFLICT;
+
+					if (guest_phys < region.base() ||
+					    guest_phys > region.base() + region.size() - 1)
+						return Attach_result::REGION_CONFLICT;
 
 					return Attach_result::OK;
 				}
 			);
+		}
 
-			if (retval == Attach_result::OK) {
-				addr_t phys_addr = dsc.phys_addr() + attr.offset;
-				size_t size = attr.size;
+	public:
 
-				map_fn(guest_phys, phys_addr, size);
-			}
+		Attach_result attach(Dataspace_capability cap,
+		                     addr_t const         guest_phys,
+		                     Attach_attr          attr,
+		                     auto const          &map_fn)
+		{
+			if (!cap.valid())
+				return Attach_result::INVALID_DS;
 
-			return retval;
+			Attach_result ret = Attach_result::INVALID_DS;
+
+			/* check dataspace validity */
+			_ep.apply(cap, [&] (Dataspace_component *dsc) {
+				if (!dsc)
+					return;
+
+				ret = _attach(*dsc, guest_phys, attr);
+				if (ret != Attach_result::OK)
+					return;
+
+				ret = map_fn(guest_phys, dsc->phys_addr() + attr.offset,
+				             attr.size, attr.executable,
+				             attr.writeable && dsc->writeable(),
+				             dsc->cacheability());
+			});
+
+			return ret;
 		}
 
 
@@ -181,12 +205,14 @@ class Core::Guest_memory
 		            size_t     size,
 		            auto const &unmap_fn)
 		{
-			if (!size || (guest_phys & 0xffful) || (size & 0xffful)) {
-				if (_remaining_print_count) {
-					warning("vm_session: skipping invalid memory detach addr=",
-					        (void *)guest_phys, " size=", (void *)size);
-					_remaining_print_count--;
-				}
+			auto page_aligned = [] (addr_t addr) {
+				return aligned(addr, get_page_size_log2()); };
+
+			if (!size ||
+			    !page_aligned(guest_phys) ||
+			    !page_aligned(size)) {
+				error("vm_session: skipping invalid memory detach addr=",
+				      (void *)guest_phys, " size=", (void *)size);
 				return;
 			}
 
@@ -196,7 +222,7 @@ class Core::Guest_memory
 				Rm_region *region = _map.metadata((void *)addr);
 
 				/* walk region holes page-by-page */
-				size_t iteration_size = 0x1000;
+				size_t iteration_size = get_page_size();
 
 				if (region) {
 					iteration_size = region->size();
@@ -211,14 +237,14 @@ class Core::Guest_memory
 		}
 
 
-		Guest_memory(Accounted_ram_allocator &ram, Local_rm &local_rm,
-		             Region_map_detach &detach)
+		Guest_memory(Rpc_entrypoint &ep, Region_map_detach &detach,
+		             Accounted_ram_allocator &ram, Local_rm &local_rm)
 		:
-			_sliced_heap(ram, local_rm), _detach(detach)
+			_ep(ep), _detach(detach), _sliced_heap(ram, local_rm)
 		{
 			/* configure managed VM area */
 			if (_map.add_range(0UL, ~0UL).failed())
-				warning("unable to initialize guest-memory allocator");
+				error("unable to initialize guest-memory allocator");
 		}
 
 		~Guest_memory()

@@ -24,6 +24,7 @@
 /* core includes */
 #include <cap_mapping.h>
 #include <dataspace_component.h>
+#include <guest_memory.h>
 #include <region_map_component.h>
 #include <trace/source_registry.h>
 #include <foc_native_vcpu/foc_native_vcpu.h>
@@ -74,26 +75,32 @@ class Core::Vm_session_component
 	private Ram_quota_guard,
 	private Cap_quota_guard,
 	public  Rpc_object<Vm_session, Vm_session_component>,
-	public  Region_map_detach
+	private Region_map_detach
 {
 	private:
 
 		using Con_ram_allocator = Accounted_ram_allocator;
-		using Avl_region        = Allocator_avl_tpl<Rm_region>;
 
 		Rpc_entrypoint    &_ep;
 		Con_ram_allocator  _ram;
+		Guest_memory       _memory;
 		Sliced_heap        _heap;
-		Avl_region         _map       { &_heap };
 		Cap_mapping        _task_vcpu { true };
 		Vcpu_id_allocator  _vcpu_ids  { };
 
 		Registry<Registered<Vcpu>> _vcpus { };
 
-		/* helpers for vm_session_common.cc */
-		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
-		void _detach_vm_memory(addr_t, size_t);
-		void _with_region(addr_t, auto const &);
+		void _detach(addr_t, size_t);
+
+
+		/*********************************
+		 ** Region_map_detach interface **
+		 *********************************/
+
+		/* used on destruction of attached dataspaces */
+		void detach_at         (addr_t) override;
+		void reserve_and_flush (addr_t) override;
+		void unmap_region      (addr_t, size_t) override { /* unused */ };
 
 	protected:
 
@@ -111,25 +118,14 @@ class Core::Vm_session_component
 		~Vm_session_component();
 
 
-		/*********************************
-		 ** Region_map_detach interface **
-		 *********************************/
-
-		/* used on destruction of attached dataspaces */
-		void detach_at         (addr_t)         override;
-		void unmap_region      (addr_t, size_t) override;
-		void reserve_and_flush (addr_t)         override;
-
-
 		/**************************
 		 ** Vm session interface **
 		 **************************/
 
 		Capability<Native_vcpu> create_vcpu(Thread_capability) override;
 		void attach_pic(addr_t) override { /* unused on Fiasco.OC */ }
-
-		void attach(Dataspace_capability, addr_t, Attach_attr) override; /* vm_session_common.cc */
-		void detach(addr_t, size_t) override;                            /* vm_session_common.cc */
+		void attach(Dataspace_capability, addr_t, Attach_attr) override;
+		void detach(addr_t, size_t) override;
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */

@@ -7,7 +7,6 @@ SRC_CC += spec/arm/gicv3.cc
 SRC_CC += spec/arm_v8/kernel/vcpu.cc
 SRC_CC += spec/arm/virtualization/platform_services.cc
 SRC_CC += spec/arm/virtualization/vm_session_component.cc
-SRC_CC += vm_session_common.cc
 SRC_CC += vm_session_component.cc
 
 #add assembly sources

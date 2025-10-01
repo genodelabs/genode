@@ -15,19 +15,16 @@
 #define _CORE__VM_SESSION_COMPONENT_H_
 
 /* base includes */
-#include <base/allocator.h>
-#include <base/allocator_avl.h>
 #include <base/registry.h>
 #include <base/session_object.h>
 #include <vm_session/vm_session.h>
-#include <dataspace/capability.h>
 
 /* base-hw includes */
 #include <hw_native_vcpu/hw_native_vcpu.h>
 
 /* core includes */
+#include <guest_memory.h>
 #include <object.h>
-#include <region_map_component.h>
 #include <kernel/vcpu.h>
 #include <trace/source_registry.h>
 
@@ -39,13 +36,11 @@ namespace Core { class Vm_session_component; }
 
 class Core::Vm_session_component
 :
-	public Session_object<Vm_session>,
-	public Region_map_detach,
-	public Revoke
+	public  Session_object<Vm_session>,
+	private Region_map_detach,
+	public  Revoke
 {
 	private:
-
-		using Avl_region = Allocator_avl_tpl<Rm_region>;
 
 		/*
 		 * Noncopyable
@@ -102,22 +97,30 @@ class Core::Vm_session_component
 
 		Rpc_entrypoint             &_ep;
 		Accounted_ram_allocator     _ram;
-		Sliced_heap                 _sliced_heap;
-		Avl_region                  _map { &_sliced_heap };
 		Local_rm                   &_local_rm;
 		Board::Vm_page_table       &_table;
 		Board::Vm_page_table_array &_table_array;
 		Vmid_allocator             &_vmid_alloc;
+		Guest_memory                _memory;
 		Kernel::Vcpu::Identity      _id;
 		unsigned                    _vcpu_id_alloc { 0 };
 
 		void *_alloc_table();
-		void  _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
 
-		/* helpers for vm_session_common.cc */
-		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
+		using Attach_result = Guest_memory::Attach_result;
+
+		Attach_result _attach_vm_memory(addr_t, addr_t, size_t, bool,
+		                                bool, Cache);
 		void _detach_vm_memory(addr_t, size_t);
-		void _with_region(addr_t, auto const &);
+
+
+		/*********************************
+		 ** Region_map_detach interface **
+		 *********************************/
+
+		void detach_at         (addr_t) override;
+		void reserve_and_flush (addr_t) override;
+		void unmap_region      (addr_t, size_t) override { /* unused */ }
 
 	public:
 
@@ -133,15 +136,6 @@ class Core::Vm_session_component
 			for (unsigned i = 0; i < Board::VCPU_MAX; i++)
 				if (_vcpus[i].constructed()) _vcpus[i]->revoke_signal_context(cap);
 		}
-
-
-		/*********************************
-		 ** Region_map_detach interface **
-		 *********************************/
-
-		void detach_at         (addr_t)         override;
-		void unmap_region      (addr_t, size_t) override;
-		void reserve_and_flush (addr_t)         override;
 
 
 		/**************************

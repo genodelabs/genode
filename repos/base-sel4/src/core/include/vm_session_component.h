@@ -20,7 +20,7 @@
 #include <vm_session/vm_session.h>
 
 /* core includes */
-#include <region_map_component.h>
+#include <guest_memory.h>
 #include <trace/source_registry.h>
 #include <sel4_native_vcpu/sel4_native_vcpu.h>
 
@@ -72,8 +72,8 @@ class Core::Vm_session_component
 
 		Rpc_entrypoint          &_ep;
 		Accounted_ram_allocator  _ram;
+		Guest_memory             _memory;
 		Heap                     _heap;
-		Avl_region               _map { &_heap };
 		unsigned                 _pd_id    { 0 };
 		Cap_sel                  _vm_page_table { 0 };
 		Page_table_registry      _page_table_registry { _heap };
@@ -90,10 +90,17 @@ class Core::Vm_session_component
 
 		Registry<Registered<Vcpu>> _vcpus { };
 
-		/* helpers for vm_session_common.cc */
-		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
-		void _detach_vm_memory(addr_t, size_t);
-		void _with_region(addr_t, auto const &);
+		void _detach(addr_t, size_t);
+
+
+		/*********************************
+		 ** Region_map_detach interface **
+		 *********************************/
+
+		/* used on destruction of attached dataspaces */
+		void detach_at         (addr_t) override;
+		void reserve_and_flush (addr_t) override;
+		void unmap_region      (addr_t, size_t) override { /* unsused */ };
 
 	protected:
 
@@ -109,16 +116,6 @@ class Core::Vm_session_component
 		                     Diag, Ram_allocator &ram, Local_rm &, unsigned,
 		                     Trace::Source_registry &);
 		~Vm_session_component();
-
-
-		/*********************************
-		 ** Region_map_detach interface **
-		 *********************************/
-
-		/* used on destruction of attached dataspaces */
-		void detach_at         (addr_t)         override;
-		void unmap_region      (addr_t, size_t) override;
-		void reserve_and_flush (addr_t)         override;
 
 
 		/**************************

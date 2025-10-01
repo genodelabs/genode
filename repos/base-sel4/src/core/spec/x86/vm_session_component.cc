@@ -105,6 +105,7 @@ try
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
+	_memory(ep, *this, _ram, local_rm),
 	_heap(_ram, local_rm)
 {
 	Platform        &platform   = platform_specific();
@@ -165,10 +166,6 @@ try
 		_notifications._service = Untyped_memory::untyped_sel(_notifications._phys).value();
 	}, [&](auto) { throw Service_denied(); });
 
-	/* configure managed VM area */
-	(void)_map.add_range(0, 0UL - 0x1000);
-	(void)_map.add_range(0UL - 0x1000, 0x1000);
-
 	/* errors handled at 'reserve' */
 	cap_reservation.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
 	                            [&] (Cap_quota_guard::Error) { });
@@ -204,16 +201,6 @@ Vm_session_component::~Vm_session_component()
 {
 	_vcpus.for_each([&] (Vcpu &vcpu) {
 		destroy(_heap, &vcpu); });
-
-	/* detach all regions */
-	while (true) {
-		addr_t out_addr = 0;
-
-		if (!_map.any_block_addr(&out_addr))
-			break;
-
-		detach_at(out_addr);
-	}
 
 	if (_notifications._service)
 		Untyped_memory::free_page(platform().ram_alloc(), _notifications._phys);
@@ -290,55 +277,84 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 }
 
 
-void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
-                                             addr_t const guest_phys,
-                                             Attach_attr const attribute)
+void Vm_session_component::attach(Dataspace_capability const cap,
+                                  addr_t const guest_phys,
+                                  Attach_attr attribute)
 {
-	Vm_space::Map_attr const attr_flush {
-		.cached         = (dsc.cacheability() == CACHED),
-		.write_combined = (dsc.cacheability() == WRITE_COMBINED),
-		.writeable      = dsc.writeable() && attribute.writeable,
-		.executable     = attribute.executable,
-		.flush_support  = true };
+	using Result = Guest_memory::Attach_result;
 
-	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
-	                       guest_phys, attribute.size, guest_phys);
+	auto map_fn = [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+	                   bool exec, bool write, Cache cacheable)
+	{
+		Result result = Result::OK;
 
-	Flexpage page = flex.page();
-	while (page.valid()) {
+		Vm_space::Map_attr const attr_flush {
+			.cached         = (cacheable == CACHED),
+			.write_combined = (cacheable == WRITE_COMBINED),
+			.writeable      = write,
+			.executable     = exec,
+			.flush_support  = true };
 
-		auto result_vm = _vm_space->alloc_guest_page_tables(page.hotspot,
-		                                                    1 << page.log2_order);
-		result_vm.with_result([](auto ok) {
-			if (!ok) throw Invalid_dataspace();
-		}, [](auto e) {
-			switch(e) {
-			case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-			case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-			case Alloc_error::DENIED:      throw Invalid_dataspace();
-			}
-		});
+		Flexpage_iterator flex(phys_addr, size, vm_addr, size, vm_addr);
 
-		auto result_map = _vm_space->map_guest(page.addr, page.hotspot,
-		                                       (1 << page.log2_order) / 4096,
-		                                       attr_flush);
+		Flexpage page = flex.page();
+		while (page.valid()) {
 
-		result_map.with_result([](auto ok) {
-			if (!ok) throw Invalid_dataspace();
-		}, [](auto e) {
-			switch(e) {
-			case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-			case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-			case Alloc_error::DENIED:      throw Invalid_dataspace();
-			}
-		});
+			size_t psize = 1 << page.log2_order;
 
-		page = flex.page();
-	}
+			result = _vm_space->alloc_guest_page_tables(page.hotspot,
+			                                            psize).convert<Result>(
+				[] (auto ok) {
+					return ok ? Result::OK : Result::INVALID_DS; },
+				[] (auto e) {
+					switch(e) {
+					case Alloc_error::OUT_OF_RAM:  return Result::OUT_OF_RAM;
+					case Alloc_error::OUT_OF_CAPS: return Result::OUT_OF_CAPS;
+					case Alloc_error::DENIED:      break;
+					}
+					return Result::INVALID_DS;
+				});
+			if (result != Result::OK)
+				return result;
+
+			result = _vm_space->map_guest(page.addr, page.hotspot, psize / 4096,
+			                              attr_flush).convert<Result>(
+				[] (auto ok) {
+					return ok ? Result::OK : Result::INVALID_DS; },
+				[] (auto e) {
+					switch(e) {
+					case Alloc_error::OUT_OF_RAM:  return Result::OUT_OF_RAM;
+					case Alloc_error::OUT_OF_CAPS: return Result::OUT_OF_CAPS;
+					case Alloc_error::DENIED:      break;
+					}
+					return Result::INVALID_DS;
+				});
+			if (result != Result::OK)
+				return result;
+
+			page = flex.page();
+		}
+
+		return result;
+	};
+
+	Result ret =
+		_memory.attach(cap, guest_phys, attribute,
+		               [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+		                    bool exec, bool write, Cache cacheable) {
+			return map_fn(vm_addr, phys_addr, size, exec, write, cacheable); });
+
+	switch(ret) {
+	case Result::OK             : return;
+	case Result::INVALID_DS     : throw Invalid_dataspace();
+	case Result::OUT_OF_RAM     : throw Out_of_ram();
+	case Result::OUT_OF_CAPS    : throw Out_of_caps();
+	case Result::REGION_CONFLICT: throw Region_conflict();
+	};
 }
 
 
-void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
+void Vm_session_component::_detach(addr_t guest_phys, size_t size)
 {
 	Flexpage_iterator flex(guest_phys, size, guest_phys, size, 0);
 	Flexpage page = flex.page();
@@ -348,4 +364,25 @@ void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 
 		page = flex.page();
 	}
+}
+
+
+void Vm_session_component::detach(addr_t guest_phys, size_t size)
+{
+	_memory.detach(guest_phys, size, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
+}
+
+
+void Vm_session_component::detach_at(addr_t const addr)
+{
+	_memory.detach_at(addr, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
+}
+
+
+void Vm_session_component::reserve_and_flush(addr_t const addr)
+{
+	_memory.reserve_and_flush(addr, [&](addr_t vm_addr, size_t size) {
+		_detach(vm_addr, size); });
 }
