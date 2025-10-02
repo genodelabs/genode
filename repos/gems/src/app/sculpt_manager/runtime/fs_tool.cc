@@ -46,7 +46,7 @@ void Sculpt::gen_fs_tool_start_content(Generator &g, Fs_tool_version version,
 		operations.gen_fs_tool_config(g);
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 		gen_service_node<::File_system::Session>(g, [&] {
 			g.attribute("label_prefix", "target ->");

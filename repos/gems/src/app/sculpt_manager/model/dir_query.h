@@ -95,7 +95,7 @@ struct Sculpt::Dir_query : Noncopyable
 	void _gen_fs_query_config()
 	{
 		_fs_query_config.generate([&] (Generator &g) {
-			g.node("vfs", [&] {
+			g.tabular_node("vfs", [&] {
 				_fs_dict.for_each([&] (Fs const &fs) {
 					if (_query.fs == "" || _query.fs == fs.name)
 						gen_named_node(g, "dir", fs.name, [&] {
@@ -251,7 +251,7 @@ struct Sculpt::Dir_query : Noncopyable
 
 			gen_named_node(g, "binary", "fs_query");
 
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_rom_route(g, "fs_query");
 				gen_parent_rom_route(g, "config", "config -> managed/dir_query");
 				gen_parent_rom_route(g, "ld.lib.so");

@@ -32,7 +32,7 @@ void Sculpt::gen_chroot_start_content(Generator &g, Start_name const &name,
 
 	gen_provides<::File_system::Session>(g);
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 	 	gen_service_node<::File_system::Session>(g, [&] {
 			gen_named_node(g, "child", "default_fs_rw"); });

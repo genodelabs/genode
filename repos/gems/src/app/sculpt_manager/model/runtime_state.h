@@ -200,7 +200,7 @@ class Sculpt::Runtime_state : public Runtime_info
 						construction->gen_affinity(g);
 						construction->gen_monitor(g);
 
-						g.node("route", [&] {
+						g.tabular_node("route", [&] {
 							construction->gen_pd_cpu_route(g);
 
 							construction->routes.for_each([&] (Route const &route) {

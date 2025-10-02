@@ -33,7 +33,7 @@ static void gen_terminal_start(Generator &g)
 
 	gen_provides<Terminal::Session>(g);
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		gen_parent_rom_route(g, "config", "terminal.config");
 
 		gen_parent_route<Rom_session>    (g);
@@ -110,7 +110,7 @@ static void gen_vfs_start(Generator &g,
 		});
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 		gen_service_node<::File_system::Session>(g, [&] {
 			g.attribute("label_prefix", "config ->");
@@ -143,7 +143,7 @@ static void gen_fs_rom_start(Generator &g)
 
 	g.node("config", [&] { });
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		gen_service_node<::File_system::Session>(g, [&] {
 			gen_named_node(g, "child", "vfs"); });
 
@@ -187,7 +187,7 @@ static void gen_bash_start(Generator &g)
 		g.node("arg", [&] { g.attribute("value", "bash"); });
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		gen_service_node<::File_system::Session>(g, [&] {
 			gen_named_node(g, "child", "vfs"); });
 
@@ -241,7 +241,7 @@ void Sculpt::gen_inspect_view(Generator             &g,
 			g.node("start", [&] { gen_bash_start(g); });
 		});
 
-		g.node("route", [&] {
+		g.tabular_node("route", [&] {
 
 			gen_service_node<::File_system::Session>(g, [&] {
 				g.attribute("label_prefix", "config ->");

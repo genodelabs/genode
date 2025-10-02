@@ -78,7 +78,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 				gen_service_node<Gpu::Session>     (g, [&] { });
 				gen_service_node<Platform::Session>(g, [&] { });
 			});
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_parent_rom_route(g, "intel_gpu");
 				gen_parent_rom_route(g, "config", "config -> gpu");
@@ -90,7 +90,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 
 		start_node(_intel_fb, "pc_intel_fb", [&] {
 			g.node("heartbeat", [&] { });
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_service_node<Platform::Session>(g, [&] {
 					gen_named_node(g, "child", "intel_gpu"); });
 				gen_capture_route(g);
@@ -104,7 +104,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		});
 
 		start_node(_vesa_fb, "vesa_fb", [&] {
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_capture_route(g);
 				gen_parent_rom_route(g, "vesa_fb");
@@ -116,7 +116,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		});
 
 		start_node(_boot_fb, "boot_fb", [&] {
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_rom_route(g, "config", "config -> fb");
 				gen_parent_rom_route(g, "boot_fb");
 				gen_parent_rom_route(g, "platform_info");
@@ -127,7 +127,7 @@ struct Sculpt::Fb_driver : private Noncopyable
 		});
 
 		start_node(_soc_fb, "fb", [&] {
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>   (g);
 				gen_parent_route<Pin_control::Session>(g);
 				gen_parent_route<I2c::Session>(g);

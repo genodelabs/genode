@@ -72,7 +72,7 @@ void Sculpt::gen_prepare_vfs_start(Generator &g)
 		});
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		g.node("any-service", [&] {
 			g.node("parent", [&] { }); }); });
 }

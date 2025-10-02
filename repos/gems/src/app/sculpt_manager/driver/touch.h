@@ -30,7 +30,7 @@ struct Sculpt::Touch_driver : private Noncopyable
 			_soc->gen_start_node_content(g);
 			gen_named_node(g, "binary", "touch");
 			g.node("config", [&] { });
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>   (g);
 				gen_parent_rom_route(g, "dtb", "touch.dtb");
 				gen_parent_rom_route(g, "touch");

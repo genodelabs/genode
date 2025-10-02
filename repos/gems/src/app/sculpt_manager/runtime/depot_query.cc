@@ -27,7 +27,7 @@ void Sculpt::gen_depot_query_start_content(Generator &g)
 			gen_named_node(g, "dir", "depot", [&] {
 				g.node("fs", [&] {}); }); }); });
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		gen_service_node<::File_system::Session>(g, [&] {
 			gen_named_node(g, "child", "depot"); });
 

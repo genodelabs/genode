@@ -587,7 +587,7 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 				});
 			});
 
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 
 				if (start_node.has_sub_node("monitor")) {
 					g.node("service", [&] {
@@ -644,6 +644,15 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 
 	using Path = String<160>;
 
+	auto copy_route = [&] (Node const &service)
+	{
+		g.node(service.type().string(), [&] {
+			g.node_attributes(service);
+			service.for_each_sub_node([&] (Node const &target) {
+				g.node(target.type().string(), [&] {
+					g.node_attributes(target); }); }); });
+	};
+
 	/*
 	 * Add routes given in the start node.
 	 */
@@ -663,7 +672,7 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 				});
 			}
 
-			(void)g.append_node(service, MAX_NODE_DEPTH);
+			copy_route(service);
 		});
 	});
 
@@ -682,7 +691,8 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 	 */
 	_with_launcher_node([&] (Node const &launcher) {
 		launcher.with_optional_sub_node("route", [&] (Node const &route) {
-			(void)g.append_node_content(route, MAX_NODE_DEPTH); }); });
+			route.for_each_sub_node([&] (Node const &service) {
+				copy_route(service); }); }); });
 
 	/**
 	 * Return name of depot-ROM server used for obtaining the 'path'
@@ -732,7 +742,8 @@ void Depot_deploy::Child::_gen_routes(Generator &g, Node const &common,
 	/*
 	 * Add common routes as defined in our config.
 	 */
-	(void)g.append_node_content(common, MAX_NODE_DEPTH);
+	common.for_each_sub_node([&] (Node const &service) {
+		copy_route(service); });
 
 	/*
 	 * Add ROM routing rule with the label rewritten to the path within the

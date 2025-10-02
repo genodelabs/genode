@@ -33,7 +33,7 @@ void Sculpt::gen_nic_router_start_content(Generator &g)
 		});
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		gen_parent_rom_route(g, "nic_router");
 		gen_parent_rom_route(g, "ld.lib.so");
 		gen_parent_rom_route(g, "config", "config -> managed/nic_router");

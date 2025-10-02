@@ -21,7 +21,7 @@ void Sculpt::gen_update_start_content(Generator &g)
 
 	gen_named_node(g, "binary", "init");
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 		using Label = String<32>;
 		auto gen_fs = [&] (Label const &label_prefix, Label const &server) {

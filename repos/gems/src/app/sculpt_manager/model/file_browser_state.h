@@ -91,7 +91,7 @@ struct Sculpt::File_browser_state : Noncopyable
 				});
 			});
 
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_rom_route(g, "fs_query");
 				gen_parent_rom_route(g, "ld.lib.so");
 				gen_parent_rom_route(g, "vfs.lib.so");
@@ -153,7 +153,7 @@ struct Sculpt::File_browser_state : Noncopyable
 					g.node("fs", [&] {}); });
 			});
 
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_rom_route(g, "text_area");
 				gen_parent_rom_route(g, "ld.lib.so");
 				gen_parent_rom_route(g, "vfs.lib.so");

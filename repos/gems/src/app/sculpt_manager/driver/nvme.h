@@ -53,7 +53,7 @@ struct Sculpt::Nvme_driver : private Noncopyable
 					g.attribute("namespace", 1);
 					g.attribute("writeable", "yes"); });
 			});
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_parent_rom_route(g, "nvme");
 				gen_parent_rom_route(g, "system",   "config -> managed/system");

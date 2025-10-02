@@ -30,7 +30,7 @@ struct Sculpt::Nic_driver : private Noncopyable
 			_nic->gen_start_node_content(g);
 			gen_named_node(g, "binary", "nic");
 			g.node("config", [&] { });
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_service_node<Platform::Session>(g, [&] {
 					g.node("parent", [&] {
 						g.attribute("label", "nic"); }); });

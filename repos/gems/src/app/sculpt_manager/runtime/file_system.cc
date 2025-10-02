@@ -47,7 +47,7 @@ void Sculpt::gen_fs_start_content(Generator            &g,
 		});
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		target.gen_block_session_route(g);
 		gen_parent_rom_route(g, "vfs");
 		gen_parent_rom_route(g, "ld.lib.so");

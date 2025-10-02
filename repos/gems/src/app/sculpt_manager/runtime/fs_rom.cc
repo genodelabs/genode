@@ -26,7 +26,7 @@ void Sculpt::gen_fs_rom_start_content(Generator &g,
 
 	gen_provides<Rom_session>(g);
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 		gen_service_node<::File_system::Session>(g, [&] {
 			gen_named_node(g, "child", server); });

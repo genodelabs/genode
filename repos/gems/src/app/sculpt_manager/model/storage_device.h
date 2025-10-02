@@ -250,7 +250,7 @@ void Sculpt::Storage_device::gen_part_block_start_content(Generator &g) const
 
 	gen_provides<Block::Session>(g);
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 		gen_service_node<Block::Session>(g, [&] {
 			gen_named_node(g, "child", driver, [&] {

@@ -47,7 +47,7 @@ void Sculpt::gen_runtime_view_start_content(Generator &g,
 		});
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 		gen_service_node<Gui::Session>(g, [&] {
 			g.node("parent", [&] {

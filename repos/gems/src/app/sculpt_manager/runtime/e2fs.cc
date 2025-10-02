@@ -58,7 +58,7 @@ void Sculpt::gen_e2fs_start_content(Generator            &g,
 		gen_args_fn(g);
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		target.gen_block_session_route(g);
 		gen_parent_route<Cpu_session>    (g);
 		gen_parent_route<Pd_session>     (g);

@@ -21,7 +21,7 @@ void Sculpt::gen_ram_fs_start_content(Generator &g, Ram_fs_state const &state)
 
 	gen_provides<::File_system::Session>(g);
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		gen_parent_rom_route(g, "vfs");
 		gen_parent_rom_route(g, "ld.lib.so");
 		gen_parent_rom_route(g, "vfs.lib.so");

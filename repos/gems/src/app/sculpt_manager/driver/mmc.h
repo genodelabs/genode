@@ -56,7 +56,7 @@ struct Sculpt::Mmc_driver : private Noncopyable
 					});
 				}
 			});
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_parent_rom_route(g, "dtb", "mmc.dtb");
 				gen_parent_rom_route(g, "mmc");

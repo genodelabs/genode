@@ -58,7 +58,7 @@ struct Sculpt::Wifi_driver : private Noncopyable
 				});
 			});
 
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_service_node<Platform::Session>(g, [&] {
 					g.node("parent", [&] {
 						g.attribute("label", "wifi"); }); });

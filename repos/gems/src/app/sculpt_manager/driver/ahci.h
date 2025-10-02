@@ -54,7 +54,7 @@ struct Sculpt::Ahci_driver : private Noncopyable
 						g.attribute("device", i);
 						g.attribute("writeable", "yes"); });
 			});
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_parent_rom_route(g, "ahci");
 				gen_parent_rom_route(g, "system",   "config -> managed/system");

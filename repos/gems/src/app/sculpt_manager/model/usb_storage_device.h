@@ -155,7 +155,7 @@ void Sculpt::Usb_storage_device::gen_usb_block_start_content(Generator &g) const
 
 	gen_provides<Block::Session>(g);
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 		gen_service_node<Usb::Session>(g, [&] {
 			g.node("child", [&] {
 				g.attribute("name", "usb"); }); });

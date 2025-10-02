@@ -119,7 +119,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 
 		start_node(_hcd, "usb", [&] {
 			gen_provides<Usb::Session>(g);
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_parent_route<Platform::Session>(g);
 				gen_parent_rom_route(g, "usb");
 				gen_parent_rom_route(g, "config", "config -> managed/usb");
@@ -133,7 +133,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 				g.attribute("capslock_led", "rom");
 				g.attribute("numlock_led",  "rom");
 			});
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_service_node<Usb::Session>(g, [&] {
 					gen_named_node(g, "child", "usb"); });
 				gen_parent_rom_route(g, "usb_hid");
@@ -150,7 +150,7 @@ struct Sculpt::Usb_driver : private Noncopyable
 			g.node("config", [&] {
 				g.attribute("mac", "02:00:00:00:01:05");
 			});
-			g.node("route", [&] {
+			g.tabular_node("route", [&] {
 				gen_service_node<Usb::Session>(g, [&] {
 					gen_named_node(g, "child", "usb"); });
 				gen_parent_rom_route(g, "usb_net");

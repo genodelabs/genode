@@ -38,7 +38,7 @@ void Sculpt::_gen_gpt_write_start_content(Generator            &g,
 		g.node("actions", [&] { gen_actions_fn(g); });
 	});
 
-	g.node("route", [&] {
+	g.tabular_node("route", [&] {
 
 		Storage_target const target { device.driver, device.port, Partition::Number { } };
 		target.gen_block_session_route(g);
