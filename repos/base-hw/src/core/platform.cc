@@ -129,7 +129,7 @@ void Platform::_init_platform_info()
 	size_t   const  rom_size = pages << get_page_size_log2();
 	const char     *rom_name = "platform_info";
 
-	Range_allocator::Result phys = ram_alloc().try_alloc(get_page_size());
+	Range_allocator::Result phys = ram_alloc().try_alloc(rom_size);
 	Range_allocator::Result virt = region_alloc().try_alloc(rom_size);
 
 	if (phys.failed())
