@@ -2547,8 +2547,7 @@ struct Main : Irq_ack_handler, Gpu_reset_handler
 
 		bool const same_state    = _system_state == previous_system_state;
 		bool const resume_driver = !same_state && _system_state == "";
-		bool const stop_driver   = !same_state && _system_state != ""
-		                                       && _system_state != "blanking";
+		bool const stop_driver   = !same_state && _system_state == "driver_stop";
 
 		if (_igd_device.constructed()) {
 			/* supported GPU case */

@@ -77,12 +77,10 @@ proc display_config { } {
 	return {
 		<start name="intel_fb" caps="1000" ram="60M">
 			<binary name="pc_intel_fb"/>
-			<config ld_verbose="yes" width="1024" height="768" system="yes">
+			<config ld_verbose="yes" width="1024" height="768">
 				<report connectors="yes"/>
 			</config>
 			<route>
-				<service name="ROM" label="system">
-					<parent label="system"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>}
@@ -206,7 +204,7 @@ proc input_config { } {
 		</route>
 	</start>
 
-	<start name="event_filter" caps="100" ram="1280M">
+	<start name="event_filter" caps="100" ram="2M">
 		<provides> <service name="Event"/> </provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="event_filter.config"/> </service>
@@ -725,12 +723,7 @@ append config {
 					<if> <has_value input="check_system" value=""/>
 						<then> } [restartable_drivers] { </then>
 						<else>
-							<if> <has_value input="check_system" value="blanking"/>
-								<then> } [restartable_drivers] { </then>
-								<else>
-									<inline/>
-								</else>
-							</if>
+							<inline/>
 						</else>
 					</if>
 				</output>
@@ -759,11 +752,6 @@ append config {
 
 					<inline description="system normal">
 						<system state=""/>
-					</inline>
-					<sleep milliseconds="10000"/>
-
-					<inline description="disable display connectors">
-						<system state="blanking"/>
 					</inline>
 					<sleep milliseconds="10000"/>
 

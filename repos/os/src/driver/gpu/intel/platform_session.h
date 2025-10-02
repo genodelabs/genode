@@ -642,8 +642,13 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 				fn_error();
 		}
 
-		void with_gttm_gmadr(auto const &fn)
+		void with_gttm_gmadr(auto const &fn, auto const &fn_error)
 		{
+			if (!_device.constructed()) {
+				fn_error();
+				return;
+			}
+
 			bool attach_required = _make_aperture_accessible();
 
 			if (attach_required) {
@@ -747,7 +752,7 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 				                   _reset_handler, _resources,
 				                   rm_gttmm.dataspace(), range_gttmm,
 				                   rm_gmadr.dataspace(), range_gmadr);
-			});
+			}, []() { warning("device not ready"); });
 
 			if (!_session.constructed())
 				throw Service_denied();

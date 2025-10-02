@@ -41,12 +41,9 @@ namespace Framebuffer {
 
 struct Framebuffer::Driver
 {
-	using Attached_rom_system = Constructible<Attached_rom_dataspace>;
-
 	Env                    &env;
 	Heap                    heap     { env.ram(), env.rm() };
 	Attached_rom_dataspace  config   { env, "config" };
-	Attached_rom_system     system   { };
 	Expanding_reporter      reporter { env, "connectors", "connectors" };
 
 	Signal_handler<Driver>  process_handler   { env.ep(), *this,
@@ -55,10 +52,7 @@ struct Framebuffer::Driver
 	                                            &Driver::config_update };
 	Signal_handler<Driver>  scheduler_handler { env.ep(), *this,
 	                                            &Driver::handle_scheduler };
-	Signal_handler<Driver>  system_handler    { env.ep(), *this,
-	                                            &Driver::system_update };
 
-	bool                    disable_all         { false };
 	bool                    merge_label_changed { false };
 	bool                    verbose             { false };
 
@@ -74,7 +68,6 @@ struct Framebuffer::Driver
 		case ACTION_NEW_CONFIG   : return "NEW_CONFIG";
 		case ACTION_READ_CONFIG  : return "READ_CONFIG";
 		case ACTION_HOTPLUG      : return "HOTPLUG";
-		case ACTION_EXIT         : return "EXIT";
 		case ACTION_FAILED       : return "FAILED";
 		}
 		return "UNKNOWN";
@@ -268,7 +261,6 @@ struct Framebuffer::Driver
 	void process_action();
 	void config_update();
 	void config_read();
-	void system_update();
 	void generate_report();
 	void lookup_config(char const *, struct genode_mode &mode);
 
@@ -422,28 +414,6 @@ void Framebuffer::Driver::config_read()
 
 		merge_label_changed = merge_label_before != merge_label;
 	});
-
-	if (config.node().attribute_value("system", false)) {
-		system.construct(Lx_kit::env().env, "system");
-		system->sigh(system_handler);
-	} else
-		system.destruct();
-}
-
-
-void Framebuffer::Driver::system_update()
-{
-	if (!system.constructed())
-		return;
-
-	system->update();
-
-	if (system->valid())
-		disable_all = system->node().attribute_value("state", String<9>(""))
-		              == "blanking";
-
-	if (disable_all)
-		config_update();
 }
 
 
@@ -498,7 +468,7 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 	bool mirror_node = false;
 
 	/* default settings, possibly overridden by explicit configuration below */
-	mode.enabled    = !disable_all;
+	mode.enabled    = true;
 	mode.brightness = 70; /* percent */
 	mode.mirror     = true;
 
@@ -509,9 +479,6 @@ void Framebuffer::Driver::lookup_config(char const * const name,
 		mode.max_width  = width;
 		mode.max_height = height;
 	});
-
-	if (disable_all)
-		return;
 
 	auto for_each_node = [&](auto const &node, bool const mirror){
 		using Name = String<32>;
@@ -687,9 +654,6 @@ int lx_emul_i915_action_to_process(int const action_failed)
 			driver(env).add_action(Action::ACTION_READ_CONFIG);
 			driver(env).add_action(Action::ACTION_CONFIGURE);
 			driver(env).add_action(Action::ACTION_REPORT);
-			if (driver(env).disable_all)
-				driver(env).add_action(Action::ACTION_EXIT);
-
 			break;
 		case Action::ACTION_READ_CONFIG:
 			driver(env).config_read();
@@ -703,11 +667,6 @@ int lx_emul_i915_action_to_process(int const action_failed)
 				driver(env).add_action(Action::ACTION_HOTPLUG, true);
 			} else
 				driver(env).generate_report();
-			break;
-		case Action::ACTION_EXIT:
-			/* good bye world */
-			driver(env).disable_all = false;
-			Lx_kit::env().env.parent().exit(0);
 			break;
 		default:
 			/* other actions are handled by Linux code */

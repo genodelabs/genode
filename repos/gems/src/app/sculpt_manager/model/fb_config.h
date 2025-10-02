@@ -430,8 +430,6 @@ struct Sculpt::Fb_config
 	{
 		_manual_attr.generate(g);
 
-		g.attribute("system", "yes"); /* for screen blanking on suspend */
-
 		g.node("report", [&] { g.attribute("connectors", "yes"); });
 
 		_gen_merge_node(g);
