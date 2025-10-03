@@ -130,6 +130,9 @@ struct Genode::Span : Noncopyable
 				fn(head);
 				s = tail.start;
 				n = tail.num_bytes; });
+
+		/* handle special case of a trailing separator */
+		if (num_bytes > 0 && start[num_bytes - 1] == sep) fn(Span { nullptr, 0u });
 	}
 
 	/**
