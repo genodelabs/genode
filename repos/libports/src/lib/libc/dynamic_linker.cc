@@ -51,15 +51,15 @@ static Genode::Env       *genode_env = nullptr;
 static Libc::Binary_name *_binary_name_ptr = nullptr;
 
 
-static char const *binary_name(char const *string)
+static void *with_binary_name(char const *string, auto const &fn)
 {
 	if (string)
-		return Genode::Path<128>(string).last_element();
+		return fn(Genode::Path<128>(string).last_element());
 
 	if (_binary_name_ptr)
-		return _binary_name_ptr->string();
+		return fn(_binary_name_ptr->string());
 
-	return nullptr;
+	return fn(nullptr);
 }
 
 
@@ -123,10 +123,12 @@ void *dlopen(const char *name, int mode)
 	try {
 		static Libc::Allocator global_alloc;
 
-		return new (global_alloc)
-			Shared_object(*genode_env, global_alloc,
-			              binary_name(name),
-			              bind, keep);
+		return with_binary_name(name, [&](char const *binary_name) {
+			return new (global_alloc)
+				Shared_object(*genode_env, global_alloc,
+				              binary_name,
+				              bind, keep);
+		});
 	} catch (...) {
 		_dlerror("Unable to open file ", name);
 	}
@@ -145,10 +147,12 @@ void *dlsym(void *handle, const char *name)
 		if (handle == RTLD_DEFAULT) {
 			static Libc::Allocator global_alloc;
 
-			return Shared_object(*genode_env, global_alloc,
-			                     binary_name(nullptr),
-			                     Shared_object::BIND_LAZY,
-			                     Shared_object::KEEP).lookup(name);
+			return with_binary_name(nullptr, [&](char const *binary_name) {
+				return Shared_object(*genode_env, global_alloc,
+				                     binary_name,
+				                     Shared_object::BIND_LAZY,
+				                     Shared_object::KEEP).lookup(name);
+			});
 		}
 
 		return to_object(handle)->lookup(name);
