@@ -517,6 +517,7 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 		{
 			auto apert_size = DISPLAY_MIN_APERTURE;
 
+			_platform.update();
 			_platform.with_node([&](auto const &node) {
 				node.for_each_sub_node("device", [&] (Node const &dev) {
 					dev.for_each_sub_node("pci-config", [&] (Node const &cfg) {
