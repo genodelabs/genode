@@ -19,7 +19,7 @@
 
 void __iomem * ioremap(resource_size_t phys_addr, unsigned long size)
 {
-    return lx_emul_io_mem_map(phys_addr, size);
+    return lx_emul_io_mem_map(phys_addr, size, false);
 }
 
 

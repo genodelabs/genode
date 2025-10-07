@@ -87,7 +87,7 @@ pgprot_t pgprot_writecombine(pgprot_t prot)
 void __iomem * ioremap_wc(resource_size_t phys_addr, unsigned long size)
 {
 	lx_emul_trace(__func__);
-	return lx_emul_io_mem_map(phys_addr, size);
+	return lx_emul_io_mem_map(phys_addr, size, true);
 }
 
 

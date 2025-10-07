@@ -182,7 +182,7 @@ void __iomem * const * pcim_iomap_table(struct pci_dev * pdev)
 			continue;
 
 		_pci_iomap_table[i] =
-			(unsigned long)lx_emul_io_mem_map(phys_addr, size);
+			(unsigned long)lx_emul_io_mem_map(phys_addr, size, false);
 	}
 
 	return (void const *)_pci_iomap_table;

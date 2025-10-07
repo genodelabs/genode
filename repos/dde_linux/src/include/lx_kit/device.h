@@ -50,13 +50,14 @@ class Lx_kit::Device : List<Device>::Element
 			addr_t   addr;
 			size_t   size;
 			unsigned pci_bar;
+			bool     wc;
 
 			Constructible<Platform::Device::Mmio<0> > io_mem {};
 
 			bool match(addr_t addr, size_t size);
 
-			Io_mem(unsigned idx, addr_t addr, size_t size, unsigned pci_bar)
-			: idx{idx}, addr(addr), size(size), pci_bar(pci_bar) {}
+			Io_mem(unsigned idx, addr_t addr, size_t size, unsigned pci_bar, bool wc)
+			: idx{idx}, addr(addr), size(size), pci_bar(pci_bar), wc(wc) {}
 		};
 
 		struct Irq : List<Irq>::Element

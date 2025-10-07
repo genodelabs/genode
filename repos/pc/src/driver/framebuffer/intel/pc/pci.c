@@ -69,7 +69,7 @@ void __iomem * pci_iomap_range(struct pci_dev * dev,int bar,unsigned long offset
 	if (!phys_addr || !size)
 		return NULL;
 
-	phys_offset_addr = (unsigned long)lx_emul_io_mem_map(phys_addr, size) + offset;
+	phys_offset_addr = (unsigned long)lx_emul_io_mem_map(phys_addr, size, false) + offset;
 
 	return (void *)phys_offset_addr;
 }

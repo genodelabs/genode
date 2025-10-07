@@ -18,19 +18,19 @@
 void __iomem *devm_ioremap_resource(struct device *dev,
                                     const struct resource *res)
 {
-	return lx_emul_io_mem_map(res->start, resource_size(res));
+	return lx_emul_io_mem_map(res->start, resource_size(res), false);
 }
 
 
 void __iomem *devm_ioremap(struct device *dev, resource_size_t offset,
                            resource_size_t size)
 {
-	return lx_emul_io_mem_map(offset, size);
+	return lx_emul_io_mem_map(offset, size, false);
 }
 
 
 void __iomem * devm_ioremap_uc(struct device *dev, resource_size_t offset,
                                resource_size_t size)
 {
-	return lx_emul_io_mem_map(offset, size);
+	return lx_emul_io_mem_map(offset, size, false);
 }

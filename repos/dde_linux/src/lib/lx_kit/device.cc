@@ -377,7 +377,8 @@ Device::Device(Entrypoint           &ep,
 		addr_t   addr = node.attribute_value("phys_addr", 0UL);
 		size_t   size = node.attribute_value("size",      0UL);
 		unsigned bar  = node.attribute_value("pci_bar",   0U);
-		_io_mems.insert(new (heap) Io_mem(i++, addr, size, bar));
+		bool     wc   = node.attribute_value("wc",        false);
+		_io_mems.insert(new (heap) Io_mem(i++, addr, size, bar, wc));
 	});
 
 	i = 0;
