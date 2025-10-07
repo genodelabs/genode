@@ -28,14 +28,6 @@ vpath %.cc $(REL_PRG_DIR)
 vpath %.c  $(REP_DIR)/src/lib/pc
 vpath %.cc $(REP_DIR)/src/lib/pc
 
-LX_SRC_DIR := $(call select_from_ports,linux)/src/linux
-ifeq ($(wildcard $(LX_SRC_DIR)),)
-LX_SRC_DIR := $(call select_from_repositories,src/linux)
-endif
-ifeq ($(wildcard $(LX_SRC_DIR)),)
-fail
-endif
-
 #
 # Defined by contrib/linux/src/linux/drivers/gpu/drm/i915/Makefile via
 #   subdir-ccflags-y += -DI915

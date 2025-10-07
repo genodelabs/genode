@@ -10,13 +10,5 @@ SRC_CC  += lx_emul/random.cc
 vpath %.c  $(PRG_DIR)/../..
 vpath %.cc $(PRG_DIR)/../..
 
-LX_SRC_DIR := $(call select_from_ports,linux)/src/linux
-ifeq ($(wildcard $(LX_SRC_DIR)),)
-LX_SRC_DIR := $(call select_from_repositories,src/linux)
-endif
-ifeq ($(wildcard $(LX_SRC_DIR)),)
-fail
-endif
-
 INC_DIR += $(PRG_DIR)/../..
 INC_DIR += $(LX_SRC_DIR)/drivers/gpu/drm/i915
