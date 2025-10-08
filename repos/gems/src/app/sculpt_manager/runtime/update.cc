@@ -40,6 +40,7 @@ void Sculpt::gen_update_start_content(Generator &g)
 		gen_parent_rom_route(g, "extract");
 		gen_parent_rom_route(g, "verify");
 		gen_parent_rom_route(g, "fetchurl");
+		gen_parent_rom_route(g, "fs_tool");
 		gen_parent_rom_route(g, "chroot");
 		gen_parent_rom_route(g, "curl.lib.so");
 		gen_parent_rom_route(g, "init");
