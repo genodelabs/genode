@@ -555,6 +555,33 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 			return reconstructed;
 		}
 
+		void _make_aperture_usable_for_platform_client()
+		{
+			bool reattach_required = _make_aperture_accessible();
+
+			if (!reattach_required)
+				return;
+
+			/*
+			 * During suspend/resume the dataspace cap for the MMIO range
+			 * became invalid and needs to be re-attached to the managed
+			 * dataspace, which is provided to the platform client,
+			 * e.g. Intel display driver
+			 */
+			_rm_gmadr.detach(0ul);
+			if (_rm_gmadr.attach(_gmadr->cap(), {
+				.size       = size_t(aperture_reserved()),
+				.offset     = { },
+				.use_at     = true,
+				.at         = 0,
+				.executable = { },
+				.writeable  = true
+			}).failed()) {
+				error("failed to re-attach gmadr");
+				return;
+			}
+		}
+
 	public:
 
 		Resources(Env &env, Rm_connection &rm, Signal_context_capability irq)
@@ -642,29 +669,9 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 				fn_error();
 		}
 
-		void with_gttm_gmadr(auto const &fn, auto const &fn_error)
+		void with_gttm_gmadr(auto const &fn)
 		{
-			if (!_device.constructed()) {
-				fn_error();
-				return;
-			}
-
-			bool attach_required = _make_aperture_accessible();
-
-			if (attach_required) {
-				_rm_gmadr.detach(0ul);
-				if (_rm_gmadr.attach(_gmadr->cap(), {
-					.size       = size_t(aperture_reserved()),
-					.offset     = { },
-					.use_at     = true,
-					.at         = 0,
-					.executable = { },
-					.writeable  = true
-				}).failed()) {
-					error("failed to re-attach gmadr");
-					return;
-				}
-			}
+			_make_aperture_usable_for_platform_client();
 
 			fn(_platform, _rm_gttmm, _range_gttmm, _rm_gmadr, _range_gmadr);
 		}
@@ -710,7 +717,13 @@ class Platform::Resources : Noncopyable, public Hw_ready_state
 			return (aperture_reserved() / Igd::PAGE_SIZE) * 8;
 		}
 
-		bool mmio_ready() override { return _device.constructed(); }
+		bool mmio_ready() override
+		{
+			if (_device.constructed())
+				_make_aperture_usable_for_platform_client();
+
+			return _device.constructed();
+		}
 };
 
 
@@ -752,7 +765,7 @@ class Platform::Root : public Root_component<Session_component, Genode::Single_c
 				                   _reset_handler, _resources,
 				                   rm_gttmm.dataspace(), range_gttmm,
 				                   rm_gmadr.dataspace(), range_gmadr);
-			}, []() { warning("device not ready"); });
+			});
 
 			if (!_session.constructed())
 				throw Service_denied();
