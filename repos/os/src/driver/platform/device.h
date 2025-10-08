@@ -355,7 +355,7 @@ class Driver::Device : private List_model<Device>::Element
 		virtual void acquire(Device_owner &);
 		virtual void release(Device_owner &);
 
-		template <typename FN> void for_each_irq(FN const &fn) const
+		void for_each_irq(auto const &fn) const
 		{
 			unsigned idx = 0;
 			_irq_list.for_each([&] (Irq const &irq) {
@@ -363,27 +363,27 @@ class Driver::Device : private List_model<Device>::Element
 				   irq.mode, irq.shared); });
 		}
 
-		template <typename FN> void for_each_io_mem(FN const &fn) const
+		void for_each_io_mem(auto const &fn) const
 		{
 			unsigned idx = 0;
 			_io_mem_list.for_each([&] (Io_mem const &iomem) {
 				fn(idx++, iomem.range, iomem.bar, iomem.write_combined); });
 		}
 
-		template <typename FN> void for_each_io_port_range(FN const &fn) const
+		void for_each_io_port_range(auto const &fn) const
 		{
 			unsigned idx = 0;
 			_io_port_range_list.for_each([&] (Io_port_range const &ipr) {
 				fn(idx++, ipr.range, ipr.bar); });
 		}
 
-		template <typename FN> void for_each_property(FN const &fn) const
+		void for_each_property(auto const &fn) const
 		{
 			_property_list.for_each([&] (Property const &p) {
 				fn(p.name, p.value); });
 		}
 
-		template <typename FN> void for_pci_config(FN const &fn) const
+		void for_pci_config(auto const &fn) const
 		{
 			/*
 			 * we allow only one PCI config per device,
@@ -400,16 +400,14 @@ class Driver::Device : private List_model<Device>::Element
 			});
 		}
 
-		template <typename FN>
-		void for_each_reserved_memory(FN const &fn) const
+		void for_each_reserved_memory(auto const &fn) const
 		{
 			unsigned idx = 0;
 			_reserved_mem_list.for_each([&] (Reserved_memory const &mem) {
 				fn(idx++, mem.range); });
 		}
 
-		template <typename FN, typename EMPTY_FN>
-		void for_each_io_mmu(FN const &fn, EMPTY_FN const &empty_fn) const
+		void for_each_io_mmu(auto const &fn, auto const &empty_fn) const
 		{
 			bool empty = true;
 			_io_mmu_list.for_each([&] (Io_mmu const &io_mmu) {
@@ -421,8 +419,7 @@ class Driver::Device : private List_model<Device>::Element
 				empty_fn();
 		}
 
-		template <typename FN>
-		void with_optional_io_mmu(Io_mmu::Name const &name, FN && fn) const
+		void with_optional_io_mmu(Io_mmu::Name const &name, auto && fn) const
 		{
 			_io_mmu_list.for_each([&] (Io_mmu const &io_mmu) {
 				if (io_mmu.name == name)
@@ -522,14 +519,11 @@ class Driver::Device_model
 			update(Node(), dummy);
 		}
 
-		template <typename FN>
-		void for_each(FN const &fn) { _model.for_each(fn); }
+		void for_each(auto const &fn) { _model.for_each(fn); }
 
-		template <typename FN>
-		void for_each(FN const &fn) const { _model.for_each(fn); }
+		void for_each(auto const &fn) const { _model.for_each(fn); }
 
-		template <typename FN>
-		void with_shared_irq(unsigned number, FN const &fn)
+		void with_shared_irq(unsigned number, auto const &fn)
 		{
 			_shared_irqs.for_each([&] (Shared_interrupt &sirq) {
 				if (sirq.number() == number) fn(sirq); });

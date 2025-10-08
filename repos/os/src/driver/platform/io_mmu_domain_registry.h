@@ -86,8 +86,7 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 			                          ram_quota_guard, cap_quota_guard);
 		}
 
-		template <typename FN>
-		void for_each_domain(FN && fn)
+		void for_each_domain(auto && fn)
 		{
 			bool use_default { true };
 			for_each([&] (Io_mmu_domain &wrapper) {
@@ -99,10 +98,9 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 				fn(_default_domain->domain);
 		}
 
-		template <typename MATCH_FN, typename NONMATCH_FN>
 		void with_domain(Device::Name const &name,
-		                 MATCH_FN     const &match_fn,
-		                 NONMATCH_FN  const &nonmatch_fn)
+		                 auto         const &match_fn,
+		                 auto         const &nonmatch_fn)
 		{
 			bool exists = false;
 
@@ -117,8 +115,7 @@ class Driver::Io_mmu_domain_registry : public Registry<Io_mmu_domain>
 				nonmatch_fn();
 		}
 
-		template <typename FN>
-		void with_default_domain(FN && fn)
+		void with_default_domain(auto && fn)
 		{
 			if (_default_domain.constructed())
 				fn(_default_domain->domain);

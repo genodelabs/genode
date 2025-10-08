@@ -156,24 +156,6 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		template <typename SESSION>
 		void _with_reserved_quota_for_session(Driver::Session_component &session,
 		                                      auto const &fn);
-//		{
-//			Cap_quota const caps { SESSION::CAP_QUOTA };
-//			Ram_quota const ram  { SESSION::RAM_QUOTA };
-//
-//			session.ram_quota_guard().reserve(ram).with_result(
-//				[&] (Ram_quota_guard::Reservation &reserved_ram) {
-//					session.cap_quota_guard.reserve(caps).with_result(
-//						[&] (Cap_quota_guard::Reservation &reserved_caps) {
-//							reserved_ram.deallocate  = false;
-//							reserved_caps.deallocate = false;
-//							_ram_quota += reserved_ram.amount;
-//							_cap_quota += reserved_caps.amount;
-//							fn();
-//						},
-//						[&] (Cap_quota_guard::Error) { throw Out_of_caps(); }
-//					)},
-//				[&] (Ram_quota_guard::Error) { throw Out_of_ram(); }) };
-//		}
 
 		/*
 		 * Noncopyable

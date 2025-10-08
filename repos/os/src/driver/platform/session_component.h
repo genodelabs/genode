@@ -68,8 +68,7 @@ class Driver::Session_component
 		Io_mmu_domain_registry   &domain_registry();
 		Registry<Irq_controller> &irq_controller_registry();
 
-		template <typename FN>
-		void with_io_mmu(Device::Name const &name, FN && fn)
+		void with_io_mmu(Device::Name const &name, auto && fn)
 		{
 			_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
 				if (io_mmu.name() == name)
