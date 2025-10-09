@@ -22,6 +22,7 @@
 		<rom label="lxip.lib.so"/>
 		<rom label="depot_query"/>
 		<rom label="fs_rom"/>
+		<rom label="fs_tool"/>
 		<rom label="fetchurl"/>
 		<rom label="curl.lib.so"/>
 		<rom label="libc.lib.so"/>
