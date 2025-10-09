@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _SRC__DRIVERS__PLATFORM__PCI_HD_AUDIO_H_
+#define _SRC__DRIVERS__PLATFORM__PCI_HD_AUDIO_H_
+
 #include <pci/config.h>
 #include <device.h>
 
@@ -56,3 +59,4 @@ void Driver::pci_hd_audio_quirks(Device::Pci_config const &cfg, Pci::Config &con
 		audio.write<Hdaudio::Amd_device_control::No_snoop>(2);
 }
 
+#endif /* _SRC__DRIVERS__PLATFORM__PCI_HD_AUDIO_H_ */

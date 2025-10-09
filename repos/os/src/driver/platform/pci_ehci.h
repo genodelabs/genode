@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _SRC__DRIVERS__PLATFORM__PCI_EHCI_H_
+#define _SRC__DRIVERS__PLATFORM__PCI_EHCI_H_
+
 #include <pci/config.h>
 #include <device.h>
 
@@ -105,3 +108,5 @@ void Driver::pci_ehci_quirks(Env                      &env,
 		}
 	});
 }
+
+#endif /* _SRC__DRIVERS__PLATFORM__PCI_EHCI_H_ */

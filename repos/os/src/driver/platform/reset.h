@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _RESET_H_
-#define _RESET_H_
+#ifndef _SRC__DRIVERS__PLATFORM__RESET_H_
+#define _SRC__DRIVERS__PLATFORM__RESET_H_
 
 #include <types.h>
 #include <named_registry.h>
@@ -60,4 +60,4 @@ class Driver::Reset : Resets::Element, Interface
 		};
 };
 
-#endif /* _RESET_H_ */
+#endif /* _SRC__DRIVERS__PLATFORM__RESET_H_ */

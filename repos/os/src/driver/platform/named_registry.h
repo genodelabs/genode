@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _NAMED_REGISTRY_H_
-#define _NAMED_REGISTRY_H_
+#ifndef _SRC__DRIVER__PLATFORM__NAMED_REGISTRY_H_
+#define _SRC__DRIVER__PLATFORM__NAMED_REGISTRY_H_
 
 #include <util/string.h>
 #include <util/avl_tree.h>
@@ -87,4 +87,4 @@ class Driver::Named_registry : Noncopyable
 		}
 };
 
-#endif /* _NAMED_REGISTRY_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__NAMED_REGISTRY_H_ */

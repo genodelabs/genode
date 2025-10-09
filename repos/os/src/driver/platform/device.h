@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__DEVICE_H_
-#define _SRC__DRIVERS__PLATFORM__DEVICE_H_
+#ifndef _SRC__DRIVER__PLATFORM__DEVICE_H_
+#define _SRC__DRIVER__PLATFORM__DEVICE_H_
 
 #include <base/allocator.h>
 #include <base/heap.h>
@@ -534,4 +534,4 @@ class Driver::Device_model
 		Powers & powers() { return _powers; };
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__DEVICE_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__DEVICE_H_ */

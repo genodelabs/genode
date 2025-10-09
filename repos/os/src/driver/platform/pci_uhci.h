@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _SRC__DRIVERS__PLATFORM__PCI_UHCI_H_
+#define _SRC__DRIVERS__PLATFORM__PCI_UHCI_H_
+
 #include <io_port_session/connection.h>
 #include <pci/config.h>
 #include <device.h>
@@ -117,3 +120,5 @@ void Driver::pci_uhci_quirks(Env                      &env,
 	if (cfg.vendor_id == 0x8086)
 		config.write<Uhci::Usb_resume_intel>(0);
 }
+
+#endif /* _SRC__DRIVERS__PLATFORM__PCI_UHCI_H_ */

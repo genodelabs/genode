@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__COMMON_H_
-#define _SRC__DRIVERS__PLATFORM__COMMON_H_
+#ifndef _SRC__DRIVER__PLATFORM__COMMON_H_
+#define _SRC__DRIVER__PLATFORM__COMMON_H_
 
 #include <base/registry.h>
 
@@ -279,4 +279,4 @@ Driver::Common::Common(Genode::Env                  &env,
 	_handle_devices();
 }
 
-#endif /* _SRC__DRIVERS__PLATFORM__COMMON_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__COMMON_H_ */

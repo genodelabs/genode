@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__DMA_ALLOCATOR_H_
-#define _SRC__DRIVERS__PLATFORM__DMA_ALLOCATOR_H_
+#ifndef _SRC__DRIVER__PLATFORM__DMA_ALLOCATOR_H_
+#define _SRC__DRIVER__PLATFORM__DMA_ALLOCATOR_H_
 
 /* Genode includes */
 #include <base/allocator_avl.h>
@@ -84,4 +84,4 @@ class Driver::Dma_allocator
 		Dma_allocator(Allocator &md_alloc, bool const remapping);
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__DMA_ALLOCATOR_H */
+#endif /* _SRC__DRIVER__PLATFORM__DMA_ALLOCATOR_H */

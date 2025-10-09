@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__RESERVED_MEMORY_HANDLER_H_
-#define _SRC__DRIVERS__PLATFORM__RESERVED_MEMORY_HANDLER_H_
+#ifndef _SRC__DRIVER__PLATFORM__RESERVED_MEMORY_HANDLER_H_
+#define _SRC__DRIVER__PLATFORM__RESERVED_MEMORY_HANDLER_H_
 
 #include <platform_session/device.h>
 
@@ -32,4 +32,4 @@ struct Driver::Reserved_memory_handler
 	virtual ~Reserved_memory_handler() { }
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__RESERVED_MEMORY_HANDLER_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__RESERVED_MEMORY_HANDLER_H_ */

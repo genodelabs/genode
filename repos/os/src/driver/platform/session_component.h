@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__SESSION_COMPONENT_H_
-#define _SRC__DRIVERS__PLATFORM__SESSION_COMPONENT_H_
+#ifndef _SRC__DRIVER__PLATFORM__SESSION_COMPONENT_H_
+#define _SRC__DRIVER__PLATFORM__SESSION_COMPONENT_H_
 
 #include <base/attached_rom_dataspace.h>
 #include <base/env.h>
@@ -149,4 +149,4 @@ class Driver::Session_component
 		void generate(Generator &) override;
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__SESSION_COMPONENT_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__SESSION_COMPONENT_H_ */

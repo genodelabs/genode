@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__IO_MMU_H_
-#define _SRC__DRIVERS__PLATFORM__IO_MMU_H_
+#ifndef _SRC__DRIVER__PLATFORM__IO_MMU_H_
+#define _SRC__DRIVER__PLATFORM__IO_MMU_H_
 
 /* Genode includes */
 #include <base/registry.h>
@@ -217,4 +217,4 @@ class Driver::Io_mmu_factory : private Genode::Registry<Io_mmu_factory>::Element
 };
 
 
-#endif /* _SRC__DRIVERS__PLATFORM__IO_MMU_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__IO_MMU_H_ */

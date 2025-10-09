@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _SRC__DRIVERS__PLATFORM__TYPES_H_
+#define _SRC__DRIVERS__PLATFORM__TYPES_H_
 
 #include <util/avl_tree.h>
 
@@ -64,4 +64,4 @@ namespace Driver {
 	};
 }
 
-#endif /* _TYPES_H_ */
+#endif /* _SRC__DRIVERS__PLATFORM__TYPES_H_ */

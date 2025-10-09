@@ -1,5 +1,5 @@
 /*
- * \brief  Platform driver for ARM root component
+ * \brief  Platform driver root component
  * \author Stefan Kalkowski
  * \date   2020-04-13
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__ROOT_H_
-#define _SRC__DRIVERS__PLATFORM__ROOT_H_
+#ifndef _SRC__DRIVER__PLATFORM__ROOT_H_
+#define _SRC__DRIVER__PLATFORM__ROOT_H_
 
 #include <base/attached_rom_dataspace.h>
 #include <base/registry.h>
@@ -76,4 +76,4 @@ class Driver::Root : public Root_component<Session_component>,
 		Registry<Session_component>   _sessions {};
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__ROOT_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__ROOT_H_ */

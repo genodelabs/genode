@@ -1,5 +1,5 @@
 /*
- * \brief  Platform driver for ARM root component
+ * \brief  Platform driver - root component
  * \author Stefan Kalkowski
  * \date   2020-04-13
  */

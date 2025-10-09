@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _SRC__DRIVERS__PLATFORM__PCI_VIRTIO_H_
+#define _SRC__DRIVERS__PLATFORM__PCI_VIRTIO_H_
+
 #include <util/mmio.h>
 #include <pci/config.h>
 #include <device.h>
@@ -115,3 +118,4 @@ void Driver::pci_virtio_info(Device             const &dev,
 	config.for_each_capability(dev, g);
 }
 
+#endif /* _SRC__DRIVERS__PLATFORM__PCI_VIRTIO_H_ */

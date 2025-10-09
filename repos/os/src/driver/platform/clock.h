@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CLOCK_H_
-#define _CLOCK_H_
+#ifndef _SRC__DRIVER__PLATFORM__CLOCK_H_
+#define _SRC__DRIVER__PLATFORM__CLOCK_H_
 
 #include <types.h>
 #include <named_registry.h>
@@ -111,4 +111,4 @@ class Driver::Fixed_divider : public Driver::Clock
 		}
 };
 
-#endif /* _CLOCK_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__CLOCK_H_ */

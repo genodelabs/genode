@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__DEVICE_OWNER_H_
-#define _SRC__DRIVERS__PLATFORM__DEVICE_OWNER_H_
+#ifndef _SRC__DRIVER__PLATFORM__DEVICE_OWNER_H_
+#define _SRC__DRIVER__PLATFORM__DEVICE_OWNER_H_
 
 namespace Driver
 {
@@ -29,4 +29,4 @@ struct Driver::Device_owner
 	virtual ~Device_owner() { }
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__DEVICE_OWNER_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__DEVICE_OWNER_H_ */

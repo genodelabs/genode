@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__SHARED_IRQ_H_
-#define _SRC__DRIVERS__PLATFORM__SHARED_IRQ_H_
+#ifndef _SRC__DRIVER__PLATFORM__SHARED_IRQ_H_
+#define _SRC__DRIVER__PLATFORM__SHARED_IRQ_H_
 
 #include <base/registry.h>
 #include <base/rpc_server.h>
@@ -115,4 +115,4 @@ class Driver::Shared_interrupt_session :
 		}
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__SHARED_IRQ_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__SHARED_IRQ_H_ */

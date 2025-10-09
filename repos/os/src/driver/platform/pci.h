@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__PCI_H_
-#define _SRC__DRIVERS__PLATFORM__PCI_H_
+#ifndef _SRC__DRIVER__PLATFORM__PCI_H_
+#define _SRC__DRIVER__PLATFORM__PCI_H_
 
 /* Genode includes */
 #include <base/env.h>
@@ -42,4 +42,4 @@ namespace Driver {
 	void pci_resume_bridges(Env &, Device_model &);
 }
 
-#endif /* _SRC__DRIVERS__PLATFORM__PCI_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__PCI_H_ */

@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _POWER_H_
-#define _POWER_H_
+#ifndef _SRC__DRIVERS__PLATFORM__POWER_H_
+#define _SRC__DRIVERS__PLATFORM__POWER_H_
 
 #include <types.h>
 #include <named_registry.h>
@@ -60,4 +60,4 @@ class Driver::Power : Powers::Element, Interface
 		};
 };
 
-#endif /* _POWER_H_ */
+#endif /* _SRC__DRIVERS__PLATFORM__POWER_H_ */

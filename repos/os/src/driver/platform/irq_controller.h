@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__IRQ_CONTROLLER_H_
-#define _SRC__DRIVERS__PLATFORM__IRQ_CONTROLLER_H_
+#ifndef _SRC__DRIVER__PLATFORM__IRQ_CONTROLLER_H_
+#define _SRC__DRIVER__PLATFORM__IRQ_CONTROLLER_H_
 
 /* Genode includes */
 #include <base/registry.h>
@@ -98,4 +98,4 @@ class Driver::Irq_controller_factory : private Genode::Registry<Irq_controller_f
 };
 
 
-#endif /* _SRC__DRIVERS__PLATFORM__IRQ_CONTROLLER_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__IRQ_CONTROLLER_H_ */

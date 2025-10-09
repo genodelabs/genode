@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__DEVICE_PD_H_
-#define _SRC__DRIVERS__PLATFORM__DEVICE_PD_H_
+#ifndef _SRC__DRIVER__PLATFORM__DEVICE_PD_H_
+#define _SRC__DRIVER__PLATFORM__DEVICE_PD_H_
 
 /* base */
 #include <base/allocator_avl.h>
@@ -130,4 +130,4 @@ class Driver::Kernel_iommu : public Io_mmu
 		~Kernel_iommu() { _destroy_domains(); }
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__DEVICE_PD_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__DEVICE_PD_H_ */

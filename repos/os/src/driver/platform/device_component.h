@@ -1,5 +1,5 @@
 /*
- * \brief  Platform driver for ARM device component
+ * \brief  Platform driver - device component
  * \author Stefan Kalkowski
  * \date   2020-04-20
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_COMPONENT_H_
-#define _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_COMPONENT_H_
+#ifndef _SRC__DRIVER__PLATFORM__DEVICE_COMPONENT_H_
+#define _SRC__DRIVER__PLATFORM__DEVICE_COMPONENT_H_
 
 #include <base/registry.h>
 #include <base/rpc_server.h>
@@ -164,4 +164,4 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 		Device_component &operator = (Device_component const &);
 };
 
-#endif /* _SRC__DRIVERS__PLATFORM__SPEC__ARM__DEVICE_COMPONENT_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__DEVICE_COMPONENT_H_ */

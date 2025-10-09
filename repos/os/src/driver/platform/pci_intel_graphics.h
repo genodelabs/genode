@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _SRC__DRIVERS__PLATFORM__PCI_INTEL_GRAPHICS_H_
+#define _SRC__DRIVERS__PLATFORM__PCI_INTEL_GRAPHICS_H_
+
 #include <util/mmio.h>
 #include <pci/config.h>
 #include <device.h>
@@ -121,3 +124,5 @@ void Driver::pci_intel_graphics_info(Device::Pci_config const &cfg,
 		});
 	});
 }
+
+#endif /* _SRC__DRIVERS__PLATFORM__PCI_INTEL_GRAPHICS_H_ */
