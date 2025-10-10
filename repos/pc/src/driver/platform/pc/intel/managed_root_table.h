@@ -23,7 +23,7 @@
 #include <intel/context_table.h>
 #include <intel/domain_allocator.h>
 #include <intel/report_helper.h>
-#include <cpu/page_table_allocator.h>
+#include <intel/page_table_allocator.h>
 
 namespace Intel {
 	using namespace Genode;

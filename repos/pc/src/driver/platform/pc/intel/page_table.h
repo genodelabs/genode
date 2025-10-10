@@ -18,7 +18,7 @@
 #include <base/node.h>
 #include <util/register.h>
 
-#include <page_table/page_table_base.h>
+#include <intel/page_table_base.h>
 #include <intel/report_helper.h>
 
 namespace Intel {
