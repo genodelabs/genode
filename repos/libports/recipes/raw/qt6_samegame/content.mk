@@ -2,6 +2,8 @@ content: qt6_samegame.tar
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt6_declarative)
 
+include $(GENODE_DIR)/repos/base/recipes/content.inc
+
 SAMEGAME3_RESOURCES := samegame.qml \
                        Dialog.qml \
                        Button.qml \
@@ -28,5 +30,5 @@ $(addprefix samegame/pics/, $(SAMEGAME_RESOURCES)): samegame/pics
 
 qt6_samegame.tar: $(addprefix samegame/, $(SAMEGAME3_RESOURCES)) \
                   $(addprefix samegame/pics/, $(SAMEGAME_RESOURCES))
-	tar --owner=0 --group=0 --numeric-owner --mode='go=' --mtime='1970-01-01 00:00+00' -cf $@ -C samegame .
+	$(TAR) -cf $@ -C samegame .
 	rm -rf samegame/

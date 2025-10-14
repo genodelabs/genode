@@ -18,8 +18,7 @@ LICENSE.wifi:
 	  echo >> $@; \
 	done
 
+include $(GENODE_DIR)/repos/base/recipes/content.inc
+
 pc_wifi_firmware.tar: ucode_files LICENSE.wifi
-	tar --mtime='2023-05-03 00:00Z' --remove-files \
-	    --owner=0 --group=0 --numeric-owner --mode='go=' \
-	    -cf $@ -C . *.* rtlwifi/*.* && \
-	rmdir rtlwifi
+	$(TAR) --remove-files -cf $@ -C . *.* rtlwifi/*.* && rmdir rtlwifi

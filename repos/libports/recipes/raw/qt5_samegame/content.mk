@@ -26,8 +26,9 @@ $(addprefix samegame/, $(SAMEGAME3_RESOURCES)): samegame
 $(addprefix samegame/shared/pics/, $(SAMEGAME_RESOURCES)): samegame/shared/pics
 	cp $(PORT_DIR)/src/lib/qt5/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/$(notdir $@) $@
 
+include $(GENODE_DIR)/repos/base/recipes/content.inc
 
 qt5_samegame.tar: $(addprefix samegame/, $(SAMEGAME3_RESOURCES)) \
                   $(addprefix samegame/shared/pics/, $(SAMEGAME_RESOURCES))
-	tar --owner=0 --group=0 --numeric-owner --mode='go=' --mtime='1970-01-01 00:00+00' -cf $@ -C samegame .
+	$(TAR) -cf $@ -C samegame .
 	rm -rf samegame/

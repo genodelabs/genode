@@ -13,5 +13,5 @@ BUILD_ARTIFACTS := $(TARGET) menu_view_styles.tar
 
 menu_view_styles.tar:
 	$(MSG_CONVERT)$@
-	$(VERBOSE)tar cf $@ -C $(PRG_DIR) styles
+	$(VERBOSE)tar $(TAR_OPT) -cf $@ -C $(PRG_DIR) styles
 	$(VERBOSE)ln -sf $(BUILD_BASE_DIR)/$(PRG_REL_DIR)/$@ $(INSTALL_DIR)/$@

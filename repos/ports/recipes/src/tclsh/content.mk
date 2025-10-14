@@ -10,10 +10,12 @@ PORT_LIB_FILES := \
 	platform/pkgIndex.tcl reg/pkgIndex.tcl tcltest/pkgIndex.tcl tm.tcl \
 	tzdata/Etc/UTC tzdata/UTC tclIndex
 
+include $(GENODE_DIR)/repos/base/recipes/content.inc
+
 src/noux-pkg/tcl:
 	mkdir -p $@/library
 	cp -a $(addprefix $(PORT_DIR)/src/noux-pkg/tcl/,$(TCL_CONTENT)) $@
-	$(VERBOSE)tar -C $(PORT_DIR)/src/noux-pkg/tcl/library -cf - $(PORT_LIB_FILES) | tar -C $@/library -xf -
+	$(VERBOSE)$(call mirror_file_list,$(PORT_DIR)/src/noux-pkg/tcl/library,$@/library,$(PORT_LIB_FILES))
 
 src/noux-pkg/tclsh:
 	mkdir -p $@

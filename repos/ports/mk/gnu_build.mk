@@ -236,7 +236,7 @@ installed_tree.tag: installed.tag
 # via the VFS tar file system
 #
 installed_tar.tag: installed.tag
-	$(VERBOSE)tar cf $(TARGET).tar -h -C $(PWD)/install $(INSTALL_TAR_CONTENT)
+	$(VERBOSE)tar $(TAR_OPT) -cf $(TARGET).tar -h -C $(PWD)/install $(INSTALL_TAR_CONTENT)
 	$(VERBOSE)rm -f $(INSTALL_DIR)/$(TARGET)
 	$(VERBOSE)ln -sf $(PWD)/$(TARGET).tar $(INSTALL_DIR)/$(TARGET).tar
 

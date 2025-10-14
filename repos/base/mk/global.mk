@@ -253,7 +253,7 @@ AS_OPT += $(AS_MARCH)
 #
 # Default tar options
 #
-TAR_OPT ?= --owner=1 --group=1 --mtime=@0
+TAR_OPT ?= --format=gnu --sort=name --owner=1 --group=1 --numeric-owner --mode="go=" --mtime="2025-09-29 00:00Z"
 
 ALL_INC_DIR := .
 ALL_INC_DIR += $(INC_DIR)
