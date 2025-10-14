@@ -354,15 +354,9 @@ struct Main : Event_handler
 			 */
 			ComPtr<Genodefb> c_fb = fb->fb;
 
-			c_fb->Lock();
+			Genodefb::Lock_guard guard(*c_fb);
 
-			try {
-				fn();
-				c_fb->Unlock();
-			} catch (...) {
-				c_fb->Unlock();
-				throw;
-			}
+			fn();
 		}
 	};
 
