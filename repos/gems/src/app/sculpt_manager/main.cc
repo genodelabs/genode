@@ -993,13 +993,20 @@ struct Sculpt::Main : Input_event_handler,
 	                                 *this, _system_dialog, _system_visible,
 	                                 _popup_dialog, _popup };
 
+	unsigned _key_cnt { 0 };
+
 	struct Keyboard_focus_guard
 	{
 		Main &_main;
 
-		Keyboard_focus_guard(Main &main) : _main(main) { }
+		Keyboard_focus_guard(Main &main, Input::Event const &ev) : _main(main)
+		{
+			if (ev.press())                         _main._key_cnt++;
+			if (ev.release() && _main._key_cnt > 0) _main._key_cnt--;
+		}
 
-		~Keyboard_focus_guard() { _main._keyboard_focus.update(); }
+		~Keyboard_focus_guard() {
+			if (_main._key_cnt == 0) _main._keyboard_focus.update(); }
 	};
 
 	/* used to prevent closing the popup immediatedly after opened */
@@ -1023,7 +1030,7 @@ struct Sculpt::Main : Input_event_handler,
 		ev.handle_absolute_motion([&] (int x, int y) {
 			_pointer_pos.construct(x, y); });
 
-		Keyboard_focus_guard focus_guard { *this };
+		Keyboard_focus_guard focus_guard { *this, ev };
 
 		Dialog::Event::Seq_number const seq_number { _global_input_seq_number.value };
 
