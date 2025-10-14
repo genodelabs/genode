@@ -320,6 +320,8 @@ class Nitpicker::User_state
 		}
 
 		void reset_focus() { _next_focused = nullptr; }
+
+		void reset_touched() { _touched = nullptr; }
 };
 
 #endif /* _USER_STATE_H_ */

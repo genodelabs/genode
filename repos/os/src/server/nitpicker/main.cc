@@ -1018,6 +1018,9 @@ void Nitpicker::Main::_update_motion_and_focus_activity_reports()
 		(void)_touch_reporter.generate([&] (Generator &g) {
 			_user_state.report_touched_view_owner(g, touch_activity); });
 
+	if (!touch_activity)
+		_user_state.reset_touched();
+
 	_reported_motion_activity = motion_activity;
 	_reported_button_activity = button_activity;
 	_reported_touch_activity  = touch_activity;
