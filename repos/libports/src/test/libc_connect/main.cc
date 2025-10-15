@@ -178,6 +178,12 @@ static void test_nonblocking_connect_connected()
 
 	if (!((res == -1) && (errno == EISCONN))) DIE();
 
+	/* test checking the connection state with recv() and MSG_PEEK */
+
+	char c;
+	res = recv(s, &c, 1, MSG_PEEK);
+	if (!((res == -1) && (errno == EAGAIN))) DIE();
+
 	/* keep the netty server alive */
 	
 	char send_buf = 'x';
@@ -193,6 +199,13 @@ static void test_nonblocking_connect_connected()
 	printf("select returned %d\n", res);
 
 	if (res != 1) DIE();
+
+	/* test recv() with MSG_PEEK */
+
+	res = recv(s, &receive_buf, sizeof(receive_buf), MSG_PEEK);
+	if (!((res == sizeof(receive_buf)) && (receive_buf == send_buf))) DIE();
+
+	receive_buf = 0;
 
 	read(s, &receive_buf, sizeof(receive_buf));
 
@@ -246,7 +259,27 @@ static void test_nonblocking_connect_connection_refused()
 
 	res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == ECONNABORTED))) DIE();
+	/*
+	 * FreeBSD: res = -1, errno = ECONNREFUSED
+	 * Linux:   res = -1, errno = ECONNABORTED
+	 * Genode:  res = -1, errno = ECONNABORTED
+	 */
+
+	if (!((res == -1) &&
+	      ((errno == ECONNREFUSED) || (errno == ECONNABORTED)))) DIE();
+
+	/*
+	 * Test checking the connection state with recv() and MSG_PEEK
+	 *
+	 * FreeBSD: res = 0
+	 * Linux:   res = -1, errno = ENOTCONN
+	 * Genode:  res = 0
+	 */
+
+	char c;
+	res = recv(s, &c, 1, MSG_PEEK);
+	if (!((res == 0) ||
+	      ((res == -1) && (errno == ENOTCONN)))) DIE();
 
 	close(s);
 }
