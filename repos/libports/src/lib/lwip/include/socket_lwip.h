@@ -58,6 +58,7 @@ struct Socket::Protocol : private Noncopyable
 
 	State _state;
 	Errno _so_error { GENODE_ENONE };
+	Errno _connect_error { GENODE_ENONE };
 
 	Protocol(State state) : _state(state) { };
 

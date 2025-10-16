@@ -725,25 +725,29 @@ class Vfs_ip::Ip_connect_file final : public Vfs_ip::Ip_file
 		                   Byte_range_ptr const &dst,
 		                   file_size /* ignored */) override
 		{
-			enum Errno socket_err, err;
-			unsigned size = sizeof(enum Errno);
-			err = genode_socket_getsockopt(&_sock, GENODE_SOL_SOCKET, GENODE_SO_ERROR,
-			                               &socket_err, &size);
+			Errno err;
+			unsigned long size = 1;
+			unsigned data = 0;
 
+			/*
+			 * Use msg_peek to determine connection state - all genode_socket*
+			 * operations are non-blocking
+			 */
+			Msg_header msg { &data, 1 };
+			err = genode_socket_recvmsg(&_sock, msg.header(), &size, true);
 
-			if (err != GENODE_ENONE) {
-				Genode::error("Vfs::Ip_connect_file::read(): getsockopt() failed");
-				return -1;
-			}
-
-			switch (socket_err) {
-			case GENODE_ENONE:
+			if (err == GENODE_EAGAIN || (err == GENODE_ENONE && size == 1))
 				return Format::snprintf(dst.start, dst.num_bytes, "connected");
-			case GENODE_ECONNREFUSED:
+
+			if (err == GENODE_ECONNREFUSED)
 				return Format::snprintf(dst.start, dst.num_bytes, "connection refused");
-			default:
-				return Format::snprintf(dst.start, dst.num_bytes, "unknown error");
-			}
+
+			if (err == GENODE_ENONE && size == 0)
+				return Format::snprintf(dst.start, dst.num_bytes, "not connected");
+
+			Genode::error("Ip_connect_file::read unhandled error: ", unsigned(err));
+
+			return Format::snprintf(dst.start, dst.num_bytes, "unknown error");
 		}
 };
 

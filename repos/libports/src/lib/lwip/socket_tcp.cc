@@ -206,7 +206,9 @@ class Socket::Tcp : public Protocol
 		{
 			Tcp *tcp = static_cast<Tcp *>(arg);
 			tcp->_state = Protocol::State::READY;
-			tcp->_so_error = genode_errno(err);
+
+			tcp->_so_error      = genode_errno(err);
+			tcp->_connect_error = genode_errno(err);
 
 			return Lwip::ERR_OK;
 		}
@@ -320,7 +322,8 @@ class Socket::Tcp : public Protocol
 			if ((_state != NEW) && (_state != BOUND))
 				return lwip_error(GENODE_EISCONN);
 
-			_so_error = GENODE_ECONNREFUSED;
+			_so_error      = GENODE_ECONNREFUSED;
+			_connect_error = GENODE_ECONNREFUSED;
 
 			Lwip::ip_addr_t ip   = lwip_ip_addr(addr);
 			Lwip::u16_t     port = Lwip::lwip_ntohs(addr.in.port);
@@ -384,7 +387,7 @@ class Socket::Tcp : public Protocol
 			if (!_recv_pbuf) {
 				if (!_pcb || _pcb->state == Lwip::CLOSE_WAIT) {
 					shutdown();
-					return lwip_error(GENODE_ENONE);
+					return lwip_error(_connect_error);
 				}
 
 				/*

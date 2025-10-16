@@ -463,6 +463,8 @@ enum Errno lx_socket_recvmsg(struct socket *sock, struct genode_msghdr *msg,
 	int ret;
 	int flags = MSG_DONTWAIT;
 
+	*bytes_recv = 0;
+
 	if (peek) flags |= MSG_PEEK;
 	if (!m)   return GENODE_ENOMEM;
 
