@@ -176,8 +176,9 @@ struct Libc::Socket_fs::Context : Plugin_context
 		template <typename FUNC>
 		void _fd_apply(FUNC const &fn)
 		{
-			for (unsigned i = 0; i < Fd::MAX; ++i)
-				if (_fd[i].num != -1) fn(_fd[i].num);
+			if (_fd[DATA].num    != -1) fn(_fd[DATA].num);
+			if (_fd[CONNECT].num != -1) fn(_fd[CONNECT].num);
+			if (_fd[ACCEPT].num  != -1) fn(_fd[ACCEPT].num);
 		}
 
 		void _init_fd(Fd type, int flags)
