@@ -767,8 +767,21 @@ skip_test_if [expr  ([have_board pbxa9] || [have_board zynq_qemu])] test-file_va
 skip_test_if [expr !([have_board pbxa9] || [have_board zynq_qemu])] test-file_vault_no_entropy
 
 # rpi has a quite limited amount of RAM
-skip_test_if [have_board rpi] test-file_vault
-skip_test_if [have_board rpi] test-file_vault_no_entropy
+if {[have_board rpi]} {
+	set skip_test(gcov)                              true
+	set skip_test(test-depot_extract)                true
+	set skip_test(test-file_vault)                   true
+	set skip_test(test-file_vault_no_entropy)        true
+	set skip_test(test-libc_connect_lwip)            true
+	set skip_test(test-libc_connect_lxip)            true
+	set skip_test(test-libc_connect_vfs_server_lwip) true
+	set skip_test(test-libc_connect_vfs_server_lxip) true
+	set skip_test(test-spark)                        true
+	set skip_test(test-spark_exception)              true
+	set skip_test(test-spark_secondary_stack)        true
+	set skip_test(test-tcp_bulk_lwip)                true
+	set skip_test(test-tcp_bulk_lxip)                true
+}
 
 set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
 set skip_test(test-fs_packet)       [expr ![interactive] && [have_include "power_on/qemu"]]
