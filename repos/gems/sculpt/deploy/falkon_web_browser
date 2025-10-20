@@ -14,6 +14,8 @@
 	<start name="system_clock"/>
 	<start name="recall_fs"/>
 
+	<start name="mesa_gpu-cpu" priority="-2" pkg="mesa_gpu-cpu"/>
+
 	<start name="window_layouter" priority="-2" pkg="window_layouter">
 		<route>
 			<service name="Gui">                           <child name="wm"/> </service>
@@ -62,7 +64,7 @@
 		</config>
 	</start>
 
-	<start name="falkon_qt6-jemalloc" priority="-3" pkg="cproc/pkg/falkon_qt6-jemalloc/2025-04-11">
+	<start name="falkon_qt6-jemalloc" priority="-3" pkg="cproc/pkg/falkon_qt6-jemalloc/2025-10-27">
 		<route>
 			<service name="Nic">     <child name="nic_router"/>   </service>
 			<service name="Rtc">     <child name="system_clock"/> </service>
@@ -72,9 +74,11 @@
 			<service name="File_system" label_prefix="config ->">     <child name="ram_fs"/> </service>
 			<service name="File_system" label_prefix="downloads ->">  <child name="ram_fs"/> </service>
 			<service name="Gui">                            <child name="wm"/> </service>
-			<service name="Report" label="falkon -> shape"> <child name="wm"/> </service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
 			<service name="Report" label="clipboard">       <child name="wm"/> </service>
 			<service name="ROM"    label="clipboard">       <child name="wm"/> </service>
+			<service name="ROM"    label="mesa_gpu.lib.so"> <child name="mesa_gpu-cpu"/> </service>
+			<service name="Gpu">                            <child name="black_hole"/> </service>
 		</route>
 	</start>
 
