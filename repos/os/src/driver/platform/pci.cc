@@ -330,7 +330,7 @@ void Driver::pci_resume_bridges(Env &env, Device_model &devices)
 
 				config.enable();
 
-			} catch (Genode::Service_denied) {
+			} catch (Genode::Attached_dataspace::Invalid_dataspace) {
 				Bdf bdf(pc.bus_num, pc.dev_num, pc.func_num);
 				error("resuming bridge ", bdf, " failed");
 			}

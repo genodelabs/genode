@@ -285,12 +285,14 @@ class Acpica::Io_mem
 
 			ACPI_PHYSICAL_ADDRESS const phys = p & ~0xFFFUL;
 			ACPI_SIZE             const size = Genode::align_addr(p + s - phys, 12);
-			try {
-				io_mem->_io_mem = new (Acpica::heap()) Genode::Io_mem_connection(Acpica::env(), phys, size);
-			} catch (...) {
+
+			auto iom = new (Acpica::heap()) Genode::Io_mem_connection(Acpica::env(), phys, size);
+			if (!iom->dataspace().valid()) {
+				destroy(Acpica::heap(), iom);
 				return nullptr;
 			}
 
+			io_mem->_io_mem = iom;
 			io_mem->_phys = phys;
 			io_mem->_size = size;
 			io_mem->_ref  = r;
