@@ -752,22 +752,6 @@ int pcix_set_mmrbc(struct pci_dev * dev,int mmrbc)
 }
 
 
-#include <linux/phy_link_topology.h>
-
-int phy_link_topo_add_phy(struct net_device * dev,struct phy_device * phy,enum phy_upstream upt,void * upstream)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/phy_link_topology.h>
-
-void phy_link_topo_del_phy(struct net_device * dev,struct phy_device * phy)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/phylib_stubs.h>
 
 const struct phylib_stubs *phylib_stubs;

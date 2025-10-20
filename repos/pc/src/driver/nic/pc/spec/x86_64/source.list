@@ -41,6 +41,7 @@ drivers/net/phy/phy-c45.c
 drivers/net/phy/phy-core.c
 drivers/net/phy/phy.c
 drivers/net/phy/phy_device.c
+drivers/net/phy/phy_link_topology.c
 drivers/net/phy/realtek.c
 drivers/net/phy/swphy.c
 drivers/pci/pci-driver.c
