@@ -1978,6 +1978,13 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 					}
 				_join.reauth_attempts = 0;
 
+				/*
+				 * Re-arm scan-timer to produce fresh scan-results. In case we
+				 * were disconnected due to being rfkilled the handler will
+				 * discard the request and suspend any further timer activity.
+				 */
+				_arm_scan_timer();
+
 				_network_list.for_each([&] (Network &network) {
 					network.with_accesspoint([&] (Accesspoint &ap) {
 
