@@ -12,48 +12,19 @@
  */
 
 /* core includes */
+#include <spec/x86_64/ept.h>
+#include <spec/x86_64/hpt.h>
 #include <vm_root.h>
 #include <vm_session_component.h>
 
 using namespace Genode;
 using namespace Core;
 
+template <>
+void Vm_session_component<Hw::Ept>::attach_pic(addr_t) {}
 
-/***********************
- ** Board::Vcpu_state **
- ***********************/
-
-Board::Vcpu_state::Vcpu_state(Accounted_mapped_ram_allocator &ram,
-                              Local_rm                       &local_rm,
-                              Ram_allocator::Result          &ds)
-:
-	_local_rm(local_rm),
-	_hw_context(ram)
-{
-	ds.with_result([&] (Ram::Allocation &allocation) {
-		using State = Genode::Vcpu_state;
-		Region_map::Attr attr { };
-		attr.writeable = true;
-		_state = _local_rm.attach(allocation.cap,
-		                          attr).convert<State *>(
-			[&] (Local_rm::Attachment &a) {
-				a.deallocate = false; return (State *)a.ptr; },
-			[&] (Local_rm::Error) -> State * {
-				error("failed to attach VCPU data within core");
-				return nullptr;
-			});
-
-		if (!_state)
-			throw Attached_dataspace::Region_conflict();
-	},
-	[&] (Ram::Error e) { throw_exception(e); });
-}
-
-
-Board::Vcpu_state::~Vcpu_state()
-{
-	_local_rm.detach((addr_t)_state);
-}
+template <>
+void Vm_session_component<Hw::Hpt>::attach_pic(addr_t) {}
 
 
 /*******************
@@ -62,6 +33,9 @@ Board::Vcpu_state::~Vcpu_state()
 
 Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 {
+	using Vmx_session_component = Vm_session_component<Hw::Ept>;
+	using Svm_session_component = Vm_session_component<Hw::Hpt>;
+
 	Session::Resources resources = session_resources_from_args(args);
 
 	if (Hw::Virtualization_support::has_svm())

@@ -41,8 +41,9 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 
 		struct Identity
 		{
-			unsigned const id;
-			void *   const table;
+			using Id = Genode::Attempt<addr_t, Genode::Bit_array_base::Error>;
+			Id     const id;
+			void * const table;
 		};
 
 	private:

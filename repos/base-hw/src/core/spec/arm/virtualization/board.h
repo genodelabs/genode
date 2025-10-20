@@ -14,9 +14,12 @@
 #ifndef _CORE__SPEC__ARM__VIRTUALIZATION__BOARD_H_
 #define _CORE__SPEC__ARM__VIRTUALIZATION__BOARD_H_
 
+#include <base/ram_allocator.h>
+
 /* core includes */
 #include <kernel/configuration.h>
 #include <kernel/irq.h>
+#include <core_ram.h>
 
 /* base-hw internal includes */
 #include <hw/spec/arm/lpae.h>
@@ -29,8 +32,7 @@ namespace Board {
 	using Vm_page_table_array = Hw::Page_table::Array;
 
 	struct Vcpu_context;
-
-	using Vcpu_state = Genode::Vcpu_state;
+	struct Vcpu_state;
 };
 
 
@@ -84,6 +86,35 @@ struct Board::Vcpu_context
 	Local_interrupt_controller::Virtual_context ic_context {};
 	Maintainance_irq maintainance_irq;
 	Virtual_timer_irq    vtimer_irq;
+};
+
+
+class Board::Vcpu_state
+{
+	private:
+
+		Genode::Vcpu_state *_state { nullptr };
+
+	public:
+
+		/* construction for this architecture always successful */
+		using Error = Core::Accounted_mapped_ram_allocator::Error;
+		using Constructed = Genode::Attempt<Genode::Ok, Error>;
+		Constructed const constructed = Genode::Ok();
+
+		/*
+		 * Noncopyable
+		 */
+		Vcpu_state(Vcpu_state const &) = delete;
+		Vcpu_state &operator = (Vcpu_state const &) = delete;
+
+		Vcpu_state(Core::Accounted_mapped_ram_allocator &,
+		           Core::Local_rm &,
+		           Genode::Vcpu_state *state)
+		: _state(state) {}
+
+		void with_state(auto const fn) {
+			if (_state != nullptr) fn(*_state); }
 };
 
 #endif /* _CORE__SPEC__ARM__VIRTUALIZATION__BOARD_H_ */

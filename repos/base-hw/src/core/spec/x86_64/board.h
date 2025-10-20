@@ -65,10 +65,10 @@ class Board::Vcpu_state
 		Vcpu_state(Vcpu_state const &) = delete;
 		Vcpu_state &operator = (Vcpu_state const &) = delete;
 
-		Vcpu_state(Core::Accounted_mapped_ram_allocator &,
-		           Core::Local_rm &,
-		           Ram_allocator::Result &);
-		~Vcpu_state();
+		Vcpu_state(Core::Accounted_mapped_ram_allocator &ram,
+		           Core::Local_rm &local_rm,
+		           Genode::Vcpu_state *state)
+		: _local_rm(local_rm), _hw_context(ram), _state(state) {}
 
 		addr_t vmc_addr()
 		{
@@ -91,7 +91,9 @@ struct Board::Vcpu_context
 		STARTED
 	};
 
-	Vcpu_context(unsigned id, Vcpu_state &vcpu_data);
+	using Id = Genode::Attempt<addr_t, Genode::Bit_array_base::Error>;
+
+	Vcpu_context(Id id, Vcpu_state &vcpu_data);
 	void initialize(Board::Cpu &cpu, addr_t table_phys_addr);
 	void load(Genode::Vcpu_state &state);
 	void store(Genode::Vcpu_state &state);
@@ -105,7 +107,7 @@ struct Board::Vcpu_context
 
 	Init_state init_state { Init_state::CREATED };
 
-	static Virt_interface &detect_virtualization(Vcpu_state &, unsigned);
+	static Virt_interface &detect_virtualization(Vcpu_state &, Id&);
 };
 
 #endif /* _CORE__SPEC__PC__VIRTUALIZATION__BOARD_H_ */

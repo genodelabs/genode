@@ -183,12 +183,22 @@ void Vcpu::exception(Genode::Cpu_state &state)
 
 
 Board::Virt_interface&
-Board::Vcpu_context::detect_virtualization(Vcpu_state &state,
-                                           unsigned    id)
+Board::Vcpu_context::detect_virtualization(Vcpu_state &state, Id &id)
 {
+	/*
+	 * we can safely strip id result to one byte,
+	 * the id allocator has a max of 256
+	 */
+	uint8_t vmid = 0;
+	id.with_result([&] (auto const &i) { vmid = (uint8_t)i; },
+	               [&] (auto&) {
+		Genode::error("No virtualization id available!");
+		throw Core::Service_denied();
+	});
+
 	if (Hw::Virtualization_support::has_svm())
 		return *Genode::construct_at<Vmcb>((void*)state.vmc_addr(),
-		                                   state, id);
+		                                   state, vmid);
 	else if (Hw::Virtualization_support::has_vmx()) {
 		return *Genode::construct_at<Vmcs>((void*)state.vmc_addr(), state);
 	} else {
@@ -198,7 +208,7 @@ Board::Vcpu_context::detect_virtualization(Vcpu_state &state,
 }
 
 
-Board::Vcpu_context::Vcpu_context(unsigned id, Board::Vcpu_state &state)
+Board::Vcpu_context::Vcpu_context(Id id, Board::Vcpu_state &state)
 :
 	regs(1),
 	virt(detect_virtualization(state, id))

@@ -108,105 +108,116 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 
 Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
            Cpu                    &cpu,
-           Genode::Vcpu_state     &state,
+           Board::Vcpu_state     &state,
            Kernel::Signal_context &context,
            Identity               &id)
 :
 	Kernel::Object { *this },
-	Cpu_context(cpu, Scheduler::Group_id::BACKGROUND),
+	Kernel::Cpu_context(cpu, Scheduler::Group_id::BACKGROUND),
 	_user_irq_pool(user_irq_pool),
 	_state(state),
 	_context(context),
 	_id(id),
 	_vcpu_context(cpu)
 {
-	_state.id_aa64isar0_el1 = Cpu::Id_aa64isar0_el1::read();
-	_state.id_aa64isar1_el1 = Cpu::Id_aa64isar1_el1::read();
-	_state.id_aa64mmfr0_el1 = Cpu::Id_aa64mmfr0_el1::read();
-	_state.id_aa64mmfr1_el1 = Cpu::Id_aa64mmfr1_el1::read();
-	_state.id_aa64mmfr2_el1 = /* FIXME Cpu::Id_aa64mmfr2_el1::read(); */ 0;
+	state.with_state([&] (auto &state) {
+		state.id_aa64isar0_el1 = Cpu::Id_aa64isar0_el1::read();
+		state.id_aa64isar1_el1 = Cpu::Id_aa64isar1_el1::read();
+		state.id_aa64mmfr0_el1 = Cpu::Id_aa64mmfr0_el1::read();
+		state.id_aa64mmfr1_el1 = Cpu::Id_aa64mmfr1_el1::read();
+		state.id_aa64mmfr2_el1 = /* FIXME Cpu::Id_aa64mmfr2_el1::read(); */ 0;
 
-	Cpu::Clidr_el1::access_t clidr = Cpu::Clidr_el1::read();
-	for (unsigned i = 0; i < 7; i++) {
-		unsigned level = clidr >> (i*3) & 0b111;
+		Cpu::Clidr_el1::access_t clidr = Cpu::Clidr_el1::read();
+		for (unsigned i = 0; i < 7; i++) {
+			unsigned level = clidr >> (i*3) & 0b111;
 
-		if (level == Cpu::Clidr_el1::NO_CACHE) break;
+			if (level == Cpu::Clidr_el1::NO_CACHE) break;
 
-		if ((level == Cpu::Clidr_el1::INSTRUCTION_CACHE) ||
-		    (level == Cpu::Clidr_el1::SEPARATE_CACHE)) {
-			Cpu::Csselr_el1::access_t csselr = 0;
-			Cpu::Csselr_el1::Instr::set(csselr, 1);
-			Cpu::Csselr_el1::Level::set(csselr, level);
-			Cpu::Csselr_el1::write(csselr);
-			_state.ccsidr_inst_el1[level] = Cpu::Ccsidr_el1::read();
+			if ((level == Cpu::Clidr_el1::INSTRUCTION_CACHE) ||
+			    (level == Cpu::Clidr_el1::SEPARATE_CACHE)) {
+				Cpu::Csselr_el1::access_t csselr = 0;
+				Cpu::Csselr_el1::Instr::set(csselr, 1);
+				Cpu::Csselr_el1::Level::set(csselr, level);
+				Cpu::Csselr_el1::write(csselr);
+				state.ccsidr_inst_el1[level] = Cpu::Ccsidr_el1::read();
+			}
+
+			if (level != Cpu::Clidr_el1::INSTRUCTION_CACHE) {
+				Cpu::Csselr_el1::write(Cpu::Csselr_el1::Level::bits(level));
+				state.ccsidr_data_el1[level] = Cpu::Ccsidr_el1::read();
+			}
 		}
 
-		if (level != Cpu::Clidr_el1::INSTRUCTION_CACHE) {
-			Cpu::Csselr_el1::write(Cpu::Csselr_el1::Level::bits(level));
-			_state.ccsidr_data_el1[level] = Cpu::Ccsidr_el1::read();
-		}
-	}
-
-	/* once constructed, exit with a startup exception */
-	_pause_vcpu();
-	_state.exception_type = Genode::VCPU_EXCEPTION_STARTUP;
-	_context.submit(1);
+		/* once constructed, exit with a startup exception */
+		_pause_vcpu();
+		state.exception_type = Genode::VCPU_EXCEPTION_STARTUP;
+		_context.submit(1);
+	});
 }
 
 
 Vcpu::~Vcpu()
 {
-	Cpu::Vttbr_el2::access_t vttbr_el2 =
-		Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
-	Cpu::Vttbr_el2::Asid::set(vttbr_el2, _id.id);
-	Hypervisor::invalidate_tlb(vttbr_el2);
+	_id.id.with_result([&] (auto const id) {
+		Cpu::Vttbr_el2::access_t vttbr_el2 =
+			Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
+		Cpu::Vttbr_el2::Asid::set(vttbr_el2, id);
+		Hypervisor::invalidate_tlb(vttbr_el2);
+	}, [] (auto&) { /* no ID, do nothing */ });
 }
 
 
 void Vcpu::exception(Genode::Cpu_state&)
 {
-	switch (_state.exception_type) {
-	case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];
-	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
-	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
-	case Cpu::FIQ_LEVEL_EL1:
-		_interrupt(_user_irq_pool);
-		break;
-	case Cpu::SYNC_LEVEL_EL0: [[fallthrough]];
-	case Cpu::SYNC_LEVEL_EL1: [[fallthrough]];
-	case Cpu::SERR_LEVEL_EL0: [[fallthrough]];
-	case Cpu::SERR_LEVEL_EL1:
-		pause();
-		_context.submit(1);
-		break;
-	default:
-		Genode::raw("Exception vector: ", (void*)_state.exception_type,
-		            " not implemented!");
-	};
+	_state.with_state([&] (auto &state) {
+		switch (state.exception_type) {
+		case Cpu::IRQ_LEVEL_EL0: [[fallthrough]];
+		case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
+		case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
+		case Cpu::FIQ_LEVEL_EL1:
+			_interrupt(_user_irq_pool);
+			break;
+		case Cpu::SYNC_LEVEL_EL0: [[fallthrough]];
+		case Cpu::SYNC_LEVEL_EL1: [[fallthrough]];
+		case Cpu::SERR_LEVEL_EL0: [[fallthrough]];
+		case Cpu::SERR_LEVEL_EL1:
+			pause();
+			_context.submit(1);
+			break;
+		default:
+			Genode::raw("Exception vector: ", (void*)state.exception_type,
+			            " not implemented!");
+		};
 
-	if (_cpu().pic().ack_virtual_irq(_vcpu_context.ic_context))
-		inject_irq(Board::VT_MAINTAINANCE_IRQ);
-	_vcpu_context.vtimer_irq.disable();
+		if (_cpu().pic().ack_virtual_irq(_vcpu_context.ic_context))
+			inject_irq(Board::VT_MAINTAINANCE_IRQ);
+		_vcpu_context.vtimer_irq.disable();
+	});
 }
 
 
 void Vcpu::proceed()
 {
-	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
+	_state.with_state([&] (auto &state) {
+		if (state.timer.irq) _vcpu_context.vtimer_irq.enable();
 
-	_cpu().pic().insert_virtual_irq(_vcpu_context.ic_context, _state.irqs.virtual_irq);
+		_cpu().pic().insert_virtual_irq(_vcpu_context.ic_context,
+		                                state.irqs.virtual_irq);
 
-	/*
-	 * the following values have to be enforced by the hypervisor
-	 */
-	Cpu::Vttbr_el2::access_t vttbr_el2 =
-		Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
-	Cpu::Vttbr_el2::Asid::set(vttbr_el2, _id.id);
-	addr_t guest = Hw::Mm::el2_addr(&_state);
-	addr_t ic_context = Hw::Mm::el2_addr(&_vcpu_context.ic_context);
-	addr_t host  = Hw::Mm::el2_addr(&host_context(_cpu()));
+		/*
+		 * the following values have to be enforced by the hypervisor
+		 */
+		Cpu::Vttbr_el2::access_t vttbr_el2 =
+			Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
+		addr_t guest      = Hw::Mm::el2_addr(&state);
+		addr_t ic_context = Hw::Mm::el2_addr(&_vcpu_context.ic_context);
+		addr_t host       = Hw::Mm::el2_addr(&host_context(_cpu()));
 
-	Hypervisor::switch_world(guest, host, ic_context, vttbr_el2);
+		_id.id.with_result([&] (auto const id) {
+			Cpu::Vttbr_el2::Asid::set(vttbr_el2, id);
+			Hypervisor::switch_world(guest, host, ic_context, vttbr_el2);
+		}, [] (auto&) { /* no ID, do nothing */ });
+	});
 }
 
 
@@ -229,7 +240,9 @@ void Vcpu::pause()
 
 void Vcpu::inject_irq(unsigned irq)
 {
-	_state.irqs.last_irq = irq;
-	pause();
-	_context.submit(1);
+	_state.with_state([&] (auto &state) {
+		state.irqs.last_irq = irq;
+		pause();
+		_context.submit(1);
+	});
 }

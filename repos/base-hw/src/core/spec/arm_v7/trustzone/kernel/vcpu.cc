@@ -23,7 +23,7 @@ using namespace Kernel;
 
 Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
            Cpu                    &cpu,
-           Genode::Vcpu_state     &state,
+           Board::Vcpu_state     &state,
            Kernel::Signal_context &context,
            Identity               &id)
 :
@@ -35,10 +35,12 @@ Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
 	_id(id),
 	_vcpu_context(cpu)
 {
-	/* once constructed, exit with a startup exception */
-	pause();
-	_state.cpu_exception = Genode::VCPU_EXCEPTION_STARTUP;
-	_context.submit(1);
+	_state.with_state([&] (auto &state) {
+		/* once constructed, exit with a startup exception */
+		pause();
+		state.cpu_exception = Genode::VCPU_EXCEPTION_STARTUP;
+		_context.submit(1);
+	});
 }
 
 
@@ -47,18 +49,20 @@ Vcpu::~Vcpu() {}
 
 void Vcpu::exception(Genode::Cpu_state&)
 {
-	switch(_state.cpu_exception) {
-	case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]];
-	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-		_interrupt(_user_irq_pool);
-		return;
-	case Genode::Cpu_state::DATA_ABORT:
-		_state.dfar = Cpu::Dfar::read();
-		[[fallthrough]];
-	default:
-		pause();
-		_context.submit(1);
-	}
+	_state.with_state([&] (auto &state) {
+		switch(state.cpu_exception) {
+		case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]];
+		case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
+			_interrupt(_user_irq_pool);
+			return;
+		case Genode::Cpu_state::DATA_ABORT:
+			state.dfar = Cpu::Dfar::read();
+			[[fallthrough]];
+		default:
+			pause();
+			_context.submit(1);
+		}
+	});
 }
 
 
@@ -70,17 +74,19 @@ extern "C" void monitor_mode_enter_normal_world(Genode::Vcpu_state&, void*);
 
 void Vcpu::proceed()
 {
-	unsigned const irq = _state.irq_injection;
-	if (irq) {
-		if (_cpu().pic().secure(irq)) {
-			Genode::raw("Refuse to inject secure IRQ into VM");
-		} else {
-			_cpu().pic().trigger(irq);
-			_state.irq_injection = 0;
+	_state.with_state([&] (auto &state) {
+		unsigned const irq = state.irq_injection;
+		if (irq) {
+			if (_cpu().pic().secure(irq)) {
+				Genode::raw("Refuse to inject secure IRQ into VM");
+			} else {
+				_cpu().pic().trigger(irq);
+				state.irq_injection = 0;
+			}
 		}
-	}
 
-	monitor_mode_enter_normal_world(_state, (void*) _cpu().stack_start());
+		monitor_mode_enter_normal_world(state, (void*) _cpu().stack_start());
+	});
 }
 
 

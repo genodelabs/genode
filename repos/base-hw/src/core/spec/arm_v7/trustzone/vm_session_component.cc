@@ -11,84 +11,23 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <util/construct_at.h>
-
 /* core includes */
 #include <vm_session_component.h>
-#include <platform.h>
+#include <vm_root.h>
 
 using namespace Core;
 
+template <>
+void Vm_session_component<Board::Vm_page_table>::attach_pic(addr_t) { }
 
-static Board::Vm_page_table_array & dummy_array()
+
+Core::Vm_root::Create_result Core::Vm_root::_create_session(const char *args)
 {
-	static Board::Vm_page_table_array a;
-	return a;
-}
-
-
-Vm_session_component::Attach_result
-Vm_session_component::_attach_vm_memory(addr_t, addr_t, size_t,
-                                        bool, bool, Cache) {
-	return Attach_result::OK; }
-
-
-void Vm_session_component::attach_pic(addr_t) { }
-
-
-void Vm_session_component::_detach_vm_memory(addr_t, size_t) { }
-
-
-void * Vm_session_component::_alloc_table()
-{
-	static Board::Vm_page_table table;
-	return (void*) &table;
-}
-
-
-static unsigned id_alloc = 0;
-
-
-Vm_session_component::Vm_session_component(Registry<Revoke> &registry,
-                                           Vmid_allocator &vmids,
-                                           Rpc_entrypoint &ep,
-                                           Resources resources,
-                                           Label const &label,
-                                           Diag diag,
-                                           Ram_allocator &ram_alloc,
-                                           Local_rm &local_rm,
-                                           unsigned, Trace::Source_registry &)
-:
-	Session_object(ep, resources, label, diag),
-	_elem(registry, *this),
-	_ep(ep),
-	_ram(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
-	_local_rm(local_rm),
-	_table(*construct_at<Board::Vm_page_table>(_alloc_table())),
-	_table_array(dummy_array()),
-	_vmid_alloc(vmids),
-	_memory(ep, *this, _ram, local_rm),
-	_id({id_alloc++, nullptr})
-{
-	if (_id.id) {
-		error("Only one TrustZone VM available!");
-		throw Service_denied();
-	}
-}
-
-
-Vm_session_component::~Vm_session_component()
-{
-	/* free region in allocator */
-	for (unsigned i = 0; i < _vcpu_id_alloc; i++) {
-		if (!_vcpus[i].constructed())
-			continue;
-
-		Vcpu &vcpu = *_vcpus[i];
-		if (vcpu.state().valid())
-			_local_rm.detach(vcpu.ds_addr);
-	}
-
-	id_alloc--;
+	using Component = Vm_session_component<Board::Vm_page_table>;
+	return *new (md_alloc()) Component(_registry, _vmid_alloc, *ep(),
+	                                   session_resources_from_args(args),
+	                                   session_label_from_args(args),
+	                                   session_diag_from_args(args),
+	                                   _ram_allocator, _mapped_ram, _local_rm,
+	                                   _trace_sources);
 }

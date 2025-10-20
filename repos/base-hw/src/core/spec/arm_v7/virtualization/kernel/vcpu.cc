@@ -133,7 +133,7 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 
 Kernel::Vcpu::Vcpu(Irq::Pool          &user_irq_pool,
                Cpu                    &cpu,
-               Genode::Vcpu_state     &state,
+               Board::Vcpu_state     &state,
                Kernel::Signal_context &context,
                Identity               &id)
 :
@@ -145,61 +145,72 @@ Kernel::Vcpu::Vcpu(Irq::Pool          &user_irq_pool,
 	_id(id),
 	_vcpu_context(cpu)
 {
-	/* once constructed, exit with a startup exception */
-	_pause_vcpu();
-	_state.cpu_exception = Genode::VCPU_EXCEPTION_STARTUP;
-	_context.submit(1);
+	_state.with_state([&] (auto &state) {
+		/* once constructed, exit with a startup exception */
+		_pause_vcpu();
+		state.cpu_exception = Genode::VCPU_EXCEPTION_STARTUP;
+		_context.submit(1);
+	});
 }
 
 
 Kernel::Vcpu::~Vcpu()
 {
-	Cpu::Ttbr_64bit::access_t vttbr =
-		Cpu::Ttbr_64bit::Ba::masked((Cpu::Ttbr_64bit::access_t)_id.table);
-	Cpu::Ttbr_64bit::Asid::set(vttbr, _id.id);
-	Hypervisor::invalidate_tlb(vttbr);
+	_id.id.with_result([&] (auto const id) {
+		Cpu::Ttbr_64bit::access_t vttbr =
+			Cpu::Ttbr_64bit::Ba::masked((Cpu::Ttbr_64bit::access_t)_id.table);
+		Cpu::Ttbr_64bit::Asid::set(vttbr, id);
+		Hypervisor::invalidate_tlb(vttbr);
+	}, [] (auto&) { /* no ID, do nothing */ });
 }
 
 
 void Kernel::Vcpu::exception(Genode::Cpu_state&)
 {
-	switch(_state.cpu_exception) {
-	case Genode::Cpu_state::INTERRUPT_REQUEST:
-	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-		_interrupt(_user_irq_pool);
-		break;
-	default:
-		pause();
-		_context.submit(1);
-	}
+	_state.with_state([&] (auto &state) {
+		switch(state.cpu_exception) {
+		case Genode::Cpu_state::INTERRUPT_REQUEST:
+		case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
+			_interrupt(_user_irq_pool);
+			break;
+		default:
+			pause();
+			_context.submit(1);
+		}
 
-	if (_cpu().pic().ack_virtual_irq(_vcpu_context.ic_context))
-		inject_irq(Board::VT_MAINTAINANCE_IRQ);
-	_vcpu_context.vtimer_irq.disable();
+		if (_cpu().pic().ack_virtual_irq(_vcpu_context.ic_context))
+			inject_irq(Board::VT_MAINTAINANCE_IRQ);
+		_vcpu_context.vtimer_irq.disable();
+	});
 }
 
 
 void Kernel::Vcpu::proceed()
 {
-	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
+	_state.with_state([&] (auto &state) {
+		if (state.timer.irq) _vcpu_context.vtimer_irq.enable();
 
-	_cpu().pic().insert_virtual_irq(_vcpu_context.ic_context, _state.irqs.virtual_irq);
+		_cpu().pic().insert_virtual_irq(_vcpu_context.ic_context,
+		                                state.irqs.virtual_irq);
 
-	/*
-	 * the following values have to be enforced by the hypervisor
-	 */
-	_state.vttbr = Cpu::Ttbr_64bit::Ba::masked((Cpu::Ttbr_64bit::access_t)_id.table);
-	Cpu::Ttbr_64bit::Asid::set(_state.vttbr, _id.id);
+		/*
+		 * the following values have to be enforced by the hypervisor
+		 */
+		state.vttbr = Cpu::Ttbr_64bit::Ba::masked((Cpu::Ttbr_64bit::access_t)_id.table);
+		_id.id.with_result([&] (auto const id) {
+			Cpu::Ttbr_64bit::Asid::set(state.vttbr, id);
+		}, [] (auto&) { /* no ID, do nothing */ });
 
-	/*
-	 * use the following report fields not needed for loading the context
-	 * to transport the HSTR and HCR register descriptions into the assembler
-	 * path in a dense way
-	 */
-	_state.esr_el2   = Cpu::Hstr::init();
-	_state.hpfar_el2 = Cpu::Hcr::init();
+		/*
+		 * use the following report fields not needed for loading the context
+		 * to transport the HSTR and HCR register descriptions into the assembler
+		 * path in a dense way
+		 */
+		state.esr_el2   = Cpu::Hstr::init();
+		state.hpfar_el2 = Cpu::Hcr::init();
 
-	Hypervisor::switch_world(_state, host_context(_cpu()));
+		Hypervisor::switch_world(state, host_context(_cpu()));
+	});
 }
 
 
@@ -221,7 +232,9 @@ void Vcpu::pause()
 
 void Vcpu::inject_irq(unsigned irq)
 {
-	_state.irqs.last_irq = irq;
-	pause();
-	_context.submit(1);
+	_state.with_state([&] (auto &state) {
+		state.irqs.last_irq = irq;
+		pause();
+		_context.submit(1);
+	});
 }

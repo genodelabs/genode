@@ -9,7 +9,6 @@ SRC_CC += spec/arm_v7/virtualization/kernel/vcpu.cc
 SRC_CC += spec/arm/virtualization/gicv2.cc
 SRC_CC += spec/arm/virtualization/platform_services.cc
 SRC_CC += spec/arm/virtualization/vm_session_component.cc
-SRC_CC += vm_session_component.cc
 
 SRC_S += spec/arm_v7/virtualization/exception_vector.s
 

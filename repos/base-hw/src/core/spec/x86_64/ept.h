@@ -14,6 +14,7 @@
 #ifndef _CORE__SPEC__PC__VIRTUALIZATION__EPT_H_
 #define _CORE__SPEC__PC__VIRTUALIZATION__EPT_H_
 
+#include <cpu/page_flags.h>
 #include <hw/page_table.h>
 #include <util/register.h>
 
