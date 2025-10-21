@@ -432,10 +432,20 @@ void Depot_download_manager::Main::_handle_query_result()
 	_image_index.update();
 	_current_user.update();
 
-	/* validate completeness of depot-user info */
-	{
-		Node const user = _current_user.node();
+	Node const &dependencies = _dependencies.node();
+	Node const &index        = _index.node();
+	Node const &image        = _image.node();
+	Node const &image_index  = _image_index.node();
+	Node const &user         = _current_user.node();
 
+	auto stale = [&] (Node const &rom)
+	{
+		return (rom.type() != "empty")
+		    && (rom.attribute_value("version", ~0u) != _depot_query_count.value);
+	};
+
+	/* validate completeness of depot-user info */
+	if (!stale(user)) {
 		Archive::User const name = user.attribute_value("name", Archive::User());
 
 		bool const user_info_complete = user.has_sub_node("url");
@@ -459,10 +469,13 @@ void Depot_download_manager::Main::_handle_query_result()
 		}
 	}
 
-	Node const &dependencies = _dependencies.node();
-	Node const &index        = _index.node();
-	Node const &image        = _image.node();
-	Node const &image_index  = _image_index.node();
+	bool const any_query_result_stale = stale(dependencies)
+	                                 || stale(index)
+	                                 || stale(image)
+	                                 || stale(image_index)
+	                                 || stale(user);
+	if (any_query_result_stale)
+		return;
 
 	/* mark jobs referring to existing depot content as unneccessary */
 	Import::for_each_present_depot_path(dependencies, index, image, image_index,
