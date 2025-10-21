@@ -142,7 +142,7 @@ Sandbox::Child::apply_config(Node const &start_node)
 		if (orig_binary_name != _binary_name)
 			_uncertain_dependencies = true;
 
-		_heartbeat_enabled = start_node.has_sub_node("heartbeat");
+		_heartbeat = Heartbeat::from_start_node(start_node);
 
 		/* import new start node */
 		_start_node.construct(_alloc, start_node);
@@ -382,7 +382,7 @@ void Sandbox::Child::report_state(Generator &g, Report_detail const &detail) con
 		if (_exited)
 			g.attribute("exited", _exit_value);
 
-		if (_heartbeat_enabled && _child.skipped_heartbeats())
+		if (_heartbeat.enabled && _child.skipped_heartbeats())
 			g.attribute("skipped_heartbeats", _child.skipped_heartbeats());
 
 		if (detail.child_ram() && _child.pd_session_cap().valid()) {
@@ -766,6 +766,7 @@ Sandbox::Child::Child(Env                      &env,
                       Verbose            const &verbose,
                       Id                        id,
                       Report_update_trigger    &report_update_trigger,
+                      Heartbeat_alarm_trigger  &heartbeat_alarm_trigger,
                       Node               const &start_node,
                       Default_route_accessor   &default_route_accessor,
                       Default_quota_accessor   &default_quota_accessor,
@@ -781,6 +782,7 @@ Sandbox::Child::Child(Env                      &env,
 :
 	_env(env), _alloc(alloc), _verbose(verbose), _id(id),
 	_report_update_trigger(report_update_trigger),
+	_heartbeat_alarm_trigger(heartbeat_alarm_trigger),
 	_list_element(this),
 	_start_node(_alloc, start_node),
 	_default_route_accessor(default_route_accessor),
@@ -788,7 +790,7 @@ Sandbox::Child::Child(Env                      &env,
 	_ram_limit_accessor(ram_limit_accessor),
 	_cap_limit_accessor(cap_limit_accessor),
 	_name_registry(name_registry),
-	_heartbeat_enabled(start_node.has_sub_node("heartbeat")),
+	_heartbeat(Heartbeat::from_start_node(start_node)),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,
 	                                      default_quota_accessor.default_caps(),
 	                                      default_quota_accessor.default_ram())),

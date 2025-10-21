@@ -103,6 +103,11 @@ class Genode::Sandbox : Noncopyable
 		 * Generate state report as configured by the <report> config node
 		 */
 		void generate_state_report(Generator &) const;
+
+		/**
+		 * Register signal handler notified when skipped heartbeats exceed limit
+		 */
+		void heartbeat_alarm_sigh(Signal_context_capability);
 };
 
 

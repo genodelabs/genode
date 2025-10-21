@@ -92,6 +92,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 			pd_intrinsics.with_intrinsics(cap, pd, Pd_intrinsics::With_intrinsics::Fn { fn });
 		}
 
+		struct Heartbeat_alarm_trigger : Interface { virtual void trigger_heartbeat_alarm() = 0; };
+
 	private:
 
 		friend class Child_registry;
@@ -133,7 +135,8 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 		State _state = State::INITIAL;
 
-		Report_update_trigger &_report_update_trigger;
+		Report_update_trigger   &_report_update_trigger;
+		Heartbeat_alarm_trigger &_heartbeat_alarm_trigger;
 
 		List_element<Child> _list_element;
 
@@ -203,7 +206,26 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		Binary_name _binary_name { _binary_from_node(*_start_node, _unique_name) };
 
 		/* initialized in constructor, updated by 'apply_config' */
-		bool _heartbeat_enabled;
+		struct Heartbeat
+		{
+			bool     enabled;
+			unsigned restart_after_skipped;
+
+			static Heartbeat from_start_node(Node const &node)
+			{
+				return node.with_sub_node("heartbeat",
+					[&] (Node const &node) -> Heartbeat {
+						return { true, node.attribute_value("restart_after_skipped", 0u) }; },
+					[&] {
+						return Heartbeat { }; });
+			}
+
+			bool restart_needed(unsigned skipped) const
+			{
+				return restart_after_skipped && (skipped > restart_after_skipped);
+			}
+
+		} _heartbeat;
 
 		/*
 		 * Number of skipped heartbeats when last checked
@@ -217,7 +239,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		bool _heartbeat_expected() const
 		{
 			/* don't expect heartbeats from a child that is not yet complete */
-			return _heartbeat_enabled && (_state == State::ALIVE);
+			return _heartbeat.enabled && (_state == State::ALIVE);
 		}
 
 		/**
@@ -553,6 +575,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		      Verbose            const &verbose,
 		      Id                        id,
 		      Report_update_trigger    &report_update_trigger,
+		      Heartbeat_alarm_trigger  &,
 		      Node               const &start_node,
 		      Default_route_accessor   &default_route_accessor,
 		      Default_quota_accessor   &default_quota_accessor,
@@ -663,8 +686,15 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 
 			unsigned const skipped_heartbeats = _child.skipped_heartbeats();
 
-			if (_last_skipped_heartbeats != skipped_heartbeats)
+			if (_last_skipped_heartbeats != skipped_heartbeats) {
+
+				if (_heartbeat.restart_needed(skipped_heartbeats)) {
+					_schedule_restart();
+					_heartbeat_alarm_trigger.trigger_heartbeat_alarm();
+				}
+
 				_report_update_trigger.trigger_report_update();
+			}
 
 			_last_skipped_heartbeats = skipped_heartbeats;
 

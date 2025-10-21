@@ -28,7 +28,8 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
                                   ::Sandbox::Child::Ram_limit_accessor,
                                   ::Sandbox::Child::Cap_limit_accessor,
                                   ::Sandbox::Start_model::Factory,
-                                  ::Sandbox::Parent_provides_model::Factory
+                                  ::Sandbox::Parent_provides_model::Factory,
+                                  ::Sandbox::Child::Heartbeat_alarm_trigger
 {
 	using Routed_service = ::Sandbox::Routed_service;
 	using Parent_service = ::Sandbox::Parent_service;
@@ -267,6 +268,31 @@ struct Genode::Sandbox::Library : ::Sandbox::State_reporter::Producer,
 	{
 		_state_reporter.generate(g);
 	}
+
+	struct Heartbeat_alarms { unsigned triggered, signalled; } _heartbeat_alarms { };
+
+	Signal_context_capability _heartbeat_alarm_sigh { };
+
+	/**
+	 * Child::Heartbeat_alarm_trigger interface
+	 */
+	void trigger_heartbeat_alarm() override
+	{
+		_heartbeat_alarms.triggered++;
+
+		if (_heartbeat_alarm_sigh.valid()) {
+			Signal_transmitter(_heartbeat_alarm_sigh).submit();
+			_heartbeat_alarms.signalled = _heartbeat_alarms.triggered;
+		}
+	}
+
+	void heartbeat_alarm_sigh(Signal_context_capability sigh)
+	{
+		_heartbeat_alarm_sigh = sigh;
+
+		if (_heartbeat_alarms.triggered != _heartbeat_alarms.signalled)
+			trigger_heartbeat_alarm();
+	}
 };
 
 
@@ -338,7 +364,7 @@ bool Genode::Sandbox::Library::ready_to_create_child(Start_model::Name    const 
 	try {
 		Child &child = *new (_heap)
 			Child(_env, _heap, *_verbose,
-			      Child::Id { ++_child_cnt }, _state_reporter,
+			      Child::Id { ++_child_cnt }, _state_reporter, *this,
 			      start_node, *this, *this, _children, *this, *this,
 			      _prio_levels, _effective_affinity_space(),
 			      _parent_services, _child_services, _local_services,
@@ -621,6 +647,12 @@ void Genode::Sandbox::apply_config(Node const &config)
 void Genode::Sandbox::generate_state_report(Generator &g) const
 {
 	_library.generate_state_report(g);
+}
+
+
+void Genode::Sandbox::heartbeat_alarm_sigh(Signal_context_capability sigh)
+{
+	_library.heartbeat_alarm_sigh(sigh);
 }
 
 

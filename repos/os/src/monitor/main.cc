@@ -377,6 +377,9 @@ struct Monitor::Main : Sandbox::State_handler,
 	{
 		_config.sigh(_config_handler);
 
+		/* restart children raising a heartbeat alarm */
+		_sandbox.heartbeat_alarm_sigh(_config_handler);
+
 		/* prevent blocking for resource upgrades (never satisfied by core) */
 		_env.parent().resource_avail_sigh(_resource_avail_handler);
 

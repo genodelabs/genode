@@ -2,7 +2,7 @@
 
 	<requires> <timer/> </requires>
 
-	<fail after_seconds="330"/>
+	<fail after_seconds="332"/>
 	<succeed>child "test-init" exited with exit value 0</succeed>
 	<fail>list model not empty at destruction time</fail>
 
