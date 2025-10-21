@@ -60,13 +60,13 @@
 		</route>
 	</start>
 
-	<start name="fs_rom" priority="-3" pkg="jschlatow/pkg/fs_rom/2025-04-09">
+	<start name="fs_rom" priority="-3" pkg="jschlatow/pkg/fs_rom/2025-10-12">
 		<route>
 			<service name="File_system"> <parent identity="report"/> </service>
 		</route>
 	</start>
 
-	<start name="system_info" pkg="jschlatow/pkg/system_info/2025-04-11" priority="-3">
+	<start name="system_info" pkg="jschlatow/pkg/system_info/2025-10-21" priority="-3">
 		<route>
 			<service name="Gui"> <parent label="backdrop"/> </service>
 			<service name="Rtc"> <child name="system_clock"/> </service>
@@ -89,7 +89,7 @@
 		</config>
 	</start>
 
-	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2025-04-11" priority="-3">
+	<start name="goa_testbed" pkg="jschlatow/pkg/goa_testbed/2025-10-21" priority="-3">
 		<route>
 			<service name="TRACE">       <parent/> </service>
 			<service name="VM">          <parent/> </service>
