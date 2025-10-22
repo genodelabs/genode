@@ -79,6 +79,7 @@ install_config {
 		<config/>
 		<route>
 			<service name="Terminal"> <child name="file_terminal"/> </service>
+			<service name="Timer">    <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>

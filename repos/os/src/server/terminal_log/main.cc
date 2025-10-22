@@ -16,13 +16,26 @@
 #include <base/heap.h>
 #include <util/string.h>
 
+#include <timer_session/connection.h>
 #include <terminal_session/connection.h>
 #include <log_session/log_session.h>
 
 
-namespace Genode {
+namespace Terminal_log {
 
-	class Termlog_component : public Rpc_object<Log_session>
+	using namespace Genode;
+
+	struct Main;
+}
+
+
+struct Terminal_log::Main
+{
+	Env &_env;
+
+	Sliced_heap _session_alloc { _env.ram(), _env.rm() };
+
+	class Component : public Rpc_object<Log_session>
 	{
 		public:
 
@@ -34,16 +47,15 @@ namespace Genode {
 			Label const _label;
 
 			Terminal::Connection &_terminal;
+			Timer::Connection    &_timer;
 
 		public:
 
-			/**
-			 * Constructor
-			 */
-			Termlog_component(const char *label, Terminal::Connection &terminal)
+			Component(const char *label,
+			          Terminal::Connection &terminal, Timer::Connection &timer)
 			:
 				_label("[", label, "] "),
-				_terminal(terminal)
+				_terminal(terminal), _timer(timer)
 			{ }
 
 
@@ -81,6 +93,10 @@ namespace Genode {
 					return;
 				}
 
+				uint64_t const ms = _timer.curr_time().trunc_to_plain_ms().value;
+				Genode::String<32> const time { ms/1000, ".", (ms/100)%10, " " };
+
+				_terminal.write(time.string(), time.length() - 1);
 				_terminal.write(_label.string(), strlen(_label.string()));
 				_terminal.write(string, len);
 
@@ -94,11 +110,12 @@ namespace Genode {
 	};
 
 
-	class Termlog_root : public Root_component<Termlog_component>
+	class Root : public Root_component<Component>
 	{
 		private:
 
 			Terminal::Connection _terminal;
+			Timer::Connection    _timer;
 
 		protected:
 
@@ -107,12 +124,12 @@ namespace Genode {
 			 */
 			Create_result _create_session(const char *args) override
 			{
-				char label_buf[Termlog_component::LABEL_LEN];
+				char label_buf[Component::LABEL_LEN];
 
 				Arg label_arg = Arg_string::find_arg(args, "label");
 				label_arg.string(label_buf, sizeof(label_buf), "");
 
-				return *new (md_alloc()) Termlog_component(label_buf, _terminal);
+				return *new (md_alloc()) Component(label_buf, _terminal, _timer);
 			}
 
 		public:
@@ -123,19 +140,22 @@ namespace Genode {
 			 * \param session_ep  entry point for managing cpu session objects
 			 * \param md_alloc    meta-data allocator to be used by root component
 			 */
-			Termlog_root(Genode::Env &env, Allocator &md_alloc)
-			: Root_component<Termlog_component>(env.ep(), md_alloc),
-			  _terminal(env, "log") { }
-	};
-}
+			Root(Genode::Env &env, Allocator &md_alloc)
+			:
+				Root_component<Component>(env.ep(), md_alloc),
+				_terminal(env, "log"), _timer(env)
+			{ }
+
+	} _root { _env, _session_alloc };
+
+	Main(Env &env) : _env(env)
+	{
+		env.parent().announce(env.ep().manage(_root));
+	}
+};
 
 
 void Component::construct(Genode::Env &env)
 {
-	using namespace Genode;
-
-	static Sliced_heap session_alloc(env.ram(), env.rm());
-	static Genode::Termlog_root termlog_root(env, session_alloc);
-
-	env.parent().announce(env.ep().manage(termlog_root));
+	static Terminal_log::Main main { env };
 }
