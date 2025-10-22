@@ -180,6 +180,8 @@ class Terminal::Decoder
 
 		State _state = STATE_IDLE;
 
+		bool _warned_once_unknown_csi = false;
+
 		int _number = -1; /* current number argument supplied in escape sequence */
 
 		void _append_to_number(char c)
@@ -503,7 +505,9 @@ class Terminal::Decoder
 						_enter_state_esc_ecma();
 						break;
 					}
-					error("unknown CSI ESC", Ascii((unsigned char)c));
+					if (!_warned_once_unknown_csi)
+						error("unknown CSI ESC", Ascii((unsigned char)c));
+					_warned_once_unknown_csi = true;
 					_enter_state_idle();
 				}
 

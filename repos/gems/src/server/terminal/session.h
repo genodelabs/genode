@@ -40,6 +40,8 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 		Attached_ram_dataspace    _io_buffer;
 		Signal_context_capability _size_changed_sigh { };
 
+		bool _warned_once_truncated_utf8 = false;
+
 		Terminal::Position _last_cursor_pos { };
 
 	public:
@@ -119,10 +121,11 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 			for (; i < max && src[i] == 0; i++);
 
 			/* we don't support UTF-8 sequences split into multiple writes */
-			if (i != num_bytes) {
+			if (i != num_bytes && !_warned_once_truncated_utf8) {
 				warning("truncated UTF-8 sequence");
 				for (size_t j = i; j < num_bytes; j++)
 					warning("(unhandled value ", Hex(src[j]), ")");
+				_warned_once_truncated_utf8 = true;
 			}
 
 			return num_bytes;
