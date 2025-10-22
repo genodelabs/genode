@@ -285,7 +285,9 @@ struct Sculpt::Fb_config
 	void disable_connector(Fb_connectors::Name const &conn)
 	{
 		_with_entry(conn, [&] (Entry &entry) {
-			entry.mode_attr = { }; });
+			entry.mode_id   = { };
+			entry.mode_attr = { };
+		});
 	}
 
 	void brightness(Fb_connectors::Name const &conn, unsigned percent)
