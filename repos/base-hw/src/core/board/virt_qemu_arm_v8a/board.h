@@ -73,9 +73,9 @@ struct Board::Vcpu_context
 	};
 
 
-	struct Pic_maintainance_irq : Vm_irq
+	struct Maintainance_irq : Vm_irq
 	{
-		Pic_maintainance_irq(Kernel::Cpu &);
+		Maintainance_irq(Kernel::Cpu &);
 
 		void handle(Kernel::Vcpu&, unsigned) override { }
 	};
@@ -91,10 +91,10 @@ struct Board::Vcpu_context
 		void disable();
 	};
 
-	Vcpu_context(Kernel::Cpu &cpu) : pic_irq(cpu), vtimer_irq(cpu) { }
+	Vcpu_context(Kernel::Cpu &cpu) : maintainance_irq(cpu), vtimer_irq(cpu) { }
 
-	Pic::Virtual_context pic {};
-	Pic_maintainance_irq pic_irq;
+	Local_interrupt_controller::Virtual_context ic_context {};
+	Maintainance_irq maintainance_irq;
 	Virtual_timer_irq    vtimer_irq;
 };
 

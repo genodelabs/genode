@@ -81,7 +81,7 @@ void Board::Vcpu_context::Vm_irq::occurred()
 }
 
 
-Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Kernel::Cpu &cpu)
+Board::Vcpu_context::Maintainance_irq::Maintainance_irq(Kernel::Cpu &cpu)
 :
 	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
 {
@@ -185,7 +185,7 @@ void Vcpu::exception(Genode::Cpu_state&)
 		            " not implemented!");
 	};
 
-	if (_cpu().pic().ack_virtual_irq(_vcpu_context.pic))
+	if (_cpu().pic().ack_virtual_irq(_vcpu_context.ic_context))
 		inject_irq(Board::VT_MAINTAINANCE_IRQ);
 	_vcpu_context.vtimer_irq.disable();
 }
@@ -195,7 +195,7 @@ void Vcpu::proceed()
 {
 	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
 
-	_cpu().pic().insert_virtual_irq(_vcpu_context.pic, _state.irqs.virtual_irq);
+	_cpu().pic().insert_virtual_irq(_vcpu_context.ic_context, _state.irqs.virtual_irq);
 
 	/*
 	 * the following values have to be enforced by the hypervisor
@@ -204,10 +204,10 @@ void Vcpu::proceed()
 		Cpu::Vttbr_el2::Ba::masked((Cpu::Vttbr_el2::access_t)_id.table);
 	Cpu::Vttbr_el2::Asid::set(vttbr_el2, _id.id);
 	addr_t guest = Hw::Mm::el2_addr(&_state);
-	addr_t pic   = Hw::Mm::el2_addr(&_vcpu_context.pic);
+	addr_t ic_context = Hw::Mm::el2_addr(&_vcpu_context.ic_context);
 	addr_t host  = Hw::Mm::el2_addr(&host_context(_cpu()));
 
-	Hypervisor::switch_world(guest, host, pic, vttbr_el2);
+	Hypervisor::switch_world(guest, host, ic_context, vttbr_el2);
 }
 
 

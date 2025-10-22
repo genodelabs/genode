@@ -22,10 +22,7 @@ Bootstrap::Platform::Board::Board()
 	          Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
 	                          ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
 	          Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE,
-	                          ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE })
-{
-	::Board::Pic pic {};
-}
+	                          ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE }) { }
 
 
 void Board::Cpu::wake_up_all_cpus(void *entry)

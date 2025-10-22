@@ -112,11 +112,13 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 		 */
 		Irte::access_t _create_irt_entry(unsigned const irq);
 
+		void _init();
+
 	public:
 
 		Global_interrupt_controller();
 
-		void init();
+		void resume() { _init(); }
 
 		/**
 		 * Set/unset mask bit of IRTE for given vector
@@ -137,6 +139,8 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 		void irq_mode(unsigned irq_number,
 		              unsigned trigger,
 		              unsigned polarity);
+
+		static constexpr unsigned NR_OF_IRQ = IRQ_COUNT;
 };
 
 
@@ -163,7 +167,6 @@ class Board::Local_interrupt_controller : private Hw::Local_apic
 			 *        necessary
 			 */
 			IPI       = 255,
-			NR_OF_IRQ = IRQ_COUNT,
 		};
 
 		/**

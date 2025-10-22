@@ -15,7 +15,7 @@
 #include <pic.h>
 #include <platform.h>
 
-Board::Pic::Pic(Global_interrupt_controller &)
+Board::Local_interrupt_controller::Local_interrupt_controller(Global_interrupt_controller &)
 :
 	_plic({(char *)Core::Platform::mmio_to_virt(Board::PLIC_BASE), Board::PLIC_SIZE})
 {

@@ -110,6 +110,7 @@ Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 	static Cpu_counter   data_cache_enabled;
 	static Cpu_counter   smp_coherency_enabled;
 	static unsigned long diag_reg = 0;
+	static ::Board::Global_interrupt_controller gic { };
 
 	bool primary = primary_cpu;
 	if (primary) {
@@ -129,8 +130,8 @@ Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 	 */
 	if (Cpu::Diag::read() != diag_reg) Cpu::Diag::write(diag_reg);
 
-	/* locally initialize interrupt controller */
-	::Board::Pic pic { };
+	/* cpu-locally initialize interrupt controller */
+	::Board::Local_interrupt_controller lic { gic };
 
 	Cpu::invalidate_data_cache();
 	data_cache_invalidated.inc();

@@ -50,7 +50,7 @@ void Cpu::trigger_ip_interrupt()
 
 Cpu::Ipi::Ipi(Cpu &cpu)
 :
-	Irq(Board::Pic::IPI, cpu, cpu.pic()), cpu(cpu)
+	Irq(Board::Local_interrupt_controller::IPI, cpu, cpu.pic()), cpu(cpu)
 {
 	init();
 }
@@ -59,5 +59,5 @@ Cpu::Ipi::Ipi(Cpu &cpu)
 void Cpu::Ipi::init()
 {
 	pending = false;
-	cpu.pic().unmask(Board::Pic::IPI, cpu.id());
+	cpu.pic().unmask(Board::Local_interrupt_controller::IPI, cpu.id());
 }

@@ -24,15 +24,21 @@
 
 namespace Board {
 
-	class Global_interrupt_controller { public: void init() {} };
-	class Pic;
+	struct Global_interrupt_controller
+	{
+		/* no suspend/resume on this platform, leave it empty */
+		void resume() {}
+
+		static constexpr unsigned NR_OF_IRQ = Plic::NR_OF_IRQ;
+	};
+	class Local_interrupt_controller;
 }
 
 
 /**
- * PIC driver for core for one CPU
+ * IC driver for core for one CPU
  */
-class Board::Pic
+class Board::Local_interrupt_controller
 {
 	private:
 
@@ -42,15 +48,11 @@ class Board::Pic
 	public:
 
 		enum {
-			/*
-			 * FIXME: dummy ipi value on non-SMP platform, should be removed
-			 *        when SMP is an aspect of CPUs only compiled where necessary
-			 */
-			IPI       = 0,
-			NR_OF_IRQ = Plic::NR_OF_IRQ,
+			/* Dummy IPI value of uni-processor platform */
+			IPI = Global_interrupt_controller::NR_OF_IRQ + 1,
 		};
 
-		Pic(Global_interrupt_controller &);
+		Local_interrupt_controller(Global_interrupt_controller &);
 
 		bool take_request(unsigned &irq)
 		{
@@ -67,13 +69,15 @@ class Board::Pic
 
 		void unmask(unsigned irq, Hw::Riscv_cpu::Id)
 		{
-			if (irq > NR_OF_IRQ) return;
+			if (irq > Global_interrupt_controller::NR_OF_IRQ)
+				return;
 			_plic.enable(1, irq);
 		}
 
 		void mask(unsigned irq)
 		{
-			if (irq > NR_OF_IRQ) return;
+			if (irq > Global_interrupt_controller::NR_OF_IRQ)
+				return;
 			_plic.enable(0, irq);
 		}
 
@@ -81,7 +85,8 @@ class Board::Pic
 		{
 			using namespace Genode;
 
-			if (irq > NR_OF_IRQ || trigger == Irq_session::TRIGGER_UNCHANGED)
+			if (irq > Global_interrupt_controller::NR_OF_IRQ ||
+			    trigger == Irq_session::TRIGGER_UNCHANGED)
 				return;
 
 			_plic.el(trigger == Irq_session::TRIGGER_EDGE ? 1 : 0, irq);

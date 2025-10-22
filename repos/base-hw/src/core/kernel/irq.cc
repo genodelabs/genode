@@ -28,12 +28,12 @@ void Kernel::Irq::enable() const
 }
 
 
-Kernel::User_irq::User_irq(unsigned                const  irq,
-                           Genode::Irq_session::Trigger   trigger,
-                           Genode::Irq_session::Polarity  polarity,
-                           Signal_context                &context,
-                           Board::Pic                    &pic,
-                           Irq::Pool                     &user_irq_pool)
+Kernel::User_irq::User_irq(unsigned                     const irq,
+                           Genode::Irq_session::Trigger       trigger,
+                           Genode::Irq_session::Polarity      polarity,
+                           Signal_context                    &context,
+                           Board::Local_interrupt_controller &pic,
+                           Irq::Pool                         &user_irq_pool)
 :
 	Irq      { irq, user_irq_pool, pic },
 	_context { context }

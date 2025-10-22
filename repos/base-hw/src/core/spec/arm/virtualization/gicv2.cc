@@ -18,16 +18,16 @@
 #include <platform.h>
 #include <spec/arm/virtualization/gicv2.h>
 
-using Board::Pic;
+using Board::Local_interrupt_controller;
 
 
-Pic::Gich::Gich()
+Local_interrupt_controller::Gich::Gich()
 :
 	Mmio({(char *)Core::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE), Mmio::SIZE})
 { }
 
 
-bool Pic::ack_virtual_irq(Pic::Virtual_context &c)
+bool Local_interrupt_controller::ack_virtual_irq(Virtual_context &c)
 {
 	c.misr   = _gich.read<Gich::Gich_misr  >();
 	c.vmcr   = _gich.read<Gich::Gich_vmcr  >();
@@ -49,7 +49,7 @@ bool Pic::ack_virtual_irq(Pic::Virtual_context &c)
 }
 
 
-void Pic::insert_virtual_irq(Pic::Virtual_context &c, unsigned irq)
+void Local_interrupt_controller::insert_virtual_irq(Virtual_context &c, unsigned irq)
 {
 	enum { SPURIOUS = 1023 };
 

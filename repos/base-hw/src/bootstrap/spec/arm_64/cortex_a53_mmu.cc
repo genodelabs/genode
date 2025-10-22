@@ -141,6 +141,8 @@ Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 	Cpu::Id const cpu_id  { Cpu::current_core_id() };
 	bool    const primary { cpu_id.value == 0 };
 
+	static ::Board::Global_interrupt_controller gic {};
+
 	Cpu::Ttbr::access_t ttbr =
 		Cpu::Ttbr::Baddr::masked((Genode::addr_t)core_pd->table_base);
 
@@ -152,7 +154,6 @@ Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 	case Cpu::Current_el::EL3:
 		{
 			prepare_and_leave_el3();
-			::Board::Pic pic __attribute__((unused)) {};
 		}
 		[[fallthrough]];
 	case Cpu::Current_el::EL2:
@@ -164,6 +165,9 @@ Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 		Genode::error("cannot enable MMU in EL0");
 		return cpu_id;
 	}
+
+	/* initialize cpu-local interrupt controller appropriatedly */
+	::Board::Local_interrupt_controller ic __attribute__((unused)) { gic };
 
 	/* enable performance counter for user-land */
 	Cpu::Pmuserenr_el0::write(0b1111);

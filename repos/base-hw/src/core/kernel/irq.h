@@ -22,10 +22,7 @@
 /* core includes */
 #include <kernel/signal.h>
 
-namespace Board {
-
-	class Pic;
-}
+namespace Board { class Local_interrupt_controller; }
 
 
 namespace Kernel {
@@ -70,9 +67,10 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 
 	protected:
 
-		unsigned    _irq_nr; /* kernel name of the interrupt */
-		Pool       &_irq_pool;
-		Board::Pic &_pic;
+		unsigned _irq_nr; /* kernel name of the interrupt */
+		Pool    &_irq_pool;
+
+		Board::Local_interrupt_controller &_pic;
 
 	public:
 
@@ -82,9 +80,9 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 		 * \param irq   interrupt number
 		 * \param pool  pool this interrupt shall belong to
 		 */
-		Irq(unsigned const  irq,
-		    Pool           &irq_pool,
-		    Board::Pic     &pic)
+		Irq(unsigned const                     irq,
+		    Pool                              &irq_pool,
+		    Board::Local_interrupt_controller &pic)
 		:
 			_irq_nr   { irq },
 			_irq_pool { irq_pool },
@@ -144,12 +142,12 @@ class Kernel::User_irq : public Kernel::Irq
 		/**
 		 * Construct object that signals interrupt 'irq' via signal 'context'
 		 */
-		User_irq(unsigned                const  irq,
-		         Genode::Irq_session::Trigger   trigger,
-		         Genode::Irq_session::Polarity  polarity,
-		         Signal_context                &context,
-		         Board::Pic                    &pic,
-		         Irq::Pool                     &user_irq_pool);
+		User_irq(unsigned                const      irq,
+		         Genode::Irq_session::Trigger       trigger,
+		         Genode::Irq_session::Polarity      polarity,
+		         Signal_context                    &context,
+		         Board::Local_interrupt_controller &pic,
+		         Irq::Pool                         &user_irq_pool);
 
 		/**
 		 * Destructor

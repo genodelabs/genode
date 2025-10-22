@@ -1,6 +1,7 @@
 /*
  * \brief  Generic Interrupt Controller version 3
  * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
  * \date   2019-06-27
  */
 
@@ -25,10 +26,16 @@ static inline Genode::addr_t redistributor_addr()
 };
 
 
-Hw::Pic::Pic()
+Hw::Global_interrupt_controller::Global_interrupt_controller()
 :
-	_distr({(char *)Platform::mmio_to_virt(Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE),
-	                                       Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE}),
+	Mmio({(char *)Platform::mmio_to_virt(Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE),
+	      Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE})
+{}
+
+
+Hw::Local_interrupt_controller::Local_interrupt_controller(Global_interrupt_controller &gic)
+:
+	_distr(gic),
 	_redistr({(char *)redistributor_addr(), Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE}),
 	_redistr_sgi({(char *)redistributor_addr() + 0x10000,
 	             Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE - 0x10000}),

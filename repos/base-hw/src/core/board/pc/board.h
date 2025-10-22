@@ -28,9 +28,6 @@ namespace Board {
 
 	using namespace Hw::Pc_board;
 
-	class Pic : public Local_interrupt_controller
-	{ using Local_interrupt_controller::Local_interrupt_controller; };
-
 	enum {
 		VECTOR_REMAP_BASE   = 48,
 		TIMER_VECTOR_KERNEL = 32,

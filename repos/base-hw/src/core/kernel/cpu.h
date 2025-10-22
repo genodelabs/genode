@@ -98,7 +98,7 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 
 		State       _state { RUN };
 		Id    const _id;
-		Board::Pic  _pic;
+		Board::Local_interrupt_controller _pic;
 		Timer       _timer;
 		Idle_thread _idle;
 		Scheduler   _scheduler;
@@ -149,8 +149,9 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		 */
 		Context& schedule_next_context();
 
-		Board::Pic & pic()   { return _pic; }
-		Timer      & timer() { return _timer; }
+		Board::Local_interrupt_controller & pic() { return _pic; }
+
+		Timer & timer() { return _timer; }
 
 		addr_t stack_base();
 		addr_t stack_start();

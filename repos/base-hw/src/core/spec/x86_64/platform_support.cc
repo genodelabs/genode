@@ -78,7 +78,7 @@ bool Core::Platform::alloc_msi_vector(addr_t &address, addr_t &value)
 	return msi_allocator().alloc().convert<bool>(
 		[&] (addr_t const v) {
 			address = Hw::Cpu_memory_map::lapic_phys_base();
-			value = Board::Pic::IPI - 1 - v;
+			value = Board::Local_interrupt_controller::IPI - 1 - v;
 			return true;
 		},
 		[&] (Bit_allocator<64>::Error) { return false; });
@@ -87,7 +87,7 @@ bool Core::Platform::alloc_msi_vector(addr_t &address, addr_t &value)
 
 void Core::Platform::free_msi_vector(addr_t, addr_t value)
 {
-	msi_allocator().free(Board::Pic::IPI - 1 - value);
+	msi_allocator().free(Board::Local_interrupt_controller::IPI - 1 - value);
 }
 
 

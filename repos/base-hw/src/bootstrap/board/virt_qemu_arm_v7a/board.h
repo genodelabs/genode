@@ -25,7 +25,8 @@ namespace Board {
 	using namespace Hw::Virt_qemu_board;
 
 	using Psci = Hw::Psci<Hw::Psci_smc_functor>;
-	using Pic = Hw::Gicv2;
+	using Hw::Global_interrupt_controller;
+	using Hw::Local_interrupt_controller;
 	static constexpr bool NON_SECURE = true;
 
 	static constexpr Genode::size_t NR_OF_CPUS = 2;

@@ -17,7 +17,10 @@
 #include <hw/spec/arm/cpu.h>
 #include <util/mmio.h>
 
-namespace Hw     { class Pic; }
+namespace Hw {
+	class Global_interrupt_controller;
+	class Local_interrupt_controller;
+}
 
 #define SYSTEM_REGISTER(sz, name, reg, ...) \
 	struct name : Genode::Register<sz> \
@@ -36,76 +39,80 @@ namespace Hw     { class Pic; }
 	};
 
 
-class Hw::Pic
+struct Hw::Global_interrupt_controller : Genode::Mmio<0x7fe0>
+{
+	static constexpr unsigned MIN_SPI   = 32;
+	static constexpr unsigned NR_OF_IRQ = 1024;
+
+	/**
+	 * Control register (secure access)
+	 */
+	/* XXX: CAUTION this is different in EL3/EL2/EL1! */
+	struct Ctlr : Register<0x0, 32>
+	{
+		struct Enable_grp0    : Bitfield<0, 1> { };
+		struct Enable_grp1_a  : Bitfield<1, 1> { };
+		struct Are_ns         : Bitfield<5, 1> { };
+		struct Rwp            : Bitfield<31, 1> { };
+	};
+
+	struct Typer : Register<0x004, 32> {
+		struct It_lines_number : Bitfield<0,5> { }; };
+
+	struct Igroup0r : Register_array<0x80, 32, NR_OF_IRQ, 1> {
+		struct Group1 : Bitfield<0, 1> { }; };
+
+	/**
+	 * Interrupt Set-Enable register
+	 */
+	struct Isenabler : Register_array<0x100, 32, NR_OF_IRQ, 1, true> {
+		struct Set_enable : Bitfield<0, 1> { }; };
+
+	/**
+	 * Interrupt clear enable registers
+	 */
+	struct Icenabler : Register_array<0x180, 32, NR_OF_IRQ, 1, true> {
+		struct Clear_enable : Bitfield<0, 1> { }; };
+
+	/**
+	 * Interrupt clear pending registers
+	 */
+	struct Icpendr : Register_array<0x280, 32, NR_OF_IRQ, 1, true> {
+		struct Clear_pending : Bitfield<0, 1> { }; };
+
+	/**
+	 * Interrupt priority level registers
+	 */
+	struct Ipriorityr : Register_array<0x400, 32, NR_OF_IRQ, 8> {
+		struct Priority : Bitfield<0, 8> { }; };
+
+
+	struct Icfgr : Register_array<0xc00, 32, NR_OF_IRQ, 2> {
+		struct Edge_triggered : Bitfield<1, 1> { }; };
+
+	struct Irouter : Register_array<0x6000, 64, 1020, 64, true> { };
+
+	void wait_for_rwp()
+	{
+		for (unsigned i = 0; i < 1000; i++)
+			if (read<Ctlr::Rwp>() == 0)
+				return;
+	}
+
+	unsigned max_irq() { return 32 * (read<Typer::It_lines_number>() + 1) - 1; }
+
+	/* no suspend/resume on this platform, leave it empty */
+	void resume() {}
+
+	Global_interrupt_controller();
+};
+
+
+class Hw::Local_interrupt_controller
 {
 	protected:
 
-		static constexpr unsigned min_spi     = 32;
-		static constexpr unsigned spurious_id = 1023;
-
-		struct Distributor : Genode::Mmio<0x7fe0>
-		{
-			static constexpr unsigned nr_of_irq = 1024;
-
-			/**
-			 * Control register (secure access)
-			 */
-			/* XXX: CAUTION this is different in EL3/EL2/EL1! */
-			struct Ctlr : Register<0x0, 32>
-			{
-				struct Enable_grp0    : Bitfield<0, 1> { };
-				struct Enable_grp1_a  : Bitfield<1, 1> { };
-				struct Are_ns         : Bitfield<5, 1> { };
-				struct Rwp            : Bitfield<31, 1> { };
-			};
-
-			struct Typer : Register<0x004, 32> {
-				struct It_lines_number : Bitfield<0,5> { }; };
-
-			struct Igroup0r : Register_array<0x80, 32, nr_of_irq, 1> {
-				struct Group1 : Bitfield<0, 1> { }; };
-
-			/**
-			 * Interrupt Set-Enable register
-			 */
-			struct Isenabler : Register_array<0x100, 32, nr_of_irq, 1, true> {
-				struct Set_enable : Bitfield<0, 1> { }; };
-
-			/**
-			 * Interrupt clear enable registers
-			 */
-			struct Icenabler : Register_array<0x180, 32, nr_of_irq, 1, true> {
-				struct Clear_enable : Bitfield<0, 1> { }; };
-
-			/**
-			 * Interrupt clear pending registers
-			 */
-			struct Icpendr : Register_array<0x280, 32, nr_of_irq, 1, true> {
-				struct Clear_pending : Bitfield<0, 1> { }; };
-
-			/**
-			 * Interrupt priority level registers
-			 */
-			struct Ipriorityr : Register_array<0x400, 32, nr_of_irq, 8> {
-				struct Priority : Bitfield<0, 8> { }; };
-
-
-			struct Icfgr : Register_array<0xc00, 32, nr_of_irq, 2> {
-				struct Edge_triggered : Bitfield<1, 1> { }; };
-
-			struct Irouter : Register_array<0x6000, 64, 1020, 64, true> { };
-
-			void wait_for_rwp()
-			{
-				for (unsigned i = 0; i < 1000; i++)
-					if (read<Ctlr::Rwp>() == 0)
-						return;
-			}
-
-			unsigned max_irq() { return 32 * (read<Typer::It_lines_number>() + 1) - 1; }
-
-			using Mmio::Mmio;
-		};
+		using Distributor = Global_interrupt_controller;
 
 		struct Redistributor : Genode::Mmio<0x4>
 		{
@@ -129,15 +136,16 @@ class Hw::Pic
 		{
 			struct Igroupr0   : Register<0x80, 32> { };
 
-			struct Isenabler0 : Register_array<0x100, 32, min_spi, 1, true>
-			{ };
+			struct Isenabler0
+			: Register_array<0x100, 32, Distributor::MIN_SPI, 1, true> { };
 
-			struct Icenabler0 : Register_array<0x180, 32, min_spi, 1, true>
-			{ };
+			struct Icenabler0
+			: Register_array<0x180, 32, Distributor::MIN_SPI, 1, true> { };
 
 			struct Icactiver0 : Register<0x380, 32, true> { };
 
-			struct Ipriorityr : Register_array<0x400, 32, min_spi, 8> {
+			struct Ipriorityr
+			: Register_array<0x400, 32, Distributor::MIN_SPI, 8> {
 				struct Priority : Bitfield<0, 8> { }; };
 
 			struct Icfgr1 : Register<0xc04, 32> { };
@@ -187,7 +195,7 @@ class Hw::Pic
 			/* diactivate SGI/PPI */
 			_redistr_sgi.write<Redistributor_sgi_ppi::Icactiver0>(~0u);
 
-			for (unsigned i = 0; i < min_spi; i++) {
+			for (unsigned i = 0; i < Distributor::MIN_SPI; i++) {
 				_redistr_sgi.write<Redistributor_sgi_ppi::Ipriorityr::Priority>(0xa0, i); }
 
 			/* set group 1 for all PPI/SGIs */
@@ -202,23 +210,24 @@ class Hw::Pic
 			_redistr.wait_for_uwp();
 		}
 
-		Distributor           _distr;
+		static constexpr unsigned _spurious_id = 1023;
+
+		Distributor          &_distr;
 		Redistributor         _redistr;
 		Redistributor_sgi_ppi _redistr_sgi;
 		Cpu_interface         _cpui { };
 
 		unsigned const _max_irq;
 
-		Cpu_interface::Icc_iar1_el1::access_t _last_iar { spurious_id };
+		Cpu_interface::Icc_iar1_el1::access_t _last_iar { _spurious_id };
 
 		bool _valid(unsigned const irq_id) const { return irq_id <= _max_irq; }
 
 	public:
 
-		Pic();
+		Local_interrupt_controller(Global_interrupt_controller &);
 
-		enum { IPI = 0 };
-		enum { NR_OF_IRQ = Distributor::nr_of_irq };
+		static constexpr unsigned IPI = 0;
 
 		bool take_request(unsigned &irq)
 		{
@@ -231,12 +240,12 @@ class Hw::Pic
 		void finish_request()
 		{
 			Cpu_interface::Icc_eoir1_el1::write(_last_iar);
-			_last_iar = spurious_id;
+			_last_iar = _spurious_id;
 		}
 
 		void unmask(unsigned const irq_id, Hw::Arm_cpu::Id)
 		{
-			if (irq_id < min_spi) {
+			if (irq_id < Global_interrupt_controller::MIN_SPI) {
 				_redistr_sgi.write<Redistributor_sgi_ppi::Isenabler0>(1, irq_id);
 			} else {
 				_distr.write<Distributor::Isenabler::Set_enable>(1, irq_id);
@@ -245,7 +254,7 @@ class Hw::Pic
 
 		void mask(unsigned const irq_id)
 		{
-			if (irq_id < min_spi) {
+			if (irq_id < Global_interrupt_controller::MIN_SPI) {
 				_redistr_sgi.write<Redistributor_sgi_ppi::Icenabler0>(1, irq_id);
 			} else {
 				_distr.write<Distributor::Icenabler::Clear_enable>(1, irq_id);

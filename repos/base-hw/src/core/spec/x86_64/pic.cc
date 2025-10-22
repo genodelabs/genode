@@ -241,11 +241,11 @@ Global_interrupt_controller::Global_interrupt_controller()
 		}
 	}
 
-	init();
+	_init();
 }
 
 
-void Global_interrupt_controller::init()
+void Global_interrupt_controller::_init()
 {
 	/* remap all IRQs managed by I/O APIC */
 	for (unsigned i = 0; i < _irte_count; i++)

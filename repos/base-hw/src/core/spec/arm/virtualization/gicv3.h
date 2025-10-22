@@ -1,5 +1,5 @@
 /*
- * \brief  Gicv2 with virtualization extensions
+ * \brief  Gicv3 with virtualization extensions
  * \author Stefan Kalkowski
  * \date   2019-09-02
  */
@@ -18,12 +18,13 @@
 
 namespace Board {
 
-	class Global_interrupt_controller { public: void init() {} };
-	class Pic;
+	using Hw::Global_interrupt_controller;
+
+	class Local_interrupt_controller;
 };
 
 
-class Board::Pic : public Hw::Pic
+class Board::Local_interrupt_controller : public Hw::Local_interrupt_controller
 {
 	public:
 
@@ -60,7 +61,8 @@ class Board::Pic : public Hw::Pic
 			c.lr     = irq | 1ULL << 41 | 1ULL << 60 | 1ULL << 62;
 		}
 
-		Pic(Global_interrupt_controller &) { }
+		Local_interrupt_controller(Global_interrupt_controller &gic)
+		: Hw::Local_interrupt_controller(gic) { }
 };
 
 #endif /* _CORE__SPEC__ARM__VIRTUALIZATION__GICV3_H_ */

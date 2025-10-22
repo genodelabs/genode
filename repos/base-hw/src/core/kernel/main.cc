@@ -117,7 +117,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 					nr_of_initialized_cpus = 0;
 
 					Main::_instance->_serial.init();
-					Main::_instance->_global_irq_ctrl.init();
+					Main::_instance->_global_irq_ctrl.resume();
 				}
 
 				nr_of_initialized_cpus = nr_of_initialized_cpus + 1;
@@ -169,7 +169,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 				Main::_instance->_cpu_pool.for_each_cpu([&] (Kernel::Cpu &cpu) {
 					boot_info.kernel_irqs.add(cpu.timer().interrupt_id());
 				});
-				boot_info.kernel_irqs.add((unsigned)Board::Pic::IPI);
+				boot_info.kernel_irqs.add((unsigned)Board::Local_interrupt_controller::IPI);
 
 				Main::_instance->_core_main_thread.construct(
 					Main::_instance->_addr_space_id_alloc,

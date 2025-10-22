@@ -60,10 +60,11 @@ static inline void switch_to_supervisor_mode(unsigned cpu_id)
 Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 {
 	static volatile bool primary_cpu = true;
+	static ::Board::Global_interrupt_controller gic {};
 	Genode::uint8_t cpu = Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
 
 	/* locally initialize interrupt controller */
-	::Board::Pic pic { };
+	::Board::Local_interrupt_controller lic { gic };
 
 	/* primary cpu wakes up all others */
 	if (primary_cpu && ::Board::NR_OF_CPUS > 1) {

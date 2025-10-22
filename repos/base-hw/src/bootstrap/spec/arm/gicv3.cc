@@ -1,6 +1,7 @@
 /*
  * \brief  GICv3 interrupt controller for core
  * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
  * \date   2019-07-08
  */
 
@@ -13,21 +14,14 @@
 
 #include <platform.h>
 
-Hw::Pic::Pic()
+Hw::Global_interrupt_controller::Global_interrupt_controller()
 :
-	_distr({(char *)Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
-	                Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE}),
-	_redistr({(char *)Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE,
-	                  Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE}),
-	_redistr_sgi({(char *)Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE +
-	                      Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE / 2,
-	                      Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE -
-	                      Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE / 2}),
-	_max_irq(_distr.max_irq())
+	Mmio({(char *)Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
+	      Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE})
 {
 	/* disable device */
-	_distr.write<Distributor::Ctlr>(0);
-	_distr.wait_for_rwp();
+	write<Ctlr>(0);
+	wait_for_rwp();
 
 	/* XXX: remove */
 	struct Affinity : Genode::Register<64>
@@ -46,22 +40,34 @@ Hw::Pic::Pic()
 	Affinity::Aff3::set(affinity, (mpidr >> 32) & 0xff);
 
 	/* configure every shared peripheral interrupt */
-	for (unsigned i = min_spi; i <= _max_irq; i++) {
-		_distr.write<Distributor::Icfgr::Edge_triggered>(0, i);
-		_distr.write<Distributor::Ipriorityr::Priority>(0xa0, i);
-		_distr.write<Distributor::Icenabler::Clear_enable>(1, i);
-		_distr.write<Distributor::Icpendr::Clear_pending>(1, i);
-		_distr.write<Distributor::Igroup0r::Group1>(1, i);
+	for (unsigned i = MIN_SPI; i <= max_irq(); i++) {
+		write<Icfgr::Edge_triggered>(0, i);
+		write<Ipriorityr::Priority>(0xa0, i);
+		write<Icenabler::Clear_enable>(1, i);
+		write<Icpendr::Clear_pending>(1, i);
+		write<Igroup0r::Group1>(1, i);
 
 		/* XXX remove: route all SPIs to this PE */
-		_distr.write<Distributor::Irouter>(affinity, i);
+		write<Irouter>(affinity, i);
 	}
 
 	/* enable device GRP1_NS with affinity */
-	Distributor::Ctlr::access_t ctlr = 0;
-	Distributor::Ctlr::Enable_grp1_a::set(ctlr, 1);
-	Distributor::Ctlr::Are_ns::set(ctlr, 1);
+	Ctlr::access_t ctlr = 0;
+	Ctlr::Enable_grp1_a::set(ctlr, 1);
+	Ctlr::Are_ns::set(ctlr, 1);
 
-	_distr.write<Distributor::Ctlr>(ctlr);
-	_distr.wait_for_rwp();
+	write<Ctlr>(ctlr);
+	wait_for_rwp();
 }
+
+
+Hw::Local_interrupt_controller::Local_interrupt_controller(Global_interrupt_controller &gic)
+:
+	_distr(gic),
+	_redistr({(char *)Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE,
+	                  Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE}),
+	_redistr_sgi({(char *)Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE +
+	                      Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE / 2,
+	                      Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE -
+	                      Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE / 2}),
+	_max_irq(_distr.max_irq()) { }

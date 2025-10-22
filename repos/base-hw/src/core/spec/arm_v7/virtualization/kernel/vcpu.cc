@@ -106,7 +106,7 @@ void Board::Vcpu_context::Vm_irq::occurred()
 }
 
 
-Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Kernel::Cpu &cpu)
+Board::Vcpu_context::Maintainance_irq::Maintainance_irq(Kernel::Cpu &cpu)
 :
 	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
 {
@@ -174,7 +174,7 @@ void Kernel::Vcpu::exception(Genode::Cpu_state&)
 		_context.submit(1);
 	}
 
-	if (_cpu().pic().ack_virtual_irq(_vcpu_context.pic))
+	if (_cpu().pic().ack_virtual_irq(_vcpu_context.ic_context))
 		inject_irq(Board::VT_MAINTAINANCE_IRQ);
 	_vcpu_context.vtimer_irq.disable();
 }
@@ -184,7 +184,7 @@ void Kernel::Vcpu::proceed()
 {
 	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
 
-	_cpu().pic().insert_virtual_irq(_vcpu_context.pic, _state.irqs.virtual_irq);
+	_cpu().pic().insert_virtual_irq(_vcpu_context.ic_context, _state.irqs.virtual_irq);
 
 	/*
 	 * the following values have to be enforced by the hypervisor

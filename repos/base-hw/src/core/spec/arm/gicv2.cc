@@ -18,10 +18,14 @@
 using namespace Core;
 
 
-Hw::Gicv2::Gicv2()
+Hw::Global_interrupt_controller::Global_interrupt_controller()
 :
-	_distr(Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE)),
-	_cpui (Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_CPU_BASE)),
-	_last_iar(Cpu_interface::Iar::Irq_id::bits(spurious_id)),
-	_max_irq(_distr.max_irq())
-{ }
+	Mmio({(char*)Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE),
+	     Mmio::SIZE}) { }
+
+
+Hw::Local_interrupt_controller::Local_interrupt_controller(Distributor &distributor)
+:
+	Mmio({(char*)Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_CPU_BASE),
+	      Mmio::SIZE}),
+	_distr(distributor) { }

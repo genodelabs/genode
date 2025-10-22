@@ -33,7 +33,8 @@ namespace Board {
 
 	static constexpr Genode::size_t NR_OF_CPUS = 4;
 
-	using Hw::Pic;
+	using Hw::Global_interrupt_controller;
+	using Hw::Local_interrupt_controller;
 };
 
 #endif /* _SRC__BOOTSTRAP__SPEC__VIRT_QEMU_64_H_ */

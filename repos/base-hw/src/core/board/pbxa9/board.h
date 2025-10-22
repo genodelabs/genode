@@ -21,15 +21,13 @@
 /* base-hw core includes */
 #include <spec/arm/cortex_a9_global_timer.h>
 #include <spec/arm/cortex_a9_cpu.h>
+#include <spec/arm/gicv2.h>
 
 #include <no_vcpu_board.h>
 
 namespace Board {
 
 	using namespace Hw::Pbxa9_board;
-
-	class Global_interrupt_controller { public: void init() {} };
-	class Pic : public Hw::Gicv2 { public: Pic(Global_interrupt_controller &) { } };
 
 	L2_cache & l2_cache();
 }

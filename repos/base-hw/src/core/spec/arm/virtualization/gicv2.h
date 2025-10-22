@@ -18,12 +18,12 @@
 
 namespace Board {
 
-	class Global_interrupt_controller { public: void init() {} };
-	class Pic;
+	using Hw::Global_interrupt_controller;
+	class Local_interrupt_controller;
 };
 
 
-class Board::Pic : public Hw::Gicv2
+class Board::Local_interrupt_controller : public Hw::Local_interrupt_controller
 {
 	private:
 
@@ -57,7 +57,9 @@ class Board::Pic : public Hw::Gicv2
 		bool ack_virtual_irq(Virtual_context &c);
 		void insert_virtual_irq(Virtual_context &c, unsigned irq);
 
-		Pic(Global_interrupt_controller &) { }
+		Local_interrupt_controller(Global_interrupt_controller &gic)
+		:
+			Hw::Local_interrupt_controller(gic) {}
 };
 
 #endif /* _CORE__SPEC__ARM__VIRTUALIZATION__GICV2_H_ */
