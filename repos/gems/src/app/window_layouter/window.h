@@ -376,7 +376,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 		{
 			Area const size = _requested_size();
 
-			if (size == _client_size)
+			if (size == _client_size && size == _reported_resize_request)
 				return;
 
 			g.node("window", [&] () {
