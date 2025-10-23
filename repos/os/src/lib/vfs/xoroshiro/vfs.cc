@@ -65,7 +65,10 @@ struct Xoroshiro_128_plus_reseeding
 					if (!_index)
 						value = _xoroshiro.value();
 
-					return bytes[_index++ % sizeof(value)];
+					uint8_t const curr_index = _index;
+					_index = (_index + 1) % sizeof(bytes);
+
+					return bytes[curr_index];
 				};
 
 				char *dst = range.start;
