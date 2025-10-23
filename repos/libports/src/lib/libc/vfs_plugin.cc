@@ -2013,6 +2013,14 @@ int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 			fd->flags = (fd->flags & ~mask) | (arg & mask);
 		} return 0;
 
+	/* file lock operations always succeed */
+	case F_GETLK:
+		((struct flock *)arg)->l_type = F_UNLCK;
+		return 0;
+	case F_SETLK:
+	case F_SETLKW:
+		return 0;
+
 	default:
 		break;
 	}
