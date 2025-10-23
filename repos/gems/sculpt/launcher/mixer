@@ -1,30 +1,40 @@
-<launcher pkg="record_play_mixer" priority="-1">
-	<config jitter_ms="10" warning_rate_ms="0">
-		<!--
-			These default wildcard rules match all regular play clients.
-			Please check the mixer report to replace the fuzzy configuration
-			with absolute labels in case you want to discern multiple clients.
-		-->
-		<mix name="left">
-			<play label_suffix=" -> left" volume="0.5"/>
-		</mix>
-		<mix name="right">
-			<play label_suffix=" -> right" volume="0.5"/>
-		</mix>
+launcher | pkg: record_play_mixer | priority: -1
++ config | jitter_ms: 10 | warning_rate_ms: 0
 
-		<!-- capture microphone -->
-		<mix name="mic_left">  <!-- <play label="audio -> mic_left"/>  --></mix>
-		<mix name="mic_right"> <!-- <play label="audio -> mic_right"/> --></mix>
+  + mix left
+    + play | label_suffix: -> left  | volume: 0.5
+      .
+      . default wildcard rule for the left channel of regular play clients
+      .
+      . Please check the mixer report to replace the fuzzy configuration
+      . with absolute labels in case you want to discern multiple clients.
+      .
+  + mix right
+    + play | label_suffix: -> right | volume: 0.5
+      .
+      . default wildcard rule for the right channel of regular play clients
+      .
 
-		<!-- rule for the vbox6 VM matching its OSS configuration -->
-		<!-- <policy label="vbox6 -> vbox -> left"   record="mic_left"  period_ms="46" jitter_ms="23" volume="1.0"/> -->
-		<!-- <policy label="vbox6 -> vbox -> right"  record="mic_right" period_ms="46" jitter_ms="23" volume="1.0"/> -->
+  + mix mic_left
+    x play | label: audio -> mic_left
+  + mix mic_right
+    x play | label: audio -> mic_right
 
-		<!-- rule for the audio driver matching its configuration -->
-		<policy label="audio -> left"   record="left"  period_ms="12" jitter_ms="5" volume="1.0"/>
-		<policy label="audio -> right"  record="right" period_ms="12" jitter_ms="5" volume="1.0"/>
-	</config>
-	<route>
-		<service name="Report"> <parent/> </service>
-	</route>
-</launcher>
+  x policy | label: vbox6 -> vbox -> left  | record: mic_left
+             period_ms: 46 | jitter_ms: 23 | volume: 1.0
+    .
+    . left channel of a vbox6 VM matching its OSS configuration
+    .
+  x policy | label: vbox6 -> vbox -> right | record: mic_right
+             period_ms: 46 | jitter_ms: 23 | volume: 1.0
+
+  + policy | label: audio -> left | record: left
+             period_ms: 12 | jitter_ms: 5 | volume: 1.0
+    .
+    . left channel of the audio driver matching its configuration
+    .
+  + policy | label: audio -> right | record: right
+             period_ms: 12 | jitter_ms: 5 | volume: 1.0
+
++ route | + service Report | + parent
+-
