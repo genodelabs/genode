@@ -103,9 +103,6 @@ struct Terminal_log::Main
 				/* if last character of string was not a line break, add one */
 				if ((len > 0) && (string[len - 1] != '\n'))
 					_terminal.write("\n", 1);
-
-				/* carriage-return as expected by hardware terminals on newline */
-				_terminal.write("\r", 1);
 			}
 	};
 
