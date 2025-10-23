@@ -1064,9 +1064,12 @@ proc create_depot_archive { } {
 		create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                {*}[pkg_archive_paths [referenced_pkg_values]]
 
-	} elseif {[depot_archive] == "list"} {
-		puts "Do not forget to publish:"
-		puts [pkg_archive_paths [referenced_pkg_values]]
+	} else {
+		create_tar_from_depot_binaries [run_dir]/genode/depot.tar
+		if {[depot_archive] == "list"} {
+			puts "Do not forget to publish:"
+			puts [pkg_archive_paths [referenced_pkg_values]]
+		}
 	}
 }
 
