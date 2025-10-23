@@ -689,7 +689,7 @@ proc _hrd_from_xml_rec { text info_var } {
 
 		if {$child_type == "compound"} {
 
-			set start_pattern {^<(\w[^\s>]*)((\s+([0-9 ]*))?)>}
+			set start_pattern {^<(\w[^\s>]*)((\s+([0-9\s]*))?)>}
 			if {![regexp $start_pattern $child_text match hrd_type xml_attrs]} {
 				regsub {><.*$} $child_text ">" err_text
 				error "unable to interpret XML start tag: $err_text" }
