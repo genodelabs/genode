@@ -362,6 +362,7 @@ proc import_hrd { data { multiple_lines true } } {
 	set ctx(0,attributes)  {}
 	set ctx(0,xpos)        0
 	set ctx(0,children)    {}
+	set ctx(0,quoted)      {}
 	set ctx(preface,xpos)  -1
 	set ctx(preface,lines) {}
 
@@ -785,7 +786,7 @@ proc print_hrd_as_xml { out_fd hrd { indent 0 } } {
 	set xml_tag "<$type"
 	foreach attr [hrd_attributes $hrd] {
 		lappend xml_tag "[attr_tag $attr]=\"[attr_value $attr]\"" }
-	puts $out_fd -nonewline "$indent_tabs[join $xml_tag { }]"
+	puts -nonewline $out_fd "$indent_tabs[join $xml_tag { }]"
 
 	if {[hrd_leaf $hrd]} {
 		puts $out_fd "/>"
