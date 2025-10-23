@@ -330,6 +330,8 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 
 		[[nodiscard]] Ipc_alloc_result _ipc_init(Genode::Native_utcb &utcb, Thread &callee);
 
+		void _save(Genode::Cpu_state &);
+
 	public:
 
 		Genode::Align_at<Board::Cpu::Context> regs;

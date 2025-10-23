@@ -176,11 +176,10 @@ size_t Thread::_call_cache_line_size()
 void Thread::exception(Genode::Cpu_state &state)
 {
 	using Genode::Cpu_state;
-	using Ctx = Board::Cpu::Context;
 
-	Genode::memcpy(&*regs, &state, sizeof(Ctx));
+	_save(state);
 
-	switch (regs->trapno) {
+	switch (state.trapno) {
 
 	case Cpu_state::PAGE_FAULT:
 		_mmu_exception();
@@ -199,15 +198,15 @@ void Thread::exception(Genode::Cpu_state &state)
 		return;
 	}
 
-	if (regs->trapno >= Cpu_state::INTERRUPTS_START &&
-	    regs->trapno <= Cpu_state::INTERRUPTS_END) {
+	if (state.trapno >= Cpu_state::INTERRUPTS_START &&
+	    state.trapno <= Cpu_state::INTERRUPTS_END) {
 		_interrupt(_user_irq_pool);
 		return;
 	}
 
-	_die("unknown exception triggered trapno: ", regs->trapno,
-	     " with error code=", regs->errcode,
-	     " at ip=", (void*)regs->ip, " sp=", (void*)regs->sp);
+	_die("unknown exception triggered trapno: ", state.trapno,
+	     " with error code=", state.errcode,
+	     " at ip=", (void*)state.ip, " sp=", (void*)state.sp);
 }
 
 

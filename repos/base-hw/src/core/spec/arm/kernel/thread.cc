@@ -34,9 +34,9 @@ void Thread::exception(Genode::Cpu_state &state)
 {
 	using Ctx = Board::Cpu::Context;
 
-	Genode::memcpy(&*regs, &state, sizeof(Ctx));
+	_save(state);
 
-	switch (regs->cpu_exception) {
+	switch (state.cpu_exception) {
 	case Ctx::SUPERVISOR_CALL:
 		_call();
 		return;
@@ -49,12 +49,12 @@ void Thread::exception(Genode::Cpu_state &state)
 		_interrupt(_user_irq_pool);
 		return;
 	case Ctx::UNDEFINED_INSTRUCTION:
-		_die("Undefined instruction at ip=", Genode::Hex(regs->ip));
+		_die("Undefined instruction at ip=", Genode::Hex(state.ip));
 		return;
 	case Ctx::RESET:
 		return;
 	default:
-		_die("Unknown exception triggered: ", regs->cpu_exception);
+		_die("Unknown exception triggered: ", state.cpu_exception);
 		return;
 	}
 }

@@ -102,6 +102,15 @@ Thread::Ipc_alloc_result Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &st
 }
 
 
+void Thread::_save(Genode::Cpu_state &state)
+{
+	if (_type == IDLE)
+		return;
+
+	Genode::memcpy(&*regs, &state, sizeof(Board::Cpu::Context));
+}
+
+
 void Thread::ipc_copy_msg(Thread &sender)
 {
 	using namespace Genode;
