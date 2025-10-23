@@ -745,6 +745,7 @@ proc import_hrd_from_xml { xml } {
 
 	set id 0
 
+	_parse_xml comment  {<\!--[^\n]*-->\n}            {""}      xml id info
 	_parse_xml attr     {([\w0-9\-_]+ *= *"[^"]*")}   {$id}     xml id info
 	_parse_xml leaf     {(<\w[^>]*/>)}                {<$id>}   xml id info
 	_parse_xml quoted   {>([^<]+)<}                   {><$id><} xml id info
