@@ -837,18 +837,20 @@ struct Scan_results_cmd : Action
 		try {
 			_reporter.generate([&] (Generator &g) {
 
-				for_each_result_line(msg, [&] (Accesspoint const &ap) {
+				g.tabular([&] {
+					for_each_result_line(msg, [&] (Accesspoint const &ap) {
 
-					/* ignore potentially empty ssids */
-					if (ap.ssid == "")
-						return;
+						/* ignore potentially empty ssids */
+						if (ap.ssid == "")
+							return;
 
-					g.node("accesspoint", [&]() {
-						g.attribute("ssid",    ap.ssid);
-						g.attribute("bssid",   ap.bssid);
-						g.attribute("freq",    ap.freq);
-						g.attribute("quality", ap.quality);
-						if (ap.wpa()) { g.attribute("protection", ap.prot); }
+						g.node("accesspoint", [&]() {
+							g.attribute("ssid",    ap.ssid);
+							g.attribute("bssid",   ap.bssid);
+							g.attribute("freq",    ap.freq);
+							g.attribute("quality", ap.quality);
+							if (ap.wpa()) { g.attribute("protection", ap.prot); }
+						});
 					});
 				});
 			});

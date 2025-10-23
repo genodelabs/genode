@@ -247,9 +247,10 @@ class Block::Mbr : public Partition_table
 
 			g.attribute("type", "mbr");
 
-			_for_each_valid_partition([&] (unsigned i) {
-				g.node("partition", [&] {
-					gen_partition_attr(g, i); }); });
+			g.tabular([&] {
+				_for_each_valid_partition([&] (unsigned i) {
+					g.node("partition", [&] {
+						gen_partition_attr(g, i); }); }); });
 		}
 };
 

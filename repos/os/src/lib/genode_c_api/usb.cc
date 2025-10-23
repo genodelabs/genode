@@ -756,21 +756,21 @@ void genode_usb_device::generate(Generator &g, bool acquired) const
 	auto per_iface = [&] (genode_usb_interface const &iface)
 	{
 		g.node("interface", [&] {
-			g.attribute("active",      iface.active);
+			g.attribute("active",      iface.active ? "yes" : "no");
 			g.attribute("number",      Value(Hex(iface.desc.number)));
 			if (*iface.info.string()) g.attribute("info", iface.info);
 			g.attribute("alt_setting", Value(Hex(iface.desc.alt_settings)));
 			g.attribute("class",       Value(Hex(iface.desc.iclass)));
 			g.attribute("subclass",    Value(Hex(iface.desc.isubclass)));
 			g.attribute("protocol",    Value(Hex(iface.desc.iprotocol)));
-			iface.endpoints.for_each(per_endp);
+			g.tabular([&] { iface.endpoints.for_each(per_endp); });
 		});
 	};
 
 	auto per_config = [&] (genode_usb_configuration const &cfg)
 	{
 		g.node("config", [&] {
-			g.attribute("active", cfg.active);
+			g.attribute("active", cfg.active ? "yes" : "no");
 			g.attribute("value",  Value(Hex(cfg.desc.config_value)));
 			cfg.interfaces.for_each(per_iface);
 		});

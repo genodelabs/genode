@@ -2359,27 +2359,28 @@ void Sculpt::Main::_handle_gui_mode()
 							});
 						};
 
-						gen_ttf_dir("title",      "/Vera.ttf",     _font_size_px*1.25);
-						gen_ttf_dir("text",       "/Vera.ttf",     _font_size_px);
-						gen_ttf_dir("annotation", "/Vera.ttf",     _font_size_px*0.8);
-						gen_ttf_dir("monospace",  "/VeraMono.ttf", _font_size_px);
+						g.tabular([&] {
+							gen_ttf_dir("title",      "/Vera.ttf",     _font_size_px*1.25);
+							gen_ttf_dir("text",       "/Vera.ttf",     _font_size_px);
+							gen_ttf_dir("annotation", "/Vera.ttf",     _font_size_px*0.8);
+							gen_ttf_dir("monospace",  "/VeraMono.ttf", _font_size_px);
+						});
 					});
 				});
 				g.node("default-policy", [&] { g.attribute("root", "/fonts"); });
 
 				auto gen_color = [&] (unsigned index, Color color) {
-					g.node("palette", [&] {
-						g.node("color", [&] {
-							g.attribute("index", index);
-							g.attribute("value", String<16>(color));
-						});
-					});
+					g.node("color", [&] {
+						g.attribute("index", index);
+						g.attribute("value", String<16>(color)); });
 				};
 
 				Color const background = Color::rgb(0x1c, 0x22, 0x32);
 
-				gen_color(0, background);
-				gen_color(8, background);
+				g.node("palette", [&] {
+					g.tabular([&] {
+						gen_color(0, background);
+						gen_color(8, background); }); });
 			});
 			/* propagate fonts config of runtime view */
 			update_runtime_config = true;
@@ -2751,10 +2752,12 @@ void Sculpt::Main::_generate_event_filter_config(Generator &g)
 						g.attribute("name", from);
 						g.attribute("to",   to); }); };
 
-				gen_key("KEY_CAPSLOCK", "KEY_CAPSLOCK");
-				gen_key("KEY_F12",      "KEY_DASHBOARD");
-				gen_key("KEY_LEFTMETA", "KEY_SCREEN");
-				gen_key("KEY_SYSRQ",    "KEY_PRINT");
+				g.tabular([&] {
+					gen_key("KEY_CAPSLOCK", "KEY_CAPSLOCK");
+					gen_key("KEY_F12",      "KEY_DASHBOARD");
+					gen_key("KEY_LEFTMETA", "KEY_SCREEN");
+					gen_key("KEY_SYSRQ",    "KEY_PRINT");
+				});
 				gen_include("numlock.remap");
 
 				g.node("merge", [&] {
@@ -2771,13 +2774,15 @@ void Sculpt::Main::_generate_event_filter_config(Generator &g)
 						g.node("button-scroll", [&] {
 							gen_input("ps2");
 
-							g.node("vertical", [&] {
-								g.attribute("button", "BTN_MIDDLE");
-								g.attribute("speed_percent", -10); });
+							g.tabular([&] {
+								g.node("vertical", [&] {
+									g.attribute("button", "BTN_MIDDLE");
+									g.attribute("speed_percent", -10); });
 
-							g.node("horizontal", [&] {
-								g.attribute("button", "BTN_MIDDLE");
-								g.attribute("speed_percent", -10); });
+								g.node("horizontal", [&] {
+									g.attribute("button", "BTN_MIDDLE");
+									g.attribute("speed_percent", -10); });
+							});
 						});
 					});
 
@@ -2823,10 +2828,12 @@ void Sculpt::Main::_generate_event_filter_config(Generator &g)
 			g.attribute("label", label);
 			g.attribute("input", input); }); };
 
-	gen_policy("runtime -> ps2",      "ps2");
-	gen_policy("runtime -> usb_hid",  "usb");
-	gen_policy("runtime -> touchpad", "touchpad");
-	gen_policy("drivers -> sdl",      "sdl");
+	g.tabular([&] {
+		gen_policy("runtime -> ps2",      "ps2");
+		gen_policy("runtime -> usb_hid",  "usb");
+		gen_policy("runtime -> touchpad", "touchpad");
+		gen_policy("drivers -> sdl",      "sdl");
+	});
 }
 
 

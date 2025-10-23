@@ -686,10 +686,9 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_generator,
 {
 	auto &g = *reinterpret_cast<Genode::Generator *>(genode_generator);
 
-	g.node("connector", [&] ()
-	{
-		g.attribute("connected", !!connected);
+	g.node("connector", [&] {
 		g.attribute("name", name);
+		g.attribute("connected", !!connected ? "yes" : "no");
 		if (display_name)
 			g.attribute("display_name", display_name);
 		if (width_mm)
@@ -697,13 +696,14 @@ void lx_emul_i915_report_connector(void * lx_data, void * genode_generator,
 		if (height_mm)
 			g.attribute("height_mm", height_mm);
 		g.attribute("rotate", rotate);
-		g.attribute("flip", !!flip);
+		g.attribute("flip", !!flip ? "yes" : "no");
 
 		/* insane values means no brightness support - we use percentage */
 		if (brightness <= MAX_BRIGHTNESS)
 			g.attribute("brightness", brightness);
 
-		lx_emul_i915_iterate_modes(lx_data, &g);
+		g.tabular([&] {
+			lx_emul_i915_iterate_modes(lx_data, &g); });
 	});
 }
 
@@ -715,23 +715,22 @@ void lx_emul_i915_report_modes(void * genode_generator, struct genode_mode *mode
 
 	auto &g = *reinterpret_cast<Genode::Generator *>(genode_generator);
 
-	g.node("mode", [&] ()
-	{
+	g.node("mode", [&] {
+		g.attribute("name",   mode->name);
 		g.attribute("width",  mode->width);
 		g.attribute("height", mode->height);
 		g.attribute("hz",     mode->hz);
 		g.attribute("id",     mode->id);
-		g.attribute("name",   mode->name);
 		if (mode->width_mm)
 			g.attribute("width_mm",  mode->width_mm);
 		if (mode->height_mm)
 			g.attribute("height_mm", mode->height_mm);
 		if (!mode->enabled)
-			g.attribute("usable", false);
+			g.attribute("usable", "no");
 		if (mode->preferred)
-			g.attribute("preferred", true);
+			g.attribute("preferred", "yes");
 		if (mode->inuse)
-			g.attribute("used", true);
+			g.attribute("used", "yes");
 	});
 }
 

@@ -38,10 +38,12 @@ void Sculpt::Network::_generate_nic_router_uplink(Generator &g,
 				g.attribute("to",     to); });
 		};
 
-		tcp_forward(80 /* HTTP */   , "http",   "10.0.80.2");
-		tcp_forward(23 /* telnet */ , "telnet", "10.0.23.2");
-		tcp_forward(9999 /* gdb */   , "gdb",   "10.0.99.2");
-		tcp_forward(5900 /* VNC */   , "vnc",   "10.0.59.2");
+		g.tabular([&] {
+			tcp_forward(80 /* HTTP */   , "http",   "10.0.80.2");
+			tcp_forward(23 /* telnet */ , "telnet", "10.0.23.2");
+			tcp_forward(9999 /* gdb */  , "gdb",    "10.0.99.2");
+			tcp_forward(5900 /* VNC */  , "vnc",    "10.0.59.2");
+		});
 	});
 }
 
@@ -111,15 +113,17 @@ void Sculpt::Network::_generate_nic_router_config()
 			});
 
 			if (uplink_exists) {
-				g.node("tcp", [&] {
-					g.attribute("dst", "0.0.0.0/0");
-					g.node("permit-any", [&] {
-						g.attribute("domain", "uplink"); }); });
+				g.tabular([&] {
+					g.node("tcp", [&] {
+						g.attribute("dst", "0.0.0.0/0");
+						g.node("permit-any", [&] {
+							g.attribute("domain", "uplink"); }); });
 
-				g.node("udp", [&] {
-					g.attribute("dst", "0.0.0.0/0");
-					g.node("permit-any", [&] {
-						g.attribute("domain", "uplink"); }); });
+					g.node("udp", [&] {
+						g.attribute("dst", "0.0.0.0/0");
+						g.node("permit-any", [&] {
+							g.attribute("domain", "uplink"); }); });
+				});
 
 				g.node("icmp", [&] {
 					g.attribute("dst", "0.0.0.0/0");

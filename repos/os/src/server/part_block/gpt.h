@@ -447,26 +447,28 @@ class Block::Gpt : public Block::Partition_table
 			g.attribute("gpt_total", _gpt_total);
 			g.attribute("gpt_used",  _gpt_used);
 
-			_for_each_valid_partition([&] (unsigned i) {
+			g.tabular([&] {
+				_for_each_valid_partition([&] (unsigned i) {
 
-				Gpt_partition const &part = *_part_list[i];
+					Gpt_partition const &part = *_part_list[i];
 
-				g.node("partition", [&] () {
-					g.attribute("number",     i + 1);
-					g.attribute("name",       part.name);
-					g.attribute("type",       part.type);
-					g.attribute("guid",       part.guid);
-					g.attribute("start",      part.lba);
-					g.attribute("length",     part.sectors);
-					g.attribute("block_size", _info.block_size);
+					g.node("partition", [&] () {
+						g.attribute("number",     i + 1);
+						g.attribute("name",       part.name);
+						g.attribute("type",       part.type);
+						g.attribute("guid",       part.guid);
+						g.attribute("start",      part.lba);
+						g.attribute("length",     part.sectors);
+						g.attribute("block_size", _info.block_size);
 
-					uint64_t const gap =
-						_calculate_gap(i, total_blocks);
-					if (gap)
-						g.attribute("expandable", gap);
+						uint64_t const gap =
+							_calculate_gap(i, total_blocks);
+						if (gap)
+							g.attribute("expandable", gap);
 
-					if (part.fs_type.valid())
-						g.attribute("file_system", part.fs_type);
+						if (part.fs_type.valid())
+							g.attribute("file_system", part.fs_type);
+					});
 				});
 			});
 		}

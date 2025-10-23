@@ -288,7 +288,7 @@ void Depot_query::Main::_scan_user(Archive::User const &user, Generator &g)
 		if (user_dir.file_exists("download")) {
 			File_content download(_heap, user_dir, "download", File_content::Limit{4*1024});
 			download.for_each_line<Url>([&] (Url const &url) {
-				g.node("url", [&] () { g.append_quoted(url.string()); }); });
+				g.tabular_node("url", [&] { g.append_quoted(url.string()); }); });
 		}
 	});
 }
