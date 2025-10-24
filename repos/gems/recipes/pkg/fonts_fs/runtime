@@ -1,18 +1,13 @@
-<runtime ram="4M" caps="150" binary="vfs" config="fonts.config">
-
-	<requires> <rom label="config"/> </requires>
-
-	<provides> <file_system/> </provides>
-
-	<content>
-		<rom label="vfs"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="vfs_ttf.lib.so"/>
-		<rom label="Vera.ttf"/>
-		<rom label="VeraMono.ttf"/>
-		<rom label="vfs.lib.so"/>
-	</content>
-
-</runtime>
+runtime | ram: 4M | caps: 150 | binary: vfs | config: fonts.config
++ requires | + rom | label: config
++ provides | + file_system
++ content
+  + rom | label: vfs
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: vfs_ttf.lib.so
+  + rom | label: Vera.ttf
+  + rom | label: VeraMono.ttf
+  + rom | label: vfs.lib.so
+-
