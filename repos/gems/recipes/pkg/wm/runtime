@@ -1,22 +1,19 @@
-<runtime ram="12M" caps="350" binary="init" config="wm.config">
-
-	<requires>
-		<gui label="focus"/>
-		<gui/>
-		<report label="shape"/>
-		<report label="clipboard"/>
-		<rom    label="clipboard"/>
-		<timer/>
-	</requires>
-
-	<provides> <gui/> <rom/> <report/> </provides>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="report_rom"/>
-		<rom label="wm"/>
-		<rom label="init"/>
-		<rom label="wm.config"/>
-	</content>
-
-</runtime>
+runtime | ram: 12M | caps: 350 | binary: init | config: wm.config
++ requires
+  + gui    | label: focus
+  + gui
+  + report | label: shape
+  + report | label: clipboard
+  + rom    | label: clipboard
+  + timer
++ provides
+  + gui
+  + rom
+  + report
++ content
+  + rom | label: ld.lib.so
+  + rom | label: report_rom
+  + rom | label: wm
+  + rom | label: init
+  + rom | label: wm.config
+-
