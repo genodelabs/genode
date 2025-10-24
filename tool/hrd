@@ -568,7 +568,9 @@ proc print_hrd_node_recursively { out_fd indent hrd { last 0 } } {
 			puts $out_fd "$indent$type [lindex $first_attr 2]"
 		} else {
 			set padded_tag [format "%-${tag_column_size}s" "[lindex $first_attr 1]:"]
-			puts $out_fd "$indent$type $padded_tag [lindex $first_attr 2]"
+			set value [lindex $first_attr 2]
+			if {$value != ""} { set value " $value" }
+			puts $out_fd "$indent$type $padded_tag$value"
 		}
 
 		# node branch to next sibling
@@ -582,7 +584,8 @@ proc print_hrd_node_recursively { out_fd indent hrd { last 0 } } {
 
 		hrd_foreach_non_first_attr tag value $hrd {
 			set padded_tag [format "%-${tag_column_size}s" "$tag:"]
-			puts $out_fd "$indent$node_column $padded_tag $value"
+			if {$value != ""} { set value " $value" }
+			puts $out_fd "$indent$node_column $padded_tag$value"
 		}
 	}
 
