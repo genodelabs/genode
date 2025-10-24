@@ -401,6 +401,19 @@ struct Hrd_generator::Tabular : Noncopyable
 
 void Hrd_generator::_attribute(char const *tag, char const *value, size_t val_len)
 {
+	/* deny non-printable and delimiting characters in attribute values */
+	auto blessed = [] (char c) { return (c & 0xe0) && (c != '|'); };
+	for (size_t i = 0; i < val_len; i++) {
+		if (blessed(value[i]))
+			continue;
+
+		static bool warned_once;
+		if (!warned_once)
+			warning("attribute '", tag, "' contains invalid character ", value[i]);
+		warned_once = true;
+		return;
+	}
+
 	size_t const tag_len = strlen(tag);
 
 	bool const first         = !_node_state.has_attr;

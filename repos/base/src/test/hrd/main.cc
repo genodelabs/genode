@@ -195,13 +195,18 @@ void Component::construct(Genode::Env &env)
 		if (i != '\n')
 			expect_invalid(String<100>("launcher i: ", i, " | tag: ", Char(i), " \n-").string());
 
-	auto print_generated = [&] (auto const &node_type, auto const &fn)
+	auto with_generated = [&] (auto const &node_type, auto const &fn, auto const &result_fn)
 	{
 		char buf[4*1024] { };
 		Hrd_generator::generate({ buf, sizeof(buf)}, node_type, fn).with_result(
-			[&] (size_t num_bytes) { log(Cstring(buf, num_bytes)); },
+			[&] (size_t num_bytes) { result_fn(Node(Span { buf, num_bytes })); },
 			[&] (Buffer_error) { }
 		);
+	};
+
+	auto print_generated = [&] (auto const &node_type, auto const &fn)
+	{
+		with_generated(node_type, fn, [&] (Node const &node) { log(node); });
 	};
 
 	/*
@@ -451,6 +456,32 @@ void Component::construct(Genode::Env &env)
 			"exit\n";
 		g.append_quoted(script);
 	});
+
+	with_generated("bad_pipe_as_attribute_value",
+		[&] (Hrd_generator &g) { g.attribute("pipe", "|"); },
+		[&] (Node const &node) {
+			log(node);
+			if (node.has_attribute("pipe"))
+				fail("generated attribute with pipe as value");
+		});
+
+	auto bad_tag_name = [] (char c) { return String<64>("bad_", c); };
+
+	with_generated("bad_attribute_values",
+
+		[&] (Hrd_generator &g) {
+			for (char i = 0; i < 32; i++)
+				g.attribute(bad_tag_name(i).string(), &i, 1);
+			g.attribute("innocent", 123);
+		},
+		[&] (Node const &node) {
+			log("node: ", node);
+			if (!node.has_attribute("innocent"))
+				fail("bad attribute values resulted in invalid node");
+			for (char i = 0; i < 32; i++)
+				if (node.has_attribute(bad_tag_name(i).string()))
+					fail("generated attribute with bad value");
+		});
 
 	log("--- End of HRD-parser test ---");
 	env.parent().exit(0);
