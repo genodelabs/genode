@@ -1,17 +1,13 @@
-<runtime ram="12M" caps="110" binary="terminal" config="terminal.config">
-
-	<requires> <gui/> </requires>
-	<provides> <terminal/> </provides>
-
-	<content>
-		<rom label="terminal.config"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="vfs_ttf.lib.so"/>
-		<rom label="terminal"/>
-		<rom label="VeraMono.ttf"/>
-		<rom label="vfs.lib.so"/>
-	</content>
-
-</runtime>
+runtime | ram: 12M | caps: 110 | binary: terminal | config: terminal.config
++ requires | + gui
++ provides | + terminal
++ content
+  + rom | label: terminal.config
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: vfs_ttf.lib.so
+  + rom | label: terminal
+  + rom | label: VeraMono.ttf
+  + rom | label: vfs.lib.so
+-
