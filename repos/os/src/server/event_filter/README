@@ -159,6 +159,31 @@ one of the following filters:
     Flip coordinates horizontally/vertically and translate into
     'width'/'height'.
 
+:<report>:
+
+  Reports the configured list of key combinations as distinct shortcut
+  reports that are labeled by the 'name' attribute. The key events are
+  preserved for further processing (resp. not filtered out).
+
+  ! <report>
+  !   <shortcut name="screenshot">
+  !     <key name="KEY_LEFTMETA"/> <key name="KEY_S"/>
+  !   </shortcut>
+  !   <shortcut name="screenlock">
+  !     <key name="KEY_LEFTMETA"/> <key name="KEY_L"/>
+  !   </shortcut>
+  ! </report>
+
+  The shortcut node permits the declaration of keys that when pressed
+  simultaneously update the shortcut report. The report provides the
+  shortcut 'name' and a unique 'serial' number as attributes like follows.
+
+  ! <shortcut name="screenshot" serial="7"/>
+
+  Users must record the last observed serial number for comparison on later
+  report updates. The first serial number and future changes of its value
+  shall be interpreted as shortcut events. Note, reports missing a valid
+  'serial' attribute must be ignored.
 
 Character generator rules
 -------------------------

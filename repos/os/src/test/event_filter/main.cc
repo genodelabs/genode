@@ -1,6 +1,7 @@
 /*
  * \brief  Test for event filter
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2017-02-01
  */
 
@@ -32,6 +33,8 @@ namespace Test {
 	class Input_root;
 	class Event_session;
 	class Event_root;
+	class Report_session;
+	class Report_root;
 	class Main;
 	using namespace Genode;
 }
@@ -115,6 +118,69 @@ struct Test::Event_root : Root_component<Event_session>
 };
 
 
+struct Test::Report_session : Rpc_object<Report::Session, Report_session>,
+                              private Registry<Report_session>::Element
+{
+	Allocator &_md_alloc;
+
+	Constructible<Buffered_node> _report { };
+
+	Attached_ram_dataspace _ds;
+
+	Report_session(Registry<Report_session> &registry,
+	               Env &env, Allocator &md_alloc, size_t buffer_size)
+	:
+		Registry<Report_session>::Element(registry, *this),
+		_md_alloc(md_alloc), _ds(env.ram(), env.rm(), buffer_size)
+	{ }
+
+	void with_report(auto const &fn) const
+	{
+		if (_report.constructed())
+			fn(*_report);
+	}
+
+	Dataspace_capability dataspace() override { return _ds.cap(); }
+
+	void submit(size_t length) override
+	{
+		Span reported { _ds.bytes().start, min(length, _ds.size()) };
+
+		_report.construct(_md_alloc, Node { reported });
+	}
+
+	/* obsolete */
+	void response_sigh(Signal_context_capability) override { }
+	size_t obtain_response() override { return 0; }
+};
+
+
+struct Test::Report_root : Root_component<Report_session>
+{
+	Env &_env;
+
+	Registry<Report_session> _registry { };
+
+	Create_result _create_session(const char *args, Affinity const &) override
+	{
+		size_t const buffer_size =
+			min(4096ul, Arg_string::find_arg(args, "buffer_size").aligned_size());
+
+		return *new (md_alloc()) Report_session(_registry, _env, *md_alloc(), buffer_size);
+	}
+
+	Report_root(Env &env, Entrypoint &ep, Allocator &md_alloc)
+	:
+		Root_component(ep, md_alloc), _env(env)
+	{ }
+
+	void with_reports(auto const &fn)
+	{
+		_registry.for_each([&] (Report_session const &s) { s.with_report(fn); });
+	}
+};
+
+
 class Test::Input_from_filter
 {
 	public:
@@ -140,17 +206,19 @@ class Test::Input_from_filter
 		Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 		/*
-		 * Provide the event service via an independent entrypoint to avoid a
-		 * possible deadlock between the event_filter and the test when
-		 * both try to invoke 'Event::Session::submit' from each other.
+		 * Provide the event and report services via an independent entrypoint
+		 * to avoid a possible deadlock between the event_filter and the test
+		 * when both try to invoke, for example. 'Event::Session::submit()'.
 		 */
-		enum { STACK_SIZE = 4*1024*sizeof(long) };
+		enum { STACK_SIZE = 32*1024 };
 
 		Entrypoint _ep { _env, STACK_SIZE, "server_ep", Affinity::Location() };
 
 		Event_session _session { _env, _input_handler };
 
-		Event_root _root { _ep, _sliced_heap, _session };
+		Event_root _event_root { _ep, _sliced_heap, _session };
+
+		Report_root _report_root { _env, _ep, _sliced_heap };
 
 		void _handle_input()
 		{
@@ -169,7 +237,8 @@ class Test::Input_from_filter
 		:
 			_env(env), _event_handler(event_handler)
 		{
-			_env.parent().announce(_ep.manage(_root));
+			_env.parent().announce(_ep.manage(_event_root));
+			_env.parent().announce(_ep.manage(_report_root));
 		}
 
 		void input_expected(bool expected)
@@ -183,6 +252,8 @@ class Test::Input_from_filter
 			/* if new step expects input, process currently pending events */
 			_handle_input();
 		}
+
+		void with_reports(auto const &fn) { _report_root.with_reports(fn); }
 };
 
 
@@ -298,6 +369,30 @@ struct Test::Main : Input_from_filter::Event_handler
 				(void)g.append_node(content, { 20 }); }); });
 	}
 
+	bool _check_shortcut_report(Node const &expected, Node const &report)
+	{
+		auto name = [] (Node const &n) {
+			return n.attribute_value("name", String<32>()); };
+		auto serial = [] (Node const &n) {
+			return n.attribute_value("serial", 0); };
+
+		return report.type() == "shortcut"
+		    && name(report) == name(expected)
+		    && serial(report) == serial(expected);
+	}
+
+	void _check_report(Node const &expected)
+	{
+		bool ok = false;
+		_input_from_filter.with_reports([&] (Node const &report) {
+			ok |= _check_shortcut_report(expected, report); });
+
+		if (!ok) {
+			error("expected report not found");
+			throw Exception();
+		}
+	}
+
 	void _gen_chargen_rec(Generator &g, unsigned depth)
 	{
 		if (depth > 0) {
@@ -406,6 +501,12 @@ struct Test::Main : Input_from_filter::Event_handler
 		}
 
 		if (step.type() == "nop") {
+			_advance_step();
+			return Exec_result::PROCEED;
+		}
+
+		if (step.type() == "expect_shortcut") {
+			_check_report(step);
 			_advance_step();
 			return Exec_result::PROCEED;
 		}
