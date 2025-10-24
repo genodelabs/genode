@@ -19,6 +19,7 @@
 #include <base/log.h>
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
+#include <cpu_thread/client.h>
 #include <util/formatted_output.h>
 #include <trace/timestamp.h>
 #include <cpu/memory_barrier.h>
@@ -257,6 +258,11 @@ namespace Affinity_test {
 
 				round ++;
 			}
+		}
+
+		for (unsigned i = 0; i < cpus.total(); i++) {
+			Cpu_thread_client thread(threads[i]->cap());
+			thread.pause();
 		}
 
 		for (unsigned i = 0; i < cpus.total(); i++)
