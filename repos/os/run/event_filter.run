@@ -93,13 +93,14 @@ install_config {
 			<service name="ROM" label="remap_include">   <child name="report_rom"/> </service>
 			<service name="ROM" label="capslock">        <child name="report_rom"/> </service>
 			<service name="Event"> <child name="test-event_filter"/> </service>
+			<service name="Report"> <child name="test-event_filter"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 
 	<start name="test-event_filter" ram="4M" priority="-1">
-		<provides> <service name="Event"/> </provides>
+		<provides> <service name="Event"/> <service name="Report"/> </provides>
 		<config>
 
 			<driver name="usb"/>
@@ -682,6 +683,64 @@ install_config {
 			<expect_touch id="0" x="15" y="65"/>
 			<expect_touch_release id="1"/>
 			<expect_touch_release id="0"/>
+
+			<message string="test shortcut report"/>
+
+			<filter_config>
+				<output>
+					<report>
+						<shortcut name="toggle_screen_lock">
+							<key name="KEY_LEFTMETA"/> <key name="KEY_L"/>
+						</shortcut>
+						<input name="usb"/>
+					</report>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<press   code="KEY_LEFTMETA"/>
+				<press   code="KEY_L"/>
+				<release code="KEY_L"/>
+				<release code="KEY_LEFTMETA"/>
+			</usb>
+			<expect_press   code="KEY_LEFTMETA"/>
+			<expect_press   code="KEY_L"/>
+			<expect_release code="KEY_L"/>
+			<expect_release code="KEY_LEFTMETA"/>
+			<sleep ms="100"/>
+			<expect_shortcut name="toggle_screen_lock" serial="1"/>
+
+			<filter_config>
+				<output>
+					<report>
+						<shortcut name="toggle_screen_lock">
+							<key name="KEY_LEFTMETA"/> <key name="KEY_L"/>
+						</shortcut>
+						<shortcut name="screenshot">
+							<key name="KEY_LEFTMETA"/> <key name="KEY_S"/>
+						</shortcut>
+						<input name="usb"/>
+					</report>
+				</output>
+				<policy label_suffix="usb" input="usb"/>
+			</filter_config>
+			<sleep ms="100"/>
+			<usb>
+				<press   code="KEY_LEFTMETA"/>
+				<press   code="KEY_S"/>
+				<release code="KEY_S"/>
+			</usb>
+			<sleep ms="100"/>
+			<expect_shortcut name="screenshot" serial="2"/>
+			<usb>
+				<press   code="KEY_L"/>
+				<release code="KEY_L"/>
+				<release code="KEY_LEFTMETA"/>
+			</usb>
+			<sleep ms="100"/>
+			<expect_shortcut name="screenshot" serial="2"/>
+			<expect_shortcut name="toggle_screen_lock" serial="3"/>
 
 		</config>
 		<route>

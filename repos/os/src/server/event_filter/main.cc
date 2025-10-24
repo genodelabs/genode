@@ -1,6 +1,7 @@
 /*
  * \brief  Input-event filter
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2017-02-01
  */
 
@@ -25,6 +26,7 @@
 #include <button_scroll_source.h>
 #include <accelerate_source.h>
 #include <log_source.h>
+#include <report_source.h>
 #include <touch_click_source.h>
 #include <touch_key_source.h>
 #include <touch_gesture_source.h>
@@ -77,6 +79,16 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 			return lazy->timer;
 		}
 	} _timer_accessor { _env };
+
+	/*
+	 * Serial numbers for reporting unique events
+	 */
+	struct Serial : Event_filter::Serial
+	{
+		unsigned num { };
+
+		unsigned number() override { return ++num; }
+	} _serial { };
 
 	/**
 	 * Pool of configuration include snippets, obtained as ROM modules
@@ -356,6 +368,9 @@ struct Event_filter::Main : Source::Factory, Source::Trigger
 
 		if (node.type() == Log_source::name())
 			return *new (_heap) Log_source(owner, node, *this);
+
+		if (node.type() == Report_source::name())
+			return *new (_heap) Report_source(owner, node, *this, _heap, _env, _serial);
 
 		if (node.type() == Transform_source::name())
 			return *new (_heap) Transform_source(owner, node, *this);

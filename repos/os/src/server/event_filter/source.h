@@ -47,6 +47,7 @@ class Event_filter::Source
 			    || node.type() == "button-scroll"
 			    || node.type() == "accelerate"
 			    || node.type() == "log"
+			    || node.type() == "report"
 			    || node.type() == "transform"
 			    || node.type() == "touch-click"
 			    || node.type() == "touch-key"
