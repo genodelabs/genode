@@ -1,21 +1,17 @@
-<runtime ram="32M" caps="400" binary="decorator">
-
-	<requires>
-		<rom label="window_layout"/>
-		<rom label="pointer"/>
-		<report/>
-		<gui/>
-		<timer/>
-	</requires>
-
-	<config>
-		<controls> <maximizer/> <title/> <closer/> </controls>
-		<default-policy/>
-	</config>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="decorator"/>
-	</content>
-
-</runtime>
+runtime | ram: 32M | caps: 400 | binary: decorator
++ requires
+  + rom | label: window_layout
+  + rom | label: pointer
+  + report
+  + gui
+  + timer
++ config
+  + controls
+  | + maximizer
+  | + title
+  | + closer
+  + default-policy
++ content
+  + rom | label: ld.lib.so
+  + rom | label: decorator
+-
