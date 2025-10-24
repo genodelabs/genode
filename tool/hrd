@@ -579,7 +579,7 @@ proc print_hrd_node_recursively { out_fd indent hrd { last 0 } } {
 		regsub -all {.} "$type" " " node_column
 
 		# branch besides the attributes to the first child node
-		if {![hrd_leaf $hrd]} {
+		if {![hrd_leaf $hrd] && $indent != ""} {
 			regsub {^ } $node_column "|" node_column }
 
 		hrd_foreach_non_first_attr tag value $hrd {
