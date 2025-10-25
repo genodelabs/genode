@@ -36,6 +36,13 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 		});
 	};
 
+	auto has_quoted_content = [] (Node const &node)
+	{
+		bool result = false;
+		node.for_each_quoted_line([&] (auto const &) { result = true; });
+		return result;
+	};
+
 	struct Out_buffer : Output
 	{
 		Byte_range_ptr _bytes;
@@ -103,8 +110,14 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 		/* count the number of arguments and environment variables */
 		node.for_each_sub_node([&] (Node const &node) {
-			with_arg       (node, [&] (Node const &) { argc++; });
-			with_legacy_arg(node, [&] (Node const &) { argc++; });
+			with_arg(node, [&] (Node const &arg) {
+				if (arg.has_attribute("name")) argc++;
+				if (has_quoted_content(arg))   argc++;
+			});
+			with_legacy_arg(node, [&] (Node const &arg) {
+				if (arg.has_attribute("name")) argc++;
+				argc++;
+			});
 			with_env       (node, [&] (Node const &) { envc++; });
 			with_legacy_env(node, [&] (Node const &) { envc++; });
 		});
@@ -131,20 +144,43 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 			with_arg(node, [&] (Node const &node) {
 
-				size_t const size = num_printed_bytes(Node::Quoted_content(node))
-				                  + 1; /* for null termination */
+				/* generate tag argument from name attribute */
+				with_raw_attr(node, "name", [&] (char const *start, size_t length) {
+					size_t const size = length + 1; /* for null termination */
 
-				argv[arg_i] = (char *)malloc(size);
+					argv[arg_i] = (char *)malloc(size);
 
-				Out_buffer out { Byte_range_ptr(argv[arg_i], size - 1) };
+					Genode::copy_cstring(argv[arg_i], start, size);
+					++arg_i;
+				});
 
-				print(out, Node::Quoted_content(node));
+				if (has_quoted_content(node)) {
 
-				argv[arg_i][size - 1] = 0; /* terminate cstring */
-				++arg_i;
+					size_t const size = num_printed_bytes(Node::Quoted_content(node))
+					                  + 1; /* for null termination */
+
+					argv[arg_i] = (char *)malloc(size);
+
+					Out_buffer out { Byte_range_ptr(argv[arg_i], size - 1) };
+
+					print(out, Node::Quoted_content(node));
+
+					argv[arg_i][size - 1] = 0; /* terminate cstring */
+					++arg_i;
+				}
 			});
 
 			with_legacy_arg(node, [&] (Node const &node) {
+
+				with_raw_attr(node, "name", [&] (char const *start, size_t length) {
+					size_t const size = length + 1; /* for null termination */
+
+					argv[arg_i] = (char *)malloc(size);
+
+					Genode::copy_cstring(argv[arg_i], start, size);
+					++arg_i;
+				});
+
 				with_raw_attr(node, "value", [&] (char const *start, size_t length) {
 
 					size_t const size = length + 1; /* for null termination */

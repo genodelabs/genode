@@ -8,6 +8,9 @@
 			[init -> test-libc_getenv] fitz=" with leading space"*
 			[init -> test-libc_getenv] fatz="with trailing space "*
 			[init -> test-libc_getenv] no env variable named ' arg with surrounding spaces '*
+			[init -> test-libc_getenv] no env variable named '--tag-with-no-value'
+			[init -> test-libc_getenv] no env variable named '--tag-with'
+			[init -> test-libc_getenv] no env variable named 'value'
 			[init] child "test-libc_getenv" exited with exit value 0
 	</succeed>
 
@@ -43,6 +46,8 @@
 				<arg>fitz</arg>
 				<arg>fatz</arg>
 				<arg> arg with surrounding spaces </arg>
+				<arg name="--tag-with-no-value"/>
+				<arg name="--tag-with">value</arg>
 				<env key="foo" value="bar"/>
 				<env key="bar" value="foo"/>
 				<env name="fitz"> with leading space</env>
