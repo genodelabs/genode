@@ -99,7 +99,8 @@ static void gen_vfs_start(Generator &g,
 			gen_named_node(g, "dir", "share", [&] {
 				gen_named_node(g, "dir", "vim", [&] {
 					g.node("rom", [&] {
-						g.attribute("name", "vimrc"); }); }); });
+						g.attribute("name", "vimrc");
+						g.attribute("binary", "no"); }); }); });
 
 			gen_named_node(g, "rom", "VERSION");
 		});
