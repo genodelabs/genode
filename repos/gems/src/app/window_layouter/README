@@ -177,20 +177,20 @@ layouter configuration as follows:
 
 ! <config>
 !   ...
-!   <press key="KEY_LEFTMETA">
-!     <press key="KEY_TAB"              action="next_window">
-!       <release key="KEY_TAB">
-!         <release key="KEY_LEFTMETA"   action="raise_window"/>
+!   <press name="KEY_LEFTMETA">
+!     <press name="KEY_TAB"              action="next_window">
+!       <release name="KEY_TAB">
+!         <release name="KEY_LEFTMETA"   action="raise_window"/>
 !       </release>
 !     </press>
-!     <press key="KEY_LEFTSHIFT">
-!       <press key="KEY_TAB"            action="prev_window">
-!         <release key="KEY_TAB">
-!           <release key="KEY_LEFTMETA" action="raise_window"/>
+!     <press name="KEY_LEFTSHIFT">
+!       <press name="KEY_TAB"            action="prev_window">
+!         <release name="KEY_TAB">
+!           <release name="KEY_LEFTMETA" action="raise_window"/>
 !         </release>
 !       </press>
 !     </press>
-!     <press key="KEY_ENTER"            action="toggle_fullscreen"/>
+!     <press name="KEY_ENTER"            action="toggle_fullscreen"/>
 !   </press>
 ! </config>
 

@@ -110,7 +110,8 @@ class Window_layouter::Key_sequence_tracker
 
 			bool done = false; /* process the first match only */
 			curr.for_each_sub_node(node_type, [&] (Node const &node) {
-				if (node.attribute_value("key", Key_name()) == key) {
+				if (node.attribute_value("name", Key_name()) == key
+				 || node.attribute_value("key",  Key_name()) == key) {
 					fn(node);
 					done = true; } });
 
