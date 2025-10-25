@@ -1,88 +1,64 @@
-<runtime ram="12M" caps="550" binary="init">
+runtime | ram: 12M | caps: 550 | binary: init
++ requires
+  + gui
+  + rom | label: window_list
+  + rom | label: focus_request
+  + rom | label: hover
+  + rom | label: decorator_margins
+  + report
+  + file_system | label: recall
+  + timer
 
-	<requires>
-		<gui/>
-		<rom label="window_list"/>
-		<rom label="focus_request"/>
-		<rom label="hover"/>
-		<rom label="decorator_margins"/>
-		<report/>
-		<file_system label="recall"/>
-		<timer/>
-	</requires>
++ config
+  + parent-provides
+  | + service CPU
+  | + service LOG
+  | + service PD
+  | + service ROM
+  | + service Report
+  | + service Timer
+  | + service Gui
+  | + service File_system
+  + default-route
+  | + any-service
+  |   + parent
+  |   + any-child
+  + default | caps: 150 | ram:  2M
+  |
+  + start fs_report
+  | + provides | + service Report
+  | + config | + vfs | + fs
+  | + route
+  |   + service File_system | + parent | identity: recall
+  |   + any-service         | + parent
+  |
+  + start fs_rom
+  | + provides | + service ROM
+  | + config
+  | + route
+  |   + service File_system | + parent | identity: recall
+  |   + any-service         | + parent
+  |
+  + start window_layouter | caps: 120 | ram: 6M
+    + route
+      + service ROM    | label: config            | + parent | label: window_layouter.config
+      + service ROM    | label: rules             | + child fs_rom | label: 25.10
+      + service ROM    | label: window_list       | + parent | label: window_list
+      + service ROM    | label: focus_request     | + parent | label: focus_request
+      + service ROM    | label: hover             | + parent | label: hover
+      + service ROM    | label: decorator_margins | + parent | label: decorator_margins
+      + service Report | label: rules             | + child fs_report | label: 25.10
+      + service Report | label: window_layout     | + parent | label: window_layout
+      + service Report | label: resize_request    | + parent | label: resize_request
+      + service Report | label: focus             | + parent | label: focus
+      + any-service                               | + parent
 
-	<config>
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="ROM"/>
-			<service name="Report"/>
-			<service name="Timer"/>
-			<service name="Gui"/>
-			<service name="File_system"/>
-		</parent-provides>
-
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-
-		<default caps="150" ram="2M"/>
-
-		<start name="fs_report">
-			<provides> <service name="Report"/> </provides>
-			<config> <vfs> <fs/> </vfs> </config>
-			<route>
-				<service name="File_system"> <parent identity="recall"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="fs_rom">
-			<provides> <service name="ROM"/> </provides>
-			<config/>
-			<route>
-				<service name="File_system"> <parent identity="recall"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="window_layouter" caps="120" ram="6M">
-			<route>
-				<service name="ROM" label="config">
-					<parent label="window_layouter.config"/> </service>
-				<service name="ROM" label="rules">
-					<child name="fs_rom" label="25.10"/> </service>
-				<service name="ROM" label="window_list">
-					<parent label="window_list"/> </service>
-				<service name="ROM" label="focus_request">
-					<parent label="focus_request"/> </service>
-				<service name="ROM" label="hover">
-					<parent label="hover"/> </service>
-				<service name="ROM" label="decorator_margins">
-					<parent label="decorator_margins"/> </service>
-				<service name="Report" label="rules">
-					<child name="fs_report" label="25.10"/> </service>
-				<service name="Report" label="window_layout">
-					<parent label="window_layout"/> </service>
-				<service name="Report" label="resize_request">
-					<parent label="resize_request"/> </service>
-				<service name="Report" label="focus">
-					<parent label="focus"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-	</config>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="init"/>
-		<rom label="fs_report"/>
-		<rom label="fs_rom"/>
-		<rom label="window_layouter"/>
-		<rom label="window_layouter.config"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: init
+  + rom | label: fs_report
+  + rom | label: fs_rom
+  + rom | label: window_layouter
+  + rom | label: window_layouter.config
+-
