@@ -94,10 +94,9 @@ install_config {
 
 	<start name="lighttpd" caps="1000" ram="1G">
 		<config>
-			<arg value="lighttpd" />
-			<arg value="-f" />
-			<arg value="/etc/lighttpd/lighttpd.conf" />
-			<arg value="-D" />
+			<arg>lighttpd</arg>
+			<arg name="-f">/etc/lighttpd/lighttpd.conf</arg>
+			<arg>-D</arg>
 			<vfs>
 				<dir name="dev">
 					<log/>

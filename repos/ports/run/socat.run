@@ -171,15 +171,15 @@ append config {
 			      stderr="/dev/log"
 			      rtc="/dev/rtc"
 			      socket="/socket"/>
-			<arg value="socat"/>
-			<arg value="/dev/crosslink"/>}
+			<arg>socat</arg>
+			<arg>/dev/crosslink</arg>}
 if {[have_include power_on/qemu]} {
 	append config {
-			<arg value="/dev/uart"/>
+			<arg>/dev/uart</arg>
 	}
 } else {
 	append config {
-			<arg value="TCP4-LISTEN:5555"/>
+			<arg>TCP4-LISTEN:5555</arg>
 	}
 }
 append config {

@@ -168,27 +168,25 @@ install_config {
 
 			<env name="TERM">screen</env>
 
-			<arg value="/bin/vim" />
+			<arg>/bin/vim</arg>
 
 			<!-- Deactivate the loading of plugins. Otherwise, vim will
 			     attempt to use a sub shell for pattern matching -->
-			<arg value="--noplugin" />
+			<arg>--noplugin</arg>
 
 			<!-- Do not use swap file. Any attempt to create of would
 			     fail because we are on a read-only file system -->
-			<arg value="-n" />
+			<arg>-n</arg>
 
 			<!-- Use the nocompatible mode, which is much nicer than
 			     the plain vi mode -->
-			<arg value="-N" />
+			<arg>-N</arg>
 
 			<!-- Permanently display status bar -->
-			<arg value="--cmd" />
-			<arg value="set laststatus=2" />
+			<arg name="--cmd">set laststatus=2</arg>
 
 			<!-- Enable highlighted search results -->
-			<arg value="--cmd" />
-			<arg value="set hls" />
+			<arg name="--cmd">set hls</arg>
 		</config>
 		<route>
 			<service name="File_system"> <child name="vfs"/> </service>

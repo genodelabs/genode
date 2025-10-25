@@ -120,7 +120,7 @@ install_config {
 			<libc stdin="/dev/terminal" stdout="/dev/terminal"
 			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/pipe"/>
 			<vfs> <fs/> </vfs>
-			<arg value="bash"/>
+			<arg>bash</arg>
 			<env name="TERM">screen</env>
 			<env name="PATH">/bin</env>
 		</config>

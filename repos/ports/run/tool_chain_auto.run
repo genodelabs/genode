@@ -217,7 +217,7 @@ install_config {
 			<env name="HOME">/home</env>
 			<env name="PATH">/bin</env>
 			<arg>/bin/bash</arg>
-			<arg value="--login"/>
+			<arg>--login</arg>
 		</config>
 		<route>
 			<service name="File_system"> <child name="vfs"/> </service>

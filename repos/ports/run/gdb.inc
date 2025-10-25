@@ -258,15 +258,15 @@ append config {
 			      stderr="/dev/log"
 			      rtc="/dev/rtc"
 			      socket="/socket"/>
-			<arg value="socat"/>
-			<arg value="/dev/gdb"/>}
+			<arg>socat</arg>
+			<arg>/dev/gdb</arg>}
 if {[have_include power_on/qemu]} {
 	append config {
-			<arg value="/dev/uart"/>
+			<arg>/dev/uart</arg>
 	}
 } else {
 	append config {
-			<arg value="TCP4-LISTEN:5555"/>
+			<arg>TCP4-LISTEN:5555</arg>
 	}
 }
 append config {
@@ -301,19 +301,19 @@ append config {
 			</vfs>
 			<libc stdin="/dev/tty" stdout="/dev/tty" stderr="/dev/tty"
 			      pipe="/pipe" rtc="/dev/rtc"/>
-			<arg value="gdb"/>
-			<arg value="debug/ld.lib.so"/>
-			<arg value="-ex"/> <arg value="set pagination off"/>
-			<arg value="-ex"/> <arg value="set style enabled off"/>
-			<arg value="-ex"/> <arg value="set interactive-mode off"/>
-			<arg value="-ex"/> <arg value="set solib-search-path debug"/>
-			<arg value="-ex"/> <arg value="set non-stop on"/>
-			<arg value="-ex"/> <arg value="target extended-remote /dev/monitor"/>
-			<arg value="-ex"/> <arg value="b binary_ready_hook_for_gdb"/>
-			<arg value="-ex"/> <arg value="c"/>
-			<arg value="-ex"/> <arg value="delete 1"/>
-			<arg value="-ex"/> <arg value="thread 2"/>
-			<arg value="-ex"/> <arg value="file debug/test-monitor_gdb"/>
+			<arg>gdb</arg>
+			<arg>debug/ld.lib.so</arg>
+			<arg name="-ex">set pagination off</arg>
+			<arg name="-ex">set style enabled off</arg>
+			<arg name="-ex">set interactive-mode off</arg>
+			<arg name="-ex">set solib-search-path debug</arg>
+			<arg name="-ex">set non-stop on</arg>
+			<arg name="-ex">target extended-remote /dev/monitor</arg>
+			<arg name="-ex">b binary_ready_hook_for_gdb</arg>
+			<arg name="-ex">c</arg>
+			<arg name="-ex">delete 1</arg>
+			<arg name="-ex">thread 2</arg>
+			<arg name="-ex">file debug/test-monitor_gdb</arg>
 		</config>
 		<route>
 			<service name="ROM" label_last="/bin/} [gdb_prefix] {gdb">

@@ -380,10 +380,10 @@ append config {
 	<start name="netserver_genode" caps="320" ram="14M" priority="-2">
 		<binary name="netserver"/>
 		<config>
-			<arg value="netserver"/>
-			<arg value="-D"/>
-			<arg value="-4"/>
-			<arg value="-f"/>
+			<arg>netserver</arg>
+			<arg>-D</arg>
+			<arg>-4</arg>
+			<arg>-f</arg>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
 			<vfs>
 				<dir name="dev">
