@@ -91,7 +91,7 @@ proc run_boot_dir {binaries} {
 
 	# check syntax of all boot modules named *.config
 	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
-		check_xml_syntax $file }
+		check_syntax $file }
 
 	# create core binary containing the boot modules
 	build_core [run_dir]/genode/$core_obj $modules [run_dir]/genode/core.elf [core_link_address]

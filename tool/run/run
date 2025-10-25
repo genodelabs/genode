@@ -155,6 +155,19 @@ proc check_xml_syntax {xml_file} {
 }
 
 
+proc looks_like_xml { file } {
+
+	set fd [open $file r]
+	set content [read $fd]
+	close $fd
+
+	return [regexp {^\s*[<]} $content dummy]
+}
+
+
+proc check_syntax { arg } { if {[looks_like_xml $arg]} { check_xml_syntax $arg } }
+
+
 ##
 # Validate configuration file to match an XML schema using xmllint
 #
@@ -835,8 +848,17 @@ proc kernel_specific_binary { binary {silent ""} } {
 }
 
 
-proc copy_file {src dst} {
-	file copy -force $src $dst
+proc copy_file {src dst} { file copy -force $src $dst }
+
+
+proc copy_config { from to } {
+
+	copy_file $from $to
+
+	if {[looks_like_xml $to]} {
+		puts "converting $to to HRD"
+		exec [genode_dir]/tool/hrd -i --import-xml format $to
+	}
 }
 
 
@@ -1209,7 +1231,7 @@ proc build_core_image { modules } {
 
 	# check syntax of all boot modules named *.config
 	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
-		check_xml_syntax $file }
+		check_syntax $file }
 
 	# create core binary containing the boot modules
 	set image_elf [run_dir]/[kernel_specific_binary image.elf]
@@ -1229,7 +1251,7 @@ proc build_initrd { modules } {
 	set excluded_modules [kernel_files]
 
 	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
-		check_xml_syntax $file }
+		check_syntax $file }
 
 	exec cp -f [run_dir]/genode/config [run_dir].config
 
