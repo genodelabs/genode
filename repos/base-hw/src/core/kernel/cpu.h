@@ -149,6 +149,8 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		 */
 		Context& schedule_next_context();
 
+		void backtrace();
+
 		Board::Local_interrupt_controller & pic() { return _pic; }
 
 		Timer & timer() { return _timer; }

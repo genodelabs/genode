@@ -15,7 +15,7 @@
 #include <kernel/cpu.h>
 #include <kernel/timer.h>
 #include <kernel/configuration.h>
-#include <hw/assert.h>
+#include <kernel/assert.h>
 
 using namespace Kernel;
 
@@ -111,5 +111,5 @@ Timer::Timer(Cpu &cpu)
 	 * The timer frequency should allow a good accuracy on the smallest
 	 * timeout syscall value (1 us).
 	 */
-	assert(ticks_to_us(1) < 1 || ticks_to_us(_max_value()) == _max_value());
+	ASSERT(ticks_to_us(1) < 1 || ticks_to_us(_max_value()) == _max_value());
 }

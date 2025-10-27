@@ -16,7 +16,7 @@
 #define _CORE__KERNEL__PD_H_
 
 /* base-hw core includes */
-#include <hw/assert.h>
+#include <kernel/assert.h>
 #include <kernel/core_interface.h>
 #include <object.h>
 #include <board.h>
@@ -81,7 +81,7 @@ class Kernel::Pd
 			mmu_regs(_core_data.table_phys_addr, addr_space_id_alloc)
 		{
 			/* exclude invalid ID from allocator */
-			assert(_capid_alloc.alloc(cap_id_invalid()).ok());
+			ASSERT(_capid_alloc.alloc(cap_id_invalid()).ok());
 		}
 
 		static capid_t syscall_create(Core::Kernel_object<Pd> &p,

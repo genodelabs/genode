@@ -34,6 +34,7 @@ class Kernel::Main
 		friend void main_initialize_and_handle_kernel_entry();
 		friend time_t main_read_idle_thread_execution_time(Call_arg);
 		friend void main_print_char(char c);
+		friend void backtrace();
 
 		enum { SERIAL_BAUD_RATE = 115200 };
 
@@ -217,6 +218,12 @@ Kernel::main_read_idle_thread_execution_time(Call_arg arg)
 	Main::_instance->_cpu_pool.with_cpu(arg, [&] (Cpu &cpu) {
 		ret = cpu.idle_thread().execution_time(); });
 	return ret;
+}
+
+
+void Kernel::backtrace()
+{
+	Main::_instance->_cpu_pool.cpu(Cpu::executing_id()).backtrace();
 }
 
 

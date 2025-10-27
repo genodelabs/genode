@@ -13,7 +13,7 @@
 
 #include <base/lock.h>
 #include <base/mutex.h>
-#include <hw/assert.h>
+#include <assert.h>
 
 Genode::Lock::Lock(Genode::Lock::State state)
 : _state(state), _owner(nullptr) { }
@@ -21,14 +21,14 @@ Genode::Lock::Lock(Genode::Lock::State state)
 
 void Genode::Lock::unlock()
 {
-	assert(_state == LOCKED);
+	ASSERT(_state == LOCKED);
 	_state = UNLOCKED;
 }
 
 
 void Genode::Lock::lock()
 {
-	assert(_state == UNLOCKED);
+	ASSERT(_state == UNLOCKED);
 	_state = LOCKED;
 }
 

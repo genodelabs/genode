@@ -12,7 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <hw/assert.h>
 #include <cpu/vcpu_state_virtualization.h>
 
 #include <kernel/cpu.h>

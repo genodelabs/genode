@@ -12,9 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* base-hw internal includes */
-#include <hw/assert.h>
-
 /* base-hw core includes */
 #include <kernel/cpu.h>
 #include <kernel/pd.h>

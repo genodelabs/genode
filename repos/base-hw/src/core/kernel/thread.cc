@@ -20,7 +20,7 @@
 #include <base/internal/crt0.h>
 
 /* core includes */
-#include <hw/assert.h>
+#include <kernel/assert.h>
 #include <hw/memory_map.h>
 #include <kernel/cpu.h>
 #include <kernel/thread.h>
@@ -215,7 +215,7 @@ void Thread_fault::print(Genode::Output &out) const
 
 void Thread::signal_context_kill_done()
 {
-	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
+	ASSERT(_state == AWAITS_SIGNAL_CONTEXT_KILL);
 	_become_active();
 }
 
@@ -229,7 +229,7 @@ void Thread::signal_receive_signal(void * const base, size_t const size)
 
 void Thread::ipc_send_request_succeeded()
 {
-	assert(_state == AWAITS_IPC);
+	ASSERT(_state == AWAITS_IPC);
 	_become_active();
 	helping_finished();
 }
@@ -237,7 +237,7 @@ void Thread::ipc_send_request_succeeded()
 
 void Thread::ipc_send_request_failed()
 {
-	assert(_state == AWAITS_IPC);
+	ASSERT(_state == AWAITS_IPC);
 	_become_inactive(DEAD);
 	helping_finished();
 }
@@ -245,7 +245,7 @@ void Thread::ipc_send_request_failed()
 
 void Thread::ipc_await_request_succeeded()
 {
-	assert(_state == AWAITS_IPC);
+	ASSERT(_state == AWAITS_IPC);
 	_become_active();
 }
 
@@ -273,7 +273,7 @@ void Thread::_become_inactive(State const s)
 
 Rpc_result Thread::_call_thread_start(Thread &thread, Native_utcb &utcb)
 {
-	assert(thread._state == AWAITS_START);
+	ASSERT(thread._state == AWAITS_START);
 
 	switch (thread._ipc_init(utcb, *this)) {
 	case Ipc_alloc_result::OK:
@@ -307,7 +307,7 @@ void Thread::_call_thread_resume(Thread &thread)
 
 void Thread::_call_thread_stop()
 {
-	assert(_state == ACTIVE);
+	ASSERT(_state == ACTIVE);
 	_become_inactive(AWAITS_RESTART);
 }
 
@@ -331,7 +331,7 @@ Thread_restart_result Thread::_call_thread_restart(capid_t const id)
 
 bool Thread::_restart()
 {
-	assert(_state == ACTIVE || _state == AWAITS_RESTART);
+	ASSERT(_state == ACTIVE || _state == AWAITS_RESTART);
 
 	if (_state == ACTIVE && _exception_state == NO_EXCEPTION)
 		return false;

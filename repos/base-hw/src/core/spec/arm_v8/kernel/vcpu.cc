@@ -15,7 +15,6 @@
 #include <cpu/vcpu_state_virtualization.h>
 #include <util/mmio.h>
 
-#include <hw/assert.h>
 #include <hw/spec/arm_64/memory_map.h>
 #include <map_local.h>
 #include <kernel/cpu.h>

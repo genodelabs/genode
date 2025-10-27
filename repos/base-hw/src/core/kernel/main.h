@@ -30,6 +30,8 @@ namespace Kernel {
 	time_t main_read_idle_thread_execution_time(Call_arg);
 
 	void main_print_char(char c);
+
+	void backtrace();
 }
 
 #endif /* _KERNEL__MAIN_H_ */

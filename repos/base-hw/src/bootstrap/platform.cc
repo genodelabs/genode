@@ -12,9 +12,9 @@
  */
 
 #include <base/internal/crt0.h>
-#include <hw/assert.h>
 #include <hw/memory_consts.h>
 
+#include <assert.h>
 #include <boot_modules.h>
 #include <platform.h>
 
@@ -40,7 +40,7 @@ void * Platform::Ram_allocator::alloc(size_t size, Align align)
 		[&] (Alloc_error e) -> void *
 		{
 			error("bootstrap RAM allocation failed, error=", e);
-			assert(false);
+			ASSERT(false);
 		});
 }
 

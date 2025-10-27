@@ -20,9 +20,16 @@
 #include <kernel/irq.h>
 #include <kernel/pd.h>
 #include <board.h>
-#include <hw/assert.h>
+#include <kernel/assert.h>
 #include <hw/boot_info.h>
 #include <hw/memory_consts.h>
+
+/* for backtrace */
+#include <util/string.h>
+namespace Genode {
+	void for_each_return_address(Const_byte_range_ptr const &, auto const &);
+}
+#include <os/for_each_return_address.h>
 
 using namespace Kernel;
 
@@ -42,7 +49,7 @@ void Cpu_context::_deactivate()
 
 void Cpu_context::_yield()
 {
-	assert(_cpu().id() == Cpu::executing_id());
+	ASSERT(_cpu().id() == Cpu::executing_id());
 	_cpu().scheduler().yield();
 }
 
@@ -74,7 +81,7 @@ Cpu_context::Cpu_context(Cpu &cpu, Group_id const id)
 
 Cpu_context::~Cpu_context()
 {
-	assert(_cpu().id() == Cpu::executing_id() ||
+	ASSERT(_cpu().id() == Cpu::executing_id() ||
 	       &_cpu().current_context() != this);
 	_deactivate();
 }
@@ -105,6 +112,19 @@ void Cpu::assign(Context &context)
 {
 	_scheduler.ready(static_cast<Scheduler::Context&>(context));
 	if (_id != executing_id()) trigger_ip_interrupt();
+}
+
+
+void Cpu::backtrace()
+{
+	using namespace Genode;
+
+	log("");
+	log("Backtrace of kernel context on cpu ", _id.value, ":");
+
+	Const_byte_range_ptr const stack {
+		(char const*)stack_base(), Hw::Mm::KERNEL_STACK_SIZE };
+	for_each_return_address(stack, [&] (void **p) { log(*p); });
 }
 
 

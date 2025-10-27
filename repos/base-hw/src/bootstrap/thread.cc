@@ -12,18 +12,18 @@
  */
 
 #include <base/thread.h>
-#include <hw/assert.h>
+#include <assert.h>
 
 
 Genode::Thread * Genode::Thread::myself()
 {
-	assert(false);
+	ASSERT(false);
 	return nullptr;
 }
 
 
 Genode::Thread::Stack_info Genode::Thread::mystack()
 {
-	assert(false);
+	ASSERT(false);
 	return { };
 }

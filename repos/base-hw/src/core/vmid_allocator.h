@@ -15,7 +15,7 @@
 #ifndef _CORE__VMID_ALLOCATOR_H_
 #define _CORE__VMID_ALLOCATOR_H_
 
-#include <hw/assert.h>
+#include <assertion.h>
 #include <util/bit_allocator.h>
 
 namespace Core { struct Vmid_allocator; }
@@ -26,8 +26,12 @@ struct Core::Vmid_allocator
 	Vmid_allocator()
 	{
 		/* reserve VM ID 0 for the hypervisor */
-		alloc().with_result([] (addr_t id)             { assert(id == 0); },
-		                    [] (Vmid_allocator::Error) { assert(false); });
+		alloc().with_result(
+			[] (addr_t id) {
+				if (id != 0)
+					Genode::error("Reserved virtual ASID not zero, but ", id);
+			},
+			[] (Vmid_allocator::Error) { ASSERT_NEVER_CALLED; });
 	}
 };
 
