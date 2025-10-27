@@ -43,6 +43,8 @@ void Cpu_context::_activate() { _cpu().assign(*this); }
 
 void Cpu_context::_deactivate()
 {
+	ASSERT(_cpu().id() == Cpu::executing_id() ||
+	       &_cpu().current_context() != this);
 	_cpu().scheduler().unready(*this);
 }
 
@@ -81,8 +83,6 @@ Cpu_context::Cpu_context(Cpu &cpu, Group_id const id)
 
 Cpu_context::~Cpu_context()
 {
-	ASSERT(_cpu().id() == Cpu::executing_id() ||
-	       &_cpu().current_context() != this);
 	_deactivate();
 }
 
