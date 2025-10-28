@@ -49,9 +49,9 @@ struct Sculpt::System_dialog : Top_level_dialog
 	Hosted<Frame, Vbox, Software_version_widget> _version_widget { Id { "version" } };
 
 	Hosted<Frame, Vbox, Hbox, Select_button<Tab>>
-		_power_tab  { Id { " Power " },   Tab::POWER  },
-		_preset_tab { Id { " Presets " }, Tab::PRESET },
-		_update_tab { Id { " Update "  }, Tab::UPDATE };
+		_power_tab  { Id { "Power" },   Tab::POWER  },
+		_preset_tab { Id { "Presets" }, Tab::PRESET },
+		_update_tab { Id { "Update"  }, Tab::UPDATE };
 
 	void view(Scope<> &s) const override
 	{

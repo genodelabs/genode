@@ -466,8 +466,8 @@ struct Dialog::Doublechecked_action_button
 
 	Doublechecked_action_button(Id::Value const &id_prefix)
 	:
-		_operation        (Id { Id::Value { id_prefix, " op" } }),
-		_confirm_or_cancel(Id { Id::Value { id_prefix, " confirm" } })
+		_operation        (Id { Id::Value { id_prefix, "-op" } }),
+		_confirm_or_cancel(Id { Id::Value { id_prefix, "-confirm" } })
 	{ }
 
 	void reset() { selected = false, confirmed = false; }

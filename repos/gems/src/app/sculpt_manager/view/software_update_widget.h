@@ -219,7 +219,7 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 	void view(Scope<Vbox> &s, Node const &image_index) const
 	{
 		/* use empty ID to not interfere with matching the version in 'click'*/
-		s.sub_scope<Frame>(Id { }, [&] (Scope<Vbox, Frame> &s) {
+		s.sub_scope<Frame>(Id { "_" }, [&] (Scope<Vbox, Frame> &s) {
 			s.sub_scope<Vbox>([&] (Scope<Vbox, Frame, Vbox> &s) {
 
 				s.widget(_users);
@@ -271,7 +271,7 @@ struct Sculpt::Software_update_widget : Widget<Vbox>
 		Id   const version = at.matching_id<Vbox, Frame>();
 		Path const path    = _image_path(version.value);
 
-		if (version.valid()) {
+		if (version.valid() && version.value != "_") {
 			_last_selected = path;
 
 			_hosted_image_main.propagate(at,
