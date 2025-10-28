@@ -48,9 +48,19 @@ struct Main
 
 	Signal_handler<Main> scheduler_handler { env.ep(), *this, &Main::handle_scheduler };
 
+	Io_signal_handler<Main> heartbeat_handler { env.ep(), *this, &Main::handle_heartbeat };
+
 	Main(Env & env);
 
 	void handle_scheduler() { Lx_kit::env().scheduler.execute(); }
+
+	void handle_heartbeat()
+	{
+		extern unsigned evdev_count;
+
+		if (evdev_count)
+			env.parent().heartbeat_response();
+	}
 };
 
 
@@ -61,6 +71,7 @@ Main::Main(Env &env) : env(env)
 
 	Lx_kit::initialize(env, scheduler_handler);
 	env.exec_static_constructors();
+	env.parent().heartbeat_sigh(heartbeat_handler);
 
 	/* init C API */
 	genode_event_init(genode_env_ptr(env),
