@@ -49,7 +49,8 @@ struct Sculpt::Software_presets_widget : Widget<Float>
 			s.sub_scope<Vgap>();
 
 			s.sub_scope<Float>([&] (Scope<Vbox, Float> &s) {
-				s.widget(load); });
+				s.widget(load, [&] (Scope<Button> &s) {
+					s.sub_scope<Label>(" Load "); }); });
 
 			s.sub_scope<Vgap>();
 		}
@@ -63,7 +64,7 @@ struct Sculpt::Software_presets_widget : Widget<Float>
 	};
 
 	/* use one button to preserve 'Deferred_action_button' state across presets */
-	Preset::Load _load { Id { " Load " } };
+	Preset::Load _load { Id { "load" } };
 
 	using Hosted_preset = Hosted<Float, Frame, Vbox, Preset>;
 
