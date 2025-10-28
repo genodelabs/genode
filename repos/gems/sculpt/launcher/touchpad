@@ -6,6 +6,7 @@
 	<config gpio_pin="174" bus_addr="44" hid_addr="32" info="Fujtisu U7413 (SYNAPTICS)"/>
 	<config gpio_pin="3"   bus_addr="44" hid_addr="32" info="Framework Gen12/Gen13"/>
 	-->
+	<heartbeat restart_after_skipped="4"/>
 	<route>
 		<service name="Platform"> <parent label="touchpad"/> </service>
 		<service name="Event">    <parent label="touchpad"/> </service>
