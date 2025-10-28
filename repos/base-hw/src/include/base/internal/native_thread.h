@@ -19,14 +19,14 @@
 
 namespace Genode { struct Native_thread; }
 
-namespace Core { class  Platform_thread; }
+namespace Core { class Core_platform_thread; }
 
 
 struct Genode::Native_thread : Noncopyable
 {
 	Native_capability cap { };
 
-	struct { Core::Platform_thread *platform_thread; };
+	struct { Core::Core_platform_thread *platform_thread; };
 
 	Native_thread() { }
 };

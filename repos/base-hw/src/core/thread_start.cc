@@ -100,7 +100,7 @@ void Thread::_deinit_native_thread(Stack &stack)
 void Thread::_init_native_thread(Stack &stack)
 {
 	stack.native_thread().platform_thread = new (platform().core_mem_alloc())
-		Platform_thread(name, stack.utcb(), _affinity);
+		Core_platform_thread(name, stack.utcb(), _affinity);
 }
 
 

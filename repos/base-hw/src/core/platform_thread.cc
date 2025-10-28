@@ -49,56 +49,11 @@ addr_t Platform_thread::Utcb::_attach(Local_rm &local_rm)
 }
 
 
-static addr_t _alloc_core_local_utcb(addr_t core_addr)
-{
-	/*
-	 * All non-core threads use the typical dataspace/rm_session
-	 * mechanisms to allocate and attach its UTCB.
-	 * But for the very first core threads, we need to use plain
-	 * physical and virtual memory allocators to create/attach its
-	 * UTCBs. Therefore, we've to allocate and map those here.
-	 */
-	return platform().ram_alloc().try_alloc(sizeof(Native_utcb)).convert<addr_t>(
-
-		[&] (Range_allocator::Allocation &utcb_phys) {
-			map_local((addr_t)utcb_phys.ptr, core_addr,
-			          sizeof(Native_utcb) / get_page_size());
-			utcb_phys.deallocate = false;
-			return addr_t(utcb_phys.ptr);
-		},
-		[&] (Alloc_error) {
-			error("failed to allocate UTCB for core/kernel thread!");
-			return 0ul;
-		});
-}
-
-
-Platform_thread::Utcb::Utcb(addr_t core_addr)
-:
-	ds(Ram::Error::DENIED),
-	core_addr(core_addr),
-	phys_addr(_alloc_core_local_utcb(core_addr))
-{ }
-
-
 void Platform_thread::_init() { }
 
 
 Weak_ptr<Address_space>& Platform_thread::address_space() {
 	return _address_space; }
-
-
-Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb,
-                                 Affinity::Location const location)
-:
-	_label(label),
-	_pd(_core_platform_pd()),
-	_pager(nullptr),
-	_utcb((addr_t)&utcb),
-	_main_thread(false),
-	_location(location),
-	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(), _label.string())
-{ }
 
 
 Platform_thread::Platform_thread(Platform_pd              &pd,
@@ -188,7 +143,7 @@ void Platform_thread::pager(Pager_object &po)
 {
 	using namespace Kernel;
 
-	po.with_pager([&] (Platform_thread &pt) {
+	po.with_pager([&] (Core_platform_thread &pt) {
 		thread_pager(*_kobj, *pt._kobj,
 		             Capability_space::capid(po.cap())); });
 	_pager = &po;
@@ -242,4 +197,48 @@ void Platform_thread::restart()
 void Platform_thread::fault_resolved(Untyped_capability cap, bool resolved)
 {
 	Kernel::thread_pager_signal_ack(Capability_space::capid(cap), *_kobj, resolved);
+}
+
+
+Core_platform_thread::Core_platform_thread(Label const &label,
+                                           Native_utcb &utcb,
+                                           Affinity::Location const location)
+:
+	_label(label),
+	_utcb(utcb),
+	_location(location),
+	_kobj(_kobj.CALLED_FROM_CORE, _location.xpos(), _label.string())
+{
+	/*
+	 * All non-core threads use the typical dataspace/rm_session
+	 * mechanisms to allocate and attach its UTCB.
+	 * But for the very first core threads, we need to use plain
+	 * physical and virtual memory allocators to create/attach its
+	 * UTCBs. Therefore, we've to allocate and map those here.
+	 */
+	platform().ram_alloc().try_alloc(sizeof(Native_utcb)).with_result(
+		[&] (Range_allocator::Allocation &utcb_phys) {
+			map_local((addr_t)utcb_phys.ptr, (addr_t)&_utcb,
+			          sizeof(Native_utcb) / get_page_size());
+			utcb_phys.deallocate = false;
+		},
+		[&] (Alloc_error) {
+			error("failed to allocate UTCB for core/kernel thread!");
+		});
+}
+
+
+void Core_platform_thread::start(void * const ip, void * const sp)
+{
+	/* initialize thread registers */
+	_kobj->regs->ip = reinterpret_cast<addr_t>(ip);
+	_kobj->regs->sp = reinterpret_cast<addr_t>(sp);
+
+	Native_utcb &utcb = *Thread::myself()->utcb();
+
+	/* reset capability counter */
+	utcb.cap_cnt(0);
+	utcb.cap_add(Capability_space::capid(_kobj.cap()));
+
+	Kernel::thread_start(*_kobj, _utcb);
 }

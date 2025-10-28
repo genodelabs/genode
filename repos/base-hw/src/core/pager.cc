@@ -73,7 +73,7 @@ void Pager_object::wake_up()
 
 
 void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> &receiver,
-                                Platform_thread &pager_thread)
+                                Core_platform_thread &pager_thread)
 {
 	create(*receiver, (unsigned long)this);
 	_pager_thread = &pager_thread;

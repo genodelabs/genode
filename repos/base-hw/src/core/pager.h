@@ -30,7 +30,7 @@
 namespace Core {
 
 	class Platform;
-	class Platform_thread;
+	class Core_platform_thread;
 
 	/**
 	 * Interface used by generic region_map code
@@ -107,7 +107,7 @@ class Core::Pager_object : private Kernel_object<Kernel::Signal_context>
 		Affinity::Location     _location;
 		Cpu_session_capability _cpu_session_cap;
 		Thread_capability      _thread_cap;
-		Platform_thread       *_pager_thread { nullptr };
+		Core_platform_thread  *_pager_thread { nullptr };
 
 		/**
 		 * User-level signal handler registered for this pager object via
@@ -173,7 +173,7 @@ class Core::Pager_object : private Kernel_object<Kernel::Signal_context>
 		 * \param receiver  signal receiver that receives the page faults
 		 */
 		void start_paging(Kernel_object<Kernel::Signal_receiver> &receiver,
-		                  Platform_thread &pager_thread);
+		                  Core_platform_thread &pager_thread);
 
 		/**
 		 * Called when a page-fault finally could not be resolved

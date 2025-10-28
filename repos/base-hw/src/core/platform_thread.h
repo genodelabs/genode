@@ -37,6 +37,7 @@ namespace Core {
 	class Pager_object;
 	class Rm_client;
 	class Platform_thread;
+	class Core_platform_thread;
 	class Platform_pd_interface;
 	class Platform_pd;
 }
@@ -59,12 +60,9 @@ class Core::Platform_thread : Noncopyable
 
 		struct Utcb : Noncopyable
 		{
-			struct {
-				Ram_allocator *_ram_ptr      = nullptr;
-				Local_rm      *_local_rm_ptr = nullptr;
-			};
+			Local_rm &_local_rm;
 
-			Ram_allocator::Result const ds; /* UTCB ds of non-core threads */
+			Ram_allocator::Result const ds; /* UTCB ds */
 
 			addr_t const core_addr; /* UTCB address within core/kernel */
 			addr_t const phys_addr;
@@ -84,17 +82,9 @@ class Core::Platform_thread : Noncopyable
 					[&] (Ram::Error)                { return 0UL; });
 			}
 
-			/**
-			 * Constructor used for core-local threads
-			 */
-			Utcb(addr_t core_addr);
-
-			/**
-			 * Constructor used for threads outside of core
-			 */
 			Utcb(Rpc_entrypoint &ep, Ram_allocator &ram, Local_rm &local_rm)
 			:
-				_local_rm_ptr(&local_rm),
+				_local_rm(local_rm),
 				ds(ram.try_alloc(sizeof(Native_utcb), CACHED)),
 				core_addr(_attach(local_rm)),
 				phys_addr(_ds_phys(ep, ds))
@@ -102,8 +92,7 @@ class Core::Platform_thread : Noncopyable
 
 			~Utcb()
 			{
-				if (_local_rm_ptr)
-					_local_rm_ptr->detach(core_addr);
+				_local_rm.detach(core_addr);
 			}
 
 			Ram_dataspace_capability ds_cap() const
@@ -321,4 +310,41 @@ class Core::Platform_thread : Noncopyable
 		Platform_pd_interface & pd() { return _pd; }
 };
 
+
+class Core::Core_platform_thread : Noncopyable
+{
+	private:
+
+		using Label = String<32>;
+
+		Label            const _label;
+		Native_utcb           &_utcb;
+		unsigned               _group_id { 0 };
+
+		Affinity::Location _location;
+
+		Kernel_object<Kernel::Thread> _kobj;
+
+		friend class Platform_thread;
+
+	public:
+
+		Core_platform_thread(Label const &label, Native_utcb &utcb, Affinity::Location);
+
+		/*
+		 * Noncopyable
+		 */
+		Core_platform_thread(Core_platform_thread const &) = delete;
+		Core_platform_thread &operator = (Core_platform_thread const &) = delete;
+
+		void start(void *ip, void *sp);
+
+		Trace::Execution_time execution_time() const
+		{
+			uint64_t execution_time =
+				const_cast<Core_platform_thread *>(this)->_kobj->execution_time();
+			return { execution_time, 0, 0, _group_id }; }
+
+		Label label() const { return _label; };
+};
 #endif /* _CORE__PLATFORM_THREAD_H_ */
