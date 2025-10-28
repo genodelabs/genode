@@ -528,10 +528,15 @@ void Depot_deploy::Child::gen_start_node(Generator              &g,
 		_pkg_node->with_optional_sub_node("runtime", [&] (Node const &runtime) {
 
 			/*
-			 * Insert inline '<heartbeat>' node if provided by the start node.
+			 * Insert inline '<heartbeat>' node if provided by the start node
+			 * or launcher.
 			 */
 			if (start_node.has_sub_node("heartbeat"))
 				_gen_copy_of_sub_node(g, start_node, "heartbeat");
+			else
+				_with_launcher_node([&] (Node const &launcher_node) {
+					if (launcher_node.has_sub_node("heartbeat"))
+						_gen_copy_of_sub_node(g, launcher_node, "heartbeat"); });
 
 			/*
 			 * Insert inline '<config>' node if provided by the start node,
