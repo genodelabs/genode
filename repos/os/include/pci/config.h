@@ -598,8 +598,10 @@ struct Pci::Config : Genode::Mmio<0x45>
 			return;
 
 		off = PCI_E_EXTENDED_CAPS_OFFSET;
-		while (off) {
-			using Capability_header = Pci_express_extended_capability_header;
+
+		using Capability_header = Pci_express_extended_capability_header;
+
+		while (off && off <= FUNCTION_CONFIG_SPACE_SIZE - Capability_header::SIZE) {
 			Capability_header cap(Mmio::range_at(off));
 			switch (cap.read<Capability_header::Id>()) {
 			case Capability_header::Id::INVALID:
