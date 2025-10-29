@@ -4,6 +4,47 @@
                                ===========
 
 
+Sculpt OS release 25.10 | 2025-10-30
+####################################
+
+| Sculpt OS 25.10 improves performance, updates device drivers, and
+| accepts a new human-readable configuration format.
+
+In the light of this year's [https://genode.org/about/road-map - roadmap]
+focus on "rigidity, clarity, performance", Sculpt OS 25.10 looks the same
+as the version 25.04 but might feel different as it includes countless
+under-the-hood improvements of the two preceding
+framework releases [https:/documentation/release-notes/25.05 - 25.05] and
+[https:/documentation/release-notes/25.08 - 25.08].
+User interaction on performance-starved platforms like the PinePhone
+has become visibly smoother thanks our recent CPU scheduling
+[https://genode.org/documentation/release-notes/25.08#Kernel_scheduling_for_fairness_and_low_latency - advances].
+The streamlined
+[https://genode.org/documentation/release-notes/25.08#Block-storage_stack_renovations - block-storage stack]
+combined with various refinements of the package-installation mechanism
+make the on-target installation of 3rd-party components a bliss.
+Regarding supported hardware, we steadily follow the tireless work of the
+Linux kernel community. All PC driver components using Linux kernel code are now
+consistently based on kernel version 6.12.
+
+As tribute to the roadmap's "clarity" theme, Sculpt OS 25.10 promises a new
+level of clarity and simplicity for text-based user interaction. In addition
+to the time-tested use of XML as format for configuration and status
+reporting, the new version accepts a human-oriented
+[https://genodians.org/nfeske/2024-12-20-moving-on-from-xml - alternative]
+specifically designed for the needs of Sculpt OS. Whereas the official
+release still leans on XML by default, we provide an evaluation variant
+that consistently uses the new format. Sculpt's flexible system-update
+mechanism allows users to seamlessly switch back and forth between both
+variants. So we can gather feedback about the new format before potentially
+making it the default for the next release.
+
+Sculpt OS 25.10 is available as ready-to-use system image for PC hardware,
+the PinePhone, and the MNT Reform laptop at the
+[https:/download/sculpt - Sculpt download page] accompanied
+with updated [https:/documentation/articles/sculpt-25-10 - documentation].
+
+
 Genode OS Framework release 25.08 | 2025-08-28
 ##############################################
 
