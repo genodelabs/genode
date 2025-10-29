@@ -914,7 +914,7 @@ void Thread::_call()
 		}
 	case Core_call_id::VCPU_DESTROY:
 		{
-			_call_destruct<Vcpu>();
+			_call_vcpu_destroy(*user_arg_1<C_vcpu*>());
 			return;
 		}
 	default:
