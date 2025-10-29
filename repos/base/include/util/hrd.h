@@ -173,6 +173,7 @@ class Genode::Hrd_node : Noncopyable
 
 		static void _for_each_segment(Span const &bytes, auto const &fn)
 		{
+			bool first = true;
 			bytes.split('\n', [&] (Span const &line) {
 				char const *start = line.start;
 				size_t  num_bytes = line.num_bytes;
@@ -181,12 +182,13 @@ class Genode::Hrd_node : Noncopyable
 				if (num_bytes && line.start[num_bytes - 1] == '\r') num_bytes--;
 
 				while (num_bytes)
-					_with_segment({ .first = (start == line.start) }, { start, num_bytes },
+					_with_segment({ .first = first }, { start, num_bytes },
 						[&] (Prefix prefix, Span const &seg, Span const &remain) {
 							if (seg.num_bytes && prefix.type != Prefix::COMMENT)
 								fn(prefix, Indent { unsigned(seg.start - line.start) }, seg);
 							start     = remain.start;
 							num_bytes = remain.num_bytes;
+							first     = false;
 						});
 			});
 		}

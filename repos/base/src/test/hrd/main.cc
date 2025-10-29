@@ -195,6 +195,17 @@ void Component::construct(Genode::Env &env)
 		if (i != '\n')
 			expect_invalid(String<100>("launcher i: ", i, " | tag: ", Char(i), " \n-").string());
 
+	/* ignore content of disabled node */
+	{
+		char const * const test = "config\n"
+		                         "+ start black_hole\n"
+		                         "x start system_shell | ram: 1G\n"
+		                         "-";
+		Hrd_node(Span { test, strlen(test) }).for_each_sub_node([&] (Hrd_node const &node) {
+			if (node.attribute_value("ram", String<16>("nix")) != "nix")
+				fail("unexpected use of attribute of disabled node"); });
+	}
+
 	auto with_generated = [&] (auto const &node_type, auto const &fn, auto const &result_fn)
 	{
 		char buf[4*1024] { };
