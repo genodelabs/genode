@@ -1,4 +1,4 @@
-<launcher pkg="chelmuth/pkg/pc_i2c_hid/2025-04-11" priority="-2">
+<launcher pkg="chelmuth/pkg/pc_i2c_hid/2025-10-30" priority="-2">
 	<config info="Fujtisu U7411 (SYNAPTICS)"/>
 	<!--
 	<config gpio_pin="266" bus_addr="21" hid_addr="1"  info="Fujtisu U7511 (ELAN)"/>
