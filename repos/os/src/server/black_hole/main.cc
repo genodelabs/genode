@@ -68,60 +68,60 @@ struct Black_hole::Main
 	{
 		Genode::Attached_rom_dataspace _config_rom { env, "config" };
 
-		if (_config_rom.xml().has_sub_node("audio_in")) {
+		if (_config_rom.node().has_sub_node("audio_in")) {
 			audio_in_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*audio_in_root));
 		}
-		if (_config_rom.xml().has_sub_node("audio_out")) {
+		if (_config_rom.node().has_sub_node("audio_out")) {
 			audio_out_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*audio_out_root));
 		}
-		if (_config_rom.xml().has_sub_node("capture")) {
+		if (_config_rom.node().has_sub_node("capture")) {
 			capture_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*capture_root));
 		}
-		if (_config_rom.xml().has_sub_node("event")) {
+		if (_config_rom.node().has_sub_node("event")) {
 			event_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*event_root));
 		}
-		if (_config_rom.xml().has_sub_node("nic")) {
+		if (_config_rom.node().has_sub_node("nic")) {
 			nic_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*nic_root));
 		}
-		if (_config_rom.xml().has_sub_node("uplink")) {
+		if (_config_rom.node().has_sub_node("uplink")) {
 			uplink_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*uplink_root));
 		}
-		if (_config_rom.xml().has_sub_node("rom")) {
+		if (_config_rom.node().has_sub_node("rom")) {
 			rom_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*rom_root));
 		}
-		if (_config_rom.xml().has_sub_node("report")) {
+		if (_config_rom.node().has_sub_node("report")) {
 			report_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*report_root));
 		}
-		if (_config_rom.xml().has_sub_node("gpu")) {
+		if (_config_rom.node().has_sub_node("gpu")) {
 			gpu_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*gpu_root));
 		}
-		if (_config_rom.xml().has_sub_node("usb")) {
+		if (_config_rom.node().has_sub_node("usb")) {
 			usb_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*usb_root));
 		}
-		if (_config_rom.xml().has_sub_node("play")) {
+		if (_config_rom.node().has_sub_node("play")) {
 			play_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*play_root));
 		}
-		if (_config_rom.xml().has_sub_node("record")) {
+		if (_config_rom.node().has_sub_node("record")) {
 			record_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*record_root));
 		}
-		if (_config_rom.xml().has_sub_node("log")) {
+		if (_config_rom.node().has_sub_node("log")) {
 			log_root.construct(env, heap);
 			env.parent().announce(env.ep().manage(*log_root));
 		}
 
-		if (_config_rom.xml().has_sub_node("uplink_client")) {
+		if (_config_rom.node().has_sub_node("uplink_client")) {
 			uplink_client.construct(env, heap);
 		}
 	}
