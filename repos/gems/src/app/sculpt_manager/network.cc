@@ -97,9 +97,9 @@ void Sculpt::Network::_generate_nic_router_config()
 
 		bool uplink_exists = true;
 		switch (_nic_target.type()) {
-		case Nic_target::WIRED: _generate_nic_router_uplink(g, "nic -> ");     break;
-		case Nic_target::WIFI:  _generate_nic_router_uplink(g, "wifi -> ");    break;
-		case Nic_target::MODEM: _generate_nic_router_uplink(g, "usb_net -> "); break;
+		case Nic_target::WIRED: _generate_nic_router_uplink(g, "nic ->");     break;
+		case Nic_target::WIFI:  _generate_nic_router_uplink(g, "wifi ->");    break;
+		case Nic_target::MODEM: _generate_nic_router_uplink(g, "usb_net ->"); break;
 		default: uplink_exists = false;
 		}
 		gen_named_node(g, "domain", "default", [&] {
@@ -245,13 +245,13 @@ void Sculpt::Network::_update_nic_target_from_config(Node const &config)
 			if (uplink.attribute_value("domain", String<16>()) != "uplink")
 				return;
 
-			if (uplink.attribute_value("label_prefix", String<16>()) == "nic -> ")
+			if (uplink.attribute_value("label_prefix", String<16>()) == "nic ->")
 				result = Nic_target::WIRED;
 
-			if (uplink.attribute_value("label_prefix", String<16>()) == "wifi -> ")
+			if (uplink.attribute_value("label_prefix", String<16>()) == "wifi ->")
 				result = Nic_target::WIFI;
 
-			if (uplink.attribute_value("label_prefix", String<16>()) == "usb_net -> ")
+			if (uplink.attribute_value("label_prefix", String<16>()) == "usb_net ->")
 				result = Nic_target::MODEM;
 		});
 		return result;
