@@ -1,7 +1,7 @@
 
 
                       =============================
-                      Sculpt Operating System 25.04
+                      Sculpt Operating System 25.10
                       =============================
 
 
@@ -65,7 +65,7 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at the
-[https://genode.org/documentation/sculpt-25-04.pdf - Genode website].
+[https://genode.org/documentation/sculpt-25-10.pdf - Genode website].
 
 
 Hardware requirements and preparations
@@ -561,7 +561,7 @@ connectivity. Most importantly, however, it allows the user to access the
 _config_ and _report_ file systems. Both file systems are readily accessible
 under the "Files" tab of the panel. The file browser allows you to traverse
 directory hierarchies, inspect individual files, and edit files.
-Alternatively to the "Files" tab, Sculpt 25.04 features a command-line
+Alternatively to the "Files" tab, Sculpt 25.10 features a command-line
 interface. To spawn this command-line interface, click on the "ram fs"
 component in the graph and select "Inspect". In the panel, a third tab named
 "Inspect" appears, which hosts the command-line interface.
@@ -1469,7 +1469,7 @@ _/config/presets/_.
 
 To keep your custom preset available after reboot, follow the pattern
 described in Section [Making customizations permanent] by copying the file to
-_/config/25.04/presets/_ at your Sculpt partition.
+_/config/25.10/presets/_ at your Sculpt partition.
 
 
 Installation on disk
@@ -1801,11 +1801,11 @@ download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt-25.04 sculpt-25.04
+  ! git checkout -b sculpt-25.10 sculpt-25.10
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2025-04-29
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2025-10-30
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
@@ -1813,8 +1813,8 @@ download at [https://genode.org].
 # Download all ingredients for the Sculpt boot image
 
   ! ./tool/depot/download \
-  !    genodelabs/pkg/x86_64/sculpt/2025-04-29 \
-  !    genodelabs/pkg/x86_64/sculpt_drivers-pc/2025-04-29
+  !    genodelabs/pkg/x86_64/sculpt/2025-10-30 \
+  !    genodelabs/pkg/x86_64/sculpt_drivers-pc/2025-10-30
 
 # Create a build directory
 
@@ -1838,9 +1838,9 @@ download at [https://genode.org].
   ! ./tool/ports/prepare_port grub2
 
 # Create the Sculpt boot image (defined by the run script at
-  _repos/gems/run/sculpt.run_)
+  _repos/gems/run/sculpt_image.run_)
 
-  ! make -C build/x86_64 run/sculpt KERNEL=nova BOARD=pc DEPOT=omit
+  ! make -C build/x86_64 run/sculpt_image KERNEL=nova BOARD=pc DEPOT=omit
 
   The boot image is created at _build/x86_64/var/run/sculpt.img_.
 
@@ -1867,9 +1867,9 @@ be prepared. The following command prepares all of them at once:
 !      expat freetype gdb gmp gnupg grub2 jitterentropy jpeg \
 !      libarchive libc libdrm libgcrypt libiconv libnl libpng \
 !      libssh libusb libuvc libyuv linux linux-firmware lwip mesa \
-!      ncurses nova openssl pcre qemu-usb qoost qt5 sdl stb \
-!      stdcxx ttf-bitstream-vera vim virtualbox6 wpa_supplicant \
-!      x86emu xz zlib
+!      ncurses nova openssl pcre qemu-usb qoost qt5 stb stdcxx tcl \
+!      ttf-bitstream-vera vim virtualbox6 wpa_supplicant x86emu \
+!      xz zlib
 
 To be able to compile components that are dependent on the Qt5-library, the
 corresponding toolchain needs to be installed in addition to the base Genode
@@ -1924,7 +1924,7 @@ Sculpt system, you must publish them. This involves the archiving, signing, and
 uploading of the content. The former two steps are covered by the
 _tool/depot/publish_current_ tool. For more information about working with the
 depot tool, refer to the package-management
-[https://genode.org/documentation/developer-resources/package_management - documentation].
+[https://genode.org/documentation/genode-foundations/25.05/development/Package_management.html - documentation].
 
 The launchers integrated in the boot image are defined in
 _gems/sculpt/default-pc.sculpt_ and the accompanied files at
@@ -1945,8 +1945,9 @@ customizing the Sculpt OS system image.
 Credits
 #######
 
-Sculpt is an example system scenario of the Genode project, which is an
-operating-system technology designed and developed from scratch.
+Sculpt is an example system scenario of the Genode project, which is a novel
+operating-system technology designed and developed by
+[https://genode-labs.com - Genode Labs GmbH].
 
 :Genode OS Framework:
   [https://genode.org]
