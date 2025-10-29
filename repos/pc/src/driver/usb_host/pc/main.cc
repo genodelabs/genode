@@ -63,7 +63,7 @@ struct Main
 		{
 			Lx_kit::Initial_config config { env };
 
-			_bios_handoff = config.rom.xml().attribute_value("bios_handoff", true);
+			_bios_handoff = config.rom.node().attribute_value("bios_handoff", true);
 		}
 
 		Lx_kit::initialize(env, signal_handler);
