@@ -255,7 +255,6 @@ class Window_layouter::Target_list
 			if (!_rules.constructed())
 				return;
 
-			g.append_quoted("\n");
 			_rules->for_each_sub_node("screen", [&] (Node const &screen) {
 				if (screen_name.valid()) {
 					Target::Name const name =
