@@ -341,3 +341,12 @@ void Scheduler::yield()
 	_update_time();
 	_state = OUT_OF_DATE;
 }
+
+
+bool Scheduler::current_helping_destination(Context& context) const
+{
+	bool ret = false;
+	for (Context *cur = _current; cur; cur = cur->_destination) {
+		if (cur == &context) ret = true; };
+	return ret;
+}

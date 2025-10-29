@@ -43,8 +43,7 @@ void Cpu_context::_activate() { _cpu().assign(*this); }
 
 void Cpu_context::_deactivate()
 {
-	ASSERT(_cpu().id() == Cpu::executing_id() ||
-	       &_cpu().current_context() != this);
+	ASSERT(!remotely_running());
 	_cpu().scheduler().unready(*this);
 }
 
@@ -73,6 +72,13 @@ void Cpu_context::_interrupt(Irq::Pool &user_irq_pool)
 
 	/* let the IRQ controller finish the currently taken IRQ */
 	_cpu().pic().finish_request();
+}
+
+
+bool Cpu_context::remotely_running()
+{
+	return (_cpu().id() != Cpu::executing_id()) &&
+	       _cpu().scheduler().current_helping_destination(*this);
 }
 
 

@@ -82,6 +82,8 @@ class Kernel::Cpu_context : private Scheduler::Context
 
 		using Scheduler::Context::execution_time;
 
+		bool remotely_running();
+
 		/**
 		 * Handle exception that occured during execution of this context
 		 */

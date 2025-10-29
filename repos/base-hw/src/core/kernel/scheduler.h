@@ -369,6 +369,8 @@ class Kernel::Scheduler
 		 */
 		void yield();
 
+		bool current_helping_destination(Context&) const;
+
 		Context& current() const {
 			return _current ? *_current : _idle; }
 };
