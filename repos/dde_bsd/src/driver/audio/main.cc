@@ -628,7 +628,7 @@ struct Main
 		Audio::update_config(_env, _config.node());
 	}
 
-	bool const _record_play = _config.xml().attribute_value("record_play", false);
+	bool const _record_play = _config.node().attribute_value("record_play", false);
 
 	Constructible<Audio_out::Out>  _out      { };
 	Constructible<Audio_out::Root> _out_root { };

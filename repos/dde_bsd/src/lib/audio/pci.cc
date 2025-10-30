@@ -101,8 +101,8 @@ class Pci_driver
 			bool device_list = false;
 			while (!device_list) {
 				pci.update();
-				pci.with_node([&] (Node const &xml) {
-					if (xml.num_sub_nodes()) {
+				pci.with_node([&] (Node const &node) {
+					if (node.num_sub_nodes()) {
 						pci.sigh(Signal_context_capability());
 						if (handler.constructed())
 							handler.destruct();
