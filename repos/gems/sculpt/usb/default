@@ -1,17 +1,17 @@
-<config bios_handoff="no">
+config | bios_handoff: no
+.
+. available devices are listed at /report/runtime/usb/devices
+.
 
-	<!-- available devices are listed at /report/runtime/usb/devices -->
++ policy | label_prefix: vbox6-dev ->
+  .
+  . example for a hypothetical development VM
+  .
+  + device | vendor_id:  0x1f3a | product_id: 0x1010 | . pinephone fastboot
+  + device | vendor_id:  0x403  | product_id: 0x6001 | . pinephone uart
+  + device | vendor_id:  0x16d0 | product_id: 0xe88  | . joulescope
 
-	<!-- example for a hypothetical development VM -->
-	<policy label_prefix="vbox6-dev ->">
-		<device vendor_id="0x1f3a" product_id="0x1010"/> <!-- pinephone fastboot -->
-		<device vendor_id="0x403"  product_id="0x6001"/> <!-- pinephone uart -->
-		<device vendor_id="0x16d0" product_id="0xe88"/>  <!-- joulescope -->
-	</policy>
-
-	<policy label_prefix="usb_webcam ->">
-		<device vendor_id="0x5986" product_id="0x366"/>  <!-- x250 webcam -->
-		<device vendor_id="0x5986" product_id="0x706"/>  <!-- x260 webcam -->
-	</policy>
-
-</config>
++ policy | label_prefix: usb_webcam ->
+  + device | vendor_id:  0x5986 | product_id: 0x366 | . x250 webcam
+  + device | vendor_id:  0x5986 | product_id: 0x706 | . x260 webcam
+-
