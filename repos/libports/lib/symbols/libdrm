@@ -62,6 +62,7 @@ drmGetDeviceNameFromFd T
 drmGetDeviceNameFromFd2 T
 drmGetDevices T
 drmGetDevices2 T
+drmGetDeviceFromDevId T
 drmGetEntry T
 drmGetHashTable T
 drmGetInterruptFromBusID T
