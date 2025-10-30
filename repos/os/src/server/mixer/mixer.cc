@@ -291,19 +291,6 @@ class Audio_out::Mixer
 		}
 
 		/*
-		 * Advance the position of each session to match the output position
-		 */
-		void _advance_position()
-		{
-			for_each_index(MAX_CHANNELS, [&] (int i) {
-				unsigned const pos = _out[i]->stream()->pos();
-				_channels[i].for_each_session([&] (Session_elem &session) {
-					_advance_session(&session, pos);
-				});
-			});
-		}
-
-		/*
 		 * Mix input packet into output packet
 		 *
 		 * Packets are mixed in a linear way with min/max clipping.
@@ -393,8 +380,17 @@ class Audio_out::Mixer
 		void _mix(bool remix = false)
 		{
 			unsigned pos[MAX_CHANNELS];
-			pos[LEFT]  = _out[LEFT]->stream()->pos();
-			pos[RIGHT] = _out[RIGHT]->stream()->pos();
+
+			/*
+			 * Query stream position first and once to minimize
+			 * potential for divergency.
+			 */
+			for_each_index(MAX_CHANNELS, [&] (int i) {
+				pos[i] = _out[i]->stream()->pos(); });
+
+			for_each_index(MAX_CHANNELS, [&] (int i) {
+				_channels[i].for_each_session([&] (Session_elem &session) {
+					_advance_session(&session, pos[i]); }); });
 
 			/*
 			 * Look for packets that are valid and mix channels in an alternating
@@ -421,7 +417,6 @@ class Audio_out::Mixer
 		 */
 		void _handle()
 		{
-			_advance_position();
 			_mix();
 		}
 
