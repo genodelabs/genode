@@ -379,6 +379,9 @@ proc build_boot_image { binaries } {
 	puts "checking configuration syntax"
 	check_config init [run_dir]/genode/config $init_xsd_file init $xsd_files 0
 
+	# cleanup XML/XSD catalog file
+	file delete -force $catalog
+
 	run_boot_dir $binaries
 }
 
