@@ -545,7 +545,7 @@ bool use_xhci_controller()
 {
 	try {
 		Genode::Attached_rom_dataspace config(*_xhci_genode_env, "config");
-		return config.xml().attribute_value("xhci", false);
+		return config.node().attribute_value("xhci", false);
 	} catch (Genode::Rom_connection::Rom_connection_failed) {
 		return false;
 	}
