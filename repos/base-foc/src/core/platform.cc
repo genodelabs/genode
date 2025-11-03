@@ -348,6 +348,9 @@ void Core::Platform::_setup_irq_alloc()
 
 	if (_irq_alloc.add_range(0, info.nr_irqs).failed())
 		warning("unable to initialize IRQ allocator");
+
+	if (_msi_alloc.add_range(0, info.nr_msis).failed())
+		warning("unable to initialize MSI allocator");
 }
 
 
@@ -507,6 +510,7 @@ Core::Platform::Platform()
 :
 	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
 	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
+	_msi_alloc(&core_mem_alloc()),
 	_region_alloc(&core_mem_alloc()), _cap_id_alloc(core_mem_alloc()),
 	_kip_rom(_rom_fs, "l4v2_kip", (addr_t)&sigma0_map_kip(), L4_PAGESIZE),
 	_sigma0(cap_map().insert(_cap_id_alloc.alloc(), Foc::L4_BASE_PAGER_CAP))

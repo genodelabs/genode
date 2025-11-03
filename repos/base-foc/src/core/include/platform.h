@@ -70,6 +70,7 @@ class Core::Platform : public Platform_generic
 		Phys_allocator   _io_mem_alloc;      /* MMIO allocator */
 		Phys_allocator   _io_port_alloc;     /* I/O port allocator */
 		Phys_allocator   _irq_alloc;         /* IRQ allocator */
+		Phys_allocator   _msi_alloc;         /* MSI allocator */
 		Phys_allocator   _region_alloc;      /* virtual memory allocator for core */
 		Cap_id_allocator _cap_id_alloc;      /* capability id allocator */
 		Rom_fs           _rom_fs { };        /* ROM file system */
@@ -166,6 +167,7 @@ class Core::Platform : public Platform_generic
 			ASSERT_NEVER_CALLED;
 		}
 
+		auto with_msi_alloc(auto const &fn) { return fn(_msi_alloc); }
 
 		/********************************
 		 ** Generic platform interface **
