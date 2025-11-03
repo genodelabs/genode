@@ -1971,7 +1971,7 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 			if (disconnected_from_network(msg)) {
 
 				Join_state::State const old_state           = _join.state;
-				unsigned          const old_reauth_attempts = _join.reauth_attempts;
+				unsigned                old_reauth_attempts = _join.reauth_attempts;
 
 				Auth_result const auth_result = _auth_result(msg);
 
@@ -1990,14 +1990,16 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 				 * Use a simplistic heuristic to ignore re-authentication requests
 				 * and hope for the supplicant to do its magic.
 				 */
-				if ((old_state == Join_state::State::CONNECTED) && _join.auth_failure) {
-					_join.reauth_attempts = old_reauth_attempts;
-					if (++_join.reauth_attempts <= Join_state::MAX_REAUTH_ATTEMPTS) {
+				if (((old_state == Join_state::State::CONNECTED) && _join.auth_failure)
+				   || old_reauth_attempts) {
+					if (++old_reauth_attempts <= Join_state::MAX_REAUTH_ATTEMPTS) {
 						log("ignore deauth from: ", bssid);
+
+						/* save attempts for the next round */
+						_join.reauth_attempts = old_reauth_attempts;
 						return;
 					}
 				}
-				_join.reauth_attempts = 0;
 
 				/*
 				 * Re-arm scan-timer to produce fresh scan-results. In case we
