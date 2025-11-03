@@ -1794,6 +1794,20 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 		enum { MAX_NOT_FOUND_IGNORE_ATTEMPTS = 3 };
 		unsigned ignore_not_found { 0 };
 
+		void reset_tracking_state()
+		{
+			/*
+			 * For the moment this function clears the join-attempt
+			 * tracking state. Afterwards the caller has to set the
+			 * the relevant state information again.
+			 */
+
+			auth_failure     = false;
+			not_found        = false;
+			reauth_attempts  = 0;
+			ignore_not_found = 0;
+		}
+
 		void print(Output &out) const
 		{
 			auto state_string = [&] (State const state) {
@@ -1900,11 +1914,11 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 			 */
 			if (connecting_to_network(msg)) {
 
+				_join.reset_tracking_state();
+
 				_join.state = Join_state::State::CONNECTING;
 				_join.ap    = Accesspoint(_extract_bssid(msg, Bssid_offset::CONNECTING),
 				                          _extract_ssid(msg));
-				_join.auth_failure = false;
-				_join.not_found    = false;
 			} else
 
 			/*
@@ -1933,7 +1947,8 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 					 * networks may take some time.
 					 */
 					if (++_join.ignore_not_found >= Join_state::MAX_NOT_FOUND_IGNORE_ATTEMPTS) {
-						_join.ignore_not_found = 0;
+
+						_join.reset_tracking_state();
 
 						_network_list.for_each([&] (Network &network) {
 							network.with_accesspoint([&] (Accesspoint &ap) {
@@ -1955,13 +1970,15 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 			 */
 			if (disconnected_from_network(msg)) {
 
-				Join_state::State const old_state = _join.state;
+				Join_state::State const old_state           = _join.state;
+				unsigned          const old_reauth_attempts = _join.reauth_attempts;
 
 				Auth_result const auth_result = _auth_result(msg);
 
+				_join.reset_tracking_state();
+
 				_join.auth_failure = auth_result != Auth_result::OK;
 				_join.state        = Join_state::State::DISCONNECTED;
-				_join.not_found    = false;
 
 				Accesspoint::Bssid const bssid =
 					_extract_bssid(msg, Bssid_offset::DISCONNECT);
@@ -1973,11 +1990,13 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 				 * Use a simplistic heuristic to ignore re-authentication requests
 				 * and hope for the supplicant to do its magic.
 				 */
-				if ((old_state == Join_state::State::CONNECTED) && _join.auth_failure)
+				if ((old_state == Join_state::State::CONNECTED) && _join.auth_failure) {
+					_join.reauth_attempts = old_reauth_attempts;
 					if (++_join.reauth_attempts <= Join_state::MAX_REAUTH_ATTEMPTS) {
 						log("ignore deauth from: ", bssid);
 						return;
 					}
+				}
 				_join.reauth_attempts = 0;
 
 				/*
@@ -2015,11 +2034,10 @@ struct Wifi::Manager : Wifi::Rfkill_notification_handler
 			 */
 			if (connected_to_network(msg)) {
 
+				_join.reset_tracking_state();
+
 				_join.state           = Join_state::State::CONNECTED;
 				_join.ap.bssid        = _extract_bssid(msg, Bssid_offset::CONNECT);
-				_join.auth_failure    = false;
-				_join.not_found       = false;
-				_join.reauth_attempts = 0;
 
 				/* collect further information like frequency and so on  */
 				_queue_action(*new (_actions_alloc) Status_query(_msg),
