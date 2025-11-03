@@ -68,7 +68,6 @@ rump_ext2
 scale_priority
 sd_card_zynq
 seoul-auto
-smartcard
 smbios_decoder
 smp
 sntp_client
