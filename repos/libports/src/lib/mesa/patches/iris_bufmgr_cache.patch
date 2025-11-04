@@ -1,18 +1,41 @@
-This disable the buffer-object case in the Iris-buffer manager. We already cache
-within libdrm.
-diff --git a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
-index 759e986..884f399 100644
+The buffer-object cache requires quite some memory overhead but also brings a
+lot of performance in low-latency benchmarks like glMark2. With this patch we
+make the cache configurable trough the IRIS_USE_BO_CACHE environment variable
+(default is true).
+
 --- a/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
 +++ b/src/lib/mesa/src/gallium/drivers/iris/iris_bufmgr.c
-@@ -1179,7 +1179,10 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
+@@ -235,6 +235,7 @@ struct iris_bufmgr {
+    const struct iris_kmd_backend *kmd_backend;
+    bool bo_reuse:1;
+    bool use_global_vm:1;
++   bool use_bo_cache:1;
+ 
+    struct intel_aux_map_context *aux_map_ctx;
+ 
+@@ -1179,7 +1180,13 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
     if (size >= 1024 * 1024)
        size = align64(size, 2 * 1024 * 1024);
  
 -   bucket = bucket_for_size(bufmgr, size, heap, flags);
 +   /*
-+    * short-circuit the bo_cache because we already cache within libdrm
++    * short-circuit the bo_cache to save memory, if configured
 +    */
-+   bucket = NULL; //bucket_for_size(bufmgr, size, heap, flags);
++   if (bufmgr->use_bo_cache)
++      bucket = bucket_for_size(bufmgr, size, heap, flags);
++   else
++      bucket = NULL;
  
     if (memzone != IRIS_MEMZONE_OTHER || (flags & BO_ALLOC_COHERENT))
        flags |= BO_ALLOC_NO_SUBALLOC;
+@@ -2352,6 +2359,10 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
+    if (!iris_bufmgr_init_global_vm(bufmgr))
+       goto error_init_vm;
+ 
++   bufmgr->use_bo_cache = debug_get_bool_option("IRIS_USE_BO_CACHE", true);
++   if (!bufmgr->use_bo_cache)
++      fprintf(stdout, "iris buffer-object cache disabled\n");
++
+    STATIC_ASSERT(IRIS_MEMZONE_SHADER_START == 0ull);
+    const uint64_t _4GB = 1ull << 32;
+    const uint64_t _2GB = 1ul << 31;
