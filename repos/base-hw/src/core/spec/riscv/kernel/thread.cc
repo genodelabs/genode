@@ -19,10 +19,10 @@
 using namespace Kernel;
 
 
-void Thread::Tlb_invalidation::execute(Cpu &) { }
+void Core_thread::Tlb_invalidation::execute(Cpu &) { }
 
 
-void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
+void Core_thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
 void Cpu::Halt_job::proceed() { }
@@ -39,7 +39,7 @@ void Thread::exception(Genode::Cpu_state&)
 			_cpu().handle_if_cpu_local_interrupt(_cpu().timer().interrupt_id());
 		} else {
 			/* interrupt controller */
-			_interrupt(_user_irq_pool);
+			_interrupt();
 		}
 		return;
 	}
@@ -94,7 +94,7 @@ void Thread::exception(Genode::Cpu_state&)
 }
 
 
-Cpu_suspend_result Thread::_call_cpu_suspend(unsigned const) {
+Cpu_suspend_result Core_thread::_call_cpu_suspend(unsigned const) {
 	return Cpu_suspend_result::FAILED; }
 
 
@@ -120,10 +120,10 @@ void Kernel::Thread::proceed()
 	 * the machine returns when doing an exception return
 	 */
 	Cpu::Sstatus::access_t v = Cpu::Sstatus::read();
-	Cpu::Sstatus::Spp::set(v, (type() == USER) ? 0 : 1);
+	Cpu::Sstatus::Spp::set(v, (_privileged()) ? 1 : 0);
 	Cpu::Sstatus::write(v);
 
-	if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
+	if (!_cpu().active(_pd.mmu_regs) && !_privileged())
 		_cpu().switch_to(_pd.mmu_regs);
 
 	asm volatile("csrw sscratch, %1                                \n"

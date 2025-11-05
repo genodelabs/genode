@@ -106,15 +106,13 @@ void Board::Vcpu_context::Virtual_timer_irq::disable()
 }
 
 
-Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
-           Cpu                    &cpu,
-           Board::Vcpu_state     &state,
+Vcpu::Vcpu(Cpu                    &cpu,
+           Board::Vcpu_state      &state,
            Kernel::Signal_context &context,
            Identity               &id)
 :
 	Kernel::Object { *this },
 	Kernel::Cpu_context(cpu, Scheduler::Group_id::BACKGROUND),
-	_user_irq_pool(user_irq_pool),
 	_state(state),
 	_context(context),
 	_id(id),
@@ -175,7 +173,7 @@ void Vcpu::exception(Genode::Cpu_state&)
 		case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
 		case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
 		case Cpu::FIQ_LEVEL_EL1:
-			_interrupt(_user_irq_pool);
+			_interrupt();
 			break;
 		case Cpu::SYNC_LEVEL_EL0: [[fallthrough]];
 		case Cpu::SYNC_LEVEL_EL1: [[fallthrough]];

@@ -45,6 +45,8 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 
 	private:
 
+		friend class Cpu_context;
+
 		/**
 		 * Inter-processor-interrupt object of the cpu
 		 */
@@ -73,18 +75,6 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 
 		friend void Ipi::occurred(void);
 
-		struct Idle_thread : Kernel::Thread
-		{
-			/**
-			 * Construct idle context for CPU 'cpu'
-			 */
-			Idle_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-			            Irq::Pool                         &user_irq_pool,
-			            Cpu_pool                          &cpu_pool,
-			            Cpu                               &cpu,
-			            Pd                                &core_pd);
-		};
-
 		struct Halt_job : Cpu_context
 		{
 			Halt_job(Cpu &cpu)
@@ -96,6 +86,8 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 
 		enum State { RUN, HALT, SUSPEND };
 
+		Cpu_pool &_pool;
+
 		State       _state { RUN };
 		Id    const _id;
 		Board::Local_interrupt_controller _pic;
@@ -104,8 +96,7 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		Scheduler   _scheduler;
 		Ipi         _ipi_irq;
 
-		Inter_processor_work_list &_global_work_list;
-		Inter_processor_work_list  _local_work_list {};
+		Inter_processor_work_list _local_work_list {};
 
 		void _arch_init();
 
@@ -119,12 +110,7 @@ class Kernel::Cpu : public Board::Cpu, private Irq::Pool,
 		/**
 		 * Construct object for CPU 'id'
 		 */
-		Cpu(Id                           const  id,
-		    Board::Address_space_id_allocator  &addr_space_id_alloc,
-		    Irq::Pool                          &user_irq_pool,
-		    Cpu_pool                           &cpu_pool,
-		    Pd                                 &core_pd,
-		    Board::Global_interrupt_controller &global_irq_ctrl);
+		Cpu(Id const id, Cpu_pool &cpu_pool, Pd &core_pd);
 
 		/**
 		 * Raise the IPI of the CPU
@@ -191,18 +177,19 @@ class Kernel::Cpu_pool
 {
 	private:
 
-		Inter_processor_work_list  _global_work_list {};
-		Genode::List<Cpu>          _cpus {};
+		Inter_processor_work_list _global_work_list {};
+
+		Board::Global_interrupt_controller _global_irq_ctrl { };
+
+		Irq::Pool _user_irq_pool {};
+
+		Genode::List<Cpu> _cpus {};
 
 		friend class Cpu;
 
 	public:
 
-		void
-		initialize_executing_cpu(Board::Address_space_id_allocator  &addr_space_id_alloc,
-		                         Irq::Pool                          &user_irq_pool,
-		                         Pd                                 &core_pd,
-		                         Board::Global_interrupt_controller &global_irq_ctrl);
+		void initialize_executing_cpu(Pd &core_pd);
 
 		Cpu & cpu(Cpu::Id const id);
 
@@ -230,8 +217,12 @@ class Kernel::Cpu_pool
 			}
 		}
 
-		Inter_processor_work_list & work_list() {
+		Inter_processor_work_list &work_list() {
 			return _global_work_list; }
+
+		Irq::Pool & irq_pool() { return _user_irq_pool; }
+
+		void resume() { _global_irq_ctrl.resume(); }
 };
 
 #endif /* _CORE__KERNEL__CPU_H_ */

@@ -34,6 +34,10 @@ extern "C" void _core_start(void);
 using namespace Kernel;
 
 
+/************
+ ** Thread **
+ ************/
+
 Thread::Ipc_alloc_result Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 {
 	using Result      = Ipc_alloc_result;
@@ -104,9 +108,6 @@ Thread::Ipc_alloc_result Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &st
 
 void Thread::_save(Genode::Cpu_state &state)
 {
-	if (_type == IDLE)
-		return;
-
 	Genode::memcpy(&*regs, &state, sizeof(Board::Cpu::Context));
 }
 
@@ -140,7 +141,7 @@ void Thread::ipc_copy_msg(Thread &sender)
 						to_add = dst_oir.capid();
 					},
 					[&] () {
-						if (&_pd != &_core_pd) {
+						if (!_privileged()) {
 							oir.factory(_obj_id_ref_ptr[i], _pd,
 								[&] (auto &new_oir) {
 								_obj_id_ref_ptr[i] = nullptr;
@@ -155,48 +156,6 @@ void Thread::ipc_copy_msg(Thread &sender)
 		_utcb->cap_add(to_add);
 	}
 }
-
-
-Thread::
-Tlb_invalidation::Tlb_invalidation(Inter_processor_work_list &global_work_list,
-                                   Thread                    &caller,
-                                   Pd                        &pd,
-                                   addr_t                     addr,
-                                   size_t                     size,
-                                   unsigned                   cnt)
-:
-	global_work_list { global_work_list },
-	caller           { caller },
-	pd               { pd },
-	addr             { addr },
-	size             { size },
-	cnt              { cnt }
-{
-	global_work_list.insert(&_le);
-	caller._become_inactive(AWAITS_RESTART);
-}
-
-
-template <typename Obj>
-Thread::Destroy<Obj>::Destroy(Thread &caller, Obj &to_destroy)
-:
-	_caller(caller), _obj_to_destroy(to_destroy)
-{
-	_obj_to_destroy->_cpu().work_list().insert(&_le);
-	_caller._become_inactive(AWAITS_RESTART);
-}
-
-
-template <typename Obj>
-void Thread::Destroy<Obj>::execute(Cpu &)
-{
-	_obj_to_destroy->_cpu().work_list().remove(&_le);
-	_obj_to_destroy.destruct();
-	_caller._restart();
-}
-
-template class Thread::Destroy<Thread>;
-template class Thread::Destroy<Vcpu>;
 
 
 void Thread_fault::print(Genode::Output &out) const
@@ -271,40 +230,6 @@ void Thread::_become_inactive(State const s)
 }
 
 
-Rpc_result Thread::_call_thread_start(Thread &thread, Native_utcb &utcb)
-{
-	ASSERT(thread._state == AWAITS_START);
-
-	switch (thread._ipc_init(utcb, *this)) {
-	case Ipc_alloc_result::OK:
-		break;
-	case Ipc_alloc_result::EXHAUSTED:
-		return Rpc_result::OUT_OF_CAPS;
-	}
-
-	thread._become_active();
-	return Rpc_result::OK;
-}
-
-
-void Thread::_call_thread_pause(Thread &thread)
-{
-	if (thread._state == ACTIVE && !thread._paused)
-		thread._deactivate();
-
-	thread._paused = true;
-}
-
-
-void Thread::_call_thread_resume(Thread &thread)
-{
-	if (thread._state == ACTIVE && thread._paused)
-		thread._activate();
-
-	thread._paused = false;
-}
-
-
 void Thread::_call_thread_stop()
 {
 	ASSERT(_state == ACTIVE);
@@ -317,7 +242,7 @@ Thread_restart_result Thread::_call_thread_restart(capid_t const id)
 	return _pd.cap_tree().with<Thread>(id,
 		[&] (auto &thread) {
 
-			if (_type == USER && (&_pd != &thread._pd)) {
+			if (&_pd != &thread._pd) {
 				_die("Invalid  cap ", (unsigned)id, " to restart thread");
 				return Thread_restart_result::INVALID;
 			}
@@ -339,34 +264,6 @@ bool Thread::_restart()
 	_exception_state = NO_EXCEPTION;
 	_become_active();
 	return true;
-}
-
-
-void Thread::_call_thread_destroy(Core::Kernel_object<Thread> &to_delete)
-{
-	/**
-	 * Delete a thread immediately if it is assigned to this cpu,
-	 * or the assigned cpu does not execute it right now.
-	 */
-	if (!to_delete->remotely_running()) {
-		to_delete.destruct();
-		return;
-	}
-
-	/**
-	 * Construct a cross-cpu work item and send an IPI
-	 */
-	_thread_destroy.construct(*this, to_delete);
-	to_delete->_cpu().trigger_ip_interrupt();
-}
-
-
-void Thread::_call_pd_destroy(Core::Kernel_object<Pd> &pd)
-{
-	if (_cpu().active(pd->mmu_regs))
-		_cpu().switch_to(_core_pd.mmu_regs);
-
-	pd.destruct();
 }
 
 
@@ -459,17 +356,6 @@ Rpc_result Thread::_call_rpc_reply_and_wait(unsigned rcv_caps_cnt)
 }
 
 
-void Thread::_call_thread_pager(Thread &thread, Thread &pager, capid_t id)
-{
-	_pd.cap_tree().with<Signal_context>(id,
-		[&] (Signal_context &sc) {
-			thread._fault_context.construct(pager, sc); },
-		[&] () {
-			Genode::error("core failed to set thread's ", thread,
-			              "pager to cap ", id); });
-}
-
-
 Signal_result Thread::_call_signal_wait(capid_t const id)
 {
 	return _pd.cap_tree().with<Signal_receiver>(id,
@@ -534,38 +420,6 @@ void Thread::_call_signal_kill(capid_t const id)
 }
 
 
-capid_t Thread::_call_irq_create(Core::Kernel_object<User_irq> &kobj,
-                                 unsigned                       number,
-                                 Genode::Irq_session::Trigger   trigger,
-                                 Genode::Irq_session::Polarity  polarity,
-                                 capid_t id)
-{
-	return _pd.cap_tree().with<Signal_context>(id,
-		[&] (auto &context) {
-			kobj.construct(_core_pd, number, trigger, polarity, context,
-			               _cpu().pic(), _user_irq_pool);
-			return kobj->core_capid(); },
-		[] () { return cap_id_invalid(); });
-}
-
-
-capid_t Thread::_call_obj_create(Thread_identity &kobj, capid_t id)
-{
-	return _pd.cap_tree().with<Thread>(id,
-		[&] (auto &thread) {
-			return _pd.cap_tree().with(id,
-				[&] (auto &oir) {
-					if (static_cast<Core_object<Thread>&>(thread).capid() != oir.capid())
-						return cap_id_invalid();
-					kobj.construct(_core_pd, thread);
-					return kobj->core_capid();
-				},
-				[] { return cap_id_invalid(); });
-		},
-		[] { return cap_id_invalid(); });
-}
-
-
 void Thread::_call_cap_ack(capid_t const id)
 {
 	_pd.cap_tree().with(id,
@@ -581,38 +435,6 @@ void Thread::_call_cap_destroy(capid_t const id)
 			if (!oir.in_utcb()) destroy(_pd.cap_slab(), &oir); },
 		[] () { /* ignore invalid cap */ });
 }
-
-
-void Kernel::Thread::_call_pd_invalidate_tlb(Pd &pd, addr_t const addr,
-                                             size_t const size)
-{
-	unsigned cnt = 0;
-
-	_cpu_pool.for_each_cpu([&] (Cpu &cpu) {
-		/* if a cpu needs to update increase the counter */
-		if (pd.invalidate_tlb(cpu, addr, size)) cnt++; });
-
-	/* insert the work item in the list if there are outstanding cpus */
-	if (cnt) {
-		_tlb_invalidation.construct(
-			_cpu_pool.work_list(), *this, pd, addr, size, cnt);
-	}
-}
-
-
-void Thread::_call_thread_pager_signal_ack(capid_t id, Thread &thread, bool resolved)
-{
-	_pd.cap_tree().with<Signal_context>(id,
-		[&] (Signal_context &context) { context.ack(); },
-		[] () { /* ignore invalid pager signal */ });
-
-	thread.helping_finished();
-
-	bool restart = resolved || thread._exception_state == NO_EXCEPTION;
-	if (restart) thread._restart();
-	else         thread._become_inactive(AWAITS_RESTART);
-}
-
 
 
 void Thread::_call()
@@ -745,14 +567,304 @@ void Thread::_call()
 			return;
 		}
 	default:
-		/* check wether this is a core thread */
-		if (_type != CORE) {
-			_die("Invalid system call ", user_arg_0<unsigned>());
-			return;
-		}
+		_die("Invalid system call ", user_arg_0<unsigned>());
+	}
+}
+
+
+void Thread::_signal_to_pager()
+{
+	if (!_fault_context.constructed()) {
+		_die("Could not send signal to pager");
+		return;
 	}
 
-	/* switch over kernel calls that are restricted to core */
+	/* first signal to pager to wake it up */
+	_fault_context->sc.submit(1);
+
+	/* only help pager thread if runnable and scheduler allows it */
+	bool const help = Cpu_context::_helping_possible(_fault_context->pager)
+	                  && (_fault_context->pager._state == ACTIVE);
+	if (help) Cpu_context::_help(_fault_context->pager);
+	else _become_inactive(AWAITS_RESTART);
+}
+
+
+void Thread::_mmu_exception()
+{
+	using namespace Genode;
+	using Genode::log;
+
+	_exception_state = MMU_FAULT;
+	Cpu::mmu_fault(*regs, _fault);
+	_fault.ip = regs->ip;
+
+	if (_fault.type == Thread_fault::UNKNOWN) {
+		_die("Unable to handle MMU fault: ", _fault);
+		return;
+	}
+
+	_signal_to_pager();
+}
+
+
+void Thread::_exception()
+{
+	_exception_state = EXCEPTION;
+	_signal_to_pager();
+}
+
+
+Thread::Thread(Cpu &cpu, Pd &pd)
+:
+	Kernel::Object { *this },
+	Cpu_context    { cpu, Scheduler::Group_id::INVALID },
+	_ipc_node      { *this },
+	_pd            { pd },
+	_state         { AWAITS_START },
+	_label         { "idle" },
+	regs           { true }
+{ }
+
+
+Thread::Thread(Cpu &cpu, Pd &pd, char const *const label)
+:
+	Kernel::Object { *this },
+	Cpu_context    { cpu, Scheduler::Group_id::BACKGROUND },
+	_ipc_node      { *this },
+	_pd            { pd },
+	_state         { AWAITS_START },
+	_label         { label },
+	regs           { true }
+{ }
+
+
+Thread::Thread(Cpu &cpu,
+               Pd  &pd,
+               Scheduler::Group_id const group_id,
+               char         const *const label)
+:
+	Kernel::Object { *this },
+	Cpu_context    { cpu, group_id },
+	_ipc_node      { *this },
+	_pd            { pd },
+	_state         { AWAITS_START },
+	_label         { label },
+	regs           { false }
+{ }
+
+
+Thread::~Thread() { _ipc_free_recv_caps(); }
+
+
+void Thread::print(Genode::Output &out) const
+{
+	Genode::print(out, _pd);
+	Genode::print(out, " -> ");
+	Genode::print(out, label());
+}
+
+
+/*****************
+ ** Core_thread **
+ *****************/
+
+Core_thread::
+Tlb_invalidation::Tlb_invalidation(Inter_processor_work_list &global_work_list,
+                                   Core_thread               &caller,
+                                   Pd                        &pd,
+                                   addr_t                     addr,
+                                   size_t                     size,
+                                   unsigned                   cnt)
+:
+	global_work_list { global_work_list },
+	caller           { caller },
+	pd               { pd },
+	addr             { addr },
+	size             { size },
+	cnt              { cnt }
+{
+	global_work_list.insert(&_le);
+	caller._become_inactive(AWAITS_RESTART);
+}
+
+
+template <typename Obj>
+Core_thread::Destroy<Obj>::Destroy(Cpu &cpu, Core_thread &caller, Obj &to_destroy)
+:
+	_caller(caller), _obj_to_destroy(to_destroy)
+{
+	cpu.work_list().insert(&_le);
+	_caller._become_inactive(AWAITS_RESTART);
+	cpu.trigger_ip_interrupt();
+}
+
+
+template <typename Obj>
+void Core_thread::Destroy<Obj>::execute(Cpu &cpu)
+{
+	cpu.work_list().remove(&_le);
+	_obj_to_destroy.destruct();
+	_caller._restart();
+}
+
+template class Core_thread::Destroy<Thread>;
+template class Core_thread::Destroy<Vcpu>;
+
+
+Rpc_result Core_thread::_call_thread_start(Thread &thread, Native_utcb &utcb)
+{
+	ASSERT(thread._state == AWAITS_START);
+
+	switch (thread._ipc_init(utcb, *this)) {
+	case Ipc_alloc_result::OK:
+		break;
+	case Ipc_alloc_result::EXHAUSTED:
+		return Rpc_result::OUT_OF_CAPS;
+	}
+
+	thread._become_active();
+	return Rpc_result::OK;
+}
+
+
+void Core_thread::_call_thread_pause(Thread &thread)
+{
+	if (thread._state == ACTIVE && !thread._paused)
+		thread._deactivate();
+
+	thread._paused = true;
+}
+
+
+void Core_thread::_call_thread_resume(Thread &thread)
+{
+	if (thread._state == ACTIVE && thread._paused)
+		thread._activate();
+
+	thread._paused = false;
+}
+
+
+void Core_thread::_call_thread_pager(Thread &thread, Thread &pager, capid_t id)
+{
+	_pd.cap_tree().with<Signal_context>(id,
+		[&] (Signal_context &sc) {
+			thread._fault_context.construct(pager, sc); },
+		[&] () {
+			Genode::error("core failed to set thread's ", thread,
+			              "pager to cap ", id); });
+}
+
+
+Thread_restart_result Core_thread::_call_thread_restart(capid_t const id)
+{
+	return _pd.cap_tree().with<Thread>(id,
+		[&] (auto &thread) {
+			return ((thread._restart())
+				? Thread_restart_result::RESTARTED
+				: Thread_restart_result::ALREADY_ACTIVE);
+		}, [] { return Thread_restart_result::INVALID; });
+}
+
+
+
+void Core_thread::_call_thread_destroy(Core::Kernel_object<Thread> &to_delete)
+{
+	/**
+	 * Delete a thread immediately if it is assigned to this cpu,
+	 * or the assigned cpu does not execute it right now.
+	 */
+	if (!to_delete->remotely_running()) {
+		to_delete.destruct();
+		return;
+	}
+
+	/**
+	 * Construct a cross-cpu work item and send an IPI
+	 */
+	_thread_destroy.construct(to_delete->_cpu(), *this, to_delete);
+}
+
+
+void Core_thread::_call_pd_destroy(Core::Kernel_object<Pd> &pd)
+{
+	if (_cpu().active(pd->mmu_regs))
+		_cpu().switch_to(_pd.mmu_regs);
+
+	pd.destruct();
+}
+
+
+capid_t Core_thread::_call_irq_create(Core::Kernel_object<User_irq> &kobj,
+                                      unsigned                       number,
+                                      Genode::Irq_session::Trigger   trigger,
+                                      Genode::Irq_session::Polarity  polarity,
+                                      capid_t id)
+{
+	return _pd.cap_tree().with<Signal_context>(id,
+		[&] (auto &context) {
+			kobj.construct(_pd, number, trigger, polarity, context,
+			               _cpu().pic(), _cpu_pool.irq_pool());
+			return kobj->core_capid(); },
+		[] () { return cap_id_invalid(); });
+}
+
+
+capid_t Core_thread::_call_obj_create(Thread_identity &kobj, capid_t id)
+{
+	return _pd.cap_tree().with<Thread>(id,
+		[&] (auto &thread) {
+			return _pd.cap_tree().with(id,
+				[&] (auto &oir) {
+					capid_t capid = thread._privileged() ?
+						static_cast<Core_object<Core_thread>&>(thread).capid() :
+						static_cast<Core_object<Thread>&>(thread).capid();
+					if (capid != oir.capid())
+						return cap_id_invalid();
+					kobj.construct(_pd, thread);
+					return kobj->core_capid();
+				},
+				[] { return cap_id_invalid(); });
+		},
+		[] { return cap_id_invalid(); });
+}
+
+
+void Core_thread::_call_pd_invalidate_tlb(Pd &pd, addr_t const addr,
+                                          size_t const size)
+{
+	unsigned cnt = 0;
+
+	_cpu_pool.for_each_cpu([&] (Cpu &cpu) {
+		/* if a cpu needs to update increase the counter */
+		if (pd.invalidate_tlb(cpu, addr, size)) cnt++; });
+
+	/* insert the work item in the list if there are outstanding cpus */
+	if (cnt) {
+		_tlb_invalidation.construct(
+			_cpu_pool.work_list(), *this, pd, addr, size, cnt);
+	}
+}
+
+
+void Core_thread::_call_thread_pager_signal_ack(capid_t id, Thread &thread,
+                                                bool resolved)
+{
+	_pd.cap_tree().with<Signal_context>(id,
+		[&] (Signal_context &context) { context.ack(); },
+		[] () { /* ignore invalid pager signal */ });
+
+	thread.helping_finished();
+
+	bool restart = resolved || thread._exception_state == NO_EXCEPTION;
+	if (restart) thread._restart();
+	else         thread._become_inactive(AWAITS_RESTART);
+}
+
+
+void Core_thread::_call()
+{
 	switch (user_arg_0<Core_call_id>()) {
 	case Core_call_id::CPU_SUSPEND:
 		{
@@ -830,20 +942,17 @@ void Thread::_call()
 	case Core_call_id::THREAD_CREATE:
 		{
 			_cpu_pool.with_cpu(user_arg_3<unsigned>(), [&] (Cpu &cpu) {
-				_call_create<Thread>(_addr_space_id_alloc, _user_irq_pool,
-				                     _cpu_pool, cpu, _core_pd,
-				                     *user_arg_2<Pd*>(),
+				_call_create<Thread>(cpu, *user_arg_2<Pd*>(),
 				                     Scheduler::Group_id(user_arg_4<unsigned>()),
-				                     user_arg_5<char const*>(), USER);
+				                     user_arg_5<char const*>());
 			});
 			return;
 		}
 	case Core_call_id::THREAD_CORE_CREATE:
 		{
 			_cpu_pool.with_cpu(user_arg_2<unsigned>(), [&] (Cpu &cpu) {
-				_call_create<Thread>(_addr_space_id_alloc, _user_irq_pool,
-				                     _cpu_pool, cpu, _core_pd,
-				                     user_arg_3<char const*>());
+				_call_create<Core_thread>(_addr_space_id_alloc, _cpu_pool, cpu,
+				                          _pd, user_arg_3<char const*>());
 			});
 			return;
 		}
@@ -917,31 +1026,12 @@ void Thread::_call()
 			return;
 		}
 	default:
-		_die("CRITICAL: invalid system call ", user_arg_0<unsigned>());
-		return;
+		Thread::_call();
 	}
 }
 
 
-void Thread::_signal_to_pager()
-{
-	if (!_fault_context.constructed()) {
-		_die("Could not send signal to pager");
-		return;
-	}
-
-	/* first signal to pager to wake it up */
-	_fault_context->sc.submit(1);
-
-	/* only help pager thread if runnable and scheduler allows it */
-	bool const help = Cpu_context::_helping_possible(_fault_context->pager)
-	                  && (_fault_context->pager._state == ACTIVE);
-	if (help) Cpu_context::_help(_fault_context->pager);
-	else _become_inactive(AWAITS_RESTART);
-}
-
-
-void Thread::_mmu_exception()
+void Core_thread::_mmu_exception()
 {
 	using namespace Genode;
 	using Genode::log;
@@ -950,92 +1040,56 @@ void Thread::_mmu_exception()
 	Cpu::mmu_fault(*regs, _fault);
 	_fault.ip = regs->ip;
 
-	if (_fault.type == Thread_fault::UNKNOWN) {
-		_die("Unable to handle MMU fault: ", _fault);
-		return;
-	}
+	error("Core/kernel raised a fault, which should never happen ",
+	      _fault);
+	log("Register dump: ", *regs);
+	log("Backtrace:");
 
-	if (_type != USER) {
-		error("Core/kernel raised a fault, which should never happen ",
-		      _fault);
-		log("Register dump: ", *regs);
-		log("Backtrace:");
-
-		Const_byte_range_ptr const stack {
-			(char const*)Hw::Mm::core_stack_area().base,
-			 Hw::Mm::core_stack_area().size };
-		regs->for_each_return_address(stack, [&] (void **p) {
-			log(*p); });
-		_die("Unable to resolve!");
-		return;
-	}
-
-	_signal_to_pager();
+	Const_byte_range_ptr const stack {
+		(char const*)Hw::Mm::core_stack_area().base,
+		 Hw::Mm::core_stack_area().size };
+	regs->for_each_return_address(stack, [&] (void **p) {
+		log(*p); });
+	_die("Unable to resolve!");
 }
 
 
-void Thread::_exception()
+void Core_thread::_exception()
 {
 	_exception_state = EXCEPTION;
-
-	if (_type != USER)
-		_die("Core/kernel raised an exception, which should never happen");
-
-	_signal_to_pager();
+	_die("Core/kernel raised an exception, which should never happen");
 }
 
 
-Thread::Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-               Irq::Pool                         &user_irq_pool,
-               Cpu_pool                          &cpu_pool,
-               Cpu                               &cpu,
-               Pd                                &core_pd,
-               Pd                                &pd,
-               Scheduler::Group_id         const  group_id,
-               char                 const *const  label,
-               Type                               type)
+/*****************
+ ** Idle_thread **
+ *****************/
+
+extern "C" void idle_thread_main(void);
+
+
+Idle_thread::Idle_thread(Cpu &cpu, Pd &core_pd)
 :
-	Kernel::Object       { *this },
-	Cpu_context          { cpu, group_id },
-	_addr_space_id_alloc { addr_space_id_alloc },
-	_user_irq_pool       { user_irq_pool },
-	_cpu_pool            { cpu_pool },
-	_core_pd             { core_pd },
-	_ipc_node            { *this },
-	_pd                  { pd },
-	_state               { AWAITS_START },
-	_label               { label },
-	_type                { type },
-	regs                 { type != USER }
-{ }
-
-
-Thread::~Thread() { _ipc_free_recv_caps(); }
-
-
-void Thread::print(Genode::Output &out) const
+	Thread(cpu, core_pd)
 {
-	Genode::print(out, _pd);
-	Genode::print(out, " -> ");
-	Genode::print(out, label());
+	regs->ip = (addr_t)&idle_thread_main;
 }
-
-
-Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
 
 
 /**********************
  ** Core_main_thread **
  **********************/
 
+Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
+
+
 Core_main_thread::
 Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-                 Irq::Pool                         &user_irq_pool,
                  Cpu_pool                          &cpu_pool,
                  Pd                                &core_pd)
 :
-	Core_object<Thread>(core_pd, addr_space_id_alloc, user_irq_pool, cpu_pool,
-	                    cpu_pool.primary_cpu(), core_pd, "core")
+	Core_object<Core_thread>(core_pd, addr_space_id_alloc, cpu_pool,
+	                         cpu_pool.primary_cpu(), core_pd, "core")
 {
 	using namespace Core;
 

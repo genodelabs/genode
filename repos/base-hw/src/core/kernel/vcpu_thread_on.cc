@@ -17,16 +17,15 @@
 #include <kernel/cpu.h>
 
 Kernel::capid_t
-Kernel::Thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &kobj,
-                                  Call_arg cpuid, Board::Vcpu_state &state,
-                                  Vcpu::Identity &identity, capid_t sig_cap)
+Kernel::Core_thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &kobj,
+                                       Call_arg cpuid, Board::Vcpu_state &state,
+                                       Vcpu::Identity &identity, capid_t sig_cap)
 {
 	_cpu_pool.with_cpu(cpuid,
 		[&] (Cpu &cpu) {
 			_pd.cap_tree().with<Signal_context>(sig_cap,
 				[&] (Signal_context &context) {
-					kobj.construct(_core_pd, _user_irq_pool, cpu, state,
-					               context, identity); },
+					kobj.construct(_pd, cpu, state, context, identity); },
 				[] { /* ignore failure */ });
 		});
 
@@ -34,7 +33,7 @@ Kernel::Thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &kobj,
 }
 
 
-void Kernel::Thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>& to_delete)
+void Kernel::Core_thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>& to_delete)
 {
 	/**
 	 * Delete a vcpu immediately if it is assigned to this cpu,
@@ -48,8 +47,7 @@ void Kernel::Thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>& to_delete)
 	/**
 	 * Construct a cross-cpu work item and send an IPI
 	 */
-	_vcpu_destroy.construct(*this, to_delete);
-	to_delete->_cpu().trigger_ip_interrupt();
+	_vcpu_destroy.construct(to_delete->_cpu(), *this, to_delete);
 }
 
 

@@ -26,7 +26,7 @@ extern "C" void kernel_to_user_context_switch(Board::Cpu::Fpu_context*,
                                               Board::Cpu::Context*, void*);
 
 
-Cpu_suspend_result Thread::_call_cpu_suspend(unsigned const) {
+Cpu_suspend_result Core_thread::_call_cpu_suspend(unsigned const) {
 	return Cpu_suspend_result::FAILED; }
 
 
@@ -46,7 +46,7 @@ void Thread::exception(Genode::Cpu_state &state)
 		return;
 	case Ctx::INTERRUPT_REQUEST:
 	case Ctx::FAST_INTERRUPT_REQUEST:
-		_interrupt(_user_irq_pool);
+		_interrupt();
 		return;
 	case Ctx::UNDEFINED_INSTRUCTION:
 		_die("Undefined instruction at ip=", Genode::Hex(state.ip));
@@ -66,10 +66,10 @@ void Thread::exception(Genode::Cpu_state &state)
  * coprocessor registers (there might be ARM SoCs where this is not valid,
  * with several shareability domains, but until now we do not support them)
  */
-void Kernel::Thread::Tlb_invalidation::execute(Cpu &) { }
+void Kernel::Core_thread::Tlb_invalidation::execute(Cpu &) { }
 
 
-void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
+void Core_thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
 void Cpu::Halt_job::proceed() { }
@@ -77,7 +77,7 @@ void Cpu::Halt_job::proceed() { }
 
 void Thread::proceed()
 {
-	if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
+	if (!_cpu().active(_pd.mmu_regs) && !_privileged())
 		_cpu().switch_to(_pd.mmu_regs);
 
 	kernel_to_user_context_switch((static_cast<Board::Cpu::Fpu_context*>(&*regs)),

@@ -58,7 +58,6 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 
 		enum Scheduler_state { ACTIVE, INACTIVE };
 
-		Irq::Pool          &_user_irq_pool;
 		Object              _kernel_object { *this };
 		Vcpu_state         &_state;
 		Signal_context     &_context;
@@ -85,8 +84,7 @@ class Kernel::Vcpu : private Kernel::Object, public Cpu_context
 		 * \param state    initial CPU state
 		 * \param context  signal for VM exceptions other than interrupts
 		 */
-		Vcpu(Irq::Pool              &user_irq_pool,
-		     Cpu                    &cpu,
+		Vcpu(Cpu                    &cpu,
 		     Vcpu_state             &state,
 		     Kernel::Signal_context &context,
 		     Identity               &id);

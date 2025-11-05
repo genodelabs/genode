@@ -42,11 +42,9 @@ class Kernel::Main
 
 		Mutex                                   _mutex               { };
 		Cpu_pool                                _cpu_pool            { };
-		Irq::Pool                               _user_irq_pool       { };
 		Board::Address_space_id_allocator       _addr_space_id_alloc { };
 		Core::Core_platform_pd                  _core_platform_pd    { _addr_space_id_alloc };
 		Genode::Constructible<Core_main_thread> _core_main_thread    { };
-		Board::Global_interrupt_controller      _global_irq_ctrl     { };
 		Board::Serial                           _serial              { Core::Platform::mmio_to_virt(Board::UART_BASE),
 		                                                               Board::UART_CLOCK,
 		                                                               SERIAL_BAUD_RATE };
@@ -118,7 +116,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 					nr_of_initialized_cpus = 0;
 
 					Main::_instance->_serial.init();
-					Main::_instance->_global_irq_ctrl.resume();
+					Main::_instance->_cpu_pool.resume();
 				}
 
 				nr_of_initialized_cpus = nr_of_initialized_cpus + 1;
@@ -145,10 +143,7 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 			 * CPU pool.
 			 */
 			Main::_instance->_cpu_pool.initialize_executing_cpu(
-				Main::_instance->_addr_space_id_alloc,
-				Main::_instance->_user_irq_pool,
-				Main::_instance->_core_platform_pd.kernel_pd(),
-				Main::_instance->_global_irq_ctrl);
+				Main::_instance->_core_platform_pd.kernel_pd());
 
 			nr_of_initialized_cpus = nr_of_initialized_cpus + 1; },
 		[&] () {
@@ -174,7 +169,6 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 
 				Main::_instance->_core_main_thread.construct(
 					Main::_instance->_addr_space_id_alloc,
-					Main::_instance->_user_irq_pool,
 					Main::_instance->_cpu_pool,
 					Main::_instance->_core_platform_pd.kernel_pd());
 

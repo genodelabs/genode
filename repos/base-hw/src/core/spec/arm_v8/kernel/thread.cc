@@ -22,7 +22,7 @@ extern "C" void kernel_to_user_context_switch(void *, void *);
 using namespace Kernel;
 
 
-Cpu_suspend_result Thread::_call_cpu_suspend(unsigned const) {
+Cpu_suspend_result Core_thread::_call_cpu_suspend(unsigned const) {
 	return Cpu_suspend_result::FAILED; }
 
 
@@ -40,7 +40,7 @@ void Thread::exception(Genode::Cpu_state &state)
 	case Cpu::IRQ_LEVEL_EL1: [[fallthrough]];
 	case Cpu::FIQ_LEVEL_EL0: [[fallthrough]];
 	case Cpu::FIQ_LEVEL_EL1:
-		_interrupt(_user_irq_pool);
+		_interrupt();
 		return;
 	case Cpu::SYNC_LEVEL_EL0: [[fallthrough]];
 	case Cpu::SYNC_LEVEL_EL1:
@@ -91,57 +91,57 @@ void Thread::exception(Genode::Cpu_state &state)
  * coprocessor registers (there might be ARM SoCs where this is not valid,
  * with several shareability domains, but until now we do not support them)
  */
-void Kernel::Thread::Tlb_invalidation::execute(Cpu &) { }
+void Kernel::Core_thread::Tlb_invalidation::execute(Cpu &) { }
 
 
-void Thread::Flush_and_stop_cpu::execute(Cpu &) { }
+void Core_thread::Flush_and_stop_cpu::execute(Cpu &) { }
 
 
-	void Cpu::Halt_job::proceed() { }
+void Cpu::Halt_job::proceed() { }
 
 
-	bool Kernel::Pd::invalidate_tlb(Cpu &cpu, addr_t addr, size_t size)
-	{
-		using namespace Genode;
+bool Kernel::Pd::invalidate_tlb(Cpu &cpu, addr_t addr, size_t size)
+{
+	using namespace Genode;
 
-		/* only apply to the active cpu */
-		if (cpu.id() != Cpu::executing_id())
-			return false;
+	/* only apply to the active cpu */
+	if (cpu.id() != Cpu::executing_id())
+		return false;
 
-		/**
-		 * The kernel part of the address space is mapped as global
-		 * therefore we have to invalidate it differently
-		 */
-		if (addr >= Hw::Mm::supervisor_exception_vector().base) {
-			for (addr_t end = addr+size; addr < end; addr += get_page_size())
-				asm volatile ("tlbi vaae1is, %0" :: "r" (addr >> 12));
-			return false;
-		}
-
-		/**
-		 * Too big mappings will result in long running invalidation loops,
-		 * just invalidate the whole tlb for the ASID then.
-		 */
-		if (size > 8 * get_page_size()) {
-			asm volatile ("tlbi aside1is, %0"
-						  :: "r" ((uint64_t)mmu_regs.id() << 48));
-			return false;
-		}
-
+	/**
+	 * The kernel part of the address space is mapped as global
+	 * therefore we have to invalidate it differently
+	 */
+	if (addr >= Hw::Mm::supervisor_exception_vector().base) {
 		for (addr_t end = addr+size; addr < end; addr += get_page_size())
-			asm volatile ("tlbi vae1is, %0"
-						  :: "r" (addr >> 12 | (uint64_t)mmu_regs.id() << 48));
+			asm volatile ("tlbi vaae1is, %0" :: "r" (addr >> 12));
 		return false;
 	}
 
+	/**
+	 * Too big mappings will result in long running invalidation loops,
+	 * just invalidate the whole tlb for the ASID then.
+	 */
+	if (size > 8 * get_page_size()) {
+		asm volatile ("tlbi aside1is, %0"
+					  :: "r" ((uint64_t)mmu_regs.id() << 48));
+		return false;
+	}
 
-	void Thread::proceed()
-	{
-		if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
-			_cpu().switch_to(_pd.mmu_regs);
+	for (addr_t end = addr+size; addr < end; addr += get_page_size())
+		asm volatile ("tlbi vae1is, %0"
+					  :: "r" (addr >> 12 | (uint64_t)mmu_regs.id() << 48));
+	return false;
+}
 
-		kernel_to_user_context_switch((static_cast<Board::Cpu::Context*>(&*regs)),
-	                                  (void*)_cpu().stack_start());
+
+void Thread::proceed()
+{
+	if (!_cpu().active(_pd.mmu_regs) && !_privileged())
+		_cpu().switch_to(_pd.mmu_regs);
+
+	kernel_to_user_context_switch((static_cast<Board::Cpu::Context*>(&*regs)),
+	                              (void*)_cpu().stack_start());
 }
 
 

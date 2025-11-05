@@ -30,7 +30,7 @@ void Cpu::Ipi::occurred()
 
 	/* iterate through the local and global work-list */
 	iterate(cpu._local_work_list);
-	iterate(cpu._global_work_list);
+	iterate(cpu._pool._global_work_list);
 
 	/* mark the IPI as being received */
 	pending = false;

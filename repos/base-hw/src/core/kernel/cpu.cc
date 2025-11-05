@@ -55,7 +55,7 @@ void Cpu_context::_yield()
 }
 
 
-void Cpu_context::_interrupt(Irq::Pool &user_irq_pool)
+void Cpu_context::_interrupt()
 {
 	/* let the IRQ controller take a pending IRQ for handling, if any */
 	unsigned irq_id;
@@ -65,7 +65,8 @@ void Cpu_context::_interrupt(Irq::Pool &user_irq_pool)
 		if (!_cpu().handle_if_cpu_local_interrupt(irq_id)) {
 
 			/* it isn't a CPU-local IRQ, so, it must be a user IRQ */
-			User_irq * irq = User_irq::object(user_irq_pool, irq_id);
+			User_irq *irq = User_irq::object(_cpu()._pool.irq_pool(),
+			                                 irq_id);
 			if (irq) irq->occurred();
 			else Genode::raw("Unknown interrupt ", irq_id);
 		}
@@ -96,23 +97,6 @@ Cpu_context::~Cpu_context()
 /*********
  ** Cpu **
  *********/
-
-extern "C" void idle_thread_main(void);
-
-
-Cpu::Idle_thread::Idle_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-                              Irq::Pool                         &user_irq_pool,
-                              Cpu_pool                          &cpu_pool,
-                              Cpu                               &cpu,
-                              Pd                                &core_pd)
-:
-	Thread { addr_space_id_alloc, user_irq_pool, cpu_pool, cpu,
-	         core_pd, core_pd, Scheduler::Group_id::INVALID, "idle",
-	         Thread::IDLE }
-{
-	regs->ip = (addr_t)&idle_thread_main;
-}
-
 
 void Cpu::assign(Context &context)
 {
@@ -169,21 +153,15 @@ addr_t Cpu::stack_start()
 }
 
 
-Cpu::Cpu(Id                           const  id,
-         Board::Address_space_id_allocator  &addr_space_id_alloc,
-         Irq::Pool                          &user_irq_pool,
-         Cpu_pool                           &cpu_pool,
-         Pd                                 &core_pd,
-         Board::Global_interrupt_controller &global_irq_ctrl)
+Cpu::Cpu(Id const id, Cpu_pool &cpu_pool, Pd &core_pd)
 :
-	_id               { id },
-	_pic              { global_irq_ctrl },
-	_timer            { *this },
-	_idle             { addr_space_id_alloc, user_irq_pool, cpu_pool, *this,
-	                    core_pd },
-	_scheduler        { _timer, _idle },
-	_ipi_irq          { *this },
-	_global_work_list { cpu_pool.work_list() }
+	_pool      { cpu_pool },
+	_id        { id },
+	_pic       { cpu_pool._global_irq_ctrl },
+	_timer     { *this },
+	_idle      { *this, core_pd },
+	_scheduler { _timer, _idle },
+	_ipi_irq   { *this }
 {
 	_arch_init();
 
@@ -214,17 +192,10 @@ static inline T* cpu_object_by_id(Cpu::Id const id)
 }
 
 
-void
-Cpu_pool::
-initialize_executing_cpu(Board::Address_space_id_allocator  &addr_space_id_alloc,
-                         Irq::Pool                          &user_irq_pool,
-                         Pd                                 &core_pd,
-                         Board::Global_interrupt_controller &global_irq_ctrl)
+void Cpu_pool::initialize_executing_cpu(Pd &core_pd)
 {
 	Cpu::Id id = Cpu::executing_id();
-	Genode::construct_at<Cpu>(cpu_object_by_id<void>(id), id,
-	                          addr_space_id_alloc, user_irq_pool,
-	                          *this, core_pd, global_irq_ctrl);
+	Genode::construct_at<Cpu>(cpu_object_by_id<void>(id), id, *this, core_pd);
 }
 
 

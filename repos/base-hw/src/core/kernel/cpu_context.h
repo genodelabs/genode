@@ -21,6 +21,7 @@
 
 namespace Kernel {
 
+	class Core_thread;
 	class Cpu;
 	class Cpu_context;
 }
@@ -34,6 +35,7 @@ class Kernel::Cpu_context : private Scheduler::Context
 	private:
 
 		friend class Cpu;
+		friend class Core_thread;
 
 		Cpu *_cpu_ptr;
 
@@ -50,7 +52,7 @@ class Kernel::Cpu_context : private Scheduler::Context
 		/**
 		 * Handle interrupt exception
 		 */
-		void _interrupt(Irq::Pool &user_irq_pool);
+		void _interrupt();
 
 		void _activate();
 		void _deactivate();

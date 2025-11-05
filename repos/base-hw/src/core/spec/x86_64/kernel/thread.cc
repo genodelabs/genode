@@ -24,7 +24,7 @@
 
 using namespace Kernel;
 
-void Thread::Tlb_invalidation::execute(Cpu &)
+void Core_thread::Tlb_invalidation::execute(Cpu &)
 {
 	/* invalidate cpu-local TLB */
 	Cpu::invalidate_tlb();
@@ -37,7 +37,7 @@ void Thread::Tlb_invalidation::execute(Cpu &)
 }
 
 
-void Thread::Flush_and_stop_cpu::execute(Cpu &cpu)
+void Core_thread::Flush_and_stop_cpu::execute(Cpu &cpu)
 {
 	if (--cpus_left == 0) {
 		/* last CPU triggers final ACPI suspend outside kernel lock */
@@ -99,7 +99,7 @@ void Cpu::Halt_job::Halt_job::proceed()
 }
 
 
-Cpu_suspend_result Thread::_call_cpu_suspend(unsigned sleep_type)
+Cpu_suspend_result Core_thread::_call_cpu_suspend(unsigned sleep_type)
 {
 	using Genode::uint8_t;
 	using Core::Platform;
@@ -200,7 +200,7 @@ void Thread::exception(Genode::Cpu_state &state)
 
 	if (state.trapno >= Cpu_state::INTERRUPTS_START &&
 	    state.trapno <= Cpu_state::INTERRUPTS_END) {
-		_interrupt(_user_irq_pool);
+		_interrupt();
 		return;
 	}
 
@@ -214,7 +214,7 @@ void Thread::proceed()
 {
 	Cpu::Ia32_tsc_aux::write((Cpu::Ia32_tsc_aux::access_t)_cpu().id().value);
 
-	if (!_cpu().active(_pd.mmu_regs) && type() != CORE)
+	if (!_cpu().active(_pd.mmu_regs) && !_privileged())
 		_cpu().switch_to(_pd.mmu_regs);
 
 	asm volatile("fxrstor (%1)    \n"

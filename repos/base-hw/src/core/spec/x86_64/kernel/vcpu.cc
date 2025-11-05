@@ -31,24 +31,20 @@ using Kernel::Cpu;
 using Kernel::Vcpu;
 
 
-Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
-           Cpu                    &cpu,
+Vcpu::Vcpu(Cpu                    &cpu,
            Board::Vcpu_state      &state,
            Kernel::Signal_context &context,
            Identity               &id)
 :
 	Kernel::Object { *this },
 	Cpu_context(cpu, Scheduler::Group_id::BACKGROUND),
-	_user_irq_pool(user_irq_pool),
 	_state(state),
 	_context(context),
 	_id(id),
 	_vcpu_context(id.id, state) { }
 
 
-Vcpu::~Vcpu()
-{
-}
+Vcpu::~Vcpu() { }
 
 
 void Vcpu::run()
@@ -154,12 +150,12 @@ void Vcpu::exception(Genode::Cpu_state &state)
 			 * it needs to handle an exit.
 			 */
 			if (_vcpu_context.exit_reason == EXIT_PAUSED)
-				_interrupt(_user_irq_pool);
+				_interrupt();
 			else
 				pause = true;
 			break;
 		case Cpu_state::INTERRUPTS_START ... Cpu_state::INTERRUPTS_END:
-			_interrupt(_user_irq_pool);
+			_interrupt();
 			break;
 		case TRAP_VMDEAD:
 			_pause_vcpu();
@@ -216,6 +212,7 @@ Board::Vcpu_context::Vcpu_context(Id id, Board::Vcpu_state &state)
 	regs->trapno = TRAP_VMEXIT;
 }
 
+
 void Board::Vcpu_context::load(Genode::Vcpu_state &state)
 {
 	virt.load(state);
@@ -260,6 +257,7 @@ void Board::Vcpu_context::load(Genode::Vcpu_state &state)
 	if (state.tsc_aux.charged())
 		tsc_aux_guest = state.tsc_aux.value();
 }
+
 
 void Board::Vcpu_context::store(Genode::Vcpu_state &state)
 {

@@ -323,7 +323,7 @@ class Core::Core_platform_thread : Noncopyable
 
 		Affinity::Location _location;
 
-		Kernel_object<Kernel::Thread> _kobj;
+		Kernel_object<Kernel::Core_thread> _kobj;
 
 		friend class Platform_thread;
 

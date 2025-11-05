@@ -17,11 +17,12 @@
 
 using namespace Kernel;
 
-capid_t Thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &, Call_arg,
-                                  Board::Vcpu_state &, Vcpu::Identity &,
-                                  capid_t) {
+capid_t Core_thread::_call_vcpu_create(Core::Kernel_object<Vcpu> &, Call_arg,
+                                       Board::Vcpu_state &, Vcpu::Identity &,
+                                       capid_t) {
 	return cap_id_invalid(); }
 
-void Thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>&) { }
+void Core_thread::_call_vcpu_destroy(Core::Kernel_object<Vcpu>&) { }
+
 void Thread::_call_vcpu_run(capid_t const) { }
 void Thread::_call_vcpu_pause(capid_t const) { }

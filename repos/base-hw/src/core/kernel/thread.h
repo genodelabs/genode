@@ -38,6 +38,8 @@ namespace Kernel {
 	class Cpu_pool;
 	struct Thread_fault;
 	class Thread;
+	class Core_thread;
+	class Idle_thread;
 	class Core_main_thread;
 }
 
@@ -54,104 +56,15 @@ struct Kernel::Thread_fault
 };
 
 
-/**
- * Kernel back-end for userland execution-contexts
- */
 class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeout
 {
 	public:
 
-		enum Type { USER, CORE, IDLE };
-
 		enum Exception_state { NO_EXCEPTION, MMU_FAULT, EXCEPTION };
-
-	private:
-
-		/*
-		 * Noncopyable
-		 */
-		Thread(Thread const &);
-		Thread &operator = (Thread const &);
-
-		/**
-		 * A TLB invalidation may need cross-cpu synchronization
-		 */
-		struct Tlb_invalidation : Inter_processor_work
-		{
-			Inter_processor_work_list &global_work_list;
-			Thread                    &caller; /* the caller gets blocked until all finished */
-			Pd                        &pd;     /* the corresponding pd */
-			addr_t                     addr;
-			size_t                     size;
-			unsigned                   cnt;    /* count of cpus left */
-
-			Tlb_invalidation(Inter_processor_work_list &global_work_list,
-			                 Thread                    &caller,
-			                 Pd                        &pd,
-			                 addr_t                     addr,
-			                 size_t                     size,
-			                 unsigned                   cnt);
-
-			/************************************
-			 ** Inter_processor_work interface **
-			 ************************************/
-
-			void execute(Cpu &) override;
-		};
-
-		/**
-		 * The destruction of a thread/vcpu still active on another cpu
-		 * needs cross-cpu synchronization
-		 */
-		template <typename OBJ>
-		struct Destroy : Inter_processor_work
-		{
-			using Obj = Core::Kernel_object<OBJ>;
-
-			Thread &_caller; /* the caller gets blocked till the end */
-			Obj    &_obj_to_destroy; /* obj to be destroyed */
-
-			Destroy(Thread &caller, Obj &to_destroy);
-
-
-			/************************************
-			 ** Inter_processor_work interface **
-			 ************************************/
-
-			void execute(Cpu &) override;
-		};
-
-		/**
-		 * Flush and stop CPU, e.g. before suspending or powering off the CPU
-		 */
-		struct Flush_and_stop_cpu : Inter_processor_work
-		{
-			Inter_processor_work_list &global_work_list;
-			unsigned                   cpus_left;
-			Hw::Suspend_type           suspend;
-
-			Flush_and_stop_cpu(Inter_processor_work_list &global_work_list,
-			                   unsigned cpus, Hw::Suspend_type suspend)
-			:
-				global_work_list(global_work_list),
-				cpus_left(cpus),
-				suspend(suspend)
-			{
-				global_work_list.insert(&_le);
-			}
-
-			~Flush_and_stop_cpu() { global_work_list.remove(&_le); }
-
-			/************************************
-			 ** Inter_processor_work interface **
-			 ************************************/
-
-			void execute(Cpu &) override;
-		};
 
 	protected:
 
-		enum { START_VERBOSE = 0 };
+		friend class Core_thread;
 
 		enum State {
 			ACTIVE                      = 1,
@@ -165,16 +78,14 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 
 		enum { MAX_RCV_CAPS = Genode::Msgbuf_base::MAX_CAPS_PER_MSG };
 
-		Board::Address_space_id_allocator &_addr_space_id_alloc;
-		Irq::Pool                         &_user_irq_pool;
-		Cpu_pool                          &_cpu_pool;
-		Pd                                &_core_pd;
-		void                              *_obj_id_ref_ptr[MAX_RCV_CAPS] { nullptr };
-		Ipc_node                           _ipc_node;
-		capid_t                            _ipc_capid                { cap_id_invalid() };
-		size_t                             _ipc_rcv_caps             { 0 };
-		Genode::Native_utcb               *_utcb                     { nullptr };
-		Pd                                &_pd;
+		void *_obj_id_ref_ptr[MAX_RCV_CAPS] { nullptr };
+		Ipc_node _ipc_node;
+		capid_t  _ipc_capid                { cap_id_invalid() };
+		size_t   _ipc_rcv_caps             { 0 };
+
+		Genode::Native_utcb *_utcb { nullptr };
+
+		Pd &_pd;
 
 		struct Fault_context
 		{
@@ -184,20 +95,14 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 
 		Genode::Constructible<Fault_context> _fault_context {};
 
-		Thread_fault                       _fault                    { };
-		State                              _state;
-		Signal_handler                     _signal_handler           { *this };
-		Signal_context_killer              _signal_context_killer    { *this };
-		char   const *const                _label;
-		capid_t                            _timeout_sigid            { 0 };
-		bool                               _paused                   { false };
-		Type const                         _type;
-		Exception_state                    _exception_state          { NO_EXCEPTION };
-
-		Genode::Constructible<Tlb_invalidation>   _tlb_invalidation {};
-		Genode::Constructible<Destroy<Thread>>    _thread_destroy {};
-		Genode::Constructible<Destroy<Vcpu>>      _vcpu_destroy {};
-		Genode::Constructible<Flush_and_stop_cpu> _stop_cpu {};
+		Thread_fault           _fault                    { };
+		State                  _state;
+		Signal_handler         _signal_handler           { *this };
+		Signal_context_killer  _signal_context_killer    { *this };
+		char   const *const    _label;
+		capid_t                _timeout_sigid            { 0 };
+		bool                   _paused                   { false };
+		Exception_state        _exception_state          { NO_EXCEPTION };
 
 		/**
 		 * Switch from an inactive state to the active state
@@ -232,44 +137,40 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		/**
 		 * Handle an exception thrown by the memory management unit
 		 */
-		void _mmu_exception();
+		virtual void _mmu_exception();
 
 		/**
 		 * Handle a non-mmu exception
 		 */
-		void _exception();
+		virtual void _exception();
 
 		/**
 		 * Handle kernel-call request of the thread
 		 */
-		void _call();
+		virtual void _call();
 
 		bool _restart();
+
+		enum Ipc_alloc_result { OK, EXHAUSTED };
+
+		[[nodiscard]] Ipc_alloc_result _ipc_alloc_recv_caps(unsigned rcv_cap_count);
+
+		void _ipc_free_recv_caps();
+
+		[[nodiscard]] Ipc_alloc_result _ipc_init(Genode::Native_utcb &utcb, Thread &callee);
+
+		virtual void _save(Genode::Cpu_state &);
+
+		virtual bool _privileged() const { return false; }
 
 
 		/*********************************************************
 		 ** Kernel-call back-ends, see kernel-interface headers **
 		 *********************************************************/
 
-		using C_thread = Core::Kernel_object<Thread>;
-		using C_pd     = Core::Kernel_object<Pd>;
-		using C_irq    = Core::Kernel_object<User_irq>;
-		using C_vcpu   = Core::Kernel_object<Vcpu>;
+		virtual Thread_restart_result _call_thread_restart(capid_t const);
 
-		using Thread_identity =
-			Genode::Constructible<Core_object_identity<Thread>>;
-
-		Thread_restart_result _call_thread_restart(capid_t const);
-		Rpc_result            _call_thread_start(Thread&, Native_utcb&);
 		void _call_thread_stop();
-		void _call_thread_pause(Thread &);
-		void _call_thread_resume(Thread &);
-		void _call_thread_destroy(C_thread &);
-		void _call_thread_pager(Thread &, Thread &, capid_t);
-		void _call_thread_pager_signal_ack(capid_t, Thread &, bool);
-
-		void _call_pd_invalidate_tlb(Pd &, addr_t const, size_t const);
-		void _call_pd_destroy(C_pd &);
 
 		Rpc_result _call_rpc_wait(unsigned);
 		Rpc_result _call_rpc_call(capid_t const, unsigned);
@@ -287,78 +188,41 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		void          _call_signal_ack(capid_t const);
 		void          _call_signal_kill(capid_t const);
 
-		capid_t _call_vcpu_create(C_vcpu &, Call_arg, Board::Vcpu_state &,
-		                          Vcpu::Identity &, capid_t sig_cap);
-		void _call_vcpu_destroy(C_vcpu &);
-		void _call_vcpu_pause(capid_t const);
-		void _call_vcpu_run(capid_t const);
-
-		capid_t _call_irq_create(C_irq &, unsigned,
-		                         Genode::Irq_session::Trigger,
-                                 Genode::Irq_session::Polarity, capid_t id);
-
-		capid_t _call_obj_create(Thread_identity &, capid_t);
-
 		void _call_cap_ack(capid_t const);
 		void _call_cap_destroy(capid_t const);
 
 		void _call_timeout(timeout_t const, capid_t const);
-		Cpu_suspend_result _call_cpu_suspend(unsigned const);
 
-		template <typename T>
-		void _call_create(auto &&... args)
-		{
-			Core::Kernel_object<T> &kobj =
-				*user_arg_1<Core::Kernel_object<T>*>();
-			kobj.construct(_core_pd, args...);
-			user_ret(kobj->core_capid());
-		}
+		void _call_vcpu_pause(capid_t const);
+		void _call_vcpu_run(capid_t const);
 
-		template <typename T>
-		void _call_destruct()
-		{
-			Core::Kernel_object<T> &kobj =
-				*user_arg_1<Core::Kernel_object<T>*>();
-			kobj.destruct();
-		}
+		/**
+		 * Constructor for idle thread
+		 */
+		Thread(Cpu &cpu, Pd &pd);
 
-		enum Ipc_alloc_result { OK, EXHAUSTED };
-
-		[[nodiscard]] Ipc_alloc_result _ipc_alloc_recv_caps(unsigned rcv_cap_count);
-
-		void _ipc_free_recv_caps();
-
-		[[nodiscard]] Ipc_alloc_result _ipc_init(Genode::Native_utcb &utcb, Thread &callee);
-
-		void _save(Genode::Cpu_state &);
+		/**
+		 * Constructor for core threads
+		 */
+		Thread(Cpu &cpu, Pd &pd, char const *const label);
 
 	public:
 
 		Genode::Align_at<Board::Cpu::Context> regs;
 
-		Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-		       Irq::Pool                         &user_irq_pool,
-		       Cpu_pool                          &cpu_pool,
-		       Cpu                               &cpu,
-		       Pd                                &core_pd,
-		       Pd                                &pd,
-		       Scheduler::Group_id  const         group_id,
-		       char                 const *const  label,
-		       Type                        const  type);
+		/*
+		 * Noncopyable
+		 */
+		Thread(Thread const &) = delete;
+		Thread &operator = (Thread const &) = delete;
 
-		Thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-		       Irq::Pool                         &user_irq_pool,
-		       Cpu_pool                          &cpu_pool,
-		       Cpu                               &cpu,
-		       Pd                                &core_pd,
-		       char                 const *const  label)
-		:
-			Thread(addr_space_id_alloc, user_irq_pool, cpu_pool, cpu,
-			       core_pd, core_pd, Scheduler::Group_id::BACKGROUND,
-			       label, CORE)
-		{ }
+		/**
+		 * Constructor for non-privileged threads
+		 */
+		Thread(Cpu &cpu, Pd &pd, Scheduler::Group_id const group_id,
+		       char const *const label);
 
-		~Thread();
+		virtual ~Thread();
 
 
 		/**************************
@@ -394,23 +258,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 			return (capid_t)core_call(Core_call_id::THREAD_CREATE,
 			                          (Call_arg)&t, (Call_arg)&pd,
 			                          (Call_arg)cpu_id, (Call_arg)group_id,
-			                          (Call_arg)label);
-		}
-
-		/**
-		 * Syscall to create a core thread
-		 *
-		 * \param p         memory donation for the new kernel thread object
-		 * \param label     debugging label of the new thread
-		 *
-		 * \retval capability id of the new kernel object
-		 */
-		static capid_t syscall_create(Core::Kernel_object<Thread> &t,
-		                              unsigned const               cpu_id,
-		                              char const * const           label)
-		{
-			return (capid_t)core_call(Core_call_id::THREAD_CORE_CREATE,
-			                          (Call_arg)&t, (Call_arg)cpu_id,
 			                          (Call_arg)label);
 		}
 
@@ -467,15 +314,226 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		char const * label() const { return _label; }
 		Thread_fault fault() const { return _fault; }
 		Genode::Native_utcb *utcb() { return _utcb; }
-		Type type() const { return _type; }
 		Exception_state exception_state() const { return _exception_state; }
+};
+
+
+class Kernel::Core_thread : public Kernel::Thread
+{
+	private:
+
+		/**
+		 * A TLB invalidation may need cross-cpu synchronization
+		 */
+		struct Tlb_invalidation : Inter_processor_work
+		{
+			Inter_processor_work_list &global_work_list;
+			Core_thread               &caller; /* the caller gets blocked until all finished */
+			Pd                        &pd;     /* the corresponding pd */
+			addr_t                     addr;
+			size_t                     size;
+			unsigned                   cnt;    /* count of cpus left */
+
+			Tlb_invalidation(Inter_processor_work_list &global_work_list,
+			                 Core_thread               &caller,
+			                 Pd                        &pd,
+			                 addr_t                     addr,
+			                 size_t                     size,
+			                 unsigned                   cnt);
+
+			/************************************
+			 ** Inter_processor_work interface **
+			 ************************************/
+
+			void execute(Cpu &) override;
+		};
+
+		/**
+		 * The destruction of a thread/vcpu still active on another cpu
+		 * needs cross-cpu synchronization
+		 */
+		template <typename OBJ>
+		struct Destroy : Inter_processor_work
+		{
+			using Obj = Core::Kernel_object<OBJ>;
+
+			Core_thread &_caller; /* the caller gets blocked till the end */
+			Obj         &_obj_to_destroy; /* obj to be destroyed */
+
+			Destroy(Cpu &cpu, Core_thread &caller, Obj &to_destroy);
+
+
+			/************************************
+			 ** Inter_processor_work interface **
+			 ************************************/
+
+			void execute(Cpu &) override;
+		};
+
+		/**
+		 * Flush and stop CPU, e.g. before suspending or powering off the CPU
+		 */
+		struct Flush_and_stop_cpu : Inter_processor_work
+		{
+			Inter_processor_work_list &global_work_list;
+			unsigned                   cpus_left;
+			Hw::Suspend_type           suspend;
+
+			Flush_and_stop_cpu(Inter_processor_work_list &global_work_list,
+			                   unsigned cpus, Hw::Suspend_type suspend)
+			:
+				global_work_list(global_work_list),
+				cpus_left(cpus),
+				suspend(suspend)
+			{
+				global_work_list.insert(&_le);
+			}
+
+			~Flush_and_stop_cpu() { global_work_list.remove(&_le); }
+
+			/************************************
+			 ** Inter_processor_work interface **
+			 ************************************/
+
+			void execute(Cpu &) override;
+		};
+
+	protected:
+
+		Board::Address_space_id_allocator &_addr_space_id_alloc;
+
+		Cpu_pool &_cpu_pool;
+
+		Genode::Constructible<Tlb_invalidation>   _tlb_invalidation {};
+		Genode::Constructible<Destroy<Thread>>    _thread_destroy {};
+		Genode::Constructible<Destroy<Vcpu>>      _vcpu_destroy {};
+		Genode::Constructible<Flush_and_stop_cpu> _stop_cpu {};
+
+		virtual void _mmu_exception() override;
+		virtual void _exception() override;
+
+		virtual bool _privileged() const override { return true; }
+
+
+		/*********************************************************
+		 ** Kernel-call back-ends, see kernel-interface headers **
+		 *********************************************************/
+
+		void _call() override;
+
+		using C_thread = Core::Kernel_object<Thread>;
+		using C_pd     = Core::Kernel_object<Pd>;
+		using C_irq    = Core::Kernel_object<User_irq>;
+		using C_vcpu   = Core::Kernel_object<Vcpu>;
+
+		using Thread_identity =
+			Genode::Constructible<Core_object_identity<Thread>>;
+
+		Rpc_result _call_thread_start(Thread&, Native_utcb&);
+		void _call_thread_pause(Thread &);
+		void _call_thread_resume(Thread &);
+		void _call_thread_destroy(C_thread &);
+		void _call_thread_pager(Thread &, Thread &, capid_t);
+		void _call_thread_pager_signal_ack(capid_t, Thread &, bool);
+
+		Thread_restart_result _call_thread_restart(capid_t const) override;
+
+		void _call_pd_invalidate_tlb(Pd &, addr_t const, size_t const);
+		void _call_pd_destroy(C_pd &);
+
+		capid_t _call_vcpu_create(C_vcpu &, Call_arg, Board::Vcpu_state &,
+		                          Vcpu::Identity &, capid_t sig_cap);
+		void _call_vcpu_destroy(C_vcpu &);
+
+		capid_t _call_irq_create(C_irq &, unsigned,
+		                         Genode::Irq_session::Trigger,
+                                 Genode::Irq_session::Polarity, capid_t id);
+
+		capid_t _call_obj_create(Thread_identity &, capid_t);
+
+		Cpu_suspend_result _call_cpu_suspend(unsigned const);
+
+		template <typename T>
+		void _call_create(auto &&... args)
+		{
+			Core::Kernel_object<T> &kobj =
+				*user_arg_1<Core::Kernel_object<T>*>();
+			kobj.construct(_pd, args...);
+			user_ret(kobj->core_capid());
+		}
+
+		template <typename T>
+		void _call_destruct()
+		{
+			Core::Kernel_object<T> &kobj =
+				*user_arg_1<Core::Kernel_object<T>*>();
+			kobj.destruct();
+		}
+
+	public:
+
+		/*
+		 * Noncopyable
+		 */
+		Core_thread(Core_thread const &) = delete;
+		Core_thread &operator = (Core_thread const &) = delete;
+
+		Core_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
+		            Cpu_pool                          &cpu_pool,
+		            Cpu                               &cpu,
+		            Pd                                &core_pd,
+		            char                  const *const label)
+		:
+			Thread(cpu, core_pd, label),
+			_addr_space_id_alloc(addr_space_id_alloc),
+			_cpu_pool(cpu_pool)
+		{ }
+
+
+		/**
+		 * Syscall to create a core thread
+		 *
+		 * \param p         memory donation for the new kernel thread object
+		 * \param label     debugging label of the new thread
+		 *
+		 * \retval capability id of the new kernel object
+		 */
+		static capid_t syscall_create(Core::Kernel_object<Core_thread> &t,
+		                              unsigned const cpu_id,
+		                              char const * const label)
+		{
+			return (capid_t)core_call(Core_call_id::THREAD_CORE_CREATE,
+			                          (Call_arg)&t, (Call_arg)cpu_id,
+			                          (Call_arg)label);
+		}
+
+		/**
+		 * Syscall to destroy a thread
+		 *
+		 * \param thread  pointer to thread kernel object
+		 */
+		static void syscall_destroy(Core::Kernel_object<Core_thread> &t) {
+			core_call(Core_call_id::THREAD_DESTROY, (Call_arg)&t); }
+};
+
+
+class Kernel::Idle_thread : public Thread
+{
+	private:
+
+		virtual bool _privileged() const override { return true; }
+		virtual void _save(Genode::Cpu_state &) override {}
+
+	public:
+
+		Idle_thread(Cpu &cpu, Pd &core_pd);
 };
 
 
 /**
  * The first core thread in the system bootstrapped by the Kernel
  */
-class Kernel::Core_main_thread : public Core_object<Kernel::Thread>
+class Kernel::Core_main_thread : public Core_object<Kernel::Core_thread>
 {
 	private:
 
@@ -484,7 +542,6 @@ class Kernel::Core_main_thread : public Core_object<Kernel::Thread>
 	public:
 
 		Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-		                 Irq::Pool                         &user_irq_pool,
 		                 Cpu_pool                          &cpu_pool,
 		                 Pd                                &core_pd);
 };

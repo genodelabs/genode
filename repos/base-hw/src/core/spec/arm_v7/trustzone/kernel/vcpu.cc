@@ -21,15 +21,13 @@
 using namespace Kernel;
 
 
-Vcpu::Vcpu(Irq::Pool              &user_irq_pool,
-           Cpu                    &cpu,
+Vcpu::Vcpu(Cpu                    &cpu,
            Board::Vcpu_state     &state,
            Kernel::Signal_context &context,
            Identity               &id)
 :
 	Kernel::Object { *this },
 	Cpu_context(cpu, Scheduler::Group_id::BACKGROUND),
-	_user_irq_pool(user_irq_pool),
 	_state(state),
 	_context(context),
 	_id(id),
@@ -53,7 +51,7 @@ void Vcpu::exception(Genode::Cpu_state&)
 		switch(state.cpu_exception) {
 		case Genode::Cpu_state::INTERRUPT_REQUEST: [[fallthrough]];
 		case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-			_interrupt(_user_irq_pool);
+			_interrupt();
 			return;
 		case Genode::Cpu_state::DATA_ABORT:
 			state.dfar = Cpu::Dfar::read();
