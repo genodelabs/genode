@@ -149,6 +149,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_context, private Timeo
 		 */
 		virtual void _call();
 
+		void _pause();
 		bool _restart();
 
 		enum Ipc_alloc_result { OK, EXHAUSTED };
@@ -371,6 +372,25 @@ class Kernel::Core_thread : public Kernel::Thread
 		};
 
 		/**
+		 * Object to pause a thread still active on another cpu
+		 * needs cross-cpu synchronization
+		 */
+		struct Pause : Inter_processor_work
+		{
+			Core_thread &_caller; /* the caller gets blocked till the end */
+			Thread      &_thread; /* threaded to be paused */
+
+			Pause(Cpu &cpu, Core_thread &caller, Thread &thread);
+
+
+			/************************************
+			 ** Inter_processor_work interface **
+			 ************************************/
+
+			void execute(Cpu &) override;
+		};
+
+		/**
 		 * Flush and stop CPU, e.g. before suspending or powering off the CPU
 		 */
 		struct Flush_and_stop_cpu : Inter_processor_work
@@ -408,6 +428,7 @@ class Kernel::Core_thread : public Kernel::Thread
 		Genode::Constructible<Destroy<Thread>>    _thread_destroy {};
 		Genode::Constructible<Destroy<Vcpu>>      _vcpu_destroy {};
 		Genode::Constructible<Flush_and_stop_cpu> _stop_cpu {};
+		Genode::Constructible<Pause>              _thread_pause {};
 
 		virtual void _mmu_exception() override;
 		virtual void _exception() override;

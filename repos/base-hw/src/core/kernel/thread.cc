@@ -615,6 +615,15 @@ void Thread::_exception()
 }
 
 
+void Thread::_pause()
+{
+	if (_state == ACTIVE && !_paused)
+		_deactivate();
+
+	_paused = true;
+}
+
+
 Thread::Thread(Cpu &cpu, Pd &pd)
 :
 	Kernel::Object { *this },
@@ -712,6 +721,24 @@ template class Core_thread::Destroy<Thread>;
 template class Core_thread::Destroy<Vcpu>;
 
 
+Core_thread::Pause::Pause(Cpu &cpu, Core_thread &caller, Thread &to_pause)
+:
+	_caller(caller), _thread(to_pause)
+{
+	cpu.work_list().insert(&_le);
+	_caller._become_inactive(AWAITS_RESTART);
+	cpu.trigger_ip_interrupt();
+}
+
+
+void Core_thread::Pause::execute(Cpu &cpu)
+{
+	cpu.work_list().remove(&_le);
+	_thread._pause();
+	_caller._restart();
+}
+
+
 Rpc_result Core_thread::_call_thread_start(Thread &thread, Native_utcb &utcb)
 {
 	ASSERT(thread._state == AWAITS_START);
@@ -730,10 +757,19 @@ Rpc_result Core_thread::_call_thread_start(Thread &thread, Native_utcb &utcb)
 
 void Core_thread::_call_thread_pause(Thread &thread)
 {
-	if (thread._state == ACTIVE && !thread._paused)
-		thread._deactivate();
+	/**
+	 * Delete a thread immediately if it is assigned to this cpu,
+	 * or the assigned cpu does not execute it right now.
+	 */
+	if (!thread.remotely_running()) {
+		thread._pause();
+		return;
+	}
 
-	thread._paused = true;
+	/**
+	 * Construct a cross-cpu work item and send an IPI
+	 */
+	_thread_pause.construct(thread._cpu(), *this, thread);
 }
 
 
