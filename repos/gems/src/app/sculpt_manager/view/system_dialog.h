@@ -82,6 +82,7 @@ struct Sculpt::System_dialog : Top_level_dialog
 					_image_index.with_node([&] (Node const &index) {
 						s.widget(_update_widget, index); });
 					s.widget(_version_widget, _build_info);
+					s.sub_scope<Min_ex>(40);
 					break;
 				};
 			});
