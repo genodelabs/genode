@@ -23,6 +23,7 @@
 		<nic/>
 		<uplink/>
 		<rom/>
+		<report/>
 		<gpu/>
 		<usb/>
 		<play/>
