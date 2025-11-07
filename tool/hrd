@@ -21,15 +21,20 @@ proc error { msg } {
 
 proc hrd_type       { hrd  } { return [lindex $hrd  0] }
 proc hrd_line       { hrd  } { return [lindex $hrd  1] }
-proc hrd_enabled    { hrd  } { return [lindex $hrd  2] }
-proc hrd_preface    { hrd  } { return [lindex $hrd  3] }
-proc hrd_attributes { hrd  } { return [lindex $hrd  4] }
-proc hrd_children   { hrd  } { return [lindex $hrd  5] }
-proc hrd_quoted     { hrd  } { return [lindex $hrd  6] }
+proc hrd_prespace   { hrd  } { return [lindex $hrd  2] }
+proc hrd_anchor     { hrd  } { return [lindex $hrd  3] }
+proc hrd_preface    { hrd  } { return [lindex $hrd  4] }
+proc hrd_attributes { hrd  } { return [lindex $hrd  5] }
+proc hrd_children   { hrd  } { return [lindex $hrd  6] }
+proc hrd_quoted     { hrd  } { return [lindex $hrd  7] }
 proc attr_line      { attr } { return [lindex $attr 0] }
-proc attr_tag       { attr } { return [lindex $attr 1] }
-proc attr_value     { attr } { return [lindex $attr 2] }
+proc attr_prespace  { attr } { return [lindex $attr 1] }
+proc attr_tag       { attr } { return [lindex $attr 2] }
+proc attr_align     { attr } { return [lindex $attr 3] }
+proc attr_value     { attr } { return [lindex $attr 4] }
 
+proc same_trimmed     { s1 s2 } { return [expr {[string trim $s1] == [string trim $s2]}] }
+proc same_attr_values { a1 a2 } { return [same_trimmed [attr_value $a1] [attr_value $a2]] }
 
 proc hrd_leaf { hrd } {
 
@@ -37,19 +42,13 @@ proc hrd_leaf { hrd } {
 }
 
 
-proc hrd_anchor { hrd } {
-
-	if {[hrd_enabled $hrd]} { return "+" } else { return "x" }
-}
-
-
 proc node_stack_element_as_hrd { ctx_var i } {
 
 	upvar $ctx_var ctx
 
-	return [list $ctx($i,type)    $ctx($i,line)       $ctx($i,enabled) \
-	             $ctx($i,preface) $ctx($i,attributes) $ctx($i,children) \
-	             $ctx($i,quoted)]
+	return [list $ctx($i,type)     $ctx($i,line)    $ctx($i,prespace) \
+	             $ctx($i,anchor)   $ctx($i,preface) $ctx($i,attributes) \
+	             $ctx($i,children) $ctx($i,quoted)]
 }
 
 
@@ -91,8 +90,9 @@ proc drop_misaligned_preface { ctx_var xpos } {
 	if {$xpos != $ctx(preface,xpos)} {
 		foreach line $ctx(preface,lines) {
 			set n    [lindex $line 0]
-			set text [lindex $line 1]
+			set text [lindex $line 2]
 			puts stderr "Dropping commented-out line $n: $text"
+			set ctx(prespace) "\n"
 		}
 		set ctx(preface,xpos)  -1
 		set ctx(preface,lines) {}
@@ -100,7 +100,7 @@ proc drop_misaligned_preface { ctx_var xpos } {
 }
 
 
-proc add_node { ctx_var n xpos type enabled } {
+proc add_node { ctx_var n xpos type anchor } {
 
 	upvar $ctx_var ctx
 
@@ -114,13 +114,15 @@ proc add_node { ctx_var n xpos type enabled } {
 	set pos $ctx(depth)
 	set ctx($pos,type)       $type
 	set ctx($pos,line)       $n
+	set ctx($pos,prespace)   $ctx(prespace)
 	set ctx($pos,xpos)       $xpos
-	set ctx($pos,enabled)    $enabled
+	set ctx($pos,anchor)     $anchor
 	set ctx($pos,preface)    $ctx(preface,lines)
 	set ctx($pos,attributes) {}
 	set ctx($pos,children)   {}
 	set ctx($pos,quoted)     {}
 	set ctx(preface,lines)   {}
+	set ctx(prespace)        ""
 	incr ctx(depth)
 }
 
@@ -131,6 +133,8 @@ proc add_attribute { ctx_var xpos attr } {
 
 	set pos [stack_pos_for_xpos ctx $xpos]
 	lappend ctx($pos,attributes) $attr
+
+	set ctx(prespace) ""
 }
 
 
@@ -150,7 +154,9 @@ proc capture_preface { ctx_var n xpos text } {
 	drop_misaligned_preface ctx $xpos
 
 	set ctx(preface,xpos) $xpos
-	lappend ctx(preface,lines) [list $n $text]
+	lappend ctx(preface,lines) [list $n $ctx(prespace) $text]
+
+	set ctx(prespace) ""
 }
 
 
@@ -185,52 +191,36 @@ proc parse { pattern chars_var xpos_var match_var match_body } {
 }
 
 
-proc parse_away { pattern chars_var xpos_var match_body } {
+proc parse_value { chars_var xpos_var align_var value_var body } {
 
 	upvar $chars_var chars
 	upvar $xpos_var  xpos
-
-	while {[regexp "^($pattern)" $chars match]} {
-		incr xpos [string length $match]
-		regsub "^($pattern)" $chars "" chars
-		uplevel 1 $match_body
-	}
-}
-
-
-proc parse_space { chars_var xpos_var body } {
-
-	upvar $chars_var chars
-	upvar $xpos_var  xpos
-
-	parse_away [space_pattern] chars xpos { uplevel 1 $body }
-}
-
-
-proc parse_value { chars_var xpos_var value_var body } {
-
-	upvar $chars_var chars
-	upvar $xpos_var  xpos
+	upvar $align_var align
 	upvar $value_var value
 
 	parse [value_pattern] chars xpos aligned_value {
-		set value [string trim $aligned_value]
-		uplevel 1 $body }
+		parse [space_pattern] aligned_value xpos align { }
+		parse [value_pattern] aligned_value xpos value {
+			uplevel 1 $body } }
 }
 
 
-proc parse_attr { chars_var xpos_var tag_name_var value_var body } {
+proc parse_attr { prespace_var chars_var xpos_var tag_name_var align_var value_var body } {
 
+	upvar $prespace_var prespace
 	upvar $chars_var    chars
 	upvar $xpos_var     xpos
 	upvar $tag_name_var tag_name
+	upvar $align_var    align
 	upvar $value_var    value
 
 	parse [tag_pattern] chars xpos tag {
-		parse_away [space_pattern] tag ignored { }
-		parse      [id_pattern]    tag ignored tag_name {
-			parse_value chars xpos value {
-				uplevel 1 $body } } }
+		parse [space_pattern] tag xpos space { append prespace $space }
+		parse [id_pattern]    tag xpos tag_name {
+			set value ""
+			set align ""
+			parse_value chars xpos align value { }
+			uplevel 1 $body } }
 }
 
 
@@ -241,15 +231,14 @@ proc parse_property { n chars_var xpos_var ctx_var } {
 	upvar $ctx_var   ctx
 
 	set property_xpos $xpos
-	parse_attr chars xpos tag value {
-		add_attribute ctx $property_xpos [list $n $tag $value] }
+	parse_attr ctx(prespace) chars xpos tag align value {
+		add_attribute ctx $property_xpos [list $n $ctx(prespace) $tag $align $value] }
 
 	parse [anchor_pattern] chars xpos match {
-		set enabled [regexp {[+]} $match dummy]
-		parse_node $n chars xpos ctx $enabled }
+		parse_node $n chars xpos ctx $match }
 
-	parse_away [quoted_pattern] chars xpos {
-		add_node ctx $n [expr $property_xpos + 2] ":" 1
+	parse [quoted_pattern] chars xpos ignored {
+		add_node ctx $n [expr $property_xpos + 2] ":" ""
 		parse {.+$} chars xpos text {
 			assign_quoted ctx $xpos $text } }
 
@@ -264,11 +253,12 @@ proc parse_details { n chars_var xpos_var ctx_var } {
 	upvar $ctx_var   ctx
 
 	parse [delim_pattern] chars xpos match {
+		append ctx(prespace) $match
 		parse_property $n chars xpos ctx }
 }
 
 
-proc parse_node { n chars_var xpos_var ctx_var enabled } {
+proc parse_node { n chars_var xpos_var ctx_var anchor } {
 
 	upvar $chars_var chars
 	upvar $xpos_var  xpos
@@ -277,16 +267,16 @@ proc parse_node { n chars_var xpos_var ctx_var enabled } {
 	set node_xpos $xpos
 	parse [id_pattern] chars xpos type {
 
-		add_node ctx $n $node_xpos $type $enabled
+		add_node ctx $n $node_xpos $type $anchor
 
 		set attr_xpos $xpos
 
-		parse_attr chars xpos tag value {
-			add_attribute ctx $attr_xpos [list $n $tag $value] }
+		parse_attr ctx(prespace) chars xpos tag align value {
+			add_attribute ctx $attr_xpos [list $n $ctx(prespace) $tag $align $value] }
 
 		# optional name attribute
-		parse_value chars xpos name {
-			add_attribute ctx $attr_xpos [list $n name $name] }
+		parse_value chars xpos align name {
+			add_attribute ctx $attr_xpos [list $n $ctx(prespace) name $align $name] }
 
 		parse_details $n chars xpos ctx
 	}
@@ -302,30 +292,31 @@ proc parse_line { n chars ctx_var } {
 	upvar $ctx_var ctx
 
 	set orig_chars $chars
+	set xpos 0
 
 	set eof false
-	parse_away [eof_pattern] chars ignored {
+	parse [eof_pattern] chars xpos ignored {
 		set eof true }
 
 	if {$eof} {
 		pop_nodes ctx 0
 		return false }
 
-	parse_away [empty_pattern] chars ignored {
+	parse [empty_pattern] chars xpos space {
+		append ctx(prespace) $space
 		return true }
 
-	set xpos 0
-	parse_away [indent_pattern] chars xpos { }
+	parse [indent_pattern] chars xpos space { append ctx(prespace) $space }
 
 	# capture preface comment or drop commented-out line
-	parse_away [comment_pattern] chars ignored {
+	parse [comment_pattern] chars ignored_xpos comment {
 		capture_preface ctx $n $xpos $chars
 		set chars "" }
 
 	parse_property $n chars xpos ctx
 
 	# top-level node
-	parse_node $n chars xpos ctx 1
+	parse_node $n chars xpos ctx ""
 
 	# diagnostic feedback
 	if {[string length $chars] > 0} {
@@ -357,7 +348,8 @@ proc import_hrd { data { multiple_lines true } } {
 	set ctx(depth)         0
 	set ctx(0,type)        ""
 	set ctx(0,line)        0
-	set ctx(0,enabled)     true
+	set ctx(0,prespace)    ""
+	set ctx(0,anchor)      ""
 	set ctx(0,preface)     {}
 	set ctx(0,attributes)  {}
 	set ctx(0,xpos)        0
@@ -365,6 +357,7 @@ proc import_hrd { data { multiple_lines true } } {
 	set ctx(0,quoted)      {}
 	set ctx(preface,xpos)  -1
 	set ctx(preface,lines) {}
+	set ctx(prespace)      ""
 
 	set lines [split $data "\n"]
 	set eof 0
@@ -373,6 +366,7 @@ proc import_hrd { data { multiple_lines true } } {
 		if {![parse_line $n $line ctx]} {
 			set eof true
 			break; }
+		append ctx(prespace) "\n"
 		incr n
 	}
 
@@ -408,7 +402,7 @@ proc hrd_query_nodes { query_hrd data_hrd } {
 		foreach data_attr [hrd_attributes $data_hrd] {
 			if {[attr_tag $data_attr] == [attr_tag $query_attr]} {
 				set attr_exists_in_data 1
-				if {[attr_value $data_attr] != [attr_value $query_attr]} {
+				if {![same_attr_values $data_attr $query_attr]} {
 					return {} } } }
 
 		if {!$attr_exists_in_data} {
@@ -448,7 +442,7 @@ proc hrd_filter { ctx_var query_hrd data_hrd filtered_hrd_var match_body } {
 		foreach data_attr [hrd_attributes $data_hrd] {
 			if {[attr_tag $data_attr] == [attr_tag $query_attr]} {
 				set attr_exists_in_data 1
-				if {[attr_value $data_attr] != [attr_value $query_attr]} {
+				if {![same_attr_values $data_attr $query_attr]} {
 					return $data_hrd } } } }
 
 	# apply filter when matching the leaf of the query
@@ -470,9 +464,10 @@ proc hrd_filter { ctx_var query_hrd data_hrd filtered_hrd_var match_body } {
 				lappend filtered_children $filter_result }
 		}
 	}
-	return [list [hrd_type       $data_hrd] [hrd_line    $data_hrd] \
-	             [hrd_enabled    $data_hrd] [hrd_preface $data_hrd] \
-	             [hrd_attributes $data_hrd] $filtered_children]
+	return [list [hrd_type     $data_hrd] [hrd_line       $data_hrd] \
+	             [hrd_prespace $data_hrd] [hrd_anchor     $data_hrd] \
+	             [hrd_preface  $data_hrd] [hrd_attributes $data_hrd] \
+	             $filtered_children]
 }
 
 
@@ -495,8 +490,8 @@ proc hrd_foreach_non_name_attr { tag_var value_var hrd body } {
 
 	foreach attr [hrd_attributes $hrd] {
 		if {[attr_tag $attr] != "name"} {
-			set tag   [lindex $attr 1]
-			set value [lindex $attr 2]
+			set tag   [attr_tag   $attr]
+			set value [attr_value $attr]
 			uplevel 1 $body } }
 }
 
@@ -518,12 +513,12 @@ proc hrd_foreach_non_first_attr { tag_var value_var hrd body } {
 	upvar $tag_var   tag
 	upvar $value_var value
 
-	set first_tag [lindex [hrd_first_attr $hrd] 1]
+	set first_tag [attr_tag [hrd_first_attr $hrd]]
 
 	foreach attr [hrd_attributes $hrd] {
-		set tag [lindex $attr 1]
+		set tag [attr_tag $attr]
 		if {$tag != $first_tag} {
-			set value [lindex $attr 2]
+			set value [attr_value $attr]
 			uplevel 1 $body
 		}
 	}
@@ -538,12 +533,12 @@ proc hrd_num_quoted_lines { hrd } {
 }
 
 
-proc print_hrd_node_recursively { out_fd indent hrd { last 0 } } {
+proc print_hrd_as_tree_recursively { out_fd indent hrd { last 0 } } {
 
 	# print comment above node
 	foreach preface_line [hrd_preface $hrd] {
 		regsub {. $|^$} $indent ". " comment_prefix
-		puts $out_fd "$comment_prefix[lindex $preface_line 1]" }
+		puts $out_fd "$comment_prefix[lindex $preface_line 2]" }
 
 	set type [string trim [hrd_type $hrd]]
 
@@ -564,11 +559,11 @@ proc print_hrd_node_recursively { out_fd indent hrd { last 0 } } {
 		set tag_column_size [expr $max_tag_len + 1]
 
 		set first_attr [hrd_first_attr $hrd]
-		if {[lindex $first_attr 1] == "name"} {
-			puts $out_fd "$indent$type [lindex $first_attr 2]"
+		if {[attr_tag $first_attr] == "name"} {
+			puts $out_fd "$indent$type [attr_value $first_attr]"
 		} else {
-			set padded_tag [format "%-${tag_column_size}s" "[lindex $first_attr 1]:"]
-			set value [lindex $first_attr 2]
+			set padded_tag [format "%-${tag_column_size}s" "[attr_tag $first_attr]:"]
+			set value [attr_value $first_attr]
 			if {$value != ""} { set value " $value" }
 			puts $out_fd "$indent$type $padded_tag$value"
 		}
@@ -602,16 +597,52 @@ proc print_hrd_node_recursively { out_fd indent hrd { last 0 } } {
 				puts $out_fd "$indent: [hrd_quoted $child_hrd]"
 			}
 		} else {
-			set sub_node_indent "$indent[hrd_anchor $child_hrd] "
-			print_hrd_node_recursively $out_fd $sub_node_indent $child_hrd $last
+			set sub_node_indent "$indent[string trim [hrd_anchor $child_hrd]] "
+			print_hrd_as_tree_recursively $out_fd $sub_node_indent $child_hrd $last
 		}
 	}
 }
 
 
 proc print_hrd_as_tree { out_fd hrd } {
-	print_hrd_node_recursively $out_fd "" $hrd
+	print_hrd_as_tree_recursively $out_fd "" $hrd
 	puts $out_fd "-"
+}
+
+
+proc print_hrd_as_is_recursively { out_fd hrd } {
+
+	foreach preface_line [hrd_preface $hrd] {
+		puts -nonewline $out_fd "[lindex $preface_line 1]. [lindex $preface_line 2]" }
+
+	puts -nonewline $out_fd "[hrd_prespace $hrd][hrd_anchor $hrd][hrd_type $hrd]"
+
+	set first_attr 1
+	foreach attr [hrd_attributes $hrd] {
+		puts -nonewline $out_fd "[attr_prespace $attr]"
+		if {!$first_attr || [attr_tag $attr] != "name"} {
+			puts -nonewline $out_fd "[attr_tag $attr]:" }
+		puts -nonewline $out_fd "[attr_align $attr][attr_value $attr]"
+		set first_attr 0
+	}
+
+	foreach child_hrd [hrd_children $hrd] {
+
+		# quoted content
+		if {[hrd_type $child_hrd] == ":"} {
+			puts -nonewline $out_fd "[hrd_prespace $child_hrd]:"
+			if {[string length [hrd_quoted $child_hrd]] > 0} {
+				puts -nonewline $out_fd " [hrd_quoted $child_hrd]" }
+		} else {
+			print_hrd_as_is_recursively $out_fd $child_hrd
+		}
+	}
+}
+
+
+proc print_hrd_as_is { out_fd hrd } {
+	print_hrd_as_is_recursively $out_fd $hrd
+	puts $out_fd "\n-"
 }
 
 
@@ -687,7 +718,7 @@ proc _hrd_from_xml_rec { text info_var } {
 			if {[string length $trimmed] > 0} {
 				foreach line [split $child_text "\n"] {
 					set decoded [string trim [_xml_decoded $line]]
-					lappend result [list ":" 1 1 "" "" "" $decoded] } }
+					lappend result [list ":" 1 "" "" "" "" "" $decoded] } }
 		}
 
 		if {$child_type == "compound"} {
@@ -729,10 +760,10 @@ proc _hrd_from_xml_rec { text info_var } {
 
 				set attr_pattern {(\w+) *= *"([^"]*)"}
 				if {[regexp $attr_pattern $info($attr,text) match tag value]} {
-					lappend hrd_attrs [list 0 $tag $value] }
+					lappend hrd_attrs [list 0 "" $tag "" $value] }
 			}
 
-			lappend result [list $hrd_type 1 1 "" $hrd_attrs $hrd_children ""]
+			lappend result [list $hrd_type 1 "" "+ " "" $hrd_attrs $hrd_children ""]
 		}
 	}
 
@@ -760,7 +791,7 @@ proc import_hrd_from_xml { xml } {
 
 proc print_hrd_as_xml { out_fd hrd { indent 0 } } {
 
-	if {![hrd_enabled $hrd]} {
+	if {[string trim [hrd_anchor $hrd]] == "x"} {
 		return }
 
 	set indent_tabs ""
@@ -775,10 +806,10 @@ proc print_hrd_as_xml { out_fd hrd { indent 0 } } {
 	if {[llength $preface] > 1} {
 		set texts {}
 		foreach line $preface {
-			lappend texts "  [lindex $line 1]" }
+			lappend texts "  [lindex $line 2]" }
 		puts $out_fd "$indent_tabs<!--  [join $texts "\n$indent_tabs"]-->"
 	} elseif {[llength $preface] == 1} {
-		puts $out_fd "$indent_tabs<!-- [lindex [lindex $preface 0] 1] -->"
+		puts $out_fd "$indent_tabs<!-- [lindex [lindex $preface 0] 2] -->"
 	}
 
 	# quoted content
@@ -789,7 +820,7 @@ proc print_hrd_as_xml { out_fd hrd { indent 0 } } {
 
 	set xml_tag "<$type"
 	foreach attr [hrd_attributes $hrd] {
-		lappend xml_tag "[attr_tag $attr]=\"[attr_value $attr]\"" }
+		lappend xml_tag "[attr_tag $attr]=\"[string trim [attr_value $attr]]\"" }
 	puts -nonewline $out_fd "$indent_tabs[join $xml_tag { }]"
 
 	if {[hrd_leaf $hrd]} {
@@ -956,11 +987,13 @@ proc consume_flag_arg { flag body } {
 
 # define input and output format
 set import_hrd_fn import_hrd
-set print_hrd_fn  print_hrd_as_tree
+set print_hrd_fn  print_hrd_as_is
 set in_place 0
 
 consume_flag_arg --import-xml {
-	set import_hrd_fn import_hrd_from_xml }
+	set import_hrd_fn import_hrd_from_xml
+	set print_hrd_fn  print_hrd_as_tree
+}
 
 consume_flag_arg --output-xml {
 	set print_hrd_fn print_hrd_as_xml }
@@ -1054,11 +1087,15 @@ proc with_node_query_and_args { node_query_hrd_var args_var body } {
 
 with_command format {
 
+	if {$print_hrd_fn == "print_hrd_as_is"} { set print_hrd_fn print_hrd_as_tree }
+
 	$print_hrd_fn $out_fd $input_hrd
 }
 
 
 with_command subnodes {
+
+	if {$print_hrd_fn == "print_hrd_as_is"} { set print_hrd_fn print_hrd_as_tree }
 
 	with_node_query query_hrd {
 		foreach hrd [hrd_query_nodes $query_hrd $input_hrd] {
@@ -1079,7 +1116,8 @@ with_command enable {
 
 	with_node_query query_hrd {
 		$print_hrd_fn $out_fd [hrd_filter unused $query_hrd $input_hrd enable_hrd {
-			set enable_hrd [lreplace $enable_hrd 2 2 1] }] }
+			if {[hrd_anchor $enable_hrd] != ""} {
+				set enable_hrd [lreplace $enable_hrd 3 3 "+ "] } }] }
 }
 
 
@@ -1087,7 +1125,8 @@ with_command disable {
 
 	with_node_query query_hrd {
 		$print_hrd_fn $out_fd [hrd_filter unused $query_hrd $input_hrd disable_hrd {
-			set disable_hrd [lreplace $disable_hrd 2 2 0] }] }
+			if {[hrd_anchor $disable_hrd] != ""} {
+				set disable_hrd [lreplace $disable_hrd 3 3 "x "] } }] }
 }
 
 
@@ -1105,6 +1144,9 @@ with_command set {
 
 	with_node_query_and_args query_hrd new_attrs {
 
+		# satisfy invariant that each attribute is preceeded by space (prespace)
+		set new_attrs " $new_attrs"
+
 		set ctx(new_attrs) [hrd_attributes [import_hrd $new_attrs false]]
 
 		$print_hrd_fn $out_fd [hrd_filter ctx $query_hrd $input_hrd filtered_hrd {
@@ -1117,7 +1159,13 @@ with_command set {
 			foreach attr $orig_attrs {
 				foreach new_attr $new_attrs {
 					if {[attr_tag $attr] == [attr_tag $new_attr]} {
-						set attr $new_attr } }
+						set value [string trim [attr_value $new_attr]]
+						set align [attr_align $attr]
+						if {$value == ""} { set align "" } else { set align " " }
+						set attr [lreplace $attr 3 3 $align]
+						set attr [lreplace $attr 4 4 $value]
+					}
+				}
 				lappend result_attrs $attr
 			}
 
@@ -1128,9 +1176,12 @@ with_command set {
 					if {[attr_tag $attr] == [attr_tag $new_attr]} {
 						set present 1 } }
 				if {!$present} {
-					lappend result_attrs $new_attr }
+					set prespace " "
+					if {[llength $result_attrs] > 0} { set prespace " | " }
+					lappend result_attrs [list "?" $prespace [attr_tag   $new_attr] \
+					                                     " " [attr_value $new_attr]] }
 			}
-			set filtered_hrd [lreplace $filtered_hrd 4 4 $result_attrs]
+			set filtered_hrd [lreplace $filtered_hrd 5 5 $result_attrs]
 		}]
 	}
 }
