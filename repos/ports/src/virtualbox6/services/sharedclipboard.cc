@@ -103,17 +103,21 @@ class Clipboard
 			if (!_rom.valid())
 				return;
 
-			size_t  size    = _rom.xml().content_size();
-			char   *content = (char *)RTMemAlloc(size + 1);
+			Node::Quoted_content content { _rom.node() };
 
-			size = _rom.xml().decoded_content(content, size);
+			size_t const n   = num_printed_bytes(content);
+			char * const ptr = (char *)RTMemAlloc(n + 1);
 
-			/* add null terminator */
-			content[size] = 0;
+			bool const ok = Byte_range_ptr(ptr, n)
+				.as_output([&] (Output &out) { print(out, content); }).ok();
 
-			fn(content, size + 1);
+			if (!ok) warning("shared clipboard: failed to decode content");
 
-			RTMemFree(content);
+			ptr[n] = 0; /* null termination */
+
+			fn(ptr, n + 1);
+
+			RTMemFree(ptr);
 		}
 };
 
