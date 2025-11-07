@@ -213,7 +213,7 @@ Core::Platform::Platform()
 
 	/* core log as ROM module */
 	{
-		unsigned const pages    = 1;
+		unsigned const pages    = 4;
 		size_t   const log_size = pages << PAGE_SIZE_LOG2;
 
 		ram_alloc().alloc_aligned(log_size, AT_PAGE).with_result(

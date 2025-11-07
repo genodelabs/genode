@@ -555,9 +555,8 @@ Core::Platform::Platform()
 	core_thread.pager(_sigma0);
 	_core_pd->bind_thread(core_thread);
 
-	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
+	auto export_pages_as_rom_module = [&] (unsigned pages, auto rom_name, auto content_fn)
 	{
-		size_t const pages = 1;
 		size_t const bytes = pages << PAGE_SIZE_LOG2;
 		ram_alloc().alloc_aligned(bytes, AT_PAGE).with_result(
 
@@ -590,7 +589,7 @@ Core::Platform::Platform()
 		);
 	};
 
-	export_page_as_rom_module("platform_info", [&] (char *core_local_ptr, size_t size) {
+	export_pages_as_rom_module(1, "platform_info", [&] (char *core_local_ptr, size_t size) {
 		Byte_range_ptr dst { reinterpret_cast<char *>(core_local_ptr), size };
 		Generator::generate(dst, "platform_info", [&] (Generator &g) {
 			g.node("kernel", [&] {
@@ -611,7 +610,7 @@ Core::Platform::Platform()
 		});
 	});
 
-	export_page_as_rom_module("core_log",
+	export_pages_as_rom_module(4, "core_log",
 		[&] (char *core_local_ptr, size_t size) {
 			init_core_log(Core_log_range { (addr_t)core_local_ptr, size } ); });
 
