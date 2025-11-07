@@ -517,7 +517,6 @@ void Vmcs::store(Genode::Vcpu_state &state)
 {
 	using Range   = Genode::Vcpu_state::Range;
 	using Segment = Genode::Vcpu_state::Segment;
-	using Cpu     = Hw::X86_64_cpu;
 
 	using Genode::uint16_t;
 	using Genode::uint32_t;
@@ -533,7 +532,7 @@ void Vmcs::store(Genode::Vcpu_state &state)
 	state.dr7.charge(read(E_GUEST_DR7));
 
 	state.cr0.charge(read(E_GUEST_CR0));
-	state.cr2.charge(Cpu::Cr2::read());
+	state.cr2.charge(cr2);
 	state.cr3.charge(read(E_GUEST_CR3));
 	state.cr4.charge(read(E_GUEST_CR4));
 
