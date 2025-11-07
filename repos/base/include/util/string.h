@@ -19,6 +19,7 @@
 #include <base/output.h>
 #include <util/misc_math.h>
 #include <util/meta.h>
+#include <util/attempt.h>
 #include <util/noncopyable.h>
 #include <cpu/string.h>
 
@@ -34,6 +35,7 @@ namespace Genode {
 	using Number_of_bytes = Num_bytes; /* deprecated */
 
 	int memcmp(void const *, void const *, size_t);
+	void *memcpy(void *, const void *, size_t);
 }
 
 
@@ -59,6 +61,51 @@ struct Genode::Byte_range_ptr : Noncopyable
 
 		Byte_range_ptr const remainder { start + n, num_bytes - n };
 		fn(remainder);
+	}
+
+	/**
+	 * Call 'fn' with an 'Output' interface for printing into the byte range
+	 *
+	 * \return number of printed bytes
+	 */
+	Attempt<size_t, Buffer_error> as_output(auto const &fn) const
+	{
+		struct _Output : Output
+		{
+			Byte_range_ptr const _bytes;
+
+			size_t used = 0;
+			bool   exceeded = false;
+
+			_Output(Byte_range_ptr const &b) : _bytes(b.start, b.num_bytes) { }
+
+			[[nodiscard]] bool _fits(size_t const n)
+			{
+				if (used + n > _bytes.num_bytes) exceeded = true;
+				return !exceeded;
+			}
+
+			void out_char(char c) override
+			{
+				if (_fits(1)) _bytes.start[used++] = c;
+			}
+
+			void out_string(char const *str, size_t n) override
+			{
+				if (_fits(n)) {
+					Genode::memcpy(_bytes.start + used, str, n);
+					used += n;
+				}
+			}
+		} byte_range_output { *this };
+
+		Output &out = byte_range_output;
+		fn(out);
+
+		if (byte_range_output.exceeded)
+			return Buffer_error::EXCEEDED;
+
+		return byte_range_output.used;
 	}
 };
 
