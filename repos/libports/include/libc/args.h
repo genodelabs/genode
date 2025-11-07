@@ -43,43 +43,6 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 		return result;
 	};
 
-	struct Out_buffer : Output
-	{
-		Byte_range_ptr _bytes;
-
-		size_t _used     = 0;
-		bool   _exceeded = false;
-
-		/*
-		 * Return true if 'len' chars fit into the buffer
-		 */
-		[[nodiscard]] bool _fits(size_t const len) const
-		{
-			return _used + len <= _bytes.num_bytes;
-		}
-
-		void _append_char(char c)
-		{
-			if (_fits(1))
-				_bytes.start[_used++] = c;
-			else
-				_exceeded = true;
-		}
-
-		Out_buffer(Byte_range_ptr const &bytes) : _bytes(bytes.start, bytes.num_bytes) { }
-
-		bool   exceeded() const { return _exceeded; }
-		size_t used()     const { return _used; }
-
-		void out_char(char c) override { _append_char(c); }
-
-		void out_string(char const *str, size_t n) override
-		{
-			for (unsigned i = 0; i < n && !_exceeded && str[i]; i++)
-				_append_char(str[i]);
-		}
-	};
-
 	auto with_legacy_arg = [] (Node const &node, auto const &fn)
 	{
 		if (node.has_type("arg") && node.has_attribute("value"))
@@ -161,9 +124,12 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 					argv[arg_i] = (char *)malloc(size);
 
-					Out_buffer out { Byte_range_ptr(argv[arg_i], size - 1) };
+					bool const ok = Byte_range_ptr(argv[arg_i], size - 1)
+						.as_output([&] (Output &out) {
+							print(out, Node::Quoted_content(node)); })
+						.ok();
 
-					print(out, Node::Quoted_content(node));
+					if (!ok) warning("libc arg buffer exceeded");
 
 					argv[arg_i][size - 1] = 0; /* terminate cstring */
 					++arg_i;
@@ -206,9 +172,12 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 					envp[env_i] = (char*)malloc(size);
 
-					Out_buffer out { Byte_range_ptr(envp[env_i], size - 1) };
+					bool const ok = Byte_range_ptr(envp[env_i], size - 1)
+						.as_output([&] (Output &out) {
+							print(out, Cstring(name, name_len), "=", content); })
+						.ok();
 
-					print(out, Cstring(name, name_len), "=", content);
+					if (!ok) warning("libc env buffer exceeded");
 
 					envp[env_i][size - 1] = 0; /* terminate cstring */
 				});

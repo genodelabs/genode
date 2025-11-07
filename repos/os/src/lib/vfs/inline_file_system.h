@@ -32,44 +32,24 @@ class Vfs::Inline_file_system : public Single_file_system
 
 			Allocated allocated;
 
-			size_t num_bytes = 0;  /* unquoted data size */
+			using Num_bytes = Genode::Attempt<size_t, Genode::Buffer_error>;
 
-			static size_t unquoted_content(Byte_range_ptr const &dst, auto const &node)
+			Num_bytes num_bytes = Genode::Buffer_error::EXCEEDED;  /* unquoted data size */
+
+			static bool _has_quoted_content(Node const &node)
 			{
-				struct Output : Genode::Output, Genode::Noncopyable
-				{
-					struct {
-						char  *dst;
-						size_t capacity; /* remaining capacity in bytes */
-					};
+				bool result = false;
+				node.for_each_quoted_line([&] (auto const &) { result = true; });
+				return result;
+			}
 
-					void out_char(char c) override
-					{
-						if (capacity) { *dst++ = c; capacity--; }
-					}
+			static Num_bytes unquoted_content(Byte_range_ptr const &dst, auto const &node)
+			{
+				using namespace Genode;
 
-					void out_string(char const *s, size_t n) override
-					{
-						while (n-- && capacity) out_char(*s++);
-					}
-
-					Output(char *dst, size_t n) : dst(dst), capacity(n) { }
-
-				} output { dst.start, dst.num_bytes };
-
-				bool quoted = false;
-				node.for_each_quoted_line([&] (auto const &line) {
-					quoted = true;
-					line.print(output);
-					if (!line.last) output.out_char('\n');
-				});
-				if (quoted) {
-					if (output.capacity)
-						return dst.num_bytes - output.capacity;
-
-					Genode::warning("unquoted content exceeded buffer: ", node);
-					return 0ul;
-				}
+				if (_has_quoted_content(node))
+					return dst.as_output([&] (Output &output) {
+						print(output, Node::Quoted_content(node)); });
 
 				if (node.num_sub_nodes() != 1) {
 					warning("exactly one sub node expected: ", node);
@@ -77,23 +57,18 @@ class Vfs::Inline_file_system : public Single_file_system
 				}
 
 				return node.with_sub_node(0u, [&] (auto const &content) {
-					return Genode::Generator::generate(dst, content.type(),
-						[&] (Genode::Generator &g) {
+					return Generator::generate(dst, content.type(),
+						[&] (Generator &g) {
 							g.node_attributes(content);
 							if (!g.append_node_content(content, { 20 }))
 								warning("inline fs too deeply nested: ", content);
-						}).template convert<size_t>(
-							[&] (size_t n) { return n; },
-							[&] (Genode::Buffer_error) {
-								warning("failed to copy node content: ", node);
-								return 0ul;
-							});
-				}, [&] () -> size_t { /* checked above */ return 0ul; });
+						});
+				}, [&] () -> Num_bytes { /* checked above */ return 0ul; });
 			}
 
-			static size_t _copy_from_node(Allocated &allocated, Node const &node)
+			static Num_bytes _copy_from_node(Allocated &allocated, Node const &node)
 			{
-				return allocated.convert<size_t>([&] (Genode::Memory::Allocation &a) {
+				return allocated.convert<Num_bytes>([&] (Genode::Memory::Allocation &a) {
 					return unquoted_content({ (char *)a.ptr, a.num_bytes }, node);
 				},
 				[&] (Genode::Alloc_error) {
@@ -104,9 +79,15 @@ class Vfs::Inline_file_system : public Single_file_system
 
 			void with_bytes(auto const &fn) const
 			{
-				if (num_bytes)
-					allocated.with_result([&] (Genode::Memory::Allocation const &a) {
-						fn((char const *)a.ptr, num_bytes); }, [&] (auto) { });
+				using namespace Genode;
+
+				num_bytes.with_result(
+					[&] (size_t n) {
+						if (n)
+							allocated.with_result([&] (Memory::Allocation const &a) {
+								fn((char const *)a.ptr, n); }, [&] (auto) { });
+					},
+					[&] (Buffer_error) { warning("inline VFS decoding failed"); });
 			}
 
 			Buffered_data(Genode::Memory::Constrained_allocator &alloc,
@@ -192,7 +173,9 @@ class Vfs::Inline_file_system : public Single_file_system
 		{
 			Stat_result const result = Single_file_system::stat(path, out);
 
-			out.size = _data.num_bytes;
+			out.size = _data.num_bytes.convert<size_t>(
+				[] (size_t n)             { return n; },
+				[] (Genode::Buffer_error) { return 0ul; });
 
 			return result;
 		}
