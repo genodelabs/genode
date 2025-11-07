@@ -526,11 +526,9 @@ void Core::Platform::_init_rom_modules()
 	};
 
 	/* export x86 platform specific infos via 'platform_info' ROM */
-	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
+	auto export_pages_as_rom_module = [&] (unsigned pages, auto rom_name, auto content_fn)
 	{
-		Untyped_memory::alloc_page(ram_alloc()).with_result([&](auto &result) {
-
-			constexpr unsigned const pages = 1;
+		Untyped_memory::alloc_pages(ram_alloc(), pages).with_result([&](auto &result) {
 
 			auto const phys_addr = addr_t(result.ptr);
 
@@ -569,12 +567,12 @@ void Core::Platform::_init_rom_modules()
 		});
 	};
 
-	export_page_as_rom_module("platform_info", [&] (char *ptr, size_t size) {
+	export_pages_as_rom_module(1, "platform_info", [&] (char *ptr, size_t size) {
 		Generator::generate({ ptr, size }, "platform_info", gen_platform_info)
 			.with_error([] (Buffer_error) {
 				warning("platform info exceeds maximum buffer size"); }); });
 
-	export_page_as_rom_module("core_log", [&] (char *ptr, size_t size) {
+	export_pages_as_rom_module(4, "core_log", [&] (char *ptr, size_t size) {
 		init_core_log(Core_log_range { (addr_t)ptr, size } ); });
 }
 
