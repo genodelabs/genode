@@ -1,86 +1,73 @@
-<config arch="" info="disposable web browser">
+config | arch: | info: disposable web browser
 
-	<common_routes>
-		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-		<service name="CPU">   <parent/> </service>
-		<service name="PD">    <parent/> </service>
-		<service name="RM">    <parent/> </service>
-		<service name="LOG">   <parent/> </service>
-		<service name="Timer"> <parent/> </service>
-	</common_routes>
++ common_routes
+  + service ROM | label_last: ld.lib.so | + parent
+  + service CPU                         | + parent
+  + service PD                          | + parent
+  + service LOG                         | + parent
+  + service Timer                       | + parent
 
-	<start name="black_hole"/>
-	<start name="mixer"/>
-	<start name="system_clock"/>
-	<start name="recall_fs"/>
++ start black_hole
++ start mixer
++ start system_clock
++ start recall_fs
 
-	<start name="mesa_gpu-cpu" priority="-2" pkg="mesa_gpu-cpu"/>
++ start mesa_gpu-cpu | priority: -2 | pkg: mesa_gpu-cpu
+  + route
+    + service RM | + parent
 
-	<start name="window_layouter" priority="-2" pkg="window_layouter">
-		<route>
-			<service name="Gui">                           <child name="wm"/> </service>
-			<service name="ROM" label="window_list">       <child name="wm"/> </service>
-			<service name="ROM" label="focus_request">     <child name="wm"/> </service>
-			<service name="ROM" label="hover">             <child name="wm"/> </service>
-			<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
-			<service name="Report">                        <child name="wm"/> </service>
-			<service name="File_system" label_prefix="recall ->"> <child name="recall_fs"/> </service>
-		</route>
-	</start>
++ start window_layouter | priority: -2 | pkg: window_layouter
+  + route
+    + service Gui                                   | + child wm
+    + service ROM | label: window_list              | + child wm
+    + service ROM | label: focus_request            | + child wm
+    + service ROM | label: hover                    | + child wm
+    + service ROM | label: decorator_margins        | + child wm
+    + service Report                                | + child wm
+    + service File_system | label_prefix: recall -> | + child recall_fs
 
-	<start name="motif_decorator" priority="-2" pkg="motif_decorator">
-		<route>
-			<service name="ROM" label="window_layout"> <child name="wm"/> </service>
-			<service name="ROM" label="pointer">       <child name="wm"/> </service>
-			<service name="Report">                    <child name="wm"/> </service>
-			<service name="Gui">                       <child name="wm"/> </service>
-		</route>
-	</start>
++ start motif_decorator | priority: -2 | pkg: motif_decorator
+  + route
+    + service ROM | label: window_layout | + child wm
+    + service ROM | label: pointer       | + child wm
+    + service Report                     | + child wm
+    + service Gui                        | + child wm
 
-	<start name="wm" priority="-2" pkg="wm">
-		<route>
-			<service name="Gui" label="focus"> <parent label="focus"/> </service>
-			<service name="Gui">                           <parent/> </service>
-			<service name="Report" label_last="shape">     <parent/> </service>
-			<service name="Report" label_last="clipboard"> <parent/> </service>
-			<service name="ROM"    label_last="clipboard"> <parent/> </service>
-		</route>
-	</start>
++ start wm | priority: -2 | pkg: wm
+  + route
+    + service Gui | label: focus             | + parent | label: focus
+    + service Gui                            | + parent
+    + service Report | label_last: shape     | + parent
+    + service Report | label_last: clipboard | + parent
+    + service ROM    | label_last: clipboard | + parent
 
-	<start name="falkon_backdrop" priority="-3" pkg="sticks_blue_backdrop">
-		<route>
-			<service name="Gui"> <parent label="backdrop"/> </service>
-		</route>
-		<config>
-			<libc/>
-			<vfs>
-				<rom name="genode_logo.png"/>
-				<rom name="grid.png"/>
-			</vfs>
-			<fill color="#0e1624" />
-			<image png="grid.png"        tiled="yes" alpha="100" />
-			<image png="genode_logo.png" anchor="bottom_right" alpha="50"
-			                             xpos="-20" ypos="-20" />
-		</config>
-	</start>
++ start falkon_backdrop | priority: -3 | pkg: sticks_blue_backdrop
+  + route | + service Gui | + parent | label: backdrop
+  + config
+    + libc
+    + vfs
+    | + rom genode_logo.png
+    | + rom grid.png
+    + fill | color: #0e1624
+    + image | png: grid.png        | alpha: 100 | tiled: yes
+    + image | png: genode_logo.png | alpha:  50 | anchor: bottom_right
+                                     xpos:  -20 | ypos:  -20
 
-	<start name="falkon_qt6-jemalloc" priority="-3" pkg="cproc/pkg/falkon_qt6-jemalloc/2025-10-27">
-		<route>
-			<service name="Nic">     <child name="nic_router"/>   </service>
-			<service name="Rtc">     <child name="system_clock"/> </service>
-			<service name="Play">    <child name="mixer"/>        </service>
-			<service name="Record">  <child name="mixer"/>        </service>
-			<service name="Capture"> <child name="black_hole"/>   </service>
-			<service name="File_system" label_prefix="config ->">     <child name="ram_fs"/> </service>
-			<service name="File_system" label_prefix="downloads ->">  <child name="ram_fs"/> </service>
-			<service name="Gui">                            <child name="wm"/> </service>
-			<service name="Report" label="shape"> <child name="wm"/> </service>
-			<service name="Report" label="clipboard">       <child name="wm"/> </service>
-			<service name="ROM"    label="clipboard">       <child name="wm"/> </service>
-			<service name="ROM"    label="mesa_gpu.lib.so"> <child name="mesa_gpu-cpu"/> </service>
-			<service name="Gpu">                            <child name="black_hole"/> </service>
-		</route>
-	</start>
-
-</config>
-
++ start falkon_qt6-jemalloc | priority: -3
+        pkg: cproc/pkg/falkon_qt6-jemalloc/2025-10-27
+  + route
+    + service RM                                       | + parent
+    + service Nic                                      | + child nic_router
+    + service Rtc                                      | + child system_clock
+    + service Play                                     | + child mixer
+    + service Record                                   | + child mixer
+    + service Capture                                  | + child black_hole
+    + service File_system | label_prefix: config ->    | + child ram_fs
+    + service File_system | label_prefix: downloads -> | + child ram_fs
+    + service Gui                                      | + child wm
+    + service Report | label: shape                    | + child wm
+    + service Report | label: clipboard                | + child wm
+    + service ROM    | label: clipboard                | + child wm
+    + service ROM    | label: mesa_gpu.lib.so          | + child mesa_gpu-cpu
+    + service Gpu                                      | + child black_hole
+-
