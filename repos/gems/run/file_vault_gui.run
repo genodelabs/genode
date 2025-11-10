@@ -9,7 +9,7 @@ proc jent_avail_attr { } {
 	return "no"
 }
 
-build { app/file_vault app/file_vault_gui }
+build { app/file_vault app/file_vault_gui lib/dialog }
 
 create_boot_directory
 
@@ -145,7 +145,7 @@ append config {
 				</dir>
 			</vfs>
 
-			<policy label="file_vault_gui -> fonts" root="/fonts" />
+			<policy label_prefix="file_vault_gui -> fonts" root="/fonts" />
 		</config>
 		<route>
 			<service name="ROM" label="config"> <parent label="fonts_fs.config"/> </service>
