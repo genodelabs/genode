@@ -4,8 +4,9 @@ proc binary_name_ld_lib_so { } { return "ld-nova.lib.so" }
 proc binary_name_core_a    { } { return "core-nova.a" }
 proc binary_name_timer     { } { return "nova_timer" }
 
-proc kernel_files { } { return hypervisor }
+proc kernel_files  { } { return hypervisor }
 proc kernel_output { } { return "serial" }
+proc kernel_iommu  { } { return "iommu_intel iommu_amd" }
 
 proc boot_output { } { return "serial" }
 
@@ -105,7 +106,7 @@ proc run_boot_dir {binaries} {
 		if {[apply_microcode]} {
 			puts $fh " module2 /boot/micro.code micro.code"
 		}
-		puts $fh " module2 /boot/hypervisor hypervisor iommu_intel iommu_amd [kernel_output]"
+		puts $fh " module2 /boot/hypervisor hypervisor [kernel_iommu] [kernel_output]"
 		puts $fh " module2 /boot/image.elf.gz image.elf"
 		puts $fh "}"
 		close $fh
@@ -130,7 +131,7 @@ proc run_boot_dir {binaries} {
 		if {[apply_microcode]} {
 			puts $fh " load /boot/micro.code micro.code"
 		}
-		puts $fh " load /boot/hypervisor iommu_intel iommu_amd [kernel_output]"
+		puts $fh " load /boot/hypervisor [kernel_iommu] [kernel_output]"
 		puts $fh " load /boot/image.elf"
 		close $fh
 
