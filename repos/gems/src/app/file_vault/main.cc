@@ -146,7 +146,7 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	enum State {
 		INVALID, UNINITIALIZED, SETUP_CREATE_IMAGE, SETUP_INIT_TRUST_ANCHOR, SETUP_TRESOR_INIT,
 		SETUP_START_TRESOR, SETUP_MKE2FS, SETUP_READ_FS_SIZE, LOCKED, UNLOCK_INIT_TRUST_ANCHOR,
-		UNLOCK_START_TRESOR, UNLOCK_READ_FS_SIZE, UNLOCKED, LOCK_PENDING, START_LOCKING, LOCKING };
+		UNLOCK_START_TRESOR, UNLOCK_READ_FS_SIZE, CHECKING, UNLOCKED, LOCK_PENDING, START_LOCKING, LOCKING };
 
 	struct Extend { enum State {
 		INACTIVE, ADAPT_IMAGE_SIZE, WAIT_FOR_TRESOR, SEND_REQUEST, REQUEST_IN_PROGRESS, READ_FS_SIZE, RESIZE2FS }; };
@@ -164,6 +164,7 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 		[&] ()                   -> Root_directory { return { env, heap, Node() }; });
 	Registry<Child_state> children { };
 	Child_state mke2fs { children, "mke2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 300 } };
+	Child_state e2fsck { children, "e2fsck", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 300 } };
 	Child_state resize2fs { children, "resize2fs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 300 } };
 	Child_state tresor_vfs { children, "tresor_vfs", "vfs", Ram_quota { 32 * 1024 * 1024 }, Cap_quota { 200 } };
 	Child_state tresor_trust_anchor_vfs { children, "tresor_trust_anchor_vfs", "vfs", Ram_quota { 4 * 1024 * 1024 }, Cap_quota { 200 } };
@@ -318,6 +319,7 @@ Ui_report::State Main::state_to_ui_report_state(State state)
 	case SETUP_TRESOR_INIT:
 	case SETUP_START_TRESOR:
 	case SETUP_MKE2FS:
+	case CHECKING:
 	case SETUP_READ_FS_SIZE: return Ui_report::INITIALIZING;
 	case UNLOCKED: return Ui_report::UNLOCKED;
 	case LOCKED: return Ui_report::LOCKED;
@@ -409,7 +411,7 @@ void Main::handle_client_fs_query_listing(Xml_node const &listing)
 		with_file(listing, "data", [&] (Xml_node const &file) {
 			ui_report.capacity = { file.attribute_value("size", 0UL) };
 			ui_report_changed = true;
-			set_state(UNLOCKED);
+			set_state(CHECKING);
 			Signal_transmitter(state_handler).submit();
 		});
 		break;
@@ -459,6 +461,7 @@ void Main::handle_image_fs_query_listing(Xml_node const &listing)
 		set_state(image_exists ? LOCKED : UNINITIALIZED);
 		break;
 	}
+	case CHECKING:
 	case UNLOCKED:
 	case LOCK_PENDING:
 	{
@@ -650,6 +653,17 @@ void Main::_handle_sandbox_state(Node const &sandbox_state)
 			set_state(SETUP_READ_FS_SIZE);
 			update_sandbox_cfg = true;
 		}
+		break;
+
+	case CHECKING:
+		with_exit_code(e2fsck, sandbox_state, [&] (int code) {
+			/* continue if errors were corrected */
+			if (code <= 2) {
+				set_state(UNLOCKED);
+				Signal_transmitter(state_handler).submit();
+			} else
+				error("unable to correct file-system errors");
+		}); 
 		break;
 
 	case UNLOCKED:
@@ -856,13 +870,20 @@ void Main::generate_sandbox_config(Generator &g) const
 		gen_mke2fs_start_node(g, mke2fs);
 		break;
 
-	case UNLOCKED:
-
+	case CHECKING:
 		gen_parent_provides_and_report_nodes(g);
 		gen_tresor_trust_anchor_vfs_start_node(g, tresor_trust_anchor_vfs, jent_avail);
 		gen_tresor_vfs_start_node(g, tresor_vfs, image_name);
 		gen_tresor_vfs_block_start_node(g, tresor_vfs_block);
 		gen_image_fs_query_start_node(g, image_fs_query);
+		gen_e2fsck_start_node(g, e2fsck);
+		break;
+
+	case UNLOCKED:
+		gen_parent_provides_and_report_nodes(g);
+		gen_tresor_trust_anchor_vfs_start_node(g, tresor_trust_anchor_vfs, jent_avail);
+		gen_tresor_vfs_start_node(g, tresor_vfs, image_name);
+		gen_tresor_vfs_block_start_node(g, tresor_vfs_block);
 		gen_sandbox_cfg_extend_and_rekey(g);
 		if (extend_state != Extend::INACTIVE && ui_config->extend->tree == Ui_config::Extend::VIRTUAL_BLOCK_DEVICE)
 			break;

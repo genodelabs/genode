@@ -142,6 +142,40 @@ namespace File_vault {
 		});
 	}
 
+	void gen_e2fsck_start_node(Generator &g, Child_state const &child)
+	{
+		child.gen_start_node(g, [&] {
+			g.node("config", [&] {
+				g.node("libc", [&] {
+					g.attribute("stdout", "/dev/log");
+					g.attribute("stderr", "/dev/log");
+					g.attribute("stdin", "/dev/null");
+					g.attribute("rtc", "/dev/rtc");
+				});
+				g.node("vfs", [&] {
+					gen_named_node(g, "dir", "dev", [&] {
+						gen_named_node(g, "block", "block", [&] {
+							g.attribute("label", "default");
+						});
+						gen_named_node(g, "inline", "rtc", [&] {
+							g.append_quoted("2018-01-01 00:01");
+						});
+						g.node("null", [&] {});
+						g.node("log", [&] {});
+					});
+				});
+				gen_arg(g, "fsck.ext2");
+				gen_arg(g, "-yv");
+				gen_arg(g, "/dev/block");
+			});
+			g.node("route", [&] {
+				gen_child_route(g, "vfs_block", "Block");
+				gen_parent_route(g, "Timer");
+				gen_common_routes(g);
+			});
+		});
+	}
+
 	void gen_resize2fs_start_node(Generator &g, Child_state const &child)
 	{
 		child.gen_start_node(g, [&] {
@@ -338,6 +372,7 @@ namespace File_vault {
 				g.node("vfs", [&] {
 					g.node("fs", [&] { g.attribute("buffer_size", "1M"); }); });
 				gen_policy("mke2fs -> default");
+				gen_policy("e2fsck -> default");
 				gen_policy("resize2fs -> default");
 				gen_policy("rump_vfs -> ");
 			});

@@ -36,6 +36,7 @@
 		<rom label="sandbox.lib.so"/>
 		<rom label="fs_tool"/>
 		<rom label="mke2fs"/>
+		<rom label="e2fsck"/>
 		<rom label="resize2fs"/>
 		<rom label="posix.lib.so"/>
 		<rom label="file_vault"/>
