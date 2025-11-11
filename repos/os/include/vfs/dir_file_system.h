@@ -343,17 +343,13 @@ class Vfs::Dir_file_system : public File_system
 				if (dst.num_bytes < sizeof(Dirent))
 					return READ_ERR_INVALID;
 
-				Dirent &dirent = *(Dirent*)dst.start;
-				dirent = Dirent { };
-
-				out_count = sizeof(Dirent);
+				out_count = 0; /* eof */
 
 				return READ_OK;
 			}
 
-			Read_result result = dir_vfs_handle->queued_read_handle->fs().
-			                     complete_read(dir_vfs_handle->queued_read_handle,
-			                                   dst, out_count);
+			Read_result result = dir_vfs_handle->queued_read_handle->fs()
+				.complete_read(dir_vfs_handle->queued_read_handle, dst, out_count);
 
 			if (result == READ_QUEUED)
 				return result;

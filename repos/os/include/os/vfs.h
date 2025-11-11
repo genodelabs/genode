@@ -177,16 +177,16 @@ struct Genode::Directory : Noncopyable, Interface
 				_io.commit_and_wait();
 			}
 
-			if ((read_result != Vfs::File_io_service::READ_OK) ||
-			    (out_count < sizeof(entry._dirent))) {
-				error("could not access directory '", _path, "'");
-				return missing_fn();
-			}
+			bool const ok = (read_result == Vfs::File_io_service::READ_OK)
+			             && (out_count == sizeof(entry._dirent))
+			             && (entry._dirent.type != Vfs::Directory_service::Dirent_type::END);
+			if (ok)
+				return fn(static_cast<Entry const &>(entry));
 
-			if (entry._dirent.type == Vfs::Directory_service::Dirent_type::END)
-				return missing_fn();
+			if ((out_count > 0) && (out_count < sizeof(entry._dirent)))
+				warning("failed to access dir entry ", i, " of '", _path, "'");
 
-			return fn(static_cast<Entry const &>(entry));
+			return missing_fn();
 		}
 
 	public:
