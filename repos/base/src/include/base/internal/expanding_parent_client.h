@@ -75,8 +75,15 @@ class Genode::Expanding_parent_client : public Parent_client
 		/**
 		 * Block for resource response arriving at the fallback signal handler
 		 */
-		void _wait_for_resource_response() {
-			_fallback_sig_rcv->wait_for_signal(); }
+		void _wait_for_resource_response()
+		{
+			if (!_fallback_sig_rcv.constructed()) {
+				error("attempt to request resources without response handler");
+				sleep_forever();
+			}
+
+			_fallback_sig_rcv->wait_for_signal();
+		}
 
 	public:
 
