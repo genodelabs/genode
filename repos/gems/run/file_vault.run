@@ -116,7 +116,7 @@ append_if [have_board linux] config {
 				<service name="File_system"/>
 			</provides>
 			<config>
-				<policy label="file_vault -> data" root="/file_vault_dir/data" writeable="yes"/>
+				<policy label_prefix="file_vault -> data" root="/file_vault_dir/data" writeable="yes"/>
 			</config>
 			<route>
 				<service name="Timer"> <child name="timer"/> </service>
@@ -133,7 +133,7 @@ append_if [have_board linux] config {
 				<service name="File_system"/>
 			</provides>
 			<config>
-				<policy label="file_vault -> trust_anchor" root="/file_vault_dir/trust_anchor" writeable="yes"/>
+				<policy label_prefix="file_vault -> trust_anchor" root="/file_vault_dir/trust_anchor" writeable="yes"/>
 			</config>
 			<route>
 				<service name="Timer"> <child name="timer"/> </service>
@@ -155,7 +155,7 @@ append_if [expr ![have_board linux]] config {
 						<ram/>
 					</dir>
 				</vfs>
-				<policy label="file_vault -> data" root="/data" writeable="yes"/>
+				<policy label_prefix="file_vault -> data" root="/data" writeable="yes"/>
 			</config>
 			<route>
 				<service name="PD">  <parent/> </service>
@@ -174,7 +174,7 @@ append_if [expr ![have_board linux]] config {
 						<ram/>
 					</dir>
 				</vfs>
-				<policy label="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
+				<policy label_prefix="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
 			</config>
 			<route>
 				<service name="PD"> <parent/> </service>
