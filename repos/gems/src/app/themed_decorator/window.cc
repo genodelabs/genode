@@ -29,16 +29,16 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 
 	Rect const closer_geometry =
 		_theme.absolute(_theme.element_geometry(Theme::ELEMENT_TYPE_CLOSER),
-	                                            outer_geometry());
-	if (closer_geometry.contains(abs_pos)) {
+		                                        outer_geometry());
+	if (_closer.present() && closer_geometry.contains(abs_pos)) {
 		hover.closer = true;
 		return hover;
 	}
 
 	Rect const maximizer_geometry =
 		_theme.absolute(_theme.element_geometry(Theme::ELEMENT_TYPE_MAXIMIZER),
-	                                            outer_geometry());
-	if (maximizer_geometry.contains(abs_pos)) {
+		                                        outer_geometry());
+	if (_maximizer.present() && maximizer_geometry.contains(abs_pos)) {
 		hover.maximizer = true;
 		return hover;
 	}
