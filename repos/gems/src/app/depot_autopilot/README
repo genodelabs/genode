@@ -223,12 +223,9 @@ Besides the mandatory package content, a test package is expected to provide a
   characters '<', '&', '*' in the pattern must be escaped as "&lt;", "&amp;",
   "&#42;". A character '*' in the pattern is treated as non-greedy wildcard.
 
-:<fail log_prefix="[init -> test]">Error!</fail>:
-:<succeed log_prefix="[init -> test]">Done!</succeed>:
+:<fail>Error!</fail>:
 
-  When matching the log against the pattern given in the <succeed> or
-  <fail> tag, the Depot Autopilot will consider only those test-log lines that
-  start with the given prefix.
+:<succeed>Done!</succeed>:
 
 :<content>:
 

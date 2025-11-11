@@ -102,6 +102,7 @@
 			</xs:choice>
 			<xs:attribute name="arch"                  type="Architecture" />
 			<xs:attribute name="repeat"                type="Repeat" />
+			<xs:attribute name="blueprint_buffer"      type="Number_of_bytes" />
 			<xs:attribute name="children_label_prefix" type="Session_label" />
 			<xs:attribute name="ld_verbose"            type="Boolean" />
 		</xs:complexType>
