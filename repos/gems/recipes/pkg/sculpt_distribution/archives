@@ -2,6 +2,7 @@ _/pkg/black_hole
 _/pkg/chroot
 _/pkg/dbg_download
 _/pkg/dynamic_rom
+_/pkg/file_vault
 _/pkg/fonts_fs
 _/pkg/mesa_gears
 _/pkg/mesa_gpu-cpu
