@@ -15,6 +15,7 @@
 #define _GUI_H_
 
 /* Genode includes */
+#include <input/seq_number_generator.h>
 #include <root/component.h>
 #include <gui_session/connection.h>
 #include <input_session/capability.h>
@@ -1371,6 +1372,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 		Input::Session_component _window_layouter_input {
 			_env.ep(), _env.ram(), _env.rm(), *this };
 
+		Input::Seq_number_generator _seq_number_generator { };
+
 		/**
 		 * Input::Session_component::Action interface
 		 */
@@ -1379,7 +1382,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 		/* handler that forwards clicks into unfocused windows to the layouter */
 		struct Click_handler : Gui::Click_handler
 		{
-			Input::Session_component &window_layouter_input;
+			Input::Session_component    &window_layouter_input;
+			Input::Seq_number_generator &seq_number_generator;
 
 			void handle_click(Gui::Point pos) override
 			{
@@ -1388,14 +1392,19 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 				 * (which is routed to the layouter).
 				 */
 				window_layouter_input.submit(Input::Absolute_motion{pos.x, pos.y});
+				seq_number_generator.new_seq_number();
+				seq_number_generator.submit(window_layouter_input);
 				window_layouter_input.submit(Input::Press{Input::BTN_LEFT});
 				window_layouter_input.submit(Input::Release{Input::BTN_LEFT});
 			}
 
-			Click_handler(Input::Session_component &window_layouter_input)
-			: window_layouter_input(window_layouter_input) { }
+			Click_handler(Input::Session_component    &window_layouter_input,
+			              Input::Seq_number_generator &seq_number_generator)
+			: window_layouter_input(window_layouter_input),
+			  seq_number_generator(seq_number_generator)
+			{ }
 
-		} _click_handler { _window_layouter_input };
+		} _click_handler { _window_layouter_input, _seq_number_generator };
 
 		/**
 		 * List of regular sessions
@@ -1449,6 +1458,8 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 			return pos;
 		}
 
+		Input::Seq_number seq_number() const {
+			return { _seq_number_generator.value() }; }
 
 		/********************
 		 ** Root interface **
@@ -1532,6 +1543,7 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 						Decorator_gui_session(_env, resources, label,
 						                      _pointer_tracker,
 						                      _window_layouter_input,
+						                      _seq_number_generator,
 						                      *this);
 					_decorator_sessions.insert(&session);
 					return { session.cap() };

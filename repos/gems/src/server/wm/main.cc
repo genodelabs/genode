@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <input/seq_number_generator.h>
 #include <gui_session/client.h>
 #include <framebuffer_session/client.h>
 #include <base/component.h>
@@ -115,6 +116,7 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 
 		_pointer_reporter.generate([&] (Generator &g) {
 			if (pos.valid) {
+				g.attribute("seq_number", _gui_root.seq_number().value);
 				g.attribute("xpos", pos.value.x);
 				g.attribute("ypos", pos.value.y);
 			}

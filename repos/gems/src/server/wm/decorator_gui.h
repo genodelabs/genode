@@ -19,6 +19,7 @@
 #include <input_session/client.h>
 #include <input/event.h>
 #include <input/component.h>
+#include <input/seq_number_generator.h>
 
 /* local includes */
 #include <types.h>
@@ -97,6 +98,8 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 
 	Input::Session_component &_window_layouter_input;
 
+	Input::Seq_number_generator &_seq_number_generator;
+
 	Decorator_content_callback &_content_callback;
 
 	struct Dummy_input_action : Input::Session_component::Action
@@ -119,17 +122,19 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 			fn(Window_registry::Id { value });
 	}
 
-	Decorator_gui_session(Env                        &env,
-	                      Resources            const &resources,
-	                      Label                const &label,
-	                      Pointer::Tracker           &pointer_tracker,
-	                      Input::Session_component   &window_layouter_input,
-	                      Decorator_content_callback &content_callback)
+	Decorator_gui_session(Env                         &env,
+	                      Resources            const  &resources,
+	                      Label                const  &label,
+	                      Pointer::Tracker            &pointer_tracker,
+	                      Input::Session_component    &window_layouter_input,
+	                      Input::Seq_number_generator &seq_number_generator, 
+	                      Decorator_content_callback  &content_callback)
 	:
 		Session_object<Gui::Session>(env.ep(), resources, label),
 		_env(env),
 		_pointer_state(pointer_tracker),
 		_window_layouter_input(window_layouter_input),
+		_seq_number_generator(seq_number_generator),
 		_content_callback(content_callback)
 	{
 		_input_session.sigh(_input_handler);
@@ -150,7 +155,9 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 	{
 		while (_input_session.pending())
 			_input_session.for_each_event([&] (Input::Event const &ev) {
+				_seq_number_generator.apply_event(ev);
 				_pointer_state.apply_event(ev);
+				_seq_number_generator.submit(_window_layouter_input);
 				_window_layouter_input.submit(ev); });
 	}
 
