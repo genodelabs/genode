@@ -50,74 +50,21 @@ enum { AP_BOOT_CODE_PAGE = 0x1000 };
 extern "C" void * _start;
 extern "C" void * _ap;
 
+static addr_t rsdp_addr = 0;
 
-static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
+
+static void calibrate_lapic_frequency(Hw::Acpi::Fadt &fadt,
+                                      ::Board::Boot_info &info)
 {
-	if (area && area_size && area < area + area_size) {
-		for (addr_t addr = 0; addr + sizeof(Hw::Acpi_rsdp) <= area_size;
-		     addr += sizeof(Hw::Acpi_rsdp::signature))
-		{
-			Hw::Acpi_rsdp * rsdp = reinterpret_cast<Hw::Acpi_rsdp *>(area + addr);
-			if (rsdp->valid())
-				return *rsdp;
-		}
-	}
-
-	Hw::Acpi_rsdp invalid { };
-	return invalid;
-}
-
-
-static uint32_t calibrate_tsc_frequency(addr_t fadt_addr)
-{
-	uint32_t const default_freq = 2'400'000;
-
-	if (!fadt_addr) {
-		warning("FADT not found, returning fixed TSC frequency of ", default_freq, "kHz");
-		return default_freq;
-	}
-
-	uint32_t const sleep_ms = 10;
-
-	Hw::Acpi_fadt fadt(reinterpret_cast<Hw::Acpi_generic *>(fadt_addr));
-
-	uint32_t const freq = fadt.calibrate_freq_khz(sleep_ms, []() { return Hw::Tsc::rdtsc(); });
-
-	if (!freq) {
-		warning("Unable to calibrate TSC, returning fixed TSC frequency of ", default_freq, "kHz");
-		return default_freq;
-	}
-
-	return freq;
-}
-
-
-static Hw::Local_apic::Calibration calibrate_lapic_frequency(addr_t fadt_addr)
-{
-	uint32_t const default_freq = TIMER_MIN_TICKS_PER_MS;
-
-	if (!fadt_addr) {
-		warning("FADT not found, setting minimum Local APIC frequency of ", default_freq, "kHz");
-		return { default_freq, 1 };
-	}
-
-	uint32_t const sleep_ms = 10;
-
-	Hw::Acpi_fadt fadt(reinterpret_cast<Hw::Acpi_generic *>(fadt_addr));
-
 	Hw::Local_apic lapic(Hw::Cpu_memory_map::lapic_phys_base());
 
-	auto const result =
-		lapic.calibrate_divider([&] {
-			return fadt.calibrate_freq_khz(sleep_ms, [&] {
-				return lapic.read<Hw::Local_apic::Tmr_current>(); }, true); });
+	uint32_t const sleep_ms = 10;
+	auto const result = lapic.calibrate_divider([&] {
+		return fadt.calibrate_freq_khz(sleep_ms, [&] {
+			return lapic.read<Hw::Local_apic::Tmr_current>(); }, true); });
 
-	if (!result.freq_khz) {
-		warning("FADT not found, setting minimum Local APIC frequency of ", default_freq, "kHz");
-		return { default_freq, 1 };
-	}
-
-	return result;
+	info.lapic_freq_khz = result.freq_khz;
+	info.lapic_div = result.div;
 }
 
 
@@ -227,8 +174,7 @@ static inline void memory_add_region(addr_t base, addr_t size,
 }
 
 
-static inline void parse_multi_boot_1(::Board::Boot_info      &info,
-                                      Hw::Memory_region_array &early,
+static inline void parse_multi_boot_1(Hw::Memory_region_array &early,
                                       Hw::Memory_region_array &late)
 {
 	for (unsigned i = 0; true; i++) {
@@ -247,19 +193,20 @@ static inline void parse_multi_boot_1(::Board::Boot_info      &info,
 
 	/* BIOS range to scan for */
 	enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
-	info.acpi_rsdp = search_rsdp(BIOS_BASE, BIOS_SIZE);
+	Hw::Acpi::Rsdp::search(BIOS_BASE, BIOS_SIZE,
+		[&] (Hw::Acpi::Rsdp &rsdp) { rsdp_addr = rsdp.base(); },
+		[&] () {
+			/* page 0 is remapped to 2M - 4k - see crt_translation table */
+			addr_t const bios_addr = 2 * 1024 * 1024 - 4096;
 
-	if (!info.acpi_rsdp.valid()) {
-		/* page 0 is remapped to 2M - 4k - see crt_translation table */
-		addr_t const bios_addr = 2 * 1024 * 1024 - 4096;
+			/* search EBDA (BIOS addr + 0x40e) */
+			addr_t ebda_phys = (*reinterpret_cast<uint16_t *>(bios_addr + 0x40e)) << 4;
+			if (ebda_phys < 0x1000) ebda_phys = bios_addr;
 
-		/* search EBDA (BIOS addr + 0x40e) */
-		addr_t ebda_phys = (*reinterpret_cast<uint16_t *>(bios_addr + 0x40e)) << 4;
-		if (ebda_phys < 0x1000)
-			ebda_phys = bios_addr;
-
-		info.acpi_rsdp = search_rsdp(ebda_phys, 0x1000 /* EBDA size */);
-	}
+			Hw::Acpi::Rsdp::search(ebda_phys, 0x1000,
+				[&] (Hw::Acpi::Rsdp &rsdp) { rsdp_addr = rsdp.base(); },
+				[] () { /* ignore non-result */ });
+		});
 }
 
 
@@ -280,14 +227,13 @@ static inline void parse_multi_boot_2(::Board::Boot_info      &info,
 
 		memory_add_region(base, size, early, late);
 	},
-	[&] (Hw::Acpi_rsdp const &rsdp_v1) {
+	[&] (Hw::Acpi::Rsdp const &rsdp_v1) {
 		/* only use ACPI RSDP v1 if nothing available/valid by now */
-		if (!info.acpi_rsdp.valid())
-			info.acpi_rsdp = rsdp_v1;
+		if (!rsdp_addr) rsdp_addr = rsdp_v1.base();
 	},
-	[&] (Hw::Acpi_rsdp const &rsdp_v2) {
+	[&] (Hw::Acpi::Rsdp const &rsdp_v2) {
 		/* prefer v2 ever, override stored previous rsdp v1 potentially */
-		info.acpi_rsdp = rsdp_v2;
+		rsdp_addr = rsdp_v2.base();
 	},
 	[&] (Hw::Framebuffer const &fb) {
 		info.framebuffer = fb;
@@ -295,48 +241,6 @@ static inline void parse_multi_boot_2(::Board::Boot_info      &info,
 	[&] (uint64_t const efi_sys_tab) {
 		info.efi_system_table = efi_sys_tab;
 	});
-}
-
-
-static inline void acpi_system_description_table(Hw::Acpi_rsdp &acpi_rsdp,
-                                                 auto const &per_table)
-{
-	if (!acpi_rsdp.valid())
-		return;
-
-	uint64_t const table_addr = acpi_rsdp.xsdt ? acpi_rsdp.xsdt : acpi_rsdp.rsdt;
-	if (!table_addr)
-		return;
-
-	auto lambda = [&] (auto paddr_table) {
-		addr_t const table_virt_addr = paddr_table;
-		per_table(*reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr),
-		                                                paddr_table);
-	};
-
-	Hw::Acpi_generic &table = *reinterpret_cast<Hw::Acpi_generic*>(table_addr);
-	if (!memcmp(table.signature, "RSDT", 4)) {
-		Hw::for_each_rsdt_entry(table, lambda);
-	} else if (!memcmp(table.signature, "XSDT", 4)) {
-		Hw::for_each_xsdt_entry(table, lambda);
-	}
-}
-
-
-static inline void for_each_cpu(Hw::Acpi_rsdp &acpi_rsdp,
-                                auto const &per_cpu_fn)
-{
-	auto lambda = [&] (Hw::Acpi_generic &table, uint64_t) {
-		Hw::for_each_apic_struct(table,[&](Hw::Apic_madt const *e) {
-			if (e->type != Hw::Apic_madt::LAPIC)
-				return;
-
-			/* check if APIC is enabled in hardware */
-			Hw::Apic_madt::Lapic lapic(e);
-			if (lapic.valid()) per_cpu_fn(lapic.id());
-		});
-	};
-	acpi_system_description_table(acpi_rsdp, lambda);
 }
 
 
@@ -351,7 +255,7 @@ Bootstrap::Platform::Board::Board()
 {
 	switch (__initial_ax) {
 	case Multiboot_info::MAGIC:
-		parse_multi_boot_1(info, early_ram_regions, late_ram_regions);
+		parse_multi_boot_1(early_ram_regions, late_ram_regions);
 		break;
 	case Multiboot2_info::MAGIC:
 		parse_multi_boot_2(info, early_ram_regions, late_ram_regions);
@@ -360,60 +264,87 @@ Bootstrap::Platform::Board::Board()
 		error("invalid multiboot magic value: ", Hex(__initial_ax));
 	};
 
-	/* scan ACPI tables for FADT */
-	auto lambda = [&] (Hw::Acpi_generic &table, uint64_t paddr) {
+	if (rsdp_addr) {
+		Hw::Acpi::Rsdp rsdp(rsdp_addr);
 
-		/* its signature is called FACP */
-		if (memcmp(table.signature, "FACP", 4))
-			return;
+		/*
+		 * Copy relevant information to boot_info to export it
+		 * via platform_info from core to acpi driver, acpica
+		 */
+		info.acpi_revision = rsdp.revision();
+		info.acpi_rsdt     = rsdp.rsdt();
+		info.acpi_xsdt     = rsdp.xsdt();
 
-		info.acpi_fadt = addr_t(&table);
+		rsdp.for_each_entry(
 
-		/* show firmware that we're an ACPI-aware OS */
-		Hw::Acpi_fadt fadt(&table);
-		fadt.takeover_acpi();
+			/* Handle FADT & FACS */
+			[&] (Hw::Acpi::Fadt &fadt) {
+				info.acpi_fadt = fadt.base();
+				fadt.takeover_acpi();
 
-		Hw::Acpi_facs facs(fadt.facs());
-		facs.wakeup_vector(AP_BOOT_CODE_PAGE);
+				Hw::Acpi::Facs facs(fadt.facs());
+				facs.wakeup_vector(AP_BOOT_CODE_PAGE);
 
-		auto mem_aligned = paddr & _align_mask(12);
-		auto mem_size    = align_addr(paddr + table.size, 12) - mem_aligned;
-		core_mmio.add({ mem_aligned, mem_size });
+				/* Add FADT to core mapped memory */
+				auto mem_aligned = fadt.base() & _align_mask(12);
+				auto mem_size    = align_addr(fadt.base() + fadt.size(), 12)
+				                   - mem_aligned;
+				core_mmio.add({ mem_aligned, mem_size });
+
+				/*
+				 * Enable serializing lfence on supported AMD processors
+				 *
+				 * For APs this will be set up later, but we need it already to obtain
+				 * the most acurate results when calibrating the TSC frequency.
+				 */
+				amd_enable_serializing_lfence();
+				calibrate_lapic_frequency(fadt, info);
+				info.tsc_freq_khz = fadt.calibrate_freq_khz(10, []() {
+					return Hw::Tsc::rdtsc(); });
+			},
+
+			/* Handle MADT */
+			[&] (Hw::Acpi::Madt &madt) {
+				cpus = 0;
+				madt.for_each_apic(
+					[&] (Hw::Acpi::Madt::Local_apic &) { cpus++; },
+					[&] (Hw::Acpi::Madt::Io_apic &)    {}
+				);
+			}
+		);
 	};
-	acpi_system_description_table(info.acpi_rsdp, lambda);
-
-	/* get the actual number of cpus */
-	static constexpr unsigned MAX_CPUS =
-		Hw::Mm::CPU_LOCAL_MEMORY_AREA_SIZE /
-		Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE;
-	cpus = 0;
-	for_each_cpu(info.acpi_rsdp, [this] (unsigned) { cpus++; });
-
-	if (!cpus || cpus > MAX_CPUS) {
-		Genode::warning("CPU count is unsupported ", cpus, "/", MAX_CPUS,
-		                info.acpi_rsdp.valid() ? " - invalid or missing RSDT/XSDT"
-		                                       : " - invalid RSDP");
-		cpus = !cpus ? 1 : MAX_CPUS;
-	}
-
-	/*
-	 * Enable serializing lfence on supported AMD processors
-	 *
-	 * For APs this will be set up later, but we need it already to obtain
-	 * the most acurate results when calibrating the TSC frequency.
-	 */
-	amd_enable_serializing_lfence();
-
-	auto r = calibrate_lapic_frequency(info.acpi_fadt);
-	info.lapic_freq_khz = r.freq_khz;
-	info.lapic_div      = r.div;
-	info.tsc_freq_khz   = calibrate_tsc_frequency(info.acpi_fadt);
 
 	disable_pit();
 
 	/* copy 16 bit boot code for AP CPUs and for ACPI resume */
 	addr_t ap_code_size = (addr_t)&_start - (addr_t)&_ap;
 	memcpy((void *)AP_BOOT_CODE_PAGE, &_ap, ap_code_size);
+
+
+	/************************
+	 ** Some sanity checks **
+	 ************************/
+
+	if (!info.lapic_freq_khz && !info.lapic_div) {
+		info.lapic_freq_khz = TIMER_MIN_TICKS_PER_MS;
+		info.lapic_div = 1;
+		warning("Calibration failed, set minimum Local APIC frequency of ",
+		        info.lapic_freq_khz, "kHz");
+	}
+
+	if (!info.tsc_freq_khz) {
+		uint32_t const default_freq = 2'400'000;
+		warning("Calibration failed, using TSC frequency of ", default_freq, "kHz");
+		info.tsc_freq_khz = default_freq;
+	}
+
+	static constexpr unsigned MAX_CPUS = Hw::Mm::CPU_LOCAL_MEMORY_AREA_SIZE /
+	                                     Hw::Mm::CPU_LOCAL_MEMORY_SLOT_SIZE;
+	if (!cpus || cpus > MAX_CPUS) {
+		Genode::warning("CPU count is unsupported ", cpus, "/", MAX_CPUS,
+		                " - invalid or missing RSDT/XSDT?!");
+		cpus = !cpus ? 1 : MAX_CPUS;
+	}
 }
 
 
@@ -515,7 +446,21 @@ Board::Serial::Serial(addr_t, size_t, unsigned baudrate)
 
 unsigned Bootstrap::Platform::_prepare_cpu_memory_area()
 {
-	for_each_cpu(board.info.acpi_rsdp, [this] (unsigned id) {
-		_prepare_cpu_memory_area(id); });
+	if (!rsdp_addr)
+		return 1; /* return boot cpu only */
+
+	Hw::Acpi::Rsdp rsdp(rsdp_addr);
+	rsdp.for_each_entry(
+		[&] (Hw::Acpi::Fadt &) { /* ignore */ },
+
+		[&] (Hw::Acpi::Madt &madt) {
+			madt.for_each_apic(
+				[&] (Hw::Acpi::Madt::Local_apic &lapic) {
+					_prepare_cpu_memory_area(lapic.id());
+				},
+				[&] (Hw::Acpi::Madt::Io_apic &) {}
+			);
+		});
+
 	return board.cpus;
 }

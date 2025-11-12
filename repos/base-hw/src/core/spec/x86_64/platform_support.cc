@@ -29,9 +29,9 @@ void Core::Platform::_init_additional_platform_info(Generator &g)
 		});
 	}
 	g.node("acpi", [&] {
-		uint32_t const revision = _boot_info().plat_info.acpi_rsdp.revision;
-		uint32_t const rsdt     = _boot_info().plat_info.acpi_rsdp.rsdt;
-		uint64_t const xsdt     = _boot_info().plat_info.acpi_rsdp.xsdt;
+		uint32_t const revision = _boot_info().plat_info.acpi_revision;
+		uint32_t const rsdt     = _boot_info().plat_info.acpi_rsdt;
+		uint64_t const xsdt     = _boot_info().plat_info.acpi_xsdt;
 
 		if (revision && (rsdt || xsdt)) {
 			g.attribute("revision", revision);

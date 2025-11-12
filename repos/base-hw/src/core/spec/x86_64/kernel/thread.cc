@@ -71,15 +71,14 @@ void Cpu::Halt_job::Halt_job::proceed()
 		using Core::Platform;
 
 		Platform::apply_with_boot_info([&](auto const &boot_info) {
-			auto table = boot_info.plat_info.acpi_fadt;
-			auto acpi_fadt_table = reinterpret_cast<Hw::Acpi_generic *>(Platform::mmio_to_virt(table));
+			auto acpi_fadt_addr = Platform::mmio_to_virt(boot_info.plat_info.acpi_fadt);
 
 			/* paranoia */
-			if (!acpi_fadt_table)
+			if (!acpi_fadt_addr)
 				return;
 
 			/* all CPUs signaled that they are stopped, trigger ACPI suspend */
-			Hw::Acpi_fadt fadt(acpi_fadt_table);
+			Hw::Acpi::Fadt fadt(acpi_fadt_addr);
 
 			/* ack all GPEs, otherwise we may wakeup immediately */
 			fadt.clear_gpe0_status();
@@ -109,18 +108,15 @@ Cpu_suspend_result Core_thread::_call_cpu_suspend(unsigned sleep_type)
 	using Genode::uint8_t;
 	using Core::Platform;
 
-	Hw::Acpi_generic * acpi_fadt_table { };
-	unsigned           cpu_count       { };
+	addr_t   acpi_fadt_addr { };
+	unsigned cpu_count      { };
 
 	Platform::apply_with_boot_info([&](auto const &boot_info) {
-		auto table = boot_info.plat_info.acpi_fadt;
-		if (table)
-			acpi_fadt_table = reinterpret_cast<Hw::Acpi_generic *>(Platform::mmio_to_virt(table));
-
-		cpu_count = boot_info.cpus;
+		acpi_fadt_addr = boot_info.plat_info.acpi_fadt;
+		cpu_count      = boot_info.cpus;
 	});
 
-	if (!acpi_fadt_table || !cpu_count)
+	if (!acpi_fadt_addr || !cpu_count)
 		return Cpu_suspend_result::FAILED;
 
 	if (_stop_cpu.constructed()) {

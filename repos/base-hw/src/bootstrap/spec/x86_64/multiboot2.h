@@ -16,6 +16,7 @@
 
 /* base includes */
 #include <util/mmio.h>
+#include <hw/spec/x86_64/acpi.h>
 
 namespace Genode { class Multiboot2_info; }
 
@@ -108,19 +109,12 @@ class Genode::Multiboot2_info : Mmio<0x8>
 					size_t const sizeof_tag = 1UL << Tag::LOG2_SIZE;
 					addr_t const rsdp_addr  = tag_addr + sizeof_tag;
 
-					Hw::Acpi_rsdp * rsdp = reinterpret_cast<Hw::Acpi_rsdp *>(rsdp_addr);
+					Hw::Acpi::Rsdp rsdp(rsdp_addr);
 
-					if (tag.read<Tag::Size>() - sizeof_tag == 20) {
-						/* ACPI RSDP v1 is 20 byte solely */
-						Hw::Acpi_rsdp rsdp_v1;
-						memset (&rsdp_v1, 0, sizeof(rsdp_v1));
-						memcpy (&rsdp_v1, rsdp, 20);
-						acpi_rsdp_v1_fn(rsdp_v1);
-					} else
-					if (sizeof(*rsdp) <= tag.read<Tag::Size>() - sizeof_tag) {
-						/* ACPI RSDP v2 */
-						acpi_rsdp_v2_fn(*rsdp);
-					}
+					if (tag.read<Tag::Type>() == Tag::Type::ACPI_RSDP_V1)
+						acpi_rsdp_v1_fn(rsdp);
+					else
+						acpi_rsdp_v2_fn(rsdp);
 				}
 
 				if (tag.read<Tag::Type>() == Tag::Type::FRAMEBUFFER) {
