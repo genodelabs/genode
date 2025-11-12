@@ -144,6 +144,11 @@ class Genodefb :
 
 			_gui  = nullptr;
 			_view = nullptr;
+
+			if (_fb_base) {
+				_env.rm().detach(Genode::addr_t(_fb_base));
+				_fb_base = nullptr;
+			}
 		}
 
 		STDMETHODIMP Lock()
