@@ -198,7 +198,8 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Generator      &g,
 			[&] (Node const &common_routes) {
 				_children.gen_start_nodes(g, common_routes,
 				                          prio_levels, affinity_space,
-				                          "depot_rom", "dynamic_depot_rom");
+				                          "depot_rom", "dynamic_depot_rom",
+				                          [] (auto const &) { return true; });
 				g.node("monitor", [&] {
 					_children.gen_monitor_policy_nodes(g);});
 			});

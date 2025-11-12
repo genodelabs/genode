@@ -193,7 +193,8 @@ struct Depot_deploy::Main
 				Child::Depot_rom_server const parent { };
 				_children.gen_start_nodes(g, node,
 				                          _prio_levels, Affinity::Space(1, 1),
-				                          parent, parent);
+				                          parent, parent,
+				                          [] (Child::Name const &) { return true; });
 			},
 			[&] { warning("config lacks <common_routes> node"); });
 	}

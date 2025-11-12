@@ -33,6 +33,14 @@ class Depot_deploy::Children
 
 		List_model<Child> _children { };
 
+		void _with_child(Child::Name const &name, auto const &fn) const
+		{
+			bool done = false;
+			_children.for_each([&] (Child const &child) {
+				if (!done && child.name() == name) {
+					fn(child); done = true; } });
+		}
+
 	public:
 
 		Children(Allocator &alloc) : _alloc(alloc) { }
@@ -130,11 +138,13 @@ class Depot_deploy::Children
 		                     Child::Prio_levels prio_levels,
 		                     Affinity::Space affinity_space,
 		                     Child::Depot_rom_server const &cached_depot_rom,
-		                     Child::Depot_rom_server const &uncached_depot_rom) const
+		                     Child::Depot_rom_server const &uncached_depot_rom,
+		                     auto const &cond_fn) const
 		{
 			_children.for_each([&] (Child const &child) {
-				child.gen_start_node(g, common, prio_levels, affinity_space,
-				                     cached_depot_rom, uncached_depot_rom); });
+				if (cond_fn(child.name()))
+					child.gen_start_node(g, common, prio_levels, affinity_space,
+					                     cached_depot_rom, uncached_depot_rom); });
 		}
 
 		void gen_monitor_policy_nodes(Generator &g) const
@@ -177,6 +187,13 @@ class Depot_deploy::Children
 			return result;
 		}
 
+		void for_each_incomplete(auto const &fn) const
+		{
+			_children.for_each([&] (Child const &child) {
+				if (child.incomplete())
+					fn(child.name()); });
+		}
+
 		bool any_blueprint_needed() const
 		{
 			bool result = false;
@@ -188,9 +205,7 @@ class Depot_deploy::Children
 		bool exists(Child::Name const &name) const
 		{
 			bool result = false;
-			_children.for_each([&] (Child const &child) {
-				if (child.name() == name)
-					result = true; });
+			_with_child(name, [&] (Child const &) { result = true; });
 			return result;
 		}
 
