@@ -149,6 +149,8 @@ struct Decorator::Main : Window_factory_base
 
 	Expanding_reporter _hover_reporter = { _env, "hover" };
 
+	Input::Seq_number  _last_seq_number { 0 };
+
 	bool _window_layout_update_needed = false;
 
 	Expanding_reporter _decorator_margins_reporter = { _env, "decorator_margins" };
@@ -279,17 +281,22 @@ static Decorator::Window_base::Hover find_hover(Genode::Node const &pointer_node
 static void update_hover_report(Genode::Node pointer_node,
                                 Decorator::Window_stack &window_stack,
                                 Decorator::Window_base::Hover &hover,
-                                Genode::Expanding_reporter &hover_reporter)
+                                Genode::Expanding_reporter &hover_reporter,
+                                bool seq_number_changed)
 {
 	Decorator::Window_base::Hover const new_hover =
 		find_hover(pointer_node, window_stack);
 
-	/* produce report only if hover state changed */
-	if (new_hover != hover) {
+	/* produce report only if hover state changed or sequence number changed */
+	if (new_hover != hover || seq_number_changed) {
 
 		hover = new_hover;
 
 		hover_reporter.generate([&] (Genode::Generator &g) {
+
+			if (pointer_node.has_attribute("seq_number"))
+				g.attribute("seq_number", pointer_node.attribute_value("seq_number", 0));
+
 			if (hover.window_id.value > 0) {
 
 				g.node("window", [&] () {
@@ -343,7 +350,7 @@ void Decorator::Main::_handle_gui_sync()
 		 * the pointer.
 		 */
 		update_hover_report(_pointer.node(),
-		                    _window_stack, _hover, _hover_reporter);
+		                    _window_stack, _hover, _hover_reporter, false);
 
 		_window_layout_update_needed = false;
 	}
@@ -384,8 +391,15 @@ void Decorator::Main::_handle_gui_sync()
 void Decorator::Main::_handle_pointer_update()
 {
 	_pointer.update();
+	
+	Input::Seq_number const seq_number {
+		_pointer.node().attribute_value("seq_number", _last_seq_number.value) };
 
-	update_hover_report(_pointer.node(), _window_stack, _hover, _hover_reporter);
+	bool const seq_number_changed = _last_seq_number.value != seq_number.value;
+	_last_seq_number.value = seq_number.value;
+
+	update_hover_report(_pointer.node(), _window_stack, _hover, _hover_reporter,
+	                    seq_number_changed);
 }
 
 
