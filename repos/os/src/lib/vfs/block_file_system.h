@@ -88,11 +88,13 @@ struct Vfs::Block_file_system
 		                           char *dst, size_t length)
 		{
 			size_t sz = min(length, job.bytes_remaining());
-			if (!sz)
+			if (length + offset > job.range.num_bytes) {
+				Genode::error("write job outside request boundary");
 				return;
+			}
 
 			char const * src = (char const*)job.range.start + offset;
-			memcpy(dst + job.start_offset, src, sz);
+			memcpy(dst + job.start_offset, src, length);
 
 			job.bytes_handled += sz;
 		}
