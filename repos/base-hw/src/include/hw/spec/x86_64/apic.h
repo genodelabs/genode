@@ -16,6 +16,7 @@
 
 namespace Hw { class Local_apic; }
 
+#include <hw/spec/x86_64/acpi.h>
 #include <hw/spec/x86_64/x86_64.h>
 
 /* Genode includes */
@@ -45,14 +46,14 @@ struct Hw::Local_apic : Genode::Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
 		struct Vector          : Bitfield< 0, 8> { };
 		struct Delivery_mode   : Bitfield< 8, 3>
 		{
-			enum Mode { INIT = 5, SIPI = 6 };
+			enum Mode { FIXED = 0, INIT = 5, STARTUP = 6 };
 		};
 
 		struct Delivery_status : Bitfield<12, 1> { };
 		struct Level_assert    : Bitfield<14, 1> { };
 		struct Dest_shorthand  : Bitfield<18, 2>
 		{
-			enum { ALL_OTHERS = 3 };
+			enum Shorthand { NO = 0, ALL_OTHERS = 3 };
 		};
 	};
 
@@ -86,9 +87,50 @@ struct Hw::Local_apic : Genode::Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
 
 	struct Calibration { uint32_t freq_khz; uint32_t div; };
 
-	Calibration calibrate_divider(auto calibration_fn)
+	void end_of_interrupt() { write<EOI>(0); }
+
+	void send_ipi(uint8_t const vector, uint8_t const destination,
+	              Icr_low::Delivery_mode::Mode const mode,
+	              Icr_low::Dest_shorthand::Shorthand dest_shorthand)
+	{
+		/* wait until ready */
+		while (read<Icr_low::Delivery_status>())
+			asm volatile ("pause":::"memory");
+
+		Icr_low::access_t icr_low = 0;
+		Icr_low::Vector::set(icr_low, vector);
+		Icr_low::Delivery_mode::set(icr_low, mode);
+		Icr_low::Level_assert::set(icr_low);
+		Icr_low::Dest_shorthand::set(icr_low, dest_shorthand);
+
+		/* program */
+		write<Icr_high::Destination>(destination);
+		write<Icr_low>(icr_low);
+	}
+
+	void send_ipi_to_all(uint8_t const vector,
+	                     Icr_low::Delivery_mode::Mode const mode)
+	{
+		send_ipi(vector, 0, mode, Icr_low::Dest_shorthand::ALL_OTHERS);
+	}
+
+	void enable()
+	{
+		using Apic_msr = Hw::X86_64_cpu::IA32_apic_base;
+
+		/* we like to use local APIC */
+		Apic_msr::access_t apic_msr = Apic_msr::read();
+		Apic_msr::Lapic::set(apic_msr);
+		Apic_msr::write(apic_msr);
+
+		if (!read<Svr::APIC_enable>()) write<Svr::APIC_enable>(true);
+	}
+
+	Calibration calibrate(Hw::Acpi::Fadt &fadt)
 	{
 		Calibration result { };
+
+		static constexpr uint32_t sleep_ms = 10;
 
 		/* calibrate LAPIC frequency to fullfill our requirements */
 		for (Divide_configuration::access_t div = Divide_configuration::Divide_value::MAX;
@@ -103,8 +145,9 @@ struct Hw::Local_apic : Genode::Mmio<Hw::Cpu_memory_map::LAPIC_SIZE>
 			write<Tmr_initial>(~0U);
 
 			/* Calculate timer frequency */
-			result.freq_khz = calibration_fn();
 			result.div      = div;
+			result.freq_khz = fadt.calibrate_freq_khz(sleep_ms, [&] {
+				return read<Tmr_current>(); }, true);
 
 			write<Tmr_initial>(0);
 		}

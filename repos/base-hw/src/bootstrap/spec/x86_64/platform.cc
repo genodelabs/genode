@@ -53,21 +53,6 @@ extern "C" void * _ap;
 static addr_t rsdp_addr = 0;
 
 
-static void calibrate_lapic_frequency(Hw::Acpi::Fadt &fadt,
-                                      ::Board::Boot_info &info)
-{
-	Hw::Local_apic lapic(Hw::Cpu_memory_map::lapic_phys_base());
-
-	uint32_t const sleep_ms = 10;
-	auto const result = lapic.calibrate_divider([&] {
-		return fadt.calibrate_freq_khz(sleep_ms, [&] {
-			return lapic.read<Hw::Local_apic::Tmr_current>(); }, true); });
-
-	info.lapic_freq_khz = result.freq_khz;
-	info.lapic_div = result.div;
-}
-
-
 static void disable_pit()
 {
 	using Hw::outb;
@@ -294,13 +279,18 @@ Bootstrap::Platform::Board::Board()
 				/*
 				 * Enable serializing lfence on supported AMD processors
 				 *
-				 * For APs this will be set up later, but we need it already to obtain
-				 * the most acurate results when calibrating the TSC frequency.
+				 * For all cpus this will be set up later. The boot cpu needs
+				 * to do it already here to obtain the most acurate results
+				 * when calibrating the TSC frequency.
 				 */
 				amd_enable_serializing_lfence();
-				calibrate_lapic_frequency(fadt, info);
 				info.tsc_freq_khz = fadt.calibrate_freq_khz(10, []() {
 					return Hw::Tsc::rdtsc(); });
+
+				Hw::Local_apic lapic(Hw::Cpu_memory_map::lapic_phys_base());
+				auto result = lapic.calibrate(fadt);
+				info.lapic_freq_khz = result.freq_khz;
+				info.lapic_div = result.div;
 			},
 
 			/* Handle MADT */
@@ -348,34 +338,38 @@ Bootstrap::Platform::Board::Board()
 }
 
 
-static inline
-void ipi_to_all(Hw::Local_apic &lapic, unsigned const boot_frame,
-                Hw::Local_apic::Icr_low::Delivery_mode::Mode const mode)
+static inline void wake_up_all_cpus(Hw::Local_apic &lapic)
 {
-	using Icr_low = Hw::Local_apic::Icr_low;
+	/* reset assembly counter (crt0.s), required for resume */
+	__cpus_booted = 0;
 
-	/* wait until ready */
-	while (lapic.read<Icr_low::Delivery_status>())
-		asm volatile ("pause":::"memory");
-
-	unsigned const apic_cpu_id = 0; /* unused for IPI to all */
-
-	Icr_low::access_t icr_low = 0;
-	Icr_low::Vector::set(icr_low, boot_frame);
-	Icr_low::Delivery_mode::set(icr_low, mode);
-	Icr_low::Level_assert::set(icr_low);
-	Icr_low::Level_assert::set(icr_low);
-	Icr_low::Dest_shorthand::set(icr_low, Icr_low::Dest_shorthand::ALL_OTHERS);
-
-	/* program */
-	lapic.write<Hw::Local_apic::Icr_high::Destination>(apic_cpu_id);
-	lapic.write<Icr_low>(icr_low);
+	/* see Intel Multiprocessor documentation - we need to do INIT-SIPI-SIPI */
+	lapic.send_ipi_to_all(0 /* unused */,
+	           Hw::Local_apic::Icr_low::Delivery_mode::INIT);
+	/* wait 10  ms - debates ongoing whether this is still required */
+	lapic.send_ipi_to_all(AP_BOOT_CODE_PAGE >> 12,
+	           Hw::Local_apic::Icr_low::Delivery_mode::STARTUP);
+	/* wait 200 us - debates ongoing whether this is still required */
+	/* debates ongoing whether the second SIPI is still required */
+	lapic.send_ipi_to_all(AP_BOOT_CODE_PAGE >> 12,
+	           Hw::Local_apic::Icr_low::Delivery_mode::STARTUP);
 }
 
 
 Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 {
 	using ::Board::Cpu;
+	auto const cpu_id =
+		Cpu_id(Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read()));
+	static auto const boot_cpu_id = cpu_id;
+	bool boot_cpu = boot_cpu_id == cpu_id;
+
+	Hw::Local_apic lapic(Hw::Cpu_memory_map::lapic_phys_base());
+	lapic.enable();
+	if (boot_cpu && board.cpus > 1) wake_up_all_cpus(lapic);
+
+	/* enable serializing lfence on supported AMD processors. */
+	amd_enable_serializing_lfence();
 
 	/* enable PAT if available */
 	Cpu::Cpuid_1_edx::access_t cpuid1 = Cpu::Cpuid_1_edx::read();
@@ -388,48 +382,6 @@ Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 	}
 
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
-
-	auto const cpu_id =
-		Cpu_id(Cpu::Cpuid_1_ebx::Apic_id::get(Cpu::Cpuid_1_ebx::read()));
-
-	/* we like to use local APIC */
-	Cpu::IA32_apic_base::access_t lapic_msr = Cpu::IA32_apic_base::read();
-	Cpu::IA32_apic_base::Lapic::set(lapic_msr);
-	Cpu::IA32_apic_base::write(lapic_msr);
-
-	Hw::Local_apic lapic(board.core_mmio.virt_addr(Hw::Cpu_memory_map::lapic_phys_base()));
-
-	/* enable local APIC if required */
-	if (!lapic.read<Hw::Local_apic::Svr::APIC_enable>())
-		lapic.write<Hw::Local_apic::Svr::APIC_enable>(true);
-
-	/* reset assembly counter (crt0.s) by last booted CPU, required for resume */
-	if (__cpus_booted >= board.cpus)
-		__cpus_booted = 0;
-
-	/* skip wakeup IPI for non SMP setups */
-	if (board.cpus <= 1)
-		return cpu_id;
-
-	if (!Cpu::IA32_apic_base::Bsp::get(lapic_msr)) {
-		/* AP - done */
-		/* enable serializing lfence on supported AMD processors. */
-		amd_enable_serializing_lfence();
-		return cpu_id;
-	}
-
-	/* BSP - we're primary CPU - wake now all other CPUs */
-
-	/* see Intel Multiprocessor documentation - we need to do INIT-SIPI-SIPI */
-	ipi_to_all(lapic, 0 /* unused */,
-	           Hw::Local_apic::Icr_low::Delivery_mode::INIT);
-	/* wait 10  ms - debates ongoing whether this is still required */
-	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12,
-	           Hw::Local_apic::Icr_low::Delivery_mode::SIPI);
-	/* wait 200 us - debates ongoing whether this is still required */
-	/* debates ongoing whether the second SIPI is still required */
-	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12,
-	           Hw::Local_apic::Icr_low::Delivery_mode::SIPI);
 
 	return cpu_id;
 }

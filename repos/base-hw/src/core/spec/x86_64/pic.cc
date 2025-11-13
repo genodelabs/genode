@@ -72,8 +72,7 @@ void Local_interrupt_controller::init()
 	outb(PIC_DATA_SLAVE,  0xff);
 	outb(PIC_DATA_MASTER, 0xff);
 
-	/* Set bit 8 of the APIC spurious vector register (SVR) */
-	write<Svr::APIC_enable>(1);
+	enable();
 }
 
 
@@ -91,7 +90,7 @@ bool Local_interrupt_controller::take_request(unsigned &irq)
 
 void Local_interrupt_controller::finish_request()
 {
-	write<EOI>(0);
+	end_of_interrupt();
 }
 
 
@@ -132,20 +131,9 @@ inline unsigned Local_interrupt_controller::get_lowest_bit()
 
 void Local_interrupt_controller::send_ipi(Hw::X86_64_cpu::Id cpu_id)
 {
-	while (read<Icr_low::Delivery_status>())
-		asm volatile("pause" : : : "memory");
-
-	Icr_high::access_t icr_high = 0;
-	Icr_low::access_t  icr_low  = 0;
-
-	Icr_high::Destination::set(icr_high, cpu_id.value);
-
-	Icr_low::Vector::set(icr_low, Local_interrupt_controller::IPI);
-	Icr_low::Level_assert::set(icr_low);
-
-	/* program */
-	write<Icr_high>(icr_high);
-	write<Icr_low>(icr_low);
+	Hw::Local_apic::send_ipi(Local_interrupt_controller::IPI, cpu_id.value,
+	                         Icr_low::Delivery_mode::FIXED,
+	                         Icr_low::Dest_shorthand::NO);
 }
 
 
