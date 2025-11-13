@@ -287,10 +287,10 @@ Bootstrap::Platform::Board::Board()
 				info.tsc_freq_khz = fadt.calibrate_freq_khz(10, []() {
 					return Hw::Tsc::rdtsc(); });
 
-				Hw::Local_apic lapic(Hw::Cpu_memory_map::lapic_phys_base());
-				auto result = lapic.calibrate(fadt);
-				info.lapic_freq_khz = result.freq_khz;
-				info.lapic_div = result.div;
+				Hw::Apic apic(Hw::Cpu_memory_map::lapic_phys_base());
+				auto result = apic.timer_calibrate(fadt);
+				info.apic_freq_khz = result.freq_khz;
+				info.apic_div = result.div;
 			},
 
 			/* Handle MADT */
@@ -315,11 +315,11 @@ Bootstrap::Platform::Board::Board()
 	 ** Some sanity checks **
 	 ************************/
 
-	if (!info.lapic_freq_khz && !info.lapic_div) {
-		info.lapic_freq_khz = TIMER_MIN_TICKS_PER_MS;
-		info.lapic_div = 1;
+	if (!info.apic_freq_khz && !info.apic_div) {
+		info.apic_freq_khz = TIMER_MIN_TICKS_PER_MS;
+		info.apic_div = 1;
 		warning("Calibration failed, set minimum Local APIC frequency of ",
-		        info.lapic_freq_khz, "kHz");
+		        info.apic_freq_khz, "kHz");
 	}
 
 	if (!info.tsc_freq_khz) {
@@ -338,21 +338,21 @@ Bootstrap::Platform::Board::Board()
 }
 
 
-static inline void wake_up_all_cpus(Hw::Local_apic &lapic)
+static inline void wake_up_all_cpus(Hw::Apic &apic)
 {
 	/* reset assembly counter (crt0.s), required for resume */
 	__cpus_booted = 0;
 
 	/* see Intel Multiprocessor documentation - we need to do INIT-SIPI-SIPI */
-	lapic.send_ipi_to_all(0 /* unused */,
-	           Hw::Local_apic::Icr_low::Delivery_mode::INIT);
+	apic.send_ipi_to_all(0 /* unused */,
+	                     Hw::Apic::Icr_low::Delivery_mode::INIT);
 	/* wait 10  ms - debates ongoing whether this is still required */
-	lapic.send_ipi_to_all(AP_BOOT_CODE_PAGE >> 12,
-	           Hw::Local_apic::Icr_low::Delivery_mode::STARTUP);
+	apic.send_ipi_to_all(AP_BOOT_CODE_PAGE >> 12,
+	                     Hw::Apic::Icr_low::Delivery_mode::STARTUP);
 	/* wait 200 us - debates ongoing whether this is still required */
 	/* debates ongoing whether the second SIPI is still required */
-	lapic.send_ipi_to_all(AP_BOOT_CODE_PAGE >> 12,
-	           Hw::Local_apic::Icr_low::Delivery_mode::STARTUP);
+	apic.send_ipi_to_all(AP_BOOT_CODE_PAGE >> 12,
+	                     Hw::Apic::Icr_low::Delivery_mode::STARTUP);
 }
 
 
@@ -364,9 +364,8 @@ Bootstrap::Platform::Cpu_id Bootstrap::Platform::enable_mmu()
 	static auto const boot_cpu_id = cpu_id;
 	bool boot_cpu = boot_cpu_id == cpu_id;
 
-	Hw::Local_apic lapic(Hw::Cpu_memory_map::lapic_phys_base());
-	lapic.enable();
-	if (boot_cpu && board.cpus > 1) wake_up_all_cpus(lapic);
+	Hw::Apic apic(Hw::Cpu_memory_map::lapic_phys_base());
+	if (boot_cpu && board.cpus > 1) wake_up_all_cpus(apic);
 
 	/* enable serializing lfence on supported AMD processors. */
 	amd_enable_serializing_lfence();

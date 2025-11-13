@@ -138,30 +138,15 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 };
 
 
-class Board::Local_interrupt_controller : private Hw::Local_apic
+class Board::Local_interrupt_controller : private Hw::Apic
 {
 	private:
 
 		Global_interrupt_controller &_global_irq_ctrl;
 
-		/**
-		 * Determine lowest pending interrupt in ISR register
-		 *
-		 * \return index of first ISR bit set starting at index one, zero if no
-		 *         bit is set.
-		 */
-		inline unsigned get_lowest_bit(void);
-
 	public:
 
-		enum {
-			/*
-			 * FIXME: dummy ipi value on non-SMP platform, should be removed
-			 *        when SMP is an aspect of CPUs only compiled where
-			 *        necessary
-			 */
-			IPI       = 255,
-		};
+		enum { IPI = 255, };
 
 		/**
 		 * Constructor
@@ -179,8 +164,6 @@ class Board::Local_interrupt_controller : private Hw::Local_apic
 		void irq_mode(unsigned irq, unsigned trigger, unsigned polarity);
 
 		void send_ipi(Hw::X86_64_cpu::Id id);
-
-		void init();
 };
 
 #endif /* _CORE__SPEC__X86_64__PIC_H_ */

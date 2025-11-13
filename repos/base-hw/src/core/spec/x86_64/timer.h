@@ -29,11 +29,11 @@ namespace Board { class Timer; }
 /**
  * LAPIC-based timer driver for core
  */
-struct Board::Timer: public Hw::Local_apic
+struct Board::Timer: public Hw::Apic
 {
-	Divide_configuration::access_t divider          = 0;
-	Genode::uint32_t               ticks_per_ms     = 0;
-	Genode::Trace::Timestamp       tsc_ticks_per_ms = 0;
+	Genode::uint8_t          divider          = 0;
+	Genode::uint32_t         ticks_per_ms     = 0;
+	Genode::Trace::Timestamp tsc_ticks_per_ms = 0;
 
 	Timer(Hw::X86_64_cpu::Id);
 

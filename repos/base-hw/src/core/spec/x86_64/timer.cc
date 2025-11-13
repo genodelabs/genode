@@ -24,36 +24,20 @@ using namespace Kernel;
 
 Board::Timer::Timer(Hw::X86_64_cpu::Id)
 :
-	Local_apic(Core::Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
+	Apic(Core::Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
-	init();
-}
-
-
-void Board::Timer::init()
-{
-	/* enable LAPIC timer in one-shot mode */
-	write<Tmr_lvt::Vector>(Board::TIMER_VECTOR_KERNEL);
-	write<Tmr_lvt::Delivery>(0);
-	write<Tmr_lvt::Mask>(0);
-	write<Tmr_lvt::Timer_mode>(0);
-
-	/* use very same divider after ACPI resume as used during initial boot */
-	if (divider) {
-		write<Divide_configuration::Divide_value>((uint8_t)divider);
-		return;
-	}
-
 	Core::Platform::apply_with_boot_info([&](auto const &boot_info) {
-			tsc_ticks_per_ms = boot_info.plat_info.tsc_freq_khz;
-			ticks_per_ms     = boot_info.plat_info.lapic_freq_khz;
-			divider          = boot_info.plat_info.lapic_div;
-		});
+		tsc_ticks_per_ms = boot_info.plat_info.tsc_freq_khz;
+		ticks_per_ms     = boot_info.plat_info.apic_freq_khz;
+		divider          = boot_info.plat_info.apic_div;
+	});
+
+	timer_init(Board::TIMER_VECTOR_KERNEL, (uint8_t)divider);
 }
 
 
 void Timer::_start_one_shot(time_t const ticks) {
-	_device.write<Board::Timer::Tmr_initial>((uint32_t)ticks); }
+	_device.timer_reset_ticks((uint32_t)ticks); }
 
 
 time_t Timer::ticks_to_us(time_t const ticks) const {

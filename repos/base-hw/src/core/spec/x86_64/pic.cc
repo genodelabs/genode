@@ -39,13 +39,8 @@ enum {
 Local_interrupt_controller::
 Local_interrupt_controller(Global_interrupt_controller &global_irq_ctrl)
 :
-	Local_apic({Core::Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base())}),
+	Apic({Core::Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base())}),
 	_global_irq_ctrl { global_irq_ctrl }
-{
-	init();
-}
-
-void Local_interrupt_controller::init()
 {
 	using Hw::outb;
 
@@ -71,14 +66,12 @@ void Local_interrupt_controller::init()
 	/* Disable legacy pic */
 	outb(PIC_DATA_SLAVE,  0xff);
 	outb(PIC_DATA_MASTER, 0xff);
-
-	enable();
 }
 
 
 bool Local_interrupt_controller::take_request(unsigned &irq)
 {
-	irq = get_lowest_bit();
+	irq = get_lowest_active_irq();
 	if (!irq) {
 		return false;
 	}
@@ -114,24 +107,9 @@ void Local_interrupt_controller::irq_mode(unsigned irq_number,
 }
 
 
-inline unsigned Local_interrupt_controller::get_lowest_bit()
-{
-	unsigned bit, vec_base = 0;
-
-	for (unsigned i = 0; i < 8 * 4; i += 4) {
-		bit = __builtin_ffs(read<Isr>(i));
-		if (bit) {
-			return vec_base + bit;
-		}
-		vec_base += 32;
-	}
-	return 0;
-}
-
-
 void Local_interrupt_controller::send_ipi(Hw::X86_64_cpu::Id cpu_id)
 {
-	Hw::Local_apic::send_ipi(Local_interrupt_controller::IPI, cpu_id.value,
+	Hw::Apic::send_ipi(Local_interrupt_controller::IPI, cpu_id.value,
 	                         Icr_low::Delivery_mode::FIXED,
 	                         Icr_low::Dest_shorthand::NO);
 }

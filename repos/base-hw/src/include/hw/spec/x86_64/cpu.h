@@ -101,9 +101,10 @@ struct Hw::X86_64_cpu
 	);
 
 	X86_64_MSR_REGISTER(IA32_apic_base,  0x1b,
-		struct Bsp   : Bitfield<  8,  1> { }; /* Bootstrap processor */
-		struct Lapic : Bitfield< 11,  1> { }; /* Enable/disable local APIC */
-		struct Base  : Bitfield< 12, 24> { }; /* Base address of APIC registers */
+		struct Bsp    : Bitfield<  8,  1> { }; /* Bootstrap processor */
+		struct X2apic : Bitfield< 10,  1> { }; /* Enable/disable X2APIC */
+		struct Lapic  : Bitfield< 11,  1> { }; /* Enable/disable local APIC */
+		struct Base   : Bitfield< 12, 24> { }; /* Base address of APIC registers */
 	);
 
 	X86_64_MSR_REGISTER(IA32_pat, 0x277,
@@ -329,6 +330,7 @@ struct Hw::X86_64_cpu
 
 	X86_64_CPUID_REGISTER(Cpuid_1_ecx, 1, ecx,
 		struct Vmx          : Bitfield< 5, 1> { };
+		struct X2apic       : Bitfield<21, 1> { };
 		struct Tsc_deadline : Bitfield<24, 1> { };
 	);
 
@@ -355,6 +357,12 @@ struct Hw::X86_64_cpu
 	);
 
 	Suspend_type suspend;
+
+	static bool x2apic_support()
+	{
+		Cpuid_1_ecx::access_t ecx = Cpuid_1_ecx::read();
+		return Cpuid_1_ecx::X2apic::get(ecx);
+	}
 };
 
 #endif /* _SRC__LIB__HW__SPEC__X86_64__CPU_H_ */
