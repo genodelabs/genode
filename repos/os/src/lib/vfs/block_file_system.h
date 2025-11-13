@@ -620,7 +620,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 	static Name name(Node const &config) {
 		return config.attribute_value("name", Name("block")); }
 
-	static constexpr size_t DEFAULT_IO_BUFFER_SIZE = (4u << 20);
+	static constexpr Genode::Num_bytes DEFAULT_IO_BUFFER_SIZE = { (4u << 20) };
 
 	/* payload size, a fixed-amount for meta-data is added below */
 	static size_t io_buffer(Node const &config) {
