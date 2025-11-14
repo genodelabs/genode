@@ -945,7 +945,7 @@ void Core_thread::_call()
 		}
 	case Core_call_id::PD_DESTROY:
 		{
-			_call_destruct<Pd>();
+			_call_pd_destroy(*user_arg_1<C_pd*>());
 			return;
 		}
 	case Core_call_id::PD_INVALIDATE_TLB:
