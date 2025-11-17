@@ -197,7 +197,7 @@ void Global_interrupt_controller::_update_irt_entry(unsigned irq)
 }
 
 
-Irte::access_t
+Global_interrupt_controller::Irte::access_t
 Global_interrupt_controller::_create_irt_entry(unsigned const irq)
 {
 	Irte::access_t irte = REMAP_BASE + irq;
@@ -217,7 +217,7 @@ Global_interrupt_controller::Global_interrupt_controller()
 	write<Ioregsel>(IOAPICVER);
 	_irte_count = read<Iowin::Maximum_redirection_entry>() + 1;
 
-	for (unsigned i = 0; i < IRQ_COUNT; i++)
+	for (unsigned i = 0; i < NR_OF_IRQ; i++)
 	{
 		/* set legacy/ISA IRQs to edge, high */
 		if (i <= Board::ISA_IRQ_END) {

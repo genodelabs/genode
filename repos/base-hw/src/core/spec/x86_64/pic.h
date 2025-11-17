@@ -23,11 +23,6 @@
 
 namespace Board {
 
-	/*
-	 * Redirection table entry
-	 */
-	struct Irte;
-
 	/**
 	 * IO advanced programmable interrupt controller
 	 */
@@ -37,21 +32,15 @@ namespace Board {
 	 * Programmable interrupt controller for core
 	 */
 	class Local_interrupt_controller;
-
-	enum { IRQ_COUNT = 256 };
 }
-
-
-struct Board::Irte : Genode::Register<64>
-{
-	struct Pol  : Bitfield<13, 1> { };
-	struct Trg  : Bitfield<15, 1> { };
-	struct Mask : Bitfield<16, 1> { };
-};
 
 
 class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_map::MMIO_IOAPIC_SIZE>
 {
+	public:
+
+		static constexpr unsigned NR_OF_IRQ = 256;
+
 	private:
 
 		using uint8_t = Genode::uint8_t;
@@ -66,6 +55,13 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 			TRIGGER_LEVEL = 1,
 			POLARITY_HIGH = 0,
 			POLARITY_LOW  = 1,
+		};
+
+		struct Irte : Genode::Register<64>
+		{
+			struct Pol  : Bitfield<13, 1> { };
+			struct Trg  : Bitfield<15, 1> { };
+			struct Mask : Bitfield<16, 1> { };
 		};
 
 		/**
@@ -88,7 +84,7 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 		};
 
 		unsigned _irte_count = 0;       /* number of redirection table entries */
-		Irq_mode _irq_mode[IRQ_COUNT];
+		Irq_mode _irq_mode[NR_OF_IRQ];
 
 		/**
 		 * Return whether 'irq' is an edge-triggered interrupt
@@ -139,8 +135,6 @@ class Board::Global_interrupt_controller : public Genode::Mmio<Hw::Cpu_memory_ma
 		void irq_mode(unsigned irq_number,
 		              unsigned trigger,
 		              unsigned polarity);
-
-		static constexpr unsigned NR_OF_IRQ = IRQ_COUNT;
 };
 
 
