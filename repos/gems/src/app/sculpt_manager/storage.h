@@ -66,7 +66,7 @@ struct Sculpt::Storage : Noncopyable
 	{
 		_storage_devices.for_each([&] (Storage_device &device) {
 
-			if (target.driver != device.driver)
+			if (target.driver != device.driver || target.port != device.port)
 				return;
 
 			device.for_each_partition([&] (Partition &partition) {
