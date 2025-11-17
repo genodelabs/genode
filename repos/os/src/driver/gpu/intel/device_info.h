@@ -22,7 +22,8 @@ namespace Igd {
 
 struct Igd::Device_info
 {
-	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE, WHISKEYLAKE, TIGERLAKE };
+	enum Platform { UNKNOWN, BROADWELL, SKYLAKE, KABYLAKE, WHISKEYLAKE, TIGERLAKE,
+	                ALDERLAKE };
 	enum Stepping { A0, B0, C0, D0, D1, E0, F0, G0 };
 
 	uint16_t    id;

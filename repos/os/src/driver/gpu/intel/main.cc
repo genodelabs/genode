@@ -218,6 +218,8 @@ struct Igd::Device
 			return Igd::Device_info::Platform::WHISKEYLAKE;
 		if (platform == "tigerlake")
 			return Igd::Device_info::Platform::TIGERLAKE;
+		if (platform == "alderlake")
+			return Igd::Device_info::Platform::ALDERLAKE;
 		return Igd::Device_info::UNKNOWN;
 	}
 
