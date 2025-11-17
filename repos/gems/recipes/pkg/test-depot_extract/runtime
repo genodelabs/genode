@@ -38,7 +38,6 @@
 		<rom label="nic_router"/>
 		<rom label="report_rom"/>
 		<rom label="sequence"/>
-		<rom label="timer"/>
 		<rom label="verify"/>
 		<rom label="vfs"/>
 		<rom label="vfs.lib.so"/>
