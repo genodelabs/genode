@@ -141,56 +141,57 @@ if {![file exists $runtime_file]} {
 	exit 1
 }
 
-proc query_attr { node_path attr_name xml_file }  {
+proc try_query_timeout_from_runtime { } {
 
-	set xpath "$node_path/attribute::$attr_name"
-	set attr_value [exec xmllint --xpath $xpath $xml_file]
+	global runtime_file
 
-	# in the presence of multiple matching xpaths, return only the first
-	regexp {"(.*)"} [lindex $attr_value 0] dummy value
-	return $value;
+	set cmd [genode_dir]/tool/hrd
+	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
+
+	set value [exec {*}$cmd get "runtime | + fail | : after_seconds" $runtime_file]
+	if {$value == ""} {
+		puts stderr "Error: missing fail timeout at $runtime_file"
+		exit 1
+	}
+	return $value
 }
 
-proc query_node { node_path xml_file }  {
+proc try_query_config { }  {
 
-	set xpath "$node_path"
-	set content [exec xmllint --xpath $xpath $xml_file]
+	global runtime_file
 
-	return $content;
+	set cmd [genode_dir]/tool/hrd
+	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml --output-xml }
+
+	set config [exec {*}$cmd subnodes "runtime | + config" $runtime_file]
+	if {$config == ""} {
+		puts stderr "Error: <config> not present <runtime> sub node at $runtime_file"
+		puts stderr "       The use of an separate config ROM is not supported."
+		exit 1
+	}
+
+	return $config
 }
 
 proc try_query_attr_from_runtime { attr } {
 
 	global runtime_file
 
-	if {[catch {
-		set result [query_attr /runtime $attr $runtime_file]
-	}]} {
+	set cmd [genode_dir]/tool/hrd
+	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
+
+	set value [exec {*}$cmd get "runtime | : $attr" $runtime_file]
+	if {$value == ""} {
 		puts stderr "Error: missing '$attr' attribute in <runtime> at $runtime_file"
 		exit 1
 	}
-	return $result
+	return $value
 }
 
 set ram    [try_query_attr_from_runtime ram]
 set caps   [try_query_attr_from_runtime caps]
 set binary [try_query_attr_from_runtime binary]
-
-if {[catch {
-	set config [query_node /runtime/config $runtime_file]
-}]} {
-	puts stderr "Error: <config> not present <runtime> sub node at $runtime_file"
-	puts stderr "       The use of an separate config ROM is not supported."
-	exit 1
-}
-
-proc desanitize_xml_characters { string } {
-	regsub -all {&gt;} $string {>} string
-	regsub -all {&lt;} $string {<} string
-	return $string
-}
-
-set config [desanitize_xml_characters $config]
+set config [try_query_config]
 
 
 #
@@ -212,14 +213,10 @@ proc content_rom_modules { } {
 
 	global runtime_file
 
-	set attributes [query_node "/runtime/content/rom/attribute::label" $runtime_file]
+	set cmd [genode_dir]/tool/hrd
+	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
 
-	set rom_names {}
-	foreach attr $attributes {
-		regexp {"(.*)"} $attr dummy rom_name
-		lappend rom_names $rom_name
-	}
-	return $rom_names
+	return [split [exec {*}$cmd get "runtime | + content | + rom | : label" $runtime_file] "\n"]
 }
 
 foreach rom [content_rom_modules] {
@@ -287,6 +284,7 @@ install_config {
 		<start name="test" priority="-1" caps="} $caps {" ram="} $ram {">
 			<binary name="} $binary {"/>
 			<route>
+				<service name="ROM" label="config"> <parent label="test.config"/> </service>
 				<service name="ROM">   <parent/>    </service>
 				<service name="PD">    <parent/>    </service>
 				<service name="RM">    <parent/>    </service>
@@ -295,27 +293,16 @@ install_config {
 				<service name="TRACE"> <parent/>    </service>
 				<service name="Timer"> <child name="timer"/> </service>
 			</route>
-			} $config {
 		</start>
 	</config>
 }
 
+# install config of test subsystem
+set fd [open [run_dir]/genode/test.config w]
+puts $fd $config
+close $fd
+
 build_boot_image [build_artifacts]
-
-
-##
-# Return failure timeout in seconds
-#
-proc query_failure_timeout { } {
-
-	global runtime_file
-
-	set sec 0
-	catch { set sec [query_attr /runtime/fail after_seconds $runtime_file] }
-	return $sec
-}
-
-set failure_timeout [expr [query_failure_timeout] + 10]
 
 
 ##
@@ -325,14 +312,15 @@ proc query_expected_log_pattern { } {
 
 	global runtime_file
 
-	set log ""
-	catch {
-		set log [query_node "/runtime/succeed/child::text()" $runtime_file]
-	} { return "" }
+	set cmd [genode_dir]/tool/hrd
+	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
 
-	# strip leading and trailing whitespace
-	regsub {^\s*} $log {} log
-	regsub {\s*$} $log {} log
+	set log [exec {*}$cmd subnodes "runtime | + succeed" $runtime_file]
+
+	regsub -all {\n: }   $log "\n" log
+	regsub -all {\n:}    $log "\n" log
+	regsub {^succeed\s*} $log ""   log
+	regsub {\s*-\s*$}    $log ""   log
 
 	# filter pattern line by line
 	set lines [split $log "\n"]
@@ -340,8 +328,6 @@ proc query_expected_log_pattern { } {
 	set prefixed_lines { }
 	foreach line $lines {
 		regsub {^\s*\[init} $line {[init -> test} line
-
-		set line [desanitize_xml_characters $line]
 
 		# quote regexp characters
 		foreach char [list {[} {]} {(} {)} {.}] {
@@ -358,6 +344,8 @@ proc query_expected_log_pattern { } {
 }
 
 set expected_pattern [query_expected_log_pattern]
+
+set failure_timeout [expr [try_query_timeout_from_runtime] + 10]
 
 if {$expected_pattern == ""} {
 	puts stderr "Warning: unable to obtain expected log pattern from $runtime_file"
