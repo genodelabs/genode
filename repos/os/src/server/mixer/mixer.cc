@@ -282,6 +282,7 @@ class Audio_out::Mixer
 			/* mark packets as played and icrement position pointer */
 			while (stream->pos() != pos) {
 				stream->get(stream->pos())->mark_as_played();
+				stream->get(stream->pos())->invalidate();
 				stream->increment_position();
 			}
 
