@@ -36,6 +36,7 @@ extern "C" {
 #include <libdrm_macros.h>
 }
 
+#include "vram_base.h"
 
 static constexpr bool verbose_ioctl = false;
 
@@ -202,12 +203,6 @@ namespace Lima {
 	struct Call;
 } /* namespace Lima */
 
-
-/*
- * Gpu::Vram encapsulates a buffer object allocation
- */
-
-struct Gpu::Vram { };
 
 /* use separate namespace for Vram implementation */
 struct Lima::Vram : Gpu::Vram

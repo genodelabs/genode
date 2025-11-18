@@ -34,6 +34,7 @@ extern "C" {
 #include <libdrm_macros.h>
 }
 
+#include "vram_base.h"
 
 enum { verbose_ioctl = false };
 
@@ -271,7 +272,6 @@ namespace Etnaviv {
 } /* namespace Etnaviv */
 
 
-struct Gpu::Vram { };
 
 /* use separate namespace for Vram implementation */
 struct Etnaviv::Vram : Gpu::Vram
