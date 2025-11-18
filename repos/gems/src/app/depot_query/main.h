@@ -419,12 +419,15 @@ struct Depot_query::Main
 		Node const &query = query_from_rom ? _query_rom->node() : _config.node();
 
 		/*
-		 * Use 64 KiB as initial report size to avoid the repetitive querying
-		 * when successively expanding the reporter.
+		 * Use 64 KiB as default initial blueprint report size to avoid the
+		 * repetitive querying when successively expanding the reporter.
 		 */
+		Expanding_reporter::Initial_buffer_size const blueprint_buffer {
+			query.attribute_value("blueprint_buffer", Num_bytes { 64*1024 }) };
+
 		_construct_if(query.has_sub_node("blueprint"),
 		              _blueprint_reporter, _env, "blueprint", "blueprint",
-		              Expanding_reporter::Initial_buffer_size { 64*1024 });
+		              blueprint_buffer);
 
 		auto construct_reporter_if_needed = [&] (auto &reporter, auto query_type)
 		{
