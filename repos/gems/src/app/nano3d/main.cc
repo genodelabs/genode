@@ -89,11 +89,11 @@ class Scene : public Nano3d::Scene<PT>
 			using Value = Genode::String<32>;
 
 			_shape = SHAPE_DODECAHEDRON;
-			if (_config.xml().attribute_value("shape", Value()) == "cube")
+			if (_config.node().attribute_value("shape", Value()) == "cube")
 				_shape = SHAPE_CUBE;
 
 			_painter = PAINTER_TEXTURED;
-			if (_config.xml().attribute_value("painter", Value()) == "shaded")
+			if (_config.node().attribute_value("painter", Value()) == "shaded")
 				_painter = PAINTER_SHADED;
 		}
 
