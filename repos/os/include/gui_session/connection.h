@@ -72,7 +72,7 @@ class Gui::Connection : private Genode::Connection<Session>
 
 		void _with_info_rom(auto const &fn)
 		{
-			if (!_info_ds.constructed())
+			if (!_info_rom.constructed())
 				_info_rom.construct(_info_rom_capability());
 			fn(*_info_rom);
 		}
