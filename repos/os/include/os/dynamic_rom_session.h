@@ -238,7 +238,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		{
 			Mutex::Guard guard(_mutex);
 
-			if (!_ds.constructed())
+			if (!_ds.constructed() || (_current_version != _client_version))
 				_unsynchronized_update();
 
 			if (!_ds.constructed())
