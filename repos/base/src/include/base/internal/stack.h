@@ -107,13 +107,13 @@ class Genode::Stack
 			void for_each(auto const &fn)
 			{
 				for (Entry &e : _entries)
-					if (e.ds_cap.valid()) fn(e.base, e.ds_cap);
+					if (e.base) fn(e.base, e.ds_cap);
 			}
 
 			auto alloc(auto const &fn, auto const &exhausted_fn) -> decltype(exhausted_fn())
 			{
 				for (Entry &e : _entries)
-					if (!e.ds_cap.valid())
+					if (!e.base)
 						return fn(e);
 
 				return exhausted_fn();
