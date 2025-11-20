@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Genode Labs GmbH
+ * Copyright (C) 2010-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,8 +15,8 @@
 /* Genode includes */
 #include <region_map/region_map.h>
 #include <pd_session/pd_session.h>
-#include <base/synced_allocator.h>
 #include <base/thread.h>
+#include <util/bit_allocator.h>
 
 /* base-internal includes */
 #include <base/internal/stack_area.h>
@@ -24,7 +24,6 @@
 /* local includes */
 #include <platform.h>
 #include <map_local.h>
-#include <dataspace_component.h>
 
 
 namespace Genode {
@@ -55,80 +54,40 @@ class Stack_area_region_map : public Region_map
 {
 	private:
 
-		using Ds_slab = Synced_allocator<Tslab<Core::Dataspace_component,
-		                                       get_page_size()> >;
+		static int constexpr MAX_STACKS = stack_area_virtual_size()
+		                                / stack_virtual_size();
 
-		Ds_slab _ds_slab { platform().core_mem_alloc() };
+		Mutex                     _mutex { };
+		Bit_allocator<MAX_STACKS> _alloc { };
 
-		using Ds_alloc = Memory::Constrained_obj_allocator<Core::Dataspace_component>;
+		Allocation<Memory::Constrained_allocator>::Attempt _phys_stacks[MAX_STACKS];
 
-		Ds_alloc _ds_alloc { _ds_slab };
+		Attach_result with_new_stack(auto const &fn, auto const &fn_error)
+		{
+			return _alloc.alloc().template convert<Attach_result>(
+				[&] (addr_t const index) -> Attach_result {
+					auto &phys_stack = _phys_stacks[index];
+
+					auto result  = fn(phys_stack);
+
+					if (!result.ok()) {
+						/* release of physical memory allocation and id */
+						phys_stack = { };
+						_alloc.free(index);
+					}
+
+					return result;
+			}, [&] (auto e) { return fn_error(e); });
+		}
 
 	public:
 
 		/**
 		 * Allocate and attach on-the-fly backing store to stack area
 		 */
-		Attach_result attach(Dataspace_capability, Attr const &attr) override
-		{
-			using Phys_allocation = Range_allocator::Allocation;
+		Attach_result attach(Dataspace_capability, Attr const &attr) override;
 
-			/* allocate physical memory */
-			size_t const size = round_page(attr.size);
-
-			Range_allocator &phys = platform_specific().ram_alloc();
-			return phys.alloc_aligned(size, get_page_size_log2()).convert<Attach_result>(
-
-				[&] (Phys_allocation &phys) -> Attach_result {
-					return _ds_alloc.create(size, 0, addr_t(phys.ptr), CACHED,
-					                        true, nullptr).convert<Attach_result>(
-
-						[&] (Ds_alloc::Allocation &ds) -> Attach_result {
-
-							addr_t const core_local_addr = stack_area_virtual_base()
-							                             + attr.at;
-
-							if (!map_local(ds.obj.phys_addr(), core_local_addr,
-							               ds.obj.size() >> get_page_size_log2())) {
-								error("could not map phys ", Hex(ds.obj.phys_addr()),
-								      " at local ", Hex(core_local_addr));
-
-								return Attach_error::INVALID_DATASPACE;
-							}
-
-							ds.obj.assign_core_local_addr((void*)core_local_addr);
-
-							ds  .deallocate = false;
-							phys.deallocate = false;
-
-							return Range { .start = attr.at, .num_bytes = size };
-						},
-						[&] (Alloc_error e) {
-							switch (e) {
-							case Alloc_error::OUT_OF_RAM:  return Attach_error::OUT_OF_RAM;
-							case Alloc_error::OUT_OF_CAPS: return Attach_error::OUT_OF_CAPS;
-							case Alloc_error::DENIED:      break;
-							}
-							return Attach_error::INVALID_DATASPACE;
-						});
-				},
-				[&] (Alloc_error) {
-					error("could not allocate backing store for new stack");
-					return Attach_error::REGION_CONFLICT; });
-		}
-
-		void detach(addr_t const at) override
-		{
-			if (at >= stack_area_virtual_size())
-				return;
-
-			addr_t const detach = stack_area_virtual_base() + at;
-			addr_t const stack  = stack_virtual_size();
-			addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
-			                      >> get_page_size_log2();
-
-			unmap_local(detach, pages);
-		}
+		void detach(addr_t const at) override;
 
 		void fault_handler(Signal_context_capability) override { }
 
@@ -136,6 +95,70 @@ class Stack_area_region_map : public Region_map
 
 		Dataspace_capability dataspace() override { return { }; }
 };
+
+
+void Stack_area_region_map::detach(addr_t const at)
+{
+	Mutex::Guard guard(_mutex);
+
+	addr_t const detach = stack_area_virtual_base() + at;
+	addr_t const stack  = stack_virtual_size();
+	addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
+	                      >> get_page_size_log2();
+	addr_t const id     = at / stack;
+
+	if (at >= stack_area_virtual_size() || id >= MAX_STACKS) {
+		error("unexpected detach of core stack");
+		return;
+	}
+
+	unmap_local(detach, pages);
+
+	/* release of physical memory allocation and id */
+	_phys_stacks[id] = { };
+	_alloc.free(id);
+}
+
+
+Stack_area_region_map::Attach_result Stack_area_region_map::attach(Dataspace_capability, Attr const &attr)
+{
+	Mutex::Guard guard(_mutex);
+
+	size_t const size = round_page(attr.size);
+
+	return with_new_stack([&](auto &phys_stack) {
+
+		Range_allocator &alloc = platform_specific().ram_alloc();
+
+		/* allocate physical memory */
+		phys_stack = alloc.alloc_aligned(size, get_page_size_log2());
+
+		return phys_stack.template convert<Attach_result>([&] (auto &phys) -> Attach_result {
+
+			addr_t const core_local_addr = stack_area_virtual_base()
+			                             + attr.at;
+
+			if (!map_local(addr_t(phys.ptr), core_local_addr,
+			               size >> get_page_size_log2())) {
+				error("could not map phys ", phys.ptr,
+				      " at local ", Hex(core_local_addr));
+
+				return Attach_error::INVALID_DATASPACE;
+			}
+
+			return Range { .start = attr.at, .num_bytes = size };
+
+		}, [&] (auto) {
+			error("could not allocate backing store for new stack");
+			return Attach_error::REGION_CONFLICT;
+		});
+
+	}, [&] (auto) {
+
+		error("could not allocate backing store for new stack");
+		return Attach_error::REGION_CONFLICT;
+	});
+}
 
 
 struct Stack_area_ram_allocator : Ram_allocator
