@@ -907,23 +907,21 @@ while {1} {
 		if {$last_test_pkg != ""} {
 
 			# remember result of last test in case the system must be restartet
+			set status ""
 			set last_test_result ""
-			regexp {depot_autopilot\] ( [^\033]+)} $output ignored last_test_result
-			regsub -all {<}  $last_test_result {\&lt;} last_test_result
+			foreach line [split $output "\n"] {
+				regexp {depot_autopilot\] ( test-[^ ]+ +(ok|failed|skipped).*$)} \
+				       $line ignored last_test_result status }
 
-			set failed_off  [string first " failed"  $last_test_result]
-			set skipped_off [string first " skipped" $last_test_result]
-			set ok_off      [string first " ok"      $last_test_result]
-
-			if {$failed_off > 0 && ($skipped_off < 0 || $failed_off < $skipped_off) && ($ok_off < 0 || $failed_off < $ok_off)} {
+			if {$status == "failed"} {
 				incr previous_failed
-			} elseif {$skipped_off > 0 && ($ok_off < 0 || $skipped_off < $ok_off)} {
+			} elseif {$status == "skipped"} {
 				incr previous_skipped
-			} elseif {$ok_off > 0} {
+			} elseif {$status == "ok"} {
 				incr previous_succeeded
 			} else {
 				puts "Error: malformed test result"
-				puts $last_test_result
+				puts $status
 				exit -1
 			}
 			if {$previous_results != ""} {
