@@ -13,7 +13,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* core includes */
+/* bootstrap includes */
+#include <assert.h>
 #include <bios_data_area.h>
 #include <platform.h>
 #include <multiboot.h>
@@ -298,7 +299,8 @@ Bootstrap::Platform::Board::Board()
 				cpus = 0;
 				madt.for_each_apic(
 					[&] (Hw::Acpi::Madt::Local_apic &) { cpus++; },
-					[&] (Hw::Acpi::Madt::Io_apic &)    {}
+					[&] (Hw::Acpi::Madt::Io_apic &)    {},
+					[&] (Hw::Acpi::Madt::X2_apic &)    { cpus++; }
 				);
 			}
 		);
@@ -409,7 +411,11 @@ unsigned Bootstrap::Platform::_prepare_cpu_memory_area()
 				[&] (Hw::Acpi::Madt::Local_apic &lapic) {
 					_prepare_cpu_memory_area(lapic.id());
 				},
-				[&] (Hw::Acpi::Madt::Io_apic &) {}
+				[&] (Hw::Acpi::Madt::Io_apic &) {},
+				[&] (Hw::Acpi::Madt::X2_apic &x2_apic) {
+					ASSERT(x2_apic.id() < 0x100);
+					_prepare_cpu_memory_area(x2_apic.id() & 0xff);
+				}
 			);
 		});
 

@@ -123,7 +123,7 @@ struct Hw::Acpi::Madt : Table<SIZE_MADT>
 	{
 		struct Type : Register<0x0, 8>
 		{
-			enum { LAPIC = 0, IO_APIC = 1 };
+			enum { LAPIC = 0, IO_APIC = 1, X2_APIC = 9 };
 		};
 
 		struct Size : Register<0x1, 8> {};
@@ -161,9 +161,25 @@ struct Hw::Acpi::Madt : Table<SIZE_MADT>
 		using Apic_tpl<0xc>::Apic_tpl;
 	};
 
+	/* X2APIC, see 5.2.12.2 */
+	struct X2_apic : Apic_tpl<0x10>
+	{
+		struct Apic_id : Register<0x4, 32> {};
+		struct Flags   : Register<0x8, 32>
+		{
+			enum { VALID = 1 };
+		};
+
+		bool valid() { return read<Flags>() & Flags::VALID; };
+		Genode::uint32_t id() { return read<Apic_id>(); }
+
+		using Apic_tpl<0x10>::Apic_tpl;
+	};
+
 	bool valid() { return equals("APIC"); }
 
-	void for_each_apic(auto const &fn_lapic, auto const &fn_ioapic)
+	void for_each_apic(auto const &fn_lapic, auto const &fn_ioapic,
+	                   auto const &fn_x2apic)
 	{
 		if (!valid())
 			return;
@@ -181,6 +197,12 @@ struct Hw::Acpi::Madt : Table<SIZE_MADT>
 				{
 					Io_apic ioapic(addr);
 					fn_ioapic(ioapic);
+					break;
+				}
+			case Apic_descriptor::Type::X2_APIC:
+				{
+					X2_apic x2_apic(addr);
+					if (x2_apic.valid()) fn_x2apic(x2_apic);
 					break;
 				}
 			};
