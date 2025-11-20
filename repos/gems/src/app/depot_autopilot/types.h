@@ -46,6 +46,8 @@ namespace Depot_autopilot {
 	};
 
 	using Arch = String<16>;
+
+	struct Exit { using Code = String<16>; Code code; };
 }
 
 #endif /* _TYPES_H_ */

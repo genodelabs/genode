@@ -42,6 +42,8 @@ struct Depot_autopilot::Log_matcher : Noncopyable
 
 	String_chain _pattern;
 
+	bool ok = false;
+
 	Log_matcher(Allocator &alloc, Span const &pattern)
 	:
 		_pattern(alloc)
@@ -86,25 +88,26 @@ struct Depot_autopilot::Log_matcher : Noncopyable
 				});
 			});
 		});
+
+		if (_pattern.num_bytes() == 0)
+			ok = true;
 	}
 
 	/**
 	 * Incorporate added log-buffer content and evaluate the new state
-	 *
-	 * \return true if log-buffer content matches the pattern
 	 */
-	inline bool track_and_match(Log_buffer const &);
+	inline void track_and_match(Log_buffer const &);
 };
 
 
-bool Depot_autopilot::Log_matcher::track_and_match(Log_buffer const &log_buffer)
+void Depot_autopilot::Log_matcher::track_and_match(Log_buffer const &log_buffer)
 {
 	if (_pattern.num_bytes() == 0)
-		return false;
+		return;
 
-	struct Result { bool matched, done; } result { };
+	bool done = false;
 
-	while (!result.done) {
+	while (!done) {
 
 		/*
 		 * Determine the pattern element that covers the point defined by
@@ -149,15 +152,15 @@ bool Depot_autopilot::Log_matcher::track_and_match(Log_buffer const &log_buffer)
 					},
 					[&] {
 						/* no log left to process -> no match yet */
-						result = { .matched = false, .done = true };
+						done = true;
 					});
 			},
 			[&] {
 				/* no pattern left to compare -> match */
-				result = { .matched = true, .done = true };
+				done = true;
+				ok   = true;
 			});
 	}
-	return result.matched;
 }
 
 #endif /* _LOG_MATCHER_H_ */

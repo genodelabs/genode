@@ -316,16 +316,16 @@ proc query_expected_log_pattern { } {
 	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
 
 	set log [exec {*}$cmd subnodes "runtime | + succeed" $runtime_file]
-
-	regsub -all {\n: }   $log "\n" log
-	regsub -all {\n:}    $log "\n" log
-	regsub {^succeed\s*} $log ""   log
-	regsub {\s*-\s*$}    $log ""   log
+	regsub -all {\n: }     $log "\n" log
+	regsub -all {\n:}      $log "\n" log
+	regsub {^succeed.*?\n} $log ""   log
+	regsub {\s*-\s*$}      $log ""   log
+	set log [string trim $log]
 
 	# filter pattern line by line
 	set lines [split $log "\n"]
 
-	set prefixed_lines { }
+	set pattern_lines { }
 	foreach line $lines {
 
 		# replace test-local log prefix by global prefix
@@ -339,10 +339,17 @@ proc query_expected_log_pattern { } {
 		# replace wildcards by non-greedy regexp wildcards
 		regsub -all {\*} $line {.*?} line
 
-		lappend prefixed_lines "$line.*?"
+		lappend pattern_lines "$line.*?"
 	}
 
-	set joined [join $prefixed_lines "\n"]
+	# supplement additional condition if a specific exit value is expected
+	set ec [exec {*}$cmd get "runtime | + succeed | : exit" $runtime_file]
+
+	if {$ec != ""} {
+		lappend pattern_lines "\\\[init\\\] child \"test\" exited with exit value $ec.*"
+	}
+
+	set joined [join $pattern_lines "\n"]
 	return ".*?$joined.*?"
 }
 

@@ -39,6 +39,8 @@ struct Depot_autopilot::Test : List_model<Test>::Element
 
 	State state = State::SCHEDULED;
 
+	Exit exited { };
+
 	Clock start_time { }, end_time { };
 
 	struct Timed_out { unsigned after_seconds; } timed_out { };
@@ -56,13 +58,14 @@ struct Depot_autopilot::Test : List_model<Test>::Element
 		Allocator  &alloc;
 		Outcome     outcome;
 		Timeout     timeout;
+		Exit        exit;
 		Pattern     pattern;
 		Log_matcher log_matcher { alloc, { pattern.start, pattern.num_bytes } };
 
-		Criterion(Allocator &alloc, Outcome outcome, Timeout timeout,
+		Criterion(Allocator &alloc, Outcome outcome, Timeout timeout, Exit exit,
 		          Pattern const &pattern)
 		:
-			alloc(alloc), outcome(outcome), timeout(timeout),
+			alloc(alloc), outcome(outcome), timeout(timeout), exit(exit),
 			pattern(pattern.start, pattern.num_bytes)
 		{ }
 
@@ -78,6 +81,7 @@ struct Depot_autopilot::Test : List_model<Test>::Element
 		Outcome const outcome = node.type() == "succeed"
 		                      ? Outcome::SUCCEED : Outcome::FAIL;
 		Timeout const timeout { node.attribute_value("after_seconds", 0u) };
+		Exit    const exit    { node.attribute_value("exit", Exit::Code()) };
 
 		Node::Quoted_content const content { node };
 
@@ -91,7 +95,7 @@ struct Depot_autopilot::Test : List_model<Test>::Element
 		if (!ok) warning("failed to decode pattern: ", node);
 
 		new (alloc) Registered<Criterion>(criterions, alloc,
-		                                  outcome, timeout, pattern);
+		                                  outcome, timeout, exit, pattern);
 	};
 
 	void remove_criterions()
@@ -149,12 +153,23 @@ struct Depot_autopilot::Test : List_model<Test>::Element
 		return Clock { .ms = start_time.ms + seconds*1000 };
 	}
 
-	void _mark_as_finished(Criterion &criterion, Clock const now)
+	void _mark_as_finished(Criterion const &criterion, Clock const now)
 	{
 		end_time = now;
 
 		if (criterion.outcome == Outcome::SUCCEED) state = State::SUCCEEDED;
 		if (criterion.outcome == Outcome::FAIL)    state = State::FAILED;
+	}
+
+	void _check_criterions_complete(Clock const now)
+	{
+		criterions.for_each([&] (Registered<Criterion> const &criterion) {
+			if (criterion.timeout.seconds)
+				return;
+
+			if ((criterion.exit.code == exited.code) && criterion.log_matcher.ok)
+				_mark_as_finished(criterion, now);
+		});
 	}
 
 	void evaluate_timeout(Clock const now)
@@ -175,8 +190,28 @@ struct Depot_autopilot::Test : List_model<Test>::Element
 	void evaluate_log(Clock const now, Log_buffer const &log_buffer)
 	{
 		criterions.for_each([&] (Registered<Criterion> &criterion) {
-			if (criterion.log_matcher.track_and_match(log_buffer))
-				_mark_as_finished(criterion, now); });
+			criterion.log_matcher.track_and_match(log_buffer); });
+
+		_check_criterions_complete(now);
+	}
+
+	void evaluate_exit(Clock const now, Exit::Code const code)
+	{
+		bool exit_code_expected = false;
+		criterions.for_each([&] (Registered<Criterion> const &criterion) {
+			if (criterion.exit.code == code)
+				exit_code_expected = true; });
+
+		exited.code = code;
+
+		if (exit_code_expected) {
+			_check_criterions_complete(now);
+			return;
+		}
+
+		error(name, " exited with value ", code);
+		end_time = now;
+		state = State::FAILED;
 	}
 
 	void print_conclusion() const
@@ -197,7 +232,7 @@ struct Depot_autopilot::Test : List_model<Test>::Element
 		using Reason = String<32>;
 		Reason const reason = timed_out.after_seconds
 		                    ? Reason { " timeout ", timed_out.after_seconds, " sec" }
-		                    : Reason { " log" };
+		                    : Reason { exited.code.length() > 1 ? " exit" : " log" };
 
 		using Details = String<64>;
 		Details details { };

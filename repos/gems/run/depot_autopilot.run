@@ -320,8 +320,9 @@ proc prepare_to_run_genode { } {
 			<provides> <service name="Report"/> <service name="ROM"/> </provides>
 			<config verbose="no">
 				<policy label="depot_autopilot -> blueprint" report="depot_query -> blueprint"/>
-				<policy label="depot_query -> query"      report="depot_autopilot -> query"/>
-				<policy label="dynamic -> config"         report="depot_autopilot -> init.config"/>
+				<policy label="depot_autopilot -> state"     report="dynamic -> state"/>
+				<policy label="depot_query -> query"         report="depot_autopilot -> query"/>
+				<policy label="dynamic -> config"            report="depot_autopilot -> init.config"/>
 			</config>
 		</start>
 
@@ -359,6 +360,7 @@ proc prepare_to_run_genode { } {
 			        blueprint_buffer="750K"
 			        children_label_prefix="dynamic">
 				<static>
+					<report/>
 					<parent-provides>
 						<service name="ROM"/>
 						<service name="CPU"/>
@@ -401,6 +403,7 @@ proc prepare_to_run_genode { } {
 				<service name="ROM"    unscoped_label="depot_autopilot"> <parent/>                  </service>
 				<service name="ROM"    unscoped_label="ld.lib.so">       <parent/>                  </service>
 				<service name="ROM"    label="blueprint">                <child name="report_rom"/> </service>
+				<service name="ROM"    label="state">                    <child name="report_rom"/> </service>
 				<service name="Report" label="query">                    <child name="report_rom"/> </service>
 				<service name="Report" label="init.config">              <child name="report_rom"/> </service>
 				<service name="Timer"  label="">                         <child name="timer"/>      </service>

@@ -242,6 +242,14 @@ struct Depot_autopilot::Iteration
 			if (!test.running())
 				_conclude_single_test(test); });
 	}
+
+	void handle_exit_of_current_test(Clock const now, Exit const exit)
+	{
+		_plan.with_running_test([&] (Test &test) {
+			test.evaluate_exit(now, exit.code);
+			if (!test.running())
+				_conclude_single_test(test); });
+	}
 };
 
 
@@ -249,8 +257,9 @@ struct Depot_autopilot::Main : Log_session::Action, Iteration::Action
 {
 	Env &_env;
 
-	Attached_rom_dataspace _config    { _env, "config" };
-	Attached_rom_dataspace _blueprint { _env, "blueprint" };
+	Attached_rom_dataspace _config    { _env, "config" },
+	                       _blueprint { _env, "blueprint" },
+	                       _state     { _env, "state" };
 
 	Timer::Connection _timer { _env };
 
@@ -268,7 +277,8 @@ struct Depot_autopilot::Main : Log_session::Action, Iteration::Action
 	Signal_handler<Main>
 		_config_handler         { _env.ep(), *this, &Main::_handle_config },
 		_iteration_done_handler { _env.ep(), *this, &Main::_handle_iteration_done },
-		_timeout_handler        { _env.ep(), *this, &Main::_handle_timeout };
+		_timeout_handler        { _env.ep(), *this, &Main::_handle_timeout },
+		_runtime_state_handler  { _env.ep(), *this, &Main::_handle_runtime_state };
 
 	/**
 	 * Log_session::Action interface
@@ -451,10 +461,29 @@ struct Depot_autopilot::Main : Log_session::Action, Iteration::Action
 			_iteration->handle_timeout_for_current_test(now());
 	}
 
+	void _handle_runtime_state()
+	{
+		_state.update();
+
+		if (!_iteration.constructed() || !_iteration->_plan.any_running())
+			return;
+
+		_iteration->_plan.with_running_test([&] (Test &test) {
+			_state.node().for_each_sub_node("child", [&] (Node const &child) {
+				if (child.attribute_value("name", Test::Name()) == test.name) {
+					Exit exit { child.attribute_value("exited", Exit::Code()) };
+					if (exit.code.length() > 1)
+						_iteration->handle_exit_of_current_test(now(), exit);
+				}
+			});
+		});
+	}
+
 	Main(Env &env) : _env(env)
 	{
 		_config   .sigh(_config_handler);
 		_blueprint.sigh(_config_handler);
+		_state    .sigh(_runtime_state_handler);
 		_timer    .sigh(_timeout_handler);
 
 		_env.parent().announce(_env.ep().manage(_log_root));
