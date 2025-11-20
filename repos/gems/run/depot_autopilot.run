@@ -399,7 +399,7 @@ proc prepare_to_run_genode { } {
 			<route>
 				<service name="PD"     unscoped_label="depot_autopilot"> <parent/>                  </service>
 				<service name="CPU"    unscoped_label="depot_autopilot"> <parent/>                  </service>
-				<service name="LOG"    unscoped_label="depot_autopilot"> <parent/>                  </service>
+				<service name="LOG"    unscoped_label="depot_autopilot"> <parent label="test"/>                  </service>
 				<service name="ROM"    unscoped_label="depot_autopilot"> <parent/>                  </service>
 				<service name="ROM"    unscoped_label="ld.lib.so">       <parent/>                  </service>
 				<service name="ROM"    label="blueprint">                <child name="report_rom"/> </service>
@@ -604,14 +604,14 @@ proc exit {{status 0}} {
 		puts "Failed to let Depot Autopilot finish!"
 		puts "Result overview simulated by run script:"
 		puts ""
-		puts "\[init -> depot_autopilot] --- Finished after $previous_time_sec.$previous_time_sec_frac sec ---"
-		puts "\[init -> depot_autopilot] "
+		puts "\[init -> test] --- Finished after $previous_time_sec.$previous_time_sec_frac sec ---"
+		puts "\[init -> test] "
 		foreach previous_result $previous_results_list {
-			puts "\[init -> depot_autopilot] $previous_result"
+			puts "\[init -> test] $previous_result"
 		}
-		puts "\[init -> depot_autopilot] "
-		puts "\[init -> depot_autopilot] succeeded: $previous_succeeded failed: $previous_failed skipped: $previous_skipped"
-		puts "\[init -> depot_autopilot] "
+		puts "\[init -> test] "
+		puts "\[init -> test] succeeded: $previous_succeeded failed: $previous_failed skipped: $previous_skipped"
+		puts "\[init -> test] "
 	}
 	run_tool_exit $status
 }
@@ -860,7 +860,7 @@ while {1} {
 	if {$serial_id == -1} {
 
 		# boot the system and wait for the depot autopilot to come up
-		autopilot_run_genode_until {depot_autopilot\] --- .*?\n} $timeout
+		autopilot_run_genode_until {test\] --- .*?\n} $timeout
 		set serial_id [output_spawn_id]
 		set nr_of_tests_this_boot 0
 
@@ -872,7 +872,7 @@ while {1} {
 
 		# wait for the next step of the depot autopilot
 		set init_time_ms [clock clicks -millisec]
-		autopilot_run_genode_until {depot_autopilot\] --- .*?\n} $timeout $serial_id
+		autopilot_run_genode_until {test\] --- .*?\n} $timeout $serial_id
 		set previous_time_ms [expr $previous_time_ms + [expr ([clock clicks -millisec] - $init_time_ms)] ]
 		set serial_id [output_spawn_id]
 
@@ -897,7 +897,7 @@ while {1} {
 		}
 	}
 	# if the autopilot finished all tests, evaluate its return value
-	if {[regexp {depot_autopilot\] --- Finished} $output]} {
+	if {[regexp {test\] --- Finished} $output]} {
 		set output ""
 		run_genode_until {child "depot_autopilot" exited with exit value.*?\n} 10 $serial_id
 		set previous_results_on_exit 0
@@ -906,7 +906,7 @@ while {1} {
 		exit 0
 	}
 	# if the autopilot started a new test, set a new timeout
-	if {[regexp {depot_autopilot\] --- Run} $output]} {
+	if {[regexp {test\] --- Run} $output]} {
 
 		# if we ran and finished another test beforehand, parse its result
 		if {$last_test_pkg != ""} {
@@ -915,7 +915,7 @@ while {1} {
 			set status ""
 			set last_test_result ""
 			foreach line [split $output "\n"] {
-				regexp {depot_autopilot\] ( test-[^ ]+ +(ok|failed|skipped).*$)} \
+				regexp {test\] ( test-[^ ]+ +(ok|failed|skipped).*$)} \
 				       $line ignored last_test_result status }
 
 			if {$status == "failed"} {
@@ -942,7 +942,7 @@ while {1} {
 		}
 		# determine timeout for the next timeout
 		set min_timeout 30
-		regexp {depot_autopilot\] --- Run "(.*?)" \(max ([0-9]*?) } $output ignore last_test_pkg min_timeout
+		regexp {test\] --- Run "(.*?)" \(max ([0-9]*?) } $output ignore last_test_pkg min_timeout
 		set timeout [expr $min_timeout + 30]
 
 		# re-boot if the maximum number of tests per boot is set and reached
