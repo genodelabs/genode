@@ -1,42 +1,42 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="1M" caps="100" binary="test-reconstructible">
 
 	<fail after_seconds="20"/>
 	<succeed>
-		[test-reconstructible] --- Reconstructible utility test ---
-		[test-reconstructible] construct Object 1
-		[test-reconstructible] construct Object 2
-		[test-reconstructible] create Compound object
-		[test-reconstructible] construct Member_with_reference
-		[test-reconstructible] construct Compound
-		[test-reconstructible] compound.member.constructed returns 1
-		[test-reconstructible] compound.lazy_member.constructed returns 0
-		[test-reconstructible] construct lazy member
-		[test-reconstructible] construct Member_with_reference
-		[test-reconstructible] compound.lazy_member.constructed returns 1
-		[test-reconstructible] call method on member (with reference to Object 1)
-		[test-reconstructible] const method called on Object 1
-		[test-reconstructible] reconstruct member with Object 2 as reference
-		[test-reconstructible] destruct Member_with_reference
-		[test-reconstructible] construct Member_with_reference
-		[test-reconstructible] call method on member
-		[test-reconstructible] const method called on Object 2
-		[test-reconstructible] destruct member
-		[test-reconstructible] destruct Member_with_reference
-		[test-reconstructible] try to call method on member, catch exception
-		[test-reconstructible] *Error: attempt to access unconstructed object
-		[test-reconstructible] backtrace "ep"
-		[test-reconstructible] got exception, as expected
-		[test-reconstructible] destruct Compound and Objects 1 and 2
-		[test-reconstructible] destruct Compound
-		[test-reconstructible] destruct Member_with_reference
-		[test-reconstructible] destruct Object 2
-		[test-reconstructible] destruct Object 1
-		[test-reconstructible] construct Throwing object
-		[test-reconstructible] construct Throwing -> don't throw
-		[test-reconstructible] destruct Throwing
-		[test-reconstructible] construct Throwing -> throw exception
-		[test-reconstructible] got exception, as expected
-		[test-reconstructible] --- Reconstructible utility test finished ---
+		--- Reconstructible utility test ---
+		construct Object 1
+		construct Object 2
+		create Compound object
+		construct Member_with_reference
+		construct Compound
+		compound.member.constructed returns 1
+		compound.lazy_member.constructed returns 0
+		construct lazy member
+		construct Member_with_reference
+		compound.lazy_member.constructed returns 1
+		call method on member (with reference to Object 1)
+		const method called on Object 1
+		reconstruct member with Object 2 as reference
+		destruct Member_with_reference
+		construct Member_with_reference
+		call method on member
+		const method called on Object 2
+		destruct member
+		destruct Member_with_reference
+		try to call method on member, catch exception
+		*Error: attempt to access unconstructed object
+		backtrace "ep"
+		got exception, as expected
+		destruct Compound and Objects 1 and 2
+		destruct Compound
+		destruct Member_with_reference
+		destruct Object 2
+		destruct Object 1
+		construct Throwing object
+		construct Throwing -> don't throw
+		destruct Throwing
+		construct Throwing -> throw exception
+		got exception, as expected
+		--- Reconstructible utility test finished ---
 	</succeed>
 
 	<content>
@@ -44,18 +44,6 @@
 		<rom label="test-reconstructible"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-reconstructible" ram="1M"/>
-	</config>
+	<config/>
+
 </runtime>

@@ -1,123 +1,122 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-xml_node">
 
 	<fail after_seconds="20"/>
-	<succeed>
-		[test-xml_node] --- XML-token test ---
-		[test-xml_node] token type="SINGLECHAR", len=1, content="&lt;"
-		[test-xml_node] token type="IDENT", len=6, content="config"
-		[test-xml_node] token type="SINGLECHAR", len=1, content=">"
-		[test-xml_node] token type="WHITESPACE", len=2, content="  "
-		[test-xml_node] token type="IDENT", len=9, content="sometext1"
-		[test-xml_node] token type="WHITESPACE", len=2, content="  "
-		[test-xml_node] token type="SINGLECHAR", len=1, content="&lt;"
-		[test-xml_node] token type="IDENT", len=7, content="program"
-		[test-xml_node] token type="WHITESPACE", len=1, content=" "
-		[test-xml_node] token type="IDENT", len=4, content="attr"
-		[test-xml_node] token type="SINGLECHAR", len=1, content="="
-		[test-xml_node] token type="STRING", len=6, content=""abcd""
-		[test-xml_node] token type="SINGLECHAR", len=1, content="/"
-		[test-xml_node] token type="SINGLECHAR", len=1, content=">"
-		[test-xml_node] token type="WHITESPACE", len=2, content="  "
-		[test-xml_node] token type="IDENT", len=9, content="sometext2"
-		[test-xml_node] token type="WHITESPACE", len=2, content="  "
-		[test-xml_node] token type="SINGLECHAR", len=1, content="&lt;"
-		[test-xml_node] token type="IDENT", len=7, content="program"
-		[test-xml_node] token type="SINGLECHAR", len=1, content=">"
-		[test-xml_node] token type="IDENT", len=9, content="inProgram"
-		[test-xml_node] token type="SINGLECHAR", len=1, content="&lt;"
-		[test-xml_node] token type="SINGLECHAR", len=1, content="/"
-		[test-xml_node] token type="IDENT", len=7, content="program"
-		[test-xml_node] token type="SINGLECHAR", len=1, content=">"
-		[test-xml_node] token type="WHITESPACE", len=2, content="  "
-		[test-xml_node] token type="IDENT", len=9, content="sometext3"
-		[test-xml_node] token type="SINGLECHAR", len=1, content="&lt;"
-		[test-xml_node] token type="SINGLECHAR", len=1, content="/"
-		[test-xml_node] token type="IDENT", len=6, content="config"
-		[test-xml_node] token type="SINGLECHAR", len=1, content=">"
-		[test-xml_node] --- XML-parser test ---
-		[test-xml_node] -- Test valid XML structure --
-		[test-xml_node] XML node: name = "config", number of subnodes = 3
-		[test-xml_node]   XML node: name = "program", number of subnodes = 2
-		[test-xml_node]     XML node: name = "filename", leaf content = "init"
-		[test-xml_node]     XML node: name = "quota", leaf content = "16M"
-		[test-xml_node]   XML node: name = "program", number of subnodes = 2
-		[test-xml_node]     XML node: name = "filename", leaf content = "timer"
-		[test-xml_node]     XML node: name = "quota", leaf content = "64K"
-		[test-xml_node]   XML node: name = "program", number of subnodes = 2
-		[test-xml_node]     XML node: name = "filename", leaf content = "framebuffer"
-		[test-xml_node]     XML node: name = "quota", leaf content = "8M"
-		[test-xml_node]
-		[test-xml_node] -- Test invalid XML structure (broken tag) --
-		[test-xml_node] XML node: name = "config", number of subnodes = 3
-		[test-xml_node]   XML node: name = "program", number of subnodes = 2
-		[test-xml_node]     XML node: name = "filename", leaf content = "init"
-		[test-xml_node]     XML node: name = "quota", leaf content = "16M"
-		[test-xml_node]   XML node: name = "program", number of subnodes = 2
-		[test-xml_node]     XML node: name = "filename", leaf content = "timer"
-		[test-xml_node]     XML node: name = "quota", leaf content = "64K"
-		[test-xml_node]   XML node: name = "program", number of subnodes = 2
-		[test-xml_node]     XML node: name = "filename", leaf content = "framebuffer"
-		[test-xml_node]     XML node: name = "quota", leaf content = "8M"
-		[test-xml_node]
-		[test-xml_node] -- Test invalid XML structure (truncated) --
-		[test-xml_node] string has invalid XML syntax
-		[test-xml_node]
-		[test-xml_node] -- Test invalid XML structure (truncated comment) --
-		[test-xml_node] string has invalid XML syntax
-		[test-xml_node]
-		[test-xml_node] -- Test invalid XML structure (unfinished string) --
-		[test-xml_node] string has invalid XML syntax
-		[test-xml_node]
-		[test-xml_node] -- Test node access by key --
-		[test-xml_node] content of sub node "filename" = "init"
-		[test-xml_node] content of sub node "quota" = "16M"
-		[test-xml_node] sub node "info" is not defined
-		[test-xml_node]
-		[test-xml_node] -- Test access to XML attributes --
-		[test-xml_node] XML node: name = "config", number of subnodes = 3
-		[test-xml_node]   attribute name="priolevels", value="4"
-		[test-xml_node]   XML node: name = "program", number of subnodes = 2
-		[test-xml_node]     XML node: name = "filename", leaf content = "init"
-		[test-xml_node]     XML node: name = "quota", leaf content = "16M"
-		[test-xml_node]   XML node: name = "single-tag"
-		[test-xml_node]   XML node: name = "single-tag-with-attr"
-		[test-xml_node]     attribute name="name", value="ein_name"
-		[test-xml_node]     attribute name="quantum", value="2K"
-		[test-xml_node]
-		[test-xml_node] -- Test parsing XML with nodes mixed with text --
-		[test-xml_node] XML node: name = "config", number of subnodes = 2
-		[test-xml_node]   XML node: name = "program"
-		[test-xml_node]     attribute name="attr", value="abcd"
-		[test-xml_node]   XML node: name = "program", leaf content = "inProgram"
-		[test-xml_node]
-		[test-xml_node] -- Test parsing XML with comments --
-		[test-xml_node] XML node: name = "config", number of subnodes = 2
-		[test-xml_node]   XML node: name = "visible-tag"
-		[test-xml_node]   XML node: name = "visible-tag"
-		[test-xml_node]
-		[test-xml_node] -- Test backslash as attribute value --
-		[test-xml_node] attribute value: '\'
-		[test-xml_node]
-		[test-xml_node] -- Test whitespace around assignment character --
-		[test-xml_node] attribute value: '123'
-		[test-xml_node]
-		[test-xml_node] -- Test exporting decoded content from XML node --
-		[test-xml_node] step 1
-		[test-xml_node] step 2
-		[test-xml_node] step 3
-		[test-xml_node] step 4
-		[test-xml_node] step 5
-		[test-xml_node]
-		[test-xml_node] -- Test iterating over invalid node --
-		[test-xml_node]
-		[test-xml_node] -- Test for_each_quoted_line ---
-		[test-xml_node] line 0: 'first' last=0
-		[test-xml_node] line 1: 'second' last=0
-		[test-xml_node] line 2: 'third' last=0
-		[test-xml_node] line 3: 'last' last=1
-		[test-xml_node]
-		[test-xml_node] --- End of XML-parser test ---
-		child "test-xml_node" exited with exit value 0
+	<succeed exit="0">
+		--- XML-token test ---
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;&lt;&quot;
+		token type=&quot;IDENT&quot;, len=6, content=&quot;config&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;>&quot;
+		token type=&quot;WHITESPACE&quot;, len=2, content=&quot;  &quot;
+		token type=&quot;IDENT&quot;, len=9, content=&quot;sometext1&quot;
+		token type=&quot;WHITESPACE&quot;, len=2, content=&quot;  &quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;&lt;&quot;
+		token type=&quot;IDENT&quot;, len=7, content=&quot;program&quot;
+		token type=&quot;WHITESPACE&quot;, len=1, content=&quot; &quot;
+		token type=&quot;IDENT&quot;, len=4, content=&quot;attr&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;=&quot;
+		token type=&quot;STRING&quot;, len=6, content=&quot;&quot;abcd&quot;&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;/&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;>&quot;
+		token type=&quot;WHITESPACE&quot;, len=2, content=&quot;  &quot;
+		token type=&quot;IDENT&quot;, len=9, content=&quot;sometext2&quot;
+		token type=&quot;WHITESPACE&quot;, len=2, content=&quot;  &quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;&lt;&quot;
+		token type=&quot;IDENT&quot;, len=7, content=&quot;program&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;>&quot;
+		token type=&quot;IDENT&quot;, len=9, content=&quot;inProgram&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;&lt;&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;/&quot;
+		token type=&quot;IDENT&quot;, len=7, content=&quot;program&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;>&quot;
+		token type=&quot;WHITESPACE&quot;, len=2, content=&quot;  &quot;
+		token type=&quot;IDENT&quot;, len=9, content=&quot;sometext3&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;&lt;&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;/&quot;
+		token type=&quot;IDENT&quot;, len=6, content=&quot;config&quot;
+		token type=&quot;SINGLECHAR&quot;, len=1, content=&quot;>&quot;
+		--- XML-parser test ---
+		-- Test valid XML structure --
+		XML node: name = &quot;config&quot;, number of subnodes = 3
+		* XML node: name = &quot;program&quot;, number of subnodes = 2
+		*   XML node: name = &quot;filename&quot;, leaf content = &quot;init&quot;
+		*   XML node: name = &quot;quota&quot;, leaf content = &quot;16M&quot;
+		* XML node: name = &quot;program&quot;, number of subnodes = 2
+		*   XML node: name = &quot;filename&quot;, leaf content = &quot;timer&quot;
+		*   XML node: name = &quot;quota&quot;, leaf content = &quot;64K&quot;
+		* XML node: name = &quot;program&quot;, number of subnodes = 2
+		*   XML node: name = &quot;filename&quot;, leaf content = &quot;framebuffer&quot;
+		*   XML node: name = &quot;quota&quot;, leaf content = &quot;8M&quot;
+
+		-- Test invalid XML structure (broken tag) --
+		XML node: name = &quot;config&quot;, number of subnodes = 3
+		* XML node: name = &quot;program&quot;, number of subnodes = 2
+		*   XML node: name = &quot;filename&quot;, leaf content = &quot;init&quot;
+		*   XML node: name = &quot;quota&quot;, leaf content = &quot;16M&quot;
+		* XML node: name = &quot;program&quot;, number of subnodes = 2
+		*   XML node: name = &quot;filename&quot;, leaf content = &quot;timer&quot;
+		*   XML node: name = &quot;quota&quot;, leaf content = &quot;64K&quot;
+		* XML node: name = &quot;program&quot;, number of subnodes = 2
+		*   XML node: name = &quot;filename&quot;, leaf content = &quot;framebuffer&quot;
+		*   XML node: name = &quot;quota&quot;, leaf content = &quot;8M&quot;
+
+		-- Test invalid XML structure (truncated) --
+		string has invalid XML syntax
+
+		-- Test invalid XML structure (truncated comment) --
+		string has invalid XML syntax
+
+		-- Test invalid XML structure (unfinished string) --
+		string has invalid XML syntax
+
+		-- Test node access by key --
+		content of sub node &quot;filename&quot; = &quot;init&quot;
+		content of sub node &quot;quota&quot; = &quot;16M&quot;
+		sub node &quot;info&quot; is not defined
+
+		-- Test access to XML attributes --
+		XML node: name = &quot;config&quot;, number of subnodes = 3
+		* attribute name=&quot;priolevels&quot;, value=&quot;4&quot;
+		* XML node: name = &quot;program&quot;, number of subnodes = 2
+		*   XML node: name = &quot;filename&quot;, leaf content = &quot;init&quot;
+		*   XML node: name = &quot;quota&quot;, leaf content = &quot;16M&quot;
+		* XML node: name = &quot;single-tag&quot;
+		* XML node: name = &quot;single-tag-with-attr&quot;
+		*   attribute name=&quot;name&quot;, value=&quot;ein_name&quot;
+		*   attribute name=&quot;quantum&quot;, value=&quot;2K&quot;
+
+		-- Test parsing XML with nodes mixed with text --
+		XML node: name = &quot;config&quot;, number of subnodes = 2
+		* XML node: name = &quot;program&quot;
+		*   attribute name=&quot;attr&quot;, value=&quot;abcd&quot;
+		* XML node: name = &quot;program&quot;, leaf content = &quot;inProgram&quot;
+
+		-- Test parsing XML with comments --
+		XML node: name = &quot;config&quot;, number of subnodes = 2
+		* XML node: name = &quot;visible-tag&quot;
+		* XML node: name = &quot;visible-tag&quot;
+
+		-- Test backslash as attribute value --
+		attribute value: *\'
+
+		-- Test whitespace around assignment character --
+		attribute value: '123'
+
+		-- Test exporting decoded content from XML node --
+		step 1
+		step 2
+		step 3
+		step 4
+		step 5
+
+		-- Test iterating over invalid node --
+
+		-- Test for_each_quoted_line ---
+		line 0: 'first' last=0
+		line 1: 'second' last=0
+		line 2: 'third' last=0
+		line 3: 'last' last=1
+
+		--- End of XML-parser test ---
 	</succeed>
 	<fail>*Error: </fail>
 
@@ -126,17 +125,6 @@
 		<rom label="test-xml_node"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="PD"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-xml_node" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

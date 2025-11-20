@@ -1,9 +1,9 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="32M" caps="500" binary="test-fork">
 
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="30"/>
-	<succeed>[test-fork] --- parent done ---*child*exited*</succeed>
+	<succeed exit="0">--- parent done ---</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -15,27 +15,16 @@
 		<rom label="test-fork"/>
 	</content>
 
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-		</parent-provides>
-		<start name="test-fork" caps="500" ram="1G">
-			<config>
-				<arg>name_of_executeable</arg>
-				<env name="WIZARD">gandalf</env>
-				<libc stdin="/null" stdout="/log" stderr="/log">
-					<fd id="3" path="/seek_test" readable="yes" seek="5"/>
-				</libc>
-				<vfs>
-					<null/> <log/>
-					<inline name="seek_test">0123456789</inline>
-				</vfs>
-			</config>
-			<route> <any-service> <parent/> </any-service> </route>
-		</start>
+	<config>
+		<arg>name_of_executeable</arg>
+		<env name="WIZARD">gandalf</env>
+		<libc stdin="/null" stdout="/log" stderr="/log">
+			<fd id="3" path="/seek_test" readable="yes" seek="5"/>
+		</libc>
+		<vfs>
+			<null/> <log/>
+			<inline name="seek_test">0123456789</inline>
+		</vfs>
 	</config>
 
 </runtime>

@@ -1,7 +1,7 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-ds_ownership">
 
 	<fail after_seconds="20"/>
-	<succeed>[test-ds_ownership] test succeeded</succeed>
+	<succeed>test succeeded</succeed>
 	<fail>*test failed*</fail>
 
 	<content>
@@ -17,17 +17,6 @@
 			<service name="CPU"/>
 			<service name="LOG"/>
 		</parent-provides>
-		<start name="test-ds_ownership" caps="100" ram="10M">
-			<route><any-service><parent/></any-service></route>
-			<config verbose="yes">
-				<parent-provides>
-					<service name="ROM"/>
-					<service name="PD"/>
-					<service name="RM"/>
-					<service name="CPU"/>
-					<service name="LOG"/>
-				</parent-provides>
-			</config>
-		</start>
 	</config>
+
 </runtime>

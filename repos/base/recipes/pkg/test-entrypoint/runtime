@@ -1,24 +1,13 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-entrypoint">
 
 	<fail after_seconds="60"/>
-	<succeed>child "test-entrypoint" exited with exit value 0</succeed>
+	<succeed exit="0"/>
 
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="test-entrypoint"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="test-entrypoint" caps="100" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

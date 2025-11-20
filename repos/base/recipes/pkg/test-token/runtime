@@ -1,25 +1,13 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-token">
 
 	<fail after_seconds="20"/>
-	<succeed>[test-token] --- finished token test ---</succeed>
+	<succeed>--- finished token test ---</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="test-token"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-token" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

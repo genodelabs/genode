@@ -1,60 +1,59 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="2M" caps="100" binary="test-xml_generator">
 
 	<fail after_seconds="20"/>
-	<succeed>
-		[test-xml_generator] --- XML generator test started ---
-		[test-xml_generator]
-		[test-xml_generator] used 308 bytes, result:
-		[test-xml_generator]
-		[test-xml_generator] &lt;config xpos="27" ypos="34">
-		[test-xml_generator] 	&lt;box width="320" height="240"/>
-		[test-xml_generator] 	&lt;label name="a test">
-		[test-xml_generator] 		&lt;sub_label/>
-		[test-xml_generator] 		&lt;another_sub_label>
-		[test-xml_generator] 			&lt;sub_sub_label/>
-		[test-xml_generator] 		&lt;/another_sub_label>
-		[test-xml_generator] 	&lt;/label>
-		[test-xml_generator] 	&lt;bool true="true" false="false"/>
-		[test-xml_generator] 	&lt;signed int="-1" long="-2" longlong="-3"/>
-		[test-xml_generator] 	&lt;unsigned int="1" long="2" longlong="3"/>
-		[test-xml_generator] &lt;/config>
-		[test-xml_generator]
-		[test-xml_generator] buffer exceeded (expected error)
-		[test-xml_generator]
-		[test-xml_generator] exception with value 10 on level 4 (expected error)
-		[test-xml_generator] exception with value 20 on level 8 (expected error)
-		[test-xml_generator] exception with value 30 on level 4 (expected error)
-		[test-xml_generator] exception with value 11 on level 4 (expected error)
-		[test-xml_generator] exception with value 21 on level 8 (expected error)
-		[test-xml_generator] exception with value 31 on level 4 (expected error)
-		[test-xml_generator] exception with value 12 on level 4 (expected error)
-		[test-xml_generator] exception with value 22 on level 8 (expected error)
-		[test-xml_generator] exception with value 32 on level 4 (expected error)
-		[test-xml_generator] exception with value 40 on level 2 (expected error)
-		[test-xml_generator]
-		[test-xml_generator] used 419 bytes, result:
-		[test-xml_generator]
-		[test-xml_generator] &lt;config>
-		[test-xml_generator] 	&lt;level1>
-		[test-xml_generator] 		&lt;level2 attr1="2271560481">
-		[test-xml_generator] 			&lt;level3 attr1="Hallo" attr2="123000">
-		[test-xml_generator] 				&lt;level4_1 attr1="true" attr2="Welt"/>
-		[test-xml_generator] 				&lt;level4_2/>
-		[test-xml_generator] 			&lt;/level3>
-		[test-xml_generator] 			&lt;level3 attr1="Hallo" attr2="123001">
-		[test-xml_generator] 				&lt;level4_1 attr1="true" attr2="Welt"/>
-		[test-xml_generator] 				&lt;level4_2/>
-		[test-xml_generator] 			&lt;/level3>
-		[test-xml_generator] 			&lt;level3 attr1="Hallo" attr2="123002">
-		[test-xml_generator] 				&lt;level4_1 attr1="true" attr2="Welt"/>
-		[test-xml_generator] 				&lt;level4_2/>
-		[test-xml_generator] 			&lt;/level3>
-		[test-xml_generator] 		&lt;/level2>
-		[test-xml_generator] 	&lt;/level1>
-		[test-xml_generator] &lt;/config>
-		[test-xml_generator]
-		[test-xml_generator] --- XML generator test finished ---
-		child "test-xml_generator" exited with exit value 0
+	<succeed exit="0">
+		--- XML generator test started ---
+
+		used 308 bytes, result:
+
+		&lt;config xpos="27" ypos="34">
+		*	&lt;box width="320" height="240"/>
+		*	&lt;label name="a test">
+		*		&lt;sub_label/>
+		*		&lt;another_sub_label>
+		*			&lt;sub_sub_label/>
+		*		&lt;/another_sub_label>
+		*	&lt;/label>
+		*	&lt;bool true="true" false="false"/>
+		*	&lt;signed int="-1" long="-2" longlong="-3"/>
+		*	&lt;unsigned int="1" long="2" longlong="3"/>
+		&lt;/config>
+
+		buffer exceeded (expected error)
+
+		exception with value 10 on level 4 (expected error)
+		exception with value 20 on level 8 (expected error)
+		exception with value 30 on level 4 (expected error)
+		exception with value 11 on level 4 (expected error)
+		exception with value 21 on level 8 (expected error)
+		exception with value 31 on level 4 (expected error)
+		exception with value 12 on level 4 (expected error)
+		exception with value 22 on level 8 (expected error)
+		exception with value 32 on level 4 (expected error)
+		exception with value 40 on level 2 (expected error)
+
+		used 419 bytes, result:
+
+		&lt;config>
+		*	&lt;level1>
+		*		&lt;level2 attr1="2271560481">
+		*			&lt;level3 attr1="Hallo" attr2="123000">
+		*				&lt;level4_1 attr1="true" attr2="Welt"/>
+		*				&lt;level4_2/>
+		*			&lt;/level3>
+		*			&lt;level3 attr1="Hallo" attr2="123001">
+		*				&lt;level4_1 attr1="true" attr2="Welt"/>
+		*				&lt;level4_2/>
+		*			&lt;/level3>
+		*			&lt;level3 attr1="Hallo" attr2="123002">
+		*				&lt;level4_1 attr1="true" attr2="Welt"/>
+		*				&lt;level4_2/>
+		*			&lt;/level3>
+		*		&lt;/level2>
+		*	&lt;/level1>
+		&lt;/config>
+
+		--- XML generator test finished ---
 	</succeed>
 	<fail>*Error: </fail>
 
@@ -64,24 +63,9 @@
 	</content>
 
 	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="File_system"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <any-child/> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-xml_generator" ram="2M">
-			<config>
-				<libgcov>
-					<annotate source="include/util/xml_generator.h"/>
-				</libgcov>
-			</config>
-		</start>
+		<libgcov>
+			<annotate source="include/util/xml_generator.h"/>
+		</libgcov>
 	</config>
+
 </runtime>

@@ -1,17 +1,16 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="4M" caps="100" binary="test-libc_getenv">
 
 	<fail after_seconds="30"/>
-	<succeed>
-		[test-libc_getenv] foo="bar"
-		[test-libc_getenv] bar="foo"
-		[test-libc_getenv] no env variable named 'baz'
-		[test-libc_getenv] fitz=" with leading space"
-		[test-libc_getenv] fatz="with trailing space "
-		[test-libc_getenv] no env variable named ' arg with surrounding spaces '
-		[test-libc_getenv] no env variable named '--tag-with-no-value'
-		[test-libc_getenv] no env variable named '--tag-with'
-		[test-libc_getenv] no env variable named 'value'
-		child "test-libc_getenv" exited with exit value 0
+	<succeed exit="0">
+		foo="bar"
+		bar="foo"
+		no env variable named 'baz'
+		fitz=" with leading space"
+		fatz="with trailing space "
+		no env variable named ' arg with surrounding spaces '
+		no env variable named '--tag-with-no-value'
+		no env variable named '--tag-with'
+		no env variable named 'value'
 	</succeed>
 
 	<content>
@@ -24,35 +23,21 @@
 	</content>
 
 	<config>
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-libc_getenv" ram="4M">
-			<config>
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				<libc stdout="/dev/log"/>
-				<arg value="test-libc_getenv"/>
-				<arg value="foo"/>
-				<arg value="bar"/>
-				<arg value="baz"/>
-				<arg>fitz</arg>
-				<arg>fatz</arg>
-				<arg> arg with surrounding spaces </arg>
-				<arg name="--tag-with-no-value"/>
-				<arg name="--tag-with">value</arg>
-				<env key="foo" value="bar"/>
-				<env key="bar" value="foo"/>
-				<env name="fitz"> with leading space</env>
-				<env name="fatz">with trailing space </env>
-			</config>
-		</start>
+		<vfs> <dir name="dev"> <log/> </dir> </vfs>
+		<libc stdout="/dev/log"/>
+		<arg value="test-libc_getenv"/>
+		<arg value="foo"/>
+		<arg value="bar"/>
+		<arg value="baz"/>
+		<arg>fitz</arg>
+		<arg>fatz</arg>
+		<arg> arg with surrounding spaces </arg>
+		<arg name="--tag-with-no-value"/>
+		<arg name="--tag-with">value</arg>
+		<env key="foo" value="bar"/>
+		<env key="bar" value="foo"/>
+		<env name="fitz"> with leading space</env>
+		<env name="fatz">with trailing space </env>
 	</config>
+
 </runtime>

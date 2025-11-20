@@ -1,13 +1,13 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="1000" binary="test-tls">
 
 	<fail after_seconds="20"/>
 	<succeed>
-		[test-tls] main     initial: x: -1, y: 0
-		[test-tls] thread 0 initial: x: -1, y: 0
-		[test-tls] thread 0        : x:  1, y: 2
-		[test-tls] thread 1 initial: x: -1, y: 0
-		[test-tls] thread 1        : x:  3, y: 4
-		[test-tls] main            : x:  5, y: 6
+		main     initial: x: -1, y: 0
+		thread 0 initial: x: -1, y: 0
+		thread 0        : x:  1, y: 2
+		thread 1 initial: x: -1, y: 0
+		thread 1        : x:  3, y: 4
+		main            : x:  5, y: 6
 	</succeed>
 
 	<content>
@@ -15,16 +15,6 @@
 		<rom label="test-tls"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="test-tls" caps="200" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

@@ -1,7 +1,7 @@
-<runtime ram="90M" caps="1000" binary="init">
+<runtime ram="2M" caps="200" binary="test-trace_buffer">
 
 	<fail after_seconds="30"/>
-	<succeed>child "test-trace_buffer" exited with exit value 0</succeed>
+	<succeed exit="0"/>
 	<fail>*Error: </fail>
 
 	<content>
@@ -9,22 +9,6 @@
 		<rom label="test-trace_buffer"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="200"/>
-		<start name="test-trace_buffer" ram="2M"/>
-	</config>
+	<config/>
+
 </runtime>

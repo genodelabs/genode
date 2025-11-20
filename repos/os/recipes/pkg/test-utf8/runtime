@@ -1,9 +1,9 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="1M" caps="100" binary="test-utf8">
 
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="30"/>
-	<succeed>child "test-utf8" exited with exit value 0</succeed>
+	<succeed exit="0"/>
 	<fail>*Error: </fail>
 
 	<content>
@@ -11,17 +11,6 @@
 		<rom label="test-utf8"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <any-child/> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-utf8" ram="1M"/>
-	</config>
+	<config/>
+
 </runtime>

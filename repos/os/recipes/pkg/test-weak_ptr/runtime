@@ -1,9 +1,9 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-weak_ptr">
 
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="20"/>
-	<succeed>[test-weak_ptr] --- finished test-weak_ptr ---</succeed>
+	<succeed>--- finished test-weak_ptr ---</succeed>
 	<fail>*Error: </fail>
 
 	<content>
@@ -11,22 +11,6 @@
 		<rom label="test-weak_ptr"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <any-child/> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-weak_ptr" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

@@ -1,23 +1,23 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="50" binary="test-log">
 
 	<fail after_seconds="20"/>
 	<succeed>
-		[test-log] hex range:          [0e00,1680)
-		[test-log] empty hex range:    [0abc0000,0abc0000) (empty!)
-		[test-log] hex range to limit: [f8,ff]
-		[test-log] invalid hex range:  [f8,08) (overflow!)
-		[test-log] negative hex char:  0xfe
-		[test-log] positive hex char:  0x02
-		[test-log] Alloc_error value:  OUT_OF_RAM
-		[test-log] floating point:     1.70
-		[test-log] multiarg string:    "parent -> child.7"
-		[test-log] String(Hex(3)):     0x3
-		[test-log] Very long messages:
-		[test-log -> log] 1.....................................................................................................................................................................................................................................2
-		[test-log] 3.....................................................................................................................................................................................................................................4
-		[test-log] 5.....................................................................................................................................................................................................................................6
-		[test-log]
-		[test-log] Test done.
+		hex range:          [0e00,1680)
+		empty hex range:    [0abc0000,0abc0000) (empty!)
+		hex range to limit: [f8,ff]
+		invalid hex range:  [f8,08) (overflow!)
+		negative hex char:  0xfe
+		positive hex char:  0x02
+		Alloc_error value:  OUT_OF_RAM
+		floating point:     1.70
+		multiarg string:    "parent -> child.7"
+		String(Hex(3)):     0x3
+		Very long messages:
+		[log] 1.....................................................................................................................................................................................................................................2
+		3.....................................................................................................................................................................................................................................4
+		5.....................................................................................................................................................................................................................................6
+
+		Test done.
 	</succeed>
 
 	<content>
@@ -25,17 +25,5 @@
 		<rom label="test-log"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="50"/>
-		<start name="test-log" ram="10M"/>
-	</config>
+	<config/>
 </runtime>

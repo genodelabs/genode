@@ -1,7 +1,7 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-rm_nested">
 
 	<fail after_seconds="20"/>
-	<succeed>[test-rm_nested] --- finished nested region map test ---</succeed>
+	<succeed>--- finished nested region map test ---</succeed>
 	<fail>*Error: </fail>
 
 	<content>
@@ -9,18 +9,6 @@
 		<rom label="test-rm_nested"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-rm_nested" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

@@ -1,24 +1,13 @@
-<runtime ram="16M" caps="1000" binary="init">
+<runtime ram="4M" caps="100" binary="test-stack_smash">
 
 	<fail after_seconds="20"/>
-	<succeed>[test-stack_smash]*Error: stack protector check failed</succeed>
+	<succeed>*Error: stack protector check failed</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="test-stack_smash"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="PD"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-stack_smash" ram="4M"/>
-	</config>
+	<config/>
+
 </runtime>

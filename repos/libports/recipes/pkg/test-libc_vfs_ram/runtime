@@ -1,7 +1,7 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="12M" caps="100" binary="test-libc_vfs">
 
 	<fail after_seconds="30"/>
-	<succeed>child "test-libc_vfs" exited with exit value 0</succeed>
+	<succeed exit="0"/>
 	<fail>*Error: </fail>
 
 	<content>
@@ -12,26 +12,13 @@
 	</content>
 
 	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<start name="test-libc_vfs" caps="100" ram="12M">
-			<route>
-				<any-service> <parent/> </any-service>
-			</route>
-			<config>
-				<iterations value="1"/>
-				<write-read size="1M" buffer_size="8K"/>
-				<vfs>
-					<dir name="tmp"> <ram/> </dir>
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-				<libc stdout="/dev/log" cwd="/tmp"/>
-			</config>
-		</start>
+		<iterations value="1"/>
+		<write-read size="1M" buffer_size="8K"/>
+		<vfs>
+			<dir name="tmp"> <ram/> </dir>
+			<dir name="dev"> <log/> </dir>
+		</vfs>
+		<libc stdout="/dev/log" cwd="/tmp"/>
 	</config>
+
 </runtime>

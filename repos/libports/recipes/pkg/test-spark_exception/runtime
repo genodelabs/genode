@@ -1,11 +1,10 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-spark_exception">
 
 	<fail after_seconds="20"/>
-	<succeed>
-		[test-spark_exception] Ada exception test
-		[test-spark_exception]*Error: Exception raised: explicit raise in except.adb:6
-		[test-spark_exception] Caught Ada::Exception::Program_Error
-		child "test-spark_exception" exited with exit value 0
+	<succeed exit="0">
+		Ada exception test
+		*Error: Exception raised: explicit raise in except.adb:6
+		Caught Ada::Exception::Program_Error
 	</succeed>
 
 	<content>
@@ -14,17 +13,6 @@
 		<rom label="test-spark_exception"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-spark_exception" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

@@ -1,59 +1,59 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="100" binary="test-new_delete">
 
 	<fail after_seconds="20"/>
 
 	<succeed>
-		[test-new_delete] Allocator::alloc()
-		[test-new_delete]   A
-		[test-new_delete]   C
-		[test-new_delete]   B
-		[test-new_delete]   D
-		[test-new_delete]   E
-		[test-new_delete]   ~E
-		[test-new_delete]   ~D
-		[test-new_delete]   ~B
-		[test-new_delete]   ~C
-		[test-new_delete]   ~A
-		[test-new_delete] Allocator::free()
-		[test-new_delete] Allocator::alloc()
-		[test-new_delete]   A
-		[test-new_delete]   C
-		[test-new_delete]   B
-		[test-new_delete]   D
-		[test-new_delete]   E
-		[test-new_delete] throw exception
-		[test-new_delete]   ~D
-		[test-new_delete]   ~B
-		[test-new_delete]   ~C
-		[test-new_delete]   ~A
-		[test-new_delete] Allocator::free()
-		[test-new_delete] exception caught
-		[test-new_delete] Allocator::alloc()
-		[test-new_delete]   A
-		[test-new_delete]   C
-		[test-new_delete]   B
-		[test-new_delete]   D
-		[test-new_delete]   E
-		[test-new_delete]   ~E
-		[test-new_delete]   ~D
-		[test-new_delete]   ~B
-		[test-new_delete]   ~C
-		[test-new_delete]   ~A
-		[test-new_delete] Allocator::free()
-		[test-new_delete] Allocator::alloc()
-		[test-new_delete]   A
-		[test-new_delete]   C
-		[test-new_delete]   B
-		[test-new_delete]   D
-		[test-new_delete]   E
-		[test-new_delete] throw exception
-		[test-new_delete]   ~D
-		[test-new_delete]   ~B
-		[test-new_delete]   ~C
-		[test-new_delete]   ~A
-		[test-new_delete] Allocator::free()
-		[test-new_delete] exception caught
-		[test-new_delete] Test done
+		Allocator::alloc()
+		* A
+		* C
+		* B
+		* D
+		* E
+		* ~E
+		* ~D
+		* ~B
+		* ~C
+		* ~A
+		Allocator::free()
+		Allocator::alloc()
+		* A
+		* C
+		* B
+		* D
+		* E
+		throw exception
+		* ~D
+		* ~B
+		* ~C
+		* ~A
+		Allocator::free()
+		exception caught
+		Allocator::alloc()
+		* A
+		* C
+		* B
+		* D
+		* E
+		* ~E
+		* ~D
+		* ~B
+		* ~C
+		* ~A
+		Allocator::free()
+		Allocator::alloc()
+		* A
+		* C
+		* B
+		* D
+		* E
+		throw exception
+		* ~D
+		* ~B
+		* ~C
+		* ~A
+		Allocator::free()
+		exception caught
+		Test done
 	</succeed>
 
 	<content>
@@ -61,17 +61,6 @@
 		<rom label="test-new_delete"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-new_delete" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

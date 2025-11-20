@@ -1,7 +1,7 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="110" binary="test-rm_fault">
 
 	<fail after_seconds="20"/>
-	<succeed>child "test-rm_fault" exited with exit value 0</succeed>
+	<succeed exit="0"/>
 	<fail>*Error: could modify ROM</fail>
 
 	<content>
@@ -9,17 +9,5 @@
 		<rom label="test-rm_fault"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="test-rm_fault" caps="110" ram="10M"/>
-	</config>
+	<config/>
 </runtime>

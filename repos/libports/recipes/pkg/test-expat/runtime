@@ -1,15 +1,14 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="3M" caps="200" binary="test-expat">
 
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="10"/>
-	<succeed>
-		[test-expat]  start of element: config
-		[test-expat]  start of element: test_tag
-		[test-expat]  attribute: name='test_attribute', value='test_value'
-		[test-expat]  end of element: test_tag
-		[test-expat]  end of element: config
-		child "test-expat" exited with exit value 0
+	<succeed exit="0">
+		*start of element: config
+		*start of element: test_tag
+		*attribute: name='test_attribute', value='test_value'
+		*end of element: test_tag
+		*end of element: config
 	</succeed>
 	<fail>*Error: </fail>
 
@@ -24,31 +23,14 @@
 	</content>
 
 	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="IO_PORT"/>
-			<service name="IRQ"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="200"/>
-		<start name="test-expat" ram="3M">
-			<config>
-				<vfs>
-					<inline name="config"><config>
-							<test_tag test_attribute="test_value"/>
-						</config>
-					</inline>
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-				<libc stdout="/dev/log"/>
-			</config>
-		</start>
+		<vfs>
+			<inline name="config"><config>
+					<test_tag test_attribute="test_value"/>
+				</config>
+			</inline>
+			<dir name="dev"> <log/> </dir>
+		</vfs>
+		<libc stdout="/dev/log"/>
 	</config>
+
 </runtime>

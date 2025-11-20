@@ -1,7 +1,7 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="50" binary="test-registry">
 
 	<fail after_seconds="20"/>
-	<succeed>child "test-registry" exited with exit value 0</succeed>
+	<succeed exit="0"/>
 	<fail>*Uncaught exception</fail>
 
 	<content>
@@ -9,17 +9,6 @@
 		<rom label="test-registry"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="50"/>
-		<start name="test-registry" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

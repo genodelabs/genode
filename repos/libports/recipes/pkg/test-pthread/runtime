@@ -1,11 +1,10 @@
-<runtime ram="72M" caps="1000" binary="init">
+<runtime ram="64M" caps="600" binary="test-pthread">
 
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="90"/>
-	<succeed>[test-pthread] --- returning from main ---</succeed>
+	<succeed>--- returning from main ---</succeed>
 	<fail>*Error: </fail>
-	<fail>child "test-pthread" exited</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
@@ -17,21 +16,9 @@
 	</content>
 
 	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<start name="test-pthread" caps="600" ram="64M">
-			<config>
-				<vfs> <dir name="dev"> <log/> <inline name="rtc">2025-03-03 09:16</inline> </dir> </vfs>
-				<libc stdout="/dev/log" rtc="/dev/rtc"/>
-			</config>
-		</start>
+		<vfs> <dir name="dev">
+			<log/> <inline name="rtc">2025-03-03 09:16</inline> </dir> </vfs>
+		<libc stdout="/dev/log" rtc="/dev/rtc"/>
 	</config>
+
 </runtime>

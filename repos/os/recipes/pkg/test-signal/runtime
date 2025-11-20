@@ -1,9 +1,9 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="10M" caps="500" binary="test-signal">
 
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="60"/>
-	<succeed>[test-signal] --- Signalling test finished ---</succeed>
+	<succeed>--- Signalling test finished ---</succeed>
 	<fail>*Error: </fail>
 
 	<content>
@@ -11,22 +11,6 @@
 		<rom label="test-signal"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-signal" caps="500" ram="10M"/>
-	</config>
+	<config/>
+
 </runtime>

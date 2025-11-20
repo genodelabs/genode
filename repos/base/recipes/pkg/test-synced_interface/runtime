@@ -1,13 +1,13 @@
-<runtime ram="32M" caps="1000" binary="init">
+<runtime ram="1M" caps="100" binary="test-synced_interface">
 
 	<fail after_seconds="20"/>
 	<succeed>
-		[test-synced_interface] --- Synced interface test ---
-		[test-synced_interface] acquire
-		[test-synced_interface] adding 13 + 14
-		[test-synced_interface] release
-		[test-synced_interface] result is 27
-		[test-synced_interface] --- Synced interface test finished ---
+		--- Synced interface test ---
+		acquire
+		adding 13 + 14
+		release
+		result is 27
+		--- Synced interface test finished ---
 	</succeed>
 
 	<content>
@@ -15,18 +15,6 @@
 		<rom label="test-synced_interface"/>
 	</content>
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-synced_interface" ram="1M"/>
-	</config>
+	<config/>
+
 </runtime>
