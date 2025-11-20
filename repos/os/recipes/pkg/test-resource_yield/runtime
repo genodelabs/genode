@@ -2,7 +2,7 @@
 
 	<requires> <timer/> </requires>
 
-	<fail after_seconds="30"/>
+	<fail after_seconds="10"/>
 	<succeed>--- test-resource_yield finished ---</succeed>
 	<fail>*Error: </fail>
 

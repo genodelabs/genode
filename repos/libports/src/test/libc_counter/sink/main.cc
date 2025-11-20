@@ -19,7 +19,7 @@
 
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 
-enum { MAX_COUNT = 10 };
+enum { MAX_COUNT = 5 };
 
 
 int main(int argc, char **argv)

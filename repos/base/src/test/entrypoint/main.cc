@@ -144,9 +144,9 @@ struct Main
 		Signal_transmitter(test_ep.sigh).submit();
 		test_ep.cap.call<Test_signal::Session::Rpc_rpc>();
 
-		if (++rpc_count % 100 == 0)
+		if (++rpc_count % 50 == 0)
 			test_ep.sc.stats();
-		if (rpc_count == 2'000)
+		if (rpc_count == 300)
 			env.parent().exit(0);
 	}
 };

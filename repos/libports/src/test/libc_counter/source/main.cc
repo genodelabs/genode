@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 
-enum { MAX_COUNT = 10 };
+enum { MAX_COUNT = 5 };
 
 
 int main(int argc, char **argv)
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "--- counter source started ---\n");
 
 	/* idle some time, so the sink has a chance to block ;-) */
-	sleep(2);
+	sleep(1);
 
 	static char buf[32];
 

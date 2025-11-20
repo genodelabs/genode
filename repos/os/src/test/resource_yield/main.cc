@@ -165,7 +165,7 @@ Test::Child::Child(Env &env, Node const &config)
 	_expand(config.attribute_value("expand", false)),
 	_periodic_timeout_handler(_env.ep(), *this, &Child::_handle_periodic_timeout),
 	_yield_handler(_env.ep(), *this, &Child::_handle_yield),
-	_period_ms(config.attribute_value("period_ms", (uint64_t)500))
+	_period_ms(config.attribute_value("period_ms", (uint64_t)25))
 {
 	/* register yield signal handler */
 	_env.parent().yield_sigh(_yield_handler);
@@ -213,17 +213,17 @@ class Test::Parent
 		enum State { WAIT, YIELD_REQUESTED, YIELD_GOT_RESPONSE };
 		State _state = WAIT;
 
-		void _schedule_one_second_timeout()
+		void _schedule_timeout()
 		{
 			log("wait ", _wait_cnt, "/", _wait_secs);
-			_timer.trigger_once(1000*1000);
+			_timer.trigger_once(100*1000);
 		}
 
 		void _init()
 		{
 			_state = WAIT;
 			_wait_cnt = 0;
-			_schedule_one_second_timeout();
+			_schedule_timeout();
 		}
 
 		void _request_yield()
@@ -248,7 +248,7 @@ class Test::Parent
 			if (_wait_cnt >= _wait_secs) {
 				_request_yield();
 			} else {
-				_schedule_one_second_timeout();
+				_schedule_timeout();
 			}
 		}
 

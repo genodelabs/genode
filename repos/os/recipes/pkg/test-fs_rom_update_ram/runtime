@@ -46,19 +46,19 @@
 					<inline description="iteration 1">
 						<config iteration="1"/>
 					</inline>
-					<sleep milliseconds="2000"/>
+					<sleep milliseconds="200"/>
 					<inline description="iteration 2">
 						<config iteration="2"/>
 					</inline>
-					<sleep milliseconds="2000"/>
+					<sleep milliseconds="200"/>
 					<inline description="iteration 3">
 						<config iteration="3"/>
 					</inline>
-					<sleep milliseconds="2000"/>
+					<sleep milliseconds="200"/>
 					<inline description="iteration 4">
 						<config iteration="4"/>
 					</inline>
-					<sleep milliseconds="2000"/>
+					<sleep milliseconds="200"/>
 				</rom>
 			</config>
 		</start>

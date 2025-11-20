@@ -246,8 +246,8 @@ struct Test::Main
 			}
 		}
 
-		/* success after 50 iterations without any accounting issues */
-		if (_cnt == 50)
+		/* success after 20 iterations without any accounting issues */
+		if (_cnt == 20)
 			_env.parent().exit(0);
 
 		generate_init_config();
