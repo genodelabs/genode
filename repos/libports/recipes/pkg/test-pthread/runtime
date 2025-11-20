@@ -3,8 +3,8 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="90"/>
-	<succeed>--- returning from main ---</succeed>
-	<fail>Error: </fail>
+	<succeed>[test-pthread] --- returning from main ---</succeed>
+	<fail>*Error: </fail>
 	<fail>child "test-pthread" exited</fail>
 
 	<content>

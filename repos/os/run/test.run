@@ -327,7 +327,10 @@ proc query_expected_log_pattern { } {
 
 	set prefixed_lines { }
 	foreach line $lines {
-		regsub {^\s*\[init} $line {[init -> test} line
+
+		# replace test-local log prefix by global prefix
+		set line "\[init -> test\] $line"
+		regsub {\[init -> test\] \[} $line {[init -> test -> } line
 
 		# quote regexp characters
 		foreach char [list {[} {]} {(} {)} {.}] {

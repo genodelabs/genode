@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="10"/>
-	<succeed>Test succeeded</succeed>
+	<succeed>[test-terminal_crosslink] Test succeeded</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

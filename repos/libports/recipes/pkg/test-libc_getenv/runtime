@@ -2,16 +2,16 @@
 
 	<fail after_seconds="30"/>
 	<succeed>
-			[init -> test-libc_getenv] foo="bar"*
-			[init -> test-libc_getenv] bar="foo"*
-			[init -> test-libc_getenv] no env variable named 'baz'*
-			[init -> test-libc_getenv] fitz=" with leading space"*
-			[init -> test-libc_getenv] fatz="with trailing space "*
-			[init -> test-libc_getenv] no env variable named ' arg with surrounding spaces '*
-			[init -> test-libc_getenv] no env variable named '--tag-with-no-value'
-			[init -> test-libc_getenv] no env variable named '--tag-with'
-			[init -> test-libc_getenv] no env variable named 'value'
-			[init] child "test-libc_getenv" exited with exit value 0
+		[test-libc_getenv] foo="bar"
+		[test-libc_getenv] bar="foo"
+		[test-libc_getenv] no env variable named 'baz'
+		[test-libc_getenv] fitz=" with leading space"
+		[test-libc_getenv] fatz="with trailing space "
+		[test-libc_getenv] no env variable named ' arg with surrounding spaces '
+		[test-libc_getenv] no env variable named '--tag-with-no-value'
+		[test-libc_getenv] no env variable named '--tag-with'
+		[test-libc_getenv] no env variable named 'value'
+		child "test-libc_getenv" exited with exit value 0
 	</succeed>
 
 	<content>

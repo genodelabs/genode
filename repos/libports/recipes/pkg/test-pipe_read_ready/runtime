@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="30"/>
-	<succeed>[init -> select] 3</succeed>
+	<succeed>[select] 3</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

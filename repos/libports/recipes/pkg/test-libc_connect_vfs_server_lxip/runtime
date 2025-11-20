@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="100"/>
-	<fail>exited with exit value -1</fail>
+	<fail>*exited with exit value -1</fail>
 	<succeed>child "test-libc_connect" exited with exit value 0</succeed>
 
 	<content>

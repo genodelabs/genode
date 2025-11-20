@@ -1,10 +1,8 @@
 <runtime ram="4M" caps="100" binary="test-hrd">
 
 	<fail after_seconds="20"/>
-	<succeed>
-			*--- End of HRD-parser test ---*
-	</succeed>
-	<fail>Error: </fail>
+	<succeed>*--- End of HRD-parser test ---</succeed>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

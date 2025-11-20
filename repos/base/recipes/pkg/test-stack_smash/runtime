@@ -1,7 +1,7 @@
 <runtime ram="16M" caps="1000" binary="init">
 
 	<fail after_seconds="20"/>
-	<succeed>Error: stack protector check failed</succeed>
+	<succeed>[test-stack_smash]*Error: stack protector check failed</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

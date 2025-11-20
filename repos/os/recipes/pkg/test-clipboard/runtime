@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="20"/>
-	<succeed>-- state WAIT_FOR_SUCCESS --</succeed>
+	<succeed>*-- state WAIT_FOR_SUCCESS --</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

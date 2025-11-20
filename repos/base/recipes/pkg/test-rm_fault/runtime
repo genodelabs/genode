@@ -2,7 +2,7 @@
 
 	<fail after_seconds="20"/>
 	<succeed>child "test-rm_fault" exited with exit value 0</succeed>
-	<fail>Error: could modify ROM</fail>
+	<fail>*Error: could modify ROM</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -2,9 +2,9 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-		[init] result of action.compute: 34
-		[init] accessing node, state=reset
-		[init] --- finished callable test ---
+		result of action.compute: 34
+		accessing node, state=reset
+		--- finished callable test ---
 	</succeed>
 
 	<content>

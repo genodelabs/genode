@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="30"/>
-	<succeed>--- parent done ---*child*exited*</succeed>
+	<succeed>[test-fork] --- parent done ---*child*exited*</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

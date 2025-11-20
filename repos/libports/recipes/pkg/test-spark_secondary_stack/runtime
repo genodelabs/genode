@@ -2,8 +2,8 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> test-spark_secondary_stack] secondary stack test successful
-			[init] child "test-spark_secondary_stack" exited with exit value 0
+		[test-spark_secondary_stack] secondary stack test successful
+		child "test-spark_secondary_stack" exited with exit value 0
 	</succeed>
 
 	<content>

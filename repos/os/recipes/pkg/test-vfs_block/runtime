@@ -4,7 +4,7 @@
 
 	<fail after_seconds="80"/>
 	<succeed>child "block_tester" exited with exit value 0</succeed>
-	<fail>Error: </fail>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="block_tester"/>

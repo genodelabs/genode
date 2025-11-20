@@ -4,16 +4,16 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> trace_logger] Report *
-			[init -> trace_logger] PD "cpu_burner.*"*
-			[init -> trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-			[init -> trace_logger] PD "dynamic_rom"*
-			[init -> trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-			[init -> trace_logger] PD "test-trace_logger"*
-			[init -> trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-			[init -> trace_logger]   100 *
-			[init -> trace_logger]   trigger_once
-			[init -> trace_logger]   trigger_once
+		[trace_logger] Report *
+		[trace_logger] PD "cpu_burner.*"*
+		[trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
+		[trace_logger] PD "dynamic_rom"*
+		[trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
+		[trace_logger] PD "test-trace_logger"*
+		[trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
+		[trace_logger]   100 *
+		[trace_logger]   trigger_once
+		[trace_logger]   trigger_once
 	</succeed>
 
 	<content>

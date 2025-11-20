@@ -1,7 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<fail after_seconds="20"/>
-	<succeed>finished token test</succeed>
+	<succeed>[test-token] --- finished token test ---</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

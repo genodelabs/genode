@@ -2,18 +2,18 @@
 
 	<fail after_seconds="30"/>
 	<succeed>
-			[init -> sequence -> test_1] foo="bar1"*
-			[init -> sequence -> test_1] no env variable named 'bar1'*
-			[init -> sequence -> test_1] no env variable named 'baz'*
-			[init -> sequence -> test_2] foo="bar2"*
-			[init -> sequence -> test_2] no env variable named 'bar2'*
-			[init -> sequence -> test_2] no env variable named 'baz'*
-			[init -> sequence -> test_3] foo="bar3"*
-			[init -> sequence -> test_3] no env variable named 'bar3'*
-			[init -> sequence -> test_3] no env variable named 'baz'*
-			[init] child "sequence" exited with exit value 0
+		[sequence -> test_1] foo="bar1"
+		[sequence -> test_1] no env variable named 'bar1'
+		[sequence -> test_1] no env variable named 'baz'
+		[sequence -> test_2] foo="bar2"
+		[sequence -> test_2] no env variable named 'bar2'
+		[sequence -> test_2] no env variable named 'baz'
+		[sequence -> test_3] foo="bar3"
+		[sequence -> test_3] no env variable named 'bar3'
+		[sequence -> test_3] no env variable named 'baz'
+		child "sequence" exited with exit value 0
 	</succeed>
-	<fail>Error: </fail>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

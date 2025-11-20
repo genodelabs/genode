@@ -2,7 +2,7 @@
 
 	<fail after_seconds="30"/>
 	<succeed>child * exited with exit value 0</succeed>
-	<fail>Error: </fail>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

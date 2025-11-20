@@ -3,8 +3,8 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="60"/>
-	<succeed>--- Signalling test finished ---</succeed>
-	<fail>Error: </fail>
+	<succeed>[test-signal] --- Signalling test finished ---</succeed>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

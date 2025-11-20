@@ -256,14 +256,14 @@ struct Depot_autopilot::Main : Log_session::Action, Iteration::Action
 
 	Clock const _start_time { .ms = _timer.elapsed_ms() };
 
-	Session_label const _children_label_prefix =
+	Session_label const _runtime_prefix =
 		_config.node().attribute_value("children_label_prefix", String<160>());
 
 	Constructible<Iteration> _iteration { };
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Log_root _log_root { _env.ep(), _heap, *this, _children_label_prefix };
+	Log_root _log_root { _env.ep(), _heap, *this };
 
 	Signal_handler<Main>
 		_config_handler         { _env.ep(), *this, &Main::_handle_config },
@@ -273,34 +273,69 @@ struct Depot_autopilot::Main : Log_session::Action, Iteration::Action
 	/**
 	 * Log_session::Action interface
 	 */
-	void handle_log_message(Session_label const &origin, Span const &msg) override
+	void handle_log_message(Span const &origin, Span const &msg) override
 	{
 		if (!_iteration.constructed() || !_iteration->_plan.any_running()) {
 			warning("spurious log message: '", Cstring(msg.start, msg.num_bytes), "'");
 			return;
 		}
 
+		auto with_skipped_prefix = [] (Span const &bytes, Span const &prefix, auto const &fn)
+		{
+			auto with_skipped = [] (Span const &bytes, size_t n, auto const &fn)
+			{
+				n = min(n, bytes.num_bytes);
+				fn(Span { bytes.start + n, bytes.num_bytes - n });
+			};
+
+			with_skipped(bytes, prefix.num_bytes, [&] (Span const &bytes) {
+				Span const sep { " -> ", 4 };
+				if (bytes.starts_with(sep))
+					with_skipped(bytes, sep.num_bytes, [&] (Span const &bytes) {
+						fn(bytes); });
+				else
+					fn(bytes);
+			});
+		};
+
 		_iteration->_plan.with_running_test([&] (Test &test) {
 
 			Clock const now { _timer.elapsed_ms() };
 
-			auto capture_line = [&] (Span const &line)
+			auto capture_line = [&] (Span const &origin, Span const &line)
 			{
-				if (!test.running()) /* stop capturing after success */
+				if (!test.running()) /* stop capturing after success of previous span */
 					return;
 
-				String<512> const prefixed_msg("[", origin, "] ",
-				                               Cstring(line.start, line.num_bytes));
-				log(Clock { now.ms - test.start_time.ms }, " ", prefixed_msg);
+				using Tag = String<128>;
+				Tag const tag = origin.num_bytes
+				              ? Tag("[", Cstring(origin.start, origin.num_bytes), "] ")
+				              : Tag();
 
-				prefixed_msg.with_span([&] (Span const &span) {
+				using Msg = String<512>;
+				Msg const msg(tag, Cstring(line.start, line.num_bytes));
+
+				log(Right_aligned { 5, Clock { now.ms - test.start_time.ms } }, " ", msg);
+
+				/* match start of line against start of pattern line, marked by '\n' */
+				Msg("\n", msg).with_span([&] (Span const &span) {
 					_iteration->handle_log_message_for_current_test(now, span); });
 			};
 
-			if (msg.num_bytes)
-				msg.split('\n', [&] (Span const &line) { capture_line(line); });
-			else
-				capture_line(Span { nullptr, 0u } /* empty line */ );
+			Session_label const expected_prefix = prefixed_label(_runtime_prefix, test.name);
+
+			expected_prefix.with_span([&] (Span const &prefix) {
+				if (!origin.starts_with(prefix)) {
+					warning("spurious log message by '", Cstring(origin.start, origin.num_bytes), "'");
+					return;
+				}
+				with_skipped_prefix(origin, prefix, [&] (Span const &origin) {
+					if (msg.num_bytes)
+						msg.split('\n', [&] (Span const &line) { capture_line(origin, line); });
+					else
+						capture_line(origin, Span { nullptr, 0u } /* empty line */ );
+				});
+			});
 		});
 	}
 

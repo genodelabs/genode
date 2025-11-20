@@ -2,20 +2,20 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> test -> remove] *file /items cannot be removed because it is a directory*
-			[init -> test -> remove] remove file /items/2*
-			[init -> test -> remove] *file /3 cannot be removed because there is no such file*
-			[init -> test -> remove] remove file /4*
-			[init -> report_rom] report 'test -> fs_query -> listing'
-			[init -> report_rom]   &lt;listing>
-			[init -> report_rom]   	&lt;dir path="/fs/items">
-			[init -> report_rom]   		&lt;file name="1" writeable="yes">first&lt;/file>
-			[init -> report_rom]   		&lt;file name="5" writeable="yes">fifth&lt;/file>
-			[init -> report_rom]   	&lt;/dir>
-			[init -> report_rom]   	&lt;dir path="/fs/new/file/at/subdir">
-			[init -> report_rom]   		&lt;file name="content" writeable="yes">new file&lt;/file>
-			[init -> report_rom]   	&lt;/dir>
-			[init -> report_rom]   &lt;/listing>
+		[test -> remove] *file /items cannot be removed because it is a directory
+		[test -> remove] remove file /items/2
+		[test -> remove] *file /3 cannot be removed because there is no such file
+		[test -> remove] remove file /4
+		[report_rom] report 'test -> fs_query -> listing'
+		[report_rom]   &lt;listing>
+		[report_rom]   	&lt;dir path="/fs/items">
+		[report_rom]   		&lt;file name="1" writeable="yes">first&lt;/file>
+		[report_rom]   		&lt;file name="5" writeable="yes">fifth&lt;/file>
+		[report_rom]   	&lt;/dir>
+		[report_rom]   	&lt;dir path="/fs/new/file/at/subdir">
+		[report_rom]   		&lt;file name="content" writeable="yes">new file&lt;/file>
+		[report_rom]   	&lt;/dir>
+		[report_rom]   &lt;/listing>
 	</succeed>
 
 	<content>

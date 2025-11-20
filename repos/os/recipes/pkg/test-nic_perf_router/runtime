@@ -3,9 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="60"/>
-	<succeed>
-			[init] child "nic_perf_tx" exited with exit value 0
-	</succeed>
+	<succeed>child "nic_perf_tx" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -3,8 +3,8 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="30"/>
-	<succeed>[init] child "client" exited with exit value 0</succeed>
-	<fail>Error: </fail>
+	<succeed>child "client" exited with exit value 0</succeed>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

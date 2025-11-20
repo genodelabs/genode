@@ -1,7 +1,7 @@
 <runtime ram="64M" caps="1000" binary="init">
 
 	<fail after_seconds="120"/>
-	<succeed>--- test succeeded ---</succeed>
+	<succeed>[fifo-pipe-test] --- test succeeded ---</succeed>
 
 	<content>
 		<rom label="fs_rom"/>

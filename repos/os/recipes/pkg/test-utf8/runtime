@@ -4,7 +4,7 @@
 
 	<fail after_seconds="30"/>
 	<succeed>child "test-utf8" exited with exit value 0</succeed>
-	<fail>Error: </fail>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

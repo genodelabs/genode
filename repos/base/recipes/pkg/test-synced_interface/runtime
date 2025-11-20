@@ -2,12 +2,12 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> test-synced_interface] --- Synced interface test ---
-			[init -> test-synced_interface] acquire
-			[init -> test-synced_interface] adding 13 + 14
-			[init -> test-synced_interface] release
-			[init -> test-synced_interface] result is 27
-			[init -> test-synced_interface] --- Synced interface test finished ---
+		[test-synced_interface] --- Synced interface test ---
+		[test-synced_interface] acquire
+		[test-synced_interface] adding 13 + 14
+		[test-synced_interface] release
+		[test-synced_interface] result is 27
+		[test-synced_interface] --- Synced interface test finished ---
 	</succeed>
 
 	<content>

@@ -2,15 +2,15 @@
 
 	<fail after_seconds="10"/>
 	<succeed>
-			[init -> report_rom] report 'depot_query -> index'
-			[init -> report_rom] *&lt;index>
-			[init -> report_rom]   	&lt;index user="genodelabs" version="19.02">
-			[init -> report_rom]   		&lt;index name="Demos">
-			[init -> report_rom]   			&lt;pkg path="nano3d" info="simple software-rendering demo"/>
-			[init -> report_rom]   		&lt;/index>
-			[init -> report_rom]   	&lt;/index>
-			[init -> report_rom]   	&lt;missing user="genodelabs" version="19.03"/>
-			[init -> report_rom]   &lt;/index>
+		[report_rom] report 'depot_query -> index'
+		[report_rom] *&lt;index>
+		[report_rom]   	&lt;index user="genodelabs" version="19.02">
+		[report_rom]   		&lt;index name="Demos">
+		[report_rom]   			&lt;pkg path="nano3d" info="simple software-rendering demo"/>
+		[report_rom]   		&lt;/index>
+		[report_rom]   	&lt;/index>
+		[report_rom]   	&lt;missing user="genodelabs" version="19.03"/>
+		[report_rom]   &lt;/index>
 	</succeed>
 
 	<content>

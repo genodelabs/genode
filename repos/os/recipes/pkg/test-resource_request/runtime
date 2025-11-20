@@ -1,7 +1,7 @@
 <runtime ram="64M" caps="7000" binary="init">
 
 	<fail after_seconds="40"/>
-	<succeed>child "test-resource_request" exited with exit value 0</succeed>
+	<succeed>[init] child "test-resource_request" exited with exit value 0</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

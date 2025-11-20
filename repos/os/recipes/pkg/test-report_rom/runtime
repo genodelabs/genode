@@ -5,27 +5,27 @@
 	<fail after_seconds="30"/>
 	<fail>exited with exit value -1</fail>
 	<succeed>
-			[init -> test-report_rom] --- test-report_rom started ---
-			[init -> test-report_rom] Reporter: open session
-			[init -> test-report_rom] Reporter: brightness 10
-			[init -> test-report_rom] ROM client: request brightness report
-			[init -> test-report_rom]          -> &lt;brightness value="10"/>
-			[init -> test-report_rom] 
-			[init -> test-report_rom] Reporter: updated brightness to 77
-			[init -> test-report_rom] ROM client: wait for update notification
-			[init -> test-report_rom] ROM client: got signal
-			[init -> test-report_rom] ROM client: request updated brightness report
-			[init -> test-report_rom]          -> &lt;brightness value="77"/>
-			[init -> test-report_rom] 
-			[init -> test-report_rom] Reporter: close report session, wait a bit
-			[init -> test-report_rom] got timeout
-			[init -> test-report_rom]          -> &lt;brightness value="77"/>
-			[init -> test-report_rom] 
-			[init -> test-report_rom] ROM client: ROM is available despite report was closed - OK
-			[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)
-			[init -> test-report_rom] ROM client: wait for update notification
-			[init -> test-report_rom] ROM client: try to open the same report again
-			[init -> test-report_rom] *Error: stop because parent denied Report-session: label="brightness"
+		[test-report_rom] --- test-report_rom started ---
+		[test-report_rom] Reporter: open session
+		[test-report_rom] Reporter: brightness 10
+		[test-report_rom] ROM client: request brightness report
+		[test-report_rom]          -> &lt;brightness value="10"/>
+		[test-report_rom]
+		[test-report_rom] Reporter: updated brightness to 77
+		[test-report_rom] ROM client: wait for update notification
+		[test-report_rom] ROM client: got signal
+		[test-report_rom] ROM client: request updated brightness report
+		[test-report_rom]          -> &lt;brightness value="77"/>
+		[test-report_rom]
+		[test-report_rom] Reporter: close report session, wait a bit
+		[test-report_rom] got timeout
+		[test-report_rom]          -> &lt;brightness value="77"/>
+		[test-report_rom]
+		[test-report_rom] ROM client: ROM is available despite report was closed - OK
+		[test-report_rom] Reporter: start reporting (while the ROM client still listens)
+		[test-report_rom] ROM client: wait for update notification
+		[test-report_rom] ROM client: try to open the same report again
+		[test-report_rom] *Error: stop because parent denied Report-session: label="brightness"
 	</succeed>
 
 	<content>

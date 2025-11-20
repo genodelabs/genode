@@ -4,100 +4,100 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> test-ldso] Lib_2_global 0x11223343*
-			[init -> test-ldso] Lib_1_global_1 0x5060707*
-			[init -> test-ldso] Lib_1_global_2 0x1020303*
-			[init -> test-ldso] lib_1_attr_constructor_2 0x4030200f*
-			[init -> test-ldso] lib_1_attr_constructor_1 0x8070604f*
-			[init -> test-ldso] Global_1 0x5060707*
-			[init -> test-ldso] Global_2 0x1020303*
-			[init -> test-ldso] attr_constructor_2 0x4030200f*
-			[init -> test-ldso] attr_constructor_1 0x8070604f*
-			[init -> test-ldso] *
-			[init -> test-ldso] Dynamic-linker test*
-			[init -> test-ldso] ===================*
-			[init -> test-ldso] *
-			[init -> test-ldso] Global objects and local static objects of program*
-			[init -> test-ldso] --------------------------------------------------*
-			[init -> test-ldso] global_1 0x5060706*
-			[init -> test-ldso] global_2 0x1020302*
-			[init -> test-ldso] Local_1 0x5060707f*
-			[init -> test-ldso] local_1 0x5060707e*
-			[init -> test-ldso] Local_2 0x1020303f*
-			[init -> test-ldso] local_2 0x1020303e*
-			[init -> test-ldso] pod_1 0x8070604e*
-			[init -> test-ldso] pod_2 0x4030200e*
-			[init -> test-ldso] *
-			[init -> test-ldso] Access shared lib from program*
-			[init -> test-ldso] ------------------------------*
-			[init -> test-ldso] lib_2_global 0x11223342*
-			[init -> test-ldso] Lib_1_local_3 0x12345677*
-			[init -> test-ldso] lib_1_local_3 0x12345676*
-			[init -> test-ldso] lib_1_pod_1 0x8070604d*
-			[init -> test-ldso] Libc::read:*
-			[init -> test-ldso] *Error: no plugin found for read(3)*
-			[init -> test-ldso] Libc::abs(-10): 10*
-			[init -> test-ldso] *
-			[init -> test-ldso] Catch exceptions in program*
-			[init -> test-ldso] ---------------------------*
-			[init -> test-ldso] exception in program: caught*
-			[init -> test-ldso] exception in shared lib: caught*
-			[init -> test-ldso] exception in dynamic linker: caught*
-			[init -> test-ldso] *
-			[init -> test-ldso] global objects and local static objects of shared lib*
-			[init -> test-ldso] -----------------------------------------------------*
-			[init -> test-ldso] lib_1_global_1 0x5060706*
-			[init -> test-ldso] lib_1_global_2 0x1020302*
-			[init -> test-ldso] Lib_1_local_1 0x5060707f*
-			[init -> test-ldso] lib_1_local_1 0x5060707e*
-			[init -> test-ldso] Lib_1_local_2 0x1020303f*
-			[init -> test-ldso] lib_1_local_2 0x1020303e*
-			[init -> test-ldso] lib_1_pod_1 0x8070604e*
-			[init -> test-ldso] lib_1_pod_2 0x4030200e*
-			[init -> test-ldso] *
-			[init -> test-ldso] Access shared lib from another shared lib*
-			[init -> test-ldso] -----------------------------------------*
-			[init -> test-ldso] lib_2_global 0x11223341*
-			[init -> test-ldso] Lib_2_local 0x55667787*
-			[init -> test-ldso] lib_2_local 0x55667786*
-			[init -> test-ldso] lib_2_pod_1 0x87654320*
-			[init -> test-ldso] *
-			[init -> test-ldso] Catch exceptions in shared lib*
-			[init -> test-ldso] ------------------------------*
-			[init -> test-ldso] exception in lib: caught*
-			[init -> test-ldso] exception in another shared lib: caught*
-			[init -> test-ldso] *
-			[init -> test-ldso] Test stack alignment*
-			[init -> test-ldso] --------------------*
-			[init -> test-ldso] &lt;warning: unsupported format string argument>*
-			[init -> test-ldso] &lt;warning: unsupported format string argument>*
-			[init -> test-ldso] &lt;warning: unsupported format string argument>*
-			[init -> test-ldso] &lt;warning: unsupported format string argument>*
-			[init -> test-ldso] *
-			[init -> test-ldso] Dynamic cast*
-			[init -> test-ldso] ------------*
-			[init -> test-ldso] 'Object' called: good*
-			[init -> test-ldso] *
-			[init -> test-ldso] Shared-object API*
-			[init -> test-ldso] -----------------*
-			[init -> test-ldso] Global object constructed*
-			[init -> test-ldso] *
-			[init -> test-ldso] Destruction*
-			[init -> test-ldso] -----------*
-			[init -> test-ldso] ~Lib_2_local 0x55667785*
-			[init -> test-ldso] ~Lib_1_local_2 0x1020303d*
-			[init -> test-ldso] ~Lib_1_local_1 0x5060707d*
-			[init -> test-ldso] ~Lib_1_local_3 0x12345675*
-			[init -> test-ldso] ~Local_2 0x1020303d*
-			[init -> test-ldso] ~Local_1 0x5060707d*
-			[init -> test-ldso] ~Global_2 0x1020301*
-			[init -> test-ldso] ~Global_1 0x5060705*
-			[init -> test-ldso] ~Lib_1_global_2 0x1020301*
-			[init -> test-ldso] ~Lib_1_global_1 0x5060705*
-			[init -> test-ldso] ~Lib_2_global 0x11223340*
-			[init -> test-ldso] attr_destructor_2 0x4030200d*
-			[init -> test-ldso] attr_destructor_1 0x8070604c*
-			[init] child "test-ldso" exited with exit value 123
+		[test-ldso] Lib_2_global 0x11223343
+		[test-ldso] Lib_1_global_1 0x5060707
+		[test-ldso] Lib_1_global_2 0x1020303
+		[test-ldso] lib_1_attr_constructor_2 0x4030200f
+		[test-ldso] lib_1_attr_constructor_1 0x8070604f
+		[test-ldso] Global_1 0x5060707
+		[test-ldso] Global_2 0x1020303
+		[test-ldso] attr_constructor_2 0x4030200f
+		[test-ldso] attr_constructor_1 0x8070604f
+		[test-ldso]
+		[test-ldso] Dynamic-linker test
+		[test-ldso] ===================
+		[test-ldso]
+		[test-ldso] Global objects and local static objects of program
+		[test-ldso] --------------------------------------------------
+		[test-ldso] global_1 0x5060706
+		[test-ldso] global_2 0x1020302
+		[test-ldso] Local_1 0x5060707f
+		[test-ldso] local_1 0x5060707e
+		[test-ldso] Local_2 0x1020303f
+		[test-ldso] local_2 0x1020303e
+		[test-ldso] pod_1 0x8070604e
+		[test-ldso] pod_2 0x4030200e
+		[test-ldso]
+		[test-ldso] Access shared lib from program
+		[test-ldso] ------------------------------
+		[test-ldso] lib_2_global 0x11223342
+		[test-ldso] Lib_1_local_3 0x12345677
+		[test-ldso] lib_1_local_3 0x12345676
+		[test-ldso] lib_1_pod_1 0x8070604d
+		[test-ldso] Libc::read:
+		[test-ldso] *Error: no plugin found for read(3)
+		[test-ldso] Libc::abs(-10): 10
+		[test-ldso]
+		[test-ldso] Catch exceptions in program
+		[test-ldso] ---------------------------
+		[test-ldso] exception in program: caught
+		[test-ldso] exception in shared lib: caught
+		[test-ldso] exception in dynamic linker: caught
+		[test-ldso]
+		[test-ldso] global objects and local static objects of shared lib
+		[test-ldso] -----------------------------------------------------
+		[test-ldso] lib_1_global_1 0x5060706
+		[test-ldso] lib_1_global_2 0x1020302
+		[test-ldso] Lib_1_local_1 0x5060707f
+		[test-ldso] lib_1_local_1 0x5060707e
+		[test-ldso] Lib_1_local_2 0x1020303f
+		[test-ldso] lib_1_local_2 0x1020303e
+		[test-ldso] lib_1_pod_1 0x8070604e
+		[test-ldso] lib_1_pod_2 0x4030200e
+		[test-ldso]
+		[test-ldso] Access shared lib from another shared lib
+		[test-ldso] -----------------------------------------
+		[test-ldso] lib_2_global 0x11223341
+		[test-ldso] Lib_2_local 0x55667787
+		[test-ldso] lib_2_local 0x55667786
+		[test-ldso] lib_2_pod_1 0x87654320
+		[test-ldso]
+		[test-ldso] Catch exceptions in shared lib
+		[test-ldso] ------------------------------
+		[test-ldso] exception in lib: caught
+		[test-ldso] exception in another shared lib: caught
+		[test-ldso]
+		[test-ldso] Test stack alignment
+		[test-ldso] --------------------
+		[test-ldso] &lt;warning: unsupported format string argument>
+		[test-ldso] &lt;warning: unsupported format string argument>
+		[test-ldso] &lt;warning: unsupported format string argument>
+		[test-ldso] &lt;warning: unsupported format string argument>
+		[test-ldso]
+		[test-ldso] Dynamic cast
+		[test-ldso] ------------
+		[test-ldso] 'Object' called: good
+		[test-ldso]
+		[test-ldso] Shared-object API
+		[test-ldso] -----------------
+		[test-ldso] Global object constructed
+		[test-ldso]
+		[test-ldso] Destruction
+		[test-ldso] -----------
+		[test-ldso] ~Lib_2_local 0x55667785
+		[test-ldso] ~Lib_1_local_2 0x1020303d
+		[test-ldso] ~Lib_1_local_1 0x5060707d
+		[test-ldso] ~Lib_1_local_3 0x12345675
+		[test-ldso] ~Local_2 0x1020303d
+		[test-ldso] ~Local_1 0x5060707d
+		[test-ldso] ~Global_2 0x1020301
+		[test-ldso] ~Global_1 0x5060705
+		[test-ldso] ~Lib_1_global_2 0x1020301
+		[test-ldso] ~Lib_1_global_1 0x5060705
+		[test-ldso] ~Lib_2_global 0x11223340
+		[test-ldso] attr_destructor_2 0x4030200d
+		[test-ldso] attr_destructor_1 0x8070604c
+		child "test-ldso" exited with exit value 123
 	</succeed>
 
 	<content>

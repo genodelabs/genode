@@ -4,17 +4,17 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
-			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
-			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config color="yellow">*&lt;xray_enabled/>*&lt;/config>*
-			[init -> rom_logger] ROM 'generated':
-			[init -> rom_logger]   &lt;config message="system locked" color="transparent">*&lt;fallback/>*&lt;/config>*
-			[init -> dynamic_rom] xray: change (finished)
+		[rom_logger] ROM 'generated':
+		[rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
+		[rom_logger] ROM 'generated':
+		[rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
+		[rom_logger] ROM 'generated':
+		[rom_logger]   &lt;config color="yellow">*&lt;xray_enabled/>*&lt;/config>*
+		[rom_logger] ROM 'generated':
+		[rom_logger]   &lt;config message="system locked" color="transparent">*&lt;fallback/>*&lt;/config>*
+		[dynamic_rom] xray: change (finished)
 	</succeed>
-	<fail>Error: </fail>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

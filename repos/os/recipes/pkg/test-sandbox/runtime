@@ -2,7 +2,7 @@
 
 	<requires> <timer/> </requires>
 
-	<succeed>version="5"</succeed>
+	<succeed>*version="5"</succeed>
 	<fail after_seconds="10"/>
 
 	<content>

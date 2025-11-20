@@ -2,7 +2,7 @@
 
 	<fail after_seconds="30"/>
 	<succeed>child "test-libc_vfs" exited with exit value 0</succeed>
-	<fail>[init -> test-libc_vfs] Error: </fail>
+	<fail>[test-libc_vfs] Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

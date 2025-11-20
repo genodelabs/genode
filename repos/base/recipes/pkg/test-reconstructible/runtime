@@ -2,41 +2,41 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> test-reconstructible] --- Reconstructible utility test ---
-			[init -> test-reconstructible] construct Object 1
-			[init -> test-reconstructible] construct Object 2
-			[init -> test-reconstructible] create Compound object
-			[init -> test-reconstructible] construct Member_with_reference
-			[init -> test-reconstructible] construct Compound
-			[init -> test-reconstructible] compound.member.constructed returns 1
-			[init -> test-reconstructible] compound.lazy_member.constructed returns 0
-			[init -> test-reconstructible] construct lazy member
-			[init -> test-reconstructible] construct Member_with_reference
-			[init -> test-reconstructible] compound.lazy_member.constructed returns 1
-			[init -> test-reconstructible] call method on member (with reference to Object 1)
-			[init -> test-reconstructible] const method called on Object 1
-			[init -> test-reconstructible] reconstruct member with Object 2 as reference
-			[init -> test-reconstructible] destruct Member_with_reference
-			[init -> test-reconstructible] construct Member_with_reference
-			[init -> test-reconstructible] call method on member
-			[init -> test-reconstructible] const method called on Object 2
-			[init -> test-reconstructible] destruct member
-			[init -> test-reconstructible] destruct Member_with_reference
-			[init -> test-reconstructible] try to call method on member, catch exception
-			[init -> test-reconstructible] *Error: attempt to access unconstructed object*
-			[init -> test-reconstructible] backtrace "ep"*
-			[init -> test-reconstructible] got exception, as expected
-			[init -> test-reconstructible] destruct Compound and Objects 1 and 2
-			[init -> test-reconstructible] destruct Compound
-			[init -> test-reconstructible] destruct Member_with_reference
-			[init -> test-reconstructible] destruct Object 2
-			[init -> test-reconstructible] destruct Object 1
-			[init -> test-reconstructible] construct Throwing object
-			[init -> test-reconstructible] construct Throwing -> don't throw
-			[init -> test-reconstructible] destruct Throwing
-			[init -> test-reconstructible] construct Throwing -> throw exception
-			[init -> test-reconstructible] got exception, as expected
-			[init -> test-reconstructible] --- Reconstructible utility test finished ---
+		[test-reconstructible] --- Reconstructible utility test ---
+		[test-reconstructible] construct Object 1
+		[test-reconstructible] construct Object 2
+		[test-reconstructible] create Compound object
+		[test-reconstructible] construct Member_with_reference
+		[test-reconstructible] construct Compound
+		[test-reconstructible] compound.member.constructed returns 1
+		[test-reconstructible] compound.lazy_member.constructed returns 0
+		[test-reconstructible] construct lazy member
+		[test-reconstructible] construct Member_with_reference
+		[test-reconstructible] compound.lazy_member.constructed returns 1
+		[test-reconstructible] call method on member (with reference to Object 1)
+		[test-reconstructible] const method called on Object 1
+		[test-reconstructible] reconstruct member with Object 2 as reference
+		[test-reconstructible] destruct Member_with_reference
+		[test-reconstructible] construct Member_with_reference
+		[test-reconstructible] call method on member
+		[test-reconstructible] const method called on Object 2
+		[test-reconstructible] destruct member
+		[test-reconstructible] destruct Member_with_reference
+		[test-reconstructible] try to call method on member, catch exception
+		[test-reconstructible] *Error: attempt to access unconstructed object
+		[test-reconstructible] backtrace "ep"
+		[test-reconstructible] got exception, as expected
+		[test-reconstructible] destruct Compound and Objects 1 and 2
+		[test-reconstructible] destruct Compound
+		[test-reconstructible] destruct Member_with_reference
+		[test-reconstructible] destruct Object 2
+		[test-reconstructible] destruct Object 1
+		[test-reconstructible] construct Throwing object
+		[test-reconstructible] construct Throwing -> don't throw
+		[test-reconstructible] destruct Throwing
+		[test-reconstructible] construct Throwing -> throw exception
+		[test-reconstructible] got exception, as expected
+		[test-reconstructible] --- Reconstructible utility test finished ---
 	</succeed>
 
 	<content>

@@ -3,59 +3,58 @@
 	<fail after_seconds="20"/>
 
 	<succeed>
-			[init -> test-new_delete] Allocator::alloc()
-			[init -> test-new_delete]   A
-			[init -> test-new_delete]   C
-			[init -> test-new_delete]   B
-			[init -> test-new_delete]   D
-			[init -> test-new_delete]   E
-			[init -> test-new_delete]   ~E
-			[init -> test-new_delete]   ~D
-			[init -> test-new_delete]   ~B
-			[init -> test-new_delete]   ~C
-			[init -> test-new_delete]   ~A
-			[init -> test-new_delete] Allocator::free()
-			[init -> test-new_delete] Allocator::alloc()
-			[init -> test-new_delete]   A
-			[init -> test-new_delete]   C
-			[init -> test-new_delete]   B
-			[init -> test-new_delete]   D
-			[init -> test-new_delete]   E
-			[init -> test-new_delete] throw exception
-			[init -> test-new_delete]   ~D
-			[init -> test-new_delete]   ~B
-			[init -> test-new_delete]   ~C
-			[init -> test-new_delete]   ~A
-			[init -> test-new_delete] Allocator::free()
-			[init -> test-new_delete] exception caught
-			[init -> test-new_delete] Allocator::alloc()
-			[init -> test-new_delete]   A
-			[init -> test-new_delete]   C
-			[init -> test-new_delete]   B
-			[init -> test-new_delete]   D
-			[init -> test-new_delete]   E
-			[init -> test-new_delete]   ~E
-			[init -> test-new_delete]   ~D
-			[init -> test-new_delete]   ~B
-			[init -> test-new_delete]   ~C
-			[init -> test-new_delete]   ~A
-			[init -> test-new_delete] Allocator::free()
-			[init -> test-new_delete] Allocator::alloc()
-			[init -> test-new_delete]   A
-			[init -> test-new_delete]   C
-			[init -> test-new_delete]   B
-			[init -> test-new_delete]   D
-			[init -> test-new_delete]   E
-			[init -> test-new_delete] throw exception
-			[init -> test-new_delete]   ~D
-			[init -> test-new_delete]   ~B
-			[init -> test-new_delete]   ~C
-			[init -> test-new_delete]   ~A
-			[init -> test-new_delete] Allocator::free()
-			[init -> test-new_delete] exception caught
-			[init -> test-new_delete] Test done
+		[test-new_delete] Allocator::alloc()
+		[test-new_delete]   A
+		[test-new_delete]   C
+		[test-new_delete]   B
+		[test-new_delete]   D
+		[test-new_delete]   E
+		[test-new_delete]   ~E
+		[test-new_delete]   ~D
+		[test-new_delete]   ~B
+		[test-new_delete]   ~C
+		[test-new_delete]   ~A
+		[test-new_delete] Allocator::free()
+		[test-new_delete] Allocator::alloc()
+		[test-new_delete]   A
+		[test-new_delete]   C
+		[test-new_delete]   B
+		[test-new_delete]   D
+		[test-new_delete]   E
+		[test-new_delete] throw exception
+		[test-new_delete]   ~D
+		[test-new_delete]   ~B
+		[test-new_delete]   ~C
+		[test-new_delete]   ~A
+		[test-new_delete] Allocator::free()
+		[test-new_delete] exception caught
+		[test-new_delete] Allocator::alloc()
+		[test-new_delete]   A
+		[test-new_delete]   C
+		[test-new_delete]   B
+		[test-new_delete]   D
+		[test-new_delete]   E
+		[test-new_delete]   ~E
+		[test-new_delete]   ~D
+		[test-new_delete]   ~B
+		[test-new_delete]   ~C
+		[test-new_delete]   ~A
+		[test-new_delete] Allocator::free()
+		[test-new_delete] Allocator::alloc()
+		[test-new_delete]   A
+		[test-new_delete]   C
+		[test-new_delete]   B
+		[test-new_delete]   D
+		[test-new_delete]   E
+		[test-new_delete] throw exception
+		[test-new_delete]   ~D
+		[test-new_delete]   ~B
+		[test-new_delete]   ~C
+		[test-new_delete]   ~A
+		[test-new_delete] Allocator::free()
+		[test-new_delete] exception caught
+		[test-new_delete] Test done
 	</succeed>
-
 
 	<content>
 		<rom label="ld.lib.so"/>

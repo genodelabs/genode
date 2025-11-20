@@ -1,7 +1,7 @@
 <runtime ram="32M" caps="1000" binary="test-blit">
 
 	<fail after_seconds="20"/>
-	<succeed>[init] --- blit test finished ---</succeed>
+	<succeed>--- blit test finished ---</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

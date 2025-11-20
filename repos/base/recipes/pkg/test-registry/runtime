@@ -2,7 +2,7 @@
 
 	<fail after_seconds="20"/>
 	<succeed>child "test-registry" exited with exit value 0</succeed>
-	<fail>Uncaught exception</fail>
+	<fail>*Uncaught exception</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -5,41 +5,41 @@
 	<fail after_seconds="10"/>
 
 	<succeed>
-			[init] --- 'Genode::Path' test ---
-			[init] 
-			[init] testing removal of superfluous slashes
-			[init] 
-			[init] '//dir1///' -> '/dir1/'
-			[init] 
-			[init] testing removal of superfluous dot-slashes
-			[init] 
-			[init] '/./dir1/././' -> '/dir1/'
-			[init] './dir1/././' -> './dir1/'
-			[init] 
-			[init] testing removal of double dot dirs
-			[init] 
-			[init] '/..' -> '/'
-			[init] '/dir1/..' -> '/'
-			[init] '/dir1/../..' -> '/'
-			[init] '/dir1/dir2/..' -> '/dir1'
-			[init] '/dir1/../dir2' -> '/dir2'
-			[init] '/../dir1' -> '/dir1'
-			[init] '/../../dir1' -> '/dir1'
-			[init] '/../dir1/..' -> '/'
-			[init] '..' -> ''
-			[init] 'dir1/..' -> ''
-			[init] 'dir1/../..' -> ''
-			[init] 'dir1/dir2/..' -> 'dir1'
-			[init] 'dir1/../dir2' -> 'dir2'
-			[init] '../dir1' -> 'dir1'
-			[init] '../../dir1' -> 'dir1'
-			[init] '../dir1/..' -> ''
-			[init] 
-			[init] testing removal of trailing dot
-			[init] 
-			[init] '/dir1/.' -> '/dir1/'
-			[init] 
-			[init] --- 'Genode::Path' test finished ---
+		--- 'Genode::Path' test ---
+
+		testing removal of superfluous slashes
+
+		'//dir1///' -> '/dir1/'
+
+		testing removal of superfluous dot-slashes
+
+		'/./dir1/././' -> '/dir1/'
+		'./dir1/././' -> './dir1/'
+
+		testing removal of double dot dirs
+
+		'/..' -> '/'
+		'/dir1/..' -> '/'
+		'/dir1/../..' -> '/'
+		'/dir1/dir2/..' -> '/dir1'
+		'/dir1/../dir2' -> '/dir2'
+		'/../dir1' -> '/dir1'
+		'/../../dir1' -> '/dir1'
+		'/../dir1/..' -> '/'
+		'..' -> ''
+		'dir1/..' -> ''
+		'dir1/../..' -> ''
+		'dir1/dir2/..' -> 'dir1'
+		'dir1/../dir2' -> 'dir2'
+		'../dir1' -> 'dir1'
+		'../../dir1' -> 'dir1'
+		'../dir1/..' -> ''
+
+		testing removal of trailing dot
+		
+		'/dir1/.' -> '/dir1/'
+
+		--- 'Genode::Path' test finished ---
 	</succeed>
 
 	<content>

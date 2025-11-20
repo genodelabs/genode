@@ -2,12 +2,12 @@
 
 	<fail after_seconds="20"/>
 	<succeed>
-			[init -> test-tls] main     initial: x: -1, y: 0
-			[init -> test-tls] thread 0 initial: x: -1, y: 0
-			[init -> test-tls] thread 0        : x:  1, y: 2
-			[init -> test-tls] thread 1 initial: x: -1, y: 0
-			[init -> test-tls] thread 1        : x:  3, y: 4
-			[init -> test-tls] main            : x:  5, y: 6
+		[test-tls] main     initial: x: -1, y: 0
+		[test-tls] thread 0 initial: x: -1, y: 0
+		[test-tls] thread 0        : x:  1, y: 2
+		[test-tls] thread 1 initial: x: -1, y: 0
+		[test-tls] thread 1        : x:  3, y: 4
+		[test-tls] main            : x:  5, y: 6
 	</succeed>
 
 	<content>

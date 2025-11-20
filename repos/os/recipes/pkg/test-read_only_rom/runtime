@@ -1,8 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<succeed after_seconds="20"/>
-	<fail>ROM dataspace modified</fail>
-	<fail>requests resources</fail>
+	<fail>*ROM dataspace modified</fail>
+	<fail>*requests resources</fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

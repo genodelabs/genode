@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="50"/>
-	<succeed>Test done</succeed>
+	<succeed>[test-slab] Test done</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

@@ -1,8 +1,8 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<fail after_seconds="20"/>
-	<succeed>--- finished nested region map test ---</succeed>
-	<fail>Error: </fail>
+	<succeed>[test-rm_nested] --- finished nested region map test ---</succeed>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

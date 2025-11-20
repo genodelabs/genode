@@ -2,8 +2,8 @@
 
 	<requires> <timer/> </requires>
 
-	<fail after_seconds="20">invisible message</fail>
-	<succeed>Finished</succeed>
+	<fail after_seconds="20">*invisible message</fail>
+	<succeed>[test-black_hole] Finished</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

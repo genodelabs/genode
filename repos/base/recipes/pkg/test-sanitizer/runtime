@@ -2,8 +2,8 @@
 
 	<fail after_seconds="10"/>
 	<succeed>
-			[init]*runtime error: *index 2 out of bounds*
-			[init]*runtime error: *store to null pointer
+		*runtime error: *index 2 out of bounds*
+		*runtime error: *store to null pointer
 	</succeed>
 
 	<content>

@@ -3,8 +3,8 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="20"/>
-	<succeed>--- finished test-weak_ptr ---</succeed>
-	<fail>Error: </fail>
+	<succeed>[test-weak_ptr] --- finished test-weak_ptr ---</succeed>
+	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>

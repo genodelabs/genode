@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="20"/>
-	<succeed>&lt;config iteration="4"/></succeed>
+	<succeed>[rom_logger] *&lt;config iteration="4"/></succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

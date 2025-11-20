@@ -3,9 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<fail after_seconds="20"/>
-	<succeed>
-			[init -> test-dynamic_config] obtained counter value 11 from config
-	</succeed>
+	<succeed>[test-dynamic_config] obtained counter value 11 from config</succeed>
 
 	<content>
 		<rom label="ld.lib.so"/>

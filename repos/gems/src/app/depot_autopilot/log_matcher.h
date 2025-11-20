@@ -58,12 +58,34 @@ struct Depot_autopilot::Log_matcher : Noncopyable
 			return fn(Span(s, n));
 		};
 
+		auto prepend_newline = [] (Span const &span, auto const &fn)
+		{
+			char buf[1 + span.num_bytes] { };
+			buf[0] = '\n';
+			memcpy(buf + 1, span.start, span.num_bytes);
+			fn(Span { buf, sizeof(buf) });
+		};
+
 		pattern.split('\n', [&] (Span const &line) {
 			trimmed(line, [&] (Span const &trimmed_line) {
-				if (trimmed_line.num_bytes)
-					trimmed_line.split('*', [&] (Span const &fragment) {
-						if (fragment.num_bytes)
-							_pattern.append(fragment); }); }); });
+				if (!trimmed_line.num_bytes)
+					return;
+
+				bool first = true;
+				trimmed_line.split('*', [&] (Span const &fragment) {
+					if (fragment.num_bytes) {
+
+						/* imprint newline at the begin of each pattern line */
+						if (first)
+							prepend_newline(fragment, [&] (Span const &nl_fragment) {
+								_pattern.append(nl_fragment); });
+						else
+							_pattern.append(fragment);
+					}
+					first = false;
+				});
+			});
+		});
 	}
 
 	/**
