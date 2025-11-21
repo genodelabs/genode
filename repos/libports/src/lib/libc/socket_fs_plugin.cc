@@ -246,6 +246,8 @@ struct Libc::Socket_fs::Context : Plugin_context
 			::close(_handle_fd);
 		}
 
+		Config::Connect_timeout const conn_timeout = _config_ptr->conn_timeout;
+
 		Absolute_path path() const { return _path; }
 
 		Proto proto() const { return _proto; }
@@ -805,8 +807,7 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 			FD_ZERO(&writefds);
 			FD_SET(libc_fd, &writefds);
 
-			enum { CONNECT_TIMEOUT_S = 10 };
-			struct timeval timeout {CONNECT_TIMEOUT_S, 0};
+			struct timeval timeout {context->conn_timeout.seconds, 0};
 			int res = select(libc_fd + 1, NULL, &writefds, NULL, &timeout);
 
 			if (res < 0) {

@@ -2,7 +2,7 @@
 
 	<requires> <timer/> </requires>
 
-	<fail after_seconds="80"/>
+	<fail after_seconds="10"/>
 	<fail>*exited with exit value -1</fail>
 	<succeed>child "test-libc_connect" exited with exit value 0</succeed>
 
@@ -80,7 +80,8 @@
 						<lxip ip_addr="10.0.1.3" netmask="255.255.255.0" gateway="10.0.1.1"/>
 					</dir>
 				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"
+				      connect_timeout_sec="1"/>
 			</config>
 		</start>
 

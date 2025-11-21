@@ -154,7 +154,7 @@ static void test_nonblocking_connect_connected()
 	FD_ZERO(&writefds);
 	FD_SET(s, &writefds);
 
-	struct timeval timeout {10, 0};
+	struct timeval timeout {1, 0};
 	res = select(s + 1, NULL, &writefds, NULL, &timeout);
 
 	if (res != 1) DIE();
@@ -228,7 +228,7 @@ static void test_nonblocking_connect_connection_refused()
 	FD_ZERO(&writefds);
 	FD_SET(s, &writefds);
 
-	struct timeval timeout {10, 0};
+	struct timeval timeout {1, 0};
 	res = select(s + 1, NULL, &writefds, NULL, &timeout);
 
 	if (res != 1) DIE();
@@ -278,7 +278,7 @@ static void test_nonblocking_connect_timeout()
 	FD_ZERO(&writefds);
 	FD_SET(s, &writefds);
 
-	struct timeval timeout {10, 0};
+	struct timeval timeout {1, 0};
 	res = select(s + 1, NULL, &writefds, NULL, &timeout);
 
 	if (res != 0) DIE();

@@ -34,6 +34,8 @@ struct Libc::Config
 	Path   rtc, rng, pipe, socket, nameserver;
 	size_t stack_size;
 
+	struct Connect_timeout { unsigned seconds; } conn_timeout;
+
 	static Config _from_libc_node(Node const &libc)
 	{
 		Path const socket = libc.attribute_value("socket", Path());
@@ -54,6 +56,7 @@ struct Libc::Config
 			.nameserver   = libc.attribute_value("nameserver_file",
 			                                     default_nameserver),
 			.stack_size   = stack_size,
+			.conn_timeout = { libc.attribute_value("connect_timeout_sec", 10u) },
 		};
 	}
 

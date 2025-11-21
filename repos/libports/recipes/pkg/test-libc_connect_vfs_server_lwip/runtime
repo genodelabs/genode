@@ -2,7 +2,7 @@
 
 	<requires> <timer/> </requires>
 
-	<fail after_seconds="100"/>
+	<fail after_seconds="10"/>
 	<fail>*exited with exit value -1</fail>
 	<succeed>child "test-libc_connect" exited with exit value 0</succeed>
 
@@ -87,7 +87,8 @@
 					<dir name="dev"> <log/> </dir>
 					<dir name="socket"> <fs/> </dir>
 				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"
+				      connect_timeout_sec="1"/>
 			</config>
 			<route>
 				<service name="File_system"> <child name="socket_fs_client"/> </service>
