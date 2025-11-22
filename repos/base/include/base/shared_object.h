@@ -196,6 +196,11 @@ class Genode::Dynamic_linker
 		{
 			return reinterpret_cast<T>(_respawn(env, binary_name, entrypoint_name));
 		}
+
+		/**
+		 * Actualize dependency information in ELF binaries
+		 */
+		static void update_dependencies();
 };
 
 #endif /* _INCLUDE__BASE__SHARED_OBJECT_H_ */

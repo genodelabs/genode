@@ -258,6 +258,11 @@ class Linker::Object : private Fifo<Object>::Element,
 		virtual Symbol_info symbol_at_address(addr_t addr) const = 0;
 
 		bool needs_static_construction();
+
+		/**
+		 * Write dep to .got
+		 */
+		virtual void update_dependency(Dependency const &dep) = 0;
 };
 
 
@@ -331,6 +336,11 @@ class Linker::Dependency : public Fifo<Dependency>::Element, Noncopyable
 		 * Return first element of dependency list
 		 */
 		Dependency const &first() const;
+
+		/**
+		 * Update dependency of Object
+		 */
+		void update() { _obj.update_dependency(*this); }
 };
 
 
@@ -356,8 +366,7 @@ class Linker::Root_object
 		~Root_object()
 		{
 			_deps.dequeue_all([&] (Dependency &d) {
-				if (!d.obj().keep())
-					destroy(_md_alloc, &d); });
+				destroy(_md_alloc, &d); });
 		}
 
 		Link_map const &link_map() const

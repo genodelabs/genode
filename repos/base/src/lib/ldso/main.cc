@@ -222,7 +222,12 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 
 		void plt_setup() { _dyn.plt_setup(); }
 
-		void update_dependency(Dependency const &dep) { _dyn.dep(dep); }
+		void update_dependency(Dependency const &dep) override
+		{
+			_dyn.dep(dep);
+			/* update Dynamic .got pointer in ELF */
+			_dyn.plt_setup();
+		}
 
 		void relocate(Bind bind) override SELF_RELOC
 		{
@@ -462,6 +467,12 @@ struct Linker::Binary : private Root_object, public Elf_object
 	}
 
 	bool is_binary() const override { return true; }
+
+	void update_dependencies()
+	{
+		deps().for_each([&](Dependency &dep) {
+			dep.update(); });
+	}
 };
 
 
@@ -517,6 +528,8 @@ Object &Linker::load(Env &env, Allocator &md_alloc, char const *path,
 
 				if (!strcmp(Linker::file(path), obj.name())) {
 					obj.load();
+					/* when reusing we need to propagate the new dep */
+					obj.update_dependency(dep);
 					result = &obj;
 				}
 			}
@@ -743,6 +756,12 @@ void Dynamic_linker::keep(Env &, char const *binary)
 			if (Object::Name(binary) == obj.name())
 				obj.force_keep(); });
 	});
+}
+
+
+void Dynamic_linker::update_dependencies()
+{
+	binary_ptr->update_dependencies();
 }
 
 
