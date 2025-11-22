@@ -64,6 +64,12 @@ Genode::Shared_object::Shared_object(Env &env, Allocator &md_alloc,
 			            bind == BIND_NOW ? Linker::BIND_NOW : Linker::BIND_LAZY,
 			            keep == KEEP     ? Linker::KEEP     : Linker::DONT_KEEP);
 
+		/*
+		 * Because new Dependencies are created make sure all dependency pointers
+		 * from the main Binary remain intact
+		 */
+		Dynamic_linker::update_dependencies();
+
 		_handle = root;
 
 		/* print loaded object information */

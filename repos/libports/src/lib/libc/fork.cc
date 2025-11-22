@@ -642,6 +642,13 @@ extern "C" pid_t __sys_fork(void)
 		return Fn::INCOMPLETE;
 	});
 
+	/*
+	 * Update dependency information in linker because old .got pointers will be
+	 * stale after clone
+	 */
+	if (fork_result == 0)
+		Dynamic_linker::update_dependencies();
+
 	return fork_result;
 }
 
