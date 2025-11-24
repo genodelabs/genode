@@ -1,0 +1,643 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 25.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+The release 25.11 wraps up our year of "rigidity, clarity, performance" with a
+bouquet of vast under-the-hood improvements. Genode's custom kernel received
+special tuning of its new CPU scheduler for Sculpt-OS workloads, and became
+much more scalable with respect to virtual-memory management. Combined,
+those efforts visibly boost the performance of Sculpt OS on performance-starved
+hardware like the PinePhone or the i.MX8-based MNT Reform laptop. On account
+of improving clarity, our new configuration format - now named human-inclined
+data (HID) - proliferates throughout Genode's tooling. We are also happy to
+report that almost all Genode components have become interoperable with both
+XML and HID by now.
+
+The most impactful topic of Genode 25.11, however, is a new modus operandi of
+co-maintaining applications and libraries that are important for most Genode
+users but are not strictly part of the Genode OS framework, for example the
+ports of libSDL, sqlite, or gnutls. In contrast to software maintained by an
+individual developer comfortably using the Goa SDK for scratching an own itch
+and publishing the result for others as a courtesy, important infrastructure
+components and libraries deserve the shared responsibility of multiple
+stakeholders. The meeting place for such concerted efforts is the
+[https://github.com/genodelabs/genode-world - Genode-World] repository.
+However, until now, this place was impeded by the mandatory use of Genode's
+build system, which was not an ideal fit because it was designed for building
+and integrating whole systems rather than developing and testing individual
+components. Section [Genode-world using the Goa SDK] details how the
+Genode-World repository has now broken free from those chains and enters an
+era of new freedom - like the choice of build systems - and comfort provided
+by the Goa SDK. The re-imagining of the Genode-World repository went hand in
+hand with new enhancements of Goa to make software co-maintenance a joy
+(Section [Enhanced Goa SDK]).
+
+Further topics of the release touch areas as diverse as the use of the seL4
+kernel on 64-bit ARM, GPU use on Intel Alder Lake, USB-to-serial support, and
+TCP/IP-stack improvements.
+
+
+Genode-world using the Goa SDK
+##############################
+
+The _genode-world_ repository was created as a gathering place for interesting
+components that enrich the Genode ecosystem but are not strictly placed under
+the same scrutiny as the ones in the base repositories. This intentionally
+lowers the bar for community contributions and makes it the perfect fit for
+_ported applications_ and their dependencies.
+
+Nowadays, the Goa SDK gradually replaces the base build system when existing
+software is ported to Genode. With Goa, ported applications can rely on
+their original commodity build system like Autoconf, CMake, QMake, or a
+plain Makefile. The existing project files and tools can be used unchanged
+to create build artifacts that are compatible with Genode.
+
+As we aim for Goa to become the designated approach to port existing software
+and even develop new components for Genode in the future, we
+[https://genode.discourse.group/t/announcement-for-the-restructuring-of-the-world-repository/138 - announced]
+our plans to restructure _genode-world_ from a Genode repository into one that
+houses Goa projects at the beginning of 2025.
+
+The content of the old repository will live on until Summer 2026 within the
+_legacy_ sub-directory of the repository to ease the ongoing transition phase.
+If you are still relying on software from the _legacy/_ directory you may have
+to adjust your current checkout to keep it operational as follows.
+
+Replace the 'repos/world' directory with a symlink pointing to the _legacy_
+sub-directory within your checkout. In case you followed the original _README_
+file it is safe to move your direct checkout directory out of Genode's _repos_
+directory:
+
+! mv genode/repos/world ../../genode-world
+! ln -sf <path>/genode-world/legacy genode/repos/world
+
+Afterwards, the repository can be used as before as a regular Genode
+repository, further alterations are not necessary.
+
+Since Goa is now required to contribute to _genode-world_, the first step is
+setting it up and making yourself comfortable using the tool. The
+[https://genode.org/documentation/genode-applications-25-04.pdf - Genode Applications book]
+will help you along the way. It describes how to install and setup Goa,
+and also contains practical tutorials encouraging you to get your feet wet.
+Keeping it close while starting your journey is strongly recommended.
+
+Please note that Goa is battle-tested mostly on recent Ubuntu LTS, Debian
+stable, Arch Linux, and Gentoo distributions. Should you encounter
+difficulties while using a different Linux distribution, please don't hesitate
+to consult our [https://genode.discourse.group/ - community forum].
+
+As the technical aspects of using Goa are already well covered in the book,
+let us dive into the conventions established within the genode-world Goa
+projects repository. Note that these conventions are not set in stone as they
+are still evolving and should rather be perceived as guidelines we may amend.
+
+
+Conventions in genode-world
+===========================
+
+In its current iteration the various Goa projects are loosely categorized by
+top-level directories that roughly define which type of software can be
+expected inside, e.g., _database_ contains a port of sqlite3.
+
+The notable exceptions are the 'legacy' and 'pkg' directories:
+
+:legacy: contains the content of the original _genode-world_ repository.
+
+:pkg: contains integration projects but no code. Such an integration project
+  merely consists of a list of dependencies (archives file) a README, and a
+  runtime definition. By separating integration projects from the software
+  projects, they can be updated independently.
+
+As a fitting category directory might not yet exist for a new project,
+creating one can become necessary. Categories are not always clear-cut, e.g.,
+linphone could be put either into network or voip. We tend to consult how
+other projects/OSes, like the BSD ports collection, categorize their software.
+
+Since the _genode-world_ repository follows the current Sculpt OS release and
+for that matter depends on depot archives that are managed within the Genode
+repository, these archives are provided by the _genodelabs_ depot user. Among
+others, they include the archives required by POSIX components like _libc_,
+_libm_, and _posix_. The current list of the archives concerning Goa can be
+found in the _archives_ file in the _pkg/goa_ depot as well as in the Goa
+repository itself under _share/goa/goarc_.
+
+These archives should primarily be used in case a project depends on one of
+them. All other dependencies and archives, referenced within _genode-world_
+should make use of the wildcard '_' depot user because _genode-world_ is a
+shared Goa projects repository. As _pkg/goa_ contains only a subset of all
+available archives and is extended on demand, you may stumble upon a
+dependency, for which no readily available _genodelabs_ archive exists yet.
+Also using '_' in this case is reasonable, but this circumstance should be
+noted to be remedied in a later release.
+
+The depot user "_" is a wildcard replaced with the depot user specified via
+the '--depot-user' Goa command-line parameter. The wildcard user allows
+different developers/publishers to provide the same project without any
+alteration to its ingredients given in the _used_apis_ and _archives_ files.
+
+The version information within the genode-world repository is manually managed
+via its top-level _goarc_ file and makes use of the wildcard user. Therefore,
+this information is consistently used for all developers of Genode world
+regardless of their '--depot-user' identity.
+
+The usage of the depot wildcard user is in contrast to prior private Goa
+projects where the depot user was mostly hard-coded to the developer providing
+the Goa a project. Those repositories can now be updated to the wildcard
+feature as well.
+
+
+Interplay with Genode repositories
+==================================
+
+Using Goa is a one way street in the sense that it is not possible to
+reference depot archives created by Goa from archives generated by Genode's
+build system, which uses recipes. Thus, Goa archives may depend on traditional
+Genode archives, but not the other way around.
+
+Goa projects are intended for being deployed on Sculpt OS and being tested
+with Goa itself using 'goa run', either on Linux or on a machine running the
+_goa_testbed_ on Sculpt OS.
+
+That being said, it is possible to import archives produced by Goa in run
+scripts. For example, the _legacy/run/chrony.run_ run script contains the
+following snippet.
+
+!import_from_depot [depot_user]/src/[base_src] \
+!                  [depot_user]/pkg/[drivers_nic_pkg] \
+!                  [depot_user]/pkg/system_rtc-[board] \
+!                  [depot_user]/src/gmp \
+!                  [depot_user]/src/init \
+!                  [depot_user]/src/libc \
+!                  [depot_user]/src/nic_router \
+!                  [depot_user]/src/posix \
+!                  [depot_user]/src/stdcxx \
+!                  [depot_user]/src/vfs \
+!                  [depot_user]/src/vfs_jitterentropy \
+!                  [depot_user]/src/vfs_lxip \
+!                  [depot_user]/src/vfs_pipe \
+!                  [depot_user]/src/nettle/3.7-2025-10-01 \
+!                  [depot_user]/src/gnutls/3.6.16-2025-10-02 \
+!                  [depot_user]/src/chrony/4.6.1-2025-10-02
+
+As one can see, it references a long list of depot archives. Most of them are
+managed by Genode's build system with the help of the depot tools. The last
+three items in the list refer directly to the current version of _chrony_ and
+its dependencies and are produced by Goa. Since they contain a given version
+the _run tool_ can incorporate them without resorting to recipes that do not
+exist for Goa projects. Consequently, the run script has to be adjusted every
+time the versions of the Goa projects change and, thus, this approach should
+be employed sparingly.
+
+For the time being, this approach allows us to test Goa projects within our CI
+pipeline while the proper integration of Goa is still an ongoing process.
+Extending Goa with more 'run' backends besides base-linux and Sculpt as well
+as pursuing an autopilot-like experience are some of the puzzle pieces yet to
+be placed.
+
+
+Sandboxed build environment on Ubuntu LTS 24.04
+===============================================
+
+Goa provides a sandboxed build environment based on _bubblewrap_. It confines
+the execution of the build system of a Goa project to a pre-configured sandbox
+in an attempt to limit the accessible resources of the Goa running Linux
+distribution.
+
+When using Ubuntu, apparmor might interfere with employing bubblewrap.
+In case you encounter an error like the following
+
+! 'bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted'
+
+you have to properly configure apparmor to allow for using user namespaces
+with bubblewrap.
+
+The following snippet shows the content of _/etc/apparmor.d/goa_ and needs
+to be adapted to the path where _goa_ is installed:
+
+!# This profile allows everything and only exists to give the
+!# application a name instead of having the label "unconfined"
+!
+!abi <abi/4.0>,
+!include <tunables/global>
+!
+!profile goa /path/to/goa/bin/goa flags=(unconfined) {
+!  userns,
+!
+!  # Site-specific additions and overrides. See local/README for details.
+!  include if exists <local/goa>
+!}
+
+Please make sure that the _apparmor-profiles_ package has been installed.
+Reloading the apparmor service should lead to a working sandbox with Goa.
+
+! systemctl reload apparmor
+
+In contrast to this advice you can also disable sandboxing completely,
+either by setting the environment variable 'DISABLE_SANDBOX=1' or adding
+
+! set disable_sandbox 1
+
+to your user's _goarc_ file.
+
+
+Combined, the changes described above give the genode-world repository new
+purpose and direction. While the Goa SDK significantly lowers the barrier for
+participation, it also fosters frictionless co-maintenance. This will make
+the world repository the go-to place for important components that are curated
+and maintained as joint efforts by community members and Genode Labs.
+
+
+Enhanced Goa SDK
+################
+
+The updated Goa SDK comes with a series of enhancements eliminating a few
+points of friction such as the automated tool-chain installation for Rust,
+the two-stage build process for Meson projects with executable and library
+targets, and the augmented resolution of version information:
+
+Goa always supported re-using other users' depot archives such as ported
+libraries. However, determining what version to use has never been properly
+addressed apart from a built-in curated list of archives from _genodelabs_. We
+therefore equipped Goa with the ability to publish a depot index that contains
+the versions not only of pkg archives but also of src and api archives. This
+enables users to record and publish certain versions of their ported libraries
+or re-usable components. Vice versa, Goa will automatically look up this
+version information from a user's depot index if necessary. In addition to
+version information, using archives of other users often requires having a
+look into their documentation. This is addressed by the new 'info' command
+that nicely displays the _README_ file from a selected depot archive.
+
+Further enhancements are aligned to the genode-world use case: We added the
+notion of a wildcard depot user to allow different users to publish the same
+Goa project in their depot. Moreover, the new 'exported' and 'published'
+commands provide assistance in determining whether the exported/published
+archives are up-to-date with the project's state. For convenience, we added a
+'--if-needed' option to the 'bump-version' command. When provided, Goa omits
+bumping a project's version if the exported archive is already up-to-date.
+
+Internally, we entirely overhauled the parsing of configuration files in Goa
+in order to untie it from XML and give way to the new human-oriented
+configuration format.
+
+To round things off, we have integrated support for library-based performance
+profiling leveraging GCC's '-finstrument-functions'. For more details on this
+and the aforementioned changes, please refer to the corresponding article on
+genodians.org.
+
+:Genodians article "What's new in Goa 25.10":
+
+  [https://genodians.org/jschlatow/2025-11-03-goa-25-10]
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Human-inclined data (HID) processing
+====================================
+
+With [https://genode.org/documentation/release-notes/25.08#Consideration_of_a_lean_alternative_to_XML - Genode 25.08],
+we started the practical evaluation of a new syntax for configurations and
+state reports. The recent Sculpt OS release 25.10 was accompanied by a flavor
+that uses the new format by default and allows us to experience all our use
+cases live during daily use.
+
+:Genodians article "Sculpting with less noise and more clarity":
+
+  [https://genodians.org/nfeske/2025-10-30-sculpt-human]
+
+To make this possible, all components relevant for Sculpt OS have been
+relieved from their formerly hardwired dependency on XML by using the
+'Genode::Node' API.
+
+While practically using and discussing the new format, we quickly found its
+original working title HRD (human-readable data) a little bit unpleasant.
+So HRD has now been renamed to HID, which stands for human-inclined data.
+
+The benefit of the new format becomes most striking when information lends
+itself to be presented in tabular form. For example, a list of Wifi
+accesspoints with their respective properties, or a table of session-routing
+rules. To ease the output of such tabular data, the 'Generator' API has been
+extended with a new 'tabular' method. It instructs the HID generator to format
+the contained nodes in tabular fashion. Two forms are supported: In the
+presence of nested nodes, the nodes appear as table columns and attributes
+appear densely. With only one node level, attributes are formatted as a table.
+Trailing optional attributes are displayed densely.
+
+
+API curation
+============
+
+The 'Thread' API maintained compatibility to old interfaces we had declared
+as deprecated back in 2016 when we fully embraced dependency injection and
+went on our mission to remove component-global side effects from the API.
+Until now, however, some of those old interfaces were still relied on by the
+framework itself. Those parts have now been reworked, using 'Genode::Runtime'
+as token for invoking global side effects like the interplay with the stack
+area. Thanks to these changes, the deprecated Thread constructors could now
+be removed.
+
+This change has ripple effects towards all places where 'Thread' objects are
+manually constructed, e.g., 'Rpc_entrypoint'. Since all users had to be
+adapted anyway, we took the opportunity to remove basic types as constructor
+arguments to further foster API safety.
+
+
+Automatic component restart upon stopped heartbeat
+==================================================
+
+Genode's existing
+[https://genode.org/documentation/genode-foundations/25.05/system_configuration/The_init_component.html#Component_health_monitoring - heartbeat-monitoring mechanism]
+reflects the condition of a non-responding component in init's state report,
+which can be evaluated by a management component to take a deliberate policy
+decision. The usual response to a stopped heartbeat is the restart of the
+child by increasing the child's version attribute. Since this policy has
+become so proliferated, however, it is sensible to support it directly in
+init, eliminating the need for a separate management component.
+
+The new mechanism can be enabled in the configuration of the init component by
+setting the 'restart_after_skipped' attribute of the child's 'heartbeat' node
+to a value greater than 0. This way, the maximum rate of restarts can be
+controlled per child.
+
+Thanks to this feature, the self-healing abilities of Sculpt OS are no longer
+limited to components managed by the system but can now be leveraged for
+user-deployed components and launchers. For example, the touchpad driver,
+which knowingly fails once every dozen boots on some laptops, is now
+automatically restarted when it got stuck, making the touchpad ultimately
+available upon the second try, just a few seconds later.
+
+
+TCP/IP improvements
+===================
+
+We enabled basic _getsockopt_/_setsockopt_ interaction for both IP-stacks
+(lwIP and lxip). Currently, SO_KEEPALIVE and SO_REUSEADDR, as well as,
+TCP_KEEPCNT, TCP_KEEPIDLE, and TCP_KEEPINTVL are available. The support is
+transparently handled by our libc that forwards the request to our unified
+_vfs_ip_-plugin, which in turn interfaces the configured IP-stack. With the
+next iteration, we will add SO_ERROR to the list of supported options while
+enabling other options as needed. Please be aware that lwIP supports fewer
+options than the Linux-IP stack, so the available feature set might diverge
+in the future.
+
+
+Memory-capped log aggregation
+=============================
+
+Sculpt's report file system is an in-memory file system with a statically
+defined RAM quota of 16 MiB. Besides aggregating reports of various components
+(in particular device drivers), it hosts the _/report/log_ file, which gathers
+the diagnostic output of all components. During normal use, the log file is in
+the order of 100 KiB. However, in the presence of a rampaging component that
+prints messages in an infinite loop, the report file system can eventually
+fill up. To counter such situations, we introduced a new VFS plugin.
+
+The new 'ram_log' VFS plugin stores up to a limited number of bytes of an
+append-only file in RAM. Should the content written to the file exceed the
+configured limit, the oldest content is replaced by zeros, making room for the
+most recent logged information in memory. The file still appears as growing in
+size but only the most recent data remains present. In Sculpt 25.10, the log
+is now capped at 1 MiB, effectively protecting the report file system from
+exhaustion.
+
+Vaguely related while speaking of Sculpt OS, the 'terminal_log' component has
+been changed to prefix each line with a timestamp in seconds, showing one
+digit after the comma. Note that this change makes the component depend on
+a timer service now.
+
+
+Simplified configuration of POSIX components
+============================================
+
+Tag-value argument pairs of traditional POSIX applications are technically two
+distinct arguments, appearing as two consecutive elements in the 'argv' array.
+Hence, such pairs have to appear as separate arg nodes in the configuration,
+e.g.:
+
+! <arg>-geometry</arg> <arg>1024x768</arg>
+
+or in HID syntax:
+
+! + arg | : -geometry
+! + arg | : 1024x768
+
+This appears not only as noisy but also does not convey well that both
+arguments belong together. We now added the ability to define a pair of 'argv'
+elements using a single 'arg' node. By combining an optional 'name' attribute
+with quoted content, tag-value arguments can now nicely be expressed as one
+arg node:
+
+! <arg name="-geometry">1024x768</arg>
+
+or respectively in HID syntax:
+
+! + arg -geometry | : 1024x768
+
+
+Streamlined on-target test suite
+================================
+
+The depot-autopilot component orchestrates the execution of the framework's
+comprehensive test suite on a test target, using Genode's package management.
+Each test has the form of a package with its _runtime_ definition augmented
+with the success criterion of the test. The depot-autopilot deploys all tests
+in sequence, detects successes or failures, and collects the results. The
+test suite currently comprises around 80 packages.
+
+Even though the depot-autopilot has served us well since
+[https://genode.org/documentation/release-notes/18.11#Automated_test_infrastructure_hosted_on_top_of_Genode - its introduction in 2018],
+code-wise, it has largely remained at its initial stage with a fair share of
+ad-hoc decisions. Our recent move to the
+[https://genode.org/documentation/release-notes/25.08#Syntax-agnostic_configuration_and_reporting - syntax-agnostic]
+'Genode::Node' API ultimately prompted us to rewrite the depot-autopilot
+orchestrator and to streamline the suite of tests.
+
+* A test's success criterion is now consistently expressed in the form of
+  'succeed' or 'fail' nodes. The long deprecated 'events' declarations are no
+  longer supported.
+
+* The support for the 'log_prefix' attribute in 'fail' and 'succeed' nodes
+  has been dropped as it has remained unused.
+
+* Time values are now printed with two digits after the comma because
+  the milliseconds digit is never inspected in practice.
+
+* The formerly hard-coded '[init]' prefix of each test's log output,
+  regardless of whether init was actually being used or not, has been
+  removed.
+
+* The meaning of log patterns has been slightly tightened:
+  The previous version accepted a match of a pattern line against any part
+  of a log line. The new version accepts a match only if the pattern line
+  matches the log line from the beginning of the line. The previous
+  matching semantics can be achieved by starting a pattern line with the
+  wildcard '*'.
+
+* Exit codes can now be used as success criterion by specifying an 'exit'
+  attribute to 'succeed' and 'fail' nodes. If a 'succeed' node features both
+  an exit code and a log pattern, both conditions must be satisfied.
+  Whenever a test completes due to its exit code, the summary reports 'exit'
+  as the finishing reason.
+
+  This feature alleviates the need to wrap a test in an init instance for the
+  mere matching of the "child ... has exited ..." message, which was a pattern
+  found in about 25% of the test packages. Those tests now benefit from
+  simpler runtime definitions and shorter log output.
+
+* The _depot_autopilot.run_ script changed the LOG label for test output from
+  "init -> depot_autopilot" to "init -> test" to reduce the likelihood for
+  line breaks.
+
+* The duration of the entire test suite has been reduced by one third,
+  mostly due to the tightening of the parameters of time-driven tests.
+
+
+Device drivers
+##############
+
+USB-to-serial adapters
+======================
+
+As a tasty tidbit of this release, we introduce support for a range of
+USB-serial adapters, which adds an option to export logging data or to
+remotely connect to text terminals. The _usb_serial_ component is a mere
+client of the terminal and USB sessions and can, thus, be integrated to
+connect an existing terminal service to the USB adapter hardware. The driver
+supports the common FTDI FT232 and Prolific PL2303 chips as well as the more
+exotic CP210x and CH341. For inspiration how to integrate the component, you
+may have a look into the _usb_serial.run_ and _usb_serial_bash.run_ scripts.
+
+
+Improved Intel GPU support
+==========================
+
+After the Mesa update to version 24.0.8 last year, it was about time to try
+out more recent Intel generations. Because several members of the Genode staff
+own Alder-Lake platforms, it has been the target of choice. Surprisingly, this
+worked out of the box, but further investigation showed that the clock speed
+of the GPU doesn't reach the expected levels (~1.4GHz) when executing 3D
+workloads. An investigation showed that it is possible to get the GPU to
+full-performance mode, but this led to unacceptable power-consumption because
+RC6 needed to be disabled as well. We plan to address this issue with Genode
+version 26.02 but nevertheless added basic Alder-Lake support (for device id
+0x46a6) to the current release.
+
+The Mesa-Intel-Gallium driver (Iris) uses an internal cache in order to speed
+up graphics-memory allocations. The cache is called buffer-object cache.
+It significantly improves allocation times but also increases GPU-memory
+overhead. Therefore, in scenarios where performance is not the most dominant
+factor but memory usage is, we made the usage of the cache configurable
+through the IRIS_USE_BO_CACHE environment variable of applications using
+Mesa/Iris. Configuration example for a component using Mesa:
+
+! <start name="glmark2">
+! ...
+!   <config>
+!     <!-- disable bo-cache, default is on -->
+!     <env key="IRIS_USE_BO_CACHE" value="false"/>
+!     ...
+!   </config>
+! </start>
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Genode's bare-hardware execution environment keeps moving forward fast. Under
+the hood, the system-call API of our custom kernel became more strict by
+consistently using type-safe arguments and return values.
+
+In [https://genode.org/documentation/release-notes/25.08#Kernel_scheduling_for_fairness_and_low_latency - release 25.08],
+the new scheduler got introduced with fixed scheduling groups having
+individual weights and latency assets, called warping. To match the needs of
+Sculpt OS, we added a fixed mapping of Sculpt's priority levels to the static
+scheduling groups of the kernel. If you do _not_ use Sculpt OS but manage your
+own Genode-based scenario using base-hw as foundation, you need to be aware of
+this heuristic. Otherwise, you won't profit from the new scheduler and its
+benefits but may experience unexpected effects. A look into the function
+'Core::Platform_thread::_priority_to_group' might help to follow the current
+scheme.
+
+Until now, the page-table handling of our bare hardware environment was
+limited in a way that components with a large virtual-memory footprint could
+exceed the fixed maximum of page tables available to each component. On
+page-table shortage, the used tables were discarded and re-populated on
+demand, which could lead to a performance drop for such components. To avoid
+this behavior in the general case, the static memory portion for page-tables
+of each component was generously dimensioned, even if the component didn't
+make much use of its virtual memory space. With the current release, the
+page-table allocator used in base-hw got replaced by a dynamic implementation
+that can use as much memory for paging as is available in the component's RAM
+quota. If a component's RAM quota is exhausted, but a new page-table insertion
+is needed, the old behavior of flushing all used page tables is still intact.
+You'll be warned once in that case. Increasing the RAM quota of a component
+will prevent the flushes and the warning again.
+
+The most visible feature of this release regarding the base-hw kernel,
+however, is support of X2APIC-only compliant Intel machines. More and more
+modern hardware does not provide a legacy (Local-APIC-compliant) interface to
+access the CPU-local interrupt-controller parts. Previous versions of our
+kernel were unable to boot on such machines. The new version lifts this
+limitation, making the kernel fit for contemporary Intel machines.
+
+
+seL4 kernel
+===========
+
+As mentioned during the Sculpt OS talk at the
+[https://sel4.systems/Summit/2025/abstracts2025.html#a-sculpt-os - seL4 summit 2025],
+Genode's 64-bit ARM support for seL4 remained unaddressed so far. This changes
+with the current release. We integrated the missing pieces for building the
+seL4 kernel with the Genode build system and enabled Genode's core to
+interplay with the 64-bit ARM flavor of seL4. The work was conducted on the
+Qemu-virt platform and then transferred to the i.MX8Q EVK board, which now is
+exercised by the Genode Labs CI on a daily basis. Since seL4 requires a
+separate user-mode timer, we developed a new timer driver for the i.MX8 board,
+leveraging a so-called general purpose timer (GPT) device of the board. The
+seL4_tools repository got updated to a version matching the currently
+supported seL4 13.0 kernel, which is required to bootstrap seL4 on ARM
+devices. At the moment, the repository also contains some generated board
+files, which are normally produced by seL4's build system (e.g., sel4test).
+
+
+Build system and tooling
+########################
+
+The practical evaluation of the new human-inclined data (HID) format motivated
+improvements of the HID-processing tool _/tool/hid_ (formerly named
+_/tool/hrd_), the run tool, and the _os/run/test.run_ utility.
+
+HID processing
+--------------
+
+The hid tool located at _/tool/hid_ received a new option '-i', which applies
+modifications of a HID file in place. So the 'set', 'enable', 'disable', and
+'remove' commands can be used directly on a file. Those manipulations have now
+been improved to largely preserve the formatting of the existing file. So
+manual formatting and commenting work does no longer go wasted when using the
+tool for subsequent data manipulation.
+
+We slightly tweaked the style produced by the 'format' command. Those tweaks
+are an ongoing iterative process to find the sweet spot for default HID
+formatting. Do not take the current style as a given.
+
+Run and test.run
+----------------
+
+The run tool has become able to tolerate the HID format in addition to XML.
+Note that schema validation is currently performed only when using XML. The
+definition of how to express a schema for HID is current work in progress.
+
+The test.run script has been converted to use the _/tool/hid_ instead of
+xmllint to retrieve information from test packages. Thanks to this change, the
+runtime definitions of test packages can now be formatted as HID.
+
