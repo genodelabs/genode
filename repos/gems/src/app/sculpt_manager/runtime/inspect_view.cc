@@ -64,7 +64,7 @@ static void gen_vfs_start(Generator &g,
 			gen_named_node(g, "tar", "coreutils-minimal.tar");
 			gen_named_node(g, "tar", "vim-minimal.tar");
 			gen_named_node(g, "tar", "tclsh.tar");
-			gen_named_node(g, "tar", "hrd.tar");
+			gen_named_node(g, "tar", "hid.tar");
 
 			gen_named_node(g, "dir", "dev", [&] {
 				g.node("null",      [&] {});
@@ -268,7 +268,7 @@ void Sculpt::gen_inspect_view(Generator             &g,
 			gen_parent_rom_route(g, "coreutils-minimal.tar");
 			gen_parent_rom_route(g, "vim-minimal.tar");
 			gen_parent_rom_route(g, "tclsh.tar");
-			gen_parent_rom_route(g, "hrd.tar");
+			gen_parent_rom_route(g, "hid.tar");
 			gen_parent_rom_route(g, "ncurses.lib.so");
 			gen_parent_rom_route(g, "posix.lib.so");
 			gen_parent_rom_route(g, "vimrc", "config -> vimrc");

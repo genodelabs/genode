@@ -180,7 +180,7 @@ proc check_syntax { arg } { if {[looks_like_xml $arg]} { check_xml_syntax $arg }
 #
 proc check_config {bin config_file xsd_file label avail_xsd_files nesting_level} {
 
-	# skip check if config file does not start with XML tag (i.e., HRD format)
+	# skip check if config file does not start with XML tag (i.e., HID format)
 	set fh [open $config_file]
 	set config_file_content [read $fh]
 	close $fh
@@ -859,8 +859,8 @@ proc copy_config { from to } {
 	copy_file $from $to
 
 	if {[looks_like_xml $to]} {
-		puts "converting $to to HRD"
-		exec [genode_dir]/tool/hrd -i --import-xml format $to
+		puts "converting $to to HID"
+		exec [genode_dir]/tool/hid -i --import-xml format $to
 	}
 }
 

@@ -145,7 +145,7 @@ proc try_query_timeout_from_runtime { } {
 
 	global runtime_file
 
-	set cmd [genode_dir]/tool/hrd
+	set cmd [genode_dir]/tool/hid
 	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
 
 	set value [exec {*}$cmd get "runtime | + fail | : after_seconds" $runtime_file]
@@ -160,7 +160,7 @@ proc try_query_config { }  {
 
 	global runtime_file
 
-	set cmd [genode_dir]/tool/hrd
+	set cmd [genode_dir]/tool/hid
 	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml --output-xml }
 
 	set config [exec {*}$cmd subnodes "runtime | + config" $runtime_file]
@@ -177,7 +177,7 @@ proc try_query_attr_from_runtime { attr } {
 
 	global runtime_file
 
-	set cmd [genode_dir]/tool/hrd
+	set cmd [genode_dir]/tool/hid
 	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
 
 	set value [exec {*}$cmd get "runtime | : $attr" $runtime_file]
@@ -213,7 +213,7 @@ proc content_rom_modules { } {
 
 	global runtime_file
 
-	set cmd [genode_dir]/tool/hrd
+	set cmd [genode_dir]/tool/hid
 	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
 
 	return [split [exec {*}$cmd get "runtime | + content | + rom | : label" $runtime_file] "\n"]
@@ -312,7 +312,7 @@ proc query_expected_log_pattern { } {
 
 	global runtime_file
 
-	set cmd [genode_dir]/tool/hrd
+	set cmd [genode_dir]/tool/hid
 	if {[looks_like_xml $runtime_file]} { lappend cmd --import-xml }
 
 	set log [exec {*}$cmd subnodes "runtime | + succeed" $runtime_file]

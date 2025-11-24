@@ -29,7 +29,7 @@ SRC_CC += trace_buffer.cc
 SRC_CC += env_session_id_space.cc
 SRC_CC += stack_protector.cc
 SRC_CC += xml_generator.cc
-SRC_CC += hrd.cc
+SRC_CC += hid.cc
 SRC_CC += node.cc
 
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include

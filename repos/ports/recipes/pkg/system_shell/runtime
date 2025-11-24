@@ -29,7 +29,7 @@
 		<rom label="coreutils-minimal.tar"/>
 		<rom label="vim-minimal.tar"/>
 		<rom label="tclsh.tar"/>
-		<rom label="hrd.tar"/>
+		<rom label="hid.tar"/>
 		<rom label="vfs.lib.so"/>
 	</content>
 

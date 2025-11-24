@@ -58,8 +58,8 @@ void Node::_for_each_attribute(With_attribute::Ft const &fn) const
 			n.for_each_attribute([&] (Xml_attribute const &a) {
 				a.with_raw_value([&] (char const *start, size_t len) {
 					fn(Attribute { a.name(), { start, len } }); }); }); },
-		[&] (Hrd const &n) {
-			n.for_each_attribute([&] (Hrd_node::Attribute const &a) {
+		[&] (Hid const &n) {
+			n.for_each_attribute([&] (Hid_node::Attribute const &a) {
 				fn(Attribute { .name  = { Cstring(a.tag.start, a.tag.num_bytes) },
 				               .value = { a.value.start, a.value.num_bytes } }); }); },
 		[&] { });
@@ -98,7 +98,7 @@ bool Node::has_attribute(char const *attr) const
 size_t Node::num_bytes() const
 {
 	return _with([&] (Xml const &n) { return n.size(); },
-	             [&] (Hrd const &n) { return n.num_bytes(); },
+	             [&] (Hid const &n) { return n.num_bytes(); },
 	             [&] () -> size_t   { return 0; });
 }
 
@@ -109,17 +109,17 @@ bool Node::differs_from(Node const &other) const
 		[&] (Xml const &n) {
 			return other._with(
 				[&] (Xml const &other_n) { return n.differs_from(other_n); },
-				[&] (Hrd const &)        { return true; },
+				[&] (Hid const &)        { return true; },
 				[]                       { return true; }); },
-		[&] (Hrd const &n) {
+		[&] (Hid const &n) {
 			return other._with(
 				[&] (Xml const &)        { return true; },
-				[&] (Hrd const &other_n) { return n.differs_from(other_n); },
+				[&] (Hid const &other_n) { return n.differs_from(other_n); },
 				[]                       { return true; }); },
 		[&] {
 			return other._with(
 				[&] (Xml const &) { return true; },
-				[&] (Hrd const &) { return true; },
+				[&] (Hid const &) { return true; },
 				[]                { return false; });
 	});
 }
@@ -154,8 +154,8 @@ Node::Node(Const_byte_range_ptr const &bytes)
 		if (bytes.start[0] == '<') {
 			try { _xml.construct(bytes); } catch (...) { }
 		} else {
-			_hrd.construct(bytes);
-			if (!_hrd->valid()) _hrd.destruct();
+			_hid.construct(bytes);
+			if (!_hid->valid()) _hid.destruct();
 		}
 	});
 }
@@ -170,7 +170,7 @@ Node::Node(Node const &other, Byte_range_ptr const &dst)
 					memcpy(dst.start, start, num_bytes);
 					_xml.construct(dst.start, num_bytes); } });
 		},
-		[&] (Hrd const &node) { _hrd.construct(node, dst); },
+		[&] (Hid const &node) { _hid.construct(node, dst); },
 		[&]                   { });
 }
 
@@ -178,14 +178,14 @@ Node::Node(Node const &other, Byte_range_ptr const &dst)
 void Generator::_node(char const *name, Callable<void>::Ft const &fn)
 {
 	if (_xml_ptr) _xml_ptr->node(name, fn);
-	if (_hrd_ptr) _hrd_ptr->node(name, fn);
+	if (_hid_ptr) _hid_ptr->node(name, fn);
 }
 
 
 void Generator::attribute(char const *name, char const *value, size_t n)
 {
 	if (_xml_ptr) _xml_ptr->attribute(name, value, n);
-	if (_hrd_ptr) _hrd_ptr->attribute(name, value, n);
+	if (_hid_ptr) _hid_ptr->attribute(name, value, n);
 }
 
 
@@ -222,5 +222,5 @@ void Generator::attribute(char const *name, double value)
 void Generator::node_attributes(Node const &node)
 {
 	if (_xml_ptr) _xml_ptr->node_attributes(node);
-	if (_hrd_ptr) _hrd_ptr->node_attributes(node);
+	if (_hid_ptr) _hid_ptr->node_attributes(node);
 }

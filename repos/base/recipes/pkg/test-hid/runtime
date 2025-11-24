@@ -1,12 +1,12 @@
-<runtime ram="4M" caps="100" binary="test-hrd">
+<runtime ram="4M" caps="100" binary="test-hid">
 
 	<fail after_seconds="20"/>
-	<succeed>*--- End of HRD-parser test ---</succeed>
+	<succeed>*--- End of HID-parser test ---</succeed>
 	<fail>*Error: </fail>
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="test-hrd"/>
+		<rom label="test-hid"/>
 	</content>
 
 	<config/>

@@ -23,7 +23,7 @@ _/src/bash-minimal
 _/src/vim-minimal
 _/src/coreutils-minimal
 _/src/tclsh
-_/raw/hrd
+_/raw/hid
 _/src/vfs
 _/src/vfs_import
 _/src/vfs_lxip

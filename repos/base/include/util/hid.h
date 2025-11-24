@@ -1,5 +1,5 @@
 /*
- * \brief  Parser and generator for Human-Readable Data (HRD)
+ * \brief  Parser and generator for human-inclined data (HID)
  * \author Norman Feske
  * \date   2025-06-11
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__UTIL__HRD_H_
-#define _INCLUDE__UTIL__HRD_H_
+#ifndef _INCLUDE__UTIL__HID_H_
+#define _INCLUDE__UTIL__HID_H_
 
 #include <util/string.h>
 #include <util/attempt.h>
@@ -21,13 +21,13 @@
 #include <base/log.h>
 
 namespace Genode {
-	class Hrd_node;
-	class Hrd_generator;
+	class Hid_node;
+	class Hid_generator;
 	class Xml_node; /* forward declaration */
 }
 
 
-class Genode::Hrd_node : Noncopyable
+class Genode::Hid_node : Noncopyable
 {
 	public:
 
@@ -214,7 +214,7 @@ class Genode::Hrd_node : Noncopyable
 
 		Indent const _indent { 0 };
 
-		friend class Hrd_generator;  /* for 'Hrd_generator::_copy' */
+		friend class Hid_generator;  /* for 'Hid_generator::_copy' */
 
 		auto _with_sub_node(auto const &match_fn, auto const &fn,
 		                    auto const &missing_fn) const -> decltype(missing_fn())
@@ -223,7 +223,7 @@ class Genode::Hrd_node : Noncopyable
 			size_t      num_bytes { };
 			Indent      indent    { };
 
-			for_each_sub_node([&] (Hrd_node const &node) {
+			for_each_sub_node([&] (Hid_node const &node) {
 				if (!start && match_fn(node)) {
 					start     = node._bytes.start;
 					num_bytes = node._bytes.num_bytes;
@@ -232,7 +232,7 @@ class Genode::Hrd_node : Noncopyable
 			if (!start)
 				return missing_fn();
 
-			return fn(Hrd_node { indent, { start, num_bytes } });
+			return fn(Hid_node { indent, { start, num_bytes } });
 		}
 
 		using With_tag_value = Callable<void, Span const &, Span const &>;
@@ -248,15 +248,15 @@ class Genode::Hrd_node : Noncopyable
 			return { dst.start, _bytes.num_bytes };
 		}
 
-		Hrd_node(Indent i, Span const &s) : _bytes(s.start, s.num_bytes), _indent(i) { }
+		Hid_node(Indent i, Span const &s) : _bytes(s.start, s.num_bytes), _indent(i) { }
 
 	public:
 
-		Hrd_node(Const_byte_range_ptr const &);
+		Hid_node(Const_byte_range_ptr const &);
 
-		Hrd_node(Hrd_node const &other, Byte_range_ptr const &dst)
+		Hid_node(Hid_node const &other, Byte_range_ptr const &dst)
 		:
-			Hrd_node(other._indent, other._copied(dst))
+			Hid_node(other._indent, other._copied(dst))
 		{ }
 
 		bool valid() const { return _bytes.num_bytes > 0; }
@@ -291,7 +291,7 @@ class Genode::Hrd_node : Noncopyable
 		{
 			_for_each_sub_node(_bytes, With_indent_span::Fn {
 				[&] (Indent const indent, Span const &s) {
-					fn(Hrd_node { indent, s }); } });
+					fn(Hid_node { indent, s }); } });
 		}
 
 		auto with_sub_node(char const *type, auto const &fn,
@@ -299,7 +299,7 @@ class Genode::Hrd_node : Noncopyable
 		{
 			unsigned found = false;
 
-			auto match = [&] (Hrd_node const &node)
+			auto match = [&] (Hid_node const &node)
 			{
 				if (found || node.type() != type)
 					return false;
@@ -315,7 +315,7 @@ class Genode::Hrd_node : Noncopyable
 		                   auto const &missing_fn) const -> decltype(missing_fn())
 		{
 			unsigned count = 0;
-			return _with_sub_node([&] (Hrd_node const &) { return count++ == n; },
+			return _with_sub_node([&] (Hid_node const &) { return count++ == n; },
 			                      fn, missing_fn);
 		}
 
@@ -370,14 +370,14 @@ class Genode::Hrd_node : Noncopyable
 
 		size_t num_bytes() const { return _bytes.num_bytes; }
 
-		bool differs_from(Hrd_node const &other) const { return !_bytes.equals(other._bytes); }
+		bool differs_from(Hid_node const &other) const { return !_bytes.equals(other._bytes); }
 
 		void print(Output &out) const { out.out_string(_bytes.start, _bytes.num_bytes); }
 };
 
 
 template <typename T>
-T Genode::Hrd_node::attribute_value(char const *type, T const default_value) const
+T Genode::Hid_node::attribute_value(char const *type, T const default_value) const
 {
 	T result = default_value;
 	_with_tag_value(type, With_tag_value::Fn {
@@ -390,7 +390,7 @@ T Genode::Hrd_node::attribute_value(char const *type, T const default_value) con
 
 template <Genode::size_t N>
 Genode::String<N>
-Genode::Hrd_node::attribute_value(char const *type, String<N> const default_value) const
+Genode::Hid_node::attribute_value(char const *type, String<N> const default_value) const
 {
 	String<N> result = default_value;
 	_with_tag_value(type, With_tag_value::Fn {
@@ -400,7 +400,7 @@ Genode::Hrd_node::attribute_value(char const *type, String<N> const default_valu
 }
 
 
-class Genode::Hrd_generator : Noncopyable
+class Genode::Hid_generator : Noncopyable
 {
 	private:
 
@@ -488,7 +488,7 @@ class Genode::Hrd_generator : Noncopyable
 
 		void _attribute(char const *, char const *, size_t);
 
-		Hrd_generator(Byte_range_ptr const &bytes, char const *name, auto const &fn)
+		Hid_generator(Byte_range_ptr const &bytes, char const *name, auto const &fn)
 		:
 			_out_buffer(bytes)
 		{
@@ -499,7 +499,7 @@ class Genode::Hrd_generator : Noncopyable
 
 		void _print_node_type(Span const &);
 		void _node(char const *, Node_fn::Ft const &);
-		void _copy(Hrd_node const &);
+		void _copy(Hid_node const &);
 		void _start_quoted_line();
 		void _append_quoted(Span const &);
 
@@ -526,12 +526,12 @@ class Genode::Hrd_generator : Noncopyable
 		static Result generate(Byte_range_ptr const &buffer,
 		                       Tag_name       const &tag, auto const &fn)
 		{
-			Hrd_generator hrd(buffer, tag.string(), [&] { fn(hrd); });
+			Hid_generator hid(buffer, tag.string(), [&] { fn(hid); });
 
-			if (hrd._out_buffer.exceeded())
+			if (hid._out_buffer.exceeded())
 				return Buffer_error::EXCEEDED;
 
-			return hrd._out_buffer.used();
+			return hid._out_buffer.used();
 		}
 
 		void node(char const *name, auto const &fn)
@@ -600,7 +600,7 @@ class Genode::Hrd_generator : Noncopyable
 		}
 
 		/**
-		 * Append quoted content to HRD node
+		 * Append quoted content to HID node
 		 *
 		 * This method must not be followed by calls of 'attribute'.
 		 */
@@ -658,17 +658,17 @@ class Genode::Hrd_generator : Noncopyable
 		}
 
 		/**
-		 * Append content of HRD node
+		 * Append content of HID node
 		 *
 		 * The content can either be quoted content or sub nodes but not a mix
 		 * of both.
 		 */
-		void append_node_content(Hrd_node const &node)
+		void append_node_content(Hid_node const &node)
 		{
 			if (_try_append_quoted(node))
 				return;
 
-			node.for_each_sub_node([&] (Hrd_node const &sub_node) {
+			node.for_each_sub_node([&] (Hid_node const &sub_node) {
 				append_node(sub_node); });
 		}
 
@@ -688,9 +688,9 @@ class Genode::Hrd_generator : Noncopyable
 		}
 
 		/**
-		 * Append a verbatim copy of an HRD node
+		 * Append a verbatim copy of an HID node
 		 */
-		void append_node(Hrd_node const &node) { _copy(node); }
+		void append_node(Hid_node const &node) { _copy(node); }
 };
 
-#endif /* _INCLUDE__UTIL__HRD_H_ */
+#endif /* _INCLUDE__UTIL__HID_H_ */

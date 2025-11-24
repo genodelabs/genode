@@ -1,7 +1,7 @@
 #!/usr/bin/tclsh
 
 #
-# \brief  Tool for processing Human-Readable Data (HRD) syntax
+# \brief  Tool for processing human-inclined data (HID) syntax
 # \author Norman Feske
 # \date   2023-05-01
 #
@@ -16,17 +16,17 @@ proc error { msg } {
 
 
 #
-# HRD nodes and attributes are represented as lists
+# HID nodes and attributes are represented as lists
 #
 
-proc hrd_type       { hrd  } { return [lindex $hrd  0] }
-proc hrd_line       { hrd  } { return [lindex $hrd  1] }
-proc hrd_prespace   { hrd  } { return [lindex $hrd  2] }
-proc hrd_anchor     { hrd  } { return [lindex $hrd  3] }
-proc hrd_preface    { hrd  } { return [lindex $hrd  4] }
-proc hrd_attributes { hrd  } { return [lindex $hrd  5] }
-proc hrd_children   { hrd  } { return [lindex $hrd  6] }
-proc hrd_quoted     { hrd  } { return [lindex $hrd  7] }
+proc hid_type       { hid  } { return [lindex $hid  0] }
+proc hid_line       { hid  } { return [lindex $hid  1] }
+proc hid_prespace   { hid  } { return [lindex $hid  2] }
+proc hid_anchor     { hid  } { return [lindex $hid  3] }
+proc hid_preface    { hid  } { return [lindex $hid  4] }
+proc hid_attributes { hid  } { return [lindex $hid  5] }
+proc hid_children   { hid  } { return [lindex $hid  6] }
+proc hid_quoted     { hid  } { return [lindex $hid  7] }
 proc attr_line      { attr } { return [lindex $attr 0] }
 proc attr_prespace  { attr } { return [lindex $attr 1] }
 proc attr_tag       { attr } { return [lindex $attr 2] }
@@ -36,13 +36,13 @@ proc attr_value     { attr } { return [lindex $attr 4] }
 proc same_trimmed     { s1 s2 } { return [expr {[string trim $s1] == [string trim $s2]}] }
 proc same_attr_values { a1 a2 } { return [same_trimmed [attr_value $a1] [attr_value $a2]] }
 
-proc hrd_leaf { hrd } {
+proc hid_leaf { hid } {
 
-	return [expr {[llength [hrd_children $hrd]] == 0}]
+	return [expr {[llength [hid_children $hid]] == 0}]
 }
 
 
-proc node_stack_element_as_hrd { ctx_var i } {
+proc node_stack_element_as_hid { ctx_var i } {
 
 	upvar $ctx_var ctx
 
@@ -77,7 +77,7 @@ proc pop_nodes { ctx_var xpos } {
 
 	for {set i [expr $depth - 1]} { $i >= $new_pos } { incr i -1 } {
 		lappend ctx([expr $i - 1],children) \
-		        [node_stack_element_as_hrd ctx $i]
+		        [node_stack_element_as_hid ctx $i]
 		incr ctx(depth) -1
 	}
 }
@@ -339,7 +339,7 @@ proc parse_line { n chars ctx_var } {
 }
 
 
-proc import_hrd { data { multiple_lines true } } {
+proc import_hid { data { multiple_lines true } } {
 
 	global total_parse_errors
 	set orig_total_parse_errors $total_parse_errors
@@ -383,7 +383,7 @@ proc import_hrd { data { multiple_lines true } } {
 	if {$multiple_lines && !$eof} {
 		error "missing end-of-data mark '-'" }
 
-	return [node_stack_element_as_hrd ctx 0]
+	return [node_stack_element_as_hid ctx 0]
 }
 
 
@@ -391,15 +391,15 @@ proc import_hrd { data { multiple_lines true } } {
 ## Query
 ##
 
-proc hrd_query_nodes { query_hrd data_hrd } {
+proc hid_query_nodes { query_hid data_hid } {
 
-	if {[hrd_type $query_hrd] != [hrd_type $data_hrd]} {
+	if {[hid_type $query_hid] != [hid_type $data_hid]} {
 		return {} }
 
 	# check for conflicting attributes
-	foreach query_attr [hrd_attributes $query_hrd] {
+	foreach query_attr [hid_attributes $query_hid] {
 		set attr_exists_in_data 0
-		foreach data_attr [hrd_attributes $data_hrd] {
+		foreach data_attr [hid_attributes $data_hid] {
 			if {[attr_tag $data_attr] == [attr_tag $query_attr]} {
 				set attr_exists_in_data 1
 				if {![same_attr_values $data_attr $query_attr]} {
@@ -410,15 +410,15 @@ proc hrd_query_nodes { query_hrd data_hrd } {
 	}
 
 	# stop searching when reaching the leaf of the query
-	if {[hrd_leaf $query_hrd]} {
-		return [list $data_hrd] }
+	if {[hid_leaf $query_hid]} {
+		return [list $data_hid] }
 
 	# traverse into next level
 	set result_list {}
-	foreach sub_query_hrd [hrd_children $query_hrd] {
-		foreach sub_data_hrd [hrd_children $data_hrd] {
-			foreach hrd [hrd_query_nodes $sub_query_hrd $sub_data_hrd] {
-				lappend result_list $hrd } } }
+	foreach sub_query_hid [hid_children $query_hid] {
+		foreach sub_data_hid [hid_children $data_hid] {
+			foreach hid [hid_query_nodes $sub_query_hid $sub_data_hid] {
+				lappend result_list $hid } } }
 
 	return $result_list
 }
@@ -428,67 +428,67 @@ proc hrd_query_nodes { query_hrd data_hrd } {
 ## Filter function used for remove/set/enable/disable commands
 ##
 
-proc hrd_filter { ctx_var query_hrd data_hrd filtered_hrd_var match_body } {
+proc hid_filter { ctx_var query_hid data_hid filtered_hid_var match_body } {
 
-	upvar $filtered_hrd_var filtered_hrd
+	upvar $filtered_hid_var filtered_hid
 	upvar $ctx_var ctx
 
-	if {[hrd_type $query_hrd] != [hrd_type $data_hrd]} {
-		return $data_hrd }
+	if {[hid_type $query_hid] != [hid_type $data_hid]} {
+		return $data_hid }
 
 	# check for conflicting attributes
-	foreach query_attr [hrd_attributes $query_hrd] {
+	foreach query_attr [hid_attributes $query_hid] {
 		set attr_exists_in_data 0
-		foreach data_attr [hrd_attributes $data_hrd] {
+		foreach data_attr [hid_attributes $data_hid] {
 			if {[attr_tag $data_attr] == [attr_tag $query_attr]} {
 				set attr_exists_in_data 1
 				if {![same_attr_values $data_attr $query_attr]} {
-					return $data_hrd } } } }
+					return $data_hid } } } }
 
 	# apply filter when matching the leaf of the query
-	if {[hrd_leaf $query_hrd]} {
-		set filtered_hrd $data_hrd
+	if {[hid_leaf $query_hid]} {
+		set filtered_hid $data_hid
 		uplevel 1 $match_body
-		return $filtered_hrd
+		return $filtered_hid
 	}
 
 	# traverse into next level
 	set filtered_children {}
-	foreach sub_query_hrd [hrd_children $query_hrd] {
-		foreach sub_data_hrd [hrd_children $data_hrd] {
+	foreach sub_query_hid [hid_children $query_hid] {
+		foreach sub_data_hid [hid_children $data_hid] {
 
-			set filter_result [hrd_filter ctx $sub_query_hrd $sub_data_hrd \
-			                              $filtered_hrd_var $match_body]
+			set filter_result [hid_filter ctx $sub_query_hid $sub_data_hid \
+			                              $filtered_hid_var $match_body]
 
 			if {[llength $filter_result] > 0} {
 				lappend filtered_children $filter_result }
 		}
 	}
-	return [list [hrd_type     $data_hrd] [hrd_line       $data_hrd] \
-	             [hrd_prespace $data_hrd] [hrd_anchor     $data_hrd] \
-	             [hrd_preface  $data_hrd] [hrd_attributes $data_hrd] \
+	return [list [hid_type     $data_hid] [hid_line       $data_hid] \
+	             [hid_prespace $data_hid] [hid_anchor     $data_hid] \
+	             [hid_preface  $data_hid] [hid_attributes $data_hid] \
 	             $filtered_children]
 }
 
 
 ##
-## Output in HRD syntax
+## Output in HID syntax
 ##
 
-proc hrd_attr_value { hrd tag } {
-	foreach attr [hrd_attributes $hrd] {
+proc hid_attr_value { hid tag } {
+	foreach attr [hid_attributes $hid] {
 		if {[attr_tag $attr] == $tag} {
 			return [attr_value $attr] } }
 	return ""
 }
 
 
-proc hrd_foreach_non_name_attr { tag_var value_var hrd body } {
+proc hid_foreach_non_name_attr { tag_var value_var hid body } {
 
 	upvar $tag_var   tag
 	upvar $value_var value
 
-	foreach attr [hrd_attributes $hrd] {
+	foreach attr [hid_attributes $hid] {
 		if {[attr_tag $attr] != "name"} {
 			set tag   [attr_tag   $attr]
 			set value [attr_value $attr]
@@ -496,9 +496,9 @@ proc hrd_foreach_non_name_attr { tag_var value_var hrd body } {
 }
 
 
-proc hrd_first_attr { hrd } {
+proc hid_first_attr { hid } {
 	set first ""
-	foreach attr [hrd_attributes $hrd] {
+	foreach attr [hid_attributes $hid] {
 		if {$first == ""} {
 			set first $attr }
 		if {[attr_tag $attr] == "name"} {
@@ -508,14 +508,14 @@ proc hrd_first_attr { hrd } {
 }
 
 
-proc hrd_foreach_non_first_attr { tag_var value_var hrd body } {
+proc hid_foreach_non_first_attr { tag_var value_var hid body } {
 
 	upvar $tag_var   tag
 	upvar $value_var value
 
-	set first_tag [attr_tag [hrd_first_attr $hrd]]
+	set first_tag [attr_tag [hid_first_attr $hid]]
 
-	foreach attr [hrd_attributes $hrd] {
+	foreach attr [hid_attributes $hid] {
 		set tag [attr_tag $attr]
 		if {$tag != $first_tag} {
 			set value [attr_value $attr]
@@ -525,28 +525,28 @@ proc hrd_foreach_non_first_attr { tag_var value_var hrd body } {
 }
 
 
-proc hrd_num_quoted_lines { hrd } {
+proc hid_num_quoted_lines { hid } {
 	set count 0
-	foreach child $hrd {
-		if {[hrd_type $child] == ":"} { incr count } else { return 0 } }
+	foreach child $hid {
+		if {[hid_type $child] == ":"} { incr count } else { return 0 } }
 	return $count
 }
 
 
-proc print_hrd_as_tree_recursively { out_fd indent hrd { last 0 } } {
+proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 
 	# print comment above node
-	foreach preface_line [hrd_preface $hrd] {
+	foreach preface_line [hid_preface $hid] {
 		regsub {. $|^$} $indent ". " comment_prefix
 		puts $out_fd "$comment_prefix[lindex $preface_line 2]" }
 
-	set type [string trim [hrd_type $hrd]]
+	set type [string trim [hid_type $hid]]
 
 	set node_branch_char "|"
 	if {$last} {
 		set node_branch_char " " }
 
-	if {[llength [hrd_attributes $hrd]] == 0} {
+	if {[llength [hid_attributes $hid]] == 0} {
 		puts $out_fd "$indent$type"
 		regsub {[+x] $} $indent "$node_branch_char " indent
 		regsub {^[|]} $indent " " indent
@@ -554,11 +554,11 @@ proc print_hrd_as_tree_recursively { out_fd indent hrd { last 0 } } {
 
 		# max tag length used for tabular output of attribute values
 		set max_tag_len 0
-		hrd_foreach_non_name_attr tag value $hrd {
+		hid_foreach_non_name_attr tag value $hid {
 			set max_tag_len [expr max($max_tag_len, [string length $tag])] }
 		set tag_column_size [expr $max_tag_len + 1]
 
-		set first_attr [hrd_first_attr $hrd]
+		set first_attr [hid_first_attr $hid]
 		if {[attr_tag $first_attr] == "name"} {
 			puts $out_fd "$indent$type [attr_value $first_attr]"
 		} else {
@@ -574,51 +574,51 @@ proc print_hrd_as_tree_recursively { out_fd indent hrd { last 0 } } {
 		regsub -all {.} "$type" " " node_column
 
 		# branch besides the attributes to the first child node
-		if {![hrd_leaf $hrd] && $indent != ""} {
+		if {![hid_leaf $hid] && $indent != ""} {
 			regsub {^ } $node_column "|" node_column }
 
-		hrd_foreach_non_first_attr tag value $hrd {
+		hid_foreach_non_first_attr tag value $hid {
 			set padded_tag [format "%-${tag_column_size}s" "$tag:"]
 			if {$value != ""} { set value " $value" }
 			puts $out_fd "$indent$node_column $padded_tag$value"
 		}
 	}
 
-	set num_children [llength [hrd_children $hrd]]
-	foreach child_hrd [hrd_children $hrd] {
+	set num_children [llength [hid_children $hid]]
+	foreach child_hid [hid_children $hid] {
 		incr num_children -1
 		set last [expr {$num_children < 1}]
 
 		# quoted content
-		if {[hrd_type $child_hrd] == ":"} {
-			if {[string length [hrd_quoted $child_hrd]] == 0} {
+		if {[hid_type $child_hid] == ":"} {
+			if {[string length [hid_quoted $child_hid]] == 0} {
 				puts $out_fd "$indent:"
 			} else {
-				puts $out_fd "$indent: [hrd_quoted $child_hrd]"
+				puts $out_fd "$indent: [hid_quoted $child_hid]"
 			}
 		} else {
-			set sub_node_indent "$indent[string trim [hrd_anchor $child_hrd]] "
-			print_hrd_as_tree_recursively $out_fd $sub_node_indent $child_hrd $last
+			set sub_node_indent "$indent[string trim [hid_anchor $child_hid]] "
+			print_hid_as_tree_recursively $out_fd $sub_node_indent $child_hid $last
 		}
 	}
 }
 
 
-proc print_hrd_as_tree { out_fd hrd } {
-	print_hrd_as_tree_recursively $out_fd "" $hrd
+proc print_hid_as_tree { out_fd hid } {
+	print_hid_as_tree_recursively $out_fd "" $hid
 	puts $out_fd "-"
 }
 
 
-proc print_hrd_as_is_recursively { out_fd hrd } {
+proc print_hid_as_is_recursively { out_fd hid } {
 
-	foreach preface_line [hrd_preface $hrd] {
+	foreach preface_line [hid_preface $hid] {
 		puts -nonewline $out_fd "[lindex $preface_line 1]. [lindex $preface_line 2]" }
 
-	puts -nonewline $out_fd "[hrd_prespace $hrd][hrd_anchor $hrd][hrd_type $hrd]"
+	puts -nonewline $out_fd "[hid_prespace $hid][hid_anchor $hid][hid_type $hid]"
 
 	set first_attr 1
-	foreach attr [hrd_attributes $hrd] {
+	foreach attr [hid_attributes $hid] {
 		puts -nonewline $out_fd "[attr_prespace $attr]"
 		if {!$first_attr || [attr_tag $attr] != "name"} {
 			puts -nonewline $out_fd "[attr_tag $attr]:" }
@@ -626,22 +626,22 @@ proc print_hrd_as_is_recursively { out_fd hrd } {
 		set first_attr 0
 	}
 
-	foreach child_hrd [hrd_children $hrd] {
+	foreach child_hid [hid_children $hid] {
 
 		# quoted content
-		if {[hrd_type $child_hrd] == ":"} {
-			puts -nonewline $out_fd "[hrd_prespace $child_hrd]:"
-			if {[string length [hrd_quoted $child_hrd]] > 0} {
-				puts -nonewline $out_fd " [hrd_quoted $child_hrd]" }
+		if {[hid_type $child_hid] == ":"} {
+			puts -nonewline $out_fd "[hid_prespace $child_hid]:"
+			if {[string length [hid_quoted $child_hid]] > 0} {
+				puts -nonewline $out_fd " [hid_quoted $child_hid]" }
 		} else {
-			print_hrd_as_is_recursively $out_fd $child_hrd
+			print_hid_as_is_recursively $out_fd $child_hid
 		}
 	}
 }
 
 
-proc print_hrd_as_is { out_fd hrd } {
-	print_hrd_as_is_recursively $out_fd $hrd
+proc print_hid_as_is { out_fd hid } {
+	print_hid_as_is_recursively $out_fd $hid
 	puts $out_fd "\n-"
 }
 
@@ -690,7 +690,7 @@ proc _xml_encoded { text } {
 }
 
 
-proc _hrd_from_xml_rec { text info_var } {
+proc _hid_from_xml_rec { text info_var } {
 
 	upvar $info_var info
 
@@ -707,10 +707,10 @@ proc _hrd_from_xml_rec { text info_var } {
 		set child_type $info($id,type)
 		set child_text $info($id,text)
 
-		set hrd_type     ""
-		set hrd_attrs    {}
-		set hrd_children {}
-		set hrd_quoted   {}
+		set hid_type     ""
+		set hid_attrs    {}
+		set hid_children {}
+		set hid_quoted   {}
 
 		if {$child_type == "quoted"} {
 
@@ -724,7 +724,7 @@ proc _hrd_from_xml_rec { text info_var } {
 		if {$child_type == "compound"} {
 
 			set start_pattern {^<(\w[^\s>]*)((\s+([0-9\s]*))?)>}
-			if {![regexp $start_pattern $child_text match hrd_type xml_attrs]} {
+			if {![regexp $start_pattern $child_text match hid_type xml_attrs]} {
 				regsub {><.*$} $child_text ">" err_text
 				error "unable to interpret XML start tag: $err_text" }
 
@@ -732,20 +732,20 @@ proc _hrd_from_xml_rec { text info_var } {
 
 			set end_pattern {</(\w[^\s]*)\s*>}
 			if {![regexp $end_pattern $child_text match end_tag]} {
-				error "XML node <$hrd_type> lacks end tag" }
+				error "XML node <$hid_type> lacks end tag" }
 
-			if {$hrd_type != $end_tag} {
-				error "XML start tag <$hrd_type> mismatches end tag <$end_tag>" }
+			if {$hid_type != $end_tag} {
+				error "XML start tag <$hid_type> mismatches end tag <$end_tag>" }
 
 			regsub $end_pattern $child_text "" child_text
 
-			set hrd_children [_hrd_from_xml_rec $child_text info]
+			set hid_children [_hid_from_xml_rec $child_text info]
 		}
 
 		if {$child_type == "leaf"} {
 
 			set leaf_pattern {<([^\s>]+)((\s+([0-9\s]*))?)/>}
-			if {![regexp $leaf_pattern $child_text match hrd_type xml_attrs]} {
+			if {![regexp $leaf_pattern $child_text match hid_type xml_attrs]} {
 				regsub {><.*$} $child_text ">" err_text
 				error "unable to interpret XML tag: $err_text" }
 
@@ -760,10 +760,10 @@ proc _hrd_from_xml_rec { text info_var } {
 
 				set attr_pattern {(\w+) *= *"([^"]*)"}
 				if {[regexp $attr_pattern $info($attr,text) match tag value]} {
-					lappend hrd_attrs [list 0 "" $tag "" $value] }
+					lappend hid_attrs [list 0 "" $tag "" $value] }
 			}
 
-			lappend result [list $hrd_type 1 "" "+ " "" $hrd_attrs $hrd_children ""]
+			lappend result [list $hid_type 1 "" "+ " "" $hid_attrs $hid_children ""]
 		}
 	}
 
@@ -775,7 +775,7 @@ proc _hrd_from_xml_rec { text info_var } {
 }
 
 
-proc import_hrd_from_xml { xml } {
+proc import_hid_from_xml { xml } {
 
 	set id 0
 
@@ -785,22 +785,22 @@ proc import_hrd_from_xml { xml } {
 	_parse_xml quoted   {>([^<]+)<}                   {><$id><} xml id info
 	_parse_xml compound {(<\w[^>]*>[<>0-9]*</[^>]*>)} {<$id>}   xml id info
 
-	return [lindex [_hrd_from_xml_rec [string trim $xml] info] 0]
+	return [lindex [_hid_from_xml_rec [string trim $xml] info] 0]
 }
 
 
-proc print_hrd_as_xml { out_fd hrd { indent 0 } } {
+proc print_hid_as_xml { out_fd hid { indent 0 } } {
 
-	if {[string trim [hrd_anchor $hrd]] == "x"} {
+	if {[string trim [hid_anchor $hid]] == "x"} {
 		return }
 
 	set indent_tabs ""
 	for { set i 0 } { $i < $indent } { incr i } {
 		append indent_tabs "\t" }
 
-	set type     [hrd_type     $hrd]
-	set children [hrd_children $hrd]
-	set preface  [hrd_preface  $hrd]
+	set type     [hid_type     $hid]
+	set children [hid_children $hid]
+	set preface  [hid_preface  $hid]
 
 	# node-preface comments
 	if {[llength $preface] > 1} {
@@ -814,33 +814,33 @@ proc print_hrd_as_xml { out_fd hrd { indent 0 } } {
 
 	# quoted content
 	if {$type == ":"} {
-		puts $out_fd "$indent_tabs[hrd_quoted $hrd]"
+		puts $out_fd "$indent_tabs[hid_quoted $hid]"
 		return
 	}
 
 	set xml_tag "<$type"
-	foreach attr [hrd_attributes $hrd] {
+	foreach attr [hid_attributes $hid] {
 		lappend xml_tag "[attr_tag $attr]=\"[string trim [attr_value $attr]]\"" }
 	puts -nonewline $out_fd "$indent_tabs[join $xml_tag { }]"
 
-	if {[hrd_leaf $hrd]} {
+	if {[hid_leaf $hid]} {
 		puts $out_fd "/>"
 	} else {
 		# distinguish quoted content from sub-structured content
-		if {[hrd_num_quoted_lines $children] > 0} {
-			if {[hrd_num_quoted_lines $children] == 1} {
-				puts $out_fd ">[_xml_encoded [hrd_quoted [lindex $children 0]]]</$type>"
+		if {[hid_num_quoted_lines $children] > 0} {
+			if {[hid_num_quoted_lines $children] == 1} {
+				puts $out_fd ">[_xml_encoded [hid_quoted [lindex $children 0]]]</$type>"
 			} else {
 				puts $out_fd ">"
 				foreach child $children {
-					puts $out_fd "$indent_tabs\t[_xml_encoded [hrd_quoted $child]]" }
+					puts $out_fd "$indent_tabs\t[_xml_encoded [hid_quoted $child]]" }
 				puts $out_fd "$indent_tabs</$type>"
 			}
 		} else {
 			puts $out_fd ">"
 			incr indent
 			foreach child $children {
-				print_hrd_as_xml $out_fd $child $indent }
+				print_hid_as_xml $out_fd $child $indent }
 			incr indent -1
 			puts $out_fd "$indent_tabs</$type>"
 		}
@@ -864,65 +864,65 @@ proc file_content { path } {
 }
 
 set short_usage_msg {
-  usage: hrd [-i] [--import-xml] <command> [<options>] <hrd-file>}
+  usage: hid [-i] [--import-xml] <command> [<options>] <hid-file>}
 
 append help_hint_msg $short_usage_msg "\n" {
   Use '--help' to get more information. }
 
 append help_msg $short_usage_msg {
 
-  With the option '-i' specfied, the <hrd-file> is modified in place.
+  With the option '-i' specfied, the <hid-file> is modified in place.
 
   available commands:
 
-    hrd [-i] format <hrd-file>
+    hid [-i] format <hid-file>
 
-      Print formatted HRD data. Alternatively to the HRD syntax used
+      Print formatted HID data. Alternatively to the HID syntax used
       by default, the output format can be defined via:
 
-      --output-tcl  Print HRD structure as Tcl list with each HRD node
+      --output-tcl  Print HID structure as Tcl list with each HID node
                     represented as a list of the following structure:
 
                     { type line enabled preface attributes children }
 
-                    The 'children' element is a list of HRD nodes.
+                    The 'children' element is a list of HID nodes.
                     The 'attributes' element is a list of attributes
                     each represented as a list as follow:
 
                     { line tag value }
 
-      --output-xml  Print HRD structure as XML
+      --output-xml  Print HID structure as XML
 
-    hrd subnodes <node-path> <hrd-file>
+    hid subnodes <node-path> <hid-file>
 
-      Query nodes from HRD structure. The <node-path> describes the
-      targeted sub trees within the hierarchy as a sequence of HRD
+      Query nodes from HID structure. The <node-path> describes the
+      targeted sub trees within the hierarchy as a sequence of HID
       nodes separated by '| +'.
 
-      Each HRD node can be followed by optional attribute filters
+      Each HID node can be followed by optional attribute filters
       in the form of '| <tag>: <value>', which are interpreted as
       conditions for the match. If multiple attributes are specified,
       each conditions must apply.
 
       Example:
 
-      $ hrd subnodes 'config | + start terminal | + route' <hrd-file>
+      $ hid subnodes 'config | + start terminal | + route' <hid-file>
 
       Prints the 'route' subnode of the 'start' node named 'terminal'.
 
-    hrd get <attr-path> <hrd-file>
+    hid get <attr-path> <hid-file>
 
-      Query attributes value from HRD structure. The <attr-path>
+      Query attributes value from HID structure. The <attr-path>
       consists of a <node-path> followed by '| : <tag>' denoting the
       tag to retrieve.
 
       Example:
 
-      $ hrd get 'config | + start | : name' <hrd-file>
+      $ hid get 'config | + start | : name' <hid-file>
 
       Prints the name of each 'start' node found in 'config'.
 
-    hrd [-i] set <attr-def> <hrd-file>
+    hid [-i] set <attr-def> <hid-file>
 
       Sets the attribute values specified by <attr-def>, which is
       a <node-path> followed by the delimiter '| :' followed by
@@ -931,34 +931,34 @@ append help_msg $short_usage_msg {
 
       Example:
 
-      $ hrd set 'config | + start vfs | : caps: 100 | ram: 16M' <hrd-file>
+      $ hid set 'config | + start vfs | : caps: 100 | ram: 16M' <hid-file>
 
       Sets the attributes 'caps' and 'ram' of the 'start' node named
       'vfs' to the values 100 and 16M respectively.
 
-    hrd [-i] remove <node-path>
+    hid [-i] remove <node-path>
 
       Removes the node(s) specified by the <node-path>.
 
       Example:
 
-      $ hrd remove 'config | + start | + route' <hrd-file>
+      $ hid remove 'config | + start | + route' <hid-file>
 
       Removes all 'route' sub nodes from each 'start' node hosted
       at the 'config'.
 
-    hrd [-i] disable <node-path>
+    hid [-i] disable <node-path>
 
       Marks nodes specified by <node-path> as disabled, which turns the
       node anchor from '+' to 'x'.
 
       Example:
 
-      $ hrd disable 'config | + start terminal' <hrd-file>
+      $ hid disable 'config | + start terminal' <hid-file>
 
       Turns the node anchor of the terminal's 'start' node to an 'x'.
 
-    hrd [-i] enable <node-path>
+    hid [-i] enable <node-path>
 
       Reverts the enabled state of nodes addressed by the <node-path>.
 }
@@ -986,20 +986,20 @@ proc consume_flag_arg { flag body } {
 }
 
 # define input and output format
-set import_hrd_fn import_hrd
-set print_hrd_fn  print_hrd_as_is
+set import_hid_fn import_hid
+set print_hid_fn  print_hid_as_is
 set in_place 0
 
 consume_flag_arg --import-xml {
-	set import_hrd_fn import_hrd_from_xml
-	set print_hrd_fn  print_hrd_as_tree
+	set import_hid_fn import_hid_from_xml
+	set print_hid_fn  print_hid_as_tree
 }
 
 consume_flag_arg --output-xml {
-	set print_hrd_fn print_hrd_as_xml }
+	set print_hid_fn print_hid_as_xml }
 
 consume_flag_arg --output-tcl {
-	set print_hrd_fn puts }
+	set print_hid_fn puts }
 
 consume_flag_arg -i {
 	set in_place 1 }
@@ -1030,7 +1030,7 @@ if {![info exists command_info(min_args,$command)]} {
 if {[llength $argv] < $command_info(min_args,$command)} {
 	error "missing $command argument\n$help_hint_msg" }
 
-set input_hrd [$import_hrd_fn [file_content $path]]
+set input_hid [$import_hid_fn [file_content $path]]
 
 set out_fd stdout
 if {$in_place} {
@@ -1051,12 +1051,12 @@ proc with_command { expected body } {
 }
 
 
-proc with_node_query { node_query_hrd_var body } {
+proc with_node_query { node_query_hid_var body } {
 
-	upvar $node_query_hrd_var node_query_hrd
+	upvar $node_query_hid_var node_query_hid
 
 	global argv
-	set node_query_hrd [import_hrd [lindex $argv 1] false]
+	set node_query_hid [import_hid [lindex $argv 1] false]
 	uplevel 1 $body
 }
 
@@ -1064,13 +1064,13 @@ proc with_node_query { node_query_hrd_var body } {
 ##
 # Split query definition info node path and args
 #
-# The query uses HRD syntax with both parts separated by ' | : '.
+# The query uses HID syntax with both parts separated by ' | : '.
 # Technically, the args are represented as quoted content of the
 # leaf node of the query.
 #
-proc with_node_query_and_args { node_query_hrd_var args_var body } {
+proc with_node_query_and_args { node_query_hid_var args_var body } {
 
-	upvar $node_query_hrd_var node_query_hrd
+	upvar $node_query_hid_var node_query_hid
 	upvar $args_var           args
 
 	global argv
@@ -1079,7 +1079,7 @@ proc with_node_query_and_args { node_query_hrd_var args_var body } {
 	set split_pattern "^(.*) [delim_pattern][quoted_pattern](.*)"
 	if {[regexp $split_pattern $query dummy node_query dummy args]} {
 
-		set node_query_hrd [import_hrd $node_query false]
+		set node_query_hid [import_hid $node_query false]
 		uplevel 1 $body
 	}
 }
@@ -1087,54 +1087,54 @@ proc with_node_query_and_args { node_query_hrd_var args_var body } {
 
 with_command format {
 
-	if {$print_hrd_fn == "print_hrd_as_is"} { set print_hrd_fn print_hrd_as_tree }
+	if {$print_hid_fn == "print_hid_as_is"} { set print_hid_fn print_hid_as_tree }
 
-	$print_hrd_fn $out_fd $input_hrd
+	$print_hid_fn $out_fd $input_hid
 }
 
 
 with_command subnodes {
 
-	if {$print_hrd_fn == "print_hrd_as_is"} { set print_hrd_fn print_hrd_as_tree }
+	if {$print_hid_fn == "print_hid_as_is"} { set print_hid_fn print_hid_as_tree }
 
-	with_node_query query_hrd {
-		foreach hrd [hrd_query_nodes $query_hrd $input_hrd] {
-			$print_hrd_fn stdout $hrd } }
+	with_node_query query_hid {
+		foreach hid [hid_query_nodes $query_hid $input_hid] {
+			$print_hid_fn stdout $hid } }
 }
 
 
 with_command remove {
 
-	with_node_query query_hrd {
+	with_node_query query_hid {
 		set filter_fn { set empty {} }
-		$print_hrd_fn $out_fd [hrd_filter unused $query_hrd $input_hrd empty $filter_fn]
+		$print_hid_fn $out_fd [hid_filter unused $query_hid $input_hid empty $filter_fn]
 	}
 }
 
 
 with_command enable {
 
-	with_node_query query_hrd {
-		$print_hrd_fn $out_fd [hrd_filter unused $query_hrd $input_hrd enable_hrd {
-			if {[hrd_anchor $enable_hrd] != ""} {
-				set enable_hrd [lreplace $enable_hrd 3 3 "+ "] } }] }
+	with_node_query query_hid {
+		$print_hid_fn $out_fd [hid_filter unused $query_hid $input_hid enable_hid {
+			if {[hid_anchor $enable_hid] != ""} {
+				set enable_hid [lreplace $enable_hid 3 3 "+ "] } }] }
 }
 
 
 with_command disable {
 
-	with_node_query query_hrd {
-		$print_hrd_fn $out_fd [hrd_filter unused $query_hrd $input_hrd disable_hrd {
-			if {[hrd_anchor $disable_hrd] != ""} {
-				set disable_hrd [lreplace $disable_hrd 3 3 "x "] } }] }
+	with_node_query query_hid {
+		$print_hid_fn $out_fd [hid_filter unused $query_hid $input_hid disable_hid {
+			if {[hid_anchor $disable_hid] != ""} {
+				set disable_hid [lreplace $disable_hid 3 3 "x "] } }] }
 }
 
 
 with_command get {
 
-	with_node_query_and_args query_hrd queried_tag {
-		foreach hrd [hrd_query_nodes $query_hrd $input_hrd ] {
-			foreach attr [hrd_attributes $hrd] {
+	with_node_query_and_args query_hid queried_tag {
+		foreach hid [hid_query_nodes $query_hid $input_hid ] {
+			foreach attr [hid_attributes $hid] {
 				if {[attr_tag $attr] == $queried_tag} {
 					puts stdout [attr_value $attr] } } } }
 }
@@ -1142,16 +1142,16 @@ with_command get {
 
 with_command set {
 
-	with_node_query_and_args query_hrd new_attrs {
+	with_node_query_and_args query_hid new_attrs {
 
 		# satisfy invariant that each attribute is preceeded by space (prespace)
 		set new_attrs " $new_attrs"
 
-		set ctx(new_attrs) [hrd_attributes [import_hrd $new_attrs false]]
+		set ctx(new_attrs) [hid_attributes [import_hid $new_attrs false]]
 
-		$print_hrd_fn $out_fd [hrd_filter ctx $query_hrd $input_hrd filtered_hrd {
+		$print_hid_fn $out_fd [hid_filter ctx $query_hid $input_hid filtered_hid {
 
-			set orig_attrs [hrd_attributes $filtered_hrd]
+			set orig_attrs [hid_attributes $filtered_hid]
 			set new_attrs  $ctx(new_attrs)
 			set result_attrs {}
 
@@ -1181,7 +1181,7 @@ with_command set {
 					lappend result_attrs [list "?" $prespace [attr_tag   $new_attr] \
 					                                     " " [attr_value $new_attr]] }
 			}
-			set filtered_hrd [lreplace $filtered_hrd 5 5 $result_attrs]
+			set filtered_hid [lreplace $filtered_hid 5 5 $result_attrs]
 		}]
 	}
 }

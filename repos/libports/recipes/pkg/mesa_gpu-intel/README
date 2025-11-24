@@ -11,6 +11,6 @@ XML:
 
 ! <env key="IRIS_USE_BO_CACHE" value="false"/>
 
-HRD:
+HID:
 
 ! + env key: IRIS_USE_BO_CACHE | value: false

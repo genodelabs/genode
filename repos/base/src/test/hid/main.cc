@@ -1,5 +1,5 @@
 /*
- * \brief  Test for parsing Human-Readable Data (HRD)
+ * \brief  Test for parsing human-inclined data (HID)
  * \author Norman Feske
  * \date   2025-06-11
  */
@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <util/hrd.h>
+#include <util/hid.h>
 #include <util/formatted_output.h>
 #include <base/component.h>
 #include <base/log.h>
@@ -84,10 +84,10 @@ struct Indentation
  */
 struct Formatted_attribute
 {
-	Hrd_node::Attribute const &_attr;
+	Hid_node::Attribute const &_attr;
 	unsigned            const  _indent;
 
-	Formatted_attribute(Hrd_node::Attribute const &attr, unsigned indent)
+	Formatted_attribute(Hid_node::Attribute const &attr, unsigned indent)
 	: _attr(attr), _indent(indent) { }
 
 	void print(Output &output) const
@@ -102,9 +102,9 @@ struct Formatted_attribute
 /**
  * Print attributes of node
  */
-static void print_attr_info(Output &output, Hrd_node const &node, int indent = 0)
+static void print_attr_info(Output &output, Hid_node const &node, int indent = 0)
 {
-	node.for_each_attribute([&] (Hrd_node::Attribute const &a) {
+	node.for_each_attribute([&] (Hid_node::Attribute const &a) {
 		print(output, Formatted_attribute(a, indent), "\n"); });
 }
 
@@ -117,10 +117,10 @@ static void print_attr_info(Output &output, Hrd_node const &node, int indent = 0
  */
 struct Formatted_node
 {
-	Hrd_node const &_node;
+	Hid_node const &_node;
 	unsigned const  _indent;
 
-	Formatted_node(Hrd_node const &node, unsigned indent = 0)
+	Formatted_node(Hid_node const &node, unsigned indent = 0)
 	: _node(node), _indent(indent)
 	{ }
 
@@ -149,7 +149,7 @@ struct Formatted_node
 		print_attr_info(out, _node, _indent + 2);
 
 		/* print information of sub nodes */
-		_node.for_each_sub_node([&] (Hrd_node const &node) {
+		_node.for_each_sub_node([&] (Hid_node const &node) {
 			print(out, Formatted_node(node, _indent + 2)); });
 	}
 };
@@ -166,20 +166,20 @@ void Component::construct(Genode::Env &env)
 
 	auto expect_invalid = [&] (char const *invalid)
 	{
-		if (Hrd_node { { invalid, strlen(invalid) } }.type() != "invalid")
+		if (Hid_node { { invalid, strlen(invalid) } }.type() != "invalid")
 			fail("accepted invalid input: '", invalid, "'");
 	};
 
-	log("--- HRD-parser test ---");
+	log("--- HID-parser test ---");
 
 	Const_byte_range_ptr const bytes { good_case_test, strlen(good_case_test) };
 
-	log(Formatted_node(Hrd_node { bytes }));
+	log(Formatted_node(Hid_node { bytes }));
 
 	/* truncation */
 	for (size_t n = 0; n < bytes.num_bytes; n++)
-		if (Hrd_node { { good_case_test, n } }.type() != "invalid")
-			fail("truncated HRD node undetected");
+		if (Hid_node { { good_case_test, n } }.type() != "invalid")
+			fail("truncated HID node undetected");
 
 	/* TAB at wrong places */
 	expect_invalid("launcher\ttest: 1\n-");   /* tab wrongly used as separator */
@@ -201,7 +201,7 @@ void Component::construct(Genode::Env &env)
 		                         "+ start black_hole\n"
 		                         "x start system_shell | ram: 1G\n"
 		                         "-";
-		Hrd_node(Span { test, strlen(test) }).for_each_sub_node([&] (Hrd_node const &node) {
+		Hid_node(Span { test, strlen(test) }).for_each_sub_node([&] (Hid_node const &node) {
 			if (node.attribute_value("ram", String<16>("nix")) != "nix")
 				fail("unexpected use of attribute of disabled node"); });
 	}
@@ -209,7 +209,7 @@ void Component::construct(Genode::Env &env)
 	auto with_generated = [&] (auto const &node_type, auto const &fn, auto const &result_fn)
 	{
 		char buf[4*1024] { };
-		Hrd_generator::generate({ buf, sizeof(buf)}, node_type, fn).with_result(
+		Hid_generator::generate({ buf, sizeof(buf)}, node_type, fn).with_result(
 			[&] (size_t num_bytes) { result_fn(Node(Span { buf, num_bytes })); },
 			[&] (Buffer_error) { }
 		);
@@ -223,7 +223,7 @@ void Component::construct(Genode::Env &env)
 	/*
 	 * preserved comments and formatting
 	 */
-	print_generated("verbatim_copy", [&] (Hrd_generator &g) {
+	print_generated("verbatim_copy", [&] (Hid_generator &g) {
 
 		char const * const node_with_comments =
 		"launcher\n"
@@ -241,10 +241,10 @@ void Component::construct(Genode::Env &env)
 		"      + log\n"
 		"      + rtc\n"
 		"-";
-		Hrd_node const node { { node_with_comments, strlen(node_with_comments) } };
+		Hid_node const node { { node_with_comments, strlen(node_with_comments) } };
 
-		node.with_sub_node("config", [&] (Hrd_node const &node) {
-			node.with_sub_node("vfs", [&] (Hrd_node const &node) {
+		node.with_sub_node("config", [&] (Hid_node const &node) {
+			node.with_sub_node("vfs", [&] (Hid_node const &node) {
 				g.append_node(node);
 			}, [] { });
 		}, [] { });
@@ -265,7 +265,7 @@ void Component::construct(Genode::Env &env)
 	 * + service CPU                          | + parent
 	 * + service LOG                          | + parent
 	 */
-	print_generated("tabular_nested_nodes", [&] (Hrd_generator &g) {
+	print_generated("tabular_nested_nodes", [&] (Hid_generator &g) {
 
 		auto gen_service_node = [&] (auto const &service, auto const &fn)
 		{
@@ -329,7 +329,7 @@ void Component::construct(Genode::Env &env)
 	 * the same length and all node types have the same length. Optional
 	 * trailing attributes are not aligned.
 	 */
-	print_generated("tabular_attributes", [&] (Hrd_generator &g) {
+	print_generated("tabular_attributes", [&] (Hid_generator &g) {
 
 		/* graceful handling of optional attributes */
 		g.node("views", [&] {
@@ -399,7 +399,7 @@ void Component::construct(Genode::Env &env)
 		});
 	});
 
-	print_generated("quoted_content", [&] (Hrd_generator &g) {
+	print_generated("quoted_content", [&] (Hid_generator &g) {
 		g.node("env", [&] {
 			g.attribute("name", "PS1");
 			g.append_quoted("system:$PWD> ");
@@ -424,7 +424,7 @@ void Component::construct(Genode::Env &env)
 		});
 	});
 
-	print_generated("tabular_quoted_content", [&] (Hrd_generator &g) {
+	print_generated("tabular_quoted_content", [&] (Hid_generator &g) {
 		g.tabular([&] {
 			g.node("env", [&] {
 				g.attribute("name", "PS1");
@@ -458,7 +458,7 @@ void Component::construct(Genode::Env &env)
 		});
 	});
 
-	print_generated("quoted_bash_script", [&] (Hrd_generator &g) {
+	print_generated("quoted_bash_script", [&] (Hid_generator &g) {
 		char const * const script =
 			"export VERSION=`cat /VERSION`\n"
 			"cp -r /rw/config/$VERSION/*  /config/\n"
@@ -469,7 +469,7 @@ void Component::construct(Genode::Env &env)
 	});
 
 	with_generated("bad_pipe_as_attribute_value",
-		[&] (Hrd_generator &g) { g.attribute("pipe", "|"); },
+		[&] (Hid_generator &g) { g.attribute("pipe", "|"); },
 		[&] (Node const &node) {
 			log(node);
 			if (node.has_attribute("pipe"))
@@ -480,7 +480,7 @@ void Component::construct(Genode::Env &env)
 
 	with_generated("bad_attribute_values",
 
-		[&] (Hrd_generator &g) {
+		[&] (Hid_generator &g) {
 			for (char i = 0; i < 32; i++)
 				g.attribute(bad_tag_name(i).string(), &i, 1);
 			g.attribute("innocent", 123);
@@ -494,6 +494,6 @@ void Component::construct(Genode::Env &env)
 					fail("generated attribute with bad value");
 		});
 
-	log("--- End of HRD-parser test ---");
+	log("--- End of HID-parser test ---");
 	env.parent().exit(0);
 }
