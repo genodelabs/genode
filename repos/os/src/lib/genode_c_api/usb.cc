@@ -1180,14 +1180,19 @@ Session_component::_acquire(genode_usb_device::Label const &name, bool controls)
 void Session_component::_release(Device_component &dc)
 {
 	genode_usb_device::Label name = dc._device_label;
+	bool const connected = dc.connected();
 
-	_devices.apply(
-		[&] (genode_usb_device & device) {
-			return device.label() == name; },
-		[&] (genode_usb_device & device) {
-			_release_fn(device.bus, device.dev); });
+	if (connected)
+		_devices.apply(
+			[&] (genode_usb_device & device) {
+				return device.label() == name; },
+			[&] (genode_usb_device & device) {
+				_release_fn(device.bus, device.dev); });
 
 	destroy(_heap, &dc);
+
+	if (!connected)
+		return;
 
 	_devices.apply(
 		[&] (genode_usb_device & device) {
