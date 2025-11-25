@@ -115,7 +115,6 @@ static void * register_device(genode_usb_client_dev_handle_t handle,
 	descr = usb_get_device_descriptor(udev);
 	if (PTR_ERR(descr) < 0) {
 		dev_err(&udev->dev, "can't read device descriptor: %ld\n", PTR_ERR(descr));
-		kfree(descr);
 		usb_put_dev(udev);
 		return NULL;
 	}
