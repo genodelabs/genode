@@ -234,7 +234,7 @@ struct Cond
 		mutex->exit();
 	
 		if (!abstime)
-			signal_sem.down();
+			(void)signal_sem.down();
 		else {
 			struct timespec currtime;
 			rumpuser_clock_gettime(0, &currtime.tv_sec, &currtime.tv_nsec);
@@ -251,7 +251,7 @@ struct Cond
 		counter_mutex.acquire();
 		if (num_signallers > 0) {
 			if (result == -2) /* timeout occured */
-				signal_sem.down();
+				(void)signal_sem.down();
 			handshake_sem.up();
 			--num_signallers;
 		}
