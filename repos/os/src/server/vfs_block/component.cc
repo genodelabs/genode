@@ -46,6 +46,8 @@ struct Vfs_block::File_info
 	File_path const path;
 	bool      const writeable;
 	size_t    const block_size;
+
+	size_t    const maximum_transfer_size;
 };
 
 
@@ -57,13 +59,17 @@ Vfs_block::File_info Vfs_block::file_info_from_policy(Node const &policy)
 	bool const writeable =
 		policy.attribute_value("writeable", false);
 
-	size_t const block_size =
-		policy.attribute_value("block_size", 512u);
+	Num_bytes const block_size =
+		policy.attribute_value("block_size", Num_bytes(512u));
+
+	Num_bytes const maximum_transfer_size =
+		policy.attribute_value("maximum_transfer_size", Num_bytes(0));
 
 	return File_info {
-		.path       = file_path,
-		.writeable  = writeable,
-		.block_size = block_size };
+		.path                  = file_path,
+		.writeable             = writeable,
+		.block_size            = block_size,
+		.maximum_transfer_size = maximum_transfer_size };
 }
 
 
@@ -84,6 +90,8 @@ class Vfs_block::File
 		Block::block_number_t _last_allowed_block { 0 };
 
 		Block::Constrained_view const _view;
+
+		Block::block_count_t _transfer_block_count_limit { 0 };
 
 	public:
 
@@ -138,6 +146,16 @@ class Vfs_block::File
 				.align_log2  = log2(info.block_size, 0u),
 				.writeable   = info.writeable && view.writeable,
 			};
+
+			/*
+			 * If set make sure we limit to at least on block,
+			 * the upper limit is unchecked as too large counts
+			 * in a request are rejected anyway.
+			*/
+			if (info.maximum_transfer_size)
+				_transfer_block_count_limit =
+					max(info.maximum_transfer_size,
+					    info.block_size) / info.block_size;
 		}
 
 		~File()
@@ -148,6 +166,9 @@ class Vfs_block::File
 			 */
 			_vfs.close(_vfs_handle);
 		}
+
+		Block::block_count_t transfer_block_count_limit() const {
+			return _transfer_block_count_limit; }
 
 		Block::Session::Info block_info() const { return _block_info; }
 
@@ -254,6 +275,16 @@ struct Block_session_component : Rpc_object<Block::Session>,
 
 	Capability<Tx> tx_cap() override { return Request_stream::tx_cap(); }
 
+	Block::Request _limit_transfer_size(Block::Request request) const
+	{
+		if (_file.transfer_block_count_limit())
+			request.operation.count =
+				min(request.operation.count,
+				    _file.transfer_block_count_limit());
+
+		return request;
+	}
+
 	void handle_request()
 	{
 		for (;;) {
@@ -275,6 +306,12 @@ struct Block_session_component : Rpc_object<Block::Session>,
 					Op::has_payload(request.operation.type);
 
 				try {
+					/*
+					 * Restrict the maximum data transfer size
+					 * artificially to aid in testing corner-cases.
+					 */
+					request = _limit_transfer_size(request);
+
 					if (payload) {
 						with_content(request,
 						[&] (void *ptr, size_t size) {
