@@ -18,7 +18,8 @@ component:
 !        </vfs>
 !
 !        <policy label_prefix="client"
-!                file="/vfs_block.img" block_size="512" writeable="yes"/>
+!                file="/vfs_block.img" block_size="512" writeable="yes"
+!                maximum_transfer_size="1M"/>
 !      </config>
 !      <route>
 !        <service name="File_system" label_prefix="backend ->">
@@ -31,11 +32,18 @@ With this configuration the component will give the component 'client' access
 to the file '/vfs_block.img' specified by the 'file' attribute. This file
 is accessed by using a file system connection to another component
 'fs_provider'.
+
 Block requests will then be translated to VFS requests operating directly on
 this file. The block size must be specified via the 'block_size' attribute. It
 defaults to 512 bytes. The block count is determined by querying the backing
 file and dividing its size by the block size. Pseudo file systems which do not
 return a proper size in their 'stat' implementation will therefore not work.
+
+The 'maximum_transfer_size' attribute specifies how large a single block
+request may be. It is intended for artificially limiting block operations
+for testing and is not needed for normal operation of the component.
+The default value is '0', i.e. no limit is imposed.
+
 The 'writeable' attribute denotes if the Block session is allowed to perform
 write requests. However, if the underlying file is read-only such requests
 will nonetheless fail. The default value is 'no'.
