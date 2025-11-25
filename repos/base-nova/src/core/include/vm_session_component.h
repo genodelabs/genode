@@ -42,6 +42,16 @@ class Core::Vm_session_component
 		using Con_ram_allocator = Accounted_ram_allocator;
 		using Avl_region        = Allocator_avl_tpl<Rm_region>;
 
+		struct Pd_selector
+		{
+			addr_t const value;
+
+			Pd_selector();
+			~Pd_selector();
+
+			bool valid() const;
+		};
+
 		class Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
 		             public Trace::Source::Info_accessor
 		{
@@ -61,7 +71,7 @@ class Core::Vm_session_component
 				Affinity::Location const      _location;
 				unsigned           const      _priority;
 				Session_label      const     &_label;
-				addr_t             const      _pd_sel;
+				Pd_selector                  &_pd;
 
 				Trace::Control_area::Result  _trace_control_slot;
 				Constructible<Trace::Source> _trace_source { };
@@ -76,7 +86,7 @@ class Core::Vm_session_component
 				     Affinity::Location,
 				     unsigned priority,
 				     Session_label const &,
-				     addr_t   pd_sel,
+				     Pd_selector &pd_sel,
 				     addr_t   core_pd_sel,
 				     addr_t   vmm_pd_sel,
 				     Trace::Control_area &,
@@ -108,8 +118,8 @@ class Core::Vm_session_component
 		Trace::Source_registry &_trace_sources;
 		Con_ram_allocator       _ram;
 		Sliced_heap             _heap;
+		Pd_selector             _pd {};
 		Guest_memory            _memory;
-		addr_t                  _pd_sel { 0 };
 		unsigned                _next_vcpu_id { 0 };
 		unsigned                _priority;
 		Session_label const     _session_label;

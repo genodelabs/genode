@@ -102,8 +102,8 @@ void Vm_session_component::Vcpu::startup()
 	/* initialize SC on first call - do nothing on subsequent calls */
 	if (_alive) return;
 
-	uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
-		return Nova::create_sc(sc_sel(), _pd_sel, ec_sel(),
+	uint8_t res = _with_kernel_quota_upgrade(_pd.value, [&] {
+		return Nova::create_sc(sc_sel(), _pd.value, ec_sel(),
 		                       Nova::Qpd(Nova::Qpd::DEFAULT_QUANTUM, _priority));
 	});
 
@@ -126,11 +126,11 @@ void Vm_session_component::Vcpu::exit_handler(unsigned const exit,
 	/* map handler into vCPU-specific range of VM protection domain */
 	addr_t const pt = Nova::NUM_INITIAL_VCPU_PT * _id + exit;
 
-	uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
+	uint8_t res = _with_kernel_quota_upgrade(_pd.value, [&] {
 		Nova::Obj_crd const src(cap.local_name(), 0);
 		Nova::Obj_crd const dst(pt, 0);
 
-		return map_async_caps(src, dst, _pd_sel);
+		return map_async_caps(src, dst, _pd.value);
 	});
 
 	if (res != Nova::NOVA_OK)
@@ -146,7 +146,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
                                  Affinity::Location const   location,
                                  unsigned const             priority,
                                  Session_label const       &label,
-                                 addr_t const               pd_sel,
+                                 Pd_selector               &pd_sel,
                                  addr_t const               core_pd_sel,
                                  addr_t const               vmm_pd_sel,
                                  Trace::Control_area       &trace_control_area,
@@ -161,7 +161,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	_location(location),
 	_priority(priority),
 	_label(label),
-	_pd_sel(pd_sel),
+	_pd(pd_sel),
 	_trace_control_slot(trace_control_area.alloc())
 {
 	/* account caps required to setup vCPU */
@@ -177,7 +177,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	}
 
 	/* setup resources */
-	uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
+	uint8_t res = _with_kernel_quota_upgrade(_pd.value, [&] {
 		return Nova::create_sm(sm_sel(), core_pd_sel, 0);
 	});
 
@@ -189,8 +189,8 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 
 	addr_t const event_base = (1U << Nova::NUM_INITIAL_VCPU_PT_LOG2) * id;
 	enum { THREAD_GLOBAL = true, NO_UTCB = 0, NO_STACK = 0 };
-	res = _with_kernel_quota_upgrade(_pd_sel, [&] {
-		return Nova::create_ec(ec_sel(), _pd_sel, kernel_id,
+	res = _with_kernel_quota_upgrade(_pd.value, [&] {
+		return Nova::create_ec(ec_sel(), _pd.value, kernel_id,
 		                       NO_UTCB, NO_STACK, event_base, THREAD_GLOBAL);
 	});
 
@@ -253,6 +253,18 @@ Vm_session_component::Vcpu::~Vcpu()
  ** Vm_session_component **
  **************************/
 
+bool Vm_session_component::Pd_selector::valid() const {
+	return value && value != invalid_sel(); }
+
+
+Vm_session_component::Pd_selector::Pd_selector()
+: value(cap_map().insert()) {}
+
+
+Vm_session_component::Pd_selector::~Pd_selector() {
+	if (valid()) cap_map().remove(value, 0, true); }
+
+
 void Vm_session_component::attach(Dataspace_capability const cap,
                                   addr_t const guest_phys,
                                   Attach_attr attribute)
@@ -284,8 +296,8 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 			                      map_rights);
 
 			/* asynchronously map memory */
-			uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
-				return Nova::delegate(src_pd, _pd_sel, crd_mem); });
+			uint8_t res = _with_kernel_quota_upgrade(_pd.value, [&] {
+				return Nova::delegate(src_pd, _pd.value, crd_mem); });
 
 			if (res != Nova::NOVA_OK) {
 				error("could not map VM memory ", res);
@@ -323,7 +335,7 @@ void Vm_session_component::_detach(addr_t guest_phys, size_t size)
 
 	while (page.valid()) {
 		Nova::Mem_crd mem(page.addr >> 12, page.log2_order - 12, revoke_rwx);
-		Nova::revoke(mem, true, true, _pd_sel);
+		Nova::revoke(mem, true, true, _pd.value);
 
 		page = flex.page();
 	}
@@ -390,7 +402,7 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 			                              vcpu_location,
 			                              _priority,
 			                              _session_label,
-			                              _pd_sel,
+			                              _pd,
 			                              platform_specific().core_pd_sel(),
 			                              vmm_pd_sel,
 			                              _trace_control_area,
@@ -426,18 +438,16 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	if (!_cap_quota_guard().try_withdraw(Cap_quota{1}))
 		throw Out_of_caps();
 
-	_pd_sel = cap_map().insert();
-	if (!_pd_sel || _pd_sel == invalid_sel())
+	if (!_pd.valid())
 		throw Service_denied();
 
 	addr_t const core_pd = platform_specific().core_pd_sel();
 	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
-	uint8_t res = Nova::create_pd(_pd_sel, core_pd, Nova::Obj_crd(),
+	uint8_t res = Nova::create_pd(_pd.value, core_pd, Nova::Obj_crd(),
 	                              KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE,
 	                              UPPER_LIMIT_PAGES);
 	if (res != Nova::NOVA_OK) {
 		error("create_pd = ", res);
-		cap_map().remove(_pd_sel, 0, true);
 		throw Service_denied();
 	}
 }
@@ -447,7 +457,4 @@ Vm_session_component::~Vm_session_component()
 {
 	_vcpus.for_each([&] (Vcpu &vcpu) {
 		destroy(_heap, &vcpu); });
-
-	if (_pd_sel && _pd_sel != invalid_sel())
-		cap_map().remove(_pd_sel, 0, true);
 }
