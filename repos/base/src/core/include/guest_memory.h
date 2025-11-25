@@ -242,8 +242,14 @@ class Core::Guest_memory
 		:
 			_ep(ep), _detach(detach), _sliced_heap(ram, local_rm)
 		{
-			/* configure managed VM area */
-			if (_map.add_range(0UL, ~0UL).failed())
+			/**
+			 * Configure managed VM area,
+			 * unfortunately we cannot add the whole range in once,
+			 * because the size type is limited, therefore add the
+			 * last byte separatedly
+			 */
+			if (_map.add_range(0UL, ~0UL).failed() ||
+			    _map.add_range(~0UL, 1).failed())
 				error("unable to initialize guest-memory allocator");
 		}
 
