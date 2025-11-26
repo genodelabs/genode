@@ -112,7 +112,11 @@ Platform devices
 UART devices
 ============
 
-The UART device drivers implement the UART-session interface.
+:_dde_linux/src/driver/usb_serial/_:
+  Driver for FTDI FT232 and Prolific PL2303 chips, playing the role of
+  a terminal client.
+
+The following UART device drivers implement the UART-session interface.
 
 :_os/src/driver/uart/spec/pbxa9/_:
   Driver for the PL011 UART as found on many ARM-based platforms.
@@ -456,6 +460,10 @@ components that use the Genode's VFS library directly.
 :_gems/src/lib/vfs/ttf/_:
   A VFS plugin that makes rendered pixel data of the glyphs of Truetype fonts
   available as a pseudo file system.
+
+:_gems/src/lib/vfs/ram_log_:
+  A VFS plugin that captures log data in memory, limiting its memory footprint
+  by discarding old content.
 
 :_libports/src/lib/vfs/jitterentropy/_:
   A VFS plugin that provides random numbers based on the jitter of executing
