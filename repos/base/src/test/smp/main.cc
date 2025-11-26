@@ -260,7 +260,7 @@ namespace Affinity_test {
 			}
 		}
 
-		for (unsigned i = 0; i < cpus.total(); i++) {
+		for (unsigned i = 1; i < cpus.total(); i++) {
 			Cpu_thread_client thread(threads[i]->cap());
 			thread.pause();
 		}
