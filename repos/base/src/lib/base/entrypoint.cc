@@ -148,6 +148,7 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 		warning(__func__, " called from non-entrypoint thread \"",
 		       Thread::myself()->name, "\"");
 
+	bool dispatched = false;
 	for (;;) {
 
 		Signal sig = _sig_rec->pending_signal();
@@ -161,11 +162,12 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 			}
 
 			_dispatch_signal(sig);
+			dispatched = true;
 			break;
 		}
 
 		if (dont_block)
-			return false;
+			break;
 
 		{
 			/*
@@ -207,7 +209,7 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 		Signal_transmitter(*_deferred_signal_handler).submit();
 	}
 
-	return true;
+	return dispatched;
 }
 
 
