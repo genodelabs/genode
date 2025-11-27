@@ -34,7 +34,7 @@ usage:
 # Determine Genode base directory based on the known location of the
 # 'create_builddir' tool within the Genode source tree
 #
-GENODE_DIR ?= $(realpath $(dir $(MAKEFILE_LIST))/..)
+GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/..)
 
 #
 # Define default location of the build directory if not explicitly specified
