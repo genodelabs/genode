@@ -4,6 +4,36 @@
                                ===========
 
 
+Genode OS Framework release 25.11 | 2025-11-27
+##############################################
+
+| With version 25.11, we re-imagine the place and workflows for the
+| co-maintenance of Genode components. The technical topics of the release
+| range from visible performance gains of our custom kernel, over
+| GPU-accelerated graphics on Intel Alder Lake, to USB-serial support and
+| TCP/IP-stack improvements.
+
+True to this year's motto "rigidity, clarity, performance", the release
+is packed with under-the-hood optimizations, tireless code-curation work, and
+the streamlining of tooling. We achieved strikingly visible gains in
+interactive performance using our custom kernel on the PinePhone and MNT
+Reform laptop, thanks to improved kernel-resource management and the tuning of
+CPU scheduling. The intensive work on our custom kernel notwithstanding,
+we also added the option to use seL4 on 64-bit ARM. On account to improving
+clarity, the release proliferates the use of our new configuration syntax
+by making our tools and almost all components compatible to the new format.
+
+However, the headline topic of the release is not solely a technical but an
+organisational one: We promote the Goa SDK as the official tool for the
+Genode-world repository, which hosts software co-maintained by the Genode
+community and Genode Labs. This step significantly lowers the friction of
+porting, maintaining, and publishing applications and libraries for Genode and
+Sculpt OS in particular.
+
+Those and more changes are detailed in the
+[https:/documentation/release-notes/25.11 - release documentation of version 25.11...]
+
+
 Sculpt OS release 25.10 | 2025-10-30
 ####################################
 
