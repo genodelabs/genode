@@ -234,6 +234,7 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 
 	File_system::Dir_handle dir = File_system::ensure_dir(gcov_env->fs, dir_path.base());
 
+	try { gcov_env->fs.unlink(dir, file_name.base() + 1); } catch (...) { }
 	try {
 		gcov_env->file_handle.construct(gcov_env->fs.file(dir,
 		                                                  file_name.base() + 1,
@@ -248,7 +249,7 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 			gcov_env->file_handle.construct(gcov_env->fs.file(dir,
 			                                                  file_name.base() + 1,
 			                                                  File_system::READ_WRITE,
-		    	                                              true));
+			                                                  true));
 		else
 			return nullptr;
 	}
@@ -269,6 +270,8 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 		annotate_file_name.remove_trailing('a');
 		annotate_file_name.remove_trailing('d');
 		annotate_file_name.append("an");
+
+		try { gcov_env->fs.unlink(dir, annotate_file_name.base() + 1); } catch (...) { }
 
 		File_system::File_handle annotate_file_handle {
 			gcov_env->fs.file(dir, annotate_file_name.base() + 1,
