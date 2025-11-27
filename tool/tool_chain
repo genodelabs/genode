@@ -50,7 +50,7 @@ MAKE_JOBS ?= 4
 # 'tool_chain' tool within the Genode source tree
 #
 
-GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
+GENODE_DIR := $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 
 #
 # version numbers
