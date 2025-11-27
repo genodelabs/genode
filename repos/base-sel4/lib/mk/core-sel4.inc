@@ -14,7 +14,6 @@ GEN_SRC_CC += \
               io_mem_session_component.cc \
               main.cc \
               pd_session_component.cc \
-              pd_session_support.cc \
               platform_thread.cc \
               ram_dataspace_factory.cc \
               region_map_component.cc \

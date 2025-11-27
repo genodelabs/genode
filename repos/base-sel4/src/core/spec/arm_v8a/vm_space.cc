@@ -74,7 +74,7 @@ long Vm_space::_invalidate_page(Cap_sel   const &idx,
 
 	if (error == seL4_NoError) {
 		seL4_ARM_PageDirectory const pd = _pd_sel.value();
-		error = seL4_ARM_Page_CleanInvalidate_Data(pd, start, end);
+		error = seL4_ARM_VSpace_CleanInvalidate_Data(pd, start, end);
 	}
 
 	return error;

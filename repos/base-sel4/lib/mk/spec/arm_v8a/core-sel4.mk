@@ -6,7 +6,8 @@ REP_SRC_CC = \
              spec/arm_v8a/platform.cc \
              spec/arm/platform_thread.cc \
              spec/arm_v8a/thread.cc \
-             spec/arm_v8a/vm_space.cc
+             spec/arm_v8a/vm_space.cc \
+             spec/arm_v8a/pd_session_support.cc
 
 INC_DIR += $(REP_DIR)/src/core/spec/arm_v8a
 

@@ -229,8 +229,11 @@ void Core::Platform::_switch_to_core_cspace()
 	_core_cnode.move(initial_cspace, Cnode_index(seL4_CapIRQControl)); /* cannot be copied */
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapASIDControl));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadASIDPool));
-	/* XXX io port not available on ARM, causes just a kernel warning XXX */
+#ifdef __x86_64__
 	_core_cnode.move(initial_cspace, Cnode_index(seL4_CapIOPortControl));
+#else
+	_core_cnode.move(initial_cspace, Cnode_index(seL4_CapSMC));
+#endif
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapBootInfoFrame));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapInitThreadIPCBuffer));
 	_core_cnode.copy(initial_cspace, Cnode_index(seL4_CapDomain));
