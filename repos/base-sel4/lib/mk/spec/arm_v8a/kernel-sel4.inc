@@ -31,6 +31,7 @@ configured_kernel:
 	&& echo -e "#define CONFIG_ENABLE_BENCHMARKS 1"                  >>gen_config/kernel/gen_config.h \
 	&& echo -e "#define CONFIG_BENCHMARK_TRACK_UTILISATION 1"        >>gen_config/kernel/gen_config.h \
 	&& echo -e "#define CONFIG_SET_TLS_BASE_SELF 1"                  >>gen_config/kernel/gen_config.h \
+	&& echo -e "#define CONFIG_ALLOW_SMC_CALLS 1"                    >>gen_config/kernel/gen_config.h \
 	\
 	&& sed -e "s/CONFIG_NUM_DOMAINS  16/CONFIG_NUM_DOMAINS  1/"                    \
 	       -e "s/CONFIG_ROOT_CNODE_SIZE_BITS  12/CONFIG_ROOT_CNODE_SIZE_BITS  15/" \

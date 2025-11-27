@@ -1,4 +1,5 @@
-GEN_SRC_CC = spec/x86/io_port_session_component.cc
+GEN_SRC_CC = spec/x86/io_port_session_component.cc \
+             pd_session_support.cc
 
 REP_SRC_CC = \
              spec/x86/io_port_session_support.cc \

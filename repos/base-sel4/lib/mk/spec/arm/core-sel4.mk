@@ -1,4 +1,5 @@
-GEN_SRC_CC = platform_services.cc
+GEN_SRC_CC = platform_services.cc \
+             pd_session_support.cc
 
 REP_SRC_CC = \
              spec/arm/boot_info.cc \
@@ -7,6 +8,7 @@ REP_SRC_CC = \
              spec/arm/platform_thread.cc \
              spec/arm/thread.cc \
              spec/arm/vm_space.cc
+
 
 INC_DIR += $(REP_DIR)/src/core/spec/arm
 
