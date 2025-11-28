@@ -135,7 +135,7 @@ class Vfs_block::File
 			_block_info = Block::Session::Info {
 				.block_size  = info.block_size,
 				.block_count = num_blocks,
-				.align_log2  = log2(info.block_size),
+				.align_log2  = log2(info.block_size, 0u),
 				.writeable   = info.writeable && view.writeable,
 			};
 		}

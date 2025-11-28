@@ -648,7 +648,8 @@ struct Menu_view::Depgraph_widget : Widget
 		auto abs = [] (auto v) { return v >= 0 ? v : -v; };
 
 		/* subdivide the curve depending on the size of its bounding box */
-		unsigned const levels = (unsigned)max(log2(max(abs(x4 - x1), abs(y4 - y1)) >> 2), 3);
+		long    const distance = max(abs(x4 - x1), abs(y4 - y1));
+		uint8_t const levels   = max(log2(distance >> 2, 3u), uint8_t(3));
 
 		bezier(x1 << 8, y1 << 8, x2 << 8, y2 << 8,
 		       x3 << 8, y3 << 8, x4 << 8, y4 << 8, draw_segment, levels);

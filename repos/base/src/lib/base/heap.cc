@@ -107,7 +107,8 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 						/* add new local address range to our local allocator */
 						_alloc->add_range(addr_t(attachment.ptr), size).with_result(
 							[&] (Ok) {
-								metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace), log2(16U)); },
+								metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace),
+								                                 log2(16u, 0u)); },
 							[&] (Alloc_error error) {
 								metadata = error; });
 					}
@@ -145,7 +146,7 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 
 Allocator::Alloc_result Heap::_try_local_alloc(size_t size)
 {
-	return _alloc->alloc_aligned(size, log2(16U)).convert<Alloc_result>(
+	return _alloc->alloc_aligned(size, log2(16u, 0u)).convert<Alloc_result>(
 
 		[&] (Allocation &a) -> Alloc_result {
 			a.deallocate = false;

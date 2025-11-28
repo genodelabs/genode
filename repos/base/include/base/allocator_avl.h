@@ -286,7 +286,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		Alloc_result try_alloc(size_t size) override
 		{
-			return Allocator_avl_base::alloc_aligned(size, (unsigned)log2(sizeof(addr_t)));
+			return Allocator_avl_base::alloc_aligned(size, log2(sizeof(addr_t), 0u));
 		}
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }

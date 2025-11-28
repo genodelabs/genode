@@ -45,7 +45,7 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 	}
 
 	/* natural size align (to some limit) for better IOMMU TLB usage */
-	unsigned size_align_log2 = unsigned(log2(size));
+	uint8_t size_align_log2 = log2(size, 12u);
 	if (size_align_log2 < 12) /* 4 kB */
 		size_align_log2 = 12;
 	if (size_align_log2 > 24) /* 16 MB */

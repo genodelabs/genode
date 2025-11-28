@@ -274,8 +274,9 @@ int rumpuser_malloc(size_t len, int alignment, void **memp)
 {
 	Genode::Mutex::Guard guard(alloc_mutex());
 
-	int align = alignment ? Genode::log2(alignment) : 0;
-	*memp     = allocator()->alloc(len, align);
+	uint8_t const align = alignment ? Genode::log2(alignment, 0u) : uint8_t(0);
+
+	*memp = allocator()->alloc(len, align);
 
 	return *memp ? 0 : -1;
 }

@@ -224,7 +224,7 @@ void Driver::Expanding_page_table_allocator<TABLE_SIZE>::Backing_store::grow()
 template <Genode::size_t TABLE_SIZE>
 Genode::addr_t Driver::Expanding_page_table_allocator<TABLE_SIZE>::_alloc()
 {
-	const unsigned align = (unsigned)Genode::log2(TABLE_SIZE);
+	uint8_t const align = Genode::log2(TABLE_SIZE, 0u);
 
 	Alloc_result result = _allocator.alloc_aligned(TABLE_SIZE, align);
 

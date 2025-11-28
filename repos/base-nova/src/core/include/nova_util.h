@@ -158,10 +158,10 @@ inline int map_local(Genode::addr_t const pd, Nova::Utcb &utcb,
 
 		/* look if flexpage fits into both 'from' and 'to' address range */
 		if ((from_end - from_curr) < (1UL << order))
-			order = log2(from_end - from_curr);
+			order = log2(from_end - from_curr, 0u);
 
 		if ((to_end - to_curr) < (1UL << order))
-			order = log2(to_end - to_curr);
+			order = log2(to_end - to_curr, 0u);
 
 		if (order >= sizeof(void *)*8)
 			return 1;
@@ -205,9 +205,9 @@ inline void unmap_local(Nova::Utcb &, Genode::addr_t start,
 	}
 
 	while (num_pages) {
-		unsigned char const base_bit  = lsb_bit(base);
-		unsigned char const order_bit = (unsigned char)min(log2(num_pages), 31U);
-		unsigned char const order     = min(order_bit, base_bit);
+		uint8_t const base_bit  = lsb_bit(base);
+		uint8_t const order_bit = min(log2(num_pages, 0), uint8_t(31));
+		uint8_t const order     = min(order_bit, base_bit);
 
 		Mem_crd const crd(base, order, rwx);
 

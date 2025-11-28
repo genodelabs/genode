@@ -54,7 +54,7 @@ class Core::Platform_pd : public Address_space
 		Platform_pd(Platform_pd const &);
 		Platform_pd &operator = (Platform_pd const &);
 
-		enum { UTCB_AREA_SIZE = (Foc::THREAD_MAX * Foc::L4_UTCB_OFFSET), };
+		static constexpr size_t UTCB_AREA_SIZE = Foc::THREAD_MAX * Foc::L4_UTCB_OFFSET;
 
 		addr_t utcb_area_start()
 		{

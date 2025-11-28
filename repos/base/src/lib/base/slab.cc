@@ -146,14 +146,13 @@ struct Genode::Slab::Entry
 Slab::Entry *Slab::Block::_slab_entry(int idx)
 {
 	/*
-	 * The slab slots start after the state array that consists
-	 * of 'num_elem' bytes. We align the first slot to a four-aligned
-	 * address.
+	 * The slab slots start after the state array that consists of 'num_elem'
+	 * bytes. We align the first slot to a four-aligned address.
 	 */
 
-	int    const alignment   = (int)log2(sizeof(addr_t));
-	size_t const slots_start = align_addr(_slab._entries_per_block, alignment);
-	size_t const entry_size  = sizeof(Entry) + _slab._slab_size;
+	uint8_t const align       = log2(sizeof(addr_t), 0u);
+	size_t  const slots_start = align_addr(_slab._entries_per_block, align);
+	size_t  const entry_size  = sizeof(Entry) + _slab._slab_size;
 
 	return (Entry *)&_data[slots_start + entry_size*idx];
 }

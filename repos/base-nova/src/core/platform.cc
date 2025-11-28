@@ -783,7 +783,7 @@ Core::Platform::Platform()
 		error("configuration error (NUM_INITIAL_PT_RESERVED)");
 
 	/* map idle SCs */
-	auto const log2cpu      = log2(hip.cpu_max());
+	auto const log2cpu      = log2(hip.cpu_max(), 0u);
 	auto const sc_idle_base = cap_map().insert(log2cpu + 1);
 
 	if (map_local(_core_pd_sel, *__main_thread_utcb, Obj_crd(0, log2cpu),

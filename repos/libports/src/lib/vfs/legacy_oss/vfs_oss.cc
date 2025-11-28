@@ -915,7 +915,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		ifrag_total_new = Genode::min(ifrag_total_new, _ifrag_total_max);
 
 		if (ifrag_total_new * _info.ifrag_size > _audio_in_stream_size)
-			_info.ifrag_size = 1 << Genode::log2(_audio_in_stream_size / ifrag_total_new);
+			_info.ifrag_size = 1 << Genode::log2(_audio_in_stream_size / ifrag_total_new, 0u);
 
 		_info.ifrag_total = ifrag_total_new;
 		_info.ifrag_avail = 0;
@@ -952,7 +952,7 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 		ofrag_total_new = Genode::min(ofrag_total_new, _ofrag_total_max);
 
 		if (ofrag_total_new * _info.ofrag_size > _audio_out_stream_size)
-			_info.ofrag_size = 1 << Genode::log2(_audio_out_stream_size / ofrag_total_new);
+			_info.ofrag_size = 1 << Genode::log2(_audio_out_stream_size / ofrag_total_new, 0u);
 
 		_info.ofrag_total = ofrag_total_new;
 		_info.ofrag_avail = ofrag_total_new;

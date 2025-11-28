@@ -96,7 +96,7 @@ class Timer::Device
 				else if (mus == ~0ULL)
 					return L4_IPC_TIMEOUT_NEVER;
 
-				long e = Genode::log2((unsigned long)mus) - 7;
+				long e = Genode::log2(mus, 0u) - 7;
 
 				if (e < 0) e = 0;
 

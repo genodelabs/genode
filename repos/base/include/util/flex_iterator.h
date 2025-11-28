@@ -96,14 +96,12 @@ class Genode::Flexpage_iterator
 
 			/* look if it still fits into both 'src' and 'dst' ranges */
 			if ((from_end - from_curr) < max) {
-				order = log2(from_end - from_curr);
-				order = (order == ~0UL) ? 12 : order;
+				order = log2(from_end - from_curr, 12u);
 				max   = 1UL << order;
 			}
 
 			if ((to_end - to_curr) < max) {
-				order = log2(to_end - to_curr);
-				order = (order == ~0UL) ? 12 : order;
+				order = log2(to_end - to_curr, 12u);
 			}
 
 			if (order >= sizeof(_offset) * 8)

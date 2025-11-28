@@ -279,7 +279,7 @@ class Ata::Protocol : public Ahci::Protocol, Noncopyable
 		{
 			return { .block_size  = _block_size(),
 			         .block_count = _block_count(),
-			         .align_log2  = log2(2ul),
+			         .align_log2  = log2(2ul, 0u),
 			         .writeable   = true };
 		}
 

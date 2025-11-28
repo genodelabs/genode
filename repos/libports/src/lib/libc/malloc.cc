@@ -127,7 +127,7 @@ class Libc::Malloc
 
 		unsigned _slab_log2(size_t size) const
 		{
-			unsigned msb = Genode::log2(size);
+			uint8_t msb = Genode::log2(size, 0u);
 
 			/* size is greater than msb */
 			if (size > (1U << msb))

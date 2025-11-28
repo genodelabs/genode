@@ -136,7 +136,7 @@ namespace Tresor {
 
 	inline Tree_node_index tree_node_index(Virtual_block_address vba, Tree_level_index lvl, Tree_degree degr)
 	{
-		uint64_t const degr_log_2 { log2(degr) };
+		uint64_t const degr_log_2 { log2(degr, 0u) };
 		uint64_t const degr_mask  { ((uint64_t)1 << degr_log_2) - 1 };
 		uint64_t const vba_rshift { degr_log_2 * ((uint64_t)lvl - 1) };
 		return (Tree_node_index)(degr_mask & (vba >> vba_rshift));
