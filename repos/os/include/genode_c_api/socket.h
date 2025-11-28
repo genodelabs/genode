@@ -11,6 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _GENODE_C_API__SOCKET_H_
+#define _GENODE_C_API__SOCKET_H_
+
 #include <base/fixed_stdint.h>
 #include <genode_c_api/base.h>
 
@@ -315,3 +318,5 @@ enum Errno genode_socket_release(struct genode_socket_handle *);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+#endif /* _GENODE_C_API__SOCKET_H_ */
