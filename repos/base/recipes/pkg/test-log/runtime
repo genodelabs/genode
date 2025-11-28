@@ -1,4 +1,4 @@
-<runtime ram="10M" caps="50" binary="test-log">
+<runtime ram="10M" caps="100" binary="test-log">
 
 	<fail after_seconds="20"/>
 	<succeed>
