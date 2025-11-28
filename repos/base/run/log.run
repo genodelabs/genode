@@ -13,7 +13,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<default caps="50" ram="10M"/>
+		<default caps="100" ram="10M"/>
 		<start name="test-log"/>
 	</config>
 }
