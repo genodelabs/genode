@@ -69,7 +69,7 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 		return ptr;
 	};
 
-	return _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
+	return _mem.alloc_aligned(size, log2(align, 0u)).convert<void *>(
 
 		[&] (Allocator::Allocation &a) {
 			a.deallocate = false;
@@ -98,7 +98,7 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 				warning("Lx_kit::Mem_allocator unable to extend virtual allocator");
 
 			/* re-try allocation */
-			void * const virt_addr = _mem.alloc_aligned(size, (unsigned)log2(align)).convert<void *>(
+			void * const virt_addr = _mem.alloc_aligned(size, log2(align, 0u)).convert<void *>(
 
 				[&] (Allocator::Allocation &a) {
 					a.deallocate = false;

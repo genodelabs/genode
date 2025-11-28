@@ -221,7 +221,7 @@ struct Ahci::Hba
 		with_mmio([&](Hba_mmio &mmio) {
 			unsigned port_list = mmio.read<Hba_mmio::Is>();
 			while (port_list) {
-				unsigned port = log2(port_list);
+				unsigned port = log2(port_list, 0u);
 				port_list    &= ~(1U << port);
 				fn(port);
 			}

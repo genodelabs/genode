@@ -182,7 +182,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 		if (!dsc)
 			return Attach_error::INVALID_DATASPACE;
 
-		unsigned const min_align_log2 = get_page_size_log2();
+		uint8_t const min_align_log2 = get_page_size_log2();
 
 		size_t const ds_size = dsc->size();
 
@@ -220,7 +220,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 			 * If that is not possible, try again with successively less alignment
 			 * constraints.
 			 */
-			size_t align_log2 = log2(size);
+			size_t align_log2 = log2(size, min_align_log2);
 			if (align_log2 >= sizeof(void *)*8)
 				align_log2 = min_align_log2;
 

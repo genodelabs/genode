@@ -176,7 +176,7 @@ void Capability_map::remove(Genode::addr_t const sel, uint8_t num_log_2,
 	Genode::addr_t last_range = range->base() + range->elements();
 
 	while (last_sel > last_range) {
-		uint8_t left_log2 = (uint8_t)log2(last_sel - last_range);
+		uint8_t left_log2 = log2(last_sel - last_range, 0u);
 
 		/* take care for a case which should not happen */
 		if (left_log2 >= sizeof(last_range)*8) {

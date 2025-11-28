@@ -186,7 +186,7 @@ class Virtio::Device
 		T read_config(const uint8_t offset)
 		{
 			static_assert(sizeof(T) <= 4);
-			return _dev_config.read<Device_mmio::Config<T>>(offset >> log2(sizeof(T)));
+			return _dev_config.read<Device_mmio::Config<T>>(offset >> log2(sizeof(T), 0u));
 		}
 
 		template <typename T>
@@ -194,7 +194,7 @@ class Virtio::Device
 		{
 			static_assert(sizeof(T) <= 4);
 			_dev_config.write<Device_mmio::Config<T>>(value,
-			                  (offset >> log2(sizeof(T))));
+			                  (offset >> log2(sizeof(T), 0u)));
 		}
 
 		bool configure_queue(uint16_t queue_index, Virtio::Queue_description desc)

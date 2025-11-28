@@ -115,7 +115,7 @@ Block::sector_t Util::align_start(Genode::size_t block_size,
 	}
 
 	Block::sector_t const blocks = alignment / block_size;
-	return Genode::align_addr(lba, Genode::log2(blocks));
+	return Genode::align_addr(lba, Genode::log2(blocks, 0u));
 }
 
 

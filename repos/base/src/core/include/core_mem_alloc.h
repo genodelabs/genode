@@ -182,7 +182,7 @@ class Core::Mapped_mem_allocator : public Core_mem_translator
 		 *********************************/
 
 		Alloc_result try_alloc(size_t size) override {
-			return alloc_aligned(size, (unsigned)log2(sizeof(addr_t))); }
+			return alloc_aligned(size, log2(sizeof(addr_t), 0u)); }
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
@@ -314,7 +314,7 @@ class Core::Core_mem_allocator : public Core_mem_translator
 
 		Alloc_result try_alloc(size_t size) override
 		{
-			return alloc_aligned(size, (unsigned)log2(sizeof(addr_t)));
+			return alloc_aligned(size, log2(sizeof(addr_t), 0u));
 		}
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }

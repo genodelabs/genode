@@ -737,7 +737,7 @@ class Usb::Block_driver
 		{
 			return { .block_size  = _block_size,
 				.block_count = _block_count,
-				.align_log2  = log2(_block_size),
+				.align_log2  = log2(_block_size, 0u),
 				.writeable   = _writeable };
 		}
 

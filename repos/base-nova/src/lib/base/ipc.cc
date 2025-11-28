@@ -39,12 +39,12 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	if (rcv_caps != ~0UL) {
 
 		/* calculate max order of caps to be received during reply */
-		unsigned short log2_max = 0;
+		uint8_t log2_max = 0;
 		if (rcv_caps) {
-			log2_max = (uint16_t)log2(rcv_caps);
+			log2_max = log2(rcv_caps, 0u);
 
 			/* if this happens, the call is bogus and invalid */
-			if ((log2_max >= sizeof(rcv_caps) * 8))
+			if (log2_max >= 8*sizeof(rcv_caps))
 				return Rpc_exception_code(Rpc_exception_code::INVALID_OBJECT);
 
 			if ((1UL << log2_max) < rcv_caps)

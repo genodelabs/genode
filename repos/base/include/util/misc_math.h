@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__UTIL__MISC_MATH_H_
 #define _INCLUDE__UTIL__MISC_MATH_H_
 
+#include <base/fixed_stdint.h>
+
 namespace Genode {
 
 	template <typename T1, typename T2>
@@ -46,16 +48,17 @@ namespace Genode {
 	/**
 	 * LOG2
 	 *
-	 * Scan for most-significant set bit.
+	 * Scan for most significant set bit
 	 */
 	template <typename T>
-	static inline T log2(T value)
+	static inline uint8_t log2(T value, uint8_t result_if_value_is_zero)
 	{
-		if (!value) return -1;
-		for (int i = 8 * sizeof(value) - 1; i >= 0; --i)
-			if (((T)1 << i) & value) return i;
+		if (value)
+			for (uint8_t i = 8*sizeof(value); i > 0; i--)
+				if ((T(1) << (i - 1)) & value)
+					return i - 1;
 
-		return -1;
+		return result_if_value_is_zero;
 	}
 
 

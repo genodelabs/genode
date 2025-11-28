@@ -158,7 +158,7 @@ bool Free_tree::Allocate_pbas::execute(Block_io &block_io, Meta_tree &meta_tree)
 	switch (_helper.state) {
 	case INIT:
 
-		_vbd_degree_log_2 = log2<Tree_degree_log_2>(_attr.in_vbd_degree);
+		_vbd_degree_log_2 = log2<Tree_degree_log_2>(_attr.in_vbd_degree, 0u);
 		_apply_allocation = false;
 		_start_tree_traversal(progress);
 		break;

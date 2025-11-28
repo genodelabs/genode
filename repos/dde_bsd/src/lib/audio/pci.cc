@@ -447,7 +447,7 @@ extern "C" int bus_dmamem_alloc(bus_dma_tag_t tag, bus_size_t size, bus_size_t a
 {
 	Pci_driver * drv = (Pci_driver*) tag;
 
-	Genode::addr_t virt = drv->alloc(size, Genode::log2(alignment));
+	Genode::addr_t virt = drv->alloc(size, Genode::log2(alignment, 0u));
 	if (virt == 0)
 		return -1;
 

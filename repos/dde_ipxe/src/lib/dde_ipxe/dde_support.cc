@@ -319,7 +319,7 @@ static Genode::Allocator_avl& allocator()
 extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align,
                                     dde_size_t offset)
 {
-	return allocator().alloc_aligned(size, Genode::log2(align)).convert<void *>(
+	return allocator().alloc_aligned(size, Genode::log2(align, 0u)).convert<void *>(
 
 		[&] (Genode::Allocator::Allocation &a) {
 			a.deallocate = false; return a.ptr; },
@@ -558,7 +558,7 @@ struct Slab
 		using namespace Genode;
 		size += sizeof(Genode::addr_t);
 
-		int msb = Genode::log2(size);
+		int msb = Genode::log2(size, 0u);
 
 		if (size > (1U << msb))
 			msb++;

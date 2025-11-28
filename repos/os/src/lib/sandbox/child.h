@@ -301,7 +301,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 				if (name == "CAP") caps = rsc.attribute_value("quantum", 0UL);
 			});
 
-			return Resources { log2(prio_levels.value),
+			return Resources { log2(prio_levels.value, 0u),
 			                   priority_from_node(start_node, prio_levels),
 			                   Affinity(affinity_space,
 			                            affinity_location_from_node(affinity_space, start_node)),

@@ -1323,7 +1323,7 @@ class Nvme::Controller : Platform::Device,
 			return 0;
 		}
 
-		units = align_addr(units, log2((unsigned)HMB_CHUNK_UNITS));
+		units = align_addr(units, log2(HMB_CHUNK_UNITS, 0u));
 
 		if (units < _info.hmmin) {
 			warning("HMB will not be enabled as configured size of ",

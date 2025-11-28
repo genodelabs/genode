@@ -1543,10 +1543,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 						return;
 					}
 
-					unsigned int const ifrag_size =
-						info.attribute_value("ifrag_size", 0U);
-					unsigned int const ifrag_size_log2 =
-						ifrag_size ? Genode::log2(ifrag_size) : 0;
+					unsigned int const ifrag_size = info.attribute_value("ifrag_size", 0u);
+					uint8_t const ifrag_size_log2 = Genode::log2(ifrag_size, 0u);
 
 					unsigned int const ifrag_total =
 						info.attribute_value("ifrag_total", 0U);
@@ -1596,10 +1594,8 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 						return;
 					}
 
-					unsigned int const ofrag_size =
-						info.attribute_value("ofrag_size", 0U);
-					unsigned int const ofrag_size_log2 =
-						ofrag_size ? Genode::log2(ofrag_size) : 0;
+					unsigned int const ofrag_size = info.attribute_value("ofrag_size", 0U);
+					uint8_t const ofrag_size_log2 = Genode::log2(ofrag_size, 0u);
 
 					unsigned int const ofrag_total =
 						info.attribute_value("ofrag_total", 0U);
