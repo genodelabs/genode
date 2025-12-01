@@ -206,9 +206,16 @@ close $launchpad_config_fd
 build_boot_image [list {*}[build_artifacts] launchpad.config]
 
 if {[have_cmd_switch --autopilot]} {
-	run_genode_until {\[init -> scout\] png is.*\n} 40
+	# On machines in the CI with attached USB testing devices wait for the
+	# output of those, in order to see all critical output actually.
+	if {[have_board imx53_qsb] || [have_board imx53_qsb_tz]} {
+		run_genode_until {\[init -> scout\] png is.*\n} 40
+	} else {
+		run_genode_until {\[init -> drivers -> usb_hid\] Disconnected device:.* } 30
+		run_genode_until {\[init -> drivers -> usb_hid\] Disconnected device:.* } 10 [output_spawn_id]
+	}
 
-	grep_output {(requests resources: )|(Error)}
+	grep_output {(requests resources: )|(Error)|(abort called)}
 
 	# remove Error messages which are not fatal, mostly
 	unify_output {(?n)^.*platform] Error:.*ACPI table information is wrong.*$} ""
@@ -216,6 +223,7 @@ if {[have_cmd_switch --autopilot]} {
 	unify_output {(?n)^.*ps2] Error: no data available.*$} ""
 	unify_output {(?n)^.*ps2] Error: failed to read from port.*$} ""
 	unify_output {(?n)^.*] Error: RAM preservation exceeds available memory.*$} ""
+	unify_output {(?n)^.*] Error: cache_invalidate_data not implemented for this kernel.*$} ""
 
 	compare_output_to {}
 
