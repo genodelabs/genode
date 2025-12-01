@@ -177,7 +177,7 @@ static Allocator::Result allocate_irq(Range_allocator &irq_alloc,
 	/* see contrib include/plat/pc99/plat/machine.h - max user vector is 155 */
 	auto const range_msi = Range_allocator::Range(Irq_object::MSI_OFFSET, 155);
 
-	return irq_alloc.alloc_aligned(1 /* size */, 0 /* alignment */, range_msi);
+	return irq_alloc.alloc_aligned(1 /* size */, Align { .log2 = 0 }, range_msi);
 }
 
 

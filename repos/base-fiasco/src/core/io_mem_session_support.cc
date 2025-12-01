@@ -88,8 +88,9 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 	};
 
 	/* align large I/O dataspaces on a super-page boundary within core */
-	size_t align = (size >= get_super_page_size()) ? get_super_page_size_log2()
-	                                               : get_page_size_log2();
+	Align align { .log2 = (size >= get_super_page_size())
+	                    ? get_super_page_size_log2()
+	                    : get_page_size_log2() };
 
 	return platform().region_alloc().alloc_aligned(size, align).convert<Dataspace_attr>(
 		[&] (Range_allocator::Allocation &core_local) {

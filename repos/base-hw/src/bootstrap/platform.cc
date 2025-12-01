@@ -32,9 +32,9 @@ void * Platform::Ram_allocator::alloc(size_t size, Align align)
 {
 	using namespace Genode;
 
-	align.log2 = max(align.log2, (uint8_t)get_page_size_log2());
+	align.log2 = max(align.log2, get_page_size_log2());
 
-	return Base::alloc_aligned(Hw::round_page(size), align.log2).convert<void *>(
+	return Base::alloc_aligned(Hw::round_page(size), align).convert<void *>(
 
 		[&] (Range_allocator::Allocation &a) { a.deallocate = false; return a.ptr; },
 		[&] (Alloc_error e) -> void *

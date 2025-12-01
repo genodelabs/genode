@@ -316,10 +316,12 @@ static Genode::Allocator_avl& allocator()
 }
 
 
-extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align,
+extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align_bytes,
                                     dde_size_t offset)
 {
-	return allocator().alloc_aligned(size, Genode::log2(align, 0u)).convert<void *>(
+	Align const align { .log2 = Genode::log2(align_bytes, 0u) };
+
+	return allocator().alloc_aligned(size, align).convert<void *>(
 
 		[&] (Genode::Allocator::Allocation &a) {
 			a.deallocate = false; return a.ptr; },
@@ -327,7 +329,7 @@ extern "C" void *dde_dma_alloc(dde_size_t size, dde_size_t align,
 		[&] (Genode::Alloc_error) -> void * {
 			Genode::error("memory allocation failed in alloc_memblock ("
 			              "size=",   size, " "
-			              "align=",  Genode::Hex(align), " "
+			              "align=",  Genode::Hex(align_bytes), " "
 			              "offset=", Genode::Hex(offset), ")");
 			return nullptr; });
 }
@@ -509,7 +511,7 @@ class Slab_alloc : public Genode::Slab
 		static Genode::size_t _calculate_block_size(Genode::size_t object_size)
 		{
 			Genode::size_t const block_size = 8*object_size;
-			return Genode::align_addr(block_size, 12);
+			return Genode::align_addr(block_size, AT_PAGE);
 		}
 
 	public:

@@ -72,7 +72,7 @@ class Core::Initial_untyped_pool
 		/**
 		 * Calculate free index after allocation
 		 */
-		addr_t _align_offset(Range const &range, unsigned size_log2)
+		addr_t _align_offset(Range const &range, Align align)
 		{
 			/*
 			 * The seL4 kernel naturally aligns allocations within untuped
@@ -80,9 +80,9 @@ class Core::Initial_untyped_pool
 			 * shadow version of the kernel's 'FreeIndex'.
 			 */
 			addr_t const aligned_free_offset = align_addr(range.free_offset,
-			                                              size_log2);
+			                                              align);
 
-			return aligned_free_offset + (1 << size_log2);
+			return aligned_free_offset + (1 << align.log2);
 		}
 
 		/**
@@ -114,7 +114,7 @@ class Core::Initial_untyped_pool
 		 *
 		 * \throw Initial_untyped_pool_exhausted
 		 */
-		unsigned alloc(unsigned size_log2)
+		unsigned alloc(uint8_t size_log2)
 		{
 			enum { UNKNOWN = 0 };
 			unsigned sel = UNKNOWN;
@@ -129,7 +129,7 @@ class Core::Initial_untyped_pool
 					return;
 
 				/* calculate free index after allocation */
-				addr_t const new_free_offset = _align_offset(range, size_log2);
+				addr_t const new_free_offset = _align_offset(range, { .log2 = size_log2 });
 
 				/* check if allocation fits within current untyped memory range */
 				if (new_free_offset > range.size)
@@ -144,7 +144,7 @@ class Core::Initial_untyped_pool
 				addr_t const rest = range.size - new_free_offset;
 
 				Range best_fit(*this, sel);
-				addr_t const new_free_offset_best = _align_offset(best_fit, size_log2);
+				addr_t const new_free_offset_best = _align_offset(best_fit, { .log2 = size_log2 });
 				addr_t const rest_best = best_fit.size - new_free_offset_best;
 
 				if (rest_best >= rest)
@@ -158,7 +158,7 @@ class Core::Initial_untyped_pool
 			}
 
 			Range best_fit(*this, sel);
-			addr_t const new_free_offset = _align_offset(best_fit, size_log2);
+			addr_t const new_free_offset = _align_offset(best_fit, { .log2 = size_log2 });
 			ASSERT(new_free_offset <= best_fit.size);
 
 			/*
@@ -178,7 +178,7 @@ class Core::Initial_untyped_pool
 		void turn_into_untyped_object(addr_t  const node_index,
 		                              auto    const &fn,
 		                              auto    const &fn_revert,
-		                              size_t  const size_log2 = get_page_size_log2(),
+		                              uint8_t const size_log2 = get_page_size_log2(),
 		                              addr_t  max_memory = 0UL - 0x1000UL)
 		{
 			for_each_range([&] (Range const &range) {
@@ -192,7 +192,7 @@ class Core::Initial_untyped_pool
 				for (;;) {
 
 					addr_t const page_aligned_free_offset =
-						align_addr(range.free_offset, (int)size_log2);
+						align_addr(range.free_offset, { .log2 = size_log2 });
 
 					/* back out if no further page can be allocated */
 					if (page_aligned_free_offset + (1UL << size_log2) > range.size)

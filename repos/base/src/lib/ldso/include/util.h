@@ -20,12 +20,10 @@ namespace Linker {
 	 * Page handling
 	 */
 	template <typename T>
-	static inline T trunc_page(T addr) {
-		return addr & _align_mask((T)12); }
+	static inline T trunc_page(T addr) { return addr & _align_mask<T>(AT_PAGE); }
 
 	template <typename T>
-	static inline T round_page(T addr) {
-		return align_addr(addr, (T)12); }
+	static inline T round_page(T addr) { return align_addr(addr, AT_PAGE); }
 
 	/**
 	 * Extract file name from path

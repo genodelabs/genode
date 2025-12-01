@@ -149,7 +149,8 @@ Cpu::Id Cpu::executing_id()
 
 void Cpu::clear_memory_region(addr_t const addr, size_t const size, bool)
 {
-	if (align_addr(addr, 3) == addr && align_addr(size, 3) == size) {
+	Align const AT_8 { .log2 = 3 };
+	if (align_addr(addr, AT_8) == addr && align_addr(size, AT_8) == size) {
 		addr_t start = addr;
 		size_t count = size / 8;
 		asm volatile ("rep stosq" : "+D" (start), "+c" (count)

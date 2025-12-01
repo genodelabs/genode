@@ -69,7 +69,7 @@ static bool associate_msi(addr_t irq_sel, addr_t phys_mem, addr_t &msi_addr,
 	if (!phys_mem)
 		return irq_ctrl(irq_sel, msi_addr, msi_data, sig_cap.local_name(), Nova::Gsi_flags(), 0);
 
-	return platform().region_alloc().alloc_aligned(4096, 12).convert<bool>(
+	return platform().region_alloc().alloc_aligned(4096, AT_PAGE).convert<bool>(
 
 		[&] (Virt_allocation &virt) {
 

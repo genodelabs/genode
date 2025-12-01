@@ -34,7 +34,7 @@ struct Pcapng::Option
 	uint32_t _data[0];
 
 	static uint16_t padded_size(uint16_t sz) {
-		return (uint16_t)align_addr((uint32_t)sz, 2); }
+		return align_addr(sz, AT_32BIT); }
 
 	Option(uint16_t length)
 	: _length(length)
@@ -56,7 +56,7 @@ struct Pcapng::Option_end : Option<1>
 struct Pcapng::Option_ifname : Option<2>
 {
 	static uint16_t padded_size(Interface_name const &name) {
-		return (uint16_t)align_addr((uint32_t)name.data_length() - 1, 2); }
+		return (uint16_t)align_addr((uint32_t)name.data_length() - 1, AT_32BIT); }
 
 	Option_ifname(Interface_name const &name)
 	: Option((uint16_t)(name.data_length()-1))

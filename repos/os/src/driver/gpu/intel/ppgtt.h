@@ -337,7 +337,7 @@ class Genode::Level_4_translation_table
 		 */
 		Level_4_translation_table(Scratch::Page *scratch)
 		{
-			if (!aligned((Gpu::addr_t)this, ALIGNM_LOG2)) { throw Misaligned(); }
+			if (!aligned((Gpu::addr_t)this, { .log2 = ALIGNM_LOG2 })) { throw Misaligned(); }
 
 			for (size_t i = 0; i < MAX_ENTRIES; i++) {
 				_entries[i] = scratch->addr;
@@ -554,7 +554,7 @@ class Genode::Page_directory
 
 		Page_directory(Scratch::Page *scratch)
 		{
-			if (!aligned((Gpu::addr_t)this, ALIGNM_LOG2)) { throw Misaligned(); }
+			if (!aligned((Gpu::addr_t)this, { .log2 = ALIGNM_LOG2 })) { throw Misaligned(); }
 
 			for (size_t i = 0; i < MAX_ENTRIES; i++) {
 				_entries[i] = scratch->addr;
@@ -744,7 +744,7 @@ class Genode::Pml4_table
 
 		Pml4_table(Scratch::Page *scratch)
 		{
-			if (!aligned((Gpu::addr_t)this, ALIGNM_LOG2)) { throw Misaligned(); }
+			if (!aligned((Gpu::addr_t)this, { .log2 = ALIGNM_LOG2 })) { throw Misaligned(); }
 
 			for (size_t i = 0; i < MAX_ENTRIES; i++) {
 				_entries[i] = scratch->addr;

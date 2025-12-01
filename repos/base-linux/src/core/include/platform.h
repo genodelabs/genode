@@ -78,7 +78,7 @@ class Core::Platform : public Platform_generic
 			Alloc_result try_alloc(size_t)             override { ASSERT_NEVER_CALLED; }
 			Alloc_result alloc_addr(size_t, addr_t)    override { ASSERT_NEVER_CALLED; }
 
-			Alloc_result alloc_aligned(size_t, unsigned, Range) override
+			Alloc_result alloc_aligned(size_t, Align, Range) override
 			{ ASSERT_NEVER_CALLED; }
 
 
@@ -89,19 +89,19 @@ class Core::Platform : public Platform_generic
 		 */
 		struct Pseudo_ram_allocator : Range_allocator
 		{
-			void         _free(Allocation &)                    override { }
-			Alloc_result try_alloc(size_t)                      override { return { *this, { } }; }
-			Alloc_result alloc_aligned(size_t, unsigned, Range) override { return { *this, { } }; }
-			Alloc_result alloc_addr(size_t, addr_t)             override { return { *this, { } }; }
-			Range_result add_range(addr_t, size_t)              override { return Ok(); }
-			Range_result remove_range(addr_t, size_t)           override { return Ok(); }
+			void         _free(Allocation &)                 override { }
+			Alloc_result try_alloc(size_t)                   override { return { *this, { } }; }
+			Alloc_result alloc_aligned(size_t, Align, Range) override { return { *this, { } }; }
+			Alloc_result alloc_addr(size_t, addr_t)          override { return { *this, { } }; }
+			Range_result add_range(addr_t, size_t)           override { return Ok(); }
+			Range_result remove_range(addr_t, size_t)        override { return Ok(); }
 
-			void   free(void *)                 override { }
-			void   free(void *, size_t)         override { }
-			size_t avail()                const override { return ram_quota_from_env(); }
-			bool   valid_addr(addr_t)     const override { return true; }
-			size_t overhead(size_t)       const override { return 0; }
-			bool   need_size_for_free()   const override { return true; }
+			void   free(void *)               override { }
+			void   free(void *, size_t)       override { }
+			size_t avail()              const override { return ram_quota_from_env(); }
+			bool   valid_addr(addr_t)   const override { return true; }
+			size_t overhead(size_t)     const override { return 0; }
+			bool   need_size_for_free() const override { return true; }
 
 		} _ram_alloc { };
 

@@ -256,7 +256,7 @@ struct Gpu::Vram
 
 	Allocation alloc(Genode::size_t size)
 	{
-		return _alloc.alloc_aligned(size, 12).convert<Allocation>(
+		return _alloc.alloc_aligned(size, Genode::AT_PAGE).convert<Allocation>(
 			[&] (Genode::Range_allocator::Allocation &a) {
 				a.deallocate = false;
 				return Allocation { _elem.id(), _cap, Genode::off_t(a.ptr), size };
@@ -790,10 +790,12 @@ class Drm::Call
 		{
 			Buffer *buffer  { nullptr };
 
+			using namespace Genode;
+
 			_gpu_op([&] () {
-				Vram::Allocation vram = _vram_allocator.alloc(Genode::align_addr(size, 12));
+				Vram::Allocation vram = _vram_allocator.alloc(align_addr(size, AT_PAGE));
 				if (vram.valid() == false) {
-					Genode::error("VRAM allocation of size ", size/1024, "KB failed");
+					error("VRAM allocation of size ", size/1024, "KB failed");
 					return;
 				}
 				buffer = new (_heap) Buffer(_env, _buffer_space, vram);

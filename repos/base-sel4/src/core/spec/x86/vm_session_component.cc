@@ -53,7 +53,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint          &ep,
 :
 	_ep(ep),
 	_ram_alloc(ram_alloc),
-	_ds(_ram_alloc.try_alloc(align_addr(sizeof(Vcpu_state), 12), Cache::CACHED))
+	_ds(_ram_alloc.try_alloc(align_addr(sizeof(Vcpu_state), AT_PAGE), Cache::CACHED))
 {
 	_ds.with_error([] (Ram::Error e) { throw_exception(e); });
 

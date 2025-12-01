@@ -23,8 +23,7 @@ using namespace Genode;
  **************************/
 
 Allocator_avl_base::Block *
-Allocator_avl_base::Block::find_best_fit(size_t size, unsigned align,
-                                         Range range)
+Allocator_avl_base::Block::find_best_fit(size_t size, Align align, Range range)
 {
 	/* find child with lowest max_avail value */
 	bool side = _child_max_avail(1) < _child_max_avail(0);
@@ -310,7 +309,7 @@ Allocator_avl_base::Range_result Allocator_avl_base::remove_range(addr_t base, s
 
 
 Allocator::Alloc_result
-Allocator_avl_base::_allocate(size_t const size, unsigned align, Range range,
+Allocator_avl_base::_allocate(size_t const size, Align align, Range range,
                               auto const &search_fn)
 {
 	return _alloc_two_blocks_metadata().convert<Alloc_result>(
@@ -351,7 +350,7 @@ Allocator_avl_base::_allocate(size_t const size, unsigned align, Range range,
 
 
 Allocator::Alloc_result
-Allocator_avl_base::alloc_aligned(size_t size, unsigned align, Range range)
+Allocator_avl_base::alloc_aligned(size_t size, Align align, Range range)
 {
 	return _allocate(size, align, range, [&] (Block &first) {
 			return first.find_best_fit(size, align, range); });
@@ -364,10 +363,10 @@ Range_allocator::Alloc_result Allocator_avl_base::alloc_addr(size_t size, addr_t
 	if (!_sum_in_range(addr, size))
 		return Alloc_error::DENIED;
 
-	Range    const range { .start = addr, .end = addr + size - 1 };
-	unsigned const align_any = 0;
+	Range const range { .start = addr, .end = addr + size - 1 };
+	Align const ALIGN_ANY { .log2 = 0 };
 
-	return _allocate(size, align_any, range, [&] (Block &first) {
+	return _allocate(size, ALIGN_ANY, range, [&] (Block &first) {
 			return first.find_by_address(addr, size); });
 }
 

@@ -1323,7 +1323,7 @@ class Nvme::Controller : Platform::Device,
 			return 0;
 		}
 
-		units = align_addr(units, log2(HMB_CHUNK_UNITS, 0u));
+		units = align_addr(units, { .log2 = log2(HMB_CHUNK_UNITS, 0u) });
 
 		if (units < _info.hmmin) {
 			warning("HMB will not be enabled as configured size of ",
@@ -2091,8 +2091,8 @@ class Nvme::Driver : Genode::Noncopyable
 			    "frev:'",   info.fr.string(), "'");
 
 			log("Block", " "
-			    "size: ",  _info.block_size, " "
-			    "count: ", _info.block_count, " "
+			    "size: ",  size_t(_info.block_size), " "
+			    "count: ", size_t(_info.block_count), " "
 			    "I/O entries: ", ctrlr.max_io_entries());
 
 			/* generate Report if requested */
@@ -2172,7 +2172,7 @@ class Nvme::Driver : Genode::Noncopyable
 			if (ctrlr.io_queue_full(io_queue.queue_id()))
 				return Response::RETRY;
 
-			if (!Genode::aligned(request.offset, Nvme::MPS_LOG2))
+			if (!Genode::aligned(request.offset, Align { .log2 = Nvme::MPS_LOG2 }))
 				return Response::REJECTED;
 
 			switch (request.operation.type) {
@@ -2270,7 +2270,7 @@ class Nvme::Driver : Genode::Noncopyable
 				using Page_entry = uint64_t;
 				Page_entry *pe  = (Page_entry*)va;
 
-				size_t const mps_len = Genode::align_addr(len, Nvme::MPS_LOG2);
+				size_t const mps_len = Genode::align_addr(len, { .log2 = Nvme::MPS_LOG2 });
 				size_t const num     = (mps_len - Nvme::MPS) / Nvme::MPS;
 				if (_verbose_io) {
 					log("  page.va: ", Hex(va), " page.pa: ",

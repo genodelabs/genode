@@ -167,7 +167,7 @@ class Core::Mapped_mem_allocator : public Core_mem_translator
 
 		Range_result add_range(addr_t, size_t)    override { return Alloc_error::DENIED; }
 		Range_result remove_range(addr_t, size_t) override { return Alloc_error::DENIED; }
-		Alloc_result alloc_aligned(size_t, unsigned, Range) override;
+		Alloc_result alloc_aligned(size_t, Align, Range) override;
 		Alloc_result alloc_addr(size_t, addr_t) override { return Alloc_error::DENIED; }
 		void free(void *) override;
 		size_t avail() const override { return _phys_alloc->avail(); }
@@ -182,7 +182,7 @@ class Core::Mapped_mem_allocator : public Core_mem_translator
 		 *********************************/
 
 		Alloc_result try_alloc(size_t size) override {
-			return alloc_aligned(size, log2(sizeof(addr_t), 0u)); }
+			return alloc_aligned(size, AT_MWORD); }
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
@@ -289,7 +289,7 @@ class Core::Core_mem_allocator : public Core_mem_translator
 		Range_result remove_range(addr_t, size_t) override { return Alloc_error::DENIED; }
 		Alloc_result alloc_addr(size_t, addr_t)   override { return Alloc_error::DENIED; }
 
-		Alloc_result alloc_aligned(size_t size, unsigned align, Range range) override
+		Alloc_result alloc_aligned(size_t size, Align align, Range range) override
 		{
 			Mutex::Guard lock_guard(_mutex);
 			return _mem_alloc.alloc_aligned(size, align, range);
@@ -314,7 +314,7 @@ class Core::Core_mem_allocator : public Core_mem_translator
 
 		Alloc_result try_alloc(size_t size) override
 		{
-			return alloc_aligned(size, log2(sizeof(addr_t), 0u));
+			return alloc_aligned(size, AT_MWORD);
 		}
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }

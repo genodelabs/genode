@@ -80,14 +80,14 @@ namespace Core {
 
 	constexpr addr_t get_page_mask() { return ~(get_page_size() - 1); }
 
-	inline size_t get_super_page_size_log2()
+	inline uint8_t get_super_page_size_log2()
 	{
-		enum { SUPER_PAGE_SIZE_LOG2 = 22 };
+		uint8_t const SUPER_PAGE_SIZE_LOG2 = 22;
 		if (get_page_mask() & (1 << SUPER_PAGE_SIZE_LOG2))
 			return SUPER_PAGE_SIZE_LOG2;
 
 		/* if super pages are not supported, return default page size */
-		return get_page_size();
+		return get_page_size_log2();
 	}
 
 	inline size_t get_super_page_size() { return 1 << get_super_page_size_log2(); }

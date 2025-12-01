@@ -74,7 +74,7 @@ struct Play::Session : Genode::Session
 		float samples[MAX_SAMPLES]; /* ring buffer of sample values */
 	};
 
-	static constexpr size_t DATASPACE_SIZE = align_addr(sizeof(Shared_buffer), 12);
+	static constexpr size_t DATASPACE_SIZE = align_addr(sizeof(Shared_buffer), AT_PAGE);
 
 	/**
 	 * \noapi

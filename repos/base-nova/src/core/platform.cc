@@ -83,7 +83,7 @@ addr_t Core::Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
 
 	/* try to reserve contiguous virtual area */
 	return region_alloc().alloc_aligned(size + (guard_page ? get_page_size() : 0),
-	                                    get_page_size_log2()).convert<addr_t>(
+	                                    AT_PAGE).convert<addr_t>(
 		[&] (Region_allocation &core_local) {
 
 			addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local.ptr);
@@ -642,7 +642,7 @@ Core::Platform::Platform()
 		using Phys_allocation = Range_allocator::Allocation;
 
 		size_t const bytes = pages << get_page_size_log2();
-		ram_alloc().alloc_aligned(bytes, get_page_size_log2()).with_result(
+		ram_alloc().alloc_aligned(bytes, AT_PAGE).with_result(
 
 			[&] (Phys_allocation &phys) {
 
@@ -840,8 +840,7 @@ Core::Platform::Platform()
 	{
 		using Phys_allocation = Range_allocator::Allocation;
 
-		bool ok = ram_alloc().alloc_aligned(get_page_size(),
-		                                    get_page_size_log2()).convert<bool>(
+		bool ok = ram_alloc().alloc_aligned(get_page_size(), AT_PAGE).convert<bool>(
 			[&] (Phys_allocation &phys) {
 				addr_t phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 				addr_t core_local_addr = _map_pages(phys_addr, 1);

@@ -171,9 +171,9 @@ namespace Allocator {
 
 			void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }
 
-			void *alloc_aligned(size_t size, unsigned align = 0)
+			void *alloc_aligned(size_t size, uint8_t align = 0)
 			{
-				Alloc_result result = _range.alloc_aligned(size, align);
+				Alloc_result result = _range.alloc_aligned(size, { .log2 = align });
 				if (result.ok())
 					return result.convert<void *>(
 						[&] (Allocation &a) { a.deallocate = false; return a.ptr; },
@@ -182,7 +182,7 @@ namespace Allocator {
 				if (!_alloc_block())
 					return 0;
 
-				return _range.alloc_aligned(size, align).convert<void *>(
+				return _range.alloc_aligned(size, { .log2 = align }).convert<void *>(
 
 					[&] (Allocation &a) {
 						a.deallocate = false;
@@ -220,7 +220,7 @@ namespace Allocator {
 
 			Fap(bool cache) : _back_allocator(cache ? CACHED : UNCACHED) { }
 
-			void *alloc(size_t size, unsigned align = 0)
+			void *alloc(size_t size, uint8_t align = 0)
 			{
 				return _back_allocator.alloc_aligned(size, align);
 			}

@@ -161,7 +161,7 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 		                                     sizeof(Command_buffer) };
 
 		bool const _command_buffer_accounted = (
-			withdraw(Ram_quota{align_addr(sizeof(Session::Command_buffer), 12)}), true );
+			withdraw(Ram_quota{align_addr(sizeof(Session::Command_buffer), AT_PAGE)}), true );
 
 		Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 

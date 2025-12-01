@@ -49,7 +49,7 @@ class Core::Vm_session_component
 		              public Revoke
 		{
 			constexpr size_t ds_size() {
-				return align_addr(sizeof(Vcpu_state), get_page_size_log2()); }
+				return align_addr(sizeof(Vcpu_state), AT_PAGE); }
 
 			Kernel::Vcpu::Identity &id;
 			Rpc_entrypoint         &ep;

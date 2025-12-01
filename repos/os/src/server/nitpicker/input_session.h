@@ -40,7 +40,7 @@ class Input::Session_component : public Rpc_object<Session>
 		enum { MAX_EVENTS = 200 };
 
 		static size_t ev_ds_size() {
-			return align_addr(MAX_EVENTS*sizeof(Event), 12); }
+			return align_addr(MAX_EVENTS*sizeof(Event), AT_PAGE); }
 
 	private:
 

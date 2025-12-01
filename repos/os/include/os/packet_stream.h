@@ -488,6 +488,8 @@ class Genode::Packet_stream_base
 		Packet_stream_base(Packet_stream_base const &);
 		Packet_stream_base &operator = (Packet_stream_base const &);
 
+		static constexpr Align AT_64_BYTES { .log2 = 6 };
+
 	protected:
 
 		Env::Local_rm       &_rm;
@@ -516,7 +518,7 @@ class Genode::Packet_stream_base
 			/* map dataspace locally */
 			_submit_queue_offset(0),
 			_ack_queue_offset(_submit_queue_offset + submit_queue_size),
-			_bulk_buffer_offset(align_addr(_ack_queue_offset + ack_queue_size, 6))
+			_bulk_buffer_offset(align_addr(_ack_queue_offset + ack_queue_size, AT_64_BYTES))
 		{
 			if ((size_t)_bulk_buffer_offset >= _ds.size())
 				throw Transport_dataspace_too_small();
@@ -693,7 +695,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 * \return       packet descriptor with an assigned range within the
 		 *               bulk buffer shared between source and sink
 		 */
-		Packet_descriptor alloc_packet(size_t size, unsigned align = PACKET_ALIGNMENT)
+		Packet_descriptor alloc_packet(size_t size, uint8_t align = PACKET_ALIGNMENT)
 		{
 			if (constructed.failed())
 				warning("Packet_stream_source construction failed:", constructed);
@@ -701,7 +703,7 @@ class Genode::Packet_stream_source : private Packet_stream_base
 			if (size == 0)
 				return Packet_descriptor(0, 0);
 
-			return _packet_alloc.alloc_aligned(size, align).convert<Packet_descriptor>(
+			return _packet_alloc.alloc_aligned(size, { .log2 = align }).convert<Packet_descriptor>(
 
 				[&] (Range_allocator::Allocation &a) {
 					a.deallocate = false;
@@ -720,12 +722,12 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		 *               packet descriptor with an assigned range within the
 		 *               bulk buffer shared between source and sink
 		 */
-		Alloc_packet_result alloc_packet_attempt(size_t size, unsigned align = PACKET_ALIGNMENT)
+		Alloc_packet_result alloc_packet_attempt(size_t size, uint8_t align = PACKET_ALIGNMENT)
 		{
 			if (size == 0)
 				return Packet_descriptor(0, 0);
 
-			return _packet_alloc.alloc_aligned(size, align).convert<Alloc_packet_result>(
+			return _packet_alloc.alloc_aligned(size, { .log2 = align }).convert<Alloc_packet_result>(
 
 				[&] (Range_allocator::Allocation &a) {
 					a.deallocate = false;

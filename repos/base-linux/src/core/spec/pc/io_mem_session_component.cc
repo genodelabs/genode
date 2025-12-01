@@ -27,7 +27,7 @@ size_t Io_mem_session_component::get_arg_size(const char *args)
 	size_t const size = Arg_string::find_arg(args, "size").ulong_value(0);
 	addr_t base = Arg_string::find_arg(args, "base").ulong_value(0);
 
-	addr_t end = align_addr(base + size, get_page_size_log2());
+	addr_t end = align_addr(base + size, AT_PAGE);
 	base = base & ~(get_page_size() - 1);
 	return (size_t)(end - base);
 }

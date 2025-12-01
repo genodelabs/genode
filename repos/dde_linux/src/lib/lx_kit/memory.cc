@@ -58,7 +58,7 @@ Genode::Dataspace_capability Lx_kit::Mem_allocator::attached_dataspace_cap(void 
 }
 
 
-void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
+void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align_bytes,
                                     void (*new_range_cb)(void const *, unsigned long))
 {
 	if (!size)
@@ -69,7 +69,9 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 		return ptr;
 	};
 
-	return _mem.alloc_aligned(size, log2(align, 0u)).convert<void *>(
+	Align const align { .log2 = log2(align_bytes, 0u) };
+
+	return _mem.alloc_aligned(size, align).convert<void *>(
 
 		[&] (Allocator::Allocation &a) {
 			a.deallocate = false;
@@ -98,14 +100,14 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align,
 				warning("Lx_kit::Mem_allocator unable to extend virtual allocator");
 
 			/* re-try allocation */
-			void * const virt_addr = _mem.alloc_aligned(size, log2(align, 0u)).convert<void *>(
+			void * const virt_addr = _mem.alloc_aligned(size, align).convert<void *>(
 
 				[&] (Allocator::Allocation &a) {
 					a.deallocate = false;
 					return cleared_allocation(a.ptr, size); },
 
 				[&] (Alloc_error) -> void * {
-					error("memory allocation failed for ", size, " align ", align);
+					error("memory allocation failed for ", size, " align ", align_bytes);
 					return nullptr; }
 			);
 

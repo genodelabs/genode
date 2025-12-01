@@ -206,7 +206,7 @@ void Arm_cpu::cache_clean_invalidate_data_region(addr_t const base,
  */
 static inline void memzero(addr_t const addr, size_t const size)
 {
-	if (align_addr(addr, 2) == addr && align_addr(size, 2) == size) {
+	if (align_addr(addr, { .log2 = 2 }) == addr && align_addr(size, { .log2 = 2 }) == size) {
 		char * base = (char*) addr;
 		unsigned count = size/4;
 		for (; count--; base += 4) *((int*)base) = 0;

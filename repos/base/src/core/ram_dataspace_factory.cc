@@ -27,7 +27,10 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 			return Alloc_error::DENIED;
 
 	/* dataspace allocation granularity is page size */
-	ds_size = align_addr(ds_size, 12);
+	ds_size = align_addr(ds_size, AT_PAGE);
+
+	/* natural alignment corresponds to dataspace size */
+	Align const AT_NATURAL { .log2 = log2(ds_size, AT_PAGE.log2) };
 
 	/*
 	 * Allocate physical backing store
@@ -43,8 +46,8 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 
 	/* apply constraints */
 	if (_phys_range.start != 0 || _phys_range.end != ~0UL) {
-		for (uint8_t align_log2 = log2(ds_size, 0u); align_log2 >= 12; align_log2--) {
-			allocated_range = _phys_alloc.alloc_aligned(ds_size, align_log2, _phys_range);
+		for (Align align = AT_NATURAL; align.log2 >= AT_PAGE.log2; align.log2--) {
+			allocated_range = _phys_alloc.alloc_aligned(ds_size, align, _phys_range);
 			if (allocated_range.ok())
 				break;
 		}
@@ -60,8 +63,8 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 		addr_t     const high_start = (sizeof(void *) == 4 ? 3UL : 4UL) << 30;
 		Phys_range const range { .start = high_start, .end = ~0UL };
 
-		for (uint8_t align_log2 = log2(ds_size, 0u); align_log2 >= 12; align_log2--) {
-			allocated_range = _phys_alloc.alloc_aligned(ds_size, align_log2, range);
+		for (Align align = AT_NATURAL; align.log2 >= AT_PAGE.log2; align.log2--) {
+			allocated_range = _phys_alloc.alloc_aligned(ds_size, align, range);
 			if (allocated_range.ok())
 				break;
 		}
@@ -69,8 +72,8 @@ Ram_dataspace_factory::alloc_ram(size_t ds_size, Cache cache)
 
 	/* retry if larger non-constrained memory allocation failed */
 	if (!allocated_range.ok()) {
-		for (uint8_t align_log2 = log2(ds_size, 0u); align_log2 >= 12; align_log2--) {
-			allocated_range = _phys_alloc.alloc_aligned(ds_size, align_log2, _phys_range);
+		for (Align align = AT_NATURAL; align.log2 >= AT_PAGE.log2; align.log2--) {
+			allocated_range = _phys_alloc.alloc_aligned(ds_size, align, _phys_range);
 			if (allocated_range.ok())
 				break;
 		}

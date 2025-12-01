@@ -34,13 +34,8 @@ Stack::Size_result Stack::size(size_t const size)
 		return stack_size;
 
 	/* check if the stack enhancement fits the stack region */
-	enum {
-		UTCB_SIZE      = sizeof(Native_utcb),
-		PAGE_SIZE_LOG2 = 12,
-		PAGE_SIZE      = (1UL << PAGE_SIZE_LOG2),
-	};
 	addr_t const stack_slot_base = Stack_allocator::addr_to_base(this);
-	size_t const ds_size = align_addr(size - stack_size, PAGE_SIZE_LOG2);
+	size_t const ds_size = align_addr(size - stack_size, AT_PAGE);
 	if (_base - ds_size < stack_slot_base)
 		return Error::STACK_TOO_LARGE;
 
@@ -116,11 +111,10 @@ Thread::Alloc_stack_result
 Thread::_alloc_stack(Runtime &, Stack &stack, Name const &name, Stack_size stack_size)
 {
 	/* determine size of dataspace to allocate for the stack */
-	enum { PAGE_SIZE_LOG2 = 12 };
-	size_t ds_size = align_addr(stack_size.num_bytes, PAGE_SIZE_LOG2);
+	size_t ds_size = align_addr(stack_size.num_bytes, AT_PAGE);
 
 	if (stack_size.num_bytes >= stack_virtual_size() -
-	    sizeof(Native_utcb) - (1UL << PAGE_SIZE_LOG2))
+	    sizeof(Native_utcb) - (1UL << AT_PAGE.log2))
 		return Stack_error::STACK_TOO_LARGE;
 
 	/*
@@ -132,7 +126,7 @@ Thread::_alloc_stack(Runtime &, Stack &stack, Name const &name, Stack_size stack
 	                 stack_virtual_size() - ds_size;
 
 	/* add padding for UTCB if defined for the platform */
-	if (sizeof(Native_utcb) >= (1 << PAGE_SIZE_LOG2))
+	if (sizeof(Native_utcb) >= (1 << AT_PAGE.log2))
 		ds_addr -= sizeof(Native_utcb);
 
 	Ram_allocator &ram = *env_stack_area_ram_allocator;

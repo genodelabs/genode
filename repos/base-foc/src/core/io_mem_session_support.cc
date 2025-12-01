@@ -30,12 +30,12 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 	auto const base = request.base();
 
 	/* align large I/O dataspaces on a super-page boundary within core */
-	auto const alignment = unsigned(size >= get_super_page_size()
-	                     ? get_super_page_size_log2()
-	                     : get_page_size_log2());
+	Align const align { .log2 = (size >= get_super_page_size())
+	                          ? get_super_page_size_log2()
+	                          : get_page_size_log2() };
 
 	/* find appropriate region and map it locally */
-	return platform().region_alloc().alloc_aligned(size, alignment).convert<Dataspace_attr>(
+	return platform().region_alloc().alloc_aligned(size, align).convert<Dataspace_attr>(
 		[&] (Range_allocator::Allocation &local) {
 			if (!map_local_io(base, addr_t(local.ptr), size >> get_page_size_log2())) {
 				error("map_local_io failed ", Hex_range(base, size));

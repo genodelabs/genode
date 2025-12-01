@@ -70,9 +70,9 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 			return phys_base;
 
 		/* align large I/O dataspaces to super page size, otherwise to size */
-		size_t const align = (size >= get_super_page_size())
-		                           ? get_super_page_size_log2()
-		                           : log2(size, 12u);
+		Align const align { .log2 = (size >= get_super_page_size())
+		                          ? get_super_page_size_log2()
+		                          : log2(size, AT_PAGE.log2) };
 
 		return platform().region_alloc().alloc_aligned(size, align).convert<addr_t>(
 			[&] (Range_allocator::Allocation &a) {

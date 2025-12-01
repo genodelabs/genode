@@ -34,7 +34,7 @@ namespace Genode {
 	 * functions, e.g., 'base-linux/src/ld/stack_area.ld'.
 	 */
 	static addr_t stack_area_virtual_base() {
-		return align_addr((addr_t)&_stack_area_start, 20); }
+		return align_addr((addr_t)&_stack_area_start, { .log2 = 20 }); }
 
 	static constexpr addr_t stack_area_virtual_size() { return 0x10000000UL; }
 	static constexpr addr_t stack_virtual_size()      { return 0x00100000UL; }

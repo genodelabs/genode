@@ -57,7 +57,7 @@ Main::Main(Env &env) : heap(env.ram(), env.rm())
 	}
 
 	addr_t beg((addr_t)&blob_beg);
-	addr_t end(align_addr((addr_t)&blob_end, 12));
+	addr_t end(align_addr((addr_t)&blob_end, AT_PAGE));
 
 	size_t size(end - beg);
 

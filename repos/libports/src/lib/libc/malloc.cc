@@ -47,7 +47,7 @@ class Libc::Slab_alloc : public Slab
 		size_t _calculate_block_size(size_t object_size)
 		{
 			size_t block_size = 16*object_size;
-			return align_addr(block_size, 12);
+			return align_addr(block_size, AT_PAGE);
 		}
 
 	public:

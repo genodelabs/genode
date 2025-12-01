@@ -131,14 +131,14 @@ static inline void memory_add_region(addr_t base, addr_t size,
 	}
 
 	/* skip partial 4k pages (seen with Qemu with ahci model enabled) */
-	if (!aligned(base, 12)) {
-		auto new_base = align_addr(base, 12);
+	if (!aligned(base, AT_PAGE)) {
+		auto new_base = align_addr(base, AT_PAGE);
 		size -= (new_base - base > size) ? size : new_base - base;
 		base  = new_base;
 	}
 
 	/* remove partial 4k pages */
-	if (!aligned(size, 12))
+	if (!aligned(size, AT_PAGE))
 		size -= size & 0xffful;
 
 	if (!size)
@@ -272,8 +272,8 @@ Bootstrap::Platform::Board::Board()
 				facs.wakeup_vector(AP_BOOT_CODE_PAGE);
 
 				/* Add FADT to core mapped memory */
-				auto mem_aligned = fadt.base() & _align_mask(12);
-				auto mem_size    = align_addr(fadt.base() + fadt.size(), 12)
+				auto mem_aligned = fadt.base() & _align_mask<addr_t>(AT_PAGE);
+				auto mem_size    = align_addr(fadt.base() + fadt.size(), AT_PAGE)
 				                   - mem_aligned;
 				core_mmio.add({ mem_aligned, mem_size });
 

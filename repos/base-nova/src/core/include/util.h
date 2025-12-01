@@ -27,7 +27,7 @@ namespace Core {
 	constexpr size_t get_super_page_size()      { return 1 << get_super_page_size_log2(); }
 
 	template <typename T>
-	inline T trunc_page(T addr) { return addr & _align_mask(size_t(get_page_size_log2())); }
+	inline T trunc_page(T addr) { return addr & _align_mask<T>(AT_PAGE); }
 
 	template <typename T>
 	inline T round_page(T addr) { return trunc_page(addr + get_page_size() - 1); }

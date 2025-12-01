@@ -43,7 +43,7 @@ Allocator::Alloc_result Sliced_heap::try_alloc(size_t requested_size)
 	using Result = Alloc_result;
 
 	/* allocation includes space for block meta data and is page-aligned */
-	size_t const size = align_addr(requested_size + sizeof(Block), 12);
+	size_t const size = align_addr(requested_size + sizeof(Block), AT_PAGE);
 
 	return _ram_alloc.try_alloc(size).convert<Alloc_result>(
 
@@ -127,5 +127,5 @@ void Sliced_heap::free(void *addr, size_t)
 
 size_t Sliced_heap::overhead(size_t size) const
 {
-	return align_addr(size + sizeof(Block), 12) - size;
+	return align_addr(size + sizeof(Block), AT_PAGE) - size;
 }

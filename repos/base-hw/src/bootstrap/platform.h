@@ -79,7 +79,7 @@ class Bootstrap::Platform
 					_slab(this, (Block *)&_first_slab)
 				{ }
 
-				struct Align { Genode::uint8_t log2; };
+				using Align = Genode::Align;
 
 				void * alloc(size_t size, Align);
 

@@ -126,7 +126,7 @@ class Genode::Multiboot2_info : Mmio<0x8>
 						fb_fn(*fb);
 				}
 
-				tag_addr += align_addr(tag.read<Tag::Size>(), Tag::LOG2_SIZE);
+				tag_addr += align_addr(tag.read<Tag::Size>(), { .log2 = Tag::LOG2_SIZE });
 			}
 		}
 };

@@ -100,7 +100,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 		warning("libc is unable to extend range allocator of dataspace pool");
 
 	/* now that we have new backing store, allocate Dataspace structure */
-	return alloc->alloc_aligned(sizeof(Dataspace), 2).convert<int>(
+	return alloc->alloc_aligned(sizeof(Dataspace), { .log2 = 2 }).convert<int>(
 
 		[&] (Range_allocator::Allocation &a) {
 			/* add dataspace information to list of dataspaces */
@@ -115,14 +115,14 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 }
 
 
-void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
+void *Libc::Mem_alloc_impl::alloc(size_t size, Align align)
 {
 	/* serialize access of heap functions */
 	Mutex::Guard guard(_mutex);
 
 	auto alloc_or_nullptr = [&]
 	{
-		return _alloc.alloc_aligned(size, align_log2).convert<void *>(
+		return _alloc.alloc_aligned(size, align).convert<void *>(
 			[&] (Range_allocator::Allocation &a) {
 				a.deallocate = false; return a.ptr; },
 			[&] (Alloc_error) { return nullptr; });
@@ -139,7 +139,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	 * and space for AVL-node slab blocks if the allocation above failed.
 	 * Finally, we align the size to a 4K page.
 	 */
-	size_t request_size = size + max((1 << align_log2), 1024) +
+	size_t request_size = size + max((1 << align.log2), 1024) +
 	                      Allocator_avl::slab_block_size() + sizeof(Dataspace);
 
 	if (request_size < _chunk_size*sizeof(umword_t)) {
@@ -152,7 +152,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 		_chunk_size = min(2*_chunk_size, (size_t)MAX_CHUNK_SIZE);
 	}
 
-	if (_ds_pool.expand(align_addr(request_size, 12), &_alloc) < 0) {
+	if (_ds_pool.expand(align_addr(request_size, AT_PAGE), &_alloc) < 0) {
 		warning("libc: could not expand dataspace pool");
 		return 0;
 	}

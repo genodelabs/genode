@@ -223,7 +223,7 @@ class Lan9118_base
 			uint32_t const cmd_a = packet_size | FIRST_SEG | LAST_SEG,
 			               cmd_b = packet_size;
 
-			unsigned count = align_addr(packet_size, 2) >> 2;
+			unsigned count = align_addr(packet_size, { .log2 = 2 }) >> 2;
 
 			/* check space left in tx data fifo */
 			size_t const fifo_avail = _reg_read(TX_FIFO_INF) & 0xffff;
@@ -271,7 +271,7 @@ class Lan9118_base
 			Rx_packet_info packet = _rx_packet_info();
 
 			/* align size to 32-bit boundary */
-			return align_addr(packet.size, 2);
+			return align_addr(packet.size, { .log2 = 2 });
 		}
 
 	public:

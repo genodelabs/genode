@@ -45,18 +45,18 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 	}
 
 	/* natural size align (to some limit) for better IOMMU TLB usage */
-	uint8_t size_align_log2 = log2(size, 12u);
-	if (size_align_log2 < 12) /* 4 kB */
-		size_align_log2 = 12;
-	if (size_align_log2 > 24) /* 16 MB */
-		size_align_log2 = 24;
+	Align align { .log2 = log2(size, AT_PAGE.log2) };
+	if (align.log2 < AT_PAGE.log2) /* 4 kB */
+		align = AT_PAGE;
+	if (align.log2 > 24) /* 16 MB */
+		align.log2 = 24;
 
 	/* add guard page */
 	size_t guarded_size = size;
 	if (_use_guard_page)
 		guarded_size += 0x1000; /* 4 kB */
 
-	return _dma_alloc.alloc_aligned(guarded_size, size_align_log2).convert<addr_t>(
+	return _dma_alloc.alloc_aligned(guarded_size, align).convert<addr_t>(
 		[&] (Range_allocator::Allocation &a) {
 			a.deallocate = false;
 			return (addr_t)a.ptr; },
@@ -66,7 +66,7 @@ addr_t Dma_allocator::_alloc_dma_addr(addr_t const phys_addr,
 			case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
 			case Alloc_error::DENIED:
 				error("Could not allocate DMA area of size: ", size,
-				      " alignment: ", size_align_log2,
+				      " alignment: ", align.log2,
 				      " size with guard page: ", guarded_size,
 				      " total avail: ", _dma_alloc.avail(),
 				     " (error: ", err, ")");

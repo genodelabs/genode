@@ -33,10 +33,7 @@ struct Core::Untyped_memory
 	static inline Allocator::Alloc_result alloc_pages(Range_allocator &phys,
 	                                                  size_t const num_pages)
 	{
-		size_t   const size  = num_pages * get_page_size();
-		unsigned const align = get_page_size_log2();
-
-		return phys.alloc_aligned(size, align);
+		return phys.alloc_aligned(num_pages*get_page_size(), AT_PAGE);
 	}
 
 
