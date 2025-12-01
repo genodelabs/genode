@@ -195,6 +195,56 @@ class Test::Block_device
 			return result;
 		}
 
+		/**
+		 * Write byte pattern that either changes every BLOCK_SIZE
+		 * bytes or is fixed, read it back and compare the content.
+		 *
+		 * \param offset        byte offset to start from
+		 * \param length        total length of the pattern
+		 * \param pattern_byte  fixed pattern byte, used if non-zero
+		 */
+		bool compare_bytes(Buffer::Offset const offset, size_t const length,
+		                   char const pattern_byte)
+		{
+			bool result = true;
+
+			Buffer buffer_src(length);
+
+			/* generate [0x30,x39] pattern */
+			char value = pattern_byte ? pattern_byte : 0x2f;
+			for (size_t i = 0; i < length; i++) {
+				if (!pattern_byte && (i % BLOCK_SIZE) == 0) {
+					value++;
+					value = value < 0x3a ? value : 0x2f;
+				}
+
+				buffer_src.content_at(Buffer::Offset{i}, value);
+			}
+
+			buffer_src.write(_fd, offset);
+			sync();
+
+			Buffer buffer_dst(length);
+			buffer_dst.read(_fd, offset);
+
+			for (unsigned i = 0; i < length; i++) {
+
+				char const s = buffer_src.content_at(Buffer::Offset{i});
+				char const d = buffer_dst.content_at(Buffer::Offset{i});
+				if (s == d)
+					continue;
+
+				Genode::error("unexpected content "
+				              "at offset ", offset.value + i, ", "
+				              "got ",      Genode::Hex(d), ", "
+				              "expected ", Genode::Hex(s));
+
+				result = false;
+			}
+
+			return result;
+		}
+
 		void sync() { fsync(_fd.value); }
 };
 
@@ -250,6 +300,21 @@ void Test::Main::_exec_step(Genode::Node const &step, Block_device &block_device
 		Content const content = step.attribute_value("content", Content());
 		Genode::log("expect at=", at.value, " content=\"", content, "\"");
 		if (block_device.expect(at, content.string()))
+			return;
+
+		Genode::error("step '", step, "' failed");
+		throw Step_failed();
+	}
+
+	if (step.has_type("compare_bytes")) {
+		Test::Buffer::Offset const offset{step.attribute_value("offset", 0UL)};
+		Genode::Num_bytes const length{step.attribute_value("length",
+		                               Genode::Num_bytes(4096U))};
+		int const pattern_byte{step.attribute_value("pattern_byte", 0)};
+		Genode::log("compare_bytes offset=", offset.value, " length=", length,
+		            " pattern_byte=", Genode::Hex((char)pattern_byte));
+
+		if (block_device.compare_bytes(offset, length, (char)pattern_byte))
 			return;
 
 		Genode::error("step '", step, "' failed");
