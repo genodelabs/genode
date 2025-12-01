@@ -206,9 +206,10 @@ close $launchpad_config_fd
 build_boot_image [list {*}[build_artifacts] launchpad.config]
 
 if {[have_cmd_switch --autopilot]} {
-	run_genode_until {\[init -> scout\] png is.*\n} 40
+	run_genode_until {\[init -> drivers -> usb_hid\] Disconnected device:.* } 30
+	run_genode_until {\[init -> drivers -> usb_hid\] Disconnected device:.* } 10 [output_spawn_id]
 
-	grep_output {(requests resources: )|(Error)}
+	grep_output {(requests resources: )|(Error)|(abort called)}
 
 	# remove Error messages which are not fatal, mostly
 	unify_output {(?n)^.*platform] Error:.*ACPI table information is wrong.*$} ""
