@@ -23,14 +23,14 @@
 
 namespace Core {
 
-	constexpr size_t get_super_page_size_log2() { return 22; }
-	constexpr size_t get_super_page_size()      { return 1 << get_super_page_size_log2(); }
+	static constexpr size_t SUPER_PAGE_SIZE_LOG2 = 22;
+	static constexpr size_t SUPER_PAGE_SIZE = 1 << SUPER_PAGE_SIZE_LOG2;
 
 	template <typename T>
 	inline T trunc_page(T addr) { return addr & _align_mask<T>(AT_PAGE); }
 
 	template <typename T>
-	inline T round_page(T addr) { return trunc_page(addr + get_page_size() - 1); }
+	inline T round_page(T addr) { return trunc_page(addr + PAGE_SIZE - 1); }
 
 	inline addr_t map_src_addr(addr_t /* core_local */, addr_t phys) { return phys; }
 

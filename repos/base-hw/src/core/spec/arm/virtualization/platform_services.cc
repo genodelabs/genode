@@ -42,15 +42,14 @@ void Core::platform_add_local_services(Runtime                &,
 {
 	map_local(Platform::core_phys_addr((addr_t)&hypervisor_exception_vector),
 	          Hw::Mm::hypervisor_exception_vector().base,
-	          Hw::Mm::hypervisor_exception_vector().size / get_page_size(),
+	          Hw::Mm::hypervisor_exception_vector().size / PAGE_SIZE,
 	          Hw::PAGE_FLAGS_KERN_TEXT);
 
-	platform().ram_alloc().alloc_aligned(Hw::Mm::hypervisor_stack().size,
-	                                     { .log2 = get_page_size_log2() }).with_result(
+	platform().ram_alloc().alloc_aligned(Hw::Mm::hypervisor_stack().size, AT_PAGE).with_result(
 		[&] (Range_allocator::Allocation &stack) {
 			map_local((addr_t)stack.ptr,
 			          Hw::Mm::hypervisor_stack().base,
-			          Hw::Mm::hypervisor_stack().size / get_page_size(),
+			          Hw::Mm::hypervisor_stack().size / PAGE_SIZE,
 			          Hw::PAGE_FLAGS_KERN_DATA);
 
 			stack.deallocate = false;

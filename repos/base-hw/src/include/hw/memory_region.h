@@ -32,8 +32,8 @@ struct Hw::Memory_region
 
 	Memory_region(Genode::addr_t base, Genode::size_t size)
 	:
-		base(trunc(base, get_page_size_log2())),
-		size(round(size, get_page_size_log2()))
+		base(trunc(base, PAGE_SIZE_LOG2)),
+		size(round(size, PAGE_SIZE_LOG2))
 	{ }
 
 	Memory_region() {}

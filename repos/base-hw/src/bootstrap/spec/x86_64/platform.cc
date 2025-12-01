@@ -115,9 +115,9 @@ static inline void memory_add_region(addr_t base, addr_t size,
 	 * Exclude first physical page, so that it will become part of the
 	 * MMIO allocator. The framebuffer requests this page as MMIO.
 	 */
-	if (base == 0 && size >= get_page_size()) {
-		base  = get_page_size();
-		size -= get_page_size();
+	if (base == 0 && size >= PAGE_SIZE) {
+		base  = PAGE_SIZE;
+		size -= PAGE_SIZE;
 	}
 
 	/* exclude AP boot code page from normal RAM allocator */
@@ -126,8 +126,8 @@ static inline void memory_add_region(addr_t base, addr_t size,
 			early.add(Memory_region { base, AP_BOOT_CODE_PAGE - base });
 
 		size -= AP_BOOT_CODE_PAGE - base;
-		size -= (get_page_size() > size) ? size : get_page_size();
-		base  = AP_BOOT_CODE_PAGE + get_page_size();
+		size -= (PAGE_SIZE > size) ? size : PAGE_SIZE;
+		base  = AP_BOOT_CODE_PAGE + PAGE_SIZE;
 	}
 
 	/* skip partial 4k pages (seen with Qemu with ahci model enabled) */
@@ -236,8 +236,7 @@ Bootstrap::Platform::Board::Board()
 	          Memory_region { Hw::Cpu_memory_map::lapic_phys_base(), 0x1000 },
 	          Memory_region { Hw::Cpu_memory_map::MMIO_IOAPIC_BASE,
 	                          Hw::Cpu_memory_map::MMIO_IOAPIC_SIZE },
-	          Memory_region { __initial_bx & ~0xFFFUL,
-	                          get_page_size() })
+	          Memory_region { __initial_bx & ~0xFFFUL, PAGE_SIZE })
 {
 	switch (__initial_ax) {
 	case Multiboot_info::MAGIC:

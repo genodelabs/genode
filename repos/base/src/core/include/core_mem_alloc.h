@@ -32,7 +32,7 @@ namespace Core {
 	class Mapped_mem_allocator;
 	class Mapped_avl_allocator;
 
-	using Page_allocator = Allocator_avl_tpl<Empty, get_page_size()>;
+	using Page_allocator = Allocator_avl_tpl<Empty, PAGE_SIZE>;
 	using Phys_allocator = Synced_range_allocator<Page_allocator>;
 	using Synced_mapped_allocator =
 		Synced_range_allocator<Mapped_avl_allocator>;
@@ -72,7 +72,7 @@ struct Core::Metadata { void * map_addr; };
 /**
  * Page-size granular allocator that links ranges to related ones.
  */
-class Core::Mapped_avl_allocator : public Allocator_avl_tpl<Metadata, get_page_size()>
+class Core::Mapped_avl_allocator : public Allocator_avl_tpl<Metadata, PAGE_SIZE>
 {
 	friend class Mapped_mem_allocator;
 
@@ -84,7 +84,7 @@ class Core::Mapped_avl_allocator : public Allocator_avl_tpl<Metadata, get_page_s
 		 * \param md_alloc  metadata allocator
 		 */
 		explicit Mapped_avl_allocator(Allocator *md_alloc)
-		: Allocator_avl_tpl<Metadata, get_page_size()>(md_alloc) {}
+		: Allocator_avl_tpl<Metadata, PAGE_SIZE>(md_alloc) {}
 
 		/**
 		 * Returns related address for allocated range

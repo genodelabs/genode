@@ -248,7 +248,7 @@ void Platform_pd::flush(addr_t addr, size_t size, Core_local_addr)
 	using namespace Okl4;
 
 	L4_Word_t remaining_size = size;
-	L4_Word_t size_log2      = get_page_size_log2();
+	L4_Word_t size_log2      = PAGE_SIZE_LOG2;
 
 	/*
 	 * Let unmap granularity ('size_log2') grow

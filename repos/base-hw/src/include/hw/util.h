@@ -22,25 +22,19 @@ namespace Hw {
 	using Genode::addr_t;
 	using Genode::size_t;
 	using Genode::uint32_t;
-	using Genode::get_page_size;
-	using Genode::get_page_size_log2;
-
-	/**
-	 * Get the base mask for the minimal supported page-size
-	 */
-	constexpr addr_t get_page_mask() { return ~(get_page_size() - 1UL); }
+	using Genode::PAGE_MASK;
+	using Genode::PAGE_SIZE;
+	using Genode::PAGE_SIZE_LOG2;
 
 	/**
 	 * Round down to the minimal page-size alignment
 	 */
-	constexpr addr_t trunc_page(addr_t addr) {
-		return addr & get_page_mask(); }
+	constexpr addr_t trunc_page(addr_t addr) { return addr & PAGE_MASK; }
 
 	/**
 	 * Round up to the minimal page-size alignment
 	 */
-	constexpr addr_t round_page(addr_t addr) {
-		return trunc_page(addr + get_page_size() - 1UL); }
+	constexpr addr_t round_page(addr_t addr) { return trunc_page(addr + PAGE_SIZE - 1UL); }
 
 	/**
 	 * Return an address rounded down to a specific alignment

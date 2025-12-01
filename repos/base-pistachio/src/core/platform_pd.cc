@@ -183,7 +183,7 @@ void Platform_pd::_setup_address_space()
 	L4_Word_t utcb_start = _core_utcb_ptr;
 	L4_Word_t utcb_size = L4_UtcbSize(kip) * THREAD_MAX;
 
-	L4_Fpage_t utcb_space = L4_Fpage(utcb_start, utcb_size + get_page_size() - 1);
+	L4_Fpage_t utcb_space = L4_Fpage(utcb_start, utcb_size + PAGE_SIZE - 1);
 
 	L4_Word_t old_control;
 	int res = L4_SpaceControl(ss, 0, kip_space, utcb_space, L4_anythread, &old_control);
@@ -215,7 +215,7 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
 
 	using namespace Pistachio;
 
-	L4_Word_t page_size = get_page_size();
+	L4_Word_t page_size = PAGE_SIZE;
 
 	addr_t addr = core_local_base.value;
 	for (; addr < core_local_base.value + size; addr += page_size) {

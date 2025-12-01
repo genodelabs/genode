@@ -81,7 +81,7 @@ bool Platform_pd::map_ipc_buffer(Ipc_buffer_phys const &from,
 		                                .flush_support  = true };
 		enum { ONE_PAGE = 1 };
 
-		if (!_vm_space->alloc_page_tables(to.addr, get_page_size()))
+		if (!_vm_space->alloc_page_tables(to.addr, PAGE_SIZE))
 			return false;
 
 		_vm_space->map(addr_t(result.ptr), to.addr, ONE_PAGE, attr);
@@ -123,7 +123,7 @@ bool Platform_pd::install_mapping(Mapping const &mapping,
                                   const char *thread_name)
 {
 	size_t const num_bytes = 1UL << mapping.size_log2;
-	size_t const num_pages = num_bytes >> get_page_size_log2();
+	size_t const num_pages = num_bytes >> PAGE_SIZE_LOG2;
 
 	if (!_vm_space.constructed())
 		return false;
@@ -151,7 +151,7 @@ void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 	if (!_vm_space.constructed())
 		return;
 
-	_vm_space->unmap(virt_addr, round_page(size) >> get_page_size_log2());
+	_vm_space->unmap(virt_addr, round_page(size) >> PAGE_SIZE_LOG2);
 }
 
 

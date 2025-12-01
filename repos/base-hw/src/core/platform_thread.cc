@@ -219,7 +219,7 @@ Core_platform_thread::Core_platform_thread(Label const &label,
 	platform().ram_alloc().try_alloc(sizeof(Native_utcb)).with_result(
 		[&] (Range_allocator::Allocation &utcb_phys) {
 			map_local((addr_t)utcb_phys.ptr, (addr_t)&_utcb,
-			          sizeof(Native_utcb) / get_page_size());
+			          sizeof(Native_utcb) / PAGE_SIZE);
 			utcb_phys.deallocate = false;
 		},
 		[&] (Alloc_error) {

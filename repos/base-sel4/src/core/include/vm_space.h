@@ -268,7 +268,7 @@ class Core::Vm_space
 			 */
 			if (!_leaf_cnode(pte_idx, [&](auto &leaf_cnode) {
 				leaf_cnode.copy(_phys_cnode,
-				                Cnode_index((uint32_t)(from_phys >> get_page_size_log2())),
+				                Cnode_index((uint32_t)(from_phys >> PAGE_SIZE_LOG2)),
 				                Cnode_index(_leaf_cnode_entry(pte_idx)));
 			})) {
 				_sel_alloc.free(pte_idx);
@@ -571,7 +571,7 @@ class Core::Vm_space
 			bool ok = true;
 
 			for (size_t i = 0; i < num_pages; i++) {
-				addr_t const offset = i << get_page_size_log2();
+				addr_t const offset = i << PAGE_SIZE_LOG2;
 
 				auto result = _map_frame(from_phys + offset, to_virt + offset,
 				                         attr,
@@ -611,7 +611,7 @@ class Core::Vm_space
 			Mutex::Guard guard(_mutex);
 
 			for (size_t i = 0; i < num_pages; i++) {
-				addr_t const offset = i << get_page_size_log2();
+				addr_t const offset = i << PAGE_SIZE_LOG2;
 
 				auto result = _map_frame(from_phys + offset,
 				                         guest_phys + offset, attr,
@@ -631,7 +631,7 @@ class Core::Vm_space
 			Mutex::Guard guard(_mutex);
 
 			for (size_t i = 0; unmap_success && i < num_pages; i++) {
-				addr_t const offset = i << get_page_size_log2();
+				addr_t const offset = i << PAGE_SIZE_LOG2;
 
 				_pt_registry.flush_page(virt + offset, [&] (Cap_sel const &idx, addr_t) {
 

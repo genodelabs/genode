@@ -558,7 +558,7 @@ Core::Platform::Platform()
 	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
 	{
 		size_t const pages = 1;
-		size_t const bytes = pages << get_page_size_log2();
+		size_t const bytes = pages << PAGE_SIZE_LOG2;
 		ram_alloc().alloc_aligned(bytes, AT_PAGE).with_result(
 
 			[&] (Range_allocator::Allocation &phys) {

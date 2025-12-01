@@ -80,7 +80,7 @@ void Platform::_init_core_page_table_registry()
 		                                                PAGE_TABLE_LOG2_SIZE).failed())
 			error("page table insertion failed");
 
-		virt_addr += 512 * get_page_size();
+		virt_addr += 512 * PAGE_SIZE;
 	}
 
 	/* initialize 8k memory allocator */

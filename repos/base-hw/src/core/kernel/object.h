@@ -80,7 +80,7 @@ namespace Kernel {
 	 */
 	template <typename T> class Core_object;
 
-	enum { CAP_SLAB_SIZE = 2 * Genode::get_page_size() };
+	enum { CAP_SLAB_SIZE = 2 * Genode::PAGE_SIZE };
 
 	using Cap_slab = Genode::Tslab<Object_identity_reference, CAP_SLAB_SIZE>;
 }

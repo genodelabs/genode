@@ -33,7 +33,7 @@ struct Core::Untyped_memory
 	static inline Allocator::Alloc_result alloc_pages(Range_allocator &phys,
 	                                                  size_t const num_pages)
 	{
-		return phys.alloc_aligned(num_pages*get_page_size(), AT_PAGE);
+		return phys.alloc_aligned(num_pages*PAGE_SIZE, AT_PAGE);
 	}
 
 
@@ -54,7 +54,7 @@ struct Core::Untyped_memory
 	 */
 	static inline Cap_sel _core_local_sel(Core_cspace::Top_cnode_idx top_idx,
 	                                      addr_t phys_addr,
-	                                      addr_t size_log2 = get_page_size_log2())
+	                                      addr_t size_log2 = PAGE_SIZE_LOG2)
 	{
 		unsigned const upper_bits = top_idx << Core_cspace::NUM_PHYS_SEL_LOG2;
 		unsigned const mask       = (1ul << Core_cspace::NUM_PHYS_SEL_LOG2) - 1;
@@ -93,7 +93,7 @@ struct Core::Untyped_memory
 	{
 		auto const phys_addr_base = phys_addr;
 
-		for (size_t i = 0; i < num_pages; i++, phys_addr += get_page_size()) {
+		for (size_t i = 0; i < num_pages; i++, phys_addr += PAGE_SIZE) {
 
 			seL4_Untyped const service     = untyped_sel(phys_addr).value();
 			seL4_Word    const type        = smallest_page_type();
@@ -101,7 +101,7 @@ struct Core::Untyped_memory
 			seL4_CNode   const root        = Core_cspace::top_cnode_sel();
 			seL4_Word    const node_index  = Core_cspace::TOP_CNODE_PHYS_IDX;
 			seL4_Word    const node_depth  = Core_cspace::NUM_TOP_SEL_LOG2;
-			seL4_Word    const node_offset = phys_addr >> get_page_size_log2();
+			seL4_Word    const node_offset = phys_addr >> PAGE_SIZE_LOG2;
 			seL4_Word    const num_objects = 1;
 
 			long const ret = seL4_Untyped_Retype(service,
@@ -118,11 +118,11 @@ struct Core::Untyped_memory
 
 			error(__FUNCTION__, ": seL4_Untyped_RetypeAtOffset "
 			      "returned ", ret, " - physical_range=",
-			      Hex_range(node_offset << get_page_size_log2(),
-			                (num_pages - i) * get_page_size()));
+			      Hex_range(node_offset << PAGE_SIZE_LOG2,
+			                (num_pages - i) * PAGE_SIZE));
 
 			/* revert already converted memory */
-			convert_to_untyped_frames(phys_addr_base, get_page_size() * i);
+			convert_to_untyped_frames(phys_addr_base, PAGE_SIZE * i);
 
 			return false;
 		}
@@ -140,10 +140,9 @@ struct Core::Untyped_memory
 		seL4_Untyped const service = Core_cspace::phys_cnode_sel();
 		int const space_size = Core_cspace::NUM_PHYS_SEL_LOG2;
 
-		for (addr_t phys = phys_addr; phys < phys_addr + phys_size;
-		     phys += get_page_size()) {
+		for (addr_t phys = phys_addr; phys < phys_addr + phys_size; phys += PAGE_SIZE) {
 
-			unsigned const index = (unsigned)(phys >> get_page_size_log2());
+			unsigned const index = (unsigned)(phys >> PAGE_SIZE_LOG2);
 
 			/**
 			 * Without the revoke, one gets sporadically

@@ -109,7 +109,7 @@ void Thread::_init_native_main_thread(Stack &stack)
 	/* remap initial main-thread UTCB according to stack-area spec */
 	map_local(Core::Platform::core_main_thread_phys_utcb(),
 	          (addr_t)&stack.utcb(),
-	          max(sizeof(Native_utcb) / get_page_size(), (size_t)1));
+	          max(sizeof(Native_utcb) / PAGE_SIZE, (size_t)1));
 
 	/* adjust initial object state in case of a main thread */
 	stack.native_thread().cap = Hw::_main_thread_cap;

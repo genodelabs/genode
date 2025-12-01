@@ -36,14 +36,14 @@ void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &) { }
 
 void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 {
-	size_t page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
+	size_t page_rounded_size = (ds.size() + PAGE_SIZE - 1) & PAGE_MASK;
 
 	/* allocate range in core's virtual address space */
 	platform().region_alloc().try_alloc(page_rounded_size).with_result(
 		[&] (Range_allocator::Allocation &virt) {
 
 			/* map the dataspace's physical pages to corresponding virtual addresses */
-			size_t num_pages = page_rounded_size >> get_page_size_log2();
+			size_t num_pages = page_rounded_size >> PAGE_SIZE_LOG2;
 			if (!map_local(ds.phys_addr(), (addr_t)virt.ptr, num_pages)) {
 				error("core-local memory mapping failed");
 				return;

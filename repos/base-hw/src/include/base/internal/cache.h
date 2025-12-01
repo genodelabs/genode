@@ -25,7 +25,7 @@ static inline void for_each_page(Genode::addr_t addr,
 	using namespace Genode;
 
 	while (size) {
-		addr_t next_page = align_addr(addr+1, { .log2 = get_page_size_log2() });
+		addr_t next_page = align_addr(addr+1, AT_PAGE);
 		size_t s = min(size, next_page - addr);
 		touch_read(reinterpret_cast<unsigned char *>(addr));
 		fn(addr, s);

@@ -137,7 +137,9 @@ inline int map_local(Genode::addr_t const pd, Nova::Utcb &utcb,
 	using namespace Nova;
 	using namespace Genode;
 
-	size_t const size = num_pages << get_page_size_log2();
+	using Genode::PAGE_SIZE_LOG2;
+
+	size_t const size = num_pages << PAGE_SIZE_LOG2;
 
 	addr_t const from_end = from_start + size;
 	addr_t const to_end   = to_start   + size;
@@ -154,7 +156,7 @@ inline int map_local(Genode::addr_t const pd, Nova::Utcb &utcb,
 		addr_t const common_bits = from_curr | to_curr;
 
 		/* find least set bit in common bits */
-		size_t order = lsb_bit(common_bits, get_page_size_log2());
+		size_t order = lsb_bit(common_bits, PAGE_SIZE_LOG2);
 
 		/* look if flexpage fits into both 'from' and 'to' address range */
 		if ((from_end - from_curr) < (1UL << order))
@@ -167,8 +169,8 @@ inline int map_local(Genode::addr_t const pd, Nova::Utcb &utcb,
 			return 1;
 
 		int const res = map_local(pd, utcb,
-		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), permission),
-		                          Mem_crd((to_curr   >> 12), order - get_page_size_log2(), permission),
+		                          Mem_crd((from_curr >> 12), order - PAGE_SIZE_LOG2, permission),
+		                          Mem_crd((to_curr   >> 12), order - PAGE_SIZE_LOG2, permission),
 		                          kern_pd, dma_mem, write_combined);
 		if (res) return res;
 
@@ -197,9 +199,9 @@ inline void unmap_local(Nova::Utcb &, Genode::addr_t start,
 	using namespace Nova;
 	using namespace Genode;
 
-	Genode::addr_t base = start >> get_page_size_log2();
+	Genode::addr_t base = start >> Genode::PAGE_SIZE_LOG2;
 
-	if (start & (get_page_size() - 1)) {
+	if (start & (PAGE_SIZE - 1)) {
 		error("unmap failed - unaligned address specified");
 		return;
 	}

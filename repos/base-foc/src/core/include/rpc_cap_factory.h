@@ -45,7 +45,7 @@ class Core::Rpc_cap_factory
 		 * meta-data overhead of the sliced-heap blocks) are page sized.
 		 */
 		static constexpr size_t SLAB_BLOCK_SIZE =
-			get_page_size() - Sliced_heap::meta_data_size();
+			PAGE_SIZE - Sliced_heap::meta_data_size();
 
 		uint8_t _initial_sb[SLAB_BLOCK_SIZE];
 

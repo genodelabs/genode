@@ -140,7 +140,7 @@ class Core::Page_table_registry
 			LEVEL_0 = 12, /* 4K Page */
 		};
 
-		static constexpr size_t SLAB_BLOCK_SIZE = get_page_size() - Sliced_heap::meta_data_size();
+		static constexpr size_t SLAB_BLOCK_SIZE = PAGE_SIZE - Sliced_heap::meta_data_size();
 		Tslab<Frame, SLAB_BLOCK_SIZE> _alloc_frames;
 		uint8_t _initial_sb_frame[SLAB_BLOCK_SIZE];
 

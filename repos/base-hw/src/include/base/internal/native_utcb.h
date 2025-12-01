@@ -39,7 +39,7 @@ namespace Genode {
 	 * We set it architectural independent to the start of the address space,
 	 * but leave out page zero for * null-pointer dereference detection.
 	 */
-	static constexpr addr_t user_utcb_main_thread() { return get_page_size(); }
+	static constexpr addr_t user_utcb_main_thread() { return PAGE_SIZE; }
 
 	/**
 	 * Core and user-land components have different main thread's UTCB locations.
@@ -75,7 +75,7 @@ class Genode::Native_utcb
 			Kernel::capid_t caps[MAX_CAP_ARGS]; /* capability buffer  */
 		};
 
-		uint8_t _raw[get_page_size()];
+		uint8_t _raw[PAGE_SIZE];
 
 		Header       &_header()       { return *reinterpret_cast<Header *>      (this); }
 		Header const &_header() const { return *reinterpret_cast<Header const *>(this); }
@@ -83,7 +83,7 @@ class Genode::Native_utcb
 		uint8_t       *_data()       { return &_raw[sizeof(Header)]; }
 		uint8_t const *_data() const { return &_raw[sizeof(Header)]; }
 
-		static constexpr size_t _max_data_size = get_page_size() - sizeof(Header);
+		static constexpr size_t _max_data_size = PAGE_SIZE - sizeof(Header);
 
 	public:
 
@@ -176,7 +176,7 @@ class Genode::Native_utcb
 };
 
 
-static_assert(sizeof(Genode::Native_utcb) == Genode::get_page_size(),
+static_assert(sizeof(Genode::Native_utcb) == Genode::PAGE_SIZE,
               "Native_utcb is not page-sized");
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_ */

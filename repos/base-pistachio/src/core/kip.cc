@@ -28,31 +28,3 @@ L4_KernelInterfacePage_t *Pistachio::get_kip()
 
 	return kip;
 }
-
-
-unsigned int Pistachio::get_page_size_log2()
-{
-	static unsigned int ps = 0;
-
-	if (ps == 0) {
-		L4_Word_t ps_mask = L4_PageSizeMask(get_kip());
-
-		while ((ps_mask&1) == 0) {
-			ps += 1;
-			ps_mask >>= 1;
-		}
-	}
-	return ps;
-}
-
-
-L4_Word_t Pistachio::get_page_mask()
-{
-	static L4_Word_t page_mask = 0;
-
-	if (page_mask == 0) {
-		unsigned int ps = get_page_size_log2();
-		page_mask = (((L4_Word_t)~0)>>ps)<<ps;
-	}
-	return page_mask;
-}

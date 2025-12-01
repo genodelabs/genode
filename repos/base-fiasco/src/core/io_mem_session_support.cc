@@ -58,9 +58,9 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 			                          ? SIGMA0_REQ_FPAGE_RAM
 			                          : SIGMA0_REQ_FPAGE_IOMEM;
 
-			size_t const size_log2 = can_use_super_page(phys_base + offset, size)
-			                       ? get_super_page_size_log2()
-			                       : get_page_size_log2();
+			uint8_t const size_log2 = can_use_super_page(phys_base + offset, size)
+			                        ? get_super_page_size_log2()
+			                        : PAGE_SIZE_LOG2;
 
 			l4_umword_t  dw0 = 0, dw1 = 0;
 			l4_msgdope_t result { };
@@ -90,7 +90,7 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 	/* align large I/O dataspaces on a super-page boundary within core */
 	Align align { .log2 = (size >= get_super_page_size())
 	                    ? get_super_page_size_log2()
-	                    : get_page_size_log2() };
+	                    : PAGE_SIZE_LOG2 };
 
 	return platform().region_alloc().alloc_aligned(size, align).convert<Dataspace_attr>(
 		[&] (Range_allocator::Allocation &core_local) {

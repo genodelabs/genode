@@ -51,7 +51,7 @@ class Core::Page_table_allocator : public Hw::Page_table_allocator
 
 		struct Entry
 		{
-			struct Table { uint8_t _[get_page_size()]; };
+			struct Table { uint8_t _[PAGE_SIZE]; };
 			Phys_allocated<Table> table;
 
 			addr_t virt()
@@ -78,7 +78,7 @@ class Core::Page_table_allocator : public Hw::Page_table_allocator
 		Accounted_mapped_ram_allocator &_accounted_mapped_ram;
 
 		static constexpr size_t SLAB_BLOCK_SIZE =
-			get_page_size() - Sliced_heap::meta_data_size();
+			PAGE_SIZE - Sliced_heap::meta_data_size();
 		uint8_t _initial_sb_tables[SLAB_BLOCK_SIZE];
 		Tslab<Entry, SLAB_BLOCK_SIZE> _alloc_tables;
 

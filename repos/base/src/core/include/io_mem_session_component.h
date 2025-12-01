@@ -85,7 +85,7 @@ class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 
 			/* page size aligned base */
 			addr_t base() const {
-				return req_base & ~(get_page_size() - 1); }
+				return req_base & ~(PAGE_SIZE - 1); }
 
 			/* page size aligned size */
 			size_t size() const

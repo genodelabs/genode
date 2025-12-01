@@ -40,7 +40,7 @@ namespace Core {
 		Pistachio::L4_ThreadId_t core_pager = platform_specific().core_pager().native_thread_id();
 
 		addr_t offset = 0;
-		size_t page_size = get_page_size();
+		size_t page_size = PAGE_SIZE;
 		for (unsigned i = 0; i < num_pages; i++, offset += page_size) {
 
 			using namespace Pistachio;
@@ -81,7 +81,7 @@ namespace Core {
 	 */
 	inline void unmap_local(addr_t virt, size_t num_pages)
 	{
-		size_t page_size = get_page_size();
+		size_t page_size = PAGE_SIZE;
 		addr_t offset = 0;
 		for (unsigned i = 0; i < num_pages; i++, offset += page_size) {
 			using namespace Pistachio;

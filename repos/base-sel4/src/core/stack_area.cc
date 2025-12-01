@@ -85,7 +85,7 @@ class Stack_area_region_map : public Region_map
 				Range_allocator &phys_alloc = platform_specific().ram_alloc();
 
 				size_t const size      = round_page(attr.size);
-				size_t const num_pages = size >> get_page_size_log2();
+				size_t const num_pages = size >> PAGE_SIZE_LOG2;
 
 				/* allocate physical memory */
 				phys_result = Untyped_memory::alloc_pages(phys_alloc, num_pages);
@@ -120,7 +120,7 @@ class Stack_area_region_map : public Region_map
 				addr_t const size_i = (detach & ~(stack - 1)) + stack - detach;
 				/* remove IPC buffer size */
 				addr_t const size   = size_i >= 4096 ? size_i - 4096 : size_i;
-				addr_t const pages  = size >> get_page_size_log2();
+				addr_t const pages  = size >> PAGE_SIZE_LOG2;
 
 				unmap_local(detach, pages);
 

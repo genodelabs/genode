@@ -49,7 +49,7 @@ namespace Core {
 		using namespace Okl4;
 
 		for (unsigned i = 0, offset = 0; i < num_pages; i++) {
-			L4_Fpage_t fpage = L4_FpageLog2(to_virt + offset, get_page_size_log2());
+			L4_Fpage_t fpage = L4_FpageLog2(to_virt + offset, PAGE_SIZE_LOG2);
 			L4_PhysDesc_t phys_desc = L4_PhysDesc(from_phys + offset, 0);
 			fpage.X.rwx = 7;
 
@@ -57,7 +57,7 @@ namespace Core {
 				error("core-local memory mapping failed, error=", L4_ErrorCode());
 				return false;
 			}
-			offset += get_page_size();
+			offset += PAGE_SIZE;
 		}
 		return true;
 	}
@@ -75,8 +75,8 @@ namespace Core {
 		using namespace Okl4;
 
 		L4_Word_t addr           = virt_addr;
-		L4_Word_t remaining_size = num_pages << get_page_size_log2();
-		L4_Word_t size_log2      = get_page_size_log2();
+		L4_Word_t remaining_size = num_pages << PAGE_SIZE_LOG2;
+		L4_Word_t size_log2      = PAGE_SIZE_LOG2;
 
 		/*
 		 * Let unmap granularity ('size_log2') grow

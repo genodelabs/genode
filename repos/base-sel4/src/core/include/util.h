@@ -22,11 +22,11 @@
 
 namespace Core {
 
-	constexpr addr_t get_page_mask()      { return ~(get_page_size() - 1); }
-	inline addr_t trunc_page(addr_t addr) { return addr & get_page_mask(); }
-	inline addr_t round_page(addr_t addr) { return trunc_page(addr + get_page_size() - 1); }
+	inline addr_t trunc_page(addr_t addr) { return addr & PAGE_MASK; }
+	inline addr_t round_page(addr_t addr) { return trunc_page(addr + PAGE_SIZE - 1); }
 
 	inline addr_t map_src_addr(addr_t, addr_t phys) { return phys; }
+
 	inline Log2 kernel_constrained_map_size(Log2 const size) {
 		return Log2(min(size.log2, uint8_t(seL4_LargePageBits))); }
 }

@@ -41,7 +41,7 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	 * successively weaken the alignment constraint until we hit the page size.
 	 */
 	void *virt_addr = 0;
-	Align align { .log2 = log2(ds.size(), get_page_size_log2()) };
+	Align align { .log2 = log2(ds.size(), Genode::PAGE_SIZE_LOG2) };
 	for (; align.log2 >= AT_PAGE.log2; align.log2--) {
 
 		platform().region_alloc().alloc_aligned(size, align).with_result(
@@ -82,7 +82,7 @@ Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 
 		if (map_local(platform_specific().core_pd_sel(), utcb,
 		              ds.phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
-		              page_rounded_size >> get_page_size_log2(), rights, true)) {
+		              page_rounded_size >> PAGE_SIZE_LOG2, rights, true)) {
 			platform().region_alloc().free(virt_ptr, page_rounded_size);
 
 			return Error::OUT_OF_RAM;
@@ -97,7 +97,7 @@ void Core_local_rm::_free(Attachment &a)
 	size_t size = platform_specific().region_alloc_size_at(a.ptr);
 
 	unmap_local(*reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
-	            addr_t(a.ptr), size >> get_page_size_log2());
+	            addr_t(a.ptr), size >> PAGE_SIZE_LOG2);
 
 	platform().region_alloc().free(a.ptr);
 }

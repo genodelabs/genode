@@ -74,7 +74,7 @@ void Platform::_init_core_page_table_registry()
 		                                                PAGE_TABLE_LOG2_SIZE).failed())
 			error(__func__, ":", __LINE__, " page table allocation failed");
 
-		virt_addr += 512 * get_page_size();
+		virt_addr += 512 * PAGE_SIZE;
 	}
 
 	/* initialize 16k memory allocator */

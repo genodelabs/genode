@@ -214,7 +214,7 @@ class Core::Guest_memory
 				Rm_region *region = _map.metadata((void *)addr);
 
 				/* walk region holes page-by-page */
-				size_t iteration_size = get_page_size();
+				size_t iteration_size = PAGE_SIZE;
 
 				if (region) {
 					iteration_size = region->size();

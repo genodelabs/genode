@@ -27,7 +27,7 @@ class Core::Signal_broker
 {
 	private:
 
-		template <typename T, size_t BLOCK_SIZE = get_page_size()>
+		template <typename T, size_t BLOCK_SIZE = PAGE_SIZE>
 		class Slab : public Tslab<T, BLOCK_SIZE>
 		{
 			private:

@@ -32,7 +32,7 @@ void * Platform::Ram_allocator::alloc(size_t size, Align align)
 {
 	using namespace Genode;
 
-	align.log2 = max(align.log2, get_page_size_log2());
+	align.log2 = max(align.log2, PAGE_SIZE_LOG2);
 
 	return Base::alloc_aligned(Hw::round_page(size), align).convert<void *>(
 

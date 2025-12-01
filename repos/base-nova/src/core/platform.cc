@@ -79,10 +79,10 @@ addr_t Core::Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
 {
 	using Region_allocation = Range_allocator::Allocation;
 
-	addr_t const size = pages << get_page_size_log2();
+	addr_t const size = pages << Genode::PAGE_SIZE_LOG2;
 
 	/* try to reserve contiguous virtual area */
-	return region_alloc().alloc_aligned(size + (guard_page ? get_page_size() : 0),
+	return region_alloc().alloc_aligned(size + (guard_page ? PAGE_SIZE : 0ul),
 	                                    AT_PAGE).convert<addr_t>(
 		[&] (Region_allocation &core_local) {
 
@@ -335,6 +335,8 @@ Core::Platform::Platform()
 	_irq_alloc(&core_mem_alloc()),
 	_vm_base(0x1000), _vm_size(0), _cpus(Affinity::Space(1,1))
 {
+	using Genode::PAGE_SIZE_LOG2;
+
 	bool warn_reorder  = false;
 	bool error_overlap = false;
 
@@ -344,7 +346,7 @@ Core::Platform::Platform()
 	_cpus = setup_affinity_space(hip);
 
 	/* register UTCB of main thread */
-	__main_thread_utcb = (Utcb *)(__initial_sp - get_page_size());
+	__main_thread_utcb = (Utcb *)(__initial_sp - PAGE_SIZE);
 
 	/* set core pd selector */
 	_core_pd_sel = hip.sel_exc;
@@ -439,10 +441,10 @@ Core::Platform::Platform()
 	exclude_from_core(stack_area_virtual_base(), stack_area_virtual_size());
 
 	/* exclude utcb of core pager thread + empty guard pages before and after */
-	exclude_from_core(CORE_PAGER_UTCB_ADDR - get_page_size(), get_page_size() * 3);
+	exclude_from_core(CORE_PAGER_UTCB_ADDR - PAGE_SIZE, PAGE_SIZE*3);
 
 	/* exclude utcb of main thread and hip + empty guard pages before and after */
-	exclude_from_core((addr_t)__main_thread_utcb - get_page_size(), get_page_size() * 4);
+	exclude_from_core((addr_t)__main_thread_utcb - PAGE_SIZE, PAGE_SIZE*4);
 
 	/* exclude HIP */
 	exclude_from_core(addr_t(&hip), _vm_base + _vm_size - addr_t(&hip));
@@ -573,11 +575,10 @@ Core::Platform::Platform()
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
 		if (!mem_desc->aux) continue;
 
-		curr_cmd_line_page = mem_desc->aux >> get_page_size_log2();
+		curr_cmd_line_page = mem_desc->aux >> PAGE_SIZE_LOG2;
 		if (curr_cmd_line_page == prev_cmd_line_page) continue;
 
-		exclude_from_ram(curr_cmd_line_page << get_page_size_log2(),
-		                 get_page_size() * 2);
+		exclude_from_ram(curr_cmd_line_page << PAGE_SIZE_LOG2, PAGE_SIZE*2);
 		prev_cmd_line_page = curr_cmd_line_page;
 	}
 
@@ -632,7 +633,7 @@ Core::Platform::Platform()
 		if (!mem_desc->addr || !mem_desc->size) continue;
 
 		/* assume core's ELF image has one-page header */
-		_core_phys_start = (addr_t)trunc_page(mem_desc->addr + get_page_size());
+		_core_phys_start = (addr_t)trunc_page(mem_desc->addr + PAGE_SIZE);
 	}
 
 	_init_rom_modules();
@@ -641,7 +642,7 @@ Core::Platform::Platform()
 	{
 		using Phys_allocation = Range_allocator::Allocation;
 
-		size_t const bytes = pages << get_page_size_log2();
+		size_t const bytes = pages << PAGE_SIZE_LOG2;
 		ram_alloc().alloc_aligned(bytes, AT_PAGE).with_result(
 
 			[&] (Phys_allocation &phys) {
@@ -840,7 +841,7 @@ Core::Platform::Platform()
 	{
 		using Phys_allocation = Range_allocator::Allocation;
 
-		bool ok = ram_alloc().alloc_aligned(get_page_size(), AT_PAGE).convert<bool>(
+		bool ok = ram_alloc().alloc_aligned(PAGE_SIZE, AT_PAGE).convert<bool>(
 			[&] (Phys_allocation &phys) {
 				addr_t phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 				addr_t core_local_addr = _map_pages(phys_addr, 1);
@@ -1032,7 +1033,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t
 
 	map_local(core_pd_sel,
 	          *(Utcb *)Thread::myself()->utcb(), phys_addr,
-	          virt_addr, size / get_page_size(),
+	          virt_addr, size / PAGE_SIZE,
 	          Rights(true, true, false), true);
 	return true;
 }
@@ -1041,7 +1042,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t
 bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t, size_t size)
 {
 	unmap_local(*(Utcb *)Thread::myself()->utcb(),
-	            virt_addr, size / get_page_size());
+	            virt_addr, size / PAGE_SIZE);
 	return true;
 }
 
