@@ -53,7 +53,12 @@ size_t Dataspace_component::_file_size()
 	if (_fname == "" || lx_stat_size(_fname.string(), size) < 0)
 		return 0;
 
-	return align_addr((size_t)size, 12);
+	if (size > size_t(size)) {
+		warning("file size exceeds value range of size_t");
+		return 0;
+	}
+
+	return align_addr(size_t(size), AT_PAGE);
 }
 
 

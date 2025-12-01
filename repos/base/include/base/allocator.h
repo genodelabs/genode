@@ -133,17 +133,16 @@ struct Genode::Range_allocator : Allocator
 	/**
 	 * Allocate block
 	 *
-	 * \param size      size of new block
-	 * \param align     alignment of new block specified
-	 *                  as the power of two
-	 * \param range     address-range constraint for the allocation
+	 * \param size   size of new block
+	 * \param align  alignment of new block
+	 * \param range  address-range constraint for the allocation
 	 */
-	virtual Result alloc_aligned(size_t size, unsigned align, Range range) = 0;
+	virtual Result alloc_aligned(size_t size, Align align, Range range) = 0;
 
 	/**
 	 * Allocate block without constraining the address range
 	 */
-	Result alloc_aligned(size_t size, unsigned align)
+	Result alloc_aligned(size_t size, Align align)
 	{
 		return alloc_aligned(size, align, Range { .start = 0, .end = ~0UL });
 	}

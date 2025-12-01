@@ -53,7 +53,7 @@ class Core::Accounted_core_ram : public Allocator
 
 		Alloc_result try_alloc(size_t const size) override
 		{
-			Ram_quota const page_aligned_size { align_addr(size, 12) };
+			Ram_quota const page_aligned_size { align_addr(size, AT_PAGE) };
 
 			return _ram_guard.reserve(page_aligned_size).convert<Result>(
 				[&] (Ram_quota_guard::Reservation &reserved_ram) {
@@ -81,7 +81,7 @@ class Core::Accounted_core_ram : public Allocator
 
 		void free(void *ptr, size_t const size) override
 		{
-			size_t const page_aligned_size = align_addr(size, 12);
+			size_t const page_aligned_size = align_addr(size, AT_PAGE);
 
 			_core_mem.free(ptr, page_aligned_size);
 

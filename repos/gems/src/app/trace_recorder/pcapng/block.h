@@ -44,7 +44,7 @@ struct Pcapng::Block_base
 	static constexpr uint32_t padded_size(uint32_t hdr_sz)
 	{
 		/* add padding to 4-byte boundary */
-		const uint32_t hdr_sz_padded = Genode::align_addr(hdr_sz, 2);
+		const uint32_t hdr_sz_padded = Genode::align_addr(hdr_sz, { .log2 = 2 });
 
 		return hdr_sz_padded;
 	}

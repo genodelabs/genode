@@ -817,7 +817,7 @@ extern "C" {
 			stacksize = max_stack;
 		}
 
-		(*attr)->stack_size = align_addr(stacksize, 12);
+		(*attr)->stack_size = align_addr(stacksize, AT_PAGE);
 
 		return 0;
 	}

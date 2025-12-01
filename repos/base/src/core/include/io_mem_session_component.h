@@ -90,8 +90,7 @@ class Core::Io_mem_session_component : public Rpc_object<Io_mem_session>
 			/* page size aligned size */
 			size_t size() const
 			{
-				addr_t end  = align_addr(req_base + req_size,
-				                         get_page_size_log2());
+				addr_t end  = align_addr(req_base + req_size, AT_PAGE);
 				return end - base();
 			}
 		};

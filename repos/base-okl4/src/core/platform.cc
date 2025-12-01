@@ -215,14 +215,13 @@ Core::Platform::Platform()
 	{
 		unsigned const pages    = 1;
 		size_t   const log_size = pages << get_page_size_log2();
-		unsigned const align    = get_page_size_log2();
 
-		ram_alloc().alloc_aligned(log_size, align).with_result(
+		ram_alloc().alloc_aligned(log_size, AT_PAGE).with_result(
 
 			[&] (Range_allocator::Allocation &phys) {
 				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 
-				region_alloc().alloc_aligned(log_size, align). with_result(
+				region_alloc().alloc_aligned(log_size, AT_PAGE). with_result(
 					[&] (Range_allocator::Allocation &virt) {
 
 						map_local(phys_addr, (addr_t)virt.ptr, pages);
@@ -245,13 +244,13 @@ Core::Platform::Platform()
 		unsigned const pages  = 1;
 		size_t   const size   = pages << get_page_size_log2();
 
-		ram_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
+		ram_alloc().alloc_aligned(size, AT_PAGE).with_result(
 
 			[&] (Range_allocator::Allocation &phys) {
 				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 
 				/* let one page free after the log buffer */
-				region_alloc().alloc_aligned(size, get_page_size_log2()).with_result(
+				region_alloc().alloc_aligned(size, AT_PAGE).with_result(
 
 					[&] (Range_allocator::Allocation &core_local) {
 						addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local.ptr);

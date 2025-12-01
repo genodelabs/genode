@@ -22,8 +22,8 @@
 
 using Vmm::Vm;
 
+static constexpr Genode::Align AT_2MB = { .log2 = 21 };
 
-enum { LOG2_2MB = 21 };
 
 Genode::Entrypoint & Vm::Cpu_entry::ep(unsigned i, Vm &vm)
 {
@@ -43,7 +43,7 @@ Vm::Cpu_entry::Cpu_entry(unsigned i, Vm &vm)
 
 Genode::addr_t Vm::_initrd_offset() const
 {
-	return align_addr(KERNEL_OFFSET+_kernel_rom.size(), LOG2_2MB);
+	return align_addr(KERNEL_OFFSET+_kernel_rom.size(), AT_2MB);
 }
 
 
@@ -55,7 +55,7 @@ Genode::size_t Vm::_initrd_size() const
 
 Genode::addr_t Vm::_dtb_offset() const
 {
-	return align_addr(_initrd_offset() + _initrd_size(), LOG2_2MB);
+	return align_addr(_initrd_offset() + _initrd_size(), AT_2MB);
 }
 
 
@@ -79,7 +79,7 @@ void Vm::_load_initrd()
 
 void Vm::_load_dtb()
 {
-	Fdt_generator fdt(_env, _heap, _ram.local_base() + _dtb_offset(), 1 << LOG2_2MB);
+	Fdt_generator fdt(_env, _heap, _ram.local_base() + _dtb_offset(), 1 << AT_2MB.log2);
 	fdt.generate(_config, (void*)(_ram.guest_base() + _initrd_offset()),
 	             _initrd_size());
 }

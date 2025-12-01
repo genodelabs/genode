@@ -129,7 +129,7 @@ class Hw::Page_table_tpl
 		template <typename T>
 		static constexpr size_t _table_count(size_t region, T align)
 		{
-			size_t r = (size_t)align_addr<uint64_t>(region, (int)align)
+			size_t r = (size_t)align_addr<uint64_t>(region, { .log2 = align })
 			           / (1ULL << align);
 			return r ? r : 1;
 		}

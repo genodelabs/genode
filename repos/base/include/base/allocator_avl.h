@@ -91,7 +91,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 				 * \param align   alignment (power of two)
 				 * \return        true if block fits
 				 */
-				inline bool _fits(size_t n, unsigned align, Range range)
+				inline bool _fits(size_t n, Align align, Range range)
 				{
 					addr_t a = align_addr(max(addr(), range.start), align);
 					return (a >= addr()) && _sum_in_range(a, n) &&
@@ -151,7 +151,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 				/**
 				 * Find best-fitting block
 				 */
-				Block *find_best_fit(size_t size, unsigned align, Range);
+				Block *find_best_fit(size_t size, Align align, Range);
 
 				/**
 				 * Find block that contains the specified address range
@@ -209,7 +209,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		bool _revert_block_ranges(auto const &any_block_fn);
 
-		Alloc_result _allocate(size_t, unsigned, Range, auto const &search_fn);
+		Alloc_result _allocate(size_t, Align, Range, auto const &search_fn);
 
 	protected:
 
@@ -271,7 +271,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		Range_result add_range(addr_t base, size_t size) override;
 		Range_result remove_range(addr_t base, size_t size) override;
-		Alloc_result alloc_aligned(size_t, unsigned, Range) override;
+		Alloc_result alloc_aligned(size_t, Align, Range) override;
 		Alloc_result alloc_addr(size_t size, addr_t addr) override;
 		void         free(void *addr) override;
 		size_t       avail() const override;
@@ -286,7 +286,8 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 		Alloc_result try_alloc(size_t size) override
 		{
-			return Allocator_avl_base::alloc_aligned(size, log2(sizeof(addr_t), 0u));
+			Align const AT_MWORD { .log2 = log2(sizeof(addr_t), 0u) };
+			return Allocator_avl_base::alloc_aligned(size, AT_MWORD);
 		}
 
 		void _free(Allocation &a) override { free(a.ptr, a.num_bytes); }

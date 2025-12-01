@@ -2163,7 +2163,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		                                        Genode::size_t size) override
 		{
 			/* roundup to next page size */
-			size = align_addr(size, 12);
+			size = align_addr(size, Genode::AT_PAGE);
 
 			if (_resource_guard.avail_caps() == false)
 				throw Gpu::Session::Out_of_caps();

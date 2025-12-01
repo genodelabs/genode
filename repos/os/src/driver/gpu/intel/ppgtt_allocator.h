@@ -63,7 +63,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 
 		Alloc_result try_alloc(size_t size) override
 		{
-			return _range.alloc_aligned(size, 12).convert<Alloc_result>(
+			return _range.alloc_aligned(size, Genode::AT_PAGE).convert<Alloc_result>(
 				[&] (Allocation &a) -> Alloc_result {
 					a.deallocate = false;
 					return { *this, a }; },
@@ -103,7 +103,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 					if (_map.add(ds, pa, va, range.num_bytes) == true) {
 						if (_range.add_range(addr_t(range.ptr), range.num_bytes).ok()) {
 							range.deallocate = false;
-							return _range.alloc_aligned(size, 12);
+							return _range.alloc_aligned(size, Genode::AT_PAGE);
 						}
 
 						Genode::error("Ppgtt_allocator failed to extend meta data");

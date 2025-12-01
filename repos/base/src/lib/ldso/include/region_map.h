@@ -93,7 +93,7 @@ class Linker::Region_map
 		 */
 		Alloc_region_result alloc_region(size_t size)
 		{
-			return _range.alloc_aligned(size, get_page_size_log2()).convert<Alloc_region_result>(
+			return _range.alloc_aligned(size, AT_PAGE).convert<Alloc_region_result>(
 				[&] (Range_allocation &a)                {
 					a.deallocate = false;
 					return (addr_t)a.ptr;
@@ -116,7 +116,7 @@ class Linker::Region_map
 
 		Alloc_region_result alloc_region_at_end(size_t size)
 		{
-			_end -= align_addr(size, get_page_size_log2());
+			_end -= align_addr(size, { .log2 = get_page_size_log2() });
 			return alloc_region_at(size, _end);
 		}
 

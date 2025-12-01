@@ -52,7 +52,7 @@ class Acpi::Memory
 
 				static addr_t _size_align(addr_t base, size_t size)
 				{
-					return align_addr(base + (size - 1) - _base_align(base), 12);
+					return align_addr(base + (size - 1) - _base_align(base), AT_PAGE);
 				}
 
 				Region(addr_t base, size_t size)
@@ -122,7 +122,8 @@ class Acpi::Memory
 			 */
 
 			if (!_io_region.constructed()) {
-				_io_region.construct(req_base & _align_mask(ACPI_REGION_SIZE_LOG2),
+				Align const align { .log2 = ACPI_REGION_SIZE_LOG2 };
+				_io_region.construct(req_base & _align_mask<addr_t>(align),
 				                     ACPI_REGION_SIZE);
 			}
 

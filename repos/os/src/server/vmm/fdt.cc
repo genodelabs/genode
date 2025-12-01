@@ -229,7 +229,7 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t &off, Config const &config,
 		off += Fdt_token::SIZE;
 		_buffer.write(off, name.string(), name.length());
 		off += (uint32_t)name.length();
-		off = align_addr(off, 2);
+		off = align_addr(off, { .log2 = 2 });
 		fn();
 		Fdt_token end({(char *)_buffer.addr+off, _buffer.size-off}, FDT_END_NODE);
 		off += Fdt_token::SIZE;
@@ -242,7 +242,7 @@ void Vmm::Fdt_generator::_generate_tree(uint32_t &off, Config const &config,
 		              _dict.offset(name));
 		off += Fdt_prop::SIZE;
 		val.write(off, _buffer);
-		off = align_addr(off+(uint32_t)val.length(), 2);
+		off = align_addr(off+(uint32_t)val.length(), { .log2 = 2 });
 	};
 
 	node(Name(""), [&] ()

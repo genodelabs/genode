@@ -131,7 +131,7 @@ Stack_area_region_map::Attach_result Stack_area_region_map::attach(Dataspace_cap
 		Range_allocator &alloc = platform_specific().ram_alloc();
 
 		/* allocate physical memory */
-		phys_stack = alloc.alloc_aligned(size, get_page_size_log2());
+		phys_stack = alloc.alloc_aligned(size, AT_PAGE);
 
 		return phys_stack.template convert<Attach_result>([&] (auto &phys) -> Attach_result {
 

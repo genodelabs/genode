@@ -133,7 +133,7 @@ class Genode::Session_env : public Ram_allocator,
 			enum { MAX_SHARED_RAM           = 4096 };
 			enum { DS_SIZE_GRANULARITY_LOG2 = 12 };
 
-			size_t const ds_size = align_addr(size, DS_SIZE_GRANULARITY_LOG2);
+			size_t const ds_size = align_addr(size, { DS_SIZE_GRANULARITY_LOG2 });
 
 			Alloc_result result = Alloc_error::DENIED;
 			try {

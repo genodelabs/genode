@@ -110,7 +110,7 @@ class Core::Synced_range_allocator : public Range_allocator
 		Range_result remove_range(addr_t base, size_t size) override {
 			return _synced_object()->remove_range(base, size); }
 
-		Alloc_result alloc_aligned(size_t size, unsigned align, Range range) override {
+		Alloc_result alloc_aligned(size_t size, Align align, Range range) override {
 			return _adopted(_synced_object()->alloc_aligned(size, align, range)); }
 
 		Alloc_result alloc_addr(size_t size, addr_t addr) override {

@@ -87,7 +87,7 @@ class Vfs::Tar_file_system : public File_system
 			 * Round up up next block
 			 */
 			file_size _block_align(file_size size) const {
-				return Genode::align_addr(size, BLOCK_SHIFT); }
+				return Genode::align_addr(size, { .log2 = BLOCK_SHIFT }); }
 
 			/*
 			 * Next record header

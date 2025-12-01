@@ -22,7 +22,7 @@
 Lx_kit::Mem_allocator::Buffer &
 Lx_kit::Mem_allocator::alloc_buffer(size_t size)
 {
-	size = align_addr(size, 12);
+	size = align_addr(size, AT_PAGE);
 
 	Buffer &buffer = *static_cast<Buffer*>(new (_heap)
 		Lx_kit::Dma_buffer(_platform, size, _cache_attr));

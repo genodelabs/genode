@@ -142,7 +142,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			return Ok();
 		}
 
-		Alloc_result alloc_aligned(size_t size, unsigned, Range) override
+		Alloc_result alloc_aligned(size_t size, Align, Range) override
 		{
 			return try_alloc(size);
 		}

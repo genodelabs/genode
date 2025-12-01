@@ -148,8 +148,8 @@ class Genode::Final_table
 
 	public:
 
-		static constexpr size_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
-		static constexpr size_t ALIGNM_LOG2        = SIZE_LOG2_4KB;
+		static constexpr uint8_t MIN_PAGE_SIZE_LOG2 = SIZE_LOG2_4KB;
+		static constexpr uint8_t ALIGNM_LOG2        = SIZE_LOG2_4KB;
 
 		/**
 		 * A page table consists of 512 entries that each maps a 4KB page
@@ -157,7 +157,7 @@ class Genode::Final_table
 		 */
 		Final_table()
 		{
-			if (!aligned<addr_t>((addr_t)this, ALIGNM_LOG2)) throw Misaligned();
+			if (!aligned<addr_t>((addr_t)this, { .log2 = ALIGNM_LOG2 })) throw Misaligned();
 			Genode::memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -372,7 +372,7 @@ class Genode::Page_directory
 
 		Page_directory()
 		{
-			if (!aligned<addr_t>((addr_t)this, ALIGNM_LOG2)) throw Misaligned();
+			if (!aligned<addr_t>((addr_t)this, { .log2 = ALIGNM_LOG2 })) throw Misaligned();
 			Genode::memset(&_entries, 0, sizeof(_entries));
 		}
 
@@ -558,7 +558,7 @@ class Genode::Pml4_table
 		 */
 		static constexpr size_t _count(size_t region, size_t alignment)
 		{
-			return Genode::align_addr<size_t>(region, (int)alignment)
+			return Genode::align_addr<size_t>(region, { .log2 = alignment })
 			       / (1UL << alignment);
 		}
 
@@ -569,7 +569,7 @@ class Genode::Pml4_table
 
 		Pml4_table()
 		{
-			if (!aligned<addr_t>((addr_t)this, ALIGNM_LOG2)) throw Misaligned();
+			if (!aligned<addr_t>((addr_t)this, { .log2 = ALIGNM_LOG2 })) throw Misaligned();
 			Genode::memset(&_entries, 0, sizeof(_entries));
 		}
 

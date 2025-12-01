@@ -50,8 +50,6 @@ class Core::Mapped_ram_allocator
 		Mapped_ram_allocator(Range_allocator &phys, Range_allocator &virt)
 		: _phys(phys), _virt(virt) { }
 
-		struct Align { uint8_t log2; };
-
 		Result alloc(size_t, Align);
 
 		void _free(Allocation &);

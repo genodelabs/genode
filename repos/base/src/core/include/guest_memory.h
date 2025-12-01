@@ -82,12 +82,9 @@ class Core::Guest_memory
 			if (dsc.managed())
 				return Attach_result::INVALID_DS;
 
-			auto page_aligned = [] (addr_t addr) {
-				return aligned(addr, get_page_size_log2()); };
-
-			if (!page_aligned(guest_phys) ||
-			    !page_aligned(attr.offset) ||
-			    !page_aligned(attr.size))
+			if (!aligned(guest_phys,  AT_PAGE) ||
+			    !aligned(attr.offset, AT_PAGE) ||
+			    !aligned(attr.size,   AT_PAGE))
 				return Attach_result::INVALID_DS;
 
 			if (!attr.size) {
@@ -205,12 +202,7 @@ class Core::Guest_memory
 		            size_t     size,
 		            auto const &unmap_fn)
 		{
-			auto page_aligned = [] (addr_t addr) {
-				return aligned(addr, get_page_size_log2()); };
-
-			if (!size ||
-			    !page_aligned(guest_phys) ||
-			    !page_aligned(size)) {
+			if (!size || !aligned(guest_phys, AT_PAGE) || !aligned(size, AT_PAGE)) {
 				error("vm_session: skipping invalid memory detach addr=",
 				      (void *)guest_phys, " size=", (void *)size);
 				return;

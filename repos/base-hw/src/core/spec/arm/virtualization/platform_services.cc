@@ -46,7 +46,7 @@ void Core::platform_add_local_services(Runtime                &,
 	          Hw::PAGE_FLAGS_KERN_TEXT);
 
 	platform().ram_alloc().alloc_aligned(Hw::Mm::hypervisor_stack().size,
-	                                     get_page_size_log2()).with_result(
+	                                     { .log2 = get_page_size_log2() }).with_result(
 		[&] (Range_allocator::Allocation &stack) {
 			map_local((addr_t)stack.ptr,
 			          Hw::Mm::hypervisor_stack().base,

@@ -31,7 +31,7 @@ namespace Libc {
 		using Size_at_error  = Allocator_avl::Size_at_error;
 		using Size_at_result = Allocator_avl::Size_at_result;
 
-		virtual void *alloc(size_t size, size_t align_log2) = 0;
+		virtual void *alloc(size_t size, Align) = 0;
 		virtual void free(void *ptr) = 0;
 		virtual Size_at_result size_at(void const *ptr) const = 0;
 	};
@@ -130,9 +130,9 @@ namespace Libc {
 				_chunk_size(MIN_CHUNK_SIZE)
 			{ }
 
-			void *alloc(size_t size, size_t align_log2);
-			void free(void *ptr);
-			Size_at_result size_at(void const *ptr) const;
+			void *alloc(size_t, Align) override;
+			void free(void *) override;
+			Size_at_result size_at(void const *) const override;
 	};
 }
 

@@ -27,6 +27,8 @@ namespace Pcapng {
 
 	struct Interface_name;
 	struct Traced_packet;
+
+	static constexpr Align AT_32BIT = { .log2 = 2 };
 }
 
 namespace Trace_recorder {

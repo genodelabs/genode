@@ -161,7 +161,7 @@ static Range_allocator::Result allocate_gsi(Range_allocator &irq_alloc,
 {
 	if (args.msi())
 		return platform_specific().with_msi_alloc([&](auto &msis) {
-			return msis.alloc_aligned(1 /* size */, 0 /* alignment */); });
+			return msis.alloc_aligned(1 /* size */, Align { .log2 = 0 }); });
 	else
 		return irq_alloc.alloc_addr(1, args.irq_number());
 }

@@ -869,7 +869,7 @@ struct Ahci::Port : private Port_base
 
 	Platform::Dma_buffer device_dma { plat, 0x1000, CACHED };
 	Platform::Dma_buffer cmd_dma    { plat,
-		align_addr(cmd_slots * Command_table::size(), 12), CACHED };
+		align_addr(cmd_slots * Command_table::size(), AT_PAGE), CACHED };
 	Platform::Dma_buffer device_info_dma { plat, 0x1000, CACHED };
 
 	addr_t device_info_dma_addr = 0;

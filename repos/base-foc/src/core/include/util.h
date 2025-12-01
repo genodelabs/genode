@@ -67,8 +67,8 @@ namespace Core {
 	inline addr_t trunc_page(addr_t addr) { return Foc::l4_trunc_page(addr); }
 	inline addr_t round_page(addr_t addr) { return Foc::l4_round_page(addr); }
 
-	constexpr size_t get_super_page_size()      { return L4_SUPERPAGESIZE;      }
-	constexpr size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
+	constexpr size_t  get_super_page_size()      { return L4_SUPERPAGESIZE;      }
+	constexpr uint8_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
 
 	inline addr_t map_src_addr(addr_t core_local_addr, addr_t) {
 		return core_local_addr; }

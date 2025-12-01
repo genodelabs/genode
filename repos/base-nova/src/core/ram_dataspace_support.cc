@@ -40,10 +40,10 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 	 * successively weaken the alignment constraint until we hit the page size.
 	 */
 	void *virt_addr = 0;
-	size_t align_log2 = log2(ds.size(), get_page_size_log2());
-	for (; align_log2 >= get_page_size_log2(); align_log2--) {
+	Align align { .log2 = log2(ds.size(), get_page_size_log2()) };
+	for (; align.log2 >= AT_PAGE.log2; align.log2--) {
 
-		platform().region_alloc().alloc_aligned(size, (unsigned)align_log2).with_result(
+		platform().region_alloc().alloc_aligned(size, align).with_result(
 			[&] (Region_allocation &a) { a.deallocate = false; virt_addr = a.ptr; },
 			[&] (Alloc_error) { /* try next iteration */ }
 		);
@@ -58,7 +58,7 @@ static inline void * alloc_region(Dataspace_component &ds, const size_t size)
 
 void Ram_dataspace_factory::_clear_ds(Dataspace_component &ds)
 {
-	size_t const page_rounded_size = align_addr(ds.size(), get_page_size_log2());
+	size_t const page_rounded_size = align_addr(ds.size(), AT_PAGE);
 
 	size_t memset_count = page_rounded_size / 4;
 	addr_t memset_ptr   = ds.core_local_addr();
@@ -83,7 +83,7 @@ void Ram_dataspace_factory::_clear_ds(Dataspace_component &ds)
 
 bool Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds) {
 
-	size_t page_rounded_size = align_addr(ds.size(), get_page_size_log2());
+	size_t page_rounded_size = align_addr(ds.size(), AT_PAGE);
 
 	/* allocate the virtual region contiguous for the dataspace */
 	void * const virt_ptr = alloc_region(ds, page_rounded_size);

@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__UTIL__MISC_MATH_H_
 #define _INCLUDE__UTIL__MISC_MATH_H_
 
-#include <base/fixed_stdint.h>
+#include <base/stdint.h>
 
 namespace Genode {
 
@@ -25,24 +25,28 @@ namespace Genode {
 	static constexpr T1 min(T1 v1, T2 v2) { return v1 < v2 ? v1 : v2; }
 
 
+	/**
+	 * Alignment argument specified as a power of two
+	 */
+	struct Align { uint8_t log2; };
+
+
 	/*
 	 * Alignment to the power of two
 	 */
 	template <typename T>
-	static constexpr T _align_mask(T align) {
-		return ~(((T)1 << align) - (T)1); }
+	static constexpr T _align_mask(Align a)   { return ~T((T(1) << a.log2) - 1u); }
 
 	template <typename T>
-	static constexpr T _align_offset(T align) {
-		return   ((T)1 << align) - (T)1;  }
+	static constexpr T _align_offset(Align a) { return  T((T(1) << a.log2) - 1u); }
 
 	template <typename T>
-	static constexpr T align_addr(T addr, int align) {
-		return (addr + _align_offset((T)align)) & _align_mask((T)align); }
+	static constexpr T align_addr(T addr, Align align) {
+		return (addr + _align_offset<T>(align)) & _align_mask<T>(align); }
 
 	template <typename T>
-	static constexpr bool aligned(T value, unsigned align_log2) {
-		return (_align_offset(align_log2) & value) == 0; }
+	static constexpr bool aligned(T value, Align align) {
+		return (_align_offset<T>(align) & value) == 0; }
 
 
 	/**
@@ -51,7 +55,7 @@ namespace Genode {
 	 * Scan for most significant set bit
 	 */
 	template <typename T>
-	static inline uint8_t log2(T value, uint8_t result_if_value_is_zero)
+	static constexpr uint8_t log2(T value, uint8_t result_if_value_is_zero)
 	{
 		if (value)
 			for (uint8_t i = 8*sizeof(value); i > 0; i--)
@@ -66,11 +70,27 @@ namespace Genode {
 	 * Align value to next machine-word boundary
 	 */
 	template <typename T>
-	inline T align_natural(T value)
+	static constexpr T align_natural(T value)
 	{
 		T mask = sizeof(long) - 1;
 		return (T)(value + mask) & (T)(~mask);
 	}
+
+
+	/**
+	 * Alignment for heap allocation
+	 */
+	static constexpr Align AT_16_BYTES { .log2 = 4 };
+
+	/**
+	 * Alignment at virtual-memory page boundary
+	 */
+	static constexpr Align AT_PAGE { .log2 = 12 };
+
+	/**
+	 * Alignment at machine-word size
+	 */
+	static constexpr Align AT_MWORD { .log2 = log2(sizeof(addr_t), 0u) };
 }
 
 #endif /* _INCLUDE__UTIL__MISC_MATH_H_ */

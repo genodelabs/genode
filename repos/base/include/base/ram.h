@@ -82,7 +82,7 @@ struct Genode::Ram::Accounted_allocator : ALLOC
 
 	Result try_alloc(size_t size, Cache cache = CACHED) override
 	{
-		Ram_quota const needed_ram  { align_addr(size, 12) };
+		Ram_quota const needed_ram  { align_addr(size, AT_PAGE) };
 		Cap_quota const needed_caps { 1 };
 
 		return _ram_guard.reserve(needed_ram).convert<Result>(

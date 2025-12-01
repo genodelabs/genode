@@ -36,8 +36,6 @@ struct Core::Mapped_ram_allocator
 	using Allocation = Genode::Allocation<Mapped_ram_allocator>;
 	using Result     = Allocation::Attempt;
 
-	struct Align { uint8_t log2; };
-
 	Result alloc(size_t, Align);
 
 	void _free(Allocation &);

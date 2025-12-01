@@ -171,11 +171,11 @@ struct Block::Session : public Genode::Session
 
 	struct Info
 	{
-		Genode::size_t block_size;   /* size of one block in bytes */
-		block_number_t block_count;  /* number of blocks */
-		Genode::size_t align_log2;   /* packet alignment within payload buffer */
-		bool           writeable;
-	};
+		Genode::size_t  block_size;   /* size of one block in bytes */
+		block_number_t  block_count;  /* number of blocks */
+		Genode::uint8_t align_log2;   /* packet alignment within payload buffer */
+		bool            writeable;
+	} __attribute__((packed));
 
 	/**
 	 * \noapi

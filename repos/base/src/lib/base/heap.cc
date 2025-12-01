@@ -107,8 +107,9 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 						/* add new local address range to our local allocator */
 						_alloc->add_range(addr_t(attachment.ptr), size).with_result(
 							[&] (Ok) {
+								Align const AT_16_BYTES { .log2 = 4 };
 								metadata = _alloc->alloc_aligned(sizeof(Heap::Dataspace),
-								                                 log2(16u, 0u)); },
+								                                 AT_16_BYTES); },
 							[&] (Alloc_error error) {
 								metadata = error; });
 					}
@@ -146,7 +147,8 @@ Heap::_allocate_dataspace(size_t size, bool enforce_separate_metadata)
 
 Allocator::Alloc_result Heap::_try_local_alloc(size_t size)
 {
-	return _alloc->alloc_aligned(size, log2(16u, 0u)).convert<Alloc_result>(
+	Align const AT_16_BYTES { .log2 = 4 };
+	return _alloc->alloc_aligned(size, AT_16_BYTES).convert<Alloc_result>(
 
 		[&] (Allocation &a) -> Alloc_result {
 			a.deallocate = false;
@@ -170,7 +172,7 @@ Allocator::Alloc_result Heap::_unsynchronized_alloc(size_t size)
 		 */
 
 		/* align to 4K page */
-		size_t const dataspace_size = align_addr(size, 12);
+		size_t const dataspace_size = align_addr(size, AT_PAGE);
 
 		return _allocate_dataspace(dataspace_size, true).convert<Alloc_result>(
 
@@ -197,7 +199,7 @@ Allocator::Alloc_result Heap::_unsynchronized_alloc(size_t size)
 	                      + Allocator_avl::slab_block_size()
 	                      + sizeof(Heap::Dataspace);
 	/* align to 4K page */
-	dataspace_size = align_addr(dataspace_size, 12);
+	dataspace_size = align_addr(dataspace_size, AT_PAGE);
 
 	/*
 	 * '_chunk_size' is a multiple of 4K, so 'dataspace_size' becomes

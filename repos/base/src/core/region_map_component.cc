@@ -173,7 +173,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 	Mutex::Guard lock_guard(_mutex);
 
 	/* offset must be page-aligned */
-	if (align_addr(attr.offset, get_page_size_log2()) != attr.offset)
+	if (align_addr(attr.offset, AT_PAGE) != attr.offset)
 		return Attach_error::REGION_CONFLICT;
 
 	auto lambda = [&] (Dataspace_component *dsc) -> Attach_result {
@@ -181,8 +181,6 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 		/* check dataspace validity */
 		if (!dsc)
 			return Attach_error::INVALID_DATASPACE;
-
-		uint8_t const min_align_log2 = get_page_size_log2();
 
 		size_t const ds_size = dsc->size();
 
@@ -192,7 +190,7 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 		size_t size = attr.size ? attr.size : ds_size - attr.offset;
 
 		/* work with page granularity */
-		size = align_addr(size, min_align_log2);
+		size = align_addr(size, AT_PAGE);
 
 		/* deny creation of regions larger then the actual dataspace */
 		if (ds_size < size + attr.offset)
@@ -220,23 +218,23 @@ Region_map_component::_attach(Dataspace_capability ds_cap, Attach_attr const cor
 			 * If that is not possible, try again with successively less alignment
 			 * constraints.
 			 */
-			size_t align_log2 = log2(size, min_align_log2);
-			if (align_log2 >= sizeof(void *)*8)
-				align_log2 = min_align_log2;
+			Align align = { .log2 = log2(size, AT_PAGE.log2) };
+			if (align.log2 >= sizeof(void *)*8)
+				align = AT_PAGE;
 
-			for (; !at_defined && (align_log2 >= min_align_log2); align_log2--) {
+			for (; !at_defined && (align.log2 >= AT_PAGE.log2); align.log2--) {
 
 				/*
 				 * Don't use an alignment higher than the alignment of the backing
 				 * store. The backing store would constrain the mapping size
 				 * anyway such that a higher alignment of the region is of no use.
 				 */
-				if (((dsc->map_src_addr() + attr.offset) & ((1UL << align_log2) - 1)) != 0)
+				if (((dsc->map_src_addr() + attr.offset) & ((1UL << align.log2) - 1)) != 0)
 					continue;
 
 				/* try allocating the aligned region */
 				Alloc_error error = Alloc_error::DENIED;
-				_map.alloc_aligned(size, unsigned(align_log2)).with_result(
+				_map.alloc_aligned(size, align).with_result(
 					[&] (Region_allocation &a) {
 						a.deallocate = false;
 						at = addr_t(a.ptr);
@@ -529,11 +527,11 @@ Region_map_component::Region_map_component(Rpc_entrypoint &ep,
 :
 	_diag(diag), _ds_ep(ep), _thread_ep(ep), _session_ep(ep),
 	_md_alloc(md_alloc), _map(&_md_alloc),
-	_ds(align_addr(vm_size, get_page_size_log2())),
+	_ds(align_addr(vm_size, AT_PAGE)),
 	_ds_cap(_type_deduction_helper(_ds_ep.manage(&_ds)))
 {
 	/* configure managed VM area */
-	if (_map.add_range(vm_start, align_addr(vm_size, get_page_size_log2())).failed())
+	if (_map.add_range(vm_start, align_addr(vm_size, AT_PAGE)).failed())
 		warning("unable to initialize region-map allocator");
 
 	Capability<Region_map> cap = ep.manage(this);

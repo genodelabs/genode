@@ -43,11 +43,9 @@ Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 		if (attr.use_at || attr.offset)
 			return Error::REGION_CONFLICT;
 
-		unsigned const align = get_page_size_log2();
-
 		/* allocate range in core's virtual address space */
 		Allocator::Alloc_result virt =
-			platform().region_alloc().alloc_aligned(page_rounded_size, align);
+			platform().region_alloc().alloc_aligned(page_rounded_size, AT_PAGE);
 
 		if (virt.failed()) {
 			error("could not allocate virtual address range in core of size ",

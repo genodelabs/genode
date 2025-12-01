@@ -237,13 +237,12 @@ Platform::Platform()
 	{
 		unsigned const pages    = 1;
 		size_t   const log_size = pages << get_page_size_log2();
-		unsigned const align    = get_page_size_log2();
 
 		using Allocation = Range_allocator::Allocation;
 
-		ram_alloc().alloc_aligned(log_size, align).with_result(
+		ram_alloc().alloc_aligned(log_size, AT_PAGE).with_result(
 			[&] (Allocation &phys) {
-				region_alloc().alloc_aligned(log_size, align). with_result(
+				region_alloc().alloc_aligned(log_size, AT_PAGE).with_result(
 					[&] (Allocation &virt) {
 						addr_t const phys_addr = addr_t(phys.ptr);
 						addr_t const virt_addr = addr_t(virt.ptr);

@@ -350,9 +350,8 @@ void Core::Platform::_init_rom_modules()
 		 */
 		size_t const size  = (addr_t)&_boot_modules_binaries_end
 		                   - (addr_t)&_boot_modules_binaries_begin + 1;
-		size_t const align = get_page_size_log2();
 
-		return _unused_phys_alloc.alloc_aligned(size, align).convert<addr_t>(
+		return _unused_phys_alloc.alloc_aligned(size, AT_PAGE).convert<addr_t>(
 			[&] (Range_allocator::Allocation &a) {
 				a.deallocate = false; return (addr_t)a.ptr; },
 			[&] (Alloc_error) -> addr_t {
@@ -537,10 +536,9 @@ void Core::Platform::_init_rom_modules()
 				return;
 			}
 
-			addr_t   const size  = pages << get_page_size_log2();
-			size_t   const align = get_page_size_log2();
+			addr_t const size = pages << get_page_size_log2();
 
-			region_alloc().alloc_aligned(size, align).with_result(
+			region_alloc().alloc_aligned(size, AT_PAGE).with_result(
 
 				[&] (Range_allocator::Allocation &core_local) {
 
@@ -649,7 +647,7 @@ Core::Platform::Platform()
 
 	/* add some minor virtual region for dynamic usage by core */
 	addr_t const virt_size = 2 * _core_vm_space.max_page_frames() * get_page_size();
-	_unused_virt_alloc.alloc_aligned(virt_size, get_page_size_log2()).with_result(
+	_unused_virt_alloc.alloc_aligned(virt_size, AT_PAGE).with_result(
 
 		[&] (Range_allocator::Allocation &virt) {
 			addr_t const virt_addr = (addr_t)virt.ptr;

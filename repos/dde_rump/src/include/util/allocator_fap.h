@@ -173,7 +173,7 @@ namespace Allocator {
 
 			void *alloc_aligned(size_t size, unsigned align = 0)
 			{
-				Alloc_result result = _range.alloc_aligned(size, align);
+				Alloc_result result = _range.alloc_aligned(size, { .log2 = align });
 				if (result.ok())
 					return result.convert<void *>(
 						[&] (Allocation &a) { a.deallocate = false; return a.ptr; },
@@ -182,7 +182,7 @@ namespace Allocator {
 				if (!_alloc_block())
 					return 0;
 
-				return _range.alloc_aligned(size, align).convert<void *>(
+				return _range.alloc_aligned(size, { .log2 = align }).convert<void *>(
 
 					[&] (Allocation &a) {
 						a.deallocate = false;

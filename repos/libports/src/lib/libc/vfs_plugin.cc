@@ -2317,7 +2317,7 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 		 *     'Vfs::Directory_service::dataspace'.
 		 */
 
-		addr = mem_alloc()->alloc(length, PAGE_SHIFT);
+		addr = mem_alloc()->alloc(length, AT_PAGE);
 		if (addr == (void *)-1) {
 			error("mmap out of memory");
 			errno = ENOMEM;

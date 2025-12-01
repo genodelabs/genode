@@ -223,11 +223,11 @@ class Pci_driver
 		 ** DMA management **
 		 ********************/
 
-		Genode::addr_t alloc(Genode::size_t size, unsigned align)
+		Genode::addr_t alloc(Genode::size_t size, uint8_t align)
 		{
 			using namespace Genode;
 
-			return _alloc.alloc_aligned(size, align).convert<Genode::addr_t>(
+			return _alloc.alloc_aligned(size, { .log2 = align }).convert<Genode::addr_t>(
 				[&] (Range_allocator::Allocation &a) {
 					a.deallocate = false;
 					return (addr_t)a.ptr; },

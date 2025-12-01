@@ -38,7 +38,6 @@ struct Core::Accounted_mapped_ram_allocator
 	using Attr       = Mapped_ram_allocator::Attr;
 	using Allocation = Genode::Allocation<Accounted_mapped_ram_allocator>;
 	using Result     = Allocation::Attempt;
-	using Align      = Mapped_ram_allocator::Align;
 
 	Accounted_mapped_ram_allocator(Mapped_ram_allocator &alloc,
 	                               Ram_quota_guard      &ram_guard)
@@ -50,7 +49,7 @@ struct Core::Accounted_mapped_ram_allocator
 	{
 		Mutex::Guard guard { _mutex };
 
-		Ram_quota const needed_ram  { align_addr(num_bytes, 12) };
+		Ram_quota const needed_ram  { align_addr(num_bytes, AT_PAGE) };
 
 		return _ram_guard.reserve(needed_ram).convert<Result>(
 			[&] (Ram_quota_guard::Reservation &reserved_ram) {

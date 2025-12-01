@@ -390,9 +390,9 @@ static void add_acpi_rsdp(auto &region_alloc, Generator &g)
 			continue;
 
 		auto offset = desc[i].start() & 0xffful;
-		auto pages = align_addr(offset + desc[i].size(), 12) >> 12;
+		auto pages = align_addr(offset + desc[i].size(), AT_PAGE) >> AT_PAGE.log2;
 
-		region_alloc.alloc_aligned(pages * 4096, 12).with_result(
+		region_alloc.alloc_aligned(pages * 4096, AT_PAGE).with_result(
 			[&] (Range_allocator::Allocation &core_local) {
 
 				if (!map_local_io(desc[i].start(), (addr_t)core_local.ptr, pages))
@@ -558,14 +558,13 @@ Core::Platform::Platform()
 	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
 	{
 		size_t const pages = 1;
-		size_t const align = get_page_size_log2();
 		size_t const bytes = pages << get_page_size_log2();
-		ram_alloc().alloc_aligned(bytes, align).with_result(
+		ram_alloc().alloc_aligned(bytes, AT_PAGE).with_result(
 
 			[&] (Range_allocator::Allocation &phys) {
 				addr_t const phys_addr = reinterpret_cast<addr_t>(phys.ptr);
 
-				region_alloc().alloc_aligned(bytes, align).with_result(
+				region_alloc().alloc_aligned(bytes, AT_PAGE).with_result(
 					[&] (Range_allocator::Allocation &core_local) {
 
 						if (!map_local(phys_addr, (addr_t)core_local.ptr, pages)) {

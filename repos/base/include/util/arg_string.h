@@ -248,7 +248,7 @@ class Genode::Arg
 		size_t aligned_size() const
 		{
 			unsigned long value = ulong_value(0);
-			return align_addr(value, 12);
+			return align_addr(value, AT_PAGE);
 		}
 };
 

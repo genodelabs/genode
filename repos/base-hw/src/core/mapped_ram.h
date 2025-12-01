@@ -51,22 +51,20 @@ class Core::Mapped_ram_allocator
 		Mapped_ram_allocator(Range_allocator &phys, Range_allocator &virt)
 		: _phys(phys), _virt(virt) { }
 
-		struct Align { uint8_t log2; };
-
 		Result alloc(size_t num_bytes, Align align)
 		{
-			size_t const page_rounded_size = align_addr(num_bytes, get_page_size_log2());
+			size_t const page_rounded_size = align_addr(num_bytes, AT_PAGE);
 			size_t const num_pages = page_rounded_size / get_page_size();
 
-			align.log2 = max(align.log2, uint8_t(get_page_size_log2()));
+			align.log2 = max(align.log2, get_page_size_log2());
 
 			/* allocate physical pages */
-			return _phys.alloc_aligned(page_rounded_size, align.log2).convert<Result>(
+			return _phys.alloc_aligned(page_rounded_size, align).convert<Result>(
 
 				[&] (Range_allocator::Allocation &phys) -> Result {
 
 					/* allocate range in core's virtual address space */
-					return _virt.alloc_aligned(page_rounded_size, align.log2).convert<Result>(
+					return _virt.alloc_aligned(page_rounded_size, align).convert<Result>(
 
 						[&] (Range_allocator::Allocation &virt) -> Result {
 
