@@ -38,7 +38,7 @@ class Core::Mapped_ram_allocator
 			addr_t phys;
 			addr_t virt;
 
-			size_t num_bytes() const { return num_pages*get_page_size(); }
+			size_t num_bytes() const { return num_pages*PAGE_SIZE; }
 			void * ptr()             { return (void *)virt; }
 		};
 

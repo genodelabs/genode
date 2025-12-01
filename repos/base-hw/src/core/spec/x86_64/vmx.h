@@ -54,9 +54,7 @@ enum Vmx_exitcodes : uint32_t {
  * For details, see Vol. 3C of the Intel SDM (September 2023):
  * 25.7.2 VM-Exit Controls for MSRs
  */
-struct
-alignas(16)
-Board::Msr_store_area
+struct alignas(16) Board::Msr_store_area
 {
 	struct Msr_entry
 	{
@@ -91,13 +89,11 @@ Board::Msr_store_area
 /*
  * Physical VMCS buffer
  */
-struct
-alignas(Genode::get_page_size())
-Board::Vmcs_buf
+struct alignas(Genode::PAGE_SIZE) Board::Vmcs_buf
 {
 	union {
 		uint32_t rev;
-		Genode::uint8_t  pad[Genode::get_page_size()];
+		Genode::uint8_t  pad[Genode::PAGE_SIZE];
 	};
 
 	Vmcs_buf(uint32_t rev);
@@ -109,10 +105,7 @@ Board::Vmcs_buf
  *
  * See Intel SDM (September 2023) Vol. 3C, section 24.2.
  */
-struct
-Board::Vmcs
-:
-	public Board::Virt_interface
+struct Board::Vmcs : public Board::Virt_interface
 {
 	static uint32_t system_rev;
 	static uint32_t pinbased_allowed_0;

@@ -27,7 +27,7 @@ struct Core::Log2_range
 	Addr base    { 0 };
 	Log2 size    { 0 };
 
-	bool valid() const { return size.log2 >= get_page_size_log2(); }
+	bool valid() const { return size.log2 >= PAGE_SIZE_LOG2; }
 
 	static constexpr Log2 UNCONSTRAINED = { uint8_t(~0) };
 
@@ -58,9 +58,9 @@ struct Core::Log2_range
 		 * condition after the loop.
 		 */
 		Log2_range result { hotspot };
-		result.size = { get_page_size_log2() - 1 };
+		result.size = { PAGE_SIZE_LOG2 - 1 };
 
-		for (uint8_t try_size_log2 = get_page_size_log2();
+		for (uint8_t try_size_log2 = PAGE_SIZE_LOG2;
 		     try_size_log2 < sizeof(addr_t)*8 ; try_size_log2++) {
 
 			addr_t const fpage_mask = ~((1UL << try_size_log2) - 1);
@@ -122,10 +122,10 @@ struct Core::Log2_range
 		/*
 		 * Find highest clear bit in 'diff', starting from the least
 		 * significant candidate. We can skip all bits lower then
-		 * 'get_page_size_log2()' because they are not relevant as
-		 * flexpage size (and are always zero).
+		 * 'PAGE_SIZE_LOG2' because they are not relevant as flexpage
+		 * size (and are always zero).
 		 */
-		uint8_t n = get_page_size_log2();
+		uint8_t n = PAGE_SIZE_LOG2;
 		size_t const min_size_log2 = min(r1.size.log2, r2.size.log2);
 		for (; n < min_size_log2 && !(diff & (1UL << n)); n++);
 

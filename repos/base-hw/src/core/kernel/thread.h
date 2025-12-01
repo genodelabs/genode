@@ -558,7 +558,7 @@ class Kernel::Core_main_thread : public Core_object<Kernel::Core_thread>
 {
 	private:
 
-		Native_utcb _utcb_instance alignas(Hw::get_page_size()) { };
+		Native_utcb _utcb_instance alignas(Hw::PAGE_SIZE) { };
 
 	public:
 

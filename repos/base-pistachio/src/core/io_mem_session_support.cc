@@ -48,8 +48,7 @@ static bool is_conventional_memory(addr_t base)
 
 static inline bool can_use_super_page(addr_t base, size_t size)
 {
-	return (base & (get_super_page_size() - 1)) == 0
-	    && (size >= get_super_page_size());
+	return (base & (SUPER_PAGE_SIZE - 1)) == 0 && (size >= SUPER_PAGE_SIZE);
 }
 
 
@@ -70,9 +69,8 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 			return phys_base;
 
 		/* align large I/O dataspaces to super page size, otherwise to size */
-		Align const align { .log2 = (size >= get_super_page_size())
-		                          ? get_super_page_size_log2()
-		                          : log2(size, AT_PAGE.log2) };
+		Align const align { .log2 = (size >= SUPER_PAGE_SIZE)
+		                          ? SUPER_PAGE_SIZE_LOG2 : log2(size, AT_PAGE.log2) };
 
 		return platform().region_alloc().alloc_aligned(size, align).convert<addr_t>(
 			[&] (Range_allocator::Allocation &a) {
@@ -89,9 +87,9 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 
 	for (unsigned offset = 0; size; ) {
 
-		size_t page_size = get_page_size();
+		size_t page_size = PAGE_SIZE;
 		if (can_use_super_page(phys_base + offset, size))
-			page_size = get_super_page_size();
+			page_size = SUPER_PAGE_SIZE;
 
 		L4_Sigma0_GetPage_RcvWindow(get_sigma0(),
 		                            L4_Fpage(phys_base  + offset, page_size),

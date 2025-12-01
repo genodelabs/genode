@@ -1,5 +1,5 @@
 /*
- * VMX virtualization
+ * \brief   VMX virtualization
  * \author  Benjamin Lamowski
  * \date    2023-10-04
  */
@@ -90,8 +90,7 @@ Vmcs::Vmcs(Board::Vcpu_state &state)
 		setup_vmx_info();
 
 
-	Genode::construct_at<Vmcs_buf>((void *)(state.vmc_addr()
-	                                         + get_page_size()), system_rev);
+	Genode::construct_at<Vmcs_buf>((void *)(state.vmc_addr() + PAGE_SIZE), system_rev);
 }
 
 
@@ -289,8 +288,7 @@ void Vmcs::initialize(Board::Cpu &c, Genode::addr_t page_table_phys)
 
 	construct_host_vmcs();
 
-	Genode::construct_at<Virtual_apic_state>(
-			(void *)(vcpu_state.vmc_addr() + 2 * get_page_size()));
+	Genode::construct_at<Virtual_apic_state>((void *)(vcpu_state.vmc_addr() + 2*PAGE_SIZE));
 
 
 	_clear();
@@ -493,8 +491,7 @@ void Vmcs::prepare_vmcs()
 	write(E_VM_EXIT_MSR_LOAD_ADDRESS, msr_phys_addr(&host_msr_store_area));
 	write(E_VM_EXIT_MSR_LOAD_COUNT, Board::Msr_store_area::get_count());
 
-	write(E_VIRTUAL_APIC_ADDRESS, vcpu_state.vmc_phys_addr() +
-	                              2 * get_page_size());
+	write(E_VIRTUAL_APIC_ADDRESS, vcpu_state.vmc_phys_addr() + 2*PAGE_SIZE);
 
 	/*
 	 * For details, see Vol. 3C of the Intel SDM (September 2023):
@@ -643,8 +640,7 @@ void Vmcs::store(Genode::Vcpu_state &state)
 	state.kernel_gs_base.charge(guest_msr_store_area.kernel_gs_base.get());
 
 	Virtual_apic_state *virtual_apic_state =
-		reinterpret_cast<Virtual_apic_state *>(
-			vcpu_state.vmc_addr() + 2 * get_page_size());
+		reinterpret_cast<Virtual_apic_state *>( vcpu_state.vmc_addr() + 2*PAGE_SIZE);
 	state.tpr.charge(virtual_apic_state->get_vtpr());
 	state.tpr_threshold.charge(
 		static_cast<uint32_t>(read(E_TPR_THRESHOLD)));
@@ -839,8 +835,7 @@ void Vmcs::load(Genode::Vcpu_state &state)
 	}
 
 	Virtual_apic_state * virtual_apic_state =
-		reinterpret_cast<Virtual_apic_state *>(vcpu_state.vmc_addr()
-		                                       + 2 * get_page_size());
+		reinterpret_cast<Virtual_apic_state *>(vcpu_state.vmc_addr() + 2*PAGE_SIZE);
 
 	if (state.tpr.charged()) {
 		virtual_apic_state->set_vtpr(state.tpr.value());
@@ -926,7 +921,7 @@ void Vmcs::save_host_msrs()
 
 void Vmcs::_clear()
 {
-	vmclear(vcpu_state.vmc_phys_addr() + get_page_size());
+	vmclear(vcpu_state.vmc_phys_addr() + PAGE_SIZE);
 
 	/*
 	 * vmclear invalidates the current VMCS pointer (if it is the same)
@@ -942,7 +937,7 @@ void Vmcs::_load_pointer()
 
 	current_vmcs[_cpu_id] = this;
 
-	vmptrld(vcpu_state.vmc_phys_addr() + get_page_size());
+	vmptrld(vcpu_state.vmc_phys_addr() + PAGE_SIZE);
 }
 
 

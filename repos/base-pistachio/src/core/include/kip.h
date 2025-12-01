@@ -23,15 +23,6 @@ namespace Pistachio {
 	 */
 	L4_KernelInterfacePage_t *get_kip();
 
-	unsigned int get_page_size_log2();
-
-	L4_Word_t get_page_mask();
-
-	inline L4_Word_t get_page_size()
-	{
-		return 1<<get_page_size_log2();
-	}
-
 	inline L4_ThreadId_t get_sigma0()
 	{
 		/* from l4/sigma0.h */

@@ -39,8 +39,8 @@ namespace Core {
 		Fiasco::l4_threadid_t core_pager = platform_specific().core_pager().native_thread_id();
 
 		addr_t offset = 0;
-		size_t page_size = get_page_size();
-		size_t page_size_log2 = get_page_size_log2();
+		size_t page_size      = PAGE_SIZE;
+		size_t page_size_log2 = PAGE_SIZE_LOG2;
 		for (unsigned i = 0; i < num_pages; i++, offset += page_size) {
 
 			using namespace Fiasco;

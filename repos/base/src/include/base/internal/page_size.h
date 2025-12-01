@@ -16,10 +16,11 @@
 
 #include <base/stdint.h>
 
-namespace Genode
-{
-	constexpr uint8_t get_page_size_log2() { return 12; }
-	constexpr size_t  get_page_size()      { return 1 << get_page_size_log2(); }
+namespace Genode {
+
+	constexpr uint8_t PAGE_SIZE_LOG2 = 12;
+	constexpr size_t  PAGE_SIZE      = 1 << PAGE_SIZE_LOG2;
+	constexpr size_t  PAGE_MASK      = ~(PAGE_SIZE - 1UL);
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__PAGE_SIZE_H_ */

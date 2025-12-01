@@ -131,7 +131,7 @@ static void _core_pager_loop()
 
 	L4_ThreadId_t t;
 	L4_Word_t pf_addr, pf_ip;
-	L4_Word_t page_size = Genode::get_page_size();
+	L4_Word_t page_size = Genode::PAGE_SIZE;
 	L4_Word_t flags;
 	L4_MapItem_t item;
 
@@ -380,21 +380,20 @@ void Core::Platform::_setup_mem_alloc()
 	 * Completely map program image by touching all pages read-only to
 	 * prevent sigma0 from handing out those page as anonymous memory.
 	 */
-	volatile const char *beg, *end;
-	beg = (const char *)(((unsigned)&_prog_img_beg) & get_page_mask());
-	end = (const char *)&_prog_img_end;
-	for ( ; beg < end; beg += get_page_size()) (void)(*beg);
+	volatile const char *beg = (const char *)(addr_t(&_prog_img_beg) & PAGE_MASK);
+	volatile const char *end = (const char *)&_prog_img_end;
+
+	for ( ; beg < end; beg += PAGE_SIZE) (void)(*beg);
 
 	Pistachio::L4_Word_t page_size_mask = Pistachio::L4_PageSizeMask(kip);
-	unsigned int size_log2;
 
 	/*
 	 * Allocate all memory from sigma0 in descending page sizes. Only
 	 * try page sizes that are hardware supported.
 	 */
-	for ( size_log2 = 31; page_size_mask != 0; size_log2-- ) {
+	for (uint8_t size_log2 = 31; page_size_mask != 0; size_log2-- ) {
 
-		unsigned int size = 1 << size_log2;
+		size_t size = 1 << size_log2;
 
 		/* if this page size is not supported try next */
 		if ((page_size_mask & size) == 0)
@@ -438,7 +437,7 @@ void Core::Platform::_setup_mem_alloc()
 			if (region.intersects(stack_area_virtual_base(),
 			                      stack_area_virtual_size()) ||
 				intersects_kip_archdep(kip, addr, size)) {
-				unmap_local(region.start, size >> get_page_size_log2());
+				unmap_local(region.start, size >> PAGE_SIZE_LOG2);
 			} else {
 				add_region(region, _ram_alloc);
 				add_region(region, _core_address_ranges());
@@ -493,7 +492,7 @@ void Core::Platform::_setup_basics()
 
 	L4_Fpage_t bipage = L4_Sigma0_GetPage(get_sigma0(),
 	                                      L4_Fpage(kip->BootInfo,
-	                                      get_page_size()));
+	                                      PAGE_SIZE));
 	if (L4_IsNilFpage(bipage))
 		panic("Could not map BootInfo.");
 
@@ -612,7 +611,7 @@ Core::Platform::Platform()
 
 	auto export_page_as_rom_module = [&] (auto rom_name, auto content_fn)
 	{
-		size_t const size = 1 << get_page_size_log2();
+		size_t const size = 1 << PAGE_SIZE_LOG2;
 		ram_alloc().alloc_aligned(size, AT_PAGE).with_result(
 
 			[&] (Range_allocator::Allocation &phys) {

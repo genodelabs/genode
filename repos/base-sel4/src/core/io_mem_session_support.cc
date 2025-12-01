@@ -30,15 +30,12 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 	auto const req_base = request.req_base;
 	auto const req_size = request.req_size;
 
-	if (size < get_page_size())
+	if (size < PAGE_SIZE)
 		return Dataspace_attr();
 
 	/* check whether first/last pages are already in use by another ds */
-	bool first_page_used = _io_mem_alloc.alloc_addr(get_page_size(),
-	                                                base).failed();
-	bool  last_page_used = _io_mem_alloc.alloc_addr(get_page_size(),
-	                                                base + size -
-	                                                get_page_size()).failed();
+	bool first_page_used = _io_mem_alloc.alloc_addr(PAGE_SIZE, base).failed();
+	bool  last_page_used = _io_mem_alloc.alloc_addr(PAGE_SIZE, base + size - PAGE_SIZE).failed();
 
 	/* try allocation of whole requested region */
 	bool const ok = _io_mem_alloc.alloc_addr(req_size, req_base).convert<bool>(
@@ -56,16 +53,16 @@ Io_mem_session_component::Dataspace_attr Io_mem_session_component::_acquire(Phys
 
 	/* if first page was in use beforehand, exclude it from conversion */
 	if (first_page_used) {
-		convert_phys += get_page_size();
-		convert_size -= get_page_size();
+		convert_phys += PAGE_SIZE;
+		convert_size -= PAGE_SIZE;
 	}
 
-	if (convert_size >= get_page_size()) {
+	if (convert_size >= PAGE_SIZE) {
 		/* if last page was in use beforehand, exclude it from conversion */
 		if (last_page_used)
-			convert_size -= get_page_size();
+			convert_size -= PAGE_SIZE;
 
-		size_t const num_pages = convert_size >> get_page_size_log2();
+		size_t const num_pages = convert_size >> PAGE_SIZE_LOG2;
 
 		if (!Untyped_memory::convert_to_page_frames(convert_phys, num_pages))
 			return Dataspace_attr();
@@ -87,10 +84,9 @@ void Io_mem_session_component::_release(Dataspace_attr const &attr)
 	 */
 	auto convert_phys = attr.phys_addr;
 	auto convert_size = attr.size;
-	auto page_size    = get_page_size();
 
-	if (convert_size >= page_size)
-		_io_mem_alloc.alloc_addr(page_size, convert_phys).with_result(
+	if (convert_size >= PAGE_SIZE)
+		_io_mem_alloc.alloc_addr(PAGE_SIZE, convert_phys).with_result(
 			/* if the region is not occupied anymore, it becomes untyped */
 			[&] (Range_allocator::Allocation &) { },
 			[&] (Alloc_error) {
@@ -98,13 +94,13 @@ void Io_mem_session_component::_release(Dataspace_attr const &attr)
 				 * The region is still occupied by another allocation,
 				 * exclude the page from conversion back to untyped memory
 				 */
-				convert_phys += page_size;
-				convert_size -= page_size;
+				convert_phys += PAGE_SIZE;
+				convert_size -= PAGE_SIZE;
 			});
 
-	if (convert_size >= page_size)
-		_io_mem_alloc.alloc_addr(page_size, convert_phys + convert_size -
-			                                page_size).with_result(
+	if (convert_size >= PAGE_SIZE)
+		_io_mem_alloc.alloc_addr(PAGE_SIZE, convert_phys + convert_size -
+			                                PAGE_SIZE).with_result(
 
 			/* if the region is not occupied anymore, it becomes untyped */
 			[&] (Range_allocator::Allocation &) { },
@@ -113,12 +109,12 @@ void Io_mem_session_component::_release(Dataspace_attr const &attr)
 				 * The region is still occupied by another allocation,
 				 * exclude the page from conversion back to untyped memory
 				 */
-				convert_size -= page_size;
+				convert_size -= PAGE_SIZE;
 			});
 
-	auto const num_pages = convert_size >> get_page_size_log2();
+	auto const num_pages = convert_size >> PAGE_SIZE_LOG2;
 
 	if (num_pages)
 		Untyped_memory::convert_to_untyped_frames(convert_phys,
-		                                          page_size * num_pages);
+		                                          PAGE_SIZE * num_pages);
 }

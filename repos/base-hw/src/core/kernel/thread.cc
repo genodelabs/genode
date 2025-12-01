@@ -1131,7 +1131,7 @@ Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
 
 	map_local(Core::Platform::core_phys_addr((addr_t)&_utcb_instance),
 	          (addr_t)utcb_main_thread(),
-	          sizeof(Native_utcb) / get_page_size());
+	          sizeof(Native_utcb) / PAGE_SIZE);
 
 	_utcb_instance.cap_add(core_capid());
 	_utcb_instance.cap_add(cap_id_invalid());

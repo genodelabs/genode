@@ -49,8 +49,8 @@ class Core::Platform : public Platform_generic
 		Platform(Platform const &);
 		Platform &operator = (Platform const &);
 
-		using Rom_slab       = Tslab<Rom_module, get_page_size()>;
-		using Thread_slab    = Tslab<Platform_thread, get_page_size()>;
+		using Rom_slab       = Tslab<Rom_module, PAGE_SIZE>;
+		using Thread_slab    = Tslab<Platform_thread, PAGE_SIZE>;
 
 		Platform_pd       *_core_pd    = nullptr; /* core protection domain    */
 		Platform_thread   *_core_pager = nullptr; /* pager for core threads    */

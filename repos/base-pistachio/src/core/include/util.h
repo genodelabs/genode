@@ -29,8 +29,6 @@
 
 namespace Core {
 
-	using Genode::get_page_size;
-
 	inline void log_event(const char *) { }
 	inline void log_event(const char *, unsigned, unsigned, unsigned) { }
 
@@ -53,53 +51,33 @@ namespace Core {
 	inline void touch_ro(const void *addr, unsigned size)
 	{
 		using namespace Pistachio;
-		unsigned char const volatile *bptr;
-		unsigned char const          *eptr;
-		L4_Word_t mask = get_page_mask();
-		L4_Word_t psize = get_page_size();
 
-		bptr = (unsigned char const volatile *)(((unsigned)addr) & mask);
-		eptr = (unsigned char const *)(((unsigned)addr + size - 1) & mask);
-		for ( ; bptr <= eptr; bptr += psize)
+		uint8_t const volatile *bptr = (uint8_t const volatile *)(addr_t(addr) & PAGE_MASK);
+		uint8_t const * const   eptr = (uint8_t const *)((addr_t(addr) + size - 1) & PAGE_MASK);
+
+		for ( ; bptr <= eptr; bptr += PAGE_SIZE)
 			touch_read(bptr);
 	}
 
 	inline void touch_rw(const void *addr, unsigned size)
 	{
 		using namespace Pistachio;
-		unsigned char volatile *bptr;
-		unsigned char const    *eptr;
-		L4_Word_t mask = get_page_mask();
-		L4_Word_t psize = get_page_size();
 
-		bptr = (unsigned char volatile *)(((unsigned)addr) & mask);
-		eptr = (unsigned char const *)(((unsigned)addr + size - 1) & mask);
-		for(; bptr <= eptr; bptr += psize)
+		uint8_t volatile     *bptr = (uint8_t volatile *)(addr_t(addr) & PAGE_MASK);
+		uint8_t const * const eptr = (uint8_t const *)((addr_t(addr) + size - 1) & PAGE_MASK);
+
+		for(; bptr <= eptr; bptr += PAGE_SIZE)
 			touch_read_write(bptr);
 	}
 
-	constexpr addr_t get_page_mask() { return ~(get_page_size() - 1); }
+	static constexpr uint8_t SUPER_PAGE_SIZE_LOG2 = 22;
+	static constexpr size_t  SUPER_PAGE_SIZE = 1 << SUPER_PAGE_SIZE_LOG2;
 
-	inline uint8_t get_super_page_size_log2()
-	{
-		uint8_t const SUPER_PAGE_SIZE_LOG2 = 22;
-		if (get_page_mask() & (1 << SUPER_PAGE_SIZE_LOG2))
-			return SUPER_PAGE_SIZE_LOG2;
-
-		/* if super pages are not supported, return default page size */
-		return get_page_size_log2();
-	}
-
-	inline size_t get_super_page_size() { return 1 << get_super_page_size_log2(); }
-
-	inline addr_t trunc_page(addr_t addr)
-	{
-		return addr & get_page_mask();
-	}
+	inline addr_t trunc_page(addr_t addr) { return addr & PAGE_MASK; }
 
 	inline addr_t round_page(addr_t addr)
 	{
-		return trunc_page(addr + get_page_size() - 1);
+		return trunc_page(addr + PAGE_SIZE - 1);
 	}
 
 	inline addr_t map_src_addr(addr_t core_local_addr, addr_t) {

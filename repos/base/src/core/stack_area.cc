@@ -103,8 +103,7 @@ void Stack_area_region_map::detach(addr_t const at)
 
 	addr_t const detach = stack_area_virtual_base() + at;
 	addr_t const stack  = stack_virtual_size();
-	addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach)
-	                      >> get_page_size_log2();
+	addr_t const pages  = ((detach & ~(stack - 1)) + stack - detach) >> PAGE_SIZE_LOG2;
 	addr_t const id     = at / stack;
 
 	if (at >= stack_area_virtual_size() || id >= MAX_STACKS) {
@@ -138,8 +137,7 @@ Stack_area_region_map::Attach_result Stack_area_region_map::attach(Dataspace_cap
 			addr_t const core_local_addr = stack_area_virtual_base()
 			                             + attr.at;
 
-			if (!map_local(addr_t(phys.ptr), core_local_addr,
-			               size >> get_page_size_log2())) {
+			if (!map_local(addr_t(phys.ptr), core_local_addr, size >> PAGE_SIZE_LOG2)) {
 				error("could not map phys ", phys.ptr,
 				      " at local ", Hex(core_local_addr));
 

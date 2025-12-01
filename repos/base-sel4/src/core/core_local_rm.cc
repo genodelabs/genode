@@ -28,7 +28,7 @@ Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 			return Error::INVALID_DATASPACE;
 
 		size_t const size = (attr.size == 0) ? ds->size() : attr.size;
-		size_t const page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
+		size_t const page_rounded_size = (size + PAGE_SIZE - 1) & PAGE_MASK;
 
 		/* attach attributes 'use_at' and 'offset' not supported within core */
 		if (attr.use_at || attr.offset)
@@ -39,7 +39,7 @@ Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 			[&] (Range_allocator::Allocation &virt) -> Result {
 
 				/* map the dataspace's physical pages to core-local virtual addresses */
-				size_t num_pages = page_rounded_size >> get_page_size_log2();
+				size_t num_pages = page_rounded_size >> PAGE_SIZE_LOG2;
 				if (!map_local(ds->phys_addr(), (addr_t)virt.ptr, num_pages))
 					return Error::REGION_CONFLICT;
 
@@ -61,7 +61,7 @@ void Core_local_rm::_free(Attachment &virt)
 {
 	size_t const size = platform_specific().region_alloc_size_at(virt.ptr);
 
-	if (!unmap_local(addr_t(virt.ptr), size >> get_page_size_log2())) {
+	if (!unmap_local(addr_t(virt.ptr), size >> PAGE_SIZE_LOG2)) {
 		error("could not unmap core virtual address ", virt.ptr, " in ", __PRETTY_FUNCTION__);
 		return;
 	}

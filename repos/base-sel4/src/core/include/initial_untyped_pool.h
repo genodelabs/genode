@@ -178,7 +178,7 @@ class Core::Initial_untyped_pool
 		void turn_into_untyped_object(addr_t  const node_index,
 		                              auto    const &fn,
 		                              auto    const &fn_revert,
-		                              uint8_t const size_log2 = get_page_size_log2(),
+		                              uint8_t const size_log2 = PAGE_SIZE_LOG2,
 		                              addr_t  max_memory = 0UL - 0x1000UL)
 		{
 			for_each_range([&] (Range const &range) {
@@ -202,7 +202,7 @@ class Core::Initial_untyped_pool
 						return;
 
 					size_t const remaining_size    = range.size - page_aligned_free_offset;
-					size_t const retype_size_limit = get_page_size()*256;
+					size_t const retype_size_limit = PAGE_SIZE*256;
 					size_t const batch_size        = min(min(remaining_size, retype_size_limit), max_memory);
 
 					addr_t const phys_addr = range.phys + page_aligned_free_offset;

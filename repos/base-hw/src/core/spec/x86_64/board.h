@@ -48,7 +48,7 @@ class Board::Vcpu_state
 
 		Core::Local_rm &_local_rm;
 
-		struct Vm_hw_context { uint8_t _[get_page_size()*3]; };
+		struct Vm_hw_context { uint8_t _[PAGE_SIZE*3]; };
 
 		Core::Phys_allocated<Vm_hw_context> _hw_context;
 

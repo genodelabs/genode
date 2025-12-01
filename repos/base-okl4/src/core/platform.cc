@@ -41,11 +41,11 @@ using namespace Core;
  ****************************************/
 
 bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t size) {
-	return map_local(phys_addr, virt_addr, size / get_page_size()); }
+	return map_local(phys_addr, virt_addr, size / PAGE_SIZE); }
 
 
 bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t, size_t size) {
-	return unmap_local(virt_addr, size / get_page_size()); }
+	return unmap_local(virt_addr, size / PAGE_SIZE); }
 
 
 /**********************
@@ -67,7 +67,7 @@ int Core::Platform::bi_add_virt_mem(Okl4::bi_name_t, Okl4::uintptr_t base,
                                     Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
 {
 	/* prevent first page from being added to core memory */
-	if (base < get_page_size() || end < get_page_size())
+	if (base < PAGE_SIZE || end < PAGE_SIZE)
 		return 0;
 
 	Platform &p = *(Platform *)data->user_data;
@@ -87,8 +87,8 @@ int Core::Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 }
 
 
-static char init_slab_block_rom[get_page_size()];
-static char init_slab_block_thread[get_page_size()];
+static char init_slab_block_rom[PAGE_SIZE];
+static char init_slab_block_thread[PAGE_SIZE];
 
 
 Okl4::L4_ThreadId_t main_thread_tid;
@@ -214,7 +214,7 @@ Core::Platform::Platform()
 	/* core log as ROM module */
 	{
 		unsigned const pages    = 1;
-		size_t   const log_size = pages << get_page_size_log2();
+		size_t   const log_size = pages << PAGE_SIZE_LOG2;
 
 		ram_alloc().alloc_aligned(log_size, AT_PAGE).with_result(
 
@@ -242,7 +242,7 @@ Core::Platform::Platform()
 	/* export platform-specific infos */
 	{
 		unsigned const pages  = 1;
-		size_t   const size   = pages << get_page_size_log2();
+		size_t   const size   = pages << PAGE_SIZE_LOG2;
 
 		ram_alloc().alloc_aligned(size, AT_PAGE).with_result(
 

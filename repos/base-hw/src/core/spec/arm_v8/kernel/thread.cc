@@ -113,7 +113,7 @@ bool Kernel::Pd::invalidate_tlb(Cpu &cpu, addr_t addr, size_t size)
 	 * therefore we have to invalidate it differently
 	 */
 	if (addr >= Hw::Mm::supervisor_exception_vector().base) {
-		for (addr_t end = addr+size; addr < end; addr += get_page_size())
+		for (addr_t end = addr+size; addr < end; addr += PAGE_SIZE)
 			asm volatile ("tlbi vaae1is, %0" :: "r" (addr >> 12));
 		return false;
 	}
@@ -122,13 +122,13 @@ bool Kernel::Pd::invalidate_tlb(Cpu &cpu, addr_t addr, size_t size)
 	 * Too big mappings will result in long running invalidation loops,
 	 * just invalidate the whole tlb for the ASID then.
 	 */
-	if (size > 8 * get_page_size()) {
+	if (size > 8*PAGE_SIZE) {
 		asm volatile ("tlbi aside1is, %0"
 					  :: "r" ((uint64_t)mmu_regs.id() << 48));
 		return false;
 	}
 
-	for (addr_t end = addr+size; addr < end; addr += get_page_size())
+	for (addr_t end = addr+size; addr < end; addr += PAGE_SIZE)
 		asm volatile ("tlbi vae1is, %0"
 					  :: "r" (addr >> 12 | (uint64_t)mmu_regs.id() << 48));
 	return false;

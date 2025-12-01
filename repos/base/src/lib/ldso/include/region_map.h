@@ -116,7 +116,7 @@ class Linker::Region_map
 
 		Alloc_region_result alloc_region_at_end(size_t size)
 		{
-			_end -= align_addr(size, { .log2 = get_page_size_log2() });
+			_end -= align_addr(size, AT_PAGE);
 			return alloc_region_at(size, _end);
 		}
 

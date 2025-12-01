@@ -37,15 +37,13 @@ namespace Core {
 	 */
 	inline bool map_local(addr_t from_addr, addr_t to_addr, size_t num_pages)
 	{
-		addr_t offset         = 0;
-		size_t page_size      = get_page_size();
-		size_t page_size_log2 = get_page_size_log2();
-		for (unsigned i = 0; i < num_pages; i++, offset += page_size) {
+		addr_t offset = 0;
+		for (unsigned i = 0; i < num_pages; i++, offset += PAGE_SIZE) {
 
 			using namespace Foc;
 
 			l4_fpage_t snd_fpage = l4_fpage(from_addr + offset,
-			                                (unsigned)page_size_log2, L4_FPAGE_RW);
+			                                PAGE_SIZE_LOG2, L4_FPAGE_RW);
 
 			if (l4_msgtag_has_error(l4_task_map(L4_BASE_TASK_CAP,
 			                                    L4_BASE_TASK_CAP,
@@ -81,7 +79,7 @@ namespace Core {
 	{
 		using namespace Foc;
 
-		size_t size = num_pages << get_page_size_log2();
+		size_t size = num_pages << PAGE_SIZE_LOG2;
 
 		/* call sigma0 for I/O region */
 		unsigned offset = 0;
@@ -91,11 +89,11 @@ namespace Core {
 
 			l4_utcb_mr()->mr[0] = SIGMA0_REQ_FPAGE_IOMEM;
 
-			size_t page_size_log2 = get_page_size_log2();
+			uint8_t page_size_log2 = PAGE_SIZE_LOG2;
 			if (can_use_super_page(from_addr + offset, size))
 				page_size_log2 = get_super_page_size_log2();
 			l4_utcb_mr()->mr[1] = l4_fpage(from_addr + offset,
-			                               (unsigned)page_size_log2, L4_FPAGE_RWX).raw;
+			                               page_size_log2, L4_FPAGE_RWX).raw;
 
 			/* open receive window for mapping */
 			l4_utcb_br()->bdr   = 0;
@@ -126,7 +124,7 @@ namespace Core {
 	{
 		using namespace Foc;
 
-		size_t const size = num_pages << get_page_size_log2();
+		size_t const size = num_pages << PAGE_SIZE_LOG2;
 		addr_t addr = local_base;
 
 		/*

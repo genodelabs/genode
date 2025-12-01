@@ -102,7 +102,7 @@ static void prepopulate_ipc_buffer(Ipc_buffer_phys const &ipc_buffer_phys,
 	ipc_buffer_phys.with_result([&](auto &result) {
 
 		/* IPC buffer is one page */
-		size_t const page_rounded_size = get_page_size();
+		size_t const page_rounded_size = PAGE_SIZE;
 
 		/* allocate range in core's virtual address space */
 		platform().region_alloc().try_alloc(page_rounded_size).with_result(

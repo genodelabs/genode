@@ -126,7 +126,7 @@ addr_t Platform::_rom_module_phys(addr_t virt)
 void Platform::_init_platform_info()
 {
 	unsigned const  pages    = 1;
-	size_t   const  rom_size = pages << get_page_size_log2();
+	size_t   const  rom_size = pages << PAGE_SIZE_LOG2;
 	const char     *rom_name = "platform_info";
 
 	Range_allocator::Result phys = ram_alloc().try_alloc(rom_size);
@@ -236,7 +236,7 @@ Platform::Platform()
 	/* core log as ROM module */
 	{
 		unsigned const pages    = 1;
-		size_t   const log_size = pages << get_page_size_log2();
+		size_t   const log_size = pages << PAGE_SIZE_LOG2;
 
 		using Allocation = Range_allocator::Allocation;
 
@@ -314,8 +314,8 @@ Platform::Platform()
  ****************************************/
 
 bool Core::Mapped_mem_allocator::_map_local(addr_t virt, addr_t phys, size_t size) {
-	return Core::map_local(phys, virt, size / get_page_size()); }
+	return Core::map_local(phys, virt, size / PAGE_SIZE); }
 
 
 bool Core::Mapped_mem_allocator::_unmap_local(addr_t virt, addr_t, size_t size) {
-	return Core::unmap_local(virt, size / get_page_size()); }
+	return Core::unmap_local(virt, size / PAGE_SIZE); }

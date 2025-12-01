@@ -22,8 +22,8 @@ using namespace Core;
 
 bool Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 {
-	size_t const page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
-	size_t const num_pages = page_rounded_size >> get_page_size_log2();
+	size_t const page_rounded_size = (ds.size() + PAGE_SIZE - 1) & PAGE_MASK;
+	size_t const num_pages = page_rounded_size >> PAGE_SIZE_LOG2;
 
 	return Untyped_memory::convert_to_page_frames(ds.phys_addr(), num_pages);
 }
@@ -31,7 +31,7 @@ bool Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 
 void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &ds)
 {
-	size_t const page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
+	size_t const page_rounded_size = (ds.size() + PAGE_SIZE - 1) & PAGE_MASK;
 
 	Untyped_memory::convert_to_untyped_frames(ds.phys_addr(), page_rounded_size);
 }
@@ -41,14 +41,14 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 {
 	static Mutex protect_region_alloc { };
 
-	size_t const page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
+	size_t const page_rounded_size = (ds.size() + PAGE_SIZE - 1) & PAGE_MASK;
 
 	/* allocate one page in core's virtual address space */
 	auto alloc_one_virt_page = [&] () -> void *
 	{
 		Mutex::Guard guard(protect_region_alloc);
 
-		return platform().region_alloc().try_alloc(get_page_size()).convert<void *>(
+		return platform().region_alloc().try_alloc(PAGE_SIZE).convert<void *>(
 			[&] (Range_allocator::Allocation &a) {
 				a.deallocate = false; return a.ptr; },
 			[&] (Alloc_error) -> void * {
@@ -63,7 +63,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 		return;
 
 	/* map each page of dataspace one at a time and clear it */
-	for (addr_t offset = 0; offset < page_rounded_size; offset += get_page_size())
+	for (addr_t offset = 0; offset < page_rounded_size; offset += PAGE_SIZE)
 	{
 		addr_t const phys_addr = ds.phys_addr() + offset;
 		enum { ONE_PAGE = 1 };
@@ -75,7 +75,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 		}
 
 		/* clear one page */
-		size_t num_longwords = get_page_size()/sizeof(long);
+		size_t num_longwords = PAGE_SIZE/sizeof(long);
 		for (long *dst = reinterpret_cast<long *>(virt_addr); num_longwords--;)
 			*dst++ = 0;
 
@@ -86,5 +86,5 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 	Mutex::Guard guard(protect_region_alloc);
 
 	/* free core's virtual address space */
-	platform().region_alloc().free((void *)virt_addr, get_page_size());
+	platform().region_alloc().free((void *)virt_addr, PAGE_SIZE);
 }

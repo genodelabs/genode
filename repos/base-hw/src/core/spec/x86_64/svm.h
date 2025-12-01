@@ -29,7 +29,7 @@ using Genode::uint32_t;
 using Genode::uint64_t;
 using Genode::Mmio;
 using Genode::Vcpu_state;
-using Genode::get_page_size;
+using Genode::PAGE_SIZE;
 using Genode::memset;
 
 namespace Board
@@ -41,7 +41,7 @@ namespace Board
 }
 
 
-struct alignas(get_page_size()) Board::Msrpm
+struct alignas(PAGE_SIZE) Board::Msrpm
 {
 	uint8_t pad[8192];
 
@@ -49,7 +49,7 @@ struct alignas(get_page_size()) Board::Msrpm
 };
 
 struct
-alignas(get_page_size())
+alignas(PAGE_SIZE)
 Board::Iopm
 {
 	uint8_t pad[12288];
@@ -64,7 +64,7 @@ Board::Iopm
  */
 struct Board::Vmcb_buf
 :
-	public Mmio<get_page_size()>
+	public Mmio<PAGE_SIZE>
 {
 	enum {
 		Asid_host =    0,
@@ -339,6 +339,6 @@ struct Board::Vmcb
 		return Virt_type::SVM;
 	}
 };
-static_assert(sizeof(Board::Vmcb) <= get_page_size());
+static_assert(sizeof(Board::Vmcb) <= PAGE_SIZE);
 
 #endif /* _INCLUDE__SPEC__PC__SVM_H_ */

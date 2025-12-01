@@ -174,7 +174,7 @@ void Platform_thread::start(void *ip, void *sp)
 
 	_sel_exc_base = 0;
 
-	pd_utcb = stack_area_virtual_base() + stack_virtual_size() - get_page_size();
+	pd_utcb = stack_area_virtual_base() + stack_virtual_size() - PAGE_SIZE;
 
 	addr_t remap_src[] = { _pd.parent_pt_sel() };
 	addr_t remap_dst[] = { PT_SEL_PARENT };

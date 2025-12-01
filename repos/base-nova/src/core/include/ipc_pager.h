@@ -28,9 +28,6 @@
 namespace Core { class Ipc_pager; }
 
 
-namespace Core { enum { PAGE_SIZE_LOG2 = 12 }; }
-
-
 static inline Nova::Rights nova_map_rights(Core::Mapping const &mapping)
 {
 	return Nova::Rights(true, mapping.writeable, mapping.executable);

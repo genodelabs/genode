@@ -115,7 +115,7 @@ void Platform_pd::assign_parent(Native_capability parent)
 
 void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local)
 {
-	unmap_local(core_local.value, size >> get_page_size_log2());
+	unmap_local(core_local.value, size >> PAGE_SIZE_LOG2);
 }
 
 
@@ -140,7 +140,7 @@ Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &,
 	_task(true, TASK_CAP), _debug(debug_cap(), DEBUG_CAP)
 {
 	l4_fpage_t const utcb_area = l4_fpage(utcb_area_start(),
-	                                      log2(UTCB_AREA_SIZE, get_page_size_log2()), 0);
+	                                      log2(UTCB_AREA_SIZE, PAGE_SIZE_LOG2), 0);
 
 	l4_msgtag_t const tag = l4_factory_create_task(L4_BASE_FACTORY_CAP,
 	                                               _task.local.data()->kcap(),

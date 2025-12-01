@@ -32,7 +32,7 @@ Vmcb_buf::Vmcb_buf(addr_t vmcb_page_addr, uint32_t id)
 :
 	Mmio({(char *)vmcb_page_addr, Mmio::SIZE})
 {
-	memset((void *) vmcb_page_addr, 0, get_page_size());
+	memset((void *) vmcb_page_addr, 0, PAGE_SIZE);
 
 	write<Guest_asid>(id);
 	write<Msrpm_base_pa>(dummy_msrpm());
@@ -49,22 +49,20 @@ Vmcb_buf::Vmcb_buf(addr_t vmcb_page_addr, uint32_t id)
 Vmcb::Vmcb(Board::Vcpu_state &state, uint32_t id)
 :
 	Board::Virt_interface(state),
-	v(state.vmc_addr() + get_page_size(), id)
+	v(state.vmc_addr() + PAGE_SIZE, id)
 {
 }
 
 
 Vmcb_buf &Vmcb::host_vmcb(size_t cpu_id)
 {
-	static uint8_t host_vmcb_pages[get_page_size() * NR_OF_CPUS];
+	static uint8_t host_vmcb_pages[PAGE_SIZE * NR_OF_CPUS];
 	static Constructible<Vmcb_buf> host_vmcb[NR_OF_CPUS];
 
-	if (!host_vmcb[cpu_id].constructed()) {
-		host_vmcb[cpu_id].construct(
-				(addr_t) host_vmcb_pages +
-				get_page_size() * cpu_id,
-				Asid_host);
-	}
+	if (!host_vmcb[cpu_id].constructed())
+		host_vmcb[cpu_id].construct((addr_t)host_vmcb_pages + PAGE_SIZE * cpu_id,
+		                            Asid_host);
+
 	return *host_vmcb[cpu_id];
 }
 
@@ -511,7 +509,7 @@ void Vmcb::switch_world(Board::Cpu::Context &regs, addr_t stack_start)
 	    :
 	    : [regs]         "r" (&regs.r8),
 	      [fpu_context]  "r" (&regs.fpu_context()),
-	      [guest_state]  "r" (vcpu_state.vmc_phys_addr() + get_page_size()),
+	      [guest_state]  "r" (vcpu_state.vmc_phys_addr() + PAGE_SIZE),
 	      [host_state]   "r" (root_vmcb_phys),
 	      [stack]        "r" (stack_start),
 	      [stack_offset] "i" (Hw::Mm::KERNEL_STACK_ERRCODE_OFFSET),

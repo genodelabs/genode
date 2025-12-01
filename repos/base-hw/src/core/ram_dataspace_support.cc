@@ -34,7 +34,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 {
 	using Virt_allocation = Range_allocator::Allocation;
 
-	size_t page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
+	size_t page_rounded_size = (ds.size() + PAGE_SIZE - 1) & PAGE_MASK;
 
 	/* allocate range in core's virtual address space */
 	Range_allocator::Result const virt =
@@ -61,7 +61,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 
 	while (size_remaining) {
 		size_t const chunk_size = min(size_remaining, max_chunk_size);
-		size_t const num_pages = chunk_size >> get_page_size_log2();
+		size_t const num_pages = chunk_size >> PAGE_SIZE_LOG2;
 
 		/* map the dataspace's physical pages to corresponding virtual addresses */
 		if (!map_local(chunk_phys_addr, virt_addr, num_pages)) {

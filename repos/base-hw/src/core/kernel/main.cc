@@ -233,7 +233,7 @@ bool Core::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
 	Core_platform_pd &pd = Kernel::Main::core_platform_pd();
 
 	Mutex::Guard guard(pd._mutex);
-	size_t size = num_pages * get_page_size();
+	size_t size = num_pages * PAGE_SIZE;
 	Hw::Page_table::Result result =
 		pd._table.insert(to_virt, from_phys, size, flags, pd._table_alloc);
 	return result.convert<bool>([&] (Ok) -> bool { return true; },
@@ -252,7 +252,7 @@ bool Core::unmap_local(addr_t virt_addr, size_t num_pages)
 	Core_platform_pd &pd = Kernel::Main::core_platform_pd();
 
 	Mutex::Guard guard(pd._mutex);
-	size_t size = num_pages * get_page_size();
+	size_t size = num_pages * PAGE_SIZE;
 	pd._table.remove(virt_addr, size, pd._table_alloc);
 	Kernel::pd_invalidate_tlb(*pd._kobj, virt_addr, size);
 	return true;

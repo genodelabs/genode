@@ -23,8 +23,8 @@
 
 using namespace Genode;
 
-constexpr size_t get_page_size_log2() { return 12; }
-constexpr size_t get_page_size()      { return 1 << get_page_size_log2(); }
+static constexpr uint8_t PAGE_SIZE_LOG2 = AT_PAGE.log2;
+static constexpr size_t  PAGE_SIZE      = 1u << PAGE_SIZE_LOG2;
 
 
 Smbios_table_reporter::Smbios_table_reporter(Env       &env,
@@ -59,8 +59,8 @@ Smbios_table_reporter::Smbios_table_reporter(Env       &env,
 	};
 
 	Fifo<Fifo_element<Io_region> > io_regions;
-	addr_t const page_mask     { ~(addr_t)((1 << get_page_size_log2()) - 1) };
-	addr_t const page_off_mask { get_page_size() - 1 };
+	addr_t const page_mask     { ~(addr_t)(PAGE_SIZE - 1) };
+	addr_t const page_off_mask { PAGE_SIZE - 1 };
 	auto phy_mem = [&] (addr_t const base, size_t const size, auto const &fn) {
 
 		addr_t const  end      { base + size };

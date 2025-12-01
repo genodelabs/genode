@@ -37,7 +37,7 @@ Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 		Dataspace_component &ds = *ds_ptr;
 
 		size_t const size = (attr.size == 0) ? ds.size() : attr.size;
-		size_t const page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
+		size_t const page_rounded_size = (size + PAGE_SIZE - 1) & PAGE_MASK;
 
 		/* attach attributes 'use_at' and 'offset' not supported within core */
 		if (attr.use_at || attr.offset)
@@ -56,7 +56,7 @@ Core_local_rm::attach(Dataspace_capability ds_cap, Attach_attr const &attr)
 		using namespace Hw;
 
 		/* map the dataspace's physical pages to corresponding virtual addresses */
-		unsigned const num_pages = unsigned(page_rounded_size >> get_page_size_log2());
+		unsigned const num_pages = unsigned(page_rounded_size >> PAGE_SIZE_LOG2);
 
 		Page_flags const flags {
 			.writeable  = (attr.writeable && ds.writeable()) ? RW : RO,
@@ -87,7 +87,7 @@ void Core_local_rm::_free(Attachment &a)
 {
 	size_t size = platform_specific().region_alloc_size_at(a.ptr);
 
-	unmap_local(addr_t(a.ptr), size >> get_page_size_log2());
+	unmap_local(addr_t(a.ptr), size >> PAGE_SIZE_LOG2);
 
 	platform().region_alloc().free(a.ptr);
 }

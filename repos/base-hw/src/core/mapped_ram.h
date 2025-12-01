@@ -39,7 +39,7 @@ class Core::Mapped_ram_allocator
 			addr_t phys;
 			addr_t virt;
 
-			size_t num_bytes() const { return num_pages*get_page_size(); }
+			size_t num_bytes() const { return num_pages*PAGE_SIZE; }
 			void * ptr()       const { return (void *)virt; }
 		};
 
@@ -54,9 +54,9 @@ class Core::Mapped_ram_allocator
 		Result alloc(size_t num_bytes, Align align)
 		{
 			size_t const page_rounded_size = align_addr(num_bytes, AT_PAGE);
-			size_t const num_pages = page_rounded_size / get_page_size();
+			size_t const num_pages = page_rounded_size / PAGE_SIZE;
 
-			align.log2 = max(align.log2, get_page_size_log2());
+			align.log2 = max(align.log2, PAGE_SIZE_LOG2);
 
 			/* allocate physical pages */
 			return _phys.alloc_aligned(page_rounded_size, align).convert<Result>(

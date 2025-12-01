@@ -62,13 +62,13 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t
 	if (platform_in_construction)
 		warning("need physical memory, but Platform object not constructed yet");
 
-	size_t const num_pages = size / get_page_size();
+	size_t const num_pages = size / PAGE_SIZE;
 
 	if (!Untyped_memory::convert_to_page_frames(phys_addr, num_pages))
 		return false;
 
 	if (!map_local(phys_addr, virt_addr, num_pages, platform_in_construction)) {
-		Untyped_memory::convert_to_untyped_frames(phys_addr, num_pages * get_page_size());
+		Untyped_memory::convert_to_untyped_frames(phys_addr, num_pages * PAGE_SIZE);
 		return false;
 	}
 
@@ -78,7 +78,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, size_t
 
 bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr, size_t size)
 {
-	if (!unmap_local(virt_addr, size / get_page_size()))
+	if (!unmap_local(virt_addr, size / PAGE_SIZE))
 		return false;
 
 	Untyped_memory::convert_to_untyped_frames(phys_addr, size);
@@ -263,7 +263,7 @@ void Core::Platform::_switch_to_core_cspace()
 
 	for (unsigned sel = (unsigned)bi.userImageFrames.start;
 	     sel < (unsigned)bi.userImageFrames.end;
-	     sel++, virt_addr += get_page_size()) {
+	     sel++, virt_addr += PAGE_SIZE) {
 
 		/* remove mapping to boot modules, no access required within core */
 		if (modules_start <= virt_addr && virt_addr < modules_end) {
@@ -367,23 +367,23 @@ void Core::Platform::_init_rom_modules()
 	 * Calculate frame frame selector used to back the boot modules
 	 */
 	addr_t const unused_range_start      = alloc_modules_range();
-	addr_t const unused_first_frame_sel  = unused_range_start >> get_page_size_log2();
+	addr_t const unused_first_frame_sel  = unused_range_start >> PAGE_SIZE_LOG2;
 	addr_t const modules_start           = (addr_t)&_boot_modules_binaries_begin;
 	addr_t const modules_core_offset     = modules_start
 	                                     - (addr_t)&_prog_img_beg;
 	addr_t const modules_first_frame_sel = bi.userImageFrames.start
-	                                     + (modules_core_offset >> get_page_size_log2());
+	                                     + (modules_core_offset >> PAGE_SIZE_LOG2);
 
 	Boot_modules_header const *header = &_boot_modules_headers_begin;
 	for (; header < &_boot_modules_headers_end; header++) {
 
 		/* offset relative to first module */
 		addr_t const module_offset        = header->base - modules_start;
-		addr_t const module_offset_frames = module_offset >> get_page_size_log2();
+		addr_t const module_offset_frames = module_offset >> PAGE_SIZE_LOG2;
 		size_t const module_size          = round_page(header->size);
 		addr_t const module_frame_sel     = modules_first_frame_sel
 		                                  + module_offset_frames;
-		size_t const module_num_frames    = module_size >> get_page_size_log2();
+		size_t const module_num_frames    = module_size >> PAGE_SIZE_LOG2;
 
 		/*
 		 * Destination frame within phys CNode
@@ -407,7 +407,7 @@ void Core::Platform::_init_rom_modules()
 		 */
 		new (rom_module_slab)
 			Rom_module(_rom_fs, (const char*)header->name,
-			           dst_frame << get_page_size_log2(), header->size);
+			           dst_frame << PAGE_SIZE_LOG2, header->size);
 	};
 
 	auto gen_platform_info = [&] (Generator &g)
@@ -539,7 +539,7 @@ void Core::Platform::_init_rom_modules()
 				return;
 			}
 
-			addr_t const size = pages << get_page_size_log2();
+			addr_t const size = pages << PAGE_SIZE_LOG2;
 
 			region_alloc().alloc_aligned(size, AT_PAGE).with_result(
 
@@ -649,7 +649,7 @@ Core::Platform::Platform()
 		error("setup of virtual memory space of core failed");
 
 	/* add some minor virtual region for dynamic usage by core */
-	addr_t const virt_size = 2 * _core_vm_space.max_page_frames() * get_page_size();
+	addr_t const virt_size = 2 * _core_vm_space.max_page_frames() * PAGE_SIZE;
 	_unused_virt_alloc.alloc_aligned(virt_size, AT_PAGE).with_result(
 
 		[&] (Range_allocator::Allocation &virt) {
@@ -671,7 +671,7 @@ Core::Platform::Platform()
 	);
 
 	log("Physical memory per PD at most: ",
-	    Number_of_bytes(_core_vm_space.max_page_frames() * get_page_size()));
+	    Number_of_bytes(_core_vm_space.max_page_frames() * PAGE_SIZE));
 
 	/* add idle thread trace subjects */
 	for (unsigned cpu_id = 0; cpu_id < affinity_space().width(); cpu_id ++) {

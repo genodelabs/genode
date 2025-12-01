@@ -59,55 +59,33 @@ namespace Core {
 		}
 	}
 
-	constexpr addr_t get_page_mask() { return ~(get_page_size() - 1); }
-
-	inline size_t get_super_page_size_log2()
-	{
-		enum { SUPER_PAGE_SIZE_LOG2 = 22 };
-		if (get_page_mask() & (1 << SUPER_PAGE_SIZE_LOG2))
-			return SUPER_PAGE_SIZE_LOG2;
-
-		/* if super pages are not supported, return default page size */
-		return get_page_size();
-	}
+	static constexpr size_t SUPER_PAGE_SIZE_LOG2 = 22;
 
 	inline void touch_ro(const void *addr, unsigned size)
 	{
 		using namespace Okl4;
-		unsigned char const volatile *bptr;
-		unsigned char const          *eptr;
-		L4_Word_t mask = get_page_mask();
-		L4_Word_t psize = get_page_size();
 
-		bptr = (unsigned char const volatile *)(((unsigned)addr) & mask);
-		eptr = (unsigned char const *)(((unsigned)addr + size - 1) & mask);
-		for ( ; bptr <= eptr; bptr += psize)
+		uint8_t const volatile *bptr = (uint8_t const *)(addr_t(addr) & PAGE_MASK);
+		uint8_t const * const   eptr = (uint8_t const *)((addr_t(addr) + size - 1) & PAGE_MASK);
+
+		for ( ; bptr <= eptr; bptr += PAGE_SIZE)
 			touch_read(bptr);
 	}
 
 	inline void touch_rw(const void *addr, unsigned size)
 	{
 		using namespace Okl4;
-		unsigned char volatile *bptr;
-		unsigned char const    *eptr;
-		L4_Word_t mask = get_page_mask();
-		L4_Word_t psize = get_page_size();
 
-		bptr = (unsigned char volatile *)(((unsigned)addr) & mask);
-		eptr = (unsigned char const *)(((unsigned)addr + size - 1) & mask);
-		for(; bptr <= eptr; bptr += psize)
+		uint8_t volatile *bptr = (uint8_t volatile *)(addr_t(addr) & PAGE_MASK);
+		uint8_t const    *eptr = (uint8_t const *)((addr_t(addr) + size - 1) & PAGE_MASK);
+
+		for(; bptr <= eptr; bptr += PAGE_SIZE)
 			touch_read_write(bptr);
 	}
 
-	inline addr_t trunc_page(addr_t page)
-	{
-		return page & get_page_mask();
-	}
+	inline addr_t trunc_page(addr_t page) { return page & PAGE_MASK; }
 
-	inline addr_t round_page(addr_t page)
-	{
-		return trunc_page(page + get_page_size() - 1);
-	}
+	inline addr_t round_page(addr_t page) { return trunc_page(page + PAGE_SIZE - 1); }
 
 	inline addr_t map_src_addr(addr_t, addr_t phys) { return phys; }
 

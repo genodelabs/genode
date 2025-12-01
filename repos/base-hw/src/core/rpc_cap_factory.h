@@ -51,9 +51,9 @@ class Core::Rpc_cap_factory
 			void destruct() { O::syscall_destroy(kobj); }
 		};
 
-		using Slab = Tslab<Kobject, get_page_size()>;
+		using Slab = Tslab<Kobject, PAGE_SIZE>;
 
-		uint8_t       _initial_slab_block[get_page_size()];
+		uint8_t       _initial_slab_block[PAGE_SIZE];
 		Slab          _slab;
 		List<Kobject> _list { };
 		Mutex         _mutex { };
