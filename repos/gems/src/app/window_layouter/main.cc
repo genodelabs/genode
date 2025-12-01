@@ -72,6 +72,8 @@ struct Window_layouter::Main : User_state::Action,
 
 	Target_list _target_list { _heap };
 
+	bool _in_hover_handler { false };
+
 	/**
 	 * Bring window to front, return true if the stacking order changed
 	 */
@@ -747,17 +749,25 @@ void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const 
 
 void Window_layouter::Main::_handle_hover()
 {
+	/* protect against recursive calls from 'finalize_drag' */
+	if (_in_hover_handler)
+		return;
+
+	_in_hover_handler = true;
+
 	_hover.update();
 
 	User_state::Hover_state const orig_hover_state = _user_state.hover_state();
+	Input::Seq_number const seq_number { _hover.node().attribute_value("seq_number", 0U) };
 
 	_hover.node().with_sub_node("window",
 		[&] (Node const &hover) {
 			_user_state.hover({ hover.attribute_value("id", 0U) },
-			                  Window::Element::from_node(hover));
+			                  Window::Element::from_node(hover),
+			                  seq_number);
 		},
 		[&] /* the hover model lacks a window */ {
-			_user_state.reset_hover();
+			_user_state.reset_hover(seq_number);
 		});
 
 	/*
@@ -769,6 +779,8 @@ void Window_layouter::Main::_handle_hover()
 	 */
 	if (_user_state.hover_state() != orig_hover_state)
 		_gen_window_layout();
+
+	_in_hover_handler = false;
 }
 
 

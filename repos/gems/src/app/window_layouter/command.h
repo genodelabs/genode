@@ -14,16 +14,21 @@
 #ifndef _COMMAND_H_
 #define _COMMAND_H_
 
+#include "types.h"
 #include <target.h>
 
-namespace Window_layouter { class Command; }
+namespace Window_layouter
+{
+	class Command;
+	class Deferred_command;
+}
 
 
 struct Window_layouter::Command
 {
 	enum Type { NONE, NEXT_WINDOW, PREV_WINDOW, RAISE_WINDOW, TOGGLE_FULLSCREEN,
 	            SCREEN, RELEASE_GRAB, PICK_UP, PLACE_DOWN,
-	            DRAG, DROP, FREE_ARRANGE, STRICT_ARRANGE };
+	            DRAG, DROP, FREE_ARRANGE, STRICT_ARRANGE, IDLE };
 
 	Type         type;
 	Target::Name target;
@@ -54,6 +59,14 @@ struct Window_layouter::Command
 			.target =             node.attribute_value("target", Name())
 		};
 	}
+};
+
+
+struct Window_layouter::Deferred_command
+{
+	Command           command;
+	Input::Seq_number seq_number;
+	Point             pointer;
 };
 
 #endif /* _COMMAND_H_ */
