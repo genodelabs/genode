@@ -416,7 +416,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						 * The Job API handles splitting the request and the
 						 * job will write up to src.num_bytes at most.
 						 */
-						_job.construct(block, const_cast<char*>(src.start), src.num_bytes,
+						_job.construct(block, const_cast<char*>(src.start), rounded_length,
 						               block_offset, op);
 
 						block.update_jobs(block);
