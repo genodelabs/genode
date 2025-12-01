@@ -60,6 +60,7 @@ proc unique_byte_per_platform { } {
 		if {[have_spec arm_v8a]} {
 			if {[have_board imx8q_evk]} {
 				if {[have_spec hw]}        { return 20; }
+				if {[have_spec sel4]}      { return 21; }
 			}
 		}
 		if {[have_spec x86_32]} {
