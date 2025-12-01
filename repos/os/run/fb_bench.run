@@ -67,7 +67,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="test-fb_bench" ram="72M">
+	<start name="test-fb_bench" ram="72M" caps="150">
 		<!--
 		  - We need this big amount of RAM because the VESA driver reports a
 		  - large buffer on some hardware and the test mirrors this buffer in
