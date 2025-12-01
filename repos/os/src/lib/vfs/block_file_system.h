@@ -50,9 +50,16 @@ struct Vfs::Block_file_system
 		 * count in the operation and thus can be smaller.
 		 */
 		Byte_range_ptr const range;
-		file_size      const start_offset;
 
-		size_t bytes_handled { 0 };
+		/*
+		 * Handle unaligned reads by splitting the offset
+		 * into the initial offset used to constrain the
+		 * first read and the offset used afterwards to
+		 * calculate the position in the destination buffer.
+		 */
+		size_t initial_read_offset;
+		size_t read_offset;
+		size_t bytes_read;
 
 		/* store length for acking unaligned or partial requests */
 		size_t actual_length { 0 };
@@ -63,16 +70,18 @@ struct Vfs::Block_file_system
 		Block_job(Block::Connection<Block_job> &conn,
 		           char *           const  start,
 		           size_t           const  num_bytes,
-		           file_size        const  start_offset,
-		           Block::Operation const &op)
+		           Block::Operation const &op,
+		           size_t           const  initial_read_offset = 0)
 		:
-			Block::Connection<Block_job>::Job {conn, op },
-			range        { start, num_bytes },
-			start_offset { start_offset }
+			Block::Connection<Block_job>::Job { conn, op },
+			range               { start, num_bytes },
+			initial_read_offset { initial_read_offset },
+			read_offset         { 0 },
+			bytes_read          { 0 }
 		{ }
 
-		size_t bytes_remaining() const {
-			return range.num_bytes - bytes_handled; }
+		size_t read_space_remaining() const {
+			return range.num_bytes - bytes_read; }
 	};
 
 	struct Block_connection : Block::Connection<Block_job>
@@ -87,29 +96,57 @@ struct Vfs::Block_file_system
 		void produce_write_content(Block_job &job, off_t offset,
 		                           char *dst, size_t length)
 		{
-			size_t sz = min(length, job.bytes_remaining());
-			if (length + offset > job.range.num_bytes) {
-				Genode::error("write job outside request boundary");
-				return;
-			}
-
+			/*
+			 * In write jobs the length is always at most num_bytes
+			 * as only full blocks are written. The transfer might
+			 * be split but in this case the offset grows while
+			 * the length shrinks.
+			 */
+			size_t const sz = min(length, job.range.num_bytes);
 			char const * src = (char const*)job.range.start + offset;
-			memcpy(dst + job.start_offset, src, length);
 
-			job.bytes_handled += sz;
+			memcpy(dst, src, sz);
 		}
 
 		void consume_read_result(Block_job &job, off_t offset,
 		                         char const *src, size_t length)
 		{
-			size_t sz = min(length, job.bytes_remaining());
-			if (!sz)
+			/*
+			 * When reading we perform an offset calculation into
+			 * the destination buffer so that we always start at
+			 * the beginning.
+			 *
+			 * Handle the expected common-case first as with aligned or
+			 * follow-up requests we only have to care about not copying
+			 * too much.
+			 */
+			if (!job.initial_read_offset) {
+				size_t const sz = min(length, job.read_space_remaining());
+
+				char * const dst = (char*)job.range.start + offset - job.read_offset;
+				memcpy(dst, src, sz);
+				job.bytes_read += sz;
+
 				return;
+			}
 
-			char * dst = (char*)job.range.start + offset;
-			memcpy(dst, src + job.start_offset, sz);
+			/*
+			 * Unaligned requests alter the src offset to read directly
+			 * into the supplied destination buffer and set this offset
+			 * up for follow-up requests. The way the Job API is implemented
+			 * the 'offset' argument is '0' on the first call and thus
+			 * omitted here.
+			 */
+			size_t const sz = min(length - job.initial_read_offset,
+			                      job.read_space_remaining());
 
-			job.bytes_handled += sz;
+			char       * const dst  = (char*)job.range.start;
+			char const *       from = src + job.initial_read_offset;
+			memcpy(dst, from, sz);
+			job.bytes_read += sz;
+
+			job.read_offset         = job.initial_read_offset;
+			job.initial_read_offset = 0;
 		}
 
 		void completed(Block_job &job, bool success)
@@ -199,7 +236,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 					Read_result _handle_finished_job(size_t &out_count)
 					{
-						out_count = _job->bytes_handled;
+						out_count = _job->range.num_bytes;
 						bool const success = _job->success;
 						_job.destruct();
 						return success ? Read_result::READ_OK
@@ -256,7 +293,8 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						 * The Job API handles splitting the request and the
 						 * job will read up to dst.num_bytes at most.
 						 */
-						_job.construct(block, dst.start, dst.num_bytes, block_offset, op);
+						_job.construct(block, dst.start, dst.num_bytes, op,
+						               (size_t)block_offset);
 
 						block.update_jobs(block);
 						return Read_result::READ_QUEUED;
@@ -290,7 +328,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						};
 
 						_job.construct(block, _unaligned_buffer,
-						               _helper.block_size(), 0, op);
+						               _helper.block_size(), op);
 
 						block.update_jobs(block);
 						return Write_result::WRITE_ERR_WOULD_BLOCK;
@@ -315,7 +353,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 						if (_job->operation().type == Block::Operation::Type::WRITE) {
 							out_count = _job->actual_length ? _job->actual_length
-							                                : _job->bytes_handled;
+							                                : _job->range.num_bytes;
 							_job.destruct();
 							return Write_result::WRITE_OK;
 						}
@@ -340,7 +378,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						};
 
 						_job.construct(block, _unaligned_buffer,
-						               _helper.block_size(), 0, op);
+						               _helper.block_size(), op, 0);
 
 						/* store partial length for setting the matching out_count later */
 						_job->actual_length = (size_t)partial_length;
@@ -386,7 +424,6 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						 * job was in charge of reading in the block for unaligned or
 						 * partial requests.
 						 */
-
 						if (_any_finished_job())
 							return _handle_finished_job(block, src, block_offset,
 							                            block_number, out_count);
@@ -416,8 +453,8 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 						 * The Job API handles splitting the request and the
 						 * job will write up to src.num_bytes at most.
 						 */
-						_job.construct(block, const_cast<char*>(src.start), rounded_length,
-						               block_offset, op);
+						_job.construct(block, const_cast<char*>(src.start),
+						               (size_t)rounded_length, op);
 
 						block.update_jobs(block);
 						return Write_result::WRITE_ERR_WOULD_BLOCK;
@@ -463,7 +500,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 							.count        = Operation_size::from_block_count(_block_count).blocks
 						};
 
-						_job.construct(block, nullptr, 0, 0, op);
+						_job.construct(block, nullptr, 0, op);
 
 						block.update_jobs(block);
 						return Sync_result::SYNC_QUEUED;
