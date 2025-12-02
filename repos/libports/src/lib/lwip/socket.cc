@@ -64,6 +64,7 @@ Errno Socket::genode_errno(Lwip::err_t errno)
 	case Lwip::ERR_CONN:       return GENODE_ENOTCONN;
 	case Lwip::ERR_ABRT:       return GENODE_ECONNABORTED;
 	case Lwip::ERR_RST:        return GENODE_ECONNRESET;
+	case Lwip::ERR_RTE:        return GENODE_ENETUNREACH;
 	default:
 		Genode::error("unknown Lwip::err_t (", (int)errno, ")");
 	}

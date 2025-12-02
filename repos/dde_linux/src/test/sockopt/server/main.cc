@@ -76,8 +76,7 @@ struct Test::Server
 		ASSERT("create socket (re-use fd)...", fd > 0);
 
 		err = bind(fd_reuse, (struct sockaddr*)&addr, sizeof(addr));
-		/* XXX: errno should be EADDRINUSE, needs SO_ERROR support */
-		ASSERT("bind re-use fd (should fail) ...", errno == EACCES);
+		ASSERT("bind re-use fd (should fail) ...", errno == EADDRINUSE);
 
 		err = setsockopt(fd_reuse, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 		ASSERT("setsocktopt SO_REUSEADDR (re-use fd) ...", err == 0);

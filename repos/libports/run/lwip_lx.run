@@ -97,7 +97,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test-lwip_httpsrv" ram="5M">
+	<start name="test-lwip_httpsrv" ram="8M">
 		<config ld_verbose="true">
 			<vfs>
 				<dir name="dev"> <log/> </dir>

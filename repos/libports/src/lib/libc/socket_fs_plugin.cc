@@ -42,6 +42,7 @@
 #include <internal/file.h>
 #include <internal/errno.h>
 #include <internal/init.h>
+#include <internal/socket_errno.h>
 #include <internal/pthread.h>
 
 
@@ -154,7 +155,8 @@ struct Libc::Socket_fs::Context : Plugin_context
 		Absolute_path const _path {
 			_read_socket_path().base(), _config_ptr->socket.string() };
 
-		enum Fd { DATA, PEEK, CONNECT, BIND, LISTEN, ACCEPT, LOCAL, REMOTE, MAX };
+		enum Fd { DATA,   PEEK,  CONNECT, BIND,  LISTEN,
+		          ACCEPT, LOCAL, REMOTE,  ERROR, MAX };
 
 		struct
 		{
@@ -165,7 +167,8 @@ struct Libc::Socket_fs::Context : Plugin_context
 			{ "data",    -1, nullptr }, { "peek",   -1, nullptr },
 			{ "connect", -1, nullptr }, { "bind",   -1, nullptr },
 			{ "listen",  -1, nullptr }, { "accept", -1, nullptr },
-			{ "local",   -1, nullptr }, { "remote", -1, nullptr }
+			{ "local",   -1, nullptr }, { "remote", -1, nullptr },
+			{ "error",   -1, nullptr },
 		};
 
 
@@ -235,6 +238,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 			_init_fd(Fd::ACCEPT,  O_RDONLY);
 			_init_fd(Fd::LOCAL,   O_RDWR);
 			_init_fd(Fd::REMOTE,  O_RDWR);
+			_init_fd(Fd::ERROR,   O_RDONLY);
 		}
 
 		~Context()
@@ -382,6 +386,19 @@ struct Libc::Socket_fs::Context : Plugin_context
 			}, []{ });
 
 			return err;
+		}
+
+		/* set errno to current socket error */
+		void socket_error()
+		{
+			char buf[64];
+
+			ssize_t bytes = read(_fd[ERROR].num, buf, sizeof(buf));
+
+			Node node { Const_byte_range_ptr { buf, size_t(bytes) } };
+			int genode_errno = node.attribute_value("value", -1);
+
+			errno = socket_errno(genode_errno);
 		}
 };
 
@@ -736,10 +753,10 @@ extern "C" int socket_fs_bind(int libc_fd, sockaddr const *addr, socklen_t addrl
 		int const len = ::strlen(addr_string.base());
 		int const n   = write(context->bind_fd(), addr_string.base(), len);
 
-		/*
-		 * TODO: this should be replaced by actual SO_ERROR when support is enabled
-		 */
-		if (n != len) return Errno(EACCES);
+		if (n != len) {
+			context->socket_error();
+			return -1;
+		}
 
 		/* sync to block for write completion */
 		return fsync(context->bind_fd());
@@ -769,8 +786,10 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 			int const len = ::strlen(addr_string.base());
 			int const n   = write(context->connect_fd(), addr_string.base(), len);
 
-			if (n != len)
-				return (context->proto() == Context::UDP) ? Errno(EIO) : Errno(EAFNOSUPPORT);
+			if (n != len) {
+				context->socket_error();
+				return -1;
+			}
 
 			context->state(Context::UNCONNECTED);
 
@@ -797,7 +816,10 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 			int const len = ::strlen(addr_string.base());
 			int const n   = write(context->connect_fd(), addr_string.base(), len);
 
-			if (n != len) return Errno(ECONNREFUSED);
+			if (n != len) {
+				context->socket_error();
+				return -1;
+			}
 
 			if (context->fd_flags() & O_NONBLOCK)
 				return Errno(EINPROGRESS);
@@ -870,7 +892,10 @@ extern "C" int socket_fs_listen(int libc_fd, int backlog)
 	char buf[MAX_CONTROL_PATH_LEN];
 	int const len = ::snprintf(buf, sizeof(buf), "%d", backlog);
 	int const n   = write(context->listen_fd(), buf, len);
-	if (n != len) return Errno(EOPNOTSUPP);
+	if (n != len) {
+		context->socket_error();
+		return -1;
+	}
 
 	/* sync to block for write completion */
 	int const res = fsync(context->listen_fd());
@@ -909,9 +934,6 @@ static ssize_t do_recvfrom(File_descriptor *fd,
 		if (res < 0) return res;
 	}
 
-	/* TODO ENOTCONN */
-	/* TODO ECONNREFUSED */
-
 	int data_fd = flags & MSG_PEEK ? context->peek_fd() : context->data_fd();
 
 	try {
@@ -929,15 +951,9 @@ static ssize_t do_recvfrom(File_descriptor *fd,
 				if (out_sum)
 					return out_sum;
 
-				/*
-				 * For non-blocking reads with MSG_PEEK, we need to return -1 and
-				 * EWOULDBLOCK or EAGAIN in case the socket is connected. Check connect
-				 * status and return accordingly.
-				 */
-				if (errno == EIO && (flags & MSG_PEEK) &&
-				    (context->fd_flags() & O_NONBLOCK) &&
-				    context->read_connect_status() == 0)
-						return Errno(EWOULDBLOCK);
+				/* update errno unless VFS-plugin returned EAGAIN */
+				if (errno != EAGAIN)
+					context->socket_error();
 
 				if (result < 0) handle_wakeup_remote_peers(*context);
 
@@ -1076,35 +1092,18 @@ static ssize_t do_sendto(File_descriptor *fd,
 		lseek(context->data_fd(), 0, 0);
 		ssize_t out_len = write(context->data_fd(), buf, len);
 
-		switch (context->proto()) {
-		case Socket_fs::Context::Proto::UDP:
-			if (out_len == 0) return Errno(ENETDOWN);
-			break;
+		/* update errno unless VFS-plugin returned EAGAIN */
+		if (out_len == -1 && errno != EAGAIN)
+			context->socket_error();
 
-		case Socket_fs::Context::Proto::TCP:
+		/*
+		 * Non-blocking write stalled
+		 */
+		if ((out_len == -1) && (errno == EAGAIN))
+			handle_wakeup_remote_peers(*context);
 
-			/*
-			 * Non-blocking write stalled
-			 */
-			if ((out_len == -1) && (errno == EAGAIN)) {
-				handle_wakeup_remote_peers(*context);
-				return Errno(EAGAIN);
-			}
-			/*
-			 * Write errors to TCP-data files are reflected as EPIPE, which
-			 * means the connection-mode socket is no longer connected. This
-			 * explicitly does not differentiate ECONNRESET, which means the
-			 * peer closed the connection while there was still unhandled data
-			 * in the socket buffer on the remote side and sent an RST packet.
-			 *
-			 * TODO If the MSG_NOSIGNAL flag is not set, the SIGPIPE signal is
-			 * generated to the calling thread.
-			 */
-			if (out_len == -1)
-				return Errno(EPIPE);
-			break;
-		}
 		return out_len;
+
 	} catch (Socket_fs::Context::Inaccessible) {
 		return Errno(EINVAL);
 	}

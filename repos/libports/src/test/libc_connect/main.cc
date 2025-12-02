@@ -74,7 +74,7 @@ static void test_blocking_connect_connected()
 			break;
 		}
 
-		if (errno != ECONNREFUSED) DIE();
+		if (errno != ECONNREFUSED && errno != ETIMEDOUT)  DIE();
 
 		close(s);
 
