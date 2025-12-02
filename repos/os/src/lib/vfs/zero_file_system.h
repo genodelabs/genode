@@ -67,7 +67,7 @@ struct Vfs::Zero_file_system : Single_file_system
 				count = size_t(end_offset - read_offset);
 			}
 
-			memset(dst.start, 0, count);
+			bzero(dst.start, count);
 
 			out_count = count;
 

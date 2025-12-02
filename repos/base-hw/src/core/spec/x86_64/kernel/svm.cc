@@ -32,7 +32,7 @@ Vmcb_buf::Vmcb_buf(addr_t vmcb_page_addr, uint32_t id)
 :
 	Mmio({(char *)vmcb_page_addr, Mmio::SIZE})
 {
-	memset((void *) vmcb_page_addr, 0, PAGE_SIZE);
+	bzero((void *) vmcb_page_addr, PAGE_SIZE);
 
 	write<Guest_asid>(id);
 	write<Msrpm_base_pa>(dummy_msrpm());
@@ -149,16 +149,16 @@ addr_t Vmcb_buf::dummy_iopm()
 }
 
 
-Board::Msrpm::Msrpm()
+static inline void memset(uint8_t *dst, uint8_t c, size_t n)
 {
-	memset(this, 0xFF, sizeof(*this));
+	for (size_t i = 0; i < n; i++) dst[i] = c;
 }
 
 
-Board::Iopm::Iopm()
-{
-	memset(this, 0xFF, sizeof(*this));
-}
+Board::Msrpm::Msrpm() { memset((uint8_t *)this, 0xff, sizeof(*this)); }
+
+
+Board::Iopm::Iopm()   { memset((uint8_t *)this, 0xFF, sizeof(*this)); }
 
 
 void Vmcb::store(Genode::Vcpu_state &state)

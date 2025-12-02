@@ -117,7 +117,7 @@ void Cpu::mmu_fault(Context &, Kernel::Thread_fault &f)
 
 void Cpu::clear_memory_region(addr_t const addr, size_t const size, bool)
 {
-	memset((void*)addr, 0, size);
+	bzero((void*)addr, size);
 
 	/* FIXME: is this really necessary? */
 	Cpu::sfence();

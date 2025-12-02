@@ -79,9 +79,9 @@ void Horizontal_shadow<PT, INTENSITY>::draw(Canvas_base &canvas, Point abs_posit
 template <typename PT, int W, int H>
 Icon<PT, W, H>::Icon()
 {
-	memset(_pixel,  0, sizeof(_pixel));
-	memset(_alpha,  0, sizeof(_alpha));
-	memset(_shadow, 0, sizeof(_shadow));
+	bzero(_pixel,  sizeof(_pixel));
+	bzero(_alpha,  sizeof(_alpha));
+	bzero(_shadow, sizeof(_shadow));
 }
 
 

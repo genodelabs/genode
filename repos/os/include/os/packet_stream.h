@@ -188,7 +188,7 @@ class Genode::Packet_descriptor_queue
 		{
 			if (role == PRODUCER) {
 				_head = 0;
-				Genode::memset(_queue, 0, sizeof(_queue));
+				Genode::bzero(_queue, sizeof(_queue));
 			} else
 				_tail = 0;
 		}

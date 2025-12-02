@@ -153,7 +153,7 @@ struct Crypto : Tresor_crypto::Interface
 	bool remove_key(uint32_t const id) override
 	{
 		return apply_key (id, [&] (auto &meta) {
-			Genode::memset(meta.key.values, 0, sizeof(meta.key.values));
+			Genode::bzero(meta.key.values, sizeof(meta.key.values));
 
 			meta.used = false;
 

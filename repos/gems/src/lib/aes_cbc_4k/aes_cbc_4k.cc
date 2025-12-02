@@ -62,18 +62,15 @@ static bool hash_key(Aes_cbc_4k::Key const &key, Aes_cbc::Hash &hash)
 template <typename T>
 static void inline cleanup_crypto_data(T &t)
 {
-	Genode::memset(&t,  0, sizeof(t));
-	/* trigger compiler to not drop the memset */
-	asm volatile(""::"r"(&t):"memory");
+	Genode::bzero(&t, sizeof(t));
 }
+
 
 template <typename T, typename S>
 static void inline cleanup_crypto_data(T &t, S &s)
 {
-	Genode::memset(&t,  0, sizeof(t));
-	Genode::memset(&s,  0, sizeof(s));
-	/* trigger compiler to not drop the memsets */
-	asm volatile(""::"r"(&t),"r"(&s):"memory");
+	Genode::bzero(&t, sizeof(t));
+	Genode::bzero(&s, sizeof(s));
 }
 
 /**

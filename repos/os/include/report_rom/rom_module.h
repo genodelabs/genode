@@ -223,7 +223,7 @@ struct Rom::Module : private Module_list::Element, Readable_module
 
 			/* clear content if its origin disappears */
 			if (_last_writer == &writer) {
-				Genode::memset(_ds->local_addr<char>(), 0, _size);
+				Genode::bzero(_ds->local_addr<char>(), _size);
 				_size = 0;
 				_last_writer = nullptr;
 			}

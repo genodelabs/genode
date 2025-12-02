@@ -142,7 +142,7 @@ class Genode::Attached_ram_dataspace
 		 */
 		size_t size() const { return _size; }
 
-		void clear() { if (_at) memset((void *)_at, 0, _size); }
+		void clear() { if (_at) bzero((void *)_at, _size); }
 
 		void swap(Attached_ram_dataspace &other)
 		{

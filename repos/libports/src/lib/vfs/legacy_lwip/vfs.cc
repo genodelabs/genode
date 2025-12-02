@@ -182,7 +182,7 @@ struct Lwip::Lwip_nameserver_handle final : Lwip_handle, private Nameserver_regi
 
 	Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
 	{
-		memset(dst.start, 0x00, min(file_size(IPADDR_STRLEN_MAX), dst.num_bytes));
+		bzero(dst.start, min(file_size(IPADDR_STRLEN_MAX), dst.num_bytes));
 		ipaddr_ntoa_r(dns_getserver(0), dst.start, dst.num_bytes);
 
 		auto n = strlen(dst.start);

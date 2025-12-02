@@ -77,7 +77,7 @@ class Core::Mapped_ram_allocator
 							phys.deallocate = false;
 							virt.deallocate = false;
 
-							memset(virt.ptr, 0, num_bytes);
+							bzero(virt.ptr, num_bytes);
 
 							return { *this, { num_pages, addr_t(phys.ptr), addr_t(virt.ptr) } };
 						},

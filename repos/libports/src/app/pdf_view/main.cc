@@ -285,7 +285,7 @@ void Pdf_view::show()
 	int const y_max = Genode::min((int)fb_size.h, _pdfapp.image->h);
 
 	/* clear framebuffer */
-	::memset((void *)_fb_base(), 0, _fb_ds->size());
+	::bzero((void *)_fb_base(), _fb_ds->size());
 
 	Genode::size_t src_line_bytes   = _pdfapp.image->n * _pdfapp.image->w;
 	unsigned char *src_line         = _pdfapp.image->samples;

@@ -216,7 +216,7 @@ Genode::size_t Util::extract_ascii(char *dest, size_t dest_len,
 Genode::size_t Util::convert_ascii(uint8_t *dest, size_t dest_len,
                                    uint8_t const *src, size_t src_len)
 {
-	Genode::memset(dest, 0, dest_len);
+	Genode::bzero(dest, dest_len);
 
 	if (src_len > dest_len) {
 		Genode::warning("input too long, will be truncated");

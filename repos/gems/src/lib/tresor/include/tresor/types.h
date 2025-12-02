@@ -509,7 +509,7 @@ class Tresor::Block_generator
 		{
 			void *blk_pos { _current_position() };
 			_advance_position(num_bytes);
-			memset(blk_pos, 0, num_bytes);
+			bzero(blk_pos, num_bytes);
 		}
 
 		~Block_generator()

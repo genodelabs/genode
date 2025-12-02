@@ -125,14 +125,18 @@ class Nano3d::Scene
 			 */
 			void input_mask(bool input_enabled)
 			{
+				using namespace Genode;
+
 				/*
 				 * The input-mask buffer follows the alpha buffer. Hence, we
 				 * can obtain the base address by requesting the base of
 				 * the (non-exiting) alpha buffer (using NUM_BUFFERS as index)
 				 * beyond the actual alpha buffers.
 				 */
-				Genode::memset(alpha_base(NUM_BUFFERS), input_enabled,
-				               NUM_BUFFERS*size().count());
+				size_t    const num_bytes = NUM_BUFFERS*size().count();
+				uint8_t * const dst = (uint8_t *)alpha_base(NUM_BUFFERS);
+
+				for (size_t i = 0; i < num_bytes; i++) dst[i] = input_enabled;
 			}
 
 			Mapped_framebuffer(Gui::Connection &gui, Gui::Area size,

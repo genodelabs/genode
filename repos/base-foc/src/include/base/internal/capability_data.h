@@ -53,7 +53,7 @@ class Genode::Native_capability::Data : public Avl_node<Data>
 		uint8_t  dec();
 		addr_t   kcap() const;
 
-		void  operator delete (void* idx) { memset(idx, 0, sizeof(Data)); }
+		void  operator delete (void* idx) { bzero(idx, sizeof(Data)); }
 
 
 		/************************

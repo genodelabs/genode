@@ -206,7 +206,7 @@ struct genode_netif_handle *lwip_genode_netif_init(char const *label)
 		return NULL;
 	}
 
-	memset(net, 0x00, sizeof(struct netif));
+	memset(net, 0, sizeof(struct netif));
 
 	handle = mem_malloc(sizeof(struct genode_netif_handle));
 	if (handle == NULL) {

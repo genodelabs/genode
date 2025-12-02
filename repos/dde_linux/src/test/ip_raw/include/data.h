@@ -48,10 +48,15 @@ namespace Test {
 
 		Data()
 		{
+			auto memset = [] (char *d, char c, unsigned n)
+			{
+				for (unsigned i = 0; i < n; i++) d[i] = c;
+			};
+
 			char j = 'A';
 			unsigned step = MAX_UDP_LOAD / 2;
 			for (unsigned i = 0; i < size(); i += step, j += 1) {
-				Genode::memset(buf + i, j, step);
+				memset(buf + i, j, step);
 			}
 		}
 

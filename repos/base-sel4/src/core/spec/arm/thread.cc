@@ -30,7 +30,7 @@ bool Core::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
 {
 	/* set register values for the instruction pointer and stack pointer */
 	seL4_UserContext regs;
-	memset(&regs, 0, sizeof(regs));
+	bzero(&regs, sizeof(regs));
 	size_t const num_regs = sizeof(regs)/sizeof(seL4_Word);
 
 	regs.pc = ip;

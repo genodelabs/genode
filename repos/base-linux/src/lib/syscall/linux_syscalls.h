@@ -331,7 +331,7 @@ inline int lx_sigemptyset(sigset_t *set)
 {
 	if (set == 0)
 		return -1;
-	Genode::memset(set, 0, sizeof(sigset_t));
+	Genode::bzero(set, sizeof(sigset_t));
 	return 0;
 }
 
@@ -470,7 +470,7 @@ class Lx_sigset
 		/**
 		 * Constructor
 		 */
-		Lx_sigset() { Genode::memset(_value, 0, sizeof(_value)); }
+		Lx_sigset() { Genode::bzero(_value, sizeof(_value)); }
 
 		/**
 		 * Constructor

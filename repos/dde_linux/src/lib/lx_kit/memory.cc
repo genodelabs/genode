@@ -65,7 +65,7 @@ void * Lx_kit::Mem_allocator::alloc(size_t const size, size_t const align_bytes,
 		return nullptr;
 
 	auto cleared_allocation = [] (void * const ptr, size_t const size) {
-		memset(ptr, 0, size);
+		bzero(ptr, size);
 		return ptr;
 	};
 

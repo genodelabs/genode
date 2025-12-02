@@ -50,8 +50,8 @@ int main(int, char**)
 	char * buf1 = new char[MAX_KB*1024];
 	char * buf2 = new char[MAX_KB*1024];
 
-	memset(buf1, 0, MAX_KB*1024);
-	memset(buf2, 0, MAX_KB*1024);
+	bzero(buf1, MAX_KB*1024);
+	bzero(buf2, MAX_KB*1024);
 
 	sweep_test<8, MAX_KB>(buf1, buf2, 100, triplet_test);
 

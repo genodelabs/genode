@@ -300,7 +300,7 @@ class Vfs_ram::File : public Vfs_ram::Node
 
 			/* add zero padding if needed */
 			if (read_len < dst.num_bytes)
-				memset(dst.start + read_len, 0, len - read_len);
+				bzero(dst.start + read_len, len - read_len);
 
 			return len;
 		}

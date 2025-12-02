@@ -34,7 +34,7 @@ class Net::Mac_allocator
 
 		Mac_allocator(Mac_address base) : _base(base)
 		{
-			Genode::memset(&_free, true, sizeof(_free));
+			for (bool &elem : _free) elem = true;
 		}
 
 		Mac_address alloc()

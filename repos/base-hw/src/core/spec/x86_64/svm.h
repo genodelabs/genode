@@ -30,7 +30,7 @@ using Genode::uint64_t;
 using Genode::Mmio;
 using Genode::Vcpu_state;
 using Genode::PAGE_SIZE;
-using Genode::memset;
+using Genode::bzero;
 
 namespace Board
 {

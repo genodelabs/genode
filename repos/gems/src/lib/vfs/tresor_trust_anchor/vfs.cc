@@ -1244,7 +1244,7 @@ class Trust_anchor
 			}
 
 			Genode::memcpy(dst.start, _generated_key.value, len);
-			Genode::memset(_generated_key.value, 0, sizeof (_generated_key.value));
+			Genode::bzero(_generated_key.value, sizeof(_generated_key.value));
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;

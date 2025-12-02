@@ -387,7 +387,7 @@ struct Linker::Elf_file : File
 
 				/* clear if file size < memory size */
 				if (p.p_filesz < p.p_memsz)
-					memset((void *)(dst + p.p_filesz), 0, p.p_memsz - p.p_filesz);
+					bzero((void *)(dst + p.p_filesz), p.p_memsz - p.p_filesz);
 			},
 			[&] (Genode::Region_map::Attach_error) {
 				error("dynamic linker failed to copy RW segment"); }

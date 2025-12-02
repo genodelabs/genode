@@ -88,8 +88,7 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 	int index_a = name[0];
 	int index_b = name[1];
 
-
-	Genode::memset(buf, 0x00, *oldlenp);
+	Genode::bzero(buf, *oldlenp);
 
 	/* builtins */
 	{

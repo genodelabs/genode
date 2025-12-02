@@ -98,7 +98,7 @@ extern "C" void *calloc(size_t nmemb, size_t size)
 	if (addr == nullptr)
 		return nullptr;
 
-	Genode::memset(addr, 0, nmemb*size);
+	Genode::bzero(addr, nmemb*size);
 	return addr;
 }
 

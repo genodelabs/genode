@@ -196,8 +196,11 @@ void nested_regions(Genode::Env &env)
 	/* attach some memory to bottom as writeable */
 	Dataspace_capability bottom_ram_ds = env.ram().alloc(MANAGED_REGION_BOTTOM_SIZE);
 	{
-		void * base_rw = attach(env.rm(), bottom_ram_ds, attr_rw);
-		memset(base_rw, 0xff, MANAGED_REGION_BOTTOM_SIZE);
+		uint8_t * const base_rw = (uint8_t *)attach(env.rm(), bottom_ram_ds, attr_rw);
+
+		for (unsigned i = 0; i < MANAGED_REGION_BOTTOM_SIZE; i++)
+			base_rw[i] = 0xff;
+
 		env.rm().detach(addr_t(base_rw));
 	}
 

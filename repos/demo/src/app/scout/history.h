@@ -52,7 +52,7 @@ class Scout::History
 		 */
 		History()
 		{
-			memset(_history, 0, sizeof(_history));
+			bzero(_history, sizeof(_history));
 		}
 
 		/**

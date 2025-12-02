@@ -32,7 +32,7 @@ void lx_emul_random_gen_bytes(void          *dst,
 	}
 
 	warning(__func__, ": dummy implementation used, filling buffer with 0s");
-	memset(dst, 0, nr_of_bytes);
+	bzero(dst, nr_of_bytes);
 }
 
 

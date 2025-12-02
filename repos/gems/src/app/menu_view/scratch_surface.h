@@ -124,7 +124,7 @@ class Menu_view::Scratch_surface
 				_base      = (unsigned char *)_alloc.alloc(_num_bytes);
 			}
 
-			Genode::memset(_base, 0, _num_bytes);
+			Genode::bzero(_base, _num_bytes);
 		}
 
 		template <typename FN>

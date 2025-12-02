@@ -286,7 +286,7 @@ class Lwip::Nic_netif
 			_rx_packet_handler( env.ep(), *this, &Nic_netif::handle_rx_packets),
 			_tx_ready_handler(  env.ep(), *this, &Nic_netif::handle_tx_ready)
 		{
-			Genode::memset(&_netif, 0x00, sizeof(_netif));
+			Genode::bzero(&_netif, sizeof(_netif));
 
 			{
 				ip4_addr_t v4dummy;

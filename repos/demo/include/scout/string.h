@@ -18,7 +18,7 @@
 
 namespace Scout {
 	using Genode::strlen;
-	using Genode::memset;
+	using Genode::bzero;
 	using Genode::memcpy;
 }
 

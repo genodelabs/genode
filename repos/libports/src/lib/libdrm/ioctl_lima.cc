@@ -859,7 +859,7 @@ class Lima::Call
 						 * Copy each array flat to the exec buffer and adjust the
 						 * addresses in the submit object.
 						 */
-						Genode::memset(ptr, 0, size);
+						Genode::bzero(ptr, size);
 						Lima::serialize(&arg, ptr);
 
 						serialized = true;

@@ -117,8 +117,8 @@ struct Gpt::Writer
 		Gpt::Header *hdr     = primary ? &_pgpt : &_bgpt;
 		Gpt::Entry  *entries = primary ? _pgpt_entries : _bgpt_entries;
 
-		memset(hdr,     0, sizeof(Gpt::Header));
-		memset(entries, 0, ENTRIES_SIZE);
+		bzero(hdr,     sizeof(Gpt::Header));
+		bzero(entries, ENTRIES_SIZE);
 
 		try {
 			/* header */
@@ -247,10 +247,10 @@ struct Gpt::Writer
 		_setup_pmbr();
 
 		/* wipe PGPT and BGPT */
-		Genode::memset(&_pgpt, 0, sizeof(_pgpt));
-		Genode::memset(_pgpt_entries, 0, sizeof(_pgpt_entries));
-		Genode::memset(&_bgpt,  0, sizeof(_bgpt));
-		Genode::memset(_bgpt_entries,  0, sizeof(_bgpt_entries));
+		Genode::bzero(&_pgpt,        sizeof(_pgpt));
+		Genode::bzero(_pgpt_entries, sizeof(_pgpt_entries));
+		Genode::bzero(&_bgpt,        sizeof(_bgpt));
+		Genode::bzero(_bgpt_entries, sizeof(_bgpt_entries));
 
 		size_t const blocks = (size_t)ENTRIES_SIZE / _block_size;
 
@@ -568,7 +568,7 @@ struct Gpt::Writer
 
 		_blocks_avail += e->length();
 
-		Genode::memset(e, 0, sizeof(Gpt::Entry));
+		Genode::bzero(e, sizeof(Gpt::Entry));
 		return true;
 	}
 

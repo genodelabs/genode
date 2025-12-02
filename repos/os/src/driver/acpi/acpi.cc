@@ -733,7 +733,7 @@ class Table_wrapper
 			/* table size is known now - make it completely accessible (in place) */
 			memory.map_region(base, _table->size);
 
-			memset(_name, 0, 5);
+			bzero(_name, 5);
 			memcpy(_name, _table->signature, 4);
 
 			new (heap) Info(registry, name(), _base, _table->size);

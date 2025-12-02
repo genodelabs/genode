@@ -51,7 +51,7 @@ static void test_blocking_connect_connected()
 		int s = socket(AF_INET, SOCK_STREAM, 0);
 
 		struct sockaddr_in addr;
-		memset(&addr, 0, sizeof(addr));
+		bzero(&addr, sizeof(addr));
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(port_connected);
 		addr.sin_addr.s_addr = inet_addr(server_connected);
@@ -91,7 +91,7 @@ static void test_blocking_connect_connection_refused()
 	int s = socket(AF_INET, SOCK_STREAM, 0);
 
 	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
+	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port_connection_refused);
 	addr.sin_addr.s_addr = inet_addr(server_connection_refused);
@@ -113,7 +113,7 @@ static void test_blocking_connect_timeout()
 	int s = socket(AF_INET, SOCK_STREAM, 0);
 
 	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
+	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port_timeout);
 	addr.sin_addr.s_addr = inet_addr(server_timeout);
@@ -137,7 +137,7 @@ static void test_nonblocking_connect_connected()
 	fcntl(s, F_SETFL, O_NONBLOCK);
 
 	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
+	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port_connected);
 	addr.sin_addr.s_addr = inet_addr(server_connected);
@@ -211,7 +211,7 @@ static void test_nonblocking_connect_connection_refused()
 	fcntl(s, F_SETFL, O_NONBLOCK);
 
 	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
+	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port_connection_refused);
 	addr.sin_addr.s_addr = inet_addr(server_connection_refused);
@@ -261,7 +261,7 @@ static void test_nonblocking_connect_timeout()
 	fcntl(s, F_SETFL, O_NONBLOCK);
 
 	struct sockaddr_in addr;
-	memset(&addr, 0, sizeof(addr));
+	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port_timeout);
 	addr.sin_addr.s_addr = inet_addr(server_timeout);

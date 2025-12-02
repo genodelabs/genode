@@ -46,7 +46,7 @@ namespace Aes_256_key_wrap {
 template <typename OBJECT_TYPE>
 static void inline overwrite_object_with_zeroes(OBJECT_TYPE &object)
 {
-	memset(&object, 0, sizeof(object));
+	bzero(&object, sizeof(object));
 
 	/* trigger compiler to not drop the memset */
 	asm volatile(""::"r"(&object):"memory");
@@ -65,7 +65,7 @@ void Aes_256::encrypt_with_zeroed_iv(unsigned char       *ciphertext_base,
 		throw Failed_to_set_key { };
 	}
 	Aes_256::Initialization_vector iv { };
-	memset(iv.values, 0, sizeof(iv.values));
+	bzero(iv.values, sizeof(iv.values));
 	AES_cbc_encrypt(
 		plaintext_base, ciphertext_base, ciphertext_size, &aes_key, iv.values,
 		AES_ENCRYPT);
@@ -87,7 +87,7 @@ void Aes_256::decrypt_with_zeroed_iv(unsigned char       *plaintext_base,
 		throw Failed_to_set_key { };
 	}
 	Aes_256::Initialization_vector iv { };
-	memset(iv.values, 0, sizeof(iv.values));
+	bzero(iv.values, sizeof(iv.values));
 	AES_cbc_encrypt(
 		ciphertext_base, plaintext_base, plaintext_size, &aes_key, iv.values,
 		AES_DECRYPT);

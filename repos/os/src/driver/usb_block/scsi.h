@@ -234,7 +234,7 @@ struct Scsi::Cmd_6 : Genode::Mmio<0x6>
 	struct Len : Register<0x4,  8> { }; /* transfer length */
 	struct Ctl : Register<0x5,  8> { }; /* controll */
 
-	Cmd_6(Byte_range_ptr const &range) : Mmio(range) { memset((void*)base(), 0, LENGTH); }
+	Cmd_6(Byte_range_ptr const &range) : Mmio(range) { bzero((void*)base(), LENGTH); }
 
 	void dump()
 	{
@@ -291,7 +291,7 @@ struct Scsi::Start_stop : Genode::Mmio<0x6>
 
 	Start_stop(Byte_range_ptr const &range) : Mmio(range)
 	{
-		memset((void*)base(), 0, LENGTH);
+		bzero((void*)base(), LENGTH);
 
 		write<Op>(Opcode::START_STOP);
 		write<I::Immed>(1);
@@ -323,7 +323,7 @@ struct Scsi::Cmd_10 : Genode::Mmio<0xa>
 	struct Len : Register<0x7, 16> { }; /* transfer length */
 	struct Ctl : Register<0x9,  8> { }; /* controll */
 
-	Cmd_10(Byte_range_ptr const &range) : Mmio(range) { memset((void*)base(), 0, LENGTH); }
+	Cmd_10(Byte_range_ptr const &range) : Mmio(range) { bzero((void*)base(), LENGTH); }
 
 	void dump()
 	{
@@ -393,7 +393,7 @@ struct Scsi::Cmd_16 : Genode::Mmio<0x10>
 	struct Len : Register<0xa, 32> { }; /* transfer length */
 	struct Ctl : Register<0xf,  8> { }; /* controll */
 
-	Cmd_16(Byte_range_ptr const &range) : Mmio(range) { memset((void*)base(), 0, LENGTH); }
+	Cmd_16(Byte_range_ptr const &range) : Mmio(range) { bzero((void*)base(), LENGTH); }
 
 	void dump()
 	{

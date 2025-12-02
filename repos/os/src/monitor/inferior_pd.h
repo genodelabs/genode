@@ -121,7 +121,7 @@ struct Monitor::Inferior_pd : Monitored_pd_session
 	{
 		{
 			Attached_dataspace ds(_local_rm, ram_ds.cap);
-			memset(ds.local_addr<void>(), 0, ds.size());
+			bzero(ds.local_addr<void>(), ds.size());
 		}
 		destroy(_alloc, &ram_ds);
 	}

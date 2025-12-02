@@ -670,7 +670,7 @@ int Libc::Vfs_plugin::fstatfs(File_descriptor *fd, struct statfs *buf)
 	if (!fd || !buf)
 		return Errno(EFAULT);
 
-	Genode::memset(buf, 0, sizeof(*buf));
+	Genode::bzero(buf, sizeof(*buf));
 
 	buf->f_flags = MNT_UNION;
 	return 0;
@@ -1766,7 +1766,7 @@ Libc::Vfs_plugin::_ioctl_sndctl(File_descriptor *fd, unsigned long request, char
 		/* dummy implementation */
 
 		oss_sysinfo *si = (oss_sysinfo *)argp;
-		Genode::memset(si, 0, sizeof(*si));
+		Genode::bzero(si, sizeof(*si));
 
 		handled = true;
 	}

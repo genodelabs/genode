@@ -138,7 +138,8 @@ class Gui_fader::Dst_buffer
 			unsigned char *input_mask_buffer = _ds.local_addr<unsigned char>()
 			                                 + _size.count()*(1 + sizeof(Pixel_rgb888));
 
-			Genode::memset(input_mask_buffer, 0xff, _size.count());
+			for (size_t i = 0; i < _size.count(); i++)
+				input_mask_buffer[i] = 0xff;
 		}
 
 		Surface<Pixel_rgb888> &pixel_surface() { return _pixel_surface; }

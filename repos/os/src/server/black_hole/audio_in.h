@@ -73,8 +73,7 @@ class Audio_in::Session_component : Audio_in::Session_component_base,
 
 			Packet *p = stream()->alloc();
 
-			Genode::memset(p->content(), 0,
-			               Audio_in::PERIOD * Audio_in::SAMPLE_SIZE);
+			Genode::bzero(p->content(), Audio_in::PERIOD * Audio_in::SAMPLE_SIZE);
 
 			stream()->submit(p);
 

@@ -65,7 +65,7 @@ class Vmm::Virtio_net : public Virtio_device<Virtio_split_queue, 2>
 				               sz - NIC_HEADER_SIZE);
 				_nic.rx()->acknowledge_packet(rx_packet);
 
-				Genode::memset((void*)data.start, 0, NIC_HEADER_SIZE);
+				Genode::bzero((void*)data.start, NIC_HEADER_SIZE);
 
 				return sz;
 			};

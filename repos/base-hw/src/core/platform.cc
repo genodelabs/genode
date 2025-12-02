@@ -248,7 +248,7 @@ Platform::Platform()
 						addr_t const virt_addr = addr_t(virt.ptr);
 
 						map_local(phys_addr, virt_addr, pages);
-						memset(virt.ptr, 0, log_size);
+						bzero(virt.ptr, log_size);
 
 						new (core_mem_alloc())
 							Rom_module(_rom_fs, "core_log", phys_addr, log_size);

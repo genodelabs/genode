@@ -45,7 +45,7 @@ void Vmm::Virtio_gpu_control_request::_get_display_info()
 {
 	Gui::Area const mode = _device.resize();
 	Display_info_response dir { _desc_range(1) };
-	memset((void*)dir.base(), 0, Display_info_response::SIZE);
+	bzero((void*)dir.base(), Display_info_response::SIZE);
 	dir.write<Control_header::Type>(Control_header::Type::OK_DISPLAY_INFO);
 
 	dir.write<Display_info_response::X>(0);

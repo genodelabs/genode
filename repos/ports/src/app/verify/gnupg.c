@@ -51,7 +51,7 @@ read_pubkey_from_file(char const *pubkey_path, PACKET **packet_out_ptr)
 
 	/* set up parser context for parsing the public key data */
 	struct parse_packet_ctx_s parse_ctx;
-	memset(&parse_ctx, 0, sizeof(parse_ctx));
+	bzero(&parse_ctx, sizeof(parse_ctx));
 
 	parse_ctx.inp = iobuf_open(pubkey_path);
 	if (!parse_ctx.inp)
@@ -63,7 +63,7 @@ read_pubkey_from_file(char const *pubkey_path, PACKET **packet_out_ptr)
 
 	/* parse public key data */
 	PACKET * const packet = xmalloc(sizeof(*packet));
-	memset(packet, 0, sizeof(*packet));
+	bzero(packet, sizeof(*packet));
 	int const parse_ok = (parse_packet(&parse_ctx, packet) == 0);
 
 	release_armor_context(afx);
@@ -109,7 +109,7 @@ enum Gnupg_verify_result gnupg_verify_detached_signature(char const *pubkey_path
 	 * 'gpg_init_default_ctrl'.
 	 */
 	struct server_control_s control;
-	memset(&control, 0, sizeof(control));
+	bzero(&control, sizeof(control));
 	ctrl_t ctrl = &control;
 	ctrl->magic = SERVER_CONTROL_MAGIC;
 

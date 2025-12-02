@@ -61,7 +61,7 @@ class Igd::Ring_buffer
 		void reset()
 		{
 			with_dwords([&](auto dwords) {
-				Genode::memset(dwords, 0, _max * sizeof(uint32_t));
+				Genode::bzero(dwords, _max * sizeof(uint32_t));
 				_tail = 0;
 			});
 		}
@@ -73,7 +73,7 @@ class Igd::Ring_buffer
 		{
 			with_dwords([&](auto dwords) {
 				auto const bytes = (_max - _tail) * sizeof(uint32_t);
-				Genode::memset(dwords + _tail, 0, bytes);
+				Genode::bzero(dwords + _tail, bytes);
 				_tail = 0;
 			});
 		}

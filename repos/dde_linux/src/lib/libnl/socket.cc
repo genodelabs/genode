@@ -527,7 +527,7 @@ int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 		Socket *s = Socket_registry::find(fds[i].fd);
 		if (!s) continue;
 
-		Genode::memset(&sockets[num], 0, sizeof(Poll_socket_fd));
+		Genode::bzero(&sockets[num], sizeof(Poll_socket_fd));
 
 		sockets[num].s   = s;
 		sockets[num].pfd = &fds[i];

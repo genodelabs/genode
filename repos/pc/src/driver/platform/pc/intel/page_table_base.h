@@ -158,7 +158,7 @@ class Genode::Final_table
 		Final_table()
 		{
 			if (!aligned<addr_t>((addr_t)this, { .log2 = ALIGNM_LOG2 })) throw Misaligned();
-			Genode::memset(&_entries, 0, sizeof(_entries));
+			Genode::bzero(&_entries, sizeof(_entries));
 		}
 
 		/**
@@ -373,7 +373,7 @@ class Genode::Page_directory
 		Page_directory()
 		{
 			if (!aligned<addr_t>((addr_t)this, { .log2 = ALIGNM_LOG2 })) throw Misaligned();
-			Genode::memset(&_entries, 0, sizeof(_entries));
+			Genode::bzero(&_entries, sizeof(_entries));
 		}
 
 		/**
@@ -570,7 +570,7 @@ class Genode::Pml4_table
 		Pml4_table()
 		{
 			if (!aligned<addr_t>((addr_t)this, { .log2 = ALIGNM_LOG2 })) throw Misaligned();
-			Genode::memset(&_entries, 0, sizeof(_entries));
+			Genode::bzero(&_entries, sizeof(_entries));
 		}
 
 		explicit Pml4_table(Pml4_table & kernel_table) : Pml4_table()

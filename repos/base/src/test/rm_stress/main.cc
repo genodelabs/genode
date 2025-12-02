@@ -35,7 +35,8 @@ struct Page : Attached_ram_dataspace
 		Attached_ram_dataspace(env.ram(), env.rm(), 0x1000),
 		color(color)
 	{
-		memset(local_addr<void>(), color, size());
+		for (size_t i = 0; i < size(); i++)
+			local_addr<unsigned char>()[i] = color;
 
 		log("new page @ ", local_addr<void>(), " with color ", X(*local_addr<unsigned char>()));
 	}

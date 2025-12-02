@@ -655,7 +655,7 @@ Core::Platform::Platform()
 					return;
 				}
 
-				memset(core_local_ptr, 0, bytes);
+				bzero(core_local_ptr, bytes);
 				content_fn(core_local_ptr, bytes);
 
 				new (core_mem_alloc())

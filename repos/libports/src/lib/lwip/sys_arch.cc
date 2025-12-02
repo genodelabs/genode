@@ -94,7 +94,7 @@ extern "C" {
 
 		void * const ptr = genode_malloc(size);
 		if (ptr)
-			Genode::memset(ptr, 0x00, size);
+			Genode::bzero(ptr, size);
 
 		return ptr;
 	}

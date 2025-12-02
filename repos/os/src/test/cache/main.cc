@@ -55,8 +55,8 @@ Main::Main(Genode::Env &env) : env(env)
 	Buffer * buf1 = new (heap) Buffer;
 	Buffer * buf2 = new (heap) Buffer;
 
-	memset(buf1, 0, MAX_KB*1024);
-	memset(buf2, 0, MAX_KB*1024);
+	bzero(buf1, MAX_KB*1024);
+	bzero(buf2, MAX_KB*1024);
 
 	log("--- test-cache started (touch words | touch lines | memcpy) ---");
 

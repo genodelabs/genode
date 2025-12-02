@@ -769,7 +769,7 @@ class Etnaviv::Call
 					 * Copy each array flat to the exec buffer and adjust the
 					 * addresses in the submit object.
 					 */
-					Genode::memset(ptr, 0, size);
+					Genode::bzero(ptr, size);
 					Etnaviv::serialize(&arg, ptr);
 
 					serialized = true;

@@ -27,13 +27,13 @@ struct Genode_cpy_test {
 		Genode::memcpy(dst, src, size); }
 };
 
-struct Genode_set_test {
+struct Genode_zero_test {
 
-	void start()    { log(""); log("start Genode memset");    }
-	void finished() {          log("finished Genode memset"); log(""); }
+	void start()    { log(""); log("start Genode bzero");    }
+	void finished() {          log("finished Genode bzero"); log(""); }
 
 	void copy(void *dst, const void *, size_t size) {
-		Genode::memset(dst, 0, size); }
+		Genode::bzero(dst, size); }
 };
 
 struct Libc_cpy_test {
@@ -45,13 +45,13 @@ struct Libc_cpy_test {
 		memcpy(dst, src, size); }
 };
 
-struct Libc_set_test {
+struct Libc_zero_test {
 
-	void start()    { log(""); log("start libc memset");    }
-	void finished() {          log("finished libc memset"); log(""); }
+	void start()    { log(""); log("start libc bzero");    }
+	void finished() {          log("finished libc bzero"); log(""); }
 
 	void copy(void *dst, const void *, size_t size) {
-		memset(dst, 0, size); }
+		bzero(dst, size); }
 };
 
 void Libc::Component::construct(Libc::Env &env)
@@ -66,9 +66,9 @@ void Libc::Component::construct(Libc::Env &env)
 
 	memcpy_test<Bytewise_test>  (cached_ds1.local_addr<void>(), cached_ds2.local_addr<void>(), BUF_SIZE);
 	memcpy_test<Genode_cpy_test>(cached_ds1.local_addr<void>(), cached_ds2.local_addr<void>(), BUF_SIZE);
-	memcpy_test<Genode_set_test>();
+	memcpy_test<Genode_zero_test>();
 	memcpy_test<Libc_cpy_test>  (cached_ds1.local_addr<void>(), cached_ds2.local_addr<void>(), BUF_SIZE);
-	memcpy_test<Libc_set_test>();
+	memcpy_test<Libc_zero_test>();
 
 	/* offset src by one page so that src and dst have different cache indices */
 	memcpy_test<Genode_cpy_test>(                        cached_ds1.local_addr<void>(),

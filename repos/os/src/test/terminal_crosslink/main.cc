@@ -114,7 +114,7 @@ class Test_terminal_crosslink::Client : public Partner
 
 			log("Long message test");
 
-			memset(test_data, 5, sizeof(test_data));
+			for (char &c : test_data) c = 5;
 			_write_all(test_data, sizeof(test_data));
 
 			_read_all(_read_buffer, strlen(bye_text) + 1);
