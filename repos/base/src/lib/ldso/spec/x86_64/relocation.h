@@ -83,7 +83,8 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 				if (second_pass && rel->type() != R_GLOB_DAT)
 					continue;
 
-				switch(rel->type()) {
+				try {
+					switch(rel->type()) {
 					case R_64:       _glob_dat_64(rel, addr, true);  break;
 					case R_GLOB_DAT: _glob_dat_64(rel, addr, false); break;
 					case R_COPY:     _copy<Elf::Rela>(rel, addr);    break;
@@ -95,6 +96,10 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 							throw Incompatible();
 						}
 						break;
+					}
+				} catch (Linker::Not_found &symbol) {
+					warning("LD: Reloc_non_plt(", _dep.obj().name(),
+					        "): symbol not found: '", symbol, "'");
 				}
 			}
 		}
