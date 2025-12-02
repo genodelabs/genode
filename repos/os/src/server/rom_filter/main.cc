@@ -107,7 +107,7 @@ class Rom_filter::Session_component : public Rpc_object<Genode::Rom_session>,
 			size_t const copied_len = _output_buffer.export_content(dst, dst_size);
 
 			/* clear remainder of dataspace */
-			Genode::memset(dst + copied_len, 0, dst_size - copied_len);
+			Genode::bzero(dst + copied_len, dst_size - copied_len);
 
 			/* cast RAM into ROM dataspace capability */
 			Dataspace_capability ds_cap = static_cap_cast<Dataspace>(_ram_ds->cap());

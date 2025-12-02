@@ -479,7 +479,7 @@ Thread *Thread::myself()
 	 *      never freed.
 	 */
 	Thread *thread = (Thread *)malloc(sizeof(Thread));
-	memset(thread, 0, sizeof(*thread));
+	bzero(thread, sizeof(*thread));
 	Native_thread::Meta_data *meta_data =
 		new (global_alloc()) Thread_meta_data_adopted(thread);
 

@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
 		struct addrinfo *info, *p;
 
-		memset(&hints, 0x00, sizeof(hints));
+		bzero(&hints, sizeof(hints));
 		hints.ai_family = AF_UNSPEC;
 
 		res = getaddrinfo(arg, NULL, &hints, &info);

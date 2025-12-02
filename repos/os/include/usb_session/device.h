@@ -306,7 +306,7 @@ class Usb::Urb_handler
 				fn(static_cast<URB&>(urb));
 
 				/* clear potentially sensitive packet content */
-				memset(_tx.source()->packet_content(p), 0, p.size());
+				bzero(_tx.source()->packet_content(p), p.size());
 				_tx.source()->release_packet(p);
 			};
 
@@ -589,7 +589,7 @@ bool Usb::Urb_handler<SESSION>::_try_process_ack(Tx::Source &tx,
 	}
 
 	/* clear potentially sensitive packet content */
-	memset(tx.packet_content(p), 0, p.size());
+	bzero(tx.packet_content(p), p.size());
 	tx.release_packet(p);
 	return true;
 }

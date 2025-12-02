@@ -33,7 +33,7 @@ void *jent_zalloc(size_t len)
 
 	void *p = _alloc->alloc(len);
 	if (p)
-		Genode::memset(p, 0, len);
+		Genode::bzero(p, len);
 
 	return p;
 }
@@ -54,5 +54,11 @@ void *jent_memcpy(void *dest, const void *src, size_t n)
 
 void *jent_memset(void *dest, int c, size_t n)
 {
-	return Genode::memset(dest, (uint8_t)c, n);
+	if (c == 0)
+		Genode::bzero(dest, n);
+	else
+		for (size_t i = 0; i < n; i++)
+			((char *)dest)[i] = char(c);
+
+	return dest;
 }

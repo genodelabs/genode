@@ -19,7 +19,7 @@
 #include <aio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>      /* memset */
+#include <string.h>      /* strcpy, bzero */
 #include <sys/mount.h>   /* statfs */
 #include <sys/statvfs.h> /* fstatvfs */
 #include <fcntl.h>       /* open */
@@ -88,7 +88,7 @@ extern "C" int statfs(const char *path, struct statfs *buf)
 	if (res)
 		return res;
 
-	memset(buf, 0, sizeof(*buf));
+	bzero(buf, sizeof(*buf));
 
 	buf->f_bavail = result.f_bavail;
 	buf->f_bfree  = result.f_bfree;

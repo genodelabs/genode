@@ -35,7 +35,7 @@ int main(int argc, char** argv)
 	}
 
 	struct ifreq ifr;
-	memset(&ifr, 0, sizeof(ifr));
+	bzero(&ifr, sizeof(ifr));
 	if (ioctl(fd, TAPGIFNAME, (void *)&ifr) < 0) {
 		printf("Error: TAPGIFNAME failed\n");
 		return 2;
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 
 	/* get mac address */
 	char mac[6];
-	memset(mac, 0, sizeof(mac));
+	bzero(mac, sizeof(mac));
 	if (ioctl(fd, SIOCGIFADDR, (void *)mac) < 0) {
 		printf("Error: SIOCGIFADDR failed\n");
 		return 3;
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 
 	/* try other ioctls */
 	struct tapinfo info;
-	memset(&info, 0, sizeof(info));
+	bzero(&info, sizeof(info));
 	if (ioctl(fd, TAPGIFINFO, (void *)&info) < 0)
 		printf("Warning: TAPGIFINFO failed\n");
 

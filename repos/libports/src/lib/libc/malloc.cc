@@ -248,7 +248,7 @@ extern "C" void *calloc(size_t nmemb, size_t size)
 {
 	void *addr = malloc(nmemb*size);
 	if (addr)
-		Genode::memset(addr, 0, nmemb*size);
+		Genode::bzero(addr, nmemb*size);
 	return addr;
 }
 

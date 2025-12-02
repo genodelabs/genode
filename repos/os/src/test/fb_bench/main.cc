@@ -53,7 +53,7 @@ struct Test
 			);
 		}
 		/* fill one memory buffer with white pixels */
-		memset(buf[1], ~0, fb_ds.size());
+		for (size_t i = 0; i < fb_ds.size(); i++) buf[1][i] = ~0;
 	}
 
 	void conclusion(size_t kib, uint64_t start_ms, uint64_t end_ms) {

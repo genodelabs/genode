@@ -60,7 +60,7 @@ extern "C" void *malloc(size_t size, int type, int flags)
 	void *addr = malloc_backend().alloc(size);
 
 	if (addr && (flags & M_ZERO))
-		Genode::memset(addr, 0, size);
+		Genode::bzero(addr, size);
 
 	return addr;
 }
@@ -103,7 +103,7 @@ extern "C" void bzero(void *b, size_t len)
 {
 	if (b == nullptr) return;
 
-	Genode::memset(b, 0, len);
+	Genode::bzero(b, len);
 }
 
 

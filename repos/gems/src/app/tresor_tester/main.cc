@@ -1010,7 +1010,7 @@ class Tresor_tester::Main : Vfs::Env::User, Client_data_interface, Crypto_key_fi
 				if (node.salt_avail)
 					_generate_blk_data(gen_blk_data, attr.in_vba, node.salt);
 				else if (node.uninitialized_data)
-					memset(&gen_blk_data, 0, BLOCK_SIZE);
+					bzero(&gen_blk_data, BLOCK_SIZE);
 				else
 					return;
 

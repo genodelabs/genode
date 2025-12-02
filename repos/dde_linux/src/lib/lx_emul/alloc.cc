@@ -103,7 +103,7 @@ void * lx_emul_heap_alloc(unsigned long size)
 {
 	void *ptr = Lx_kit::env().heap.alloc(size);
 	if (ptr)
-		Genode::memset(ptr, 0, size);
+		Genode::bzero(ptr, size);
 	return ptr;
 }
 

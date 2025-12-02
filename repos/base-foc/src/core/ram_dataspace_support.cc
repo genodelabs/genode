@@ -29,7 +29,7 @@ void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &) { }
 
 void Ram_dataspace_factory::_clear_ds(Dataspace_component &ds)
 {
-	memset((void *)ds.phys_addr(), 0, ds.size());
+	bzero((void *)ds.phys_addr(), ds.size());
 
 	if (ds.cacheability() != CACHED)
 		Foc::l4_cache_dma_coherent(ds.phys_addr(), ds.phys_addr() + ds.size());

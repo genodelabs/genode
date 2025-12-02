@@ -599,7 +599,7 @@ void lx_emul_i915_framebuffer_ready(unsigned const connector_id,
 
 		/* clear artefacts */
 		if (base && (area != area_phys))
-			Genode::memset(base, 0, area_phys.count() * 4);
+			Genode::bzero(base, area_phys.count() * 4);
 
 		String<12> space { };
 		for (auto i = label.length(); i < space.capacity() - 1; i++) {

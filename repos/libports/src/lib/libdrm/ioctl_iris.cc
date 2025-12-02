@@ -1208,7 +1208,7 @@ class Drm::Call
 			size_t subslice_length = info.max_slices * info.ss_stride;
 			size_t eu_length = info.max_slices * info.max_subslices * info.eu_stride;
 
-			Genode::memset(topo, 0, sizeof(*topo));
+			Genode::bzero(topo, sizeof(*topo));
 			topo->max_slices = info.max_slices;
 			topo->max_subslices = info.max_subslices;
 			topo->max_eus_per_subslice = info.max_eus_per_subslice;

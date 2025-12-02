@@ -83,7 +83,11 @@ struct Generator2
 	struct Entry {
 		unsigned char value[0] { };
 
-		Entry(unsigned char v, size_t len) { memset(value, v, len); }
+		Entry(unsigned char v, size_t len)
+		{
+			unsigned char *d = &value[0];
+			for (size_t i = 0; i < len; i++) d[i] = v;
+		}
 
 		void print(Output &out) const { Genode::print(out, value[0]); }
 	};

@@ -307,8 +307,7 @@ class Virtio_input::Driver
 			auto size = _cfg_select(device, Config_id::Name, 0);
 			size = min(size, SZ);
 
-			char buf[SZ];
-			memset(buf, 0, sizeof(buf));
+			char buf[SZ] { };
 
 			for (unsigned i = 0; i < size; ++i)
 				buf[i] = device.read_config<uint8_t>((uint8_t)(Config::Data + i));

@@ -80,7 +80,7 @@ bool Virtual_block_device::Read_vba::execute(Client_data_interface &client_data,
 			_read_block.generate(_helper, READ_BLK, READ_BLK_SUCCEEDED, progress, _new_pbas.pbas[_lvl], _blk);
 		else
 			if (node.gen == INITIAL_GENERATION) {
-				memset(&_blk, 0, BLOCK_SIZE);
+				bzero(&_blk, BLOCK_SIZE);
 				_helper.state = DECRYPT_BLOCK_SUCCEEDED;
 				progress = true;
 			} else

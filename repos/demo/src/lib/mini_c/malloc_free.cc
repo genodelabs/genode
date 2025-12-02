@@ -57,7 +57,7 @@ extern "C" void *malloc(size_t size)
 extern "C" void *calloc(size_t nmemb, size_t size)
 {
 	void *addr = malloc(nmemb*size);
-	memset(addr, 0, nmemb*size);
+	bzero(addr, nmemb*size);
 	return addr;
 }
 

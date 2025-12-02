@@ -98,7 +98,7 @@ class Uplink_client : public Uplink_client_base
 				throw Exception();
 			}
 
-			::memset(&ifr, 0, sizeof(ifr));
+			bzero(&ifr, sizeof(ifr));
 			ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
 
 			copy_cstring(ifr.ifr_name, tap_name.string(), sizeof(ifr.ifr_name));

@@ -30,11 +30,12 @@ struct Net::Network_address
 {
 	Genode::uint8_t addr[LEN];
 
-	Network_address(Genode::uint8_t value = 0) {
-		Genode::memset(&addr, value, LEN); }
+	Network_address(Genode::uint8_t value = 0)
+	{
+		for (Genode::uint8_t &elem : addr) elem = value;
+	}
 
-	Network_address(void const *src) {
-		Genode::memcpy(&addr, src, LEN); }
+	Network_address(void const *src) { Genode::memcpy(&addr, src, LEN); }
 
 	void copy(void *dst) const { Genode::memcpy(dst, &addr[0], LEN); }
 

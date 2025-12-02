@@ -111,8 +111,8 @@ class Click
 				/* handle last packet gracefully */
 				if (chunk < PERIOD) {
 					for (int i = 0; i < CHANNELS; ++i)
-						memset(p[i]->content() + chunk,
-						       0, PERIOD_CSIZE - FRAME_SIZE * chunk);
+						bzero(p[i]->content() + chunk,
+						      PERIOD_CSIZE - FRAME_SIZE * chunk);
 				}
 
 				for (int i = 0; i < CHANNELS; i++)

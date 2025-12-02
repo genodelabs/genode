@@ -61,8 +61,7 @@ static void test(Libc::Env &env)
 	while (true) {
 
 		/* receive and send back one message without any modifications */
-		char buf[4096];
-		::memset(buf, 0, sizeof(buf));
+		char buf[4096] { };
 		ssize_t rcv_sz = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr*)&addr, &addr_sz);
 		if (rcv_sz < 0) {
 			throw Receive_failed();

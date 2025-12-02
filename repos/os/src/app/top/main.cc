@@ -118,9 +118,9 @@ struct Trace_subject_registry
 		void top(enum SORT_TIME sorting)
 		{
 			/* clear old calculations */
-			Genode::memset(total_first, 0, sizeof(total_first));
-			Genode::memset(total_second, 0, sizeof(total_second));
-			Genode::memset(load, 0, sizeof(load));
+			Genode::bzero(total_first,  sizeof(total_first));
+			Genode::bzero(total_second, sizeof(total_second));
+			Genode::bzero(load,         sizeof(load));
 
 			unsigned const first  = sorting == EC_TIME ? EC_TIME : SC_TIME;
 			unsigned const second = sorting == EC_TIME ? SC_TIME : EC_TIME;
@@ -237,7 +237,8 @@ struct Trace_subject_registry
 
 						enum { NAME_SPACE = 24 };
 						static char space[NAME_SPACE];
-						Genode::memset(space, ' ', NAME_SPACE - 1);
+						for (char &c : space) c = ' ';
+						space[NAME_SPACE - 1] = 0;
 
 						Genode::size_t const thread_name_len = entry.info.thread_name().length();
 						if (!thread_name_len)

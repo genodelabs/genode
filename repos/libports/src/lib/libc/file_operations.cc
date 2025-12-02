@@ -464,7 +464,7 @@ __SYS_(void *, mmap, (void *addr, ::size_t length,
 			errno = ENOMEM;
 			return MAP_FAILED;
 		}
-		::memset(start, 0, align_addr(length, AT_PAGE));
+		::bzero(start, align_addr(length, AT_PAGE));
 		mmap_registry()->insert(start, length, 0);
 		return start;
 	}

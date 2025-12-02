@@ -139,9 +139,14 @@ void *memmove(void *dst, const void *src, size_t n)
 
 
 extern "C" __attribute__((weak))
-void *memset(void *s, int c, size_t n)
+void *memset(void *d, int c, size_t n)
 {
-	return Genode::memset(s, (char)c, n);
+	if (c == 0)
+		Genode::bzero(d, n);
+	else
+		for (size_t i = 0; i < n; i++)
+			((char *)d)[i] = char(c);
+	return d;
 }
 
 

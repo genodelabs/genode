@@ -199,7 +199,7 @@ void Component::construct(Genode::Env &env)
 	/*
 	 * Test throwing non-XML related exceptions during xml generation
 	 */
-	memset(dst.start, 0, dst.num_bytes);
+	bzero(dst.start, dst.num_bytes);
 	used = xml_with_exceptions(dst);
 	log("\nused ", used, " bytes, result:\n\n", Cstring(dst.start));
 

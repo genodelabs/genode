@@ -13,7 +13,18 @@
 
 #include <util/string.h>
 
-extern "C" void *memset(void *s, int c, Genode::size_t n)
+using namespace Genode;
+
+
+extern "C" void *memset(void *d, int c, size_t n)
 {
-	return Genode::memset(s, (char)c, n);
+	if (c == 0) {
+		bzero(d, n);
+		return d;
+	}
+
+	for (size_t i = 0; i < n; i++)
+		((char *)d)[i] = char(c);
+
+	return d;
 }

@@ -31,7 +31,7 @@ namespace Util {
 	Genode::int64_t convert(Rtc::Timestamp const &ts)
 	{
 		Contrib::tm tm;
-		Genode::memset(&tm, 0, sizeof(Contrib::tm));
+		Genode::bzero(&tm, sizeof(Contrib::tm));
 		tm.tm_sec  = ts.second;
 		tm.tm_min  = ts.minute;
 		tm.tm_hour = ts.hour;
@@ -45,7 +45,7 @@ namespace Util {
 	Rtc::Timestamp convert(Genode::int64_t t)
 	{
 		Contrib::tm tm;
-		Genode::memset(&tm, 0, sizeof(Contrib::tm));
+		Genode::bzero(&tm, sizeof(Contrib::tm));
 
 		int const err = Contrib::secs_to_tm((long long)t, &tm);
 		if (err) { Genode::warning("could not convert timestamp"); }

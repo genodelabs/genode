@@ -108,8 +108,8 @@ Child::Load_result Child::_load_static_elf(Dataspace_capability elf_ds,
 				addr_t const src_addr = elf_addr + seg.file_offset();
 				memcpy(dst.ptr, (void *)src_addr, seg.file_size());
 				if (size > seg.file_size())
-					memset((void *)(addr_t(dst.ptr) + seg.file_size()),
-					       0, size - seg.file_size());
+					bzero((void *)(addr_t(dst.ptr) + seg.file_size()),
+					      size - seg.file_size());
 
 				/*
 				 * We store the parent information at the beginning of the

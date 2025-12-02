@@ -225,7 +225,7 @@ Core::Platform::Platform()
 					[&] (Range_allocator::Allocation &virt) {
 
 						map_local(phys_addr, (addr_t)virt.ptr, pages);
-						memset(virt.ptr, 0, log_size);
+						bzero(virt.ptr, log_size);
 
 						new (core_mem_alloc())
 							Rom_module(_rom_fs, "core_log", phys_addr, log_size);

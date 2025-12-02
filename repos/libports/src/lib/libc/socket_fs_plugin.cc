@@ -543,7 +543,7 @@ static sockaddr_in sockaddr_in_struct(Host_string const &host, Port_string const
 	addrinfo hints;
 	addrinfo *info = nullptr;
 
-	::memset(&hints, 0, sizeof(hints));
+	::bzero(&hints, sizeof(hints));
 	hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
 
 	if (getaddrinfo(host.base(), port.base(), &hints, &info))

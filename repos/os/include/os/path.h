@@ -425,7 +425,7 @@ namespace Genode {
 		PATH path;
 
 		char tmp[path.capacity()];
-		memset(tmp, 0, sizeof(tmp));
+		bzero(tmp, sizeof(tmp));
 
 		size_t len = strlen(label);
 

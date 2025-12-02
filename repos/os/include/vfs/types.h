@@ -38,7 +38,7 @@ namespace Vfs {
 	using Genode::strlen;
 	using file_offset = long long;
 	using Genode::memcpy;
-	using Genode::memset;
+	using Genode::bzero;
 	using file_size = unsigned long long;
 	using Genode::List;
 	using Genode::Node;

@@ -127,7 +127,7 @@ class Genode::Bit_array_dynamic
 		  _words(addr)
 		{
 			ASSERT(bits && bits % BITS_PER_WORD == 0);
-			memset(_words, 0, sizeof(addr_t)*_word_cnt);
+			bzero(_words, sizeof(addr_t)*_word_cnt);
 		}
 };
 

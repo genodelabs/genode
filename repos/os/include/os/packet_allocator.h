@@ -92,7 +92,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 
 			try {
 				_bits = (addr_t *)_md_alloc->alloc(bits_bytes);
-				memset(_bits, 0, bits_cnt / 8);
+				bzero(_bits, bits_cnt / 8);
 
 				_array = new (_md_alloc) Bit_array_base(bits_cnt, _bits);
 

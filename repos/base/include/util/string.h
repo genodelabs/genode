@@ -355,61 +355,46 @@ namespace Genode {
 
 
 	/**
-	 * Fill destination buffer with given value
+	 * Clear byte buffer
 	 *
 	 * \param dst   destination buffer
-	 * \param i     byte value
 	 * \param size  buffer size in bytes
 	 *
-	 * The compiler attribute is needed to prevent the
-	 * generation of a 'memset()' call in the 'while' loop
-	 * with gcc 10.
+	 * The compiler attribute is needed to prevent the generation of a
+	 * 'bzero()' call in the 'while' loop with gcc 10.
 	 */
 	__attribute((optimize("no-tree-loop-distribute-patterns")))
-	inline void *memset(void *dst, uint8_t i, size_t size)
+	inline void bzero(void *dst, size_t size)
 	{
 		using word_t = unsigned long;
 
-		enum {
-			LEN  = sizeof(word_t),
-			MASK = LEN-1
-		};
+		static constexpr size_t LEN = sizeof(word_t), MASK = LEN - 1;
 
 		size_t d_align = (size_t)dst & MASK;
-		uint8_t* d = (uint8_t*)dst;
+		uint8_t *d = (uint8_t*)dst;
 
 		/* write until word aligned */
-		for (; d_align && d_align < LEN && size;
-		       d_align++, size--, d++)
-			*d = i;
-
-		word_t word = i;
-		word |= word << 8;
-		word |= word << 16;
-		if (LEN == 8)
-			word |= (word << 16) << 16;
+		for (; d_align && d_align < LEN && size; d_align++, size--, d++)
+			*d = 0;
 
 		/* write 8-word chunks (likely matches cache line size) */
 		for (; size >= 8*LEN; size -= 8*LEN, d += 8*LEN) {
-			((word_t *)d)[0] = word;
-			((word_t *)d)[1] = word;
-			((word_t *)d)[2] = word;
-			((word_t *)d)[3] = word;
-			((word_t *)d)[4] = word;
-			((word_t *)d)[5] = word;
-			((word_t *)d)[6] = word;
-			((word_t *)d)[7] = word;
+			((word_t *)d)[0] = 0; ((word_t *)d)[1] = 0;
+			((word_t *)d)[2] = 0; ((word_t *)d)[3] = 0;
+			((word_t *)d)[4] = 0; ((word_t *)d)[5] = 0;
+			((word_t *)d)[6] = 0; ((word_t *)d)[7] = 0;
 		}
 
 		/* write remaining words */
 		for (; size >= LEN; size -= LEN, d += LEN)
-			((word_t *)d)[0] = word;
+			((word_t *)d)[0] = 0;
 
 		/* write remaining bytes */
 		for (; size; size--, d++)
-			*d = i;
+			*d = 0;
 
-		return dst;
+		/* prevent the compiler from dropping bzero */
+		asm volatile(""::"r"(dst):"memory");
 	}
 
 

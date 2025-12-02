@@ -114,7 +114,7 @@ struct Gui_buffer : Genode::Noncopyable
 	void reset_surface()
 	{
 		with_alpha_surface([&] (Alpha_surface &alpha) {
-			Genode::memset(alpha.addr(), 0, alpha.size().count()); });
+			Genode::bzero(alpha.addr(), alpha.size().count()); });
 
 		with_pixel_surface([&] (Pixel_surface &pixel) {
 

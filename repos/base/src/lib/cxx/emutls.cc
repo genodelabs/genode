@@ -186,7 +186,7 @@ extern "C" void *__emutls_get_address(void *obj)
 		if (emutls_object->templ)
 			memcpy(address, emutls_object->templ, emutls_object->size);
 		else
-			memset(address, 0, emutls_object->size);
+			bzero(address, emutls_object->size);
 
 		tls_node = new (cxx_heap()) Tls_node(myself, address);
 

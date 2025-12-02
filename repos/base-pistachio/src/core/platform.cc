@@ -625,7 +625,7 @@ Core::Platform::Platform()
 					        rom_name, "' as preserved virtual memory");
 					return;
 				}
-				memset(core_local_ptr, 0, size);
+				bzero(core_local_ptr, size);
 				content_fn(core_local_ptr, size);
 
 				new (core_mem_alloc())

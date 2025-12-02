@@ -150,7 +150,7 @@ class Hw::Page_table_tpl
 	public:
 
 		Page_table_tpl() {
-			Genode::memset(&_entries, 0, sizeof(_entries)); }
+			bzero(&_entries, sizeof(_entries)); }
 
 		bool empty()
 		{

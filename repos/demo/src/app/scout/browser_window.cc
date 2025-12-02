@@ -257,8 +257,8 @@ Browser_window<PT>::Browser_window(Document *initial_content,
 	_history.add(initial_content);
 
 	/* init icons */
-	memset(_icon_fg,       0, sizeof(_icon_fg));
-	memset(_icon_fg_alpha, 0, sizeof(_icon_fg_alpha));
+	bzero(_icon_fg,       sizeof(_icon_fg));
+	bzero(_icon_fg_alpha, sizeof(_icon_fg_alpha));
 	for (int i = 0; i < _NUM_ICONS; i++) {
 
 		/* convert rgba raw image to PT pixel format and alpha channel */

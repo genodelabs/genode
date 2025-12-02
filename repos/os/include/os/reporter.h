@@ -97,7 +97,7 @@ class Genode::Reporter
 		/**
 		 * Clear report buffer
 		 */
-		void clear() { memset(_base(), 0, _size()); }
+		void clear() { bzero(_base(), _size()); }
 
 		using Result = Attempt<Ok, Buffer_error>;
 

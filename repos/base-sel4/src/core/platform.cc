@@ -548,7 +548,7 @@ void Core::Platform::_init_rom_modules()
 						return;
 					}
 
-					memset(core_local.ptr, 0, size);
+					bzero(core_local.ptr, size);
 					content_fn((char *)core_local.ptr, size);
 
 					new (core_mem_alloc())

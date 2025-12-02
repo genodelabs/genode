@@ -123,8 +123,8 @@ Mapping Platform::_load_elf()
 			memcpy(dst, phys, segment.file_size());
 
 			if (size > segment.file_size())
-				memset((void *)((addr_t)dst + segment.file_size()),
-				       0, size - segment.file_size());
+				bzero((void *)((addr_t)dst + segment.file_size()),
+				      size - segment.file_size());
 
 			phys = dst;
 		}

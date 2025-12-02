@@ -124,8 +124,8 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 			/* clear difference between old and new content */
 			if (new_content_size < _content_size)
-				Genode::memset(_ds->local_addr<char>() + new_content_size, 0,
-				               _content_size - new_content_size);
+				Genode::bzero(_ds->local_addr<char>() + new_content_size,
+				              _content_size - new_content_size);
 
 			_content_size = new_content_size;
 

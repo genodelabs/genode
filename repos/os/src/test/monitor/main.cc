@@ -123,7 +123,8 @@ struct Test::Main
 
 		Attached_ram_dataspace large_ram_ds { _env.ram(), _env.rm(), 8*1024*1024 };
 
-		memset(large_ram_ds.local_addr<char>(), 1, large_ram_ds.size());
+		for (size_t i = 0; i < large_ram_ds.size(); i++)
+			large_ram_ds.local_addr<char>()[i] = 1;
 
 		/*
 		 * Dimensioning of the buffer for one round trip:

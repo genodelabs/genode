@@ -416,7 +416,7 @@ namespace Ahci {
 		}
 
 		static constexpr size_t size() { return 0x14; }
-		void clear() { memset((void *)base(), 0, size()); }
+		void clear() { bzero((void *)base(), size()); }
 
 
 		/************************
@@ -544,7 +544,7 @@ namespace Ahci {
 
 		Atapi_command(Byte_range_ptr const &range) : Mmio(range)
 		{
-			memset((void *)base(), 0, 16);
+			bzero((void *)base(), 16);
 		}
 
 		void read_capacity()

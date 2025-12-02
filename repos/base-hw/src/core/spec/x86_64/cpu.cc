@@ -156,7 +156,7 @@ void Cpu::clear_memory_region(addr_t const addr, size_t const size, bool)
 		asm volatile ("rep stosq" : "+D" (start), "+c" (count)
 		                          : "a" (0)  : "memory");
 	} else {
-		memset((void*)addr, 0, size);
+		bzero((void*)addr, size);
 	}
 }
 

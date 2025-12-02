@@ -80,7 +80,7 @@ class Audio_in::Packet
 			Genode::memcpy(_data, data, (samples > PERIOD ? PERIOD : samples) * SAMPLE_SIZE);
 
 			if (samples < PERIOD)
-				Genode::memset(_data + samples, 0, (PERIOD - samples) * SAMPLE_SIZE);
+				Genode::bzero(_data + samples, (PERIOD - samples) * SAMPLE_SIZE);
 		}
 
 		/**

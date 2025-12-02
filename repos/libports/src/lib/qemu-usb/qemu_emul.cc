@@ -150,8 +150,15 @@ void g_free(void *p) {
 }
 
 
-void *memset(void *s, int c, size_t n) {
-	return Genode::memset(s, c, n); }
+void *memset(void *d, int c, size_t n)
+{
+	if (c == 0)
+		Genode::bzero(d, n);
+	else
+		for (size_t i = 0; i < n; i++)
+			((char *)d)[i] = char(c);
+	return d;
+}
 
 
 void qemu_printf(char const *fmt, ...)
@@ -300,7 +307,7 @@ struct Object_pool
 		for (unsigned i = USB_FIRST_FREE; i < MAX; i++) {
 			if (used[i] == false) {
 				used[i] = true;
-				memset(&obj[i], 0, sizeof(obj[i]));
+				Genode::bzero(&obj[i], sizeof(obj[i]));
 				return &obj[i];
 			}
 		}
@@ -505,7 +512,7 @@ Type type_register_static(TypeInfo const *t)
 		{
 			Wrapper *p = &Object_pool::p()->obj[Object_pool::XHCI_PCI];
 			p->_xhci_pci_state = (XHCIPciState*) g_malloc(sizeof(XHCIPciState));
-			Genode::memset(p->_xhci_pci_state, 0, sizeof(XHCIPciState));
+			Genode::bzero(p->_xhci_pci_state, sizeof(XHCIPciState));
 
 			w->_xhci_state = (XHCIState*)&p->_xhci_pci_state->xhci;
 		}
@@ -651,7 +658,7 @@ struct Controller : public Qemu::Controller
 
 	Controller()
 	{
-		Genode::memset(mmio_regions, 0, sizeof(mmio_regions));
+		Genode::bzero(mmio_regions, sizeof(mmio_regions));
 	}
 
 	void mmio_add_region(uint64_t size) { _mmio_size = size; }
@@ -935,7 +942,7 @@ void qemu_iovec_init(QEMUIOVector *qiov, int alloc_hint)
 		throw -1;
 	}
 
-	Genode::memset(qiov->iov, 0, sizeof(iovec) * alloc_hint);
+	Genode::bzero(qiov->iov, sizeof(iovec) * alloc_hint);
 
 	qemu_iovec_reset(qiov);
 }

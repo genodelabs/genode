@@ -127,7 +127,7 @@ class File_system::Chunk : public Chunk_base
 		:
 			Chunk_base(base_offset)
 		{
-			memset(_data, 0, CHUNK_SIZE);
+			bzero(_data, CHUNK_SIZE);
 		}
 
 		/**
@@ -176,7 +176,7 @@ class File_system::Chunk : public Chunk_base
 			if (local_offset >= _num_entries)
 				return;
 
-			memset(&_data[local_offset], 0, _num_entries - local_offset);
+			bzero(&_data[local_offset], _num_entries - local_offset);
 
 			_num_entries = local_offset;
 		}
@@ -340,7 +340,7 @@ class File_system::Chunk_index : public Chunk_base
 			void operator () (Entry &entry, Byte_range_ptr const &dst, Seek at) const
 			{
 				if (entry.zero())
-					memset(dst.start, 0, dst.num_bytes);
+					bzero(dst.start, dst.num_bytes);
 				else
 					entry.read(dst, at);
 			}

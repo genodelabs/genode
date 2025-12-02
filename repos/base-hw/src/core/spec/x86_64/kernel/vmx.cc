@@ -71,7 +71,7 @@ void kernel_entry_push_trap()
 
 Vmcs_buf::Vmcs_buf(Genode::uint32_t system_rev)
 {
-	Genode::memset((void *) this, 0, sizeof(Vmcs_buf));
+	bzero((void *)this, sizeof(Vmcs_buf));
 	rev = system_rev;
 }
 

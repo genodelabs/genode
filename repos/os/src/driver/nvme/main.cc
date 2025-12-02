@@ -578,7 +578,7 @@ struct Nvme::Sq : Nvme::Queue
 	Byte_range_ptr next()
 	{
 		char *a = local_addr<char>() + (tail * SQE_LEN);
-		Genode::memset(a, 0, SQE_LEN);
+		Genode::bzero(a, SQE_LEN);
 		tail = (tail + 1) % max_entries;
 		return {a, size()};
 	}

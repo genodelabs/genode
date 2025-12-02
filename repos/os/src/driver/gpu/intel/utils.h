@@ -93,7 +93,7 @@ class Utils::Address_map
 
 		Address_map()
 		{
-			Genode::memset(&_map, 0, sizeof(_map));
+			Genode::bzero(&_map, sizeof(_map));
 		}
 
 		~Address_map()

@@ -122,7 +122,7 @@ namespace {
 
 			Message(void *buffer, size_t buffer_len) : _num_sds(0)
 			{
-				Genode::memset(&_msg, 0, sizeof(_msg));
+				Genode::bzero(&_msg, sizeof(_msg));
 
 				/* initialize control message */
 				struct cmsghdr *cmsg;

@@ -571,7 +571,7 @@ Core::Platform::Platform()
 							        rom_name, " as ROM module");
 							return; }
 
-						memset(core_local.ptr, 0, bytes);
+						bzero(core_local.ptr, bytes);
 						content_fn((char *)core_local.ptr, bytes);
 
 						new (core_mem_alloc())

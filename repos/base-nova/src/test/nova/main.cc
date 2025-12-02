@@ -364,19 +364,19 @@ void test_pat(Genode::Env &env)
 	/*
 	 * measure time to write to the memory
 	 */
-	memset(reinterpret_cast<void *>(memory), 0, DS_SIZE);
+	bzero(reinterpret_cast<void *>(memory), DS_SIZE);
 	Trace::Timestamp normal_start = Trace::timestamp();
-	memset(reinterpret_cast<void *>(memory), 0, DS_SIZE);
+	bzero(reinterpret_cast<void *>(memory), DS_SIZE);
 	Trace::Timestamp normal_end = Trace::timestamp();
 
-	memset(reinterpret_cast<void *>(memory_wc), 0, DS_SIZE);
+	bzero(reinterpret_cast<void *>(memory_wc), DS_SIZE);
 	Trace::Timestamp map_start = Trace::timestamp();
-	memset(reinterpret_cast<void *>(memory_wc), 0, DS_SIZE);
+	bzero(reinterpret_cast<void *>(memory_wc), DS_SIZE);
 	Trace::Timestamp map_end = Trace::timestamp();
 
-	memset(reinterpret_cast<void *>(memory_remap), 0, DS_SIZE);
+	bzero(reinterpret_cast<void *>(memory_remap), DS_SIZE);
 	Trace::Timestamp remap_start = Trace::timestamp();
-	memset(reinterpret_cast<void *>(memory_remap), 0, DS_SIZE);
+	bzero(reinterpret_cast<void *>(memory_remap), DS_SIZE);
 	Trace::Timestamp remap_end = Trace::timestamp();
 
 	auto normal_run = normal_end - normal_start;
