@@ -107,6 +107,9 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 	Report_forwarder _report_forwarder { _env, _heap };
 	Rom_forwarder    _rom_forwarder    { _env, _heap };
 
+	Pointer::Position _reported_position   { .valid = false, .value = { } };
+	Input::Seq_number _reported_seq_number { 0 };
+
 	Signal_handler<Main> _update_pointer_report_handler {
 		_env.ep(), *this, &Main::_handle_update_pointer_report };
 
@@ -114,15 +117,24 @@ struct Wm::Main : Pointer::Tracker, Gui::Session_component::Action
 	{
 		Pointer::Position const touch_pos   = _gui_root.last_observed_touch_pos();
 		Pointer::Position const pointer_pos = _gui_root.last_observed_pointer_pos();
+		Input::Seq_number const seq_number  = _gui_root.seq_number();
 
 		Pointer::Position const pos = touch_pos.valid ? touch_pos : pointer_pos;
 
+		/* only report if pos or seq_number changed */
+		if (_reported_position.valid == pos.valid &&
+		    _reported_position.value == pos.value &&
+		    _reported_seq_number.value == seq_number.value)
+			return;
+
 		_pointer_reporter.generate([&] (Generator &g) {
 			if (pos.valid) {
-				g.attribute("seq_number", _gui_root.seq_number().value);
+				g.attribute("seq_number", seq_number.value);
 				g.attribute("xpos", pos.value.x);
 				g.attribute("ypos", pos.value.y);
 			}
+			_reported_position   = pos;
+			_reported_seq_number = seq_number;
 		});
 	}
 
