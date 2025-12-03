@@ -224,7 +224,7 @@ enum Errno genode_socket_bind(struct genode_socket_handle  *handle,
 enum Errno genode_socket_listen(struct genode_socket_handle *handle,
                                 int backlog)
 {
-	return handle->protocol.listen(backlog & 0xff);
+	return handle->protocol.listen(Lwip::u8_t(backlog & 0xff));
 }
 
 

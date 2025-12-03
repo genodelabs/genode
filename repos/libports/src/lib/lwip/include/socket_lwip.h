@@ -111,7 +111,7 @@ struct Socket::Protocol : private Noncopyable
 		uint8_t *base = static_cast<uint8_t *>(_base);
 
 		while (size) {
-			uint16_t chunk_size = size > uint16_t(~0u) ? uint16_t(~0u) : size;
+			uint16_t chunk_size = uint16_t(size > 0xffff ? 0xffff : size);
 			fn(base, chunk_size);
 			size -= chunk_size;
 			base += chunk_size;

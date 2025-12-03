@@ -25,6 +25,9 @@ namespace Socket {
 
 class Socket::Tcp : public Protocol
 {
+	Tcp(const Tcp&) = delete;
+	Tcp operator=(const Tcp&) = delete;
+
 	private:
 
 		Allocator &_alloc;
@@ -71,7 +74,7 @@ class Socket::Tcp : public Protocol
 			 * Write in a loop to account for lwIP chunking
 			 */
 			while(size) {
-				Lwip::u16_t n = min(size, _sendbuf_avail());
+				Lwip::u16_t n = min(size, Lwip::u16_t(_sendbuf_avail()));
 
 				Lwip::err_t err  = Lwip::tcp_write(_pcb, src, n, TCP_WRITE_FLAG_COPY);
 				if (err != Lwip::ERR_OK) {
@@ -151,7 +154,7 @@ class Socket::Tcp : public Protocol
 		}
 
 		static Lwip::err_t
-		_tcp_accept_callback(void *arg, Lwip::tcp_pcb *newpcb, Lwip::err_t err)
+		_tcp_accept_callback(void *arg, Lwip::tcp_pcb *newpcb, Lwip::err_t)
 		{
 			if (!arg) {
 				Lwip::tcp_abort(newpcb);
@@ -202,7 +205,7 @@ class Socket::Tcp : public Protocol
 		}
 
 		static Lwip::err_t
-		_tcp_connected_callback(void *arg, struct Lwip::tcp_pcb *pcb, Lwip::err_t err)
+		_tcp_connected_callback(void *arg, struct Lwip::tcp_pcb *, Lwip::err_t err)
 		{
 			Tcp *tcp = static_cast<Tcp *>(arg);
 			tcp->_state = Protocol::State::READY;
@@ -359,7 +362,7 @@ class Socket::Tcp : public Protocol
 				if (err != Lwip::ERR_OK) return;
 
 				/* limit size to available sendbuf */
-				Lwip::u16_t limit_size = min(_sendbuf_avail(), size);
+				Lwip::u16_t limit_size = Lwip::u16_t(min(_sendbuf_avail(), size));
 				if (limit_size == 0) {
 					err = Lwip::ERR_WOULDBLOCK;
 					return;
@@ -424,7 +427,7 @@ class Socket::Tcp : public Protocol
 
 			/* ack remote */
 			if (!msg_peek && _pcb)  {
-					Lwip::tcp_recved(_pcb, bytes_recv);
+					Lwip::tcp_recved(_pcb, Lwip::u16_t(bytes_recv));
 					_recvbuf_consume(bytes_recv);
 			}
 

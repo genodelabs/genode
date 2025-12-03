@@ -51,7 +51,9 @@ class Socket::Udp : public Protocol
 				Lwip::u16_t read(void *dst, size_t count)
 				{
 					count = min(size_t(_pbuf.tot_len), count);
-					Lwip::u16_t n = Lwip::pbuf_copy_partial(&_pbuf, dst, count, _offset);
+					Lwip::u16_t n = Lwip::pbuf_copy_partial(&_pbuf, dst,
+					                                        Lwip::u16_t(count),
+					                                        _offset);
 					_offset += n;
 					return n;
 				}
@@ -59,7 +61,8 @@ class Socket::Udp : public Protocol
 				Lwip::u16_t peek(void *dst, size_t count)  const
 				{
 					count = min(size_t(_pbuf.tot_len), count);
-					return Lwip::pbuf_copy_partial(&_pbuf, dst, count, _offset);
+					return Lwip::pbuf_copy_partial(&_pbuf, dst, Lwip::u16_t(count),
+					                               _offset);
 				}
 
 				bool empty() { return _offset >= _pbuf.tot_len; }
@@ -95,7 +98,7 @@ class Socket::Udp : public Protocol
 		}
 
 		static void
-		_udp_recv_callback(void *arg, Lwip::udp_pcb *pcb, Lwip::pbuf *pbuf,
+		_udp_recv_callback(void *arg, Lwip::udp_pcb *, Lwip::pbuf *pbuf,
 		                   Lwip::ip_addr_t const *addr, Lwip::u16_t port)
 		{
 			if (!arg) {
@@ -134,7 +137,7 @@ class Socket::Udp : public Protocol
 			return lwip_error(Lwip::udp_bind(&_pcb, &ip, port));
 		}
 
-		Errno listen(uint8_t backlog)
+		Errno listen(uint8_t) override
 		{
 			return lwip_error(GENODE_ENOTSUPP);
 		}
@@ -184,7 +187,7 @@ class Socket::Udp : public Protocol
 					/* only C functions in loop */
 					using namespace Lwip;
 
-					Lwip::u16_t const alloc_size = min(uint16_t(~0u), size);
+					Lwip::u16_t const alloc_size = min(uint16_t(~0u), uint16_t(size));
 					pbuf * const pbuf = pbuf_alloc(PBUF_RAW, alloc_size, PBUF_RAM);
 					pbuf_take(pbuf, src, pbuf->tot_len);
 
@@ -255,7 +258,7 @@ class Socket::Udp : public Protocol
 			return lwip_error(bytes_recv > 0 ? GENODE_ENONE : GENODE_EAGAIN);
 		}
 
-		Errno peername(genode_sockaddr &addr) override
+		Errno peername(genode_sockaddr &) override
 		{
 			Genode::error(__func__, " not implemented");
 			return lwip_error(GENODE_ENOTSUPP);

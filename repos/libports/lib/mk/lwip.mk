@@ -52,6 +52,3 @@ vpath %.c  $(sort $(dir \
 C_API = $(dir $(call select_from_repositories,src/lib/genode_c_api))
 
 vpath genode_c_api/nic_client.cc $(C_API)
-
-#XXX: Remove
-CC_CXX_WARN_STRICT =
