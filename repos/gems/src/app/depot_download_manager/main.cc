@@ -491,6 +491,11 @@ void Depot_download_manager::Main::_handle_query_result()
 	if (complete) {
 		log("installation complete.");
 		_update_state_report();
+
+		if (_installation.node().attribute_value("exit", false)) {
+			_env.parent().exit(0);
+			sleep_forever();
+		}
 		return;
 	}
 
