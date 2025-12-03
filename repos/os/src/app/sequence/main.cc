@@ -40,9 +40,12 @@ struct Sequence::Child : Genode::Child_policy
 		return binary_name;
 	}
 
+	using Config_name = String<64>;
+
 	Name        const _name;
 	bool        const _have_config;
 	Binary_name const _binary_name;
+	Config_name const _config_name;
 
 	Child_policy_dynamic_rom_file _config_policy {
 		_env.rm(), "config", _env.ep().rpc_ep(), &_env.ram() };
@@ -80,6 +83,7 @@ struct Sequence::Child : Genode::Child_policy
 		_name(start_node.attribute_value("name", Name())),
 		_have_config(start_node.has_sub_node("config")),
 		_binary_name(_start_binary(_name, start_node)),
+		_config_name(start_node.attribute_value("config", Config_name())),
 		_exit_transmitter(exit_handler)
 	{
 		start_node.with_optional_sub_node("config",
@@ -114,19 +118,27 @@ struct Sequence::Child : Genode::Child_policy
 	                 With_route::Ft    const &fn,
 	                 With_no_route::Ft const &) override
 	{
+		Session_label rewritten_label = label;
+
 		auto route = [&] (Service &service)
 		{
 			return Route { .service = service,
-			               .label   = label,
+			               .label   = rewritten_label,
 			               .diag    = diag };
 		};
 
-		if (_have_config) {
-			Service *s = _config_policy.resolve_session_request(name, label);
-			if (s) {
-				fn(route(*s));
-				return;
+		if (name == "ROM" && label == prefixed_label(_name, String<8>("config"))) {
+
+			if (_have_config) {
+				Service *s = _config_policy.resolve_session_request(name, label);
+				if (s) {
+					fn(route(*s));
+					return;
+				}
 			}
+
+			if (_config_name.length() > 1)
+				rewritten_label = _config_name;
 		}
 
 		Service &service = *new (_services_heap)
@@ -204,8 +216,27 @@ struct Sequence::Child : Genode::Child_policy
 	void init(Pd_session &pd, Pd_session_capability pd_cap) override
 	{
 		pd.ref_account(ref_account_cap());
-		ref_account().transfer_quota(pd_cap, Cap_quota{_env.pd().avail_caps().value >> 1});
-		ref_account().transfer_quota(pd_cap, Ram_quota{_env.pd().avail_ram().value >> 1});
+
+		Cap_quota caps = _env.pd().avail_caps();
+		Ram_quota ram  = _env.pd().avail_ram();
+
+		size_t const preserved_caps = 50, preserved_ram = 1*1024*1024;
+
+		if (ram.value < preserved_ram) {
+			error("insufficient available RAM");
+			return;
+		}
+
+		if (ram.value < preserved_ram) {
+			error("insufficient available caps");
+			return;
+		}
+
+		caps.value -= preserved_caps;
+		ram .value -= preserved_ram;
+
+		ref_account().transfer_quota(pd_cap, caps);
+		ref_account().transfer_quota(pd_cap, ram);
 	}
 
 	Id_space<Parent::Server> &server_id_space() override { return _server_ids; }
