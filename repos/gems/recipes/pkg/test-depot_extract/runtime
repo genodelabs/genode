@@ -1,12 +1,12 @@
 <runtime ram="128M" caps="5000" binary="init">
 
-	<fail after_seconds="30"/>
+	<fail after_seconds="40"/>
 	<succeed>
 		*test1/raw/good/2025-09-24*done*
 		*test1/image/os-pc-2025-09-24*done*
 		*test1/index/25.09*done*
 		*test2/raw/tamper/2025-09-24*done*
-		*watch -> fs_query -> listing*
+		*steps -> fs_query -> listing*
 		*/depot/test1/raw/good/2025-09-24*
 		*content expected to be installed*
 		*system image expected to be installed*
@@ -24,7 +24,6 @@
 		<rom label="depot_download.config"/>
 		<rom label="depot_download_manager"/>
 		<rom label="depot_query"/>
-		<rom label="dummy"/>
 		<rom label="extract"/>
 		<rom label="fs_query"/>
 		<rom label="fs_rom"/>
@@ -91,9 +90,9 @@
 					</dir>
 					<dir name="public"> <tar name="public.tar"/> </dir>
 				</vfs>
-				<policy label_prefix="depot_download -> depot ->"  root="/depot"  writeable="yes"/>
-				<policy label_prefix="depot_download -> public ->" root="/public" writeable="yes"/>
-				<policy label_prefix="watch ->"                    root="/"       writeable="no"/>
+				<policy label_prefix="steps -> install -> depot ->"  root="/depot"  writeable="yes"/>
+				<policy label_prefix="steps -> install -> public ->" root="/public" writeable="yes"/>
+				<policy label_prefix="steps -> fs_query"             root="/"       writeable="no"/>
 			</config>
 		</start>
 
@@ -103,24 +102,13 @@
 			</config>
 		</start>
 
-		<start name="depot_download" caps="2000" ram="72M">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config">
-					<parent label="depot_download.config"/> </service>
-				<service name="Report"> <child name="report_rom"/> </service>
-				<service name="File_system"> <child name="vfs"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-
-		<start name="watch" caps="700" ram="20M">
+		<start name="steps" caps="2500" ram="80M">
 			<binary name="sequence"/>
 			<config>
-				<start name="dummy" caps="100">
-					<config> <sleep ms="18000"/> <exit/> </config>
+				<start name="install" caps="2000" ram="72M" config="depot_download.config">
+					<binary name="init"/>
 				</start>
-				<start name="fs_query" caps="120" ram="2M">
+				<start name="fs_query">
 					<config>
 						<vfs> <fs/> </vfs>
 						<query path="/depot/test1/raw/good/2025-09-24" content="yes"/>

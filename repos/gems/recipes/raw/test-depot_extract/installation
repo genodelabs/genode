@@ -1,4 +1,4 @@
-<installation arch="x86_64" download="no">
+<installation arch="x86_64" download="no" exit="yes">
 	<archive path="test1/raw/good/2025-09-24"/>
 	<image   path="test1/image/os-pc-2025-09-24"/>
 	<index   path="test1/index/25.09"/>
