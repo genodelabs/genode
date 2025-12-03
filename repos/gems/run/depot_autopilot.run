@@ -678,6 +678,8 @@ set default_test_pkgs {
 	test-libc_getenv
 	test-libc_kqueue
 	test-libc_pipe
+	test-libc_udp_unreachable_lwip
+	test-libc_udp_unreachable_lxip
 	test-libc_vfs
 	test-libc_vfs_audit
 	test-libc_vfs_block
@@ -812,6 +814,7 @@ if {[have_spec riscv]} {
 	set skip_test(gcov)                              true
 	set skip_test(test-libc_connect_lxip)            true
 	set skip_test(test-libc_connect_vfs_server_lxip) true
+	set skip_test(test-libc_udp_unreachable_lxip)    true
 	set skip_test(test-rm_fault_no_nox)              true
 	set skip_test(test-spark)                        true
 	set skip_test(test-spark_exception)              true
