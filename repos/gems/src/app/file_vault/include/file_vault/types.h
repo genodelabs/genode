@@ -90,7 +90,7 @@ namespace File_vault {
 			Operation_id id;
 			bool finished;
 
-			Rekey(Xml_node const &node)
+			Rekey(Node const &node)
 			: id(node.attribute_value("id", 0ULL)), finished(node.attribute_value("finished", false)) { }
 
 			Rekey(Operation_id id, bool finished) : id(id), finished(finished) { }
@@ -107,7 +107,7 @@ namespace File_vault {
 			Operation_id id { };
 			bool finished { };
 
-			Extend(Xml_node const &node)
+			Extend(Node const &node)
 			: id(node.attribute_value("id", 0ULL)), finished(node.attribute_value("finished", false)) { }
 
 			Extend(Operation_id id, bool finished) : id(id), finished(finished) { }
@@ -128,15 +128,15 @@ namespace File_vault {
 
 		Ui_report() { }
 
-		Ui_report(Xml_node const &node)
+		Ui_report(Node const &node)
 		:
 			state(string_to_state(node.attribute_value("state", State_string()))),
 			image_size(node.attribute_value("image_size", Number_of_bytes())),
 			capacity(node.attribute_value("capacity", Number_of_bytes())),
 			num_clients(node.attribute_value("num_clients", 0ULL))
 		{
-			node.with_optional_sub_node("rekey", [&] (Xml_node const &n) { rekey.construct(n); });
-			node.with_optional_sub_node("extend", [&] (Xml_node const &n) { extend.construct(n); });
+			node.with_optional_sub_node("rekey", [&] (Node const &n) { rekey.construct(n); });
+			node.with_optional_sub_node("extend", [&] (Node const &n) { extend.construct(n); });
 		}
 
 		void generate(Generator &g)
@@ -179,7 +179,7 @@ namespace File_vault {
 				ASSERT_NEVER_REACHED;
 			}
 
-			Extend(Xml_node const &node)
+			Extend(Node const &node)
 			:
 				id(node.attribute_value("id", 0ULL)),
 				tree(string_to_tree(node.attribute_value("tree", Tree_string()))),
@@ -200,7 +200,7 @@ namespace File_vault {
 		{
 			Operation_id id;
 
-			Rekey(Xml_node const &node) : id(node.attribute_value("id", 0ULL)) { }
+			Rekey(Node const &node) : id(node.attribute_value("id", 0ULL)) { }
 
 			Rekey(Operation_id id) : id(id) { }
 
@@ -213,14 +213,14 @@ namespace File_vault {
 		Constructible<Rekey> rekey { };
 		Constructible<Extend> extend { };
 
-		Ui_config(Xml_node const &node)
+		Ui_config(Node const &node)
 		:
 			passphrase(node.attribute_value("passphrase", Passphrase())),
 			client_fs_size(node.attribute_value("client_fs_size", Number_of_bytes())),
 			journaling_buf_size(node.attribute_value("journaling_buf_size", Number_of_bytes()))
 		{
-			node.with_optional_sub_node("rekey", [&] (Xml_node const &n) { rekey.construct(n); });
-			node.with_optional_sub_node("extend", [&] (Xml_node const &n) { extend.construct(n); });
+			node.with_optional_sub_node("rekey", [&] (Node const &n) { rekey.construct(n); });
+			node.with_optional_sub_node("extend", [&] (Node const &n) { extend.construct(n); });
 		}
 
 		Ui_config() { }

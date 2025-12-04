@@ -720,7 +720,7 @@ struct Main : Prompt::Action
 	void handle_signal()
 	{
 		ui_report_rom.update();
-		ui_report.construct(ui_report_rom.xml());
+		ui_report.construct(ui_report_rom.node());
 		switch (ui_report->state) {
 		case Ui_report::INVALID: active_dialog = WAIT; break;
 		case Ui_report::UNINITIALIZED: active_dialog = SETUP; break;
