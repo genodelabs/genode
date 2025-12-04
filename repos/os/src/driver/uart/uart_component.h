@@ -50,7 +50,7 @@ class Uart::Session_component : public Rpc_object<Terminal::Session,
 		 */
 		enum { IO_BUFFER_SIZE = 4096 };
 
-		Genode::Attached_ram_dataspace _io_buffer;
+		Attached_ram_dataspace _io_buffer;
 
 		/**
 		 * Functor informing the client about new data to read
@@ -146,54 +146,54 @@ class Uart::Session_component : public Rpc_object<Terminal::Session,
 
 		bool avail() override { return _driver.char_avail(); }
 
-		Genode::size_t _read(Genode::size_t dst_len)
+		size_t _read(size_t dst_len)
 		{
-			char *io_buf      = _io_buffer.local_addr<char>();
-			Genode::size_t sz = Genode::min(dst_len, _io_buffer.size());
+			char * const io_buf = _io_buffer.local_addr<char>();
+			size_t sz = min(dst_len, _io_buffer.size());
 
-			Genode::size_t n = 0;
+			size_t n = 0;
 			while ((n < sz) && _driver.char_avail())
 				io_buf[n++] = _driver.get_char();
 
 			return n;
 		}
 
-		Genode::size_t _write(Genode::size_t num_bytes)
+		size_t _write(size_t num_bytes)
 		{
 			/* constrain argument to I/O buffer size */
-			num_bytes = Genode::min(num_bytes, _io_buffer.size());
+			num_bytes = min(num_bytes, _io_buffer.size());
 
 			char const *io_buf = _io_buffer.local_addr<char>();
-			for (Genode::size_t i = 0; i < num_bytes; i++)
+			for (size_t i = 0; i < num_bytes; i++)
 				_driver.put_char(io_buf[i]);
 
 			return num_bytes;
 		}
 
-		Genode::Dataspace_capability _dataspace() {
+		Dataspace_capability _dataspace() {
 			return _io_buffer.cap(); }
 
-		void connected_sigh(Genode::Signal_context_capability sigh) override
+		void connected_sigh(Signal_context_capability sigh) override
 		{
 			/*
 			 * Immediately reflect connection-established signal to the
 			 * client because the session is ready to use immediately after
 			 * creation.
 			 */
-			Genode::Signal_transmitter(sigh).submit();
+			Signal_transmitter(sigh).submit();
 		}
 
-		void read_avail_sigh(Genode::Signal_context_capability sigh) override
+		void read_avail_sigh(Signal_context_capability sigh) override
 		{
 			_char_avail.sigh = sigh;
 
 			if (_driver.char_avail()) _char_avail();
 		}
 
-		void size_changed_sigh(Genode::Signal_context_capability) override { }
+		void size_changed_sigh(Signal_context_capability) override { }
 
-		Genode::size_t read(void *, Genode::size_t) override { return 0; }
-		Genode::size_t write(void const *, Genode::size_t) override { return 0; }
+		size_t read(void *, size_t) override { return 0; }
+		size_t write(void const *, size_t) override { return 0; }
 };
 
 

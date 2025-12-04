@@ -32,10 +32,10 @@ namespace Uart {
  */
 struct Uart::Char_avail_functor
 {
-	Genode::Signal_context_capability sigh;
+	Signal_context_capability sigh;
 
 	void operator ()() {
-		if (sigh.valid()) Genode::Signal_transmitter(sigh).submit(); }
+		if (sigh.valid()) Signal_transmitter(sigh).submit(); }
 
 };
 
@@ -44,13 +44,13 @@ class Uart::Driver_base
 {
 	private:
 
-		Char_avail_functor                 &_char_avail;
-		Genode::Irq_connection              _irq;
-		Genode::Signal_handler<Driver_base> _irq_handler;
+		Char_avail_functor         &_char_avail;
+		Irq_connection              _irq;
+		Signal_handler<Driver_base> _irq_handler;
 
 	public:
 
-		Driver_base(Genode::Env &env, int irq_number, Char_avail_functor &func)
+		Driver_base(Env &env, int irq_number, Char_avail_functor &func)
 		: _char_avail(func),
 		  _irq(env, irq_number),
 		  _irq_handler(env.ep(), *this, &Driver_base::handle_irq)
@@ -94,11 +94,11 @@ struct Uart::Driver_factory
 {
 	struct Not_available { };
 
-	Genode::Env  &env;
-	Genode::Heap &heap;
-	Driver       *drivers[UARTS_NUM];
+	Env   &env;
+	Heap  &heap;
+	Driver*drivers[UARTS_NUM];
 
-	Driver_factory(Genode::Env &env, Genode::Heap &heap)
+	Driver_factory(Env &env, Heap &heap)
 	: env(env), heap(heap) {
 		for (unsigned i = 0; i < UARTS_NUM; i++) drivers[i] = 0; }
 
