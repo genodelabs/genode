@@ -14,7 +14,6 @@
 #include <base/component.h>
 #include <log_session/log_session.h>
 #include <base/session_object.h>
-#include <os/buffered_xml.h>
 #include <sandbox/sandbox.h>
 #include <timer_session/connection.h>
 
@@ -78,13 +77,13 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 	Timer::Periodic_timeout<Main> _timeout_handler {
 		_timer, *this, &Main::_handle_timer, Microseconds(250*1000) };
 
-	void _generate_sandbox_config(Xml_generator &xml) const
+	void _generate_sandbox_config(Generator &g) const
 	{
-		xml.node("parent-provides", [&] () {
+		g.node("parent-provides", [&] () {
 
 			auto service_node = [&] (char const *name) {
-				xml.node("service", [&] () {
-					xml.attribute("name", name); }); };
+				g.node("service", [&] () {
+					g.attribute("name", name); }); };
 
 			service_node("ROM");
 			service_node("CPU");
@@ -92,46 +91,48 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 			service_node("LOG");
 		});
 
-		xml.node("start", [&] () {
-			xml.attribute("name", "dummy");
-			xml.attribute("caps", 100);
-			xml.attribute("version", _dummy_version);
-			xml.node("resource", [&] () {
-				xml.attribute("name", "RAM");
-				xml.attribute("quantum", "2M");
+		g.node("start", [&] () {
+			g.attribute("name", "dummy");
+			g.attribute("caps", 100);
+			g.attribute("version", _dummy_version);
+			g.node("resource", [&] () {
+				g.attribute("name", "RAM");
+				g.attribute("quantum", "2M");
 			});
 
-			xml.node("config", [&] () {
-				xml.node("log", [&] () {
-					xml.attribute("string", "started"); });
-				xml.node("create_log_connections", [&] () {
-					xml.attribute("ram_upgrade", "100K");
-					xml.attribute("count", "1"); });
-				xml.node("log", [&] () {
-					xml.attribute("string", "done"); });
+			g.node("config", [&] () {
+				g.node("log", [&] () {
+					g.attribute("string", "started"); });
+				g.node("create_log_connections", [&] () {
+					g.attribute("ram_upgrade", "100K");
+					g.attribute("count", "1"); });
+				g.node("log", [&] () {
+					g.attribute("string", "done"); });
 			});
 
-			xml.node("route", [&] () {
+			g.node("route", [&] () {
 
-				xml.node("service", [&] () {
-					xml.attribute("name", "LOG");
-					xml.node("local", [&] () { }); });
+				g.node("service", [&] () {
+					g.attribute("name", "LOG");
+					g.node("local", [&] () { }); });
 
-				xml.node("any-service", [&] () {
-					xml.node("parent", [&] () { }); });
+				g.node("any-service", [&] () {
+					g.node("parent", [&] () { }); });
 			});
 		});
 	}
 
 	void _update_sandbox_config()
 	{
-		Buffered_xml const config { _heap, "config", [&] (Xml_generator &xml) {
-			_generate_sandbox_config(xml); } };
-
-		log("generated config: ", config.xml);
-
-		config.xml.with_raw_node([&] (char const *start, size_t num_bytes) {
-			_sandbox.apply_config(Node(Const_byte_range_ptr(start, num_bytes))); });
+		Generated_node( _heap, 16*1024, "config", [&] (Generator &g) {
+			_generate_sandbox_config(g); }
+		).node.with_result(
+			[&] (Node const &config) {
+				log("generated config: ", config);
+				_sandbox.apply_config(config);
+			},
+			[&] (Buffer_error) { error("failed to generate config"); }
+		);
 	}
 
 	/**
