@@ -71,23 +71,26 @@ static bool child_succeeded(Child_state const &child, auto const &sandbox)
 }
 
 
-static void with_file(Xml_node const &fs_query_listing, File_path const &name, auto const &fn)
+static void with_file(Node const &fs_query_listing, File_path const &name, auto const &fn)
 {
 	bool done = false;
-	fs_query_listing.with_optional_sub_node("dir", [&] (Xml_node const &dir) {
-		dir.for_each_sub_node("file", [&] (Xml_node const &file) {
+	fs_query_listing.with_optional_sub_node("dir", [&] (Node const &dir) {
+		dir.for_each_sub_node("file", [&] (Node const &file) {
 			if (!done && has_name(file, name)) {
 				fn(file);
 				done = true; } }); });
 }
 
 
-static bool file_starts_with(Xml_node const &fs_query_listing, File_path const &file_name, auto const &str)
+static bool file_starts_with(Node const &fs_query_listing, File_path const &file_name, auto const &str)
 {
 	bool result = false;
-	with_file(fs_query_listing, file_name, [&] (Xml_node const &file) {
-		file.with_raw_content([&] (char const *base, size_t size) {
-			result = decltype(str)(Cstring(base, size)) == str; }); });
+	with_file(fs_query_listing, file_name, [&] (Node const &file) {
+		String<1024> const content(Node::Quoted_content { file });
+		content.with_span([&] (Span const &file_content) {
+			str.with_span([&] (Span const &s) {
+				result = file_content.starts_with(s); }); });
+	});
 	return result;
 }
 
@@ -100,16 +103,16 @@ struct Report_session_component : Session_object<Report::Session>
 	};
 
 	template <typename T>
-	struct Xml_handler : Handler_base
+	struct Node_handler : Handler_base
 	{
 		T &obj;
-		void (T::*member) (Xml_node const &);
+		void (T::*member) (Node const &);
 
-		Xml_handler(T &obj, void (T::*member)(Xml_node const &)) : obj(obj), member(member) { }
+		Node_handler(T &obj, void (T::*member)(Node const &)) : obj(obj), member(member) { }
 
 		void handle_report(char const *start, size_t length) override
 		{
-			(obj.*member)(Xml_node(start, length));
+			(obj.*member)(Node(Span(start, length)));
 		}
 	};
 
@@ -139,7 +142,7 @@ struct Report_session_component : Session_object<Report::Session>
 struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 {
 	using Report_service = Sandbox::Local_service<Report_session_component>;
-	using Report_xml_handler = Report_session_component::Xml_handler<Main>;
+	using Report_node_handler = Report_session_component::Node_handler<Main>;
 
 	static constexpr char const *DEPRECATED_IMAGE_NAME = "cbe.img";
 
@@ -158,7 +161,7 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	Heap heap { env.ram(), env.rm() };
 	Timer::Connection timer { env };
 	Attached_rom_dataspace config_rom { env, "config" };
-	bool jent_avail { config_rom.xml().attribute_value("jitterentropy_available", true) };
+	bool jent_avail { config_rom.node().attribute_value("jitterentropy_available", true) };
 	Root_directory vfs = config_rom.node().with_sub_node("vfs",
 		[&] (Node const &config) -> Root_directory { return { env, heap, config }; },
 		[&] ()                   -> Root_directory { return { env, heap, Node() }; });
@@ -182,11 +185,11 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	Child_state rekey_fs_query { children, "rekey_fs_query", "fs_query", Ram_quota { 1 * 1024 * 1024 }, Cap_quota { 100 } };
 	Child_state lock_fs_tool { children, "lock_fs_tool", "fs_tool", Ram_quota { 6 * 1024 * 1024 }, Cap_quota { 200 } };
 	Child_state lock_fs_query { children, "lock_fs_query", "fs_query", Ram_quota { 2 * 1024 * 1024 }, Cap_quota { 100 } };
-	Report_xml_handler image_fs_query_listing_handler { *this, &Main::handle_image_fs_query_listing };
-	Report_xml_handler client_fs_query_listing_handler { *this, &Main::handle_client_fs_query_listing };
-	Report_xml_handler extend_fs_query_listing_handler { *this, &Main::handle_extend_fs_query_listing };
-	Report_xml_handler rekey_fs_query_listing_handler { *this, &Main::handle_rekey_fs_query_listing };
-	Report_xml_handler lock_fs_query_listing_handler { *this, &Main::handle_lock_fs_query_listing };
+	Report_node_handler image_fs_query_listing_handler { *this, &Main::handle_image_fs_query_listing };
+	Report_node_handler client_fs_query_listing_handler { *this, &Main::handle_client_fs_query_listing };
+	Report_node_handler extend_fs_query_listing_handler { *this, &Main::handle_extend_fs_query_listing };
+	Report_node_handler rekey_fs_query_listing_handler { *this, &Main::handle_rekey_fs_query_listing };
+	Report_node_handler lock_fs_query_listing_handler { *this, &Main::handle_lock_fs_query_listing };
 	Sandbox sandbox { env, *this };
 	Report_service report_service { sandbox, *this };
 	Signal_handler<Main> state_handler { env.ep(), *this, &Main::handle_state };
@@ -215,15 +218,15 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 
 	void gen_sandbox_cfg_extend_and_rekey(Generator &) const;
 
-	void handle_image_fs_query_listing(Xml_node const &);
+	void handle_image_fs_query_listing(Node const &);
 
-	void handle_client_fs_query_listing(Xml_node const &);
+	void handle_client_fs_query_listing(Node const &);
 
-	void handle_extend_fs_query_listing(Xml_node const &);
+	void handle_extend_fs_query_listing(Node const &);
 
-	void handle_rekey_fs_query_listing(Xml_node const &);
+	void handle_rekey_fs_query_listing(Node const &);
 
-	void handle_lock_fs_query_listing(Xml_node const &node)
+	void handle_lock_fs_query_listing(Node const &node)
 	{
 		if (state != LOCKING)
 			return;
@@ -237,7 +240,7 @@ struct Main : Sandbox::Local_service_base::Wakeup, Sandbox::State_handler
 	void handle_ui_config_rom()
 	{
 		ui_config_rom.update();
-		ui_config.construct(ui_config_rom.xml());
+		ui_config.construct(ui_config_rom.node());
 		handle_ui_config();
 	}
 
@@ -334,7 +337,7 @@ Ui_report::State Main::state_to_ui_report_state(State state)
 }
 
 
-void Main::handle_extend_fs_query_listing(Xml_node const &node)
+void Main::handle_extend_fs_query_listing(Node const &node)
 {
 	if (state != UNLOCKED && state != LOCK_PENDING)
 		return;
@@ -365,7 +368,7 @@ void Main::handle_extend_fs_query_listing(Xml_node const &node)
 }
 
 
-void Main::handle_rekey_fs_query_listing(Xml_node const &node)
+void Main::handle_rekey_fs_query_listing(Node const &node)
 {
 	if (state != UNLOCKED && state != LOCK_PENDING)
 		return;
@@ -401,14 +404,14 @@ void Main::handle_rekey_fs_query_listing(Xml_node const &node)
 }
 
 
-void Main::handle_client_fs_query_listing(Xml_node const &listing)
+void Main::handle_client_fs_query_listing(Node const &listing)
 {
 	bool ui_report_changed = false;
 	switch (state) {
 	case SETUP_READ_FS_SIZE:
 	case UNLOCK_READ_FS_SIZE:
 
-		with_file(listing, "data", [&] (Xml_node const &file) {
+		with_file(listing, "data", [&] (Node const &file) {
 			ui_report.capacity = { file.attribute_value("size", 0UL) };
 			ui_report_changed = true;
 			set_state(CHECKING);
@@ -422,7 +425,7 @@ void Main::handle_client_fs_query_listing(Xml_node const &listing)
 		if (extend_state != Extend::READ_FS_SIZE)
 			break;
 
-		with_file(listing, "data", [&] (Xml_node const &file) {
+		with_file(listing, "data", [&] (Node const &file) {
 			size_t const size { file.attribute_value("size", (size_t)0) };
 			if (ui_report.capacity != size) {
 				ui_report.capacity = { size };
@@ -445,16 +448,16 @@ void Main::handle_client_fs_query_listing(Xml_node const &listing)
 }
 
 
-void Main::handle_image_fs_query_listing(Xml_node const &listing)
+void Main::handle_image_fs_query_listing(Node const &listing)
 {
 	bool ui_report_changed { false };
 	switch (state) {
 	case INVALID:
 	{
 		bool image_exists = false;
-		with_file(listing, image_name, [&] (Xml_node const &) { image_exists = true; });
+		with_file(listing, image_name, [&] (Node const &) { image_exists = true; });
 		if (!image_exists)
-			with_file(listing, DEPRECATED_IMAGE_NAME, [&] (Xml_node const &) {
+			with_file(listing, DEPRECATED_IMAGE_NAME, [&] (Node const &) {
 				image_name = DEPRECATED_IMAGE_NAME;
 				image_exists = true; });
 
@@ -466,7 +469,7 @@ void Main::handle_image_fs_query_listing(Xml_node const &listing)
 	case LOCK_PENDING:
 	{
 		size_t size { 0 };
-		with_file(listing, image_name, [&] (Xml_node const &file) { size = file.attribute_value("size", 0UL); });
+		with_file(listing, image_name, [&] (Node const &file) { size = file.attribute_value("size", 0UL); });
 		if (ui_report.image_size != size) {
 			ui_report.image_size = { size };
 			ui_report_changed = true;
@@ -714,7 +717,7 @@ void Main::_handle_sandbox_state(Node const &sandbox_state)
 void Main::wakeup_local_service()
 {
 	report_service.for_each_requested_session([&] (Report_service::Request &req) {
-		auto deliver_session = [&] (Report_xml_handler &handler) {
+		auto deliver_session = [&] (Report_node_handler &handler) {
 			req.deliver_session(*new (heap)
 				Report_session_component(env, handler, env.ep(), req.resources, "", req.diag));
 		};

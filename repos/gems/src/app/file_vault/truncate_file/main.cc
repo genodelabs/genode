@@ -27,8 +27,8 @@ struct Main
 		[&] (Node const &config) -> Root_directory { return { env, heap, config }; },
 		[&] ()                   -> Root_directory { return { env, heap, Node() }; });
 	Vfs::File_system &fs { vfs.root_dir() };
-	Directory::Path path { config.xml().attribute_value("path", Directory::Path { }) };
-	Number_of_bytes size { config.xml().attribute_value("size", Number_of_bytes { }) };
+	Directory::Path path { config.node().attribute_value("path", Directory::Path { }) };
+	Number_of_bytes size { config.node().attribute_value("size", Number_of_bytes { }) };
 
 	Main(Env &env) : env(env)
 	{
