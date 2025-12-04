@@ -19,24 +19,27 @@
 /* local includes */
 #include <uart_component.h>
 
+namespace Uart { struct Main; }
 
-struct Main
+
+struct Uart::Main
 {
-	Genode::Env         &env;
-	Genode::Heap         heap      { env.ram(), env.rm() };
-	Uart::Driver_factory factory   { env, heap           };
-	Uart::Root           uart_root { env, heap, factory  };
+	Env  &_env;
+	Heap _heap { _env.ram(), _env.rm() };
 
-	Main(Genode::Env &env) : env(env)
+	Uart::Driver_factory _factory { _env, _heap };
+
+	Uart::Root _root { _env, _heap, _factory };
+
+	Main(Env &env) : _env(env)
 	{
-		Genode::log("--- UART driver started ---");
-		env.parent().announce(env.ep().manage(uart_root));
+		log("--- UART driver started ---");
+		env.parent().announce(env.ep().manage(_root));
 	}
 };
 
 
-Genode::size_t Component::stack_size()      { return 8*1024*sizeof(long); }
-void Component::construct(Genode::Env &env) { static Main uart_drv(env); }
+void Component::construct(Genode::Env &env) { static Uart::Main uart_drv(env); }
 
 
 Uart::Driver & Uart::Driver_factory::create(unsigned index, unsigned baudrate,

@@ -25,7 +25,7 @@ enum { UARTS_NUM = 4 }; /* needed by base class definitions */
 /* local includes */
 #include <uart_driver_base.h>
 
-class Uart::Driver : private Genode::Attached_io_mem_dataspace,
+class Uart::Driver : private Attached_io_mem_dataspace,
                      public  Uart::Driver_base
 {
 	private:
@@ -70,9 +70,9 @@ class Uart::Driver : private Genode::Attached_io_mem_dataspace,
 		};
 
 		struct Uart {
-			Genode::addr_t mmio_base;
-			Genode::size_t mmio_size;
-			int            irq_number;
+			addr_t mmio_base;
+			size_t mmio_size;
+			int    irq_number;
 		};
 
 		Uart & _config(unsigned index)
@@ -136,26 +136,24 @@ class Uart::Driver : private Genode::Attached_io_mem_dataspace,
 			UARTICR_RXIC     = 0x10,    /* rx interrupt clear */
 		};
 
-		Genode::uint32_t volatile *_base;
+		uint32_t volatile *_base;
 
-		Genode::uint32_t _read_reg(Register reg) const {
-			return _base[reg >> 2]; }
+		uint32_t _read_reg(Register reg) const { return _base[reg >> 2]; }
 
-		void _write_reg(Register reg, Genode::uint32_t v) {
-			_base[reg >> 2] = v; }
+		void _write_reg(Register reg, uint32_t v) { _base[reg >> 2] = v; }
 
 	public:
 
-		Driver(Genode::Env &env, unsigned index,
+		Driver(Env &env, unsigned index,
 		       unsigned baud_rate, Char_avail_functor &func)
-		: Genode::Attached_io_mem_dataspace(env, _config(index).mmio_base,
-		                                     _config(index).mmio_size),
-		  Driver_base(env, _config(index).irq_number, func),
-		  _base(local_addr<unsigned volatile>())
+		:
+			Attached_io_mem_dataspace(env, _config(index).mmio_base,
+			                               _config(index).mmio_size),
+			Driver_base(env, _config(index).irq_number, func),
+			_base(local_addr<unsigned volatile>())
 		{
 			if (baud_rate != BAUD_115200)
-				Genode::warning("baud_rate ", baud_rate,
-				                " not supported, set to default");
+				warning("baud_rate ", baud_rate, " not supported, set to default");
 
 			/* disable and flush uart */
 			_write_reg(UARTCR, 0);

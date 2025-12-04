@@ -29,8 +29,9 @@ class Uart::Driver : public Uart::Driver_base
 {
 	private:
 
-		uint16_t                   _port_base;
-		Genode::Io_port_connection _io_port;
+		uint16_t _port_base;
+
+		Io_port_connection _io_port;
 
 		/**
 		 * Return I/O port base for specified UART
@@ -47,7 +48,7 @@ class Uart::Driver : public Uart::Driver_base
 		static int _irq_number(int index)
 		{
 			static int irq[] = { 4, 3, 4, 3 };
-			Genode::log("open IRQ ", irq[index & 0x3], "\n");
+			log("open IRQ ", irq[index & 0x3], "\n");
 			return irq[index & 0x3];
 		}
 
@@ -107,8 +108,7 @@ class Uart::Driver : public Uart::Driver_base
 		size_t _baud_rate(size_t baud_rate)
 		{
 			if (baud_rate != BAUD_115200)
-				Genode::warning("baud_rate ", baud_rate,
-				                " not supported, set to default\n");
+				warning("baud_rate ", baud_rate, " not supported, set to default\n");
 			return BAUD_115200;
 		}
 
