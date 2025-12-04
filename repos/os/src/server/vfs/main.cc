@@ -37,18 +37,20 @@ namespace Vfs_server {
 	class Vfs_env;
 	class Root;
 
-	using Session_queue       = Genode::Fifo<Session_component>;
-	using Io_progress_handler = Genode::Entrypoint::Io_progress_handler;
+	using Session_queue       = Fifo<Session_component>;
+	using Io_progress_handler = Entrypoint::Io_progress_handler;
+	using Env                 = Genode::Env;
+	using Node                = Genode::Node;
 
 	/**
 	 * Convenience utities for parsing quotas
 	 */
-	Genode::Ram_quota parse_ram_quota(char const *args) {
-		return Genode::Ram_quota{
-			Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0)}; }
-	Genode::Cap_quota parse_cap_quota(char const *args) {
-		return Genode::Cap_quota{
-			Genode::Arg_string::find_arg(args, "cap_quota").ulong_value(0)}; }
+	Ram_quota parse_ram_quota(char const *args) {
+		return Ram_quota{
+			Arg_string::find_arg(args, "ram_quota").ulong_value(0)}; }
+	Cap_quota parse_cap_quota(char const *args) {
+		return Cap_quota{
+			Arg_string::find_arg(args, "cap_quota").ulong_value(0)}; }
 };
 
 
@@ -59,17 +61,17 @@ class Vfs_server::Session_resources
 {
 	protected:
 
-		Genode::Ram_quota_guard         _ram_guard;
-		Genode::Cap_quota_guard         _cap_guard;
-		Genode::Accounted_ram_allocator _ram_alloc;
-		Genode::Attached_ram_dataspace  _packet_ds;
-		Genode::Heap                    _alloc;
+		Ram_quota_guard         _ram_guard;
+		Cap_quota_guard         _cap_guard;
+		Accounted_ram_allocator _ram_alloc;
+		Attached_ram_dataspace  _packet_ds;
+		Heap                    _alloc;
 
-		Session_resources(Genode::Ram_allocator &ram,
-		                  Genode::Env::Local_rm &local_rm,
-		                  Genode::Ram_quota     ram_quota,
-		                  Genode::Cap_quota     cap_quota,
-		                  Genode::size_t        buffer_size)
+		Session_resources(Ram_allocator &ram,
+		                  Env::Local_rm &local_rm,
+		                  Ram_quota     ram_quota,
+		                  Cap_quota     cap_quota,
+		                  size_t        buffer_size)
 		:
 			_ram_guard(ram_quota), _cap_guard(cap_quota),
 			_ram_alloc(ram, _ram_guard, _cap_guard),
@@ -91,7 +93,7 @@ class Vfs_server::Session_component : private Session_resources,
 		Vfs::File_system &_vfs;
 		Vfs::Env::Io     &_io;
 
-		Genode::Entrypoint &_ep;
+		Entrypoint &_ep;
 
 		Io_progress_handler &_io_progress_handler;
 
@@ -106,7 +108,7 @@ class Vfs_server::Session_component : private Session_resources,
 		/* collection of open nodes local to this session */
 		Node_space _node_space { };
 
-		Genode::Signal_handler<Session_component> _packet_stream_handler {
+		Signal_handler<Session_component> _packet_stream_handler {
 			_ep, *this, &Session_component::_handle_packet_stream };
 
 		/*
@@ -115,7 +117,7 @@ class Vfs_server::Session_component : private Session_resources,
 		 */
 		Path const _root_path;
 
-		Genode::Session_label const _label;
+		Session_label const _label;
 
 		bool const _writeable;
 
@@ -136,7 +138,7 @@ class Vfs_server::Session_component : private Session_resources,
 		{
 			Node_space::Id id { handle.value };
 
-			try { return _node_space.apply<Node>(id, fn); }
+			try { return _node_space.apply<Node_base>(id, fn); }
 			catch (Node_space::Unknown_id) { throw Invalid_handle(); }
 		}
 
@@ -147,11 +149,11 @@ class Vfs_server::Session_component : private Session_resources,
 		 */
 		template <typename HANDLE_TYPE, typename FUNC>
 		auto _apply(HANDLE_TYPE handle, FUNC const &fn)
-		-> typename Genode::Trait::Functor<decltype(&FUNC::operator())>::Return_type
+		-> typename Trait::Functor<decltype(&FUNC::operator())>::Return_type
 		{
 			Node_space::Id id { handle.value };
 
-			try { return _node_space.apply<Node>(id, [&] (Node &node) {
+			try { return _node_space.apply<Node_base>(id, [&] (Node_base &node) {
 				using Typed_node = typename Node_type<HANDLE_TYPE>::Type;
 				Typed_node *n = dynamic_cast<Typed_node *>(&node);
 				if (!n)
@@ -216,19 +218,19 @@ class Vfs_server::Session_component : private Session_resources,
 
 						switch (node.submit_job(packet, payload_ptr)) {
 
-						case Node::Submit_result::ACCEPTED:
+						case Node_base::Submit_result::ACCEPTED:
 							_stalled = false;
 							if (!node.enqueued())
 								_active_nodes.enqueue(node);
 							drop_packet_from_submit_queue();
 							break;
 
-						case Node::Submit_result::DENIED:
+						case Node_base::Submit_result::DENIED:
 							_stalled = false;
 							consume_and_ack_invalid_packet();
 							break;
 
-						case Node::Submit_result::STALLED:
+						case Node_base::Submit_result::STALLED:
 							_stalled = true;
 							/* keep request packet in submit queue */
 							break;
@@ -249,7 +251,7 @@ class Vfs_server::Session_component : private Session_resources,
 			/* nodes with jobs that cannot make progress right now */
 			Node_queue requeued_nodes { };
 
-			_active_nodes.dequeue_all([&] (Node &node) {
+			_active_nodes.dequeue_all([&] (Node_base &node) {
 
 				if (node.job_in_progress())
 					node.execute_job();
@@ -266,7 +268,7 @@ class Vfs_server::Session_component : private Session_resources,
 
 			Node_queue requeued_nodes { };
 
-			_active_nodes.dequeue_all([&] (Node &node) {
+			_active_nodes.dequeue_all([&] (Node_base &node) {
 
 				if (!_stream.ready_to_ack()) {
 					requeued_nodes.enqueue(node);
@@ -370,7 +372,7 @@ class Vfs_server::Session_component : private Session_resources,
 				_active_sessions.enqueue(*this);
 
 			if (progress == Process_packets_result::TOO_MUCH_PROGRESS)
-				Genode::Signal_transmitter(_packet_stream_handler).submit();
+				Signal_transmitter(_packet_stream_handler).submit();
 
 			/*
 			 * The activity of the session may have an unblocking effect on
@@ -403,7 +405,7 @@ class Vfs_server::Session_component : private Session_resources,
 		/**
 		 * Destroy an open node
 		 */
-		void _close(Node &node)
+		void _close(Node_base &node)
 		{
 			if (File *file = dynamic_cast<File*>(&node))
 				destroy(_alloc, file);
@@ -439,10 +441,10 @@ class Vfs_server::Session_component : private Session_resources,
 		/**
 		 * Constructor
 		 */
-		Session_component(Genode::Env         &env,
-		                  char          const *label,
-		                  Genode::Ram_quota    ram_quota,
-		                  Genode::Cap_quota    cap_quota,
+		Session_component(Env                 &env,
+		                  char const          *label,
+		                  Ram_quota            ram_quota,
+		                  Cap_quota            cap_quota,
 		                  size_t               tx_buf_size,
 		                  Vfs::File_system    &vfs,
 		                  Vfs::Env::Io        &io,
@@ -472,7 +474,7 @@ class Vfs_server::Session_component : private Session_resources,
 		~Session_component()
 		{
 			/* flush and close the open handles */
-			while (_node_space.apply_any<Node>([&] (Node &node) {
+			while (_node_space.apply_any<Node_base>([&] (Node_base &node) {
 				_close(node); })) { }
 
 			if (enqueued())
@@ -482,10 +484,8 @@ class Vfs_server::Session_component : private Session_resources,
 		/**
 		 * Increase quotas
 		 */
-		void upgrade(Genode::Ram_quota ram) {
-			_ram_guard.upgrade(ram); }
-		void upgrade(Genode::Cap_quota caps) {
-			_cap_guard.upgrade(caps); }
+		void upgrade(Ram_quota ram)  { _ram_guard.upgrade(ram); }
+		void upgrade(Cap_quota caps) { _cap_guard.upgrade(caps); }
 
 
 		/***************************
@@ -566,7 +566,7 @@ class Vfs_server::Session_component : private Session_resources,
 			if (sub_path != "/" && !_vfs.leaf_path(path_str))
 				throw Lookup_failed();
 
-			Node &node = *new (_alloc) Node(_node_space, path_str);
+			Node_base &node = *new (_alloc) Node_base(_node_space, path_str);
 
 			return Node_handle { node.id().value };
 		}
@@ -596,7 +596,7 @@ class Vfs_server::Session_component : private Session_resources,
 			}
 
 			try {
-				Node &node = *new (_alloc)
+				Node_base &node = *new (_alloc)
 					Watch_node(_node_space, path_str, *vfs_handle, *this);
 
 				return Watch_handle { node.id().value };
@@ -621,7 +621,7 @@ class Vfs_server::Session_component : private Session_resources,
 			bool node_modified = false;
 
 			try {
-				_apply_node(handle, [&] (Node &node) {
+				_apply_node(handle, [&] (Node_base &node) {
 
 					if (node.enqueued())
 						_active_nodes.remove(node);
@@ -641,7 +641,7 @@ class Vfs_server::Session_component : private Session_resources,
 		{
 			::File_system::Status fs_stat;
 
-			_apply_node(node_handle, [&] (Node &node) {
+			_apply_node(node_handle, [&] (Node_base &node) {
 
 				Directory_service::Stat vfs_stat;
 
@@ -755,26 +755,26 @@ class Vfs_server::Session_component : private Session_resources,
 };
 
 
-class Vfs_server::Root : public Genode::Root_component<Session_component>,
-                         private Genode::Entrypoint::Io_progress_handler
+class Vfs_server::Root : public Root_component<Session_component>,
+                         private Entrypoint::Io_progress_handler
 {
 	private:
 
-		Genode::Env &_env;
+		Env &_env;
 
-		Genode::Attached_rom_dataspace _config_rom { _env, "config" };
+		Attached_rom_dataspace _config_rom { _env, "config" };
 
-		Genode::Signal_handler<Root> _reactivate_handler {
+		Signal_handler<Root> _reactivate_handler {
 			_env.ep(), *this, &Root::handle_io_progress };
 
-		Genode::Signal_handler<Root> _config_handler {
+		Signal_handler<Root> _config_handler {
 			_env.ep(), *this, &Root::_config_update };
 
 		void _config_update()
 		{
 			_config_rom.update();
 			_config_rom.node().with_optional_sub_node("vfs",
-				[&] (Genode::Node const &config) {
+				[&] (Node const &config) {
 					_vfs_env.root_dir().apply_config(config); });
 
 			/*
@@ -789,14 +789,14 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 		 * The VFS uses an internal heap that
 		 * subtracts from the component quota
 		 */
-		Genode::Heap _vfs_heap { &_env.ram(), &_env.rm() };
+		Heap _vfs_heap { &_env.ram(), &_env.rm() };
 
 		Vfs::Simple_env _vfs_env = _config_rom.node().with_sub_node("vfs",
-			[&] (Genode::Node const &config) -> Vfs::Simple_env {
+			[&] (Node const &config) -> Vfs::Simple_env {
 				return { _env, _vfs_heap, config }; },
 			[&] () -> Vfs::Simple_env {
-				Genode::error("VFS not configured");
-				return { _env, _vfs_heap, Genode::Node() }; });
+				error("VFS not configured");
+				return { _env, _vfs_heap, Node() }; });
 
 		/* sessions with active jobs */
 		Session_queue _active_sessions { };
@@ -855,12 +855,12 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			 * 'handle_io_progress' if the loop was exited via 'yield'.
 			 */
 			if (yield)
-				Genode::Signal_transmitter(_reactivate_handler).submit();
+				Signal_transmitter(_reactivate_handler).submit();
 
 			_vfs_env.io().commit();
 		}
 
-		Create_result _create_session(const char *args, Genode::Node const &policy)
+		Create_result _create_session(const char *args, Node const &policy)
 		{
 			using namespace Genode;
 
@@ -939,8 +939,8 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 
 			Session_component *session = new (md_alloc())
 				Session_component(_env, label.string(),
-				                  Genode::Ram_quota{ram_quota},
-				                  Genode::Cap_quota{cap_quota},
+				                  Ram_quota{ram_quota},
+				                  Cap_quota{cap_quota},
 				                  tx_buf_size, _vfs_env.root_dir(),
 				                  _vfs_env.io(),
 				                  _active_sessions, *this,
@@ -951,13 +951,11 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 
 			if ((ram_used > ram_quota) || (cap_used > cap_quota)) {
 				if (ram_used > ram_quota)
-					Genode::warning("ram donation is ", ram_quota,
-					                " but used RAM is ", ram_used, "B"
-					                ", '", label, "'");
+					warning("ram donation is ", ram_quota,
+					         " but used RAM is ", ram_used, "B" ", '", label, "'");
 				if (cap_used > cap_quota)
-					Genode::warning("cap donation is ", cap_quota,
-					                " but used caps is ", cap_used,
-					                ", '", label, "'");
+					warning("cap donation is ", cap_quota,
+					        " but used caps is ", cap_used, ", '", label, "'");
 			}
 
 			return *session;
@@ -968,9 +966,9 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 			/* pull in policy changes */
 			_config_rom.update();
 
-			return with_matching_policy(Genode::label_from_args(args), _config_rom.node(),
-				[&] (Genode::Node const &policy) { return _create_session(args, policy); },
-				[]  () -> Create_result          { return Create_error::DENIED; });
+			return with_matching_policy(label_from_args(args), _config_rom.node(),
+				[&] (Node const &policy) { return _create_session(args, policy); },
+				[]  () -> Create_result  { return Create_error::DENIED; });
 		}
 
 		/**
@@ -981,18 +979,16 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>,
 		void _upgrade_session(Session_component &s,
 		                      char        const *args) override
 		{
-			Genode::Ram_quota more_ram  = parse_ram_quota(args);
-			Genode::Cap_quota more_caps = parse_cap_quota(args);
+			Ram_quota more_ram  = parse_ram_quota(args);
+			Cap_quota more_caps = parse_cap_quota(args);
 
-			if (more_ram.value > 0)
-				s.upgrade(more_ram);
-			if (more_caps.value > 0)
-				s.upgrade(more_caps);
+			if (more_ram.value  > 0) s.upgrade(more_ram);
+			if (more_caps.value > 0) s.upgrade(more_caps);
 		}
 
 	public:
 
-		Root(Genode::Env &env, Genode::Allocator &md_alloc)
+		Root(Env &env, Allocator &md_alloc)
 		:
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env)
