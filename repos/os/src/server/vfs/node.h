@@ -28,28 +28,30 @@ namespace Vfs_server {
 
 	using namespace File_system;
 	using namespace Vfs;
+	using namespace Genode;
 
 	using Write_result  = Vfs::File_io_service::Write_result;
 	using Read_result   = Vfs::File_io_service::Read_result;
 	using Sync_result   = Vfs::File_io_service::Sync_result;
 	using Packet_stream = ::File_system::Session::Tx::Sink;
 
-	class Node;
+	class Node_base;
 	class Io_node;
 	class Watch_node;
 	class Directory;
 	class File;
 	class Symlink;
 
-	using Node_space = Genode::Id_space<Node>;
-	using Node_queue = Genode::Fifo<Node>;
+	using Node_space = Id_space<Node_base>;
+	using Node_queue = Fifo<Node_base>;
 
 	/* Vfs::MAX_PATH is shorter than File_system::MAX_PATH */
 	enum { MAX_PATH_LEN = Vfs::MAX_PATH_LEN };
 
 	using Path = Genode::Path<MAX_PATH_LEN>;
+	using Packet_descriptor = File_system::Packet_descriptor;
 
-	using Out_of_memory = Genode::Allocator::Out_of_memory;
+	using Out_of_memory = Allocator::Out_of_memory;
 
 	struct Payload_ptr { char *ptr; };
 
@@ -83,15 +85,15 @@ namespace Vfs_server {
 }
 
 
-class Vfs_server::Node : Node_space::Element, Node_queue::Element
+class Vfs_server::Node_base : Node_space::Element, Node_queue::Element
 {
 	private:
 
 		/*
 		 * Noncopyable
 		 */
-		Node(Node const &);
-		Node &operator = (Node const &);
+		Node_base(Node_base const &);
+		Node_base &operator = (Node_base const &);
 
 		Path const _path;
 
@@ -121,12 +123,12 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
 		friend Node_queue;
 		using Node_queue::Element::enqueued;
 
-		Node(Node_space &space, char const *node_path)
+		Node_base(Node_space &space, char const *node_path)
 		:
 			Node_space::Element(*this, space), _path(node_path)
 		{ }
 
-		virtual ~Node() { }
+		virtual ~Node_base() { }
 
 		using Node_space::Element::id;
 
@@ -164,7 +166,7 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
 		 */
 		virtual void execute_job()
 		{
-			Genode::warning("Node::execute_job unexpectedly called");
+			warning("Node_base::execute_job unexpectedly called");
 		}
 
 		/**
@@ -204,7 +206,7 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
 				return _acked_packet;
 			}
 
-			Genode::warning("dequeue_acknowledgement called with no pending ack");
+			warning("dequeue_acknowledgement called with no pending ack");
 			return Packet_descriptor();
 		}
 
@@ -216,7 +218,7 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
 		/**
 		 * Print for debugging
 		 */
-		void print(Genode::Output &out) const
+		void print(Output &out) const
 		{
 			Genode::print(out, _path.string(), " (id=", id(), ")");
 		}
@@ -226,7 +228,7 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
 /**
  * Super-class for nodes that process read/write packets
  */
-class Vfs_server::Io_node : public Vfs_server::Node,
+class Vfs_server::Io_node : public Vfs_server::Node_base,
                             public Vfs::Read_ready_response_handler
 {
 	private:
@@ -260,7 +262,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 			}
 
 			if (job_in_progress())
-				Genode::error("job unexpectedly submitted to busy node");
+				error("job unexpectedly submitted to busy node");
 
 			_packet             = packet;
 			_payload_ptr        = payload_ptr;
@@ -362,7 +364,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 
 		Submit_result _submit_content_changed()
 		{
-			Genode::warning("client unexpectedly submitted CONTENT_CHANGED packet");
+			warning("client unexpectedly submitted CONTENT_CHANGED packet");
 			return Submit_result::DENIED;
 		}
 
@@ -462,7 +464,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		        Mode        mode,
 		        Vfs_handle &handle)
 		:
-			Node(space, path), _mode(mode), _handle(handle)
+			Node_base(space, path), _mode(mode), _handle(handle)
 		{
 			_handle.handler(this); // XXX remove?
 		}
@@ -478,9 +480,9 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		Mode mode() const { return _mode; }
 
 
-		/********************************
-		 ** Vfs_server::Node interface **
-		 ********************************/
+		/*************************************
+		 ** Vfs_server::Node_base interface **
+		 *************************************/
 
 		void execute_job() override { }
 
@@ -502,12 +504,12 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 };
 
 
-class Vfs_server::Watch_node final : public Vfs_server::Node,
+class Vfs_server::Watch_node final : public Vfs_server::Node_base,
                                      public Vfs::Watch_response_handler
 {
 	public:
 
-		struct Watch_node_response_handler : Genode::Interface
+		struct Watch_node_response_handler : Interface
 		{
 			virtual void handle_watch_node_response(Watch_node &) = 0;
 		};
@@ -531,7 +533,7 @@ class Vfs_server::Watch_node final : public Vfs_server::Node,
 		           Vfs::Vfs_watch_handle       &handle,
 		           Watch_node_response_handler &watch_node_response_handler)
 		:
-			Node(space, path),
+			Node_base(space, path),
 			_watch_handle(handle),
 			_watch_node_response_handler(watch_node_response_handler)
 		{
@@ -560,9 +562,9 @@ class Vfs_server::Watch_node final : public Vfs_server::Node,
 		}
 
 
-		/********************************
-		 ** Vfs_server::Node interface **
-		 ********************************/
+		/*************************************
+		 ** Vfs_server::Node_base interface **
+		 *************************************/
 
 		Submit_result submit_job(Packet_descriptor, Payload_ptr) override
 		{
@@ -570,7 +572,7 @@ class Vfs_server::Watch_node final : public Vfs_server::Node,
 			 * This can only happen if a client misbehaves by submitting
 			 * work to a watch handle.
 			 */
-			Genode::warning("job unexpectedly submitted to watch handle");
+			warning("job unexpectedly submitted to watch handle");
 
 			/* don't reset '_acked_packet' as defined in the constructor */
 
@@ -583,7 +585,7 @@ struct Vfs_server::Symlink : Io_node
 {
 	private:
 
-		using Write_buffer = Genode::String<MAX_PATH_LEN + 1>;
+		using Write_buffer = String<MAX_PATH_LEN + 1>;
 
 		Write_buffer _write_buffer { };
 
@@ -591,7 +593,7 @@ struct Vfs_server::Symlink : Io_node
 		{
 			/* partial read or write is not supported */
 			if (_packet.position() != 0) {
-				Genode::warning("attempt for partial operation on a symlink");
+				warning("attempt for partial operation on a symlink");
 				return true;
 			}
 			return false;
@@ -602,7 +604,7 @@ struct Vfs_server::Symlink : Io_node
 			return _packet.length() >= MAX_PATH_LEN;
 		}
 
-		static Vfs_handle &_open(Vfs::File_system  &vfs, Genode::Allocator &alloc,
+		static Vfs_handle &_open(Vfs::File_system  &vfs, Allocator &alloc,
 		                         char const *path, bool create)
 		{
 			Vfs_handle *h = nullptr;
@@ -612,12 +614,12 @@ struct Vfs_server::Symlink : Io_node
 
 	public:
 
-		Symlink(Node_space        &space,
-		        Vfs::File_system  &vfs,
-		        Genode::Allocator &alloc,
-		        char        const *path,
-		        Mode               mode,
-		        bool               create)
+		Symlink(Node_space       &space,
+		        Vfs::File_system &vfs,
+		        Allocator        &alloc,
+		        char       const *path,
+		        Mode              mode,
+		        bool              create)
 		:
 			Io_node(space, path, mode, _open(vfs, alloc, path, create))
 		{ }
@@ -641,8 +643,8 @@ struct Vfs_server::Symlink : Io_node
 						return Submit_result::DENIED;
 
 					/* accessed by 'execute_job' */
-					_write_buffer = Write_buffer(Genode::Cstring(_payload_ptr.ptr,
-					                                             packet.length()));
+					_write_buffer = Write_buffer(Cstring(_payload_ptr.ptr,
+					                                     packet.length()));
 					return _submit_write_at(0);
 				}
 
@@ -652,8 +654,8 @@ struct Vfs_server::Symlink : Io_node
 			case Packet_descriptor::WRITE_TIMESTAMP: return _submit_write_timestamp();
 			}
 
-			Genode::warning("invalid operation ", (int)_packet.operation(), " "
-			                "requested from symlink node");
+			warning("invalid operation ", (int)_packet.operation(), " "
+			        "requested from symlink node");
 
 			return Submit_result::DENIED;
 		}
@@ -704,7 +706,7 @@ class Vfs_server::File : public Io_node
 		File(File const &);
 		File &operator = (File const &);
 
-		char const * const _leaf_path = nullptr; /* offset pointer to Node::_path */
+		char const * const _leaf_path = nullptr; /* offset pointer to Node_base::_path */
 
 		using Stat = Directory_service::Stat;
 
@@ -744,7 +746,7 @@ class Vfs_server::File : public Io_node
 
 	protected:
 
-		static Vfs_handle &_open(Vfs::File_system  &vfs, Genode::Allocator &alloc,
+		static Vfs_handle &_open(Vfs::File_system  &vfs, Allocator &alloc,
 		                         char const *path, Mode mode, bool create)
 		{
 			Vfs_handle *h = nullptr;
@@ -757,15 +759,15 @@ class Vfs_server::File : public Io_node
 
 	public:
 
-		File(Node_space        &space,
-		     Vfs::File_system  &vfs,
-		     Genode::Allocator &alloc,
-		     char       const  *path,
-		     Mode               mode,
-		     bool               create)
+		File(Node_space       &space,
+		     Vfs::File_system &vfs,
+		     Allocator        &alloc,
+		     char       const *path,
+		     Mode              mode,
+		     bool              create)
 		:
 			Io_node(space, path, mode, _open(vfs, alloc, path, mode, create)),
-			_leaf_path(vfs.leaf_path(Node::path()))
+			_leaf_path(vfs.leaf_path(Node_base::path()))
 		{ }
 
 		void truncate(file_size_t size)
@@ -790,8 +792,8 @@ class Vfs_server::File : public Io_node
 			case Packet_descriptor::WRITE_TIMESTAMP: return _submit_write_timestamp();
 			}
 
-			Genode::warning("invalid operation ", (int)_packet.operation(), " "
-			                "requested from file node");
+			warning("invalid operation ", (int)_packet.operation(), " "
+			        "requested from file node");
 
 			return Submit_result::DENIED;
 		}
@@ -950,7 +952,7 @@ struct Vfs_server::Directory : Io_node
 			return converted_length;
 		}
 
-		static Vfs_handle &_open(Vfs::File_system &vfs, Genode::Allocator &alloc,
+		static Vfs_handle &_open(Vfs::File_system &vfs, Allocator &alloc,
 		                         char const *path, bool create)
 		{
 			Vfs_handle *h = nullptr;
@@ -960,12 +962,12 @@ struct Vfs_server::Directory : Io_node
 
 	public:
 
-		Directory(Node_space        &space,
-		          Vfs::File_system  &vfs,
-		          Genode::Allocator &alloc,
-		          char const        *path,
-		          bool               create,
-		          Session_writeable  writeable)
+		Directory(Node_space       &space,
+		          Vfs::File_system &vfs,
+		          Allocator        &alloc,
+		          char const       *path,
+		          bool              create,
+		          Session_writeable writeable)
 		:
 			Io_node(space, path, READ_ONLY, _open(vfs, alloc, path, create)),
 			_writeable(writeable)
@@ -974,16 +976,16 @@ struct Vfs_server::Directory : Io_node
 		/**
 		 * Open a file handle at this directory
 		 */
-		Node_space::Id file(Node_space        &space,
-		                    Vfs::File_system  &vfs,
-		                    Genode::Allocator &alloc,
-		                    char        const *path,
-		                    Mode               mode,
-		                    bool               create)
+		Node_space::Id file(Node_space       &space,
+		                    Vfs::File_system &vfs,
+		                    Allocator        &alloc,
+		                    char const       *path,
+		                    Mode              mode,
+		                    bool              create)
 		{
 			File &file = *new (alloc)
 				File(space, vfs, alloc,
-				     Path(path, Node::path()).base(), mode, create);
+				     Path(path, Node_base::path()).base(), mode, create);
 
 			return file.id();
 		}
@@ -991,24 +993,24 @@ struct Vfs_server::Directory : Io_node
 		/**
 		 * Open a symlink handle at this directory
 		 */
-		Node_space::Id symlink(Node_space        &space,
-		                       Vfs::File_system  &vfs,
-		                       Genode::Allocator &alloc,
-		                       char        const *path,
-		                       Mode               mode,
-		                       bool               create)
+		Node_space::Id symlink(Node_space       &space,
+		                       Vfs::File_system &vfs,
+		                       Allocator        &alloc,
+		                       char       const *path,
+		                       Mode              mode,
+		                       bool              create)
 		{
 			Symlink &link = *new (alloc)
 				Symlink(space, vfs, alloc,
-				        Path(path, Node::path()).base(), mode, create);
+				        Path(path, Node_base::path()).base(), mode, create);
 
 			return link.id();
 		}
 
 
-		/********************************
-		 ** Vfs_server::Node interface **
-		 ********************************/
+		/*************************************
+		 ** Vfs_server::Node_base interface **
+		 *************************************/
 
 		Submit_result submit_job(Packet_descriptor packet, Payload_ptr payload_ptr) override
 		{
@@ -1032,8 +1034,8 @@ struct Vfs_server::Directory : Io_node
 			case Packet_descriptor::WRITE_TIMESTAMP: return _submit_write_timestamp();
 			}
 
-			Genode::warning("invalid operation ", (int)_packet.operation(), " "
-			                "requested from directory node");
+			warning("invalid operation ", (int)_packet.operation(), " "
+			        "requested from directory node");
 			return Submit_result::DENIED;
 		}
 
