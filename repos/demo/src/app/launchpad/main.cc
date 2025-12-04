@@ -111,7 +111,7 @@ struct Main : Scout::Event_handler
 
 	void _process_config()
 	{
-		try { _launchpad.process_config(_config.xml()); } catch (...) { }
+		try { _launchpad.process_config(_config.node()); } catch (...) { }
 	}
 
 	bool const _config_processed = (_process_config(), true);

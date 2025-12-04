@@ -94,7 +94,7 @@ static bool config_decoration = true;
 /**
  * Parse configuration
  */
-static void read_config(Genode::Xml_node node)
+static void read_config(Genode::Node const &node)
 {
 	config_fb_x          = node.attribute_value("xpos",   config_fb_x);
 	config_fb_y          = node.attribute_value("ypos",   config_fb_y);
@@ -140,7 +140,7 @@ class Liquid_fb::Main : public  Scout::Event_handler,
 
 		void _process_config()
 		{
-			try { read_config(_config.xml()); } catch (...) { }
+			try { read_config(_config.node()); } catch (...) { }
 		}
 
 		bool const _config_processed = (_process_config(), true);
@@ -221,7 +221,7 @@ class Liquid_fb::Main : public  Scout::Event_handler,
 			config_fb_width  = _fb_win.view_w();
 			config_fb_height = _fb_win.view_h();
 
-			try { read_config(_config.xml()); } catch (...) { }
+			try { read_config(_config.node()); } catch (...) { }
 			
 			_fb_win.name(config_title.string());
 			_fb_win.config_alpha(config_alpha);

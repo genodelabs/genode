@@ -87,9 +87,9 @@ Launchpad::_get_unique_child_name(Launchpad_child::Name const &binary_name)
 
 
 /**
- * Process launchpad XML configuration
+ * Process launchpad configuration
  */
-void Launchpad::process_config(Genode::Xml_node config_node)
+void Launchpad::process_config(Genode::Node const &config_node)
 {
 	using namespace Genode;
 
@@ -97,7 +97,7 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 	 * Iterate through all entries of the config file and create
 	 * launchpad entries as specified.
 	 */
-	config_node.for_each_sub_node("launcher", [&] (Xml_node node) {
+	config_node.for_each_sub_node("launcher", [&] (Node const &node) {
 
 		using Name = Launchpad_child::Name;
 		Name *name = new (_heap) Name(node.attribute_value("name", Name()));
@@ -114,7 +114,7 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 
 		using Rom_name = String<128>;
 
-		node.with_optional_sub_node("configfile", [&] (Xml_node const &node) {
+		node.with_optional_sub_node("configfile", [&] (Node const &node) {
 			Rom_name const name = node.attribute_value("name", Rom_name());
 
 			Rom_connection &config_rom = *new (_heap) Rom_connection(_env, name.string());
@@ -122,16 +122,17 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 			config_ds = config_rom.dataspace();
 		});
 
-		node.with_optional_sub_node("config", [&] (Xml_node const &config_node) {
-			config_node.with_raw_node([&] (char const *start, size_t length) {
+		node.with_optional_sub_node("config", [&] (Node const &config_node) {
 
-				/* allocate dataspace for config */
-				config_ds = _env.ram().alloc(length);
-
+			/* allocate dataspace for config */
+			config_ds = _env.ram().alloc(config_node.num_bytes());
+			{
 				/* copy configuration into new dataspace */
 				Attached_dataspace attached(_env.rm(), config_ds);
-				memcpy(attached.local_addr<char>(), start, length);
-			});
+
+				Node(config_node,
+				     Byte_range_ptr(attached.local_addr<char>(), attached.size()));
+			}
 		});
 
 		/* add launchpad entry */

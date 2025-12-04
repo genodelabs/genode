@@ -96,7 +96,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 		Genode::Attached_rom_dataspace config(env, "config");
 
-		try { launchpad.process_config(config.xml()); } catch (...) { }
+		try { launchpad.process_config(config.node()); } catch (...) { }
 
 		launchpad.move(300,100);
 		launchpad.show();

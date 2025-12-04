@@ -265,7 +265,7 @@ class Launchpad
 		/**
 		 * Process launchpad XML configuration
 		 */
-		void process_config(Genode::Xml_node);
+		void process_config(Genode::Node const &);
 
 
 		/*************************
