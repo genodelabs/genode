@@ -96,10 +96,9 @@ void Child::session_sigh(Signal_context_capability sigh)
  */
 Parent::Session_result
 with_new_session(Child_policy::Name const &child_name, Service &service,
-                 Session_label const &label, Session::Diag diag,
-                 Session_state::Factory &factory, Id_space<Parent::Client> &id_space,
-                 Parent::Client::Id id, Session_state::Args const &args,
-                 Affinity const &affinity,
+                 Session_label const &label, Session_state::Factory &factory,
+                 Id_space<Parent::Client> &id_space, Parent::Client::Id id,
+                 Session_state::Args const &args, Affinity const &affinity,
                  auto const &fn)
 {
 	bool const id_ok = id_space.apply<Session_state>(id,
@@ -117,7 +116,7 @@ with_new_session(Child_policy::Name const &child_name, Service &service,
 	if (!id_ok)
 		return Error::DENIED;
 
-	return service.create_session(factory, id_space, id, label, diag, args, affinity)
+	return service.create_session(factory, id_space, id, label, args, affinity)
 		.convert<Parent::Session_result>(
 			[&] (Session_state &s) -> Parent::Session_result {
 
@@ -180,10 +179,7 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 	{
 		Service &service = route.service;
 
-		/* propagate diag flag */
-		Arg_string::set_arg(argbuf, sizeof(argbuf), "diag", route.diag.enabled);
-
-		return with_new_session(_policy.name(), service, route.label, route.diag,
+		return with_new_session(_policy.name(), service, route.label,
 		                       _session_factory, _id_space, id, argbuf, filtered_affinity,
 
 			[&] (Session_state &session) -> Session_result {
@@ -283,7 +279,7 @@ Parent::Session_result Child::session(Parent::Client::Id id,
 	Session_result result = Session_error::DENIED;
 	with_pd(
 		[&] (Pd_session &pd) {
-			_policy.with_route(name.string(), label, session_diag_from_args(argbuf),
+			_policy.with_route(name.string(), label,
 				[&] (Child_policy::Route const &route) { result = create(pd, route); },
 				[&] { });
 		},

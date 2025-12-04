@@ -49,11 +49,10 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		Rm_session_component(Rpc_entrypoint   &ep,
 		                     Resources  const &resources,
 		                     Label      const &label,
-		                     Diag       const &diag,
 		                     Ram_allocator    &ram_alloc,
 		                     Local_rm         &local_rm)
 		:
-			Session_object(ep, resources, label, diag),
+			Session_object(ep, resources, label),
 			_ep(ep),
 			_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
 			_md_alloc(_ram_alloc, local_rm)
@@ -78,7 +77,7 @@ class Core::Rm_session_component : public Session_object<Rm_session>
 		{
 			Mutex::Guard guard(_region_maps_lock);
 
-			return _rm_alloc.create(_ep, _md_alloc, 0, size, Diag{false})
+			return _rm_alloc.create(_ep, _md_alloc, 0, size)
 				.convert<Create_result>(
 					[&] (Rm_alloc::Allocation &a) {
 						_region_maps.insert(&a.obj);

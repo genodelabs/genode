@@ -250,13 +250,12 @@ class Core::Vm_session_component
 		                     Rpc_entrypoint         &ep,
 		                     Resources               resources,
 		                     Label const            &label,
-		                     Diag                    diag,
 		                     Ram_allocator          &ram,
 		                     Mapped_ram_allocator   &mapped_ram,
 		                     Local_rm               &rm,
 		                     Trace::Source_registry &)
 		:
-			Session_object(ep, resources, label, diag),
+			Session_object(ep, resources, label),
 			_ep(ep),
 			_local_rm(rm),
 			_id_alloc(id_alloc),

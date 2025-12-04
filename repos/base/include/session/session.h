@@ -50,8 +50,6 @@ struct Genode::Session
 		Cap_quota cap_quota;
 	};
 
-	struct Diag { bool enabled; };
-
 	using Label = Session_label;
 
 	/*
@@ -85,11 +83,6 @@ namespace Genode {
 	static inline Session::Resources session_resources_from_args(char const *args)
 	{
 		return { ram_quota_from_args(args), cap_quota_from_args(args) };
-	}
-
-	static inline Session::Diag session_diag_from_args(char const *args)
-	{
-		return { Arg_string::find_arg(args, "diag").bool_value(false) };
 	}
 }
 

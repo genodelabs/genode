@@ -46,10 +46,9 @@ class Nitpicker::Event_session : public Session_object<Event::Session, Event_ses
 		Event_session(Env              &env,
 		              Resources  const &resources,
 		              Label      const &label,
-		              Diag       const &diag,
 		              Handler          &handler)
 		:
-			Session_object(env.ep(), resources, label, diag),
+			Session_object(env.ep(), resources, label),
 			_handler(handler),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_ds(_ram, env.rm(), 4096)

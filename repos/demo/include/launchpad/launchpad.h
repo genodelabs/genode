@@ -153,14 +153,12 @@ class Launchpad_child : public  Genode::Child_policy,
 
 		void _with_route(Genode::Service::Name const &service_name,
 		                 Genode::Session_label const &label,
-		                 Genode::Session::Diag const  diag,
 		                 With_route::Ft        const &fn,
 		                 With_no_route::Ft     const &denied_fn) override
 		{
 			auto route = [&] (Genode::Service &service) {
 				return Genode::Child_policy::Route { .service = service,
-				                                     .label   = label,
-				                                     .diag    = diag }; };
+				                                     .label   = label }; };
 
 			Genode::Service *service = nullptr;
 

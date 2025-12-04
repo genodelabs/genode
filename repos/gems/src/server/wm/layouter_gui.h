@@ -35,13 +35,10 @@ struct Wm::Layouter_gui_session : Session_object<Gui::Session>
 
 	Attached_ram_dataspace _command_ds;
 
-	Layouter_gui_session(Env                      &env,
-	                     Resources          const &resources,
-	                     Label              const &label,
-	                     Diag               const &diag,
+	Layouter_gui_session(Env &env, Resources const &resources, Label const &label,
 	                     Input::Session_capability input_session_cap)
 	:
-		Session_object<Gui::Session>(env.ep(), resources, label, diag),
+		Session_object<Gui::Session>(env.ep(), resources, label),
 		_input_session_cap(input_session_cap),
 		_mode_sigh_gui(env), _command_ds(env.ram(), env.rm(), 4096)
 	{ }

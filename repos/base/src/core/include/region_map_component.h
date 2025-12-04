@@ -324,8 +324,6 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 
 		friend class List<Region_map_component>;
 
-		Session::Diag const _diag;
-
 		Rpc_entrypoint &_ds_ep;
 		Rpc_entrypoint &_thread_ep;
 		Rpc_entrypoint &_session_ep;
@@ -511,15 +509,8 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 			/* read meta data for address */
 			Rm_region * const region_ptr = _map.metadata((void *)at);
 
-			if (!region_ptr) {
-				if (_diag.enabled)
-					warning("_with_region: no attachment at ", (void *)at);
+			if (!region_ptr)
 				return;
-			}
-
-			if ((region_ptr->base() != static_cast<addr_t>(at)) && _diag.enabled)
-				warning("_with_region: ", reinterpret_cast<void *>(at), " is not "
-				        "the beginning of the region ", Hex(region_ptr->base()));
 
 			fn(*region_ptr);
 		}
@@ -536,8 +527,7 @@ class Core::Region_map_component : private Weak_object<Region_map_component>,
 		Region_map_component(Rpc_entrypoint &ep,
 		                     Allocator      &md_alloc,
 		                     addr_t          vm_start,
-		                     size_t          vm_size,
-		                     Session::Diag   diag);
+		                     size_t          vm_size);
 
 		~Region_map_component();
 

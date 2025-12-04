@@ -122,12 +122,11 @@ struct Wm::Decorator_gui_session : Session_object<Gui::Session>,
 	Decorator_gui_session(Env                        &env,
 	                      Resources            const &resources,
 	                      Label                const &label,
-	                      Diag                 const &diag,
 	                      Pointer::Tracker           &pointer_tracker,
 	                      Input::Session_component   &window_layouter_input,
 	                      Decorator_content_callback &content_callback)
 	:
-		Session_object<Gui::Session>(env.ep(), resources, label, diag),
+		Session_object<Gui::Session>(env.ep(), resources, label),
 		_env(env),
 		_pointer_state(pointer_tracker),
 		_window_layouter_input(window_layouter_input),

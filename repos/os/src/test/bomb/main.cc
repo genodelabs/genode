@@ -106,15 +106,12 @@ class Bomb_child : public Child_policy
 
 		void _with_route(Service::Name     const &service_name,
 		                 Session_label     const &label,
-		                 Session::Diag     const  diag,
 		                 With_route::Ft    const &fn,
 		                 With_no_route::Ft const &denied_fn) override
 		{
 			_with_matching_service(service_name, label,
 				[&] (Service &service) {
-					fn(Route { .service = service,
-					           .label   = label,
-					           .diag    = diag });
+					fn(Route { .service = service, .label = label });
 				}, denied_fn);
 		}
 

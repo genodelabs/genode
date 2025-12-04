@@ -120,9 +120,7 @@ class Nitpicker::Gui_root : public Root_component<Gui_session>
 			resources.cap_quota.value -= 2;
 
 			Gui_session &session = *new (md_alloc())
-				Gui_session(_env, _action,
-				            resources, label,
-				            session_diag_from_args(args), _view_stack,
+				Gui_session(_env, _action, resources, label, _view_stack,
 				            _focus_updater, _hover_updater, _pointer_origin,
 				            _builtin_background, provides_default_bg,
 				            _focus_reporter);
@@ -235,7 +233,6 @@ class Nitpicker::Capture_root : public Root_component<Capture_session>
 				Registered<Capture_session>(_sessions, _env,
 				                            session_resources_from_args(args),
 				                            session_label_from_args(args),
-				                            session_diag_from_args(args),
 				                            _handler, _view_stack);
 
 			_action.capture_client_appeared_or_disappeared();
@@ -413,7 +410,6 @@ class Nitpicker::Event_root : public Root_component<Event_session>
 				Event_session(_env,
 				              session_resources_from_args(args),
 				              session_label_from_args(args),
-				              session_diag_from_args(args),
 				              _handler);
 		}
 

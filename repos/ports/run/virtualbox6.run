@@ -251,7 +251,7 @@ append config {
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<service name="Gui"> <child name="wm"/> </service>
-			<service name="VM"> <parent diag="yes"/> </service>
+			<service name="VM"> <parent/> </service>
 			<service name="Report" label="shape"> <child name="wm"/> </service>
 			<service name="ROM"    label="clipboard"> <child name="wm"/> </service>
 			<service name="Report" label="clipboard"> <child name="wm"/> </service>

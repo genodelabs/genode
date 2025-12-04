@@ -43,13 +43,9 @@ class Black_hole::Gpu_session : public Session_object<Gpu::Session>
 
 	public:
 
-		Gpu_session(Env         &env,
-		            Resources    resources,
-		            Label const &label,
-		            Diag         diag)
+		Gpu_session(Env &env, Resources resources, Label const &label)
 		:
-			Session_object { env.ep(), resources, label, diag },
-			_env           { env }
+			Session_object { env.ep(), resources, label }, _env { env }
 		{ }
 
 
@@ -154,18 +150,14 @@ class Black_hole::Gpu_root : public Gpu_root_component
 				session_resources_from_args(args) };
 
 			return *new (md_alloc())
-				Gpu_session {
-					_env, resources, session_label_from_args(args),
-					session_diag_from_args(args) };
+				Gpu_session { _env, resources, session_label_from_args(args) };
 		}
 
 	public:
 
-		Gpu_root(Env       &env,
-		         Allocator &alloc)
+		Gpu_root(Env &env, Allocator &alloc)
 		:
-			Root_component { env.ep(), alloc },
-			_env           { env }
+			Root_component(env.ep(), alloc), _env(env)
 		{ }
 };
 

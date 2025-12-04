@@ -719,7 +719,7 @@ void Main::wakeup_local_service()
 	report_service.for_each_requested_session([&] (Report_service::Request &req) {
 		auto deliver_session = [&] (Report_node_handler &handler) {
 			req.deliver_session(*new (heap)
-				Report_session_component(env, handler, env.ep(), req.resources, "", req.diag));
+				Report_session_component(env, handler, env.ep(), req.resources, ""));
 		};
 		if (req.label == "image_fs_query -> listing") deliver_session(image_fs_query_listing_handler);
 		else if (req.label == "client_fs_query -> listing") deliver_session(client_fs_query_listing_handler);

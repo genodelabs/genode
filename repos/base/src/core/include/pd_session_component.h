@@ -106,24 +106,9 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		/*
 		 * Withdraw one cap from budget, return true on success
 		 */
-		[[nodiscard]] bool _consume_cap(Cap_type type)
-		{
-			if (!try_withdraw(Cap_quota{1})) {
-				diag("out of caps while consuming ", _name(type), " cap "
-				     "(", _cap_account, ")");
-				return false;
-			}
-			diag("consumed ", _name(type), " cap (", _cap_account, ")");
-			return true;
-		}
+		[[nodiscard]] bool _consume_cap() { return try_withdraw(Cap_quota{1}); }
 
-		void _released_cap_silent() { replenish(Cap_quota{1}); }
-
-		void _released_cap(Cap_type type)
-		{
-			_released_cap_silent();
-			diag("released ", _name(type), " cap (", _cap_account, ")");
-		}
+		void _released_cap() { replenish(Cap_quota{1}); }
 
 		Transfer_result _with_pd_or_core_account(Capability<Pd_account>,
 		                                         auto const &, auto const &);
@@ -139,7 +124,6 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		                     Rpc_entrypoint   &signal_ep,
 		                     Resources         resources,
 		                     Label      const &label,
-		                     Diag              diag,
 		                     Range_allocator  &phys_alloc,
 		                     Phys_range        phys_range,
 		                     Virt_range        virt_range,
@@ -150,7 +134,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		                     Mapped_ram_allocator &mapped_ram,
 		                     Core::System_control &system_control)
 		:
-			Session_object(ep, resources, label, diag),
+			Session_object(ep, resources, label),
 			_ep(ep),
 			_system_control(system_control),
 			_pd_ram(*this),
@@ -164,9 +148,9 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
 			_pd(_accounted_mapped_ram, _sliced_heap, _label),
-			_address_space(ep, _sliced_heap, virt_range.start, virt_range.size, diag),
-			_stack_area   (ep, _sliced_heap, 0, stack_area_virtual_size(), diag),
-			_linker_area  (ep, _sliced_heap, 0, LINKER_AREA_SIZE, diag),
+			_address_space(ep, _sliced_heap, virt_range.start, virt_range.size),
+			_stack_area   (ep, _sliced_heap, 0, stack_area_virtual_size()),
+			_linker_area  (ep, _sliced_heap, 0, LINKER_AREA_SIZE),
 			_managing_system(managing_system)
 		{
 			_address_space.address_space(_pd);
@@ -245,7 +229,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		{
 			if (sig_rec_cap.valid()) {
 				_signal_broker.free_signal_source(sig_rec_cap);
-				_released_cap(SIG_SOURCE_CAP);
+				_released_cap();
 			}
 		}
 
@@ -258,7 +242,6 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 						.convert<Alloc_context_result>(
 							[&] (Signal_context_capability cap) {
 								reserved_cap.deallocate = false;
-								diag("consumed signal-context cap (", _cap_account, ")");
 								return cap;
 							},
 							[&] (Alloc_error e) { return e; });
@@ -270,7 +253,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		void free_context(Signal_context_capability cap) override
 		{
 			_signal_broker.free_context(cap);
-			_released_cap(SIG_CONTEXT_CAP);
+			_released_cap();
 		}
 
 		void submit(Signal_context_capability cap, unsigned n) override {
@@ -299,7 +282,7 @@ class Core::Pd_session_component : public Session_object<Pd_session>
 		void free_rpc_cap(Native_capability cap) override
 		{
 			_rpc_cap_factory.free(cap);
-			_released_cap(RPC_CAP);
+			_released_cap();
 		}
 
 

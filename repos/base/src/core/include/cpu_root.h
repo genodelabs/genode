@@ -40,7 +40,6 @@ class Core::Cpu_root : public Root_component<Cpu_session_component>
 			return _alloc_obj(*this->ep(),
 			                  session_resources_from_args(args),
 			                  session_label_from_args(args),
-			                  session_diag_from_args(args),
 			                  _ram_alloc, _local_rm,
 			                  _thread_ep, _pager_ep, _trace_sources,
 			                  args, affinity).convert<Create_result>(

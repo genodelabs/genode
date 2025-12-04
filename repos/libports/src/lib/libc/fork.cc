@@ -245,7 +245,7 @@ struct Libc::Local_rom_service : Noncopyable
 
 		Session(Entrypoint &ep, Rom_name const &name, Rom_dataspace_capability ds)
 		:
-			Session_object<Rom_session>(ep.rpc_ep(), _resources(), name, Session::Diag()),
+			Session_object<Rom_session>(ep.rpc_ep(), _resources(), name),
 			_ds(ds)
 		{ }
 
@@ -335,7 +335,7 @@ struct Libc::Local_clone_service : Noncopyable
 		Session(Genode::Env &env, Entrypoint &ep)
 		:
 			Session_object<Clone_session, Session>(ep.rpc_ep(), _resources(),
-			                                       "cloned", Session::Diag()),
+			                                       "cloned"),
 			_ds(env.ram(), env.rm(), Clone_session::BUFFER_SIZE)
 		{ }
 
@@ -475,7 +475,6 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	void _with_route(Service::Name     const &name,
 	                 Session_label     const &label,
-	                 Session::Diag     const  diag,
 	                 With_route::Ft    const &fn,
 	                 With_no_route::Ft const &denied_fn) override
 	{
@@ -509,9 +508,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 			service_ptr = &_parent_services.matching_service(name);
 
 		if (service_ptr)
-			fn(Route { .service = *service_ptr,
-			           .label   = rewritten_label,
-			           .diag    = diag });
+			fn(Route { .service = *service_ptr, .label = rewritten_label });
 		else
 			denied_fn();
 	}

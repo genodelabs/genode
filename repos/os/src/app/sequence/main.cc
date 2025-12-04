@@ -114,7 +114,6 @@ struct Sequence::Child : Genode::Child_policy
 	 */
 	void _with_route(Service::Name     const &name,
 	                 Session_label     const &label,
-	                 Session::Diag     const  diag,
 	                 With_route::Ft    const &fn,
 	                 With_no_route::Ft const &) override
 	{
@@ -122,9 +121,7 @@ struct Sequence::Child : Genode::Child_policy
 
 		auto route = [&] (Service &service)
 		{
-			return Route { .service = service,
-			               .label   = rewritten_label,
-			               .diag    = diag };
+			return Route { .service = service, .label = rewritten_label };
 		};
 
 		if (name == "ROM" && label == prefixed_label(_name, String<8>("config"))) {

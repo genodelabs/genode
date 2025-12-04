@@ -67,7 +67,6 @@ class Core::Trace::Session_component
 		Session_component(Rpc_entrypoint  &ep,
 		                  Resources const &resources,
 		                  Label     const &label,
-		                  Diag      const &diag,
 		                  Ram_allocator   &ram,
 		                  Local_rm        &local_rm,
 		                  size_t           arg_buffer_size,

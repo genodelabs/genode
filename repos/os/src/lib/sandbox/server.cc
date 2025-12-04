@@ -252,14 +252,12 @@ void Sandbox::Server::_handle_create_session_request(Node const &request,
 
 		Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", (int)forward_ram_quota.value);
 
-		Session::Diag const diag = session_diag_from_args(args.string());
-
 		using Phase = Session_state::Phase;
 
 		Session_state *session_ptr = nullptr;
 		route.service.create_session(route.service.factory(),
 		                             _client_id_space, id, route.label,
-		                             diag, argbuf, Affinity::from_node(request))
+		                             argbuf, Affinity::from_node(request))
 			.with_result(
 				[&] (Session_state &s) {
 

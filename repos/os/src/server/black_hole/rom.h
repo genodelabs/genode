@@ -39,13 +39,9 @@ class Black_hole::Rom_session : public Session_object<Genode::Rom_session>
 
 	public:
 
-		Rom_session(Env             &env,
-		            Resources const &resources,
-		            Label     const &label,
-		            Diag      const &diag)
+		Rom_session(Env &env, Resources const &resources, Label const &label)
 		:
-			Session_object(env.ep(), resources, label, diag),
-			_env { env }
+			Session_object(env.ep(), resources, label), _env(env)
 		{
 			copy_cstring(_ram_ds.local_addr<char>(), "<empty/>", RAM_DS_SIZE);
 		}
@@ -72,10 +68,8 @@ class Black_hole::Rom_root : public Root_component<Rom_session>
 		Create_result _create_session(const char *args) override
 		{
 			return *new (md_alloc())
-				Rom_session {
-					_env, session_resources_from_args(args),
-					session_label_from_args(args),
-					session_diag_from_args(args) };
+				Rom_session(_env, session_resources_from_args(args),
+				                  session_label_from_args(args));
 		}
 
 	public:

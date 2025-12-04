@@ -41,7 +41,6 @@ struct Core::Trace::Root : Root_component<Session_component>
 		return _alloc_obj(*this->ep(),
 		                  session_resources_from_args(args),
 		                  session_label_from_args(args),
-		                  session_diag_from_args(args),
 		                  _ram, _local_rm,
 		                  arg_buffer_size,
 		                  _sources, _policies);

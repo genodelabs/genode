@@ -143,10 +143,7 @@ struct Test::Main : Sandbox::Local_service_base::Wakeup
 		_log_service.for_each_requested_session([&] (Log_service::Request &request) {
 
 			Log_session_component &session = *new (_heap)
-				Log_session_component(_env.ep(),
-				                      request.resources,
-				                      request.label,
-				                      request.diag);
+				Log_session_component(_env.ep(), request.resources, request.label);
 
 			request.deliver_session(session);
 		});

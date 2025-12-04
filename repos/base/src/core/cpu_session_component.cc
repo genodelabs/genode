@@ -162,7 +162,6 @@ Dataspace_capability Cpu_session_component::trace_control()
 Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
                                              Resources        const &resources,
                                              Label            const &label,
-                                             Diag             const &diag,
                                              Ram_allocator          &ram_alloc,
                                              Local_rm               &local_rm,
                                              Rpc_entrypoint         &thread_ep,
@@ -171,7 +170,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
                                              char             const *args,
                                              Affinity         const &affinity)
 :
-	Session_object(session_ep, resources, label, diag),
+	Session_object(session_ep, resources, label),
 	_session_ep(session_ep), _thread_ep(thread_ep), _pager_ep(pager_ep),
 	_local_rm(local_rm),
 	_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),

@@ -345,14 +345,11 @@ class Test::Parent
 
 			void _with_route(Service::Name     const &service_name,
 			                 Session_label     const &label,
-			                 Session::Diag     const  diag,
 			                 With_route::Ft    const &fn,
 			                 With_no_route::Ft const &denied_fn) override
 			{
 				auto route = [&] (Service &service) {
-					return Route { .service = service,
-					               .label   = label,
-					               .diag    = diag }; };
+					return Route { .service = service, .label = label }; };
 
 				if (service_name == "ROM" && label == "child -> config") {
 					fn(route(_config_service));

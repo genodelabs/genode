@@ -42,13 +42,10 @@ class Black_hole::Usb_session : public Session_object<Usb::Session>,
 
 	public:
 
-		Usb_session(Env             &env,
-		            Label     const &label,
-		            Resources const &resources,
-		            Diag      const &diag)
+		Usb_session(Env &env, Label const &label, Resources const &resources)
 
 		:
-			Session_object<Usb::Session>(env.ep(), resources, label, diag),
+			Session_object<Usb::Session>(env.ep(), resources, label),
 			Dynamic_rom_session::Producer("devices"),
 			_env(env) { }
 
@@ -85,8 +82,7 @@ class Black_hole::Usb_root : public Root_component<Usb_session>
 			return *new (md_alloc())
 				Usb_session { _env,
 				              session_label_from_args(args),
-				              session_resources_from_args(args),
-				              session_diag_from_args(args) };
+				              session_resources_from_args(args) };
 		}
 
 	public:

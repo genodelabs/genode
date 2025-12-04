@@ -36,13 +36,9 @@ class Black_hole::Play_session : public Session_object<Play::Session, Play_sessi
 
 	public:
 
-		Play_session(Env             &env,
-		             Resources const &resources,
-		             Label     const &label,
-		             Diag      const &diag)
+		Play_session(Env &env, Resources const &resources, Label const &label)
 		:
-			Session_object(env.ep(), resources, label, diag),
-			_env(env),
+			Session_object(env.ep(), resources, label), _env(env),
 			_ram_ds(_env.ram(), _env.rm(), Play::Session::DATASPACE_SIZE)
 		{ }
 
@@ -79,8 +75,7 @@ class Black_hole::Play_root : public Root_component<Play_session>
 			return *new (md_alloc())
 				Play_session(_env,
 				             session_resources_from_args(args),
-				             session_label_from_args(args),
-				             session_diag_from_args(args));
+				             session_label_from_args(args));
 		}
 
 	public:

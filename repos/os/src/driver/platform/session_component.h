@@ -56,7 +56,6 @@ class Driver::Session_component
 		                  Registry<Irq_controller>     &irq_controller_registry,
 		                  Label            const       &label,
 		                  Resources        const       &resources,
-		                  Diag             const       &diag,
 		                  bool             const        info,
 		                  Policy_version   const        version,
 		                  bool             const        dma_remapping,

@@ -42,10 +42,9 @@ class Pin_state::Session_component : public Session_object<Session>
 		using Pin_id = ID;
 
 		Session_component(Entrypoint &ep, Resources const &resources,
-		                  Label const &label, Diag &diag, Pin::Driver<ID> &driver)
+		                  Label const &label, Pin::Driver<ID> &driver)
 		:
-			Session_object<Session>(ep, resources, label, diag),
-			_assignment(driver)
+			Session_object<Session>(ep, resources, label), _assignment(driver)
 		{
 			update_assignment();
 		}
