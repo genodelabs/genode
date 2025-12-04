@@ -88,7 +88,6 @@ class Core::Pd_root : public Root_component<Pd_session_component>
 			return _alloc_obj(_ep, _signal_ep,
 			                  session_resources_from_args(args),
 			                  session_label_from_args(args),
-			                  session_diag_from_args(args),
 			                  _phys_alloc,
 			                  _phys_range_from_args(args),
 			                  _virt_range_from_args(args),

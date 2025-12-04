@@ -216,7 +216,7 @@ void Sandboxed_runtime::_handle_report_service()
 	_report_service.for_each_requested_session([&] (Report_service::Request &request) {
 		if (request.label == Start_name { _menu_view_state.name, " -> hover" }) {
 			_hover_report_session.construct(_env, _hover_handler, _env.ep(),
-			                                request.resources, "", request.diag);
+			                                request.resources, "");
 			request.deliver_session(*_hover_report_session);
 		}
 	});
@@ -234,8 +234,7 @@ void Sandboxed_runtime::_handle_gui_service()
 		_views.with_element(request.label.last_element(),
 			[&] (View &view) {
 				Gui_session &session = *new (_alloc)
-					Gui_session(_env, view, _env.ep(),
-					            request.resources, "", request.diag);
+					Gui_session(_env, view, _env.ep(), request.resources, "");
 					request.deliver_session(session);
 				},
 			[&] {

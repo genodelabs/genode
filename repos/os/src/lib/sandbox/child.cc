@@ -503,7 +503,6 @@ void Sandbox::Child::init(Pd_session &session, Pd_session_capability cap)
 
 void Sandbox::Child::_with_route(Service::Name     const &service_name,
                                  Session_label     const &label,
-                                 Session::Diag     const  diag,
                                  With_route::Ft    const &fn,
                                  With_no_route::Ft const &denied_fn)
 {
@@ -515,7 +514,7 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 		if (_config_rom_service.constructed() &&
 		   !_config_rom_service->abandoned()) {
 
-			fn(Route { _config_rom_service->service(), label, Session::Diag{false} });
+			fn(Route { _config_rom_service->service(), label });
 			return;
 		}
 
@@ -535,19 +534,19 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 	 * Otherwise the regular routing is applied.
 	 */
 	if (rom_service && label == _unique_name && _unique_name != _binary_name) {
-		_with_route(service_name, _binary_name, diag, fn, denied_fn);
+		_with_route(service_name, _binary_name, fn, denied_fn);
 		return;
 	}
 
 	/* supply binary as dynamic linker if '<start ld="no">' */
 	if (rom_service && !_use_ld && label == "ld.lib.so") {
-		_with_route(service_name, _binary_name, diag, fn, denied_fn);
+		_with_route(service_name, _binary_name, fn, denied_fn);
 		return;
 	}
 
 	/* check for "session_requests" ROM request */
 	if (rom_service && label.last_element() == Session_requester::rom_name()) {
-		fn(Route { _session_requester.service(), Session::Label(), diag });
+		fn(Route { _session_requester.service(), Session::Label() });
 		return;
 	}
 
@@ -580,16 +579,13 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 		};
 		Label const target_label = rewritten_target_label();
 
-		Session::Diag const
-			target_diag { target.attribute_value("diag", diag.enabled) };
-
 		auto no_filter = [] (Service &) -> bool { return false; };
 
 		if (target.has_type("parent")) {
 
 			try {
 				return Route { find_service(_parent_services, service_name, no_filter),
-				               target_label, target_diag };
+				               target_label };
 			} catch (Service_denied) { }
 		}
 
@@ -597,7 +593,7 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 
 			try {
 				return Route { find_service(_local_services, service_name, no_filter),
-				               target_label, target_diag };
+				               target_label };
 			} catch (Service_denied) { }
 		}
 
@@ -612,7 +608,7 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 
 			try {
 				return Route { find_service(_child_services, service_name,
-				               filter_server_name), target_label, target_diag };
+				               filter_server_name), target_label };
 
 			} catch (Service_denied) { }
 		}
@@ -626,7 +622,7 @@ void Sandbox::Child::_with_route(Service::Name     const &service_name,
 			}
 			try {
 				return Route { find_service(_child_services, service_name,
-				               no_filter), target_label, target_diag };
+				               no_filter), target_label };
 
 			} catch (Service_denied) { }
 		}

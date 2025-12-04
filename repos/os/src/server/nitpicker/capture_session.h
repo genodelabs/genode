@@ -139,11 +139,10 @@ class Nitpicker::Capture_session : public Session_object<Capture::Session>
 		Capture_session(Env              &env,
 		                Resources  const &resources,
 		                Label      const &label,
-		                Diag       const &diag,
 		                Handler          &handler,
 		                View_stack const &view_stack)
 		:
-			Session_object(env.ep(), resources, label, diag),
+			Session_object(env.ep(), resources, label),
 			_env(env),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_handler(handler),

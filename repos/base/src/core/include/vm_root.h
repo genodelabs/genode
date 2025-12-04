@@ -44,7 +44,6 @@ struct Core::Vm_root : Root_component<Vm_session_component>
 		return _alloc_obj(*ep(),
 			              session_resources_from_args(args),
 			              session_label_from_args(args),
-			              session_diag_from_args(args),
 			              _ram_allocator, _local_rm, priority,
 			              _trace_sources);
 	}

@@ -33,12 +33,9 @@ class Black_hole::Log_session : public Session_object<Genode::Log_session>
 {
 	public:
 
-		Log_session(Env             &env,
-		            Resources const &resources,
-		            Label     const &label,
-		            Diag      const &diag)
+		Log_session(Env &env, Resources const &resources, Label const &label)
 		:
-			Session_object(env.ep(), resources, label, diag)
+			Session_object(env.ep(), resources, label)
 		{ }
 
 		void write(String const &) override { }
@@ -58,8 +55,7 @@ class Black_hole::Log_root : public Root_component<Log_session>
 			return *new (md_alloc())
 				Log_session {
 					_env, session_resources_from_args(args),
-					session_label_from_args(args),
-					session_diag_from_args(args) };
+					session_label_from_args(args) };
 		}
 
 	public:

@@ -45,7 +45,6 @@ Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 			                      *ep(),
 			                      resources,
 			                      session_label_from_args(args),
-			                      session_diag_from_args(args),
 			                      _ram_allocator, _mapped_ram, _local_rm,
 			                      _trace_sources);
 
@@ -56,7 +55,6 @@ Core::Vm_root::Create_result Vm_root::_create_session(const char *args)
 			                      *ep(),
 			                      session_resources_from_args(args),
 			                      session_label_from_args(args),
-			                      session_diag_from_args(args),
 			                      _ram_allocator, _mapped_ram, _local_rm,
 			                      _trace_sources);
 

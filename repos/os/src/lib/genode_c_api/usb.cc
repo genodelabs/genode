@@ -568,8 +568,7 @@ class Session_component
 		                  genode_shared_dataspace_free_t         free_fn,
 		                  genode_usb_dev_release_t               release_fn,
 		                  Label     const                       &label,
-		                  Resources const                       &resources,
-		                  Diag      const                       &diag);
+		                  Resources const                       &resources);
 
 		~Session_component();
 
@@ -1519,10 +1518,9 @@ Session_component::Session_component(Env                                   &env,
                                      genode_shared_dataspace_free_t         free_fn,
                                      genode_usb_dev_release_t               release_rn,
                                      Label     const                       &label,
-                                     Resources const                       &resources,
-                                     Diag      const                       &diag)
+                                     Resources const                       &resources)
 :
-	Session_object<Usb::Session>(env.ep(), resources, label, diag),
+	Session_object<Usb::Session>(env.ep(), resources, label),
 	Reg_list<Session_component>::Element(registry, *this),
 	Dynamic_rom_session::Producer("devices"),
 	_env(env),
@@ -1552,8 +1550,7 @@ Usb_root::Create_result Usb_root::_create_session(const char * args,
 	return *new (md_alloc())
 		Session_component(_env, *this, _sessions, _devices, _config,
 		                  _sigh_cap, _alloc_fn, _free_fn, _release_fn,
-		                  label, session_resources_from_args(args),
-		                  session_diag_from_args(args));
+		                  label, session_resources_from_args(args));
 }
 
 

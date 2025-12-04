@@ -2016,10 +2016,9 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 		                  Env::Local_rm &rm,
 		                  Resources      resources,
 		                  Label   const &label,
-		                  Diag           diag,
 		                  Igd::Device   &device)
 		:
-			Session_object(ep, resources, label, diag),
+			Session_object(ep, resources, label),
 			_env(env),
 			_rm(rm),
 			_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
@@ -2394,7 +2393,6 @@ class Gpu::Root : public Gpu::Root_component
 					Session_component(_env, _env.ep(), _device->_pci_backend_alloc, _env.rm(),
 					                  resources,
 					                  session_label_from_args(args),
-					                  session_diag_from_args(args),
 					                  *_device);
 			} catch (...) { throw; }
 		}

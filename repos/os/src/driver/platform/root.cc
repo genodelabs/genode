@@ -41,7 +41,6 @@ Driver::Root::Create_result Driver::Root::_create_session(const char *args)
 			                  _irq_controller_registry,
 			                  label_from_args(args),
 			                  session_resources_from_args(args),
-			                  session_diag_from_args(args),
 			                  policy.attribute_value("info", false),
 			                  policy.attribute_value("version", Version()),
 			                  _io_mmu_present || _kernel_iommu, _kernel_iommu);

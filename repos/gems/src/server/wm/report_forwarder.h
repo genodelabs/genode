@@ -83,8 +83,7 @@ struct Wm::Report_forwarder
 			return *new (md_alloc())
 				Session(_env, Arg_string::find_arg(args, "buffer_size").ulong_value(0),
 				        session_resources_from_args(args),
-				        session_label_from_args(args),
-				        session_diag_from_args(args));
+				        session_label_from_args(args));
 		}
 
 		void _upgrade_session(Session &s, const char *args) override

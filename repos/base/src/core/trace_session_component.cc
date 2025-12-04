@@ -167,14 +167,13 @@ void Session_component::free(Subject_id id)
 Session_component::Session_component(Rpc_entrypoint  &ep,
                                      Resources const &resources,
                                      Label     const &label,
-                                     Diag      const &diag,
                                      Ram_allocator   &ram,
                                      Local_rm        &local_rm,
                                      size_t           arg_buffer_size,
                                      Source_registry &sources,
                                      Policy_registry &policies)
 :
-	Session_object(ep, resources, label, diag),
+	Session_object(ep, resources, label),
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_local_rm(local_rm),
 	_subjects_slab(&_md_alloc),

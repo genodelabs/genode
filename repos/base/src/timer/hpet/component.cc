@@ -441,11 +441,10 @@ struct Timer::Session_component : Session_object<Timer::Session, Session_compone
 	Session_component(Env             &env,
 	                  Resources const &resources,
 	                  Label     const &label,
-	                  Diag      const &diag,
 	                  Alarms          &alarms,
 	                  Device          &device)
 	:
-		Session_object(env.ep(), resources, label, diag),
+		Session_object(env.ep(), resources, label),
 		_alarms(alarms), _device(device)
 	{ }
 
@@ -525,8 +524,7 @@ struct Timer::Root : public Root_component<Session_component>
 		Create_result _create_session(const char *args) override
 		{
 			return _alloc_obj(_env, session_resources_from_args(args),
-			                  session_label_from_args(args),
-			                  session_diag_from_args(args), _alarms, _device);
+			                  session_label_from_args(args), _alarms, _device);
 		}
 
 		void _upgrade_session(Session_component &s, const char *args) override

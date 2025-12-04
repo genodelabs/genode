@@ -28,7 +28,6 @@ class Genode::Session_object : private Ram_quota_guard,
 	public:
 
 		using Label     = Session::Label;
-		using Diag      = Session::Diag;
 		using Resources = Session::Resources;
 
 		using Ram_quota_guard::try_withdraw;
@@ -42,8 +41,6 @@ class Genode::Session_object : private Ram_quota_guard,
 
 		Rpc_entrypoint &_ep;
 
-		Diag _diag;
-
 	protected:
 
 		Label const _label;
@@ -56,21 +53,19 @@ class Genode::Session_object : private Ram_quota_guard,
 		/**
 		 * Constructor
 		 */
-		Session_object(Entrypoint &ep, Resources const &resources,
-		               Label const &label, Diag diag)
+		Session_object(Entrypoint &ep, Resources const &res, Label const &label)
 		:
-			Session_object(ep.rpc_ep(), resources, label, diag)
+			Session_object(ep.rpc_ep(), res, label)
 		{ }
 
 		/**
 		 * Constructor used by core
 		 */
-		Session_object(Rpc_entrypoint &ep, Resources const &resources,
-		               Label const &label, Diag diag)
+		Session_object(Rpc_entrypoint &ep, Resources const &res, Label const &label)
 		:
-			Ram_quota_guard(resources.ram_quota),
-			Cap_quota_guard(resources.cap_quota),
-			_ep(ep), _diag(diag), _label(label)
+			Ram_quota_guard(res.ram_quota),
+			Cap_quota_guard(res.cap_quota),
+			_ep(ep), _label(label)
 		{
 			if (Cap_quota_guard::try_withdraw(Cap_quota{1}))
 				_ep.manage(this);
@@ -95,18 +90,6 @@ class Genode::Session_object : private Ram_quota_guard,
 		 * Return client-specific session label
 		 */
 		Label label() const { return _label; }
-
-		/**
-		 * Output label-prefixed diagnostic message conditionally
-		 *
-		 * The method produces output only if the session is in diagnostic
-		 * mode (defined via the 'diag' session argument).
-		 */
-		void diag(auto &&... args) const
-		{
-			if (_diag.enabled)
-				log(RPC_INTERFACE::service_name(), " (", _label, ") ", args...);
-		}
 
 		/**
 		 * Output label-prefixed error message

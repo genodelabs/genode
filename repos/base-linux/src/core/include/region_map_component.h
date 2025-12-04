@@ -44,8 +44,7 @@ class Core::Region_map_component : public Rpc_object<Region_map>,
 
 	public:
 
-		Region_map_component(Rpc_entrypoint &, Allocator &, addr_t, size_t,
-		                     Session::Diag) { }
+		Region_map_component(Rpc_entrypoint &, Allocator &, addr_t, size_t) { }
 
 		void upgrade_ram_quota(size_t) { }
 

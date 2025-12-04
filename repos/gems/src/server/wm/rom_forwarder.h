@@ -71,8 +71,7 @@ struct Wm::Rom_forwarder
 		Create_result _create_session(char const *args) override
 		{
 			return *new (md_alloc()) Session(_env, session_resources_from_args(args),
-			                                       session_label_from_args(args),
-			                                       session_diag_from_args(args));
+			                                       session_label_from_args(args));
 		}
 
 		void _upgrade_session(Session &s, const char *args) override

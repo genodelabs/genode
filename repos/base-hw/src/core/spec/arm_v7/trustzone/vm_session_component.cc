@@ -27,7 +27,6 @@ Core::Vm_root::Create_result Core::Vm_root::_create_session(const char *args)
 	return *new (md_alloc()) Component(_registry, _vmid_alloc, *ep(),
 	                                   session_resources_from_args(args),
 	                                   session_label_from_args(args),
-	                                   session_diag_from_args(args),
 	                                   _ram_allocator, _mapped_ram, _local_rm,
 	                                   _trace_sources);
 }

@@ -104,7 +104,7 @@ install_config {
 		<service name="VM"/>
 	</parent-provides>
 	<default-route>
-		<service name="VM"> <parent diag="yes"/> </service>
+		<service name="VM"> <parent/> </service>
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 	<default caps="100" ram="1M"/>

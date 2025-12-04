@@ -41,10 +41,10 @@ struct Depot_autopilot::Log_session : Session_object<Genode::Log_session>
 
 	Action &_action;
 
-	Log_session(Entrypoint &ep, Resources const &resources, Diag diag,
+	Log_session(Entrypoint &ep, Resources const &resources,
 	            Label const &label, Version const &version, Action &action)
 	:
-		Session_object<Genode::Log_session>(ep, resources, label, diag),
+		Session_object<Genode::Log_session>(ep, resources, label),
 		_curr_version(version), _action(action)
 	{ }
 
@@ -86,7 +86,6 @@ struct Depot_autopilot::Log_root : Root_component<Log_session>
 	{
 		return _alloc_obj(_ep,
 		                  session_resources_from_args(args),
-		                  session_diag_from_args(args),
 		                  label_from_args(args),
 		                  _version, _action);
 	}

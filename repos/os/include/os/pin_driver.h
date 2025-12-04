@@ -230,7 +230,6 @@ class Pin::Root : Genode::Root_component<SC>
 				Session(_sessions, _ep,
 				        session_resources_from_args(args),
 				        session_label_from_args(args),
-				        session_diag_from_args(args),
 				        _driver);
 		}
 
@@ -281,9 +280,9 @@ class Pin::Irq_session_component : public Session_object<Irq_session>
 	public:
 
 		Irq_session_component(Entrypoint &ep, Resources const &resources,
-		                      Label const &label, Diag &diag, Driver<ID> &driver)
+		                      Label const &label, Driver<ID> &driver)
 		:
-			Session_object<Irq_session>(ep, resources, label, diag),
+			Session_object<Irq_session>(ep, resources, label),
 			_assignment(driver)
 		{
 			update_assignment();

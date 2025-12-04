@@ -75,23 +75,22 @@ struct Genode::Child_policy
 	{
 		Service &service;
 		Session::Label const label;
-		Session::Diag  const diag;
 	};
 
 	using With_route    = Callable<void, Route const &>;
 	using With_no_route = Callable<void>;
 
-	virtual void _with_route(Service::Name const &, Session_label const &, Session::Diag,
+	virtual void _with_route(Service::Name const &, Session_label const &,
 	                         With_route::Ft const &, With_no_route::Ft const &) = 0;
 
 	/**
 	 * Determine service and server-side label for a given session request
 	 */
 	void with_route(Service::Name const &name, Session_label const &label,
-	                Session::Diag diag, auto const &fn, auto const &denied_fn)
+	                auto const &fn, auto const &denied_fn)
 	{
-		_with_route(name, label, diag, With_route::Fn    { fn },
-		                               With_no_route::Fn { denied_fn } );
+		_with_route(name, label, With_route::Fn    { fn },
+		                         With_no_route::Fn { denied_fn } );
 	}
 
 	/**
@@ -587,11 +586,10 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				_child._policy.with_route(_service_name(),
 				                          label_from_args(_args.string()),
-				                          session_diag_from_args(_args.string()),
 					[&] (Child_policy::Route const &route) {
 						_env_service.construct(_child, route.service);
 						_connection.construct(*_env_service, _child._id_space, _client_id,
-						                      _args, affinity, route.label, route.diag);
+						                      _args, affinity, route.label);
 					},
 					[&] {
 						error(_child._policy.name(), ": ", _service_name(), " "

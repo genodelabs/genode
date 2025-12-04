@@ -64,10 +64,9 @@ class Event_filter::Event_session : public Session_object<Event::Session, Event_
 		Event_session(Env                 &env,
 		              Resources     const &resources,
 		              Label         const &label,
-		              Diag          const &diag,
 		              Source::Trigger     &trigger)
 		:
-			Session_object(env.ep(), resources, label, diag),
+			Session_object(env.ep(), resources, label),
 			_trigger(trigger),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_ds(_ram, env.rm(), 4096)
@@ -153,7 +152,6 @@ class Event_filter::Event_root : public Root_component<Event_session>
 				                          _env,
 				                          session_resources_from_args(args),
 				                          session_label_from_args(args),
-				                          session_diag_from_args(args),
 				                          _trigger);
 
 			session.assign_input_name(_config.node());

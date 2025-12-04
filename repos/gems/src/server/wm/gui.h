@@ -940,12 +940,11 @@ class Wm::Gui::Session_component : public Session_object<Gui::Session>,
 		                  Action           &action,
 		                  Resources  const &resources,
 		                  Label      const &label,
-		                  Diag       const  diag,
 		                  Window_registry  &window_registry,
 		                  Pointer::Tracker &pointer_tracker,
 		                  Click_handler    &click_handler)
 		:
-			Session_object<Gui::Session>(env.ep(), resources, label, diag),
+			Session_object<Gui::Session>(env.ep(), resources, label),
 			Producer("panorama"),
 			_env(env), _action(action),
 			_window_registry(window_registry),
@@ -1463,7 +1462,6 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 
 			Session::Label     label     = label_from_args(args.string());
 			Session::Resources resources = session_resources_from_args(args.string());
-			Session::Diag      diag      = session_diag_from_args(args.string());
 
 			enum Role { ROLE_DECORATOR, ROLE_LAYOUTER, ROLE_REGULAR, ROLE_DIRECT };
 			Role role = ROLE_REGULAR;
@@ -1518,7 +1516,7 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 			case ROLE_REGULAR:
 				try {
 					Session_component &session = *new (_sliced_heap)
-						Session_component(_env, _action, resources, label, diag,
+						Session_component(_env, _action, resources, label,
 						                  _window_registry,
 						                  _pointer_tracker,
 						                  _click_handler);
@@ -1531,7 +1529,7 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 			case ROLE_DECORATOR:
 				try {
 					Decorator_gui_session &session = *new (_sliced_heap)
-						Decorator_gui_session(_env, resources, label, diag,
+						Decorator_gui_session(_env, resources, label,
 						                      _pointer_tracker,
 						                      _window_layouter_input,
 						                      *this);
@@ -1544,7 +1542,7 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 			case ROLE_LAYOUTER:
 				try {
 					_layouter_session = new (_sliced_heap)
-						Layouter_gui_session(_env, resources, label, diag,
+						Layouter_gui_session(_env, resources, label,
 						                     _window_layouter_input.cap());
 
 					return { _layouter_session->cap() };
@@ -1555,7 +1553,7 @@ class Wm::Gui::Root : public  Rpc_object<Typed_root<Gui::Session> >,
 			case ROLE_DIRECT:
 				try {
 					Direct_gui_session &session = *new (_sliced_heap)
-						Direct_gui_session(_env, resources, label, diag);
+						Direct_gui_session(_env, resources, label);
 
 					return { session.cap() };
 				}

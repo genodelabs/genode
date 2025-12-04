@@ -34,18 +34,15 @@ class Black_hole::Report_session : public Session_object<Report::Session>
 
 		enum { RAM_DS_SIZE = 16 };
 
-		Env                     &_env;
-		Attached_ram_dataspace   _ram_ds  { _env.ram(), _env.rm(), RAM_DS_SIZE };
+		Env &_env;
+
+		Attached_ram_dataspace _ram_ds  { _env.ram(), _env.rm(), RAM_DS_SIZE };
 
 	public:
 
-		Report_session(Env             &env,
-		               Resources const &resources,
-		               Label     const &label,
-		               Diag      const &diag)
+		Report_session(Env &env, Resources const &resources, Label const &label)
 		:
-			Session_object(env.ep(), resources, label, diag),
-			_env { env }
+			Session_object(env.ep(), resources, label), _env(env)
 		{
 			copy_cstring(_ram_ds.local_addr<char>(), "<empty/>", RAM_DS_SIZE);
 		}
@@ -76,8 +73,7 @@ class Black_hole::Report_root : public Root_component<Report_session>
 			return *new (md_alloc())
 				Report_session {
 					_env, session_resources_from_args(args),
-					session_label_from_args(args),
-					session_diag_from_args(args) };
+					session_label_from_args(args) };
 		}
 
 	public:

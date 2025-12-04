@@ -90,7 +90,6 @@ Vcpu::~Vcpu()
 Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Resources resources,
                                            Label const &,
-                                           Diag,
                                            Ram_allocator &ram,
                                            Local_rm &local_rm,
                                            unsigned,

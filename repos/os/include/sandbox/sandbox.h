@@ -141,7 +141,6 @@ class Genode::Sandbox::Local_service_base : public Service
 				:
 					resources(session_resources_from_args(session.args().string())),
 					label(session.label()),
-					diag(session_diag_from_args(session.args().string())),
 					args(session.args()),
 					affinity(session.affinity())
 				{ }
@@ -158,7 +157,6 @@ class Genode::Sandbox::Local_service_base : public Service
 
 				Session::Resources const resources;
 				Session::Label     const label;
-				Session::Diag      const diag;
 				Args               const args;
 				Affinity           const affinity;
 
@@ -239,8 +237,8 @@ struct Genode::Sandbox::Local_service : private Local_service_base
 	 *
 	 * The functor is called with a 'Request &' as argument. The 'Request'
 	 * provides the caller with information about the requested session
-	 * ('resources', 'label', 'diag') and allows the caller to respond
-	 * to the session request ('deliver_session', 'deny').
+	 * ('resources', 'label') and allows the caller to respond to the session
+	 * request ('deliver_session', 'deny').
 	 */
 	void for_each_requested_session(auto const &fn)
 	{

@@ -43,14 +43,10 @@ class Capture::Session_component : public Session_object<Capture::Session>
 
 	public:
 
-		Session_component(Env              &env,
-		                  Resources  const &resources,
-		                  Label      const &label,
-		                  Diag       const &diag)
+		Session_component(Env &env, Resources const &resources, Label const &label)
 		:
-			Session_object(env.ep(), resources, label, diag),
-			_env(env),
-			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard())
+			Session_object(env.ep(), resources, label),
+			_env(env), _ram(env.ram(), _ram_quota_guard(), _cap_quota_guard())
 		{ }
 
 		~Session_component() { }
@@ -119,8 +115,7 @@ class Capture::Root : public Capture::Root_component
 			return *new (md_alloc())
 				Session_component(_env,
 				                  session_resources_from_args(args),
-				                  session_label_from_args(args),
-				                  session_diag_from_args(args));
+				                  session_label_from_args(args));
 		}
 
 		void _upgrade_session(Session_component &s, const char *args) override

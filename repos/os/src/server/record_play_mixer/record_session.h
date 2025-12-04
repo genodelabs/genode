@@ -88,10 +88,9 @@ class Mixer::Record_session : public Session_object<Record::Session, Record_sess
 		               Env             &env,
 		               Resources const &resources,
 		               Label     const &label,
-		               Diag      const &diag,
 		               Operations      &operations)
 		:
-			Session_object(env.ep(), resources, label, diag),
+			Session_object(env.ep(), resources, label),
 			Registry<Record_session>::Element(sessions, *this),
 			_ds(env.ram(), env.rm(), Record::Session::DATASPACE_SIZE),
 			_operations(operations)
@@ -245,7 +244,6 @@ class Mixer::Record_root : public Root_component<Record_session>
 				               _env,
 				               session_resources_from_args(args),
 				               session_label_from_args(args),
-				               session_diag_from_args(args),
 				               _operations);
 		}
 

@@ -39,8 +39,7 @@ struct Genode::Local_connection_base : Noncopyable
 
 	private:
 
-		static Args _init_args(Args const &args, Session::Resources resources,
-		                       Session::Diag diag)
+		static Args _init_args(Args const &args, Session::Resources resources)
 		{
 			/* copy original arguments into modifiable buffer */
 			char buf[Args::capacity()];
@@ -50,7 +49,6 @@ struct Genode::Local_connection_base : Noncopyable
 			                    String<64>(resources.ram_quota.value).string());
 			Arg_string::set_arg(buf, sizeof(buf), "cap_quota",
 			                    String<64>(resources.cap_quota.value).string());
-			Arg_string::set_arg(buf, sizeof(buf), "diag", diag.enabled);
 
 			/* return result as a copy  */
 			return Args(Cstring(buf));
@@ -63,13 +61,12 @@ struct Genode::Local_connection_base : Noncopyable
 		                      Parent::Client::Id                id,
 		                      Args const &args, Affinity const &affinity,
 		                      Session::Label             const &label,
-		                      Session::Diag                     diag,
 		                      Session::Resources                resources)
 		{
 			enum { NUM_ATTEMPTS = 10 };
 			for (unsigned i = 0; i < NUM_ATTEMPTS; i++) {
-				_session_state.construct(service, id_space, id, label, diag,
-				                         _init_args(args, resources, diag),
+				_session_state.construct(service, id_space, id, label,
+				                         _init_args(args, resources),
 				                         affinity);
 
 				if (_session_state->service().initiate_request(*_session_state).failed())
@@ -173,12 +170,10 @@ class Genode::Local_connection : Local_connection_base
 		Local_connection(Service &service, Id_space<Parent::Client> &id_space,
 		                 Parent::Client::Id id, Args const &args,
 		                 Affinity const &affinity,
-		                 Session::Label const &label = Session_label(),
-		                 Session::Diag diag = { false })
+		                 Session::Label const &label = Session_label())
 		:
 			Local_connection_base(service, id_space, id, args, affinity,
 			                      label.valid() ? label : label_from_args(args.string()),
-			                      diag,
 			                      Session::Resources { Ram_quota { CONNECTION::RAM_QUOTA },
 			                                           Cap_quota { CONNECTION::CAP_QUOTA } })
 		{

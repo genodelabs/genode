@@ -419,7 +419,6 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Resources resources,
                                            Label const &label,
-                                           Diag,
                                            Ram_allocator &ram,
                                            Local_rm &local_rm,
                                            unsigned const priority,

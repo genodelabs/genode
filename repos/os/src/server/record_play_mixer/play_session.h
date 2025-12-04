@@ -231,10 +231,9 @@ class Mixer::Play_session : public Session_object<Play::Session, Play_session>,
 		             Env             &env,
 		             Resources const &resources,
 		             Label     const &label,
-		             Diag      const &diag,
 		             Operations      &operations)
 		:
-			Session_object(env.ep(), resources, label, diag),
+			Session_object(env.ep(), resources, label),
 			Registry<Play_session>::Element(sessions, *this),
 			_ds(env.ram(), env.rm(), Play::Session::DATASPACE_SIZE),
 			_operations(operations)
@@ -452,7 +451,6 @@ class Mixer::Play_root : public Root_component<Play_session>
 				             _env,
 				             session_resources_from_args(args),
 				             session_label_from_args(args),
-				             session_diag_from_args(args),
 				             _operations);
 		}
 

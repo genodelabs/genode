@@ -39,12 +39,9 @@ public Session_object<Event::Session, Event_session>
 
 	public:
 
-		Event_session(Env              &env,
-		              Resources  const &resources,
-		              Label      const &label,
-		              Diag       const &diag)
+		Event_session(Env &env, Resources const &resources, Label const &label)
 		:
-			Session_object(env.ep(), resources, label, diag),
+			Session_object(env.ep(), resources, label),
 			_ram(env.ram(), _ram_quota_guard(), _cap_quota_guard()),
 			_ds(_ram, env.rm(), 4096)
 		{ }
@@ -75,8 +72,7 @@ class Black_hole::Event_root : public Root_component<Event_session>
 			return *new (md_alloc())
 				Event_session(_env,
 				              session_resources_from_args(args),
-				              session_label_from_args(args),
-				              session_diag_from_args(args));
+				              session_label_from_args(args));
 		}
 
 		void _upgrade_session(Event_session &s, const char *args) override

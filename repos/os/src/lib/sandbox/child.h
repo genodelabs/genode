@@ -450,7 +450,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		{
 			Route_state result = Route_state::UNAVAILABLE;
 
-			with_route(s.service().name(), s.client_label(), s.diag(),
+			with_route(s.service().name(), s.client_label(),
 				[&] (Child_policy::Route const &route) {
 					bool const valid = (s.service() == route.service)
 					                && (route.label == s.label());
@@ -733,7 +733,7 @@ class Sandbox::Child : Child_policy, Routed_service::Wakeup
 		Id_space<Parent::Server> &server_id_space() override {
 			return _session_requester.id_space(); }
 
-		void _with_route(Service::Name const &, Session_label const &, Session::Diag,
+		void _with_route(Service::Name const &, Session_label const &,
 		                 With_route::Ft const &, With_no_route::Ft const &) override;
 
 		void     filter_session_args(Service::Name const &, char *, size_t) override;
