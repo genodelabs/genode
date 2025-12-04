@@ -32,6 +32,8 @@
 
 namespace Gui_fader {
 
+	using namespace Genode;
+
 	class Main;
 	class Src_buffer;
 	class Dst_buffer;
@@ -41,19 +43,6 @@ namespace Gui_fader {
 	using Area  = Genode::Surface_base::Area;
 	using Point = Genode::Surface_base::Point;
 	using Rect  = Genode::Surface_base::Rect;
-
-	using Genode::size_t;
-	using Genode::uint8_t;
-	using Genode::Node;
-	using Genode::Dataspace_capability;
-	using Genode::Attached_ram_dataspace;
-	using Genode::Texture;
-	using Genode::Surface;
-	using Genode::Reconstructible;
-	using Genode::Constructible;
-
-	using Pixel_rgb888 = Genode::Pixel_rgb888;
-	using Pixel_alpha8 = Genode::Pixel_alpha8;
 }
 
 
@@ -84,7 +73,7 @@ class Gui_fader::Src_buffer
 
 	public:
 
-		Src_buffer(Genode::Env &env, Framebuffer::Mode mode)
+		Src_buffer(Env &env, Framebuffer::Mode mode)
 		:
 			_ds(env.ram(), env.rm(), _needed_bytes(mode.area)),
 			_texture(_ds.local_addr<Pixel>(),
@@ -102,7 +91,7 @@ class Gui_fader::Src_buffer
 		void blit(Rect from, Point to)
 		{
 			if (_texture.alpha() && !_warned_once) {
-				Genode::warning("Framebuffer::Session::blit does not support alpha blending");
+				warning("Framebuffer::Session::blit does not support alpha blending");
 				_warned_once = true;
 			}
 
@@ -117,8 +106,9 @@ class Gui_fader::Dst_buffer
 {
 	private:
 
-		Genode::Attached_dataspace _ds;
-		Area                       _size;
+		Attached_dataspace _ds;
+
+		Area _size;
 
 		Surface<Pixel_rgb888> _pixel_surface { _ds.local_addr<Pixel_rgb888>(), _size };
 
@@ -130,7 +120,7 @@ class Gui_fader::Dst_buffer
 
 	public:
 
-		Dst_buffer(Genode::Env &env, Dataspace_capability ds_cap, Area size)
+		Dst_buffer(Env &env, Dataspace_capability ds_cap, Area size)
 		:
 			_ds(env.rm(), ds_cap), _size(size)
 		{
@@ -147,13 +137,11 @@ class Gui_fader::Dst_buffer
 };
 
 
-class Gui_fader::Framebuffer_session_component
-:
-	public Genode::Rpc_object<Framebuffer::Session>
+class Gui_fader::Framebuffer_session_component : public Rpc_object<Framebuffer::Session>
 {
 	private:
 
-		Genode::Env &_env;
+		Env &_env;
 
 		Gui::Connection &_gui;
 		Src_buffer      &_src_buffer;
@@ -167,7 +155,7 @@ class Gui_fader::Framebuffer_session_component
 		/**
 		 * Constructor
 		 */
-		Framebuffer_session_component(Genode::Env     &env,
+		Framebuffer_session_component(Env             &env,
 		                              Gui::Connection &gui,
 		                              Src_buffer      &src_buffer)
 		:
@@ -188,7 +176,7 @@ class Gui_fader::Framebuffer_session_component
 
 			Texture_painter::paint(_dst_buffer->pixel_surface(),
 			                       _src_buffer.texture(),
-			                       Genode::Color::black(),
+			                       Color::black(),
 			                       Point(0, 0),
 			                       Texture_painter::SOLID,
 			                       false);
@@ -250,7 +238,7 @@ class Gui_fader::Framebuffer_session_component
 			return _gui.framebuffer.mode();
 		}
 
-		void mode_sigh(Genode::Signal_context_capability sigh) override
+		void mode_sigh(Signal_context_capability sigh) override
 		{
 			_gui.framebuffer.mode_sigh(sigh);
 		}
@@ -287,32 +275,30 @@ class Gui_fader::Framebuffer_session_component
 			_gui.framebuffer.panning(pos);
 		}
 
-		void sync_sigh(Genode::Signal_context_capability sigh) override
+		void sync_sigh(Signal_context_capability sigh) override
 		{
 			_gui.framebuffer.sync_sigh(sigh);
 		}
 
-		void sync_source(Genode::Session_label const &) override { }
+		void sync_source(Session_label const &) override { }
 };
 
 
-class Gui_fader::Gui_session_component
-:
-	public Genode::Rpc_object<Gui::Session>
+class Gui_fader::Gui_session_component : public Rpc_object<Gui::Session>
 {
 	private:
 
 		using View_capability = Gui::View_capability;
 		using View_id         = Gui::View_id;
 
-		Genode::Env &_env;
+		Env &_env;
 
 		Reconstructible<Src_buffer> _src_buffer {
 			_env, Framebuffer::Mode { .area  = { 1, 1 }, .alpha = false } };
 
 		Gui::Connection _gui { _env };
 
-		Genode::Attached_ram_dataspace _command_ds {
+		Attached_ram_dataspace _command_ds {
 			_env.ram(), _env.rm(), sizeof(Gui::Session::Command_buffer) };
 
 		Gui::Session::Command_buffer &_commands =
@@ -346,15 +332,8 @@ class Gui_fader::Gui_session_component
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Gui_session_component(Genode::Env &env) : _env(env)
-		{ }
+		Gui_session_component(Env &env) : _env(env) { }
 
-		/**
-		 * Destructor
-		 */
 		~Gui_session_component()
 		{
 			_env.ep().dissolve(_fb_session);
@@ -471,7 +450,7 @@ class Gui_fader::Gui_session_component
 			return Buffer_result::OK;
 		}
 
-		void focus(Genode::Capability<Session> focused) override
+		void focus(Capability<Session> focused) override
 		{
 			_gui.focus(focused);
 		}
@@ -480,9 +459,9 @@ class Gui_fader::Gui_session_component
 
 struct Gui_fader::Main
 {
-	Genode::Env &env;
+	Env &env;
 
-	Genode::Attached_rom_dataspace _config { env, "config" };
+	Attached_rom_dataspace _config { env, "config" };
 
 	Timer::Connection timer { env };
 
@@ -497,39 +476,39 @@ struct Gui_fader::Main
 
 	unsigned initial_fade_in_steps  = 0;
 
-	Genode::uint64_t curr_frame() const { return timer.elapsed_ms() / PERIOD; }
+	uint64_t curr_frame() const { return timer.elapsed_ms() / PERIOD; }
 
-	Genode::uint64_t last_frame = 0;
+	uint64_t last_frame = 0;
 
 	void handle_config_update();
 
-	Genode::Signal_handler<Main> config_handler
+	Signal_handler<Main> config_handler
 	{
 		env.ep(), *this, &Main::handle_config_update
 	};
 
 	Gui_session_component gui_session { env };
 
-	Genode::Static_root<Gui::Session> gui_root
+	Static_root<Gui::Session> gui_root
 	{
 		env.ep().manage(gui_session)
 	};
 
 	void handle_timer()
 	{
-		Genode::uint64_t frame = curr_frame();
+		uint64_t frame = curr_frame();
 		if (gui_session.animate((unsigned)(frame - last_frame)))
 			timer.trigger_once(PERIOD);
 
 		last_frame = frame;
 	}
 
-	Genode::Signal_handler<Main> timer_handler
+	Signal_handler<Main> timer_handler
 	{
 		env.ep(), *this, &Main::handle_timer
 	};
 
-	Main(Genode::Env &env) : env(env)
+	Main(Env &env) : env(env)
 	{
 		_config.sigh(config_handler);
 
