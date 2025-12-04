@@ -23,7 +23,7 @@
 #include <os/session_policy.h>
 #include <base/component.h>
 #include <root/component.h>
-#include <uart_session/uart_session.h>
+#include <terminal_session/terminal_session.h>
 
 /* local includes */
 #include <uart_driver.h>
@@ -39,7 +39,7 @@ namespace Uart {
 };
 
 
-class Uart::Session_component : public Rpc_object<Uart::Session,
+class Uart::Session_component : public Rpc_object<Terminal::Session,
                                                   Uart::Session_component>
 {
 	private:
@@ -138,16 +138,6 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 		{ }
 
 
-		/****************************
-		 ** Uart session interface **
-		 ****************************/
-
-		void baud_rate(size_t bits_per_second) override
-		{
-			_driver.baud_rate(bits_per_second);
-		}
-
-
 		/********************************
 		 ** Terminal session interface **
 		 ********************************/
@@ -228,7 +218,7 @@ class Uart::Root : public Uart::Root_component
 					bool     const detect_size = policy.attribute_value("detect_size", false);
 
 					return _alloc_obj(_env, _driver_factory, index,
-						              baudrate, detect_size);
+					                  baudrate, detect_size);
 				},
 				[&] () -> Create_result { return Create_error::DENIED; });
 		}
