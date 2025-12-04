@@ -45,22 +45,25 @@ Vcpu::Vcpu(Rpc_entrypoint          &ep,
 	                                             _recall.local.data()->kcap());
 	if (l4_error(msg)) {
 		error("vcpu irq creation failed", l4_error(msg));
-		throw Vcpu_creation_error();
+		return;
 	}
 
-	_vcpu_ids.alloc().with_result(
-		[&] (auto const vcpu_id) {
-			_task_index_client = thread.setup_vcpu(vcpu_id, task_cap, recall_cap(),
-			                                       _foc_vcpu_state);
+	constructed =
+		_vcpu_ids.alloc().convert<Constructed>(
+			[&] (auto const vcpu_id) -> Constructed {
+				_task_index_client = thread.setup_vcpu(vcpu_id, task_cap,
+				                                       recall_cap(),
+				                                       _foc_vcpu_state);
 
-			if (_task_index_client == Foc::L4_INVALID_CAP) {
-				(void)vcpu_alloc.free(vcpu_id);
-				if (l4_error(Foc::l4_irq_detach(_recall.local.data()->kcap())))
-					error("cannot detach IRQ");
-				throw Vcpu_creation_error();
-			}
+				if (_task_index_client == Foc::L4_INVALID_CAP) {
+					(void)vcpu_alloc.free(vcpu_id);
+					if (l4_error(Foc::l4_irq_detach(_recall.local.data()->kcap())))
+						error("cannot detach IRQ");
+					return Error();
+				}
+				return Ok();
 		},
-		[&] (Vcpu_id_allocator::Error) { throw Vcpu_creation_error(); });
+		[&] (Vcpu_id_allocator::Error) { return Error(); });
 
 	_ep.manage(this);
 }
@@ -104,18 +107,20 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 {
 	Cap_quota_guard::Result caps = _cap_quota_guard().reserve(Cap_quota{1});
 	if (caps.failed())
-		throw Out_of_caps();
+		constructed = Session_error::OUT_OF_CAPS;
 
 	using namespace Foc;
 	l4_msgtag_t msg = l4_factory_create_vm(L4_BASE_FACTORY_CAP,
 	                                       _task_vcpu.local.data()->kcap());
 	if (l4_error(msg)) {
 		error("create_vm failed ", l4_error(msg));
-		throw Service_denied();
+		constructed = Session_error::DENIED;
 	}
 
 	caps.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
 	                 [&] (Cap_quota_guard::Error) { /* handled at 'reserve' */ });
+
+	constructed = Ok();
 }
 
 
@@ -126,43 +131,42 @@ Vm_session_component::~Vm_session_component()
 }
 
 
-Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_capability cap)
+Vm_session_component::Create_vcpu_result
+Vm_session_component::create_vcpu(Thread_capability cap)
 {
-	if (!cap.valid())
-		return { };
+	Create_vcpu_result result = Create_vcpu_error::DENIED;
 
-	/* allocate vCPU object */
-	Vcpu * vcpu = nullptr;
+	if (!cap.valid())
+		return result;
 
 	_ep.apply(cap, [&] (Cpu_thread_component *thread) {
 		if (!thread)
 			return;
 
-		try {
-			vcpu = new (_heap) Registered<Vcpu>(_vcpus,
-			                                    _ep,
-			                                    _ram,
-			                                    _cap_quota_guard(),
-			                                    thread->platform_thread(),
-			                                    _task_vcpu,
-			                                    _vcpu_ids);
-		} catch (Vcpu_creation_error) {
-			return;
-		}
+		result =
+			_vcpu_alloc.create(_vcpus, _ep, _ram, _cap_quota_guard(),
+			                   thread->platform_thread(), _task_vcpu,
+			                   _vcpu_ids).template convert<Create_vcpu_result>(
+			[&] (auto &a) {
+				return a.obj.constructed.template convert<Create_vcpu_result>(
+					[&] (auto) {
+						a.deallocate = false;
+						return a.obj.cap(); },
+					[&] (auto) { return Create_vcpu_error::DENIED; });
+			},
+			[] (auto err) { return err; });
 	});
 
-	return vcpu ? vcpu->cap() : Capability<Vm_session::Native_vcpu> {};
+	return result;
 }
 
 
-void Vm_session_component::attach(Dataspace_capability const cap,
-                                  addr_t const guest_phys,
-                                  Attach_attr attribute)
+Vm_session_component::Attach_result
+Vm_session_component::attach(Dataspace_capability const cap,
+                             addr_t const guest_phys, Attach_attr attribute)
 {
-	using Attach_result = Guest_memory::Attach_result;
-
 	auto map_fn = [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
-	                   bool exec, bool write, Cache)
+	                   bool exec, bool write, Cache) -> Attach_result
 	{
 		Flexpage_iterator flex(phys_addr, size, vm_addr, size, vm_addr);
 
@@ -181,28 +185,19 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 
 			if (l4_error(msg)) {
 				error("task map failed ", l4_error(msg));
-				return Attach_result::INVALID_DS;
+				return Attach_error::INVALID_DATASPACE;
 			}
 			page = flex.page();
 		}
 
-		return Attach_result::OK;
+		return Region_map::Range(vm_addr, size);
 	};
 
-	Attach_result ret =
-		_memory.attach(cap, guest_phys, attribute,
-		               [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
-		                    bool exec, bool write, Cache cacheable) {
-			return map_fn(vm_addr, phys_addr, size, exec,
-			                         write, cacheable); });
-
-	switch(ret) {
-	case Attach_result::OK             : return;
-	case Attach_result::INVALID_DS     : throw Invalid_dataspace();
-	case Attach_result::OUT_OF_RAM     : throw Out_of_ram();
-	case Attach_result::OUT_OF_CAPS    : throw Out_of_caps();
-	case Attach_result::REGION_CONFLICT: throw Region_conflict();
-	};
+	return _memory.attach(cap, guest_phys, attribute,
+	                      [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+	                           bool exec, bool write, Cache cacheable) {
+		return map_fn(vm_addr, phys_addr, size, exec,
+		                         write, cacheable); });
 }
 
 

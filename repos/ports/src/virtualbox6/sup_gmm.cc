@@ -225,13 +225,21 @@ void Sup::Gmm::map_to_guest(Vmm_addr from, Guest_addr to, Pages pages, Protectio
 			.writeable  = prot.writeable
 		};
 
-		try { _vm_connection.attach(_slices[i], to.value, attr); }
-		catch (Vm_session::Region_conflict const &) {
-			error("region conflict while mapping guest memory",
-			      " (offset=", (void *)(attr.offset), " size=", Hex(attr.size),
-			      " to=", (void *)to.value, ")");
-		}
-
+		_vm_connection.attach(_slices[i], to.value, attr).with_error(
+			[&] (auto err) {
+				error("could not map guest memory",
+				      " (offset=", (void *)(attr.offset),
+				      " size=", Hex(attr.size),
+				      " to=", (void *)to.value, ")");
+				switch (err) {
+				case Vm_session::Attach_error::REGION_CONFLICT:
+					error("reason: region conflict!"); break;
+				case Vm_session::Attach_error::INVALID_DATASPACE:
+					error("reason: region conflict!"); break;
+				default:
+					error("For unknown reason.");
+				};
+			});
 		to.value += attr.size;
 	}
 }

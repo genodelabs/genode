@@ -188,19 +188,24 @@ Board::Vcpu_context::detect_virtualization(Vcpu_state &state, Id &id)
 	uint8_t vmid = 0;
 	id.with_result([&] (auto const &i) { vmid = (uint8_t)i; },
 	               [&] (auto&) {
+		/*
+		 * The following should not occur, because id creation result
+		 * is checked during vm session creation, only hint here in
+		 * case of development regression
+		 */
 		Genode::error("No virtualization id available!");
-		throw Core::Service_denied();
+		vmid = 255;
 	});
 
 	if (Hw::Virtualization_support::has_svm())
 		return *Genode::construct_at<Vmcb>((void*)state.vmc_addr(),
 		                                   state, vmid);
-	else if (Hw::Virtualization_support::has_vmx()) {
+	if (Hw::Virtualization_support::has_vmx())
 		return *Genode::construct_at<Vmcs>((void*)state.vmc_addr(), state);
-	} else {
-		Genode::error( "No virtualization support detected.");
-		throw Core::Service_denied();
-	}
+
+	Genode::error( "No virtualization support detected.");
+	static Virt_interface dummy(state);
+	return dummy;
 }
 
 

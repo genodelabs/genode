@@ -162,6 +162,10 @@ class Core::Vm_session_component
 		Accounted_mapped_ram_allocator _mapped_ram;
 		Heap _heap { _ram, _local_rm };
 
+		using Vcpu_allocator =
+			Memory::Constrained_obj_allocator<Registered<Vcpu>>;
+		Vcpu_allocator _vcpu_alloc { _heap };
+
 		Phys_allocated<TABLE> _table { _mapped_ram };
 		Page_table_allocator  _table_alloc { _mapped_ram, _heap };
 
@@ -174,17 +178,6 @@ class Core::Vm_session_component
 		Kernel::Vcpu::Identity _id { _id_alloc.alloc(),
 		                             (void *)_table.phys_addr() };
 
-		using Error = Accounted_mapped_ram_allocator::Error;
-		using Constructed = Attempt<Ok, Error>;
-
-		Constructed const constructed { _table.constructed.failed()
-			? _table.constructed
-			: _id.id.convert<Constructed>([] (auto) { return Ok(); },
-			                              [] (auto) { return Error::DENIED; })
-		};
-
-		using Attach_result = Guest_memory::Attach_result;
-
 		Attach_result _attach(addr_t vm_addr, addr_t phys_addr,
                               size_t size, bool exec, bool write,
                               Cache cache)
@@ -195,16 +188,16 @@ class Core::Vm_session_component
 			                    exec ? EXEC : NO_EXEC,
 			                    USER, NO_GLOBAL, RAM, cache };
 
-			Attach_result result = Attach_result::OK;
+			Attach_result result = Region_map::Range(vm_addr, size);
 
 			_table.obj([&] (auto &table) {
 				table.insert(vm_addr, phys_addr, size,
 				              pflags, _table_alloc).with_error(
 					[&] (Page_table_error e) {
 						if (e == Page_table_error::INVALID_RANGE) {
-							result = Attach_result::INVALID_DS;
+							result = Attach_error::INVALID_DATASPACE;
 						} else {
-							result = Attach_result::OUT_OF_RAM;
+							result = Attach_error::OUT_OF_RAM;
 							error("Translation table needs to much RAM");
 						}
 					});
@@ -239,6 +232,15 @@ class Core::Vm_session_component
 
 	public:
 
+		using Error = Accounted_mapped_ram_allocator::Error;
+		using Constructed = Attempt<Ok, Error>;
+
+		Constructed const constructed { _table.constructed.failed()
+			? _table.constructed
+			: _id.id.convert<Constructed>([] (auto) { return Ok(); },
+			                              [] (auto) { return Error::DENIED; })
+		};
+
 		/*
 		 * Noncopyable
 		 */
@@ -261,16 +263,7 @@ class Core::Vm_session_component
 			_id_alloc(id_alloc),
 			_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 			_mapped_ram(mapped_ram, _ram_quota_guard()),
-			_elem(registry, *this)
-		{
-			using Error = Accounted_mapped_ram_allocator::Error;
-			constructed.with_error([] (Error e) {
-				switch (e) {
-				case Error::OUT_OF_RAM:  throw Out_of_ram();
-				case Error::DENIED:      throw Service_denied();
-				};
-			});
-		}
+			_elem(registry, *this) { }
 
 		~Vm_session_component()
 		{
@@ -289,27 +282,18 @@ class Core::Vm_session_component
 		 ** Vm session interface **
 		 **************************/
 
-		void attach(Dataspace_capability cap, addr_t guest_phys,
-		            Attach_attr attribute) override
+		Attach_result attach(Dataspace_capability cap, addr_t guest_phys,
+		                     Attach_attr attribute) override
 		{
-			Attach_result ret =
-				_memory.attach(cap, guest_phys, attribute,
-				               [&] (addr_t vm_addr, addr_t phys_addr,
-				                    size_t size, bool exec, bool write,
-				                    Cache cacheable) {
+			return _memory.attach(cap, guest_phys, attribute,
+				[&] (addr_t vm_addr, addr_t phys_addr,
+				     size_t size, bool exec, bool write,
+				     Cache cacheable) {
 					return _attach(vm_addr, phys_addr, size, exec,
 					               write, cacheable); });
-
-			switch(ret) {
-			case Attach_result::OK             : return;
-			case Attach_result::INVALID_DS     : throw Invalid_dataspace();
-			case Attach_result::OUT_OF_RAM     : throw Out_of_ram();
-			case Attach_result::OUT_OF_CAPS    : throw Out_of_caps();
-			case Attach_result::REGION_CONFLICT: throw Region_conflict();
-			};
 		}
 
-		void attach_pic(addr_t) override;
+		Attach_result attach_pic(addr_t) override;
 
 		void detach(addr_t guest_phys, size_t size) override
 		{
@@ -317,7 +301,7 @@ class Core::Vm_session_component
 				_detach(vm_addr, size); });
 		}
 
-		Capability<Native_vcpu> create_vcpu(Thread_capability tcap) override
+		Create_vcpu_result create_vcpu(Thread_capability tcap) override
 		{
 			Affinity::Location vcpu_location;
 			_ep.apply(tcap, [&] (Cpu_thread_component *ptr) {
@@ -325,19 +309,17 @@ class Core::Vm_session_component
 				vcpu_location = ptr->platform_thread().affinity();
 			});
 
-			Vcpu &vcpu = *new (_heap)
-				Registered<Vcpu>(_vcpus, _id, _ep, _ram,
-				                 _local_rm, _mapped_ram, vcpu_location);
-			return vcpu.constructed().template convert<Capability<Native_vcpu>>(
-				[&] (Ok) { return vcpu.cap(); },
-				[&] (auto e) {
-					destroy(_heap, &vcpu);
-					switch (e) {
-					case Alloc_error::OUT_OF_CAPS: throw Out_of_caps();
-					case Alloc_error::OUT_OF_RAM:  throw Out_of_ram();
-					case Alloc_error::DENIED:      break;
-					};
-					return Capability<Native_vcpu>(); });
+			return _vcpu_alloc.create(_vcpus, _id, _ep, _ram,
+			                          _local_rm, _mapped_ram,
+			                          vcpu_location).template convert<Create_vcpu_result>(
+				[&] (auto &a) {
+					return a.obj.constructed().template convert<Create_vcpu_result>(
+					[&] (auto) {
+						a.deallocate = false;
+						return a.obj.cap(); },
+					[&] (Alloc_error e) { return e; });
+				},
+				[&] (Alloc_error e) { return e; });
 		}
 };
 

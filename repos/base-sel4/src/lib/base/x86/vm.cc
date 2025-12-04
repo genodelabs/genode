@@ -48,7 +48,14 @@ struct Sel4_native_rpc : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 		Capability<Vm_session::Native_vcpu> _create_vcpu(Vm_connection &vm,
 		                                                 Thread_capability &cap)
 		{
-			return vm.create_vcpu(cap);
+			Capability<Vm_session::Native_vcpu> ret;
+			vm.create_vcpu(cap).with_result(
+				[&] (auto result) { ret = result; },
+				[&] (auto) {
+					error("unrecoverable error in vcpu creation, will halt");
+					sleep_forever();
+				});
+			return ret;
 		}
 
 	public:

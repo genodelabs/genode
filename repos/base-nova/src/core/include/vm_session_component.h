@@ -40,7 +40,6 @@ class Core::Vm_session_component
 	private:
 
 		using Con_ram_allocator = Accounted_ram_allocator;
-		using Avl_region        = Allocator_avl_tpl<Rm_region>;
 
 		struct Pd_selector
 		{
@@ -55,10 +54,6 @@ class Core::Vm_session_component
 		class Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
 		             public Trace::Source::Info_accessor
 		{
-			public:
-
-				struct Creation_failed { };
-
 			private:
 
 				Rpc_entrypoint               &_ep;
@@ -77,6 +72,9 @@ class Core::Vm_session_component
 				Constructible<Trace::Source> _trace_source { };
 
 			public:
+
+				using Constructed = Attempt<Ok, Alloc_error>;
+				Constructed constructed { Alloc_error::DENIED };
 
 				Vcpu(Rpc_entrypoint &,
 				     Accounted_ram_allocator &ram_alloc,
@@ -113,11 +111,15 @@ class Core::Vm_session_component
 				Trace::Source::Info trace_source_info() const override;
 		};
 
+		using Vcpu_allocator =
+			Memory::Constrained_obj_allocator<Registered<Vcpu>>;
+
 		Rpc_entrypoint         &_ep;
 		Trace::Control_area     _trace_control_area;
 		Trace::Source_registry &_trace_sources;
 		Con_ram_allocator       _ram;
 		Sliced_heap             _heap;
+		Vcpu_allocator          _vcpu_alloc { _heap };
 		Pd_selector             _pd {};
 		Guest_memory            _memory;
 		unsigned                _next_vcpu_id { 0 };
@@ -134,6 +136,9 @@ class Core::Vm_session_component
 		Cap_quota_guard &_cap_quota_guard() { return *this; }
 
 	public:
+
+		using Constructed = Attempt<Ok, Session_error>;
+		Constructed constructed { Session_error::DENIED };
 
 		using Ram_quota_guard::upgrade;
 		using Cap_quota_guard::upgrade;
@@ -158,10 +163,11 @@ class Core::Vm_session_component
 		 ** Vm session interface **
 		 **************************/
 
-		Capability<Native_vcpu> create_vcpu(Thread_capability) override;
-		void attach_pic(addr_t) override { /* unused on NOVA */ }
+		Create_vcpu_result create_vcpu(Thread_capability) override;
+		Attach_result attach_pic(addr_t) override {
+			return Attach_error::INVALID_DATASPACE; /* unused on NOVA */ }
 
-		void attach(Dataspace_capability, addr_t, Attach_attr) override;
+		Attach_result attach(Dataspace_capability, addr_t, Attach_attr) override;
 		void detach(addr_t, size_t) override;
 
 };

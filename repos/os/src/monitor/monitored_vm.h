@@ -33,9 +33,9 @@ struct Monitor::Monitored_vm_session : Monitored_rpc_object<Vm_session, Monitore
 	 ** Vm_session interface **
 	 **************************/
 
-	void attach(Dataspace_capability ds, addr_t at, Attach_attr attr) override
+	Attach_result attach(Dataspace_capability ds, addr_t at, Attach_attr attr) override
 	{
-		_real.call<Rpc_attach>(ds, at, attr);
+		return _real.call<Rpc_attach>(ds, at, attr);
 	}
 
 	void detach(addr_t vm_addr, size_t size) override
@@ -43,14 +43,14 @@ struct Monitor::Monitored_vm_session : Monitored_rpc_object<Vm_session, Monitore
 		_real.call<Rpc_detach>(vm_addr, size);
 	}
 
-	void attach_pic(addr_t vm_addr) override
+	Attach_result attach_pic(addr_t vm_addr) override
 	{
-		_real.call<Rpc_attach_pic>(vm_addr);
+		return _real.call<Rpc_attach_pic>(vm_addr);
 	}
 
-	Capability<Native_vcpu> create_vcpu(Thread_capability thread_cap) override
+	Create_vcpu_result create_vcpu(Thread_capability thread_cap) override
 	{
-		Capability<Native_vcpu> result { };
+		Create_vcpu_result result = Create_vcpu_error::DENIED;
 
 		Monitored_thread::with_thread(_ep, thread_cap,
 			[&] (Monitored_thread &monitored_thread) {

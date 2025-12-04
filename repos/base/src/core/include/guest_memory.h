@@ -31,13 +31,8 @@ class Core::Guest_memory
 {
 	public:
 
-		enum class Attach_result {
-			OK,
-			INVALID_DS,
-			OUT_OF_RAM,
-			OUT_OF_CAPS,
-			REGION_CONFLICT,
-		};
+		using Attach_error  = Genode::Vm_session::Attach_error;
+		using Attach_result = Genode::Vm_session::Attach_result;
 
 	private:
 
@@ -80,12 +75,12 @@ class Core::Guest_memory
 			 * memory can be mapped to a VM
 			 */
 			if (dsc.managed())
-				return Attach_result::INVALID_DS;
+				return Attach_error::INVALID_DATASPACE;
 
 			if (!aligned(guest_phys,  AT_PAGE) ||
 			    !aligned(attr.offset, AT_PAGE) ||
 			    !aligned(attr.size,   AT_PAGE))
-				return Attach_result::INVALID_DS;
+				return Attach_error::INVALID_DATASPACE;
 
 			if (!attr.size) {
 				attr.size = dsc.size();
@@ -99,11 +94,11 @@ class Core::Guest_memory
 
 			if (attr.offset >= dsc.size() ||
 			    attr.offset > dsc.size() - attr.size)
-				return Attach_result::INVALID_DS;
+				return Attach_error::INVALID_DATASPACE;
 
 			return _map.alloc_addr(attr.size, guest_phys).convert<Attach_result>(
 
-				[&] (Range_allocator::Allocation &allocation) {
+				[&] (Range_allocator::Allocation &allocation) -> Attach_result {
 
 					Rm_region::Attr const region_attr
 					{
@@ -119,7 +114,7 @@ class Core::Guest_memory
 					if (!_map.construct_metadata((void *)guest_phys,
 					                             dsc, _detach, region_attr)) {
 						error("failed to store attachment info");
-						return Attach_result::INVALID_DS;
+						return Attach_error::INVALID_DATASPACE;
 					}
 
 					Rm_region &region = *_map.metadata((void *)guest_phys);
@@ -128,17 +123,17 @@ class Core::Guest_memory
 					dsc.attached_to(region);
 
 					allocation.deallocate = false;
-					return Attach_result::OK;
+					return Region_map::Range(guest_phys, attr.size);
 				},
 
-				[&] (Alloc_error error) {
+				[&] (Alloc_error error) -> Attach_result {
 
 					switch (error) {
 
 					case Alloc_error::OUT_OF_RAM:
-						return Attach_result::OUT_OF_RAM;
+						return Attach_error::OUT_OF_RAM;
 					case Alloc_error::OUT_OF_CAPS:
-						return Attach_result::OUT_OF_CAPS;
+						return Attach_error::OUT_OF_CAPS;
 					case Alloc_error::DENIED:
 						break;
 					};
@@ -148,7 +143,7 @@ class Core::Guest_memory
 					 */
 					Rm_region *region_ptr = _map.metadata((void *)guest_phys);
 					if (!region_ptr)
-						return Attach_result::REGION_CONFLICT;
+						return Attach_error::REGION_CONFLICT;
 
 					Rm_region &region = *region_ptr;
 
@@ -156,13 +151,13 @@ class Core::Guest_memory
 					region.with_dataspace([&] (Dataspace_component &ds) {
 						conflict = dsc.cap() != ds.cap(); });
 					if (conflict)
-						return Attach_result::REGION_CONFLICT;
+						return Attach_error::REGION_CONFLICT;
 
 					if (guest_phys < region.base() ||
 					    guest_phys > region.base() + region.size() - 1)
-						return Attach_result::REGION_CONFLICT;
+						return Attach_error::REGION_CONFLICT;
 
-					return Attach_result::OK;
+					return Region_map::Range(guest_phys, attr.size);
 				}
 			);
 		}
@@ -175,9 +170,9 @@ class Core::Guest_memory
 		                     auto const          &map_fn)
 		{
 			if (!cap.valid())
-				return Attach_result::INVALID_DS;
+				return Attach_error::INVALID_DATASPACE;
 
-			Attach_result ret = Attach_result::INVALID_DS;
+			Attach_result ret = Attach_error::INVALID_DATASPACE;
 
 			/* check dataspace validity */
 			_ep.apply(cap, [&] (Dataspace_component *dsc) {
@@ -185,7 +180,7 @@ class Core::Guest_memory
 					return;
 
 				ret = _attach(*dsc, guest_phys, attr);
-				if (ret != Attach_result::OK)
+				if (ret.failed())
 					return;
 
 				ret = map_fn(guest_phys, dsc->phys_addr() + attr.offset,
