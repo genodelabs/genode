@@ -18,6 +18,8 @@
 #include <irq_session/connection.h>
 
 namespace Uart {
+	using namespace Genode;
+
 	class  Driver_base;
 	class  Driver;
 	struct Driver_factory;
@@ -82,15 +84,6 @@ class Uart::Driver_base
 		 * Read character from UART
 		 */
 		virtual char get_char() = 0;
-
-		/**
-		 * Set baud rate for terminal
-		 */
-		virtual void baud_rate(size_t baud)
-		{
-			Genode::warning("Setting baudrate to ", baud,
-			                " is not supported. Use default value.");
-		}
 };
 
 

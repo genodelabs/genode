@@ -64,7 +64,6 @@ if { [have_include power_on/qemu] } {
 			<binary name="pc_uart"/>
 			<provides>
 				<service name="Terminal"/>
-				<service name="Uart"/>
 			</provides>
 			<config>
 				<policy label_prefix="monitor" uart="1"/>
@@ -77,7 +76,6 @@ if { [have_include power_on/qemu] } {
 			<binary name="rpi3_uart"/>
 			<provides>
 				<service name="Terminal"/>
-				<service name="Uart"/>
 			</provides>
 			<config>
 				<policy label_prefix="monitor" uart="0"/>

@@ -147,11 +147,6 @@ class Uart::Driver : public Uart::Driver_base
 		{
 			return _inb<TRB>();
 		}
-
-		void baud_rate(size_t bits_per_second) override
-		{
-			_init_comport(bits_per_second);
-		}
 };
 
 #endif /* _UART_DRIVER_H_ */
