@@ -308,5 +308,6 @@ Gic::Gic(const char * const     name,
 	for (unsigned i = 0; i < MAX_SPI; i++)
 		_spi[i].construct(i+MAX_SGI+MAX_PPI, Irq::SPI, _pending_list);
 
-	if (version < 3) vm.attach_pic(GICC_MMIO_START);
+	if (version < 3 && vm.attach_pic(GICC_MMIO_START).failed())
+		error("Attaching the virtual GIC to guest I/O memory failed!");
 }

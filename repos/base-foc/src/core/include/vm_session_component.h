@@ -54,6 +54,10 @@ struct Core::Vcpu : Rpc_object<Vm_session::Native_vcpu, Vcpu>
 
 	public:
 
+		struct Error {};
+		using Constructed = Attempt<Ok, Error>;
+		Constructed constructed { Error() };
+
 		Vcpu(Rpc_entrypoint &, Accounted_ram_allocator &, Cap_quota_guard &,
 		     Platform_thread &, Cap_mapping &, Vcpu_id_allocator &);
 
@@ -80,11 +84,14 @@ class Core::Vm_session_component
 	private:
 
 		using Con_ram_allocator = Accounted_ram_allocator;
+		using Vcpu_allocator =
+			Memory::Constrained_obj_allocator<Registered<Vcpu>>;
 
 		Rpc_entrypoint    &_ep;
 		Con_ram_allocator  _ram;
 		Guest_memory       _memory;
 		Sliced_heap        _heap;
+		Vcpu_allocator          _vcpu_alloc { _heap };
 		Cap_mapping        _task_vcpu { true };
 		Vcpu_id_allocator  _vcpu_ids  { };
 
@@ -109,6 +116,9 @@ class Core::Vm_session_component
 
 	public:
 
+		using Constructed = Attempt<Ok, Session_error>;
+		Constructed constructed { Session_error::DENIED };
+
 		using Ram_quota_guard::upgrade;
 		using Cap_quota_guard::upgrade;
 
@@ -122,9 +132,10 @@ class Core::Vm_session_component
 		 ** Vm session interface **
 		 **************************/
 
-		Capability<Native_vcpu> create_vcpu(Thread_capability) override;
-		void attach_pic(addr_t) override { /* unused on Fiasco.OC */ }
-		void attach(Dataspace_capability, addr_t, Attach_attr) override;
+		Create_vcpu_result create_vcpu(Thread_capability) override;
+		Attach_result attach_pic(addr_t) override {
+			return Attach_error::INVALID_DATASPACE; /* unused on Fiasco.OC */ }
+		Attach_result attach(Dataspace_capability, addr_t, Attach_attr) override;
 		void detach(addr_t, size_t) override;
 };
 

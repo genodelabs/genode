@@ -49,6 +49,9 @@ class Core::Vm_session_component
 
 			public:
 
+				using Constructed = Attempt<Ok, Alloc_error>;
+				Constructed constructed { Alloc_error::DENIED };
+
 				Vcpu(Rpc_entrypoint &, Accounted_ram_allocator &,
 				     Cap_quota_guard &, seL4_Untyped);
 
@@ -68,12 +71,14 @@ class Core::Vm_session_component
 				}
 		};
 
-		using Avl_region = Allocator_avl_tpl<Rm_region>;
+		using Vcpu_allocator =
+			Memory::Constrained_obj_allocator<Registered<Vcpu>>;
 
 		Rpc_entrypoint          &_ep;
 		Accounted_ram_allocator  _ram;
 		Guest_memory             _memory;
 		Heap                     _heap;
+		Vcpu_allocator           _vcpu_alloc { _heap };
 		unsigned                 _pd_id    { 0 };
 		Cap_sel                  _vm_page_table { 0 };
 		Page_table_registry      _page_table_registry { _heap };
@@ -109,6 +114,9 @@ class Core::Vm_session_component
 
 	public:
 
+		using Constructed = Attempt<Ok, Session_error>;
+		Constructed constructed { Session_error::DENIED };
+
 		using Ram_quota_guard::upgrade;
 		using Cap_quota_guard::upgrade;
 
@@ -122,10 +130,11 @@ class Core::Vm_session_component
 		 ** Vm session interface **
 		 **************************/
 
-		Capability<Native_vcpu> create_vcpu(Thread_capability) override;
-		void attach_pic(addr_t) override { /* unused on seL4 */ }
+		Create_vcpu_result create_vcpu(Thread_capability) override;
+		Attach_result attach_pic(addr_t) override {
+			return Attach_error::INVALID_DATASPACE; /* unused on seL4 */ }
 
-		void attach(Dataspace_capability, addr_t, Attach_attr) override;
+		Attach_result attach(Dataspace_capability, addr_t, Attach_attr) override;
 		void detach(addr_t, size_t) override;
 };
 

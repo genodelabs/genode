@@ -45,8 +45,6 @@ struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 
 		Attached_dataspace      _state;
 		Native_capability       _kernel_vcpu { };
-		Vcpu_handler_base &     _vcpu_handler;
-		unsigned                _id { 0 };
 		void                   *_ep_handler    { nullptr };
 
 		Vcpu_state & _local_state() { return *_state.local_addr<Vcpu_state>(); }
@@ -55,7 +53,6 @@ struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 
 	public:
 
-		void run();
 		const Hw_vcpu& operator=(const Hw_vcpu &) = delete;
 		Hw_vcpu(const Hw_vcpu&) = delete;
 
@@ -69,25 +66,16 @@ struct Hw_vcpu : Rpc_client<Vm_session::Native_vcpu>, Noncopyable
 Hw_vcpu::Hw_vcpu(Env &env, Vm_connection &vm, Vcpu_handler_base &handler)
 :
 	Rpc_client<Native_vcpu>(_create_vcpu(vm, handler)),
-	_state(env.rm(), vm.with_upgrade([&] { return call<Rpc_state>(); })),
-	_vcpu_handler(handler)
+	_state(env.rm(), call<Rpc_state>())
 {
-	static unsigned counter = 0;
 	call<Rpc_exception_handler>(handler.signal_cap());
 	_kernel_vcpu = call<Rpc_native_vcpu>();
-	_id = counter++;
 	_ep_handler = reinterpret_cast<Thread *>(&handler.rpc_ep());
 
 	/*
 	 * Set the startup exit for the initial signal to the VMM's Vcpu_handler
 	 */
-        _local_state().exit_reason = EXIT_STARTUP;
-}
-
-
-void Hw_vcpu::run()
-{
-	Kernel::vcpu_run(Capability_space::capid(_kernel_vcpu));
+	_local_state().exit_reason = EXIT_STARTUP;
 }
 
 
@@ -100,16 +88,22 @@ void Hw_vcpu::with_state(auto const &fn)
 	Kernel::vcpu_pause(Capability_space::capid(_kernel_vcpu));
 
 	if (fn(_local_state()))
-		run();
+		Kernel::vcpu_run(Capability_space::capid(_kernel_vcpu));
 }
 
 
 Capability<Vm_session::Native_vcpu> Hw_vcpu::_create_vcpu(Vm_connection     &vm,
                                                           Vcpu_handler_base &handler)
 {
+	Capability<Vm_session::Native_vcpu> cap;
 	Thread &tep { *reinterpret_cast<Thread *>(&handler.rpc_ep()) };
-
-	return vm.create_vcpu(tep.cap());
+	vm.create_vcpu(tep.cap()).with_result(
+		[&] (auto result) { cap = result; },
+		[&] (auto) {
+			error("unrecoverable error in vcpu creation, will halt");
+			sleep_forever();
+		});
+	return cap;
 }
 
 

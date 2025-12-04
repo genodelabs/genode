@@ -491,7 +491,8 @@ void Vmm::Vcpu::_handle_vcpu_exit()
 				return false;
 			}
 
-			_vm_con.attach(cap, guest_map_addr, { 0, 0, true, true });
+			_vm_con.attach(cap, guest_map_addr, { 0, 0, true, true }).with_error(
+				[] (auto) { error("attaching guest physical memory failed!"); });
 		}
 
 	default: break;

@@ -87,16 +87,23 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 		Rpc_client<Vm_session>(cap())
 	{ }
 
-	auto with_upgrade(auto const &fn) -> decltype(fn())
+	auto _retry(auto const &fn)
 	{
-		return Genode::retry<Genode::Out_of_ram>(
-			[&] {
-				return Genode::retry<Genode::Out_of_caps>(
-					[&] { return fn(); },
-					[&] { this->upgrade_caps(2); });
-			},
-			[&] { this->upgrade_ram(4096); }
-		);
+		while (true) {
+			auto ret = fn();
+			bool done = ret.template convert<bool>(
+				[&] (auto) { return true; },
+				[&] (auto error) {
+					switch (error) {
+					case decltype(error)::OUT_OF_CAPS: upgrade_caps(2);   return false;
+					case decltype(error)::OUT_OF_RAM:  upgrade_ram(4096); return false;
+					default: break;
+					}
+					return true;
+				});
+			if (done)
+				return ret;
+		}
 	}
 
 
@@ -104,20 +111,25 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 	 ** Vm_session interface **
 	 **************************/
 
-	void attach(Dataspace_capability ds, addr_t vm_addr, Attach_attr attr) override
+	Attach_result attach(Dataspace_capability ds, addr_t vm_addr,
+	                     Attach_attr attr) override
 	{
-		with_upgrade([&] {
-			call<Rpc_attach>(ds, vm_addr, attr); });
+		return _retry([&] {
+			return call<Rpc_attach>(ds, vm_addr, attr); });
 	}
 
 	void detach(addr_t vm_addr, size_t size) override {
 		call<Rpc_detach>(vm_addr, size); }
 
-	void attach_pic(addr_t vm_addr) override {
-		call<Rpc_attach_pic>(vm_addr); }
+	Attach_result attach_pic(addr_t vm_addr) override
+	{
+		return _retry([&] {
+			return call<Rpc_attach_pic>(vm_addr); });
+	}
 
-	Capability<Vm_session::Native_vcpu> create_vcpu(Thread_capability tcap) override {
-		return with_upgrade([&] {
+	Create_vcpu_result create_vcpu(Thread_capability tcap) override
+	{
+		return _retry([&] {
 			return call<Rpc_create_vcpu>(tcap); });
 	}
 };

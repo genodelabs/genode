@@ -166,14 +166,16 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 {
 	/* account caps required to setup vCPU */
 	Cap_quota_guard::Result caps = _cap_alloc.reserve(Cap_quota{CAP_RANGE});
-	if (caps.failed())
-		throw Out_of_caps();
+	if (caps.failed()) {
+		constructed = Alloc_error::OUT_OF_CAPS;
+		return;
+	}
 
 	/* now try to allocate cap indexes */
 	_sel_sm_ec_sc = cap_map().insert(CAP_RANGE_LOG2);
 	if (_sel_sm_ec_sc == invalid_sel()) {
 		error("out of caps in core");
-		throw Creation_failed();
+		return;
 	}
 
 	/* setup resources */
@@ -184,7 +186,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	if (res != Nova::NOVA_OK) {
 		cap_map().remove(_sel_sm_ec_sc, CAP_RANGE_LOG2);
 		error("create_sm = ", res);
-		throw Creation_failed();
+		return;
 	}
 
 	addr_t const event_base = (1U << Nova::NUM_INITIAL_VCPU_PT_LOG2) * id;
@@ -197,7 +199,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	if (res != Nova::NOVA_OK) {
 		cap_map().remove(_sel_sm_ec_sc, CAP_RANGE_LOG2);
 		error("create_ec = ", res);
-		throw Creation_failed();
+		return;
 	}
 
 	addr_t const dst_sm_ec_sel = Nova::NUM_INITIAL_PT_RESERVED + _id*CAP_RANGE;
@@ -217,7 +219,7 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 	if (res != Nova::NOVA_OK) {
 		cap_map().remove(_sel_sm_ec_sc, CAP_RANGE_LOG2);
 		error("map sm ", res, " ", _id);
-		throw Creation_failed();
+		return;
 	}
 
 	_ep.manage(this);
@@ -231,6 +233,8 @@ Vm_session_component::Vcpu::Vcpu(Rpc_entrypoint            &ep,
 
 	caps.with_result([&] (Cap_quota_guard::Reservation &r) { r.deallocate = false; },
 	                 [&] (Cap_quota_guard::Error) { /* handled at 'reserve' */ });
+
+	constructed = Ok();
 }
 
 
@@ -265,14 +269,12 @@ Vm_session_component::Pd_selector::~Pd_selector() {
 	if (valid()) cap_map().remove(value, 0, true); }
 
 
-void Vm_session_component::attach(Dataspace_capability const cap,
-                                  addr_t const guest_phys,
-                                  Attach_attr attribute)
+Vm_session_component::Attach_result
+Vm_session_component::attach(Dataspace_capability const cap,
+                             addr_t const guest_phys, Attach_attr attribute)
 {
-	using Attach_result = Guest_memory::Attach_result;
-
 	auto map_fn = [&] (addr_t guest_phys, addr_t phys_addr, size_t size,
-	                   bool exec, bool write, Cache)
+	                   bool exec, bool write, Cache) -> Attach_result
 	{
 		using Nova::Utcb;
 		Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
@@ -301,29 +303,20 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 
 			if (res != Nova::NOVA_OK) {
 				error("could not map VM memory ", res);
-				return (res == Nova::NOVA_PD_OOM) ? Attach_result::OUT_OF_RAM
-				                                  : Attach_result::INVALID_DS;
+				return (res == Nova::NOVA_PD_OOM) ? Attach_error::OUT_OF_RAM
+				                                  : Attach_error::INVALID_DATASPACE;
 			}
 
 			page = flex.page();
 		}
 
-		return Attach_result::OK;
+		return Region_map::Range(guest_phys, size);
 	};
 
-	Attach_result ret =
-	_memory.attach(cap, guest_phys, attribute,
-	               [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
-	                    bool exec, bool write, Cache cacheable) {
+	return _memory.attach(cap, guest_phys, attribute,
+	                      [&] (addr_t vm_addr, addr_t phys_addr, size_t size,
+	                           bool exec, bool write, Cache cacheable) {
 		return map_fn(vm_addr, phys_addr, size, exec, write, cacheable); });
-
-	switch(ret) {
-	case Attach_result::OK             : return;
-	case Attach_result::INVALID_DS     : throw Invalid_dataspace();
-	case Attach_result::OUT_OF_RAM     : throw Out_of_ram();
-	case Attach_result::OUT_OF_CAPS    : throw Out_of_caps();
-	case Attach_result::REGION_CONFLICT: throw Region_conflict();
-	};
 }
 
 void Vm_session_component::_detach(addr_t guest_phys, size_t size)
@@ -363,9 +356,10 @@ void Vm_session_component::reserve_and_flush(addr_t const addr)
 }
 
 
-Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_capability cap)
+Vm_session_component::Create_vcpu_result
+Vm_session_component::create_vcpu(Thread_capability cap)
 {
-	if (!cap.valid()) return { };
+	if (!cap.valid()) return Create_vcpu_error::DENIED;
 
 	/* lookup vmm pd and cpu location of handler thread in VMM */
 	addr_t             kernel_cpu_id = 0;
@@ -386,33 +380,35 @@ Capability<Vm_session::Native_vcpu> Vm_session_component::create_vcpu(Thread_cap
 
 	/* if VMM pd lookup failed then deny to create vCPU */
 	if (!vmm_pd_sel || vmm_pd_sel == invalid_sel())
-		return { };
+		return Create_vcpu_error::DENIED;
 
 	/* XXX this is a quite limited ID allocator... */
 	unsigned const vcpu_id = _next_vcpu_id;
 
-	try {
-		Vcpu &vcpu =
-			*new (_heap) Registered<Vcpu>(_vcpus,
-			                              _ep,
-			                              _ram,
-			                              _cap_quota_guard(),
-			                              vcpu_id,
-			                              (unsigned)kernel_cpu_id,
-			                              vcpu_location,
-			                              _priority,
-			                              _session_label,
-			                              _pd,
-			                              platform_specific().core_pd_sel(),
-			                              vmm_pd_sel,
-			                              _trace_control_area,
-			                              _trace_sources);
-		++_next_vcpu_id;
-		return vcpu.cap();
+	return _vcpu_alloc.create(_vcpus,
+		                      _ep,
+		                      _ram,
+		                      _cap_quota_guard(),
+		                      vcpu_id,
+		                      (unsigned)kernel_cpu_id,
+		                      vcpu_location,
+		                      _priority,
+		                      _session_label,
+		                      _pd,
+		                      platform_specific().core_pd_sel(),
+		                      vmm_pd_sel,
+		                      _trace_control_area,
+		                      _trace_sources).template convert<Create_vcpu_result>(
+		[&] (auto &a) {
+			return a.obj.constructed.template convert<Create_vcpu_result>(
+				[&] (auto) {
+					a.deallocate = false;
+					++_next_vcpu_id;
+					return a.obj.cap(); },
+				[&] (auto error) { return error; });
+		},
+		[] (auto err) { return err; });
 
-	} catch (Vcpu::Creation_failed&) {
-		return { };
-	}
 }
 
 
@@ -434,11 +430,13 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	_priority(scale_priority(priority, "VM session")),
 	_session_label(label)
 {
-	if (!_cap_quota_guard().try_withdraw(Cap_quota{1}))
-		throw Out_of_caps();
+	if (!_cap_quota_guard().try_withdraw(Cap_quota{1})) {
+		constructed = Session_error::OUT_OF_CAPS;
+		return;
+	}
 
 	if (!_pd.valid())
-		throw Service_denied();
+		return;
 
 	addr_t const core_pd = platform_specific().core_pd_sel();
 	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
@@ -447,8 +445,10 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	                              UPPER_LIMIT_PAGES);
 	if (res != Nova::NOVA_OK) {
 		error("create_pd = ", res);
-		throw Service_denied();
+		return;
 	}
+
+	constructed = Ok();
 }
 
 

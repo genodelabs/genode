@@ -110,11 +110,12 @@ Vm::Vm(Genode::Env &env, Heap &heap, Config &config)
 	_uart("Pl011", PL011_MMIO_START, PL011_MMIO_SIZE,
 	      PL011_IRQ, boot_cpu(), _bus, env)
 {
-	_vm.attach(_vm_ram.cap(), RAM_START,
-	           Genode::Vm_session::Attach_attr { .offset     = 0,
-	                                             .size       = 0,
-	                                             .executable = true,
-	                                             .writeable  = true });
+	_vm.attach(_vm_ram.cap(), RAM_START, Genode::Vm_session::Attach_attr {
+		.offset     = 0,
+		.size       = 0,
+		.executable = true,
+		.writeable  = true }).with_error(
+			[] (auto) { error("Attaching of guest physical memory failed!"); });
 
 	_config.for_each_virtio_device([&] (Config::Virtio_device const &dev) {
 		switch (dev.type) {

@@ -15,23 +15,45 @@
 #include <vm_root.h>
 #include <vm_session_component.h>
 
-using namespace Core;
+using Component = Core::Vm_session_component<Board::Vm_page_table>;
 
-template <>
-void Vm_session_component<Board::Vm_page_table>::attach_pic(addr_t vm_addr)
+template <> Component::Attach_result Component::attach_pic(addr_t addr)
 {
-	_attach(vm_addr, Board::Cpu_mmio::IRQ_CONTROLLER_VT_CPU_BASE,
-	        Board::Cpu_mmio::IRQ_CONTROLLER_VT_CPU_SIZE, false, true,
-	        CACHED);
+	return _attach(addr, Board::Cpu_mmio::IRQ_CONTROLLER_VT_CPU_BASE,
+	               Board::Cpu_mmio::IRQ_CONTROLLER_VT_CPU_SIZE, false, true,
+	               CACHED);
 }
 
 
 Core::Vm_root::Create_result Core::Vm_root::_create_session(const char *args)
 {
-	using Component = Vm_session_component<Board::Vm_page_table>;
-	return *new (md_alloc()) Component(_registry, _vmid_alloc, *ep(),
-		                               session_resources_from_args(args),
-		                               session_label_from_args(args),
-		                               _ram_allocator, _mapped_ram, _local_rm,
-		                               _trace_sources);
+	Memory::Constrained_obj_allocator<Component> obj_alloc(*md_alloc());
+
+	return obj_alloc.create(_registry, _vmid_alloc, *ep(),
+		                    session_resources_from_args(args),
+		                    session_label_from_args(args),
+		                    _ram_allocator, _mapped_ram, _local_rm,
+	                        _trace_sources).template convert<Create_result>(
+		[&] (auto &a) -> Create_result {
+			return a.obj.constructed.template convert<Create_result>(
+				[&] (auto) -> Session_object<Vm_session> & {
+					a.deallocate = false;
+					return a.obj; },
+				[&] (auto err) -> Create_error {
+					switch(err) {
+					case decltype(err)::OUT_OF_RAM:
+						return Create_error::INSUFFICIENT_RAM;
+					case decltype(err)::DENIED: ;
+					}
+					return Create_error::DENIED;
+				});
+		},
+		[&] (auto err) -> Create_error{
+			switch(err) {
+			case Alloc_error::OUT_OF_RAM:  return Create_error::INSUFFICIENT_RAM;
+			case Alloc_error::OUT_OF_CAPS: return Create_error::INSUFFICIENT_CAPS;
+			case Alloc_error::DENIED:      break;
+			}
+			return Create_error::DENIED;
+		});
 }

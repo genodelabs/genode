@@ -726,9 +726,16 @@ Signal_context_capability Nova_vcpu::_create_exit_handler(Pd_session        &pd,
 Capability<Vm_session::Native_vcpu> Nova_vcpu::_create_vcpu(Vm_connection     &vm,
                                                             Vcpu_handler_base &handler)
 {
-	Thread &tep { *reinterpret_cast<Thread *>(&handler.rpc_ep()) };
+	Capability<Vm_session::Native_vcpu> cap;
 
-	return vm.create_vcpu(tep.cap());
+	Thread &tep { *reinterpret_cast<Thread *>(&handler.rpc_ep()) };
+	vm.create_vcpu(tep.cap()).with_result(
+		[&] (auto result) { cap = result; },
+		[&] (auto) {
+			error("unrecoverable error in vcpu creation, will halt");
+			sleep_forever();
+		});
+	return cap;
 }
 
 

@@ -45,7 +45,13 @@ struct Core::Vm_root : Root_component<Vm_session_component>
 			              session_resources_from_args(args),
 			              session_label_from_args(args),
 			              _ram_allocator, _local_rm, priority,
-			              _trace_sources);
+			              _trace_sources).convert<Create_result>(
+				[&] (Vm_session_component &vm) -> Create_result {
+					return vm.constructed.template convert<Create_result>(
+						[&] (auto) -> Vm_session_component& { return vm; },
+						[] (auto e) { return e; });
+				},
+				[] (auto e) { return e; });
 	}
 
 	void _upgrade_session(Vm_session_component &vm, const char *args) override
