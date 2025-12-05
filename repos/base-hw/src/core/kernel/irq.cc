@@ -15,29 +15,49 @@
 #include <kernel/cpu.h>
 #include <kernel/irq.h>
 
+using namespace Kernel;
 
-void Kernel::Irq::disable() const
+void Irq::disable() const
 {
-	_pic.mask(_irq_nr);
+	_pic.mask(_id);
 }
 
 
-void Kernel::Irq::enable() const
+void Irq::enable() const
 {
-	_pic.unmask(_irq_nr, Cpu::executing_id());
+	_pic.unmask(_id, Cpu::executing_id());
 }
 
 
-Kernel::User_irq::User_irq(unsigned                     const irq,
-                           Genode::Irq_session::Trigger       trigger,
-                           Genode::Irq_session::Polarity      polarity,
-                           Signal_context                    &context,
-                           Board::Local_interrupt_controller &pic,
-                           Irq::Pool                         &user_irq_pool)
+Irq::Irq(unsigned const id, Pool &pool, Controller &pic)
 :
-	Irq      { irq, user_irq_pool, pic },
-	_context { context }
+	_id(id),
+	_pool(pool),
+	_pic(pic)
+{
+	_pool._tree.insert(this);
+}
+
+
+Irq::~Irq() { _pool._tree.remove(this); }
+
+
+void User_irq::occurred()
+{
+	_context.submit(1);
+	disable();
+}
+
+
+User_irq::User_irq(unsigned const id, Trigger trigger, Polarity polarity,
+                   Signal_context &context, Controller &pic, Pool &pool)
+:
+	Irq(id, pool, pic),
+	_context(context)
 {
 	disable();
-	_pic.irq_mode(_irq_nr, trigger, polarity);
+	_pic.irq_mode(id, trigger, polarity);
 }
+
+
+User_irq::~User_irq() { disable(); }
