@@ -101,7 +101,7 @@ void Board::Vcpu_context::Vm_irq::occurred()
 {
 	Vcpu *vcpu = dynamic_cast<Vcpu*>(&_cpu.current_context());
 	if (!vcpu) Genode::raw("Vcpu interrupt while Vcpu is not runnning!");
-	else       handle(*vcpu, _irq_nr);
+	else       handle(*vcpu, _id);
 }
 
 
@@ -110,7 +110,7 @@ Board::Vcpu_context::Maintainance_irq::Maintainance_irq(Kernel::Cpu &cpu)
 	Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu)
 {
 	//FIXME Irq::enable only enables caller cpu
-	cpu.pic().unmask(_irq_nr, cpu.id());
+	cpu.pic().unmask(_id, cpu.id());
 }
 
 

@@ -1,12 +1,12 @@
 /*
- * \brief   Kernel back-end and core front-end for user interrupts
+ * \brief   Kernel abstractions of interrupts
  * \author  Martin Stein
  * \author  Stefan Kalkowski
  * \date    2013-10-28
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2025 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -50,83 +50,75 @@ namespace Core {
 
 class Kernel::Irq : Genode::Avl_node<Irq>
 {
-	friend class Genode::Avl_tree<Irq>;
-	friend class Genode::Avl_node<Irq>;
-
 	public:
 
-		struct Pool : Genode::Avl_tree<Irq>
-		{
-			Irq * object(unsigned const id) const
-			{
-				Irq * const irq = first();
-				if (!irq) return nullptr;
-				return irq->find(id);
-			}
-		};
+		class Pool;
 
 	protected:
 
-		unsigned _irq_nr; /* kernel name of the interrupt */
-		Pool    &_irq_pool;
+		friend class Genode::Avl_tree<Irq>;
+		friend class Genode::Avl_node<Irq>;
+
+		unsigned _id;
+		Pool    &_pool;
 
 		Board::Local_interrupt_controller &_pic;
 
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param irq   interrupt number
-		 * \param pool  pool this interrupt shall belong to
-		 */
-		Irq(unsigned const                     irq,
-		    Pool                              &irq_pool,
-		    Board::Local_interrupt_controller &pic)
-		:
-			_irq_nr   { irq },
-			_irq_pool { irq_pool },
-			_pic      { pic }
+		void _with(unsigned const id,
+		           auto const &found_fn,
+		           auto const &missedfn)
 		{
-			_irq_pool.insert(this);
+			if (id == _id) {
+				found_fn(*this);
+				return;
+			}
+
+			Irq * const subtree = Genode::Avl_node<Irq>::child(id > _id);
+			if (!subtree) missedfn();
+			else subtree->_with(id, found_fn, missedfn);
 		}
-
-		virtual ~Irq() { _irq_pool.remove(this); }
-
-		/**
-		 * Handle occurence of the interrupt
-		 */
-		virtual void occurred() { }
-
-		/**
-		 * Prevent interrupt from occurring
-		 */
-		void disable() const;
-
-		/**
-		 * Allow interrupt to occur
-		 */
-		void enable() const;
-
-		unsigned irq_number() { return _irq_nr; }
 
 
 		/************************
 		 * 'Avl_node' interface *
 		 ************************/
 
-		bool higher(Irq * i) const { return i->_irq_nr > _irq_nr; }
+		bool higher(Irq *i) const { return i->_id > _id; }
 
-		/**
-		 * Find irq with 'nr' within this AVL subtree
-		 */
-		Irq * find(unsigned const nr)
+	public:
+
+		using Controller = Board::Local_interrupt_controller;
+
+		Irq(unsigned const irq, Pool &irq_pool, Controller &pic);
+
+		virtual ~Irq();
+
+		virtual void occurred() { }
+
+		void enable() const;
+		void disable() const;
+
+		unsigned id() { return _id; }
+};
+
+
+class Kernel::Irq::Pool
+{
+	private:
+
+		friend class Irq;
+
+		Genode::Avl_tree<Irq> _tree {};
+
+	public:
+
+		void with(unsigned const id,
+		          auto const &found_fn,
+		          auto const &missedfn) const
 		{
-			if (nr == _irq_nr) return this;
-			Irq * const subtree = Genode::Avl_node<Irq>::child(nr > _irq_nr);
-			return (subtree) ? subtree->find(nr): nullptr;
+			if (!_tree.first()) missedfn();
+			else _tree.first()->_with(id, found_fn, missedfn);
 		}
-
 };
 
 
@@ -139,35 +131,17 @@ class Kernel::User_irq : public Kernel::Irq
 
 	public:
 
-		/**
-		 * Construct object that signals interrupt 'irq' via signal 'context'
-		 */
-		User_irq(unsigned                const      irq,
-		         Genode::Irq_session::Trigger       trigger,
-		         Genode::Irq_session::Polarity      polarity,
-		         Signal_context                    &context,
-		         Board::Local_interrupt_controller &pic,
-		         Irq::Pool                         &user_irq_pool);
+		using Trigger    = Genode::Irq_session::Trigger;
+		using Polarity   = Genode::Irq_session::Polarity;
 
-		/**
-		 * Destructor
-		 */
-		~User_irq() { disable(); }
+		User_irq(unsigned const id, Trigger trigger, Polarity polarity,
+		         Signal_context &context, Controller &pic, Pool &pool);
 
-		/**
-		 * Handle occurence of the interrupt
-		 */
-		void occurred() override
-		{
-			_context.submit(1);
-			disable();
-		}
+		~User_irq();
 
-		/**
-		 * Handle occurence of interrupt 'irq'
-		 */
-		static User_irq * object(Irq::Pool &user_irq_pool, unsigned const irq) {
-			return dynamic_cast<User_irq*>(user_irq_pool.object(irq)); }
+		void occurred() override;
+
+		Object &kernel_object() { return _kernel_object; }
 
 		/**
 		 * Syscall to create user irq object
@@ -195,8 +169,6 @@ class Kernel::User_irq : public Kernel::Irq
 		 */
 		static void syscall_destroy(Core::Kernel_object<User_irq> &irq) {
 			core_call(Core_call_id::IRQ_DESTROY, (Call_arg) &irq); }
-
-		Object &kernel_object() { return _kernel_object; }
 };
 
 #endif /* _CORE__KERNEL__IRQ_H_ */

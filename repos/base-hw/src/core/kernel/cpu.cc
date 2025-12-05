@@ -61,15 +61,14 @@ void Cpu_context::_interrupt()
 	unsigned irq_id;
 	if (_cpu().pic().take_request(irq_id))
 
-		/* let the CPU of this context handle the IRQ if it is a CPU-local one */
-		if (!_cpu().handle_if_cpu_local_interrupt(irq_id)) {
-
-			/* it isn't a CPU-local IRQ, so, it must be a user IRQ */
-			User_irq *irq = User_irq::object(_cpu()._pool.irq_pool(),
-			                                 irq_id);
-			if (irq) irq->occurred();
-			else Genode::raw("Unknown interrupt ", irq_id);
-		}
+		/*
+		 * let the CPU of this context handle the IRQ,
+		 * if it is a CPU-local one, otherwise use the global pool
+		 */
+		if (!_cpu().handle_if_cpu_local_interrupt(irq_id))
+			_cpu()._pool.irq_pool().with(irq_id,
+				[] (Irq &irq) { irq.occurred(); },
+				[&] { Genode::raw("Unknown interrupt ", irq_id); });
 
 	/* let the IRQ controller finish the currently taken IRQ */
 	_cpu().pic().finish_request();
@@ -120,13 +119,15 @@ void Cpu::backtrace()
 
 bool Cpu::handle_if_cpu_local_interrupt(unsigned const irq_id)
 {
-	Irq * const irq = object(irq_id);
+	bool found = false;
 
-	if (!irq)
-		return false;
+	Irq::Pool::with(irq_id,
+		[&] (auto &irq) {
+			irq.occurred();
+			found = true;
+		}, [] { });
 
-	irq->occurred();
-	return true;
+	return found;
 }
 
 
