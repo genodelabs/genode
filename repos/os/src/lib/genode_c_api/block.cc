@@ -335,9 +335,7 @@ Block_root::Create_result Block_root::_create_session(const char * args,
 
 				Block::Constrained_view view =
 					Block::Constrained_view::from_args(args);
-				view.writeable = di.info.writeable
-				              && writeable_policy
-				              && view.writeable;
+				view.writeable = writeable_policy && view.writeable;
 
 				try {
 					ret = new (md_alloc())
@@ -527,9 +525,19 @@ extern "C" void genode_block_announce_device(const char *       name,
 	if (!_block_root)
 		return;
 
+	if (!writeable)
+		log(name, ": treat read-only device as writeable");
+
+	/*
+	 * We always announce the device as being writable and reflect
+	 * this circumstance in the session info to prevent bewilderment
+	 * when it is possible to write to a session marked as read-only.
+	 *
+	 * Should we encountered a device that is physically read-only
+	 * any write-access should result in an I/O error.
+	 */
 	_block_root->announce_device(name, { 1UL << SIZE_LOG2_512,
-	                             sectors, SIZE_LOG2_512,
-	                             (writeable != 0) ? true : false });
+	                             sectors, SIZE_LOG2_512, true });
 }
 
 
