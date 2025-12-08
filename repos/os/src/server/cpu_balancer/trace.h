@@ -60,7 +60,7 @@ class Cpu::Trace
 			_trace.construct(_env, _ram_quota, _arg_quota);
 
 			/* explicitly re-trigger import of subjects */
-			(void)_trace->_retry<Genode::Alloc_error>([&] {
+			(void)_trace->_retry([&] {
 				return _trace->call<Genode::Trace::Session::Rpc_subjects>(); });
 
 			_subject_id_reread ++;

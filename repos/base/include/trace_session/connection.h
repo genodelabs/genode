@@ -33,19 +33,8 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 
 	size_t const _max_arg_size;
 
-	template <typename ERROR>
-	auto _retry(auto const &fn) -> decltype(fn())
-	{
-		for (;;) {
-			bool retry = false;
-			auto const result = fn();
-			if (result == ERROR::OUT_OF_CAPS) { upgrade_caps(2);     retry = true; }
-			if (result == ERROR::OUT_OF_RAM)  { upgrade_ram(8*1024); retry = true; }
-
-			if (!retry)
-				return result;
-		}
-	}
+	auto _retry(auto const &fn) -> decltype(fn()) {
+		return retry(Ram_quota{8*1024}, Cap_quota{2}, fn); }
 
 	/**
 	 * Constructor
@@ -74,7 +63,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 		if (size.num_bytes > _max_arg_size)
 			return Alloc_policy_error::INVALID;
 
-		Alloc_policy_rpc_result const result = _retry<Alloc_error>([&] {
+		Alloc_policy_rpc_result const result = _retry([&] {
 			return call<Rpc_alloc_policy>(size); });
 
 		return result.convert<Alloc_policy_result>(
@@ -104,7 +93,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	Trace_result trace(Subject_id const s, Policy_id const p, Buffer_size const size)
 	{
 		Trace_rpc_result const rpc_result =
-			_retry<Trace_rpc_error>([&] () -> Trace_rpc_result {
+			_retry([&] () -> Trace_rpc_result {
 				return call<Rpc_trace>(s, p, size); });
 
 		return rpc_result.convert<Trace_result>(
@@ -127,7 +116,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	 */
 	Num_subjects subjects(Subject_id * const dst, Num_subjects const dst_num_subjects)
 	{
-		Subjects_rpc_result const result = _retry<Alloc_error>([&] {
+		Subjects_rpc_result const result = _retry([&] {
 			return call<Rpc_subjects>(); });
 
 		return result.convert<Num_subjects>(
@@ -148,7 +137,7 @@ struct Genode::Trace::Connection : Genode::Connection<Genode::Trace::Session>,
 	 */
 	For_each_subject_info_result for_each_subject_info(auto const &fn)
 	{
-		Infos_rpc_result const result = _retry<Alloc_error>([&] {
+		Infos_rpc_result const result = _retry([&] {
 			return call<Rpc_subject_infos>(); });
 
 		return result.convert<For_each_subject_info_result>(

@@ -87,25 +87,6 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 		Rpc_client<Vm_session>(cap())
 	{ }
 
-	auto _retry(auto const &fn)
-	{
-		while (true) {
-			auto ret = fn();
-			bool done = ret.template convert<bool>(
-				[&] (auto) { return true; },
-				[&] (auto error) {
-					switch (error) {
-					case decltype(error)::OUT_OF_CAPS: upgrade_caps(2);   return false;
-					case decltype(error)::OUT_OF_RAM:  upgrade_ram(4096); return false;
-					default: break;
-					}
-					return true;
-				});
-			if (done)
-				return ret;
-		}
-	}
-
 
 	/**************************
 	 ** Vm_session interface **
@@ -114,7 +95,7 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 	Attach_result attach(Dataspace_capability ds, addr_t vm_addr,
 	                     Attach_attr attr) override
 	{
-		return _retry([&] {
+		return retry(Ram_quota{4096}, Cap_quota{2}, [&] {
 			return call<Rpc_attach>(ds, vm_addr, attr); });
 	}
 
@@ -123,13 +104,13 @@ struct Genode::Vm_connection : Connection<Vm_session>, Rpc_client<Vm_session>
 
 	Attach_result attach_pic(addr_t vm_addr) override
 	{
-		return _retry([&] {
+		return retry(Ram_quota{4096}, Cap_quota{2}, [&] {
 			return call<Rpc_attach_pic>(vm_addr); });
 	}
 
 	Create_vcpu_result create_vcpu(Thread_capability tcap) override
 	{
-		return _retry([&] {
+		return retry(Ram_quota{4096}, Cap_quota{2}, [&] {
 			return call<Rpc_create_vcpu>(tcap); });
 	}
 };

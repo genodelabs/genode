@@ -84,6 +84,37 @@ class Genode::Connection_base : Noncopyable, Interface
 				[&] { upgrade_ram(ram.value); },
 				UPGRADE_ATTEMPTS);
 		}
+
+		/**
+		 * Extend session quota on demand while calling an RPC function,
+		 * which returns an Attempt<> value.
+		 *
+		 * \param ram   amount of RAM to upgrade as response to 'Out_of_ram'
+		 * \param caps  amount of caps to upgrade as response to 'Out_of_caps'
+		 *
+		 * \noapi
+		 */
+		auto retry(Ram_quota ram, Cap_quota caps, auto const &fn) -> decltype(fn())
+		{
+			while (true) {
+				auto ret = fn();
+				bool done = ret.template convert<bool>(
+					[&] (auto) { return true; },
+					[&] (auto error) {
+						if (error == decltype(error)::OUT_OF_CAPS) {
+							upgrade_caps(caps.value);
+							return false;
+						}
+						if (error == decltype(error)::OUT_OF_RAM) {
+							upgrade_ram(ram.value);
+							return false;
+						}
+						return true;
+					});
+				if (done)
+					return ret;
+			}
+		}
 };
 
 
