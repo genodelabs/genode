@@ -45,7 +45,7 @@ class Pci_card
 {
 	private:
 
-		enum { BAR_MAX = 6 };
+		enum { BAR_MAX = 7 };
 
 		Platform::Connection _pci_drv;
 		Platform::Device     _device           { _pci_drv };
