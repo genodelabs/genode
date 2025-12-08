@@ -181,6 +181,16 @@ to "client", no tinting is performed. The latter is useful for trusted domains
 such as the pointer or a global panel.
 
 
+Input policy for alpha blending
+-------------------------------
+
+By default, a client using alpha blending also controls the input mask that
+determines for what pixels the user input is handled by the client or
+"falls through" to the view that is visible in the background. If the domain's
+'input' attribute is set to "always", the input mask is ignored and user input
+is always forwarded to the foreground client.
+
+
 Global key definitions
 ~~~~~~~~~~~~~~~~~~~~~~
 

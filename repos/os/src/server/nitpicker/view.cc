@@ -182,6 +182,9 @@ bool Nitpicker::View::input_response_at(Point const p) const
 	 || (p.y < view_rect.y1()) || (p.y > view_rect.y2()))
 		return false;
 
+	if (_owner.input_always())
+		return true;
+
 	/* if view uses an alpha channel, check the input mask */
 	if (_owner.content_client() && _owner.uses_alpha())
 		return _owner.input_mask_at(p - view_rect.p1() - _buffer_off + _texture.panning);

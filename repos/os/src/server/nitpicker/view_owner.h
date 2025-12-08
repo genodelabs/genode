@@ -58,6 +58,8 @@ struct Nitpicker::View_owner : Interface
 
 	virtual bool hover_always() const { return false; }
 
+	virtual bool input_always() const { return false; }
+
 	/**
 	 * Return true if owner uses an alpha channel
 	 */

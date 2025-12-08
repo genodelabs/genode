@@ -33,6 +33,7 @@ class Nitpicker::Domain_registry
 				enum class Content { CLIENT, TINTED };
 				enum class Hover   { FOCUSED, ALWAYS };
 				enum class Focus   { NONE, CLICK, TRANSIENT };
+				enum class Input   { CLIENT, ALWAYS };
 
 				/**
 				 * Origin of the domain's coordiate system
@@ -48,6 +49,7 @@ class Nitpicker::Domain_registry
 				Content   _content;
 				Hover     _hover;
 				Focus     _focus;
+				Input     _input;
 				Origin    _origin;
 				unsigned  _layer;
 				Point     _offset;
@@ -56,11 +58,11 @@ class Nitpicker::Domain_registry
 				friend class Domain_registry;
 
 				Entry(Name const &name, Color color, Label label,
-				      Content content, Hover hover, Focus focus,
+				      Content content, Hover hover, Focus focus, Input input,
 				      Origin origin, unsigned layer, Point offset, Point area)
 				:
 					_name(name), _color(color), _label(label),
-					_content(content), _hover(hover), _focus(focus),
+					_content(content), _hover(hover), _focus(focus), _input(input),
 					_origin(origin), _layer(layer), _offset(offset), _area(area)
 				{ }
 
@@ -85,6 +87,7 @@ class Nitpicker::Domain_registry
 				unsigned  layer()     const { return _layer;   }
 				Content   content()   const { return _content; }
 				Hover     hover()     const { return _hover;   }
+				Input     input()     const { return _input;   }
 
 				bool label_visible()   const { return _label   == Label::YES; }
 				bool content_client()  const { return _content == Content::CLIENT; }
@@ -92,6 +95,7 @@ class Nitpicker::Domain_registry
 				bool hover_always()    const { return _hover   == Hover::ALWAYS; }
 				bool focus_click()     const { return _focus   == Focus::CLICK; }
 				bool focus_transient() const { return _focus   == Focus::TRANSIENT; }
+				bool input_always()    const { return _input   == Input::ALWAYS; }
 				bool origin_pointer()  const { return _origin  == Origin::POINTER; }
 
 				Point phys_pos(Point pos, Rect panorama) const
@@ -161,6 +165,18 @@ class Nitpicker::Domain_registry
 			return Entry::Focus::NONE;
 		}
 
+		static Entry::Input _input(Node const &domain)
+		{
+			using Value = String<32>;
+			Value const value = domain.attribute_value("input", Value("client"));
+
+			if (value == "client") return Entry::Input::CLIENT;
+			if (value == "always") return Entry::Input::ALWAYS;
+
+			warning("invalid value of input attribute in <domain>");
+			return Entry::Input::CLIENT;
+		}
+
 		static Entry::Origin _origin(Node const &domain)
 		{
 			using Value = String<32>;
@@ -207,7 +223,7 @@ class Nitpicker::Domain_registry
 
 			_entries.insert(new (_alloc) Entry(name, color, _label(domain),
 			                                   _content(domain), _hover(domain),
-			                                   _focus(domain),
+			                                   _focus(domain), _input(domain),
 			                                   _origin(domain), layer, offset, area));
 		}
 

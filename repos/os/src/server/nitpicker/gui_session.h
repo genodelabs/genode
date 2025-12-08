@@ -308,6 +308,8 @@ class Nitpicker::Gui_session : public  Session_object<Gui::Session>,
 
 		bool hover_always() const override { return _domain && _domain->hover_always(); }
 
+		bool input_always() const override { return _domain && _domain->input_always(); }
+
 		View const *background() const override { return _background; }
 
 		bool uses_alpha() const override { return _texture.alpha(); }
