@@ -30,6 +30,7 @@ void Sculpt::gen_fs_start_content(Generator            &g,
 			g.node("rump", [&] {
 				switch (fs_type) {
 				case File_system::EXT2:  g.attribute("fs", "ext2fs"); break;
+				case File_system::FAT16:
 				case File_system::FAT32: g.attribute("fs", "msdos");  break;
 				case File_system::GEMDOS:
 					g.attribute("fs",     "msdos");
