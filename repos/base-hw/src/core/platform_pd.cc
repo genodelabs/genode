@@ -30,14 +30,15 @@ using namespace Core;
 Cap_space::Cap_space() : _slab(nullptr, &_initial_sb) { }
 
 
-void Cap_space::upgrade_slab(Allocator &alloc)
+Cap_space::Upgrade_result Cap_space::upgrade_slab(Allocator &alloc)
 {
-	alloc.try_alloc(Kernel::CAP_SLAB_SIZE).with_result(
+	return alloc.try_alloc(Kernel::CAP_SLAB_SIZE).convert<Upgrade_result>(
 		[&] (Memory::Allocation &a) {
 			a.deallocate = false;
 			_slab.insert_sb(a.ptr);
+			return Genode::Ok();
 		},
-		[&] (Alloc_error e) { raise(e); });
+		[&] (Alloc_error e) { return e; });
 }
 
 

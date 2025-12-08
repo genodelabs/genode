@@ -40,7 +40,7 @@ class Core::Native_pd_component : public Rpc_object<Pd_session::Native_pd>
 
 		~Native_pd_component();
 
-		void upgrade_cap_slab() override;
+		Upgrade_result upgrade_cap_slab() override;
 		size_t avail_cap_slab() override;
 };
 

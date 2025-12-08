@@ -23,6 +23,7 @@
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/pd.h>
+#include <hw_native_pd/hw_native_pd.h>
 
 namespace Core {
 
@@ -54,9 +55,11 @@ class Core::Cap_space
 
 	public:
 
+		using Upgrade_result = Genode::Pd_session::Native_pd::Upgrade_result;
+
 		Cap_space();
 
-		void upgrade_slab(Allocator &alloc);
+		Upgrade_result upgrade_slab(Allocator &alloc);
 		size_t avail_slab() { return _slab.avail_entries(); }
 };
 

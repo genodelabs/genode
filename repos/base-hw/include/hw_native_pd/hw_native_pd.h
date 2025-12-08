@@ -20,7 +20,9 @@
 
 struct Genode::Pd_session::Native_pd : Interface
 {
-	virtual void upgrade_cap_slab() = 0;
+	using Upgrade_result = Attempt<Ok, Alloc_error>;
+
+	virtual Upgrade_result upgrade_cap_slab() = 0;
 	virtual size_t avail_cap_slab() = 0;
 
 
@@ -28,8 +30,7 @@ struct Genode::Pd_session::Native_pd : Interface
 	 ** RPC declaration **
 	 *********************/
 
-	GENODE_RPC_THROW(Rpc_upgrade_cap_slab, void, upgrade_cap_slab,
-	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps));
+	GENODE_RPC(Rpc_upgrade_cap_slab, Upgrade_result, upgrade_cap_slab);
 	GENODE_RPC(Rpc_avail_cap_slab, size_t, avail_cap_slab);
 	GENODE_RPC_INTERFACE(Rpc_upgrade_cap_slab, Rpc_avail_cap_slab);
 };

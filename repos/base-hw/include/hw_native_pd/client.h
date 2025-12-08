@@ -25,8 +25,8 @@ struct Genode::Hw_native_pd_client : Rpc_client<Pd_session::Native_pd>
 	explicit Hw_native_pd_client(Capability<Pd_session::Native_pd> cap)
 	: Rpc_client<Pd_session::Native_pd>(cap) { }
 
-	void upgrade_cap_slab() override {
-		call<Rpc_upgrade_cap_slab>(); }
+	Upgrade_result upgrade_cap_slab() override {
+		return call<Rpc_upgrade_cap_slab>(); }
 
 	size_t avail_cap_slab() override {
 		return call<Rpc_avail_cap_slab>(); }

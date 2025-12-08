@@ -55,16 +55,26 @@ void Genode::upgrade_capability_slab()
 		parent_ptr->resource_request(args.string());
 	};
 
-	retry<Genode::Out_of_caps>(
-		[&] {
-			retry<Genode::Out_of_ram>(
-				[&] {
-					native_pd_ptr->upgrade_cap_slab(); },
-				[&] {
-					request_resources_from_parent(Ram_quota{8192}, Cap_quota{0});
-				});
-		},
-		[&] {
-			request_resources_from_parent(Ram_quota{0}, Cap_quota{2});
-		});
+	while (true) {
+		auto result = native_pd_ptr->upgrade_cap_slab();
+		if (result.ok())
+			return;
+
+		result.with_error(
+			[&] (auto err) {
+				switch (err) {
+				case Alloc_error::OUT_OF_RAM:
+					request_resources_from_parent(Ram_quota{8192},
+					                              Cap_quota{0});
+					break;
+				case Alloc_error::OUT_OF_CAPS:
+					request_resources_from_parent(Ram_quota{0},
+					                              Cap_quota{2});
+					break;
+				case Alloc_error::DENIED:
+					error("Could not upgrade capability slab, unrecoverable!");
+					sleep_forever();
+				};
+			});
+	}
 }

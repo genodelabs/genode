@@ -17,9 +17,9 @@
 using namespace Core;
 
 
-void Native_pd_component::upgrade_cap_slab()
+Native_pd_component::Upgrade_result Native_pd_component::upgrade_cap_slab()
 {
-	_pd_session._pd.upgrade_slab(_pd_session._sliced_heap);
+	return _pd_session._pd.upgrade_slab(_pd_session._sliced_heap);
 }
 
 
