@@ -1,5 +1,5 @@
 /*
- * \brief  Cross-plugin VFS environment
+ * \brief  VFS environment
  * \author Emery Hemingway
  * \author Norman Feske
  * \date   2018-04-04
@@ -19,16 +19,16 @@
 #include <vfs/dir_file_system.h>
 #include <vfs/env.h>
 
-namespace Vfs { struct Simple_env; }
+namespace Genode::Vfs { struct Simple_env; }
 
 
-class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io, private Vfs::Env::User
+class Genode::Vfs::Simple_env : public Env, private Env::Io, private Env::User
 {
 	private:
 
-		Genode::Env       &_env;
-		Genode::Allocator &_alloc;
-		Vfs::Env::User    &_user;
+		Genode::Env &_env;
+		Allocator   &_alloc;
+		Env::User   &_user;
 
 		using Deferred_wakeups = Remote_io::Deferred_wakeups;
 
@@ -40,15 +40,15 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io, private Vfs::Env:
 
 	public:
 
-		Simple_env(Genode::Env       &env,
-		           Genode::Allocator &alloc,
-		           Node        const &config,
-		           Vfs::Env::User    &user)
+		Simple_env(Genode::Env &env,
+		           Allocator   &alloc,
+		           Node  const &config,
+		           Env::User   &user)
 		:
 			_env(env), _alloc(alloc), _user(user), _root_dir(*this, config, _fs_factory)
 		{ }
 
-		Simple_env(Genode::Env &env, Genode::Allocator &alloc, Node const &config)
+		Simple_env(Genode::Env &env, Allocator &alloc, Node const &config)
 		:
 			Simple_env(env, alloc, config, *this)
 		{ }
@@ -58,20 +58,20 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io, private Vfs::Env:
 			_root_dir.apply_config(config);
 		}
 
-		Genode::Env       &env()              override { return _env; }
-		Genode::Allocator &alloc()            override { return _alloc; }
-		Vfs::File_system  &root_dir()         override { return _root_dir; }
-		Deferred_wakeups  &deferred_wakeups() override { return _deferred_wakeups; }
-		Vfs::Env::Io      &io()               override { return *this; }
-		Vfs::Env::User    &user()             override { return _user; }
+		Genode::Env      &env()              override { return _env; }
+		Allocator        &alloc()            override { return _alloc; }
+		File_system      &root_dir()         override { return _root_dir; }
+		Deferred_wakeups &deferred_wakeups() override { return _deferred_wakeups; }
+		Env::Io          &io()               override { return *this; }
+		Env::User        &user()             override { return _user; }
 
 		/**
-		 * Vfs::Env::Io interface
+		 * Env::Io interface
 		 */
 		void commit() override { _deferred_wakeups.trigger(); }
 
 		/**
-		 * Vfs::Env::Io interface
+		 * Env::Io interface
 		 */
 		void commit_and_wait() override
 		{
@@ -80,7 +80,7 @@ class Vfs::Simple_env : public Vfs::Env, private Vfs::Env::Io, private Vfs::Env:
 		}
 
 		/**
-		 * Vfs::Env::User interface
+		 * Env::User interface
 		 *
 		 * Fallback implementation used if no 'user' is specified at
 		 * construction time.

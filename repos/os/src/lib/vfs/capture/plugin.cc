@@ -247,11 +247,13 @@ class Vfs_capture::File_system : private Local_factory,
 };
 
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &env, Node const &node) override
 		{
 			return new (env.alloc()) Vfs_capture::File_system(env, node);
 		}

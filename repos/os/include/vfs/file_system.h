@@ -18,10 +18,10 @@
 #include <vfs/file_io_service.h>
 #include <vfs/types.h>
 
-namespace Vfs { class File_system; }
+namespace Genode::Vfs { class File_system; }
 
 
-class Vfs::File_system : public Directory_service, public File_io_service
+class Genode::Vfs::File_system : public Directory_service, public File_io_service
 {
 	private:
 

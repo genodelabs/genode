@@ -17,22 +17,22 @@
 /* Genode includes */
 #include <vfs/single_file_system.h>
 
-namespace Vfs {
+namespace Genode::Vfs {
 	template <typename, unsigned BUF_SIZE = 128>
 	class Readonly_value_file_system;
 }
 
 
 template <typename T, unsigned BUF_SIZE>
-class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
+class Genode::Vfs::Readonly_value_file_system : public Single_file_system
 {
 	public:
 
-		using Name = Genode::String<64>;
+		using Name = String<64>;
 
 	private:
 
-		using Buffer = Genode::String<BUF_SIZE + 1>;
+		using Buffer = String<BUF_SIZE + 1>;
 
 		Name const _file_name;
 
@@ -59,7 +59,7 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 
 				char const * const src = _buffer.string() + seek();
 				size_t const len = min(size_t(_buffer.length() - seek()), dst.num_bytes);
-				Genode::memcpy(dst.start, src, len);
+				memcpy(dst.start, src, len);
 
 				out_count = len;
 				return READ_OK;
@@ -74,20 +74,20 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 			bool write_ready() const override { return false; }
 		};
 
-		using Config = Genode::String<200>;
+		using Config = String<200>;
 		Config _config(Name const &name) const
 		{
 			char buf[Config::capacity()] { };
-			Genode::Generator::generate({ buf, sizeof(buf) }, type_name(),
-				[&] (Genode::Generator &g) { g.attribute("name", name); }
-			).with_error([&] (Genode::Buffer_error) {
+			Generator::generate({ buf, sizeof(buf) }, type_name(),
+				[&] (Generator &g) { g.attribute("name", name); }
+			).with_error([&] (Buffer_error) {
 				warning("VFS read-only value fs config failed (", _file_name, ")");
 			});
-			return Config(Genode::Cstring(buf));
+			return Config(Cstring(buf));
 		}
 
-		using Registered_watch_handle = Genode::Registered<Vfs_watch_handle>;
-		using Watch_handle_registry   = Genode::Registry<Registered_watch_handle>;
+		using Registered_watch_handle = Registered<Vfs_watch_handle>;
+		using Watch_handle_registry   = Registry<Registered_watch_handle>;
 
 		Watch_handle_registry _handle_registry { };
 
@@ -125,9 +125,8 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Allocator   &alloc) override
+		Open_result open(char const *path, unsigned, Vfs::Vfs_handle **out_handle,
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
@@ -138,8 +137,8 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -162,16 +161,16 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 
 				return WATCH_OK;
 			}
-			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		using Single_file_system::close;
 
 		void close(Vfs_watch_handle *handle) override
 		{
-			Genode::destroy(handle->alloc(),
-			                static_cast<Registered_watch_handle *>(handle));
+			destroy(handle->alloc(),
+			        static_cast<Registered_watch_handle *>(handle));
 		}
 };
 

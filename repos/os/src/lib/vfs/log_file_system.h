@@ -18,20 +18,26 @@
 #include <vfs/single_file_system.h>
 #include <util/reconstructible.h>
 
-namespace Vfs { class Log_file_system; }
+namespace Vfs_log {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
+}
 
 
-class Vfs::Log_file_system : public Single_file_system
+class Vfs_log::File_system : public Single_file_system
 {
 	private:
 
-		using Label = Genode::String<64>;
+		using Label = String<64>;
 		Label _label;
 
-		Genode::Constructible<Genode::Log_connection>     _log_connection { };
-		Genode::Constructible<Genode::Log_session_client> _log_client     { };
+		Constructible<Log_connection>     _log_connection { };
+		Constructible<Log_session_client> _log_client     { };
 
-		Genode::Log_session & _log_session(Genode::Env &env)
+		Log_session & _log_session(Genode::Env &env)
 		{
 			using namespace Genode;
 
@@ -50,17 +56,17 @@ class Vfs::Log_file_system : public Single_file_system
 			return *_log_client;
 		}
 
-		Genode::Log_session &_log;
+		Log_session &_log;
 
 		class Log_vfs_handle : public Single_vfs_handle
 		{
 			private:
 
-				char _line_buf[Genode::Log_session::MAX_STRING_LEN];
+				char _line_buf[Log_session::MAX_STRING_LEN];
 
 				size_t _line_pos = 0;
 
-				Genode::Log_session &_log;
+				Log_session &_log;
 
 				void _flush()
 				{
@@ -85,10 +91,8 @@ class Vfs::Log_file_system : public Single_file_system
 
 			public:
 
-				Log_vfs_handle(Directory_service &ds,
-				               File_io_service   &fs,
-				               Genode::Allocator &alloc,
-				               Genode::Log_session &log)
+				Log_vfs_handle(Directory_service &ds, File_io_service &fs,
+				               Allocator &alloc, Log_session &log)
 				:
 					Single_vfs_handle(ds, fs, alloc, 0), _log(log)
 				{ }
@@ -149,7 +153,7 @@ class Vfs::Log_file_system : public Single_file_system
 
 	public:
 
-		Log_file_system(Vfs::Env &env, Node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::wo(), config),
@@ -177,8 +181,8 @@ class Vfs::Log_file_system : public Single_file_system
 					Log_vfs_handle(*this, *this, alloc, _log);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 

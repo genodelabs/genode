@@ -16,11 +16,12 @@
 #include <base/heap.h>
 
 namespace Vfs_import {
-	using namespace Vfs;
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
 	class Flush_guard;
 	class File_system;
-	using Genode::Directory;
-	using Genode::Root_directory;
 }
 
 
@@ -45,8 +46,7 @@ class Vfs_import::Flush_guard
 		{
 			while (true) {
 				if ((_handle.fs().queue_sync(&_handle))
-				 && (_handle.fs().complete_sync(&_handle)
-				  == Vfs::File_io_service::SYNC_OK))
+				 && (_handle.fs().complete_sync(&_handle) == File_io_service::SYNC_OK))
 					break;
 				_io.commit_and_wait();
 			}
@@ -62,14 +62,14 @@ class Vfs_import::File_system : public Vfs::File_system
 		 * XXX: A would-be temporary heap, but
 		 * deconstructing a VFS is not supported.
 		 */
-		Genode::Heap _heap;
+		Heap _heap;
 
 		enum { CREATE_IT = true };
 
 		static void copy_symlink(Vfs::Env &env,
 		                         Root_directory &src,
 		                         Directory::Path const &path,
-		                         Genode::Allocator &alloc,
+		                         Allocator &alloc,
 		                         bool overwrite)
 		{
 			Directory::Path target = src.read_symlink(path);
@@ -83,7 +83,7 @@ class Vfs_import::File_system : public Vfs::File_system
 			}
 			if (res != OPENLINK_OK) {
 				if (res != OPENLINK_ERR_NODE_ALREADY_EXISTS)
-					Genode::warning("skipping copy of symlink ", path, ", ", res);
+					warning("skipping copy of symlink ", path, ", ", res);
 				return;
 			}
 
@@ -102,7 +102,7 @@ class Vfs_import::File_system : public Vfs::File_system
 						break;
 					default:
 						if (out_count < src.num_bytes) {
-							Genode::error("failed to write symlink ", path, ", ", wres);
+							error("failed to write symlink ", path, ", ", wres);
 							env.root_dir().unlink(path.string());
 						}
 						return;
@@ -114,12 +114,9 @@ class Vfs_import::File_system : public Vfs::File_system
 		static void copy_file(Vfs::Env &env,
 		                      Root_directory &src,
 		                      Directory::Path const &path,
-		                      Genode::Allocator &alloc,
+		                      Allocator &alloc,
 		                      bool overwrite)
 		{
-			using Genode::Readonly_file;
-			using Genode::size_t;
-
 			Readonly_file src_file(src, path);
 			Vfs_handle *dst_handle = nullptr;
 
@@ -135,7 +132,7 @@ class Vfs_import::File_system : public Vfs::File_system
 					path.string(), WRITE, &dst_handle, alloc);
 			}
 			if (res != OPEN_OK) {
-				Genode::warning("skipping copy of file ", path, ", ", res);
+				warning("skipping copy of file ", path, ", ", res);
 				return;
 			}
 
@@ -149,7 +146,7 @@ class Vfs_import::File_system : public Vfs::File_system
 			while (true) {
 
 				size_t const bytes_from_source =
-					src_file.read(at, Genode::Byte_range_ptr(buf, sizeof(buf)));
+					src_file.read(at, Byte_range_ptr(buf, sizeof(buf)));
 
 				if (!bytes_from_source)
 					break;
@@ -195,7 +192,7 @@ class Vfs_import::File_system : public Vfs::File_system
 		static void copy_dir(Vfs::Env &env,
 		                     Root_directory &src,
 		                     Directory::Path const &path,
-		                     Genode::Allocator &alloc,
+		                     Allocator &alloc,
 		                     bool overwrite)
 		{
 			{
@@ -224,7 +221,7 @@ class Vfs_import::File_system : public Vfs::File_system
 					case Dirent_type::END:
 						return;
 					}
-					Genode::warning("skipping copy of ", e);
+					warning("skipping copy of ", e);
 				});
 			}
 		}
@@ -246,21 +243,21 @@ class Vfs_import::File_system : public Vfs::File_system
 		 ** Directory service **
 		 ***********************/
 
-		Genode::Dataspace_capability dataspace(char const*) override {
-			return Genode::Dataspace_capability(); }
+		Dataspace_capability dataspace(char const*) override {
+			return Dataspace_capability(); }
 
 		void release(char const*, Dataspace_capability) override { }
 
-		Open_result open(const char*, unsigned, Vfs::Vfs_handle**, Genode::Allocator&) override {
+		Open_result open(const char*, unsigned, Vfs::Vfs_handle**, Allocator&) override {
 			return Open_result::OPEN_ERR_UNACCESSIBLE; }
 
 		Opendir_result opendir(char const*, bool,
 	                           Vfs_handle**, Allocator&) override {
 			return OPENDIR_ERR_LOOKUP_FAILED; }
 
-		void close(Vfs::Vfs_handle*) override { }
+		void close(Vfs_handle*) override { }
 
-		Stat_result stat(const char*, Vfs::Directory_service::Stat&) override {
+		Stat_result stat(const char*, Directory_service::Stat&) override {
 			return STAT_ERR_NO_ENTRY; }
 
 		Unlink_result unlink(const char*) override { return UNLINK_ERR_NO_ENTRY; }
@@ -304,14 +301,15 @@ class Vfs_import::File_system : public Vfs::File_system
 };
 
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
+		Vfs::File_system *create(Vfs::Env &env, Node const &config) override
 		{
-			return new (env.alloc())
-				Vfs_import::File_system(env, config);
+			return new (env.alloc()) Vfs_import::File_system(env, config);
 		}
 	};
 

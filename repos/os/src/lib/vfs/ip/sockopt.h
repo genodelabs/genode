@@ -19,6 +19,10 @@
 #include <vfs/dir_file_system.h>
 
 namespace Vfs_ip {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
 	template <Sock_level, Sock_opt, bool READONLY = false>
 	class Sockopt_value_file_system;
 	class Sockopt_factory;
@@ -27,7 +31,7 @@ namespace Vfs_ip {
 
 
 template <Sock_level LEVEL, Sock_opt OPTNAME, bool READONLY>
-class Vfs_ip::Sockopt_value_file_system : public Vfs::Single_file_system
+class Vfs_ip::Sockopt_value_file_system : public Single_file_system
 {
 	public:
 
@@ -116,15 +120,15 @@ class Vfs_ip::Sockopt_value_file_system : public Vfs::Single_file_system
 
 		Sockopt_value_file_system(Name const &name, genode_socket_handle &sock)
 		:
-			Single_file_system(Vfs::Node_type::TRANSACTIONAL_FILE, type(),
-			                   Vfs::Node_rwx::rw(), Vfs::Node(_config(name))),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type(),
+			                   Node_rwx::rw(), Node(_config(name))),
 			_file_name(name), _sock(sock) { }
 
 		static char const *type_name() { return "sockopt"; }
 
 		char const *type() override { return type_name(); }
 
-		bool matches(Vfs::Node const &node) const
+		bool matches(Genode::Node const &node) const
 		{
 			return node.has_type(type_name()) &&
 			       node.attribute_value("name", Name()) == _file_name;
@@ -135,7 +139,7 @@ class Vfs_ip::Sockopt_value_file_system : public Vfs::Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, Vfs::file_size size) override
+		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size size) override
 		{
 			if (size >= BUF_SIZE)
 				return FTRUNCATE_ERR_NO_SPACE;
@@ -174,7 +178,7 @@ class Vfs_ip::Sockopt_value_file_system : public Vfs::Single_file_system
 };
 
 
-class Vfs_ip::Sockopt_factory : public Vfs::File_system_factory
+class Vfs_ip::Sockopt_factory : public File_system_factory
 {
 	private:
 
@@ -202,7 +206,7 @@ class Vfs_ip::Sockopt_factory : public Vfs::File_system_factory
 
 		Sockopt_factory(genode_socket_handle &sock) : _sock(sock) { }
 
-		Vfs::File_system *create(Vfs::Env &, Vfs::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &, Genode::Node const &node) override
 		{
 			if (node.has_type(Sockopt<GENODE_SO_INVALID>::type_name())) {
 				if (_so_error.matches(node))      return &_so_error;
@@ -219,12 +223,11 @@ class Vfs_ip::Sockopt_factory : public Vfs::File_system_factory
 
 
 class Vfs_ip::Sockopt_file_system : private Sockopt_factory,
-                                    public Vfs::Dir_file_system
+                                    public Dir_file_system
 {
 	private:
 
 		using Config    = Genode::String<512>;
-		using Node      = Vfs::Node;
 		using Generator = Genode::Generator;
 
 		static Config _config()

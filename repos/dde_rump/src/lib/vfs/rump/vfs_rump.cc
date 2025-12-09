@@ -38,7 +38,21 @@ extern "C" {
 
 extern int errno;
 
-namespace Vfs { struct Rump_file_system; };
+namespace Vfs_rump {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	using size_t = Genode::size_t; /* ambiguous with dde_rump/src/sys/sys/types.h */
+
+	using vfs_fileno_t = unsigned long; /* VFS 'Dirent' attribute */
+	using vfs_inode_t  = unsigned long; /* VFS 'Stat' attributes */
+	using vfs_device_t = unsigned long;
+
+	class File_system;
+	class Factory;
+}
+
 
 static void _rump_sync()
 {
@@ -57,7 +71,7 @@ static char const *fs_types[] = { RUMP_MOUNT_CD9660, RUMP_MOUNT_EXT2FS,
                                   RUMP_MOUNT_FFS, RUMP_MOUNT_MSDOS,
                                   RUMP_MOUNT_NTFS, RUMP_MOUNT_UDF, 0 };
 
-class Vfs::Rump_file_system : public File_system
+class Vfs_rump::File_system : public Vfs::File_system
 {
 	private:
 
@@ -69,11 +83,11 @@ class Vfs::Rump_file_system : public File_system
 
 		struct Rump_vfs_dir_handle;
 		struct Rump_watch_handle;
-		using Rump_watch_handles = Genode::List<Rump_watch_handle>;
+		using Rump_watch_handles = List<Rump_watch_handle>;
 		Rump_watch_handles _watchers { };
 
 		struct Rump_vfs_file_handle;
-		using Rump_vfs_file_handles = Genode::List<Rump_vfs_file_handle>;
+		using Rump_vfs_file_handles = List<Rump_vfs_file_handle>;
 		Rump_vfs_file_handles _file_handles;
 
 		struct Rump_vfs_handle : public Vfs_handle
@@ -83,7 +97,7 @@ class Vfs::Rump_file_system : public File_system
 			virtual Read_result read(Byte_range_ptr const &dst,
 			                         file_size seek_offset, size_t &out_count)
 			{
-				Genode::error("Rump_vfs_handle::read() called");
+				error("Rump_vfs_handle::read() called");
 				return READ_ERR_INVALID;
 			}
 
@@ -91,11 +105,11 @@ class Vfs::Rump_file_system : public File_system
 			                           file_size seek_offset,
 			                           size_t &out_count)
 			{
-				Genode::error("Rump_vfs_handle::write() called");
+				error("Rump_vfs_handle::write() called");
 				return WRITE_ERR_INVALID;
 			}
 
-			virtual void update_modification_timestamp(Vfs::Timestamp) { }
+			virtual void update_modification_timestamp(Timestamp) { }
 		};
 
 		class Rump_vfs_file_handle :
@@ -124,7 +138,7 @@ class Vfs::Rump_file_system : public File_system
 					case EINTR:  return FTRUNCATE_ERR_INTERRUPT;
 					case ENOSPC: return FTRUNCATE_ERR_NO_SPACE;
 					default:
-						Genode::error(__func__, ": unhandled rump error ", errno);
+						error(__func__, ": unhandled rump error ", errno);
 						return FTRUNCATE_ERR_NO_PERM;
 					}
 					_modifying = true;
@@ -141,7 +155,7 @@ class Vfs::Rump_file_system : public File_system
 					case EIO:         return READ_ERR_IO;
 					case EINTR:       return READ_ERR_IO;
 					default:
-						Genode::error(__func__, ": unhandled rump error ", errno);
+						error(__func__, ": unhandled rump error ", errno);
 						return READ_ERR_IO;
 					}
 					out_count = n;
@@ -160,7 +174,7 @@ class Vfs::Rump_file_system : public File_system
 					case EIO:         return WRITE_ERR_IO;
 					case EINTR:       return WRITE_ERR_IO;
 					default:
-						Genode::error(__func__, ": unhandled rump error ", errno);
+						error(__func__, ": unhandled rump error ", errno);
 						return WRITE_ERR_IO;
 					}
 					_modifying = true;
@@ -168,7 +182,7 @@ class Vfs::Rump_file_system : public File_system
 					return WRITE_OK;
 				}
 
-				void update_modification_timestamp(Vfs::Timestamp time) override
+				void update_modification_timestamp(Timestamp time) override
 				{
 					struct timespec ts[2] = {
 						{
@@ -176,7 +190,7 @@ class Vfs::Rump_file_system : public File_system
 							.tv_nsec = 0
 						}, {
 							.tv_sec  = time_t( time.ms_since_1970 / 1000),
-							.tv_nsec = time_t((time.ms_since_1970 % 1000)*1000*1000)
+							.tv_nsec = long((time.ms_since_1970 % 1000)*1000*1000)
 						}
 					};
 
@@ -221,7 +235,7 @@ class Vfs::Rump_file_system : public File_system
 					                     .executable = (s.st_mode & S_IXUSR) != 0 };
 
 					vfs_dir = {
-						.fileno = s.st_ino,
+						.fileno = vfs_fileno_t(s.st_ino),
 						.type   = dirent_type(s.st_mode),
 						.rwx    = rwx,
 						.name   = { dent->d_name }
@@ -330,9 +344,7 @@ class Vfs::Rump_file_system : public File_system
 		{
 			int fd, kq;
 
-			Rump_watch_handle(Vfs::File_system &fs,
-			                  Allocator        &alloc,
-			                  int              &fd)
+			Rump_watch_handle(File_system &fs, Allocator &alloc, int &fd)
 			: Vfs_watch_handle(fs, alloc), fd(fd)
 			{
 				struct kevent ev;
@@ -384,16 +396,16 @@ class Vfs::Rump_file_system : public File_system
 		static bool _check_type(char const *type)
 		{
 			for (int i = 0; fs_types[i]; i++)
-				if (!Genode::strcmp(type, fs_types[i]))
+				if (!strcmp(type, fs_types[i]))
 					return true;
 			return false;
 		}
 
 		void _print_types()
 		{
-			Genode::error("fs types:");
+			error("fs types:");
 			for (int i = 0; fs_types[i]; ++i)
-				Genode::error("\t", fs_types[i]);
+				error("\t", fs_types[i]);
 		}
 
 		static char *_buffer()
@@ -416,17 +428,17 @@ class Vfs::Rump_file_system : public File_system
 
 	public:
 
-		Rump_file_system(Vfs::Env &env, Node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		: _env(env)
 		{
-			using Fs_type = Genode::String<16>;
+			using Fs_type = String<16>;
 
 			Fs_type fs_type = config.attribute_value("fs", Fs_type());
 
 			if (!_check_type(fs_type.string())) {
-				Genode::error("Invalid or no file system given (use \'<rump fs=\"<fs type>\"/>)");
+				error("Invalid or no file system given (use \'<rump fs=\"<fs type>\"/>)");
 				_print_types();
-				throw Genode::Exception();
+				throw Exception();
 			}
 
 			/* mount into extra-terrestrial-file system */
@@ -442,8 +454,8 @@ class Vfs::Rump_file_system : public File_system
 
 			args.fspec =  (char *)GENODE_DEVICE;
 			if (rump_sys_mount(fs_type.string(), "/", opts, &args, sizeof(args)) == -1) {
-				Genode::error("Mounting '",fs_type,"' file system failed (",errno,")");
-				throw Genode::Exception();
+				error("Mounting '",fs_type,"' file system failed (",errno,")");
+				throw Exception();
 			}
 		}
 
@@ -459,13 +471,11 @@ class Vfs::Rump_file_system : public File_system
 		 ** Directory service interface **
 		 *********************************/
 
-		Genode::Dataspace_capability dataspace(char const *path) override
+		Dataspace_capability dataspace(char const *path) override
 		{
 			struct stat s { };
 			if (rump_sys_lstat(path, &s) != 0)
 				return { };
-
-			using Region_map = Genode::Region_map;
 
 			auto read_file_content = [&path] (Region_map::Range const range) -> bool
 			{
@@ -486,7 +496,7 @@ class Vfs::Rump_file_system : public File_system
 			};
 
 			return _env.env().ram().try_alloc(s.st_size).convert<Dataspace_capability>(
-				[&] (Genode::Ram::Allocation &allocation) {
+				[&] (Ram::Allocation &allocation) {
 					return _env.env().rm().attach(allocation.cap, {
 						.size = { },  .offset     = { },  .use_at    = { },
 						.at   = { },  .executable = { },  .writeable = true
@@ -494,7 +504,7 @@ class Vfs::Rump_file_system : public File_system
 						[&] (Genode::Env::Local_rm::Attachment &attachment) -> Dataspace_capability {
 
 							bool const complete = read_file_content({
-								.start     = Genode::addr_t(attachment.ptr),
+								.start     = addr_t(attachment.ptr),
 								.num_bytes = attachment.num_bytes });
 
 							if (complete) {
@@ -502,25 +512,25 @@ class Vfs::Rump_file_system : public File_system
 								attachment.deallocate = false;
 								return allocation.cap;
 							}
-							Genode::error("rump failed to read content into VFS dataspace");
+							error("rump failed to read content into VFS dataspace");
 							return Dataspace_capability();
 						},
 						[&] (Genode::Env::Local_rm::Error) {
 							return Dataspace_capability(); }
 					);
 				},
-				[&] (Genode::Ram_allocator::Alloc_error) {
-					Genode::error("rump failed to allocate VFS dataspace of size ", s.st_size);
+				[&] (Ram_allocator::Alloc_error) {
+					error("rump failed to allocate VFS dataspace of size ", s.st_size);
 					return Dataspace_capability(); }
 			);
 		}
 
 		void release(char const *path,
-		             Genode::Dataspace_capability ds_cap) override
+		             Dataspace_capability ds_cap) override
 		{
 			if (ds_cap.valid())
 				_env.env().ram().free(
-					static_cap_cast<Genode::Ram_dataspace>(ds_cap));
+					static_cap_cast<Ram_dataspace>(ds_cap));
 		}
 
 		file_size num_dirent(char const *path) override
@@ -582,7 +592,7 @@ class Vfs::Rump_file_system : public File_system
 			case EEXIST:       return OPEN_ERR_EXISTS;
 			case ENOSPC:       return OPEN_ERR_NO_SPACE;
 			default:
-				Genode::error(__func__, ": unhandled rump error ", errno);
+				error(__func__, ": unhandled rump error ", errno);
 				return OPEN_ERR_NO_PERM;
 			}
 
@@ -594,10 +604,10 @@ class Vfs::Rump_file_system : public File_system
 					Rump_vfs_file_handle(*this, alloc, mode, fd);
 				*handle = h;
 				return OPEN_OK;
-			} catch (Genode::Out_of_ram) {
+			} catch (Out_of_ram) {
 				rump_sys_close(fd);
 				return OPEN_ERR_OUT_OF_RAM;
-			} catch (Genode::Out_of_caps) {
+			} catch (Out_of_caps) {
 				rump_sys_close(fd);
 				return OPEN_ERR_OUT_OF_CAPS;
 			}
@@ -617,7 +627,7 @@ class Vfs::Rump_file_system : public File_system
 				case EEXIST:       return OPENDIR_ERR_NODE_ALREADY_EXISTS;
 				case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
 				default:
-					Genode::error(__func__, ": unhandled rump error ", errno);
+					error(__func__, ": unhandled rump error ", errno);
 					return OPENDIR_ERR_PERMISSION_DENIED;
 				}
 
@@ -632,7 +642,7 @@ class Vfs::Rump_file_system : public File_system
 			case EEXIST:       return OPENDIR_ERR_NODE_ALREADY_EXISTS;
 			case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
 			default:
-				Genode::error(__func__, ": unhandled rump error ", errno);
+				error(__func__, ": unhandled rump error ", errno);
 				return OPENDIR_ERR_PERMISSION_DENIED;
 			}
 
@@ -641,10 +651,10 @@ class Vfs::Rump_file_system : public File_system
 					Rump_vfs_dir_handle(*this, alloc, 0777, fd, path);
 				*handle = h;
 				return OPENDIR_OK;
-			} catch (Genode::Out_of_ram) {
+			} catch (Out_of_ram) {
 				rump_sys_close(fd);
 				return OPENDIR_ERR_OUT_OF_RAM;
-			} catch (Genode::Out_of_caps) {
+			} catch (Out_of_caps) {
 				rump_sys_close(fd);
 				return OPENDIR_ERR_OUT_OF_CAPS;
 			}
@@ -661,7 +671,7 @@ class Vfs::Rump_file_system : public File_system
 				case EACCES:       return OPENLINK_ERR_PERMISSION_DENIED;
 				case ENAMETOOLONG: return OPENLINK_ERR_NAME_TOO_LONG;
 				default:
-					Genode::error(__func__, ": unhandled rump error ", errno);
+					error(__func__, ": unhandled rump error ", errno);
 					return OPENLINK_ERR_PERMISSION_DENIED;
 				}
 
@@ -672,7 +682,7 @@ class Vfs::Rump_file_system : public File_system
 			if (rump_sys_readlink(path, &dummy, sizeof(dummy)) == -1) switch(errno) {
 				case ENOENT: return OPENLINK_ERR_LOOKUP_FAILED;
 				default:
-					Genode::error(__func__, ": unhandled rump error ", errno);
+					error(__func__, ": unhandled rump error ", errno);
 					return OPENLINK_ERR_PERMISSION_DENIED;
 			}
 
@@ -680,8 +690,8 @@ class Vfs::Rump_file_system : public File_system
 				*handle = new (alloc) Rump_vfs_symlink_handle(*this, alloc, 0777, path);
 				return OPENLINK_OK;
 			}
-			catch (Genode::Out_of_ram) { return OPENLINK_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram) { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override
@@ -727,8 +737,8 @@ class Vfs::Rump_file_system : public File_system
 				.rwx    = { .readable   = true,
 				            .writeable  = true,
 				            .executable = (sb.st_mode & S_IXUSR) != 0 },
-				.inode  = sb.st_ino,
-				.device = sb.st_dev,
+				.inode  = vfs_inode_t(sb.st_ino),
+				.device = vfs_device_t(sb.st_dev),
 
 				.modification_time = {
 					.ms_since_1970 = uint64_t(sb.st_mtim.tv_sec*1000 +
@@ -752,7 +762,7 @@ class Vfs::Rump_file_system : public File_system
 			case ENOENT:    return UNLINK_ERR_NO_ENTRY;
 			case ENOTEMPTY: return UNLINK_ERR_NOT_EMPTY;
 			default:
-				Genode::error(__func__, ": unhandled rump error ", errno);
+				error(__func__, ": unhandled rump error ", errno);
 				return UNLINK_ERR_NO_PERM;
 			}
 
@@ -787,8 +797,8 @@ class Vfs::Rump_file_system : public File_system
 				*handle = watch_handle;
 				return WATCH_OK;
 			}
-			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *vfs_handle) override
@@ -853,8 +863,7 @@ class Vfs::Rump_file_system : public File_system
 			return SYNC_OK;
 		}
 
-		bool update_modification_timestamp(Vfs_handle *vfs_handle,
-		                                   Vfs::Timestamp ts) override
+		bool update_modification_timestamp(Vfs_handle *vfs_handle, Timestamp ts) override
 		{
 			Rump_vfs_file_handle *handle =
 				dynamic_cast<Rump_vfs_file_handle *>(vfs_handle);
@@ -866,10 +875,15 @@ class Vfs::Rump_file_system : public File_system
 };
 
 
-class Rump_factory : public Vfs::File_system_factory
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	private:
+	using namespace Genode;
 
+	/*
+	 * Constructed on the first call of 'create'.
+	 */
+	struct Factory : Vfs::File_system_factory
+	{
 		struct Rump_fs_user : Rump_fs_user_wakeup
 		{
 			Vfs::Env::User &_vfs_user;
@@ -880,10 +894,7 @@ class Rump_factory : public Vfs::File_system_factory
 
 		} _rump_fs_user;
 
-	public:
-
-		Rump_factory(Genode::Env &env, Genode::Allocator &alloc,
-		             Vfs::Env::User &vfs_user, Genode::Node const &config)
+		Factory(Env &env, Allocator &alloc, Vfs::Env::User &vfs_user, Node const &config)
 		:
 			_rump_fs_user(vfs_user)
 		{
@@ -893,18 +904,18 @@ class Rump_factory : public Vfs::File_system_factory
 
 			/* limit RAM consumption */
 			if (!config.has_attribute("ram")) {
-				Genode::error("mandatory 'ram' attribute missing");
-				throw Genode::Exception();
+				error("mandatory 'ram' attribute missing");
+				throw Exception();
 			}
 
-			Genode::Number_of_bytes const memlimit =
-				config.attribute_value("ram", Genode::Number_of_bytes(0));
+			Number_of_bytes const memlimit =
+				config.attribute_value("ram", Number_of_bytes(0));
 
 			rump_set_memlimit(memlimit);
 
 			/* start rump kernel */
 			try         { rump_init(); }
-			catch (...) { throw Genode::Exception(); }
+			catch (...) { throw Exception(); }
 
 			/* register block device */
 			rump_pub_etfs_register(
@@ -921,20 +932,17 @@ class Rump_factory : public Vfs::File_system_factory
 			}
 		}
 
-		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
+		Vfs::File_system *create(Vfs::Env &env, Node const &config) override
 		{
-			return new (env.alloc()) Vfs::Rump_file_system(env, config);
+			return new (env.alloc()) Vfs_rump::File_system(env, config);
 		}
-};
+	};
 
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
-{
 	struct Extern_factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &env, Node const &node) override
 		{
-			static Rump_factory factory(env.env(), env.alloc(), env.user(), node);
+			static Factory factory(env.env(), env.alloc(), env.user(), node);
 			return factory.create(env, node);
 		}
 	};

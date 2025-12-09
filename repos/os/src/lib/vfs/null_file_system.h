@@ -17,12 +17,18 @@
 
 #include <vfs/single_file_system.h>
 
-namespace Vfs { class Null_file_system; }
+namespace Vfs_null {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	struct File_system;
+}
 
 
-struct Vfs::Null_file_system : Single_file_system
+struct Vfs_null::File_system : Single_file_system
 {
-	Null_file_system(Vfs::Env&, Node const &config)
+	File_system(Vfs::Env &, Node const &config)
 	:
 		Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 		                   Node_rwx::rw(), config)
@@ -33,9 +39,7 @@ struct Vfs::Null_file_system : Single_file_system
 
 	struct Null_vfs_handle : Single_vfs_handle
 	{
-		Null_vfs_handle(Directory_service &ds,
-		                File_io_service   &fs,
-		                Genode::Allocator &alloc)
+		Null_vfs_handle(Directory_service &ds, File_io_service &fs, Allocator &alloc)
 		:
 			Single_vfs_handle(ds, fs, alloc, 0)
 		{ }
@@ -74,8 +78,8 @@ struct Vfs::Null_file_system : Single_file_system
 				Null_vfs_handle(*this, *this, alloc);
 			return OPEN_OK;
 		}
-		catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-		catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+		catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+		catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 	}
 
 	/********************************

@@ -15,13 +15,16 @@
 #include <os/vfs.h>
 #include <vfs/single_file_system.h>
 
-using namespace Genode;
+namespace Vfs_ram_log {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	struct File_system;
+}
 
 
-namespace Vfs { struct Ram_log_file_system; }
-
-
-struct Vfs::Ram_log_file_system : Single_file_system
+struct Vfs_ram_log::File_system : Single_file_system
 {
 	Allocator &_alloc;
 
@@ -61,10 +64,10 @@ struct Vfs::Ram_log_file_system : Single_file_system
 
 	struct Handle : Single_vfs_handle
 	{
-		Ram_log_file_system &_ram_log;
+		File_system &_ram_log;
 
 		Handle(Directory_service &ds, File_io_service &fs, Allocator &alloc,
-		       Ram_log_file_system &ram_log)
+		       File_system &ram_log)
 		:
 			Single_vfs_handle { ds, fs, alloc, 0 }, _ram_log(ram_log)
 		{ }
@@ -107,7 +110,7 @@ struct Vfs::Ram_log_file_system : Single_file_system
 		bool write_ready() const override { return true; }
 	};
 
-	Ram_log_file_system(Vfs::Env &vfs_env, Node const &config)
+	File_system(Vfs::Env &vfs_env, Node const &config)
 	:
 		Single_file_system(Node_type::CONTINUOUS_FILE, name(), Node_rwx::rw(), config),
 		_alloc(vfs_env.alloc()),
@@ -143,17 +146,18 @@ struct Vfs::Ram_log_file_system : Single_file_system
 };
 
 
-struct Ram_log_factory : Vfs::File_system_factory
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	Vfs::File_system *create(Vfs::Env &env, Node const &node) override
+	using namespace Genode;
+
+	struct Factory : Vfs::File_system_factory
 	{
-		return new (env.alloc()) Vfs::Ram_log_file_system(env, node);
-	}
-};
+		Vfs::File_system *create(Vfs::Env &env, Node const &node) override
+		{
+			return new (env.alloc()) Vfs_ram_log::File_system(env, node);
+		}
+	};
 
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
-{
-	static Ram_log_factory factory;
+	static Factory factory;
 	return &factory;
 }

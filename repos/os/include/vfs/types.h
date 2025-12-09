@@ -24,33 +24,14 @@
 #include <dataspace/client.h>
 #include <os/path.h>
 
-namespace Vfs {
+namespace Genode::Vfs {
 
 	enum { MAX_PATH_LEN = 512 };
 
-	using Genode::Ram_dataspace_capability;
-	using Genode::Dataspace_capability;
-	using Genode::Dataspace_client;
-	using Genode::min;
-	using Genode::ascii_to;
-	using Genode::copy_cstring;
-	using Genode::strcmp;
-	using Genode::strlen;
 	using file_offset = long long;
-	using Genode::memcpy;
-	using Genode::bzero;
 	using file_size = unsigned long long;
-	using Genode::List;
-	using Genode::Node;
-	using Genode::Signal_context_capability;
-	using Genode::static_cap_cast;
-	using Genode::Interface;
-	using Genode::String;
-	using Genode::size_t;
-	using Genode::Byte_range_ptr;
-	using Genode::Const_byte_range_ptr;
 
-	struct Timestamp { Genode::uint64_t ms_since_1970; };
+	struct Timestamp { uint64_t ms_since_1970; };
 
 	enum class Node_type {
 		DIRECTORY,
@@ -86,7 +67,7 @@ namespace Vfs {
 		                                 .executable = true }; }
 	};
 
-	using Absolute_path = Genode::Path<MAX_PATH_LEN>;
+	using Absolute_path = Path<MAX_PATH_LEN>;
 
 	struct Scanner_policy_path_element
 	{

@@ -16,7 +16,7 @@
 
 #include <vfs/directory_service.h>
 
-namespace Vfs{
+namespace Genode::Vfs {
 	struct Read_ready_response_handler;
 	struct Watch_response_handler;
 	class Vfs_handle;
@@ -33,7 +33,7 @@ namespace Vfs{
  * These responses should be assumed to be called
  * during I/O signal dispatch.
  */
-struct Vfs::Read_ready_response_handler : Genode::Interface
+struct Genode::Vfs::Read_ready_response_handler : Interface
 {
 	/**
 	 * Respond to a resource becoming readable
@@ -49,19 +49,19 @@ struct Vfs::Read_ready_response_handler : Genode::Interface
  * This response should be assumed to be called
  * during I/O signal dispatch.
  */
-struct Vfs::Watch_response_handler : Genode::Interface
+struct Genode::Vfs::Watch_response_handler : Interface
 {
 	virtual void watch_response() = 0;
 };
 
 
-class Vfs::Vfs_handle
+class Genode::Vfs::Vfs_handle
 {
 	private:
 
 		Directory_service &_ds;
 		File_io_service   &_fs;
-		Genode::Allocator &_alloc;
+		Allocator         &_alloc;
 		file_size          _seek = 0;
 		int                _status_flags;
 
@@ -102,7 +102,7 @@ class Vfs::Vfs_handle
 
 		Vfs_handle(Directory_service &ds,
 		           File_io_service   &fs,
-		           Genode::Allocator &alloc,
+		           Allocator         &alloc,
 		           int                status_flags)
 		:
 			_ds(ds), _fs(fs),
@@ -167,12 +167,12 @@ class Vfs::Vfs_handle
 };
 
 
-class Vfs::Vfs_watch_handle
+class Genode::Vfs::Vfs_watch_handle
 {
 	private:
 
 		Directory_service      &_fs;
-		Genode::Allocator      &_alloc;
+		Allocator              &_alloc;
 		Watch_response_handler *_handler = nullptr;
 
 		/*
@@ -183,8 +183,7 @@ class Vfs::Vfs_watch_handle
 
 	public:
 
-		Vfs_watch_handle(Directory_service &fs,
-		                 Genode::Allocator &alloc)
+		Vfs_watch_handle(Directory_service &fs, Allocator &alloc)
 		:
 			_fs(fs), _alloc(alloc)
 		{ }

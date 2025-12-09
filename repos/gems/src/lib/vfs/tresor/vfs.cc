@@ -31,11 +31,12 @@
 /* vfs tresor includes */
 #include <splitter.h>
 
-using namespace Genode;
-using namespace Vfs;
-using namespace Tresor;
 
 namespace Vfs_tresor {
+
+	using namespace Genode;
+	using namespace Vfs;
+	using namespace Tresor;
 
 	class Request_interface;
 	class Data_operation;
@@ -54,6 +55,7 @@ namespace Vfs_tresor {
 	class File_system;
 	class Plugin;
 }
+
 
 class Vfs_tresor::Data_operation : private Noncopyable
 {
@@ -1897,9 +1899,11 @@ bool Vfs_tresor::Deinitialize_operation::execute(Execute_attr const &attr)
 }
 
 
-extern "C" File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	class Factory : public File_system_factory
+	using namespace Genode;
+
+	class Factory : public Vfs::File_system_factory
 	{
 		private:
 

@@ -31,7 +31,7 @@
 #include <zero_file_system.h>
 
 
-namespace Vfs {
+namespace Genode::Vfs {
 
 	using Vfs::Read_ready_response_handler;
 
@@ -40,13 +40,13 @@ namespace Vfs {
 }
 
 
-using Fs_type_name = Vfs::Global_file_system_factory::Fs_type_name;
-using Node_name    = Vfs::Global_file_system_factory::Node_name;
-using Library_name = Vfs::Global_file_system_factory::Library_name;
+using Fs_type_name = Genode::Vfs::Global_file_system_factory::Fs_type_name;
+using Node_name    = Genode::Vfs::Global_file_system_factory::Node_name;
+using Library_name = Genode::Vfs::Global_file_system_factory::Library_name;
 
 
-struct Vfs::Global_file_system_factory::Entry_base : Vfs::File_system_factory,
-                                                     private Genode::List<Entry_base>::Element
+struct Genode::Vfs::Global_file_system_factory::Entry_base : Vfs::File_system_factory,
+                                                             private Genode::List<Entry_base>::Element
 {
 	friend class Genode::List<Entry_base>;
 
@@ -61,7 +61,7 @@ struct Vfs::Global_file_system_factory::Entry_base : Vfs::File_system_factory,
 
 
 template <typename FILE_SYSTEM>
-struct Vfs::Builtin_entry : Vfs::Global_file_system_factory::Entry_base
+struct Genode::Vfs::Builtin_entry : Vfs::Global_file_system_factory::Entry_base
 {
 	Builtin_entry() : Entry_base(FILE_SYSTEM::name()) { }
 
@@ -70,7 +70,7 @@ struct Vfs::Builtin_entry : Vfs::Global_file_system_factory::Entry_base
 };
 
 
-struct Vfs::External_entry : Vfs::Global_file_system_factory::Entry_base
+struct Genode::Vfs::External_entry : Vfs::Global_file_system_factory::Entry_base
 {
 	File_system_factory &_fs_factory;
 
@@ -90,7 +90,7 @@ struct Vfs::External_entry : Vfs::Global_file_system_factory::Entry_base
  * Add builtin File_system type
  */
 template <typename FILE_SYSTEM>
-void Vfs::Global_file_system_factory::_add_builtin_fs()
+void Genode::Vfs::Global_file_system_factory::_add_builtin_fs()
 {
 	_list.insert(new (&_md_alloc) Builtin_entry<FILE_SYSTEM>());
 }
@@ -99,8 +99,8 @@ void Vfs::Global_file_system_factory::_add_builtin_fs()
 /**
  * Lookup and create File_system instance
  */
-Vfs::File_system*
-Vfs::Global_file_system_factory::_try_create(Vfs::Env &env, Node const &config)
+Genode::Vfs::File_system*
+Genode::Vfs::Global_file_system_factory::_try_create(Vfs::Env &env, Node const &config)
 {
 	for (Entry_base *e = _list.first(); e; e = e->next())
 		if (e->matches(config)) return e->create(env, config);
@@ -111,7 +111,7 @@ Vfs::Global_file_system_factory::_try_create(Vfs::Env &env, Node const &config)
 /**
  * Return matching library name for a given vfs node name
  */
-Library_name Vfs::Global_file_system_factory::_library_name(Node_name const &node_name)
+Library_name Genode::Vfs::Global_file_system_factory::_library_name(Node_name const &node_name)
 {
 	return Library_name("vfs_", node_name, ".lib.so");
 }
@@ -120,8 +120,9 @@ Library_name Vfs::Global_file_system_factory::_library_name(Node_name const &nod
 /**
  * \throw Factory_not_available
  */
-Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Vfs::Env &env,
-                                                                         Library_name const &lib_name)
+Genode::Vfs::File_system_factory &
+Genode::Vfs::Global_file_system_factory::_load_factory(Vfs::Env &env,
+                                                       Library_name const &lib_name)
 {
 	Genode::Shared_object *shared_object = nullptr;
 
@@ -155,8 +156,8 @@ Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Vfs::En
 /**
  * Try to load external File_system_factory provider
  */
-bool Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env &env,
-                                                              Node const &node)
+bool Genode::Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env &env,
+                                                                      Node const &node)
 {
 	Library_name const lib_name = _library_name(node.type());
 
@@ -172,8 +173,8 @@ bool Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env &env,
 /**
  * Create and return a new file-system
  */
-Vfs::File_system *Vfs::Global_file_system_factory::create(Vfs::Env &env,
-                                                          Node const &node)
+Genode::Vfs::File_system *
+Genode::Vfs::Global_file_system_factory::create(Vfs::Env &env, Node const &node)
 {
 	try {
 		/* try if type is handled by the currently registered fs types */
@@ -198,7 +199,7 @@ Vfs::File_system *Vfs::Global_file_system_factory::create(Vfs::Env &env,
 /**
  * Register an additional factory for new file-system type
  */
-void Vfs::Global_file_system_factory::extend(char const *name, File_system_factory &factory)
+void Genode::Vfs::Global_file_system_factory::extend(char const *name, File_system_factory &factory)
 {
 	_list.insert(new (&_md_alloc)
 		External_entry(name, factory));
@@ -208,20 +209,20 @@ void Vfs::Global_file_system_factory::extend(char const *name, File_system_facto
 /**
  * Constructor
  */
-Vfs::Global_file_system_factory::Global_file_system_factory(Genode::Allocator &alloc)
+Genode::Vfs::Global_file_system_factory::Global_file_system_factory(Genode::Allocator &alloc)
 :
 	_md_alloc(alloc)
 {
-	_add_builtin_fs<Vfs::Tar_file_system>();
-	_add_builtin_fs<Vfs::Fs_file_system>();
-	_add_builtin_fs<Vfs::Terminal_file_system::Compound_file_system>();
-	_add_builtin_fs<Vfs::Null_file_system>();
-	_add_builtin_fs<Vfs::Zero_file_system>();
-	_add_builtin_fs<Vfs::Block_file_system::Compound_file_system>();
-	_add_builtin_fs<Vfs::Log_file_system>();
-	_add_builtin_fs<Vfs::Rom_file_system>();
-	_add_builtin_fs<Vfs::Inline_file_system>();
-	_add_builtin_fs<Vfs::Rtc_file_system>();
-	_add_builtin_fs<Vfs::Ram_file_system>();
-	_add_builtin_fs<Vfs::Symlink_file_system>();
+	_add_builtin_fs<Vfs_tar     ::File_system>();
+	_add_builtin_fs<Vfs_fs      ::File_system>();
+	_add_builtin_fs<Vfs_terminal::File_system>();
+	_add_builtin_fs<Vfs_null    ::File_system>();
+	_add_builtin_fs<Vfs_zero    ::File_system>();
+	_add_builtin_fs<Vfs_block   ::File_system>();
+	_add_builtin_fs<Vfs_log     ::File_system>();
+	_add_builtin_fs<Vfs_rom     ::File_system>();
+	_add_builtin_fs<Vfs_inline  ::File_system>();
+	_add_builtin_fs<Vfs_rtc     ::File_system>();
+	_add_builtin_fs<Vfs_ram     ::File_system>();
+	_add_builtin_fs<Vfs_symlink ::File_system>();
 }

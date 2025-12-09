@@ -23,7 +23,11 @@
 #include "uplink_file_system.h"
 #include "nic_file_system.h"
 
-namespace Vfs {
+namespace Vfs_tap {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
 	enum Uplink_mode {
 		NIC_CLIENT,
 		UPLINK_CLIENT
@@ -33,12 +37,17 @@ namespace Vfs {
 	/* overload Value_file_system to work with Net::Mac_address */
 	class Mac_file_system;
 
-	/* main file system */
-	class Tap_file_system;
-}
+	using Name  = String<64>;
+
+	template <typename> struct Local_factory;
+	template <typename> struct Data_file_system;
+	template <typename> struct Compound_file_system;
+
+	struct Device_update_handler;
+};
 
 
-class Vfs::Mac_file_system : public Value_file_system<Net::Mac_address>
+class Vfs_tap::Mac_file_system : public Value_file_system<Net::Mac_address>
 {
 	public:
 
@@ -66,24 +75,7 @@ class Vfs::Mac_file_system : public Value_file_system<Net::Mac_address>
 };
 
 
-struct Vfs::Tap_file_system
-{
-	using Name  = String<64>;
-
-	template <typename>
-	struct Local_factory;
-
-	template <typename>
-	struct Data_file_system;
-
-	template <typename>
-	struct Compound_file_system;
-
-	struct Device_update_handler;
-};
-
-
-Genode::size_t Vfs::parse(Span const &s, Uplink_mode &mode)
+Genode::size_t Vfs_tap::parse(Span const &s, Uplink_mode &mode)
 {
 	auto fits = [&s] (size_t num) { return num <= s.num_bytes; };
 	if (fits(6)  && !strcmp(s.start, "uplink", 6))         { mode = Uplink_mode::UPLINK_CLIENT; return 6;  }
@@ -99,7 +91,7 @@ Genode::size_t Vfs::parse(Span const &s, Uplink_mode &mode)
  * Currently, it is only used for triggering the info fs to read the
  * mac address from the device.
  */
-struct Vfs::Tap_file_system::Device_update_handler : Interface
+struct Vfs_tap::Device_update_handler : Interface
 {
 	virtual void device_state_changed() = 0;
 };
@@ -109,14 +101,14 @@ struct Vfs::Tap_file_system::Device_update_handler : Interface
  * File system node for processing the packet data read/write
  */
 template <typename FS>
-class Vfs::Tap_file_system::Data_file_system : public FS
+class Vfs_tap::Data_file_system : public FS
 {
 	private:
 
 		using Local_vfs_handle  = typename FS::Vfs_handle;
 		using Label             = typename FS::Vfs_handle::Label;
-		using Registered_handle = Genode::Registered<Local_vfs_handle>;
-		using Handle_registry   = Genode::Registry<Registered_handle>;
+		using Registered_handle = Registered<Local_vfs_handle>;
+		using Handle_registry   = Registry<Registered_handle>;
 		using Open_result       = Directory_service::Open_result;
 
 		Name             const &_name;
@@ -186,16 +178,15 @@ class Vfs::Tap_file_system::Data_file_system : public FS
 				_device_update_handler.device_state_changed();
 				return Open_result::OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return Open_result::OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return Open_result::OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return Open_result::OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return Open_result::OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 };
 
 
 template <typename FS>
-struct Vfs::Tap_file_system::Local_factory : File_system_factory,
-                                             Device_update_handler
+struct Vfs_tap::Local_factory : File_system_factory, Device_update_handler
 {
 	using Label       = typename FS::Vfs_handle::Label;
 	using Name_fs     = Readonly_value_file_system<Name>;
@@ -221,7 +212,7 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 		  _mac_addr_fs(mac_addr_fs)
 		{ }
 
-		void print(Genode::Output &out) const
+		void print(Output &out) const
 		{
 
 			char buf[128] { };
@@ -232,7 +223,7 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 			}).with_error([&] (Buffer_error) {
 				warning("VFS-tap info exceeds maximum buffer size"); });
 
-			Genode::print(out, Genode::Cstring(buf));
+			Genode::print(out, Cstring(buf));
 		}
 	};
 
@@ -246,11 +237,11 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 	 ** Watch handlers **
 	 ********************/
 
-	Genode::Io::Watch_handler<Vfs::Tap_file_system::Local_factory<FS>> _mac_addr_changed_handler {
+	Io::Watch_handler<Local_factory<FS>> _mac_addr_changed_handler {
 		_mac_addr_fs, "/mac_addr",
 		_env.alloc(),
 		*this,
-		&Vfs::Tap_file_system::Local_factory<FS>::_mac_addr_changed };
+		&Local_factory<FS>::_mac_addr_changed };
 
 	void _mac_addr_changed()
 	{
@@ -315,12 +306,12 @@ struct Vfs::Tap_file_system::Local_factory : File_system_factory,
 
 
 template <typename FS>
-class Vfs::Tap_file_system::Compound_file_system : private Local_factory<FS>,
-                                                   public  Vfs::Dir_file_system
+class Vfs_tap::Compound_file_system : private Local_factory<FS>,
+                                      public  Vfs::Dir_file_system
 {
 	private:
 
-		using Name = Tap_file_system::Name;
+		using Name = Vfs_tap::Name;
 
 		using Config = String<200>;
 		static Config _config(Name const &name)
@@ -345,10 +336,10 @@ class Vfs::Tap_file_system::Compound_file_system : private Local_factory<FS>,
 						g.node("name");
 					});
 			}).with_error([] (Buffer_error) {
-				Genode::warning("VFS-tap compound exceeds maximum buffer size");
+				warning("VFS-tap compound exceeds maximum buffer size");
 			});
 
-			return Config(Genode::Cstring(buf));
+			return Config(Cstring(buf));
 		}
 
 	public:
@@ -367,18 +358,20 @@ class Vfs::Tap_file_system::Compound_file_system : private Local_factory<FS>,
 };
 
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
+		Vfs::File_system *create(Vfs::Env &env, Node const &config) override
 		{
-			if (config.attribute_value("mode", Vfs::Uplink_mode::NIC_CLIENT) == Vfs::Uplink_mode::NIC_CLIENT)
+			if (config.attribute_value("mode", Vfs_tap::Uplink_mode::NIC_CLIENT) == Vfs_tap::Uplink_mode::NIC_CLIENT)
 				return new (env.alloc())
-					Vfs::Tap_file_system::Compound_file_system<Vfs::Nic_file_system>(env, config);
+					Vfs_tap::Compound_file_system<Vfs_nic::File_system>(env, config);
 			else
 				return new (env.alloc())
-					Vfs::Tap_file_system::Compound_file_system<Vfs::Uplink_file_system>(env, config);
+					Vfs_tap::Compound_file_system<Vfs_uplink::File_system>(env, config);
 		}
 	};
 

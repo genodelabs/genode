@@ -17,14 +17,14 @@
 #include <vfs/env.h>
 #include <vfs/file_system.h>
 
-namespace Vfs {
+namespace Genode::Vfs {
 
 	struct File_system_factory;
 	struct Global_file_system_factory;
 }
 
 
-struct Vfs::File_system_factory : Interface
+struct Genode::Vfs::File_system_factory : Interface
 {
 	/**
 	 * Create and return a new file-system
@@ -32,27 +32,27 @@ struct Vfs::File_system_factory : Interface
 	 * \param env         Env of VFS root
 	 * \param config      file-system configuration
 	 */
-	virtual File_system *create(Vfs::Env &env, Node const &config) = 0;
+	virtual File_system *create(Env &env, Node const &config) = 0;
 };
 
 
-class Vfs::Global_file_system_factory : public Vfs::File_system_factory
+class Genode::Vfs::Global_file_system_factory : public File_system_factory
 {
 	private:
 
-		Genode::Allocator &_md_alloc;
+		Allocator &_md_alloc;
 
 	public:
 
-		using Fs_type_name = Genode::String<128>;
-		using Node_name    = Genode::String<128>;
-		using Library_name = Genode::String<128>;
+		using Fs_type_name = String<128>;
+		using Node_name    = String<128>;
+		using Library_name = String<128>;
 
 		struct Entry_base;
 
 	private:
 
-		Genode::List<Entry_base> _list { };
+		List<Entry_base> _list { };
 
 		/**
 		 * Add builtin File_system type
@@ -60,7 +60,7 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		template <typename FILE_SYSTEM>
 		void _add_builtin_fs();
 
-		Vfs::File_system *_try_create(Vfs::Env &env, Node const &config);
+		File_system *_try_create(Env &env, Node const &config);
 
 		/**
 		 * Return name of factory provided by the shared library
@@ -80,13 +80,12 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		/**
 		 * \throw Factory_not_available
 		 */
-		Vfs::File_system_factory &_load_factory(Vfs::Env &env,
-		                                        Library_name const &lib_name);
+		File_system_factory &_load_factory(Env &env, Library_name const &lib_name);
 
 		/**
 		 * Try to load external File_system_factory provider
 		 */
-		bool _probe_external_factory(Vfs::Env &env, Node const &node);
+		bool _probe_external_factory(Env &env, Node const &node);
 
 	public:
 
@@ -95,12 +94,12 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		 *
 		 * \param alloc  internal factory allocator
 		 */
-		Global_file_system_factory(Genode::Allocator &alloc);
+		Global_file_system_factory(Allocator &alloc);
 
 		/**
 		 * File_system_factory interface
 		 */
-		File_system *create(Vfs::Env&, Node const &) override;
+		File_system *create(Env&, Node const &) override;
 
 		/**
 		 * Register an additional factory for new file-system type

@@ -17,14 +17,20 @@
 
 #include <vfs/single_file_system.h>
 
-namespace Vfs { class Symlink_file_system; }
+namespace Vfs_symlink {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
+}
 
 
-class Vfs::Symlink_file_system : public Single_file_system
+class Vfs_symlink::File_system : public Single_file_system
 {
 	private:
 
-		using Target = Genode::String<MAX_PATH_LEN>;
+		using Target = String<MAX_PATH_LEN>;
 
 		Target const _target;
 
@@ -32,10 +38,8 @@ class Vfs::Symlink_file_system : public Single_file_system
 		{
 			Target const &_target;
 
-			Symlink_handle(Directory_service &ds,
-			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
-			               Target const &target)
+			Symlink_handle(Directory_service &ds, File_io_service &fs,
+			               Allocator &alloc, Target const &target)
 			: Single_vfs_handle(ds, fs, alloc, 0), _target(target)
 			{ }
 
@@ -56,7 +60,7 @@ class Vfs::Symlink_file_system : public Single_file_system
 
 	public:
 
-		Symlink_file_system(Vfs::Env&, Node const &config)
+		File_system(Vfs::Env &, Node const &config)
 		:
 			Single_file_system(Node_type::SYMLINK, "symlink",
 			                   Node_rwx::rw(), config),
@@ -86,8 +90,8 @@ class Vfs::Symlink_file_system : public Single_file_system
 				*out_handle = new (alloc) Symlink_handle(*this, *this, alloc, _target);
 				return OPENLINK_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
 };
 

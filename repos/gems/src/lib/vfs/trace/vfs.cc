@@ -131,7 +131,7 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 
 			Vfs_handle(Directory_service &ds,
 			           File_io_service   &fs,
-			           Genode::Allocator &alloc,
+			           Allocator         &alloc,
 			           Trace_entries     &entries)
 			: Single_vfs_handle(ds, fs, alloc, 0), _entries(entries)
 			{ }
@@ -180,8 +180,7 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 		 ** File-system interface **
 		 ***************************/
 
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
+		Open_result open(char const  *path, unsigned, Vfs::Vfs_handle **out_handle,
 		                 Allocator   &alloc) override
 		{
 			if (!_single_file(path))
@@ -254,16 +253,11 @@ class Vfs_trace::Trace_buffer_file_system : public Single_file_system
 
 struct Vfs_trace::Subject_factory : File_system_factory
 {
-	Vfs::Env                               &_env;
-	Value_file_system<bool, 6>             _enabled_fs
-	  { "enable", "false\n"};
+	Vfs::Env &_env;
 
-	Value_file_system<Number_of_bytes, 16> _buffer_size_fs
-	  { "buffer_size", "1M\n"};
-
-	String<17>                             _buffer_string
-	  { _buffer_size_fs.buffer() };
-
+	Value_file_system<bool, 6>             _enabled_fs { "enable", "false\n"};
+	Value_file_system<Number_of_bytes, 16> _buffer_size_fs { "buffer_size", "1M\n"};
+	String<17>                             _buffer_string { _buffer_size_fs.buffer() };
 	Trace_buffer_file_system               _trace_fs;
 
 	Subject_factory(Vfs::Env &env,
@@ -287,8 +281,7 @@ struct Vfs_trace::Subject_factory : File_system_factory
 };
 
 
-class Vfs_trace::Subject : private Subject_factory,
-                           public  Vfs::Dir_file_system
+class Vfs_trace::Subject : private Subject_factory, public Dir_file_system
 {
 	private:
 
@@ -403,14 +396,15 @@ struct Vfs_trace::Local_factory : File_system_factory
 	size_t _config_session_ram(Node const &config)
 	{
 		if (!config.has_attribute("ram")) {
-			Genode::error("mandatory 'ram' attribute missing");
-			throw Genode::Exception();
+			error("mandatory 'ram' attribute missing");
+			throw Exception();
 		}
 		return config.attribute_value("ram", Number_of_bytes(0));
 	}
 
 	Local_factory(Vfs::Env &env, Node const &config)
-	: _env(env), _trace(env.env(), _config_session_ram(config), 512*1024)
+	:
+		_env(env), _trace(env.env(), _config_session_ram(config), 512*1024)
 	{
 		_trace.for_each_subject_info([&] (Trace::Subject_id   const id,
 		                                  Trace::Subject_info const &info) {
@@ -439,8 +433,7 @@ struct Vfs_trace::Local_factory : File_system_factory
 };
 
 
-class Vfs_trace::File_system : private Local_factory,
-                               public  Vfs::Dir_file_system
+class Vfs_trace::File_system : private Local_factory, public Dir_file_system
 {
 	private:
 
@@ -453,7 +446,7 @@ class Vfs_trace::File_system : private Local_factory,
 			).convert<Const_byte_range_ptr>(
 				[&] (size_t num_bytes) {
 					return Const_byte_range_ptr(buf, num_bytes); },
-				[&] (Genode::Buffer_error) {
+				[&] (Buffer_error) {
 					warning("VFS-trace node exceeds maximum buffer size");
 					return Const_byte_range_ptr(nullptr, 0);
 				});
@@ -461,9 +454,10 @@ class Vfs_trace::File_system : private Local_factory,
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Genode::Node const &node)
-		: Local_factory(vfs_env, node),
-			Vfs::Dir_file_system(vfs_env, Node(_config(vfs_env, _directory)), *this)
+		File_system(Vfs::Env &vfs_env, Node const &node)
+		:
+			Local_factory(vfs_env, node),
+			Dir_file_system(vfs_env, Node(_config(vfs_env, _directory)), *this)
 		{ }
 
 		char const *type() override { return "trace"; }
@@ -474,15 +468,17 @@ class Vfs_trace::File_system : private Local_factory,
  ** VFS plugin interface **
  **************************/
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Node const &node) override
 		{
 			try { return new (vfs_env.alloc())
 				Vfs_trace::File_system(vfs_env, node); }
-			catch (...) { Genode::error("could not create 'trace_fs' "); }
+			catch (...) { error("could not create 'trace_fs' "); }
 			return nullptr;
 		}
 	};

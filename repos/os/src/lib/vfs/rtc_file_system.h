@@ -21,10 +21,16 @@
 #include <vfs/file_system.h>
 
 
-namespace Vfs { class Rtc_file_system; }
+namespace Vfs_rtc {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
+}
 
 
-class Vfs::Rtc_file_system : public Single_file_system
+class Vfs_rtc::File_system : public Single_file_system
 {
 	private:
 
@@ -39,12 +45,11 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 			public:
 
-				Rtc_vfs_handle(Directory_service &ds,
-				               File_io_service   &fs,
-				               Genode::Allocator &alloc,
-				               Rtc::Connection &rtc)
-				: Single_vfs_handle(ds, fs, alloc, 0),
-				  _rtc(rtc) { }
+				Rtc_vfs_handle(Directory_service &ds, File_io_service &fs,
+				               Allocator &alloc, Rtc::Connection &rtc)
+				:
+					Single_vfs_handle(ds, fs, alloc, 0), _rtc(rtc)
+				{ }
 
 				/**
 				 * Read the current time from the Rtc session
@@ -65,7 +70,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 					{
 						unsigned pad, value;
 
-						void print(Genode::Output &out) const
+						void print(Output &out) const
 						{
 							using namespace Genode;
 
@@ -106,14 +111,14 @@ class Vfs::Rtc_file_system : public Single_file_system
 				bool write_ready() const override { return false; }
 		};
 
-		using Registered_watch_handle = Genode::Registered<Vfs_watch_handle>;
-		using Watch_handle_registry   = Genode::Registry<Registered_watch_handle>;
+		using Registered_watch_handle = Registered<Vfs_watch_handle>;
+		using Watch_handle_registry   = Registry<Registered_watch_handle>;
 
 		Rtc::Connection _rtc;
 
 		Watch_handle_registry _handle_registry { };
 
-		Genode::Io_signal_handler<Rtc_file_system> _set_signal_handler;
+		Io_signal_handler<File_system> _set_signal_handler;
 
 		void _handle_set_signal()
 		{
@@ -124,13 +129,13 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 	public:
 
-		Rtc_file_system(Vfs::Env &env, Node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, name(),
 			                   Node_rwx::ro(), config),
 			_rtc(env.env()),
 			_set_signal_handler(env.env().ep(), *this,
-			                    &Rtc_file_system::_handle_set_signal)
+			                    &File_system::_handle_set_signal)
 		{
 			_rtc.set_sigh(_set_signal_handler);
 		}
@@ -154,8 +159,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 					Rtc_vfs_handle(*this, *this, alloc, _rtc);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -183,14 +188,14 @@ class Vfs::Rtc_file_system : public Single_file_system
 				*handle = &watch_handle;
 				return WATCH_OK;
 			}
-			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *handle) override
 		{
-			Genode::destroy(handle->alloc(),
-			                static_cast<Registered_watch_handle *>(handle));
+			destroy(handle->alloc(),
+			        static_cast<Registered_watch_handle *>(handle));
 		}
 };
 

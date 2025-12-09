@@ -21,18 +21,19 @@
 /* gems includes */
 #include <gems/vfs_font.h>
 
-namespace Vfs {
+namespace Vfs_glyphs {
 
 	using namespace Genode;
+	using namespace Genode::Vfs;
 
-	class Glyphs_file_system;
+	class File_system;
 
 	using Font         = Text_painter::Font;
 	using Glyph_header = Vfs_font::Glyph_header;
 }
 
 
-class Vfs::Glyphs_file_system : public Vfs::Single_file_system
+class Vfs_glyphs::File_system : public Single_file_system
 {
 	private:
 
@@ -119,7 +120,7 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 
 	public:
 
-		Glyphs_file_system(Font const &font)
+		File_system(Font const &font)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, type(),
 			                   Node_rwx::ro(), Node()),

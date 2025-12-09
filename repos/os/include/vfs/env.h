@@ -20,16 +20,16 @@
 #include <base/allocator.h>
 #include <base/env.h>
 
-namespace Vfs { struct Env; }
+namespace Genode::Vfs { struct Env; }
 
-struct Vfs::Env : Interface
+struct Genode::Vfs::Env : Interface
 {
 	virtual Genode::Env &env() = 0;
 
 	/**
 	 * Allocator for creating stuctures shared across open VFS handles
 	 */
-	virtual Genode::Allocator &alloc() = 0;
+	virtual Allocator &alloc() = 0;
 
 	/**
 	 * VFS root file system
@@ -44,7 +44,7 @@ struct Vfs::Env : Interface
 	/**
 	 * Interface tailored for triggering and waiting for I/O
 	 */
-	struct Io : Interface, Genode::Noncopyable
+	struct Io : Interface, Noncopyable
 	{
 		/**
 		 * Trigger the deferred wakeup of remote peers
@@ -68,7 +68,7 @@ struct Vfs::Env : Interface
 	 * the VFS user, e.g., continuing a write operation that was stalled
 	 * because of a saturated I/O buffer.
 	 */
-	struct User : Interface, Genode::Noncopyable
+	struct User : Interface, Noncopyable
 	{
 		/**
 		 * Called whenever the VFS observes I/O

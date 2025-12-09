@@ -25,8 +25,8 @@
 
 namespace Vfs_ttf {
 
-	using namespace Vfs;
 	using namespace Genode;
+	using namespace Genode::Vfs;
 
 	class Font_from_file;
 	class Local_factory;
@@ -100,7 +100,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 
 	Reconstructible<Font> _font;
 
-	Glyphs_file_system _glyphs_fs { _font->cached_font };
+	Vfs_glyphs::File_system _glyphs_fs { _font->cached_font };
 
 	Readonly_value_file_system<unsigned> _baseline_fs   { "baseline",   0 };
 	Readonly_value_file_system<unsigned> _height_fs     { "height",     0 };
@@ -129,7 +129,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 
 	Vfs::File_system *create(Vfs::Env&, Node const &node) override
 	{
-		if (node.has_type(Glyphs_file_system::type_name()))
+		if (node.has_type(Vfs_glyphs::File_system::type_name()))
 			return &_glyphs_fs;
 
 		if (node.has_type(Readonly_value_file_system<unsigned>::type_name()))
@@ -159,8 +159,7 @@ struct Vfs_ttf::Local_factory : File_system_factory, Watch_response_handler
 };
 
 
-class Vfs_ttf::File_system : private Local_factory,
-                             public  Vfs::Dir_file_system
+class Vfs_ttf::File_system : private Local_factory, public  Dir_file_system
 {
 	private:
 
@@ -177,8 +176,8 @@ class Vfs_ttf::File_system : private Local_factory,
 				g.node("readonly_value", [&] { g.attribute("name", "height");     });
 				g.node("readonly_value", [&] { g.attribute("name", "max_width");  });
 				g.node("readonly_value", [&] { g.attribute("name", "max_height"); });
-			}).with_error([] (Genode::Buffer_error) {
-				Genode::warning("VFS-TTF compound exceeds maximum buffer size");
+			}).with_error([] (Buffer_error) {
+				warning("VFS-TTF compound exceeds maximum buffer size");
 			});
 			return Config(Cstring(buf));
 		}
@@ -188,7 +187,7 @@ class Vfs_ttf::File_system : private Local_factory,
 		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory(vfs_env, node),
-			Vfs::Dir_file_system(vfs_env, Node(_config(node)), *this)
+			Dir_file_system(vfs_env, Node(_config(node)), *this)
 		{ }
 
 		char const *type() override { return "ttf"; }
@@ -204,12 +203,13 @@ class Vfs_ttf::File_system : private Local_factory,
  ** VFS plugin interface **
  **************************/
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &vfs_env,
-		                         Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Node const &node) override
 		{
 			try { return new (vfs_env.alloc())
 				Vfs_ttf::File_system(vfs_env, node); }

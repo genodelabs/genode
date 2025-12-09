@@ -24,19 +24,20 @@
 /* Genode block backend */
 #include <fatfs/block.h>
 
-namespace Fatfs {
+namespace Vfs_fatfs {
 
 /* FatFS includes */
 #include <fatfs/ff.h>
 
-	using namespace Vfs;
+	using namespace Genode;
+	using namespace Genode::Vfs;
 	using namespace Fatfs;
-	struct File_system;
 
+	class File_system;
 };
 
 
-class Fatfs::File_system : public Vfs::File_system
+class Vfs_fatfs::File_system : public Vfs::File_system
 {
 	private:
 
@@ -47,9 +48,9 @@ class Fatfs::File_system : public Vfs::File_system
 		struct Fatfs_file_watch_handle;
 		struct Fatfs_dir_watch_handle;
 
-		using Fatfs_file_handles      = Genode::List<Fatfs_file_handle>;
-		using Fatfs_dir_watch_handles = Genode::List<Fatfs_dir_watch_handle>;
-		using Fatfs_watch_handles     = Genode::List<Fatfs_file_watch_handle>;
+		using Fatfs_file_handles      = List<Fatfs_file_handle>;
+		using Fatfs_dir_watch_handles = List<Fatfs_dir_watch_handle>;
+		using Fatfs_watch_handles     = List<Fatfs_file_watch_handle>;
 
 		/**
 		 * The FatFS library does not support opening a file
@@ -57,10 +58,10 @@ class Fatfs::File_system : public Vfs::File_system
 		 * open files shared across open VFS handles.
 		 */
 
-		struct File : Genode::Avl_node<File>
+		struct File : Avl_node<File>
 		{
 			Path                path;
-			Fatfs::FIL          fil;
+			FIL                 fil;
 			Fatfs_file_handles  handles;
 			Fatfs_watch_handles watchers;
 
@@ -72,15 +73,15 @@ class Fatfs::File_system : public Vfs::File_system
 			 ************************/
 
 			bool higher(File *other) {
-				return (Genode::strcmp(other->path.base(), path.base()) > 0); }
+				return (strcmp(other->path.base(), path.base()) > 0); }
 
 			File *lookup(char const *path_str)
 			{
-				int const cmp = Genode::strcmp(path_str, path.base());
+				int const cmp = strcmp(path_str, path.base());
 				if (cmp == 0)
 					return this;
 
-				File *f = Genode::Avl_node<File>::child(cmp);
+				File *f = Avl_node<File>::child(cmp);
 				return f ? f->lookup(path_str) : nullptr;
 			}
 		};
@@ -125,7 +126,7 @@ class Fatfs::File_system : public Vfs::File_system
 			                          size_t &out_count) override
 			{
 				if (!file) {
-					Genode::error("READ_ERR_INVALID");
+					error("READ_ERR_INVALID");
 					return READ_ERR_INVALID;
 				}
 				if ((status_flags()&OPEN_MODE_ACCMODE) == OPEN_MODE_WRONLY)
@@ -225,7 +226,7 @@ class Fatfs::File_system : public Vfs::File_system
 		Fatfs_dir_watch_handles _dir_watchers;
 
 		/* Tree of open FatFS file objects */
-		Genode::Avl_tree<File> _open_files;
+		Avl_tree<File> _open_files;
 
 		/* Pre-allocated FIL */
 		File *_next_file = nullptr;
@@ -311,29 +312,29 @@ class Fatfs::File_system : public Vfs::File_system
 		{
 			{
 				if (f_setcp(0) != FR_OK) {
-					Genode::error("failed to set codepage to 0");
+					error("failed to set codepage to 0");
 					throw FR_INVALID_PARAMETER;
 				}
 			}
 			/* mount the file system */
-			Genode::String<4> const drive_num { "0" };
+			String<4> const drive_num { "0" };
 			switch (f_mount(&_fatfs, (const TCHAR*)drive_num.string(), 1)) {
 			case FR_OK: {
 				TCHAR label[24] = { '\0' };
 				f_getlabel((const TCHAR*)drive_num.string(), label, nullptr);
-				Genode::log("FAT file system \"", (char const *)label, "\" mounted");
+				log("FAT file system \"", (char const *)label, "\" mounted");
 				return;
 			}
 			case FR_INVALID_DRIVE:
-				Genode::error("invalid drive ", drive_num);           throw ~0;
+				error("invalid drive ", drive_num);           throw ~0;
 			case FR_DISK_ERR:
-				Genode::error("drive ", drive_num, " disk error");    throw ~0;
+				error("drive ", drive_num, " disk error");    throw ~0;
 			case FR_NOT_READY:
-				Genode::error("drive ", drive_num, " not ready");     throw ~0;
+				error("drive ", drive_num, " not ready");     throw ~0;
 			case FR_NO_FILESYSTEM:
-				Genode::error("no file system on drive ", drive_num); throw ~0;
+				error("no file system on drive ", drive_num); throw ~0;
 			default:
-				Genode::error("failed to mount drive ", drive_num);   throw ~0;
+				error("failed to mount drive ", drive_num);   throw ~0;
 			}
 		}
 
@@ -363,7 +364,7 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 
 			if (file && f_error(&file->fil)) {
-				Genode::error("FatFS: hard error on file '", path, "'");
+				error("FatFS: hard error on file '", path, "'");
 				return OPEN_ERR_NO_PERM;
 			};
 
@@ -542,14 +543,13 @@ class Fatfs::File_system : public Vfs::File_system
 		}
 
 
-		Genode::Dataspace_capability dataspace(char const *path) override
+		Dataspace_capability dataspace(char const *path) override
 		{
-			Genode::warning(__func__, " not implemented in FAT plugin");
-			return Genode::Dataspace_capability();
+			warning(__func__, " not implemented in FAT plugin");
+			return Dataspace_capability();
 		}
 
-		void release(char const *path,
-		             Genode::Dataspace_capability ds_cap) override { }
+		void release(char const *path, Dataspace_capability ds_cap) override { }
 
 		file_size num_dirent(char const *path) override
 		{
@@ -597,14 +597,14 @@ class Fatfs::File_system : public Vfs::File_system
 			switch (err) {
 			case FR_OK:
 				stat.inode  = 1;
-				stat.device = (Genode::addr_t)this;
+				stat.device = (addr_t)this;
 				stat.type   = (info.fattrib & AM_DIR)
-				            ? Vfs::Node_type::DIRECTORY
-				            : Vfs::Node_type::CONTINUOUS_FILE;
-				stat.rwx    = Vfs::Node_rwx::rwx();
+				            ? Node_type::DIRECTORY
+				            : Node_type::CONTINUOUS_FILE;
+				stat.rwx    = Node_rwx::rwx();
 
 				/* XXX: size in f_stat is always zero */
-				if ((stat.type == Vfs::Node_type::CONTINUOUS_FILE) && (info.fsize == 0)) {
+				if ((stat.type == Node_type::CONTINUOUS_FILE) && (info.fsize == 0)) {
 					File *file = _opened_file(path);
 					if (file) {
 						stat.size = f_size(&file->fil);
@@ -625,7 +625,7 @@ class Fatfs::File_system : public Vfs::File_system
 				return STAT_ERR_NO_ENTRY;
 
 			default:
-				Genode::error("unhandled FatFS::f_stat error ", (int)err);
+				error("unhandled FatFS::f_stat error ", (int)err);
 				return STAT_ERR_NO_PERM;
 			}
 			return STAT_ERR_NO_PERM;
@@ -680,7 +680,7 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 
 			_notify_parent_of(from);
-			if (Genode::strcmp(from, to) != 0)
+			if (strcmp(from, to) != 0)
 				_notify_parent_of(to);
 			return RENAME_OK;
 		}
@@ -804,18 +804,19 @@ class Fatfs::File_system : public Vfs::File_system
 };
 
 
-struct Fatfs_factory : Vfs::File_system_factory
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
+	using namespace Genode;
+
+	struct Factory : Vfs::File_system_factory
 	{
-		Fatfs::block_init(vfs_env.env(), vfs_env.alloc());
-		return new (vfs_env.alloc()) Fatfs::File_system(vfs_env, node);
-	}
-};
+		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
+		{
+			Fatfs::block_init(vfs_env.env(), vfs_env.alloc());
+			return new (vfs_env.alloc()) Vfs_fatfs::File_system(vfs_env, node);
+		}
+	};
 
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
-{
-	static Fatfs_factory factory;
+	static Factory factory;
 	return &factory;
 }

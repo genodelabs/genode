@@ -16,16 +16,14 @@
 
 #include <vfs/types.h>
 
-namespace Vfs {
+namespace Genode::Vfs {
 	class Vfs_handle;
 	class Vfs_watch_handle;
 	struct Directory_service;
-
-	using Genode::Allocator;
 }
 
 
-struct Vfs::Directory_service : Interface
+struct Genode::Vfs::Directory_service : Interface
 {
 	virtual Dataspace_capability dataspace(char const *path) = 0;
 	virtual void release(char const *path, Dataspace_capability) = 0;
@@ -133,7 +131,7 @@ struct Vfs::Directory_service : Interface
 
 	virtual void close(Vfs_watch_handle *)
 	{
-		Genode::error("watch handle closed at invalid file-system");
+		error("watch handle closed at invalid file-system");
 		throw ~0;
 	};
 

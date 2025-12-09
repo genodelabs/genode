@@ -32,89 +32,12 @@
 #include "vfs_ip.h"
 #include "sockopt.h"
 
-namespace {
+namespace Vfs_ip {
 
-using size_t = Genode::size_t;
+	using namespace Vfs;
+	using namespace Genode;
 
-struct Msg_header
-{
-	genode_iovec  iovec;
-	genode_msghdr msg { };
-
-	Msg_header(void const *data, unsigned long size)
-	: iovec { const_cast<void *>(data), size }
-	{
-		msg.iov    = &iovec;
-		msg.iovlen = 1;
-	}
-
-	Msg_header(genode_sockaddr &name, void const *data, unsigned long size)
-	: Msg_header(data, size)
-	{
-		msg.name = &name;
-	}
-
-	void name(genode_sockaddr &name)
-	{
-		msg.name =&name;
-	}
-
-	genode_msghdr *header() { return &msg; }
-};
-
-
-long get_port(char const *p)
-{
-	long tmp = -1;
-
-	while (*++p) {
-		if (*p == ':') {
-			Genode::ascii_to_unsigned(++p, tmp, 10);
-			break;
-		}
-	}
-	return tmp;
-}
-
-
-unsigned get_addr(char const *p)
-{
-	unsigned char to[4] = { 0, 0, 0, 0};
-
-	for (unsigned char &c : to) {
-
-		unsigned result = 0;
-		p += Genode::ascii_to_unsigned(p, result, 10);
-
-		c = (unsigned char)result;
-
-		if (*p == '.') ++p;
-		if (*p == 0) break;
-	};
-
-	return (to[0]<<0)|(to[1]<<8)|(to[2]<<16)|(to[3]<<24);
-}
-
-
-long get_family(char const *p)
-{
-	long tmp = -1;
-
-	while (*p) {
-		if (*p == ';') {
-			Genode::ascii_to_unsigned(++p, tmp, 1);
-			break;
-		}
-		p++;
-	}
-	return tmp;
-}
-
-}
-
-
-namespace Ip {
-
+	struct Msg_header;
 	struct Protocol_dir;
 	struct Socket_dir;
 
@@ -125,13 +48,6 @@ namespace Ip {
 		MAX_SOCKET_NAME_LEN = 3 + 1,     /* + \0 */
 		MAX_DATA_LEN        = 32,        /* 255.255.255.255:65536 + something */
 	};
-}
-
-
-namespace Vfs_ip {
-
-	using namespace Vfs;
-	using namespace Genode;
 
 	struct Node;
 	struct Directory;
@@ -160,8 +76,83 @@ namespace Vfs_ip {
 	class Ip_vfs_dir_handle;
 	class Ip_file_system;
 
-	using Ip_vfs_file_handles = Genode::List<List_element<Ip_vfs_file_handle> >;
+	using Ip_vfs_file_handles = List<List_element<Ip_vfs_file_handle> >;
 }
+
+
+static inline long get_port(char const *p)
+{
+	long tmp = -1;
+
+	while (*++p) {
+		if (*p == ':') {
+			Genode::ascii_to_unsigned(++p, tmp, 10);
+			break;
+		}
+	}
+	return tmp;
+}
+
+
+static inline unsigned get_addr(char const *p)
+{
+	unsigned char to[4] = { 0, 0, 0, 0};
+
+	for (unsigned char &c : to) {
+
+		unsigned result = 0;
+		p += Genode::ascii_to_unsigned(p, result, 10);
+
+		c = (unsigned char)result;
+
+		if (*p == '.') ++p;
+		if (*p == 0) break;
+	};
+
+	return (to[0]<<0)|(to[1]<<8)|(to[2]<<16)|(to[3]<<24);
+}
+
+
+static inline long get_family(char const *p)
+{
+	long tmp = -1;
+
+	while (*p) {
+		if (*p == ';') {
+			Genode::ascii_to_unsigned(++p, tmp, 1);
+			break;
+		}
+		p++;
+	}
+	return tmp;
+}
+
+
+struct Vfs_ip::Msg_header
+{
+	genode_iovec  iovec;
+	genode_msghdr msg { };
+
+	Msg_header(void const *data, unsigned long size)
+	: iovec { const_cast<void *>(data), size }
+	{
+		msg.iov    = &iovec;
+		msg.iovlen = 1;
+	}
+
+	Msg_header(genode_sockaddr &name, void const *data, unsigned long size)
+	: Msg_header(data, size)
+	{
+		msg.name = &name;
+	}
+
+	void name(genode_sockaddr &name)
+	{
+		msg.name =&name;
+	}
+
+	genode_msghdr *header() { return &msg; }
+};
 
 
 /***************
@@ -207,14 +198,14 @@ struct Vfs_ip::File : Vfs_ip::Node
 	virtual long write(Ip_vfs_file_handle &,
 	                   Const_byte_range_ptr const &, file_size)
 	{
-		Genode::error(name(), " not writeable");
+		error(name(), " not writeable");
 		return -1;
 	}
 
 	virtual long read(Ip_vfs_file_handle &,
 	                  Byte_range_ptr const &, file_size)
 	{
-		Genode::error(name(), " not readable");
+		error(name(), " not readable");
 		return -1;
 	}
 
@@ -232,31 +223,31 @@ struct Vfs_ip::Directory : Vfs_ip::Node
 	virtual Vfs_ip::Node *child(char const *)                     = 0;
 	virtual file_size num_dirent()                                = 0;
 
-	using Open_result = Vfs::Directory_service::Open_result;
-	virtual Open_result open(Vfs::File_system &fs,
-	                         Genode::Allocator &alloc,
-	                         char const*, unsigned, Vfs::Vfs_handle**) = 0;
+	using Open_result = Directory_service::Open_result;
+	virtual Open_result open(File_system &fs,
+	                         Allocator &alloc,
+	                         char const*, unsigned, Vfs_handle**) = 0;
 
 	virtual long read(Byte_range_ptr const &, file_size seek_offset) = 0;
 };
 
 
-struct Ip::Protocol_dir : Vfs_ip::Directory
+struct Vfs_ip::Protocol_dir : Vfs_ip::Directory
 {
 	enum Type { TYPE_STREAM, TYPE_DGRAM };
 
 	virtual char const *top_dir() = 0;
 	virtual Type type() = 0;
-	virtual unsigned adopt_socket(Ip::Socket_dir &) = 0;
+	virtual unsigned adopt_socket(Socket_dir &) = 0;
 	virtual void release(unsigned id) = 0;
 
 	Protocol_dir(char const *name) : Vfs_ip::Directory(name) { }
 };
 
 
-struct Ip::Socket_dir : Vfs_ip::Directory
+struct Vfs_ip::Socket_dir : Vfs_ip::Directory
 {
-	using Open_result = Vfs::Directory_service::Open_result;
+	using Open_result = Directory_service::Open_result;
 
 	virtual Protocol_dir &parent() = 0;
 	virtual char const *top_dir() = 0;
@@ -270,14 +261,14 @@ struct Ip::Socket_dir : Vfs_ip::Directory
 };
 
 
-struct Vfs_ip::Ip_vfs_handle : Vfs::Vfs_handle
+struct Vfs_ip::Ip_vfs_handle : Vfs_handle
 {
 	using Read_result  = File_io_service:: Read_result;
 	using Write_result = File_io_service::Write_result;
 	using Sync_result  = File_io_service::Sync_result;
 
-	Ip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags)
-	: Vfs::Vfs_handle(fs, fs, alloc, status_flags) { }
+	Ip_vfs_handle(File_system &fs, Allocator &alloc, int status_flags)
+	: Vfs_handle(fs, fs, alloc, status_flags) { }
 
 	/**
 	 * Check if the file attached to this handle is ready to read
@@ -309,9 +300,9 @@ struct Vfs_ip::Ip_vfs_file_handle final : Vfs_ip::Ip_vfs_handle
 
 	Fifo_element read_ready_elem { *this };
 
-	char content_buffer[Ip::MAX_DATA_LEN];
+	char content_buffer[MAX_DATA_LEN];
 
-	Ip_vfs_file_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
+	Ip_vfs_file_handle(File_system &fs, Allocator &alloc, int status_flags,
 	                   Vfs_ip::File *file)
 	: Ip_vfs_handle(fs, alloc, status_flags), file(file)
 	{
@@ -354,7 +345,7 @@ struct Vfs_ip::Ip_vfs_file_handle final : Vfs_ip::Ip_vfs_handle
 		if (src.num_bytes > sizeof(content_buffer) - 2)
 			return false;
 
-		Genode::memcpy(content_buffer, src.start, src.num_bytes);
+		memcpy(content_buffer, src.start, src.num_bytes);
 		content_buffer[src.num_bytes + 0] = '\n';
 		content_buffer[src.num_bytes + 1] = '\0';
 		return true;
@@ -369,7 +360,7 @@ struct Vfs_ip::Ip_vfs_dir_handle final : Vfs_ip::Ip_vfs_handle
 {
 	Vfs_ip::Directory &dir;
 
-	Ip_vfs_dir_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
+	Ip_vfs_dir_handle(File_system &fs, Allocator &alloc, int status_flags,
 	                  Vfs_ip::Directory &dir)
 	: Vfs_ip::Ip_vfs_handle(fs, alloc, status_flags),
 	  dir(dir) { }
@@ -415,14 +406,14 @@ class Vfs_ip::Ip_file : public Vfs_ip::File
 {
 	protected:
 
-		Ip::Socket_dir     &_parent;
+		Socket_dir           &_parent;
 		genode_socket_handle &_sock;
 
 		Errno _write_err = GENODE_ENONE;
 
 	public:
 
-		Ip_file(Ip::Socket_dir &p, genode_socket_handle &s, char const *name)
+		Ip_file(Socket_dir &p, genode_socket_handle &s, char const *name)
 		: Vfs_ip::File(name), _parent(p), _sock(s) { }
 
 		virtual ~Ip_file() { }
@@ -432,7 +423,7 @@ class Vfs_ip::Ip_file : public Vfs_ip::File
 		 */
 		void dissolve_handles()
 		{
-			Genode::List_element<Vfs_ip::Ip_vfs_file_handle> *le = handles.first();
+			List_element<Vfs_ip::Ip_vfs_file_handle> *le = handles.first();
 			while (le) {
 				Vfs_ip::Ip_vfs_file_handle *h = le->object();
 				handles.remove(&h->file_le);
@@ -454,7 +445,7 @@ class Vfs_ip::Ip_data_file final : public Vfs_ip::Ip_file
 {
 	public:
 
-		Ip_data_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_data_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "data") { }
 
 		/********************
@@ -479,7 +470,7 @@ class Vfs_ip::Ip_data_file final : public Vfs_ip::Ip_file
 			Msg_header    msg_send { src.start, src.num_bytes };
 
 			/* destination address is only required for UDP */
-			if (_parent.parent().type() == Ip::Protocol_dir::TYPE_DGRAM)
+			if (_parent.parent().type() == Protocol_dir::TYPE_DGRAM)
 				msg_send.name(_parent.remote_addr());
 
 			_write_err = genode_socket_sendmsg(&_sock, msg_send.header(), &bytes_sent);
@@ -511,7 +502,7 @@ class Vfs_ip::Ip_peek_file final : public Vfs_ip::Ip_file
 {
 	public:
 
-		Ip_peek_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_peek_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "peek") { }
 
 		/********************
@@ -549,7 +540,7 @@ class Vfs_ip::Ip_bind_file final : public Vfs_ip::Ip_file
 {
 	public:
 
-		Ip_bind_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_bind_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "bind") { }
 
 		/********************
@@ -584,8 +575,8 @@ class Vfs_ip::Ip_bind_file final : public Vfs_ip::Ip_file
 			if (dst.num_bytes < sizeof(handle.content_buffer))
 				return -1;
 
-			Genode::size_t const n = Genode::strlen(handle.content_buffer);
-			Genode::memcpy(dst.start, handle.content_buffer, n);
+			size_t const n = strlen(handle.content_buffer);
+			memcpy(dst.start, handle.content_buffer, n);
 
 			return n;
 		}
@@ -600,7 +591,7 @@ class Vfs_ip::Ip_listen_file final : public Vfs_ip::Ip_file
 
 	public:
 
-		Ip_listen_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_listen_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "listen") { }
 
 		/********************
@@ -616,7 +607,7 @@ class Vfs_ip::Ip_listen_file final : public Vfs_ip::Ip_file
 
 			if (!handle.write_content_line(src)) return -1;
 
-			Genode::ascii_to_unsigned(
+			ascii_to_unsigned(
 				handle.content_buffer, _backlog, sizeof(handle.content_buffer));
 
 			if (_backlog == ~0UL) return -1;
@@ -650,7 +641,7 @@ class Vfs_ip::Ip_connect_file final : public Vfs_ip::Ip_file
 
 	public:
 
-		Ip_connect_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_connect_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "connect") { }
 
 		/********************
@@ -745,7 +736,7 @@ class Vfs_ip::Ip_connect_file final : public Vfs_ip::Ip_file
 			if (err == GENODE_ENONE && size == 0)
 				return Format::snprintf(dst.start, dst.num_bytes, "not connected");
 
-			Genode::error("Ip_connect_file::read unhandled error: ", unsigned(err));
+			error("Ip_connect_file::read unhandled error: ", unsigned(err));
 
 			return Format::snprintf(dst.start, dst.num_bytes, "unknown error");
 		}
@@ -756,7 +747,7 @@ class Vfs_ip::Ip_local_file final : public Vfs_ip::Ip_file
 {
 	public:
 
-		Ip_local_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_local_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "local") { }
 
 		/********************
@@ -786,7 +777,7 @@ class Vfs_ip::Ip_remote_file final : public Vfs_ip::Ip_file
 {
 	public:
 
-		Ip_remote_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_remote_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "remote") { }
 
 		/********************
@@ -796,10 +787,10 @@ class Vfs_ip::Ip_remote_file final : public Vfs_ip::Ip_file
 		bool read_ready() const override
 		{
 			switch (_parent.parent().type()) {
-			case Ip::Protocol_dir::TYPE_DGRAM:
+			case Protocol_dir::TYPE_DGRAM:
 				return genode_socket_poll(&_sock) & genode_socket_pollin_set();
 
-			case Ip::Protocol_dir::TYPE_STREAM:
+			case Protocol_dir::TYPE_STREAM:
 				return true;
 			}
 
@@ -815,7 +806,7 @@ class Vfs_ip::Ip_remote_file final : public Vfs_ip::Ip_file
 			genode_sockaddr addr { .family = AF_INET };
 
 			switch (_parent.parent().type()) {
-			case Ip::Protocol_dir::TYPE_DGRAM:
+			case Protocol_dir::TYPE_DGRAM:
 				{
 					/* peek the sender address of the next packet */
 					unsigned long bytes = 0;
@@ -828,7 +819,7 @@ class Vfs_ip::Ip_remote_file final : public Vfs_ip::Ip_file
 					if (err) return -1;
 				}
 				break;
-			case Ip::Protocol_dir::TYPE_STREAM:
+			case Protocol_dir::TYPE_STREAM:
 				{
 					if (genode_socket_getpeername(&_sock, &addr) != GENODE_ENONE)
 						return -1;
@@ -866,7 +857,7 @@ class Vfs_ip::Ip_accept_file final : public Vfs_ip::Ip_file
 {
 	public:
 
-		Ip_accept_file(Ip::Socket_dir &p, genode_socket_handle &s)
+		Ip_accept_file(Socket_dir &p, genode_socket_handle &s)
 		: Ip_file(p, s, "accept") { }
 
 		/********************
@@ -886,7 +877,7 @@ class Vfs_ip::Ip_accept_file final : public Vfs_ip::Ip_file
 		{
 			if (genode_socket_poll(&_sock) & genode_socket_pollin_set()) {
 				copy_cstring(dst.start, "1\n", dst.num_bytes);
-				return Genode::strlen(dst.start);
+				return strlen(dst.start);
 			}
 
 			throw Would_block();
@@ -917,33 +908,33 @@ class Vfs_ip::Ip_sockopt_dir : public Vfs_ip::Directory
 				return &_dummy;
 			}
 
-			Genode::error("Ip_socket_dir::child: failed for ", name);
+			error("Ip_socket_dir::child: failed for ", name);
 			return nullptr;
 		}
 
-		Open_result open(Vfs::File_system &,
-		                 Genode::Allocator &alloc,
+		Open_result open(File_system &,
+		                 Allocator &alloc,
 		                 char const*path, unsigned mode,
-		                 Vfs::Vfs_handle **out_handle) override
+		                 Vfs_handle **out_handle) override
 		{
 			return _sockopt_fs.open(path, mode, out_handle, alloc);
 		}
 
 		long read(Byte_range_ptr const &, file_size) override
 		{
-			Genode::error(__PRETTY_FUNCTION__, " called not implemented");
+			error(__PRETTY_FUNCTION__, " called not implemented");
 			return 0;
 		}
 
 		file_size num_dirent() override
 		{
-			Genode::error(__PRETTY_FUNCTION__, " called not implemented");
+			error(__PRETTY_FUNCTION__, " called not implemented");
 			return 0;
 		}
 };
 
 
-class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
+class Vfs_ip::Ip_socket_dir final : public Socket_dir
 {
 	public:
 
@@ -957,10 +948,10 @@ class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 
 	private:
 
-		Vfs::Env               &_env;
-		Genode::Allocator      &_alloc;
-		Ip::Protocol_dir       &_parent;
-		genode_socket_handle     &_sock;
+		Vfs::Env             &_env;
+		Allocator            &_alloc;
+		Protocol_dir         &_parent;
+		genode_socket_handle &_sock;
 
 		Vfs_ip::File *_files[MAX_FILES];
 
@@ -990,23 +981,21 @@ class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 
 		} _accept_socket_file { };
 
-		char _name[Ip::MAX_SOCKET_NAME_LEN];
+		char _name[MAX_SOCKET_NAME_LEN];
 
-		Vfs::Directory_service::Open_result
-		_accept_new_socket(Vfs::File_system &fs,
-		                   Genode::Allocator &alloc,
-		                   Vfs::Vfs_handle **out_handle);
+		Directory_service::Open_result
+		_accept_new_socket(File_system &fs, Allocator &alloc, Vfs_handle **);
 
 	public:
 
 		unsigned const id;
 
 		Ip_socket_dir(Vfs::Env &env,
-		              Genode::Allocator &alloc,
-		              Ip::Protocol_dir &parent,
+		              Allocator &alloc,
+		              Protocol_dir &parent,
 		              genode_socket_handle &sock)
 		:
-			Ip::Socket_dir(_name),
+			Socket_dir(_name),
 			_env(env), _alloc(alloc), _parent(parent),
 			_sock(sock), id(parent.adopt_socket(*this))
 		{
@@ -1044,17 +1033,17 @@ class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 		 ** Socket_dir interface **
 		 **************************/
 
-		Ip::Protocol_dir &parent() override { return _parent; }
+		Protocol_dir &parent() override { return _parent; }
 
 		genode_sockaddr &remote_addr() override { return _remote_addr; }
 
 		char const *top_dir() override { return _parent.top_dir(); }
 
 		Open_result
-		open(Vfs::File_system &fs,
-		     Genode::Allocator &alloc,
+		open(File_system &fs,
+		     Allocator &alloc,
 		     char const *path, unsigned mode,
-		     Vfs::Vfs_handle **out_handle) override
+		     Vfs_handle **out_handle) override
 		{
 			++path;
 
@@ -1062,7 +1051,7 @@ class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 				return _accept_new_socket(fs, alloc, out_handle);
 
 			for (Vfs_ip::File *f : _files) {
-				if (f && Genode::strcmp(f->name(), path) == 0) {
+				if (f && strcmp(f->name(), path) == 0) {
 					Vfs_ip::Ip_vfs_file_handle *handle = new (alloc)
 						Vfs_ip::Ip_vfs_file_handle(fs, alloc, mode, f);
 					*out_handle = handle;
@@ -1074,8 +1063,8 @@ class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 			Open_result res = _sockopt_fs.open(fs, alloc, path, mode, out_handle);
 			if (res == Open_result::OPEN_OK) return res;
 
-			Genode::error(path, " is UNACCESSIBLE");
-			return Vfs::Directory_service::OPEN_ERR_UNACCESSIBLE;
+			error(path, " is UNACCESSIBLE");
+			return Directory_service::OPEN_ERR_UNACCESSIBLE;
 		}
 
 
@@ -1099,7 +1088,7 @@ class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 		Vfs_ip::Node *child(char const *name) override
 		{
 			for (Vfs_ip::File *n : _files)
-				if (n && Genode::strcmp(n->name(), name) == 0)
+				if (n && strcmp(n->name(), name) == 0)
 					return n;
 
 			/* check sockopts */
@@ -1111,7 +1100,7 @@ class Vfs_ip::Ip_socket_dir final : public Ip::Socket_dir
 		long read(Byte_range_ptr const &dst,
 		          file_size seek_offset) override
 		{
-			using Dirent = Vfs::Directory_service::Dirent;
+			using Dirent = Directory_service::Dirent;
 
 			if (dst.num_bytes < sizeof(Dirent))
 				return -1;
@@ -1159,9 +1148,9 @@ struct Vfs_ip::Ip_socket_handle final : Vfs_ip::Ip_vfs_handle
 		Ip_socket_dir socket_dir;
 
 		Ip_socket_handle(Vfs::Env &env,
-		                 Vfs::File_system &fs,
-		                 Genode::Allocator &alloc,
-		                 Ip::Protocol_dir &parent,
+		                 File_system &fs,
+		                 Allocator &alloc,
+		                 Protocol_dir &parent,
 		                 genode_socket_handle &sock)
 		:
 			Ip_vfs_handle(fs, alloc, 0),
@@ -1182,10 +1171,10 @@ struct Vfs_ip::Ip_socket_handle final : Vfs_ip::Ip_vfs_handle
 };
 
 
-Vfs::Directory_service::Open_result
-Vfs_ip::Ip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
-                                          Genode::Allocator &alloc,
-                                          Vfs::Vfs_handle **out_handle)
+Genode::Vfs::Directory_service::Open_result
+Vfs_ip::Ip_socket_dir::_accept_new_socket(File_system &fs,
+                                          Allocator &alloc,
+                                          Vfs_handle **out_handle)
 {
 	Open_result res = Open_result::OPEN_ERR_UNACCESSIBLE;
 	if (!_files[ACCEPT_SOCKET_NODE]) return res;
@@ -1201,25 +1190,25 @@ Vfs_ip::Ip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
 		Vfs_ip::Ip_socket_handle *handle = new (alloc)
 			Vfs_ip::Ip_socket_handle(_env, fs, alloc, _parent, *new_sock);
 		*out_handle = handle;
-		return Vfs::Directory_service::Open_result::OPEN_OK;
+		return Directory_service::Open_result::OPEN_OK;
 	}
 
-	catch (Genode::Out_of_ram)  { res = Open_result::OPEN_ERR_OUT_OF_RAM;  }
-	catch (Genode::Out_of_caps) { res = Open_result::OPEN_ERR_OUT_OF_CAPS; }
-	catch (...) { Genode::error("unhandle error during accept"); }
+	catch (Out_of_ram)  { res = Open_result::OPEN_ERR_OUT_OF_RAM;  }
+	catch (Out_of_caps) { res = Open_result::OPEN_ERR_OUT_OF_CAPS; }
+	catch (...) { error("unhandle error during accept"); }
 
 	genode_socket_release(new_sock);
 	return res;
 };
 
 
-class Ip::Protocol_dir_impl : public Protocol_dir
+class Vfs_ip::Protocol_dir_impl : public Protocol_dir
 {
 	private:
 
-		Vfs::Env                 &_env;
-		Genode::Allocator        &_alloc;
-		Vfs::File_system         &_parent;
+		Vfs::Env    &_env;
+		Allocator   &_alloc;
+		File_system &_parent;
 
 		struct New_socket_file : Vfs_ip::File
 		{
@@ -1232,27 +1221,27 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 		 ** Simple node registry **
 		 **************************/
 
-		enum { MAX_NODES = Ip::MAX_SOCKETS + 1 };
+		enum { MAX_NODES = MAX_SOCKETS + 1 };
 		Vfs_ip::Node *_nodes[MAX_NODES];
 
 		unsigned _num_nodes()
 		{
 			unsigned n = 0;
-			for (Genode::size_t i = 0; i < MAX_NODES; i++)
+			for (size_t i = 0; i < MAX_NODES; i++)
 				n += (_nodes[i] != nullptr);
 			return n;
 		}
 
 		Vfs_ip::Node **_unused_node()
 		{
-			for (Genode::size_t i = 0; i < MAX_NODES; i++)
+			for (size_t i = 0; i < MAX_NODES; i++)
 				if (_nodes[i] == nullptr) return &_nodes[i];
 			throw -1;
 		}
 
 		void _free_node(Vfs_ip::Node *node)
 		{
-			for (Genode::size_t i = 0; i < MAX_NODES; i++)
+			for (size_t i = 0; i < MAX_NODES; i++)
 				if (_nodes[i] == node) {
 					_nodes[i] = nullptr;
 					break;
@@ -1261,18 +1250,18 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 
 		bool _is_root(const char *path)
 		{
-			return (Genode::strcmp(path, "") == 0) || (Genode::strcmp(path, "/") == 0);
+			return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
 		}
 
-		Vfs::Directory_service::Open_result
-		_open_new_socket(Vfs::File_system &fs,
-		                 Genode::Allocator &alloc,
-		                 Vfs::Vfs_handle **out_handle)
+		Directory_service::Open_result
+		_open_new_socket(File_system &fs,
+		                 Allocator &alloc,
+		                 Vfs_handle **out_handle)
 		{
-			Vfs::Directory_service::Open_result res =
-				Vfs::Directory_service::Open_result::OPEN_ERR_UNACCESSIBLE;
+			Directory_service::Open_result res =
+				Directory_service::Open_result::OPEN_ERR_UNACCESSIBLE;
 
-			int type = (_type == Ip::Protocol_dir::TYPE_STREAM)
+			int type = (_type == Protocol_dir::TYPE_STREAM)
 			         ? SOCK_STREAM : SOCK_DGRAM;
 
 			Errno err;
@@ -1290,14 +1279,14 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 				Vfs_ip::Ip_socket_handle *handle = new (alloc)
 					Vfs_ip::Ip_socket_handle(_env, fs, alloc, *this, *sock);
 				*out_handle = handle;
-				return Vfs::Directory_service::Open_result::OPEN_OK;
+				return Directory_service::Open_result::OPEN_OK;
 			}
 
-			catch (Genode::Out_of_ram)  {
+			catch (Out_of_ram)  {
 				res = Open_result::OPEN_ERR_OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) {
+			catch (Out_of_caps) {
 				res = Open_result::OPEN_ERR_OUT_OF_CAPS; }
-			catch (...) { Genode::error("unhandle error during accept"); }
+			catch (...) { error("unhandle error during accept"); }
 
 			genode_socket_release(sock);
 			return res;
@@ -1305,16 +1294,16 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 
 	public:
 
-		Protocol_dir_impl(Vfs::Env                 &env,
-		                  Genode::Allocator        &alloc,
-		                  Vfs::File_system         &parent,
-		                  char               const *name,
-		                  Ip::Protocol_dir::Type  type)
+		Protocol_dir_impl(Vfs::Env          &env,
+		                  Allocator         &alloc,
+		                  File_system       &parent,
+		                  char        const *name,
+		                  Protocol_dir::Type type)
 		:
 			Protocol_dir(name),
 			_env(env), _alloc(alloc), _parent(parent), _type(type)
 		{
-			for (Genode::size_t i = 0; i < MAX_NODES; i++) {
+			for (size_t i = 0; i < MAX_NODES; i++) {
 				_nodes[i] = nullptr;
 			}
 
@@ -1331,10 +1320,10 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			char const *p = path;
 			while (*++p && *p != '/');
 
-			for (Genode::size_t i = 0; i < MAX_NODES; i++) {
+			for (size_t i = 0; i < MAX_NODES; i++) {
 				if (!_nodes[i]) continue;
 
-				if (Genode::strcmp(_nodes[i]->name(), path, (p - path)) == 0) {
+				if (strcmp(_nodes[i]->name(), path, (p - path)) == 0) {
 					Vfs_ip::Directory *dir = dynamic_cast<Directory *>(_nodes[i]);
 					if (!dir) return _nodes[i];
 
@@ -1353,16 +1342,16 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 		Vfs_ip::Directory_service::Unlink_result unlink(char const *path)
 		{
 			Vfs_ip::Node *node = lookup(path);
-			if (!node) return Vfs::Directory_service::UNLINK_ERR_NO_ENTRY;
+			if (!node) return Directory_service::UNLINK_ERR_NO_ENTRY;
 
 			Vfs_ip::Directory *dir = dynamic_cast<Vfs_ip::Directory*>(node);
-			if (!dir) return Vfs::Directory_service::UNLINK_ERR_NO_ENTRY;
+			if (!dir) return Directory_service::UNLINK_ERR_NO_ENTRY;
 
 			_free_node(node);
 
-			Genode::destroy(&_alloc, dir);
+			destroy(&_alloc, dir);
 
-			return Vfs::Directory_service::UNLINK_OK;
+			return Directory_service::UNLINK_OK;
 		}
 
 		/****************************
@@ -1373,12 +1362,12 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 
 		Type type() override { return _type; }
 
-		Open_result open(Vfs::File_system &fs,
-		                 Genode::Allocator &alloc,
+		Open_result open(File_system &fs,
+		                 Allocator &alloc,
 		                 char const *path, unsigned mode,
-		                 Vfs::Vfs_handle **out_handle) override
+		                 Vfs_handle **out_handle) override
 		{
-			if (Genode::strcmp(path, "/new_socket") == 0) {
+			if (strcmp(path, "/new_socket") == 0) {
 				if (mode != 0) return Open_result::OPEN_ERR_NO_PERM;
 				return _open_new_socket(fs, alloc, out_handle);
 			}
@@ -1387,9 +1376,9 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			char const *p = path;
 			while (*++p && *p != '/');
 
-			for (Genode::size_t i = 1; i < MAX_NODES; i++) {
+			for (size_t i = 1; i < MAX_NODES; i++) {
 				if (!_nodes[i]) continue;
-				if (Genode::strcmp(_nodes[i]->name(), path, (p - path)) == 0) {
+				if (strcmp(_nodes[i]->name(), path, (p - path)) == 0) {
 					Vfs_ip::Directory *dir = dynamic_cast<Directory *>(_nodes[i]);
 					if (dir) {
 						path += (p - path);
@@ -1401,7 +1390,7 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			return Open_result::OPEN_ERR_UNACCESSIBLE;
 		}
 
-		unsigned adopt_socket(Ip::Socket_dir &dir) override
+		unsigned adopt_socket(Socket_dir &dir) override
 		{
 			Vfs_ip::Node **node = _unused_node();
 			if (!node) throw -1;
@@ -1422,12 +1411,11 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 		 ** Directory interface **
 		 *************************/
 
-		Vfs::file_size num_dirent() override { return _num_nodes(); }
+		file_size num_dirent() override { return _num_nodes(); }
 
-		long read(Vfs::Byte_range_ptr const &dst,
-		          Vfs::file_size seek_offset) override
+		long read(Byte_range_ptr const &dst, file_size seek_offset) override
 		{
-			using Dirent = Vfs::Directory_service::Dirent;
+			using Dirent = Directory_service::Dirent;
 
 			if (dst.num_bytes < sizeof(Dirent))
 				return -1;
@@ -1449,23 +1437,23 @@ class Ip::Protocol_dir_impl : public Protocol_dir
 			if (!node) {
 				out = {
 					.fileno = index + 1,
-					.type   = Vfs::Directory_service::Dirent_type::END,
+					.type   = Directory_service::Dirent_type::END,
 					.rwx    = { },
 					.name   = { } };
 
 				return -1;
 			}
 
-			using Dirent_type = Vfs::Directory_service::Dirent_type;
+			using Dirent_type = Directory_service::Dirent_type;
 
 			Dirent_type const type =
 				dynamic_cast<Vfs_ip::Directory*>(node) ? Dirent_type::DIRECTORY :
 				dynamic_cast<Vfs_ip::File     *>(node) ? Dirent_type::TRANSACTIONAL_FILE
 				                                       : Dirent_type::END;
 
-			Vfs::Node_rwx const rwx = (type == Dirent_type::DIRECTORY)
-			                        ? Vfs::Node_rwx::rwx()
-			                        : Vfs::Node_rwx::rw();
+			Node_rwx const rwx = (type == Dirent_type::DIRECTORY)
+			                   ? Node_rwx::rwx()
+			                   : Node_rwx::rw();
 
 			out = {
 				.fileno = index + 1,
@@ -1516,7 +1504,7 @@ class Vfs_ip::Ip_address_file final : public Vfs_ip::File
 				MAX_ADDRESS_STRING_SIZE = sizeof("000.000.000.000\n")
 			};
 
-			Genode::String<MAX_ADDRESS_STRING_SIZE> address {
+			String<MAX_ADDRESS_STRING_SIZE> address {
 				Net::Ipv4_address(&_numeric_address)
 			};
 
@@ -1555,7 +1543,7 @@ class Vfs_ip::Ip_link_state_file final : public Vfs_ip::File
 				MAX_LINK_STATE_STRING_SIZE = sizeof("down\n")
 			};
 
-			Genode::String<MAX_LINK_STATE_STRING_SIZE> link_state {
+			String<MAX_LINK_STATE_STRING_SIZE> link_state {
 				_numeric_link_state ? "up" : "down"
 			};
 
@@ -1576,22 +1564,22 @@ class Vfs_ip::Ip_link_state_file final : public Vfs_ip::File
 class Vfs_ip::Ip_file_system : public  Vfs::File_system,
                                public  Vfs_ip::Directory,
                                private Vfs_ip::Ip_address_info,
-                               private Vfs::Remote_io
+                               private Remote_io
 {
 	private:
 
-		Vfs::Env                 &_env;
-		Genode::Entrypoint       &_ep       { _env.env().ep() };
-		Genode::Allocator        &_alloc    { _env.alloc()    };
-		Vfs::Env::User           &_vfs_user { _env.user()     };
-		Remote_io::Peer           _peer { _env.deferred_wakeups(), *this };
+		Vfs::Env        &_env;
+		Entrypoint      &_ep       { _env.env().ep() };
+		Allocator       &_alloc    { _env.alloc()    };
+		Vfs::Env::User  &_vfs_user { _env.user()     };
+		Remote_io::Peer  _peer     { _env.deferred_wakeups(), *this };
 
 		genode_socket_wakeup _wakeup_remote { };
 
-		Ip::Protocol_dir_impl _tcp_dir {
-			_env, _alloc, *this, "tcp", Ip::Protocol_dir::TYPE_STREAM };
-		Ip::Protocol_dir_impl _udp_dir {
-			_env, _alloc, *this, "udp", Ip::Protocol_dir::TYPE_DGRAM  };
+		Protocol_dir_impl _tcp_dir {
+			_env, _alloc, *this, "tcp", Protocol_dir::TYPE_STREAM };
+		Protocol_dir_impl _udp_dir {
+			_env, _alloc, *this, "udp", Protocol_dir::TYPE_DGRAM  };
 
 		Ip_address_file    _address    { "address",    _info.ip_addr,    *this };
 		Ip_address_file    _netmask    { "netmask",    _info.netmask,    *this };
@@ -1604,30 +1592,25 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 			if (*path == '/') path++;
 			if (*path == '\0') return this;
 
-			if (Genode::strcmp(path, "tcp", 3) == 0)
+			if (strcmp(path, "tcp", 3) == 0)
 				return _tcp_dir.lookup(&path[3]);
 
-			if (Genode::strcmp(path, "udp", 3) == 0)
+			if (strcmp(path, "udp", 3) == 0)
 				return _udp_dir.lookup(&path[3]);
 
-			if (Genode::strcmp(path, _address.name(),
-			                   strlen(_address.name()) + 1) == 0)
+			if (strcmp(path, _address.name(), strlen(_address.name()) + 1) == 0)
 				return &_address;
 
-			if (Genode::strcmp(path, _netmask.name(),
-			                   strlen(_netmask.name()) + 1) == 0)
+			if (strcmp(path, _netmask.name(), strlen(_netmask.name()) + 1) == 0)
 				return &_netmask;
 
-			if (Genode::strcmp(path, _gateway.name(),
-			                   strlen(_gateway.name()) + 1) == 0)
+			if (strcmp(path, _gateway.name(), strlen(_gateway.name()) + 1) == 0)
 				return &_gateway;
 
-			if (Genode::strcmp(path, _nameserver.name(),
-			                   strlen(_nameserver.name()) + 1) == 0)
+			if (strcmp(path, _nameserver.name(), strlen(_nameserver.name()) + 1) == 0)
 				return &_nameserver;
 
-			if (Genode::strcmp(path, _link_state.name(),
-			                   strlen(_link_state.name()) + 1) == 0)
+			if (strcmp(path, _link_state.name(), strlen(_link_state.name()) + 1) == 0)
 				return &_link_state;
 
 			return nullptr;
@@ -1638,7 +1621,7 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 			return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
 		}
 
-		Read_result _read(Vfs::Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
+		Read_result _read(Vfs_handle *vfs_handle, Byte_range_ptr const &dst,
 		                  size_t &out_count)
 		{
 			Vfs_ip::Ip_vfs_handle *handle =
@@ -1742,8 +1725,7 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 		file_size num_dirent() override { return 7; }
 
 		Directory::Open_result
-		open(Vfs::File_system &, Genode::Allocator &,
-		         char const*, unsigned, Vfs::Vfs_handle**) override
+		open(File_system &, Allocator &, char const*, unsigned, Vfs_handle**) override
 		{
 			return Directory::Open_result::OPEN_ERR_UNACCESSIBLE;
 		}
@@ -1779,7 +1761,7 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 			Dirent &out = *(Dirent*)dst.start;
 
 			out = {
-				.fileno = (Genode::addr_t)entry.fileno,
+				.fileno = (addr_t)entry.fileno,
 				.type   = entry.type,
 				.rwx    = entry.type == Dirent_type::DIRECTORY
 				        ? Node_rwx::rwx() : Node_rwx::rw(),
@@ -1862,18 +1844,17 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 			return node ? path : nullptr;
 		}
 
-		Vfs::Directory_service::Open_result
-		open(char const *path, unsigned mode,
-		     Vfs_handle **out_handle,
-		     Genode::Allocator &alloc) override
+		Directory_service::Open_result
+		open(char const *path, unsigned mode, Vfs_handle **out_handle,
+		     Allocator &alloc) override
 		{
 			if (mode & OPEN_MODE_CREATE) return OPEN_ERR_NO_PERM;
 
 			try {
-				if (Genode::strcmp(path, "/tcp", 4) == 0)
+				if (strcmp(path, "/tcp", 4) == 0)
 					return _tcp_dir.open(*this, alloc,
 					                     &path[4], mode, out_handle);
-				if (Genode::strcmp(path, "/udp", 4) == 0)
+				if (strcmp(path, "/udp", 4) == 0)
 					return _udp_dir.open(*this, alloc,
 					                     &path[4], mode, out_handle);
 
@@ -1888,8 +1869,8 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 					return OPEN_OK;
 				}
 			}
-			catch (Genode::Out_of_ram ) { return OPEN_ERR_OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram ) { return OPEN_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 
 			return OPEN_ERR_UNACCESSIBLE;
 		}
@@ -1921,16 +1902,16 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 			if (file_handle)
 				_read_ready_waiters_ptr->remove(file_handle->read_ready_elem);
 
-			Genode::destroy(vfs_handle->alloc(), vfs_handle);
+			destroy(vfs_handle->alloc(), vfs_handle);
 		}
 
 		Unlink_result unlink(char const *path) override
 		{
 			if (*path == '/') path++;
 
-			if (Genode::strcmp(path, "tcp", 3) == 0)
+			if (strcmp(path, "tcp", 3) == 0)
 				return _tcp_dir.unlink(&path[3]);
-			if (Genode::strcmp(path, "udp", 3) == 0)
+			if (strcmp(path, "udp", 3) == 0)
 				return _udp_dir.unlink(&path[3]);
 			return UNLINK_ERR_NO_ENTRY;
 		}
@@ -1943,7 +1924,7 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 		 *************************************/
 
 		Write_result write(Vfs_handle *vfs_handle,
-		                   Vfs::Const_byte_range_ptr const &src,
+		                   Const_byte_range_ptr const &src,
 		                   size_t &out_count) override
 		{
 			Vfs_ip::Ip_vfs_handle *handle =
@@ -1955,7 +1936,7 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle,
-		                          Vfs::Byte_range_ptr const &dst,
+		                          Byte_range_ptr const &dst,
 		                          size_t &out_count) override
 		{
 			try { return _read(vfs_handle, dst, out_count); }
@@ -2008,42 +1989,42 @@ class Vfs_ip::Ip_file_system : public  Vfs::File_system,
 };
 
 
-struct Ip_factory : Vfs::File_system_factory
-{
-
-	/* wakup user task */
-	static void socket_progress(void *data)
-	{
-		Vfs::Env *env = static_cast<Vfs::Env *>(data);
-		env->user().wakeup_vfs_user();
-		poll_all();
-	}
-
-	struct genode_socket_io_progress io_progress { };
-
-	Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
-	{
-		io_progress.data = &env;
-		io_progress.callback = socket_progress;
-
-		using Label = Genode::String<Genode::Session_label::capacity()>;
-
-		if (genode_socket_init(genode_env_ptr(env.env()), &io_progress,
-		                       config.attribute_value("label", Label("")).string()))
-			return new (env.alloc()) Vfs_ip::Ip_file_system(env, config);
-
-		struct Socket_init_failed { };
-		throw Socket_init_failed();
-	}
-};
-
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	static Vfs_ip::Ip_vfs_file_handle::Fifo read_ready_waiters;
 
 	_read_ready_waiters_ptr = &read_ready_waiters;
 
-	static Ip_factory factory;
+	using namespace Genode;
+
+	struct Factory : Vfs::File_system_factory
+	{
+		/* wakup user task */
+		static void socket_progress(void *data)
+		{
+			Vfs::Env *env = static_cast<Vfs::Env *>(data);
+			env->user().wakeup_vfs_user();
+			poll_all();
+		}
+
+		struct genode_socket_io_progress io_progress { };
+
+		Vfs::File_system *create(Vfs::Env &env, Node const &config) override
+		{
+			io_progress.data = &env;
+			io_progress.callback = socket_progress;
+
+			using Label = String<Session_label::capacity()>;
+
+			if (genode_socket_init(genode_env_ptr(env.env()), &io_progress,
+			                       config.attribute_value("label", Label("")).string()))
+				return new (env.alloc()) Vfs_ip::Ip_file_system(env, config);
+
+			struct Socket_init_failed { };
+			throw Socket_init_failed();
+		}
+	};
+
+	static Factory factory;
 	return &factory;
 }

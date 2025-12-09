@@ -23,11 +23,11 @@
 #include <vfs/single_file_system.h>
 
 
-namespace Vfs { class Block_file_system; }
+namespace Vfs_block {
 
+	using namespace Genode;
+	using namespace Genode::Vfs;
 
-struct Vfs::Block_file_system
-{
 	using Name = String<64>;
 	using block_number_t = Block::block_number_t;
 	using off_t = Block::off_t;
@@ -42,127 +42,131 @@ struct Vfs::Block_file_system
 			return { (Block::block_count_t)count.blocks }; }
 	};
 
-	struct Block_job : Block::Connection<Block_job>::Job
-	{
-		/*
-		 * The range covers the whole request from the client
-		 * but the overall amount is limited to the block
-		 * count in the operation and thus can be smaller.
-		 */
-		Byte_range_ptr const range;
-
-		/*
-		 * Handle unaligned reads by splitting the offset
-		 * into the initial offset used to constrain the
-		 * first read and the offset used afterwards to
-		 * calculate the position in the destination buffer.
-		 */
-		size_t initial_read_offset;
-		size_t read_offset;
-		size_t bytes_read;
-
-		/* store length for acking unaligned or partial requests */
-		size_t actual_length { 0 };
-
-		bool done    { false };
-		bool success { false };
-
-		Block_job(Block::Connection<Block_job> &conn,
-		           char *           const  start,
-		           size_t           const  num_bytes,
-		           Block::Operation const &op,
-		           size_t           const  initial_read_offset = 0)
-		:
-			Block::Connection<Block_job>::Job { conn, op },
-			range               { start, num_bytes },
-			initial_read_offset { initial_read_offset },
-			read_offset         { 0 },
-			bytes_read          { 0 }
-		{ }
-
-		size_t read_space_remaining() const {
-			return range.num_bytes - bytes_read; }
-	};
-
-	struct Block_connection : Block::Connection<Block_job>
-	{
-		Block_connection(auto &&... args)
-		: Block::Connection<Block_job>(args...) { }
-
-		/*****************************************************
-		 ** Block::Connection::Update_jobs_policy interface **
-		 *****************************************************/
-
-		void produce_write_content(Block_job &job, off_t offset,
-		                           char *dst, size_t length)
-		{
-			/*
-			 * In write jobs the length is always at most num_bytes
-			 * as only full blocks are written. The transfer might
-			 * be split but in this case the offset grows while
-			 * the length shrinks.
-			 */
-			size_t const sz = min(length, job.range.num_bytes);
-			char const * src = (char const*)job.range.start + offset;
-
-			memcpy(dst, src, sz);
-		}
-
-		void consume_read_result(Block_job &job, off_t offset,
-		                         char const *src, size_t length)
-		{
-			/*
-			 * When reading we perform an offset calculation into
-			 * the destination buffer so that we always start at
-			 * the beginning.
-			 *
-			 * Handle the expected common-case first as with aligned or
-			 * follow-up requests we only have to care about not copying
-			 * too much.
-			 */
-			if (!job.initial_read_offset) {
-				size_t const sz = min(length, job.read_space_remaining());
-
-				char * const dst = (char*)job.range.start + offset - job.read_offset;
-				memcpy(dst, src, sz);
-				job.bytes_read += sz;
-
-				return;
-			}
-
-			/*
-			 * Unaligned requests alter the src offset to read directly
-			 * into the supplied destination buffer and set this offset
-			 * up for follow-up requests. The way the Job API is implemented
-			 * the 'offset' argument is '0' on the first call and thus
-			 * omitted here.
-			 */
-			size_t const sz = min(length - job.initial_read_offset,
-			                      job.read_space_remaining());
-
-			char       * const dst  = (char*)job.range.start;
-			char const *       from = src + job.initial_read_offset;
-			memcpy(dst, from, sz);
-			job.bytes_read += sz;
-
-			job.read_offset         = job.initial_read_offset;
-			job.initial_read_offset = 0;
-		}
-
-		void completed(Block_job &job, bool success)
-		{
-			job.success = success;
-			job.done    = true;
-		}
-	};
-
+	struct Block_job;
+	struct Block_connection;
 	struct Local_factory;
 	struct Data_file_system;
-	struct Compound_file_system;
+	struct File_system;
+}
+
+
+struct Vfs_block::Block_job : Block::Connection<Block_job>::Job
+{
+	/*
+	 * The range covers the whole request from the client
+	 * but the overall amount is limited to the block
+	 * count in the operation and thus can be smaller.
+	 */
+	Byte_range_ptr const range;
+
+	/*
+	 * Handle unaligned reads by splitting the offset
+	 * into the initial offset used to constrain the
+	 * first read and the offset used afterwards to
+	 * calculate the position in the destination buffer.
+	 */
+	size_t initial_read_offset;
+	size_t read_offset;
+	size_t bytes_read;
+
+	/* store length for acking unaligned or partial requests */
+	size_t actual_length { 0 };
+
+	bool done    { false };
+	bool success { false };
+
+	Block_job(Block::Connection<Block_job> &conn,
+	          char *           const  start,
+	          size_t           const  num_bytes,
+	          Block::Operation const &op,
+	          size_t           const  initial_read_offset = 0)
+	:
+		Block::Connection<Block_job>::Job { conn, op },
+		range               { start, num_bytes },
+		initial_read_offset { initial_read_offset },
+		read_offset         { 0 },
+		bytes_read          { 0 }
+	{ }
+
+	size_t read_space_remaining() const {
+		return range.num_bytes - bytes_read; }
 };
 
 
-class Vfs::Block_file_system::Data_file_system : public Single_file_system
+struct Vfs_block::Block_connection : Block::Connection<Block_job>
+{
+	Block_connection(auto &&... args)
+	: Block::Connection<Block_job>(args...) { }
+
+	/*****************************************************
+	 ** Block::Connection::Update_jobs_policy interface **
+	 *****************************************************/
+
+	void produce_write_content(Block_job &job, off_t offset,
+	                           char *dst, size_t length)
+	{
+		/*
+		 * In write jobs the length is always at most num_bytes
+		 * as only full blocks are written. The transfer might
+		 * be split but in this case the offset grows while
+		 * the length shrinks.
+		 */
+		size_t const sz = min(length, job.range.num_bytes);
+		char const * src = (char const*)job.range.start + offset;
+
+		memcpy(dst, src, sz);
+	}
+
+	void consume_read_result(Block_job &job, off_t offset,
+	                         char const *src, size_t length)
+	{
+		/*
+		 * When reading we perform an offset calculation into
+		 * the destination buffer so that we always start at
+		 * the beginning.
+		 *
+		 * Handle the expected common-case first as with aligned or
+		 * follow-up requests we only have to care about not copying
+		 * too much.
+		 */
+		if (!job.initial_read_offset) {
+			size_t const sz = min(length, job.read_space_remaining());
+
+			char * const dst = (char*)job.range.start + offset - job.read_offset;
+			memcpy(dst, src, sz);
+			job.bytes_read += sz;
+
+			return;
+		}
+
+		/*
+		 * Unaligned requests alter the src offset to read directly
+		 * into the supplied destination buffer and set this offset
+		 * up for follow-up requests. The way the Job API is implemented
+		 * the 'offset' argument is '0' on the first call and thus
+		 * omitted here.
+		 */
+		size_t const sz = min(length - job.initial_read_offset,
+		                      job.read_space_remaining());
+
+		char       * const dst  = (char*)job.range.start;
+		char const *       from = src + job.initial_read_offset;
+		memcpy(dst, from, sz);
+		job.bytes_read += sz;
+
+		job.read_offset         = job.initial_read_offset;
+		job.initial_read_offset = 0;
+	}
+
+	void completed(Block_job &job, bool success)
+	{
+		job.success = success;
+		job.done    = true;
+	}
+};
+
+
+class Vfs_block::Data_file_system : public Single_file_system
 {
 	private:
 
@@ -223,7 +227,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 				struct Read_handler
 				{
-					Genode::Constructible<Block_job> _job { };
+					Constructible<Block_job> _job { };
 
 					Size_helper const _helper;
 					Block_count const _block_count;
@@ -305,7 +309,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 				struct Write_handler
 				{
-					Genode::Constructible<Block_job> _job { };
+					Constructible<Block_job> _job { };
 
 					Size_helper const _helper;
 					Block_count const _block_count;
@@ -465,7 +469,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 				struct Sync_handler
 				{
-					Genode::Constructible<Block_job> _job {  };
+					Constructible<Block_job> _job {  };
 
 					Block_count const _block_count;
 
@@ -548,9 +552,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 
 	public:
 
-		Data_file_system(Vfs::Env                &env,
-		                 Block_connection        &block,
-		                 Name              const &name)
+		Data_file_system(Vfs::Env &env, Block_connection &block, Name const &name)
 		:
 			Single_file_system { Node_type::CONTINUOUS_FILE, name.string(),
 			                     block.info().writeable ? Node_rwx::rw()
@@ -563,7 +565,7 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 			size_t const block_size = _block.info().block_size;
 			if (block_size % 512 != 0 ||
 			    block_size > sizeof(Block_vfs_handle::Write_handler::_unaligned_buffer)) {
-				Genode::error("block-size: ", block_size, " of underlying session not supported");
+				error("block-size: ", block_size, " of underlying session not supported");
 				struct Unsupported_underlying_block_size { };
 				throw Unsupported_underlying_block_size();
 			}
@@ -590,8 +592,8 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 				                                           _block);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -610,20 +612,20 @@ class Vfs::Block_file_system::Data_file_system : public Single_file_system
 };
 
 
-struct Vfs::Block_file_system::Local_factory : File_system_factory
+struct Vfs_block::Local_factory : File_system_factory
 {
-	using Label = Genode::String<64>;
+	using Label = String<64>;
 	Label const _label;
 
 	Name const _name;
 
 	Vfs::Env &_env;
 
-	Genode::Allocator_avl _tx_block_alloc { &_env.alloc() };
+	Allocator_avl _tx_block_alloc { &_env.alloc() };
 
 	Block_connection _block;
 
-	Genode::Io_signal_handler<Local_factory> _block_signal_handler {
+	Io_signal_handler<Local_factory> _block_signal_handler {
 		_env.env().ep(), *this, &Local_factory::_handle_block_signal };
 
 	void _handle_block_signal()
@@ -633,31 +635,31 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 	}
 
 	Data_file_system _data_fs;
-	
+
 	struct Info : Block::Session::Info
 	{
-		void print(Genode::Output &out) const
+		void print(Output &out) const
 		{
 			char buf[128] { };
-			Genode::Generator::generate({ buf, sizeof(buf) }, "block",
-				[&] (Genode::Generator &g) {
+			Generator::generate({ buf, sizeof(buf) }, "block",
+				[&] (Generator &g) {
 					g.attribute("count", Block::Session::Info::block_count);
 					g.attribute("size",  Block::Session::Info::block_size);
-			}).with_error([] (Genode::Buffer_error) {
-				Genode::warning("VFS-block info exceeds maximum buffer size");
+			}).with_error([] (Buffer_error) {
+				warning("VFS-block info exceeds maximum buffer size");
 			});
-			Genode::print(out, Genode::Cstring(buf));
+			Genode::print(out, Cstring(buf));
 		}
 	};
 
-	Readonly_value_file_system<Info>             _info_fs        { "info",        Info { } };
-	Readonly_value_file_system<Genode::uint64_t> _block_count_fs { "block_count", 0 };
-	Readonly_value_file_system<size_t>           _block_size_fs  { "block_size",  0 };
+	Readonly_value_file_system<Info>     _info_fs        { "info",        Info { } };
+	Readonly_value_file_system<uint64_t> _block_count_fs { "block_count", 0 };
+	Readonly_value_file_system<size_t>   _block_size_fs  { "block_size",  0 };
 
 	static Name name(Node const &config) {
 		return config.attribute_value("name", Name("block")); }
 
-	static constexpr Genode::Num_bytes DEFAULT_IO_BUFFER_SIZE = { (4u << 20) };
+	static constexpr Num_bytes DEFAULT_IO_BUFFER_SIZE = { (4u << 20) };
 
 	/* payload size, a fixed-amount for meta-data is added below */
 	static size_t io_buffer(Node const &config) {
@@ -673,7 +675,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		_data_fs { _env, _block, name(config) }
 	{
 		if (config.has_attribute("block_buffer_count"))
-			Genode::warning("'block_buffer_count' attribute is superseded by 'io_buffer'");
+			warning("'block_buffer_count' attribute is superseded by 'io_buffer'");
 
 		_block.sigh(_block_signal_handler);
 		_info_fs       .value(Info { _block.info() });
@@ -681,7 +683,7 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 		_block_size_fs .value(_block.info().block_size);
 	}
 
-	Vfs::File_system *create(Vfs::Env&, Node const &node) override
+	Vfs::File_system *create(Vfs::Env &, Node const &node) override
 	{
 		if (node.has_type("data"))        return &_data_fs;
 		if (node.has_type("info"))        return &_info_fs;
@@ -692,14 +694,13 @@ struct Vfs::Block_file_system::Local_factory : File_system_factory
 };
 
 
-class Vfs::Block_file_system::Compound_file_system : private Local_factory,
-                                                     public  Vfs::Dir_file_system
+class Vfs_block::File_system : private Local_factory, public Dir_file_system
 {
 	private:
 
-		using Name = Block_file_system::Name;
-
+		using Name   = Vfs_block::Name;
 		using Config = String<200>;
+
 		static Config _config(Name const &name)
 		{
 			char buf[Config::capacity()] { };
@@ -709,8 +710,8 @@ class Vfs::Block_file_system::Compound_file_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Generator::generate({ buf, sizeof(buf) }, "compound",
-				[&] (Genode::Generator &g) {
+			Generator::generate({ buf, sizeof(buf) }, "compound",
+				[&] (Generator &g) {
 
 					g.node("data", [&] { g.attribute("name", name); });
 
@@ -721,21 +722,21 @@ class Vfs::Block_file_system::Compound_file_system : private Local_factory,
 						g.node("block_size");
 					});
 
-			}).with_error([&] (Genode::Buffer_error) {
-				Genode::warning("VFS-block compound exceeds maximum buffer size");
+			}).with_error([&] (Buffer_error) {
+				warning("VFS-block compound exceeds maximum buffer size");
 			});
 
-			return Config(Genode::Cstring(buf));
+			return Config(Cstring(buf));
 		}
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Node const &node)
+		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory { vfs_env, node },
-			Vfs::Dir_file_system { vfs_env,
-			                       Node(_config(Local_factory::name(node))),
-			                       *this }
+			Dir_file_system { vfs_env,
+			                  Node(_config(Local_factory::name(node))),
+			                  *this }
 		{ }
 
 		static const char *name() { return "block"; }

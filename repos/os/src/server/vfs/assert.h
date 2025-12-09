@@ -20,7 +20,7 @@
 
 namespace File_system {
 
-	using namespace Vfs;
+	using namespace Genode::Vfs;
 
 	static inline void assert_open(Directory_service::Open_result r)
 	{

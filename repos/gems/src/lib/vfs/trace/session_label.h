@@ -17,12 +17,15 @@
 #include <util/arg_string.h>
 #include <util/string.h>
 
-namespace Vfs {
-using namespace Genode;
-struct Session_label;
+namespace Vfs_trace {
+
+	using namespace Genode;
+
+	struct Session_label;
 }
 
-struct Vfs::Session_label : Genode::Session_label
+
+struct Vfs_trace::Session_label : Genode::Session_label
 {
 	private:
 

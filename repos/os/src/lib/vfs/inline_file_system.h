@@ -19,22 +19,28 @@
 
 #include <vfs/file_system.h>
 
-namespace Vfs { class Inline_file_system; }
+namespace Vfs_inline {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
+}
 
 
-class Vfs::Inline_file_system : public Single_file_system
+class Vfs_inline::File_system : public Single_file_system
 {
 	private:
 
 		struct Buffered_data
 		{
-			using Allocated = Genode::Memory::Constrained_allocator::Result;
+			using Allocated = Memory::Constrained_allocator::Result;
 
 			Allocated allocated;
 
-			using Num_bytes = Genode::Attempt<size_t, Genode::Buffer_error>;
+			using Num_bytes = Attempt<size_t, Buffer_error>;
 
-			Num_bytes num_bytes = Genode::Buffer_error::EXCEEDED;  /* unquoted data size */
+			Num_bytes num_bytes = Buffer_error::EXCEEDED;  /* unquoted data size */
 
 			static bool _has_quoted_content(Node const &node)
 			{
@@ -68,11 +74,11 @@ class Vfs::Inline_file_system : public Single_file_system
 
 			static Num_bytes _copy_from_node(Allocated &allocated, Node const &node)
 			{
-				return allocated.convert<Num_bytes>([&] (Genode::Memory::Allocation &a) {
+				return allocated.convert<Num_bytes>([&] (Memory::Allocation &a) {
 					return unquoted_content({ (char *)a.ptr, a.num_bytes }, node);
 				},
-				[&] (Genode::Alloc_error) {
-					Genode::warning("inline VFS allocation failed");
+				[&] (Alloc_error) {
+					warning("inline VFS allocation failed");
 					return 0ul;
 				});
 			}
@@ -90,7 +96,7 @@ class Vfs::Inline_file_system : public Single_file_system
 					[&] (Buffer_error) { warning("inline VFS decoding failed"); });
 			}
 
-			Buffered_data(Genode::Memory::Constrained_allocator &alloc,
+			Buffered_data(Memory::Constrained_allocator &alloc,
 			              Node const &node)
 			:
 				/* use node size as upper approximation of data size */
@@ -105,14 +111,14 @@ class Vfs::Inline_file_system : public Single_file_system
 		{
 			private:
 
-				Inline_file_system const &_fs;
+				File_system const &_fs;
 
 			public:
 
-				Handle(Directory_service        &ds,
-				       File_io_service          &fs,
-				       Allocator                &alloc,
-				       Inline_file_system const &inline_fs)
+				Handle(Directory_service &ds,
+				       File_io_service   &fs,
+				       Allocator         &alloc,
+				       File_system const &inline_fs)
 				:
 					Single_vfs_handle(ds, fs, alloc, 0), _fs(inline_fs)
 				{ }
@@ -139,7 +145,7 @@ class Vfs::Inline_file_system : public Single_file_system
 		 * the object after construction time. The underlying backing store
 		 * must be kept in tact during the lifefile of the object.
 		 */
-		Inline_file_system(Vfs::Env &env, Node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::rx(), config),
@@ -163,8 +169,8 @@ class Vfs::Inline_file_system : public Single_file_system
 			try {
 				*out_handle = new (alloc) Handle(*this, *this, alloc, *this);
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 
 			return OPEN_OK;
 		}
@@ -175,15 +181,15 @@ class Vfs::Inline_file_system : public Single_file_system
 
 			out.size = _data.num_bytes.convert<size_t>(
 				[] (size_t n)             { return n; },
-				[] (Genode::Buffer_error) { return 0ul; });
+				[] (Buffer_error) { return 0ul; });
 
 			return result;
 		}
 };
 
 
-Vfs::File_io_service::Read_result
-Vfs::Inline_file_system::Handle::read(Byte_range_ptr const &dst, size_t &out_count)
+Genode::Vfs::File_io_service::Read_result
+Vfs_inline::File_system::Handle::read(Byte_range_ptr const &dst, size_t &out_count)
 {
 	out_count = 0;
 

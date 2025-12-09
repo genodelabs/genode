@@ -19,24 +19,27 @@
 #include <base/registry.h>
 
 namespace Vfs_pipe {
-	using namespace Vfs;
-	using Open_result  = Vfs::Directory_service::Open_result;
-	using Write_result = Vfs::File_io_service::Write_result;
-	using Read_result  = Vfs::File_io_service::Read_result;
-	using Path         = Genode::Path<Vfs::MAX_PATH_LEN>;
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	using Open_result  = Directory_service::Open_result;
+	using Write_result = File_io_service::Write_result;
+	using Read_result  = File_io_service::Read_result;
+	using Path         = Path<MAX_PATH_LEN>;
 
 	enum { PIPE_BUF_SIZE = 8192U };
-	using Pipe_buffer = Genode::Ring_buffer<unsigned char, PIPE_BUF_SIZE+1>;
+	using Pipe_buffer = Ring_buffer<unsigned char, PIPE_BUF_SIZE+1>;
 
 	struct Pipe_handle;
-	using Handle_element = Genode::Fifo_element<Pipe_handle>;
-	using Handle_fifo    = Genode::Fifo<Handle_element>;
+	using Handle_element = Fifo_element<Pipe_handle>;
+	using Handle_fifo    = Fifo<Handle_element>;
 
-	using Pipe_handle_registry_element = Genode::Registry<Pipe_handle>::Element;
-	using Pipe_handle_registry         = Genode::Registry<Pipe_handle>;
+	using Pipe_handle_registry_element = Registry<Pipe_handle>::Element;
+	using Pipe_handle_registry         = Registry<Pipe_handle>;
 
 	struct Pipe;
-	using Pipe_space = Genode::Id_space<Pipe>;
+	using Pipe_space = Id_space<Pipe>;
 
 	struct New_pipe_handle;
 
@@ -46,7 +49,7 @@ namespace Vfs_pipe {
 }
 
 
-struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_element
+struct Vfs_pipe::Pipe_handle : Vfs_handle, private Pipe_handle_registry_element
 {
 	Pipe &pipe;
 
@@ -55,12 +58,12 @@ struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_ele
 	bool const writer;
 
 	Pipe_handle(Vfs::File_system &fs,
-	            Genode::Allocator &alloc,
+	            Allocator &alloc,
 	            unsigned flags,
 	            Pipe_handle_registry &registry,
 	            Pipe &p)
 	:
-		Vfs::Vfs_handle(fs, fs, alloc, flags),
+		Vfs_handle(fs, fs, alloc, flags),
 		Pipe_handle_registry_element(registry, *this),
 		pipe(p),
 		writer(flags == Directory_service::OPEN_MODE_WRONLY)
@@ -79,9 +82,9 @@ struct Vfs_pipe::Pipe_handle : Vfs::Vfs_handle, private Pipe_handle_registry_ele
 
 struct Vfs_pipe::Pipe
 {
-	Genode::Env       &env;
-	Vfs::Env::User    &vfs_user;
-	Genode::Allocator &alloc;
+	Genode::Env    &env;
+	Vfs::Env::User &vfs_user;
+	Allocator      &alloc;
 
 	Pipe_space::Element  space_elem;
 	Pipe_buffer          buffer { };
@@ -92,20 +95,19 @@ struct Vfs_pipe::Pipe
 	unsigned num_writers = 0;
 	bool waiting_for_writers = true;
 
-	Genode::Io_signal_handler<Pipe> _read_notify_handler
-		{ env.ep(), *this, &Pipe::notify_read };
+	Io_signal_handler<Pipe> _read_notify_handler { env.ep(), *this, &Pipe::notify_read };
 
 	bool new_handle_active { true };
 
 	Pipe(Genode::Env &env, Vfs::Env::User &vfs_user,
-	     Genode::Allocator &alloc, Pipe_space &space)
+	     Allocator &alloc, Pipe_space &space)
 	:
 		env(env), vfs_user(vfs_user), alloc(alloc), space_elem(*this, space)
 	{ }
 
 	~Pipe() = default;
 
-	using Name = Genode::String<8>;
+	using Name = String<8>;
 	Name name() const
 	{
 		return Name(space_elem.id().value);
@@ -161,14 +163,14 @@ struct Vfs_pipe::Pipe
 	Open_result open(Vfs::File_system &fs,
 	                 Path const &filename,
 	                 Vfs::Vfs_handle **handle,
-	                 Genode::Allocator &alloc)
+	                 Allocator &alloc)
 	{
 		if (filename == "/in") {
 
 			if (0 == num_writers) {
 				/* flush buffer */
 				if (!buffer.empty())
-					Genode::warning("flushing non-empty buffer. capacity=", buffer.avail_capacity());
+					warning("flushing non-empty buffer. capacity=", buffer.avail_capacity());
 
 				buffer.reset();
 			}
@@ -291,18 +293,18 @@ bool Vfs_pipe::Pipe_handle::notify_read_ready()
 }
 
 
-struct Vfs_pipe::New_pipe_handle : Vfs::Vfs_handle
+struct Vfs_pipe::New_pipe_handle : Vfs_handle
 {
 	Pipe &pipe;
 
-	New_pipe_handle(Vfs::File_system  &fs,
-	                Genode::Env       &env,
-	                Vfs::Env::User    &vfs_user,
-	                Genode::Allocator &alloc,
-	                unsigned           flags,
-	                Pipe_space        &pipe_space)
+	New_pipe_handle(Vfs::File_system &fs,
+	                Genode::Env      &env,
+	                Vfs::Env::User   &vfs_user,
+	                Allocator        &alloc,
+	                unsigned          flags,
+	                Pipe_space       &pipe_space)
 	:
-		Vfs::Vfs_handle(fs, fs, alloc, flags),
+		Vfs_handle(fs, fs, alloc, flags),
 		pipe(*(new (alloc) Pipe(env, vfs_user, alloc, pipe_space)))
 	{ }
 
@@ -348,10 +350,7 @@ class Vfs_pipe::File_system : public Vfs::File_system
 
 	public:
 
-		File_system(Vfs::Env &env)
-		:
-			_env(env)
-		{ }
+		File_system(Vfs::Env &env) : _env(env) { }
 
 		const char* type() override { return "pipe"; }
 
@@ -359,24 +358,23 @@ class Vfs_pipe::File_system : public Vfs::File_system
 		 ** Directory service **
 		 ***********************/
 
-		Genode::Dataspace_capability dataspace(char const*) override {
-			return Genode::Dataspace_capability(); }
+		Dataspace_capability dataspace(char const*) override {
+			return Dataspace_capability(); }
 
 		void release(char const*, Dataspace_capability) override { }
 
-		Open_result open(const char *cpath,
-		                 unsigned mode,
+		Open_result open(const char *cpath, unsigned mode,
 		                 Vfs::Vfs_handle **handle,
-		                 Genode::Allocator &alloc) override
+		                 Allocator &alloc) override
 		{
 			if (mode & OPEN_MODE_CREATE) {
-				Genode::warning("cannot open fifo pipe with OPEN_MODE_CREATE");
+				warning("cannot open fifo pipe with OPEN_MODE_CREATE");
 				return OPEN_ERR_NO_PERM;
 			}
 
 			if (!((mode == Open_mode::OPEN_MODE_RDONLY) ||
 			      (mode == Open_mode::OPEN_MODE_WRONLY))) {
-				Genode::error("pipe only supports opening with WO or RO mode");
+				error("pipe only supports opening with WO or RO mode");
 				return OPEN_ERR_NO_PERM;
 			}
 
@@ -441,7 +439,7 @@ class Vfs_pipe::File_system : public Vfs::File_system
 			return result;
 		}
 
-		void close(Vfs::Vfs_handle *vfs_handle) override
+		void close(Vfs_handle *vfs_handle) override
 		{
 			Pipe *pipe = nullptr;
 			if (Pipe_handle *handle = dynamic_cast<Pipe_handle*>(vfs_handle)) {
@@ -484,8 +482,8 @@ class Vfs_pipe::File_system : public Vfs::File_system
 							.size              = file_size(0),
 							.type              = Node_type::CONTINUOUS_FILE,
 							.rwx               = Node_rwx::rw(),
-							.inode             = Genode::addr_t(&pipe),
-							.device            = Genode::addr_t(this),
+							.inode             = addr_t(&pipe),
+							.device            = addr_t(this),
 							.modification_time = { }
 						};
 						result = STAT_OK;
@@ -504,8 +502,8 @@ class Vfs_pipe::File_system : public Vfs::File_system
 								.size              = file_size(pipe.buffer.avail_capacity()),
 								.type              = Node_type::CONTINUOUS_FILE,
 								.rwx               = Node_rwx::wo(),
-								.inode             = Genode::addr_t(&pipe) + 1,
-								.device            = Genode::addr_t(this),
+								.inode             = addr_t(&pipe) + 1,
+								.device            = addr_t(this),
 								.modification_time = { }
 							};
 							result = STAT_OK;
@@ -516,8 +514,8 @@ class Vfs_pipe::File_system : public Vfs::File_system
 								                             - pipe.buffer.avail_capacity()),
 								.type              = Node_type::CONTINUOUS_FILE,
 								.rwx               = Node_rwx::ro(),
-								.inode             = Genode::addr_t(&pipe) + 2,
-								.device            = Genode::addr_t(this),
+								.inode             = addr_t(&pipe) + 2,
+								.device            = addr_t(this),
 								.modification_time = { }
 							};
 							result = STAT_OK;
@@ -644,15 +642,12 @@ class Vfs_pipe::Pipe_file_system : public Vfs_pipe::File_system
 
 	public:
 
-		Pipe_file_system(Vfs::Env &env)
-		:
-			File_system(env)
-		{ }
+		Pipe_file_system(Vfs::Env &env) : File_system(env) { }
 
 		Open_result open(const char *cpath,
 		                 unsigned mode,
 		                 Vfs::Vfs_handle **handle,
-		                 Genode::Allocator &alloc) override
+		                 Allocator &alloc) override
 		{
 			Path const path { cpath };
 
@@ -677,8 +672,8 @@ class Vfs_pipe::Pipe_file_system : public Vfs_pipe::File_system
 					.size              = 1,
 					.type              = Node_type::TRANSACTIONAL_FILE,
 					.rwx               = Node_rwx::ro(),
-					.inode             = Genode::addr_t(this),
-					.device            = Genode::addr_t(this),
+					.inode             = addr_t(this),
+					.device            = addr_t(this),
 					.modification_time = { }
 				};
 				return STAT_OK;
@@ -723,18 +718,18 @@ class Vfs_pipe::Fifo_file_system : public Vfs_pipe::File_system
 
 		struct Fifo_item
 		{
-			Genode::Registry<Fifo_item>::Element _element;
+			Registry<Fifo_item>::Element _element;
 			Path const path;
 			Pipe_space::Id const id;
 
-			Fifo_item(Genode::Registry<Fifo_item> &registry,
+			Fifo_item(Registry<Fifo_item> &registry,
 			          Path const &path, Pipe_space::Id const &id)
 			:
 				_element(registry, *this), path(path), id(id)
 			{ }
 		};
 
-		Genode::Registry<Fifo_item>  _items { };
+		Registry<Fifo_item>  _items { };
 
 	protected:
 
@@ -837,11 +832,13 @@ class Vfs_pipe::Fifo_file_system : public Vfs_pipe::File_system
 };
 
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &env, Node const &node) override
 		{
 			if (node.has_sub_node("fifo")) {
 				return new (env.alloc()) Vfs_pipe::Fifo_file_system(env, node);

@@ -20,14 +20,16 @@
 #include <vfs/single_file_system.h>
 
 
-namespace Vfs {
-	using namespace Genode;
+namespace Vfs_nic {
 
-	class Nic_file_system;
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
 }
 
 
-class Vfs::Nic_file_system : public Vfs::Single_file_system
+class Vfs_nic::File_system : public Single_file_system
 {
 	public:
 
@@ -35,14 +37,14 @@ class Vfs::Nic_file_system : public Vfs::Single_file_system
 
 		using Vfs_handle = Nic_vfs_handle;
 
-		Nic_file_system(char const *name)
+		File_system(char const *name)
 		: Single_file_system(Node_type::TRANSACTIONAL_FILE, name,
 		                     Node_rwx::rw(), Node())
 		{ }
 };
 
 
-class Vfs::Nic_file_system::Nic_vfs_handle : public Single_vfs_handle
+class Vfs_nic::File_system::Nic_vfs_handle : public Single_vfs_handle
 {
 	public:
 

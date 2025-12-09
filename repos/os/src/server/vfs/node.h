@@ -27,8 +27,8 @@
 namespace Vfs_server {
 
 	using namespace File_system;
-	using namespace Vfs;
 	using namespace Genode;
+	using namespace Genode::Vfs;
 
 	using Write_result  = Vfs::File_io_service::Write_result;
 	using Read_result   = Vfs::File_io_service::Read_result;

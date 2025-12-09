@@ -19,14 +19,16 @@
 /* local Uplink_client_base with added custom handler */
 #include "uplink_client_base.h"
 
-namespace Vfs {
-	using namespace Genode;
+namespace Vfs_uplink {
 
-	class Uplink_file_system;
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
 }
 
 
-class Vfs::Uplink_file_system : public Vfs::Single_file_system
+class Vfs_uplink::File_system : public Single_file_system
 {
 	public:
 
@@ -34,15 +36,15 @@ class Vfs::Uplink_file_system : public Vfs::Single_file_system
 
 		using Vfs_handle = Uplink_vfs_handle;
 
-		Uplink_file_system(char const *name)
+		File_system(char const *name)
 		: Single_file_system(Node_type::TRANSACTIONAL_FILE, name,
 		                     Node_rwx::rw(), Node())
 		{ }
 };
 
 
-class Vfs::Uplink_file_system::Uplink_vfs_handle : public Single_vfs_handle,
-                                                   public Genode::Uplink_client_base
+class Vfs_uplink::File_system::Uplink_vfs_handle : public Single_vfs_handle,
+                                                   public Uplink_client_base
 {
 	private:
 

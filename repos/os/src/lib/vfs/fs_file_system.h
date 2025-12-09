@@ -21,24 +21,31 @@
 #include <base/id_space.h>
 #include <file_system_session/connection.h>
 
-namespace Vfs { class Fs_file_system; }
+namespace Vfs_fs {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
+}
 
 
-class Vfs::Fs_file_system : public File_system, private Remote_io
+class Vfs_fs::File_system : public Vfs::File_system, private Remote_io
 {
 	private:
 
-		Vfs::Env              &_env;
-		Genode::Allocator_avl  _fs_packet_alloc { &_env.alloc() };
+		Vfs::Env &_env;
 
-		using Label_string = Genode::String<64>;
+		Allocator_avl _fs_packet_alloc { &_env.alloc() };
+
+		using Label_string = String<64>;
 		Label_string _label;
 
 		::File_system::Connection _fs;
 
 		bool _write_would_block = false;
 
-		using Handle_space = Genode::Id_space<::File_system::Node>;
+		using Handle_space = Id_space<::File_system::Node>;
 
 		Handle_space _handle_space { };
 		Handle_space _watch_handle_space { };
@@ -57,7 +64,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		};
 
 		struct Fs_vfs_handle;
-		using Fs_vfs_handle_queue = Genode::Fifo<Fs_vfs_handle>;
+		using Fs_vfs_handle_queue = Fifo<Fs_vfs_handle>;
 
 		Remote_io::Peer _peer { _env.deferred_wakeups(), *this };
 
@@ -79,7 +86,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			 * satisfied.
 			 */
 			if (!_fs.tx()->ready_to_submit())
-				Genode::warning("submit queue of file-system session unexpectedly full");
+				warning("submit queue of file-system session unexpectedly full");
 			else
 				_fs.tx()->try_submit_packet(packet);
 
@@ -103,7 +110,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		}
 
 		/**
-		 * Convert 'File_system::Node_type' to 'Vfs::Node_type'
+		 * Convert 'File_system::Node_type' to 'Node_type'
 		 */
 		static Node_type _node_type(::File_system::Node_type type)
 		{
@@ -116,12 +123,12 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			case Type::SYMLINK:            return Node_type::SYMLINK;
 			}
 
-			Genode::error("invalid File_system::Node_type");
+			error("invalid File_system::Node_type");
 			return Node_type::CONTINUOUS_FILE;
 		}
 
 		/**
-		 * Convert 'File_system::Node_rwx' to 'Vfs::Node_rwx'
+		 * Convert 'File_system::Node_rwx' to 'Node_rwx'
 		 */
 		static Node_rwx _node_rwx(::File_system::Node_rwx rwx)
 		{
@@ -135,7 +142,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		                       private Handle_space::Element,
 		                       private Handle_state
 		{
-			friend Genode::Id_space<::File_system::Node>;
+			friend Id_space<::File_system::Node>;
 			friend Fs_vfs_handle_queue;
 
 			using Handle_state::queued_read_state;
@@ -144,7 +151,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			using Handle_state::queued_sync_state;
 			using Handle_state::read_ready_state;
 
-			Fs_file_system &_vfs_fs;
+			File_system &_vfs_fs;
 
 			bool _queue_read(size_t count, file_size const seek_offset)
 			{
@@ -213,7 +220,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			Fs_vfs_handle(File_system &fs, Allocator &alloc,
 			              int status_flags, Handle_space &space,
 			              ::File_system::Node_handle node_handle,
-			              Fs_file_system &vfs_fs)
+			              File_system &vfs_fs)
 			:
 				Vfs_handle(fs, fs, alloc, status_flags),
 				Handle_space::Element(*this, space, node_handle),
@@ -225,14 +232,14 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 
 			virtual bool queue_read(size_t /* count */)
 			{
-				Genode::error("Fs_vfs_handle::queue_read() called");
+				error("Fs_vfs_handle::queue_read() called");
 				return true;
 			}
 
 			virtual Read_result complete_read(Byte_range_ptr const &,
 			                                  size_t & /* out count */)
 			{
-				Genode::error("Fs_vfs_handle::complete_read() called");
+				error("Fs_vfs_handle::complete_read() called");
 				return READ_ERR_INVALID;
 			}
 
@@ -287,7 +294,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				return result;
 			}
 
-			bool update_modification_timestamp(Vfs::Timestamp time)
+			bool update_modification_timestamp(Timestamp time)
 			{
 				::File_system::Session::Tx::Source &source = *_vfs_fs._fs.tx();
 				using ::File_system::Packet_descriptor;
@@ -414,7 +421,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			Fs_handle_guard(File_system &fs,
 			                ::File_system::Node_handle fs_handle,
 			                Handle_space &space,
-			                Fs_file_system &vfs_fs)
+			                File_system &vfs_fs)
 			:
 				Fs_vfs_handle(fs, *(Allocator*)nullptr, 0, space, fs_handle, vfs_fs)
 			{ }
@@ -429,7 +436,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		                                   private ::File_system::Node,
 		                                   private Handle_space::Element
 		{
-			friend Genode::Id_space<::File_system::Node>;
+			friend Id_space<::File_system::Node>;
 
 			::File_system::Watch_handle const  fs_handle;
 
@@ -477,7 +484,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				return Write_result::WRITE_ERR_WOULD_BLOCK;
 			}
 			catch (...) {
-				Genode::error("unhandled exception");
+				error("unhandled exception");
 				return Write_result::WRITE_ERR_IO;
 			}
 			out_count = count;
@@ -502,7 +509,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				auto handle_fn = [&] (Fs_vfs_handle &handle)
 				{
 					if (!packet.succeeded())
-						Genode::error("packet operation=", (int)packet.operation(), " failed");
+						error("packet operation=", (int)packet.operation(), " failed");
 
 					switch (packet.operation()) {
 					case Packet_descriptor::READ_READY:
@@ -542,7 +549,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 					}
 				}
 				catch (Handle_space::Unknown_id) {
-					Genode::warning("ack for unknown File_system handle ", id); }
+					warning("ack for unknown File_system handle ", id); }
 
 				if (packet.succeeded())
 					any_ack_handled = true;
@@ -552,18 +559,18 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				_env.user().wakeup_vfs_user();
 		}
 
-		Genode::Io_signal_handler<Fs_file_system> _signal_handler {
-			_env.env().ep(), *this, &Fs_file_system::_handle_ack };
+		Io_signal_handler<File_system> _signal_handler {
+			_env.env().ep(), *this, &File_system::_handle_ack };
 
 		static size_t buffer_size(Node const &config)
 		{
-			Genode::Number_of_bytes fs_default { ::File_system::DEFAULT_TX_BUF_SIZE };
+			Number_of_bytes fs_default { ::File_system::DEFAULT_TX_BUF_SIZE };
 			return config.attribute_value("buffer_size", fs_default);
 		}
 
 	public:
 
-		Fs_file_system(Vfs::Env &env, Node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		:
 			_env(env),
 			_label(config.attribute_value("label", Label_string("/"))),
@@ -573,8 +580,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			    buffer_size(config))
 		{
 			if (config.has_attribute("root")) {
-				Genode::warning("vfs: <fs> node uses deprecated 'root' attribute.");
-				Genode::warning("     Append the root dir to the label instead.");
+				warning("vfs: <fs> node uses deprecated 'root' attribute.");
+				warning("     Append the root dir to the label instead.");
 			}
 
 			_fs.sigh(_signal_handler);
@@ -601,12 +608,12 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 				Fs_handle_guard node_guard(*this, node, _handle_space, *this);
 				status = _fs.status(node);
 			}
-			catch (Genode::Out_of_ram)  {
-				Genode::error("out-of-ram during stat");
+			catch (Out_of_ram)  {
+				error("out-of-ram during stat");
 				return STAT_ERR_NO_PERM;
 			}
-			catch (Genode::Out_of_caps) {
-				Genode::error("out-of-caps during stat");
+			catch (Out_of_caps) {
+				error("out-of-caps during stat");
 				return STAT_ERR_NO_PERM;
 			}
 			catch (...) { return STAT_ERR_NO_ENTRY; }
@@ -617,7 +624,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			out.type   = _node_type(status.type);
 			out.rwx    = _node_rwx(status.rwx);
 			out.inode  = status.inode;
-			out.device = (Genode::addr_t)this;
+			out.device = (addr_t)this;
 			out.modification_time = {
 				.ms_since_1970 = status.modification_time.ms_since_1970 };
 
@@ -727,7 +734,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 		}
 
 		Open_result open(char const *path, unsigned vfs_mode, Vfs_handle **out_handle,
-		                 Genode::Allocator& alloc) override
+		                 Allocator& alloc) override
 		{
 			Absolute_path dir_path(path);
 			dir_path.strip_last_element();
@@ -765,8 +772,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			catch (::File_system::Name_too_long)       { return OPEN_ERR_NAME_TOO_LONG; }
 			catch (::File_system::No_space)            { return OPEN_ERR_NO_SPACE;      }
 			catch (::File_system::Unavailable)         { return OPEN_ERR_UNACCESSIBLE;  }
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 
 			return OPEN_OK;
 		}
@@ -788,8 +795,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			catch (::File_system::Node_already_exists) { return OPENDIR_ERR_NODE_ALREADY_EXISTS; }
 			catch (::File_system::No_space)            { return OPENDIR_ERR_NO_SPACE;            }
 			catch (::File_system::Permission_denied)   { return OPENDIR_ERR_PERMISSION_DENIED;   }
-			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
 
 			return OPENDIR_OK;
 		}
@@ -829,8 +836,8 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			catch (::File_system::No_space)            { return OPENLINK_ERR_NO_SPACE; }
 			catch (::File_system::Permission_denied)   { return OPENLINK_ERR_PERMISSION_DENIED; }
 			catch (::File_system::Unavailable)         { return OPENLINK_ERR_LOOKUP_FAILED; }
-			catch (Genode::Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override
@@ -985,7 +992,7 @@ class Vfs::Fs_file_system : public File_system, private Remote_io
 			return handle->complete_sync();
 		}
 
-		bool update_modification_timestamp(Vfs_handle *vfs_handle, Vfs::Timestamp time) override
+		bool update_modification_timestamp(Vfs_handle *vfs_handle, Timestamp time) override
 		{
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 

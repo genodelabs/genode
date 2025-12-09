@@ -24,8 +24,8 @@
 
 namespace Vfs_gpu
 {
-	using namespace Vfs;
 	using namespace Genode;
+	using namespace Genode::Vfs;
 
 	struct File_system;
 }
@@ -38,10 +38,11 @@ struct Vfs_gpu::File_system : Single_file_system
 		Vfs::Env        &_env;
 		Gpu::Connection  _gpu_session { _env.env() };
 
-		Genode::Io_signal_handler<Gpu_vfs_handle> _completion_sigh {
+		Io_signal_handler<Gpu_vfs_handle> _completion_sigh {
 			_env.env().ep(), *this, &Gpu_vfs_handle::_handle_completion };
 
 		using Id_space = Genode::Id_space<Gpu_vfs_handle>;
+
 		Id_space::Element const _elem;
 
 		void _handle_completion()
@@ -53,7 +54,7 @@ struct Vfs_gpu::File_system : Single_file_system
 		Gpu_vfs_handle(Vfs::Env &env,
 		               Directory_service &ds,
 		               File_io_service   &fs,
-		               Genode::Allocator &alloc,
+		               Allocator &alloc,
 		               Id_space &space)
 		:
 			Single_vfs_handle(ds, fs, alloc, 0),
@@ -116,8 +117,8 @@ struct Vfs_gpu::File_system : Single_file_system
 
 			return OPEN_OK;
 		}
-		catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-		catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+		catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+		catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 	}
 
 	Stat_result stat(char const *path, Stat &out) override
@@ -146,7 +147,7 @@ Gpu::Connection *vfs_gpu_connection(unsigned long id)
 	if (!_fs) return nullptr;
 
 	using Gpu_vfs_handle = Vfs_gpu::File_system::Gpu_vfs_handle;
-	using Id_space = Genode::Id_space<Gpu_vfs_handle>;
+	using Id_space       = Genode::Id_space<Gpu_vfs_handle>;
 
 	try {
 		return _fs->_handle_space.apply<Gpu_vfs_handle>(
@@ -162,29 +163,32 @@ Gpu::Connection *vfs_gpu_connection(unsigned long id)
 }
 
 
-static Vfs::Env *_env { nullptr };
+static Genode::Vfs::Env *_env { nullptr };
 
 Genode::Env *vfs_gpu_env()
 {
 	return _env ? &_env->env() : nullptr;
 }
 
+
 /**************************
  ** VFS plugin interface **
  **************************/
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Node const &node) override
 		{
 			_env = &vfs_env;
 			try {
 				_fs = new (vfs_env.alloc()) Vfs_gpu::File_system(vfs_env, node);
 				return _fs;
 			}
-			catch (...) { Genode::error("could not create 'gpu_fs' "); }
+			catch (...) { error("could not create 'gpu_fs' "); }
 			return nullptr;
 		}
 	};

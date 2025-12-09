@@ -18,10 +18,10 @@
 
 #include <vfs/vfs_handle.h>
 
-namespace Vfs { struct File_io_service; }
+namespace Genode::Vfs { struct File_io_service; }
 
 
-struct Vfs::File_io_service : Interface
+struct Genode::Vfs::File_io_service : Interface
 {
 	/***********
 	 ** Write **
@@ -116,7 +116,7 @@ struct Vfs::File_io_service : Interface
 	 *
 	 * \return true if update attempt was successful
 	 */
-	virtual bool update_modification_timestamp(Vfs_handle *, Vfs::Timestamp)
+	virtual bool update_modification_timestamp(Vfs_handle *, Timestamp)
 	{
 		return true;
 	}

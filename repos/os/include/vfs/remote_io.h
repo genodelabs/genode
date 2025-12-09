@@ -17,10 +17,10 @@
 #include <base/registry.h>
 #include <vfs/types.h>
 
-namespace Vfs { class Remote_io; }
+namespace Genode::Vfs { class Remote_io; }
 
 
-struct Vfs::Remote_io : Interface
+struct Genode::Vfs::Remote_io : Interface
 {
 	virtual void wakeup_remote_peer() = 0;
 
@@ -29,13 +29,13 @@ struct Vfs::Remote_io : Interface
 };
 
 
-class Vfs::Remote_io::Peer : Genode::Noncopyable
+class Genode::Vfs::Remote_io::Peer : Noncopyable
 {
 	private:
 
 		struct Deferred_wakeup;
 
-		using Wakeup_registry = Genode::Registry<Deferred_wakeup>;
+		using Wakeup_registry = Registry<Deferred_wakeup>;
 
 		class Deferred_wakeup : Wakeup_registry::Element, Interface
 		{
@@ -59,7 +59,7 @@ class Vfs::Remote_io::Peer : Genode::Noncopyable
 
 		Remote_io &_remote_io;
 
-		Genode::Constructible<Deferred_wakeup> _deferred_wakeup { };
+		Constructible<Deferred_wakeup> _deferred_wakeup { };
 
 		void _wakeup()
 		{
@@ -78,7 +78,7 @@ class Vfs::Remote_io::Peer : Genode::Noncopyable
 };
 
 
-class Vfs::Remote_io::Deferred_wakeups : Genode::Noncopyable
+class Genode::Vfs::Remote_io::Deferred_wakeups : Noncopyable
 {
 	private:
 
@@ -96,7 +96,7 @@ class Vfs::Remote_io::Deferred_wakeups : Genode::Noncopyable
 };
 
 
-void Vfs::Remote_io::Peer::schedule_wakeup()
+void Genode::Vfs::Remote_io::Peer::schedule_wakeup()
 {
 	_deferred_wakeup.construct(_deferred_wakeups._registry, *this);
 }

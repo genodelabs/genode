@@ -18,10 +18,16 @@
 #include <base/registry.h>
 #include <vfs/file_system.h>
 
-namespace Vfs { class Rom_file_system; }
+namespace Vfs_rom {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
+}
 
 
-class Vfs::Rom_file_system : public Single_file_system
+class Vfs_rom::File_system : public Single_file_system
 {
 	private:
 
@@ -37,7 +43,7 @@ class Vfs::Rom_file_system : public Single_file_system
 
 		bool const _binary;
 
-		Genode::Attached_rom_dataspace _rom { _env, _label.string() };
+		Attached_rom_dataspace _rom { _env, _label.string() };
 
 		size_t _init_content_size()
 		{
@@ -61,17 +67,17 @@ class Vfs::Rom_file_system : public Single_file_system
 		{
 			private:
 
-				Genode::Attached_rom_dataspace &_rom;
+				Attached_rom_dataspace &_rom;
 
 				size_t const &_content_size;
 
 			public:
 
-				Rom_vfs_handle(Directory_service              &ds,
-				               File_io_service                &fs,
-				               Genode::Allocator              &alloc,
-				               Genode::Attached_rom_dataspace &rom,
-				               size_t                   const &content_size)
+				Rom_vfs_handle(Directory_service      &ds,
+				               File_io_service        &fs,
+				               Allocator              &alloc,
+				               Attached_rom_dataspace &rom,
+				               size_t           const &content_size)
 				:
 					Single_vfs_handle(ds, fs, alloc, 0),
 					_rom(rom), _content_size(content_size)
@@ -116,8 +122,8 @@ class Vfs::Rom_file_system : public Single_file_system
 				bool write_ready() const override { return false; }
 		};
 
-		using Registered_watch_handle = Genode::Registered<Vfs_watch_handle>;
-		using Watch_handle_registry   = Genode::Registry<Registered_watch_handle>;
+		using Registered_watch_handle = Registered<Vfs_watch_handle>;
+		using Watch_handle_registry   = Registry<Registered_watch_handle>;
 
 		Watch_handle_registry _handle_registry { };
 
@@ -129,12 +135,12 @@ class Vfs::Rom_file_system : public Single_file_system
 			_vfs_user.wakeup_vfs_user();
 		}
 
-		Genode::Constructible<Genode::Io_signal_handler<Rom_file_system>>
+		Constructible<Io_signal_handler<File_system>>
 			_rom_changed_handler { };
 
 	public:
 
-		Rom_file_system(Vfs::Env &env, Node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 			                   Node_rwx::ro(), config),
@@ -168,14 +174,14 @@ class Vfs::Rom_file_system : public Single_file_system
 					Rom_vfs_handle(*this, *this, alloc, _rom, _content_size);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Dataspace_capability dataspace(char const *path) override
 		{
 			if (!_single_file(path))
-				return Genode::Dataspace_capability();
+				return Dataspace_capability();
 
 			return _rom.cap();
 		}
@@ -213,7 +219,7 @@ class Vfs::Rom_file_system : public Single_file_system
 
 			if (!_rom_changed_handler.constructed()) {
 				_rom_changed_handler.construct(_env.ep(), *this,
-				                               &Rom_file_system::_handle_rom_changed);
+				                               &File_system::_handle_rom_changed);
 				_rom.sigh(*_rom_changed_handler);
 			}
 
@@ -222,14 +228,13 @@ class Vfs::Rom_file_system : public Single_file_system
 					Registered_watch_handle(_handle_registry, *this, alloc);
 				return WATCH_OK;
 			}
-			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_watch_handle *handle) override
 		{
-			Genode::destroy(handle->alloc(),
-			                static_cast<Registered_watch_handle *>(handle));
+			destroy(handle->alloc(), static_cast<Registered_watch_handle *>(handle));
 		}
 };
 

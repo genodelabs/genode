@@ -17,19 +17,24 @@
 
 #include <vfs/file_system.h>
 
-namespace Vfs { class Zero_file_system; }
+namespace Vfs_zero {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	struct File_system;
+}
 
 
-struct Vfs::Zero_file_system : Single_file_system
+struct Vfs_zero::File_system : Single_file_system
 {
-	Genode::size_t const _size;
+	size_t const _size;
 
-	Zero_file_system(Vfs::Env&, Node const &config)
+	File_system(Vfs::Env &, Node const &config)
 	:
 		Single_file_system(Node_type::CONTINUOUS_FILE, name(),
 		                   Node_rwx::rw(), config),
-		_size(config.attribute_value("size",
-		                             Genode::Number_of_bytes(0)))
+		_size(config.attribute_value("size", Number_of_bytes(0)))
 	{ }
 
 	static char const *name()   { return "zero"; }
@@ -37,12 +42,10 @@ struct Vfs::Zero_file_system : Single_file_system
 
 	struct Zero_vfs_handle : Single_vfs_handle
 	{
-		Genode::size_t const _size;
+		size_t const _size;
 
-		Zero_vfs_handle(Directory_service &ds,
-		                File_io_service   &fs,
-		                Genode::Allocator &alloc,
-		                Genode::size_t     size)
+		Zero_vfs_handle(Directory_service &ds, File_io_service &fs,
+		                Allocator &alloc, size_t size)
 		:
 			Single_vfs_handle(ds, fs, alloc, 0),
 			_size(size)
@@ -101,8 +104,8 @@ struct Vfs::Zero_file_system : Single_file_system
 			                                          _size);
 			return OPEN_OK;
 		}
-		catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-		catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+		catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+		catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 	}
 
 	Stat_result stat(char const *path, Stat &out) override

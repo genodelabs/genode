@@ -3,7 +3,7 @@
 
 #include <util/string.h>
 
-namespace Vfs {
+namespace Vfs_ip {
 
 	using Ip_string = Genode::String<5>;
 

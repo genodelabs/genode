@@ -18,17 +18,18 @@
 #include <vfs_jitterentropy.h>
 
 
-struct Jitterentropy_factory : Vfs::File_system_factory
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	Vfs::File_system *create(Vfs::Env &env, Genode::Node const &node) override
+	using namespace Genode;
+
+	struct Factory : Vfs::File_system_factory
 	{
-		return new (env.alloc()) Jitterentropy_file_system(env.alloc(), node);
-	}
-};
+		Vfs::File_system *create(Vfs::Env &env, Node const &node) override
+		{
+			return new (env.alloc()) Vfs_jitterentropy::File_system(env.alloc(), node);
+		}
+	};
 
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
-{
-	static Jitterentropy_factory factory;
+	static Factory factory;
 	return &factory;
 }

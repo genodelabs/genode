@@ -16,8 +16,8 @@
 
 namespace Vfs_block {
 
-	using file_size   = Vfs::file_size;
-	using file_offset = Vfs::file_offset;
+	using file_size   = Genode::Vfs::file_size;
+	using file_offset = Genode::Vfs::file_offset;
 	using size_t      = Genode::size_t;
 
 	struct Job
@@ -51,7 +51,7 @@ namespace Vfs_block {
 			throw Invalid_state();
 		}
 
-		Vfs::Vfs_handle &_handle;
+		Genode::Vfs::Vfs_handle &_handle;
 
 		Block::Request const request;
 		char              *data;
@@ -80,7 +80,7 @@ namespace Vfs_block {
 			[[fallthrough]];
 			case State::IN_PROGRESS:
 			{
-				using Result = Vfs::File_io_service::Read_result;
+				using Result = Genode::Vfs::File_io_service::Read_result;
 
 				bool completed = false;
 				size_t out = 0;
@@ -141,7 +141,7 @@ namespace Vfs_block {
 			[[fallthrough]];
 			case State::IN_PROGRESS:
 			{
-				using Result = Vfs::File_io_service::Write_result;
+				using Result = Genode::Vfs::File_io_service::Write_result;
 
 				bool completed = false;
 				size_t out = 0;
@@ -203,7 +203,7 @@ namespace Vfs_block {
 			[[fallthrough]];
 			case State::IN_PROGRESS:
 			{
-				using Result = Vfs::File_io_service::Sync_result;
+				using Result = Genode::Vfs::File_io_service::Sync_result;
 				Result const result = _handle.fs().complete_sync(&_handle);
 
 				if (result == Result::SYNC_QUEUED) {
@@ -243,7 +243,7 @@ namespace Vfs_block {
 			return true;
 		}
 
-		Job(Vfs::Vfs_handle &handle,
+		Job(Genode::Vfs::Vfs_handle &handle,
 		    Block::Request   request,
 		    file_offset      base_offset,
 		    char            *data,

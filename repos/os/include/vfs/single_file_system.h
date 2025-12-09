@@ -17,10 +17,10 @@
 #include <vfs/file_system.h>
 #include <vfs/vfs_handle.h>
 
-namespace Vfs { class Single_file_system; }
+namespace Genode::Vfs { class Single_file_system; }
 
 
-class Vfs::Single_file_system : public File_system
+class Genode::Vfs::Single_file_system : public File_system
 {
 	private:
 
@@ -72,7 +72,7 @@ class Vfs::Single_file_system : public File_system
 
 				Single_vfs_dir_handle(Directory_service &ds,
 				                      File_io_service   &fs,
-				                      Genode::Allocator &alloc,
+				                      Allocator         &alloc,
 				                      Node_type          type,
 				                      Node_rwx           rwx,
 				                      Filename    const &filename)
@@ -105,14 +105,14 @@ class Vfs::Single_file_system : public File_system
 
 					if (index == 0) {
 						out = {
-							.fileno = (Genode::addr_t)this,
+							.fileno = (addr_t)this,
 							.type   = dirent_type(),
 							.rwx    = _rwx,
 							.name   = { _filename.string() }
 						};
 					} else {
 						out = {
-							.fileno = (Genode::addr_t)this,
+							.fileno = (addr_t)this,
 							.type   = Dirent_type::END,
 							.rwx    = { },
 							.name   = { }
@@ -170,7 +170,7 @@ class Vfs::Single_file_system : public File_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			out = Stat { };
-			out.device = (Genode::addr_t)this;
+			out.device = (addr_t)this;
 
 			if (_root(path)) {
 				out.type = Node_type::DIRECTORY;
@@ -222,8 +222,8 @@ class Vfs::Single_file_system : public File_system
 					                      _type, _rwx, _filename);
 				return OPENDIR_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *handle) override

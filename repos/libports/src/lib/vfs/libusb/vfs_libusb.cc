@@ -17,16 +17,24 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/single_file_system.h>
 
-using namespace Genode;
+namespace Vfs_libusb {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class File_system;
+}
 
 
 /*
  * These functions are implemented in the Genode backend of libusb.
  */
-extern void libusb_genode_backend_init(Env&, Allocator&, Signal_context_capability);
+extern void libusb_genode_backend_init(Genode::Env &, Genode::Allocator &,
+                                       Genode::Signal_context_capability);
+
 extern bool libusb_genode_backend_signaling;
 
-class Libusb_file_system : public Vfs::Single_file_system
+class Vfs_libusb::File_system : public Vfs::Single_file_system
 {
 	private:
 
@@ -36,7 +44,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 		{
 			private:
 
-				Env            &_env;
+				Genode::Env    &_env;
 				Vfs::Env::User &_vfs_user;
 
 				Io_signal_handler<Libusb_vfs_handle> _handler {
@@ -53,7 +61,7 @@ class Libusb_file_system : public Vfs::Single_file_system
 				Libusb_vfs_handle(Directory_service &ds,
 				                  File_io_service   &fs,
 				                  Allocator         &alloc,
-				                  Env               &env,
+				                  Genode::Env       &env,
 				                  Vfs::Env::User    &vfs_user)
 				:
 					Single_vfs_handle(ds, fs, alloc, 0),
@@ -80,13 +88,13 @@ class Libusb_file_system : public Vfs::Single_file_system
 
 	public:
 
-		Libusb_file_system(Vfs::Env &env, Node const &config)
+		File_system(Vfs::Env &env, Node const &config)
 		:
 			Single_file_system(Vfs::Node_type::CONTINUOUS_FILE, name(),
 			                   Vfs::Node_rwx::ro(), config),
 			_env(env) { }
 
-		~Libusb_file_system() { }
+		~File_system() { }
 
 		static char const *name()   { return "libusb"; }
 		char const *type() override { return "libusb"; }
@@ -106,21 +114,21 @@ class Libusb_file_system : public Vfs::Single_file_system
 				Libusb_vfs_handle(*this, *this, alloc, _env.env(), _env.user());
 			return OPEN_OK;
 		}
-
 };
 
 
-struct Libusb_factory : Vfs::File_system_factory
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	Vfs::File_system *create(Vfs::Env &env, Node const &node) override
+	using namespace Genode;
+
+	struct Factory : Vfs::File_system_factory
 	{
-		return new (env.alloc()) Libusb_file_system(env, node);
-	}
-};
+		Vfs::File_system *create(Vfs::Env &env, Node const &node) override
+		{
+			return new (env.alloc()) Vfs_libusb::File_system(env, node);
+		}
+	};
 
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
-{
-	static Libusb_factory factory;
+	static Factory factory;
 	return &factory;
 }

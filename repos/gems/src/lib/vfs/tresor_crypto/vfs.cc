@@ -23,8 +23,8 @@
 
 namespace Vfs_tresor_crypto {
 
-	using namespace Vfs;
 	using namespace Genode;
+	using namespace Genode::Vfs;
 
 	class Encrypt_file_system;
 	class Decrypt_file_system;
@@ -48,23 +48,22 @@ class Vfs_tresor_crypto::Encrypt_file_system : public Vfs::Single_file_system
 	private:
 
 		Tresor_crypto::Interface &_crypto;
-		uint32_t  _key_id;
+		uint32_t _key_id;
 
 		struct Encrypt_handle : Single_vfs_handle
 		{
-			Tresor_crypto::Interface   &_crypto;
-			uint32_t  _key_id;
+			Tresor_crypto::Interface &_crypto;
+			uint32_t _key_id;
 
 			enum State { NONE, PENDING };
 			State _state;
 
-			Encrypt_handle(Directory_service &ds,
-			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
-			               Tresor_crypto::Interface            &crypto,
-			               uint32_t           key_id)
+			Encrypt_handle(Directory_service &ds, File_io_service &fs,
+			               Allocator &alloc, Tresor_crypto::Interface &crypto,
+			               uint32_t key_id)
 			:
-				Single_vfs_handle(ds, fs, alloc, 0), _crypto(crypto), _key_id(key_id), _state(State::NONE)
+				Single_vfs_handle(ds, fs, alloc, 0),
+				_crypto(crypto), _key_id(key_id), _state(State::NONE)
 			{ }
 
 			Read_result read(Byte_range_ptr const &dst, size_t &out_count) override
@@ -138,9 +137,8 @@ class Vfs_tresor_crypto::Encrypt_file_system : public Vfs::Single_file_system
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const  *path, unsigned,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		Open_result open(char const *path, unsigned, Vfs_handle **out_handle,
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
@@ -151,8 +149,8 @@ class Vfs_tresor_crypto::Encrypt_file_system : public Vfs::Single_file_system
 					                           _crypto, _key_id);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -165,14 +163,14 @@ class Vfs_tresor_crypto::Encrypt_file_system : public Vfs::Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
 };
 
 
-class Vfs_tresor_crypto::Decrypt_file_system : public Vfs::Single_file_system
+class Vfs_tresor_crypto::Decrypt_file_system : public Single_file_system
 {
 	private:
 
@@ -187,11 +185,11 @@ class Vfs_tresor_crypto::Decrypt_file_system : public Vfs::Single_file_system
 			enum State { NONE, PENDING };
 			State _state;
 
-			Decrypt_handle(Directory_service &ds,
-			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
-			               Tresor_crypto::Interface            &crypto,
-			               uint32_t           key_id)
+			Decrypt_handle(Directory_service        &ds,
+			               File_io_service          &fs,
+			               Allocator                &alloc,
+			               Tresor_crypto::Interface &crypto,
+			               uint32_t                  key_id)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0), _crypto(crypto), _key_id(key_id), _state(State::NONE)
 			{ }
@@ -265,8 +263,8 @@ class Vfs_tresor_crypto::Decrypt_file_system : public Vfs::Single_file_system
 		 *********************************/
 
 		Open_result open(char const *path, unsigned /* flags */,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		                 Vfs_handle **out_handle,
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
@@ -277,8 +275,8 @@ class Vfs_tresor_crypto::Decrypt_file_system : public Vfs::Single_file_system
 					                           _crypto, _key_id);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -291,7 +289,7 @@ class Vfs_tresor_crypto::Decrypt_file_system : public Vfs::Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
@@ -303,13 +301,12 @@ struct Vfs_tresor_crypto::Key_local_factory : File_system_factory
 	Encrypt_file_system _encrypt_fs;
 	Decrypt_file_system _decrypt_fs;
 
-	Key_local_factory(Tresor_crypto::Interface &crypto,
-	                  uint32_t               key_id)
+	Key_local_factory(Tresor_crypto::Interface &crypto, uint32_t key_id)
 	:
 		_encrypt_fs(crypto, key_id), _decrypt_fs(crypto, key_id)
 	{ }
 
-	Vfs::File_system *create(Vfs::Env&, Node const &node) override
+	Vfs::File_system *create(Vfs::Env &, Node const &node) override
 	{
 		if (node.has_type(Encrypt_file_system::type_name()))
 			return &_encrypt_fs;
@@ -323,7 +320,7 @@ struct Vfs_tresor_crypto::Key_local_factory : File_system_factory
 
 
 class Vfs_tresor_crypto::Key_file_system : private Key_local_factory,
-                                        public Vfs::Dir_file_system
+                                           public Dir_file_system
 {
 	private:
 
@@ -343,7 +340,7 @@ class Vfs_tresor_crypto::Key_file_system : private Key_local_factory,
 					g.node("decrypt");
 					g.node("encrypt");
 
-			}).with_error([] (Genode::Buffer_error) {
+			}).with_error([] (Buffer_error) {
 				warning("VFS-tresor_crypto key compound exceeds maximum buffer size"); });
 
 			return Config(Cstring(buf));
@@ -356,7 +353,7 @@ class Vfs_tresor_crypto::Key_file_system : private Key_local_factory,
 		                uint32_t  key_id)
 		:
 			Key_local_factory(crypto, key_id),
-			Vfs::Dir_file_system(vfs_env, Node(_config(key_id)), *this), _key_id(key_id)
+			Dir_file_system(vfs_env, Node(_config(key_id)), *this), _key_id(key_id)
 		{ }
 
 		static char const *type_name() { return "keys"; }
@@ -381,17 +378,17 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 
 		struct Key_registry
 		{
-			Genode::Allocator &_alloc;
+			Allocator &_alloc;
 			Tresor_crypto::Interface &_crypto;
 
-			struct Invalid_index : Genode::Exception { };
-			struct Invalid_path  : Genode::Exception { };
+			struct Invalid_index : Exception { };
+			struct Invalid_path  : Exception { };
 
 			uint32_t _number_of_keys { 0 };
 
-			Genode::Registry<Genode::Registered<Key_file_system>> _key_fs { };
+			Registry<Registered<Key_file_system>> _key_fs { };
 
-			Key_registry(Genode::Allocator &alloc, Tresor_crypto::Interface &crypto)
+			Key_registry(Allocator &alloc, Tresor_crypto::Interface &crypto)
 			:
 				_alloc(alloc), _crypto(crypto)
 			{ }
@@ -407,7 +404,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 					_key_fs.for_each(lookup);
 
 					if (!already_known) {
-						new (_alloc) Genode::Registered<Key_file_system>(
+						new (_alloc) Registered<Key_file_system>(
 							_key_fs, vfs_env, _crypto, id);
 						++_number_of_keys;
 					}
@@ -472,14 +469,14 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 				}
 
 				uint32_t id { 0 };
-				Genode::ascii_to(path, id);
+				ascii_to(path, id);
 				return _by_id(id);
 			}
 		};
 
 	public:
 
-		struct Local_vfs_handle : Vfs::Vfs_handle
+		struct Local_vfs_handle : Vfs_handle
 		{
 			using Vfs_handle::Vfs_handle;
 
@@ -516,10 +513,10 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 
 				try {
 					Key_file_system const &fs = _key_reg.by_index((unsigned)index);
-					Genode::String<32> name { fs.key_id() };
+					String<32> name { fs.key_id() };
 
 					out = {
-						.fileno = (Genode::addr_t)this | index,
+						.fileno = (addr_t)this | index,
 						.type   = Dirent_type::DIRECTORY,
 						.rwx    = Node_rwx::rx(),
 						.name   = { name.string() },
@@ -537,7 +534,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 			{
 				if (index == 0) {
 					out = {
-						.fileno = (Genode::addr_t)this,
+						.fileno = (addr_t)this,
 						.type   = Dirent_type::DIRECTORY,
 						.rwx    = Node_rwx::rx(),
 						.name   = { "keys" }
@@ -550,11 +547,11 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 				return READ_OK;
 			}
 
-			Dir_vfs_handle(Directory_service &ds,
-			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
+			Dir_vfs_handle(Directory_service  &ds,
+			               File_io_service    &fs,
+			               Allocator          &alloc,
 			               Key_registry const &key_reg,
-			               bool root_dir)
+			               bool                root_dir)
 			:
 				Local_vfs_handle(ds, fs, alloc, 0),
 				_key_reg(key_reg), _root_dir(root_dir)
@@ -591,15 +588,17 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 
 		};
 
-		struct Dir_snap_vfs_handle : Vfs::Vfs_handle
+		struct Dir_snap_vfs_handle : Vfs_handle
 		{
 			Vfs_handle &vfs_handle;
 
 			Dir_snap_vfs_handle(Directory_service &ds,
 			                    File_io_service   &fs,
-			                    Genode::Allocator &alloc,
-			                    Vfs::Vfs_handle   &vfs_handle)
-			: Vfs_handle(ds, fs, alloc, 0), vfs_handle(vfs_handle) { }
+			                    Allocator         &alloc,
+			                    Vfs_handle        &vfs_handle)
+			:
+				Vfs_handle(ds, fs, alloc, 0), vfs_handle(vfs_handle)
+			{ }
 
 			~Dir_snap_vfs_handle()
 			{
@@ -616,7 +615,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 				path++;
 			}
 
-			Genode::size_t const name_len = strlen(type_name());
+			size_t const name_len = strlen(type_name());
 			if (strcmp(path, type_name(), name_len) != 0) {
 				return nullptr;
 			}
@@ -636,8 +635,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 		}
 
 
-		Keys_file_system(Vfs::Env             &vfs_env,
-		                 Tresor_crypto::Interface &crypto)
+		Keys_file_system(Vfs::Env &vfs_env, Tresor_crypto::Interface &crypto)
 		:
 			_vfs_env(vfs_env), _key_reg(vfs_env.alloc(), crypto)
 		{ }
@@ -653,15 +651,15 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 
 		Dataspace_capability dataspace(char const *) override
 		{
-			return Genode::Dataspace_capability();
+			return Dataspace_capability();
 		}
 
 		void release(char const *, Dataspace_capability) override { }
 
-		Open_result open(char const       *path,
-		                 unsigned          mode,
-		                 Vfs::Vfs_handle **out_handle,
-		                 Allocator        &alloc) override
+		Open_result open(char const  *path,
+		                 unsigned     mode,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
 			_key_reg.update(_vfs_env);
 
@@ -678,10 +676,10 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 			return OPEN_ERR_UNACCESSIBLE;
 		}
 
-		Opendir_result opendir(char const       *path,
-		                       bool              create,
-		                       Vfs::Vfs_handle **out_handle,
-		                       Allocator        &alloc) override
+		Opendir_result opendir(char const  *path,
+		                       bool         create,
+		                       Vfs_handle **out_handle,
+		                       Allocator   &alloc) override
 		{
 			if (create) {
 				return OPENDIR_ERR_PERMISSION_DENIED;
@@ -702,7 +700,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 				}
 				try {
 					Key_file_system &fs = _key_reg.by_path(sub_path);
-					Vfs::Vfs_handle *handle = nullptr;
+					Vfs_handle *handle = nullptr;
 					Opendir_result const res = fs.opendir(sub_path, create, &handle, alloc);
 					if (res != OPENDIR_OK) {
 						return OPENDIR_ERR_LOOKUP_FAILED;
@@ -739,7 +737,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 
 				out_stat.type   = Node_type::DIRECTORY;
 				out_stat.inode  = 1;
-				out_stat.device = (Genode::addr_t)this;
+				out_stat.device = (addr_t)this;
 				return STAT_OK;
 			}
 
@@ -833,13 +831,13 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs::Vfs_handle *,
+		Write_result write(Vfs_handle *,
 		                   Const_byte_range_ptr const &, size_t &) override
 		{
 			return WRITE_ERR_IO;
 		}
 
-		bool queue_read(Vfs::Vfs_handle *vfs_handle, size_t size) override
+		bool queue_read(Vfs_handle *vfs_handle, size_t size) override
 		{
 			Dir_snap_vfs_handle *dh =
 				dynamic_cast<Dir_snap_vfs_handle*>(vfs_handle);
@@ -851,7 +849,7 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 			return true;
 		}
 
-		Read_result complete_read(Vfs::Vfs_handle *vfs_handle,
+		Read_result complete_read(Vfs_handle *vfs_handle,
 		                          Byte_range_ptr const &dst,
 		                          size_t &out_count) override
 		{
@@ -872,27 +870,25 @@ class Vfs_tresor_crypto::Keys_file_system : public Vfs::File_system
 			return READ_ERR_IO;
 		}
 
-		bool read_ready(Vfs::Vfs_handle const &) const override
+		bool read_ready(Vfs_handle const &) const override
 		{
 			return true;
 		}
 
-		bool write_ready(Vfs::Vfs_handle const &) const override
+		bool write_ready(Vfs_handle const &) const override
 		{
 			/* wakeup from WRITE_ERR_WOULD_BLOCK not supported */
 			return true;
 		}
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size ) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size ) override
 		{
 			return FTRUNCATE_OK;
 		}
 };
 
 
-
-
-class Vfs_tresor_crypto::Management_file_system : public Vfs::Single_file_system
+class Vfs_tresor_crypto::Management_file_system : public Single_file_system
 {
 	public:
 
@@ -920,11 +916,11 @@ class Vfs_tresor_crypto::Management_file_system : public Vfs::Single_file_system
 			Type    _type;
 			Tresor_crypto::Interface &_crypto;
 
-			Manage_handle(Directory_service &ds,
-			              File_io_service   &fs,
-			              Genode::Allocator &alloc,
-			              Type               type,
-			              Tresor_crypto::Interface            &crypto)
+			Manage_handle(Directory_service        &ds,
+			              File_io_service          &fs,
+			              Allocator                &alloc,
+			              Type                      type,
+			              Tresor_crypto::Interface &crypto)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0), _type(type), _crypto(crypto)
 			{ }
@@ -1004,10 +1000,10 @@ class Vfs_tresor_crypto::Management_file_system : public Vfs::Single_file_system
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const         *path,
-		                 unsigned            /* flags */,
-		                 Vfs::Vfs_handle   **out_handle,
-		                 Genode::Allocator  &alloc) override
+		Open_result open(char const  *path,
+		                 unsigned    /* flags */,
+		                 Vfs_handle **out_handle,
+		                 Allocator   &alloc) override
 		{
 			if (!_single_file(path)) {
 				return OPEN_ERR_UNACCESSIBLE;
@@ -1019,8 +1015,8 @@ class Vfs_tresor_crypto::Management_file_system : public Vfs::Single_file_system
 					                          _type, _crypto);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -1033,7 +1029,7 @@ class Vfs_tresor_crypto::Management_file_system : public Vfs::Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
@@ -1068,8 +1064,7 @@ struct Vfs_tresor_crypto::Local_factory : File_system_factory
 	Add_key_file_system    _add_key_fs;
 	Remove_key_file_system _remove_key_fs;
 
-	Local_factory(Vfs::Env &env,
-	              Tresor_crypto::Interface &crypto)
+	Local_factory(Vfs::Env &env, Tresor_crypto::Interface &crypto)
 	:
 		_keys_fs(env, crypto), _add_key_fs(crypto), _remove_key_fs(crypto)
 	{ }
@@ -1093,8 +1088,7 @@ struct Vfs_tresor_crypto::Local_factory : File_system_factory
 };
 
 
-class Vfs_tresor_crypto::File_system : private Local_factory,
-                                    public Vfs::Dir_file_system
+class Vfs_tresor_crypto::File_system : private Local_factory, public Dir_file_system
 {
 	private:
 
@@ -1113,7 +1107,7 @@ class Vfs_tresor_crypto::File_system : private Local_factory,
 					g.node("add_key",    [&] () { });
 					g.node("remove_key", [&] () { });
 					g.node("keys",       [&] () { });
-			}).with_error([] (Genode::Buffer_error) {
+			}).with_error([] (Buffer_error) {
 				warning("VFS-tresor_crypto compound exceeds maximum buffer size"); });
 
 			return Config(Cstring(buf));
@@ -1124,7 +1118,7 @@ class Vfs_tresor_crypto::File_system : private Local_factory,
 		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory(vfs_env, Tresor_crypto::get_interface()),
-			Vfs::Dir_file_system(vfs_env, Node(_config(node)), *this)
+			Dir_file_system(vfs_env, Node(_config(node)), *this)
 		{ }
 
 		~File_system() { }
@@ -1135,17 +1129,19 @@ class Vfs_tresor_crypto::File_system : private Local_factory,
  ** VFS plugin interface **
  **************************/
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Node const &node) override
 		{
 			try {
 				return new (vfs_env.alloc())
 					Vfs_tresor_crypto::File_system(vfs_env, node);
 			} catch (...) {
-				Genode::error("could not create 'tresor_crypto_aes_cbc'");
+				error("could not create 'tresor_crypto' file system");
 			}
 			return nullptr;
 		}

@@ -31,9 +31,10 @@ enum { VERBOSE = 0 };
 
 namespace Vfs_tresor_trust_anchor {
 
-	using namespace Vfs;
 	using namespace Genode;
+	using namespace Genode::Vfs;
 
+	class Trust_anchor;
 	class Generate_key_file_system;
 	class Hashsum_file_system;
 	class Encrypt_file_system;
@@ -45,7 +46,7 @@ namespace Vfs_tresor_trust_anchor {
 }
 
 
-class Trust_anchor
+class Vfs_tresor_trust_anchor::Trust_anchor
 {
 	public:
 
@@ -64,11 +65,6 @@ class Trust_anchor
 
 		Trust_anchor(Trust_anchor const &) = delete;
 		Trust_anchor &operator=(Trust_anchor const&) = delete;
-
-		using uint64_t             = Genode::uint64_t;
-		using size_t               = Genode::size_t;
-		using Byte_range_ptr       = Genode::Byte_range_ptr;
-		using Const_byte_range_ptr = Genode::Const_byte_range_ptr;
 
 		Vfs::Env &_vfs_env;
 
@@ -147,8 +143,7 @@ class Trust_anchor
 			case Job_state::PENDING:
 			{
 				Key key_plaintext { };
-				Genode::memcpy(
-					key_plaintext.value, _encrypt_key.value, Key::KEY_LEN);
+				memcpy(key_plaintext.value, _encrypt_key.value, Key::KEY_LEN);
 
 				Aes_256::encrypt_with_zeroed_iv(
 					_encrypt_key.value,
@@ -179,8 +174,7 @@ class Trust_anchor
 			case Job_state::PENDING:
 			{
 				Key key_ciphertext { };
-				Genode::memcpy(
-					key_ciphertext.value, _decrypt_key.value, Key::KEY_LEN);
+				memcpy(key_ciphertext.value, _decrypt_key.value, Key::KEY_LEN);
 
 				Aes_256::decrypt_with_zeroed_iv(
 					_decrypt_key.value,
@@ -231,9 +225,9 @@ class Trust_anchor
 					class Bad_jitterentropy_io_buffer_size { };
 					throw Bad_jitterentropy_io_buffer_size { };
 				}
-				Genode::memcpy(key.value,
-				               _jitterentropy_io_job_buffer.base,
-				               _jitterentropy_io_job_buffer.size);
+				memcpy(key.value,
+				       _jitterentropy_io_job_buffer.base,
+				       _jitterentropy_io_job_buffer.size);
 
 				_job_state = Job_state::COMPLETE;
 				_job_success = true;
@@ -285,7 +279,7 @@ class Trust_anchor
 
 					if (private_key_corrupt) {
 
-						Genode::error("failed to unwrap the private key");
+						error("failed to unwrap the private key");
 						_job_success = false;
 
 					} else {
@@ -297,9 +291,8 @@ class Trust_anchor
 
 				} else {
 
-					Genode::error(
-						"content read from file 'encrypted_private_key' "
-						"has unexpected size");
+					error("content read from file 'encrypted_private_key' "
+					      "has unexpected size");
 
 					_job_state   = Job_state::COMPLETE;
 					_job_success = false;
@@ -341,10 +334,9 @@ class Trust_anchor
 					class Bad_private_key_io_buffer_size { };
 					throw Bad_private_key_io_buffer_size { };
 				}
-				Genode::memcpy(
-					_private_key.value,
-					_private_key_io_job_buffer.base,
-					_private_key_io_job_buffer.size);
+				memcpy(_private_key.value,
+				       _private_key_io_job_buffer.base,
+				       _private_key_io_job_buffer.size);
 
 				_key_io_job_buffer.size = Aes_256_key_wrap::CIPHERTEXT_SIZE;
 				Aes_256_key_wrap::wrap_key(
@@ -426,10 +418,8 @@ class Trust_anchor
 				}
 
 				size_t const hash_len =
-					Genode::min(_hash_io_job_buffer.size,
-					            sizeof (_last_hash.value));
-				Genode::memcpy(_last_hash.value, _hash_io_job_buffer.buffer,
-				               hash_len);
+					min(_hash_io_job_buffer.size, sizeof (_last_hash.value));
+				memcpy(_last_hash.value, _hash_io_job_buffer.buffer, hash_len);
 
 				_job_state   = Job_state::COMPLETE;
 				_job_success = true;
@@ -463,10 +453,8 @@ class Trust_anchor
 
 				/* keep new hash in last hash */
 				size_t const hash_len =
-					Genode::min(_hash_io_job_buffer.size,
-					            sizeof (_hash_io_job_buffer.size));
-				Genode::memcpy(_last_hash.value, _hash_io_job_buffer.buffer,
-				               hash_len);
+					min(_hash_io_job_buffer.size, sizeof (_hash_io_job_buffer.size));
+				memcpy(_last_hash.value, _hash_io_job_buffer.buffer, hash_len);
 
 				_job_state = Job_state::IN_PROGRESS;
 				progress |= true;
@@ -543,7 +531,7 @@ class Trust_anchor
 		};
 
 		Vfs::Vfs_handle *_jitterentropy_handle  { nullptr };
-		Genode::Constructible<Util::Io_job> _jitterentropy_io_job { };
+		Constructible<Util::Io_job> _jitterentropy_io_job { };
 		Jitterentropy_io_job_buffer _jitterentropy_io_job_buffer { };
 
 
@@ -562,13 +550,13 @@ class Trust_anchor
 		};
 
 		Vfs::Vfs_handle *_private_key_handle { nullptr };
-		Genode::Constructible<Util::Io_job> _private_key_io_job { };
+		Constructible<Util::Io_job> _private_key_io_job { };
 		Private_key_io_job_buffer _private_key_io_job_buffer { };
 
 		/* key */
 
 		Vfs::Vfs_handle *_key_handle  { nullptr };
-		Genode::Constructible<Util::Io_job> _key_io_job { };
+		Constructible<Util::Io_job> _key_io_job { };
 
 		struct Key_io_job_buffer : Util::Io_job::Buffer
 		{
@@ -632,7 +620,7 @@ class Trust_anchor
 				                         (Vfs::Vfs_handle **)&_private_key_handle,
 				                         _vfs_env.alloc());
 			if (res != Result::OPEN_OK) {
-				Genode::error("could not open '", file_path.string(), "'");
+				error("could not open '", file_path.string(), "'");
 				return false;
 			}
 
@@ -660,7 +648,7 @@ class Trust_anchor
 				                         (Vfs::Vfs_handle **)&_jitterentropy_handle,
 				                         _vfs_env.alloc());
 			if (res != Result::OPEN_OK) {
-				Genode::error("could not open '", file_path.string(), "'");
+				error("could not open '", file_path.string(), "'");
 				return false;
 			}
 
@@ -690,7 +678,7 @@ class Trust_anchor
 				                         (Vfs::Vfs_handle **)&_key_handle,
 				                         _vfs_env.alloc());
 			if (res != Result::OPEN_OK) {
-				Genode::error("could not open '", file_path.string(), "'");
+				error("could not open '", file_path.string(), "'");
 				return false;
 			}
 
@@ -794,7 +782,7 @@ class Trust_anchor
 
 		Vfs::Vfs_handle *_hash_handle { nullptr };
 
-		Genode::Constructible<Util::Io_job> _hash_io_job { };
+		Constructible<Util::Io_job> _hash_io_job { };
 
 		struct Hash_io_job_buffer : Util::Io_job::Buffer
 		{
@@ -887,7 +875,7 @@ class Trust_anchor
 				                         (Vfs::Vfs_handle **)&_hash_handle,
 				                         _vfs_env.alloc());
 			if (res != Result::OPEN_OK) {
-				Genode::error("could not open '", file_path.string(), "'");
+				error("could not open '", file_path.string(), "'");
 				return false;
 			}
 
@@ -972,7 +960,7 @@ class Trust_anchor
 			}
 			else {
 				if (VERBOSE) {
-					Genode::log("No key file found, TA not initialized");
+					log("No key file found, TA not initialized");
 				}
 			}
 		}
@@ -1079,24 +1067,24 @@ class Trust_anchor
 			return true;
 		}
 
-		Complete_request complete_read_last_hash(Vfs::Byte_range_ptr const &dst)
+		Complete_request complete_read_last_hash(Byte_range_ptr const &dst)
 		{
 			if (_job != Job::READ_HASH || _job_state != Job_state::COMPLETE) {
 				return { false, false };
 			}
 
 			if (dst.num_bytes < _last_hash.length) {
-				Genode::warning("truncate hash");
+				warning("truncate hash");
 			}
 
-			Genode::memcpy(dst.start, _last_hash.value, dst.num_bytes);
+			memcpy(dst.start, _last_hash.value, dst.num_bytes);
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;
 			return { true, _job_success };
 		}
 
-		bool queue_update_last_hash(Vfs::Const_byte_range_ptr const &src)
+		bool queue_update_last_hash(Const_byte_range_ptr const &src)
 		{
 			if (_job != Job::NONE) {
 				return false;
@@ -1110,13 +1098,13 @@ class Trust_anchor
 				return false;
 			}
 
-			size_t const len = Genode::min(src.num_bytes, _hash_io_job_buffer.size);
+			size_t const len = min(src.num_bytes, _hash_io_job_buffer.size);
 
 			_hash_io_job_buffer.size = len;
 
-			Genode::memcpy(_hash_io_job_buffer.buffer, src.start, len);
+			memcpy(_hash_io_job_buffer.buffer, src.start, len);
 
-			Genode::memcpy(_last_hash.value, src.start, len);
+			memcpy(_last_hash.value, src.start, len);
 
 			_job       = Job::UPDATE_HASH;
 			_job_state = Job_state::PENDING;
@@ -1145,12 +1133,12 @@ class Trust_anchor
 			}
 
 			if (src.num_bytes != _encrypt_key.length) {
-				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _encrypt_key.length, " got: ", src.num_bytes);
+				error(__func__, ": key length mismatch, expected: ",
+				      _encrypt_key.length, " got: ", src.num_bytes);
 				return false;
 			}
 
-			Genode::memcpy(_encrypt_key.value, src.start, src.num_bytes);
+			memcpy(_encrypt_key.value, src.start, src.num_bytes);
 
 			_job       = Job::ENCRYPT;
 			_job_state = Job_state::PENDING;
@@ -1164,12 +1152,12 @@ class Trust_anchor
 			}
 
 			if (dst.num_bytes != _encrypt_key.length) {
-				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _encrypt_key.length, " got: ", dst.num_bytes);
+				error(__func__, ": key length mismatch, expected: ",
+				      _encrypt_key.length, " got: ", dst.num_bytes);
 				return { true, false };
 			}
 
-			Genode::memcpy(dst.start, _encrypt_key.value, _encrypt_key.length);
+			memcpy(dst.start, _encrypt_key.value, _encrypt_key.length);
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;
@@ -1187,12 +1175,12 @@ class Trust_anchor
 			}
 
 			if (src.num_bytes != _decrypt_key.length) {
-				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _decrypt_key.length, " got: ", src.num_bytes);
+				error(__func__, ": key length mismatch, expected: ",
+				      _decrypt_key.length, " got: ", src.num_bytes);
 				return false;
 			}
 
-			Genode::memcpy(_decrypt_key.value, src.start, src.num_bytes);
+			memcpy(_decrypt_key.value, src.start, src.num_bytes);
 
 			_job       = Job::DECRYPT;
 			_job_state = Job_state::PENDING;
@@ -1206,12 +1194,12 @@ class Trust_anchor
 			}
 
 			if (dst.num_bytes != _decrypt_key.length) {
-				Genode::error(__func__, ": key length mismatch, expected: ",
-				              _decrypt_key.length, " got: ", dst.num_bytes);
+				error(__func__, ": key length mismatch, expected: ",
+				      _decrypt_key.length, " got: ", dst.num_bytes);
 				return { true, false };
 			}
 
-			Genode::memcpy(dst.start, _decrypt_key.value, _decrypt_key.length);
+			memcpy(dst.start, _decrypt_key.value, _decrypt_key.length);
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;
@@ -1229,7 +1217,7 @@ class Trust_anchor
 			return true;
 		}
 
-		Complete_request complete_generate_key(Vfs::Byte_range_ptr const &dst)
+		Complete_request complete_generate_key(Byte_range_ptr const &dst)
 		{
 			if (_job != Job::GENERATE || _job_state != Job_state::COMPLETE) {
 				return { false, false };
@@ -1238,13 +1226,13 @@ class Trust_anchor
 			size_t len = dst.num_bytes;
 
 			if (len < _generated_key.length) {
-				Genode::warning("truncate generated key");
+				warning("truncate generated key");
 			} else {
-				len = Genode::min(len, _generated_key.length);
+				len = min(len, _generated_key.length);
 			}
 
-			Genode::memcpy(dst.start, _generated_key.value, len);
-			Genode::bzero(_generated_key.value, sizeof(_generated_key.value));
+			memcpy(dst.start, _generated_key.value, len);
+			bzero(_generated_key.value, sizeof(_generated_key.value));
 
 			_job       = Job::NONE;
 			_job_state = Job_state::NONE;
@@ -1253,7 +1241,7 @@ class Trust_anchor
 };
 
 
-class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_system
+class Vfs_tresor_trust_anchor::Hashsum_file_system : public Single_file_system
 {
 	private:
 
@@ -1268,7 +1256,7 @@ class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_sys
 
 			Hashsum_handle(Directory_service &ds,
 			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
+			               Allocator         &alloc,
 			               Trust_anchor      &ta)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta)
@@ -1374,9 +1362,9 @@ class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_sys
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const  *path, unsigned,
+		Open_result open(char const *path, unsigned,
 		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 
@@ -1388,8 +1376,8 @@ class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_sys
 					                           _trust_anchor);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -1402,14 +1390,14 @@ class Vfs_tresor_trust_anchor::Hashsum_file_system : public Vfs::Single_file_sys
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
 };
 
 
-class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_file_system
+class Vfs_tresor_trust_anchor::Generate_key_file_system : public Single_file_system
 {
 	private:
 
@@ -1424,7 +1412,7 @@ class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_fil
 
 			Gen_key_handle(Directory_service &ds,
 			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
+			               Allocator         &alloc,
 			               Trust_anchor      &ta)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta)
@@ -1478,9 +1466,9 @@ class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_fil
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const  *path, unsigned,
+		Open_result open(char const *path, unsigned,
 		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 
@@ -1492,8 +1480,8 @@ class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_fil
 					                           _trust_anchor);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -1506,14 +1494,14 @@ class Vfs_tresor_trust_anchor::Generate_key_file_system : public Vfs::Single_fil
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
 };
 
 
-class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_system
+class Vfs_tresor_trust_anchor::Encrypt_file_system : public Single_file_system
 {
 	private:
 
@@ -1528,7 +1516,7 @@ class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_sys
 
 			Encrypt_handle(Directory_service &ds,
 			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
+			               Allocator         &alloc,
 			               Trust_anchor      &ta)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta), _state(State::NONE)
@@ -1602,9 +1590,9 @@ class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_sys
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const  *path, unsigned,
+		Open_result open(char const *path, unsigned,
 		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
@@ -1615,8 +1603,8 @@ class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_sys
 					                           _trust_anchor);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -1629,14 +1617,14 @@ class Vfs_tresor_trust_anchor::Encrypt_file_system : public Vfs::Single_file_sys
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
 };
 
 
-class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_system
+class Vfs_tresor_trust_anchor::Decrypt_file_system : public Single_file_system
 {
 	private:
 
@@ -1651,7 +1639,7 @@ class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_sys
 
 			Decrypt_handle(Directory_service &ds,
 			               File_io_service   &fs,
-			               Genode::Allocator &alloc,
+			               Allocator         &alloc,
 			               Trust_anchor      &ta)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta), _state(State::NONE)
@@ -1725,9 +1713,9 @@ class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_sys
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const  *path, unsigned,
+		Open_result open(char const *path, unsigned,
 		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
@@ -1738,8 +1726,8 @@ class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_sys
 					                           _trust_anchor);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -1752,14 +1740,14 @@ class Vfs_tresor_trust_anchor::Decrypt_file_system : public Vfs::Single_file_sys
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
 };
 
 
-class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_system
+class Vfs_tresor_trust_anchor::Initialize_file_system : public Single_file_system
 {
 	private:
 
@@ -1776,7 +1764,7 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 
 			Initialize_handle(Directory_service &ds,
 			                  File_io_service   &fs,
-			                  Genode::Allocator &alloc,
+			                  Allocator         &alloc,
 			                  Trust_anchor      &ta)
 			:
 				Single_vfs_handle(ds, fs, alloc, 0), _trust_anchor(ta)
@@ -1805,7 +1793,7 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 
 					char const *str { "ok" };
 					if (buf.num_bytes < 3) {
-						Genode::error("read buffer too small");
+						error("read buffer too small");
 						return READ_ERR_IO;
 					}
 					memcpy(buf.start, str, 3);
@@ -1815,7 +1803,7 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 
 					char const *str { "failed" };
 					if (buf.num_bytes < 7) {
-						Genode::error("read buffer too small");
+						error("read buffer too small");
 						return READ_ERR_IO;
 					}
 					memcpy(buf.start, str, 7);
@@ -1864,9 +1852,9 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const  *path, unsigned,
+		Open_result open(char const *path, unsigned,
 		                 Vfs::Vfs_handle **out_handle,
-		                 Genode::Allocator   &alloc) override
+		                 Allocator &alloc) override
 		{
 			if (!_single_file(path))
 
@@ -1878,8 +1866,8 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 					                              _trust_anchor);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -1892,7 +1880,7 @@ class Vfs_tresor_trust_anchor::Initialize_file_system : public Vfs::Single_file_
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs::Vfs_handle *, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
@@ -1955,7 +1943,7 @@ struct Vfs_tresor_trust_anchor::Local_factory : File_system_factory
 
 
 class Vfs_tresor_trust_anchor::File_system : private Local_factory,
-                                          public Vfs::Dir_file_system
+                                             public Dir_file_system
 {
 	private:
 
@@ -1975,8 +1963,8 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 				g.node("hash");
 				g.node("initialize");
 
-			}).with_error([] (Genode::Buffer_error) {
-				Genode::warning("VFS-tresor_trust_anchor config exceeds maximum buffer size");
+			}).with_error([] (Buffer_error) {
+				warning("VFS-tresor_trust_anchor config exceeds maximum buffer size");
 			});
 
 			return Config(Cstring(buf));
@@ -1984,9 +1972,9 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
 
 	public:
 
-		File_system(Vfs::Env &vfs_env, Genode::Node const &node)
+		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
-			Local_factory(vfs_env, node), Vfs::Dir_file_system(vfs_env, Node(_config(node)), *this)
+			Local_factory(vfs_env, node), Dir_file_system(vfs_env, Node(_config(node)), *this)
 		{ }
 
 		~File_system() { }
@@ -1997,18 +1985,20 @@ class Vfs_tresor_trust_anchor::File_system : private Local_factory,
  ** VFS plugin interface **
  **************************/
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Node const &node) override
+		Vfs::File_system *create(Vfs::Env &vfs_env, Node const &node) override
 		{
 			try {
 				return new (vfs_env.alloc())
 					Vfs_tresor_trust_anchor::File_system(vfs_env, node);
 
 			} catch (...) {
-				Genode::error("could not create 'tresor_trust_anchor'");
+				error("could not create 'tresor_trust_anchor'");
 			}
 			return nullptr;
 		}

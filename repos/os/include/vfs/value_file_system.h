@@ -18,22 +18,22 @@
 /* Genode includes */
 #include <vfs/single_file_system.h>
 
-namespace Vfs {
+namespace Genode::Vfs {
 	template <typename, unsigned BUF_SIZE = 64>
 	class Value_file_system;
 }
 
 
 template <typename T, unsigned BUF_SIZE>
-class Vfs::Value_file_system : public Vfs::Single_file_system
+class Genode::Vfs::Value_file_system : public Single_file_system
 {
 	public:
 
-		using Name = Genode::String<64>;
+		using Name = String<64>;
 
 	private:
 
-		using Buffer = Genode::String<BUF_SIZE + 1>;
+		using Buffer = String<BUF_SIZE + 1>;
 
 		Name const _file_name;
 
@@ -75,7 +75,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 
 				size_t const len = min(size_t(BUF_SIZE- seek()), src.num_bytes);
 
-				_buffer = Buffer(Genode::Cstring(src.start, len));
+				_buffer = Buffer(Cstring(src.start, len));
 				out_count = len;
 
 				/* inform watchers */
@@ -94,15 +94,14 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 		};
 
 		struct Watch_handle;
-		using Watch_handle_registry = Genode::Registry<Watch_handle>;
+		using Watch_handle_registry = Registry<Watch_handle>;
 
 		struct Watch_handle : Vfs_watch_handle
 		{
 			typename Watch_handle_registry::Element elem;
 
 			Watch_handle(Watch_handle_registry &registry,
-			             Vfs::File_system      &fs,
-			             Allocator             &alloc)
+			             File_system &fs, Allocator &alloc)
 			: Vfs_watch_handle(fs, alloc), elem(registry, *this) { }
 		};
 
@@ -115,16 +114,16 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 			});
 		}
 
-		using Config = Genode::String<200>;
+		using Config = String<200>;
 		Config _config(Name const &name) const
 		{
 			char buf[Config::capacity()] { };
-			Genode::Generator::generate({ buf, sizeof(buf) }, type_name(),
-				[&] (Genode::Generator &g) { g.attribute("name", name); }
-			).with_error([&] (Genode::Buffer_error) {
-				Genode::warning("VFS value fs config failed (", _file_name, ")");
+			Generator::generate({ buf, sizeof(buf) }, type_name(),
+				[&] (Generator &g) { g.attribute("name", name); }
+			).with_error([&] (Buffer_error) {
+				warning("VFS value fs config failed (", _file_name, ")");
 			});
-			return Config(Genode::Cstring(buf));
+			return Config(Cstring(buf));
 		}
 
 
@@ -151,7 +150,7 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 		T value()
 		{
 			T val { 0 };
-			Genode::ascii_to(_buffer.string(), val);
+			ascii_to(_buffer.string(), val);
 
 			return val;
 		}
@@ -193,8 +192,8 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 				*out_handle = new (alloc) Vfs_handle(*this, alloc);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { Genode::error("out of ram"); return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { Genode::error("out of caps");return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { error("out of ram"); return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { error("out of caps");return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -217,8 +216,8 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 				*handle = wh;
 				return WATCH_OK;
 			}
-			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
-			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 
 		using Single_file_system::close;

@@ -17,22 +17,21 @@
 #include <util/dictionary.h>
 #include "session_label.h"
 
-namespace Vfs {
-	class Label;
+namespace Vfs_trace {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	struct Label : String<32> { using String::String; };
+
 	class Trace_node;
 	class Trace_directory;
 
-	using Dictionary = Genode::Dictionary<Vfs::Trace_node, Vfs::Label>;
+	using Dictionary = Dictionary<Trace_node, Label>;
 };
 
 
-struct Vfs::Label : Genode::String<32>
-{
-	using String::String;
-};
-
-
-class Vfs::Trace_node : public Dictionary::Element
+class Vfs_trace::Trace_node : public Dictionary::Element
 {
 	private:
 
@@ -103,7 +102,7 @@ class Vfs::Trace_node : public Dictionary::Element
 };
 
 
-class Vfs::Trace_directory
+class Vfs_trace::Trace_directory
 {
 	private:
 

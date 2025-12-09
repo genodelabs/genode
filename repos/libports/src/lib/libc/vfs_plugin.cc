@@ -79,13 +79,13 @@ static Genode::Env::Local_rm &local_rm()
 namespace { using Fn = Libc::Monitor::Function_result; }
 
 
-static Vfs::Vfs_handle *vfs_handle(Libc::File_descriptor *fd)
+static Genode::Vfs::Vfs_handle *vfs_handle(Libc::File_descriptor *fd)
 {
-	return reinterpret_cast<Vfs::Vfs_handle *>(fd->context);
+	return reinterpret_cast<Genode::Vfs::Vfs_handle *>(fd->context);
 }
 
 
-static Libc::Plugin_context *vfs_context(Vfs::Vfs_handle *vfs_handle)
+static Libc::Plugin_context *vfs_context(Genode::Vfs::Vfs_handle *vfs_handle)
 {
 	return reinterpret_cast<Libc::Plugin_context *>(vfs_handle);
 }
@@ -96,16 +96,18 @@ static Libc::Plugin_context *vfs_context(Vfs::Vfs_handle *vfs_handle)
  *
  * Code shared between 'stat' and 'fstat'.
  */
-static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src,
+static void vfs_stat_to_libc_stat_struct(Genode::Vfs::Directory_service::Stat const &src,
                                          struct stat *dst)
 {
+	using namespace Genode;
+
 	enum { FS_BLOCK_SIZE = 4096 * 16 };
 
 	unsigned const readable_bits   = S_IRUSR,
 	               writeable_bits  = S_IWUSR,
 	               executable_bits = S_IXUSR;
 
-	auto type = [] (Vfs::Node_type type)
+	auto type = [] (Genode::Vfs::Node_type type)
 	{
 		switch (type) {
 		case Vfs::Node_type::DIRECTORY:          return S_IFDIR;
@@ -475,12 +477,12 @@ struct Sync
 {
 	enum { INITIAL, TIMESTAMP_UPDATED, QUEUED, COMPLETE } state { INITIAL };
 
-	Vfs::Vfs_handle &vfs_handle;
-	Vfs::Timestamp   mtime { };
+	Genode::Vfs::Vfs_handle &vfs_handle;
+	Genode::Vfs::Timestamp   mtime { };
 
 	struct Attr { bool update_mtime; };
 
-	Sync(Vfs::Vfs_handle &vfs_handle, Attr const attr,
+	Sync(Genode::Vfs::Vfs_handle &vfs_handle, Attr const attr,
 	     Libc::Current_real_time &current_real_time)
 	:
 		vfs_handle(vfs_handle)
@@ -510,7 +512,7 @@ struct Sync
 				return false;
 			state = Sync::QUEUED; [[ fallthrough ]];
 		case Sync::QUEUED:
-			if (vfs_handle.fs().complete_sync(&vfs_handle) == Vfs::File_io_service::SYNC_QUEUED)
+			if (vfs_handle.fs().complete_sync(&vfs_handle) == Genode::Vfs::File_io_service::SYNC_QUEUED)
 				return false;
 			state = Sync::COMPLETE; [[ fallthrough ]];
 		case Sync::COMPLETE:
@@ -2561,8 +2563,8 @@ static bool _handle_aio_read(Libc::File_descriptor          *fd,
 {
 	using Aio_job    = Libc::File_descriptor::Aio_job;
 	using Aio_handle = Libc::File_descriptor::Aio_handle;
-	using Vfs_handle = Vfs::Vfs_handle;
-	using Result     = Vfs::File_io_service::Read_result;
+	using Vfs_handle = Genode::Vfs::Vfs_handle;
+	using Result     = Genode::Vfs::File_io_service::Read_result;
 
 	bool progress = false;
 
@@ -2641,8 +2643,8 @@ static bool _handle_aio_write(Libc::File_descriptor          *fd,
 {
 	using Aio_job    = Libc::File_descriptor::Aio_job;
 	using Aio_handle = Libc::File_descriptor::Aio_handle;
-	using Vfs_handle = Vfs::Vfs_handle;
-	using Result     = Vfs::File_io_service::Write_result;
+	using Vfs_handle = Genode::Vfs::Vfs_handle;
+	using Result     = Genode::Vfs::File_io_service::Write_result;
 
 	bool progress = false;
 

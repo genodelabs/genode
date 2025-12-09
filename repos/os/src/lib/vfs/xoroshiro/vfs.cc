@@ -17,10 +17,18 @@
 #include <vfs/single_file_system.h>
 #include <xoroshiro.h>               /* base/internal/xoroshiro.h */
 
-using namespace Genode;
+namespace Vfs_xoroshiro {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	struct Entropy_source;
+	struct Xoroshiro_128_plus_reseeding;
+	struct File_system;
+}
 
 
-struct Entropy_source : Interface
+struct Vfs_xoroshiro::Entropy_source : Interface
 {
 	struct Collect_error { };
 	using Collect_result = Attempt<Ok, Collect_error>;
@@ -33,7 +41,7 @@ struct Entropy_source : Interface
  * A wrapper for the Xoroshiro128+ PRNG that reseeds the PRNG around every
  * 1024 * 1024 + random(0..4095) bytes of generated output.
  */
-struct Xoroshiro_128_plus_reseeding
+struct Vfs_xoroshiro::Xoroshiro_128_plus_reseeding
 {
 	public:
 
@@ -133,12 +141,7 @@ struct Xoroshiro_128_plus_reseeding
 };
 
 
-namespace Vfs {
-	struct Xoroshiro_file_system;
-} /* namespace Vfs */
-
-
-struct Vfs::Xoroshiro_file_system : Single_file_system
+struct Vfs_xoroshiro::File_system : Single_file_system
 {
 	Allocator &_alloc;
 
@@ -212,7 +215,7 @@ struct Vfs::Xoroshiro_file_system : Single_file_system
 		bool write_ready() const override { return false; }
 	};
 
-	Xoroshiro_file_system(Vfs::Env &vfs_env, Node const &config)
+	File_system(Vfs::Env &vfs_env, Node const &config)
 	:
 		Single_file_system { Node_type::CONTINUOUS_FILE, name(),
 		                     Node_rwx::ro(), config },
@@ -249,10 +252,10 @@ struct Vfs::Xoroshiro_file_system : Single_file_system
 				                                 _seed_file_path);
 			return OPEN_OK;
 		}
-		catch (Genode::Out_of_ram)        { return OPEN_ERR_OUT_OF_RAM; }
-		catch (Genode::Out_of_caps)       { return OPEN_ERR_OUT_OF_CAPS; }
+		catch (Out_of_ram)        { return OPEN_ERR_OUT_OF_RAM; }
+		catch (Out_of_caps)       { return OPEN_ERR_OUT_OF_CAPS; }
 		/* handled non-existing path */
-		catch (Genode::File::Open_failed) { return OPEN_ERR_UNACCESSIBLE; }
+		catch (File::Open_failed) { return OPEN_ERR_UNACCESSIBLE; }
 	}
 
 	Stat_result stat(char const *path, Stat &out) override {
@@ -260,17 +263,18 @@ struct Vfs::Xoroshiro_file_system : Single_file_system
 };
 
 
-struct Xoroshiro_factory : Vfs::File_system_factory
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
-	Vfs::File_system *create(Vfs::Env &env, Node const &node) override
+	using namespace Genode;
+
+	struct Factory : Vfs::File_system_factory
 	{
-		return new (env.alloc()) Vfs::Xoroshiro_file_system(env, node);
-	}
-};
+		Vfs::File_system *create(Vfs::Env &env, Node const &node) override
+		{
+			return new (env.alloc()) Vfs_xoroshiro::File_system(env, node);
+		}
+	};
 
-
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
-{
-	static Xoroshiro_factory factory;
+	static Factory factory;
 	return &factory;
 }

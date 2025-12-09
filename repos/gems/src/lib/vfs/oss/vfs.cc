@@ -25,26 +25,21 @@
 
 static constexpr bool VERBOSE = false;
 
-namespace Vfs {
+namespace Vfs_oss {
+
 	using namespace Genode;
+	using namespace Genode::Vfs;
 
-	struct Oss_file_system;
-} /* namespace Vfs */
-
-
-struct Vfs::Oss_file_system
-{
 	using Name = String<32>;
 
 	struct Audio;
-
 	struct Data_file_system;
 	struct Local_factory;
-	struct Compound_file_system;
-};
+	struct File_system;
+}
 
 
-struct Vfs::Oss_file_system::Audio
+struct Vfs_oss::Audio : Noncopyable
 {
 	public:
 
@@ -145,12 +140,12 @@ struct Vfs::Oss_file_system::Audio
 				_play_underruns_fs   .value(play_underruns);
 			}
 
-			void print(Genode::Output &out) const
+			void print(Output &out) const
 			{
 				char buf[512] { };
 
-				Genode::Generator::generate({ buf, sizeof(buf) }, "oss",
-					[&] (Genode::Generator &g) {
+				Generator::generate({ buf, sizeof(buf) }, "oss",
+					[&] (Generator &g) {
 						g.attribute("plugin_version",    plugin_version);
 						g.attribute("channels",          channels);
 						g.attribute("format",            format);
@@ -166,16 +161,16 @@ struct Vfs::Oss_file_system::Audio
 						g.attribute("optr_samples",      optr_samples);
 						g.attribute("optr_fifo_samples", optr_fifo_samples);
 						g.attribute("play_underruns",    play_underruns);
-					}).with_error([&] (Genode::Buffer_error) {
-						Genode::warning("VFS-OSS info exceeds maximum buffer size");
+					}).with_error([&] (Buffer_error) {
+						warning("VFS-OSS info exceeds maximum buffer size");
 					});
 
-				Genode::print(out, Genode::Cstring(buf));
+				Genode::print(out, Cstring(buf));
 			}
 		};
 
-		using Read_result  = Vfs::File_io_service::Read_result;
-		using Write_result = Vfs::File_io_service::Write_result;
+		using Read_result  = File_io_service::Read_result;
+		using Write_result = File_io_service::Write_result;
 
 		/*
 		 * Simple sample buffer used for storing play samples given
@@ -256,9 +251,6 @@ struct Vfs::Oss_file_system::Audio
 
 	private:
 
-		Audio(Audio const &);
-		Audio &operator = (Audio const &);
-
 		Vfs::Env &_vfs_env;
 
 		Info &_info;
@@ -331,7 +323,7 @@ struct Vfs::Oss_file_system::Audio
 			{
 				/* for now force stereo only */
 				if (CHANNELS != 2) {
-					struct Unsupported_channel_number : Genode::Exception { };
+					struct Unsupported_channel_number : Exception { };
 					throw Unsupported_channel_number();
 				}
 
@@ -533,7 +525,7 @@ struct Vfs::Oss_file_system::Audio
 			{
 				/* for now force stereo input */
 				if (CHANNELS != 2) {
-					struct Unsupported_channel_number : Genode::Exception { };
+					struct Unsupported_channel_number : Exception { };
 					throw Unsupported_channel_number();
 				}
 
@@ -720,7 +712,7 @@ struct Vfs::Oss_file_system::Audio
 			unsigned max_sample_rate;
 			unsigned min_sample_rate;
 
-			void print(Genode::Output &out) const
+			void print(Output &out) const
 			{
 				Genode::print(out, "verbose: ",         verbose,         " "
 				                   "play_enabled: ",    play_enabled,    " "
@@ -1003,8 +995,7 @@ struct Vfs::Oss_file_system::Audio
 };
 
 
-Vfs::Oss_file_system::Audio::Config
-Vfs::Oss_file_system::Audio::Config::from_node(Node const &config)
+Vfs_oss::Audio::Config Vfs_oss::Audio::Config::from_node(Node const &config)
 {
 	auto default_size = [&] (Node         const &config,
 	                         char const * const  attr,
@@ -1051,7 +1042,7 @@ Vfs::Oss_file_system::Audio::Config::from_node(Node const &config)
 }
 
 
-class Vfs::Oss_file_system::Data_file_system : public Single_file_system
+class Vfs_oss::Data_file_system : public Single_file_system
 {
 	private:
 
@@ -1112,13 +1103,13 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 				return _audio.write_ready(); }
 		};
 
-		using Registered_handle = Genode::Registered<Oss_vfs_handle>;
-		using Handle_registry   = Genode::Registry<Registered_handle>;
+		using Registered_handle = Registered<Oss_vfs_handle>;
+		using Handle_registry   = Registry<Registered_handle>;
 
 		Handle_registry _handle_registry { };
 
-		Genode::Io_signal_handler<Vfs::Oss_file_system::Data_file_system> _play_timer {
-			_ep, *this, &Vfs::Oss_file_system::Data_file_system::_handle_play_timer };
+		Io_signal_handler<Data_file_system> _play_timer {
+			_ep, *this, &Data_file_system::_handle_play_timer };
 
 		void _handle_play_timer()
 		{
@@ -1126,8 +1117,8 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 				_vfs_user.wakeup_vfs_user();
 		}
 
-		Genode::Io_signal_handler<Vfs::Oss_file_system::Data_file_system> _record_timer {
-			_ep, *this, &Vfs::Oss_file_system::Data_file_system::_handle_record_timer };
+		Io_signal_handler<Data_file_system> _record_timer {
+			_ep, *this, &Data_file_system::_handle_record_timer };
 
 		void _handle_record_timer()
 		{
@@ -1137,10 +1128,10 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 
 	public:
 
-		Data_file_system(Genode::Entrypoint &ep,
-		                 Vfs::Env::User     &vfs_user,
-		                 Audio              &audio,
-		                 Name         const &name)
+		Data_file_system(Entrypoint     &ep,
+		                 Vfs::Env::User &vfs_user,
+		                 Audio          &audio,
+		                 Name     const &name)
 		:
 			Single_file_system { Node_type::CONTINUOUS_FILE, name.string(),
 			                     Node_rwx::ro(), Node() },
@@ -1175,8 +1166,8 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 					                  alloc, _audio, flags);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		/********************************
@@ -1188,9 +1179,9 @@ class Vfs::Oss_file_system::Data_file_system : public Single_file_system
 };
 
 
-struct Vfs::Oss_file_system::Local_factory : File_system_factory
+struct Vfs_oss::Local_factory : File_system_factory
 {
-	using Label = Genode::String<64>;
+	using Label = String<64>;
 	Label const _label;
 	Name  const _name;
 
@@ -1230,65 +1221,65 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 
 	Audio _audio;
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_input_handler {
+	Io::Watch_handler<Local_factory> _enable_input_handler {
 		_enable_input_fs, "/enable_input",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_enable_input_changed };
+		&Local_factory::_enable_input_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _halt_input_handler {
+	Io::Watch_handler<Local_factory> _halt_input_handler {
 		_halt_input_fs, "/halt_input",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_halt_input_changed };
+		&Local_factory::_halt_input_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ifrag_total_handler {
+	Io::Watch_handler<Local_factory> _ifrag_total_handler {
 		_ifrag_total_fs, "/ifrag_total",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_ifrag_total_changed };
+		&Local_factory::_ifrag_total_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ifrag_size_handler {
+	Io::Watch_handler<Local_factory> _ifrag_size_handler {
 		_ifrag_size_fs, "/ifrag_size",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_ifrag_size_changed };
+		&Local_factory::_ifrag_size_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _enable_output_handler {
+	Io::Watch_handler<Local_factory> _enable_output_handler {
 		_enable_output_fs, "/enable_output",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_enable_output_changed };
+		&Local_factory::_enable_output_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _halt_output_handler {
+	Io::Watch_handler<Local_factory> _halt_output_handler {
 		_halt_output_fs, "/halt_output",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_halt_output_changed };
+		&Local_factory::_halt_output_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ofrag_total_handler {
+	Io::Watch_handler<Local_factory> _ofrag_total_handler {
 		_ofrag_total_fs, "/ofrag_total",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_ofrag_total_changed };
+		&Local_factory::_ofrag_total_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _ofrag_size_handler {
+	Io::Watch_handler<Local_factory> _ofrag_size_handler {
 		_ofrag_size_fs, "/ofrag_size",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_ofrag_size_changed };
+		&Local_factory::_ofrag_size_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _play_underruns_handler {
+	Io::Watch_handler<Local_factory> _play_underruns_handler {
 		_play_underruns_fs, "/play_underruns",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_play_underruns_changed };
+		&Local_factory::_play_underruns_changed };
 
-	Genode::Io::Watch_handler<Vfs::Oss_file_system::Local_factory> _sample_rate_handler {
+	Io::Watch_handler<Local_factory> _sample_rate_handler {
 		_sample_rate_fs, "/sample_rate",
 		_env.alloc(),
 		*this,
-		&Vfs::Oss_file_system::Local_factory::_sample_rate_changed };
+		&Local_factory::_sample_rate_changed };
 
 	/********************
 	 ** Watch handlers **
@@ -1477,12 +1468,11 @@ struct Vfs::Oss_file_system::Local_factory : File_system_factory
 };
 
 
-class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
-                                                   public  Vfs::Dir_file_system
+class Vfs_oss::File_system : private Local_factory, public Dir_file_system
 {
 	private:
 
-		using Name = Oss_file_system::Name;
+		using Name = Vfs_oss::Name;
 
 		using Config = String<1024>;
 		static Config _config(Name const &name)
@@ -1494,8 +1484,7 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Generator::generate({ buf, sizeof(buf) }, "compound",
-			                            [&] (Genode::Generator &g) {
+			Generator::generate({ buf, sizeof(buf) }, "compound", [&] (Generator &g) {
 
 				g.node("data", [&] () {
 					g.attribute("name", name); });
@@ -1576,21 +1565,21 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 						 g.attribute("name", "play_underruns");
 					});
 				});
-			}).with_error([] (Genode::Buffer_error) {
-				Genode::warning("VFS-OSS compound exceeds maximum buffer size");
+			}).with_error([] (Buffer_error) {
+				warning("VFS-OSS compound exceeds maximum buffer size");
 			});
 
-			return Config(Genode::Cstring(buf));
+			return Config(Cstring(buf));
 		}
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Node const &node)
+		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory { vfs_env, node },
-			Vfs::Dir_file_system { vfs_env,
-			                       Node(_config(Local_factory::name(node))),
-			                       *this }
+			Dir_file_system { vfs_env,
+			                  Node(_config(Local_factory::name(node))),
+			                  *this }
 		{ }
 
 		static const char *name() { return "oss_next"; }
@@ -1599,14 +1588,15 @@ class Vfs::Oss_file_system::Compound_file_system : private Local_factory,
 };
 
 
-extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
+extern "C" Genode::Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	using namespace Genode;
+
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Vfs::Env &env, Genode::Node const &config) override
+		Vfs::File_system *create(Vfs::Env &env, Node const &config) override
 		{
-			return new (env.alloc())
-				Vfs::Oss_file_system::Compound_file_system(env, config);
+			return new (env.alloc()) Vfs_oss::File_system(env, config);
 		}
 	};
 

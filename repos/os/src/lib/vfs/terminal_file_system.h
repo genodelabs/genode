@@ -23,23 +23,22 @@
 #include <os/ring_buffer.h>
 
 
-namespace Vfs { class Terminal_file_system; }
+namespace Vfs_terminal {
 
-
-struct Vfs::Terminal_file_system
-{
+	using namespace Genode;
+	using namespace Genode::Vfs;
 	using Name = String<64>;
 
 	struct Local_factory;
 	struct Data_file_system;
-	struct Compound_file_system;
-};
+	struct File_system;
+}
 
 
 /**
  * File system node for processing the terminal data read/write streams
  */
-class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
+class Vfs_terminal::Data_file_system : public Single_file_system
 {
 	public:
 
@@ -55,7 +54,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		Name const _name;
 
-		Genode::Entrypoint &_ep;
+		Entrypoint &_ep;
 
 		Vfs::Env::User &_vfs_user;
 
@@ -67,8 +66,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		enum { READ_BUFFER_SIZE = 4000 };
 
-		using Read_buffer = Genode::Ring_buffer<char, READ_BUFFER_SIZE + 1,
-		                                        Genode::Ring_buffer_unsynchronized>;
+		using Read_buffer = Ring_buffer<char, READ_BUFFER_SIZE + 1,
+		                                Ring_buffer_unsynchronized>;
 
 		Read_buffer _read_buffer { };
 
@@ -88,8 +87,6 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 					break;
 
 				char buf[buf_size];
-
-				using size_t = Genode::size_t;
 
 				size_t const received = terminal.read(buf, buf_size);
 
@@ -125,7 +122,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			                    Interrupt_handler    &interrupt_handler,
 			                    Directory_service    &ds,
 			                    File_io_service      &fs,
-			                    Genode::Allocator    &alloc,
+			                    Allocator            &alloc,
 			                    int                   flags,
 			                    bool                  raw)
 			:
@@ -173,12 +170,12 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 			}
 		};
 
-		using Registered_handle = Genode::Registered<Terminal_vfs_handle>;
-		using Handle_registry   = Genode::Registry<Registered_handle>;
+		using Registered_handle = Registered<Terminal_vfs_handle>;
+		using Handle_registry   = Registry<Registered_handle>;
 
 		Handle_registry _handle_registry { };
 
-		Genode::Io_signal_handler<Data_file_system> _read_avail_handler {
+		Io_signal_handler<Data_file_system> _read_avail_handler {
 			_ep, *this, &Data_file_system::_handle_read_avail };
 
 		void _handle_read_avail()
@@ -211,7 +208,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 	public:
 
-		Data_file_system(Genode::Entrypoint   &ep,
+		Data_file_system(Entrypoint           &ep,
 		                 Vfs::Env::User       &vfs_user,
 		                 Terminal::Connection &terminal,
 		                 Name           const &name,
@@ -245,8 +242,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 					                  *this, *this, alloc, flags, _raw);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 
@@ -261,10 +258,10 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 };
 
 
-struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
-                                                  Data_file_system::Interrupt_handler
+struct Vfs_terminal::Local_factory : File_system_factory,
+                                     Data_file_system::Interrupt_handler
 {
-	using Label = Genode::String<64>;
+	using Label = String<64>;
 	Label const _label;
 
 	Name const _name;
@@ -283,17 +280,17 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 	{
 		Terminal::Session::Size size;
 
-		void print(Genode::Output &out) const
+		void print(Output &out) const
 		{
 			char buf[128] { };
-			Genode::Generator::generate({ buf, sizeof(buf) }, "terminal",
-				[&] (Genode::Generator &g) {
+			Generator::generate({ buf, sizeof(buf) }, "terminal",
+				[&] (Generator &g) {
 					g.attribute("rows",    size.lines());
 					g.attribute("columns", size.columns());
-			}).with_error([] (Genode::Buffer_error) {
-				Genode::warning("VFS-terminal info exceeds maximum buffer size");
+			}).with_error([] (Buffer_error) {
+				warning("VFS-terminal info exceeds maximum buffer size");
 			});
-			Genode::print(out, Genode::Cstring(buf));
+			Genode::print(out, Cstring(buf));
 		}
 	};
 
@@ -307,7 +304,7 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 	Readonly_value_file_system<unsigned> _columns_fs    { "columns",    0 };
 	Readonly_value_file_system<unsigned> _interrupts_fs { "interrupts", _interrupts };
 
-	Genode::Io_signal_handler<Local_factory> _size_changed_handler {
+	Io_signal_handler<Local_factory> _size_changed_handler {
 		_env.ep(), *this, &Local_factory::_handle_size_changed };
 
 	void _handle_size_changed()
@@ -345,7 +342,7 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 		_handle_size_changed();
 	}
 
-	Vfs::File_system *create(Vfs::Env&, Node const &node) override
+	Vfs::File_system *create(Vfs::Env &, Node const &node) override
 	{
 		if (node.has_type("data"))       return &_data_fs;
 		if (node.has_type("info"))       return &_info_fs;
@@ -358,15 +355,13 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
 };
 
 
-class Vfs::Terminal_file_system::Compound_file_system : private Local_factory,
-                                                        public  Vfs::Dir_file_system
+class Vfs_terminal::File_system : private Local_factory,
+                                  public  Dir_file_system
 {
 	private:
 
-		using Name = Terminal_file_system::Name;
-
 		using Config = String<200>;
-		static Config _config(Name const &name)
+		static Config _config(Vfs_terminal::Name const &name)
 		{
 			char buf[Config::capacity()] { };
 
@@ -375,35 +370,35 @@ class Vfs::Terminal_file_system::Compound_file_system : private Local_factory,
 			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
 			 * to be present at the mount point.
 			 */
-			Genode::Generator::generate({ buf, sizeof(buf) }, "compound",
-				[&] (Genode::Generator &g) {
+			Generator::generate({ buf, sizeof(buf) }, "compound",
+				[&] (Generator &g) {
 
 					g.node("data", [&] {
 						g.attribute("name", name); });
 
 					g.node("dir", [&] {
-						g.attribute("name", Name(".", name));
+						g.attribute("name", Vfs_terminal::Name(".", name));
 						g.node("info");
 						g.node("rows");
 						g.node("columns");
 						g.node("interrupts");
 					});
 
-			}).with_error([] (Genode::Buffer_error) {
-				Genode::warning("VFS-terminal compound exceeds maximum buffer size");
+			}).with_error([] (Buffer_error) {
+				warning("VFS-terminal compound exceeds maximum buffer size");
 			});
 
-			return Config(Genode::Cstring(buf));
+			return Config(Cstring(buf));
 		}
 
 	public:
 
-		Compound_file_system(Vfs::Env &vfs_env, Node const &node)
+		File_system(Vfs::Env &vfs_env, Node const &node)
 		:
 			Local_factory(vfs_env, node),
-			Vfs::Dir_file_system(vfs_env,
-			                     Node(_config(Local_factory::name(node))),
-			                     *this)
+			Dir_file_system(vfs_env,
+			                Node(_config(Local_factory::name(node))),
+			                *this)
 		{ }
 
 		static const char *name() { return "terminal"; }

@@ -19,128 +19,136 @@
 #include <vfs/vfs_handle.h>
 #include <base/attached_rom_dataspace.h>
 
-namespace Vfs { class Tar_file_system; }
+namespace Vfs_tar {
+
+	using namespace Genode;
+	using namespace Genode::Vfs;
+
+	class Record;
+	class File_system;
+}
 
 
-class Vfs::Tar_file_system : public File_system
+class Vfs_tar::Record
 {
-	Genode::Env       &_env;
-	Genode::Allocator &_alloc;
+	private:
 
-	using Rom_name = Genode::String<64>;
+		char _name[100];
+		char _mode[8];
+		char _uid[8];
+		char _gid[8];
+		char _size[12];
+		char _mtime[12];
+		char _checksum[8];
+		char _type[1];
+		char _linked_name[100];
+
+		/**
+		 * Convert ASCII-encoded octal number to unsigned value
+		 */
+		template <typename T>
+		unsigned long _read(T const &field) const
+		{
+			/*
+			 * Copy-out ASCII string to temporary buffer that is
+			 * large enough to host an additional zero.
+			 */
+			char buf[sizeof(field) + 1];
+			copy_cstring(buf, field, sizeof(buf));
+
+			unsigned long value = 0;
+			ascii_to_unsigned(buf, value, 8);
+			return value;
+		}
+
+		char const *_data_begin() const { return (char const *)this + BLOCK_LEN; }
+
+		/*
+		 * GNU extension for long path names, which support unlimited sizes using
+		 * separate records
+		 */
+		bool _long_name() const
+		{
+			 return _type[0] == TYPE_LONG_LINK || _type[0] == TYPE_LONG_NAME;
+		}
+
+		/*
+		 * Round up up next block
+		 */
+		file_size _block_align(file_size size) const {
+			return align_addr(size, { .log2 = BLOCK_SHIFT }); }
+
+		/*
+		 * Next record header
+		 */
+		Record *_next() const {
+			return (Record *)(_data_begin() + _block_align(_read(_size))); }
+
+	public:
+
+		/* length of one data block in tar */
+		enum {
+			BLOCK_SHIFT = 9, /* 512 bytes */
+			BLOCK_LEN   = 1ul << BLOCK_SHIFT,
+		};
+
+		/* record type values */
+		enum {
+			TYPE_FILE = 0, TYPE_HARDLINK = 1, TYPE_SYMLINK = 2, TYPE_DIR = 5,
+			/* GNU extensions */
+			TYPE_LONG_LINK = 75, TYPE_LONG_NAME = 76
+		};
+
+		file_size  size() const { return _long_name() ? _next()->size()  : _read(_size);  }
+		long long mtime() const { return _long_name() ? _next()->mtime() : _read(_mtime); }
+		unsigned    uid() const { return _long_name() ? _next()->uid()   : (unsigned)_read(_uid); }
+		unsigned    gid() const { return _long_name() ? _next()->gid()   : (unsigned)_read(_gid); }
+		unsigned   mode() const { return _long_name() ? _next()->mode()  : (unsigned)_read(_mode); }
+		unsigned   type() const { return _long_name() ? _next()->type()  : (unsigned)_read(_type); }
+		void      *data() const { return _long_name() ? _next()->data()  : (void *)_data_begin(); }
+
+		Node_rwx rwx() const
+		{
+			unsigned const mode_bits = mode();
+
+			return { .readable   = (mode_bits & 0400) != 0,
+			         .writeable  = (mode_bits & 0200) != 0,
+			         .executable = (mode_bits & 0100) != 0 };
+		}
+
+		char const         *name() const { return _long_name() ? _data_begin() : _name;        }
+		unsigned    max_name_len() const { return _long_name() ? MAX_PATH_LEN : 100;           }
+		char const *linked_name()  const { return _long_name() ? _data_begin() : _linked_name; }
+
+		file_size storage_size()
+		{
+			if (_long_name()) {
+				/* this size + next header + next size */
+				return _block_align(_read(_size)) + BLOCK_LEN + _block_align(_next()->size());
+			}
+
+			return _read(_size);
+		}
+};
+
+
+class Vfs_tar::File_system : public Vfs::File_system
+{
+	Genode::Env &_env;
+	Allocator   &_alloc;
+
+	using Rom_name = String<64>;
 	Rom_name _rom_name;
 
-	Genode::Attached_rom_dataspace _tar_ds { _env, _rom_name.string() };
-	char                          *_tar_base = _tar_ds.local_addr<char>();
-	file_size               const  _tar_size = _tar_ds.size();
+	Attached_rom_dataspace _tar_ds { _env, _rom_name.string() };
+	char                  *_tar_base = _tar_ds.local_addr<char>();
+	file_size       const  _tar_size = _tar_ds.size();
 
 	/*
 	 * Noncopyable
 	 */
-	Tar_file_system(Tar_file_system const &);
-	Tar_file_system &operator = (Tar_file_system const &);
-
-	class Record
-	{
-		private:
-
-			char _name[100];
-			char _mode[8];
-			char _uid[8];
-			char _gid[8];
-			char _size[12];
-			char _mtime[12];
-			char _checksum[8];
-			char _type[1];
-			char _linked_name[100];
-
-			/**
-			 * Convert ASCII-encoded octal number to unsigned value
-			 */
-			template <typename T>
-			unsigned long _read(T const &field) const
-			{
-				/*
-				 * Copy-out ASCII string to temporary buffer that is
-				 * large enough to host an additional zero.
-				 */
-				char buf[sizeof(field) + 1];
-				copy_cstring(buf, field, sizeof(buf));
-
-				unsigned long value = 0;
-				Genode::ascii_to_unsigned(buf, value, 8);
-				return value;
-			}
-
-			char const *_data_begin() const { return (char const *)this + BLOCK_LEN; }
-
-			/*
-			 * GNU extension for long path names, which support unlimited sizes using
-			 * separate records
-			 */
-			bool _long_name() const
-			{
-				 return _type[0] == TYPE_LONG_LINK || _type[0] == TYPE_LONG_NAME;
-			}
-
-			/*
-			 * Round up up next block
-			 */
-			file_size _block_align(file_size size) const {
-				return Genode::align_addr(size, { .log2 = BLOCK_SHIFT }); }
-
-			/*
-			 * Next record header
-			 */
-			Record *_next() const {
-				return (Record *)(_data_begin() + _block_align(_read(_size))); }
-
-		public:
-
-			/* length of one data block in tar */
-			enum {
-				BLOCK_SHIFT = 9, /* 512 bytes */
-				BLOCK_LEN   = 1ul << BLOCK_SHIFT,
-			};
-
-			/* record type values */
-			enum {
-				TYPE_FILE = 0, TYPE_HARDLINK = 1, TYPE_SYMLINK = 2, TYPE_DIR = 5,
-				/* GNU extensions */
-				TYPE_LONG_LINK = 75, TYPE_LONG_NAME = 76
-			};
-
-			file_size  size() const { return _long_name() ? _next()->size()  : _read(_size);  }
-			long long mtime() const { return _long_name() ? _next()->mtime() : _read(_mtime); }
-			unsigned    uid() const { return _long_name() ? _next()->uid()   : (unsigned)_read(_uid); }
-			unsigned    gid() const { return _long_name() ? _next()->gid()   : (unsigned)_read(_gid); }
-			unsigned   mode() const { return _long_name() ? _next()->mode()  : (unsigned)_read(_mode); }
-			unsigned   type() const { return _long_name() ? _next()->type()  : (unsigned)_read(_type); }
-			void      *data() const { return _long_name() ? _next()->data()  : (void *)_data_begin(); }
-
-			Node_rwx rwx() const
-			{
-				unsigned const mode_bits = mode();
-
-				return { .readable   = (mode_bits & 0400) != 0,
-				         .writeable  = (mode_bits & 0200) != 0,
-				         .executable = (mode_bits & 0100) != 0 };
-			}
-
-			char const         *name() const { return _long_name() ? _data_begin() : _name;        }
-			unsigned    max_name_len() const { return _long_name() ? MAX_PATH_LEN : 100;           }
-			char const *linked_name()  const { return _long_name() ? _data_begin() : _linked_name; }
-
-			file_size storage_size()
-			{
-				if (_long_name()) {
-					/* this size + next header + next size */
-					return _block_align(_read(_size)) + BLOCK_LEN + _block_align(_next()->size());
-				}
-
-				return _read(_size);
-			}
-	};
+	File_system(File_system const &);
+	File_system &operator = (File_system const &);
 
 	class Node;
 
@@ -217,17 +225,17 @@ class Vfs::Tar_file_system : public File_system
 			Record const *record_ptr = node.record;
 
 			while (record_ptr && (record_ptr->type() == Record::TYPE_HARDLINK)) {
-				Tar_file_system &tar_fs = static_cast<Tar_file_system&>(fs());
+				File_system &tar_fs = static_cast<File_system&>(fs());
 				Node const *target = tar_fs.dereference(record_ptr->linked_name());
 				record_ptr = target ? target->record : 0;
 			}
 
-			using Dirent_type = Vfs::Directory_service::Dirent_type;
+			using Dirent_type = Directory_service::Dirent_type;
 
 			/* if no record exists, assume it is a directory */
 			if (!record_ptr) {
 				dirent = {
-					.fileno = (Genode::addr_t)node_ptr,
+					.fileno = (addr_t)node_ptr,
 					.type   = Dirent_type::DIRECTORY,
 					.rwx    = Node_rwx::rx(),
 					.name   = { node.name }
@@ -246,14 +254,13 @@ class Vfs::Tar_file_system : public File_system
 				case Record::TYPE_DIR:     return Dirent_type::DIRECTORY;
 				};
 
-				Genode::warning("unhandled record type ", record.type(), " "
-				                "for ", node.name);
+				warning("unhandled record type ", record.type(), " for ", node.name);
 
 				return Dirent_type::END;
 			};
 
 			dirent = {
-				.fileno = (Genode::addr_t)node_ptr,
+				.fileno = (addr_t)node_ptr,
 				.type   = node_type(),
 				.rwx    = { .readable   = true,
 				            .writeable  = false,
@@ -284,7 +291,7 @@ class Vfs::Tar_file_system : public File_system
 	};
 
 
-	using Path_element_token = Genode::Token<Scanner_policy_path_element>;
+	using Path_element_token = Token<Scanner_policy_path_element>;
 
 
 	struct Node : List<Node>, List<Node>::Element
@@ -359,14 +366,13 @@ class Vfs::Tar_file_system : public File_system
 	{
 		private:
 
-			Genode::Allocator &_alloc;
+			Allocator &_alloc;
 
 			Node &_root_node;
 
 		public:
 
-			Add_node_action(Genode::Allocator &alloc,
-			                Node              &root_node)
+			Add_node_action(Allocator &alloc, Node &root_node)
 			: _alloc(alloc), _root_node(root_node) { }
 
 			void operator()(Record const *record)
@@ -423,14 +429,14 @@ class Vfs::Tar_file_system : public File_system
 							 * and use the location in the record as name
 							 * pointer to save some memory
 							 */
-							Genode::size_t name_size = strlen(path_element) + 1;
+							size_t name_size = strlen(path_element) + 1;
 							char *name = (char*)_alloc.alloc(name_size);
 							copy_cstring(name, path_element, name_size);
 							child_node = new (_alloc) Node(name, record);
 						} else {
 
 							/* create a directory node without record */
-							Genode::size_t name_size = strlen(path_element) + 1;
+							size_t name_size = strlen(path_element) + 1;
 							char *name = (char*)_alloc.alloc(name_size);
 							copy_cstring(name, path_element, name_size);
 							child_node = new (_alloc) Node(name, 0);
@@ -526,7 +532,7 @@ class Vfs::Tar_file_system : public File_system
 			if (i++ & 1) {
 				slow_node = _root_node.lookup(slow_node->record->linked_name());
 				if (node == slow_node) {
-					Genode::error(_rom_name, " contains a hard-link loop at '", path, "'");
+					error(_rom_name, " contains a hard-link loop at '", path, "'");
 					node = nullptr;
 				}
 			}
@@ -536,7 +542,7 @@ class Vfs::Tar_file_system : public File_system
 
 	public:
 
-		Tar_file_system(Vfs::Env &env, Genode::Node const &config)
+		File_system(Vfs::Env &env, Genode::Node const &config)
 		:
 			_env(env.env()), _alloc(env.alloc()),
 			_rom_name(config.attribute_value("name", Rom_name())),
@@ -558,15 +564,14 @@ class Vfs::Tar_file_system : public File_system
 
 			Record const *record = node->record;
 			if (record->type() != Record::TYPE_FILE) {
-				Genode::error("TAR record \"", path, "\" has "
-				              "unsupported type ", record->type());
+				error("TAR record \"", path, "\" has unsupported type ", record->type());
 				return Dataspace_capability();
 			}
 
 			size_t const len = size_t(record->size());
 
 			return _env.ram().try_alloc(len).convert<Dataspace_capability>(
-				[&] (Genode::Ram::Allocation &allocation) {
+				[&] (Ram::Allocation &allocation) {
 					return _env.rm().attach(allocation.cap, {
 						.size = { },  .offset     = { },  .use_at    = { },
 						.at   = { },  .executable = { },  .writeable = true
@@ -581,14 +586,14 @@ class Vfs::Tar_file_system : public File_system
 						}
 					);
 				},
-				[&] (Genode::Ram_allocator::Alloc_error) {
+				[&] (Ram_allocator::Alloc_error) {
 					return Dataspace_capability(); }
 			);
 		}
 
 		void release(char const *, Dataspace_capability ds_cap) override
 		{
-			_env.ram().free(static_cap_cast<Genode::Ram_dataspace>(ds_cap));
+			_env.ram().free(static_cap_cast<Ram_dataspace>(ds_cap));
 		}
 
 		Stat_result stat(char const *path, Stat &out) override
@@ -604,8 +609,8 @@ class Vfs::Tar_file_system : public File_system
 					.size              = 0,
 					.type              = Node_type::DIRECTORY,
 					.rwx               = Node_rwx::rx(),
-					.inode             = (Genode::addr_t)node_ptr,
-					.device            = (Genode::addr_t)this,
+					.inode             = (addr_t)node_ptr,
+					.device            = (addr_t)this,
 					.modification_time = { }
 				};
 				return STAT_OK;
@@ -625,7 +630,7 @@ class Vfs::Tar_file_system : public File_system
 
 			auto timestamp_from_mtime = [] (auto mtime) -> Timestamp
 			{
-				return { .ms_since_1970 = mtime >= 0 ? Genode::uint64_t(mtime*1000) : 0 };
+				return { .ms_since_1970 = mtime >= 0 ? uint64_t(mtime*1000) : 0 };
 			};
 
 			out = {
@@ -634,8 +639,8 @@ class Vfs::Tar_file_system : public File_system
 				.rwx               = { .readable   = true,
 				                       .writeable  = false,
 				                       .executable = record.rwx().executable },
-				.inode             = (Genode::addr_t)node_ptr,
-				.device            = (Genode::addr_t)this,
+				.inode             = (addr_t)node_ptr,
+				.device            = (addr_t)this,
 				.modification_time = timestamp_from_mtime(record.mtime())
 			};
 
@@ -687,7 +692,7 @@ class Vfs::Tar_file_system : public File_system
 		}
 
 		Open_result open(char const *path, unsigned, Vfs_handle **out_handle,
-		                 Genode::Allocator& alloc) override
+		                 Allocator& alloc) override
 		{
 			Node const *node = dereference(path);
 			if (!node || !node->record || node->record->type() != Record::TYPE_FILE)
@@ -698,13 +703,13 @@ class Vfs::Tar_file_system : public File_system
 					Tar_vfs_file_handle(*this, alloc, 0, node);
 				return OPEN_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Opendir_result opendir(char const *path, bool /* create */,
 		                       Vfs_handle **out_handle,
-		                       Genode::Allocator& alloc) override
+		                       Allocator& alloc) override
 		{
 			Node const *node = dereference(path);
 
@@ -717,8 +722,8 @@ class Vfs::Tar_file_system : public File_system
 					Tar_vfs_dir_handle(*this, alloc, 0, node);
 				return OPENDIR_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
 		}
 
 		Openlink_result openlink(char const *path, bool /* create */,
@@ -734,8 +739,8 @@ class Vfs::Tar_file_system : public File_system
 					Tar_vfs_symlink_handle(*this, alloc, 0, node);
 				return OPENLINK_OK;
 			}
-			catch (Genode::Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
+			catch (Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override
