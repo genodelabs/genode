@@ -26,7 +26,6 @@
 
 /* base-hw internal includes */
 #include <hw/spec/arm_64/cpu.h>
-#include <spec/arm_v8/address_space_id_allocator.h>
 #include <hw/spec/arm/lpae.h>
 
 namespace Kernel { struct Thread_fault; }
@@ -36,7 +35,8 @@ namespace Board {
 	using namespace Genode;
 	using uint128_t = __uint128_t;
 
-	class Address_space_id_allocator;
+	static constexpr size_t MAX_PD_COUNT = 1<<16;
+
 	struct Cpu;
 }
 
@@ -98,22 +98,13 @@ struct Board::Cpu : Hw::Arm_64_cpu
 		uint64_t reg_5() const { return r[5]; }
 	};
 
-	class Mmu_context
+	struct Mmu_context
 	{
-		private:
+		Ttbr::access_t ttbr;
 
-			Board::Address_space_id_allocator &_addr_space_id_alloc;
+		Mmu_context(addr_t page_table_base, addr_t id);
 
-		public:
-
-			Ttbr::access_t ttbr;
-
-			Mmu_context(addr_t                             page_table_base,
-			            Board::Address_space_id_allocator &addr_space_id_alloc);
-
-			~Mmu_context();
-
-			uint16_t id() { return Ttbr::Asid::get(ttbr) & 0xffff; }
+		uint16_t id() { return Ttbr::Asid::get(ttbr) & 0xffff; }
 	};
 
 	bool active(Mmu_context &);

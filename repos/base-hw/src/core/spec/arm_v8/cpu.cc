@@ -77,21 +77,11 @@ void Cpu::mmu_fault(Cpu::Context &, Kernel::Thread_fault &fault)
 }
 
 
-Cpu::Mmu_context::Mmu_context(addr_t table,
-                              Board::Address_space_id_allocator &id_alloc)
+Cpu::Mmu_context::Mmu_context(addr_t table, addr_t id)
 :
-	_addr_space_id_alloc(id_alloc),
 	ttbr(Ttbr::Baddr::masked(table))
 {
-	Ttbr::Asid::set(ttbr, _addr_space_id_alloc.alloc().convert<uint16_t>(
-		[&] (addr_t v) { return uint16_t(v); },
-		[&] (auto &)   { error("ASID allocation failed"); return uint16_t(0); }));
-}
-
-
-Cpu::Mmu_context::~Mmu_context()
-{
-	_addr_space_id_alloc.free(id());
+	Ttbr::Asid::set(ttbr, id & 0xffff);
 }
 
 

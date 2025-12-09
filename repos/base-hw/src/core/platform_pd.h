@@ -81,6 +81,7 @@ class Core::Platform_pd
 {
 	private:
 
+		using Id_alloc_result = Attempt<addr_t, Bit_array_base::Error>;
 		using Page_table_array = Hw::Page_table_array<4096, 16>;
 
 		Name const _name;
@@ -91,6 +92,8 @@ class Core::Platform_pd
 
 		Phys_allocated<Hw::Page_table>   _table;
 		Page_table_allocator             _table_alloc;
+
+		Id_alloc_result _id;
 
 		Kernel_object<Kernel::Pd> _kobj;
 
@@ -105,7 +108,9 @@ class Core::Platform_pd
 	public:
 
 		using Constructed = Attempt<Ok, Accounted_mapped_ram_allocator::Error>;
-		Constructed const constructed = _table.constructed;
+		Constructed const constructed =
+			_id.failed() ? Accounted_mapped_ram_allocator::Error::DENIED
+			             : _table.constructed;
 
 		/*
 		 * Noncopyable
@@ -152,9 +157,7 @@ class Core::Core_platform_pd : public Platform_pd_interface, private Cap_space
 
 	public:
 
-		using Id_allocator = Board::Address_space_id_allocator;
-
-		Core_platform_pd(Id_allocator &id_alloc);
+		Core_platform_pd();
 
 		using Cap_space::upgrade_slab;
 		using Cap_space::avail_slab;

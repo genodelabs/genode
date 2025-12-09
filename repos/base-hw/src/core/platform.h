@@ -49,13 +49,19 @@ namespace Core {
 
 class Core::Platform : public Platform_generic
 {
+	public:
+
+		using Pd_id_allocator = Bit_allocator<Board::MAX_PD_COUNT>;
+
 	private:
+
 
 		Core_mem_allocator _core_mem_alloc { }; /* core-accessible memory */
 		Phys_allocator     _io_mem_alloc;       /* MMIO allocator         */
 		Phys_allocator     _io_port_alloc;      /* I/O port allocator     */
 		Phys_allocator     _irq_alloc;          /* IRQ allocator          */
 		Rom_fs             _rom_fs         { }; /* ROM file system        */
+		Pd_id_allocator    _pd_id_alloc    { };
 
 		static Hw::Boot_info<Board::Boot_info> const &_boot_info();
 		static Hw::Memory_region_array const &_core_virt_regions();
@@ -146,6 +152,9 @@ class Core::Platform : public Platform_generic
 				[ ] (size_t s)      { return s;  },
 				[ ] (Size_at_error) { return 0U; });
 		}
+
+		Pd_id_allocator &pd_id_alloc() { return _pd_id_alloc; }
+
 
 		/********************************
 		 ** Platform_generic interface **

@@ -29,7 +29,6 @@
 /* base-hw core includes */
 #include <types.h>
 #include <kernel/interface.h>
-#include <spec/riscv/address_space_id_allocator.h>
 
 namespace Kernel { struct Thread_fault; }
 
@@ -37,7 +36,8 @@ namespace Kernel { struct Thread_fault; }
 namespace Board {
 	using namespace Genode;
 
-	class Address_space_id_allocator;
+	static constexpr size_t MAX_PD_COUNT = 256;
+
 	class Cpu;
 }
 
@@ -68,19 +68,12 @@ class Board::Cpu : public Hw::Riscv_cpu
 			uint64_t reg_5() const { return a5; }
 		};
 
-		class Mmu_context
+		struct Mmu_context
 		{
-			private:
+			Satp::access_t satp = 0;
 
-				Board::Address_space_id_allocator &_addr_space_id_alloc;
-
-			public:
-
-				Satp::access_t satp = 0;
-
-				Mmu_context(addr_t page_table_base, Board::Address_space_id_allocator &);
-
-				~Mmu_context();
+			Mmu_context(addr_t page_table_base, addr_t id);
+			~Mmu_context();
 		};
 
 

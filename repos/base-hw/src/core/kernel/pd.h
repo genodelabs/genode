@@ -50,6 +50,7 @@ class Kernel::Pd
 		{
 			using Name = Genode::String<160>;
 
+			addr_t                     id;
 			addr_t                     table_phys_addr;
 			void                      *table;
 			Hw::Page_table_translator &table_translator;
@@ -74,11 +75,10 @@ class Kernel::Pd
 		Pd(Pd const &) = delete;
 		Pd &operator = (Pd const &) = delete;
 
-		Pd(Core_pd_data &core_pd_data,
-		   Board::Address_space_id_allocator &addr_space_id_alloc)
+		Pd(Core_pd_data &core_pd_data)
 		:
 			_core_data(core_pd_data),
-			mmu_regs(_core_data.table_phys_addr, addr_space_id_alloc)
+			mmu_regs(_core_data.table_phys_addr, _core_data.id)
 		{
 			/* exclude invalid ID from allocator */
 			ASSERT(_capid_alloc.alloc(cap_id_invalid()).ok());

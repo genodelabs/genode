@@ -30,7 +30,6 @@
 
 /* core includes */
 #include <types.h>
-#include <spec/x86_64/address_space_id_allocator.h>
 #include <hw/spec/x86_64/page_table.h>
 
 namespace Kernel { struct Thread_fault; }
@@ -39,7 +38,8 @@ namespace Kernel { struct Thread_fault; }
 namespace Board {
 	using namespace Genode;
 
-	class Address_space_id_allocator;
+	static constexpr size_t MAX_PD_COUNT = 4096; /* 12-bits in CR3 */
+
 	class Cpu;
 }
 
@@ -160,8 +160,7 @@ class Board::Cpu : public Hw::X86_64_cpu
 		{
 			addr_t cr3;
 
-			Mmu_context(addr_t page_table_base,
-			            Board::Address_space_id_allocator &);
+			Mmu_context(addr_t page_table_base, addr_t id);
 		};
 
 		/**

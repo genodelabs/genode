@@ -26,7 +26,6 @@
 #include <hw/spec/arm/cpu.h>
 
 /* base-hw core includes */
-#include <spec/arm/address_space_id_allocator.h>
 #include <util.h>
 
 namespace Kernel { struct Thread_fault; }
@@ -76,23 +75,15 @@ struct Board::Arm_cpu : public Hw::Arm_cpu
 	/**
 	 * This class comprises ARM specific protection domain attributes
 	 */
-	class Mmu_context
+	struct Mmu_context
 	{
-		private:
+		Cidr::access_t  cidr;
+		Ttbr0::access_t ttbr0;
 
-			Board::Address_space_id_allocator &_addr_space_id_alloc;
+		Mmu_context(addr_t page_table_base, addr_t id);
+		~Mmu_context();
 
-		public:
-
-			Cidr::access_t  cidr;
-			Ttbr0::access_t ttbr0;
-
-			Mmu_context(addr_t                             page_table_base,
-			            Board::Address_space_id_allocator &addr_space_id_alloc);
-
-			~Mmu_context();
-
-			uint8_t id() { return (uint8_t)cidr; }
+		uint8_t id() { return (uint8_t)cidr; }
 	};
 
 	/**

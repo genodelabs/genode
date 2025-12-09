@@ -40,14 +40,13 @@ class Kernel::Main
 
 		static Main *_instance;
 
-		Mutex                                   _mutex               { };
-		Cpu_pool                                _cpu_pool            { };
-		Board::Address_space_id_allocator       _addr_space_id_alloc { };
-		Core::Core_platform_pd                  _core_platform_pd    { _addr_space_id_alloc };
-		Genode::Constructible<Core_main_thread> _core_main_thread    { };
-		Board::Serial                           _serial              { Core::Platform::mmio_to_virt(Board::UART_BASE),
-		                                                               Board::UART_CLOCK,
-		                                                               SERIAL_BAUD_RATE };
+		Mutex                                   _mutex            { };
+		Cpu_pool                                _cpu_pool         { };
+		Core::Core_platform_pd                  _core_platform_pd { };
+		Genode::Constructible<Core_main_thread> _core_main_thread { };
+
+		Board::Serial _serial { Core::Platform::mmio_to_virt(Board::UART_BASE),
+		                        Board::UART_CLOCK, SERIAL_BAUD_RATE };
 
 		void _handle_kernel_entry(Genode::Cpu_state*);
 
@@ -168,7 +167,6 @@ void Kernel::main_initialize_and_handle_kernel_entry()
 				boot_info.kernel_irqs.add((unsigned)Board::Local_interrupt_controller::IPI);
 
 				Main::_instance->_core_main_thread.construct(
-					Main::_instance->_addr_space_id_alloc,
 					Main::_instance->_cpu_pool,
 					Main::_instance->_core_platform_pd.kernel_pd());
 

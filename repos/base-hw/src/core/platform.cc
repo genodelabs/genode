@@ -306,6 +306,11 @@ Platform::Platform()
 			Idle_thread_trace_source(
 				Trace::sources(), Affinity::Location(cpu_idx, 0));
 	}
+
+	/* reserve Pd ID zero for kernel/core */
+	_pd_id_alloc.alloc().with_result(
+		[&] (addr_t core_id) { if (core_id != 0) ASSERT_NEVER_CALLED; },
+		[&] (auto) { ASSERT_NEVER_CALLED; });
 }
 
 

@@ -62,15 +62,9 @@ Arm_cpu::Context::Context(bool privileged)
 }
 
 
-Arm_cpu::Mmu_context::
-Mmu_context(addr_t                             table,
-            Board::Address_space_id_allocator &addr_space_id_alloc)
+Arm_cpu::Mmu_context::Mmu_context(addr_t table, addr_t id)
 :
-	_addr_space_id_alloc(addr_space_id_alloc),
-	cidr(_addr_space_id_alloc.alloc().convert<uint8_t>(
-		[&] (addr_t v) { return uint8_t(v); },
-		[&] (auto &) -> uint8_t {
-			error("failed to allocate Mmu_context::cidr"); return 0; })),
+	cidr(id & 0xff),
 	ttbr0(Ttbr::init(table))
 { }
 
@@ -79,7 +73,6 @@ Arm_cpu::Mmu_context::~Mmu_context()
 {
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());
-	_addr_space_id_alloc.free(id());
 }
 
 

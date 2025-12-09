@@ -18,15 +18,11 @@
 using Cpu = Board::Cpu;
 
 
-Cpu::Mmu_context::Mmu_context(addr_t table,
-                              Board::Address_space_id_allocator &id_alloc)
+Cpu::Mmu_context::Mmu_context(addr_t table, addr_t id)
 :
-	_addr_space_id_alloc(id_alloc),
 	ttbr0(Ttbr_64bit::Ba::masked((Ttbr_64bit::access_t)table))
 {
-	Ttbr_64bit::Asid::set(ttbr0, _addr_space_id_alloc.alloc().convert<uint8_t>(
-		[&] (addr_t v) { return uint8_t(v); },
-		[&] (auto &)   { error("asid allocation failed"); return uint8_t(0); }));
+	Ttbr_64bit::Asid::set(ttbr0, id & 0xff);
 }
 
 
@@ -34,7 +30,6 @@ Cpu::Mmu_context::~Mmu_context()
 {
 	/* flush TLB by ASID */
 	Cpu::Tlbiasid::write(id());
-	_addr_space_id_alloc.free(id());
 }
 
 

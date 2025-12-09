@@ -71,17 +71,9 @@ Cpu::Context::Context(bool)
 }
 
 
-Mmu_context::Mmu_context(addr_t page_table_base,
-                         Board::Address_space_id_allocator &id_alloc)
-:
-	_addr_space_id_alloc(id_alloc)
+Mmu_context::Mmu_context(addr_t page_table_base, addr_t id)
 {
-	Satp::Asid::set(satp, _addr_space_id_alloc.alloc().convert<uint8_t>(
-		[&] (addr_t v) { return uint8_t(v); },
-		[&] (auto &) -> uint8_t {
-			error("failed to allocate Mmu_context::Asid"); return 0; })
-	);
-
+	Satp::Asid::set(satp, id & 0xff);
 	Satp::Ppn::set(satp, page_table_base >> 12);
 	Satp::Mode::set(satp, 8);
 }
@@ -91,7 +83,6 @@ Mmu_context::~Mmu_context()
 {
 	unsigned asid = (uint16_t)Satp::Asid::get(satp); /* ASID is 16 bit */
 	Cpu::invalidate_tlb_by_pid(asid);
-	_addr_space_id_alloc.free(asid);
 }
 
 

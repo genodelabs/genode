@@ -939,8 +939,7 @@ void Core_thread::_call()
 		}
 	case Core_call_id::PD_CREATE:
 		{
-			_call_create<Pd>(*user_arg_2<Pd::Core_pd_data*>(),
-			                 _addr_space_id_alloc);
+			_call_create<Pd>(*user_arg_2<Pd::Core_pd_data*>());
 			return;
 		}
 	case Core_call_id::PD_DESTROY:
@@ -987,8 +986,8 @@ void Core_thread::_call()
 	case Core_call_id::THREAD_CORE_CREATE:
 		{
 			_cpu_pool.with_cpu(user_arg_2<unsigned>(), [&] (Cpu &cpu) {
-				_call_create<Core_thread>(_addr_space_id_alloc, _cpu_pool, cpu,
-				                          _pd, user_arg_3<char const*>());
+				_call_create<Core_thread>(_cpu_pool, cpu, _pd,
+				                          user_arg_3<char const*>());
 			});
 			return;
 		}
@@ -1119,13 +1118,10 @@ Idle_thread::Idle_thread(Cpu &cpu, Pd &core_pd)
 Genode::uint8_t __initial_stack_base[DEFAULT_STACK_SIZE];
 
 
-Core_main_thread::
-Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-                 Cpu_pool                          &cpu_pool,
-                 Pd                                &core_pd)
+Core_main_thread::Core_main_thread(Cpu_pool &cpu_pool, Pd &core_pd)
 :
-	Core_object<Core_thread>(core_pd, addr_space_id_alloc, cpu_pool,
-	                         cpu_pool.primary_cpu(), core_pd, "core")
+	Core_object<Core_thread>(core_pd, cpu_pool, cpu_pool.primary_cpu(),
+	                         core_pd, "core")
 {
 	using namespace Core;
 

@@ -113,7 +113,15 @@ Kernel::Pd::Core_pd_data Platform_pd::_core_pd_data()
 	Hw::Page_table_translator &translator = 
 		static_cast<Hw::Page_table_translator&>(_table_alloc);
 	_table.obj([&] (Hw::Page_table &tab) { table_addr = &tab; });
-	return Kernel::Pd::Core_pd_data { _table.phys_addr(), table_addr,
+
+	addr_t pd_id = _id.convert<addr_t>(
+		[] (addr_t id) { return id; },
+		[] (auto) {
+			error("No address-space ID left!");
+			return ~0UL;
+		});
+
+	return Kernel::Pd::Core_pd_data { pd_id, _table.phys_addr(), table_addr,
 	                                  translator, _slab, _name.string() };
 }
 
@@ -124,6 +132,7 @@ Platform_pd::Platform_pd(Accounted_mapped_ram_allocator &ram,
 	_name(name),
 	_table(ram, *(Hw::Page_table*)Hw::Mm::core_page_tables().base),
 	_table_alloc(ram, heap),
+	_id(platform_specific().pd_id_alloc().alloc()),
 	_kobj(_kobj.CALLED_FROM_CORE, _core_pd_data())
 { }
 
@@ -133,6 +142,10 @@ Platform_pd::~Platform_pd()
 	/* invalidate weak pointers to this object */
 	Address_space::lock_for_destruction();
 	flush_all();
+
+	_id.with_result(
+		[&] (addr_t id) { platform_specific().pd_id_alloc().free(id); },
+		[]  (auto) {});
 }
 
 
@@ -140,13 +153,12 @@ Platform_pd::~Platform_pd()
  ** Core_platform_pd implementation **
  *************************************/
 
-Core_platform_pd::Core_platform_pd(Id_allocator &id_alloc)
+Core_platform_pd::Core_platform_pd()
 :
 	_table(*(Hw::Page_table*)Hw::Mm::core_page_tables().base),
 	_table_alloc(Platform::core_page_table_allocator()),
 	_kobj(_kobj.CALLED_FROM_KERNEL,
-	      Kernel::Pd::Core_pd_data { Platform::core_page_table(),
+	      Kernel::Pd::Core_pd_data { 0, Platform::core_page_table(),
 	                                 (void*) Hw::Mm::core_page_tables().base,
-	                                 _table_alloc, _slab, name().string() },
-	      id_alloc)
+	                                 _table_alloc, _slab, name().string() })
 { }

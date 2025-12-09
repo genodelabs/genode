@@ -420,8 +420,6 @@ class Kernel::Core_thread : public Kernel::Thread
 
 	protected:
 
-		Board::Address_space_id_allocator &_addr_space_id_alloc;
-
 		Cpu_pool &_cpu_pool;
 
 		Genode::Constructible<Tlb_invalidation>   _tlb_invalidation {};
@@ -499,14 +497,12 @@ class Kernel::Core_thread : public Kernel::Thread
 		Core_thread(Core_thread const &) = delete;
 		Core_thread &operator = (Core_thread const &) = delete;
 
-		Core_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-		            Cpu_pool                          &cpu_pool,
-		            Cpu                               &cpu,
-		            Pd                                &core_pd,
-		            char                  const *const label)
+		Core_thread(Cpu_pool         &cpu_pool,
+		            Cpu              &cpu,
+		            Pd               &core_pd,
+		            char const *const label)
 		:
 			Thread(cpu, core_pd, label),
-			_addr_space_id_alloc(addr_space_id_alloc),
 			_cpu_pool(cpu_pool)
 		{ }
 
@@ -562,9 +558,7 @@ class Kernel::Core_main_thread : public Core_object<Kernel::Core_thread>
 
 	public:
 
-		Core_main_thread(Board::Address_space_id_allocator &addr_space_id_alloc,
-		                 Cpu_pool                          &cpu_pool,
-		                 Pd                                &core_pd);
+		Core_main_thread(Cpu_pool &cpu_pool, Pd &core_pd);
 };
 
 #endif /* _CORE__KERNEL__THREAD_H_ */

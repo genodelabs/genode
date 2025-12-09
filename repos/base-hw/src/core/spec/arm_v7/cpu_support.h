@@ -17,7 +17,11 @@
 /* core includes */
 #include <spec/arm/cpu_support.h>
 
-namespace Board { struct Arm_v7_cpu; }
+namespace Board {
+	static constexpr size_t MAX_PD_COUNT = 256;
+
+	struct Arm_v7_cpu;
+}
 
 
 struct Board::Arm_v7_cpu : Arm_cpu

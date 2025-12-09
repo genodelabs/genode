@@ -66,7 +66,7 @@ Cpu::Context::Context(bool core)
 }
 
 
-Cpu::Mmu_context::Mmu_context(addr_t table, Board::Address_space_id_allocator &)
+Cpu::Mmu_context::Mmu_context(addr_t table, addr_t)
 : cr3(Cr3::Pdb::masked(table)) { }
 
 

@@ -19,7 +19,11 @@
 #include <spec/arm/cpu_support.h>
 #include <spec/arm_v6/page_table.h>
 
-namespace Board { struct Cpu; }
+namespace Board {
+	static constexpr size_t MAX_PD_COUNT = 256;
+
+	struct Cpu;
+}
 
 
 struct Board::Cpu : Arm_cpu

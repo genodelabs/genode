@@ -86,25 +86,15 @@ class Board::Cpu : public Arm_v7_cpu
 		/**
 		 * An usermode execution state
 		 */
-		class Mmu_context
+		struct Mmu_context
 		{
-			private:
+			Ttbr_64bit::access_t ttbr0;
 
-				Board::Address_space_id_allocator &_addr_space_id_alloc;
+			Mmu_context(addr_t table, addr_t id);
+			~Mmu_context();
 
-			public:
-
-				Ttbr_64bit::access_t ttbr0;
-
-				Mmu_context(addr_t                             table,
-				            Board::Address_space_id_allocator &addr_space_id_alloc);
-
-				~Mmu_context();
-
-				uint8_t id() const
-				{
-					return (uint8_t)Ttbr_64bit::Asid::get(ttbr0);
-				}
+			uint8_t id() const {
+				return (uint8_t)Ttbr_64bit::Asid::get(ttbr0); }
 		};
 
 		static void mmu_fault_status(Fsr::access_t fsr, Kernel::Thread_fault &);
