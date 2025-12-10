@@ -68,6 +68,7 @@ build: $(BUILD_DIR) $(QT6_DIR)
 	-DFEATURE_system_pcre2=OFF \
 	-DFEATURE_system_zlib=OFF \
 	-DFEATURE_vulkan=OFF \
+	-DFEATURE_zstd=OFF \
 	-DQT_FEATURE_brotli=OFF \
 	-DQT_FEATURE_widgets=OFF \
 	-DBUILD_qt3d=OFF \
