@@ -48,6 +48,7 @@ class Genode::Log
 	private:
 
 		Mutex _mutex { };
+		Type  _type = LOG;
 
 		Output &_output;
 

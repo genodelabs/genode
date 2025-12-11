@@ -67,6 +67,8 @@ void Log::_acquire(Type type)
 	case WARNING: _output.out_string("\033[34mWarning: "); break;
 	case ERROR:   _output.out_string("\033[31mError: ");   break;
 	};
+
+	_type = type;
 }
 
 
@@ -75,7 +77,13 @@ void Log::_release()
 	/*
 	 * Reset color and add newline
 	 */
-	_output.out_string("\033[0m\n");
+	switch (_type) {
+	case LOG:   _output.out_string("\n"); break;
+	case WARNING:
+	case ERROR: _output.out_string("\033[0m\n"); break;
+	};
+
+	_type = { };
 
 	if (!running_in_kernel()) _mutex.release();
 }

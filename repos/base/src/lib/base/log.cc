@@ -21,11 +21,12 @@ using namespace Genode;
 void Log::_acquire(Type type)
 {
 	_mutex.acquire();
+	_type = type;
 
 	/*
 	 * Mark warnings and errors via distinct colors.
 	 */
-	switch (type) {
+	switch (_type) {
 	case LOG:                                              break;
 	case WARNING: _output.out_string("\033[34mWarning: "); break;
 	case ERROR:   _output.out_string("\033[31mError: ");   break;
@@ -38,8 +39,13 @@ void Log::_release()
 	/*
 	 * Reset color and add newline
 	 */
-	_output.out_string("\033[0m\n");
+	switch (_type) {
+	case LOG:   _output.out_string("\n"); break;
+	case WARNING:
+	case ERROR: _output.out_string("\033[0m\n"); break;
+	};
 
+	_type = { };
 	_mutex.release();
 }
 
