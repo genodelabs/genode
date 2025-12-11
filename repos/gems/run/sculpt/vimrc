@@ -11,3 +11,12 @@ set ts=2
 set wildmode=list:longest
 set completeopt=menu,longest
 set nowritebackup
+
+autocmd BufNewFile,BufRead /config/*   :setlocal filetype=hid expandtab ts=2
+autocmd BufNewFile,BufRead /report/*   :setlocal filetype=hid expandtab ts=2
+autocmd BufNewFile,BufRead /report/log :setlocal filetype=genode_log
+syn on
+
+hi Statement  ctermfg=white
+hi Constant   ctermfg=yellow
+hi Identifier ctermfg=green

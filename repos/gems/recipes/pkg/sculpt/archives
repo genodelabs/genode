@@ -22,6 +22,7 @@ _/src/ncurses
 _/src/bash-minimal
 _/src/vim-minimal
 _/src/coreutils-minimal
+_/raw/vim_syntax
 _/src/tclsh
 _/raw/hid
 _/src/vfs

@@ -28,6 +28,7 @@
 		<rom label="bash-minimal.tar"/>
 		<rom label="coreutils-minimal.tar"/>
 		<rom label="vim-minimal.tar"/>
+		<rom label="vim_syntax.tar"/>
 		<rom label="tclsh.tar"/>
 		<rom label="hid.tar"/>
 		<rom label="vfs.lib.so"/>

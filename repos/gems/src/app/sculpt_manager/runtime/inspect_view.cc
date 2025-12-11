@@ -63,6 +63,7 @@ static void gen_vfs_start(Generator &g,
 			gen_named_node(g, "tar", "bash-minimal.tar");
 			gen_named_node(g, "tar", "coreutils-minimal.tar");
 			gen_named_node(g, "tar", "vim-minimal.tar");
+			gen_named_node(g, "tar", "vim_syntax.tar");
 			gen_named_node(g, "tar", "tclsh.tar");
 			gen_named_node(g, "tar", "hid.tar");
 
@@ -180,10 +181,11 @@ static void gen_bash_start(Generator &g)
 				g.attribute("name",   key);
 				g.append_quoted(value); }); };
 
-		gen_env("HOME", "/");
-		gen_env("TERM", "screen");
-		gen_env("PATH", "/bin");
-		gen_env("PS1",  "inspect:$PWD> ");
+		gen_env("HOME",  "/");
+		gen_env("TERM",  "screen");
+		gen_env("PATH",  "/bin");
+		gen_env("PS1",   "inspect:$PWD> ");
+		gen_env("SHELL", "/bin/bash");
 
 		g.node("arg", [&] { g.attribute("value", "bash"); });
 	});
@@ -267,6 +269,7 @@ void Sculpt::gen_inspect_view(Generator             &g,
 			gen_parent_rom_route(g, "bash-minimal.tar");
 			gen_parent_rom_route(g, "coreutils-minimal.tar");
 			gen_parent_rom_route(g, "vim-minimal.tar");
+			gen_parent_rom_route(g, "vim_syntax.tar");
 			gen_parent_rom_route(g, "tclsh.tar");
 			gen_parent_rom_route(g, "hid.tar");
 			gen_parent_rom_route(g, "ncurses.lib.so");
