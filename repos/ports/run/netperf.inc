@@ -250,7 +250,7 @@ append  config { </wifi_config>
 		</route>
 	</start>
 
-	<start name="nic" caps="450" ram="32M" priority="-1">
+	<start name="nic" caps="470" ram="32M" priority="-1">
 		<binary name="wifi"/>
 		<config>
 			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
