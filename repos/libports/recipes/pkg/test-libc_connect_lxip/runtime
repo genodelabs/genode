@@ -72,7 +72,7 @@
 			</config>
 		</start>
 
-		<start name="test-libc_connect" caps="300" ram="10M">
+		<start name="test-libc_connect" caps="300" ram="11M">
 			<config>
 				<vfs>
 					<dir name="dev"> <log/> </dir>

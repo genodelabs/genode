@@ -1,4 +1,4 @@
-<runtime ram="10M" caps="100" binary="test-stdcxx">
+<runtime ram="10M" caps="150" binary="test-stdcxx">
 
 	<fail after_seconds="20"/>
 	<succeed>*test-stdcxx finished*</succeed>

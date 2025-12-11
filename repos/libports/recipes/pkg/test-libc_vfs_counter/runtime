@@ -52,7 +52,7 @@
 				<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
 			</config>
 		</start>
-		<start name="test-libc_counter-sink" ram="8M">
+		<start name="test-libc_counter-sink" ram="8M" caps="110">
 			<config>
 				<vfs>
 					<dir name="dev"> <log/> <null/> </dir>

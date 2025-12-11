@@ -38,7 +38,7 @@
 				                maximum_transfer_size="4096"/>
 			</config>
 		</start>
-		<start name="test-libc_vfs_block" ram="9M">
+		<start name="test-libc_vfs_block" ram="9M" caps="150">
 			<config>
 				<vfs> <dir name="dev"> <block/> </dir> </vfs>
 				<libc/>
