@@ -40,7 +40,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_router" caps="200" ram="10M">
+	<start name="nic_router" ram="10M">
 		<provides>
 			<service name="Nic"/>
 			<service name="Uplink"/>
@@ -72,7 +72,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="server_1" caps="120" ram="32M">
+	<start name="server_1" ram="32M">
 		<binary name="test-lwip_httpsrv"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -89,7 +89,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="server_2" caps="170" ram="32M">
+	<start name="server_2" ram="32M">
 		<binary name="test-lwip_httpsrv"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -106,7 +106,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_1" caps="200" ram="32M">
+	<start name="client_1" ram="32M">
 		<binary name="test-http_clnt"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -121,7 +121,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_2" caps="200" ram="32M">
+	<start name="client_2" ram="32M">
 		<binary name="test-http_clnt"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -136,7 +136,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="client_3" caps="200" ram="32M">
+	<start name="client_3" ram="32M">
 		<binary name="test-http_clnt"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
