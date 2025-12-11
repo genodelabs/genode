@@ -842,15 +842,6 @@ if {[info exists qemu_args]} {
 init_test_setting
 init_previous_results
 
-#
-# Some platforms have a problem with executing all tests in a single boot.
-# Thus, we have to re-boot them periodically.
-#
-set max_nr_of_tests_per_boot 0
-if {[have_spec sel4]} {
-	set max_nr_of_tests_per_boot 22
-}
-
 # generic preparation for each system boot
 prepare_to_run_genode
 
@@ -950,19 +941,6 @@ while {1} {
 		regexp {test\] --- Run "(.*?)" \(max ([0-9]*?) } $output ignore last_test_pkg min_timeout
 		set timeout [expr $min_timeout + 30]
 
-		# re-boot if the maximum number of tests per boot is set and reached
-		if { [expr $max_nr_of_tests_per_boot && \
-		           $nr_of_tests_this_boot >= $max_nr_of_tests_per_boot] } \
-		{
-			# shut-down running system
-			puts "Re-booting to meet maximum number of tests per boot for this platform"
-			kill_spawned $serial_id
-			run_power_off
-
-			# prepare system re-boot
-			prepare_to_run_genode
-			continue
-		}
 		set output ""
 	}
 }
