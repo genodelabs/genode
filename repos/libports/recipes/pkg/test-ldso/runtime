@@ -1,4 +1,4 @@
-<runtime ram="3M" caps="100" binary="test-ldso">
+<runtime ram="3M" caps="150" binary="test-ldso">
 
 	<requires> <timer/> </requires>
 
