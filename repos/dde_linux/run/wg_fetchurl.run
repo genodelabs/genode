@@ -98,7 +98,7 @@ append_if $linux config {
 
 append config {
 
-	<start name="fetchurl" caps="400" ram="50M">
+	<start name="fetchurl" caps="450" ram="50M">
 		<config verbose="no">
 			<report progress="yes"/>
 			<vfs>
