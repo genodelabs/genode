@@ -2376,11 +2376,13 @@ void Sculpt::Main::_handle_gui_mode()
 				};
 
 				Color const background = Color::rgb(0x1c, 0x22, 0x32);
+				Color const foreground = Color::rgb(0xbb, 0xbb, 0xb8);
 
 				g.node("palette", [&] {
 					g.tabular([&] {
 						gen_color(0, background);
-						gen_color(8, background); }); });
+						gen_color(8, background);
+						gen_color(7, foreground); }); });
 			});
 			/* propagate fonts config of runtime view */
 			update_runtime_config = true;
