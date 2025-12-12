@@ -407,6 +407,7 @@ proc import_hid { data { multiple_lines true } } {
 	set ctx(0,xpos)        0
 	set ctx(0,children)    {}
 	set ctx(0,quoted)      {}
+	set ctx(0,annotation)  {}
 	set ctx(preface,xpos)  -1
 	set ctx(preface,lines) {}
 	set ctx(prespace)      ""
@@ -1241,7 +1242,7 @@ with_command set {
 					lappend result_attrs [list "?" $prespace [attr_tag   $new_attr] \
 					                                     " " [attr_value $new_attr]] }
 			}
-			set filtered_hid [lreplace $filtered_hid 5 5 $result_attrs]
+			set filtered_hid [lreplace $filtered_hid 6 6 $result_attrs]
 		}]
 	}
 }
