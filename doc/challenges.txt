@@ -35,17 +35,6 @@ Applications and library infrastructure
   network-facing Goa commands to Genode's environment, to crafting custom
   support for executing 'goa run' as a sandboxed Genode subsystem.
 
-:Interfacing with the SAFE network:
-
-  The [https://safenetwork.org/ - SAFE network] is an attempt to fix many
-  shortcomings of the internet - in particular with respect to privacy and
-  freedom - at an architectural level. It is a peer-to-peer communication
-  and storage network that does not depend on single point of
-  failure or control. It is intriguing to explore the opportunity of
-  integrating support for the SAFE network not merely as an application but
-  integrated in the operating system, i.e., in the form of Genode components
-  or a set of Genode VFS plugins.
-
 :Graphical on-target IPC tracing tool using Qt:
 
   Analysing the interaction of components of a multi-server operating system
