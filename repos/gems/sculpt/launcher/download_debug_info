@@ -1,22 +1,11 @@
-<launcher pkg="dbg_download" priority="-3">
-	<route>
-		<service name="File_system" label_prefix="system_config ->">
-			<parent identity="config"/>
-		</service>
-		<service name="File_system" label_prefix="depot ->">
-			<child name="default_fs_rw" prepend_resource="/depot"/>
-		</service>
-		<service name="File_system" label_prefix="public ->">
-			<child name="default_fs_rw" prepend_resource="/public"/>
-		</service>
-		<service name="ROM" label="build_info">
-			<parent label="build_info"/>
-		</service>
-		<service name="Nic">
-			<child name="nic_router"/>
-		</service>
-		<service name="RM">
-			<parent/>
-		</service>
-	</route>
-</launcher>
+launcher | pkg: dbg_download | priority: -3
++ route
+  + service File_system | label_prefix: system_config -> | + parent | identity: config
+  + service File_system | label_prefix: depot ->         | + child default_fs_rw
+                                                             prepend_resource: /depot
+  + service File_system | label_prefix: public ->        | + child default_fs_rw
+                                                             prepend_resource: /public
+  + service ROM | label: build_info | + parent | label: build_info
+  + service Nic                     | + child nic_router
+  + service RM                      | + parent
+-
