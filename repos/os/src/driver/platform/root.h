@@ -32,26 +32,10 @@ class Driver::Root : public Root_component<Session_component>,
 		Root(Env                          &env,
 		     Sliced_heap                  &sliced_heap,
 		     Attached_rom_dataspace const &config,
-		     Device_model                 &devices,
-		     Io_mmu_devices               &io_mmu_devices,
-		     Registry<Irq_controller>     &irq_controller_registry,
-		     bool const                    kernel_iommu);
+		     Device_model                 &devices);
 
 		void update_policy();
 
-		void enable_dma_remapping()
-		{
-			_io_mmu_present = true;
-
-			/**
-			 * IOMMU devices may appear after the first sessions have been
-			 * created. We therefore need to propagate this to the already
-			 * created sessions.
-			 */
-			_sessions.for_each([&] (Session_component &sess) {
-			        sess.enable_dma_remapping();
-			});
-		}
 
 		/*****************************
 		 ** Reserved_memory_handler **
@@ -69,10 +53,6 @@ class Driver::Root : public Root_component<Session_component>,
 		Env                          &_env;
 		Attached_rom_dataspace const &_config;
 		Device_model                 &_devices;
-		Io_mmu_devices               &_io_mmu_devices;
-		Registry<Irq_controller>     &_irq_controller_registry;
-		bool                          _io_mmu_present { false };
-		bool const                    _kernel_iommu;
 		Registry<Session_component>   _sessions {};
 };
 

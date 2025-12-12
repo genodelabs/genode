@@ -24,7 +24,7 @@ static void attribute_hex(Genode::Generator &g, char const * name,
 
 
 void Intel::Root_table::generate(Generator &g,
-                                 Report_helper &report_helper)
+                                 Report_helper const &report_helper) const
 {
 	for_each([&] (uint8_t bus) {
 		if (!present(bus))

@@ -52,28 +52,15 @@ class Driver::Session_component
 		                  Attached_rom_dataspace const &config,
 		                  Device_model                 &devices,
 		                  Session_registry             &registry,
-		                  Io_mmu_devices               &io_mmu_devices,
-		                  Registry<Irq_controller>     &irq_controller_registry,
 		                  Label            const       &label,
 		                  Resources        const       &resources,
 		                  bool             const        info,
-		                  Policy_version   const        version,
-		                  bool             const        dma_remapping,
-		                  bool             const        kernel_iommu);
+		                  Policy_version   const        version);
 
 		~Session_component();
 
 		Heap                     &heap();
 		Io_mmu_domain_registry   &domain_registry();
-		Registry<Irq_controller> &irq_controller_registry();
-
-		void with_io_mmu(Device::Name const &name, auto && fn)
-		{
-			_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
-				if (io_mmu.name() == name)
-					fn(io_mmu);
-			});
-		}
 
 		void enable_dma_remapping() { _dma_allocator.enable_remapping(); }
 
@@ -116,8 +103,6 @@ class Driver::Session_component
 		Attached_rom_dataspace const &_config;
 		Device_model                 &_devices;
 
-		Io_mmu_devices               &_io_mmu_devices;
-		Registry<Irq_controller>     &_irq_controller_registry;
 		Device::Owner                 _owner_id    { *this };
 		Accounted_ram_allocator       _env_ram     { _env.ram(),
 		                                             _ram_quota_guard(),

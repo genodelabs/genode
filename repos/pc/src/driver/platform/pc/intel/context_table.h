@@ -79,28 +79,28 @@ class Intel::Context_table
 			} while (rid != start + 0xFF);
 		}
 
-		Lo::access_t lo(Pci::rid_t rid) {
+		Lo::access_t lo(Pci::rid_t rid) const {
 			return _entries[_lo_index(rid)]; }
 
-		Hi::access_t hi(Pci::rid_t rid) {
+		Hi::access_t hi(Pci::rid_t rid) const {
 			return _entries[_hi_index(rid)]; }
 
-		bool present(Pci::rid_t rid) {
+		bool present(Pci::rid_t rid) const {
 			return Lo::Present::get(lo(rid)); }
 
-		uint16_t domain(Pci::rid_t rid) {
+		uint16_t domain(Pci::rid_t rid) const {
 			return Hi::Domain::get(hi(rid)); }
 
-		uint8_t agaw(Pci::rid_t rid) {
+		uint8_t agaw(Pci::rid_t rid) const {
 			return Hi::Address_width::get(hi(rid)); }
 
-		uint8_t translation_type(Pci::rid_t rid) {
+		uint8_t translation_type(Pci::rid_t rid) const {
 			return Lo::Type::get(lo(rid)); }
 
-		bool fault_processing_disabled(Pci::rid_t rid) {
+		bool fault_processing_disabled(Pci::rid_t rid) const {
 			return Lo::Ignore_faults::get(lo(rid)); }
 
-		addr_t stage2_pointer(Pci::rid_t rid) {
+		addr_t stage2_pointer(Pci::rid_t rid) const {
 			return Lo::Stage2_pointer::masked(lo(rid)); }
 
 		template <unsigned ADDRESS_WIDTH>
@@ -149,7 +149,7 @@ class Intel::Context_table
 				clflush(&_entries[_lo_index(rid)]);
 		}
 
-		void generate(Generator &, Intel::Report_helper &);
+		void generate(Generator &, Intel::Report_helper const &) const;
 
 		void flush_all()
 		{

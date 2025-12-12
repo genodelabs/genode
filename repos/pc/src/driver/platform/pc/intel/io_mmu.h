@@ -127,7 +127,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 				void remove_range(Range const &) override;
 
 				/* Registered_translation_table interface */
-				addr_t virt_addr(addr_t phys_addr) override
+				addr_t virt_addr(addr_t phys_addr) const override
 				{
 					addr_t va { 0 };
 
@@ -558,7 +558,7 @@ class Intel::Io_mmu : private Attached_mmio<0x800>,
 
 		Managed_root_table & root_table() { return _managed_root_table; }
 
-		void generate(Generator &) override;
+		void generate(Generator &) const override;
 
 		Invalidator & invalidator();
 

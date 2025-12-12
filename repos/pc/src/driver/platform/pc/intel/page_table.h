@@ -152,10 +152,10 @@ struct Intel::Page_directory_descriptor<_PAGE_SIZE_LOG2>::Table
 	}
 
 	template <typename ENTRY>
-	static void generate(unsigned long      index,
-	                     access_t           entry,
-	                     Genode::Generator &g,
-	                     Report_helper      &report_helper)
+	static void generate(unsigned long        index,
+	                     access_t             entry,
+	                     Genode::Generator   &g,
+	                     Report_helper const &report_helper)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
@@ -233,10 +233,10 @@ struct Intel::Level_4_descriptor : Common_descriptor
 	}
 
 	template <typename ENTRY>
-	static void generate(unsigned long      index,
-	                     access_t           entry,
-	                     Genode::Generator &g,
-	                     Report_helper     &report_helper)
+	static void generate(unsigned long        index,
+	                     access_t             entry,
+	                     Genode::Generator   &g,
+	                     Report_helper const &report_helper)
 	{
 		using Genode::Hex;
 		using Hex_str = Genode::String<20>;
@@ -262,7 +262,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_2MB; }
 
-		void generate(Genode::Generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper const &) const;
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_2_translation_table
@@ -272,7 +272,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_1GB; }
 
-		void generate(Genode::Generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper const &) const;
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_3_translation_table
@@ -282,7 +282,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_512GB; }
 
-		void generate(Genode::Generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper const &) const;
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 	struct Level_4_translation_table
@@ -292,7 +292,7 @@ namespace Intel {
 	{
 		static constexpr unsigned address_width() { return SIZE_LOG2_256TB; }
 
-		void generate(Genode::Generator &, Report_helper &);
+		void generate(Genode::Generator &, Report_helper const &) const;
 	} __attribute__((aligned(1 << ALIGNM_LOG2)));
 
 }

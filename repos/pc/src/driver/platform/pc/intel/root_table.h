@@ -58,10 +58,10 @@ class Intel::Root_table
 			} while (bus != 0xFF);
 		}
 
-		bool present(uint8_t bus) {
+		bool present(uint8_t bus) const {
 			return Entry::Present::get(_entries[bus*2]); }
 
-		addr_t address(uint8_t bus) {
+		addr_t address(uint8_t bus) const {
 			return Entry::Address::masked(_entries[bus*2]); }
 
 		void address(uint8_t bus, addr_t addr, bool flush)
@@ -72,7 +72,7 @@ class Intel::Root_table
 				clflush(&_entries[bus*2]);
 		}
 
-		void generate(Generator &, Report_helper &);
+		void generate(Generator &, Report_helper const &) const;
 
 		Root_table()
 		{

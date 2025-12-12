@@ -15,6 +15,7 @@
 #define _INCLUDE__PLATFORM_SESSION__PLATFORM_SESSION_H_
 
 #include <base/quota_guard.h>
+#include <base/ram_allocator.h>
 #include <base/rpc_args.h>
 #include <base/cache.h>
 #include <dataspace/capability.h>

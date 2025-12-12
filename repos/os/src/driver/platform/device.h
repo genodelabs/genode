@@ -22,16 +22,20 @@
 #include <util/list.h>
 #include <util/list_model.h>
 
-#include <shared_irq.h>
 #include <clock.h>
-#include <reset.h>
+#include <device_owner.h>
+#include <io_mmu.h>
+#include <irq_controller.h>
 #include <power.h>
 #include <reserved_memory_handler.h>
+#include <reset.h>
+#include <shared_irq.h>
 
 namespace Driver {
 
 	using namespace Genode;
 
+	class  Main;
 	class  Device;
 	struct Device_reporter;
 	struct Device_model;
@@ -44,8 +48,8 @@ class Driver::Device : private List_model<Device>::Element
 {
 	public:
 
-		using Name  = Genode::String<64>;
-		using Type  = Genode::String<64>;
+		using Name  = Device_name;
+		using Type  = Device_type;
 
 		struct Pci_bar
 		{
@@ -419,12 +423,10 @@ class Driver::Device : private List_model<Device>::Element
 				empty_fn();
 		}
 
-		void with_optional_io_mmu(Io_mmu::Name const &name, auto && fn) const
+		void with_io_mmu(Io_mmu::Name const &name, auto const &fn) const
 		{
-			_io_mmu_list.for_each([&] (Io_mmu const &io_mmu) {
-				if (io_mmu.name == name)
-					fn();
-			});
+			_io_mmu_list.for_each([&] (auto const &io_mmu) {
+				if (io_mmu.name == name) fn(io_mmu); });
 		}
 
 		void generate(Generator &, bool) const;
@@ -487,31 +489,55 @@ struct Driver::Device_reporter
 };
 
 
-class Driver::Device_model
+class Driver::Device_model : public Device_owner
 {
 	private:
 
 		Env                       &_env;
 		Heap                      &_heap;
 		Device_reporter           &_reporter;
-		Device_owner              &_owner;
+		Device_owner               _owner { *this };
 		List_model<Device>         _model  { };
 		Registry<Shared_interrupt> _shared_irqs { };
 		Clocks                     _clocks { };
 		Resets                     _resets { };
 		Powers                     _powers { };
 
+		Io_mmu_devices           _io_mmus { };
+		Registry<Io_mmu_factory> _io_mmu_factories { };
+
+		Registry<Irq_controller>         _irq_controllers { };
+		Registry<Irq_controller_factory> _irq_controller_factories { };
+
+		Registry<Dma_allocator> _dma_allocators { };
+
+		bool _io_mmu_present { false };
+		bool _kernel_io_mmu  { false };
+
+		Device::Name const _kernel_io_name { "kernel_io_mmu" };
+
+		void _acquire_io_mmus();
+		void _acquire_irq_controller();
+		void _detect_shared_interrupts();
+		void _enable_dma_remapping();
+
+		friend class Main;
+
 	public:
 
-		void generate(Generator &) const;
+		void report_devices(Generator &) const;
+		void report_iommus(Generator &) const;
 		void update(Node const &node, Reserved_memory_handler &);
 		void device_status_changed();
 
 		Device_model(Env             &env,
 		             Heap            &heap,
 		             Device_reporter &reporter,
-		             Device_owner    &owner)
-		: _env(env), _heap(heap), _reporter(reporter), _owner(owner) { }
+		             bool             kernel_io_mmu)
+		:
+			_env(env), _heap(heap), _reporter(reporter),
+			_kernel_io_mmu(kernel_io_mmu)
+		{ }
 
 		~Device_model()
 		{
@@ -523,15 +549,54 @@ class Driver::Device_model
 
 		void for_each(auto const &fn) const { _model.for_each(fn); }
 
+		void for_each_io_mmu(auto const &fn) {
+			_io_mmus.for_each([&] (auto &io_mmu) { fn(io_mmu); }); }
+
+		void for_each_io_mmu(auto const &fn) const {
+			_io_mmus.for_each([&] (auto const &io_mmu) { fn(io_mmu); }); }
+
+		void for_each_irq_controller(auto const &fn) {
+			_irq_controllers.for_each([&] (auto &ic) { fn(ic); }); }
+
 		void with_shared_irq(unsigned number, auto const &fn)
 		{
-			_shared_irqs.for_each([&] (Shared_interrupt &sirq) {
+			_shared_irqs.for_each([&] (auto &sirq) {
 				if (sirq.number() == number) fn(sirq); });
+		}
+
+		void with_io_mmu(Device::Name const &name, auto const &fn)
+		{
+			for_each_io_mmu([&] (auto &io_mmu) {
+				if (io_mmu.name() == name) fn(io_mmu); });
+		}
+
+		void with_kernel_io_mmu(auto const &fn)
+		{
+			if (_kernel_io_mmu)
+				with_io_mmu(_kernel_io_name,
+				            [&] (auto &io_mmu) { fn(io_mmu); });
+		}
+
+		void with_irq_controller(Device::Name const &name, auto const &fn)
+		{
+			for_each_irq_controller([&] (auto &ic) {
+				if (ic.name() == name) fn(ic); });
 		}
 
 		Clocks & clocks() { return _clocks; };
 		Resets & resets() { return _resets; };
 		Powers & powers() { return _powers; };
+
+		bool dma_remapping() const { return _io_mmu_present; }
+
+		Registry<Dma_allocator> & dma_allocators() { return _dma_allocators; }
+
+
+		/******************
+		 ** Device_owner **
+		 ******************/
+
+		void disable_device(Device const &device) override;
 };
 
 #endif /* _SRC__DRIVER__PLATFORM__DEVICE_H_ */

@@ -54,7 +54,7 @@ class Genode::Page_table_allocator
 		virtual ~Page_table_allocator() { }
 
 		template <typename TABLE>
-		void with_table(addr_t phys_addr, auto const &match_fn, auto const &no_match_fn)
+		void with_table(addr_t phys_addr, auto const &match_fn, auto const &no_match_fn) const
 		{
 			static_assert((sizeof(TABLE) == TABLE_SIZE), "unexpected size");
 

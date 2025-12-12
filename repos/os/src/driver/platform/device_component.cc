@@ -29,17 +29,17 @@ void Driver::Device_component::_release_resources()
 
 		/* unmap IRQ from corresponding remapping table */
 		if (irq.type == Irq_session::TYPE_LEGACY) {
-			_session.irq_controller_registry().for_each([&] (Irq_controller &controller) {
+			_devices.for_each_irq_controller([&] (Irq_controller &controller) {
 				if (!controller.handles_irq(irq.number)) return;
 
-				_session.with_io_mmu(controller.iommu(), [&] (Driver::Io_mmu &io_mmu_dev) {
+				_devices.with_io_mmu(controller.iommu(), [&] (Driver::Io_mmu &io_mmu_dev) {
 					io_mmu_dev.unmap_irq(controller.bdf(), irq.remapped_nbr);
 				});
 			});
 		} else {
 			_io_mmu_registry.for_each([&] (Io_mmu &io_mmu) {
 				if (_pci_config.constructed())
-					_session.with_io_mmu(io_mmu.name, [&] (Driver::Io_mmu &io_mmu_dev) {
+					_devices.with_io_mmu(io_mmu.name, [&] (Driver::Io_mmu &io_mmu_dev) {
 						io_mmu_dev.unmap_irq(_pci_config->bdf, irq.remapped_nbr); });
 			});
 		}
@@ -80,7 +80,7 @@ void Driver::Device_component::_release_resources()
 }
 
 
-Driver::Device::Name Device_component::device() const { return _device; }
+Driver::Device::Name Device_component::device() const { return _device_name; }
 
 
 Driver::Session_component & Device_component::session() { return _session; }
@@ -138,7 +138,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 		Irq_info remapped_irq { Irq_info::DIRECT, info, irq.number };
 
 		auto map_fn = [&] (Device::Name const &name) {
-			_session.with_io_mmu(name, [&] (Driver::Io_mmu &io_mmu) {
+			_devices.with_io_mmu(name, [&] (Driver::Io_mmu &io_mmu) {
 				remapped_irq = io_mmu.map_irq(bdf, remapped_irq, config);
 			});
 		};
@@ -190,7 +190,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 					               remapped_irq("", bdf, irq, info, Irq_config::Invalid()).session_info,
 					               irq.type);
 				else
-					_session.irq_controller_registry().for_each([&] (Irq_controller &controller) {
+					_devices.for_each_irq_controller([&] (Irq_controller &controller) {
 						if (!controller.handles_irq(irq.number)) return;
 
 						remapped_irq(controller.iommu(), controller.bdf(), irq, info,
@@ -200,12 +200,12 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 			}
 
 			if (irq.shared && !irq.sirq.constructed())
-				_device_model.with_shared_irq(irq.number,
+				_devices.with_shared_irq(irq.number,
 				                              [&] (Shared_interrupt &sirq) {
 					irq.sirq.construct(_env.ep().rpc_ep(), sirq,
 					                   irq.mode, irq.polarity);
 
-					_session.irq_controller_registry().for_each([&] (Irq_controller &controller) {
+					_devices.for_each_irq_controller([&] (Irq_controller &controller) {
 						if (!controller.handles_irq(irq.number)) return;
 
 						remapped_irq(controller.iommu(), controller.bdf(), irq,
@@ -217,7 +217,7 @@ Genode::Irq_session_capability Device_component::irq(unsigned idx)
 
 			cap = irq.shared ? irq.sirq->cap() : irq.irq->cap();
 		});
-	} catch (Service_denied) { error("irq could not be setup ", _device); }
+	} catch (Service_denied) { error("irq could not be setup ", _device_name); }
 
 	return cap;
 }
@@ -274,8 +274,8 @@ Device_component::Device_component(Registry<Device_component> &registry,
 :
 	_env(env),
 	_session(session),
-	_device_model(model),
-	_device(device.name()),
+	_devices(model),
+	_device_name(device.name()),
 	_reg_elem(registry, *this)
 {
 	if (!session.cap_quota_guard().try_withdraw(Cap_quota{1}))

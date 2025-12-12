@@ -139,8 +139,8 @@ class Driver::Device_component : public Rpc_object<Platform::Device_interface,
 
 		Env                                &_env;
 		Session_component                  &_session;
-		Device_model                       &_device_model;
-		Driver::Device::Name const          _device;
+		Device_model                       &_devices;
+		Driver::Device::Name const          _device_name;
 		size_t                              _cap_quota { 0 };
 		size_t                              _ram_quota { 0 };
 		Registry<Device_component>::Element _reg_elem;

@@ -150,7 +150,7 @@ void Device_pd::disable_pci_device(Pci::Bdf const &)
 Device_pd::Device_pd(Env                        &env,
                      Ram_quota_guard            &ram_guard,
                      Cap_quota_guard            &cap_guard,
-                     Kernel_iommu               &io_mmu,
+                     Kernel_io_mmu              &io_mmu,
                      Allocator                  &md_alloc,
                      Registry<Dma_buffer> const &buffer_registry)
 

@@ -135,7 +135,7 @@ class Intel::Managed_root_table : public Registered_translation_table
 		void remove_context(addr_t);
 
 		/* Registered_translation_table interface */
-		addr_t virt_addr(addr_t pa) override
+		addr_t virt_addr(addr_t pa) const override
 		{
 			addr_t va { 0 };
 			_table_allocator.with_table<Context_table>(pa,

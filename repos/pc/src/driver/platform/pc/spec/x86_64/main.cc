@@ -33,8 +33,11 @@ struct Driver::Main
 	Signal_handler<Main>   _system_handler { _env.ep(), *this,
 	                                         &Main::_system_update };
 
-	Intel::Io_mmu_factory  _intel_iommu    { _env, _common.io_mmu_factories() };
-	Ioapic_factory         _ioapic_factory { _env, _common.irq_controller_factories() };
+	Device_model & devices() { return _common.devices(); }
+
+	Intel::Io_mmu_factory _intel_iommu { _env, devices()._io_mmu_factories };
+	Ioapic_factory _ioapic_factory { _env,
+	                                 devices()._irq_controller_factories };
 
 	void _handle_config();
 	void _suspend(String<8>);
@@ -52,8 +55,8 @@ struct Driver::Main
 		_handle_config();
 		_system_update();
 
-		_common.acquire_irq_controller();
-		_common.acquire_io_mmu_devices();
+		devices()._acquire_irq_controller();
+		devices()._acquire_io_mmus();
 		_common.announce_service();
 	}
 };
@@ -105,18 +108,14 @@ void Driver::Main::_system_update()
 
 	if (state == "suspend") {
 		/* save IOMMU state */
-		_common.io_mmu_devices().for_each([&] (Driver::Io_mmu &io_mmu) {
-			io_mmu.suspend();
-		});
+		devices().for_each_io_mmu([&] (auto &io_mmu) { io_mmu.suspend(); });
 
 		try { _suspend("S3"); } catch (...) { error("suspend failed"); }
 
 		/* re-initialise IOMMU independent of result */
-		_common.io_mmu_devices().for_each([&] (Driver::Io_mmu &io_mmu) {
-			io_mmu.resume();
-		});
+		devices().for_each_io_mmu([&] (auto &io_mmu) { io_mmu.resume(); });
 
-		Driver::pci_resume_bridges(_env, _common.devices());
+		Driver::pci_resume_bridges(_env, devices());
 
 		/* report independent of result */
 		_common.report_resume();

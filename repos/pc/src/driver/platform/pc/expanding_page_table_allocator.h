@@ -123,7 +123,7 @@ class Driver::Expanding_page_table_allocator
 				void grow();
 
 				template <typename FN1, typename FN2>
-				void with_virt_addr(addr_t pa, FN1 && match_fn, FN2 && no_match_fn)
+				void with_virt_addr(addr_t pa, FN1 && match_fn, FN2 && no_match_fn) const
 				{
 					Element * e = _tree.first();
 
@@ -158,7 +158,7 @@ class Driver::Expanding_page_table_allocator
 		{ }
 
 		template <typename TABLE, typename FN1, typename FN2>
-		void with_table(addr_t phys_addr, FN1 && match_fn, FN2 no_match_fn)
+		void with_table(addr_t phys_addr, FN1 && match_fn, FN2 no_match_fn) const
 		{
 			static_assert((sizeof(TABLE) == TABLE_SIZE), "unexpected size");
 

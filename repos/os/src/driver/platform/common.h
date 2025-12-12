@@ -15,18 +15,17 @@
 #ifndef _SRC__DRIVER__PLATFORM__COMMON_H_
 #define _SRC__DRIVER__PLATFORM__COMMON_H_
 
-#include <base/registry.h>
+#include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
+#include <os/reporter.h>
+#include <util/string.h>
 
+#include <device.h>
 #include <root.h>
-#include <device_owner.h>
-#include <io_mmu.h>
-#include <irq_controller.h>
-#include <device_pd.h>
 
 namespace Driver { class Common; };
 
-class Driver::Common : Device_reporter,
-                       public Device_owner
+class Driver::Common : Device_reporter
 {
 	private:
 
@@ -36,18 +35,13 @@ class Driver::Common : Device_reporter,
 		Attached_rom_dataspace   _platform_info { _env, "platform_info"    };
 		Heap                     _heap          { _env.ram(), _env.rm()    };
 		Sliced_heap              _sliced_heap   { _env.ram(), _env.rm()    };
-		Device_model             _devices       { _env, _heap, *this, *this };
-		Signal_handler<Common>   _dev_handler   { _env.ep(), *this,
-		                                          &Common::_handle_devices };
-		Device::Owner            _owner_id      { *this };
 
-		Io_mmu_devices           _io_mmu_devices   { };
-		Registry<Io_mmu_factory> _io_mmu_factories { };
+		Device_model _devices { _env, _heap, *this, _kernel_io_mmu() };
 
-		Registry<Irq_controller>         _irq_controller_registry { };
-		Registry<Irq_controller_factory> _irq_controller_factories { };
+		Signal_handler<Common> _dev_handler {
+			_env.ep(), *this, &Common::_handle_devices };
 
-		Driver::Root             _root;
+		Driver::Root _root;
 
 		Constructible<Expanding_reporter> _cfg_reporter { };
 		Constructible<Expanding_reporter> _dev_reporter { };
@@ -56,7 +50,7 @@ class Driver::Common : Device_reporter,
 		uint64_t _resume_counter { };
 
 		void _handle_devices();
-		bool _iommu();
+		bool _kernel_io_mmu();
 
 	public:
 
@@ -66,21 +60,10 @@ class Driver::Common : Device_reporter,
 		Heap         & heap()    { return _heap;    }
 		Device_model & devices() { return _devices; }
 
-		Registry<Io_mmu_factory> & io_mmu_factories() {
-			return _io_mmu_factories; }
-
-		Io_mmu_devices & io_mmu_devices() {
-			return _io_mmu_devices; }
-
 		Node platform_info() { return _platform_info.node(); }
-
-		Registry<Irq_controller_factory> & irq_controller_factories() {
-			return _irq_controller_factories; }
 
 		void announce_service();
 		void handle_config(Node const &);
-		void acquire_io_mmu_devices();
-		void acquire_irq_controller();
 
 		void report_resume();
 
@@ -89,116 +72,19 @@ class Driver::Common : Device_reporter,
 		 *********************/
 
 		void update_report() override;
-
-		/******************
-		 ** Device_owner **
-		 ******************/
-
-		void disable_device(Device const &device) override;
 };
-
-
-void Driver::Common::acquire_io_mmu_devices()
-{
-	auto init_default_mappings = [&] (Io_mmu &io_mmu_dev) {
-		_devices.for_each([&] (Device const &device) {
-			device.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
-				bool has_reserved_mem = false;
-				device.for_each_reserved_memory([&] (unsigned,
-				                                     Io_mmu::Range range) {
-					io_mmu_dev.add_default_range(range, range.start);
-					has_reserved_mem = true;
-				});
-
-				if (!has_reserved_mem)
-					return;
-
-				/* enable default mappings for corresponding pci devices */
-				device.for_pci_config([&] (Device::Pci_config const &cfg) {
-					io_mmu_dev.enable_default_mappings(
-						{cfg.bus_num, cfg.dev_num, cfg.func_num});
-				});
-			});
-		});
-	};
-
-	_io_mmu_factories.for_each([&] (Io_mmu_factory &factory) {
-
-		_devices.for_each([&] (Device &dev) {
-			if (dev.owner().valid())
-				return;
-
-			if (factory.matches(dev)) {
-				dev.acquire(*this);
-				factory.create(_heap, _io_mmu_devices,
-				               _irq_controller_registry, dev);
-
-				_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
-					if (io_mmu_dev.name() == dev.name())
-						init_default_mappings(io_mmu_dev);
-				});
-			}
-		});
-
-	});
-
-	/* iterate IOMMU devices and determine address translation mode */
-	bool mpu_present    { false };
-	bool device_present { false };
-	_io_mmu_devices.for_each([&] (Io_mmu const &io_mmu) {
-		if (io_mmu.mpu())
-			mpu_present = true;
-		else
-			device_present = true;
-	});
-
-	if (device_present && !mpu_present)
-		_root.enable_dma_remapping();
-
-	bool kernel_iommu_present { false };
-	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
-		io_mmu_dev.default_mappings_complete();
-
-		if (io_mmu_dev.name() == "kernel_iommu")
-			kernel_iommu_present = true;
-	});
-
-	/* if kernel implements iommu, instantiate Kernel_iommu */
-	if (_iommu() && !kernel_iommu_present)
-		new (_heap) Kernel_iommu(_env, _io_mmu_devices, "kernel_iommu");
-}
-
-
-void Driver::Common::acquire_irq_controller()
-{
-	_irq_controller_factories.for_each([&] (Irq_controller_factory &factory) {
-
-		_devices.for_each([&] (Device &dev) {
-			if (dev.owner().valid())
-				return;
-
-			if (factory.matches(dev)) {
-				dev.acquire(*this);
-				factory.create(_heap, _irq_controller_registry, dev);
-			}
-		});
-
-	});
-}
 
 
 void Driver::Common::_handle_devices()
 {
 	_devices_rom.update();
 	_devices.update(_devices_rom.node(), _root);
-	acquire_irq_controller();
-	acquire_io_mmu_devices();
 	update_report();
 	_root.update_policy();
 }
 
 
-bool Driver::Common::_iommu()
+bool Driver::Common::_kernel_io_mmu()
 {
 	bool iommu = false;
 	_platform_info.node().with_optional_sub_node("kernel", [&] (Node const &node) {
@@ -213,11 +99,10 @@ void Driver::Common::update_report()
 	if (_dev_reporter.constructed())
 		_dev_reporter->generate([&] (Generator &g) {
 			g.attribute("resumed", _resume_counter);
-			_devices.generate(g); });
+			_devices.report_devices(g); });
 	if (_iommu_reporter.constructed())
 		_iommu_reporter->generate([&] (Generator &g) {
-			_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
-				io_mmu.generate(g); }); });
+			_devices.report_iommus(g); });
 }
 
 
@@ -225,18 +110,6 @@ void Driver::Common::report_resume()
 {
 	_resume_counter ++;
 	update_report();
-}
-
-void Driver::Common::disable_device(Device const &device)
-{
-	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu) {
-		if (io_mmu.name() == device.name())
-			destroy(_heap, &io_mmu);
-	});
-	_irq_controller_registry.for_each([&] (Irq_controller &irq_controller) {
-		if (irq_controller.name() == device.name())
-			destroy(_heap, &irq_controller);
-	});
 }
 
 
@@ -272,8 +145,7 @@ Driver::Common::Common(Genode::Env                  &env,
 	_env(env),
 	_rom_name(config_rom.node().attribute_value("devices_rom",
 	                                            String<64>("devices"))),
-	_root(_env, _sliced_heap, config_rom, _devices, _io_mmu_devices,
-	      _irq_controller_registry, _iommu())
+	_root(_env, _sliced_heap, config_rom, _devices)
 {
 	_devices_rom.sigh(_dev_handler);
 	_handle_devices();

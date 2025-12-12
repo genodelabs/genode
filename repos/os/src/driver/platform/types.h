@@ -20,6 +20,9 @@ namespace Driver {
 
 	using namespace Genode;
 
+	using Device_name  = Genode::String<64>;
+	using Device_type  = Genode::String<64>;
+
 	/**
 	 * Utility for switching clocks/resets/powers on/off depending on the
 	 * number of users

@@ -31,7 +31,7 @@ namespace Driver {
 	using namespace Genode;
 
 	class Device_pd;
-	class Kernel_iommu;
+	class Kernel_io_mmu;
 }
 
 
@@ -77,7 +77,7 @@ class Driver::Device_pd : public Io_mmu::Domain
 		Device_pd(Env                        &env,
 		          Ram_quota_guard            &ram_guard,
 		          Cap_quota_guard            &cap_guard,
-		          Kernel_iommu               &iommu,
+		          Kernel_io_mmu              &iommu,
 		          Allocator                  &md_alloc,
 		          Registry<Dma_buffer> const &buffer_registry);
 
@@ -92,7 +92,7 @@ class Driver::Device_pd : public Io_mmu::Domain
 };
 
 
-class Driver::Kernel_iommu : public Io_mmu
+class Driver::Kernel_io_mmu : public Io_mmu
 {
 	private:
 
@@ -120,14 +120,15 @@ class Driver::Kernel_iommu : public Io_mmu
 		}
 
 
-		Kernel_iommu(Env                      &env,
+		Kernel_io_mmu(Env                     &env,
 		             Io_mmu_devices           &io_mmu_devices,
-		             Device::Name       const &name)
-		: Io_mmu(io_mmu_devices, name),
-		  _env(env)
+		             Device_name        const &name)
+		:
+			Io_mmu(io_mmu_devices, name),
+			_env(env)
 		{ };
 
-		~Kernel_iommu() { _destroy_domains(); }
+		~Kernel_io_mmu() { _destroy_domains(); }
 };
 
 #endif /* _SRC__DRIVER__PLATFORM__DEVICE_PD_H_ */

@@ -37,13 +37,11 @@ Driver::Root::Create_result Driver::Root::_create_session(const char *args)
 	return with_matching_policy(label_from_args(args), _config.node(),
 
 		[&] (Node const &policy) {
-			return _alloc_obj(_env, _config, _devices, _sessions, _io_mmu_devices,
-			                  _irq_controller_registry,
+			return _alloc_obj(_env, _config, _devices, _sessions,
 			                  label_from_args(args),
 			                  session_resources_from_args(args),
 			                  policy.attribute_value("info", false),
-			                  policy.attribute_value("version", Version()),
-			                  _io_mmu_present || _kernel_iommu, _kernel_iommu);
+			                  policy.attribute_value("version", Version()));
 		},
 		[&] () -> Create_result {
 			error("Invalid session request, no matching policy for ",
@@ -68,12 +66,12 @@ void Driver::Root::add_range(Device const &dev, Range const &range)
 	});
 
 	/* add default mapping and enable for corresponding pci device */
-	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
-		dev.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
+	_devices.for_each_io_mmu([&] (Io_mmu &io_mmu) {
+		dev.with_io_mmu(io_mmu.name(), [&] (auto const &) {
 
-			io_mmu_dev.add_default_range(range, range.start);
+			io_mmu.add_default_range(range, range.start);
 			dev.for_pci_config([&] (Device::Pci_config const &cfg) {
-				io_mmu_dev.enable_default_mappings(
+				io_mmu.enable_default_mappings(
 					{cfg.bus_num, cfg.dev_num, cfg.func_num});
 			});
 
@@ -100,13 +98,8 @@ void Driver::Root::remove_range(Device const &dev, Range const &range)
 Driver::Root::Root(Env                          &env,
                    Sliced_heap                  &sliced_heap,
                    Attached_rom_dataspace const &config,
-                   Device_model                 &devices,
-                   Io_mmu_devices               &io_mmu_devices,
-                   Registry<Irq_controller>     &irq_controller_registry,
-                   bool const                    kernel_iommu)
-: Root_component<Session_component>(env.ep(), sliced_heap),
-  _env(env), _config(config), _devices(devices),
-  _io_mmu_devices(io_mmu_devices),
-  _irq_controller_registry(irq_controller_registry),
-  _kernel_iommu(kernel_iommu)
+                   Device_model                 &devices)
+:
+	Root_component<Session_component>(env.ep(), sliced_heap),
+	_env(env), _config(config), _devices(devices)
 { }

@@ -19,12 +19,13 @@
 #include <pci/types.h>
 
 /* local includes */
-#include <device.h>
+#include <types.h>
 
 namespace Driver
 {
 	using namespace Genode;
 
+	class Device;
 	class Irq_controller;
 	class Irq_controller_factory;
 }
@@ -34,8 +35,8 @@ class Driver::Irq_controller : private Registry<Irq_controller>::Element
 {
 	private:
 
-		Device::Name _name;
-		Device::Name _iommu_name;
+		Device_name _name;
+		Device_name _iommu_name;
 		Pci::Bdf     _bdf;
 
 	public:
@@ -53,9 +54,9 @@ class Driver::Irq_controller : private Registry<Irq_controller>::Element
 				return { Mode::INVALID, Irq_session::TRIGGER_UNCHANGED, 0, 0 }; }
 		};
 
-		Device::Name const &name()  const { return _name; }
-		Device::Name const &iommu() const { return _iommu_name; }
-		Pci::Bdf     const &bdf()   const { return _bdf;}
+		Device_name const &name()  const { return _name; }
+		Device_name const &iommu() const { return _iommu_name; }
+		Pci::Bdf    const &bdf()   const { return _bdf;}
 
 		virtual void remap_irq(unsigned from, unsigned to) = 0;
 		virtual bool handles_irq(unsigned) = 0;
@@ -63,8 +64,8 @@ class Driver::Irq_controller : private Registry<Irq_controller>::Element
 		virtual Irq_config irq_config(unsigned) = 0;
 
 		Irq_controller(Registry<Irq_controller>  &registry,
-		               Device::Name        const &name,
-		               Device::Name        const &iommu_name,
+		               Device_name         const &name,
+		               Device_name         const &iommu_name,
 		               Pci::Bdf            const &bdf)
 		: Registry<Irq_controller>::Element(registry, *this),
 		  _name(name), _iommu_name(iommu_name), _bdf(bdf)
@@ -78,19 +79,19 @@ class Driver::Irq_controller_factory : private Genode::Registry<Irq_controller_f
 {
 	protected:
 
-		Device::Type  _type;
+		Device_type  _type;
 
 	public:
 
 		Irq_controller_factory(Registry<Irq_controller_factory> &registry,
-		                       Device::Type               const &type)
+		                       Device_type                const &type)
 		: Registry<Irq_controller_factory>::Element(registry, *this),
 		  _type(type)
 		{ }
 
 		virtual ~Irq_controller_factory() { }
 
-		bool matches(Device const &dev) { return dev.type() == _type; }
+		bool matches(Device const &dev);
 
 		virtual void create(Allocator &,
 		                    Registry<Irq_controller> &,

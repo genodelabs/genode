@@ -197,7 +197,7 @@ bool Intel::Io_mmu::iq_error()
 }
 
 
-void Intel::Io_mmu::generate(Generator &g)
+void Intel::Io_mmu::generate(Generator &g) const
 {
 	g.node("intel", [&] () {
 		g.attribute("name", name());

@@ -49,7 +49,7 @@ struct Driver::Dma_buffer : Registry<Dma_buffer>::Element
 };
 
 
-class Driver::Dma_allocator
+class Driver::Dma_allocator : Registry<Dma_allocator>::Element
 {
 	public:
 
@@ -81,7 +81,7 @@ class Driver::Dma_allocator
 		Registry<Dma_buffer>       & buffer_registry()       { return _registry; }
 		Registry<Dma_buffer> const & buffer_registry() const { return _registry; }
 
-		Dma_allocator(Allocator &md_alloc, bool const remapping);
+		Dma_allocator(Allocator &, Registry<Dma_allocator> &, bool const);
 };
 
 #endif /* _SRC__DRIVER__PLATFORM__DMA_ALLOCATOR_H */

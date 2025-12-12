@@ -16,6 +16,7 @@
 #include <device.h>
 #include <pci.h>
 #include <device_owner.h>
+#include <device_pd.h>
 #include <device_component.h>
 
 
@@ -440,16 +441,182 @@ Driver::Device::~Device()
 }
 
 
+void Driver::Device_model::_acquire_io_mmus()
+{
+	auto init_default_mappings = [&] (auto &io_mmu) {
+		for_each([&] (auto const &device) {
+			device.with_io_mmu(io_mmu.name(), [&] (auto const &) {
+				bool has_reserved_mem = false;
+				device.for_each_reserved_memory([&] (unsigned,
+				                                     Io_mmu::Range range) {
+					io_mmu.add_default_range(range, range.start);
+					has_reserved_mem = true;
+				});
+
+				if (!has_reserved_mem)
+					return;
+
+				/* enable default mappings for corresponding pci devices */
+				device.for_pci_config([&] (Device::Pci_config const &cfg) {
+					io_mmu.enable_default_mappings(
+						{cfg.bus_num, cfg.dev_num, cfg.func_num});
+				});
+			});
+		});
+	};
+
+	_io_mmu_factories.for_each([&] (auto &factory) {
+
+		for_each([&] (auto &dev) {
+			if (dev.owner().valid())
+				return;
+
+			if (factory.matches(dev)) {
+				dev.acquire(*this);
+				factory.create(_heap, _io_mmus, _irq_controllers, dev);
+
+				_io_mmus.for_each([&] (auto &io_mmu_dev) {
+					if (io_mmu_dev.name() == dev.name())
+						init_default_mappings(io_mmu_dev);
+				});
+			}
+		});
+
+	});
+
+	/* iterate IOMMU devices and determine address translation mode */
+	bool mpu_present    { false };
+	bool device_present { false };
+	_io_mmus.for_each([&] (auto const &io_mmu) {
+		if (io_mmu.mpu()) mpu_present    = true;
+		else              device_present = true;
+	});
+
+	if (device_present && !mpu_present)
+		_enable_dma_remapping();
+
+	bool kernel_iommu_present { false };
+	_io_mmus.for_each([&] (auto &io_mmu) {
+		io_mmu.default_mappings_complete();
+
+		if (io_mmu.name() == _kernel_io_name)
+			kernel_iommu_present = true;
+	});
+
+	/* if kernel implements iommu, instantiate Kernel_io_mmu */
+	if (_kernel_io_mmu && !kernel_iommu_present)
+		new (_heap) Kernel_io_mmu(_env, _io_mmus, _kernel_io_name);
+}
+
+
+void Driver::Device_model::_acquire_irq_controller()
+{
+	_irq_controller_factories.for_each([&] (auto &factory) {
+
+		for_each([&] (auto &dev) {
+			if (dev.owner().valid())
+				return;
+
+			if (factory.matches(dev)) {
+				dev.acquire(*this);
+				factory.create(_heap, _irq_controllers, dev);
+			}
+		});
+
+	});
+}
+
+
+void Driver::Device_model::_detect_shared_interrupts()
+{
+	/*
+	 * Detect all shared interrupts
+	 */
+	enum { MAX_IRQ = 1024 };
+	Bit_array<MAX_IRQ> detected_irqs, shared_irqs;
+
+	auto shared_irq = [&] (unsigned n)
+	{
+		return shared_irqs.get(n, 1).convert<bool>(
+			[&] (bool shared) { return shared; },
+			[&] (auto &)      { return false; });
+	};
+
+	for_each([&] (auto const &device) {
+		device._irq_list.for_each([&] (auto const &irq) {
+
+			if (irq.type != Irq_session::TYPE_LEGACY)
+				return;
+
+			detected_irqs.get(irq.number, 1).with_result([&] (bool detected) {
+				if (detected) {
+					if (!shared_irq(irq.number))
+						(void)shared_irqs.set(irq.number, 1);
+				} else {
+					(void)detected_irqs.set(irq.number, 1);
+				}
+			}, [&] (auto &) { });
+		});
+	});
+
+	/*
+	 * Mark all shared interrupts in the devices
+	 */
+	for_each([&] (auto &device) {
+		device._irq_list.for_each([&] (auto &irq) {
+			if (irq.type == Irq_session::TYPE_LEGACY &&
+			    shared_irq(irq.number)) irq.shared = true;
+		});
+	});
+
+	/*
+	 * Create shared interrupt objects
+	 */
+	for (unsigned i = 0; i < MAX_IRQ; i++) {
+		if (!shared_irq(i))
+			continue;
+		bool found = false;
+		_shared_irqs.for_each([&] (auto &sirq) {
+			if (sirq.number() == i) found = true; });
+		if (!found) new (_heap) Shared_interrupt(_shared_irqs, _env, i);
+	}
+}
+
+
+void Driver::Device_model::_enable_dma_remapping()
+{
+	if (_io_mmu_present)
+		return;
+
+	_io_mmu_present = true;
+
+	/**
+	 * IOMMU devices may appear after the first DMA allocators have been
+	 * created. We therefore need to propagate this to the already
+	 * created ones.
+	 */
+	_dma_allocators.for_each([&] (auto &alloc) {
+		alloc.enable_remapping(); });
+}
+
+
 void Driver::Device_model::device_status_changed()
 {
 	_reporter.update_report();
 };
 
 
-void Driver::Device_model::generate(Generator &g) const
+void Driver::Device_model::report_devices(Generator &g) const
 {
 	for_each([&] (Device const &device) {
 		device.generate(g, true); });
+}
+
+
+void Driver::Device_model::report_iommus(Generator &g) const
+{
+	for_each_io_mmu([&] (Io_mmu const &io_mmu) {
+		io_mmu.generate(g); });
 }
 
 
@@ -482,62 +649,7 @@ void Driver::Device_model::update(Node const &node,
 		}
 	);
 
-	/*
-	 * Detect all shared interrupts
-	 */
-	enum { MAX_IRQ = 1024 };
-	Bit_array<MAX_IRQ> detected_irqs, shared_irqs;
-
-	auto shared_irq = [&] (unsigned n)
-	{
-		return shared_irqs.get(n, 1).convert<bool>(
-			[&] (bool shared) { return shared; },
-			[&] (auto &)      { return false; });
-	};
-
-	for_each([&] (Device const &device) {
-		device._irq_list.for_each([&] (Device::Irq const &irq) {
-
-			if (irq.type != Irq_session::TYPE_LEGACY)
-				return;
-
-			detected_irqs.get(irq.number, 1).with_result([&] (bool detected) {
-				if (detected) {
-					if (!shared_irq(irq.number))
-						(void)shared_irqs.set(irq.number, 1);
-				} else {
-					(void)detected_irqs.set(irq.number, 1);
-				}
-			}, [&] (auto &) { });
-		});
-	});
-
-	/*
-	 * Mark all shared interrupts in the devices
-	 */
-	for_each([&] (Device &device) {
-		device._irq_list.for_each([&] (Device::Irq &irq) {
-
-			if (irq.type != Irq_session::TYPE_LEGACY)
-				return;
-
-			if (shared_irq(irq.number))
-				irq.shared = true;
-		});
-	});
-
-	/*
-	 * Create shared interrupt objects
-	 */
-	for (unsigned i = 0; i < MAX_IRQ; i++) {
-		if (!shared_irq(i))
-			continue;
-		bool found = false;
-		_shared_irqs.for_each([&] (Shared_interrupt &sirq) {
-			if (sirq.number() == i) found = true; });
-		if (!found)
-			new (_heap) Shared_interrupt(_shared_irqs, _env, i);
-	}
+	_detect_shared_interrupts();
 
 	/*
 	 * Iterate over all devices and apply PCI quirks if necessary
@@ -545,4 +657,17 @@ void Driver::Device_model::update(Node const &node,
 	for_each([&] (Device const &device) {
 		pci_apply_quirks(_env, device);
 	});
+
+	_acquire_irq_controller();
+	_acquire_io_mmus();
+}
+
+
+void Driver::Device_model::disable_device(Device const &device)
+{
+	with_io_mmu(device.name(), [&] (Io_mmu &io_mmu) {
+		destroy(_heap, &io_mmu); });
+
+	with_irq_controller(device.name(), [&] (auto &irq_controller) {
+		destroy(_heap, &irq_controller); });
 }

@@ -114,8 +114,11 @@ void Dma_allocator::_free_dma_addr(addr_t dma_addr)
 }
 
 
-Dma_allocator::Dma_allocator(Allocator &md_alloc, bool const remapping)
+Dma_allocator::Dma_allocator(Allocator               &md_alloc,
+                             Registry<Dma_allocator> &registry,
+                             bool const               remapping)
 :
+	Registry<Dma_allocator>::Element(registry, *this),
 	_md_alloc(md_alloc), _remapping(remapping)
 {
 	/* 0x1000 - 4GB */

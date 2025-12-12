@@ -13,7 +13,7 @@
 
 #include <intel/page_table.h>
 
-void Intel::Level_1_translation_table::generate(Genode::Generator &g, Report_helper &)
+void Intel::Level_1_translation_table::generate(Genode::Generator &g, Report_helper const &) const
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
 		Descriptor::generate_page(i, e, g); });
@@ -21,7 +21,7 @@ void Intel::Level_1_translation_table::generate(Genode::Generator &g, Report_hel
 
 
 void Intel::Level_2_translation_table::generate(Genode::Generator &g,
-                                                Report_helper     &report_helper)
+                                                Report_helper const &report_helper) const
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
 		if (Descriptor::maps_page(e))
@@ -33,7 +33,7 @@ void Intel::Level_2_translation_table::generate(Genode::Generator &g,
 
 
 void Intel::Level_3_translation_table::generate(Genode::Generator &g,
-                                                Report_helper     &report_helper)
+                                                Report_helper const &report_helper) const
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
 		if (Descriptor::maps_page(e))
@@ -45,7 +45,7 @@ void Intel::Level_3_translation_table::generate(Genode::Generator &g,
 
 
 void Intel::Level_4_translation_table::generate(Genode::Generator &g,
-                                                Report_helper     &report_helper)
+                                                Report_helper const &report_helper) const
 {
 	for_each_entry([&] (unsigned long i, Descriptor::access_t e) {
 		Descriptor::generate<Entry>(i, e, g, report_helper);

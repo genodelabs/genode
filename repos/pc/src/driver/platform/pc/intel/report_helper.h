@@ -31,7 +31,7 @@ class Intel::Registered_translation_table : private Translation_table_registry::
 {
 	public:
 
-		virtual addr_t virt_addr(addr_t) = 0;
+		virtual addr_t virt_addr(addr_t) const = 0;
 
 		Registered_translation_table(Translation_table_registry &registry)
 		: Translation_table_registry::Element(registry, *this)
@@ -50,10 +50,10 @@ class Intel::Report_helper
 	public:
 
 		template <typename TABLE, typename FN>
-		void with_table(addr_t phys_addr, FN && fn)
+		void with_table(addr_t phys_addr, FN && fn) const
 		{
 			addr_t va { 0 };
-			_registry.for_each([&] (Registered_translation_table &table) {
+			_registry.for_each([&] (Registered_translation_table const &table) {
 				if (!va)
 					va = table.virt_addr(phys_addr);
 			});

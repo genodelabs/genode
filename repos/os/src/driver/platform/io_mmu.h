@@ -18,9 +18,10 @@
 #include <base/registry.h>
 #include <base/quota_guard.h>
 #include <pci/types.h>
+#include <platform_session/platform_session.h>
 
 /* local includes */
-#include <device.h>
+#include <types.h>
 #include <dma_allocator.h>
 #include <irq_controller.h>
 
@@ -28,6 +29,7 @@ namespace Driver
 {
 	using namespace Genode;
 
+	class Device;
 	class Io_mmu;
 	class Io_mmu_factory;
 
@@ -63,7 +65,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 				Allocator & md_alloc() { return _md_alloc; }
 
-				Device::Name const & device_name() const { return _io_mmu.name(); }
+				Device_name const & device_name() const { return _io_mmu.name(); }
 
 				void enable_device()
 				{
@@ -108,7 +110,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 
 		friend class Domain;
 
-		Device::Name      _name;
+		Device_name       _name;
 		Registry<Domain>  _domains { };
 
 		unsigned          _active_domains { 0 };
@@ -159,7 +161,7 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 		virtual Irq_info map_irq(Pci::Bdf const &, Irq_info const &info, Irq_config const &) {
 			return info; }
 
-		Device::Name const & name() const { return _name; }
+		Device_name const & name() const { return _name; }
 
 		bool domain_owner(Domain const &domain) const {
 			return &domain._io_mmu == this; }
@@ -174,9 +176,9 @@ class Driver::Io_mmu : private Io_mmu_devices::Element
 		                               Ram_quota_guard &,
 		                               Cap_quota_guard &) = 0;
 
-		virtual void generate(Generator &) { }
+		virtual void generate(Generator &) const { }
 
-		Io_mmu(Io_mmu_devices &io_mmu_devices, Device::Name const &name)
+		Io_mmu(Io_mmu_devices &io_mmu_devices, Device_name const &name)
 		: Io_mmu_devices::Element(io_mmu_devices, *this),
 			_name(name)
 		{ }
@@ -197,18 +199,18 @@ class Driver::Io_mmu_factory : private Genode::Registry<Io_mmu_factory>::Element
 {
 	protected:
 
-		Device::Type  _type;
+		Device_type _type;
 
 	public:
 
-		Io_mmu_factory(Registry<Io_mmu_factory> &registry, Device::Type const &type)
+		Io_mmu_factory(Registry<Io_mmu_factory> &registry, Device_type const &type)
 		: Registry<Io_mmu_factory>::Element(registry, *this),
 		  _type(type)
 		{ }
 
 		virtual ~Io_mmu_factory() { }
 
-		bool matches(Device const &dev) { return dev.type() == _type; }
+		bool matches(Device const &dev);
 
 		virtual void create(Allocator &,
 		                    Io_mmu_devices &,

@@ -34,7 +34,7 @@ Session_component::_acquire(Device &device)
 		_domain_registry.with_domain(io_mmu.name,
 			[&] (Io_mmu::Domain &) { },
 			[&] () {
-				_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
+				_devices.for_each_io_mmu([&] (auto &io_mmu_dev) {
 					if (io_mmu_dev.name() == io_mmu.name) {
 						if (io_mmu_dev.mpu() && _dma_allocator.remapping())
 							error("Unable to create domain for MPU device ",
@@ -120,7 +120,7 @@ bool Session_component::matches(Device const &dev) const
 
 void Session_component::update_io_mmu_devices()
 {
-	_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
+	_devices.for_each_io_mmu([&] (auto &io_mmu) {
 
 		/* determine whether IOMMU is used by any owned/acquire device */
 		bool used_by_owned_device = false;
@@ -131,14 +131,14 @@ void Session_component::update_io_mmu_devices()
 			if (used_by_owned_device)
 				return;
 
-			dev.with_optional_io_mmu(io_mmu_dev.name(), [&] () {
+			dev.with_io_mmu(io_mmu.name(), [&] (auto const &) {
 				used_by_owned_device = true; });
 		});
 
 		/* synchronise with IOMMU domains */
 		bool domain_exists = false;
 		_domain_registry.for_each([&] (Io_mmu_domain &wrapper) {
-			if (io_mmu_dev.domain_owner(wrapper.domain)) {
+			if (io_mmu.domain_owner(wrapper.domain)) {
 				domain_exists = true;
 
 				/* remove domain if not used by any owned device */
@@ -157,7 +157,7 @@ void Session_component::update_io_mmu_devices()
 		 */
 		if (used_by_owned_device && !domain_exists) {
 			warning("Unable to configure DMA ranges properly because ",
-			        "IO MMU'", io_mmu_dev.name(),
+			        "IO MMU'", io_mmu.name(),
 			        "' was added to an already acquired device.");
 		}
 
@@ -214,12 +214,6 @@ Genode::Heap & Session_component::heap() { return _md_alloc; }
 Driver::Io_mmu_domain_registry & Session_component::domain_registry()
 {
 	return _domain_registry;
-}
-
-
-Genode::Registry<Driver::Irq_controller> & Session_component::irq_controller_registry()
-{
-	return _irq_controller_registry;
 }
 
 
@@ -432,23 +426,17 @@ Session_component::Session_component(Env                          &env,
                                      Attached_rom_dataspace const &config,
                                      Device_model                 &devices,
                                      Session_registry             &registry,
-                                     Io_mmu_devices               &io_mmu_devices,
-                                     Registry<Irq_controller>     &irq_controller_registry,
                                      Label          const         &label,
                                      Resources      const         &resources,
                                      bool           const          info,
-                                     Policy_version const          version,
-                                     bool           const          dma_remapping,
-                                     bool           const          kernel_iommu)
+                                     Policy_version const          version)
 :
 	Session_object<Platform::Session>(env.ep(), resources, label),
 	Session_registry::Element(registry, *this),
 	Dynamic_rom_session::Producer("devices"),
 	_env(env), _config(config), _devices(devices),
-	_io_mmu_devices(io_mmu_devices),
-	_irq_controller_registry(irq_controller_registry),
 	_info(info), _version(version),
-	_dma_allocator(_md_alloc, dma_remapping)
+	_dma_allocator(_md_alloc, devices.dma_allocators(), devices.dma_remapping())
 {
 	/*
 	 * FIXME: As the ROM session does not propagate Out_of_*
@@ -470,17 +458,11 @@ Session_component::Session_component(Env                          &env,
 	 * We therefore construct a corresponding domain object at session
 	 * construction.
 	 */
-	if (kernel_iommu)
-		_io_mmu_devices.for_each([&] (Io_mmu &io_mmu_dev) {
-			if (io_mmu_dev.name() == "kernel_iommu") {
-				_domain_registry.default_domain(io_mmu_dev,
-				                                heap(),
-				                                _env_ram,
-				                                _dma_allocator.buffer_registry(),
-				                                _ram_quota_guard(),
-				                                _cap_quota_guard());
-			}
-		});
+	_devices.with_kernel_io_mmu([&] (auto &io_mmu) {
+		_domain_registry.default_domain(io_mmu, heap(), _env_ram,
+		                                _dma_allocator.buffer_registry(),
+		                                _ram_quota_guard(),
+		                                _cap_quota_guard()); });
 
 	/*
 	 * Iterate matching devices and reserve reserved memory regions at DMA
