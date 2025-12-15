@@ -51,13 +51,7 @@ class Event_filter::Report_source : public Source, Source::Filter
 
 			Input::Keycode keys[MAX] { };
 
-			void reset()
-			{
-				num = 0;
-				for (auto &k : keys) k = Input::KEY_RESERVED;
-			}
-
-			[[nodiscard]] bool push(Input::Keycode key)
+			[[nodiscard]] bool press(Input::Keycode key)
 			{
 				if (num > MAX)
 					return false;
@@ -88,7 +82,7 @@ class Event_filter::Report_source : public Source, Source::Filter
 				return true;
 			}
 
-			void pop(Input::Keycode key)
+			void release(Input::Keycode key)
 			{
 				if (num == 0)
 					return;
@@ -110,8 +104,14 @@ class Event_filter::Report_source : public Source, Source::Filter
 
 			bool operator == (Keys const &other) const
 			{
-				return num == other.num
-				    && !memcmp(keys, other.keys, MAX);
+				if (num != other.num)
+					return false;
+
+				for (unsigned i = 0; i < num; ++i)
+					if (keys[i] != other.keys[i])
+						return false;
+
+				return true;
 			}
 		};
 
@@ -151,7 +151,7 @@ class Event_filter::Report_source : public Source, Source::Filter
 					auto key_name = node_name(k, "KEY_UNKNOWN");
 
 					invalid |= !n.has_attribute("name");
-					invalid |= !new_keys.push(Input::key_code(key_name));
+					invalid |= !new_keys.press(Input::key_code(key_name));
 				});
 
 				if (invalid)
@@ -189,13 +189,13 @@ class Event_filter::Report_source : public Source, Source::Filter
 		{
 			event.handle_press([&] (Input::Keycode key, Codepoint) {
 				/* ignore key presses that don't fit in combination */
-				if (!_keys.push(key))
+				if (!_keys.press(key))
 					return;
 
 				_shortcuts.for_each([&] (auto &s) { s.report(_keys, _serial); });
 			});
 
-			event.handle_release([&] (Input::Keycode key) { _keys.pop(key); });
+			event.handle_release([&] (Input::Keycode key) { _keys.release(key); });
 
 			/* forward event */
 			destination.submit(event);
