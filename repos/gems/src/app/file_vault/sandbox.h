@@ -81,7 +81,7 @@ namespace File_vault {
 	                    char const *root, bool writeable)
 	{
 		g.node("policy", [&] {
-			g.attribute("label_prefix ", label_prefix);
+			g.attribute("label_prefix", label_prefix);
 			g.attribute("root", root);
 			g.attribute("writeable", writeable ? "yes" : "no");
 		});
@@ -236,15 +236,15 @@ namespace File_vault {
 						});
 					});
 				});
-				gen_vfs_policy(g, "extend_fs_tool -> ", "/dev", true);
-				gen_vfs_policy(g, "rekey_fs_tool -> ", "/dev", true);
-				gen_vfs_policy(g, "lock_fs_tool -> ", "/dev", true);
-				gen_vfs_policy(g, "extend_fs_query -> ", "/dev", true);
-				gen_vfs_policy(g, "rekey_fs_query -> ", "/dev", true);
-				gen_vfs_policy(g, "lock_fs_query -> ", "/dev", true);
-				gen_vfs_policy(g, "vfs_block -> ", "/dev/tresor/current", true);
-				gen_vfs_policy(g, "client_fs_query -> ", "/dev/tresor/current", false);
-				gen_vfs_policy(g, "sync_to_tresor_vfs_init -> ", "/dev", true);
+				gen_vfs_policy(g, "extend_fs_tool ->", "/dev", true);
+				gen_vfs_policy(g, "rekey_fs_tool ->", "/dev", true);
+				gen_vfs_policy(g, "lock_fs_tool ->", "/dev", true);
+				gen_vfs_policy(g, "extend_fs_query ->", "/dev", true);
+				gen_vfs_policy(g, "rekey_fs_query ->", "/dev", true);
+				gen_vfs_policy(g, "lock_fs_query ->", "/dev", true);
+				gen_vfs_policy(g, "vfs_block ->", "/dev/tresor/current", true);
+				gen_vfs_policy(g, "client_fs_query ->", "/dev/tresor/current", false);
+				gen_vfs_policy(g, "sync_to_tresor_vfs_init ->", "/dev", true);
 			});
 			g.node("route", [&] {
 				gen_child_route(g, "tresor_trust_anchor_vfs", "File_system", "trust_anchor -> /");
@@ -374,7 +374,7 @@ namespace File_vault {
 				gen_policy("mke2fs -> default");
 				gen_policy("e2fsck -> default");
 				gen_policy("resize2fs -> default");
-				gen_policy("rump_vfs -> ");
+				gen_policy("rump_vfs ->");
 			});
 			g.node("route", [&] {
 				gen_child_route(g, "tresor_vfs", "File_system");
