@@ -494,6 +494,29 @@ void Component::construct(Genode::Env &env)
 					fail("generated attribute with bad value");
 		});
 
+	with_generated("name_with_colon",
+
+		[&] (Hid_generator &g) {
+			g.node("dev1", [&] { g.attribute("name", "a:b"); });
+			g.node("dev2", [&] { g.attribute("name", "a: b"); });
+			g.node("dev3", [&] { g.attribute("name", ":"); });
+		},
+		[&] (Node const &node) {
+			using Value = String<10>;
+			log("node: ", node);
+			auto dev_name = [&] (char const *type)
+			{
+				return node.with_sub_node(type,
+					[&] (Node const &node) {
+						return node.attribute_value("name", Value()); },
+					[&] {
+						return Value(); });
+			};
+			if (dev_name("dev1") != "a:b")  fail("unexpected name of dev1");
+			if (dev_name("dev2") != "a: b") fail("unexpected name of dev2");
+			if (dev_name("dev3") != ":")    fail("unexpected name of dev3");
+		});
+
 	log("--- End of HID-parser test ---");
 	env.parent().exit(0);
 }
