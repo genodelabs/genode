@@ -90,7 +90,9 @@ void Genode::Hid_node::_for_each_attr(Span const &bytes, auto const &fn)
 	{
 			bool result = false;
 			_with_ident(seg, [&] (Span const &tag, Span const &remain) {
-				result = tag.num_bytes && remain.start[0] == ':'; });
+			if (tag.num_bytes && remain.num_bytes)
+					result = remain.equals({ ":", 1 })
+					      || remain.starts_with({ ": ", 2 }); });
 			return result;
 	};
 
@@ -414,10 +416,19 @@ void Hid_generator::_attribute(char const *tag, char const *value, size_t val_le
 		return;
 	}
 
+	auto value_without_tag_chars = [&]
+	{
+		for (size_t i = 0; i < val_len; i++)
+			if ((value[i] == ':') && (i + 1 == val_len || value[i + 1] == ' '))
+				return false;
+		return true;
+	};
+
 	size_t const tag_len = strlen(tag);
 
 	bool const first         = !_node_state.has_attr;
-	bool const name_as_first = first && (strcmp(tag, "name") == 0);
+	bool const name_as_first = first && (strcmp(tag, "name") == 0)
+	                                 && value_without_tag_chars();
 
 	size_t leading_spaces = 0;
 
