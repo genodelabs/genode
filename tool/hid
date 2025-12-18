@@ -819,7 +819,7 @@ proc _hid_from_xml_rec { text info_var } {
 				if {![info exists info($attr,type)] || $info($attr,type) != "attr"} {
 					error "unable to parse XML attribute $attr" }
 
-				set attr_pattern {(\w+) *= *"([^"]*)"}
+				set attr_pattern {([\w0-9\-_]+) *= *"([^"]*)"}
 				if {[regexp $attr_pattern $info($attr,text) match tag value]} {
 					lappend hid_attrs [list 0 "" $tag "" $value] }
 			}
