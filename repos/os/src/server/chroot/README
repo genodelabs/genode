@@ -9,8 +9,14 @@ will be chrooted into paths formed from each session label element. Sessions
 matching polices with a _path_prefix_ attribute are both rooted at the
 attribute path and in sub-directories formed by the session label.
 Sessions requests are downgraded to read-only requests unless matched by
-polices with an affirmative _writeable_ attribute. Sessions not matching any
-policy are rejected.
+polices with an affirmative _writeable_ attribute.
+By default, chroot preserves the client's identity as session label when
+requesting a file-system session on behalf of a client. If constructing
+the root path from the client label, however, the client's identity appears
+twice in the session label, once as the client's identity and once as root path.
+To avoid inflating the total session label in this case, the _client_identity_
+attribute of a policy can be set to "no".
+Sessions with no policy are rejected.
 
 Please note that this server is only effective for File_system servers that
 honor the "root" or "writeable" argument to session requests.

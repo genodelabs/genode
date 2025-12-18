@@ -189,8 +189,9 @@ struct Chroot::Main
 		}
 
 		/* replace last label element by new root path */
-		Session_label const rewritten_label =
-			prefixed_label(label.prefix(), Session_label(root_path.string(), "/"));
+		Session_label rewritten_label { root_path.string(), "/" };
+		if (policy.attribute_value("client_identity", true))
+			rewritten_label = prefixed_label(label.prefix(), rewritten_label);
 
 		if (!Arg_string::set_arg_string(new_args, ARGS_MAX_LEN, "label", rewritten_label.string())) {
 			warning("label \"", rewritten_label, "\" is too long for session arguments");
