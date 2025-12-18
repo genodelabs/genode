@@ -3,7 +3,7 @@
 	<requires> <file_system/> </requires>
 	<provides> <file_system/> </provides>
 
-	<config> <default-policy path_prefix="/recall" writeable="yes"/> </config>
+	<config> <default-policy path_prefix="/recall" client_identity="no" writeable="yes"/> </config>
 
 	<content>
 		<rom label="ld.lib.so"/>
