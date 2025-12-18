@@ -19,7 +19,6 @@
 
 /* local includes */
 #include <device.h>
-#include <device_pd.h>
 #include <device_component.h>
 #include <pci.h>
 #include <pci_uhci.h>

@@ -1,5 +1,5 @@
 /*
- * \brief  Pci device protection for platform driver
+ * \brief  Platform driver - handling of IOMMUs controlled by the kernel
  * \author Alexander Boettcher
  * \author Stefan Kalkowski
  * \author Johannes Schlatow
@@ -21,13 +21,14 @@
 #include <util/retry.h>
 
 /* local includes */
-#include <device_pd.h>
+#include <kernel_io_mmu.h>
 
 using namespace Driver;
 
 
-Device_pd::Region_map_client::Attach_result
-Device_pd::Region_map_client::attach(Dataspace_capability ds, Attr const &attr)
+Kernel_io_mmu::Device_pd::Region_map_client::Attach_result
+Kernel_io_mmu::Device_pd::Region_map_client::attach(Dataspace_capability ds,
+                                                    Attr const &attr)
 {
 	for (;;) {
 		Attach_result const result = Genode::Region_map_client::attach(ds, attr);
@@ -46,7 +47,7 @@ Device_pd::Region_map_client::attach(Dataspace_capability ds, Attr const &attr)
 }
 
 
-bool Device_pd::Region_map_client::upgrade_ram()
+bool Kernel_io_mmu::Device_pd::Region_map_client::upgrade_ram()
 {
 	Ram_quota const ram { 4096 };
 	if (!_ram_guard.try_withdraw(ram))
@@ -57,7 +58,7 @@ bool Device_pd::Region_map_client::upgrade_ram()
 }
 
 
-bool Device_pd::Region_map_client::upgrade_caps()
+bool Kernel_io_mmu::Device_pd::Region_map_client::upgrade_caps()
 {
 	Cap_quota const caps { 2 };
 	if (!_cap_guard.try_withdraw(caps))
@@ -68,9 +69,9 @@ bool Device_pd::Region_map_client::upgrade_caps()
 }
 
 
-void Device_pd::add_range(Io_mmu::Range        const &range,
-                          addr_t               const,
-                          Dataspace_capability const cap)
+void Kernel_io_mmu::Device_pd::add_range(Io_mmu::Range        const &range,
+                                         addr_t               const,
+                                         Dataspace_capability const cap)
 {
 	using namespace Genode;
 
@@ -108,14 +109,15 @@ void Device_pd::add_range(Io_mmu::Range        const &range,
 }
 
 
-void Device_pd::remove_range(Io_mmu::Range const &range)
+void Kernel_io_mmu::Device_pd::remove_range(Io_mmu::Range const &range)
 {
 	_address_space.detach(range.start);
 }
 
 
-void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
-                                  Pci::Bdf                    const &bdf)
+void Kernel_io_mmu::Device_pd::enable_pci_device(
+	Io_mem_dataspace_capability const io_mem_cap,
+    Pci::Bdf                    const &bdf)
 {
 	_address_space.attach(io_mem_cap, {
 		.size       = 0x1000,  .offset    = { },
@@ -140,19 +142,19 @@ void Device_pd::enable_pci_device(Io_mem_dataspace_capability const io_mem_cap,
 }
 
 
-void Device_pd::disable_pci_device(Pci::Bdf const &)
+void Kernel_io_mmu::Device_pd::disable_pci_device(Pci::Bdf const &)
 {
 	warning("Cannot unassign PCI device from device PD (not implemented by kernel).");
 }
 
 
 
-Device_pd::Device_pd(Env                        &env,
-                     Ram_quota_guard            &ram_guard,
-                     Cap_quota_guard            &cap_guard,
-                     Kernel_io_mmu              &io_mmu,
-                     Allocator                  &md_alloc,
-                     Registry<Dma_buffer> const &buffer_registry)
+Kernel_io_mmu::Device_pd::Device_pd(Env                        &env,
+                                    Ram_quota_guard            &ram_guard,
+                                    Cap_quota_guard            &cap_guard,
+                                    Kernel_io_mmu              &io_mmu,
+                                    Allocator                  &md_alloc,
+                                    Registry<Dma_buffer> const &buffer_registry)
 
 :
 	Io_mmu::Domain(io_mmu, md_alloc),
@@ -164,3 +166,27 @@ Device_pd::Device_pd(Env                        &env,
 	buffer_registry.for_each([&] (Dma_buffer const &buf) {
 		add_range({ buf.dma_addr, buf.size }, buf.phys_addr, buf.cap); });
 }
+
+
+Io_mmu::Domain &
+Kernel_io_mmu::create_domain(Allocator                  &md_alloc,
+                             Ram_allocator              &,
+                             Registry<Dma_buffer> const &buffer_registry,
+                             Ram_quota_guard            &ram_guard,
+                             Cap_quota_guard            &cap_guard)
+{
+	return *new (md_alloc) Device_pd(_env, ram_guard, cap_guard, *this, md_alloc,
+	                                 buffer_registry);
+}
+
+
+Kernel_io_mmu::Kernel_io_mmu(Env                     &env,
+                             Io_mmu_devices           &io_mmu_devices,
+                             Device_name        const &name)
+:
+	Io_mmu(io_mmu_devices, name),
+	_env(env)
+{ };
+
+
+Kernel_io_mmu::~Kernel_io_mmu() { _destroy_domains(); }

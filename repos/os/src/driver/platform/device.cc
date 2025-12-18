@@ -14,10 +14,10 @@
 #include <util/bit_array.h>
 
 #include <device.h>
-#include <pci.h>
 #include <device_owner.h>
-#include <device_pd.h>
 #include <device_component.h>
+#include <kernel_io_mmu.h>
+#include <pci.h>
 
 
 Driver::Device::Owner::Owner(Device_owner &owner)

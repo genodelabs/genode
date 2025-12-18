@@ -1,5 +1,5 @@
 /*
- * \brief  Device PD handling for the platform driver
+ * \brief  Platform driver - handling of IOMMUs controlled by the kernel
  * \author Alexander Boettcher
  * \author Johannes Schlatow
  * \date   2015-11-05
@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__DRIVER__PLATFORM__DEVICE_PD_H_
-#define _SRC__DRIVER__PLATFORM__DEVICE_PD_H_
+#ifndef _SRC__DRIVER__PLATFORM__KERNEL_IO_MMU_H_
+#define _SRC__DRIVER__PLATFORM__KERNEL_IO_MMU_H_
 
 /* base */
 #include <base/allocator_avl.h>
@@ -30,12 +30,40 @@
 namespace Driver {
 	using namespace Genode;
 
-	class Device_pd;
 	class Kernel_io_mmu;
 }
 
 
-class Driver::Device_pd : public Io_mmu::Domain
+class Driver::Kernel_io_mmu : public Io_mmu
+{
+	private:
+
+		Env &_env;
+
+		class Device_pd;
+
+	public:
+
+		Kernel_io_mmu(Env              &env,
+		             Io_mmu_devices    &io_mmu_devices,
+		             Device_name const &name);
+		~Kernel_io_mmu();
+
+
+		/*********************
+		 ** Iommu interface **
+		 *********************/
+
+		Driver::Io_mmu::Domain & create_domain(
+			Allocator                  &md_alloc,
+			Ram_allocator              &,
+			Registry<Dma_buffer> const &buffer_registry,
+			Ram_quota_guard            &ram_guard,
+			Cap_quota_guard            &cap_guard) override;
+};
+
+
+class Driver::Kernel_io_mmu::Device_pd : public Io_mmu::Domain
 {
 	private:
 
@@ -91,44 +119,4 @@ class Driver::Device_pd : public Io_mmu::Domain
 		void disable_pci_device(Pci::Bdf const &) override;
 };
 
-
-class Driver::Kernel_io_mmu : public Io_mmu
-{
-	private:
-
-		Env &_env;
-
-	public:
-
-		/**
-		 * Iommu interface
-		 */
-
-		Driver::Io_mmu::Domain & create_domain(
-			Allocator                  &md_alloc,
-			Ram_allocator              &,
-			Registry<Dma_buffer> const &buffer_registry,
-			Ram_quota_guard            &ram_guard,
-			Cap_quota_guard            &cap_guard) override
-		{
-			return *new (md_alloc) Device_pd(_env,
-			                                 ram_guard,
-			                                 cap_guard,
-			                                 *this,
-			                                 md_alloc,
-			                                 buffer_registry);
-		}
-
-
-		Kernel_io_mmu(Env                     &env,
-		             Io_mmu_devices           &io_mmu_devices,
-		             Device_name        const &name)
-		:
-			Io_mmu(io_mmu_devices, name),
-			_env(env)
-		{ };
-
-		~Kernel_io_mmu() { _destroy_domains(); }
-};
-
-#endif /* _SRC__DRIVER__PLATFORM__DEVICE_PD_H_ */
+#endif /* _SRC__DRIVER__PLATFORM__KERNEL_IO_MMU_H_ */
