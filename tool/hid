@@ -751,11 +751,16 @@ proc _xml_encoded { text } {
 }
 
 
+proc xml_leaf_pattern      { } { return {(<\w[^>]*/>)} }
+proc xml_compound_pattern  { } { return {(<\w[^>]*>[<>0-9]*</[^>]*>)} }
+
+
 proc _hid_from_xml_rec { text info_var } {
 
 	upvar $info_var info
 
 	set result { }
+	set hid_preface {}
 
 	while {1} {
 
@@ -772,6 +777,7 @@ proc _hid_from_xml_rec { text info_var } {
 		set hid_attrs    {}
 		set hid_children {}
 		set hid_quoted   {}
+		set hid_anchor   "+ "
 
 		if {$child_type == "quoted"} {
 
@@ -780,6 +786,27 @@ proc _hid_from_xml_rec { text info_var } {
 				foreach line [split $child_text "\n"] {
 					set decoded [string trim [_xml_decoded $line]]
 					lappend result [list ":" 1 "" "" "" "" "" "" $decoded] } }
+		}
+
+		if {$child_type == "comment"} {
+
+			regexp {([\n\s]*?)<\!--(.*?)-->\n?} $child_text dummy prespace comment
+
+			# distiguish commented-out leaf or compound from textual comment
+			if {[regexp [xml_compound_pattern] $comment dummy disabled_compound]} {
+				set child_type "compound"
+				set hid_anchor "x "
+				set child_text $disabled_compound
+			} elseif {[regexp [xml_leaf_pattern] $comment dummy disabled_leaf]} {
+				set child_type "leaf"
+				set hid_anchor "x "
+				set child_text $disabled_leaf
+			} else {
+				regsub {\n} $prespace "" prespace
+				foreach line [split "$prespace$comment" "\n"] {
+					lappend hid_preface [list "" "" [string trim $line]]
+				}
+			}
 		}
 
 		if {$child_type == "compound"} {
@@ -824,7 +851,8 @@ proc _hid_from_xml_rec { text info_var } {
 					lappend hid_attrs [list 0 "" $tag "" $value] }
 			}
 
-			lappend result [list $hid_type "" 1 "" "+ " "" $hid_attrs $hid_children ""]
+			lappend result [list $hid_type "" 1 "" $hid_anchor $hid_preface $hid_attrs $hid_children ""]
+			set hid_preface {}
 		}
 	}
 
@@ -840,11 +868,11 @@ proc import_hid_from_xml { xml } {
 
 	set id 0
 
-	_parse_xml comment  {<\!--[^\n]*-->\n}            {""}      xml id info
-	_parse_xml attr     {([\w0-9\-_]+ *= *"[^"]*")}   {$id}     xml id info
-	_parse_xml leaf     {(<\w[^>]*/>)}                {<$id>}   xml id info
-	_parse_xml quoted   {>([^<]+)<}                   {><$id><} xml id info
-	_parse_xml compound {(<\w[^>]*>[<>0-9]*</[^>]*>)} {<$id>}   xml id info
+	_parse_xml attr     {([\w0-9\-_]+ *= *"[^"]*")} {$id}     xml id info
+	_parse_xml comment  {([\n\s]*?<\!--.*?-->\n?)}  {<$id>}   xml id info
+	_parse_xml leaf     [xml_leaf_pattern]          {<$id>}   xml id info
+	_parse_xml quoted   {>([^<]+)<}                 {><$id><} xml id info
+	_parse_xml compound [xml_compound_pattern]      {<$id>}   xml id info
 
 	return [lindex [_hid_from_xml_rec [string trim $xml] info] 0]
 }
