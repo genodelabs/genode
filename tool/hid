@@ -16,6 +16,15 @@ proc error { msg } {
 
 
 #
+# Workaround for a limitation of Tcl's 'string trim' when called with " ⋅ "
+#
+proc string_trim { s } {
+	regexp {^\s*(.*?)\s*$} $s dummy trimmed
+	return $trimmed
+}
+
+
+#
 # HID nodes and attributes are represented as lists
 #
 # hid_padding  - space following the node type
@@ -44,7 +53,7 @@ proc attr_align     { attr } { return [lindex $attr 3] }
 proc attr_value     { attr } { return [lindex $attr 4] }
 proc attr_anno      { attr } { return [lindex $attr 5] }
 
-proc same_trimmed     { s1 s2 } { return [expr {[string trim $s1] == [string trim $s2]}] }
+proc same_trimmed     { s1 s2 } { return [expr {[string_trim $s1] == [string_trim $s2]}] }
 proc same_attr_values { a1 a2 } { return [same_trimmed [attr_value $a1] [attr_value $a2]] }
 
 proc hid_leaf { hid } {
@@ -374,11 +383,11 @@ proc parse_line { n chars ctx_var } {
 		set at ""
 		if {$n} { set at " at line $n" }
 		if {[regexp {\s+$} $chars bad]} {
-			set bad_line "[string trim $orig_chars]$bad"
+			set bad_line "[string_trim $orig_chars]$bad"
 			puts stderr "Error: trailing space$at: '$bad_line'"
 		} elseif {[regexp {^[| +x]*\t} $chars]} {
 			regsub {\t} $orig_chars "<TAB>" bad_line
-			set bad_line "[string trim $bad_line]"
+			set bad_line "[string_trim $bad_line]"
 			puts stderr "Error: tab misused to indent$at: '$bad_line'"
 		} else {
 			puts stderr "Unable to parse$at: '$chars'"
@@ -597,7 +606,7 @@ proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 		regsub {. $|^$} $indent ". " comment_prefix
 		puts $out_fd "$comment_prefix[lindex $preface_line 2]" }
 
-	set type [string trim [hid_type $hid]]
+	set type [string_trim [hid_type $hid]]
 
 	set node_branch_char "|"
 	if {$last} {
@@ -618,13 +627,13 @@ proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 		set tag_column_size [expr $max_tag_len + 1]
 
 		set first_attr [hid_first_attr $hid]
-		set anno [string trim [attr_anno $first_attr]]
+		set anno [string_trim [attr_anno $first_attr]]
 		if {$anno != ""} { set anno " $anno" }
 		if {[attr_tag $first_attr] == "name"} {
 			puts $out_fd "$indent$type [attr_value $first_attr]$anno"
 		} else {
 			set padded_tag [format "%-${tag_column_size}s" "[attr_tag $first_attr]:"]
-			set value [string trim [attr_value $first_attr]]
+			set value [string_trim [attr_value $first_attr]]
 			if {$value != ""} { set value " $value" }
 			puts $out_fd "$indent$type $padded_tag$value$anno"
 		}
@@ -658,7 +667,7 @@ proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 				puts $out_fd "$indent: [hid_quoted $child_hid]"
 			}
 		} else {
-			set sub_node_indent "$indent[string trim [hid_anchor $child_hid]] "
+			set sub_node_indent "$indent[string_trim [hid_anchor $child_hid]] "
 			print_hid_as_tree_recursively $out_fd $sub_node_indent $child_hid $last
 		}
 	}
@@ -720,7 +729,7 @@ proc _parse_xml { type pattern replace xml_var id_var info_var } {
 	while {[regexp $pattern $xml dummy match]} {
 		set info($id,type) $type
 		set info($id,text) $match
-		regsub $pattern $xml [eval "string trim $replace"] xml
+		regsub $pattern $xml [eval "string_trim $replace"] xml
 		incr id
 	}
 }
@@ -781,10 +790,10 @@ proc _hid_from_xml_rec { text info_var } {
 
 		if {$child_type == "quoted"} {
 
-			set trimmed [string trim $child_text]
+			set trimmed [string_trim $child_text]
 			if {[string length $trimmed] > 0} {
 				foreach line [split $child_text "\n"] {
-					set decoded [string trim [_xml_decoded $line]]
+					set decoded [string_trim [_xml_decoded $line]]
 					lappend result [list ":" 1 "" "" "" "" "" "" $decoded] } }
 		}
 
@@ -804,7 +813,7 @@ proc _hid_from_xml_rec { text info_var } {
 			} else {
 				regsub {\n} $prespace "" prespace
 				foreach line [split "$prespace$comment" "\n"] {
-					lappend hid_preface [list "" "" [string trim $line]]
+					lappend hid_preface [list "" "" [string_trim $line]]
 				}
 			}
 		}
@@ -874,13 +883,13 @@ proc import_hid_from_xml { xml } {
 	_parse_xml quoted   {>([^<]+)<}                 {><$id><} xml id info
 	_parse_xml compound [xml_compound_pattern]      {<$id>}   xml id info
 
-	return [lindex [_hid_from_xml_rec [string trim $xml] info] 0]
+	return [lindex [_hid_from_xml_rec [string_trim $xml] info] 0]
 }
 
 
 proc print_hid_as_xml { out_fd hid { indent 0 } } {
 
-	if {[string trim [hid_anchor $hid]] == "x"} {
+	if {[string_trim [hid_anchor $hid]] == "x"} {
 		return }
 
 	set indent_tabs ""
@@ -909,7 +918,7 @@ proc print_hid_as_xml { out_fd hid { indent 0 } } {
 
 	set xml_tag "<$type"
 	foreach attr [hid_attributes $hid] {
-		lappend xml_tag "[attr_tag $attr]=\"[string trim [attr_value $attr]]\"" }
+		lappend xml_tag "[attr_tag $attr]=\"[string_trim [attr_value $attr]]\"" }
 	puts -nonewline $out_fd "$indent_tabs[join $xml_tag { }]"
 
 	if {[hid_leaf $hid]} {
@@ -1248,7 +1257,7 @@ with_command set {
 			foreach attr $orig_attrs {
 				foreach new_attr $new_attrs {
 					if {[attr_tag $attr] == [attr_tag $new_attr]} {
-						set value [string trim [attr_value $new_attr]]
+						set value [string_trim [attr_value $new_attr]]
 						set align [attr_align $attr]
 						if {$value == ""} { set align "" } else { set align " " }
 						set attr [lreplace $attr 3 3 $align]
