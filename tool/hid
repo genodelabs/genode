@@ -603,9 +603,11 @@ proc hid_num_quoted_lines { hid } {
 proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 
 	# print comment above node
-	foreach preface_line [hid_preface $hid] {
-		regsub {. $|^$} $indent ". " comment_prefix
-		puts $out_fd "$comment_prefix[lindex $preface_line 2]" }
+	if {$indent != ""} {
+		foreach preface_line [hid_preface $hid] {
+			regsub {. $|^$} $indent ". " comment_prefix
+			puts $out_fd "$comment_prefix[lindex $preface_line 2]" }
+	}
 
 	set type [string_trim [hid_type $hid]]
 
