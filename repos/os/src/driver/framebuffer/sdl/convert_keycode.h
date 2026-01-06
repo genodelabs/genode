@@ -33,7 +33,11 @@ static inline Input::Keycode convert_keycode(int sdl_keycode)
 	case SDLK_PAUSE:        return KEY_PAUSE;
 	case SDLK_ESCAPE:       return KEY_ESC;
 	case SDLK_SPACE:        return KEY_SPACE;
+	#ifdef SDL3
+	case SDLK_APOSTROPHE:   return KEY_APOSTROPHE;
+	#else
 	case SDLK_QUOTE:        return KEY_APOSTROPHE;
+	#endif
 	case SDLK_HASH:         return KEY_APOSTROPHE;
 	case SDLK_COMMA:        return KEY_COMMA;
 	case SDLK_MINUS:        return KEY_MINUS;
@@ -56,6 +60,35 @@ static inline Input::Keycode convert_keycode(int sdl_keycode)
 	case SDLK_LEFTBRACKET:  return KEY_LEFTBRACE;
 	case SDLK_BACKSLASH:    return KEY_BACKSLASH;
 	case SDLK_RIGHTBRACKET: return KEY_RIGHTBRACE;
+	#ifdef SDL3
+	case SDLK_GRAVE:        return KEY_GRAVE;
+	case SDLK_A:            return KEY_A;
+	case SDLK_B:            return KEY_B;
+	case SDLK_C:            return KEY_C;
+	case SDLK_D:            return KEY_D;
+	case SDLK_E:            return KEY_E;
+	case SDLK_F:            return KEY_F;
+	case SDLK_G:            return KEY_G;
+	case SDLK_H:            return KEY_H;
+	case SDLK_I:            return KEY_I;
+	case SDLK_J:            return KEY_J;
+	case SDLK_K:            return KEY_K;
+	case SDLK_L:            return KEY_L;
+	case SDLK_M:            return KEY_M;
+	case SDLK_N:            return KEY_N;
+	case SDLK_O:            return KEY_O;
+	case SDLK_P:            return KEY_P;
+	case SDLK_Q:            return KEY_Q;
+	case SDLK_R:            return KEY_R;
+	case SDLK_S:            return KEY_S;
+	case SDLK_T:            return KEY_T;
+	case SDLK_U:            return KEY_U;
+	case SDLK_V:            return KEY_V;
+	case SDLK_W:            return KEY_W;
+	case SDLK_X:            return KEY_X;
+	case SDLK_Y:            return KEY_Y;
+	case SDLK_Z:            return KEY_Z;
+	#else
 	case SDLK_BACKQUOTE:    return KEY_GRAVE;
 	case SDLK_a:            return KEY_A;
 	case SDLK_b:            return KEY_B;
@@ -83,6 +116,7 @@ static inline Input::Keycode convert_keycode(int sdl_keycode)
 	case SDLK_x:            return KEY_X;
 	case SDLK_y:            return KEY_Y;
 	case SDLK_z:            return KEY_Z;
+	#endif
 	case SDLK_DELETE:       return KEY_DELETE;
 
 	/* arrows + home/end pad */
