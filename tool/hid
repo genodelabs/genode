@@ -180,6 +180,7 @@ proc id_pattern      { } { return {[a-z][a-z0-9_-]*} }
 proc space_pattern   { } { return { +}               }
 proc tag_pattern     { } { return " *[id_pattern]:"  }
 proc value_pattern   { } { return { *([^| ]| [^|])+} }
+proc attr_pattern    { } { return "[tag_pattern]( [value_pattern]|$)" }
 proc anchor_pattern  { } { return { *[+x] }          }
 proc comment_pattern { } { return { *[.]( |$)}       }
 proc anno_pattern    { } { return { *[|] [.] .*$}    }
@@ -242,15 +243,16 @@ proc parse_attr { prespace_var chars_var xpos_var tag_name_var align_var value_v
 	upvar $value_var    value
 	upvar $anno_var     anno
 
-	parse [tag_pattern] chars xpos tag {
-		parse [space_pattern] tag xpos space { append prespace $space }
-		parse [id_pattern]    tag xpos tag_name {
-			set value ""
-			set align ""
-			parse_value chars xpos align value { }
-			set anno [parse_annotation chars xpos]
+	parse [attr_pattern] chars xpos attr {
+		parse [tag_pattern] attr xpos tag {
+			parse [space_pattern] tag xpos space { append prespace $space }
+			parse [id_pattern]    tag xpos tag_name {
+				set value ""
+				set align ""
+				parse_value attr xpos align value { }
+				set anno [parse_annotation chars xpos]
 
-			uplevel 1 $body } }
+				uplevel 1 $body } } }
 }
 
 
