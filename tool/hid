@@ -30,7 +30,7 @@ proc string_trim { s } { return [string trim $s " \t\n"] }
 # hid_prespace - space in front of a node
 # hid_anno     - annotation following immediately the node type
 # hid_anchor   - x or +
-# hid_preface  - comment line preceeding the node
+# hid_doc      - comment lines belonging to the node
 # attr_anno    - annotation following an attriute
 # attr_align   - space between tag and value
 #
@@ -40,7 +40,7 @@ proc hid_padding    { hid  } { return [lindex $hid  1] }
 proc hid_line       { hid  } { return [lindex $hid  2] }
 proc hid_prespace   { hid  } { return [lindex $hid  3] }
 proc hid_anchor     { hid  } { return [lindex $hid  4] }
-proc hid_preface    { hid  } { return [lindex $hid  5] }
+proc hid_doc        { hid  } { return [lindex $hid  5] }
 proc hid_attributes { hid  } { return [lindex $hid  6] }
 proc hid_children   { hid  } { return [lindex $hid  7] }
 proc hid_quoted     { hid  } { return [lindex $hid  8] }
@@ -65,9 +65,9 @@ proc node_stack_element_as_hid { ctx_var i } {
 
 	upvar $ctx_var ctx
 
-	return [list $ctx($i,type)       $ctx($i,padding)  $ctx($i,line)    \
-	             $ctx($i,prespace)   $ctx($i,anchor)   $ctx($i,preface) \
-	             $ctx($i,attributes) $ctx($i,children) $ctx($i,quoted)  \
+	return [list $ctx($i,type)       $ctx($i,padding)  $ctx($i,line)   \
+	             $ctx($i,prespace)   $ctx($i,anchor)   $ctx($i,doc)    \
+	             $ctx($i,attributes) $ctx($i,children) $ctx($i,quoted) \
 	             $ctx($i,annotation)]
 }
 
@@ -103,32 +103,11 @@ proc pop_nodes { ctx_var xpos } {
 }
 
 
-proc drop_misaligned_preface { ctx_var xpos } {
-
-	upvar $ctx_var ctx
-
-	if {$xpos != $ctx(preface,xpos)} {
-		foreach line $ctx(preface,lines) {
-			set n    [lindex $line 0]
-			set text [lindex $line 2]
-			puts stderr "Dropping commented-out line $n: $text"
-			set ctx(prespace) "\n"
-		}
-		set ctx(preface,xpos)  -1
-		set ctx(preface,lines) {}
-	}
-}
-
-
 proc add_node { ctx_var n xpos type anchor padding } {
 
 	upvar $ctx_var ctx
 
 	pop_nodes ctx $xpos
-
-	# validate consistency of preface xpos with node xpos
-	set anchor_xpos [expr max(0, $xpos - 2)]
-	drop_misaligned_preface ctx $anchor_xpos
 
 	# push new node
 	set pos $ctx(depth)
@@ -138,12 +117,11 @@ proc add_node { ctx_var n xpos type anchor padding } {
 	set ctx($pos,prespace)   $ctx(prespace)
 	set ctx($pos,xpos)       $xpos
 	set ctx($pos,anchor)     $anchor
-	set ctx($pos,preface)    $ctx(preface,lines)
+	set ctx($pos,doc)        {}
 	set ctx($pos,attributes) {}
 	set ctx($pos,children)   {}
 	set ctx($pos,quoted)     {}
 	set ctx($pos,annotation) {}
-	set ctx(preface,lines)   {}
 	set ctx(prespace)        ""
 	incr ctx(depth)
 }
@@ -178,14 +156,16 @@ proc assign_annotation { ctx_var xpos anno } {
 }
 
 
-proc capture_preface { ctx_var n xpos text } {
+proc add_doc_line { ctx_var n xpos text } {
 
 	upvar $ctx_var ctx
 
-	drop_misaligned_preface ctx $xpos
-
-	set ctx(preface,xpos) $xpos
-	lappend ctx(preface,lines) [list $n $ctx(prespace) $text]
+	set pos [expr $ctx(depth) - 1]
+	if {$xpos == [expr $pos*2]} {
+		lappend ctx($pos,doc) [list $n $ctx(prespace) $text]
+	} else {
+		puts stderr "Dropping commented-out line $n: $text"
+	}
 
 	set ctx(prespace) ""
 }
@@ -367,9 +347,9 @@ proc parse_line { n chars ctx_var } {
 
 	parse [indent_pattern] chars xpos space { append ctx(prespace) $space }
 
-	# capture preface comment or drop commented-out line
+	# capture doc comment or drop commented-out line
 	parse [comment_pattern] chars ignored_xpos comment {
-		capture_preface ctx $n $xpos $chars
+		add_doc_line ctx $n $xpos $chars
 		set chars "" }
 
 	parse_property $n chars xpos ctx
@@ -410,14 +390,12 @@ proc import_hid { data { multiple_lines true } } {
 	set ctx(0,line)        0
 	set ctx(0,prespace)    ""
 	set ctx(0,anchor)      ""
-	set ctx(0,preface)     {}
+	set ctx(0,doc)         {}
 	set ctx(0,attributes)  {}
 	set ctx(0,xpos)        0
 	set ctx(0,children)    {}
 	set ctx(0,quoted)      {}
 	set ctx(0,annotation)  {}
-	set ctx(preface,xpos)  -1
-	set ctx(preface,lines) {}
 	set ctx(prespace)      ""
 
 	set lines [split $data "\n"]
@@ -527,7 +505,7 @@ proc hid_filter { ctx_var query_hid data_hid filtered_hid_var match_body } {
 	}
 	return [list [hid_type       $data_hid] [hid_padding  $data_hid] \
 	             [hid_line       $data_hid] [hid_prespace $data_hid] \
-	             [hid_anchor     $data_hid] [hid_preface  $data_hid] \
+	             [hid_anchor     $data_hid] [hid_doc      $data_hid] \
 	             [hid_attributes $data_hid] $filtered_children       \
 	             [hid_quoted     $data_hid] [hid_anno     $data_hid] ]
 }
@@ -600,13 +578,6 @@ proc hid_num_quoted_lines { hid } {
 
 proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 
-	# print comment above node
-	if {$indent != ""} {
-		foreach preface_line [hid_preface $hid] {
-			regsub {. $|^$} $indent ". " comment_prefix
-			puts $out_fd "$comment_prefix[lindex $preface_line 2]" }
-	}
-
 	set type [string_trim [hid_type $hid]]
 
 	set node_branch_char "|"
@@ -655,6 +626,13 @@ proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 		}
 	}
 
+	foreach doc_line [hid_doc $hid] {
+		set text [lindex $doc_line 2]
+		puts -nonewline $out_fd "$indent."
+		if {$text != ""} { puts -nonewline $out_fd " $text" }
+		puts $out_fd ""
+	}
+
 	set num_children [llength [hid_children $hid]]
 	foreach child_hid [hid_children $hid] {
 		incr num_children -1
@@ -683,9 +661,6 @@ proc print_hid_as_tree { out_fd hid } {
 
 proc print_hid_as_is_recursively { out_fd hid } {
 
-	foreach preface_line [hid_preface $hid] {
-		puts -nonewline $out_fd "[lindex $preface_line 1]. [lindex $preface_line 2]" }
-
 	puts -nonewline $out_fd "[hid_prespace $hid][hid_anchor $hid][hid_type $hid][hid_padding $hid][hid_anno $hid]"
 
 	set first_attr 1
@@ -696,6 +671,9 @@ proc print_hid_as_is_recursively { out_fd hid } {
 		puts -nonewline $out_fd "[attr_align $attr][attr_value $attr][attr_anno $attr]"
 		set first_attr 0
 	}
+
+	foreach doc_line [hid_doc $hid] {
+		puts -nonewline $out_fd "[lindex $doc_line 1]. [lindex $doc_line 2]" }
 
 	foreach child_hid [hid_children $hid] {
 
@@ -770,7 +748,7 @@ proc _hid_from_xml_rec { text info_var } {
 	upvar $info_var info
 
 	set result { }
-	set hid_preface {}
+	set hid_doc {}
 
 	while {1} {
 
@@ -814,7 +792,7 @@ proc _hid_from_xml_rec { text info_var } {
 			} else {
 				regsub {\n} $prespace "" prespace
 				foreach line [split "$prespace$comment" "\n"] {
-					lappend hid_preface [list "" "" [string_trim $line]]
+					lappend hid_doc [list "" "" [string_trim $line]]
 				}
 			}
 		}
@@ -861,8 +839,8 @@ proc _hid_from_xml_rec { text info_var } {
 					lappend hid_attrs [list 0 "" $tag "" $value] }
 			}
 
-			lappend result [list $hid_type "" 1 "" $hid_anchor $hid_preface $hid_attrs $hid_children ""]
-			set hid_preface {}
+			lappend result [list $hid_type "" 1 "" $hid_anchor $hid_doc $hid_attrs $hid_children ""]
+			set hid_doc {}
 		}
 	}
 
@@ -899,16 +877,16 @@ proc print_hid_as_xml { out_fd hid { indent 0 } } {
 
 	set type     [hid_type     $hid]
 	set children [hid_children $hid]
-	set preface  [hid_preface  $hid]
+	set doc      [hid_doc      $hid]
 
-	# node-preface comments
-	if {[llength $preface] > 1} {
+	# node documentation
+	if {[llength $doc] > 1} {
 		set texts {}
-		foreach line $preface {
+		foreach line $doc {
 			lappend texts "  [lindex $line 2]" }
 		puts $out_fd "$indent_tabs<!--  [join $texts "\n$indent_tabs"]-->"
-	} elseif {[llength $preface] == 1} {
-		puts $out_fd "$indent_tabs<!-- [lindex [lindex $preface 0] 2] -->"
+	} elseif {[llength $doc] == 1} {
+		puts $out_fd "$indent_tabs<!-- [lindex [lindex $doc 0] 2] -->"
 	}
 
 	# quoted content
@@ -982,7 +960,8 @@ append help_msg $short_usage_msg {
       --output-tcl  Print HID structure as Tcl list with each HID node
                     represented as a list of the following structure:
 
-                    { type line enabled preface attributes children }
+                    { type padding line prespace anchor doc attributes
+                      children quoted annotation }
 
                     The 'children' element is a list of HID nodes.
                     The 'attributes' element is a list of attributes
