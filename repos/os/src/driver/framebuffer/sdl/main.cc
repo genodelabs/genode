@@ -19,17 +19,12 @@
 #include <capture_session/connection.h>
 #include <timer_session/connection.h>
 
-/* Linux includes */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wtype-limits"
-#pragma GCC diagnostic ignored "-Wnarrowing"        /* arm_neon.h */
-#pragma GCC diagnostic ignored "-Wunused-parameter" /* arm_neon.h */
-#pragma GCC diagnostic ignored "-Wfloat-conversion" /* arm_neon.h */
-#include <SDL2/SDL.h>
-#pragma GCC diagnostic pop
-
 /* local includes */
+#ifdef SDL3
+#include "sdl3.h"
+#else
+#include "sdl2.h"
+#endif
 #include "convert_keycode.h"
 
 namespace Fb_sdl {
@@ -130,18 +125,13 @@ struct Fb_sdl::Sdl : Noncopyable
 			unsigned const window_flags = 0;
 
 			SDL_Window * const window_ptr =
-				SDL_CreateWindow("fb_sdl", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-				                 _initial_size.w, _initial_size.h, window_flags);
+				CreateWindow("fb_sdl", _initial_size.w, _initial_size.h, window_flags);
 			if (!window_ptr) {
 				error("SDL_CreateWindow failed (", Cstring(SDL_GetError()), ")");
 				throw Createwindow_failed();
 			}
 
-			SDL_SetWindowResizable(window_ptr, SDL_TRUE);
-
-			int const index = -1;
-			unsigned const renderer_flags = SDL_RENDERER_SOFTWARE;
-			SDL_Renderer *renderer_ptr = SDL_CreateRenderer(window_ptr, index, renderer_flags);
+			SDL_Renderer *renderer_ptr = CreateRenderer(window_ptr);
 			if (!renderer_ptr) {
 				error("SDL_CreateRenderer failed (", Cstring(SDL_GetError()), ")");
 				throw Createrenderer_failed();
@@ -176,16 +166,7 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		SDL_Surface &_init_surface()
 		{
-			unsigned const flags      = 0;
-			unsigned const bpp        = 32;
-			unsigned const red_mask   = 0x00FF0000;
-			unsigned const green_mask = 0x0000FF00;
-			unsigned const blue_mask  = 0x000000FF;
-			unsigned const alpha_mask = 0xFF000000;
-
-			SDL_Surface * const surface_ptr =
-				SDL_CreateRGBSurface(flags, aligned_size.w, aligned_size.h, bpp,
-				                     red_mask, green_mask, blue_mask, alpha_mask);
+			SDL_Surface * const surface_ptr = CreateSurface(aligned_size.w, aligned_size.h);
 			if (!surface_ptr) {
 				error("SDL_CreateRGBSurface failed (", Cstring(SDL_GetError()), ")");
 				throw Creatergbsurface_failed();
@@ -193,13 +174,9 @@ struct Fb_sdl::Sdl : Noncopyable
 
 			return *surface_ptr;
 		}
-
 		SDL_Texture &_init_texture()
 		{
-			SDL_Texture * const texture_ptr =
-				SDL_CreateTexture(&renderer, SDL_PIXELFORMAT_ARGB8888,
-				                  SDL_TEXTUREACCESS_STREAMING,
-				                  aligned_size.w, aligned_size.h);
+			SDL_Texture * const texture_ptr = CreateTexture(&renderer, aligned_size.w, aligned_size.h);
 			if (!texture_ptr) {
 				error("SDL_CreateTexture failed (", Cstring(SDL_GetError()), ")");
 				throw Createtexture_failed();
@@ -212,7 +189,7 @@ struct Fb_sdl::Sdl : Noncopyable
 
 		~Screen()
 		{
-			SDL_FreeSurface(&_surface);
+			FreeSurface(&_surface);
 			SDL_DestroyTexture(&_texture);
 		}
 
@@ -228,12 +205,10 @@ struct Fb_sdl::Sdl : Noncopyable
 			                      .y = bounding_box.at.y,
 			                      .w = int(bounding_box.area.w),
 			                      .h = int(bounding_box.area.h) };
-
 			SDL_UpdateTexture(&_texture, nullptr, _surface.pixels, _surface.pitch);
-			SDL_RenderCopy(&renderer, &_texture, &rect, &rect);
+			RenderCopy(&renderer, &_texture, &rect, &rect);
 			SDL_RenderPresent(&renderer);
 		}
-
 		void flush_all() { flush(Rect { { 0, 0 }, size }); }
 	};
 
@@ -242,7 +217,7 @@ struct Fb_sdl::Sdl : Noncopyable
 
 	Constructible<Capture::Connection::Screen> _captured_screen { };
 
-	int _mx = 0, _my = 0;
+	MousePosition _mx = 0, _my = 0;
 
 	unsigned _capture_woken_up = 0;
 
@@ -252,7 +227,7 @@ struct Fb_sdl::Sdl : Noncopyable
 		Ticks remaining;    /* remaining ticks to next frame */
 		unsigned idle;      /* capture attempts without progress */
 
-		Ticks age() const { return { SDL_GetTicks() - timestamp.ms }; }
+		Ticks age() const { return { GetTicks() - timestamp.ms }; }
 	};
 
 	/* if constructed, the processing of a next frame is scheduled */
@@ -261,7 +236,7 @@ struct Fb_sdl::Sdl : Noncopyable
 	void _schedule_next_frame()
 	{
 		_previous_frame.construct(
-			Previous_frame { .timestamp = { SDL_GetTicks() },
+			Previous_frame { .timestamp = { GetTicks() },
 			                 .remaining = { _attr.period() },
 			                 .idle      = { } });
 	}
@@ -315,12 +290,10 @@ struct Fb_sdl::Sdl : Noncopyable
 
 void Fb_sdl::Sdl::_thread()
 {
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+	if (!InitSDL()) {
 		error("SDL_Init failed (", Cstring(SDL_GetError()), ")");
 		throw Init_failed();
 	}
-
-	SDL_ShowCursor(0);
 
 	_window.construct(_attr.initial_size);
 	_resize(_attr.initial_size);
@@ -380,9 +353,9 @@ void Fb_sdl::Sdl::_handle_event(Event_batch &batch, SDL_Event const &event)
 {
 	using namespace Input;
 
-	if (event.type == SDL_WINDOWEVENT) {
+	if (is_window_event(event)) {
 
-		if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+		if (is_window_resized_event(event)) {
 
 			int const w = event.window.data1,
 			          h = event.window.data2;
@@ -398,21 +371,20 @@ void Fb_sdl::Sdl::_handle_event(Event_batch &batch, SDL_Event const &event)
 		return;
 	}
 
-	if (event.type == SDL_USEREVENT) {
+	if (event.type == SDL_EVENT_USER) {
 		if (event.user.code == USER_EVENT_CAPTURE_WAKEUP)
 			_capture_woken_up++;
 		return;
 	}
 
 	/* query new mouse position */
-	if (event.type == SDL_MOUSEMOTION) {
-		int ox = _mx, oy = _my;
+	if (event.type == SDL_EVENT_MOUSE_MOTION) {
+		MousePosition ox = _mx, oy = _my;
 		SDL_GetMouseState(&_mx, &_my);
 
 		/* drop superficial events */
 		if (ox == _mx && oy == _my)
 			return;
-
 		auto transformed = [&] (Point p, Area area, Rotate rotate, Flip flip)
 		{
 			int const w = area.w, h = area.h;
@@ -438,18 +410,21 @@ void Fb_sdl::Sdl::_handle_event(Event_batch &batch, SDL_Event const &event)
 	/* determine key code */
 	Keycode keycode = KEY_UNKNOWN;
 	switch (event.type) {
-	case SDL_KEYUP:
-	case SDL_KEYDOWN:
+	case SDL_EVENT_KEY_UP:
+	case SDL_EVENT_KEY_DOWN:
 
 		/* filter key-repeat events */
 		if (event.key.repeat)
 			return;
-
+#ifdef SDL3
+		keycode = convert_keycode(event.key.key);
+#else
 		keycode = convert_keycode(event.key.keysym.sym);
+#endif
 		break;
 
-	case SDL_MOUSEBUTTONDOWN:
-	case SDL_MOUSEBUTTONUP:
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
+	case SDL_EVENT_MOUSE_BUTTON_UP:
 
 		switch (event.button.button) {
 		case SDL_BUTTON_LEFT:   keycode = BTN_LEFT;   break;
@@ -461,19 +436,19 @@ void Fb_sdl::Sdl::_handle_event(Event_batch &batch, SDL_Event const &event)
 
 	switch (event.type) {
 
-	case SDL_KEYUP:
-	case SDL_MOUSEBUTTONUP:
+	case SDL_EVENT_KEY_UP:
+	case SDL_EVENT_MOUSE_BUTTON_UP:
 
 		batch.submit(Release{keycode});
 		return;
 
-	case SDL_KEYDOWN:
-	case SDL_MOUSEBUTTONDOWN:
+	case SDL_EVENT_KEY_DOWN:
+	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 
 		batch.submit(Press{keycode});
 		return;
 
-	case SDL_MOUSEWHEEL:
+	case SDL_EVENT_MOUSE_WHEEL:
 
 		if (event.wheel.y > 0)
 			batch.submit(Wheel{0, 1});
@@ -499,7 +474,10 @@ struct Fb_sdl::Main
 	void _handle_capture_wakeup()
 	{
 		SDL_Event ev { };
-		ev.user = SDL_UserEvent { .type      = SDL_USEREVENT,
+		ev.user = SDL_UserEvent { .type      = SDL_EVENT_USER,
+#ifdef SDL3
+		                          .reserved  = 0,
+#endif
 		                          .timestamp = SDL_GetTicks(),
 		                          .windowID  = { },
 		                          .code      = USER_EVENT_CAPTURE_WAKEUP,
