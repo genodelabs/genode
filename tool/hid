@@ -18,10 +18,9 @@ proc error { msg } {
 #
 # Workaround for a limitation of Tcl's 'string trim' when called with " ⋅ "
 #
-proc string_trim { s } {
-	regexp {^\s*(.*?)\s*$} $s dummy trimmed
-	return $trimmed
-}
+# See https://core.tcl-lang.org/tcl/tktview/b3fbd9a6e028dfa5c0138a461fdb5b4ae09ffebc
+#
+proc string_trim { s } { return [string trim $s " \t\n"] }
 
 
 #
