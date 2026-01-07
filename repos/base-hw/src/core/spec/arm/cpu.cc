@@ -111,7 +111,8 @@ void Arm_cpu::mmu_fault_status(Fsr::access_t fsr, Thread_fault &fault)
 
 bool Arm_cpu::active(Arm_cpu::Mmu_context &ctx)
 {
-	return (Cidr::read() == ctx.cidr);
+	return (Cidr::read() == ctx.cidr) &&
+	       (Ttbr0::read() == ctx.ttbr0);
 }
 
 

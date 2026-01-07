@@ -46,7 +46,7 @@ Cpu::Context::Context(bool privileged)
 
 bool Cpu::active(Mmu_context &mmu_context)
 {
-	return (mmu_context.id() == Ttbr::Asid::get(Ttbr0_el1::read()));
+	return (mmu_context.ttbr == Ttbr0_el1::read());
 }
 
 
