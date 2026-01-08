@@ -118,7 +118,7 @@ void execute_at(Genode::Env &env, Attached_rom_dataspace &config, addr_t cmd_add
 {
 	addr_t volatile * cmd = (addr_t volatile *)cmd_addr;
 
-	if (config.xml().attribute_value("executable_fault_test", true)) {
+	if (config.node().attribute_value("executable_fault_test", true)) {
 		/* perform illegal execute access on cmd addr */
 		Exec_faulter fault_on_managed_addr(env, Exec_faulter::FAULT_ON_ADDR);
 		fault_on_managed_addr.start();
@@ -240,8 +240,13 @@ class Test_child_policy : public Child_policy
 		                 With_route::Ft    const &fn,
 		                 With_no_route::Ft const &) override
 		{
+			Session_label rewritten_label = label;
+
+			if (name == "ROM" && label.last_element() == "config")
+				rewritten_label = "config"; /* drop child identity from label */
+
 			_with_matching_service(name, [&] (Service &service) {
-				fn(Route { .service = service, .label = label });
+				fn(Route { .service = service, .label = rewritten_label });
 			}, [&] { });
 		}
 
@@ -422,7 +427,7 @@ struct Main_parent
 		if (_fault_cnt <= FAULT_CNT_WRITE && _fault_cnt >= FAULT_CNT_READ)
 			_test_write_fault(child_virt_addr, _fault_cnt - FAULT_CNT_READ);
 
-		if (!_config.xml().attribute_value("executable_fault_test", true) &&
+		if (!_config.node().attribute_value("executable_fault_test", true) &&
 		    _fault_cnt >=FAULT_CNT_WRITE)
 			_handle_fault_stack();
 
@@ -435,7 +440,7 @@ struct Main_parent
 	void _handle_fault_stack()
 	{
 		/* sanity check that we got exec fault */
-		if (_config.xml().attribute_value("executable_fault_test", true)) {
+		if (_config.node().attribute_value("executable_fault_test", true)) {
 			Region_map::Fault const fault = _address_space.fault();
 			if (fault.type != Region_map::Fault::Type::EXEC) {
 				error("unexpected state ", fault_name(fault));
