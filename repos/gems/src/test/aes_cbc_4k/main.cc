@@ -103,8 +103,8 @@ struct Test::Main
 	{
 		Attached_rom_dataspace config(env, "config");
 
-		Aes_cbc_4k::Block_number block_number { config.xml().attribute_value("block_number",  0U) };
-		unsigned const           test_rounds  { config.xml().attribute_value("test_rounds", 100U) };
+		Aes_cbc_4k::Block_number block_number { config.node().attribute_value("block_number",  0U) };
+		unsigned const           test_rounds  { config.node().attribute_value("test_rounds", 100U) };
 
 		Aes_cbc_4k::Key        const &key         = *_key.local_addr<Aes_cbc_4k::Key>();
 		Aes_cbc_4k::Plaintext  const &plaintext   = *_plaintext.local_addr<Aes_cbc_4k::Plaintext>();
