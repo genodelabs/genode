@@ -88,7 +88,7 @@ void http_server_serve(int conn)
 static void test(Libc::Env &env)
 {
 	Attached_rom_dataspace config(env, "config");
-	uint16_t const port = config.xml().attribute_value("port", (uint16_t)80);
+	uint16_t const port = config.node().attribute_value("port", (uint16_t)80);
 
 	puts("Create new socket ...");
 	int s;
