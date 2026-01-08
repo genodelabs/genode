@@ -88,7 +88,7 @@ void Component::construct(Env &env)
 	fill_ds_with_test_pattern(env, test_pattern(), ds, 0);
 	fill_ds_with_test_pattern(env, test_pattern_2(), ds, 4096);
 
-	if (!config.xml().attribute_value("support_attach_sub_any", true)) {
+	if (!config.node().attribute_value("support_attach_sub_any", true)) {
 		log("attach RAM ds to any position at sub rm - this should fail");
 		sub_rm.attach(ds, {
 			.size       = { },  .offset    = { },
@@ -128,7 +128,7 @@ void Component::construct(Env &env)
 	 * vdso page to this location. reason ... keeping fingers crossed.
 	 */
 	addr_t const local_attach_addr =
-		config.xml().attribute_value("local_attach_addr", (addr_t)0);
+		config.node().attribute_value("local_attach_addr", (addr_t)0);
 
 	char * const sub_rm_base = env.rm().attach(sub_rm.dataspace(), {
 		.size       = { },   .offset    = { },
@@ -198,7 +198,7 @@ void Component::construct(Env &env)
 				log("attaching conflicting region failed as expected"); }
 	);
 
-	if (config.xml().attribute_value("attach_twice_forbidden", false)) {
+	if (config.node().attribute_value("attach_twice_forbidden", false)) {
 		/*
 		 * Try to double-attach the same sub RM session. This should fail
 		 */
