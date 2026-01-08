@@ -1350,7 +1350,7 @@ proc _hid_from_xml_rec { text info_var } {
 			if {[string length $trimmed] > 0} {
 				foreach line [split $child_text "\n"] {
 					set decoded [string_trim [_xml_decoded $line]]
-					lappend result [list ":" 1 "" "" "" "" "" "" $decoded] } }
+					lappend result [list ":" 1 "" "" "" "" "" "" $decoded ""] } }
 		}
 
 		if {$child_type == "comment"} {
@@ -1420,10 +1420,10 @@ proc _hid_from_xml_rec { text info_var } {
 
 				set attr_pattern {([\w0-9\-_]+) *= *"([^"]*)"}
 				if {[regexp $attr_pattern $info($attr,text) match tag value]} {
-					lappend hid_attrs [list 0 "" $tag "" $value] }
+					lappend hid_attrs [list 0 "" $tag "" $value ""] }
 			}
 
-			lappend result [list $hid_type "" 1 "" $hid_anchor $hid_doc $hid_attrs $hid_children ""]
+			lappend result [list $hid_type "" 1 "" $hid_anchor $hid_doc $hid_attrs $hid_children "" ""]
 			set hid_doc {}
 		}
 	}
@@ -1553,7 +1553,7 @@ append help_msg $short_usage_msg {
                     The 'attributes' element is a list of attributes
                     each represented as a list as follow:
 
-                    { line tag value }
+                    { line prespace tag align value annotation }
 
       --output-xml  Print HID structure as XML
 
@@ -1881,7 +1881,7 @@ with_command set {
 					set prespace " | "
 					if {[llength $result_attrs] > 0} { set prespace " | " }
 					lappend result_attrs [list "?" $prespace [attr_tag   $new_attr] \
-					                                     " " [attr_value $new_attr]] }
+					                                     " " [attr_value $new_attr] ""] }
 			}
 			set filtered_hid [lreplace $filtered_hid 6 6 $result_attrs]
 		}]
