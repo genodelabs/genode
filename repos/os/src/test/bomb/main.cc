@@ -174,12 +174,12 @@ struct Bomb
 	Attached_rom_dataspace config { env, "config" };
 
 	unsigned round = 0;
-	unsigned const rounds     = config.xml().attribute_value("rounds", 1U);
-	unsigned const generation = config.xml().attribute_value("generations", 1U);
-	unsigned const children   = config.xml().attribute_value("children", 2U);
-	uint64_t const sleeptime  = config.xml().attribute_value("sleep", (uint64_t)2000);
-	size_t   const ram_demand = config.xml().attribute_value("demand", 1024UL * 1024);
-	bool     const master     = config.xml().attribute_value("master", true);
+	unsigned const rounds     = config.node().attribute_value("rounds", 1U);
+	unsigned const generation = config.node().attribute_value("generations", 1U);
+	unsigned const children   = config.node().attribute_value("children", 2U);
+	uint64_t const sleeptime  = config.node().attribute_value("sleep", (uint64_t)2000);
+	size_t   const ram_demand = config.node().attribute_value("demand", 1024UL * 1024);
+	bool     const master     = config.node().attribute_value("master", true);
 
 	Heap heap { env.ram(), env.rm() };
 
