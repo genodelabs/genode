@@ -221,6 +221,7 @@
    <xs:attribute name="prio_levels" type="xs:int" />
    <xs:attribute name="verbose"     type="Boolean" />
    <xs:attribute name="ld_verbose"  type="Boolean" />
+   <xs:attribute name="generate_xml"  type="Boolean" />
   </xs:complexType>
  </xs:element> <!-- "config" -->
 </xs:schema>
