@@ -466,9 +466,9 @@ namespace Genode {
 			if (s.start[0] == '0' && (s.start[1] == 'x' || s.start[1] == 'X')) {
 				i += 2;
 				base = 16;
-			} else
-				base = 10;
+			}
 		}
+		if (base == 0) base = 10;
 
 		/* read number */
 		T value = 0;
