@@ -486,7 +486,7 @@ Genode::size_t Net::Domain_name::parse(Span const &s)
 	size_t      label_length = 0;
 	Domain_name domain_name;
 
-	for (;;) {
+	for (size_t i = 0; i < s.num_bytes; i++) {
 		if (!s.contains(label) || !s.contains(str))
 			return 0;
 
@@ -506,24 +506,13 @@ Genode::size_t Net::Domain_name::parse(Span const &s)
 			if (label_length > Domain_name::LABEL_MAX_LEN) return 0;
 			domain_name.label(label_length, label);
 			label_length = 0;
-			++str;
+			++str; ++i;
 			label = str;
 		}
 
 		/* label is <domain> */
-		if (*str == '\"' || *str == '\0') {
-			if (label_length < Domain_name::MIN_ROOT_LABEL ||
-			    label_length > Domain_name::MAX_ROOT_LABEL)
-				return 0;
-
-			if (domain_name.length() + label_length > Domain_name::NAME_MAX_LEN)
-				return 0;
-
-			domain_name.label(label_length, label);
-			if (domain_name.label_count() < 2) return 0;
-			_name = domain_name._name;
-			return length();
-		}
+		if (*str == '\"' || *str == '\0')
+			break;
 
 		/* label character is <let-dig-hyp> */
 		if (!is_letter(*str) && !is_digit(*str) && *str != '-')
@@ -532,7 +521,20 @@ Genode::size_t Net::Domain_name::parse(Span const &s)
 		++label_length;
 		++str;
 	}
-	return 0;
+
+	if (label_length < Domain_name::MIN_ROOT_LABEL ||
+	    label_length > Domain_name::MAX_ROOT_LABEL)
+		return 0;
+
+	if (domain_name.length() + label_length > Domain_name::NAME_MAX_LEN)
+		return 0;
+
+	domain_name.label(label_length, label);
+	if (domain_name.label_count() < 2)
+		return 0;
+
+	_name = domain_name._name;
+	return s.num_bytes;
 }
 
 #endif /* _NET__DNS_H_ */
