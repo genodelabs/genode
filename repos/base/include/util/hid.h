@@ -382,8 +382,8 @@ T Genode::Hid_node::attribute_value(char const *type, T const default_value) con
 	T result = default_value;
 	_with_tag_value(type, With_tag_value::Fn {
 		[&] (Span const &, Span const &value) {
-			if (value.num_bytes)
-				ascii_to(value.start, result); } });
+			if (!value.num_bytes || (value.num_bytes != parse(value, result)))
+				result = default_value; } });
 	return result;
 }
 

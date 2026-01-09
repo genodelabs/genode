@@ -206,6 +206,28 @@ void Component::construct(Genode::Env &env)
 				fail("unexpected use of attribute of disabled node"); });
 	}
 
+	/* clip span when parsing attribute value */
+	{
+		struct Server
+		{
+			String<64> name;
+
+			size_t parse(Span const &s)
+			{
+				name = { Cstring(s.start, s.num_bytes) };
+				return s.num_bytes;
+			}
+		};
+
+		char const * const test = "config server: genode.org | port: 80\n-";
+
+		Server const server = Hid_node(Span { test, strlen(test) })
+			.attribute_value("server", Server { });
+
+		if (server.name != "genode.org")
+			fail("unexpected attr value in span-clip test: '", server.name, "'");
+	}
+
 	auto with_generated = [&] (auto const &node_type, auto const &fn, auto const &result_fn)
 	{
 		char buf[4*1024] { };
