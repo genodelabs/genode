@@ -4,8 +4,6 @@ changes for SMSC95XX because the driver uses mdio/phy/irqchip infrastructure
 that is hard to enable. Therefore, the driver must be started with NIC whose
 link is up.
 
-diff --git src/linux/drivers/net/usb/smsc95xx.c src/linux/drivers/net/usb/smsc95xx.c
-index 8e82184be..996b0011c 100644
 --- src/linux/drivers/net/usb/smsc95xx.c
 +++ src/linux/drivers/net/usb/smsc95xx.c
 @@ -2012,7 +2012,7 @@ static const struct driver_info smsc95xx_info = {

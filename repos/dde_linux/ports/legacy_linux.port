@@ -1,25 +1,27 @@
 LICENSE   := GPLv2
-VERSION   := 6.6.47
+VERSION   := 6.12.40
 DOWNLOADS := linux.archive
 
 URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(VERSION).tar.xz
-SHA(linux) := d43376c9e9eaa92bb1b926054bd160d329c58a62d64bd65fe1222c11c6564f50
+SHA(linux) := 4811af1317f98d2cccea3c7695969a2c03a27cb02fd2d5327032dd5341842933
 DIR(linux) := src/linux
 
 #
 # Patches
 #
-PATCH_FILES := legacy_i915_irq.patch \
-               legacy_i915_ggtt.patch \
+PATCH_FILES := legacy_i915_min_alignment.patch \
+               legacy_i915_memcpy_32bit.patch \
+               legacy_i915_meteorlake.patch \
                legacy_iwlwifi_break_busy_loop.patch \
                legacy_iwlwifi_enable_irq_before_pnvm.patch \
                legacy_iwlwifi_limit_rx_bufs.patch \
+               legacy_kernel_types.patch \
                legacy_lxip_checksum_32.patch \
                legacy_lxip_ip_config.patch \
+               legacy_r8169_disable_irq_coalescing.patch \
                legacy_usb_net_cdc_ncm.patch \
                legacy_usb_net_pinephone.patch \
                legacy_usb_net_smsc95xx.patch \
-               legacy_workqueue_deadlock.patch \
-               legacy_r8169_disable_irq_coalescing.patch
+               legacy_workqueue_deadlock.patch
 
 PATCHES += $(addprefix patches/,$(PATCH_FILES))

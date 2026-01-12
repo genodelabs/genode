@@ -21,13 +21,11 @@ technically 'ALIVE' at this point, it should be ok to also re-enable RF_KILL.
  drivers/net/wireless/intel/iwlwifi/mvm/fw.c | 9 +++++++++
  1 file changed, 9 insertions(+)
 
-diff --git a/drivers/net/wireless/intel/iwlwifi/mvm/fw.c b/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
-index f041e77af059..ec982ddce196 100644
 --- src/linux/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
 +++ src/linux/drivers/net/wireless/intel/iwlwifi/mvm/fw.c
-@@ -423,6 +423,15 @@ static int iwl_mvm_load_ucode_wait_alive(struct iwl_mvm *mvm,
- 	/* if reached this point, Alive notification was received */
- 	iwl_mei_alive_notif(true);
+@@ -424,6 +424,15 @@ static int iwl_mvm_load_ucode_wait_alive(struct iwl_mvm *mvm,
+ 
+ 	iwl_trans_fw_alive(mvm->trans, alive_data.scd_base_addr);
  
 +	/*
 +	 * re-enable interrupts so we can get a response from

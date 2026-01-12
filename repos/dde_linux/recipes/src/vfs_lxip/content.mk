@@ -22,7 +22,7 @@ $(MIRROR_FROM_OS):
 	mkdir -p $(dir $@)
 	cp -r $(GENODE_DIR)/repos/os/$@ $@
 
-PORT_DIR := $(call port_dir,$(GENODE_DIR)/repos/dde_linux/ports/linux)
+PORT_DIR := $(call port_dir,$(GENODE_DIR)/repos/dde_linux/ports/legacy_linux)
 
 content: LICENSE
 LICENSE:
