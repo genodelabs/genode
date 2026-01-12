@@ -60,20 +60,6 @@ class Driver::Device : private List_model<Device>::Element
 			bool valid() const { return number < INVALID; }
 		};
 
-		struct Owner
-		{
-			void * obj_id;
-
-			Owner() : obj_id(nullptr) {}
-			Owner(Device_owner &owner);
-
-			bool operator == (Owner const &o) const {
-				return obj_id == o.obj_id; }
-
-			bool valid() const {
-				return obj_id != nullptr; }
-		};
-
 		struct Io_mem : List_model<Io_mem>::Element
 		{
 			using Range = Platform::Device_interface::Range;
@@ -352,9 +338,11 @@ class Driver::Device : private List_model<Device>::Element
 		       bool leave_operational);
 		virtual ~Device();
 
-		Name  name()  const;
-		Type  type()  const;
-		Owner owner() const;
+		Name name() const;
+		Type type() const;
+
+		bool owned() const;
+		bool owner(Device_owner&) const;
 
 		virtual void acquire(Device_owner &);
 		virtual void release(Device_owner &);
@@ -456,12 +444,24 @@ class Driver::Device : private List_model<Device>::Element
 		friend class List_model<Device>;
 		friend class List<Device>;
 
+		struct Owner_id
+		{
+			void * obj_id;
+
+			Owner_id() : obj_id(nullptr) {}
+			Owner_id(Device_owner &owner)
+			: obj_id((void*)&owner) {}
+
+			bool valid() const {
+				return obj_id != nullptr; }
+		};
+
 		Env                        &_env;
 		Device_model               &_model;
 		Name                  const _name;
 		Type                  const _type;
 		bool                  const _leave_operational;
-		Owner                       _owner {};
+		Owner_id                    _owner {};
 		List_model<Io_mem>          _io_mem_list {};
 		List_model<Irq>             _irq_list {};
 		List_model<Io_port_range>   _io_port_range_list {};
@@ -496,7 +496,6 @@ class Driver::Device_model : public Device_owner
 		Env                       &_env;
 		Heap                      &_heap;
 		Device_reporter           &_reporter;
-		Device_owner               _owner { *this };
 		List_model<Device>         _model  { };
 		Registry<Shared_interrupt> _shared_irqs { };
 		Clocks                     _clocks { };
@@ -596,6 +595,7 @@ class Driver::Device_model : public Device_owner
 		 ** Device_owner **
 		 ******************/
 
+		void enable_device(Device const &) override { };
 		void disable_device(Device const &device) override;
 };
 

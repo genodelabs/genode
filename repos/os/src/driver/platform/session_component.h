@@ -71,6 +71,7 @@ class Driver::Session_component
 
 		void update_io_mmu_devices();
 		void update_policy(bool info, Policy_version version);
+		void update_devices_rom();
 
 		/**************************
 		 ** Device Owner methods **
@@ -78,7 +79,6 @@ class Driver::Session_component
 
 		void enable_device(Device const &) override;
 		void disable_device(Device const &) override;
-		void update_devices_rom() override;
 
 		/**************************
 		 ** Platform Session API **
@@ -103,7 +103,6 @@ class Driver::Session_component
 		Attached_rom_dataspace const &_config;
 		Device_model                 &_devices;
 
-		Device::Owner                 _owner_id    { *this };
 		Accounted_ram_allocator       _env_ram     { _env.ram(),
 		                                             _ram_quota_guard(),
 		                                             _cap_quota_guard()  };

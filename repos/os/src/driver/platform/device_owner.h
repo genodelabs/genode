@@ -14,6 +14,8 @@
 #ifndef _SRC__DRIVER__PLATFORM__DEVICE_OWNER_H_
 #define _SRC__DRIVER__PLATFORM__DEVICE_OWNER_H_
 
+#include <util/interface.h>
+
 namespace Driver
 {
 	struct Device;
@@ -21,12 +23,10 @@ namespace Driver
 }
 
 
-struct Driver::Device_owner
+struct Driver::Device_owner : Genode::Interface
 {
-	virtual void enable_device(Device const &)  {};
-	virtual void disable_device(Device const &) {};
-	virtual void update_devices_rom() {};
-	virtual ~Device_owner() { }
+	virtual void enable_device(Device const &)  = 0;
+	virtual void disable_device(Device const &) = 0;
 };
 
 #endif /* _SRC__DRIVER__PLATFORM__DEVICE_OWNER_H_ */

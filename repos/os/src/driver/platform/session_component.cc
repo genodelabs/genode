@@ -60,6 +60,8 @@ Session_component::_acquire(Device &device)
 		Device_component(_device_registry, _env, *this, _devices, device);
 
 	device.acquire(*this);
+	update_devices_rom();
+
 	return _env.ep().rpc_ep().manage(dc);
 };
 
@@ -81,6 +83,8 @@ void Session_component::_release_device(Device_component &dc)
 		if (wrapper.domain.devices() == 0)
 			destroy(heap(), &wrapper);
 	});
+
+	update_devices_rom();
 }
 
 
@@ -125,7 +129,7 @@ void Session_component::update_io_mmu_devices()
 		/* determine whether IOMMU is used by any owned/acquire device */
 		bool used_by_owned_device = false;
 		_devices.for_each([&] (Device const &dev) {
-			if (!(dev.owner() == _owner_id))
+			if (!dev.owner(*this))
 				return;
 
 			if (used_by_owned_device)
@@ -179,7 +183,7 @@ void Session_component::update_policy(bool info, Policy_version version)
 		_devices.for_each([&] (Device const &dev) {
 			if (dev.name() != dc.device())
 				return;
-			state = (dev.owner() == _owner_id && matches(dev)) ? UNCHANGED : CHANGED;
+			state = (dev.owner(*this) && matches(dev)) ? UNCHANGED : CHANGED;
 		});
 
 		if (state == UNCHANGED)
@@ -287,7 +291,7 @@ Session_component::acquire_device(Platform::Session::Device_name const &name)
 	{
 		if (dev.name() != name || !matches(dev))
 			return;
-		if (dev.owner().valid())
+		if (dev.owned())
 			warning("Cannot aquire device ", name, " already in use");
 		else
 			cap = _acquire(dev);
@@ -303,7 +307,7 @@ Session_component::acquire_single_device()
 	Capability<Platform::Device_interface> cap;
 
 	_devices.for_each([&] (Device &dev) {
-		if (!cap.valid() && matches(dev) && !dev.owner().valid())
+		if (!cap.valid() && matches(dev) && !dev.owned())
 			cap = _acquire(dev); });
 
 	return cap;

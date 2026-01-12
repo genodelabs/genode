@@ -20,17 +20,18 @@
 #include <pci.h>
 
 
-Driver::Device::Owner::Owner(Device_owner &owner)
-: obj_id(reinterpret_cast<void*>(&owner)) {}
-
-
 Driver::Device::Name Driver::Device::name() const { return _name; }
 
 
 Driver::Device::Type Driver::Device::type() const { return _type; }
 
 
-Driver::Device::Owner Driver::Device::owner() const { return _owner; }
+bool Driver::Device::owner(Device_owner &dev_owner) const {
+	return _owner.obj_id == (void*)&dev_owner; }
+
+
+bool Driver::Device::owned() const {
+	return _owner.valid(); }
 
 
 void Driver::Device::acquire(Device_owner &owner)
@@ -83,19 +84,18 @@ void Driver::Device::acquire(Device_owner &owner)
 	});
 
 	owner.enable_device(*this);
-	owner.update_devices_rom();
 
 	_model.device_status_changed();
 }
 
 
-void Driver::Device::release(Device_owner &owner)
+void Driver::Device::release(Device_owner &dev_owner)
 {
-	if (!(_owner == owner))
+	if (!owner(dev_owner))
 		return;
 
 	if (!_leave_operational) {
-		owner.disable_device(*this);
+		dev_owner.disable_device(*this);
 
 		_reset_domain_list.for_each([&] (Reset_domain &r)
 		{
@@ -116,8 +116,7 @@ void Driver::Device::release(Device_owner &owner)
 		});
 	}
 
-	_owner = Owner();
-	owner.update_devices_rom();
+	_owner = Owner_id();
 	_model.device_status_changed();
 }
 
@@ -468,7 +467,7 @@ void Driver::Device_model::_acquire_io_mmus()
 	_io_mmu_factories.for_each([&] (auto &factory) {
 
 		for_each([&] (auto &dev) {
-			if (dev.owner().valid())
+			if (dev.owned())
 				return;
 
 			if (factory.matches(dev)) {
@@ -514,7 +513,7 @@ void Driver::Device_model::_acquire_irq_controller()
 	_irq_controller_factories.for_each([&] (auto &factory) {
 
 		for_each([&] (auto &dev) {
-			if (dev.owner().valid())
+			if (dev.owned())
 				return;
 
 			if (factory.matches(dev)) {
@@ -638,7 +637,7 @@ void Driver::Device_model::update(Node const &node,
 		[&] (Device &device)
 		{
 			device.update(_heap, Node(), reserved_mem_handler);
-			device.release(_owner);
+			device.release(*this);
 			destroy(_heap, &device);
 		},
 
