@@ -1,24 +1,19 @@
 LICENSE   := GPLv2
-VERSION   := 6.12.40
+VERSION   := 6.18.5
 DOWNLOADS := linux.archive
 
 URL(linux) := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(VERSION).tar.xz
-SHA(linux) := 4811af1317f98d2cccea3c7695969a2c03a27cb02fd2d5327032dd5341842933
+SHA(linux) := 189d1f409cef8d0d234210e04595172df392f8cb297e14b447ed95720e2fd940
 DIR(linux) := src/linux
 
 #
 # Patches
 #
-PATCH_FILES := i915_min_alignment.patch \
-               i915_memcpy_32bit.patch \
-               i915_meteorlake.patch \
-               iwlwifi_break_busy_loop.patch \
-               iwlwifi_enable_irq_before_pnvm.patch \
-               iwlwifi_limit_rx_bufs.patch \
+PATCH_FILES := \
+               arm64_disable_jump_label.patch \
                kernel_types.patch \
                lxip_checksum_32.patch \
                lxip_ip_config.patch \
-               r8169_disable_irq_coalescing.patch \
                usb_net_cdc_ncm.patch \
                usb_net_pinephone.patch \
                usb_net_smsc95xx.patch \

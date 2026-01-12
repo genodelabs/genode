@@ -1,10 +1,18 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2026-01-27
  */
 
 #include <lx_emul.h>
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/ratelimit_types.h>
@@ -57,6 +65,14 @@ void __printk_deferred_exit(void)
 }
 
 
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <net/gso.h>
 
 struct sk_buff * __skb_gso_segment(struct sk_buff * skb,netdev_features_t features,bool tx_path)
@@ -101,13 +117,6 @@ bool cpus_share_cache(int this_cpu,int that_cpu)
 	lx_emul_trace_and_stop(__func__);
 }
 
-struct crypto_tfm;
-extern int crypto_init_lskcipher_ops_sg(struct crypto_tfm * tfm);
-int crypto_init_lskcipher_ops_sg(struct crypto_tfm * tfm)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
 
 #include <linux/context_tracking_irq.h>
 
@@ -136,6 +145,14 @@ struct net_device * dev_get_by_index(struct net * net,int ifindex)
 #include <asm-generic/softirq_stack.h>
 
 void do_softirq_own_stack(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -328,7 +345,7 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irqdomain.h>
 
-void irq_set_default_host(struct irq_domain * domain)
+void irq_set_default_domain(struct irq_domain * domain)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -344,7 +361,23 @@ struct irq_desc * irq_to_desc(unsigned int irq)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+void irq_work_sync(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -374,14 +407,6 @@ noinline int kstrtoll(const char * s,unsigned int base,long long * res)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree_rcu_barrier(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
@@ -390,22 +415,6 @@ unsigned long loops_per_jiffy;
 #include <linux/delay.h>
 
 unsigned long lpj_fine;
-
-
-#include <linux/preempt.h>
-
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <net/hotdata.h>
@@ -436,7 +445,7 @@ const struct fwnode_operations of_fwnode_ops;
 
 #include <linux/of.h>
 
-const char * of_prop_next_string(struct property * prop,const char * cur)
+const char * of_prop_next_string(const struct property * prop,const char * cur)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -466,7 +475,7 @@ void osq_unlock(struct optimistic_spin_queue * lock)
 }
 
 
-#include <linux/gfp.h>
+#include <linux/page_frag_cache.h>
 
 void page_frag_free(void * addr)
 {
@@ -585,6 +594,14 @@ void sock_edemux(struct sk_buff * skb)
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
+
+
+#include <linux/rcupdate.h>
+
+void synchronize_rcu(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/clockchips.h>

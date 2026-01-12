@@ -45,7 +45,7 @@ pteval_t __default_kernel_pte_mask __read_mostly = ~0;
 /* shadowed */
 #include <linux/utsname.h>
 
-struct new_utsname init_uts_ns;
+struct uts_namespace init_uts_ns;
 
 
 #include <linux/random.h>
@@ -81,7 +81,7 @@ unsigned long arm_copy_to_user(void *to, const void *from, unsigned long n)
 
 #include <linux/uaccess.h>
 
-#ifndef INLINE_COPY_TO_USER
+#ifndef INLINE_COPY_FROM_USER
 unsigned long _copy_from_user(void * to,const void __user * from,unsigned long n)
 {
 	memcpy(to, from, n);
@@ -106,7 +106,7 @@ unsigned long __must_check __arch_copy_from_user(void *to, const void __user *fr
 #endif
 
 
-#ifndef INLINE_COPY_FROM_USER
+#ifndef INLINE_COPY_TO_USER
 unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 {
 	memcpy(to, from, n);

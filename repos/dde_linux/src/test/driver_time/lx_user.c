@@ -22,7 +22,7 @@
 #define CONFIG_DRM_I915_PREEMPT_TIMEOUT    640
 #define CONFIG_DRM_I915_HEARTBEAT_INTERVAL 2500
 
-#include "i915_drv.h"
+#include "i915_wait_util.h"
 #endif
 
 #include <lx_emul/time.h>

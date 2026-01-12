@@ -328,6 +328,17 @@ void usb_hcd_reset_endpoint(struct usb_device *udev,
 }
 
 
+#if defined(CONFIG_OF)
+#include <linux/usb/of.h>
+
+bool usb_of_has_combined_node(struct usb_device * udev)
+{
+	lx_emul_trace(__func__);
+	return true;
+}
+#endif
+
+
 #ifdef CONFIG_SWIOTLB
 #include <linux/swiotlb.h>
 

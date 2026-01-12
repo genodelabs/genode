@@ -434,3 +434,25 @@ bool is_swiotlb_allocated(void)
 	return false;
 }
 #endif
+
+#if defined(CONFIG_ARM) && !defined(CONFIG_SMP)
+#include <linux/sched.h>
+
+int set_cpus_allowed_ptr(struct task_struct * p,const struct cpumask * new_mask)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void do_set_cpus_allowed(struct task_struct * p,const struct cpumask * new_mask)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void nohz_balance_enter_idle(int cpu)
+{
+	lx_emul_trace(__func__);
+}
+#endif

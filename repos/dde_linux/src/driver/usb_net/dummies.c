@@ -193,14 +193,6 @@ int __init netdev_kobject_init(void)
 }
 
 
-#include <linux/netdevice.h>
-
-void dev_add_offload(struct packet_offload * po)
-{
-	lx_emul_trace(__func__);
-}
-
-
 #include <linux/syscore_ops.h>
 
 void register_syscore_ops(struct syscore_ops * ops)
@@ -293,14 +285,6 @@ void gnet_stats_basic_sync_init(struct gnet_stats_basic_sync * b)
 #include <net/gen_stats.h>
 
 void gen_kill_estimator(struct net_rate_estimator __rcu ** rate_est)
-{
-	lx_emul_trace(__func__);
-}
-
-
-#include <asm-generic/softirq_stack.h>
-
-void do_softirq_own_stack(void)
 {
 	lx_emul_trace(__func__);
 }
@@ -574,5 +558,36 @@ bool is_swiotlb_allocated(void)
 {
 	lx_emul_trace(__func__);
 	return false;
+}
+#endif
+
+
+#include <linux/refcount.h>
+
+void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
+{
+	lx_emul_trace(__func__);
+}
+
+
+#if defined(CONFIG_ARM) && !defined(CONFIG_SMP)
+#include <linux/sched.h>
+
+int set_cpus_allowed_ptr(struct task_struct * p,const struct cpumask * new_mask)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void do_set_cpus_allowed(struct task_struct * p,const struct cpumask * new_mask)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void nohz_balance_enter_idle(int cpu)
+{
+	lx_emul_trace(__func__);
 }
 #endif

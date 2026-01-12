@@ -35,7 +35,11 @@ int register_pernet_subsys(struct pernet_operations *ops)
 {
 	if (ops->init)
 		ops->init(&init_net);
-	
+
+	/* normally initialized in 'preinit_net()' */
+	INIT_LIST_HEAD(&init_net.ptype_all);
+	INIT_LIST_HEAD(&init_net.ptype_specific);
+
 	return 0;
 }
 

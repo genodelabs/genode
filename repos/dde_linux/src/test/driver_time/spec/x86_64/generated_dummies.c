@@ -1,10 +1,18 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2026-02-10
  */
 
 #include <lx_emul.h>
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/cpumask.h>
@@ -28,9 +36,9 @@ void __printk_deferred_exit(void)
 }
 
 
-#include <linux/uaccess.h>
+#include <linux/sched/task.h>
 
-unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -115,6 +123,14 @@ noinstr void ct_irq_enter(void)
 #include <linux/context_tracking_irq.h>
 
 noinstr void ct_irq_exit(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -239,6 +255,14 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 bool irq_work_queue_on(struct irq_work * work,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -272,22 +296,6 @@ noinline int kstrtoll(const char * s,unsigned int base,long long * res)
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
-
-
-#include <linux/preempt.h>
-
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/panic.h>
@@ -366,6 +374,14 @@ int smp_call_function_single_async(int cpu,call_single_data_t * csd)
 #include <linux/jump_label.h>
 
 bool static_key_initialized;
+
+
+#include <linux/rcupdate.h>
+
+void synchronize_rcu(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 extern void update_group_capacity(struct sched_domain * sd,int cpu);

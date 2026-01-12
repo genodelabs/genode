@@ -4,9 +4,10 @@ LIBS    = base jitterentropy virt_lx_emul
 INC_DIR = $(PRG_DIR)/../..
 
 SRC_C += dummies.c \
-         generated_dummies.c \
          lx_emul.c \
          lx_user.c
+
+SRC_C += $(notdir $(wildcard $(PRG_DIR)/generated_dummies.c))
 
 SRC_C += lx_emul/nic.c
 SRC_C += lx_emul/virt/shadow/drivers/usb/core/buffer.c

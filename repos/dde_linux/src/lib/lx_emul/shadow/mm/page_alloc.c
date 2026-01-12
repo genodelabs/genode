@@ -99,6 +99,14 @@ void free_pages(unsigned long addr,unsigned int order)
 }
 
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,13,0)
+void free_frozen_pages(struct page * page, unsigned int order)
+{
+	lx_free_pages(page, true);
+}
+#endif
+
+
 static struct page * lx_alloc_pages(unsigned const nr_pages)
 {
 	void const  *ptr  = lx_emul_mem_alloc_aligned(PAGE_SIZE*nr_pages, nr_pages*PAGE_SIZE);
@@ -117,14 +125,19 @@ unsigned long __alloc_pages_bulk(gfp_t gfp,int preferred_nid,
 #else
 unsigned long alloc_pages_bulk_noprof(gfp_t gfp,int preferred_nid,
                                       nodemask_t * nodemask, int nr_pages,
-                                      struct list_head * page_list, struct page ** page_array)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,13,0)
+                                      struct list_head * page_list,
+#endif
+                                      struct page ** page_array)
 #endif
 {
 	unsigned long allocated_pages = 0;
 	int i;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,13,0)
 	if (page_list)
 		lx_emul_trace_and_stop("__alloc_pages_bulk unsupported argument");
+#endif
 
 	for (i = 0; i < nr_pages; i++) {
 
@@ -166,6 +179,28 @@ struct page * __alloc_pages_noprof(gfp_t gfp, unsigned int order, int preferred_
 
 	return page;
 }
+
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,13,0)
+struct page *__alloc_frozen_pages_noprof(gfp_t gfp, unsigned int order,
+                                         int preferred_nid, nodemask_t *nodemask)
+{
+	struct page *page = lx_alloc_pages(1u << order);
+
+	if (!page)
+		return 0;
+
+	prepare_compound_page(page, order, gfp);
+
+	return page;
+}
+
+struct page * alloc_frozen_pages_nolock_noprof(gfp_t gfp_flags,int nid,unsigned int order)
+{
+	return __alloc_frozen_pages_noprof(gfp_flags, order, nid, NULL);
+}
+
+#endif
 
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6,9,0)

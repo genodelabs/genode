@@ -84,6 +84,8 @@ ifeq ($(filter-out $(SPECS),arm_v7),)
 LX_ARCH   := arm
 GEN_ARCH  := arm
 SPEC_ARCH := arm_v7
+
+SRC_C += lx_emul/shadow/arch/arm/kernel/cacheinfo.c
 endif
 
 ifeq ($(filter-out $(SPECS),arm_v8),)
@@ -198,6 +200,16 @@ $(eval $(call CC_OPT_LX_RULES,dummies))
 # Generate crc32table.h header
 #
 
+# by 6.18.5 things got moved around
+ifeq ($(LINUX_VERSION_CODE),6185)
+crc32table.h: gen_crc32table
+	./gen_crc32table > $@
+
+lib/crc/crc32-main.o: crc32table.h
+
+gen_crc32table: $(LX_SRC_DIR)/lib/crc/gen_crc32table.c
+	$(HOST_CC) -I$(LX_GEN_DIR)/include/generated $< -o $@
+else
 crc32table.h: gen_crc32table
 	./gen_crc32table > $@
 
@@ -205,6 +217,7 @@ lib/crc32.o: crc32table.h
 
 gen_crc32table: $(LX_SRC_DIR)/lib/gen_crc32table.c
 	$(HOST_CC) -I$(LX_GEN_DIR)/include $< -o $@
+endif
 
 
 #

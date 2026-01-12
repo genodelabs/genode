@@ -21,10 +21,9 @@
 
 #include <net/icmp.h>
 
-void __icmp_send(struct sk_buff * skb_in,int type,int code,__be32 info,const struct ip_options * opt)
+void __icmp_send(struct sk_buff * skb_in,int type,int code,__be32 info,const struct inet_skb_parm * opt)
 {
 	printk("Warning: sending ICMP not supported\n");
-	kfree_skb(skb_in);
 }
 
 
@@ -113,10 +112,10 @@ bool ipv6_mod_enabled(void)
 #include <net/udp_tunnel.h>
 #include <genode_c_api/wireguard.h>
 
-void udp_tunnel_xmit_skb(
-	struct rtable * rt,struct sock * sk,struct sk_buff * skb,
-	__be32 src,__be32 dst,__u8 tos,__u8 ttl,__be16 df,
-	__be16 src_port,__be16 dst_port,bool xnet,bool nocheck)
+void udp_tunnel_xmit_skb(struct rtable *rt, struct sock *sk, struct sk_buff *skb,
+             __be32 src, __be32 dst, __u8 tos, __u8 ttl,
+             __be16 df, __be16 src_port, __be16 dst_port,
+             bool xnet, bool nocheck, u16 ipcb_flags)
 {
 	/*
 	 * FIXME
@@ -212,8 +211,10 @@ struct rtable * ip_route_output_flow(struct net * net,struct flowi4 * flp4,const
 
 #include <linux/netdevice.h>
 
-gro_result_t napi_gro_receive(struct napi_struct * napi,struct sk_buff * skb)
+gro_result_t gro_receive_skb(struct gro_node *gro, struct sk_buff *skb)
 {
+	(void)gro;
+
 	/*
 	 * This is the SKB that we put into WireGuard earlier in
 	 * _genode_wg_nic_connection_receive. WireGuard modified it to become
@@ -238,12 +239,14 @@ gro_result_t napi_gro_receive(struct napi_struct * napi,struct sk_buff * skb)
 
 #include <linux/netdevice.h>
 
-void netif_napi_add_weight(struct net_device *dev, struct napi_struct *napi,
+void netif_napi_add_weight_locked(struct net_device *dev, struct napi_struct *napi,
                            int (*poll)(struct napi_struct *, int), int weight)
 {
 	napi->dev = dev;
 	napi->poll = poll;
 	napi->weight = weight;
+
+	dev->threaded = NETDEV_NAPI_THREADED_DISABLED;
 }
 
 
@@ -274,7 +277,6 @@ bool napi_complete_done(struct napi_struct * n,int work_done)
 	lx_emul_trace(__func__);
 	return true;
 }
-
 
 #include <linux/once.h>
 
@@ -332,6 +334,17 @@ int register_netdevice(struct net_device * dev)
 
 
 #ifdef CONFIG_X86_64
-DEFINE_PER_CPU(void *, hardirq_stack_ptr);
+DEFINE_PER_CPU_CACHE_HOT(struct irq_stack *, hardirq_stack_ptr);
+DEFINE_PER_CPU_CACHE_HOT(bool, hardirq_stack_inuse);
 #endif
-DEFINE_PER_CPU(bool, hardirq_stack_inuse);
+
+
+#include <linux/netdevice.h>
+
+void netif_set_tso_max_size(struct net_device * dev,unsigned int size)
+{
+	dev->tso_max_size = min(GSO_MAX_SIZE, size);
+}
+
+
+void netif_threaded_enable(struct net_device * dev) { }

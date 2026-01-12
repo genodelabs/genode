@@ -50,6 +50,21 @@ static inline pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma) {
 static inline pte_t pte_mkwrite(pte_t pte) { return pte; }
 #endif
 
+static inline pte_t pte_mkdirty(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline pte_t pte_mkyoung(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline pte_t pfn_pte(unsigned long page_nr, pgprot_t pgprot)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
 static inline unsigned long pte_pfn(pte_t pte)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -100,6 +115,17 @@ static inline int pud_none(pud_t pud)
 	lx_emul_trace_and_stop(__func__);
 }
 
+#if CONFIG_PGTABLE_LEVELS > 4
+static inline int pgd_none(pgd_t pgd)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+#endif
 #endif
 
 struct page *pmd_page(pmd_t pmd);

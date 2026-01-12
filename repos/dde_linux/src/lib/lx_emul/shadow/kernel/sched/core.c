@@ -305,4 +305,17 @@ int idle_cpu(int cpu)
 }
 
 
+/*
+ * Since 6.10 should reside in syscalls.c
+ */
+
 void sched_set_fifo(struct task_struct * p) { }
+
+/*
+ * Guard for the moment because some ARM driver have this
+ * function in their 'dummies.c'.
+ */
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,18,0)
+void sched_set_fifo_low(struct task_struct * p) { }
+#endif

@@ -20,6 +20,7 @@
 #include <linux/slab.h>
 #include <linux/irqchip.h>
 #include <../kernel/irq/internals.h>
+#include <linux/version.h>
 
 
 static void dde_irq_ack(struct irq_data *d)
@@ -131,7 +132,11 @@ int lx_emul_irq_init(struct device_node *node, struct device_node *parent)
 	if (!dde_irq_domain)
 		return -ENOMEM;
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,13,0)
+	irq_set_default_domain(dde_irq_domain);
+#else
 	irq_set_default_host(dde_irq_domain);
+#endif
 	return 0;
 }
 

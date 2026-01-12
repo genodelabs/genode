@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2026-01-20
  */
 
 #include <lx_emul.h>
@@ -21,6 +21,11 @@ const char * __clk_get_name(const struct clk * clk)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/cpumask.h>
+
+struct cpumask __cpu_active_mask;
 
 
 #include <linux/irqdomain.h>
@@ -50,6 +55,14 @@ void __printk_deferred_exit(void)
 #include <linux/printk.h>
 
 int __printk_ratelimit(const char * func)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -148,9 +161,9 @@ s64 div_s64_rem(s64 dividend,s32 divisor,s32 * remainder)
 bool dma_default_coherent;
 
 
-#include <asm-generic/softirq_stack.h>
+#include <linux/mmdebug.h>
 
-void do_softirq_own_stack(void)
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -204,6 +217,13 @@ const u8 guid_index[16] = {};
 #include <linux/init.h>
 
 bool initcall_debug;
+
+
+extern int input_bits_to_string(char * buf,int buf_size,unsigned long bits,bool skip_empty);
+int input_bits_to_string(char * buf,int buf_size,unsigned long bits,bool skip_empty)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 extern void input_dev_poller_finalize(struct input_dev_poller * poller);
@@ -293,7 +313,7 @@ struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
 
 #include <linux/irqdomain.h>
 
-void irq_set_default_host(struct irq_domain * domain)
+void irq_set_default_domain(struct irq_domain * domain)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -372,7 +392,7 @@ const struct fwnode_operations of_fwnode_ops;
 
 #include <linux/of.h>
 
-const char * of_prop_next_string(struct property * prop,const char * cur)
+const char * of_prop_next_string(const struct property * prop,const char * cur)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -418,9 +438,29 @@ int power_supply_powers(struct power_supply * psy,struct device * dev)
 }
 
 
-#include <linux/scatterlist.h>
+extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
+void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
-struct scatterlist * sg_next(struct scatterlist * sg)
+
+extern void raw_spin_rq_unlock(struct rq * rq);
+void raw_spin_rq_unlock(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_offline(struct rq * rq);
+void set_rq_offline(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_online(struct rq * rq);
+void set_rq_online(struct rq * rq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -455,11 +495,23 @@ struct timerqueue_node * timerqueue_iterate_next(struct timerqueue_node * node)
 }
 
 
+extern void update_group_capacity(struct sched_domain * sd,int cpu);
+void update_group_capacity(struct sched_domain * sd,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern void usb_devio_cleanup(void);
 void usb_devio_cleanup(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/usb.h>
+
+struct mutex usb_dynids_lock;
 
 
 #include <linux/usb.h>
@@ -552,6 +604,14 @@ const u8 uuid_index[16] = {};
 #include <linux/vmstat.h>
 
 atomic_long_t vm_node_stat[NR_VM_NODE_STAT_ITEMS] = {};
+
+
+#include <linux/sched/nohz.h>
+
+void wake_up_nohz_cpu(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/rcupdate_wait.h>

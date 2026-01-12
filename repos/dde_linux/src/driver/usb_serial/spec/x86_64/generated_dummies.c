@@ -1,10 +1,18 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-09-17
+ * \date   2026-01-23
  */
 
 #include <lx_emul.h>
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/cpumask.h>
@@ -20,17 +28,9 @@ void __f_setown(struct file * filp,struct pid * pid,enum pid_type type,int force
 }
 
 
-#include <linux/sched.h>
-
-char * __get_task_comm(char * buf,size_t buf_size,struct task_struct * tsk)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/percpu-rwsem.h>
 
-bool __sched __percpu_down_read(struct percpu_rw_semaphore * sem,bool try)
+bool __sched __percpu_down_read(struct percpu_rw_semaphore * sem,bool try,bool freeze)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -55,6 +55,14 @@ void __printk_deferred_exit(void)
 #include <linux/printk.h>
 
 int __printk_ratelimit(const char * func)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -199,6 +207,14 @@ bool cpus_share_cache(int this_cpu,int that_cpu)
 }
 
 
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 asmlinkage __visible void dump_stack_lvl(const char * log_lvl)
@@ -323,6 +339,14 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 bool irq_work_queue_on(struct irq_work * work,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -396,22 +420,6 @@ int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * e
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
-
-
-#include <linux/preempt.h>
-
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/panic.h>
@@ -527,14 +535,6 @@ void set_rq_online(struct rq * rq)
 unsigned int setup_max_cpus;
 
 
-#include <linux/scatterlist.h>
-
-struct scatterlist * sg_next(struct scatterlist * sg)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/smp.h>
 
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
@@ -564,6 +564,14 @@ int smp_call_function_single_async(int cpu,call_single_data_t * csd)
 bool static_key_initialized;
 
 
+#include <linux/rcupdate.h>
+
+void synchronize_rcu(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/sched/task.h>
 
 rwlock_t tasklist_lock;
@@ -589,6 +597,11 @@ void usb_devio_cleanup(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/usb.h>
+
+struct mutex usb_dynids_lock;
 
 
 #include <linux/usb.h>

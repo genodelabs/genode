@@ -8,6 +8,8 @@ kernel/locking/mutex.c
 kernel/locking/osq_lock.c
 kernel/locking/rwsem.c
 kernel/notifier.c
+kernel/nscommon.c
+kernel/nstree.c
 kernel/sched/build_utility.c
 kernel/smpboot.c
 kernel/softirq.c
@@ -16,6 +18,7 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
+kernel/time/sleep_timeout.c
 kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
@@ -38,6 +41,7 @@ lib/kasprintf.c
 lib/klist.c
 lib/kobject.c
 lib/kstrtox.c
+lib/llist.c
 lib/math/div64.c
 lib/math/reciprocal_div.c
 lib/nlattr.c
@@ -60,6 +64,7 @@ mm/slub.c
 mm/util.c
 net/core/datagram.c
 net/core/dev.c
+net/core/dev_api.c
 net/core/dev_addr_lists.c
 net/core/dev_ioctl.c
 net/core/dst.c

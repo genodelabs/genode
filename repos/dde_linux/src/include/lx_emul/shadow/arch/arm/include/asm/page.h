@@ -47,8 +47,11 @@ typedef unsigned pteval_t;
 
 typedef struct page *pgtable_t;
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,13,0)
 #define page_to_phys(p) __pa((p)->virtual)
 #define page_to_virt(p)     ((p)->virtual)
+#endif
 
 static inline struct page *virt_to_page(void const *v) { return lx_emul_virt_to_page(v); }
 

@@ -28,6 +28,8 @@ ifeq ($(filter-out $(SPECS),arm_v8),)
 	INC_DIR += $(VIRT_LINUX_INCLUDE_DIR)/spec/arm_v8
 endif
 
+LINUX_VERSION_CODE := 6185
+
 include $(call select_from_repositories,lib/import/import-lx_emul_common.inc)
 
 SRC_C  += lx_emul/shadow/drivers/char/random.c

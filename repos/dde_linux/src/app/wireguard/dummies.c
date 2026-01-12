@@ -71,7 +71,7 @@ const struct ipv6_stub *ipv6_stub = NULL;
 
 #include <linux/netdevice.h>
 
-int dev_set_threaded(struct net_device * dev,bool threaded)
+int dev_set_threaded(struct net_device * dev, enum netdev_napi_threaded)
 {
 	lx_emul_trace(__func__);
 	return 0;
@@ -153,7 +153,7 @@ void napi_disable(struct napi_struct * n)
 
 #include <linux/netdevice.h>
 
-void __netif_napi_del(struct napi_struct * napi)
+void __netif_napi_del_locked(struct napi_struct * napi)
 {
 	lx_emul_trace(__func__);
 }

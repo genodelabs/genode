@@ -50,10 +50,12 @@ enum system_states system_state;
 
 static __initdata DECLARE_COMPLETION(kthreadd_done);
 
+static char init_name[TASK_COMM_LEN] = { 'i', 'n', 'i', 't', 0 };
+
 static int kernel_init(void * args)
 {
 	struct task_struct *tsk = current;
-	set_task_comm(tsk, "init");
+	set_task_comm(tsk, init_name);
 
 	/* setup page struct for zero page in BSS */
 	lx_emul_add_page_range(empty_zero_page, PAGE_SIZE);
@@ -86,10 +88,13 @@ static int kernel_init(void * args)
 }
 
 
+static char idle_name[TASK_COMM_LEN] = { 'i', 'd', 'l', 'e', 0 };
+
+
 static int kernel_idle(void * args)
 {
 	struct task_struct *tsk = current;
-	set_task_comm(tsk, "idle");
+	set_task_comm(tsk, idle_name);
 
 	/* set this current task to be the idle task */
 	lx_emul_task_set_idle();
@@ -161,7 +166,11 @@ int lx_emul_init_task_function(void * dtb)
 	irqchip_init();
 
 	tick_init();
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,15,0)
 	init_timers();
+#else
+	timers_init();
+#endif
 	hrtimers_init();
 	softirq_init();
 	timekeeping_init();

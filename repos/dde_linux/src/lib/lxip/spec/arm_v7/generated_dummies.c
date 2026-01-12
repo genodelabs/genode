@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2026-01-14
  */
 
 #include <lx_emul.h>
@@ -10,6 +10,14 @@
 #include <linux/root_dev.h>
 
 dev_t ROOT_DEV;
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/filter.h>
@@ -34,6 +42,11 @@ const char * __clk_get_name(const struct clk * clk)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/cpumask.h>
+
+struct cpumask __cpu_active_mask;
 
 
 #include <linux/irqdomain.h>
@@ -68,6 +81,14 @@ void __put_cred(struct cred * cred)
 }
 
 
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <net/sock.h>
 
 void __sock_recv_cmsgs(struct msghdr * msg,struct sock * sk,struct sk_buff * skb)
@@ -86,7 +107,7 @@ void __sock_recv_timestamp(struct msghdr * msg,struct sock * sk,struct sk_buff *
 
 #include <net/sock.h>
 
-void __sock_tx_timestamp(__u16 tsflags,__u8 * tx_flags)
+void __sock_tx_timestamp(__u32 tsflags,__u8 * tx_flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -188,6 +209,14 @@ int dev_printk_emit(int level,const struct device * dev,const char * fmt,...)
 #include <linux/device.h>
 
 int device_rename(struct device * dev,const char * new_name)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -355,7 +384,7 @@ const u8 guid_index[16] = {};
 const struct net_offload __rcu *inet6_offloads[MAX_INET_PROTOS] = {};
 
 
-#include <linux/utsname.h>
+#include <linux/uts_namespace.h>
 
 struct user_namespace init_user_ns;
 
@@ -402,7 +431,15 @@ struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
 
 #include <linux/irqdomain.h>
 
-void irq_set_default_host(struct irq_domain * domain)
+void irq_set_default_domain(struct irq_domain * domain)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+void irq_work_sync(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -411,14 +448,6 @@ void irq_set_default_host(struct irq_domain * domain)
 #include <linux/mm.h>
 
 int is_vmalloc_or_module_addr(const void * x)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/llist.h>
-
-bool llist_add_batch(struct llist_node * new_first,struct llist_node * new_last,struct llist_head * head)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -457,7 +486,7 @@ struct property * of_find_property(const struct device_node * np,const char * na
 
 #include <linux/of.h>
 
-const char * of_prop_next_string(struct property * prop,const char * cur)
+const char * of_prop_next_string(const struct property * prop,const char * cur)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -489,7 +518,15 @@ pid_t pid_vnr(struct pid * pid)
 
 #include <linux/pid.h>
 
-int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret)
+int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret_file)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pidfs.h>
+
+int pidfs_register_pid(struct pid * pid)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -527,6 +564,20 @@ int put_user_ifreq(struct ifreq * ifr,void __user * arg)
 }
 
 
+extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
+void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void raw_spin_rq_unlock(struct rq * rq);
+void raw_spin_rq_unlock(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/file.h>
 
 int receive_fd(struct file * file,int __user * ufd,unsigned int o_flags)
@@ -554,6 +605,20 @@ void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
 #include <linux/fs.h>
 
 int send_sigurg(struct file * file)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_offline(struct rq * rq);
+void set_rq_offline(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void set_rq_online(struct rq * rq);
+void set_rq_online(struct rq * rq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -596,6 +661,13 @@ struct pid_namespace * task_active_pid_ns(struct task_struct * tsk)
 }
 
 
+extern void update_group_capacity(struct sched_domain * sd,int cpu);
+void update_group_capacity(struct sched_domain * sd,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
@@ -633,6 +705,14 @@ struct page * vmalloc_to_page(const void * vmalloc_addr)
 #include <linux/device/driver.h>
 
 void __init wait_for_init_devices_probe(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/nohz.h>
+
+void wake_up_nohz_cpu(int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }

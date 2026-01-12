@@ -15,6 +15,14 @@
 #ifndef _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__PERCPU_H_
 #define _LX_EMUL__SHADOW__ARCH__X86__INCLUDE__ASM__PERCPU_H_
 
+/*
+ * XXX prevents generic vs __seg_*s clashes
+ */
+#include <linux/version.h>
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,13,0)
+#undef CONFIG_CC_HAS_NAMED_AS
+#endif
+
 #include_next <asm/percpu.h>
 
 /*

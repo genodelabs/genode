@@ -4,7 +4,7 @@ three works (before it was one). The fourth work will be queued.
 
 --- src/linux/kernel/workqueue.c
 +++ src/linux/kernel/workqueue.c
-@@ -931,7 +931,10 @@ static unsigned long work_offqd_pack_flags(struct work_offq_data *offqd)
+@@ -937,7 +937,10 @@ static unsigned long work_offqd_pack_flags(struct work_offq_data *offqd)
   */
  static bool need_more_worker(struct worker_pool *pool)
  {

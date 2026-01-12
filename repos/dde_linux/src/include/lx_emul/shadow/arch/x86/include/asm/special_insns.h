@@ -16,6 +16,8 @@
 
 #ifdef __KERNEL__
 
+#include <linux/errno.h>
+
 static inline unsigned long __native_read_cr3(void)
 {
 	lx_emul_trace_and_stop(__func__);
