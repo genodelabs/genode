@@ -2,11 +2,9 @@ The PinePhone Modems' CDC Ethernet Interface does not respond if RX/TX queue siz
 is greater 12 (experimentally determined), the default would be 60, meaning 60
 RX Bulk URBs are sent at once to the device.
 
-diff --git src/linux/drivers/net/usb/usbnet.c src/linux/drivers/net/usb/usbnet.c
-index 2d14b0d78..d8c566b8c 100644
 --- src/linux/drivers/net/usb/usbnet.c
 +++ src/linux/drivers/net/usb/usbnet.c
-@@ -356,6 +356,14 @@ EXPORT_SYMBOL_GPL(usbnet_skb_return);
+@@ -364,6 +364,14 @@ EXPORT_SYMBOL_GPL(usbnet_skb_return);
  void usbnet_update_max_qlen(struct usbnet *dev)
  {
  	enum usb_device_speed speed = dev->udev->speed;

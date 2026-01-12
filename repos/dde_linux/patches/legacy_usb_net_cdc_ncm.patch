@@ -4,11 +4,24 @@ dde_linux which leads to delayed ACKs and poor performance for the RX case.
 Therefore, we send small packets (<100 Bytes) immediately without batching (it
 might be an ACK or last packet of a larger transfer).
 
-diff --git src/linux/drivers/net/usb/cdc_ncm.c src/linux/drivers/net/usb/cdc_ncm.c
-index db05622f1..4ad2bdb17 100644
+Kernel 6.12:
+
+NCM now tries to batch 40 packets by setting tx_max_datagrams to
+CDC_NCM_DPT_DATAGRAMS_MAX. We revert this to 3 which is working well on Genode.
+
 --- src/linux/drivers/net/usb/cdc_ncm.c
 +++ src/linux/drivers/net/usb/cdc_ncm.c
-@@ -1356,6 +1356,14 @@ cdc_ncm_fill_tx_frame(struct usbnet *dev, struct sk_buff *skb, __le32 sign)
+@@ -593,6 +593,9 @@ static int cdc_ncm_init(struct usbnet *dev)
+ 			(ctx->tx_max_datagrams > CDC_NCM_DPT_DATAGRAMS_MAX))
+ 		ctx->tx_max_datagrams = CDC_NCM_DPT_DATAGRAMS_MAX;
+ 
++	/* CDC_NCM_DPT_DATAGRAMS_MAX is 40, limit to 3 on Genode */
++	ctx->tx_max_datagrams = 3;
++
+ 	/* set up maximum NDP size */
+ 	if (ctx->is_ndp16)
+ 		ctx->max_ndp_size = sizeof(struct usb_cdc_ncm_ndp16) + (ctx->tx_max_datagrams + 1) * sizeof(struct usb_cdc_ncm_dpe16);
+@@ -1357,6 +1360,14 @@ cdc_ncm_fill_tx_frame(struct usbnet *dev, struct sk_buff *skb, __le32 sign)
  		}
  		skb_put_data(skb_out, skb->data, skb->len);
  		ctx->tx_curr_frame_payload += skb->len;	/* count real tx payload data */

@@ -1,0 +1,16 @@
+Disable commit
+
+https://github.com/torvalds/linux/commit/c08c364102d07288610734de34111a666e730ae7
+
+for Meteorlake, which causes the Intel Display Driver to request MMIO regions
+used by our Intel GPU driver.
+--- src/linux/drivers/gpu/drm/i915/i915_utils.c
++++ src/linux/drivers/gpu/drm/i915/i915_utils.c
+@@ -98,6 +98,7 @@
+ 	 * should have relaxed the access permissions sufficiently.
+ 	 * 0x138914==0x1 indicates that the firmware has done its job.
+ 	 */
++	return false;
+ 	return IS_METEORLAKE(i915) && !i915_run_as_guest() &&
+ 		intel_uncore_read(&i915->uncore, MTL_PCODE_STOLEN_ACCESS) == STOLEN_ACCESS_ALLOWED;
+ }
