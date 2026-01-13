@@ -567,14 +567,9 @@ namespace Genode {
 
 		result = v;
 
-		/* if no fractional part exists, return current value */
-		if (i < s.num_bytes && s.start[i] != '.') {
-			result = neg ? -v : v;
-			return i;
-		}
-
 		/* skip comma */
-		i++;
+		if (i < s.num_bytes && s.start[i] == '.')
+			i++;
 
 		/* parse fractional part of number */
 		for (; i < s.num_bytes && s.start[i] && is_digit(s.start[i]); i++, d *= 0.1)
