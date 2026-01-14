@@ -525,10 +525,11 @@ proc hid_attr_value { hid tag } {
 }
 
 
-proc hid_foreach_non_name_attr { tag_var value_var hid body } {
+proc hid_foreach_non_name_attr { tag_var value_var anno_var hid body } {
 
 	upvar $tag_var   tag
 	upvar $value_var value
+	upvar $anno_var  anno
 
 	foreach attr [hid_attributes $hid] {
 		if {[attr_tag $attr] != "name"} {
@@ -539,34 +540,55 @@ proc hid_foreach_non_name_attr { tag_var value_var hid body } {
 }
 
 
-proc hid_first_attr { hid } {
-	set first ""
+proc hid_name_attr { hid } {
 	foreach attr [hid_attributes $hid] {
-		if {$first == ""} {
-			set first $attr }
 		if {[attr_tag $attr] == "name"} {
-			set first $attr }
+			return $attr }
 	}
-	return $first
 }
 
 
-proc hid_foreach_non_first_attr { tag_var value_var anno_var hid body } {
+proc hid_attrs_fit_on_one_line { hid xpos } {
 
-	upvar $tag_var   tag
-	upvar $value_var value
-	upvar $anno_var  anno
+	set width 0
+	set count 0
 
-	set first_tag [attr_tag [hid_first_attr $hid]]
-
-	foreach attr [hid_attributes $hid] {
-		set tag  [attr_tag  $attr]
-		set anno [attr_anno $attr]
-		if {$tag != $first_tag} {
-			set value [attr_value $attr]
-			uplevel 1 $body
-		}
+	hid_foreach_non_name_attr tag value anno $hid {
+		if {$anno != ""} { return false }
+		incr width [string length " | $tag: $value"]
+		incr count
 	}
+
+	# a single attribute always appears as one line, however long it may be
+	if {$count == 1} { return true }
+
+	# join attributes on the node's line unless exceeding a limit of 80
+	if {[expr $xpos + $width] < 80 } { return true }
+
+	return false;
+}
+
+
+##
+# Select formatting style of a hid node
+#
+# For nodes where each child has many attributes but no sub nodes,
+# consistently format all childen using the same one-attr-per-line style.
+#
+proc _hid_one_attr_per_line { hid xpos } {
+
+	# don't force one attr per line when the structure is nested
+	foreach child [hid_children $hid] {
+		if {[llength [hid_children $child]] != 0} {
+			return false } }
+
+	# the attributes of any sub node exceed the maximum line length
+	set result false
+	foreach child [hid_children $hid] {
+		if {![hid_attrs_fit_on_one_line $child $xpos]} {
+			set result true } }
+
+	return $result
 }
 
 
@@ -578,8 +600,9 @@ proc hid_num_quoted_lines { hid } {
 }
 
 
-proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
+proc _hid_as_tree_recursively { indent hid { last 0 } { one_attr_per_line 0 } } {
 
+	set result ""
 	set type [string_trim [hid_type $hid]]
 
 	set node_branch_char "|"
@@ -589,30 +612,27 @@ proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 	if {[llength [hid_attributes $hid]] == 0} {
 		set anno [hid_anno $hid]
 		if {$anno != ""} { set anno " $anno" }
-		puts $out_fd "$indent$type$anno"
+		set node_line "$indent$type$anno\n"
+		append result $node_line
 		regsub {[+x] $} $indent "$node_branch_char " indent
 		regsub {^[|]} $indent " " indent
 	} else {
 
 		# max tag length used for tabular output of attribute values
 		set max_tag_len 0
-		hid_foreach_non_name_attr tag value $hid {
+		hid_foreach_non_name_attr tag value anno $hid {
 			set max_tag_len [expr max($max_tag_len, [string length $tag])] }
 		set tag_column_size [expr $max_tag_len + 1]
 
-		set first_attr [hid_first_attr $hid]
-		set anno [string_trim [attr_anno $first_attr]]
-		if {$anno != ""} { set anno " $anno" }
-		if {[attr_tag $first_attr] == "name"} {
-			puts $out_fd "$indent$type [attr_value $first_attr]$anno"
-		} else {
-			set padded_tag [format "%-${tag_column_size}s" "[attr_tag $first_attr]:"]
-			set value [string_trim [attr_value $first_attr]]
-			if {$value != ""} { set value " $value" }
-			puts $out_fd "$indent$type $padded_tag$value$anno"
+		set node_line "$indent$type"
+		set name_attr [hid_name_attr $hid]
+		if {[attr_tag $name_attr] == "name"} {
+			set anno [string_trim [attr_anno $name_attr]]
+			if {$anno != ""} { set anno " $anno" }
+			append node_line " [attr_value $name_attr]$anno"
 		}
 
-		# node branch to next sibling
+		# node branch to next sibling for subsequent lines following the node
 		regsub {[+x] $} $indent "$node_branch_char " indent
 		regsub {^[|]} $indent " " indent
 		regsub -all {.} "$type" " " node_column
@@ -621,21 +641,37 @@ proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 		if {![hid_leaf $hid] && $indent != ""} {
 			regsub {^ } $node_column "|" node_column }
 
-		hid_foreach_non_first_attr tag value anno $hid {
-			set padded_tag [format "%-${tag_column_size}s" "$tag:"]
-			if {$value != ""} { set value " $value" }
-			puts $out_fd "$indent$node_column $padded_tag$value$anno"
+		# unless one attr per line is dictated, join attributes if space suffices
+		if {!$one_attr_per_line} {
+			if {![hid_attrs_fit_on_one_line $hid [string length $node_line]]} {
+				set one_attr_per_line true } }
+
+		if {!$one_attr_per_line} {
+			hid_foreach_non_name_attr tag value anno $hid {
+				if {$value != ""} { set value " $value" }
+				append node_line " | $tag:$value" } }
+
+		append result "$node_line\n"
+
+		# attributes formatted as subsequent lines
+		if {$one_attr_per_line} {
+			hid_foreach_non_name_attr tag value anno $hid {
+				set padded_tag [format "%-${tag_column_size}s" "$tag:"]
+				if {$value != ""} { set value " $value" }
+				append result "$indent$node_column $padded_tag$value$anno\n"
+			}
 		}
 	}
 
 	foreach doc_line [hid_doc $hid] {
 		set text [lindex $doc_line 2]
-		puts -nonewline $out_fd "$indent."
-		if {$text != ""} { puts -nonewline $out_fd " $text" }
-		puts $out_fd ""
+		append result "$indent."
+		if {$text != ""} { append result " $text" }
+		append result "\n"
 	}
 
 	set num_children [llength [hid_children $hid]]
+	set children_one_attr_per_line [_hid_one_attr_per_line $hid [string length $node_line]]
 	foreach child_hid [hid_children $hid] {
 		incr num_children -1
 		set last [expr {$num_children < 1}]
@@ -643,20 +679,22 @@ proc print_hid_as_tree_recursively { out_fd indent hid { last 0 } } {
 		# quoted content
 		if {[hid_type $child_hid] == ":"} {
 			if {[string length [hid_quoted $child_hid]] == 0} {
-				puts $out_fd "$indent:"
+				append result "$indent:\n"
 			} else {
-				puts $out_fd "$indent: [hid_quoted $child_hid]"
+				append result "$indent: [hid_quoted $child_hid]\n"
 			}
 		} else {
 			set sub_node_indent "$indent[string_trim [hid_anchor $child_hid]] "
-			print_hid_as_tree_recursively $out_fd $sub_node_indent $child_hid $last
+			append result [_hid_as_tree_recursively $sub_node_indent $child_hid $last \
+			                                        $children_one_attr_per_line]
 		}
 	}
+	return $result
 }
 
 
 proc print_hid_as_tree { out_fd hid } {
-	print_hid_as_tree_recursively $out_fd "" $hid
+	puts $out_fd [_hid_as_tree_recursively "" $hid]
 	puts $out_fd "-"
 }
 
@@ -1256,7 +1294,7 @@ with_command set {
 					if {[attr_tag $attr] == [attr_tag $new_attr]} {
 						set present 1 } }
 				if {!$present} {
-					set prespace " "
+					set prespace " | "
 					if {[llength $result_attrs] > 0} { set prespace " | " }
 					lappend result_attrs [list "?" $prespace [attr_tag   $new_attr] \
 					                                     " " [attr_value $new_attr]] }
