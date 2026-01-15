@@ -1,12 +1,9 @@
-<runtime ram="176M" caps="300" binary="backdrop" config="backdrop.config">
-
-	<requires> <gui/> </requires>
-
-	<content>
-		<rom label="backdrop.config"/>
-		<rom label="sticks_blue.png"/>
-		<rom label="grid.png"/>
-		<rom label="genode_logo.png"/>
-	</content>
-
-</runtime>
+runtime | ram: 176M | caps: 300 | binary: backdrop | config: backdrop.config
++ requires
+  + gui
++ content
+  + rom | label: backdrop.config
+  + rom | label: sticks_blue.png
+  + rom | label: grid.png
+  + rom | label: genode_logo.png
+-
