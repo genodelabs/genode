@@ -309,7 +309,10 @@ proc parse_node { n chars_var xpos_var ctx_var anchor } {
 		add_node ctx $n $node_xpos $type $anchor $padding
 
 		parse_attr ctx(prespace) chars xpos tag align value anno {
-			add_attribute ctx $attr_xpos [list $n $ctx(prespace) $tag $align $value $anno] }
+			global total_parse_errors
+			puts stderr "Error: missing '|' separator before '$tag' attribute at line $n"
+			incr total_parse_errors
+		}
 
 		# optional name attribute
 		parse_value chars xpos align name {
