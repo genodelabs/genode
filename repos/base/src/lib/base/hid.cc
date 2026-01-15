@@ -372,9 +372,7 @@ struct Hid_generator::Tabular : Noncopyable
 
 		size_t pos = _leading_anchor_spaces + 2 /* plus, space */ + node.max_type.len;
 
-		/* alignment of first attribute depends on name or non-name */
-		if (node.num_attr > 0)
-			pos += (node.attr[0].max_tag == 0) ? 1 : 2;
+		if (node.num_attr > 0) pos += 1; /* space after node type */
 
 		for (unsigned i = 0; i < print_pos.attr; i++) {
 			Layout::Node::Attr const &attr = node.attr[i];
@@ -385,12 +383,12 @@ struct Hid_generator::Tabular : Noncopyable
 
 			size_t const max_tag_value = attr.max_tag + 2 /* colon, space */
 			                           + attr.max_value;
-			if (i == 0) /* first */ {
-				bool const name = (attr.max_tag == 0);
-				pos += name ? attr.max_value : max_tag_value;
-			} else /* subsequent */ {
-				pos += 2 /* pipe, space */ + max_tag_value;
-			}
+
+			bool const name = (i == 0) && (attr.max_tag == 0);
+
+			pos += name ? attr.max_value
+			            : 2 /* pipe, space */ + max_tag_value;
+
 			pos++; /* space */
 		}
 
@@ -464,17 +462,12 @@ void Hid_generator::_attribute(char const *tag, char const *value, size_t val_le
 			_node_state.attr_offset += gap; });
 	};
 
-	if (first) {
-		if (name_as_first)
-			insert(1 + val_len, [&] (Out_buffer &out) {
-				print(out, " ", Cstring(value, val_len)); });
-		else
-			insert(2 + tag_len + 2 + val_len, [&] (Out_buffer &out) {
-				print(out, "  ", tag, ": ", Cstring(value, val_len)); });
-	} else {
+	if (name_as_first)
+		insert(1 + val_len, [&] (Out_buffer &out) {
+			print(out, " ", Cstring(value, val_len)); });
+	else
 		insert(leading_spaces + 3 + tag_len + 2 + val_len, [&] (Out_buffer &out) {
 			print(out, Spaces(leading_spaces), " | ", tag, ": ", Cstring(value, val_len)); });
-	}
 
 	_node_state.has_attr = true;
 }
