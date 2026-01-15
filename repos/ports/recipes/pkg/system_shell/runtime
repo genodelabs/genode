@@ -1,37 +1,32 @@
-<runtime ram="108M" caps="1100" binary="init" config="system_shell.config">
-
-	<requires>
-		<gui/>
-		<timer/>
-		<file_system label="config" writeable="yes"/>
-		<file_system label="report" writeable="no"/>
-		<file_system label="target" writeable="yes"/>
-		<file_system label="fonts"  writeable="no"/>
-		<rom    label="vimrc"/>
-		<rom    label="clipboard"/>
-		<report label="clipboard"/>
-		<rm/>
-	</requires>
-
-	<content>
-		<rom label="system_shell.config"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="init"/>
-		<rom label="vfs"/>
-		<rom label="vfs_pipe.lib.so"/>
-		<rom label="cached_fs_rom"/>
-		<rom label="terminal"/>
-		<rom label="posix.lib.so"/>
-		<rom label="ncurses.lib.so"/>
-		<rom label="bash-minimal.tar"/>
-		<rom label="coreutils-minimal.tar"/>
-		<rom label="vim-minimal.tar"/>
-		<rom label="vim_syntax.tar"/>
-		<rom label="tclsh.tar"/>
-		<rom label="hid.tar"/>
-		<rom label="vfs.lib.so"/>
-	</content>
-
-</runtime>
+runtime | ram: 108M | caps: 1100 | binary: init | config: system_shell.config
++ requires
+  + gui
+  + timer
+  + file_system | label: config | writeable: yes
+  + file_system | label: report | writeable: no
+  + file_system | label: target | writeable: yes
+  + file_system | label: fonts  | writeable: no
+  + rom    | label: vimrc
+  + rom    | label: clipboard
+  + report | label: clipboard
+  + rm
++ content
+  + rom | label: system_shell.config
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: init
+  + rom | label: vfs
+  + rom | label: vfs_pipe.lib.so
+  + rom | label: cached_fs_rom
+  + rom | label: terminal
+  + rom | label: posix.lib.so
+  + rom | label: ncurses.lib.so
+  + rom | label: bash-minimal.tar
+  + rom | label: coreutils-minimal.tar
+  + rom | label: vim-minimal.tar
+  + rom | label: vim_syntax.tar
+  + rom | label: tclsh.tar
+  + rom | label: hid.tar
+  + rom | label: vfs.lib.so
+-
