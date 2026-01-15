@@ -649,7 +649,8 @@ proc _hid_as_tree_recursively { indent hid { last 0 } { one_attr_per_line 0 } } 
 		if {!$one_attr_per_line} {
 			hid_foreach_non_name_attr tag value anno $hid {
 				if {$value != ""} { set value " $value" }
-				append node_line " | $tag:$value" } }
+				if {$anno  != ""} { set anno " | $anno" }
+				append node_line " | $tag:$value$anno" } }
 
 		append result "$node_line\n"
 
@@ -783,6 +784,38 @@ proc xml_leaf_pattern      { } { return {(<\w[^>]*/>)} }
 proc xml_compound_pattern  { } { return {(<\w[^>]*>[<>0-9]*</[^>]*>)} }
 
 
+proc _hid_attach_annotation_to_last_node { hid anno } {
+
+	set last_node [lindex $hid end]
+	if {$last_node == ""} { return $hid }
+
+	set last_attributes [hid_attributes $last_node]
+
+	if {$last_attributes != ""} {
+		# assign annotation to last attribute of last node
+
+		# replace attr_anno (index 5) of last attribute
+		set last_attr [lindex $last_attributes end]
+		set last_attr [lreplace $last_attr 5 5 $anno]
+
+		# replace last attribute of last node with modified attribute
+		set last_attributes [lreplace $last_attributes end end $last_attr]
+
+		# replace hid_attr (index 6) of last node with modified attributes
+		set last_node [lreplace $last_node 6 6 $last_attributes]
+
+	} else {
+		# assign annotation to last node
+
+		# replace hid_anno (index 9) of last node
+		set last_node [lreplace $last_node 9 9 $anno]
+	}
+
+	# replace last node with modified node
+	return [lreplace $hid end end $last_node]
+}
+
+
 proc _hid_from_xml_rec { text info_var } {
 
 	upvar $info_var info
@@ -830,9 +863,16 @@ proc _hid_from_xml_rec { text info_var } {
 				set hid_anchor "x "
 				set child_text $disabled_leaf
 			} else {
-				regsub {\n} $prespace "" prespace
-				foreach line [split "$prespace$comment" "\n"] {
-					lappend hid_doc [list "" "" [string_trim $line]]
+				if {[regexp {\n} $prespace dummy] || [llength $result] == 0} {
+					# node description appearing above the node
+					regsub {\n} $prespace "" prespace
+					foreach line [split "$prespace$comment" "\n"] {
+						lappend hid_doc [list "" "" [string_trim $line]] }
+				} else {
+					# annotation, appearing at the right side of the node
+					regsub {\s*\n\s*} $comment " " comment
+					set comment [string_trim $comment]
+					set result [_hid_attach_annotation_to_last_node $result " | . $comment"]
 				}
 			}
 		}
