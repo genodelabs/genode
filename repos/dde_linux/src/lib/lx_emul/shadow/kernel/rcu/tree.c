@@ -91,6 +91,7 @@ void kvfree_call_rcu(struct rcu_head * head, rcu_callback_t func)
 	kvfree(ptr);
 }
 #else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,14,0)
 void kvfree_call_rcu(struct rcu_head * head, void *ptr)
 {
 	/*
@@ -107,4 +108,5 @@ void kvfree_call_rcu(struct rcu_head * head, void *ptr)
 
 	kvfree(ptr);
 }
+#endif
 #endif

@@ -193,3 +193,5 @@ void __dl_server_attach_root(struct sched_dl_entity *dl_se, struct rq *rq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+unsigned long vmalloc_base;

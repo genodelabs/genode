@@ -14,13 +14,13 @@
 #ifndef _SHADOW__LINUX__UTSNAME_H_
 #define _SHADOW__LINUX__UTSNAME_H_
 
-#include <uapi/linux/utsname.h>
+#include <linux/uts_namespace.h>
 
-extern struct new_utsname init_uts_ns;
+extern struct uts_namespace init_uts_ns;
 
 static inline struct new_utsname *init_utsname(void)
 {
-	return &init_uts_ns;
+	return &init_uts_ns.name;
 }
 
 

@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-26
+ * \date   2026-01-14
  */
 
 #include <lx_emul.h>
@@ -10,6 +10,14 @@
 #include <linux/root_dev.h>
 
 dev_t ROOT_DEV;
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/filter.h>
@@ -78,6 +86,14 @@ void __put_cred(struct cred * cred)
 }
 
 
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <net/sock.h>
 
 void __sock_recv_cmsgs(struct msghdr * msg,struct sock * sk,struct sk_buff * skb)
@@ -96,7 +112,7 @@ void __sock_recv_timestamp(struct msghdr * msg,struct sock * sk,struct sk_buff *
 
 #include <net/sock.h>
 
-void __sock_tx_timestamp(__u16 tsflags,__u8 * tx_flags)
+void __sock_tx_timestamp(__u32 tsflags,__u8 * tx_flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -105,6 +121,14 @@ void __sock_tx_timestamp(__u16 tsflags,__u8 * tx_flags)
 #include <linux/pid.h>
 
 pid_t __task_pid_nr_ns(struct task_struct * task,enum pid_type type,struct pid_namespace * ns)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmap_lock.h>
+
+void __vma_start_write(struct vm_area_struct * vma,unsigned int mm_lock_seq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -230,6 +254,14 @@ int dev_printk_emit(int level,const struct device * dev,const char * fmt,...)
 #include <linux/device.h>
 
 int device_rename(struct device * dev,const char * new_name)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -405,7 +437,7 @@ void handle_fasteoi_irq(struct irq_desc * desc)
 const struct net_offload __rcu *inet6_offloads[MAX_INET_PROTOS] = {};
 
 
-#include <linux/utsname.h>
+#include <linux/uts_namespace.h>
 
 struct user_namespace init_user_ns;
 
@@ -490,9 +522,17 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 }
 
 
+#include <linux/interrupt.h>
+
+int irq_set_affinity_notifier(unsigned int irq,struct irq_affinity_notify * notify)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/irqdomain.h>
 
-void irq_set_default_host(struct irq_domain * domain)
+void irq_set_default_domain(struct irq_domain * domain)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -508,7 +548,23 @@ struct irq_desc * irq_to_desc(unsigned int irq)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+void irq_work_sync(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -522,23 +578,7 @@ int is_vmalloc_or_module_addr(const void * x)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree_rcu_barrier(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/llist.h>
-
-bool llist_add_batch(struct llist_node * new_first,struct llist_node * new_last,struct llist_head * head)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
+#include <linux/mmap_lock.h>
 
 struct vm_area_struct * lock_vma_under_rcu(struct mm_struct * mm,unsigned long address)
 {
@@ -554,22 +594,6 @@ unsigned long loops_per_jiffy;
 #include <linux/delay.h>
 
 unsigned long lpj_fine;
-
-
-#include <linux/preempt.h>
-
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/maple_tree.h>
@@ -600,7 +624,7 @@ const struct fwnode_operations of_fwnode_ops;
 
 #include <linux/of.h>
 
-const char * of_prop_next_string(struct property * prop,const char * cur)
+const char * of_prop_next_string(const struct property * prop,const char * cur)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -609,14 +633,6 @@ const char * of_prop_next_string(struct property * prop,const char * cur)
 #include <linux/of.h>
 
 int of_property_read_string(const struct device_node * np,const char * propname,const char ** out_string)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/smp.h>
-
-void on_each_cpu_cond_mask(smp_cond_func_t cond_func,smp_call_func_t func,void * info,bool wait,const struct cpumask * mask)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -640,7 +656,15 @@ pid_t pid_vnr(struct pid * pid)
 
 #include <linux/pid.h>
 
-int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret)
+int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret_file)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pidfs.h>
+
+int pidfs_register_pid(struct pid * pid)
 {
 	lx_emul_trace_and_stop(__func__);
 }

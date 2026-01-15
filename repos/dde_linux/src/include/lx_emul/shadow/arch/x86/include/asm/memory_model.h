@@ -21,6 +21,10 @@
 #define page_to_pfn(page) virt_to_pfn(page_to_virt(page))
 #define pfn_to_page(pfn)  virt_to_page(pfn_to_virt(pfn))
 
+#ifndef page_to_phys
+#define page_to_phys(page)  ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
+#endif
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ASM_MEMORY_MODEL_H */

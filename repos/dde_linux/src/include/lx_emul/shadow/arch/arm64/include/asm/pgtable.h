@@ -39,6 +39,20 @@ pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma);
 pte_t pte_mkwrite(pte_t pte);
 #endif
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,12,0)
+static inline pte_t pfn_pte(unsigned long page_nr, pgprot_t pgprot)
+{
+    lx_emul_trace_and_stop(__func__);
+}
+
+static inline pte_t pte_mkyoung(pte_t pte)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+#endif
+
+
 pte_t pte_get(pte_t pte);
 pte_t pte_wrprotect(pte_t pte);
 pte_t pte_modify(pte_t pte, pgprot_t prot);
@@ -58,6 +72,15 @@ int pte_present(pte_t pte);
 int pte_swp_soft_dirty(pte_t pte);
 int pte_dirty(pte_t ptr);
 int pte_write(pte_t ptr);
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,13,0)
+int pte_valid_cont(pte_t pte);
+
+static inline pte_t __ptep_get(pte_t *ptep)
+{
+	return READ_ONCE(*ptep);
+}
+#endif
 
 int pgd_none(pgd_t);
 
@@ -94,7 +117,9 @@ pgprot_t pgprot_noncached(pgprot_t prot);
 pgprot_t pgprot_writecombine(pgprot_t prot);
 pgprot_t pgprot_tagged(pgprot_t prot);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,13,0)
 pte_t mk_pte(struct page * page, pgprot_t prot);
+#endif
 
 #define HPAGE_SHIFT         PMD_SHIFT
 #define HUGETLB_PAGE_ORDER  (HPAGE_SHIFT - PAGE_SHIFT)

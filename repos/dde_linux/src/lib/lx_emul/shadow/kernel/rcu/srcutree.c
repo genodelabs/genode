@@ -18,8 +18,14 @@
 
 int __srcu_read_lock(struct srcu_struct * ssp)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,14,0)
 	int idx = READ_ONCE(ssp->srcu_idx) & 0x1;
 	return idx;
+#else
+	struct srcu_ctr __percpu *scp = READ_ONCE(ssp->srcu_ctrp);
+	this_cpu_inc(scp->srcu_locks.counter);
+	return scp - &ssp->sda->srcu_ctrs[0];
+#endif
 }
 
 
@@ -55,7 +61,9 @@ int init_srcu_struct(struct srcu_struct * ssp)
 
 	mutex_init(&ssp->srcu_sup->srcu_cb_mutex);
 	mutex_init(&ssp->srcu_sup->srcu_gp_mutex);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,14,0)
 	ssp->srcu_idx = 0;
+#endif
 	ssp->srcu_sup->srcu_gp_seq = 0;
 	ssp->srcu_sup->srcu_barrier_seq = 0;
 	mutex_init(&ssp->srcu_sup->srcu_barrier_mutex);

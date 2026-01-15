@@ -118,4 +118,12 @@ static inline int pmd_soft_dirty(pmd_t pmd)
 
 #endif /* __ASSEMBLY__ */
 
+enum pgtable_level {
+	PGTABLE_LEVEL_PTE = 0,
+	PGTABLE_LEVEL_PMD,
+	PGTABLE_LEVEL_PUD,
+	PGTABLE_LEVEL_P4D,
+	PGTABLE_LEVEL_PGD,
+};
+
 #endif /* __LINUX_PGTABLE_H */

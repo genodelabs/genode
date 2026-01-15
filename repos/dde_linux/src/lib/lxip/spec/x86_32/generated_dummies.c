@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-26
+ * \date   2026-01-15
  */
 
 #include <lx_emul.h>
@@ -10,6 +10,14 @@
 #include <linux/root_dev.h>
 
 dev_t ROOT_DEV;
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/filter.h>
@@ -57,6 +65,14 @@ void __put_cred(struct cred * cred)
 }
 
 
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <net/sock.h>
 
 void __sock_recv_cmsgs(struct msghdr * msg,struct sock * sk,struct sk_buff * skb)
@@ -75,7 +91,7 @@ void __sock_recv_timestamp(struct msghdr * msg,struct sock * sk,struct sk_buff *
 
 #include <net/sock.h>
 
-void __sock_tx_timestamp(__u16 tsflags,__u8 * tx_flags)
+void __sock_tx_timestamp(__u32 tsflags,__u8 * tx_flags)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -123,11 +139,6 @@ int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <linux/bpf.h>
-
-const struct bpf_func_proto bpf_get_current_uid_gid_proto;
 
 
 #include <linux/bpf.h>
@@ -247,6 +258,14 @@ int dev_printk_emit(int level,const struct device * dev,const char * fmt,...)
 #include <linux/device.h>
 
 int device_rename(struct device * dev,const char * new_name)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -424,7 +443,7 @@ const struct net_offload __rcu *inet6_offloads[MAX_INET_PROTOS] = {};
 unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)] = {};
 
 
-#include <linux/utsname.h>
+#include <linux/uts_namespace.h>
 
 struct user_namespace init_user_ns;
 
@@ -477,9 +496,33 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 }
 
 
+#include <linux/interrupt.h>
+
+int irq_set_affinity_notifier(unsigned int irq,struct irq_affinity_notify * notify)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/irq_work.h>
 
 bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+void irq_work_sync(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -493,41 +536,9 @@ int is_vmalloc_or_module_addr(const void * x)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree_rcu_barrier(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/llist.h>
-
-bool llist_add_batch(struct llist_node * new_first,struct llist_node * new_last,struct llist_head * head)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
-
-
-#include <linux/preempt.h>
-
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/maple_tree.h>
@@ -566,7 +577,15 @@ pid_t pid_vnr(struct pid * pid)
 
 #include <linux/pid.h>
 
-int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret)
+int pidfd_prepare(struct pid * pid,unsigned int flags,struct file ** ret_file)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pidfs.h>
+
+int pidfs_register_pid(struct pid * pid)
 {
 	lx_emul_trace_and_stop(__func__);
 }

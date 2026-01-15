@@ -11,15 +11,17 @@
  * version 2 or later.
  */
 
+#include <linux/version.h>
 #include <asm/processor.h>
 #include <asm/cpu.h>
 
-int cpu_number = 0;
-
-
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,13,0)
+DEFINE_PER_CPU_CACHE_HOT(unsigned long, this_cpu_off) = 0;
+#else
 DEFINE_PER_CPU_READ_MOSTLY(unsigned long, this_cpu_off) = 0;
+#endif
 EXPORT_PER_CPU_SYMBOL(this_cpu_off);
 
+int cpu_number = 0;
 
 unsigned long __per_cpu_offset[NR_CPUS] = { 0UL };
-

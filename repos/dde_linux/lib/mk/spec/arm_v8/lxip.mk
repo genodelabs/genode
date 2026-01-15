@@ -1,6 +1,7 @@
 SPEC_ARCH := arm_v8
 
 SRC_C += lx_emul/shadow/arch/arm64/kernel/smp.c
+SRC_C += lx_emul/shadow/arch/arm/kernel/irq.c
 
 #
 # On arm64 the uaccess.h header uses __access_ok() prior to including

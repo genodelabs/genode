@@ -84,6 +84,8 @@ ifeq ($(filter-out $(SPECS),arm_v7),)
 LX_ARCH   := arm
 GEN_ARCH  := arm
 SPEC_ARCH := arm_v7
+
+SRC_C += lx_emul/shadow/arch/arm/kernel/cacheinfo.c
 endif
 
 ifeq ($(filter-out $(SPECS),arm_v8),)
