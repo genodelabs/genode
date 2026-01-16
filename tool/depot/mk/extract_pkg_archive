@@ -72,9 +72,14 @@ ifneq ($(filter-out $(RECIPE_FILES),README),)
 	          "      $(RECIPE_DIR)/README"; false
 endif
 
+RUNTIME_CONTENT        = $(call file_content,$(addprefix $(RECIPE_DIR)/,runtime))
+RUNTIME_LOOKS_LIKE_XML = $(filter 1,$(firstword $(RUNTIME_CONTENT:<%=1)))
+
 checked_runtime_valid:
 ifeq ($(filter $(RECIPE_FILES),runtime),runtime)
+ifeq ($(RUNTIME_LOOKS_LIKE_XML),1)
 	$(VERBOSE)xmllint --noout $(addprefix $(RECIPE_DIR)/,runtime)
+endif
 endif
 
 .NOTPARALLEL: $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE) $(DEPOT_ARCHIVE_DIR).hash
