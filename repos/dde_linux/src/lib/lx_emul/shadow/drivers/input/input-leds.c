@@ -161,7 +161,7 @@ static struct input_device_id input_leds_ids[] = {
 };
 
 
-MODULE_DEVICE_TABLE(input, led_ids);
+MODULE_DEVICE_TABLE(input, input_leds_ids);
 
 static struct input_handler input_leds_handler = {
 	.name       = "input-leds",

@@ -1,12 +1,14 @@
 TARGET  = usb_hid
 LIBS    = base jitterentropy virt_lx_emul
 
-INC_DIR = $(PRG_DIR)/../.. $(REP_DIR)/src/lib/usb_client
+REL_PRG_DIR = $(PRG_DIR)/../..
+INC_DIR = $(REL_PRG_DIR) $(REP_DIR)/src/lib/usb_client
 
 SRC_C += dummies.c \
-         generated_dummies.c \
          lx_emul.c \
          lx_user.c
+
+SRC_C += $(notdir $(wildcard $(PRG_DIR)/generated_dummies.c))
 
 SRC_C += lx_emul/shadow/drivers/input/evdev.c
 SRC_C += lx_emul/shadow/drivers/input/input-leds.c

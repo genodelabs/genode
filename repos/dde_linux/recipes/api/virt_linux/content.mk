@@ -40,8 +40,15 @@ LX_ABS_DIR := $(addsuffix /$(LX_REL_DIR),$(PORT_DIR))
 LX_FILES += $(shell cd $(LX_ABS_DIR); find -name "Kconfig*" -printf "%P\n")
 
 # add content listed in the repository's source.list or dep.list files
-LX_FILES_LXIP := $(shell find -H $(REP_DIR)/src/lib -name dep.list -or -name source.list)
-LX_FILE_LISTS := $(LX_FILES_LXIP)
+LX_FILES_VIRT_LINUX := $(shell find -H $(REP_DIR)/src/lib/virt_linux_generated -name dep.list)
+LX_FILE_LISTS       := $(LX_FILES_VIRT_LINUX)
+
+LX_FILES_LXIP := $(shell find -H $(REP_DIR)/src/lib/lxip -name dep.list -or -name source.list)
+LX_FILE_LISTS += $(LX_FILES_LXIP)
+
+LX_FILES_USB_HID := $(shell find -H $(REP_DIR)/src/driver/usb_hid -name dep.list -or -name source.list)
+LX_FILE_LISTS    += $(LX_FILES_USB_HID)
+
 LX_FILES      += $(shell cat $(LX_FILE_LISTS))
 LX_FILES      := $(sort $(LX_FILES))
 MIRRORED_FROM_PORT_DIR += $(addprefix $(LX_REL_DIR)/,$(LX_FILES))

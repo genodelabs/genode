@@ -1,10 +1,18 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-26
+ * \date   2026-01-16
  */
 
 #include <lx_emul.h>
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/ratelimit_types.h>
@@ -44,9 +52,9 @@ int __printk_ratelimit(const char * func)
 }
 
 
-#include <linux/uaccess.h>
+#include <linux/sched/task.h>
 
-unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -171,9 +179,9 @@ s64 div_s64_rem(s64 dividend,s32 divisor,s32 * remainder)
 }
 
 
-#include <asm-generic/softirq_stack.h>
+#include <linux/mmdebug.h>
 
-void do_softirq_own_stack(void)
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -237,6 +245,13 @@ unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)] = {};
 #include <linux/init.h>
 
 bool initcall_debug;
+
+
+extern int input_bits_to_string(char * buf,int buf_size,unsigned long bits,bool skip_empty);
+int input_bits_to_string(char * buf,int buf_size,unsigned long bits,bool skip_empty)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 extern void input_dev_poller_finalize(struct input_dev_poller * poller);
@@ -334,6 +349,14 @@ int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 bool irq_work_queue_on(struct irq_work * work,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -375,22 +398,6 @@ void led_trigger_event(struct led_trigger * trig,enum led_brightness brightness)
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
-
-
-#include <linux/preempt.h>
-
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/panic.h>
@@ -466,14 +473,6 @@ void set_rq_online(struct rq * rq)
 unsigned int setup_max_cpus;
 
 
-#include <linux/scatterlist.h>
-
-struct scatterlist * sg_next(struct scatterlist * sg)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/smp.h>
 
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
@@ -539,6 +538,11 @@ void usb_devio_cleanup(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/usb.h>
+
+struct mutex usb_dynids_lock;
 
 
 #include <linux/usb.h>
@@ -610,3 +614,4 @@ int usb_update_wireless_status_attr(struct usb_interface * intf)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
+
