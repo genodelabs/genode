@@ -194,8 +194,9 @@ LD_LIBGCC ?= $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
 LD_CMD += $(LD_LIBGCC)
 
 #
-# If available, link XML schema file for checking configurations
+# If available, link schema file for checking configurations
 #
+CONFIG_XSD ?= $(if $(wildcard $(PRG_DIR)/config.xsd),config.xsd)
 ifneq ($(CONFIG_XSD),)
 all: $(INSTALL_DIR)/$(TARGET).xsd
 $(INSTALL_DIR)/$(TARGET).xsd: $(PRG_DIR)/$(CONFIG_XSD)
