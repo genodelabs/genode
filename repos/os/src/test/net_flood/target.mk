@@ -11,6 +11,4 @@ INC_DIR += $(PRG_DIR) $(NIC_ROUTER_DIR)
 
 vpath ipv4_address_prefix.cc $(NIC_ROUTER_DIR)
 
-CONFIG_XSD = config.xsd
-
 CC_CXX_WARN_STRICT_CONVERSION =

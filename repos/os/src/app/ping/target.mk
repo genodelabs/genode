@@ -9,6 +9,4 @@ INC_DIR += $(PRG_DIR) $(REP_DIR)/src/server/nic_router
 
 vpath ipv4_address_prefix.cc $(REP_DIR)/src/server/nic_router
 
-CONFIG_XSD = config.xsd
-
 CC_CXX_WARN_STRICT_CONVERSION =
