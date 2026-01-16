@@ -60,6 +60,23 @@ proc hid_leaf { hid } {
 	return [expr {[llength [hid_children $hid]] == 0}]
 }
 
+proc hid_attr_value { hid tag { default_value "" } } {
+
+	foreach attr [hid_attributes $hid] {
+		if {[attr_tag $attr] == $tag} {
+			return [string_trim [attr_value $attr]] } }
+
+	return $default_value
+}
+
+proc hid_has_attr { hid tag } {
+
+	foreach attr [hid_attributes $hid] {
+		if {[attr_tag $attr] == $tag} {
+			return true } }
+	return false
+}
+
 
 proc node_stack_element_as_hid { ctx_var i } {
 
@@ -520,14 +537,6 @@ proc hid_filter { ctx_var query_hid data_hid filtered_hid_var match_body } {
 ## Output in HID syntax
 ##
 
-proc hid_attr_value { hid tag } {
-	foreach attr [hid_attributes $hid] {
-		if {[attr_tag $attr] == $tag} {
-			return [attr_value $attr] } }
-	return ""
-}
-
-
 proc hid_foreach_non_name_attr { tag_var value_var anno_var hid body } {
 
 	upvar $tag_var   tag
@@ -736,6 +745,496 @@ proc print_hid_as_is_recursively { out_fd hid } {
 proc print_hid_as_is { out_fd hid } {
 	print_hid_as_is_recursively $out_fd $hid
 	puts $out_fd "\n-"
+}
+
+
+##
+## HID validation
+##
+
+set checking_path ""
+set total_failed_checks 0
+
+
+proc hsd_schema { } {
+	return [string map {"\t" ""} {
+		schema schema
+		+ type id   | : [a-z][a-z0-9_-]*
+		+ type bool | : yes|no
+		+ category attr
+		  + node attr
+		    + attr name    | type: id
+		    + attr type    | type: id
+		    + attr default | type: any | default:
+		+ category node
+		  + node node
+		    + attr name     | type: id   | default:
+		    + attr category | type: id   | default:
+		    + attr multiple | type: bool | default: yes
+		    + attr optional | type: bool | default: yes
+		    + node | category: attr
+		    + node | category: node
+		    + node anything
+		    + node quote
+		+ attr name | type: id
+		+ node type
+		  + attr name | type: id
+		  + anything
+		+ node category
+		  + attr name | type: id
+		  + node | category: node
+		+ node | category: attr
+		+ node | category: node
+		-
+	}]
+}
+
+
+proc check_failed { msg } {
+
+	global total_failed_checks
+	global checking_path
+
+	if {$total_failed_checks == 0} { puts stderr "$checking_path:" }
+
+	incr total_failed_checks
+
+	set prefix  "Warning:"
+	regsub -all {.} $prefix " " cleared_prefix
+	foreach line [split $msg "\n"] {
+		puts stderr "$prefix [string_trim $line]"
+		set prefix $cleared_prefix
+	}
+}
+
+
+proc check_for_duplicated_attributes { hid } {
+
+	array unset counts
+	array unset lines
+
+	foreach attr [hid_attributes $hid] {
+		incr counts([attr_tag $attr])
+		set  lines([attr_tag $attr]) [attr_line $attr]
+	}
+
+	foreach { tag count } [array get counts] {
+		if {$count != 1} {
+			check_failed "duplicated attribute '$tag' at line $lines($tag)" } }
+
+	foreach child [hid_children $hid] {
+		check_for_duplicated_attributes $child }
+}
+
+
+proc hsd_sanity_check_category { hsd_meta_var category visited_var } {
+
+	upvar $hsd_meta_var hsd_meta
+	upvar $visited_var  visited
+
+	if {[lsearch $visited $category] != -1} {
+		error "circular definition of category '$category'" }
+	lappend visited $category
+
+	if {![info exists hsd_meta(category,$category)]} {
+		error "undefined node category '$category'" }
+}
+
+
+proc hsd_node_by_category { hsd_meta_var category type { visited {} } } {
+
+	upvar $hsd_meta_var hsd_meta
+
+	hsd_sanity_check_category hsd_meta $category visited
+
+	# traverse category definitions in the search for a node that matches 'type'
+	set results {}
+	foreach option $hsd_meta(category,$category) {
+
+		set name [hid_attr_value $option name]
+		if {$name == $type} {
+			return $option }
+
+		if {$name == ""} {
+			set next_category [hid_attr_value $option category]
+			if {$next_category == ""} {
+				error "category node at schema line [hid_line $option]\
+				       lacks name or category" }
+
+			set result [hsd_node_by_category hsd_meta $next_category $type $visited]
+
+			if {$result != ""} { lappend results $result }
+		}
+	}
+
+	if {[llength $results] == 0} { return "" }
+	if {[llength $results] == 1} { return [lindex $results 0] }
+
+	set lines ""
+	foreach r $results { lappend lines [hid_line $r] }
+	set lines [join $lines ", "]
+	error "ambiguous category definitions for '$type' at schema lines $lines"
+}
+
+
+proc hsd_category_node_options { hsd_meta_var category { visited {} } } {
+
+	upvar $hsd_meta_var hsd_meta
+
+	hsd_sanity_check_category hsd_meta $category visited
+
+	set options {}
+	foreach option $hsd_meta(category,$category) {
+		set name [hid_attr_value $option name]
+		if {$name == ""} {
+			set category [hid_attr_value $option category]
+			if {$category != ""} {
+				lappend options {*}[hsd_category_node_options hsd_meta $category $visited]
+			}
+		} else {
+			lappend options $name
+		}
+	}
+	return $options
+}
+
+
+proc hsd_attr_table { hsd_meta_var hsd_var } {
+
+	upvar $hsd_var      hsd
+	upvar $hsd_meta_var hsd_meta
+
+	set max_tag_len 0
+	set max_type_len 0
+	foreach i $hsd(attr_indices) {
+		if {$i != "name"} {
+			set type $hsd(attr,type,$i)
+			set max_tag_len  [expr max($max_tag_len,  [string length $i])]
+			set max_type_len [expr max($max_type_len, [string length $type])]
+		}
+	}
+	set tag_column_size  [expr $max_tag_len  + 2]
+	set type_column_size [expr $max_type_len + 2]
+	set detail {}
+	foreach i $hsd(attr_indices) {
+		if {$i != "name"} {
+			set type $hsd(attr,type,$i)
+			set pattern "[string_trim $hsd_meta(type,$type)]"
+			set padded_tag  [format "%-${tag_column_size}s"  "'$i'"]
+			set padded_type [format "%-${type_column_size}s" "'$type'"]
+			lappend detail "$padded_tag of type $padded_type ($pattern)"
+		}
+	}
+	return $detail
+}
+
+
+proc check_against_hsd_rec { hid hsd_var hsd_meta_var } {
+
+	upvar $hsd_var      hsd
+	upvar $hsd_meta_var hsd_meta
+
+	# detect unexpected attibutes or malformed attribute values
+	foreach attr [hid_attributes $hid] {
+
+		set line               [attr_line  $attr]
+		set tag                [attr_tag   $attr]
+		set value [string_trim [attr_value $attr]]
+
+		if {[info exists hsd(attr,type,$tag)]} {
+
+			set type $hsd(attr,type,$tag)
+			if {[info exists hsd_meta(type,$type)]} {
+				set pattern [string_trim $hsd_meta(type,$type)]
+				if {![regexp "^$pattern\$" $value]} {
+					check_failed "malformed '$tag' attribute value '$value' at line $line,\n\
+					              requires '$type' value ($pattern)" }
+			}
+		} elseif {![info exists hsd(anything)]} {
+			if {$tag == "name"} {
+				check_failed "node '[hid_type $hid]' at line $line cannot have a name"
+			} else {
+				set detail [join [hsd_attr_table hsd_meta hsd] "\n"]
+				if {[llength $detail] != 0} { append detail ", expected:\n" }
+				check_failed "node '[hid_type $hid]' has invalid attribute '$tag' at line $line$detail"
+			}
+		}
+	}
+
+	# detect missing attributes
+	foreach tag $hsd(attr_indices) {
+		if {![info exists hsd(attr,default,$tag)]} {
+			set type $hsd(attr,type,$tag)
+			if {![info exists hsd_meta(type,$type)]} {
+				check_failed "unknown type '$type' of '$tag' attribute at line [hid_line $hid]"
+			} else {
+				set pattern [string_trim $hsd_meta(type,$type)]
+				set detail "attribute '$tag' of type '$hsd(attr,type,$tag)' ($pattern)"
+				if {$tag == "name"} { set detail "a name" }
+				if {![hid_has_attr $hid $tag]} {
+					check_failed "node '[hid_type $hid]' at line [hid_line $hid]\
+					              lacks $detail" } } }
+			}
+
+	#
+	# Find corresponding hsd-node index for a given hid node.
+	# Categories are represented by numbers, named nodes by their names.
+	#
+	proc hsd_node_index { hsd_var hsd_meta_var hid } {
+
+		upvar $hsd_var      hsd
+		upvar $hsd_meta_var hsd_meta
+
+		set type [hid_type $hid]
+
+		foreach name $hsd(node_indices) {
+			if {[info exists hsd(node,category,$name)]} {
+				# look if category matches the node type
+				set category $hsd(node,category,$name)
+				foreach option [hsd_category_node_options hsd_meta $category] {
+					if {$option == $type} {
+						return $name } }
+			}
+			if {$type == $name} {
+				return $name }
+		}
+		# type of hid node unknown by the schema
+		return ""
+	}
+
+	set expected_specific_sub_node_types {}
+	set expected_category_sub_node_types {}
+	foreach name $hsd(node_indices) {
+		if {[info exists hsd(node,category,$name)]} {
+			set category $hsd(node,category,$name)
+			foreach option [hsd_category_node_options hsd_meta $category] {
+				lappend expected_category_sub_node_types "'$option'"
+			}
+		} else {
+			lappend expected_specific_sub_node_types "'$name'"
+		}
+	}
+
+	array set count {}
+	foreach child [hid_children $hid] {
+		set name [hsd_node_index hsd hsd_meta $child]
+		incr count($name)
+	}
+
+	# detect ambiguous, unexpected, or missing nodes
+	if {![info exists hsd(anything)]} {
+		foreach child [hid_children $hid] {
+			set name [hsd_node_index hsd hsd_meta $child]
+			if {[info exists hsd(node,multiple,$name)]} {
+				if {$hsd(node,multiple,$name) == "no" && $count($name) > 1} {
+					check_failed "ambiguous node '$name' at line [hid_line $child]" }
+			} else {
+				if {[hid_type $child] == ":"} {
+					if {![info exists hsd(quote)]} {
+						check_failed "unexpected quote at line [hid_line $child]: [hid_quoted $child]" }
+				} else {
+					set detail [join [list {*}$expected_specific_sub_node_types \
+					                       {*}$expected_category_sub_node_types] "\n"]
+					check_failed "invalid node '[hid_type $child]' at line [hid_line $child],\
+					              expected:\n$detail"
+				}
+			}
+		}
+	}
+
+	# detect missing nodes
+	foreach type $hsd(node_indices) {
+		if {$hsd(node,optional,$type) == "no" && ![info exists count($type)]} {
+			global total_failed_checks
+			incr total_failed_checks
+
+			if {[info exists hsd(node,hid,$type)]} {
+				puts -nonewline stderr "Warning: node '[hid_type $hid]' at line\
+				                        [hid_line $hid] lacks sub node '$type'"
+				print_hid_as_is stderr "$hsd(node,hid,$type)"
+			} elseif {[info exists hsd(node,category,$type)]} {
+				set category $hsd(node,category,$type)
+				set detail [join $expected_category_sub_node_types "\n"]
+				check_failed "node '[hid_type $hid]' at line [hid_line $hid]\
+				              lacks sub node of category '$category',\
+				              expected:\n$detail"
+			}
+		}
+	}
+
+	# traverse into sub nodes
+	foreach child [hid_children $hid] {
+		set type [hid_type $child]
+		set child_hsd_hid ""
+		foreach node_name $hsd(node_indices) {
+
+			# node defined directly
+			if {$node_name == $type && [info exists hsd(node,hid,$type)]} {
+				set child_hsd_hid $hsd(node,hid,$node_name) }
+
+			# only category is given, find the matching hsd hid node
+			if {$child_hsd_hid == ""} {
+				if {[info exists hsd(node,category,$node_name)]} {
+					set category $hsd(node,category,$node_name)
+					set child_hsd_hid [hsd_node_by_category hsd_meta $category $type]
+				}
+			}
+		}
+		if {$child_hsd_hid != ""} {
+			array unset child_hsd
+			collect_hsd_attrs_and_nodes $child_hsd_hid child_hsd
+			check_against_hsd_rec $child child_hsd hsd_meta
+		}
+	}
+}
+
+
+proc collect_hsd_attrs_and_nodes { hsd_hid hsd_var } {
+
+	upvar $hsd_var hsd
+
+	set hsd(node_indices) {}
+	set hsd(attr_indices) {}
+
+	#
+	# Fill the 'hsd' array with information about expected nodes and attributes
+	# specified by 'hsd_hid'.
+	#
+	# Fully specified nodes use their type name as index.
+	# Nodes that refer to a category use a unique counter value ('i') as index.
+	#
+	# All node indices are kept at 'hsd(node_indices)'.
+	#
+	# See the proc 'hsd_node_index' for the reverse lookup.
+	#
+
+	set i 0
+
+	foreach child [hid_children $hsd_hid] {
+
+		set type [hid_type $child]
+		set name [hid_attr_value $child name]
+
+		if {$type == "node"} {
+			# distinguish category nodes from fully specified named nodes
+			if {$name == ""} {
+				# use index to identify node referring to a category
+				set name "$i"
+				if {[hid_has_attr $child category]} {
+					set hsd(node,category,$name) [hid_attr_value $child category]
+				} else {
+					error "node in schema at line [hid_line $child] lacks name or category"
+				}
+			} else {
+				set hsd(node,hid,$name) $child
+			}
+			set hsd(node,multiple,$name) [hid_attr_value $child multiple "yes"]
+			set hsd(node,optional,$name) [hid_attr_value $child optional "yes"]
+			lappend hsd(node_indices) $name
+		}
+
+		if {$type == "attr"} {
+			set hsd(attr,type,$name) [hid_attr_value $child type]
+			if {[hid_has_attr $child default]} {
+				set hsd(attr,default,$name) [hid_attr_value $child default] }
+			lappend hsd(attr_indices) $name
+		}
+
+		if {$type == "anything"} { set hsd(anything) 1 }
+		if {$type == "quote"}    { set hsd(quote)    1 }
+
+		incr i
+	}
+}
+
+
+proc check_against_hsd_file { hid hsd_file } {
+
+	global checking_path
+	global total_failed_checks
+	global path
+
+	# validate .hsd schema file
+	set checking_path $hsd_file
+	set hsd_hid [import_hid [file_content $hsd_file]]
+	check_against_hsd_hid $hsd_hid [import_hid [hsd_schema]]
+
+	if {$total_failed_checks > 0} {
+		error "malformed schema file $hsd_file" }
+
+	# validate .hid file against schema defined in .hsd file
+	set checking_path $path
+	check_against_hsd_hid $hid $hsd_hid
+}
+
+
+proc check_against_hsd_hid { hid hsd_hid } {
+
+	if {[hid_attr_value $hsd_hid name] != [hid_type $hid]} {
+		error "top-level node '[hid_type $hid]' should be '[hid_attr_value $hsd_hid name]'" }
+
+	array set hsd_meta {}
+
+	foreach child [hid_children $hsd_hid] {
+
+		set type [hid_type $child]
+		set name [hid_attr_value $child name]
+
+		if {$type == "type"} {
+			set pattern ""
+			foreach quoted [hid_children $child] {
+				if {[hid_type $quoted] == ":"} {
+					set pattern [hid_quoted $quoted] } }
+			set hsd_meta(type,$name) $pattern
+		}
+
+		if {$type == "category"} {
+			set hsd_meta(category,$name) [hid_children $child] }
+	}
+
+	collect_hsd_attrs_and_nodes $hsd_hid hsd
+
+	check_against_hsd_rec $hid hsd hsd_meta
+}
+
+
+proc check_against_schema_name { hid schema_name } {
+
+	global hsd_dir
+
+	if {$hsd_dir == ""} { error "missing '--hsd-dir' argument" }
+
+	set hsd_file [file join $hsd_dir [string_trim $schema_name].hsd]
+
+	if {![file exists $hsd_file]} { error "schema '$schema_name' missing" }
+
+	check_against_hsd_file $hid $hsd_file
+}
+
+
+proc check_against_schema_file_path_or_name { hid schema_arg } {
+
+	global total_failed_checks
+
+	if {[file extension $schema_arg] == ".hsd"} {
+
+		set hsd_file $schema_arg
+
+		if {![file exists $hsd_file]} {
+			error "file $hsd_file does not exist" }
+
+		check_against_hsd_file $hid $hsd_file
+
+		if {$total_failed_checks > 0} {
+			error "validation against $hsd_file failed" }
+
+	} else {
+
+		check_against_schema_name $hid $schema_arg
+
+		if {$total_failed_checks > 0} {
+			error "validation against schema '$schema_arg' failed" }
+	}
 }
 
 
@@ -1024,18 +1523,20 @@ proc file_content { path } {
 }
 
 set short_usage_msg {
-  usage: hid [-i] [--import-xml] <command> [<options>] <hid-file>}
+  usage: hid [-i] [--import-xml] <command> [<options>] <input-file>}
 
 append help_hint_msg $short_usage_msg "\n" {
   Use '--help' to get more information. }
 
 append help_msg $short_usage_msg {
 
-  With the option '-i' specfied, the <hid-file> is modified in place.
+  With the option '-i' specfied, the <input-file> is modified in place.
+
+  By specifying '-' as <input-file>, the tool reads from stdin.
 
   available commands:
 
-    hid [-i] format <hid-file>
+    hid [-i] format <input-file>
 
       Print formatted HID data. Alternatively to the HID syntax used
       by default, the output format can be defined via:
@@ -1054,7 +1555,7 @@ append help_msg $short_usage_msg {
 
       --output-xml  Print HID structure as XML
 
-    hid subnodes <node-path> <hid-file>
+    hid subnodes <node-path> <input-file>
 
       Query nodes from HID structure. The <node-path> describes the
       targeted sub trees within the hierarchy as a sequence of HID
@@ -1063,65 +1564,74 @@ append help_msg $short_usage_msg {
       Each HID node can be followed by optional attribute filters
       in the form of '| <tag>: <value>', which are interpreted as
       conditions for the match. If multiple attributes are specified,
-      each conditions must apply.
+      each condition must apply.
 
       Example:
 
-      $ hid subnodes 'config | + start terminal | + route' <hid-file>
+      $ hid subnodes 'config | + start terminal | + route' <input-file>
 
       Prints the 'route' subnode of the 'start' node named 'terminal'.
 
-    hid get <attr-path> <hid-file>
+    hid get <attr-path> <input-file>
 
-      Query attributes value from HID structure. The <attr-path>
+      Query attribute value(s) from HID structure. The <attr-path>
       consists of a <node-path> followed by '| : <tag>' denoting the
       tag to retrieve.
 
       Example:
 
-      $ hid get 'config | + start | : name' <hid-file>
+      $ hid get 'config | + start | : name' <input-file>
 
       Prints the name of each 'start' node found in 'config'.
 
-    hid [-i] set <attr-def> <hid-file>
+    hid [-i] set <attr-def> <input-file>
 
-      Sets the attribute values specified by <attr-def>, which is
+      Set the attribute value(s) specified by <attr-def>, which is
       a <node-path> followed by the delimiter '| :' followed by
       one or more attribute definitions. Each definition has the
-      form '<tag>: <value>' and separated from the next one by '|'.
+      form '<tag>: <value>' and is separated from the next one by '|'.
 
       Example:
 
-      $ hid set 'config | + start vfs | : caps: 100 | ram: 16M' <hid-file>
+      $ hid set 'config | + start vfs | : caps: 100 | ram: 16M' <input-file>
 
       Sets the attributes 'caps' and 'ram' of the 'start' node named
       'vfs' to the values 100 and 16M respectively.
 
     hid [-i] remove <node-path>
 
-      Removes the node(s) specified by the <node-path>.
+      Remove the node(s) specified by the <node-path>.
 
       Example:
 
-      $ hid remove 'config | + start | + route' <hid-file>
+      $ hid remove 'config | + start | + route' <input-file>
 
       Removes all 'route' sub nodes from each 'start' node hosted
       at the 'config'.
 
     hid [-i] disable <node-path>
 
-      Marks nodes specified by <node-path> as disabled, which turns the
+      Mark nodes specified by <node-path> as disabled, which turns the
       node anchor from '+' to 'x'.
 
       Example:
 
-      $ hid disable 'config | + start terminal' <hid-file>
+      $ hid disable 'config | + start terminal' <input-file>
 
       Turns the node anchor of the terminal's 'start' node to an 'x'.
 
     hid [-i] enable <node-path>
 
-      Reverts the enabled state of nodes addressed by the <node-path>.
+      Revert the enabled state of nodes addressed by the <node-path>.
+
+    hid check [--hsd-dir <hsd-dir>] [--schema <hsd-file>] <input-file>
+
+      Validate the consistency of <input-file>
+
+      With no schema specified, the command looks out for syntax
+      violations and ambigouos attributes. By specifying a schema,
+      those basic checks are supplemented with the validation against
+      the structural and grammatical rules described in the <hsd-file>.
 }
 
 
@@ -1144,6 +1654,28 @@ proc consume_flag_arg { flag body } {
 			lappend remaining_argv $arg }
 	}
 	set argv $remaining_argv
+}
+
+##
+# Consume tag-value argument
+#
+proc consume_tag_value_arg { flag value_var body } {
+
+	global argv
+
+	set tag_index [lsearch $argv $flag]
+	if {$tag_index == -1} { return }
+
+	set value_index [expr $tag_index + 1]
+
+	if {$value_index >= [llength $argv]} {
+		error "missing value for $flag argument" }
+
+	upvar $value_var value
+	set value [lindex $argv $value_index]
+	uplevel 1 $body
+
+	set argv [lreplace $argv $tag_index $value_index]
 }
 
 # define input and output format
@@ -1170,6 +1702,12 @@ consume_flag_arg --help {
 	exit
 }
 
+set schema_path ""
+set hsd_dir     ""
+
+consume_tag_value_arg --schema schema_path { }
+consume_tag_value_arg --hsd-dir hsd_dir    { }
+
 
 if {[llength $argv] < 1} {
 	error "missing sub-command argument\n$help_hint_msg" }
@@ -1184,6 +1722,7 @@ set command_info(min_args,remove)   3
 set command_info(min_args,set)      3
 set command_info(min_args,enable)   3
 set command_info(min_args,disable)  3
+set command_info(min_args,check)    2
 
 if {![info exists command_info(min_args,$command)]} {
 	error "unknown command '$command'\n$help_hint_msg" }
@@ -1345,4 +1884,16 @@ with_command set {
 			set filtered_hid [lreplace $filtered_hid 6 6 $result_attrs]
 		}]
 	}
+}
+
+
+with_command check {
+
+	check_for_duplicated_attributes $input_hid
+
+	if {$schema_path != ""} {
+		check_against_schema_file_path_or_name $input_hid $schema_path }
+
+	if {$total_failed_checks > 0} {
+		error "validation failed" }
 }
