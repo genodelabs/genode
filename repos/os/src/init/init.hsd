@@ -1,0 +1,133 @@
+schema config
+
++ type any       | : .*
++ type integer   | : -?\d+
++ type natural   | : \d+
++ type positive  | : \d*[1-9]\d*
++ type num_bytes | : \d+[GMK]?
++ type bool      | : yes|no
+
++ category child_target
+  + node child
+    + attr name             | type: any
+    + attr label            | type: any | default:
+    + attr identity         | type: any | default:
+    + attr resource         | type: any | default:
+    + attr prepend_resource | type: any | default:
+
++ category parent_target
+  + node parent
+    + attr label            | type: any | default:
+    + attr identity         | type: any | default:
+    + attr resource         | type: any | default:
+    + attr prepend_resource | type: any | default:
+
++ category service_policy
+  + node policy
+    + attr label        | type: any | default:
+    + attr label_prefix | type: any | default:
+    + attr label_suffix | type: any | default:
+    + attr label_last   | type: any | default:
+    + node | category: child_target | optional: no
+  + node default-policy
+    + node | category: child_target | optional: no
+
++ category route_target
+  + node | category: parent_target
+  + node any-child
+  + node | category: child_target
+
++ category route
+  + node service
+    + attr name           | type: any
+    + attr label          | type: any | default:
+    + attr label_prefix   | type: any | default:
+    + attr label_suffix   | type: any | default:
+    + attr label_last     | type: any | default:
+    + attr unscoped_label | type: any | default:
+    + node | category: route_target
+  + node any-service | + node | category: route_target
+
++ attr prio_levels | type: integer | default: 0
++ attr verbose     | type: bool    | default: no
++ attr ld_verbose  | type: bool    | default: no
+
++ node service | multiple: yes
+  .
+  . Service provided by the init subsystem to the outside
+  .
+  + attr name | type: any
+  + node | category: service_policy | optional: no | multiple: yes
+
++ node affinity-space
+  + attr width  | type: positive
+  + attr height | type: positive
+
++ node parent-provides
+  + node service | multiple: yes
+    + attr name | type: any
+
++ node alias
+  + attr name  | type: any
+  + attr child | type: any
+
++ node default-route | multiple: no
+  .
+  . Route for a session requested by a child
+  .
+  + node | category: route | optional: no | multiple: yes
+
++ node default
+  + attr caps | type: positive  | default:
+  + attr ram  | type: num_bytes | default:
+
++ node report | multiple: no
+  + attr ids          | type: bool      | default: no
+  + attr requested    | type: bool      | default: no
+  + attr provided     | type: bool      | default: no
+  + attr session_args | type: bool      | default: no
+  + attr child_caps   | type: bool      | default: no
+  + attr child_ram    | type: bool      | default: no
+  + attr init_caps    | type: bool      | default: no
+  + attr init_ram     | type: bool      | default: no
+  + attr delay_ms     | type: positive  | default: 100
+  + attr buffer       | type: num_bytes | default: 4K
+
++ node heartbeat | multiple: no
+  + attr rate_ms | type: positive | default: 1000
+
++ node resource
+  + attr name     | type: any | . RAM or CAP
+  + attr preserve | type: any | default:
+
++ node start
+  + attr name            | type: any
+  + attr ld              | type: bool      | default: no
+  + attr caps            | type: natural   | default:
+  + attr ram             | type: num_bytes | default:
+  + attr priority        | type: integer   | default: 0
+  + attr managing_system | type: bool      | default: no
+
+  + node binary | multiple: no
+    + attr name | type: any
+
+  + node heartbeat | multiple: no
+    + attr restart_after_skipped | type: natural | default: 0
+
+  + node affinity | multiple: no
+    + attr xpos   | type: natural  | default: 0
+    + attr ypos   | type: natural  | default: 0
+    + attr width  | type: positive | default: 1
+    + attr height | type: positive | default: 1
+
+  + node exit | multiple: no
+    + attr propagate | type: bool | default: no
+
+  + node provides | + node service | + attr name | type: any
+
+  + node route | multiple: no
+    + node | category: route
+
+  + node config
+    + anything
+-
