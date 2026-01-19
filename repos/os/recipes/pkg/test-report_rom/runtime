@@ -1,69 +1,73 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="30"/>
-	<fail>exited with exit value -1</fail>
-	<succeed>
-		[test-report_rom] --- test-report_rom started ---
-		[test-report_rom] Reporter: open session
-		[test-report_rom] Reporter: brightness 10
-		[test-report_rom] ROM client: request brightness report
-		[test-report_rom]          -> &lt;brightness value="10"/>
-		[test-report_rom]
-		[test-report_rom] Reporter: updated brightness to 77
-		[test-report_rom] ROM client: wait for update notification
-		[test-report_rom] ROM client: got signal
-		[test-report_rom] ROM client: request updated brightness report
-		[test-report_rom]          -> &lt;brightness value="77"/>
-		[test-report_rom]
-		[test-report_rom] Reporter: close report session, wait a bit
-		[test-report_rom] got timeout
-		[test-report_rom]          -> &lt;brightness value="77"/>
-		[test-report_rom]
-		[test-report_rom] ROM client: ROM is available despite report was closed - OK
-		[test-report_rom] Reporter: start reporting (while the ROM client still listens)
-		[test-report_rom] ROM client: wait for update notification
-		[test-report_rom] ROM client: try to open the same report again
-		[test-report_rom] *Error: stop because parent denied Report-session: label="brightness"
-	</succeed>
++ fail | after_seconds: 30
++ fail | : exited with exit value -1
++ succeed
+  : [test-report_rom] --- test-report_rom started ---
+  : [test-report_rom] Reporter: open session
+  : [test-report_rom] Reporter: brightness 10
+  : [test-report_rom] ROM client: request brightness report
+  : [test-report_rom]          -> brightness | value: 10
+  : [test-report_rom] -
+  : [test-report_rom]
+  : [test-report_rom] Reporter: updated brightness to 77
+  : [test-report_rom] ROM client: wait for update notification
+  : [test-report_rom] ROM client: got signal
+  : [test-report_rom] ROM client: request updated brightness report
+  : [test-report_rom]          -> brightness | value: 77
+  : [test-report_rom] -
+  : [test-report_rom]
+  : [test-report_rom] Reporter: close report session, wait a bit
+  : [test-report_rom] got timeout
+  : [test-report_rom]          -> brightness | value: 77
+  : [test-report_rom] -
+  : [test-report_rom]
+  : [test-report_rom] ROM client: ROM is available despite report was closed - OK
+  : [test-report_rom] Reporter: start reporting (while the ROM client still listens)
+  : [test-report_rom] ROM client: wait for update notification
+  : [test-report_rom] ROM client: try to open the same report again
+  : [test-report_rom] *Error: stop because parent denied Report-session: label="brightness"
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-report_rom"/>
-		<rom label="report_rom"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-report_rom
+  + rom | label: report_rom
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="report_rom" ram="2M">
-			<provides> <service name="ROM"/> <service name="Report"/> </provides>
-			<config>
-				<policy label_prefix="test-report_rom ->" label_suffix="brightness" report="test-report_rom -> brightness"/>
-			</config>
-		</start>
-		<start name="test-report_rom" ram="2M">
-			<config generate_xml="yes"/>
-			<route>
-				<service name="ROM" label="brightness">
-					<child name="report_rom"/>
-				</service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start report_rom | ram: 2M
+    + provides
+      + service ROM
+      + service Report
+    + config
+      + policy | label_prefix: test-report_rom ->
+                 label_suffix: brightness
+                 report:       test-report_rom -> brightness
+
+  + start test-report_rom | ram: 2M
+    + config
+    + route
+      + service ROM | label: brightness | + child report_rom
+      + any-service
+        + parent
+        + any-child
+-

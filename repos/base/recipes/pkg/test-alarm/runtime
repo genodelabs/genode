@@ -1,23 +1,20 @@
-<runtime ram="32M" caps="1000" binary="test-alarm">
+runtime | ram: 32M | caps: 1000 | binary: test-alarm
 
-	<fail after_seconds="20"/>
-	<succeed>
-		in range [1...3]: a1
-		in range [1...3]: a2
-		in range [1...3]: a3
-		in range [3...1]: a3
-		in range [3...1]: a4
-		in range [3...1]: a0
-		in range [3...1]: a1
-		soonest(5) -> 0
-		Test succeeded.
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : in range [1...3]: a1
+  : in range [1...3]: a2
+  : in range [1...3]: a3
+  : in range [3...1]: a3
+  : in range [3...1]: a4
+  : in range [3...1]: a0
+  : in range [3...1]: a1
+  : soonest(5) -> 0
+  : Test succeeded.
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-alarm"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-alarm
 
-	<config/>
-
-</runtime>
++ config
+-

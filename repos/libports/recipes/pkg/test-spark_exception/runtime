@@ -1,18 +1,15 @@
-<runtime ram="10M" caps="100" binary="test-spark_exception">
+runtime | ram: 10M | caps: 100 | binary: test-spark_exception
 
-	<fail after_seconds="20"/>
-	<succeed exit="0">
-		Ada exception test
-		*Error: Exception raised: explicit raise in except.adb:6
-		Caught Ada::Exception::Program_Error
-	</succeed>
++ fail | after_seconds: 20
++ succeed | exit: 0
+  : Ada exception test
+  : *Error: Exception raised: explicit raise in except.adb:6
+  : Caught Ada::Exception::Program_Error
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="spark.lib.so"/>
-		<rom label="test-spark_exception"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: spark.lib.so
+  + rom | label: test-spark_exception
 
-	<config/>
-
-</runtime>
++ config
+-

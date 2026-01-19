@@ -1,43 +1,43 @@
-<runtime ram="90M" caps="1000" binary="init">
+runtime | ram: 90M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed>child "vfs_stress" exited with exit value 0</succeed>
++ fail    | after_seconds: 20
++ succeed | : child "vfs_stress" exited with exit value 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs"/>
-		<rom label="vfs_stress"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs
+  + rom | label: vfs_stress
 
-	<config>
-		<affinity-space width="3" height="2"/>
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="IO_PORT"/>
-			<service name="IRQ"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="ROM"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="vfs_stress" ram="8M">
-			<config depth="16"> <vfs> <fs/> </vfs> </config>
-		</start>
-		<start name="ram_fs" caps="120" ram="80M">
-			<binary name="vfs"/>
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs> <ram/> </vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
-	</config>
-</runtime>
++ config
+  + affinity-space | width: 3 | height: 2
+  + parent-provides
+    + service CPU
+    + service IO_PORT
+    + service IRQ
+    + service LOG
+    + service PD
+    + service RM
+    + service ROM
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start vfs_stress | ram: 8M
+    + config | depth: 16
+      + vfs | + fs
+
+  + start ram_fs | caps: 120 | ram: 80M
+    + binary vfs
+    + provides | + service File_system
+    + config
+      + vfs | + ram
+      + default-policy | root: / | writeable: yes
+-

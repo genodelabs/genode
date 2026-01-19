@@ -1,63 +1,61 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<fail after_seconds="30"/>
-	<succeed>child "test-libc_vfs" exited with exit value 0</succeed>
-	<fail>[test-libc_vfs] Error: </fail>
++ fail    | after_seconds: 30
++ succeed | : child "test-libc_vfs" exited with exit value 0
++ fail    | : [test-libc_vfs] Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs"/>
-		<rom label="test-libc_vfs"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs
+  + rom | label: test-libc_vfs
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="vfs1" ram="12M">
-			<binary name="vfs"/>
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs> <ram/> </vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
-		<start name="vfs2" ram="12M">
-			<binary name="vfs"/>
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs> <fs/> </vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-			<route>
-				<service name="File_system"><child name="vfs1"/></service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-		<start name="test-libc_vfs" ram="4M">
-			<config>
-				<iterations value="1"/>
-				<write-read size="1M" buffer_size="8K"/>
-				<vfs>
-					<dir name="tmp"> <fs/> </dir>
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-				<libc stdout="/dev/log" cwd="/tmp"/>
-			</config>
-			<route>
-				<service name="File_system"><child name="vfs2"/></service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start vfs1 | ram: 12M
+    + binary vfs
+    + provides | + service File_system
+    + config
+      + vfs | + ram
+      + default-policy | root: / | writeable: yes
+
+  + start vfs2 | ram: 12M
+    + binary vfs
+    + provides | + service File_system
+    + config
+    | + vfs | | + fs
+    | + default-policy | root: / | writeable: yes
+    + route
+      + service File_system | + child vfs1
+      + any-service
+        + parent
+        + any-child
+
+  + start test-libc_vfs | ram: 4M
+    + config
+    | + iterations | value: 1
+    | + write-read | size: 1M | buffer_size: 8K
+    | + vfs
+    | | + dir tmp | + fs
+    | | + dir dev | + log
+    | + libc | stdout: /dev/log | cwd: /tmp
+    + route
+      + service File_system | + child vfs2
+      + any-service
+        + parent
+        + any-child
+-

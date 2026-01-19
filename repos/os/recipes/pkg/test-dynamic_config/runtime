@@ -1,41 +1,39 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed>[test-dynamic_config] obtained counter value 11 from config</succeed>
++ fail    | after_seconds: 20
++ succeed | : [test-dynamic_config] obtained counter value 11 from config
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-dynamic_config"/>
-		<rom label="test-dynamic_config_server"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-dynamic_config
+  + rom | label: test-dynamic_config_server
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
-		<start name="test-dynamic_config_server">
-			<provides> <service name="ROM"/> </provides>
-		</start>
-		<start name="test-dynamic_config" caps="500">
-			<route>
-				<service name="ROM" label="config">
-					<child name="test-dynamic_config_server" label="config.dynamic"/>
-				</service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service ROM
+    + service CPU
+    + service RM
+    + service PD
+    + service IRQ
+    + service IO_PORT
+    + service LOG
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100 | ram: 1M
+
+  + start test-dynamic_config_server
+    + provides | + service ROM
+
+  + start test-dynamic_config | caps: 500
+    + route
+      + service ROM | label: config
+        + child test-dynamic_config_server | label: config.dynamic
+      + any-service | + parent
+-

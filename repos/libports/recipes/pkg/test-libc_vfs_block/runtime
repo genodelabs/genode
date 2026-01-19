@@ -1,113 +1,120 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<fail after_seconds="30"/>
-	<succeed>child "test-libc_vfs_block" exited with exit value 0</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 30
++ succeed | : child "test-libc_vfs_block" exited with exit value 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_import.lib.so"/>
-		<rom label="vfs_block"/>
-		<rom label="test-libc_vfs_block"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_import.lib.so
+  + rom | label: vfs_block
+  + rom | label: test-libc_vfs_block
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="vfs_block" ram="2M">
-			<provides> <service name="Block"/> </provides>
-			<config>
-				<vfs>
-					<ram/>
-					<import>
-						<zero name="block_file" size="16K"/>
-					</import>
-				</vfs>
-				<default-policy file="/block_file" block_size="4096" writeable="yes"
-				                maximum_transfer_size="4096"/>
-			</config>
-		</start>
-		<start name="test-libc_vfs_block" ram="9M" caps="150">
-			<config>
-				<vfs> <dir name="dev"> <block/> </dir> </vfs>
-				<libc/>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
 
-				<!-- Populate the block device with a pattern and validate the
-					 write operation by reading back the content. -->
-				<sequence>
-					<write content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
-					<expect content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
-				</sequence>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-				<!-- Write single 512 block. This requires the successive reading,
-					 modification, and writing of the compound 4096 block. -->
-				<sequence>
-					<write at="9" content="%"/>
-					<expect content="abcdefghI%KLMNOPqrstuvwxYZABCDEF"/>
-				</sequence>
+  + default | caps: 100
 
-				<!-- Reset the pattern and write multiple 512 blocks that cross
-					 a 4096 boundary. -->
-				<sequence>
-					<write content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
-					<write at="15" content="123"/>
-					<expect content="abcdefghIJKLMNO123stuvwxYZABCDEF"/>
-				</sequence>
+  + start vfs_block | ram: 2M
+    + provides | + service Block
+    + config
+      + vfs
+      | + ram
+      | + import
+      |   + zero block_file | size: 16K
+      + default-policy
+                       file:                  /block_file
+                       block_size:            4096
+                       writeable:             yes
+                       maximum_transfer_size: 4096
 
-				<!-- Test write-sync-write-sync-read -->
-					 write operation by reading back the content. -->
-				<sequence>
-					<write content="................................"/>
-					<sync/>
-					<write content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
-					<sync/>
-					<expect content="abcdefghIJKLMNOPqrstuvwxYZABCDEF"/>
-				</sequence>
-
-				<!-- Test write at unaligned byte offset and force partial read. -->
-				<sequence>
-					<compare_bytes offset="63" length="511"/>
-				</sequence>
-
-				<!-- Test write larger than maximum-transfer-size at unaligned
-					 byte offset. -->
-				<sequence>
-					<compare_bytes offset="4095" length="12K"/>
-				</sequence>
-
-				<!-- Trigger sequential unaligned writes and reads. -->
-				<sequence>
-					<compare_bytes offset="0"    length="512" pattern_byte="0x31"/>
-					<compare_bytes offset="512"  length="512" pattern_byte="0x32"/>
-					<compare_bytes offset="1024" length="512" pattern_byte="0x33"/>
-					<compare_bytes offset="1536" length="512" pattern_byte="0x34"/>
-					<compare_bytes offset="2048" length="512" pattern_byte="0x35"/>
-					<compare_bytes offset="2560" length="512" pattern_byte="0x36"/>
-					<compare_bytes offset="3072" length="512" pattern_byte="0x37"/>
-					<compare_bytes offset="3584" length="512" pattern_byte="0x38"/>
-					<compare_bytes offset="4096" length="512" pattern_byte="0x39"/>
-					<compare_bytes offset="4608" length="512" pattern_byte="0x31"/>
-					<compare_bytes offset="5120" length="512" pattern_byte="0x32"/>
-					<compare_bytes offset="5632" length="512" pattern_byte="0x33"/>
-					<compare_bytes offset="6144" length="512" pattern_byte="0x34"/>
-					<compare_bytes offset="6656" length="512" pattern_byte="0x35"/>
-					<compare_bytes offset="7168" length="512" pattern_byte="0x36"/>
-					<compare_bytes offset="7680" length="512" pattern_byte="0x37"/>
-					<compare_bytes offset="8192" length="512" pattern_byte="0x38"/>
-					<expect content="12345678912345678"/>
-				</sequence>
-			</config>
-		</start>
-	</config>
-</runtime>
+  + start test-libc_vfs_block | ram: 9M | caps: 150
+    + config
+      + vfs | + dir dev | + block
+      + libc
+      |
+      + sequence
+      | .
+      | . Populate the block device with a pattern and validate the
+      | . write operation by reading back the content.
+      | .
+      | + write | content: abcdefghIJKLMNOPqrstuvwxYZABCDEF
+      | + expect | content: abcdefghIJKLMNOPqrstuvwxYZABCDEF
+      |
+      + sequence
+      | .
+      | . Write single 512 block. This requires the successive reading,
+      | . modification, and writing of the compound 4096 block.
+      | .
+      | + write | at: 9 | content: %
+      | + expect | content: abcdefghI%KLMNOPqrstuvwxYZABCDEF
+      |
+      + sequence
+      | .
+      | . Reset the pattern and write multiple 512 blocks that cross
+      | . a 4096 boundary.
+      | .
+      | + write | content: abcdefghIJKLMNOPqrstuvwxYZABCDEF
+      | + write | at: 15 | content: 123
+      | + expect | content: abcdefghIJKLMNO123stuvwxYZABCDEF
+      :
+      : write operation by reading back the content. -->
+      :
+      + sequence
+      | .
+      | . Test write-sync-write-sync-read
+      | .
+      | + write | content: ................................
+      | + sync
+      | + write | content: abcdefghIJKLMNOPqrstuvwxYZABCDEF
+      | + sync
+      | + expect | content: abcdefghIJKLMNOPqrstuvwxYZABCDEF
+      |
+      + sequence
+      | .
+      | . Test write at unaligned byte offset and force partial read.
+      | .
+      | + compare_bytes | offset: 63 | length: 511
+      |
+      + sequence
+      | .
+      | . Test write larger than maximum-transfer-size at unaligned
+      | . byte offset.
+      | .
+      | + compare_bytes | offset: 4095 | length: 12K
+      |
+      + sequence
+        .
+        . Trigger sequential unaligned writes and reads.
+        .
+        + compare_bytes | offset: 0    | length: 512 | pattern_byte: 0x31
+        + compare_bytes | offset: 512  | length: 512 | pattern_byte: 0x32
+        + compare_bytes | offset: 1024 | length: 512 | pattern_byte: 0x33
+        + compare_bytes | offset: 1536 | length: 512 | pattern_byte: 0x34
+        + compare_bytes | offset: 2048 | length: 512 | pattern_byte: 0x35
+        + compare_bytes | offset: 2560 | length: 512 | pattern_byte: 0x36
+        + compare_bytes | offset: 3072 | length: 512 | pattern_byte: 0x37
+        + compare_bytes | offset: 3584 | length: 512 | pattern_byte: 0x38
+        + compare_bytes | offset: 4096 | length: 512 | pattern_byte: 0x39
+        + compare_bytes | offset: 4608 | length: 512 | pattern_byte: 0x31
+        + compare_bytes | offset: 5120 | length: 512 | pattern_byte: 0x32
+        + compare_bytes | offset: 5632 | length: 512 | pattern_byte: 0x33
+        + compare_bytes | offset: 6144 | length: 512 | pattern_byte: 0x34
+        + compare_bytes | offset: 6656 | length: 512 | pattern_byte: 0x35
+        + compare_bytes | offset: 7168 | length: 512 | pattern_byte: 0x36
+        + compare_bytes | offset: 7680 | length: 512 | pattern_byte: 0x37
+        + compare_bytes | offset: 8192 | length: 512 | pattern_byte: 0x38
+        + expect | content: 12345678912345678
+-

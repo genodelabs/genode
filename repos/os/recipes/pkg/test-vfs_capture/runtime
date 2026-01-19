@@ -1,18 +1,21 @@
-<runtime ram="8M" caps="200" binary="test-vfs_capture">
+runtime | ram: 8M | caps: 200 | binary: test-vfs_capture
 
-	<requires> <capture/> <gui/> <timer/> </requires>
++ requires
+  + capture
+  + gui
+  + timer
 
-	<config period_ms="20" width="1024" height="768">
-		<vfs><dir name="dev"><capture/></dir></vfs>
-		<view/>
-	</config>
++ config | period_ms: 20 | width: 1024 | height: 768
+  + vfs
+  | + dir dev
+  |   + capture
+  + view
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-vfs_capture"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_capture.lib.so"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-vfs_capture
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_capture.lib.so
 
-</runtime>
+-

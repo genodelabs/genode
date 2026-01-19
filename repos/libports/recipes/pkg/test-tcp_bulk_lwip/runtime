@@ -1,186 +1,159 @@
-<runtime ram="300M" caps="2500" binary="init">
+runtime | ram: 300M | caps: 2500 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="200"/>
-	<succeed>child "sequence" exited with exit value 0</succeed>
++ fail    | after_seconds: 200
++ succeed | : child "sequence" exited with exit value 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_lwip.lib.so"/>
-		<rom label="nic_bridge"/>
-		<rom label="nic_loopback"/>
-		<rom label="vfs"/>
-		<rom label="test-tcp"/>
-		<rom label="sequence"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_lwip.lib.so
+  + rom | label: nic_bridge
+  + rom | label: nic_loopback
+  + rom | label: vfs
+  + rom | label: test-tcp
+  + rom | label: sequence
 
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="256"/>
-		<start name="nic_loopback" ram="1M">
-			<provides> <service name="Nic"/> </provides>
-		</start>
-		<start name="nic_bridge" ram="10M">
-			<provides><service name="Nic"/></provides>
-			<config verbose="no">
-				<policy label_prefix="sequence -> local -> recv" ip_addr="192.168.1.1"/>
-				<policy label_prefix="sequence -> local -> send" ip_addr="192.168.1.2"/>
-				<policy label_prefix="sequence -> remote -> recv_fs" ip_addr="192.168.1.1"/>
-				<policy label_prefix="sequence -> remote -> send_fs" ip_addr="192.168.1.2"/>
-			</config>
-			<route>
-				<service name="Nic"> <child name="nic_loopback"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ config | verbose: yes
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-		<start name="sequence" caps="1800" ram="260M">
-			<config>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-				<start name="local" caps="1000">
-					<binary name="init"/>
-					<config>
-						<parent-provides>
-							<service name="ROM"/>
-							<service name="PD"/>
-							<service name="RM"/>
-							<service name="CPU"/>
-							<service name="LOG"/>
-							<service name="Timer"/>
-							<service name="Nic"/>
-						</parent-provides>
-						<default-route>
-							<any-service> <parent/> <any-child/> </any-service>
-						</default-route>
-						<default caps="256"/>
+  + default | caps: 256
 
-						<start name="recv" ram="32M">
-							<binary name="test-tcp"/>
-							<exit propagate="yes"/>
-							<config>
-								<arg value="recv"/>
-								<libc stdout="/log" stderr="/log" socket="/socket"/>
-								<vfs>
-									<log/>
-									<dir name="socket">
-										<lwip ip_addr="192.168.1.1" netmask="255.255.255.0"/>
-									</dir>
-								</vfs>
-							</config>
-						</start>
+  + start nic_loopback | ram: 1M
+    + provides | + service Nic
 
-						<start name="send" ram="32M">
-							<binary name="test-tcp"/>
-							<config>
-								<arg value="send"/>
-								<arg value="192.168.1.1"/>
-								<libc stdout="/log" stderr="/log" socket="/socket"/>
-								<vfs>
-									<log/>
-									<dir name="socket">
-										<lwip ip_addr="192.168.1.2" netmask="255.255.255.0"/>
-									</dir>
-								</vfs>
-							</config>
-						</start>
-					</config>
-				</start>
+  + start nic_bridge | ram: 10M
+    + provides | + service Nic
+    + config | verbose: no
+    | + policy | label_prefix: sequence -> local -> recv     | ip_addr: 192.168.1.1
+    | + policy | label_prefix: sequence -> local -> send     | ip_addr: 192.168.1.2
+    | + policy | label_prefix: sequence -> remote -> recv_fs | ip_addr: 192.168.1.1
+    | + policy | label_prefix: sequence -> remote -> send_fs | ip_addr: 192.168.1.2
+    + route
+      + service Nic | + child nic_loopback
+      + any-service
+        + parent
+        + any-child
 
-				<start name="remote" caps="1000">
-					<binary name="init"/>
-					<config>
-						<parent-provides>
-							<service name="ROM"/>
-							<service name="PD"/>
-							<service name="RM"/>
-							<service name="CPU"/>
-							<service name="LOG"/>
-							<service name="Timer"/>
-							<service name="Nic"/>
-						</parent-provides>
-						<default-route>
-							<any-service> <parent/> <any-child/> </any-service>
-						</default-route>
-						<default caps="256"/>
-
-						<start name="recv_fs" caps="150" ram="16M">
-							<binary name="vfs"/>
-							<provides> <service name="File_system"/> </provides>
-							<config>
-								<vfs>
-									<dir name="socket"> <lwip ip_addr="192.168.1.1" netmask="255.255.255.0"/> </dir>
-								</vfs>
-								<default-policy writeable="yes" root="/"/>
-							</config>
-						</start>
-
-						<start name="send_fs" caps="150" ram="16M">
-							<binary name="vfs"/>
-							<provides> <service name="File_system"/> </provides>
-							<config>
-								<vfs>
-									<dir name="socket"> <lwip ip_addr="192.168.1.2" netmask="255.255.255.0"/> </dir>
-								</vfs>
-								<default-policy writeable="yes" root="/"/>
-							</config>
-						</start>
-
-						<start name="recv" ram="16M">
-							<binary name="test-tcp"/>
-							<exit propagate="yes"/>
-							<config>
-								<arg value="recv"/>
-								<libc stdout="/log" stderr="/log" socket="/socket"/>
-								<vfs>
-									<log/>
-									<fs/>
-								</vfs>
-							</config>
-							<route>
-								<service name="File_system"> <child name="recv_fs"/> </service>
-								<any-service> <parent/> <any-child/> </any-service>
-							</route>
-						</start>
-
-						<start name="send" ram="16M">
-							<binary name="test-tcp"/>
-							<config>
-								<arg value="send"/>
-								<arg value="192.168.1.1"/>
-								<libc stdout="/log" stderr="/log" socket="/socket"/>
-								<vfs>
-									<log/>
-									<fs/>
-								</vfs>
-							</config>
-							<route>
-								<service name="File_system"> <child name="send_fs"/> </service>
-								<any-service> <parent/> <any-child/> </any-service>
-							</route>
-						</start>
-					</config>
-				</start>
-
-			</config>
-			<route>
-				<service name="Nic"> <child name="nic_bridge"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
+  + start sequence | caps: 1800 | ram: 260M
+    + config
+    | + start local | caps: 1000
+    | | + binary init
+    | | + config
+    | |   + parent-provides
+    | |   | + service ROM
+    | |   | + service PD
+    | |   | + service RM
+    | |   | + service CPU
+    | |   | + service LOG
+    | |   | + service Timer
+    | |   | + service Nic
+    | |   + default-route
+    | |   | + any-service
+    | |   |   + parent
+    | |   |   + any-child
+    | |   + default | caps: 256
+    | |   + start recv | ram: 32M
+    | |   | + binary test-tcp
+    | |   | + exit | propagate: yes
+    | |   | + config
+    | |   |   + arg recv
+    | |   |   + libc | stdout: /log | stderr: /log | socket: /socket
+    | |   |   + vfs
+    | |   |     + log
+    | |   |     + dir socket
+    | |   |       + lwip | ip_addr: 192.168.1.1 | netmask: 255.255.255.0
+    | |   + start send | ram: 32M
+    | |     + binary test-tcp
+    | |     + config
+    | |       + arg send | : 192.168.1.1
+    | |       + libc | stdout: /log | stderr: /log | socket: /socket
+    | |       + vfs
+    | |         + log
+    | |         + dir socket
+    | |           + lwip | ip_addr: 192.168.1.2 | netmask: 255.255.255.0
+    | |
+    | + start remote | caps: 1000
+    |   + binary init
+    |   + config
+    |     + parent-provides
+    |     | + service ROM
+    |     | + service PD
+    |     | + service RM
+    |     | + service CPU
+    |     | + service LOG
+    |     | + service Timer
+    |     | + service Nic
+    |     + default-route
+    |     | + any-service
+    |     |   + parent
+    |     |   + any-child
+    |     + default | caps: 256
+    |     |
+    |     + start recv_fs | caps: 150 | ram: 16M
+    |     | + binary vfs
+    |     | + provides | + service File_system
+    |     | + config
+    |     |   + vfs
+    |     |   | + dir socket
+    |     |   |   + lwip | ip_addr: 192.168.1.1 | netmask: 255.255.255.0
+    |     |   + default-policy | writeable: yes | root: /
+    |     |
+    |     + start send_fs | caps: 150 | ram: 16M
+    |     | + binary vfs
+    |     | + provides | + service File_system
+    |     | + config
+    |     |   + vfs
+    |     |   | + dir socket
+    |     |   |   + lwip | ip_addr: 192.168.1.2 | netmask: 255.255.255.0
+    |     |   + default-policy | writeable: yes | root: /
+    |     |
+    |     + start recv | ram: 16M
+    |     | + binary test-tcp
+    |     | + exit | propagate: yes
+    |     | + config
+    |     | | + arg recv
+    |     | | + libc | stdout: /log | stderr: /log | socket: /socket
+    |     | | + vfs
+    |     | |   + log
+    |     | |   + fs
+    |     | + route
+    |     |   + service File_system | + child recv_fs
+    |     |   + any-service
+    |     |     + parent
+    |     |     + any-child
+    |     |
+    |     + start send | ram: 16M
+    |       + binary test-tcp
+    |       + config
+    |       | + arg send | : 192.168.1.1
+    |       | + libc | stdout: /log | stderr: /log | socket: /socket
+    |       | + vfs
+    |       |   + log
+    |       |   + fs
+    |       + route
+    |         + service File_system | + child send_fs
+    |         + any-service
+    |           + parent
+    |           + any-child
+    + route
+      + service Nic | + child nic_bridge
+      + any-service
+        + parent
+        + any-child
+-

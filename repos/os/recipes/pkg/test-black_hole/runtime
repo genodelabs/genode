@@ -1,84 +1,72 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20">*invisible message</fail>
-	<succeed>[test-black_hole] Finished</succeed>
++ fail    | after_seconds: 20 | : *invisible message
++ succeed | : [test-black_hole] Finished
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-black_hole"/>
-		<rom label="black_hole"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-black_hole
+  + rom | label: black_hole
 
-	<config>
++ config
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
+  + start black_hole | caps: 100 | ram: 1280K
+    + provides
+    | + service Usb
+    | + service Gpu
+    | + service ROM
+    | + service Uplink
+    | + service Nic
+    | + service Event
+    | + service Capture
+    | + service Audio_in
+    | + service Audio_out
+    | + service LOG
+    + config
+    | + usb
+    | + gpu
+    | + rom
+    | + uplink
+    | + nic
+    | + event
+    | + capture
+    | + audio_in
+    | + audio_out
+    | + log
+    + route
+      + service Timer | + parent
+      + service ROM   | + parent
+      + service PD    | + parent
+      + service LOG   | + parent
+      + service CPU   | + parent
 
-		<start name="black_hole" caps="100" ram="1280K">
-			<provides>
-				<service name="Usb"/>
-				<service name="Gpu"/>
-				<service name="ROM"/>
-				<service name="Uplink"/>
-				<service name="Nic"/>
-				<service name="Event"/>
-				<service name="Capture"/>
-				<service name="Audio_in"/>
-				<service name="Audio_out"/>
-				<service name="LOG"/>
-			</provides>
-			<config>
-				<usb/>
-				<gpu/>
-				<rom/>
-				<uplink/>
-				<nic/>
-				<event/>
-				<capture/>
-				<audio_in/>
-				<audio_out/>
-				<log/>
-			</config>
-			<route>
-				<service name="Timer"> <parent/> </service>
-				<service name="ROM">   <parent/> </service>
-				<service name="PD">    <parent/> </service>
-				<service name="LOG">   <parent/> </service>
-				<service name="CPU">   <parent/> </service>
-			</route>
-		</start>
-
-		<start name="test-black_hole" caps="200" ram="10M">
-			<route>
-				<service name="Usb">                   <child name="black_hole"/> </service>
-				<service name="Gpu">                   <child name="black_hole"/> </service>
-				<service name="ROM" label="any_label"> <child name="black_hole"/> </service>
-				<service name="Uplink">                <child name="black_hole"/> </service>
-				<service name="Nic">                   <child name="black_hole"/> </service>
-				<service name="Event">                 <child name="black_hole"/> </service>
-				<service name="Capture">               <child name="black_hole"/> </service>
-				<service name="Audio_in">              <child name="black_hole"/> </service>
-				<service name="Audio_out">             <child name="black_hole"/> </service>
-				<service name="LOG" label="any_label"> <child name="black_hole"/> </service>
-				<service name="ROM">                   <parent/> </service>
-				<service name="PD">                    <parent/> </service>
-				<service name="LOG">                   <parent/> </service>
-				<service name="CPU">                   <parent/> </service>
-				<service name="Timer">                 <parent/> </service>
-			</route>
-		</start>
-
-	</config>
-
-</runtime>
+  + start test-black_hole | caps: 200 | ram: 10M
+    + route
+      + service Usb                    | + child black_hole
+      + service Gpu                    | + child black_hole
+      + service ROM | label: any_label | + child black_hole
+      + service Uplink                 | + child black_hole
+      + service Nic                    | + child black_hole
+      + service Event                  | + child black_hole
+      + service Capture                | + child black_hole
+      + service Audio_in               | + child black_hole
+      + service Audio_out              | + child black_hole
+      + service LOG | label: any_label | + child black_hole
+      + service ROM                    | + parent
+      + service PD                     | + parent
+      + service LOG                    | + parent
+      + service CPU                    | + parent
+      + service Timer                  | + parent
+-

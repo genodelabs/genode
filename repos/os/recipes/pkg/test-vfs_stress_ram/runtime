@@ -1,15 +1,15 @@
-<runtime ram="80M" caps="800" binary="vfs_stress">
+runtime | ram: 80M | caps: 800 | binary: vfs_stress
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed exit="0"/>
++ fail    | after_seconds: 20
++ succeed | exit: 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_stress"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_stress
 
-	<config depth="16"> <vfs> <ram/> </vfs> </config>
-</runtime>
++ config | depth: 16
+  + vfs | + ram
+-

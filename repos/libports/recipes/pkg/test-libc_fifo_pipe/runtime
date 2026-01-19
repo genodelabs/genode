@@ -1,149 +1,124 @@
-<runtime ram="64M" caps="1000" binary="init">
+runtime | ram: 64M | caps: 1000 | binary: init
 
-	<fail after_seconds="120"/>
-	<succeed>[fifo-pipe-test] --- test succeeded ---</succeed>
++ fail    | after_seconds: 120
++ succeed | : [fifo-pipe-test] --- test succeeded ---
 
-	<content>
-		<rom label="fs_rom"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="report_rom"/>
-		<rom label="test-libc_fifo_pipe"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_pipe.lib.so"/>
-	</content>
++ content
+  + rom | label: fs_rom
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: report_rom
+  + rom | label: test-libc_fifo_pipe
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_pipe.lib.so
 
-	<config verbose="no">
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="ROM"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="128"/>
++ config | verbose: no
+  + parent-provides
+    + service CPU
+    + service LOG
+    + service PD
+    + service RM
+    + service ROM
+    + service Timer
 
-		<start name="vfs" ram="4M">
-			<provides>
-				<service name="File_system"/>
-			</provides>
-			<config>
-				<vfs>
-					<pipe>
-						<fifo name="upstream"/>
-						<fifo name="downstream"/>
-					</pipe>
-				</vfs>
-				<policy label_prefix="fifo-pipe-test -> in ->"  root="/.upstream/in"    writeable="yes"/>
-				<policy label_prefix="fifo-pipe-test -> out ->" root="/.downstream/out" writeable="no"/>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<start name="ram_fs" ram="2M">
-			<binary name="vfs"/>
-			<provides>
-				<service name="File_system"/>
-			</provides>
-			<config>
-				<vfs>
-					<inline name="init_template">
-						<config verbose="no">
-							<parent-provides>
-								<service name="CPU"/>
-								<service name="File_system"/>
-								<service name="LOG"/>
-								<service name="PD"/>
-								<service name="RM"/>
-								<service name="ROM"/>
-								<service name="Timer"/>
-							</parent-provides>
-							<default caps="120"/>
+  + default | caps: 128
 
-							<start name="echo" ram="3M">
-								<binary name="test-libc_fifo_pipe"/>
-								<config type="echo">
-									<vfs>
-										<dir name="dev">
-											<fs label="downstream -> /"/>
-											<fs label="upstream -> /"/>
-											<log/>
-										</dir>
-									</vfs>
-									<libc stdin="/dev/upstream" stdout="/dev/downstream" stderr="/dev/log"/>
-								</config>
-								<route>
-									<any-service> <parent/> <any-child/> </any-service>
-								</route>
-							</start>
+  + start vfs | ram: 4M
+    + provides | + service File_system
+    + config
+      + vfs
+      | + pipe
+      |   + fifo upstream
+      |   + fifo downstream
+      + policy
+      |        label_prefix: fifo-pipe-test -> in ->
+      |        root:         /.upstream/in
+      |        writeable:    yes
+      + policy
+      |        label_prefix: fifo-pipe-test -> out ->
+      |        root:         /.downstream/out
+      |        writeable:    no
+      + default-policy | root: / | writeable: yes
 
-						</config>
-					</inline>
-				</vfs>
-				<policy label_prefix="fs_rom ->" root="/" writeable="no"/>
-			</config>
-		</start>
+  + start ram_fs | ram: 2M
+    + binary vfs
+    + provides | | + service File_system
+    + config
+      + vfs
+      | + inline init_template
+      |   + config | verbose: no
+      |     + parent-provides
+      |     | + service CPU
+      |     | + service File_system
+      |     | + service LOG
+      |     | + service PD
+      |     | + service RM
+      |     | + service ROM
+      |     | + service Timer
+      |     + default | caps: 120
+      |     + start echo | ram: 3M
+      |       + binary test-libc_fifo_pipe
+      |       + config | type: echo
+      |       | + vfs
+      |       | | + dir dev
+      |       | |   + fs | label: downstream -> /
+      |       | |   + fs | label: upstream -> /
+      |       | |   + log
+      |       | + libc
+      |       |        stdin:  /dev/upstream
+      |       |        stdout: /dev/downstream
+      |       |        stderr: /dev/log
+      |       + route
+      |         + any-service
+      |           + parent
+      |           + any-child
+      + policy | label_prefix: fs_rom -> | root: / | writeable: no
 
-		<start name="fs_rom" ram="2M">
-			<provides>
-				<service name="ROM"/>
-			</provides>
-			<route>
-				<service name="File_system"> <child name="ram_fs"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+  + start fs_rom | ram: 2M
+    + provides | + service ROM
+    + route
+      + service File_system | + child ram_fs
+      + any-service
+        + parent
+        + any-child
 
-		<start name="report_rom" ram="2M">
-			<provides>
-				<service name="ROM"/>
-				<service name="Report"/>
-			</provides>
-			<config verbose="no">
-				<policy label="init.config" report="init.config"/>
-			</config>
-		</start>
+  + start report_rom | ram: 2M
+    + provides
+      + service ROM
+      + service Report
+    + config | verbose: no
+      + policy | label: init.config | report: init.config
 
-		<start name="fifo-pipe-test" caps="150" ram="8M">
-			<binary name="test-libc_fifo_pipe"/>
-			<config iterations="15">
-				<vfs>
-					<dir name="ro">
-						<rom name="test-data.bin"/>
-					</dir>
-					<dir name="dev">
-						<dir name="send-pipe">
-							<fs label="in -> /"/>
-						</dir>
-						<dir name="receive-pipe">
-							<fs label="out -> /"/>
-						</dir>
-						<log/>
-					</dir>
-				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log"/>
-			</config>
-			<route>
-				<service name="File_system">                   <child name="vfs"/> </service>
-				<service name="Report" label="init.config">    <child name="report_rom" label="init.config"/> </service>
-				<service name="ROM" label="init_template">  <child name="fs_rom" label="init_template"/> </service>
-				<service name="ROM" label="test-data.bin">  <parent label="init"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+  + start fifo-pipe-test | caps: 150 | ram: 8M
+    + binary test-libc_fifo_pipe
+    + config | iterations: 15
+    | + vfs
+    | | + dir ro | + rom test-data.bin
+    | | + dir dev
+    | |   + dir send-pipe    | + fs | label: in -> /
+    | |   + dir receive-pipe | + fs | label: out -> /
+    | |   + log
+    | + libc | stdout: /dev/log | stderr: /dev/log
+    + route
+      + service File_system                 | + child vfs
+      + service Report | label: init.config | + child report_rom | label: init.config
+      + service ROM | label: init_template  | + child fs_rom | label: init_template
+      + service ROM | label: test-data.bin  | + parent | label: init
+      + any-service
+        + parent
+        + any-child
 
-		<start name="init" caps="250" ram="16M">
-			<route>
-				<service name="ROM" label="config">    <child name="report_rom" label="init.config"/> </service>
-				<service name="File_system">           <child name="vfs"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-
-	</config>
-</runtime>
+  + start init | caps: 250 | ram: 16M
+    + route
+      + service ROM | label: config | + child report_rom | label: init.config
+      + service File_system         | + child vfs
+      + any-service
+        + parent
+        + any-child
+-

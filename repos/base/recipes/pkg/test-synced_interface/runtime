@@ -1,20 +1,17 @@
-<runtime ram="1M" caps="100" binary="test-synced_interface">
+runtime | ram: 1M | caps: 100 | binary: test-synced_interface
 
-	<fail after_seconds="20"/>
-	<succeed>
-		--- Synced interface test ---
-		acquire
-		adding 13 + 14
-		release
-		result is 27
-		--- Synced interface test finished ---
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : --- Synced interface test ---
+  : acquire
+  : adding 13 + 14
+  : release
+  : result is 27
+  : --- Synced interface test finished ---
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-synced_interface"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-synced_interface
 
-	<config/>
-
-</runtime>
++ config
+-

@@ -1,58 +1,50 @@
-<runtime ram="50M" caps="500" binary="init">
+runtime | ram: 50M | caps: 500 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="5"/>
-	<fail>*exited with exit value -1</fail>
-	<succeed>child "test-libc_udp_unreachable" exited with exit value 0</succeed>
++ fail    | after_seconds: 5
++ fail    | : *exited with exit value -1
++ succeed | : child "test-libc_udp_unreachable" exited with exit value 0
 
-	<content>
-		<rom label="black_hole"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_lxip.lib.so"/>
-		<rom label="lxip.lib.so"/>
-		<rom label="test-libc_udp_unreachable"/>
-	</content>
++ content
+  + rom | label: black_hole
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_lxip.lib.so
+  + rom | label: lxip.lib.so
+  + rom | label: test-libc_udp_unreachable
 
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="200"/>
++ config | verbose: yes
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-		<start name="black_hole" caps="100" ram="2M">
-			<provides>
-				<service name="Nic"/>
-			</provides>
-			<config> <nic/> </config>
-		</start>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<start name="test-libc_udp_unreachable" caps="300" ram="10M">
-			<config>
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="socket">
-						<lxip ip_addr="10.0.2.55" netmask="255.255.255.0"/>
-					</dir>
-				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
-			</config>
-		</start>
+  + default | caps: 200
 
-	</config>
-</runtime>
+  + start black_hole | caps: 100 | ram: 2M
+    + provides | + service Nic
+    + config | + nic
+
+  + start test-libc_udp_unreachable | caps: 300 | ram: 10M
+    + config
+      + vfs
+      | + dir dev | + log
+      | + dir socket
+      |   + lxip | ip_addr: 10.0.2.55 | netmask: 255.255.255.0
+      + libc | stdout: /dev/log | stderr: /dev/log | socket: /socket
+-

@@ -1,147 +1,134 @@
-<runtime ram="250M" caps="3000" binary="init">
+runtime | ram: 250M | caps: 3000 | binary: init
 
-	<requires>
-		<timer/>
-	</requires>
++ requires | + timer
 
-	<fail after_seconds="70"/>
-	<succeed>
-		*&lt;ui_report state="uninitialized"*
-		*&lt;ui_report state="initializing"*
-		*&lt;ui_report state="unlocked"*
-		*&lt;ui_report state="locked"*
-		*&lt;ui_report state="unlocked"*
-	</succeed>
++ fail | after_seconds: 70
++ succeed
+  : [report_rom]   ui_report | state: uninitialized
+  : [report_rom]   ui_report | state: initializing
+  : [report_rom]   ui_report | state: unlocked
+  : [report_rom]   ui_report | state: locked
+  : [report_rom]   ui_report | state: unlocked
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="report_rom"/>
-		<rom label="dynamic_rom"/>
-		<rom label="file_vault"/>
-		<rom label="vfs"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: report_rom
+  + rom | label: dynamic_rom
+  + rom | label: file_vault
+  + rom | label: vfs
 
-	<config>
++ config
+  + parent-provides
+    + service ROM
+    + service LOG
+    + service RM
+    + service CPU
+    + service PD
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service Timer
 
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="Timer"/>
-		</parent-provides>
+  + start dynamic_rom | caps: 100 | ram: 4M
+    + provides | + service ROM
+    + config | verbose: no
+    | + rom file_vault_ui_config
+    |   + inline | + ui_config
+    |   + sleep  | milliseconds: 6000
+    |   + inline | + ui_config | passphrase:          abcdefgh
+    |            |             | client_fs_size:      1M
+    |            |             | journaling_buf_size: 1M
+    |   + sleep  | milliseconds: 10000
+    |   + inline | + ui_config
+    |   + sleep  | milliseconds: 6000
+    |   + inline | + ui_config | passphrase: 00000001
+    |   + sleep  | milliseconds: 6000
+    |   + inline | + ui_config
+    |   + sleep  | milliseconds: 6000
+    |   + inline | + ui_config | passphrase: abcdefgh
+    |   + sleep  | milliseconds: 600000
+    + route
+      + service Timer | + parent
+      + service PD    | + parent
+      + service ROM   | + parent
+      + service LOG   | + parent
+      + service CPU   | + parent
 
-		<start name="dynamic_rom" caps="100" ram="4M">
-			<provides><service name="ROM"/> </provides>
-			<config verbose="no">
-				<rom name="file_vault_ui_config">
-					<inline> <ui_config/> </inline>
-					<sleep milliseconds="6000"/>
-					<inline> <ui_config passphrase="abcdefgh" client_fs_size="1M" journaling_buf_size="1M"/> </inline>
-					<sleep milliseconds="10000"/>
-					<inline> <ui_config/> </inline>
-					<sleep milliseconds="6000"/>
-					<inline> <ui_config passphrase="00000001"/> </inline>
-					<sleep milliseconds="6000"/>
-					<inline> <ui_config/> </inline>
-					<sleep milliseconds="6000"/>
-					<inline> <ui_config passphrase="abcdefgh"/> </inline>
-					<sleep milliseconds="600000"/>
-				</rom>
-			</config>
-			<route>
-				<service name="Timer"> <parent/> </service>
-				<service name="PD">    <parent/> </service>
-				<service name="ROM">   <parent/> </service>
-				<service name="LOG">   <parent/> </service>
-				<service name="CPU">   <parent/> </service>
-			</route>
-		</start>
+  + start report_rom | caps: 70 | ram: 1M
+    + provides
+      + service ROM
+      + service Report
+    + config | verbose: yes
+    + route
+      + service LOG | + parent
+      + service PD  | + parent
+      + service CPU | + parent
+      + service ROM | + parent
 
-		<start name="report_rom" caps="70" ram="1M">
-			<provides>
-				<service name="ROM"/>
-				<service name="Report"/>
-			</provides>
-			<config verbose="yes"/>
-			<route>
-				<service name="LOG"> <parent/> </service>
-				<service name="PD">  <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-			</route>
-		</start>
+  + start data_fs | caps: 500 | ram: 50M
+    + binary vfs
+    + provides | + service File_system
+    + config | + vfs | + dir data | + ram
+    | + policy
+    |          label_prefix: file_vault -> data
+    |          root:         /data
+    |          writeable:    yes
+    + route
+      + service PD  | + parent
+      + service ROM | + parent
+      + service LOG | + parent
+      + service CPU | + parent
 
-		<start name="data_fs" caps="500" ram="50M">
-			<binary name="vfs"/>
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs>
-					<dir name="data">
-						<ram/>
-					</dir>
-				</vfs>
-				<policy label_prefix="file_vault -> data" root="/data" writeable="yes"/>
-			</config>
-			<route>
-				<service name="PD">  <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
+  + start trust_anchor_fs | caps: 100 | ram: 5M
+    + binary vfs
+    + provides | + service File_system
+    + config
+    | + vfs | + dir trust_anchor | + ram
+    | + policy
+    |          label_prefix: file_vault -> trust_anchor
+    |          root:         /trust_anchor
+    |          writeable:    yes
+    + route
+      + service PD  | + parent
+      + service ROM | + parent
+      + service LOG | + parent
+      + service CPU | + parent
 
-		<start name="trust_anchor_fs" caps="100" ram="5M">
-			<binary name="vfs"/>
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs>
-					<dir name="trust_anchor">
-						<ram/>
-					</dir>
-				</vfs>
-				<policy label_prefix="file_vault -> trust_anchor" root="/trust_anchor" writeable="yes"/>
-			</config>
-			<route>
-				<service name="PD">  <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
-
-		<start name="file_vault" caps="1500" ram="180M">
-			<config generate_xml="yes">
-				<vfs>
-					<dir name="tresor">
-						<fs label="tresor -> /"/>
-					</dir>
-				</vfs>
-			</config>
-			<route>
-				<service name="ROM" label="ui_config"> <child name="dynamic_rom" label="file_vault_ui_config"/> </service>
-				<service name="Report">                <child name="report_rom"/>                                         </service>
-				<service name="File_system" label_prefix="tresor_trust_anchor_vfs -> storage_dir">
-					<child name="trust_anchor_fs" identity="file_vault -> trust_anchor"/> </service>
-				<service name="File_system" label_prefix="tresor_init ->">          <child name="data_fs" identity="file_vault -> data"/> </service>
-				<service name="File_system" label_prefix="tresor ->">               <child name="data_fs" identity="file_vault -> data"/> </service>
-				<service name="File_system" label_prefix="fs_query ->">             <child name="data_fs" identity="file_vault -> data"/> </service>
-				<service name="File_system" label_prefix="image_fs_query ->">       <child name="data_fs" identity="file_vault -> data"/> </service>
-				<service name="File_system" label_prefix="tresor_vfs -> tresor_fs"> <child name="data_fs" identity="file_vault -> data"/> </service>
-				<service name="File_system" label_prefix="truncate_file -> tresor"> <child name="data_fs" identity="file_vault -> data"/> </service>
-				<service name="Timer"> <parent/> </service>
-				<service name="PD">    <parent/> </service>
-				<service name="ROM">   <parent/> </service>
-				<service name="CPU">   <parent/> </service>
-				<service name="LOG">   <parent/> </service>
-				<service name="RM">    <parent/> </service>
-			</route>
-		</start>
-
-	</config>
-
-</runtime>
+  + start file_vault | caps: 1500 | ram: 180M
+    + config
+      + vfs | + dir tresor | + fs | label: tresor -> /
+    + route
+      + service ROM | label: ui_config
+      | + child dynamic_rom | label: file_vault_ui_config
+      |
+      + service Report
+      | + child report_rom
+      |
+      + service File_system | label_prefix: tresor_trust_anchor_vfs -> storage_dir
+      | + child trust_anchor_fs | identity: file_vault -> trust_anchor
+      |
+      + service File_system | label_prefix: tresor_init ->
+      | + child data_fs | identity: file_vault -> data
+      |
+      + service File_system | label_prefix: tresor ->
+      | + child data_fs | identity: file_vault -> data
+      |
+      + service File_system | label_prefix: fs_query ->
+      | + child data_fs | identity: file_vault -> data
+      |
+      + service File_system | label_prefix: image_fs_query ->
+      | + child data_fs | identity: file_vault -> data
+      |
+      + service File_system | label_prefix: tresor_vfs -> tresor_fs
+      | + child data_fs | identity: file_vault -> data
+      |
+      + service File_system | label_prefix: truncate_file -> tresor
+      | + child data_fs | identity: file_vault -> data
+      |
+      + service Timer | + parent
+      + service PD    | + parent
+      + service ROM   | + parent
+      + service CPU   | + parent
+      + service LOG   | + parent
+      + service RM    | + parent
+-

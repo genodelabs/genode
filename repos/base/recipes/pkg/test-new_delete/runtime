@@ -1,66 +1,62 @@
-<runtime ram="10M" caps="100" binary="test-new_delete">
+runtime | ram: 10M | caps: 100 | binary: test-new_delete
 
-	<fail after_seconds="20"/>
++ fail | after_seconds: 20
++ succeed
+  : Allocator::alloc()
+  : * A
+  : * C
+  : * B
+  : * D
+  : * E
+  : * ~E
+  : * ~D
+  : * ~B
+  : * ~C
+  : * ~A
+  : Allocator::free()
+  : Allocator::alloc()
+  : * A
+  : * C
+  : * B
+  : * D
+  : * E
+  : throw exception
+  : * ~D
+  : * ~B
+  : * ~C
+  : * ~A
+  : Allocator::free()
+  : exception caught
+  : Allocator::alloc()
+  : * A
+  : * C
+  : * B
+  : * D
+  : * E
+  : * ~E
+  : * ~D
+  : * ~B
+  : * ~C
+  : * ~A
+  : Allocator::free()
+  : Allocator::alloc()
+  : * A
+  : * C
+  : * B
+  : * D
+  : * E
+  : throw exception
+  : * ~D
+  : * ~B
+  : * ~C
+  : * ~A
+  : Allocator::free()
+  : exception caught
+  : Test done
 
-	<succeed>
-		Allocator::alloc()
-		* A
-		* C
-		* B
-		* D
-		* E
-		* ~E
-		* ~D
-		* ~B
-		* ~C
-		* ~A
-		Allocator::free()
-		Allocator::alloc()
-		* A
-		* C
-		* B
-		* D
-		* E
-		throw exception
-		* ~D
-		* ~B
-		* ~C
-		* ~A
-		Allocator::free()
-		exception caught
-		Allocator::alloc()
-		* A
-		* C
-		* B
-		* D
-		* E
-		* ~E
-		* ~D
-		* ~B
-		* ~C
-		* ~A
-		Allocator::free()
-		Allocator::alloc()
-		* A
-		* C
-		* B
-		* D
-		* E
-		throw exception
-		* ~D
-		* ~B
-		* ~C
-		* ~A
-		Allocator::free()
-		exception caught
-		Test done
-	</succeed>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-new_delete
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-new_delete"/>
-	</content>
-
-	<config/>
-
-</runtime>
++ config
+-

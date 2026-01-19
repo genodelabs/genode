@@ -1,14 +1,12 @@
-<runtime ram="10M" caps="100" binary="test-spark_secondary_stack">
+runtime | ram: 10M | caps: 100 | binary: test-spark_secondary_stack
 
-	<fail after_seconds="20"/>
-	<succeed exit="0">secondary stack test successful</succeed>
++ fail    | after_seconds: 20
++ succeed | exit: 0 | : secondary stack test successful
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="spark.lib.so"/>
-		<rom label="test-spark_secondary_stack"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: spark.lib.so
+  + rom | label: test-spark_secondary_stack
 
-	<config/>
-
-</runtime>
++ config
+-

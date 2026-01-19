@@ -1,49 +1,46 @@
-<runtime ram="1M" caps="100" binary="test-reconstructible">
+runtime | ram: 1M | caps: 100 | binary: test-reconstructible
 
-	<fail after_seconds="20"/>
-	<succeed>
-		--- Reconstructible utility test ---
-		construct Object 1
-		construct Object 2
-		create Compound object
-		construct Member_with_reference
-		construct Compound
-		compound.member.constructed returns 1
-		compound.lazy_member.constructed returns 0
-		construct lazy member
-		construct Member_with_reference
-		compound.lazy_member.constructed returns 1
-		call method on member (with reference to Object 1)
-		const method called on Object 1
-		reconstruct member with Object 2 as reference
-		destruct Member_with_reference
-		construct Member_with_reference
-		call method on member
-		const method called on Object 2
-		destruct member
-		destruct Member_with_reference
-		try to call method on member, catch exception
-		*Error: attempt to access unconstructed object
-		backtrace "ep"
-		got exception, as expected
-		destruct Compound and Objects 1 and 2
-		destruct Compound
-		destruct Member_with_reference
-		destruct Object 2
-		destruct Object 1
-		construct Throwing object
-		construct Throwing -> don't throw
-		destruct Throwing
-		construct Throwing -> throw exception
-		got exception, as expected
-		--- Reconstructible utility test finished ---
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : --- Reconstructible utility test ---
+  : construct Object 1
+  : construct Object 2
+  : create Compound object
+  : construct Member_with_reference
+  : construct Compound
+  : compound.member.constructed returns 1
+  : compound.lazy_member.constructed returns 0
+  : construct lazy member
+  : construct Member_with_reference
+  : compound.lazy_member.constructed returns 1
+  : call method on member (with reference to Object 1)
+  : const method called on Object 1
+  : reconstruct member with Object 2 as reference
+  : destruct Member_with_reference
+  : construct Member_with_reference
+  : call method on member
+  : const method called on Object 2
+  : destruct member
+  : destruct Member_with_reference
+  : try to call method on member, catch exception
+  : *Error: attempt to access unconstructed object
+  : backtrace "ep"
+  : got exception, as expected
+  : destruct Compound and Objects 1 and 2
+  : destruct Compound
+  : destruct Member_with_reference
+  : destruct Object 2
+  : destruct Object 1
+  : construct Throwing object
+  : construct Throwing -> don't throw
+  : destruct Throwing
+  : construct Throwing -> throw exception
+  : got exception, as expected
+  : --- Reconstructible utility test finished ---
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-reconstructible"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-reconstructible
 
-	<config/>
-
-</runtime>
++ config
+-

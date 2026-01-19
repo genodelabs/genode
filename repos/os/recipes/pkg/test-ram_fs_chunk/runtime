@@ -1,56 +1,53 @@
-<runtime ram="1M" caps="100" binary="test-ram_fs_chunk">
+runtime | ram: 1M | caps: 100 | binary: test-ram_fs_chunk
 
-	<fail after_seconds="20"/>
-	<succeed>
-		--- RAM filesystem chunk test ---
-		chunk sizes
-		* level 0: payload=120 *
-		* level 1: payload=24 *
-		* level 2: payload=6 *
-		* level 3: payload=2 *
-		write "five-o-one" at offset 0 -> content (size=10): "five-o-one"
-		write "five" at offset 7 -> content (size=11): "five-o-five"
-		write "Nuance" at offset 17 -> content (size=23): "five-o-five......Nuance"
-		write "YM-2149" at offset 35 -> content (size=42): "five-o-five......Nuance............YM-2149"
-		trunc(30) -> content (size=30): "five-o-five......Nuance......."
-		trunc(29) -> content (size=24): "five-o-five......Nuance."
-		trunc(28) -> content (size=24): "five-o-five......Nuance."
-		trunc(27) -> content (size=24): "five-o-five......Nuance."
-		trunc(26) -> content (size=24): "five-o-five......Nuance."
-		trunc(25) -> content (size=24): "five-o-five......Nuance."
-		trunc(24) -> content (size=24): "five-o-five......Nuance."
-		trunc(23) -> content (size=23): "five-o-five......Nuance"
-		trunc(22) -> content (size=22): "five-o-five......Nuanc"
-		trunc(21) -> content (size=21): "five-o-five......Nuan"
-		trunc(20) -> content (size=20): "five-o-five......Nua"
-		trunc(19) -> content (size=19): "five-o-five......Nu"
-		trunc(18) -> content (size=18): "five-o-five......N"
-		trunc(17) -> content (size=17): "five-o-five......"
-		trunc(16) -> content (size=14): "five-o-five..."
-		trunc(15) -> content (size=14): "five-o-five..."
-		trunc(14) -> content (size=14): "five-o-five..."
-		trunc(13) -> content (size=12): "five-o-five."
-		trunc(12) -> content (size=12): "five-o-five."
-		trunc(11) -> content (size=11): "five-o-five"
-		trunc(10) -> content (size=10): "five-o-fiv"
-		trunc(9) -> content (size=9): "five-o-fi"
-		trunc(8) -> content (size=8): "five-o-f"
-		trunc(7) -> content (size=7): "five-o-"
-		trunc(6) -> content (size=6): "five-o"
-		trunc(5) -> content (size=5): "five-"
-		trunc(4) -> content (size=4): "five"
-		trunc(3) -> content (size=3): "fiv"
-		trunc(2) -> content (size=2): "fi"
-		trunc(1) -> content (size=1): "f"
-		allocator: sum=0
-		--- RAM filesystem chunk test finished ---
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : --- RAM filesystem chunk test ---
+  : chunk sizes
+  : * level 0: payload=120 *
+  : * level 1: payload=24 *
+  : * level 2: payload=6 *
+  : * level 3: payload=2 *
+  : write "five-o-one" at offset 0 -> content (size=10): "five-o-one"
+  : write "five" at offset 7 -> content (size=11): "five-o-five"
+  : write "Nuance" at offset 17 -> content (size=23): "five-o-five......Nuance"
+  : write "YM-2149" at offset 35 -> content (size=42): "five-o-five......Nuance............YM-2149"
+  : trunc(30) -> content (size=30): "five-o-five......Nuance......."
+  : trunc(29) -> content (size=24): "five-o-five......Nuance."
+  : trunc(28) -> content (size=24): "five-o-five......Nuance."
+  : trunc(27) -> content (size=24): "five-o-five......Nuance."
+  : trunc(26) -> content (size=24): "five-o-five......Nuance."
+  : trunc(25) -> content (size=24): "five-o-five......Nuance."
+  : trunc(24) -> content (size=24): "five-o-five......Nuance."
+  : trunc(23) -> content (size=23): "five-o-five......Nuance"
+  : trunc(22) -> content (size=22): "five-o-five......Nuanc"
+  : trunc(21) -> content (size=21): "five-o-five......Nuan"
+  : trunc(20) -> content (size=20): "five-o-five......Nua"
+  : trunc(19) -> content (size=19): "five-o-five......Nu"
+  : trunc(18) -> content (size=18): "five-o-five......N"
+  : trunc(17) -> content (size=17): "five-o-five......"
+  : trunc(16) -> content (size=14): "five-o-five..."
+  : trunc(15) -> content (size=14): "five-o-five..."
+  : trunc(14) -> content (size=14): "five-o-five..."
+  : trunc(13) -> content (size=12): "five-o-five."
+  : trunc(12) -> content (size=12): "five-o-five."
+  : trunc(11) -> content (size=11): "five-o-five"
+  : trunc(10) -> content (size=10): "five-o-fiv"
+  : trunc(9) -> content (size=9): "five-o-fi"
+  : trunc(8) -> content (size=8): "five-o-f"
+  : trunc(7) -> content (size=7): "five-o-"
+  : trunc(6) -> content (size=6): "five-o"
+  : trunc(5) -> content (size=5): "five-"
+  : trunc(4) -> content (size=4): "five"
+  : trunc(3) -> content (size=3): "fiv"
+  : trunc(2) -> content (size=2): "fi"
+  : trunc(1) -> content (size=1): "f"
+  : allocator: sum=0
+  : --- RAM filesystem chunk test finished ---
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-ram_fs_chunk"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-ram_fs_chunk
 
-	<config/>
-
-</runtime>
++ config
+-

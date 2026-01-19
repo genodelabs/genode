@@ -1,65 +1,62 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<fail after_seconds="10"/>
-	<succeed>
-		[report_rom] report 'depot_query -> index'
-		[report_rom] *&lt;index>
-		[report_rom]   	&lt;index user="genodelabs" version="19.02">
-		[report_rom]   		&lt;index name="Demos">
-		[report_rom]   			&lt;pkg path="nano3d" info="simple software-rendering demo"/>
-		[report_rom]   		&lt;/index>
-		[report_rom]   	&lt;/index>
-		[report_rom]   	&lt;missing user="genodelabs" version="19.03"/>
-		[report_rom]   &lt;/index>
-	</succeed>
++ fail | after_seconds: 10
++ succeed
+  : [report_rom] report 'depot_query -> index'
+  : [report_rom]   index
+  : [report_rom]   + index | user: genodelabs | version: 19.02
+  : [report_rom]     + index Demos
+  : [report_rom]       + pkg | path: nano3d | info: simple software-rendering demo
+  : [report_rom]   + missing | user: genodelabs | version: 19.03
+  : [report_rom]   -
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="report_rom"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="depot_query"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: report_rom
+  + rom | label: vfs.lib.so
+  + rom | label: depot_query
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<start name="report_rom">
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config verbose="yes"/>
-		</start>
+  + default | caps: 100 | ram: 1M
 
-		<start name="depot_query" ram="2M">
-			<config arch="x86_64" generate_xml="yes">
+  + start report_rom
+    + provides
+      + service Report
+      + service ROM
+    + config | verbose: yes
 
-				<!-- test queries -->
-				<index user="genodelabs" version="19.02" content="yes"/>
-				<index user="genodelabs" version="19.03"/> <!-- does not exist -->
-
-				<vfs>
-					<dir name="depot"> <dir name="genodelabs"> <dir name="index">
-						<inline name="19.02">
-							<index>
-								<supports arch="x86_64"/>
-								<index name="Demos">
-									<pkg path="nano3d" info="simple software-rendering demo"/>
-									<pkg path="armored" info="ARM demo" arch="arm_v8a"/>
-								</index>
-							</index>
-						</inline>
-					</dir> </dir> </dir>
-				</vfs>
-			</config>
-		</start>
-	</config>
-</runtime>
+  + start depot_query | ram: 2M
+    + config | arch: x86_64
+      + index | user: genodelabs | version: 19.02 | content: yes
+      | .
+      | . test queries
+      | .
+      + index | user: genodelabs | version: 19.03 | . does not exist
+      + vfs
+        + dir depot
+          + dir genodelabs
+            + dir index
+              + inline 19.02
+                + index
+                  + supports | arch: x86_64
+                  + index Demos
+                    + pkg
+                    |     path: nano3d
+                    |     info: simple software-rendering demo
+                    + pkg
+                          path: armored
+                          info: ARM demo
+                          arch: arm_v8a
+-

@@ -1,14 +1,12 @@
-<runtime ram="10M" caps="50" binary="test-registry">
+runtime | ram: 10M | caps: 50 | binary: test-registry
 
-	<fail after_seconds="20"/>
-	<succeed exit="0"/>
-	<fail>*Uncaught exception</fail>
++ fail    | after_seconds: 20
++ succeed | exit: 0
++ fail    | : *Uncaught exception
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-registry"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-registry
 
-	<config/>
-
-</runtime>
++ config
+-

@@ -1,17 +1,15 @@
-<runtime ram="10M" caps="500" binary="test-sandbox">
+runtime | ram: 10M | caps: 500 | binary: test-sandbox
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<succeed>*version="5"</succeed>
-	<fail after_seconds="10"/>
++ succeed | : * version: 5
++ fail    | after_seconds: 10
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="sandbox.lib.so"/>
-		<rom label="test-sandbox"/>
-		<rom label="dummy"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: sandbox.lib.so
+  + rom | label: test-sandbox
+  + rom | label: dummy
 
-	<config generate_xml="yes"/>
-
-</runtime>
++ config
+-

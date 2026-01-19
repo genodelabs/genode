@@ -1,16 +1,14 @@
-<runtime ram="16M" caps="200" binary="test-resource_yield">
+runtime | ram: 16M | caps: 200 | binary: test-resource_yield
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="10"/>
-	<succeed>--- test-resource_yield finished ---</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 10
++ fail    | : *Error:
++ succeed | : --- test-resource_yield finished ---
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-resource_yield"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-resource_yield
 
-	<config/>
-
-</runtime>
++ config
+-

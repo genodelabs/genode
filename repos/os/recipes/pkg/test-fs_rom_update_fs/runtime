@@ -1,105 +1,90 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed>[rom_logger] *&lt;config iteration="4"/></succeed>
++ fail    | after_seconds: 20
++ succeed | : [rom_logger]   config | iteration: 4
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="dynamic_rom"/>
-		<rom label="fs_rom"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="rom_logger"/>
-		<rom label="rom_to_file"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: dynamic_rom
+  + rom | label: fs_rom
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: rom_logger
+  + rom | label: rom_to_file
 
-	<config>
-		<parent-provides>
-			<service name="CPU"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="IRQ"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="ROM"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="vfs_1" ram="10M">
-			<binary name="vfs"/>
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs> <ram/> </vfs>
-				<policy label_prefix="rom_to_file" root="/" writeable="yes"/>
-				<policy label_prefix="vfs_2" root="/" writeable="no"/>
-			</config>
-		</start>
-		<start name="vfs_2" ram="10M">
-			<binary name="vfs"/>
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs> <fs/> </vfs>
-				<policy label_prefix="fs_rom" root="/" writeable="no"/>
-			</config>
-			<route>
-				<service name="File_system">
-					<child name="vfs_1"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-		<start name="dynamic_rom" ram="4M">
-			<provides><service name="ROM"/></provides>
-			<config verbose="yes" generate_xml="yes">
-				<rom name="dynamic_rom">
-					<inline description="iteration 1">
-						<config iteration="1"/>
-					</inline>
-					<sleep milliseconds="200"/>
-					<inline description="iteration 2">
-						<config iteration="2"/>
-					</inline>
-					<sleep milliseconds="200"/>
-					<inline description="iteration 3">
-						<config iteration="3"/>
-					</inline>
-					<sleep milliseconds="200"/>
-					<inline description="iteration 4">
-						<config iteration="4"/>
-					</inline>
-					<sleep milliseconds="200"/>
-				</rom>
-			</config>
-		</start>
-		<start name="rom_to_file" ram="2M">
-			<config rom="dynamic_rom">
-				<vfs> <fs/> </vfs>
-			</config>
-			<route>
-				<service name="ROM" label="dynamic_rom"> <child name="dynamic_rom"/> </service>
-				<service name="File_system"> <child name="vfs_1"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ config
+  + parent-provides
+    + service CPU
+    + service IO_MEM
+    + service IO_PORT
+    + service IRQ
+    + service LOG
+    + service PD
+    + service RM
+    + service ROM
+    + service Timer
 
-		<start name="fs_rom" ram="2M">
-			<provides><service name="ROM"/></provides>
-			<route>
-				<service name="File_system"> <child name="vfs_2"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-		<start name="rom_logger" ram="1M">
-			<config rom="dynamic_rom"/>
-			<route>
-				<service name="ROM" label="dynamic_rom"> <child name="fs_rom"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start vfs_1 | ram: 10M
+    + binary vfs
+    + provides | + service File_system
+    + config
+      + vfs | + ram
+      + policy | label_prefix: rom_to_file | root: / | writeable: yes
+      + policy | label_prefix: vfs_2       | root: / | writeable: no
+
+  + start vfs_2 | ram: 10M
+    + binary vfs
+    + provides | + service File_system
+    + config
+      + vfs | + fs
+      + policy | label_prefix: fs_rom | root: / | writeable: no
+    + route
+      + service File_system | + child vfs_1
+      + any-service
+        + parent
+        + any-child
+
+  + start dynamic_rom | ram: 4M
+    + provides | + service ROM
+    + config | verbose: yes
+      + rom dynamic_rom
+        + inline | description: iteration 1 | + config | iteration: 1
+        + sleep  | milliseconds: 200
+        + inline | description: iteration 2 | + config | iteration: 2
+        + sleep  | milliseconds: 200
+        + inline | description: iteration 3 | + config | iteration: 3
+        + sleep  | milliseconds: 200
+        + inline | description: iteration 4 | + config | iteration: 4
+        + sleep  | milliseconds: 200
+
+  + start rom_to_file | ram: 2M
+    + config | rom: dynamic_rom
+    | + vfs | + fs
+    + route
+      + service ROM | label: dynamic_rom | + child dynamic_rom
+      + service File_system              | + child vfs_1
+      + any-service
+        + parent
+        + any-child
+
+  + start fs_rom | ram: 2M
+    + provides | + service ROM
+    + route
+      + service File_system | + child vfs_2
+      + any-service         | + parent
+
+  + start rom_logger | ram: 1M
+    + config | rom: dynamic_rom
+    + route
+      + service ROM | label: dynamic_rom | + child fs_rom
+      + any-service                      | + parent
+-

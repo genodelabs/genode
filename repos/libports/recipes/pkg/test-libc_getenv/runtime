@@ -1,43 +1,39 @@
-<runtime ram="4M" caps="100" binary="test-libc_getenv">
+runtime | ram: 4M | caps: 100 | binary: test-libc_getenv
 
-	<fail after_seconds="30"/>
-	<succeed exit="0">
-		foo="bar"
-		bar="foo"
-		no env variable named 'baz'
-		fitz=" with leading space"
-		fatz="with trailing space "
-		no env variable named ' arg with surrounding spaces '
-		no env variable named '--tag-with-no-value'
-		no env variable named '--tag-with'
-		no env variable named 'value'
-	</succeed>
++ fail | after_seconds: 30
++ succeed | exit: 0
+  : foo="bar"
+  : bar="foo"
+  : no env variable named 'baz'
+  : fitz=" with leading space"
+  : fatz="with trailing space "
+  : no env variable named ' arg with surrounding spaces '
+  : no env variable named '--tag-with-no-value'
+  : no env variable named '--tag-with'
+  : no env variable named 'value'
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-libc_getenv"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="posix.lib.so"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-libc_getenv
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: posix.lib.so
 
-	<config>
-		<vfs> <dir name="dev"> <log/> </dir> </vfs>
-		<libc stdout="/dev/log"/>
-		<arg value="test-libc_getenv"/>
-		<arg value="foo"/>
-		<arg value="bar"/>
-		<arg value="baz"/>
-		<arg>fitz</arg>
-		<arg>fatz</arg>
-		<arg> arg with surrounding spaces </arg>
-		<arg name="--tag-with-no-value"/>
-		<arg name="--tag-with">value</arg>
-		<env key="foo" value="bar"/>
-		<env key="bar" value="foo"/>
-		<env name="fitz"> with leading space</env>
-		<env name="fatz">with trailing space </env>
-	</config>
-
-</runtime>
++ config
+  + vfs | + dir dev | + log
+  + libc | stdout: /dev/log
+  + arg | value: test-libc_getenv
+  + arg | value: foo
+  + arg | value: bar
+  + arg | value: baz
+  + arg | : fitz
+  + arg | : fatz
+  + arg | :  arg with surrounding spaces 
+  + arg --tag-with-no-value
+  + arg --tag-with | : value
+  + env | key: foo | value: bar
+  + env | key: bar | value: foo
+  + env fitz | :  with leading space
+  + env fatz | : with trailing space 
+-

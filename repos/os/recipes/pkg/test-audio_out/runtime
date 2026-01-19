@@ -1,16 +1,11 @@
-<runtime ram="16M" caps="150" binary="test-audio_out">
+runtime | ram: 16M | caps: 150 | binary: test-audio_out
 
-	<requires>
-		<audio_out/>
-		<rom label="sample.raw"/>
-	</requires>
++ requires
+  + audio_out
+  + rom | label: sample.raw
 
-	<config>
-		<filename>sample.raw</filename>
-	</config>
++ config | + filename | : sample.raw
 
-	<content>
-		<rom label="test-audio_out"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: test-audio_out
+-

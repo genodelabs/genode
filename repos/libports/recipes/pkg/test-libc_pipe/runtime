@@ -1,69 +1,57 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<fail after_seconds="30"/>
-	<succeed>child "sequence" exited with exit value 0</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 30
++ succeed | : child "sequence" exited with exit value 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="sequence"/>
-		<rom label="test-libc_pipe"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_pipe.lib.so"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: sequence
+  + rom | label: test-libc_pipe
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_pipe.lib.so
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="256"/>
-		<start name="pipes_fs" ram="4M">
-			<binary name="vfs"/>
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs> <pipe/> </vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
-		<start name="sequence" ram="4M">
-			<config>
-				<start name="libc_pipe_local">
-					<binary name="test-libc_pipe"/>
-					<config>
-						<vfs>
-							<dir name="dev">
-								<log/>
-							</dir>
-							<dir name="pipe"> <pipe/> </dir>
-						</vfs>
-						<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
-					</config>
-				</start>
-				<start name="libc_pipe_remote">
-					<binary name="test-libc_pipe"/>
-					<config>
-						<vfs>
-							<dir name="dev">
-								<log/>
-							</dir>
-							<dir name="pipe"> <fs/> </dir>
-						</vfs>
-						<libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe"/>
-					</config>
-				</start>
-			</config>
-		</start>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 256
+
+  + start pipes_fs | ram: 4M
+    + binary vfs
+    + provides | + service File_system
+    + config
+      + vfs | + pipe
+      + default-policy | root: / | writeable: yes
+
+  + start sequence | ram: 4M
+    + config
+      + start libc_pipe_local
+      | + binary test-libc_pipe
+      | + config
+      |   + vfs
+      |   | + dir dev  | + log
+      |   | + dir pipe | + pipe
+      |   + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe
+      + start libc_pipe_remote
+        + binary test-libc_pipe
+        + config
+          + vfs
+          | + dir dev  | + log
+          | + dir pipe | + fs
+          + libc | stdout: /dev/log | stderr: /dev/log | pipe: /pipe
+-

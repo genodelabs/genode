@@ -1,22 +1,18 @@
-<runtime ram="10M" caps="100" binary="test-ds_ownership">
+runtime | ram: 10M | caps: 100 | binary: test-ds_ownership
 
-	<fail after_seconds="20"/>
-	<succeed>test succeeded</succeed>
-	<fail>*test failed*</fail>
++ fail    | after_seconds: 20
++ succeed | : test succeeded
++ fail    | : *test failed*
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-ds_ownership"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-ds_ownership
 
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-	</config>
-
-</runtime>
++ config | verbose: yes
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+-

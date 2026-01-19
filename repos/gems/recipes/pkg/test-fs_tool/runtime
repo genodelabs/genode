@@ -1,132 +1,107 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<fail after_seconds="20"/>
-	<succeed>
-		[test -> remove] *file /items cannot be removed because it is a directory
-		[test -> remove] remove file /items/2
-		[test -> remove] *file /3 cannot be removed because there is no such file
-		[test -> remove] remove file /4
-		[report_rom] report 'test -> fs_query -> listing'
-		[report_rom]   &lt;listing>
-		[report_rom]   	&lt;dir path="/fs/items">
-		[report_rom]   		&lt;file name="1" writeable="yes">first&lt;/file>
-		[report_rom]   		&lt;file name="5" writeable="yes">fifth&lt;/file>
-		[report_rom]   	&lt;/dir>
-		[report_rom]   	&lt;dir path="/fs/new/file/at/subdir">
-		[report_rom]   		&lt;file name="content" writeable="yes">new file&lt;/file>
-		[report_rom]   	&lt;/dir>
-		[report_rom]   &lt;/listing>
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : [test -> remove] *Warning: file /items cannot be removed because it is a directory*
+  : [test -> remove] remove file /items/2
+  : [test -> remove] *Warning: file /3 cannot be removed because there is no such file*
+  : [test -> remove] remove file /4
+  : [report_rom] report 'test -> fs_query -> listing'
+  : [report_rom]   listing
+  : [report_rom]   + dir | path: /fs/items
+  : [report_rom]     + file 1 | writeable: yes
+  : [report_rom]       : first
+  : [report_rom]     + file 5 | writeable: yes
+  : [report_rom]       : fifth
+  : [report_rom]   + dir | path: /fs/new/file/at/subdir
+  : [report_rom]     + file content | writeable: yes
+  : [report_rom]       : new file
+  : [report_rom]   -
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="report_rom"/>
-		<rom label="sequence"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_import.lib.so"/>
-		<rom label="fs_query"/>
-		<rom label="fs_tool"/>
-		<rom label="dummy"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: report_rom
+  + rom | label: sequence
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_import.lib.so
+  + rom | label: fs_query
+  + rom | label: fs_tool
+  + rom | label: dummy
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="Timer"/>
-		</parent-provides>
++ config
+  + parent-provides
+    + service ROM
+    + service LOG
+    + service RM
+    + service CPU
+    + service PD
+    + service Timer
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<default caps="100" ram="1M"/>
+  + default | caps: 100 | ram: 1M
 
-		<start name="report_rom">
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config verbose="yes"/>
-		</start>
+  + start report_rom
+    + provides
+      + service Report
+      + service ROM
+    + config | verbose: yes
 
-		<start name="vfs" ram="4M">
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs>
-					<ram/>
-					<import>
-						<dir name="items">
-							<inline name="1">first</inline>
-							<inline name="2">second</inline>
-						</dir>
-						<inline name="4">fourth</inline>
-					</import>
-				</vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
+  + start vfs | ram: 4M
+    + provides | + service File_system
+    + config
+      + vfs
+      | + ram
+      | + import
+      |   + dir items
+      |   | + inline 1 | : first
+      |   | + inline 2 | : second
+      |   + inline 4   | : fourth
+      + default-policy | root: / | writeable: yes
 
-		<start name="test" caps="700" ram="16M">
-			<binary name="sequence"/>
-			<config>
-				<start name="sleep" caps="100">
-					<binary name="dummy"/>
-					<config>
-						<sleep ms="500"/>
-						<exit/>
-					</config>
-				</start>
-
-				<start name="new-file" caps="500">
-					<binary name="fs_tool"/>
-					<config verbose="yes" exit="yes">
-						<vfs>
-							<fs writeable="yes"/>
-						</vfs>
-						<new-file path="/items/5">fifth</new-file>
-						<new-file path="/new/file/at/subdir/content">new file</new-file>
-					</config>
-				</start>
-
-				<start name="sleep" caps="100">
-					<binary name="dummy"/>
-					<config>
-						<sleep ms="500"/>
-						<exit/>
-					</config>
-				</start>
-
-				<start name="remove" caps="500">
-					<binary name="fs_tool"/>
-					<config verbose="yes" exit="yes">
-						<vfs>
-							<fs writeable="yes"/>
-						</vfs>
-						<remove-file path="/items"/>   <!-- is no file -->
-						<remove-file path="/items/2"/> <!-- should succeed -->
-						<remove-file path="/3"/>       <!-- does not exist -->
-						<remove-file path="/4"/>       <!-- should succeed -->
-					</config>
-				</start>
-
-				<start name="fs_query">
-					<config generate_xml="yes">
-						<vfs> <dir name="fs"> <fs/> </dir> </vfs>
-						<query path="/fs/items" content="yes"/>
-						<query path="/fs/new/file/at/subdir" content="yes"/>
-					</config>
-				</start>
-
-				<start name="sleep" caps="100">
-					<binary name="dummy"/>
-					<config>
-						<log string="sleep forever..."/>
-					</config>
-				</start>
-
-			</config>
-		</start>
-	</config>
-</runtime>
+  + start test | caps: 700 | ram: 16M
+    + binary sequence
+    + config
+      + start sleep | caps: 100
+      | + binary dummy
+      | + config
+      |   + sleep | ms: 500
+      |   + exit
+      |
+      + start new-file | caps: 500
+      | + binary fs_tool
+      | + config | verbose: yes | exit: yes
+      |   + vfs | + fs | writeable: yes
+      |   + new-file | path: /items/5                    | : fifth
+      |   + new-file | path: /new/file/at/subdir/content | : new file
+      |
+      + start sleep | caps: 100
+      | + binary dummy
+      | + config
+      |   + sleep | ms: 500
+      |   + exit
+      |
+      + start remove | caps: 500
+      | + binary fs_tool
+      | + config | verbose: yes | exit: yes
+      |   + vfs | + fs | writeable: yes
+      |   + remove-file | path: /items   | . is no file
+      |   + remove-file | path: /items/2 | . should succeed
+      |   + remove-file | path: /3       | . does not exist
+      |   + remove-file | path: /4       | . should succeed
+      |
+      + start fs_query
+      | + config
+      |   + vfs | + dir fs | + fs
+      |   + query | path: /fs/items              | content: yes
+      |   + query | path: /fs/new/file/at/subdir | content: yes
+      |
+      + start sleep | caps: 100
+        + binary dummy
+        + config
+          + log | string: sleep forever...
+-

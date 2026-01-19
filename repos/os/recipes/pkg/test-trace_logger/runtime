@@ -1,109 +1,107 @@
-<runtime ram="100M" caps="1000" binary="init">
+runtime | ram: 100M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed>
-		[trace_logger] Report *
-		[trace_logger] PD "cpu_burner.*"*
-		[trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-		[trace_logger] PD "dynamic_rom"*
-		[trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-		[trace_logger] PD "test-trace_logger"*
-		[trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
-		[trace_logger]   100 *
-		[trace_logger]   trigger_once
-		[trace_logger]   trigger_once
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : [trace_logger] Report *
+  : [trace_logger] PD "cpu_burner.*"*
+  : [trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
+  : [trace_logger] PD "dynamic_rom"*
+  : [trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
+  : [trace_logger] PD "test-trace_logger"*
+  : [trace_logger]  Thread "ep" at (0,0)  TRACED total:* recent:*
+  : [trace_logger]   100 *
+  : [trace_logger]   trigger_once
+  : [trace_logger]   trigger_once
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="dynamic_rom"/>
-		<rom label="cpu_burner"/>
-		<rom label="test-trace_logger"/>
-		<rom label="trace_logger"/>
-		<rom label="null"/>
-		<rom label="rpc_name"/>
-		<rom label="log_output"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: dynamic_rom
+  + rom | label: cpu_burner
+  + rom | label: test-trace_logger
+  + rom | label: trace_logger
+  + rom | label: null
+  + rom | label: rpc_name
+  + rom | label: log_output
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="TRACE"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
++ config
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service TRACE
+    + service Timer
 
-		<start name="trace_logger" ram="80M">
-			<config verbose="yes" priority="no" sc_time="no" session_ram="10M" session_arg_buffer="64K" period_sec="3" default_policy="null" default_buffer="1K">
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-				<policy label_prefix="cpu_burner" thread="ep"/>
+  + default | caps: 100
 
-				<policy label="test-trace_logger" thread="ep" buffer="4K" policy="rpc_name"/>
+  + start trace_logger | ram: 80M
+    + config | verbose:            yes
+    |          priority:           no
+    |          sc_time:            no
+    |          session_ram:        10M
+    |          session_arg_buffer: 64K
+    |          period_sec:         3
+    |          default_policy:     null
+    |          default_buffer:     1K
+    | + policy
+    |          label_prefix: cpu_burner
+    |          thread:       ep
+    | + policy
+    |          label:  test-trace_logger
+    |          thread: ep
+    |          buffer: 4K
+    |          policy: rpc_name
+    | + policy
+    |          label:  dynamic_rom
+    |          thread: ep
+    |          buffer: 8K
+    |          policy: log_output
+    + route
+      + service TRACE | + parent | label:
+      + any-service
+        + parent
+        + any-child
 
-				<policy label="dynamic_rom" thread="ep" buffer="8K" policy="log_output"/>
-			</config>
-			<route>
-				<service name="TRACE"> <parent label=""/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+  + start dynamic_rom | ram: 4M
+    + provides | + service ROM
+    + config | verbose: yes
+      + rom cpu_burner1.config
+        + inline | description: initial state | + config | percent: 5
+        + sleep | milliseconds: 5000
+        + inline | description: 50%           | + config | percent: 50
+        + sleep | milliseconds: 5000
+      + rom cpu_burner2.config
+        + inline | description: initial state | + config | percent: 5
+        + sleep | milliseconds: 4800
+        + inline | description: 100%          | + config | percent: 70
+        + sleep | milliseconds: 2700
 
-		<start name="dynamic_rom" ram="4M">
-			<provides><service name="ROM"/></provides>
-			<config verbose="yes">
-				<rom name="cpu_burner1.config">
-					<inline description="initial state">
-						<config percent="5"/>
-					</inline>
-					<sleep milliseconds="5000"/>
-					<inline description="50%">
-						<config percent="50"/>
-					</inline>
-					<sleep milliseconds="5000"/>
-				</rom>
-				<rom name="cpu_burner2.config">
-					<inline description="initial state">
-						<config percent="5"/>
-					</inline>
-					<sleep milliseconds="4800"/>
-					<inline description="100%">
-						<config percent="70"/>
-					</inline>
-					<sleep milliseconds="2700"/>
-				</rom>
-			</config>
-		</start>
+  + start test-trace_logger | ram: 1M
 
-		<start name="test-trace_logger" ram="1M"/>
+  + start cpu_burner.1 | ram: 1280K
+    + binary cpu_burner
+    + route
+      + service ROM | label: config | + child dynamic_rom | label: cpu_burner1.config
+      + any-service
+        + parent
+        + any-child
 
-		<start name="cpu_burner.1" ram="1280K">
-			<binary name="cpu_burner"/>
-			<route>
-				<service name="ROM" label="config">
-					<child name="dynamic_rom" label="cpu_burner1.config"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-
-		<start name="cpu_burner.2" ram="1280K">
-			<binary name="cpu_burner"/>
-			<route>
-				<service name="ROM" label="config">
-					<child name="dynamic_rom" label="cpu_burner2.config"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
+  + start cpu_burner.2 | ram: 1280K
+    + binary cpu_burner
+    + route
+      + service ROM | label: config | + child dynamic_rom | label: cpu_burner2.config
+      + any-service
+        + parent
+        + any-child
+-

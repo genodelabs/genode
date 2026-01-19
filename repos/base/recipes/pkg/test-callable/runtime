@@ -1,17 +1,14 @@
-<runtime ram="32M" caps="1000" binary="test-callable">
+runtime | ram: 32M | caps: 1000 | binary: test-callable
 
-	<fail after_seconds="20"/>
-	<succeed>
-		result of action.compute: 34
-		accessing node, state=reset
-		--- finished callable test ---
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : result of action.compute: 34
+  : accessing node, state=reset
+  : --- finished callable test ---
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-callable"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-callable
 
-	<config/>
-
-</runtime>
++ config
+-

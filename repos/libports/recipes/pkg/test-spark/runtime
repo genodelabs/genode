@@ -1,14 +1,12 @@
-<runtime ram="10M" caps="100" binary="test-spark">
+runtime | ram: 10M | caps: 100 | binary: test-spark
 
-	<fail after_seconds="20"/>
-	<succeed exit="0"/>
++ fail    | after_seconds: 20
++ succeed | exit: 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="spark.lib.so"/>
-		<rom label="test-spark"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: spark.lib.so
+  + rom | label: test-spark
 
-	<config/>
-
-</runtime>
++ config
+-

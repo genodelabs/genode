@@ -1,118 +1,114 @@
-<runtime ram="3M" caps="150" binary="test-ldso">
+runtime | ram: 3M | caps: 150 | binary: test-ldso
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed exit="123">
-		Lib_2_global 0x11223343
-		Lib_1_global_1 0x5060707
-		Lib_1_global_2 0x1020303
-		lib_1_attr_constructor_2 0x4030200f
-		lib_1_attr_constructor_1 0x8070604f
-		Global_1 0x5060707
-		Global_2 0x1020303
-		attr_constructor_2 0x4030200f
-		attr_constructor_1 0x8070604f
++ fail | after_seconds: 20
++ succeed | exit: 123
+  : Lib_2_global 0x11223343
+  : Lib_1_global_1 0x5060707
+  : Lib_1_global_2 0x1020303
+  : lib_1_attr_constructor_2 0x4030200f
+  : lib_1_attr_constructor_1 0x8070604f
+  : Global_1 0x5060707
+  : Global_2 0x1020303
+  : attr_constructor_2 0x4030200f
+  : attr_constructor_1 0x8070604f
+  :
+  : Dynamic-linker test
+  : ===================
+  :
+  : Global objects and local static objects of program
+  : --------------------------------------------------
+  : global_1 0x5060706
+  : global_2 0x1020302
+  : Local_1 0x5060707f
+  : local_1 0x5060707e
+  : Local_2 0x1020303f
+  : local_2 0x1020303e
+  : pod_1 0x8070604e
+  : pod_2 0x4030200e
+  :
+  : Access shared lib from program
+  : ------------------------------
+  : lib_2_global 0x11223342
+  : Lib_1_local_3 0x12345677
+  : lib_1_local_3 0x12345676
+  : lib_1_pod_1 0x8070604d
+  : Libc::read:
+  : *Error: no plugin found for read(3)
+  : Libc::abs(-10): 10
+  :
+  : Catch exceptions in program
+  : ---------------------------
+  : exception in program: caught
+  : exception in shared lib: caught
+  : exception in dynamic linker: caught
+  :
+  : global objects and local static objects of shared lib
+  : -----------------------------------------------------
+  : lib_1_global_1 0x5060706
+  : lib_1_global_2 0x1020302
+  : Lib_1_local_1 0x5060707f
+  : lib_1_local_1 0x5060707e
+  : Lib_1_local_2 0x1020303f
+  : lib_1_local_2 0x1020303e
+  : lib_1_pod_1 0x8070604e
+  : lib_1_pod_2 0x4030200e
+  :
+  : Access shared lib from another shared lib
+  : -----------------------------------------
+  : lib_2_global 0x11223341
+  : Lib_2_local 0x55667787
+  : lib_2_local 0x55667786
+  : lib_2_pod_1 0x87654320
+  :
+  : Catch exceptions in shared lib
+  : ------------------------------
+  : exception in lib: caught
+  : exception in another shared lib: caught
+  :
+  : Test stack alignment
+  : --------------------
+  : <warning: unsupported format string argument>
+  : <warning: unsupported format string argument>
+  : <warning: unsupported format string argument>
+  : <warning: unsupported format string argument>
+  :
+  : Dynamic cast
+  : ------------
+  : 'Object' called: good
+  :
+  : Shared-object API
+  : -----------------
+  : Global object constructed
+  :
+  : Destruction
+  : -----------
+  : ~Lib_2_local 0x55667785
+  : ~Lib_1_local_2 0x1020303d
+  : ~Lib_1_local_1 0x5060707d
+  : ~Lib_1_local_3 0x12345675
+  : ~Local_2 0x1020303d
+  : ~Local_1 0x5060707d
+  : ~Global_2 0x1020301
+  : ~Global_1 0x5060705
+  : ~Lib_1_global_2 0x1020301
+  : ~Lib_1_global_1 0x5060705
+  : ~Lib_2_global 0x11223340
+  : attr_destructor_2 0x4030200d
+  : attr_destructor_1 0x8070604c
 
-		Dynamic-linker test
-		===================
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-ldso_lib_1.lib.so
+  + rom | label: test-ldso_lib_2.lib.so
+  + rom | label: test-ldso_lib_dl.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: test-ldso
 
-		Global objects and local static objects of program
-		--------------------------------------------------
-		global_1 0x5060706
-		global_2 0x1020302
-		Local_1 0x5060707f
-		local_1 0x5060707e
-		Local_2 0x1020303f
-		local_2 0x1020303e
-		pod_1 0x8070604e
-		pod_2 0x4030200e
-
-		Access shared lib from program
-		------------------------------
-		lib_2_global 0x11223342
-		Lib_1_local_3 0x12345677
-		lib_1_local_3 0x12345676
-		lib_1_pod_1 0x8070604d
-		Libc::read:
-		*Error: no plugin found for read(3)
-		Libc::abs(-10): 10
-
-		Catch exceptions in program
-		---------------------------
-		exception in program: caught
-		exception in shared lib: caught
-		exception in dynamic linker: caught
-
-		global objects and local static objects of shared lib
-		-----------------------------------------------------
-		lib_1_global_1 0x5060706
-		lib_1_global_2 0x1020302
-		Lib_1_local_1 0x5060707f
-		lib_1_local_1 0x5060707e
-		Lib_1_local_2 0x1020303f
-		lib_1_local_2 0x1020303e
-		lib_1_pod_1 0x8070604e
-		lib_1_pod_2 0x4030200e
-
-		Access shared lib from another shared lib
-		-----------------------------------------
-		lib_2_global 0x11223341
-		Lib_2_local 0x55667787
-		lib_2_local 0x55667786
-		lib_2_pod_1 0x87654320
-
-		Catch exceptions in shared lib
-		------------------------------
-		exception in lib: caught
-		exception in another shared lib: caught
-
-		Test stack alignment
-		--------------------
-		&lt;warning: unsupported format string argument>
-		&lt;warning: unsupported format string argument>
-		&lt;warning: unsupported format string argument>
-		&lt;warning: unsupported format string argument>
-
-		Dynamic cast
-		------------
-		'Object' called: good
-
-		Shared-object API
-		-----------------
-		Global object constructed
-
-		Destruction
-		-----------
-		~Lib_2_local 0x55667785
-		~Lib_1_local_2 0x1020303d
-		~Lib_1_local_1 0x5060707d
-		~Lib_1_local_3 0x12345675
-		~Local_2 0x1020303d
-		~Local_1 0x5060707d
-		~Global_2 0x1020301
-		~Global_1 0x5060705
-		~Lib_1_global_2 0x1020301
-		~Lib_1_global_1 0x5060705
-		~Lib_2_global 0x11223340
-		attr_destructor_2 0x4030200d
-		attr_destructor_1 0x8070604c
-	</succeed>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-ldso_lib_1.lib.so"/>
-		<rom label="test-ldso_lib_2.lib.so"/>
-		<rom label="test-ldso_lib_dl.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="test-ldso"/>
-	</content>
-
-	<config ld_bind_now="no" ld_verbose="no">
-		<vfs> <dir name="dev"> <log/> </dir> </vfs>
-		<libc stdout="/dev/log"/>
-	</config>
-
-</runtime>
++ config | ld_bind_now: no | ld_verbose: no
+  + vfs | + dir dev | + log
+  + libc | stdout: /dev/log
+-

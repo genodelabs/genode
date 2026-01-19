@@ -1,22 +1,20 @@
-<runtime ram="3M" caps="200" binary="test-libc_alarm">
+runtime | ram: 3M | caps: 200 | binary: test-libc_alarm
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="13"/>
-	<succeed>triggered_alarms=3</succeed>
++ fail    | after_seconds: 13
++ succeed | : triggered_alarms=3
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-libc_alarm"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="posix.lib.so"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-libc_alarm
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: posix.lib.so
 
-	<config>
-		<vfs> <dir name="dev"> <log/> </dir> </vfs>
-		<libc stdout="/dev/log" stderr="/dev/log"/>
-		<arg value="test-libc_alarm"/>
-	</config>
-</runtime>
++ config
+  + vfs | + dir dev | + log
+  + libc | stdout: /dev/log | stderr: /dev/log
+  + arg test-libc_alarm
+-

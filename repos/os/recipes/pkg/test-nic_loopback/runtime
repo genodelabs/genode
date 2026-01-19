@@ -1,33 +1,34 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<fail after_seconds="20"/>
-	<succeed>child "test-nic_loopback" exited with exit value 0</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 20
++ succeed | : child "test-nic_loopback" exited with exit value 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="nic_loopback"/>
-		<rom label="test-nic_loopback"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: nic_loopback
+  + rom | label: test-nic_loopback
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="nic_loopback" ram="2M">
-			<provides><service name="Nic"/></provides>
-		</start>
-		<start name="test-nic_loopback" ram="2M"/>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start nic_loopback | ram: 2M
+    + provides | + service Nic
+
+  + start test-nic_loopback | ram: 2M
+-

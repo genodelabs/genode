@@ -1,16 +1,14 @@
-<runtime ram="10M" caps="500" binary="test-signal">
+runtime | ram: 10M | caps: 500 | binary: test-signal
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="60"/>
-	<succeed>--- Signalling test finished ---</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 60
++ succeed | : --- Signalling test finished ---
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-signal"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-signal
 
-	<config/>
-
-</runtime>
++ config
+-

@@ -1,15 +1,13 @@
-<runtime ram="64M" caps="800" binary="test-slab">
+runtime | ram: 64M | caps: 800 | binary: test-slab
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="50"/>
-	<succeed>Test done</succeed>
++ fail    | after_seconds: 50
++ succeed | : Test done
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-slab"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-slab
 
-	<config/>
-
-</runtime>
++ config
+-

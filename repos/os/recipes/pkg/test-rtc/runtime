@@ -1,36 +1,37 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed>--- RTC test finished ---</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 20
++ succeed | : --- RTC test finished ---
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="pc_rtc"/>
-		<rom label="test-rtc"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: pc_rtc
+  + rom | label: test-rtc
 
-	<config prio_levels="2" verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
-		<start name="pc_rtc" priority="-1">
-			<provides><service name="Rtc"/></provides>
-		</start>
-		<start name="test-rtc" priority="-1"/>
-	</config>
-</runtime>
++ config | prio_levels: 2 | verbose: yes
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100 | ram: 1M
+
+  + start pc_rtc | priority: -1
+    + provides | + service Rtc
+
+  + start test-rtc | priority: -1
+-

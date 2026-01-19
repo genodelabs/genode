@@ -1,13 +1,11 @@
-<runtime ram="10M" caps="110" binary="test-rm_fault">
+runtime | ram: 10M | caps: 110 | binary: test-rm_fault
 
-	<fail after_seconds="20"/>
-	<succeed exit="0"/>
++ fail    | after_seconds: 20
++ succeed | exit: 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-rm_fault"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-rm_fault
 
-	<config executable_fault_test="false"/>
-
-</runtime>
++ config | executable_fault_test: false
+-

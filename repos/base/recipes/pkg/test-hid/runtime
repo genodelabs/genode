@@ -1,13 +1,12 @@
-<runtime ram="4M" caps="100" binary="test-hid">
+runtime | ram: 4M | caps: 100 | binary: test-hid
 
-	<fail after_seconds="20"/>
-	<succeed>*--- End of HID-parser test ---</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 20
++ succeed | : *--- End of HID-parser test ---
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-hid"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-hid
 
-	<config/>
-</runtime>
++ config
+-

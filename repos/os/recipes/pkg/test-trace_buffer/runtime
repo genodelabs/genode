@@ -1,14 +1,12 @@
-<runtime ram="2M" caps="200" binary="test-trace_buffer">
+runtime | ram: 2M | caps: 200 | binary: test-trace_buffer
 
-	<fail after_seconds="30"/>
-	<succeed exit="0"/>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 30
++ succeed | exit: 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-trace_buffer"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-trace_buffer
 
-	<config/>
-
-</runtime>
++ config
+-

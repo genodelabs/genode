@@ -1,16 +1,14 @@
-<runtime ram="10M" caps="300" binary="test-timer">
+runtime | ram: 10M | caps: 300 | binary: test-timer
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="30"/>
-	<succeed exit="0"/>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 30
++ succeed | exit: 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-timer"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-timer
 
-	<config/>
-
-</runtime>
++ config
+-

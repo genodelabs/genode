@@ -1,68 +1,60 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="30"/>
-	<succeed>[select] 3</succeed>
++ fail    | after_seconds: 30
++ succeed | : [select] 3
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_pipe.lib.so"/>
-		<rom label="test-pipe_read_ready_counter"/>
-		<rom label="test-pipe_read_ready_select"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_pipe.lib.so
+  + rom | label: test-pipe_read_ready_counter
+  + rom | label: test-pipe_read_ready_select
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<default caps="200"/>
+  + default | caps: 200
 
-		<start name="vfs" ram="12M">
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs> <pipe> <fifo name="fifo"/> </pipe> </vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
+  + start vfs | ram: 12M
+    + provides | + service File_system
+    + config
+      + vfs | + pipe | + fifo fifo
+      + default-policy | root: / | writeable: yes
 
-		<start name="select" ram="3M">
-			<binary name="test-pipe_read_ready_select"/>
-			<config>
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="rw"> <fs/> </dir>
-				</vfs>
-				<libc stdin="/rw/fifo" stdout="/dev/log" stderr="/dev/log"/>
-			</config>
-		</start>
+  + start select | ram: 3M
+    + binary test-pipe_read_ready_select
+    + config
+      + vfs
+      | + dir dev | + log
+      | + dir rw  | + fs
+      + libc | stdin: /rw/fifo | stdout: /dev/log | stderr: /dev/log
 
-		<start name="counter" ram="3M">
-			<binary name="test-pipe_read_ready_counter"/>
-			<config>
-				<vfs>
-					<dir name="dev"> <null/> <fs/> <log/> </dir>
-					<dir name="rw"> <fs/> </dir>
-				</vfs>
-				<libc stdin="/dev/null" stdout="/rw/fifo" stderr="/dev/log"/>
-			</config>
-		</start>
-
-	</config>
-
-</runtime>
+  + start counter | ram: 3M
+    + binary test-pipe_read_ready_counter
+    + config
+      + vfs
+      | + dir dev
+      | | + null
+      | | + fs
+      | | + log
+      | + dir rw
+      |   + fs
+      + libc | stdin: /dev/null | stdout: /rw/fifo | stderr: /dev/log
+-

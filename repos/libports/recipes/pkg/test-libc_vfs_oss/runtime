@@ -1,24 +1,22 @@
-<runtime ram="3M" caps="100" binary="test-oss">
+runtime | ram: 3M | caps: 100 | binary: test-oss
 
-	<requires> <play/> <record/> </requires>
++ requires
+  + play
+  + record
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="test-oss"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_oss.lib.so"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: test-oss
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_oss.lib.so
 
-	<config>
-		<libc stdout="/dev/log" stderr="/dev/log"/>
-		<vfs>
-			<dir name="dev">
-				<log/> <oss name="dsp"/>
-			</dir>
-		</vfs>
-	</config>
-
-</runtime>
++ config
+  + libc | stdout: /dev/log | stderr: /dev/log
+  + vfs
+    + dir dev
+      + log
+      + oss dsp
+-

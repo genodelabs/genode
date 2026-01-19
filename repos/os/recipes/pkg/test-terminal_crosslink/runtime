@@ -1,36 +1,37 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="10"/>
-	<succeed>[test-terminal_crosslink] Test succeeded</succeed>
++ fail    | after_seconds: 10
++ succeed | : [test-terminal_crosslink] Test succeeded
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="terminal_crosslink"/>
-		<rom label="test-terminal_crosslink"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: terminal_crosslink
+  + rom | label: test-terminal_crosslink
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="200"/>
-		<start name="terminal_crosslink" ram="2M">
-			<provides> <service name="Terminal"/> </provides>
-			<config buffer="4K"/>
-		</start>
-		<start name="test-terminal_crosslink" ram="1M"/>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 200
+
+  + start terminal_crosslink | ram: 2M
+    + provides | + service Terminal
+    + config | buffer: 4K
+
+  + start test-terminal_crosslink | ram: 1M
+-

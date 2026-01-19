@@ -1,24 +1,24 @@
-<runtime ram="64M" caps="600" binary="test-pthread">
+runtime | ram: 64M | caps: 600 | binary: test-pthread
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="90"/>
-	<succeed>--- returning from main ---</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 90
++ succeed | : --- returning from main ---
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="test-pthread"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: test-pthread
 
-	<config>
-		<vfs> <dir name="dev">
-			<log/> <inline name="rtc">2025-03-03 09:16</inline> </dir> </vfs>
-		<libc stdout="/dev/log" rtc="/dev/rtc"/>
-	</config>
-
-</runtime>
++ config
+  + vfs
+  | + dir dev
+  |   + log
+  |   + inline rtc
+  |     : 2025-03-03 09:16
+  + libc | stdout: /dev/log | rtc: /dev/rtc
+-

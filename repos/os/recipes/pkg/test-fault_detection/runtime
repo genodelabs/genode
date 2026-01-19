@@ -1,14 +1,12 @@
-<runtime ram="10M" caps="500" binary="test-fault_detection">
+runtime | ram: 10M | caps: 500 | binary: test-fault_detection
 
-	<fail after_seconds="60"/>
-	<succeed>--- finished fault_detection test ---</succeed>
++ fail    | after_seconds: 60
++ succeed | : --- finished fault_detection test ---
 
-	<config/>
++ config
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-segfault"/>
-		<rom label="test-fault_detection"/>
-	</content>
-
-</runtime>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-segfault
+  + rom | label: test-fault_detection
+-

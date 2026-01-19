@@ -1,13 +1,12 @@
-<runtime ram="10M" caps="110" binary="test-rm_fault">
+runtime | ram: 10M | caps: 110 | binary: test-rm_fault
 
-	<fail after_seconds="20"/>
-	<succeed exit="0"/>
-	<fail>*Error: could modify ROM</fail>
++ fail    | after_seconds: 20
++ succeed | exit: 0
++ fail    | : *Error: could modify ROM
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-rm_fault"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-rm_fault
 
-	<config/>
-</runtime>
++ config
+-

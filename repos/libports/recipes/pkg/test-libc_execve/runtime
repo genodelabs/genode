@@ -1,40 +1,36 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="90"/>
-	<succeed>child "test-execve" exited with exit value 0</succeed>
++ fail    | after_seconds: 90
++ succeed | : child "test-execve" exited with exit value 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs"/>
-		<rom label="test-execve"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs
+  + rom | label: test-execve
 
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-		</parent-provides>
-		<start name="test-execve" caps="300" ram="1G">
-			<config ld_verbose="yes">
-				<arg value="name_of_executeable"/>
-				<arg value="100"/>
-				<libc stdin="/null" stdout="/log" stderr="/log"/>
-				<vfs> <rom name="test-execve"/> <null/> <log/> </vfs>
-			</config>
-			<route>
-				<service name="ROM" label="/test-execve">
-					<parent label="test-execve"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-	</config>
++ config | verbose: yes
+  + parent-provides
+    + service ROM
+    + service LOG
+    + service CPU
+    + service PD
 
-</runtime>
+  + start test-execve | caps: 300 | ram: 1G
+    + config | ld_verbose: yes
+    | + arg | value: name_of_executeable
+    | + arg | value: 100
+    | + libc | stdin: /null | stdout: /log | stderr: /log
+    | + vfs
+    |   + rom test-execve
+    |   + null
+    |   + log
+    + route
+      + service ROM | label: /test-execve | + parent | label: test-execve
+      + any-service                       | + parent
+-

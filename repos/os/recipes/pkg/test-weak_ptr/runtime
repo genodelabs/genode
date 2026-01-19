@@ -1,16 +1,14 @@
-<runtime ram="10M" caps="100" binary="test-weak_ptr">
+runtime | ram: 10M | caps: 100 | binary: test-weak_ptr
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed>--- finished test-weak_ptr ---</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 20
++ succeed | : --- finished test-weak_ptr ---
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-weak_ptr"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-weak_ptr
 
-	<config/>
-
-</runtime>
++ config
+-

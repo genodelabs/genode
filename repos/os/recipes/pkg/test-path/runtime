@@ -1,52 +1,49 @@
-<runtime ram="10M" caps="100" binary="test-path">
+runtime | ram: 10M | caps: 100 | binary: test-path
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="10"/>
++ fail | after_seconds: 10
++ succeed
+  : --- 'Genode::Path' test ---
+  :
+  : testing removal of superfluous slashes
+  :
+  : '//dir1///' -> '/dir1/'
+  :
+  : testing removal of superfluous dot-slashes
+  :
+  : '/./dir1/././' -> '/dir1/'
+  : './dir1/././' -> './dir1/'
+  :
+  : testing removal of double dot dirs
+  :
+  : '/..' -> '/'
+  : '/dir1/..' -> '/'
+  : '/dir1/../..' -> '/'
+  : '/dir1/dir2/..' -> '/dir1'
+  : '/dir1/../dir2' -> '/dir2'
+  : '/../dir1' -> '/dir1'
+  : '/../../dir1' -> '/dir1'
+  : '/../dir1/..' -> '/'
+  : '..' -> ''
+  : 'dir1/..' -> ''
+  : 'dir1/../..' -> ''
+  : 'dir1/dir2/..' -> 'dir1'
+  : 'dir1/../dir2' -> 'dir2'
+  : '../dir1' -> 'dir1'
+  : '../../dir1' -> 'dir1'
+  : '../dir1/..' -> ''
+  :
+  : testing removal of trailing dot
+  :
+  : '/dir1/.' -> '/dir1/'
+  :
+  : --- 'Genode::Path' test finished ---
 
-	<succeed>
-		--- 'Genode::Path' test ---
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-path
 
-		testing removal of superfluous slashes
++ config
 
-		'//dir1///' -> '/dir1/'
-
-		testing removal of superfluous dot-slashes
-
-		'/./dir1/././' -> '/dir1/'
-		'./dir1/././' -> './dir1/'
-
-		testing removal of double dot dirs
-
-		'/..' -> '/'
-		'/dir1/..' -> '/'
-		'/dir1/../..' -> '/'
-		'/dir1/dir2/..' -> '/dir1'
-		'/dir1/../dir2' -> '/dir2'
-		'/../dir1' -> '/dir1'
-		'/../../dir1' -> '/dir1'
-		'/../dir1/..' -> '/'
-		'..' -> ''
-		'dir1/..' -> ''
-		'dir1/../..' -> ''
-		'dir1/dir2/..' -> 'dir1'
-		'dir1/../dir2' -> 'dir2'
-		'../dir1' -> 'dir1'
-		'../../dir1' -> 'dir1'
-		'../dir1/..' -> ''
-
-		testing removal of trailing dot
-		
-		'/dir1/.' -> '/dir1/'
-
-		--- 'Genode::Path' test finished ---
-	</succeed>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-path"/>
-	</content>
-
-	<config/>
-
-</runtime>
+-

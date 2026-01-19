@@ -1,65 +1,62 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="30"/>
-	<succeed>child "test-libc_counter-sink" exited with exit value 0</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 30
++ succeed | : child "test-libc_counter-sink" exited with exit value 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs"/>
-		<rom label="test-libc_counter-source"/>
-		<rom label="test-libc_counter-sink"/>
-		<rom label="terminal_crosslink"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: vfs
+  + rom | label: test-libc_counter-source
+  + rom | label: test-libc_counter-sink
+  + rom | label: terminal_crosslink
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="terminal_crosslink" ram="2M">
-			<provides> <service name="Terminal"/> </provides>
-		</start>
-		<start name="vfs" ram="12M">
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs>
-					<terminal/>
-				</vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-		<start name="test-libc_counter-source" ram="8M">
-			<config>
-				<vfs>
-					<dir name="dev"> <terminal/> <log/> </dir>
-				</vfs>
-				<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
-			</config>
-		</start>
-		<start name="test-libc_counter-sink" ram="8M" caps="110">
-			<config>
-				<vfs>
-					<dir name="dev"> <log/> <null/> </dir>
-					<dir name="vfs"> <fs/> </dir>
-				</vfs>
-				<libc stdin="/vfs/terminal" stdout="/vfs/terminal" stderr="/dev/log"/>
-			</config>
-		</start>
-	</config>
-</runtime>
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start terminal_crosslink | ram: 2M
+    + provides | + service Terminal
+
+  + start vfs | ram: 12M
+    + provides | + service File_system
+    + config
+      + vfs | + terminal
+      + default-policy | root: / | writeable: yes
+
+  + start test-libc_counter-source | ram: 8M
+    + config
+      + vfs
+      | + dir dev
+      |   + terminal
+      |   + log
+      + libc | stdin: /dev/terminal | stdout: /dev/terminal | stderr: /dev/log
+
+  + start test-libc_counter-sink | ram: 8M | caps: 110
+    + config
+      + vfs
+      | + dir dev
+      | | + log
+      | | + null
+      | + dir vfs
+      |   + fs
+      + libc | stdin: /vfs/terminal | stdout: /vfs/terminal | stderr: /dev/log
+-

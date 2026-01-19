@@ -1,49 +1,53 @@
-<runtime ram="64M" caps="7000" binary="init">
+runtime | ram: 64M | caps: 7000 | binary: init
 
-	<fail after_seconds="40"/>
-	<succeed>[init] child "test-resource_request" exited with exit value 0</succeed>
++ fail    | after_seconds: 40
++ succeed | : [init] child "test-resource_request" exited with exit value 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-resource_request"/>
-		<rom label="report_rom"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-resource_request
+  + rom | label: report_rom
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="report_rom" ram="2M">
-			<provides> <service name="ROM"/> <service name="Report"/> </provides>
-			<config verbose="no">
-				<policy label="init -> config" report="init_monitor -> init.config"/>
-				<policy label="init_monitor -> state" report="init -> state"/>
-			</config>
-		</start>
-		<start name="init" caps="4000" ram="10M">
-			<route>
-				<service name="ROM" label="config"> <child name="report_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-		<start name="init_monitor" ram="2M">
-			<binary name="test-resource_request"/>
-			<config role="monitor"/>
-			<route>
-				<service name="ROM" label="state"> <child name="report_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service ROM
+    + service CPU
+    + service PD
+    + service IRQ
+    + service IO_PORT
+    + service IO_MEM
+    + service LOG
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start report_rom | ram: 2M
+    + provides
+      + service ROM
+      + service Report
+    + config | verbose: no
+      + policy | label: init -> config        | report: init_monitor -> init.config
+      + policy | label: init_monitor -> state | report: init -> state
+
+  + start init | caps: 4000 | ram: 10M
+    + route
+      + service ROM | label: config | + child report_rom
+      + any-service
+        + parent
+        + any-child
+
+  + start init_monitor | ram: 2M
+    + binary test-resource_request
+    + config | role: monitor
+    + route
+      + service ROM | label: state | + child report_rom
+      + any-service
+        + parent
+        + any-child
+
+-

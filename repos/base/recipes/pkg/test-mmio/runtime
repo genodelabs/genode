@@ -1,15 +1,13 @@
-<runtime ram="10M" caps="100" binary="test-mmio">
+runtime | ram: 10M | caps: 100 | binary: test-mmio
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed exit="0"/>
++ fail    | after_seconds: 20
++ succeed | exit: 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-mmio"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-mmio
 
-	<config/>
-
-</runtime>
++ config
+-

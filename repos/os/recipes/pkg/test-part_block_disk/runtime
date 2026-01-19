@@ -1,75 +1,71 @@
-<runtime ram="72M" caps="1000" binary="init">
+runtime | ram: 72M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="70"/>
-	<succeed>
-		child "test-part*" exited with exit value 0
-	</succeed>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 70
++ succeed | : child "test-part*" exited with exit value 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="vfs_block"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="part_block"/>
-		<rom label="block_tester"/>
-		<rom label="report_rom"/>
-		<rom label="ata.gpt.raw"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: vfs_block
+  + rom | label: vfs.lib.so
+  + rom | label: part_block
+  + rom | label: block_tester
+  + rom | label: report_rom
+  + rom | label: ata.gpt.raw
 
-	<config prio_levels="1" verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="vfs_block" ram="32M">
-			<provides><service name="Block"/></provides>
-			<config>
-				<vfs>
-					<rom name="ata.gpt.raw"/>
-				</vfs>
-				<default-policy file="/ata.gpt.raw" block_size="512"/>
-			</config>
-		</start>
-		<start name="part_block" ram="10M">
-			<provides><service name="Block"/></provides>
-			<route>
-				<any-service><child name="vfs_block"/> <parent/><any-child/></any-service>
-			</route>
-			<config ignore_gpt="true">
-				<report partitions="yes"/>
-				<policy label_prefix="test-part0" partition="0"/>
-			</config>
-		</start>
-		<start name="report_rom" ram="5M">
-			<provides>
-				<service name="Report"/>
-				<service name="ROM"/>
-			</provides>
-			<config verbose="yes"/>
-		</start>
-		<start name="test-part0" ram="5M">
-			<binary name="block_tester"/>
-			<config verbose="no" log="yes" stop_on_error="no">
-				<tests>
-					<sequential length="1M" size="1K" io_buffer="128K" batch="4"/>
-				</tests>
-			</config>
-			<route>
-				<any-service> <child name="part_block"/> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
++ config | prio_levels: 1 | verbose: yes
+  + parent-provides
+    + service ROM
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
+
+  + default-route
+    + any-service
+      + parent
+      + any-child
+
+  + default | caps: 100
+
+  + start vfs_block | ram: 32M
+    + provides | + service Block
+    + config
+      + vfs | + rom ata.gpt.raw
+      + default-policy | file: /ata.gpt.raw | block_size: 512
+
+  + start part_block | ram: 10M
+    + provides | + service Block
+    + route
+    | + any-service
+    |   + child vfs_block
+    |   + parent
+    |   + any-child
+    + config | ignore_gpt: true
+      + report | partitions: yes
+      + policy | label_prefix: test-part0 | partition: 0
+
+  + start report_rom | ram: 5M
+    + provides
+      + service Report
+      + service ROM
+    + config | verbose: yes
+
+  + start test-part0 | ram: 5M
+    + binary block_tester
+    + config | verbose: no | log: yes | stop_on_error: no
+    | + tests
+    |   + sequential | length: 1M | size: 1K | io_buffer: 128K | batch: 4
+    + route
+      + any-service
+        + child part_block
+        + parent
+        + any-child
+
+-

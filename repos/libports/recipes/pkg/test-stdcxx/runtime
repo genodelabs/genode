@@ -1,21 +1,18 @@
-<runtime ram="10M" caps="150" binary="test-stdcxx">
+runtime | ram: 10M | caps: 150 | binary: test-stdcxx
 
-	<fail after_seconds="20"/>
-	<succeed>*test-stdcxx finished*</succeed>
++ fail    | after_seconds: 20
++ succeed | : *test-stdcxx finished*
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="stdcxx.lib.so"/>
-		<rom label="test-stdcxx"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: stdcxx.lib.so
+  + rom | label: test-stdcxx
 
-	<config>
-		<vfs> <dir name="dev"> <log/> </dir> </vfs>
-		<libc stdout="/dev/log"/>
-	</config>
-
-</runtime>
++ config
+  + vfs | + dir dev | + log
+  + libc | stdout: /dev/log
+-

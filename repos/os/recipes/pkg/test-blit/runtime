@@ -1,13 +1,11 @@
-<runtime ram="32M" caps="1000" binary="test-blit">
+runtime | ram: 32M | caps: 1000 | binary: test-blit
 
-	<fail after_seconds="20"/>
-	<succeed>--- blit test finished ---</succeed>
++ fail    | after_seconds: 20
++ succeed | : --- blit test finished ---
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-blit"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-blit
 
-	<config/>
-
-</runtime>
++ config
+-

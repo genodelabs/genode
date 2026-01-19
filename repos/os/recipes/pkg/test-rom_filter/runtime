@@ -1,126 +1,105 @@
-<runtime ram="32M" caps="1000" binary="init">
+runtime | ram: 32M | caps: 1000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="20"/>
-	<succeed>
-		[rom_logger] ROM 'generated':
-		[rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
-		[rom_logger] ROM 'generated':
-		[rom_logger]   &lt;config color="transparent">*&lt;fallback/>*&lt;/config>*
-		[rom_logger] ROM 'generated':
-		[rom_logger]   &lt;config color="yellow">*&lt;xray_enabled/>*&lt;/config>*
-		[rom_logger] ROM 'generated':
-		[rom_logger]   &lt;config message="system locked" color="transparent">*&lt;fallback/>*&lt;/config>*
-		[dynamic_rom] xray: change (finished)
-	</succeed>
-	<fail>*Error: </fail>
++ fail | after_seconds: 20
++ fail | : *Error:
++ succeed
+  : [rom_logger] ROM 'generated':
+  : [rom_logger]   config | color: transparent
+  : [rom_logger]   + fallback
+  : [rom_logger]   -
+  : [rom_logger] ROM 'generated':
+  : [rom_logger]   config | color: transparent
+  : [rom_logger]   + fallback
+  : [rom_logger]   -
+  : [rom_logger] ROM 'generated':
+  : [rom_logger]   config | color: yellow
+  : [rom_logger]   + xray_enabled
+  : [rom_logger]   -
+  : [rom_logger] ROM 'generated':
+  : [rom_logger]   config | message: system locked | color: transparent
+  : [rom_logger]   + fallback
+  : [rom_logger]   -
+  : [dynamic_rom] xray: change (finished)
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="rom_filter"/>
-		<rom label="rom_logger"/>
-		<rom label="dynamic_rom"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: rom_filter
+  + rom | label: rom_logger
+  + rom | label: dynamic_rom
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="Timer"/>
-		</parent-provides>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service LOG
+    + service CPU
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service Timer
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<default caps="100"/>
+  + default | caps: 100
 
-		<start name="dynamic_rom" ram="4M">
-			<provides><service name="ROM"/></provides>
-			<config verbose="yes">
-				<rom name="xray">
-					<sleep milliseconds="1000"/>
-					<inline description="disable X-ray mode">
-						<xray enabled="no"/>
-					</inline>
-					<sleep milliseconds="1000"/>
-					<inline description="enable X-ray mode">
-						<xray enabled="yes">
-							<style color="yellow"/>
-						</xray>
-					</inline>
-					<sleep milliseconds="1000"/>
-					<inline description="leave X-ray mode undefined">
-						<xray> <!-- undefined -->
-							<details>
-								<message reason="error"/> <!-- not selected -->
-								<message reason="no access" text="system locked"/>
-							</details>
-						</xray>
-					</inline>
-					<sleep milliseconds="1000"/>
-					<inline description="finished"/>
-				</rom>
-			</config>
-		</start>
+  + start dynamic_rom | ram: 4M
+    + provides | + service ROM
+    + config | verbose: yes
+      + rom xray
+        + sleep | milliseconds: 1000
+        + inline | description: disable X-ray mode
+        | + xray | enabled: no
+        + sleep | milliseconds: 1000
+        + inline | description: enable X-ray mode
+        | + xray | enabled: yes
+        |   + style | color: yellow
+        + sleep | milliseconds: 1000
+        + inline | description: leave X-ray mode undefined
+        | + xray
+        |   + details
+        |     . undefined
+        |     + message | reason: error | . not selected
+        |     + message | reason: no access | text: system locked
+        + sleep | milliseconds: 1000
+        + inline | description: finished
 
-		<start name="rom_filter" ram="4M">
-			<provides><service name="ROM"/></provides>
-			<config verbose="no" generate_xml="yes">
+  + start rom_filter | ram: 4M
+    + provides | + service ROM
+    + config | verbose: no
+    | + input xray_enabled | rom: xray | node: xray | | + attribute enabled
+    | + input color | rom: xray | node: xray | default: transparent
+    |   .
+    |   . test fallback to default value
+    |   .
+    |   + node | type: style
+    |     + attribute color
+    | + input diagnostic_message | rom: xray | node: xray
+    |   + node | type: details
+    |     + node | type: message | attribute: reason | value: no access
+    |       + attribute text
+    | + output | node: config
+    |   + attribute message | input: diagnostic_message
+    |   + attribute color | input: color
+    |   + if
+    |     + has_value | input: xray_enabled | value: yes
+    |     + then
+    |     | + inline
+    |     |   + xray_enabled
+    |     + else
+    |       + inline
+    |         + fallback
+    + route
+      + service ROM | label: xray | + child dynamic_rom
+      + any-service               | + parent
 
-				<input name="xray_enabled" rom="xray" node="xray">
-					<attribute name="enabled"/>
-				</input>
-
-				<!-- test fallback to default value -->
-				<input name="color" rom="xray" node="xray" default="transparent">
-					<node type="style">
-						<attribute name="color"/>
-					</node>
-				</input>
-
-				<input name="diagnostic_message" rom="xray" node="xray">
-					<node type="details">
-						<node type="message" attribute="reason" value="no access">
-							<attribute name="text"/>
-						</node>
-					</node>
-				</input>
-
-				<output node="config">
-					<attribute name="message" input="diagnostic_message"/>
-					<attribute name="color" input="color"/>
-					<if>
-						<has_value input="xray_enabled" value="yes"/>
-						<then>
-							<inline><xray_enabled/></inline>
-						</then>
-						<else>
-							<inline><fallback/></inline>
-						</else>
-					</if>
-				</output>
-
-			</config>
-			<route>
-				<service name="ROM" label="xray"> <child name="dynamic_rom"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-		<start name="rom_logger" ram="1M">
-			<config rom="generated"/>
-			<route>
-				<service name="ROM" label="generated"> <child name="rom_filter"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-	</config>
-</runtime>
+  + start rom_logger | ram: 1M
+    + config | rom: generated
+    + route
+      + service ROM | label: generated | + child rom_filter
+      + any-service                    | + parent
+-

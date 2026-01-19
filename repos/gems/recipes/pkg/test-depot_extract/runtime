@@ -1,130 +1,126 @@
-<runtime ram="128M" caps="5000" binary="init">
+runtime | ram: 128M | caps: 5000 | binary: init
 
-	<fail after_seconds="40"/>
-	<succeed>
-		*test1/raw/good/2025-09-24*done*
-		*test1/image/os-pc-2025-09-24*done*
-		*test1/index/25.09*done*
-		*test2/raw/tamper/2025-09-24*done*
-		*steps -> fs_query -> listing*
-		*/depot/test1/raw/good/2025-09-24*
-		*content expected to be installed*
-		*system image expected to be installed*
-		*index expected to be installed*
-		*/depot/test2/raw/tamper*
-		*2025-09-24*
-		*extract*
-		*/depot/test2/raw/tamper/extract/1980-03-04*
-		*/depot/test3/raw/corrupted/extract*
-		*2025-09-24*
-	</succeed>
++ fail | after_seconds: 40
++ succeed
+  : *test1/raw/good/2025-09-24*done*
+  : *test1/image/os-pc-2025-09-24*done*
+  : *test1/index/25.09*done*
+  : *test2/raw/tamper/2025-09-24*done*
+  : *steps -> fs_query -> listing*
+  : */depot/test1/raw/good/2025-09-24*
+  : *content expected to be installed*
+  : *system image expected to be installed*
+  : *index expected to be installed*
+  : */depot/test2/raw/tamper*
+  : *2025-09-24*
+  : *extract*
+  : */depot/test2/raw/tamper/extract/1980-03-04*
+  : */depot/test3/raw/corrupted/extract*
+  : *2025-09-24*
 
-	<content>
-		<rom label="chroot"/>
-		<rom label="depot_download.config"/>
-		<rom label="depot_download_manager"/>
-		<rom label="depot_query"/>
-		<rom label="extract"/>
-		<rom label="fs_query"/>
-		<rom label="fs_rom"/>
-		<rom label="fs_tool"/>
-		<rom label="init"/>
-		<rom label="libarchive.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="liblzma.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="lxip.lib.so"/>
-		<rom label="nic_router"/>
-		<rom label="report_rom"/>
-		<rom label="sequence"/>
-		<rom label="verify"/>
-		<rom label="vfs"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="vfs_lxip.lib.so"/>
-		<rom label="zlib.lib.so"/>
++ content
+  + rom | label: chroot
+  + rom | label: depot_download.config
+  + rom | label: depot_download_manager
+  + rom | label: depot_query
+  + rom | label: extract
+  + rom | label: fs_query
+  + rom | label: fs_rom
+  + rom | label: fs_tool
+  + rom | label: init
+  + rom | label: libarchive.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: liblzma.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: lxip.lib.so
+  + rom | label: nic_router
+  + rom | label: report_rom
+  + rom | label: sequence
+  + rom | label: verify
+  + rom | label: vfs
+  + rom | label: vfs.lib.so
+  + rom | label: vfs_lxip.lib.so
+  + rom | label: zlib.lib.so
+  + rom | label: installation
+  + rom | label: download      | . raw/test-depot_extract...
+  + rom | label: pubkey
+  + rom | label: public.tar
 
-		<!-- raw/test-depot_extract -->
-		<rom label="installation"/>
-		<rom label="download"/>
-		<rom label="pubkey"/>
-		<rom label="public.tar"/>
-	</content>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+  + default | caps: 100 | ram: 1M
 
-		<default caps="100" ram="1M"/>
+  + start nic_router | caps: 200 | ram: 10M
+    + provides
+      + service Nic
+      + service Uplink
+    + config
+      + policy | label_prefix: depot_download | domain: downlink
+      + domain downlink | interface: 10.0.3.1/24
+        + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2 | dns_config_from: uplink
+        + tcp | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+        + udp | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+        + icmp | dst: 0.0.0.0/0 | domain: uplink
 
-		<start name="nic_router" caps="200" ram="10M">
-			<provides> <service name="Nic"/> <service name="Uplink"/> </provides>
-			<config>
-				<policy label_prefix="depot_download" domain="downlink"/>
-				<domain name="downlink" interface="10.0.3.1/24">
-					<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2" dns_config_from="uplink"/>
-					<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-					<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
-					<icmp dst="0.0.0.0/0" domain="uplink"/>
-				</domain>
-			</config>
-		</start>
+  + start vfs | ram: 20M
+    + provides | + service File_system
+    + config
+      + vfs
+      | + dir depot
+      | | + dir test1
+      | | | + ram
+      | | | + rom download
+      | | | + rom pubkey
+      | | + dir test2
+      | | | + ram
+      | | | + rom download
+      | | | + rom pubkey
+      | | + dir test3
+      | |   + ram
+      | |   + rom download
+      | |   + rom pubkey
+      | + dir public
+      |   + tar public.tar
+      + policy | label_prefix: steps -> install -> depot ->  | root: /depot  | writeable: yes
+      + policy | label_prefix: steps -> install -> public -> | root: /public | writeable: yes
+      + policy | label_prefix: steps -> fs_query             | root: /       | writeable: no
 
-		<start name="vfs" ram="20M">
-			<provides> <service name="File_system"/> </provides>
-			<config>
-				<vfs>
-					<dir name="depot">
-						<dir name="test1"> <ram/> <rom name="download"/> <rom name="pubkey"/> </dir>
-						<dir name="test2"> <ram/> <rom name="download"/> <rom name="pubkey"/> </dir>
-						<dir name="test3"> <ram/> <rom name="download"/> <rom name="pubkey"/> </dir>
-					</dir>
-					<dir name="public"> <tar name="public.tar"/> </dir>
-				</vfs>
-				<policy label_prefix="steps -> install -> depot ->"  root="/depot"  writeable="yes"/>
-				<policy label_prefix="steps -> install -> public ->" root="/public" writeable="yes"/>
-				<policy label_prefix="steps -> fs_query"             root="/"       writeable="no"/>
-			</config>
-		</start>
+  + start report_rom
+    + provides
+      + service Report
+      + service ROM
+    + config | verbose: yes
 
-		<start name="report_rom">
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config verbose="yes">
-			</config>
-		</start>
-
-		<start name="steps" caps="2500" ram="80M">
-			<binary name="sequence"/>
-			<config>
-				<start name="install" caps="2000" ram="72M" config="depot_download.config">
-					<binary name="init"/>
-				</start>
-				<start name="fs_query">
-					<config>
-						<vfs> <fs/> </vfs>
-						<query path="/depot/test1/raw/good/2025-09-24" content="yes"/>
-						<query path="/depot/test1/image/os-pc-2025-09-24" content="yes"/>
-						<query path="/depot/test1/index" content="yes"/>
-						<query path="/depot/test2/raw/tamper"/>
-						<query path="/depot/test2/raw/tamper/extract/1980-03-04"/>
-						<query path="/depot/test3/raw/corrupted"/>
-						<query path="/depot/test3/raw/corrupted/extract"/>
-					</config>
-				</start>
-			</config>
-			<route>
-				<service name="Report"> <child name="report_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
+  + start steps | caps: 2500 | ram: 80M
+    + binary sequence
+    + config
+    | + start install | caps: 2000 | ram: 72M | config: depot_download.config
+    |   + binary init
+    | + start fs_query
+    |   + config
+    |     + vfs | + fs
+    |     + query | path: /depot/test1/raw/good/2025-09-24    | content: yes
+    |     + query | path: /depot/test1/image/os-pc-2025-09-24 | content: yes
+    |     + query | path: /depot/test1/index                  | content: yes
+    |     + query | path: /depot/test2/raw/tamper
+    |     + query | path: /depot/test2/raw/tamper/extract/1980-03-04
+    |     + query | path: /depot/test3/raw/corrupted
+    |     + query | path: /depot/test3/raw/corrupted/extract
+    + route
+      + service Report | + child report_rom
+      + any-service
+        + parent
+        + any-child
+-

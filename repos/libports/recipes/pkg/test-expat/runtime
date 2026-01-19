@@ -1,36 +1,29 @@
-<runtime ram="3M" caps="200" binary="test-expat">
+runtime | ram: 3M | caps: 200 | binary: test-expat
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="10"/>
-	<succeed exit="0">
-		*start of element: config
-		*start of element: test_tag
-		*attribute: name='test_attribute', value='test_value'
-		*end of element: test_tag
-		*end of element: config
-	</succeed>
-	<fail>*Error: </fail>
++ fail | after_seconds: 10
++ fail | : *Error:
++ succeed | exit: 0
+  : *start of element: config
+  : *start of element: test_tag
+  : *attribute: name='test_attribute', value='test_value'
+  : *end of element: test_tag
+  : *end of element: config
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="expat.lib.so"/>
-		<rom label="test-expat"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: expat.lib.so
+  + rom | label: test-expat
 
-	<config generate_xml="yes">
-		<vfs>
-			<inline name="config"><config>
-					<test_tag test_attribute="test_value"/>
-				</config>
-			</inline>
-			<dir name="dev"> <log/> </dir>
-		</vfs>
-		<libc stdout="/dev/log"/>
-	</config>
-
-</runtime>
++ config
+  + vfs
+  | + inline config
+  |   : <config> <test_tag test_attribute="test_value"/> </config>
+  | + dir dev | + log
+  + libc | stdout: /dev/log
+-

@@ -1,14 +1,12 @@
-<runtime ram="10M" caps="110" binary="test-rm_stress">
+runtime | ram: 10M | caps: 110 | binary: test-rm_stress
 
-	<fail after_seconds="45"/>
-	<succeed exit="0"/>
-	<fail exit="-1"/>
++ fail    | after_seconds: 45
++ succeed | exit: 0
++ fail    | exit: -1
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-rm_stress"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-rm_stress
 
-	<config/>
-
-</runtime>
++ config
+-

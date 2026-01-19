@@ -1,20 +1,17 @@
-<runtime ram="10M" caps="1000" binary="test-tls">
+runtime | ram: 10M | caps: 1000 | binary: test-tls
 
-	<fail after_seconds="20"/>
-	<succeed>
-		main     initial: x: -1, y: 0
-		thread 0 initial: x: -1, y: 0
-		thread 0        : x:  1, y: 2
-		thread 1 initial: x: -1, y: 0
-		thread 1        : x:  3, y: 4
-		main            : x:  5, y: 6
-	</succeed>
++ fail | after_seconds: 20
++ succeed
+  : main     initial: x: -1, y: 0
+  : thread 0 initial: x: -1, y: 0
+  : thread 0        : x:  1, y: 2
+  : thread 1 initial: x: -1, y: 0
+  : thread 1        : x:  3, y: 4
+  : main            : x:  5, y: 6
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-tls"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-tls
 
-	<config/>
-
-</runtime>
++ config
+-

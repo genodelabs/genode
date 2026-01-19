@@ -1,44 +1,38 @@
-<runtime ram="16M" caps="1000" binary="init">
+runtime | ram: 16M | caps: 1000 | binary: init
 
-	<fail after_seconds="300"/>
-	<succeed>child "gcov" exited with exit value 0</succeed>
++ fail    | after_seconds: 300
++ succeed | : child "gcov" exited with exit value 0
 
-	<content>
-		<rom label="gcov"/>
-		<rom label="gmp.lib.so"/>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="libm.lib.so"/>
-		<rom label="posix.lib.so"/>
-		<rom label="stdcxx.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="zlib.lib.so"/>
-	</content>
++ content
+  + rom | label: gcov
+  + rom | label: gmp.lib.so
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: libm.lib.so
+  + rom | label: posix.lib.so
+  + rom | label: stdcxx.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: zlib.lib.so
 
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="File_system"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="gcov" caps="500" ram="10M">
-			<config>
-				<arg value="gcov"/>
-				<arg value="--genode-autopilot"/>
-				<arg value="--function-summaries"/>
-				<arg value="--demangled-names"/>
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<fs label="depot -> /"/>
-					<fs label="gcov_data -> /"/>
-				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log"/>
-			</config>
-		</start>
-	</config>
-</runtime>
++ config
+  + parent-provides
+    + service LOG
+    + service PD
+    + service CPU
+    + service ROM
+    + service File_system
+
+  + default-route | + any-service | + parent
+
+  + start gcov | caps: 500 | ram: 10M
+    + config
+      + arg gcov
+      + arg --genode-autopilot
+      + arg --function-summaries
+      + arg --demangled-names
+      + vfs
+      | + dir dev | + log
+      | + fs | label: depot -> /
+      | + fs | label: gcov_data -> /
+      + libc | stdout: /dev/log | stderr: /dev/log
+-

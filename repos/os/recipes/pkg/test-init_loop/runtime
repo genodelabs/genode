@@ -1,59 +1,51 @@
-<runtime ram="64M" caps="3000" binary="init">
+runtime | ram: 64M | caps: 3000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="120"/>
-	<succeed>child "test-init_loop" exited with exit value 0</succeed>
-	<fail>test-init_loop] Error: </fail>
++ fail    | after_seconds: 120
++ succeed | : child "test-init_loop" exited with exit value 0
++ fail    | : test-init_loop] Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="test-init_loop"/>
-		<rom label="dummy"/>
-		<rom label="report_rom"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: test-init_loop
+  + rom | label: dummy
+  + rom | label: report_rom
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="Timer"/>
-		</parent-provides>
++ config
+  + parent-provides
+    + service ROM
+    + service CPU
+    + service PD
+    + service LOG
+    + service IRQ
+    + service IO_MEM
+    + service IO_PORT
+    + service Timer
 
-		<default caps="100"/>
+  + default | caps: 100
 
-		<start name="report_rom" ram="2M">
-			<provides> <service name="ROM"/> <service name="Report"/> </provides>
-			<config verbose="no">
-				<policy label="init -> config" report="test-init_loop -> init.config"/>
-				<policy label="test-init_loop -> state" report="init -> state"/>
-			</config>
-			<route> <any-service> <parent/> </any-service> </route>
-		</start>
+  + start report_rom | ram: 2M
+    + provides
+      + service ROM
+      + service Report
+    + config | verbose: no
+      + policy | label:  init -> config          | report: test-init_loop -> init.config
+      + policy | label:  test-init_loop -> state | report: init -> state
+    + route | + any-service | + parent
 
-		<start name="test-init_loop" ram="4M">
-			<provides> <service name="LOG"/> </provides>
-			<config/>
-			<route>
-				<service name="Report">            <child name="report_rom"/> </service>
-				<service name="ROM" label="state"> <child name="report_rom"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
+  + start test-init_loop | ram: 4M
+    + provides | + service LOG
+    + config
+    + route
+      + service Report             | + child report_rom
+      + service ROM | label: state | + child report_rom
+      + any-service                | + parent
 
-		<start name="init" caps="2000" ram="8M">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config"> <child name="report_rom"/> </service>
-				<service name="Report">             <child name="report_rom"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-
-	</config>
-</runtime>
+  + start init | caps: 2000 | ram: 8M
+    + binary init
+    + route
+      + service ROM | label: config | + child report_rom
+      + service Report              | + child report_rom
+      + any-service                 | + parent
+-

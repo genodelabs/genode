@@ -1,24 +1,20 @@
-<runtime ram="12M" caps="100" binary="test-libc_vfs">
+runtime | ram: 12M | caps: 100 | binary: test-libc_vfs
 
-	<fail after_seconds="30"/>
-	<succeed exit="0"/>
-	<fail>*Error: </fail>
++ fail    | after_seconds: 30
++ succeed | exit: 0
++ fail    | : *Error:
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libc.lib.so"/>
-		<rom label="vfs.lib.so"/>
-		<rom label="test-libc_vfs"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libc.lib.so
+  + rom | label: vfs.lib.so
+  + rom | label: test-libc_vfs
 
-	<config>
-		<iterations value="1"/>
-		<write-read size="1M" buffer_size="8K"/>
-		<vfs>
-			<dir name="tmp"> <ram/> </dir>
-			<dir name="dev"> <log/> </dir>
-		</vfs>
-		<libc stdout="/dev/log" cwd="/tmp"/>
-	</config>
-
-</runtime>
++ config
+  + iterations | value: 1
+  + write-read | size: 1M | buffer_size: 8K
+  + vfs
+  | + dir tmp | + ram
+  | + dir dev | + log
+  + libc | stdout: /dev/log | cwd: /tmp
+-

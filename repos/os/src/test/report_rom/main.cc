@@ -92,7 +92,7 @@ struct Test::Main
 		if (_state == WAIT_FOR_TIMEOUT) {
 			log("got timeout");
 			String<100> rom_content(_brightness_rom->local_addr<char const>()),
-			            expected("<brightness value=\"77\"/>\n");
+			            expected("brightness | value: 77\n-\n");
 			log("         -> ", rom_content);
 			if (rom_content != expected) {
 				error("unexpected ROM content: '", rom_content, "'");

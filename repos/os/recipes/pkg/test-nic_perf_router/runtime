@@ -1,84 +1,71 @@
-<runtime ram="40M" caps="2000" binary="init">
+runtime | ram: 40M | caps: 2000 | binary: init
 
-	<requires> <timer/> </requires>
++ requires | + timer
 
-	<fail after_seconds="60"/>
-	<succeed>child "nic_perf_tx" exited with exit value 0</succeed>
++ fail    | after_seconds: 60
++ succeed | : child "nic_perf_tx" exited with exit value 0
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="nic_router"/>
-		<rom label="nic_perf"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: nic_router
+  + rom | label: nic_perf
 
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Timer"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="500"/>
++ config
+  + parent-provides
+    + service ROM
+    + service PD
+    + service RM
+    + service CPU
+    + service LOG
+    + service Timer
 
-		<start name="nic_perf_tx" ram="10M">
-			<binary name="nic_perf"/>
-			<provides>
-				<service name="Uplink"/>
-				<service name="Nic"/>
-			</provides>
-			<config period_ms="5000" count="8">
-				<nic-client>
-					<tx mtu="1500" to="10.0.1.1" udp_port="12345"/>
-				</nic-client>
-			</config>
-			<route>
-				<service name="Nic"> <child name="nic_router"/> </service>
-				<any-service> <any-child/> <parent/> </any-service>
-			</route>
-		</start>
+  + default-route
+    + any-service
+      + parent
+      + any-child
 
-		<start name="nic_router" ram="10M">
-			<provides>
-				<service name="Nic"/>
-				<service name="Uplink"/>
-			</provides>
-			<config verbose_packet_drop="yes">
-				<policy label_suffix="nic_perf_tx -> " domain="sender"/>
-				<policy label_suffix="nic_perf_rx -> " domain="receiver"/>
+  + default | caps: 500
 
-				<domain name="sender" interface="10.0.1.1/24">
-					<dhcp-server ip_first="10.0.1.2" ip_last="10.0.1.2"/>
-					<nat domain="receiver" tcp-ports="100" udp-ports="100" icmp-ids="100"/>
-					<udp-forward port="12345" to="10.0.2.2" domain="receiver"/>
-					<!--
-					<ip dst="0.0.0.0/0" domain="receiver"/>
-					-->
-				</domain>
+  + start nic_perf_tx | ram: 10M
+    + binary nic_perf
+    + provides
+      + service Uplink
+      + service Nic
+    + config | period_ms: 5000 | count: 8
+      + nic-client
+        + tx | mtu: 1500 | to: 10.0.1.1 | udp_port: 12345
+    + route
+      + service Nic | + child nic_router
+      + any-service
+        + any-child
+        + parent
 
-				<domain name="receiver" interface="10.0.2.1/24">
-					<dhcp-server ip_first="10.0.2.2" ip_last="10.0.2.2"/>
-				</domain>
-			</config>
-		</start>
+  + start nic_router | ram: 10M
+    + provides
+      + service Nic
+      + service Uplink
+    + config | verbose_packet_drop: yes
+      + policy | label_suffix: nic_perf_tx ->  | domain: sender
+      + policy | label_suffix: nic_perf_rx ->  | domain: receiver
+      + domain sender | interface: 10.0.1.1/24
+      | + dhcp-server | ip_first: 10.0.1.2 | ip_last:  10.0.1.2
+      | + nat | domain: receiver | tcp-ports: 100 | udp-ports: 100 | icmp-ids:  100
+      | + udp-forward | port: 12345 | to: 10.0.2.2 | domain: receiver
+      | x ip | dst: 0.0.0.0/0 | domain: receiver
+      + domain receiver | interface: 10.0.2.1/24
+        + dhcp-server | ip_first: 10.0.2.2 | ip_last:  10.0.2.2
 
-		<start name="nic_perf_rx" ram="10M">
-			<binary name="nic_perf"/>
-			<provides>
-				<service name="Uplink"/>
-				<service name="Nic"/>
-			</provides>
-			<config period_ms="5000">
-				<nic-client/>
-			</config>
-			<route>
-				<service name="Nic"> <child name="nic_router"/> </service>
-				<any-service> <any-child/> <parent/> </any-service>
-			</route>
-		</start>
-	</config>
-</runtime>
+  + start nic_perf_rx | ram: 10M
+    + binary nic_perf
+    + provides
+      + service Uplink
+      + service Nic
+    + config | period_ms: 5000
+      + nic-client
+    + route
+      + service Nic | + child nic_router
+      + any-service
+        + any-child
+        + parent
+
+-

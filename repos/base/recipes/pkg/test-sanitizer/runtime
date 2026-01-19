@@ -1,18 +1,15 @@
-<runtime ram="16M" caps="150" binary="test-sanitizer">
+runtime | ram: 16M | caps: 150 | binary: test-sanitizer
 
-	<fail after_seconds="10"/>
-	<succeed>
-		*runtime error: *index 2 out of bounds*
-		*runtime error: *store to null pointer
-	</succeed>
++ fail | after_seconds: 10
++ succeed
+  : *runtime error: *index 2 out of bounds*
+  : *runtime error: *store to null pointer
 
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="libsanitizer_common.lib.so"/>
-		<rom label="libubsan.lib.so"/>
-		<rom label="test-sanitizer"/>
-	</content>
++ content
+  + rom | label: ld.lib.so
+  + rom | label: libsanitizer_common.lib.so
+  + rom | label: libubsan.lib.so
+  + rom | label: test-sanitizer
 
-	<config/>
-
-</runtime>
++ config
+-
