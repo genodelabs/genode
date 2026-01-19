@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2025 Genode Labs GmbH
+ * Copyright (C) 2025-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -48,7 +48,7 @@ struct Test::Server
 
 	Attached_rom_dataspace config { env, "config" };
 
-	uint16_t const port { config.xml().attribute_value("port", (uint16_t)80) };
+	uint16_t const port { config.node().attribute_value("port", (uint16_t)80) };
 
 	void run_accept_and_wait()
 	{

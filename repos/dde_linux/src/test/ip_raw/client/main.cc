@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2023-2025 Genode Labs GmbH
+ * Copyright (C) 2023-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -47,10 +47,10 @@ struct Test::Client
 	Attached_rom_dataspace config { env, "config"};
 
 	uint16_t const port
-		{ config.xml().attribute_value("server_port", (uint16_t)80) };
+		{ config.node().attribute_value("server_port", (uint16_t)80) };
 
 	Ipv4_address ip_addr
-		{ config.xml().attribute_value("server_ip", Ipv4_address()) };
+		{ config.node().attribute_value("server_ip", Ipv4_address()) };
 
 	unsigned long counter { 0 };
 

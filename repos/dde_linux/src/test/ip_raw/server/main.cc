@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2023-2025 Genode Labs GmbH
+ * Copyright (C) 2023-2026 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -44,21 +44,21 @@ struct Test::Server
 
 	Attached_rom_dataspace config { env, "config" };
 
-	uint16_t const port { config.xml().attribute_value("port", (uint16_t)80) };
+	uint16_t const port { config.node().attribute_value("port", (uint16_t)80) };
 
 	using Ipv4_string = String<16>;
 
 	Ipv4_string const ip {
-		config.xml().attribute_value("ip_addr", Ipv4_string("0.0.0.0")) };
+		config.node().attribute_value("ip_addr", Ipv4_string("0.0.0.0")) };
 	Ipv4_string const netmask {
-		config.xml().attribute_value("netmask", Ipv4_string("0.0.0.0")) };
+		config.node().attribute_value("netmask", Ipv4_string("0.0.0.0")) };
 	Ipv4_string const gateway {
-		config.xml().attribute_value("gateway", Ipv4_string("0.0.0.0")) };
+		config.node().attribute_value("gateway", Ipv4_string("0.0.0.0")) };
 	Ipv4_string const nameserver {
-		config.xml().attribute_value("nameserver", Ipv4_string("0.0.0.0")) };
+		config.node().attribute_value("nameserver", Ipv4_string("0.0.0.0")) };
 
 	Ipv4_address const ip_addr {
-		config.xml().attribute_value("ip_addr", Ipv4_address()) };
+		config.node().attribute_value("ip_addr", Ipv4_address()) };
 
 	Http http { };
 	Data data { };
