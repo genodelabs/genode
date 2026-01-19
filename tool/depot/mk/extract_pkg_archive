@@ -74,11 +74,14 @@ endif
 
 RUNTIME_CONTENT        = $(call file_content,$(addprefix $(RECIPE_DIR)/,runtime))
 RUNTIME_LOOKS_LIKE_XML = $(filter 1,$(firstword $(RUNTIME_CONTENT:<%=1)))
+RUNTIME_HSD           := $(GENODE_DIR)/repos/gems/src/app/depot_deploy/runtime.hsd
 
 checked_runtime_valid:
 ifeq ($(filter $(RECIPE_FILES),runtime),runtime)
 ifeq ($(RUNTIME_LOOKS_LIKE_XML),1)
 	$(VERBOSE)xmllint --noout $(addprefix $(RECIPE_DIR)/,runtime)
+else
+	$(VERBOSE)$(GENODE_DIR)/tool/hid check --schema $(RUNTIME_HSD) $(addprefix $(RECIPE_DIR)/,runtime)
 endif
 endif
 

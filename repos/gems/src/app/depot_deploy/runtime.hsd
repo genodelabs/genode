@@ -1,0 +1,63 @@
+schema runtime
+
++ type any       | : .*
++ type positive  | : \d*[1-9]\d*
++ type num_bytes | : \d+[GMK]?
++ type bool      | : yes|no
+
++ attr ram    | type: num_bytes
++ attr caps   | type: positive
++ attr binary | type: any | default:
++ attr config | type: any | default:
+
++ category service
+  + node audio_in
+  + node audio_out
+  + node file_system
+    + attr label     | type: any  | default:
+    + attr writeable | type: bool | default:
+  + node framebuffer
+  + node input
+  + node event
+  + node log
+  + node nic
+  + node uplink
+  + node block    | + attr label | type: any | default:
+  + node gui      | + attr label | type: any | default:
+  + node report   | + attr label | type: any | default:
+  + node rom      | + attr label | type: any | default:
+  + node terminal | + attr label | type: any | default:
+  + node gpu
+  + node usb
+  + node timer
+  + node pd
+  + node cpu
+  + node rtc
+  + node rm
+  + node capture
+  + node play
+  + node record
+
++ node requires
+  + node | category: service
+
++ node provides
+  + node | category: service
+
++ node content
+  + node rom
+    + attr label | type: any
+    + attr as    | type: any | default:
+
++ node config  | + anything
+
++ node succeed
+  + attr after_seconds | type: positive | default:
+  + attr exit          | type: any      | default:
+  + quote
+
++ node fail
+  + attr after_seconds | type: positive | default:
+  + attr exit          | type: any      | default:
+  + quote
+-
