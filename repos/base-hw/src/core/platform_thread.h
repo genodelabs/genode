@@ -292,7 +292,9 @@ class Core::Platform_thread : Noncopyable
 		{
 			uint64_t execution_time =
 				const_cast<Platform_thread *>(this)->_kobj->execution_time();
-			return { execution_time, 0, 0, _group_id }; }
+			return { execution_time, 0,
+			         Kernel::Scheduler::warp[_group_id],
+			         Kernel::Scheduler::weight[_group_id] }; }
 
 
 		/***************

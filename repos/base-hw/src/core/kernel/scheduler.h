@@ -121,6 +121,46 @@ class Kernel::Scheduler
 			bool valid() const { return value <= MAX; }
 		};
 
+		/* The guaranteed CPU share of a group calculates as weight/sum_of_weights */
+		/*
+		 * Set of scheduling parameters:
+		 * - Each group gets a guaranteed CPU share of weight/sum_of_weights.
+		 * - The warp value allows an (idle) group to be preferred over a no-warp
+		 *   group for up to weight*warp.
+		 * - We account for 10ms execution of the apps group uninterrupted by the
+		 *   background group. The apps group gets 5 times more CPU time than the
+		 *   background group.
+		 * - We account for 10ms execution of the multimedia group uninterrupted
+		 *   by the apps group. The multimedia group gets the same share as
+		 *   the apps group.
+		 * - We account for 5ms execution of the drivers group uninterrupted by
+		 *   the multimedia group. The drivers group gets twice as much time as
+		 *   the multimedia group. In consequence, the drivers group is granted
+		 *   about half of the CPU time. Moreover, it is able to execute for 25ms
+		 *   without any interruption by the apps group and 45ms without
+		 *   interruptions by the background group.
+		 */
+		static constexpr unsigned weight[Group_id::MAX + 1] {
+			10, /* drivers    */
+			5,  /* multimedia */
+			5,  /* apps       */
+			1,  /* background */
+		};
+
+		static constexpr unsigned warp[Group_id::MAX + 1] {
+			4100, /* drivers    */
+			4000, /* multimedia */
+			2000, /* apps       */
+			0,    /* background */
+		};
+
+		static constexpr unsigned warp_limit[Group_id::MAX + 1] {
+			50000, /* drivers    */
+			50000, /* multimedia */
+			50000, /* apps       */
+			0,     /* background */
+		};
+
 		class Context
 		{
 			private:
@@ -284,30 +324,19 @@ class Kernel::Scheduler
 		/* stores LISTED contexts, will be moved into groups by update() */
 		List _ready_contexts {};
 
-		/* The guaranteed CPU share of a group calculates as weight/sum_of_weights */
-		/*
-		 * Set of scheduling parameters:
-		 * - Each group gets a guaranteed CPU share of weight/sum_of_weights. 
-		 * - The warp value allows an (idle) group to be preferred over a no-warp
-		 *   group for up to weight*warp.
-		 * - We account for 10ms execution of the apps group uninterrupted by the
-		 *   background group. The apps group gets 5 times more CPU time than the
-		 *   background group.
-		 * - We account for 10ms execution of the multimedia group uninterrupted
-		 *   by the apps group. The multimedia group gets the same share as
-		 *   the apps group.
-		 * - We account for 5ms execution of the drivers group uninterrupted by
-		 *   the multimedia group. The drivers group gets twice as much time as
-		 *   the multimedia group. In consequence, the drivers group is granted
-		 *   about half of the CPU time. Moreover, it is able to execute for 25ms
-		 *   without any interruption by the apps group and 45ms without
-		 *   interruptions by the background group.
-		 */
 		Group _groups[Group_id::MAX + 1] {
-			{ 10, _timer.us_to_ticks(4100), _timer.us_to_ticks(50000) }, /* drivers    */
-			{  5, _timer.us_to_ticks(4000), _timer.us_to_ticks(50000) }, /* multimedia */
-			{  5, _timer.us_to_ticks(2000), _timer.us_to_ticks(50000) }, /* apps       */
-			{  1, _timer.us_to_ticks(0),    _timer.us_to_ticks(0) }      /* background */
+			{ weight[Group_id::DRIVER],
+			  _timer.us_to_ticks(warp[Group_id::DRIVER]),
+			  _timer.us_to_ticks(warp_limit[Group_id::DRIVER]) },
+			{ weight[Group_id::MULTIMEDIA],
+			  _timer.us_to_ticks(warp[Group_id::MULTIMEDIA]),
+			  _timer.us_to_ticks(warp_limit[Group_id::MULTIMEDIA]) },
+			{ weight[Group_id::APP],
+			  _timer.us_to_ticks(warp[Group_id::APP]),
+			  _timer.us_to_ticks(warp_limit[Group_id::APP]) },
+			{ weight[Group_id::BACKGROUND],
+			  _timer.us_to_ticks(warp[Group_id::BACKGROUND]),
+			  _timer.us_to_ticks(warp_limit[Group_id::BACKGROUND]) }
 		};
 
 		void _for_each_group(auto const fn) {
