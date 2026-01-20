@@ -200,6 +200,16 @@ $(eval $(call CC_OPT_LX_RULES,dummies))
 # Generate crc32table.h header
 #
 
+# by 6.18.5 things got moved around
+ifeq ($(USE_LINUX_6185),1)
+crc32table.h: gen_crc32table
+	./gen_crc32table > $@
+
+lib/crc/crc32-main.o: crc32table.h
+
+gen_crc32table: $(LX_SRC_DIR)/lib/crc/gen_crc32table.c
+	$(HOST_CC) -I$(LX_GEN_DIR)/include/generated $< -o $@
+else
 crc32table.h: gen_crc32table
 	./gen_crc32table > $@
 
@@ -207,6 +217,7 @@ lib/crc32.o: crc32table.h
 
 gen_crc32table: $(LX_SRC_DIR)/lib/gen_crc32table.c
 	$(HOST_CC) -I$(LX_GEN_DIR)/include $< -o $@
+endif
 
 
 #

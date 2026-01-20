@@ -1,10 +1,18 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2026-01-22
  */
 
 #include <lx_emul.h>
+
+
+#include <linux/sched.h>
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/ratelimit_types.h>
@@ -21,6 +29,11 @@ const char * __clk_get_name(const struct clk * clk)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/cpumask.h>
+
+struct cpumask __cpu_active_mask;
 
 
 #include <net/ipv6.h>
@@ -58,6 +71,14 @@ void __printk_deferred_exit(void)
 #include <linux/printk.h>
 
 int __printk_ratelimit(const char * func)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sched/task.h>
+
+void __put_task_struct_rcu_cb(struct rcu_head * rhp)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -121,7 +142,7 @@ int bitmap_parselist(const char * buf,unsigned long * maskp,int nmaskbits)
 
 #include <linux/filter.h>
 
-void bpf_warn_invalid_xdp_action(struct net_device * dev,struct bpf_prog * prog,u32 act)
+void bpf_warn_invalid_xdp_action(const struct net_device * dev,const struct bpf_prog * prog,u32 act)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -167,6 +188,14 @@ void do_trace_netlink_extack(const char * msg)
 #include <net/dst.h>
 
 void dst_release(struct dst_entry * dst)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -260,22 +289,6 @@ bool gfp_pfmemalloc_allowed(gfp_t gfp_mask)
 }
 
 
-#include <net/gro.h>
-
-struct packet_offload * gro_find_complete_by_type(__be16 type)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <net/gro.h>
-
-struct packet_offload * gro_find_receive_by_type(__be16 type)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/uuid.h>
 
 const u8 guid_index[16] = {};
@@ -289,7 +302,7 @@ void in6_dev_finish_destroy(struct inet6_dev * idev)
 }
 
 
-#include <linux/utsname.h>
+#include <linux/uts_namespace.h>
 
 struct user_namespace init_user_ns;
 
@@ -333,7 +346,7 @@ long __sched io_schedule_timeout(long timeout)
 
 #include <linux/irqdomain.h>
 
-void irq_set_default_host(struct irq_domain * domain)
+void irq_set_default_domain(struct irq_domain * domain)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -405,14 +418,6 @@ void mdiobus_unregister(struct mii_bus * bus)
 #include <net/sch_generic.h>
 
 struct Qdisc_ops mq_qdisc_ops;
-
-
-#include <linux/netdevice.h>
-
-void napi_gro_flush(struct napi_struct * napi,bool flush_old)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/net.h>
@@ -489,7 +494,7 @@ struct property * of_find_property(const struct device_node * np,const char * na
 
 #include <linux/of.h>
 
-const char * of_prop_next_string(struct property * prop,const char * cur)
+const char * of_prop_next_string(const struct property * prop,const char * cur)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -663,6 +668,20 @@ void phylink_suspend(struct phylink * pl,bool mac_wol)
 }
 
 
+extern void raw_spin_rq_lock_nested(struct rq * rq,int subclass);
+void raw_spin_rq_lock_nested(struct rq * rq,int subclass)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern void raw_spin_rq_unlock(struct rq * rq);
+void raw_spin_rq_unlock(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/rcuref.h>
 
 bool rcuref_get_slowpath(rcuref_t * ref)
@@ -671,17 +690,23 @@ bool rcuref_get_slowpath(rcuref_t * ref)
 }
 
 
-#include <linux/refcount.h>
+#include <linux/rtnetlink.h>
 
-void refcount_warn_saturate(refcount_t * r,enum refcount_saturation_type t)
+void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,u32 portid,const struct nlmsghdr * nlh)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/rtnetlink.h>
+extern void set_rq_offline(struct rq * rq);
+void set_rq_offline(struct rq * rq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
-void rtmsg_ifinfo_send(struct sk_buff * skb,struct net_device * dev,gfp_t flags,u32 portid,const struct nlmsghdr * nlh)
+
+extern void set_rq_online(struct rq * rq);
+void set_rq_online(struct rq * rq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -708,14 +733,21 @@ void sock_edemux(struct sk_buff * skb)
 bool static_key_initialized;
 
 
-#include <net/sock.h>
-
-int sysctl_tstamp_allow_data;
-
-
 #include <linux/tcp.h>
 
 struct sk_buff * tcp_get_timestamping_opt_stats(const struct sock * sk,const struct sk_buff * orig_skb,const struct sk_buff * ack_skb)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <net/udp_tunnel.h>
+
+const struct udp_tunnel_nic_ops *udp_tunnel_nic_ops;
+
+
+extern void update_group_capacity(struct sched_domain * sd,int cpu);
+void update_group_capacity(struct sched_domain * sd,int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -726,6 +758,11 @@ void usb_devio_cleanup(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/usb.h>
+
+struct mutex usb_dynids_lock;
 
 
 #include <linux/usb.h>
@@ -820,6 +857,14 @@ const u8 uuid_index[16] = {};
 atomic_long_t vm_node_stat[NR_VM_NODE_STAT_ITEMS] = {};
 
 
+#include <linux/sched/nohz.h>
+
+void wake_up_nohz_cpu(int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/rcupdate_wait.h>
 
 void wakeme_after_rcu(struct rcu_head * head)
@@ -830,7 +875,7 @@ void wakeme_after_rcu(struct rcu_head * head)
 
 #include <linux/filter.h>
 
-int xdp_do_generic_redirect(struct net_device * dev,struct sk_buff * skb,struct xdp_buff * xdp,struct bpf_prog * xdp_prog)
+int xdp_do_generic_redirect(struct net_device * dev,struct sk_buff * skb,struct xdp_buff * xdp,const struct bpf_prog * xdp_prog)
 {
 	lx_emul_trace_and_stop(__func__);
 }

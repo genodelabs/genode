@@ -167,20 +167,31 @@ static bool mac_address_configured = false;
 static void handle_mac_address(struct net_device *dev)
 {
 	int err;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,15,0)
+	struct sockaddr_storage addr;
+#define LX_ADDR_DATA   __data
+#define LX_ADDR_FAMILY ss_family
+#else
 	struct sockaddr addr;
+#define LX_ADDR_DATA   sa_data
+#define LX_ADDR_FAMILY sa_family
+#endif
+
 	struct genode_mac_address dev_addr;
 
 	if (mac_address_configured || !netif_device_present(dev)) return;
 
 	if (mac_address[0] || mac_address[1] || mac_address[2] ||
 	    mac_address[3] || mac_address[4] || mac_address[5]) {
-		memcpy(&addr.sa_data, mac_address, ETH_ALEN);
-		addr.sa_family = dev->type;
+		memcpy(&addr.LX_ADDR_DATA, mac_address, ETH_ALEN);
+		addr.LX_ADDR_FAMILY = dev->type;
 		err = dev_set_mac_address(dev, &addr,  NULL);
 		if (err < 0)
 			printk("Warning: Could not set configured MAC address: %pM (err=%d)\n",
 			       mac_address, err);
 	}
+#undef LX_ADDR_FAMILY
+#undef LX_ADDR_DATA
 
 	memcpy(dev_addr.addr, dev->dev_addr, sizeof(dev_addr));
 	genode_mac_address_register(dev->name, dev_addr);

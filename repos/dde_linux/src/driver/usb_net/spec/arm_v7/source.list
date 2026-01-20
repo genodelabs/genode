@@ -45,6 +45,7 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
+kernel/time/sleep_timeout.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
 kernel/time/tick-sched.c
@@ -56,8 +57,8 @@ kernel/time/timer.c
 kernel/time/timer_list.c
 kernel/workqueue.c
 lib/bitmap.c
-lib/crc16.c
-lib/crc32.c
+lib/crc/crc16.c
+lib/crc/crc32-main.c
 lib/ctype.c
 lib/find_bit.c
 lib/hexdump.c
@@ -83,7 +84,9 @@ mm/slab_common.c
 mm/slub.c
 mm/util.c
 net/core/dev.c
+net/core/dev_api.c
 net/core/dev_addr_lists.c
+net/core/gro.c
 net/core/hotdata.c
 net/core/link_watch.c
 net/core/skbuff.c
