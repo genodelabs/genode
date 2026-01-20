@@ -57,15 +57,17 @@ DEP_A_VAR_NAME  := DEP_A_$(TARGET).prg
 DEP_SO_VAR_NAME := DEP_SO_$(TARGET).prg
 
 #
-# Pick up schema validation file if present in PRG_DIR
+# Pick up schema validation files if present in PRG_DIR
 #
 CONFIG_XSD ?= $(if $(wildcard $(PRG_DIR)/config.xsd),config.xsd)
+HSD ?= $(wildcard $(addprefix $(PRG_DIR)/,$(TARGET:=.hsd)))
 
 #
 # Names of build artifacts to appear in the 'progress.log'
 #
 BUILD_ARTIFACTS ?= $(TARGET)
 BUILD_ARTIFACTS += $(if $(CONFIG_XSD),$(TARGET).xsd)
+BUILD_ARTIFACTS += $(notdir $(HSD))
 
 #
 # Determine location of $(TARGET_MK) within 'src/', remove trailing slash

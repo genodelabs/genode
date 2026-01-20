@@ -204,6 +204,17 @@ $(INSTALL_DIR)/$(TARGET).xsd: $(PRG_DIR)/$(CONFIG_XSD)
 endif
 
 #
+# Install HID schema description(s) known for the target
+#
+HSD ?= $(wildcard $(addprefix $(PRG_DIR)/,$(TARGET:=.hsd)))
+ifneq ($(HSD),)
+INSTALL_HSD := $(addprefix $(INSTALL_DIR)/,$(notdir $(HSD)))
+all: $(INSTALL_HSD)
+$(INSTALL_HSD): $(HSD)
+	$(VERBOSE)ln -sf $< $@
+endif
+
+#
 # Skip final linking if no objects are involved, i.e. no 'SRC' files are
 # specified in the 'target.mk' file. This applies for pseudo 'target.mk'
 # files that invoke a 3rd-party build system by providing local rule for
