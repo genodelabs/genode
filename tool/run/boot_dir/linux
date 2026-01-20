@@ -34,6 +34,8 @@ proc run_boot_dir {binaries} {
 	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
 		check_syntax $file }
 
+	check_config_in_run_dir init [run_dir]/genode/config
+
 	# Save config part of the image.elf for easy inspection
 	exec cp -f [run_dir]/genode/config [run_dir].config
 

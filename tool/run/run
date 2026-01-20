@@ -143,14 +143,42 @@ proc lappend_if {condition var string} {
 proc check_xml_syntax {xml_file} {
 
 	if {![have_installed xmllint]} {
-		puts "Warning: Cannot validate config syntax (please install xmllint)"
+		puts "Warning: cannot validate config syntax (please install xmllint)"
 		return;
 	}
 
 	if {[catch {exec xmllint --noout $xml_file} result]} {
 		puts stderr $result
-		puts stderr "Error: Invalid XML syntax in $xml_file"
+		puts stderr "Error: invalid XML syntax in $xml_file"
 		exit 1
+	}
+}
+
+
+##
+# Return true if any line of 'text' starts with 'Error:'
+#
+proc error_at_any_line { text } {
+
+	foreach line [split $text "\n"] {
+		if {[regexp {^Error:} $line]} { return true } }
+
+	return false
+}
+
+
+##
+# Check syntax of HID-formated file
+#
+proc check_hid_syntax {hid_file} {
+
+	if {[catch {exec [genode_dir]/tool/hid check $hid_file} result]} {
+		# ignore non-error output via stderr like dropped comment lines
+		if {[error_at_any_line $result]} {
+			puts stderr $result
+			puts stderr "Error: invalid HID syntax in $hid_file"
+			exit 1
+		}
 	}
 }
 
@@ -165,7 +193,14 @@ proc looks_like_xml { file } {
 }
 
 
-proc check_syntax { arg } { if {[looks_like_xml $arg]} { check_xml_syntax $arg } }
+proc check_syntax { arg } {
+
+	if {[looks_like_xml $arg]} {
+		check_xml_syntax $arg
+	} else {
+		check_hid_syntax $arg
+	}
+}
 
 
 ##
@@ -178,15 +213,7 @@ proc check_syntax { arg } { if {[looks_like_xml $arg]} { check_xml_syntax $arg }
 #                         configurations of children of the component
 # \param nesting_level    level of recursive calls of this procedure
 #
-proc check_config {bin config_file xsd_file label avail_xsd_files nesting_level} {
-
-	# skip check if config file does not start with XML tag (i.e., HID format)
-	set fh [open $config_file]
-	set config_file_content [read $fh]
-	close $fh
-	if {![regexp {^\s*<} $config_file_content]} {
-		puts stderr "Warning: skip config syntax validation (no XML)"
-		return }
+proc check_xml_config {bin config_file xsd_file label avail_xsd_files nesting_level} {
 
 	# check prerequisites if this is not a recursive call
 	if {$nesting_level == 0} {
@@ -206,7 +233,7 @@ proc check_config {bin config_file xsd_file label avail_xsd_files nesting_level}
 		if {$result != "$config_file validates"} {
 
 			puts stderr "$result"
-			puts stderr "Error: Invalid XML syntax"
+			puts stderr "Error: invalid XML syntax"
 			exit 1
 		}
 	}
@@ -269,9 +296,9 @@ proc check_config {bin config_file xsd_file label avail_xsd_files nesting_level}
 
 			# call this procedure again on the child config file
 			set child_label "$label -> $child_name"
-			check_config $child_bin $child_xml_file $child_xsd_file \
-			             $child_label $avail_xsd_files \
-			             [expr $nesting_level+1]
+			check_xml_config $child_bin $child_xml_file $child_xsd_file \
+			                 $child_label $avail_xsd_files \
+			                 [expr $nesting_level+1]
 
 			# clean up
 			exec rm -f $child_xml_file
@@ -332,35 +359,12 @@ proc check_for_missing_lib_build { binaries } {
 
 
 ##
-# Integrate specified binaries into boot image
+# Deprecated
 #
-# \param binaries  space-separated list of file names located within the
-#                  '<build-dir>/bin/' directory
-#
-proc build_boot_image { binaries } {
+proc check_xml_config_in_run_dir { binary_name xml_path } {
 
-	check_for_missing_depot_archives
-	check_for_missing_lib_build $binaries
+	lappend xsd_files {*}[glob -nocomplain [run_dir]/genode/*.xsd]
 
-	# lookup XSD files in the run-script-specific folder
-	set xsd_files ""
-	if {[catch {exec find [run_dir]/genode -name *.xsd} find_stdout] == 0} {
-		set xsd_files [split "$find_stdout" "\n"]
-	}
-	# lookup XSD files in the binaries folder
-	foreach binary $binaries {
-		if {[file exists "bin/$binary.xsd"]} {
-			lappend xsd_files "bin/$binary.xsd"
-		}
-	}
-	# determine which XSD file to use for the init config
-	set init_xsd_file ""
-	foreach xsd_file $xsd_files {
-		set filename [file tail $xsd_file]
-		if {$filename == "init.xsd"} {
-			set init_xsd_file $xsd_file
-		}
-	}
 	# create catalog file
 	set catalog [file join [run_dir] genode catalog.xml]
 	catch { exec xmlcatalog --noout --create $catalog }
@@ -375,12 +379,51 @@ proc build_boot_image { binaries } {
 	}
 	set ::env(XML_CATALOG_FILES) $catalog
 
-	# check configurations of init and its children
-	puts "checking configuration syntax"
-	check_config init [run_dir]/genode/config $init_xsd_file init $xsd_files 0
+	if {[looks_like_xml [run_dir]/genode/config]} {
+		puts "checking XML configuration syntax"
+		check_xml_config init [run_dir]/genode/config [run_dir]/genode/init.xsd init $xsd_files 0
 
-	# cleanup XML/XSD catalog file
-	file delete -force $catalog
+		# cleanup XML/XSD catalog file
+		file delete -force $catalog
+	}
+}
+
+
+##
+# Check configurations of init and its children
+#
+proc check_config_in_run_dir { binary_name config_path } {
+
+	if {[looks_like_xml $config_path]} {
+		check_xml_config_in_run_dir $binary_name $config_path
+		return
+	}
+
+	lappend cmd [genode_dir]/tool/hid check
+
+	if {[file exists [run_dir]/genode/$binary_name.hsd]} {
+		lappend cmd --hsd-dir [run_dir]/genode --schema $binary_name }
+
+	if {[catch {exec {*}$cmd $config_path } result]} {
+		puts stderr "Error: invalid $config_path (schema '$binary_name')"
+		puts stderr $result
+		if {[error_at_any_line $result]} {
+			exit 1
+		}
+	}
+}
+
+
+##
+# Integrate specified binaries into boot image
+#
+# \param binaries  space-separated list of file names located within the
+#                  '<build-dir>/bin/' directory
+#
+proc build_boot_image { binaries } {
+
+	check_for_missing_depot_archives
+	check_for_missing_lib_build $binaries
 
 	run_boot_dir $binaries
 }
@@ -1235,6 +1278,8 @@ proc build_core_image { modules } {
 	# check syntax of all boot modules named *.config
 	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
 		check_syntax $file }
+
+	check_config_in_run_dir init [run_dir]/genode/config
 
 	# create core binary containing the boot modules
 	set image_elf [run_dir]/[kernel_specific_binary image.elf]
