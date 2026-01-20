@@ -27,69 +27,58 @@ build { core init timer lib/ld test/scale_priority app/dummy }
 create_boot_directory
 
 install_config {
-	<config prio_levels="} [set prio_levels] {">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="TRACE"/>
-		</parent-provides>
+config | prio_levels: } [set prio_levels] {
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service TRACE
 
-		<default-route>
-			<service name="TRACE"> <parent label=""/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
++ default-route
+  + service TRACE | + parent | label:
+  + any-service
+    + parent
+    + any-child
 
-		<default caps="1000" ram="10M"/>
++ default | caps: 1000 | ram: 10M
++ start timer
+  + provides | + service Timer
 
-		<start name="timer">
-			<provides> <service name="Timer"/> </provides>
-		</start>
++ start highest | priority: 0
+  + binary dummy
+  + config
+    + log
+    + sleep_forever
 
-		<start name="highest" priority="0">
-			<binary name="dummy"/>
-			<config>
-				<log/>
-				<sleep_forever/>
-			</config>
-		</start>
++ start second highest | priority: -1
+  + binary dummy
+  + config
+    + log
+    + sleep_forever
 
-		<start name="second highest" priority="-1">
-			<binary name="dummy"/>
-			<config>
-				<log/>
-				<sleep_forever/>
-			</config>
-		</start>
++ start lowest | priority: -} [expr $prio_levels-1] {
+  + binary dummy
+  + config
+    + log
+    + sleep_forever
 
-		<start name="lowest" priority="-} [expr $prio_levels-1] {">
-			<binary name="dummy"/>
-			<config>
-				<log/>
-				<sleep_forever/>
-			</config>
-		</start>
++ start second lowest | priority: -} [expr $prio_levels-2] {
+  + binary dummy
+  + config
+    + log
+    + sleep_forever
 
-		<start name="second lowest" priority="-} [expr $prio_levels-2] {">
-			<binary name="dummy"/>
-			<config>
-				<log/>
-				<sleep_forever/>
-			</config>
-		</start>
-
-		<start name="test-scale_priority">
-			<config prio_levels_log2="} [set prio_levels_log2] {"
-			        inverse="} [set inverse] {"
-			        start_at_zero="} [set start_at_zero] {" />
-		</start>
-	</config>
-
++ start test-scale_priority
+  + config
+           prio_levels_log2: } [set prio_levels_log2] {
+           inverse:          } [set inverse] {
+           start_at_zero:    } [set start_at_zero] {
+-
 }
 
 build_boot_image [build_artifacts]

@@ -14,22 +14,25 @@ build { core init lib/ld timer test/kernel_time }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<start name="timer" caps="100" ram="2M">
-			<provides> <service name="Timer"/> </provides>
-		</start>
-		<start name="test-kernel_time" caps="100" ram="2M"/>
-	</config>}
+config
++ parent-provides
+  + service LOG
+  + service RM
+  + service PD
+  + service CPU
+  + service ROM
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ start timer | caps: 100 | ram: 2M
+  + provides | + service Timer
+
++ start test-kernel_time | caps: 100 | ram: 2M
+-
+}
 
 build_boot_image [build_artifacts]
 

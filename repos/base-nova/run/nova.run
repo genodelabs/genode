@@ -12,29 +12,21 @@ if {[have_cmd_switch --autopilot] && [have_spec x86_32]} {
 
 create_boot_directory
 
-set config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="test-nova" caps="12350" ram="128M" ld="no">}
+install_config {
+config
++ parent-provides
+  + service ROM
+  + service CPU
+  + service RM
+  + service PD
+  + service LOG
 
-append config "
-			<config check_pat=\"$check_pat\"/\>"
++ default-route | + any-service | + parent
 
-append config {
-		</start>
-	</config>
++ start test-nova | caps: 12350 | ram: 128M | ld: no
+  + config | check_pat: } $check_pat {
+-
 }
-
-install_config $config
 
 build_boot_image [build_artifacts]
 

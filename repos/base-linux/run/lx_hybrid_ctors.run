@@ -10,19 +10,18 @@ build { core init lib/ld test/lx_hybrid_ctors }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
-		<start name="test-lx_hybrid_ctors" ld="no"/>
-	</config>
+config
++ parent-provides
+  + service ROM
+  + service CPU
+  + service PD
+  + service LOG
+
++ default-route | + any-service | + parent
++ default | caps: 100 | ram: 1M
+
++ start test-lx_hybrid_ctors | ld: no
+-
 }
 
 build_boot_image [build_artifacts]

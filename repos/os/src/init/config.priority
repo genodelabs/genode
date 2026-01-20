@@ -1,87 +1,86 @@
-<!--
+config | prio_levels: 2 | verbose: yes
+.
+. On kernels that support priorities and where priority 128 is used as priority
+. limit (this is the case for OKL4 and Pistachio), this configuration should
+. result in the following assignments of physical priorities to process-tree
+. nodes:
+.
+. 128 : core
+. 128 : core->init
+. 128 : core->init->init.1
+. 112 : core->init->init.1->init.11
+.  96 : core->init->init.1->init.12
+.  96 : core->init->init.1->init.12->init.121
+.  64 : core->init->init.2
+.
+. prio_levels 2 divides priority range 1..128 into
+. 65..128 (prio  0)
+. 1..64   (prio -1)
+.
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-Test configuration for assigning priorities
-===========================================
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-On kernels that support priorities and where priority 128 is used as priority
-limit (this is the case for OKL4 and Pistachio), this configuration should
-result in the following assignments of physical priorities to process-tree
-nodes:
++ start init.1 | priority: 0 | ram: 5M | caps: 400
+  + binary init
+  + config | prio_levels: 4
+    .
+    . prio_levels 4 divides priority range 65..128 into
+    . 113..128 (prio  0)
+    . 97..112  (prio -1)
+    . 81..96   (prio -2)
+    . 65..80   (prio -3)
+    .
+    + parent-provides
+    | + service ROM
+    | + service PD
+    | + service RM
+    | + service CPU
+    | + service LOG
+    |
+    + default-route
+    | + any-service
+    |   + parent
+    |   + any-child
+    |
+    + start init.11 | priority: -1 | ram: 1M | caps: 100
+    | .
+    | . priority -1 results in platform priority 112
+    | .
+    | + binary init
+    | + config
+    |
+    + start init.12 | priority: -2 | ram: 2M | caps: 200
+      .
+      . priority -2 results in platform priority 96
+      .
+      + binary init
+      + config
+        + parent-provides
+        | + service ROM
+        | + service RM
+        | + service PD
+        | + service CPU
+        | + service LOG
+        |
+        + default-route | + any-service | + parent
+        |
+        + start init.121 | ram: 1M | caps: 100
+          + binary init
+          + config
 
-128 : core
-128 : core->init
-128 : core->init->init.1
-112 : core->init->init.1->init.11
- 96 : core->init->init.1->init.12
- 96 : core->init->init.1->init.12->init.121
- 64 : core->init->init.2
-
--->
-
-<!--
-     prio_levels 2 divides priority range 1..128 into
-     65..128 (prio  0)
-     1..64   (prio -1)
- -->
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<start name="init.1" priority="0" ram="5M">
-		<binary name="init"/>
-		<!--
-		    prio_levels 4 divides priority range 65..128 into
-		    113..128 (prio  0)
-		    97..112  (prio -1)
-		    81..96   (prio -2)
-		    65..80   (prio -3)
-		 -->
-		<config prio_levels="4">
-			<parent-provides>
-				<service name="ROM"/>
-				<service name="PD"/>
-				<service name="RM"/>
-				<service name="CPU"/>
-				<service name="LOG"/>
-			</parent-provides>
-			<default-route>
-				<any-service> <parent/> <any-child/> </any-service>
-			</default-route>
-			<!-- priority -1 results in platform priority 112 -->
-			<start name="init.11" priority="-1" ram="512K">
-				<binary name="init"/>
-				<config/>
-			</start>
-			<!-- priority -2 results in platform priority 96 -->
-			<start name="init.12" priority="-2" ram="2M">
-				<binary name="init"/>
-				<config>
-					<parent-provides>
-						<service name="ROM"/>
-						<service name="RM"/>
-						<service name="LOG"/>
-					</parent-provides>
-					<default-route>
-						<any-service> <parent/> </any-service>
-					</default-route>
-					<start name="init.121" ram="768K">
-						<binary name="init"/>
-						<config/>
-					</start>
-				</config>
-			</start>
-		</config>
-	</start>
-	<!-- priority -1 results in platform priority 64 -->
-	<start name="init.2" priority="-1" ram="6M">
-		<binary name="init"/>
-		<config/>
-	</start>
-</config>
++ start init.2 | priority: -1 | ram: 6M | caps: 100
+  .
+  . priority -1 results in platform priority 64
+  .
+  + binary init
+  + config
+-

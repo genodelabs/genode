@@ -3,18 +3,17 @@ build { core init lib/ld test/lx_hybrid_errno }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<start name="test-lx_hybrid_errno" ld="no" caps="100" ram="1M"/>
-	</config>
+config
++ parent-provides
+  + service ROM
+  + service LOG
+  + service PD
+  + service CPU
+
++ default-route | + any-service | + parent
+
++ start test-lx_hybrid_errno | ld: no | caps: 100 | ram: 1M
+-
 }
 
 build_boot_image [build_artifacts]

@@ -6,163 +6,137 @@
 
 assert {[have_spec linux]}
 
-#
-# Build
-#
-
 create_boot_directory
 
-import_from_depot [depot_user]/src/[base_src]
-import_from_depot [depot_user]/src/chroot
-import_from_depot [depot_user]/src/fs_rom
-import_from_depot [depot_user]/src/init
-import_from_depot [depot_user]/src/libc
-import_from_depot [depot_user]/src/stdcxx
-import_from_depot [depot_user]/src/posix
-import_from_depot [depot_user]/src/vfs
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/chroot \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/vfs
 
-build {
-	server/lx_fs
-	test/lx_fs_notify/rom_log
-	test/lx_fs_notify/file_writer
-}
+build { server/lx_fs test/lx_fs_notify/rom_log test/lx_fs_notify/file_writer }
 
-#
-# init config
-#
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
+config
++ parent-provides
+  + service CPU
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="lx_fs" caps="200" ram="4M" ld="no">
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<policy label_prefix="fs_rom_config"  root="/lx_fs_notify"           writeable="no"/>
-			<policy label_prefix="fs_rom_test"    root="/lx_fs_notify/test"      writeable="no"/>
-			<policy label_suffix="templates -> /" root="/lx_fs_notify/templates" writeable="yes"/>
-			<policy label_suffix="test -> /"      root="/lx_fs_notify/test"      writeable="yes"/>
-		</config>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="fs_rom_config" ram="8M">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="File_system"> <child name="lx_fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ default | caps: 100
 
-	<start name="fs_rom_test" ram="40M">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="File_system"> <child name="lx_fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start lx_fs | caps: 200 | ram: 4M | ld: no
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: fs_rom_config  | root: /lx_fs_notify           | writeable: no
+    + policy | label_prefix: fs_rom_test    | root: /lx_fs_notify/test      | writeable: no
+    + policy | label_suffix: templates -> / | root: /lx_fs_notify/templates | writeable: yes
+    + policy | label_suffix: test -> /      | root: /lx_fs_notify/test      | writeable: yes
 
-	<start name="test-rom_log" ram="8M">
-		<route>
-			<service name="ROM" label="outfile.txt"> <child name="fs_rom_test"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start fs_rom_config | ram: 8M
+  + binary fs_rom
+  + provides | + service ROM
+  + route
+    + service File_system | + child lx_fs
+    + any-service
+      + parent
+      + any-child
 
-	<start name="init" caps="4000" ram="300M">
-		<route>
-			<service name="File_system"> <child name="lx_fs"/> </service>
-			<service name="ROM" label="config"> <child name="fs_rom_config" label="init.config"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start fs_rom_test | ram: 40M
+  + binary fs_rom
+  + provides | + service ROM
+  + route
+    + service File_system | + child lx_fs
+    + any-service
+      + parent
+      + any-child
 
-</config>
++ start test-rom_log | ram: 8M
+  + route
+    + service ROM | label: outfile.txt | + child fs_rom_test
+    + any-service
+      + parent
+      + any-child
+
++ start init | caps: 4000 | ram: 300M
+  + route
+    + service File_system | + child lx_fs
+    + service ROM | label: config | + child fs_rom_config | label: init.config
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 #
 # configurations for the sub init
 #
 set init_run_fwrite_test {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-		<service name="Timer"/>
-		<service name="File_system"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
+config
++ parent-provides
+  + service CPU
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+  + service Timer
+  + service File_system
 
-	<start name="test-file_writer" caps="300" ram="16M" version="1">
-		<config>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<null/>
-				</dir>
-				<dir name="templates"> <fs label="templates -> /"/> </dir>
-				<dir name="test">      <fs label="test -> /"/> </dir>
-			</vfs>
-			<arg value="test-file_writer"/>
-			<arg value="--fwrite"/>
-			<arg value="templates/infile.txt"/>
-			<arg value="test/outfile.txt"/>
-		</config>
-	</start>
-</config>
++ default-route | + any-service | + parent
+
++ start test-file_writer | caps: 300 | ram: 16M | version: 1
+  + config
+    + libc | stdout: /dev/log | stderr: /dev/log
+    + vfs
+    | + dir dev
+    |   + log
+    |   + null
+    | + dir templates | + fs | label: templates -> /
+    | + dir test      | + fs | label: test -> /
+    + arg test-file_writer
+    + arg --fwrite
+    + arg templates/infile.txt
+    + arg test/outfile.txt
+-
 }
 
 set init_run_write_test {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-		<service name="Timer"/>
-		<service name="File_system"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
+config
++ parent-provides
+  + service CPU
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
+  + service Timer
+  + service File_system
 
-	<start name="test-file_writer" caps="300" ram="16M" version="2">
-		<config>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<null/>
-				</dir>
-				<dir name="templates"> <fs label="templates -> /"/> </dir>
-				<dir name="test">      <fs label="test -> /"/> </dir>
-			</vfs>
-			<arg value="test-file_writer"/>
-			<arg value="--write"/>
-			<arg value="templates/infile.txt"/>
-			<arg value="test/outfile.txt"/>
-		</config>
-	</start>
-</config>
++ default-route | + any-service | + parent
+
++ start test-file_writer | caps: 300 | ram: 16M | version: 2
+  + config
+    + libc | stdout: /dev/log | stderr: /dev/log
+    + vfs
+    | + dir dev
+    |   + log
+    |   + null
+    | + dir templates | + fs | label: templates -> /
+    | + dir test      | + fs | label: test -> /
+    + arg test-file_writer
+    + arg --write
+    + arg templates/infile.txt
+    + arg test/outfile.txt
+-
 }
 
 set test_iterations  10

@@ -3,28 +3,28 @@ build { core init lib/ld test/sub_rm }
 create_boot_directory
 
 proc local_attach_addr      {} { return "0x70000000" }
-proc attach_twice_forbidden {} { if { [have_spec linux] } { return true } else { return false } }
-proc support_attach_sub_any {} { if { [have_spec linux] } { return false } else { return true } }
+proc attach_twice_forbidden {} { if { [have_spec linux] } { return "yes" } else { return "no" } }
+proc support_attach_sub_any {} { if { [have_spec linux] } { return "no"  } else { return "yes" } }
 
 append config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-sub_rm" ram="10M">
-			<config local_attach_addr="} [local_attach_addr] {"
-			        attach_twice_forbidden="} [attach_twice_forbidden] {"
-			        support_attach_sub_any="} [support_attach_sub_any] {"/>
-		</start>
-	</config>
+config
++ parent-provides
+  + service ROM
+  + service CPU
+  + service RM
+  + service PD
+  + service LOG
+
++ default-route | + any-service | + parent
+
++ default | caps: 100
+
++ start test-sub_rm | ram: 10M
+  + config
+           local_attach_addr:      } [local_attach_addr] {
+           attach_twice_forbidden: } [attach_twice_forbidden] {
+           support_attach_sub_any: } [support_attach_sub_any] {
+-
 }
 
 install_config $config

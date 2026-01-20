@@ -3,19 +3,17 @@ build { core init lib/ld test/lx_hybrid_pthread_ipc }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
-		<start name="test-lx_hybrid_pthread_ipc" ld="no"/>
-	</config>
+config
++ parent-provides
+  + service ROM
+  + service CPU
+  + service PD
+  + service LOG
+
++ default-route | + any-service | + parent
+
++ start test-lx_hybrid_pthread_ipc | caps: 100 | ram: 1M | ld: no
+-
 }
 
 build_boot_image [build_artifacts]

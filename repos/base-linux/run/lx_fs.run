@@ -7,45 +7,36 @@
 
 assert {[have_spec linux]}
 
-#
-# Build
-#
-
 build { core init lib/ld lib/libc lib/vfs server/lx_fs test/libc_vfs }
 
 create_boot_directory
 
-#
-# Generate config
-#
-
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
-	<start name="lx_fs" caps="200" ram="4M" ld="no">
-		<provides> <service name="File_system"/> </provides>
-		<config> <policy label_prefix="test-libc_vfs" root="/libc_vfs" writeable="yes" /> </config>
-	</start>
-	<start name="test-libc_vfs" ram="4M">
-		<config>
-			<vfs>
-				<fs />
-				<dir name="dev"> <log/> </dir>
-			</vfs>
-			<libc stdout="/dev/log"/>
-		</config>
-	</start>
-</config>
+config
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ start lx_fs | caps: 200 | ram: 4M | ld: no
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: test-libc_vfs | root: /libc_vfs | writeable: yes
+
++ start test-libc_vfs | caps: 100 | ram: 4M
+  + config
+    + vfs
+      + fs
+      + dir dev | + log
+    + libc | stdout: /dev/log
+-
 }
 
 #
@@ -55,23 +46,11 @@ install_config {
 exec rm -rf bin/libc_vfs
 exec mkdir -p bin/libc_vfs
 
-#
-# Boot modules
-#
-
 build_boot_image [list {*}[build_artifacts] libc_vfs]
-
-#
-# Execute test case
-#
 
 run_genode_until {child "test-libc_vfs" exited with exit value 0.*\n} 20
 
 puts "\nTest succeeded\n"
-
-#
-# Cleanup test-directory structure
-#
 
 exec rm -r bin/libc_vfs
 

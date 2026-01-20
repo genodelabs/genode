@@ -15,19 +15,19 @@ build { core init lib/ld test/smp }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="PD"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="test-smp" ram="10M"/>
-	</config>
+config
++ parent-provides
+  + service LOG
+  + service CPU
+  + service ROM
+  + service PD
+
++ default-route | + any-service | + parent
+
++ default | caps: 100
+
++ start test-smp | ram: 10M
+-
 }
 
 build_boot_image [build_artifacts]

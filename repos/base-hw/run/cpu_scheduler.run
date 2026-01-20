@@ -3,19 +3,19 @@ build { core init lib/ld test/cpu_scheduler }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="test-cpu_scheduler" caps="100" ram="10M"/>
-	</config>}
+config
++ parent-provides
+  + service LOG
+  + service RM
+  + service PD
+  + service CPU
+  + service ROM
+
++ default-route | + any-service | + parent
+
++ start test-cpu_scheduler | caps: 100 | ram: 10M
+-
+}
 
 build_boot_image [build_artifacts]
 

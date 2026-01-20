@@ -3,26 +3,28 @@ build { core init lib/ld test/region_map_mmap timer test/signal }
 create_boot_directory
 
 install_config {
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
-		<start name="test-region_map_mmap" ram="2M"/>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-		<!-- add signal test for concurrency -->
-		<start name="timer">
-			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="test-signal" caps="400"/>
-	</config>}
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start test-region_map_mmap | ram: 2M
+
++ start timer | + provides | + service Timer
+
++ start test-signal | caps: 400 | . for stressing concurrency
+-
+}
 
 build_boot_image [build_artifacts]
 

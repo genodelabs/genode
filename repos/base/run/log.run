@@ -3,19 +3,16 @@ build { core init lib/ld test/log }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100" ram="10M"/>
-		<start name="test-log"/>
-	</config>
+config
++ parent-provides
+  + service LOG
+  + service PD
+  + service CPU
+  + service ROM
++ default-route | + any-service | + parent
++ default | caps: 100 | ram: 10M
++ start test-log
+-
 }
 
 build_boot_image [build_artifacts]

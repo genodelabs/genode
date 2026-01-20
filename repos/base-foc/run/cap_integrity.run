@@ -3,19 +3,18 @@ build { core init lib/ld test/cap_integrity }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="test-cap_integrity" caps="100" ram="10M" ld="no"/>
-	</config>
+config
++ parent-provides
+  + service ROM
+  + service CPU
+  + service RM
+  + service PD
+  + service LOG
+
++ default-route | + any-service | + parent
+
++ start test-cap_integrity | caps: 100 | ram: 10M | ld: no
+-
 }
 
 build_boot_image [build_artifacts]

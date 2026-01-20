@@ -3,26 +3,29 @@ build { core init timer lib/ld test/timer_accuracy }
 create_boot_directory
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service><parent/><any-child/></any-service>
-	</default-route>
-	<default caps="100"/>
-	<start name="timer" priority="0" ram="1M">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="test-timer_accuracy" priority="-1" ram="10M"/>
-</config>
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100
+
++ start timer | priority: 0 | ram: 1M
+  + provides | + service Timer
+
++ start test-timer_accuracy | priority: -1 | ram: 10M
+-
 }
 
 build_boot_image [build_artifacts]

@@ -11,20 +11,18 @@ build  [list core init lib/ld [test_build_target]]
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="LOG"/>
-		<service name="CPU"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
-	<start name="} [test_program_name] {" ram="8M"/>
-</config>}
+config
++ parent-provides
+  + service ROM
+  + service PD
+  + service LOG
+  + service CPU
 
++ default-route | + any-service | + parent
+
++ start } [test_program_name] { | ram: 8M | caps: 100
+-
+}
 
 build_boot_image [build_artifacts]
 

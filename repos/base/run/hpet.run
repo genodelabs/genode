@@ -17,18 +17,18 @@ proc fast_polling_buf_size  { } {
 #
 # Wether the platform allows for timeouts that trigger with a precision < 50 milliseconds
 #
-proc precise_timeouts { } { return true }
+proc precise_timeouts { } { return "yes" }
 
 #
 # Wether the platform allows for a timestamp that has a precision < 1 millisecond
 #
-proc precise_time { } { return true }
+proc precise_time { } { return "yes" }
 
 #
 # Wether the platform allows for a 'Timer::Connection::elapsed_ms'
 # implementation that has a precision < 2 ms
 #
-proc precise_ref_time { } { return true }
+proc precise_ref_time { } { return "yes" }
 
 build { core init lib/ld driver/platform timer/hpet test/timeout app/top server/report_rom driver/acpi}
 
@@ -39,61 +39,60 @@ build { core init lib/ld driver/platform timer/hpet test/timeout app/top server/
 create_boot_directory
 
 install_config {
-	<config prio_levels="4">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="TRACE"/>
-		</parent-provides>
-		<default-route>
-			<any-service><parent/><any-child/></any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="hpet_timer" ram="10M">
-			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="test" ram="250M" priority="-1">
-			<binary name="test-timeout"/>
-			<config precise_time="} [precise_time] {"
-			        precise_ref_time="} [precise_ref_time] {"
-			        precise_timeouts="} [precise_timeouts] {"
-			        fast_polling_buf_size="} [fast_polling_buf_size] {"/>
-		</start>
-<!--
-		<start name="top" ram="20M" priority="-2">
-			<route>
-				<service name="TRACE"> <parent label=""/> </service>
-				<any-service><parent/><any-child/></any-service>
-			</route>
-		</start>
--->
+config | prio_levels: 4
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service TRACE
 
-		<start name="drivers_reports" caps="100" ram="2M">
-			<binary name="report_rom"/>
-			<provides>
-				<service name="Report"/>
-				<service name="ROM"/>
-			</provides>
-			<config verbose="no">
-				<policy label="pci_decode -> system" report="acpi -> acpi"/>
-				<policy label="platform -> devices"  report="pci_decode -> devices"/>
-				<policy label="usb_hid -> report"    report="usb -> devices"/>
-			</config>
-		</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-		<start name="acpi" caps="350" ram="4M">
-			<route>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
++ default | caps: 100
+
++ start hpet_timer | ram: 10M
+  + provides | + service Timer
+
++ start test | ram: 250M | priority: -1
+  + binary test-timeout
+  + config
+           precise_time:          } [precise_time] {
+           precise_ref_time:      } [precise_ref_time] {
+           precise_timeouts:      } [precise_timeouts] {
+           fast_polling_buf_size: } [fast_polling_buf_size] {
+
++ start top | ram: 20M | priority: -2
+  + route
+    + service TRACE | + parent | label:
+    + any-service
+      + parent
+      + any-child
+
++ start drivers_reports | caps: 100 | ram: 2M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label:  pci_decode -> system | report: acpi -> acpi
+    + policy | label:  platform -> devices  | report: pci_decode -> devices
+    + policy | label:  usb_hid -> report    | report: usb -> devices
+
++ start acpi | caps: 350 | ram: 4M
+  + route
+    + service Report | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build_boot_image [build_artifacts]

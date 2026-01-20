@@ -11,7 +11,7 @@ build_boot_image [build_artifacts]
 append qemu_args "-nographic "
 
 # run genode until the init->init.2 process gives us a life sign
-run_genode_until "init.2.*No children to start.*\n" 100
+run_genode_until "child \"init.2\".*\n" 100
 
 puts "dumping priorities using the kernel debugger..."
 

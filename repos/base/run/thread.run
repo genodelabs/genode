@@ -13,24 +13,20 @@ proc pause_resume_supported { } {
 	return true
 }
 
-append config {
-	<config prio_levels="2">
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="PD"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<start name="test-thread" caps="2000" ram="10M">
-			<config pause_resume="} [pause_resume_supported] {"/>
-		</start>
-	</config>
-}
+install_config {
+config | prio_levels: 2
++ parent-provides
+  + service LOG
+  + service CPU
+  + service ROM
+  + service PD
 
-install_config $config
++ default-route | + any-service | + parent
+
++ start test-thread | caps: 2000 | ram: 10M
+  + config | pause_resume: } [pause_resume_supported] {
+-
+}
 
 build_boot_image [build_artifacts]
 

@@ -12,33 +12,33 @@ if {[have_spec foc]} {
 create_boot_directory
 
 append config {
-	<config prio_levels="2">
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="IO_MEM"/>  <!-- on some kernels for timer -->
-			<service name="IO_PORT"/> <!-- on some kernels for timer -->
-			<service name="IRQ"/>     <!-- on some kernels for timer -->
-			<service name="TRACE"/>   <!-- used by migration test -->
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+config | prio_levels: 2
++ parent-provides
+  + service LOG
+  + service CPU
+  + service ROM
+  + service PD
+  + service IO_MEM  | . on some kernels for timer
+  + service IO_PORT | . on some kernels for timer
+  + service IRQ     | . on some kernels for timer
+  + service TRACE   | . used by migration test
 
-		<start name="timer" caps="100" ram="1M">
-			<provides><service name="Timer"/></provides>
-		</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-		<start name="test-migrate" caps="100" ram="10M">
-			<config />
-			<route>
-				<service name="TRACE"> <parent label=""/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
-	</config>
++ start timer | caps: 100 | ram: 1M
+  + provides | + service Timer
+
++ start test-migrate | caps: 100 | ram: 10M
+  + config
+  + route
+    + service TRACE | + parent | label:
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 install_config $config
