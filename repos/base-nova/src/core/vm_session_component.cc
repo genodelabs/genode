@@ -423,8 +423,9 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
-	_trace_control_area(ram, local_rm), _trace_sources(trace_sources),
+	_trace_sources(trace_sources),
 	_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
+	_trace_control_area(_ram, local_rm),
 	_heap(_ram, local_rm),
 	_memory(ep, *this, _ram, local_rm),
 	_priority(scale_priority(priority, "VM session")),
@@ -434,6 +435,18 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 		constructed = Session_error::OUT_OF_CAPS;
 		return;
 	}
+
+	if (_trace_control_area.constructed.failed())
+		constructed = _trace_control_area.constructed.convert<Session_error>(
+			[] (auto &) { return Session_error::DENIED; /* never */ },
+			[] (Alloc_error e) {
+				switch(e) {
+				case Alloc_error::OUT_OF_CAPS: return Session_error::OUT_OF_CAPS;
+				case Alloc_error::OUT_OF_RAM:  return Session_error::OUT_OF_RAM;
+				default: break;
+				}
+				return Session_error::DENIED;
+			});
 
 	if (!_pd.valid())
 		return;

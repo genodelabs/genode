@@ -115,9 +115,9 @@ class Core::Vm_session_component
 			Memory::Constrained_obj_allocator<Registered<Vcpu>>;
 
 		Rpc_entrypoint         &_ep;
-		Trace::Control_area     _trace_control_area;
 		Trace::Source_registry &_trace_sources;
 		Con_ram_allocator       _ram;
+		Trace::Control_area     _trace_control_area;
 		Sliced_heap             _heap;
 		Vcpu_allocator          _vcpu_alloc { _heap };
 		Pd_selector             _pd {};
