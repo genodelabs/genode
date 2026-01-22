@@ -61,27 +61,13 @@ static Result _create(Memory::Constrained_allocator  &alloc,
 	                        ram, mapped_ram, rm,
 	                        trace_sources).template convert<Result>(
 		[&] (auto &a) -> Result {
-			return a.obj.constructed.template convert<Result>(
+			return a.obj.constructed().template convert<Result>(
 				[&] (auto) -> T & {
 					a.deallocate = false;
 					return a.obj; },
-				[&] (auto error) -> Error {
-					using E = Core::Accounted_mapped_ram_allocator::Error;
-					switch(error) {
-					case E::OUT_OF_RAM: return Error::INSUFFICIENT_RAM;
-					case E::DENIED:     break;
-					}
-					return Error::DENIED;
-				});
+				[&] (auto e) -> Error { return Core::Vm_root::convert(e); });
 		},
-		[&] (auto error) -> Error {
-			switch(error) {
-			case Alloc_error::OUT_OF_RAM:  return Error::INSUFFICIENT_RAM;
-			case Alloc_error::OUT_OF_CAPS: return Error::INSUFFICIENT_CAPS;
-			case Alloc_error::DENIED:      break;
-			}
-			return Error::DENIED;
-		});
+		[&] (auto e) -> Error { return Core::Vm_root::convert(e); });
 }
 
 

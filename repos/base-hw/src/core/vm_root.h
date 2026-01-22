@@ -57,6 +57,18 @@ class Core::Vm_root : public Root_component<Session_object<Vm_session>>,
 
 	public:
 
+		static Create_error convert(auto err)
+		{
+			using Error = decltype(err);
+
+			switch(err) {
+				case Error::OUT_OF_RAM:  return Create_error::INSUFFICIENT_RAM;
+				case Error::OUT_OF_CAPS: return Create_error::INSUFFICIENT_CAPS;
+				default: break;
+			}
+			return Create_error::DENIED;
+		}
+
 		/**
 		 * Constructor
 		 *

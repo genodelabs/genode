@@ -46,7 +46,8 @@ class Core::Vm_session_component
 	private:
 
 		struct Vcpu : public Rpc_object<Vm_session::Native_vcpu, Vcpu>,
-		              public Revoke
+		              public Revoke,
+		              public Trace::Source::Info_accessor
 		{
 			constexpr size_t ds_size() {
 				return align_addr(sizeof(Vcpu_state), AT_PAGE); }
@@ -67,7 +68,12 @@ class Core::Vm_session_component
 						return Region_map::Attach_error::INVALID_DATASPACE; })
 			};
 
+			Trace::Source_registry      &trace_sources;
+			Trace::Control_area::Result  trace_control_slot;
+			Constructible<Trace::Source> trace_source { };
+
 			Affinity::Location location;
+			Session_label      label;
 			Board::Vcpu_state  hw_state;
 
 			Signal_context_capability   sigh_cap { };
@@ -78,22 +84,21 @@ class Core::Vm_session_component
 			Constructed const constructed()
 			{
 				if (ds.failed())
-					return ds.convert<Constructed>([] (auto&) { return Ok(); },
-					                               [] (auto &e) { return e; });
+					return ds.convert<Constructed>([] (auto&)  { return Ok(); },
+					                               [] (auto e) { return e; });
 				if (ds_attached.failed())
 					return ds_attached.convert<Constructed>(
 						[] (auto&) { return Ok(); },
-						[] (auto&) { return Alloc_error::DENIED; });
+						[] (auto) { return Alloc_error::DENIED; });
+
+				if (trace_control_slot.failed())
+					return Alloc_error::DENIED;
 
 				return hw_state.constructed.convert<Constructed>(
 					[] (auto&) { return Ok(); },
-					[] (auto &e) {
-						using Error = Accounted_mapped_ram_allocator::Error;
-						switch (e) {
-						case Error::OUT_OF_RAM: return Alloc_error::OUT_OF_RAM;
-						case Error::DENIED:     break;
-						};
-						return Alloc_error::DENIED;
+					[] (auto e) {
+						return (decltype(e)::OUT_OF_RAM == e)
+							? Alloc_error::OUT_OF_RAM : Alloc_error::DENIED;
 				});
 			}
 
@@ -102,20 +107,42 @@ class Core::Vm_session_component
 			     Accounted_ram_allocator        &ram,
 			     Local_rm                       &local_rm,
 			     Accounted_mapped_ram_allocator &core_ram,
-			     Affinity::Location              location)
+			     Trace::Control_area            &trace_control_area,
+			     Trace::Source_registry         &trace_sources,
+			     Affinity::Location              location,
+			     Session_label                   label)
 			:
 				id(id), ep(ep), rm(local_rm),
 				ds(ram.try_alloc(ds_size(), Cache::UNCACHED)),
+				trace_sources(trace_sources),
+				trace_control_slot(trace_control_area.alloc()),
 				location(location),
+				label(label),
 				hw_state(core_ram, local_rm,
 				         ds_attached.convert<Genode::Vcpu_state*>(
 					[] (auto &a) { return (Vcpu_state*)a.ptr; },
 					[] (auto)    { return nullptr; }))
 			{
+				trace_control_area.with_control(trace_control_slot,
+					[&] (Trace::Control &control) {
+						trace_source.construct(*this, control);
+						Trace::Source &source = *trace_source;
+						trace_sources.insert(&source);
+					});
+
 				ep.manage(this);
 			}
 
-			~Vcpu() { ep.dissolve(this); }
+			~Vcpu()
+			{
+				ep.dissolve(this);
+
+				if (trace_source.constructed()) {
+					Trace::Source &source = *trace_source;
+					trace_sources.remove(&source);
+				}
+
+			}
 
 			void revoke_signal_context(Signal_context_capability cap) override
 			{
@@ -152,6 +179,22 @@ class Core::Vm_session_component
 				kobj.create(cpu, (void *)&hw_state,
 				            Capability_space::capid(handler), id);
 			}
+
+
+			/********************************************
+			 ** Trace::Source::Info_accessor interface **
+			 ********************************************/
+
+			Trace::Source::Info trace_source_info() const override
+			{
+				using Scheduler = Kernel::Scheduler;
+				using Group_id  = Scheduler::Group_id;
+				unsigned warp   = Scheduler::warp[Group_id::BACKGROUND];
+				unsigned weight = Scheduler::weight[Group_id::BACKGROUND];
+				return { label, String<5>("vCPU"),
+				         Trace::Execution_time(kobj->execution_time(), 0,
+				                               warp, weight), location };
+			}
 		};
 
 		Rpc_entrypoint &_ep;
@@ -177,6 +220,9 @@ class Core::Vm_session_component
 
 		Kernel::Vcpu::Identity _id { _id_alloc.alloc(),
 		                             (void *)_table.phys_addr() };
+
+		Trace::Control_area     _trace_control_area;
+		Trace::Source_registry &_trace_sources;
 
 		Attach_result _attach(addr_t vm_addr, addr_t phys_addr,
                               size_t size, bool exec, bool write,
@@ -232,13 +278,23 @@ class Core::Vm_session_component
 
 	public:
 
-		using Error = Accounted_mapped_ram_allocator::Error;
-		using Constructed = Attempt<Ok, Error>;
+		using Constructed = Attempt<Ok, Alloc_error>;
 
-		Constructed const constructed { _table.constructed.failed()
-			? _table.constructed
-			: _id.id.convert<Constructed>([] (auto) { return Ok(); },
-			                              [] (auto) { return Error::DENIED; })
+		Constructed const constructed()
+		{
+			if (_table.constructed.failed()) {
+				using Error = Accounted_mapped_ram_allocator::Error;
+				return (_table.constructed == Error::OUT_OF_RAM)
+					? Alloc_error::OUT_OF_RAM : Alloc_error::DENIED;
+			}
+
+			if (_id.id.failed())
+				return Alloc_error::DENIED;
+
+			if (_trace_control_area.constructed.failed())
+				return _trace_control_area.constructed;
+
+			return Ok();
 		};
 
 		/*
@@ -255,7 +311,7 @@ class Core::Vm_session_component
 		                     Ram_allocator          &ram,
 		                     Mapped_ram_allocator   &mapped_ram,
 		                     Local_rm               &rm,
-		                     Trace::Source_registry &)
+		                     Trace::Source_registry &trace_sources)
 		:
 			Session_object(ep, resources, label),
 			_ep(ep),
@@ -263,7 +319,9 @@ class Core::Vm_session_component
 			_id_alloc(id_alloc),
 			_ram(ram, _ram_quota_guard(), _cap_quota_guard()),
 			_mapped_ram(mapped_ram, _ram_quota_guard()),
-			_elem(registry, *this) { }
+			_elem(registry, *this),
+			_trace_control_area(_ram, rm),
+			_trace_sources(trace_sources) { }
 
 		~Vm_session_component()
 		{
@@ -311,7 +369,9 @@ class Core::Vm_session_component
 
 			return _vcpu_alloc.create(_vcpus, _id, _ep, _ram,
 			                          _local_rm, _mapped_ram,
-			                          vcpu_location).template convert<Create_vcpu_result>(
+			                          _trace_control_area, _trace_sources,
+			                          vcpu_location,
+			                          label()).template convert<Create_vcpu_result>(
 				[&] (auto &a) {
 					return a.obj.constructed().template convert<Create_vcpu_result>(
 					[&] (auto) {
