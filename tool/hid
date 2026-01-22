@@ -707,8 +707,7 @@ proc _hid_as_tree_recursively { indent hid { last 0 } { one_attr_per_line 0 } } 
 
 
 proc print_hid_as_tree { out_fd hid } {
-	puts $out_fd [_hid_as_tree_recursively "" $hid]
-	puts $out_fd "-"
+	puts $out_fd "[_hid_as_tree_recursively {} $hid]-"
 }
 
 
