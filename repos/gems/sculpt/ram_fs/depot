@@ -1,10 +1,9 @@
-<config>
-	<vfs>
-		<ram/>
-		<dir name="depot">
-			<ram/>
-			<tar name="depot.tar"/>
-		</dir>
-	</vfs>
-	<default-policy root="/" writeable="yes"/>
-</config>
+config
++ vfs
+  + ram
+  + dir depot
+    + ram
+    + tar depot.tar
+
++ default-policy | root: / | writeable: yes
+-

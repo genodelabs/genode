@@ -1,2 +1,2 @@
-<launcher pkg="system_clock-dummy">
-</launcher>
+launcher | pkg: system_clock-dummy
+-

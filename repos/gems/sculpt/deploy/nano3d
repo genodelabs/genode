@@ -12,12 +12,12 @@ config | arch: | info: software-rendering example
   + config
   | + libc
   | + vfs
-  | | + rom genode_logo.png
-  | | + rom grid.png
+  |   + rom genode_logo.png
+  |   + rom grid.png
   | + fill | color: #122334
   | + image | png: grid.png        | alpha: 200 | tiled: yes
   | + image | png: genode_logo.png | alpha: 150 | anchor: bottom_right
-  |                                  xpos:  -20 | ypos: -20
+  |                                | xpos:  -20 | ypos: -20
   + route
     + service Gui | + parent | label: backdrop
     + any-service
@@ -27,21 +27,14 @@ config | arch: | info: software-rendering example
 + start dynamic_rom | ram: 4M | pkg: dynamic_rom
   + config | verbose: yes
     + rom nano3d.config
-      + inline | description: initial state
-      | + config | painter: textures
-      + sleep | milliseconds: 1000
-      |
-      + inline | description: RGBA shading
-      | + config | painter: shaded
-      + sleep | milliseconds: 1000
-      |
-      + inline | description: switch to cube
-      | + config | painter: shaded | shape: cube
-      + sleep | milliseconds: 1000
-      |
-      + inline | description: texturing
-      | + config | painter: textured | shape: cube
-      + sleep | milliseconds: 1000
+      + inline | description: initial state  | + config | painter: textures
+      + sleep  | milliseconds: 1000
+      + inline | description: RGBA shading   | + config | painter: shaded
+      + sleep  | milliseconds: 1000
+      + inline | description: switch to cube | + config | painter: shaded   | shape: cube
+      + sleep  | milliseconds: 1000
+      + inline | description: texturing      | + config | painter: textured | shape: cube
+      + sleep  | milliseconds: 1000
 
 + start nano3d | pkg: unconfigured_nano3d
   + affinity | xpos: 1 | width: 1

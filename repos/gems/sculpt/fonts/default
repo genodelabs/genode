@@ -1,26 +1,22 @@
-<config copy="yes" paste="yes">
-	<vfs>
-		<rom name="Vera.ttf"/>
-		<rom name="VeraMono.ttf"/>
-		<dir name="fonts">
-			<dir name="title">
-				<ttf name="regular" path="/Vera.ttf" size_px="18" cache="256K"/>
-			</dir>
-			<dir name="text">
-				<ttf name="regular" path="/Vera.ttf" size_px="14" cache="256K"/>
-			</dir>
-			<dir name="annotation">
-				<ttf name="regular" path="/Vera.ttf" size_px="11" cache="256K"/>
-			</dir>
-			<dir name="monospace">
-				<ttf name="regular" path="/VeraMono.ttf" size_px="14" cache="256K"/>
-			</dir>
-		</dir>
-	</vfs>
+config | copy: yes | paste: yes
 
-	<!-- policy when using this file as fonts-fs config -->
-	<default-policy root="/fonts" />
++ vfs
+  + rom Vera.ttf
+  + rom VeraMono.ttf
+  + dir fonts
+    + dir title      | + ttf regular | path: /Vera.ttf     | size_px: 18 | cache: 256K
+    + dir text       | + ttf regular | path: /Vera.ttf     | size_px: 14 | cache: 256K
+    + dir annotation | + ttf regular | path: /Vera.ttf     | size_px: 11 | cache: 256K
+    + dir monospace  | + ttf regular | path: /VeraMono.ttf | size_px: 14 | cache: 256K
 
-	<!-- color definition when this file is used as terminal config -->
-	<palette> <color index="0" value="#1c2232"/> </palette>
-</config>
++ default-policy | root: /fonts
+  .
+  . policy when using this file as fonts-fs config
+  .
+
++ palette
+  .
+  . color definition when this file is used as terminal config
+  .
+  + color | index: 0 | value: #1c2232
+-

@@ -1,3 +1,5 @@
-<wifi scan_interval="5" rfkill="no" verbose="no">
-	<!-- <network ssid="" protection="NONE" passphrase=""/> -->
-</wifi>
+wifi | scan_interval: 5 | rfkill: no | verbose: no
+x network | ssid:
+            protection: NONE
+            passphrase:
+-

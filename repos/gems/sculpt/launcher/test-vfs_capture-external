@@ -1,10 +1,10 @@
-<launcher pkg="test-vfs_capture">
-	<config period_ms="20" width="640" height="480">
-		<vfs><dir name="dev"><capture/></dir></vfs>
-		<view xpos="960" ypos="540"/>
-	</config>
-	<route>
-		<service name="Capture"> <child name="external"/> </service>
-		<any-service> <parent/> </any-service>
-	</route>
-</launcher>
+launcher | pkg: test-vfs_capture
+
++ config | period_ms: 20 | width: 640 | height: 480
+  + vfs | + dir dev | + capture
+  + view | xpos: 960 | ypos: 540
+
++ route
+  + service Capture | + child external
+  + any-service     | + parent
+-

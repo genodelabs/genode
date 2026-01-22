@@ -1,5 +1,4 @@
-<launcher pkg="pc_nic">
-	<route>
-		<service name="Platform"> <parent label="nic"/> </service>
-	</route>
-</launcher>
+launcher | pkg: pc_nic
++ route
+  + service Platform | + parent | label: nic
+-

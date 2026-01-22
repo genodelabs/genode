@@ -1,22 +1,9 @@
-<launcher pkg="acpica" priority="-2">
-	<route>
-		<service name="IO_MEM">
-			<parent/>
-		</service>
-		<service name="IO_PORT">
-			<parent/>
-		</service>
-		<service name="Platform">
-			<parent label="acpica"/>
-		</service>
-		<service name="ROM" label="platform_info">
-			<parent label="platform_info"/>
-		</service>
-		<service name="ROM" label="system">
-			<parent label="config -> managed/system"/>
-		</service>
-		<service name="Report">
-			<parent/>
-		</service>
-	</route>
-</launcher>
+launcher | pkg: acpica | priority: -2
++ route
+  + service IO_MEM                     | + parent
+  + service IO_PORT                    | + parent
+  + service Platform                   | + parent | label: acpica
+  + service ROM | label: platform_info | + parent | label: platform_info
+  + service ROM | label: system        | + parent | label: config -> managed/system
+  + service Report                     | + parent
+-

@@ -1,6 +1,8 @@
-<config verbose="no" match_labels="yes">
-	<flow from="leitzentrale" to="desktop" />
-	<flow from="desktop" to="leitzentrale" />
-	<policy label_prefix="leitzentrale" domain="leitzentrale"/>
-	<default-policy domain="desktop"/>
-</config>
+config | verbose: no | match_labels: yes
+
++ flow | from: leitzentrale | to: desktop
++ flow | from: desktop      | to: leitzentrale
+
++ policy | label_prefix: leitzentrale | domain: leitzentrale
++ default-policy                      | domain: desktop
+-

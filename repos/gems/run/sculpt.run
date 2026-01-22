@@ -157,9 +157,79 @@ import_from_depot [depot_user]/src/[base_src] \
 proc log_route { } {
 
 	if {[log_core]} {
-		return {<service name="LOG"> <parent/> </service>} }
+		return {+ service LOG | + parent} }
 
-	return {<service name="LOG"> <child name="log"/> </service>}
+	return {+ service LOG | + child log}
+}
+
+# each line in the following definitions must be indented with 4 spaces
+
+set driver_routes(pc) {
+    + service ROM | label: nic               | + parent | label: pc_nic
+    + service ROM | label: wifi.lib.so       | + parent | label: pc_wifi.lib.so
+    + service ROM | label: wifi_firmware.tar | + parent | label: pc_wifi_firmware.tar
+    + service ROM | label: usb               | + parent | label: pc_usb_host
+}
+
+set driver_routes(mnt_reform2) {
+    + service ROM | label: fb                | + parent | label: imx8mq_fb
+    + service ROM | label: fb.dtb            | + parent | label: imx8mq_fb-mnt_reform2.dtb
+    + service ROM | label: mmc               | + parent | label: imx8mq_sd_card
+    + service ROM | label: mmc.dtb           | + parent | label: imx8mq_sd_card-mnt_reform2.dtb
+    + service ROM | label: nic               | + parent | label: fec_nic
+    + service ROM | label: nic.dtb           | + parent | label: fec_nic-mnt_reform2.dtb
+    + service ROM | label: usb               | + parent | label: imx8m_usb_host
+    + service ROM | label: usb.dtb           | + parent | label: imx8m_usb_host-mnt_reform2.dtb
+    + service ROM | label: wifi.lib.so       | + parent | label: imx8mq_wifi.lib.so
+    + service ROM | label: wifi_firmware.tar | + parent | label: imx8mq_wifi_firmware.tar
+    + service I2c                            | + child drivers
+}
+
+set driver_routes(mnt_pocket) {
+    + service ROM | label: fb                | + parent | label: imx8mq_fb
+    + service ROM | label: fb.dtb            | + parent | label: imx8mq_fb-mnt_pocket.dtb
+    + service ROM | label: mmc               | + parent | label: imx8mq_sd_card
+    + service ROM | label: mmc.dtb           | + parent | label: imx8mq_sd_card-mnt_pocket.dtb
+    + service ROM | label: nic               | + parent | label: stmmac_nic
+    + service ROM | label: nic.dtb           | + parent | label: stmmac_nic-mnt_pocket.dtb
+    + service ROM | label: usb               | + parent | label: imx8m_usb_host
+    + service ROM | label: usb.dtb           | + parent | label: imx8m_usb_host-mnt_pocket.dtb
+    + service ROM | label: wifi.dtb          | + parent | label: wifi-mnt_pocket.dtb
+    + service ROM | label: wifi.lib.so       | + parent | label: imx8mp_qcacld2_wifi.lib.so
+    + service ROM | label: wifi_firmware.tar | + parent | label: imx8mp_qcacld2_wifi_firmware.tar
+    + service I2c                            | + child drivers
+}
+
+set driver_routes(imx8q_evk) {
+    + service ROM | label: nic     | + parent | label: fec_nic
+    + service ROM | label: nic.dtb | + parent | label: fec_nic-imx8q_evk.dtb
+}
+
+set driver_routes(pinephone) {
+    + service ROM | label: wifi.lib.so       | + parent | label: a64_wifi.lib.so
+    + service ROM | label: wifi.dtb          | + parent | label: wifi-pinephone.dtb
+    + service ROM | label: wifi_firmware.tar | + parent | label: a64_wifi_firmware.tar
+    + service ROM | label: usb               | + parent | label: a64_usb_host
+    + service ROM | label: usb.dtb           | + parent | label: usb-pinephone.dtb
+    + service ROM | label: mmc               | + parent | label: a64_sd_card
+    + service ROM | label: mmc.dtb           | + parent | label: sd_card-pinephone.dtb
+    + service ROM | label: fb                | + parent | label: de_fb
+    + service ROM | label: fb.dtb            | + parent | label: de-pinephone.dtb
+    + service ROM | label: touch             | + parent | label: goodix_touch
+    + service ROM | label: touch.dtb         | + parent | label: goodix-pinephone.dtb
+    + service IRQ | label_prefix: touch ->   | + child drivers | label: runtime -> touch -> PH4
+}
+
+set driver_routes(imx8mp_armstone) {
+    + service ROM | label: fb      | + parent | label: imx8mp_armstone_fb
+    + service ROM | label: fb.dtb  | + parent | label: imx8mp_armstone_fb-imx8mp_armstone.dtb
+    + service ROM | label: mmc     | + parent | label: imx8mq_sd_card
+    + service ROM | label: mmc.dtb | + parent | label: imx8mq_sd_card-imx8mp_armstone.dtb
+    + service ROM | label: nic     | + parent | label: fec_nic
+    + service ROM | label: nic.dtb | + parent | label: fec_nic-imx8mp_armstone.dtb
+    + service ROM | label: usb     | + parent | label: imx8m_usb_host
+    + service ROM | label: usb.dtb | + parent | label: imx8m_usb_host-imx8mp_armstone.dtb
+    + service I2c                  | + child drivers
 }
 
 
@@ -168,556 +238,384 @@ proc log_route { } {
 #
 proc driver_routes { } {
 
-	set result(pc) {
-		<service name="ROM" label="nic">               <parent label="pc_nic"/> </service>
-		<service name="ROM" label="wifi.lib.so">       <parent label="pc_wifi.lib.so"/> </service>
-		<service name="ROM" label="wifi_firmware.tar"> <parent label="pc_wifi_firmware.tar"/> </service>
-		<service name="ROM" label="usb">               <parent label="pc_usb_host"/> </service>
-	}
+	global driver_routes
 
-	set result(mnt_reform2) {
-		<service name="ROM" label="fb">                <parent label="imx8mq_fb"/> </service>
-		<service name="ROM" label="fb.dtb">            <parent label="imx8mq_fb-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="mmc">               <parent label="imx8mq_sd_card"/> </service>
-		<service name="ROM" label="mmc.dtb">           <parent label="imx8mq_sd_card-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="nic">               <parent label="fec_nic"/> </service>
-		<service name="ROM" label="nic.dtb">           <parent label="fec_nic-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="usb">               <parent label="imx8m_usb_host"/> </service>
-		<service name="ROM" label="usb.dtb">           <parent label="imx8m_usb_host-mnt_reform2.dtb"/> </service>
-		<service name="ROM" label="wifi.lib.so">       <parent label="imx8mq_wifi.lib.so"/> </service>
-		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mq_wifi_firmware.tar"/> </service>
-		<service name="I2c"> <child name="drivers"/> </service>
-	}
-
-	set result(mnt_pocket) {
-		<service name="ROM" label="fb">                <parent label="imx8mq_fb"/> </service>
-		<service name="ROM" label="fb.dtb">            <parent label="imx8mq_fb-mnt_pocket.dtb"/> </service>
-		<service name="ROM" label="mmc">               <parent label="imx8mq_sd_card"/> </service>
-		<service name="ROM" label="mmc.dtb">           <parent label="imx8mq_sd_card-mnt_pocket.dtb"/> </service>
-		<service name="ROM" label="nic">               <parent label="stmmac_nic"/> </service>
-		<service name="ROM" label="nic.dtb">           <parent label="stmmac_nic-mnt_pocket.dtb"/> </service>
-		<service name="ROM" label="usb">               <parent label="imx8m_usb_host"/> </service>
-		<service name="ROM" label="usb.dtb">           <parent label="imx8m_usb_host-mnt_pocket.dtb"/> </service>
-		<service name="ROM" label="wifi.dtb">          <parent label="wifi-mnt_pocket.dtb"/> </service>
-		<service name="ROM" label="wifi.lib.so">       <parent label="imx8mp_qcacld2_wifi.lib.so"/> </service>
-		<service name="ROM" label="wifi_firmware.tar"> <parent label="imx8mp_qcacld2_wifi_firmware.tar"/> </service>
-		<service name="I2c"> <child name="drivers"/> </service>
-	}
-
-	set result(imx8q_evk) {
-		<service name="ROM" label="nic">     <parent label="fec_nic"/> </service>
-		<service name="ROM" label="nic.dtb"> <parent label="fec_nic-imx8q_evk.dtb"/> </service>
-	}
-
-	set result(pinephone) {
-		<service name="ROM" label="wifi.lib.so">       <parent label="a64_wifi.lib.so"/> </service>
-		<service name="ROM" label="wifi.dtb">          <parent label="wifi-pinephone.dtb"/> </service>
-		<service name="ROM" label="wifi_firmware.tar"> <parent label="a64_wifi_firmware.tar"/> </service>
-		<service name="ROM" label="usb">               <parent label="a64_usb_host"/> </service>
-		<service name="ROM" label="usb.dtb">           <parent label="usb-pinephone.dtb"/> </service>
-		<service name="ROM" label="mmc">               <parent label="a64_sd_card"/> </service>
-		<service name="ROM" label="mmc.dtb">           <parent label="sd_card-pinephone.dtb"/> </service>
-		<service name="ROM" label="fb">                <parent label="de_fb"/> </service>
-		<service name="ROM" label="fb.dtb">            <parent label="de-pinephone.dtb"/> </service>
-		<service name="ROM" label="touch">             <parent label="goodix_touch"/> </service>
-		<service name="ROM" label="touch.dtb">         <parent label="goodix-pinephone.dtb"/> </service>
-		<service name="IRQ" label_prefix="touch ->"> <child name="drivers" label="runtime -> touch -> PH4"/> </service>
-	}
-
-	set result(imx8mp_armstone) {
-		<service name="ROM" label="fb">                <parent label="imx8mp_armstone_fb"/> </service>
-		<service name="ROM" label="fb.dtb">            <parent label="imx8mp_armstone_fb-imx8mp_armstone.dtb"/> </service>
-		<service name="ROM" label="mmc">               <parent label="imx8mq_sd_card"/> </service>
-		<service name="ROM" label="mmc.dtb">           <parent label="imx8mq_sd_card-imx8mp_armstone.dtb"/> </service>
-		<service name="ROM" label="nic">               <parent label="fec_nic"/> </service>
-		<service name="ROM" label="nic.dtb">           <parent label="fec_nic-imx8mp_armstone.dtb"/> </service>
-		<service name="ROM" label="usb">               <parent label="imx8m_usb_host"/> </service>
-		<service name="ROM" label="usb.dtb">           <parent label="imx8m_usb_host-imx8mp_armstone.dtb"/> </service>
-		<service name="I2c"> <child name="drivers"/> </service>
-	}
-
-	if {[info exists result([board])]} {
-		return $result([board]); }
+	if {[info exists driver_routes([board])]} {
+		return $driver_routes([board]); }
 
 	return "";
 }
 
 
-proc log_core_start_node { } {
+proc log_core_start_node { } { if {![have_board linux]} { return {
 
-	if {[have_board linux]} return
-
-	return {
-	<start name="log_core" priority="-1">
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" label="log"> <parent label="core_log"/>       </service>
-			<service name="Timer">           <child name="timer"/>            </service>
-			<service name="LOG" label="log"> <child name="log" label="core"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>}
-}
++ start log_core | priority: -1
+  + config | period_ms: 2000
+  + route
+    + service ROM | label: log | + parent | label: core_log
+    + service Timer            | + child timer
+    + service LOG | label: log | + child log | label: core
+    + any-service              | + parent
+} } }
 
 
-proc log_kernel_start_node { } {
+proc log_kernel_start_node { } { if {[have_spec nova]} { return {
 
-	if {![have_spec nova]} return
-
-	return {
-	<start name="log_kernel" priority="-1">
-		<binary name="log_core"/>
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" label="log"> <parent label="kernel_log"/>       </service>
-			<service name="Timer">           <child name="timer"/>              </service>
-			<service name="LOG" label="log"> <child name="log" label="kernel"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>}
-}
++ start log_kernel | priority: -1
+  + binary log_core
+  + config | period_ms: 2000
+  + route
+    + service ROM | label: log | + parent | label: kernel_log
+    + service Timer            | + child timer
+    + service LOG | label: log | + child log | label: kernel
+    + any-service              | + parent
+} } }
 
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="TRACE"/>
-		<service name="VM"/>
-	</parent-provides>
+config | prio_levels: 2
 
-	<affinity-space width="2" height="1"/>
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service TRACE
+  + service VM
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ affinity-space | width: 2 | height: 1
 
-	<default caps="100" ram="1M"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
++ default | caps: 100 | ram: 1M
 
-	<resource name="RAM" preserve="2M"/>
++ resource RAM | preserve: 2M
 
-	<start name="timer" priority="0">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start timer | priority: 0
+  + provides | + service Timer
 
-	<start name="report_rom" priority="-1" ram="2M">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no">
-			<policy label="leitzentrale_config -> leitzentrale"
-			        report="global_keys_handler -> leitzentrale"/>
-			<policy label="leitzentrale -> manager -> leitzentrale"
-			        report="global_keys_handler -> leitzentrale"/>
-			<policy label="pointer -> hover" report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"
-			        report="global_keys_handler -> leitzentrale"/>
-			<policy label="pointer -> shape"    report="shape"/>
-			<policy label="clipboard -> focus"  report="nitpicker -> focus"/>
-			<policy label="runtime -> capslock" report="global_keys_handler -> capslock"/>
-			<policy label="runtime -> numlock"  report="global_keys_handler -> numlock"/>
-			<policy label="numlock_remap_rom -> numlock" report="global_keys_handler -> numlock"/>
-			<policy label="event_filter -> capslock" report="global_keys_handler -> capslock"/>
-			<policy label="runtime -> clicked"  report="nitpicker -> clicked"/>
-			<policy label="leitzentrale -> manager -> nitpicker_focus" report="nitpicker -> focus"/>
-			<policy label="leitzentrale -> manager -> nitpicker_hover" report="nitpicker -> hover"/>
-			<policy label="nit_focus -> leitzentrale"
-			        report="global_keys_handler -> leitzentrale"/>
-			<policy label="nit_focus -> slides"
-			        report="global_keys_handler -> slides"/>
-			<policy label="nit_focus -> hover" report="nitpicker -> hover"/>
-			<policy label="slides_gui_fb_config -> slides"
-			        report="global_keys_handler -> slides"/>
-		</config>
-	</start>
++ start report_rom | priority: -1 | ram: 2M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label: leitzentrale_config -> leitzentrale        | report: global_keys_handler -> leitzentrale
+    + policy | label: leitzentrale -> manager -> leitzentrale    | report: global_keys_handler -> leitzentrale
+    + policy | label: pointer -> hover                           | report: nitpicker -> hover
+    + policy | label: pointer -> xray                            | report: global_keys_handler -> leitzentrale
+    + policy | label: pointer -> shape                           | report: shape
+    + policy | label: clipboard -> focus                         | report: nitpicker -> focus
+    + policy | label: runtime -> capslock                        | report: global_keys_handler -> capslock
+    + policy | label: runtime -> numlock                         | report: global_keys_handler -> numlock
+    + policy | label: numlock_remap_rom -> numlock               | report: global_keys_handler -> numlock
+    + policy | label: event_filter -> capslock                   | report: global_keys_handler -> capslock
+    + policy | label: runtime -> clicked                         | report: nitpicker -> clicked
+    + policy | label: leitzentrale -> manager -> nitpicker_focus | report: nitpicker -> focus
+    + policy | label: leitzentrale -> manager -> nitpicker_hover | report: nitpicker -> hover
+    + policy | label: nit_focus -> leitzentrale                  | report: global_keys_handler -> leitzentrale
+    + policy | label: nit_focus -> slides                        | report: global_keys_handler -> slides
+    + policy | label: nit_focus -> hover                         | report: nitpicker -> hover
+    + policy | label: slides_gui_fb_config -> slides             | report: global_keys_handler -> slides
 
-	<start name="report_logger" priority="-1">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
++ start report_logger | priority: -1
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
 
-	<start name="config_fs" caps="200" ram="12M" priority="-1">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<ram/>
-				<import> <tar name="initial_config.tar"/> </import>
-			</vfs>
-			<policy label_prefix="config_fs_rom ->" root="/"/>
-			<policy label_prefix="rw ->"            root="/" writeable="yes"/>
-		</config>
-	</start>
++ start config_fs | caps: 200 | ram: 12M | priority: -1
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + vfs
+    | + ram
+    | + import
+    |   + tar initial_config.tar
+    + policy | label_prefix: config_fs_rom -> | root: /
+    + policy | label_prefix: rw -> | root: / | writeable: yes
 
-	<start name="config_fs_rom" ram="10M" priority="-1">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="File_system"> <child name="config_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start config_fs_rom | ram: 10M | priority: -1
+  + binary fs_rom
+  + provides | + service ROM
+  + route
+    + service File_system | + child config_fs
+    + any-service         | + parent
 
-	<start name="report_fs_rom" ram="3M" priority="-1">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="File_system"> <child name="report_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start report_fs_rom | ram: 3M | priority: -1
+  + binary fs_rom
+  + provides | + service ROM
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
 
-	<start name="report_fs" ram="16M" priority="-1">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<ram_log name="log" limit="1M"/>
-				<ram/>
-				<import>
-					<dir name="runtime">
-						<inline name="state"><empty/></inline>
-						<dir name="nic_router"> <inline name="state">    <empty/></inline> </dir>
-						<dir name="update">     <inline name="state">    <empty/></inline> </dir>
-						<dir name="depot_query"><inline name="blueprint"><empty/></inline> </dir>
-					</dir>
-				</import>
-			</vfs>
-			<policy label_prefix="fs_report ->"     root="/" writeable="yes"/>
-			<policy label_prefix="log_terminal ->"  root="/" writeable="yes"/>
-			<policy label_prefix="report_fs_rom ->" root="/"/>
-			<policy label_prefix="ro ->"            root="/"/>
-		</config>
-	</start>
++ start report_fs | ram: 16M | priority: -1
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + vfs
+    | + ram_log log | limit: 1M
+    | + ram
+    | + import
+    |   + dir runtime
+    |     + inline state | + empty
+    |     + dir nic_router  | + inline state     | + empty
+    |     + dir update      | + inline state     | + empty
+    |     + dir depot_query | + inline blueprint | + empty
+    |
+    + policy | label_prefix: fs_report ->     | root: / | writeable: yes
+    + policy | label_prefix: log_terminal ->  | root: / | writeable: yes
+    + policy | label_prefix: report_fs_rom -> | root: /
+    + policy | label_prefix: ro ->            | root: /
 
-	<start name="log_terminal" ram="2M" priority="-1">
-		<binary name="file_terminal"/>
-		<provides> <service name="Terminal"/> </provides>
-		<config>
-			<default-policy filename="log" />
-			<vfs> <dir name="dev"> <log/> </dir> <fs/> </vfs>
-			<libc stdout="/dev/log"/>
-		</config>
-		<route>
-			<service name="File_system"> <child name="report_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start log_terminal | ram: 2M | priority: -1
+  + binary file_terminal
+  + provides | + service Terminal
+  + config
+  | + default-policy | filename: log
+  | + vfs
+  |   + dir dev | + log
+  |   + fs
+  | + libc | stdout: /dev/log
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
 
-	<start name="log" priority="-1">
-		<binary name="terminal_log"/>
-		<provides> <service name="LOG"/> </provides>
-		<config/>
-		<route>
-			<service name="Terminal"> <child name="log_terminal"/> </service>
-			<service name="Timer">    <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start log | priority: -1
+  + binary terminal_log
+  + provides | + service LOG
+  + config
+  + route
+    + service Terminal | + child log_terminal
+    + service Timer    | + child timer
+    + any-service      | + parent
 
-	} [log_core_start_node] {
-	} [log_kernel_start_node] {
+} [log_core_start_node] {
+} [log_kernel_start_node] {
 
-	<start name="fs_report" ram="2M" priority="-1">
-		<provides> <service name="Report"/> </provides>
-		<config> <vfs> <fs/> </vfs> </config>
-		<route>
-			<service name="File_system"> <child name="report_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start fs_report | ram: 2M | priority: -1
+  + provides | + service Report
+  + config | + vfs | + fs
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
 
-	<start name="drivers" caps="4850" ram="200M" priority="-1" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			} [log_route] {
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="drivers"/> </service>
-			<service name="ROM" label_last="gpu.config">
-				<child name="config_fs_rom" label="gpu"/> </service>
-			<service name="ROM" label_last="system">
-				<child name="config_fs_rom" label="managed/system"/> </service>
-			<service name="ROM" label_last="modem.config">
-				<child name="config_fs_rom" label="managed/modem"/> </service>
-			<service name="ROM" label_last="audio.config">
-				<child name="config_fs_rom" label="managed/audio"/> </service>
-			<service name="ROM" label_last="sleep_states">
-				<child name="report_fs_rom" label="runtime/acpi_support/sleep_states"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="event_filter"/> </service>
-			<service name="Report">  <child name="fs_report"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-		<provides>
-			<service name="Platform"/>
-			<service name="Pin_state"/>
-			<service name="Pin_control"/>
-			<service name="I2c"/>
-			<service name="IRQ"/>
-		</provides>
-	</start>
++ start drivers | caps: 4850 | ram: 200M | priority: -1 | managing_system: yes
+  + binary init
+  + route
+    } [log_route] {
+    + service ROM | label: config            | + child config_fs_rom | label: drivers
+    + service ROM | label_last: gpu.config   | + child config_fs_rom | label: gpu
+    + service ROM | label_last: system       | + child config_fs_rom | label: managed/system
+    + service ROM | label_last: modem.config | + child config_fs_rom | label: managed/modem
+    + service ROM | label_last: audio.config | + child config_fs_rom | label: managed/audio
+    + service ROM | label_last: sleep_states | + child report_fs_rom | label: runtime/acpi_support/sleep_states
+    + service Timer                          | + child timer
+    + service Capture                        | + child nitpicker
+    + service Event                          | + child event_filter
+    + service Report                         | + child fs_report
+    + any-service                            | + parent
+  + provides
+    + service Platform
+    + service Pin_state
+    + service Pin_control
+    + service I2c
+    + service IRQ
 
-	<start name="nitpicker" caps="1000" ram="18M" priority="-1">
-		<affinity xpos="1" width="1"/> <!-- decouple nitpicker from boot CPU -->
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="managed/nitpicker"/> </service>
-			<service name="ROM" label="focus">
-				<child name="nit_focus"/> </service>
-			<service name="Report" label="panorama">
-				<child name="fs_report"/> </service>
-			<service name="Report" label="keystate">
-				<child name="report_logger"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Timer">  <child name="timer"/>      </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start nitpicker | caps: 1000 | ram: 18M | priority: -1
+  + affinity | xpos: 1 | width: 1 | . decouple nitpicker from boot CPU
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + route
+    + service ROM | label: config      | + child config_fs_rom | label: managed/nitpicker
+    + service ROM | label: focus       | + child nit_focus
+    + service Report | label: panorama | + child fs_report
+    + service Report | label: keystate | + child report_logger
+    + service Report                   | + child report_rom
+    + service Timer                    | + child timer
+    + any-service                      | + parent
 
-	<!-- toggle key mappings depending on the numlock state -->
-	<start name="numlock_remap_rom" priority="-1">
-		<binary name="rom_filter"/>
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="numlock_remap"/> </service>
-			<service name="ROM" label="numlock"> <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start numlock_remap_rom | priority: -1
+  .
+  . toggle key mappings depending on the numlock state
+  .
+  + binary rom_filter
+  + provides | + service ROM
+  + route
+    + service ROM | label: config  | + child config_fs_rom | label: numlock_remap
+    + service ROM | label: numlock | + child report_rom
+    + any-service                  | + parent
 
-	<start name="event_filter" caps="120" ram="2M" priority="-1">
-		<provides> <service name="Event"/> </provides>
-		<route>
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="managed/event_filter"/> </service>
-			<service name="ROM" label_prefix="keyboard/">
-				<child name="config_fs_rom"/> </service>
-			<service name="ROM" label="numlock.remap"> <child name="numlock_remap_rom"/> </service>
-			<service name="ROM" label="capslock">      <child name="report_rom"/> </service>
-			<service name="ROM">   <parent/> </service>
-			<service name="PD">    <parent/> </service>
-			<service name="CPU">   <parent/> </service>
-			<service name="LOG">   <parent/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Event"> <child name="nitpicker"/> </service>
-		</route>
-	</start>
++ start event_filter | caps: 120 | ram: 2M | priority: -1
+  + provides | + service Event
+  + route
+    + service ROM | label: config           | + child config_fs_rom | label: managed/event_filter
+    + service ROM | label_prefix: keyboard/ | + child config_fs_rom
+    + service ROM | label: numlock.remap    | + child numlock_remap_rom
+    + service ROM | label: capslock         | + child report_rom
+    + service ROM                           | + parent
+    + service PD                            | + parent
+    + service CPU                           | + parent
+    + service LOG                           | + parent
+    + service Timer                         | + child timer
+    + service Event                         | + child nitpicker
 
-	<!-- override user focus when leitzentrale is active -->
-	<start name="nit_focus" priority="-1">
-		<binary name="rom_filter"/>
-		<provides> <service name="ROM"/> </provides>
-		<config>
-			<input name="lockscreen_enabled" rom="hover" node="hover">
-				<attribute name="label" /> </input>
-			<input name="leitzentrale_enabled" rom="leitzentrale" node="leitzentrale">
-				<attribute name="enabled" /> </input>
-			<input name="slides_enabled" rom="slides" node="slides">
-				<attribute name="enabled" /> </input>
-			<output node="focus">
-				<if>
-					<has_value input="lockscreen_enabled" value="lock_screen" />
-					<then>
-						<attribute name="label" value="lock_screen"/>
-					</then>
-					<else>
-						<if>
-							<has_value input="leitzentrale_enabled" value="yes" />
-							<then>
-								<attribute name="label" value="leitzentrale -> manager -> fader -> "/>
-							</then>
-							<else>
-								<if>
-									<has_value input="slides_enabled" value="yes" />
-									<then>
-										<attribute name="label" value="slides"/>
-									</then>
-									<else>
-										<attribute name="label" value="runtime -> focus"/>
-									</else>
-								</if>
-							</else>
-						</if>
-					</else>
-				</if>
-			</output>
-		</config>
-		<route>
-			<service name="ROM" label="hover">        <child name="report_rom"/> </service>
-			<service name="ROM" label="leitzentrale"> <child name="report_rom"/> </service>
-			<service name="ROM" label="slides">       <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start nit_focus | priority: -1
+  .
+  . override user focus when leitzentrale is active
+  .
+  + binary rom_filter
+  + provides | + service ROM
+  + config
+  | + input lockscreen_enabled   | rom: hover        | node: hover        | + attribute label
+  | + input leitzentrale_enabled | rom: leitzentrale | node: leitzentrale | + attribute enabled
+  | + input slides_enabled       | rom: slides       | node: slides       | + attribute enabled
+  | + output | node: focus
+  |   + if
+  |     + has_value | input: lockscreen_enabled | value: lock_screen
+  |     + then
+  |     | + attribute label | value: lock_screen
+  |     + else
+  |       + if
+  |         + has_value | input: leitzentrale_enabled | value: yes
+  |         + then
+  |         | + attribute label | value: leitzentrale -> manager -> fader ->
+  |         + else
+  |           + if
+  |             + has_value | input: slides_enabled | value: yes
+  |             + then
+  |             | + attribute label | value: slides
+  |             + else
+  |               + attribute label | value: runtime -> focus
+  + route
+    + service ROM | label: hover        | + child report_rom
+    + service ROM | label: leitzentrale | + child report_rom
+    + service ROM | label: slides       | + child report_rom
+    + any-service                       | + parent
 
-	<start name="pointer" ram="2M" priority="-1">
-		<provides> <service name="Report"/> </provides>
-		<config shapes="yes"/>
-		<route>
-			<service name="Gui"> <child name="nitpicker"/>  </service>
-			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
-			<service name="ROM" label="xray">  <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start pointer | ram: 2M | priority: -1
+  + provides | + service Report
+  + config | shapes: yes
+  + route
+    + service Gui                | + child nitpicker
+    + service ROM | label: hover | + child report_rom
+    + service ROM | label: xray  | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="global_keys_handler" priority="-1">
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Gui">    <child name="nitpicker"/>  </service>
-			<service name="Timer">  <child name="timer"/>      </service>
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="global_keys"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start global_keys_handler | priority: -1
+  + route
+    + service Report              | + child report_rom
+    + service Gui                 | + child nitpicker
+    + service Timer               | + child timer
+    + service ROM | label: config | + child config_fs_rom | label: global_keys
+    + any-service                 | + parent
 
-	<start name="leitzentrale_config" priority="-1">
-		<binary name="rom_filter"/>
-		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="ROM" label="leitzentrale"> <child name="report_rom"/> </service>
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="leitzentrale"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start leitzentrale_config | priority: -1
+  + binary rom_filter
+  + provides | + service ROM
+  + route
+    + service ROM | label: leitzentrale | + child report_rom
+    + service ROM | label: config       | + child config_fs_rom | label: leitzentrale
+    + any-service                       | + parent
 
-	<start name="clipboard" ram="2M" priority="-1">
-		<provides>
-			<service name="ROM"/> <service name="Report"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="clipboard"/> </service>
-			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start clipboard | ram: 2M | priority: -1
+  + provides
+    + service ROM
+    + service Report
+  + route
+    + service ROM | label: config | + child config_fs_rom | label: clipboard
+    + service ROM | label: focus  | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="leitzentrale" caps="2400" ram="203M" priority="-1">
-		<binary name="init"/>
-		<affinity xpos="1" width="1"/> <!-- decouple leitzentrale from boot CPU -->
-		<provides>
-			<service name="Gui"/>
-			<service name="Capture"/>
-			<service name="Event"/>
-			<service name="File_system"/> <!-- fonts -->
-			<service name="ROM"/>         <!-- view dialog ROMs -->
-			<service name="Report"/>      <!-- view hover reports -->
-		</provides>
-		<route>
-			} [log_route] {
-			<service name="ROM" label="config">
-				<child name="leitzentrale_config"/> </service>
-			<service name="ROM" label_prefix="report -> ">
-				<child name="report_fs_rom"/> </service>
-			<service name="ROM" label_prefix="manager -> report -> ">
-				<child name="report_fs_rom"/> </service>
-			<service name="ROM" label_prefix="manager -> config -> ">
-				<child name="config_fs_rom"/> </service>
-			<service name="ROM" label_prefix="config -> ">
-				<child name="config_fs_rom"/> </service>
-			<service name="ROM" label="manager -> nitpicker_focus">
-				<child name="report_rom"/> </service>
-			<service name="ROM" label="manager -> nitpicker_hover">
-				<child name="report_rom"/> </service>
-			<service name="ROM" label="manager -> leitzentrale">
-				<child name="report_rom"/> </service>
-			<service name="Report"> <child name="fs_report"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="File_system" label_prefix="config ->">
-				<child name="config_fs" identity="rw"/> </service>
-			<service name="File_system" label_prefix="report ->">
-				<child name="report_fs" identity="ro"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start leitzentrale | caps: 2400 | ram: 203M | priority: -1
+  + binary init
+  + affinity | xpos: 1 | width: 1 | . decouple leitzentrale from boot CPU
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+    + service File_system | . fonts
+    + service ROM         | . view dialog ROMs
+    + service Report      | . view hover reports
+  + route
+    } [log_route] {
+    + service ROM | label: config                      | + child leitzentrale_config
+    + service ROM | label_prefix: report ->            | + child report_fs_rom
+    + service ROM | label_prefix: manager -> report -> | + child report_fs_rom
+    + service ROM | label_prefix: manager -> config -> | + child config_fs_rom
+    + service ROM | label_prefix: config ->            | + child config_fs_rom
+    + service ROM | label: manager -> nitpicker_focus  | + child report_rom
+    + service ROM | label: manager -> nitpicker_hover  | + child report_rom
+    + service ROM | label: manager -> leitzentrale     | + child report_rom
+    + service Report                                   | + child fs_report
+    + service Gui                                      | + child nitpicker
+    + service Timer                                    | + child timer
+    + service File_system | label_prefix: config ->    | + child config_fs | identity: rw
+    + service File_system | label_prefix: report ->    | + child report_fs | identity: ro
+    + any-service                                      | + parent
 
-	<start name="terminal_monitor" ram="2M" priority="-1">
-		<binary name="terminal_crosslink"/>
-		<provides>
-			<service name="Terminal"/>
-		</provides>
-	</start>
++ start terminal_monitor | ram: 2M | priority: -1
+  + binary terminal_crosslink
+  + provides | + service Terminal
 
-	<start name="runtime" caps="50000" ram="32G" priority="-1" managing_system="yes">
-		<binary name="monitor"/>
-		<route>
-			<service name="ROM" label="config">
-				<child name="config_fs_rom" label="managed/runtime"/> </service>
-			<service name="ROM" label_prefix="config -> ">
-				<child name="config_fs_rom"/> </service>
-			<service name="ROM" label_prefix="report -> ">
-				<child name="report_fs_rom"/> </service>
-			<service name="ROM" label="capslock">
-				<child name="report_rom"/> </service>
-			<service name="ROM" label="numlock">
-				<child name="report_rom"/> </service>
-			<service name="ROM" label="clicked">
-				<child name="report_rom"/> </service>
-			<service name="File_system" label_prefix="config ->">
-				<child name="config_fs" identity="rw"/> </service>
-			<service name="File_system" label_prefix="report ->">
-				<child name="report_fs" identity="ro"/> </service>
-			<service name="Platform" label_prefix="acpica">
-				<child name="drivers" label="acpica"/> </service>
-			<service name="Platform"> <child name="drivers"/> </service>
-			<service name="Gui" label_prefix="leitzentrale">
-				<child name="leitzentrale"/> </service>
-			<service name="Gui" label="backdrop">
-				<child name="nitpicker" label="backdrop"/> </service>
-			<service name="Gui" label="lock_screen">
-				<child name="nitpicker" label="lock_screen"/> </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
-			<service name="Report" label="inspect -> clipboard">
-				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
-			<service name="Report" label="editor -> clipboard">
-				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
-			<service name="ROM" label="inspect -> clipboard">
-				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
-			<service name="ROM" label="editor -> clipboard">
-				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
-			<service name="Report" label_suffix="-> clipboard"> <child name="clipboard"/> </service>
-			<service name="ROM"    label_suffix="-> clipboard"> <child name="clipboard"/> </service>
-			<service name="Report" label_prefix="leitzentrale ->">
-				<child name="leitzentrale"/> </service>
-			<service name="ROM" label_prefix="leitzentrale ->">
-				<child name="leitzentrale"/> </service>
-			<service name="File_system" label_prefix="leitzentrale -> fonts ->">
-				<child name="leitzentrale" identity="fonts"/> </service>
-			<service name="Report"> <child name="fs_report"/> </service>
-			<service name="LOG" label="unlogged"> <parent/> </service>
-			} [log_route] [driver_routes] {
-			<service name="Event" label="leitzentrale"> <child name="leitzentrale"/> </service>
-			<service name="Event"> <child name="event_filter"/> </service>
-			<service name="Capture" label="leitzentrale"> <child name="leitzentrale"/> </service>
-			<service name="Capture">                      <child name="nitpicker"/>    </service>
-			<service name="Pin_state">   <child name="drivers"/> </service>
-			<service name="Pin_control"> <child name="drivers"/> </service>
-			<service name="Terminal"> <child name="terminal_monitor"/> </service>
-			<service name="TRACE" label="runtime"> <parent label="runtime -> "/> </service>
-			<service name="TRACE" label="global">  <parent label=""/>        </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-</config>}
++ start runtime | caps: 50000 | ram: 32G | priority: -1 | managing_system: yes
+  + binary monitor
+  + route
+    + service ROM | label: config                    | + child config_fs_rom | label: managed/runtime
+    + service ROM | label_prefix: config ->          | + child config_fs_rom
+    + service ROM | label_prefix: report ->          | + child report_fs_rom
+    + service ROM | label: capslock                  | + child report_rom
+    + service ROM | label: numlock                   | + child report_rom
+    + service ROM | label: clicked                   | + child report_rom
+    + service File_system | label_prefix: config ->  | + child config_fs | identity: rw
+    + service File_system | label_prefix: report ->  | + child report_fs | identity: ro
+    + service Platform | label_prefix: acpica        | + child drivers | label: acpica
+    + service Platform                               | + child drivers
+    + service Gui | label_prefix: leitzentrale       | + child leitzentrale
+    + service Gui | label: backdrop                  | + child nitpicker | label: backdrop
+    + service Gui | label: lock_screen               | + child nitpicker | label: lock_screen
+    + service Gui                                    | + child nitpicker
+    + service Timer                                  | + child timer
+    + service Report | label_suffix: -> shape        | + child pointer
+    + service Report | label: inspect -> clipboard   | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
+    + service Report | label: editor -> clipboard    | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
+    + service ROM | label: inspect -> clipboard      | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
+    + service ROM | label: editor -> clipboard       | + child clipboard | label: leitzentrale -> manager -> fader ->  -> clipboard
+    + service Report | label_suffix: -> clipboard    | + child clipboard
+    + service ROM | label_suffix: -> clipboard       | + child clipboard
+    + service Report | label_prefix: leitzentrale -> | + child leitzentrale
+    + service ROM | label_prefix: leitzentrale ->    | + child leitzentrale
+    + service File_system
+              label_prefix: leitzentrale -> fonts -> | + child leitzentrale | identity: fonts
+    + service Report                                 | + child fs_report
+    + service LOG | label: unlogged                  | + parent
+    } [log_route] {
+    } [driver_routes] {
+    + service Event | label: leitzentrale   | + child leitzentrale
+    + service Event                         | + child event_filter
+    + service Capture | label: leitzentrale | + child leitzentrale
+    + service Capture                       | + child nitpicker
+    + service Pin_state                     | + child drivers
+    + service Pin_control                   | + child drivers
+    + service Terminal                      | + child terminal_monitor
+    + service TRACE | label: runtime        | + parent | label: runtime ->
+    + service TRACE | label: global         | + parent | label:
+    + any-service                           | + parent
+-
+}
 
 
 ##
@@ -821,11 +719,11 @@ proc managed_config_path { name } {
 	return [file join [initial_config_dir] managed $name] }
 
 set fd [open [managed_config_path installation] w]
-puts $fd "<installation arch=\"[depot_spec]\"/>"
+puts $fd "installation | arch: [depot_spec]\n-"
 close $fd
 
 set fd [open [managed_config_path depot_query] w]
-puts $fd "<query/>"
+puts $fd "query\n-"
 close $fd
 
 foreach config { fonts wifi runtime event_filter system nitpicker } {
@@ -873,13 +771,13 @@ proc genode_version { } {
 	return $version
 }
 
-set    build_info "<build_info"
-append build_info " genode_version=\"[genode_version]\""
-append build_info " date=\"[build_date]\""
-append build_info " depot_user=\"[depot_user]\""
-append build_info " board=\"$board_var\""
-append build_info " base=\"[depot_user]/bin/[depot_spec]/[base_src]/[_current_depot_archive_version src [base_src]]\"/"
-append build_info ">"
+set    build_info "build_info"
+append build_info "  genode_version: [genode_version]"
+append build_info "  date:           [build_date]"
+append build_info "  depot_user:     [depot_user]"
+append build_info "  board:          $board_var"
+append build_info "  base:           [depot_user]/bin/[depot_spec]/[base_src]/[_current_depot_archive_version src [base_src]]"
+append build_info "-"
 
 set fd [open [run_dir]/genode/build_info w]
 puts $fd $build_info
@@ -1107,7 +1005,7 @@ if {[have_board linux]} {
 	#
 	# The Linux version of core does not export a platform_info ROM module.
 	#
-	install_boot_module "platform_info" {<platform/>}
+	install_boot_module "platform_info" "platform\n-\n"
 }
 
 

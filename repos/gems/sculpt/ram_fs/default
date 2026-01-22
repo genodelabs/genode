@@ -1,6 +1,4 @@
-<config>
-	<vfs>
-		<ram/>
-	</vfs>
-	<default-policy root="/" writeable="yes"/>
-</config>
+config
++ vfs | + ram
++ default-policy | root: / | writeable: yes
+-

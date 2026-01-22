@@ -1,6 +1,5 @@
-<launcher pkg="nano3d" priority="-2">
-	<route>
-		<service name="Gui"> <child name="wm"/> </service>
-	</route>
-	<config shape="cube"/>
-</launcher>
+launcher | pkg: nano3d | priority: -2
++ route
+  + service Gui | + child wm
++ config | shape: cube
+-

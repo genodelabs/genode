@@ -1,1 +1,2 @@
-<config verbose_modem="no"/>
+config | verbose_modem: no
+-

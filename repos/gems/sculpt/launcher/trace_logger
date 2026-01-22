@@ -1,19 +1,16 @@
-<launcher pkg="trace_logger" priority="-3">
+launcher | pkg: trace_logger | priority: -3
++ route
+  + service TRACE
+    .
+    . replace 'global' by 'runtime' to narrow the view
+    .
+    + parent | label: global
 
-	<route>
-		<!-- replace "global" by "runtime" to narrow the view -->
-		<service name="TRACE"> <parent label="global" /> </service>
-	</route>
-
-	<config verbose="yes"
-	        session_ram="90M"
-	        session_arg_buffer="1M"
-	        period_sec="10"
-	        default_policy="null"
-	        default_buffer="4K">
-
-		<default-policy/>
-
-	</config>
-
-</launcher>
++ config | verbose:            yes
+           session_ram:        90M
+           session_arg_buffer: 1M
+           period_sec:         10
+           default_policy:     null
+           default_buffer:     4K
+  + default-policy
+-

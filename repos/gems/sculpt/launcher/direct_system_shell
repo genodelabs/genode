@@ -1,15 +1,13 @@
-<launcher pkg="system_shell">
-	<route>
-		<service name="Gui">                        <parent label="focus"/>           </service>
-		<service name="File_system" label_prefix="fonts ->">  <child name="fonts_fs"/>      </service>
-		<service name="File_system" label_prefix="target ->"> <child name="default_fs_rw"/> </service>
-		<service name="File_system" label_prefix="config ->"> <parent identity="config"/> </service>
-		<service name="File_system" label_prefix="report ->"> <parent identity="report"/> </service>
-		<service name="Report" label="clipboard">   <parent label="clipboard"/>       </service>
-		<service name="ROM"    label="clipboard">   <parent label="clipboard"/>       </service>
-		<service name="ROM"    label="vimrc">       <parent label="config -> vimrc"/> </service>
-		<service name="ROM" label_last="cached_fs_rom">
-			<parent label="cached_fs_rom"/> </service>
-		<service name="RM"> <parent/> </service>
-	</route>
-</launcher>
+launcher | pkg: system_shell
++ route
+  + service Gui                                   | + parent | label: focus
+  + service File_system | label_prefix: fonts ->  | + child fonts_fs
+  + service File_system | label_prefix: target -> | + child default_fs_rw
+  + service File_system | label_prefix: config -> | + parent | identity: config
+  + service File_system | label_prefix: report -> | + parent | identity: report
+  + service Report | label: clipboard             | + parent | label: clipboard
+  + service ROM    | label: clipboard             | + parent | label: clipboard
+  + service ROM    | label: vimrc                 | + parent | label: config -> vimrc
+  + service ROM    | label_last: cached_fs_rom    | + parent | label: cached_fs_rom
+  + service RM                                    | + parent
+-

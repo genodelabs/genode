@@ -1,26 +1,24 @@
-<config bios_handoff="no">
+config | bios_handoff: no
 
-	<!-- available devices are listed at /report/runtime/usb/devices -->
++ policy | label: internal -> webcam -> usb_webcam ->
+  .
+  . available devices are listed at /report/runtime/usb/devices
+  .
+  + device | vendor_id: 0x17ef | product_id: 0x4816 | . Lenovo x201 (issues)
+  + device | vendor_id: 0x04f2 | product_id: 0xb221 | . Lenovo T420 (issues)
+  + device | vendor_id: 0x5986 | product_id: 0x0366 | . Lenovo x250
+  + device | vendor_id: 0x5986 | product_id: 0x0706 | . Lenovo x260
+  + device | vendor_id: 0x04f2 | product_id: 0xb541 | . Lenovo T460p
+  + device | vendor_id: 0x0bda | product_id: 0x58db | . Lenovo T470
+  + device | vendor_id: 0x04f2 | product_id: 0xb681 | . Lenovo T490
+  + device | vendor_id: 0x04f2 | product_id: 0xb564 | . Fujitsu S93x
+  + device | vendor_id: 0x04f2 | product_id: 0xb704 | . Fujitsu U741x
+  + device | vendor_id: 0x04f2 | product_id: 0xb703 | . Fujitsu U741x
+  + device | vendor_id: 0x0bda | product_id: 0x5634 | . Framework 13
 
-	<policy label="internal -> webcam -> usb_webcam -> ">
-		<device vendor_id="0x17ef" product_id="0x4816"/> <!-- Lenovo x201 (issues) -->
-		<device vendor_id="0x04f2" product_id="0xb221"/> <!-- Lenovo T420 (issues) -->
-		<device vendor_id="0x5986" product_id="0x0366"/> <!-- Lenovo x250 -->
-		<device vendor_id="0x5986" product_id="0x0706"/> <!-- Lenovo x260 -->
-		<device vendor_id="0x04f2" product_id="0xb541"/> <!-- Lenovo T460p -->
-		<device vendor_id="0x0bda" product_id="0x58db"/> <!-- Lenovo T470 -->
-		<device vendor_id="0x04f2" product_id="0xb681"/> <!-- Lenovo T490 -->
-		<device vendor_id="0x04f2" product_id="0xb564"/> <!-- Fujitsu S93x -->
-		<device vendor_id="0x04f2" product_id="0xb704"/> <!-- Fujitsu U741x -->
-		<device vendor_id="0x04f2" product_id="0xb703"/> <!-- Fujitsu U741x -->
-		<device vendor_id="0x0bda" product_id="0x5634"/> <!-- Framework 13 -->
-	</policy>
-	<policy label="external -> webcam -> usb_webcam -> ">
-		<device vendor_id="0x046d" product_id="0x08e5"/> <!-- Logitech C920 -->
-		<device vendor_id="0x046d" product_id="0x0825"/> <!-- Logitech C270 -->
-		<device vendor_id="0x046d" product_id="0x09c1"/> <!-- Logitech Quickcam -->
-		<device vendor_id="0x041e" product_id="0x4095"/> <!-- Creative HD VF0770 -->
-	</policy>
-
-</config>
-
++ policy | label: external -> webcam -> usb_webcam ->
+  + device | vendor_id: 0x046d | product_id: 0x08e5 | . Logitech C920
+  + device | vendor_id: 0x046d | product_id: 0x0825 | . Logitech C270
+  + device | vendor_id: 0x046d | product_id: 0x09c1 | . Logitech Quickcam
+  + device | vendor_id: 0x041e | product_id: 0x4095 | . Creative HD VF0770
+-

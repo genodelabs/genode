@@ -1,15 +1,16 @@
-<!-- this configuration is used only before the sculpt manager runs -->
-<config>
-	<output>
-		<merge>
-			<input name="ps2"/>
-			<input name="usb"/>
-			<input name="touch"/>
-			<input name="sdl"/>
-		</merge>
-	</output>
-	<policy label="runtime -> ps2"     input="ps2"/>
-	<policy label="runtime -> usb_hid" input="usb"/>
-	<policy label="drivers -> touch"   input="touch"/>
-	<policy label="drivers -> sdl"     input="sdl"/>
-</config>
+config
+.
+. this configuration is used only before the sculpt manager runs
+.
++ output
+  + merge
+    + input ps2
+    + input usb
+    + input touch
+    + input sdl
+
++ policy | label: runtime -> ps2     | input: ps2
++ policy | label: runtime -> usb_hid | input: usb
++ policy | label: drivers -> touch   | input: touch
++ policy | label: drivers -> sdl     | input: sdl
+-

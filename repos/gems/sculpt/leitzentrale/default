@@ -1,317 +1,244 @@
-<config>
-	<input name="leitzentrale_enabled" rom="leitzentrale" node="leitzentrale">
-		<attribute name="enabled" /> </input>
+config
++ input leitzentrale_enabled | rom: leitzentrale | node: leitzentrale
+  + attribute enabled
 
-	<output node="config">
-		<attribute name="prio_levels" value="4"/>
-		<inline>
-			<parent-provides>
-				<service name="ROM"/>
-				<service name="PD"/>
-				<service name="RM"/>
-				<service name="CPU"/>
-				<service name="LOG"/>
-				<service name="Report"/>
-				<service name="Gui"/>
-				<service name="Timer"/>
-				<service name="File_system"/>
-			</parent-provides>
-
-			<default-route> <any-service> <parent/> </any-service> </default-route>
-
-			<default caps="100"/>
-
-			<service name="Gui">
-				<default-policy> <child name="wm"/> </default-policy> </service>
-
-			<service name="Capture">
-				<default-policy> <child name="nitpicker"/> </default-policy> </service>
-
-			<service name="Event">
-				<default-policy> <child name="nitpicker"/> </default-policy> </service>
-
-			<service name="File_system">
-				<default-policy> <child name="fonts_fs"/> </default-policy> </service>
-
-			<service name="ROM">
-				<default-policy> <child name="report_rom"/> </default-policy> </service>
-
-			<service name="Report">
-				<default-policy> <child name="report_rom"/> </default-policy> </service>
-		</inline>
-		<if>
-			<has_value input="leitzentrale_enabled" value="yes" />
-			<then>
-				<inline>
-					<start name="fader" ram="100M" priority="-1">
-						<binary name="gui_fader"/>
-						<provides> <service name="Gui"/> </provides>
-						<config initial_fade_in_steps="100" fade_in_steps="20" alpha="210"/>
-						<route>
-							<service name="Gui"> <child name="manager"/> </service>
-							<any-service> <parent/> </any-service>
-						</route>
-					</start>
-				</inline>
-			</then>
-			<else>
-				<inline>
-					<start name="fader" ram="100M" priority="-1">
-						<binary name="gui_fader"/>
-						<provides> <service name="Gui"/> </provides>
-						<config fade_out_steps="30" alpha="0"/>
-						<route>
-							<service name="Gui"> <child name="manager"/> </service>
-							<any-service> <parent/> </any-service>
-						</route>
-					</start>
-				</inline>
-			</else>
-		</if>
-		<inline>
-			<start name="gui_fb" ram="33M" priority="-1">
-				<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-				<route>
-					<service name="ROM" label="config"> <child name="report_rom"/> </service>
-					<service name="Gui"> <child name="fader"/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-
-			<start name="nitpicker" caps="200" ram="14M" priority="-1">
-				<provides>
-					<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-				</provides>
-				<config focus="rom" request_input="yes" request_framebuffer="yes">
-					<report clicked="yes" touch="yes"/>
-					<background color="#272f45"/>
-					<domain name="default" layer="1" content="client" label="no" hover="always" focus="click"/>
-					<default-policy domain="default"/>
-					<capture/>
-					<event/>
-				</config>
-				<route>
-					<service name="Input">             <child name="gui_fb"/> </service>
-					<service name="Framebuffer">       <child name="gui_fb"/> </service>
-					<service name="ROM" label="focus"> <child name="report_rom"/> </service>
-					<service name="Report"> <child name="report_rom"/> </service>
-					<any-service> <parent/> <any-child/> </any-service>
-				</route>
-			</start>
-
-			<start name="report_rom" caps="200" ram="4M" priority="-1">
-				<provides>
-					<service name="Report"/>
-					<service name="ROM"/>
-				</provides>
-				<config verbose="no">
-					<policy label="decorator -> window_layout"   report="manager -> window_layout"/>
-					<policy label="wm -> resize_request"         report="manager -> resize_request"/>
-					<policy label="wm -> focus"                  report="manager -> wm_focus"/>
-					<policy label="decorator -> pointer"         report="wm -> pointer"/>
-					<policy label="manager -> window_list"       report="wm -> window_list"/>
-					<policy label="manager -> decorator_margins" report="decorator -> decorator_margins"/>
-					<policy label="nitpicker -> focus"           report="manager -> focus"/>
-					<policy label="gui_fb -> config"             report="manager -> gui_fb_config"/>
-					<policy label="manager -> clicked"           report="nitpicker -> clicked"/>
-					<policy label="manager -> touch"             report="nitpicker -> touch"/>
-
-					<policy label="runtime -> leitzentrale -> diag_dialog"
-					        report="manager -> diag_dialog"/>
-					<policy label="runtime -> leitzentrale -> network_dialog"
-					        report="manager -> network_dialog"/>
-					<policy label="runtime -> leitzentrale -> settings_dialog"
-					        report="manager -> settings_dialog"/>
-					<policy label="runtime -> leitzentrale -> system_dialog"
-					        report="manager -> system_dialog"/>
-					<policy label="runtime -> leitzentrale -> file_browser_dialog"
-					        report="manager -> file_browser_dialog"/>
-					<policy label="runtime -> leitzentrale -> popup_dialog"
-					        report="manager -> popup_dialog"/>
-					<policy label="runtime -> leitzentrale -> panel_dialog"
-					        report="manager -> panel_dialog"/>
-					<policy label="runtime -> leitzentrale -> runtime_dialog"
-					        report="manager -> runtime_dialog"/>
-					<policy label="manager -> menu_hover"
-					        report="runtime -> leitzentrale -> runtime_view -> hover"/>
-				</config>
-			</start>
-
-			<start name="wm" caps="150" ram="2M" priority="-1">
-				<provides>
-					<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
-				</provides>
-				<config>
-					<policy label_prefix="decorator" role="decorator"/>
-					<default-policy/>
-				</config>
-				<route>
-					<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
-					<service name="ROM" label="focus">          <child name="report_rom"/> </service>
-					<service name="Report">                     <child name="report_rom"/> </service>
-					<service name="Gui"> <child name="nitpicker"/> </service>
-					<any-service> <parent/> <any-child/> </any-service>
-				</route>
-			</start>
-
-			<start name="decorator" caps="580" ram="20M" priority="-1">
-				<binary name="themed_decorator"/>
-				<config>
-					<libc/>
-					<vfs>
-						<dir name="theme">
-							<inline name="metadata">
-								<theme>
-									<aura  top="5" bottom="5" left="5" right="5"/>
-									<decor top="6" bottom="6" left="6" right="6"/>
-								</theme>
-							</inline>
-							<rom name="default.png"/>
-						</dir>
-						<dir name="dev"> <log/> </dir>
-					</vfs>
-					<policy label="log" decoration="yes" motion="40"/>
-					<policy label="runtime -> leitzentrale -> settings_dialog"     decoration="no" motion="40"/>
-					<policy label="runtime -> leitzentrale -> system_dialog"       decoration="no" motion="40"/>
-					<policy label="runtime -> leitzentrale -> file_browser_dialog" decoration="no" motion="60"/>
-					<policy label="runtime -> leitzentrale -> network_dialog"      decoration="no" motion="40"/>
-					<policy label="runtime -> leitzentrale -> runtime_dialog"      decoration="no" motion="60"/>
-					<policy label="runtime -> leitzentrale -> diag_dialog"         decoration="no" motion="60"/>
-					<policy label="runtime -> leitzentrale -> popup_dialog"        decoration="no" motion="40"/>
-					<policy label="runtime -> leitzentrale -> panel_dialog"        decoration="no" motion="40"/>
-					<policy label_prefix="logo" decoration="no"/>
-					<default-policy/>
-				</config>
-				<route>
-					<service name="ROM"    label="default.png"> <parent label="drop_shadow.png"/> </service>
-					<service name="ROM"    label="window_layout">     <child name="report_rom"/> </service>
-					<service name="ROM"    label="pointer">           <child name="report_rom"/> </service>
-					<service name="Report" label="decorator_margins"> <child name="report_rom"/> </service>
-					<service name="Report" label="hover">             <child name="report_rom"/> </service>
-					<service name="Gui">                              <child name="wm"/>         </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-
-			<start name="config_fs_report" ram="2M" priority="-1">
-				<binary name="fs_report"/>
-				<provides> <service name="Report"/> </provides>
-				<config> <vfs> <fs/> </vfs> </config>
-				<route>
-					<service name="File_system"> <parent identity="config"/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-
-			<start name="manager" caps="400" ram="3M" priority="-1">
-				<binary name="sculpt_manager"/>
-				<provides> <service name="Gui"/> </provides>
-				<route>
-					<service name="ROM" label="config">
-						<parent label="config -> manager"/> </service>
-					<service name="Report" label="runtime_config">
-						<child name="config_fs_report" label="managed -> runtime"/> </service>
-					<service name="Report" label="deploy_config">
-						<child name="config_fs_report" label="managed -> deploy"/> </service>
-					<service name="Report" label="wifi_config">
-						<child name="config_fs_report" label="managed -> wifi"/> </service>
-					<service name="Report" label="fonts_config">
-						<child name="config_fs_report" label="managed -> fonts"/> </service>
-					<service name="Report" label="nic_router_config">
-						<child name="config_fs_report" label="managed -> nic_router"/> </service>
-					<service name="Report" label="fb_config">
-						<child name="config_fs_report" label="managed -> fb"/> </service>
-					<service name="Report" label="dir_query_config">
-						<child name="config_fs_report" label="managed -> dir_query"/> </service>
-					<service name="Report" label="nitpicker_config">
-						<child name="config_fs_report" label="managed -> nitpicker"/> </service>
-					<service name="Report" label="usb_config">
-						<child name="config_fs_report" label="managed -> usb"/> </service>
-					<service name="Report" label="system_config">
-						<child name="config_fs_report" label="managed -> system"/> </service>
-					<service name="Report" label="event_filter_config">
-						<child name="config_fs_report" label="managed -> event_filter"/> </service>
-					<service name="Report" label="installation_config">
-						<child name="config_fs_report" label="managed -> installation"/> </service>
-					<service name="Report" label="depot_query">
-						<child name="config_fs_report" label="managed -> depot_query"/> </service>
-					<service name="Report"> <child name="report_rom"/> </service>
-					<service name="ROM" label_prefix="report ->"> <parent/> </service>
-					<service name="ROM" label="nitpicker_focus">  <parent/> </service>
-					<service name="ROM" label="nitpicker_hover">  <parent/> </service>
-					<service name="ROM" label="clicked">           <child name="report_rom"/> </service>
-					<service name="ROM" label="touch">             <child name="report_rom"/> </service>
-					<service name="ROM" label="menu_hover">        <child name="report_rom"/> </service>
-					<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
-					<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
-					<service name="Gui"> <parent/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-
-			<start name="fonts_fs" caps="100" ram="4M" priority="-1">
-				<binary name="vfs"/>
-				<provides> <service name="File_system"/> </provides>
-				<route>
-					<service name="ROM" label="config">
-						<parent label="config -> managed/fonts"/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-
-			<start name="log_terminal" caps="120" ram="8M" priority="-1">
-				<binary name="terminal"/>
-				<provides> <service name="Terminal"/> </provides>
-				<config>
-					<initial width="400"/>
-					<palette>
-						<color index="0" value="#2f3953"/>
-						<color index="8" value="#2f3953"/>
-					</palette>
-					<vfs>
-						<rom name="VeraMono.ttf"/>
-						<dir name="fonts">
-							<dir name="monospace">
-								<ttf name="regular" path="/VeraMono.ttf" size_px="10"/>
-							</dir>
-						</dir>
-					</vfs>
-				</config>
-				<route>
-					<service name="Gui"> <child name="wm" label="log"/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-
-			<start name="log" caps="100" ram="2M" priority="-1">
-				<binary name="stdin2out"/>
-				<config>
-					<libc stdin="/report/log" stdout="/dev/terminal"/>
-					<vfs>
-						<dir name="dev"> <terminal/> </dir>
-						<dir name="report"> <fs label="report -> /"/> </dir>
-					</vfs>
-				</config>
-				<route>
-					<service name="File_system"> <parent identity="report"/> </service>
-					<any-service> <child name="log_terminal"/> <parent/> </any-service>
-				</route>
-			</start>
-
-			<start name="backdrop" caps="150" ram="4M" priority="-1">
-				<config width="300" height="150">
-					<libc/>
-					<vfs> <rom name="genode_logo.png"/> </vfs>
-					<fill color="#272f45"/>
-					<image png="genode_logo.png" anchor="bottom_right" alpha="100"
-					                             xpos="-20" ypos="-20" />
-				</config>
-				<route>
-					<service name="Gui"> <child name="wm" label="logo"/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-
-		</inline>
-	</output>
-</config>
++ output | node: config
+  + attribute prio_levels | value: 4
+  + inline
+  | + parent-provides
+  |   + service ROM
+  |   + service PD
+  |   + service RM
+  |   + service CPU
+  |   + service LOG
+  |   + service Report
+  |   + service Gui
+  |   + service Timer
+  |   + service File_system
+  | + default-route | + any-service | + parent
+  | + default | caps: 100
+  |
+  | + service Gui         | + default-policy | + child wm
+  | + service Capture     | + default-policy | + child nitpicker
+  | + service Event       | + default-policy | + child nitpicker
+  | + service File_system | + default-policy | + child fonts_fs
+  | + service ROM         | + default-policy | + child report_rom
+  | + service Report      | + default-policy | + child report_rom
+  |
+  + if
+  | + has_value | input: leitzentrale_enabled | value: yes
+  | + then
+  | | + inline
+  | |   + start fader | ram: 100M | priority: -1
+  | |     + binary gui_fader
+  | |     + provides | + service Gui
+  | |     + config | initial_fade_in_steps: 100 | fade_in_steps: 20 | alpha: 210
+  | |     + route
+  | |       + service Gui | + child manager
+  | |       + any-service | + parent
+  | + else
+  |   + inline
+  |     + start fader | ram: 100M | priority: -1
+  |       + binary gui_fader
+  |       + provides |       | + service Gui
+  |       + config | fade_out_steps: 30 | alpha: 0
+  |       + route
+  |         + service Gui | + child manager
+  |         + any-service | + parent
+  + inline
+    + start gui_fb | ram: 33M | priority: -1
+    | + provides
+    |   + service Framebuffer
+    |   + service Input
+    | + route
+    |   + service ROM | label: config | + child report_rom
+    |   + service Gui                 | + child fader
+    |   + any-service                 | + parent
+    |
+    + start nitpicker | caps: 200 | ram: 14M | priority: -1
+    | + provides
+    |   + service Gui
+    |   + service Capture
+    |   + service Event
+    | + config | focus: rom | request_input: yes | request_framebuffer: yes
+    |   + report | clicked: yes | touch: yes
+    |   + background | color: #272f45
+    |   + domain default | layer: 1 | content: client | label: no
+    |                                 hover:   always | focus: click
+    |   + default-policy | domain: default
+    |   + capture
+    |   + event
+    | + route
+    |   + service Input              | + child gui_fb
+    |   + service Framebuffer        | + child gui_fb
+    |   + service ROM | label: focus | + child report_rom
+    |   + service Report             | + child report_rom
+    |   + any-service
+    |     + parent
+    |     + any-child
+    |
+    + start report_rom | caps: 200 | ram: 4M | priority: -1
+    | + provides
+    |   + service Report
+    |   + service ROM
+    | + config | verbose: no
+    |   + policy | label: decorator -> window_layout                     | report: manager -> window_layout
+    |   + policy | label: wm -> resize_request                           | report: manager -> resize_request
+    |   + policy | label: wm -> focus                                    | report: manager -> wm_focus
+    |   + policy | label: decorator -> pointer                           | report: wm -> pointer
+    |   + policy | label: manager -> window_list                         | report: wm -> window_list
+    |   + policy | label: manager -> decorator_margins                   | report: decorator -> decorator_margins
+    |   + policy | label: nitpicker -> focus                             | report: manager -> focus
+    |   + policy | label: gui_fb -> config                               | report: manager -> gui_fb_config
+    |   + policy | label: manager -> clicked                             | report: nitpicker -> clicked
+    |   + policy | label: manager -> touch                               | report: nitpicker -> touch
+    |   + policy | label: runtime -> leitzentrale -> diag_dialog         | report: manager -> diag_dialog
+    |   + policy | label: runtime -> leitzentrale -> network_dialog      | report: manager -> network_dialog
+    |   + policy | label: runtime -> leitzentrale -> settings_dialog     | report: manager -> settings_dialog
+    |   + policy | label: runtime -> leitzentrale -> system_dialog       | report: manager -> system_dialog
+    |   + policy | label: runtime -> leitzentrale -> file_browser_dialog | report: manager -> file_browser_dialog
+    |   + policy | label: runtime -> leitzentrale -> popup_dialog        | report: manager -> popup_dialog
+    |   + policy | label: runtime -> leitzentrale -> panel_dialog        | report: manager -> panel_dialog
+    |   + policy | label: runtime -> leitzentrale -> runtime_dialog      | report: manager -> runtime_dialog
+    |   + policy | label: manager -> menu_hover                          | report: runtime -> leitzentrale -> runtime_view -> hover
+    |
+    + start wm | caps: 150 | ram: 2M | priority: -1
+    | + provides
+    |   + service Gui
+    |   + service Report
+    |   + service ROM
+    | + config
+    |   + policy | label_prefix: decorator | role: decorator
+    |   + default-policy
+    | + route
+    |   + service ROM | label: resize_request | + child report_rom
+    |   + service ROM | label: focus          | + child report_rom
+    |   + service Report                      | + child report_rom
+    |   + service Gui                         | + child nitpicker
+    |   + any-service
+    |     + parent
+    |     + any-child
+    |
+    + start decorator | caps: 580 | ram: 20M | priority: -1
+    | + binary themed_decorator
+    | + config
+    | | + libc
+    | | + vfs
+    | |   + dir theme
+    | |   | + inline metadata
+    | |   |   + theme
+    | |   |     + aura | top: 5 | bottom: 5 | left: 5 | right: 5
+    | |   |     + decor | top: 6 | bottom: 6 | left: 6 | right: 6
+    | |   | + rom default.png
+    | |   + dir dev
+    | |     + log
+    | |
+    | | + policy | label: log                                            | decoration: yes | motion: 40
+    | | + policy | label: runtime -> leitzentrale -> settings_dialog     | decoration: no  | motion: 40
+    | | + policy | label: runtime -> leitzentrale -> system_dialog       | decoration: no  | motion: 40
+    | | + policy | label: runtime -> leitzentrale -> file_browser_dialog | decoration: no  | motion: 60
+    | | + policy | label: runtime -> leitzentrale -> network_dialog      | decoration: no  | motion: 40
+    | | + policy | label: runtime -> leitzentrale -> runtime_dialog      | decoration: no  | motion: 60
+    | | + policy | label: runtime -> leitzentrale -> diag_dialog         | decoration: no  | motion: 60
+    | | + policy | label: runtime -> leitzentrale -> popup_dialog        | decoration: no  | motion: 40
+    | | + policy | label: runtime -> leitzentrale -> panel_dialog        | decoration: no  | motion: 40
+    | | + policy | label_prefix: logo                                    | decoration: no
+    | | + default-policy
+    | |
+    | + route
+    |   + service ROM    | label: default.png       | + parent | label: drop_shadow.png
+    |   + service ROM    | label: window_layout     | + child report_rom
+    |   + service ROM    | label: pointer           | + child report_rom
+    |   + service Report | label: decorator_margins | + child report_rom
+    |   + service Report | label: hover             | + child report_rom
+    |   + service Gui                               | + child wm
+    |   + any-service                               | + parent
+    |
+    + start config_fs_report | ram: 2M | priority: -1
+    | + binary fs_report
+    | + provides | + service Report
+    | + config | + vfs | + fs
+    | + route
+    |   + service File_system | + parent | identity: config
+    |   + any-service         | + parent
+    |
+    + start manager | caps: 400 | ram: 3M | priority: -1
+    | + binary sculpt_manager
+    | + provides | + service Gui
+    | + route
+    |   + service ROM | label: config                 | + parent | label: config -> manager
+    |   + service Report | label: runtime_config      | + child config_fs_report | label: managed -> runtime
+    |   + service Report | label: deploy_config       | + child config_fs_report | label: managed -> deploy
+    |   + service Report | label: wifi_config         | + child config_fs_report | label: managed -> wifi
+    |   + service Report | label: fonts_config        | + child config_fs_report | label: managed -> fonts
+    |   + service Report | label: nic_router_config   | + child config_fs_report | label: managed -> nic_router
+    |   + service Report | label: fb_config           | + child config_fs_report | label: managed -> fb
+    |   + service Report | label: dir_query_config    | + child config_fs_report | label: managed -> dir_query
+    |   + service Report | label: nitpicker_config    | + child config_fs_report | label: managed -> nitpicker
+    |   + service Report | label: usb_config          | + child config_fs_report | label: managed -> usb
+    |   + service Report | label: system_config       | + child config_fs_report | label: managed -> system
+    |   + service Report | label: event_filter_config | + child config_fs_report | label: managed -> event_filter
+    |   + service Report | label: installation_config | + child config_fs_report | label: managed -> installation
+    |   + service Report | label: depot_query         | + child config_fs_report | label: managed -> depot_query
+    |   + service Report                              | + child report_rom
+    |   + service ROM | label_prefix: report ->       | + parent
+    |   + service ROM | label: nitpicker_focus        | + parent
+    |   + service ROM | label: nitpicker_hover        | + parent
+    |   + service ROM | label: clicked                | + child report_rom
+    |   + service ROM | label: touch                  | + child report_rom
+    |   + service ROM | label: menu_hover             | + child report_rom
+    |   + service ROM | label: window_list            | + child report_rom
+    |   + service ROM | label: decorator_margins      | + child report_rom
+    |   + service Gui                                 | + parent
+    |   + any-service                                 | + parent
+    |
+    + start fonts_fs | caps: 100 | ram: 4M | priority: -1
+    | + binary vfs
+    | + provides | + service File_system
+    | + route
+    |   + service ROM | label: config | + parent | label: config -> managed/fonts
+    |   + any-service                 | + parent
+    |
+    + start log_terminal | caps: 120 | ram: 8M | priority: -1
+    | + binary terminal
+    | + provides | + service Terminal
+    | + config
+    | | + initial | width: 400
+    | | + palette
+    | |   + color | index: 0 | value: #2f3953
+    | |   + color | index: 8 | value: #2f3953
+    | | + vfs
+    | |   + rom VeraMono.ttf
+    | |   + dir fonts
+    | |     + dir monospace
+    | |       + ttf regular | path: /VeraMono.ttf | size_px: 10
+    | + route
+    |   + service Gui | + child wm | label: log
+    |   + any-service | + parent
+    |
+    + start log | caps: 100 | ram: 2M | priority: -1
+    | + binary stdin2out
+    | + config
+    | | + libc | stdin: /report/log | stdout: /dev/terminal
+    | | + vfs
+    | |   + dir dev    | + terminal
+    | |   + dir report | + fs | label: report -> /
+    | + route
+    |   + service File_system | + parent | identity: report
+    |   + any-service
+    |     + child log_terminal
+    |     + parent
+    |
+    + start backdrop | caps: 150 | ram: 4M | priority: -1
+      + config | width: 300 | height: 150
+      | + libc
+      | + vfs
+      |   + rom genode_logo.png
+      |
+      | + fill  | color: #272f45
+      | + image | png: genode_logo.png | alpha: 100
+      |           anchor: bottom_right | xpos: -20 | ypos: -20
+      + route
+        + service Gui | + child wm | label: logo
+        + any-service | + parent
+-

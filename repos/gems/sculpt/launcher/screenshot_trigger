@@ -1,7 +1,6 @@
-<launcher pkg="screenshot_trigger">
-	<route>
-		<service name="Gui">   <parent label="overlay"/> </service>
-		<service name="Event"> <parent label="global"/>  </service>
-	</route>
-	<config size="80"/>
-</launcher>
+launcher | pkg: screenshot_trigger
++ route
+  + service Gui   | + parent | label: overlay
+  + service Event | + parent | label: global
++ config | size: 80
+-

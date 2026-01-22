@@ -1,45 +1,38 @@
-<index>
+index
++ supports | arch: x86_64
++ supports | arch: arm_v8a
 
-  <supports arch="x86_64"/>
-  <supports arch="arm_v8a"/>
++ index GUI
+  + pkg | path: sticks_blue_backdrop | info: default desktop background
+  + pkg | path: themed_wm            | info: ready-to-use window manager
+  + pkg | path: fonts_fs             | info: font provider
+  + pkg | path: wm                   | info: window manager
+  + pkg | path: motif_decorator      | info: Motif-style window decorator
+  + pkg | path: themed_decorator     | info: modern-looking window decorator
+  + pkg | path: window_layouter      | info: default window layouter
 
-  <index name="GUI">
-    <pkg path="sticks_blue_backdrop" info="default desktop background"/>
-    <pkg path="themed_wm"            info="ready-to-use window manager"/>
-    <pkg path="fonts_fs"             info="font provider"/>
-    <pkg path="wm"                   info="window manager"/>
-    <pkg path="motif_decorator"      info="Motif-style window decorator"/>
-    <pkg path="themed_decorator"     info="modern-looking window decorator"/>
-    <pkg path="window_layouter"      info="default window layouter"/>
-  </index>
++ index Tools
+  + pkg | path: system_shell      | info: command-line interface to the system
+  + pkg | path: system_clock-pc   | info: real-time-clock service | arch: x86_64
+  + pkg | path: report_dump       | info: save periodic snapshots of the report fs
+  + pkg | path: recall_fs         | info: component-specific file-system view
+  + pkg | path: file_vault        | info: encrypted file store
+  + pkg | path: black_hole        | info: pseudo service provider
+  + pkg | path: usb_webcam        | info: USB webcam
+  + pkg | path: bsd_audio         | info: audio driver | arch: x86_64
+  + pkg | path: record_play_mixer | info: audio mixer
+  + pkg | path: terminal          | info: graphical terminal
+  + pkg | path: gdb_x86           | info: GNU debugger | arch: x86_64
 
-  <index name="Tools">
-    <pkg path="system_shell"      info="command-line interface to the system"/>
-    <pkg path="system_clock-pc"   info="real-time-clock service" arch="x86_64"/>
-    <pkg path="report_dump"       info="save periodic snapshots of the report fs"/>
-    <pkg path="recall_fs"         info="component-specific file-system view"/>
-    <pkg path="file_vault"        info="encrypted file store"/>
-    <pkg path="black_hole"        info="pseudo service provider"/>
-    <pkg path="usb_webcam"        info="USB webcam"/>
-    <pkg path="bsd_audio"         info="audio driver" arch="x86_64"/>
-    <pkg path="record_play_mixer" info="audio mixer"/>
-    <pkg path="terminal"          info="graphical terminal"/>
-    <pkg path="gdb_x86"           info="GNU debugger" arch="x86_64"/>
-  </index>
++ index Demos
+  + pkg | path: nano3d       | info: simple software-rendering demo
+  + pkg | path: mesa_gears   | info: Mesa gears demo
+  + pkg | path: test-capture | info: test for displaying a capture session
 
-  <index name="Demos">
-    <pkg path="nano3d"       info="simple software-rendering demo"/>
-    <pkg path="mesa_gears"   info="Mesa gears demo"/>
-    <pkg path="test-capture" info="test for displaying a capture session"/>
-  </index>
++ index Virtual machines | arch: x86_64
+  + pkg | path: vbox6 | info: VBox6 for running Linux
 
-  <index name="Virtual machines" arch="x86_64">
-    <pkg path="vbox6"             info="VBox6 for running Linux"/>
-  </index>
-
-  <index name="Mesa 3D">
-    <pkg path="mesa_gpu-cpu"   info="software-rendering driver"/>
-    <pkg path="mesa_gpu-intel" info="Intel GPU driver (IRIS)" arch="x86_64"/>
-  </index>
-
-</index>
++ index Mesa 3D
+  + pkg | path: mesa_gpu-cpu   | info: software-rendering driver
+  + pkg | path: mesa_gpu-intel | info: Intel GPU driver (IRIS) | arch: x86_64
+-

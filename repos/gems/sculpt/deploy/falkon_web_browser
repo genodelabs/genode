@@ -46,8 +46,8 @@ config | arch: | info: disposable web browser
   + config
     + libc
     + vfs
-    | + rom genode_logo.png
-    | + rom grid.png
+      + rom genode_logo.png
+      + rom grid.png
     + fill | color: #0e1624
     + image | png: grid.png        | alpha: 100 | tiled: yes
     + image | png: genode_logo.png | alpha:  50 | anchor: bottom_right

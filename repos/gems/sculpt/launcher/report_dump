@@ -1,12 +1,6 @@
-<launcher pkg="report_dump">
-
-	<route>
-		<service name="File_system" label_prefix="report ->">
-			<parent identity="report"/> </service>
-		<service name="File_system" label_prefix="target ->">
-			<child name="default_fs_rw"/> </service>
-		<service name="Rtc">
-			<child name="system_clock-dummy"/> </service>
-	</route>
-
-</launcher>
+launcher | pkg: report_dump
++ route
+  + service File_system | label_prefix: report -> | + parent | identity: report
+  + service File_system | label_prefix: target -> | + child default_fs_rw
+  + service Rtc                                   | + child system_clock-dummy
+-
