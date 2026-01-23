@@ -51,29 +51,45 @@ unsigned long __FIXADDR_TOP = 0xfffff000;
 #include <asm/uaccess.h>
 
 #ifndef INLINE_COPY_FROM_USER
-unsigned long _copy_from_user(void *to, const void __user *from, unsigned long n)
+unsigned long _copy_from_user(void * to,const void __user * from,unsigned long n)
 {
 	memcpy(to, from, n);
 	return 0;
 }
 
-unsigned long _copy_to_user(void __user *to, const void *from, unsigned long n)
+
+unsigned long raw_copy_from_user(void *to, const void * from, unsigned long n)
 {
 	memcpy(to, from, n);
 	return 0;
 }
 
-unsigned long raw_copy_from_user(void *to, const void __user *from, unsigned long n)
+
+#else
+unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n);
+unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n)
+{
+	memcpy(to, from, n);
+	return 0;
+}
+#endif
+
+
+#ifndef INLINE_COPY_TO_USER
+unsigned long _copy_to_user(void __user * to,const void * from,unsigned long n)
 {
 	memcpy(to, from, n);
 	return 0;
 }
 
-unsigned long raw_copy_to_user(void __user *to, const void *from, unsigned long n)
+
+unsigned long raw_copy_to_user(void *to, const void *from, unsigned long n)
 {
 	memcpy(to, from, n);
 	return 0;
 }
+
+
 #else
 unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
 unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n)

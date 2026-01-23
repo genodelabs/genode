@@ -7,9 +7,9 @@
 #include <lx_emul.h>
 
 
-#include <linux/sched.h>
+#include <linux/clk-provider.h>
 
-void ___migrate_enable(void)
+const char * __clk_get_name(const struct clk * clk)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -26,6 +26,19 @@ void __f_setown(struct file * filp,struct pid * pid,enum pid_type type,int force
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/irqdomain.h>
+
+struct irq_desc * __irq_resolve_mapping(struct irq_domain * domain,irq_hw_number_t hwirq,unsigned int * irq)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <asm-generic/percpu.h>
+
+unsigned long __per_cpu_offset[NR_CPUS] = {};
 
 
 #include <linux/percpu-rwsem.h>
@@ -76,13 +89,6 @@ int _printk_deferred(const char * fmt,...)
 }
 
 
-extern void ack_bad_irq(unsigned int irq);
-void ack_bad_irq(unsigned int irq)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/kobject.h>
 
 int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
@@ -94,13 +100,6 @@ int add_uevent_var(struct kobj_uevent_env * env,const char * format,...)
 #include <linux/fs.h>
 
 int alloc_chrdev_region(dev_t * dev,unsigned baseminor,unsigned count,const char * name)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern unsigned long arch_scale_cpu_capacity(int cpu);
-unsigned long arch_scale_cpu_capacity(int cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -183,14 +182,6 @@ ssize_t copy_splice_read(struct file * in,loff_t * ppos,struct pipe_inode_info *
 }
 
 
-#include <linux/arch_topology.h>
-
-const struct cpumask * cpu_clustergroup_mask(int cpu)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/cpumask.h>
 
 unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
@@ -205,6 +196,11 @@ bool cpus_share_cache(int this_cpu,int that_cpu)
 {
 	lx_emul_trace_and_stop(__func__);
 }
+
+
+#include <linux/dma-map-ops.h>
+
+bool dma_default_coherent;
 
 
 #include <linux/mmdebug.h>
@@ -284,6 +280,14 @@ int group_send_sig_info(int sig,struct kernel_siginfo * info,struct task_struct 
 const u8 guid_index[16] = {};
 
 
+#include <linux/irq.h>
+
+void handle_fasteoi_irq(struct irq_desc * desc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/init.h>
 
 bool initcall_debug;
@@ -329,9 +333,57 @@ int irq_can_set_affinity(unsigned int irq)
 }
 
 
+#include <linux/irqdomain.h>
+
+void irq_domain_free_irqs_common(struct irq_domain * domain,unsigned int virq,unsigned int nr_irqs)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqdomain.h>
+
+struct irq_domain * irq_domain_instantiate(const struct irq_domain_info * info)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqdomain.h>
+
+void irq_domain_set_info(struct irq_domain * domain,unsigned int virq,irq_hw_number_t hwirq,const struct irq_chip * chip,void * chip_data,irq_flow_handler_t handler,void * handler_data,const char * handler_name)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq.h>
+
+void irq_modify_status(unsigned int irq,unsigned long clr,unsigned long set)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/interrupt.h>
 
 int irq_set_affinity(unsigned int irq,const struct cpumask * cpumask)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqdomain.h>
+
+void irq_set_default_domain(struct irq_domain * domain)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irqnr.h>
+
+struct irq_desc * irq_to_desc(unsigned int irq)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -364,14 +416,6 @@ void irq_work_tick(void)
 #include <linux/tty.h>
 
 int is_current_pgrp_orphaned(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-int is_vmalloc_or_module_addr(const void * x)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -422,17 +466,59 @@ int kobject_uevent_env(struct kobject * kobj,enum kobject_action action,char * e
 unsigned long loops_per_jiffy;
 
 
-#include <linux/panic.h>
+#include <linux/delay.h>
 
-void panic(const char * fmt,...)
+unsigned long lpj_fine;
+
+
+#include <linux/of.h>
+
+bool of_device_is_available(const struct device_node * device)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/moduleparam.h>
+#include <linux/of_device.h>
 
-int param_set_copystring(const char * val,const struct kernel_param * kp)
+void of_device_uevent(const struct device * dev,struct kobj_uevent_env * env)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/of.h>
+
+struct property * of_find_property(const struct device_node * np,const char * name,int * lenp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/of.h>
+
+const struct fwnode_operations of_fwnode_ops;
+
+
+#include <linux/of.h>
+
+const char * of_prop_next_string(const struct property * prop,const char * cur)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/of.h>
+
+int of_property_read_string(const struct device_node * np,const char * propname,const char ** out_string)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/panic.h>
+
+void panic(const char * fmt,...)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -449,14 +535,6 @@ struct task_struct * pid_task(struct pid * pid,enum pid_type type)
 #include <linux/pid.h>
 
 pid_t pid_vnr(struct pid * pid)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-int pin_user_pages_fast(unsigned long start,int nr_pages,unsigned int gup_flags,struct page ** pages)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -532,28 +610,7 @@ void set_rq_online(struct rq * rq)
 
 #include <linux/smp.h>
 
-unsigned int setup_max_cpus;
-
-
-#include <linux/smp.h>
-
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/smp.h>
-
-int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/smp.h>
-
-int smp_call_function_single_async(int cpu,call_single_data_t * csd)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -575,6 +632,14 @@ void synchronize_rcu(void)
 #include <linux/sched/task.h>
 
 rwlock_t tasklist_lock;
+
+
+#include <linux/clockchips.h>
+
+void tick_broadcast(const struct cpumask * mask)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/fs.h>
@@ -641,6 +706,22 @@ void usb_major_cleanup(void)
 }
 
 
+#include <linux/usb/of.h>
+
+struct device_node * usb_of_get_device_node(struct usb_device * hub,int port1)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/usb/of.h>
+
+struct device_node * usb_of_get_interface_node(struct usb_device * udev,u8 config,u8 ifnum)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 extern int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port);
 int usb_phy_roothub_notify_connect(struct usb_phy_roothub * phy_roothub,int port)
 {
@@ -673,12 +754,4 @@ int usb_update_wireless_status_attr(struct usb_interface * intf)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
-
-
-#include <linux/mm.h>
-
-struct page * vmalloc_to_page(const void * vmalloc_addr)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 

@@ -1,4 +1,9 @@
-arch/x86/lib/hweight.S
+arch/arm64/lib/memcmp.S
+arch/arm64/lib/strchr.S
+arch/arm64/lib/strcmp.S
+arch/arm64/lib/strlen.S
+arch/arm64/lib/strncmp.S
+arch/arm64/lib/strnlen.S
 drivers/base/bus.c
 drivers/base/class.c
 drivers/base/core.c
@@ -49,6 +54,7 @@ kernel/time/jiffies.c
 kernel/time/ntp.c
 kernel/time/sleep_timeout.c
 kernel/time/tick-broadcast.c
+kernel/time/tick-broadcast-hrtimer.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
 kernel/time/tick-sched.c
@@ -64,6 +70,7 @@ lib/bitmap.c
 lib/ctype.c
 lib/find_bit.c
 lib/hexdump.c
+lib/hweight.c
 lib/idr.c
 lib/iov_iter.c
 lib/kasprintf.c

@@ -52,6 +52,9 @@ LX_FILE_LISTS    += $(LX_FILES_USB_HID)
 LX_FILES_USB_NET := $(shell find -H $(REP_DIR)/src/driver/usb_net -name dep.list -or -name source.list)
 LX_FILE_LISTS    += $(LX_FILES_USB_NET)
 
+LX_FILES_USB_SERIAL := $(shell find -H $(REP_DIR)/src/driver/usb_serial -name dep.list -or -name source.list)
+LX_FILE_LISTS    += $(LX_FILES_USB_SERIAL)
+
 LX_FILES      += $(shell cat $(LX_FILE_LISTS))
 LX_FILES      := $(sort $(LX_FILES))
 MIRRORED_FROM_PORT_DIR += $(addprefix $(LX_REL_DIR)/,$(LX_FILES))
