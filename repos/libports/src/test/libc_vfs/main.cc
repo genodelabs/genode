@@ -292,6 +292,12 @@ static void test(Genode::Node const &node)
 				printf("file content is correct\n");
 			}
 
+			/* test open with O_NOFOLLOW */
+			CALL_AND_CHECK(fd, open("e", O_RDONLY | O_NOFOLLOW), (fd == -1) && (errno == ELOOP), "file_name=%s", "e");
+			CALL_AND_CHECK(fd, open("e/d/b", O_RDONLY | O_NOFOLLOW), fd >= 0, "file_name=%s", "e/d/b");
+			CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+			CALL_AND_CHECK(fd, open("nonexisting", O_RDONLY | O_NOFOLLOW), (fd == -1) && (errno == ENOENT), "file_name=%s", "nonexisting");
+
 			/* test unlink for symbolic links */
 			CALL_AND_CHECK(ret, unlink("c/d"), (ret == 0), "symlink=%s", "c/d");
 			CALL_AND_CHECK(ret, stat("c/d", &stat_buf), (ret == -1), "symlink=%s", "c/d");

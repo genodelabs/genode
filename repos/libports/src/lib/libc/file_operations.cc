@@ -105,14 +105,58 @@ static Absolute_path &cwd()
 using Path_element_token = Token<Vfs::Scanner_policy_path_element>;
 
 
+/*
+ * Resolve a symbolic link.
+ *
+ * Only the last element of the given absolute path gets resolved and it is
+ * expected to be a symbolic link.
+ */
+static Symlink_resolve_result _resolve_symlink(Absolute_path const &path,
+                                               Absolute_path &resolved_path)
+{
+	char symlink_target[PATH_MAX];
+	Absolute_path tmp_resolved_path;
+	int res;
+
+	FNAME_FUNC_WRAPPER_GENERIC(res = , readlink, path.base(), symlink_target,
+	                           sizeof(symlink_target));
+	if (res < 1)
+		return Symlink_resolve_error();
+
+	if (res == PATH_MAX) {
+		errno = ENAMETOOLONG;
+		return Symlink_resolve_error();
+	}
+
+	/* zero terminate target */
+	symlink_target[res] = 0;
+
+	try {
+		if (symlink_target[0] == '/')
+			/* absolute target */
+			tmp_resolved_path.import(symlink_target, cwd().base());
+		else {
+			/* relative target */
+			tmp_resolved_path = path;
+			tmp_resolved_path.strip_last_element();
+			tmp_resolved_path.append_element(symlink_target);
+		}
+	} catch (Path_base::Path_too_long) {
+		errno = ENAMETOOLONG;
+		return Symlink_resolve_error();
+	}
+
+	resolved_path = tmp_resolved_path;
+
+	return Ok();
+}
+
+
 /**
  * Resolve symbolic links in a given absolute path
  */
 Symlink_resolve_result Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 {
-	char path_element[PATH_MAX];
-	char symlink_target[PATH_MAX];
-
 	Absolute_path current_iteration_working_path;
 	Absolute_path next_iteration_working_path(path, cwd().base());
 
@@ -138,6 +182,8 @@ Symlink_resolve_result Libc::resolve_symlinks(char const *path, Absolute_path &r
 					continue;
 			}
 
+			char path_element[PATH_MAX];
+
 			t.string(path_element, sizeof(path_element));
 
 			try {
@@ -155,32 +201,12 @@ Symlink_resolve_result Libc::resolve_symlinks(char const *path, Absolute_path &r
 				struct stat stat_buf;
 				int res;
 				FNAME_FUNC_WRAPPER_GENERIC(res = , stat, next_iteration_working_path.base(), &stat_buf);
-				if (res == -1) {
+				if (res == -1)
 					return Symlink_resolve_error();
-				}
 				if (S_ISLNK(stat_buf.st_mode)) {
-					FNAME_FUNC_WRAPPER_GENERIC(res = , readlink,
-					                           next_iteration_working_path.base(),
-					                           symlink_target, sizeof(symlink_target) - 1);
-					if (res < 1)
+					if (_resolve_symlink(next_iteration_working_path,
+					                     next_iteration_working_path).failed())
 						return Symlink_resolve_error();
-
-					/* zero terminate target */
-					symlink_target[res] = 0;
-
-					if (symlink_target[0] == '/')
-						/* absolute target */
-						next_iteration_working_path.import(symlink_target, cwd().base());
-					else {
-						/* relative target */
-						next_iteration_working_path.strip_last_element();
-						try {
-							next_iteration_working_path.append_element(symlink_target);
-						} catch (Path_base::Path_too_long) {
-							errno = ENAMETOOLONG;
-							return Symlink_resolve_error();
-						}
-					}
 					symlink_resolved_in_this_iteration = true;
 				}
 			}
@@ -206,8 +232,12 @@ static Symlink_resolve_result resolve_symlinks_except_last_element(char const *p
 		return Symlink_resolve_error();
 
 	/* append last element to resolved path */
+
 	Absolute_path absolute_path_last_element(path, cwd().base());
 	absolute_path_last_element.keep_only_last_element();
+	/* the last element can have a trailing "/" if 'path' is "." */
+	absolute_path_last_element.remove_trailing('/');
+
 	try {
 		resolved_path.append_element(absolute_path_last_element.base());
 	} catch (Path_base::Path_too_long) {
@@ -552,23 +582,48 @@ __SYS_(int, open, (const char *pathname, int flags, ...),
 	if (pathname[0] == '\0')
 		return Errno(ENOENT);
 
+	Absolute_path partially_resolved_path;
 	Absolute_path resolved_path;
 
 	Plugin *plugin;
 	File_descriptor *new_fdo;
 
-	if (resolve_symlinks_except_last_element(pathname, resolved_path).failed())
+	if (resolve_symlinks_except_last_element(pathname, partially_resolved_path).failed())
 		return -1;
 
-	if (!(flags & O_NOFOLLOW)) {
-		/* resolve last element */
-		if (resolve_symlinks(resolved_path.base(), resolved_path).failed()) {
-			if (errno == ENOENT) {
-				if (!(flags & O_CREAT))
-					return -1;
-			} else
+	/* determine type of last element */
+
+	struct stat stat_buf;
+	int res;
+
+	FNAME_FUNC_WRAPPER_GENERIC(res = , stat, partially_resolved_path.base(), &stat_buf);
+
+	if (res == 0) {
+
+		if (S_ISLNK(stat_buf.st_mode)) {
+
+			if (flags & O_NOFOLLOW)
+				return Errno(ELOOP);
+
+			/* resolve last element */
+
+			if (_resolve_symlink(partially_resolved_path, resolved_path).failed())
 				return -1;
+		} else {
+			resolved_path = partially_resolved_path;
 		}
+
+	} else {
+
+		/* stat() failed */
+
+		if (errno == ENOENT) {
+			if (!(flags & O_CREAT))
+				return -1;
+			else
+				resolved_path = partially_resolved_path;
+		} else
+			return -1;
 	}
 
 	plugin = plugin_registry()->get_plugin_for_open(resolved_path.base(), flags);
