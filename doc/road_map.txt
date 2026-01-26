@@ -14,144 +14,165 @@ The road map is not fixed. If there is commercial interest of pushing the
 Genode technology to a certain direction, we are willing to revisit our plans.
 
 
-Review of 2024
+Review of 2025
 ##############
 
-At the beginning of 2024, we had collectively settled on "Sculpt OS usability"
-as the overarching theme for the past year.
-From the long wish list of usability-related topics raised during our public
-road-map discussion, suspend/resume and multi-monitor support was universally
-desired most.
+We dedicated the four releases
+([https://genode.org/documentation/release-notes/25.02 - 25.02],
+[https://genode.org/documentation/release-notes/25.05 - 25.05],
+[https://genode.org/documentation/release-notes/25.08 - 25.08],
+[https://genode.org/documentation/release-notes/25.11 - 25.11])
+of the past year to the maxim "rigidity, clarity, performance".
 
-Suspend/resume became a [https://genode.org/download/sculpt - Sculpt OS]
-feature in [https://genodians.org/nfeske/2024-04-26-sculpt-os - version 24.04]
-released in April.
-The work entailed the dynamic life-cycle management of all drivers that ought
-to be restarted on resume, enhancing the bus and storage drivers to become
-suspend/resume aware, adding kernel support for triggering suspend, and dealing
-with countless platform-specific peculiarities.
+The year got kicked off with SIMD-based graphics optimizations, which
+made Genode well usable in multi-monitor and rotated-screen setups.
+In terms of code rigidity, we were able to proudly announce the elimination
+of C++ exceptions from the base framework by mid of the year. This was made
+possible by embracing
+[https://genode.org/documentation/release-notes/25.05#Return_values_expressed_via_sum_types - sum types]
+as error-propagation technique.
+Thanks to this tireless reconstruction work, we have now gained the luxury of
+knowing that Genode's base system has left no error condition unconsidered.
+Over the course of the year, this new level of rigidity proliferated into the
+realms of our custom "base-hw" kernel, the virtualization interface, and a
+growing number of further components.
 
-Panoramic and mirrored multi-monitor setups were addressed in the subsequent
-Sculpt OS [https://genode.org/news/sculpt-os-release-24.10 - version 24.10]
-released on October. This
-[https://genode.org/documentation/release-notes/24.11#Multi-monitor_support - line of work]
-did not only deliver a solution as a singular feature but improved the entire
-GUI stack in a holistic way, addressing panel self-refresh, mechanisms needed
-to overcome tearing artifacts, up to the rigid resource partitioning between
-GUI applications.
+On the account of clarity, the most prominent development has been the
+introduction of a new
+[https://genode.org/documentation/release-notes/25.08#Consideration_of_a_lean_alternative_to_XML - "human-inclined data"]
+(HID) syntax for the configuration and state reporting of components. Besides
+crafting the code for parsing, generating, and working with the new format,
+the most delicate challenge had been the planning of a smooth migration path
+from our time-tested use of XML to the new format. In Autumn, we reported
+success in that department by offering a special
+[https://genode.org/documentation/release-notes/25.11#Human-inclined_data__HID__processing - flavor of Sculpt OS]
+capable of seamlessly using the new format.
+Thanks to the experience and feedback gathered while driving this version
+day to day with joy, it quickly became clear that there is no going back.
 
-Besides these two highlights, Sculpt OS received plenty of nuanced usability
-improvements. The component graph became scrollable, a new options tab makes
-the interactive toggling of features a breeze, driver components became
-user-accessible in the component graph, the assignment of USB devices to
-components and virtual machines has become straight-forward, and touchpads of
-recent laptops became usable. Compared to one year ago, Sculpt OS has become
-much more pleasant to use. And thanks to seemingly minor details like added
-pointer-grabbing support,
-[https://genode.discourse.group/t/xmas-question-can-it-run-doom/127 - Doom3]
-on Sculpt OS can not only be admired as a technical achievement but has become
-actually playable!
-
-That all said, several envisioned improvements concerning the
-beginner-friendliness remained unaddressed. Sculpt OS still does not feature
-an on-target manual, a convenient file manager, or the ability to conveniently
-save settings by merely using the GUI. This is not out of neglect or laziness,
-but because several unglamorous yet important topics demanded our attention.
-To foster the compatibility of Genode with new hardware platforms, we updated
-all DDE-Linux-based drivers to kernel version 6.6. The struggle with vendor
-kernels for ARM-based boards is real!
-One gratifying outcome is the new ability to run Sculpt OS on the
-[https://genode.org/documentation/release-notes/24.11#MNT_Pocket_Reform - MNT Pocket].
-
-When speaking of usability, we are not only thinking of sole users but also of
-developers. On that account, the past year gives us multiple reasons to celebrate.
-First, our long-year vision of
-[https://genode.org/documentation/release-notes/24.05#On-target_debugging_using_the_GNU_debugger__GDB_ - on-target debugging]
-on Sculpt OS using GDB came to fruition. This feature of Sculpt OS 24.04 got later
-complemented by new debugging
-[https://genodians.org/jschlatow/2024-07-31-goa-gdb - facilities] of the Goa SDK
-and the casual use of Sculpt OS as a
-[https://genodians.org/jschlatow/2024-01-29-goa-sculpt - remote target] when using Goa.
-The icing on the cake has been the new
-[https://genode.org/documentation/release-notes/24.11#New__Genode_Applications__book - "Genode Applications"]
-book, published in November, which provides a smooth introduction to the
-development and porting of software that can be readily distributed and
-deployed for Sculpt OS.
+Among the many performance-oriented topics of the year, the results of two
+long-term developments stood out: the holistic revision of the
+[https://genode.org/documentation/release-notes/25.08#Block-storage_stack_renovations - block-storage]
+stack as well as our new
+[https://genode.org/documentation/release-notes/25.08#Kernel_scheduling_for_fairness_and_low_latency - CPU scheduler]
+specifically designed for fairness and low latency.
+Further highlights of 2025 had been the experimental
+[https://genodians.org/alex-ab/2025-11-02-sculpt-multi-kernel - multi-kernel]
+version of Sculpt OS that gives users the choice between 5 different kernels,
+the adoption of the Goa SDK for projects hosted at the community-maintained
+[https://genode.org/documentation/release-notes/25.11#Genode-world_using_the_Goa_SDK - Genode-world]
+repository, and the frictionless update of all Linux-based device drivers to
+Linux 6.12.
 
 
-2025 - Rigidity, clarity, performance
-#####################################
+2026 - Building bridges
+#######################
 
-During our annual turn-of-the-year road-map brain storming on our public
-[https://genode.org/community/mailing-lists - mailing list], two themes
-emerged. First, among the core developer team, there is much desire to
-realize long-standing consolidation and optimization opportunities that
-shall give raise to increasingly sophisticated dynamic workloads. E.g.,
-the Chromium-based web engine or the process-creation-heavy tool chain
-would be obvious beneficiaries of these efforts. Our ultimate vision is
-the enjoyable use of the Goa SDK directly on Sculpt OS without using a
-guest OS by the end of the year.
+After a year of pruning and nurturing, it is time again for branching out.
+Our annual [https://genode.org/community/mailing-lists - public]
+road-map discussion was
+[https://lists.genode.org/mailman3/hyperkitty/list/users@lists.genode.org/thread/JMGMUML3KBFEXHJCEZBW5SQURNK7KRZI/ - started]
+with the suggestion of "building bridges" as guiding theme for the year.
+Bridges to other open-source projects. Bridges to a variety of programming
+languages. Bridges to new user demographies. Bridges for the interoperability
+of applications.
 
-The second theme is the urge for exploring territory beyond the beaten tracks.
-Among the ambitions are the exploration of a potential
-[https://genodians.org/nfeske/2024-12-20-moving-on-from-xml - alternative] to
-XML as Genode's configuration syntax, the potential of moving platform
-quirks and discovery (like ACPI) to a pre-boot phase to support modern
-platforms without inflating Genode's trusted computing base, the sensible
-integration of IPv6, and pursuing ideas of a truly capability-based desktop
-environment. So we foresee 2025 becoming a little bit more playful compared to
-the past year.
+The suggestion was met with overly positive resonance. Great sympathy with
+[https://www.qubes-os.org/ - Qubes OS] was voiced multiple times.
+Others highlighted the potential of Genode in headless scenarios at data centers,
+servers, or as VM host. When contemplating these directions, the opinionated
+Leitzentrale UI of Sculpt OS is not a natural element but may rather stand in
+the way. A sensible way for building bridges would make the underlying
+architecture and feature set of Sculpt OS useful for Genode-based systems of
+different personalities. So this year, we will see the split of Sculpt OS into
+reusable parts, thereby opening up a new playground for drawing connections to
+other communities and projects.
 
-It goes without saying that topics originally envisioned yet unaddressed in
-2024 will remain on our plan for 2025. E.g., in the milestones below, one can
-see the reappearance of familiar USB, scheduling, and Sculpt usability topics.
-Additionally, the plan foresees the bi-annual update of Genode's tool-chain and
-the annual update of our DDE-Linux-based drivers and protocol stacks.
+The move of Genode to the HID format comes with the natural desire to implement
+HID parsers for a variety of programming languages. As a matter of honor, those
+languages should best become available for Genode in the process. So by the
+end of the year, we will have taken HID to languages that we love, and have
+taken those languages to Genode.
+This ambition goes hand in hand with a stepwise approach towards running the
+Goa SDK self-hosted on Genode.
+
+Besides the "bridges" main theme, the schedule sketched below carries forward
+several topics of 2025 like IPv6 or improving the flexibility of USB. It also
+plans for the update of the arsenal of Linux-based drivers, VirtualBox, the
+Chromium engine, and Qt6.
 
 
-Milestones for 2025
+Milestones for 2026
 ###################
 
-February - Release 25.02
+February - Release 26.02
 ========================
 
-* Multi-monitor window management
-* Multi-monitor virtual machines
-* Sculpt OS on Intel Meteor Lake
-* Port of Qemu via Goa
-* Web Engine updated to Chromium version 112
+* Migration from GitHub to Codeberg (all but Genode's main repository)
+* Human-inclined data (HID) format used by default
+  * Documentation, grammar, test bench for parser implementations
+  * Schema validation
+  * Conversion of Genode's packages, configurations, run scripts
+* Client-budgeted allocation of DMA buffers
+* Window-manager support for touch input
+* Port of Git at Genode World
 
 
-May - Release 25.05
+May - Release 26.05
 ===================
 
-* Updated "Genode Foundations" book
-* Tool-chain update
-* Monitor rotation
-* Hot-swappable display and GPU drivers
-* Base framework usable without C++ support library
-* Revised scheduling of Genode's custom base-hw kernel
-* Exploration of pre-boot ACPI discovery
+* Migration from GitHub to Codeberg (Genode's main repository)
+* Sculpt 26.04
+  * HID by default, deprecating XML
+  * Cryptographically protected user profiles and system configuration
+  * Native Goa SDK, restricted to Genode API and POSIX
+* Revisited "Genode Foundations" and "Genode Applications" books
+* Features of Sculpt OS usable as regular framework functionality
+  (install, deploy, device detection, driver management)
+* Pluggable USB host-controller drivers
+* IPv6 for virtual machines
+* VirtualBox 7
+* DDE-Linux-based PC drivers updated to version 6.18 LTS
+* Updated Qt6 and Chromium engine
+* Goa SDK
+  * Support for automated testing
+  * GnuPG replaced by Sequoia
+* Custom base-hw kernel
+  * System control (power and thermal management)
+  * Performance optimizations (e.g., tagged TLBs)
 
 
-August - Release 25.08
+August - Release 26.08
 ======================
 
-* DDE-Linux update to latest LTS kernel version
-* Experimental variant of Sculpt OS with XML replaced
-* IPv6 for virtual machines
-* Desktop-integration features
-* Pluggable USB-host driver
+* Dynamically reconfigurable VFS
+* GUI access as virtual file system
+* DDE-Linux-based ARM drivers updated to version 6.18 LTS
+* Intel Arrow Lake notebooks, BE2xx wifi, Xe-LPG+ graphics
+* Tracing infrastructure for libc performance analysis
+* Sculpt OS
+  * Native Goa SDK, support for 3rd-party APIs
+  * Sketch of a capability-based desktop environment
+  * On-screen documentation
+  * Remotely administrable headless VM host
 
 
-November - Release 25.11
+November - Release 26.11
 ========================
 
-* Genode-world migrated to Goa
+* Pre-boot platform discovery and sanitation
 * IPv6 for native Genode components
-* Sculpt OS
-  * Goa SDK as installable package
-  * On-target documentation
-  * Use of pre-boot ACPI discovery
-  * Genodians.org deployable as a package
+* USB access-control at USB-interface granularity
+* Sculpt 26.10
+  * Removed XML support
+  * Interactive USB-device management
+  * Base-hw kernel by default
+  * Goa-SDK publishing support
+  * Streamlined VM deployment
+  * Port of file-manager application
+  * Showcasing a guest OS as alternative administrative user interface
+* Genode World
+  * MESA and other 3rd-party components maintained as Goa projects
+  * Ports of popular server applications
+* Libc optimizations (allocator, file-system access)
 

@@ -4,6 +4,26 @@
                                ===========
 
 
+Road Map for 2026 | 2026-01-27
+##############################
+
+| During 2026, we aspire to build bridges connecting Genode with others.
+
+Our past work with 3rd-party software has been mostly motivated by extending
+the feature set of Genode for the benefit of our users. In 2026, we will shift
+our perspective, asking how Genode could contribute positively to existing
+projects by augmenting them. Let's build bridges!
+Bridges to other open-source projects. Bridges to a variety of programming
+languages. Bridges to new user demographies. Bridges for the interoperability
+of applications.
+
+This theme resonated exceptionally well during our annual road-map
+discussion on our public mailing list. Our updated road map presents the many
+ideas and ambitions as a rough schedule for the quarterly releases of this
+year. Look what's coming in 2026 by skimming our
+[https:/about/road-map - official road-map...].
+
+
 Genode OS Framework release 25.11 | 2025-11-27
 ##############################################
 
