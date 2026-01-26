@@ -145,6 +145,7 @@ static struct nlattr               *_genode_wg_tb[1];
 static struct nlattr               *_genode_wg_data[1];
 static struct netlink_ext_ack       _genode_wg_extack;
 static struct rtnl_link_ops        *_genode_wg_rtnl_link_ops;
+static struct rtnl_newlink_params   _genode_wg_rtnl_newlink_params;
 static struct genl_family          *_genode_wg_genl_family;
 static struct socket                _genode_wg_socket;
 
@@ -489,15 +490,17 @@ void lx_user_init(void)
 
 	genode_wg_arch_lx_user_init();
 
+	_genode_wg_rtnl_newlink_params.src_net = &_genode_wg_src_net;
+	_genode_wg_rtnl_newlink_params.tb = _genode_wg_tb;
+	_genode_wg_rtnl_newlink_params.data = _genode_wg_data;
+
 	/* trigger execution of 'wg_setup' */
 	_genode_wg_rtnl_link_ops->setup(genode_wg_net_device());
 
 	/* trigger execution of 'wg_newlink' */
 	_genode_wg_rtnl_link_ops->newlink(
-		&_genode_wg_src_net,
 		genode_wg_net_device(),
-		 _genode_wg_tb,
-		 _genode_wg_data,
+		&_genode_wg_rtnl_newlink_params,
 		&_genode_wg_extack);
 
 	/* create user task, which handles network traffic and configuration changes */

@@ -1181,6 +1181,7 @@ kernel/sched/rq-offsets.c
 kernel/time/timeconst.bc
 kernel/time/timer_migration.h
 lib/crypto/arm64/poly1305-armv8.pl
+lib/crypto/x86/poly1305-x86_64-cryptogams.pl
 lib/ctype.c
 lib/crc/gen_crc32table.c
 lib/radix-tree.h
