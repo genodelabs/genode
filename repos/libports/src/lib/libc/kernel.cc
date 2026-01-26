@@ -473,6 +473,13 @@ static void close_file_descriptors_on_exit()
 }
 
 
+void Libc::Kernel::reset_atexit()
+{
+	_atexit.reset_handlers();
+	atexit(close_file_descriptors_on_exit);
+}
+
+
 Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 :
 	_env(env), _heap(heap)
@@ -502,7 +509,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 
 	init_fork(_env, _fd_alloc, _libc_env, _heap, *_malloc_heap, _config.pid, *this,
 	          _signal, _binary_name);
-	init_execve(_env, _heap, _user_stack, *this, _binary_name, _fd_alloc);
+	init_execve(_env, _heap, _user_stack, *this, *this, _binary_name, _fd_alloc);
 	init_plugin(*this);
 	init_sleep(*this);
 	init_vfs_plugin(*this, _env.rm());

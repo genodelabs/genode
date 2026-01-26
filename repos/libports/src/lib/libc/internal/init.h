@@ -129,6 +129,11 @@ namespace Libc {
 	               Heap &malloc_heap, int pid, Monitor &, Signal &,
 	               Binary_name const &);
 
+	struct Reset_atexit : Interface
+	{
+		virtual void reset_atexit() = 0;
+	};
+
 	struct Reset_malloc_heap : Interface
 	{
 		virtual void reset_malloc_heap() = 0;
@@ -138,7 +143,7 @@ namespace Libc {
 	 * Execve mechanism
 	 */
 	void init_execve(Genode::Env &, Genode::Allocator &, void *user_stack,
-	                 Reset_malloc_heap &, Binary_name &,
+	                 Reset_atexit &, Reset_malloc_heap &, Binary_name &,
 	                 File_descriptor_allocator &);
 
 	/**

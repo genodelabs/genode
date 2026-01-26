@@ -102,6 +102,7 @@ class Libc::Main_job : public Monitor::Job
  */
 struct Libc::Kernel final : Vfs::Read_ready_response_handler,
                             Entrypoint::Io_progress_handler,
+                            Reset_atexit,
                             Reset_malloc_heap,
                             Resume,
                             Suspend,
@@ -147,6 +148,11 @@ struct Libc::Kernel final : Vfs::Read_ready_response_handler,
 		Constructible<Heap> _malloc_heap { };
 
 		Registry<Registered<Cloned_malloc_heap_range> > _cloned_heap_ranges { };
+
+		/**
+		 * Reset_atexit interface used by execve
+		 */
+		void reset_atexit() override;
 
 		/**
 		 * Reset_malloc_heap interface used by execve

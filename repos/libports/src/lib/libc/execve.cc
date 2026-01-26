@@ -309,18 +309,20 @@ static void                            *_user_stack_ptr;
 static main_fn_ptr                      _main_ptr;
 static Libc::String_array              *_env_vars_ptr;
 static Libc::String_array              *_args_ptr;
+static Libc::Reset_atexit              *_reset_atexit_ptr;
 static Libc::Reset_malloc_heap         *_reset_malloc_heap_ptr;
 static Libc::Binary_name               *_binary_name_ptr;
 static Libc::File_descriptor_allocator *_fd_alloc_ptr;
 
 
 void Libc::init_execve(Genode::Env &env, Genode::Allocator &alloc, void *user_stack_ptr,
-                       Reset_malloc_heap &reset_malloc_heap, Binary_name &binary_name,
-                       File_descriptor_allocator &fd_alloc)
+                       Reset_atexit &reset_atexit, Reset_malloc_heap &reset_malloc_heap,
+                       Binary_name &binary_name, File_descriptor_allocator &fd_alloc)
 {
 	_env_ptr               = &env;
 	_alloc_ptr             = &alloc;
 	_user_stack_ptr        =  user_stack_ptr;
+	_reset_atexit_ptr      = &reset_atexit;
 	_reset_malloc_heap_ptr = &reset_malloc_heap;
 	_binary_name_ptr       = &binary_name;
 	_fd_alloc_ptr          = &fd_alloc;
@@ -420,6 +422,9 @@ extern "C" int execve(char const *filename,
 	/* purge line buffers, which may be allocated at the application heap */
 	setvbuf(stdout, nullptr, _IONBF, 0);
 	setvbuf(stderr, nullptr, _IONBF, 0);
+
+	/* reset atexit handlers */
+	_reset_atexit_ptr->reset_atexit();
 
 	/*
 	 * Reconstruct malloc heap for application-owned data

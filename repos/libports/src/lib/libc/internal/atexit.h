@@ -119,6 +119,18 @@ struct Libc::Atexit : Noncopyable
 
 			while (try_execute_one_matching_handler());
 		}
+
+		void reset_handlers()
+		{
+			Mutex::Guard guard(_mutex);
+
+			Handler *handler_ptr = nullptr;
+
+			while ((handler_ptr = _handlers.first())) {
+				_handlers.remove(handler_ptr);
+				destroy(_alloc, handler_ptr);
+			}
+		}
 };
 
 
