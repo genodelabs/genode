@@ -1,5 +1,5 @@
 build {
-	core init lib/ld lib/libc lib/vfs lib/posix
+	core init lib/ld lib/libc lib/vfs lib/posix lib/libm
 	app/sequence server/vfs test/libc_getpwent
 }
 

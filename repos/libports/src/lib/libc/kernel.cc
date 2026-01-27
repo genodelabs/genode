@@ -525,6 +525,9 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	_with_libc_sub_config("passwd", [&] (Node const &passwd_config) {
 		init_passwd(passwd_config); });
 
+	_with_libc_sub_config("group", [&] (Node const &group_config) {
+		init_group(group_config); });
+
 	init_signal(_signal);
 	init_kqueue(_heap, *this, _fd_alloc);
 	init_random(_config);

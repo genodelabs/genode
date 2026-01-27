@@ -93,6 +93,11 @@ namespace Libc {
 	void init_passwd(Node const &);
 
 	/**
+	 * Support for getgrent
+	 */
+	void init_group(Node const &);
+
+	/**
 	 * Malloc allocator
 	 */
 	void init_malloc(Genode::Allocator &);
