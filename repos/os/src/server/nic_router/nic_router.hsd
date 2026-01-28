@@ -1,0 +1,123 @@
+schema config
+
++ type any              | : .*
++ type positive         | : \d*[1-9]\d*
++ type bool             | : yes|no
++ type domain           | : .{1,160}
++ type dns_domain       | : .+
++ type ipv4             | : [0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}
++ type ipv4_prefix      | : [0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}/[0-9]{1,2}
++ type port             | : \d{1,5}
++ type icmp_type_3_code | : no|0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15
++ type num_ports        | : \d*[1-9]\d*
++ type seconds          | : \d*[1-9]\d*
+
++ node report
+  + attr config              | type: bool    | default: no
+  + attr config_triggers     | type: bool    | default: no
+  + attr bytes               | type: bool    | default: no
+  + attr stats               | type: bool    | default: no
+  + attr link_state          | type: bool    | default: no
+  + attr link_state_triggers | type: bool    | default: no
+  + attr quota               | type: bool    | default: no
+  + attr interval_sec        | type: seconds | default: 5
+  + attr dropped_fragm_ipv4  | type: bool    | default: no
+
++ node default-policy
+  + attr domain | type: domain
+
++ node policy
+  + attr domain | type: domain
+  + attr label        | type: any | default:
+  + attr label_prefix | type: any | default:
+  + attr label_suffix | type: any | default:
+  + attr label_last   | type: any | default:
+
++ node nic-client
+  + attr label  | type: any
+  + attr domain | type: domain
+
++ category l3_rule
+  + node permit
+    + attr port   | type: port
+    + attr domain | type: domain
+  + node permit-any
+    + attr domain | type: domain
+
++ attr max_packets_per_signal         | type: positive         | default: 50
++ attr verbose                        | type: bool             | default: no
++ attr verbose_packets                | type: bool             | default: no
++ attr verbose_packet_drop            | type: bool             | default: no
++ attr trace_packets                  | type: bool             | default: no
++ attr verbose_domain_state           | type: bool             | default: no
++ attr dhcp_discover_timeout_sec      | type: seconds          | default: 10
++ attr dhcp_request_timeout_sec       | type: seconds          | default:  6
++ attr dhcp_offer_timeout_sec         | type: seconds          | default:  6
++ attr udp_idle_timeout_sec           | type: seconds          | default: 30
++ attr arp_request_timeout_sec        | type: seconds          | default: 10
++ attr tcp_idle_timeout_sec           | type: seconds          | default: 50
++ attr icmp_idle_timeout_sec          | type: seconds          | default:  5
++ attr tcp_max_segm_lifetime_sec      | type: seconds          | default: 20
++ attr icmp_echo_server               | type: bool             | default: yes
++ attr icmp_type_3_code_on_fragm_ipv4 | type: icmp_type_3_code | default: no
++ attr ld_verbose                     | type: bool             | default: no
++ attr generate_xml                   | type: bool             | default: no
+
++ node domain
+
+  + attr name                | type: domain
+  + attr interface           | type: ipv4_prefix | default: 0.0.0.0/0
+  + attr gateway             | type: ipv4        | default: 0.0.0.0
+  + attr verbose_packets     | type: bool        | default: no
+  + attr verbose_packet_drop | type: bool        | default: no
+  + attr trace_packets       | type: bool        | default: no
+  + attr label               | type: any         | default:
+  + attr icmp_echo_server    | type: bool        | default: no
+  + attr use_arp             | type: bool        | default: yes
+
+  + node ip
+    + attr dst    | type: ipv4_prefix
+    + attr domain | type: domain
+
+  + node icmp
+    + attr dst    | type: ipv4_prefix
+    + attr domain | type: domain
+
+  + node tcp
+    + attr dst | type: ipv4_prefix
+    + node | category: l3_rule
+
+  + node udp
+    + attr dst | type: ipv4_prefix
+    + node | category: l3_rule
+
+  + node tcp-forward
+    + attr port    | type: port
+    + attr domain  | type: domain
+    + attr to      | type: ipv4
+    + attr to_port | type: port
+
+  + node udp-forward
+    + attr port    | type: port
+    + attr domain  | type: domain
+    + attr to      | type: ipv4
+    + attr to_port | type: port
+
+  + node nat
+    + attr icmp-ids  | type: num_ports
+    + attr tcp-ports | type: num_ports | default: 0
+    + attr udp-ports | type: num_ports | default: 0
+    + attr domain    | type: domain
+
+  + node dhcp-server
+    + attr ip_first          | type: ipv4
+    + attr ip_last           | type: ipv4
+    + attr ip_lease_time_sec | type: seconds | default: 0
+    + attr dns_config_from   | type: domain  | default:
+
+    + node dns-server
+      + attr ip | type: ipv4
+
+    + node dns-domain
+      + attr name | type: dns_domain
+-
