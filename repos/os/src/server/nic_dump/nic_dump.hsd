@@ -1,0 +1,18 @@
+schema config
+
++ type bool      | : yes|no
++ type label     | : .{1,64}
++ type log_style | : no|name|default|all
+
++ attr uplink   | type: label     | default: uplink
++ attr downlink | type: label     | default: downlink
++ attr time     | type: bool      | default: no
++ attr default  | type: log_style | default: default
++ attr eth      | type: log_style | default: default
++ attr ipv4     | type: log_style | default: default
++ attr arp      | type: log_style | default: default
++ attr icmp     | type: log_style | default: default
++ attr udp      | type: log_style | default: default
++ attr tcp      | type: log_style | default: default
++ attr dhcp     | type: log_style | default: default
+-

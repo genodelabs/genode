@@ -18,103 +18,85 @@ proc dst_ip { } {
 	}
 }
 
-append config {
+install_config {
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-<config>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
++ default | caps: 100 | ram: 1M
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ start timer
+  + provides | + service Timer
 
-	<default caps="100" ram="1M"/>
++ start drivers | caps: 1200 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Uplink              | + child nic_router
+    + any-service                 | + parent
+  + provides
+    + service Nic
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | dhcp_discover_timeout_sec: 1
+    + policy | label_prefix: nic_dump | domain: downlink
+    + policy | label_prefix: drivers  | domain: uplink
+    + domain uplink
+      + nat | domain: downlink | icmp-ids: 100 | udp-ports: 100
+    + domain downlink | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
+      + icmp | dst: } [dst_ip] {/24 | domain: uplink
 
-	<start name="drivers" caps="1200" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Uplink"> <child name="nic_router"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-		<provides> <service name="Nic"/> </provides>
-	</start>
++ start nic_dump | caps: 200 | ram: 10M
+  + provides | + service Nic
+  + config
+  |        uplink:   uplink
+  |        downlink: downlink
+  |        time:     yes
+  |        default:  name
+  |        eth:      name
+  |        arp:      all
+  |        ipv4:     default
+  |        dhcp:     no
+  |        udp:      no
+  |        icmp:     all
+  |        tcp:      default
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config dhcp_discover_timeout_sec="1">
-
-			<policy label_prefix="nic_dump" domain="downlink"/>
-			<policy label_prefix="drivers"  domain="uplink"/>
-
-			<domain name="uplink">
-
-				<nat domain="downlink" icmp-ids="100" udp-ports="100"/>
-
-			</domain>
-
-			<domain name="downlink" interface="10.0.3.1/24">
-
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
-				<icmp dst="} [dst_ip] {/24" domain="uplink"/>
-
-			</domain>
-
-		</config>
-	</start>
-
-	<start name="nic_dump" caps="200" ram="10M">
-		<provides><service name="Nic"/></provides>
-		<config uplink="uplink"
-		        downlink="downlink"
-		        time="yes"
-		        default="name"
-		        eth="name"
-		        arp="all"
-		        ipv4="default"
-		        dhcp="no"
-		        udp="no"
-		        icmp="all"
-		        tcp="default" />
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="ping" ram="8M">
-		<config interface="10.0.3.2/24"
-		        gateway="10.0.3.1"
-		        dst_ip="} [dst_ip] {"
-		        period_sec="1"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_dump"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>
++ start ping | ram: 8M
+  + config
+  |        interface:  10.0.3.2/24
+  |        gateway:    10.0.3.1
+  |        dst_ip:     } [dst_ip] {
+  |        period_sec: 1
+  |        verbose:    no
+  + route
+    + service Nic | + child nic_dump
+    + any-service
+      + parent
+      + any-child
+-
 }
-
-install_config $config
 
 build_boot_image [build_artifacts]
 
