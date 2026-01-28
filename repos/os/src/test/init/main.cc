@@ -256,7 +256,7 @@ struct Test::Main : Log_message_handler
 				_expect_log_msg = step.attribute_value("string", Log_message_handler::Message());
 				Log_message_handler::Message colored (step.attribute_value("colored", Log_message_handler::Message()));
 				_expect_log_msg = Log_message_handler::Message(_expect_log_msg,
-				                                               "\033[34m",
+				                                               " \033[34m",
 				                                               colored);
 				_expect_log     = true;
 				return RETURN;

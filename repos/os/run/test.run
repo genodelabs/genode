@@ -255,46 +255,41 @@ foreach file $files_from_raw_archives {
 	copy_file $file [run_dir]/genode/ }
 
 install_config {
-	<config prio_levels="2">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="TRACE"/>
-		</parent-provides>
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service TRACE
 
-		<start name="timer" caps="100" ram="1M">
-			<provides><service name="Timer"/></provides>
-			<route>
-				<service name="PD">      <parent/> </service>
-				<service name="CPU">     <parent/> </service>
-				<service name="LOG">     <parent/> </service>
-				<service name="ROM">     <parent/> </service>
-				<service name="IO_MEM">  <parent/> </service>
-				<service name="IRQ">     <parent/> </service>
-				<service name="IO_PORT"> <parent/> </service>
-			</route>
-		</start>
++ start timer | caps: 100 | ram: 1M
+  + provides | + service Timer
+  + route
+    + service PD      | + parent
+    + service CPU     | + parent
+    + service LOG     | + parent
+    + service ROM     | + parent
+    + service IO_MEM  | + parent
+    + service IRQ     | + parent
+    + service IO_PORT | + parent
 
-		<start name="test" priority="-1" caps="} $caps {" ram="} $ram {">
-			<binary name="} $binary {"/>
-			<route>
-				<service name="ROM" label="config"> <parent label="test.config"/> </service>
-				<service name="ROM">   <parent/>    </service>
-				<service name="PD">    <parent/>    </service>
-				<service name="RM">    <parent/>    </service>
-				<service name="CPU">   <parent/>    </service>
-				<service name="LOG">   <parent/>    </service>
-				<service name="TRACE"> <parent/>    </service>
-				<service name="Timer"> <child name="timer"/> </service>
-			</route>
-		</start>
-	</config>
++ start test | priority: -1 | caps: } $caps { | ram: } $ram {
+  + binary } $binary {
+  + route
+    + service ROM | label: config | + parent | label: test.config
+    + service ROM                 | + parent
+    + service PD                  | + parent
+    + service RM                  | + parent
+    + service CPU                 | + parent
+    + service LOG                 | + parent
+    + service TRACE               | + parent
+    + service Timer               | + child timer
+-
 }
 
 # install config of test subsystem
