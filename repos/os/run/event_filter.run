@@ -5,754 +5,670 @@ build {
 
 create_boot_directory
 
-proc test_step_char_repeat { } {
+install_config {
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service CPU
+  + service PD
+  + service LOG
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
 
-	# the character-repeat test is too timing sensitive to run reliably on
-	# Qemu
-	if {[have_include "power_on/qemu"]} {
-		return { } }
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	# the legacy PIT timer driver is too inaccurate to produce stable results
-	# for the character-repeat test
-	if {[binary_name_timer] == "pit_timer"} {
-		return { } }
++ default | caps: 100 | ram: 1M
 
-	return {
-			<message string="test character repeat"/>
++ start timer
+  + provides | + service Timer
 
-			<filter_config>
-				<output>
-					<chargen>
-						<input name="usb"/>
-						<repeat delay_ms="600" rate_ms="200"/>
-						<map> <key name="KEY_A" char="a"/> </map>
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="500"/>
-			<usb> <press code="KEY_A"/> </usb>
-			<sleep ms="1500"/>
-			<usb> <release code="KEY_A"/> </usb>
-			<!-- periodic characters should stop now -->
-			<sleep ms="1000"/> 
-			<usb> <press code="KEY_B"/> <release code="KEY_B"/> </usb>
-			<expect_press   code="KEY_A"       char="a"/> <!-- original press           (0 ms) -->
-			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- character after delay  (600 ms) -->
-			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character     (800 ms) -->
-			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character    (1000 ms) -->
-			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character    (1200 ms) -->
-			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character    (1400 ms) -->
-			<expect_release code="KEY_A"/>
-			<expect_press   code="KEY_B"/>
-			<expect_release code="KEY_B"/>
-	}
++ start report_rom | ram: 2M | priority: -1
+  + provides
+    + service ROM
+    + service Report
+  + config
+    + policy | label_prefix: event_filter -> config          | report: test-event_filter -> event_filter.config
+    + policy | label_prefix: event_filter -> chargen_include | report: test-event_filter -> chargen_include
+    + policy | label_prefix: event_filter -> remap_include   | report: test-event_filter -> remap_include
+    + policy | label_prefix: event_filter -> capslock        | report: test-event_filter -> capslock
+
++ start event_filter | ram: 2M | priority: -1
+  + provides | + service Event
+  + route
+    + service ROM | label: config          | + child report_rom
+    + service ROM | label: chargen_include | + child report_rom
+    + service ROM | label: remap_include   | + child report_rom
+    + service ROM | label: capslock        | + child report_rom
+    + service Event                        | + child test-event_filter
+    + service Report                       | + child test-event_filter
+    + service Timer                        | + child timer
+    + any-service                          | + parent
+
++ start test-event_filter | ram: 4M | priority: -1
+  + provides
+    + service Event
+    + service Report
+  + route
+    + service ROM | label: config | + parent | label: test.config
+    + service Event               | + child event_filter
+    + service Report              | + child report_rom
+    + service Timer               | + child timer
+    + any-service                 | + parent
+-
 }
 
-install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="LOG"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-	</parent-provides>
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-
-	<default caps="100" ram="1M"/>
-
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
-
-	<start name="report_rom" ram="2M" priority="-1">
-		<provides> <service name="ROM"/> <service name="Report"/> </provides>
-		<config>
-			<policy label_prefix="event_filter -> config"
-			        report="test-event_filter -> event_filter.config"/>
-			<policy label_prefix="event_filter -> chargen_include"
-			        report="test-event_filter -> chargen_include"/>
-			<policy label_prefix="event_filter -> remap_include"
-			        report="test-event_filter -> remap_include"/>
-			<policy label_prefix="event_filter -> capslock"
-			        report="test-event_filter -> capslock"/>
-		</config>
-	</start>
-
-	<start name="event_filter" ram="2M" priority="-1">
-		<provides> <service name="Event"/> </provides>
-		<route>
-			<service name="ROM" label="config">          <child name="report_rom"/> </service>
-			<service name="ROM" label="chargen_include"> <child name="report_rom"/> </service>
-			<service name="ROM" label="remap_include">   <child name="report_rom"/> </service>
-			<service name="ROM" label="capslock">        <child name="report_rom"/> </service>
-			<service name="Event"> <child name="test-event_filter"/> </service>
-			<service name="Report"> <child name="test-event_filter"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="test-event_filter" ram="4M" priority="-1">
-		<provides> <service name="Event"/> <service name="Report"/> </provides>
-		<config>
-
-			<driver name="usb"/>
-			<driver name="ps2"/>
-
-
-			<message string="test merging of two input sources"/>
-
-			<filter_config>
-				<output>
-					<merge>
-						<input name="ps2"/>
-						<input name="usb"/>
-					</merge>
-				</output>
-				<policy label_suffix="ps2" input="ps2"/>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="250"/>
-
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press   code="KEY_A"/>
-			<expect_release code="KEY_A"/>
-
-			<ps2> <press code="KEY_B"/> <release code="KEY_B"/> </ps2>
-			<expect_press   code="KEY_B"/>
-			<expect_release code="KEY_B"/>
-
-
-			<message string="test key remapping"/>
-
-			<filter_config>
-				<output>
-					<remap>
-						<merge>
-							<input name="usb"/>
-							<remap>
-								<input name="ps2"/>
-								<key name="KEY_A" to="KEY_C"/>
-							</remap>
-						</merge>
-						<key name="KEY_A" to="KEY_B"/>
-					</remap>
-				</output>
-				<policy label_suffix="ps2" input="ps2"/>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="250"/>
-
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press   code="KEY_B"/>
-			<expect_release code="KEY_B"/>
-
-			<ps2> <press code="KEY_A"/> <release code="KEY_A"/> </ps2>
-			<expect_press   code="KEY_C"/>
-			<expect_release code="KEY_C"/>
-
-
-			<message string="test deferred reconfiguration"/>
-
-			<!-- hold key while reconfiguring the filter, the remapping applies -->
-			<usb> <press code="KEY_A"/> </usb>
-			<expect_press code="KEY_B"/>
-
-			<filter_config>
-				<output> <input name="usb"/> </output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="250"/>
-
-			<!-- expect the remapping rules to persist until all keys are released -->
-			<usb> <release code="KEY_A"/> </usb>
-			<expect_release code="KEY_B"/>
-
-			<sleep ms="100"/>
-
-			<!-- now the default configuration is expected to take effect -->
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press   code="KEY_A"/>
-			<expect_release code="KEY_A"/>
-
-			<!-- disconnect ps2 to avoid warnings by the event filter -->
-			<driver name="ps2" connected="no"/>
-
-			<message string="test emission of characters"/>
-
-			<filter_config>
-				<output>
-					<chargen>
-						<input name="usb"/>
-						<mod1>
-							<key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
-						</mod1>
-						<map>            <key name="KEY_A" char="a"/> </map>
-						<map mod1="yes"> <key name="KEY_A" char="A"/> </map>
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="250"/>
-			<usb>
-				<press   code="KEY_A"/> <release code="KEY_A"/>
-				<press   code="KEY_LEFTSHIFT"/>
-				<press   code="KEY_A"/> <release code="KEY_A"/>
-				<release code="KEY_LEFTSHIFT"/>
-				<press   code="KEY_RIGHTSHIFT"/>
-				<press   code="KEY_A"/> <release code="KEY_A"/>
-				<release code="KEY_RIGHTSHIFT"/>
-			</usb>
-			<expect_press   code="KEY_A" char="a"/>
-			<expect_release code="KEY_A"/>
-			<expect_press   code="KEY_LEFTSHIFT"/>
-			<expect_press   code="KEY_A" char="A"/>
-			<expect_release code="KEY_A"/>
-			<expect_release code="KEY_LEFTSHIFT"/>
-			<expect_press   code="KEY_RIGHTSHIFT"/>
-			<expect_press   code="KEY_A" char="A"/>
-			<expect_release code="KEY_A"/>
-			<expect_release code="KEY_RIGHTSHIFT"/>
-
-
-			} [test_step_char_repeat] {
-
-			<message string="capslock handling"/>
-
-			<filter_config>
-				<output>
-					<chargen>
-						<remap>
-							<input name="usb"/>
-						</remap>
-						<mod4> <rom name="capslock"/> </mod4>
-						<map>            <key name="KEY_A" char="a"/> </map>
-						<map mod4="yes"> <key name="KEY_A" char="A"/> </map>
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<!--
-			     Leave the 'capslock' ROM initially undefined, which prompts
-			     the event filter to complain about the modifier state being
-			     unavailable. However, as soon as 'capslock' becomes defined,
-			     the event filter is expected to re-processes its configuration.
-			 -->
-			<sleep ms="250"/>
-			<capslock enabled="no"/>
-			<sleep ms="250"/>
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A" char="a"/> <expect_release code="KEY_A"/>
-			<capslock enabled="yes"/>
-			<sleep ms="250"/>
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A" char="A"/> <expect_release code="KEY_A"/>
-			<capslock enabled="no"/>
-			<sleep ms="250"/>
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A" char="a"/> <expect_release code="KEY_A"/>
-
-
-			<message string="sequence handling"/>
-
-			<filter_config>
-				<output>
-					<chargen>
-						<remap>
-							<input name="usb"/>
-						</remap>
-						<map>
-							<key name="KEY_GRAVE" code="0x0300"/> <!-- dead_grave -->
-							<key name="KEY_A"     char="a"/>
-							<key name="KEY_E"     char="e"/>
-							<key name="KEY_X"     char="x"/>
-						</map>
-						<sequence first="0x0300" second="0x0061" code="0x00e0"/> <!-- LATIN SMALL LETTER A WITH GRAVE -->
-						<sequence first="0x0300" second="0x0065" code="0x00e8"/> <!-- LATIN SMALL LETTER E WITH GRAVE -->
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="250"/>
-			<usb>
-				<press code="KEY_GRAVE"/> <release code="KEY_GRAVE"/> <!-- invalid char -->
-				<press code="KEY_A"/>     <release code="KEY_A"/>     <!-- generate a-grave -->
-				<press code="KEY_GRAVE"/> <release code="KEY_GRAVE"/> <!-- invalid char -->
-				<press code="KEY_E"/>     <release code="KEY_E"/>     <!-- generate e-grave -->
-				<press code="KEY_GRAVE"/> <release code="KEY_GRAVE"/> <!-- invalid char -->
-				<press code="KEY_X"/>     <release code="KEY_X"/>     <!-- abort sequence (invalid char) -->
-				<press code="KEY_X"/>     <release code="KEY_X"/>     <!-- generate x -->
-			</usb>
-			<expect_press   code="KEY_GRAVE" codepoint="0xfffe"/>
-			<expect_release code="KEY_GRAVE"/>
-			<expect_press   code="KEY_A"     codepoint="0x00e0"/>
-			<expect_release code="KEY_A"/>
-			<expect_press   code="KEY_GRAVE"/>
-			<expect_release code="KEY_GRAVE"/>
-			<expect_press   code="KEY_E"     codepoint="0x00e8"/>
-			<expect_release code="KEY_E"/>
-			<expect_press   code="KEY_GRAVE"/>
-			<expect_release code="KEY_GRAVE"/>
-			<message string="1"/>
-			<expect_press   code="KEY_X"     codepoint="0xfffe"/>
-			<expect_release code="KEY_X"/>
-			<message string="2"/>
-			<expect_press   code="KEY_X" char="x"/>
-			<expect_release code="KEY_X"/>
-			<message string="3"/>
-			<sleep ms="250"/>
-
-
-			<message string="button-scroll feature"/>
-
-			<filter_config>
-				<output>
-					<button-scroll>
-						<input name="usb"/>
-						<vertical   button="BTN_MIDDLE"    speed_percent="-50"/>
-						<horizontal button="KEY_LEFTSHIFT" speed_percent="50"/>
-					</button-scroll>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<press code="BTN_MIDDLE"/> <release code="BTN_MIDDLE"/>
-				<motion rx="10" ry="10"/>
-				<press code="BTN_MIDDLE"/>
-				<motion rx="1" ry="1"/>
-				<motion rx="1" ry="1"/>
-				<press code="KEY_LEFTSHIFT"/>
-				<motion rx="1" ry="1"/>
-				<motion rx="1" ry="1"/>
-				<release code="KEY_LEFTSHIFT"/>
-				<release code="BTN_MIDDLE"/>
-				<motion rx="10" ry="10"/>
-				<press code="BTN_MIDDLE"/> <release code="BTN_MIDDLE"/>
-			</usb>
-			<!-- press-release w/o motion is reported at release time -->
-			<expect_press   code="BTN_MIDDLE"/>
-			<expect_release code="BTN_MIDDLE"/>
-			<expect_motion rx="10" ry="10"/>
-			<expect_wheel rx="0" ry="-1"/>
-			<expect_wheel rx="1" ry="-1"/>
-			<expect_motion rx="10" ry="10"/>
-			<expect_press   code="BTN_MIDDLE"/>
-			<expect_release code="BTN_MIDDLE"/>
-
-
-			<message string="accleration of relative motion events"/>
-
-			<!-- linear acceleration -->
-			<filter_config>
-				<output>
-					<accelerate max="100" curve="0" sensitivity_percent="200">
-						<input name="usb"/>
-					</accelerate>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<motion rx="1"/>
-				<motion rx="20"/>
-				<motion rx="100"/>
-				<motion rx="-100"/>
-			</usb>
-			<expect_motion rx="1"/>
-			<expect_motion rx="35"/>
-			<expect_motion rx="178"/>
-			<expect_motion rx="-178"/>
-
-			<!-- non-linear acceleration -->
-			<filter_config>
-				<output>
-					<accelerate max="100" curve="127" sensitivity_percent="200">
-						<input name="usb"/>
-					</accelerate>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<motion rx="1"/>
-				<motion rx="20"/>
-				<motion rx="100"/>
-				<motion rx="-100"/>
-			</usb>
-			<expect_motion rx="1"/>
-			<expect_motion rx="23"/>
-			<expect_motion rx="191"/>
-			<expect_motion rx="-191"/>
-
-
-			<message string="survive deeply nested config"/>
-
-			<deep_filter_config depth="50"/>
-			<sleep ms="100"/>
-
-
-			<message string="survive attempt to include non-existing ROM"/>
-
-			<remap_include>   </remap_include>
-			<chargen_include> </chargen_include>
-			<filter_config>
-				<output>
-					<chargen>
-						<input name="usb"/>
-						<include rom="nonexisting_include"/>
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-
-
-			<message string="detect top-level node mismatch in included ROM"/>
-
-			<filter_config>
-				<output>
-					<chargen>
-						<input name="usb"/>
-						<include rom="remap_include"/>
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-
-
-			<message string="survive include recursion"/>
-
-			<chargen_include> <include rom="chargen_include"/> </chargen_include>
-			<filter_config>
-				<output>
-					<chargen>
-						<input name="usb"/>
-						<include rom="chargen_include"/>
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-
-
-			<message string="include valid chargen rules"/>
-
-			<chargen_include>
-				<map> <key name="KEY_A" char="a"/> </map>
-			</chargen_include>
-			<filter_config>
-				<output>
-					<chargen>
-						<input name="usb"/>
-						<include rom="chargen_include"/>
-					</chargen>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A" char="a"/> <expect_release code="KEY_A"/>
-
-
-			<message string="update included chargen ROM"/>
-
-			<chargen_include>
-				<map> <key name="KEY_A" char="b"/> </map>
-			</chargen_include>
-			<sleep ms="100"/>
-			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A" char="b"/> <expect_release code="KEY_A"/>
-
-
-			<message string="test remap of KEY_UNKNOWN"/>
-
-			<filter_config>
-				<output>
-					<remap>
-						<key name="KEY_UNKNOWN" to="KEY_A"/>
-						<input name="usb"/>
-					</remap>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<press code="KEY_UNKNOWN" />
-				<release code="KEY_UNKNOWN"/>
-			</usb>
-			<expect_press code="KEY_A" />
-			<expect_release code="KEY_A" />
-
-
-			<message string="test ignore-key"/>
-
-			<filter_config>
-				<output>
-					<remap>
-						<key name="KEY_UNKNOWN" to="KEY_A"/>
-						<ignore-key name="KEY_UNKNOWN"/>
-						<input name="usb"/>
-					</remap>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<press code="KEY_UNKNOWN" />
-				<release code="KEY_UNKNOWN"/>
-				<press code="KEY_B" />
-				<release code="KEY_B"/>
-			</usb>
-			<not_expect_press code="KEY_A" />
-			<not_expect_release code="KEY_A" />
-
-
-			<message string="test log output"/>
-
-			<filter_config>
-				<output>
-					<log prefix="Remapped:">
-						<remap>
-							<key name="KEY_UNKNOWN" to="KEY_A"/>
-							<log prefix="Unremapped:">
-								<input name="usb"/>
-							</log>
-						</remap>
-					</log>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<press code="KEY_UNKNOWN" />
-				<release code="KEY_UNKNOWN"/>
-			</usb>
-
-			<message string="test touch key"/>
-
-			<filter_config>
-				<output>
-					<touch-key>
-						<tap xpos="0" ypos="400" width="50" height="600" key="KEY_DASHBOARD"/>
-						<input name="usb"/>
-					</touch-key>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<touch x="10" y="500" /> <!-- hits special area -->
-				<touch-release/>
-				<touch x="100" y="500" /> <!-- besides special area -->
-				<touch-release/>
-			</usb>
-			<expect_press code="KEY_DASHBOARD" />
-			<expect_release code="KEY_DASHBOARD" />
-			<expect_touch x="100" y="500"/>
-			<expect_touch_release/>
-
-			<message string="test touch gestures (hold)"/>
-
-			<filter_config>
-				<output>
-					<touch-gesture>
-						<hold delay_ms="400" width="30" height="30">
-							<key name="BTN_RIGHT"/> </hold>
-						<hold delay_ms="400" fingers="2" width="30" height="30">
-							<key name="KEY_ENTER"/>
-							<key hold="yes" name="KEY_SCREEN">
-								<key hold="yes" name="BTN_MIDDLE"/> </key>
-						</hold>
-						<input name="usb"/>
-					</touch-gesture>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<touch x="200" y="200" />
-				<touch-release id="0"/>
-				<touch x="200" y="300"/>
-				<touch x="220" y="300"/>
-			</usb>
-			<sleep ms="500"/>
-			<usb>
-				<touch-release id="0"/>
-				<touch x="300" y="300"/>
-				<touch x="310" y="300"/>
-			</usb>
-			<sleep ms="500"/>
-			<usb>
-				<touch id="0" x="330" y="330"/>
-				<touch-release id="0"/>
-				<touch id="0" x="100" y="100"/>
-				<touch id="1" x="110" y="100"/>
-				<touch id="1" x="112" y="100"/>
-			</usb>
-			<sleep ms="500"/>
-			<usb>
-				<touch id="0" x="150" y="100"/>
-				<touch-release id="1"/>
-				<touch-release id="0"/>
-			</usb>
-			<expect_touch x="200" y="200"/>
-			<expect_touch_release/>
-			<expect_touch x="200" y="300"/>
-			<expect_touch x="220" y="300"/>
-			<expect_touch_release/>
-			<expect_motion ax="300" ay="300"/>
-			<expect_press   code="BTN_RIGHT"/>
-			<expect_release code="BTN_RIGHT"/>
-			<expect_motion rx="30" ry="30"/>
-			<expect_motion ax="100" ay="100"/>
-			<expect_press   code="KEY_ENTER"/>
-			<expect_release code="KEY_ENTER"/>
-			<expect_press   code="KEY_SCREEN"/>
-			<expect_press   code="BTN_MIDDLE"/>
-			<expect_motion rx="50" ry="0"/>
-			<expect_release   code="BTN_MIDDLE"/>
-			<expect_release   code="KEY_SCREEN"/>
-
-			<message string="test touch gestures (swipe)"/>
-
-			<filter_config>
-				<output>
-					<touch-gesture>
-						<swipe duration_ms="400" distance="50" direction="down" xpos="0" ypos="0" width="30" height="30">
-							<key name="KEY_DASHBOARD"/> </swipe>
-						<swipe duration_ms="400" distance="100" direction="down">
-							<key name="KEY_SCREEN"/> </swipe>
-						<input name="usb"/>
-					</touch-gesture>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<touch x="15" y="15" />
-				<touch x="15" y="25" />
-				<touch-release id="0"/>
-				<touch x="15" y="400" />
-				<touch x="15" y="200" />
-				<touch-release/>
-				<touch x="15" y="200" />
-				<touch x="15" y="220" />
-			</usb>
-			<sleep ms="500"/>
-			<usb>
-				<touch x="15" y="400" />
-				<touch-release/>
-				<touch x="15" y="15" />
-				<touch x="15" y="65" />
-				<touch x="15" y="120" />
-				<touch-release id="0"/>
-				<touch x="50" y="15" />
-				<touch x="50" y="65" />
-				<touch x="50" y="120" />
-				<touch-release id="0"/>
-				<touch id="0" x="15" y="15" />
-				<touch id="1" x="10" y="10" />
-				<touch id="0" x="15" y="65" />
-				<touch-release id="1"/>
-				<touch-release id="0"/>
-			</usb>
-			<expect_touch x="15" y="15"/>
-			<expect_touch x="15" y="25"/>
-			<expect_touch_release/>
-			<expect_touch x="15" y="400"/>
-			<expect_touch x="15" y="200"/>
-			<expect_touch_release/>
-			<expect_touch x="15" y="200"/>
-			<expect_touch x="15" y="220"/>
-			<expect_touch_release/>
-			<expect_press   code="KEY_DASHBOARD"/>
-			<expect_release code="KEY_DASHBOARD"/>
-			<expect_press   code="KEY_SCREEN"/>
-			<expect_release code="KEY_SCREEN"/>
-			<expect_touch id="0" x="15" y="15"/>
-			<expect_touch id="1" x="10" y="10"/>
-			<expect_touch id="0" x="15" y="65"/>
-			<expect_touch_release id="1"/>
-			<expect_touch_release id="0"/>
-
-			<message string="test shortcut report"/>
-
-			<filter_config>
-				<output>
-					<report>
-						<shortcut name="toggle_screen_lock">
-							<key name="KEY_LEFTMETA"/> <key name="KEY_L"/>
-						</shortcut>
-						<input name="usb"/>
-					</report>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<press   code="KEY_LEFTMETA"/>
-				<press   code="KEY_L"/>
-				<release code="KEY_L"/>
-				<release code="KEY_LEFTMETA"/>
-			</usb>
-			<expect_press   code="KEY_LEFTMETA"/>
-			<expect_press   code="KEY_L"/>
-			<expect_release code="KEY_L"/>
-			<expect_release code="KEY_LEFTMETA"/>
-			<sleep ms="100"/>
-			<expect_shortcut name="toggle_screen_lock" serial="1"/>
-
-			<filter_config>
-				<output>
-					<report>
-						<shortcut name="toggle_screen_lock">
-							<key name="KEY_LEFTMETA"/> <key name="KEY_L"/>
-						</shortcut>
-						<shortcut name="screenshot">
-							<key name="KEY_LEFTMETA"/> <key name="KEY_S"/>
-						</shortcut>
-						<input name="usb"/>
-					</report>
-				</output>
-				<policy label_suffix="usb" input="usb"/>
-			</filter_config>
-			<sleep ms="100"/>
-			<usb>
-				<press   code="KEY_LEFTMETA"/>
-				<press   code="KEY_S"/>
-				<release code="KEY_S"/>
-			</usb>
-			<sleep ms="100"/>
-			<expect_shortcut name="screenshot" serial="2"/>
-			<usb>
-				<press   code="KEY_L"/>
-				<release code="KEY_L"/>
-				<release code="KEY_LEFTMETA"/>
-			</usb>
-			<sleep ms="100"/>
-			<expect_shortcut name="screenshot" serial="2"/>
-			<expect_shortcut name="toggle_screen_lock" serial="3"/>
-
-		</config>
-		<route>
-			<service name="Event">  <child name="event_filter"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Timer">  <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-</config>}
-
+proc test_step_char_repeat { } { return {
++ message | string: test character repeat
++ filter_config
+  + output
+  | + chargen
+  |   + input usb
+  |   + repeat | delay_ms: 600 | rate_ms: 200
+  |   + map | + key KEY_A | char: a
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 500
++ usb   | + press   | code: KEY_A
++ sleep | ms: 1500
++ usb   | + release | code: KEY_A
++ sleep | ms: 1000
+  .
+  . periodic characters should stop now
+  .
++ usb
+  + press   | code: KEY_B
+  + release | code: KEY_B
++ expect_press   | code: KEY_A       | char: a | . original press          (0 ms)
++ expect_press   | code: KEY_UNKNOWN | char: a | . character after delay (600 ms)
++ expect_press   | code: KEY_UNKNOWN | char: a | . periodic character    (800 ms)
++ expect_press   | code: KEY_UNKNOWN | char: a | . periodic character   (1000 ms)
++ expect_press   | code: KEY_UNKNOWN | char: a | . periodic character   (1200 ms)
++ expect_press   | code: KEY_UNKNOWN | char: a | . periodic character   (1400 ms)
++ expect_release | code: KEY_A
++ expect_press   | code: KEY_B
++ expect_release | code: KEY_B
+} }
+
+# the character-repeat test is too timing sensitive to run reliably on Qemu
+if {[have_include "power_on/qemu"]} { proc test_step_char_repeat { } { } }
+
+# the legacy PIT timer driver is too inaccurate to produce stable results
+# for the character-repeat test
+if {[binary_name_timer] == "pit_timer"} { proc test_step_char_repeat { } { } }
+
+
+set test_config ""
+append test_config {
+config
++ driver usb
++ driver ps2
+
++ message | string: test merging of two input sources
++ filter_config
+  + output
+  | + merge
+  |   + input ps2
+  |   + input usb
+  + policy | label_suffix: ps2 | input: ps2
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 250
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_A
++ expect_release | code: KEY_A
++ ps2
+  + press   | code: KEY_B
+  + release | code: KEY_B
++ expect_press   | code: KEY_B
++ expect_release | code: KEY_B
+
++ message | string: test key remapping
++ filter_config
+  + output
+  | + remap
+  |   + merge
+  |   | + input usb
+  |   | + remap
+  |   |   + input ps2
+  |   |   + key KEY_A | to: KEY_C
+  |   + key KEY_A     | to: KEY_B
+  + policy | label_suffix: ps2 | input: ps2
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 250
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_B
++ expect_release | code: KEY_B
++ ps2
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_C
++ expect_release | code: KEY_C
+
++ message | string: test deferred reconfiguration
++ usb
+  .
+  . hold key while reconfiguring the filter, the remapping applies
+  .
+  + press | code: KEY_A
++ expect_press | code: KEY_B
++ filter_config
+  + output | + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 250
++ usb
+  .
+  . expect the remapping rules to persist until all keys are released
+  .
+  + release | code: KEY_A
++ expect_release | code: KEY_B
++ sleep | ms: 100
++ usb
+  .
+  . now the default configuration is expected to take effect
+  .
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_A
++ expect_release | code: KEY_A
++ driver ps2 | connected: no
+  .
+  . disconnect ps2 to avoid warnings by the event filter
+  .
+
++ message | string: test emission of characters
++ filter_config
+  + output
+  | + chargen
+  |   + input usb
+  |   + mod1
+  |     + key KEY_LEFTSHIFT
+  |     + key KEY_RIGHTSHIFT
+  |   + map             | + key KEY_A | char: a
+  |   + map | mod1: yes | + key KEY_A | char: A
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 250
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
+  + press   | code: KEY_LEFTSHIFT
+  + press   | code: KEY_A
+  + release | code: KEY_A
+  + release | code: KEY_LEFTSHIFT
+  + press   | code: KEY_RIGHTSHIFT
+  + press   | code: KEY_A
+  + release | code: KEY_A
+  + release | code: KEY_RIGHTSHIFT
++ expect_press   | code: KEY_A | char: a
++ expect_release | code: KEY_A
++ expect_press   | code: KEY_LEFTSHIFT
++ expect_press   | code: KEY_A | char: A
++ expect_release | code: KEY_A
++ expect_release | code: KEY_LEFTSHIFT
++ expect_press   | code: KEY_RIGHTSHIFT
++ expect_press   | code: KEY_A | char: A
++ expect_release | code: KEY_A
++ expect_release | code: KEY_RIGHTSHIFT
+
+} [test_step_char_repeat] {
+
++ message | string: capslock handling
++ filter_config
+  + output
+  | + chargen
+  |   + remap | + input usb
+  |   + mod4  | + rom capslock
+  |   + map             | + key KEY_A | char: a
+  |   + map | mod4: yes | + key KEY_A | char: A
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 250
+  .
+  . Leave the 'capslock' ROM initially undefined, which prompts
+  . the event filter to complain about the modifier state being
+  . unavailable. However, as soon as 'capslock' becomes defined,
+  . the event filter is expected to re-processes its configuration.
+  .
++ capslock | enabled: no
++ sleep | ms: 250
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_A | char: a
++ expect_release | code: KEY_A
++ capslock | enabled: yes
++ sleep | ms: 250
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_A | char: A
++ expect_release | code: KEY_A
++ capslock | enabled: no
++ sleep | ms: 250
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_A | char: a
++ expect_release | code: KEY_A
+
++ message | string: sequence handling
++ filter_config
+  + output
+  | + chargen
+  |   + remap | + input usb
+  |   + map
+  |     + key KEY_GRAVE | code: 0x0300 |  | . dead_grave
+  |     + key KEY_A     | char: a
+  |     + key KEY_E     | char: e
+  |     + key KEY_X     | char: x
+  |   + sequence | first: 0x0300 | second: 0x0061 | code: 0x00e0 |  | . LATIN SMALL LETTER A WITH GRAVE
+  |   + sequence | first: 0x0300 | second: 0x0065 | code: 0x00e8 |  | . LATIN SMALL LETTER E WITH GRAVE
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 250
++ usb
+  + press   | code: KEY_GRAVE
+  + release | code: KEY_GRAVE | . invalid char
+  + press   | code: KEY_A
+  + release | code: KEY_A     | . generate a-grave
+  + press   | code: KEY_GRAVE
+  + release | code: KEY_GRAVE | . invalid char
+  + press   | code: KEY_E
+  + release | code: KEY_E     | . generate e-grave
+  + press   | code: KEY_GRAVE
+  + release | code: KEY_GRAVE | . invalid char
+  + press   | code: KEY_X
+  + release | code: KEY_X     | . abort sequence (invalid char)
+  + press   | code: KEY_X
+  + release | code: KEY_X     | . generate x
++ expect_press   | code: KEY_GRAVE | codepoint: 0xfffe
++ expect_release | code: KEY_GRAVE
++ expect_press   | code: KEY_A     | codepoint: 0x00e0
++ expect_release | code: KEY_A
++ expect_press   | code: KEY_GRAVE
++ expect_release | code: KEY_GRAVE
++ expect_press   | code: KEY_E     | codepoint: 0x00e8
++ expect_release | code: KEY_E
++ expect_press   | code: KEY_GRAVE
++ expect_release | code: KEY_GRAVE
+
++ message | string: 1
++ expect_press   | code: KEY_X | codepoint: 0xfffe
++ expect_release | code: KEY_X
++ message | string: 2
++ expect_press   | code: KEY_X | char: x
++ expect_release | code: KEY_X
++ message | string: 3
++ sleep | ms: 250
+
++ message | string: button-scroll feature
++ filter_config
+  + output
+  | + button-scroll
+  |   + input usb
+  |   + vertical   | button: BTN_MIDDLE    | speed_percent: -50
+  |   + horizontal | button: KEY_LEFTSHIFT | speed_percent: 50
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + press   | code: BTN_MIDDLE
+  + release | code: BTN_MIDDLE
+  + motion  | rx: 10 | ry: 10
+  + press   | code: BTN_MIDDLE
+  + motion  | rx:  1 | ry: 1
+  + motion  | rx:  1 | ry: 1
+  + press   | code: KEY_LEFTSHIFT
+  + motion  | rx:  1 | ry: 1
+  + motion  | rx:  1 | ry: 1
+  + release | code: KEY_LEFTSHIFT
+  + release | code: BTN_MIDDLE
+  + motion  | rx: 10 | ry: 10
+  + press   | code: BTN_MIDDLE
+  + release | code: BTN_MIDDLE
++ expect_press | code: BTN_MIDDLE
+  .
+  . press-release w/o motion is reported at release time
+  .
++ expect_release | code: BTN_MIDDLE
++ expect_motion  | rx: 10 | ry: 10
++ expect_wheel   | rx:  0 | ry: -1
++ expect_wheel   | rx:  1 | ry: -1
++ expect_motion  | rx: 10 | ry: 10
++ expect_press   | code: BTN_MIDDLE
++ expect_release | code: BTN_MIDDLE
+
++ message | string: accleration of relative motion events
++ filter_config
+  .
+  . linear acceleration
+  .
+  + output
+  | + accelerate | max: 100 | curve: 0 | sensitivity_percent: 200
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + motion | rx: 1
+  + motion | rx: 20
+  + motion | rx: 100
+  + motion | rx: -100
++ expect_motion | rx: 1
++ expect_motion | rx: 35
++ expect_motion | rx: 178
++ expect_motion | rx: -178
++ filter_config
+  .
+  . non-linear acceleration
+  .
+  + output
+  | + accelerate | max: 100 | curve: 127 | sensitivity_percent: 200
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + motion | rx: 1
+  + motion | rx: 20
+  + motion | rx: 100
+  + motion | rx: -100
++ expect_motion | rx: 1
++ expect_motion | rx: 23
++ expect_motion | rx: 191
++ expect_motion | rx: -191
+
++ message | string: survive deeply nested config
++ deep_filter_config | depth: 50
++ sleep | ms: 100
+
++ message | string: survive attempt to include non-existing ROM
++ remap_include
++ chargen_include
++ filter_config
+  + output
+  | + chargen
+  |   + input usb
+  |   + include | rom: nonexisting_include
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
+
++ message | string: detect top-level node mismatch in included ROM
++ filter_config
+  + output
+  | + chargen
+  |   + input usb
+  |   + include | rom: remap_include
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
+
++ message | string: survive include recursion
++ chargen_include
+  + include | rom: chargen_include
++ filter_config
+  + output
+  | + chargen
+  |   + input usb
+  |   + include | rom: chargen_include
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
+
++ message | string: include valid chargen rules
++ chargen_include | + map | + key KEY_A | char: a
++ filter_config
+  + output
+  | + chargen
+  |   + input usb
+  |   + include | rom: chargen_include
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_A | char: a
++ expect_release | code: KEY_A
+
++ message | string: update included chargen ROM
++ chargen_include | + map | + key KEY_A | char: b
++ sleep | ms: 100
++ usb
+  + press   | code: KEY_A
+  + release | code: KEY_A
++ expect_press   | code: KEY_A | char: b
++ expect_release | code: KEY_A
+
++ message | string: test remap of KEY_UNKNOWN
++ filter_config
+  + output
+  | + remap
+  |   + key KEY_UNKNOWN | to: KEY_A
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + press   | code: KEY_UNKNOWN
+  + release | code: KEY_UNKNOWN
++ expect_press   | code: KEY_A
++ expect_release | code: KEY_A
+
++ message | string: test ignore-key
++ filter_config
+  + output
+  | + remap
+  |   + key KEY_UNKNOWN | to: KEY_A
+  |   + ignore-key KEY_UNKNOWN
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + press   | code: KEY_UNKNOWN
+  + release | code: KEY_UNKNOWN
+  + press   | code: KEY_B
+  + release | code: KEY_B
++ not_expect_press   | code: KEY_A
++ not_expect_release | code: KEY_A
+
++ message | string: test log output
++ filter_config
+  + output
+  | + log | prefix: Remapped:
+  |   + remap
+  |     + key KEY_UNKNOWN | to: KEY_A
+  |     + log | prefix: Unremapped:
+  |       + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + press   | code: KEY_UNKNOWN
+  + release | code: KEY_UNKNOWN
+
++ message | string: test touch key
++ filter_config
+  + output
+  | + touch-key
+  |   + tap | xpos: 0 | ypos: 400 | width: 50 | height: 600 | key: KEY_DASHBOARD
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + touch | x:  10 | y: 500 |  | . hits special area
+  + touch-release
+  + touch | x: 100 | y: 500 |  | . besides special area
+  + touch-release
++ expect_press   | code: KEY_DASHBOARD
++ expect_release | code: KEY_DASHBOARD
++ expect_touch   | x: 100 | y: 500
++ expect_touch_release
+
++ message | string: test touch gestures (hold)
++ filter_config
+  + output
+  | + touch-gesture
+  |   + hold | delay_ms: 400 | width: 30 | height: 30
+  |   | + key BTN_RIGHT
+  |   + hold | delay_ms: 400 | fingers: 2 | width: 30 | height: 30
+  |   | + key KEY_ENTER
+  |   | + key KEY_SCREEN | hold: yes
+  |   |   + key BTN_MIDDLE | hold: yes
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + touch | x: 200 | y: 200
+  + touch-release  | id: 0
+  + touch | x: 200 | y: 300
+  + touch | x: 220 | y: 300
++ sleep | ms: 500
++ usb
+  + touch-release  | id: 0
+  + touch | x: 300 | y: 300
+  + touch | x: 310 | y: 300
++ sleep | ms: 500
++ usb
+  + touch | id: 0 | x: 330 | y: 330
+  + touch-release | id: 0
+  + touch | id: 0 | x: 100 | y: 100
+  + touch | id: 1 | x: 110 | y: 100
+  + touch | id: 1 | x: 112 | y: 100
++ sleep | ms: 500
++ usb
+  + touch | id: 0 | x: 150 | y: 100
+  + touch-release | id: 1
+  + touch-release | id: 0
++ expect_touch   | x:  200 | y: 200
++ expect_touch_release
++ expect_touch   | x:  200 | y: 300
++ expect_touch   | x:  220 | y: 300
++ expect_touch_release
++ expect_motion  | ax: 300 | ay: 300
++ expect_press   | code: BTN_RIGHT
++ expect_release | code: BTN_RIGHT
++ expect_motion  | rx:  30 | ry: 30
++ expect_motion  | ax: 100 | ay: 100
++ expect_press   | code: KEY_ENTER
++ expect_release | code: KEY_ENTER
++ expect_press   | code: KEY_SCREEN
++ expect_press   | code: BTN_MIDDLE
++ expect_motion  | rx:  50 | ry: 0
++ expect_release | code: BTN_MIDDLE
++ expect_release | code: KEY_SCREEN
+
++ message | string: test touch gestures (swipe)
++ filter_config
+  + output
+  | + touch-gesture
+  |   + swipe
+  |   |       duration_ms: 400
+  |   |       distance:    50
+  |   |       direction:   down
+  |   |       xpos:        0
+  |   |       ypos:        0
+  |   |       width:       30
+  |   |       height:      30
+  |   | + key KEY_DASHBOARD
+  |   + swipe | duration_ms: 400 | distance: 100 | direction: down
+  |     + key KEY_SCREEN
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + touch | x: 15 | y: 15
+  + touch | x: 15 | y: 25
+  + touch-release | id: 0
+  + touch | x: 15 | y: 400
+  + touch | x: 15 | y: 200
+  + touch-release
+  + touch | x: 15 | y: 200
+  + touch | x: 15 | y: 220
++ sleep | ms: 500
++ usb
+  + touch | x: 15 | y: 400
+  + touch-release
+  + touch | x: 15 | y: 15
+  + touch | x: 15 | y: 65
+  + touch | x: 15 | y: 120
+  + touch-release | id: 0
+  + touch | x: 50 | y: 15
+  + touch | x: 50 | y: 65
+  + touch | x: 50 | y: 120
+  + touch-release | id: 0
+  + touch | id: 0 | x: 15 | y: 15
+  + touch | id: 1 | x: 10 | y: 10
+  + touch | id: 0 | x: 15 | y: 65
+  + touch-release | id: 1
+  + touch-release | id: 0
++ expect_touch   | x: 15 | y: 15
++ expect_touch   | x: 15 | y: 25
++ expect_touch_release
++ expect_touch   | x: 15 | y: 400
++ expect_touch   | x: 15 | y: 200
++ expect_touch_release
++ expect_touch   | x: 15 | y: 200
++ expect_touch   | x: 15 | y: 220
++ expect_touch_release
++ expect_press   | code: KEY_DASHBOARD
++ expect_release | code: KEY_DASHBOARD
++ expect_press   | code: KEY_SCREEN
++ expect_release | code: KEY_SCREEN
++ expect_touch   | id: 0 | x: 15 | y: 15
++ expect_touch   | id: 1 | x: 10 | y: 10
++ expect_touch   | id: 0 | x: 15 | y: 65
++ expect_touch_release | id: 1
++ expect_touch_release | id: 0
+
++ message | string: test shortcut report
++ filter_config
+  + output
+  | + report
+  |   + shortcut toggle_screen_lock
+  |     + key KEY_LEFTMETA
+  |     + key KEY_L
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + press   | code: KEY_LEFTMETA
+  + press   | code: KEY_L
+  + release | code: KEY_L
+  + release | code: KEY_LEFTMETA
++ expect_press   | code: KEY_LEFTMETA
++ expect_press   | code: KEY_L
++ expect_release | code: KEY_L
++ expect_release | code: KEY_LEFTMETA
++ sleep | ms: 100
++ expect_shortcut toggle_screen_lock | serial: 1
++ filter_config
+  + output
+  | + report
+  |   + shortcut toggle_screen_lock
+  |     + key KEY_LEFTMETA
+  |     + key KEY_L
+  |   + shortcut screenshot
+  |     + key KEY_LEFTMETA
+  |     + key KEY_S
+  |   + input usb
+  + policy | label_suffix: usb | input: usb
++ sleep | ms: 100
++ usb
+  + press   | code: KEY_LEFTMETA
+  + press   | code: KEY_S
+  + release | code: KEY_S
++ sleep | ms: 100
++ expect_shortcut screenshot | serial: 2
++ usb
+  + press   | code: KEY_L
+  + release | code: KEY_L
+  + release | code: KEY_LEFTMETA
++ sleep | ms: 100
++ expect_shortcut screenshot | serial: 2
++ expect_shortcut toggle_screen_lock | serial: 3
+-
+}
+
+set fd [open [run_dir]/genode/test.config w]
+puts $fd $test_config
+close $fd
 
 build_boot_image [build_artifacts]
 
