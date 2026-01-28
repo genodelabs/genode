@@ -392,7 +392,13 @@ proc check_xml_config_in_run_dir { binary_name xml_path } {
 ##
 # Check configurations of init and its children
 #
-proc check_config_in_run_dir { binary_name config_path } {
+proc check_config_in_run_dir { binary_name config_path { max_depth 5 }} {
+
+	if {$max_depth == 0} {
+		puts stderr "Error: maximum config depth exceeded during validation"
+		exit 1
+	}
+	incr max_depth -1
 
 	if {[looks_like_xml $config_path]} {
 		check_xml_config_in_run_dir $binary_name $config_path
@@ -407,9 +413,56 @@ proc check_config_in_run_dir { binary_name config_path } {
 	if {[catch {exec {*}$cmd $config_path } result]} {
 		puts stderr "Error: invalid $config_path (schema '$binary_name')"
 		puts stderr $result
-		if {[error_at_any_line $result]} {
-			exit 1
+		if {[error_at_any_line $result]} { exit 1 }
+	}
+
+	if {$binary_name == "init"} {
+		set     cmd [genode_dir]/tool/hid
+		lappend cmd get "config | + start | : name"
+		set result {}
+		if {[catch {exec {*}$cmd $config_path } result]} {
+			puts stderr "Error: failed to obtain start nodes from $config_path"
+			puts stderr $result
+			if {[error_at_any_line $result]} { exit 1 }
 		}
+		set children [split $result "\n"]
+
+		set tmp_file [run_dir]/sub_config.tmp
+		foreach child $children {
+
+			# determine binary name of child
+
+			set binary $child
+			set     cmd [genode_dir]/tool/hid
+			lappend cmd get "config | + start $child | + binary | : name"
+			set result ""
+			if {[catch {exec {*}$cmd $config_path } result]} {
+				puts stderr "Error: failed to obtain binary name for '$child'"
+				puts stderr $result
+				if {[error_at_any_line $result]} { exit 1 }
+			}
+			if {$result != ""} { set binary $result }
+
+			# extract inline child config to tmp_file
+
+			set binary $child
+			set     cmd [genode_dir]/tool/hid
+			lappend cmd subnodes "config | + start $child | + config"
+			lappend cmd ">" $tmp_file
+			set result ""
+			if {[catch {exec {*}$cmd $config_path } result]} {
+				puts stderr "Error: failed to obtain config for '$child'"
+				puts stderr $result
+				if {[error_at_any_line $result]} { exit 1 }
+			}
+
+			if {[file size $tmp_file] > 0} {
+				check_config_in_run_dir $binary [run_dir]/sub_config.tmp $max_depth
+			} else {
+				# child has no inline config
+			}
+		}
+		file delete -force $tmp_file
 	}
 }
 
