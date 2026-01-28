@@ -33,114 +33,99 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/vfs_pipe \
                   [depot_user]/src/zlib
 
-proc lighttpd_config { } {
-	return {
-		server.port            = 80
-		server.document-root   = "/website"
-		server.event-handler   = "select"
-		server.network-backend = "write"
-		server.upload-dirs     = ( "/tmp" )
-	}
-}
-
-proc socket_fs_plugin { } { return "<[ip_stack] dhcp=\"yes\"/>" }
+proc socket_fs_plugin { } { return "[ip_stack] | dhcp: yes" }
 
 proc socket_path { } { if {[audit]} { return "/audit" } else { return "/socket" } }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-		<service name="IRQ"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="150" ram="2M"/>
+config
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_PORT
+  + service IO_MEM
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="nic_router" caps="200" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config verbose_domain_state="yes">
-			<policy label_prefix="lighttpd" domain="server"/>
-			<policy label_prefix="fetchurl" domain="client"/>
-			<domain name="server" interface="10.0.3.1/24">
-				<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
-			</domain>
-			<domain name="client" interface="10.0.4.1/24">
-				<dhcp-server ip_first="10.0.4.2" ip_last="10.0.4.2"/>
-				<tcp dst="10.0.3.2/0"> <permit-any domain="server"/> </tcp>
-			</domain>
-		</config>
-	</start>
++ default | caps: 150 | ram: 2M
 
-	<start name="lighttpd" caps="200" ram="32M">
-		<config>
-			<arg>lighttpd</arg>
-			<arg name="-f">/etc/lighttpd/lighttpd.conf</arg>
-			<arg>-D</arg>
-			<vfs>
-				<dir name="dev">
-					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
-					<inline name="random">0123456789012345678901234567890123456789</inline>
-				</dir>
-				<dir name="socket"> } [socket_fs_plugin] { </dir>
-				<dir name="audit"> <audit path="socket"/> </dir>
-				<dir name="etc">
-					<dir name="lighttpd">
-						<inline name="lighttpd.conf">} [lighttpd_config] { </inline>
-					</dir>
-				</dir>
-				<dir name="website">
-					<zero size="} [download_size] {"/>
-				</dir>
-				<dir name="tmp"> <ram/> </dir>
-			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-			      rtc="/dev/rtc" rng="/dev/random" socket="} [socket_path] {"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="report_rom" caps="100">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
++ start nic_router | caps: 200 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config | verbose_domain_state: yes
+    + policy | label_prefix: lighttpd | domain: server
+    + policy | label_prefix: fetchurl | domain: client
+    + domain server | interface: 10.0.3.1/24
+      + dhcp-server | ip_first: 10.0.3.2 | ip_last:  10.0.3.2
+    + domain client | interface: 10.0.4.1/24
+      + dhcp-server | ip_first: 10.0.4.2 | ip_last: 10.0.4.2
+      + tcp | dst: 10.0.3.2/0 | + permit-any | domain: server
 
-	<start name="fetchurl" caps="500" ram="32M">
-		<config>
-			<report delay_ms="1000" progress="yes"/>
-			<vfs>
-				<dir name="dev">
-					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
-					<inline name="random">0123456789012345678901234567890123456789</inline>
-				</dir>
-				<dir name="socket"> } [socket_fs_plugin] { </dir>
-				<dir name="audit"> <audit path="socket"/> </dir>
-				<dir name="pipe"> <pipe/> </dir>
-			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"
-			      rng="/dev/random" socket="} [socket_path] {" pipe="/pipe"/>
-			<fetch url="http://10.0.3.2/zero" path="/dev/null" retry="3"/>
-		</config>
-	</start>
++ start lighttpd | caps: 200 | ram: 32M
+  + config
+  | + arg lighttpd
+  | + arg -f | : /etc/lighttpd/lighttpd.conf
+  | + arg -D
+  | + vfs
+  |   + dir dev
+  |   | + log
+  |   | + null
+  |   | + inline rtc    | : 2000-01-01 00:00
+  |   | + inline random | : 0123456789012345678901234567890123456789
+  |   + dir socket | + } [socket_fs_plugin] {
+  |   + dir audit  | + audit | path: socket
+  |   + dir etc
+  |   | + dir lighttpd
+  |   |   + inline lighttpd.conf
+  |   |     : server.port            = 80
+  |   |     : server.document-root   = "/website"
+  |   |     : server.event-handler   = "select"
+  |   |     : server.network-backend = "write"
+  |   |     : server.upload-dirs     = ( "/tmp" )
+  |   + dir website | + zero | size: } [download_size] {
+  |   + dir tmp     | + ram
+  | + libc | stdin: /dev/null | stdout: /dev/log    | stderr: /dev/log
+  |          rtc:   /dev/rtc  | rng:    /dev/random | socket: } [socket_path] {
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-</config>}
++ start report_rom | caps: 100
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+
++ start fetchurl | caps: 500 | ram: 32M
+  + config
+    + report | delay_ms: 1000 | progress: yes
+    + vfs
+      + dir dev
+      | + log
+      | + null
+      | + inline rtc    | : 2000-01-01 00:00
+      | + inline random | : 0123456789012345678901234567890123456789
+      + dir socket | + } [socket_fs_plugin] {
+      + dir audit  | + audit | path: socket
+      + dir pipe   | + pipe
+    + libc | stdout: /dev/log    | stderr: /dev/log | rtc:    /dev/rtc
+             rng:    /dev/random | pipe: /pipe      | socket: } [socket_path] {
+    + fetch | url: http://10.0.3.2/zero | path: /dev/null | retry: 3
+-
+}
 
 build_boot_image [build_artifacts]
 
