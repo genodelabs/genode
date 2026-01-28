@@ -150,8 +150,6 @@ proc add_attribute { ctx_var xpos attr } {
 
 	set pos [stack_pos_for_xpos ctx $xpos]
 	lappend ctx($pos,attributes) $attr
-
-	set ctx(prespace) ""
 }
 
 
@@ -169,7 +167,14 @@ proc assign_annotation { ctx_var xpos anno } {
 	upvar $ctx_var ctx
 
 	set pos [stack_pos_for_xpos ctx $xpos]
-	set ctx($pos,annotation) $anno
+	set attrs $ctx($pos,attributes)
+
+	if {[llength $attrs] == 0} {
+		set ctx($pos,annotation) $anno
+	} else {
+		set attrs [_hid_attach_annotation_to_last_attr $attrs $anno]
+		set ctx($pos,attributes) $attrs
+	}
 }
 
 
@@ -196,15 +201,15 @@ proc indent_pattern  { } { return {[| ]( |$)}        }
 proc id_pattern      { } { return {[a-z][a-z0-9_-]*} }
 proc space_pattern   { } { return { +}               }
 proc tag_pattern     { } { return " *[id_pattern]:"  }
-proc value_pattern   { } { return { *([^| ]| [^|])+} }
-proc attr_pattern    { } { return "[tag_pattern]( [value_pattern]|$)" }
-proc anchor_pattern  { } { return { *[+x] }          }
-proc comment_pattern { } { return { *[.]( |$)}       }
-proc anno_pattern    { } { return { *[|] [.] .*$}    }
-proc quoted_pattern  { } { return { *[:]( |$)}       }
-proc delim_pattern   { } { return { *[|] }           }
+proc value_pattern   { } { return {[^|]+}            }
+proc anchor_pattern  { } { return {[+x] }            }
+proc comment_pattern { } { return {[.]( |$)}         }
+proc anno_pattern    { } { return {[.]( |$)}         }
+proc quoted_pattern  { } { return {[:]( |$)}         }
+proc delim_pattern   { } { return { [|] }            }
 proc eof_pattern     { } { return {-\s*$}            }
 proc empty_pattern   { } { return {\s*$}             }
+proc segment_pattern { } { return {.+?( [|] |$)}     }
 
 
 proc parse { pattern chars_var xpos_var match_var match_body } {
@@ -214,9 +219,10 @@ proc parse { pattern chars_var xpos_var match_var match_body } {
 	upvar $match_var match
 
 	while {[regexp "^($pattern)" $chars match]} {
-		incr xpos [string length $match]
 		regsub "^($pattern)" $chars "" chars
+		set match_width [string length $match]
 		uplevel 1 $match_body
+		incr xpos $match_width
 	}
 }
 
@@ -236,21 +242,7 @@ proc parse_value { chars_var xpos_var align_var value_var body } {
 }
 
 
-proc parse_annotation { chars_var xpos_var } {
-
-	upvar $chars_var chars
-	upvar $xpos_var  xpos
-
-	set result ""
-	parse [anno_pattern] chars xpos match {
-		set result $match
-		set chars ""
-	}
-	return $result
-}
-
-
-proc parse_attr { prespace_var chars_var xpos_var tag_name_var align_var value_var anno_var body } {
+proc parse_attr { prespace_var chars_var xpos_var tag_name_var align_var value_var body } {
 
 	upvar $prespace_var prespace
 	upvar $chars_var    chars
@@ -258,52 +250,14 @@ proc parse_attr { prespace_var chars_var xpos_var tag_name_var align_var value_v
 	upvar $tag_name_var tag_name
 	upvar $align_var    align
 	upvar $value_var    value
-	upvar $anno_var     anno
 
-	parse [attr_pattern] chars xpos attr {
-		parse [tag_pattern] attr xpos tag {
-			parse [space_pattern] tag xpos space { append prespace $space }
-			parse [id_pattern]    tag xpos tag_name {
-				set value ""
-				set align ""
-				parse_value attr xpos align value { }
-				set anno [parse_annotation chars xpos]
-
-				uplevel 1 $body } } }
-}
-
-
-proc parse_property { n chars_var xpos_var ctx_var } {
-
-	upvar $chars_var chars
-	upvar $xpos_var  xpos
-	upvar $ctx_var   ctx
-
-	set property_xpos $xpos
-	parse_attr ctx(prespace) chars xpos tag align value anno {
-		add_attribute ctx $property_xpos [list $n $ctx(prespace) $tag $align $value $anno] }
-
-	parse [anchor_pattern] chars xpos match {
-		parse_node $n chars xpos ctx $match }
-
-	parse [quoted_pattern] chars xpos ignored {
-		add_node ctx $n [expr $property_xpos + 2] ":" "" ""
-		parse {.+$} chars xpos text {
-			assign_quoted ctx $xpos $text } }
-
-	parse_details $n chars xpos ctx
-}
-
-
-proc parse_details { n chars_var xpos_var ctx_var } {
-
-	upvar $chars_var chars
-	upvar $xpos_var  xpos
-	upvar $ctx_var   ctx
-
-	parse [delim_pattern] chars xpos match {
-		append ctx(prespace) $match
-		parse_property $n chars xpos ctx }
+	parse [tag_pattern] chars xpos tag {
+		parse [space_pattern] tag xpos space { append prespace $space }
+		parse [id_pattern]    tag xpos tag_name {
+			set value ""
+			set align ""
+			parse_value chars xpos align value { }
+			uplevel 1 $body } }
 }
 
 
@@ -316,8 +270,6 @@ proc parse_node { n chars_var xpos_var ctx_var anchor } {
 	set node_xpos $xpos
 	parse [id_pattern] chars xpos type {
 
-		set attr_xpos $xpos
-
 		# capture padding at the right of the node type
 		regexp {^ *} $chars padding
 		regsub {^ *} $chars "" chars
@@ -325,21 +277,17 @@ proc parse_node { n chars_var xpos_var ctx_var anchor } {
 
 		add_node ctx $n $node_xpos $type $anchor $padding
 
-		parse_attr ctx(prespace) chars xpos tag align value anno {
+		parse [tag_pattern] chars xpos tag {
 			global total_parse_errors
 			puts stderr "Error: missing '|' separator before '$tag' attribute at line $n"
 			incr total_parse_errors
 		}
 
-		# optional name attribute
+		# optional name
 		parse_value chars xpos align name {
-			set anno [parse_annotation chars xpos]
-			add_attribute ctx $attr_xpos [list $n $ctx(prespace) name $align $name $anno] }
-
-		# annotation at node with no attributes
-		assign_annotation ctx $attr_xpos [parse_annotation chars xpos]
-
-		parse_details $n chars xpos ctx
+			add_attribute ctx $xpos [list $n $ctx(prespace) name $align $name ""]
+			set ctx(prespace) ""
+		}
 	}
 }
 
@@ -374,10 +322,57 @@ proc parse_line { n chars ctx_var } {
 		add_doc_line ctx $n $xpos $chars
 		set chars "" }
 
-	parse_property $n chars xpos ctx
+	parse [segment_pattern] chars xpos segment {
 
-	# top-level node
-	parse_node $n chars xpos ctx ""
+		# annotation '.' or quote ':' captures the remainder of the line
+		parse [anno_pattern] segment xpos match {
+			assign_annotation ctx $xpos " | . $segment$chars"
+			set chars ""
+			set segment ""
+			set ctx(prespace) ""
+		}
+
+		parse [quoted_pattern] segment xpos ignored {
+			add_node ctx $n $xpos ":" "" ""
+			assign_quoted ctx [expr $xpos + 2] "$segment$chars"
+			set chars ""
+			set segment ""
+			set ctx(prespace) ""
+		}
+
+		# strip '|' delimiter from the end of segment
+		set next_prespace ""
+		if {[regexp { [|] $} $segment next_prespace]} {
+			regsub  { [|] $} $segment "" segment }
+
+		# add alignment via space and '|' to the prespace of current segment
+		if {[regexp {^ *([|] +)+ *} $segment alignment]} {
+			regsub  {^ *([|] +)+ *} $segment "" segment
+			append ctx(prespace) $alignment
+		}
+
+		if {[regexp {[|]} $segment]} {
+			global total_parse_errors
+			puts stderr "Error: stray '|' at line $n"
+			incr total_parse_errors
+		}
+
+		set attr_xpos $xpos
+		parse_attr ctx(prespace) segment attr_xpos tag align value {
+			add_attribute ctx $attr_xpos [list $n $ctx(prespace) $tag $align $value ""]
+			set ctx(prespace) ""
+		}
+
+		set anchor_xpos $xpos
+		parse [anchor_pattern] segment anchor_xpos anchor {
+			parse_node $n segment anchor_xpos ctx $anchor }
+
+		# top-level node
+		set node_xpos $xpos
+		parse_node $n segment node_xpos ctx ""
+
+		append ctx(prespace) $next_prespace
+	}
 
 	# diagnostic feedback
 	if {[string length $chars] > 0} {
@@ -623,7 +618,6 @@ proc _hid_as_tree_recursively { indent hid { last 0 } { one_attr_per_line 0 } } 
 
 	if {[llength [hid_attributes $hid]] == 0} {
 		set anno [hid_anno $hid]
-		if {$anno != ""} { set anno " $anno" }
 		set node_line "$indent$type$anno\n"
 		append result $node_line
 		regsub {[+x] $} $indent "$node_branch_char " indent
@@ -1285,6 +1279,21 @@ proc xml_leaf_pattern      { } { return {(<\w[^>]*/>)} }
 proc xml_compound_pattern  { } { return {(<\w[^>]*>[<>0-9]*</[^>]*>)} }
 
 
+##
+# Assign annotation to last attribute of 'attributes' list
+#
+proc _hid_attach_annotation_to_last_attr { attributes anno } {
+
+	# replace attr_anno (index 5) of last attribute
+	set last_attr [lindex $attributes end]
+	set last_attr [lreplace $last_attr 5 5 $anno]
+
+	# replace last attribute of last node with modified attribute
+	set attributes [lreplace $attributes end end $last_attr]
+	return $attributes
+}
+
+
 proc _hid_attach_annotation_to_last_node { hid anno } {
 
 	set last_node [lindex $hid end]
@@ -1293,14 +1302,8 @@ proc _hid_attach_annotation_to_last_node { hid anno } {
 	set last_attributes [hid_attributes $last_node]
 
 	if {$last_attributes != ""} {
-		# assign annotation to last attribute of last node
 
-		# replace attr_anno (index 5) of last attribute
-		set last_attr [lindex $last_attributes end]
-		set last_attr [lreplace $last_attr 5 5 $anno]
-
-		# replace last attribute of last node with modified attribute
-		set last_attributes [lreplace $last_attributes end end $last_attr]
+		set last_attributes [_hid_attach_annotation_to_last_attr $last_attributes $anno]
 
 		# replace hid_attr (index 6) of last node with modified attributes
 		set last_node [lreplace $last_node 6 6 $last_attributes]
@@ -1775,9 +1778,9 @@ proc with_node_query_and_args { node_query_hid_var args_var body } {
 	global argv
 	set query [lindex $argv 1]
 
-	set split_pattern "^(.*) [delim_pattern][quoted_pattern](.*)"
-	if {[regexp $split_pattern $query dummy node_query dummy args]} {
 
+	set split_pattern "^(.*)[delim_pattern][quoted_pattern](.*)"
+	if {[regexp $split_pattern $query dummy node_query dummy args]} {
 		set node_query_hid [import_hid $node_query false]
 		uplevel 1 $body
 	}
