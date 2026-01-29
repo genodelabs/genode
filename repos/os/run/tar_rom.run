@@ -11,62 +11,55 @@
 # line of LOG output.
 #
 
-#
-# On Linux, programs can be executed only if present as a file on the Linux
-# file system ('execve' takes a file name as argument). Data extracted via
-# 'tar_rom' is not represented as file. Hence, it cannot be executed.
-#
-assert {![have_spec linux]}
-
 build { core init timer lib/ld test/timer server/tar_rom }
 
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="tar_rom" ram="6M">
-		<provides><service name="ROM"/></provides>
-		<config>
-			<archive name="archive.tar"/>
-		</config>
-	</start>
-	<start name="init" caps="1000" ram="3M">
-		<config verbose="yes">
-			<parent-provides>
-				<service name="ROM"/>
-				<service name="CPU"/>
-				<service name="PD"/>
-				<service name="LOG"/>
-				<service name="Timer"/>
-			</parent-provides>
-			<default caps="100" ram="1M"/>
-			<start name="test-timer">
-				<route> <any-service> <parent/> </any-service> </route>
-			</start>
-		</config>
-		<route>
-			<service name="ROM" label="test-timer"> <child name="tar_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start tar_rom | ram: 6M
+  + provides | + service ROM
+  + config
+    + archive archive.tar
+
++ start init | caps: 1000 | ram: 3M
+  + config | verbose: yes
+  | + parent-provides
+  |   + service ROM
+  |   + service CPU
+  |   + service PD
+  |   + service LOG
+  |   + service Timer
+  | + default | caps: 100 | ram: 1M
+  | + start test-timer
+  |   + route | + any-service | + parent
+  |   + config
+  + route
+    + service ROM | label: test-timer | + child tar_rom
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 exec sh -c "cd bin; tar cfh archive.tar test-timer"

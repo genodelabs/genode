@@ -13,24 +13,20 @@ set cpu_height 1
 set report_config "yes"
 set use_trace "yes"
 
-proc report_rom_start_node { } {
+proc report_rom_start_node { } { return {
++ start report_rom | ram: 1M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+  + route
+    + any-service
+      + parent
+} }
 
-	global report_config
+if {$report_config != "yes"} { proc report_rom_start_node { } { } }
 
-	if {$report_config != "yes"} {
-		return { } }
-
-	return {
-		<start name="report_rom" ram="1M">
-			<binary name="report_rom"/>
-			<provides> <service name="Report"/> <service name="ROM"/> </provides>
-			<config verbose="yes"/>
-			<route>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-	}
-}
 
 create_boot_directory
 
@@ -38,131 +34,105 @@ import_from_depot [depot_user]/src/report_rom \
                   [depot_user]/src/shim
 
 install_config {
-<config prio_levels="2" verbose="yes">
-	<affinity-space width="} $cpu_width {" height="} $cpu_height {"/>
-	<parent-provides>
-		<service name="LOG"/>
-		<service name="CPU"/>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="IO_MEM"/>  <!-- timer on some kernels -->
-		<service name="IO_PORT"/> <!-- timer on some kernels -->
-		<service name="IRQ"/>     <!-- timer on some kernels -->
-		<service name="TRACE"/>
-	</parent-provides>
+config | prio_levels: 2 | verbose: yes
++ affinity-space | width: } $cpu_width { | height: } $cpu_height {
 
-	<default-route>
-		<service name="LOG"> <parent/> </service>
-		<service name="PD"> <parent/> </service>
-		<service name="ROM"> <parent/> </service>
-	</default-route>
-	<default caps="100" ram="1M"/>
++ parent-provides
+  + service LOG
+  + service CPU
+  + service ROM
+  + service PD
+  + service IO_MEM  | . timer on some kernels
+  + service IO_PORT | . timer on some kernels
+  + service IRQ     | . timer on some kernels
+  + service TRACE
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default-route
+  + service LOG | + parent
+  + service PD  | + parent
+  + service ROM | + parent
 
-	} [report_rom_start_node] {
++ default | caps: 100 | ram: 1M
 
-	<start name="dynamic_rom" ram="4M">
-		<provides><service name="ROM"/> </provides>
-		<config verbose="yes" generate_xml="yes">
-			<rom name="cpu_balancer.config">
-				<inline>
-					<config interval_us="2000000"
-					        report="} $report_config {"
-					        trace="} $use_trace {"
-					        verbose="no" generate_xml="yes">
-						<component label="cpu_burner" default_policy="none">
-<!--
-							<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
-							<thread name="signal handler" policy="max-utilize"/>
--->
-							<thread name="burn_0x0"       policy="round-robin"/>
-							<thread name="burn_1x0"       policy="round-robin"/>
-						</component>
-					</config>
-				</inline>
-				<sleep milliseconds="2000"/>
-				<inline>
-					<config interval_us="2000000"
-					        report="} $report_config {"
-					        trace="} $use_trace {"
-					        verbose="no" generate_xml="yes">
-						<component label="cpu_burner" default_policy="none">
-							<thread name="signal handler" policy="pin" xpos="1" ypos="0"/>
-<!--
-							<thread name="signal handler" policy="max-utilize"/>
--->
-							<thread name="burn_0x0"       policy="round-robin"/>
-							<thread name="burn_1x0"       policy="round-robin"/>
-							<thread name="not_existent"   policy="round-robin"/>
-						</component>
-					</config>
-				</inline>
-				<sleep milliseconds="2000"/>
-			</rom>
-		</config>
-		<route>
-			<service name="Timer"> <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
+  + route | + any-service | + parent
 
-	<start name="cpu_balancer" caps="120" ram="2M">
-		<provides>
-			<service name="PD"/>
-			<service name="CPU"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config">
-				<child name="dynamic_rom" label="cpu_balancer.config"/>
-			</service>
-			<service name="Timer">  <child name="timer"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
+} [report_rom_start_node] {
 
-	<start name="cpu_burner" priority="-1" caps="120" ram="3M">
-		<binary name="shim"/>
-		<affinity xpos="1" ypos="0" width="2" height="1"/>
-		<config percent="95"/>
-		<route>
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+  | + rom cpu_balancer.config
+  |   + inline
+  |   | + config
+  |   |   |      interval_us: 2000000
+  |   |   |      report:      } $report_config {
+  |   |   |      trace:       } $use_trace {
+  |   |   |      verbose:     no
+  |   |   |
+  |   |   + component | label: cpu_burner | default_policy: none
+  |   |     x thread signal handler | policy: pin | xpos: 1 | ypos: 0
+  |   |     x thread signal handler | policy: max-utilize
+  |   |     + thread burn_0x0       | policy: round-robin
+  |   |     + thread burn_1x0       | policy: round-robin
+  |   + sleep | milliseconds: 2000
+  |   + inline
+  |   | + config
+  |   |   |      interval_us: 2000000
+  |   |   |      report:      } $report_config {
+  |   |   |      trace:       } $use_trace {
+  |   |   |      verbose:     no
+  |   |   |
+  |   |   + component | label: cpu_burner | default_policy: none
+  |   |     + thread signal handler | policy: pin | xpos: 1 | ypos: 0
+  |   |     x thread signal handler | policy: max-utilize
+  |   |     + thread burn_0x0       | policy: round-robin
+  |   |     + thread burn_1x0       | policy: round-robin
+  |   |     + thread not_existent   | policy: round-robin
+  |   + sleep | milliseconds: 2000
+  + route
+    + service Timer | + child timer
+    + any-service   | + parent
 
-			<!-- by shim binary -->
-			<service name="PD"  unscoped_label="cpu_burner"> <parent/> </service>
-			<service name="CPU" unscoped_label="cpu_burner"> <parent/> </service>
++ start cpu_balancer | caps: 120 | ram: 2M
+  + provides
+    + service PD
+    + service CPU
+  + route
+    + service ROM | label: config | + child dynamic_rom | label: cpu_balancer.config
+    + service Timer               | + child timer
+    + service Report              | + child report_rom
+    + any-service                 | + parent
 
-			<!-- by child of shim -->
-			<service name="PD">  <child name="cpu_balancer" label="cpu_burner"/> </service>
-			<service name="CPU"> <child name="cpu_balancer" label="cpu_burner"/> </service>
++ start cpu_burner | priority: -1 | caps: 120 | ram: 3M
+  + binary shim
+  + affinity | xpos: 1 | ypos: 0 | width: 2 | height: 1
+  + config | percent: 95
+  + route
+    + service PD  | unscoped_label: cpu_burner | + parent | . by shim binary
+    + service CPU | unscoped_label: cpu_burner | + parent
 
-			<service name="ROM" label="binary"> <parent label="cpu_burner"/> </service>
+    + service PD  | + child cpu_balancer | label: cpu_burner | . by child of shim
+    + service CPU | + child cpu_balancer | label: cpu_burner
 
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="LOG"> <parent/> </service>
-			<service name="ROM"> <parent/> </service>
-		</route>
-	</start>
-<!--
-	<start name="top" ram="2M">
-		<route>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="CPU"> <child name="cpu_balancer"/> </service>
-			<service name="TRACE"> <parent label=""/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
--->
-</config>}
+    + service ROM | label: binary | + parent | label: cpu_burner
+    + service Timer               | + child timer
+    + service LOG                 | + parent
+    + service ROM                 | + parent
+
+x start top | ram: 2M
+  + route
+    + service Timer | + child timer
+    + service CPU   | + child cpu_balancer
+    + service TRACE | + parent | label:
+    + any-service   | + parent
+-
+}
 
 build_boot_image [build_artifacts]
 
 append qemu_args " -nographic"
 append qemu_args " -smp [expr $cpu_width * $cpu_height],cores=$cpu_width,threads=$cpu_height"
 
-run_genode_until {.*thread xpos="[1-9]" ypos="0" name="signal handler" policy="pin".*\n} 60
+run_genode_until {.*thread | xpos: [1-9] | ypos: 0 | name: signal handler | policy: pin.*\n} 60

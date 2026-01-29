@@ -14,93 +14,73 @@ import_from_depot [depot_user]/src/[base_src] \
 build { test/platform }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer" ram="10M">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route | + any-service | + parent
 
-	<start name="report_fs" ram="2M">
-		<binary name="vfs"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<vfs>
-				<ram/>
-				<import>
-					<inline name="config"><config generate_xml="yes"><default-policy/></config>
-					</inline>
-					<inline name="devices"><devices/>
-					</inline>
-				</import>
-			</vfs>
-			<policy label_prefix="fs_report ->"     root="/" writeable="yes"/>
-			<policy label_prefix="report_fs_rom ->" root="/"/>
-		</config>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="fs_report">
-		<provides> <service name="Report"/> </provides>
-		<config> <vfs> <fs/> </vfs> </config>
-		<route>
-			<service name="File_system"> <child name="report_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start timer | ram: 10M
+  + provides | + service Timer
 
-	<start name="report_fs_rom" ram="3M">
-		<binary name="fs_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<route>
-			<service name="File_system"> <child name="report_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start report_fs | ram: 2M
+  + binary vfs
+  + provides | + service File_system
+  + config
+    + vfs
+    | + ram
+    | + import
+    |   + inline config  | + config | + default-policy
+    |   + inline devices | + devices
+    |
+    + policy | label_prefix: fs_report ->     | root: / | writeable: yes
+    + policy | label_prefix: report_fs_rom -> | root: /
 
-	<start name="report_rom" ram="3M">
-		<provides>
-			<service name="ROM"/>
-			<service name="Report"/>
-		</provides>
-		<route>
-			<any-service> <parent/> </any-service>
-		</route>
-		<config verbose="no"/>
-	</start>
++ start fs_report
+  + provides | + service Report
+  + config | + vfs | + fs
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
 
-	<start name="platform" managing_system="yes">
-		<provides> <service name="Platform"/> </provides>
-		<route>
-			<service name="ROM"    label="config"> <child name="report_fs_rom"/> </service>
-			<service name="ROM"    label="devices"><child name="report_fs_rom"/> </service>
-			<service name="Report">                <child name="report_rom"/>    </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start report_fs_rom | ram: 3M
+  + binary fs_rom
+  + provides | + service ROM
+  + route
+    + service File_system | + child report_fs
+    + any-service         | + parent
 
-	<start name="test-platform" ram="2M">
-		<route>
-			<service name="Report" label="config">
-				<child name="fs_report" label="config"/> </service>
-			<service name="Report" label="devices">
-				<child name="fs_report" label="devices"/> </service>
-			<service name="Platform"> <child name="platform"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-</config>}
++ start report_rom | ram: 3M
+  + provides
+    + service ROM
+    + service Report
+  + config | verbose: no
+  + route | + any-service | + parent
+
++ start platform | managing_system: yes
+  + provides | + service Platform
+  + route
+    + service ROM | label: config  | + child report_fs_rom
+    + service ROM | label: devices | + child report_fs_rom
+    + service Report               | + child report_rom
+    + any-service                  | + parent
+
++ start test-platform | ram: 2M
+  + route
+    + service Report | label: config  | + child fs_report | label: config
+    + service Report | label: devices | + child fs_report | label: devices
+    + service Platform                | + child platform
+    + any-service                     | + parent
+-
+}
 
 
 build_boot_image [build_artifacts]
@@ -108,56 +88,48 @@ build_boot_image [build_artifacts]
 append qemu_args "-nographic "
 
 set good_string {
-[init -> test-platform] <devices version="1">
-[init -> test-platform] 	<device name="0" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40000000" size="0x1000"/>
-[init -> test-platform] 		<irq number="32"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] 	<device name="1" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40001000" size="0x1000"/>
-[init -> test-platform] 		<irq number="33"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] 	<device name="2" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40002000" size="0x1000"/>
-[init -> test-platform] 		<irq number="34"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] </devices>
-[init -> test-platform] <devices version="2">
-[init -> test-platform] 	<device name="0" type="dummy-device" used="true">
-[init -> test-platform] 		<io_mem phys_addr="0x40000000" size="0x1000"/>
-[init -> test-platform] 		<irq number="32"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] 	<device name="1" type="dummy-device" used="true">
-[init -> test-platform] 		<io_mem phys_addr="0x40001000" size="0x1000"/>
-[init -> test-platform] 		<irq number="33"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] </devices>
-[init -> test-platform] <devices version="3"/>
-[init -> test-platform] <devices version="4">
-[init -> test-platform] 	<device name="0" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40000000" size="0x1000"/>
-[init -> test-platform] 		<irq number="32"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] 	<device name="1" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40001000" size="0x1000"/>
-[init -> test-platform] 		<irq number="33"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] 	<device name="2" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40002000" size="0x1000"/>
-[init -> test-platform] 		<irq number="34"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] 	<device name="3" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40003000" size="0x1000"/>
-[init -> test-platform] 		<irq number="35"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] </devices>
-[init -> test-platform] <devices version="5"/>
-[init -> test-platform] <devices version="6">
-[init -> test-platform] 	<device name="0" type="dummy-device" used="false">
-[init -> test-platform] 		<io_mem phys_addr="0x40000100" size="0x1000"/>
-[init -> test-platform] 		<irq number="32"/>
-[init -> test-platform] 	</device>
-[init -> test-platform] </devices>
+[init -> test-platform] devices | version: 1
+[init -> test-platform] + device 0 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40000000 | size: 0x1000
+[init -> test-platform]   + irq | number: 32
+[init -> test-platform] + device 1 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40001000 | size: 0x1000
+[init -> test-platform]   + irq | number: 33
+[init -> test-platform] + device 2 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40002000 | size: 0x1000
+[init -> test-platform]   + irq | number: 34
+[init -> test-platform] -
+[init -> test-platform] devices | version: 2
+[init -> test-platform] + device 0 | type: dummy-device | used: true
+[init -> test-platform]   + io_mem | phys_addr: 0x40000000 | size: 0x1000
+[init -> test-platform]   + irq | number: 32
+[init -> test-platform] + device 1 | type: dummy-device | used: true
+[init -> test-platform]   + io_mem | phys_addr: 0x40001000 | size: 0x1000
+[init -> test-platform]   + irq | number: 33
+[init -> test-platform] -
+[init -> test-platform] devices | version: 3
+[init -> test-platform] -
+[init -> test-platform] devices | version: 4
+[init -> test-platform] + device 0 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40000000 | size: 0x1000
+[init -> test-platform]   + irq | number: 32
+[init -> test-platform] + device 1 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40001000 | size: 0x1000
+[init -> test-platform]   + irq | number: 33
+[init -> test-platform] + device 2 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40002000 | size: 0x1000
+[init -> test-platform]   + irq | number: 34
+[init -> test-platform] + device 3 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40003000 | size: 0x1000
+[init -> test-platform]   + irq | number: 35
+[init -> test-platform] -
+[init -> test-platform] devices | version: 5
+[init -> test-platform] -
+[init -> test-platform] devices | version: 6
+[init -> test-platform] + device 0 | type: dummy-device | used: false
+[init -> test-platform]   + io_mem | phys_addr: 0x40000100 | size: 0x1000
+[init -> test-platform]   + irq | number: 32
+[init -> test-platform] -
 [init -> test-platform] Found next valid device of dummy type
 [init -> test-platform] Test has ended!
 }

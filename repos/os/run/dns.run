@@ -7,26 +7,19 @@ import_from_depot [depot_user]/src/[base_src] \
 build { test/dns }
 
 append config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-
-	<default caps="100" ram="1M"/>
-
-	<start name="dns_test">
-		<config/>
-	</start>
-
-</config>}
+config
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
++ default-route | + any-service | + parent
++ default | caps: 100 | ram: 1M
++ start dns_test
+  + config
+-
+}
 
 install_config $config
 build_boot_image { dns_test }

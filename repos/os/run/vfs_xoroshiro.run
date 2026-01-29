@@ -12,75 +12,62 @@ import_from_depot \
 	[depot_user]/src/posix
 
 install_config {
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-		</parent-provides>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service LOG
+  + service RM
+  + service CPU
+  + service PD
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
 
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100" ram="1M"/>
++ default-route | + any-service | + parent
 
-		<start name="timer">
-			<provides><service name="Timer"/></provides>
-		</start>
++ default | caps: 100 | ram: 1M
 
-		<start name="vfs" ram="4M">
-			<provides><service name="File_system"/></provides>
-			<config>
-				<vfs>
-					<ram/>
-					<tar name="coreutils.tar" />
-				</vfs>
-				<default-policy root="/" writeable="yes"/>
-			</config>
-		</start>
++ start timer
+  + provides | + service Timer
 
-		<start name="vfs_rom" ram="10M">
-			<binary name="fs_rom"/>
-			<provides> <service name="ROM"/> </provides>
-			<config/>
-			<route>
-				<service name="File_system"> <child name="vfs"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start vfs | ram: 4M
+  + provides | + service File_system
+  + config
+    + vfs
+      + ram
+      + tar coreutils.tar
+    + default-policy | root: / | writeable: yes
 
-		<start name="/bin/dd" caps="500" ram="16M">
-			<config>
-				<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
-				      rtc="/dev/null"/>
-				<vfs>
-					<dir name="dev">
-						<log/>
-						<null/>
-						<jitterentropy name="entropy"/>
-						<xoroshiro name="random" seed_path="/dev/entropy"/>
-					</dir>
-				</vfs>
-				<arg value="dd"/>
-				<arg value="if=/dev/random"/>
-				<arg value="of=/dev/null"/>
-				<arg value="bs=1M"/>
-				<arg value="count=128"/>
-			</config>
-			<route>
-				<service name="File_system"> <child name="vfs"/> </service>
-				<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-				<service name="ROM" label_last="/bin/dd"> <child name="vfs_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start vfs_rom | ram: 10M
+  + binary fs_rom
+  + provides | + service ROM
+  + config
+  + route
+    + service File_system | + child vfs
+    + any-service         | + parent
 
-	</config>
++ start /bin/dd | caps: 500 | ram: 16M
+  + config
+  | + libc | stdin: /dev/null | stdout: /dev/log | stderr: /dev/log | rtc: /dev/null
+  | + vfs
+  | | + dir dev
+  | |   + log
+  | |   + null
+  | |   + jitterentropy entropy
+  | |   + xoroshiro random | seed_path: /dev/entropy
+  | + arg dd
+  | + arg if=/dev/random
+  | + arg of=/dev/null
+  | + arg bs=1M
+  | + arg count=128
+  + route
+    + service File_system                 | + child vfs
+    + service ROM | label_suffix: .lib.so | + parent
+    + service ROM | label_last: /bin/dd   | + child vfs_rom
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 build_boot_image [build_artifacts]

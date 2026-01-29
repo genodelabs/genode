@@ -25,10 +25,10 @@
 #   the build targets and boot modules required by the test are determined
 #   automatically.
 #
-# - The test's configuration is expected to have the form of a <config>
+# - The test's configuration is expected to have the form of a 'config'
 #   node in the test's runtime file.
 #
-# - The success/failure criterion is taken from the runtime's <events>
+# - The success/failure criterion is taken from the runtime's 'events'
 #   definition but only a subset of the depot-autopilot's features is
 #   supported, namely a timeout (indicating a failure) and an expected log
 #   (indicating success). If this information are not present, the test
@@ -165,7 +165,7 @@ proc try_query_config { }  {
 
 	set config [exec {*}$cmd subnodes "runtime | + config" $runtime_file]
 	if {$config == ""} {
-		puts stderr "Error: <config> not present <runtime> sub node at $runtime_file"
+		puts stderr "Error: config node not present in runtime sub node at $runtime_file"
 		puts stderr "       The use of an separate config ROM is not supported."
 		exit 1
 	}

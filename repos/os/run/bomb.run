@@ -28,31 +28,38 @@ if {[have_spec linux]} { set generations 4 }
 create_boot_directory
 
 install_config {
-<config prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<resource name="RAM" preserve="2M"/>
-	<resource name="CAP" preserve="100"/>
-	<start name="timer" caps="100" ram="1M">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="bomb-master" priority="-1" caps="100000" ram="2G">
-		<binary name="bomb"/>
-		<config rounds="} $rounds {" generations="} $generations {"
-		        children="} $children {" sleep="} $sleep {" demand="} $demand {"/>
-	</start>
-</config>}
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ resource RAM | preserve: 2M
++ resource CAP | preserve: 100
+
++ start timer | caps: 100 | ram: 1M
+  + provides | + service Timer
+
++ start bomb-master | priority: -1 | caps: 100000 | ram: 2G
+  + binary bomb
+  + config
+           rounds:      } $rounds {
+           generations: } $generations {
+           children:    } $children {
+           sleep:       } $sleep {
+           demand:      } $demand {
+-
+}
 
 build_boot_image [build_artifacts]
 

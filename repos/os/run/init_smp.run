@@ -32,39 +32,43 @@ proc per_cpu_start_node { i } {
 
 	global init_ram rounds generations children sleep demand
 
-	return [join [list {
-			<start name="init_} $i {" caps="1100" ram="} ${init_ram}M {">
-				<affinity xpos="} $i {" width="1"/>
-				<binary name="init"/>
-				<config verbose="yes" prio_levels="2">
-					<parent-provides>
-						<service name="ROM"/>
-						<service name="PD"/>
-						<service name="RM"/>
-						<service name="CPU"/>
-						<service name="LOG"/>
-						<service name="Timer"/>
-					</parent-provides>
-					<default-route>
-						<any-service> <parent/> <any-child/> </any-service>
-					</default-route>
-					<default caps="1000"/>
+	set result ""
+	append result {
+		+ start init_} $i { | caps: 1100 | ram: } ${init_ram}M {
+		  + affinity | xpos: } $i { | width: 1
+		  + binary init
+		  + config | verbose: yes | prio_levels: 2
+		    + parent-provides
+		      + service ROM
+		      + service PD
+		      + service RM
+		      + service CPU
+		      + service LOG
+		      + service Timer
+		    + default-route
+		      + any-service
+		        + parent
+		        + any-child
+		    + default | caps: 1000
+		    + resource RAM | preserve: 2M
+		    + resource CAP | preserve: 100
+		    + start bomb-master | priority: -1 | caps: 100000 | ram: 2G
+		      + binary bomb
+		      + config
+		               rounds:      } $rounds {
+		               generations: } $generations {
+		               children:    } $children {
+		               sleep:       } $sleep {
+		               demand:      } $demand {
+		}
 
-					<resource name="RAM" preserve="2M"/>
-					<resource name="CAP" preserve="100"/>
-
-					<start name="bomb-master" priority="-1" caps="100000" ram="2G">
-						<binary name="bomb"/>
-						<config rounds="} $rounds {" generations="} $generations {"
-						        children="} $children {" sleep="} $sleep {" demand="} $demand {"/>
-					</start>
-				</config>
-			</start>}] ""]
+	# strip tabs used for indentation
+	return [string map {"\t" ""} $result]
 }
 
 proc cpu_start_nodes { cpus } {
 
-	set result { }
+	set result ""
 	for { set i 0} { $i < $cpus } { incr i } {
 		append result [per_cpu_start_node $i] }
 
@@ -73,33 +77,35 @@ proc cpu_start_nodes { cpus } {
 
 
 install_config {
-<config verbose="yes">
+config | verbose: yes
++ affinity-space | width: } $cpus { | height: 1
 
-	<affinity-space width="} $cpus {" height="1"/>
++ parent-provides
+  + service ROM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service IO_PORT
+  + service IO_MEM
+  + service IRQ
 
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="IO_PORT"/>
-		<service name="IO_MEM"/>
-		<service name="IRQ"/>
-	</parent-provides>
-	<default-route><any-service><parent/><any-child/></any-service></default-route>
-	<default caps="100"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<resource name="RAM" preserve="2M"/>
-	<resource name="CAP" preserve="100"/>
++ default | caps: 100
 
-	<start name="timer" ram="1M">
-		<provides><service name="Timer"/></provides>
-	</start>
++ resource RAM | preserve: 2M
++ resource CAP | preserve: 100
 
-	} [cpu_start_nodes $cpus] {
++ start timer | ram: 1M
+  + provides | + service Timer
 
-</config>}
+} [cpu_start_nodes $cpus] {
+-
+}
 
 build_boot_image [build_artifacts]
 

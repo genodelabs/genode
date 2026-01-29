@@ -23,91 +23,54 @@ import_from_depot [depot_user]/src/[base_src] \
 
 append config {
 
-	<config>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_PORT
+  + service IO_MEM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
++ start timer | caps: 100 | ram: 1M
+  + provides | + service Timer
+  + route | + any-service | + parent
 
-		<start name="timer" caps="100" ram="1M">
-			<provides><service name="Timer"/></provides>
-			<route>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="IO_PORT"> <parent/> </service>
-				<service name="IO_MEM"> <parent/> </service>
-				<service name="IRQ"> <parent/> </service>
-			</route>
-		</start>
++ start drivers | caps: 1200 | ram: 32M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Uplink              | + child nic_uplink
+    + service Timer               | + child timer
+    + any-service                 | + parent
 
-		<start name="drivers" caps="1200" ram="32M" managing_system="yes">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-				<service name="Uplink">  <child name="nic_uplink"/> </service>
-				<service name="Timer">  <child name="timer"/> </service>
-				<service name="RM"> <parent/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-				<service name="IO_PORT"> <parent/> </service>
-				<service name="IO_MEM"> <parent/> </service>
-				<service name="IRQ"> <parent/> </service>
-			</route>
-		</start>
++ start nic_uplink | caps: 100 | ram: 1M
+  + provides
+    + service Uplink
+    + service Nic
+  + config | verbose: yes
+  + route
+    + service Timer | + child timer
+    + any-service   | + parent
 
-		<start name="nic_uplink" caps="100" ram="1M">
-			<provides>
-				<service name="Uplink"/>
-				<service name="Nic"/>
-			</provides>
-			<config verbose="yes"/>
-			<route>
-				<service name="Timer">  <child name="timer"/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
++ start ping_1 | caps: 100 | ram: 8M
+  + binary ping
+  + config | dst_ip: } [dst_ip] { | period_sec: 1 | count: 3
+  + route
+    + service Nic   | + child nic_uplink
+    + service Timer | + child timer
+    + any-service   | + parent
 
-		<start name="ping_1" caps="100" ram="8M">
-			<binary name="ping"/>
-			<config dst_ip="} [dst_ip] {" period_sec="1" count="3"/>
-			<route>
-				<service name="Nic"> <child name="nic_uplink"/> </service>
-				<service name="Timer">  <child name="timer"/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
-
-		<start name="ping_2" caps="100" ram="8M">
-			<binary name="ping"/>
-			<config dst_ip="} [dst_ip] {" period_sec="1" count="3"/>
-			<route>
-				<service name="Nic"> <child name="nic_uplink"/> </service>
-				<service name="Timer">  <child name="timer"/> </service>
-				<service name="PD"> <parent/> </service>
-				<service name="ROM"> <parent/> </service>
-				<service name="LOG"> <parent/> </service>
-				<service name="CPU"> <parent/> </service>
-			</route>
-		</start>
-
-	</config>
++ start ping_2 | caps: 100 | ram: 8M
+  + binary ping
+  + config | dst_ip: } [dst_ip] { | period_sec: 1 | count: 3
+  + route
+    + service Nic   | + child nic_uplink
+    + service Timer | + child timer
+    + any-service   | + parent
+-
 }
 
 install_config $config

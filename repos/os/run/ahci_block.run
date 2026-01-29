@@ -20,127 +20,115 @@ catch { exec $dd if=/dev/zero of=bin/ext2.raw bs=1M count=16 }
 catch { exec $mke2fs -F bin/ext2.raw }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="report_rom" ram="2M">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
-			<policy label="pci_decode -> system" report="acpi -> acpi"/>
-			<policy label="platform -> devices"  report="pci_decode -> devices"/>
-		</config>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="acpi" caps="350" ram="4M">
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="pci_decode" caps="350" ram="2M">
-		<route>
-			<service name="Report">             <child name="report_rom"/> </service>
-			<service name="ROM" label="system"> <child name="report_rom"/> </service>
-			<service name="IO_MEM"> <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="PD">     <parent/> </service>
-			<service name="RM">     <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
-		</route>
-	</start>
++ start report_rom | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + policy | label: pci_decode -> system | report: acpi -> acpi
+    + policy | label: platform -> devices  | report: pci_decode -> devices
 
-	<start name="platform" caps="100" managing_system="yes">
-		<provides>
-			<service name="Platform"/>
-		</provides>
-		<route>
-			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="IRQ">     <parent/> </service>
-			<service name="IO_MEM">  <parent/> </service>
-			<service name="IO_PORT"> <parent/> </service>
-			<service name="ROM">     <parent/> </service>
-			<service name="PD">      <parent/> </service>
-			<service name="CPU">     <parent/> </service>
-			<service name="LOG">     <parent/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-		</route>
-		<config>
-			<report devices="yes"/>
-			<policy label="ahci -> "> <pci class="AHCI"/> </policy>
-		</config>
-	</start>
++ start acpi | caps: 350 | ram: 4M
+  + route
+    + service Report | + child report_rom
+    + service IO_MEM | + parent
+    + service LOG    | + parent
+    + service PD     | + parent
+    + service RM     | + parent
+    + service CPU    | + parent
+    + service ROM    | + parent
 
-	<start name="ahci_report_rom">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes"/>
-	</start>
++ start pci_decode | caps: 350 | ram: 2M
+  + route
+    + service Report              | + child report_rom
+    + service ROM | label: system | + child report_rom
+    + service IO_MEM              | + parent
+    + service LOG                 | + parent
+    + service PD                  | + parent
+    + service RM                  | + parent
+    + service CPU                 | + parent
+    + service ROM                 | + parent
 
-	<start name="ahci" ram="10M">
-		<provides><service name="Block" /></provides>
-		<config atapi="yes">
-			<report ports="yes"/>
-			<policy label="test-ahci -> " device="0" writeable="yes" />
-			<policy label="test-ahci-atapi -> " device="1" writeable="no" />
-		</config>
-		<route>
-			<service name="Report"> <child name="ahci_report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start platform | caps: 100 | managing_system: yes
+  + provides | + service Platform
+  + route
+    + service ROM | label: devices | + child report_rom
+    + service Report               | + child report_rom
+    + service IRQ                  | + parent
+    + service IO_MEM               | + parent
+    + service IO_PORT              | + parent
+    + service ROM                  | + parent
+    + service PD                   | + parent
+    + service CPU                  | + parent
+    + service LOG                  | + parent
+    + service Timer                | + child timer
+  + config
+    + report | devices: yes
+    + policy | label: ahci -> | + pci | class: AHCI
 
-	<start name="test-ahci" ram="50M">
-		<binary name="block_tester" />
-		<config verbose="no" report="no" log="yes" stop_on_error="no">
-			<tests>
-				<sequential length="8M" size="1M" io_buffer="8M" batch="4"/>
-				<sequential start="1000" write="yes" length="2M" size="1M" io_buffer="8M" batch="4"/>
-			</tests>
-		</config>
-		<route>
-			<service name="Block"><child name="ahci"/></service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>
++ start ahci_report_rom
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
++ start ahci | ram: 10M
+  + provides | + service Block
+  + config | atapi: yes
+    + report | ports: yes
+    + policy | label: test-ahci ->       | device: 0 | writeable: yes
+    + policy | label: test-ahci-atapi -> | device: 1 | writeable: no
+  + route
+    + service Report | + child ahci_report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="test-ahci-atapi" ram="50M">
-		<binary name="block_tester" />
-		<config verbose="no" report="no" log="yes" stop_on_error="no">
-			<tests>
-				<sequential length="1M" size="1M" io_buffer="8M" batch="4"/>
-			</tests>
-		</config>
-		<route>
-			<service name="Block"><child name="ahci"/></service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>
-</config> }
++ start test-ahci | ram: 50M
+  + binary block_tester
+  + config | verbose: no | report: no | log: yes | stop_on_error: no
+    + tests
+      + sequential | length: 8M | size: 1M | io_buffer: 8M | batch: 4
+      + sequential | length: 2M | size: 1M | io_buffer: 8M | batch: 4 | start: 1000 | write: yes
+  + route
+    + service Block | + child ahci
+    + any-service
+      + parent
+      + any-child
+
++ start test-ahci-atapi | ram: 50M
+  + binary block_tester
+  + config | verbose: no | report: no | log: yes | stop_on_error: no
+    + tests
+      + sequential | length: 1M | size: 1M | io_buffer: 8M | batch: 4
+  + route
+    + service Block | + child ahci
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 #
 # Boot modules

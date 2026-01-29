@@ -14,238 +14,200 @@ build {
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service CPU
+  + service LOG
 
-	<default caps="100" ram="1M"/>
++ default | caps: 100 | ram: 1M
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-		<route>
-			<service name="ROM"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
+  + route
+    + service ROM | + parent
+    + service CPU | + parent
+    + service PD  | + parent
+    + service LOG | + parent
 
-	<start name="fb_sdl" ld="no" ram="32M">
-		<config buffered="yes" width="1280" height="720" depth="16"/>
-		<route>
-			<service name="ROM">     <parent/>             </service>
-			<service name="CPU">     <parent/>             </service>
-			<service name="PD">      <parent/>             </service>
-			<service name="LOG">     <parent/>             </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-		</route>
-	</start>
++ start fb_sdl | ld: no | ram: 32M
+  + config | buffered: yes | width: 1280 | height: 720 | depth: 16
+  + route
+    + service ROM     | + parent
+    + service CPU     | + parent
+    + service PD      | + parent
+    + service LOG     | + parent
+    + service Timer   | + child timer
+    + service Capture | + child nitpicker
+    + service Event   | + child nitpicker
 
-	<start name="report_rom_nitpicker">
-		<binary name="report_rom"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
-			<policy label="pointer -> hover" report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"  report="null"/>
-		</config>
-		<route>
-			<service name="ROM"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>
++ start report_rom_nitpicker
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + policy | label: pointer -> hover | report: nitpicker -> hover
+    + policy | label: pointer -> xray  | report: null
+  + route
+    + service ROM | + parent
+    + service CPU | + parent
+    + service PD  | + parent
+    + service PD  | + parent
+    + service LOG | + parent
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config>
-			<capture/> <event/>
-			<report focus="yes" hover="yes" xray="yes"/>
-			<domain name="pointer" layer="1" content="client" label="no"  origin="pointer"/>
-			<domain name="default" layer="3" content="client" label="yes" hover="always" focus="click"/>
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config
+  | + capture
+  | + event
+  | + report | focus: yes | hover: yes | xray:  yes
+  |
+  | + domain pointer | layer: 1 | content: client | label:  no | origin: pointer
+  | + domain default | layer: 3 | content: client | label: yes | hover: always | focus: click
+  |
+  | + policy | label_prefix: pointer | domain: pointer
+  | + default-policy                 | domain: default
+  |
+  | + background | color: #00426f | . indigo
+  + route
+    + service ROM    | + parent
+    + service CPU    | + parent
+    + service PD     | + parent
+    + service LOG    | + parent
+    + service Timer  | + child timer
+    + service Report | + child report_rom_nitpicker
 
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy                domain="default"/>
++ start shape-arrow | ram: 2M
+  + binary test-pointer
+  + config | shape: arrow
+  + route
+    + service PD                    | + parent
+    + service ROM                   | + parent
+    + service CPU                   | + parent
+    + service LOG                   | + parent
+    + service Report | label: shape | + child pointer | label: test-label-arrow -> shape
 
-			<background color="#00426f"/> <!-- indigo -->
-		</config>
-		<route>
-			<service name="ROM"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-			<service name="Timer">  <child name="timer"/> </service>
-			<service name="Report"> <child name="report_rom_nitpicker"/> </service>
-		</route>
-	</start>
++ start shape-blade | ram: 2M
+  + binary test-pointer
+  + config | shape: blade
+  + route
+    + service PD                    | + parent
+    + service ROM                   | + parent
+    + service CPU                   | + parent
+    + service LOG                   | + parent
+    + service Report | label: shape | + child pointer | label: test-label-blade -> shape
 
-	<start name="shape-arrow" ram="2M">
-		<binary name="test-pointer"/>
-		<config shape="arrow"/>
-		<route>
-			<service name="PD">     <parent/> </service>
-			<service name="ROM">    <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-arrow -> shape"/>
-			</service>
-		</route>
-	</start>
++ start shape-bladex | ram: 2M
+  + binary test-pointer
+  + config | shape: bladex
+  + route
+    + service PD                    | + parent
+    + service ROM                   | + parent
+    + service CPU                   | + parent
+    + service LOG                   | + parent
+    + service Report | label: shape | + child pointer | label: test-label-bladex -> shape
 
-	<start name="shape-blade" ram="2M">
-		<binary name="test-pointer"/>
-		<config shape="blade"/>
-		<route>
-			<service name="PD">     <parent/> </service>
-			<service name="ROM">    <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-blade -> shape"/>
-			</service>
-		</route>
-	</start>
++ start shape-smiley-config
+  + binary dynamic_rom
+  + provides | + service ROM
+  + config
+  | + rom smiley.config
+  |   + inline | description: smiley | + config | shape: smiley
+  |   + sleep  | milliseconds: 800
+  |   + inline | description: smiley | + config | shape: empty
+  |   + sleep  | milliseconds: 800
+  |   + inline | description: yelims | + config | shape: yelims
+  |   + sleep  | milliseconds: 800
+  |   + inline | description: yelims | + config | shape: invisible
+  |   + sleep  | milliseconds: 800
+  + route
+    + service ROM   | + parent
+    + service CPU   | + parent
+    + service PD    | + parent
+    + service LOG   | + parent
+    + service Timer | + child timer
 
-	<start name="shape-bladex" ram="2M">
-		<binary name="test-pointer"/>
-		<config shape="bladex"/>
-		<route>
-			<service name="PD">     <parent/> </service>
-			<service name="ROM">    <parent/> </service>
-			<service name="CPU">    <parent/> </service>
-			<service name="LOG">    <parent/> </service>
-			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-bladex -> shape"/>
-			</service>
-		</route>
-	</start>
++ start shape-smiley | ram: 2M
+  + binary test-pointer
+  + route
+    + service ROM | label: config   | + child shape-smiley-config | label: smiley.config
+    + service Report | label: shape | + child pointer | label: test-label-smiley -> shape
+    + service ROM                   | + parent
+    + service CPU                   | + parent
+    + service PD                    | + parent
+    + service LOG                   | + parent
 
-	<start name="shape-smiley-config">
-		<binary name="dynamic_rom"/>
-		<provides> <service name="ROM"/> </provides>
-		<config>
-			<rom name="smiley.config">
-				<inline description="smiley"> <config shape="smiley"/> </inline>
-				<sleep milliseconds="800" />
-				<inline description="smiley"> <config shape="empty"/> </inline>
-				<sleep milliseconds="800" />
-				<inline description="yelims"> <config shape="yelims"/> </inline>
-				<sleep milliseconds="800" />
-				<inline description="yelims"> <config shape="invisible"/> </inline>
-				<sleep milliseconds="800" />
-			</rom>
-		</config>
-		<route>
-			<service name="ROM">   <parent/> </service>
-			<service name="CPU">   <parent/> </service>
-			<service name="PD">    <parent/> </service>
-			<service name="LOG">   <parent/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-		</route>
-	</start>
++ start pointer
+  + provides | + service Report
+  + config | shapes: yes | verbose: no
+  + route
+    + service PD                 | + parent
+    + service LOG                | + parent
+    + service Gui                | + child nitpicker
+    + service ROM | label: xray  | + child report_rom_nitpicker
+    + service ROM | label: hover | + child report_rom_nitpicker
+    + service ROM                | + parent
+    + service CPU                | + parent
 
-	<start name="shape-smiley" ram="2M">
-		<binary name="test-pointer"/>
-		<route>
-			<service name="ROM" label="config">
-				<child name="shape-smiley-config" label="smiley.config"/> </service>
-			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-smiley -> shape"/>
-			</service>
-			<service name="ROM"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="PD">  <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>
++ start test-no-match | ram: 2M
+  + binary testnit
+  + route
+    + service LOG   | + parent
+    + service PD    | + parent
+    + service CPU   | + parent
+    + service ROM   | + parent
+    + service Timer | + child timer
+    + service Gui   | + child nitpicker
 
-	<start name="pointer">
-		<provides> <service name="Report"/> </provides>
-		<config shapes="yes" verbose="no"/>
-		<route>
-			<service name="PD">  <parent/>                 </service>
-			<service name="LOG"> <parent/>                 </service>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<service name="ROM" label="xray">  <child name="report_rom_nitpicker"/> </service>
-			<service name="ROM" label="hover"> <child name="report_rom_nitpicker"/> </service>
-			<service name="ROM"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-		</route>
-	</start>
++ start test-label-smiley | ram: 2M
+  + binary testnit
+  + route
+    + service LOG   | + parent
+    + service PD    | + parent
+    + service CPU   | + parent
+    + service ROM   | + parent
+    + service Timer | + child timer
+    + service Gui   | + child nitpicker
 
-	<start name="test-no-match" ram="2M">
-		<binary name="testnit"/>
-		<route>
-			<service name="LOG">   <parent/>                 </service>
-			<service name="PD">    <parent/>                 </service>
-			<service name="CPU">   <parent/>                 </service>
-			<service name="ROM">   <parent/>                 </service>
-			<service name="Timer"> <child name="timer"/>     </service>
-			<service name="Gui">   <child name="nitpicker"/> </service>
-		</route>
-	</start>
++ start test-label-arrow | ram: 2M
+  + binary testnit
+  + route
+    + service LOG   | + parent
+    + service PD    | + parent
+    + service CPU   | + parent
+    + service ROM   | + parent
+    + service Timer | + child timer
+    + service Gui   | + child nitpicker
 
-	<start name="test-label-smiley" ram="2M">
-		<binary name="testnit"/>
-		<route>
-			<service name="LOG">   <parent/>                 </service>
-			<service name="PD">    <parent/>                 </service>
-			<service name="CPU">   <parent/>                 </service>
-			<service name="ROM">   <parent/>                 </service>
-			<service name="Timer"> <child name="timer"/>     </service>
-			<service name="Gui">   <child name="nitpicker"/> </service>
-		</route>
-	</start>
++ start test-label-blade | ram: 2M
+  + binary testnit
+  + route
+    + service PD    | + parent
+    + service LOG   | + parent
+    + service CPU   | + parent
+    + service ROM   | + parent
+    + service Timer | + child timer
+    + service Gui   | + child nitpicker
 
-	<start name="test-label-arrow" ram="2M">
-		<binary name="testnit"/>
-		<route>
-			<service name="LOG">   <parent/>                 </service>
-			<service name="PD">    <parent/>                 </service>
-			<service name="CPU">   <parent/>                 </service>
-			<service name="ROM">   <parent/>                 </service>
-			<service name="Timer"> <child name="timer"/>     </service>
-			<service name="Gui">   <child name="nitpicker"/> </service>
-		</route>
-	</start>
-
-	<start name="test-label-blade" ram="2M">
-		<binary name="testnit"/>
-		<route>
-			<service name="PD">    <parent/>                 </service>
-			<service name="LOG">   <parent/>                 </service>
-			<service name="CPU">   <parent/>                 </service>
-			<service name="ROM">   <parent/>                 </service>
-			<service name="Timer"> <child name="timer"/>     </service>
-			<service name="Gui">   <child name="nitpicker"/> </service>
-		</route>
-	</start>
-
-	<start name="test-label-bladex" ram="2M">
-		<binary name="testnit"/>
-		<route>
-			<service name="PD">    <parent/>                 </service>
-			<service name="LOG">   <parent/>                 </service>
-			<service name="CPU">   <parent/>                 </service>
-			<service name="ROM">   <parent/>                 </service>
-			<service name="Timer"> <child name="timer"/>     </service>
-			<service name="Gui">   <child name="nitpicker"/> </service>
-		</route>
-	</start>
-</config>}
++ start test-label-bladex | ram: 2M
+  + binary testnit
+  + route
+    + service PD    | + parent
+    + service LOG   | + parent
+    + service CPU   | + parent
+    + service ROM   | + parent
+    + service Timer | + child timer
+    + service Gui   | + child nitpicker
+-
+}
 
 build_boot_image [build_artifacts]
 

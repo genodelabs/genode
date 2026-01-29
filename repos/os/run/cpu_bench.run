@@ -10,19 +10,16 @@ build { core init timer lib/ld test/cpu_bench }
 create_boot_directory
 
 install_config {
-	<config>
-		<parent-provides>
-			<service name="LOG"/>
-			<service name="CPU"/>
-			<service name="ROM"/>
-			<service name="PD"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="cpu_bench" ram="10M"/>
-	</config>
+config
++ parent-provides
+  + service LOG
+  + service CPU
+  + service ROM
+  + service PD
++ default-route | + any-service | + parent
++ default | caps: 100
++ start cpu_bench | ram: 10M
+-
 }
 
 build_boot_image [build_artifacts]

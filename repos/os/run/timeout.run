@@ -7,10 +7,10 @@
 #
 proc fast_polling_buf_size  { } {
 
-	if {[expr [have_board pbxa9]        && [have_spec foc]]} { return 40000000 }
-	if {[expr [have_board imx53_qsb_tz] && [have_spec hw]]}  { return 40000000 }
-	if {[expr [have_board rpi]          && [have_spec hw]]}  { return 40000000 }
-	if {[expr [have_board virt_qemu_riscv]   && [have_spec hw]]}  { return 15000000 }
+	if {[expr [have_board pbxa9]           && [have_spec foc]]} { return 40000000 }
+	if {[expr [have_board imx53_qsb_tz]    && [have_spec hw]]}  { return 40000000 }
+	if {[expr [have_board rpi]             && [have_spec hw]]}  { return 40000000 }
+	if {[expr [have_board virt_qemu_riscv] && [have_spec hw]]}  { return 15000000 }
 	return 80000000
 }
 
@@ -80,46 +80,41 @@ proc precise_ref_time { } {
 
 build { core init lib/ld driver/platform timer test/timeout }
 
-#
-# Boot image
-#
-
 create_boot_directory
 
 install_config {
-	<config prio_levels="2">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-		</parent-provides>
-		<default-route>
-			<any-service><parent/><any-child/></any-service>
-		</default-route>
-		<default caps="150"/>
-		<start name="timer" ram="10M">
-			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="test" ram="250M" priority="-1">
-			<binary name="test-timeout"/>
-			<config precise_time="} [precise_time] {"
-			        precise_ref_time="} [precise_ref_time] {"
-			        precise_timeouts="} [precise_timeouts] {"
-			        fast_polling_buf_size="} [fast_polling_buf_size] {"/>
-		</start>
-	</config>
+config | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 150
+
++ start timer | ram: 10M
+  + provides | + service Timer
+
++ start test | ram: 250M | priority: -1
+  + binary test-timeout
+  + config
+           precise_time:          } [precise_time] {
+           precise_ref_time:      } [precise_ref_time] {
+           precise_timeouts:      } [precise_timeouts] {
+           fast_polling_buf_size: } [fast_polling_buf_size] {
+-
 }
 
 build_boot_image [build_artifacts]
-
-#
-# Execution
-#
 
 append qemu_args "-nographic "
 

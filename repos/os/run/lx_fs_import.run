@@ -16,69 +16,54 @@ if { [have_cmd_switch --autopilot] } {
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<resource name="RAM" preserve="200M"/>
-	<resource name="CAP" preserve="1000"/>
++ resource RAM | preserve: 200M
++ resource CAP | preserve: 1000
 
-	<start name="timer" caps="100" ram="1M">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ start timer | caps: 100 | ram: 1M
+  + provides | + service Timer
 
-	<start name="import_lx_fs" caps="220" ram="8M" ld="no">
-		<binary name="lx_fs"/>
-		<provides>
-			<service name="File_system"/>
-		</provides>
-		<config>
-			<policy label_prefix="import_showcase ->" root="/" writeable="yes"/>
-		</config>
-		<route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start import_lx_fs | caps: 220 | ram: 8M | ld: no
+  + binary lx_fs
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: import_showcase -> | root: / | writeable: yes
+  + route
+    + any-service
+      + parent
+      + any-child
 
-	<start name="import_showcase" caps="100" ram="4M">
-		<binary name="vfs"/>
-		<provides>
-			<service name="File_system"/>
-		</provides>
-		<config>
-			<vfs> <fs/>
-				<import overwrite="false">
-					<dir name="test-existing-file">
-						<inline name="a_file">Hello Friend!</inline>
-					</dir>
-					<dir name="test-file">
-						<inline name="foo">bar</inline>
-					</dir>
-					<dir name="test-existing-directory">
-						<inline name="foo">bar</inline>
-					</dir>
-				</import>
-			</vfs>
-		</config>
-		<route>
-			<service name="File_system"> <child name="import_lx_fs"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-</config>
++ start import_showcase | caps: 100 | ram: 4M
+  + binary vfs
+  + provides | + service File_system
+  + config
+  | + vfs
+  |   + fs
+  |   + import | overwrite: false
+  |     + dir test-existing-file      | + inline a_file | : Hello Friend!
+  |     + dir test-file               | + inline foo    | : bar
+  |     + dir test-existing-directory | + inline foo    | : bar
+  + route
+    + service File_system | + child import_lx_fs
+    + any-service
+      + parent
+      + any-child
+-
 }
 
 import_from_depot $depot_archives

@@ -36,153 +36,115 @@ if {[have_include power_on/qemu]} {
 build $build_components
 
 append config {
-<config>
-	<parent-provides>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="CPU"/>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="RM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+config
++ parent-provides
+  + service LOG
+  + service PD
+  + service CPU
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service RM
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
 }
 
 if { [have_include power_on/qemu] } {
 
 	append_if [have_board pc] config {
-		<start name="terminal" ram="2M">
-			<binary name="pc_uart"/>
-			<provides>
-				<service name="Terminal"/>
-			</provides>
-			<config>
-				<policy label_prefix="monitor" uart="1"/>
-			</config>
-		</start>
+		+ start terminal | ram: 2M
+		  + binary pc_uart
+		  + provides | + service Terminal
+		  + config | + policy | label_prefix: monitor | uart: 1
 	}
 
 	append_if [have_board rpi3] config {
-		<start name="terminal" ram="2M">
-			<binary name="rpi3_uart"/>
-			<provides>
-				<service name="Terminal"/>
-			</provides>
-			<config>
-				<policy label_prefix="monitor" uart="0"/>
-			</config>
-		</start>
+		+ start terminal | ram: 2M
+		  + binary rpi3_uart
+		  + provides | + service Terminal
+		  + config | + policy | label_prefix: monitor | uart: 0
 	}
 
 } else {
 
 	append config {
-		<start name="drivers" caps="1000" ram="32M" managing_system="yes">
-			<binary name="init"/>
-			<route>
-				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="Uplink"> <child name="nic_router"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
-		<start name="nic_router" caps="200" ram="10M">
-			<provides>
-				<service name="Nic"/>
-				<service name="Uplink"/>
-			</provides>
-			<config verbose_domain_state="yes">
-
-				<policy label_prefix="terminal" domain="downlink"/>
-				<policy label_prefix="drivers"  domain="uplink"/>
-
-				<domain name="uplink">
-
-					<nat domain="downlink"
-						tcp-ports="1"
-						udp-ports="1"
-						icmp-ids="1"/>
-
-					<tcp-forward port="5555" domain="downlink" to="10.0.3.2"/>
-
-				</domain>
-
-				<domain name="downlink" interface="10.0.3.1/24">
-
-					<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2"/>
-
-					<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
-
-				</domain>
-
-			</config>
-		</start>
-		<start name="terminal" caps="200" ram="8M">
-			<binary name="tcp_terminal"/>
-			<provides> <service name="Terminal"/> </provides>
-			<config>
-				<policy label_prefix="monitor" port="5555"/>
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="socket"> <lwip dhcp="yes"/> </dir>
-					<dir name="pipe"> <pipe/> </dir>
-				</vfs>
-				<libc stdout="/dev/log" socket="/socket" pipe="/pipe"/>
-			</config>
-			<route>
-				<service name="Nic"> <child name="nic_router"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
+		+ start drivers | caps: 1000 | ram: 32M | managing_system: yes
+		  + binary init
+		  + route
+		    + service ROM | label: config | + parent | label: drivers.config
+		    + service Timer               | + child timer
+		    + service Uplink              | + child nic_router
+		    + any-service                 | + parent
+		
+		+ start nic_router | caps: 200 | ram: 10M
+		  + provides
+		    + service Nic
+		    + service Uplink
+		  + config | verbose_domain_state: yes
+		    + policy | label_prefix: terminal | domain: downlink
+		    + policy | label_prefix: drivers | domain: uplink
+		    + domain uplink
+		      + nat | domain: downlink | tcp-ports: 1 | udp-ports: 1 | icmp-ids: 1
+		      + tcp-forward | port: 5555 | domain: downlink | to: 10.0.3.2
+		    + domain downlink | interface: 10.0.3.1/24
+		      + dhcp-server | ip_first: 10.0.3.2 | ip_last: 10.0.3.2
+		      + tcp | dst: 0.0.0.0/0 | + permit-any | domain: uplink
+		
+		+ start terminal | caps: 200 | ram: 8M
+		  + binary tcp_terminal
+		  + provides | + service Terminal
+		  + config
+		  | + policy | label_prefix: monitor | port: 5555
+		  | + vfs
+		  |   + dir dev    | + log
+		  |   + dir socket | + lwip | dhcp: yes
+		  |   + dir pipe   | + pipe
+		  | + libc | stdout: /dev/log | socket: /socket | pipe: /pipe
+		  + route
+		    + service Nic | + child nic_router
+		    + any-service
+		      + parent
+		      + any-child
 	}
 }
 
+# strip tabs used for indentation
+set config [string map {"\t" ""} $config]
+
 append config {
-
-	<start name="monitor" caps="1000" ram="100M">
-		<config>
-			<parent-provides>
-				<service name="LOG"/>
-				<service name="PD"/>
-				<service name="CPU"/>
-				<service name="ROM"/>
-			</parent-provides>
-			<default caps="100"/>
-
-			<monitor>
-				<policy label="test-monitor_gdb" wait="yes" wx="yes"/>
-			</monitor>
-
-			<start name="test-monitor_gdb" caps="300" ram="10M">
-				<config>
-					<vfs> <dir name="dev"> <log/> </dir> </vfs>
-					<libc stdout="/dev/log" stderr="/dev/log"/>
-				</config>
-				<route>
-					<service name="PD">  <local/> </service>
-					<service name="CPU"> <local/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-			<start name="test-log" ram="2M">
-				<route>
-					<service name="PD">  <local/> </service>
-					<service name="CPU"> <local/> </service>
-					<any-service> <parent/> </any-service>
-				</route>
-			</start>
-		</config>
-	</start>
-</config>
++ start monitor | caps: 1000 | ram: 100M
+  + config
+    + parent-provides
+      + service LOG
+      + service PD
+      + service CPU
+      + service ROM
+    + default | caps: 100
+    + monitor | + policy | label: test-monitor_gdb | wait: yes | wx: yes
+    + start test-monitor_gdb | caps: 300 | ram: 10M
+    | + config
+    |   + vfs | + dir dev | + log
+    |   + libc | stdout: /dev/log | stderr: /dev/log
+    | + route
+    |   + service PD  | + local
+    |   + service CPU | + local
+    |   + any-service | + parent
+    |
+    + start test-log | ram: 2M
+      + route
+        + service PD  | + local
+        + service CPU | + local
+        + any-service | + parent
+-
 }
 
 install_config $config

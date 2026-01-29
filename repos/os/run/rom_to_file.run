@@ -5,49 +5,46 @@ build { core init timer lib/ld lib/vfs server/dynamic_rom app/rom_to_file server
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="ROM" />
-		<service name="CPU" />
-		<service name="PD" />
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="dynamic_rom" ram="4M">
-		<provides><service name="ROM"/></provides>
-		<config verbose="yes" generate_xml="yes">
-			<rom name="test">
-				<inline description="update"><test/>
-				</inline>
-				<sleep milliseconds="1000" />
-				<inline description="finished"/>
-			</rom>
-		</config>
-	</start>
-	<start name="lx_fs" ld="no" ram="4M">
-		<provides> <service name="File_system" /> </provides>
-		<config>
-			<policy label_prefix="rom_to_file" root="/fs_test" writeable="yes" />
-		</config>
-	</start>
-	<start name="rom_to_file" ram="4M">
-		<config rom="test">
-			<vfs> <fs/> </vfs>
-		</config>
-		<route>
-			<service name="ROM" label="test"> <child name="dynamic_rom"/> </service>
-			<service name="File_system">      <child name="lx_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-</config>}
+config
++ parent-provides
+  + service LOG
+  + service RM
+  + service ROM
+  + service CPU
+  + service PD
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start dynamic_rom | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes | generate_xml: yes
+    + rom test
+      + inline | description: update | + test
+      + sleep  | milliseconds: 1000
+      + inline | description: finished
+
++ start lx_fs | ld: no | ram: 4M
+  + provides | + service File_system
+  + config
+    + policy | label_prefix: rom_to_file | root: /fs_test | writeable: yes
+
++ start rom_to_file | ram: 4M
+  + config | rom: test
+    + vfs | + fs
+  + route
+    + service ROM | label: test | + child dynamic_rom
+    + service File_system       | + child lx_fs
+    + any-service               | + parent
+-
+}
 
 exec mkdir -p bin/fs_test
 

@@ -36,30 +36,27 @@ if {[info exists ::env(SEED)]} {
 puts "\nUse script with SEED=$seed in order to get reproducible results\n"
 
 install_config {
-<config verbose="yes">
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service LOG
+  + service CPU
+  + service PD
 
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="LOG"/>
-		<service name="CPU"/>
-		<service name="PD"/>
-	</parent-provides>
-
-	<start name="lx_fs" ld="no" caps="100" ram="4M">
-		<provides> <service name="File_system"/> </provides>
-		<config> <policy label_prefix="test-internet_checksum -> " root="/} $lx_fs_root {" writeable="yes"/> </config>
-		<route> <any-service> <parent/> </any-service> </route>
-	</start>
-
-	<start name="test-internet_checksum" caps="100" ram="1M">
-		<config seed="} $seed {"> <vfs> <fs/> </vfs> </config>
-		<route>
-			<service name="File_system"> <child name="lx_fs"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-</config> }
++ start lx_fs | ld: no | caps: 100 | ram: 4M
+  + provides | + service File_system
+  + route | + any-service | + parent
+  + config
+    + policy | label_prefix: test-internet_checksum -> | root: /} $lx_fs_root {
+                                                       | writeable: yes
++ start test-internet_checksum | caps: 100 | ram: 1M
+  + config | seed: } $seed {
+    + vfs | + fs
+  + route
+    + service File_system | + child lx_fs
+    + any-service         | + parent
+-
+}
 
 exec rm -rf $lx_fs_dir
 exec mkdir -p $lx_fs_dir

@@ -21,86 +21,75 @@ build {
 
 create_boot_directory
 
-proc kernel_start_node { } {
+proc kernel_start_node { } { return {
++ start log_kernel | ram: 10M
+  + binary log_core
+  + config | period_ms: 2000
+  + route
+    + service ROM | unscoped_label: log_core  | + parent
+    + service ROM | unscoped_label: ld.lib.so | + parent
+    + service ROM | label: log                | + parent | label: kernel_log
+    + service Timer                           | + child timer
+    + service PD                              | + parent
+    + service CPU                             | + parent
+    + service LOG                             | + parent
+} }
 
-	if {![have_spec nova]} {
-		return { } }
+if {![have_spec nova]} { proc kernel_start_node { } { } }
 
-	return {
-	<start name="log_kernel" ram="10M">
-		<binary name="log_core"/>
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
-			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="PD"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>}
-}
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> </any-service>
-	</default-route>
+config
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service ROM
 
-	<default caps="100" ram="1M"/>
++ default-route | + any-service | + parent
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="file_terminal" ram="3M">
-		<binary name="file_terminal"/>
-		<provides> <service name="Terminal"/> </provides>
-		<config>
-			<default-policy filename="log" />
-			<vfs> <dir name="dev"> <log/> </dir> <log label="log_core"/> </vfs>
-			<libc stdout="/dev/log"/>
-		</config>
-		<route> <any-service> <parent/> </any-service> </route>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="terminal_log">
-		<provides> <service name="LOG"/> </provides>
-		<config/>
-		<route>
-			<service name="Terminal"> <child name="file_terminal"/> </service>
-			<service name="Timer">    <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start file_terminal | ram: 3M
+  + binary file_terminal
+  + provides | + service Terminal
+  + config
+  | + default-policy | filename: log
+  | + vfs
+  |   + dir dev | + log
+  |   + log | label: log_core
+  | + libc | stdout: /dev/log
+  + route | + any-service | + parent
 
-	<start name="log_core" ram="10M">
-		<config period_ms="2000"/>
-		<route>
-			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
-			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
-			<service name="ROM" label="log"> <parent label="core_log"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="LOG" label="log"> <child name="terminal_log"/> </service>
-			<service name="PD"> <parent/> </service>
-			<service name="CPU"> <parent/> </service>
-			<service name="LOG"> <parent/> </service>
-		</route>
-	</start>
++ start terminal_log
+  + provides | + service LOG
+  + config
+  + route
+    + service Terminal | + child file_terminal
+    + service Timer    | + child timer
+    + any-service      | + parent
 
-	} [kernel_start_node] {
++ start log_core | ram: 10M
+  + config | period_ms: 2000
+  + route
+    + service ROM | unscoped_label: log_core  | + parent
+    + service ROM | unscoped_label: ld.lib.so | + parent
+    + service ROM | label: log                | + parent | label: core_log
+    + service Timer                           | + child timer
+    + service LOG | label: log                | + child terminal_log
+    + service PD                              | + parent
+    + service CPU                             | + parent
+    + service LOG                             | + parent
 
-</config>}
+} [kernel_start_node] {
+-
+}
 
 build_boot_image [build_artifacts]
 

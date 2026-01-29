@@ -6,67 +6,60 @@ build { core init timer lib/ld driver/acpi server/report_rom app/smbios_decoder 
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-	</parent-provides>
-	<default-route>
-		<service name="Report"> <child name="report_rom"/> </service>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="200" ram="1M"/>
+config
++ parent-provides
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
+  + service IRQ
+  + service LOG
+  + service PD
+  + service RM
+  + service ROM
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-		<route> <any-service> <parent/> </any-service> </route>
-	</start>
++ default-route
+  + service Report | + child report_rom
+  + any-service
+    + parent
+    + any-child
 
-	<start name="acpi_report_rom">
-		<binary name="report_rom"/>
-		<provides>
-			<service name="Report"/>
-			<service name="ROM"/>
-		</provides>
-		<config>
-			<policy label="smbios_decoder -> smbios_table" report="acpi -> smbios_table"/>
-		</config>
-	</start>
++ default | caps: 200 | ram: 1M
 
-	<start name="acpi" caps="350" ram="4M">
-		<route>
-			<service name="Report"> <child name="acpi_report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start timer
+  + provides | + service Timer
+  + route | + any-service | + parent
 
-	<start name="report_rom">
-		<provides>
-			<service name="Report"/>
-			<service name="ROM"/>
-		</provides>
-		<config verbose="yes"/>
-	</start>
++ start acpi_report_rom
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + policy | label: smbios_decoder -> smbios_table
+               report: acpi -> smbios_table
 
-	<start name="smbios_decoder" ram="10M">
-		<config verbose="yes" generate_xml="yes"/>
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="ROM" label="smbios_table"> <child name="acpi_report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-</config>
++ start acpi | caps: 350 | ram: 4M
+  + route
+    + service Report | + child acpi_report_rom
+    + any-service    | + parent
+
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+
++ start smbios_decoder | ram: 10M
+  + config | verbose: yes
+  + route
+    + service Report                    | + child report_rom
+    + service ROM | label: smbios_table | + child acpi_report_rom
+    + any-service                       | + parent
+-
 }
 
 build_boot_image [build_artifacts]
 
 append qemu_args " -nographic"
 
-run_genode_until "report_rom]   		<structure type=\"0\" .*?description=\"BIOS Information\">.*?report_rom]   </result>.*?\n" 20
+run_genode_until "init -> report_rom]     + structure | type: 0 .*?description: BIOS Information.*\n.*report_rom]   -" 20

@@ -20,187 +20,163 @@ import_from_depot [depot_user]/src/[base_src] \
 build { app/status_bar test/nitpicker }
 
 install_config {
-<config generate_xml="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1196K"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1500" ram="64M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1196K
 
-	<start name="report_rom" ram="2M">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="no">
-			<policy label="status_bar -> focus"          report="nitpicker -> focus"/>
-			<policy label="nitpicker_config -> xray"     report="global_keys_handler -> xray"/>
-			<policy label="global_keys_handler -> hover" report="nitpicker -> hover"/>
-			<policy label="nit_focus -> clicked"         report="nitpicker -> clicked"/>
-			<policy label="nitpicker -> focus"           report="nit_focus -> focus"/>
-		</config>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="nitpicker_config">
-		<binary name="rom_filter"/>
-		<provides> <service name="ROM"/> </provides>
-		<config generate_xml="yes">
-			<input name="xray_enabled" rom="xray" node="xray">
-				<attribute name="enabled" /> </input>
++ start drivers | caps: 1500 | ram: 64M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-			<output node="config">
-				<attribute name="focus" value="rom"/>
-				<inline>
-					<report focus="yes" xray="yes" hover="yes" keystate="yes"
-					        clicked="yes"/>
-					<capture/> <event/>
-					<domain name="pointer" layer="1" origin="pointer"
-					        content="client" label="no"/>
-					<domain name="panel" layer="2"
-					        content="client" label="no" hover="always"/>
-				</inline>
-				<if>
-					<has_value input="xray_enabled" value="no" />
-					<then>
-						<inline>
-							<domain name="launchpad" layer="3"
-							        content="client" label="no" hover="always" focus="click"
-							        ypos="18" height="-18" />
-							<domain name="" layer="3"
-							        content="client" label="no" hover="always" focus="click"
-							        ypos="18" height="-18" />
-						</inline>
-					</then>
-					<else>
-						<inline>
-							<domain name="launchpad" layer="3" color="#dd0000"
-							        content="tinted" label="yes" hover="focused" focus="click"
-							        ypos="18" height="-18" />
-							<domain name="" layer="3" color="#55dd34"
-							        content="tinted" label="yes" hover="focused" focus="click"
-							        ypos="18" height="-18" />
-						</inline>
-					</else>
-				</if>
-				<inline>
-					<policy label_prefix="pointer"            domain="pointer"/>
-					<policy label_prefix="status_bar"         domain="panel"/>
-					<policy label_prefix="scout -> launchpad" domain="launchpad"/>
-					<default-policy                           domain=""/>
++ start report_rom | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label: status_bar -> focus          | report: nitpicker -> focus
+    + policy | label: nitpicker_config -> xray     | report: global_keys_handler -> xray
+    + policy | label: global_keys_handler -> hover | report: nitpicker -> hover
+    + policy | label: nit_focus -> clicked         | report: nitpicker -> clicked
+    + policy | label: nitpicker -> focus           | report: nit_focus -> focus
 
-					<global-key name="KEY_SCROLLLOCK" label="global_keys_handler -> input" />
-					<global-key name="KEY_F1"         label="global_keys_handler -> input" />
-					<global-key name="KEY_F2"         label="global_keys_handler -> input" />
-				</inline>
-			</output>
-		</config>
-		<route>
-			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start nitpicker_config
+  + binary rom_filter
+  + provides | + service ROM
+  + config | generate_xml: yes
+  | + input xray_enabled | rom: xray | node: xray | + attribute enabled
+  | + output | node: config
+  |   + attribute focus | value: rom
+  |   + inline
+  |   | + report | focus: yes | xray: yes | hover: yes | keystate: yes | clicked: yes
+  |   | + capture
+  |   | + event
+  |   | + domain pointer | layer: 1 | content: client | label: no | origin: pointer
+  |   | + domain panel   | layer: 2 | content: client | label: no | hover:  always
+  |   + if
+  |   | + has_value | input: xray_enabled | value: no
+  |   | + then
+  |   |   + inline
+  |   |     + domain launchpad | layer: 3 | content: client | label: no
+  |   |                        | hover: always | focus: click | ypos: 18
+  |   |                        | height: -18
+  |   |
+  |   |     + domain default   | layer: 3 | content: client | label: no
+  |   |                        | hover: always | focus: click | ypos: 18
+  |   |                        | height: -18
+  |   | + else
+  |   |   + inline
+  |   |     + domain launchpad | layer: 3 | content: tinted | label: yes
+  |   |                        | hover: focused | focus: click | ypos: 18
+  |   |                        | height: -18 | color: #dd0000
+  |   |
+  |   |     + domain default   | layer: 3 | content: tinted | label: yes
+  |   |                        | hover: focused | focus: click | ypos: 18
+  |   |                        | height: -18 | color: #55dd34
+  |   + inline
+  |     + policy | label_prefix: pointer            | domain: pointer
+  |     + policy | label_prefix: status_bar         | domain: panel
+  |     + policy | label_prefix: scout -> launchpad | domain: launchpad
+  |     + default-policy                            | domain: default
+  |
+  |     + global-key KEY_SCROLLLOCK | label: global_keys_handler -> input
+  |     + global-key KEY_F1         | label: global_keys_handler -> input
+  |     + global-key KEY_F2         | label: global_keys_handler -> input
+  + route
+    + service ROM | label: xray | + child report_rom
+    + any-service               | + parent
 
-	<start name="global_keys_handler">
-		<config>
-			<bool name="xray" initial="no"/>
++ start global_keys_handler
+  + config
+  | + bool xray | initial: no
+  |
+  | + press KEY_SCROLLLOCK | bool: xray | change: toggle
+  | + press KEY_F1         | bool: xray | change: on
+  | + release KEY_F1       | bool: xray | change: off
+  | + press KEY_F2         | bool: xray | change: toggle
+  |
+  | + report xray | delay_ms: 125
+  |   + hovered | domain: panel
+  |   + bool xray
+  + route
+    + service Report             | + child report_rom
+    + service ROM | label: hover | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-			<press   name="KEY_SCROLLLOCK" bool="xray" change="toggle"/>
-			<press   name="KEY_F1"         bool="xray" change="on"/>
-			<release name="KEY_F1"         bool="xray" change="off"/>
-			<press   name="KEY_F2"         bool="xray" change="toggle"/>
++ start nitpicker | caps: 120 | ram: 1216K
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + route
+    + service ROM | label: config | + child nitpicker_config
+    + service ROM | label: focus  | + child report_rom
+    + service Report              | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-			<report name="xray" delay_ms="125">
-				<hovered domain="panel"/>
-				<bool name="xray"/>
-			</report>
-		</config>
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start pointer
+  + config
 
-	<start name="nitpicker" caps="120" ram="1216K">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<route>
-			<service name="ROM" label="config">
-				<child name="nitpicker_config"/> </service>
-			<service name="ROM" label="focus">
-				<child name="report_rom"/> </service>
-			<service name="Report">
-				<child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start nit_focus
+  + config | + default-policy | focus: yes
+  + route
+    + service ROM | label: clicked | + child report_rom
+    + service Report               | + child report_rom
+    + any-service                  | + parent
 
-	<start name="pointer">
-		<config/>
-	</start>
++ start status_bar
+  + route
+    + service ROM | label: focus | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-	<start name="nit_focus">
-		<config> <default-policy focus="yes"/> </config>
-		<route>
-			<service name="ROM" label="clicked"> <child name="report_rom"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-
-	<start name="status_bar">
-		<route>
-			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="scout" caps="10000" ram="80M"/>
-</config>}
++ start scout | caps: 10000 | ram: 80M
+-
+}
 
 #
 # Create launchpad configuration
 #
 set launchpad_config_fd [open "bin/launchpad.config" w]
-puts $launchpad_config_fd {<config>
-	<launcher name="testnit"   ram_quota="768K" caps="50"/>
-	<launcher name="scout"     ram_quota="41M"  caps="200"/>
-	<launcher name="launchpad" ram_quota="6M"   caps="1000">
-		<configfile name="launchpad.config" />
-	</launcher>
-	<launcher name="nitlog"    ram_quota="1500K" caps="100"/>
-	<launcher name="liquid_fb" ram_quota="9M" caps="100">
-		<config resize_handle="on" />
-	</launcher>
-	<launcher name="nitpicker" ram_quota="1M" caps="100">
-		<config request_input="yes" request_framebuffer="yes">
-			<domain name="" layer="3" conten="client" label="no" focus="click"/>
-			<default-policy domain="" />
-		</config>
-	</launcher>
-</config>}
+puts $launchpad_config_fd {
+config
++ launcher testnit   | ram_quota: 768K  | caps: 50
++ launcher scout     | ram_quota: 41M   | caps: 200
++ launcher launchpad | ram_quota: 6M    | caps: 1000 | + configfile launchpad.config
++ launcher nitlog    | ram_quota: 1500K | caps: 100
++ launcher liquid_fb | ram_quota: 9M    | caps: 100  | + config | resize_handle: on
++ launcher nitpicker | ram_quota: 1M    | caps: 100
+  + config | request_input: yes | request_framebuffer: yes
+    + domain default | layer: 3 | conten: client | label: no | focus: click
+    + default-policy | domain: default
+-
+}
 close $launchpad_config_fd
 
 build_boot_image [list {*}[build_artifacts] launchpad.config]

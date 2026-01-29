@@ -56,100 +56,100 @@ build $build_components
 
 create_boot_directory
 
-append config {
 
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
+proc nic_router_start_nodes { } { return {
++ start nic_router | caps: 1000 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config
+    + policy | label_prefix: nic_stress_2 | domain: default
+    + policy | label_prefix: nic_stress_1 | domain: default
+    + domain default | interface: 10.0.2.55/24
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>}
++ alias nic_server | child: nic_router
+} }
 
-append_if [string equal $type "nic_router"] config {
 
-	<start name="nic_router" caps="1000" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config>
-			<policy label_prefix="nic_stress_2" domain="default"/>
-			<policy label_prefix="nic_stress_1" domain="default"/>
-			<domain name="default" interface="10.0.2.55/24"/>
-		</config>
-	</start>
+proc nic_bridge_start_nodes { } { return {
++ start nic_router | caps: 1000 | ram: 10M
+  + provides
+    + service Nic
+    + service Uplink
+  + config
+    + policy | label_prefix: nic_bridge | domain: default
+    + domain default | interface: 10.0.2.55/24
 
-	<alias name="nic_server" child="nic_router"/>}
++ start nic_bridge | caps: 1000 | ram: 50M
+  + provides | + service Nic
+  + config | mac: 02:02:02:02:42:00
+    + policy | label_prefix: nic_stress_2
+    + policy | label_prefix: nic_stress_1
+  + route
+    + service Nic | + child nic_router
+    + any-service
+      + parent
+      + any-child
 
-append_if [string equal $type "nic_bridge"] config {
++ alias nic_server | child: nic_bridge
+} }
 
-	<start name="nic_router" caps="1000" ram="10M">
-		<provides>
-			<service name="Nic"/>
-			<service name="Uplink"/>
-		</provides>
-		<config>
-			<policy label_prefix="nic_bridge" domain="default"/>
-			<domain name="default" interface="10.0.2.55/24"/>
-		</config>
-	</start>
 
-	<start name="nic_bridge" caps="1000" ram="50M">
-		<provides><service name="Nic"/></provides>
-		<config mac="02:02:02:02:42:00">
-			<policy label_prefix="nic_stress_2"/>
-			<policy label_prefix="nic_stress_1"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
+proc nic_server_start_nodes { type } {
+	if { $type == "nic_router" } { return [nic_router_start_nodes] }
+	if { $type == "nic_bridge" } { return [nic_bridge_start_nodes] }
+}
 
-	<alias name="nic_server" child="nic_bridge"/>}
 
-append config {
+install_config {
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="nic_stress_1" caps="1000" ram="50M">
-		<binary name="test-nic_stress"/>
-		<config exit_support="} [exit_support] {">
-			<construct_destruct nr_of_rounds="}   [nr_of_rounds   1] {"
-			                    nr_of_sessions="} [nr_of_sessions 1] {"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_server"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="nic_stress_2" caps="1000" ram="100M">
-		<binary name="test-nic_stress"/>
-		<config exit_support="} [exit_support] {">
-			<construct_destruct nr_of_rounds="}   [nr_of_rounds 2] {"
-			                    nr_of_sessions="} [nr_of_rounds 2] {"/>
-		</config>
-		<route>
-			<service name="Nic"> <child name="nic_server"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ default | caps: 100 | ram: 1M
 
-</config>}
++ start timer
+  + provides | + service Timer
 
-install_config $config
+} [nic_server_start_nodes $type] {
+
++ start nic_stress_1 | caps: 1000 | ram: 50M
+  + binary test-nic_stress
+  + config | exit_support: } [exit_support] {
+  | + construct_destruct
+  |                      nr_of_rounds:   } [nr_of_rounds   1] {
+  |                      nr_of_sessions: } [nr_of_sessions 1] {
+  + route
+    + service Nic | + child nic_server
+    + any-service
+      + parent
+      + any-child
+
++ start nic_stress_2 | caps: 1000 | ram: 100M
+  + binary test-nic_stress
+  + config | exit_support: } [exit_support] {
+  | + construct_destruct
+  |                      nr_of_rounds:   } [nr_of_rounds 2] {
+  |                      nr_of_sessions: } [nr_of_rounds 2] {
+  + route
+    + service Nic | + child nic_server
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 build_boot_image [build_artifacts]
 

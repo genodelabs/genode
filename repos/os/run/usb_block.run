@@ -15,81 +15,84 @@ import_from_depot [depot_user]/src/[base_src] \
 build { app/block_tester }
 
 install_config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
+config | verbose: yes
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default caps="100" ram="1M"/>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="timer">
-		<provides> <service name="Timer"/> </provides>
-	</start>
++ default | caps: 100 | ram: 1M
 
-	<start name="report_rom">
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config verbose="yes">
-			<default-policy report="usb -> usb -> devices"/>
-		</config>
-	</start>
++ start timer
+  + provides | + service Timer
 
-	<start name="usb" caps="1500" ram="32M" managing_system="yes">
-		<binary name="init"/>
-		<provides> <service name="Usb"/> </provides>
-		<route>
-			<service name="ROM" label="config">
-				<parent label="drivers.config"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="Timer">  <child name="timer"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ start report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+    + default-policy | report: usb -> usb -> devices
 
-	<start name="usb_block" ram="4M">
-		<provides> <service name="Block"/> </provides>
-		<config report="yes" writeable="no"/>
-		<route>
-			<service name="Usb">    <child name="usb"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start usb | caps: 1500 | ram: 32M | managing_system: yes
+  + binary init
+  + provides | + service Usb
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Report              | + child report_rom
+    + service Timer               | + child timer
+    + any-service                 | + parent
 
-	<start name="block_tester" ram="64M">
-		<config verbose="no" report="no" log="yes" stop_on_error="no">
-			<tests>
-				<sequential length="8M" size="1M" io_buffer="8M" batch="4"/>
++ start usb_block | ram: 4M
+  + provides | + service Block
+  + config | report: yes | writeable: no
+  + route
+    + service Usb    | + child usb
+    + service Report | + child report_rom
+    + any-service
+      + parent
+      + any-child
 
-				<!-- enable 'writeable="yes"' at usb_block for write test -->
-				<!-- <sequential write="yes" start="4000" length="2M" size="1M" io_buffer="8M" batch="4"/> -->
-			</tests>
-		</config>
-		<route>
-			<service name="Block"> <child name="usb_block"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start block_tester | ram: 64M
+  + config | verbose: no | report: no | log: yes | stop_on_error: no
+  | + tests
+  |   + sequential
+  |                length:    8M
+  |                size:      1M
+  |                io_buffer: 8M
+  |                batch:     4
+  |   x sequential | . enable 'writeable: yes' at usb_block for write test
+  |                write:     yes
+  |                start:     4000
+  |                length:    2M
+  |                size:      1M
+  |                io_buffer: 8M
+  |                batch:     4
+  + route
+    + service Block | + child usb_block
+    + any-service
+      + parent
+      + any-child
+-
+}
 
 #
 # Define USB host controller config
 #
 set fd [open [run_dir]/genode/usb_host.config w]
-puts $fd { <config bios_handoff="no">
-	<policy label="usb_block -> ">
-		<device name="usb-1-2"/>
-	</policy>
-</config> }
+puts $fd {
+config | bios_handoff: no | + policy | label: usb_block -> | + device usb-1-2
+-
+}
 close $fd
 
 build_boot_image [build_artifacts]

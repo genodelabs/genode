@@ -15,70 +15,74 @@ import_from_depot [depot_user]/src/[base_src] \
 build { test/fb_bench }
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<start name="timer" ram="1M">
-		<provides><service name="Timer"/></provides>
-	</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-	<start name="drivers" caps="1500" ram="120M" managing_system="yes">
-		<binary name="init"/>
-		<route>
-			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
-			<service name="Timer">   <child name="timer"/> </service>
-			<service name="Capture"> <child name="nitpicker"/> </service>
-			<service name="Event">   <child name="nitpicker"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
++ default | caps: 100
 
-	<start name="nitpicker" ram="4M">
-		<provides>
-			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
-		</provides>
-		<config focus="rom">
-			<capture/> <event/>
-			<domain name="default" layer="1" width="1024" height="768"/>
-			<default-policy domain="default"/>
-		</config>
-		<route> <any-service> <parent/> <any-child/> </any-service> </route>
-	</start>
++ start timer | ram: 1M
+  + provides | + service Timer
 
-	<start name="gui_fb" ram="5M">
-		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-		<config/>
-		<route>
-			<service name="Gui"> <child name="nitpicker"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
++ start drivers | caps: 1500 | ram: 120M | managing_system: yes
+  + binary init
+  + route
+    + service ROM | label: config | + parent | label: drivers.config
+    + service Timer               | + child timer
+    + service Capture             | + child nitpicker
+    + service Event               | + child nitpicker
+    + any-service                 | + parent
 
-	<start name="test-fb_bench" ram="72M" caps="150">
-		<!--
-		  - We need this big amount of RAM because the VESA driver reports a
-		  - large buffer on some hardware and the test mirrors this buffer in
-		  - RAM.
-		  -->
-		<config/>
-	</start>
-</config>}
++ start nitpicker | ram: 4M
+  + provides
+    + service Gui
+    + service Capture
+    + service Event
+  + config | focus: rom
+    + capture
+    + event
+    + domain default | layer: 1 | width: 1024 | height: 768
+    + default-policy | domain: default
+  + route
+    + any-service
+      + parent
+      + any-child
+
++ start gui_fb | ram: 5M
+  + provides
+    + service Framebuffer
+    + service Input
+  + config
+  + route
+    + service Gui | + child nitpicker
+    + any-service
+      + parent
+      + any-child
+
++ start test-fb_bench | ram: 72M | caps: 150
+  .
+  . We need this big amount of RAM because the VESA driver reports a
+  . large buffer on some hardware and the test mirrors this buffer in
+  . RAM.
+  .
+  + config
+-
+}
 
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"gui_fb -> \" domain=\"default\"/>"
+puts $fd "focus | label: gui_fb -> | domain: default"
 close $fd
 
 build_boot_image [build_artifacts]
