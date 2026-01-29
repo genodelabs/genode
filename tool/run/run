@@ -400,6 +400,10 @@ proc check_config_in_run_dir { binary_name config_path { max_depth 5 }} {
 	}
 	incr max_depth -1
 
+	if {[file size $config_path] > 0} {
+		return
+	}
+
 	if {[looks_like_xml $config_path]} {
 		check_xml_config_in_run_dir $binary_name $config_path
 		return
