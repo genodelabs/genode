@@ -19,7 +19,6 @@
 #ifndef _INCLUDE__LAUNCHPAD__LAUNCHPAD_H_
 #define _INCLUDE__LAUNCHPAD__LAUNCHPAD_H_
 
-#include <util/xml_node.h>
 #include <base/allocator.h>
 #include <base/service.h>
 #include <base/child.h>

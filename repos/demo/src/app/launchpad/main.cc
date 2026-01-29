@@ -92,10 +92,10 @@ struct Main : Scout::Event_handler
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	int      const _initial_x = _config.xml().attribute_value("xpos",   550U);
-	int      const _initial_y = _config.xml().attribute_value("ypos",   150U);
-	unsigned const _initial_w = _config.xml().attribute_value("width",  400U);
-	unsigned const _initial_h = _config.xml().attribute_value("height", 400U);
+	int      const _initial_x = _config.node().attribute_value("xpos",   550U);
+	int      const _initial_y = _config.node().attribute_value("ypos",   150U);
+	unsigned const _initial_w = _config.node().attribute_value("width",  400U);
+	unsigned const _initial_h = _config.node().attribute_value("height", 400U);
 
 	Scout::Area  const _max_size         { 530, 620 };
 	Scout::Point const _initial_position { _initial_x, _initial_y };
