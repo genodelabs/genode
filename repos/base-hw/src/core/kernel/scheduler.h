@@ -148,7 +148,7 @@ class Kernel::Scheduler
 		};
 
 		static constexpr unsigned warp[Group_id::MAX + 1] {
-			4100, /* drivers    */
+			4500, /* drivers    */
 			4000, /* multimedia */
 			2000, /* apps       */
 			0,    /* background */
