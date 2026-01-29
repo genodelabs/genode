@@ -146,18 +146,31 @@ class Core::Platform_thread : Noncopyable
 		{
 			using Id = Kernel::Scheduler::Group_id;
 
-			enum { TOP_LEVEL_PRIO_HIGH = Cpu_session::PRIORITY_LIMIT / 2 };
+			enum {
+				TOP_LEVEL_PRIO_HIGH  = Cpu_session::PRIORITY_LIMIT / 2,
+				LOW_LEVEL_PRIO_ZERO  = 0x8 << 12,
+				LOW_LEVEL_PRIO_ONE   = 0x9 << 12,
+				LOW_LEVEL_PRIO_TWO   = 0xa << 12,
+				LOW_LEVEL_PRIO_THREE = 0xb << 12,
+				LOW_LEVEL_PRIO_FOUR  = 0xc << 12,
+			};
 
 			if (priority < TOP_LEVEL_PRIO_HIGH)
 				return Id::DRIVER;
 
-			switch (priority >> 12) {
-			case 0x8: return Id::MULTIMEDIA;
-			case 0x9: return Id::DRIVER;
-			case 0xa: return Id::MULTIMEDIA;
-			case 0xb: return Id::APP;
-			default:  return Id::BACKGROUND;
-			};
+			if (priority < LOW_LEVEL_PRIO_ONE)
+				return Id::MULTIMEDIA;
+
+			if (priority < LOW_LEVEL_PRIO_TWO)
+				return Id::DRIVER;
+
+			if (priority < LOW_LEVEL_PRIO_THREE)
+				return Id::MULTIMEDIA;
+
+			if (priority < LOW_LEVEL_PRIO_FOUR)
+				return Id::APP;
+
+			return Id::BACKGROUND;
 		}
 
 		Platform_pd_interface & _core_platform_pd();
