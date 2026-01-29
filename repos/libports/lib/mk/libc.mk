@@ -18,7 +18,7 @@ SRC_CC = atexit.cc dummies.cc rlimit.cc sysctl.cc \
          pread_pwrite.cc readv_writev.cc poll.cc \
          vfs_plugin.cc dynamic_linker.cc signal.cc \
          socket_operations.cc socket_fs_plugin.cc syscall.cc \
-         getpwent.cc getrandom.cc fork.cc execve.cc kernel.cc component.cc \
+         getpwent.cc getgrent.cc getrandom.cc fork.cc execve.cc kernel.cc component.cc \
          genode.cc spinlock.cc kqueue.cc call_func.cc socket_errno.cc
 
 #
