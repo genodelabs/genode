@@ -32,208 +32,182 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/usb_hid
 
 set config {
-	<config>
-		<parent-provides>
-			<service name="IRQ"/>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="PD"/>
-			<service name="CPU"/>
-			<service name="IO_MEM" />
-			<service name="IO_PORT" />
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+config
++ parent-provides
+  + service IRQ
+  + service ROM
+  + service LOG
+  + service RM
+  + service PD
+  + service CPU
+  + service IO_MEM
+  + service IO_PORT
 
-		<start name="timer" caps="100" ram="2M">
-			<provides><service name="Timer"/></provides>
-		</start>
++ default-route
+  + any-service
+    + parent
+    + any-child
 
-		<start name="drivers_reports" caps="100" ram="2M">
-			<binary name="report_rom"/>
-			<provides>
-				<service name="Report"/>
-				<service name="ROM"/>
-			</provides>
-			<config verbose="no">
-				<policy label="pci_decode -> system" report="acpi -> acpi"/>
-				<policy label="platform -> devices"  report="pci_decode -> devices"/>
-				<policy label="usb_hid -> report"    report="usb -> devices"/>
-			</config>
-		</start>
++ start timer | caps: 100 | ram: 2M
+  + provides
+    + service Timer
 
-		<start name="acpi" caps="350" ram="4M">
-			<route>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start drivers_reports | caps: 100 | ram: 2M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label: pci_decode -> system | report: acpi -> acpi
+    + policy | label: platform -> devices  | report: pci_decode -> devices
+    + policy | label: usb_hid -> report    | report: usb -> devices
 
-		<start name="pci_decode" caps="350" ram="2M">
-			<route>
-				<service name="ROM" label="system"> <child name="drivers_reports"/> </service>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start acpi | caps: 350 | ram: 4M
+  + route
+    + service Report | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-		<start name="platform" caps="400" managing_system="yes" ram="4M">
-			<provides>
-				<service name="Platform"/>
-			</provides>
-			<config>
-				<policy label_prefix="ps2"> <device name="ps2"/> </policy>
-				<policy label_prefix="usb" info="yes"> <pci class="USB"/> </policy>
-				<policy label_prefix="acpica"> <device name="acpi"/> </policy>
-			</config>
-			<route>
-				<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start pci_decode | caps: 350 | ram: 2M
+  + route
+    + service ROM | label: system | + child drivers_reports
+    + service Report              | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-		<start name="ps2" caps="100" ram="2M">
-			<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
-			<route>
-				<service name="Platform"> <child name="platform"/> </service>
-				<service name="Timer"> <child name="timer"/> </service>
-				<service name="Event"> <child name="event_filter" label="ps2"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start platform | caps: 400 | managing_system: yes | ram: 4M
+  + provides | + service Platform
+  + config
+  | + policy | label_prefix: ps2             | + device ps2
+  | + policy | label_prefix: usb | info: yes | + pci | class: USB
+  | + policy | label_prefix: acpica          | + device acpi
+  + route
+    + service ROM | label: devices | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-		<start name="usb" caps="200" ram="20M">
-			<binary name="pc_usb_host"/>
-			<provides> <service name="Usb"/> </provides>
-			<config bios_handoff="no">
-				<report devices="yes"/>
-				<policy label_prefix="usb_hid"><device class="0x3"/></policy>
-			</config>
-			<route>
-				<service name="Report"> <child name="drivers_reports"/> </service>
-				<any-service><parent/><any-child/></any-service>
-			</route>
-		</start>
++ start ps2 | caps: 100 | ram: 2M
+  + config | verbose_keyboard: no | verbose_mouse: no | verbose_scancodes: no
+  + route
+    + service Platform | + child platform
+    + service Timer    | + child timer
+    + service Event    | + child event_filter | label: ps2
+    + any-service      | + parent
 
-		<start name="usb_hid" caps="140" ram="10M">
-			<route>
-				<service name="ROM" label="report"> <child name="drivers_reports"/> </service>
-				<service name="Event"> <child name="event_filter" label="usb"/> </service>
-				<service name="Usb">   <child name="usb"/> </service>
-				<any-service><parent/><any-child/></any-service>
-			</route>
-		</start>
++ start usb | caps: 200 | ram: 20M
+  + binary pc_usb_host
+  + provides | + service Usb
+  + config | bios_handoff: no
+  | + report | devices: yes
+  | + policy | label_prefix: usb_hid
+  |   + device | class: 0x3
+  + route
+    + service Report | + child drivers_reports
+    + any-service
+      + parent
+      + any-child
 
-		<start name="event_filter" caps="100" ram="2M">
-			<provides> <service name="Event" /> </provides>
-			<config>
-				<output>
-					<merge>
-						<input name="ps2"/>
-						<input name="acpi"/>
-						<input name="usb"/>
-					</merge>
-				</output>
-				<policy label="ps2"  input="ps2"/>
-				<policy label="acpi" input="acpi"/>
-				<policy label="usb"  input="usb"/>
-			</config>
-			<route>
-				<service name="Event"> <child name="event_dump" /> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start usb_hid | caps: 140 | ram: 10M
+  + route
+    + service ROM | label: report | + child drivers_reports
+    + service Event               | + child event_filter | label: usb
+    + service Usb                 | + child usb
+    + any-service
+      + parent
+      + any-child
 
-		<start name="event_dump" caps="100" ram="1M">
-			<provides> <service name="Event"/> </provides>
-			<route>
-				<service name="Timer"> <child name="timer"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start event_filter | caps: 100 | ram: 2M
+  + provides | + service Event
+  + config
+  | + output
+  | | + merge
+  | |   + input ps2
+  | |   + input acpi
+  | |   + input usb
+  | + policy | label: ps2  | input: ps2
+  | + policy | label: acpi | input: acpi
+  | + policy | label: usb  | input: usb
+  + route
+    + service Event | + child event_dump
+    + any-service   | + parent
 
-		<start name="acpica" caps="400" ram="8M">
-			<config ld_verbose="yes" reset="yes" poweroff="yes" report="yes"
-			        report_period_ms="0" verbose="yes">
-			</config>
-			<route>
-				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
-				<service name="Report">  <child name="acpi_state"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
-			</route>
-		</start>
++ start event_dump | caps: 100 | ram: 1M
+  + provides | + service Event
+  + route
+    + service Timer | + child timer
+    + any-service   | + parent
 
-		<start name="acpi_state" caps="100" ram="2M">
-			<binary name="report_rom"/>
-			<provides>
-				<service name="ROM" />
-				<service name="Report" />
-			</provides>
-			<config verbose="yes">
-				<policy label="acpi_event -> acpi_ac"      report="acpica -> acpi_ac"/>
-				<policy label="acpi_event -> acpi_battery" report="acpica -> acpi_battery"/>
-				<policy label="acpi_event -> acpi_ec"      report="acpica -> acpi_ec"/>
-				<policy label="acpi_event -> acpi_fixed"   report="acpica -> acpi_fixed"/>
-				<policy label="acpi_event -> acpi_lid"     report="acpica -> acpi_lid"/>
-				<policy label="acpi_event -> acpi_hid"     report="acpica -> acpi_hid"/>
-			</config>
-			<route>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start acpica | caps: 400 | ram: 8M
+  + config
+  |        ld_verbose:       yes
+  |        reset:            yes
+  |        poweroff:         yes
+  |        report:           yes
+  |        report_period_ms: 0
+  |        verbose:          yes
+  + route
+    + service ROM | label: system | + child dynamic_rom
+    + service Report              | + child acpi_state
+    + any-service
+      + parent
+      + any-child
 
-		<start name="acpi_event" caps="100" ram="2M">
-			<config>
-				<!-- example mapping - adapt to your target notebook !!! -->
-				<!-- as="PRESS_RELEASE" is default if nothing specified -->
-				<map acpi="ec"      value="25"        to_key="KEY_VENDOR"/>
-				<map acpi="ec"      value="20"        to_key="KEY_BRIGHTNESSUP"/>
-				<map acpi="ec"      value="21"        to_key="KEY_BRIGHTNESSDOWN"/>
-				<map acpi="fixed"   value="0"         to_key="KEY_POWER" as="PRESS_RELEASE"/>
-				<map acpi="lid"     value="CLOSED"    to_key="KEY_SLEEP" as="PRESS_RELEASE"/>
-				<map acpi="lid"     value="OPEN"      to_key="KEY_SLEEP" as="PRESS_RELEASE"/>
-				<map acpi="ac"      value="ONLINE"    to_key="KEY_WAKEUP"/>
-				<map acpi="ac"      value="OFFLINE"   to_key="KEY_SLEEP"/>
-				<map acpi="battery" value="0"         to_key="KEY_BATTERY"/>
-				<map acpi="hid"     value="0x4000000" to_key="KEY_FN_F4"/>
-			</config>
-			<route>
-				<service name="ROM" label="acpi_ac">      <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_battery"> <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_ec">      <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_fixed">   <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_lid">     <child name="acpi_state"/> </service>
-				<service name="ROM" label="acpi_hid">     <child name="acpi_state"/> </service>
-				<service name="Event"> <child name="event_filter" label="acpi"/> </service>
-				<any-service> <parent/> </any-service>
-			</route>
-		</start>
++ start acpi_state | caps: 100 | ram: 2M
+  + binary report_rom
+  + provides
+    + service ROM
+    + service Report
+  + config | verbose: yes
+    + policy | label: acpi_event -> acpi_ac      | report: acpica -> acpi_ac
+    + policy | label: acpi_event -> acpi_battery | report: acpica -> acpi_battery
+    + policy | label: acpi_event -> acpi_ec      | report: acpica -> acpi_ec
+    + policy | label: acpi_event -> acpi_fixed   | report: acpica -> acpi_fixed
+    + policy | label: acpi_event -> acpi_lid     | report: acpica -> acpi_lid
+    + policy | label: acpi_event -> acpi_hid     | report: acpica -> acpi_hid
+  + route
+    + any-service
+      + parent
 
-		<start name="dynamic_rom" caps="100" ram="4M">
-			<provides><service name="ROM"/></provides>
-			<config verbose="yes">
-				<rom name="system">
-					<inline description="set system state to 'normal'">
-						<system state="normal"/>
-					</inline>
-					<sleep milliseconds="5000" />
-<!--
-					<inline description="set system state to 'reset'">
-						<system state="reset"/>
-					</inline>
-					<sleep milliseconds="5000" />
-					<inline description="set system state to 'poweroff'">
-						<system state="poweroff"/>
-					</inline>
-					<sleep milliseconds="500" />
--->
-				</rom>
-			</config>
-		</start>
++ start acpi_event | caps: 100 | ram: 2M
+  + config
+  | + map | acpi: ec | value: 25 | to_key: KEY_VENDOR
+  |   .
+  |   . example mapping - adapt to your target notebook !!!
+  |   . 145 is default if nothing specified
+  |   .
+  | + map | acpi: ec      | value: 20        | to_key: KEY_BRIGHTNESSUP
+  | + map | acpi: ec      | value: 21        | to_key: KEY_BRIGHTNESSDOWN
+  | + map | acpi: fixed   | value: 0         | to_key: KEY_POWER | as: PRESS_RELEASE
+  | + map | acpi: lid     | value: CLOSED    | to_key: KEY_SLEEP | as: PRESS_RELEASE
+  | + map | acpi: lid     | value: OPEN      | to_key: KEY_SLEEP | as: PRESS_RELEASE
+  | + map | acpi: ac      | value: ONLINE    | to_key: KEY_WAKEUP
+  | + map | acpi: ac      | value: OFFLINE   | to_key: KEY_SLEEP
+  | + map | acpi: battery | value: 0         | to_key: KEY_BATTERY
+  | + map | acpi: hid     | value: 0x4000000 | to_key: KEY_FN_F4
+  + route
+    + service ROM | label: acpi_ac      | + child acpi_state
+    + service ROM | label: acpi_battery | + child acpi_state
+    + service ROM | label: acpi_ec      | + child acpi_state
+    + service ROM | label: acpi_fixed   | + child acpi_state
+    + service ROM | label: acpi_lid     | + child acpi_state
+    + service ROM | label: acpi_hid     | + child acpi_state
+    + service Event                     | + child event_filter | label: acpi
+    + any-service                       | + parent
 
-	</config>
++ start dynamic_rom | caps: 100 | ram: 4M
+  + provides | + service ROM
+  + config | verbose: yes
+    + rom system
+      + inline | description:  set system state to 'normal'   | + system | state: normal
+      + sleep  | milliseconds: 5000
+      x inline | description:  set system state to 'reset'    | + system | state: reset
+      x sleep  | milliseconds: 5000
+      x inline | description:  set system state to 'poweroff' | + system | state: poweroff
+      x sleep  | milliseconds: 500
+-
 }
 
 install_config $config
