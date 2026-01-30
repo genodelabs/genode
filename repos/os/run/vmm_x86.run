@@ -91,52 +91,64 @@ build { core init timer lib/ld test/vmm_x86 }
 create_boot_directory
 
 install_config {
-<config verbose="yes" prio_levels="2">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="VM"/>
-	</parent-provides>
-	<default-route>
-		<service name="VM"> <parent/> </service>
-		<any-service><parent/><any-child/></any-service>
-	</default-route>
-	<default caps="100" ram="1M"/>
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="vmm" caps="2048" ram="256M" priority="-1">
-		<binary name="test-vmm_x86"/>
-	</start>
-</config>
+config | verbose: yes | prio_levels: 2
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+  + service VM
+
++ default-route
+  + service VM | + parent
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer
+  + provides | + service Timer
+
++ start vmm | caps: 2048 | ram: 256M | priority: -1
+  + binary test-vmm_x86
+-
 }
 
 #
 # Generate artificial platform info to allow for executing the scenario on
 # base-linux
 #
+proc platform_info_linux { } { return {
+platform_info
++ kernel nova
++ acpi | revision: 2 | rsdt: 0x2ffe20c5
++ affinity-space | width: 1 | height: 1
++ boot
++ hardware
+  + features | svm: true | vmx: true
+  + tsc | invariant: false | freq_khz: 2555589
+  + cpus
+    + cpu
+          id:       0
+          package:  0
+          core:     0
+          thread:   0
+          family:   0x10
+          model:    0x2
+          stepping: 0x3
+          platform: 0x0
+          patch:    0x0
+-
+} }
+
 if {[have_spec linux]} {
 	set fd [open [run_dir]/genode/platform_info w]
-		puts $fd {
-			<platform_info>
-				<kernel name="nova"/>
-				<acpi revision="2" rsdt="0x2ffe20c5"/>
-				<affinity-space width="1" height="1"/>
-				<boot/>
-				<hardware>
-					<features svm="true" vmx="true"/>
-					<tsc invariant="false" freq_khz="2555589"/>
-					<cpus>
-						<cpu id="0" package="0" core="0" thread="0" family="0x10" model="0x2" stepping="0x3" platform="0x0" patch="0x0"/>
-					</cpus>
-				</hardware>
-			</platform_info>}
+	puts $fd [platform_info_linux]
 	close $fd
 }
 
