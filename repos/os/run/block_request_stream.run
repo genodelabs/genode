@@ -27,7 +27,7 @@ install_config {
 
 	<start name="test-block_request_stream">
 		<provides><service name="Block"/></provides>
-		<config/>
+		<config block_size="4096" num_blocks="8388608"/>
 		<route> <any-service> <parent/> </any-service> </route>
 	</start>
 

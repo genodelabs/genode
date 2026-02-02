@@ -15,6 +15,7 @@
 #include <block/request_stream.h>
 #include <base/component.h>
 #include <base/attached_ram_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <root/root.h>
 
 namespace Test {
@@ -33,9 +34,6 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 {
 	Entrypoint &_ep;
 
-	static constexpr size_t BLOCK_SIZE = 4096;
-	static constexpr size_t NUM_BLOCKS = 16;
-
 	using Block::Request_stream::with_requests;
 	using Block::Request_stream::with_content;
 	using Block::Request_stream::try_acknowledge;
@@ -44,12 +42,14 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 	Block_session_component(Env::Local_rm            &rm,
 	                        Dataspace_capability      ds,
 	                        Entrypoint               &ep,
-	                        Signal_context_capability sigh)
+	                        Signal_context_capability sigh,
+	                        size_t const              block_size,
+	                        size_t const              num_blocks)
 	:
 		Request_stream(rm, ds, ep, sigh,
-		               Info { .block_size  = BLOCK_SIZE,
-		                      .block_count = NUM_BLOCKS,
-		                      .align_log2  = log2(BLOCK_SIZE, 0u),
+		               Info { .block_size  = block_size,
+		                      .block_count = num_blocks,
+		                      .align_log2  = log2(block_size, 0u),
 		                      .writeable   = true },
 		               Block::Constrained_view { .offset = 0,
 		                                         .num_blocks = 0,
@@ -150,6 +150,8 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 {
 	Env &_env;
 
+	Attached_rom_dataspace _config_rom { _env, "config" };
+
 	Constructible<Attached_ram_dataspace> _block_ds { };
 
 	Constructible<Block_session_component> _block_session { };
@@ -229,9 +231,14 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 			return Session_error::INSUFFICIENT_RAM;
 		}
 
+		size_t const block_size =
+			_config_rom.node().attribute_value("block_size", 4096ul);
+		size_t const num_blocks =
+			_config_rom.node().attribute_value("num_blocks", 16ul);
+
 		_block_ds.construct(_env.ram(), _env.rm(), ds_size);
 		_block_session.construct(_env.rm(), _block_ds->cap(), _env.ep(),
-		                         _request_handler);
+		                         _request_handler, block_size, num_blocks);
 
 		Session_capability cap = _block_session->cap();
 		return cap;
