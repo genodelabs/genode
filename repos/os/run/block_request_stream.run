@@ -3,57 +3,49 @@ build { core init timer lib/ld test/block_request_stream app/block_tester }
 create_boot_directory
 
 install_config {
-<config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-	</parent-provides>
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
 
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
++ default-route
+   + any-service
+     + parent 
+     + any-child
++ default       | caps: 100 | ram: 1M
 
-	<default caps="100" ram="1M"/>
++ start timer | + provides | + service Timer
 
-	<start name="timer">
-		<provides><service name="Timer"/></provides>
-	</start>
++ start test-block_request_stream
+  + provides | + service Block
+  + config   | block_size: 4096 | num_blocks: 8388608
+  + route    | + any-service | + parent
 
-	<start name="test-block_request_stream">
-		<provides><service name="Block"/></provides>
-		<config block_size="4096" num_blocks="8388608"/>
-		<route> <any-service> <parent/> </any-service> </route>
-	</start>
-
-	<start name="block_tester" ram="32M">
-		<config verbose="yes" report="no" log="yes" stop_on_error="no">
-			<tests>
-				<sequential copy="no" length="16M" size="4K"/>
-				<sequential copy="no" length="16M" size="8K"/>
-
-				<sequential copy="no" length="3G"  size="16K"  batch="32"/>
-				<sequential copy="no" length="15G" size="64K"  batch="32"/>
-				<sequential copy="no" length="30G" size="128K" batch="32"/>
-
-				<sequential copy="no" length="16M" size="4K"  write="yes"/>
-				<sequential copy="no" length="16M" size="64K" write="yes"/>
-
-				<!-- test client-side request splitting -->
-				<sequential copy="no" length="16M" size="512K" io_buffer="64K"/>
-			</tests>
-		</config>
-		<route>
-			<service name="Block"> <child name="test-block_request_stream"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-</config>}
++ start block_tester | ram: 32M
+  + config | verbose: yes | report: no | log: yes | stop_on_error: no
+  | + tests
+  |   + sequential | copy: no | length: 16M | size:   4K
+  |   + sequential | copy: no | length: 16M | size:   8K
+  |   + sequential | copy: no | length:  3G | size:  16K | batch: 32
+  |   + sequential | copy: no | length: 15G | size:  64K | batch: 32
+  |   + sequential | copy: no | length: 30G | size: 128K | batch: 32
+  |   + sequential | copy: no | length: 16M | size:   4K | write: yes
+  |   + sequential | copy: no | length: 16M | size:  64K | write: yes
+  |   + sequential | copy: no | length: 16M | size: 512K | io_buffer: 64K
+  |     . test client-side request splitting
+  + route
+    + service Block | + child test-block_request_stream
+    + any-service
+      + parent 
+      + any-child
+-
+}
 
 build_boot_image [build_artifacts]
 
