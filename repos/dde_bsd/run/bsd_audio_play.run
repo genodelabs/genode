@@ -1,0 +1,132 @@
+assert {[have_spec x86]}
+
+assert {![have_include power_on/qemu]}
+assert {![have_spec linux]}
+
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/acpi \
+                  [depot_user]/src/bsd_audio \
+                  [depot_user]/src/init \
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/platform \
+                  [depot_user]/src/record_play_mixer \
+                  [depot_user]/src/report_rom
+
+
+build { test/audio_play lib/vfs driver/audio/pci }
+
+install_config {
+config | verbose: yes | prio_levels: 4
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer | priority: 0
+  + provides | + service Timer
+
++ start report_rom | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: no
+    + policy | label:  pci_decode -> system | report: acpi -> acpi
+    + policy | label:  platform -> devices  | report: pci_decode -> devices
+
++ start acpi | caps: 350 | ram: 8M | priority: -1
+  + route
+    + service Report | + child report_rom
+    + any-service    | + parent
+
++ start pci_decode | caps: 350 | ram: 2M | priority: -1
+  + route
+    + service ROM    | label: system | + child report_rom
+    + service Report                 | + child report_rom
+    + any-service                    | + parent
+
++ start platform | caps: 100 | managing_system: yes | priority: -1
+  + provides | + service Platform
+  + route
+    + service ROM   | label: devices | + child report_rom
+    + service Timer                  | + child timer
+    + any-service                    | + parent
+  + config
+    + policy | label: audio ->
+      + pci | class: AUDIO
+      + pci | class: HDAUDIO
+
++ start audio_report_rom | ram: 2M
+  + binary report_rom
+  + provides
+    + service Report
+    + service ROM
+  + config | verbose: yes
+    + policy | label:  pci_decode -> system | report: acpi -> acpi
+    + policy | label:  platform -> devices  | report: pci_decode -> devices
+
++ start audio | caps: 150 | ram: 2M | priority: -1
+  + binary pci_audio
+  + provides
+    + service Audio_out
+    + service Audio_in
+  + config | report_mixer: yes | record_play: yes
+  + route
+    + service Report | + child audio_report_rom
+    + any-service
+      + parent
+      + any-child
+
++ start mixer | ram: 2M | priority: -1
+  + binary record_play_mixer
+  + provides
+    + service Record
+    + service Play
+  + config | jitter_ms: 10
+    + mix left  | + play | label_suffix: left
+    + mix right | + play | label_suffix: right
+    + policy | label_suffix: left  | record: left  | period_ms: 12 | jitter_ms: 5 | volume: 1.0
+    + policy | label_suffix: right | record: right | period_ms: 12 | jitter_ms: 5 | volume: 1.0
+  + route
+    + service Report | + child audio_report_rom
+    + any-service
+      + parent
+      + any-child
+
++ start test-audio_play | ram: 40M | priority: -2
+  + config | sample_path: sample.f32
+    + vfs
+      + rom sample.f32
+  + route
+    + any-service
+      + parent
+      + any-child
+-}
+
+#
+# Get sample file
+#
+
+if {![file exists bin/sample.f32]} {
+	puts ""
+	puts "The sample file is missing. Please take a look at"
+	puts "repos/dde_bsd/README, create 'sample.f32' and put"
+	puts "the file into './bin'. afterwards"
+	puts ""
+	exit 1
+}
+
+build_boot_image [list {*}[build_artifacts] sample.f32]
+
+run_genode_until forever
