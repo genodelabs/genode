@@ -1,0 +1,98 @@
+assert {[have_spec x86]}
+
+assert {![have_include power_on/qemu]}
+assert {![have_spec linux]}
+
+#
+# Import archives
+#
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/acpi \
+                  [depot_user]/src/bsd_audio \
+                  [depot_user]/src/init \
+                  [depot_user]/src/pci_decode \
+                  [depot_user]/src/platform \
+                  [depot_user]/src/record_play_mixer \
+                  [depot_user]/src/report_rom
+
+#
+# Build
+#
+
+build { driver/audio/pci }
+
+install_config {
+config
++ parent-provides
+  + service ROM
+  + service IRQ
+  + service IO_MEM
+  + service IO_PORT
+  + service PD
+  + service RM
+  + service CPU
+  + service LOG
+
++ default-route
+  + any-service
+    + parent
+    + any-child
+
++ default | caps: 100 | ram: 1M
+
++ start timer | + provides | + service Timer
+
++ start report_rom | ram: 2M
+  + provides
+    + service Report
+    + service ROM
+  + config
+    + policy | label: pci_decode -> system | report: acpi -> acpi
+    + policy | label: platform -> devices  | report: pci_decode -> devices
+
++ start acpi | caps: 350 | ram: 4M
+  + route
+    + service Report | + child report_rom
+    + any-service    | + parent
+
++ start pci_decode | caps: 350 | ram: 2M
+  + route
+    + service ROM    | label: system | + child report_rom
+    + service Report                 | + child report_rom
+    + any-service                    | + parent
+
++ start platform | caps: 100 | ram: 2M | managing_system: yes
+  + provides | + service Platform
+  + config
+    + policy | label: audio ->
+      + pci | class: AUDIO
+      + pci | class: HDAUDIO
+  + route
+    + service ROM   | label: devices | + child report_rom
+    + service Timer                  | + child timer
+    + any-service                    | + parent
+
++ start audio | caps: 150 | ram: 3M
+  + binary pci_audio
+  + config | report_mixer: yes | record_play: yes
+    + mixer | field: outputs.master        | value: 128
+    + mixer | field: record.adc-0:1_source | value: sel2
+    + mixer | field: record.adc-0:1        | value: 128
+    + mixer | field: record.enable         | value: on
+
++ start mixer | ram: 2M
+  + binary record_play_mixer
+  + provides
+    + service Record
+    + service Play
+  + config | jitter_ms: 10
+    + mix left  | + play | label_suffix: left
+    + mix right | + play | label_suffix: right
+    + policy | label_suffix: left  | record: left  | volume: 1.0
+    + policy | label_suffix: right | record: right | volume: 1.0
+-}
+
+build_boot_image [build_artifacts]
+
+run_genode_until forever
