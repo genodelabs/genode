@@ -210,8 +210,16 @@ endif
 #
 # Default rule: build all directories specified as make arguments
 #
-_all $(DST_DIRS) $(addprefix lib/,$(LIBS)) : gen_deps_and_build_targets
+_all $(DST_DIRS) $(addprefix lib/,$(LIBS)) : migrate_to_codeberg gen_deps_and_build_targets
 	@true
+
+#
+# Help migrating git remote URLs to Codeberg
+# 
+GIT_REPO_PATHS := $(sort $(foreach R,$(wildcard $(GENODE_DIR)/repos/*),$(shell git -C $(R) rev-parse --show-toplevel 2> /dev/null)))
+.PHONY: migrate_to_codeberg
+migrate_to_codeberg:
+	@test ! -e $(GENODE_DIR)/.git || $(GENODE_DIR)/tool/migrate_to_codeberg $(GIT_REPO_PATHS)
 
 ##
 ## First stage: generate library dependencies
