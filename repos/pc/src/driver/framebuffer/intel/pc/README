@@ -15,7 +15,8 @@ will be requested.
 By default, on hotplug of a display, the current config of the driver will be
 re-parsed and re-applied. This behaviour can be disabled by
 
-! <config apply_on_hotplug="no"/>
+! config | apply_on_hotplug: no
+! -
 
 Configuration
 ~~~~~~~~~~~~~
@@ -24,28 +25,58 @@ To present all available connectors and their possible resolutions to the user,
 the driver is able to deliver a corresponding report, which can be enabled
 in the configuration as follows:
 
-! <config>
-!   <report connectors="yes"/>
-! </config>
+! config
+! + report | connectors: yes
+! -
 
 The exported report has the following format:
 
-! <connectors>
-!   <merge name="mirror">
-!     <connector name="eDP-1" connected="true" brightness="50" width_mm="290" height_mm="170">
-!       <mode width="1920" height="1080" hz="60" id="1" preferred="true" used="true" width_mm="288" height_mm="165"/>
-!       ...
-!     </connector>
-!     <connector name="DP-1" connected="true" display_name="ACME 123" width_mm="280" height_mm="160">
-!       <mode width="1920" height="1200" hz="60" id="1" preferred="true" width_mm="280" height_mm="160"/>
-!       <mode width="1920" height="1080" hz="60" id="2" used="true" width_mm="278" height_mm="158"/>
-!       <mode width="1280" height="1024" hz="60" id="3"/>
-!       <mode width="1024" height="768"  hz="60" id="4"/>
-!       ...
-!     </connector>
-!     <connector name="HDMI-A-1" connected="false"/>
-!   </merge>
-! </connectors>
+! connectors
+! + merge mirror
+!   + connector eDP-1 | connected: yes | brightness: 50 | width_mm: 290 | height_mm: 170
+!   | + mode
+!   | |      width:     1920
+!   | |      height:    1080
+!   | |      hz:        60
+!   | |      id:        1
+!   | |      preferred: yes
+!   | |      used:      yes
+!   | |      width_mm:  288
+!   | |      height_mm: 165
+!
+!   ...
+!
+!   + connector DP-1 | connected: yes | display_name: ACME 123 | width_mm: 280 | height_mm: 160
+!   | + mode
+!   | |      width:     1920
+!   | |      height:    1200
+!   | |      hz:        60
+!   | |      id:        1
+!   | |      preferred: yes
+!   | |      width_mm:  280
+!   | |      height_mm: 160
+!   | + mode
+!   | |      width:     1920
+!   | |      height:    1080
+!   | |      hz:        60
+!   | |      id:        2
+!   | |      used:      yes
+!   | |      width_mm:  278
+!   | |      height_mm: 158
+!   | + mode
+!   | |      width:  1280
+!   | |      height: 1024
+!   | |      hz:     60
+!   | |      id:     3
+!   | + mode
+!   | |      width:  1024
+!   | |      height: 768
+!   | |      hz:     60
+!   | |      id:     4
+!
+!   ...
+!
+!   + connector HDMI-A-1 | connected: no
 
 If available, the EDID display name is reported via 'display_name'.
 The physical dimension of the display is reported as 'width_mm' and 'height_mm'
@@ -56,10 +87,10 @@ is tagged in the report explicitly.
 Each of the connectors can be configured a specific mode and
 whether it should be enabled or not. This looks like the following:
 
-! <config>
-!   <connector name="eDP-1" enabled="true" width="1920" height="1080" hz="60" brightness="75" rotate="0" flip="false"/>
-!   <connector name="DP-1"  enabled="true" mode="2"/>
-! </config>
+config
++ connector eDP-1 | enabled: yes | width: 1920 | height: 1080 | hz: 60 | brightness: 75 | rotate: 0 | flip: no
++ connector DP-1  | enabled: yes | mode:  2
+-
 
 The resolution can be configured exactly by setting the 'mode' attribute
 to one of the 'id' values of the reported modes or by setting the
@@ -75,17 +106,17 @@ value configured, otherwise the rotation and flipping is ignored.
 
 The maximal physical resolution across all connectors can be restricted by:
 
-! <config max_width="2560" max_height="1440">
-! </config>
+! config | max_width: 2560 | max_height: 1440
+! -
 
 Note: All larger modes still will be reported, but are marked as unusable
-      by an additional attribute 'usable' set to false.
+      by an additional attribute 'usable' set to 'no'.
 
 The amount of memory used by the driver for the accounting of its available
 buffer space is set by:
 
-! <config max_framebuffer_memory="64M">
-! </config>
+! config | max_framebuffer_memory: 64M
+! -
 
 The default and minimal value is '64M' and suffices for resolutions of at
 least '3840x2160'. How much actual memory is used depends on the configured
@@ -102,24 +133,13 @@ The driver will allocate the framebuffer large enough to accommodate all
 non-discrete connectors. If some of the modes of the connectors are smaller,
 than only a subset of the content will be visible on those displays.
 
-! <connectors>
-!
-!   <connector name="eDP-1" ...> <!-- discrete, not mirrored -->
-!      ...
-!   </connector>
-!   <connector name="DP-1" ...> <!.. discrete, not mirrored -->
-!      ...
-!   </connector>
-!
-!   <merge name="mirror">
-!     <connector name="HDMI-A-1" ...>
-!        ...
-!     </connector>
-!     <connector name="VGA--1" ...>
-!        ...
-!     </connector>
-!   </merge>
-! </connectors>
+! connectors
+! + connector eDP-1
+! + connector DP-1
+! + merge mirror
+!   + connector HDMI-A-1
+!   + connector VGA-1
+! -
 
 Note: If connectors are configured as non-discrete, they will also be
       reported inside a separate 'merge' node.
@@ -127,9 +147,7 @@ Note: If connectors are configured as non-discrete, they will also be
 Additionally, the virtual resolution for non-discrete connectors may be
 restricted via:
 
-! <merge name="mirror" width="1024" height="768">
-! ...
-! </merge>
+! + merge mirror | width: 1024 | height: 768
 
 Thereby, the driver will open a Genode capture session to the
 GUI multiplexer with this limited dimension.
