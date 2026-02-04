@@ -96,9 +96,18 @@ proc amt_reset_wsman { } {
 
 	close $fh
 
-	exec wsman invoke -a RequestPowerStateChange -J $xml_request \
-	                  "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService" \
-	                  --port 16992 -h [power_on_amt_host] --username admin -p [power_on_amt_password] -V -v
+	set use_tls [cmd_arg --wsman-tls "no"]
+
+	if { $use_tls == "yes" } {
+		exec wsman invoke -a RequestPowerStateChange -J $xml_request \
+		                  "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService" \
+		                   --https --endpoint https://admin:[power_on_amt_password]@[power_on_amt_host]:16993 \
+		                   --noverifypeer --noverifyhost
+	} else {
+		exec wsman invoke -a RequestPowerStateChange -J $xml_request \
+		                  "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_PowerManagementService" \
+		                  --port 16992 -h [power_on_amt_host] --username admin -p [power_on_amt_password] -V -v
+	}
 }
 
 

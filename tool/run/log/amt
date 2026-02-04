@@ -83,7 +83,14 @@ proc run_log { wait_for_re timeout_value } {
 		#
 		set ::env(AMT_PASSWORD) [log_amt_password]
 
-		set amt_cmd "amtterm -u admin -v [log_amt_host]"
+		set amtterm_cert ""
+		set use_tls [cmd_arg --amtterm-tls "no"]
+		if { $use_tls == "yes" } {
+			exec openssl s_client -connect [log_amt_host]:16993 < /dev/null 2> /dev/null | openssl x509 > [log_amt_host].cert
+			set amtterm_cert "-C [log_amt_host].cert"
+		}
+
+		set amt_cmd "amtterm $amtterm_cert -u admin -v [log_amt_host]"
 		set amt_log ".*session authentication"
 	}
 
