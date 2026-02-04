@@ -116,7 +116,7 @@ config | verbose: no
     + report | devices: yes
     + policy | label: nvme -> | + pci | class: NVME
 
-+ start nvme | caps: 120 | ram: 24M
++ start nvme | caps: 140 | ram: 24M
   + provides | + service Block
   + config | max_hmb_size: 16M | verbose_regs: yes | verbose_identify: yes
     + policy | label_prefix: block_tester | writeable: no
