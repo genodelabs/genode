@@ -224,7 +224,7 @@ class Usb::Urb_handler
 
 	protected:
 
-		enum { URB_ALLOC_GRANULARITY = 512 };
+		enum { URB_ALLOC_GRANULARITY = 4096 };
 
 		Packet_allocator             _alloc;
 		Packet_stream_tx::Client<Tx> _tx;

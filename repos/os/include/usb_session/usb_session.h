@@ -152,7 +152,7 @@ struct Usb::Device_session : Interface
 		using Tagged_packet::Tagged_packet;
 	};
 
-	enum { TX_QUEUE_SIZE = 8, TX_BUFFER_SIZE = 4096 };
+	enum { TX_QUEUE_SIZE = 8, TX_BUFFER_SIZE = 16384 };
 
 	using Tx_policy = Packet_stream_policy<Packet_descriptor,
 	                                       TX_QUEUE_SIZE, TX_QUEUE_SIZE, char>;
