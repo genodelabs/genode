@@ -1147,12 +1147,14 @@ proc check_against_hsd_file { hid hsd_file } {
 	global total_failed_checks
 	global path
 
+	set old_total_failed_checks $total_failed_checks
+
 	# validate .hsd schema file
 	set checking_path $hsd_file
 	set hsd_hid [import_hid [file_content $hsd_file]]
 	check_against_hsd_hid $hsd_hid [import_hid [hsd_schema]]
 
-	if {$total_failed_checks > 0} {
+	if {$total_failed_checks > $old_total_failed_checks} {
 		error "malformed schema file $hsd_file" }
 
 	# validate .hid file against schema defined in .hsd file
