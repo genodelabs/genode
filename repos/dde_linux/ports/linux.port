@@ -16,6 +16,7 @@ PATCH_FILES := \
                lxip_ip_config.patch \
                usb_net_cdc_ncm.patch \
                usb_net_pinephone.patch \
-               usb_net_smsc95xx.patch
+               usb_net_smsc95xx.patch \
+               workqueue_deadlock.patch
 
 PATCHES += $(addprefix patches/,$(PATCH_FILES))
