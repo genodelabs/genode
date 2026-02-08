@@ -277,11 +277,13 @@ bool Driver::pci_device_matches(Node const &policy, Device const &dev)
 		String<16> class_code = node.attribute_value("class", String<16>());
 		vendor_t   vendor_id  = node.attribute_value<vendor_t>("vendor_id", 0);
 		device_t   device_id  = node.attribute_value<device_t>("device_id", 0);
+		bool check_dev_vendor = node.has_attribute("vendor_id") &&
+		                        node.has_attribute("device_id");
 
 		dev.for_pci_config([&] (Device::Pci_config const &cfg)
 		{
 			if ((pci_class_code_alias(cfg.class_code) == class_code) ||
-			    (vendor_id == cfg.vendor_id && device_id == cfg.device_id))
+			    (check_dev_vendor && vendor_id == cfg.vendor_id && device_id == cfg.device_id))
 				ret = true;
 		});
 	});
