@@ -29,14 +29,9 @@ extern struct net init_net;
 void socketcall_init(void)
 {
 	int pid =
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,3,0)
-		kernel_thread(socketcall_task_function, NULL,
-		              CLONE_FS | CLONE_FILES);
-#else
 		kernel_thread(socketcall_task_function, NULL,
 		              "sockcall_task",
 		              CLONE_FS | CLONE_FILES);
-#endif
 	socketcall_task_struct_ptr = find_task_by_pid_ns(pid, NULL);
 }
 
@@ -101,11 +96,7 @@ int lx_sock_recvmsg(struct socket *sock, struct lx_msghdr *lx_msg,
 
 	msg->msg_name         = lx_msg->msg_name;
 	msg->msg_namelen      = lx_msg->msg_namelen;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
-	msg->msg_iter.iov     = iov;
-#else
 	msg->msg_iter.__iov   = iov;
-#endif
 	msg->msg_iter.nr_segs = iov_count;
 	msg->msg_iter.count   = iovlen;
 
@@ -155,11 +146,7 @@ int lx_sock_sendmsg(struct socket *sock, struct lx_msghdr* lx_msg,
 
 	msg->msg_name         = lx_msg->msg_name;
 	msg->msg_namelen      = lx_msg->msg_namelen;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0)
-	msg->msg_iter.iov     = iov;
-#else
 	msg->msg_iter.__iov   = iov;
-#endif
 	msg->msg_iter.nr_segs = iov_count;
 	msg->msg_iter.count   = iovlen;
 
@@ -201,7 +188,11 @@ unsigned char const* lx_get_mac_addr()
 	memset(mac_addr_buffer, 0, sizeof(mac_addr_buffer));
 	memset(&addr, 0, sizeof(addr));
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,16,0)
+	err = netif_get_mac_address(&addr, &init_net, "wlan0");
+#else
 	err = dev_get_mac_address(&addr, &init_net, "wlan0");
+#endif
 	if (err)
 		return NULL;
 

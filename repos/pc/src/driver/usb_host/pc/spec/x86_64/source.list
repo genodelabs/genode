@@ -67,6 +67,7 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
+kernel/time/sleep_timeout.c
 kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
@@ -80,7 +81,7 @@ kernel/time/timer_list.c
 kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/bitmap.c
-lib/crc32.c
+lib/crc/crc32-main.c
 lib/ctype.c
 lib/debug_locks.c
 lib/find_bit.c

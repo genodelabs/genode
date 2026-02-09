@@ -23,6 +23,8 @@
 
 #include "i915_drv.h"
 #include "display/intel_backlight.h"
+#include "display/intel_display_core.h"
+#include "display/intel_display_device.h"
 #include "display/intel_display_types.h"
 #include "display/intel_fb_pin.h"
 
@@ -1275,7 +1277,7 @@ static int user_register_fb(struct drm_client_dev const * const dev,
 	 */
 	unsigned min_alignment = intel_fb_min_alignment(fb);
 
-	*vma = intel_fb_pin_to_ggtt(fb, &view, min_alignment, 0, false, vma_flags);
+	*vma = intel_fb_pin_to_ggtt(fb, &view, min_alignment, 0, 0, false, vma_flags);
 
 	if (IS_ERR(*vma)) {
 		intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
@@ -1406,14 +1408,14 @@ static int check_resize_fb(struct drm_client_dev       * const dev,
 }
 
 
-void intel_fbdev_setup(struct drm_i915_private *i915)
+void intel_fbdev_setup(struct intel_display *display)
 {
-	struct drm_device *dev = &i915->drm;
+	struct drm_device *drm = display->drm;
 
-	if (drm_WARN_ON(dev, !HAS_DISPLAY(i915)))
+	if (drm_WARN_ON(drm, !HAS_DISPLAY(display)))
 		return;
 
-	register_drm_client(dev);
+	register_drm_client(drm);
 }
 
 

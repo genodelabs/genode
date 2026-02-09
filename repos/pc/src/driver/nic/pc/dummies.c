@@ -55,7 +55,7 @@ int proc_alloc_inum(unsigned int * inum)
 
 #include <linux/sysctl.h>
 
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name,size_t table_size)
+void __init __register_sysctl_init(const char * path, const struct ctl_table * table,const char * table_name,size_t table_size)
 {
 	lx_emul_trace(__func__);
 }
@@ -332,6 +332,15 @@ int request_firmware(const struct firmware ** firmware_p,const char * name,struc
 }
 
 
+#include <linux/firmware.h>
+
+int firmware_request_nowarn(const struct firmware ** firmware,const char * name,struct device * device)
+{
+	lx_emul_trace(__func__);
+	return -1;
+}
+
+
 #include <linux/net.h>
 
 int net_ratelimit(void)
@@ -398,3 +407,12 @@ int pinctrl_init_done(struct device * dev)
 #include <linux/async.h>
 
 void async_init(void) { }
+
+
+DEFINE_MUTEX(rps_default_mask_mutex);
+
+
+int __rtnl_register_many(const struct rtnl_msg_handler *handlers, int n)
+{
+	return 0;
+}

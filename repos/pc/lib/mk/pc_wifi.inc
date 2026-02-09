@@ -17,6 +17,8 @@ SRC_C   += $(notdir $(wildcard $(TARGET_LIB_DIR)/generated_dummies.c))
 SRC_C   += lx_emul/common_dummies.c
 SRC_C   += lx_emul/shadow/lib/kobject_uevent.c
 
+CC_C_OPT += -I$(LX_SRC_DIR)/lib/crypto/x86
+
 CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/intel/iwlwifi
 CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/realtek/rtlwifi
 CC_C_OPT += -I$(LX_SRC_DIR)/drivers/net/wireless/realtek/rtlwifi/rtl8188ee

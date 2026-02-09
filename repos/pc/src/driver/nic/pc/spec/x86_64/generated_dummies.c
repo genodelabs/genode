@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-30
+ * \date   2026-02-10
  */
 
 #include <lx_emul.h>
@@ -55,14 +55,6 @@ void __printk_deferred_enter(void)
 #include <linux/printk.h>
 
 void __printk_deferred_exit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -172,7 +164,7 @@ int bitmap_print_to_pagebuf(bool list,char * buf,const unsigned long * maskp,int
 
 #include <linux/filter.h>
 
-void bpf_warn_invalid_xdp_action(struct net_device * dev,struct bpf_prog * prog,u32 act)
+void bpf_warn_invalid_xdp_action(const struct net_device * dev,const struct bpf_prog * prog,u32 act)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -231,6 +223,38 @@ void cpu_latency_qos_remove_request(struct pm_qos_request * req)
 }
 
 
+#include <linux/cpu_rmap.h>
+
+int cpu_rmap_add(struct cpu_rmap * rmap,void * obj)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cpu_rmap.h>
+
+void cpu_rmap_get(struct cpu_rmap * rmap)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cpu_rmap.h>
+
+int cpu_rmap_put(struct cpu_rmap * rmap)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/cpu_rmap.h>
+
+int cpu_rmap_update(struct cpu_rmap * rmap,u16 index,const struct cpumask * affinity)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/cpumask.h>
 
 unsigned int cpumask_any_and_distribute(const struct cpumask * src1p,const struct cpumask * src2p)
@@ -255,17 +279,17 @@ __sum16 csum_ipv6_magic(const struct in6_addr * saddr,const struct in6_addr * da
 }
 
 
-#include <linux/property.h>
+#include <linux/netlink.h>
 
-int device_create_managed_software_node(struct device * dev,const struct property_entry * properties,const struct software_node * parent)
+void do_trace_netlink_extack(const char * msg)
 {
 	lx_emul_trace_and_stop(__func__);
 }
 
 
-#include <linux/netlink.h>
+#include <linux/mmdebug.h>
 
-void do_trace_netlink_extack(const char * msg)
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -433,14 +457,6 @@ int gnet_stats_copy_queue(struct gnet_dump * d,struct gnet_stats_queue __percpu 
 
 #include <linux/gpio/consumer.h>
 
-int gpiod_get_value_cansleep(const struct gpio_desc * desc)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/gpio/consumer.h>
-
 void gpiod_put(struct gpio_desc * desc)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -457,7 +473,7 @@ int gpiod_set_consumer_name(struct gpio_desc * desc,const char * name)
 
 #include <linux/gpio/consumer.h>
 
-void gpiod_set_value_cansleep(struct gpio_desc * desc,int value)
+int gpiod_set_value_cansleep(struct gpio_desc * desc,int value)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -503,6 +519,14 @@ int io_schedule_prepare(void)
 #include <linux/sched.h>
 
 long __sched io_schedule_timeout(long timeout)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+bool irq_work_queue(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -563,17 +587,9 @@ struct pernet_operations __net_initdata loopback_net_ops;
 unsigned long loops_per_jiffy;
 
 
-#include <linux/preempt.h>
+#include <asm-generic/logic_io.h>
 
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
+void memcpy_fromio(void * to,const volatile void __iomem * from,size_t n)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -627,6 +643,14 @@ int mii_nway_restart(struct mii_if_info * mii)
 }
 
 
+#include <linux/mman.h>
+
+void mm_compute_batch(int overcommit_policy)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 void nbcon_atomic_flush_unsafe(void)
@@ -664,6 +688,11 @@ void note_interrupt(struct irq_desc * desc,irqreturn_t action_ret)
 }
 
 
+#include <linux/printk.h>
+
+int oops_in_progress;	/* If set, an oops, panic(), BUG() or die() is in progress */
+
+
 #include <linux/reboot.h>
 
 enum reboot_mode panic_reboot_mode;
@@ -677,6 +706,14 @@ const struct kernel_param_ops param_ops_int;
 #include <linux/pci.h>
 
 void pci_clear_mwi(struct pci_dev * dev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+const struct cpumask * pci_irq_get_affinity(struct pci_dev * dev,int nr)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -762,6 +799,14 @@ int pcix_set_mmrbc(struct pci_dev * dev,int mmrbc)
 }
 
 
+#include <linux/percpu_counter.h>
+
+void percpu_counter_sync(struct percpu_counter * fbc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/phylib_stubs.h>
 
 const struct phylib_stubs *phylib_stubs;
@@ -793,6 +838,14 @@ unsigned long probe_irq_on(void)
 
 #include <linux/sysctl.h>
 
+int proc_dointvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
 int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -807,9 +860,9 @@ int proc_douintvec(const struct ctl_table * table,int write,void * buffer,size_t
 }
 
 
-#include <linux/proc_ns.h>
+#include <linux/sysctl.h>
 
-void proc_free_inum(unsigned int inum)
+int proc_doulongvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -884,6 +937,14 @@ struct net * rtnl_get_net_ns_capable(struct sock * sk,int netnsid)
 
 #include <linux/rtnetlink.h>
 
+int rtnl_lock_interruptible(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/rtnetlink.h>
+
 void rtnl_notify(struct sk_buff * skb,struct net * net,u32 pid,u32 group,const struct nlmsghdr * nlh,gfp_t flags)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -893,14 +954,6 @@ void rtnl_notify(struct sk_buff * skb,struct net * net,u32 pid,u32 group,const s
 #include <linux/rtnetlink.h>
 
 void rtnl_set_sk_err(struct net * net,u32 group,int error)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/rtnetlink.h>
-
-int rtnl_trylock(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -939,14 +992,6 @@ void set_rq_online(struct rq * rq)
 #include <linux/smp.h>
 
 unsigned int setup_max_cpus;
-
-
-#include <linux/sched/debug.h>
-
-void show_state_filter(unsigned int state_filter)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <net/sock.h>
@@ -1006,14 +1051,25 @@ bool static_key_initialized;
 int suppress_printk;
 
 
-#include <net/sock.h>
-
-int sysctl_tstamp_allow_data;
-
-
 #include <linux/sysctl.h>
 
 const int sysctl_vals[] = {};
+
+
+#include <linux/sysfs.h>
+
+struct kernfs_node * sysfs_break_active_protection(struct kobject * kobj,const struct attribute * attr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysfs.h>
+
+void sysfs_unbreak_active_protection(struct kernfs_node * kn)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/task_work.h>
@@ -1048,7 +1104,7 @@ void update_group_capacity(struct sched_domain * sd,int cpu)
 
 #include <linux/filter.h>
 
-int xdp_do_generic_redirect(struct net_device * dev,struct sk_buff * skb,struct xdp_buff * xdp,struct bpf_prog * xdp_prog)
+int xdp_do_generic_redirect(struct net_device * dev,struct sk_buff * skb,struct xdp_buff * xdp,const struct bpf_prog * xdp_prog)
 {
 	lx_emul_trace_and_stop(__func__);
 }

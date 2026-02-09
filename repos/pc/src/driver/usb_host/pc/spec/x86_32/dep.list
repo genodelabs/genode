@@ -1,6 +1,5 @@
 arch/x86/include/asm/checksum_32.h
 arch/x86/include/asm/cmpxchg_32.h
-arch/x86/include/asm/numa_32.h
 arch/x86/include/asm/page_32.h
 arch/x86/include/asm/page_32_types.h
 arch/x86/include/asm/pgtable-2level_types.h

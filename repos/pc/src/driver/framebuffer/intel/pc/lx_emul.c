@@ -78,7 +78,7 @@ int fb_get_options(const char * name,char ** option)
 
 pgprot_t pgprot_writecombine(pgprot_t prot)
 {
-	pgprot_t p = { .pgprot = 0 };
+	pgprot_t p = { .pgprot = _PAGE_CACHE_MODE_WC };
 	lx_emul_trace(__func__);
 	return p;
 }

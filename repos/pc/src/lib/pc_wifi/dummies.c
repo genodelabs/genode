@@ -65,14 +65,6 @@ void bpf_prog_change_xdp(struct bpf_prog *prev_prog, struct bpf_prog *prog)
 DEFINE_STATIC_KEY_FALSE(bpf_stats_enabled_key);
 
 
-#ifdef CONFIG_X86_32
-asmlinkage __wsum csum_partial(const void * buff,int len,__wsum sum)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-#endif /* CONFIG_X86_32 */
-
-
 #ifdef CONFIG_X86_64
 extern unsigned long arch_scale_cpu_capacity(int cpu);
 unsigned long arch_scale_cpu_capacity(int cpu)
@@ -172,7 +164,8 @@ void put_pid(struct pid * pid)
 
 #include <linux/filter.h>
 
-int sk_filter_trim_cap(struct sock * sk,struct sk_buff * skb,unsigned int cap)
+int sk_filter_trim_cap(struct sock * sk,struct sk_buff * skb,unsigned int cap,
+                       enum skb_drop_reason *reason)
 {
 	lx_emul_trace(__func__);
 	return 0;
@@ -510,7 +503,7 @@ void pcim_iounmap(struct pci_dev *pdev, void __iomem *addr)
 
 #include <linux/sysctl.h>
 
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,const char * table_name, size_t table_size)
+void __init __register_sysctl_init(const char * path, const struct ctl_table * table,const char * table_name, size_t table_size)
 {
 	lx_emul_trace(__func__);
 }
@@ -559,20 +552,6 @@ void cdev_init(struct cdev * cdev,const struct file_operations * fops)
 }
 
 
-#include <crypto/algapi.h>
-
-/*
- * For the moment implement here as the it will otherwise clash with
- * older kernel versions, 5.14.x on the PinePhone, where it is implmented
- * in 'crypto/algapi.c.
- */
-void __crypto_xor(u8 *dst, const u8 *src1, const u8 *src2, unsigned int len)
-{
-	while (len--)
-		*dst++ = *src1++ ^ *src2++;
-}
-
-
 #include <../drivers/net/wireless/intel/iwlwifi/iwl-trans.h>
 #include <../drivers/net/wireless/intel/iwlwifi/fw/uefi.h>
 
@@ -608,7 +587,10 @@ int iwl_uefi_handle_tlv_mem_desc(struct iwl_trans * trans,const u8 * data,u32 tl
 }
 
 
-int iwl_uefi_reduce_power_parse(struct iwl_trans * trans,const u8 * data,size_t len,struct iwl_pnvm_image * pnvm_data)
+int iwl_uefi_reduce_power_parse(struct iwl_trans *trans,
+                const u8 *data, size_t len,
+                struct iwl_pnvm_image *pnvm_data,
+                __le32 sku_id[3])
 {
 	return -ENOENT;
 }
@@ -625,6 +607,7 @@ int iwl_bios_get_ewrd_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
 int iwl_bios_get_ppag_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
 int iwl_bios_get_wgds_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
 int iwl_bios_get_wrds_table(struct iwl_fw_runtime *fwrt) { return -ENOENT; }
+int iwl_bios_get_dsbr(struct iwl_fw_runtime *fwrt, u32 *value) { return -ENOENT; }
 
 
 extern int iwl_fill_lari_config(struct iwl_fw_runtime * fwrt,struct iwl_lari_config_change_cmd * cmd,size_t * cmd_size);
@@ -700,13 +683,26 @@ bool iwl_puncturing_is_allowed_in_bios(u32 puncturing,u16 mcc)
 }
 
 
-extern int iwl_uefi_get_uats_table(struct iwl_trans * trans,struct iwl_fw_runtime * fwrt);
-int iwl_uefi_get_uats_table(struct iwl_trans * trans,struct iwl_fw_runtime * fwrt)
+extern void iwl_uefi_get_uats_table(struct iwl_trans * trans,struct iwl_fw_runtime * fwrt);
+void iwl_uefi_get_uats_table(struct iwl_trans * trans,struct iwl_fw_runtime * fwrt)
 {
 	lx_emul_trace(__func__);
-	return -1;
 }
 
+
+extern struct iwl_tas_selection_data iwl_parse_tas_selection(const u32 tas_selection_in,const u8 tbl_rev);
+struct iwl_tas_selection_data iwl_parse_tas_selection(const u32 tas_selection_in,const u8 tbl_rev)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+extern bool iwl_rfi_is_enabled_in_bios(struct iwl_fw_runtime * fwrt);
+bool iwl_rfi_is_enabled_in_bios(struct iwl_fw_runtime * fwrt)
+{
+	lx_emul_trace(__func__);
+	return false;
+}
 
 
 #include <linux/property.h>
@@ -927,18 +923,6 @@ void __init async_init(void)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree_rcu_barrier(void)
-{
-	/*
-	 * The way kvfree_call_rcu is currently implemented should make
-	 * this function just being a NOP workable (until it does not...).
-	 */
-	lx_emul_trace(__func__);
-}
-
-
 /*
  * Disable WBRF support at the stack layer because we do not
  * currently do not have a way to call ACPI.
@@ -993,6 +977,22 @@ struct callback_head * task_work_cancel_func(struct task_struct * task,task_work
 #include <linux/rcuwait.h>
 
 void finish_rcuwait(struct rcuwait * w)
+{
+	lx_emul_trace(__func__);
+}
+
+
+extern int cpu_has_xfeatures(u64 xfeatures_needed,const char ** feature_name);
+int cpu_has_xfeatures(u64 xfeatures_needed,const char ** feature_name)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+#include <net/scm.h>
+
+void scm_recv(struct socket * sock,struct msghdr * msg,struct scm_cookie * scm,int flags)
 {
 	lx_emul_trace(__func__);
 }

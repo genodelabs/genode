@@ -136,7 +136,9 @@ static void pci_add_single_device_callback(void       * data,
 		bus->bridge = &dev->dev;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,16,0)
 	dev->match_driver = false;
+#endif
 	if (device_add(&dev->dev)) {
 		list_del(&dev->bus_list);
 		kfree(dev);
@@ -146,7 +148,11 @@ static void pci_add_single_device_callback(void       * data,
 
 	lx_emul_execute_pci_fixup(dev);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,16,0)
 	dev->match_driver = true;
+#else
+	set_bit(7 /* PCI_DEV_ALLOW_BINDING */, &dev->priv_flags);
+#endif
 	if (device_attach(&dev->dev)) {
 		list_del(&dev->bus_list);
 		kfree(dev);

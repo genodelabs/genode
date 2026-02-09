@@ -1,0 +1,20 @@
+iwlwifi: limit rx bufs to 2048
+
+Recent devices are configured with 4096 RX pages that lead to an
+increased memory usage. For the moment lower the amount to 2048
+and treat in potientially lower throughput for more conservative
+memory consumption.
+
+--- src/linux/drivers/net/wireless/intel/iwlwifi/pcie/gen1_2/trans.c
++++ src/linux/drivers/net/wireless/intel/iwlwifi/pcie/gen1_2/trans.c
+@@ -4262,6 +4262,10 @@ int iwl_pci_gen1_2_probe(struct pci_dev *pdev,
+ 		trans_pcie->num_rx_bufs = RX_QUEUE_SIZE;
+ 	}
+ 
++	/* limit some recent cards that use 4096 */
++	if (trans_pcie->num_rx_bufs > 2048)
++		trans_pcie->num_rx_bufs = 2048;
++
+ 	if (!iwl_trans->mac_cfg->integrated) {
+ 		u16 link_status;
+ 

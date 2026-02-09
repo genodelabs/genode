@@ -189,6 +189,20 @@ void __iomem * const * pcim_iomap_table(struct pci_dev * pdev)
 }
 
 
+void __iomem * pcim_iomap_region(struct pci_dev * pdev,int bar,const char * name)
+{
+	unsigned long const *table;
+
+	/* misuse 'pcim_iomap_table()' for querying I/O mem */
+	table = (unsigned long const *)pcim_iomap_table(pdev);
+
+	if (table[bar])
+		return (void*)table[bar];
+
+	return NULL;
+}
+
+
 int pci_select_bars(struct pci_dev *dev, unsigned long flags)
 {
 	int bars = 0;

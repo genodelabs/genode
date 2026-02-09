@@ -1,7 +1,7 @@
 /*
  * \brief  Dummy definitions of Linux Kernel functions
  * \author Automatically generated file - do no edit
- * \date   2025-06-27
+ * \date   2026-02-09
  */
 
 #include <lx_emul.h>
@@ -20,6 +20,22 @@ int ___ratelimit(struct ratelimit_state * rs,const char * func)
 struct cpumask __cpu_active_mask;
 
 
+#include <linux/dma-mapping.h>
+
+void __dma_sync_sg_for_cpu(struct device * dev,struct scatterlist * sg,int nelems,enum dma_data_direction dir)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/dma-mapping.h>
+
+void __dma_sync_sg_for_device(struct device * dev,struct scatterlist * sg,int nelems,enum dma_data_direction dir)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 void __printk_deferred_enter(void)
@@ -31,14 +47,6 @@ void __printk_deferred_enter(void)
 #include <linux/printk.h>
 
 void __printk_deferred_exit(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/mm.h>
-
-void __show_mem(unsigned int filter,nodemask_t * nodemask,int max_zone_idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -173,6 +181,14 @@ int device_create_managed_software_node(struct device * dev,const struct propert
 #include <linux/dma-mapping.h>
 
 int dma_mmap_attrs(struct device * dev,struct vm_area_struct * vma,void * cpu_addr,dma_addr_t dma_addr,size_t size,unsigned long attrs)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/mmdebug.h>
+
+void dump_page(const struct page * page,const char * reason)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -326,7 +342,23 @@ void iommu_device_unuse_default_domain(struct device * dev)
 
 #include <linux/irq_work.h>
 
+bool irq_work_queue(struct irq_work * work)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
 bool irq_work_queue_on(struct irq_work * work,int cpu)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/irq_work.h>
+
+void irq_work_sync(struct irq_work * work)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -377,30 +409,14 @@ int kobject_synth_uevent(struct kobject * kobj,const char * buf,size_t count)
 }
 
 
-#include <linux/rcutree.h>
-
-void kvfree_rcu_barrier(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/delay.h>
 
 unsigned long loops_per_jiffy;
 
 
-#include <linux/preempt.h>
+#include <linux/mman.h>
 
-void migrate_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/preempt.h>
-
-void migrate_enable(void)
+void mm_compute_batch(int overcommit_policy)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -443,6 +459,11 @@ void note_interrupt(struct irq_desc * desc,irqreturn_t action_ret)
 }
 
 
+#include <linux/printk.h>
+
+int oops_in_progress;	/* If set, an oops, panic(), BUG() or die() is in progress */
+
+
 #include <linux/reboot.h>
 
 enum reboot_mode panic_reboot_mode;
@@ -451,6 +472,14 @@ enum reboot_mode panic_reboot_mode;
 #include <linux/moduleparam.h>
 
 int param_set_copystring(const char * val,const struct kernel_param * kp)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
+void pci_clear_and_set_config_dword(const struct pci_dev * dev,int pos,u32 clear,u32 set)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -474,6 +503,14 @@ struct pci_dev * pci_get_slot(struct pci_bus * bus,unsigned int devfn)
 
 #include <linux/pci.h>
 
+const struct cpumask * pci_irq_get_affinity(struct pci_dev * dev,int nr)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/pci.h>
+
 int pci_set_power_state(struct pci_dev * dev,pci_power_t state)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -488,9 +525,25 @@ int pci_write_config_dword(const struct pci_dev * dev,int where,u32 val)
 }
 
 
+#include <linux/percpu_counter.h>
+
+void percpu_counter_sync(struct percpu_counter * fbc)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
 #include <linux/printk.h>
 
 void printk_legacy_allow_panic_sync(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+int proc_dointvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -507,6 +560,14 @@ int proc_dointvec_minmax(const struct ctl_table * table,int write,void * buffer,
 #include <linux/sysctl.h>
 
 int proc_douintvec(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+
+
+#include <linux/sysctl.h>
+
+int proc_doulongvec_minmax(const struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -574,14 +635,6 @@ void set_rq_online(struct rq * rq)
 unsigned int setup_max_cpus;
 
 
-#include <linux/sched/debug.h>
-
-void show_state_filter(unsigned int state_filter)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/smp.h>
 
 void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,void * info,bool wait)
@@ -614,6 +667,14 @@ bool static_key_initialized;
 #include <linux/printk.h>
 
 int suppress_printk;
+
+
+#include <linux/rcupdate.h>
+
+void synchronize_rcu(void)
+{
+	lx_emul_trace_and_stop(__func__);
+}
 
 
 #include <linux/sysctl.h>
@@ -686,3 +747,4 @@ void update_group_capacity(struct sched_domain * sd,int cpu)
 #include <linux/uuid.h>
 
 const u8 uuid_index[16] = {};
+

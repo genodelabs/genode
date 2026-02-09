@@ -58,6 +58,7 @@ include/linux/usb/otg.h
 include/linux/usb/phy.h
 include/linux/usb/quirks.h
 include/linux/usb/typec.h
+include/linux/usb/xhci-sideband.h
 include/linux/usbdevice_fs.h
 include/net/eee.h
 include/net/netmem.h

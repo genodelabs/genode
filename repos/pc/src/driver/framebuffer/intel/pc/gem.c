@@ -20,6 +20,8 @@
 #include "../drivers/gpu/drm/i915/i915_file_private.h"
 #include "intel_clock_gating.h"
 
+#include <i915/display/intel_display_core.h>
+
 
 int i915_gem_object_unbind(struct drm_i915_gem_object *obj,
 			   unsigned long flags)
@@ -227,6 +229,29 @@ new_vma:
 	return vma;
 }
 
+struct i915_vma * __must_check
+i915_gem_object_ggtt_pin(struct drm_i915_gem_object *obj,
+                         const struct i915_gtt_view *view,
+                         u64 size, u64 alignment, u64 flags)
+{
+	struct i915_gem_ww_ctx ww;
+	struct i915_vma *ret;
+	int err;
+
+	for_i915_gem_ww(&ww, err, true) {
+		err = i915_gem_object_lock(obj, &ww);
+		if (err)
+			continue;
+
+		ret = i915_gem_object_ggtt_pin_ww(obj, &ww, view, size,
+		                                  alignment, flags);
+		if (IS_ERR(ret))
+			err = PTR_ERR(ret);
+	}
+
+	return err ? ERR_PTR(err) : ret;
+}
+
 int i915_gem_init(struct drm_i915_private *dev_priv)
 {
 	struct intel_gt *gt;
@@ -370,7 +395,7 @@ void i915_gem_init_early(struct drm_i915_private *dev_priv)
 	i915_gem_init__contexts(dev_priv);
 */
 
-	spin_lock_init(&dev_priv->display.fb_tracking.lock);
+	spin_lock_init(&dev_priv->display->fb_tracking.lock);
 
 	/*
 	 * Used by resource_size() check in shmem_get_pages in

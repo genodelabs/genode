@@ -4,7 +4,7 @@ MIRROR_FROM_REP_DIR := src/driver/framebuffer/intel/pc \
 
 content: $(MIRROR_FROM_REP_DIR)
 
-PORT_DIR := $(call port_dir,$(GENODE_DIR)/repos/dde_linux/ports/legacy_linux)
+PORT_DIR := $(call port_dir,$(GENODE_DIR)/repos/dde_linux/ports/linux)
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)

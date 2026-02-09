@@ -81,14 +81,6 @@ int __printk_ratelimit(const char * func)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct_rcu_cb(struct rcu_head * rhp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/skbuff.h>
 
 void __skb_get_hash_net(const struct net * net,struct sk_buff * skb)

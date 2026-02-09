@@ -150,3 +150,17 @@ void __put_task_struct(struct task_struct *tsk)
 	kfree(tsk->cred);
 	kfree(tsk);
 }
+
+
+/*
+ * FIXME Artifical guard to prevent any potential fall-out
+ *       with components still using older Linux versions.
+ */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,18,0)
+void __put_task_struct_rcu_cb(struct rcu_head *rhp)
+{
+	struct task_struct *task = container_of(rhp, struct task_struct, rcu);
+
+	__put_task_struct(task);
+}
+#endif

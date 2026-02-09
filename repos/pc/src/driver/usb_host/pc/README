@@ -8,13 +8,12 @@ It can report the configuration it currently has, as well as a report
 of all USB devices it has currently recognized. Both reports can be enabled
 separatly via the config node of the driver:
 
-! <start name="usb_host" ram="10M">
-!   <binary name="pc_usb_host"/>
-!   <provides><service name="Usb"/></provides>
-!   <config>
-!      <report config="yes" devices="yes"/>
-!   </config>
-! </start>
+!+ start usb_host | ram: 10M
+!  + binary pc_usb_host
+!  + provides | + service Usb
+!  + config
+!    + report | config: yes | devices: yes
+!-
 
 The devices report contains most relevant information about an USB device,
 beside of its product/vendor information, it also contains information
@@ -22,38 +21,50 @@ about configurations, interface, and endpoints available.
 
 Example report:
 
-! <devices>
-!   <device name="usb-2-2" speed="full" vendor_id="0x4e6" product_id="0x5116" class="0x0">
-!     <config active="true" value="0x1">
-!       <interface active="true" number="0x0" alt_setting="0x0" class="0xb" subclass="0x0" protocol="0x0">
-!         <endpoint address="0x83" attributes="0x3" max_packet_size="0x8"/>
-!         <endpoint address="0x5" attributes="0x2" max_packet_size="0x40"/>
-!         <endpoint address="0x84" attributes="0x2" max_packet_size="0x40"/>
-!       </interface>
-!     </config>
-!   </device>
-!   <device name="usb-3-1" speed="super" vendor_id="0x1d6b" product_id="0x3" class="0x9">
-!     <config active="true" value="0x1">
-!       <interface active="true" number="0x0" alt_setting="0x0" class="0x9" subclass="0x0" protocol="0x0">
-!         <endpoint address="0x81" attributes="0x3" max_packet_size="0x4"/>
-!       </interface>
-!     </config>
-!   </device>
-!   <device name="usb-2-1" speed="high" vendor_id="0x1d6b" product_id="0x2" class="0x9">
-!     <config active="true" value="0x1">
-!       <interface active="true" number="0x0" alt_setting="0x0" class="0x9" subclass="0x0" protocol="0x0">
-!         <endpoint address="0x81" attributes="0x3" max_packet_size="0x4"/>
-!       </interface>
-!     </config>
-!   </device>
-!   <device name="usb-1-1" speed="high" vendor_id="0x1d6b" product_id="0x2" class="0x9">
-!     <config active="true" value="0x1">
-!       <interface active="true" number="0x0" alt_setting="0x0" class="0x9" subclass="0x0" protocol="0x0">
-!         <endpoint address="0x81" attributes="0x3" max_packet_size="0x4"/>
-!       </interface>
-!     </config>
-!   </device>
-! </devices>
+!+ devices
+!  + device usb-2-2 | speed: full | vendor_id: 0x4e6 | product_id: 0x5116 | class: 0x0
+!    + config | active: true | value: 0x1
+!      + interface
+!        | active:      true
+!        | number:      0x0
+!        | alt_setting: 0x0
+!        | class:       0xb
+!        | subclass:    0x0
+!        | protocol:    0x0
+!        + endpoint | address: 0x83 | attributes: 0x3 | max_packet_size: 0x8
+!        + endpoint | address: 0x5  | attributes: 0x2 | max_packet_size: 0x40
+!        + endpoint | address: 0x84 | attributes: 0x2 | max_packet_size: 0x40
+!  + device usb-3-1 | speed: super | vendor_id: 0x1d6b | product_id: 0x3 | class: 0x9
+!    + config | active: true | value: 0x1
+!      + interface
+!        | active:      true
+!        | number:      0x0
+!        | alt_setting: 0x0
+!        | class:       0x9
+!        | subclass:    0x0
+!        | protocol:    0x0
+!        + endpoint | address: 0x81 | attributes: 0x3 | max_packet_size: 0x4
+!  + device usb-2-1 | speed: high | vendor_id: 0x1d6b | product_id: 0x2 | class: 0x9
+!    + config | active: true | value: 0x1
+!      + interface
+!        | active:      true
+!        | number:      0x0
+!        | alt_setting: 0x0
+!        | class:       0x9
+!        | subclass:    0x0
+!        | protocol:    0x0
+!        + endpoint | address: 0x81 | attributes: 0x3 | max_packet_size: 0x4
+!  + device usb-1-1 | speed: high | vendor_id: 0x1d6b | product_id: 0x2 | class: 0x9
+!    + config | active: true | value: 0x1
+!      + interface
+!        | active:      true
+!        | number:      0x0
+!        | alt_setting: 0x0
+!        | class:       0x9
+!        | subclass:    0x0
+!        | protocol:    0x0
+!        + endpoint | address: 0x81 | attributes: 0x3 | max_packet_size: 0x4
+!-
 
 An USB device can get assigned to a client request via policy nodes
 within the configuration of the USB host controller driver. One can
@@ -61,17 +72,17 @@ assign devices based on their name, a vendor-product-tuple, or by
 defining the class-value for all USB device interfaces that matches
 that class. Here are some examples:
 
-! <start name="usb_host" ram="10M">
-!   <binary name="pc_usb_host"/>
-!   <provides><service name="Usb"/></provides>
-!   <config>
-!      <policy label="usb_hid -> ">   <device class="0x3"/>    </policy>
-!      <policy label="usb_block -> "> <device name="usb-1-2"/> </policy>
-!      <policy label="usb_net -> ">
-!        <device vendor_id="0x0b95" product_id="0x1790"/>
-!      </policy>
-!   </config>
-! </start>
+!+ start usb_host | ram: 10M
+!  + binary pc_usb_host
+!  + provides | + service Usb
+!  + config
+!    + policy | label: usb_hid ->
+!      + device | class: 0x3
+!    + policy | label: usb_block ->
+!      + device usb-1-2
+!    + policy | label: usb_net ->
+!      + device | vendor_id: 0x0b95 | product_id: 0x1790
+!-
 
 Currently, if an USB device is assigned to more than one client, only the first client
 that acquires it gains access to the device. Once the device got acquired, it vanishs
@@ -90,4 +101,4 @@ operations and consequently the hand off may fail after noticeably long
 timeouts. Therefore, the hand off can be disabled in the USB driver
 configuration like follows.
 
-! <config bios_handoff="no"/>
+!+ config | bios_handoff: no -

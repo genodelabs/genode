@@ -45,12 +45,20 @@ void * dma_pool_alloc(struct dma_pool * pool, gfp_t mem_flags, dma_addr_t * hand
 	return ret;
 }
 
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+struct dma_pool * dma_pool_create_node(const char * name,
+                                       struct device * dev,
+                                       size_t size,
+                                       size_t align,
+                                       size_t boundary,
+                                       int node)
+#else
 struct dma_pool * dma_pool_create(const char * name,
                                   struct device * dev,
                                   size_t size,
                                   size_t align,
                                   size_t boundary)
+#endif
 {
 	struct dma_pool * pool = kzalloc(sizeof(struct dma_pool), GFP_KERNEL);
 	if (!pool)
