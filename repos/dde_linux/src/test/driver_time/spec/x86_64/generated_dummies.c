@@ -36,14 +36,6 @@ void __printk_deferred_exit(void)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct_rcu_cb(struct rcu_head * rhp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 extern noinline const char * _parse_integer_fixup_radix(const char * s,unsigned int * base);
 noinline const char * _parse_integer_fixup_radix(const char * s,unsigned int * base)
 {

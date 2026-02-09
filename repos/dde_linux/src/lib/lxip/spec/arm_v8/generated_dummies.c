@@ -86,14 +86,6 @@ void __put_cred(struct cred * cred)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct_rcu_cb(struct rcu_head * rhp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/sock.h>
 
 void __sock_recv_cmsgs(struct msghdr * msg,struct sock * sk,struct sk_buff * skb)

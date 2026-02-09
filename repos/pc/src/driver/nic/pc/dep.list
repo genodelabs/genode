@@ -6,7 +6,6 @@ arch/x86/include/asm/cmpxchg_64.h
 arch/x86/include/asm/irq_stack.h
 arch/x86/include/asm/kaslr.h
 arch/x86/include/asm/nospec-branch.h
-arch/x86/include/asm/numa_32.h
 arch/x86/include/asm/page_32.h
 arch/x86/include/asm/page_32_types.h
 arch/x86/include/asm/page_64_types.h
@@ -39,8 +38,8 @@ drivers/net/ethernet/intel/e1000e/phy.h
 drivers/net/ethernet/intel/e1000e/regs.h
 drivers/net/ethernet/realtek/r8169.h
 drivers/net/ethernet/realtek/r8169_firmware.h
-drivers/net/phy/mdio-boardinfo.h
 drivers/net/phy/mdio-open-alliance.h
+drivers/net/phy/realtek/realtek.h
 drivers/net/phy/swphy.h
 include/asm-generic/asm-prototypes.h
 include/asm-generic/bitops/fls64.h

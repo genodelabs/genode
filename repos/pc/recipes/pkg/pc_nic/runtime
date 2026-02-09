@@ -1,10 +1,6 @@
-<runtime ram="16M" caps="300" binary="pc_nic">
-
-	<config/>
-
-	<content>
-		<rom label="ld.lib.so"/>
-		<rom label="pc_nic"/>
-	</content>
-
-</runtime>
+runtime | ram: 16M | caps: 300 | binary: pc_nic
++ config
++ content
+  + rom | label: ld.lib.so
+  + rom | label: pc_nic
+-

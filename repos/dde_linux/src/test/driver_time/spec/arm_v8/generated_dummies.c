@@ -49,14 +49,6 @@ void __printk_deferred_exit(void)
 }
 
 
-#include <linux/sched/task.h>
-
-void __put_task_struct_rcu_cb(struct rcu_head * rhp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/printk.h>
 
 int _printk_deferred(const char * fmt,...)

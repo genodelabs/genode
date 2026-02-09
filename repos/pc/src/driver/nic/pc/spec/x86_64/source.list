@@ -33,16 +33,17 @@ drivers/net/ethernet/realtek/r8169_main.c
 drivers/net/ethernet/realtek/r8169_phy_config.c
 drivers/net/phy/fixed_phy.c
 drivers/net/phy/linkmode.c
-drivers/net/phy/mdio-boardinfo.c
 drivers/net/phy/mdio_bus.c
+drivers/net/phy/mdio_bus_provider.c
 drivers/net/phy/mdio_device.c
 drivers/net/phy/mdio_devres.c
 drivers/net/phy/phy-c45.c
 drivers/net/phy/phy-core.c
 drivers/net/phy/phy.c
+drivers/net/phy/phy_caps.c
 drivers/net/phy/phy_device.c
 drivers/net/phy/phy_link_topology.c
-drivers/net/phy/realtek.c
+drivers/net/phy/realtek/realtek_main.c
 drivers/net/phy/swphy.c
 drivers/pci/pci-driver.c
 kernel/irq/chip.c
@@ -57,6 +58,8 @@ kernel/locking/mutex.c
 kernel/locking/osq_lock.c
 kernel/locking/rwsem.c
 kernel/notifier.c
+kernel/nscommon.c
+kernel/nstree.c
 kernel/panic.c
 kernel/resource.c
 kernel/sched/build_utility.c
@@ -67,6 +70,7 @@ kernel/time/clocksource.c
 kernel/time/hrtimer.c
 kernel/time/jiffies.c
 kernel/time/ntp.c
+kernel/time/sleep_timeout.c
 kernel/time/tick-broadcast.c
 kernel/time/tick-common.c
 kernel/time/tick-oneshot.c
@@ -80,7 +84,7 @@ kernel/time/timer_list.c
 kernel/time/timer_migration.c
 kernel/workqueue.c
 lib/bitmap.c
-lib/crc32.c
+lib/crc/crc32-main.c
 lib/ctype.c
 lib/debug_locks.c
 lib/dec_and_lock.c
@@ -118,6 +122,7 @@ mm/util.c
 mm/util.c
 net/core/datagram.c
 net/core/dev.c
+net/core/dev_api.c
 net/core/dev_addr_lists.c
 net/core/gro.c
 net/core/hotdata.c
