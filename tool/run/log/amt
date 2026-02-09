@@ -86,7 +86,12 @@ proc run_log { wait_for_re timeout_value } {
 		set amtterm_cert ""
 		set use_tls [cmd_arg --amtterm-tls "no"]
 		if { $use_tls == "yes" } {
-			exec openssl s_client -connect [log_amt_host]:16993 < /dev/null 2> /dev/null | openssl x509 > [log_amt_host].cert
+			if {![file exists [log_amt_host].cert] || [file size [log_amt_host].cert] == "0"} {
+				puts "Warning: machine cerificate [log_amt_host].cert required."
+				puts "         Use 'openssl(1)' to acquire the cerificate and place it in your build directory, .e.g:"
+				puts "  openssl s_client -connect [log_amt_host]:16993 < /dev/null 2> /dev/null | openssl x509 > [log_amt_host].cert"
+				return false
+			}
 			set amtterm_cert "-C [log_amt_host].cert"
 		}
 
