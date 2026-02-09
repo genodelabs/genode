@@ -163,7 +163,7 @@ int usb_acpi_port_lpm_incapable(struct usb_device * hdev,int index)
 
 #include <linux/sysctl.h>
 
-void __init __register_sysctl_init(const char * path,struct ctl_table * table,
+void __init __register_sysctl_init(const char * path, const struct ctl_table * table,
                                    const char * table_name, size_t table_size)
 {
 	lx_emul_trace(__func__);

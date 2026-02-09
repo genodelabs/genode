@@ -136,7 +136,6 @@ static void pci_add_single_device_callback(void       * data,
 		bus->bridge = &dev->dev;
 	}
 
-	dev->match_driver = false;
 	if (device_add(&dev->dev)) {
 		list_del(&dev->bus_list);
 		kfree(dev);
@@ -146,7 +145,7 @@ static void pci_add_single_device_callback(void       * data,
 
 	lx_emul_execute_pci_fixup(dev);
 
-	dev->match_driver = true;
+	set_bit(7 /* PCI_DEV_ALLOW_BINDING */, &dev->priv_flags);
 	if (device_attach(&dev->dev)) {
 		list_del(&dev->bus_list);
 		kfree(dev);

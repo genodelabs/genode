@@ -418,9 +418,9 @@ void synchronize_srcu(struct srcu_struct * ssp)
 
 
 #ifdef CONFIG_X86_64
-DEFINE_PER_CPU(void *, hardirq_stack_ptr);
+DEFINE_PER_CPU_CACHE_HOT(struct irq_stack*, hardirq_stack_ptr);
 #endif
-DEFINE_PER_CPU(bool, hardirq_stack_inuse);
+DEFINE_PER_CPU_CACHE_HOT(bool, hardirq_stack_inuse);
 
 
 #include <asm/processor.h>
@@ -492,7 +492,7 @@ int __cold execute_with_initialized_rng(struct notifier_block * nb)
 
 #include <linux/sysctl.h>
 
-struct ctl_table_header *register_sysctl_sz(const char *path, struct ctl_table *table,
+struct ctl_table_header *register_sysctl_sz(const char *path, const struct ctl_table *table,
                                             size_t table_size)
 {
 	lx_emul_trace(__func__);
@@ -504,4 +504,40 @@ struct ctl_table_header *register_sysctl_sz(const char *path, struct ctl_table *
 void __dl_server_attach_root(struct sched_dl_entity *dl_se, struct rq *rq)
 {
 	lx_emul_trace_and_stop(__func__);
+}
+
+
+void sys_info(unsigned long si_mask)
+{
+	lx_emul_trace(__func__);
+}
+
+
+void __vma_start_write(struct vm_area_struct *vma, unsigned int mm_lock_seq)
+{
+	lx_emul_trace(__func__);
+}
+
+
+int irq_poll_cpu;
+
+
+unsigned long sys_info_parse_param(char *str)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+int sysctl_sys_info_handler(const struct ctl_table *ro_table, int write,
+                      void *buffer, size_t *lenp, loff_t *ppos)
+{
+	lx_emul_trace(__func__);
+	return 0;
+}
+
+
+void ___migrate_enable(void)
+{
+	lx_emul_trace(__func__);
 }
