@@ -248,7 +248,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 			init_fd(node, "stdin",  0, O_RDONLY);
 			init_fd(node, "stdout", 1, O_WRONLY);
-			init_fd(node, "stderr", 2, O_WRONLY);
+			init_fd(node, "stderr", 2, O_RDWR);
 
 			node.for_each_sub_node("fd", [&] (Node const &fd) {
 
